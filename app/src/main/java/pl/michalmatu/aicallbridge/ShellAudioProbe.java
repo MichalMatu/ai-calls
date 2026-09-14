@@ -33,7 +33,7 @@ public final class ShellAudioProbe {
             Looper.prepare();
         }
 
-        System.out.println("probe=shell-audio-v2");
+        System.out.println("probe=shell-audio-v3");
         System.out.println("uid=" + Process.myUid());
         System.out.println("pid=" + Process.myPid());
 
@@ -70,6 +70,10 @@ public final class ShellAudioProbe {
         } catch (Throwable error) {
             printError("system_context_or_audio_manager", error);
         }
+
+        System.out.flush();
+        System.err.flush();
+        System.exit(0);
     }
 
     private static void probeRecordSource(String label, int source) {
