@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 class MainActivity : Activity() {
@@ -16,8 +17,9 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         statusView = TextView(this).apply {
-            text = "Milestone 0: no audio backend selected"
-            textSize = 16f
+            text = "Milestone 0.5: device capability probe ready"
+            textSize = 15f
+            setTextIsSelectable(true)
         }
 
         val requestMicButton = Button(this).apply {
@@ -25,17 +27,22 @@ class MainActivity : Activity() {
             setOnClickListener { requestMicrophonePermissionIfNeeded() }
         }
 
+        val capabilityProbeButton = Button(this).apply {
+            text = "Run device capability probe"
+            setOnClickListener { runCapabilityProbe() }
+        }
+
         val probeCaptureButton = Button(this).apply {
             text = "Probe call downlink capture"
             setOnClickListener {
-                statusView.text = "Capture probe backend not implemented yet. Next task: Phase 1A."
+                statusView.text = "Capture backend not implemented yet. Capability probe comes first."
             }
         }
 
         val probeInjectionButton = Button(this).apply {
             text = "Probe call uplink injection"
             setOnClickListener {
-                statusView.text = "Injection probe backend not implemented yet. Next task: Phase 1B."
+                statusView.text = "Injection backend not implemented yet. Capability probe comes first."
             }
         }
 
@@ -43,8 +50,7 @@ class MainActivity : Activity() {
             text = "TAKE OVER / STOP AI AUDIO"
             isAllCaps = true
             setOnClickListener {
-                // This will become the highest-priority stop path once an injector exists.
-                statusView.text = "Takeover requested. No injector is active in Milestone 0."
+                statusView.text = "Takeover requested. No injector is active in Milestone 0.5."
             }
         }
 
@@ -55,20 +61,43 @@ class MainActivity : Activity() {
                 text = "Android AI Call Bridge"
                 textSize = 24f
             })
+            addView(requestMicButton)
+            addView(capabilityProbeButton)
+            addView(probeCaptureButton)
+            addView(probeInjectionButton)
+            addView(takeoverButton)
             addView(
                 statusView,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { topMargin = 32 },
+                ).apply { topMargin = 24 },
             )
-            addView(requestMicButton)
-            addView(probeCaptureButton)
-            addView(probeInjectionButton)
-            addView(takeoverButton)
         }
 
-        setContentView(content)
+        setContentView(
+            ScrollView(this).apply {
+                addView(
+                    content,
+                    ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+            },
+        )
+
+        if (intent.getBooleanExtra(EXTRA_RUN_CAPABILITY_PROBE, false)) {
+            runCapabilityProbe()
+        }
+    }
+
+    private fun runCapabilityProbe() {
+        statusView.text = try {
+            CapabilityProbe(this).run()
+        } catch (error: Throwable) {
+            "Capability probe failed: ${error.javaClass.simpleName}: ${error.message}"
+        }
     }
 
     private fun requestMicrophonePermissionIfNeeded() {
@@ -99,5 +128,6 @@ class MainActivity : Activity() {
 
     private companion object {
         const val REQUEST_RECORD_AUDIO = 1001
+        const val EXTRA_RUN_CAPABILITY_PROBE = "run_probe"
     }
 }
