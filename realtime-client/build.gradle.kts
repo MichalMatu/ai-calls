@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "pl.michalmatu.aicallbridge.realtime"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 29
