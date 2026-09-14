@@ -1,0 +1,28 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# macOS
+.DS_Store
+
+# Secrets
+.env
+.env.*
+secrets.properties
+*.jks
+*.keystore
+
+# Runtime artifacts
+*.pcm
+*.wav
+*.raw
+*.log
