@@ -22,6 +22,8 @@ The user must be able to take over the call immediately at any time.
 - `PROVEN_S22` — reproduced on the target S22+ with logged metadata and a repeatable test.
 - `PRODUCT_READY` — proven, stable, fail-safe, and acceptable for normal use.
 
+For media-direction claims, `PROVEN_S22` requires the physical two-phone test. Constructor success, permissions, device enumeration, and routing requests are capability evidence only.
+
 Do not promote an item because a similar Samsung feature exists. Vendor functionality is evidence that a path exists internally, not proof that a third-party process can access it.
 
 ## Phase 0 — Repository and test discipline
@@ -33,46 +35,66 @@ Deliverables:
 - CI build;
 - explicit capture/injection interfaces;
 - physical two-phone test protocol;
-- separation of ordinary app code from privileged experiments.
+- separation of ordinary app code from privileged experiments;
+- Superpowers-based development workflow and durable implementation-plan convention.
 
 Exit gate: repository builds and hypotheses are clearly separated from proven behavior.
 
 ## Phase 0.5 — Device capability probe
 
-Status: `NEXT`
+Status: `BASELINE COMPLETE / LIVE-CALL ITEMS PENDING`
 
-Build a small diagnostic component before implementing a real audio backend.
+The first capability probe was run on the physical target S22+ on 2026-09-14. Durable evidence is stored in `S22_BASELINE_2026-09-14.md`.
 
-Collect:
-- device model, Android version, One UI version, build fingerprint;
-- current process UID and Shizuku/shell availability;
-- relevant permission checks;
-- audio input/output device list;
-- presence of `TYPE_TELEPHONY` output;
-- available audio source initialization results;
-- active route during a cellular call;
-- call state metadata needed for reproducible tests;
-- Samsung call/telephony packages and capabilities that can be observed without relying on private contracts.
+Already reproduced on this target build:
 
-No AI and no continuous recording in this phase.
+- model/build/Android/One UI identity;
+- shell UID 2000 execution;
+- shell permission grants for `CAPTURE_AUDIO_OUTPUT`, `MODIFY_AUDIO_ROUTING`, and `MODIFY_PHONE_STATE`;
+- `TYPE_TELEPHONY` sink and source device presence;
+- shell initialization of `VOICE_CALL`, `VOICE_DOWNLINK`, and `VOICE_UPLINK`;
+- normal-app inability to create those protected call sources.
 
-Exit gate: one reproducible capability report from the target S22+.
+Observed while **no cellular call was active**:
+
+- `AudioTrack` construction targeting telephony failed for both `USAGE_MEDIA` and `USAGE_VOICE_COMMUNICATION` attempts.
+
+This is not a negative Phase 1B verdict because the in-call telephony route may only be openable while a real cellular call is active.
+
+Still pending from the Phase 0.5/Phase 1 boundary:
+
+- active-call downlink start/read/data proof;
+- active-call telephony TX construction/routing;
+- Shizuku UserService onboarding/end-to-end reproduction after raw shell behavior is known.
+
+Pause reason: a dedicated test SIM/number is not yet available.
+
+Exit gate for baseline capability inventory: **met**.
+
+Live-media gates remain Phase 1A/1B.
 
 ## Phase 1A — Digital cellular downlink capture
+
+Status: `READY FOR LIVE TEST / BLOCKED ON TEST SIM`
 
 Primary path:
 
 ```text
 Shizuku UserService / shell
-  -> scrcpy-style direct audio capture
-  -> VOICE_DOWNLINK / voice-call-downlink
+  -> VOICE_DOWNLINK / scrcpy-style direct capture
   -> raw PCM pipe
   -> app process
 ```
 
 Prefer remote-only downlink over a mixed `VOICE_CALL` stream. Remote-only PCM avoids feeding local microphone audio and AI output back into the model.
 
-Test routes:
+Current target-device evidence:
+
+- shell can initialize `VOICE_DOWNLINK` off-call;
+- `TYPE_TELEPHONY` source is exposed;
+- actual in-call remote PCM has not yet been read/verified.
+
+Test routes after base pass:
 - earpiece;
 - speakerphone;
 - screen on/off;
@@ -83,20 +105,34 @@ Exit gate: remote speech is present digitally in PCM on the S22+, with no acoust
 
 ## Phase 1B — Generic cellular uplink injection
 
-First experiment:
+Status: `READY FOR LIVE TEST / BLOCKED ON TEST SIM`
+
+First live-call experiment:
 
 ```text
 shell/privileged process
-  -> AudioTrack
+  -> AudioTrack (USAGE_MEDIA first)
   -> TYPE_TELEPHONY preferred output
   -> cellular uplink
 ```
 
+`USAGE_MEDIA` is now the primary candidate because the external AgentCall project reports a physically qualified Telephony TX route with that usage on another privileged Android device. `USAGE_VOICE_COMMUNICATION` remains a comparison candidate based on BCP-style precedent.
+
+Current target-device evidence:
+
+- `TYPE_TELEPHONY` sink is exposed;
+- shell has the relevant protected permission grants;
+- off-call `AudioTrack` creation failed for both tested usages;
+- no active-call construction/routing attempt has yet been made;
+- no remote audible injection has yet been tested.
+
 Inject only a deterministic local PCM sample. Do not connect OpenAI yet.
 
 Measure:
-- whether `TYPE_TELEPHONY` exists;
+- whether track construction succeeds in-call;
 - whether `setPreferredDevice()` succeeds;
+- actual routed device if available;
+- full write count and playback-head progress;
 - whether the remote phone actually receives the injected audio;
 - interaction with microphone mute/unmute;
 - stop and immediate abort behavior.
@@ -105,7 +141,7 @@ Exit gate: second phone clearly hears injected PCM without acoustic playback.
 
 ## Phase 1C — Samsung-specific injection research
 
-Run only if Phase 1B fails.
+Run only if Phase 1B fails **during an active call** with reproducible evidence.
 
 Research the class of mechanisms used by Samsung call features such as Text Call and InCallUI. Treat firmware services, Binder interfaces, hidden APIs, vendor audio policy, and privileged permissions as implementation-specific research targets, not stable APIs.
 
@@ -113,11 +149,14 @@ Rules:
 - isolate Samsung-specific code behind one backend;
 - do not patch the OS for the primary path;
 - document exact privilege requirements;
-- do not infer accessibility from the existence of a Samsung feature.
+- do not infer accessibility from the existence of a Samsung feature;
+- do not start Phase 1C merely because the off-call `AudioTrack` constructor failed.
 
 Exit gate: either a repeatable stock-firmware injection path is proven, or the cellular path is declared blocked under the current no-root constraints.
 
 ## Phase 2 — Stable local bridge
+
+Status: `BLOCKED ON PHASE 1A + 1B/1C`
 
 Connect proven capture and injection backends without AI.
 
@@ -215,4 +254,10 @@ Termux is not a primary architecture. It may be useful as an experimental enviro
 
 ## Current decision
 
-The next implementation task is **Phase 0.5: Device Capability Probe**. Do not start Realtime integration, a custom dialer, or generalized UI work before Phase 1A and Phase 1B/1C have settled the cellular media path.
+Do not implement additional AI/product layers now.
+
+The repository is intentionally paused at the physical live-call gate until a dedicated SIM is available. Resume from:
+
+`docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`
+
+The first live action is bounded `VOICE_DOWNLINK` capture during a real call. The second is deterministic `USAGE_MEDIA -> TYPE_TELEPHONY` injection during the same class of call. Only physical remote/local evidence can advance Phase 1.
