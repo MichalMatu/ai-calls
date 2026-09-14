@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
@@ -33,7 +34,7 @@ public final class ShellAudioProbe {
             Looper.prepare();
         }
 
-        System.out.println("probe=shell-audio-v3");
+        System.out.println("probe=shell-audio-v4");
         System.out.println("uid=" + Process.myUid());
         System.out.println("pid=" + Process.myPid());
 
@@ -43,6 +44,10 @@ public final class ShellAudioProbe {
 
         try {
             Context context = systemContext();
+            printPermission(context, "CAPTURE_AUDIO_OUTPUT", "android.permission.CAPTURE_AUDIO_OUTPUT");
+            printPermission(context, "MODIFY_AUDIO_ROUTING", "android.permission.MODIFY_AUDIO_ROUTING");
+            printPermission(context, "MODIFY_PHONE_STATE", "android.permission.MODIFY_PHONE_STATE");
+
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             System.out.println("audio_mode=" + audioManager.getMode());
 
@@ -66,7 +71,18 @@ public final class ShellAudioProbe {
             }
             System.out.println("telephony_sink_present=" + (telephonySink != null));
             System.out.println("telephony_source_present=" + (telephonySource != null));
-            probeTelephonyTrack(telephonySink);
+            probeTelephonyTrack(
+                "MEDIA_MUSIC",
+                telephonySink,
+                AudioAttributes.USAGE_MEDIA,
+                AudioAttributes.CONTENT_TYPE_MUSIC
+            );
+            probeTelephonyTrack(
+                "VOICE_COMMUNICATION",
+                telephonySink,
+                AudioAttributes.USAGE_VOICE_COMMUNICATION,
+                AudioAttributes.CONTENT_TYPE_SPEECH
+            );
         } catch (Throwable error) {
             printError("system_context_or_audio_manager", error);
         }
@@ -74,6 +90,14 @@ public final class ShellAudioProbe {
         System.out.flush();
         System.err.flush();
         System.exit(0);
+    }
+
+    private static void printPermission(Context context, String label, String permission) {
+        int result = context.checkPermission(permission, Process.myPid(), Process.myUid());
+        System.out.println(
+            "permission_" + label + "="
+                + (result == PackageManager.PERMISSION_GRANTED ? "granted" : "denied")
+        );
     }
 
     private static void probeRecordSource(String label, int source) {
@@ -111,9 +135,14 @@ public final class ShellAudioProbe {
         }
     }
 
-    private static void probeTelephonyTrack(AudioDeviceInfo telephonySink) {
+    private static void probeTelephonyTrack(
+        String label,
+        AudioDeviceInfo telephonySink,
+        int usage,
+        int contentType
+    ) {
         if (telephonySink == null) {
-            System.out.println("track_telephony=skipped:no_sink");
+            System.out.println("track_" + label + "=skipped:no_sink");
             return;
         }
 
@@ -124,8 +153,8 @@ public final class ShellAudioProbe {
             track = new AudioTrack.Builder()
                 .setAudioAttributes(
                     new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .setUsage(usage)
+                        .setContentType(contentType)
                         .build()
                 )
                 .setAudioFormat(
@@ -141,13 +170,14 @@ public final class ShellAudioProbe {
 
             boolean preferred = track.setPreferredDevice(telephonySink);
             System.out.println(
-                "track_telephony=state:" + track.getState()
+                "track_" + label
+                    + "=state:" + track.getState()
                     + ",preferred_set:" + preferred
                     + ",preferred_id:" + (track.getPreferredDevice() == null ? -1 : track.getPreferredDevice().getId())
                     + ",buffer:" + bufferSize
             );
         } catch (Throwable error) {
-            printError("track_telephony", error);
+            printError("track_" + label, error);
         } finally {
             if (track != null) {
                 try {
