@@ -1,136 +1,304 @@
 # Implementation Plan
 
-## Phase 0 — Repository bootstrap
+This implementation plan follows the evidence gates in `ROADMAP.md`. The project must not advance because an API exists or another device supports a feature; it advances only after the target Samsung Galaxy S22+ passes the relevant physical test.
 
-Goal: create a clean architecture and define the proof gates before writing device-specific code.
+## Phase 0 — Bootstrap
 
-Deliverables:
-- repository structure;
-- architecture document;
-- Android/audio research notes;
-- repeatable S22+ physical test protocol;
-- minimal Kotlin interfaces for capture, injection and realtime transport.
+Status: complete.
 
-Exit condition: repository documents make it impossible to confuse a hypothesis with a proven capability.
+Existing deliverables:
+- modular Android project;
+- CI build on Android 16 API 36;
+- capture and injection interfaces;
+- realtime transport abstraction;
+- physical two-phone PoC protocol;
+- isolated privileged-helper area.
 
-## Phase 1 — Cellular audio proof of concept
+## Phase 0.5 — Device Capability Probe
 
-This phase deliberately contains **no AI**.
+This is the next implementation task.
 
-### 1A. Downlink capture
+Build a small diagnostic layer that can run checks in both the normal app process and a Shizuku UserService/shell process.
 
-Build the smallest APK that can be launched during a normal cellular call and attempt each viable backend independently.
+### 0.5A — Normal-process probe
 
-For every backend record:
-- Android version / One UI version;
-- phone model and build number;
-- required permissions;
-- whether the remote party is present in captured PCM;
-- whether local microphone audio is also mixed in;
-- sample rate/channel count;
-- whether Bluetooth/speaker/earpiece routing changes the result;
-- whether the approach survives screen-off and a 10-minute call.
+Collect:
+- device/build metadata;
+- Android/One UI version where obtainable through supported properties/APIs;
+- current audio devices;
+- active communication route;
+- call-state metadata available without becoming the default dialer;
+- Shizuku installed/running/authorization state.
 
-A backend passes only when a generated recording can be inspected and the remote party is clearly present without relying on acoustic speaker-to-microphone pickup.
+### 0.5B — Shell-process probe
 
-### 1B. Uplink injection
+Through Shizuku UserService record:
+- effective UID;
+- relevant permission checks;
+- audio input/output device visibility;
+- initialization/start result for `VOICE_DOWNLINK`, `VOICE_UPLINK`, `VOICE_CALL`, and a control source;
+- whether `TYPE_TELEPHONY` output exists;
+- whether a test `AudioTrack` can request that preferred device.
 
-Do not connect a microphone or model yet. Feed a known generated test tone / spoken PCM sample into the proposed injection path.
+No AI, no long recording and no Samsung private API calls in this phase.
 
-Use a second phone as the remote endpoint and verify that the remote phone hears the injected signal through the cellular call.
+### Exit condition
 
-Test:
-- earpiece route;
-- speaker route;
-- wired/USB route if available;
-- Bluetooth route only if relevant;
-- repeated start/stop;
-- interruption by the user's real microphone.
+Save one reproducible capability report with exact S22+ firmware metadata. Use its results to select Phase 1 experiments.
 
-### Phase 1 gate
+## Phase 1A — Prove cellular downlink capture
 
-Proceed only when both are proven independently:
+Primary implementation candidate:
 
-- `remote caller -> app PCM`
-- `app PCM -> remote caller`
+```text
+Shizuku UserService / shell
+  -> scrcpy-derived/direct voice-call-downlink capture
+  -> RAW PCM
+  -> ParcelFileDescriptor pipe
+  -> app-side diagnostic consumer
+```
 
-If only capture works, keep the result but do **not** start realtime integration.
+Prefer `VOICE_DOWNLINK` rather than mixed `VOICE_CALL` whenever the target firmware supports it.
+
+### Implementation tasks
+
+- add Shizuku dependency and permission/onboarding only as needed for the experiment;
+- create minimal shell helper lifecycle;
+- create capture pipe and return its read end to the app;
+- start a direct capture source in the privileged process;
+- use raw PCM first to avoid codec/muxer complexity;
+- save at most a short opt-in diagnostic WAV/PCM sample for analysis;
+- log format, route, source and privilege metadata.
+
+Do not copy GPL implementation code from ShizuCallRecorder. It is a research reference. If scrcpy server code is reused/derived, preserve its Apache 2.0 license obligations and attribution.
+
+### Test gate
+
+Use the second phone and deterministic phrase from `POC_AUDIO_TEST_PLAN.md`.
+
+Pass only if remote speech is digitally present without acoustic speaker pickup.
+
+## Phase 1B — Prove generic cellular uplink injection
+
+This is the highest-risk generic Android gate.
+
+### Minimal experiment
+
+In the privileged helper:
+
+1. enumerate output devices;
+2. locate `AudioDeviceInfo.TYPE_TELEPHONY`;
+3. create `AudioTrack` using voice-communication usage;
+4. request the telephony device with `setPreferredDevice()`;
+5. feed a deterministic locally generated mono PCM sample;
+6. verify on the second phone that the sample is heard through the cellular call;
+7. stop immediately and restore the normal call path.
+
+Do not connect a microphone or model.
+
+### Required observations
+
+Record:
+- device presence;
+- route-request result;
+- actual routed-device information if available;
+- audio write errors;
+- remote audible result;
+- microphone mute/unmute interaction;
+- cleanup behavior after repeated start/stop.
+
+### Exit condition
+
+The second phone receives the injected digital sample. API success without remote audio is a failure.
+
+## Phase 1C — Samsung-specific injection research
+
+Run only if Phase 1B fails.
+
+The objective is not to clone Samsung Phone. The objective is to determine whether stock firmware exposes a privilege-bounded software-to-call route that our helper can access.
+
+Research areas:
+- Samsung InCallUI and telephony package metadata;
+- vendor audio policy and available audio devices;
+- relevant Binder/system services;
+- hidden Android APIs;
+- permissions used by Samsung call features;
+- behavior differences between cellular, VoLTE and Wi-Fi Calling paths.
+
+Samsung Text Call/Bixby Text Call is evidence that Samsung's own stack has a software media bridge. It is not an accessible API assumption.
+
+### Rules
+
+- all Samsung-specific code stays behind a dedicated backend;
+- version/build checks are mandatory;
+- no firmware modification for the primary product path;
+- document every required permission/UID;
+- stop if the only practical route becomes root/system-image modification and move to the documented fallback decision.
+
+### Exit condition
+
+Either:
+- stock-firmware injection is proven, or
+- cellular injection is marked blocked under current no-root constraints.
 
 ## Phase 2 — Stable local bridge
 
-Connect capture directly to injection through a controlled processing pipeline, still without network AI.
+Start only when capture and injection are both independently proven.
+
+### Transport
+
+Control plane:
+- Binder/AIDL for start/stop/probe/status;
+- pass file descriptors across Binder.
+
+Media plane:
+- PCM pipe or local socket;
+- bounded app-side buffers;
+- no per-frame Binder transactions.
+
+### Audio processing
 
 Implement:
-- bounded ring buffers;
-- monotonic timestamps;
+- explicit signed PCM format metadata;
+- mono path first;
 - resampling abstraction;
+- monotonic timestamps;
+- bounded ring/jitter buffers;
 - underrun/overrun counters;
-- configurable frame size;
-- latency measurement;
-- hard stop / user takeover.
+- queue-depth metrics;
+- one-way and round-trip latency measurements where possible.
 
-Use synthetic transforms so routing is obvious, for example a short delay or deterministic gain change. Avoid echo loops.
+### Human microphone policy
 
-Exit condition: 10-minute bridge test without unbounded buffer growth, deadlock, runaway feedback or unrecoverable routing state.
+Determine whether injection mixes with or replaces the physical microphone.
 
-## Phase 3 — Realtime AI integration
+For autonomous AI mode, define a deterministic microphone policy. `Take over` must restore the human microphone without redialing the call.
 
-Connect `realtime-client` only after Phase 2 is stable.
+### Immediate abort
 
-Recommended shape:
+Extend injector semantics with a hard local abort/flush operation. Graceful `stop()` is insufficient for takeover and barge-in.
+
+### Watchdog
+
+Implement helper fail-safe:
+- Binder death recipient and/or heartbeat;
+- if app disappears during injection, flush and stop locally;
+- close all tracks/records/pipes;
+- release temporary routing state.
+
+### Exit condition
+
+10-minute local bridge test with:
+- bounded memory;
+- no stuck audio;
+- repeatable start/stop;
+- screen background/foreground transition;
+- instant takeover;
+- no need to redial after takeover.
+
+## Phase 3 — Realtime AI
+
+Only after the local bridge passes.
+
+### Credential model
 
 ```text
-Android app -> small credential/session backend -> OpenAI Realtime
+Android app -> project backend -> short-lived/session credential
+                                 -> OpenAI Realtime
 ```
 
-The backend owns the long-lived API credential. The Android client receives only a short-lived/session-scoped credential or uses a server-mediated connection.
+Never embed a long-lived API key in the APK.
 
-Implement:
+### Initial transport
+
+Start with WebSocket because the application already owns PCM and explicit stream timing. Keep the transport abstraction so WebRTC can be evaluated later using measurements rather than assumptions.
+
+### Implementation tasks
+
 - session creation;
-- audio streaming;
-- output audio playback into the injector;
-- server/semantic VAD experiment;
-- barge-in / response cancellation;
-- end-to-end latency metrics;
-- reconnect behavior.
+- input audio append/stream;
+- response audio receive;
+- output resampling into injector format;
+- connection health and reconnect policy;
+- latency metrics;
+- narrow initial model instructions.
 
-First prompt should be intentionally narrow, e.g. a cooperative test agent that introduces itself and repeats simple information.
+### Barge-in
 
-### Phase 3 gate
+Remote speech detection must first silence local AI injection, then cancel model generation.
 
-A remote caller can speak, receive an AI answer, interrupt the answer and continue, with user takeover always available.
+```text
+remote speech start
+  -> local injector flush/abort
+  -> realtime response cancel
+```
+
+Do not wait for the server before silencing the caller-facing output.
+
+### Exit condition
+
+Remote caller can:
+- speak to the AI;
+- hear a response;
+- interrupt the response;
+- continue naturally;
+while the device owner can take over immediately.
 
 ## Phase 4 — Product UX
 
-Only after the transport works:
-- call-session screen;
-- `AI on/off`;
+Only after functional voice bridging:
+- session screen;
+- AI on/off;
 - `Take over now`;
-- mute AI output;
-- visible disclosure state;
-- transcript toggle if enabled;
-- per-call consent/retention controls;
-- diagnostics screen.
+- AI mute;
+- visible helper/privilege state;
+- visible disclosure/consent state;
+- optional transcript;
+- diagnostics page;
+- meaningful errors and recovery actions.
 
-Do not replace the default Android dialer until there is a concrete UX reason to do so.
+Do not build a replacement dialer unless call-state/user-flow requirements make it necessary.
 
-## Phase 5 — Fallback paths
+## Phase 5 — Robustness
 
-If normal cellular uplink injection is not achievable on the target device without unacceptable privileges:
+Test a matrix of:
+- incoming and outgoing calls;
+- 30+ minute duration;
+- repeated calls;
+- screen off;
+- app backgrounded;
+- app process killed;
+- Shizuku restarted/lost;
+- Internet lost/recovered;
+- route changes;
+- speaker/earpiece;
+- Bluetooth;
+- Wi-Fi Calling;
+- hold/resume;
+- remote hang-up during AI output.
 
-1. evaluate Shizuku/shell-backed helper;
-2. evaluate Samsung-specific/system integration only if reproducible;
-3. evaluate root as a development/research-only option;
-4. move the call transport itself to SIP/VoIP, where the application owns both audio directions.
+Every transition needs a deterministic failure result. No test may leave injection active after the owner believes it is stopped.
 
-VoIP is the clean fallback because the app controls the media stream directly; it is not the first path because the primary goal is normal cellular calling from the phone.
+## Fallback decision
 
-## Non-goals for the first implementation
+If cellular injection on stock Samsung firmware cannot be achieved without unacceptable privilege or OS modification:
+
+1. move transport to SIP/VoIP so the app owns both media directions;
+2. keep root/system-app work as research-only;
+3. consider a Bluetooth/external bridge only if the single-device requirement is relaxed.
+
+Termux may be used for experiments, but it is not the target application architecture.
+
+## Explicit non-goals until the media gate passes
 
 - replacing Samsung Phone;
-- contact management;
+- full contact management;
 - call history replication;
-- automatic unattended calling;
+- autonomous unattended outbound calling;
 - cloud call recording;
-- multiple AI personalities;
-- production backend infrastructure.
+- multiple AI personas;
+- tool execution by the voice model;
+- production backend scaling;
+- polished consumer onboarding.
+
+The next code change after this documentation rework should implement **Phase 0.5 Device Capability Probe**, not Realtime.
