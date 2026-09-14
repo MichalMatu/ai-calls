@@ -2,6 +2,8 @@
 
 This implementation plan follows the evidence gates in `ROADMAP.md`. The project must not advance because an API exists or another device supports a feature; it advances only after the target Samsung Galaxy S22+ passes the relevant physical test.
 
+For active engineering work, follow the repository's Superpowers adaptation in `DEVELOPMENT_WORKFLOW.md` and save detailed task plans under `docs/superpowers/plans/`.
+
 ## Phase 0 — Bootstrap
 
 Status: complete.
@@ -12,47 +14,56 @@ Existing deliverables:
 - capture and injection interfaces;
 - realtime transport abstraction;
 - physical two-phone PoC protocol;
-- isolated privileged-helper area.
+- isolated privileged-helper area;
+- Local Agent execution path from GitHub to the physical S22+;
+- Superpowers-based development workflow and planning convention.
 
 ## Phase 0.5 — Device Capability Probe
 
-This is the next implementation task.
+Status: baseline complete; live-call-dependent observations remain pending.
 
-Build a small diagnostic layer that can run checks in both the normal app process and a Shizuku UserService/shell process.
+Durable result: `S22_BASELINE_2026-09-14.md`.
 
 ### 0.5A — Normal-process probe
 
-Collect:
-- device/build metadata;
-- Android/One UI version where obtainable through supported properties/APIs;
-- current audio devices;
-- active communication route;
-- call-state metadata available without becoming the default dialer;
-- Shizuku installed/running/authorization state.
+Completed observations on the target S22+:
+- device/build metadata recorded;
+- Android 16 / API 36 / One UI 8.0 baseline recorded;
+- `RECORD_AUDIO` granted by the user;
+- communication/audio device inventory collected;
+- `TYPE_TELEPHONY` sink and source are visible;
+- protected call sources fail to construct in the ordinary app process, as expected.
 
 ### 0.5B — Shell-process probe
 
-Through Shizuku UserService record:
-- effective UID;
-- relevant permission checks;
-- audio input/output device visibility;
-- initialization/start result for `VOICE_DOWNLINK`, `VOICE_UPLINK`, `VOICE_CALL`, and a control source;
-- whether `TYPE_TELEPHONY` output exists;
-- whether a test `AudioTrack` can request that preferred device.
+Completed observations through direct ADB shell / `app_process`:
+- effective UID is `2000(shell)`;
+- `CAPTURE_AUDIO_OUTPUT`, `MODIFY_AUDIO_ROUTING`, and `MODIFY_PHONE_STATE` are granted to shell on this build;
+- `VOICE_CALL`, `VOICE_DOWNLINK`, and `VOICE_UPLINK` all create initialized `AudioRecord` instances off-call;
+- telephony sink/source devices remain visible from shell;
+- off-call `AudioTrack` construction targeting telephony failed for both `USAGE_MEDIA` and `USAGE_VOICE_COMMUNICATION` attempts.
 
-No AI, no long recording and no Samsung private API calls in this phase.
+The `AudioTrack` result is not a live-call failure classification. The in-call route may only exist while AudioPolicy is in an active cellular call state.
+
+### Still pending
+
+- actual `startRecording()` + PCM read from `VOICE_DOWNLINK` during a carrier call;
+- actual in-call `AudioTrack` creation/routing to the telephony sink;
+- Shizuku UserService onboarding/end-to-end reproduction after raw shell capability is settled.
 
 ### Exit condition
 
-Save one reproducible capability report with exact S22+ firmware metadata. Use its results to select Phase 1 experiments.
+The baseline capability inventory is complete enough to proceed to Phase 1 physical tests. The project is paused until a dedicated SIM/number is available.
 
 ## Phase 1A — Prove cellular downlink capture
+
+Status: ready for live physical test; blocked only on the dedicated SIM/test call prerequisite.
 
 Primary implementation candidate:
 
 ```text
 Shizuku UserService / shell
-  -> scrcpy-derived/direct voice-call-downlink capture
+  -> VOICE_DOWNLINK / scrcpy-style direct capture
   -> RAW PCM
   -> ParcelFileDescriptor pipe
   -> app-side diagnostic consumer
@@ -60,15 +71,23 @@ Shizuku UserService / shell
 
 Prefer `VOICE_DOWNLINK` rather than mixed `VOICE_CALL` whenever the target firmware supports it.
 
-### Implementation tasks
+### Current evidence
 
-- add Shizuku dependency and permission/onboarding only as needed for the experiment;
-- create minimal shell helper lifecycle;
-- create capture pipe and return its read end to the app;
-- start a direct capture source in the privileged process;
-- use raw PCM first to avoid codec/muxer complexity;
-- save at most a short opt-in diagnostic WAV/PCM sample for analysis;
-- log format, route, source and privilege metadata.
+- shell privilege class can initialize `VOICE_DOWNLINK` on the exact S22+ build;
+- telephony RX device exists;
+- useful remote-party PCM has not yet been physically observed.
+
+### Next implementation/test tasks
+
+Use the detailed Superpowers plan:
+
+`docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`
+
+That plan adds only the bounded diagnostic behavior needed to:
+- start/read `VOICE_DOWNLINK` during an active call;
+- report objective PCM metrics;
+- prove remote/local channel behavior with a second phone;
+- store only redacted evidence, never call audio in Git.
 
 Do not copy GPL implementation code from ShizuCallRecorder. It is a research reference. If scrcpy server code is reused/derived, preserve its Apache 2.0 license obligations and attribution.
 
@@ -80,19 +99,24 @@ Pass only if remote speech is digitally present without acoustic speaker pickup.
 
 ## Phase 1B — Prove generic cellular uplink injection
 
-This is the highest-risk generic Android gate.
+Status: ready for active-call experiment after/alongside Phase 1A; blocked on test SIM.
 
-### Minimal experiment
+This remains the highest-risk generic Android gate.
 
-In the privileged helper:
+### Primary experiment
+
+In the privileged helper/shell context during an active cellular call:
 
 1. enumerate output devices;
 2. locate `AudioDeviceInfo.TYPE_TELEPHONY`;
-3. create `AudioTrack` using voice-communication usage;
+3. create `AudioTrack` using `AudioAttributes.USAGE_MEDIA` first;
 4. request the telephony device with `setPreferredDevice()`;
-5. feed a deterministic locally generated mono PCM sample;
-6. verify on the second phone that the sample is heard through the cellular call;
-7. stop immediately and restore the normal call path.
+5. feed a deterministic locally generated low-amplitude PCM tone;
+6. verify write count and playback-head progress;
+7. verify on the second phone that the tone is heard through the cellular call;
+8. stop immediately and restore the normal call path.
+
+Why `USAGE_MEDIA` first: the external AgentCall project reports a physically qualified Telephony TX path using that usage on another privileged Android device. This is architectural evidence only. `USAGE_VOICE_COMMUNICATION` remains a comparison path based on BCP-style precedent.
 
 Do not connect a microphone or model.
 
@@ -100,20 +124,22 @@ Do not connect a microphone or model.
 
 Record:
 - device presence;
+- track-construction result while in-call;
 - route-request result;
 - actual routed-device information if available;
-- audio write errors;
+- audio write count/errors;
+- playback-head progress;
 - remote audible result;
 - microphone mute/unmute interaction;
 - cleanup behavior after repeated start/stop.
 
 ### Exit condition
 
-The second phone receives the injected digital sample. API success without remote audio is a failure.
+The second phone receives the injected digital sample. API success without remote audio is a failure. Off-call constructor failure is not sufficient to reject this path.
 
 ## Phase 1C — Samsung-specific injection research
 
-Run only if Phase 1B fails.
+Run only if Phase 1B fails reproducibly **during an active call**.
 
 The objective is not to clone Samsung Phone. The objective is to determine whether stock firmware exposes a privilege-bounded software-to-call route that our helper can access.
 
@@ -301,4 +327,12 @@ Termux may be used for experiments, but it is not the target application archite
 - production backend scaling;
 - polished consumer onboarding.
 
-The next code change after this documentation rework should implement **Phase 0.5 Device Capability Probe**, not Realtime.
+## Current handoff
+
+Do not add more platform architecture while waiting for the SIM. The next engineering session should start by reading:
+
+1. `docs/S22_BASELINE_2026-09-14.md`;
+2. `docs/POC_AUDIO_TEST_PLAN.md`;
+3. `docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`.
+
+Then resume the bounded active-call tests rather than repeating the off-call capability inventory.
