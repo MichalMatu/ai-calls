@@ -8,6 +8,7 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.os.Looper;
 import android.os.Process;
 
 import java.lang.reflect.Method;
@@ -28,7 +29,11 @@ public final class ShellAudioProbe {
     private ShellAudioProbe() {}
 
     public static void main(String[] args) {
-        System.out.println("probe=shell-audio-v1");
+        if (Looper.myLooper() == null) {
+            Looper.prepare();
+        }
+
+        System.out.println("probe=shell-audio-v2");
         System.out.println("uid=" + Process.myUid());
         System.out.println("pid=" + Process.myPid());
 
