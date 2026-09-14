@@ -43,8 +43,10 @@ No backend is assumed to work merely because its API exists.
 Capability states:
 - `UNAVAILABLE` — capability cannot be initialized on the target device;
 - `AVAILABLE_UNPROVEN` — API/device path exists but media behavior is not physically validated;
-- `PROVEN_S22` — passed the two-phone test on the target build;
-- `FAILED_S22` — reproducibly failed on the target build.
+- `PROVEN_S22` — passed the two-phone test on the target build when the claim is a media direction;
+- `FAILED_S22` — reproducibly failed on the target build under the documented test conditions.
+
+Narrow device/permission/source facts can be proven separately without promoting a media direction. For example, `VOICE_DOWNLINK` construction on the S22+ is proven as a capability fact while actual remote-party PCM is still unproven.
 
 A `DeviceCapabilityProbe` runs before implementation assumptions are promoted into backend selection.
 
@@ -93,7 +95,7 @@ interface CallAudioInjector {
 Candidate backends:
 - shell/scrcpy-style downlink capture;
 - generic `TYPE_TELEPHONY` injection;
-- Samsung-specific injection if generic routing fails;
+- Samsung-specific injection if generic routing fails during an active call;
 - later SIP/VoIP media backend if cellular injection is blocked.
 
 ### `privileged-helper/`
@@ -111,6 +113,8 @@ Responsibilities:
 - enforce cleanup and watchdog behavior independently of the UI process.
 
 Any backend must document exactly which UID, permission or hidden capability it relies on.
+
+The 2026-09-14 target baseline proved the relevant direct-shell UID 2000 capability class before Shizuku integration. Shizuku remains the intended app-facing privilege boundary, but its UserService parity must still be tested rather than assumed.
 
 ### `realtime-client/`
 
@@ -143,7 +147,19 @@ DeviceCapabilityReport
   Samsung package observations
 ```
 
-The probe does not prove actual media direction. It only determines what experiments are worth running next.
+The first off-call baseline has been collected and is stored in `S22_BASELINE_2026-09-14.md`.
+
+Current target facts:
+
+```text
+SM-S906B / Android 16 / API 36 / One UI 8.0
+shell UID 2000
+shell call-audio permissions granted
+TYPE_TELEPHONY sink + source visible
+VOICE_CALL / VOICE_DOWNLINK / VOICE_UPLINK initialize under shell
+```
+
+The probe does not prove actual media direction. It determines what experiments are worth running next.
 
 See `DEVICE_CAPABILITY_PROBE.md`.
 
@@ -163,20 +179,27 @@ Remote-only downlink is preferred over a mixed `VOICE_CALL` source because it re
 
 If only mixed call audio is available, mark that explicitly and design echo/source-separation work as a separate risk rather than hiding it in the transport layer.
 
+Current state: shell can initialize `VOICE_DOWNLINK` on the exact S22+ build, but active-call start/read/useful remote PCM still requires the dedicated SIM test.
+
 ## Injection architecture
 
-First generic experiment:
+First generic active-call experiment:
 
 ```text
-AI/test PCM
+test PCM
   -> privileged AudioTrack
-  -> preferred TYPE_TELEPHONY device
+     AudioAttributes.USAGE_MEDIA
+  -> preferred TYPE_TELEPHONY sink
   -> cellular uplink
 ```
 
-This path is OEM/modem dependent. Existence of the device or successful `setPreferredDevice()` is not sufficient; only the second phone hearing the digital sample proves injection.
+Why `USAGE_MEDIA` first: the external AgentCall project reports a physically-qualified telephony TX path using that usage on another privileged Android device. It is research evidence, not transferable proof. `USAGE_VOICE_COMMUNICATION` remains a separate comparison candidate based on BCP-style precedent.
 
-If generic injection fails on the S22+, a Samsung-specific backend may investigate the class of mechanisms used by Samsung's own call features. That code must remain isolated and version-gated.
+The S22+ exposes a `TYPE_TELEPHONY` sink and shell has the relevant protected permissions. However, `AudioTrack` construction failed while no call was active for both tested usages. That result is deliberately left `AVAILABLE_UNPROVEN`/unresolved because the telephony route may only open in-call.
+
+Only the second phone hearing the deterministic digital sample proves injection. Constructor success, `setPreferredDevice()`, routed-device state, and playback-head progress are supporting evidence but not the final gate.
+
+If generic injection fails reproducibly **during an active call**, a Samsung-specific backend may investigate the class of mechanisms used by Samsung's own call features. That code must remain isolated and version-gated.
 
 ## PCM boundary
 
@@ -256,10 +279,18 @@ remote speech detected locally
 
 Do not wait for a network round trip before silencing AI audio to the caller.
 
+## Development process boundary
+
+The engineering workflow is described in `DEVELOPMENT_WORKFLOW.md` and `AGENTS.md`.
+
+Substantial behavior changes should have a Superpowers-style plan under `docs/superpowers/plans/`, follow TDD where the behavior is under our control, and preserve hardware evidence separately from automated test success.
+
+The current handoff plan is `docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`.
+
 ## Hard architectural rules
 
 1. No hidden/private Android or Samsung API outside a dedicated backend/helper.
-2. No backend is marked working before a physical S22+ test.
+2. No media backend is marked working before a physical S22+ test.
 3. Capture and injection must be independently testable.
 4. PCM streaming does not use per-frame Binder calls.
 5. `Take over` is local, immediate and fail-safe.
@@ -268,3 +299,5 @@ Do not wait for a network round trip before silencing AI audio to the caller.
 8. No call recording by default.
 9. Do not replace the default dialer until media transport is proven.
 10. Keep SIP/VoIP available as a clean fallback rather than contaminating the cellular experiments.
+11. Off-call telephony output failure must not be treated as in-call failure without a live call test.
+12. Keep `agent-control` execution metadata separate from the canonical source tree on `main`.
