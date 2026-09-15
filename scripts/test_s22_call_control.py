@@ -1,10 +1,14 @@
+import tempfile
 import unittest
+import wave
+from pathlib import Path
 
 from s22_call_control import (
     call_state_from_registry,
     center_from_bounds,
     find_node_bounds,
     normalize_dtmf,
+    write_pcm16_wav,
 )
 
 
@@ -43,6 +47,23 @@ class CallControlParsingTest(unittest.TestCase):
     def test_rejects_invalid_dtmf_character(self):
         with self.assertRaises(ValueError):
             normalize_dtmf("12A")
+
+    def test_wraps_pcm16_as_mono_16khz_wav(self):
+        pcm = b"\x01\x00\xff\xff\x00\x00\x10\x00"
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "capture.wav"
+            write_pcm16_wav(pcm, output)
+            with wave.open(str(output), "rb") as wav:
+                self.assertEqual(1, wav.getnchannels())
+                self.assertEqual(2, wav.getsampwidth())
+                self.assertEqual(16000, wav.getframerate())
+                self.assertEqual(4, wav.getnframes())
+                self.assertEqual(pcm, wav.readframes(4))
+
+    def test_rejects_odd_pcm_byte_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError):
+                write_pcm16_wav(b"\x00", Path(tmp) / "capture.wav")
 
 
 if __name__ == "__main__":
