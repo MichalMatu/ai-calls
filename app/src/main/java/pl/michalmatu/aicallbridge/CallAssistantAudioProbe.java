@@ -84,7 +84,9 @@ public final class CallAssistantAudioProbe {
         System.out.println("channels=stereo");
 
         try {
-            Context context = systemContext();
+            Context context = shellContext();
+            System.out.println("context_package=" + context.getPackageName());
+            System.out.println("context_op_package=" + context.getOpPackageName());
             printPermission(context, "MODIFY_AUDIO_ROUTING", "android.permission.MODIFY_AUDIO_ROUTING");
             printPermission(context, "MODIFY_PHONE_STATE", "android.permission.MODIFY_PHONE_STATE");
 
@@ -310,6 +312,11 @@ public final class CallAssistantAudioProbe {
             throw new IllegalArgumentException("amplitude must be > 0 and <= " + MAX_AMPLITUDE);
         }
         return value;
+    }
+
+    private static Context shellContext() throws Exception {
+        Context system = systemContext();
+        return system.createPackageContext("com.android.shell", Context.CONTEXT_IGNORE_SECURITY);
     }
 
     private static Context systemContext() throws Exception {
