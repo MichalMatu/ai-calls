@@ -12,9 +12,12 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
+import wave
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterable, Sequence
 
 
@@ -31,6 +34,10 @@ KEYPAD_LABELS = (
 )
 BOUNDS_RE = re.compile(r"^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$")
 CALL_STATE_RE = re.compile(r"mCallState=(\d+)")
+PACKAGE_NAME = "pl.michalmatu.aicallbridge"
+PROBE_CLASS = "pl.michalmatu.aicallbridge.ShellAudioProbe"
+SAMPLE_RATE = 16_000
+MAX_CAPTURE_MS = 5_000
 
 
 def call_state_from_registry(text: str) -> int | None:
@@ -86,6 +93,17 @@ def normalize_number(raw: str) -> str:
     if len(national) < 4 or national in EMERGENCY_NUMBERS:
         raise ValueError("short/emergency numbers are blocked by this test helper")
     return number
+
+
+def write_pcm16_wav(pcm: bytes, output_path: Path) -> None:
+    if len(pcm) % 2 != 0:
+        raise ValueError("PCM16 byte count must be even")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(output_path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(SAMPLE_RATE)
+        wav.writeframes(pcm)
 
 
 @dataclass
@@ -162,6 +180,42 @@ class Adb:
             self.tap_bounds(bounds)
             time.sleep(tone_gap_seconds)
 
+    def capture_downlink(self, duration_ms: int, output_path: Path) -> str:
+        if self.call_state() != 2:
+            raise RuntimeError("capture requires an active call (mCallState=2)")
+        if duration_ms < 1 or duration_ms > MAX_CAPTURE_MS:
+            raise ValueError(f"duration must be between 1 and {MAX_CAPTURE_MS} ms")
+        if output_path.suffix.lower() != ".wav":
+            raise ValueError("local capture output must end with .wav")
+
+        package_output = self.shell(["pm", "path", PACKAGE_NAME])
+        package_lines = [line for line in package_output.splitlines() if line.startswith("package:")]
+        if not package_lines:
+            raise RuntimeError(f"{PACKAGE_NAME} is not installed")
+        apk_path = package_lines[0].removeprefix("package:")
+
+        remote_path = f"/data/local/tmp/aicallbridge-downlink-{os.getpid()}.pcm"
+        command = (
+            f"CLASSPATH={apk_path} app_process /system/bin {PROBE_CLASS} "
+            f"capture-downlink {duration_ms} {remote_path}"
+        )
+        self.shell(["rm", "-f", remote_path], check=False)
+        try:
+            probe_output = self.run(["shell", command]).stdout
+            with tempfile.TemporaryDirectory() as tmp:
+                local_pcm = Path(tmp) / "downlink.pcm"
+                self.run(["pull", remote_path, str(local_pcm)])
+                pcm = local_pcm.read_bytes()
+                expected_bytes = SAMPLE_RATE * duration_ms // 1000 * 2
+                if len(pcm) != expected_bytes:
+                    raise RuntimeError(
+                        f"capture size mismatch: expected {expected_bytes}, got {len(pcm)}"
+                    )
+                write_pcm16_wav(pcm, output_path)
+            return probe_output
+        finally:
+            self.shell(["rm", "-f", remote_path], check=False)
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -175,6 +229,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     dtmf = sub.add_parser("dtmf")
     dtmf.add_argument("sequence")
+
+    capture = sub.add_parser("capture")
+    capture.add_argument("duration_ms", type=int)
+    capture.add_argument("output", type=Path)
 
     sub.add_parser("hangup")
     sub.add_parser("dump-ui")
@@ -195,6 +253,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "dtmf":
             adb.send_dtmf(args.sequence)
             print(f"dtmf_sent={normalize_dtmf(args.sequence)}")
+        elif args.command == "capture":
+            probe_output = adb.capture_downlink(args.duration_ms, args.output)
+            print(probe_output, end="" if probe_output.endswith("\n") else "\n")
+            print(f"wav_path={args.output}")
         elif args.command == "hangup":
             adb.hangup()
             print("hangup_requested=true")
