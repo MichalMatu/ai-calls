@@ -107,10 +107,12 @@ public final class CallAssistantAudioProbe {
             }
 
             AudioAttributes attributes = buildCallAssistantAttributes();
-            System.out.println("attributes_usage=" + attributes.getUsage());
+            System.out.println("attributes_public_usage=" + attributes.getUsage());
+            int systemUsage = getSystemUsage(attributes);
+            System.out.println("attributes_system_usage=" + systemUsage);
             System.out.println("attributes_content_type=" + attributes.getContentType());
-            if (attributes.getUsage() != CALL_ASSISTANT_USAGE) {
-                System.out.println("attributes_guard=unexpected_usage");
+            if (systemUsage != CALL_ASSISTANT_USAGE) {
+                System.out.println("attributes_guard=unexpected_system_usage");
                 return 5;
             }
 
@@ -218,6 +220,12 @@ public final class CallAssistantAudioProbe {
                 }
             }
         }
+    }
+
+    private static int getSystemUsage(AudioAttributes attributes) throws Exception {
+        Method getSystemUsage = AudioAttributes.class.getDeclaredMethod("getSystemUsage");
+        getSystemUsage.setAccessible(true);
+        return ((Integer) getSystemUsage.invoke(attributes)).intValue();
     }
 
     private static AudioAttributes buildCallAssistantAttributes() throws Exception {
