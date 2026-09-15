@@ -22,19 +22,19 @@ There are existing precedents for both halves:
 - Basic Call Player demonstrates injection through `AudioTrack` routed to `TYPE_TELEPHONY`, but that output device is not implemented consistently across OEMs;
 - AgentCall demonstrates independently qualified digital telephony RX/TX on another privileged/rooted Android device, including a `USAGE_MEDIA -> TYPE_TELEPHONY` TX route. It is research evidence only, not S22+ proof.
 
-The first real S22+ capability probe is now complete enough to narrow the problem substantially.
-
-On the physical `SM-S906B` running Android 16 / API 36 / One UI 8.0:
+The physical `SM-S906B` running Android 16 / API 36 / One UI 8.0 has now crossed the first real live-call boundary:
 
 - stock firmware exposes both `TYPE_TELEPHONY` sink and source devices;
 - ADB shell executes as UID 2000 and has `CAPTURE_AUDIO_OUTPUT`, `MODIFY_AUDIO_ROUTING`, and `MODIFY_PHONE_STATE`;
 - shell can create initialized `AudioRecord` instances for `VOICE_CALL`, `VOICE_DOWNLINK`, and `VOICE_UPLINK`;
-- the normal application process cannot create those protected call sources, as expected;
-- `AudioTrack -> TYPE_TELEPHONY` construction failed while no cellular call was active, so uplink injection remains unclassified until an active-call test is performed.
+- during a real carrier call, bounded `VOICE_DOWNLINK` capture returned 32,000 PCM16 samples over 2 seconds with strong non-silent signal (`RMS≈2339`, `peak=15370`) and zero read errors;
+- the equivalent off-call control is near silence (`RMS≈1.85`, `peak=10`);
+- during that same active call, both tested generic `AudioTrack -> TYPE_TELEPHONY` constructions still failed with `UnsupportedOperationException`;
+- the normal application process cannot create the protected call sources, as expected.
 
-See [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) for the durable evidence snapshot.
+See [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) for the capability baseline and [`docs/S22_LIVE_CALL_2026-09-15.md`](docs/S22_LIVE_CALL_2026-09-15.md) for the first live-call evidence.
 
-This means **downlink capture is now strongly supported at the capability level but still needs live-call PCM proof**. **Uplink injection during an active call remains the critical project gate.** Samsung features such as Text Call are evidence that Samsung's own stack can perform software-to-call audio bridging, but they are not proof that a third-party application can access the same path.
+This means **digital in-call downlink signal is now physically demonstrated on the S22+**, but the repository's full media-direction `PROVEN_S22` gate still requires source-direction/intelligibility confirmation from a retained bounded diagnostic sample. **The current generic telephony TX candidates failed even in-call**, so Samsung-specific Phase 1C injection research is now justified while the failure evidence is preserved.
 
 ## Development rule
 
@@ -70,7 +70,7 @@ Do not send every audio frame as a separate Binder transaction.
 
 ## Current milestone
 
-**Phase 0.5 baseline complete; live-call media proof paused until the dedicated test SIM is available.**
+**Phase 1 live-call validation is active. The dedicated SIM and Wireless ADB path are working on the target S22+.**
 
 Already reproduced on the exact S22+ build:
 
@@ -78,16 +78,19 @@ Already reproduced on the exact S22+ build:
 - shell UID 2000 privilege class;
 - relevant shell permission grants;
 - protected call-source initialization;
-- `TYPE_TELEPHONY` RX/TX device presence.
+- `TYPE_TELEPHONY` RX/TX device presence;
+- real in-call `VOICE_DOWNLINK` start/read with strong non-silent PCM;
+- active-call failure of the two current generic `AudioTrack -> TYPE_TELEPHONY` construction candidates;
+- repeatable bounded capture tooling and ADB-over-Wi-Fi call-control test tooling.
 
 Still pending:
 
-- actual remote-party PCM through `VOICE_DOWNLINK` during a cellular call;
-- in-call `AudioTrack -> TYPE_TELEPHONY` construction/routing;
-- second-phone confirmation of injected PCM;
-- Shizuku UserService integration after the raw shell capability is settled.
+- confirm the live `VOICE_DOWNLINK` sample contains the remote IVR specifically and classify whether it is remote-only or mixed;
+- physically validate DTMF navigation through the test helper during an active call;
+- investigate Samsung-specific TX after the generic in-call construction failure;
+- Shizuku UserService integration after the raw shell media path is settled.
 
-The next executable handoff is [`docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`](docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md).
+The executable Phase 1 plan remains [`docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`](docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md).
 
 ## Development methodology
 
@@ -113,7 +116,8 @@ Superpowers is a development workflow/plugin, not an Android runtime dependency 
 
 ## Documents
 
-- [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) — exact physical-device capability evidence and pause point.
+- [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) — exact physical-device capability baseline.
+- [`docs/S22_LIVE_CALL_2026-09-15.md`](docs/S22_LIVE_CALL_2026-09-15.md) — first active-call RX/TX evidence and repeatable-test handoff.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — phase order, gates and fallback order.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — component boundaries and fail-safe design.
 - [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — implementation sequence.
