@@ -87,6 +87,7 @@ public final class CallAssistantAudioProbe {
             Context context = shellContext();
             System.out.println("context_package=" + context.getPackageName());
             System.out.println("context_op_package=" + context.getOpPackageName());
+            System.out.println("context_attribution_package=" + context.getAttributionSource().getPackageName());
             printPermission(context, "MODIFY_AUDIO_ROUTING", "android.permission.MODIFY_AUDIO_ROUTING");
             printPermission(context, "MODIFY_PHONE_STATE", "android.permission.MODIFY_PHONE_STATE");
 
@@ -124,6 +125,7 @@ public final class CallAssistantAudioProbe {
             System.out.println("buffer_bytes=" + bufferSize);
 
             track = new AudioTrack.Builder()
+                .setContext(context)
                 .setAudioAttributes(attributes)
                 .setAudioFormat(
                     new AudioFormat.Builder()
