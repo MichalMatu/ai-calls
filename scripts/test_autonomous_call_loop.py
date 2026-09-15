@@ -1,6 +1,14 @@
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
-from autonomous_call_loop import ProbeMetrics, audio_signal_present, parse_probe_metrics
+from autonomous_call_loop import (
+    ProbeMetrics,
+    audio_signal_present,
+    parse_probe_metrics,
+    run_once,
+)
 
 
 class ProbeMetricsTest(unittest.TestCase):
@@ -49,6 +57,44 @@ read_errors=0
             read_errors=1,
         )
         self.assertFalse(audio_signal_present(metrics))
+
+
+class FailSafeTest(unittest.TestCase):
+    def test_post_dial_adb_failure_still_requests_hangup(self):
+        class FaultyAdb:
+            def __init__(self):
+                self.call_state_reads = 0
+                self.dialed = False
+                self.hangup_called = False
+
+            def call_state(self):
+                self.call_state_reads += 1
+                if self.call_state_reads == 1:
+                    return 0
+                raise subprocess.CalledProcessError(1, ["adb", "shell", "dumpsys"])
+
+            def dial(self, number):
+                self.dialed = True
+
+            def hangup(self):
+                self.hangup_called = True
+
+        adb = FaultyAdb()
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(subprocess.CalledProcessError):
+                run_once(
+                    adb,
+                    "510100100",
+                    Path(tmp) / "capture.wav",
+                    capture_ms=3000,
+                    active_timeout_seconds=1,
+                    signal_timeout_seconds=1,
+                    max_call_seconds=5,
+                    transcribe=False,
+                    locale="pl-PL",
+                )
+        self.assertTrue(adb.dialed)
+        self.assertTrue(adb.hangup_called)
 
 
 if __name__ == "__main__":
