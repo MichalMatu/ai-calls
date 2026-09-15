@@ -5,7 +5,7 @@ The runner is intentionally conservative:
 - it refuses to start while another call is active;
 - it waits for OFFHOOK and then for real downlink energy;
 - it captures only a bounded WAV;
-- it always requests hangup in a finally block;
+- after it requests a dial it always requests hangup from a finally block;
 - emergency/short-number blocking is inherited from s22_call_control.
 
 This is Phase 1 developer tooling, not the final product call engine.
@@ -211,12 +211,16 @@ def run_once(
             return transcript
         return None
     finally:
-        if dial_requested and adb.call_state() != 0:
+        if dial_requested:
             try:
                 adb.hangup()
                 print("hangup_requested=true")
-            finally:
+            except Exception as cleanup_error:  # best-effort cleanup must not mask the primary error
+                print(f"hangup_error={cleanup_error}", file=sys.stderr)
+            try:
                 print(f"idle_after_hangup={wait_for_idle(adb)}")
+            except Exception as cleanup_error:
+                print(f"idle_check_error={cleanup_error}", file=sys.stderr)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -236,6 +240,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     adb = Adb(args.serial)
+    print(f"serial={adb.serial}")
     try:
         run_once(
             adb,
