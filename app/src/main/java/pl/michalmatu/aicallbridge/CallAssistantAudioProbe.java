@@ -21,11 +21,9 @@ import java.lang.reflect.Method;
  */
 public final class CallAssistantAudioProbe {
     private static final int CALL_ASSISTANT_USAGE = 17;
-    private static final int SAMPLE_RATE = 48_000;
     private static final int CHANNEL_OUT = AudioFormat.CHANNEL_OUT_STEREO;
     private static final int CHANNEL_COUNT = 2;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
-    private static final int WARMUP_FRAMES = 960; // 20 ms at 48 kHz.
     private static final int MAX_DURATION_MS = 1_000;
     private static final int MAX_FREQUENCY_HZ = 8_000;
     private static final double MAX_AMPLITUDE = 0.10;
@@ -39,15 +37,23 @@ public final class CallAssistantAudioProbe {
 
         int exitCode;
         try {
-            if (args.length == 1 && "construct".equals(args[0])) {
-                exitCode = run(false, 0, 0, 0.0);
-            } else if (args.length == 4 && "play-tone".equals(args[0])) {
-                int durationMs = parseInt(args[1], "durationMs", 1, MAX_DURATION_MS);
-                int frequencyHz = parseInt(args[2], "frequencyHz", 1, MAX_FREQUENCY_HZ);
-                double amplitude = parseAmplitude(args[3]);
-                exitCode = run(true, durationMs, frequencyHz, amplitude);
+            if (args.length == 2 && "construct".equals(args[0])) {
+                int sampleRate = parseSampleRate(args[1]);
+                exitCode = run(false, sampleRate, 0, 0, 0.0);
+            } else if (args.length == 5 && "play-tone".equals(args[0])) {
+                int sampleRate = parseSampleRate(args[1]);
+                int durationMs = parseInt(args[2], "durationMs", 1, MAX_DURATION_MS);
+                int frequencyHz = parseInt(args[3], "frequencyHz", 1, MAX_FREQUENCY_HZ);
+                if (frequencyHz * 2 >= sampleRate) {
+                    throw new IllegalArgumentException("frequencyHz must be below Nyquist");
+                }
+                double amplitude = parseAmplitude(args[4]);
+                exitCode = run(true, sampleRate, durationMs, frequencyHz, amplitude);
             } else {
-                System.out.println("usage=CallAssistantAudioProbe construct | play-tone <durationMs> <frequencyHz> <amplitude>");
+                System.out.println(
+                    "usage=CallAssistantAudioProbe construct <16000|48000> | "
+                        + "play-tone <16000|48000> <durationMs> <frequencyHz> <amplitude>"
+                );
                 exitCode = 2;
             }
         } catch (Throwable error) {
@@ -60,15 +66,21 @@ public final class CallAssistantAudioProbe {
         System.exit(exitCode);
     }
 
-    private static int run(boolean playTone, int durationMs, int frequencyHz, double amplitude)
-        throws Exception {
+    private static int run(
+        boolean playTone,
+        int sampleRate,
+        int durationMs,
+        int frequencyHz,
+        double amplitude
+    ) throws Exception {
         AudioTrack track = null;
-        System.out.println("probe=call-assistant-audio-v1");
+        int warmupFrames = sampleRate / 50; // 20 ms.
+        System.out.println("probe=call-assistant-audio-v2");
         System.out.println("uid=" + Process.myUid());
         System.out.println("pid=" + Process.myPid());
         System.out.println("mode=" + (playTone ? "play-tone" : "construct"));
         System.out.println("system_usage=USAGE_CALL_ASSISTANT(17)");
-        System.out.println("sample_rate=" + SAMPLE_RATE);
+        System.out.println("sample_rate=" + sampleRate);
         System.out.println("channels=stereo");
 
         try {
@@ -102,7 +114,7 @@ public final class CallAssistantAudioProbe {
                 return 5;
             }
 
-            int minBuffer = AudioTrack.getMinBufferSize(SAMPLE_RATE, CHANNEL_OUT, ENCODING);
+            int minBuffer = AudioTrack.getMinBufferSize(sampleRate, CHANNEL_OUT, ENCODING);
             int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 8192) : 8192;
             System.out.println("min_buffer_bytes=" + minBuffer);
             System.out.println("buffer_bytes=" + bufferSize);
@@ -112,7 +124,7 @@ public final class CallAssistantAudioProbe {
                 .setAudioFormat(
                     new AudioFormat.Builder()
                         .setEncoding(ENCODING)
-                        .setSampleRate(SAMPLE_RATE)
+                        .setSampleRate(sampleRate)
                         .setChannelMask(CHANNEL_OUT)
                         .build()
                 )
@@ -137,10 +149,10 @@ public final class CallAssistantAudioProbe {
                 return 7;
             }
 
-            short[] warmup = new short[WARMUP_FRAMES * CHANNEL_COUNT];
+            short[] warmup = new short[warmupFrames * CHANNEL_COUNT];
             int warmupWritten = writeFully(track, warmup);
             System.out.println("warmup_samples_written=" + warmupWritten);
-            System.out.println("warmup_frames=" + WARMUP_FRAMES);
+            System.out.println("warmup_frames=" + warmupFrames);
             if (warmupWritten != warmup.length) {
                 return 8;
             }
@@ -162,7 +174,7 @@ public final class CallAssistantAudioProbe {
             }
             System.out.println("route_guard=telephony_confirmed");
 
-            short[] mono = ToneGenerator.sinePcm16(SAMPLE_RATE, durationMs, frequencyHz, amplitude);
+            short[] mono = ToneGenerator.sinePcm16(sampleRate, durationMs, frequencyHz, amplitude);
             short[] stereo = interleaveStereo(mono);
             System.out.println("tone_duration_ms=" + durationMs);
             System.out.println("tone_frequency_hz=" + frequencyHz);
@@ -175,7 +187,7 @@ public final class CallAssistantAudioProbe {
                 return 11;
             }
 
-            int expectedFrames = WARMUP_FRAMES + mono.length;
+            int expectedFrames = warmupFrames + mono.length;
             long deadline = System.nanoTime() + (durationMs + 750L) * 1_000_000L;
             int playbackHead = track.getPlaybackHeadPosition();
             while (playbackHead < expectedFrames && System.nanoTime() < deadline) {
@@ -184,7 +196,7 @@ public final class CallAssistantAudioProbe {
             }
             System.out.println("playback_head_frames=" + playbackHead);
             System.out.println("expected_frames=" + expectedFrames);
-            return playbackHead > WARMUP_FRAMES ? 0 : 12;
+            return playbackHead > warmupFrames ? 0 : 12;
         } finally {
             if (track != null) {
                 try {
@@ -256,6 +268,14 @@ public final class CallAssistantAudioProbe {
             stereo[i * 2 + 1] = mono[i];
         }
         return stereo;
+    }
+
+    private static int parseSampleRate(String raw) {
+        int value = parseInt(raw, "sampleRate", 1, 48_000);
+        if (value != 16_000 && value != 48_000) {
+            throw new IllegalArgumentException("sampleRate must be 16000 or 48000");
+        }
+        return value;
     }
 
     private static int parseInt(String raw, String label, int min, int max) {
