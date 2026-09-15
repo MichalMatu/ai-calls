@@ -8,6 +8,7 @@ from s22_call_control import (
     center_from_bounds,
     find_node_bounds,
     normalize_dtmf,
+    select_target_serial,
     write_pcm16_wav,
 )
 
@@ -64,6 +65,31 @@ class CallControlParsingTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ValueError):
                 write_pcm16_wav(b"\x00", Path(tmp) / "capture.wav")
+
+    def test_selects_wireless_transport_when_usb_and_wifi_are_same_s22(self):
+        devices = """List of devices attached
+RFCT70L7E8J            device usb:0-1.2 product:g0sxeea model:SM_S906B device:g0s transport_id:5
+192.168.0.100:34771    device product:g0sxeea model:SM_S906B device:g0s transport_id:1
+"""
+        self.assertEqual("192.168.0.100:34771", select_target_serial(devices))
+
+    def test_selects_usb_when_it_is_the_only_s22_transport(self):
+        devices = """List of devices attached
+RFCT70L7E8J device usb:0-1.2 product:g0sxeea model:SM_S906B device:g0s transport_id:5
+"""
+        self.assertEqual("RFCT70L7E8J", select_target_serial(devices))
+
+    def test_ignores_offline_wireless_transport(self):
+        devices = """List of devices attached
+192.168.0.100:34771 offline product:g0sxeea model:SM_S906B device:g0s transport_id:1
+RFCT70L7E8J device usb:0-1.2 product:g0sxeea model:SM_S906B device:g0s transport_id:5
+"""
+        self.assertEqual("RFCT70L7E8J", select_target_serial(devices))
+
+    def test_fails_if_no_target_s22_is_connected(self):
+        devices = "List of devices attached\nemulator-5554 device model:sdk_gphone64_arm64\n"
+        with self.assertRaises(RuntimeError):
+            select_target_serial(devices)
 
 
 if __name__ == "__main__":
