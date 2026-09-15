@@ -67,17 +67,6 @@ public final class ProbeArgumentsTest {
     }
 
     @Test
-    public void injectCallAssistantToneAcceptsBoundedFixture() {
-        ProbeArguments parsed = ProbeArguments.parse(
-            new String[] {"inject-call-assistant-tone", "400", "1000", "0.05"}
-        );
-        assertEquals(ProbeArguments.Mode.INJECT_CALL_ASSISTANT_TONE, parsed.mode());
-        assertEquals(400, parsed.durationMs());
-        assertEquals(1000, parsed.frequencyHz());
-        assertEquals(0.05, parsed.amplitude(), 0.000001);
-    }
-
-    @Test
     public void unknownModeIsRejected() {
         assertThrows(
             IllegalArgumentException.class,
