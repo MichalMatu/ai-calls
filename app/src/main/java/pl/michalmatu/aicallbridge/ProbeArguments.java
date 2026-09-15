@@ -9,7 +9,8 @@ public final class ProbeArguments {
     public enum Mode {
         INVENTORY,
         CAPTURE_DOWNLINK,
-        INJECT_TONE
+        INJECT_TONE,
+        INJECT_CALL_ASSISTANT_TONE
     }
 
     private final Mode mode;
@@ -53,16 +54,12 @@ public final class ProbeArguments {
                 String outputPath = args.length == 3 ? validateTemporaryOutput(args[2]) : null;
                 yield new ProbeArguments(Mode.CAPTURE_DOWNLINK, durationMs, 0, 0.0, outputPath);
             }
-            case "inject-tone" -> {
-                requireArgumentCount(args, 4, "inject-tone <durationMs> <frequencyHz> <amplitude>");
-                int durationMs = parseBoundedInt(args[1], "durationMs", 1, MAX_DURATION_MS);
-                int frequencyHz = parseBoundedInt(args[2], "frequencyHz", 1, MAX_FREQUENCY_HZ);
-                double amplitude = parseDouble(args[3], "amplitude");
-                if (!(amplitude > 0.0 && amplitude <= 1.0)) {
-                    throw new IllegalArgumentException("amplitude must be > 0 and <= 1");
-                }
-                yield new ProbeArguments(Mode.INJECT_TONE, durationMs, frequencyHz, amplitude, null);
-            }
+            case "inject-tone" -> parseTone(args, Mode.INJECT_TONE, "inject-tone");
+            case "inject-call-assistant-tone" -> parseTone(
+                args,
+                Mode.INJECT_CALL_ASSISTANT_TONE,
+                "inject-call-assistant-tone"
+            );
             default -> throw new IllegalArgumentException("unknown mode: " + args[0]);
         };
     }
@@ -89,6 +86,17 @@ public final class ProbeArguments {
 
     private static ProbeArguments inventory() {
         return new ProbeArguments(Mode.INVENTORY, 0, 0, 0.0, null);
+    }
+
+    private static ProbeArguments parseTone(String[] args, Mode mode, String command) {
+        requireArgumentCount(args, 4, command + " <durationMs> <frequencyHz> <amplitude>");
+        int durationMs = parseBoundedInt(args[1], "durationMs", 1, MAX_DURATION_MS);
+        int frequencyHz = parseBoundedInt(args[2], "frequencyHz", 1, MAX_FREQUENCY_HZ);
+        double amplitude = parseDouble(args[3], "amplitude");
+        if (!(amplitude > 0.0 && amplitude <= 1.0)) {
+            throw new IllegalArgumentException("amplitude must be > 0 and <= 1");
+        }
+        return new ProbeArguments(mode, durationMs, frequencyHz, amplitude, null);
     }
 
     private static String validateTemporaryOutput(String path) {
