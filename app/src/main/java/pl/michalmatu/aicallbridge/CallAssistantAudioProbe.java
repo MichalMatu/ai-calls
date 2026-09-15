@@ -317,8 +317,30 @@ public final class CallAssistantAudioProbe {
     }
 
     private static Context shellContext() throws Exception {
-        Context system = systemContext();
-        return system.createPackageContext("com.android.shell", Context.CONTEXT_IGNORE_SECURITY);
+        Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
+        Method systemMain = activityThreadClass.getDeclaredMethod("systemMain");
+        systemMain.setAccessible(true);
+        Object thread = systemMain.invoke(null);
+
+        Method getSystemContext = activityThreadClass.getDeclaredMethod("getSystemContext");
+        getSystemContext.setAccessible(true);
+        Context system = (Context) getSystemContext.invoke(thread);
+        android.content.pm.ApplicationInfo shellInfo = system.getPackageManager()
+            .getApplicationInfo("com.android.shell", 0);
+
+        Method getPackageInfoNoCheck = activityThreadClass.getDeclaredMethod(
+            "getPackageInfoNoCheck", android.content.pm.ApplicationInfo.class
+        );
+        getPackageInfoNoCheck.setAccessible(true);
+        Object loadedApk = getPackageInfoNoCheck.invoke(thread, shellInfo);
+
+        Class<?> loadedApkClass = Class.forName("android.app.LoadedApk");
+        Class<?> contextImplClass = Class.forName("android.app.ContextImpl");
+        Method createAppContext = contextImplClass.getDeclaredMethod(
+            "createAppContext", activityThreadClass, loadedApkClass, String.class
+        );
+        createAppContext.setAccessible(true);
+        return (Context) createAppContext.invoke(null, thread, loadedApk, "com.android.shell");
     }
 
     private static Context systemContext() throws Exception {
