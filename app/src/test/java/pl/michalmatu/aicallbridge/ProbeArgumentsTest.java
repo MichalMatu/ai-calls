@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import org.junit.Test;
@@ -13,10 +14,29 @@ public final class ProbeArgumentsTest {
     }
 
     @Test
-    public void captureDownlinkAcceptsBoundedDuration() {
+    public void captureDownlinkAcceptsBoundedDurationWithoutRecording() {
         ProbeArguments parsed = ProbeArguments.parse(new String[] {"capture-downlink", "1000"});
         assertEquals(ProbeArguments.Mode.CAPTURE_DOWNLINK, parsed.mode());
         assertEquals(1000, parsed.durationMs());
+        assertNull(parsed.outputPath());
+    }
+
+    @Test
+    public void captureDownlinkAcceptsExplicitTemporaryOutput() {
+        ProbeArguments parsed = ProbeArguments.parse(
+            new String[] {"capture-downlink", "2000", "/data/local/tmp/aicallbridge-downlink.pcm"}
+        );
+        assertEquals("/data/local/tmp/aicallbridge-downlink.pcm", parsed.outputPath());
+    }
+
+    @Test
+    public void captureDownlinkRejectsOutputOutsideTemporaryDirectory() {
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> ProbeArguments.parse(
+                new String[] {"capture-downlink", "1000", "/sdcard/call.pcm"}
+            )
+        );
     }
 
     @Test
