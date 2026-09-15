@@ -15,6 +15,7 @@ import android.os.Process;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 /**
  * Minimal command-line probe intended to be launched through adb shell + app_process.
@@ -28,6 +29,7 @@ public final class ShellAudioProbe {
     private static final int CHANNEL_IN = AudioFormat.CHANNEL_IN_MONO;
     private static final int CHANNEL_OUT = AudioFormat.CHANNEL_OUT_MONO;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    private static final int ROUTE_WARMUP_SAMPLES = 160;
 
     private ShellAudioProbe() {}
 
@@ -57,10 +59,7 @@ public final class ShellAudioProbe {
                 yield 0;
             }
             case CAPTURE_DOWNLINK -> captureDownlink(parsed.durationMs(), parsed.outputPath());
-            case INJECT_TONE -> {
-                System.out.println("inject_tone=not_implemented");
-                yield 5;
-            }
+            case INJECT_TONE -> injectTone(parsed.durationMs(), parsed.frequencyHz(), parsed.amplitude());
         };
 
         flushAndExit(exitCode);
@@ -235,6 +234,163 @@ public final class ShellAudioProbe {
                     outputFile.delete();
                 } catch (Throwable ignored) {
                     // Best-effort cleanup of an incomplete diagnostic capture.
+                }
+            }
+        }
+    }
+
+    private static int injectTone(int durationMs, int frequencyHz, double amplitude) {
+        AudioTrack track = null;
+        System.out.println("inject_usage=USAGE_MEDIA");
+        System.out.println("inject_content_type=CONTENT_TYPE_MUSIC");
+        System.out.println("sample_rate=" + SAMPLE_RATE);
+        System.out.println("duration_ms=" + durationMs);
+        System.out.println("frequency_hz=" + frequencyHz);
+        System.out.println("amplitude=" + amplitude);
+
+        try {
+            Context context = systemContext();
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            System.out.println("audio_mode=" + audioManager.getMode());
+
+            AudioDeviceInfo telephonySink = null;
+            for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                if (device.getType() == AudioDeviceInfo.TYPE_TELEPHONY && device.isSink()) {
+                    telephonySink = device;
+                    break;
+                }
+            }
+            if (telephonySink == null) {
+                System.out.println("telephony_sink_present=false");
+                return 8;
+            }
+            System.out.println("telephony_sink_present=true");
+            System.out.println(
+                "telephony_sink=id:" + telephonySink.getId()
+                    + ",type:" + telephonySink.getType()
+                    + ",product:" + telephonySink.getProductName()
+            );
+
+            short[] tone = ToneGenerator.sinePcm16(SAMPLE_RATE, durationMs, frequencyHz, amplitude);
+            int minBuffer = AudioTrack.getMinBufferSize(SAMPLE_RATE, CHANNEL_OUT, ENCODING);
+            int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 4096) : 4096;
+            System.out.println("target_samples=" + tone.length);
+            System.out.println("buffer_bytes=" + bufferSize);
+
+            track = new AudioTrack.Builder()
+                .setAudioAttributes(
+                    new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                .setAudioFormat(
+                    new AudioFormat.Builder()
+                        .setEncoding(ENCODING)
+                        .setSampleRate(SAMPLE_RATE)
+                        .setChannelMask(CHANNEL_OUT)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSize)
+                .setTransferMode(AudioTrack.MODE_STREAM)
+                .build();
+
+            System.out.println("track_state=" + track.getState());
+            System.out.println("track_session_id=" + track.getAudioSessionId());
+            if (track.getState() != AudioTrack.STATE_INITIALIZED) {
+                return 9;
+            }
+
+            boolean preferredSet = track.setPreferredDevice(telephonySink);
+            System.out.println("preferred_set=" + preferredSet);
+            System.out.println(
+                "preferred_id=" + (track.getPreferredDevice() == null ? -1 : track.getPreferredDevice().getId())
+            );
+            if (!preferredSet) {
+                return 10;
+            }
+
+            track.play();
+            System.out.println("play_state=" + track.getPlayState());
+
+            short[] warmupSilence = new short[ROUTE_WARMUP_SAMPLES];
+            Arrays.fill(warmupSilence, (short) 0);
+            int warmupWritten = track.write(
+                warmupSilence,
+                0,
+                warmupSilence.length,
+                AudioTrack.WRITE_BLOCKING
+            );
+            System.out.println("warmup_samples_written=" + warmupWritten);
+            if (warmupWritten != warmupSilence.length) {
+                return 11;
+            }
+
+            AudioDeviceInfo routedDevice = track.getRoutedDevice();
+            if (routedDevice == null) {
+                System.out.println("routed_device=none");
+                return 12;
+            }
+            System.out.println(
+                "routed_device=id:" + routedDevice.getId()
+                    + ",type:" + routedDevice.getType()
+                    + ",product:" + routedDevice.getProductName()
+            );
+            if (routedDevice.getType() != AudioDeviceInfo.TYPE_TELEPHONY) {
+                System.out.println("route_guard=blocked_non_telephony");
+                return 13;
+            }
+            System.out.println("route_guard=telephony_confirmed");
+
+            int totalWritten = 0;
+            while (totalWritten < tone.length) {
+                int written = track.write(
+                    tone,
+                    totalWritten,
+                    tone.length - totalWritten,
+                    AudioTrack.WRITE_BLOCKING
+                );
+                if (written < 0) {
+                    System.out.println("write_error=" + written);
+                    return 14;
+                }
+                if (written == 0) {
+                    continue;
+                }
+                totalWritten += written;
+            }
+            System.out.println("samples_written=" + totalWritten);
+
+            long deadline = System.nanoTime() + (durationMs + 500L) * 1_000_000L;
+            int playbackHead = track.getPlaybackHeadPosition();
+            while (playbackHead < ROUTE_WARMUP_SAMPLES + tone.length && System.nanoTime() < deadline) {
+                Thread.sleep(10L);
+                playbackHead = track.getPlaybackHeadPosition();
+            }
+            System.out.println("playback_head=" + playbackHead);
+            System.out.println("expected_playback_head=" + (ROUTE_WARMUP_SAMPLES + tone.length));
+            return playbackHead > ROUTE_WARMUP_SAMPLES ? 0 : 15;
+        } catch (Throwable error) {
+            printError("inject_tone", error);
+            return 16;
+        } finally {
+            if (track != null) {
+                try {
+                    if (track.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                        track.stop();
+                    }
+                } catch (Throwable ignored) {
+                    // Preserve the primary injection result.
+                }
+                try {
+                    track.flush();
+                } catch (Throwable ignored) {
+                    // Preserve the primary injection result.
+                }
+                try {
+                    track.release();
+                } catch (Throwable ignored) {
+                    // Preserve the primary injection result.
                 }
             }
         }
