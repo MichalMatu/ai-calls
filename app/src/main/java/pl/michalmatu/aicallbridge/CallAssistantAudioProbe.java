@@ -39,7 +39,7 @@ public final class CallAssistantAudioProbe {
         try {
             if (args.length == 2 && "construct".equals(args[0])) {
                 int sampleRate = parseSampleRate(args[1]);
-                exitCode = run(false, sampleRate, 0, 0, 0.0);
+                exitCode = run(false, sampleRate, 0, 0, 0, 0.0);
             } else if (args.length == 5 && "play-tone".equals(args[0])) {
                 int sampleRate = parseSampleRate(args[1]);
                 int durationMs = parseInt(args[2], "durationMs", 1, MAX_DURATION_MS);
@@ -48,11 +48,22 @@ public final class CallAssistantAudioProbe {
                     throw new IllegalArgumentException("frequencyHz must be below Nyquist");
                 }
                 double amplitude = parseAmplitude(args[4]);
-                exitCode = run(true, sampleRate, durationMs, frequencyHz, amplitude);
+                exitCode = run(true, sampleRate, durationMs, frequencyHz, 0, amplitude);
+            } else if (args.length == 6 && "play-dual-tone".equals(args[0])) {
+                int sampleRate = parseSampleRate(args[1]);
+                int durationMs = parseInt(args[2], "durationMs", 1, MAX_DURATION_MS);
+                int frequencyHz1 = parseInt(args[3], "frequencyHz1", 1, MAX_FREQUENCY_HZ);
+                int frequencyHz2 = parseInt(args[4], "frequencyHz2", 1, MAX_FREQUENCY_HZ);
+                if (frequencyHz1 * 2 >= sampleRate || frequencyHz2 * 2 >= sampleRate) {
+                    throw new IllegalArgumentException("frequencies must be below Nyquist");
+                }
+                double amplitude = parseAmplitude(args[5]);
+                exitCode = run(true, sampleRate, durationMs, frequencyHz1, frequencyHz2, amplitude);
             } else {
                 System.out.println(
                     "usage=CallAssistantAudioProbe construct <16000|48000> | "
-                        + "play-tone <16000|48000> <durationMs> <frequencyHz> <amplitude>"
+                        + "play-tone <16000|48000> <durationMs> <frequencyHz> <amplitude> | "
+                        + "play-dual-tone <16000|48000> <durationMs> <frequencyHz1> <frequencyHz2> <amplitude>"
                 );
                 exitCode = 2;
             }
@@ -71,6 +82,7 @@ public final class CallAssistantAudioProbe {
         int sampleRate,
         int durationMs,
         int frequencyHz,
+        int secondFrequencyHz,
         double amplitude
     ) throws Exception {
         AudioTrack track = null;
@@ -180,10 +192,17 @@ public final class CallAssistantAudioProbe {
             }
             System.out.println("route_guard=telephony_confirmed");
 
-            short[] mono = ToneGenerator.sinePcm16(sampleRate, durationMs, frequencyHz, amplitude);
+            short[] mono = secondFrequencyHz > 0
+                ? ToneGenerator.dualSinePcm16(
+                    sampleRate, durationMs, frequencyHz, secondFrequencyHz, amplitude
+                )
+                : ToneGenerator.sinePcm16(sampleRate, durationMs, frequencyHz, amplitude);
             short[] stereo = interleaveStereo(mono);
             System.out.println("tone_duration_ms=" + durationMs);
-            System.out.println("tone_frequency_hz=" + frequencyHz);
+            System.out.println("tone_frequency_hz_1=" + frequencyHz);
+            if (secondFrequencyHz > 0) {
+                System.out.println("tone_frequency_hz_2=" + secondFrequencyHz);
+            }
             System.out.println("tone_amplitude=" + amplitude);
             System.out.println("tone_frames=" + mono.length);
 

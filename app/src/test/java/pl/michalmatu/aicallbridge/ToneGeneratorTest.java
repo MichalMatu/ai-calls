@@ -55,4 +55,25 @@ public final class ToneGeneratorTest {
             () -> ToneGenerator.sinePcm16(16_000, 400, 1_000, 1.01)
         );
     }
+
+    @Test
+    public void dualSinePcm16IsBoundedAndDeterministic() {
+        short[] samples = ToneGenerator.dualSinePcm16(16_000, 100, 697, 1_209, 0.05);
+        assertEquals(1_600, samples.length);
+        assertEquals(0, samples[0]);
+        int peak = 0;
+        for (short sample : samples) {
+            peak = Math.max(peak, Math.abs((int) sample));
+        }
+        assertTrue(peak > 0);
+        assertTrue(peak <= Math.floor(Short.MAX_VALUE * 0.05));
+    }
+
+    @Test
+    public void dualSinePcm16RejectsNyquistFrequency() {
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> ToneGenerator.dualSinePcm16(16_000, 100, 697, 8_000, 0.05)
+        );
+    }
 }
