@@ -36,6 +36,7 @@ BOUNDS_RE = re.compile(r"^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$")
 CALL_STATE_RE = re.compile(r"mCallState=(\d+)")
 PACKAGE_NAME = "pl.michalmatu.aicallbridge"
 PROBE_CLASS = "pl.michalmatu.aicallbridge.ShellAudioProbe"
+TARGET_MODEL = "SM_S906B"
 SAMPLE_RATE = 16_000
 MAX_CAPTURE_MS = 5_000
 
@@ -43,6 +44,39 @@ MAX_CAPTURE_MS = 5_000
 def call_state_from_registry(text: str) -> int | None:
     match = CALL_STATE_RE.search(text)
     return int(match.group(1)) if match else None
+
+
+def select_target_serial(devices_output: str, *, target_model: str = TARGET_MODEL) -> str:
+    """Choose exactly one usable target transport, preferring wireless ADB.
+
+    The same physical S22+ can legitimately appear twice when USB and Wireless
+    Debugging are both connected. In that case prefer the TCP serial so normal
+    development remains USB-independent. Multiple usable wireless S22 targets are
+    ambiguous and fail closed.
+    """
+    candidates: list[str] = []
+    for raw_line in devices_output.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("List of devices attached"):
+            continue
+        parts = line.split()
+        if len(parts) < 2 or parts[1] != "device":
+            continue
+        if f"model:{target_model}" not in parts[2:]:
+            continue
+        candidates.append(parts[0])
+
+    if not candidates:
+        raise RuntimeError(f"no connected ADB target with model {target_model}")
+
+    wireless = [serial for serial in candidates if ":" in serial]
+    if len(wireless) == 1:
+        return wireless[0]
+    if len(wireless) > 1:
+        raise RuntimeError(f"multiple wireless {target_model} targets: {', '.join(wireless)}")
+    if len(candidates) == 1:
+        return candidates[0]
+    raise RuntimeError(f"multiple USB {target_model} targets: {', '.join(candidates)}")
 
 
 def center_from_bounds(bounds: str) -> tuple[int, int]:
@@ -110,11 +144,21 @@ def write_pcm16_wav(pcm: bytes, output_path: Path) -> None:
 class Adb:
     serial: str | None = None
 
+    def __post_init__(self) -> None:
+        if self.serial is None:
+            result = subprocess.run(
+                ["adb", "devices", "-l"],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+            self.serial = select_target_serial(result.stdout)
+
     def _prefix(self) -> list[str]:
-        command = ["adb"]
-        if self.serial:
-            command += ["-s", self.serial]
-        return command
+        if not self.serial:
+            raise RuntimeError("ADB serial was not resolved")
+        return ["adb", "-s", self.serial]
 
     def run(self, args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -128,9 +172,18 @@ class Adb:
     def shell(self, args: Sequence[str], *, check: bool = True) -> str:
         return self.run(["shell", *args], check=check).stdout
 
-    def call_state(self) -> int | None:
-        output = self.shell(["dumpsys", "telephony.registry"])
-        return call_state_from_registry(output)
+    def call_state(self, *, attempts: int = 3) -> int | None:
+        last_error: subprocess.CalledProcessError | None = None
+        for attempt in range(attempts):
+            try:
+                output = self.shell(["dumpsys", "telephony.registry"])
+                return call_state_from_registry(output)
+            except subprocess.CalledProcessError as error:
+                last_error = error
+                if attempt + 1 < attempts:
+                    time.sleep(0.2)
+        assert last_error is not None
+        raise last_error
 
     def dial(self, number: str) -> None:
         normalized = normalize_number(number)
@@ -246,19 +299,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "status":
             state = adb.call_state()
+            print(f"serial={adb.serial}")
             print(f"call_state={state} name={CALL_STATE_NAMES.get(state, 'UNKNOWN')}")
         elif args.command == "dial":
             adb.dial(args.number)
+            print(f"serial={adb.serial}")
             print("dial_requested=true")
         elif args.command == "dtmf":
             adb.send_dtmf(args.sequence)
+            print(f"serial={adb.serial}")
             print(f"dtmf_sent={normalize_dtmf(args.sequence)}")
         elif args.command == "capture":
             probe_output = adb.capture_downlink(args.duration_ms, args.output)
+            print(f"serial={adb.serial}")
             print(probe_output, end="" if probe_output.endswith("\n") else "\n")
             print(f"wav_path={args.output}")
         elif args.command == "hangup":
             adb.hangup()
+            print(f"serial={adb.serial}")
             print("hangup_requested=true")
         elif args.command == "dump-ui":
             print(adb.dump_ui())
