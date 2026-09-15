@@ -12,6 +12,8 @@ import android.media.MediaRecorder;
 import android.os.Looper;
 import android.os.Process;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.lang.reflect.Method;
 
 /**
@@ -54,7 +56,7 @@ public final class ShellAudioProbe {
                 runInventory();
                 yield 0;
             }
-            case CAPTURE_DOWNLINK -> captureDownlink(parsed.durationMs());
+            case CAPTURE_DOWNLINK -> captureDownlink(parsed.durationMs(), parsed.outputPath());
             case INJECT_TONE -> {
                 System.out.println("inject_tone=not_implemented");
                 yield 5;
@@ -115,11 +117,14 @@ public final class ShellAudioProbe {
         }
     }
 
-    private static int captureDownlink(int durationMs) {
+    private static int captureDownlink(int durationMs, String outputPath) {
         int minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_IN, ENCODING);
         int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 4096) : 4096;
         int targetSamples = SAMPLE_RATE * durationMs / 1000;
         AudioRecord record = null;
+        FileOutputStream output = null;
+        File outputFile = outputPath == null ? null : new File(outputPath);
+        boolean successful = false;
         PcmMetrics metrics = new PcmMetrics();
         int readErrors = 0;
 
@@ -128,6 +133,7 @@ public final class ShellAudioProbe {
         System.out.println("duration_ms=" + durationMs);
         System.out.println("target_samples=" + targetSamples);
         System.out.println("buffer_bytes=" + bufferSize);
+        System.out.println("output_path=" + (outputPath == null ? "none" : outputPath));
 
         try {
             record = new AudioRecord.Builder()
@@ -165,7 +171,12 @@ public final class ShellAudioProbe {
                 System.out.println("routed_device=none");
             }
 
+            if (outputFile != null) {
+                output = new FileOutputStream(outputFile, false);
+            }
+
             short[] buffer = new short[1024];
+            byte[] encoded = output == null ? null : new byte[buffer.length * 2];
             while (metrics.sampleCount() < targetSamples) {
                 int remaining = (int) (targetSamples - metrics.sampleCount());
                 int requested = Math.min(buffer.length, remaining);
@@ -179,6 +190,10 @@ public final class ShellAudioProbe {
                     continue;
                 }
                 metrics.accept(buffer, read);
+                if (output != null) {
+                    encodePcm16LittleEndian(buffer, read, encoded);
+                    output.write(encoded, 0, read * 2);
+                }
             }
 
             System.out.println("samples_read=" + metrics.sampleCount());
@@ -188,7 +203,8 @@ public final class ShellAudioProbe {
             System.out.println("rms=" + metrics.rms());
             System.out.println("read_errors=" + readErrors);
 
-            return metrics.sampleCount() == targetSamples && readErrors == 0 ? 0 : 6;
+            successful = metrics.sampleCount() == targetSamples && readErrors == 0;
+            return successful ? 0 : 6;
         } catch (Throwable error) {
             printError("capture_downlink", error);
             return 7;
@@ -207,6 +223,28 @@ public final class ShellAudioProbe {
                     // Preserve the primary capture result.
                 }
             }
+            if (output != null) {
+                try {
+                    output.close();
+                } catch (Throwable ignored) {
+                    // Preserve the primary capture result.
+                }
+            }
+            if (!successful && outputFile != null && outputFile.exists()) {
+                try {
+                    outputFile.delete();
+                } catch (Throwable ignored) {
+                    // Best-effort cleanup of an incomplete diagnostic capture.
+                }
+            }
+        }
+    }
+
+    private static void encodePcm16LittleEndian(short[] samples, int count, byte[] output) {
+        for (int i = 0; i < count; i++) {
+            int value = samples[i];
+            output[i * 2] = (byte) (value & 0xff);
+            output[i * 2 + 1] = (byte) ((value >>> 8) & 0xff);
         }
     }
 
