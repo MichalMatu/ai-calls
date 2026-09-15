@@ -34,10 +34,37 @@ public final class ShellAudioProbe {
             Looper.prepare();
         }
 
-        System.out.println("probe=shell-audio-v4");
+        final ProbeArguments parsed;
+        try {
+            parsed = ProbeArguments.parse(args);
+        } catch (IllegalArgumentException error) {
+            System.out.println("probe=shell-audio-v5");
+            System.out.println("argument_error=" + sanitize(error.getMessage()));
+            flushAndExit(2);
+            return;
+        }
+
+        System.out.println("probe=shell-audio-v5");
         System.out.println("uid=" + Process.myUid());
         System.out.println("pid=" + Process.myPid());
+        System.out.println("mode=" + parsed.mode());
 
+        int exitCode = switch (parsed.mode()) {
+            case INVENTORY -> {
+                runInventory();
+                yield 0;
+            }
+            case CAPTURE_DOWNLINK -> captureDownlink(parsed.durationMs());
+            case INJECT_TONE -> {
+                System.out.println("inject_tone=not_implemented");
+                yield 5;
+            }
+        };
+
+        flushAndExit(exitCode);
+    }
+
+    private static void runInventory() {
         probeRecordSource("VOICE_CALL", MediaRecorder.AudioSource.VOICE_CALL);
         probeRecordSource("VOICE_DOWNLINK", MediaRecorder.AudioSource.VOICE_DOWNLINK);
         probeRecordSource("VOICE_UPLINK", MediaRecorder.AudioSource.VOICE_UPLINK);
@@ -86,10 +113,101 @@ public final class ShellAudioProbe {
         } catch (Throwable error) {
             printError("system_context_or_audio_manager", error);
         }
+    }
 
-        System.out.flush();
-        System.err.flush();
-        System.exit(0);
+    private static int captureDownlink(int durationMs) {
+        int minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_IN, ENCODING);
+        int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 4096) : 4096;
+        int targetSamples = SAMPLE_RATE * durationMs / 1000;
+        AudioRecord record = null;
+        PcmMetrics metrics = new PcmMetrics();
+        int readErrors = 0;
+
+        System.out.println("capture_source=VOICE_DOWNLINK");
+        System.out.println("sample_rate=" + SAMPLE_RATE);
+        System.out.println("duration_ms=" + durationMs);
+        System.out.println("target_samples=" + targetSamples);
+        System.out.println("buffer_bytes=" + bufferSize);
+
+        try {
+            record = new AudioRecord.Builder()
+                .setAudioSource(MediaRecorder.AudioSource.VOICE_DOWNLINK)
+                .setAudioFormat(
+                    new AudioFormat.Builder()
+                        .setEncoding(ENCODING)
+                        .setSampleRate(SAMPLE_RATE)
+                        .setChannelMask(CHANNEL_IN)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSize)
+                .build();
+
+            System.out.println("record_state=" + record.getState());
+            System.out.println("session_id=" + record.getAudioSessionId());
+            if (record.getState() != AudioRecord.STATE_INITIALIZED) {
+                return 3;
+            }
+
+            record.startRecording();
+            System.out.println("recording_state=" + record.getRecordingState());
+            if (record.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+                return 4;
+            }
+
+            AudioDeviceInfo routedDevice = record.getRoutedDevice();
+            if (routedDevice != null) {
+                System.out.println(
+                    "routed_device=id:" + routedDevice.getId()
+                        + ",type:" + routedDevice.getType()
+                        + ",product:" + routedDevice.getProductName()
+                );
+            } else {
+                System.out.println("routed_device=none");
+            }
+
+            short[] buffer = new short[1024];
+            while (metrics.sampleCount() < targetSamples) {
+                int remaining = (int) (targetSamples - metrics.sampleCount());
+                int requested = Math.min(buffer.length, remaining);
+                int read = record.read(buffer, 0, requested, AudioRecord.READ_BLOCKING);
+                if (read < 0) {
+                    readErrors++;
+                    System.out.println("read_error=" + read);
+                    break;
+                }
+                if (read == 0) {
+                    continue;
+                }
+                metrics.accept(buffer, read);
+            }
+
+            System.out.println("samples_read=" + metrics.sampleCount());
+            System.out.println("bytes_read=" + (metrics.sampleCount() * 2));
+            System.out.println("non_zero_samples=" + metrics.nonZeroSampleCount());
+            System.out.println("peak=" + metrics.peak());
+            System.out.println("rms=" + metrics.rms());
+            System.out.println("read_errors=" + readErrors);
+
+            return metrics.sampleCount() == targetSamples && readErrors == 0 ? 0 : 6;
+        } catch (Throwable error) {
+            printError("capture_downlink", error);
+            return 7;
+        } finally {
+            if (record != null) {
+                try {
+                    if (record.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+                        record.stop();
+                    }
+                } catch (Throwable ignored) {
+                    // Preserve the primary capture result.
+                }
+                try {
+                    record.release();
+                } catch (Throwable ignored) {
+                    // Preserve the primary capture result.
+                }
+            }
+        }
     }
 
     private static void printPermission(Context context, String label, String permission) {
@@ -204,11 +322,19 @@ public final class ShellAudioProbe {
         while (root.getCause() != null && root.getCause() != root) {
             root = root.getCause();
         }
-        String message = root.getMessage();
+        System.out.println(label + "=error:" + root.getClass().getSimpleName() + ":" + sanitize(root.getMessage()));
+    }
+
+    private static String sanitize(String message) {
         if (message == null) {
-            message = "";
+            return "";
         }
-        message = message.replace('\n', ' ').replace('\r', ' ');
-        System.out.println(label + "=error:" + root.getClass().getSimpleName() + ":" + message);
+        return message.replace('\n', ' ').replace('\r', ' ');
+    }
+
+    private static void flushAndExit(int exitCode) {
+        System.out.flush();
+        System.err.flush();
+        System.exit(exitCode);
     }
 }
