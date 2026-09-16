@@ -111,6 +111,12 @@ abort: prepared=false, active=false, heartbeat=false
 
 This changes only the diagnostic gate, not media behavior.
 
+### Remove unused legacy uplink controller
+
+Repository-wide source reference checks found no user of `SamsungUplinkSessionController`; matches existed only in previously compiled `.class`, `.dex`, and APK outputs. The class was the older single-direction owner superseded by `SamsungCallMediaSessionController`.
+
+It is removed on the working branch after the freeze. The frozen branch still contains it, so the historical baseline remains fully reproducible.
+
 ### Takeover latency remains a test item
 
 `SamsungCallAssistantTrack.writeMonoPcm16Le()` performs a blocking `AudioTrack.write()` while holding its object lock. Input writes are deliberately bounded to roughly 20 ms, limiting the expected abort delay, but this must be measured in Milestone D rather than redesigned speculatively.
