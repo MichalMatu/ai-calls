@@ -15,10 +15,9 @@ import java.util.Objects;
  * pipe. No per-frame Binder calls are required.</p>
  */
 public final class SamsungUplinkPipeSession implements AutoCloseable {
-    private static final int READ_BUFFER_BYTES = 8192;
-
     private final SamsungCallAssistantTrack track;
     private final ParcelFileDescriptor readEnd;
+    private final int readChunkBytes;
     private ParcelFileDescriptor writeEnd;
 
     private Thread worker;
@@ -35,6 +34,7 @@ public final class SamsungUplinkPipeSession implements AutoCloseable {
         this.track = track;
         this.readEnd = readEnd;
         this.writeEnd = writeEnd;
+        this.readChunkBytes = Pcm16PipeFramer.chunkBytesFor20Ms(track.getSampleRate());
     }
 
     public static SamsungUplinkPipeSession open(Context context, int sampleRate) throws Exception {
@@ -75,7 +75,16 @@ public final class SamsungUplinkPipeSession implements AutoCloseable {
             throw new IllegalStateException("uplink pipe session already started");
         }
 
-        track.startAndConfirmTelephonyRoute();
+        try {
+            track.startAndConfirmTelephonyRoute();
+        } catch (InterruptedException error) {
+            terminateFromStartFailure(error);
+            throw error;
+        } catch (RuntimeException | Error error) {
+            terminateFromStartFailure(error);
+            throw error;
+        }
+
         started = true;
         worker = new Thread(this::runWorker, "aicall-samsung-uplink");
         worker.setDaemon(true);
@@ -100,7 +109,9 @@ public final class SamsungUplinkPipeSession implements AutoCloseable {
 
     /**
      * Immediate takeover/fail-safe path. Closing the read descriptor unblocks a blocked read and
-     * the AudioTrack is flushed/released without waiting for the controller or network.
+     * the AudioTrack is flushed/released without waiting for the controller or network. Worker
+     * writes are bounded to about 20 ms of input audio so a blocking AudioTrack write cannot hold
+     * the low-level track lock for a large queued chunk.
      */
     public void abortNow() {
         Thread thread;
@@ -140,33 +151,15 @@ public final class SamsungUplinkPipeSession implements AutoCloseable {
     }
 
     private void runWorker() {
-        byte[] buffer = new byte[READ_BUFFER_BYTES + 1];
-        boolean hasCarry = false;
         try (FileInputStream input = new FileInputStream(readEnd.getFileDescriptor())) {
-            while (!aborted) {
-                int offset = hasCarry ? 1 : 0;
-                int count = input.read(buffer, offset, READ_BUFFER_BYTES);
-                if (count < 0) {
-                    if (hasCarry) {
-                        throw new IllegalStateException("uplink PCM stream ended on half a PCM16 sample");
-                    }
-                    finishGracefully();
-                    return;
-                }
-                if (count == 0) {
-                    continue;
-                }
-
-                int available = count + offset;
-                int evenBytes = available & ~1;
-                if (evenBytes > 0) {
-                    track.writeMonoPcm16Le(buffer, 0, evenBytes);
-                }
-
-                hasCarry = (available & 1) != 0;
-                if (hasCarry) {
-                    buffer[0] = buffer[available - 1];
-                }
+            Pcm16PipeFramer.pump(
+                input,
+                readChunkBytes,
+                () -> aborted,
+                (data, offset, length) -> track.writeMonoPcm16Le(data, offset, length)
+            );
+            if (!aborted) {
+                finishGracefully();
             }
         } catch (Throwable error) {
             if (!aborted) {
@@ -176,6 +169,15 @@ public final class SamsungUplinkPipeSession implements AutoCloseable {
         } finally {
             closeQuietly(readEnd);
         }
+    }
+
+    private void terminateFromStartFailure(Throwable error) {
+        terminalFailure = error;
+        terminated = true;
+        closeQuietly(readEnd);
+        closeQuietly(writeEnd);
+        writeEnd = null;
+        track.abortNow();
     }
 
     private void finishGracefully() {
