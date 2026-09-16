@@ -55,7 +55,7 @@ public final class BidirectionalMediaProbe {
     private static int runPrepareAbortOffcall() {
         SamsungCallMediaSessionController controller = new SamsungCallMediaSessionController();
         try {
-            System.out.println("probe=bidirectional-media-v3");
+            System.out.println("probe=bidirectional-media-v4");
             System.out.println("mode=prepare-abort-offcall");
             System.out.println("uid=" + Process.myUid());
             System.out.println("sample_rate=" + SAMPLE_RATE);
@@ -80,7 +80,7 @@ public final class BidirectionalMediaProbe {
         SamsungCallMediaSessionController controller = new SamsungCallMediaSessionController();
         SamsungCallMediaSessionController.Endpoints endpoints = null;
         try {
-            System.out.println("probe=bidirectional-media-v3");
+            System.out.println("probe=bidirectional-media-v4");
             System.out.println("mode=start-offcall");
             System.out.println("uid=" + Process.myUid());
             System.out.println("sample_rate=" + SAMPLE_RATE);
@@ -146,8 +146,9 @@ public final class BidirectionalMediaProbe {
         SamsungCallMediaSessionController.Endpoints endpoints = null;
         ParcelFileDescriptor downlinkReadEnd = null;
         ParcelFileDescriptor uplinkWriteEnd = null;
+        boolean mediaOk = false;
         try {
-            System.out.println("probe=bidirectional-media-v3");
+            System.out.println("probe=bidirectional-media-v4");
             System.out.println("mode=live-smoke");
             System.out.println("uid=" + Process.myUid());
             System.out.println("sample_rate=" + SAMPLE_RATE);
@@ -185,10 +186,18 @@ public final class BidirectionalMediaProbe {
             downlinkReadEnd = endpoints.takeDownlinkReadEnd();
             uplinkWriteEnd = endpoints.takeUplinkWriteEnd();
 
-            PcmMetrics metrics = new PcmMetrics();
-            int targetBytes = SAMPLE_RATE * durationMs / 1000 * 2;
-            int bytesRead = 0;
+            int preDurationMs = durationMs / 2;
+            int postDurationMs = durationMs - preDurationMs;
+            int preTargetBytes = SAMPLE_RATE * preDurationMs / 1000 * 2;
+            int postTargetBytes = SAMPLE_RATE * postDurationMs / 1000 * 2;
+            PcmMetrics preMetrics = new PcmMetrics();
+            PcmMetrics postMetrics = new PcmMetrics();
+            int preBytesRead;
+            int postBytesRead;
             int uplinkBytesWritten;
+            boolean activeWithEndpointsOpen;
+            boolean heartbeatWithEndpointsOpen;
+
             try (
                 ParcelFileDescriptor.AutoCloseInputStream input =
                     new ParcelFileDescriptor.AutoCloseInputStream(downlinkReadEnd);
@@ -197,6 +206,15 @@ public final class BidirectionalMediaProbe {
             ) {
                 downlinkReadEnd = null;
                 uplinkWriteEnd = null;
+
+                preBytesRead = captureWindow(
+                    controller,
+                    input,
+                    preMetrics,
+                    preTargetBytes,
+                    "pre_dtmf"
+                );
+                printMetrics("pre_dtmf", preBytesRead, preMetrics);
 
                 byte[] dtmf = dualTonePcm16Le(
                     SAMPLE_RATE,
@@ -211,44 +229,46 @@ public final class BidirectionalMediaProbe {
                 System.out.println("uplink_dtmf_digit=1");
                 System.out.println("uplink_dtmf_duration_ms=" + DTMF_DURATION_MS);
                 System.out.println("uplink_bytes_written=" + uplinkBytesWritten);
-
-                byte[] buffer = new byte[640]; // 20 ms mono PCM16LE at 16 kHz.
-                while (bytesRead < targetBytes) {
-                    int requested = Math.min(buffer.length, targetBytes - bytesRead);
-                    int read = input.read(buffer, 0, requested);
-                    if (read < 0) {
-                        break;
-                    }
-                    if (read == 0) {
-                        continue;
-                    }
-                    metrics.accept(buffer, read);
-                    bytesRead += read;
-                    if (!controller.heartbeat()) {
-                        System.out.println("heartbeat_during_capture=false");
-                        return 8;
-                    }
+                if (!controller.heartbeat()) {
+                    System.out.println("heartbeat_after_uplink_write=false");
+                    return 8;
                 }
+
+                postBytesRead = captureWindow(
+                    controller,
+                    input,
+                    postMetrics,
+                    postTargetBytes,
+                    "post_dtmf"
+                );
+                printMetrics("post_dtmf", postBytesRead, postMetrics);
+
+                activeWithEndpointsOpen = controller.hasActiveSession();
+                heartbeatWithEndpointsOpen = controller.heartbeat();
+                System.out.println("active_with_endpoints_open=" + activeWithEndpointsOpen);
+                System.out.println("heartbeat_with_endpoints_open=" + heartbeatWithEndpointsOpen);
+
+                mediaOk = preBytesRead == preTargetBytes
+                    && postBytesRead == postTargetBytes
+                    && preMetrics.sampleCount == preTargetBytes / 2
+                    && postMetrics.sampleCount == postTargetBytes / 2
+                    && !preMetrics.hasCarry
+                    && !postMetrics.hasCarry
+                    && (preMetrics.nonZeroSamples + postMetrics.nonZeroSamples) > 0
+                    && activeWithEndpointsOpen
+                    && heartbeatWithEndpointsOpen;
             }
 
-            System.out.println("bytes_read=" + bytesRead);
-            System.out.println("samples_read=" + metrics.sampleCount);
-            System.out.println("non_zero_samples=" + metrics.nonZeroSamples);
-            System.out.println("peak=" + metrics.peak);
-            System.out.println("rms=" + metrics.rms());
-            System.out.println("half_sample_carry=" + metrics.hasCarry);
-            System.out.println("active_before_abort=" + controller.hasActiveSession());
-            System.out.println("heartbeat_before_abort=" + controller.heartbeat());
-
+            System.out.println("media_ok_before_endpoint_close=" + mediaOk);
             controller.abortNow();
             System.out.println("prepared_after_abort=" + controller.hasPreparedSession());
             System.out.println("active_after_abort=" + controller.hasActiveSession());
             System.out.println("heartbeat_after_abort=" + controller.heartbeat());
 
-            return bytesRead == targetBytes
-                && metrics.sampleCount == targetBytes / 2
-                && !metrics.hasCarry
+            return mediaOk
+                && !controller.hasPreparedSession()
                 && !controller.hasActiveSession()
+                && !controller.heartbeat()
                 ? 0
                 : 9;
         } finally {
@@ -259,6 +279,43 @@ public final class BidirectionalMediaProbe {
             }
             controller.abortNow();
         }
+    }
+
+    private static int captureWindow(
+        SamsungCallMediaSessionController controller,
+        ParcelFileDescriptor.AutoCloseInputStream input,
+        PcmMetrics metrics,
+        int targetBytes,
+        String phase
+    ) throws Exception {
+        int bytesRead = 0;
+        byte[] buffer = new byte[640]; // 20 ms mono PCM16LE at 16 kHz.
+        while (bytesRead < targetBytes) {
+            int requested = Math.min(buffer.length, targetBytes - bytesRead);
+            int read = input.read(buffer, 0, requested);
+            if (read < 0) {
+                break;
+            }
+            if (read == 0) {
+                continue;
+            }
+            metrics.accept(buffer, read);
+            bytesRead += read;
+            if (!controller.heartbeat()) {
+                System.out.println("heartbeat_during_" + phase + "=false");
+                break;
+            }
+        }
+        return bytesRead;
+    }
+
+    private static void printMetrics(String prefix, int bytesRead, PcmMetrics metrics) {
+        System.out.println(prefix + "_bytes_read=" + bytesRead);
+        System.out.println(prefix + "_samples_read=" + metrics.sampleCount);
+        System.out.println(prefix + "_non_zero_samples=" + metrics.nonZeroSamples);
+        System.out.println(prefix + "_peak=" + metrics.peak);
+        System.out.println(prefix + "_rms=" + metrics.rms());
+        System.out.println(prefix + "_half_sample_carry=" + metrics.hasCarry);
     }
 
     private static ContextPair contexts() throws Exception {
