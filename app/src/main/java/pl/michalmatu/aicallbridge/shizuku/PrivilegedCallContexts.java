@@ -9,14 +9,16 @@ import java.util.Objects;
 /**
  * Builds the two attribution contexts required by the proven Samsung cellular media path.
  *
- * <p>This helper must only be invoked after VOICE_DOWNLINK has already been constructed through
- * {@code SamsungCallMediaSessionController.prepare()}. The target S22 firmware is sensitive to
- * that initialization order, so this class deliberately has no static Context initialization.</p>
+ * <p>The direct-shell proof still constructs VOICE_DOWNLINK before creating these contexts. A
+ * Shizuku UserService is different: Shizuku has already created an app-attributed process before
+ * our service object exists, so its RX path must explicitly supply trusted shell attribution to
+ * AudioRecord during prepare. The same pair is then reused for route guarding and CALL_ASSISTANT
+ * TX.</p>
  */
 public final class PrivilegedCallContexts {
     private PrivilegedCallContexts() {}
 
-    public static Pair createAfterMediaPrepare() throws Exception {
+    public static Pair create() throws Exception {
         Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
         Method systemMain = activityThreadClass.getDeclaredMethod("systemMain");
         systemMain.setAccessible(true);
