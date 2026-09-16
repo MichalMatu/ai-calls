@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
+import pl.michalmatu.aicallbridge.shizuku.ShizukuEnduranceProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuWatchdogProbe
 import rikka.shizuku.Shizuku
@@ -130,7 +131,9 @@ class MainActivity : Activity() {
         if (intent.getBooleanExtra(EXTRA_RUN_CAPABILITY_PROBE, false)) {
             runCapabilityProbe()
         }
-        if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ABORT_PROBE, false)) {
+        if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE, false)) {
+            runShizukuEnduranceProbe()
+        } else if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ABORT_PROBE, false)) {
             runShizukuAbortLatencyProbe()
         } else if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE, false)) {
             runShizukuWatchdogProbe()
@@ -263,6 +266,33 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun runShizukuEnduranceProbe() {
+        if (!Shizuku.pingBinder()) {
+            statusView.text = "Shizuku binder unavailable; start Shizuku first"
+            Log.i(TAG, "shizuku_endurance_probe_error=binder_unavailable")
+            return
+        }
+        if (Shizuku.isPreV11()) {
+            statusView.text = "Shizuku pre-v11 is unsupported"
+            Log.i(TAG, "shizuku_endurance_probe_error=unsupported_pre_v11")
+            return
+        }
+        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            statusView.text = "Shizuku permission required"
+            Log.i(TAG, "shizuku_endurance_probe_error=permission_required")
+            return
+        }
+
+        statusView.text = "Running Shizuku bidirectional endurance probe…"
+        Log.i(TAG, "shizuku_endurance_probe_start=true")
+        ShizukuEnduranceProbe.run(this) { result ->
+            runOnUiThread {
+                statusView.text = result
+                Log.i(TAG, "shizuku_endurance_probe_result:\n$result")
+            }
+        }
+    }
+
     private fun requestMicrophonePermissionIfNeeded() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             statusView.text = "Microphone permission already granted"
@@ -299,5 +329,6 @@ class MainActivity : Activity() {
         const val EXTRA_RUN_SHIZUKU_LIVE_PROBE = "run_shizuku_live_probe"
         const val EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE = "run_shizuku_watchdog_probe"
         const val EXTRA_RUN_SHIZUKU_ABORT_PROBE = "run_shizuku_abort_probe"
+        const val EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE = "run_shizuku_endurance_probe"
     }
 }
