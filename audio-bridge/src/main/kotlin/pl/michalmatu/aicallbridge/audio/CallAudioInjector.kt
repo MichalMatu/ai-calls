@@ -10,4 +10,6 @@ interface CallAudioInjector {
     suspend fun write(frame: PcmFrame): Result<Unit>
 
     suspend fun stop()
+
+    suspend fun abortNow(): Result<Unit>
 }
