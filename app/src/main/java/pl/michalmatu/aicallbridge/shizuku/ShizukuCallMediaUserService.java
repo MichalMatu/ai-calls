@@ -58,7 +58,10 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         } catch (Exception error) {
             controller.abortNow();
             contexts = null;
-            throw new IllegalStateException("failed to prepare Samsung call media", error);
+            throw new IllegalStateException(
+                "failed to prepare Samsung call media: " + describe(error),
+                error
+            );
         }
     }
 
@@ -81,7 +84,10 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         } catch (Exception error) {
             controller.abortNow();
             contexts = null;
-            throw new IllegalStateException("failed to start Samsung call media", error);
+            throw new IllegalStateException(
+                "failed to start Samsung call media: " + describe(error),
+                error
+            );
         }
     }
 
@@ -136,5 +142,13 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
             endpoints.close();
             endpoints = null;
         }
+    }
+
+    private static String describe(Throwable error) {
+        String message = error.getMessage();
+        if (message == null || message.isBlank()) {
+            return error.getClass().getSimpleName();
+        }
+        return error.getClass().getSimpleName() + ":" + message.replace('\n', ' ').replace('\r', ' ');
     }
 }
