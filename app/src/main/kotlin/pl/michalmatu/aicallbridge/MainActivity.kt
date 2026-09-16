@@ -10,10 +10,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuEnduranceProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuWatchdogProbe
 import rikka.shizuku.Shizuku
 
 class MainActivity : Activity() {
@@ -131,17 +128,6 @@ class MainActivity : Activity() {
         if (intent.getBooleanExtra(EXTRA_RUN_CAPABILITY_PROBE, false)) {
             runCapabilityProbe()
         }
-        if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE, false)) {
-            runShizukuEnduranceProbe()
-        } else if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ABORT_PROBE, false)) {
-            runShizukuAbortLatencyProbe()
-        } else if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE, false)) {
-            runShizukuWatchdogProbe()
-        } else if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_LIVE_PROBE, false)) {
-            runShizukuProbe(true)
-        } else if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_PROBE, false)) {
-            runShizukuProbe(false)
-        }
     }
 
     override fun onDestroy() {
@@ -212,87 +198,6 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun runShizukuWatchdogProbe() {
-        if (!Shizuku.pingBinder()) {
-            statusView.text = "Shizuku binder unavailable; start Shizuku first"
-            Log.i(TAG, "shizuku_watchdog_probe_error=binder_unavailable")
-            return
-        }
-        if (Shizuku.isPreV11()) {
-            statusView.text = "Shizuku pre-v11 is unsupported"
-            Log.i(TAG, "shizuku_watchdog_probe_error=unsupported_pre_v11")
-            return
-        }
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            statusView.text = "Shizuku permission required"
-            Log.i(TAG, "shizuku_watchdog_probe_error=permission_required")
-            return
-        }
-
-        statusView.text = "Running Shizuku heartbeat watchdog probe…"
-        Log.i(TAG, "shizuku_watchdog_probe_start=true")
-        ShizukuWatchdogProbe.run(this) { result ->
-            runOnUiThread {
-                statusView.text = result
-                Log.i(TAG, "shizuku_watchdog_probe_result:\n$result")
-            }
-        }
-    }
-
-    private fun runShizukuAbortLatencyProbe() {
-        if (!Shizuku.pingBinder()) {
-            statusView.text = "Shizuku binder unavailable; start Shizuku first"
-            Log.i(TAG, "shizuku_abort_probe_error=binder_unavailable")
-            return
-        }
-        if (Shizuku.isPreV11()) {
-            statusView.text = "Shizuku pre-v11 is unsupported"
-            Log.i(TAG, "shizuku_abort_probe_error=unsupported_pre_v11")
-            return
-        }
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            statusView.text = "Shizuku permission required"
-            Log.i(TAG, "shizuku_abort_probe_error=permission_required")
-            return
-        }
-
-        statusView.text = "Running Shizuku explicit abort latency probe…"
-        Log.i(TAG, "shizuku_abort_probe_start=true")
-        ShizukuAbortLatencyProbe.run(this) { result ->
-            runOnUiThread {
-                statusView.text = result
-                Log.i(TAG, "shizuku_abort_probe_result:\n$result")
-            }
-        }
-    }
-
-    private fun runShizukuEnduranceProbe() {
-        if (!Shizuku.pingBinder()) {
-            statusView.text = "Shizuku binder unavailable; start Shizuku first"
-            Log.i(TAG, "shizuku_endurance_probe_error=binder_unavailable")
-            return
-        }
-        if (Shizuku.isPreV11()) {
-            statusView.text = "Shizuku pre-v11 is unsupported"
-            Log.i(TAG, "shizuku_endurance_probe_error=unsupported_pre_v11")
-            return
-        }
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            statusView.text = "Shizuku permission required"
-            Log.i(TAG, "shizuku_endurance_probe_error=permission_required")
-            return
-        }
-
-        statusView.text = "Running Shizuku bidirectional endurance probe…"
-        Log.i(TAG, "shizuku_endurance_probe_start=true")
-        ShizukuEnduranceProbe.run(this) { result ->
-            runOnUiThread {
-                statusView.text = result
-                Log.i(TAG, "shizuku_endurance_probe_result:\n$result")
-            }
-        }
-    }
-
     private fun requestMicrophonePermissionIfNeeded() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             statusView.text = "Microphone permission already granted"
@@ -325,10 +230,5 @@ class MainActivity : Activity() {
         const val REQUEST_SHIZUKU = 1002
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
         const val EXTRA_RUN_CAPABILITY_PROBE = "run_probe"
-        const val EXTRA_RUN_SHIZUKU_PROBE = "run_shizuku_probe"
-        const val EXTRA_RUN_SHIZUKU_LIVE_PROBE = "run_shizuku_live_probe"
-        const val EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE = "run_shizuku_watchdog_probe"
-        const val EXTRA_RUN_SHIZUKU_ABORT_PROBE = "run_shizuku_abort_probe"
-        const val EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE = "run_shizuku_endurance_probe"
     }
 }
