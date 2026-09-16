@@ -4,20 +4,47 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
+import rikka.shizuku.Shizuku
 
 class MainActivity : Activity() {
     private lateinit var statusView: TextView
+    private var pendingShizukuProbe = false
+
+    private val shizukuBinderReceivedListener = Shizuku.OnBinderReceivedListener {
+        if (pendingShizukuProbe) {
+            runShizukuProbe()
+        }
+    }
+
+    private val shizukuPermissionResultListener = Shizuku.OnRequestPermissionResultListener {
+            requestCode,
+            grantResult,
+        ->
+        if (requestCode != REQUEST_SHIZUKU) {
+            return@OnRequestPermissionResultListener
+        }
+
+        if (grantResult == PackageManager.PERMISSION_GRANTED) {
+            runShizukuProbe()
+        } else {
+            pendingShizukuProbe = false
+            statusView.text = "Shizuku permission denied"
+            Log.i(TAG, "shizuku_probe_permission=denied")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         statusView = TextView(this).apply {
-            text = "Milestone 0.5: device capability probe ready"
+            text = "Phase 2: local call bridge probes"
             textSize = 15f
             setTextIsSelectable(true)
         }
@@ -32,17 +59,22 @@ class MainActivity : Activity() {
             setOnClickListener { runCapabilityProbe() }
         }
 
+        val shizukuProbeButton = Button(this).apply {
+            text = "Run Shizuku UserService probe"
+            setOnClickListener { runShizukuProbe() }
+        }
+
         val probeCaptureButton = Button(this).apply {
             text = "Probe call downlink capture"
             setOnClickListener {
-                statusView.text = "Capture backend not implemented yet. Capability probe comes first."
+                statusView.text = "Downlink backend is under Phase 2 validation."
             }
         }
 
         val probeInjectionButton = Button(this).apply {
             text = "Probe call uplink injection"
             setOnClickListener {
-                statusView.text = "Injection backend not implemented yet. Capability probe comes first."
+                statusView.text = "Uplink backend is under Phase 2 validation."
             }
         }
 
@@ -50,7 +82,7 @@ class MainActivity : Activity() {
             text = "TAKE OVER / STOP AI AUDIO"
             isAllCaps = true
             setOnClickListener {
-                statusView.text = "Takeover requested. No injector is active in Milestone 0.5."
+                statusView.text = "Takeover requested. Active transport cleanup is handled fail-safe."
             }
         }
 
@@ -63,6 +95,7 @@ class MainActivity : Activity() {
             })
             addView(requestMicButton)
             addView(capabilityProbeButton)
+            addView(shizukuProbeButton)
             addView(probeCaptureButton)
             addView(probeInjectionButton)
             addView(takeoverButton)
@@ -87,9 +120,21 @@ class MainActivity : Activity() {
             },
         )
 
+        Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
+        Shizuku.addRequestPermissionResultListener(shizukuPermissionResultListener)
+
         if (intent.getBooleanExtra(EXTRA_RUN_CAPABILITY_PROBE, false)) {
             runCapabilityProbe()
         }
+        if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_PROBE, false)) {
+            runShizukuProbe()
+        }
+    }
+
+    override fun onDestroy() {
+        Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
+        Shizuku.removeRequestPermissionResultListener(shizukuPermissionResultListener)
+        super.onDestroy()
     }
 
     private fun runCapabilityProbe() {
@@ -97,6 +142,46 @@ class MainActivity : Activity() {
             CapabilityProbe(this).run()
         } catch (error: Throwable) {
             "Capability probe failed: ${error.javaClass.simpleName}: ${error.message}"
+        }
+    }
+
+    private fun runShizukuProbe() {
+        pendingShizukuProbe = true
+
+        if (!Shizuku.pingBinder()) {
+            statusView.text = "Shizuku binder unavailable; start Shizuku first"
+            Log.i(TAG, "shizuku_probe_binder=unavailable")
+            return
+        }
+
+        if (Shizuku.isPreV11()) {
+            pendingShizukuProbe = false
+            statusView.text = "Shizuku pre-v11 is unsupported"
+            Log.i(TAG, "shizuku_probe_version=unsupported_pre_v11")
+            return
+        }
+
+        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            if (Shizuku.shouldShowRequestPermissionRationale()) {
+                pendingShizukuProbe = false
+                statusView.text = "Shizuku permission denied; enable it in Shizuku"
+                Log.i(TAG, "shizuku_probe_permission=rationale_required")
+                return
+            }
+            statusView.text = "Requesting Shizuku permission…"
+            Log.i(TAG, "shizuku_probe_permission=requested")
+            Shizuku.requestPermission(REQUEST_SHIZUKU)
+            return
+        }
+
+        pendingShizukuProbe = false
+        statusView.text = "Running Shizuku UserService off-call probe…"
+        Log.i(TAG, "shizuku_probe_start=true")
+        ShizukuUserServiceProbe.run(this) { result ->
+            runOnUiThread {
+                statusView.text = result
+                Log.i(TAG, "shizuku_probe_result:\n$result")
+            }
         }
     }
 
@@ -127,7 +212,10 @@ class MainActivity : Activity() {
     }
 
     private companion object {
+        const val TAG = "AiCallBridge"
         const val REQUEST_RECORD_AUDIO = 1001
+        const val REQUEST_SHIZUKU = 1002
         const val EXTRA_RUN_CAPABILITY_PROBE = "run_probe"
+        const val EXTRA_RUN_SHIZUKU_PROBE = "run_shizuku_probe"
     }
 }
