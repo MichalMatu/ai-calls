@@ -17,4 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "AndroidAiCallBridge"
 include(":app")
 include(":audio-bridge")
+include(":privileged-helper")
 include(":realtime-client")
