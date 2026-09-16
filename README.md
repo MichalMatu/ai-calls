@@ -1,132 +1,214 @@
 # Android AI Call Bridge
 
-Experimental Android project for testing whether a single Android phone can bridge a normal cellular call to a realtime AI voice session without external hardware.
+Experimental Android project for bridging a normal cellular call to a realtime AI voice session on one phone, without external audio hardware.
 
-## Target outcome
+Initial target: Samsung Galaxy S22+ `SM-S906B` on stock Samsung firmware.
+
+## Target media path
 
 ```text
-remote caller -> cellular downlink -> app PCM -> realtime AI
-realtime AI -> app PCM -> cellular uplink -> remote caller
+remote caller
+  -> cellular downlink
+  -> privileged helper PCM
+  -> realtime AI
+
+realtime AI
+  -> privileged helper PCM
+  -> cellular uplink
+  -> remote caller
 ```
 
-The initial hardware target is a Samsung Galaxy S22+ on stock Samsung firmware. The user must always be able to take over the call immediately.
+The user must always be able to take over the call immediately. Privileged/media failure must fail toward a normal human call, never toward stuck AI injection.
 
-## Current technical position
+## Current status — 2026-09-16
 
-The project no longer treats cellular capture and injection as one unknown problem.
+The core stock-Samsung cellular media problem is no longer hypothetical.
 
-There are existing precedents for both halves:
+### Phase 1A — cellular RX
 
-- scrcpy exposes direct voice-call, uplink and downlink audio sources when run with sufficient shell/system capability;
-- ShizuCallRecorder demonstrates a non-root Shizuku/shell path for recording carrier calls on modern Android versions;
-- Basic Call Player demonstrates injection through `AudioTrack` routed to `TYPE_TELEPHONY`, but that output device is not implemented consistently across OEMs;
-- AgentCall demonstrates independently qualified digital telephony RX/TX on another privileged/rooted Android device, including a `USAGE_MEDIA -> TYPE_TELEPHONY` TX route. It is research evidence only, not S22+ proof.
+`DONE / PROVEN_S22`
 
-The physical `SM-S906B` running Android 16 / API 36 / One UI 8.0 has now crossed the first real live-call boundary:
+The production path captures remote-call-correlated PCM digitally through:
 
-- stock firmware exposes both `TYPE_TELEPHONY` sink and source devices;
-- ADB shell executes as UID 2000 and has `CAPTURE_AUDIO_OUTPUT`, `MODIFY_AUDIO_ROUTING`, and `MODIFY_PHONE_STATE`;
-- shell can create initialized `AudioRecord` instances for `VOICE_CALL`, `VOICE_DOWNLINK`, and `VOICE_UPLINK`;
-- during a real carrier call, bounded `VOICE_DOWNLINK` capture returned 32,000 PCM16 samples over 2 seconds with strong non-silent signal (`RMS≈2339`, `peak=15370`) and zero read errors;
-- the equivalent off-call control is near silence (`RMS≈1.85`, `peak=10`);
-- during that same active call, both tested generic `AudioTrack -> TYPE_TELEPHONY` constructions still failed with `UnsupportedOperationException`;
-- the normal application process cannot create the protected call sources, as expected.
+```text
+VOICE_DOWNLINK
+  -> SamsungVoiceDownlinkCapture
+  -> SamsungDownlinkPipeSession
+  -> ParcelFileDescriptor pipe
+```
 
-See [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) for the capability baseline and [`docs/S22_LIVE_CALL_2026-09-15.md`](docs/S22_LIVE_CALL_2026-09-15.md) for the first live-call evidence.
+Important S22 invariant: `VOICE_DOWNLINK` must be constructed through `controller.prepare()` before explicit `Context` / `AudioManager` initialization in the direct-shell process.
 
-This means **digital in-call downlink signal is now physically demonstrated on the S22+**, but the repository's full media-direction `PROVEN_S22` gate still requires source-direction/intelligibility confirmation from a retained bounded diagnostic sample. **The current generic telephony TX candidates failed even in-call**, so Samsung-specific Phase 1C injection research is now justified while the failure evidence is preserved.
+### Phase 1B — generic TX
 
-## Development rule
+`FAILED_S22 FOR TESTED PATHS`
 
-Do not build the AI layer first.
+The tested generic `USAGE_MEDIA` and `USAGE_VOICE_COMMUNICATION` telephony TX approaches did not provide the required uplink path on the target S22.
 
-The order is:
+### Phase 1C — Samsung-specific TX
 
-1. preserve/revalidate the exact S22+ capability baseline;
-2. prove digital remote-call audio capture during a live cellular call;
-3. prove deterministic digital audio injection to the remote caller;
-4. stabilize a local full-duplex bridge with fail-safe takeover;
-5. only then connect a realtime model;
-6. only after that build polished call UX.
+`DONE / PROVEN_S22`
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the go/no-go gates.
+The working uplink path is:
+
+```text
+mono PCM16LE
+  -> SamsungCallAssistantTrack
+  -> USAGE_CALL_ASSISTANT / AUDIO_STREAM_CALL_ASSISTANT
+  -> TYPE_TELEPHONY TX
+  -> cellular uplink
+```
+
+Remote receipt was physically demonstrated with deterministic digitally injected DTMF against the Orange IVR.
+
+### Phase 2B — shared local RX + TX bridge
+
+`DONE / PROVEN_S22`
+
+One `SamsungCallMediaSessionController` has been physically proven running both directions simultaneously through the production PFD paths while its watchdog and abort path remained healthy.
+
+Successful live proof included:
+
+```text
+active_after_start=true
+heartbeat_after_start=true
+pre_dtmf_non_zero_samples=25451
+uplink_bytes_written=9600
+post_dtmf_non_zero_samples=38737
+active_with_endpoints_open=true
+heartbeat_with_endpoints_open=true
+media_ok_before_endpoint_close=true
+prepared_after_abort=false
+active_after_abort=false
+heartbeat_after_abort=false
+```
+
+The phone remained physically silent during the successful validation:
+
+```text
+STREAM_VOICE_CALL Muted:true
+streamVolume:0
+route=earpiece
+```
+
+Full evidence: [`docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`](docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md).
+
+## Frozen known-good baseline
+
+The proven Phase 2B state is preserved on:
+
+```text
+branch: milestone/phase2b-proven-s22-20260916
+commit: c10f8dde29f245f8f98fb008a3572c21fe73fe35
+```
+
+Do not move/rewrite that branch during normal development. It is the rollback/comparison point for the cellular media path.
+
+Freeze rationale and post-freeze refactor rules are documented in [`docs/PHASE2B_FREEZE_2026-09-16.md`](docs/PHASE2B_FREEZE_2026-09-16.md).
+
+## Current gate — Phase 2C / Shizuku UserService parity
+
+The first app-facing Shizuku slice is implemented:
+
+- Shizuku API/provider dependency;
+- AIDL control plane;
+- `ShizukuCallMediaUserService`;
+- PFD endpoint handoff;
+- app-side bind/permission plumbing;
+- bounded off-call parity probe;
+- preserved `prepare()`-before-Context ordering.
+
+Post-freeze cleanup also separates privileged Context construction into `PrivilegedCallContexts`, keeping reflection-heavy Android plumbing out of the UserService lifecycle class.
+
+The off-call parity probe is intentionally strict: it requires the exact expected `prepare -> abort` state transition rather than merely checking that no session remains afterward.
+
+### Current device prerequisite
+
+At the last device check, Android user `0` had no Shizuku manager/server installed or running. Samsung Secure Folder user `151` is intentionally out of scope.
+
+No unverified APK should be fetched or installed merely to satisfy this gate.
+
+When a trusted Shizuku runtime is available, the next validations are:
+
+1. UserService effective UID and bind;
+2. off-call `prepare -> abort` parity;
+3. live RX + TX PFD parity under the silent-audio guard;
+4. Binder/controller-death fail-safe cleanup;
+5. 10-minute local bridge endurance and takeover-latency test.
+
+Only after those pass should realtime AI transport be connected.
 
 ## Architecture
 
-- `app/` — normal Android process, UI, orchestration and diagnostics.
+- `app/` — normal Android process, UI/orchestration, Shizuku client/probes.
 - `audio-bridge/` — device-independent capture/injection contracts and PCM models.
-- `privileged-helper/` — Shizuku/shell or other privileged experiments. Privileged Android/Samsung internals stay isolated here.
-- `realtime-client/` — realtime model transport abstraction, deliberately independent of telephony access.
-- `docs/` — evidence, roadmap, architecture and repeatable device tests.
+- `privileged-helper/` — protected Android/Samsung audio primitives, PFD workers, shared controller and watchdog.
+- `realtime-client/` — realtime model transport abstraction; intentionally not connected yet.
+- `docs/` — physical evidence, architecture, roadmap, plans and freeze notes.
 
-The intended privileged media shape is:
+Privileged media shape:
 
 ```text
-normal app <--- control via Binder/AIDL ---> privileged helper
-normal app <====== PCM pipe/socket =======> privileged helper
+normal app <--- Binder/AIDL control + FD handoff ---> privileged helper
+normal app <=========== PCM PFD pipes =============> privileged helper
 ```
 
-Do not send every audio frame as a separate Binder transaction.
+Continuous PCM must never be transported as one Binder transaction per frame.
 
-## Current milestone
+## Production media components
 
-**Phase 1 live-call validation is active. The dedicated SIM and Wireless ADB path are working on the target S22+.**
+```text
+SamsungVoiceDownlinkCapture
+  -> SamsungDownlinkPipeSession
 
-Already reproduced on the exact S22+ build:
+SamsungCallAssistantTrack
+  -> SamsungUplinkPipeSession
 
-- target firmware/build identity;
-- shell UID 2000 privilege class;
-- relevant shell permission grants;
-- protected call-source initialization;
-- `TYPE_TELEPHONY` RX/TX device presence;
-- real in-call `VOICE_DOWNLINK` start/read with strong non-silent PCM;
-- active-call failure of the two current generic `AudioTrack -> TYPE_TELEPHONY` construction candidates;
-- repeatable bounded capture tooling and ADB-over-Wi-Fi call-control test tooling.
+SamsungCallMediaSessionController
+  -> one RX+TX generation
+  -> one heartbeat watchdog
+  -> shared abort/fail-safe lifecycle
+```
 
-Still pending:
+RX and TX remain separate low-level components because the S22 has different initialization and attribution requirements for each direction. Do not introduce a generic common base merely to reduce line count.
 
-- confirm the live `VOICE_DOWNLINK` sample contains the remote IVR specifically and classify whether it is remote-only or mixed;
-- physically validate DTMF navigation through the test helper during an active call;
-- investigate Samsung-specific TX after the generic in-call construction failure;
-- Shizuku UserService integration after the raw shell media path is settled.
+The direct-shell `BidirectionalMediaProbe` remains a hardware regression/reference harness and should not be casually rewritten while Shizuku parity is still being established.
 
-The executable Phase 1 plan remains [`docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`](docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md).
+## Development order
 
-## Development methodology
+1. preserve the proven Phase 2B baseline;
+2. prove Shizuku UserService parity;
+3. prove controller/Binder-death fail-safe behavior;
+4. pass local endurance and takeover-latency gates;
+5. connect realtime AI;
+6. add product UX and broader route/device robustness.
 
-The repository adopts the [`obra/superpowers`](https://github.com/obra/superpowers) agentic development methodology.
-
-- project-specific agent instructions: [`AGENTS.md`](AGENTS.md)
-- workflow adaptation: [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md)
-- implementation plans: `docs/superpowers/plans/`
-
-Superpowers is a development workflow/plugin, not an Android runtime dependency and is not shipped in the APK.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the current gates.
 
 ## Hard rules
 
-- A Samsung feature or third-party project is evidence, not proof for our S22+.
-- A media direction becomes `PROVEN_S22` only after the physical two-phone test.
-- A successful constructor/permission/device enumeration is not equivalent to working call media.
+- Physical media claims become `PROVEN_S22` only after target-device live-call evidence.
+- Constructor/permission/device-enumeration success is not equivalent to working call media.
+- Preserve the proven S22 RX initialization order unless new physical evidence disproves it.
+- Preserve separate RX (`android`) and TX (`com.android.shell`) attribution requirements.
+- No per-frame Binder PCM transport.
+- `Take over` must be local and fail-safe.
+- App/helper death must disable injection.
 - No long-lived OpenAI API key in the APK.
-- No recording by default.
-- `Take over` must fail locally and immediately toward normal human call behavior.
-- If the app or network dies, AI injection must not remain active.
-- Do not replace the default dialer until the media bridge works.
-- Do not merge `.agent` control/result traffic into `main`.
+- No call recording by default.
+- Do not replace the default dialer until the media bridge and product requirements justify it.
+- Keep `.agent` execution/control data off canonical product branches such as `main`.
 
-## Documents
+## Key documents
 
-- [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) — exact physical-device capability baseline.
-- [`docs/S22_LIVE_CALL_2026-09-15.md`](docs/S22_LIVE_CALL_2026-09-15.md) — first active-call RX/TX evidence and repeatable-test handoff.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — phase order, gates and fallback order.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — component boundaries and fail-safe design.
-- [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — implementation sequence.
-- [`docs/DEVICE_CAPABILITY_PROBE.md`](docs/DEVICE_CAPABILITY_PROBE.md) — S22+ diagnostic contract and current baseline status.
-- [`docs/POC_AUDIO_TEST_PLAN.md`](docs/POC_AUDIO_TEST_PLAN.md) — physical capture/injection validation.
-- [`docs/RESEARCH_NOTES.md`](docs/RESEARCH_NOTES.md) — confirmed facts versus unresolved hypotheses.
-- [`docs/SECURITY_PRIVACY.md`](docs/SECURITY_PRIVACY.md) — privilege, credential and takeover rules.
-- [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md) — Superpowers-based engineering workflow.
+- [`docs/PHASE2B_FREEZE_2026-09-16.md`](docs/PHASE2B_FREEZE_2026-09-16.md) — frozen known-good Phase 2B reference and refactor policy.
+- [`docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`](docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md) — physical simultaneous RX+TX proof.
+- [`docs/S22_PHASE1C_PROOF_2026-09-16.md`](docs/S22_PHASE1C_PROOF_2026-09-16.md) — Samsung-specific TX proof.
+- [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) — target capability baseline.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — evidence-driven phase gates.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current component boundaries and fail-safe rules.
+- [`docs/superpowers/plans/2026-09-16-phase2-local-bridge.md`](docs/superpowers/plans/2026-09-16-phase2-local-bridge.md) — current implementation plan.
 
 ## License
 
-No project-wide license has been selected yet. Do not copy GPL/AGPL-licensed implementation code into this repository by default. External projects may be used as research references; any code reuse must be evaluated against its license first.
+No project-wide license has been selected yet. External projects may be used as research references, but implementation code must not be copied without license review.
