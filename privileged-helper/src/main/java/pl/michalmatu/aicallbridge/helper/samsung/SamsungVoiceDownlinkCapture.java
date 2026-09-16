@@ -44,11 +44,10 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
         Objects.requireNonNull(context, "context");
         validateSampleRate(sampleRate);
 
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        if (audioManager == null) {
-            throw new IllegalStateException("AudioManager unavailable");
-        }
-
+        // Preserve the ordering of the physically proven ShellAudioProbe path on Samsung firmware:
+        // create VOICE_DOWNLINK before touching AudioManager/context-backed audio services. Initializing
+        // AudioManager first can change attribution state enough for AudioRecord.Builder.build() to fail
+        // with UnsupportedOperationException("Cannot create AudioRecord") under shell UID 2000.
         int minBuffer = AudioRecord.getMinBufferSize(sampleRate, CHANNEL_MASK, ENCODING);
         int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 4096) : 4096;
         AudioRecord record = new AudioRecord.Builder()
@@ -67,6 +66,18 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
             record.release();
             throw new IllegalStateException("VOICE_DOWNLINK AudioRecord failed to initialize");
         }
+
+        final AudioManager audioManager;
+        try {
+            audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager == null) {
+                throw new IllegalStateException("AudioManager unavailable");
+            }
+        } catch (RuntimeException | Error error) {
+            record.release();
+            throw error;
+        }
+
         return new SamsungVoiceDownlinkCapture(audioManager, record, sampleRate);
     }
 
