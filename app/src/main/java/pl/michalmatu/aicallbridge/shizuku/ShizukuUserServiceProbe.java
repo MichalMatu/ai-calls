@@ -91,13 +91,19 @@ public final class ShizukuUserServiceProbe {
         result.append("shizuku_uid=").append(Shizuku.getUid()).append('\n');
         result.append("service_uid=").append(service.getProcessUid()).append('\n');
         result.append("service_pid=").append(service.getProcessPid()).append('\n');
-        result.append("prepared_before=").append(service.hasPreparedSession()).append('\n');
-        result.append("active_before=").append(service.hasActiveSession()).append('\n');
+
+        boolean preparedBefore = service.hasPreparedSession();
+        boolean activeBefore = service.hasActiveSession();
+        result.append("prepared_before=").append(preparedBefore).append('\n');
+        result.append("active_before=").append(activeBefore).append('\n');
 
         service.prepare(SAMPLE_RATE);
-        result.append("prepared_after_prepare=").append(service.hasPreparedSession()).append('\n');
-        result.append("active_after_prepare=").append(service.hasActiveSession()).append('\n');
-        result.append("heartbeat_after_prepare=").append(service.heartbeat()).append('\n');
+        boolean preparedAfterPrepare = service.hasPreparedSession();
+        boolean activeAfterPrepare = service.hasActiveSession();
+        boolean heartbeatAfterPrepare = service.heartbeat();
+        result.append("prepared_after_prepare=").append(preparedAfterPrepare).append('\n');
+        result.append("active_after_prepare=").append(activeAfterPrepare).append('\n');
+        result.append("heartbeat_after_prepare=").append(heartbeatAfterPrepare).append('\n');
 
         service.abortNow();
         boolean preparedAfterAbort = service.hasPreparedSession();
@@ -111,6 +117,11 @@ public final class ShizukuUserServiceProbe {
         boolean privilegedUid = uid == 0 || uid == 2000;
         boolean ok = Shizuku.pingBinder()
             && privilegedUid
+            && !preparedBefore
+            && !activeBefore
+            && preparedAfterPrepare
+            && !activeAfterPrepare
+            && !heartbeatAfterPrepare
             && !preparedAfterAbort
             && !activeAfterAbort
             && !heartbeatAfterAbort;
