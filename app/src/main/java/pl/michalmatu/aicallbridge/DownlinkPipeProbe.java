@@ -6,7 +6,6 @@ import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
 
-import java.io.FileInputStream;
 import java.lang.reflect.Method;
 
 import pl.michalmatu.aicallbridge.helper.samsung.SamsungDownlinkPipeSession;
@@ -128,8 +127,11 @@ public final class DownlinkPipeProbe {
 
             long targetBytes = (long) SAMPLE_RATE * durationMs / 1000L * 2L;
             PcmMetrics metrics = new PcmMetrics();
-            try (FileInputStream input = new FileInputStream(reader.getFileDescriptor())) {
-                reader = null; // FileInputStream owns the descriptor now.
+            try (
+                ParcelFileDescriptor.AutoCloseInputStream input =
+                    new ParcelFileDescriptor.AutoCloseInputStream(reader)
+            ) {
+                reader = null; // AutoCloseInputStream owns and closes the PFD itself.
                 byte[] buffer = new byte[2048];
                 int carry = -1;
                 long bytesRead = 0L;
