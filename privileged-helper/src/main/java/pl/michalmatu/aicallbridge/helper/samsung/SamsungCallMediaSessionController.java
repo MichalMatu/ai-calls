@@ -17,10 +17,10 @@ import pl.michalmatu.aicallbridge.helper.HeartbeatWatchdog;
  * media path terminates, or the controller heartbeat expires, both paths are aborted together.</p>
  *
  * <p>The target S22 firmware has asymmetric attribution requirements. VOICE_DOWNLINK uses the
- * proven system attribution while CALL_ASSISTANT TX uses the proven com.android.shell attribution.
- * The downlink must also be constructed before Context/AudioManager initialization in the direct
- * shell proof path, so callers first invoke {@link #prepare(int)}, then create/obtain the required
- * contexts, then invoke {@link #start(Context, Context)}.</p>
+ * proven privileged attribution while CALL_ASSISTANT TX uses the proven com.android.shell
+ * attribution. The direct-shell path still uses context-free {@link #prepare(int)}. Privileged
+ * app-attributed hosts such as a Shizuku UserService may instead use
+ * {@link #prepare(int, Context)} so AudioRecord is constructed with trusted shell attribution.</p>
  */
 public final class SamsungCallMediaSessionController implements AutoCloseable {
     public static final long DEFAULT_HEARTBEAT_TIMEOUT_MS = 2_000L;
@@ -91,29 +91,25 @@ public final class SamsungCallMediaSessionController implements AutoCloseable {
     }
 
     /**
-     * Context-free first phase. Opens VOICE_DOWNLINK and reserves its controller read pipe.
-     *
-     * <p>On the proven direct-shell S22 path this must happen before constructing the system or
-     * shell app Context used by the second phase.</p>
+     * Context-free first phase used by the physically proven direct-shell path.
      */
     public synchronized void prepare(int sampleRate) {
-        reapTerminatedLocked();
-        if (preparedDownlink != null || activeDownlink != null || activeUplink != null) {
-            throw new IllegalStateException("a call media session is already prepared or active");
-        }
+        ensureCanPrepareLocked();
+        prepareCandidateLocked(SamsungDownlinkPipeSession.open(sampleRate), sampleRate);
+    }
 
-        SamsungDownlinkPipeSession candidate = SamsungDownlinkPipeSession.open(sampleRate);
-        ParcelFileDescriptor reader = null;
-        try {
-            reader = candidate.takeReadEnd();
-            preparedDownlink = candidate;
-            preparedDownlinkReader = reader;
-            preparedSampleRate = sampleRate;
-        } catch (RuntimeException | Error error) {
-            closeQuietly(reader);
-            candidate.abortNow();
-            throw error;
-        }
+    /**
+     * First phase for privileged hosts whose process package does not match their trusted UID.
+     * The attribution Context is applied to AudioRecord construction only; route guarding still
+     * receives its own Context in {@link #start(Context, Context)}.
+     */
+    public synchronized void prepare(int sampleRate, Context downlinkAttributionContext) {
+        Objects.requireNonNull(downlinkAttributionContext, "downlinkAttributionContext");
+        ensureCanPrepareLocked();
+        prepareCandidateLocked(
+            SamsungDownlinkPipeSession.open(downlinkAttributionContext, sampleRate),
+            sampleRate
+        );
     }
 
     /**
@@ -224,6 +220,27 @@ public final class SamsungCallMediaSessionController implements AutoCloseable {
     @Override
     public void close() {
         abortNow();
+    }
+
+    private void ensureCanPrepareLocked() {
+        reapTerminatedLocked();
+        if (preparedDownlink != null || activeDownlink != null || activeUplink != null) {
+            throw new IllegalStateException("a call media session is already prepared or active");
+        }
+    }
+
+    private void prepareCandidateLocked(SamsungDownlinkPipeSession candidate, int sampleRate) {
+        ParcelFileDescriptor reader = null;
+        try {
+            reader = candidate.takeReadEnd();
+            preparedDownlink = candidate;
+            preparedDownlinkReader = reader;
+            preparedSampleRate = sampleRate;
+        } catch (RuntimeException | Error error) {
+            closeQuietly(reader);
+            candidate.abortNow();
+            throw error;
+        }
     }
 
     private void abortIfCurrent(
