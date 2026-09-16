@@ -49,17 +49,17 @@ public final class DownlinkPipeProbe {
     }
 
     private static int runOpenAbortOffcall() throws Exception {
-        Context context = systemContext();
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        System.out.println("probe=downlink-pipe-v2");
-        System.out.println("mode=open-abort-offcall");
-        System.out.println("uid=" + Process.myUid());
-        printContext(context);
-        System.out.println("audio_mode=" + audioManager.getMode());
-
-        SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(context, SAMPLE_RATE);
+        SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(SAMPLE_RATE);
         ParcelFileDescriptor reader = null;
         try {
+            Context context = systemContext();
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            System.out.println("probe=downlink-pipe-v3");
+            System.out.println("mode=open-abort-offcall");
+            System.out.println("uid=" + Process.myUid());
+            printContext(context);
+            System.out.println("audio_mode=" + audioManager.getMode());
+
             reader = session.takeReadEnd();
             System.out.println("read_end_acquired=true");
             session.abortNow();
@@ -73,21 +73,21 @@ public final class DownlinkPipeProbe {
     }
 
     private static int runStartOffcall() throws Exception {
-        Context context = systemContext();
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        System.out.println("probe=downlink-pipe-v2");
-        System.out.println("mode=start-offcall");
-        System.out.println("uid=" + Process.myUid());
-        printContext(context);
-        System.out.println("audio_mode=" + audioManager.getMode());
-
-        SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(context, SAMPLE_RATE);
+        SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(SAMPLE_RATE);
         ParcelFileDescriptor reader = null;
         try {
+            Context context = systemContext();
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            System.out.println("probe=downlink-pipe-v3");
+            System.out.println("mode=start-offcall");
+            System.out.println("uid=" + Process.myUid());
+            printContext(context);
+            System.out.println("audio_mode=" + audioManager.getMode());
+
             reader = session.takeReadEnd();
             boolean rejected = false;
             try {
-                session.start();
+                session.start(context);
             } catch (IllegalStateException expected) {
                 rejected = true;
                 System.out.println("offcall_start_rejected=true");
@@ -103,26 +103,26 @@ public final class DownlinkPipeProbe {
     }
 
     private static int runCaptureLive(int durationMs) throws Exception {
-        Context context = systemContext();
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        System.out.println("probe=downlink-pipe-v2");
-        System.out.println("mode=capture-live");
-        System.out.println("uid=" + Process.myUid());
-        printContext(context);
-        System.out.println("audio_mode=" + audioManager.getMode());
-        System.out.println("sample_rate=" + SAMPLE_RATE);
-        System.out.println("duration_ms=" + durationMs);
-
-        if (audioManager.getMode() != AudioManager.MODE_IN_CALL) {
-            System.out.println("call_guard=blocked_not_in_call");
-            return 6;
-        }
-
-        SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(context, SAMPLE_RATE);
+        SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(SAMPLE_RATE);
         ParcelFileDescriptor reader = null;
         try {
+            Context context = systemContext();
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            System.out.println("probe=downlink-pipe-v3");
+            System.out.println("mode=capture-live");
+            System.out.println("uid=" + Process.myUid());
+            printContext(context);
+            System.out.println("audio_mode=" + audioManager.getMode());
+            System.out.println("sample_rate=" + SAMPLE_RATE);
+            System.out.println("duration_ms=" + durationMs);
+
+            if (audioManager.getMode() != AudioManager.MODE_IN_CALL) {
+                System.out.println("call_guard=blocked_not_in_call");
+                return 6;
+            }
+
             reader = session.takeReadEnd();
-            session.start();
+            session.start(context);
             System.out.println("session_started=" + session.isStarted());
             System.out.println("route_guard=telephony_confirmed_by_session_start");
 
@@ -189,6 +189,9 @@ public final class DownlinkPipeProbe {
      * VOICE_DOWNLINK attribution on the target Samsung firmware must remain the system context
      * used by the proven ShellAudioProbe. CALL_ASSISTANT TX has the opposite requirement and uses
      * an explicit com.android.shell app context in CallAssistantAudioProbe.
+     *
+     * <p>Important: callers create SamsungDownlinkPipeSession before invoking this method so the
+     * VOICE_DOWNLINK AudioRecord exists before process Context/audio-service initialization.</p>
      */
     private static Context systemContext() throws Exception {
         Class<?> activityThread = Class.forName("android.app.ActivityThread");
