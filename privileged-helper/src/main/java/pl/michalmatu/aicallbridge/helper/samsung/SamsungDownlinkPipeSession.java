@@ -13,8 +13,9 @@ import java.util.Objects;
  * read end once through {@link #takeReadEnd()}, then consumes raw mono PCM16LE without per-frame
  * Binder calls. Closing the controller read end stops capture locally.</p>
  *
- * <p>{@link #open(int)} is intentionally context-free so VOICE_DOWNLINK is constructed before
- * Context/AudioManager work. The Context is supplied only at {@link #start(Context)}.</p>
+ * <p>{@link #open(int)} remains intentionally context-free for the physically proven direct-shell
+ * path. Privileged hosts that already execute inside an app-attributed process may use
+ * {@link #open(Context, int)} to bind AudioRecord attribution explicitly.</p>
  */
 public final class SamsungDownlinkPipeSession implements AutoCloseable {
     private final SamsungVoiceDownlinkCapture capture;
@@ -40,7 +41,19 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
     }
 
     public static SamsungDownlinkPipeSession open(int sampleRate) {
-        SamsungVoiceDownlinkCapture capture = SamsungVoiceDownlinkCapture.open(sampleRate);
+        return openWithCapture(SamsungVoiceDownlinkCapture.open(sampleRate));
+    }
+
+    public static SamsungDownlinkPipeSession open(Context attributionContext, int sampleRate) {
+        Objects.requireNonNull(attributionContext, "attributionContext");
+        return openWithCapture(
+            SamsungVoiceDownlinkCapture.open(sampleRate, attributionContext)
+        );
+    }
+
+    private static SamsungDownlinkPipeSession openWithCapture(
+        SamsungVoiceDownlinkCapture capture
+    ) {
         ParcelFileDescriptor[] pipe = null;
         try {
             pipe = ParcelFileDescriptor.createPipe();
