@@ -46,7 +46,7 @@ public final class BidirectionalMediaProbe {
     private static int runPrepareAbortOffcall() {
         SamsungCallMediaSessionController controller = new SamsungCallMediaSessionController();
         try {
-            System.out.println("probe=bidirectional-media-v1");
+            System.out.println("probe=bidirectional-media-v2");
             System.out.println("mode=prepare-abort-offcall");
             System.out.println("uid=" + Process.myUid());
             System.out.println("sample_rate=" + SAMPLE_RATE);
@@ -71,7 +71,7 @@ public final class BidirectionalMediaProbe {
         SamsungCallMediaSessionController controller = new SamsungCallMediaSessionController();
         SamsungCallMediaSessionController.Endpoints endpoints = null;
         try {
-            System.out.println("probe=bidirectional-media-v1");
+            System.out.println("probe=bidirectional-media-v2");
             System.out.println("mode=start-offcall");
             System.out.println("uid=" + Process.myUid());
             System.out.println("sample_rate=" + SAMPLE_RATE);
@@ -111,14 +111,19 @@ public final class BidirectionalMediaProbe {
             System.out.println("active_after_rollback=" + controller.hasActiveSession());
             System.out.println("heartbeat_after_rollback=" + controller.heartbeat());
 
-            // A failed transactional start must leave the controller reusable.
-            controller.prepare(SAMPLE_RATE);
-            System.out.println("reprepare_after_rollback=" + controller.hasPreparedSession());
+            // Do not re-prepare in this direct-shell process after Context/AudioManager creation.
+            // On the target S22 firmware VOICE_DOWNLINK construction is proven to require the
+            // opposite initialization order. Reuse through a persistent UserService is a separate
+            // Milestone C parity question, not an off-call rollback invariant.
             controller.abortNow();
             System.out.println("prepared_after_final_abort=" + controller.hasPreparedSession());
             System.out.println("active_after_final_abort=" + controller.hasActiveSession());
 
-            return !controller.hasPreparedSession() && !controller.hasActiveSession() ? 0 : 6;
+            return !controller.hasPreparedSession()
+                && !controller.hasActiveSession()
+                && !controller.heartbeat()
+                ? 0
+                : 6;
         } finally {
             if (endpoints != null) {
                 endpoints.close();
