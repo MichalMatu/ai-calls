@@ -3,7 +3,6 @@ package pl.michalmatu.aicallbridge.helper.samsung;
 import android.content.Context;
 import android.os.ParcelFileDescriptor;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -147,7 +146,10 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
     private void runWorker() {
         short[] samples = new short[readChunkFrames];
         byte[] encoded = new byte[readChunkFrames * 2];
-        try (FileOutputStream output = new FileOutputStream(writeEnd.getFileDescriptor())) {
+        try (
+            ParcelFileDescriptor.AutoCloseOutputStream output =
+                new ParcelFileDescriptor.AutoCloseOutputStream(writeEnd)
+        ) {
             while (!aborted) {
                 int read = capture.read(samples, 0, samples.length);
                 if (read < 0) {
@@ -171,8 +173,6 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
                 terminalFailure = error;
                 failFromWorker();
             }
-        } finally {
-            closeQuietly(writeEnd);
         }
     }
 
