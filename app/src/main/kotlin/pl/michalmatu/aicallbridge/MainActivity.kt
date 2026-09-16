@@ -16,10 +16,11 @@ import rikka.shizuku.Shizuku
 class MainActivity : Activity() {
     private lateinit var statusView: TextView
     private var pendingShizukuProbe = false
+    private var pendingShizukuLiveProbe = false
 
     private val shizukuBinderReceivedListener = Shizuku.OnBinderReceivedListener {
         if (pendingShizukuProbe) {
-            runShizukuProbe()
+            runShizukuProbe(pendingShizukuLiveProbe)
         }
     }
 
@@ -32,9 +33,10 @@ class MainActivity : Activity() {
         }
 
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
-            runShizukuProbe()
+            runShizukuProbe(pendingShizukuLiveProbe)
         } else {
             pendingShizukuProbe = false
+            pendingShizukuLiveProbe = false
             statusView.text = "Shizuku permission denied"
             Log.i(TAG, "shizuku_probe_permission=denied")
         }
@@ -61,7 +63,7 @@ class MainActivity : Activity() {
 
         val shizukuProbeButton = Button(this).apply {
             text = "Run Shizuku UserService probe"
-            setOnClickListener { runShizukuProbe() }
+            setOnClickListener { runShizukuProbe(false) }
         }
 
         val probeCaptureButton = Button(this).apply {
@@ -126,8 +128,10 @@ class MainActivity : Activity() {
         if (intent.getBooleanExtra(EXTRA_RUN_CAPABILITY_PROBE, false)) {
             runCapabilityProbe()
         }
-        if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_PROBE, false)) {
-            runShizukuProbe()
+        if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_LIVE_PROBE, false)) {
+            runShizukuProbe(true)
+        } else if (intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_PROBE, false)) {
+            runShizukuProbe(false)
         }
     }
 
@@ -145,8 +149,9 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun runShizukuProbe() {
+    private fun runShizukuProbe(live: Boolean) {
         pendingShizukuProbe = true
+        pendingShizukuLiveProbe = live
 
         if (!Shizuku.pingBinder()) {
             statusView.text = "Shizuku binder unavailable; start Shizuku first"
@@ -156,6 +161,7 @@ class MainActivity : Activity() {
 
         if (Shizuku.isPreV11()) {
             pendingShizukuProbe = false
+            pendingShizukuLiveProbe = false
             statusView.text = "Shizuku pre-v11 is unsupported"
             Log.i(TAG, "shizuku_probe_version=unsupported_pre_v11")
             return
@@ -164,6 +170,7 @@ class MainActivity : Activity() {
         if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
             if (Shizuku.shouldShowRequestPermissionRationale()) {
                 pendingShizukuProbe = false
+                pendingShizukuLiveProbe = false
                 statusView.text = "Shizuku permission denied; enable it in Shizuku"
                 Log.i(TAG, "shizuku_probe_permission=rationale_required")
                 return
@@ -175,13 +182,24 @@ class MainActivity : Activity() {
         }
 
         pendingShizukuProbe = false
-        statusView.text = "Running Shizuku UserService off-call probe…"
-        Log.i(TAG, "shizuku_probe_start=true")
-        ShizukuUserServiceProbe.run(this) { result ->
+        pendingShizukuLiveProbe = false
+        statusView.text = if (live) {
+            "Running Shizuku UserService live parity probe…"
+        } else {
+            "Running Shizuku UserService off-call probe…"
+        }
+        Log.i(TAG, if (live) "shizuku_live_probe_start=true" else "shizuku_probe_start=true")
+
+        val callback = ShizukuUserServiceProbe.Callback { result ->
             runOnUiThread {
                 statusView.text = result
                 Log.i(TAG, "shizuku_probe_result:\n$result")
             }
+        }
+        if (live) {
+            ShizukuUserServiceProbe.runLive(this, LIVE_SHIZUKU_DURATION_MS, callback)
+        } else {
+            ShizukuUserServiceProbe.run(this, callback)
         }
     }
 
@@ -215,7 +233,9 @@ class MainActivity : Activity() {
         const val TAG = "AiCallBridge"
         const val REQUEST_RECORD_AUDIO = 1001
         const val REQUEST_SHIZUKU = 1002
+        const val LIVE_SHIZUKU_DURATION_MS = 5_000
         const val EXTRA_RUN_CAPABILITY_PROBE = "run_probe"
         const val EXTRA_RUN_SHIZUKU_PROBE = "run_shizuku_probe"
+        const val EXTRA_RUN_SHIZUKU_LIVE_PROBE = "run_shizuku_live_probe"
     }
 }
