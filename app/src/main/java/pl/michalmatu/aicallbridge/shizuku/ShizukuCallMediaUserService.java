@@ -145,10 +145,24 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
     }
 
     private static String describe(Throwable error) {
-        String message = error.getMessage();
-        if (message == null || message.isBlank()) {
-            return error.getClass().getSimpleName();
+        StringBuilder result = new StringBuilder();
+        Throwable current = error;
+        for (int depth = 0; current != null && depth < 6; depth++) {
+            if (depth > 0) {
+                result.append(" -> ");
+            }
+            result.append(current.getClass().getSimpleName());
+            String message = current.getMessage();
+            if (message != null && !message.isBlank()) {
+                result.append(':')
+                    .append(message.replace('\n', ' ').replace('\r', ' '));
+            }
+            Throwable next = current.getCause();
+            if (next == current) {
+                break;
+            }
+            current = next;
         }
-        return error.getClass().getSimpleName() + ":" + message.replace('\n', ' ').replace('\r', ' ');
+        return result.toString();
     }
 }
