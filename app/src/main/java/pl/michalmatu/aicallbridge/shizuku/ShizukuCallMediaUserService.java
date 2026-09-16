@@ -1,11 +1,7 @@
 package pl.michalmatu.aicallbridge.shizuku;
 
-import android.content.Context;
-import android.content.pm.ApplicationInfo;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
-
-import java.lang.reflect.Method;
 
 import pl.michalmatu.aicallbridge.helper.samsung.SamsungCallMediaSessionController;
 
@@ -18,8 +14,8 @@ import pl.michalmatu.aicallbridge.helper.samsung.SamsungCallMediaSessionControll
  *
  * <p>There is deliberately no Context constructor. The S22 VOICE_DOWNLINK proof requires
  * {@code SamsungCallMediaSessionController.prepare()} to run before any explicit Context/
- * AudioManager initialization in this process. Contexts are therefore constructed lazily only in
- * {@link #startMedia()} after prepare has succeeded.</p>
+ * AudioManager initialization in this process. Contexts are therefore created lazily by
+ * {@link PrivilegedCallContexts} only in {@link #startMedia()} after prepare has succeeded.</p>
  */
 public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.Stub {
     private final SamsungCallMediaSessionController controller =
@@ -56,8 +52,9 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         }
 
         try {
-            ContextPair contexts = createContextsAfterPrepare();
-            endpoints = controller.start(contexts.system, contexts.shell);
+            PrivilegedCallContexts.Pair contexts =
+                PrivilegedCallContexts.createAfterMediaPrepare();
+            endpoints = controller.start(contexts.system(), contexts.shell());
         } catch (RuntimeException | Error error) {
             controller.abortNow();
             throw error;
@@ -116,50 +113,6 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         if (endpoints != null) {
             endpoints.close();
             endpoints = null;
-        }
-    }
-
-    private static ContextPair createContextsAfterPrepare() throws Exception {
-        Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
-        Method systemMain = activityThreadClass.getDeclaredMethod("systemMain");
-        systemMain.setAccessible(true);
-        Object thread = systemMain.invoke(null);
-
-        Method getSystemContext = activityThreadClass.getDeclaredMethod("getSystemContext");
-        getSystemContext.setAccessible(true);
-        Context system = (Context) getSystemContext.invoke(thread);
-
-        ApplicationInfo shellInfo = system.getPackageManager()
-            .getApplicationInfo("com.android.shell", 0);
-        Method getPackageInfoNoCheck = activityThreadClass.getDeclaredMethod(
-            "getPackageInfoNoCheck", ApplicationInfo.class
-        );
-        getPackageInfoNoCheck.setAccessible(true);
-        Object loadedApk = getPackageInfoNoCheck.invoke(thread, shellInfo);
-
-        Class<?> loadedApkClass = Class.forName("android.app.LoadedApk");
-        Class<?> contextImplClass = Class.forName("android.app.ContextImpl");
-        Method createAppContext = contextImplClass.getDeclaredMethod(
-            "createAppContext", activityThreadClass, loadedApkClass, String.class
-        );
-        createAppContext.setAccessible(true);
-        Context shell = (Context) createAppContext.invoke(
-            null,
-            thread,
-            loadedApk,
-            "com.android.shell"
-        );
-
-        return new ContextPair(system, shell);
-    }
-
-    private static final class ContextPair {
-        final Context system;
-        final Context shell;
-
-        ContextPair(Context system, Context shell) {
-            this.system = system;
-            this.shell = shell;
         }
     }
 }
