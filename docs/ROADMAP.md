@@ -23,6 +23,19 @@ The user must be able to take over the call immediately at any time.
 
 For media-direction claims, constructor success, permissions, routing requests, and playback-head progress are supporting evidence only. `PROVEN_S22` requires physical live-call evidence.
 
+## Frozen known-good baseline
+
+Phase 2B is preserved independently from ongoing development:
+
+```text
+branch: milestone/phase2b-proven-s22-20260916
+commit: c10f8dde29f245f8f98fb008a3572c21fe73fe35
+```
+
+This branch is the rollback/comparison point for the physically proven cellular RX+TX path. Do not move or rewrite it during normal development.
+
+Freeze policy and post-freeze audit notes: `PHASE2B_FREEZE_2026-09-16.md`.
+
 ## Phase 0 — Repository and test discipline
 
 Status: `DONE`
@@ -128,7 +141,7 @@ Implemented:
 
 ### Milestone B — shared bidirectional local controller
 
-Status: `DONE / PROVEN_S22`
+Status: `DONE / PROVEN_S22 / FROZEN`
 
 Implemented and physically proven:
 - production downlink PFD pipe;
@@ -177,15 +190,44 @@ The phone remained physically silent throughout: `STREAM_VOICE_CALL Muted:true`,
 
 Full proof: `S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`.
 
+Frozen rollback/reference branch:
+
+```text
+milestone/phase2b-proven-s22-20260916
+```
+
+The direct-shell `BidirectionalMediaProbe` remains the physical regression harness and should not be casually rewritten while Milestone C is still being established.
+
+### Phase 2B post-freeze cleanup
+
+Status: `SMALL SAFE CLEANUP ONLY`
+
+Allowed before Milestone C:
+- documentation synchronization;
+- stricter probes that fail instead of false-pass;
+- app-facing responsibility cleanup;
+- tests and diagnostics;
+- removal of code only after repository-wide proof that it is unused.
+
+Current cleanup:
+- privileged system/shell Context reflection moved out of `ShizukuCallMediaUserService` into `PrivilegedCallContexts`;
+- UserService now focuses on Binder/media lifecycle;
+- direct-shell proven probe was intentionally left unchanged;
+- Shizuku off-call parity gate now requires the exact expected `prepare -> abort` state transition.
+
+Deliberately deferred:
+- generic RX/TX base classes;
+- low-level Samsung media lifecycle rewrites;
+- route/attribute changes;
+- PFD ownership changes.
+
+Reason: RX and TX have real asymmetric Samsung requirements; reducing line count is not worth weakening the proven boundary.
+
+Known test item for Milestone D: `SamsungCallAssistantTrack.writeMonoPcm16Le()` uses a blocking `AudioTrack.write()` under its object lock. Writes are bounded to roughly 20 ms, but takeover latency must be measured rather than assumed.
+
 ### Milestone C — Shizuku UserService parity
 
 Status: `CODE BUILDS / DEVICE RUNTIME BLOCKED`
-
-First code slice exists and builds successfully on SHA:
-
-```text
-6cceb9c9b139c4ac5ba683f13525821f66d325ed
-```
 
 Implemented:
 - Shizuku API/provider integration;
@@ -194,11 +236,15 @@ Implemented:
 - PFD endpoint handoff API;
 - preserved `prepare()`-before-Context ordering;
 - app-side permission/bind plumbing;
-- bounded off-call `prepare -> abort` path.
+- bounded off-call `prepare -> abort` path;
+- dedicated `PrivilegedCallContexts` boundary for hidden Android Context construction;
+- strict off-call parity state assertions.
+
+The first UserService slice was build-validated, and the subsequent responsibility extraction also passed helper/app Gradle tests plus the existing 19 Python call-control tests.
 
 Current blocker:
 - active Android user is user `0`;
-- Shizuku is not installed or running for user `0`;
+- Shizuku is not installed or running for user `0` at the latest device check;
 - user `151` is Samsung Secure Folder and is intentionally ignored;
 - no trusted Shizuku APK already exists in the checked Mac/phone download locations.
 
@@ -206,7 +252,7 @@ This is an external runtime prerequisite, not a failure of the local bridge impl
 
 Required Milestone C exit gate:
 - real UserService runs as the expected privileged/shell UID;
-- off-call `prepare -> abort` succeeds through Binder;
+- off-call `prepare -> abort` succeeds through Binder with exact expected states;
 - live RX and TX match direct-shell physical behavior;
 - PFD handoff works continuously;
 - controller death/Binder death disables both directions;
@@ -222,6 +268,7 @@ Required final Phase 2 exit gate:
 - bounded queues;
 - clean start/stop;
 - immediate takeover/abort;
+- measured takeover latency during active TX writes;
 - no orphaned injection after controller/helper failure.
 
 ## Phase 3 — Realtime AI integration
@@ -286,11 +333,12 @@ Exit gate: defined failure behavior for every tested transition and no condition
 
 If the final app-facing privileged boundary cannot be made reliable on stock Samsung firmware:
 
-1. retain the proven direct-shell backend as a development/reference implementation;
-2. evaluate another trusted privileged boundary only with explicit evidence;
-3. SIP/VoIP transport where the app owns both media directions;
-4. root/system-app research for development only;
-5. external hardware only if the product requirement still justifies it.
+1. compare against the frozen direct-shell Phase 2B baseline;
+2. retain the proven direct-shell backend as a development/reference implementation;
+3. evaluate another trusted privileged boundary only with explicit evidence;
+4. SIP/VoIP transport where the app owns both media directions;
+5. root/system-app research for development only;
+6. external hardware only if the product requirement still justifies it.
 
 ## Current decision
 
@@ -298,8 +346,11 @@ Do not connect realtime AI yet.
 
 The cellular media problem itself is no longer the blocker: bidirectional RX+TX is physically proven on the S22 and the production PFD controller works.
 
-The current next gate is **Shizuku UserService parity**. Code for the first slice builds, but the target user `0` has no Shizuku runtime installed. Resume physical Milestone C validation only when a trusted Shizuku installation is available; do not silently fetch or install an unverified APK.
+The proven state is frozen on `milestone/phase2b-proven-s22-20260916`.
+
+The current next gate is **Shizuku UserService parity**. Code exists and builds, but the target user `0` has no Shizuku runtime installed at the latest check. Resume physical Milestone C validation only when a trusted Shizuku installation is available; do not silently fetch or install an unverified APK.
 
 Current detailed evidence:
 
-`docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`
+- `docs/PHASE2B_FREEZE_2026-09-16.md`
+- `docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`
