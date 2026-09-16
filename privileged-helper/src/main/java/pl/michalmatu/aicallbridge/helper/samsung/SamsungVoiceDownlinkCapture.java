@@ -16,6 +16,11 @@ import java.util.Objects;
  * not obtain privileges and does not place calls. It owns a VOICE_DOWNLINK AudioRecord, requires an
  * active cellular call before recording, confirms TYPE_TELEPHONY routing, and exposes mono PCM16
  * frames to the helper media plane.</p>
+ *
+ * <p>On the target Samsung firmware, VOICE_DOWNLINK must be constructed before creating/touching a
+ * process Context used for audio services. Therefore {@link #open(int)} is deliberately context-free;
+ * the Context is supplied only to {@link #startAndConfirmTelephonyRoute(Context)} after AudioRecord
+ * already exists.</p>
  */
 public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
     public static final int SAMPLE_RATE_16K = 16_000;
@@ -23,31 +28,24 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
     private static final int CHANNEL_MASK = AudioFormat.CHANNEL_IN_MONO;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
 
-    private final AudioManager audioManager;
     private final AudioRecord record;
     private final int sampleRate;
 
     private volatile boolean started;
     private volatile boolean closed;
 
-    private SamsungVoiceDownlinkCapture(
-        AudioManager audioManager,
-        AudioRecord record,
-        int sampleRate
-    ) {
-        this.audioManager = audioManager;
+    private SamsungVoiceDownlinkCapture(AudioRecord record, int sampleRate) {
         this.record = record;
         this.sampleRate = sampleRate;
     }
 
-    public static SamsungVoiceDownlinkCapture open(Context context, int sampleRate) {
-        Objects.requireNonNull(context, "context");
+    /**
+     * Constructs VOICE_DOWNLINK before any Context/AudioManager work.
+     * This ordering matches the physically proven ShellAudioProbe path on the target S22+.
+     */
+    public static SamsungVoiceDownlinkCapture open(int sampleRate) {
         validateSampleRate(sampleRate);
 
-        // Preserve the ordering of the physically proven ShellAudioProbe path on Samsung firmware:
-        // create VOICE_DOWNLINK before touching AudioManager/context-backed audio services. Initializing
-        // AudioManager first can change attribution state enough for AudioRecord.Builder.build() to fail
-        // with UnsupportedOperationException("Cannot create AudioRecord") under shell UID 2000.
         int minBuffer = AudioRecord.getMinBufferSize(sampleRate, CHANNEL_MASK, ENCODING);
         int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 4096) : 4096;
         AudioRecord record = new AudioRecord.Builder()
@@ -66,34 +64,29 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
             record.release();
             throw new IllegalStateException("VOICE_DOWNLINK AudioRecord failed to initialize");
         }
-
-        final AudioManager audioManager;
-        try {
-            audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            if (audioManager == null) {
-                throw new IllegalStateException("AudioManager unavailable");
-            }
-        } catch (RuntimeException | Error error) {
-            record.release();
-            throw error;
-        }
-
-        return new SamsungVoiceDownlinkCapture(audioManager, record, sampleRate);
+        return new SamsungVoiceDownlinkCapture(record, sampleRate);
     }
 
     /** Starts recording and confirms that Android routed the capture from TYPE_TELEPHONY. */
-    public synchronized AudioDeviceInfo startAndConfirmTelephonyRoute() throws InterruptedException {
+    public synchronized AudioDeviceInfo startAndConfirmTelephonyRoute(Context context)
+        throws InterruptedException {
+        Objects.requireNonNull(context, "context");
         ensureOpen();
         if (started) {
             AudioDeviceInfo routed = record.getRoutedDevice();
             requireTelephonyRoute(routed);
             return routed;
         }
-        if (audioManager.getMode() != AudioManager.MODE_IN_CALL) {
-            throw new IllegalStateException("cellular call is not active (AudioManager not IN_CALL)");
-        }
 
         try {
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager == null) {
+                throw new IllegalStateException("AudioManager unavailable");
+            }
+            if (audioManager.getMode() != AudioManager.MODE_IN_CALL) {
+                throw new IllegalStateException("cellular call is not active (AudioManager not IN_CALL)");
+            }
+
             record.startRecording();
             if (record.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
                 throw new IllegalStateException("VOICE_DOWNLINK AudioRecord did not enter RECORDING");
