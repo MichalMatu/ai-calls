@@ -49,11 +49,12 @@ public final class DownlinkPipeProbe {
     }
 
     private static int runOpenAbortOffcall() throws Exception {
-        Context context = shellContext();
+        Context context = systemContext();
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        System.out.println("probe=downlink-pipe-v1");
+        System.out.println("probe=downlink-pipe-v2");
         System.out.println("mode=open-abort-offcall");
         System.out.println("uid=" + Process.myUid());
+        printContext(context);
         System.out.println("audio_mode=" + audioManager.getMode());
 
         SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(context, SAMPLE_RATE);
@@ -72,11 +73,12 @@ public final class DownlinkPipeProbe {
     }
 
     private static int runStartOffcall() throws Exception {
-        Context context = shellContext();
+        Context context = systemContext();
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        System.out.println("probe=downlink-pipe-v1");
+        System.out.println("probe=downlink-pipe-v2");
         System.out.println("mode=start-offcall");
         System.out.println("uid=" + Process.myUid());
+        printContext(context);
         System.out.println("audio_mode=" + audioManager.getMode());
 
         SamsungDownlinkPipeSession session = SamsungDownlinkPipeSession.open(context, SAMPLE_RATE);
@@ -101,11 +103,12 @@ public final class DownlinkPipeProbe {
     }
 
     private static int runCaptureLive(int durationMs) throws Exception {
-        Context context = shellContext();
+        Context context = systemContext();
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        System.out.println("probe=downlink-pipe-v1");
+        System.out.println("probe=downlink-pipe-v2");
         System.out.println("mode=capture-live");
         System.out.println("uid=" + Process.myUid());
+        printContext(context);
         System.out.println("audio_mode=" + audioManager.getMode());
         System.out.println("sample_rate=" + SAMPLE_RATE);
         System.out.println("duration_ms=" + durationMs);
@@ -182,31 +185,25 @@ public final class DownlinkPipeProbe {
         }
     }
 
-    private static Context shellContext() throws Exception {
-        Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
-        Method systemMain = activityThreadClass.getDeclaredMethod("systemMain");
+    /**
+     * VOICE_DOWNLINK attribution on the target Samsung firmware must remain the system context
+     * used by the proven ShellAudioProbe. CALL_ASSISTANT TX has the opposite requirement and uses
+     * an explicit com.android.shell app context in CallAssistantAudioProbe.
+     */
+    private static Context systemContext() throws Exception {
+        Class<?> activityThread = Class.forName("android.app.ActivityThread");
+        Method systemMain = activityThread.getDeclaredMethod("systemMain");
         systemMain.setAccessible(true);
         Object thread = systemMain.invoke(null);
-
-        Method getSystemContext = activityThreadClass.getDeclaredMethod("getSystemContext");
+        Method getSystemContext = activityThread.getDeclaredMethod("getSystemContext");
         getSystemContext.setAccessible(true);
-        Context system = (Context) getSystemContext.invoke(thread);
-        android.content.pm.ApplicationInfo shellInfo = system.getPackageManager()
-            .getApplicationInfo("com.android.shell", 0);
+        return (Context) getSystemContext.invoke(thread);
+    }
 
-        Method getPackageInfoNoCheck = activityThreadClass.getDeclaredMethod(
-            "getPackageInfoNoCheck", android.content.pm.ApplicationInfo.class
-        );
-        getPackageInfoNoCheck.setAccessible(true);
-        Object loadedApk = getPackageInfoNoCheck.invoke(thread, shellInfo);
-
-        Class<?> loadedApkClass = Class.forName("android.app.LoadedApk");
-        Class<?> contextImplClass = Class.forName("android.app.ContextImpl");
-        Method createAppContext = contextImplClass.getDeclaredMethod(
-            "createAppContext", activityThreadClass, loadedApkClass, String.class
-        );
-        createAppContext.setAccessible(true);
-        return (Context) createAppContext.invoke(null, thread, loadedApk, "com.android.shell");
+    private static void printContext(Context context) {
+        System.out.println("context_package=" + context.getPackageName());
+        System.out.println("context_op_package=" + context.getOpPackageName());
+        System.out.println("context_attribution_package=" + context.getAttributionSource().getPackageName());
     }
 
     private static int parseDuration(String raw) {
