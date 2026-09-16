@@ -10,8 +10,6 @@ import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import rikka.shizuku.Shizuku;
 
@@ -22,7 +20,6 @@ public final class ShizukuEnduranceProbe {
     private static final long DURATION_MS = 30_000L;
     private static final long HEARTBEAT_INTERVAL_MS = 250L;
     private static final long CONNECT_TIMEOUT_MS = 10_000L;
-    private static final long THREAD_JOIN_TIMEOUT_MS = 1_000L;
 
     private final Context appContext;
     private final ShizukuUserServiceProbe.Callback callback;
@@ -105,130 +102,103 @@ public final class ShizukuEnduranceProbe {
         service.prepare(SAMPLE_RATE);
         service.startMedia();
         boolean activeAfterStart = service.hasActiveSession();
-        ParcelFileDescriptor downlink = service.takeDownlinkReadEnd();
-        ParcelFileDescriptor uplink = service.takeUplinkWriteEnd();
+        ParcelFileDescriptor downlink = null;
+        ParcelFileDescriptor uplink = null;
+        ShizukuBidirectionalProbeMedia media = null;
+        try {
+            downlink = service.takeDownlinkReadEnd();
+            uplink = service.takeUplinkWriteEnd();
+            media = ShizukuBidirectionalProbeMedia.start(
+                downlink,
+                uplink,
+                PCM_CHUNK_BYTES,
+                "aicall-endurance"
+            );
+            downlink = null;
+            uplink = null;
 
-        AtomicBoolean stop = new AtomicBoolean(false);
-        AtomicLong downlinkBytes = new AtomicLong();
-        AtomicLong uplinkBytes = new AtomicLong();
-        AtomicReference<String> downlinkTerminal = new AtomicReference<>("none");
-        AtomicReference<String> uplinkTerminal = new AtomicReference<>("none");
-
-        Thread downlinkThread = new Thread(() -> {
-            byte[] buffer = new byte[PCM_CHUNK_BYTES];
-            try (ParcelFileDescriptor.AutoCloseInputStream input =
-                     new ParcelFileDescriptor.AutoCloseInputStream(downlink)) {
-                while (!stop.get()) {
-                    int read = input.read(buffer);
-                    if (read < 0) {
-                        downlinkTerminal.set("eof");
-                        break;
-                    }
-                    if (read > 0) {
-                        downlinkBytes.addAndGet(read);
-                    }
+            long startedNs = SystemClock.elapsedRealtimeNanos();
+            long deadlineNs = startedNs + DURATION_MS * 1_000_000L;
+            int heartbeatCount = 0;
+            int activeCheckCount = 0;
+            boolean allHeartbeatsOk = true;
+            boolean activeThroughout = activeAfterStart;
+            while (SystemClock.elapsedRealtimeNanos() < deadlineNs) {
+                if (!service.heartbeat()) {
+                    allHeartbeatsOk = false;
+                    break;
                 }
-            } catch (Throwable error) {
-                downlinkTerminal.set(error.getClass().getSimpleName());
-            }
-        }, "aicall-endurance-rx-drain");
-        downlinkThread.setDaemon(true);
-
-        Thread uplinkThread = new Thread(() -> {
-            byte[] silence = new byte[PCM_CHUNK_BYTES];
-            try (ParcelFileDescriptor.AutoCloseOutputStream output =
-                     new ParcelFileDescriptor.AutoCloseOutputStream(uplink)) {
-                while (!stop.get()) {
-                    output.write(silence);
-                    uplinkBytes.addAndGet(silence.length);
+                heartbeatCount++;
+                if (!service.hasActiveSession()) {
+                    activeThroughout = false;
+                    break;
                 }
-                output.flush();
-            } catch (Throwable error) {
-                uplinkTerminal.set(error.getClass().getSimpleName());
+                activeCheckCount++;
+                Thread.sleep(HEARTBEAT_INTERVAL_MS);
             }
-        }, "aicall-endurance-tx-silence");
-        uplinkThread.setDaemon(true);
+            long observedDurationMs = (SystemClock.elapsedRealtimeNanos() - startedNs) / 1_000_000L;
+            boolean activeBeforeAbort = service.hasActiveSession();
+            boolean heartbeatBeforeAbort = service.heartbeat();
 
-        downlinkThread.start();
-        uplinkThread.start();
+            long abortStartNs = SystemClock.elapsedRealtimeNanos();
+            service.abortNow();
+            long abortRpcMs = (SystemClock.elapsedRealtimeNanos() - abortStartNs) / 1_000_000L;
+            boolean preparedAfterAbort = service.hasPreparedSession();
+            boolean activeAfterAbort = service.hasActiveSession();
+            boolean heartbeatAfterAbort = service.heartbeat();
 
-        long startedNs = SystemClock.elapsedRealtimeNanos();
-        long deadlineNs = startedNs + DURATION_MS * 1_000_000L;
-        int heartbeatCount = 0;
-        int activeCheckCount = 0;
-        boolean allHeartbeatsOk = true;
-        boolean activeThroughout = activeAfterStart;
-        while (SystemClock.elapsedRealtimeNanos() < deadlineNs) {
-            if (!service.heartbeat()) {
-                allHeartbeatsOk = false;
-                break;
+            media.close();
+            long downlinkBytes = media.downlinkBytes();
+            long uplinkBytes = media.uplinkBytes();
+            String downlinkTerminal = media.downlinkTerminal();
+            String uplinkTerminal = media.uplinkTerminal();
+            boolean threadsStopped = media.threadsStopped();
+
+            boolean privilegedUid = service.getProcessUid() == 0 || service.getProcessUid() == 2000;
+            boolean durationOk = observedDurationMs >= DURATION_MS - HEARTBEAT_INTERVAL_MS;
+            boolean ok = Shizuku.pingBinder()
+                && privilegedUid
+                && activeAfterStart
+                && allHeartbeatsOk
+                && activeThroughout
+                && durationOk
+                && activeBeforeAbort
+                && heartbeatBeforeAbort
+                && downlinkBytes > 0L
+                && uplinkBytes > 0L
+                && !preparedAfterAbort
+                && !activeAfterAbort
+                && !heartbeatAfterAbort
+                && threadsStopped;
+
+            result.append("active_after_start=").append(activeAfterStart).append('\n');
+            result.append("heartbeat_count=").append(heartbeatCount).append('\n');
+            result.append("active_check_count=").append(activeCheckCount).append('\n');
+            result.append("all_heartbeats_ok=").append(allHeartbeatsOk).append('\n');
+            result.append("active_throughout=").append(activeThroughout).append('\n');
+            result.append("observed_duration_ms=").append(observedDurationMs).append('\n');
+            result.append("duration_ok=").append(durationOk).append('\n');
+            result.append("downlink_bytes_read=").append(downlinkBytes).append('\n');
+            result.append("uplink_bytes_written=").append(uplinkBytes).append('\n');
+            result.append("active_before_abort=").append(activeBeforeAbort).append('\n');
+            result.append("heartbeat_before_abort=").append(heartbeatBeforeAbort).append('\n');
+            result.append("abort_rpc_ms=").append(abortRpcMs).append('\n');
+            result.append("downlink_terminal=").append(downlinkTerminal).append('\n');
+            result.append("uplink_terminal=").append(uplinkTerminal).append('\n');
+            result.append("threads_stopped=").append(threadsStopped).append('\n');
+            result.append("prepared_after_abort=").append(preparedAfterAbort).append('\n');
+            result.append("active_after_abort=").append(activeAfterAbort).append('\n');
+            result.append("heartbeat_after_abort=").append(heartbeatAfterAbort).append('\n');
+            result.append("privileged_uid=").append(privilegedUid).append('\n');
+            result.append("endurance_ok=").append(ok);
+            return result.toString();
+        } finally {
+            if (media != null) {
+                media.close();
             }
-            heartbeatCount++;
-            if (!service.hasActiveSession()) {
-                activeThroughout = false;
-                break;
-            }
-            activeCheckCount++;
-            Thread.sleep(HEARTBEAT_INTERVAL_MS);
+            closeQuietly(downlink);
+            closeQuietly(uplink);
         }
-        long observedDurationMs = (SystemClock.elapsedRealtimeNanos() - startedNs) / 1_000_000L;
-        boolean activeBeforeAbort = service.hasActiveSession();
-        boolean heartbeatBeforeAbort = service.heartbeat();
-
-        long abortStartNs = SystemClock.elapsedRealtimeNanos();
-        service.abortNow();
-        long abortRpcMs = (SystemClock.elapsedRealtimeNanos() - abortStartNs) / 1_000_000L;
-        boolean preparedAfterAbort = service.hasPreparedSession();
-        boolean activeAfterAbort = service.hasActiveSession();
-        boolean heartbeatAfterAbort = service.heartbeat();
-
-        stop.set(true);
-        closeQuietly(downlink);
-        closeQuietly(uplink);
-        downlinkThread.interrupt();
-        uplinkThread.interrupt();
-        downlinkThread.join(THREAD_JOIN_TIMEOUT_MS);
-        uplinkThread.join(THREAD_JOIN_TIMEOUT_MS);
-
-        boolean privilegedUid = service.getProcessUid() == 0 || service.getProcessUid() == 2000;
-        boolean threadsStopped = !downlinkThread.isAlive() && !uplinkThread.isAlive();
-        boolean durationOk = observedDurationMs >= DURATION_MS - HEARTBEAT_INTERVAL_MS;
-        boolean ok = Shizuku.pingBinder()
-            && privilegedUid
-            && activeAfterStart
-            && allHeartbeatsOk
-            && activeThroughout
-            && durationOk
-            && activeBeforeAbort
-            && heartbeatBeforeAbort
-            && downlinkBytes.get() > 0L
-            && uplinkBytes.get() > 0L
-            && !preparedAfterAbort
-            && !activeAfterAbort
-            && !heartbeatAfterAbort
-            && threadsStopped;
-
-        result.append("active_after_start=").append(activeAfterStart).append('\n');
-        result.append("heartbeat_count=").append(heartbeatCount).append('\n');
-        result.append("active_check_count=").append(activeCheckCount).append('\n');
-        result.append("all_heartbeats_ok=").append(allHeartbeatsOk).append('\n');
-        result.append("active_throughout=").append(activeThroughout).append('\n');
-        result.append("observed_duration_ms=").append(observedDurationMs).append('\n');
-        result.append("duration_ok=").append(durationOk).append('\n');
-        result.append("downlink_bytes_read=").append(downlinkBytes.get()).append('\n');
-        result.append("uplink_bytes_written=").append(uplinkBytes.get()).append('\n');
-        result.append("active_before_abort=").append(activeBeforeAbort).append('\n');
-        result.append("heartbeat_before_abort=").append(heartbeatBeforeAbort).append('\n');
-        result.append("abort_rpc_ms=").append(abortRpcMs).append('\n');
-        result.append("downlink_terminal=").append(downlinkTerminal.get()).append('\n');
-        result.append("uplink_terminal=").append(uplinkTerminal.get()).append('\n');
-        result.append("threads_stopped=").append(threadsStopped).append('\n');
-        result.append("prepared_after_abort=").append(preparedAfterAbort).append('\n');
-        result.append("active_after_abort=").append(activeAfterAbort).append('\n');
-        result.append("heartbeat_after_abort=").append(heartbeatAfterAbort).append('\n');
-        result.append("privileged_uid=").append(privilegedUid).append('\n');
-        result.append("endurance_ok=").append(ok);
-        return result.toString();
     }
 
     private void finish(String result) {

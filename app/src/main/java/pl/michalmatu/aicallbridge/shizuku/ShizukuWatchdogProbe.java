@@ -10,8 +10,6 @@ import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import rikka.shizuku.Shizuku;
 
@@ -22,7 +20,6 @@ public final class ShizukuWatchdogProbe {
     private static final long HEARTBEAT_TIMEOUT_MS = 2_000L;
     private static final long OBSERVATION_TIMEOUT_MS = 5_000L;
     private static final long CONNECT_TIMEOUT_MS = 10_000L;
-    private static final long THREAD_JOIN_TIMEOUT_MS = 1_000L;
 
     private final Context appContext;
     private final ShizukuUserServiceProbe.Callback callback;
@@ -104,114 +101,87 @@ public final class ShizukuWatchdogProbe {
         service.prepare(SAMPLE_RATE);
         service.startMedia();
         boolean activeAfterStart = service.hasActiveSession();
-        ParcelFileDescriptor downlink = service.takeDownlinkReadEnd();
-        ParcelFileDescriptor uplink = service.takeUplinkWriteEnd();
+        ParcelFileDescriptor downlink = null;
+        ParcelFileDescriptor uplink = null;
+        ShizukuBidirectionalProbeMedia media = null;
+        try {
+            downlink = service.takeDownlinkReadEnd();
+            uplink = service.takeUplinkWriteEnd();
+            media = ShizukuBidirectionalProbeMedia.start(
+                downlink,
+                uplink,
+                PCM_CHUNK_BYTES,
+                "aicall-watchdog"
+            );
+            downlink = null;
+            uplink = null;
 
-        AtomicBoolean stop = new AtomicBoolean(false);
-        AtomicLong downlinkBytes = new AtomicLong();
-        AtomicLong uplinkBytes = new AtomicLong();
-        AtomicReference<String> downlinkTerminal = new AtomicReference<>("none");
-        AtomicReference<String> uplinkTerminal = new AtomicReference<>("none");
-
-        Thread downlinkThread = new Thread(() -> {
-            byte[] buffer = new byte[PCM_CHUNK_BYTES];
-            try (ParcelFileDescriptor.AutoCloseInputStream input =
-                     new ParcelFileDescriptor.AutoCloseInputStream(downlink)) {
-                while (!stop.get()) {
-                    int read = input.read(buffer);
-                    if (read < 0) {
-                        downlinkTerminal.set("eof");
-                        break;
-                    }
-                    if (read > 0) {
-                        downlinkBytes.addAndGet(read);
-                    }
+            boolean heartbeatAtBaseline = service.heartbeat();
+            long baselineNs = SystemClock.elapsedRealtimeNanos();
+            boolean becameInactive = false;
+            long inactiveNs = -1L;
+            long deadlineNs = baselineNs + OBSERVATION_TIMEOUT_MS * 1_000_000L;
+            while (SystemClock.elapsedRealtimeNanos() < deadlineNs) {
+                if (!service.hasActiveSession()) {
+                    becameInactive = true;
+                    inactiveNs = SystemClock.elapsedRealtimeNanos();
+                    break;
                 }
-            } catch (Throwable error) {
-                downlinkTerminal.set(error.getClass().getSimpleName());
+                Thread.sleep(10L);
             }
-        }, "aicall-watchdog-rx-drain");
-        downlinkThread.setDaemon(true);
 
-        Thread uplinkThread = new Thread(() -> {
-            byte[] silence = new byte[PCM_CHUNK_BYTES];
-            try (ParcelFileDescriptor.AutoCloseOutputStream output =
-                     new ParcelFileDescriptor.AutoCloseOutputStream(uplink)) {
-                while (!stop.get()) {
-                    output.write(silence);
-                    uplinkBytes.addAndGet(silence.length);
-                }
-                output.flush();
-            } catch (Throwable error) {
-                uplinkTerminal.set(error.getClass().getSimpleName());
+            long observedMs = becameInactive ? (inactiveNs - baselineNs) / 1_000_000L : -1L;
+            long overrunMs = becameInactive ? observedMs - HEARTBEAT_TIMEOUT_MS : -1L;
+            boolean heartbeatAfterTimeout = service.heartbeat();
+            boolean preparedAfterTimeout = service.hasPreparedSession();
+            boolean activeAfterTimeout = service.hasActiveSession();
+
+            media.close();
+            long downlinkBytes = media.downlinkBytes();
+            long uplinkBytes = media.uplinkBytes();
+            String downlinkTerminal = media.downlinkTerminal();
+            String uplinkTerminal = media.uplinkTerminal();
+            boolean threadsStopped = media.threadsStopped();
+
+            boolean privilegedUid = service.getProcessUid() == 0 || service.getProcessUid() == 2000;
+            boolean timingOk = observedMs >= 1_800L && observedMs <= 3_000L;
+            boolean ok = Shizuku.pingBinder()
+                && privilegedUid
+                && activeAfterStart
+                && heartbeatAtBaseline
+                && becameInactive
+                && timingOk
+                && !heartbeatAfterTimeout
+                && !preparedAfterTimeout
+                && !activeAfterTimeout
+                && downlinkBytes > 0L
+                && uplinkBytes > 0L
+                && threadsStopped;
+
+            result.append("active_after_start=").append(activeAfterStart).append('\n');
+            result.append("heartbeat_at_baseline=").append(heartbeatAtBaseline).append('\n');
+            result.append("watchdog_became_inactive=").append(becameInactive).append('\n');
+            result.append("watchdog_observed_ms=").append(observedMs).append('\n');
+            result.append("watchdog_overrun_ms=").append(overrunMs).append('\n');
+            result.append("watchdog_timing_ok=").append(timingOk).append('\n');
+            result.append("downlink_bytes_read=").append(downlinkBytes).append('\n');
+            result.append("uplink_bytes_written=").append(uplinkBytes).append('\n');
+            result.append("downlink_terminal=").append(downlinkTerminal).append('\n');
+            result.append("uplink_terminal=").append(uplinkTerminal).append('\n');
+            result.append("threads_stopped=").append(threadsStopped).append('\n');
+            result.append("prepared_after_timeout=").append(preparedAfterTimeout).append('\n');
+            result.append("active_after_timeout=").append(activeAfterTimeout).append('\n');
+            result.append("heartbeat_after_timeout=").append(heartbeatAfterTimeout).append('\n');
+            result.append("privileged_uid=").append(privilegedUid).append('\n');
+            result.append("watchdog_fail_safe_ok=").append(ok);
+            return result.toString();
+        } finally {
+            if (media != null) {
+                media.close();
             }
-        }, "aicall-watchdog-tx-silence");
-        uplinkThread.setDaemon(true);
-
-        downlinkThread.start();
-        uplinkThread.start();
-
-        boolean heartbeatAtBaseline = service.heartbeat();
-        long baselineNs = SystemClock.elapsedRealtimeNanos();
-        boolean becameInactive = false;
-        long inactiveNs = -1L;
-        long deadlineNs = baselineNs + OBSERVATION_TIMEOUT_MS * 1_000_000L;
-        while (SystemClock.elapsedRealtimeNanos() < deadlineNs) {
-            if (!service.hasActiveSession()) {
-                becameInactive = true;
-                inactiveNs = SystemClock.elapsedRealtimeNanos();
-                break;
-            }
-            Thread.sleep(10L);
+            closeQuietly(downlink);
+            closeQuietly(uplink);
         }
-
-        long observedMs = becameInactive ? (inactiveNs - baselineNs) / 1_000_000L : -1L;
-        long overrunMs = becameInactive ? observedMs - HEARTBEAT_TIMEOUT_MS : -1L;
-        boolean heartbeatAfterTimeout = service.heartbeat();
-        boolean preparedAfterTimeout = service.hasPreparedSession();
-        boolean activeAfterTimeout = service.hasActiveSession();
-
-        stop.set(true);
-        closeQuietly(downlink);
-        closeQuietly(uplink);
-        downlinkThread.interrupt();
-        uplinkThread.interrupt();
-        downlinkThread.join(THREAD_JOIN_TIMEOUT_MS);
-        uplinkThread.join(THREAD_JOIN_TIMEOUT_MS);
-
-        boolean privilegedUid = service.getProcessUid() == 0 || service.getProcessUid() == 2000;
-        boolean timingOk = observedMs >= 1_800L && observedMs <= 3_000L;
-        boolean threadsStopped = !downlinkThread.isAlive() && !uplinkThread.isAlive();
-        boolean ok = Shizuku.pingBinder()
-            && privilegedUid
-            && activeAfterStart
-            && heartbeatAtBaseline
-            && becameInactive
-            && timingOk
-            && !heartbeatAfterTimeout
-            && !preparedAfterTimeout
-            && !activeAfterTimeout
-            && downlinkBytes.get() > 0L
-            && uplinkBytes.get() > 0L
-            && threadsStopped;
-
-        result.append("active_after_start=").append(activeAfterStart).append('\n');
-        result.append("heartbeat_at_baseline=").append(heartbeatAtBaseline).append('\n');
-        result.append("watchdog_became_inactive=").append(becameInactive).append('\n');
-        result.append("watchdog_observed_ms=").append(observedMs).append('\n');
-        result.append("watchdog_overrun_ms=").append(overrunMs).append('\n');
-        result.append("watchdog_timing_ok=").append(timingOk).append('\n');
-        result.append("downlink_bytes_read=").append(downlinkBytes.get()).append('\n');
-        result.append("uplink_bytes_written=").append(uplinkBytes.get()).append('\n');
-        result.append("downlink_terminal=").append(downlinkTerminal.get()).append('\n');
-        result.append("uplink_terminal=").append(uplinkTerminal.get()).append('\n');
-        result.append("threads_stopped=").append(threadsStopped).append('\n');
-        result.append("prepared_after_timeout=").append(preparedAfterTimeout).append('\n');
-        result.append("active_after_timeout=").append(activeAfterTimeout).append('\n');
-        result.append("heartbeat_after_timeout=").append(heartbeatAfterTimeout).append('\n');
-        result.append("privileged_uid=").append(privilegedUid).append('\n');
-        result.append("watchdog_fail_safe_ok=").append(ok);
-        return result.toString();
     }
 
     private void finish(String result) {

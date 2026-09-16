@@ -10,8 +10,6 @@ import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import rikka.shizuku.Shizuku;
 
@@ -22,7 +20,6 @@ public final class ShizukuAbortLatencyProbe {
     private static final long ABORT_MAX_MS = 500L;
     private static final long INACTIVE_OBSERVATION_TIMEOUT_MS = 1_000L;
     private static final long CONNECT_TIMEOUT_MS = 10_000L;
-    private static final long THREAD_JOIN_TIMEOUT_MS = 1_000L;
 
     private final Context appContext;
     private final ShizukuUserServiceProbe.Callback callback;
@@ -104,119 +101,94 @@ public final class ShizukuAbortLatencyProbe {
         service.prepare(SAMPLE_RATE);
         service.startMedia();
         boolean activeAfterStart = service.hasActiveSession();
-        ParcelFileDescriptor downlink = service.takeDownlinkReadEnd();
-        ParcelFileDescriptor uplink = service.takeUplinkWriteEnd();
+        ParcelFileDescriptor downlink = null;
+        ParcelFileDescriptor uplink = null;
+        ShizukuBidirectionalProbeMedia media = null;
+        try {
+            downlink = service.takeDownlinkReadEnd();
+            uplink = service.takeUplinkWriteEnd();
+            media = ShizukuBidirectionalProbeMedia.start(
+                downlink,
+                uplink,
+                PCM_CHUNK_BYTES,
+                "aicall-abort"
+            );
+            downlink = null;
+            uplink = null;
 
-        AtomicBoolean stop = new AtomicBoolean(false);
-        AtomicLong downlinkBytes = new AtomicLong();
-        AtomicLong uplinkBytes = new AtomicLong();
-        AtomicReference<String> downlinkTerminal = new AtomicReference<>("none");
-        AtomicReference<String> uplinkTerminal = new AtomicReference<>("none");
+            boolean heartbeatAtBaseline = service.heartbeat();
+            Thread.sleep(200L);
+            long abortStartNs = SystemClock.elapsedRealtimeNanos();
+            service.abortNow();
+            long abortReturnNs = SystemClock.elapsedRealtimeNanos();
+            long abortRpcMs = (abortReturnNs - abortStartNs) / 1_000_000L;
 
-        Thread downlinkThread = new Thread(() -> {
-            byte[] buffer = new byte[PCM_CHUNK_BYTES];
-            try (ParcelFileDescriptor.AutoCloseInputStream input =
-                     new ParcelFileDescriptor.AutoCloseInputStream(downlink)) {
-                while (!stop.get()) {
-                    int read = input.read(buffer);
-                    if (read < 0) {
-                        downlinkTerminal.set("eof");
-                        break;
-                    }
-                    if (read > 0) {
-                        downlinkBytes.addAndGet(read);
-                    }
+            boolean becameInactive = !service.hasActiveSession();
+            long inactiveNs = becameInactive ? SystemClock.elapsedRealtimeNanos() : -1L;
+            long deadlineNs = abortStartNs + INACTIVE_OBSERVATION_TIMEOUT_MS * 1_000_000L;
+            while (!becameInactive && SystemClock.elapsedRealtimeNanos() < deadlineNs) {
+                Thread.sleep(5L);
+                if (!service.hasActiveSession()) {
+                    becameInactive = true;
+                    inactiveNs = SystemClock.elapsedRealtimeNanos();
                 }
-            } catch (Throwable error) {
-                downlinkTerminal.set(error.getClass().getSimpleName());
             }
-        }, "aicall-abort-rx-drain");
-        downlinkThread.setDaemon(true);
+            long inactiveObservedMs = becameInactive
+                ? (inactiveNs - abortStartNs) / 1_000_000L
+                : -1L;
 
-        Thread uplinkThread = new Thread(() -> {
-            byte[] silence = new byte[PCM_CHUNK_BYTES];
-            try (ParcelFileDescriptor.AutoCloseOutputStream output =
-                     new ParcelFileDescriptor.AutoCloseOutputStream(uplink)) {
-                while (!stop.get()) {
-                    output.write(silence);
-                    uplinkBytes.addAndGet(silence.length);
-                }
-                output.flush();
-            } catch (Throwable error) {
-                uplinkTerminal.set(error.getClass().getSimpleName());
+            boolean preparedAfterAbort = service.hasPreparedSession();
+            boolean activeAfterAbort = service.hasActiveSession();
+            boolean heartbeatAfterAbort = service.heartbeat();
+
+            media.close();
+            long downlinkBytes = media.downlinkBytes();
+            long uplinkBytes = media.uplinkBytes();
+            String downlinkTerminal = media.downlinkTerminal();
+            String uplinkTerminal = media.uplinkTerminal();
+            boolean threadsStopped = media.threadsStopped();
+
+            boolean privilegedUid = service.getProcessUid() == 0 || service.getProcessUid() == 2000;
+            boolean timingOk = abortRpcMs <= ABORT_MAX_MS
+                && inactiveObservedMs >= 0L
+                && inactiveObservedMs <= ABORT_MAX_MS;
+            boolean ok = Shizuku.pingBinder()
+                && privilegedUid
+                && activeAfterStart
+                && heartbeatAtBaseline
+                && downlinkBytes > 0L
+                && uplinkBytes > 0L
+                && becameInactive
+                && timingOk
+                && !preparedAfterAbort
+                && !activeAfterAbort
+                && !heartbeatAfterAbort
+                && threadsStopped;
+
+            result.append("active_after_start=").append(activeAfterStart).append('\n');
+            result.append("heartbeat_at_baseline=").append(heartbeatAtBaseline).append('\n');
+            result.append("downlink_bytes_read=").append(downlinkBytes).append('\n');
+            result.append("uplink_bytes_written=").append(uplinkBytes).append('\n');
+            result.append("abort_rpc_ms=").append(abortRpcMs).append('\n');
+            result.append("abort_became_inactive=").append(becameInactive).append('\n');
+            result.append("abort_inactive_observed_ms=").append(inactiveObservedMs).append('\n');
+            result.append("abort_timing_ok=").append(timingOk).append('\n');
+            result.append("downlink_terminal=").append(downlinkTerminal).append('\n');
+            result.append("uplink_terminal=").append(uplinkTerminal).append('\n');
+            result.append("threads_stopped=").append(threadsStopped).append('\n');
+            result.append("prepared_after_abort=").append(preparedAfterAbort).append('\n');
+            result.append("active_after_abort=").append(activeAfterAbort).append('\n');
+            result.append("heartbeat_after_abort=").append(heartbeatAfterAbort).append('\n');
+            result.append("privileged_uid=").append(privilegedUid).append('\n');
+            result.append("explicit_abort_fail_safe_ok=").append(ok);
+            return result.toString();
+        } finally {
+            if (media != null) {
+                media.close();
             }
-        }, "aicall-abort-tx-silence");
-        uplinkThread.setDaemon(true);
-
-        downlinkThread.start();
-        uplinkThread.start();
-
-        boolean heartbeatAtBaseline = service.heartbeat();
-        Thread.sleep(200L);
-        long abortStartNs = SystemClock.elapsedRealtimeNanos();
-        service.abortNow();
-        long abortReturnNs = SystemClock.elapsedRealtimeNanos();
-        long abortRpcMs = (abortReturnNs - abortStartNs) / 1_000_000L;
-
-        boolean becameInactive = !service.hasActiveSession();
-        long inactiveNs = becameInactive ? SystemClock.elapsedRealtimeNanos() : -1L;
-        long deadlineNs = abortStartNs + INACTIVE_OBSERVATION_TIMEOUT_MS * 1_000_000L;
-        while (!becameInactive && SystemClock.elapsedRealtimeNanos() < deadlineNs) {
-            Thread.sleep(5L);
-            if (!service.hasActiveSession()) {
-                becameInactive = true;
-                inactiveNs = SystemClock.elapsedRealtimeNanos();
-            }
+            closeQuietly(downlink);
+            closeQuietly(uplink);
         }
-        long inactiveObservedMs = becameInactive ? (inactiveNs - abortStartNs) / 1_000_000L : -1L;
-
-        boolean preparedAfterAbort = service.hasPreparedSession();
-        boolean activeAfterAbort = service.hasActiveSession();
-        boolean heartbeatAfterAbort = service.heartbeat();
-
-        stop.set(true);
-        closeQuietly(downlink);
-        closeQuietly(uplink);
-        downlinkThread.interrupt();
-        uplinkThread.interrupt();
-        downlinkThread.join(THREAD_JOIN_TIMEOUT_MS);
-        uplinkThread.join(THREAD_JOIN_TIMEOUT_MS);
-
-        boolean privilegedUid = service.getProcessUid() == 0 || service.getProcessUid() == 2000;
-        boolean timingOk = abortRpcMs <= ABORT_MAX_MS
-            && inactiveObservedMs >= 0L
-            && inactiveObservedMs <= ABORT_MAX_MS;
-        boolean threadsStopped = !downlinkThread.isAlive() && !uplinkThread.isAlive();
-        boolean ok = Shizuku.pingBinder()
-            && privilegedUid
-            && activeAfterStart
-            && heartbeatAtBaseline
-            && downlinkBytes.get() > 0L
-            && uplinkBytes.get() > 0L
-            && becameInactive
-            && timingOk
-            && !preparedAfterAbort
-            && !activeAfterAbort
-            && !heartbeatAfterAbort
-            && threadsStopped;
-
-        result.append("active_after_start=").append(activeAfterStart).append('\n');
-        result.append("heartbeat_at_baseline=").append(heartbeatAtBaseline).append('\n');
-        result.append("downlink_bytes_read=").append(downlinkBytes.get()).append('\n');
-        result.append("uplink_bytes_written=").append(uplinkBytes.get()).append('\n');
-        result.append("abort_rpc_ms=").append(abortRpcMs).append('\n');
-        result.append("abort_became_inactive=").append(becameInactive).append('\n');
-        result.append("abort_inactive_observed_ms=").append(inactiveObservedMs).append('\n');
-        result.append("abort_timing_ok=").append(timingOk).append('\n');
-        result.append("downlink_terminal=").append(downlinkTerminal.get()).append('\n');
-        result.append("uplink_terminal=").append(uplinkTerminal.get()).append('\n');
-        result.append("threads_stopped=").append(threadsStopped).append('\n');
-        result.append("prepared_after_abort=").append(preparedAfterAbort).append('\n');
-        result.append("active_after_abort=").append(activeAfterAbort).append('\n');
-        result.append("heartbeat_after_abort=").append(heartbeatAfterAbort).append('\n');
-        result.append("privileged_uid=").append(privilegedUid).append('\n');
-        result.append("explicit_abort_fail_safe_ok=").append(ok);
-        return result.toString();
     }
 
     private void finish(String result) {
