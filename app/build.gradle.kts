@@ -22,6 +22,7 @@ android {
 
 dependencies {
     implementation(project(":audio-bridge"))
+    implementation(project(":privileged-helper"))
     implementation(project(":realtime-client"))
     testImplementation("junit:junit:4.13.2")
 }
