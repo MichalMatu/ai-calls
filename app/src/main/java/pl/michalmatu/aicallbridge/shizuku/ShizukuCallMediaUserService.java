@@ -12,19 +12,20 @@ import pl.michalmatu.aicallbridge.helper.samsung.SamsungCallMediaSessionControll
  * the two ParcelFileDescriptor pipes returned by {@link #takeDownlinkReadEnd()} and
  * {@link #takeUplinkWriteEnd()}.</p>
  *
- * <p>There is deliberately no Context constructor. The S22 VOICE_DOWNLINK proof requires
- * {@code SamsungCallMediaSessionController.prepare()} to run before any explicit Context/
- * AudioManager initialization in this process. Contexts are therefore created lazily by
- * {@link PrivilegedCallContexts} only in {@link #startMedia()} after prepare has succeeded.</p>
+ * <p>Shizuku starts this UserService under shell UID 2000 but from our APK, so the process package
+ * attribution is still {@code pl.michalmatu.aicallbridge}. The RX prepare path therefore creates
+ * the trusted system/shell Context pair first and passes the shell Context explicitly to
+ * AudioRecord construction. The frozen direct-shell path remains context-free.</p>
  */
 public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.Stub {
     private final SamsungCallMediaSessionController controller =
         new SamsungCallMediaSessionController();
 
     private SamsungCallMediaSessionController.Endpoints endpoints;
+    private PrivilegedCallContexts.Pair contexts;
 
     public ShizukuCallMediaUserService() {
-        // Required default constructor for Shizuku UserService. Keep context-free.
+        // Required default constructor for Shizuku UserService.
     }
 
     @Override
@@ -42,7 +43,23 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         if (endpoints != null) {
             throw new IllegalStateException("media endpoints are already active");
         }
-        controller.prepare(sampleRate);
+        if (contexts != null || controller.hasPreparedSession()) {
+            throw new IllegalStateException("media session is already prepared");
+        }
+
+        try {
+            PrivilegedCallContexts.Pair candidate = PrivilegedCallContexts.create();
+            controller.prepare(sampleRate, candidate.shell());
+            contexts = candidate;
+        } catch (RuntimeException | Error error) {
+            controller.abortNow();
+            contexts = null;
+            throw error;
+        } catch (Exception error) {
+            controller.abortNow();
+            contexts = null;
+            throw new IllegalStateException("failed to prepare Samsung call media", error);
+        }
     }
 
     @Override
@@ -50,16 +67,20 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         if (endpoints != null) {
             throw new IllegalStateException("media endpoints already created");
         }
+        if (contexts == null) {
+            throw new IllegalStateException("prepare(sampleRate) must succeed before startMedia()");
+        }
 
         try {
-            PrivilegedCallContexts.Pair contexts =
-                PrivilegedCallContexts.createAfterMediaPrepare();
             endpoints = controller.start(contexts.system(), contexts.shell());
+            contexts = null;
         } catch (RuntimeException | Error error) {
             controller.abortNow();
+            contexts = null;
             throw error;
         } catch (Exception error) {
             controller.abortNow();
+            contexts = null;
             throw new IllegalStateException("failed to start Samsung call media", error);
         }
     }
@@ -94,6 +115,7 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
     @Override
     public synchronized void abortNow() {
         closeEndpoints();
+        contexts = null;
         controller.abortNow();
     }
 
