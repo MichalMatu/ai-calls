@@ -34,8 +34,8 @@ public final class ShizukuUserServiceProbe {
     private final Shizuku.UserServiceArgs userServiceArgs;
 
     private final Runnable timeout = () -> finish(
-        (live ? "probe=shizuku-user-service-live-v1" : "probe=shizuku-user-service-v1")
-            + "\nerror=connect_timeout"
+        probeName() + "
+error=connect_timeout"
     );
 
     private final ServiceConnection connection = new ServiceConnection() {
@@ -99,6 +99,10 @@ public final class ShizukuUserServiceProbe {
             );
         }
         new ShizukuUserServiceProbe(context, callback, true, durationMs).start();
+    }
+
+    private String probeName() {
+        return live ? "probe=shizuku-user-service-live-v1" : "probe=shizuku-user-service-v1";
     }
 
     private void start() {
