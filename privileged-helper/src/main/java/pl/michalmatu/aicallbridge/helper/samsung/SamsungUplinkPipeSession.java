@@ -3,7 +3,6 @@ package pl.michalmatu.aicallbridge.helper.samsung;
 import android.content.Context;
 import android.os.ParcelFileDescriptor;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -151,7 +150,10 @@ public final class SamsungUplinkPipeSession implements AutoCloseable {
     }
 
     private void runWorker() {
-        try (FileInputStream input = new FileInputStream(readEnd.getFileDescriptor())) {
+        try (
+            ParcelFileDescriptor.AutoCloseInputStream input =
+                new ParcelFileDescriptor.AutoCloseInputStream(readEnd)
+        ) {
             Pcm16PipeFramer.pump(
                 input,
                 readChunkBytes,
@@ -166,8 +168,6 @@ public final class SamsungUplinkPipeSession implements AutoCloseable {
                 terminalFailure = error;
                 failFromWorker();
             }
-        } finally {
-            closeQuietly(readEnd);
         }
     }
 
