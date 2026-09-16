@@ -161,6 +161,25 @@ public final class SamsungCallAssistantTrack implements AutoCloseable {
         return sampleRate;
     }
 
+    public synchronized int getState() {
+        ensureOpen();
+        return track.getState();
+    }
+
+    public synchronized int getPlayState() {
+        ensureOpen();
+        return track.getPlayState();
+    }
+
+    public synchronized int getAudioSessionId() {
+        ensureOpen();
+        return track.getAudioSessionId();
+    }
+
+    public synchronized int getWarmupFrames() {
+        return warmupFrames;
+    }
+
     public synchronized int getPlaybackHeadPosition() {
         ensureOpen();
         return track.getPlaybackHeadPosition();
