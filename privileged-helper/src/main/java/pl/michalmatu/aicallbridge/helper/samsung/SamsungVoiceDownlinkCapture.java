@@ -17,10 +17,11 @@ import java.util.Objects;
  * active cellular call before recording, confirms TYPE_TELEPHONY routing, and exposes mono PCM16
  * frames to the helper media plane.</p>
  *
- * <p>On the target Samsung firmware, VOICE_DOWNLINK must be constructed before creating/touching a
- * process Context used for audio services. Therefore {@link #open(int)} is deliberately context-free;
- * the Context is supplied only to {@link #startAndConfirmTelephonyRoute(Context)} after AudioRecord
- * already exists.</p>
+ * <p>On the target Samsung firmware, the direct-shell proof path requires VOICE_DOWNLINK to be
+ * constructed before creating/touching a process Context used for audio services. Therefore
+ * {@link #open(int)} remains deliberately context-free. Privileged hosts that already run inside an
+ * app-attributed process, such as a Shizuku UserService, may instead use
+ * {@link #open(int, Context)} to set the trusted shell attribution explicitly on AudioRecord.</p>
  */
 public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
     public static final int SAMPLE_RATE_16K = 16_000;
@@ -44,11 +45,29 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
      * This ordering matches the physically proven ShellAudioProbe path on the target S22+.
      */
     public static SamsungVoiceDownlinkCapture open(int sampleRate) {
+        return openInternal(sampleRate, null);
+    }
+
+    /**
+     * Constructs VOICE_DOWNLINK with an explicit attribution Context.
+     *
+     * <p>This is for privileged hosts whose process package does not match their trusted UID. It is
+     * not used by the frozen direct-shell proof path.</p>
+     */
+    public static SamsungVoiceDownlinkCapture open(int sampleRate, Context attributionContext) {
+        Objects.requireNonNull(attributionContext, "attributionContext");
+        return openInternal(sampleRate, attributionContext);
+    }
+
+    private static SamsungVoiceDownlinkCapture openInternal(
+        int sampleRate,
+        Context attributionContext
+    ) {
         validateSampleRate(sampleRate);
 
         int minBuffer = AudioRecord.getMinBufferSize(sampleRate, CHANNEL_MASK, ENCODING);
         int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 4096) : 4096;
-        AudioRecord record = new AudioRecord.Builder()
+        AudioRecord.Builder builder = new AudioRecord.Builder()
             .setAudioSource(MediaRecorder.AudioSource.VOICE_DOWNLINK)
             .setAudioFormat(
                 new AudioFormat.Builder()
@@ -57,8 +76,11 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
                     .setChannelMask(CHANNEL_MASK)
                     .build()
             )
-            .setBufferSizeInBytes(bufferSize)
-            .build();
+            .setBufferSizeInBytes(bufferSize);
+        if (attributionContext != null) {
+            builder.setContext(attributionContext);
+        }
+        AudioRecord record = builder.build();
 
         if (record.getState() != AudioRecord.STATE_INITIALIZED) {
             record.release();
