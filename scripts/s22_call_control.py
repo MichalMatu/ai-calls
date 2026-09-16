@@ -196,10 +196,21 @@ class Adb:
 
     def dump_ui(self) -> str:
         path = "/data/local/tmp/aicallbridge-window.xml"
-        self.shell(["uiautomator", "dump", path])
-        xml_text = self.shell(["cat", path])
+        last_error: subprocess.CalledProcessError | None = None
+        for attempt in range(3):
+            self.shell(["rm", "-f", path], check=False)
+            try:
+                self.shell(["uiautomator", "dump", path])
+                xml_text = self.shell(["cat", path])
+                self.shell(["rm", "-f", path], check=False)
+                return xml_text
+            except subprocess.CalledProcessError as error:
+                last_error = error
+                if attempt < 2:
+                    time.sleep(0.2)
         self.shell(["rm", "-f", path], check=False)
-        return xml_text
+        assert last_error is not None
+        raise last_error
 
     def tap_bounds(self, bounds: str) -> None:
         x, y = center_from_bounds(bounds)
