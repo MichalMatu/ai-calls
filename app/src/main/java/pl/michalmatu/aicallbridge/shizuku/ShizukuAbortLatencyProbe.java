@@ -39,19 +39,22 @@ public final class ShizukuAbortLatencyProbe {
         public void onServiceConnected(ComponentName name, IBinder binder) {
             handler.removeCallbacks(timeout);
             IShizukuCallMediaService service = IShizukuCallMediaService.Stub.asInterface(binder);
-            String result;
-            try {
-                result = runAbortProbe(service);
-            } catch (Throwable error) {
-                result = "probe=shizuku-user-service-abort-latency-v1\nerror=" + describe(error);
-            } finally {
+            ShizukuProbeWorker.start("aicall-shizuku-abort-probe", () -> {
+                String result;
                 try {
-                    service.abortNow();
-                } catch (Throwable ignored) {
-                    // Fail-safe cleanup.
+                    result = runAbortProbe(service);
+                } catch (Throwable error) {
+                    result = "probe=shizuku-user-service-abort-latency-v1\nerror=" + describe(error);
+                } finally {
+                    try {
+                        service.abortNow();
+                    } catch (Throwable ignored) {
+                        // Fail-safe cleanup.
+                    }
                 }
-            }
-            finish(result);
+                String completedResult = result;
+                handler.post(() -> finish(completedResult));
+            });
         }
 
         @Override

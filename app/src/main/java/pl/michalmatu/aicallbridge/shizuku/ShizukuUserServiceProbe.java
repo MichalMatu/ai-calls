@@ -42,20 +42,23 @@ public final class ShizukuUserServiceProbe {
         public void onServiceConnected(ComponentName name, IBinder binder) {
             handler.removeCallbacks(timeout);
             IShizukuCallMediaService service = IShizukuCallMediaService.Stub.asInterface(binder);
-            String result;
-            try {
-                result = live ? runLiveProbe(service, liveDurationMs) : runOffCallProbe(service);
-            } catch (Throwable error) {
-                result = (live ? "probe=shizuku-user-service-live-v1" : "probe=shizuku-user-service-v1")
-                    + "\nerror=" + describe(error);
-            } finally {
+            ShizukuProbeWorker.start("aicall-shizuku-parity-probe", () -> {
+                String result;
                 try {
-                    service.abortNow();
-                } catch (Throwable ignored) {
-                    // Fail-safe cleanup.
+                    result = live ? runLiveProbe(service, liveDurationMs) : runOffCallProbe(service);
+                } catch (Throwable error) {
+                    result = (live ? "probe=shizuku-user-service-live-v1" : "probe=shizuku-user-service-v1")
+                        + "\nerror=" + describe(error);
+                } finally {
+                    try {
+                        service.abortNow();
+                    } catch (Throwable ignored) {
+                        // Fail-safe cleanup.
+                    }
                 }
-            }
-            finish(result);
+                String completedResult = result;
+                handler.post(() -> finish(completedResult));
+            });
         }
 
         @Override
