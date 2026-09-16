@@ -6,11 +6,14 @@ import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.os.Process;
 
+import java.io.FileOutputStream;
 import java.lang.reflect.Method;
 
 import pl.michalmatu.aicallbridge.helper.samsung.SamsungCallAssistantTrack;
+import pl.michalmatu.aicallbridge.helper.samsung.SamsungUplinkPipeSession;
 
 /**
  * Samsung Phase 1C regression probe for the proven CALL_ASSISTANT -> Telephony Tx route.
@@ -36,6 +39,12 @@ public final class CallAssistantAudioProbe {
             if (args.length == 2 && "construct".equals(args[0])) {
                 int sampleRate = parseSampleRate(args[1]);
                 exitCode = run(false, sampleRate, 0, 0, 0, 0.0);
+            } else if (args.length == 2 && "pipe-abort-offcall".equals(args[0])) {
+                int sampleRate = parseSampleRate(args[1]);
+                exitCode = runPipeAbortOffCall(sampleRate);
+            } else if (args.length == 2 && "pipe-start-offcall".equals(args[0])) {
+                int sampleRate = parseSampleRate(args[1]);
+                exitCode = runPipeStartOffCall(sampleRate);
             } else if (args.length == 5 && "play-tone".equals(args[0])) {
                 int sampleRate = parseSampleRate(args[1]);
                 int durationMs = parseInt(args[2], "durationMs", 1, MAX_DURATION_MS);
@@ -58,6 +67,8 @@ public final class CallAssistantAudioProbe {
             } else {
                 System.out.println(
                     "usage=CallAssistantAudioProbe construct <16000|48000> | "
+                        + "pipe-abort-offcall <16000|48000> | "
+                        + "pipe-start-offcall <16000|48000> | "
                         + "play-tone <16000|48000> <durationMs> <frequencyHz> <amplitude> | "
                         + "play-dual-tone <16000|48000> <durationMs> <frequencyHz1> <frequencyHz2> <amplitude>"
                 );
@@ -183,6 +194,85 @@ public final class CallAssistantAudioProbe {
                 track.abortNow();
             }
         }
+    }
+
+    private static int runPipeAbortOffCall(int sampleRate) throws Exception {
+        Context context = shellContext();
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        System.out.println("probe=call-assistant-pipe-v1");
+        System.out.println("mode=pipe-abort-offcall");
+        System.out.println("uid=" + Process.myUid());
+        System.out.println("sample_rate=" + sampleRate);
+        System.out.println("audio_mode=" + audioManager.getMode());
+        SamsungUplinkPipeSession session = SamsungUplinkPipeSession.open(context, sampleRate);
+        ParcelFileDescriptor writer = null;
+        try {
+            writer = session.takeWriteEnd();
+            System.out.println("pipe_open=true");
+            System.out.println("started_before_abort=" + session.isStarted());
+            session.abortNow();
+            System.out.println("terminated_after_abort=" + session.isTerminated());
+            System.out.println("aborted_after_abort=" + session.wasAborted());
+            System.out.println("terminal_failure_after_abort=" + describeFailure(session.getTerminalFailure()));
+            System.out.println("writer_rejected_after_abort=" + writerRejected(writer));
+            return session.isTerminated() && session.wasAborted() ? 0 : 13;
+        } finally {
+            if (writer != null) {
+                writer.close();
+            }
+            session.abortNow();
+        }
+    }
+
+    private static int runPipeStartOffCall(int sampleRate) throws Exception {
+        Context context = shellContext();
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        System.out.println("probe=call-assistant-pipe-v1");
+        System.out.println("mode=pipe-start-offcall");
+        System.out.println("uid=" + Process.myUid());
+        System.out.println("sample_rate=" + sampleRate);
+        System.out.println("audio_mode=" + audioManager.getMode());
+        SamsungUplinkPipeSession session = SamsungUplinkPipeSession.open(context, sampleRate);
+        ParcelFileDescriptor writer = null;
+        try {
+            writer = session.takeWriteEnd();
+            System.out.println("pipe_open=true");
+            try {
+                session.start();
+                System.out.println("offcall_start_rejected=false");
+                return 14;
+            } catch (IllegalStateException expected) {
+                System.out.println("offcall_start_rejected=true");
+                System.out.println("start_error=" + sanitize(expected.getMessage()));
+            }
+            System.out.println("terminated_after_start_failure=" + session.isTerminated());
+            System.out.println("aborted_after_start_failure=" + session.wasAborted());
+            System.out.println("terminal_failure_after_start_failure=" + describeFailure(session.getTerminalFailure()));
+            System.out.println("writer_rejected_after_start_failure=" + writerRejected(writer));
+            return session.isTerminated() && session.getTerminalFailure() != null ? 0 : 15;
+        } finally {
+            if (writer != null) {
+                writer.close();
+            }
+            session.abortNow();
+        }
+    }
+
+    private static boolean writerRejected(ParcelFileDescriptor writer) {
+        try (FileOutputStream output = new FileOutputStream(writer.getFileDescriptor())) {
+            output.write(new byte[] {0, 0});
+            output.flush();
+            return false;
+        } catch (Throwable expected) {
+            return true;
+        }
+    }
+
+    private static String describeFailure(Throwable error) {
+        if (error == null) {
+            return "none";
+        }
+        return error.getClass().getSimpleName() + ":" + sanitize(error.getMessage());
     }
 
     private static byte[] pcm16Le(short[] mono) {
