@@ -34,8 +34,7 @@ public final class ShizukuUserServiceProbe {
     private final Shizuku.UserServiceArgs userServiceArgs;
 
     private final Runnable timeout = () -> finish(
-        probeName() + "
-error=connect_timeout"
+        probeName() + "\nerror=connect_timeout"
     );
 
     private final ServiceConnection connection = new ServiceConnection() {
