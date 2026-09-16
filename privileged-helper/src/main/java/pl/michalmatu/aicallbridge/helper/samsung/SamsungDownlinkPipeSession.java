@@ -13,6 +13,9 @@ import java.util.Objects;
  * <p>The privileged helper owns VOICE_DOWNLINK and the pipe write end. The controller receives the
  * read end once through {@link #takeReadEnd()}, then consumes raw mono PCM16LE without per-frame
  * Binder calls. Closing the controller read end stops capture locally.</p>
+ *
+ * <p>{@link #open(int)} is intentionally context-free so VOICE_DOWNLINK is constructed before
+ * Context/AudioManager work. The Context is supplied only at {@link #start(Context)}.</p>
  */
 public final class SamsungDownlinkPipeSession implements AutoCloseable {
     private final SamsungVoiceDownlinkCapture capture;
@@ -37,9 +40,8 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
         this.readChunkFrames = capture.getSampleRate() / 50; // 20 ms.
     }
 
-    public static SamsungDownlinkPipeSession open(Context context, int sampleRate) {
-        Objects.requireNonNull(context, "context");
-        SamsungVoiceDownlinkCapture capture = SamsungVoiceDownlinkCapture.open(context, sampleRate);
+    public static SamsungDownlinkPipeSession open(int sampleRate) {
+        SamsungVoiceDownlinkCapture capture = SamsungVoiceDownlinkCapture.open(sampleRate);
         ParcelFileDescriptor[] pipe = null;
         try {
             pipe = ParcelFileDescriptor.createPipe();
@@ -66,14 +68,15 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
     }
 
     /** Starts telephony capture first, then starts the pipe writer. */
-    public synchronized void start() throws InterruptedException {
+    public synchronized void start(Context context) throws InterruptedException {
+        Objects.requireNonNull(context, "context");
         ensureNotTerminated();
         if (started) {
             throw new IllegalStateException("downlink pipe session already started");
         }
 
         try {
-            capture.startAndConfirmTelephonyRoute();
+            capture.startAndConfirmTelephonyRoute(context);
         } catch (InterruptedException error) {
             terminateFromStartFailure(error);
             throw error;
