@@ -195,7 +195,7 @@ class Adb:
         self.shell(["input", "keyevent", "KEYCODE_ENDCALL"])
 
     def dump_ui(self) -> str:
-        path = "/sdcard/aicallbridge-window.xml"
+        path = "/data/local/tmp/aicallbridge-window.xml"
         self.shell(["uiautomator", "dump", path])
         xml_text = self.shell(["cat", path])
         self.shell(["rm", "-f", path], check=False)
