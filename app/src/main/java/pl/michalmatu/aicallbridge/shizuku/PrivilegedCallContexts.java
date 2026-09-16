@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.shizuku;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.os.Looper;
 
 import java.lang.reflect.Method;
 import java.util.Objects;
@@ -19,6 +20,14 @@ public final class PrivilegedCallContexts {
     private PrivilegedCallContexts() {}
 
     public static Pair create() throws Exception {
+        // Shizuku dispatches Binder calls on pool threads that do not own a Looper. ActivityThread
+        // creates an internal Handler during systemMain(), so prepare a thread-local Looper before
+        // entering that hidden framework path. This is isolated to the Shizuku context bridge; the
+        // frozen direct-shell media path remains context-free.
+        if (Looper.myLooper() == null) {
+            Looper.prepare();
+        }
+
         Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
         Method systemMain = activityThreadClass.getDeclaredMethod("systemMain");
         systemMain.setAccessible(true);
