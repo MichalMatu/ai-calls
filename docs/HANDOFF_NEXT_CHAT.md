@@ -17,6 +17,15 @@ control_branch: agent-control
 
 This handoff supersedes the older status in this file that said the deep audit still had to be started. The deep audit has now been completed, the first three MUST fixes have been implemented, and the next engineering task is M3 followed by narrow physical regression and Milestone D robustness gates.
 
+## Continuation update — 2026-09-17
+
+Authoritative newer state:
+- M3 is complete at `60cbe81af2e02ba2e4100691c8afb76332735548` and passed host, off-call, silent live parity and 30-second endurance validation.
+- Milestone D is active. The app-death gate is still an evidence problem, not a confirmed product defect.
+- Harness diagnosis: this S22+ has no `toybox nohup` (`exit 125`); a background `sh ... &` process survives ADB-shell return and can be used for the phone-side observer.
+- The event-driven Local Chat Bridge experiment was withdrawn. Do not use `LAB:WAIT_TASK` or rely on `task_result_ready`; terminal `.agent/results/<task-id>.json` remains authoritative.
+- Hard binding and repository isolation remain unchanged.
+
 ## New-chat start rule
 
 Do not restart discovery from zero and do not begin Realtime AI work.
@@ -454,68 +463,18 @@ Use direct USB-C <-> USB-C between S22+ and MacBook. A previous hub/dock caused 
 
 Digital capture/injection may run; local audible speaker output may not.
 
-## Local Agent / Local Chat Bridge — NEW EVENT-DRIVEN MODE
+## Local Agent / Local Chat Bridge — current workflow
 
-This is important for the next chat because the user is explicitly testing the new event-driven Local Chat Bridge flow.
+Keep the hard binding authoritative:
+`c25f88c0-4682-414c-8062-c47fa4034cb0` / `android-ai-call-bridge` / `MichalMatu/android-ai-call-bridge`.
 
-The bridge injects a hard binding message into the chat. Treat that binding as authoritative. For this work it is:
-
-```text
-[LA_AGENT=c25f88c0-4682-414c-8062-c47fa4034cb0]
-[LA_REPO=android-ai-call-bridge]
-[LA_REPOSITORY=MichalMatu/android-ai-call-bridge]
-```
-
-Every Local Agent task JSON must use exactly:
-
-```json
-"agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0"
-```
-
-Hard rules:
-
+- every Local Agent task must use that exact `agent_binding`;
 - never infer or switch repository identity;
-- before editing the same branch, check whether a Local Agent task is already active;
-- ChatGPT owns planning and code decisions;
-- Local Agent executes deterministic Mac/build/ADB/device commands;
-- never invoke or delegate to local Codex from a Local Agent task;
-- direct GitHub edits are fine when the exact diff is known and validation does not require Mac/device state;
-- use Local Agent for local Gradle builds, Mac environment work and all physical-device/ADB checks.
-
-### Event-driven waiting protocol
-
-For one exact queued/active task, do **not** poll it every 30 seconds.
-
-Use the conversation control:
-
-```text
-[LAB:WAIT_TASK=<task-id>]
-```
-
-This means:
-
-- wait for the exact task's event-driven completion/wake signal with alarm fallback;
-- a `task_result_ready` event is only a wake hint;
-- after wake, read the exact terminal result JSON before drawing conclusions;
-- do not declare GREEN from the event alone;
-- use `[LAB:NEXT=<duration>]` only for genuine time/external checks, not as periodic Local Agent polling;
-- when a task is active and healthy, do not manually poll status at short cadence;
-- if exact live evidence already proves the active task cannot achieve its intended outcome, cancel that exact task rather than waiting for timeout.
-
-The next chat should exercise this new flow immediately on the first Local Agent task it needs (most likely M3 host/device verification): queue the deterministic task, emit `[LAB:WAIT_TASK=<task-id>]`, wake on the event, then inspect the terminal result.
-
-Supported conversation controls provided by the bridge include:
-
-```text
-[LAB:WAIT_TASK=<task-id>]
-[LAB:PAUSE]
-[LAB:RESUME]
-[LAB:STOP]
-[LAB:NEXT=<duration>]
-[LAB:INTERVAL=<minutes|AUTO>]
-```
-
-These controls are conversation-scoped and must not be used to mutate the global Local Agent master switch or repository binding.
+- check active-task state before editing the same branch;
+- ChatGPT owns planning; Local Agent runs deterministic Mac/Gradle/ADB/device commands;
+- queued/ACK state is not success; read the exact terminal result JSON;
+- the withdrawn event-driven `LAB:WAIT_TASK` / `task_result_ready` mechanism must not be used;
+- avoid rapid polling of healthy long-running tasks; recheck manually at a reasonable cadence or when the user asks.
 
 ## Suggested exact next-chat execution sequence
 
@@ -524,7 +483,7 @@ These controls are conversation-scoped and must not be used to mutate the global
 3. Check Local Agent active-task state before any branch edit.
 4. Verify the newest branch HEAD and distinguish documentation-only handoff commits from behavior baseline `de99da7...`.
 5. Inspect current `PrivilegedCallContexts.java` and implement only the minimal M3 change described above.
-6. Run full host validation through Local Agent using the new event-driven wait flow.
+6. Run full host validation through Local Agent and inspect the exact terminal result before continuing.
 7. If GREEN, run off-call physical Shizuku parity through the protected `DiagnosticProbeActivity`.
 8. If GREEN, perform one narrow physically silent live Shizuku parity regression.
 9. Only then validate the 30-second endurance probe and continue Milestone D failure gates.
@@ -543,9 +502,9 @@ Current status:
 M1 main-thread Shizuku probes       FIXED / TESTED
 M4 diagnostic local media ownership FIXED / TESTED
 M2 exported privileged diagnostics  FIXED / HOST+DEVICE VERIFIED
-M3 duplicate ActivityThread/Looper   OPEN — NEXT
+M3 duplicate ActivityThread/Looper   FIXED / HOST+DEVICE VERIFIED
 Milestone D robustness/endurance     OPEN — AFTER M3 REGRESSION
 Realtime AI                         NOT STARTED BY DESIGN
 ```
 
-The next chat should preserve the proven media path, finish M3 with minimal surface area, use the new event-driven Local Chat Bridge workflow, and spend the remaining engineering time on physical robustness evidence rather than speculative refactoring.
+The next chat should preserve the proven media path, continue Milestone D from the completed M3 baseline, use the current non-event-driven Local Agent workflow, and avoid speculative refactoring.
