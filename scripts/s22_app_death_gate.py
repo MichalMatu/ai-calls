@@ -255,7 +255,7 @@ STOP_SEEN=0
 STOP_UPTIME=""
 if [ -n "$CALL_ASSISTANT_PIID" ] && [ -n "$CALL_ASSISTANT_SESSION" ]; then
   i=0
-  while [ "$i" -lt 4 ]; do
+  while [ "$i" -lt 60 ]; do
     AUDIO_FLINGER=$(dumpsys media.audio_flinger 2>/dev/null)
     if printf '%s\n' "$AUDIO_FLINGER" \
       | grep "removeTrack_l" \
