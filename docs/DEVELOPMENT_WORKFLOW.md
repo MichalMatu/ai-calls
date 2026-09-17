@@ -1,45 +1,56 @@
 # Development workflow — Superpowers adaptation
 
-This project uses the methodology from [`obra/superpowers`](https://github.com/obra/superpowers) for agentic development.
+This project uses the methodology from `obra/superpowers` for agentic development.
 
 Reference reviewed on 2026-09-14:
 
-- upstream repository: `obra/superpowers`
-- upstream `main` commit reviewed: `b36e0829c6d0140e93cfef2ca599b1b07d4a7797`
-- upstream release line at that commit: v6.3.0
-- license: MIT
+- upstream repository: `obra/superpowers`;
+- upstream `main` commit reviewed: `b36e0829c6d0140e93cfef2ca599b1b07d4a7797`;
+- upstream release line at that commit: v6.3.0;
+- license: MIT.
 
-Superpowers is a **coding-agent workflow/plugin**, not an Android runtime dependency. Nothing from it is shipped in the APK.
+Superpowers is a coding-agent workflow/plugin, not an Android runtime dependency. Nothing from it is shipped in the APK.
 
 ## How we use it here
 
-Where the active coding harness supports Superpowers directly, install the upstream plugin for that harness and let its skills trigger normally.
+ChatGPT owns planning, code/evidence review and decisions. Local Agent is a deterministic execution worker for Mac, Gradle, ADB and physical-device commands.
 
-For ChatGPT + this repository's Local Agent, Local Agent is only an execution worker. It does not itself provide the Superpowers skill runtime, so the repository mirrors the workflow contract through `AGENTS.md`, durable design/planning documents, TDD requirements, evidence gates, and verification steps.
+The repository mirrors the project-specific workflow contract through:
+- `AGENTS.md`;
+- durable design/planning documents;
+- TDD requirements;
+- explicit physical-evidence gates;
+- terminal Local Agent result files;
+- current handoff and roadmap state.
 
-Do not vendor a stale copy of the whole Superpowers skill library into this repository. Upstream explicitly treats proper harness integration and automatic skill triggering as important. Keep the framework external and keep our project-specific process here.
+Do not vendor a stale copy of the Superpowers skill library into this repository.
 
 ## Workflow
 
 ### 1. Brainstorm/design before implementation
 
 For new behavior or architecture changes:
-
 - clarify the real goal;
 - explore alternatives;
 - identify the smallest experiment that can falsify the risky assumption;
 - prefer YAGNI;
 - save durable design decisions when they affect future work.
 
-For this project, physical Android audio behavior is a design constraint. A design is incomplete if it assumes an OEM route without a device proof gate.
+Physical Android audio behavior is a design constraint. A design is incomplete if it assumes an OEM route without a device proof gate.
 
 ### 2. Isolate substantial implementation work
 
 For significant code changes, use a branch/worktree and start from a clean test baseline.
 
-Exception: the user may explicitly ask for direct work on `main`. That instruction wins. Even then, keep commits small and independently understandable.
+The current development branch is:
 
-The Local Agent `agent-control` branch is **not** an implementation branch. It is control/result transport and stays separate from `main`.
+```text
+work/phase1-live-call-probes
+```
+
+Frozen milestone branches are evidence/rollback references and must not be moved casually.
+
+The Local Agent `agent-control` branch is control/result transport only. `.agent` task/run/result traffic must not be merged into product branches.
 
 ### 3. Write an implementation plan
 
@@ -49,8 +60,7 @@ Plans live under:
 docs/superpowers/plans/YYYY-MM-DD-<feature>.md
 ```
 
-A useful plan must contain:
-
+A useful plan contains:
 - exact goal;
 - architecture/approach;
 - exact files to create/modify;
@@ -60,76 +70,113 @@ A useful plan must contain:
 - physical-device gates where automation cannot prove the outcome;
 - explicit handoff/blocker state.
 
-The current next-step plan is:
+For the current project state, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` are the authoritative continuation documents. Historical phase plans remain useful evidence but are not automatically the current task list.
 
-- `docs/superpowers/plans/2026-09-14-phase1-live-call-validation.md`
-
-### 4. TDD for implementation behavior
+### 4. TDD for behavior we control
 
 Default cycle:
 
 ```text
-RED -> verify the expected failure -> minimal GREEN -> verify -> REFACTOR
+RED -> verify expected failure -> minimal GREEN -> verify -> REFACTOR
 ```
 
-For Android code, prefer unit tests for pure state/format/metrics/tone-generation logic and instrumentation/device tests where Android framework behavior is essential.
+Use unit tests for pure logic/tooling where possible and device tests where Android framework or OEM behavior is essential.
 
-A physical call test does not replace automated tests for code we control. Conversely, an automated test cannot replace the physical two-phone proof required for cellular routing.
+A physical call test does not replace automated tests for code we control. Conversely, automated tests cannot replace physical live-call proof for cellular media and destructive failure gates.
 
 ### 5. Systematic debugging
 
 When a hardware/API experiment fails:
 
 1. capture the exact failure and target build;
-2. determine whether failure is constructor, permission, routing, call-state, data, or remote-observation failure;
-3. change one variable at a time;
-4. rerun the narrow probe;
-5. document the observed result before changing architecture.
+2. separate product failure from harness/transport failure;
+3. classify the failure layer: constructor, permission, routing, call state, data, process lifetime, observation or host transport;
+4. change one variable at a time;
+5. rerun the narrow probe;
+6. document the observed result before changing architecture.
 
-Do not jump directly to Samsung private APIs/root because a generic experiment failed once.
+Example from Milestone D: a host ADB `waiting for device` interruption invalidated an app-death timing measurement. That result must not be reclassified as a 105-second product cleanup defect.
 
 ### 6. Code review and evidence review
 
 Review has two dimensions:
 
-- **spec/code quality:** implementation matches the plan, remains minimal, and has tests;
+- **spec/code quality:** implementation matches the plan, remains minimal and has tests;
 - **evidence quality:** claims match what was actually measured.
 
-For this repository, an incorrect evidence classification is a blocking defect even if the code is clean.
+For this repository, incorrect evidence classification is a blocking defect even if the code is clean.
 
 ### 7. Verification before completion
 
-Do not say `done`, `working`, or `PROVEN_S22` until fresh verification supports that exact claim.
+Do not say `done`, `working`, `GREEN`, or `PROVEN_S22` until fresh evidence supports that exact claim.
 
 Examples:
+- Gradle success proves buildability, not telephony routing;
+- `AudioRecord.STATE_INITIALIZED` proves construction, not remote audio capture;
+- a granted permission proves a privilege fact, not working media;
+- `TYPE_TELEPHONY` presence proves inventory, not uplink injection;
+- deterministic remote receipt proves actual cellular uplink behavior;
+- a process disappearing after an ADB outage does not by itself prove bounded cleanup latency.
 
-- Gradle build success proves buildability, not telephony media routing.
-- `AudioRecord.STATE_INITIALIZED` proves construction, not remote audio capture.
-- a granted protected permission proves a privilege fact, not successful use of every guarded API.
-- `TYPE_TELEPHONY` presence proves inventory, not TX injection.
-- the remote test phone hearing deterministic injected audio proves the Phase 1B media direction.
+## Local Agent contract
 
-## Superpowers concepts mapped to this repo
+Hard binding for this repository:
 
-| Superpowers concept | Repository application |
-| --- | --- |
-| brainstorming | architecture/risk experiments before code |
-| using-git-worktrees | isolated implementation branches for substantial work |
-| writing-plans | `docs/superpowers/plans/` |
-| test-driven-development | tests first for behavior we control |
-| systematic-debugging | narrow Android/OEM probe before fallback changes |
-| requesting-code-review | review plan/spec first, then implementation quality |
-| verification-before-completion | build/device evidence before success claims |
-| finishing-a-development-branch | verify, merge to `main`, preserve durable handoff |
+```text
+agent_binding: c25f88c0-4682-414c-8062-c47fa4034cb0
+repository_id: android-ai-call-bridge
+repository: MichalMatu/android-ai-call-bridge
+control_branch: agent-control
+```
 
-## Current project handoff
+Every task must include exactly that `agent_binding` and explicit `resources`.
 
-As of 2026-09-14:
+Rules:
+- never infer or switch repository identity;
+- check active task state before writing the same branch;
+- queued/ACK state is not success;
+- terminal `.agent/results/<task-id>.json` is authoritative;
+- never launch local Codex from a Local Agent task;
+- use Local Agent for deterministic Mac/Gradle/ADB/device execution;
+- direct GitHub edits are appropriate when the exact diff is known and no local/device evidence is required.
 
-- the S22+ baseline capability probe is saved in `docs/S22_BASELINE_2026-09-14.md`;
-- shell UID 2000 can initialize call-specific capture sources;
-- telephony RX and TX devices are exposed;
-- protected shell permissions needed for the experiment are present;
-- uplink `AudioTrack` construction was attempted without an active call and failed, so it is not a negative live-call result;
-- the next proof requires a dedicated SIM/live cellular call;
-- implementation should resume from the live-call validation plan rather than rediscovering the baseline.
+The experimental event-driven Local Chat Bridge workflow was withdrawn. Do not use `LAB:WAIT_TASK` or rely on `task_result_ready`. Avoid rapid polling of healthy long-running tasks; inspect at a reasonable cadence or when the user asks.
+
+## Physical-device discipline
+
+For every live cellular test on the S22+:
+
+```text
+STREAM_VOICE_CALL Muted:true
+streamVolume:0
+Devices: earpiece(1)
+speakerphone off
+```
+
+Assert before dial and again after ACTIVE.
+
+Prefer direct USB-C <-> USB-C between S22+ and MacBook. Treat ADB transport instability as a separate test-harness variable.
+
+## Current project state — 2026-09-17
+
+Completed/proven:
+- Phase 1 cellular RX;
+- Samsung-specific cellular TX;
+- Phase 2B shared bidirectional local controller;
+- Phase 2C real Shizuku UserService live parity;
+- deep-audit M1/M2/M3/M4 fixes;
+- 30-second bidirectional endurance;
+- explicit abort/takeover path;
+- helper/UserService process-death behavior.
+
+Active work:
+
+```text
+Milestone D robustness
+```
+
+Nearest unresolved physical gate: normal app death while bridge media is active, measured with the phone-side observer in `scripts/s22_app_death_gate.py`.
+
+After that remain call-end cleanup, transferred-PFD close/sibling abort, repeated start/abort resource drift, final 10-minute endurance, final audit and Milestone D freeze.
+
+Do not begin Realtime AI before that freeze.
