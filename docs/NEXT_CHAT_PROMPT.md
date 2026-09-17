@@ -1,56 +1,72 @@
-# Next chat prompt — Phase 2 / Milestone D continuation
+# Next chat prompt — Milestone D closeout / overnight autonomous work
 
 Paste the block below into a fresh ChatGPT window.
 
 ```text
+[LA_REPO=android-ai-call-bridge] [LA_REPOSITORY=MichalMatu/android-ai-call-bridge]
+
 Kontynuuj projekt `MichalMatu/android-ai-call-bridge` na branchu `work/phase1-live-call-probes`.
 
-Najpierw przeczytaj i potraktuj jako źródło prawdy:
-- `docs/HANDOFF_NEXT_CHAT.md`
-- `AGENTS.md`
-- `docs/ROADMAP.md`
-- `docs/ARCHITECTURE.md`
-- `docs/PHASE2_DEEP_AUDIT_2026-09-16.md`
+To jest nocny handoff. Masz autonomicznie pracować przez około 8 godzin, z inicjatywą, bez czekania na moje potwierdzenia przy zwykłych decyzjach inżynierskich. Jeśli napotkasz prawdziwy physical/user-action gate, udokumentuj go i kontynuuj wszystko, co da się zrobić host-only.
 
-Nie zaczynaj od Realtime AI i nie rób ponownie audytu od zera.
+Najpierw przeczytaj W CAŁOŚCI i traktuj jako źródło prawdy:
+1. `AGENTS.md`
+2. `docs/HANDOFF_NEXT_CHAT.md`
+3. `docs/ROADMAP.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/PHASE2_DEEP_AUDIT_2026-09-16.md`
 
-Aktualny stan:
-- Phase 2B local RX+TX: PROVEN_S22 / frozen na `milestone/phase2b-proven-s22-20260916`.
-- Phase 2C Shizuku UserService parity: PROVEN_S22 / frozen na `milestone/phase2c-shizuku-live-proven-20260916`, commit `9c136fc05c5b33f383d72b0b7080ad5b9a754bb4`.
-- M1/M2/M3/M4 z deep audit są zakończone. M3 commit: `60cbe81af2e02ba2e4100691c8afb76332735548`.
-- Po M3 przeszły: full host validation, off-call parity, silent live parity oraz 30 s bidirectional endurance.
-- Fizycznie udowodniono też śmierć UserService/helpera podczas aktywnej sesji: helper znika, klient dostaje EPIPE, normalna aplikacja i Shizuku server przeżywają.
-- Milestone D jest aktywny.
+Nie odtwarzaj projektu od zera i nie powtarzaj zakończonych fizycznych gate'ów bez konkretnego powodu.
 
-Najbliższy nierozstrzygnięty gate to normal-app-death podczas aktywnego media. Poprzedni test nie jest dowodem błędu produktu: po `am force-stop` host ADB wszedł w `waiting for device`, przez co hostowy pomiar ~105 s jest nieważny. Po odzyskaniu transportu zarówno app, jak i UserService były już martwe.
+Aktualny product HEAD zapisany w handoffie to:
+`72cc290a261432588005f0300ace382aa252deb1`
+(`fix: stop downlink when cellular call mode ends`).
 
-Do powtórki app-death użyj nowego harnessu:
-- `scripts/s22_app_death_gate.py`
-- `scripts/test_s22_app_death_gate.py`
+Najważniejszy stan:
+- Phase 2B i 2C są frozen/proven — nie modyfikuj ich branchy.
+- app-death physical gate: GREEN.
+- transferred RX PFD close: GREEN.
+- transferred TX PFD close: GREEN.
+- 20-cycle start/abort logic: 20/20 GREEN.
+- natural cellular call-end: znaleziono realny defect, naprawiono `CallModeWatchdog`, ponowny physical gate GREEN.
+- 10-min media soak: wykonano 10 × 60 s, wszystkie 10 sesji GREEN, łącznie 600 s realnego bidirectional RX+TX.
+- nie zachował się finalny external RSS/FD/thread summary, bo telemetry watcher został uznany przez Local Agent za background-process leak i posprzątany przed analizą. Nie powtarzaj 10 rozmów tylko z tego powodu, jeśli da się zamknąć resource evidence mniejszym testem.
 
-Harness wykonuje timing-krytyczny observer po stronie telefonu, używa `/proc/uptime`, obserwuje app/helper process death i `USAGE_CALL_ASSISTANT state:stopped`, zapisuje wynik atomowo i nie zależy od ciągłego hostowego ADB. Nie używa `nohup`, bo ten S22+ nie ma `toybox nohup` (`exit 125`). Host validation harnessu: 11/11 focused tests, 30/30 wszystkich Python tests, full Gradle build/test GREEN.
+Pierwszy cel nowego chatu: domknąć Milestone D możliwie małym kosztem:
+1. zamknąć resource-trend evidence najmniejszym wiarygodnym testem/harnessem;
+2. full Python + full Gradle tests + assembleDebug + diff/clean audit po CallModeWatchdog;
+3. final security/architecture audit;
+4. zaktualizować docs;
+5. utworzyć i zamrozić `milestone/phase2d-failsafe-proven-s22-20260918` tylko jeśli wszystkie wymagane dowody są GREEN.
 
-Po app-death gate pozostałe Milestone D gates:
-1. zakończyć cellular call podczas aktywnego bridge i udowodnić pełny cleanup;
-2. zamknąć jeden transferred RX/TX PFD i udowodnić sibling abort / whole-generation stop;
-3. 10–20 start/abort cycles z porównaniem FD/thread/process/resource counts;
-4. finalny 10-min bidirectional endurance z telemetry/resource counts;
-5. finalny audit/regression;
-6. freeze Milestone D;
-7. dopiero potem Realtime AI.
+Po freeze NIE twórz kolejnej fazy robustness. Od razu przejdź do Telephone Agent v1.
 
-Nie zmieniaj bez fizycznego powodu proven Samsung invariants: direct-shell RX prepare-before-context ordering, system RX attribution, `com.android.shell` TX attribution, `USAGE_CALL_ASSISTANT`, mono PCM16LE -> stereo dopiero na Samsung TX boundary, PFD ownership, jeden wspólny RX+TX fail-safe lifetime, brak per-frame Binder.
+Cel produktu użytkownika:
+"Zadzwoń do przychodni w Sky Tower i umów mnie na wizytę..."
+System ma sam znaleźć właściwy numer, zbudować goal/constraints, zadzwonić zwykłą siecią komórkową, prowadzić rozmowę przez AI, negocjować w granicach constraints, wykryć rezultat i zwrócić wynik / opcjonalnie zapisać Calendar. Pytaj użytkownika tylko o materialne decyzje, których nie da się bezpiecznie wywnioskować.
 
-Dla każdego live cellular testu telefon ma pozostać lokalnie bezgłośny: `STREAM_VOICE_CALL Muted:true`, `streamVolume:0`, `Devices: earpiece(1)`, speakerphone off; sprawdź mute przed dial i ponownie po ACTIVE. Preferuj bezpośredni USB-C <-> USB-C do MacBooka.
+Po freeze zacznij od preimplementation audit Telephone Agent v1, a potem implementuj małymi TDD commitami:
+- production `CallMediaSessionCoordinator` zamiast MainActivity/probe jako lifecycle owner;
+- states IDLE/BINDING/PREPARING/ACTIVE/STOPPING/FAILED;
+- generation/session id, failure reason, Binder death handling, structured telemetry;
+- task model: target/action/service/constraints/authorized facts;
+- call states RESEARCHING -> READY_TO_DIAL -> DIALING -> ACTIVE_NEGOTIATION -> NEEDS_USER_DECISION? -> COMPLETED/FAILED;
+- structured outcome;
+- Realtime AI jako conversation engine wewnątrz orchestratora.
 
-Local Agent binding dla tego repo:
-- repository: `MichalMatu/android-ai-call-bridge`
-- repo id: `android-ai-call-bridge`
-- agent binding: `c25f88c0-4682-414c-8062-c47fa4034cb0`
+Przed kodowaniem OpenAI Realtime sprawdź aktualną oficjalną dokumentację OpenAI w web. Nie wkładaj long-lived OpenAI key do APK; zaprojektuj ephemeral/server-mediated credentials.
 
-Każdy Local Agent task musi mieć dokładnie ten `agent_binding` i jawne `resources`. ChatGPT planuje; Local Agent wykonuje deterministyczne Mac/Gradle/ADB/device commands. Nie uruchamiaj lokalnego Codex przez Local Agent.
+Target device:
+Samsung S22+ SM-S906B, serial RFCT70L7E8J, Android 16/API36/One UI8, Orange PL, Google Phone, Shizuku shell UID 2000.
+Bezpieczny numer testowy `510100100` został już wcześniej autoryzowany. Preferuj jednak host-only pracę, jeśli live call nie jest konieczny.
 
-Wycofano eksperymentalny event-driven Local Chat Bridge flow. Nie używaj `LAB:WAIT_TASK` ani `task_result_ready` jako mechanizmu pracy. Terminalny `.agent/results/<task-id>.json` jest autorytatywny. Dla zdrowych długich tasków nie polluj co 30 s; sprawdzaj ręcznie w rozsądnym odstępie lub gdy użytkownik poprosi.
+Preserve proven Samsung invariants z handoffu: RX ordering, system/shell attribution, CALL_ASSISTANT TX, mono->stereo dopiero na boundary, PFD ownership, shared fail-safe lifetime, brak per-frame Binder, TAKE OVER lokalnie.
 
-Zacznij od potwierdzenia HEAD i stanu Local Agenta. Jeśli telefon nie jest podłączony, wykonuj tylko host-only pracę i nie deklaruj device gate jako PASS.
+Local Agent:
+repository id: `android-ai-call-bridge`
+agent binding: `c25f88c0-4682-414c-8062-c47fa4034cb0`
+control branch: `agent-control`
+Każdy task JSON musi mieć dokładnie ten `agent_binding`. Nie uruchamiaj local Codex. Przed pisaniem na ten sam branch sprawdź aktywny task/result.
+
+Na początku potwierdź remote HEAD, clean worktree i Local Agent state. Następnie działaj samodzielnie według powyższego celu.
 ```
