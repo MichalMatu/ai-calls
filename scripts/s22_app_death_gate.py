@@ -184,11 +184,22 @@ delta_ms() {
   awk -v s="$1" -v e="$2" 'BEGIN { printf "%.0f", (e-s)*1000 }'
 }
 
+TRACK_LINE=$(dumpsys audio 2>/dev/null \
+  | grep "uid/pid:2000/$HELPER_PID" \
+  | grep "USAGE_CALL_ASSISTANT" \
+  | tail -n1)
+CALL_ASSISTANT_PIID=$(printf '%s\n' "$TRACK_LINE" \
+  | sed -n 's/.*piid:\([0-9][0-9]*\).*/\1/p')
+CALL_ASSISTANT_SESSION=$(printf '%s\n' "$TRACK_LINE" \
+  | sed -n 's/.*session:\([0-9][0-9]*\).*/\1/p')
+
 BOOT_BEFORE=$(cat /proc/sys/kernel/random/boot_id)
 START=$(cut -d' ' -f1 /proc/uptime)
 write_line "termination_method=$MODE"
 write_line "boot_before=$BOOT_BEFORE"
 write_line "start_uptime=$START"
+write_line "call_assistant_piid=$CALL_ASSISTANT_PIID"
+write_line "call_assistant_session_id=$CALL_ASSISTANT_SESSION"
 
 case "$MODE" in
   "kill-pid")
@@ -242,16 +253,22 @@ fi
 
 STOP_SEEN=0
 STOP_UPTIME=""
-i=0
-while [ "$i" -lt 120 ]; do
-  if logcat -d -v brief | grep -E "u/pid:2000/$HELPER_PID state:stopped.*USAGE_CALL_ASSISTANT|USAGE_CALL_ASSISTANT.*u/pid:2000/$HELPER_PID state:stopped" >/dev/null; then
-    STOP_SEEN=1
-    STOP_UPTIME=$(cut -d' ' -f1 /proc/uptime)
-    break
-  fi
-  i=$((i + 1))
-  sleep 0.025
+if [ -n "$CALL_ASSISTANT_PIID" ] && [ -n "$CALL_ASSISTANT_SESSION" ]; then
+  i=0
+  while [ "$i" -lt 4 ]; do
+    AUDIO_FLINGER=$(dumpsys media.audio_flinger 2>/dev/null)
+    if printf '%s\n' "$AUDIO_FLINGER" \
+      | grep "removeTrack_l" \
+      | grep "$HELPER_PID/" \
+      | grep -E "[[:space:]]$CALL_ASSISTANT_SESSION[[:space:]]" >/dev/null; then
+      STOP_SEEN=1
+      STOP_UPTIME=$(cut -d' ' -f1 /proc/uptime)
+      break
+    fi
+    i=$((i + 1))
+    sleep 0.050
 done
+fi
 write_line "call_assistant_stop_seen=$STOP_SEEN"
 if [ -n "$STOP_UPTIME" ]; then
   write_line "media_stop_observed_ms=$(delta_ms "$START" "$STOP_UPTIME")"
