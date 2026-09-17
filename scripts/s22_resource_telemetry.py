@@ -171,7 +171,12 @@ def _find_pid(adb: Adb, process_name: str, label: str) -> int | None:
     return _single_pid(output, label)
 
 
-def _read_process_metrics(adb: Adb, pid: int | None) -> ProcessMetrics | None:
+def _read_process_metrics(
+    adb: Adb,
+    pid: int | None,
+    *,
+    run_as_package: str | None = None,
+) -> ProcessMetrics | None:
     if pid is None:
         return None
     script = (
@@ -183,7 +188,10 @@ def _read_process_metrics(adb: Adb, pid: int | None) -> ProcessMetrics | None:
         'if [ -z "$RSS" ] || [ -z "$FD" ] || [ -z "$TH" ]; then exit 65; fi; '
         'printf "pid=%s\\nvmrss_kb=%s\\nfd_count=%s\\nthread_count=%s\\n" "$PID" "$RSS" "$FD" "$TH"'
     )
-    output = adb.shell(["sh", "-c", script])
+    args = ["sh", "-c", script]
+    if run_as_package is not None:
+        args = ["run-as", run_as_package, *args]
+    output = adb.shell(args)
     return parse_process_metrics(output)
 
 
@@ -204,7 +212,7 @@ def _device_uptime(adb: Adb) -> float:
 def sample_device(adb: Adb) -> TelemetrySample:
     app_pid = _find_pid(adb, PACKAGE_NAME, "app")
     helper_pid = _find_pid(adb, HELPER_PROCESS_NAME, "helper")
-    app = _read_process_metrics(adb, app_pid)
+    app = _read_process_metrics(adb, app_pid, run_as_package=PACKAGE_NAME)
     helper = _read_process_metrics(adb, helper_pid)
     call_state = adb.call_state()
     call_assistant_state = "unknown"
