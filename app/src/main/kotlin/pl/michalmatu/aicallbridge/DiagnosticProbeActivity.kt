@@ -53,7 +53,17 @@ class DiagnosticProbeActivity : Activity() {
             intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE, false) -> {
                 statusView.text = "Running Shizuku bidirectional endurance probe…"
                 Log.i(TAG, "shizuku_endurance_probe_start=true")
-                ShizukuEnduranceProbe.run(this, resultCallback("shizuku_endurance_probe_result"))
+                val callback = resultCallback("shizuku_endurance_probe_result")
+                if (intent.hasExtra(EXTRA_ENDURANCE_DURATION_MS)) {
+                    val durationMs = intent.getLongExtra(EXTRA_ENDURANCE_DURATION_MS, -1L)
+                    try {
+                        ShizukuEnduranceProbe.run(this, durationMs, callback)
+                    } catch (_: IllegalArgumentException) {
+                        finishWithError("invalid_endurance_duration")
+                    }
+                } else {
+                    ShizukuEnduranceProbe.run(this, callback)
+                }
             }
             intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ABORT_PROBE, false) -> {
                 statusView.text = "Running Shizuku explicit abort latency probe…"
@@ -107,5 +117,6 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_SHIZUKU_ABORT_PROBE = "run_shizuku_abort_probe"
         const val EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE = "run_shizuku_endurance_probe"
         const val EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE = "run_shizuku_endpoint_close_probe"
+        const val EXTRA_ENDURANCE_DURATION_MS = "endurance_duration_ms"
     }
 }
