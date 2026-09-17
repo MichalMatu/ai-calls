@@ -6,6 +6,10 @@ captures/
 .externalNativeBuild/
 .cxx/
 
+# Python developer tooling
+__pycache__/
+*.py[cod]
+
 # IDE
 .idea/
 *.iml
