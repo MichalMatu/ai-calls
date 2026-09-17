@@ -19,22 +19,27 @@ The user must be able to take over the call immediately at any time.
 - `SUPPORTED_EXTERNALLY` — demonstrated elsewhere, but not yet on the target S22+.
 - `PROVEN_S22` — reproduced on the target S22+ with logged metadata and a repeatable physical test.
 - `FAILED_S22` — reproducibly failed on the target S22+ under the documented conditions.
-- `PRODUCT_READY` — proven, stable, fail-safe, and acceptable for normal use.
+- `PRODUCT_READY` — proven, stable, fail-safe and acceptable for normal use.
 
-For media-direction claims, constructor success, permissions, routing requests, and playback-head progress are supporting evidence only. `PROVEN_S22` requires physical live-call evidence.
+For media-direction claims, constructor success, permissions, routing requests and playback-head progress are supporting evidence only. `PROVEN_S22` requires physical live-call evidence.
 
-## Frozen known-good baseline
+## Frozen references
 
-Phase 2B is preserved independently from ongoing development:
+Phase 2B local media baseline:
 
 ```text
 branch: milestone/phase2b-proven-s22-20260916
 commit: c10f8dde29f245f8f98fb008a3572c21fe73fe35
 ```
 
-This branch is the rollback/comparison point for the physically proven cellular RX+TX path. Do not move or rewrite it during normal development.
+Phase 2C Shizuku live parity baseline:
 
-Freeze policy and post-freeze audit notes: `PHASE2B_FREEZE_2026-09-16.md`.
+```text
+branch: milestone/phase2c-shizuku-live-proven-20260916
+commit: 9c136fc05c5b33f383d72b0b7080ad5b9a754bb4
+```
+
+Do not move or rewrite these branches during normal development.
 
 ## Phase 0 — Repository and test discipline
 
@@ -62,13 +67,9 @@ Proven target facts include:
 - shell construction of protected call sources;
 - normal-app inability to create those protected sources.
 
-The original “blocked on test SIM” state is obsolete. Live cellular tests were completed on 2026-09-16.
-
 ## Phase 1A — Digital cellular downlink capture
 
 Status: `DONE / PROVEN_S22`
-
-Production path:
 
 ```text
 VOICE_DOWNLINK
@@ -78,20 +79,14 @@ VOICE_DOWNLINK
   -> controller/app
 ```
 
-Physical proof on the target S22 shows remote-call-correlated PCM while the physical phone output remains muted. The production pipe wrapper is proven, not only the raw legacy probe.
+The production pipe path produces remote-call-correlated PCM while the physical phone remains locally muted.
 
-Important target constraint:
+Direct-shell target constraint:
 
 ```text
 construct VOICE_DOWNLINK / controller.prepare()
 BEFORE explicit Context/AudioManager initialization
 ```
-
-The helper preserves that order.
-
-See:
-- `S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`
-- `S22_PHASE1C_PROOF_2026-09-16.md`
 
 ## Phase 1B — Generic cellular uplink injection
 
@@ -99,13 +94,9 @@ Status: `FAILED_S22 FOR TESTED GENERIC PATHS`
 
 The tested generic `USAGE_MEDIA` / `USAGE_VOICE_COMMUNICATION` approaches did not provide the required S22 cellular-uplink behavior.
 
-They are no longer the primary architecture.
-
 ## Phase 1C — Samsung-specific uplink injection
 
 Status: `DONE / PROVEN_S22`
-
-Proven Samsung path:
 
 ```text
 mono PCM16LE
@@ -115,28 +106,26 @@ mono PCM16LE
   -> cellular uplink
 ```
 
-Target-specific requirements:
+Target requirements:
 - shell attribution `com.android.shell`;
-- protected audio-routing/phone-state privilege class;
+- protected routing/phone-state privilege class;
 - live cellular call;
 - Samsung CALL_ASSISTANT route;
 - mono duplicated to stereo only at the Samsung TX boundary.
 
-Physical remote-receipt proof and route diagnostics are recorded in `S22_PHASE1C_PROOF_2026-09-16.md`.
-
 ## Phase 2 — Stable local bridge
 
-Status: `MILESTONE B PROVEN / MILESTONE C BLOCKED ON SHIZUKU RUNTIME`
+Status: `MILESTONES B+C PROVEN / MILESTONE D ACTIVE`
 
 ### Milestone A — reusable Samsung media primitives
 
 Status: `DONE`
 
-Implemented:
-- reusable CALL_ASSISTANT TX primitive;
+Delivered:
 - reusable VOICE_DOWNLINK capture primitive;
-- bounded 20 ms media chunks;
-- explicit PCM16LE format boundaries;
+- reusable CALL_ASSISTANT TX primitive;
+- bounded media chunks;
+- explicit PCM16LE boundary;
 - immediate abort paths.
 
 ### Milestone B — shared bidirectional local controller
@@ -144,138 +133,103 @@ Implemented:
 Status: `DONE / PROVEN_S22 / FROZEN`
 
 Implemented and physically proven:
-- production downlink PFD pipe;
-- production uplink PFD pipe;
+- production downlink and uplink PFD pipes;
 - one `SamsungCallMediaSessionController` owning RX + TX;
-- separate required attribution contexts (`android` for RX, `com.android.shell` for TX);
+- separate required attribution contexts (`android` RX, `com.android.shell` TX);
 - one heartbeat watchdog for the whole bidirectional generation;
 - sibling abort if either media path terminates;
 - immediate `abortNow()` cleanup;
 - no per-frame Binder transport.
 
-Successful silent live test on work-branch SHA:
-
-```text
-6b8d9f619031e0ca8352e55b624bdc9bc1edf633
-```
-
-Key live evidence:
-
-```text
-active_after_start=true
-heartbeat_after_start=true
-
-pre_dtmf_bytes_read=80000
-pre_dtmf_non_zero_samples=25451
-pre_dtmf_peak=21327
-pre_dtmf_rms=2420.7548160336273
-
-uplink_bytes_written=9600
-
-post_dtmf_bytes_read=80000
-post_dtmf_non_zero_samples=38737
-post_dtmf_peak=19584
-post_dtmf_rms=2566.8176657877357
-
-active_with_endpoints_open=true
-heartbeat_with_endpoints_open=true
-media_ok_before_endpoint_close=true
-
-prepared_after_abort=false
-active_after_abort=false
-heartbeat_after_abort=false
-```
-
-The phone remained physically silent throughout: `STREAM_VOICE_CALL Muted:true`, `streamVolume:0`, route `earpiece(1)`.
-
-Full proof: `S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`.
-
-Frozen rollback/reference branch:
-
-```text
-milestone/phase2b-proven-s22-20260916
-```
-
-The direct-shell `BidirectionalMediaProbe` remains the physical regression harness and should not be casually rewritten while Milestone C is still being established.
-
-### Phase 2B post-freeze cleanup
-
-Status: `SMALL SAFE CLEANUP ONLY`
-
-Allowed before Milestone C:
-- documentation synchronization;
-- stricter probes that fail instead of false-pass;
-- app-facing responsibility cleanup;
-- tests and diagnostics;
-- removal of code only after repository-wide proof that it is unused.
-
-Current cleanup:
-- privileged system/shell Context reflection moved out of `ShizukuCallMediaUserService` into `PrivilegedCallContexts`;
-- UserService now focuses on Binder/media lifecycle;
-- direct-shell proven probe was intentionally left unchanged;
-- Shizuku off-call parity gate now requires the exact expected `prepare -> abort` state transition.
-
-Deliberately deferred:
-- generic RX/TX base classes;
-- low-level Samsung media lifecycle rewrites;
-- route/attribute changes;
-- PFD ownership changes.
-
-Reason: RX and TX have real asymmetric Samsung requirements; reducing line count is not worth weakening the proven boundary.
-
-Known test item for Milestone D: `SamsungCallAssistantTrack.writeMonoPcm16Le()` uses a blocking `AudioTrack.write()` under its object lock. Writes are bounded to roughly 20 ms, but takeover latency must be measured rather than assumed.
+Reference branch: `milestone/phase2b-proven-s22-20260916`.
 
 ### Milestone C — Shizuku UserService parity
 
-Status: `CODE BUILDS / DEVICE RUNTIME BLOCKED`
+Status: `DONE / PROVEN_S22 / FROZEN`
 
-Implemented:
-- Shizuku API/provider integration;
-- AIDL control plane;
-- shell-side `ShizukuCallMediaUserService`;
-- PFD endpoint handoff API;
-- preserved `prepare()`-before-Context ordering;
-- app-side permission/bind plumbing;
-- bounded off-call `prepare -> abort` path;
-- dedicated `PrivilegedCallContexts` boundary for hidden Android Context construction;
-- strict off-call parity state assertions.
+Physically proven through the real normal-app -> Shizuku UserService -> privileged controller boundary:
+- UserService effective UID 2000;
+- protected off-call `prepare -> abort` parity;
+- live bidirectional RX + TX over transferred PFDs;
+- shared heartbeat/watchdog semantics;
+- explicit `abortNow()` / TAKE OVER cleanup;
+- PFD ownership and client AutoClose behavior;
+- UserService/helper process death while media is active, with app-side EPIPE and survival of the normal app + Shizuku server.
 
-The first UserService slice was build-validated, and the subsequent responsibility extraction also passed helper/app Gradle tests plus the existing 19 Python call-control tests.
+Reference branch: `milestone/phase2c-shizuku-live-proven-20260916`.
 
-Current blocker:
-- active Android user is user `0`;
-- Shizuku is not installed or running for user `0` at the latest device check;
-- user `151` is Samsung Secure Folder and is intentionally ignored;
-- no trusted Shizuku APK already exists in the checked Mac/phone download locations.
+### Post-freeze deep-audit fixes
 
-This is an external runtime prerequisite, not a failure of the local bridge implementation.
+Status: `M1/M2/M3/M4 COMPLETE`
 
-Required Milestone C exit gate:
-- real UserService runs as the expected privileged/shell UID;
-- off-call `prepare -> abort` succeeds through Binder with exact expected states;
-- live RX and TX match direct-shell physical behavior;
-- PFD handoff works continuously;
-- controller death/Binder death disables both directions;
-- watchdog behavior remains fail-safe.
+- M1: long-running Shizuku probes moved off the app main Looper.
+- M2: privileged automation removed from exported `MainActivity`; shell diagnostics moved to `DiagnosticProbeActivity` protected by `android.permission.DUMP`.
+- M3: `PrivilegedCallContexts` reuses Shizuku's existing `ActivityThread.currentActivityThread()` instead of preparing a Binder-thread Looper and constructing a second `ActivityThread.systemMain()`.
+- M4: bidirectional diagnostic probe media has deterministic owner/cleanup semantics.
 
-### Milestone D — endurance
+M3 behavior commit:
 
-Status: `PENDING MILESTONE C`
+```text
+60cbe81af2e02ba2e4100691c8afb76332735548
+```
 
-Required final Phase 2 exit gate:
-- 10-minute local bidirectional bridge;
-- stable memory;
-- bounded queues;
-- clean start/stop;
-- immediate takeover/abort;
-- measured takeover latency during active TX writes;
-- no orphaned injection after controller/helper failure.
+After M3 the following are GREEN:
+- full host build/tests;
+- off-call Shizuku parity;
+- silent live Shizuku parity;
+- 30-second bidirectional endurance.
+
+### Milestone D — robustness and endurance
+
+Status: `ACTIVE`
+
+Already GREEN:
+- 30-second bidirectional endurance with continuous heartbeat and active-state checks;
+- explicit abort/takeover cleanup and bounded latency;
+- helper/UserService process-death behavior;
+- latest host-only regression after app-death tooling: 30 Python tests PASS and full Gradle build/test PASS.
+
+#### Current unresolved gate — normal app death
+
+The first normal-app-death attempt is **inconclusive**, not a confirmed product defect.
+
+Observed:
+- CALL_ASSISTANT was active before app termination;
+- `am force-stop pl.michalmatu.aicallbridge` was issued;
+- host ADB entered `waiting for device` during the timing-critical loop;
+- after transport recovery both normal app and UserService processes were gone;
+- the expected CALL_ASSISTANT stop log was not observed by the disrupted host-side collector;
+- therefore the reported ~105 s host-side cleanup duration is invalid as a media cleanup measurement.
+
+A resilient phone-side harness now exists:
+
+```text
+scripts/s22_app_death_gate.py
+scripts/test_s22_app_death_gate.py
+```
+
+It measures process cleanup with `/proc/uptime`, observes CALL_ASSISTANT stop on-device, checks call/Shizuku/boot continuity and atomically publishes a result for later host collection. This avoids dependence on uninterrupted host ADB. The S22 does not provide `toybox nohup`, so the observer is launched with a background shell process instead.
+
+Focused harness tests: `11/11 PASS`.
+Repository Python tests after adding it: `30/30 PASS`.
+Full Gradle host build/test: `GREEN`.
+
+#### Remaining Milestone D gates
+
+After normal-app-death is measured reliably:
+
+1. end the cellular call while bridge media is active and prove complete cleanup;
+2. intentionally close one transferred RX/TX PFD and prove sibling abort / whole-generation stop;
+3. run 10–20 start/abort cycles and compare FD/thread/process/resource counts;
+4. run final 10-minute bidirectional endurance with telemetry including RX/TX bytes, heartbeat count, active state, app/helper RSS, FD count, thread count, AudioRecord/AudioTrack state and final abort latency;
+5. run final regression/security/evidence audit;
+6. freeze Milestone D.
 
 ## Phase 3 — Realtime AI integration
 
 Status: `NOT STARTED BY DESIGN`
 
-Start only after Phase 2 Milestones C and D pass.
+Start only after Milestone D is frozen.
 
 Initial architecture:
 
@@ -289,9 +243,9 @@ The long-lived API key must never live in the APK.
 
 First transport candidate remains WebSocket because the app already owns PCM frames and needs explicit stream control. Re-evaluate WebRTC only if measurements justify it.
 
-Implement later:
+Planned later:
 - session lifecycle;
-- audio send/receive;
+- input/output audio streaming;
 - local barge-in detection;
 - immediate local injection flush on remote speech;
 - model response cancellation;
@@ -312,7 +266,7 @@ After Phase 3 media works:
 
 Do not replace the default dialer unless a concrete UX requirement demands it.
 
-## Phase 5 — Robustness matrix
+## Phase 5 — robustness matrix
 
 Validate:
 - 30+ minute calls;
@@ -329,28 +283,10 @@ Validate:
 
 Exit gate: defined failure behavior for every tested transition and no condition that leaves AI injection stuck active.
 
-## Fallback order
-
-If the final app-facing privileged boundary cannot be made reliable on stock Samsung firmware:
-
-1. compare against the frozen direct-shell Phase 2B baseline;
-2. retain the proven direct-shell backend as a development/reference implementation;
-3. evaluate another trusted privileged boundary only with explicit evidence;
-4. SIP/VoIP transport where the app owns both media directions;
-5. root/system-app research for development only;
-6. external hardware only if the product requirement still justifies it.
-
 ## Current decision
 
 Do not connect realtime AI yet.
 
-The cellular media problem itself is no longer the blocker: bidirectional RX+TX is physically proven on the S22 and the production PFD controller works.
+The cellular RX/TX problem and the Shizuku privilege boundary are no longer blockers. The active engineering work is **Milestone D robustness**, starting with a reliable physical normal-app-death measurement using the phone-side observer harness.
 
-The proven state is frozen on `milestone/phase2b-proven-s22-20260916`.
-
-The current next gate is **Shizuku UserService parity**. Code exists and builds, but the target user `0` has no Shizuku runtime installed at the latest check. Resume physical Milestone C validation only when a trusted Shizuku installation is available; do not silently fetch or install an unverified APK.
-
-Current detailed evidence:
-
-- `docs/PHASE2B_FREEZE_2026-09-16.md`
-- `docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`
+Current authoritative continuation state: `docs/HANDOFF_NEXT_CHAT.md`.
