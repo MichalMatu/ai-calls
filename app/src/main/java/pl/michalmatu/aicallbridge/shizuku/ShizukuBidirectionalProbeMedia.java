@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 final class ShizukuBidirectionalProbeMedia implements AutoCloseable {
     private static final long THREAD_JOIN_TIMEOUT_MS = 1_000L;
+    private static final long UPLINK_CHUNK_PACE_MS = 20L;
 
     private final InputStream downlinkInput;
     private final OutputStream uplinkOutput;
@@ -170,10 +171,15 @@ final class ShizukuBidirectionalProbeMedia implements AutoCloseable {
             while (!stop.get()) {
                 uplinkOutput.write(silence);
                 uplinkBytes.addAndGet(silence.length);
+                if (!stop.get()) {
+                    Thread.sleep(UPLINK_CHUNK_PACE_MS);
+                }
             }
             uplinkOutput.flush();
         } catch (Throwable error) {
-            uplinkTerminal.set(error.getClass().getSimpleName());
+            if (!(error instanceof InterruptedException && stop.get())) {
+                uplinkTerminal.set(error.getClass().getSimpleName());
+            }
         }
     }
 
