@@ -125,6 +125,11 @@ class AppDeathObserverScriptTest(unittest.TestCase):
         self.assertIn("removeTrack_l", script)
         self.assertNotIn("logcat -d", script)
 
+    def test_device_script_observes_media_removal_longer_than_gate_deadline(self):
+        script = build_device_observer_script()
+        self.assertIn('while [ "$i" -lt 60 ]', script)
+        self.assertIn("sleep 0.050", script)
+
 
 if __name__ == "__main__":
     unittest.main()
