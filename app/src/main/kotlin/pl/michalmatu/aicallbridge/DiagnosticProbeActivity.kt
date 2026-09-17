@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
+import pl.michalmatu.aicallbridge.shizuku.ShizukuCallEndProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuCycleProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuEndpointCloseProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuEnduranceProbe
@@ -50,6 +51,21 @@ class DiagnosticProbeActivity : Activity() {
                     this,
                     resultCallback("shizuku_endpoint_close_probe_result"),
                 )
+            }
+            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_CALL_END_PROBE, false) -> {
+                statusView.text = "Running Shizuku natural call-end fail-safe probe…"
+                Log.i(TAG, "shizuku_call_end_probe_start=true")
+                val callback = resultCallback("shizuku_call_end_probe_result")
+                if (intent.hasExtra(EXTRA_CALL_END_WAIT_MS)) {
+                    val waitMs = intent.getLongExtra(EXTRA_CALL_END_WAIT_MS, -1L)
+                    try {
+                        ShizukuCallEndProbe.run(this, waitMs, callback)
+                    } catch (_: IllegalArgumentException) {
+                        finishWithError("invalid_call_end_wait")
+                    }
+                } else {
+                    ShizukuCallEndProbe.run(this, callback)
+                }
             }
             intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_CYCLE_PROBE, false) -> {
                 statusView.text = "Running Shizuku repeated start/abort cycle probe…"
@@ -133,8 +149,10 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_SHIZUKU_ABORT_PROBE = "run_shizuku_abort_probe"
         const val EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE = "run_shizuku_endurance_probe"
         const val EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE = "run_shizuku_endpoint_close_probe"
+        const val EXTRA_RUN_SHIZUKU_CALL_END_PROBE = "run_shizuku_call_end_probe"
         const val EXTRA_RUN_SHIZUKU_CYCLE_PROBE = "run_shizuku_cycle_probe"
         const val EXTRA_ENDURANCE_DURATION_MS = "endurance_duration_ms"
+        const val EXTRA_CALL_END_WAIT_MS = "call_end_wait_ms"
         const val EXTRA_CYCLE_COUNT = "cycle_count"
     }
 }
