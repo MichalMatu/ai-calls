@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
+import pl.michalmatu.aicallbridge.shizuku.ShizukuCycleProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuEndpointCloseProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuEnduranceProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
@@ -49,6 +50,21 @@ class DiagnosticProbeActivity : Activity() {
                     this,
                     resultCallback("shizuku_endpoint_close_probe_result"),
                 )
+            }
+            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_CYCLE_PROBE, false) -> {
+                statusView.text = "Running Shizuku repeated start/abort cycle probe…"
+                Log.i(TAG, "shizuku_cycle_probe_start=true")
+                val callback = resultCallback("shizuku_cycle_probe_result")
+                if (intent.hasExtra(EXTRA_CYCLE_COUNT)) {
+                    val cycleCount = intent.getIntExtra(EXTRA_CYCLE_COUNT, -1)
+                    try {
+                        ShizukuCycleProbe.run(this, cycleCount, callback)
+                    } catch (_: IllegalArgumentException) {
+                        finishWithError("invalid_cycle_count")
+                    }
+                } else {
+                    ShizukuCycleProbe.run(this, callback)
+                }
             }
             intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE, false) -> {
                 statusView.text = "Running Shizuku bidirectional endurance probe…"
@@ -117,6 +133,8 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_SHIZUKU_ABORT_PROBE = "run_shizuku_abort_probe"
         const val EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE = "run_shizuku_endurance_probe"
         const val EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE = "run_shizuku_endpoint_close_probe"
+        const val EXTRA_RUN_SHIZUKU_CYCLE_PROBE = "run_shizuku_cycle_probe"
         const val EXTRA_ENDURANCE_DURATION_MS = "endurance_duration_ms"
+        const val EXTRA_CYCLE_COUNT = "cycle_count"
     }
 }
