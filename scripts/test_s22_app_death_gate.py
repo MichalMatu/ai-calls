@@ -115,6 +115,16 @@ class AppDeathObserverScriptTest(unittest.TestCase):
         self.assertIn('am force-stop "$PKG"', script)
         self.assertNotIn("fallback", script.casefold())
 
+    def test_device_script_tracks_exact_call_assistant_audioflinger_removal(self):
+        script = build_device_observer_script()
+        self.assertIn("dumpsys audio", script)
+        self.assertIn("USAGE_CALL_ASSISTANT", script)
+        self.assertIn("call_assistant_piid=", script)
+        self.assertIn("call_assistant_session_id=", script)
+        self.assertIn("dumpsys media.audio_flinger", script)
+        self.assertIn("removeTrack_l", script)
+        self.assertNotIn("logcat -d", script)
+
 
 if __name__ == "__main__":
     unittest.main()
