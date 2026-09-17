@@ -253,14 +253,14 @@ fi
 
 STOP_SEEN=0
 STOP_UPTIME=""
-if [ -n "$CALL_ASSISTANT_PIID" ] && [ -n "$CALL_ASSISTANT_SESSION" ]; then
+if [ -n "$CALL_ASSISTANT_PIID" ]; then
   i=0
   while [ "$i" -lt 60 ]; do
-    AUDIO_FLINGER=$(dumpsys media.audio_flinger 2>/dev/null)
-    if printf '%s\n' "$AUDIO_FLINGER" \
-      | grep "removeTrack_l" \
-      | grep "$HELPER_PID/" \
-      | grep -E "[[:space:]]$CALL_ASSISTANT_SESSION[[:space:]]" >/dev/null; then
+    AUDIO_STATE=$(dumpsys audio 2>/dev/null)
+    if printf '%s\n' "$AUDIO_STATE" \
+      | grep -F "player piid:$CALL_ASSISTANT_PIID event:stopped" >/dev/null \
+      || printf '%s\n' "$AUDIO_STATE" \
+      | grep -F "releasing player piid:$CALL_ASSISTANT_PIID" >/dev/null; then
       STOP_SEEN=1
       STOP_UPTIME=$(cut -d' ' -f1 /proc/uptime)
       break
