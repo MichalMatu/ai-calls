@@ -88,6 +88,29 @@ public final class ShizukuBidirectionalProbeMediaTest {
         assertEquals(1, output.closeCalls.get());
     }
 
+    @Test
+    public void uplinkSilenceIsPacedInsteadOfFloodingPipe() throws Exception {
+        BlockingInputStream input = new BlockingInputStream();
+        CountingOutputStream output = new CountingOutputStream();
+        ShizukuBidirectionalProbeMedia media = ShizukuBidirectionalProbeMedia.start(
+            input,
+            output,
+            640,
+            "aicall-test-tx-pacing"
+        );
+
+        assertTrue(input.entered.await(1L, TimeUnit.SECONDS));
+        assertTrue(output.firstWrite.await(1L, TimeUnit.SECONDS));
+        Thread.sleep(130L);
+
+        int writes = output.writeCalls.get();
+        media.close();
+
+        assertTrue("expected several realtime chunks, got " + writes, writes >= 3);
+        assertTrue("probe TX must not flood the pipe, got " + writes + " writes", writes <= 8);
+        assertTrue(media.threadsStopped());
+    }
+
     private static final class BlockingInputStream extends InputStream {
         final CountDownLatch entered = new CountDownLatch(1);
         final CountDownLatch closed = new CountDownLatch(1);
@@ -134,6 +157,23 @@ public final class ShizukuBidirectionalProbeMediaTest {
         public void close() {
             closeCalls.incrementAndGet();
             closed.countDown();
+        }
+    }
+
+    private static final class CountingOutputStream extends OutputStream {
+        final CountDownLatch firstWrite = new CountDownLatch(1);
+        final AtomicInteger writeCalls = new AtomicInteger();
+
+        @Override
+        public void write(int value) {
+            writeCalls.incrementAndGet();
+            firstWrite.countDown();
+        }
+
+        @Override
+        public void write(byte[] buffer, int offset, int length) {
+            writeCalls.incrementAndGet();
+            firstWrite.countDown();
         }
     }
 
