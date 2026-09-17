@@ -38,6 +38,56 @@ public final class ShizukuBidirectionalProbeMediaTest {
         assertEquals(1, output.closeCalls.get());
     }
 
+    @Test
+    public void closeDownlinkEndpointLeavesUplinkOwnedUntilFinalClose() throws Exception {
+        BlockingInputStream input = new BlockingInputStream();
+        BlockingOutputStream output = new BlockingOutputStream();
+        ShizukuBidirectionalProbeMedia media = ShizukuBidirectionalProbeMedia.start(
+            input,
+            output,
+            640,
+            "aicall-test-rx-close"
+        );
+
+        assertTrue(input.entered.await(1L, TimeUnit.SECONDS));
+        assertTrue(output.entered.await(1L, TimeUnit.SECONDS));
+
+        media.closeDownlinkEndpoint();
+
+        assertEquals(1, input.closeCalls.get());
+        assertEquals(0, output.closeCalls.get());
+
+        media.close();
+        assertTrue(media.threadsStopped());
+        assertEquals(1, input.closeCalls.get());
+        assertEquals(1, output.closeCalls.get());
+    }
+
+    @Test
+    public void closeUplinkEndpointLeavesDownlinkOwnedUntilFinalClose() throws Exception {
+        BlockingInputStream input = new BlockingInputStream();
+        BlockingOutputStream output = new BlockingOutputStream();
+        ShizukuBidirectionalProbeMedia media = ShizukuBidirectionalProbeMedia.start(
+            input,
+            output,
+            640,
+            "aicall-test-tx-close"
+        );
+
+        assertTrue(input.entered.await(1L, TimeUnit.SECONDS));
+        assertTrue(output.entered.await(1L, TimeUnit.SECONDS));
+
+        media.closeUplinkEndpoint();
+
+        assertEquals(0, input.closeCalls.get());
+        assertEquals(1, output.closeCalls.get());
+
+        media.close();
+        assertTrue(media.threadsStopped());
+        assertEquals(1, input.closeCalls.get());
+        assertEquals(1, output.closeCalls.get());
+    }
+
     private static final class BlockingInputStream extends InputStream {
         final CountDownLatch entered = new CountDownLatch(1);
         final CountDownLatch closed = new CountDownLatch(1);
