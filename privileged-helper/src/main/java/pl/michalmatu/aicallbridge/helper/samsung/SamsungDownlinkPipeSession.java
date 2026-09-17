@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.helper.samsung;
 
 import android.content.Context;
+import android.media.AudioManager;
 import android.os.ParcelFileDescriptor;
 
 import java.io.IOException;
@@ -18,12 +19,15 @@ import java.util.Objects;
  * {@link #open(Context, int)} to bind AudioRecord attribution explicitly.</p>
  */
 public final class SamsungDownlinkPipeSession implements AutoCloseable {
+    private static final long CALL_MODE_POLL_INTERVAL_MS = 50L;
+
     private final SamsungVoiceDownlinkCapture capture;
     private final ParcelFileDescriptor writeEnd;
     private final int readChunkFrames;
     private ParcelFileDescriptor readEnd;
 
     private Thread worker;
+    private CallModeWatchdog callModeWatchdog;
     private volatile Throwable terminalFailure;
     private volatile boolean started;
     private volatile boolean terminated;
@@ -79,7 +83,7 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
         return result;
     }
 
-    /** Starts telephony capture first, then starts the pipe writer. */
+    /** Starts telephony capture first, then starts the pipe writer and call-lifecycle watcher. */
     public synchronized void start(Context context) throws InterruptedException {
         Objects.requireNonNull(context, "context");
         ensureNotTerminated();
@@ -89,6 +93,15 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
 
         try {
             capture.startAndConfirmTelephonyRoute(context);
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager == null) {
+                throw new IllegalStateException("AudioManager unavailable");
+            }
+            callModeWatchdog = new CallModeWatchdog(
+                CALL_MODE_POLL_INTERVAL_MS,
+                audioManager::getMode,
+                this::terminateFromCallModeExit
+            );
         } catch (InterruptedException error) {
             terminateFromStartFailure(error);
             throw error;
@@ -101,6 +114,7 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
         worker = new Thread(this::runWorker, "aicall-samsung-downlink");
         worker.setDaemon(true);
         worker.start();
+        callModeWatchdog.start();
     }
 
     public boolean isStarted() {
@@ -122,6 +136,7 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
     /** Immediate controller-death / takeover cleanup. */
     public void abortNow() {
         Thread thread;
+        CallModeWatchdog modeWatchdog;
         synchronized (this) {
             if (terminated) {
                 return;
@@ -132,7 +147,10 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
             closeQuietly(readEnd);
             readEnd = null;
             thread = worker;
+            modeWatchdog = callModeWatchdog;
+            callModeWatchdog = null;
         }
+        closeQuietly(modeWatchdog);
         capture.abortNow();
         if (thread != null) {
             thread.interrupt();
@@ -190,21 +208,51 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
     }
 
     private void terminateFromStartFailure(Throwable error) {
-        terminalFailure = error;
-        terminated = true;
-        closeQuietly(writeEnd);
-        closeQuietly(readEnd);
-        readEnd = null;
+        CallModeWatchdog modeWatchdog;
+        synchronized (this) {
+            terminalFailure = error;
+            terminated = true;
+            closeQuietly(writeEnd);
+            closeQuietly(readEnd);
+            readEnd = null;
+            modeWatchdog = callModeWatchdog;
+            callModeWatchdog = null;
+        }
+        closeQuietly(modeWatchdog);
         capture.abortNow();
     }
 
+    private void terminateFromCallModeExit() {
+        Thread thread;
+        synchronized (this) {
+            if (terminated) {
+                return;
+            }
+            aborted = true;
+            terminated = true;
+            callModeWatchdog = null;
+            closeQuietly(writeEnd);
+            closeQuietly(readEnd);
+            readEnd = null;
+            thread = worker;
+        }
+        capture.abortNow();
+        if (thread != null) {
+            thread.interrupt();
+        }
+    }
+
     private void finishGracefully() {
+        CallModeWatchdog modeWatchdog;
         synchronized (this) {
             if (terminated) {
                 return;
             }
             terminated = true;
+            modeWatchdog = callModeWatchdog;
+            callModeWatchdog = null;
         }
+        closeQuietly(modeWatchdog);
         try {
             capture.stop();
         } catch (Throwable error) {
@@ -214,12 +262,16 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
     }
 
     private void failFromWorker() {
+        CallModeWatchdog modeWatchdog;
         synchronized (this) {
             if (terminated) {
                 return;
             }
             terminated = true;
+            modeWatchdog = callModeWatchdog;
+            callModeWatchdog = null;
         }
+        closeQuietly(modeWatchdog);
         capture.abortNow();
     }
 
@@ -234,6 +286,17 @@ public final class SamsungDownlinkPipeSession implements AutoCloseable {
             int value = samples[i];
             output[i * 2] = (byte) (value & 0xff);
             output[i * 2 + 1] = (byte) ((value >>> 8) & 0xff);
+        }
+    }
+
+    private static void closeQuietly(CallModeWatchdog watchdog) {
+        if (watchdog == null) {
+            return;
+        }
+        try {
+            watchdog.close();
+        } catch (Throwable ignored) {
+            // Fail-safe cleanup path.
         }
     }
 
