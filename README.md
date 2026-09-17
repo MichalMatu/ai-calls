@@ -2,7 +2,7 @@
 
 Experimental Android project for bridging a normal cellular call to a realtime AI voice session on one phone, without external audio hardware.
 
-Initial target: Samsung Galaxy S22+ `SM-S906B` on stock Samsung firmware.
+Target device: Samsung Galaxy S22+ `SM-S906B` on stock Samsung firmware.
 
 ## Target media path
 
@@ -20,15 +20,13 @@ realtime AI
 
 The user must always be able to take over the call immediately. Privileged/media failure must fail toward a normal human call, never toward stuck AI injection.
 
-## Current status — 2026-09-16
+## Current status — 2026-09-17
 
-The core stock-Samsung cellular media problem is no longer hypothetical.
+The difficult stock-Samsung cellular media path is physically proven on the target S22+.
 
 ### Phase 1A — cellular RX
 
 `DONE / PROVEN_S22`
-
-The production path captures remote-call-correlated PCM digitally through:
 
 ```text
 VOICE_DOWNLINK
@@ -37,7 +35,7 @@ VOICE_DOWNLINK
   -> ParcelFileDescriptor pipe
 ```
 
-Important S22 invariant: `VOICE_DOWNLINK` must be constructed through `controller.prepare()` before explicit `Context` / `AudioManager` initialization in the direct-shell process.
+Important direct-shell S22 invariant: construct `VOICE_DOWNLINK` through `controller.prepare()` before explicit `Context` / `AudioManager` initialization.
 
 ### Phase 1B — generic TX
 
@@ -49,8 +47,6 @@ The tested generic `USAGE_MEDIA` and `USAGE_VOICE_COMMUNICATION` telephony TX ap
 
 `DONE / PROVEN_S22`
 
-The working uplink path is:
-
 ```text
 mono PCM16LE
   -> SamsungCallAssistantTrack
@@ -59,92 +55,83 @@ mono PCM16LE
   -> cellular uplink
 ```
 
-Remote receipt was physically demonstrated with deterministic digitally injected DTMF against the Orange IVR.
+Required TX attribution is `com.android.shell`. Remote receipt was physically demonstrated with deterministic digitally injected DTMF.
 
 ### Phase 2B — shared local RX + TX bridge
 
-`DONE / PROVEN_S22`
+`DONE / PROVEN_S22 / FROZEN`
 
-One `SamsungCallMediaSessionController` has been physically proven running both directions simultaneously through the production PFD paths while its watchdog and abort path remained healthy.
+One `SamsungCallMediaSessionController` is physically proven running both media directions simultaneously through PFD pipes with one shared watchdog/fail-safe lifetime.
 
-Successful live proof included:
-
-```text
-active_after_start=true
-heartbeat_after_start=true
-pre_dtmf_non_zero_samples=25451
-uplink_bytes_written=9600
-post_dtmf_non_zero_samples=38737
-active_with_endpoints_open=true
-heartbeat_with_endpoints_open=true
-media_ok_before_endpoint_close=true
-prepared_after_abort=false
-active_after_abort=false
-heartbeat_after_abort=false
-```
-
-The phone remained physically silent during the successful validation:
-
-```text
-STREAM_VOICE_CALL Muted:true
-streamVolume:0
-route=earpiece
-```
-
-Full evidence: [`docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`](docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md).
-
-## Frozen known-good baseline
-
-The proven Phase 2B state is preserved on:
+Frozen reference:
 
 ```text
 branch: milestone/phase2b-proven-s22-20260916
 commit: c10f8dde29f245f8f98fb008a3572c21fe73fe35
 ```
 
-Do not move/rewrite that branch during normal development. It is the rollback/comparison point for the cellular media path.
+### Phase 2C — Shizuku UserService parity
 
-Freeze rationale and post-freeze refactor rules are documented in [`docs/PHASE2B_FREEZE_2026-09-16.md`](docs/PHASE2B_FREEZE_2026-09-16.md).
+`DONE / PROVEN_S22 / FROZEN`
 
-## Current gate — Phase 2C / Shizuku UserService parity
+The real app -> Shizuku UserService -> privileged controller path is physically proven on the same S22+:
 
-The first app-facing Shizuku slice is implemented:
+- UserService runs under shell UID 2000;
+- protected off-call `prepare -> abort` parity passes;
+- live bidirectional RX + TX over transferred PFDs passes;
+- one shared helper heartbeat/watchdog lifetime remains intact;
+- explicit `abortNow()` / TAKE OVER cleanup passes;
+- helper/UserService process death terminates the media path while the normal app and Shizuku server survive;
+- continuous PCM still does not use per-frame Binder calls.
 
-- Shizuku API/provider dependency;
-- AIDL control plane;
-- `ShizukuCallMediaUserService`;
-- PFD endpoint handoff;
-- app-side bind/permission plumbing;
-- bounded off-call parity probe;
-- preserved `prepare()`-before-Context ordering.
+Frozen reference:
 
-Post-freeze cleanup also separates privileged Context construction into `PrivilegedCallContexts`, keeping reflection-heavy Android plumbing out of the UserService lifecycle class.
+```text
+branch: milestone/phase2c-shizuku-live-proven-20260916
+commit: 9c136fc05c5b33f383d72b0b7080ad5b9a754bb4
+```
 
-The off-call parity probe is intentionally strict: it requires the exact expected `prepare -> abort` state transition rather than merely checking that no session remains afterward.
+Post-freeze deep-audit fixes M1/M2/M3/M4 are complete. M3 reuses Shizuku's existing `ActivityThread.currentActivityThread()` instead of creating a second `ActivityThread.systemMain()` from a Binder thread. Its host, off-call, silent-live and 30-second endurance regressions are GREEN.
 
-### Current device prerequisite
+### Current gate — Milestone D robustness
 
-At the last device check, Android user `0` had no Shizuku manager/server installed or running. Samsung Secure Folder user `151` is intentionally out of scope.
+`ACTIVE`
 
-No unverified APK should be fetched or installed merely to satisfy this gate.
+Already GREEN:
 
-When a trusted Shizuku runtime is available, the next validations are:
+- 30-second bidirectional endurance;
+- explicit abort/takeover latency;
+- helper/UserService process-death behavior;
+- host regression after the latest tooling work: 30 Python tests PASS and full Gradle build/test PASS.
 
-1. UserService effective UID and bind;
-2. off-call `prepare -> abort` parity;
-3. live RX + TX PFD parity under the silent-audio guard;
-4. Binder/controller-death fail-safe cleanup;
-5. 10-minute local bridge endurance and takeover-latency test.
+The nearest unresolved physical gate is **normal app death while media is active**. An earlier attempt was inconclusive because host ADB entered `waiting for device`; the resulting ~105 s host-side timing is therefore not a valid cleanup-latency measurement, even though both the app and UserService were later confirmed gone.
 
-Only after those pass should realtime AI transport be connected.
+To remove that measurement dependency, the repository now contains:
+
+```text
+scripts/s22_app_death_gate.py
+scripts/test_s22_app_death_gate.py
+```
+
+The observer runs timing-critical checks on the phone using `/proc/uptime`, watches app/helper process death and CALL_ASSISTANT stop evidence, publishes its result atomically, and does not depend on uninterrupted host ADB. It intentionally does not use `nohup` because this S22+ does not provide `toybox nohup`.
+
+Remaining Milestone D work after the app-death gate:
+
+1. end the cellular call while the bridge is active and prove full cleanup;
+2. close one transferred RX/TX PFD and prove sibling abort / whole-generation stop;
+3. run 10–20 start/abort cycles and compare FD/thread/process/resource counts;
+4. run a final 10-minute bidirectional endurance test with telemetry/resource counts;
+5. perform final regression/audit and freeze Milestone D;
+6. only then connect realtime AI.
 
 ## Architecture
 
-- `app/` — normal Android process, UI/orchestration, Shizuku client/probes.
+- `app/` — normal Android process, UI/orchestration and diagnostic Shizuku clients.
 - `audio-bridge/` — device-independent capture/injection contracts and PCM models.
-- `privileged-helper/` — protected Android/Samsung audio primitives, PFD workers, shared controller and watchdog.
+- `privileged-helper/` — Samsung audio primitives, PFD workers, shared controller and watchdog.
 - `realtime-client/` — realtime model transport abstraction; intentionally not connected yet.
-- `docs/` — physical evidence, architecture, roadmap, plans and freeze notes.
+- `scripts/` — bounded developer/device validation tooling.
+- `docs/` — architecture, evidence, plans, handoff and freeze notes.
 
 Privileged media shape:
 
@@ -170,44 +157,44 @@ SamsungCallMediaSessionController
   -> shared abort/fail-safe lifecycle
 ```
 
-RX and TX remain separate low-level components because the S22 has different initialization and attribution requirements for each direction. Do not introduce a generic common base merely to reduce line count.
+RX and TX remain separate because the S22 has different initialization and attribution requirements for each direction. Do not add generic abstractions merely to reduce line count.
 
-The direct-shell `BidirectionalMediaProbe` remains a hardware regression/reference harness and should not be casually rewritten while Shizuku parity is still being established.
+## Live-test safety rule
 
-## Development order
+For every live cellular test keep the physical phone locally silent:
 
-1. preserve the proven Phase 2B baseline;
-2. prove Shizuku UserService parity;
-3. prove controller/Binder-death fail-safe behavior;
-4. pass local endurance and takeover-latency gates;
-5. connect realtime AI;
-6. add product UX and broader route/device robustness.
+```text
+STREAM_VOICE_CALL Muted:true
+streamVolume:0
+Devices: earpiece(1)
+speakerphone off
+```
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the current gates.
+Assert this before dialing and again after the call becomes active. Prefer direct USB-C <-> USB-C between the S22+ and MacBook; an earlier hub/dock caused misleading ADB transport resets.
 
 ## Hard rules
 
 - Physical media claims become `PROVEN_S22` only after target-device live-call evidence.
 - Constructor/permission/device-enumeration success is not equivalent to working call media.
-- Preserve the proven S22 RX initialization order unless new physical evidence disproves it.
+- Preserve the proven direct-shell S22 RX initialization order unless new physical evidence disproves it.
 - Preserve separate RX (`android`) and TX (`com.android.shell`) attribution requirements.
+- Preserve `USAGE_CALL_ASSISTANT` and mono PCM16LE -> stereo only at the Samsung TX boundary.
 - No per-frame Binder PCM transport.
 - `Take over` must be local and fail-safe.
 - App/helper death must disable injection.
 - No long-lived OpenAI API key in the APK.
 - No call recording by default.
 - Do not replace the default dialer until the media bridge and product requirements justify it.
-- Keep `.agent` execution/control data off canonical product branches such as `main`.
+- Keep `.agent` execution/control data on `agent-control`, never merged into product branches.
 
 ## Key documents
 
-- [`docs/PHASE2B_FREEZE_2026-09-16.md`](docs/PHASE2B_FREEZE_2026-09-16.md) — frozen known-good Phase 2B reference and refactor policy.
-- [`docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md`](docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md) — physical simultaneous RX+TX proof.
-- [`docs/S22_PHASE1C_PROOF_2026-09-16.md`](docs/S22_PHASE1C_PROOF_2026-09-16.md) — Samsung-specific TX proof.
-- [`docs/S22_BASELINE_2026-09-14.md`](docs/S22_BASELINE_2026-09-14.md) — target capability baseline.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — evidence-driven phase gates.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current component boundaries and fail-safe rules.
-- [`docs/superpowers/plans/2026-09-16-phase2-local-bridge.md`](docs/superpowers/plans/2026-09-16-phase2-local-bridge.md) — current implementation plan.
+- `docs/HANDOFF_NEXT_CHAT.md` — authoritative continuation state.
+- `docs/ROADMAP.md` — current evidence-driven phase gates.
+- `docs/ARCHITECTURE.md` — current component boundaries and fail-safe rules.
+- `docs/PHASE2B_FREEZE_2026-09-16.md` — frozen Phase 2B reference.
+- `docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md` — physical simultaneous RX+TX proof.
+- `docs/PHASE2_DEEP_AUDIT_2026-09-16.md` — post-freeze audit and follow-up requirements.
 
 ## License
 
