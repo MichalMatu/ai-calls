@@ -13,15 +13,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import rikka.shizuku.Shizuku;
 
-/** Short live endurance diagnostic for sustained bidirectional call media. */
+/** Live endurance diagnostic for sustained bidirectional call media. */
 public final class ShizukuEnduranceProbe {
     private static final int SAMPLE_RATE = 16_000;
     private static final int PCM_CHUNK_BYTES = SAMPLE_RATE * 20 / 1000 * 2;
-    private static final long DURATION_MS = 30_000L;
+    private static final long DEFAULT_DURATION_MS = 30_000L;
+    private static final long MIN_DURATION_MS = 5_000L;
+    private static final long MAX_DURATION_MS = 600_000L;
     private static final long HEARTBEAT_INTERVAL_MS = 250L;
     private static final long CONNECT_TIMEOUT_MS = 10_000L;
 
     private final Context appContext;
+    private final long durationMs;
     private final ShizukuUserServiceProbe.Callback callback;
     private final AtomicBoolean completed = new AtomicBoolean(false);
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -60,8 +63,13 @@ public final class ShizukuEnduranceProbe {
         }
     };
 
-    private ShizukuEnduranceProbe(Context context, ShizukuUserServiceProbe.Callback callback) {
+    private ShizukuEnduranceProbe(
+        Context context,
+        long durationMs,
+        ShizukuUserServiceProbe.Callback callback
+    ) {
         this.appContext = context.getApplicationContext();
+        this.durationMs = validateDurationMs(durationMs);
         this.callback = callback;
         this.userServiceArgs = new Shizuku.UserServiceArgs(
             new ComponentName(appContext, ShizukuCallMediaUserService.class)
@@ -74,7 +82,28 @@ public final class ShizukuEnduranceProbe {
     }
 
     public static void run(Context context, ShizukuUserServiceProbe.Callback callback) {
-        new ShizukuEnduranceProbe(context, callback).start();
+        run(context, DEFAULT_DURATION_MS, callback);
+    }
+
+    public static void run(
+        Context context,
+        long durationMs,
+        ShizukuUserServiceProbe.Callback callback
+    ) {
+        new ShizukuEnduranceProbe(context, durationMs, callback).start();
+    }
+
+    static long defaultDurationMs() {
+        return DEFAULT_DURATION_MS;
+    }
+
+    static long validateDurationMs(long durationMs) {
+        if (durationMs < MIN_DURATION_MS || durationMs > MAX_DURATION_MS) {
+            throw new IllegalArgumentException(
+                "durationMs must be between " + MIN_DURATION_MS + " and " + MAX_DURATION_MS
+            );
+        }
+        return durationMs;
     }
 
     private void start() {
@@ -96,7 +125,7 @@ public final class ShizukuEnduranceProbe {
         result.append("service_uid=").append(service.getProcessUid()).append('\n');
         result.append("service_pid=").append(service.getProcessPid()).append('\n');
         result.append("sample_rate=").append(SAMPLE_RATE).append('\n');
-        result.append("duration_ms=").append(DURATION_MS).append('\n');
+        result.append("duration_ms=").append(durationMs).append('\n');
         result.append("heartbeat_interval_ms=").append(HEARTBEAT_INTERVAL_MS).append('\n');
 
         service.prepare(SAMPLE_RATE);
@@ -118,7 +147,7 @@ public final class ShizukuEnduranceProbe {
             uplink = null;
 
             long startedNs = SystemClock.elapsedRealtimeNanos();
-            long deadlineNs = startedNs + DURATION_MS * 1_000_000L;
+            long deadlineNs = startedNs + durationMs * 1_000_000L;
             int heartbeatCount = 0;
             int activeCheckCount = 0;
             boolean allHeartbeatsOk = true;
@@ -155,7 +184,7 @@ public final class ShizukuEnduranceProbe {
             boolean threadsStopped = media.threadsStopped();
 
             boolean privilegedUid = service.getProcessUid() == 0 || service.getProcessUid() == 2000;
-            boolean durationOk = observedDurationMs >= DURATION_MS - HEARTBEAT_INTERVAL_MS;
+            boolean durationOk = observedDurationMs >= durationMs - HEARTBEAT_INTERVAL_MS;
             boolean ok = Shizuku.pingBinder()
                 && privilegedUid
                 && activeAfterStart
