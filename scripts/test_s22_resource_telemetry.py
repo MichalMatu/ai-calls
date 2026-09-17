@@ -1,24 +1,14 @@
 import unittest
 
-from s22_call_control import PACKAGE_NAME
 from s22_resource_telemetry import (
     ProcessMetrics,
     TelemetrySample,
-    _read_process_metrics,
+    _count_ps_threads,
+    _parse_ps_rss,
     parse_call_assistant_state,
     parse_process_metrics,
     summarize_samples,
 )
-
-
-class FakeAdb:
-    def __init__(self, output):
-        self.output = output
-        self.calls = []
-
-    def shell(self, args, *, check=True):
-        self.calls.append((list(args), check))
-        return self.output
 
 
 class ProcessMetricsParsingTest(unittest.TestCase):
@@ -43,26 +33,25 @@ class ProcessMetricsParsingTest(unittest.TestCase):
             )
 
 
-class ProcessMetricsTransportTest(unittest.TestCase):
-    def test_app_metrics_run_under_debuggable_app_uid(self):
-        adb = FakeAdb("pid=1234\nvmrss_kb=45678\nfd_count=91\nthread_count=17\n")
+class PsMetricsParsingTest(unittest.TestCase):
+    def test_parses_rss_for_exact_pid(self):
+        output = """  PID    RSS NAME
+ 1234  45678 pl.example.app
+ 2222  12000 pl.example.app:helper
+"""
+        self.assertEqual(45678, _parse_ps_rss(output, 1234))
+        self.assertEqual(12000, _parse_ps_rss(output, 2222))
+        self.assertIsNone(_parse_ps_rss(output, 9999))
 
-        metrics = _read_process_metrics(adb, 1234, run_as_package=PACKAGE_NAME)
-
-        self.assertEqual(1234, metrics.pid)
-        args, check = adb.calls[0]
-        self.assertTrue(check)
-        self.assertEqual(["run-as", PACKAGE_NAME, "sh", "-c"], args[:4])
-
-    def test_helper_metrics_keep_direct_shell_access(self):
-        adb = FakeAdb("pid=2222\nvmrss_kb=12000\nfd_count=20\nthread_count=5\n")
-
-        metrics = _read_process_metrics(adb, 2222)
-
-        self.assertEqual(2222, metrics.pid)
-        args, check = adb.calls[0]
-        self.assertTrue(check)
-        self.assertEqual(["sh", "-c"], args[:2])
+    def test_counts_threads_for_exact_pid(self):
+        output = """  PID   TID NAME
+ 1234  1234 pl.example.app
+ 1234  1235 RenderThread
+ 2222  2222 pl.example.app:helper
+"""
+        self.assertEqual(2, _count_ps_threads(output, 1234))
+        self.assertEqual(1, _count_ps_threads(output, 2222))
+        self.assertEqual(0, _count_ps_threads(output, 9999))
 
 
 class CallAssistantStateParsingTest(unittest.TestCase):
