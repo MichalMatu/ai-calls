@@ -115,17 +115,17 @@ class AppDeathObserverScriptTest(unittest.TestCase):
         self.assertIn('am force-stop "$PKG"', script)
         self.assertNotIn("fallback", script.casefold())
 
-    def test_device_script_tracks_exact_call_assistant_audioflinger_removal(self):
+    def test_device_script_tracks_exact_call_assistant_player_release(self):
         script = build_device_observer_script()
         self.assertIn("dumpsys audio", script)
         self.assertIn("USAGE_CALL_ASSISTANT", script)
         self.assertIn("call_assistant_piid=", script)
-        self.assertIn("call_assistant_session_id=", script)
-        self.assertIn("dumpsys media.audio_flinger", script)
-        self.assertIn("removeTrack_l", script)
+        self.assertIn('player piid:$CALL_ASSISTANT_PIID event:stopped', script)
+        self.assertIn('releasing player piid:$CALL_ASSISTANT_PIID', script)
+        self.assertNotIn("dumpsys media.audio_flinger", script)
         self.assertNotIn("logcat -d", script)
 
-    def test_device_script_observes_media_removal_longer_than_gate_deadline(self):
+    def test_device_script_observes_player_release_through_gate_deadline(self):
         script = build_device_observer_script()
         self.assertIn('while [ "$i" -lt 60 ]', script)
         self.assertIn("sleep 0.050", script)
