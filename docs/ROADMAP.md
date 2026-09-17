@@ -181,15 +181,35 @@ After M3 the following are GREEN:
 
 ### Milestone D — robustness and endurance
 
-Status: `ACTIVE`
+Status: `ACTIVE / HOST TOOLING COMPLETE / PHYSICAL GATES PENDING`
 
-Already GREEN:
+Already physically GREEN:
 - 30-second bidirectional endurance with continuous heartbeat and active-state checks;
 - explicit abort/takeover cleanup and bounded latency;
-- helper/UserService process-death behavior;
-- latest host-only regression after app-death tooling: 30 Python tests PASS and full Gradle build/test PASS.
+- helper/UserService process-death behavior.
 
-#### Current unresolved gate — normal app death
+Host preparation is now complete for the remaining gates:
+- resilient normal-app-death phone-side observer;
+- selective RX/TX transferred-PFD close probe;
+- bounded endurance override through 600000 ms;
+- repeated 1–20 cycle probe with one UserService bind;
+- JSONL external resource telemetry with deterministic start/end/peak/delta for RSS, FD count and thread count;
+- app-side call-end probe that keeps heartbeats flowing until real media termination;
+- phone-side call-end observer for `OFFHOOK -> IDLE` and CALL_ASSISTANT stop timing.
+
+Latest host regression after call-end tooling:
+
+```text
+focused call-end tests: GREEN
+all Python tests: 44 PASS
+full Gradle host test/build + assembleDebug: GREEN
+security-shape checks: GREEN
+git diff --check + clean worktree: GREEN
+```
+
+The call-end slice did not modify `privileged-helper`; the physically proven Samsung media backend semantics remain unchanged.
+
+#### Current unresolved physical gate — normal app death
 
 The first normal-app-death attempt is **inconclusive**, not a confirmed product defect.
 
@@ -201,29 +221,27 @@ Observed:
 - the expected CALL_ASSISTANT stop log was not observed by the disrupted host-side collector;
 - therefore the reported ~105 s host-side cleanup duration is invalid as a media cleanup measurement.
 
-A resilient phone-side harness now exists:
+The resilient phone-side harness is ready:
 
 ```text
 scripts/s22_app_death_gate.py
 scripts/test_s22_app_death_gate.py
 ```
 
-It measures process cleanup with `/proc/uptime`, observes CALL_ASSISTANT stop on-device, checks call/Shizuku/boot continuity and atomically publishes a result for later host collection. This avoids dependence on uninterrupted host ADB. The S22 does not provide `toybox nohup`, so the observer is launched with a background shell process instead.
+It measures process cleanup with `/proc/uptime`, observes CALL_ASSISTANT stop on-device, checks call/Shizuku/boot continuity and atomically publishes a result for later host collection. This avoids dependence on uninterrupted host ADB.
 
-Focused harness tests: `11/11 PASS`.
-Repository Python tests after adding it: `30/30 PASS`.
-Full Gradle host build/test: `GREEN`.
+#### Remaining Milestone D physical gates
 
-#### Remaining Milestone D gates
+Execute in this order when the S22+ is available:
 
-After normal-app-death is measured reliably:
-
-1. end the cellular call while bridge media is active and prove complete cleanup;
-2. intentionally close one transferred RX/TX PFD and prove sibling abort / whole-generation stop;
-3. run 10–20 start/abort cycles and compare FD/thread/process/resource counts;
-4. run final 10-minute bidirectional endurance with telemetry including RX/TX bytes, heartbeat count, active state, app/helper RSS, FD count, thread count, AudioRecord/AudioTrack state and final abort latency;
-5. run final regression/security/evidence audit;
-6. freeze Milestone D.
+1. normal-app-death gate with phone-side observer;
+2. RX transferred-PFD close gate;
+3. TX transferred-PFD close gate;
+4. call-end gate with both app-side probe and phone-side observer;
+5. 20-cycle gate with external RSS/FD/thread telemetry;
+6. final 10-minute bidirectional endurance with external telemetry;
+7. final regression/security/evidence audit;
+8. freeze Milestone D.
 
 ## Phase 3 — Realtime AI integration
 
@@ -287,6 +305,6 @@ Exit gate: defined failure behavior for every tested transition and no condition
 
 Do not connect realtime AI yet.
 
-The cellular RX/TX problem and the Shizuku privilege boundary are no longer blockers. The active engineering work is **Milestone D robustness**, starting with a reliable physical normal-app-death measurement using the phone-side observer harness.
+The cellular RX/TX problem and Shizuku privilege boundary are no longer blockers. All Milestone D host-side diagnostics are prepared; the active work is now the ordered physical robustness gate sequence on the S22+.
 
 Current authoritative continuation state: `docs/HANDOFF_NEXT_CHAT.md`.
