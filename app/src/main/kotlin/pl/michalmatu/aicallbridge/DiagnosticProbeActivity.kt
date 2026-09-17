@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
+import pl.michalmatu.aicallbridge.shizuku.ShizukuEndpointCloseProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuEnduranceProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuWatchdogProbe
@@ -41,6 +42,14 @@ class DiagnosticProbeActivity : Activity() {
         }
 
         when {
+            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE, false) -> {
+                statusView.text = "Running Shizuku endpoint-close fail-safe probe…"
+                Log.i(TAG, "shizuku_endpoint_close_probe_start=true")
+                ShizukuEndpointCloseProbe.run(
+                    this,
+                    resultCallback("shizuku_endpoint_close_probe_result"),
+                )
+            }
             intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE, false) -> {
                 statusView.text = "Running Shizuku bidirectional endurance probe…"
                 Log.i(TAG, "shizuku_endurance_probe_start=true")
@@ -97,5 +106,6 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE = "run_shizuku_watchdog_probe"
         const val EXTRA_RUN_SHIZUKU_ABORT_PROBE = "run_shizuku_abort_probe"
         const val EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE = "run_shizuku_endurance_probe"
+        const val EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE = "run_shizuku_endpoint_close_probe"
     }
 }
