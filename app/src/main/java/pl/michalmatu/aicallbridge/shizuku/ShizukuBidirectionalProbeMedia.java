@@ -23,6 +23,8 @@ final class ShizukuBidirectionalProbeMedia implements AutoCloseable {
     private final int chunkBytes;
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean downlinkClosed = new AtomicBoolean(false);
+    private final AtomicBoolean uplinkClosed = new AtomicBoolean(false);
     private final AtomicLong downlinkBytes = new AtomicLong();
     private final AtomicLong uplinkBytes = new AtomicLong();
     private final AtomicReference<String> downlinkTerminal = new AtomicReference<>("none");
@@ -112,6 +114,18 @@ final class ShizukuBidirectionalProbeMedia implements AutoCloseable {
         return !downlinkThread.isAlive() && !uplinkThread.isAlive();
     }
 
+    void closeDownlinkEndpoint() {
+        if (downlinkClosed.compareAndSet(false, true)) {
+            closeQuietly(downlinkInput);
+        }
+    }
+
+    void closeUplinkEndpoint() {
+        if (uplinkClosed.compareAndSet(false, true)) {
+            closeQuietly(uplinkOutput);
+        }
+    }
+
     @Override
     public void close() {
         if (!closed.compareAndSet(false, true)) {
@@ -119,8 +133,8 @@ final class ShizukuBidirectionalProbeMedia implements AutoCloseable {
         }
 
         stop.set(true);
-        closeQuietly(downlinkInput);
-        closeQuietly(uplinkOutput);
+        closeDownlinkEndpoint();
+        closeUplinkEndpoint();
         downlinkThread.interrupt();
         uplinkThread.interrupt();
 
