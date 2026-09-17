@@ -93,6 +93,38 @@ def parse_process_metrics(text: str) -> ProcessMetrics | None:
     )
 
 
+def _parse_ps_rss(text: str, pid: int) -> int | None:
+    for raw_line in text.splitlines():
+        parts = raw_line.split()
+        if len(parts) < 2:
+            continue
+        try:
+            row_pid = int(parts[0])
+            rss_kb = int(parts[1])
+        except ValueError:
+            continue
+        if row_pid == pid:
+            if rss_kb < 0:
+                raise ValueError("ps RSS must be >= 0")
+            return rss_kb
+    return None
+
+
+def _count_ps_threads(text: str, pid: int) -> int:
+    count = 0
+    for raw_line in text.splitlines():
+        parts = raw_line.split()
+        if not parts:
+            continue
+        try:
+            row_pid = int(parts[0])
+        except ValueError:
+            continue
+        if row_pid == pid:
+            count += 1
+    return count
+
+
 def parse_call_assistant_state(logcat: str, helper_pid: int) -> str:
     if helper_pid <= 0:
         raise ValueError("helper_pid must be > 0")
@@ -171,28 +203,37 @@ def _find_pid(adb: Adb, process_name: str, label: str) -> int | None:
     return _single_pid(output, label)
 
 
-def _read_process_metrics(
-    adb: Adb,
-    pid: int | None,
-    *,
-    run_as_package: str | None = None,
-) -> ProcessMetrics | None:
+def _read_process_metrics(adb: Adb, pid: int | None) -> ProcessMetrics | None:
     if pid is None:
         return None
-    script = (
-        f'PID={pid}; '
-        'if [ ! -d "/proc/$PID" ]; then echo process_missing=1; exit 0; fi; '
-        'RSS=$(awk \'/^VmRSS:/ {print $2}\' "/proc/$PID/status" 2>/dev/null); '
-        'FD=$(ls -1 "/proc/$PID/fd" 2>/dev/null | wc -l | tr -d " "); '
-        'TH=$(ls -1 "/proc/$PID/task" 2>/dev/null | wc -l | tr -d " "); '
-        'if [ -z "$RSS" ] || [ -z "$FD" ] || [ -z "$TH" ]; then exit 65; fi; '
-        'printf "pid=%s\\nvmrss_kb=%s\\nfd_count=%s\\nthread_count=%s\\n" "$PID" "$RSS" "$FD" "$TH"'
+
+    process_table = adb.shell(["ps", "-A", "-o", "PID,RSS,NAME"], check=False)
+    rss_kb = _parse_ps_rss(process_table, pid)
+    if rss_kb is None:
+        return None
+
+    thread_table = adb.shell(["ps", "-AT", "-o", "PID,TID,NAME"], check=False)
+    thread_count = _count_ps_threads(thread_table, pid)
+    if thread_count <= 0:
+        raise RuntimeError(f"no threads visible for pid {pid}")
+
+    fd_output = adb.shell(
+        ["sh", "-c", f"ls -1 /proc/{pid}/fd 2>/dev/null | wc -l | tr -d ' '"],
+        check=False,
+    ).strip()
+    try:
+        fd_count = int(fd_output)
+    except ValueError as error:
+        raise RuntimeError(f"invalid fd count for pid {pid}: {fd_output!r}") from error
+    if fd_count < 0:
+        raise RuntimeError(f"negative fd count for pid {pid}")
+
+    return ProcessMetrics(
+        pid=pid,
+        vmrss_kb=rss_kb,
+        fd_count=fd_count,
+        thread_count=thread_count,
     )
-    args = ["sh", "-c", script]
-    if run_as_package is not None:
-        args = ["run-as", run_as_package, *args]
-    output = adb.shell(args)
-    return parse_process_metrics(output)
 
 
 def _device_uptime(adb: Adb) -> float:
@@ -212,7 +253,7 @@ def _device_uptime(adb: Adb) -> float:
 def sample_device(adb: Adb) -> TelemetrySample:
     app_pid = _find_pid(adb, PACKAGE_NAME, "app")
     helper_pid = _find_pid(adb, HELPER_PROCESS_NAME, "helper")
-    app = _read_process_metrics(adb, app_pid, run_as_package=PACKAGE_NAME)
+    app = _read_process_metrics(adb, app_pid)
     helper = _read_process_metrics(adb, helper_pid)
     call_state = adb.call_state()
     call_assistant_state = "unknown"
