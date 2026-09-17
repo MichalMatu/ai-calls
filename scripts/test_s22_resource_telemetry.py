@@ -1,12 +1,24 @@
 import unittest
 
+from s22_call_control import PACKAGE_NAME
 from s22_resource_telemetry import (
     ProcessMetrics,
     TelemetrySample,
+    _read_process_metrics,
     parse_call_assistant_state,
     parse_process_metrics,
     summarize_samples,
 )
+
+
+class FakeAdb:
+    def __init__(self, output):
+        self.output = output
+        self.calls = []
+
+    def shell(self, args, *, check=True):
+        self.calls.append((list(args), check))
+        return self.output
 
 
 class ProcessMetricsParsingTest(unittest.TestCase):
@@ -29,6 +41,28 @@ class ProcessMetricsParsingTest(unittest.TestCase):
             parse_process_metrics(
                 "pid=1234\nvmrss_kb=45678\nfd_count=-1\nthread_count=17\n"
             )
+
+
+class ProcessMetricsTransportTest(unittest.TestCase):
+    def test_app_metrics_run_under_debuggable_app_uid(self):
+        adb = FakeAdb("pid=1234\nvmrss_kb=45678\nfd_count=91\nthread_count=17\n")
+
+        metrics = _read_process_metrics(adb, 1234, run_as_package=PACKAGE_NAME)
+
+        self.assertEqual(1234, metrics.pid)
+        args, check = adb.calls[0]
+        self.assertTrue(check)
+        self.assertEqual(["run-as", PACKAGE_NAME, "sh", "-c"], args[:4])
+
+    def test_helper_metrics_keep_direct_shell_access(self):
+        adb = FakeAdb("pid=2222\nvmrss_kb=12000\nfd_count=20\nthread_count=5\n")
+
+        metrics = _read_process_metrics(adb, 2222)
+
+        self.assertEqual(2222, metrics.pid)
+        args, check = adb.calls[0]
+        self.assertTrue(check)
+        self.assertEqual(["sh", "-c"], args[:2])
 
 
 class CallAssistantStateParsingTest(unittest.TestCase):
