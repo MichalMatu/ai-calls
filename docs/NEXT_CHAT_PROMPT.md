@@ -1,53 +1,56 @@
-# Next chat prompt — Phase 2 continuation
+# Next chat prompt — Phase 2 / Milestone D continuation
 
 Paste the block below into a fresh ChatGPT window.
 
 ```text
 Kontynuuj projekt `MichalMatu/android-ai-call-bridge` na branchu `work/phase1-live-call-probes`.
 
-Najpierw przeczytaj w całości i potraktuj jako źródło prawdy:
+Najpierw przeczytaj i potraktuj jako źródło prawdy:
 - `docs/HANDOFF_NEXT_CHAT.md`
 - `AGENTS.md`
+- `docs/ROADMAP.md`
+- `docs/ARCHITECTURE.md`
 - `docs/PHASE2_DEEP_AUDIT_2026-09-16.md`
-- `docs/superpowers/plans/2026-09-16-phase2-deep-audit-fixes.md`
 
-Potem przeczytaj potrzebne dokumenty architektury/evidence wskazane w handoffie. Nie zaczynaj od Realtime AI i nie rób ponownie całego audytu od zera.
+Nie zaczynaj od Realtime AI i nie rób ponownie audytu od zera.
 
-Aktualny etap:
-- M1 FIXED/GREEN — Shizuku probe bodies działają poza main thread.
-- M4 FIXED/GREEN — lokalne RX/TX probe media mają deterministycznego ownera cleanup.
-- M2 FIXED/GREEN — privileged automation usunięta z exported MainActivity; `DiagnosticProbeActivity` jest chroniony `android.permission.DUMP`; fizyczny off-call shell path na S22 przeszedł `offcall_parity_ok=true`.
-- M3 OPEN — to jest następny task.
+Aktualny stan:
+- Phase 2B local RX+TX: PROVEN_S22 / frozen na `milestone/phase2b-proven-s22-20260916`.
+- Phase 2C Shizuku UserService parity: PROVEN_S22 / frozen na `milestone/phase2c-shizuku-live-proven-20260916`, commit `9c136fc05c5b33f383d72b0b7080ad5b9a754bb4`.
+- M1/M2/M3/M4 z deep audit są zakończone. M3 commit: `60cbe81af2e02ba2e4100691c8afb76332735548`.
+- Po M3 przeszły: full host validation, off-call parity, silent live parity oraz 30 s bidirectional endurance.
+- Fizycznie udowodniono też śmierć UserService/helpera podczas aktywnej sesji: helper znika, klient dostaje EPIPE, normalna aplikacja i Shizuku server przeżywają.
+- Milestone D jest aktywny.
 
-Następny krok wykonaj minimalnie: popraw `PrivilegedCallContexts.create()` tak, aby nie robił `Looper.prepare()` ani drugiego `ActivityThread.systemMain()` na Binder thread, tylko użył istniejącego `ActivityThread.currentActivityThread()` utworzonego przez Shizuku. Zachowaj resztę konstrukcji system/shell Context bez zmian. Jeśli `currentActivityThread()` jest null, fail fast z czytelnym `IllegalStateException`.
+Najbliższy nierozstrzygnięty gate to normal-app-death podczas aktywnego media. Poprzedni test nie jest dowodem błędu produktu: po `am force-stop` host ADB wszedł w `waiting for device`, przez co hostowy pomiar ~105 s jest nieważny. Po odzyskaniu transportu zarówno app, jak i UserService były już martwe.
 
-Po M3:
-1. full host tests/build,
-2. off-call Shizuku prepare/abort przez protected `DiagnosticProbeActivity`,
-3. kilka powtórzeń off-call jeśli tanie,
-4. jeden wąski silent live Shizuku parity regression na S22,
-5. dopiero potem 30 s endurance i pozostałe Milestone D gates z handoffu.
+Do powtórki app-death użyj nowego harnessu:
+- `scripts/s22_app_death_gate.py`
+- `scripts/test_s22_app_death_gate.py`
 
-Nie zmieniaj bez fizycznego powodu proven Samsung invariants: RX ordering, system/shell attribution, `USAGE_CALL_ASSISTANT`, mono PCM16LE -> stereo dopiero na Samsung TX boundary, PFD ownership, jeden RX+TX fail-safe lifetime, brak per-frame Binder.
+Harness wykonuje timing-krytyczny observer po stronie telefonu, używa `/proc/uptime`, obserwuje app/helper process death i `USAGE_CALL_ASSISTANT state:stopped`, zapisuje wynik atomowo i nie zależy od ciągłego hostowego ADB. Nie używa `nohup`, bo ten S22+ nie ma `toybox nohup` (`exit 125`). Host validation harnessu: 11/11 focused tests, 30/30 wszystkich Python tests, full Gradle build/test GREEN.
 
-Dla każdego live cellular testu telefon ma pozostać lokalnie bezgłośny: voice-call muted, streamVolume=0, earpiece, speakerphone off; mute ponownie po ACTIVE. Używaj bezpośredniego USB-C <-> USB-C do MacBooka.
+Po app-death gate pozostałe Milestone D gates:
+1. zakończyć cellular call podczas aktywnego bridge i udowodnić pełny cleanup;
+2. zamknąć jeden transferred RX/TX PFD i udowodnić sibling abort / whole-generation stop;
+3. 10–20 start/abort cycles z porównaniem FD/thread/process/resource counts;
+4. finalny 10-min bidirectional endurance z telemetry/resource counts;
+5. finalny audit/regression;
+6. freeze Milestone D;
+7. dopiero potem Realtime AI.
 
-LOCAL CHAT BRIDGE / LOCAL AGENT — testujemy teraz nowy EVENT-DRIVEN flow.
-Oczekiwane hard binding:
+Nie zmieniaj bez fizycznego powodu proven Samsung invariants: direct-shell RX prepare-before-context ordering, system RX attribution, `com.android.shell` TX attribution, `USAGE_CALL_ASSISTANT`, mono PCM16LE -> stereo dopiero na Samsung TX boundary, PFD ownership, jeden wspólny RX+TX fail-safe lifetime, brak per-frame Binder.
+
+Dla każdego live cellular testu telefon ma pozostać lokalnie bezgłośny: `STREAM_VOICE_CALL Muted:true`, `streamVolume:0`, `Devices: earpiece(1)`, speakerphone off; sprawdź mute przed dial i ponownie po ACTIVE. Preferuj bezpośredni USB-C <-> USB-C do MacBooka.
+
+Local Agent binding dla tego repo:
 - repository: `MichalMatu/android-ai-call-bridge`
 - repo id: `android-ai-call-bridge`
 - agent binding: `c25f88c0-4682-414c-8062-c47fa4034cb0`
 
-Jeżeli bridge injectuje inny repo/binding, użyj PAUSE zamiast zgadywać lub przełączać repo. Każdy Local Agent task JSON dla tego projektu ma mieć dokładnie:
-`"agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0"`.
+Każdy Local Agent task musi mieć dokładnie ten `agent_binding` i jawne `resources`. ChatGPT planuje; Local Agent wykonuje deterministyczne Mac/Gradle/ADB/device commands. Nie uruchamiaj lokalnego Codex przez Local Agent.
 
-Przed edycją brancha sprawdź aktywne Local Agent taski. ChatGPT planuje i podejmuje decyzje o kodzie; Local Agent wykonuje wyłącznie deterministyczne komendy Mac/build/ADB/device. Nigdy nie uruchamiaj lokalnego Codex przez Local Agent.
+Wycofano eksperymentalny event-driven Local Chat Bridge flow. Nie używaj `LAB:WAIT_TASK` ani `task_result_ready` jako mechanizmu pracy. Terminalny `.agent/results/<task-id>.json` jest autorytatywny. Dla zdrowych długich tasków nie polluj co 30 s; sprawdzaj ręcznie w rozsądnym odstępie lub gdy użytkownik poprosi.
 
-Najważniejsze dla nowego flow: po zakolejkowaniu jednego konkretnego taska NIE polluj go co 30 s. Użyj dokładnie:
-`[LAB:WAIT_TASK=<task-id>]`
-To ma być event-driven wake + alarm fallback. `task_result_ready` jest tylko sygnałem pobudki — po nim przeczytaj dokładny terminalny result JSON i dopiero wtedy uznaj GREEN/FAIL. `NEXT` używaj tylko do realnych kontroli czasowych/zewnętrznych, nie jako polling taska. Jeśli twarde live evidence pokazuje, że aktywny task nie może już osiągnąć celu, anuluj ten dokładny task zamiast czekać na timeout.
-
-Chcę od razu przetestować ten event-driven workflow w nowym oknie, więc przy pierwszym zadaniu wymagającym Local Agenta użyj tego mechanizmu.
-
-Zacznij od potwierdzenia aktualnego HEAD i przeczytania handoffu, a potem przejdź bez zbędnego rozwlekania do M3.
+Zacznij od potwierdzenia HEAD i stanu Local Agenta. Jeśli telefon nie jest podłączony, wykonuj tylko host-only pracę i nie deklaruj device gate jako PASS.
 ```
