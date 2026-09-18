@@ -30,8 +30,9 @@ class OkHttpRealtimeSocketConnectorTest {
         connector.connect(handshake, listener)
 
         val request = requireNotNull(factory.request)
+        // OkHttp normalizes wss:// to its underlying HTTPS upgrade request representation.
         assertEquals(
-            "wss://api.openai.com/v1/realtime?model=gpt-realtime",
+            "https://api.openai.com/v1/realtime?model=gpt-realtime",
             request.url.toString(),
         )
         assertEquals(
