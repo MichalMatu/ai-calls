@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.realtime
 
+import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.audio.PcmFrame
 
 /** Realtime transport decorator that records only bounded/redacted protocol metadata. */
@@ -7,20 +8,28 @@ class TracingRealtimeTransport(
     private val delegate: RealtimeTransport,
     private val trace: RealtimeEventTrace,
 ) : RealtimeTransport {
-    private var downstreamListener: RealtimeTransport.Listener? = null
+    private val downstreamListener = AtomicReference<RealtimeTransport.Listener?>(null)
 
     override suspend fun connect(config: RealtimeSessionConfig): Result<Unit> {
         trace.record(RealtimeTraceEventType.CONNECT_START)
-        val result = delegate.connect(config)
-        if (result.isSuccess) {
-            trace.record(RealtimeTraceEventType.CONNECT_SUCCESS)
-        } else {
+        return try {
+            delegate.connect(config).also { result ->
+                if (result.isSuccess) {
+                    trace.record(RealtimeTraceEventType.CONNECT_SUCCESS)
+                } else {
+                    trace.record(
+                        RealtimeTraceEventType.CONNECT_FAILURE,
+                        errorType = result.exceptionOrNull()?.javaClass?.simpleName,
+                    )
+                }
+            }
+        } catch (error: Throwable) {
             trace.record(
                 RealtimeTraceEventType.CONNECT_FAILURE,
-                errorType = result.exceptionOrNull()?.javaClass?.simpleName,
+                errorType = error.javaClass.simpleName,
             )
+            throw error
         }
-        return result
     }
 
     override fun sendAudio(frame: PcmFrame): Result<Unit> = delegate.sendAudio(frame)
@@ -50,7 +59,7 @@ class TracingRealtimeTransport(
     }
 
     override fun setListener(listener: RealtimeTransport.Listener?) {
-        downstreamListener = listener
+        downstreamListener.set(listener)
         delegate.setListener(if (listener == null) null else tracingListener)
     }
 
@@ -60,7 +69,7 @@ class TracingRealtimeTransport(
                 RealtimeTraceEventType.OUTPUT_AUDIO_UNIDENTIFIED,
                 byteCount = frame.data.size,
             )
-            downstreamListener?.onAudio(frame)
+            downstreamListener.get()?.onAudio(frame)
         }
 
         override fun onOutputAudio(partId: RealtimeOutputPartId, frame: PcmFrame) {
@@ -69,7 +78,7 @@ class TracingRealtimeTransport(
                 partId = partId,
                 byteCount = frame.data.size,
             )
-            downstreamListener?.onOutputAudio(partId, frame)
+            downstreamListener.get()?.onOutputAudio(partId, frame)
         }
 
         override fun onOutputAudioTranscriptDelta(partId: RealtimeOutputPartId, delta: String) {
@@ -78,7 +87,7 @@ class TracingRealtimeTransport(
                 partId = partId,
                 charCount = delta.length,
             )
-            downstreamListener?.onOutputAudioTranscriptDelta(partId, delta)
+            downstreamListener.get()?.onOutputAudioTranscriptDelta(partId, delta)
         }
 
         override fun onOutputAudioTranscriptDone(partId: RealtimeOutputPartId, transcript: String) {
@@ -87,12 +96,12 @@ class TracingRealtimeTransport(
                 partId = partId,
                 charCount = transcript.length,
             )
-            downstreamListener?.onOutputAudioTranscriptDone(partId, transcript)
+            downstreamListener.get()?.onOutputAudioTranscriptDone(partId, transcript)
         }
 
         override fun onOutputAudioDone(partId: RealtimeOutputPartId) {
             trace.record(RealtimeTraceEventType.OUTPUT_AUDIO_DONE, partId = partId)
-            downstreamListener?.onOutputAudioDone(partId)
+            downstreamListener.get()?.onOutputAudioDone(partId)
         }
 
         override fun onResponseDone(responseId: String, status: RealtimeResponseStatus) {
@@ -101,17 +110,17 @@ class TracingRealtimeTransport(
                 responseId = responseId,
                 status = status,
             )
-            downstreamListener?.onResponseDone(responseId, status)
+            downstreamListener.get()?.onResponseDone(responseId, status)
         }
 
         override fun onRemoteSpeechStarted() {
             trace.record(RealtimeTraceEventType.REMOTE_SPEECH_STARTED)
-            downstreamListener?.onRemoteSpeechStarted()
+            downstreamListener.get()?.onRemoteSpeechStarted()
         }
 
         override fun onRemoteSpeechStopped() {
             trace.record(RealtimeTraceEventType.REMOTE_SPEECH_STOPPED)
-            downstreamListener?.onRemoteSpeechStopped()
+            downstreamListener.get()?.onRemoteSpeechStopped()
         }
 
         override fun onFunctionCall(call: RealtimeFunctionCall) {
@@ -121,7 +130,7 @@ class TracingRealtimeTransport(
                 callId = call.callId,
                 functionName = call.name,
             )
-            downstreamListener?.onFunctionCall(call)
+            downstreamListener.get()?.onFunctionCall(call)
         }
 
         override fun onError(error: Throwable) {
@@ -129,7 +138,7 @@ class TracingRealtimeTransport(
                 RealtimeTraceEventType.ERROR,
                 errorType = error.javaClass.simpleName,
             )
-            downstreamListener?.onError(error)
+            downstreamListener.get()?.onError(error)
         }
     }
 }

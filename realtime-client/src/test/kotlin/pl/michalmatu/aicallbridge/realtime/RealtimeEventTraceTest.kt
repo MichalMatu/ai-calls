@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.realtime
 
+import kotlin.coroutines.startCoroutine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
