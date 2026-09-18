@@ -76,15 +76,10 @@ class CallRealtimeAudioPump(
     override fun onAudio(frame: PcmFrame) {
         if (!running.get()) return
 
-        val chunks = try {
-            splitRealtimeOutput(frame)
+        try {
+            enqueueRealtimeOutput(frame)
         } catch (error: Throwable) {
             signalTerminal(error)
-            return
-        }
-
-        for (chunk in chunks) {
-            if (!enqueueOutput(chunk)) return
         }
     }
 
@@ -173,13 +168,43 @@ class CallRealtimeAudioPump(
         }
     }
 
+    private fun enqueueRealtimeOutput(frame: PcmFrame) {
+        val format = frame.format
+        require(format.sampleRateHz == RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ) {
+            "Realtime output must be 24000 Hz"
+        }
+        require(format.channels == 1 && format.bitsPerSample == 16) {
+            "Realtime output must be mono PCM16LE"
+        }
+        val data = frame.data
+        require((data.size and 1) == 0) { "Realtime output must contain whole PCM16 samples" }
+
+        var offset = 0
+        while (offset < data.size && running.get()) {
+            val length = minOf(MAX_OUTPUT_CHUNK_BYTES, data.size - offset)
+            val sampleOffset = offset / 2L
+            val timestampNs = frame.monotonicTimestampNs +
+                sampleOffset * NANOS_PER_SECOND / RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ
+            val chunk = PcmFrame(
+                format,
+                data.copyOfRange(offset, offset + length),
+                timestampNs,
+            )
+            if (!enqueueOutput(chunk)) return
+            offset += length
+        }
+    }
+
     private fun enqueueOutput(frame: PcmFrame): Boolean {
         var overflow = false
         var accepted = false
         outputLock.withLock {
             if (!running.get()) return false
             val nextBytes = queuedOutputBytes + frame.data.size
-            if (nextBytes > MAX_OUTPUT_BACKLOG_BYTES) {
+            if (
+                nextBytes > MAX_OUTPUT_BACKLOG_BYTES ||
+                    outputQueue.size >= MAX_OUTPUT_QUEUE_CHUNKS
+            ) {
                 overflow = true
             } else {
                 outputQueue.addLast(frame)
@@ -192,7 +217,8 @@ class CallRealtimeAudioPump(
         if (overflow) {
             signalTerminal(
                 IllegalStateException(
-                    "Realtime output backlog exceeded ${MAX_OUTPUT_BACKLOG_MS} ms",
+                    "Realtime output backlog exceeded bounded queue limits " +
+                        "(${MAX_OUTPUT_BACKLOG_MS} ms / $MAX_OUTPUT_QUEUE_CHUNKS chunks)",
                 ),
             )
         }
@@ -241,35 +267,6 @@ class CallRealtimeAudioPump(
         }
     }
 
-    private fun splitRealtimeOutput(frame: PcmFrame): List<PcmFrame> {
-        val format = frame.format
-        require(format.sampleRateHz == RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ) {
-            "Realtime output must be 24000 Hz"
-        }
-        require(format.channels == 1 && format.bitsPerSample == 16) {
-            "Realtime output must be mono PCM16LE"
-        }
-        val data = frame.data
-        require((data.size and 1) == 0) { "Realtime output must contain whole PCM16 samples" }
-        if (data.isEmpty()) return emptyList()
-
-        val result = ArrayList<PcmFrame>((data.size + MAX_OUTPUT_CHUNK_BYTES - 1) / MAX_OUTPUT_CHUNK_BYTES)
-        var offset = 0
-        while (offset < data.size) {
-            val length = minOf(MAX_OUTPUT_CHUNK_BYTES, data.size - offset)
-            val sampleOffset = offset / 2L
-            val timestampNs = frame.monotonicTimestampNs +
-                sampleOffset * NANOS_PER_SECOND / RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ
-            result += PcmFrame(
-                format,
-                data.copyOfRange(offset, offset + length),
-                timestampNs,
-            )
-            offset += length
-        }
-        return result
-    }
-
     private fun describe(error: Throwable): String {
         val type = error.javaClass.simpleName
         val message = error.message?.replace('\n', ' ')?.replace('\r', ' ')
@@ -278,6 +275,7 @@ class CallRealtimeAudioPump(
 
     private companion object {
         const val MAX_OUTPUT_BACKLOG_MS = 500
+        const val MAX_OUTPUT_QUEUE_CHUNKS = 64
         const val MAX_OUTPUT_CHUNK_BYTES =
             RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ * 2 * 20 / 1_000
         const val MAX_OUTPUT_BACKLOG_BYTES =
