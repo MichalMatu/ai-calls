@@ -5,6 +5,7 @@ The only secret the operator provides is OPENAI_API_KEY in the host environment.
 - generates an independent one-shot broker bearer in memory;
 - starts the loopback-only credential broker;
 - exposes it through a temporary Cloudflare Quick Tunnel over HTTPS;
+- waits until the public broker endpoint is actually reachable and protected;
 - invokes the existing S22 off-call smoke with only the tunnel endpoint + broker bearer;
 - tears down tunnel and broker processes on every exit path.
 
@@ -24,6 +25,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence
 
@@ -34,6 +37,7 @@ BROKER_PATH = "/v1/realtime/client-secret"
 TOKEN_BYTES = 48
 BROKER_READY_TIMEOUT_SECONDS = 5.0
 TUNNEL_READY_TIMEOUT_SECONDS = 30.0
+PUBLIC_BROKER_READY_TIMEOUT_SECONDS = 30.0
 TRY_CLOUDFLARE_URL_RE = re.compile(
     r"https://[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.trycloudflare\.com\b",
     re.IGNORECASE,
@@ -166,6 +170,33 @@ def wait_for_quick_tunnel_url(
             return url
 
 
+def wait_for_public_broker(
+    credential_endpoint: str,
+    *,
+    timeout_seconds: float = PUBLIC_BROKER_READY_TIMEOUT_SECONDS,
+    opener: Callable[..., object] = urllib.request.urlopen,
+) -> None:
+    request = urllib.request.Request(
+        credential_endpoint,
+        data=b"{}",
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        try:
+            with opener(request, timeout=3) as response:
+                if getattr(response, "status", None) == 401:
+                    return
+        except urllib.error.HTTPError as error:
+            if error.code == 401:
+                return
+        except (urllib.error.URLError, TimeoutError, OSError):
+            pass
+        time.sleep(0.25)
+    raise TimeoutError("public credential broker did not become reachable and protected")
+
+
 def stop_process(process: Optional[subprocess.Popen]) -> None:
     if process is None or process.poll() is not None:
         return
@@ -187,6 +218,7 @@ def run_lab(
     port_picker: Callable[[], int] = pick_loopback_port,
     broker_waiter: Callable[[subprocess.Popen, int], None] = wait_for_loopback,
     tunnel_waiter: Callable[[subprocess.Popen], str] = wait_for_quick_tunnel_url,
+    public_waiter: Callable[[str], None] = wait_for_public_broker,
 ) -> int:
     target = serial.strip()
     if not target:
@@ -236,6 +268,7 @@ def run_lab(
         )
         tunnel_url = tunnel_waiter(tunnel)
         credential_endpoint = tunnel_url.rstrip("/") + BROKER_PATH
+        public_waiter(credential_endpoint)
 
         smoke_args = [sys.executable, str(SMOKE_SCRIPT), target]
         completed = run(
