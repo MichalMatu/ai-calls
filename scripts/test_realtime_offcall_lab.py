@@ -91,6 +91,64 @@ class RealtimeOffcallLabTest(unittest.TestCase):
         self.assertEqual(2, len(calls))
         self.assertEqual(endpoint, calls[0][0])
 
+    def test_quick_tunnel_retries_fresh_process_after_transient_failure(self):
+        from realtime_offcall_lab import start_ready_quick_tunnel
+
+        created = []
+        public_calls = []
+
+        class FakeProcess:
+            def __init__(self):
+                self.returncode = None
+                self.terminated = False
+
+            def poll(self):
+                return self.returncode
+
+            def terminate(self):
+                self.terminated = True
+                self.returncode = 0
+
+            def wait(self, timeout=None):
+                return 0
+
+            def kill(self):
+                self.returncode = -9
+
+        def fake_popen(args, **kwargs):
+            process = FakeProcess()
+            created.append(process)
+            return process
+
+        def tunnel_waiter(process):
+            index = created.index(process) + 1
+            return f"https://attempt-{index}.trycloudflare.com"
+
+        def public_waiter(endpoint):
+            public_calls.append(endpoint)
+            if len(public_calls) == 1:
+                raise TimeoutError("transient Quick Tunnel")
+
+        tunnel, endpoint = start_ready_quick_tunnel(
+            cloudflared="/opt/homebrew/bin/cloudflared",
+            port=18765,
+            environment={"PATH": "/bin", "OPENAI_API_KEY": "must-not-leak"},
+            popen=fake_popen,
+            tunnel_waiter=tunnel_waiter,
+            public_waiter=public_waiter,
+            attempts=2,
+        )
+
+        self.assertEqual(2, len(created))
+        self.assertTrue(created[0].terminated)
+        self.assertIs(tunnel, created[1])
+        self.assertFalse(created[1].terminated)
+        self.assertEqual(
+            "https://attempt-2.trycloudflare.com/v1/realtime/client-secret",
+            endpoint,
+        )
+        self.assertNotIn("OPENAI_API_KEY", created[1].__dict__)
+
     def test_run_lab_never_passes_openai_key_to_tunnel_or_smoke(self):
         import realtime_offcall_lab as lab
 
