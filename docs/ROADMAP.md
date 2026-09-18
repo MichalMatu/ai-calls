@@ -13,7 +13,7 @@ user task + explicit authority
   -> cellular downlink -> Realtime AI
   -> Realtime AI -> guarded cellular uplink
   -> structured outcome
-  -> optional later integrations such as calendar
+  -> optional later integrations
 ```
 
 The user must always be able to TAKE OVER immediately. Failure must fall back toward a normal human call rather than leave AI injection active.
@@ -48,7 +48,7 @@ Do not move or rewrite these milestone branches during normal development.
 
 Status: `DONE`
 
-Modular Android project, host regression discipline, explicit privilege boundaries, durable device evidence, and Local Agent workflow are established.
+Modular Android project, host regression discipline, explicit privilege boundaries, durable device evidence and Local Agent workflow are established.
 
 ## Phase 1 — cellular media capability
 
@@ -67,32 +67,22 @@ Generic media / voice-communication TX paths are not the production path on this
 
 Status: `DONE / PROVEN_S22 / FROZEN`
 
-Milestone D physical proof covers:
-
-- app death cleanup;
-- helper/UserService death cleanup;
-- RX/TX endpoint-loss whole-generation cleanup;
-- 20/20 start/abort cycles;
-- natural cellular call end after `CallModeWatchdog`;
-- 600 seconds total live bidirectional media as 10 x 60 seconds;
-- a separate 50.1-second external resource trend with stable FDs/threads and roughly 1 MiB RSS growth per process.
-
-Do not claim the 50.1-second resource run covers all 600 seconds.
+Milestone D physical proof covers app/helper death cleanup, RX/TX endpoint loss, 20/20 start/abort cycles, natural call end, 600 seconds total live bidirectional media and a separate 50.1-second resource trend.
 
 Detailed evidence: `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
 ## Phase 3 — Telephone Agent / OpenAI Realtime
 
-Status: `IN PROGRESS — SUBSTANTIAL HOST INTEGRATION COMPLETE, REAL OPENAI S22 SESSION NOT YET PROVEN`
+Status: `IN PROGRESS — HOST STACK GREEN / GENUINE OPENAI S22 SESSION BLOCKED ON EXTERNAL PREREQUISITES`
 
-Current detailed ledger: `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
-
-Behavior baseline at the current handoff:
+Current behavior baseline:
 
 ```text
-94594aa8f6e321395d5648dea4dffb243db911fd
-feat: require function response identity
+c8be36d27b05067574d99858e55d25596f2edbdf
+feat: include redacted realtime trace in off-call smoke
 ```
+
+Detailed ledger: `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
 
 ### 3A. Production app-side media ownership
 
@@ -113,14 +103,14 @@ Status: `HOST_GREEN`
 
 Delivered:
 
-- short-lived credential types/provider boundary;
+- short-lived credential boundary;
 - hardened OpenAI WebSocket handshake;
-- OkHttp connector (pinned to a compileSdk-36-compatible version);
+- OkHttp connector;
 - 16 kHz telephony <-> 24 kHz Realtime PCM adaptation;
-- bounded audio workers and queues;
+- bounded audio workers/queues;
 - local barge-in cancellation;
-- generation-safe transport/session cleanup;
-- typed Realtime events and function calling.
+- generation-safe cleanup;
+- typed output/function lifecycle.
 
 ### 3C. Task/workflow/policy model
 
@@ -143,78 +133,104 @@ Status: `HOST_GREEN`
 
 Delivered:
 
-- strict `evaluate_proposal` tool;
+- strict `evaluate_proposal`;
 - exact one-shot commitment permit;
-- `commit_proposal` consumes that permit once;
-- response-scoped forcing of `commit_proposal` after approval;
-- `NoTools` follow-up after successful commitment;
+- `commit_proposal` consumes it once;
+- response-scoped forced `commit_proposal` after approval;
+- `NoTools` after commitment;
 - permit invalidation on new proposal/start/TAKE OVER/close/stale generation.
 
-This is the application-side authority gate; prompt wording alone is never treated as authorization.
+Application code owns authority; prompt wording never authorizes commitment.
 
 ### 3E. Credential broker / real network smoke plumbing
 
-Status: `HOST_GREEN + FAIL-CLOSED S22 DRY-RUN GREEN / REAL OPENAI NETWORK SMOKE PENDING`
+Status: `HOST_GREEN + FAIL-CLOSED S22 DRY-RUN GREEN / REAL OPENAI NETWORK SMOKE BLOCKED`
 
 Delivered:
 
-- host credential broker with `OPENAI_API_KEY` only in host environment;
-- separate client bearer;
-- Android backend credential request/provider factories;
+- loopback host credential broker with `OPENAI_API_KEY` host-only;
+- separate Android/client bearer;
+- Android credential request/provider factories;
 - one-shot app-private smoke config;
 - protected ADB-only off-call Realtime probe;
-- secure host runner staging secrets over stdin rather than argv/Intent.
+- host runner staging broker URL/token over stdin rather than argv/Intent.
 
-The physical no-config dry-run kept `CALL_STATE=0 -> 0`, left no helper alive, and did not dial.
+The physical no-config dry-run kept `CALL_STATE=0 -> 0`, left no helper alive and did not dial.
 
-Remaining external prerequisite: an actual host `OPENAI_API_KEY` plus authenticated HTTPS access/tunnel to the loopback broker. Never place the long-lived key in APK/phone.
+External prerequisites still missing from Local Agent environment:
+
+```text
+OPENAI_API_KEY
+AI_CALL_BRIDGE_BROKER_TOKEN
+AI_CALL_BRIDGE_BROKER_HTTPS_URL
+```
+
+Never move the long-lived key to APK/phone to bypass this gate.
 
 ### 3F. Speech-integrity defense in depth
 
-Status: `MECHANICS HOST_GREEN / PRODUCTION POLICY WIRING RED`
+Status: `HOST_GREEN`
 
-Implemented mechanics:
+Delivered:
 
 - typed output identity;
 - final audio transcript lifecycle;
 - `response.done` terminal status;
 - bounded whole-response PCM buffer before telephony TX;
-- no release until audio done + final transcript done + successful response done;
-- cancelled/failed/incomplete response discard;
-- unknown response status fail-closed.
+- release only after audio done + final transcript done + successful response completion;
+- cancelled/failed/incomplete/unknown-status fail closed;
+- production `CallRealtimeAgentOutputApprovalPolicy` wired through the real session/media pump;
+- output RELEASE only in safe `ACTIVE_NEGOTIATION` with no pending commitment permit;
+- output DROP during pending permit, `NEEDS_USER_DECISION` and other unsafe states;
+- required function `response_id` retained by typed function calls.
 
-The response-lifecycle pump gate was fully GREEN at behavior commit `7d7bd65738568ee5a29ff6d2674b157584264e54`.
+The prior REDs are closed. Current full host suites are GREEN.
 
-Current unfinished host work:
+### 3G. Privacy-safe Realtime evidence trace
 
-1. implement and production-wire `CallRealtimeAgentOutputApprovalPolicy` using the same `CallCommitmentGate` as proposal/commit handlers;
-2. keep ordinary speech RELEASE limited to safe `ACTIVE_NEGOTIATION` state; DROP during pending commitment authority, `NEEDS_USER_DECISION`, and other unsafe states;
-3. update the stale legacy function-call transport test to include the newly-required GA `response_id` and rerun the full suite.
+Status: `HOST_GREEN`
 
-At behavior HEAD `94594aa`, the focused response-id protocol test passes but the full realtime-client suite has one stale-fixture failure. Do not call this HEAD fully GREEN until that is closed.
+Delivered:
 
-### 3G. First real Realtime physical validation
+- bounded `RealtimeEventTrace`;
+- `TracingRealtimeTransport` decorator;
+- relative event timing and lifecycle ordering;
+- local aliases for response/item/call correlation;
+- per-trace salted SHA-256 internal identity keys;
+- no PCM, transcript text, function arguments/output, credentials or raw provider IDs retained;
+- optional runtime wiring;
+- off-call smoke includes redacted `trace=...` evidence without changing PASS criteria.
 
-Status: `PENDING`
+Latest full evidence task:
+
+```text
+realtime-offcall-trace-host-green-retry-20260918-2740
+exit_code: 0
+```
+
+### 3H. First real Realtime physical validation
+
+Status: `PENDING / BLOCKED ON 3E EXTERNAL PREREQUISITES`
 
 Ordered gate:
 
-1. real OpenAI **off-call** S22 network/session smoke — no cellular dial;
-2. first real cellular Realtime call to a controlled/non-committing target;
-3. verify actual audio quality, latency, barge-in, TAKE OVER, cleanup, and GA event ordering/identity;
-4. only then permit the first real clinic-registration attempt.
+1. genuine OpenAI **off-call** S22 network/session smoke — no cellular dial;
+2. require `FETCHING_CREDENTIAL -> CONNECTING_REALTIME -> STARTING_MEDIA -> FAILED` with expected off-call media rejection and redacted trace evidence;
+3. first real cellular Realtime call to a controlled/non-committing target;
+4. verify actual audio quality, latency, barge-in, TAKE OVER, cleanup and GA event ordering/identity;
+5. only then permit the first real clinic-registration attempt.
 
 ## Phase 4 — product UX
 
 Status: `LATER`
 
-Needed after core Phase 3 physical validation:
+After core Phase 3 physical validation:
 
 - call task/session screen;
 - AI state and diagnostics;
 - prominent `Take over now`;
 - user-decision surface for `NEEDS_USER_DECISION`;
-- disclosure/transcript policy as product requirements settle;
+- disclosure/transcript policy;
 - structured outcome view.
 
 Do not replace the default dialer without a concrete requirement.
@@ -223,24 +239,14 @@ Do not replace the default dialer without a concrete requirement.
 
 Status: `LATER`
 
-Validate real Realtime sessions under:
+Validate real Realtime sessions under longer calls, screen-off/background operation, network failure/recovery, route changes/Bluetooth, Wi-Fi Calling, incoming/outgoing variants, hold/resume, repeated sessions and backend/provider failures.
 
-- longer calls;
-- screen off / app background;
-- network loss/recovery;
-- route changes and Bluetooth;
-- Wi-Fi Calling;
-- incoming/outgoing call variants;
-- hold/resume;
-- repeated sessions without reboot;
-- Realtime/provider/backend failures.
-
-Exit condition: every tested failure has a defined fail-safe behavior and no condition leaves AI injection stuck active.
+Exit condition: every tested failure has defined fail-safe behavior and no condition leaves AI injection active.
 
 ## Current decision
 
-Do not jump directly from host tests to an autonomous clinic booking.
+Do not jump from host tests directly to an autonomous clinic booking.
 
-Close the two current host REDs, get a completely GREEN host baseline, prove real OpenAI connectivity off-call, then prove one non-committing cellular Realtime conversation. Only after those gates should a real appointment booking be attempted.
+The host stack including speech authorization, function identity and redacted Realtime evidence tracing is GREEN. The next authoritative gate is the genuine OpenAI off-call S22 smoke, currently blocked only by external credential/tunnel prerequisites. After that passes, prove one controlled non-committing cellular Realtime conversation before any real appointment booking.
 
 Authoritative continuation: `docs/HANDOFF_NEXT_CHAT.md` and `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
