@@ -39,6 +39,7 @@ TOKEN_BYTES = 48
 BROKER_READY_TIMEOUT_SECONDS = 5.0
 TUNNEL_READY_TIMEOUT_SECONDS = 30.0
 PUBLIC_BROKER_READY_TIMEOUT_SECONDS = 30.0
+PUBLIC_DNS_WARMUP_SECONDS = 4.0
 QUICK_TUNNEL_ATTEMPTS = 3
 TRY_CLOUDFLARE_URL_RE = re.compile(
     r"https://[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.trycloudflare\.com(?![A-Za-z0-9.-])",
@@ -189,7 +190,17 @@ def wait_for_public_broker(
     *,
     timeout_seconds: float = PUBLIC_BROKER_READY_TIMEOUT_SECONDS,
     opener: Callable[..., object] = urllib.request.urlopen,
+    sleeper: Optional[Callable[[float], None]] = None,
+    dns_warmup_seconds: float = PUBLIC_DNS_WARMUP_SECONDS,
 ) -> None:
+    if dns_warmup_seconds < 0:
+        raise ValueError("dns_warmup_seconds must be >= 0")
+    sleep = time.sleep if sleeper is None else sleeper
+    if dns_warmup_seconds:
+        # TryCloudflare may publish the random hostname shortly before public DNS sees it.
+        # Avoid poisoning the host resolver with an immediate NXDOMAIN lookup.
+        sleep(dns_warmup_seconds)
+
     request = urllib.request.Request(
         credential_endpoint,
         data=b"{}",
@@ -207,7 +218,7 @@ def wait_for_public_broker(
                 return
         except (urllib.error.URLError, TimeoutError, OSError):
             pass
-        time.sleep(0.25)
+        sleep(0.25)
     raise TimeoutError("public credential broker did not become reachable and protected")
 
 
