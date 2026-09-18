@@ -92,6 +92,29 @@ class RealtimeEventTraceTest {
         assertEquals("R?", trace.snapshot()[1].responseAlias)
     }
 
+    @Test
+    fun untrustedDiagnosticLabelsCannotInjectTraceContent() {
+        val trace = RealtimeEventTrace()
+        val injectedFunctionName = "evaluate_proposal\nsecret=leak"
+        val oversizedErrorType = "X".repeat(512)
+
+        trace.record(
+            RealtimeTraceEventType.FUNCTION_CALL,
+            functionName = injectedFunctionName,
+            errorType = oversizedErrorType,
+        )
+
+        val event = trace.snapshot().single()
+        assertEquals("REDACTED", event.functionName)
+        assertEquals("REDACTED", event.errorType)
+        val rendered = trace.renderCompact()
+        assertFalse(rendered.contains("secret=leak"))
+        assertFalse(rendered.contains(oversizedErrorType))
+        assertFalse(rendered.contains('\n'))
+        assertTrue(rendered.contains("fn=REDACTED"))
+        assertTrue(rendered.contains("error=REDACTED"))
+    }
+
     private class FakeTransport : RealtimeTransport {
         var currentListener: RealtimeTransport.Listener? = null
 
