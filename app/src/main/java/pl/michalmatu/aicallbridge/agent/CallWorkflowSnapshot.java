@@ -38,4 +38,17 @@ public record CallWorkflowSnapshot(
             throw new IllegalArgumentException("failureReason is only valid for FAILED workflow");
         }
     }
+
+    @Override
+    public String toString() {
+        return "CallWorkflowSnapshot[state="
+            + state
+            + ", resolvedTarget="
+            + (resolvedTarget == null ? "none" : "REDACTED")
+            + ", pendingDecision="
+            + (pendingDecision == null ? "none" : pendingDecision.action())
+            + ", outcome="
+            + (outcome == null ? "none" : outcome.status())
+            + ", taskData=REDACTED]";
+    }
 }
