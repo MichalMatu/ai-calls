@@ -85,7 +85,7 @@ class CallRealtimeAgentSessionControllerTest {
             ),
             CallConfirmationPolicy(),
         ) { }.apply {
-            resolveTarget(CallResolvedTarget("Clinic A", "510100100", "Wroclaw", null))
+            resolveTarget(CallResolvedTarget("Clinic A", "510100100"))
             markDialing()
             markCallActive()
         }
