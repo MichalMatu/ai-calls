@@ -23,6 +23,15 @@ public record CallTask(
         authorizedFacts = copyAuthorizedFacts(authorizedFacts);
     }
 
+    @Override
+    public String toString() {
+        return "CallTask[taskData=REDACTED, hardRestrictions="
+            + constraints.hasHardRestrictions()
+            + ", authorizedFacts="
+            + authorizedFacts.size()
+            + " entries]";
+    }
+
     private static Map<String, String> copyAuthorizedFacts(Map<String, String> facts) {
         Objects.requireNonNull(facts, "authorizedFacts");
         LinkedHashMap<String, String> result = new LinkedHashMap<>();
