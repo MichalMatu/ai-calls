@@ -41,71 +41,130 @@ Frozen checkpoint commit:
 
 Do not repeat the full physical matrix without concrete regression evidence. Details: `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
-## Phase 3 — Telephone Agent / OpenAI Realtime
+## Phase 3 — selectable telephone-agent engines
 
-Status: `HOST_GREEN / READY FOR OPENAI_API_KEY + DIRECT-USB S22 GATE`
+Status: `LOCAL SPEECH FOUNDATION PROVEN_S22 / OPENAI REALTIME AUDIO FROZEN`
 
-Implemented and host-verified:
+The product direction is now selectable rather than Realtime-only.
 
-- production app-side media coordinator/backend/runtime;
-- Realtime WebSocket transport and generation safety;
-- 16 kHz telephony <-> 24 kHz Realtime PCM path;
-- bounded audio pump and barge-in;
-- task/constraints/preferences/authorized-facts workflow model;
-- deterministic `CallConfirmationPolicy` and `NEEDS_USER_DECISION`;
-- typed Realtime function calling;
-- strict side-effect-free proposal parser;
-- one-shot commitment authorization and forced `commit_proposal`;
-- output speech buffering/approval before cellular TX;
-- host credential broker and short-lived Android credential provider;
-- bounded privacy-safe event trace;
-- controlled live-call probe with fail-closed S22 preflight;
-- unified host/CI quality gate.
-
-### Gate 3A — genuine OpenAI off-call S22 smoke
-
-Status: `READY FOR OPERATOR KEY / DIRECT USB`
-
-Preferred command:
-
-```bash
-python3 scripts/realtime_offcall_lab.py RFCT70L7E8J
-```
-
-The operator supplies only `OPENAI_API_KEY`. The launcher generates the independent bearer and temporary HTTPS Quick Tunnel, waits for DNS/public `401` readiness, and cleans both processes up. The exact S22+ direct-USB ADB target is mandatory.
-
-No cellular call is made. Expected successful safety path:
+### Runtime choices
 
 ```text
-FETCHING_CREDENTIAL -> CONNECTING_REALTIME -> STARTING_MEDIA -> FAILED
+Audio mode
+├── LOCAL_STT_TTS
+│   └── text LLM provider: OPENAI_TEXT | LOCAL_MAC_LLM
+├── OPENAI_REALTIME_AUDIO   (preserved/frozen)
+└── LOCAL_REALTIME_AUDIO    (future local speech-to-speech/server engine)
 ```
 
-Reason: `realtime_connected_off_call_media_rejected`. `ACTIVE` off-call is failure.
+Tool integration is independent from model selection. MCP is a tools/context transport and must not be treated as an LLM provider. A future model may use local tools, MCP tools, or no tools while the application-owned authority/commitment gate remains unchanged.
 
-### Gate 3B — first controlled cellular Realtime call
+Implemented and host-verified shared safety/application stack includes:
 
-Status: `PENDING 3A`
+- production app-side media coordinator/backend/runtime;
+- deterministic task/constraints/preferences/authorized-facts workflow model;
+- `CallConfirmationPolicy` and `NEEDS_USER_DECISION`;
+- strict side-effect-free proposal parsing;
+- one-shot commitment authorization;
+- output approval before cellular TX;
+- local TAKE OVER and frozen Samsung media fail-safe invariants;
+- selectable runtime preferences for `LOCAL_STT_TTS`, `OPENAI_REALTIME_AUDIO`, `LOCAL_REALTIME_AUDIO` and text LLM provider `OPENAI_TEXT` / `LOCAL_MAC_LLM`.
 
-Use direct USB, Bluetooth OFF, active `MODE_IN_CALL`, earpiece and muted voice-call stream before broker config is staged. Validate RX/TX intelligibility, latency, barge-in, TAKE OVER, cleanup and actual Realtime event ordering. The smoke runner does not dial/hang up.
+### Local speech evidence on S22
 
-### Gate 3C — first real task
+Status: `PROVEN_S22`
 
-Status: `PENDING 3B`
+Physically proven on the exact Samsung S22+:
 
-Only after one controlled non-committing call passes, attempt a real user-authorized task such as clinic registration. Anything outside explicit authority goes to `NEEDS_USER_DECISION`.
+- Android on-device speech recognition is available;
+- `pl-PL` on-device recognition model is installed;
+- local Polish TTS voices are available and synthesize successfully without network-required voices;
+- TTS output can be decoded/resampled to the internal telephony format PCM16LE mono 16 kHz;
+- caller-supplied PCM16LE mono 16 kHz can be streamed through a `ParcelFileDescriptor` pipe into on-device STT;
+- the known Polish phrase `To jest test lokalnego rozpoznawania mowy.` round-trips through local TTS -> PCM16/16 kHz -> PFD pipe -> on-device STT with a matching transcript;
+- the proof is off-call and leaves `CALL_STATE=0` before and after.
 
-## Phase 4 — product UX
+Relevant checkpoints:
+
+```text
+6a1ba494ddc2319ef9fe8847f88f4e7816b2a7b0
+feat: add local speech capability probe
+
+ef65f99420aaa00bdcfa3be3faeca210ba17c4ae
+feat: prove local speech PFD loopback
+
+386031a1f9bf891970e4cf6af8a3ec148a65aa7a
+fix: stream local STT input through PFD pipe
+```
+
+### Gate 3L-A — production local speech adapters
+
+Status: `NEXT`
+
+Extract the proven probe mechanics into small production-owned components for:
+
+- streaming PCM16LE mono 16 kHz into on-device STT;
+- local TTS synthesis returning PCM16LE mono 16 kHz;
+- cancellation/generation ownership and bounded cleanup;
+- no telephony/live-call wiring yet.
+
+Require TDD + `scripts/verify_host.sh`. Preserve the frozen Samsung media implementation unchanged.
+
+### Gate 3L-B — off-call local conversation engine
+
+Status: `PENDING 3L-A`
+
+Connect the production local STT/TTS adapters to a provider-neutral text-agent boundary. First provider may be a deterministic/fake host-test backend to prove lifecycle and output approval before adding network/local LLM inference.
+
+### Gate 3L-C — text LLM providers
+
+Status: `PENDING 3L-B`
+
+Implement provider selection behind one application-owned text-agent interface:
+
+- `OPENAI_TEXT` — remote text model using a safe host/backend credential boundary;
+- `LOCAL_MAC_LLM` — LAN/local server on the user's Mac, preferably through a narrow authenticated/OpenAI-compatible or equivalent endpoint.
+
+Model output must not bypass proposal parsing, confirmation policy, one-shot commitment authorization or output approval.
+
+### Gate 3L-D — first controlled local-speech cellular call
+
+Status: `PENDING 3L-C`
+
+Use the already-proven frozen telephony RX/TX bridge during a user-established cellular call. The runner must not dial or hang up. Validate real call RX -> local STT -> text agent -> local TTS -> TX, latency, interruption/TAKE OVER and cleanup.
+
+### OpenAI Realtime Audio branch
+
+Status: `FROZEN / PRESERVED`
+
+The existing OpenAI Realtime implementation, credential broker, off-call smoke and controlled live-call runner remain in the repository as a selectable alternative. Do not delete or destructively refactor them while developing the local path.
+
+Its previous gates remain available if explicitly resumed:
+
+- genuine OpenAI off-call S22 smoke;
+- controlled non-committing Realtime cellular call;
+- real user-authorized Realtime task.
+
+A standard OpenAI API key remains host/backend-only and is never placed on Android.
+
+### Local Realtime Audio branch
 
 Status: `LATER`
 
-Only after Phase 3 physical proof: task/session UX, prominent TAKE OVER, user-decision surface, concise diagnostics and structured outcomes. Do not replace the default dialer without a concrete requirement.
+Future third audio engine where telephony PCM is handled by a local audio-capable model/server rather than Android STT/TTS + text LLM. It must reuse the same app-owned authority, output and TAKE OVER boundaries.
+
+## Phase 4 — product UX
+
+Status: `INCREMENTAL`
+
+Runtime selectors already exist. Add only UX required by proven engines: provider readiness, concise diagnostics, prominent TAKE OVER, user-decision surface and structured outcomes. Do not replace the default dialer without a concrete requirement.
 
 ## Phase 5 — robustness matrix
 
 Status: `LATER`
 
-Validate longer real Realtime calls, screen/background behavior, network failure/recovery, route/Bluetooth changes, Wi-Fi Calling, incoming/outgoing variants and repeated sessions. Exit condition: failures have defined fail-safe behavior and never leave AI injection active.
+After a complete selected engine works in a real cellular call, validate longer calls, screen/background behavior, endpoint/model/network failure, route/Bluetooth changes, Wi-Fi Calling, incoming/outgoing variants and repeated sessions. Exit condition: failures have defined fail-safe behavior and never leave AI injection active.
 
 ## Current decision
 
-Do not expand features before Gate 3A. The codebase is intentionally being kept small and auditable at the credential boundary. Current evidence and exact continuation: `docs/PHASE3_REALTIME_STATUS_2026-09-18.md` and `docs/HANDOFF_NEXT_CHAT.md`.
+Develop `LOCAL_STT_TTS` first. The S22 local speech primitives and exact PCM/PFD bridge are already physically proven. The immediate continuation is production local speech adapters without live-call wiring, followed by a provider-neutral text-agent boundary and selectable `OPENAI_TEXT` / `LOCAL_MAC_LLM` backends. Preserve `OPENAI_REALTIME_AUDIO` as a frozen selectable alternative and keep `LOCAL_REALTIME_AUDIO` as the third future engine.
