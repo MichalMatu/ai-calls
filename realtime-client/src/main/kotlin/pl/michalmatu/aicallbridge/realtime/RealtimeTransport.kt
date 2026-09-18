@@ -23,6 +23,13 @@ interface RealtimeTransport {
 
 data class RealtimeSessionConfig(
     val sessionEndpoint: String,
-    val shortLivedCredential: String,
+    val clientSecret: RealtimeClientSecret,
+    val model: String,
     val instructions: String,
-)
+) {
+    init {
+        require(sessionEndpoint.isNotBlank()) { "sessionEndpoint must not be blank" }
+        require(model.isNotBlank()) { "model must not be blank" }
+        require(instructions.isNotBlank()) { "instructions must not be blank" }
+    }
+}
