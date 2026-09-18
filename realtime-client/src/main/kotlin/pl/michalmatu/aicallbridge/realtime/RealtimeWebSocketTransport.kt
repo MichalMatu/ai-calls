@@ -239,6 +239,10 @@ class RealtimeWebSocketTransport(
         when (event.type()) {
             RealtimeServerEvent.Type.AUDIO_DELTA ->
                 event.audioFrame()?.let { frame -> safeNotify { it.onAudio(frame) } }
+            RealtimeServerEvent.Type.OUTPUT_AUDIO_DONE,
+            RealtimeServerEvent.Type.OUTPUT_AUDIO_TRANSCRIPT_DELTA,
+            RealtimeServerEvent.Type.OUTPUT_AUDIO_TRANSCRIPT_DONE,
+            -> Unit
             RealtimeServerEvent.Type.REMOTE_SPEECH_STARTED ->
                 safeNotify { it.onRemoteSpeechStarted() }
             RealtimeServerEvent.Type.REMOTE_SPEECH_STOPPED ->
