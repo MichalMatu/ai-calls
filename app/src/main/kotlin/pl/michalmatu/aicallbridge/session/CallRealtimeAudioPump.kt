@@ -11,6 +11,7 @@ import pl.michalmatu.aicallbridge.audio.PcmFrame
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
 import pl.michalmatu.aicallbridge.realtime.RealtimeOutputPartId
 import pl.michalmatu.aicallbridge.realtime.RealtimePcmFrameAdapter
+import pl.michalmatu.aicallbridge.realtime.RealtimeResponseStatus
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
 
 data class CallRealtimeAudioPumpSnapshot(
@@ -28,9 +29,10 @@ data class CallRealtimeAudioPumpSnapshot(
  * terminal data-plane failure so the orchestrator can trigger whole-generation cleanup.
  *
  * When [outputApprovalPolicy] is supplied, identified model audio is buffered as a complete
- * Realtime output part and cannot reach telephony TX until both audio.done and transcript.done have
- * arrived and the app-owned policy explicitly releases the final transcript. This is defense in
- * depth; the Realtime transcript is not treated as a cryptographic proof of audio contents.
+ * Realtime output part and cannot reach telephony TX until audio.done, transcript.done and a
+ * successful response.done have arrived and the app-owned policy explicitly releases the final
+ * transcript. This is defense in depth; the Realtime transcript is not treated as a cryptographic
+ * proof of audio contents.
  */
 class CallRealtimeAudioPump(
     private val bridge: CallRealtimePcmBridge,
@@ -150,6 +152,24 @@ class CallRealtimeAudioPump(
         val gate = responseBuffer ?: return
         try {
             gatedEvent(partId) { gate.onAudioDone(partId) }?.let(::handleGatedResult)
+        } catch (error: Throwable) {
+            signalTerminal(error)
+        }
+    }
+
+    override fun onResponseDone(responseId: String, status: RealtimeResponseStatus) {
+        if (!running.get()) return
+        val gate = responseBuffer ?: return
+        try {
+            val results = synchronized(gateLock) {
+                if (responseId in suppressedResponseIds) {
+                    return@synchronized emptyList<CallRealtimeOutputBufferResult>()
+                }
+                val finalized = gate.onResponseDone(responseId, status)
+                activeGatedParts.removeAll { partId -> partId.responseId == responseId }
+                finalized
+            }
+            results.forEach(::handleGatedResult)
         } catch (error: Throwable) {
             signalTerminal(error)
         }
