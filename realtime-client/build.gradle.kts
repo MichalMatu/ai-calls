@@ -18,4 +18,5 @@ android {
 
 dependencies {
     implementation(project(":audio-bridge"))
+    implementation("com.google.code.gson:gson:2.14.0")
 }
