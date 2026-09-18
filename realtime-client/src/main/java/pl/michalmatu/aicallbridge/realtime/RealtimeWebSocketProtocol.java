@@ -98,9 +98,35 @@ public final class RealtimeWebSocketProtocol {
         return root.toString();
     }
 
-    /** Starts the follow-up model response after a function result was added to the conversation. */
+    /** Starts the default follow-up model response after a function result was added. */
     public String responseCreate() {
-        return "{\"type\":\"response.create\"}";
+        return responseCreate(RealtimeFunctionFollowup.Auto.INSTANCE);
+    }
+
+    /** Starts one response with a response-scoped tool-choice override. */
+    public String responseCreate(RealtimeFunctionFollowup followup) {
+        Objects.requireNonNull(followup, "followup");
+        if (followup instanceof RealtimeFunctionFollowup.Auto) {
+            return "{\"type\":\"response.create\"}";
+        }
+
+        JsonObject root = new JsonObject();
+        root.addProperty("type", "response.create");
+        JsonObject response = new JsonObject();
+
+        if (followup instanceof RealtimeFunctionFollowup.NoTools) {
+            response.addProperty("tool_choice", "none");
+        } else if (followup instanceof RealtimeFunctionFollowup.ForceFunction forced) {
+            JsonObject toolChoice = new JsonObject();
+            toolChoice.addProperty("type", "function");
+            toolChoice.addProperty("name", forced.getName());
+            response.add("tool_choice", toolChoice);
+        } else {
+            throw new IllegalArgumentException("unsupported Realtime function follow-up policy");
+        }
+
+        root.add("response", response);
+        return root.toString();
     }
 
     public RealtimeServerEvent parseServerEvent(String json, long monotonicTimestampNs) {
