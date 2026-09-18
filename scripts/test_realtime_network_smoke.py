@@ -105,17 +105,23 @@ class RealtimeNetworkSmokeTest(unittest.TestCase):
         self.assertNotIn("credential_endpoint", joined)
         self.assertNotIn("broker_token", joined)
 
-    def test_parse_probe_result_extracts_pass_or_fail_without_log_noise(self):
+    def test_parse_probe_result_extracts_pass_fail_and_redacted_trace_without_log_noise(self):
         text = """noise
 I AiCallBridge: realtime_network_off_call_smoke_result:
 I AiCallBridge: realtime_network_off_call_smoke=PASS
 I AiCallBridge: reason=realtime_connected_off_call_media_rejected
 I AiCallBridge: states=FETCHING_CREDENTIAL>CONNECTING_REALTIME>STARTING_MEDIA>FAILED
+I AiCallBridge: trace=1@0:CONNECT_START;2@15:CONNECT_SUCCESS;3@17:CLOSED
 """
         result = parse_probe_result(text)
         self.assertEqual("PASS", result.status)
         self.assertEqual("realtime_connected_off_call_media_rejected", result.reason)
         self.assertIn("STARTING_MEDIA", result.states)
+        self.assertEqual(
+            "1@0:CONNECT_START;2@15:CONNECT_SUCCESS;3@17:CLOSED",
+            result.trace,
+        )
+        self.assertIn("trace=1@0:CONNECT_START", result.render())
 
         self.assertIsNone(parse_probe_result("no terminal result yet"))
 

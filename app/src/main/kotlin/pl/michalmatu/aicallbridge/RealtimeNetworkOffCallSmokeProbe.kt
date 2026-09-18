@@ -15,6 +15,7 @@ import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialBackendProviderFactory
 import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialProvider
+import pl.michalmatu.aicallbridge.realtime.RealtimeEventTrace
 import pl.michalmatu.aicallbridge.session.CallRealtimeSessionOrchestratorSnapshot
 
 /**
@@ -84,6 +85,7 @@ object RealtimeNetworkOffCallSmokeProbe {
         private val mainHandler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
         private val tracker = RealtimeNetworkSmokeStateTracker()
+        private val eventTrace = RealtimeEventTrace()
         private val timeout = Runnable { finish(tracker.timeout()) }
         private var runtime: CallRealtimeAgentRuntime? = null
 
@@ -94,6 +96,7 @@ object RealtimeNetworkOffCallSmokeProbe {
                     workflow = workflow,
                     credentialProvider = credentialProvider,
                     listener = ::onSnapshot,
+                    eventTrace = eventTrace,
                 )
                 runtime = created
                 mainHandler.postDelayed(timeout, TIMEOUT_MS)
@@ -132,7 +135,8 @@ object RealtimeNetworkOffCallSmokeProbe {
                 }
             }
 
-            mainHandler.post { callback.onComplete(result.render()) }
+            val tracedResult = result.withTrace(eventTrace.renderCompact())
+            mainHandler.post { callback.onComplete(tracedResult.render()) }
         }
     }
 

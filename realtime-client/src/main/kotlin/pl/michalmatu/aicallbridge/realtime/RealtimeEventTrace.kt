@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.realtime
 
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.ArrayDeque
 import java.util.LinkedHashMap
 
@@ -11,6 +13,7 @@ class RealtimeEventTrace @JvmOverloads constructor(
 ) {
     private val lock = Any()
     private val startedNs = monotonicNs()
+    private val identitySalt = ByteArray(IDENTITY_SALT_BYTES).also { SecureRandom().nextBytes(it) }
     private val events = ArrayDeque<RealtimeTraceEvent>()
     private val responseAliases = LinkedHashMap<String, String>()
     private val itemAliases = LinkedHashMap<String, String>()
@@ -67,14 +70,32 @@ class RealtimeEventTrace @JvmOverloads constructor(
         prefix: String,
     ): String? {
         if (raw == null) return null
-        aliases[raw]?.let { return it }
+        val key = saltedIdentityKey(raw)
+        aliases[key]?.let { return it }
         if (aliases.size >= maxIdentityAliases) return "$prefix?"
-        return "$prefix${aliases.size + 1}".also { aliases[raw] = it }
+        return "$prefix${aliases.size + 1}".also { aliases[key] = it }
+    }
+
+    /** Keeps raw provider IDs transient: only a per-trace salted digest is retained as the map key. */
+    private fun saltedIdentityKey(raw: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        digest.update(identitySalt)
+        val bytes = digest.digest(raw.toByteArray(Charsets.UTF_8))
+        val chars = CharArray(bytes.size * 2)
+        var index = 0
+        for (byte in bytes) {
+            val value = byte.toInt() and 0xff
+            chars[index++] = HEX[value ushr 4]
+            chars[index++] = HEX[value and 0x0f]
+        }
+        return String(chars)
     }
 
     companion object {
         const val DEFAULT_MAX_EVENTS = 256
         const val DEFAULT_MAX_IDENTITY_ALIASES = 512
+        private const val IDENTITY_SALT_BYTES = 16
+        private const val HEX = "0123456789abcdef"
     }
 }
 

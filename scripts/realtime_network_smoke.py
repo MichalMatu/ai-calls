@@ -65,6 +65,7 @@ class SmokeResult:
     reason: str
     states: tuple[str, ...]
     detail: Optional[str] = None
+    trace: Optional[str] = None
 
     def render(self) -> str:
         rendered = [
@@ -74,6 +75,8 @@ class SmokeResult:
         ]
         if self.detail:
             rendered.append(f"detail={self.detail}")
+        if self.trace:
+            rendered.append(f"trace={self.trace}")
         return "\n".join(rendered)
 
 
@@ -159,13 +162,14 @@ def parse_probe_result(text: str) -> Optional[SmokeResult]:
     reason: Optional[str] = None
     states: tuple[str, ...] = ()
     detail: Optional[str] = None
+    trace: Optional[str] = None
 
     for raw_line in text.splitlines():
         marker = raw_line.find(RESULT_PREFIX)
         if marker >= 0:
             status = raw_line[marker + len(RESULT_PREFIX) :].strip()
             continue
-        for key in ("reason=", "states=", "detail="):
+        for key in ("reason=", "states=", "detail=", "trace="):
             marker = raw_line.find(key)
             if marker < 0:
                 continue
@@ -174,13 +178,15 @@ def parse_probe_result(text: str) -> Optional[SmokeResult]:
                 reason = value
             elif key == "states=":
                 states = () if value in {"", "none"} else tuple(value.split(">"))
-            else:
+            elif key == "detail=":
                 detail = value
+            else:
+                trace = value
             break
 
     if status is None or reason is None:
         return None
-    return SmokeResult(status=status, reason=reason, states=states, detail=detail)
+    return SmokeResult(status=status, reason=reason, states=states, detail=detail, trace=trace)
 
 
 def _adb_text(runner: ByteRunner, serial: str, *shell_args: str) -> str:

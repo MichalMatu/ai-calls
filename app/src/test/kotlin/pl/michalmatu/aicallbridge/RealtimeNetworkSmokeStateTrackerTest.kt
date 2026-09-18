@@ -78,6 +78,22 @@ class RealtimeNetworkSmokeStateTrackerTest {
         assertEquals("unexpected_off_call_failure", result.reason)
     }
 
+    @Test
+    fun optionalTraceIsRenderedOnOneSanitizedLine() {
+        val result = RealtimeNetworkSmokeResult(
+            status = "PASS",
+            reason = "realtime_connected_off_call_media_rejected",
+            detail = null,
+            states = listOf(CallRealtimeSessionOrchestratorState.FAILED),
+        ).withTrace("1@0:CONNECT_START\n2@10:CONNECT_SUCCESS\r3@11:CLOSED")
+
+        assertEquals(
+            "1@0:CONNECT_START 2@10:CONNECT_SUCCESS 3@11:CLOSED",
+            result.trace,
+        )
+        assertTrue(result.render().contains("trace=1@0:CONNECT_START 2@10:CONNECT_SUCCESS 3@11:CLOSED"))
+    }
+
     private fun snapshot(
         state: CallRealtimeSessionOrchestratorState,
         failure: String? = null,

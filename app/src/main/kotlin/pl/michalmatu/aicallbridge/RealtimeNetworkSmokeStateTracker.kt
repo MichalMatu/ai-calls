@@ -69,7 +69,16 @@ class RealtimeNetworkSmokeResult(
     val reason: String,
     val detail: String?,
     val states: List<CallRealtimeSessionOrchestratorState>,
+    val trace: String? = null,
 ) {
+    fun withTrace(renderedTrace: String?): RealtimeNetworkSmokeResult = RealtimeNetworkSmokeResult(
+        status = status,
+        reason = reason,
+        detail = detail,
+        states = states,
+        trace = renderedTrace?.replace('\n', ' ')?.replace('\r', ' ')?.takeIf { it.isNotBlank() },
+    )
+
     fun render(): String = buildString {
         append("realtime_network_off_call_smoke=").append(status)
         append('\n').append("reason=").append(reason)
@@ -82,6 +91,9 @@ class RealtimeNetworkSmokeResult(
         if (!detail.isNullOrBlank()) {
             append('\n').append("detail=")
             append(detail.replace('\n', ' ').replace('\r', ' '))
+        }
+        if (!trace.isNullOrBlank()) {
+            append('\n').append("trace=").append(trace)
         }
     }
 
