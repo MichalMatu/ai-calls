@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.agent
 
+import com.google.gson.JsonParser
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -7,6 +8,7 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.util.concurrent.Executor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pl.michalmatu.aicallbridge.audio.PcmFrame
@@ -23,7 +25,7 @@ import pl.michalmatu.aicallbridge.session.CallRealtimeSessionOrchestratorState
 
 class CallRealtimeAgentSessionControllerTest {
     @Test
-    fun controllerStartsBoundSpecRoutesProposalToolAndOwnsTakeoverSurface() {
+    fun controllerStartsBoundSpecRoutesCommitmentFlowAndRevokesPermitOnTakeover() {
         val workflow = activeWorkflow()
         val transport = FakeTransport()
         val backend = FakeBackend()
@@ -48,7 +50,10 @@ class CallRealtimeAgentSessionControllerTest {
         assertEquals(CallRealtimeSessionOrchestratorState.ACTIVE, controller.snapshot().state)
         assertTrue(transport.connectedConfig!!.instructions.contains("evaluate_proposal"))
         assertEquals(
-            listOf(CallRealtimeProposalFunctionHandler.FUNCTION_NAME),
+            listOf(
+                CallRealtimeProposalFunctionHandler.FUNCTION_NAME,
+                CallRealtimeCommitmentFunctionHandler.FUNCTION_NAME,
+            ),
             transport.connectedConfig!!.tools.map { it.name },
         )
 
@@ -60,14 +65,42 @@ class CallRealtimeAgentSessionControllerTest {
             ),
         )
 
-        assertEquals(
-            listOf("call_1" to "{\"decision\":\"autonomously_allowed\"}"),
-            transport.functionOutputs,
+        val evaluationOutput = JsonParser.parseString(transport.functionOutputs.single().second).asJsonObject
+        assertEquals("autonomously_allowed", evaluationOutput.get("decision").asString)
+        val authorization = evaluationOutput.get("commitment_authorization").asString
+        assertTrue(authorization.isNotBlank())
+        assertTrue(controller.sessionSpec.commitmentGate.hasAuthorization())
+
+        transport.emitFunctionCall(
+            RealtimeFunctionCall(
+                "call_2",
+                CallRealtimeCommitmentFunctionHandler.FUNCTION_NAME,
+                "{\"authorization\":\"$authorization\"}",
+            ),
         )
+
+        assertEquals(
+            "authorized",
+            JsonParser.parseString(transport.functionOutputs[1].second)
+                .asJsonObject.get("commitment").asString,
+        )
+        assertFalse(controller.sessionSpec.commitmentGate.hasAuthorization())
         assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, workflow.snapshot().state())
 
+        // A later approved proposal creates new authority, which TAKE OVER must revoke locally.
+        transport.emitFunctionCall(
+            RealtimeFunctionCall(
+                "call_3",
+                CallRealtimeProposalFunctionHandler.FUNCTION_NAME,
+                """{"scheduled_at":null,"price":null,"payment_mode":null,"provider":"Clinic A","location":"Wroclaw"}""",
+            ),
+        )
+        assertTrue(controller.sessionSpec.commitmentGate.hasAuthorization())
+
         controller.takeOverNow()
+
         assertEquals(CallRealtimeSessionOrchestratorState.TAKEN_OVER, controller.snapshot().state)
+        assertFalse(controller.sessionSpec.commitmentGate.hasAuthorization())
         assertTrue(backend.abortCalls > 0)
         controller.close()
         backend.close()
