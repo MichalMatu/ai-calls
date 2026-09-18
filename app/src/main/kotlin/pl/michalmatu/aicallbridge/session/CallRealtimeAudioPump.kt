@@ -29,8 +29,8 @@ class CallRealtimeAudioPump(
     private val bridge: CallRealtimePcmBridge,
     private val transport: RealtimeTransport,
     private val monotonicNs: () -> Long = System::nanoTime,
-    private val onTerminalFailure: (Throwable) -> Unit,
     private val functionCallHandler: (RealtimeFunctionCall) -> Unit = {},
+    private val onTerminalFailure: (Throwable) -> Unit,
 ) : RealtimeTransport.Listener, AutoCloseable {
     private val started = AtomicBoolean(false)
     private val closed = AtomicBoolean(false)
