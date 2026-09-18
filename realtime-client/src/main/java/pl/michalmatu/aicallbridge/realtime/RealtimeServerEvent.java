@@ -9,6 +9,7 @@ public final class RealtimeServerEvent {
         OUTPUT_AUDIO_DONE,
         OUTPUT_AUDIO_TRANSCRIPT_DELTA,
         OUTPUT_AUDIO_TRANSCRIPT_DONE,
+        RESPONSE_DONE,
         REMOTE_SPEECH_STARTED,
         REMOTE_SPEECH_STOPPED,
         FUNCTION_CALL,
@@ -20,6 +21,8 @@ public final class RealtimeServerEvent {
     private final PcmFrame audioFrame;
     private final RealtimeOutputPartId outputPartId;
     private final String text;
+    private final String responseId;
+    private final RealtimeResponseStatus responseStatus;
     private final RealtimeFunctionCall functionCall;
     private final String errorMessage;
     private final String rawType;
@@ -29,6 +32,8 @@ public final class RealtimeServerEvent {
         PcmFrame audioFrame,
         RealtimeOutputPartId outputPartId,
         String text,
+        String responseId,
+        RealtimeResponseStatus responseStatus,
         RealtimeFunctionCall functionCall,
         String errorMessage,
         String rawType
@@ -37,6 +42,8 @@ public final class RealtimeServerEvent {
         this.audioFrame = audioFrame;
         this.outputPartId = outputPartId;
         this.text = text;
+        this.responseId = responseId;
+        this.responseStatus = responseStatus;
         this.functionCall = functionCall;
         this.errorMessage = errorMessage;
         this.rawType = rawType;
@@ -54,6 +61,8 @@ public final class RealtimeServerEvent {
             null,
             null,
             null,
+            null,
+            null,
             rawType
         );
     }
@@ -63,6 +72,8 @@ public final class RealtimeServerEvent {
             Type.OUTPUT_AUDIO_DONE,
             null,
             outputPartId,
+            null,
+            null,
             null,
             null,
             null,
@@ -82,6 +93,8 @@ public final class RealtimeServerEvent {
             delta,
             null,
             null,
+            null,
+            null,
             rawType
         );
     }
@@ -98,6 +111,26 @@ public final class RealtimeServerEvent {
             transcript,
             null,
             null,
+            null,
+            null,
+            rawType
+        );
+    }
+
+    static RealtimeServerEvent responseDone(
+        String responseId,
+        RealtimeResponseStatus responseStatus,
+        String rawType
+    ) {
+        return new RealtimeServerEvent(
+            Type.RESPONSE_DONE,
+            null,
+            null,
+            null,
+            responseId,
+            responseStatus,
+            null,
+            null,
             rawType
         );
     }
@@ -105,6 +138,8 @@ public final class RealtimeServerEvent {
     static RealtimeServerEvent speechStarted(String rawType) {
         return new RealtimeServerEvent(
             Type.REMOTE_SPEECH_STARTED,
+            null,
+            null,
             null,
             null,
             null,
@@ -122,20 +157,52 @@ public final class RealtimeServerEvent {
             null,
             null,
             null,
+            null,
+            null,
             rawType
         );
     }
 
     static RealtimeServerEvent functionCall(RealtimeFunctionCall call, String rawType) {
-        return new RealtimeServerEvent(Type.FUNCTION_CALL, null, null, null, call, null, rawType);
+        return new RealtimeServerEvent(
+            Type.FUNCTION_CALL,
+            null,
+            null,
+            null,
+            null,
+            null,
+            call,
+            null,
+            rawType
+        );
     }
 
     static RealtimeServerEvent error(String message, String rawType) {
-        return new RealtimeServerEvent(Type.ERROR, null, null, null, null, message, rawType);
+        return new RealtimeServerEvent(
+            Type.ERROR,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            message,
+            rawType
+        );
     }
 
     static RealtimeServerEvent other(String rawType) {
-        return new RealtimeServerEvent(Type.OTHER, null, null, null, null, null, rawType);
+        return new RealtimeServerEvent(
+            Type.OTHER,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            rawType
+        );
     }
 
     public Type type() {
@@ -152,6 +219,14 @@ public final class RealtimeServerEvent {
 
     public String text() {
         return text;
+    }
+
+    public String responseId() {
+        return responseId;
+    }
+
+    public RealtimeResponseStatus responseStatus() {
+        return responseStatus;
     }
 
     public RealtimeFunctionCall functionCall() {
