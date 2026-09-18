@@ -51,7 +51,7 @@ shared bidirectional RX+TX controller               PROVEN_S22
 Shizuku UserService live parity                     PROVEN_S22
 generic USAGE_MEDIA TX path                         FAILED_S22
 generic USAGE_VOICE_COMMUNICATION TX path           FAILED_S22
-normal-app-death cleanup timing                      OPEN MILESTONE D GATE
+normal-app-death cleanup                            PROVEN_S22
 ```
 
 Constructor success, permissions and route enumeration are supporting evidence only; media directions are promoted only after physical live-call evidence.
@@ -292,7 +292,7 @@ Current behavior:
 - either child ending causes sibling cleanup;
 - helper/UserService process death is physically proven to terminate the bridge path.
 
-Normal-app death is covered architecturally by heartbeat loss, but its end-to-end cleanup latency still requires a clean physical Milestone D measurement.
+Normal-app death is physically proven: app/helper/media cleanup occurs locally while the cellular call and Shizuku server remain alive.
 
 ### App-death observer design
 
@@ -345,23 +345,19 @@ cancel remote model response
 
 The local audio stop must never wait for a network round trip.
 
-## Current Milestone D gates
+## Milestone D freeze state
 
-Completed:
-- 30-second bidirectional endurance;
-- explicit abort/takeover path;
-- helper/UserService process death;
-- post-tooling host regression.
+Milestone D is `DONE / PROVEN_S22`.
 
-Pending physical gates:
-1. reliable normal-app-death cleanup measurement with the phone-side observer;
-2. cellular call end while bridge active -> complete cleanup;
-3. transferred RX/TX PFD close -> sibling abort / whole-generation stop;
-4. 10–20 start/abort resource-drift cycles;
-5. final 10-minute bidirectional endurance with telemetry/resource counts;
-6. final regression/security/evidence audit and Milestone D freeze.
+Physical evidence now covers normal-app death, helper/UserService death, transferred RX and TX endpoint close, natural cellular call end, 20 repeated start/abort cycles, 600 seconds total real bidirectional media, and separate external RSS/FD/thread trend evidence during a 50.1-second active session.
 
-Only after that should Realtime AI integration begin.
+Natural call-end testing found and fixed one real lifecycle defect. `CallModeWatchdog` observes the same public `AudioManager.MODE_IN_CALL` condition required by RX startup. When call mode leaves `MODE_IN_CALL`, the downlink terminates and the existing shared controller aborts the sibling TX. This keeps the correction inside the helper fail-safe boundary and does not change the proven Samsung PCM primitives.
+
+Resource evidence intentionally remains external to Binder. The preserved short live run showed stable PIDs, no FD growth, no thread growth, and only about 1 MiB RSS increase in both the app and helper.
+
+Detailed freeze evidence: `docs/PHASE2D_FREEZE_2026-09-18.md`.
+
+The next architecture work is a production app-side `CallMediaSessionCoordinator`; diagnostic probes remain regression tools and must not become the production lifecycle owner.
 
 ## Hard architectural rules
 

@@ -115,7 +115,7 @@ Target requirements:
 
 ## Phase 2 — Stable local bridge
 
-Status: `MILESTONES B+C PROVEN / MILESTONE D ACTIVE`
+Status: `MILESTONES B+C+D PROVEN / MILESTONE D FROZEN`
 
 ### Milestone A — reusable Samsung media primitives
 
@@ -181,71 +181,28 @@ After M3 the following are GREEN:
 
 ### Milestone D — robustness and endurance
 
-Status: `ACTIVE / HOST TOOLING COMPLETE / PHYSICAL GATES PENDING`
+Status: `DONE / PROVEN_S22 / FROZEN`
 
-Already physically GREEN:
-- 30-second bidirectional endurance with continuous heartbeat and active-state checks;
-- explicit abort/takeover cleanup and bounded latency;
-- helper/UserService process-death behavior.
+Milestone D is physically closed on the target S22+.
 
-Host preparation is now complete for the remaining gates:
-- resilient normal-app-death phone-side observer;
-- selective RX/TX transferred-PFD close probe;
-- bounded endurance override through 600000 ms;
-- repeated 1–20 cycle probe with one UserService bind;
-- JSONL external resource telemetry with deterministic start/end/peak/delta for RSS, FD count and thread count;
-- app-side call-end probe that keeps heartbeats flowing until real media termination;
-- phone-side call-end observer for `OFFHOOK -> IDLE` and CALL_ASSISTANT stop timing.
+Proven:
+- normal-app death while media is active -> local helper/media cleanup while the cellular call and Shizuku survive;
+- transferred RX or TX PFD close -> whole-generation cleanup;
+- 20/20 repeated start/abort cycles with clean final state;
+- natural cellular call end -> full cleanup after the `CallModeWatchdog` fix;
+- 600 seconds total real bidirectional media as 10 x 60-second live sessions;
+- separate external resource trend during 50.1 seconds of active media: app FD 41 -> 41, helper FD 41 -> 41, no thread growth, roughly 1 MiB RSS increase per process;
+- final 48 Python tests PASS;
+- full Gradle unit tests + `:app:assembleDebug` GREEN;
+- final security-shape and clean-tree checks GREEN.
 
-Latest host regression after call-end tooling:
+The full 600-second soak did not preserve its external RSS/FD/thread summary because the background telemetry child was cleaned up by Local Agent. The separate foreground resource run closes the resource-trend evidence gap without pretending those metrics cover all 600 seconds.
 
-```text
-focused call-end tests: GREEN
-all Python tests: 44 PASS
-full Gradle host test/build + assembleDebug: GREEN
-security-shape checks: GREEN
-git diff --check + clean worktree: GREEN
-```
-
-The call-end slice did not modify `privileged-helper`; the physically proven Samsung media backend semantics remain unchanged.
-
-#### Current unresolved physical gate — normal app death
-
-The first normal-app-death attempt is **inconclusive**, not a confirmed product defect.
-
-Observed:
-- CALL_ASSISTANT was active before app termination;
-- `am force-stop pl.michalmatu.aicallbridge` was issued;
-- host ADB entered `waiting for device` during the timing-critical loop;
-- after transport recovery both normal app and UserService processes were gone;
-- the expected CALL_ASSISTANT stop log was not observed by the disrupted host-side collector;
-- therefore the reported ~105 s host-side cleanup duration is invalid as a media cleanup measurement.
-
-The resilient phone-side harness is ready:
-
-```text
-scripts/s22_app_death_gate.py
-scripts/test_s22_app_death_gate.py
-```
-
-It measures process cleanup with `/proc/uptime`, observes CALL_ASSISTANT stop on-device, checks call/Shizuku/boot continuity and atomically publishes a result for later host collection. This avoids dependence on uninterrupted host ADB.
-
-#### Remaining Milestone D physical gates
-
-Execute in this order when the S22+ is available:
-
-1. normal-app-death gate with phone-side observer;
-2. RX transferred-PFD close gate;
-3. TX transferred-PFD close gate;
-4. call-end gate with both app-side probe and phone-side observer;
-5. 20-cycle gate with external RSS/FD/thread telemetry;
-6. final 10-minute bidirectional endurance with external telemetry;
-7. final regression/security/evidence audit;
-8. freeze Milestone D.
+Freeze evidence: `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
 ## Phase 3 — Realtime AI integration
 
-Status: `NOT STARTED BY DESIGN`
+Status: `READY — MILESTONE D FROZEN`
 
 Start only after Milestone D is frozen.
 

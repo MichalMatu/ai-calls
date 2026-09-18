@@ -20,7 +20,7 @@ realtime AI
 
 The user must always be able to take over the call immediately. Privileged/media failure must fail toward a normal human call, never toward stuck AI injection.
 
-## Current status — 2026-09-17
+## Current status — 2026-09-18
 
 The difficult stock-Samsung cellular media path is physically proven on the target S22+.
 
@@ -93,36 +93,19 @@ commit: 9c136fc05c5b33f383d72b0b7080ad5b9a754bb4
 
 Post-freeze deep-audit fixes M1/M2/M3/M4 are complete. M3 reuses Shizuku's existing `ActivityThread.currentActivityThread()` instead of creating a second `ActivityThread.systemMain()` from a Binder thread. Its host, off-call, silent-live and 30-second endurance regressions are GREEN.
 
-### Current gate — Milestone D robustness
+### Phase 2D — robustness and endurance
 
-`ACTIVE`
+`DONE / PROVEN_S22 / FROZEN`
 
-Already GREEN:
+Physically GREEN on the target S22+: normal-app death, helper/UserService death, transferred RX/TX PFD close with whole-generation cleanup, 20/20 start/abort cycles, natural cellular call-end cleanup after the helper-side `CallModeWatchdog` fix, and 600 seconds total real bidirectional media as 10 x 60-second live sessions.
 
-- 30-second bidirectional endurance;
-- explicit abort/takeover latency;
-- helper/UserService process-death behavior;
-- host regression after the latest tooling work: 30 Python tests PASS and full Gradle build/test PASS.
+A separate preserved 50.1-second active resource run showed stable app/helper PIDs, FD counts of `41 -> 41` for both processes, no thread growth, and roughly 1 MiB RSS increase in each process. This complements the 600-second media soak; it is not presented as 600 seconds of resource telemetry.
 
-The nearest unresolved physical gate is **normal app death while media is active**. An earlier attempt was inconclusive because host ADB entered `waiting for device`; the resulting ~105 s host-side timing is therefore not a valid cleanup-latency measurement, even though both the app and UserService were later confirmed gone.
+Final regression: 48 Python tests PASS, full Gradle unit tests + `:app:assembleDebug` GREEN, security-shape audit GREEN, clean tree.
 
-To remove that measurement dependency, the repository now contains:
+Detailed evidence: `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
-```text
-scripts/s22_app_death_gate.py
-scripts/test_s22_app_death_gate.py
-```
-
-The observer runs timing-critical checks on the phone using `/proc/uptime`, watches app/helper process death and CALL_ASSISTANT stop evidence, publishes its result atomically, and does not depend on uninterrupted host ADB. It intentionally does not use `nohup` because this S22+ does not provide `toybox nohup`.
-
-Remaining Milestone D work after the app-death gate:
-
-1. end the cellular call while the bridge is active and prove full cleanup;
-2. close one transferred RX/TX PFD and prove sibling abort / whole-generation stop;
-3. run 10–20 start/abort cycles and compare FD/thread/process/resource counts;
-4. run a final 10-minute bidirectional endurance test with telemetry/resource counts;
-5. perform final regression/audit and freeze Milestone D;
-6. only then connect realtime AI.
+The next product work is Telephone Agent v1: a production `CallMediaSessionCoordinator`, task/workflow orchestration, and then Realtime AI as the conversational engine.
 
 ## Architecture
 

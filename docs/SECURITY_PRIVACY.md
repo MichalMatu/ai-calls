@@ -167,3 +167,16 @@ Revisit at minimum:
 ## Production gate
 
 No build should be considered product-ready until a destructive failure test confirms that killing the app, losing the network and losing the realtime session all result in **AI injection stopping locally while the user retains control of the cellular call**.
+
+## Milestone D verified fail-safe evidence
+
+As of 2026-09-18 on the target S22+, destructive physical tests verify that active AI media fails closed for normal-app death, helper/UserService death, transferred RX/TX endpoint loss, explicit TAKE OVER/abort, and natural cellular call end. The natural-call-end gate exposed a real heartbeat-lifetime defect and the helper-side `CallModeWatchdog` fix was physically revalidated.
+
+The final product-branch security-shape audit also verified:
+- privileged diagnostic automation remains behind `android.permission.DUMP`;
+- the exported launcher does not accept privileged live-probe automation extras;
+- no long-lived OpenAI key pattern is embedded in product modules;
+- PCM remains PFD-based rather than per-frame Binder;
+- recording is still disabled by default.
+
+See `docs/PHASE2D_FREEZE_2026-09-18.md`.
