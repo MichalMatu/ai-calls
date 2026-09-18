@@ -45,6 +45,21 @@ class DiagnosticProbeActivity : Activity() {
         }
 
         when {
+            intent.getBooleanExtra(EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE, false) -> {
+                statusView.text = "Running controlled Realtime live-call smoke…"
+                Log.i(TAG, "realtime_live_call_smoke_start=true")
+                val durationMs = intent.getLongExtra(
+                    EXTRA_REALTIME_LIVE_DURATION_MS,
+                    RealtimeLiveCallSmokeSpec.DEFAULT_DURATION_MS,
+                )
+                RealtimeLiveCallSmokeProbe.run(this, durationMs) { result ->
+                    runOnUiThread {
+                        statusView.text = result
+                        Log.i(TAG, "realtime_live_call_smoke_result:\n$result")
+                        finish()
+                    }
+                }
+            }
             intent.getBooleanExtra(EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE, false) -> {
                 statusView.text = "Running Realtime network + production media off-call smoke…"
                 Log.i(TAG, "realtime_network_off_call_smoke_start=true")
@@ -166,6 +181,8 @@ class DiagnosticProbeActivity : Activity() {
     private companion object {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
+        const val EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE = "run_realtime_live_call_smoke"
+        const val EXTRA_REALTIME_LIVE_DURATION_MS = "realtime_live_duration_ms"
         const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"
         const val EXTRA_RUN_PRODUCTION_MEDIA_OFF_CALL_SMOKE = "run_production_media_off_call_smoke"
         const val EXTRA_RUN_SHIZUKU_PROBE = "run_shizuku_probe"
