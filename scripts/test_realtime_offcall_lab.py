@@ -1,5 +1,6 @@
 import subprocess
 import unittest
+import urllib.error
 from types import SimpleNamespace
 from unittest import mock
 
@@ -72,6 +73,24 @@ class RealtimeOffcallLabTest(unittest.TestCase):
         self.assertIsNone(parse_quick_tunnel_url("https://trycloudflare.com.evil.test"))
         self.assertIsNone(parse_quick_tunnel_url("https://example.com"))
 
+    def test_public_readiness_retries_transport_and_requires_unauthorized_boundary(self):
+        from realtime_offcall_lab import wait_for_public_broker
+
+        endpoint = "https://quiet-moon.trycloudflare.com/v1/realtime/client-secret"
+        calls = []
+
+        def opener(request, timeout):
+            calls.append((request.full_url, timeout))
+            if len(calls) == 1:
+                raise urllib.error.URLError("dns not propagated")
+            raise urllib.error.HTTPError(request.full_url, 401, "Unauthorized", {}, None)
+
+        with mock.patch("realtime_offcall_lab.time.sleep", return_value=None):
+            wait_for_public_broker(endpoint, timeout_seconds=1, opener=opener)
+
+        self.assertEqual(2, len(calls))
+        self.assertEqual(endpoint, calls[0][0])
+
     def test_run_lab_never_passes_openai_key_to_tunnel_or_smoke(self):
         import realtime_offcall_lab as lab
 
@@ -79,6 +98,7 @@ class RealtimeOffcallLabTest(unittest.TestCase):
         token = "broker-" + "x" * 40
         created = []
         smoke_calls = []
+        public_endpoints = []
 
         class FakeProcess:
             def __init__(self, args, env):
@@ -108,6 +128,7 @@ class RealtimeOffcallLabTest(unittest.TestCase):
             return process
 
         def fake_run(args, **kwargs):
+            self.assertEqual(1, len(public_endpoints))
             smoke_calls.append((list(args), dict(kwargs["env"])))
             return SimpleNamespace(returncode=0)
 
@@ -121,9 +142,14 @@ class RealtimeOffcallLabTest(unittest.TestCase):
                 port_picker=lambda: 18765,
                 broker_waiter=lambda process, port: self.assertEqual(18765, port),
                 tunnel_waiter=lambda process: "https://quiet-moon.trycloudflare.com",
+                public_waiter=lambda endpoint: public_endpoints.append(endpoint),
             )
 
         self.assertEqual(0, code)
+        self.assertEqual(
+            ["https://quiet-moon.trycloudflare.com/v1/realtime/client-secret"],
+            public_endpoints,
+        )
         self.assertEqual(2, len(created))
         broker, tunnel = created
         self.assertEqual(api_key, broker.env["OPENAI_API_KEY"])
