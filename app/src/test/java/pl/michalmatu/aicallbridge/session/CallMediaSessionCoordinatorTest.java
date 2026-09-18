@@ -274,6 +274,16 @@ public final class CallMediaSessionCoordinatorTest {
         boolean open;
 
         @Override
+        public java.io.InputStream downlink() {
+            return java.io.InputStream.nullInputStream();
+        }
+
+        @Override
+        public java.io.OutputStream uplink() {
+            return java.io.OutputStream.nullOutputStream();
+        }
+
+        @Override
         public void close() {
             open = false;
         }
