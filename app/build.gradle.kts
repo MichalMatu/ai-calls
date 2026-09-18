@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":privileged-helper"))
     implementation(project(":realtime-client"))
     implementation("com.google.code.gson:gson:2.14.0")
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
     testImplementation("junit:junit:4.13.2")

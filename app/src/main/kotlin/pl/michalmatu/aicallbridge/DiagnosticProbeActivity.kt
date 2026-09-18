@@ -31,6 +31,25 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_MAC_TEXT_BACKEND_PROBE, false)) {
+            val baseUrl = intent.getStringExtra(EXTRA_LOCAL_TEXT_BASE_URL).orEmpty()
+            val model = intent.getStringExtra(EXTRA_LOCAL_TEXT_MODEL).orEmpty()
+            if (baseUrl.isBlank() || model.isBlank()) {
+                finishWithError("local_text_backend_config_missing")
+                return
+            }
+            statusView.text = "Running local Mac text backend probe…"
+            Log.i(TAG, "local_mac_text_backend_probe_start=true")
+            LocalMacTextBackendProbe.run(this, baseUrl, model) { result ->
+                runOnUiThread {
+                    statusView.text = result
+                    Log.i(TAG, "local_mac_text_backend_probe_result:\n$result")
+                    finish()
+                }
+            }
+            return
+        }
+
         if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_SPEECH_TEXT_PIPELINE_PROBE, false)) {
             statusView.text = "Running local speech + text pipeline probe…"
             Log.i(TAG, "local_speech_text_pipeline_probe_start=true")
@@ -233,6 +252,9 @@ class DiagnosticProbeActivity : Activity() {
     private companion object {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
+        const val EXTRA_RUN_LOCAL_MAC_TEXT_BACKEND_PROBE = "run_local_mac_text_backend_probe"
+        const val EXTRA_LOCAL_TEXT_BASE_URL = "local_text_base_url"
+        const val EXTRA_LOCAL_TEXT_MODEL = "local_text_model"
         const val EXTRA_RUN_LOCAL_SPEECH_CAPABILITY_PROBE = "run_local_speech_capability_probe"
         const val EXTRA_RUN_LOCAL_SPEECH_TEXT_PIPELINE_PROBE = "run_local_speech_text_pipeline_probe"
         const val EXTRA_RUN_LOCAL_SPEECH_PRODUCTION_PROBE = "run_local_speech_production_probe"
