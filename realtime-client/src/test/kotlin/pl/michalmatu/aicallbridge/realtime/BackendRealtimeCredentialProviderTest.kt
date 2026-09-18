@@ -8,6 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
@@ -32,7 +33,7 @@ class BackendRealtimeCredentialProviderTest {
                 Request.Builder()
                     .url("https://agent.example.test/realtime/client-secret")
                     .header("Authorization", "Bearer app-session-token")
-                    .post("{}".toResponseBody(JSON))
+                    .post("{}".toRequestBody(JSON))
                     .build()
             },
             callFactory = client,
@@ -62,7 +63,7 @@ class BackendRealtimeCredentialProviderTest {
             requestFactory = {
                 Request.Builder()
                     .url("http://agent.example.test/realtime/client-secret")
-                    .post("{}".toResponseBody(JSON))
+                    .post("{}".toRequestBody(JSON))
                     .build()
             },
             callFactory = client,
@@ -91,7 +92,7 @@ class BackendRealtimeCredentialProviderTest {
             requestFactory = {
                 Request.Builder()
                     .url("https://api.openai.com/v1/realtime/client_secrets")
-                    .post("{}".toResponseBody(JSON))
+                    .post("{}".toRequestBody(JSON))
                     .build()
             },
             callFactory = fakeClient { request ->
@@ -157,7 +158,7 @@ class BackendRealtimeCredentialProviderTest {
     private fun backendPost(): Request =
         Request.Builder()
             .url("https://agent.example.test/realtime/client-secret")
-            .post("{}".toResponseBody(JSON))
+            .post("{}".toRequestBody(JSON))
             .build()
 
     private fun fakeClient(handler: (Request) -> Response): OkHttpClient =
