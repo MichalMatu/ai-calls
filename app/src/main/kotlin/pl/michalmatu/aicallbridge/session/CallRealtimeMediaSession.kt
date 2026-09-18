@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.session
 
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
 
 enum class CallRealtimeMediaSessionState {
@@ -30,6 +31,7 @@ class CallRealtimeMediaSession(
     private val transport: RealtimeTransport,
     monotonicNs: () -> Long = System::nanoTime,
     private val onTerminalState: (CallRealtimeMediaSessionSnapshot) -> Unit = {},
+    onFunctionCall: (RealtimeFunctionCall) -> Unit = {},
 ) : AutoCloseable {
     private val lock = Any()
     private var state = CallRealtimeMediaSessionState.ATTACHED
@@ -44,6 +46,7 @@ class CallRealtimeMediaSession(
             transport,
             monotonicNs,
             ::handlePumpFailure,
+            onFunctionCall,
         )
     }
 
