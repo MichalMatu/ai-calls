@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
@@ -22,6 +23,7 @@ import pl.michalmatu.aicallbridge.helper.samsung.SamsungUplinkPipeSession;
  * bounded command-line harness so the physical proof can be rerun without duplicating the
  * production uplink primitive.</p>
  */
+@TargetApi(31)
 public final class CallAssistantAudioProbe {
     private static final int MAX_DURATION_MS = 1_000;
     private static final int MAX_FREQUENCY_HZ = 8_000;

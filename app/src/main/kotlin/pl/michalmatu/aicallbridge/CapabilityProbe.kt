@@ -43,7 +43,7 @@ class CapabilityProbe(private val context: Context) {
             lines += "available_communication_devices=${audioManager.availableCommunicationDevices.joinToString(";") { deviceSummary(it) }.ifEmpty { "none" }}"
         }
 
-        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_ALL).sortedWith(
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS or AudioManager.GET_DEVICES_OUTPUTS).sortedWith(
             compareBy<AudioDeviceInfo> { it.type }.thenBy { it.id },
         )
         lines += "audio_device_count=${devices.size}"
@@ -70,6 +70,7 @@ class CapabilityProbe(private val context: Context) {
     private fun permissionState(permission: String): String =
         if (context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) "granted" else "denied"
 
+    @android.annotation.SuppressLint("MissingPermission")
     private fun probeAudioSource(lines: MutableList<String>, label: String, source: Int) {
         val sampleRate = 16_000
         val channelMask = AudioFormat.CHANNEL_IN_MONO

@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Looper;
@@ -11,6 +12,7 @@ import java.lang.reflect.Method;
 import pl.michalmatu.aicallbridge.helper.samsung.SamsungDownlinkPipeSession;
 
 /** Bounded regression harness for the production VOICE_DOWNLINK -> pipe path. */
+@TargetApi(31)
 public final class DownlinkPipeProbe {
     private static final int SAMPLE_RATE = 16_000;
     private static final int MAX_DURATION_MS = 5_000;

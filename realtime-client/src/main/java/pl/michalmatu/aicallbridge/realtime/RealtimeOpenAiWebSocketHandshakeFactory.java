@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.realtime;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
@@ -39,8 +40,13 @@ public final class RealtimeOpenAiWebSocketHandshakeFactory {
         requireSafeProtocolToken(secret.getValue());
         requireTrustedEndpoint(config.getSessionEndpoint());
 
-        String encodedModel = URLEncoder.encode(config.getModel(), StandardCharsets.UTF_8)
-            .replace("+", "%20");
+        final String encodedModel;
+        try {
+            encodedModel = URLEncoder.encode(config.getModel(), StandardCharsets.UTF_8.name())
+                .replace("+", "%20");
+        } catch (UnsupportedEncodingException impossible) {
+            throw new AssertionError("UTF-8 must be available", impossible);
+        }
         String requestUrl = TRUSTED_SCHEME
             + "://"
             + TRUSTED_HOST

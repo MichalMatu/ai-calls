@@ -1,11 +1,13 @@
 package pl.michalmatu.aicallbridge.helper.samsung;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Build;
 
 import java.util.Objects;
 
@@ -59,6 +61,7 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
         return openInternal(sampleRate, attributionContext);
     }
 
+    @SuppressLint("MissingPermission")
     private static SamsungVoiceDownlinkCapture openInternal(
         int sampleRate,
         Context attributionContext
@@ -78,6 +81,11 @@ public final class SamsungVoiceDownlinkCapture implements AutoCloseable {
             )
             .setBufferSizeInBytes(bufferSize);
         if (attributionContext != null) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                throw new UnsupportedOperationException(
+                    "AudioRecord attribution context requires Android 12 / API 31+"
+                );
+            }
             builder.setContext(attributionContext);
         }
         AudioRecord record = builder.build();

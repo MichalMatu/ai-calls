@@ -97,7 +97,7 @@ public final class CallMediaOffCallSmokeProbe {
                 ) {
                     finish(
                         "FAIL",
-                        "unexpected_failure_" + snapshot.failure().name().toLowerCase(),
+                        "unexpected_failure_" + snapshot.failure().name().toLowerCase(java.util.Locale.ROOT),
                         detail
                     );
                     return;

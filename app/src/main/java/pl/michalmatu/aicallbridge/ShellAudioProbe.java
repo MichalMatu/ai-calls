@@ -81,7 +81,7 @@ public final class ShellAudioProbe {
 
             AudioDeviceInfo telephonySink = null;
             AudioDeviceInfo telephonySource = null;
-            for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_ALL)) {
+            for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS | AudioManager.GET_DEVICES_OUTPUTS)) {
                 if (device.getType() == AudioDeviceInfo.TYPE_TELEPHONY) {
                     String direction = device.isSink() ? "sink" : (device.isSource() ? "source" : "neither");
                     System.out.println(
@@ -116,6 +116,7 @@ public final class ShellAudioProbe {
         }
     }
 
+    @android.annotation.SuppressLint("MissingPermission")
     private static int captureDownlink(int durationMs, String outputPath) {
         int minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_IN, ENCODING);
         int bufferSize = minBuffer > 0 ? Math.max(minBuffer * 2, 4096) : 4096;
@@ -412,6 +413,7 @@ public final class ShellAudioProbe {
         );
     }
 
+    @android.annotation.SuppressLint("MissingPermission")
     private static void probeRecordSource(String label, int source) {
         int minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_IN, ENCODING);
         int bufferSize = minBuffer > 0 ? minBuffer * 2 : 4096;

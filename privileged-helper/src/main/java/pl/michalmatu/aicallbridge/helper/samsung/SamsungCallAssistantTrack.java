@@ -1,11 +1,13 @@
 package pl.michalmatu.aicallbridge.helper.samsung;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.os.Build;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -51,6 +53,11 @@ public final class SamsungCallAssistantTrack implements AutoCloseable {
     public static SamsungCallAssistantTrack open(Context context, int sampleRate) throws Exception {
         Objects.requireNonNull(context, "context");
         validateSampleRate(sampleRate);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            throw new UnsupportedOperationException(
+                "CALL_ASSISTANT attributed AudioTrack requires Android 14 / API 34+"
+            );
+        }
 
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         if (audioManager == null) {
@@ -247,6 +254,14 @@ public final class SamsungCallAssistantTrack implements AutoCloseable {
         abortNow();
     }
 
+    /**
+     * Builds the physically proven Samsung CALL_ASSISTANT attributes.
+     *
+     * <p>The helper runs under the trusted shell identity on the target API-36 S22+. Android lint
+     * cannot model that hidden-API exemption, so the frozen reflective fallback is deliberately
+     * retained here. Changing it requires a targeted device regression of the uplink path.</p>
+     */
+    @SuppressLint("SoonBlockedPrivateApi")
     public static AudioAttributes buildCallAssistantAttributes() throws Exception {
         AudioAttributes.Builder builder = new AudioAttributes.Builder()
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH);

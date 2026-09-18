@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.media.AudioManager;
@@ -12,6 +13,7 @@ import java.lang.reflect.Method;
 import pl.michalmatu.aicallbridge.helper.samsung.SamsungCallMediaSessionController;
 
 /** Bounded regression harness for the bidirectional helper media controller. */
+@TargetApi(31)
 public final class BidirectionalMediaProbe {
     private static final int SAMPLE_RATE = 16_000;
     private static final int LIVE_MIN_DURATION_MS = 500;
