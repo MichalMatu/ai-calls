@@ -13,7 +13,8 @@ import pl.michalmatu.aicallbridge.audio.PcmFrame;
  * Serializer/parser for the GA OpenAI Realtime WebSocket event subset used by the call bridge.
  *
  * <p>Authentication is deliberately outside this class: a short-lived client secret belongs on
- * the WebSocket handshake, never inside session or audio event payloads.</p>
+ * the WebSocket handshake, never inside session or audio event payloads. Model selection also
+ * belongs to the connection URL and is intentionally not repeated in session.update.</p>
  */
 public final class RealtimeWebSocketProtocol {
     private static final PcmFormat REALTIME_PCM = new PcmFormat(24_000, 1, 16);
@@ -26,7 +27,6 @@ public final class RealtimeWebSocketProtocol {
 
         JsonObject session = new JsonObject();
         session.addProperty("type", "realtime");
-        session.addProperty("model", config.getModel());
         session.addProperty("instructions", config.getInstructions());
 
         com.google.gson.JsonArray outputModalities = new com.google.gson.JsonArray();
