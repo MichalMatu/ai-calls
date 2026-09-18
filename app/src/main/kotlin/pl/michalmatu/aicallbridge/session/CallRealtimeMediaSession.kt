@@ -42,11 +42,11 @@ class CallRealtimeMediaSession(
     init {
         val lease = coordinator.activeEndpointLease(generation)
         pump = CallRealtimeAudioPump(
-            CallRealtimePcmBridge(lease),
-            transport,
-            monotonicNs,
-            ::handlePumpFailure,
-            onFunctionCall,
+            bridge = CallRealtimePcmBridge(lease),
+            transport = transport,
+            monotonicNs = monotonicNs,
+            functionCallHandler = onFunctionCall,
+            onTerminalFailure = ::handlePumpFailure,
         )
     }
 
