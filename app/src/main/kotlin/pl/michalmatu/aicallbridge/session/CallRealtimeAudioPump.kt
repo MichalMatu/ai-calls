@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import pl.michalmatu.aicallbridge.audio.PcmFrame
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
 import pl.michalmatu.aicallbridge.realtime.RealtimePcmFrameAdapter
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
 
@@ -29,6 +30,7 @@ class CallRealtimeAudioPump(
     private val transport: RealtimeTransport,
     private val monotonicNs: () -> Long = System::nanoTime,
     private val onTerminalFailure: (Throwable) -> Unit,
+    private val functionCallHandler: (RealtimeFunctionCall) -> Unit = {},
 ) : RealtimeTransport.Listener, AutoCloseable {
     private val started = AtomicBoolean(false)
     private val closed = AtomicBoolean(false)
@@ -96,6 +98,15 @@ class CallRealtimeAudioPump(
     }
 
     override fun onRemoteSpeechStopped() = Unit
+
+    override fun onFunctionCall(call: RealtimeFunctionCall) {
+        if (!running.get()) return
+        try {
+            functionCallHandler(call)
+        } catch (error: Throwable) {
+            signalTerminal(error)
+        }
+    }
 
     override fun onError(error: Throwable) {
         // Do not fail the call on every generic Realtime error event. A lost socket becomes a
