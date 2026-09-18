@@ -44,8 +44,12 @@ data class CallRealtimeOutputResponseBufferSnapshot(
  *
  * Identified audio is never released until both the audio stream and its final transcript are
  * complete. The approval policy therefore sees the complete transcript before any buffered PCM is
- * made available to the caller. This is a safety interception point, not a claim that transcript
- * text is a cryptographic representation of the generated audio.
+ * made available to the caller. Transcript deltas are bounded as streaming diagnostics, while the
+ * documented transcript.done value is authoritative for approval; the API does not guarantee that
+ * a client-observed subset of deltas is byte-for-byte equal to the final transcript.
+ *
+ * This is a safety interception point, not a claim that transcript text is a cryptographic
+ * representation of the generated audio.
  */
 class CallRealtimeOutputResponseBuffer(
     private val approvalPolicy: CallRealtimeOutputApprovalPolicy,
@@ -95,11 +99,11 @@ class CallRealtimeOutputResponseBuffer(
         check(part.finalTranscript == null) {
             "Realtime transcript delta arrived after transcript.done"
         }
-        val nextChars = part.transcriptDeltas.length + delta.length
+        val nextChars = part.transcriptDeltaChars + delta.length
         check(nextChars <= maxTranscriptChars) {
             "Realtime output transcript exceeded bounded character limit"
         }
-        part.transcriptDeltas.append(delta)
+        part.transcriptDeltaChars = nextChars
         return CallRealtimeOutputBufferResult.Pending
     }
 
@@ -113,11 +117,6 @@ class CallRealtimeOutputResponseBuffer(
         require(transcript.isNotBlank()) { "Realtime output transcript must not be blank" }
         check(transcript.length <= maxTranscriptChars) {
             "Realtime output transcript exceeded bounded character limit"
-        }
-        if (part.transcriptDeltas.isNotEmpty()) {
-            check(part.transcriptDeltas.toString() == transcript) {
-                "Realtime final transcript does not match accumulated transcript deltas"
-            }
         }
         part.finalTranscript = transcript
         return completeIfReady(partId, part)
@@ -206,7 +205,7 @@ class CallRealtimeOutputResponseBuffer(
 
     private class Part {
         val frames = mutableListOf<PcmFrame>()
-        val transcriptDeltas = StringBuilder()
+        var transcriptDeltaChars = 0
         var finalTranscript: String? = null
         var audioDone = false
         var audioBytes = 0L
