@@ -6,15 +6,25 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Spinner
 import android.widget.TextView
+import pl.michalmatu.aicallbridge.runtime.CallAudioMode
+import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
+import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
 import rikka.shizuku.Shizuku
 
 class MainActivity : Activity() {
     private lateinit var statusView: TextView
+    private lateinit var runtimePreferences: CallRuntimePreferences
+    private lateinit var selectedAudioMode: CallAudioMode
+    private lateinit var selectedTextLlmProvider: TextLlmProvider
+    private lateinit var textLlmProviderSpinner: Spinner
     private var pendingShizukuProbe = false
     private var pendingShizukuLiveProbe = false
 
@@ -45,10 +55,55 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        runtimePreferences = CallRuntimePreferences(this)
+        val initialSelection = runtimePreferences.load()
+        selectedAudioMode = initialSelection.audioMode
+        selectedTextLlmProvider = initialSelection.textLlmProvider
+
         statusView = TextView(this).apply {
-            text = "Phase 2: local call bridge probes"
+            text = runtimeSelectionSummary()
             textSize = 15f
             setTextIsSelectable(true)
+        }
+
+        val audioModeSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                CallAudioMode.entries.map { it.displayName },
+            )
+            setSelection(CallAudioMode.entries.indexOf(selectedAudioMode))
+        }
+
+        textLlmProviderSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                TextLlmProvider.entries.map { it.displayName },
+            )
+            setSelection(TextLlmProvider.entries.indexOf(selectedTextLlmProvider))
+            isEnabled = selectedAudioMode.usesTextLlm
+        }
+
+        audioModeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                selectedAudioMode = CallAudioMode.entries[position]
+                runtimePreferences.saveAudioMode(selectedAudioMode)
+                textLlmProviderSpinner.isEnabled = selectedAudioMode.usesTextLlm
+                statusView.text = runtimeSelectionSummary()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+
+        textLlmProviderSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                selectedTextLlmProvider = TextLlmProvider.entries[position]
+                runtimePreferences.saveTextLlmProvider(selectedTextLlmProvider)
+                statusView.text = runtimeSelectionSummary()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
 
         val requestMicButton = Button(this).apply {
@@ -95,6 +150,10 @@ class MainActivity : Activity() {
                 text = "Android AI Call Bridge"
                 textSize = 24f
             })
+            addView(TextView(this@MainActivity).apply { text = "Audio mode" })
+            addView(audioModeSpinner)
+            addView(TextView(this@MainActivity).apply { text = "LLM provider (text mode)" })
+            addView(textLlmProviderSpinner)
             addView(requestMicButton)
             addView(capabilityProbeButton)
             addView(shizukuProbeButton)
@@ -134,6 +193,15 @@ class MainActivity : Activity() {
         Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
         Shizuku.removeRequestPermissionResultListener(shizukuPermissionResultListener)
         super.onDestroy()
+    }
+
+    private fun runtimeSelectionSummary(): String = buildString {
+        append("Audio mode: ").append(selectedAudioMode.displayName).append('\n')
+        when (selectedAudioMode) {
+            CallAudioMode.LOCAL_STT_TTS -> append("LLM provider: ").append(selectedTextLlmProvider.displayName)
+            CallAudioMode.OPENAI_REALTIME_AUDIO -> append("LLM provider: OpenAI Realtime audio; text preference preserved")
+            CallAudioMode.LOCAL_REALTIME_AUDIO -> append("LLM provider: local realtime audio engine; text preference preserved")
+        }
     }
 
     private fun runCapabilityProbe() {
