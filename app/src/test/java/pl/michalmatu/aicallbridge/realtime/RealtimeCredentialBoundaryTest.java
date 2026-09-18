@@ -74,16 +74,16 @@ public final class RealtimeCredentialBoundaryTest {
     }
 
     @Test
-    public void credentialProviderBoundaryReturnsOnlyShortLivedSecretType() throws Exception {
+    public void credentialProviderBoundaryRemainsPresentAtJvmLevel() throws Exception {
         Class<?> methodReturn = Arrays.stream(RealtimeCredentialProvider.class.getDeclaredMethods())
-            .filter(method -> method.getName().equals("fetchClientSecret"))
+            .filter(method -> method.getName().startsWith("fetchClientSecret"))
             .findFirst()
             .orElseThrow()
             .getReturnType();
 
-        // Kotlin suspend functions compile to Object + Continuation, so the public source-level
-        // contract is additionally guarded by the typed RealtimeSessionConfig above. This test
-        // primarily makes accidental removal/renaming of the credential-provider seam visible.
+        // Kotlin suspend + Result may mangle the JVM method name and compiles to Object +
+        // Continuation. The typed RealtimeSessionConfig separately guarantees that only a
+        // RealtimeClientSecret crosses into the transport configuration.
         assertEquals(Object.class, methodReturn);
     }
 
