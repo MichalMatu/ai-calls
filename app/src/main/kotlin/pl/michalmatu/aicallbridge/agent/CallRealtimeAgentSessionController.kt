@@ -18,27 +18,27 @@ class CallRealtimeAgentSessionController private constructor(
     val workflow: CallWorkflow,
     val sessionSpec: CallRealtimeAgentSessionSpec,
     private val orchestrator: CallRealtimeSessionOrchestrator,
-) : AutoCloseable {
-    fun start(): Long {
+) : CallRealtimeAgentSession {
+    override fun start(): Long {
         sessionSpec.commitmentGate.clear()
         return orchestrator.start(sessionSpec.request)
     }
 
-    fun snapshot(): CallRealtimeSessionOrchestratorSnapshot = orchestrator.snapshot()
+    override fun snapshot(): CallRealtimeSessionOrchestratorSnapshot = orchestrator.snapshot()
 
-    fun takeOverNow() {
+    override fun takeOverNow() {
         // Revoke any unused external-action authority before the generation can continue remotely.
         sessionSpec.commitmentGate.clear()
         orchestrator.takeOverNow()
     }
 
-    fun hasPendingUserDecision(): Boolean =
+    override fun hasPendingUserDecision(): Boolean =
         sessionSpec.proposalHandler.hasPendingUserDecision()
 
-    fun approvePendingProposal(): Result<CallProposal> =
+    override fun approvePendingProposal(): Result<CallProposal> =
         sessionSpec.proposalHandler.approvePendingProposal()
 
-    fun rejectPendingProposal(): Result<CallProposal> =
+    override fun rejectPendingProposal(): Result<CallProposal> =
         sessionSpec.proposalHandler.rejectPendingProposal()
 
     override fun close() {
