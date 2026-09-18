@@ -73,9 +73,16 @@ class RealtimeWebSocketTransport(
         sendActive { socket -> socket.send(protocol.responseCancel()) }
 
     override fun submitFunctionOutput(callId: String, outputJson: String): Result<Unit> =
+        submitFunctionOutput(callId, outputJson, RealtimeFunctionFollowup.Auto)
+
+    override fun submitFunctionOutput(
+        callId: String,
+        outputJson: String,
+        followup: RealtimeFunctionFollowup,
+    ): Result<Unit> =
         sendActive { socket ->
             socket.send(protocol.functionCallOutput(callId, outputJson)) &&
-                socket.send(protocol.responseCreate())
+                socket.send(protocol.responseCreate(followup))
         }
 
     override fun close() {
