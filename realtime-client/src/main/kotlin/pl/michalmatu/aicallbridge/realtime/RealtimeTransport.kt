@@ -42,7 +42,26 @@ interface RealtimeTransport {
     fun setListener(listener: Listener?)
 
     interface Listener {
+        /** Legacy output callback retained for transports/events without GA output-part identity. */
         fun onAudio(frame: PcmFrame)
+
+        /**
+         * Identified model audio belonging to one Realtime output content part.
+         *
+         * The default preserves source compatibility by forwarding to [onAudio]. Safety-sensitive
+         * consumers can override this callback and correlate the PCM with transcript/done events.
+         */
+        fun onOutputAudio(partId: RealtimeOutputPartId, frame: PcmFrame) = onAudio(frame)
+
+        /** Incremental transcript for the same identified output content part. */
+        fun onOutputAudioTranscriptDelta(partId: RealtimeOutputPartId, delta: String) = Unit
+
+        /** Final transcript for the same identified output content part. */
+        fun onOutputAudioTranscriptDone(partId: RealtimeOutputPartId, transcript: String) = Unit
+
+        /** Signals that audio generation for the identified output content part is complete. */
+        fun onOutputAudioDone(partId: RealtimeOutputPartId) = Unit
+
         fun onRemoteSpeechStarted()
         fun onRemoteSpeechStopped()
         fun onFunctionCall(call: RealtimeFunctionCall) = Unit
