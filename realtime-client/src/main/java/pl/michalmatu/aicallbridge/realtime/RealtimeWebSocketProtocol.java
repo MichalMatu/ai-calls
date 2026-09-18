@@ -163,6 +163,7 @@ public final class RealtimeWebSocketProtocol {
                     requiredText(root, "transcript", type),
                     type
                 );
+            case "response.done" -> parseResponseDone(root, type);
             case "input_audio_buffer.speech_started" -> RealtimeServerEvent.speechStarted(type);
             case "input_audio_buffer.speech_stopped" -> RealtimeServerEvent.speechStopped(type);
             case "response.output_item.done" -> parseOutputItemDone(root, type);
@@ -191,6 +192,20 @@ public final class RealtimeWebSocketProtocol {
         return RealtimeServerEvent.audioDelta(
             new PcmFrame(REALTIME_PCM, pcm, monotonicTimestampNs),
             parseOutputPartId(root, false),
+            rawType
+        );
+    }
+
+    private static RealtimeServerEvent parseResponseDone(JsonObject root, String rawType) {
+        if (!root.has("response") || !root.get("response").isJsonObject()) {
+            throw new IllegalArgumentException("response.done is missing response");
+        }
+        JsonObject response = root.getAsJsonObject("response");
+        String responseId = requiredString(response, "id", "response.done response");
+        String rawStatus = requiredString(response, "status", "response.done response");
+        return RealtimeServerEvent.responseDone(
+            responseId,
+            RealtimeResponseStatus.fromWireValue(rawStatus),
             rawType
         );
     }
