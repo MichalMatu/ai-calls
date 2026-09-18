@@ -6,13 +6,14 @@ import org.junit.Test
 import pl.michalmatu.aicallbridge.audio.PcmFormat
 import pl.michalmatu.aicallbridge.audio.PcmFrame
 import pl.michalmatu.aicallbridge.realtime.RealtimeOutputPartId
+import pl.michalmatu.aicallbridge.realtime.RealtimeResponseStatus
 
 class CallRealtimeOutputResponseBufferTest {
     private val format = PcmFormat(24_000, 1, 16)
     private val id = RealtimeOutputPartId("resp_1", "item_1", 0, 0)
 
     @Test
-    fun releasesOnlyAfterAudioAndFinalTranscriptAreComplete() {
+    fun releasesOnlyAfterPartAndWholeResponseAreComplete() {
         val seen = mutableListOf<String>()
         val buffer = CallRealtimeOutputResponseBuffer(
             approvalPolicy = CallRealtimeOutputApprovalPolicy { _, transcript ->
@@ -27,22 +28,20 @@ class CallRealtimeOutputResponseBufferTest {
             buffer.onAudio(id, PcmFrame(format, source, 10L)),
         )
         source[0] = 99
-        assertEquals(
-            CallRealtimeOutputBufferResult.Pending,
-            buffer.onTranscriptDelta(id, "Dzień "),
-        )
-        assertEquals(
-            CallRealtimeOutputBufferResult.Pending,
-            buffer.onTranscriptDelta(id, "dobry"),
-        )
+        buffer.onTranscriptDelta(id, "Dzień ")
+        buffer.onTranscriptDelta(id, "dobry")
         assertEquals(
             CallRealtimeOutputBufferResult.Pending,
             buffer.onTranscriptDone(id, "Dzień dobry"),
         )
+        assertEquals(CallRealtimeOutputBufferResult.Pending, buffer.onAudioDone(id))
+        assertTrue(seen.isEmpty())
+        assertEquals(4L, buffer.snapshot().bufferedAudioBytes)
 
-        val result = buffer.onAudioDone(id)
-        assertTrue(result is CallRealtimeOutputBufferResult.Released)
-        val output = (result as CallRealtimeOutputBufferResult.Released).output
+        val results = buffer.onResponseDone("resp_1", RealtimeResponseStatus.COMPLETED)
+
+        assertEquals(1, results.size)
+        val output = (results.single() as CallRealtimeOutputBufferResult.Released).output
         assertEquals("Dzień dobry", output.transcript)
         assertEquals(listOf("Dzień dobry"), seen)
         assertEquals(1, output.frames.size)
@@ -52,14 +51,15 @@ class CallRealtimeOutputResponseBufferTest {
     }
 
     @Test
-    fun audioDoneFirstStillWaitsForFinalTranscript() {
+    fun audioDoneFirstStillWaitsForTranscriptAndResponseDone() {
         val buffer = releasingBuffer()
         buffer.onAudio(id, frame(4))
 
         assertEquals(CallRealtimeOutputBufferResult.Pending, buffer.onAudioDone(id))
-        val result = buffer.onTranscriptDone(id, "hello")
+        assertEquals(CallRealtimeOutputBufferResult.Pending, buffer.onTranscriptDone(id, "hello"))
+        val results = buffer.onResponseDone("resp_1", RealtimeResponseStatus.COMPLETED)
 
-        assertTrue(result is CallRealtimeOutputBufferResult.Released)
+        assertTrue(results.single() is CallRealtimeOutputBufferResult.Released)
     }
 
     @Test
@@ -71,12 +71,13 @@ class CallRealtimeOutputResponseBufferTest {
         )
         buffer.onAudio(id, frame(8))
         buffer.onTranscriptDone(id, "not allowed")
+        assertEquals(CallRealtimeOutputBufferResult.Pending, buffer.onAudioDone(id))
 
-        val result = buffer.onAudioDone(id)
+        val results = buffer.onResponseDone("resp_1", RealtimeResponseStatus.COMPLETED)
 
         assertEquals(
-            CallRealtimeOutputBufferResult.Dropped(id, "not allowed"),
-            result,
+            listOf(CallRealtimeOutputBufferResult.Dropped(id, "not allowed")),
+            results,
         )
         assertEquals(0L, buffer.snapshot().bufferedAudioBytes)
     }
@@ -93,12 +94,76 @@ class CallRealtimeOutputResponseBufferTest {
         buffer.onAudio(id, frame(4))
         buffer.onTranscriptDelta(id, "Dzień ")
         buffer.onTranscriptDone(id, "Dzień dobry")
+        buffer.onAudioDone(id)
 
-        val result = buffer.onAudioDone(id)
+        val results = buffer.onResponseDone("resp_1", RealtimeResponseStatus.COMPLETED)
 
-        assertTrue(result is CallRealtimeOutputBufferResult.Released)
         assertEquals(listOf("Dzień dobry"), seen)
-        assertEquals("Dzień dobry", (result as CallRealtimeOutputBufferResult.Released).output.transcript)
+        assertEquals(
+            "Dzień dobry",
+            (results.single() as CallRealtimeOutputBufferResult.Released).output.transcript,
+        )
+    }
+
+    @Test
+    fun cancelledFailedAndIncompleteResponsesDiscardWithoutCallingPolicy() {
+        for (status in listOf(
+            RealtimeResponseStatus.CANCELLED,
+            RealtimeResponseStatus.FAILED,
+            RealtimeResponseStatus.INCOMPLETE,
+        )) {
+            var policyCalls = 0
+            val buffer = CallRealtimeOutputResponseBuffer(
+                approvalPolicy = CallRealtimeOutputApprovalPolicy { _, _ ->
+                    policyCalls++
+                    CallRealtimeOutputDecision.RELEASE
+                },
+            )
+            buffer.onAudio(id, frame(8))
+            buffer.onTranscriptDone(id, "must not be released")
+            buffer.onAudioDone(id)
+
+            assertTrue(buffer.onResponseDone("resp_1", status).isEmpty())
+            assertEquals(0, policyCalls)
+            assertEquals(0L, buffer.snapshot().bufferedAudioBytes)
+            assertEquals(0, buffer.snapshot().pendingParts)
+        }
+    }
+
+    @Test
+    fun completedResponseWithIncompleteBufferedPartFailsClosed() {
+        val buffer = releasingBuffer()
+        buffer.onAudio(id, frame(4))
+        buffer.onAudioDone(id)
+
+        assertFails<IllegalStateException> {
+            buffer.onResponseDone("resp_1", RealtimeResponseStatus.COMPLETED)
+        }
+    }
+
+    @Test
+    fun unknownResponseStatusFailsClosed() {
+        val buffer = releasingBuffer()
+        buffer.onAudio(id, frame(4))
+        buffer.onTranscriptDone(id, "ready")
+        buffer.onAudioDone(id)
+
+        assertFails<IllegalStateException> {
+            buffer.onResponseDone("resp_1", RealtimeResponseStatus.UNKNOWN)
+        }
+    }
+
+    @Test
+    fun responseWithoutAudioPartsCanFinishAndRejectsLateParts() {
+        val buffer = releasingBuffer()
+
+        assertTrue(buffer.onResponseDone("resp_tool_only", RealtimeResponseStatus.COMPLETED).isEmpty())
+        assertFails<IllegalStateException> {
+            buffer.onAudio(
+                RealtimeOutputPartId("resp_tool_only", "late_item", 0, 0),
+                frame(2),
+            )
+        }
     }
 
     @Test
@@ -125,11 +190,15 @@ class CallRealtimeOutputResponseBufferTest {
     }
 
     @Test
-    fun finalizedPartRejectsLateEventsUntilBufferIsCleared() {
+    fun finalizedResponseRejectsLateEventsUntilBufferIsCleared() {
         val buffer = releasingBuffer()
         buffer.onAudio(id, frame(4))
         buffer.onTranscriptDone(id, "done")
-        assertTrue(buffer.onAudioDone(id) is CallRealtimeOutputBufferResult.Released)
+        buffer.onAudioDone(id)
+        assertTrue(
+            buffer.onResponseDone("resp_1", RealtimeResponseStatus.COMPLETED).single()
+                is CallRealtimeOutputBufferResult.Released,
+        )
 
         assertFails<IllegalStateException> { buffer.onAudio(id, frame(2)) }
 
