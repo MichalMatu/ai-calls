@@ -5,11 +5,14 @@ import pl.michalmatu.aicallbridge.audio.PcmFrame
 interface RealtimeTransport {
     suspend fun connect(config: RealtimeSessionConfig): Result<Unit>
 
-    suspend fun sendAudio(frame: PcmFrame): Result<Unit>
+    /** Non-blocking local enqueue of one already-adapted Realtime PCM frame. */
+    fun sendAudio(frame: PcmFrame): Result<Unit>
 
-    suspend fun cancelResponse(): Result<Unit>
+    /** Non-blocking local cancellation request for the current model response. */
+    fun cancelResponse(): Result<Unit>
 
-    suspend fun close()
+    /** Immediate local transport teardown; implementations must not await remote acknowledgement. */
+    fun close()
 
     fun setListener(listener: Listener?)
 
