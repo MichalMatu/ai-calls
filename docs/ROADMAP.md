@@ -1,267 +1,246 @@
 # Project Roadmap
 
-This roadmap is evidence-driven. A phase advances only when its exit gate is proven on the target Samsung Galaxy S22+ running stock Samsung firmware.
+This roadmap is evidence-driven. A capability advances only when its required host/device gate is actually proven.
 
 ## Core product goal
 
-Use one Android phone to bridge a normal cellular call to a realtime AI voice session without external hardware:
+Use one stock Samsung phone to complete user-authorized tasks over an ordinary cellular call:
 
 ```text
-remote caller -> cellular downlink -> app/helper PCM -> realtime AI
-realtime AI -> app/helper PCM -> cellular uplink -> remote caller
+user task + explicit authority
+  -> resolve counterparty
+  -> cellular call
+  -> cellular downlink -> Realtime AI
+  -> Realtime AI -> guarded cellular uplink
+  -> structured outcome
+  -> optional later integrations such as calendar
 ```
 
-The user must be able to take over the call immediately at any time.
+The user must always be able to TAKE OVER immediately. Failure must fall back toward a normal human call rather than leave AI injection active.
 
 ## Evidence levels
 
-- `HYPOTHESIS` — plausible but not demonstrated on the target device.
-- `SUPPORTED_EXTERNALLY` — demonstrated elsewhere, but not yet on the target S22+.
-- `PROVEN_S22` — reproduced on the target S22+ with logged metadata and a repeatable physical test.
-- `FAILED_S22` — reproducibly failed on the target S22+ under the documented conditions.
+- `HYPOTHESIS` — plausible, not demonstrated;
+- `HOST_GREEN` — deterministic host/unit/build gates pass;
+- `PROVEN_S22` — physically reproduced on the target S22+;
+- `FAILED_S22` — physically/reproducibly failed on the S22+;
 - `PRODUCT_READY` — proven, stable, fail-safe and acceptable for normal use.
-
-For media-direction claims, constructor success, permissions, routing requests and playback-head progress are supporting evidence only. `PROVEN_S22` requires physical live-call evidence.
 
 ## Frozen references
 
-Phase 2B local media baseline:
-
 ```text
-branch: milestone/phase2b-proven-s22-20260916
-commit: c10f8dde29f245f8f98fb008a3572c21fe73fe35
+Phase 2B local media
+milestone/phase2b-proven-s22-20260916
+c10f8dde29f245f8f98fb008a3572c21fe73fe35
+
+Phase 2C Shizuku parity
+milestone/phase2c-shizuku-live-proven-20260916
+9c136fc05c5b33f383d72b0b7080ad5b9a754bb4
+
+Phase 2D fail-safe/endurance
+milestone/phase2d-failsafe-proven-s22-20260918
+59b0505537a53306acdab6a2a66ca6eed2b3f1c0
 ```
 
-Phase 2C Shizuku live parity baseline:
+Do not move or rewrite these milestone branches during normal development.
 
-```text
-branch: milestone/phase2c-shizuku-live-proven-20260916
-commit: 9c136fc05c5b33f383d72b0b7080ad5b9a754bb4
-```
-
-Do not move or rewrite these branches during normal development.
-
-## Phase 0 — Repository and test discipline
+## Phase 0 — repository/test discipline
 
 Status: `DONE`
 
-Delivered:
-- modular Android project;
-- CI/build discipline;
-- explicit capture/injection interfaces;
-- physical device-test protocol;
-- separation of normal app code from privileged experiments;
-- durable implementation plans and hardware-evidence notes.
+Modular Android project, host regression discipline, explicit privilege boundaries, durable device evidence, and Local Agent workflow are established.
 
-## Phase 0.5 — Device capability baseline
-
-Status: `DONE`
-
-Baseline evidence: `S22_BASELINE_2026-09-14.md`.
-
-Proven target facts include:
-- SM-S906B / Android 16 / API 36 / One UI 8;
-- shell UID 2000 execution;
-- shell grants for protected call-audio capabilities;
-- `TYPE_TELEPHONY` sink and source presence;
-- shell construction of protected call sources;
-- normal-app inability to create those protected sources.
-
-## Phase 1A — Digital cellular downlink capture
+## Phase 1 — cellular media capability
 
 Status: `DONE / PROVEN_S22`
 
-```text
-VOICE_DOWNLINK
-  -> privileged shell/helper AudioRecord
-  -> SamsungDownlinkPipeSession
-  -> ParcelFileDescriptor PCM pipe
-  -> controller/app
-```
-
-The production pipe path produces remote-call-correlated PCM while the physical phone remains locally muted.
-
-Direct-shell target constraint:
+Proven production directions:
 
 ```text
-construct VOICE_DOWNLINK / controller.prepare()
-BEFORE explicit Context/AudioManager initialization
+RX: VOICE_DOWNLINK -> privileged helper -> PFD -> normal app
+TX: normal app -> PFD -> CALL_ASSISTANT / TELEPHONY_TX -> cellular uplink
 ```
 
-## Phase 1B — Generic cellular uplink injection
+Generic media / voice-communication TX paths are not the production path on this S22.
 
-Status: `FAILED_S22 FOR TESTED GENERIC PATHS`
+## Phase 2 — stable local bridge
 
-The tested generic `USAGE_MEDIA` / `USAGE_VOICE_COMMUNICATION` approaches did not provide the required S22 cellular-uplink behavior.
+Status: `DONE / PROVEN_S22 / FROZEN`
 
-## Phase 1C — Samsung-specific uplink injection
+Milestone D physical proof covers:
 
-Status: `DONE / PROVEN_S22`
+- app death cleanup;
+- helper/UserService death cleanup;
+- RX/TX endpoint-loss whole-generation cleanup;
+- 20/20 start/abort cycles;
+- natural cellular call end after `CallModeWatchdog`;
+- 600 seconds total live bidirectional media as 10 x 60 seconds;
+- a separate 50.1-second external resource trend with stable FDs/threads and roughly 1 MiB RSS growth per process.
+
+Do not claim the 50.1-second resource run covers all 600 seconds.
+
+Detailed evidence: `docs/PHASE2D_FREEZE_2026-09-18.md`.
+
+## Phase 3 — Telephone Agent / OpenAI Realtime
+
+Status: `IN PROGRESS — SUBSTANTIAL HOST INTEGRATION COMPLETE, REAL OPENAI S22 SESSION NOT YET PROVEN`
+
+Current detailed ledger: `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
+
+Behavior baseline at the current handoff:
 
 ```text
-mono PCM16LE
-  -> SamsungCallAssistantTrack
-  -> USAGE_CALL_ASSISTANT / AUDIO_STREAM_CALL_ASSISTANT
-  -> AUDIO_DEVICE_OUT_TELEPHONY_TX
-  -> cellular uplink
+94594aa8f6e321395d5648dea4dffb243db911fd
+feat: require function response identity
 ```
 
-Target requirements:
-- shell attribution `com.android.shell`;
-- protected routing/phone-state privilege class;
-- live cellular call;
-- Samsung CALL_ASSISTANT route;
-- mono duplicated to stereo only at the Samsung TX boundary.
+### 3A. Production app-side media ownership
 
-## Phase 2 — Stable local bridge
-
-Status: `MILESTONES B+C+D PROVEN / MILESTONE D FROZEN`
-
-### Milestone A — reusable Samsung media primitives
-
-Status: `DONE`
+Status: `HOST_GREEN + OFF-CALL S22 SMOKE GREEN`
 
 Delivered:
-- reusable VOICE_DOWNLINK capture primitive;
-- reusable CALL_ASSISTANT TX primitive;
-- bounded media chunks;
-- explicit PCM16LE boundary;
-- immediate abort paths.
 
-### Milestone B — shared bidirectional local controller
+- `CallMediaSessionCoordinator`;
+- production `ShizukuCallMediaSessionBackend`;
+- generation ownership and structured failure state;
+- dedicated non-main-thread control path;
+- local TAKE OVER independent of remote/network cleanup;
+- production off-call smoke retaining frozen Shizuku behavior.
 
-Status: `DONE / PROVEN_S22 / FROZEN`
+### 3B. Realtime transport and PCM path
 
-Implemented and physically proven:
-- production downlink and uplink PFD pipes;
-- one `SamsungCallMediaSessionController` owning RX + TX;
-- separate required attribution contexts (`android` RX, `com.android.shell` TX);
-- one heartbeat watchdog for the whole bidirectional generation;
-- sibling abort if either media path terminates;
-- immediate `abortNow()` cleanup;
-- no per-frame Binder transport.
+Status: `HOST_GREEN`
 
-Reference branch: `milestone/phase2b-proven-s22-20260916`.
+Delivered:
 
-### Milestone C — Shizuku UserService parity
+- short-lived credential types/provider boundary;
+- hardened OpenAI WebSocket handshake;
+- OkHttp connector (pinned to a compileSdk-36-compatible version);
+- 16 kHz telephony <-> 24 kHz Realtime PCM adaptation;
+- bounded audio workers and queues;
+- local barge-in cancellation;
+- generation-safe transport/session cleanup;
+- typed Realtime events and function calling.
 
-Status: `DONE / PROVEN_S22 / FROZEN`
+### 3C. Task/workflow/policy model
 
-Physically proven through the real normal-app -> Shizuku UserService -> privileged controller boundary:
-- UserService effective UID 2000;
-- protected off-call `prepare -> abort` parity;
-- live bidirectional RX + TX over transferred PFDs;
-- shared heartbeat/watchdog semantics;
-- explicit `abortNow()` / TAKE OVER cleanup;
-- PFD ownership and client AutoClose behavior;
-- UserService/helper process death while media is active, with app-side EPIPE and survival of the normal app + Shizuku server.
+Status: `HOST_GREEN`
 
-Reference branch: `milestone/phase2c-shizuku-live-proven-20260916`.
+Delivered:
 
-### Post-freeze deep-audit fixes
+- hard constraints separate from soft preferences;
+- immutable `authorizedFacts`;
+- deterministic `CallConfirmationPolicy` outside the model;
+- `NEEDS_USER_DECISION`;
+- structured outcomes;
+- privacy-safe debug rendering.
 
-Status: `M1/M2/M3/M4 COMPLETE`
+Counterparty speech cannot widen authority.
 
-- M1: long-running Shizuku probes moved off the app main Looper.
-- M2: privileged automation removed from exported `MainActivity`; shell diagnostics moved to `DiagnosticProbeActivity` protected by `android.permission.DUMP`.
-- M3: `PrivilegedCallContexts` reuses Shizuku's existing `ActivityThread.currentActivityThread()` instead of preparing a Binder-thread Looper and constructing a second `ActivityThread.systemMain()`.
-- M4: bidirectional diagnostic probe media has deterministic owner/cleanup semantics.
+### 3D. Commitment gate
 
-M3 behavior commit:
+Status: `HOST_GREEN`
 
-```text
-60cbe81af2e02ba2e4100691c8afb76332735548
-```
+Delivered:
 
-After M3 the following are GREEN:
-- full host build/tests;
-- off-call Shizuku parity;
-- silent live Shizuku parity;
-- 30-second bidirectional endurance.
+- strict `evaluate_proposal` tool;
+- exact one-shot commitment permit;
+- `commit_proposal` consumes that permit once;
+- response-scoped forcing of `commit_proposal` after approval;
+- `NoTools` follow-up after successful commitment;
+- permit invalidation on new proposal/start/TAKE OVER/close/stale generation.
 
-### Milestone D — robustness and endurance
+This is the application-side authority gate; prompt wording alone is never treated as authorization.
 
-Status: `DONE / PROVEN_S22 / FROZEN`
+### 3E. Credential broker / real network smoke plumbing
 
-Milestone D is physically closed on the target S22+.
+Status: `HOST_GREEN + FAIL-CLOSED S22 DRY-RUN GREEN / REAL OPENAI NETWORK SMOKE PENDING`
 
-Proven:
-- normal-app death while media is active -> local helper/media cleanup while the cellular call and Shizuku survive;
-- transferred RX or TX PFD close -> whole-generation cleanup;
-- 20/20 repeated start/abort cycles with clean final state;
-- natural cellular call end -> full cleanup after the `CallModeWatchdog` fix;
-- 600 seconds total real bidirectional media as 10 x 60-second live sessions;
-- separate external resource trend during 50.1 seconds of active media: app FD 41 -> 41, helper FD 41 -> 41, no thread growth, roughly 1 MiB RSS increase per process;
-- final 48 Python tests PASS;
-- full Gradle unit tests + `:app:assembleDebug` GREEN;
-- final security-shape and clean-tree checks GREEN.
+Delivered:
 
-The full 600-second soak did not preserve its external RSS/FD/thread summary because the background telemetry child was cleaned up by Local Agent. The separate foreground resource run closes the resource-trend evidence gap without pretending those metrics cover all 600 seconds.
+- host credential broker with `OPENAI_API_KEY` only in host environment;
+- separate client bearer;
+- Android backend credential request/provider factories;
+- one-shot app-private smoke config;
+- protected ADB-only off-call Realtime probe;
+- secure host runner staging secrets over stdin rather than argv/Intent.
 
-Freeze evidence: `docs/PHASE2D_FREEZE_2026-09-18.md`.
+The physical no-config dry-run kept `CALL_STATE=0 -> 0`, left no helper alive, and did not dial.
 
-## Phase 3 — Realtime AI integration
+Remaining external prerequisite: an actual host `OPENAI_API_KEY` plus authenticated HTTPS access/tunnel to the loopback broker. Never place the long-lived key in APK/phone.
 
-Status: `READY — MILESTONE D FROZEN`
+### 3F. Speech-integrity defense in depth
 
-Start only after Milestone D is frozen.
+Status: `MECHANICS HOST_GREEN / PRODUCTION POLICY WIRING RED`
 
-Initial architecture:
+Implemented mechanics:
 
-```text
-Android app
-  -> short-lived session credential backend
-  -> OpenAI Realtime
-```
+- typed output identity;
+- final audio transcript lifecycle;
+- `response.done` terminal status;
+- bounded whole-response PCM buffer before telephony TX;
+- no release until audio done + final transcript done + successful response done;
+- cancelled/failed/incomplete response discard;
+- unknown response status fail-closed.
 
-The long-lived API key must never live in the APK.
+The response-lifecycle pump gate was fully GREEN at behavior commit `7d7bd65738568ee5a29ff6d2674b157584264e54`.
 
-First transport candidate remains WebSocket because the app already owns PCM frames and needs explicit stream control. Re-evaluate WebRTC only if measurements justify it.
+Current unfinished host work:
 
-Planned later:
-- session lifecycle;
-- input/output audio streaming;
-- local barge-in detection;
-- immediate local injection flush on remote speech;
-- model response cancellation;
-- reconnect/failure behavior;
-- end-to-end latency measurement.
+1. implement and production-wire `CallRealtimeAgentOutputApprovalPolicy` using the same `CallCommitmentGate` as proposal/commit handlers;
+2. keep ordinary speech RELEASE limited to safe `ACTIVE_NEGOTIATION` state; DROP during pending commitment authority, `NEEDS_USER_DECISION`, and other unsafe states;
+3. update the stale legacy function-call transport test to include the newly-required GA `response_id` and rerun the full suite.
 
-## Phase 4 — Product UX
+At behavior HEAD `94594aa`, the focused response-id protocol test passes but the full realtime-client suite has one stale-fixture failure. Do not call this HEAD fully GREEN until that is closed.
 
-After Phase 3 media works:
-- call session screen;
-- AI on/off;
-- `Take over now`;
-- mute AI;
-- disclosure state;
-- optional transcript;
-- diagnostics;
-- call-state integration.
+### 3G. First real Realtime physical validation
 
-Do not replace the default dialer unless a concrete UX requirement demands it.
+Status: `PENDING`
 
-## Phase 5 — robustness matrix
+Ordered gate:
 
-Validate:
-- 30+ minute calls;
-- background/foreground transitions;
-- screen off;
-- app/helper death;
-- network loss;
-- route changes;
-- Bluetooth;
+1. real OpenAI **off-call** S22 network/session smoke — no cellular dial;
+2. first real cellular Realtime call to a controlled/non-committing target;
+3. verify actual audio quality, latency, barge-in, TAKE OVER, cleanup, and GA event ordering/identity;
+4. only then permit the first real clinic-registration attempt.
+
+## Phase 4 — product UX
+
+Status: `LATER`
+
+Needed after core Phase 3 physical validation:
+
+- call task/session screen;
+- AI state and diagnostics;
+- prominent `Take over now`;
+- user-decision surface for `NEEDS_USER_DECISION`;
+- disclosure/transcript policy as product requirements settle;
+- structured outcome view.
+
+Do not replace the default dialer without a concrete requirement.
+
+## Phase 5 — robustness/product matrix
+
+Status: `LATER`
+
+Validate real Realtime sessions under:
+
+- longer calls;
+- screen off / app background;
+- network loss/recovery;
+- route changes and Bluetooth;
 - Wi-Fi Calling;
-- incoming/outgoing calls;
+- incoming/outgoing call variants;
 - hold/resume;
-- repeated sessions without reboot.
+- repeated sessions without reboot;
+- Realtime/provider/backend failures.
 
-Exit gate: defined failure behavior for every tested transition and no condition that leaves AI injection stuck active.
+Exit condition: every tested failure has a defined fail-safe behavior and no condition leaves AI injection stuck active.
 
 ## Current decision
 
-Do not connect realtime AI yet.
+Do not jump directly from host tests to an autonomous clinic booking.
 
-The cellular RX/TX problem and Shizuku privilege boundary are no longer blockers. All Milestone D host-side diagnostics are prepared; the active work is now the ordered physical robustness gate sequence on the S22+.
+Close the two current host REDs, get a completely GREEN host baseline, prove real OpenAI connectivity off-call, then prove one non-committing cellular Realtime conversation. Only after those gates should a real appointment booking be attempted.
 
-Current authoritative continuation state: `docs/HANDOFF_NEXT_CHAT.md`.
+Authoritative continuation: `docs/HANDOFF_NEXT_CHAT.md` and `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
