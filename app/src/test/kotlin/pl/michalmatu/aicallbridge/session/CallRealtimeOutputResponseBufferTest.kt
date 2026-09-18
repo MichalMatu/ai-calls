@@ -82,14 +82,23 @@ class CallRealtimeOutputResponseBufferTest {
     }
 
     @Test
-    fun transcriptMismatchFailsClosed() {
-        val buffer = releasingBuffer()
+    fun finalTranscriptIsAuthoritativeEvenWhenOnlyPartialDeltasWereObserved() {
+        val seen = mutableListOf<String>()
+        val buffer = CallRealtimeOutputResponseBuffer(
+            approvalPolicy = CallRealtimeOutputApprovalPolicy { _, transcript ->
+                seen += transcript
+                CallRealtimeOutputDecision.RELEASE
+            },
+        )
         buffer.onAudio(id, frame(4))
-        buffer.onTranscriptDelta(id, "first")
+        buffer.onTranscriptDelta(id, "Dzień ")
+        buffer.onTranscriptDone(id, "Dzień dobry")
 
-        assertFails<IllegalStateException> {
-            buffer.onTranscriptDone(id, "different")
-        }
+        val result = buffer.onAudioDone(id)
+
+        assertTrue(result is CallRealtimeOutputBufferResult.Released)
+        assertEquals(listOf("Dzień dobry"), seen)
+        assertEquals("Dzień dobry", (result as CallRealtimeOutputBufferResult.Released).output.transcript)
     }
 
     @Test
