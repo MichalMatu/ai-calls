@@ -15,6 +15,7 @@ import pl.michalmatu.aicallbridge.audio.PcmFrame
 import pl.michalmatu.aicallbridge.realtime.RealtimeClientSecret
 import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialProvider
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionFollowup
 import pl.michalmatu.aicallbridge.realtime.RealtimeSessionConfig
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
@@ -67,6 +68,10 @@ class CallRealtimeAgentSessionControllerTest {
 
         val evaluationOutput = JsonParser.parseString(transport.functionOutputs.single().second).asJsonObject
         assertEquals("autonomously_allowed", evaluationOutput.get("decision").asString)
+        assertEquals(
+            RealtimeFunctionFollowup.ForceFunction(CallRealtimeCommitmentFunctionHandler.FUNCTION_NAME),
+            transport.functionFollowups.single(),
+        )
         val authorization = evaluationOutput.get("commitment_authorization").asString
         assertTrue(authorization.isNotBlank())
         assertTrue(controller.sessionSpec.commitmentGate.hasAuthorization())
@@ -84,6 +89,7 @@ class CallRealtimeAgentSessionControllerTest {
             JsonParser.parseString(transport.functionOutputs[1].second)
                 .asJsonObject.get("commitment").asString,
         )
+        assertEquals(RealtimeFunctionFollowup.NoTools, transport.functionFollowups[1])
         assertFalse(controller.sessionSpec.commitmentGate.hasAuthorization())
         assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, workflow.snapshot().state())
 
@@ -132,6 +138,7 @@ class CallRealtimeAgentSessionControllerTest {
         var connectedConfig: RealtimeSessionConfig? = null
         private var listener: RealtimeTransport.Listener? = null
         val functionOutputs = mutableListOf<Pair<String, String>>()
+        val functionFollowups = mutableListOf<RealtimeFunctionFollowup>()
 
         override suspend fun connect(config: RealtimeSessionConfig): Result<Unit> {
             connectedConfig = config
@@ -141,8 +148,16 @@ class CallRealtimeAgentSessionControllerTest {
         override fun sendAudio(frame: PcmFrame): Result<Unit> = Result.success(Unit)
         override fun cancelResponse(): Result<Unit> = Result.success(Unit)
 
-        override fun submitFunctionOutput(callId: String, outputJson: String): Result<Unit> {
+        override fun submitFunctionOutput(callId: String, outputJson: String): Result<Unit> =
+            submitFunctionOutput(callId, outputJson, RealtimeFunctionFollowup.Auto)
+
+        override fun submitFunctionOutput(
+            callId: String,
+            outputJson: String,
+            followup: RealtimeFunctionFollowup,
+        ): Result<Unit> {
             functionOutputs += callId to outputJson
+            functionFollowups += followup
             return Result.success(Unit)
         }
 
