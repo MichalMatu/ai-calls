@@ -1,72 +1,181 @@
-# Next chat prompt — Milestone D closeout / overnight autonomous work
+# Prompt for the next ChatGPT conversation
 
-Paste the block below into a fresh ChatGPT window.
+Copy the block below into a new chat. If the new chat does not yet have a Local Agent binding, let `[LAB:ADD=android-ai-call-bridge]` bootstrap it first and use the fresh `LA_AGENT` returned there. Never reuse the old chat's binding if the new bootstrap returns another value.
 
-```text
-[LA_REPO=android-ai-call-bridge] [LA_REPOSITORY=MichalMatu/android-ai-call-bridge]
+---
 
-Kontynuuj projekt `MichalMatu/android-ai-call-bridge` na branchu `work/phase1-live-call-probes`.
+[LAB:ADD=android-ai-call-bridge]
 
-To jest nocny handoff. Masz autonomicznie pracować przez około 8 godzin, z inicjatywą, bez czekania na moje potwierdzenia przy zwykłych decyzjach inżynierskich. Jeśli napotkasz prawdziwy physical/user-action gate, udokumentuj go i kontynuuj wszystko, co da się zrobić host-only.
+Kontynuujemy rozwój wyłącznie repozytorium:
 
-Najpierw przeczytaj W CAŁOŚCI i traktuj jako źródło prawdy:
+https://github.com/MichalMatu/android-ai-call-bridge
+
+Repository id Local Agenta: `android-ai-call-bridge`.
+
+Główny branch roboczy:
+`work/phase1-live-call-probes`
+
+Control branch Local Agenta:
+`agent-control`
+
+Jeżeli bootstrap tego nowego chatu zwróci `LA_AGENT`, traktuj go jako immutable binding dla tego chatu. Każdy tworzony `.agent/tasks/*.json` musi zawierać dokładnie ten świeży `agent_binding`. Nigdy nie kopiuj bindingu ze starego chatu, jeśli nowy bootstrap zwróci inny.
+
+Pracuj tylko w `MichalMatu/android-ai-call-bridge`. Nie zgaduj i nie używaj innych repozytoriów pod tym bindingiem.
+
+## Najpierw przeczytaj
+
+Przed jakąkolwiek zmianą przeczytaj w tej kolejności:
+
 1. `AGENTS.md`
 2. `docs/HANDOFF_NEXT_CHAT.md`
-3. `docs/ROADMAP.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/PHASE2_DEEP_AUDIT_2026-09-16.md`
+3. `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`
+4. `docs/PHASE2D_FREEZE_2026-09-18.md`
+5. `docs/ROADMAP.md`
+6. `docs/ARCHITECTURE.md`
+7. `docs/SECURITY_PRIVACY.md`
+8. w razie potrzeby `docs/superpowers/plans/2026-09-18-telephone-agent-v1.md`
 
-Nie odtwarzaj projektu od zera i nie powtarzaj zakończonych fizycznych gate'ów bez konkretnego powodu.
+Następnie sprawdź:
 
-Aktualny product HEAD zapisany w handoffie to:
-`72cc290a261432588005f0300ace382aa252deb1`
-(`fix: stop downlink when cellular call mode ends`).
+- aktualny HEAD `work/phase1-live-call-probes`;
+- `.agent/status/daemon.json` na `agent-control`;
+- czy nie ma aktywnego Local Agent taska piszącego/operującego na tym samym branchu.
 
-Najważniejszy stan:
-- Phase 2B i 2C są frozen/proven — nie modyfikuj ich branchy.
-- app-death physical gate: GREEN.
-- transferred RX PFD close: GREEN.
-- transferred TX PFD close: GREEN.
-- 20-cycle start/abort logic: 20/20 GREEN.
-- natural cellular call-end: znaleziono realny defect, naprawiono `CallModeWatchdog`, ponowny physical gate GREEN.
-- 10-min media soak: wykonano 10 × 60 s, wszystkie 10 sesji GREEN, łącznie 600 s realnego bidirectional RX+TX.
-- nie zachował się finalny external RSS/FD/thread summary, bo telemetry watcher został uznany przez Local Agent za background-process leak i posprzątany przed analizą. Nie powtarzaj 10 rozmów tylko z tego powodu, jeśli da się zamknąć resource evidence mniejszym testem.
+Nie rób recapu niezmienionego stanu — od razu kontynuuj od dokładnych dowodów z repo.
 
-Pierwszy cel nowego chatu: domknąć Milestone D możliwie małym kosztem:
-1. zamknąć resource-trend evidence najmniejszym wiarygodnym testem/harnessem;
-2. full Python + full Gradle tests + assembleDebug + diff/clean audit po CallModeWatchdog;
-3. final security/architecture audit;
-4. zaktualizować docs;
-5. utworzyć i zamrozić `milestone/phase2d-failsafe-proven-s22-20260918` tylko jeśli wszystkie wymagane dowody są GREEN.
+## Stan, od którego kontynuujemy
 
-Po freeze NIE twórz kolejnej fazy robustness. Od razu przejdź do Telephone Agent v1.
+Ostatni behavior HEAD przed dokumentacyjnym handoffem:
 
-Cel produktu użytkownika:
-"Zadzwoń do przychodni w Sky Tower i umów mnie na wizytę..."
-System ma sam znaleźć właściwy numer, zbudować goal/constraints, zadzwonić zwykłą siecią komórkową, prowadzić rozmowę przez AI, negocjować w granicach constraints, wykryć rezultat i zwrócić wynik / opcjonalnie zapisać Calendar. Pytaj użytkownika tylko o materialne decyzje, których nie da się bezpiecznie wywnioskować.
+`94594aa8f6e321395d5648dea4dffb243db911fd` — `feat: require function response identity`
 
-Po freeze zacznij od preimplementation audit Telephone Agent v1, a potem implementuj małymi TDD commitami:
-- production `CallMediaSessionCoordinator` zamiast MainActivity/probe jako lifecycle owner;
-- states IDLE/BINDING/PREPARING/ACTIVE/STOPPING/FAILED;
-- generation/session id, failure reason, Binder death handling, structured telemetry;
-- task model: target/action/service/constraints/authorized facts;
-- call states RESEARCHING -> READY_TO_DIAL -> DIALING -> ACTIVE_NEGOTIATION -> NEEDS_USER_DECISION? -> COMPLETED/FAILED;
-- structured outcome;
-- Realtime AI jako conversation engine wewnątrz orchestratora.
+Po nim mogą być wyłącznie commity dokumentacyjne z handoffu. Zweryfikuj aktualny HEAD zamiast zakładać SHA.
 
-Przed kodowaniem OpenAI Realtime sprawdź aktualną oficjalną dokumentację OpenAI w web. Nie wkładaj long-lived OpenAI key do APK; zaprojektuj ephemeral/server-mediated credentials.
+Milestone D / lokalny Samsung media bridge jest zamrożony i PROVEN_S22. Nie powtarzaj pełnej macierzy Phase 2D bez konkretnej regresji.
 
-Target device:
-Samsung S22+ SM-S906B, serial RFCT70L7E8J, Android 16/API36/One UI8, Orange PL, Google Phone, Shizuku shell UID 2000.
-Bezpieczny numer testowy `510100100` został już wcześniej autoryzowany. Preferuj jednak host-only pracę, jeśli live call nie jest konieczny.
+Frozen checkpoint:
+`milestone/phase2d-failsafe-proven-s22-20260918`
+`59b0505537a53306acdab6a2a66ca6eed2b3f1c0`
 
-Preserve proven Samsung invariants z handoffu: RX ordering, system/shell attribution, CALL_ASSISTANT TX, mono->stereo dopiero na boundary, PFD ownership, shared fail-safe lifetime, brak per-frame Binder, TAKE OVER lokalnie.
+Zachowaj invariants: RX ordering/attribution, TX `com.android.shell`, CALL_ASSISTANT/TELEPHONY_TX, mono PCM16 wewnątrz, stereo tylko na Samsung TX boundary, PFD AutoClose, whole-generation cleanup, lokalny TAKE OVER, heartbeat i `CallModeWatchdog`.
 
-Local Agent:
-repository id: `android-ai-call-bridge`
-agent binding: `c25f88c0-4682-414c-8062-c47fa4034cb0`
-control branch: `agent-control`
-Każdy task JSON musi mieć dokładnie ten `agent_binding`. Nie uruchamiaj local Codex. Przed pisaniem na ten sam branch sprawdź aktywny task/result.
+## Co jest już zrobione w Phase 3
 
-Na początku potwierdź remote HEAD, clean worktree i Local Agent state. Następnie działaj samodzielnie według powyższego celu.
-```
+Mamy już produkcyjne:
+
+- `CallMediaSessionCoordinator` + `ShizukuCallMediaSessionBackend`;
+- `CallRealtimeAgentRuntime`, controller, orchestrator i media session;
+- Realtime WebSocket + OkHttp connector + generation safety;
+- PCM 16 kHz telephony <-> 24 kHz Realtime;
+- bounded audio pump + barge-in;
+- `CallTask` / hard constraints / soft preferences / `authorizedFacts` / workflow / outcomes;
+- deterministic `CallConfirmationPolicy` i `NEEDS_USER_DECISION`;
+- typed Realtime function calling;
+- `evaluate_proposal`;
+- one-shot `CallCommitmentGate`;
+- forced `commit_proposal` po zgodzie i `NoTools` po commicie;
+- hostowy credential broker + Android provider/request factory;
+- ADB-only off-call Realtime network smoke plumbing;
+- secure smoke runner staging secretów przez stdin;
+- typed output audio/transcript/response lifecycle;
+- `CallRealtimeOutputResponseBuffer` i pełno-response buffering przed telephony TX.
+
+Mechanika response-lifecycle speech gate była pełne GREEN na:
+`7d7bd65738568ee5a29ff6d2674b157584264e54`.
+
+Realny OpenAI S22 network smoke NIE został jeszcze wykonany.
+
+## Dwa aktualne RED-y — od nich zacznij
+
+### RED 1: production output approval policy
+
+Istnieje `CallRealtimeAgentOutputApprovalPolicyTest`, ale production `CallRealtimeAgentOutputApprovalPolicy` oraz `CallRealtimeAgentSessionSpec.outputApprovalPolicy` nie są jeszcze zaimplementowane.
+
+Najpierw zaimplementuj ten kontrakt TDD:
+
+- RELEASE zwykłej mowy tylko w bezpiecznym `ACTIVE_NEGOTIATION`, gdy nie ma pending commitment permit;
+- DROP gdy permit commitmentu jest pending;
+- DROP w `NEEDS_USER_DECISION`;
+- DROP poza aktywną negocjacją;
+- użyj dokładnie tego samego `CallCommitmentGate`, który obsługuje `evaluate_proposal` / `commit_proposal`.
+
+Następnie przepuść `outputApprovalPolicy` przez production session/media wiring aż do `CallRealtimeAudioPump`, aby realna sesja rzeczywiście tworzyła `CallRealtimeOutputResponseBuffer`. Nie kończ na samym skompilowaniu testu ze `SessionSpec` jeśli production pump nadal dostaje `null`.
+
+Dowód RED: `.agent/results/realtime-agent-output-policy-red-20260918-2500.json`.
+
+### RED 2: stale fixture po `response_id` hardening
+
+Focused `RealtimeFunctionToolProtocolTest` przechodzi, ale pełny `:realtime-client:testDebugUnitTest` ma jeden failure:
+
+`RealtimeWebSocketFunctionTransportTest.incomingFunctionCallReachesTypedListener`
+
+Fixture emituje `response.output_item.done` bez `response_id`, podczas gdy aktualny parser celowo wymaga response identity dla function call.
+
+Nie osłabiaj parsera tylko po to, żeby stary test przeszedł. Zaktualizuj fixture do aktualnego GA event shape z `response_id` i dodaj asercję, że `RealtimeFunctionCall.responseId` zachowuje tę wartość.
+
+Uwaga: task `.agent/results/realtime-function-response-id-green-20260918-2525.json` ma mylącą nazwę `green`, ale faktycznie `status=failed` właśnie przez ten jeden stale fixture. Traktuj to jako aktualny RED pełnego modułu.
+
+## Gate po naprawach
+
+Po obu poprawkach uruchom Local Agent read-only gate na exact HEAD:
+
+- focused output-policy/speech-gate/function-response-id tests;
+- `:realtime-client:testDebugUnitTest`;
+- `:app:testDebugUnitTest`;
+- `:app:assembleDebug`;
+- `python3 -m unittest discover -s scripts -p 'test_*.py'`;
+- scan, że produkcyjny Android/Realtime kod nie zawiera `OPENAI_API_KEY`, `sk-...`, `apiKey`, `api_key`;
+- `git diff --check`;
+- clean working tree.
+
+Nie wykonuj połączenia komórkowego tylko po to, żeby zamknąć te hostowe RED-y.
+
+## Następny fizyczny etap po pełnym host GREEN
+
+Pierwszy kolejny device gate to PRAWDZIWY OpenAI **off-call network smoke**, bez dialowania.
+
+Host musi mieć:
+
+- `OPENAI_API_KEY` wyłącznie w env brokera;
+- działający authenticated HTTPS endpoint/tunnel do loopback brokera;
+- osobny silny broker bearer dla Androida.
+
+Użyj istniejących:
+
+- `scripts/realtime_credential_broker.py`
+- `scripts/realtime_network_smoke.py`
+- protected `RealtimeNetworkOffCallSmokeProbe`.
+
+Nie wkładaj standardowego OpenAI key do APK, Intenta, app-private smoke config ani telefonu.
+
+PASS off-call network smoke powinien udowodnić credential fetch + Realtime connect/session i dojście do `STARTING_MEDIA`, po czym frozen media ma poprawnie odrzucić start poza rozmową. `ACTIVE` off-call byłby safety failure.
+
+Jeśli host nadal nie ma `OPENAI_API_KEY` lub HTTPS tunnel, nie zgaduj i nie obchodź zabezpieczeń. Zostaw real-network gate jawnie zablokowany przez external prerequisite.
+
+## Dopiero później: pierwszy realny call
+
+Po realnym off-call OpenAI smoke:
+
+1. pierwszy cellular Realtime call ma być kontrolowany i non-committing;
+2. zweryfikuj realną jakość RX/TX, latency, barge-in, TAKE OVER, cleanup i faktyczne GA event ordering/response identity;
+3. dopiero później rób realną rejestrację w przychodni z jawnie podanymi danymi i constraints;
+4. proposal poza authority -> `NEEDS_USER_DECISION`, nigdy automatyczne rozszerzenie authority.
+
+Safe regression number `510100100` jest autoryzowany tylko gdy fizyczny regression test naprawdę go wymaga.
+
+Przy live call: direct USB-C, Bluetooth off podczas testu, mute voice-call przed dial i po ACTIVE, speakerphone off, restore Bluetooth po teście.
+
+## Zasady Local Agent
+
+- direct GitHub edits, gdy diff/docs/code evidence wystarcza;
+- Local Agent tylko do lokalnych buildów/testów/ADB/device;
+- `.agent` metadata tylko na `agent-control`;
+- każdy task ma dokładnie świeży `agent_binding` tego nowego chatu;
+- przed pisaniem na ten sam branch sprawdź active task;
+- nie polluj zdrowych multi-minute tasków co 30 s; minimum 2 min, zwykle 5–10 min;
+- nigdy nie uruchamiaj lokalnego Codex z taska Local Agenta;
+- nie pracuj nad innym repozytorium pod tym bindingiem.
+
+Kontynuuj autonomicznie od RED 1, potem RED 2, potem pełny host gate. Nie pytaj mnie o rzeczy już zapisane w handoffie.
+
+---
