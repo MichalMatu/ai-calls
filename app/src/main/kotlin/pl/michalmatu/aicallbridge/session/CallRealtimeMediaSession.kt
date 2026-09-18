@@ -32,6 +32,7 @@ class CallRealtimeMediaSession(
     monotonicNs: () -> Long = System::nanoTime,
     private val onTerminalState: (CallRealtimeMediaSessionSnapshot) -> Unit = {},
     onFunctionCall: (RealtimeFunctionCall) -> Unit = {},
+    outputApprovalPolicy: CallRealtimeOutputApprovalPolicy? = null,
 ) : AutoCloseable {
     private val lock = Any()
     private var state = CallRealtimeMediaSessionState.ATTACHED
@@ -46,6 +47,7 @@ class CallRealtimeMediaSession(
             transport = transport,
             monotonicNs = monotonicNs,
             functionCallHandler = onFunctionCall,
+            outputApprovalPolicy = outputApprovalPolicy,
             onTerminalFailure = ::handlePumpFailure,
         )
     }

@@ -19,10 +19,11 @@ class RealtimeWebSocketFunctionTransportTest {
         assertTrue(runSuspend { transport.connect(config()) }.isSuccess)
 
         connector.listener!!.onText(
-            """{"type":"response.output_item.done","item":{"type":"function_call","call_id":"call_1","name":"evaluate_proposal","arguments":"{\"provider\":\"Clinic A\"}"}}""",
+            """{"type":"response.output_item.done","response_id":"resp_1","item":{"type":"function_call","call_id":"call_1","name":"evaluate_proposal","arguments":"{\"provider\":\"Clinic A\"}"}}""",
         )
 
         assertEquals(1, listener.functionCalls.size)
+        assertEquals("resp_1", listener.functionCalls.single().responseId)
         assertEquals("call_1", listener.functionCalls.single().callId)
         assertEquals("evaluate_proposal", listener.functionCalls.single().name)
     }
@@ -84,7 +85,7 @@ class RealtimeWebSocketFunctionTransportTest {
         assertTrue(runSuspend { transport.connect(config()) }.isSuccess)
 
         connector.listener!!.onText(
-            """{"type":"response.output_item.done","item":{"type":"function_call","call_id":"call_1","name":"evaluate_proposal"}}""",
+            """{"type":"response.output_item.done","response_id":"resp_bad","item":{"type":"function_call","call_id":"call_1","name":"evaluate_proposal"}}""",
         )
 
         assertTrue(listener.functionCalls.isEmpty())

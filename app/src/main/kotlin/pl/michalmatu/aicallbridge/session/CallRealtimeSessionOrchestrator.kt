@@ -62,6 +62,7 @@ class CallRealtimeSessionOrchestrator(
     private val bootstrapExecutor: Executor,
     private val listener: (CallRealtimeSessionOrchestratorSnapshot) -> Unit = {},
     private val functionCallHandler: CallRealtimeFunctionCallHandler? = null,
+    private val outputApprovalPolicy: CallRealtimeOutputApprovalPolicy? = null,
 ) : AutoCloseable {
     private val lock = Any()
 
@@ -358,6 +359,7 @@ class CallRealtimeSessionOrchestrator(
                 onFunctionCall = { call ->
                     handleFunctionCall(expectedGeneration, expectedTransport, call)
                 },
+                outputApprovalPolicy = outputApprovalPolicy,
             )
         } catch (error: Throwable) {
             failBootstrap(expectedGeneration, expectedTransport, error)

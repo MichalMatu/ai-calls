@@ -74,6 +74,7 @@ class CallRealtimeAgentSessionController private constructor(
                 bootstrapExecutor = bootstrapExecutor,
                 listener = listener,
                 functionCallHandler = spec.functionCallHandler,
+                outputApprovalPolicy = spec.outputApprovalPolicy,
             )
             return CallRealtimeAgentSessionController(workflow, spec, orchestrator)
         }

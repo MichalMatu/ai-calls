@@ -1,20 +1,23 @@
 package pl.michalmatu.aicallbridge.agent
 
 import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionCallHandler
+import pl.michalmatu.aicallbridge.session.CallRealtimeOutputApprovalPolicy
 import pl.michalmatu.aicallbridge.session.CallRealtimeSessionRequest
 
 /**
  * Complete app-owned binding for one Telephone Agent Realtime session.
  *
- * Instructions, proposal evaluation, one-shot commitment authorization and function routing are
- * created together from the same workflow. Production code therefore cannot advertise a commit
- * tool backed by unrelated authority or accidentally omit the deterministic proposal gate.
+ * Instructions, proposal evaluation, one-shot commitment authorization, speech approval and
+ * function routing are created together from the same workflow. Production code therefore cannot
+ * advertise a commit tool backed by unrelated authority or accidentally omit the deterministic
+ * proposal/speech gates.
  */
 class CallRealtimeAgentSessionSpec private constructor(
     val request: CallRealtimeSessionRequest,
     val proposalHandler: CallRealtimeProposalFunctionHandler,
     val commitmentHandler: CallRealtimeCommitmentFunctionHandler,
     val commitmentGate: CallCommitmentGate,
+    val outputApprovalPolicy: CallRealtimeOutputApprovalPolicy,
     val functionCallHandler: CallRealtimeFunctionCallHandler,
 ) {
     companion object {
@@ -30,6 +33,7 @@ class CallRealtimeAgentSessionSpec private constructor(
             val commitmentGate = CallCommitmentGate()
             val proposalHandler = CallRealtimeProposalFunctionHandler(workflow, commitmentGate)
             val commitmentHandler = CallRealtimeCommitmentFunctionHandler(workflow, commitmentGate)
+            val outputApprovalPolicy = CallRealtimeAgentOutputApprovalPolicy(workflow, commitmentGate)
             val functionCallHandler = CallRealtimeFunctionCallHandler { call, responder ->
                 when (call.name) {
                     CallRealtimeProposalFunctionHandler.FUNCTION_NAME ->
@@ -54,6 +58,7 @@ class CallRealtimeAgentSessionSpec private constructor(
                 proposalHandler = proposalHandler,
                 commitmentHandler = commitmentHandler,
                 commitmentGate = commitmentGate,
+                outputApprovalPolicy = outputApprovalPolicy,
                 functionCallHandler = functionCallHandler,
             )
         }
