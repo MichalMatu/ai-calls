@@ -9,6 +9,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionFollowup
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionTool
 import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionCallHandler
 import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionResponder
@@ -46,7 +47,10 @@ class CallRealtimeProposalFunctionHandler(
         when (decision.action()) {
             CallPolicyAction.AUTONOMOUSLY_ALLOWED -> {
                 val authorization = commitmentGate.authorize(proposal)
-                val submitted = responder.submit(approvedOutput(AUTONOMOUSLY_ALLOWED, authorization))
+                val submitted = responder.submit(
+                    approvedOutput(AUTONOMOUSLY_ALLOWED, authorization),
+                    COMMITMENT_FOLLOWUP,
+                )
                 val submitError = submitted.exceptionOrNull()
                 if (submitError != null) {
                     commitmentGate.clear()
@@ -102,8 +106,9 @@ class CallRealtimeProposalFunctionHandler(
             commitmentGate.clear()
             USER_REJECTED_OUTPUT
         }
+        val followup = if (approve) COMMITMENT_FOLLOWUP else RealtimeFunctionFollowup.Auto
 
-        val submitted = pending.responder.submit(outputJson)
+        val submitted = pending.responder.submit(outputJson, followup)
         val submitError = submitted.exceptionOrNull()
         if (submitError != null) {
             commitmentGate.clear()
@@ -299,6 +304,8 @@ class CallRealtimeProposalFunctionHandler(
         private const val AUTONOMOUSLY_ALLOWED = "autonomously_allowed"
         private const val USER_APPROVED = "user_approved"
         private const val USER_REJECTED_OUTPUT = "{\"decision\":\"user_rejected\"}"
+        private val COMMITMENT_FOLLOWUP =
+            RealtimeFunctionFollowup.ForceFunction(CallRealtimeCommitmentFunctionHandler.FUNCTION_NAME)
 
         private fun approvedOutput(
             decision: String,
