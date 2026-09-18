@@ -1,10 +1,13 @@
 package pl.michalmatu.aicallbridge.session
 
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
 import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialProvider
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionTool
 import pl.michalmatu.aicallbridge.realtime.RealtimeSessionConfig
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
 
@@ -24,12 +27,16 @@ data class CallRealtimeSessionRequest(
     val model: String,
     val instructions: String,
     val sampleRateHz: Int = 16_000,
+    val tools: List<RealtimeFunctionTool> = emptyList(),
 ) {
     init {
         require(sessionEndpoint.isNotBlank()) { "sessionEndpoint must not be blank" }
         require(model.isNotBlank()) { "model must not be blank" }
         require(instructions.isNotBlank()) { "instructions must not be blank" }
         require(sampleRateHz > 0) { "sampleRateHz must be > 0" }
+        require(tools.map { it.name }.distinct().size == tools.size) {
+            "Realtime function tool names must be unique"
+        }
     }
 }
 
@@ -53,6 +60,7 @@ class CallRealtimeSessionOrchestrator(
     private val transportFactory: () -> RealtimeTransport,
     private val bootstrapExecutor: Executor,
     private val listener: (CallRealtimeSessionOrchestratorSnapshot) -> Unit = {},
+    private val functionCallHandler: CallRealtimeFunctionCallHandler? = null,
 ) : AutoCloseable {
     private val lock = Any()
 
@@ -63,6 +71,7 @@ class CallRealtimeSessionOrchestrator(
     private var transport: RealtimeTransport? = null
     private var mediaSession: CallRealtimeMediaSession? = null
     private var coordinatorSubscription: AutoCloseable? = null
+    private val pendingFunctionCalls = mutableSetOf<String>()
     private var closed = false
 
     fun start(request: CallRealtimeSessionRequest): Long {
@@ -84,6 +93,7 @@ class CallRealtimeSessionOrchestrator(
             state = CallRealtimeSessionOrchestratorState.FETCHING_CREDENTIAL
             mediaGeneration = null
             failureReason = null
+            pendingFunctionCalls.clear()
             fetchingSnapshot = snapshotLocked()
         }
         publish(fetchingSnapshot)
@@ -182,6 +192,7 @@ class CallRealtimeSessionOrchestrator(
                 mediaSession = null
                 transport = null
                 mediaGeneration = null
+                pendingFunctionCalls.clear()
                 failureReason = null
                 state = CallRealtimeSessionOrchestratorState.TAKEN_OVER
                 snapshotLocked()
@@ -209,6 +220,7 @@ class CallRealtimeSessionOrchestrator(
                 mediaSession = null
                 transport = null
                 coordinatorSubscription = null
+                pendingFunctionCalls.clear()
                 values
             }
             closeQuietly(resources.third)
@@ -239,6 +251,7 @@ class CallRealtimeSessionOrchestrator(
                 clientSecret = secret,
                 model = request.model,
                 instructions = request.instructions,
+                tools = request.tools,
             ),
         )
         connectResult.getOrElse { throw it }
@@ -341,6 +354,9 @@ class CallRealtimeSessionOrchestrator(
                 onTerminalState = { terminal ->
                     handleMediaTerminal(expectedGeneration, candidateTransport = expectedTransport, terminal)
                 },
+                onFunctionCall = { call ->
+                    handleFunctionCall(expectedGeneration, expectedTransport, call)
+                },
             )
         } catch (error: Throwable) {
             failBootstrap(expectedGeneration, expectedTransport, error)
@@ -416,6 +432,7 @@ class CallRealtimeSessionOrchestrator(
             mediaSession = null
             transport = null
             mediaGeneration = null
+            pendingFunctionCalls.clear()
             when (terminal.state) {
                 CallRealtimeMediaSessionState.FAILED -> {
                     failureReason = terminal.failureReason ?: "Realtime media session failed"
@@ -431,6 +448,105 @@ class CallRealtimeSessionOrchestrator(
         }
         closeQuietly(subscription)
         publish(terminalSnapshot)
+    }
+
+    private fun handleFunctionCall(
+        expectedGeneration: Long,
+        expectedTransport: RealtimeTransport,
+        call: RealtimeFunctionCall,
+    ) {
+        var duplicate = false
+        val accepted = synchronized(lock) {
+            if (
+                expectedGeneration != generation ||
+                transport !== expectedTransport ||
+                (state != CallRealtimeSessionOrchestratorState.STARTING_MEDIA &&
+                    state != CallRealtimeSessionOrchestratorState.ACTIVE)
+            ) {
+                false
+            } else if (!pendingFunctionCalls.add(call.callId)) {
+                duplicate = true
+                false
+            } else {
+                true
+            }
+        }
+        if (!accepted) {
+            if (duplicate) {
+                failWithPossibleMedia(
+                    expectedGeneration,
+                    expectedTransport,
+                    IllegalStateException("duplicate Realtime function call id"),
+                )
+            }
+            return
+        }
+
+        val handler = functionCallHandler
+        if (handler == null) {
+            synchronized(lock) { pendingFunctionCalls.remove(call.callId) }
+            failWithPossibleMedia(
+                expectedGeneration,
+                expectedTransport,
+                IllegalStateException("Realtime function call received without an app handler"),
+            )
+            return
+        }
+
+        val responder = GenerationBoundFunctionResponder(
+            expectedGeneration,
+            expectedTransport,
+            call.callId,
+        )
+        try {
+            handler.onFunctionCall(call, responder)
+        } catch (error: Throwable) {
+            synchronized(lock) { pendingFunctionCalls.remove(call.callId) }
+            failWithPossibleMedia(expectedGeneration, expectedTransport, error)
+        }
+    }
+
+    private inner class GenerationBoundFunctionResponder(
+        private val expectedGeneration: Long,
+        private val expectedTransport: RealtimeTransport,
+        private val callId: String,
+    ) : CallRealtimeFunctionResponder {
+        private val used = AtomicBoolean(false)
+
+        override fun submit(outputJson: String): Result<Unit> {
+            if (outputJson.isBlank()) {
+                return Result.failure(IllegalArgumentException("function output must not be blank"))
+            }
+            if (!used.compareAndSet(false, true)) {
+                return Result.failure(IllegalStateException("Realtime function responder already used"))
+            }
+
+            var transportFailure: Throwable? = null
+            val result = synchronized(lock) {
+                if (
+                    expectedGeneration != generation ||
+                    transport !== expectedTransport ||
+                    (state != CallRealtimeSessionOrchestratorState.STARTING_MEDIA &&
+                        state != CallRealtimeSessionOrchestratorState.ACTIVE) ||
+                    !pendingFunctionCalls.remove(callId)
+                ) {
+                    Result.failure(IllegalStateException("Realtime function responder is stale"))
+                } else {
+                    val submitted = try {
+                        expectedTransport.submitFunctionOutput(callId, outputJson)
+                    } catch (error: Throwable) {
+                        Result.failure(error)
+                    }
+                    transportFailure = submitted.exceptionOrNull()
+                    submitted
+                }
+            }
+
+            transportFailure?.let { error ->
+                failWithPossibleMedia(expectedGeneration, expectedTransport, error)
+            }
+            return result
+        }
     }
 
     private fun failBootstrap(
@@ -471,6 +587,7 @@ class CallRealtimeSessionOrchestrator(
             mediaSession = null
             transport = null
             mediaGeneration = null
+            pendingFunctionCalls.clear()
             failureReason = describe(error)
             state = CallRealtimeSessionOrchestratorState.FAILED
             snapshotLocked()
@@ -515,6 +632,7 @@ class CallRealtimeSessionOrchestrator(
                 mediaSession = null
                 transport = null
                 mediaGeneration = null
+                pendingFunctionCalls.clear()
                 state = CallRealtimeSessionOrchestratorState.FAILED
                 snapshotLocked()
             }
@@ -539,6 +657,7 @@ class CallRealtimeSessionOrchestrator(
             mediaSession = null
             transport = null
             mediaGeneration = null
+            pendingFunctionCalls.clear()
             failureReason = describe(error)
             state = CallRealtimeSessionOrchestratorState.FAILED
             snapshotLocked()
@@ -605,6 +724,7 @@ class CallRealtimeSessionOrchestrator(
             mediaSession = null
             transport = null
             mediaGeneration = null
+            pendingFunctionCalls.clear()
             failureReason = null
             state = CallRealtimeSessionOrchestratorState.TAKEN_OVER
             snapshotLocked()
