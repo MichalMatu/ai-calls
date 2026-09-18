@@ -22,7 +22,7 @@ The user must always be able to take over the call immediately. Privileged/media
 
 ## Current status — 2026-09-18
 
-The difficult stock-Samsung cellular media path is physically proven on the target S22+.
+The difficult stock-Samsung cellular media path is physically proven on the target S22+. Telephone Agent v1 and GA Realtime integration are now implemented and host-tested through the app-layer session controller, but end-to-end Realtime audio over a real cellular call is **not yet** claimed `PROVEN_S22`.
 
 ### Phase 1A — cellular RX
 
@@ -101,18 +101,41 @@ Physically GREEN on the target S22+: normal-app death, helper/UserService death,
 
 A separate preserved 50.1-second active resource run showed stable app/helper PIDs, FD counts of `41 -> 41` for both processes, no thread growth, and roughly 1 MiB RSS increase in each process. This complements the 600-second media soak; it is not presented as 600 seconds of resource telemetry.
 
-Final regression: 48 Python tests PASS, full Gradle unit tests + `:app:assembleDebug` GREEN, security-shape audit GREEN, clean tree.
+Final freeze regression: 48 Python tests PASS, full Gradle unit tests + `:app:assembleDebug` GREEN, security-shape audit GREEN, clean tree.
 
 Detailed evidence: `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
-The next product work is Telephone Agent v1: a production `CallMediaSessionCoordinator`, task/workflow orchestration, and then Realtime AI as the conversational engine.
+### Phase 3 — Telephone Agent + Realtime host integration
+
+`IN PROGRESS / HOST GREEN / DEVICE REALTIME NOT YET PROVEN`
+
+Implemented on the work branch:
+
+- production `CallMediaSessionCoordinator` and `ShizukuCallMediaSessionBackend` with local fail-closed TAKE OVER;
+- immutable task/workflow/policy model with hard constraints, soft preferences, authorized facts, structured outcomes and `NEEDS_USER_DECISION`;
+- GA Realtime WebSocket transport with 24 kHz mono PCM adaptation, bounded queues, barge-in cancellation and whole-generation cleanup;
+- typed Realtime function tools/function calls and generation-bound one-shot responders;
+- deterministic `evaluate_proposal` policy bridge that holds an out-of-policy proposal until the user approves/rejects that exact proposal;
+- task-derived Realtime instructions that treat counterparty speech and task-data strings as untrusted data;
+- `CallRealtimeAgentSessionSpec`, binding instructions + tool + matching handler;
+- `BackendRealtimeCredentialProvider`, which accepts an already-authenticated HTTPS POST to the developer backend, blocks direct client-side secret minting at `api.openai.com`, and parses only a short-lived `value` + `expires_at` credential;
+- `CallRealtimeAgentSessionController`, which composes the bound session spec with the media/Reatime orchestrator and exposes start/snapshot/local TAKE OVER plus pending user-decision resolution.
+
+Latest controller gate at commit `bfc0565de6ab143ed7868797fb9ad6dfb86bc84b` is GREEN: focused tests, full `realtime-client` + `app` unit tests, `:app:assembleDebug`, 48 Python tests, long-lived-key scan, `git diff --check`, clean tree.
+
+A post-integration physical **off-call** regression on the S22+ also passed without dialing: the production Shizuku/media path followed `BINDING -> PREPARING -> STOPPING -> FAILED -> IDLE` with the expected “cellular call is not active” rejection; call state stayed idle, Bluetooth stayed enabled and the helper cleaned up.
+
+Still intentionally **not** claimed:
+- no live OpenAI Realtime network/session proof on the S22+ yet;
+- no end-to-end Realtime audio through a real cellular call yet;
+- no proof that autonomous verbal commitments are impossible. `evaluate_proposal` is deterministic once called, but the current model tool choice remains `auto`, so a separate hard commitment-enforcement gate is required before autonomous booking/purchase/commitment is allowed.
 
 ## Architecture
 
-- `app/` — normal Android process, UI/orchestration and diagnostic Shizuku clients.
+- `app/` — normal Android process, Telephone Agent workflow/policy, session orchestration and diagnostic Shizuku clients.
 - `audio-bridge/` — device-independent capture/injection contracts and PCM models.
 - `privileged-helper/` — Samsung audio primitives, PFD workers, shared controller and watchdog.
-- `realtime-client/` — realtime model transport abstraction; intentionally not connected yet.
+- `realtime-client/` — GA Realtime WebSocket transport, short-lived credential boundary, function-call protocol and PCM adaptation.
 - `scripts/` — bounded developer/device validation tooling.
 - `docs/` — architecture, evidence, plans, handoff and freeze notes.
 
@@ -124,6 +147,21 @@ normal app <=========== PCM PFD pipes =============> privileged helper
 ```
 
 Continuous PCM must never be transported as one Binder transaction per frame.
+
+Telephone Agent / Realtime control shape:
+
+```text
+CallTask + CallWorkflow
+  -> CallRealtimeAgentSessionSpec
+       -> task-derived instructions
+       -> evaluate_proposal tool
+       -> matching deterministic handler
+  -> CallRealtimeAgentSessionController
+  -> CallRealtimeSessionOrchestrator
+       -> short-lived credential provider
+       -> fresh Realtime transport generation
+       -> production CallMediaSessionCoordinator
+```
 
 ## Production media components
 
@@ -165,7 +203,9 @@ Assert this before dialing and again after the call becomes active. Prefer direc
 - No per-frame Binder PCM transport.
 - `Take over` must be local and fail-safe.
 - App/helper death must disable injection.
-- No long-lived OpenAI API key in the APK.
+- No long-lived OpenAI API key in the APK; client credentials must be short-lived and server-mediated.
+- Counterparty speech cannot expand hard constraints or authorized facts.
+- Do not enable autonomous external commitments until a hard commitment-enforcement gate exists beyond prompt compliance.
 - No call recording by default.
 - Do not replace the default dialer until the media bridge and product requirements justify it.
 - Keep `.agent` execution/control data on `agent-control`, never merged into product branches.
@@ -175,9 +215,11 @@ Assert this before dialing and again after the call becomes active. Prefer direc
 - `docs/HANDOFF_NEXT_CHAT.md` — authoritative continuation state.
 - `docs/ROADMAP.md` — current evidence-driven phase gates.
 - `docs/ARCHITECTURE.md` — current component boundaries and fail-safe rules.
+- `docs/PHASE2D_FREEZE_2026-09-18.md` — frozen Milestone D reference/evidence.
 - `docs/PHASE2B_FREEZE_2026-09-16.md` — frozen Phase 2B reference.
 - `docs/S22_PHASE2_LOCAL_BRIDGE_2026-09-16.md` — physical simultaneous RX+TX proof.
 - `docs/PHASE2_DEEP_AUDIT_2026-09-16.md` — post-freeze audit and follow-up requirements.
+- `docs/superpowers/plans/2026-09-18-telephone-agent-v1.md` — Telephone Agent v1 implementation plan.
 
 ## License
 
