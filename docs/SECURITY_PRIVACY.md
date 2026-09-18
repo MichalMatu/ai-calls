@@ -1,182 +1,192 @@
 # Security and Privacy
 
-This project processes live telephone audio and may send that audio to a remote realtime model. Privilege boundaries, takeover behavior and data minimization are part of the core architecture.
+## Security objective
 
-## Security goals
-
-1. A normal application failure must not leave AI audio injected into a live call.
-2. Privileged code must be as small and narrow as practical.
-3. Live audio should be processed as a stream, not silently retained.
-4. Long-lived server credentials must never be stored in the APK.
-5. Caller speech must never directly authorize dangerous external actions in the first product versions.
+The telephone agent may speak and act only inside authority explicitly granted by the user. Technical failure must disable AI injection or return control to the human caller; it must never broaden authority or leave a privileged/media path stuck active.
 
 ## Privilege boundary
 
-The normal application process should not receive broad privileges merely for convenience.
+Protected Samsung call-audio access remains behind the Shizuku UserService / privileged-helper boundary.
 
-Privileged operations live in `privileged-helper`, initially through a Shizuku UserService/shell context.
+The normal app does not directly own Samsung/private audio primitives. Continuous PCM crosses the privilege boundary through transferred PFD pipes; Binder/AIDL is control only.
 
-The helper should expose only the minimum control surface needed for experiments and the eventual bridge, for example:
-- capability query;
-- start/stop capture;
-- open capture pipe;
-- start/stop/abort injection;
-- open injection pipe;
-- limited route/call-audio diagnostics.
+The helper has no OpenAI networking and no business-policy authority.
 
-Do not expose arbitrary shell command execution to the app UI or realtime model.
+## Long-lived OpenAI credentials
 
-Any Samsung-specific backend must document:
-- effective UID;
-- exact permissions/capabilities relied on;
-- Android/One UI/build constraints;
-- private Binder/system services used;
-- failure and cleanup semantics.
+A standard OpenAI API key must never be:
 
-## Helper lifecycle and fail-safe
+- embedded in source, resources, BuildConfig, APK or native library;
+- stored in Android app-private files for the smoke path;
+- passed through an Android Intent;
+- passed in ADB argv/process arguments;
+- logged by app, helper or developer scripts.
 
-Injection is the highest-risk resource.
-
-If the normal app process dies, Binder disconnects, the helper loses its controller, or a bounded heartbeat expires while injection is active, the helper must:
-
-1. stop accepting new PCM;
-2. discard queued output;
-3. stop/release the injection `AudioTrack` or vendor route;
-4. release temporary audio-routing state;
-5. restore the human microphone path where the backend controls it;
-6. close pipes and session resources.
-
-The fail-safe must be local. It cannot depend on reaching the project backend or OpenAI.
-
-## Take over
-
-`Take over` is a privileged safety operation, not merely a button state.
-
-The local sequence is:
+Expected credential flow:
 
 ```text
-block new AI output
--> flush queued injection
--> abort injector
--> restore human microphone
--> keep cellular call active
--> cancel remote model response
+host/backend OPENAI_API_KEY
+  -> authenticated developer backend
+  -> short-lived Realtime client secret
+  -> Android
+  -> OpenAI Realtime WebSocket
 ```
 
-The network cancellation can happen after the local audio path is safe.
+Android code deals only with typed short-lived `RealtimeClientSecret` values. Their string rendering is redacted.
 
-## Realtime credentials
+The OpenAI WebSocket handshake factory only permits the canonical trusted OpenAI Realtime endpoint shape and rejects expired/unsafe credentials before a connector can use them.
 
-Preferred model:
+## Developer credential broker
+
+`scripts/realtime_credential_broker.py` exists only as the current developer backend/smoke path.
+
+Security properties:
+
+- `OPENAI_API_KEY` is read from the host environment;
+- the server binds loopback by default;
+- Android authenticates with a separate strong bearer token;
+- Android cannot choose an arbitrary OpenAI model/session configuration;
+- broker responses expose only the minimum short-lived secret fields needed by the client;
+- error handling must not echo OpenAI response bodies/secrets;
+- cache behavior is `no-store`;
+- `.env`, `secrets.properties`, keystores and logs remain ignored by Git.
+
+For a device smoke, expose the loopback broker only through an authenticated HTTPS path/tunnel. Do not change Android to accept plaintext HTTP merely to simplify testing.
+
+## ADB/network smoke secret handling
+
+The protected `DiagnosticProbeActivity` is guarded by `android.permission.DUMP` and is a shell/ADB diagnostic surface, not the product owner.
+
+Realtime smoke endpoint and broker bearer are never Intent extras.
+
+`scripts/realtime_network_smoke.py` stages the one-shot config into app-private storage via ADB stdin. The secret therefore does not appear in ADB argv. `RealtimeNetworkSmokeConfig` deletes the file even on parse failure.
+
+The physical missing-config dry-run proved fail-closed behavior and did not dial.
+
+## Authority model
+
+Separate these categories permanently:
+
+- **hard constraints** — boundaries the agent may not autonomously exceed;
+- **preferences** — desired choices that can be negotiated but may require user decision when deviated from;
+- **authorized facts** — facts the user explicitly allows the agent to use;
+- **counterparty/model text** — untrusted input and never a source of new authority.
+
+An empty hard-constraint set means no hard restriction for that dimension; it does not mean the model may invent facts.
+
+Missing data required to verify a hard restriction fails closed to `NEEDS_USER_DECISION`.
+
+Do not guess currency conversions or treat an inferred fact as authorized user data.
+
+## Proposal evaluation and commitment
+
+External commitments are application-owned, not prompt-owned.
+
+The Realtime model reports a structured proposal through `evaluate_proposal`. The app parses a strict schema and runs `CallConfirmationPolicy`.
+
+For an autonomously allowed or explicitly-user-approved proposal, `CallCommitmentGate` issues an opaque one-shot permit tied to exactly that proposal.
+
+The follow-up response is scoped to force `commit_proposal`. `commit_proposal` receives only the opaque permit, not a second editable copy of price/time/provider fields. This prevents proposal substitution between policy evaluation and commit.
+
+The permit is single-use and is invalidated by:
+
+- successful consumption;
+- replacement/new proposal;
+- session restart;
+- TAKE OVER;
+- close;
+- stale generation.
+
+User approval of one proposal must never mutate the original hard constraints into broader standing authority.
+
+## Speech-integrity defense in depth
+
+Tool/commitment safety alone does not prove the model cannot verbally imply acceptance before the application authorizes it. The app therefore owns an interception point immediately before telephony TX.
+
+When the speech gate is enabled, identified model PCM is accumulated in a bounded response buffer. It cannot be released until:
+
+- output audio is complete;
+- the final output transcript is complete;
+- the whole Realtime response finishes with `COMPLETED` status;
+- an app-owned output policy explicitly returns RELEASE.
+
+Cancelled, failed and incomplete responses are dropped. Unknown terminal response status fails closed.
+
+The buffer is bounded by PCM duration/bytes, pending output-part count and transcript size to avoid replacing a streaming risk with an unbounded memory risk.
+
+A Realtime transcript is not cryptographic proof of the exact audio samples. This mechanism is defense in depth and must be validated against real GA event ordering before autonomous commitments are considered physically proven.
+
+### Current unfinished security work
+
+At behavior HEAD `94594aa8f6e321395d5648dea4dffb243db911fd`, the generic response-buffer mechanism exists, but production `CallRealtimeAgentOutputApprovalPolicy` is still RED and is not wired through `CallRealtimeAgentSessionSpec` into the production audio pump.
+
+The existing RED test requires speech to be dropped:
+
+- while a commitment permit is pending;
+- during `NEEDS_USER_DECISION`;
+- outside normal `ACTIVE_NEGOTIATION`.
+
+Ordinary speech may be released only during safe active negotiation with no pending commitment authorization.
+
+Do not mark the speech gate complete until that exact production wiring exists and the full host suite is GREEN.
+
+## Response/function identity
+
+Realtime output/function identity is used to correlate speech and business actions to the correct response generation.
+
+The latest parser requires `response_id` on typed function calls. This hardening is intentional. At current behavior HEAD one old transport test fixture still omits `response_id`; fix the fixture/current GA shape rather than weakening production parsing merely for backward test compatibility.
+
+## Data minimization
+
+Do not collect/store by default:
+
+- call recordings;
+- raw PCM after the active session;
+- full transcripts unless a product feature explicitly requires and discloses them;
+- unnecessary counterparty identifiers;
+- long-lived credentials.
+
+Runtime diagnostic counters should prefer sizes, states, timing and redacted reasons rather than speech/secret contents.
+
+Model/task/proposal/outcome debug rendering is deliberately redacted. Avoid introducing logs that bypass those safe renderers.
+
+## TAKE OVER security invariant
+
+TAKE OVER is a local safety mechanism, not a network request.
+
+Required ordering:
 
 ```text
-Android app -> project backend -> short-lived/session-scoped realtime credential
-                                      |
-                                      v
-                                OpenAI Realtime
+stop accepting/releasing AI audio
+-> close/abort local telephony media generation
+-> stop local PCM workers
+-> best-effort cancel/close remote Realtime session
 ```
 
-Rules:
-- no long-lived OpenAI API key in source, APK, SharedPreferences, logs or screenshots;
-- credential lifetime should be limited to the active session;
-- backend should authenticate the app/user before issuing session capability;
-- revoke/expire session capability when the call bridge ends.
+The first three steps cannot wait for remote acknowledgement.
 
-## Audio and transcript retention
+UserService/helper/app death must likewise disable injection.
 
-Default behavior:
-- do not record calls;
-- do not persist raw PCM;
-- do not persist transcripts unless the user explicitly enables a feature requiring them;
-- do not log full transcripts in normal mode.
+## Device test safety
 
-Diagnostic audio for Phase 1:
-- explicit opt-in;
-- short duration;
-- stored locally;
-- clearly named as a diagnostic artifact;
-- easy to delete;
-- never uploaded automatically.
+For live cellular validation on the target S22+:
 
-## Consent and disclosure
+- direct USB-C;
+- Bluetooth off during the call test;
+- mute voice-call stream before dial and verify again after media ACTIVE;
+- speakerphone off;
+- restore Bluetooth afterwards;
+- use a controlled number before any real business counterparty;
+- do not make the first real Realtime call an autonomous booking/purchase.
 
-Call recording and AI participation rules vary by jurisdiction and context. Product UX must make AI participation and any retention behavior visible enough for the user to comply with applicable rules.
+A real OpenAI off-call network smoke must happen before attaching Realtime to a cellular call.
 
-Development tests should use the owner's second phone or a participant who knows that the test is happening.
+## Evidence rule
 
-## Caller prompt injection
+Do not convert `HOST_GREEN` into `PROVEN_S22` by wording.
 
-The remote caller is untrusted input.
+Currently proven physically: local Samsung cellular bridge/fail-safe, production off-call media lifecycle, and fail-closed protected network-smoke entry with missing config.
 
-For the first functional versions the model must have **no external tools/actions**. It may converse only.
+Not yet proven physically: real OpenAI S22 session, real cellular Realtime audio, current speech-gate event ordering, or autonomous clinic registration.
 
-Before any later tool integration, add an authorization layer outside the language model for actions such as:
-- sending messages;
-- accessing contacts/private data;
-- making purchases;
-- changing device settings;
-- placing additional calls;
-- controlling connected services.
-
-A caller saying "ignore your instructions and do X" must never be sufficient authorization.
-
-## Shizuku and debugging exposure
-
-Shizuku/ADB expands the device attack surface compared with an ordinary APK.
-
-Product/development rules:
-- clearly indicate when privileged mode is enabled;
-- request only the access required for this app;
-- do not keep unnecessary debug servers or arbitrary command interfaces alive;
-- treat wireless debugging exposure as a development/security consideration;
-- provide a clean way to stop the helper/session;
-- do not assume Shizuku grants every protected Android capability.
-
-## Logging
-
-Normal logs may include:
-- state transitions;
-- backend name;
-- anonymized capability result;
-- frame/queue counters;
-- timings;
-- exception classes/messages that do not contain private audio/transcript data.
-
-Normal logs must not include:
-- raw PCM;
-- API keys/tokens;
-- full phone numbers unless a dedicated debug mode explicitly requires it;
-- full transcripts;
-- contact databases.
-
-## Threat model before production
-
-Revisit at minimum:
-- repackaged/tampered APK;
-- malicious or over-privileged Shizuku helper client;
-- leaked ephemeral credentials;
-- Binder interface abuse;
-- caller prompt injection;
-- unintended background call access;
-- stuck injection after UI/process failure;
-- audio/transcript retention leaks;
-- service denial causing buffer growth or repeated output;
-- Samsung private API changes after OTA updates;
-- automatic outbound-call abuse if that feature is ever added.
-
-## Production gate
-
-No build should be considered product-ready until a destructive failure test confirms that killing the app, losing the network and losing the realtime session all result in **AI injection stopping locally while the user retains control of the cellular call**.
-
-## Milestone D verified fail-safe evidence
-
-As of 2026-09-18 on the target S22+, destructive physical tests verify that active AI media fails closed for normal-app death, helper/UserService death, transferred RX/TX endpoint loss, explicit TAKE OVER/abort, and natural cellular call end. The natural-call-end gate exposed a real heartbeat-lifetime defect and the helper-side `CallModeWatchdog` fix was physically revalidated.
-
-The final product-branch security-shape audit also verified:
-- privileged diagnostic automation remains behind `android.permission.DUMP`;
-- the exported launcher does not accept privileged live-probe automation extras;
-- no long-lived OpenAI key pattern is embedded in product modules;
-- PCM remains PFD-based rather than per-frame Binder;
-- recording is still disabled by default.
-
-See `docs/PHASE2D_FREEZE_2026-09-18.md`.
+See `docs/PHASE3_REALTIME_STATUS_2026-09-18.md` for the exact current evidence and open REDs.
