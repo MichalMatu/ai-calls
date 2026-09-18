@@ -15,6 +15,11 @@ public record CallProposal(
         location = normalizeOptional(location, "location");
     }
 
+    @Override
+    public String toString() {
+        return "CallProposal[data=REDACTED]";
+    }
+
     private static String normalizeOptional(String value, String name) {
         if (value == null) {
             return null;
