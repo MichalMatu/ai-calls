@@ -175,17 +175,18 @@ The broker is loopback-only by default, reads `OPENAI_API_KEY` from host environ
 
 ## Genuine OpenAI off-call smoke — BLOCKED BY EXTERNAL PREREQUISITES
 
-Latest prerequisite evidence remains:
+Fresh prerequisite recheck after the diagnostic hardening:
 
 ```text
-.agent/results/realtime-openai-offcall-smoke-20260918-2610.json
+.agent/results/realtime-openai-offcall-smoke-recheck-20260918-2780.json
+branch HEAD checked: 50377784b98b4396857c1e278afc688513f4e636
 openai_api_key_present=false
 broker_token_present=false
 broker_https_url_present=false
 external_prerequisite_blocked=true
 ```
 
-The genuine OpenAI smoke has therefore **not** executed. No security bypass was attempted.
+The task stopped before build/install/network work, so the genuine OpenAI smoke still has **not** executed. No cellular call was made and no security bypass was attempted.
 
 Required externally in the Local Agent host environment:
 
