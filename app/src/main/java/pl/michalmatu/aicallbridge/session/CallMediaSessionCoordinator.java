@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.session;
 
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 /**
@@ -15,7 +16,8 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
     private final CallMediaSessionBackend backend;
     private final CallMediaHeartbeatScheduler heartbeatScheduler;
     private final CallMediaMonotonicClock clock;
-    private final Consumer<CallMediaSessionSnapshot> listener;
+    private final CopyOnWriteArrayList<Consumer<CallMediaSessionSnapshot>> listeners =
+        new CopyOnWriteArrayList<>();
 
     private long generation;
     private CallMediaSessionState state = CallMediaSessionState.IDLE;
@@ -36,13 +38,25 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
         this.backend = Objects.requireNonNull(backend, "backend");
         this.heartbeatScheduler = Objects.requireNonNull(heartbeatScheduler, "heartbeatScheduler");
         this.clock = Objects.requireNonNull(clock, "clock");
-        this.listener = Objects.requireNonNull(listener, "listener");
+        listeners.add(Objects.requireNonNull(listener, "listener"));
         final CallMediaSessionSnapshot initial;
         synchronized (lock) {
             updatedAtMs = clock.nowMs();
             initial = snapshotLocked();
         }
         publish(initial);
+    }
+
+    /**
+     * Subscribes to future coordinator snapshots without replaying current state.
+     *
+     * <p>The returned handle only removes this observer. Callbacks are always invoked outside the
+     * coordinator state lock and one failing observer cannot block the safety path or siblings.</p>
+     */
+    public AutoCloseable addListener(Consumer<CallMediaSessionSnapshot> listener) {
+        Consumer<CallMediaSessionSnapshot> added = Objects.requireNonNull(listener, "listener");
+        listeners.add(added);
+        return () -> listeners.remove(added);
     }
 
     public long start(int sampleRateHz) {
@@ -365,10 +379,12 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
         if (value == null) {
             return;
         }
-        try {
-            listener.accept(value);
-        } catch (RuntimeException ignored) {
-            // UI/telemetry listeners do not own the call-media safety path.
+        for (Consumer<CallMediaSessionSnapshot> listener : listeners) {
+            try {
+                listener.accept(value);
+            } catch (RuntimeException ignored) {
+                // UI/orchestration observers do not own the call-media safety path.
+            }
         }
     }
 
