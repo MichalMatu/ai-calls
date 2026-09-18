@@ -15,14 +15,14 @@ import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuWatchdogProbe
 import rikka.shizuku.Shizuku
 
-/** ADB/shell-only entry point for privileged Phase 2 diagnostic probes. */
+/** ADB/shell-only entry point for privileged diagnostic probes. */
 class DiagnosticProbeActivity : Activity() {
     private lateinit var statusView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         statusView = TextView(this).apply {
-            text = "Phase 2 diagnostic probe"
+            text = "AI Call Bridge diagnostic probe"
             textSize = 15f
             setTextIsSelectable(true)
         }
@@ -45,6 +45,17 @@ class DiagnosticProbeActivity : Activity() {
         }
 
         when {
+            intent.getBooleanExtra(EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE, false) -> {
+                statusView.text = "Running Realtime network + production media off-call smoke…"
+                Log.i(TAG, "realtime_network_off_call_smoke_start=true")
+                RealtimeNetworkOffCallSmokeProbe.run(this) { result ->
+                    runOnUiThread {
+                        statusView.text = result
+                        Log.i(TAG, "realtime_network_off_call_smoke_result:\n$result")
+                        finish()
+                    }
+                }
+            }
             intent.getBooleanExtra(EXTRA_RUN_PRODUCTION_MEDIA_OFF_CALL_SMOKE, false) -> {
                 statusView.text = "Running production coordinator off-call smoke…"
                 Log.i(TAG, "production_media_off_call_smoke_start=true")
@@ -155,6 +166,7 @@ class DiagnosticProbeActivity : Activity() {
     private companion object {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
+        const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"
         const val EXTRA_RUN_PRODUCTION_MEDIA_OFF_CALL_SMOKE = "run_production_media_off_call_smoke"
         const val EXTRA_RUN_SHIZUKU_PROBE = "run_shizuku_probe"
         const val EXTRA_RUN_SHIZUKU_LIVE_PROBE = "run_shizuku_live_probe"
