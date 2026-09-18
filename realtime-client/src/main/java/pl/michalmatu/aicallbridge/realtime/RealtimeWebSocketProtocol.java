@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.realtime;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -29,7 +31,7 @@ public final class RealtimeWebSocketProtocol {
         session.addProperty("type", "realtime");
         session.addProperty("instructions", config.getInstructions());
 
-        com.google.gson.JsonArray outputModalities = new com.google.gson.JsonArray();
+        JsonArray outputModalities = new JsonArray();
         outputModalities.add("audio");
         session.add("output_modalities", outputModalities);
 
@@ -45,6 +47,23 @@ public final class RealtimeWebSocketProtocol {
         output.add("format", pcm24FormatJson());
         audio.add("output", output);
         session.add("audio", audio);
+
+        if (!config.getTools().isEmpty()) {
+            JsonArray tools = new JsonArray();
+            for (RealtimeFunctionTool tool : config.getTools()) {
+                JsonObject encoded = new JsonObject();
+                encoded.addProperty("type", "function");
+                encoded.addProperty("name", tool.getName());
+                encoded.addProperty("description", tool.getDescription());
+                encoded.add(
+                    "parameters",
+                    JsonParser.parseString(tool.getParametersJson()).getAsJsonObject()
+                );
+                tools.add(encoded);
+            }
+            session.add("tools", tools);
+            session.addProperty("tool_choice", "auto");
+        }
 
         root.add("session", session);
         return root.toString();
@@ -62,6 +81,26 @@ public final class RealtimeWebSocketProtocol {
 
     public String responseCancel() {
         return "{\"type\":\"response.cancel\"}";
+    }
+
+    /** Creates the official client event that returns one application-owned function result. */
+    public String functionCallOutput(String callId, String outputJson) {
+        String safeCallId = requireNonBlank(callId, "callId");
+        String safeOutput = requireValidJson(outputJson, "outputJson");
+
+        JsonObject root = new JsonObject();
+        root.addProperty("type", "conversation.item.create");
+        JsonObject item = new JsonObject();
+        item.addProperty("type", "function_call_output");
+        item.addProperty("call_id", safeCallId);
+        item.addProperty("output", safeOutput);
+        root.add("item", item);
+        return root.toString();
+    }
+
+    /** Starts the follow-up model response after a function result was added to the conversation. */
+    public String responseCreate() {
+        return "{\"type\":\"response.create\"}";
     }
 
     public RealtimeServerEvent parseServerEvent(String json, long monotonicTimestampNs) {
@@ -83,6 +122,7 @@ public final class RealtimeWebSocketProtocol {
             case "response.output_audio.delta" -> parseAudioDelta(root, type, monotonicTimestampNs);
             case "input_audio_buffer.speech_started" -> RealtimeServerEvent.speechStarted(type);
             case "input_audio_buffer.speech_stopped" -> RealtimeServerEvent.speechStopped(type);
+            case "response.output_item.done" -> parseOutputItemDone(root, type);
             case "error" -> RealtimeServerEvent.error(parseErrorMessage(root), type);
             default -> RealtimeServerEvent.other(type);
         };
@@ -107,6 +147,27 @@ public final class RealtimeWebSocketProtocol {
         }
         return RealtimeServerEvent.audioDelta(
             new PcmFrame(REALTIME_PCM, pcm, monotonicTimestampNs),
+            rawType
+        );
+    }
+
+    private static RealtimeServerEvent parseOutputItemDone(JsonObject root, String rawType) {
+        if (!root.has("item") || !root.get("item").isJsonObject()) {
+            throw new IllegalArgumentException("response.output_item.done is missing item");
+        }
+        JsonObject item = root.getAsJsonObject("item");
+        if (!hasString(item, "type")) {
+            throw new IllegalArgumentException("response.output_item.done item is missing type");
+        }
+        if (!"function_call".equals(item.get("type").getAsString())) {
+            return RealtimeServerEvent.other(rawType);
+        }
+
+        String callId = requiredString(item, "call_id", "function_call");
+        String name = requiredString(item, "name", "function_call");
+        String arguments = requiredString(item, "arguments", "function_call");
+        return RealtimeServerEvent.functionCall(
+            new RealtimeFunctionCall(callId, name, arguments),
             rawType
         );
     }
@@ -142,5 +203,42 @@ public final class RealtimeWebSocketProtocol {
         if ((data.length & 1) != 0) {
             throw new IllegalArgumentException("Realtime input audio must contain whole PCM16 samples");
         }
+    }
+
+    private static String requireNonBlank(String value, String name) {
+        Objects.requireNonNull(value, name);
+        if (value.isBlank()) {
+            throw new IllegalArgumentException(name + " must not be blank");
+        }
+        return value;
+    }
+
+    private static String requireValidJson(String value, String name) {
+        String safe = requireNonBlank(value, name);
+        final JsonElement parsed;
+        try {
+            parsed = JsonParser.parseString(safe);
+        } catch (RuntimeException error) {
+            throw new IllegalArgumentException(name + " must be valid JSON", error);
+        }
+        if (parsed.isJsonNull()) {
+            throw new IllegalArgumentException(name + " must not be JSON null");
+        }
+        return safe;
+    }
+
+    private static boolean hasString(JsonObject object, String name) {
+        return object.has(name) && object.get(name).isJsonPrimitive();
+    }
+
+    private static String requiredString(JsonObject object, String name, String context) {
+        if (!hasString(object, name)) {
+            throw new IllegalArgumentException(context + " is missing " + name);
+        }
+        String value = object.get(name).getAsString();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException(context + " has blank " + name);
+        }
+        return value;
     }
 }
