@@ -4,169 +4,215 @@ Repository: `MichalMatu/android-ai-call-bridge`
 
 Work branch: `work/phase1-live-call-probes`
 
-Behavior HEAD at this handoff: `94594aa8f6e321395d5648dea4dffb243db911fd` (`feat: require function response identity`).
+Current behavior HEAD:
 
-This document is the current evidence ledger for Telephone Agent / OpenAI Realtime work after the frozen Phase 2D Samsung media milestone. It does not supersede the Phase 2D freeze evidence.
+```text
+b0c2bac0ff2615f40e31cf525082fc9e33494bf0
+fix: close realtime speech gate reds
+```
 
-## Evidence baseline that remains frozen
+This document is the current evidence ledger for Telephone Agent / OpenAI Realtime work after the frozen Phase 2D Samsung media milestone.
 
-Phase 2B: `c10f8dde29f245f8f98fb008a3572c21fe73fe35`
+## Frozen evidence baseline
 
-Phase 2C: `9c136fc05c5b33f383d72b0b7080ad5b9a754bb4`
+```text
+Phase 2B: c10f8dde29f245f8f98fb008a3572c21fe73fe35
+Phase 2C: 9c136fc05c5b33f383d72b0b7080ad5b9a754bb4
+Phase 2D: 59b0505537a53306acdab6a2a66ca6eed2b3f1c0
+```
 
-Phase 2D: `59b0505537a53306acdab6a2a66ca6eed2b3f1c0`
+Phase 2D remains `PROVEN_S22`. The target S22+ physically proved bidirectional cellular RX/TX, Shizuku parity, app/helper death cleanup, transferred-endpoint cleanup, natural call-end cleanup, 20/20 start/abort cycles, and 600 seconds total live media. Resource telemetry is a separate 50.1-second run.
 
-The target S22+ has physically proven bidirectional cellular RX/TX, Shizuku parity, app/helper death cleanup, endpoint-loss cleanup, natural call-end cleanup, 20/20 start/abort cycles, and 600 seconds total live media. Resource telemetry is a separate 50.1-second run, not 600 seconds.
+Do not rerun the frozen Phase 2 matrix without a concrete regression. Preserve RX construction/attribution ordering, TX `com.android.shell`, `USAGE_CALL_ASSISTANT` / TELEPHONY_TX, mono PCM16 internally, stereo only at the Samsung TX boundary, PFD AutoClose ownership, whole-generation cleanup, local TAKE OVER, heartbeat, and `CallModeWatchdog`.
 
-Do not rerun the frozen Phase 2 matrix unless a concrete regression points there.
+## Telephone Agent production stack
 
-## Telephone Agent layers implemented
+The branch contains:
 
-The product branch now contains:
-
-- `CallMediaSessionCoordinator` and production `ShizukuCallMediaSessionBackend`;
-- production `CallRealtimeAgentRuntime`, `CallRealtimeAgentSessionController`, `CallRealtimeSessionOrchestrator`, and `CallRealtimeMediaSession` ownership layers;
-- immutable `CallTask`, hard `CallConstraints`, soft `CallPreferences`, `authorizedFacts`, `CallWorkflow`, structured outcomes, and deterministic `CallConfirmationPolicy`;
-- privacy-safe model rendering so ordinary `toString()` paths do not expose task/proposal/outcome details;
-- OpenAI Realtime transport-neutral interfaces plus OkHttp WebSocket implementation;
-- hardened OpenAI WebSocket target validation and ephemeral-credential-only client authentication;
-- mono PCM16 16 kHz telephony <-> mono PCM16 24 kHz Realtime adapter;
-- bounded RX/TX workers, local barge-in cancellation, and generation-safe cleanup;
+- `CallMediaSessionCoordinator` + production `ShizukuCallMediaSessionBackend`;
+- `CallRealtimeAgentRuntime`, `CallRealtimeAgentSessionController`, `CallRealtimeSessionOrchestrator`, and `CallRealtimeMediaSession`;
+- Realtime WebSocket + OkHttp connector with generation-safe ownership;
+- mono PCM16 16 kHz telephony <-> mono PCM16 24 kHz Realtime adaptation;
+- bounded RX/TX audio workers and barge-in cancellation;
+- immutable `CallTask`, hard constraints, soft preferences, `authorizedFacts`, workflow state, structured outcomes, and deterministic `CallConfirmationPolicy`;
 - typed Realtime function calling;
-- strict `evaluate_proposal` parsing into `CallProposal` and deterministic application-side policy evaluation;
-- one-shot `CallCommitmentGate` and `commit_proposal`, preventing proposal substitution/replay;
-- response-scoped `ForceFunction("commit_proposal")` after approval and `NoTools` after commitment;
-- task-derived Realtime instructions that separate hard authority, preferences, authorized facts, and untrusted counterparty speech;
-- a host-side credential broker and Android backend credential provider boundary;
-- ADB-only off-call Realtime network smoke plumbing that never takes broker endpoint/token from an exported Intent.
-
-## Credential boundary
-
-The standard OpenAI API key must remain host/backend-only and must never enter the APK or phone configuration.
-
-Implemented developer path:
-
-`Android -> authenticated HTTPS developer broker -> POST /v1/realtime/client_secrets -> short-lived ek_... secret -> Realtime WebSocket`
-
-Relevant files:
-
-- `scripts/realtime_credential_broker.py`
-- `scripts/realtime_network_smoke.py`
-- `RealtimeCredentialBackendRequestFactory`
-- `RealtimeCredentialBackendProviderFactory`
-- `BackendRealtimeCredentialProvider`
-- `RealtimeNetworkSmokeConfig`
-- `RealtimeNetworkOffCallSmokeProbe`
-
-The broker is loopback-only by default, reads `OPENAI_API_KEY` from host environment, uses a separate client bearer, fixes the model server-side, and returns only the short-lived secret fields required by Android.
-
-The secure smoke runner passed 5/5 focused tests and the Python suite reached 59/59 at `realtime-network-smoke-runner-green-20260918-2055`.
-
-Physical S22 fail-closed dry-run without a config file is GREEN: `CALL_STATE 0 -> 0`, expected `config_error`, no helper left alive, no cellular dial.
-
-### Not yet proven
-
-A real OpenAI network/session smoke from the S22 has **not** happened. The Local Agent host audit found no `OPENAI_API_KEY` and no `cloudflared` in its environment. Do not fake this by embedding a long-lived key in the APK or by sending one to the phone.
+- strict `evaluate_proposal` parsing and application-side policy evaluation;
+- one-shot `CallCommitmentGate` plus `commit_proposal`;
+- response-scoped forced `commit_proposal` after approval and `NoTools` after commitment;
+- backend credential provider and host-only credential broker;
+- protected ADB-only off-call network smoke plumbing;
+- typed output audio/transcript/response lifecycle;
+- bounded full-response PCM buffering before telephony TX.
 
 ## Commitment safety
 
-The application owns commitment authority. Model or counterparty text cannot widen it.
+The application owns commitment authority. Counterparty/model text cannot widen it.
 
-Current intended sequence:
+Current sequence:
 
-1. model calls `evaluate_proposal` with structured offer data;
-2. application evaluates hard constraints/preferences;
-3. autonomous approval or explicit user approval issues an opaque, one-shot permit for exactly that proposal;
-4. response follow-up forces `commit_proposal`;
+1. model calls `evaluate_proposal` with structured proposal data;
+2. application evaluates deterministic policy;
+3. autonomous approval or explicit user approval issues an opaque one-shot permit for exactly that proposal;
+4. follow-up forces `commit_proposal`;
 5. `commit_proposal` consumes the permit exactly once and returns `commitment=authorized`;
 6. only then may the model verbally confirm the external commitment.
 
-A new proposal, new start, TAKE OVER, close, stale generation, or reuse invalidates the permit.
+A new proposal, new start, TAKE OVER, close, stale generation, or permit reuse invalidates authority.
 
-This is stronger than prompt-only safety, but real GA event ordering has not yet been physically/network validated.
+## Production speech-integrity gate — GREEN
 
-## Speech-integrity defense in depth
+`CallRealtimeOutputResponseBuffer` retains identified model PCM until all required response lifecycle evidence is complete. Release requires:
 
-The Realtime layer now parses and routes output identity/lifecycle events including:
+- identified output-part identity;
+- `output_audio.done`;
+- final `output_audio_transcript.done`;
+- `response.done(COMPLETED)`;
+- application-owned approval.
 
-- `response.output_audio.delta` with output-part identity when present;
-- `response.output_audio_transcript.delta`;
-- `response.output_audio_transcript.done`;
-- `response.output_audio.done`;
-- `response.done` with terminal status;
-- function calls tied to a Realtime `response_id` at the current HEAD.
+Cancelled/failed/incomplete responses and unknown terminal status fail closed. Buffer limits remain bounded.
 
-`CallRealtimeOutputResponseBuffer` is implemented and host-tested. When an output approval policy is supplied:
+At behavior HEAD `b0c2bac0ff2615f40e31cf525082fc9e33494bf0`, the previously missing production approval policy is implemented:
 
-- identified PCM is held before telephony TX;
-- release is impossible until `audio.done`, final `transcript.done`, and `response.done(COMPLETED)`;
-- cancelled/failed/incomplete responses are discarded;
-- unknown terminal status fails closed;
-- buffer defaults are bounded to 12 seconds of 24 kHz mono PCM16, four pending parts, and 16,384 transcript characters;
-- final transcript is used for approval; transcript deltas are diagnostic only.
+- `CallRealtimeAgentOutputApprovalPolicy` RELEASES only in `ACTIVE_NEGOTIATION` when no commitment permit is pending;
+- it DROPS while a permit is pending;
+- it DROPS in `NEEDS_USER_DECISION`;
+- it DROPS outside normal active negotiation;
+- `CallRealtimeAgentSessionSpec` creates it with the exact same `CallCommitmentGate` used by `evaluate_proposal` and `commit_proposal`.
 
-The response-lifecycle pump gate passed full app/realtime build, APK, Python tests, key scan, and clean-tree checks at behavior commit `7d7bd65738568ee5a29ff6d2674b157584264e54` (`realtime-response-lifecycle-pump-green-20260918-2450`).
+Production wiring is complete through:
 
-Important limitation: a Realtime transcript is **not** a cryptographic proof that every PCM sample says exactly the transcript. Treat this as defense in depth, not mathematical equivalence.
+```text
+CallRealtimeAgentSessionSpec
+  -> CallRealtimeAgentSessionController
+  -> CallRealtimeSessionOrchestrator
+  -> CallRealtimeMediaSession
+  -> CallRealtimeAudioPump
+  -> CallRealtimeOutputResponseBuffer
+```
 
-## Current RED / unfinished work at behavior HEAD 94594aa
+The production pump therefore no longer receives `outputApprovalPolicy=null` for a normal Telephone Agent session.
 
-There are two explicit unfinished items. A new chat should start here, not from older plans.
+Important limitation: the Realtime transcript is defense in depth, not cryptographic proof that every PCM sample exactly matches the transcript.
 
-### 1. Production output approval policy is RED and not wired
+## Function response identity — GREEN
 
-`CallRealtimeAgentOutputApprovalPolicyTest` defines the intended application policy, but production `CallRealtimeAgentOutputApprovalPolicy` and `CallRealtimeAgentSessionSpec.outputApprovalPolicy` are not implemented at this HEAD.
+Production parsing still requires a function call `response_id`; that hardening was not weakened.
 
-The test requires:
+The stale `RealtimeWebSocketFunctionTransportTest.incomingFunctionCallReachesTypedListener` fixture now emits a GA-shaped top-level `response_id` and asserts that the value is retained in `RealtimeFunctionCall.responseId`. The malformed-call fixture also includes response identity so it continues testing the intended malformed arguments path.
 
-- RELEASE only during normal `ACTIVE_NEGOTIATION` with no pending commitment authorization;
-- DROP while a commitment permit is pending;
-- DROP during `NEEDS_USER_DECISION` and outside active negotiation;
-- bind the output policy to the exact same `CallCommitmentGate` used by proposal/commit handlers.
+## Full host gate — GREEN
 
-Evidence: `realtime-agent-output-policy-red-20260918-2500` is a clean RED due the missing production type/property.
+Evidence task:
 
-The next implementation must also thread this policy through `CallRealtimeMediaSession`/`CallRealtimeAudioPump` so production sessions actually enable the full-response speech gate. Do not merely make the unit test compile while leaving `outputApprovalPolicy=null` in the production pump.
+```text
+realtime-speech-function-host-green-20260918-2600
+behavior HEAD: b0c2bac0ff2615f40e31cf525082fc9e33494bf0
+status: done
+exit_code: 0
+```
 
-### 2. Latest function `response_id` hardening has one stale legacy test
+Passed:
 
-Commits:
-
-- `906e28fe7a5f970559e7a45a07bd2d3a68b2f359` — retain function response identity;
-- `94594aa8f6e321395d5648dea4dffb243db911fd` — require function response identity.
-
-The focused `RealtimeFunctionToolProtocolTest` passes, but the subsequent full `:realtime-client:testDebugUnitTest` has exactly one failure: `RealtimeWebSocketFunctionTransportTest.incomingFunctionCallReachesTypedListener` still constructs `response.output_item.done` without `response_id`.
-
-Do not weaken the production parser just to satisfy that stale fixture. Update/audit the fixture against current GA event shape, assert the response id reaches `RealtimeFunctionCall`, and rerun the complete host gate.
-
-## Exact next host gate
-
-After implementing production output approval wiring and fixing the stale function-call fixture, run:
-
-- focused output-policy / speech-gate / function-response-id tests;
+- focused `CallRealtimeAgentOutputApprovalPolicyTest`;
+- focused `CallRealtimeAudioPumpSpeechGateTest`;
+- focused `RealtimeFunctionToolProtocolTest`;
+- focused `RealtimeWebSocketFunctionTransportTest`;
 - full `:realtime-client:testDebugUnitTest`;
 - full `:app:testDebugUnitTest`;
 - `:app:assembleDebug`;
-- all Python `scripts/test_*.py`;
-- long-lived-key pattern scan over production Android/Realtime code;
-- `git diff --check` and clean working tree.
+- Python `scripts/test_*.py`: 59 tests, OK;
+- production secret-pattern scan for `OPENAI_API_KEY`, `sk-...`, `apiKey`, `api_key`;
+- `git diff --check`;
+- clean working tree.
 
-Do not perform a cellular call merely to close these host-side gaps.
+No cellular call was made for this gate.
 
-## Next physical gates after host GREEN
+## Credential boundary
 
-1. **Real OpenAI off-call network smoke on the S22.** Supply `OPENAI_API_KEY` only to the host broker environment and expose the loopback broker through an authenticated HTTPS endpoint/tunnel. Use `scripts/realtime_network_smoke.py`. No cellular dial. PASS requires credential fetch + Realtime WebSocket/session setup to reach media startup, followed by expected off-call media rejection. `ACTIVE` while off-call is a safety failure.
-2. **First real cellular Realtime call should be non-committing.** Use a controlled/safe number, validate RX/TX intelligibility, latency, barge-in, TAKE OVER, cleanup, and actual GA output/function event ordering. Do not make the first networked call a clinic booking.
-3. **Only after that**, attempt a real clinic registration with explicit user-provided facts/constraints. Outside-authority proposals must enter `NEEDS_USER_DECISION`; user TAKE OVER remains available immediately.
+The long-lived OpenAI API key must remain host/backend-only and must never enter the APK, Intent, app-private smoke config, or phone.
 
-Calendar integration is optional/later and is not required for the first successful registration.
+Implemented developer path:
 
-## Local Agent rules for continuation
+```text
+Android
+  -> authenticated HTTPS developer broker
+  -> POST /v1/realtime/client_secrets
+  -> short-lived client secret
+  -> Realtime WebSocket
+```
 
-- Read `AGENTS.md` first.
-- Check `.agent/status/daemon.json` before any write to the work branch.
-- Every task must use exactly `agent_binding=c25f88c0-4682-414c-8062-c47fa4034cb0` in the current bound chat. A new chat must bootstrap/rebind and use the fresh binding it receives; never copy an old binding if bootstrap returns another.
-- `.agent/tasks` / `.agent/results` live only on `agent-control`.
-- Use direct GitHub edits for code/docs where diff evidence is sufficient; Local Agent for local builds/tests/ADB/device work.
+Relevant files:
+
+- `scripts/realtime_credential_broker.py`;
+- `scripts/realtime_network_smoke.py`;
+- `RealtimeCredentialBackendRequestFactory`;
+- `RealtimeCredentialBackendProviderFactory`;
+- `BackendRealtimeCredentialProvider`;
+- `RealtimeNetworkSmokeConfig`;
+- `RealtimeNetworkOffCallSmokeProbe`.
+
+The broker remains loopback-only by default, reads `OPENAI_API_KEY` only from host environment, requires a distinct broker bearer, fixes the model server-side, and returns only the short-lived fields Android needs.
+
+## Real OpenAI off-call smoke — BLOCKED BY EXTERNAL PREREQUISITES
+
+Evidence task:
+
+```text
+realtime-openai-offcall-smoke-20260918-2610
+behavior HEAD: b0c2bac0ff2615f40e31cf525082fc9e33494bf0
+status: done
+```
+
+The task intentionally checked only presence before any build/install/network work and found:
+
+```text
+openai_api_key_present=false
+broker_token_present=false
+broker_https_url_present=false
+external_prerequisite_blocked=true
+```
+
+Therefore the real OpenAI off-call smoke was **not executed**. No security bypass was attempted.
+
+Required host environment for the next attempt:
+
+- `OPENAI_API_KEY` — host broker environment only;
+- `AI_CALL_BRIDGE_BROKER_TOKEN` — a separate strong bearer, minimum 32 characters, not an OpenAI key;
+- `AI_CALL_BRIDGE_BROKER_HTTPS_URL` — authenticated HTTPS URL reaching the loopback broker.
+
+`OPENAI_REALTIME_MODEL` and `OPENAI_SAFETY_IDENTIFIER` remain optional broker-side settings.
+
+## Exact next physical gate
+
+Once all three external prerequisites above are available to the Local Agent environment, run the genuine S22 off-call smoke without dialing.
+
+Required PASS path:
+
+```text
+FETCHING_CREDENTIAL
+  -> CONNECTING_REALTIME
+  -> STARTING_MEDIA
+  -> FAILED
+```
+
+The final `FAILED` is expected only because frozen media must reject startup while no cellular call is active. Expected reason: `realtime_connected_off_call_media_rejected` with detail containing `cellular call is not active`.
+
+`ACTIVE` during an off-call smoke is a safety failure.
+
+The runner must preserve `CALL_STATE=0` before and after, delete the one-shot app-private config, and leave no call-media helper alive.
+
+## Gates after genuine off-call PASS
+
+1. First cellular Realtime call: controlled and non-committing. Validate RX/TX intelligibility, latency, barge-in, TAKE OVER, cleanup, and actual GA event ordering / `response_id`.
+2. Only after that, attempt a real clinic registration using explicit user-provided facts and constraints. Anything outside authority must enter `NEEDS_USER_DECISION`.
+
+Safe regression number `510100100` is authorized only when a real cellular regression call is actually needed; it is not needed for off-call smoke.
+
+## Local Agent continuation rules
+
+- New chat: bootstrap `[LAB:ADD=android-ai-call-bridge]` and use the fresh returned binding; never copy an older binding blindly.
+- Check `.agent/status/daemon.json` before writing the same work branch.
+- `.agent/tasks` and `.agent/results` stay only on `agent-control`.
+- Direct GitHub edits are preferred when code/docs evidence is sufficient; Local Agent is for local builds/tests/ADB/device work.
 - Never launch local Codex from a Local Agent task.
-- Do not rerun Phase 2D physical gates without concrete regression evidence.
+- Do not rerun Phase 2D gates absent concrete regression evidence.
