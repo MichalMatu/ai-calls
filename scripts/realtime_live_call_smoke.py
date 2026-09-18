@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Run a bounded Realtime probe inside an already-active cellular call.
 
-This tool never dials, answers or hangs up. It only starts the protected diagnostic activity after
-verifying CALL_STATE=2. On host-side failure it force-stops this app as a final injection fail-safe;
+This tool never dials, answers or hangs up. Before any secret is staged it requires the proven lab
+shape: direct USB ADB, Bluetooth off, active cellular call, MODE_IN_CALL, earpiece route and a muted
+VOICE_CALL stream. On host-side failure it force-stops only this app as a final injection fail-safe;
 the cellular call remains owned by the phone/dialer.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import time
@@ -31,6 +33,10 @@ DEFAULT_DURATION_MS = 10_000
 MIN_DURATION_MS = 3_000
 MAX_DURATION_MS = 30_000
 HELPER_PROCESS = f"{PACKAGE_NAME}:call_media"
+TARGET_ADB_MODEL = "SM_S906B"
+_AUDIO_MODE_RE = re.compile(r"mAudioModeOwner:.*?mMode=([A-Z_]+)")
+_ACTIVE_DEVICE_RE = re.compile(r"Active communication device:.*?\btype:([A-Za-z0-9_]+)")
+_MUTED_RE = re.compile(r"^\s*Muted:\s*(true|false)\s*$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -52,6 +58,16 @@ class LiveSmokeResult:
         if self.trace:
             lines.append(f"trace={self.trace}")
         return "\n".join(lines)
+
+
+@dataclass(frozen=True)
+class LivePreflightSnapshot:
+    direct_usb: bool
+    bluetooth_enabled: bool
+    call_state: int
+    audio_mode: str
+    active_device_type: str
+    voice_call_muted: bool
 
 
 def validate_duration_ms(duration_ms: int) -> int:
@@ -114,6 +130,78 @@ def parse_probe_result(text: str) -> Optional[LiveSmokeResult]:
     return LiveSmokeResult(status=status, reason=reason, states=states, detail=detail, trace=trace)
 
 
+def _direct_usb_target(devices_output: str, serial: str) -> bool:
+    for raw_line in devices_output.splitlines():
+        parts = raw_line.split()
+        if not parts or parts[0] != serial:
+            continue
+        if len(parts) < 2 or parts[1] != "device":
+            return False
+        has_usb_transport = any(part.startswith("usb:") for part in parts[2:])
+        has_target_model = f"model:{TARGET_ADB_MODEL}" in parts[2:]
+        return has_usb_transport and has_target_model
+    return False
+
+
+def _voice_call_muted(audio_dump: str) -> Optional[bool]:
+    lines = audio_dump.splitlines()
+    for index, raw_line in enumerate(lines):
+        if raw_line.strip() != "- STREAM_VOICE_CALL:":
+            continue
+        for candidate in lines[index + 1 : index + 16]:
+            match = _MUTED_RE.match(candidate)
+            if match is not None:
+                return match.group(1).lower() == "true"
+        return None
+    return None
+
+
+def validate_live_preflight(
+    *,
+    serial: str,
+    devices_output: str,
+    bluetooth_setting: str,
+    call_state: int,
+    audio_dump: str,
+) -> LivePreflightSnapshot:
+    direct_usb = _direct_usb_target(devices_output, serial)
+    if not direct_usb:
+        raise RuntimeError("Realtime live-call smoke requires direct USB ADB to the target S22+")
+
+    bluetooth_value = bluetooth_setting.strip()
+    if bluetooth_value not in {"0", "1"}:
+        raise RuntimeError("could not determine Bluetooth state")
+    bluetooth_enabled = bluetooth_value == "1"
+    if bluetooth_enabled:
+        raise RuntimeError("Realtime live-call smoke requires Bluetooth OFF")
+
+    if call_state != 2:
+        raise RuntimeError("Realtime live-call smoke requires CALL_STATE=2")
+
+    mode_match = _AUDIO_MODE_RE.search(audio_dump)
+    audio_mode = mode_match.group(1) if mode_match is not None else "UNKNOWN"
+    if audio_mode != "MODE_IN_CALL":
+        raise RuntimeError("Realtime live-call smoke requires MODE_IN_CALL")
+
+    device_match = _ACTIVE_DEVICE_RE.search(audio_dump)
+    active_device_type = device_match.group(1).lower() if device_match is not None else "unknown"
+    if active_device_type != "earpiece":
+        raise RuntimeError("Realtime live-call smoke requires active communication device earpiece")
+
+    voice_call_muted = _voice_call_muted(audio_dump)
+    if voice_call_muted is not True:
+        raise RuntimeError("Realtime live-call smoke requires voice-call stream muted")
+
+    return LivePreflightSnapshot(
+        direct_usb=direct_usb,
+        bluetooth_enabled=bluetooth_enabled,
+        call_state=call_state,
+        audio_mode=audio_mode,
+        active_device_type=active_device_type,
+        voice_call_muted=voice_call_muted,
+    )
+
+
 def _adb_text(runner: ByteRunner, serial: str, *shell_args: str, check: bool = True) -> str:
     return runner.run_bytes(
         ["adb", "-s", serial, "shell", *shell_args],
@@ -127,6 +215,34 @@ def _call_state(runner: ByteRunner, serial: str) -> int:
     if match is None:
         raise RuntimeError("could not determine cellular call state")
     return int(match.group(1))
+
+
+def _require_live_preflight(runner: ByteRunner, serial: str) -> LivePreflightSnapshot:
+    devices_output = runner.run_bytes(["adb", "devices", "-l"]).decode(
+        "utf-8", errors="replace"
+    )
+    if not _direct_usb_target(devices_output, serial):
+        raise RuntimeError("Realtime live-call smoke requires direct USB ADB to the target S22+")
+
+    bluetooth_setting = _adb_text(runner, serial, "settings", "get", "global", "bluetooth_on")
+    bluetooth_value = bluetooth_setting.strip()
+    if bluetooth_value not in {"0", "1"}:
+        raise RuntimeError("could not determine Bluetooth state")
+    if bluetooth_value != "0":
+        raise RuntimeError("Realtime live-call smoke requires Bluetooth OFF")
+
+    call_state = _call_state(runner, serial)
+    if call_state != 2:
+        raise RuntimeError("Realtime live-call smoke requires CALL_STATE=2")
+
+    audio_dump = _adb_text(runner, serial, "dumpsys", "audio")
+    return validate_live_preflight(
+        serial=serial,
+        devices_output=devices_output,
+        bluetooth_setting=bluetooth_setting,
+        call_state=call_state,
+        audio_dump=audio_dump,
+    )
 
 
 def _config_exists(runner: ByteRunner, serial: str) -> bool:
@@ -185,8 +301,7 @@ def run_live_smoke(
 ) -> LiveSmokeResult:
     duration = validate_duration_ms(duration_ms)
     executor = runner or SubprocessRunner()
-    if _call_state(executor, serial) != 2:
-        raise RuntimeError("Realtime live-call smoke requires CALL_STATE=2")
+    _require_live_preflight(executor, serial)
 
     staged = False
     try:
