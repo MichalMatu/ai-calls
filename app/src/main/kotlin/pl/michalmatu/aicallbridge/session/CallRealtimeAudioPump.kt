@@ -2,12 +2,14 @@ package pl.michalmatu.aicallbridge.session
 
 import java.io.EOFException
 import java.util.ArrayDeque
+import java.util.LinkedHashSet
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import pl.michalmatu.aicallbridge.audio.PcmFrame
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeOutputPartId
 import pl.michalmatu.aicallbridge.realtime.RealtimePcmFrameAdapter
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
 
@@ -24,12 +26,18 @@ data class CallRealtimeAudioPumpSnapshot(
  * The coordinator remains the sole owner of the endpoint lease. The session orchestrator remains
  * the owner of the Realtime transport. This pump only moves PCM between them and reports the first
  * terminal data-plane failure so the orchestrator can trigger whole-generation cleanup.
+ *
+ * When [outputApprovalPolicy] is supplied, identified model audio is buffered as a complete
+ * Realtime output part and cannot reach telephony TX until both audio.done and transcript.done have
+ * arrived and the app-owned policy explicitly releases the final transcript. This is defense in
+ * depth; the Realtime transcript is not treated as a cryptographic proof of audio contents.
  */
 class CallRealtimeAudioPump(
     private val bridge: CallRealtimePcmBridge,
     private val transport: RealtimeTransport,
     private val monotonicNs: () -> Long = System::nanoTime,
     private val functionCallHandler: (RealtimeFunctionCall) -> Unit = {},
+    outputApprovalPolicy: CallRealtimeOutputApprovalPolicy? = null,
     private val onTerminalFailure: (Throwable) -> Unit,
 ) : RealtimeTransport.Listener, AutoCloseable {
     private val started = AtomicBoolean(false)
@@ -42,7 +50,14 @@ class CallRealtimeAudioPump(
     private val outputLock = ReentrantLock()
     private val outputAvailable = outputLock.newCondition()
     private val outputQueue = ArrayDeque<PcmFrame>()
+    private val gatedReleasedQueue = ArrayDeque<PcmFrame>()
     private var queuedOutputBytes = 0L
+    private var gatedReleasedBytes = 0L
+
+    private val responseBuffer = outputApprovalPolicy?.let(::CallRealtimeOutputResponseBuffer)
+    private val gateLock = Any()
+    private val activeGatedParts = LinkedHashSet<RealtimeOutputPartId>()
+    private val suppressedResponseIds = LinkedHashSet<String>()
 
     @Synchronized
     fun start() {
@@ -67,16 +82,24 @@ class CallRealtimeAudioPump(
     }
 
     fun snapshot(): CallRealtimeAudioPumpSnapshot {
-        val queuedBytes = outputLock.withLock { queuedOutputBytes }
+        val pendingBytes = responseBuffer?.snapshot()?.bufferedAudioBytes ?: 0L
+        val queuedBytes = outputLock.withLock { queuedOutputBytes + gatedReleasedBytes }
         return CallRealtimeAudioPumpSnapshot(
             running = running.get(),
-            queuedOutputBytes = queuedBytes,
+            queuedOutputBytes = queuedBytes + pendingBytes,
             terminalReason = terminalError.get()?.let(::describe),
         )
     }
 
+    /** Legacy/unidentified output remains valid only when the full-response speech gate is off. */
     override fun onAudio(frame: PcmFrame) {
         if (!running.get()) return
+        if (responseBuffer != null) {
+            signalTerminal(
+                IllegalStateException("Realtime output is missing identity while speech gate is enabled"),
+            )
+            return
+        }
 
         try {
             enqueueRealtimeOutput(frame)
@@ -85,15 +108,62 @@ class CallRealtimeAudioPump(
         }
     }
 
+    override fun onOutputAudio(partId: RealtimeOutputPartId, frame: PcmFrame) {
+        if (!running.get()) return
+        val gate = responseBuffer
+        if (gate == null) {
+            onAudio(frame)
+            return
+        }
+
+        try {
+            forEachRealtimeOutputChunk(frame) { chunk ->
+                gatedEvent(partId) { it.onAudio(partId, chunk) }?.let(::handleGatedResult)
+            }
+        } catch (error: Throwable) {
+            signalTerminal(error)
+        }
+    }
+
+    override fun onOutputAudioTranscriptDelta(partId: RealtimeOutputPartId, delta: String) {
+        if (!running.get()) return
+        val gate = responseBuffer ?: return
+        try {
+            gatedEvent(partId) { gate.onTranscriptDelta(partId, delta) }?.let(::handleGatedResult)
+        } catch (error: Throwable) {
+            signalTerminal(error)
+        }
+    }
+
+    override fun onOutputAudioTranscriptDone(partId: RealtimeOutputPartId, transcript: String) {
+        if (!running.get()) return
+        val gate = responseBuffer ?: return
+        try {
+            gatedEvent(partId) { gate.onTranscriptDone(partId, transcript) }?.let(::handleGatedResult)
+        } catch (error: Throwable) {
+            signalTerminal(error)
+        }
+    }
+
+    override fun onOutputAudioDone(partId: RealtimeOutputPartId) {
+        if (!running.get()) return
+        val gate = responseBuffer ?: return
+        try {
+            gatedEvent(partId) { gate.onAudioDone(partId) }?.let(::handleGatedResult)
+        } catch (error: Throwable) {
+            signalTerminal(error)
+        }
+    }
+
     /**
      * Counterparty speech is a local barge-in signal: immediately discard buffered assistant audio
-     * and cancel the current model response. A socket-send failure is terminal; a later server-side
-     * error event is not automatically terminal because the Realtime API may report recoverable
-     * request errors through the generic error event.
+     * and cancel the current model response. Known response ids are tombstoned so late server events
+     * from the cancelled response cannot rebuild and release an already-discarded output part.
      */
     override fun onRemoteSpeechStarted() {
         if (!running.get()) return
-        clearOutputQueue()
+        discardGatedResponseForBargeIn()
+        clearOutputQueues()
         transport.cancelResponse().exceptionOrNull()?.let(::signalTerminal)
     }
 
@@ -122,7 +192,7 @@ class CallRealtimeAudioPump(
         if (!closed.compareAndSet(false, true)) return
         running.set(false)
         transport.setListener(null)
-        clearOutputQueue()
+        resetAllOutputState()
         rxThread.get()?.interrupt()
         txThread.get()?.interrupt()
     }
@@ -180,6 +250,12 @@ class CallRealtimeAudioPump(
     }
 
     private fun enqueueRealtimeOutput(frame: PcmFrame) {
+        forEachRealtimeOutputChunk(frame) { chunk ->
+            if (!enqueueOutput(chunk)) return
+        }
+    }
+
+    private fun forEachRealtimeOutputChunk(frame: PcmFrame, action: (PcmFrame) -> Unit) {
         val format = frame.format
         require(format.sampleRateHz == RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ) {
             "Realtime output must be 24000 Hz"
@@ -196,13 +272,65 @@ class CallRealtimeAudioPump(
             val sampleOffset = offset / 2L
             val timestampNs = frame.monotonicTimestampNs +
                 sampleOffset * NANOS_PER_SECOND / RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ
-            val chunk = PcmFrame(
-                format,
-                data.copyOfRange(offset, offset + length),
-                timestampNs,
+            action(
+                PcmFrame(
+                    format,
+                    data.copyOfRange(offset, offset + length),
+                    timestampNs,
+                ),
             )
-            if (!enqueueOutput(chunk)) return
             offset += length
+        }
+    }
+
+    private fun gatedEvent(
+        partId: RealtimeOutputPartId,
+        action: (CallRealtimeOutputResponseBuffer) -> CallRealtimeOutputBufferResult,
+    ): CallRealtimeOutputBufferResult? {
+        val gate = responseBuffer ?: return null
+        return synchronized(gateLock) {
+            if (partId.responseId in suppressedResponseIds) {
+                return@synchronized null
+            }
+            activeGatedParts += partId
+            val result = action(gate)
+            if (
+                result is CallRealtimeOutputBufferResult.Released ||
+                    result is CallRealtimeOutputBufferResult.Dropped
+            ) {
+                activeGatedParts.remove(partId)
+            }
+            result
+        }
+    }
+
+    private fun handleGatedResult(result: CallRealtimeOutputBufferResult) {
+        when (result) {
+            CallRealtimeOutputBufferResult.Pending -> Unit
+            is CallRealtimeOutputBufferResult.Dropped -> Unit
+            is CallRealtimeOutputBufferResult.Released -> enqueueGatedRelease(result.output.frames)
+        }
+    }
+
+    private fun enqueueGatedRelease(frames: List<PcmFrame>) {
+        val bytes = frames.sumOf { it.data.size.toLong() }
+        var overflow = false
+        outputLock.withLock {
+            if (!running.get()) return
+            if (gatedReleasedBytes + bytes > MAX_GATED_RELEASE_BACKLOG_BYTES) {
+                overflow = true
+            } else {
+                for (frame in frames) {
+                    gatedReleasedQueue.addLast(frame)
+                }
+                gatedReleasedBytes += bytes
+                outputAvailable.signal()
+            }
+        }
+        if (overflow) {
+            signalTerminal(
+                IllegalStateException("Realtime gated release exceeded bounded output backlog"),
+            )
         }
     }
 
@@ -240,24 +368,66 @@ class CallRealtimeAudioPump(
     private fun takeOutputChunk(): PcmFrame? {
         outputLock.lockInterruptibly()
         try {
-            while (outputQueue.isEmpty() && running.get()) {
+            while (outputQueue.isEmpty() && gatedReleasedQueue.isEmpty() && running.get()) {
                 outputAvailable.await()
             }
-            if (!running.get() || outputQueue.isEmpty()) return null
+            if (!running.get()) return null
 
-            val frame = outputQueue.removeFirst()
-            queuedOutputBytes -= frame.data.size
-            return frame
+            if (outputQueue.isNotEmpty()) {
+                val frame = outputQueue.removeFirst()
+                queuedOutputBytes -= frame.data.size
+                return frame
+            }
+            if (gatedReleasedQueue.isNotEmpty()) {
+                val frame = gatedReleasedQueue.removeFirst()
+                gatedReleasedBytes -= frame.data.size
+                return frame
+            }
+            return null
         } finally {
             outputLock.unlock()
         }
     }
 
-    private fun clearOutputQueue() {
+    private fun discardGatedResponseForBargeIn() {
+        val gate = responseBuffer ?: return
+        synchronized(gateLock) {
+            for (partId in activeGatedParts) {
+                suppressedResponseIds += partId.responseId
+            }
+            trimSuppressedResponses()
+            activeGatedParts.clear()
+            gate.clear()
+        }
+    }
+
+    private fun trimSuppressedResponses() {
+        while (suppressedResponseIds.size > MAX_SUPPRESSED_RESPONSE_IDS) {
+            val iterator = suppressedResponseIds.iterator()
+            if (!iterator.hasNext()) break
+            iterator.next()
+            iterator.remove()
+        }
+    }
+
+    private fun clearOutputQueues() {
         outputLock.withLock {
             outputQueue.clear()
+            gatedReleasedQueue.clear()
             queuedOutputBytes = 0L
+            gatedReleasedBytes = 0L
             outputAvailable.signalAll()
+        }
+    }
+
+    private fun resetAllOutputState() {
+        clearOutputQueues()
+        responseBuffer?.let { gate ->
+            synchronized(gateLock) {
+                gate.clear()
+                activeGatedParts.clear()
+                suppressedResponseIds.clear()
+            }
         }
     }
 
@@ -267,7 +437,7 @@ class CallRealtimeAudioPump(
 
         running.set(false)
         transport.setListener(null)
-        clearOutputQueue()
+        resetAllOutputState()
         rxThread.get()?.interrupt()
         txThread.get()?.interrupt()
 
@@ -291,6 +461,10 @@ class CallRealtimeAudioPump(
             RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ * 2 * 20 / 1_000
         const val MAX_OUTPUT_BACKLOG_BYTES =
             RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ * 2 * MAX_OUTPUT_BACKLOG_MS / 1_000L
+        const val MAX_GATED_RESPONSE_SECONDS = 12
+        const val MAX_GATED_RELEASE_BACKLOG_BYTES =
+            RealtimePcmFrameAdapter.REALTIME_SAMPLE_RATE_HZ * 2L * MAX_GATED_RESPONSE_SECONDS
+        const val MAX_SUPPRESSED_RESPONSE_IDS = 64
         const val NANOS_PER_SECOND = 1_000_000_000L
     }
 }
