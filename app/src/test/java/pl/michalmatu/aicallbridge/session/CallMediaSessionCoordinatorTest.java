@@ -8,6 +8,8 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public final class CallMediaSessionCoordinatorTest {
@@ -145,6 +147,34 @@ public final class CallMediaSessionCoordinatorTest {
     }
 
     @Test
+    public void takeOverDoesNotWaitForBlockedPrepare() throws Exception {
+        FakeBackend backend = new FakeBackend();
+        backend.blockPrepare = true;
+        CallMediaSessionCoordinator coordinator = newCoordinator(backend, new ManualHeartbeatScheduler());
+        Thread starter = new Thread(() -> coordinator.start(16_000), "coordinator-test-start");
+        Thread takeover = new Thread(coordinator::takeOverNow, "coordinator-test-takeover");
+
+        starter.start();
+        assertTrue("prepare did not start", backend.prepareEntered.await(1, TimeUnit.SECONDS));
+        takeover.start();
+
+        try {
+            takeover.join(250L);
+            assertFalse("TAKE OVER waited for blocked prepare", takeover.isAlive());
+            assertEquals(1, backend.abortCalls);
+        } finally {
+            backend.releasePrepare.countDown();
+            starter.join(1_000L);
+            takeover.join(1_000L);
+        }
+
+        assertFalse("starter did not finish", starter.isAlive());
+        assertFalse("takeover did not finish", takeover.isAlive());
+        assertEquals(0, backend.startCalls);
+        assertEquals(CallMediaSessionState.IDLE, coordinator.snapshot().state());
+    }
+
+    @Test
     public void closeIsIdempotent() {
         FakeBackend backend = new FakeBackend();
         CallMediaSessionCoordinator coordinator = newCoordinator(backend, new ManualHeartbeatScheduler());
@@ -180,7 +210,10 @@ public final class CallMediaSessionCoordinatorTest {
         int abortCalls;
         int unbindCalls;
         boolean heartbeatOk = true;
+        boolean blockPrepare;
         RuntimeException prepareFailure;
+        final CountDownLatch prepareEntered = new CountDownLatch(1);
+        final CountDownLatch releasePrepare = new CountDownLatch(1);
         final FakeEndpointLease endpoint = new FakeEndpointLease();
         BindCallback callback;
 
@@ -196,6 +229,17 @@ public final class CallMediaSessionCoordinatorTest {
             prepareCalls++;
             if (prepareFailure != null) {
                 throw prepareFailure;
+            }
+            if (blockPrepare) {
+                prepareEntered.countDown();
+                try {
+                    if (!releasePrepare.await(2, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("prepare release timeout");
+                    }
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("prepare interrupted", error);
+                }
             }
         }
 
