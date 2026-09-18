@@ -222,11 +222,12 @@ public final class RealtimeWebSocketProtocol {
             return RealtimeServerEvent.other(rawType);
         }
 
+        String responseId = requiredString(root, "response_id", "function_call event");
         String callId = requiredString(item, "call_id", "function_call");
         String name = requiredString(item, "name", "function_call");
         String arguments = requiredString(item, "arguments", "function_call");
         return RealtimeServerEvent.functionCall(
-            new RealtimeFunctionCall(callId, name, arguments),
+            new RealtimeFunctionCall(callId, name, arguments, responseId),
             rawType
         );
     }
