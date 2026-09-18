@@ -97,6 +97,25 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
         }
     }
 
+    /**
+     * Returns the app-owned endpoints only for the currently ACTIVE generation.
+     *
+     * <p>The returned lease remains owned by this coordinator. A concurrent TAKE OVER may close it
+     * immediately after this method returns, which is intentional: media I/O must yield to local
+     * human takeover rather than hold the coordinator lock.</p>
+     */
+    public CallMediaEndpointLease activeEndpointLease(long expectedGeneration) {
+        synchronized (lock) {
+            if (!isCurrentLocked(expectedGeneration, CallMediaSessionState.ACTIVE)
+                || endpointLease == null) {
+                throw new IllegalStateException(
+                    "no active endpoint lease for generation " + expectedGeneration
+                );
+            }
+            return endpointLease;
+        }
+    }
+
     /** Immediate human takeover. Local endpoint ownership is dropped before privileged cleanup. */
     public void takeOverNow() {
         final long expectedGeneration;
