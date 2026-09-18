@@ -62,6 +62,9 @@ interface RealtimeTransport {
         /** Signals that audio generation for the identified output content part is complete. */
         fun onOutputAudioDone(partId: RealtimeOutputPartId) = Unit
 
+        /** Final lifecycle outcome for one whole Realtime response. */
+        fun onResponseDone(responseId: String, status: RealtimeResponseStatus) = Unit
+
         fun onRemoteSpeechStarted()
         fun onRemoteSpeechStopped()
         fun onFunctionCall(call: RealtimeFunctionCall) = Unit
