@@ -7,6 +7,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
 import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialProvider
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionFollowup
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionTool
 import pl.michalmatu.aicallbridge.realtime.RealtimeSessionConfig
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
@@ -513,7 +514,13 @@ class CallRealtimeSessionOrchestrator(
     ) : CallRealtimeFunctionResponder {
         private val used = AtomicBoolean(false)
 
-        override fun submit(outputJson: String): Result<Unit> {
+        override fun submit(outputJson: String): Result<Unit> =
+            submit(outputJson, RealtimeFunctionFollowup.Auto)
+
+        override fun submit(
+            outputJson: String,
+            followup: RealtimeFunctionFollowup,
+        ): Result<Unit> {
             if (outputJson.isBlank()) {
                 return Result.failure(IllegalArgumentException("function output must not be blank"))
             }
@@ -533,7 +540,7 @@ class CallRealtimeSessionOrchestrator(
                     Result.failure(IllegalStateException("Realtime function responder is stale"))
                 } else {
                     val submitted = try {
-                        expectedTransport.submitFunctionOutput(callId, outputJson)
+                        expectedTransport.submitFunctionOutput(callId, outputJson, followup)
                     } catch (error: Throwable) {
                         Result.failure(error)
                     }
