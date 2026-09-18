@@ -74,7 +74,7 @@ host OPENAI_API_KEY
   -> Android Realtime WebSocket
 ```
 
-The genuine off-call smoke additionally requires a separate broker bearer and protected HTTPS URL.
+For the preferred developer smoke path, `scripts/realtime_offcall_lab.py` generates the one-shot broker bearer and temporary HTTPS Quick Tunnel itself. The operator supplies only the standard `OPENAI_API_KEY` in the host environment; that key remains broker-only.
 
 ## Quality gate
 
@@ -94,13 +94,13 @@ Durable product development happens on `main`. `agent-control` is reserved for L
 
 ## Current next gate
 
-Before any live Realtime cellular call, run the genuine OpenAI **off-call** S22 smoke. Required host environment:
+Before any live Realtime cellular call, run the genuine OpenAI **off-call** S22 smoke. Preferred developer command:
 
-```text
-OPENAI_API_KEY
-AI_CALL_BRIDGE_BROKER_TOKEN
-AI_CALL_BRIDGE_BROKER_HTTPS_URL
+```bash
+python3 scripts/realtime_offcall_lab.py RFCT70L7E8J
 ```
+
+Only `OPENAI_API_KEY` must be supplied by the operator. The launcher generates the distinct broker bearer, starts the loopback broker, creates a temporary Cloudflare Quick Tunnel, waits through its DNS warm-up until the authenticated broker boundary is publicly reachable, runs the smoke, and tears both processes down. The S22 must be present as the exact direct-USB ADB target.
 
 Expected successful safety path:
 

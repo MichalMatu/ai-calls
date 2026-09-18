@@ -52,7 +52,7 @@ Work directly on `main` unless there is a specific reason for temporary isolatio
 
 A standard OpenAI API key is host/backend-only. It must never be placed in source, APK, BuildConfig, Android Intent, app-private smoke config, ADB argv or the phone.
 
-The next physical Realtime gate requires the three host variables listed in `docs/HANDOFF_NEXT_CHAT.md`. Do not invent a bypass if they are absent.
+The preferred off-call gate requires only `OPENAI_API_KEY` from the operator; `scripts/realtime_offcall_lab.py` generates the temporary broker bearer and HTTPS Quick Tunnel. Do not invent a bypass when the standard key or exact direct-USB S22 target is absent.
 
 ## Live-call safety
 

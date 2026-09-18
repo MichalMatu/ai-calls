@@ -22,11 +22,11 @@ Then verify `main` HEAD and `.agent/status/daemon.json`. In a new chat bootstrap
 
 ## Current code state
 
-Latest behavior cleanup checkpoint before this documentation refresh:
+Latest behavior checkpoint before this documentation refresh:
 
 ```text
-d191b6cc8afcee636a3ad3c8b7b4dc7fee6e8417
-refactor: use strict Gson reader API
+25153fc52bb5a95d5a85ea44a0bd4b29b2930d96
+fix: allow quick tunnel dns warmup
 ```
 
 Important preceding cleanup commits:
@@ -82,15 +82,17 @@ Do not recreate long-lived branch/document clutter without a specific reason.
 
 ## The only next blocker
 
-Host environment must provide:
+The only operator-supplied secret prerequisite is `OPENAI_API_KEY` on the host. Do not put it in APK, source, Intent, app-private config, ADB argv or phone.
 
-```text
-OPENAI_API_KEY
-AI_CALL_BRIDGE_BROKER_TOKEN
-AI_CALL_BRIDGE_BROKER_HTTPS_URL
+Preferred gate:
+
+```bash
+python3 scripts/realtime_offcall_lab.py RFCT70L7E8J
 ```
 
-Do not put the standard OpenAI key in APK, source, Intent, app-private config, ADB argv or phone.
+The launcher creates a random one-shot broker bearer, starts the loopback broker, exposes it through a temporary Cloudflare Quick Tunnel, allows for the provider's short DNS warm-up, waits for the public endpoint to reject an unauthenticated request with the broker's `401` boundary, then runs the existing off-call smoke. The standard OpenAI key is present only in the broker child environment; unrelated host secrets are not forwarded. The bearer and tunnel URL exist only for that run and the processes are torn down afterwards.
+
+The exact S22+ must also be connected over direct USB ADB; do not substitute wireless ADB.
 
 ## Next gate after credentials exist
 
@@ -114,3 +116,7 @@ Require call state idle before/after, one-shot config deleted, helper absent aft
 One controlled non-committing cellular Realtime call only. Before broker secret staging the runner requires direct USB, Bluetooth OFF, `CALL_STATE=2`, `MODE_IN_CALL`, earpiece and muted voice-call stream. The runner does not dial or hang up.
 
 Validate real RX/TX quality, latency, barge-in, TAKE OVER, cleanup and event ordering. Only after that passes attempt a real user-authorized task.
+
+## Latest pre-API infrastructure proof
+
+The real Quick Tunnel / loopback-broker boundary was exercised without calling OpenAI upstream in `.agent/results/pre-api-public-broker-boundary-proof-retry-20260918-3350.json`. The unauthenticated public broker request reached the local broker and was rejected at `401`; the dummy long-lived key was never used upstream. Quick Tunnels remain development-only infrastructure, not the production credential service.

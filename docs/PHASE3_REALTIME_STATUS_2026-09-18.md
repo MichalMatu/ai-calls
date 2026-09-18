@@ -4,11 +4,11 @@ Repository: `MichalMatu/android-ai-call-bridge`
 
 Durable development branch: `main`.
 
-Latest behavior cleanup checkpoint before this documentation refresh:
+Latest behavior checkpoint before this documentation refresh:
 
 ```text
-d191b6cc8afcee636a3ad3c8b7b4dc7fee6e8417
-refactor: use strict Gson reader API
+25153fc52bb5a95d5a85ea44a0bd4b29b2930d96
+fix: allow quick tunnel dns warmup
 ```
 
 Key preceding cleanup checkpoints:
@@ -121,15 +121,13 @@ The runner never dials/hangs up and does not automatically mutate route/Bluetoot
 
 ## External blocker — genuine OpenAI off-call smoke
 
-The real OpenAI network/session smoke has **not** run. Latest prerequisite recheck showed all three host prerequisites absent:
+The real OpenAI network/session smoke has **not** run. The only remaining operator-supplied secret prerequisite is `OPENAI_API_KEY` on the host.
 
-```text
-OPENAI_API_KEY
-AI_CALL_BRIDGE_BROKER_TOKEN
-AI_CALL_BRIDGE_BROKER_HTTPS_URL
-```
+`scripts/realtime_offcall_lab.py` now generates a strong one-shot broker bearer, launches the loopback credential broker, creates/retries a temporary Cloudflare Quick Tunnel, waits through the provider's short DNS warm-up until the public endpoint reaches the broker's unauthenticated `401` boundary, then invokes the existing S22 off-call smoke. Child environments are allowlisted so unrelated host secrets are not forwarded.
 
-The standard OpenAI key stays only in the host broker environment. The broker bearer is separate. Android receives only broker URL/bearer through the one-shot stdin staging path and then a short-lived Realtime secret.
+The standard OpenAI key stays only in the broker child environment. Android receives only the generated broker URL/bearer through the one-shot stdin staging path and then a short-lived Realtime secret. Exact direct-USB identification of `SM_S906B` happens before device secret staging.
+
+Real no-upstream infrastructure proof: `.agent/results/pre-api-public-broker-boundary-proof-retry-20260918-3350.json`.
 
 ## Exact next physical gate
 

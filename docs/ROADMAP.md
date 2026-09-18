@@ -43,7 +43,7 @@ Do not repeat the full physical matrix without concrete regression evidence. Det
 
 ## Phase 3 — Telephone Agent / OpenAI Realtime
 
-Status: `HOST_GREEN / WAITING FOR EXTERNAL CREDENTIAL PREREQUISITES`
+Status: `HOST_GREEN / READY FOR OPENAI_API_KEY + DIRECT-USB S22 GATE`
 
 Implemented and host-verified:
 
@@ -64,15 +64,15 @@ Implemented and host-verified:
 
 ### Gate 3A — genuine OpenAI off-call S22 smoke
 
-Status: `BLOCKED ONLY BY HOST ENVIRONMENT`
+Status: `READY FOR OPERATOR KEY / DIRECT USB`
 
-Required:
+Preferred command:
 
-```text
-OPENAI_API_KEY
-AI_CALL_BRIDGE_BROKER_TOKEN
-AI_CALL_BRIDGE_BROKER_HTTPS_URL
+```bash
+python3 scripts/realtime_offcall_lab.py RFCT70L7E8J
 ```
+
+The operator supplies only `OPENAI_API_KEY`. The launcher generates the independent bearer and temporary HTTPS Quick Tunnel, waits for DNS/public `401` readiness, and cleans both processes up. The exact S22+ direct-USB ADB target is mandatory.
 
 No cellular call is made. Expected successful safety path:
 

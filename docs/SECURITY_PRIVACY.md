@@ -32,7 +32,7 @@ host/backend OPENAI_API_KEY
 
 `scripts/realtime_credential_broker.py` binds loopback by default, reads the long-lived key from host environment, requires a distinct Android bearer and returns only short-lived credential fields. Device smoke configuration is staged over ADB stdin and deleted on read.
 
-The genuine OpenAI smoke requires a protected/authenticated HTTPS path to that loopback broker. Do not weaken Android network security to plaintext HTTP for convenience.
+The genuine OpenAI smoke requires a protected/authenticated HTTPS path to that loopback broker. `scripts/realtime_offcall_lab.py` provides the development path: it generates a distinct one-shot bearer, gives the long-lived OpenAI key only to the broker child, gives neither key nor bearer to `cloudflared`, gives only the broker bearer/URL to the smoke child, and tears down the temporary Quick Tunnel afterwards. Child environments use a small allowlist so unrelated host secrets are not inherited. The launcher waits through Quick Tunnel DNS warm-up before its first public broker lookup to avoid a transient NXDOMAIN race. Quick Tunnels are development/test infrastructure with no uptime guarantee; production must use a stable protected backend/tunnel. Do not weaken Android network security to plaintext HTTP for convenience.
 
 ## Authority and commitments
 
@@ -93,7 +93,7 @@ The first steps cannot wait for the network/model. App/helper death must likewis
 
 ## Controlled live-call preflight
 
-Before the live Realtime smoke can stage broker configuration it requires:
+Before either Realtime smoke stages broker configuration, the host verifies the exact S22+ over direct USB ADB. Before the live Realtime smoke can stage broker configuration it additionally requires:
 
 - exact target S22+ over direct USB ADB;
 - Bluetooth OFF;
