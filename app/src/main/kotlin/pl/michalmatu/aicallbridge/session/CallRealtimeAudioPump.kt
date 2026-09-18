@@ -251,7 +251,7 @@ class CallRealtimeAudioPump(
 
     private fun enqueueRealtimeOutput(frame: PcmFrame) {
         forEachRealtimeOutputChunk(frame) { chunk ->
-            if (!enqueueOutput(chunk)) return
+            enqueueOutput(chunk)
         }
     }
 
