@@ -1,4 +1,4 @@
-# Handoff — Milestone D frozen / Telephone Agent v1 in progress
+# Handoff — Milestone D frozen / Telephone Agent v1 approaching first Realtime device smoke
 
 Date: 2026-09-18
 
@@ -16,11 +16,11 @@ control_branch: agent-control
 
 ## Start rule
 
-Milestone D is closed. Do not rerun Phase 2 physical gates or expand the diagnostic harness unless a concrete regression requires it.
+Milestone D is closed. Do not rerun the Phase 2 physical matrix or modify frozen Samsung/Shizuku media code without concrete regression evidence.
 
-Read `AGENTS.md`, this handoff, `docs/PHASE2D_FREEZE_2026-09-18.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, `docs/PHASE2_DEEP_AUDIT_2026-09-16.md`, and `docs/superpowers/plans/2026-09-18-telephone-agent-v1.md`.
+Read `AGENTS.md`, this handoff, `docs/PHASE2D_FREEZE_2026-09-18.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, and `docs/superpowers/plans/2026-09-18-telephone-agent-v1.md`.
 
-## Frozen earlier checkpoints
+## Frozen baselines
 
 ```text
 Phase 2B:
@@ -36,89 +36,117 @@ milestone/phase2d-failsafe-proven-s22-20260918
 59b0505537a53306acdab6a2a66ca6eed2b3f1c0
 ```
 
-## Milestone D final evidence
+Milestone D physical evidence remains: normal-app death, helper death, PFD-close whole-generation cleanup, 20/20 start/abort cycles, natural call-end cleanup, and 600 seconds total real bidirectional media as 10 x 60-second sessions. Separate active resource telemetry covered 50.1 seconds only; do not describe it as 600-second resource telemetry.
 
-Physical GREEN on the target S22+: normal app death during active media, helper/UserService death, transferred RX and TX PFD close, 20/20 start/abort cycles, natural call end after the `CallModeWatchdog` fix, and 600 seconds total live bidirectional media as 10 x 60 seconds.
+Preserve direct-shell RX ordering, RX `android` attribution, TX `com.android.shell` attribution, CALL_ASSISTANT/TELEPHONY_TX, internal mono PCM16LE, stereo duplication only at the Samsung TX boundary, PFD AutoClose ownership, one shared RX+TX fail-safe generation, endpoint-loss whole-generation cleanup, local TAKE OVER, heartbeat and `CallModeWatchdog`.
 
-Resource trend was closed with one additional short live run, not another ten calls:
-- 24 external samples / 50.1 seconds, call active throughout;
-- app: RSS 123128 -> 124196 KiB, FD 41 -> 41, threads 27 -> 25;
-- helper: RSS 152932 -> 153948 KiB, FD 41 -> 41, threads 19 -> 19;
-- stable app/helper PIDs;
-- cleanup left call idle, helper absent and Bluetooth restored.
+## Telephone Agent v1 — current completed state
 
-Final freeze regression:
-- 48/48 Python tests PASS;
-- full Gradle unit tests + `:app:assembleDebug` GREEN;
-- security-shape GREEN;
-- `git diff --check` GREEN;
-- clean product tree.
+Production/app layers now include:
 
-Do not claim the 50.1-second resource trend is 600 seconds of resource telemetry. The 600-second proof is media-plane endurance.
+- `CallMediaSessionCoordinator` + `ShizukuCallMediaSessionBackend` with generation ownership and fail-closed local TAKE OVER;
+- immutable `CallTask` / `CallWorkflow` / deterministic confirmation policy with hard constraints, soft preferences, authorized facts, structured outcomes and `NEEDS_USER_DECISION`;
+- Realtime transport-neutral boundary plus concrete GA WebSocket transport;
+- mono PCM16LE 16 kHz <-> 24 kHz adapter isolated from the frozen Samsung path;
+- typed GA function tools/calls/function outputs and generation-bound one-shot responders;
+- `evaluate_proposal` strict JSON bridge into `CallConfirmationPolicy`;
+- app-owned `CallCommitmentGate`: a positive proposal evaluation yields an opaque one-shot permit tied to that exact proposal;
+- separate `commit_proposal` tool that consumes the permit once; replacement proposal, restart, TAKE OVER or close invalidates the old permit;
+- response-level followup sequencing: positive evaluation/user approval forces `commit_proposal`; successful commit continues with `tool_choice:none`;
+- prompt/instructions updated so positive `evaluate_proposal` is not described as permission to verbally confirm before `commit_proposal` succeeds;
+- `CallRealtimeAgentSessionSpec` that binds task-derived instructions, both tools and their handlers;
+- `CallRealtimeAgentSessionController` and `CallRealtimeAgentRuntime` production ownership boundary; runtime cleanup order is controller -> bootstrap executor -> media runtime;
+- `BackendRealtimeCredentialProvider` plus secure Android developer-backend request factory; client-side direct minting at `api.openai.com` and standard `sk-...` keys are rejected;
+- host development credential broker `scripts/realtime_credential_broker.py`: loopback-only, developer bearer required, long-lived `OPENAI_API_KEY` from host env only, server-controlled model, minimal `value + expires_at` response, no credential/body logging;
+- one-shot app-private Realtime smoke config, deleted before network activity;
+- ADB-only Realtime off-call smoke through `DiagnosticProbeActivity`, still protected by `android.permission.DUMP` and carrying only a boolean Intent trigger;
+- secure host runner `scripts/realtime_network_smoke.py`; endpoint/bearer come from env and are staged to app-private storage through ADB stdin, never argv or Intent.
 
-## Preserve these invariants
+## Latest verified gates
 
-Preserve direct-shell RX ordering, Shizuku attribution ordering, RX system attribution, TX `com.android.shell` attribution, CALL_ASSISTANT / TELEPHONY_TX, internal mono PCM16LE, stereo duplication only at the Samsung TX boundary, PFD AutoClose ownership, one shared RX+TX fail-safe generation, endpoint loss -> whole-generation cleanup, no per-frame Binder, local TAKE OVER, helper heartbeat, and `CallModeWatchdog` unless concrete regression evidence requires change.
+Host Realtime network-smoke composition gate at product HEAD `71e3e22f5d39e513bb41c64df2d3fe7087a4ca0d` is GREEN:
 
-## Telephone Agent v1 progress
+- focused credential-provider/request-factory tests;
+- complete `realtime-client` and `app` unit tests;
+- `:app:assembleDebug`;
+- security-shape checks including DUMP protection and absence of endpoint/token Intent extras;
+- long-lived-key scan;
+- clean tree.
 
-Do not make `MainActivity` or diagnostic probes the production lifecycle owner.
+The secure host smoke runner at `7d9e0995bf5db124b0d21052f64b8f4827e7313e` is GREEN:
 
-Completed on the product branch after the Milestone D freeze:
-- production `CallMediaSessionCoordinator` with `IDLE / BINDING / PREPARING / ACTIVE / STOPPING / FAILED`, generation ownership, fail-closed cleanup, heartbeat/PFD lifetime and TAKE OVER independent of blocking Binder work;
-- production `ShizukuCallMediaSessionBackend` with dedicated control executor, direct Binder death handling, bounded bind timeout and non-blocking cleanup;
-- target-device production off-call smoke GREEN on the S22+: `BINDING -> PREPARING -> STOPPING -> FAILED -> IDLE`, expected because no cellular call was active; call state stayed idle, Bluetooth stayed enabled, Shizuku survived and `:call_media` cleaned up;
-- immutable Telephone Agent task/workflow/policy model with hard constraints, preferences, authorized facts, structured outcomes and `NEEDS_USER_DECISION`;
-- GA Realtime WebSocket transport boundary with short-lived typed credentials, 24 kHz PCM adaptation, bounded audio queues, barge-in cancellation and whole-generation cleanup;
-- typed Realtime function tools and function-call parsing/output;
-- generation-bound one-shot function responders so stale tool calls cannot write into a newer session;
-- deterministic `evaluate_proposal` bridge: strict JSON -> `CallProposal` -> `CallConfirmationPolicy`; proposals outside authority hold the Realtime function call open until the user approves/rejects that exact proposal;
-- task-derived Realtime instructions that explicitly separate hard authority, soft preferences, authorized facts and untrusted counterparty speech;
-- `CallRealtimeAgentSessionSpec`, which binds the request, task-derived instructions, `evaluate_proposal` tool and matching handler so production wiring cannot omit one accidentally.
+- 5 focused runner tests;
+- 59/59 Python tests total;
+- `py_compile` for broker + runner;
+- secret-pattern scan;
+- `git diff --check` and clean tree.
 
-Latest session-spec host gate at commit `170ec73feca831eae2bf322ea719b1641121287f` was GREEN: focused tests, full `realtime-client` + `app` unit tests, `:app:assembleDebug`, 48 Python tests, key-pattern scan, `git diff --check`, clean tree.
+Physical S22+ dry-run of the new probe is GREEN **without OpenAI and without dialing**:
 
-The later documentation commits do not change runtime behavior.
+```text
+CALL_STATE_BEFORE=0
+realtime_network_off_call_smoke=FAIL
+reason=config_error
+states=none
+config_file_remains=false
+CALL_STATE_AFTER=0
+HELPER_PID_AFTER=none
+```
 
-## Current OpenAI Realtime direction verified 2026-09-18
+This proves protected activity wiring and fail-closed missing-config handling on the physical S22+, not Realtime connectivity.
 
-Use the GA API, not the retired beta shape:
-- developer backend mints a short-lived client secret using `POST /v1/realtime/client_secrets`;
-- GA response exposes top-level `value` and `expires_at`;
-- a standard WebSocket client may connect to `wss://api.openai.com/v1/realtime?model=...` using the short-lived `ek_...` credential in the WebSocket subprotocol;
-- WebRTC remains the preferred browser/mobile transport in OpenAI guidance, but this project intentionally keeps the lower-level WebSocket path while it owns explicit PCM bridging and measures it on the S22+;
-- no long-lived OpenAI API key may ever be stored in the APK.
+Earlier production media off-call regression also remains GREEN: `BINDING -> PREPARING -> STOPPING -> FAILED -> IDLE` with expected `cellular call is not active`, call state idle, Bluetooth unchanged and helper cleaned up.
 
-The existing WebSocket serializer already uses the GA session/event shapes relevant to this implementation (`session.type`, `audio.input/output`, `response.output_audio.delta`, typed function-call output).
+## Current OpenAI Realtime direction
 
-## Next gates
+Use GA Realtime shapes only. Standard OpenAI API key stays on the developer backend/host. Android receives only a short-lived Realtime client credential.
 
-### 1. Credential issuer contract
+Current project direction intentionally keeps WebSocket as the first measured transport because the app owns explicit telephony PCM. `RealtimeTransport` remains neutral so WebRTC can be benchmarked/replaced later.
 
-Do not add an unauthenticated ad-hoc token endpoint merely to make the demo run.
+## Remaining gates before the first real telephone-agent call
 
-Define the developer-backend contract first:
-- authenticate the app/user before issuing a credential;
-- keep the standard OpenAI API key server-side only;
-- create a GA Realtime client secret with a bounded TTL;
-- associate an `OpenAI-Safety-Identifier` when a stable privacy-preserving user identifier is available;
-- return only the minimum client response required by Android, at least `value` + `expires_at`;
-- never log the secret value.
+### 1. Real OpenAI network/session smoke on the S22+
 
-Then add the Android `RealtimeCredentialProvider` implementation and tests for HTTPS, malformed/non-2xx responses, expiry and secret redaction.
+External prerequisites currently missing from the Local Agent environment:
 
-### 2. Hard commitment enforcement
+- host `OPENAI_API_KEY`;
+- an HTTPS route to the loopback credential broker (for example a tunnel).
 
-`evaluate_proposal` is deterministic once invoked, but `tool_choice=auto` plus model instructions is not itself a proof that the model can never verbally imply acceptance without calling the tool.
+Do not put the long-lived OpenAI key in the APK, Intent, task JSON, GitHub, logs or ADB arguments.
 
-Before any real autonomous booking/purchase/commitment is allowed, add a separate hard gate so an external commitment cannot be completed merely because the model says yes. Keep the app-owned policy authoritative; counterparty speech must never widen task authority.
+When prerequisites are available:
 
-### 3. Production session runtime
+1. start `scripts/realtime_credential_broker.py` on host loopback;
+2. expose only that loopback service through HTTPS;
+3. set `AI_CALL_BRIDGE_BROKER_HTTPS_URL` + a distinct strong `AI_CALL_BRIDGE_BROKER_TOKEN` in host env;
+4. run `scripts/realtime_network_smoke.py <S22 adb serial>` while `CALL_STATE=0`;
+5. PASS requires the app to reach Realtime successfully and then hit the expected off-call media rejection; no cellular call is made.
 
-After the credential boundary is fixed, compose `CallRealtimeAgentSessionSpec` with `CallRealtimeSessionOrchestrator` in one production runtime owner. The same owner must expose local TAKE OVER and pending user-decision resolution without making `MainActivity` the lifecycle owner.
+### 2. Speech-integrity gate before autonomous real-world commitment
 
-### 4. First Realtime physical validation
+App-side replay/substitution/authorization is now hard-gated, and post-evaluation sequencing forces `commit_proposal`. This still does **not** prove the model can never verbally imply commitment before invoking `evaluate_proposal`.
 
-Start with a network/session smoke that does not make a cellular call. Only after credential/session behavior is proven should the Realtime engine be attached to a real cellular call. Do not rerun the frozen Milestone D matrix unless a concrete regression appears.
+Do not enable fully autonomous booking/purchase/commitment until this remaining speech-integrity risk is addressed. A conservative technical option is buffering a complete model output response before telephony TX and validating its transcript, but Realtime audio/transcript deltas are not byte-synchronized, so chunk-by-chunk transcript filtering is not sufficient.
 
-Safe test number `510100100` remains authorized only if a future physical regression genuinely requires it. Keep the phone silent, Bluetooth off during the call, mute before dial and after ACTIVE, speakerphone off, and restore Bluetooth afterward.
+A first live call may therefore be run in a non-committing mode even before autonomous booking is enabled.
+
+### 3. First real cellular Realtime call
+
+After network/session smoke is physically GREEN:
+
+- keep direct USB-C where possible;
+- Bluetooth off for the live test;
+- voice-call stream muted before dial and rechecked after ACTIVE;
+- speakerphone off;
+- local TAKE OVER must remain immediately available;
+- first live call should prove bidirectional Realtime conversation without authorizing an external commitment;
+- only after that should a controlled booking scenario be attempted.
+
+Safe test number `510100100` remains authorized only when a genuine physical regression test needs it. Do not dial it merely to repeat already frozen Phase 2 evidence.
+
+## Do not claim yet
+
+- no real OpenAI Realtime network/session has yet been proven on the S22+;
+- no end-to-end OpenAI Realtime audio through a real cellular call has yet been proven;
+- no autonomous real-world booking is yet proven safe;
+- the protected dry-run is not a Realtime connectivity proof.
