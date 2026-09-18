@@ -5,6 +5,7 @@ import com.google.gson.stream.JsonToken
 import java.io.IOException
 import java.io.StringReader
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionFollowup
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionTool
 import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionCallHandler
 import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionResponder
@@ -31,7 +32,7 @@ class CallRealtimeCommitmentFunctionHandler(
 
         val authorization = parseAuthorization(call.argumentsJson)
         commitmentGate.consume(authorization).getOrThrow()
-        responder.submit(AUTHORIZED_OUTPUT).getOrThrow()
+        responder.submit(AUTHORIZED_OUTPUT, RealtimeFunctionFollowup.NoTools).getOrThrow()
     }
 
     private fun parseAuthorization(argumentsJson: String): String {
