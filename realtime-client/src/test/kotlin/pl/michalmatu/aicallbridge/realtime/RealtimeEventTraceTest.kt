@@ -53,15 +53,15 @@ class RealtimeEventTraceTest {
         assertTrue(runSuspend { transport.connect(config()) }.isSuccess)
         val part = RealtimeOutputPartId("resp-raw", "item-raw", 0, 0)
         val frame = PcmFrame(PcmFormat(24_000, 1, 16), byteArrayOf(1, 2, 3, 4), 5L)
-        delegate.listener!!.onRemoteSpeechStarted()
-        delegate.listener!!.onOutputAudio(part, frame)
-        delegate.listener!!.onOutputAudioTranscriptDelta(part, "private transcript")
-        delegate.listener!!.onOutputAudioTranscriptDone(part, "private transcript")
-        delegate.listener!!.onOutputAudioDone(part)
-        delegate.listener!!.onFunctionCall(
+        delegate.currentListener!!.onRemoteSpeechStarted()
+        delegate.currentListener!!.onOutputAudio(part, frame)
+        delegate.currentListener!!.onOutputAudioTranscriptDelta(part, "private transcript")
+        delegate.currentListener!!.onOutputAudioTranscriptDone(part, "private transcript")
+        delegate.currentListener!!.onOutputAudioDone(part)
+        delegate.currentListener!!.onFunctionCall(
             RealtimeFunctionCall("call-raw", "evaluate_proposal", "{\"secret\":\"private arguments\"}", "resp-raw"),
         )
-        delegate.listener!!.onResponseDone("resp-raw", RealtimeResponseStatus.COMPLETED)
+        delegate.currentListener!!.onResponseDone("resp-raw", RealtimeResponseStatus.COMPLETED)
         assertTrue(transport.submitFunctionOutput("call-raw", "{\"private\":true}").isSuccess)
         transport.close()
 
@@ -93,7 +93,7 @@ class RealtimeEventTraceTest {
     }
 
     private class FakeTransport : RealtimeTransport {
-        var listener: RealtimeTransport.Listener? = null
+        var currentListener: RealtimeTransport.Listener? = null
 
         override suspend fun connect(config: RealtimeSessionConfig): Result<Unit> = Result.success(Unit)
         override fun sendAudio(frame: PcmFrame): Result<Unit> = Result.success(Unit)
@@ -101,7 +101,7 @@ class RealtimeEventTraceTest {
         override fun submitFunctionOutput(callId: String, outputJson: String): Result<Unit> = Result.success(Unit)
         override fun close() = Unit
         override fun setListener(listener: RealtimeTransport.Listener?) {
-            this.listener = listener
+            currentListener = listener
         }
     }
 
