@@ -19,7 +19,7 @@ public final class RealtimeWebSocketProtocolTest {
     private final RealtimeWebSocketProtocol protocol = new RealtimeWebSocketProtocol();
 
     @Test
-    public void sessionUpdateUsesCurrentGaRealtimeAudioShapeWithoutEmbeddingSecret() {
+    public void sessionUpdateUsesCurrentGaRealtimeAudioShapeWithoutEmbeddingAuthOrModel() {
         RealtimeClientSecret secret = new RealtimeClientSecret("eph_super_secret", 9_999L);
         RealtimeSessionConfig config = new RealtimeSessionConfig(
             "wss://api.openai.com/v1/realtime",
@@ -32,7 +32,7 @@ public final class RealtimeWebSocketProtocolTest {
 
         assertTrue(json.contains("\"type\":\"session.update\""));
         assertTrue(json.contains("\"type\":\"realtime\""));
-        assertTrue(json.contains("\"model\":\"gpt-realtime-2.1\""));
+        assertFalse(json.contains("\"model\""));
         assertTrue(json.contains("\"output_modalities\":[\"audio\"]"));
         assertTrue(json.contains("\"type\":\"audio/pcm\""));
         assertTrue(json.contains("\"rate\":24000"));
