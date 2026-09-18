@@ -39,7 +39,7 @@ class RealtimeFunctionToolProtocolTest {
     }
 
     @Test
-    fun completedFunctionCallParsesAsTypedServerEvent() {
+    fun completedFunctionCallPreservesOwningResponseIdentity() {
         val event = protocol.parseServerEvent(
             """{"type":"response.output_item.done","response_id":"resp_1","output_index":0,"item":{"type":"function_call","id":"fc_1","call_id":"call_1","name":"evaluate_proposal","arguments":"{\"provider\":\"Clinic A\"}"}}""",
             123L,
@@ -47,11 +47,21 @@ class RealtimeFunctionToolProtocolTest {
 
         assertEquals(RealtimeServerEvent.Type.FUNCTION_CALL, event.type())
         val call = event.functionCall()!!
+        assertEquals("resp_1", call.responseId)
         assertEquals("call_1", call.callId)
         assertEquals("evaluate_proposal", call.name)
         assertEquals("{\"provider\":\"Clinic A\"}", call.argumentsJson)
         assertFalse(call.toString().contains("Clinic A"))
+        assertFalse(call.toString().contains("resp_1"))
         assertTrue(call.toString().contains("REDACTED"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun functionCallWithoutOwningResponseIdFailsClosed() {
+        protocol.parseServerEvent(
+            """{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_1","call_id":"call_1","name":"evaluate_proposal","arguments":"{}"}}""",
+            1L,
+        )
     }
 
     @Test
