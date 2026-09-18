@@ -1,84 +1,61 @@
-# Phase 2 Milestone D freeze — 2026-09-18
+# Phase 2D freeze — 2026-09-18
 
 ## Verdict
 
-Milestone D is `DONE / PROVEN_S22` on the target Samsung Galaxy S22+ `SM-S906B` running Android 16 / API 36 / One UI 8 with Orange PL, Google Phone and Shizuku shell UID 2000.
+Phase 2D is `DONE / PROVEN_S22` on Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
-This freeze preserves the proven Samsung media path. It does not refactor the low-level RX/TX primitives.
+Frozen commit:
 
-## Physical fail-safe evidence
+```text
+59b0505537a53306acdab6a2a66ca6eed2b3f1c0
+```
 
-GREEN on the target device:
+This commit is preserved in `main` history; a permanent milestone branch is not required.
 
-- normal app death while media is active:
-  - task `phase2-milestone-d-app-death-physical-v5-20260917-2301`;
-  - app disappeared about 180 ms after force-stop;
-  - helper disappeared about 340 ms;
-  - media stopped about 530 ms;
-  - cellular call and Shizuku server remained alive;
-- transferred endpoint close:
-  - task `phase2-milestone-d-endpoint-close-physical-v2-20260917-2330`;
-  - RX PFD close -> whole generation inactive about 39 ms;
-  - TX PFD close -> whole generation inactive about 13 ms;
-- repeated lifecycle: 20/20 start/abort cycles with stable UserService PID and clean final prepared/active/heartbeat state;
-- natural cellular call end:
-  - the first gate exposed a real product defect: heartbeats could keep media active after the call ended;
-  - fixed by helper-side `CallModeWatchdog`, watching loss of `AudioManager.MODE_IN_CALL`;
-  - physical validation task `phase2-natural-call-end-watchdog-physical-20260918-0108` is GREEN;
-- bidirectional endurance:
-  - task `phase2-milestone-d-10min-segmented-live-soak-v2-20260918-0125`;
-  - 10 independent 60-second live sessions;
-  - 600 seconds total real bidirectional RX+TX;
-  - all heartbeats/session-state checks GREEN and every segment cleaned up;
-- resource trend:
-  - one separate short live run preserved 24 external samples over 50.1 seconds while the call remained active;
-  - app PID stable: RSS 123128 -> 124196 KiB, FD 41 -> 41, threads 27 -> 25;
-  - helper PID stable: RSS 152932 -> 153948 KiB, FD 41 -> 41, threads 19 -> 19;
-  - no resource-growth signal was observed.
+## Physical evidence
 
-The resource run complements the 600-second media soak. It is not a claim that RSS/FD/thread telemetry was preserved for the full 600 seconds.
+Validated on the target device:
 
-## Final host regression
+- normal-app death while media active -> app/helper cleanup while cellular call remained available;
+- helper/UserService death -> injection path stopped;
+- RX or TX transferred-PFD loss -> whole generation cleanup;
+- 20/20 start/abort cycles with clean final state;
+- natural cellular call end -> helper-side `CallModeWatchdog` cleanup;
+- 10 x 60-second live bidirectional sessions = 600 seconds total RX+TX media;
+- separate 50.1-second resource telemetry with stable PIDs/FD counts and no thread-growth signal.
 
-At the pre-freeze product HEAD:
+Important evidence identifiers remain in Git/Local Agent history, including:
 
-- Python: 48/48 tests PASS;
-- Gradle unit tests for `privileged-helper`, `app`, `audio-bridge` and `realtime-client`: GREEN;
-- `:app:assembleDebug`: GREEN;
-- Gradle result: `BUILD SUCCESSFUL`;
-- `git diff --check`: GREEN;
-- clean product tree: GREEN.
+```text
+phase2-milestone-d-app-death-physical-v5-20260917-2301
+phase2-milestone-d-endpoint-close-physical-v2-20260917-2330
+phase2-natural-call-end-watchdog-physical-20260918-0108
+phase2-milestone-d-10min-segmented-live-soak-v2-20260918-0125
+```
 
-Security-shape checks:
-
-- `.agent` absent from the product branch;
-- `DiagnosticProbeActivity` protected by `android.permission.DUMP`;
-- exported `MainActivity` does not expose privileged live-probe automation extras;
-- no long-lived OpenAI API key pattern found in product modules;
-- realtime contract uses a short-lived credential;
-- no per-frame Binder PCM transport;
-- local `abortNow()` / TAKE OVER and helper fail-safe remain independent of model/network availability;
-- call recording remains off by default.
+The resource run complements the 600-second media soak; it is not a claim of 600 seconds of RSS/FD/thread telemetry.
 
 ## Frozen invariants
 
 Do not casually change:
 
 - direct-shell RX prepare-before-explicit-context ordering;
-- Shizuku attributed-context ordering;
+- separately proven Shizuku attributed-context ordering;
 - RX system attribution;
 - TX `com.android.shell` attribution;
 - `USAGE_CALL_ASSISTANT / AUDIO_STREAM_CALL_ASSISTANT`;
-- `AUDIO_DEVICE_OUT_TELEPHONY_TX`;
+- TELEPHONY_TX route;
 - internal mono PCM16LE;
 - stereo duplication only at the Samsung TX boundary;
 - PFD AutoClose ownership;
 - one shared RX+TX fail-safe generation;
-- endpoint loss -> whole-generation cleanup;
-- no per-frame Binder transport;
+- endpoint loss -> sibling/whole-generation cleanup;
+- no per-frame Binder PCM transport;
 - local immediate TAKE OVER;
-- `CallModeWatchdog` unless concrete regression evidence requires a change.
+- heartbeat and `CallModeWatchdog`.
 
-## Next phase
+Narrow lint annotations around this path document static-analysis limits; they are not permission/security bypasses. Changing the target-specific hidden/private audio path requires targeted physical regression evidence.
 
-Do not start another Phase 2 robustness expansion. The next product work is Telephone Agent v1, beginning with a production app-side `CallMediaSessionCoordinator`, then the user-level call task/workflow model, and only then OpenAI Realtime transport integration.
+## Regression rule
+
+Do not rerun the full Phase 2D physical matrix during ordinary Phase 3 work. Rerun only the smallest relevant physical gate when a change could plausibly affect one of the frozen invariants.

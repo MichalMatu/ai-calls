@@ -1,227 +1,113 @@
-# Security and Privacy
+# Security and privacy
 
 ## Security objective
 
-The telephone agent may speak and act only inside authority explicitly granted by the user. Technical failure must disable AI injection or return control to the human caller; it must never broaden authority or leave a privileged/media path stuck active.
+The agent may speak and act only inside authority explicitly granted by the user. Technical failure must disable AI injection or return control to the human caller; it must never broaden authority.
 
 ## Privilege boundary
 
-Protected Samsung call-audio access remains behind the Shizuku UserService / privileged-helper boundary.
+Protected Samsung call-audio access stays inside `privileged-helper` / Shizuku UserService. The normal app does not directly own private Samsung audio primitives.
 
-The normal app does not directly own Samsung/private audio primitives. Continuous PCM crosses the privilege boundary through transferred PFD pipes; Binder/AIDL is control only.
+Continuous PCM crosses through transferred PFDs. Binder/AIDL is control only. The helper has no OpenAI networking and no business-policy authority.
 
-The helper has no OpenAI networking and no business-policy authority.
-
-## Long-lived OpenAI credentials
+## OpenAI credential boundary
 
 A standard OpenAI API key must never be:
 
-- embedded in source, resources, BuildConfig, APK or native library;
-- stored in Android app-private files for the smoke path;
+- embedded in source/resources/BuildConfig/APK;
+- stored in Android app-private smoke configuration;
 - passed through an Android Intent;
 - passed in ADB argv/process arguments;
-- logged by app, helper or developer scripts.
+- logged by the app, helper or scripts.
 
-Expected credential flow:
+Expected flow:
 
 ```text
 host/backend OPENAI_API_KEY
-  -> authenticated developer backend
+  -> authenticated developer broker
   -> short-lived Realtime client secret
   -> Android
-  -> OpenAI Realtime WebSocket
+  -> trusted OpenAI Realtime WebSocket
 ```
 
-Android code deals only with typed short-lived `RealtimeClientSecret` values. Their string rendering is redacted.
+`scripts/realtime_credential_broker.py` binds loopback by default, reads the long-lived key from host environment, requires a distinct Android bearer and returns only short-lived credential fields. Device smoke configuration is staged over ADB stdin and deleted on read.
 
-The OpenAI WebSocket handshake factory accepts only the canonical trusted Realtime endpoint shape and rejects expired/unsafe credentials before connector use.
+The genuine OpenAI smoke requires a protected/authenticated HTTPS path to that loopback broker. Do not weaken Android network security to plaintext HTTP for convenience.
 
-## Developer credential broker
-
-`scripts/realtime_credential_broker.py` is the current developer backend/smoke path.
-
-Security properties:
-
-- `OPENAI_API_KEY` is read from the host environment;
-- server binds loopback by default;
-- Android authenticates with a separate strong bearer;
-- Android cannot choose arbitrary upstream model/session configuration;
-- broker responses expose only minimum short-lived secret fields;
-- upstream failures do not echo response bodies/secrets;
-- responses use `no-store`;
-- `.env`, `secrets.properties`, keystores and logs remain ignored by Git.
-
-For a device smoke, expose the loopback broker only through a protected/authenticated HTTPS path. Do not relax Android to plaintext HTTP for convenience.
-
-## ADB/network smoke secret handling
-
-The protected `DiagnosticProbeActivity` is guarded by `android.permission.DUMP` and is a shell/ADB diagnostic surface, not the product owner.
-
-Realtime smoke endpoint and broker bearer are never Intent extras.
-
-`scripts/realtime_network_smoke.py` stages one-shot configuration into app-private storage via ADB stdin, so the values do not appear in ADB argv. `RealtimeNetworkSmokeConfig` deletes the file before network work and on parse failure.
-
-The physical missing-config dry-run proved fail-closed behavior and did not dial.
-
-## Authority model
+## Authority and commitments
 
 Keep these categories separate:
 
-- **hard constraints** — boundaries the agent may not autonomously exceed;
-- **preferences** — desired choices that may require user decision when deviated from;
-- **authorized facts** — facts explicitly allowed by the user;
-- **counterparty/model text** — untrusted input and never a source of new authority.
+- hard constraints — may not be autonomously exceeded;
+- preferences — desired choices that may require a user decision;
+- authorized facts — facts explicitly available to the task;
+- model/counterparty text — untrusted input, never new authority.
 
-An empty hard-constraint set means no hard restriction for that dimension; it does not allow invented facts.
+`CallRealtimeProposalParser` strictly decodes one proposal without mutating state. `CallConfirmationPolicy` evaluates it. An allowed or explicitly user-approved proposal gets an opaque one-shot permit tied to that exact proposal. `commit_proposal` consumes the permit once.
 
-Missing data required to verify a hard restriction fails closed to `NEEDS_USER_DECISION`.
+Replacement proposal, session restart, TAKE OVER, close, stale generation or failed submission invalidates authorization. User approval of one proposal never widens standing authority.
 
-Do not guess currency conversions or treat inferred facts as authorized user data.
+## Speech integrity
 
-## Proposal evaluation and commitment
+Identified model PCM is buffered before telephony TX. Release requires:
 
-External commitments are application-owned, not prompt-owned.
+- output audio completion;
+- final transcript completion;
+- successful `response.done(COMPLETED)`;
+- application-owned output policy `RELEASE`.
 
-The model reports a strict structured proposal through `evaluate_proposal`. The application runs `CallConfirmationPolicy`.
+Cancelled, failed, incomplete and unknown responses are dropped. Ordinary speech is released only in safe active negotiation without a pending commitment permit. Speech is dropped while commitment is pending, in `NEEDS_USER_DECISION`, or outside safe negotiation.
 
-For an autonomously allowed or explicitly user-approved proposal, `CallCommitmentGate` issues an opaque one-shot permit tied to that exact proposal. The follow-up response is scoped to force `commit_proposal`. `commit_proposal` receives only the opaque permit rather than an editable second copy of proposal fields.
+Transcript inspection is defense in depth, not cryptographic proof of the audio samples.
 
-The permit is invalidated by successful consumption, replacement/new proposal, session restart, TAKE OVER, close or stale generation. User approval of one proposal never widens standing task authority.
+## Realtime diagnostics
 
-## Speech-integrity defense in depth
+`RealtimeEventTrace` stores bounded metadata only. Allowed examples: relative timing, event type, PCM byte count, transcript character count, terminal status, sanitized function/error label and local aliases such as `R1/I1/C1`.
 
-The application owns an interception point immediately before telephony TX.
-
-Identified model PCM is held in a bounded response buffer and cannot be released until:
-
-- output audio is complete;
-- final output transcript is complete;
-- the whole response finishes `COMPLETED`;
-- app-owned output policy returns RELEASE.
-
-Cancelled, failed, incomplete and unknown-status responses are dropped.
-
-Production `CallRealtimeAgentOutputApprovalPolicy` is wired through the real Telephone Agent session/media path and uses the same `CallCommitmentGate` as proposal/commit handling. Ordinary speech is released only in `ACTIVE_NEGOTIATION` when no commitment permit is pending. Speech is dropped while a permit is pending, in `NEEDS_USER_DECISION`, and outside active negotiation.
-
-A Realtime transcript is not cryptographic proof of the exact audio samples. The gate is defense in depth and still requires physical validation against real GA event ordering.
-
-## Response/function identity
-
-Realtime output/function identity correlates speech and business actions to the correct response generation.
-
-Typed function calls require a nonblank `response_id`; production parsing was deliberately not weakened for stale fixtures. Current tests use GA-shaped response identity and verify it reaches `RealtimeFunctionCall.responseId`.
-
-## Privacy-safe Realtime event evidence
-
-`RealtimeEventTrace` and `TracingRealtimeTransport` exist to measure protocol ordering/timing during physical validation without creating a call-recording or transcript feature.
-
-Allowed trace data is intentionally narrow:
-
-- event type and relative monotonic timing;
-- PCM byte count, never PCM bytes;
-- transcript character count, never transcript text;
-- response terminal status;
-- sanitized function name, never function arguments/output;
-- sanitized error class, never raw error message;
-- local correlation aliases such as `R1`, `I1`, `C1`.
-
-The trace must never retain/log PCM contents, transcript text, function arguments/output, long- or short-lived credentials, raw Realtime response/item/call IDs or raw exception messages.
-
-Raw provider IDs are transient input only. Internal correlation map keys use a random per-trace salt plus SHA-256; rendered evidence exposes only local aliases. Both event and identity maps are bounded.
-
-### Diagnostic-label injection defense
-
-Tool/function names arrive through Realtime events and therefore are not trusted as arbitrary log text.
-
-`RealtimeDiagnosticLabel` is the shared renderer for trace labels and `RealtimeFunctionCall.toString()`:
-
-- maximum 64 characters;
-- ASCII letters/digits plus `_`, `-`, `.`, `:`, `$` only;
-- newline/control characters, empty/oversized or otherwise unsafe values become exactly `REDACTED`.
-
-This prevents a malformed/model-controlled function name from injecting additional log fields/lines or causing unbounded diagnostic output. Error-type labels use the same rule.
-
-Explicit RED evidence:
-
-```text
-realtime-trace-label-sanitization-red-20260918-2750
-realtime-function-debug-label-red-20260918-2760
-```
-
-Full GREEN evidence:
-
-```text
-realtime-diagnostic-labels-host-green-20260918-2770
-behavior HEAD: c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
-```
-
-The trace is optional and caller-owned. It does not own transport/session/media lifecycle and must not delay local TAKE OVER or cleanup.
-
-The off-call network smoke can append a compact redacted `trace=...` evidence line. That trace never affects PASS/FAIL authority; the deterministic smoke state gate remains authoritative.
-
-Implementation plan: `docs/superpowers/plans/2026-09-18-realtime-event-trace.md`.
+It must not retain PCM content, transcript text, function arguments/output, credentials, raw provider IDs or raw exception messages. Diagnostic labels are bounded ASCII; unsafe labels render as `REDACTED`.
 
 ## Data minimization
 
 Do not collect/store by default:
 
 - call recordings;
-- raw PCM after the active session;
+- raw PCM after an active session;
 - full transcripts unless a product feature explicitly requires and discloses them;
 - unnecessary counterparty identifiers;
 - long-lived credentials.
 
-Runtime diagnostics should prefer sizes, states, timing, local aliases and redacted reasons rather than speech/secret content.
+Prefer state, size, timing, local aliases and redacted reasons in diagnostics.
 
-Model/task/proposal/outcome debug rendering is deliberately redacted. Do not add logs that bypass those safe renderers.
+## TAKE OVER invariant
 
-## TAKE OVER security invariant
-
-TAKE OVER is a local safety mechanism, not a network request.
-
-Required ordering:
+Required ordering is local-first:
 
 ```text
 stop accepting/releasing AI audio
--> close/abort local telephony media generation
+-> abort local telephony media generation
 -> stop local PCM workers
--> best-effort cancel/close remote Realtime session
+-> best-effort cancel/close Realtime session
 ```
 
-The first three steps cannot wait for remote acknowledgement. UserService/helper/app death must likewise disable injection.
+The first steps cannot wait for the network/model. App/helper death must likewise disable injection.
 
-## Device test safety
+## Controlled live-call preflight
 
-For live cellular validation on the target S22+:
+Before the live Realtime smoke can stage broker configuration it requires:
 
-- direct USB-C;
-- Bluetooth off during the call test;
-- mute voice-call stream before dial and verify again after media ACTIVE;
-- speakerphone off;
-- restore Bluetooth afterwards;
-- use a controlled number before a real business counterparty;
-- do not make the first Realtime call an autonomous booking/purchase.
+- exact target S22+ over direct USB ADB;
+- Bluetooth OFF;
+- `CALL_STATE=2`;
+- `MODE_IN_CALL`;
+- earpiece route;
+- voice-call stream muted.
 
-A genuine OpenAI off-call network smoke must pass before attaching Realtime to a cellular call.
+The runner fails closed if any condition is absent. It never dials or hangs up and does not silently change Bluetooth, route or mute state.
 
-## Current external blocker
-
-The host code/security gates are GREEN, including production speech authorization, redacted event tracing and diagnostic-label hardening. Genuine OpenAI off-call validation is still blocked because the Local Agent environment lacks:
-
-```text
-OPENAI_API_KEY
-AI_CALL_BRIDGE_BROKER_TOKEN
-AI_CALL_BRIDGE_BROKER_HTTPS_URL
-```
-
-Do not bypass this by moving the long-lived key to Android.
+On the target S22+, `adb shell cmd audio adj-mute 0` was physically verified to be idempotent and reversible; restore uses `adj-unmute 0`.
 
 ## Evidence rule
 
-Do not convert `HOST_GREEN` into `PROVEN_S22` by wording.
+`HOST_GREEN` is not `PROVEN_S22`. Physically proven: frozen Samsung cellular bridge/fail-safe, protected live-probe off-call refusal, preflight observability and voice-call mute command. Not yet proven: genuine OpenAI S22 session, cellular Realtime audio or a real autonomous external task.
 
-Physically proven: local Samsung cellular bridge/fail-safe, production off-call media lifecycle and fail-closed protected network-smoke entry with missing config.
-
-Not yet physically proven: genuine OpenAI S22 session, cellular Realtime audio, real GA speech/function ordering, trace output from an actual OpenAI session, or autonomous clinic registration.
-
-See `docs/PHASE3_REALTIME_STATUS_2026-09-18.md` for current evidence and the exact next gate.
+Exact current gate: `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.

@@ -1,72 +1,78 @@
-# Agent workflow for android-ai-call-bridge
+# Agent workflow
 
-This repository adopts the development methodology from [`obra/superpowers`](https://github.com/obra/superpowers) as the default process for agentic engineering work.
-
-User instructions always take precedence. The project-specific evidence gates in `docs/ROADMAP.md` and safety rules in `docs/SECURITY_PRIVACY.md` also override generic workflow advice where they are stricter.
+This repository is single-developer and main-first. Durable product code and current documentation live on `main`; `agent-control` exists only for Local Agent task/result traffic.
 
 ## Before changing code
 
-1. Read `README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, and the most relevant current evidence document.
-2. Check whether the requested work changes behavior, architecture, test strategy, or only documentation.
-3. For new designs or unclear requirements, use the Superpowers `brainstorming` workflow before implementation.
-4. For multi-step work, create a concrete implementation plan under:
-   `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`
-5. For substantial implementation work, use an isolated branch/worktree unless the user explicitly requests direct work on `main`.
+Read only what is relevant:
 
-## Implementation discipline
+1. `README.md` for current product state;
+2. `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point;
+3. `docs/ROADMAP.md` for evidence gates;
+4. `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` when the change touches those boundaries;
+5. `docs/PHASE2D_FREEZE_2026-09-18.md` before changing frozen Samsung media behavior.
 
-Follow the Superpowers principles:
+Do not create a new planning/status document for every task. Put durable decisions into an existing authoritative document and leave historical detail in Git history or Local Agent results.
 
-- **TDD for behavior changes:** RED -> verify expected failure -> GREEN -> verify -> REFACTOR.
-- **Systematic debugging:** establish root cause before changing implementation.
-- **Small independently testable tasks:** each task should produce one reviewable deliverable.
-- **Frequent verification:** do not claim success from code inspection alone.
-- **Evidence over claims:** hardware behavior must be measured on the target device.
-- **YAGNI:** do not build Realtime AI, dialer UX, or generalized abstractions before the cellular media gates pass.
+## Development discipline
 
-Diagnostic/throwaway hardware probes may use a narrower test strategy when the user explicitly accepts that exception, but production behavior must not bypass the repository's test gates.
+- Behavior changes use TDD: RED -> verify the intended failure -> GREEN -> refactor.
+- Establish root cause before fixing bugs.
+- Prefer small cohesive modules over general abstractions.
+- Do not split a safety-critical state machine merely to reduce line count; split only when responsibilities are genuinely independent.
+- Run `bash scripts/verify_host.sh` before product changes are considered complete.
+- Hardware/OEM behavior must be measured on the target device; host tests cannot create `PROVEN_S22` evidence.
+- Do not rerun destructive or expensive physical matrices without a concrete regression reason.
 
-## Project-specific proof rules
+## Evidence levels
 
-Do not promote a cellular media capability to `PROVEN_S22` from any of the following alone:
+- `HOST_GREEN` means deterministic host tests/build/lint pass.
+- `PROVEN_S22` means the behavior was physically reproduced on the target S22+.
+- Never rewrite a host result as a physical claim.
 
-- an API constructor succeeding;
-- a permission being granted;
-- `TYPE_TELEPHONY` being present;
-- `setPreferredDevice()` returning true;
-- another Samsung feature doing something similar;
-- another GitHub project proving the path on different hardware.
-
-For downlink and uplink, the physical two-phone criteria in `docs/POC_AUDIO_TEST_PLAN.md` are authoritative.
+For the frozen media path, preserve the invariants documented in `docs/PHASE2D_FREEZE_2026-09-18.md` unless new physical evidence proves a change is required.
 
 ## Local Agent
 
-`MichalMatu/local-agent` is an execution mechanism, not the source of truth.
+`MichalMatu/local-agent` is an execution worker, not the source of truth.
 
-- Source code and durable project documentation live on `main`.
-- `.agent` task/result traffic lives on the dedicated `agent-control` branch and must not be merged into `main`.
-- A queued task or ACK is not success; inspect the final result/log.
-- For phone work, record the exact target model/build and distinguish `NOT TESTED` from `PASS`.
+- `.agent/tasks` and `.agent/results` stay on `agent-control`; never merge them into `main`.
+- Use the current chat's immutable Local Agent binding in every task.
+- Check `.agent/status/daemon.json` before creating another task that writes the same product tree.
+- A queued/ACK task is not success; inspect its terminal result.
+- Use Local Agent for Gradle, lint, host tests, ADB and physical-device work.
+- Direct GitHub edits are appropriate when the exact code/docs diff can be reviewed without local/device execution.
+- Never launch local Codex from a Local Agent task.
 
-## External research code
+## Branch policy
 
-External projects may be used as evidence and design references. Do not copy implementation code without checking its license.
+Work directly on `main` unless there is a specific reason for temporary isolation. If a temporary branch is used, merge/fast-forward it after verification and delete it. Do not keep milestone branches merely as bookmarks; commits, freeze documents and Local Agent evidence are sufficient.
 
-In particular:
+## Credential rule
 
-- scrcpy: Apache-2.0 — reuse may be possible with attribution/licensing compliance;
-- ShizuCallRecorder: GPL-family licensing — research reference unless licensing is intentionally adopted;
-- AgentCall: AGPL-3.0 — research reference; do not copy implementation into this repository by default;
-- Superpowers: MIT — methodology/plugin reference.
+A standard OpenAI API key is host/backend-only. It must never be placed in source, APK, BuildConfig, Android Intent, app-private smoke config, ADB argv or the phone.
+
+The next physical Realtime gate requires the three host variables listed in `docs/HANDOFF_NEXT_CHAT.md`. Do not invent a bypass if they are absent.
+
+## Live-call safety
+
+For controlled S22 Realtime validation require, before staging any broker secret:
+
+- exact target over direct USB ADB;
+- Bluetooth OFF;
+- active cellular call (`CALL_STATE=2`);
+- `MODE_IN_CALL`;
+- earpiece as active communication device;
+- voice-call stream muted.
+
+The live Realtime smoke runner observes these conditions and refuses when they are not met. It must not dial or hang up the cellular call.
 
 ## Completion gate
 
-Before declaring a task complete:
+Before declaring work complete:
 
-1. run the relevant automated tests/builds;
-2. run any required Local Agent/device checks;
-3. verify the result rather than inferring it;
-4. update evidence/status docs when a hardware assumption changes;
-5. leave a clear handoff when a physical prerequisite (for example a SIM) blocks the next gate.
-
-See `docs/DEVELOPMENT_WORKFLOW.md` for the detailed Superpowers adaptation used by this repository.
+1. run `bash scripts/verify_host.sh`;
+2. run any specifically required device gate;
+3. verify the result rather than infer it;
+4. update only the authoritative docs affected by the change;
+5. leave `main` clean and avoid branch/document clutter.
