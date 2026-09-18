@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
+import pl.michalmatu.aicallbridge.session.CallMediaOffCallSmokeProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuCallEndProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuCycleProbe
@@ -44,6 +45,17 @@ class DiagnosticProbeActivity : Activity() {
         }
 
         when {
+            intent.getBooleanExtra(EXTRA_RUN_PRODUCTION_MEDIA_OFF_CALL_SMOKE, false) -> {
+                statusView.text = "Running production coordinator off-call smoke…"
+                Log.i(TAG, "production_media_off_call_smoke_start=true")
+                CallMediaOffCallSmokeProbe.run(this) { result ->
+                    runOnUiThread {
+                        statusView.text = result
+                        Log.i(TAG, "production_media_off_call_smoke_result:\n$result")
+                        finish()
+                    }
+                }
+            }
             intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE, false) -> {
                 statusView.text = "Running Shizuku endpoint-close fail-safe probe…"
                 Log.i(TAG, "shizuku_endpoint_close_probe_start=true")
@@ -143,6 +155,7 @@ class DiagnosticProbeActivity : Activity() {
     private companion object {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
+        const val EXTRA_RUN_PRODUCTION_MEDIA_OFF_CALL_SMOKE = "run_production_media_off_call_smoke"
         const val EXTRA_RUN_SHIZUKU_PROBE = "run_shizuku_probe"
         const val EXTRA_RUN_SHIZUKU_LIVE_PROBE = "run_shizuku_live_probe"
         const val EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE = "run_shizuku_watchdog_probe"
