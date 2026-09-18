@@ -7,8 +7,8 @@ Work branch: `work/phase1-live-call-probes`
 Current behavior HEAD:
 
 ```text
-c8be36d27b05067574d99858e55d25596f2edbdf
-feat: include redacted realtime trace in off-call smoke
+c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
+fix: sanitize realtime diagnostic labels
 ```
 
 This is the current evidence ledger for Telephone Agent / OpenAI Realtime work above the frozen Phase 2D Samsung media milestone.
@@ -46,7 +46,8 @@ Implemented and host-tested:
 - bounded full-response PCM buffering before telephony TX;
 - production output approval policy using the same commitment gate;
 - required Realtime function `response_id` identity;
-- bounded privacy-safe Realtime event trace for physical evidence.
+- bounded privacy-safe Realtime event trace for physical evidence;
+- bounded diagnostic-label sanitization for trace/debug rendering.
 
 ## Commitment and speech safety — HOST_GREEN
 
@@ -89,45 +90,51 @@ Behavior commits:
 9f02556247bcc6470f4b93b6bb508491a472883c  fix: harden realtime trace verification
 257484dd0f88dac0fee1b05feff4edeef3938044  test: fix realtime trace listener fixture
 c8be36d27b05067574d99858e55d25596f2edbdf  feat: include redacted realtime trace in off-call smoke
+c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5  fix: sanitize realtime diagnostic labels
 ```
 
 `RealtimeEventTrace` + `TracingRealtimeTransport` provide bounded protocol evidence without becoming a recording/transcript feature.
 
-The trace records only metadata such as:
+The trace records only metadata such as connect lifecycle, response cancellation, audio byte counts, transcript character counts, output completion, response status, remote speech boundaries, sanitized function name/error class and redacted response/call correlation.
 
-- connect start/success/failure;
-- response cancellation;
-- identified/unidentified output-audio byte counts;
-- transcript character counts, never transcript text;
-- output-audio completion;
-- response completion/status;
-- remote speech start/stop;
-- function name plus redacted response/call correlation;
-- error class, not error message;
-- transport close.
-
-It does **not** retain PCM, transcript text, function arguments/output, credentials or raw provider IDs. Response/item/call identities are represented as local aliases such as `R1`, `I1`, `C1`; internal correlation keys use a per-trace random salt + SHA-256 rather than raw IDs. Event and identity tables are bounded.
+It does **not** retain PCM, transcript text, function arguments/output, credentials, raw exception messages or raw provider IDs. Response/item/call identities are represented as local aliases such as `R1`, `I1`, `C1`; internal correlation keys use a per-trace random salt + SHA-256 rather than raw IDs. Event and identity tables are bounded.
 
 `CallRealtimeAgentRuntime.create` accepts an optional caller-owned trace and wraps each fresh transport only when supplied. Normal production behavior is unchanged with `eventTrace=null`.
 
-The protected `RealtimeNetworkOffCallSmokeProbe` now supplies a trace and returns an optional compact `trace=...` evidence line. The trace supplements the existing state gate; it cannot turn a failed smoke into PASS.
+The protected `RealtimeNetworkOffCallSmokeProbe` supplies a trace and returns an optional compact `trace=...` evidence line. The trace supplements the existing state gate; it cannot turn a failed smoke into PASS.
+
+### Diagnostic-label injection hardening
+
+The function name is model/provider-controlled enough that diagnostic rendering must not trust it as arbitrary log text. Two explicit RED tests proved that newline/oversized labels were previously renderable through:
+
+- `RealtimeEventTrace`;
+- `RealtimeFunctionCall.toString()`.
+
+Evidence:
+
+```text
+realtime-trace-label-sanitization-red-20260918-2750
+realtime-function-debug-label-red-20260918-2760
+```
+
+`RealtimeDiagnosticLabel` now allows only bounded ASCII diagnostic labels (`A-Z`, `a-z`, `0-9`, `_`, `-`, `.`, `:`, `$`, maximum 64 characters). Control characters, newline, empty/oversized or otherwise unsafe labels render as the constant `REDACTED`. The same sanitizer is used by event trace function/error labels and `RealtimeFunctionCall.toString()`.
 
 Implementation plan: `docs/superpowers/plans/2026-09-18-realtime-event-trace.md`.
 
 ## Current full host gate — GREEN
 
-Evidence:
+Latest evidence:
 
 ```text
-.agent/results/realtime-offcall-trace-host-green-retry-20260918-2740.json
-behavior HEAD: c8be36d27b05067574d99858e55d25596f2edbdf
+.agent/results/realtime-diagnostic-labels-host-green-20260918-2770.json
+behavior HEAD: c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
 status: done
 exit_code: 0
 ```
 
 Passed:
 
-- focused `RealtimeEventTraceTest`;
+- focused `RealtimeEventTraceTest`, including both diagnostic-label injection cases;
 - focused `RealtimeNetworkSmokeStateTrackerTest`;
 - focused Python network-smoke tests: 5/5;
 - full `:realtime-client:testDebugUnitTest`;
@@ -137,8 +144,6 @@ Passed:
 - production secret-pattern scan;
 - `git diff --check`;
 - clean worktree.
-
-Two preceding trace verification tasks failed only in new test/task harness code (missing coroutine import, JVM fixture setter collision, then one incorrect Python module invocation). Each was corrected and the final full gate above is GREEN.
 
 No cellular call was made.
 
@@ -218,7 +223,7 @@ Also require:
 - one-shot app-private config deleted;
 - no call-media helper left alive;
 - no standard OpenAI key on Android;
-- redacted trace evidence for the actual Realtime ordering.
+- redacted trace evidence for actual Realtime ordering.
 
 ## Gates after genuine off-call PASS
 

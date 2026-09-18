@@ -86,16 +86,7 @@ The model reports a strict structured proposal through `evaluate_proposal`. The 
 
 For an autonomously allowed or explicitly user-approved proposal, `CallCommitmentGate` issues an opaque one-shot permit tied to that exact proposal. The follow-up response is scoped to force `commit_proposal`. `commit_proposal` receives only the opaque permit rather than an editable second copy of proposal fields.
 
-The permit is invalidated by:
-
-- successful consumption;
-- replacement/new proposal;
-- session restart;
-- TAKE OVER;
-- close;
-- stale generation.
-
-User approval of one proposal never widens the standing task authority.
+The permit is invalidated by successful consumption, replacement/new proposal, session restart, TAKE OVER, close or stale generation. User approval of one proposal never widens standing task authority.
 
 ## Speech-integrity defense in depth
 
@@ -130,24 +121,43 @@ Allowed trace data is intentionally narrow:
 - PCM byte count, never PCM bytes;
 - transcript character count, never transcript text;
 - response terminal status;
-- function name, never function arguments/output;
-- error class, never raw error message;
+- sanitized function name, never function arguments/output;
+- sanitized error class, never raw error message;
 - local correlation aliases such as `R1`, `I1`, `C1`.
 
-The trace must never retain/log:
+The trace must never retain/log PCM contents, transcript text, function arguments/output, long- or short-lived credentials, raw Realtime response/item/call IDs or raw exception messages.
 
-- PCM contents;
-- transcript text;
-- function arguments or function outputs;
-- long-lived or short-lived credentials;
-- raw Realtime response/item/call IDs;
-- raw exception messages.
+Raw provider IDs are transient input only. Internal correlation map keys use a random per-trace salt plus SHA-256; rendered evidence exposes only local aliases. Both event and identity maps are bounded.
 
-Raw provider IDs are transient input only. Internal correlation map keys use a random per-trace salt plus SHA-256; rendered evidence exposes only local aliases. Both the event ring and identity maps are bounded.
+### Diagnostic-label injection defense
+
+Tool/function names arrive through Realtime events and therefore are not trusted as arbitrary log text.
+
+`RealtimeDiagnosticLabel` is the shared renderer for trace labels and `RealtimeFunctionCall.toString()`:
+
+- maximum 64 characters;
+- ASCII letters/digits plus `_`, `-`, `.`, `:`, `$` only;
+- newline/control characters, empty/oversized or otherwise unsafe values become exactly `REDACTED`.
+
+This prevents a malformed/model-controlled function name from injecting additional log fields/lines or causing unbounded diagnostic output. Error-type labels use the same rule.
+
+Explicit RED evidence:
+
+```text
+realtime-trace-label-sanitization-red-20260918-2750
+realtime-function-debug-label-red-20260918-2760
+```
+
+Full GREEN evidence:
+
+```text
+realtime-diagnostic-labels-host-green-20260918-2770
+behavior HEAD: c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
+```
 
 The trace is optional and caller-owned. It does not own transport/session/media lifecycle and must not delay local TAKE OVER or cleanup.
 
-The off-call network smoke can append a compact redacted `trace=...` evidence line. That trace never affects PASS/FAIL authority; the existing deterministic smoke state gate remains authoritative.
+The off-call network smoke can append a compact redacted `trace=...` evidence line. That trace never affects PASS/FAIL authority; the deterministic smoke state gate remains authoritative.
 
 Implementation plan: `docs/superpowers/plans/2026-09-18-realtime-event-trace.md`.
 
@@ -178,9 +188,7 @@ stop accepting/releasing AI audio
 -> best-effort cancel/close remote Realtime session
 ```
 
-The first three steps cannot wait for remote acknowledgement.
-
-UserService/helper/app death must likewise disable injection.
+The first three steps cannot wait for remote acknowledgement. UserService/helper/app death must likewise disable injection.
 
 ## Device test safety
 
@@ -198,7 +206,7 @@ A genuine OpenAI off-call network smoke must pass before attaching Realtime to a
 
 ## Current external blocker
 
-The host code/security gates are GREEN, including production speech authorization and redacted event tracing. Genuine OpenAI off-call validation is still blocked because the Local Agent environment lacks:
+The host code/security gates are GREEN, including production speech authorization, redacted event tracing and diagnostic-label hardening. Genuine OpenAI off-call validation is still blocked because the Local Agent environment lacks:
 
 ```text
 OPENAI_API_KEY

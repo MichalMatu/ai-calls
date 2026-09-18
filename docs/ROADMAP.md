@@ -78,8 +78,8 @@ Status: `IN PROGRESS — HOST STACK GREEN / GENUINE OPENAI S22 SESSION BLOCKED O
 Current behavior baseline:
 
 ```text
-c8be36d27b05067574d99858e55d25596f2edbdf
-feat: include redacted realtime trace in off-call smoke
+c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
+fix: sanitize realtime diagnostic labels
 ```
 
 Detailed ledger: `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
@@ -88,72 +88,31 @@ Detailed ledger: `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
 
 Status: `HOST_GREEN + OFF-CALL S22 SMOKE GREEN`
 
-Delivered:
-
-- `CallMediaSessionCoordinator`;
-- production `ShizukuCallMediaSessionBackend`;
-- generation ownership and structured failure state;
-- dedicated non-main-thread control path;
-- local TAKE OVER independent of remote/network cleanup;
-- production off-call smoke retaining frozen Shizuku behavior.
+Delivered production coordinator/backend ownership, generation checks, local TAKE OVER and fail-safe cleanup without changing the frozen Samsung media contract.
 
 ### 3B. Realtime transport and PCM path
 
 Status: `HOST_GREEN`
 
-Delivered:
-
-- short-lived credential boundary;
-- hardened OpenAI WebSocket handshake;
-- OkHttp connector;
-- 16 kHz telephony <-> 24 kHz Realtime PCM adaptation;
-- bounded audio workers/queues;
-- local barge-in cancellation;
-- generation-safe cleanup;
-- typed output/function lifecycle.
+Delivered short-lived credential boundary, hardened OpenAI WebSocket handshake, OkHttp connector, 16 kHz <-> 24 kHz mono PCM conversion, bounded audio workers, local barge-in, generation-safe cleanup and typed output/function lifecycle.
 
 ### 3C. Task/workflow/policy model
 
 Status: `HOST_GREEN`
 
-Delivered:
-
-- hard constraints separate from soft preferences;
-- immutable `authorizedFacts`;
-- deterministic `CallConfirmationPolicy` outside the model;
-- `NEEDS_USER_DECISION`;
-- structured outcomes;
-- privacy-safe debug rendering.
-
-Counterparty speech cannot widen authority.
+Delivered hard constraints, soft preferences, immutable `authorizedFacts`, deterministic `CallConfirmationPolicy`, `NEEDS_USER_DECISION`, structured outcomes and privacy-safe rendering. Counterparty speech cannot widen authority.
 
 ### 3D. Commitment gate
 
 Status: `HOST_GREEN`
 
-Delivered:
-
-- strict `evaluate_proposal`;
-- exact one-shot commitment permit;
-- `commit_proposal` consumes it once;
-- response-scoped forced `commit_proposal` after approval;
-- `NoTools` after commitment;
-- permit invalidation on new proposal/start/TAKE OVER/close/stale generation.
-
-Application code owns authority; prompt wording never authorizes commitment.
+Delivered strict `evaluate_proposal`, exact one-shot commitment permit, `commit_proposal`, forced commit follow-up, `NoTools` after commitment and invalidation on new proposal/start/TAKE OVER/close/stale generation.
 
 ### 3E. Credential broker / real network smoke plumbing
 
 Status: `HOST_GREEN + FAIL-CLOSED S22 DRY-RUN GREEN / REAL OPENAI NETWORK SMOKE BLOCKED`
 
-Delivered:
-
-- loopback host credential broker with `OPENAI_API_KEY` host-only;
-- separate Android/client bearer;
-- Android credential request/provider factories;
-- one-shot app-private smoke config;
-- protected ADB-only off-call Realtime probe;
-- host runner staging broker URL/token over stdin rather than argv/Intent.
+Delivered loopback host broker, separate Android bearer, credential provider factories, one-shot private smoke config, protected ADB-only off-call probe and host runner staging broker URL/token through stdin.
 
 The physical no-config dry-run kept `CALL_STATE=0 -> 0`, left no helper alive and did not dial.
 
@@ -171,20 +130,9 @@ Never move the long-lived key to APK/phone to bypass this gate.
 
 Status: `HOST_GREEN`
 
-Delivered:
+Delivered typed output identity, final transcript/response lifecycle, bounded full-response PCM buffering, production application output approval and required function `response_id`.
 
-- typed output identity;
-- final audio transcript lifecycle;
-- `response.done` terminal status;
-- bounded whole-response PCM buffer before telephony TX;
-- release only after audio done + final transcript done + successful response completion;
-- cancelled/failed/incomplete/unknown-status fail closed;
-- production `CallRealtimeAgentOutputApprovalPolicy` wired through the real session/media pump;
-- output RELEASE only in safe `ACTIVE_NEGOTIATION` with no pending commitment permit;
-- output DROP during pending permit, `NEEDS_USER_DECISION` and other unsafe states;
-- required function `response_id` retained by typed function calls.
-
-The prior REDs are closed. Current full host suites are GREEN.
+Ordinary speech is RELEASED only in safe `ACTIVE_NEGOTIATION` with no pending commitment permit and DROPPED during pending permit, `NEEDS_USER_DECISION` or other unsafe states.
 
 ### 3G. Privacy-safe Realtime evidence trace
 
@@ -194,17 +142,18 @@ Delivered:
 
 - bounded `RealtimeEventTrace`;
 - `TracingRealtimeTransport` decorator;
-- relative event timing and lifecycle ordering;
+- relative event timing/lifecycle ordering;
 - local aliases for response/item/call correlation;
 - per-trace salted SHA-256 internal identity keys;
-- no PCM, transcript text, function arguments/output, credentials or raw provider IDs retained;
-- optional runtime wiring;
-- off-call smoke includes redacted `trace=...` evidence without changing PASS criteria.
+- no PCM, transcript text, function arguments/output, credentials, raw error messages or raw provider IDs retained;
+- optional runtime instrumentation;
+- off-call smoke `trace=...` evidence without changing PASS criteria;
+- shared bounded diagnostic-label sanitizer preventing newline/control/oversized function/error labels from entering trace or `RealtimeFunctionCall.toString()`.
 
 Latest full evidence task:
 
 ```text
-realtime-offcall-trace-host-green-retry-20260918-2740
+realtime-diagnostic-labels-host-green-20260918-2770
 exit_code: 0
 ```
 
@@ -247,6 +196,6 @@ Exit condition: every tested failure has defined fail-safe behavior and no condi
 
 Do not jump from host tests directly to an autonomous clinic booking.
 
-The host stack including speech authorization, function identity and redacted Realtime evidence tracing is GREEN. The next authoritative gate is the genuine OpenAI off-call S22 smoke, currently blocked only by external credential/tunnel prerequisites. After that passes, prove one controlled non-committing cellular Realtime conversation before any real appointment booking.
+The host stack including speech authorization, function identity, redacted Realtime evidence tracing and diagnostic log-injection hardening is GREEN. The next authoritative gate is the genuine OpenAI off-call S22 smoke, currently blocked only by external credential/tunnel prerequisites. After that passes, prove one controlled non-committing cellular Realtime conversation before any real appointment booking.
 
 Authoritative continuation: `docs/HANDOFF_NEXT_CHAT.md` and `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.

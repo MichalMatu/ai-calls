@@ -9,8 +9,8 @@ Work branch: `work/phase1-live-call-probes`
 Current behavior HEAD before this documentation-only handoff commit:
 
 ```text
-c8be36d27b05067574d99858e55d25596f2edbdf
-feat: include redacted realtime trace in off-call smoke
+c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
+fix: sanitize realtime diagnostic labels
 ```
 
 Read this file together with `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`.
@@ -70,7 +70,8 @@ Implemented and retained:
 - typed output audio/transcript/response lifecycle;
 - full-response speech buffer and production output approval policy;
 - required function `response_id`;
-- bounded privacy-safe Realtime event trace.
+- bounded privacy-safe Realtime event trace;
+- shared bounded diagnostic-label sanitizer for trace and function debug rendering.
 
 ## Previous REDs remain CLOSED
 
@@ -89,37 +90,54 @@ SessionSpec
 
 Do not regress production to `outputApprovalPolicy=null`. Do not weaken required function `response_id` parsing.
 
-## New Realtime evidence trace — HOST_GREEN
+## Realtime evidence trace — HOST_GREEN
 
-Current behavior HEAD `c8be36d27b05067574d99858e55d25596f2edbdf` adds a bounded, redacted trace specifically to make the first physical OpenAI gates measurable without storing conversation content.
+`RealtimeEventTrace` and `TracingRealtimeTransport` provide bounded/redacted protocol ordering and relative timing without storing conversation content.
 
-Properties:
+The trace never stores PCM, transcript text, function arguments/output, credentials, raw error messages or raw provider IDs. Response/item/call IDs are exposed only as local aliases (`R1/I1/C1`); internal correlation keys use per-trace salted SHA-256. Event and identity tables are bounded.
 
-- records protocol event type, relative timing, byte/character counts, terminal status, function name and error class;
-- never records PCM, transcript text, function arguments/output, credentials or raw exception messages;
-- raw provider response/item/call IDs are not retained; only per-trace aliases such as `R1/I1/C1` are exposed;
-- internal correlation keys are per-trace salted SHA-256 digests;
-- event and identity tables are bounded;
-- transport listener access is thread-safe;
-- instrumentation is opt-in at `CallRealtimeAgentRuntime.create(eventTrace=...)` and does not own lifecycle;
-- the off-call network smoke now includes optional `trace=...` evidence without changing its PASS rules.
+`CallRealtimeAgentRuntime.create(eventTrace=...)` makes tracing opt-in. The off-call smoke supplies a trace and may return compact `trace=...` evidence. Trace content never controls PASS/FAIL.
 
-Plan: `docs/superpowers/plans/2026-09-18-realtime-event-trace.md`.
+## Diagnostic-label injection hardening — HOST_GREEN
+
+Two test-only REDs proved that model/provider-controlled function names could previously place newline/oversized text into trace/debug rendering:
+
+```text
+realtime-trace-label-sanitization-red-20260918-2750
+realtime-function-debug-label-red-20260918-2760
+```
+
+Behavior commit:
+
+```text
+c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
+fix: sanitize realtime diagnostic labels
+```
+
+`RealtimeDiagnosticLabel` now accepts only bounded ASCII diagnostic labels (maximum 64 characters; letters, digits, `_`, `-`, `.`, `:`, `$`). Unsafe labels become `REDACTED`.
+
+The same rule protects:
+
+- trace function names;
+- trace error-type labels;
+- `RealtimeFunctionCall.toString()`.
+
+Valid production tool names such as `evaluate_proposal` and `commit_proposal` remain visible.
 
 ## Full host gate — GREEN
 
 Latest evidence:
 
 ```text
-.agent/results/realtime-offcall-trace-host-green-retry-20260918-2740.json
-behavior HEAD: c8be36d27b05067574d99858e55d25596f2edbdf
+.agent/results/realtime-diagnostic-labels-host-green-20260918-2770.json
+behavior HEAD: c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
 status: done
 exit_code: 0
 ```
 
 Passed:
 
-- focused trace tests;
+- focused Realtime trace/diagnostic-label tests;
 - focused off-call state/trace tests;
 - focused Python smoke tests 5/5;
 - full `:realtime-client:testDebugUnitTest`;
@@ -194,7 +212,7 @@ Also verify:
 - one-shot app-private config deleted;
 - no call-media helper remains alive;
 - no standard OpenAI key reaches Android;
-- trace is redacted and shows the actual Realtime event ordering available during the smoke.
+- trace is redacted and shows actual Realtime event ordering available during the smoke.
 
 ## Only after genuine off-call PASS
 
