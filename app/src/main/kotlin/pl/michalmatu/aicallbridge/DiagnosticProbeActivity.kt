@@ -31,6 +31,19 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_SPEECH_CAPABILITY_PROBE, false)) {
+            statusView.text = "Running local STT/TTS capability probe…"
+            Log.i(TAG, "local_speech_capability_probe_start=true")
+            LocalSpeechCapabilityProbe.run(this) { result ->
+                runOnUiThread {
+                    statusView.text = result
+                    Log.i(TAG, "local_speech_capability_probe_result:\n$result")
+                    finish()
+                }
+            }
+            return
+        }
+
         if (!Shizuku.pingBinder()) {
             finishWithError("binder_unavailable")
             return
@@ -181,6 +194,7 @@ class DiagnosticProbeActivity : Activity() {
     private companion object {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
+        const val EXTRA_RUN_LOCAL_SPEECH_CAPABILITY_PROBE = "run_local_speech_capability_probe"
         const val EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE = "run_realtime_live_call_smoke"
         const val EXTRA_REALTIME_LIVE_DURATION_MS = "realtime_live_duration_ms"
         const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"

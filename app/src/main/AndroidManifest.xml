@@ -6,6 +6,15 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <!-- CAPTURE_AUDIO_OUTPUT is intentionally NOT requested here.
          Android reserves it for system components; privileged experiments belong
          behind a dedicated backend/helper instead of pretending it is a normal
