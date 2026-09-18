@@ -2,13 +2,23 @@
 
 Repository: `MichalMatu/android-ai-call-bridge`
 
-Durable development branch after cleanup: `main`.
+Durable development branch: `main`.
 
-Pre-documentation behavior HEAD:
+Latest behavior cleanup checkpoint before this documentation refresh:
+
+```text
+d191b6cc8afcee636a3ad3c8b7b4dc7fee6e8417
+refactor: use strict Gson reader API
+```
+
+Key preceding cleanup checkpoints:
 
 ```text
 db8afd807f7cd1e45cd41ea36da70d21b947c302
 refactor: separate realtime proposal parsing
+
+89891557f26f8f69af43f572405d761a887b0bb8
+fix: close host quality gate gaps
 ```
 
 ## Frozen physical baseline
@@ -19,7 +29,7 @@ Phase 2D remains `PROVEN_S22` at commit:
 59b0505537a53306acdab6a2a66ca6eed2b3f1c0
 ```
 
-Preserve the RX/TX attribution/order, CALL_ASSISTANT/TELEPHONY_TX path, mono internal PCM, TX-boundary stereo, PFD ownership, sibling cleanup, local TAKE OVER, heartbeat and `CallModeWatchdog`. Do not rerun the full matrix without concrete regression evidence.
+The commit remains in `main` history; permanent milestone branches were removed. Preserve the RX/TX attribution/order, CALL_ASSISTANT/TELEPHONY_TX path, mono internal PCM, TX-boundary stereo, PFD ownership, sibling cleanup, local TAKE OVER, heartbeat and `CallModeWatchdog`. Do not rerun the full matrix without concrete regression evidence.
 
 ## Current Telephone Agent stack — HOST_GREEN
 
@@ -32,7 +42,7 @@ Implemented and retained:
 - task/constraints/preferences/`authorizedFacts` workflow model;
 - deterministic policy and `NEEDS_USER_DECISION`;
 - typed Realtime function calling;
-- strict `evaluate_proposal` + side-effect-free `CallRealtimeProposalParser`;
+- strict `evaluate_proposal` plus side-effect-free `CallRealtimeProposalParser`;
 - one-shot `CallCommitmentGate` and forced `commit_proposal`;
 - full-response output buffer and application-owned speech approval;
 - required function `response_id` handling;
@@ -41,22 +51,15 @@ Implemented and retained:
 - bounded/redacted `RealtimeEventTrace`;
 - controlled no-tools live-call probe with fail-closed host preflight.
 
-## Pre-API quality audit
+## Pre-API quality audit and cleanup
 
-The cleanup audit measured 109 production source files and ~14.7k production source lines. The largest production classes are lifecycle/data-plane components and historical device probes. Size alone was not treated as a reason to split safety-critical code.
+The audit measured about 110 production Kotlin/Java source files and ~14.8k source lines. Size alone was not treated as evidence of a god object.
 
-`CallRealtimeSessionOrchestrator` remains intentionally cohesive: one generation state machine owns credential, transport, media, function-response and cleanup ordering. Splitting it only to reduce its line count would make those invariants harder to audit.
+`CallRealtimeSessionOrchestrator` remains intentionally cohesive because one generation state machine owns credential, transport, media, function-response and cleanup ordering. Splitting it merely to reduce line count would make safety invariants harder to audit.
 
-One genuine mixed-responsibility area was refactored: strict proposal JSON decoding moved out of `CallRealtimeProposalFunctionHandler` into `CallRealtimeProposalParser`, with dedicated parser tests. The handler now focuses on workflow/commitment state.
+A genuine mixed-responsibility area was refactored: strict proposal JSON decoding moved out of `CallRealtimeProposalFunctionHandler` into `CallRealtimeProposalParser`, with dedicated parser tests. The parser uses Gson `Strictness.STRICT`; workflow/commitment mutation remains outside parsing.
 
-The audit also exposed lint debt that ordinary builds had missed. Commit:
-
-```text
-89891557f26f8f69af43f572405d761a887b0bb8
-fix: close host quality gate gaps
-```
-
-closed target/API/permission lint contracts, made Realtime URL encoding compatible with `minSdk=29`, and replaced the old build-only CI step with the shared host quality gate.
+The audit also exposed lint debt that ordinary builds had missed. The cleanup fixed target/API/permission lint contracts, made Realtime URL encoding compatible with `minSdk=29`, and replaced the old build-only CI step with the shared host quality gate.
 
 Canonical verification:
 
@@ -65,6 +68,19 @@ bash scripts/verify_host.sh
 ```
 
 It covers all module unit tests, lint for all four Android modules, debug APK assembly, the complete Python script suite, production-secret scan, live-runner no-dial/hangup scan and `git diff --check`.
+
+The final main audit before the last strictness cleanup reported 257 JVM tests with zero failures/errors/skips plus 65 Python tests. `audio-bridge` currently has no direct JVM tests because it is a small contract/model module; its behavior is exercised through higher-level app/session tests. Add direct tests there only when executable logic is added.
+
+## Repository/doc cleanup
+
+The active repository now uses only two branches:
+
+- `main` for product code/current docs;
+- `agent-control` for Local Agent task/result traffic.
+
+Historical work/milestone branches were deleted only after their commits were confirmed as ancestors of `main`.
+
+Active documentation was reduced to the current authoritative set. Historical plans, deep-audit notes and intermediate proof documents remain retrievable from Git history and `.agent/results` rather than occupying the active docs tree.
 
 ## Physical S22 safety evidence added before the API gate
 
@@ -105,16 +121,7 @@ The runner never dials/hangs up and does not automatically mutate route/Bluetoot
 
 ## External blocker — genuine OpenAI off-call smoke
 
-The real OpenAI network/session smoke has **not** run. Latest prerequisite recheck:
-
-```text
-.agent/results/realtime-openai-offcall-smoke-recheck-20260918-2780.json
-openai_api_key_present=false
-broker_token_present=false
-broker_https_url_present=false
-```
-
-Required host environment:
+The real OpenAI network/session smoke has **not** run. Latest prerequisite recheck showed all three host prerequisites absent:
 
 ```text
 OPENAI_API_KEY
