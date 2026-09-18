@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.agent
 
+import com.google.gson.Strictness
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import java.io.IOException
@@ -14,7 +15,7 @@ internal object CallRealtimeProposalParser {
         require(argumentsJson.isNotBlank()) { "evaluate_proposal arguments must not be blank" }
         try {
             JsonReader(StringReader(argumentsJson)).use { reader ->
-                reader.isLenient = false
+                reader.setStrictness(Strictness.STRICT)
                 reader.beginObject()
 
                 var scheduledSeen = false
@@ -168,5 +169,4 @@ internal object CallRealtimeProposalParser {
             throw IllegalArgumentException("duplicate evaluate_proposal field: $name")
         }
     }
-
 }
