@@ -66,13 +66,13 @@ class RealtimeWebSocketTransport(
             }
         }
 
-    override suspend fun sendAudio(frame: PcmFrame): Result<Unit> =
+    override fun sendAudio(frame: PcmFrame): Result<Unit> =
         sendActive { socket -> socket.send(protocol.inputAudioAppend(frame)) }
 
-    override suspend fun cancelResponse(): Result<Unit> =
+    override fun cancelResponse(): Result<Unit> =
         sendActive { socket -> socket.send(protocol.responseCancel()) }
 
-    override suspend fun close() {
+    override fun close() {
         val socket: RealtimeSocket?
         val pending: Continuation<Result<Unit>>?
         synchronized(lock) {
