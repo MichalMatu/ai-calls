@@ -184,7 +184,7 @@ class CallRealtimeFunctionRoutingTest {
 
     private class FakeTransport : RealtimeTransport {
         var connectedConfig: RealtimeSessionConfig? = null
-        var listener: RealtimeTransport.Listener? = null
+        private var transportListener: RealtimeTransport.Listener? = null
         var functionOutputResult: Result<Unit> = Result.success(Unit)
         val functionOutputs = mutableListOf<Pair<String, String>>()
         val closeCalls = AtomicInteger()
@@ -208,11 +208,11 @@ class CallRealtimeFunctionRoutingTest {
         }
 
         override fun setListener(listener: RealtimeTransport.Listener?) {
-            this.listener = listener
+            transportListener = listener
         }
 
         fun emitFunctionCall(call: RealtimeFunctionCall) {
-            listener!!.onFunctionCall(call)
+            transportListener!!.onFunctionCall(call)
         }
     }
 
