@@ -115,6 +115,23 @@ class RealtimeEventTraceTest {
         assertTrue(rendered.contains("error=REDACTED"))
     }
 
+    @Test
+    fun functionCallDebugRenderingCannotInjectUntrustedName() {
+        val call = RealtimeFunctionCall(
+            callId = "call-safe",
+            name = "commit_proposal\nsecret=leak",
+            argumentsJson = "{}",
+            responseId = "resp-safe",
+        )
+
+        val rendered = call.toString()
+        assertFalse(rendered.contains("secret=leak"))
+        assertFalse(rendered.contains('\n'))
+        assertTrue(rendered.contains("name=REDACTED"))
+        assertFalse(rendered.contains("call-safe"))
+        assertFalse(rendered.contains("resp-safe"))
+    }
+
     private class FakeTransport : RealtimeTransport {
         var currentListener: RealtimeTransport.Listener? = null
 
