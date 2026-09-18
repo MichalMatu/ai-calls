@@ -1,13 +1,12 @@
 package pl.michalmatu.aicallbridge.agent
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CallRealtimeAgentSessionSpecTest {
     @Test
-    fun factoryAlwaysBindsTaskInstructionsProposalToolAndMatchingHandler() {
+    fun factoryAlwaysBindsTaskInstructionsProposalAndCommitmentToolsToOneGate() {
         val workflow = CallWorkflow(
             CallTask(
                 "dermatolog we Wroclawiu",
@@ -29,15 +28,22 @@ class CallRealtimeAgentSessionSpecTest {
         assertEquals("wss://api.openai.com/v1/realtime", spec.request.sessionEndpoint)
         assertEquals("gpt-realtime", spec.request.model)
         assertEquals(16_000, spec.request.sampleRateHz)
-        assertEquals(1, spec.request.tools.size)
-        assertEquals(CallRealtimeProposalFunctionHandler.FUNCTION_NAME, spec.request.tools.single().name)
+        assertEquals(
+            listOf(
+                CallRealtimeProposalFunctionHandler.FUNCTION_NAME,
+                CallRealtimeCommitmentFunctionHandler.FUNCTION_NAME,
+            ),
+            spec.request.tools.map { it.name },
+        )
         assertTrue(spec.request.instructions.contains("dermatolog we Wroclawiu"))
         assertTrue(spec.request.instructions.contains("evaluate_proposal"))
-        assertSame(spec.proposalHandler, spec.functionCallHandler)
+        assertTrue(spec.functionCallHandler !== spec.proposalHandler)
+        assertTrue(spec.functionCallHandler !== spec.commitmentHandler)
+        assertTrue(!spec.commitmentGate.hasAuthorization())
     }
 
     @Test
-    fun callerCanOverrideSampleRateButCannotSupplyAnIndependentHandlerOrToolSet() {
+    fun callerCanOverrideSampleRateButCannotSupplyIndependentHandlersOrToolSet() {
         val workflow = CallWorkflow(
             CallTask(
                 "restaurant",
@@ -59,9 +65,11 @@ class CallRealtimeAgentSessionSpecTest {
 
         assertEquals(24_000, spec.request.sampleRateHz)
         assertEquals(
-            listOf(CallRealtimeProposalFunctionHandler.FUNCTION_NAME),
+            listOf(
+                CallRealtimeProposalFunctionHandler.FUNCTION_NAME,
+                CallRealtimeCommitmentFunctionHandler.FUNCTION_NAME,
+            ),
             spec.request.tools.map { it.name },
         )
-        assertTrue(spec.functionCallHandler is CallRealtimeProposalFunctionHandler)
     }
 }
