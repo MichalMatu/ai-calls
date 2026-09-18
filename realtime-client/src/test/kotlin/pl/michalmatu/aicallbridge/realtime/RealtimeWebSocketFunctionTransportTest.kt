@@ -53,6 +53,7 @@ class RealtimeWebSocketFunctionTransportTest {
         val transport = transport(connector)
         assertTrue(runSuspend { transport.connect(config()) }.isSuccess)
         connector.socket.sent.clear()
+        connector.socket.sendAttempts = 0
         connector.socket.acceptSends = false
 
         val result = transport.submitFunctionOutput("call_1", "{\"decision\":\"allowed\"}")
