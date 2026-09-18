@@ -39,7 +39,11 @@ class CallRealtimeAudioPumpSpeechGateTest {
 
         fixture.transport.emitOutputAudioDone(partId)
 
-        assertTrue(fixture.output.firstWrite.await(1, TimeUnit.SECONDS))
+        assertTrue(
+            "snapshot=${fixture.pump.snapshot()} terminal=${fixture.terminal.get()} " +
+                "seen=${fixture.seenTranscripts} writes=${fixture.output.writeCount.get()}",
+            fixture.output.firstWrite.await(1, TimeUnit.SECONDS),
+        )
         assertEquals(listOf("Dzień dobry"), fixture.seenTranscripts)
         assertTrue(fixture.output.bytes.size() > 0)
         assertNull(fixture.terminal.get())
