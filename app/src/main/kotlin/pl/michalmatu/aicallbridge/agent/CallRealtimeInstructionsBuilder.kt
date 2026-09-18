@@ -74,6 +74,6 @@ class CallRealtimeInstructionsBuilder {
 
     private fun renderMoney(money: MoneyAmount): JsonObject = JsonObject().apply {
         addProperty("amount", money.amount().toPlainString())
-        addProperty("currency", money.currency())
+        addProperty("currency", money.currencyCode())
     }
 }
