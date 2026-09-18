@@ -258,6 +258,7 @@ class RealtimeWebSocketTransport(
                 val transcript = event.text() ?: return
                 safeNotify { it.onOutputAudioTranscriptDone(partId, transcript) }
             }
+            RealtimeServerEvent.Type.RESPONSE_DONE -> Unit
             RealtimeServerEvent.Type.REMOTE_SPEECH_STARTED ->
                 safeNotify { it.onRemoteSpeechStarted() }
             RealtimeServerEvent.Type.REMOTE_SPEECH_STOPPED ->
