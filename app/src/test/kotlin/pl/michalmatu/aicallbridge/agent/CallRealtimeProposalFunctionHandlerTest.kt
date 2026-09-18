@@ -9,6 +9,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionFollowup
 import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionResponder
 
 class CallRealtimeProposalFunctionHandlerTest {
@@ -232,6 +233,11 @@ class CallRealtimeProposalFunctionHandlerTest {
             if (submitResult.isSuccess) outputs += outputJson
             return submitResult
         }
+
+        override fun submit(
+            outputJson: String,
+            followup: RealtimeFunctionFollowup,
+        ): Result<Unit> = submit(outputJson)
     }
 
     companion object {
