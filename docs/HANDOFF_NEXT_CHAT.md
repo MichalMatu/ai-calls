@@ -10,7 +10,7 @@ Local Agent control branch: `agent-control`
 
 ## Start here
 
-Read:
+Read only what is relevant:
 
 1. `AGENTS.md`
 2. this file
@@ -22,21 +22,24 @@ Then verify `main` HEAD and `.agent/status/daemon.json`. In a new chat bootstrap
 
 ## Current code state
 
-Pre-documentation behavior checkpoint:
+Latest behavior cleanup checkpoint before this documentation refresh:
+
+```text
+d191b6cc8afcee636a3ad3c8b7b4dc7fee6e8417
+refactor: use strict Gson reader API
+```
+
+Important preceding cleanup commits:
 
 ```text
 db8afd807f7cd1e45cd41ea36da70d21b947c302
 refactor: separate realtime proposal parsing
-```
 
-Before it:
-
-```text
 89891557f26f8f69af43f572405d761a887b0bb8
 fix: close host quality gate gaps
 ```
 
-The cleanup made `scripts/verify_host.sh` the canonical local/CI gate and separated strict proposal JSON parsing from workflow/commitment mutation.
+`scripts/verify_host.sh` is the canonical local/CI quality gate. Strict proposal JSON decoding is separate from workflow/commitment mutation and uses Gson's strict reader API.
 
 Phase 2D physical Samsung media remains frozen at:
 
@@ -45,7 +48,7 @@ Phase 2D physical Samsung media remains frozen at:
 PROVEN_S22
 ```
 
-Do not rerun the full Phase 2D matrix without a concrete regression.
+The freeze commit is preserved in `main` history; milestone branches were removed. Do not rerun the full Phase 2D matrix without a concrete regression.
 
 ## Current Phase 3 state
 
@@ -55,7 +58,7 @@ Host-green production stack includes:
 - 16 kHz telephony <-> 24 kHz Realtime PCM;
 - bounded audio pump/barge-in;
 - deterministic task/workflow/authority model;
-- strict proposal parser;
+- strict side-effect-free proposal parser;
 - one-shot commitment permit + forced commit tool;
 - speech output buffer/approval before cellular TX;
 - host credential broker / short-lived client credential boundary;
@@ -64,6 +67,18 @@ Host-green production stack includes:
 - fail-closed live-call preflight before secret staging.
 
 Physical S22 evidence already covers live-probe off-call refusal, preflight observability and idempotent/reversible voice-call mute. It does **not** cover an actual OpenAI Realtime session or cellular Realtime audio.
+
+## Repository cleanup completed
+
+The project is now main-first:
+
+- product development lives on `main`;
+- Local Agent metadata lives only on `agent-control`;
+- obsolete work/milestone branches were removed after verifying their commits are ancestors of `main`;
+- active docs were reduced to the authoritative current set; historical plans/proof notes remain available in Git history and `.agent/results`;
+- CI runs the same full host quality gate as local development.
+
+Do not recreate long-lived branch/document clutter without a specific reason.
 
 ## The only next blocker
 
@@ -99,7 +114,3 @@ Require call state idle before/after, one-shot config deleted, helper absent aft
 One controlled non-committing cellular Realtime call only. Before broker secret staging the runner requires direct USB, Bluetooth OFF, `CALL_STATE=2`, `MODE_IN_CALL`, earpiece and muted voice-call stream. The runner does not dial or hang up.
 
 Validate real RX/TX quality, latency, barge-in, TAKE OVER, cleanup and event ordering. Only after that passes attempt a real user-authorized task.
-
-## Repository hygiene
-
-Keep product work on `main` and Local Agent metadata on `agent-control`. Do not recreate long-lived work/milestone branches or per-task planning documents without a specific need; Git history and `.agent/results` preserve the evidence.
