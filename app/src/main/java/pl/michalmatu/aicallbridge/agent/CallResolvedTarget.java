@@ -5,8 +5,8 @@ import java.util.Objects;
 /**
  * One concrete dial target produced by an external resolver.
  *
- * <p>The dial address is deliberately redacted from {@link #toString()} so ordinary state/log
- * rendering cannot accidentally expose a full phone number.</p>
+ * <p>User-facing values are deliberately redacted from {@link #toString()} so ordinary state/log
+ * rendering cannot accidentally expose a provider identity or full phone number.</p>
  */
 public record CallResolvedTarget(String displayName, String dialAddress) {
     public CallResolvedTarget {
@@ -16,7 +16,7 @@ public record CallResolvedTarget(String displayName, String dialAddress) {
 
     @Override
     public String toString() {
-        return "CallResolvedTarget[displayName=" + displayName + ", dialAddress=REDACTED]";
+        return "CallResolvedTarget[displayName=REDACTED, dialAddress=REDACTED]";
     }
 
     private static String requireNonBlank(String value, String name) {
