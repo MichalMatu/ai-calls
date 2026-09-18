@@ -17,6 +17,7 @@ import org.junit.Test
 import pl.michalmatu.aicallbridge.audio.PcmFormat
 import pl.michalmatu.aicallbridge.audio.PcmFrame
 import pl.michalmatu.aicallbridge.realtime.RealtimeOutputPartId
+import pl.michalmatu.aicallbridge.realtime.RealtimeResponseStatus
 import pl.michalmatu.aicallbridge.realtime.RealtimeSessionConfig
 import pl.michalmatu.aicallbridge.realtime.RealtimeTransport
 
@@ -25,7 +26,7 @@ class CallRealtimeAudioPumpSpeechGateTest {
     private val partId = RealtimeOutputPartId("resp_1", "item_1", 0, 0)
 
     @Test
-    fun identifiedAudioIsHeldUntilTranscriptAndAudioAreCompleteThenReleased() {
+    fun identifiedAudioIsHeldUntilTranscriptAudioAndResponseAreCompleteThenReleased() {
         val fixture = fixture(CallRealtimeOutputDecision.RELEASE)
 
         fixture.transport.emitOutputAudio(partId, frame(960, 10L))
@@ -34,10 +35,12 @@ class CallRealtimeAudioPumpSpeechGateTest {
 
         fixture.transport.emitTranscriptDelta(partId, "Dzień ")
         fixture.transport.emitTranscriptDone(partId, "Dzień dobry")
+        fixture.transport.emitOutputAudioDone(partId)
         Thread.sleep(50L)
         assertEquals(0, fixture.output.writeCount.get())
+        assertTrue(fixture.seenTranscripts.isEmpty())
 
-        fixture.transport.emitOutputAudioDone(partId)
+        fixture.transport.emitResponseDone("resp_1", RealtimeResponseStatus.COMPLETED)
 
         assertTrue(
             "snapshot=${fixture.pump.snapshot()} terminal=${fixture.terminal.get()} " +
@@ -51,17 +54,51 @@ class CallRealtimeAudioPumpSpeechGateTest {
     }
 
     @Test
-    fun rejectedTranscriptDropsEntireBufferedResponseWithoutTelephonyTx() {
+    fun rejectedTranscriptDropsEntireCompletedResponseWithoutTelephonyTx() {
         val fixture = fixture(CallRealtimeOutputDecision.DROP)
 
         fixture.transport.emitOutputAudio(partId, frame(960, 1L))
         fixture.transport.emitTranscriptDone(partId, "Nieautoryzowane potwierdzenie")
         fixture.transport.emitOutputAudioDone(partId)
+        fixture.transport.emitResponseDone("resp_1", RealtimeResponseStatus.COMPLETED)
 
         Thread.sleep(100L)
         assertEquals(0, fixture.output.writeCount.get())
+        assertEquals(listOf("Nieautoryzowane potwierdzenie"), fixture.seenTranscripts)
         assertTrue(fixture.pump.snapshot().running)
         assertNull(fixture.terminal.get())
+        fixture.close()
+    }
+
+    @Test
+    fun cancelledResponseDropsReadyBufferedAudioWithoutConsultingPolicy() {
+        val fixture = fixture(CallRealtimeOutputDecision.RELEASE)
+
+        fixture.transport.emitOutputAudio(partId, frame(960, 1L))
+        fixture.transport.emitTranscriptDone(partId, "Nie powinno zostać odtworzone")
+        fixture.transport.emitOutputAudioDone(partId)
+        fixture.transport.emitResponseDone("resp_1", RealtimeResponseStatus.CANCELLED)
+
+        Thread.sleep(100L)
+        assertEquals(0, fixture.output.writeCount.get())
+        assertTrue(fixture.seenTranscripts.isEmpty())
+        assertTrue(fixture.pump.snapshot().running)
+        assertNull(fixture.terminal.get())
+        fixture.close()
+    }
+
+    @Test
+    fun unknownResponseStatusFailsClosedWithoutTelephonyTx() {
+        val fixture = fixture(CallRealtimeOutputDecision.RELEASE)
+
+        fixture.transport.emitOutputAudio(partId, frame(960, 1L))
+        fixture.transport.emitTranscriptDone(partId, "unknown lifecycle")
+        fixture.transport.emitOutputAudioDone(partId)
+        fixture.transport.emitResponseDone("resp_1", RealtimeResponseStatus.UNKNOWN)
+
+        assertTrue(fixture.terminalLatch.await(1, TimeUnit.SECONDS))
+        assertFalse(fixture.pump.snapshot().running)
+        assertEquals(0, fixture.output.writeCount.get())
         fixture.close()
     }
 
@@ -79,17 +116,19 @@ class CallRealtimeAudioPumpSpeechGateTest {
     }
 
     @Test
-    fun bargeInDiscardsPendingGatedResponseAndIgnoresItsLateDoneEvents() {
+    fun bargeInDiscardsPendingGatedResponseAndIgnoresItsLateCompletion() {
         val fixture = fixture(CallRealtimeOutputDecision.RELEASE)
 
         fixture.transport.emitOutputAudio(partId, frame(960, 1L))
         fixture.transport.emitRemoteSpeechStarted()
         fixture.transport.emitTranscriptDone(partId, "late cancelled transcript")
         fixture.transport.emitOutputAudioDone(partId)
+        fixture.transport.emitResponseDone("resp_1", RealtimeResponseStatus.CANCELLED)
 
         Thread.sleep(100L)
         assertEquals(1, fixture.transport.cancelCalls.get())
         assertEquals(0, fixture.output.writeCount.get())
+        assertTrue(fixture.seenTranscripts.isEmpty())
         assertTrue(fixture.pump.snapshot().running)
         assertNull(fixture.terminal.get())
         fixture.close()
@@ -177,6 +216,10 @@ class CallRealtimeAudioPumpSpeechGateTest {
 
         fun emitOutputAudioDone(partId: RealtimeOutputPartId) {
             listener?.onOutputAudioDone(partId)
+        }
+
+        fun emitResponseDone(responseId: String, status: RealtimeResponseStatus) {
+            listener?.onResponseDone(responseId, status)
         }
 
         fun emitRemoteSpeechStarted() {
