@@ -7,6 +7,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionCall
+import pl.michalmatu.aicallbridge.realtime.RealtimeFunctionFollowup
 import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionResponder
 
 class CallRealtimeCommitmentIntegrationTest {
@@ -139,6 +140,11 @@ class CallRealtimeCommitmentIntegrationTest {
             outputs += outputJson
             return Result.success(Unit)
         }
+
+        override fun submit(
+            outputJson: String,
+            followup: RealtimeFunctionFollowup,
+        ): Result<Unit> = submit(outputJson)
 
         fun single(): String = outputs.single()
     }
