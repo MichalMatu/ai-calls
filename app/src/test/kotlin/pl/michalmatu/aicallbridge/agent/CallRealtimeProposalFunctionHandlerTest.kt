@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.agent
 
+import com.google.gson.JsonParser
 import java.math.BigDecimal
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
@@ -45,7 +46,9 @@ class CallRealtimeProposalFunctionHandlerTest {
         )
 
         assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, workflow.snapshot().state())
-        assertEquals(listOf("{\"decision\":\"autonomously_allowed\"}"), responder.outputs)
+        val output = JsonParser.parseString(responder.outputs.single()).asJsonObject
+        assertEquals("autonomously_allowed", output.get("decision").asString)
+        assertTrue(output.get("commitment_authorization").asString.isNotBlank())
         assertFalse(handler.hasPendingUserDecision())
     }
 
@@ -78,7 +81,9 @@ class CallRealtimeProposalFunctionHandlerTest {
 
         assertTrue(result.isSuccess)
         assertEquals("Clinic A", result.getOrThrow().provider())
-        assertEquals(listOf("{\"decision\":\"user_approved\"}"), responder.outputs)
+        val output = JsonParser.parseString(responder.outputs.single()).asJsonObject
+        assertEquals("user_approved", output.get("decision").asString)
+        assertTrue(output.get("commitment_authorization").asString.isNotBlank())
         assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, workflow.snapshot().state())
         assertFalse(handler.hasPendingUserDecision())
         assertSame(originalTask, workflow.snapshot().task())
