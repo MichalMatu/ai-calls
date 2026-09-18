@@ -49,11 +49,11 @@ class RealtimeEventTrace @JvmOverloads constructor(
                 outputIndex = partId?.outputIndex,
                 contentIndex = partId?.contentIndex,
                 callAlias = alias(callAliases, callId, "C"),
-                functionName = functionName,
+                functionName = RealtimeDiagnosticLabel.sanitize(functionName),
                 status = status,
                 byteCount = byteCount,
                 charCount = charCount,
-                errorType = errorType,
+                errorType = RealtimeDiagnosticLabel.sanitize(errorType),
             )
             if (events.size == maxEvents) events.removeFirst()
             events.addLast(event)

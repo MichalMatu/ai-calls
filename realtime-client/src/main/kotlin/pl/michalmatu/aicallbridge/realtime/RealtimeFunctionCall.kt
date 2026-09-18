@@ -25,5 +25,6 @@ data class RealtimeFunctionCall @JvmOverloads constructor(
     }
 
     override fun toString(): String =
-        "RealtimeFunctionCall(responseId=REDACTED, callId=REDACTED, name=$name, arguments=REDACTED)"
+        "RealtimeFunctionCall(responseId=REDACTED, callId=REDACTED, " +
+            "name=${RealtimeDiagnosticLabel.sanitize(name)}, arguments=REDACTED)"
 }
