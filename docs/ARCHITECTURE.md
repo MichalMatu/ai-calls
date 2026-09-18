@@ -2,77 +2,64 @@
 
 ## Goal
 
-Bridge an ordinary cellular call on the target Samsung S22+ to a Realtime AI agent while keeping telephony privilege, network transport, business authority and user takeover as separate ownership boundaries.
+Bridge an ordinary cellular call on the target Samsung S22+ to a selectable AI engine while keeping telephony privilege, speech/model transport, business authority and user takeover as separate ownership boundaries.
 
 Failure must move toward a normal human call. Local TAKE OVER cannot depend on network/model acknowledgement.
 
-## Boundaries
+## Top-level runtime selection
 
 ```text
-CallTask / explicit authority
-        |
-        v
-CallWorkflow + CallConfirmationPolicy
-        |
-        v
-CallRealtimeAgentSessionSpec
-  - instructions
-  - evaluate_proposal / commit_proposal
-  - shared CallCommitmentGate
-  - output approval policy
-        |
-        v
-CallRealtimeSessionOrchestrator
-       / \
-      v   v
-Realtime   CallMediaSessionCoordinator
-transport          |
-                   v
-          Shizuku privileged helper
-             /              \
-        RX PFD              TX PFD
+                         CallTask / explicit authority
+                                   |
+                                   v
+                    workflow / confirmation / commitment
+                                   |
+                                   v
+                         selected AI engine
+                        /        |        \
+                       v         v         v
+             LOCAL_STT_TTS   OPENAI       LOCAL
+               + TEXT LLM    REALTIME     REALTIME
+                   |           AUDIO       AUDIO
+                   |
+          text LLM provider
+          /              \
+ OPENAI_TEXT       LOCAL_MAC_LLM
+
+Tools/context are orthogonal:
+none / local tools / MCP
 ```
+
+MCP is not an LLM provider. It is a tools/context integration layer. No model or tool provider may bypass application-owned authority or commitment gates.
+
+## Shared boundaries
 
 ### 1. Authority and workflow
 
 `CallTask`, constraints, preferences and `authorizedFacts` define what the agent may do. `CallWorkflow` and `CallConfirmationPolicy` are deterministic application logic; counterparty/model text cannot widen authority.
 
-`CallRealtimeProposalParser` is a strict side-effect-free decoder for untrusted `evaluate_proposal` JSON. `CallRealtimeProposalFunctionHandler` owns workflow/commitment mutation. Keeping parsing separate prevents malformed input handling from becoming a second responsibility of the authority state handler.
+Existing Realtime proposal/commitment components remain valid evidence for the policy semantics. As provider-neutral text backends are introduced, reuse the same deterministic policy and one-shot authorization behavior rather than creating provider-specific authority logic.
 
-### 2. Realtime session ownership
+### 2. Engine selection
 
-`CallRealtimeSessionOrchestrator` coordinates exactly one credential/transport/media generation:
+The app persists two independent choices:
 
-```text
-FETCHING_CREDENTIAL -> CONNECTING_REALTIME -> STARTING_MEDIA -> ACTIVE
-```
+- audio mode: `LOCAL_STT_TTS`, `OPENAI_REALTIME_AUDIO`, `LOCAL_REALTIME_AUDIO`;
+- text LLM provider for `LOCAL_STT_TTS`: `OPENAI_TEXT`, `LOCAL_MAC_LLM`.
 
-It is intentionally a single safety-critical state machine despite its size. Generation invalidation, cleanup ordering, function-response ownership and TAKE OVER belong to one lifecycle; splitting it solely to reduce line count would weaken auditability.
+Realtime audio modes do not consume the text-LLM selector, but the preference remains preserved when switching back to `LOCAL_STT_TTS`.
 
-`CallRealtimeMediaSession` attaches the connected transport to one active media generation. `CallRealtimeAudioPump` is the bounded non-owning PCM data plane.
-
-### 3. Realtime client
-
-`realtime-client/` knows nothing about Samsung telephony internals. It owns:
-
-- short-lived credential types/providers;
-- trusted OpenAI Realtime WebSocket handshake;
-- protocol parsing and typed events/function calls;
-- transport generation safety;
-- 16 kHz <-> 24 kHz PCM adaptation support;
-- optional bounded/redacted `RealtimeEventTrace` instrumentation.
-
-The WebSocket handshake attaches credentials only to the canonical trusted Realtime endpoint.
-
-### 4. App-side media lifecycle
+### 3. Frozen telephony media lifecycle
 
 `CallMediaSessionCoordinator` owns one privileged RX+TX generation, bind/prepare/start sequencing, heartbeat lifetime, endpoint generation checks, helper failure observation and whole-generation teardown.
 
 Continuous PCM does not use Binder. The normal app owns transferred PFD endpoints; Binder/AIDL is control only.
 
-### 5. Privileged Samsung media
+The frozen Samsung media implementation is engine-agnostic: selected AI engines consume/produce the same internal telephony PCM and must not own Samsung/private audio behavior.
 
-`privileged-helper/` owns Samsung/private audio behavior and no OpenAI/business policy.
+### 4. Privileged Samsung media
+
+`privileged-helper/` owns Samsung/private audio behavior and no model/business policy.
 
 RX:
 
@@ -90,13 +77,131 @@ PFD -> SamsungUplinkPipeSession -> SamsungCallAssistantTrack
 
 The helper executes under the proven shell/Shizuku privilege model. Narrow lint suppressions exist only where static analysis cannot model that privilege or the target-specific hidden-API path; changing those paths requires targeted device regression.
 
-## PCM formats
+## Internal PCM contract
 
 Internal telephony format: signed PCM16LE, mono, 16 kHz.
 
-Realtime raw PCM format: signed PCM16LE, mono, 24 kHz.
+All non-Realtime speech components should accept/return this format at the telephony boundary. Provider-specific conversion belongs inside the provider adapter.
 
-`RealtimePcmFrameAdapter` isolates sample-rate conversion. Stereo exists only at the Samsung TX boundary.
+OpenAI Realtime raw PCM remains signed PCM16LE, mono, 24 kHz; `RealtimePcmFrameAdapter` isolates 16 <-> 24 kHz conversion. Stereo exists only at the Samsung TX boundary.
+
+## LOCAL_STT_TTS path
+
+Target production path:
+
+```text
+TELEPHONY_RX PCM16/16k
+   -> local SpeechInput
+   -> transcript
+   -> provider-neutral text agent
+   -> approved response text
+   -> local SpeechOutput
+   -> PCM16/16k
+   -> TELEPHONY_TX
+```
+
+### Local SpeechInput
+
+Physically proven on S22:
+
+- Android on-device `SpeechRecognizer` supports `pl-PL`;
+- caller-supplied audio is accepted through `RecognizerIntent.EXTRA_AUDIO_SOURCE`;
+- the reliable transport is a live `ParcelFileDescriptor.createPipe()` stream, not a seekable file descriptor kept open;
+- PCM16LE mono 16 kHz is streamed through the pipe;
+- closing the write end provides the stream EOF required for completion;
+- segmented session support may be used with the audio source;
+- a known Polish TTS phrase round-trips to the correct transcript.
+
+Production code should extract this behavior into a small lifecycle-owned adapter. The diagnostic loopback remains test/evidence code and must not become the runtime engine.
+
+### Local SpeechOutput
+
+Physically proven on S22:
+
+- multiple Polish voices do not require a network connection;
+- local `TextToSpeech.synthesizeToFile` succeeds;
+- target S22 TTS produced mono 24 kHz WAV in the proof;
+- app-side decoding/downmix/resampling produces PCM16LE mono 16 kHz for the telephony contract.
+
+Production `SpeechOutput` should return/stream internal-format PCM and own temporary synthesis resources/cancellation.
+
+### Turn lifecycle
+
+Initial safe production behavior should be whole-turn rather than aggressively streamed:
+
+```text
+caller utterance complete
+ -> final STT transcript
+ -> complete candidate model response
+ -> application approval / authority checks
+ -> local TTS
+ -> TX
+```
+
+This preserves existing output-approval semantics. Sentence/chunk streaming can be optimized later only if it does not weaken approval or commitment safety.
+
+Barge-in/interrupt handling should stop TTS/TX locally and invalidate the active speech generation before asking any model/network component to cancel.
+
+## Text-agent boundary
+
+Introduce a provider-neutral interface above speech, conceptually:
+
+```text
+transcript + CallTask/workflow context
+    -> TextAgentBackend
+    -> candidate response + typed proposals/tool requests
+```
+
+Planned implementations:
+
+- `OPENAI_TEXT` — remote text provider through a safe backend credential boundary;
+- `LOCAL_MAC_LLM` — local/LAN model server on the user's Mac.
+
+Do not expose raw model authority. Existing proposal parsing, confirmation policy, one-shot commitment authorization and `NEEDS_USER_DECISION` remain application-owned.
+
+## OPENAI_REALTIME_AUDIO path
+
+The existing Realtime stack is preserved/frozen as a selectable alternative:
+
+```text
+CallRealtimeAgentSessionSpec
+  - instructions
+  - evaluate_proposal / commit_proposal
+  - shared CallCommitmentGate
+  - output approval policy
+        |
+        v
+CallRealtimeSessionOrchestrator
+       / \
+      v   v
+Realtime   CallMediaSessionCoordinator
+transport          |
+                   v
+          frozen Samsung media
+```
+
+`CallRealtimeSessionOrchestrator` still owns one credential/transport/media generation:
+
+```text
+FETCHING_CREDENTIAL -> CONNECTING_REALTIME -> STARTING_MEDIA -> ACTIVE
+```
+
+`realtime-client/` remains isolated from Samsung telephony internals and owns short-lived Realtime credentials, WebSocket protocol, generation safety and 16 <-> 24 kHz adaptation.
+
+Do not destructively rename/refactor proven Realtime code merely to make local mode look symmetric. Add provider-neutral seams around it only when useful.
+
+## LOCAL_REALTIME_AUDIO path
+
+Reserved future third engine:
+
+```text
+TELEPHONY_RX PCM
+ -> local audio-capable model/server
+ -> PCM
+ -> TELEPHONY_TX
+```
+
+It may internally be speech-to-speech or STT+LLM+TTS, but from the Android app it should behave as an audio engine and reuse the same telephony generation, TAKE OVER and app-owned authority boundaries.
 
 ## Speech and commitment gates
 
@@ -110,11 +215,11 @@ evaluate_proposal
   -> consume permit once
 ```
 
-`CallRealtimeOutputResponseBuffer` intercepts identified model audio before telephony TX. Release requires completed audio, completed final transcript, successful response completion and explicit application approval. Cancelled/failed/incomplete/unsafe responses are dropped.
+For text mode, no unapproved text should be synthesized. For Realtime audio, `CallRealtimeOutputResponseBuffer` continues to intercept identified model audio before telephony TX. Cancelled/failed/incomplete/unsafe outputs are dropped.
 
 ## Diagnostics
 
-`RealtimeEventTrace` records bounded metadata only: event ordering/timing, byte/character counts, terminal status, sanitized labels and local correlation aliases. It does not retain PCM, transcript text, function arguments/output, credentials, raw provider IDs or raw exception messages.
+`RealtimeEventTrace` remains Realtime-specific bounded metadata instrumentation. Local speech/model diagnostics should follow the same privacy principle: states, durations, sizes, sanitized failure reasons and local correlation IDs rather than raw PCM/transcripts by default.
 
 Diagnostic probes are test surfaces; they must not become alternate product ownership paths.
 
