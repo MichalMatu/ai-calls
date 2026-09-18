@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 import java.util.Base64;
 import java.util.Objects;
@@ -146,6 +147,22 @@ public final class RealtimeWebSocketProtocol {
         String type = root.get("type").getAsString();
         return switch (type) {
             case "response.output_audio.delta" -> parseAudioDelta(root, type, monotonicTimestampNs);
+            case "response.output_audio.done" -> RealtimeServerEvent.outputAudioDone(
+                parseOutputPartId(root, true),
+                type
+            );
+            case "response.output_audio_transcript.delta" ->
+                RealtimeServerEvent.outputAudioTranscriptDelta(
+                    parseOutputPartId(root, true),
+                    requiredText(root, "delta", type),
+                    type
+                );
+            case "response.output_audio_transcript.done" ->
+                RealtimeServerEvent.outputAudioTranscriptDone(
+                    parseOutputPartId(root, true),
+                    requiredText(root, "transcript", type),
+                    type
+                );
             case "input_audio_buffer.speech_started" -> RealtimeServerEvent.speechStarted(type);
             case "input_audio_buffer.speech_stopped" -> RealtimeServerEvent.speechStopped(type);
             case "response.output_item.done" -> parseOutputItemDone(root, type);
@@ -173,6 +190,7 @@ public final class RealtimeWebSocketProtocol {
         }
         return RealtimeServerEvent.audioDelta(
             new PcmFrame(REALTIME_PCM, pcm, monotonicTimestampNs),
+            parseOutputPartId(root, false),
             rawType
         );
     }
@@ -196,6 +214,49 @@ public final class RealtimeWebSocketProtocol {
             new RealtimeFunctionCall(callId, name, arguments),
             rawType
         );
+    }
+
+    private static RealtimeOutputPartId parseOutputPartId(JsonObject root, boolean required) {
+        boolean any = root.has("response_id")
+            || root.has("item_id")
+            || root.has("output_index")
+            || root.has("content_index");
+        if (!any && !required) {
+            return null;
+        }
+
+        String responseId = requiredString(root, "response_id", "Realtime output event");
+        String itemId = requiredString(root, "item_id", "Realtime output event");
+        int outputIndex = requiredNonNegativeInt(root, "output_index", "Realtime output event");
+        int contentIndex = requiredNonNegativeInt(root, "content_index", "Realtime output event");
+        return new RealtimeOutputPartId(responseId, itemId, outputIndex, contentIndex);
+    }
+
+    private static int requiredNonNegativeInt(JsonObject object, String name, String context) {
+        if (!object.has(name) || !object.get(name).isJsonPrimitive()) {
+            throw new IllegalArgumentException(context + " is missing " + name);
+        }
+        JsonPrimitive primitive = object.getAsJsonPrimitive(name);
+        if (!primitive.isNumber()) {
+            throw new IllegalArgumentException(context + " has non-numeric " + name);
+        }
+        final int value;
+        try {
+            value = primitive.getAsInt();
+        } catch (RuntimeException error) {
+            throw new IllegalArgumentException(context + " has invalid " + name, error);
+        }
+        if (value < 0) {
+            throw new IllegalArgumentException(context + " has negative " + name);
+        }
+        return value;
+    }
+
+    private static String requiredText(JsonObject object, String name, String context) {
+        if (!object.has(name) || !object.get(name).isJsonPrimitive()) {
+            throw new IllegalArgumentException(context + " is missing " + name);
+        }
+        return object.get(name).getAsString();
     }
 
     private static String parseErrorMessage(JsonObject root) {
