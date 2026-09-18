@@ -25,6 +25,7 @@ CONFIG_PATH = "files/realtime-network-smoke.json"
 RESULT_PREFIX = "realtime_network_off_call_smoke="
 TOKEN_MIN_CHARS = 32
 CALL_STATE_RE = re.compile(r"mCallState=(\d+)")
+TARGET_ADB_MODEL = "SM_S906B"
 
 
 @dataclass(frozen=True, repr=False)
@@ -189,6 +190,19 @@ def parse_probe_result(text: str) -> Optional[SmokeResult]:
     return SmokeResult(status=status, reason=reason, states=states, detail=detail, trace=trace)
 
 
+def is_direct_usb_target(devices_output: str, serial: str) -> bool:
+    for raw_line in devices_output.splitlines():
+        parts = raw_line.split()
+        if not parts or parts[0] != serial:
+            continue
+        if len(parts) < 2 or parts[1] != "device":
+            return False
+        has_usb_transport = any(part.startswith("usb:") for part in parts[2:])
+        has_target_model = f"model:{TARGET_ADB_MODEL}" in parts[2:]
+        return has_usb_transport and has_target_model
+    return False
+
+
 def _adb_text(runner: ByteRunner, serial: str, *shell_args: str) -> str:
     return runner.run_bytes(["adb", "-s", serial, "shell", *shell_args]).decode(
         "utf-8", errors="replace"
@@ -211,6 +225,11 @@ def run_smoke(
     timeout_seconds: float = 35.0,
 ) -> SmokeResult:
     executor = runner or SubprocessRunner()
+    devices_output = executor.run_bytes(["adb", "devices", "-l"]).decode(
+        "utf-8", errors="replace"
+    )
+    if not is_direct_usb_target(devices_output, serial):
+        raise RuntimeError("Realtime network smoke requires direct USB ADB to the target S22+")
     if _call_state(executor, serial) != 0:
         raise RuntimeError("Realtime network smoke requires CALL_STATE=0")
 

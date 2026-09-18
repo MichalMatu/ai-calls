@@ -60,6 +60,31 @@ class RealtimeOffcallLabTest(unittest.TestCase):
         self.assertEqual(token, smoke["AI_CALL_BRIDGE_BROKER_TOKEN"])
         self.assertEqual(endpoint, smoke["AI_CALL_BRIDGE_BROKER_HTTPS_URL"])
 
+    def test_child_environments_do_not_forward_unrelated_host_secrets(self):
+        from realtime_offcall_lab import (
+            build_broker_environment, build_smoke_environment, build_tunnel_environment
+        )
+        host = {
+            "PATH": "/bin", "HOME": "/tmp/home",
+            "OPENAI_API_KEY": "sk-host-secret",
+            "OPENAI_REALTIME_MODEL": "gpt-realtime-2.1",
+            "GITHUB_TOKEN": "must-not-leak",
+            "AWS_SECRET_ACCESS_KEY": "must-not-leak",
+        }
+        token = "broker-" + "x" * 40
+        endpoint = "https://quiet-moon.trycloudflare.com/v1/realtime/client-secret"
+        children = (
+            build_broker_environment(host, api_key=host["OPENAI_API_KEY"], broker_token=token),
+            build_tunnel_environment(host),
+            build_smoke_environment(host, broker_token=token, credential_endpoint=endpoint),
+        )
+        for child in children:
+            self.assertNotIn("GITHUB_TOKEN", child)
+            self.assertNotIn("AWS_SECRET_ACCESS_KEY", child)
+        self.assertEqual("gpt-realtime-2.1", children[0]["OPENAI_REALTIME_MODEL"])
+        self.assertNotIn("OPENAI_REALTIME_MODEL", children[1])
+        self.assertNotIn("OPENAI_REALTIME_MODEL", children[2])
+
     def test_tunnel_parser_accepts_only_https_trycloudflare_host(self):
         from realtime_offcall_lab import parse_quick_tunnel_url
 
@@ -71,6 +96,9 @@ class RealtimeOffcallLabTest(unittest.TestCase):
         )
         self.assertIsNone(parse_quick_tunnel_url("http://quiet-moon.trycloudflare.com"))
         self.assertIsNone(parse_quick_tunnel_url("https://trycloudflare.com.evil.test"))
+        self.assertIsNone(
+            parse_quick_tunnel_url("https://quiet-moon.trycloudflare.com.evil.test")
+        )
         self.assertIsNone(parse_quick_tunnel_url("https://example.com"))
 
     def test_public_readiness_retries_transport_and_requires_unauthorized_boundary(self):

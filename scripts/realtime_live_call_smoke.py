@@ -25,6 +25,7 @@ from realtime_network_smoke import (
     PROBE_ACTIVITY,
     SmokeEnvironment,
     SubprocessRunner,
+    is_direct_usb_target,
     stage_private_config,
 )
 
@@ -33,7 +34,6 @@ DEFAULT_DURATION_MS = 10_000
 MIN_DURATION_MS = 3_000
 MAX_DURATION_MS = 30_000
 HELPER_PROCESS = f"{PACKAGE_NAME}:call_media"
-TARGET_ADB_MODEL = "SM_S906B"
 _AUDIO_MODE_RE = re.compile(r"mAudioModeOwner:.*?mMode=([A-Z_]+)")
 _ACTIVE_DEVICE_RE = re.compile(r"Active communication device:.*?\btype:([A-Za-z0-9_]+)")
 _MUTED_RE = re.compile(r"^\s*Muted:\s*(true|false)\s*$", re.IGNORECASE)
@@ -130,19 +130,6 @@ def parse_probe_result(text: str) -> Optional[LiveSmokeResult]:
     return LiveSmokeResult(status=status, reason=reason, states=states, detail=detail, trace=trace)
 
 
-def _direct_usb_target(devices_output: str, serial: str) -> bool:
-    for raw_line in devices_output.splitlines():
-        parts = raw_line.split()
-        if not parts or parts[0] != serial:
-            continue
-        if len(parts) < 2 or parts[1] != "device":
-            return False
-        has_usb_transport = any(part.startswith("usb:") for part in parts[2:])
-        has_target_model = f"model:{TARGET_ADB_MODEL}" in parts[2:]
-        return has_usb_transport and has_target_model
-    return False
-
-
 def _voice_call_muted(audio_dump: str) -> Optional[bool]:
     lines = audio_dump.splitlines()
     for index, raw_line in enumerate(lines):
@@ -164,7 +151,7 @@ def validate_live_preflight(
     call_state: int,
     audio_dump: str,
 ) -> LivePreflightSnapshot:
-    direct_usb = _direct_usb_target(devices_output, serial)
+    direct_usb = is_direct_usb_target(devices_output, serial)
     if not direct_usb:
         raise RuntimeError("Realtime live-call smoke requires direct USB ADB to the target S22+")
 
@@ -221,7 +208,7 @@ def _require_live_preflight(runner: ByteRunner, serial: str) -> LivePreflightSna
     devices_output = runner.run_bytes(["adb", "devices", "-l"]).decode(
         "utf-8", errors="replace"
     )
-    if not _direct_usb_target(devices_output, serial):
+    if not is_direct_usb_target(devices_output, serial):
         raise RuntimeError("Realtime live-call smoke requires direct USB ADB to the target S22+")
 
     bluetooth_setting = _adb_text(runner, serial, "settings", "get", "global", "bluetooth_on")

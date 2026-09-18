@@ -8,12 +8,35 @@ from realtime_network_smoke import (
     SmokeEnvironment,
     build_probe_start_args,
     build_private_config_payload,
+    is_direct_usb_target,
     parse_probe_result,
+    run_smoke,
     stage_private_config,
 )
 
 
 class RealtimeNetworkSmokeTest(unittest.TestCase):
+    def test_direct_usb_target_requires_exact_target_shape(self):
+        devices = ("List of devices attached\n"
+            "RFCT70L7E8J device usb:18874368X product:g0sxeea model:SM_S906B transport_id:3\n")
+        self.assertTrue(is_direct_usb_target(devices, "RFCT70L7E8J"))
+        self.assertFalse(is_direct_usb_target(devices.replace("usb:18874368X ", ""), "RFCT70L7E8J"))
+        self.assertFalse(is_direct_usb_target(devices.replace("model:SM_S906B", "model:OTHER"), "RFCT70L7E8J"))
+        self.assertFalse(is_direct_usb_target(devices, "OTHER_SERIAL"))
+
+    def test_wrong_target_refuses_before_secret_staging(self):
+        runner = RefusalRunner(b"RFCT70L7E8J device product:g0sxeea model:SM_S906B transport_id:3\n")
+        env = SmokeEnvironment.from_mapping({
+            "AI_CALL_BRIDGE_BROKER_HTTPS_URL": "https://broker.example.test/v1/realtime/client-secret",
+            "AI_CALL_BRIDGE_BROKER_TOKEN": "broker-token-" + "x" * 24,
+        })
+        with self.assertRaisesRegex(RuntimeError, "direct USB"):
+            run_smoke("RFCT70L7E8J", env, runner=runner)
+        joined = [" ".join(call.args) for call in runner.calls]
+        self.assertEqual("adb devices -l", joined[0])
+        self.assertFalse(any("cat > files/realtime-network-smoke.json" in call for call in joined))
+        self.assertFalse(any(env.broker_token in call for call in joined))
+
     def test_environment_requires_https_endpoint_and_separate_strong_bearer(self):
         env = SmokeEnvironment.from_mapping(
             {
@@ -130,6 +153,19 @@ I AiCallBridge: trace=1@0:CONNECT_START;2@15:CONNECT_SUCCESS;3@17:CLOSED
 class RecordedCall:
     args: list[str]
     input_bytes: bytes
+
+
+class RefusalRunner:
+    def __init__(self, devices_output: bytes):
+        self.devices_output = devices_output
+        self.calls: list[RecordedCall] = []
+
+    def run_bytes(self, args, *, input_bytes=b"", check=True):
+        args = list(args)
+        self.calls.append(RecordedCall(args, bytes(input_bytes)))
+        if args == ["adb", "devices", "-l"]:
+            return self.devices_output
+        raise AssertionError(f"unexpected command after target refusal: {args}")
 
 
 class RecordingRunner:

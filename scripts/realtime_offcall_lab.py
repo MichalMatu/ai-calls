@@ -41,8 +41,14 @@ TUNNEL_READY_TIMEOUT_SECONDS = 30.0
 PUBLIC_BROKER_READY_TIMEOUT_SECONDS = 30.0
 QUICK_TUNNEL_ATTEMPTS = 3
 TRY_CLOUDFLARE_URL_RE = re.compile(
-    r"https://[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.trycloudflare\.com\b",
+    r"https://[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.trycloudflare\.com(?![A-Za-z0-9.-])",
     re.IGNORECASE,
+)
+
+_BASE_CHILD_ENV_KEYS = (
+    "PATH", "HOME", "TMPDIR", "LANG", "LC_ALL",
+    "SSL_CERT_FILE", "SSL_CERT_DIR", "ANDROID_HOME",
+    "ANDROID_SDK_ROOT", "ADB_VENDOR_KEYS",
 )
 
 PopenFactory = Callable[..., subprocess.Popen]
@@ -79,25 +85,32 @@ def pick_loopback_port() -> int:
         return int(sock.getsockname()[1])
 
 
+def _base_child_environment(host_env: Mapping[str, str]) -> dict[str, str]:
+    return {
+        key: value
+        for key in _BASE_CHILD_ENV_KEYS
+        if (value := host_env.get(key)) is not None and value != ""
+    }
+
+
 def build_broker_environment(
     host_env: Mapping[str, str],
     *,
     api_key: str,
     broker_token: str,
 ) -> dict[str, str]:
-    child = dict(host_env)
+    child = _base_child_environment(host_env)
     child["OPENAI_API_KEY"] = api_key
     child["AI_CALL_BRIDGE_BROKER_TOKEN"] = broker_token
-    child.pop("AI_CALL_BRIDGE_BROKER_HTTPS_URL", None)
+    for optional_key in ("OPENAI_REALTIME_MODEL", "OPENAI_SAFETY_IDENTIFIER"):
+        optional_value = host_env.get(optional_key)
+        if optional_value:
+            child[optional_key] = optional_value
     return child
 
 
 def build_tunnel_environment(host_env: Mapping[str, str]) -> dict[str, str]:
-    child = dict(host_env)
-    child.pop("OPENAI_API_KEY", None)
-    child.pop("AI_CALL_BRIDGE_BROKER_TOKEN", None)
-    child.pop("AI_CALL_BRIDGE_BROKER_HTTPS_URL", None)
-    return child
+    return _base_child_environment(host_env)
 
 
 def build_smoke_environment(
@@ -106,8 +119,7 @@ def build_smoke_environment(
     broker_token: str,
     credential_endpoint: str,
 ) -> dict[str, str]:
-    child = dict(host_env)
-    child.pop("OPENAI_API_KEY", None)
+    child = _base_child_environment(host_env)
     child["AI_CALL_BRIDGE_BROKER_TOKEN"] = broker_token
     child["AI_CALL_BRIDGE_BROKER_HTTPS_URL"] = credential_endpoint
     return child
