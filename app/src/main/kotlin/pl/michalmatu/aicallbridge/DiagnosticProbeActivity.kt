@@ -31,6 +31,19 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_SPEECH_TEXT_PIPELINE_PROBE, false)) {
+            statusView.text = "Running local speech + text pipeline probe…"
+            Log.i(TAG, "local_speech_text_pipeline_probe_start=true")
+            LocalSpeechTextPipelineProbe.run(this) { result ->
+                runOnUiThread {
+                    statusView.text = result
+                    Log.i(TAG, "local_speech_text_pipeline_probe_result:\n$result")
+                    finish()
+                }
+            }
+            return
+        }
+
         if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_SPEECH_PRODUCTION_PROBE, false)) {
             statusView.text = "Running production local speech adapter probe…"
             Log.i(TAG, "local_speech_production_probe_start=true")
@@ -221,6 +234,7 @@ class DiagnosticProbeActivity : Activity() {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
         const val EXTRA_RUN_LOCAL_SPEECH_CAPABILITY_PROBE = "run_local_speech_capability_probe"
+        const val EXTRA_RUN_LOCAL_SPEECH_TEXT_PIPELINE_PROBE = "run_local_speech_text_pipeline_probe"
         const val EXTRA_RUN_LOCAL_SPEECH_PRODUCTION_PROBE = "run_local_speech_production_probe"
         const val EXTRA_RUN_LOCAL_SPEECH_PFD_LOOPBACK_PROBE = "run_local_speech_pfd_loopback_probe"
         const val EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE = "run_realtime_live_call_smoke"
