@@ -13,8 +13,8 @@ import pl.michalmatu.aicallbridge.agent.CallRealtimeAgentRuntime
 import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
-import pl.michalmatu.aicallbridge.realtime.BackendRealtimeCredentialProvider
-import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialBackendRequestFactory
+import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialBackendProviderFactory
+import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialProvider
 import pl.michalmatu.aicallbridge.session.CallRealtimeSessionOrchestratorSnapshot
 
 /**
@@ -56,11 +56,10 @@ object RealtimeNetworkOffCallSmokeProbe {
         }
 
         val credentialProvider = try {
-            val requestFactory = RealtimeCredentialBackendRequestFactory(
+            RealtimeCredentialBackendProviderFactory.create(
                 endpoint = config.credentialEndpoint,
                 bearerTokenProvider = { config.brokerToken },
             )
-            BackendRealtimeCredentialProvider(requestFactory::create)
         } catch (error: Throwable) {
             callback.onComplete(immediateResult("FAIL", "credential_provider_error", describe(error)))
             return
@@ -79,7 +78,7 @@ object RealtimeNetworkOffCallSmokeProbe {
     private class Run(
         private val context: Context,
         private val workflow: CallWorkflow,
-        private val credentialProvider: BackendRealtimeCredentialProvider,
+        private val credentialProvider: RealtimeCredentialProvider,
         private val callback: Callback,
     ) {
         private val mainHandler = Handler(Looper.getMainLooper())
