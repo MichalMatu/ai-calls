@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.realtime.OkHttpRealtimeTransportFactory
 import pl.michalmatu.aicallbridge.realtime.RealtimeCredentialProvider
+import pl.michalmatu.aicallbridge.realtime.RealtimeEventTrace
+import pl.michalmatu.aicallbridge.realtime.TracingRealtimeTransport
 import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
 import pl.michalmatu.aicallbridge.session.CallRealtimeSessionOrchestratorSnapshot
@@ -84,8 +86,10 @@ class CallRealtimeAgentRuntime(
         /**
          * Compose the production Shizuku media runtime with a fresh Realtime transport per session.
          * The credential provider remains injected so no server authentication secret is owned here.
+         * When [eventTrace] is supplied, the transport records bounded/redacted protocol metadata only.
          */
         @JvmStatic
+        @JvmOverloads
         fun create(
             context: Context,
             workflow: CallWorkflow,
@@ -95,6 +99,7 @@ class CallRealtimeAgentRuntime(
             sampleRateHz: Int = DEFAULT_SAMPLE_RATE_HZ,
             listener: (CallRealtimeSessionOrchestratorSnapshot) -> Unit = {},
             mediaListener: (CallMediaSessionSnapshot) -> Unit = {},
+            eventTrace: RealtimeEventTrace? = null,
         ): CallRealtimeAgentRuntime {
             val appContext = context.applicationContext ?: context
             val mediaRuntime = CallMediaSessionRuntime(
@@ -110,7 +115,10 @@ class CallRealtimeAgentRuntime(
                     workflow = workflow,
                     coordinator = mediaRuntime.coordinator(),
                     credentialProvider = credentialProvider,
-                    transportFactory = transportFactory::create,
+                    transportFactory = {
+                        val transport = transportFactory.create()
+                        if (eventTrace == null) transport else TracingRealtimeTransport(transport, eventTrace)
+                    },
                     bootstrapExecutor = executor,
                     sessionEndpoint = sessionEndpoint,
                     model = model,
