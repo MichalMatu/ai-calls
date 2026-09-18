@@ -31,6 +31,25 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_PHONE_LLM_SPEECH_PIPELINE_PROBE, false)) {
+            val baseUrl = intent.getStringExtra(EXTRA_LOCAL_TEXT_BASE_URL).orEmpty()
+            val model = intent.getStringExtra(EXTRA_LOCAL_TEXT_MODEL).orEmpty()
+            if (baseUrl.isBlank() || model.isBlank()) {
+                finishWithError("local_phone_llm_pipeline_config_missing")
+                return
+            }
+            statusView.text = "Running local phone LLM speech pipeline probe…"
+            Log.i(TAG, "local_phone_llm_speech_pipeline_probe_start=true")
+            LocalPhoneLlmSpeechPipelineProbe.run(this, baseUrl, model) { result ->
+                runOnUiThread {
+                    statusView.text = result
+                    Log.i(TAG, "local_phone_llm_speech_pipeline_probe_result:\n$result")
+                    finish()
+                }
+            }
+            return
+        }
+
         if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_MAC_TEXT_BACKEND_PROBE, false)) {
             val baseUrl = intent.getStringExtra(EXTRA_LOCAL_TEXT_BASE_URL).orEmpty()
             val model = intent.getStringExtra(EXTRA_LOCAL_TEXT_MODEL).orEmpty()
@@ -252,6 +271,7 @@ class DiagnosticProbeActivity : Activity() {
     private companion object {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
+        const val EXTRA_RUN_LOCAL_PHONE_LLM_SPEECH_PIPELINE_PROBE = "run_local_phone_llm_speech_pipeline_probe"
         const val EXTRA_RUN_LOCAL_MAC_TEXT_BACKEND_PROBE = "run_local_mac_text_backend_probe"
         const val EXTRA_LOCAL_TEXT_BASE_URL = "local_text_base_url"
         const val EXTRA_LOCAL_TEXT_MODEL = "local_text_model"
