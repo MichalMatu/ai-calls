@@ -29,6 +29,7 @@ class CallRealtimeMediaSession(
     private val generation: Long,
     private val transport: RealtimeTransport,
     monotonicNs: () -> Long = System::nanoTime,
+    private val onTerminalState: (CallRealtimeMediaSessionSnapshot) -> Unit = {},
 ) : AutoCloseable {
     private val lock = Any()
     private var state = CallRealtimeMediaSessionState.ATTACHED
@@ -63,13 +64,7 @@ class CallRealtimeMediaSession(
     }
 
     fun snapshot(): CallRealtimeMediaSessionSnapshot =
-        synchronized(lock) {
-            CallRealtimeMediaSessionSnapshot(
-                generation = generation,
-                state = state,
-                failureReason = failureReason,
-            )
-        }
+        synchronized(lock) { snapshotLocked() }
 
     /**
      * Immediate local human takeover. The coordinator closes the app-owned endpoints and dispatches
@@ -96,12 +91,16 @@ class CallRealtimeMediaSession(
         pump.close()
         cleanupRealtimeBestEffort()
 
-        synchronized(lock) {
+        val terminal = synchronized(lock) {
             if (state == CallRealtimeMediaSessionState.STOPPING) {
                 failureReason = null
                 state = CallRealtimeMediaSessionState.TAKEN_OVER
+                snapshotLocked()
+            } else {
+                null
             }
         }
+        publishTerminal(terminal)
     }
 
     override fun close() {
@@ -124,10 +123,30 @@ class CallRealtimeMediaSession(
         pump.close()
         cleanupRealtimeBestEffort()
 
-        synchronized(lock) {
+        val terminal = synchronized(lock) {
             if (state == CallRealtimeMediaSessionState.STOPPING) {
                 state = CallRealtimeMediaSessionState.FAILED
+                snapshotLocked()
+            } else {
+                null
             }
+        }
+        publishTerminal(terminal)
+    }
+
+    private fun snapshotLocked(): CallRealtimeMediaSessionSnapshot =
+        CallRealtimeMediaSessionSnapshot(
+            generation = generation,
+            state = state,
+            failureReason = failureReason,
+        )
+
+    private fun publishTerminal(snapshot: CallRealtimeMediaSessionSnapshot?) {
+        if (snapshot == null) return
+        try {
+            onTerminalState(snapshot)
+        } catch (_: Throwable) {
+            // Observers never own local media or Realtime cleanup.
         }
     }
 
