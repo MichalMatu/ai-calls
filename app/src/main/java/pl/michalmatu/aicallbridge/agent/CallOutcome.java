@@ -23,6 +23,11 @@ public record CallOutcome(
         followUp = normalizeOptional(followUp, "followUp");
     }
 
+    @Override
+    public String toString() {
+        return "CallOutcome[status=" + status + ", data=REDACTED]";
+    }
+
     private static String requireNonBlank(String value, String name) {
         Objects.requireNonNull(value, name);
         String normalized = value.trim();
