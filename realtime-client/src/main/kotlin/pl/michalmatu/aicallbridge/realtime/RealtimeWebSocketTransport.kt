@@ -237,12 +237,27 @@ class RealtimeWebSocketTransport(
         }
 
         when (event.type()) {
-            RealtimeServerEvent.Type.AUDIO_DELTA ->
-                event.audioFrame()?.let { frame -> safeNotify { it.onAudio(frame) } }
-            RealtimeServerEvent.Type.OUTPUT_AUDIO_DONE,
-            RealtimeServerEvent.Type.OUTPUT_AUDIO_TRANSCRIPT_DELTA,
-            RealtimeServerEvent.Type.OUTPUT_AUDIO_TRANSCRIPT_DONE,
-            -> Unit
+            RealtimeServerEvent.Type.AUDIO_DELTA -> {
+                val frame = event.audioFrame() ?: return
+                val partId = event.outputPartId()
+                if (partId == null) {
+                    safeNotify { it.onAudio(frame) }
+                } else {
+                    safeNotify { it.onOutputAudio(partId, frame) }
+                }
+            }
+            RealtimeServerEvent.Type.OUTPUT_AUDIO_DONE ->
+                event.outputPartId()?.let { partId -> safeNotify { it.onOutputAudioDone(partId) } }
+            RealtimeServerEvent.Type.OUTPUT_AUDIO_TRANSCRIPT_DELTA -> {
+                val partId = event.outputPartId() ?: return
+                val delta = event.text() ?: return
+                safeNotify { it.onOutputAudioTranscriptDelta(partId, delta) }
+            }
+            RealtimeServerEvent.Type.OUTPUT_AUDIO_TRANSCRIPT_DONE -> {
+                val partId = event.outputPartId() ?: return
+                val transcript = event.text() ?: return
+                safeNotify { it.onOutputAudioTranscriptDone(partId, transcript) }
+            }
             RealtimeServerEvent.Type.REMOTE_SPEECH_STARTED ->
                 safeNotify { it.onRemoteSpeechStarted() }
             RealtimeServerEvent.Type.REMOTE_SPEECH_STOPPED ->
