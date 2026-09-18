@@ -6,6 +6,7 @@ The only secret the operator provides is OPENAI_API_KEY in the host environment.
 - starts the loopback-only credential broker;
 - exposes it through a temporary Cloudflare Quick Tunnel over HTTPS;
 - waits until the public broker endpoint is actually reachable and protected;
+- retries a fresh Quick Tunnel when the development tunnel service is transiently unavailable;
 - invokes the existing S22 off-call smoke with only the tunnel endpoint + broker bearer;
 - tears down tunnel and broker processes on every exit path.
 
@@ -38,6 +39,7 @@ TOKEN_BYTES = 48
 BROKER_READY_TIMEOUT_SECONDS = 5.0
 TUNNEL_READY_TIMEOUT_SECONDS = 30.0
 PUBLIC_BROKER_READY_TIMEOUT_SECONDS = 30.0
+QUICK_TUNNEL_ATTEMPTS = 3
 TRY_CLOUDFLARE_URL_RE = re.compile(
     r"https://[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.trycloudflare\.com\b",
     re.IGNORECASE,
@@ -208,6 +210,47 @@ def stop_process(process: Optional[subprocess.Popen]) -> None:
         process.wait(timeout=5)
 
 
+def start_ready_quick_tunnel(
+    *,
+    cloudflared: str,
+    port: int,
+    environment: Mapping[str, str],
+    popen: PopenFactory,
+    tunnel_waiter: Callable[[subprocess.Popen], str],
+    public_waiter: Callable[[str], None],
+    attempts: int = QUICK_TUNNEL_ATTEMPTS,
+) -> tuple[subprocess.Popen, str]:
+    if attempts < 1:
+        raise ValueError("Quick Tunnel attempts must be >= 1")
+
+    last_error: Optional[BaseException] = None
+    for _attempt in range(attempts):
+        tunnel = popen(
+            [
+                cloudflared,
+                "tunnel",
+                "--url",
+                f"http://127.0.0.1:{port}",
+                "--no-autoupdate",
+            ],
+            env=build_tunnel_environment(environment),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+        try:
+            tunnel_url = tunnel_waiter(tunnel)
+            credential_endpoint = tunnel_url.rstrip("/") + BROKER_PATH
+            public_waiter(credential_endpoint)
+            return tunnel, credential_endpoint
+        except (RuntimeError, TimeoutError, OSError) as error:
+            last_error = error
+            stop_process(tunnel)
+
+    raise RuntimeError("Quick Tunnel failed to become publicly ready after retries") from last_error
+
+
 def run_lab(
     serial: str,
     *,
@@ -233,14 +276,13 @@ def run_lab(
     broker: Optional[subprocess.Popen] = None
     tunnel: Optional[subprocess.Popen] = None
     try:
-        broker_args = [
-            sys.executable,
-            str(BROKER_SCRIPT),
-            "--port",
-            str(port),
-        ]
         broker = popen(
-            broker_args,
+            [
+                sys.executable,
+                str(BROKER_SCRIPT),
+                "--port",
+                str(port),
+            ],
             env=build_broker_environment(
                 environment,
                 api_key=api_key,
@@ -251,28 +293,17 @@ def run_lab(
         )
         broker_waiter(broker, port)
 
-        tunnel_args = [
-            cloudflared,
-            "tunnel",
-            "--url",
-            f"http://127.0.0.1:{port}",
-            "--no-autoupdate",
-        ]
-        tunnel = popen(
-            tunnel_args,
-            env=build_tunnel_environment(environment),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
+        tunnel, credential_endpoint = start_ready_quick_tunnel(
+            cloudflared=cloudflared,
+            port=port,
+            environment=environment,
+            popen=popen,
+            tunnel_waiter=tunnel_waiter,
+            public_waiter=public_waiter,
         )
-        tunnel_url = tunnel_waiter(tunnel)
-        credential_endpoint = tunnel_url.rstrip("/") + BROKER_PATH
-        public_waiter(credential_endpoint)
 
-        smoke_args = [sys.executable, str(SMOKE_SCRIPT), target]
         completed = run(
-            smoke_args,
+            [sys.executable, str(SMOKE_SCRIPT), target],
             env=build_smoke_environment(
                 environment,
                 broker_token=broker_token,
