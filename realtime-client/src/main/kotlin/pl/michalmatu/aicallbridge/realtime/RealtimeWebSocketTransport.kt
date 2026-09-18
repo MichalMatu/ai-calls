@@ -72,6 +72,12 @@ class RealtimeWebSocketTransport(
     override fun cancelResponse(): Result<Unit> =
         sendActive { socket -> socket.send(protocol.responseCancel()) }
 
+    override fun submitFunctionOutput(callId: String, outputJson: String): Result<Unit> =
+        sendActive { socket ->
+            socket.send(protocol.functionCallOutput(callId, outputJson)) &&
+                socket.send(protocol.responseCreate())
+        }
+
     override fun close() {
         val socket: RealtimeSocket?
         val pending: Continuation<Result<Unit>>?
@@ -230,6 +236,8 @@ class RealtimeWebSocketTransport(
                 safeNotify { it.onRemoteSpeechStarted() }
             RealtimeServerEvent.Type.REMOTE_SPEECH_STOPPED ->
                 safeNotify { it.onRemoteSpeechStopped() }
+            RealtimeServerEvent.Type.FUNCTION_CALL ->
+                event.functionCall()?.let { call -> safeNotify { it.onFunctionCall(call) } }
             RealtimeServerEvent.Type.ERROR ->
                 safeNotify {
                     it.onError(
