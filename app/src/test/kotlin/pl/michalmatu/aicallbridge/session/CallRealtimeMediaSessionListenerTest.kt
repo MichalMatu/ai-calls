@@ -25,14 +25,15 @@ class CallRealtimeMediaSessionListenerTest {
         val terminalCount = AtomicInteger()
         val terminalLatch = CountDownLatch(1)
         val session = CallRealtimeMediaSession(
-            fixture.coordinator,
-            fixture.generation,
-            fixture.transport,
-        ) {
-            terminal.set(it)
-            terminalCount.incrementAndGet()
-            terminalLatch.countDown()
-        }
+            coordinator = fixture.coordinator,
+            generation = fixture.generation,
+            transport = fixture.transport,
+            onTerminalState = { snapshot ->
+                terminal.set(snapshot)
+                terminalCount.incrementAndGet()
+                terminalLatch.countDown()
+            },
+        )
 
         session.start()
         fixture.endpoint.feed(pattern(TelephonyPcmStreamFramer.FRAME_BYTES_20_MS))
@@ -49,13 +50,14 @@ class CallRealtimeMediaSessionListenerTest {
         val terminal = AtomicReference<CallRealtimeMediaSessionSnapshot?>()
         val terminalCount = AtomicInteger()
         val session = CallRealtimeMediaSession(
-            fixture.coordinator,
-            fixture.generation,
-            fixture.transport,
-        ) {
-            terminal.set(it)
-            terminalCount.incrementAndGet()
-        }
+            coordinator = fixture.coordinator,
+            generation = fixture.generation,
+            transport = fixture.transport,
+            onTerminalState = { snapshot ->
+                terminal.set(snapshot)
+                terminalCount.incrementAndGet()
+            },
+        )
         session.start()
 
         session.takeOverNow()
@@ -117,7 +119,7 @@ class CallRealtimeMediaSessionListenerTest {
     ) : RealtimeTransport {
         override suspend fun connect(config: RealtimeSessionConfig): Result<Unit> = Result.success(Unit)
         override fun sendAudio(frame: PcmFrame): Result<Unit> =
-            sendFailure?.let(Result<Nothing>::failure) ?: Result.success(Unit)
+            sendFailure?.let { Result.failure(it) } ?: Result.success(Unit)
         override fun cancelResponse(): Result<Unit> = Result.success(Unit)
         override fun close() = Unit
         override fun setListener(listener: RealtimeTransport.Listener?) = Unit
