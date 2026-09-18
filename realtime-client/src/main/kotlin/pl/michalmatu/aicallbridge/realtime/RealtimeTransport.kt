@@ -18,6 +18,24 @@ interface RealtimeTransport {
     fun submitFunctionOutput(callId: String, outputJson: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("Realtime function output is not supported"))
 
+    /**
+     * Function result submission with an explicit response-scoped follow-up policy.
+     *
+     * Legacy transports remain source compatible: the default only accepts [RealtimeFunctionFollowup.Auto]
+     * and delegates to the original two-argument surface. Non-default follow-ups fail closed unless the
+     * concrete transport implements them explicitly.
+     */
+    fun submitFunctionOutput(
+        callId: String,
+        outputJson: String,
+        followup: RealtimeFunctionFollowup,
+    ): Result<Unit> = when (followup) {
+        RealtimeFunctionFollowup.Auto -> submitFunctionOutput(callId, outputJson)
+        else -> Result.failure(
+            UnsupportedOperationException("Realtime response-scoped function follow-up is not supported"),
+        )
+    }
+
     /** Immediate local transport teardown; implementations must not await remote acknowledgement. */
     fun close()
 
