@@ -24,7 +24,7 @@ import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionResponder
  */
 class CallRealtimeProposalFunctionHandler(
     private val workflow: CallWorkflow,
-    private val commitmentGate: CallCommitmentGate,
+    private val commitmentGate: CallCommitmentGate = CallCommitmentGate(),
 ) : CallRealtimeFunctionCallHandler {
     private val lock = Any()
     private var pendingDecision: PendingDecision? = null
