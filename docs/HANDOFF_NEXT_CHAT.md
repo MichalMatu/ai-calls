@@ -1,4 +1,4 @@
-# Handoff — ready for the API prerequisite gate
+# Handoff — local speech production path
 
 Date: 2026-09-18
 
@@ -14,109 +14,119 @@ Read only what is relevant:
 
 1. `AGENTS.md`
 2. this file
-3. `docs/PHASE3_REALTIME_STATUS_2026-09-18.md`
-4. `docs/SECURITY_PRIVACY.md` if touching credentials/live calls
-5. `docs/PHASE2D_FREEZE_2026-09-18.md` if touching Samsung media internals.
+3. `docs/ROADMAP.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/SECURITY_PRIVACY.md` when touching model/network/credentials
+6. `docs/PHASE2D_FREEZE_2026-09-18.md` before changing Samsung media internals.
 
 Then verify `main` HEAD and `.agent/status/daemon.json`. In a new chat bootstrap the repository Local Agent and use that chat's fresh binding; never copy an old chat binding.
 
-## Current code state
+## Product direction
 
-Latest behavior checkpoint before this documentation refresh:
-
-```text
-25153fc52bb5a95d5a85ea44a0bd4b29b2930d96
-fix: allow quick tunnel dns warmup
-```
-
-Important preceding cleanup commits:
+The project is no longer Realtime-only. Runtime selection is now:
 
 ```text
-db8afd807f7cd1e45cd41ea36da70d21b947c302
-refactor: separate realtime proposal parsing
-
-89891557f26f8f69af43f572405d761a887b0bb8
-fix: close host quality gate gaps
+Audio mode
+├── LOCAL_STT_TTS
+│   └── text LLM provider: OPENAI_TEXT | LOCAL_MAC_LLM
+├── OPENAI_REALTIME_AUDIO   (preserved/frozen)
+└── LOCAL_REALTIME_AUDIO    (future)
 ```
 
-`scripts/verify_host.sh` is the canonical local/CI quality gate. Strict proposal JSON decoding is separate from workflow/commitment mutation and uses Gson's strict reader API.
+MCP belongs to the tools/context layer, not the LLM-provider selector.
 
-Phase 2D physical Samsung media remains frozen at:
+The current priority is `LOCAL_STT_TTS`. Do not resume the OpenAI Realtime credential gate unless explicitly requested.
+
+## Current durable checkpoints
+
+Runtime selectors:
+
+```text
+1eb81f1202a8a0b4aace6231c73656ef14920c3d
+feat: add selectable speech and llm modes
+```
+
+Local speech capability probe:
+
+```text
+6a1ba494ddc2319ef9fe8847f88f4e7816b2a7b0
+feat: add local speech capability probe
+```
+
+Local speech PCM/PFD proof foundation:
+
+```text
+ef65f99420aaa00bdcfa3be3faeca210ba17c4ae
+feat: prove local speech PFD loopback
+```
+
+Pipe-stream fix and successful physical proof:
+
+```text
+386031a1f9bf891970e4cf6af8a3ec148a65aa7a
+fix: stream local STT input through PFD pipe
+```
+
+Phase 2D frozen Samsung media remains at:
 
 ```text
 59b0505537a53306acdab6a2a66ca6eed2b3f1c0
 PROVEN_S22
 ```
 
-The freeze commit is preserved in `main` history; milestone branches were removed. Do not rerun the full Phase 2D matrix without a concrete regression.
+## New PROVEN_S22 local speech evidence
 
-## Current Phase 3 state
+On exact S22+ serial `RFCT70L7E8J`, Android 16 / API 36:
 
-Host-green production stack includes:
+- on-device `SpeechRecognizer` is available;
+- `pl-PL` model was downloaded and reports installed;
+- local Polish TTS is available with multiple non-network-required voices;
+- local TTS synthesis succeeds;
+- TTS WAV output was decoded and resampled to PCM16LE mono 16 kHz;
+- PCM16LE mono 16 kHz streamed through `ParcelFileDescriptor.createPipe()` into the on-device recognizer;
+- recognized result matched the known test phrase: `to jest test lokalnego rozpoznawania mowy`;
+- `loopback_success=true`;
+- cellular call state remained idle before and after.
 
-- Realtime WebSocket/OkHttp transport and generation safety;
-- 16 kHz telephony <-> 24 kHz Realtime PCM;
-- bounded audio pump/barge-in;
-- deterministic task/workflow/authority model;
-- strict side-effect-free proposal parser;
-- one-shot commitment permit + forced commit tool;
-- speech output buffer/approval before cellular TX;
-- host credential broker / short-lived client credential boundary;
-- bounded redacted event trace;
-- protected off-call and controlled live-call probes;
-- fail-closed live-call preflight before secret staging.
-
-Physical S22 evidence already covers live-probe off-call refusal, preflight observability and idempotent/reversible voice-call mute. It does **not** cover an actual OpenAI Realtime session or cellular Realtime audio.
-
-## Repository cleanup completed
-
-The project is now main-first:
-
-- product development lives on `main`;
-- Local Agent metadata lives only on `agent-control`;
-- obsolete work/milestone branches were removed after verifying their commits are ancestors of `main`;
-- active docs were reduced to the authoritative current set; historical plans/proof notes remain available in Git history and `.agent/results`;
-- CI runs the same full host quality gate as local development.
-
-Do not recreate long-lived branch/document clutter without a specific reason.
-
-## The only next blocker
-
-The only operator-supplied secret prerequisite is `OPENAI_API_KEY` on the host. Do not put it in APK, source, Intent, app-private config, ADB argv or phone.
-
-Preferred gate:
-
-```bash
-python3 scripts/realtime_offcall_lab.py RFCT70L7E8J
-```
-
-The launcher creates a random one-shot broker bearer, starts the loopback broker, exposes it through a temporary Cloudflare Quick Tunnel, allows for the provider's short DNS warm-up, waits for the public endpoint to reject an unauthenticated request with the broker's `401` boundary, then runs the existing off-call smoke. The standard OpenAI key is present only in the broker child environment; unrelated host secrets are not forwarded. The bearer and tunnel URL exist only for that run and the processes are torn down afterwards.
-
-The exact S22+ must also be connected over direct USB ADB; do not substitute wireless ADB.
-
-## Next gate after credentials exist
-
-Run the genuine OpenAI **off-call** network/session smoke on S22 serial `RFCT70L7E8J` while cellular call state is idle.
-
-Expected PASS path:
+The successful task evidence is on `agent-control` in:
 
 ```text
-FETCHING_CREDENTIAL
- -> CONNECTING_REALTIME
- -> STARTING_MEDIA
- -> FAILED
+.agent/results/local-speech-pfd-pipe-s22-20260918-3490.json
 ```
 
-Expected reason: `realtime_connected_off_call_media_rejected`.
+Do not repeat this physical proof without a regression reason; reuse it as the foundation for production adapters.
 
-Require call state idle before/after, one-shot config deleted, helper absent after cleanup, no long-lived key on Android and redacted Realtime ordering evidence. `ACTIVE` off-call is a safety failure.
+## Immediate next gate
 
-## Gate after off-call PASS
+Implement production-owned local speech adapters without live-call wiring:
 
-One controlled non-committing cellular Realtime call only. Before broker secret staging the runner requires direct USB, Bluetooth OFF, `CALL_STATE=2`, `MODE_IN_CALL`, earpiece and muted voice-call stream. The runner does not dial or hang up.
+1. streaming PCM16LE mono 16 kHz -> Android on-device STT via pipe PFD;
+2. local TTS text -> PCM16LE mono 16 kHz;
+3. explicit cancellation/generation ownership and bounded cleanup;
+4. deterministic host tests around PCM and lifecycle where possible;
+5. `bash scripts/verify_host.sh`.
 
-Validate real RX/TX quality, latency, barge-in, TAKE OVER, cleanup and event ordering. Only after that passes attempt a real user-authorized task.
+Keep the diagnostic probe as evidence/test-only. Product code must not call the probe as its runtime speech engine.
 
-## Latest pre-API infrastructure proof
+## Gate after production speech adapters
 
-The real Quick Tunnel / loopback-broker boundary was exercised without calling OpenAI upstream in `.agent/results/pre-api-public-broker-boundary-proof-retry-20260918-3350.json`. The unauthenticated public broker request reached the local broker and was rejected at `401`; the dummy long-lived key was never used upstream. Quick Tunnels remain development-only infrastructure, not the production credential service.
+Introduce a provider-neutral text-agent boundary above speech. Reuse application-owned task/workflow/confirmation/commitment rules rather than duplicating them per provider.
+
+Target text providers:
+
+```text
+OPENAI_TEXT
+LOCAL_MAC_LLM
+```
+
+The first integration can use a deterministic fake backend to prove lifecycle/output approval off-call before connecting a real model.
+
+## Later controlled live-call gate
+
+Only after local speech + selected text backend work off-call, connect them to the already-proven frozen telephony media generation during a user-established call. The test runner must not dial or hang up. Validate RX -> STT -> text agent -> TTS -> TX, TAKE OVER, latency and cleanup.
+
+## Frozen OpenAI Realtime option
+
+The existing Realtime stack, host credential broker, Quick Tunnel lab and controlled live-call smoke stay intact as a selectable alternative. A standard `OPENAI_API_KEY` remains host/backend-only. Do not place it in source, APK, Intent, ADB arguments or Android storage.
+
+If the user explicitly resumes the Realtime path, continue from the existing off-call genuine-session gate; otherwise leave it frozen.
