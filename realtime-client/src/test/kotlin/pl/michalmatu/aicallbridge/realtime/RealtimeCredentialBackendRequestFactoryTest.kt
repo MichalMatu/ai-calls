@@ -78,7 +78,7 @@ class RealtimeCredentialBackendRequestFactoryTest {
             "https://broker.example.test/token",
             { "too-short" },
         )
-        assertTrue(shortToken.create().let { Result.success(it) }.isSuccess.not())
+        assertFails<IllegalArgumentException> { shortToken.create() }
     }
 
     @Test
