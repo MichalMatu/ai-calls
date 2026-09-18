@@ -32,7 +32,7 @@ interface RealtimeTransport {
     }
 }
 
-data class RealtimeSessionConfig(
+data class RealtimeSessionConfig @JvmOverloads constructor(
     val sessionEndpoint: String,
     val clientSecret: RealtimeClientSecret,
     val model: String,
