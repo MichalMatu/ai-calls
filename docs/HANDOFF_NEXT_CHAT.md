@@ -6,7 +6,7 @@ Repository: `MichalMatu/android-ai-call-bridge`
 
 Work branch: `work/phase1-live-call-probes`
 
-Current behavior HEAD before this documentation-only handoff commit:
+Current behavior HEAD before these documentation-only handoff commits:
 
 ```text
 c939a9bbcc4603d846ab8e3cd17d2b8dd19d17e5
@@ -116,13 +116,7 @@ fix: sanitize realtime diagnostic labels
 
 `RealtimeDiagnosticLabel` now accepts only bounded ASCII diagnostic labels (maximum 64 characters; letters, digits, `_`, `-`, `.`, `:`, `$`). Unsafe labels become `REDACTED`.
 
-The same rule protects:
-
-- trace function names;
-- trace error-type labels;
-- `RealtimeFunctionCall.toString()`.
-
-Valid production tool names such as `evaluate_proposal` and `commit_proposal` remain visible.
+The same rule protects trace function names, trace error-type labels and `RealtimeFunctionCall.toString()`. Valid production tool names such as `evaluate_proposal` and `commit_proposal` remain visible.
 
 ## Full host gate — GREEN
 
@@ -154,15 +148,18 @@ No cellular call was made.
 
 The next physical gate remains a real OpenAI network/session smoke on the S22 **without dialing**.
 
-Latest prerequisite audit:
+Fresh prerequisite recheck after all current host hardening:
 
 ```text
-.agent/results/realtime-openai-offcall-smoke-20260918-2610.json
+.agent/results/realtime-openai-offcall-smoke-recheck-20260918-2780.json
+checked branch HEAD: 50377784b98b4396857c1e278afc688513f4e636
 openai_api_key_present=false
 broker_token_present=false
 broker_https_url_present=false
 external_prerequisite_blocked=true
 ```
+
+The recheck stopped before build/install/network work. It did not dial.
 
 Required externally in the Local Agent host environment:
 
