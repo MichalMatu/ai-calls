@@ -1,6 +1,6 @@
-# Handoff — local speech production path
+# Handoff — local phone LLM + live-call integration
 
-Date: 2026-09-18
+Date: 2026-09-19
 
 Repository: `MichalMatu/android-ai-call-bridge`
 
@@ -23,19 +23,28 @@ Then verify `main` HEAD and `.agent/status/daemon.json`. In a new chat bootstrap
 
 ## Product direction
 
-The project is no longer Realtime-only. Runtime selection is now:
+The current priority is a fully local telephone agent on the S22:
 
 ```text
-Audio mode
-├── LOCAL_STT_TTS
-│   └── text LLM provider: OPENAI_TEXT | LOCAL_MAC_LLM
-├── OPENAI_REALTIME_AUDIO   (preserved/frozen)
-└── LOCAL_REALTIME_AUDIO    (future)
+telephony RX
+  -> on-device STT
+  -> local text LLM on the S22
+  -> application-owned approval/commitment rules
+  -> local TTS
+  -> telephony TX
+```
+
+Runtime selection remains selectable. OpenAI Realtime stays preserved/frozen unless explicitly resumed.
+
+Target local text providers are now:
+
+```text
+OPENAI_TEXT
+LOCAL_PHONE_LLM
+LOCAL_MAC_LLM
 ```
 
 MCP belongs to the tools/context layer, not the LLM-provider selector.
-
-The current priority is `LOCAL_STT_TTS`. Do not resume the OpenAI Realtime credential gate unless explicitly requested.
 
 ## Current durable checkpoints
 
@@ -46,25 +55,32 @@ Runtime selectors:
 feat: add selectable speech and llm modes
 ```
 
-Local speech capability probe:
+Production local speech adapters:
 
 ```text
-6a1ba494ddc2319ef9fe8847f88f4e7816b2a7b0
-feat: add local speech capability probe
+e953b78ea2b56c3bbc62fded3da295c23ccbf1bb
+feat: add production local speech adapters
 ```
 
-Local speech PCM/PFD proof foundation:
+Provider-neutral local text pipeline:
 
 ```text
-ef65f99420aaa00bdcfa3be3faeca210ba17c4ae
-feat: prove local speech PFD loopback
+67a1bc75e7deb55ec0e4e515ef26195c4587edae
+feat: add local text agent pipeline
 ```
 
-Pipe-stream fix and successful physical proof:
+Local Mac OpenAI-compatible backend:
 
 ```text
-386031a1f9bf891970e4cf6af8a3ec148a65aa7a
-fix: stream local STT input through PFD pipe
+d9e705a2e38f73cc6653b43a6e990e590577e909
+feat: add local Mac text backend
+```
+
+Full on-device phone-LLM speech pipeline probe:
+
+```text
+e0cfd0971103568e9a540ee75f6555d2bc8b66d0
+test: add local phone llm speech pipeline probe
 ```
 
 Phase 2D frozen Samsung media remains at:
@@ -74,59 +90,83 @@ Phase 2D frozen Samsung media remains at:
 PROVEN_S22
 ```
 
-## New PROVEN_S22 local speech evidence
+## PROVEN_S22 local phone-LLM evidence
 
 On exact S22+ serial `RFCT70L7E8J`, Android 16 / API 36:
 
-- on-device `SpeechRecognizer` is available;
-- `pl-PL` model was downloaded and reports installed;
-- local Polish TTS is available with multiple non-network-required voices;
-- local TTS synthesis succeeds;
-- TTS WAV output was decoded and resampled to PCM16LE mono 16 kHz;
-- PCM16LE mono 16 kHz streamed through `ParcelFileDescriptor.createPipe()` into the on-device recognizer;
-- recognized result matched the known test phrase: `to jest test lokalnego rozpoznawania mowy`;
-- `loopback_success=true`;
-- cellular call state remained idle before and after.
-
-The successful task evidence is on `agent-control` in:
+- `llama.cpp` Android arm64 `llama-server` runs directly on the phone;
+- Qwen2.5-0.5B-Instruct Q4_K_M GGUF is present on-device and loads successfully;
+- `/health` responds on phone loopback;
+- a direct Polish prompt returned `Lokalny model na telefonie działa.` in about 0.62 s for the small smoke request;
+- short generation measured roughly 58 tokens/s in that smoke;
+- the existing OpenAI-compatible text backend can call the phone-loopback server;
+- model output passed the application-owned approval policy and local TTS produced non-empty PCM;
+- the complete off-call pipeline is physically proven:
 
 ```text
-.agent/results/local-speech-pfd-pipe-s22-20260918-3490.json
+local TTS test phrase
+  -> on-device STT
+  -> Qwen on the same S22
+  -> application-owned approval
+  -> local TTS response
 ```
 
-Do not repeat this physical proof without a regression reason; reuse it as the foundation for production adapters.
+The successful physical report included:
+
+```text
+stt_text=to jest test lokalnego modelu na telefonie
+backend_complete_response=true
+approved_text_nonblank=true
+approved_output_pcm_nonempty=true
+local_phone_llm_speech_pipeline_success=true
+```
+
+Call state remained idle before and after.
 
 ## Immediate next gate
 
-Implement production-owned local speech adapters without live-call wiring:
+Promote the proven local phone LLM from diagnostic plumbing to normal runtime provider `LOCAL_PHONE_LLM`.
 
-1. streaming PCM16LE mono 16 kHz -> Android on-device STT via pipe PFD;
-2. local TTS text -> PCM16LE mono 16 kHz;
-3. explicit cancellation/generation ownership and bounded cleanup;
-4. deterministic host tests around PCM and lifecycle where possible;
-5. `bash scripts/verify_host.sh`.
+Requirements:
 
-Keep the diagnostic probe as evidence/test-only. Product code must not call the probe as its runtime speech engine.
+1. provider selection behind the existing `TextCallAgentBackend` boundary;
+2. production lifecycle/readiness checks for the phone-local inference endpoint/runtime;
+3. cancellation/timeouts/fail-closed behavior;
+4. no model output bypasses proposal parsing, confirmation policy, commitment authorization or output approval;
+5. host tests + `bash scripts/verify_host.sh`;
+6. physical off-call regression proof on the exact S22 after runtime wiring.
 
-## Gate after production speech adapters
+Do not destructively refactor the frozen Samsung RX/TX media implementation.
 
-Introduce a provider-neutral text-agent boundary above speech. Reuse application-owned task/workflow/confirmation/commitment rules rather than duplicating them per provider.
+## Controlled automated live-call gate
 
-Target text providers:
+After product runtime wiring is green, connect the proven local pipeline to frozen telephony RX/TX.
+
+Automated dialing/hangup is now allowed by project policy for the dedicated test SIM, but only under the guardrails in `AGENTS.md`:
+
+- destination must be explicitly operator-defined and allowlisted for the test;
+- model/tool output cannot create or widen the allowlist;
+- one active call at a time with bounded retries/cooldown;
+- no emergency, premium-rate, arbitrary short-code, bulk or enumerated dialing;
+- the runner may hang up a call it created as bounded cleanup;
+- preserve exact direct-USB and media-route validation before AI media injection.
+
+For the next test, use a specifically allowlisted Orange customer-service/infoline destination supplied or verified for the test. Validate:
 
 ```text
-OPENAI_TEXT
-LOCAL_MAC_LLM
+allowlisted dial
+  -> active cellular call
+  -> telephony RX
+  -> local STT
+  -> local phone LLM
+  -> application approval
+  -> local TTS
+  -> telephony TX
+  -> bounded cleanup / hangup
 ```
 
-The first integration can use a deterministic fake backend to prove lifecycle/output approval off-call before connecting a real model.
-
-## Later controlled live-call gate
-
-Only after local speech + selected text backend work off-call, connect them to the already-proven frozen telephony media generation during a user-established call. The test runner must not dial or hang up. Validate RX -> STT -> text agent -> TTS -> TX, TAKE OVER, latency and cleanup.
+Collect transcript/response timing, TAKE OVER behavior, cleanup and call-state evidence. Do not make service commitments or account changes without the existing user-decision/commitment authorization flow.
 
 ## Frozen OpenAI Realtime option
 
-The existing Realtime stack, host credential broker, Quick Tunnel lab and controlled live-call smoke stay intact as a selectable alternative. A standard `OPENAI_API_KEY` remains host/backend-only. Do not place it in source, APK, Intent, ADB arguments or Android storage.
-
-If the user explicitly resumes the Realtime path, continue from the existing off-call genuine-session gate; otherwise leave it frozen.
+The existing Realtime stack, host credential broker, Quick Tunnel lab and controlled live-call path stay intact as a selectable alternative. A standard OpenAI API key remains host/backend-only. Do not place it in source, APK, Intent, ADB arguments or Android storage.
