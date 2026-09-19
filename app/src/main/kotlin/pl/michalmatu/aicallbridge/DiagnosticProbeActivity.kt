@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
+import java.io.File
 import pl.michalmatu.aicallbridge.session.CallMediaOffCallSmokeProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuCallEndProbe
@@ -31,6 +32,25 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.getBooleanExtra(EXTRA_RUN_OPENAI_TEXT_SPEECH_PIPELINE_PROBE, false)) {
+            val config = try {
+                OpenAiTextSmokeConfig.loadAndDelete(File(filesDir, OpenAiTextSmokeConfig.FILE_NAME))
+            } catch (error: Throwable) {
+                finishWithError("openai_text_config_${error.javaClass.simpleName}")
+                return
+            }
+            statusView.text = "Running OpenAI text speech pipeline probe…"
+            Log.i(TAG, "openai_text_speech_pipeline_probe_start=true")
+            OpenAiTextSpeechPipelineProbe.run(this, config) { result ->
+                runOnUiThread {
+                    statusView.text = result
+                    Log.i(TAG, "openai_text_speech_pipeline_probe_result:\n$result")
+                    finish()
+                }
+            }
+            return
+        }
+
         if (intent.getBooleanExtra(EXTRA_RUN_LOCAL_PHONE_LLM_SPEECH_PIPELINE_PROBE, false)) {
             statusView.text = "Running local phone LLM speech pipeline probe…"
             Log.i(TAG, "local_phone_llm_speech_pipeline_probe_start=true")
@@ -276,6 +296,7 @@ class DiagnosticProbeActivity : Activity() {
     private companion object {
         const val TAG = "AiCallBridge"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
+        const val EXTRA_RUN_OPENAI_TEXT_SPEECH_PIPELINE_PROBE = "run_openai_text_speech_pipeline_probe"
         const val EXTRA_RUN_LOCAL_PHONE_LLM_SPEECH_PIPELINE_PROBE = "run_local_phone_llm_speech_pipeline_probe"
         const val EXTRA_RUN_LOCAL_MAC_TEXT_BACKEND_PROBE = "run_local_mac_text_backend_probe"
         const val EXTRA_LOCAL_TEXT_BASE_URL = "local_text_base_url"
