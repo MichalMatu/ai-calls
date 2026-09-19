@@ -1,0 +1,135 @@
+import subprocess
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import chat_relay_protocol as protocol
+import chatgpt_relay_live_call as live
+
+
+class ChatRelayProtocolTest(unittest.TestCase):
+    def test_round_trip_unicode_and_newlines(self):
+        envelope = protocol.Envelope("orange-demo_1", 2, "Dzień dobry.\nW czym mogę pomóc?")
+        raw = protocol.encode("request", envelope)
+        self.assertIn("AICALL_CHAT_RELAY_V1", raw)
+        self.assertIn("Dzień dobry.", raw)
+        self.assertEqual(envelope, protocol.decode("request", raw))
+
+    def test_rejects_wrong_kind_and_unsafe_session(self):
+        envelope = protocol.Envelope("session-1", 1, "tekst")
+        raw = protocol.encode("request", envelope)
+        with self.assertRaises(ValueError):
+            protocol.decode("response", raw)
+        with self.assertRaises(ValueError):
+            protocol.Envelope("../escape", 1, "tekst").validate()
+
+
+class ChatGptRelayLiveCallTest(unittest.TestCase):
+    def test_orange_target_is_explicitly_allowlisted(self):
+        self.assertEqual("510100100", live.normalize_allowlisted_target("510 100 100"))
+        with self.assertRaises(ValueError):
+            live.normalize_allowlisted_target("123456789")
+
+    def test_relay_branch_name_is_session_scoped(self):
+        self.assertEqual("chat-relay/orange-demo_1", live.relay_branch_name("orange-demo_1"))
+        with self.assertRaises(ValueError):
+            live.relay_branch_name("../bad")
+
+    def test_probe_start_args_use_dedicated_activity(self):
+        args = live.build_probe_start_args("RFCT70L7E8J", "orange-demo_1", 3)
+        joined = " ".join(args)
+        self.assertIn("ChatRelayProbeActivity", joined)
+        self.assertIn("orange-demo_1", joined)
+        self.assertIn("3", joined)
+        self.assertNotIn("response_text", joined)
+
+    @mock.patch("chatgpt_relay_live_call.subprocess.run")
+    def test_response_publish_is_atomic_and_payload_stays_on_stdin(self, run):
+        run.return_value = subprocess.CompletedProcess([], 0, "", "")
+        mailbox = live.AdbRelayMailbox("RFCT70L7E8J")
+        envelope = protocol.Envelope("orange-demo_1", 1, "To jest odpowiedź z czatu.")
+
+        mailbox.write_response(envelope)
+
+        self.assertEqual(2, run.call_count)
+        write_call, publish_call = run.call_args_list
+        write_argv = write_call.args[0]
+        publish_argv = publish_call.args[0]
+        self.assertNotIn(envelope.text, " ".join(write_argv + publish_argv))
+        self.assertIn(envelope.text, write_call.kwargs["input"])
+        self.assertIn("tee", write_argv)
+        self.assertIn(live.RESPONSE_PATH + ".tmp", write_argv)
+        self.assertNotIn("sh", write_argv)
+        self.assertNotIn("-c", write_argv)
+        self.assertIn("mv", publish_argv)
+        self.assertIn(live.RESPONSE_PATH + ".tmp", publish_argv)
+        self.assertIn(live.RESPONSE_PATH, publish_argv)
+        self.assertIsNone(publish_call.kwargs.get("input"))
+
+    def test_metric_formatter_whitelists_only_non_text_timing_fields(self):
+        report = {
+            "turns_completed": "1",
+            "turn_1_endpoint_capture_ms": "1460",
+            "turn_1_stt_elapsed_ms": "1900",
+            "turn_1_approved_elapsed_ms": "4100",
+            "turn_1_output_pcm_ready_elapsed_ms": "4300",
+            "turn_1_post_write_hold_ms": "850",
+            "turn_1_eos_to_first_tx_ms": "3500",
+            "turn_1_complete_elapsed_ms": "5900",
+            "turn_1_stt_text": "TAJNY TRANSCRIPT",
+            "approved_text": "TAJNA ODPOWIEDZ",
+        }
+        lines = live.format_probe_metric_lines(report)
+        joined = "\n".join(lines)
+        self.assertIn("turn_1_endpoint_capture_ms=1460", joined)
+        self.assertIn("turn_1_post_write_hold_ms=850", joined)
+        self.assertIn("turn_1_eos_to_first_tx_ms=3500", joined)
+        self.assertNotIn("TAJNY TRANSCRIPT", joined)
+        self.assertNotIn("TAJNA ODPOWIEDZ", joined)
+        self.assertNotIn("stt_text", joined)
+
+    @mock.patch("chatgpt_relay_live_call.subprocess.run")
+    def test_remote_branch_cleanup_is_verified(self, run):
+        run.side_effect = [
+            subprocess.CompletedProcess([], 0, "", ""),
+            subprocess.CompletedProcess([], 2, "", ""),
+        ]
+        self.assertTrue(
+            live.delete_remote_branch_verified(Path("."), "chat-relay/orange-demo_1", attempts=1)
+        )
+        self.assertEqual(2, run.call_count)
+        self.assertIn("--delete", run.call_args_list[0].args[0])
+        self.assertIn("ls-remote", run.call_args_list[1].args[0])
+
+    def test_call_state_or_none_treats_transient_adb_failure_as_unknown(self):
+        adb = mock.Mock()
+        adb.call_state.side_effect = subprocess.CalledProcessError(1, ["adb", "dumpsys"])
+
+        self.assertIsNone(live.call_state_or_none(adb))
+        adb.call_state.assert_called_once_with()
+
+    def test_best_effort_hangup_does_not_depend_on_call_state_probe(self):
+        adb = mock.Mock()
+        adb.call_state.side_effect = subprocess.CalledProcessError(1, ["adb", "dumpsys"])
+        adb.hangup.side_effect = RuntimeError("synthetic hangup failure")
+
+        self.assertFalse(live.best_effort_hangup(adb))
+        adb.hangup.assert_called_once_with()
+        adb.call_state.assert_not_called()
+
+    @mock.patch("chatgpt_relay_live_call.time.sleep")
+    @mock.patch("chatgpt_relay_live_call.wait_for_audio_signal")
+    def test_audio_signal_wait_retries_transient_registry_failure(self, wait_signal, sleep):
+        marker = object()
+        wait_signal.side_effect = [
+            subprocess.CalledProcessError(1, ["adb", "dumpsys"]),
+            marker,
+        ]
+
+        self.assertIs(marker, live.wait_for_audio_signal_resilient(mock.Mock(), timeout_seconds=5.0))
+        self.assertEqual(2, wait_signal.call_count)
+        sleep.assert_called_once()
+
+
+if __name__ == "__main__":
+    unittest.main()

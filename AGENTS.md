@@ -16,15 +16,19 @@ Do not create a new planning/status document for every task. Put durable decisio
 
 ## Current priority
 
-The current plan is local-first:
+Gate A readiness/orchestration and Gate B model evaluation are complete. The general-purpose phone-local LLM route on the current S22 is frozen.
 
-1. product-owned `READY_TO_DIAL` and clean local text-call orchestration;
-2. compare current 1.5B, a larger feasible phone-local text model and the interactive ChatGPT/Local-Agent developer relay;
-3. add `CallPlan v1` and deterministic conversation state so the local LLM is mainly a language layer;
-4. prove multi-turn/fallback/escalation;
-5. evaluate local audio-capable models later.
+The interactive ChatGPT relay is now physically proven as **developer benchmark infrastructure only**. It is not a production/background backend and must not become the product authority layer.
 
-Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work is preserved but deferred until the user explicitly resumes it. Do not make an API-dependent OpenAI gate the next task by default.
+Current product order:
+
+1. perform the Gate C preimplementation audit for `CallPlan v1` and deterministic conversation-state ownership;
+2. reuse existing `CallTask`, constraints/preferences, `authorizedFacts`, `CallWorkflow`, confirmation and commitment semantics instead of creating a second authority system;
+3. make common known turns deterministic and fail closed on unknown/low-confidence input;
+4. prove bounded multi-turn real tasks after Gate C;
+5. evaluate local audio-capable models only later.
+
+Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work is preserved but deferred until the user explicitly resumes it. Do not resume local-model hunting on the S22 or API-dependent OpenAI work by default.
 
 ## Architecture discipline
 
@@ -32,7 +36,7 @@ Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work is preserved but deferred un
 - Establish root cause before fixing bugs.
 - Prefer small cohesive modules over general abstractions.
 - Do not split a safety-critical state machine merely to reduce line count; split only when responsibilities are genuinely independent.
-- Diagnostic probes are evidence drivers, not product runtime ownership. Do not grow `LocalPhoneLlmLiveCallProbe` into the multi-turn engine or `DiagnosticProbeActivity`/`MainActivity` into session orchestrators.
+- Diagnostic probes are evidence drivers, not product runtime ownership. Do not grow `LocalPhoneLlmLiveCallProbe`, the ChatGPT relay probe, `DiagnosticProbeActivity` or `MainActivity` into product session orchestrators.
 - New readiness/planning/multi-turn behavior should reuse the existing media, local-speech, text-backend and authority boundaries.
 - Run `bash scripts/verify_host.sh` before product changes are considered complete.
 - Hardware/OEM behavior must be measured on the target device; host tests cannot create `PROVEN_S22` evidence.
@@ -60,13 +64,13 @@ For the frozen media path, preserve the invariants documented in `docs/PHASE2D_F
 
 ## Branch policy
 
-Work directly on `main` unless there is a specific reason for temporary isolation. If a temporary branch is used, merge/fast-forward it after verification and delete it. Do not keep milestone branches merely as bookmarks; commits, freeze documents and Local Agent evidence are sufficient.
+Work directly on `main` unless there is a specific reason for temporary isolation. If a temporary branch is used, integrate it after verification and delete it. Do not keep milestone branches merely as bookmarks; commits, authoritative docs and Local Agent evidence are sufficient.
 
 ## Credential rule
 
 If paid OpenAI work is resumed, a standard OpenAI API key is host/backend-only. It must never be placed in source, APK, BuildConfig, Android Intent, app-private smoke config, ADB argv or the phone.
 
-Use the existing broker/credential-boundary approach rather than inventing a bypass. Do not require or request an OpenAI API key for the current local-first plan.
+Use the existing broker/credential-boundary approach rather than inventing a bypass. Do not require or request an OpenAI API key for the current plan.
 
 ## Automated test-call policy
 

@@ -1,41 +1,35 @@
 # Android AI Call Bridge
 
-Android prototype for bridging an ordinary cellular call on one stock Samsung phone to selectable local or remote AI engines without external audio hardware.
+Android prototype for bridging an ordinary cellular call on one stock Samsung phone to selectable AI engines without external audio hardware.
 
 Target device: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
 ## Proven baseline
 
-Current production-facing foundation:
+Current foundation:
 
 - cellular RX/TX and fail-safe media lifecycle: `DONE / PROVEN_S22 / FROZEN`;
 - local Polish STT/TTS: `DONE / PROVEN_S22`;
 - provider-neutral text-agent pipeline with application-owned output approval: `DONE / PROVEN_S22`;
-- `LOCAL_PHONE_LLM`: `DONE / PROVEN_S22` with Qwen2.5-1.5B-Instruct Q4_K_M;
 - product-owned local LLM start/identity-check/stop lifecycle: `DONE / PROVEN_S22`;
 - pre-dial local `READY_TO_DIAL` + prepared local text-call session boundary: `DONE / PROVEN_S22` (off-call readiness);
 - live end-of-utterance detection: `DONE / PROVEN_S22`;
-- one bounded Orange call turn `RX -> STT -> local LLM -> approval -> TTS -> TX`: `DONE / PROVEN_S22`.
+- interactive ChatGPT developer relay over bounded STT text/local TTS: `DONE / PROVEN_S22` as test infrastructure only.
 
-The old normal fixed 8-second capture wait is gone. In the current Orange proof, input capture ended after about `1.46 s` on trailing silence. The 8-second value remains only as a hard safety cap.
+The old normal fixed 8-second capture wait is gone. The current endpointing path stops on trailing silence; 8 seconds remains only as a hard safety cap.
 
-Representative current evidence:
+The general-purpose phone-local LLM route is currently **frozen**. Qwen2.5-1.5B is operationally usable but too weak as the call brain, while Qwen3-4B caused unacceptable latency/resource pressure and user-visible S22 instability. The runtime and benchmark harness remain available for future hardware/model experiments, but they are not the current product direction.
+
+Representative evidence:
 
 ```text
-.agent/results/qwen15b-verified-flow-orange-s22-retry-20260919-3720.json
-.agent/results/local-phone-runtime-lifecycle-s22-20260919-1151.json
 .agent/results/live-endpointing-orange-s22-20260919-1214.json
 .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
-```
-
-Current local-model identity:
-
-```text
-Qwen2.5-1.5B-Instruct Q4_K_M
-alias: qwen-phone-1.5b
-path: /data/local/tmp/aicall-phone-llm/model-1.5b.gguf
-SHA256: 6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e
-port: 18115
+.agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json
+.agent/results/gate-b-qwen3-4b-full-benchmark-s22-retry-20260919-1500.json
+.agent/results/chatgpt-relay-orange-active-v4b.json
+.agent/results/chatgpt-relay-full-host-tx-pacing-v2.json
+.agent/results/chatgpt-relay-orange-pacing-confirm-v1.json
 ```
 
 ## Architecture
@@ -44,7 +38,7 @@ port: 18115
 explicit user task / authority
           |
           v
-   deterministic workflow
+ deterministic workflow / future CallPlan
           |
           v
    telephony RX (frozen)
@@ -57,10 +51,6 @@ explicit user task / authority
           |
           v
  TextCallAgentBackend
-   |        |        |
-   |        |        `-> remote providers (preserved/deferred)
-   |        `----------> local/LAN provider
-   `-------------------> local phone LLM
           |
           v
  application-owned approval / commitment rules
@@ -72,25 +62,42 @@ explicit user task / authority
    telephony TX (frozen)
 ```
 
-The telephony transport, STT/TTS and model choice are separate boundaries. A new model backend must not own Samsung media behavior or dialing/commitment authority.
+The telephony transport, speech layer, reasoning provider and authority model are separate boundaries. No model or developer relay may own Samsung media behavior, dialing authority, sensitive-data authority or commitment authority.
+
+## Interactive ChatGPT relay
+
+The repository contains a developer-only relay that can:
+
+```text
+live S22 call -> local STT -> transient GitHub relay request
+interactive ChatGPT response -> ADB delivery -> local S22 TTS -> cellular TX
+```
+
+This path is physically proven for repeated turns on Orange. It is useful for comparing strong-model behavior against the local stack, but it is **not** a production/background backend: it requires an active interactive ChatGPT session. Raw relay text is kept only on a transient relay branch and that branch is deleted during cleanup.
+
+The latest physical pacing confirmation also records blocking TX-write time separately from the remaining playback hold, so time already spent inside a blocking write is not double-counted. The hold still keeps a 250 ms guard and never intentionally truncates PCM.
 
 ## Active execution plan
 
-Paid OpenAI API work is currently deferred. The active local-first plan is:
+Paid OpenAI API work is deferred. The phone-local general-purpose LLM search is also frozen on the current S22.
 
-1. **DONE / PROVEN_S22** — hard `READY_TO_DIAL` gate plus a one-shot prepared local text-call session boundary;
-2. benchmark the current 1.5B phone model, a larger feasible phone-local text model, and GPT-5.6 Sol through the current ChatGPT + Local Agent/ADB developer relay;
-3. add `CallPlan v1` and deterministic conversation state so the local LLM is mainly a language layer, not the authority/planning brain;
-4. prove multi-turn real tasks with explicit fallback/escalation;
-5. only then evaluate local audio-capable models, first audio-to-text and later true speech-to-speech/full-duplex candidates.
+The next product gate is **Gate C — `CallPlan v1` preimplementation audit**:
+
+1. reuse the existing `CallTask`, constraints/preferences, `authorizedFacts`, workflow, confirmation and commitment semantics;
+2. define the narrowest structured pre-call plan and deterministic conversation-state boundary;
+3. keep common known answers/actions deterministic;
+4. unknown or low-confidence input asks for repetition or escalates;
+5. any future model/provider is a replaceable language/reasoning helper and never gains application authority.
+
+After Gate C, prove bounded multi-turn real tasks. Local audio-capable/speech-to-speech experiments remain later work.
 
 See `docs/ROADMAP.md` for gates and `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point.
 
-## Architecture rule for the next phase
+## Architecture discipline
 
 Do not grow product behavior inside diagnostic probes.
 
-`LocalPhoneLlmLiveCallProbe` is evidence tooling, not the future multi-turn product session. `DiagnosticProbeActivity` is a diagnostic entry point, not a runtime orchestrator. New call planning, readiness and multi-turn ownership must live in dedicated product code and use the existing media/speech/backend boundaries.
+`LocalPhoneLlmLiveCallProbe` and the ChatGPT relay probe are evidence tooling, not the future product session. `DiagnosticProbeActivity` remains a diagnostic entry point. New call planning and multi-turn ownership must live in dedicated product code and reuse the existing media/speech/backend/authority boundaries.
 
 Large safety state machines are not split merely to reduce line count. In particular, the frozen media coordinator and preserved Realtime state machines should not be refactored without a concrete behavioral reason and matching regression evidence.
 
@@ -98,12 +105,13 @@ Large safety state machines are not split merely to reduce line count. In partic
 
 The repository preserves:
 
+- `LOCAL_PHONE_LLM` as experimental infrastructure;
 - `OPENAI_TEXT`;
 - `OPENAI_REALTIME_AUDIO`;
 - `LOCAL_MAC_LLM`;
 - future `LOCAL_REALTIME_AUDIO`.
 
-`OPENAI_TEXT` and OpenAI Realtime are not current execution priorities and require paid API access to prove. Do not delete their working code, and do not resume them unless explicitly requested.
+Paid OpenAI paths are not current execution priorities. Do not place a standard OpenAI API key on Android and do not resume API-dependent gates unless explicitly requested.
 
 ## Frozen Samsung path
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-This is the authoritative execution plan. Historical experiments belong in Git history and `.agent/results`, not in new status documents.
+This is the authoritative execution plan. Historical experiment detail belongs in Git history and `.agent/results`, not in new status documents.
 
 Evidence levels:
 
@@ -8,7 +8,7 @@ Evidence levels:
 - `PROVEN_S22` — physically reproduced on the target Samsung S22+;
 - `PRODUCT_READY` — proven, fail-safe and acceptable for normal use.
 
-## Foundation — complete and frozen where noted
+## Foundation
 
 ### Cellular media
 
@@ -27,14 +27,13 @@ Frozen checkpoint:
 
 Do not redesign this path while working on models, planning or dialogue.
 
-### Local speech and text boundary
+### Local speech/text boundary
 
 Status: `DONE / PROVEN_S22`
 
-Proven:
-
 ```text
 telephony RX
+ -> end-of-utterance detector
  -> local S22 STT
  -> TextCallAgentBackend
  -> application-owned approval
@@ -42,258 +41,204 @@ telephony RX
  -> telephony TX
 ```
 
-`LocalSpeechTextPipeline` and `TextCallTurnController` already provide the conservative complete-turn boundary. New work should reuse them rather than duplicate STT/TTS or approval logic.
-
-### Local phone LLM
-
-Status: `DONE / ONE-TURN PROVEN_S22`
-
-Current baseline:
-
-```text
-Qwen2.5-1.5B-Instruct Q4_K_M
-alias qwen-phone-1.5b
-/data/local/tmp/aicall-phone-llm/model-1.5b.gguf
-SHA256 6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e
-```
-
-The app owns server start/stop/recovery and verifies exact model identity before inference. A stale server must never be accepted from `/health` alone.
+`LocalSpeechTextPipeline` and `TextCallTurnController` are the established text-turn boundary. New work must reuse them rather than duplicate speech or approval logic.
 
 ### End-of-utterance detection
 
 Status: `DONE / PROVEN_S22`
 
-Normal live turns no longer wait a fixed eight seconds. Current defaults are 20 ms frames, RMS threshold 600, minimum detected speech 200 ms, trailing silence 700 ms and an 8000 ms hard safety cap.
+Current defaults: 20 ms frames, RMS threshold 600, minimum detected speech 200 ms, trailing silence 700 ms and 8000 ms hard safety cap.
 
-Physical Orange evidence:
+Representative Orange evidence:
 
 ```text
-endpoint_capture_ms=1460
-endpoint_reason=trailing_silence
-end_of_speech_to_first_tx_ms=13412
-live_endpointing_orange_proven_s22=true
+.agent/results/live-endpointing-orange-s22-20260919-1214.json
 ```
 
-The remaining latency baseline is downstream of speech capture and is useful for model comparisons.
+The old normal fixed eight-second capture wait is gone.
 
 ---
 
-# Active local-first plan
-
-Paid OpenAI API work is intentionally deferred. Do not make it the next task unless the user explicitly resumes it.
+# Completed gates
 
 ## Gate A — clean product orchestration + READY_TO_DIAL
 
 Status: `DONE / HOST_GREEN / PROVEN_S22` (off-call readiness)
 
-Goal: before any model-quality live comparison, make preparation an explicit product state rather than a side effect of the first turn.
+Product ownership is separate from diagnostics and frozen Samsung media:
 
-Required readiness sequence:
-
-```text
-load task / benchmark scenario
- -> validate authority and dial target
- -> prepare local STT
- -> prepare local TTS
- -> start selected local LLM runtime
- -> verify exact model identity
- -> warm model with bounded prompt
- -> verify resources are usable
- -> READY_TO_DIAL
- -> only then permit dial
-```
-
-Requirements:
-
-1. introduce a dedicated product-owned local text-call orchestration boundary; do not extend `LocalPhoneLlmLiveCallProbe` into the product engine;
-2. keep the frozen media coordinator unchanged unless a concrete regression requires otherwise;
-3. expose explicit readiness failure reasons and fail closed;
-4. keep model runtime/readiness separate from dialogue policy;
-5. add deterministic host tests first, then an off-call S22 readiness proof;
-6. only after readiness is proven should an automated allowlisted live benchmark dial.
-
-Architecture cleanup attached to this gate:
-
-- `DiagnosticProbeActivity` stays diagnostic; if new probes would add more routing branches, extract a dedicated diagnostic dispatcher rather than growing the Activity;
-- `MainActivity` remains UI/configuration and must not become the call-session orchestrator;
-- `CallMediaSessionCoordinator` and the preserved Realtime state machines are not split merely because they are large;
-- new product classes should be cohesive around readiness, session ownership, planning or dialogue policy.
-
-Exit: selected local backend, STT, TTS and scenario are proven ready before dialing.
-
-Implemented boundary:
-
-- `LocalTextCallReadinessCoordinator` validates workflow/target authority, local speech readiness and bounded backend warm-up;
-- `AndroidLocalTextCallSpeechPreflight` proves on-device STT plus a non-network TTS voice before dial;
-- the existing `IdentityVerifiedLocalPhoneLlmBackend` remains the runtime + exact-identity authority before warm-up inference;
+- `LocalTextCallReadinessCoordinator` owns fail-closed technical readiness;
+- `AndroidLocalTextCallSpeechPreflight` proves local STT/TTS capability;
+- `IdentityVerifiedLocalPhoneLlmBackend` owns local runtime + exact identity verification for the preserved local backend;
 - successful preparation returns one-shot `PreparedLocalTextCall`;
-- `LocalTextCallSession` consumes that prepared backend and delegates dialogue turns to the existing `LocalSpeechTextPipeline`;
-- telephony media and endpointing remain outside this new layer, so the frozen Samsung path was not changed.
+- `LocalTextCallSession` consumes the prepared backend and reuses `LocalSpeechTextPipeline`;
+- telephony media/endpointing remain outside that session boundary.
 
 Evidence:
 
 ```text
-TDD RED:    .agent/results/gate-a-readiness-red-20260919-1325.json
-TDD GREEN:  .agent/results/gate-a-readiness-green-20260919-1329.json
-HOST_GREEN: .agent/results/gate-a-full-host-20260919-1332.json
-PROVEN_S22: .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
+.agent/results/gate-a-readiness-red-20260919-1325.json
+.agent/results/gate-a-readiness-green-20260919-1329.json
+.agent/results/gate-a-full-host-20260919-1332.json
+.agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 ```
 
 ## Gate B — text-brain benchmark
 
 Status: `DONE / PROVEN_S22 / PHONE-LOCAL LLM PATH FROZEN`
 
-Goal: isolate model quality and latency while holding telephony, endpointing, STT, TTS and task constant.
-
-Compare:
-
-1. current Qwen2.5 1.5B baseline;
-2. one larger feasible phone-local text model, selected only after checking current llama.cpp/Android compatibility;
-3. GPT-5.6 Sol through the current ChatGPT conversation using Local Agent/ADB as a developer benchmark relay.
-
-The ChatGPT relay is test infrastructure, not a production autonomous backend. It requires an active interactive chat and must not be described as a background service. Raw call audio need not leave the phone; the relay can operate on bounded STT text and return bounded response text for local TTS.
-
-Current Gate B evidence (2026-09-19):
-
-- frozen suite `benchmarks/text_model_suite_v1.json` contains 8 identical Polish phone-call transcript scenarios;
-- deterministic host harness `scripts/text_model_benchmark.py` fixes generation to `temperature=0`, `seed=42`, `max_tokens=96`, verifies local model identity through `/props`, records complete responses and wall/llama.cpp timings, and applies conservative deterministic safety checks;
-- harness TDD + final host verification: `.agent/results/gate-b-benchmark-red-20260919-1405.json`, `.agent/results/gate-b-benchmark-green-20260919-1410.json`, `.agent/results/gate-b-benchmark-final-host-20260919-1440.json`;
-- Qwen2.5 1.5B S22 baseline: 24 samples (8 scenarios x 3), only 6/24 deterministic-safe (`25%`), median model-request wall time `1465.535 ms`, p95 `2690.038 ms`, warm-up `3588.515 ms`, and measured server `VmHWM=2087376 kB`; it incorrectly accepted purchase/appointment commitments, so it is not acceptable as an authority/reasoning brain. Evidence: `.agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json`;
-- GPT-5.6 Sol interactive reference: 8/8 deterministic-safe on one reference pass using the same frozen transcripts. This is quality/reference evidence only; interactive ChatGPT serving latency and RAM are deliberately not compared with phone-local inference. Durable result: `benchmarks/results/gpt56_sol_interactive_reference_v1.json`; verification: `.agent/results/gate-b-gpt56-reference-verify-20260919-1443.json`;
-- Qwen3-4B-Instruct-2507 Q4_K_M was physically proven capable of loading and completing requests on the S22, so the earlier disconnect was not simple proof of incompatibility. The full 24-sample retry produced only 3/24 deterministic-safe (`12.5%`), median wall time `5427.353 ms`, p95 `180717.272 ms`, maximum `258447.910 ms`, and warm-up `13936.281 ms`; sustained execution caused severe memory/swap pressure and user-visible phone instability/hanging. Evidence: `.agent/results/gate-b-qwen3-4b-crash-diagnostic-s22-connected-20260919-1452.json`, `.agent/results/gate-b-qwen3-4b-full-benchmark-s22-retry-20260919-1500.json`;
-- cleanup confirmed no remaining `llama-server`, removed the ADB forward, preserved call state 0 and measured battery temperature `39.7 C`. Evidence: `.agent/results/gate-b-stop-qwen3-4b-s22-20260919-1505.json`.
-
-Gate B decision: freeze the general-purpose phone-local LLM path on the current Samsung S22+. The 1.5B model is too weak to be the call brain; the 4B model is both weaker on this benchmark and operationally unacceptable on this device. Do not spend the current phase trying additional 2B/3B/4B phone-local models. Preserve the proven runtime and harness as experimental infrastructure only. Reopen this path only after materially better hardware/runtime/model capability or an explicit user decision.
-
-Use identical benchmark scenarios and record at least:
+Frozen benchmark infrastructure:
 
 ```text
-task success / failure
-transcript
-model response
-unsafe or invented facts
-fallback / escalation count
-model inference latency
-end-of-speech -> first TX
-model load + warm-up time
-RAM high-water mark
-thermal/resource observations for larger local models
+benchmarks/text_model_suite_v1.json
+scripts/text_model_benchmark.py
+scripts/test_text_model_benchmark.py
 ```
 
-Run off-call model benchmarks before controlled live calls. Do not assume a 3B/7B-class model is useful merely because it fits RAM.
+Measured decision:
 
-Exit: complete. We know the quality/latency/resource gap well enough to stop the current S22 local-LLM route.
+- Qwen2.5-1.5B Q4_K_M: `6/24` deterministic-safe, median request `1465.535 ms`, p95 `2690.038 ms`, warm-up `3588.515 ms`; too weak as the authority/reasoning brain;
+- GPT-5.6 Sol interactive reference: `8/8` deterministic-safe on one reference pass; quality reference only, not a production backend and not latency/RAM-comparable to local llama.cpp;
+- Qwen3-4B-Instruct-2507 Q4_K_M: `3/24` deterministic-safe, median `5427.353 ms`, p95 `180717.272 ms`, max `258447.910 ms`, warm-up `13936.281 ms`; severe memory/swap pressure and user-visible S22 instability/hanging.
+
+Decision: do not spend the current phase testing nearby-size 2B/3B/4B general-purpose models on this S22. Preserve the local runtime/harness only as experimental infrastructure and reopen that path only with materially better hardware/runtime/model capability or an explicit user decision.
+
+Representative evidence:
+
+```text
+.agent/results/gate-b-benchmark-final-host-20260919-1440.json
+.agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json
+.agent/results/gate-b-gpt56-reference-verify-20260919-1443.json
+.agent/results/gate-b-qwen3-4b-full-benchmark-s22-retry-20260919-1500.json
+.agent/results/gate-b-stop-qwen3-4b-s22-20260919-1505.json
+```
+
+### Interactive ChatGPT developer relay
+
+Status: `DONE / HOST_GREEN / PROVEN_S22 / DEVELOPER-ONLY`
+
+Purpose: compare strong interactive-model behavior against the same local S22 speech/media stack without turning ChatGPT into a production backend.
+
+```text
+live S22 call
+ -> local STT
+ -> transient GitHub relay request
+ -> interactive ChatGPT response
+ -> ADB delivery
+ -> local S22 TTS
+ -> cellular TX
+```
+
+Proven:
+
+- repeated 3-turn Orange flow completed end-to-end;
+- cleanup deletes transient relay branches and restores call/media state;
+- response delivery to Android is fast once a response exists;
+- the dominant delay in the interactive run was waiting for the chat-side response, not local STT/TTS/media;
+- TX pacing accounts for time already spent inside a blocking pipe write while retaining a minimum 250 ms playback guard;
+- final one-turn physical confirmation completed without TTS truncation.
+
+Evidence:
+
+```text
+.agent/results/chatgpt-relay-orange-active-v4b.json
+.agent/results/chatgpt-relay-full-host-tx-pacing-v2.json
+.agent/results/chatgpt-relay-orange-pacing-confirm-v1.json
+```
+
+This relay is a closed benchmark checkpoint. Further relay optimization is not the default next task.
+
+---
+
+# Active gate
 
 ## Gate C — CallPlan v1: deterministic call brain with optional bounded language helper
 
 Status: `NEXT / NOT STARTED`
 
-Goal: move research, task interpretation and authority into a structured plan prepared before the call, so useful calls do not depend on a general-purpose local LLM.
+Goal: prepare structured task context and authority before the call so useful calls do not depend on a general-purpose local LLM.
 
-Conceptual flow:
+Do not create a second authority model. Reuse/extend the existing:
 
-```text
-user goal
- -> pre-call research/planning
- -> CallPlan v1
- -> deterministic conversation state
- -> presets / authorized facts / allowed actions
- -> local LLM only where language understanding or phrasing is useful
-```
+- `CallTask`;
+- `CallConstraints`;
+- `CallPreferences`;
+- `authorizedFacts`;
+- `CallWorkflow`;
+- confirmation and commitment semantics.
 
-Do not duplicate the existing domain model blindly. `CallPlan v1` should extend/reuse `CallTask`, `CallConstraints`, `CallPreferences`, `authorizedFacts`, `CallWorkflow`, confirmation and commitment semantics.
-
-A plan should be able to carry:
+A future plan should carry only what is needed for the call:
 
 - resolved target metadata;
 - explicit user goal;
-- authorized facts needed during the call;
-- preferences and hard constraints;
-- preset answers;
-- allowed conversational actions;
-- decisions requiring user confirmation;
+- authorized facts;
+- preferences/hard constraints;
+- preset answers/actions;
+- decisions requiring confirmation;
 - fallback/escalation rules;
 - completion criteria.
 
-Important authority rule: research may propose a phone number, but it may not silently widen the automated dialing allowlist. The operator/user must explicitly authorize the actual live target under `AGENTS.md`.
+Authority rule: research may propose a phone number, but it may not silently widen the dialing allowlist. The actual live target remains explicitly operator-authorized under `AGENTS.md`.
 
-Dialogue policy should prefer deterministic handling:
+Dialogue policy:
 
 ```text
-known question + authorized fact -> preset/deterministic answer
+known question + authorized fact -> deterministic answer
 known choice + rule -> deterministic action
-language variation -> deterministic patterns/classification first; optional bounded helper only if later proven useful
-low confidence / unknown request -> ask to repeat or escalate
-new commitment -> application-owned confirmation/commitment gate
+language variation -> deterministic patterns/classification first
+unknown / low confidence -> ask to repeat or escalate
+new commitment / sensitive disclosure -> existing application-owned authority gate
+optional future model -> language/reasoning helper only, never authority
 ```
 
-Exit: the local model cannot invent missing user facts or grant itself authority, and common task turns do not require general-purpose reasoning.
+### Gate C entry task
 
-## Gate D — multi-turn real tasks
+Perform a **preimplementation audit first**:
+
+1. read the current authority/workflow classes and tests;
+2. define the narrowest responsibility split;
+3. identify which existing types are reused and what new immutable plan/state data is actually required;
+4. define the RED/GREEN test matrix;
+5. do not implement until that split is clear.
+
+Exit: common bounded turns do not require general-purpose reasoning, and no model/helper can invent missing user facts or grant itself authority.
+
+---
+
+# Later gates
+
+## Gate D — bounded multi-turn real tasks
 
 Status: `AFTER C`
 
-Prove multi-turn behavior on bounded, explicitly authorized scenarios such as appointment inquiry/registration, opening-hours inquiry or controlled IVR.
-
-Add:
-
-- conversation history/state ownership;
-- repeated endpointing across turns;
-- interruption/cancellation rules;
-- no-speech and low-confidence recovery;
-- unknown-intent escalation;
-- explicit user-decision surfaces;
-- structured completion/outcome;
-- latency accounting per turn.
-
-Start with non-committing tasks, then carefully add real commitments behind existing one-shot authorization.
-
-Exit: repeated turns finish or escalate deterministically without leaving AI audio active.
+Prove repeated turns, IVR/recovery, unknown-intent escalation, interruption/cancellation rules, structured completion/outcome and explicit user-decision surfaces. Start with non-committing tasks; add real commitments only behind existing one-shot authorization.
 
 ## Gate E — local audio-model experiments
 
 Status: `LATER`
 
-Only compare audio models after the text pipeline is a strong measured baseline.
-
-Two separate experiments:
-
-1. audio-capable local model that consumes caller audio and returns text/intent, compared against Android STT + text model;
-2. true local speech-to-speech/full-duplex model that consumes audio and produces audio.
-
-Candidate families change quickly; select them at execution time based on current mobile/runtime support. Do not assume desktop/GPU demos fit the S22.
-
-Reuse the same authority, TAKE OVER, telephony generation and output-safety boundaries. A speech-to-speech model does not get extra dialing or commitment authority merely because it owns audio.
-
-Exit: keep an audio model only if measured quality/latency/resource behavior beats or materially simplifies the established text pipeline.
+Only after the text/product baseline is strong, compare current mobile-feasible audio-understanding and later true speech-to-speech/full-duplex candidates. Reuse the same authority and frozen media boundaries.
 
 ---
 
 ## Preserved but deferred paths
 
-### `LOCAL_MAC_LLM`
+- `LOCAL_PHONE_LLM` — experimental infrastructure only on the current S22;
+- `LOCAL_MAC_LLM` — retained provider option/experiment;
+- `OPENAI_TEXT` — implementation preserved, paid API proof deferred;
+- `OPENAI_REALTIME_AUDIO` — preserved/frozen;
+- `LOCAL_REALTIME_AUDIO` — future integration point after Gate E feasibility work.
 
-Retained as a provider option and useful fallback/experiment. It is not the current comparison priority unless needed for tooling.
-
-### `OPENAI_TEXT`
-
-Implementation work exists, but paid OpenAI API proof is deferred because there is currently no API-token budget. Preserve the code and credential boundary; do not put a standard OpenAI key on Android.
-
-### `OPENAI_REALTIME_AUDIO`
-
-Preserved/frozen. Do not resume API-dependent physical gates unless explicitly requested.
-
-### `LOCAL_REALTIME_AUDIO`
-
-Future integration point for a local audio-capable/speech-to-speech engine after Gate E feasibility work.
+Do not put a standard OpenAI API key on Android.
 
 ## Completion discipline
 
 Every behavior change:
 
-1. starts from a fresh `main`;
+1. starts from fresh `main` plus fresh Local Agent status/binding;
 2. uses TDD where deterministic behavior is testable;
 3. runs `bash scripts/verify_host.sh`;
-4. runs only the physical gate required by the changed hardware/OEM behavior;
-5. updates the existing authoritative docs rather than creating another status file;
-6. leaves `main` clean and Local Agent traffic on `agent-control`.
+4. runs only the physical gate required by changed hardware/OEM behavior;
+5. updates the existing authoritative docs instead of creating new status files;
+6. leaves `main` clean and Local Agent traffic on `agent-control`;
+7. deletes temporary work branches after integration.
