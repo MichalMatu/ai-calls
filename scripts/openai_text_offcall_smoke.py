@@ -174,7 +174,7 @@ def run_smoke(serial: str, environment: SmokeEnvironment, *, timeout_seconds: fl
         "call_required": "false",
         "openai_api_used": "true",
         "raw_audio_to_openai": "false",
-        "api_key_on_android": "false",
+        "long_lived_key_on_android": "false",
         "backend_location": "developer_https_broker",
         "approval_policy": "application_owned",
         "backend_config_valid": "true",
