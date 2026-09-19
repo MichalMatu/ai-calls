@@ -11,11 +11,31 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 
+/** Lifecycle boundary that must make the selected phone-local LLM runtime usable before HTTP. */
+internal interface LocalPhoneLlmRuntimeGate : AutoCloseable {
+    interface Listener {
+        fun onReady()
+        fun onError(reason: String)
+    }
+
+    fun ensureReady(listener: Listener)
+    fun cancel()
+
+    override fun close() = cancel()
+}
+
+/** Keeps unit/local-network callers backward compatible until production supplies a runtime owner. */
+internal object AlreadyReadyLocalPhoneLlmRuntimeGate : LocalPhoneLlmRuntimeGate {
+    override fun ensureReady(listener: LocalPhoneLlmRuntimeGate.Listener) = listener.onReady()
+    override fun cancel() = Unit
+}
+
 /**
  * Fail-closed adapter for the phone-local llama.cpp server.
  *
- * Every turn verifies `/props` before inference so a stale process listening on the expected port
- * cannot masquerade as the selected model merely by passing `/health`.
+ * Every turn first asks the runtime owner to make the selected server available, then verifies
+ * `/props` before inference. A stale process listening on the expected port therefore cannot
+ * masquerade as the selected model merely by passing `/health`.
  */
 internal class IdentityVerifiedLocalPhoneLlmBackend(
     baseUrl: String,
@@ -23,6 +43,7 @@ internal class IdentityVerifiedLocalPhoneLlmBackend(
     expectedModelPath: String,
     systemPrompt: String? = null,
     private val callFactory: Call.Factory = defaultClient(),
+    private val runtimeGate: LocalPhoneLlmRuntimeGate = AlreadyReadyLocalPhoneLlmRuntimeGate,
 ) : TextCallAgentBackend {
     private val expectedAlias = expectedAlias.trim()
     private val expectedModelPath = expectedModelPath.trim()
@@ -54,20 +75,76 @@ internal class IdentityVerifiedLocalPhoneLlmBackend(
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }
 
+        val requestGeneration = synchronized(lock) {
+            generation += 1
+            activePropsCall?.cancel()
+            activePropsCall = null
+            delegate.cancel()
+            generation
+        }
+        runtimeGate.cancel()
+
+        try {
+            runtimeGate.ensureReady(object : LocalPhoneLlmRuntimeGate.Listener {
+                override fun onReady() {
+                    if (!isCurrent(requestGeneration)) return
+                    beginPropsVerification(userText, listener, requestGeneration)
+                }
+
+                override fun onError(reason: String) {
+                    if (isCurrent(requestGeneration)) {
+                        listener.onError(reason.ifBlank { "runtime_readiness_failed" })
+                    }
+                }
+            })
+        } catch (error: RuntimeException) {
+            if (isCurrent(requestGeneration)) {
+                listener.onError("runtime_readiness_${error.javaClass.simpleName}")
+            }
+        }
+    }
+
+    override fun cancel() {
+        val propsCall = synchronized(lock) {
+            generation += 1
+            val call = activePropsCall
+            activePropsCall = null
+            delegate.cancel()
+            call
+        }
+        runtimeGate.cancel()
+        propsCall?.cancel()
+    }
+
+    override fun close() {
+        cancel()
+        runtimeGate.close()
+        delegate.close()
+    }
+
+    private fun beginPropsVerification(
+        userText: String,
+        listener: TextCallAgentBackend.Listener,
+        requestGeneration: Long,
+    ) {
         val request = Request.Builder()
             .url(propsUrl)
             .get()
             .build()
         val call = callFactory.newCall(request)
         call.timeout().timeout(PROPS_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        val requestGeneration: Long
-
-        synchronized(lock) {
-            generation += 1
-            requestGeneration = generation
-            activePropsCall?.cancel()
-            activePropsCall = call
-            delegate.cancel()
+        val accepted = synchronized(lock) {
+            if (generation != requestGeneration) {
+                false
+            } else {
+                activePropsCall?.cancel()
+                activePropsCall = call
+                true
+            }
+        }
+        if (!accepted) {
+            call.cancel()
+            return
         }
 
         call.enqueue(object : Callback {
@@ -109,22 +186,6 @@ internal class IdentityVerifiedLocalPhoneLlmBackend(
                 }
             }
         })
-    }
-
-    override fun cancel() {
-        val propsCall = synchronized(lock) {
-            generation += 1
-            val call = activePropsCall
-            activePropsCall = null
-            delegate.cancel()
-            call
-        }
-        propsCall?.cancel()
-    }
-
-    override fun close() {
-        cancel()
-        delegate.close()
     }
 
     private fun claimPropsCall(call: Call, requestGeneration: Long): Boolean = synchronized(lock) {
