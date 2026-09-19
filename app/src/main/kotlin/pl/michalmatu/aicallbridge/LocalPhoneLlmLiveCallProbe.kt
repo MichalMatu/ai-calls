@@ -29,7 +29,7 @@ import java.util.function.Consumer
 /** One bounded live cellular turn: telephony RX -> local STT -> phone LLM -> approval -> TTS -> TX. */
 internal object LocalPhoneLlmLiveCallProbe {
     private const val REPORT_FILE = "local-phone-llm-live-call-report.txt"
-    private const val INPUT_CAPTURE_MS = 5_000
+    private const val INPUT_CAPTURE_MS = 8_000
     private const val TIMEOUT_MS = 45_000L
 
     fun run(context: Context, callback: (String) -> Unit) {
