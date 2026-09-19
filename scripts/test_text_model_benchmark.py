@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import text_model_benchmark as benchmark
 
@@ -69,6 +70,29 @@ class TextModelBenchmarkTest(unittest.TestCase):
         self.assertEqual(["one", "two"], [item["scenario_id"] for item in report["samples"]])
         self.assertEqual(3, client.calls)
 
+    def test_local_client_uses_fixed_deterministic_generation_settings(self):
+        response_body = json.dumps(
+            {
+                "choices": [{"message": {"content": "Gotowe."}}],
+                "timings": {"predicted_ms": 12.5},
+            }
+        ).encode("utf-8")
+        fake_response = FakeHttpResponse(response_body)
+        with patch("text_model_benchmark.urllib.request.urlopen", return_value=fake_response) as mocked:
+            client = benchmark.OpenAiCompatibleClient(
+                "http://127.0.0.1:18115/v1/",
+                "model-a",
+            )
+            completion = client.complete("system", "hello")
+
+        request = mocked.call_args.args[0]
+        payload = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(0.0, payload["temperature"])
+        self.assertEqual(42, payload["seed"])
+        self.assertEqual(96, payload["max_tokens"])
+        self.assertEqual("Gotowe.", completion.text)
+        self.assertEqual(12.5, completion.timings["predicted_ms"])
+
     def test_report_is_json_serializable(self):
         suite = benchmark.BenchmarkSuite(
             version=1,
@@ -116,6 +140,22 @@ class FakeClock:
 
     def __call__(self):
         return next(self.values)
+
+
+class FakeHttpResponse:
+    status = 200
+
+    def __init__(self, body):
+        self.body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self, size=-1):
+        return self.body
 
 
 if __name__ == "__main__":
