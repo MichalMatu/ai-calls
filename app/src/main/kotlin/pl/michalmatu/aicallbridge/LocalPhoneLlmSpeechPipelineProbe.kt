@@ -40,7 +40,7 @@ internal object LocalPhoneLlmSpeechPipelineProbe {
         val handler = Handler(Looper.getMainLooper())
         val sourceTts = LocalTtsSpeechOutput(appContext)
         val backend = try {
-            LocalPhoneLlmBackendFactory.create()
+            LocalPhoneLlmBackendFactory.create(appContext)
         } catch (error: Throwable) {
             val report = (lines + listOf(
                 "backend_config_valid=false",
