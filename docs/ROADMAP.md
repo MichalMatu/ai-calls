@@ -141,7 +141,7 @@ PROVEN_S22: .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 
 ## Gate B — text-brain benchmark
 
-Status: `NEXT`
+Status: `IN PROGRESS / HARNESS_HOST_GREEN / QWEN15B_PROVEN_S22`
 
 Goal: isolate model quality and latency while holding telephony, endpointing, STT, TTS and task constant.
 
@@ -152,6 +152,17 @@ Compare:
 3. GPT-5.6 Sol through the current ChatGPT conversation using Local Agent/ADB as a developer benchmark relay.
 
 The ChatGPT relay is test infrastructure, not a production autonomous backend. It requires an active interactive chat and must not be described as a background service. Raw call audio need not leave the phone; the relay can operate on bounded STT text and return bounded response text for local TTS.
+
+Current Gate B evidence (2026-09-19):
+
+- frozen suite `benchmarks/text_model_suite_v1.json` contains 8 identical Polish phone-call transcript scenarios;
+- deterministic host harness `scripts/text_model_benchmark.py` fixes generation to `temperature=0`, `seed=42`, `max_tokens=96`, verifies local model identity through `/props`, records complete responses and wall/llama.cpp timings, and applies conservative deterministic safety checks;
+- harness TDD + final host verification: `.agent/results/gate-b-benchmark-red-20260919-1405.json`, `.agent/results/gate-b-benchmark-green-20260919-1410.json`, `.agent/results/gate-b-benchmark-final-host-20260919-1440.json`;
+- Qwen2.5 1.5B S22 baseline: 24 samples (8 scenarios x 3), only 6/24 deterministic-safe (`25%`), median model-request wall time `1465.535 ms`, p95 `2690.038 ms`, warm-up `3588.515 ms`, and measured server `VmHWM=2087376 kB`; it incorrectly accepted purchase/appointment commitments, so it is not acceptable as an authority/reasoning brain. Evidence: `.agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json`;
+- GPT-5.6 Sol interactive reference: 8/8 deterministic-safe on one reference pass using the same frozen transcripts. This is quality/reference evidence only; interactive ChatGPT serving latency and RAM are deliberately not compared with phone-local inference. Durable result: `benchmarks/results/gpt56_sol_interactive_reference_v1.json`; verification: `.agent/results/gate-b-gpt56-reference-verify-20260919-1443.json`;
+- larger-model candidate Qwen3-4B-Instruct-2507 Q4_K_M was copied to the S22 with exact SHA and reached `/health`, but the first completion disconnected after about 76 seconds. Root cause is not yet proven; the next crash-diagnostic attempt was blocked because the S22 disappeared from USB ADB. Do not label the 4B model as OOM until server/LMKD evidence proves it. Evidence: `.agent/results/gate-b-qwen3-4b-install-benchmark-s22-20260919-1432.json`, `.agent/results/gate-b-qwen3-4b-latency-diagnostic-s22-20260919-1440.json`, `.agent/results/gate-b-qwen3-4b-crash-diagnostic-s22-retry-20260919-1436.json`.
+
+Next Gate B step: when direct USB ADB to `RFCT70L7E8J` is available again, diagnose the already-present 4B model without re-downloading it. Capture server log, process lifetime/RSS and LMKD/OOM evidence around the first completion. If that quant/model is not viable, select a lower-memory but still meaningfully larger phone-local candidate and run the exact same frozen suite before any live call comparison.
 
 Use identical benchmark scenarios and record at least:
 

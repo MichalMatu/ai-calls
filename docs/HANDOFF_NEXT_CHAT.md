@@ -1,4 +1,4 @@
-# Handoff — Gate A READY_TO_DIAL proven
+# Handoff — Gate B text benchmark in progress
 
 Date: 2026-09-19
 
@@ -133,17 +133,37 @@ Evidence:
 .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 ```
 
-### B. Text-model quality benchmark — NEXT
+### B. Text-model quality benchmark — IN PROGRESS
 
-Gate A is complete. Next:
+The deterministic text-only comparison seam is now on `main`:
 
-- current Qwen2.5 1.5B;
-- one larger feasible local phone model;
-- GPT-5.6 Sol through this interactive ChatGPT conversation using Local Agent/ADB as a developer relay.
+```text
+benchmarks/text_model_suite_v1.json
+scripts/text_model_benchmark.py
+scripts/test_text_model_benchmark.py
+```
 
-Use the same scenarios, STT/TTS, endpointing and telephony path. Measure quality, hallucinations, latency, load/warm-up, RAM and resources.
+The harness intentionally isolates model quality from STT/TTS variability. It fixes `temperature=0`, `seed=42`, `max_tokens=96`, verifies local `/props` identity and records responses/timings/findings. Full speech/live comparisons come only after a useful text-model candidate survives this gate.
 
-The ChatGPT relay is a controlled interactive benchmark, not a production/background backend.
+Current evidence:
+
+```text
+Harness RED:        .agent/results/gate-b-benchmark-red-20260919-1405.json
+Harness GREEN:      .agent/results/gate-b-benchmark-green-20260919-1410.json
+Final HOST_GREEN:   .agent/results/gate-b-benchmark-final-host-20260919-1440.json
+Qwen2.5 1.5B S22:  .agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json
+GPT-5.6 reference:  .agent/results/gate-b-gpt56-reference-verify-20260919-1443.json
+```
+
+Measured so far:
+
+- Qwen2.5-1.5B Q4_K_M: `6/24` deterministic-safe (`25%`) across three repeats; median request `1465.535 ms`, p95 `2690.038 ms`, warm-up `3588.515 ms`; it incorrectly accepted purchase/appointment commitments;
+- GPT-5.6 Sol interactive reference: `8/8` deterministic-safe on one reference pass. Result is in `benchmarks/results/gpt56_sol_interactive_reference_v1.json`. It is not a production backend and its ChatGPT serving latency/RAM are not comparable to phone-local llama.cpp;
+- Qwen3-4B-Instruct-2507 Q4_K_M is already present on the S22 with verified SHA and can reach `/health`, but its first completion disconnected after about 76 seconds. The root cause is still unproven because the next diagnostic could not start after the S22 disappeared from direct USB ADB.
+
+Do not infer OOM from the disconnect alone. Resume by capturing the 4B server log, process/RSS and LMKD/OOM evidence around its first completion. If this 4B quant is not viable, choose a lower-memory but meaningfully larger local candidate and run the identical frozen suite.
+
+The ChatGPT relay remains controlled interactive benchmark infrastructure, never a production/background backend.
 
 ### C. CallPlan v1 — local LLM as language, not brain
 
@@ -217,6 +237,6 @@ Preserve RX/TX attribution/order, CALL_ASSISTANT/TELEPHONY_TX routing, mono inte
 
 Continue with **Gate B** only:
 
-> Build the deterministic text-model benchmark harness on top of the proven Gate A readiness/session seam. Keep telephony, endpointing, STT/TTS, authority and scenario inputs fixed. Benchmark the current Qwen2.5 1.5B first off-call, then one larger feasible phone-local model, and use GPT-5.6 Sol through this interactive ChatGPT + Local Agent/ADB relay as the strong reference. Measure response quality, invented/unsafe facts, fallback/escalation, inference latency, load/warm-up, RAM and thermal/resource behavior. Do not change the frozen Samsung media path and do not resume paid OpenAI API work.
+> Fetch fresh `main` and `agent-control:.agent/status/daemon.json`. Do not rebuild the benchmark harness or rerun the proven 1.5B baseline. First check that S22 `RFCT70L7E8J` is again available over direct USB ADB. The Qwen3-4B-Instruct-2507 Q4_K_M candidate is already on the phone; reproduce its first-completion disconnect while capturing the llama-server log, process/RSS lifetime and LMKD/OOM evidence. Do not assume OOM before measuring it. If this candidate is not viable, choose a lower-memory but still meaningfully larger phone-local model and run the exact frozen `phone-call-text-v1` suite. Compare it against the existing Qwen2.5 1.5B and GPT-5.6 Sol evidence, then decide Gate B. Do not change frozen Samsung media and do not resume paid OpenAI API work.
 
-Do not start Gate C/D/E until Gate B has comparable evidence.
+Do not start Gate C/D/E until Gate B has comparable larger-local-model evidence.
