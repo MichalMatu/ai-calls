@@ -157,11 +157,32 @@ Strict proposal parsing and model output are untrusted input. One approved propo
 
 Future `CallPlan v1` must build on these concepts rather than create a parallel authority system.
 
-## Next product ownership boundaries
+## Product ownership boundaries
 
-The next phase should add responsibilities without turning probes or Activities into product orchestrators.
+Gate A now provides a narrow pre-dial/product session seam without turning probes or Activities into product orchestrators:
 
-Conceptual target:
+```text
+CallWorkflow READY_TO_DIAL + explicit target authorization
+        |
+        v
+LocalTextCallReadinessCoordinator
+   |       |       |
+   |       |       `-> selected backend runtime + exact identity + bounded warm-up
+   |       `----------> AndroidLocalTextCallSpeechPreflight (on-device STT + local TTS)
+   `------------------> existing task/target/authority state
+        |
+        v
+PreparedLocalTextCall  (one-shot ownership transfer)
+        |
+        v
+LocalTextCallSession
+        |
+        `-> existing LocalSpeechTextPipeline
+```
+
+The new session intentionally does **not** own telephony media or endpointing yet. Those remain outside the Gate A layer so the frozen Samsung path is unchanged; a later call orchestrator composes the prepared session with the already-proven media generation/endpoint lease.
+
+The longer-term conceptual target remains:
 
 ```text
 pre-call task/research
