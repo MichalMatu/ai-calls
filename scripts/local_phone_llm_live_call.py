@@ -6,7 +6,6 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
-import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -18,7 +17,6 @@ from s22_call_control import Adb, normalize_number
 ORANGE_SUPPORT_NUMBER = "510100100"
 ALLOWLIST = frozenset({ORANGE_SUPPORT_NUMBER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
-LLM_PORT = 18115
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
 PROBE_TIMEOUT_SECONDS = 55.0
 
@@ -74,15 +72,6 @@ def _set_bluetooth(adb: Adb, enabled: bool) -> None:
     _wait_bluetooth(adb, "1" if enabled else "0")
 
 
-def _health_check(serial: str) -> None:
-    subprocess.run(["adb", "-s", serial, "forward", "--remove", f"tcp:{LLM_PORT}"], check=False)
-    subprocess.run(["adb", "-s", serial, "forward", f"tcp:{LLM_PORT}", f"tcp:{LLM_PORT}"], check=True)
-    with urllib.request.urlopen(f"http://127.0.0.1:{LLM_PORT}/health", timeout=3) as response:
-        body = response.read().decode("utf-8", errors="replace")
-    if '"status":"ok"' not in body.replace(" ", ""):
-        raise RuntimeError("local phone LLM health check failed")
-
-
 def _read_report(adb: Adb) -> str:
     return adb.shell(["run-as", PACKAGE_NAME, "cat", REPORT_PATH], check=False).replace("\r", "")
 
@@ -127,6 +116,22 @@ def _require_preflight(adb: Adb) -> None:
     )
 
 
+def _require_endpointing(report: dict[str, str]) -> None:
+    if report.get("endpointing") != "trailing_silence":
+        raise RuntimeError("live probe did not advertise trailing-silence endpointing")
+    if report.get("endpoint_reason") != "trailing_silence":
+        raise RuntimeError("live turn did not end on trailing silence")
+    if report.get("endpoint_speech_detected") != "true":
+        raise RuntimeError("live endpoint detector did not classify speech")
+    capture_ms = int(report.get("endpoint_capture_ms", "0"))
+    if not 0 < capture_ms < 8_000:
+        raise RuntimeError(f"live endpoint capture was not early: {capture_ms} ms")
+    latency_ms = int(report.get("end_of_speech_to_first_tx_ms", "-1"))
+    if latency_ms < 0:
+        raise RuntimeError("live report did not include end-of-speech to first-TX latency")
+    print(f"live_endpointing_proven_s22=true,capture_ms:{capture_ms},eos_to_first_tx_ms:{latency_ms}")
+
+
 def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
     adb = Adb(serial)
@@ -134,7 +139,6 @@ def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
         raise RuntimeError("target S22 is not connected through exact direct USB ADB")
     if adb.call_state() != 0:
         raise RuntimeError("refusing to dial because cellular call state is not IDLE")
-    _health_check(serial)
 
     original_bt = adb.shell(["settings", "get", "global", "bluetooth_on"], check=False).strip()
     if original_bt not in {"0", "1"}:
@@ -178,6 +182,7 @@ def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
             raise RuntimeError("live LLM response was blank or not approved")
         if int(report.get("telephony_tx_pcm_bytes", "0")) <= 0:
             raise RuntimeError("live TTS produced no telephony TX bytes")
+        _require_endpointing(report)
         print("local_phone_llm_orange_live_turn_proven_s22=true")
         return report
     finally:
