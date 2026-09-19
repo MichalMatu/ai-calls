@@ -1,4 +1,4 @@
-# Handoff — Gate B text benchmark in progress
+# Handoff — Gate B closed; phone-local LLM path frozen
 
 Date: 2026-09-19
 
@@ -133,7 +133,7 @@ Evidence:
 .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 ```
 
-### B. Text-model quality benchmark — IN PROGRESS
+### B. Text-model quality benchmark — DONE / PHONE-LOCAL PATH FROZEN
 
 The deterministic text-only comparison seam is now on `main`:
 
@@ -159,15 +159,16 @@ Measured so far:
 
 - Qwen2.5-1.5B Q4_K_M: `6/24` deterministic-safe (`25%`) across three repeats; median request `1465.535 ms`, p95 `2690.038 ms`, warm-up `3588.515 ms`; it incorrectly accepted purchase/appointment commitments;
 - GPT-5.6 Sol interactive reference: `8/8` deterministic-safe on one reference pass. Result is in `benchmarks/results/gpt56_sol_interactive_reference_v1.json`. It is not a production backend and its ChatGPT serving latency/RAM are not comparable to phone-local llama.cpp;
-- Qwen3-4B-Instruct-2507 Q4_K_M is already present on the S22 with verified SHA and can reach `/health`, but its first completion disconnected after about 76 seconds. The root cause is still unproven because the next diagnostic could not start after the S22 disappeared from direct USB ADB.
+- Qwen3-4B-Instruct-2507 Q4_K_M was subsequently proven to load and complete requests, but the full 24-sample benchmark was only `3/24` deterministic-safe (`12.5%`), median `5427.353 ms`, p95 `180717.272 ms`, max `258447.910 ms`, warm-up `13936.281 ms`; sustained execution caused severe memory/swap pressure and user-visible S22 instability/hanging. Evidence: `.agent/results/gate-b-qwen3-4b-crash-diagnostic-s22-connected-20260919-1452.json` and `.agent/results/gate-b-qwen3-4b-full-benchmark-s22-retry-20260919-1500.json`;
+- post-benchmark cleanup confirmed no remaining `llama-server`, removed the ADB forward, preserved call state 0 and measured battery temperature `39.7 C`. Evidence: `.agent/results/gate-b-stop-qwen3-4b-s22-20260919-1505.json`.
 
-Do not infer OOM from the disconnect alone. Resume by capturing the 4B server log, process/RSS and LMKD/OOM evidence around its first completion. If this 4B quant is not viable, choose a lower-memory but meaningfully larger local candidate and run the identical frozen suite.
+Decision: Gate B is closed and the general-purpose phone-local LLM path on this S22 is frozen. Do not try another nearby-size 2B/3B/4B model in the current phase. Keep the 1.5B runtime and benchmark harness only as preserved experimental infrastructure. Prompt engineering is not the remaining blocker: the current phone does not provide the required combination of reasoning quality, latency and device stability.
 
 The ChatGPT relay remains controlled interactive benchmark infrastructure, never a production/background backend.
 
-### C. CallPlan v1 — local LLM as language, not brain
+### C. CallPlan v1 — deterministic call brain, no general-purpose local LLM dependency
 
-Prepare structured task context before the call:
+This is now the preferred next product direction. Prepare structured task context before the call:
 
 - goal;
 - resolved target;
@@ -180,7 +181,7 @@ Prepare structured task context before the call:
 
 Build on existing `CallTask`/`CallWorkflow`/confirmation/commitment semantics rather than creating a second authority system.
 
-Prefer deterministic answers/actions when possible. Use the local LLM for bounded classification/paraphrase. Unknown or low-confidence input asks for repetition or escalates rather than inventing facts.
+Prefer deterministic answers/actions by default. Language variation should first use bounded deterministic patterns/classification; any model/helper is optional and must earn its place with measured quality. Unknown or low-confidence input asks for repetition or escalates rather than inventing facts.
 
 ### D. Multi-turn real tasks
 
@@ -235,8 +236,10 @@ Preserve RX/TX attribution/order, CALL_ASSISTANT/TELEPHONY_TX routing, mono inte
 
 ## Exact next task for a new chat
 
-Continue with **Gate B** only:
+Gate B is closed. Do **not** resume local-model hunting on the S22.
 
-> Fetch fresh `main` and `agent-control:.agent/status/daemon.json`. Do not rebuild the benchmark harness or rerun the proven 1.5B baseline. First check that S22 `RFCT70L7E8J` is again available over direct USB ADB. The Qwen3-4B-Instruct-2507 Q4_K_M candidate is already on the phone; reproduce its first-completion disconnect while capturing the llama-server log, process/RSS lifetime and LMKD/OOM evidence. Do not assume OOM before measuring it. If this candidate is not viable, choose a lower-memory but still meaningfully larger phone-local model and run the exact frozen `phone-call-text-v1` suite. Compare it against the existing Qwen2.5 1.5B and GPT-5.6 Sol evidence, then decide Gate B. Do not change frozen Samsung media and do not resume paid OpenAI API work.
+The next design task is **Gate C only**:
 
-Do not start Gate C/D/E until Gate B has comparable larger-local-model evidence.
+> Fetch fresh `main` and `agent-control:.agent/status/daemon.json`. Read the current authority/workflow domain model and perform a preimplementation audit for `CallPlan v1`. Design the narrowest structured plan that reuses `CallTask`, `CallConstraints`, `CallPreferences`, `authorizedFacts`, `CallWorkflow`, confirmation and commitment semantics. The product must be useful without a general-purpose local LLM: deterministic presets/rules/allowed actions first, ask-to-repeat/escalate on unknown input, and keep all commitments/sensitive disclosures application-owned. Do not change frozen Samsung media. Do not resume paid OpenAI API work. Do not implement until the responsibility split and tests are clear.
+
+The preserved Qwen2.5 1.5B runtime may remain as optional experimental infrastructure, but it is not the product brain and is not required for Gate C.

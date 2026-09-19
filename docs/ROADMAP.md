@@ -141,7 +141,7 @@ PROVEN_S22: .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 
 ## Gate B — text-brain benchmark
 
-Status: `IN PROGRESS / HARNESS_HOST_GREEN / QWEN15B_PROVEN_S22`
+Status: `DONE / PROVEN_S22 / PHONE-LOCAL LLM PATH FROZEN`
 
 Goal: isolate model quality and latency while holding telephony, endpointing, STT, TTS and task constant.
 
@@ -160,9 +160,10 @@ Current Gate B evidence (2026-09-19):
 - harness TDD + final host verification: `.agent/results/gate-b-benchmark-red-20260919-1405.json`, `.agent/results/gate-b-benchmark-green-20260919-1410.json`, `.agent/results/gate-b-benchmark-final-host-20260919-1440.json`;
 - Qwen2.5 1.5B S22 baseline: 24 samples (8 scenarios x 3), only 6/24 deterministic-safe (`25%`), median model-request wall time `1465.535 ms`, p95 `2690.038 ms`, warm-up `3588.515 ms`, and measured server `VmHWM=2087376 kB`; it incorrectly accepted purchase/appointment commitments, so it is not acceptable as an authority/reasoning brain. Evidence: `.agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json`;
 - GPT-5.6 Sol interactive reference: 8/8 deterministic-safe on one reference pass using the same frozen transcripts. This is quality/reference evidence only; interactive ChatGPT serving latency and RAM are deliberately not compared with phone-local inference. Durable result: `benchmarks/results/gpt56_sol_interactive_reference_v1.json`; verification: `.agent/results/gate-b-gpt56-reference-verify-20260919-1443.json`;
-- larger-model candidate Qwen3-4B-Instruct-2507 Q4_K_M was copied to the S22 with exact SHA and reached `/health`, but the first completion disconnected after about 76 seconds. Root cause is not yet proven; the next crash-diagnostic attempt was blocked because the S22 disappeared from USB ADB. Do not label the 4B model as OOM until server/LMKD evidence proves it. Evidence: `.agent/results/gate-b-qwen3-4b-install-benchmark-s22-20260919-1432.json`, `.agent/results/gate-b-qwen3-4b-latency-diagnostic-s22-20260919-1440.json`, `.agent/results/gate-b-qwen3-4b-crash-diagnostic-s22-retry-20260919-1436.json`.
+- Qwen3-4B-Instruct-2507 Q4_K_M was physically proven capable of loading and completing requests on the S22, so the earlier disconnect was not simple proof of incompatibility. The full 24-sample retry produced only 3/24 deterministic-safe (`12.5%`), median wall time `5427.353 ms`, p95 `180717.272 ms`, maximum `258447.910 ms`, and warm-up `13936.281 ms`; sustained execution caused severe memory/swap pressure and user-visible phone instability/hanging. Evidence: `.agent/results/gate-b-qwen3-4b-crash-diagnostic-s22-connected-20260919-1452.json`, `.agent/results/gate-b-qwen3-4b-full-benchmark-s22-retry-20260919-1500.json`;
+- cleanup confirmed no remaining `llama-server`, removed the ADB forward, preserved call state 0 and measured battery temperature `39.7 C`. Evidence: `.agent/results/gate-b-stop-qwen3-4b-s22-20260919-1505.json`.
 
-Next Gate B step: when direct USB ADB to `RFCT70L7E8J` is available again, diagnose the already-present 4B model without re-downloading it. Capture server log, process lifetime/RSS and LMKD/OOM evidence around the first completion. If that quant/model is not viable, select a lower-memory but still meaningfully larger phone-local candidate and run the exact same frozen suite before any live call comparison.
+Gate B decision: freeze the general-purpose phone-local LLM path on the current Samsung S22+. The 1.5B model is too weak to be the call brain; the 4B model is both weaker on this benchmark and operationally unacceptable on this device. Do not spend the current phase trying additional 2B/3B/4B phone-local models. Preserve the proven runtime and harness as experimental infrastructure only. Reopen this path only after materially better hardware/runtime/model capability or an explicit user decision.
 
 Use identical benchmark scenarios and record at least:
 
@@ -181,13 +182,13 @@ thermal/resource observations for larger local models
 
 Run off-call model benchmarks before controlled live calls. Do not assume a 3B/7B-class model is useful merely because it fits RAM.
 
-Exit: we know the actual quality/latency/resource gap between 1.5B, a larger local model and the strong-chat reference.
+Exit: complete. We know the quality/latency/resource gap well enough to stop the current S22 local-LLM route.
 
-## Gate C — CallPlan v1: local LLM as language, not brain
+## Gate C — CallPlan v1: deterministic call brain with optional bounded language helper
 
-Status: `AFTER B`
+Status: `NEXT / NOT STARTED`
 
-Goal: move research, task interpretation and authority into a structured plan prepared before the call.
+Goal: move research, task interpretation and authority into a structured plan prepared before the call, so useful calls do not depend on a general-purpose local LLM.
 
 Conceptual flow:
 
@@ -221,7 +222,7 @@ Dialogue policy should prefer deterministic handling:
 ```text
 known question + authorized fact -> preset/deterministic answer
 known choice + rule -> deterministic action
-language variation -> local LLM classify/paraphrase
+language variation -> deterministic patterns/classification first; optional bounded helper only if later proven useful
 low confidence / unknown request -> ask to repeat or escalate
 new commitment -> application-owned confirmation/commitment gate
 ```
