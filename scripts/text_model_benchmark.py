@@ -2,9 +2,10 @@
 """Deterministic Gate B benchmark harness for OpenAI-compatible local text models.
 
 The harness deliberately operates at the text-model seam. It keeps the benchmark
-suite and system prompt fixed, records wall-clock latency and llama.cpp timings when
-available, and emits only conservative deterministic findings. Human/model quality
-review remains a separate step; regex checks are not treated as an intelligence score.
+suite, system prompt, and local generation settings fixed, records wall-clock latency
+and llama.cpp timings when available, and emits only conservative deterministic
+findings. Human/model quality review remains a separate step; regex checks are not
+treated as an intelligence score.
 """
 
 from __future__ import annotations
@@ -28,6 +29,9 @@ from typing import Callable, Protocol, Sequence
 
 DEFAULT_SUITE = Path("benchmarks/text_model_suite_v1.json")
 DEFAULT_TIMEOUT_SECONDS = 90.0
+BENCHMARK_TEMPERATURE = 0.0
+BENCHMARK_SEED = 42
+BENCHMARK_MAX_TOKENS = 96
 MAX_RESPONSE_BYTES = 256 * 1024
 MAX_SCENARIOS = 64
 MAX_REPEAT = 10
@@ -318,6 +322,11 @@ def run_benchmark(
         "suite_version": suite.version,
         "system_prompt_sha256": hashlib.sha256(suite.system_prompt.encode("utf-8")).hexdigest(),
         "manual_quality_axes": list(suite.manual_quality_axes),
+        "generation": {
+            "temperature": BENCHMARK_TEMPERATURE,
+            "seed": BENCHMARK_SEED,
+            "max_tokens": BENCHMARK_MAX_TOKENS,
+        },
         "model": model,
         "endpoint": endpoint,
         "repeat": repeat,
@@ -364,6 +373,9 @@ class OpenAiCompatibleClient:
             {
                 "model": self.model,
                 "stream": False,
+                "temperature": BENCHMARK_TEMPERATURE,
+                "seed": BENCHMARK_SEED,
+                "max_tokens": BENCHMARK_MAX_TOKENS,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_text},
