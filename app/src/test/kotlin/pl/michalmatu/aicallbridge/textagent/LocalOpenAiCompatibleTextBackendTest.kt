@@ -24,6 +24,7 @@ class LocalOpenAiCompatibleTextBackendTest {
                 LocalOpenAiTextBackendConfig(
                     baseUrl = server.baseUrl(),
                     model = "fixture-model",
+                    systemPrompt = "Krótki systemowy test telefonu.",
                 ),
             )
             val latch = CountDownLatch(1)
@@ -48,6 +49,8 @@ class LocalOpenAiCompatibleTextBackendTest {
             assertTrue(request.startsWith("POST /v1/chat/completions HTTP/1.1"))
             assertTrue(request.contains("\"model\":\"fixture-model\""))
             assertTrue(request.contains("\"stream\":false"))
+            assertTrue(request.contains("\"role\":\"system\""))
+            assertTrue(request.contains("Krótki systemowy test telefonu."))
             assertTrue(request.contains("\"role\":\"user\""))
             assertTrue(request.contains("Cześć"))
             backend.close()

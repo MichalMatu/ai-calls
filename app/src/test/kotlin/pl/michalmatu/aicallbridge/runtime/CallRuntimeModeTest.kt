@@ -20,6 +20,7 @@ class CallRuntimeModeTest {
         assertEquals(CallAudioMode.OPENAI_REALTIME_AUDIO, CallAudioMode.fromStored("OPENAI_REALTIME_AUDIO"))
         assertEquals(CallAudioMode.LOCAL_REALTIME_AUDIO, CallAudioMode.fromStored("LOCAL_REALTIME_AUDIO"))
         assertEquals(TextLlmProvider.LOCAL_MAC_LLM, TextLlmProvider.fromStored("LOCAL_MAC_LLM"))
+        assertEquals(TextLlmProvider.LOCAL_PHONE_LLM, TextLlmProvider.fromStored("LOCAL_PHONE_LLM"))
         assertEquals(CallAudioMode.LOCAL_STT_TTS, CallAudioMode.fromStored("unknown"))
         assertEquals(TextLlmProvider.OPENAI_TEXT, TextLlmProvider.fromStored(null))
     }

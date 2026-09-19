@@ -19,9 +19,11 @@ internal class LocalOpenAiTextBackendConfig(
     baseUrl: String,
     model: String,
     bearerToken: String? = null,
+    systemPrompt: String? = null,
 ) {
     val model: String = model.trim()
     val bearerToken: String? = bearerToken?.trim()?.takeIf { it.isNotEmpty() }
+    val systemPrompt: String? = systemPrompt?.trim()?.takeIf { it.isNotEmpty() }
     val chatCompletionsUrl: HttpUrl
 
     init {
@@ -31,6 +33,12 @@ internal class LocalOpenAiTextBackendConfig(
             require(this.bearerToken.length <= MAX_TOKEN_CHARS) { "local text bearer token is too long" }
             require(!STANDARD_OPENAI_KEY.matches(this.bearerToken)) {
                 "standard OpenAI API keys must never be stored in the local Mac backend config"
+            }
+        }
+
+        if (this.systemPrompt != null) {
+            require(this.systemPrompt.length <= MAX_SYSTEM_PROMPT_CHARS) {
+                "local text system prompt is too long"
             }
         }
 
@@ -58,6 +66,7 @@ internal class LocalOpenAiTextBackendConfig(
     private companion object {
         const val MAX_MODEL_CHARS = 160
         const val MAX_TOKEN_CHARS = 512
+        const val MAX_SYSTEM_PROMPT_CHARS = 4_000
         val STANDARD_OPENAI_KEY = Regex("(?i)sk-[A-Za-z0-9_-]{8,}")
 
         fun isLocalHost(host: String): Boolean {
@@ -158,6 +167,12 @@ internal class LocalOpenAiCompatibleTextBackend(
             addProperty("model", config.model)
             addProperty("stream", false)
             add("messages", com.google.gson.JsonArray().apply {
+                config.systemPrompt?.let { prompt ->
+                    add(JsonObject().apply {
+                        addProperty("role", "system")
+                        addProperty("content", prompt)
+                    })
+                }
                 add(JsonObject().apply {
                     addProperty("role", "user")
                     addProperty("content", userText)

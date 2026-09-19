@@ -14,8 +14,7 @@ import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
-import pl.michalmatu.aicallbridge.textagent.LocalOpenAiCompatibleTextBackend
-import pl.michalmatu.aicallbridge.textagent.LocalOpenAiTextBackendConfig
+import pl.michalmatu.aicallbridge.textagent.LocalPhoneLlmBackendFactory
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
@@ -26,7 +25,7 @@ internal object LocalPhoneLlmSpeechPipelineProbe {
     private const val REPORT_FILE = "local-phone-llm-speech-pipeline-report.txt"
     private const val TIMEOUT_MS = 120_000L
 
-    fun run(context: Context, baseUrl: String, model: String, callback: (String) -> Unit) {
+    fun run(context: Context, callback: (String) -> Unit) {
         val appContext = context.applicationContext
         val lines = mutableListOf(
             "probe=local_phone_llm_speech_pipeline",
@@ -41,7 +40,7 @@ internal object LocalPhoneLlmSpeechPipelineProbe {
         val handler = Handler(Looper.getMainLooper())
         val sourceTts = LocalTtsSpeechOutput(appContext)
         val backend = try {
-            LocalOpenAiCompatibleTextBackend(LocalOpenAiTextBackendConfig(baseUrl, model))
+            LocalPhoneLlmBackendFactory.create()
         } catch (error: Throwable) {
             val report = (lines + listOf(
                 "backend_config_valid=false",
