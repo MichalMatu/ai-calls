@@ -15,11 +15,19 @@ internal object LocalPhoneLlmBackendFactory {
             "Jeśli transkrypt jest zbyt krótki, niejasny albo wygląda jak fragment powitania lub komunikatu IVR, poproś krótko o kontynuowanie lub doprecyzowanie. " +
             "Nie składaj zamówień, nie akceptuj umów, nie ujawniaj danych wrażliwych i nie podejmuj zobowiązań bez jawnej autoryzacji aplikacji."
 
-    fun create(context: Context): TextCallAgentBackend = IdentityVerifiedLocalPhoneLlmBackend(
-        baseUrl = BASE_URL,
-        expectedAlias = MODEL,
-        expectedModelPath = MODEL_PATH,
-        systemPrompt = SYSTEM_PROMPT,
-        runtimeGate = ShizukuLocalPhoneLlmRuntimeGate(context.applicationContext),
+    fun create(context: Context): TextCallAgentBackend = create(
+        ShizukuLocalPhoneLlmRuntimeGate(context.applicationContext),
     )
+
+    /** Compatibility path for the existing live probe until it is migrated to product-owned runtime. */
+    fun create(): TextCallAgentBackend = create(AlreadyReadyLocalPhoneLlmRuntimeGate)
+
+    private fun create(runtimeGate: LocalPhoneLlmRuntimeGate): TextCallAgentBackend =
+        IdentityVerifiedLocalPhoneLlmBackend(
+            baseUrl = BASE_URL,
+            expectedAlias = MODEL,
+            expectedModelPath = MODEL_PATH,
+            systemPrompt = SYSTEM_PROMPT,
+            runtimeGate = runtimeGate,
+        )
 }
