@@ -14,12 +14,26 @@ Read only what is relevant:
 
 Do not create a new planning/status document for every task. Put durable decisions into an existing authoritative document and leave historical detail in Git history or Local Agent results.
 
-## Development discipline
+## Current priority
+
+The current plan is local-first:
+
+1. product-owned `READY_TO_DIAL` and clean local text-call orchestration;
+2. compare current 1.5B, a larger feasible phone-local text model and the interactive ChatGPT/Local-Agent developer relay;
+3. add `CallPlan v1` and deterministic conversation state so the local LLM is mainly a language layer;
+4. prove multi-turn/fallback/escalation;
+5. evaluate local audio-capable models later.
+
+Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work is preserved but deferred until the user explicitly resumes it. Do not make an API-dependent OpenAI gate the next task by default.
+
+## Architecture discipline
 
 - Behavior changes use TDD: RED -> verify the intended failure -> GREEN -> refactor.
 - Establish root cause before fixing bugs.
 - Prefer small cohesive modules over general abstractions.
 - Do not split a safety-critical state machine merely to reduce line count; split only when responsibilities are genuinely independent.
+- Diagnostic probes are evidence drivers, not product runtime ownership. Do not grow `LocalPhoneLlmLiveCallProbe` into the multi-turn engine or `DiagnosticProbeActivity`/`MainActivity` into session orchestrators.
+- New readiness/planning/multi-turn behavior should reuse the existing media, local-speech, text-backend and authority boundaries.
 - Run `bash scripts/verify_host.sh` before product changes are considered complete.
 - Hardware/OEM behavior must be measured on the target device; host tests cannot create `PROVEN_S22` evidence.
 - Do not rerun destructive or expensive physical matrices without a concrete regression reason.
@@ -50,9 +64,9 @@ Work directly on `main` unless there is a specific reason for temporary isolatio
 
 ## Credential rule
 
-A standard OpenAI API key is host/backend-only. It must never be placed in source, APK, BuildConfig, Android Intent, app-private smoke config, ADB argv or the phone.
+If paid OpenAI work is resumed, a standard OpenAI API key is host/backend-only. It must never be placed in source, APK, BuildConfig, Android Intent, app-private smoke config, ADB argv or the phone.
 
-The preferred off-call gate requires only `OPENAI_API_KEY` from the operator; `scripts/realtime_offcall_lab.py` generates the temporary broker bearer and HTTPS Quick Tunnel. Do not invent a bypass when the standard key or exact direct-USB S22 target is absent.
+Use the existing broker/credential-boundary approach rather than inventing a bypass. Do not require or request an OpenAI API key for the current local-first plan.
 
 ## Automated test-call policy
 
