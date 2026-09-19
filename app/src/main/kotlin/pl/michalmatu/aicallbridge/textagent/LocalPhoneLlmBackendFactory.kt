@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.textagent
 
+import android.content.Context
+
 /** Production configuration for the proven llama.cpp/Qwen endpoint on the S22 itself. */
 internal object LocalPhoneLlmBackendFactory {
     const val BASE_URL = "http://127.0.0.1:18115/v1/"
@@ -13,10 +15,11 @@ internal object LocalPhoneLlmBackendFactory {
             "Jeśli transkrypt jest zbyt krótki, niejasny albo wygląda jak fragment powitania lub komunikatu IVR, poproś krótko o kontynuowanie lub doprecyzowanie. " +
             "Nie składaj zamówień, nie akceptuj umów, nie ujawniaj danych wrażliwych i nie podejmuj zobowiązań bez jawnej autoryzacji aplikacji."
 
-    fun create(): TextCallAgentBackend = IdentityVerifiedLocalPhoneLlmBackend(
+    fun create(context: Context): TextCallAgentBackend = IdentityVerifiedLocalPhoneLlmBackend(
         baseUrl = BASE_URL,
         expectedAlias = MODEL,
         expectedModelPath = MODEL_PATH,
         systemPrompt = SYSTEM_PROMPT,
+        runtimeGate = ShizukuLocalPhoneLlmRuntimeGate(context.applicationContext),
     )
 }
