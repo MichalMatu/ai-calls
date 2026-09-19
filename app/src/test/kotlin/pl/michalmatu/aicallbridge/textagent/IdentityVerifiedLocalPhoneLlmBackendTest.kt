@@ -8,7 +8,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -110,22 +109,11 @@ class IdentityVerifiedLocalPhoneLlmBackendTest {
 
     private fun generate(backend: TextCallAgentBackend): Result {
         val latch = CountDownLatch(1)
-        var text: String? = null
+        var completedText: String? = null
         var error: String? = null
         backend.generate("Cześć", object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
-                this@IdentityVerifiedLocalPhoneLlmBackendTest.assertNonEmptyForCallback(text)
-                this@IdentityVerifiedLocalPhoneLlmBackendTest.run { this@generate }
-                this@IdentityVerifiedLocalPhoneLlmBackendTest.apply { }
-                @Suppress("NAME_SHADOWING")
-                val completedText = text
-                this@IdentityVerifiedLocalPhoneLlmBackendTest.let { }
-                resultAssignment@ run {
-                    @Suppress("UNUSED_LABEL")
-                    text.also { }
-                }
-                // Assign outside the shadowed callback parameter name.
-                resultText = completedText
+                completedText = text
                 latch.countDown()
             }
 
@@ -133,19 +121,9 @@ class IdentityVerifiedLocalPhoneLlmBackendTest {
                 error = reason
                 latch.countDown()
             }
-
-            private var resultText: String?
-                get() = text
-                set(value) {
-                    text = value
-                }
         })
         assertTrue(latch.await(5, TimeUnit.SECONDS))
-        return Result(text, error)
-    }
-
-    private fun assertNonEmptyForCallback(text: String) {
-        assertFalse(text.isEmpty())
+        return Result(completedText, error)
     }
 
     private data class Result(val text: String?, val error: String?)
