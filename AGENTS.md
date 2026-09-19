@@ -54,18 +54,19 @@ A standard OpenAI API key is host/backend-only. It must never be placed in sourc
 
 The preferred off-call gate requires only `OPENAI_API_KEY` from the operator; `scripts/realtime_offcall_lab.py` generates the temporary broker bearer and HTTPS Quick Tunnel. Do not invent a bypass when the standard key or exact direct-USB S22 target is absent.
 
-## Live-call safety
+## Automated test-call policy
 
-For controlled S22 Realtime validation require, before staging any broker secret:
+Automated dialing and hangup are allowed for controlled physical validation on the dedicated test SIM, with these constraints:
 
-- exact target over direct USB ADB;
-- Bluetooth OFF;
-- active cellular call (`CALL_STATE=2`);
-- `MODE_IN_CALL`;
-- earpiece as active communication device;
-- voice-call stream muted.
+- the target number must be explicitly operator-defined and allowlisted for the current test; model output, tool output or scraped data must never create or widen the dialing allowlist;
+- the runner may dial an allowlisted test/customer-service number and may hang up a call it created as part of bounded cleanup;
+- an already-active call that the runner did not create may be used, but must not be hung up unless that test invocation explicitly authorizes it;
+- keep one active cellular call at a time and use bounded retries/cooldowns; no bulk dialing, number enumeration or repeated nuisance calling;
+- emergency numbers, premium-rate destinations and arbitrary short codes are denied unless a separate explicit project rule is added for a concrete test case;
+- record the selected allowlisted destination, call-state transitions and whether the runner created/hung up the call, while keeping user secrets and unrelated phone data out of logs;
+- the application-owned task/confirmation/commitment/output-approval boundaries remain in force. A model may propose conversational content, but it may not grant itself dialing authority or change the destination.
 
-The live Realtime smoke runner observes these conditions and refuses when they are not met. It must not dial or hang up the cellular call.
+For controlled S22 live validation require the exact target over direct USB ADB and verify the media prerequisites needed by the selected engine. For the frozen Samsung media path preserve its established route and cleanup invariants. A live runner may establish and terminate its own allowlisted test call; it must fail closed if the target is not allowlisted or the required device/media state cannot be proven.
 
 ## Completion gate
 
