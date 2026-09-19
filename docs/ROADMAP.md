@@ -43,16 +43,16 @@ Do not repeat the full physical matrix without concrete regression evidence. Det
 
 ## Phase 3 — selectable telephone-agent engines
 
-Status: `LOCAL SPEECH FOUNDATION PROVEN_S22 / OPENAI REALTIME AUDIO FROZEN`
+Status: `LOCAL SPEECH + LOCAL PHONE LLM OFF-CALL PROVEN_S22 / LIVE CELLULAR INTEGRATION NEXT / OPENAI REALTIME AUDIO FROZEN`
 
-The product direction is now selectable rather than Realtime-only.
+The product direction is selectable rather than Realtime-only.
 
 ### Runtime choices
 
 ```text
 Audio mode
 ├── LOCAL_STT_TTS
-│   └── text LLM provider: OPENAI_TEXT | LOCAL_MAC_LLM
+│   └── text LLM provider: OPENAI_TEXT | LOCAL_PHONE_LLM | LOCAL_MAC_LLM
 ├── OPENAI_REALTIME_AUDIO   (preserved/frozen)
 └── LOCAL_REALTIME_AUDIO    (future local speech-to-speech/server engine)
 ```
@@ -68,7 +68,10 @@ Implemented and host-verified shared safety/application stack includes:
 - one-shot commitment authorization;
 - output approval before cellular TX;
 - local TAKE OVER and frozen Samsung media fail-safe invariants;
-- selectable runtime preferences for `LOCAL_STT_TTS`, `OPENAI_REALTIME_AUDIO`, `LOCAL_REALTIME_AUDIO` and text LLM provider `OPENAI_TEXT` / `LOCAL_MAC_LLM`.
+- selectable runtime preferences for `LOCAL_STT_TTS`, `OPENAI_REALTIME_AUDIO`, `LOCAL_REALTIME_AUDIO` and text LLM providers;
+- provider-neutral `TextCallAgentBackend` + `TextCallTurnController`;
+- production local STT/TTS adapters;
+- OpenAI-compatible local text backend proven against Mac and phone-loopback servers.
 
 ### Local speech evidence on S22
 
@@ -81,8 +84,8 @@ Physically proven on the exact Samsung S22+:
 - local Polish TTS voices are available and synthesize successfully without network-required voices;
 - TTS output can be decoded/resampled to the internal telephony format PCM16LE mono 16 kHz;
 - caller-supplied PCM16LE mono 16 kHz can be streamed through a `ParcelFileDescriptor` pipe into on-device STT;
-- the known Polish phrase `To jest test lokalnego rozpoznawania mowy.` round-trips through local TTS -> PCM16/16 kHz -> PFD pipe -> on-device STT with a matching transcript;
-- the proof is off-call and leaves `CALL_STATE=0` before and after.
+- production local adapters complete a physical local TTS -> STT roundtrip;
+- the speech proofs are off-call and leave `CALL_STATE=0` before and after.
 
 Relevant checkpoints:
 
@@ -90,60 +93,101 @@ Relevant checkpoints:
 6a1ba494ddc2319ef9fe8847f88f4e7816b2a7b0
 feat: add local speech capability probe
 
-ef65f99420aaa00bdcfa3be3faeca210ba17c4ae
-feat: prove local speech PFD loopback
-
 386031a1f9bf891970e4cf6af8a3ec148a65aa7a
 fix: stream local STT input through PFD pipe
+
+e953b78ea2b56c3bbc62fded3da295c23ccbf1bb
+feat: add production local speech adapters
 ```
 
 ### Gate 3L-A — production local speech adapters
 
-Status: `NEXT`
+Status: `DONE / PROVEN_S22`
 
-Extract the proven probe mechanics into small production-owned components for:
+Production-owned local STT/TTS components now provide:
 
 - streaming PCM16LE mono 16 kHz into on-device STT;
 - local TTS synthesis returning PCM16LE mono 16 kHz;
-- cancellation/generation ownership and bounded cleanup;
-- no telephony/live-call wiring yet.
-
-Require TDD + `scripts/verify_host.sh`. Preserve the frozen Samsung media implementation unchanged.
+- cancellation/generation ownership and bounded cleanup.
 
 ### Gate 3L-B — off-call local conversation engine
 
-Status: `PENDING 3L-A`
+Status: `DONE / PROVEN_S22`
 
-Connect the production local STT/TTS adapters to a provider-neutral text-agent boundary. First provider may be a deterministic/fake host-test backend to prove lifecycle and output approval before adding network/local LLM inference.
+The provider-neutral text-agent pipeline is physically proven with complete-response approval before TTS. Application-owned workflow/commitment/output approval remains outside the model backend.
+
+Checkpoint:
+
+```text
+67a1bc75e7deb55ec0e4e515ef26195c4587edae
+feat: add local text agent pipeline
+```
 
 ### Gate 3L-C — text LLM providers
 
-Status: `PENDING 3L-B`
+Status: `LOCAL_MAC_LLM PROVEN_S22 / LOCAL_PHONE_LLM OFF-CALL PROVEN_S22 / PRODUCT RUNTIME WIRING NEXT`
 
-Implement provider selection behind one application-owned text-agent interface:
+Implemented/proven pieces:
 
-- `OPENAI_TEXT` — remote text model using a safe host/backend credential boundary;
-- `LOCAL_MAC_LLM` — LAN/local server on the user's Mac, preferably through a narrow authenticated/OpenAI-compatible or equivalent endpoint.
+- `LOCAL_MAC_LLM` via an OpenAI-compatible local endpoint;
+- Qwen2.5-0.5B-Instruct Q4_K_M running directly on the S22 through Android arm64 `llama-server`;
+- healthy phone-loopback `/health` and `/v1/chat/completions`;
+- direct short Polish response around 0.62 s in the initial smoke, with roughly 58 tokens/s for that small generation;
+- complete physical off-call flow:
 
-Model output must not bypass proposal parsing, confirmation policy, one-shot commitment authorization or output approval.
+```text
+local TTS test phrase
+  -> on-device STT
+  -> Qwen on S22
+  -> application-owned approval
+  -> local TTS response
+```
 
-### Gate 3L-D — first controlled local-speech cellular call
+Successful proof checkpoint:
 
-Status: `PENDING 3L-C`
+```text
+e0cfd0971103568e9a540ee75f6555d2bc8b66d0
+test: add local phone llm speech pipeline probe
+```
 
-Use the already-proven frozen telephony RX/TX bridge during a user-established cellular call. The runner must not dial or hang up. Validate real call RX -> local STT -> text agent -> local TTS -> TX, latency, interruption/TAKE OVER and cleanup.
+Next: promote `LOCAL_PHONE_LLM` from diagnostic configuration into normal runtime provider selection with readiness/lifecycle/failure handling and rerun the focused S22 regression gate.
+
+### Gate 3L-D — controlled automated local-speech cellular call
+
+Status: `NEXT`
+
+Connect the already-proven frozen telephony RX/TX bridge to the proven local pipeline:
+
+```text
+telephony RX
+  -> local STT
+  -> selected text backend (prefer LOCAL_PHONE_LLM)
+  -> application approval
+  -> local TTS
+  -> telephony TX
+```
+
+Project policy now permits the test runner to establish and terminate its own cellular call on the dedicated test SIM when the destination is explicitly operator-defined and allowlisted.
+
+Guardrails:
+
+- exact direct-USB target;
+- one active call at a time;
+- destination selected from operator-owned allowlist, never from model/tool output;
+- bounded retries/cooldown and bounded call duration;
+- no bulk dialing, number enumeration, emergency destinations, premium-rate destinations or arbitrary short codes;
+- runner may hang up the allowlisted call it created for bounded cleanup;
+- model cannot change the dial target or grant itself dialing authority;
+- preserve frozen Samsung route, TAKE OVER, endpoint-loss and cleanup invariants;
+- no service commitment/account change without existing user-decision + commitment authorization.
+
+Initial live target: an explicitly allowlisted Orange customer-service/infoline number used only for controlled validation. Measure RX transcript, model response, end-to-end latency, TX audibility, interruption/TAKE OVER and cleanup.
 
 ### OpenAI Realtime Audio branch
 
 Status: `FROZEN / PRESERVED`
 
-The existing OpenAI Realtime implementation, credential broker, off-call smoke and controlled live-call runner remain in the repository as a selectable alternative. Do not delete or destructively refactor them while developing the local path.
-
-Its previous gates remain available if explicitly resumed:
-
-- genuine OpenAI off-call S22 smoke;
-- controlled non-committing Realtime cellular call;
-- real user-authorized Realtime task.
+The existing OpenAI Realtime implementation, credential broker, off-call smoke and live-call path remain in the repository as a selectable alternative. Do not delete or destructively refactor them while developing the local path.
 
 A standard OpenAI API key remains host/backend-only and is never placed on Android.
 
@@ -167,4 +211,4 @@ After a complete selected engine works in a real cellular call, validate longer 
 
 ## Current decision
 
-Develop `LOCAL_STT_TTS` first. The S22 local speech primitives and exact PCM/PFD bridge are already physically proven. The immediate continuation is production local speech adapters without live-call wiring, followed by a provider-neutral text-agent boundary and selectable `OPENAI_TEXT` / `LOCAL_MAC_LLM` backends. Preserve `OPENAI_REALTIME_AUDIO` as a frozen selectable alternative and keep `LOCAL_REALTIME_AUDIO` as the third future engine.
+Finish `LOCAL_PHONE_LLM` as a normal runtime provider, then run the first controlled automated cellular validation against an explicitly allowlisted Orange customer-service destination on the dedicated test SIM. Preserve frozen Samsung media behavior and the OpenAI Realtime alternative.
