@@ -1,4 +1,4 @@
-# Handoff — clean local-first execution baseline
+# Handoff — Gate A READY_TO_DIAL proven
 
 Date: 2026-09-19
 
@@ -45,6 +45,8 @@ loopback port 18115
 ```
 
 Product-owned local model runtime start/identity verification/stop is physically proven.
+
+Gate A pre-dial `READY_TO_DIAL` + prepared local text-call session boundary is `HOST_GREEN / PROVEN_S22` off-call.
 
 Authoritative local model proof:
 
@@ -98,9 +100,9 @@ Do not spend the next chat trying to finish OpenAI API proof unless the user exp
 
 ## Agreed execution plan
 
-### A. READY_TO_DIAL + clean product orchestration
+### A. READY_TO_DIAL + clean product orchestration — DONE / PROVEN_S22
 
-First active task.
+Completed on 2026-09-19 without changing the frozen Samsung media path.
 
 Before dialing:
 
@@ -118,13 +120,22 @@ validate task/target
 
 Do not build this by growing `LocalPhoneLlmLiveCallProbe`.
 
-The new product orchestration should reuse the frozen media boundary, `LocalSpeechTextPipeline`, `TextCallTurnController`, model runtime gate and existing authority model.
+The new product orchestration reuses the frozen media boundary, `LocalSpeechTextPipeline`, `TextCallTurnController`, model runtime gate and existing authority model.
 
-Start with a preimplementation architecture audit/TDD plan, then implement the narrowest readiness/session boundary.
+Implemented with `LocalTextCallReadinessCoordinator`, `AndroidLocalTextCallSpeechPreflight`, one-shot `PreparedLocalTextCall` and `LocalTextCallSession`. The session reuses `LocalSpeechTextPipeline` and does not own telephony media/endpointing.
 
-### B. Text-model quality benchmark
+Evidence:
 
-After readiness:
+```text
+.agent/results/gate-a-readiness-red-20260919-1325.json
+.agent/results/gate-a-readiness-green-20260919-1329.json
+.agent/results/gate-a-full-host-20260919-1332.json
+.agent/results/gate-a-offcall-ready-s22-20260919-1335.json
+```
+
+### B. Text-model quality benchmark — NEXT
+
+Gate A is complete. Next:
 
 - current Qwen2.5 1.5B;
 - one larger feasible local phone model;
@@ -176,6 +187,14 @@ Keep:
 - cohesive `TextCallTurnController`;
 - proven local LLM runtime gate/service.
 
+Gate A product ownership:
+
+- `LocalTextCallReadinessCoordinator` owns fail-closed technical readiness, not workflow authority;
+- `AndroidLocalTextCallSpeechPreflight` owns only STT/TTS capability proof;
+- `PreparedLocalTextCall` is a one-shot ownership transfer of the warmed backend;
+- `LocalTextCallSession` owns only the prepared local dialogue pipeline lifecycle;
+- telephony media and endpointing remain outside the Gate A session boundary.
+
 Growth hotspots:
 
 - `DiagnosticProbeActivity` already dispatches many probes. Do not keep adding substantial routes; extract a diagnostic dispatcher when it is next touched.
@@ -196,8 +215,8 @@ Preserve RX/TX attribution/order, CALL_ASSISTANT/TELEPHONY_TX routing, mono inte
 
 ## Exact next task for a new chat
 
-Continue with **Gate A** only:
+Continue with **Gate B** only:
 
-> Perform a preimplementation audit for the narrowest product-owned `READY_TO_DIAL` + local text-call session boundary. Do not change frozen Samsung media behavior. Do not resume OpenAI API work. Reuse existing local speech, text backend and authority components. Identify the minimal extraction from `LocalPhoneLlmLiveCallProbe`, write tests first for deterministic readiness/session state, run the full host gate, then use only the physical S22 gate required to prove readiness.
+> Build the deterministic text-model benchmark harness on top of the proven Gate A readiness/session seam. Keep telephony, endpointing, STT/TTS, authority and scenario inputs fixed. Benchmark the current Qwen2.5 1.5B first off-call, then one larger feasible phone-local model, and use GPT-5.6 Sol through this interactive ChatGPT + Local Agent/ADB relay as the strong reference. Measure response quality, invented/unsafe facts, fallback/escalation, inference latency, load/warm-up, RAM and thermal/resource behavior. Do not change the frozen Samsung media path and do not resume paid OpenAI API work.
 
-Do not start Gate B/C/D/E until Gate A is clean and verified.
+Do not start Gate C/D/E until Gate B has comparable evidence.
