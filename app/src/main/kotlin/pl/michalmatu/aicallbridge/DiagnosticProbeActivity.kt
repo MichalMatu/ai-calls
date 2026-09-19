@@ -129,6 +129,17 @@ class DiagnosticProbeActivity : Activity() {
         }
 
         when {
+            intent.getBooleanExtra(EXTRA_RUN_LOCAL_PHONE_LLM_LIVE_CALL_PROBE, false) -> {
+                statusView.text = "Running local phone LLM live-call probe…"
+                Log.i(TAG, "local_phone_llm_live_call_probe_start=true")
+                LocalPhoneLlmLiveCallProbe.run(this) { result ->
+                    runOnUiThread {
+                        statusView.text = result
+                        Log.i(TAG, "local_phone_llm_live_call_probe_result:\n$result")
+                        finish()
+                    }
+                }
+            }
             intent.getBooleanExtra(EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE, false) -> {
                 statusView.text = "Running controlled Realtime live-call smoke…"
                 Log.i(TAG, "realtime_live_call_smoke_start=true")
@@ -273,6 +284,7 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_LOCAL_SPEECH_TEXT_PIPELINE_PROBE = "run_local_speech_text_pipeline_probe"
         const val EXTRA_RUN_LOCAL_SPEECH_PRODUCTION_PROBE = "run_local_speech_production_probe"
         const val EXTRA_RUN_LOCAL_SPEECH_PFD_LOOPBACK_PROBE = "run_local_speech_pfd_loopback_probe"
+        const val EXTRA_RUN_LOCAL_PHONE_LLM_LIVE_CALL_PROBE = "run_local_phone_llm_live_call_probe"
         const val EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE = "run_realtime_live_call_smoke"
         const val EXTRA_REALTIME_LIVE_DURATION_MS = "realtime_live_duration_ms"
         const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"
