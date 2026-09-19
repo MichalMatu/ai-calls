@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallConstraints
@@ -13,6 +14,7 @@ import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
+import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
 import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
@@ -29,7 +31,6 @@ import java.util.function.Consumer
 /** One bounded live cellular turn: telephony RX -> local STT -> phone LLM -> approval -> TTS -> TX. */
 internal object LocalPhoneLlmLiveCallProbe {
     private const val REPORT_FILE = "local-phone-llm-live-call-report.txt"
-    private const val INPUT_CAPTURE_MS = 8_000
     private const val TIMEOUT_MS = 45_000L
 
     fun run(context: Context, callback: (String) -> Unit) {
@@ -57,10 +58,11 @@ internal object LocalPhoneLlmLiveCallProbe {
             "call_required=true",
             "backend_location=phone_loopback",
             "approval_policy=application_owned",
+            "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
             "target_pcm=mono,pcm16,${LocalSpeechFormat.SAMPLE_RATE_HZ}",
         )
-        private val backend = LocalPhoneLlmBackendFactory.create()
+        private val backend = LocalPhoneLlmBackendFactory.create(context)
         private val workflow = activeWorkflow()
         private val pipeline = LocalSpeechTextPipeline(
             context,
@@ -73,6 +75,7 @@ internal object LocalPhoneLlmLiveCallProbe {
         private var mediaRuntime: CallMediaSessionRuntime? = null
         private var activeLease: CallMediaEndpointLease? = null
         private var turnStartedAtMs: Long = 0L
+        private var estimatedSpeechEndElapsedMs: Long? = null
 
         private val timeout = Runnable { finish(false, "probe_timeout") }
 
@@ -118,7 +121,7 @@ internal object LocalPhoneLlmLiveCallProbe {
             }
             activeLease = lease
             lines += "media_active=true"
-            turnStartedAtMs = android.os.SystemClock.elapsedRealtime()
+            turnStartedAtMs = SystemClock.elapsedRealtime()
             pipeline.start(object : LocalSpeechTextPipeline.Listener {
                 override fun onSpeechInputReady() {
                     lines += "stt_ready=true"
@@ -149,26 +152,41 @@ internal object LocalPhoneLlmLiveCallProbe {
         }
 
         private fun captureInputTurn(lease: CallMediaEndpointLease) {
-            val targetBytes = LocalSpeechFormat.SAMPLE_RATE_HZ * 2 * INPUT_CAPTURE_MS / 1_000
-            val buffer = ByteArray(LocalSpeechFormat.bytesForDurationMs(100))
+            val detector = PcmEndOfUtteranceDetector()
+            val buffer = ByteArray(LocalSpeechFormat.bytesForDurationMs(20))
+            val captureStartedElapsedMs = elapsedTurnMs()
             var total = 0
+            var streamEnded = false
+            var endpoint = detector.acceptPcm16(ByteArray(0))
             try {
-                while (total < targetBytes && !finished.get()) {
-                    val read = lease.downlink().read(buffer, 0, minOf(buffer.size, targetBytes - total))
-                    if (read < 0) break
+                while (!endpoint.shouldStop && !finished.get()) {
+                    val read = lease.downlink().read(buffer, 0, buffer.size)
+                    if (read < 0) {
+                        streamEnded = true
+                        break
+                    }
                     if (read == 0) continue
                     if (!pipeline.writeInputPcm(buffer, 0, read)) {
                         throw IllegalStateException("stt_pcm_write_failed")
                     }
                     total += read
+                    endpoint = detector.acceptPcm16(buffer, 0, read)
                 }
                 lines += "telephony_rx_pcm_bytes=$total"
+                lines += "endpoint_reason=${endpoint.reason?.name?.lowercase() ?: if (streamEnded) "stream_eof" else "cancelled"}"
+                lines += "endpoint_capture_ms=${endpoint.capturedMs}"
+                lines += "endpoint_speech_detected=${endpoint.speechDetected}"
+                endpoint.estimatedSpeechEndMs?.let { speechEndMs ->
+                    estimatedSpeechEndElapsedMs = captureStartedElapsedMs + speechEndMs
+                    lines += "estimated_end_of_speech_elapsed_ms=$estimatedSpeechEndElapsedMs"
+                }
                 if (total < LocalSpeechFormat.bytesForDurationMs(500)) {
                     context.mainExecutor.execute { finish(false, "telephony_rx_too_short") }
                     return
                 }
                 pipeline.finishInput()
                 lines += "stt_pcm_eof_sent=true"
+                lines += "stt_eof_elapsed_ms=${elapsedTurnMs()}"
             } catch (error: Throwable) {
                 context.mainExecutor.execute {
                     finish(false, "telephony_rx_${error.javaClass.simpleName}")
@@ -179,6 +197,11 @@ internal object LocalPhoneLlmLiveCallProbe {
         private fun writeOutputTurn(lease: CallMediaEndpointLease, pcm: ByteArray) {
             try {
                 if (pcm.isEmpty()) throw IllegalStateException("tts_pcm_empty")
+                val firstTxElapsedMs = elapsedTurnMs()
+                lines += "first_tx_elapsed_ms=$firstTxElapsedMs"
+                estimatedSpeechEndElapsedMs?.let { speechEndMs ->
+                    lines += "end_of_speech_to_first_tx_ms=${(firstTxElapsedMs - speechEndMs).coerceAtLeast(0L)}"
+                }
                 lease.uplink().write(pcm)
                 lease.uplink().flush()
                 lines += "telephony_tx_pcm_bytes=${pcm.size}"
@@ -192,7 +215,7 @@ internal object LocalPhoneLlmLiveCallProbe {
         }
 
         private fun elapsedTurnMs(): Long =
-            (android.os.SystemClock.elapsedRealtime() - turnStartedAtMs).coerceAtLeast(0L)
+            (SystemClock.elapsedRealtime() - turnStartedAtMs).coerceAtLeast(0L)
 
         private fun finish(success: Boolean, reason: String? = null) {
             if (!finished.compareAndSet(false, true)) return
