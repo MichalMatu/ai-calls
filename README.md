@@ -13,6 +13,7 @@ Current production-facing foundation:
 - provider-neutral text-agent pipeline with application-owned output approval: `DONE / PROVEN_S22`;
 - `LOCAL_PHONE_LLM`: `DONE / PROVEN_S22` with Qwen2.5-1.5B-Instruct Q4_K_M;
 - product-owned local LLM start/identity-check/stop lifecycle: `DONE / PROVEN_S22`;
+- pre-dial local `READY_TO_DIAL` + prepared local text-call session boundary: `DONE / PROVEN_S22` (off-call readiness);
 - live end-of-utterance detection: `DONE / PROVEN_S22`;
 - one bounded Orange call turn `RX -> STT -> local LLM -> approval -> TTS -> TX`: `DONE / PROVEN_S22`.
 
@@ -24,6 +25,7 @@ Representative current evidence:
 .agent/results/qwen15b-verified-flow-orange-s22-retry-20260919-3720.json
 .agent/results/local-phone-runtime-lifecycle-s22-20260919-1151.json
 .agent/results/live-endpointing-orange-s22-20260919-1214.json
+.agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 ```
 
 Current local-model identity:
@@ -76,7 +78,7 @@ The telephony transport, STT/TTS and model choice are separate boundaries. A new
 
 Paid OpenAI API work is currently deferred. The active local-first plan is:
 
-1. create a hard `READY_TO_DIAL` gate and a clean product-owned local text-call orchestration boundary;
+1. **DONE / PROVEN_S22** — hard `READY_TO_DIAL` gate plus a one-shot prepared local text-call session boundary;
 2. benchmark the current 1.5B phone model, a larger feasible phone-local text model, and GPT-5.6 Sol through the current ChatGPT + Local Agent/ADB developer relay;
 3. add `CallPlan v1` and deterministic conversation state so the local LLM is mainly a language layer, not the authority/planning brain;
 4. prove multi-turn real tasks with explicit fallback/escalation;
