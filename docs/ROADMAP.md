@@ -84,7 +84,7 @@ Paid OpenAI API work is intentionally deferred. Do not make it the next task unl
 
 ## Gate A — clean product orchestration + READY_TO_DIAL
 
-Status: `NEXT`
+Status: `DONE / HOST_GREEN / PROVEN_S22` (off-call readiness)
 
 Goal: before any model-quality live comparison, make preparation an explicit product state rather than a side effect of the first turn.
 
@@ -121,9 +121,27 @@ Architecture cleanup attached to this gate:
 
 Exit: selected local backend, STT, TTS and scenario are proven ready before dialing.
 
+Implemented boundary:
+
+- `LocalTextCallReadinessCoordinator` validates workflow/target authority, local speech readiness and bounded backend warm-up;
+- `AndroidLocalTextCallSpeechPreflight` proves on-device STT plus a non-network TTS voice before dial;
+- the existing `IdentityVerifiedLocalPhoneLlmBackend` remains the runtime + exact-identity authority before warm-up inference;
+- successful preparation returns one-shot `PreparedLocalTextCall`;
+- `LocalTextCallSession` consumes that prepared backend and delegates dialogue turns to the existing `LocalSpeechTextPipeline`;
+- telephony media and endpointing remain outside this new layer, so the frozen Samsung path was not changed.
+
+Evidence:
+
+```text
+TDD RED:    .agent/results/gate-a-readiness-red-20260919-1325.json
+TDD GREEN:  .agent/results/gate-a-readiness-green-20260919-1329.json
+HOST_GREEN: .agent/results/gate-a-full-host-20260919-1332.json
+PROVEN_S22: .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
+```
+
 ## Gate B — text-brain benchmark
 
-Status: `AFTER A`
+Status: `NEXT`
 
 Goal: isolate model quality and latency while holding telephony, endpointing, STT, TTS and task constant.
 
