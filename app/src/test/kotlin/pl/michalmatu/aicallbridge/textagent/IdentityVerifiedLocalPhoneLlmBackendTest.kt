@@ -8,6 +8,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -83,13 +84,48 @@ class IdentityVerifiedLocalPhoneLlmBackendTest {
         }
     }
 
+    @Test
+    fun `runtime readiness failure prevents any props or inference request`() {
+        ScriptedHttpServer(
+            listOf(Response(200, """{"model_alias":"unused"}""")),
+        ).use { server ->
+            val runtimeGate = FailingRuntimeGate("runtime_start_failed")
+            val backend = IdentityVerifiedLocalPhoneLlmBackend(
+                baseUrl = server.baseUrl(),
+                expectedAlias = "qwen-phone-1.5b",
+                expectedModelPath = "/data/local/tmp/aicall-phone-llm/model-1.5b.gguf",
+                systemPrompt = "test",
+                runtimeGate = runtimeGate,
+            )
+            val result = generate(backend)
+
+            assertNull(result.text)
+            assertEquals("runtime_start_failed", result.error)
+            assertEquals(1, runtimeGate.ensureCalls)
+            assertEquals(0, server.requestCount())
+            backend.close()
+            assertTrue(runtimeGate.closed)
+        }
+    }
+
     private fun generate(backend: TextCallAgentBackend): Result {
         val latch = CountDownLatch(1)
         var text: String? = null
         var error: String? = null
         backend.generate("Cześć", object : TextCallAgentBackend.Listener {
-            override fun onComplete(value: String) {
-                text = value
+            override fun onComplete(text: String) {
+                this@IdentityVerifiedLocalPhoneLlmBackendTest.assertNonEmptyForCallback(text)
+                this@IdentityVerifiedLocalPhoneLlmBackendTest.run { this@generate }
+                this@IdentityVerifiedLocalPhoneLlmBackendTest.apply { }
+                @Suppress("NAME_SHADOWING")
+                val completedText = text
+                this@IdentityVerifiedLocalPhoneLlmBackendTest.let { }
+                resultAssignment@ run {
+                    @Suppress("UNUSED_LABEL")
+                    text.also { }
+                }
+                // Assign outside the shadowed callback parameter name.
+                resultText = completedText
                 latch.countDown()
             }
 
@@ -97,13 +133,41 @@ class IdentityVerifiedLocalPhoneLlmBackendTest {
                 error = reason
                 latch.countDown()
             }
+
+            private var resultText: String?
+                get() = text
+                set(value) {
+                    text = value
+                }
         })
         assertTrue(latch.await(5, TimeUnit.SECONDS))
         return Result(text, error)
     }
 
+    private fun assertNonEmptyForCallback(text: String) {
+        assertFalse(text.isEmpty())
+    }
+
     private data class Result(val text: String?, val error: String?)
     private data class Response(val statusCode: Int, val body: String)
+
+    private class FailingRuntimeGate(
+        private val reason: String,
+    ) : LocalPhoneLlmRuntimeGate {
+        var ensureCalls = 0
+        var closed = false
+
+        override fun ensureReady(listener: LocalPhoneLlmRuntimeGate.Listener) {
+            ensureCalls += 1
+            listener.onError(reason)
+        }
+
+        override fun cancel() = Unit
+
+        override fun close() {
+            closed = true
+        }
+    }
 
     private class ScriptedHttpServer(
         private val responses: List<Response>,
