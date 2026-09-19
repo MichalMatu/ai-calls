@@ -26,17 +26,22 @@ A new chat must use its own fresh Local Agent binding. Never copy the previous c
 
 ## Exact continuation state
 
-At handoff creation:
+Last product-code checkpoint before the documentation-only handoff commits:
 
 ```text
-main = 7ae1c7cd4892b780caa7be28974aa04a69e97696
-       feat: improve local phone llm call quality
-
-daemon = idle
-latest Local Agent result = qwen15b-verified-flow-orange-s22-retry-20260919-3720
+7ae1c7cd4892b780caa7be28974aa04a69e97696
+feat: improve local phone llm call quality
 ```
 
-The latest task was read-only and therefore did not advance `main`.
+Do not assume that SHA is the current `main` HEAD. The handoff itself updates documentation on `main`, so always fetch fresh `main` first.
+
+At the final device check the Local Agent daemon was idle and the latest physical result was:
+
+```text
+qwen15b-verified-flow-orange-s22-retry-20260919-3720
+```
+
+That task was read-only and did not change product code.
 
 Target phone remains Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8, direct-USB serial `RFCT70L7E8J`.
 
