@@ -53,7 +53,7 @@ Audio mode
 ├── LOCAL_STT_TTS
 │   └── text provider
 │       ├── LOCAL_PHONE_LLM
-│       ├── EDGE_GALLERY         (Gemma 3n E2B via phone-loopback LiteRT API)
+│       ├── EDGE_GALLERY         (Gemma 4 E2B via phone-loopback LiteRT API)
 │       ├── LOCAL_MAC_LLM
 │       └── OPENAI_TEXT          (preserved/deferred)
 ├── OPENAI_REALTIME_AUDIO        (preserved/frozen)
@@ -143,7 +143,7 @@ A health response alone is not identity. `/props` alias/model path verification 
 
 ### Google AI Edge Gallery provider
 
-`EDGE_GALLERY` is a separate phone-local text provider for Gemma through a loopback-only OpenAI-compatible API. It reuses `LocalOpenAiCompatibleTextBackend`; the provider-specific adapter first requires `/health` status `ok` and an exact `Gemma-3n-E2B-it` entry from `/v1/models`. The normal READY_TO_DIAL warm-up then proves real inference before dialing. Edge Gallery owns inference only and never owns Samsung media, dialing, workflow authority or TAKE OVER.
+`EDGE_GALLERY` is a separate phone-local text provider for Gemma through a loopback-only OpenAI-compatible API. It reuses `LocalOpenAiCompatibleTextBackend`; the provider-specific adapter first requires `/health` status `ok` and an exact `Gemma-4-E2B-it` entry from `/v1/models`. The normal READY_TO_DIAL warm-up then proves real inference before dialing. Edge Gallery owns inference only and never owns Samsung media, dialing, workflow authority or TAKE OVER.
 
 ## Authority boundary
 

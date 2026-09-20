@@ -19,13 +19,13 @@ class EdgeGalleryTextBackendTest {
         ScriptedHttpServer(
             listOf(
                 Response(200, """{"status":"ok"}"""),
-                Response(200, """{"object":"list","data":[{"id":"Gemma-3n-E2B-it","object":"model"}]}"""),
+                Response(200, """{"object":"list","data":[{"id":"Gemma-4-E2B-it","object":"model"}]}"""),
                 Response(200, """{"choices":[{"message":{"content":"Dzień dobry."}}]}"""),
             ),
         ).use { server ->
             val backend = EdgeGalleryTextBackend(
                 baseUrl = server.baseUrl(),
-                expectedModelId = "Gemma-3n-E2B-it",
+                expectedModelId = "Gemma-4-E2B-it",
                 bearerToken = "edge-gallery-test-token",
                 systemPrompt = "test",
             )
@@ -41,7 +41,7 @@ class EdgeGalleryTextBackendTest {
             requests.forEach { request ->
                 assertTrue(request.contains("Authorization: Bearer edge-gallery-test-token", ignoreCase = true))
             }
-            assertTrue(requests[2].contains("\"model\":\"Gemma-3n-E2B-it\""))
+            assertTrue(requests[2].contains("\"model\":\"Gemma-4-E2B-it\""))
             backend.close()
         }
     }
@@ -56,7 +56,7 @@ class EdgeGalleryTextBackendTest {
         ).use { server ->
             val backend = EdgeGalleryTextBackend(
                 baseUrl = server.baseUrl(),
-                expectedModelId = "Gemma-3n-E2B-it",
+                expectedModelId = "Gemma-4-E2B-it",
             )
 
             val result = generate(backend)
@@ -75,7 +75,7 @@ class EdgeGalleryTextBackendTest {
         ).use { server ->
             val backend = EdgeGalleryTextBackend(
                 baseUrl = server.baseUrl(),
-                expectedModelId = "Gemma-3n-E2B-it",
+                expectedModelId = "Gemma-4-E2B-it",
             )
 
             val result = generate(backend)
@@ -91,7 +91,7 @@ class EdgeGalleryTextBackendTest {
         try {
             EdgeGalleryTextBackend(
                 baseUrl = "http://192.168.1.50:8080/v1/",
-                expectedModelId = "Gemma-3n-E2B-it",
+                expectedModelId = "Gemma-4-E2B-it",
             )
             fail("Edge Gallery provider must remain phone-loopback only")
         } catch (expected: IllegalArgumentException) {

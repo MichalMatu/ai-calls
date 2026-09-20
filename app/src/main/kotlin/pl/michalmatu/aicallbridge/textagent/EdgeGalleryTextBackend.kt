@@ -265,7 +265,7 @@ internal class EdgeGalleryTextBackend(
 /** Production defaults for the explicitly selected Edge Gallery/Gemma provider. */
 internal object EdgeGalleryTextBackendFactory {
     const val BASE_URL = "http://127.0.0.1:8080/v1/"
-    const val MODEL = "Gemma-3n-E2B-it"
+    const val MODEL = "Gemma-4-E2B-it"
 
     fun create(bearerToken: String? = null): TextCallAgentBackend = EdgeGalleryTextBackend(
         baseUrl = BASE_URL,
