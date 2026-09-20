@@ -224,6 +224,7 @@ Only after the text/product baseline is strong, compare current mobile-feasible 
 ## Preserved but deferred paths
 
 - `LOCAL_PHONE_LLM` — experimental infrastructure only on the current S22;
+- `EDGE_GALLERY` — explicit experimental Gemma 3n E2B/LiteRT phone-local provider; this is a materially different runtime path from the frozen llama.cpp model sweep;
 - `LOCAL_MAC_LLM` — retained provider option/experiment;
 - `OPENAI_TEXT` — implementation preserved, paid API proof deferred;
 - `OPENAI_REALTIME_AUDIO` — preserved/frozen;
