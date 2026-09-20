@@ -32,7 +32,7 @@ import java.util.function.Consumer
 /** One bounded live cellular turn: telephony RX -> local STT -> selected text LLM -> approval -> TTS -> TX. */
 internal object LocalPhoneLlmLiveCallProbe {
     private const val REPORT_FILE = "local-phone-llm-live-call-report.txt"
-    private const val TIMEOUT_MS = 45_000L
+    private const val TIMEOUT_MS = 90_000L
 
     fun run(context: Context, callback: (String) -> Unit) =
         run(context, TextLlmProvider.LOCAL_PHONE_LLM, callback)
@@ -168,7 +168,7 @@ internal object LocalPhoneLlmLiveCallProbe {
         }
 
         private fun captureInputTurn(lease: CallMediaEndpointLease) {
-            val detector = PcmEndOfUtteranceDetector(maxCaptureMs = 15_000)
+            val detector = PcmEndOfUtteranceDetector(maxCaptureMs = 60_000)
             val buffer = ByteArray(LocalSpeechFormat.bytesForDurationMs(20))
             val captureStartedElapsedMs = elapsedTurnMs()
             var total = 0

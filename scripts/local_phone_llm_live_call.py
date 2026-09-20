@@ -21,7 +21,7 @@ EDGE_GALLERY_PROVIDER = "EDGE_GALLERY"
 LIVE_TEXT_PROVIDERS = frozenset({LOCAL_PHONE_PROVIDER, EDGE_GALLERY_PROVIDER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
-PROBE_TIMEOUT_SECONDS = 55.0
+PROBE_TIMEOUT_SECONDS = 100.0
 
 
 def normalize_allowlisted_target(raw: str) -> str:
@@ -136,8 +136,8 @@ def _require_endpointing(report: dict[str, str]) -> None:
     if report.get("endpoint_speech_detected") != "true":
         raise RuntimeError("live endpoint detector did not classify speech")
     capture_ms = int(report.get("endpoint_capture_ms", "0"))
-    if not 0 < capture_ms < 15_000:
-        raise RuntimeError(f"live endpoint capture did not finish before the 15 s safety cap: {capture_ms} ms")
+    if not 0 < capture_ms < 60_000:
+        raise RuntimeError(f"live endpoint capture reached the 60 s watchdog: {capture_ms} ms")
     latency_ms = int(report.get("end_of_speech_to_first_tx_ms", "-1"))
     if latency_ms < 0:
         raise RuntimeError("live report did not include end-of-speech to first-TX latency")
