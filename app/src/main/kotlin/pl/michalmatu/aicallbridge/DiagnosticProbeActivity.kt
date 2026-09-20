@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import java.io.File
+import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaOffCallSmokeProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuCallEndProbe
@@ -150,9 +151,19 @@ class DiagnosticProbeActivity : Activity() {
 
         when {
             intent.getBooleanExtra(EXTRA_RUN_LOCAL_PHONE_LLM_LIVE_CALL_PROBE, false) -> {
-                statusView.text = "Running local phone LLM live-call probe…"
-                Log.i(TAG, "local_phone_llm_live_call_probe_start=true")
-                LocalPhoneLlmLiveCallProbe.run(this) { result ->
+                val providerName = intent.getStringExtra(EXTRA_TEXT_LLM_PROVIDER)
+                    ?: TextLlmProvider.LOCAL_PHONE_LLM.name
+                val provider = TextLlmProvider.fromStored(providerName)
+                if (
+                    provider != TextLlmProvider.LOCAL_PHONE_LLM &&
+                    provider != TextLlmProvider.EDGE_GALLERY
+                ) {
+                    finishWithError("local_live_text_provider_not_supported_${provider.name.lowercase()}")
+                    return
+                }
+                statusView.text = "Running local text LLM live-call probe: ${provider.displayName}…"
+                Log.i(TAG, "local_phone_llm_live_call_probe_start=true,provider=${provider.name}")
+                LocalPhoneLlmLiveCallProbe.run(this, provider) { result ->
                     runOnUiThread {
                         statusView.text = result
                         Log.i(TAG, "local_phone_llm_live_call_probe_result:\n$result")
@@ -306,6 +317,7 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_LOCAL_SPEECH_PRODUCTION_PROBE = "run_local_speech_production_probe"
         const val EXTRA_RUN_LOCAL_SPEECH_PFD_LOOPBACK_PROBE = "run_local_speech_pfd_loopback_probe"
         const val EXTRA_RUN_LOCAL_PHONE_LLM_LIVE_CALL_PROBE = "run_local_phone_llm_live_call_probe"
+        const val EXTRA_TEXT_LLM_PROVIDER = "text_llm_provider"
         const val EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE = "run_realtime_live_call_smoke"
         const val EXTRA_REALTIME_LIVE_DURATION_MS = "realtime_live_duration_ms"
         const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"
