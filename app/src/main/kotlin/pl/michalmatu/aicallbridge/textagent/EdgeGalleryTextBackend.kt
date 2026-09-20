@@ -161,10 +161,10 @@ internal class EdgeGalleryTextBackend(
             return
         }
         call.enqueue(object : Callback {
-            override fun onFailure(call: Call, error: IOException) {
+            override fun onFailure(call: Call, e: IOException) {
                 if (call.isCanceled()) return
                 if (!claimReadinessCall(call, requestGeneration)) return
-                listener.onError(networkErrorPrefix + error.javaClass.simpleName)
+                listener.onError(networkErrorPrefix + e.javaClass.simpleName)
             }
 
             override fun onResponse(call: Call, response: Response) {
