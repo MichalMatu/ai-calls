@@ -53,6 +53,7 @@ Audio mode
 ├── LOCAL_STT_TTS
 │   └── text provider
 │       ├── LOCAL_PHONE_LLM
+│       ├── EDGE_GALLERY         (Gemma 3n E2B via phone-loopback LiteRT API)
 │       ├── LOCAL_MAC_LLM
 │       └── OPENAI_TEXT          (preserved/deferred)
 ├── OPENAI_REALTIME_AUDIO        (preserved/frozen)
@@ -139,6 +140,10 @@ loopback http://127.0.0.1:18115/v1/
 `IdentityVerifiedLocalPhoneLlmBackend` requires runtime readiness plus exact model identity. `ShizukuLocalPhoneLlmRuntimeGate` and `LocalPhoneLlmRuntimeUserService` provide product-owned start/stop/recovery.
 
 A health response alone is not identity. `/props` alias/model path verification is required because a stale 0.5B server previously occupied the expected port.
+
+### Google AI Edge Gallery provider
+
+`EDGE_GALLERY` is a separate phone-local text provider for Gemma through a loopback-only OpenAI-compatible API. It reuses `LocalOpenAiCompatibleTextBackend`; the provider-specific adapter first requires `/health` status `ok` and an exact `Gemma-3n-E2B-it` entry from `/v1/models`. The normal READY_TO_DIAL warm-up then proves real inference before dialing. Edge Gallery owns inference only and never owns Samsung media, dialing, workflow authority or TAKE OVER.
 
 ## Authority boundary
 
@@ -300,7 +305,7 @@ stop accepting/releasing AI output
  -> abort local telephony media generation
  -> stop local speech/audio workers
  -> invalidate active model generation
- -> best-effort stop/cancel model/network work
+ -> best-effort cancel remote/local model work
 ```
 
 The first steps never wait for model or network acknowledgement.
