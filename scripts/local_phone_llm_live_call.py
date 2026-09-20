@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One bounded allowlisted cellular call using the local S22 STT -> LLM -> TTS pipeline."""
+"""One bounded allowlisted cellular call using the S22 STT -> local text LLM -> TTS pipeline."""
 
 from __future__ import annotations
 
@@ -16,6 +16,9 @@ from s22_call_control import Adb, normalize_number
 
 ORANGE_SUPPORT_NUMBER = "510100100"
 ALLOWLIST = frozenset({ORANGE_SUPPORT_NUMBER})
+LOCAL_PHONE_PROVIDER = "LOCAL_PHONE_LLM"
+EDGE_GALLERY_PROVIDER = "EDGE_GALLERY"
+LIVE_TEXT_PROVIDERS = frozenset({LOCAL_PHONE_PROVIDER, EDGE_GALLERY_PROVIDER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
 PROBE_TIMEOUT_SECONDS = 55.0
@@ -28,10 +31,19 @@ def normalize_allowlisted_target(raw: str) -> str:
     return number
 
 
-def build_probe_start_args(serial: str) -> list[str]:
+def normalize_provider(raw: str) -> str:
+    provider = raw.strip().upper()
+    if provider not in LIVE_TEXT_PROVIDERS:
+        raise ValueError("provider is not enabled for the bounded local live-call path")
+    return provider
+
+
+def build_probe_start_args(serial: str, provider: str = LOCAL_PHONE_PROVIDER) -> list[str]:
+    selected_provider = normalize_provider(provider)
     return [
         "adb", "-s", serial, "shell", "am", "start", "-W", "-n", PROBE_ACTIVITY,
         "--ez", "run_local_phone_llm_live_call_probe", "true",
+        "--es", "text_llm_provider", selected_provider,
     ]
 
 
@@ -88,12 +100,12 @@ def _wait_report(adb: Adb, timeout: float = PROBE_TIMEOUT_SECONDS) -> dict[str, 
         text = _read_report(adb)
         parsed = parse_probe_report(text)
         if parsed is not None:
-            print("--- local phone live report ---")
+            print("--- local text live report ---")
             print(text, end="" if text.endswith("\n") else "\n")
-            print("--- end local phone live report ---")
+            print("--- end local text live report ---")
             return parsed
         time.sleep(0.25)
-    raise TimeoutError("local phone live probe did not produce a terminal report")
+    raise TimeoutError("local text live probe did not produce a terminal report")
 
 
 def _require_preflight(adb: Adb) -> None:
@@ -132,7 +144,11 @@ def _require_endpointing(report: dict[str, str]) -> None:
     print(f"live_endpointing_proven_s22=true,capture_ms:{capture_ms},eos_to_first_tx_ms:{latency_ms}")
 
 
-def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
+def run_orange_support_once(
+    serial: str = DEFAULT_SERIAL,
+    provider: str = LOCAL_PHONE_PROVIDER,
+) -> dict[str, str]:
+    selected_provider = normalize_provider(provider)
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
     adb = Adb(serial)
     if not is_direct_usb_target(_devices_output(), serial):
@@ -154,6 +170,7 @@ def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
             print("bluetooth_disabled_for_test=true")
 
         print(f"allowlisted_target={number}")
+        print(f"text_llm_provider={selected_provider}")
         adb.dial(number)
         dialed = True
         print("dial_requested=true")
@@ -172,10 +189,18 @@ def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
 
         _remove_report(adb)
         adb.shell(["am", "force-stop", PACKAGE_NAME], check=False)
-        subprocess.run(build_probe_start_args(serial), check=True)
+        subprocess.run(build_probe_start_args(serial, selected_provider), check=True)
         report = _wait_report(adb)
-        if report.get("local_phone_llm_live_call_success") != "true":
-            raise RuntimeError("local phone live probe reported failure: " + report.get("failure_reason", "unknown"))
+        if report.get("text_llm_provider") != selected_provider:
+            raise RuntimeError("live probe provider mismatch")
+        success = report.get(
+            "local_text_llm_live_call_success",
+            report.get("local_phone_llm_live_call_success"),
+        )
+        if success != "true":
+            raise RuntimeError(
+                "local text live probe reported failure: " + report.get("failure_reason", "unknown")
+            )
         if report.get("stt_transcript_nonblank") != "true":
             raise RuntimeError("live STT transcript was blank")
         if report.get("approved_text_nonblank") != "true":
@@ -183,7 +208,7 @@ def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
         if int(report.get("telephony_tx_pcm_bytes", "0")) <= 0:
             raise RuntimeError("live TTS produced no telephony TX bytes")
         _require_endpointing(report)
-        print("local_phone_llm_orange_live_turn_proven_s22=true")
+        print(f"local_text_llm_orange_live_turn_proven_s22=true,provider:{selected_provider}")
         return report
     finally:
         adb.shell(["am", "force-stop", PACKAGE_NAME], check=False)
@@ -204,12 +229,16 @@ def run_orange_support_once(serial: str = DEFAULT_SERIAL) -> dict[str, str]:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    if len(args) > 1:
-        print("usage: local_phone_llm_live_call.py [adb-serial]", file=sys.stderr)
+    if len(args) > 2:
+        print(
+            "usage: local_phone_llm_live_call.py [adb-serial] [LOCAL_PHONE_LLM|EDGE_GALLERY]",
+            file=sys.stderr,
+        )
         return 2
     serial = args[0] if args else DEFAULT_SERIAL
+    provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
     try:
-        run_orange_support_once(serial)
+        run_orange_support_once(serial, provider)
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:
         print(f"local phone live call failed: {error}", file=sys.stderr)
