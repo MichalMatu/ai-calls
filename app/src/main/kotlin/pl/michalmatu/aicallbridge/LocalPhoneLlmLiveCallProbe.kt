@@ -12,15 +12,16 @@ import pl.michalmatu.aicallbridge.agent.CallPreferences
 import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
+import pl.michalmatu.aicallbridge.localcall.AndroidLocalTextCallBackendFactory
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
+import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
 import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
 import pl.michalmatu.aicallbridge.session.CallMediaSessionState
 import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
-import pl.michalmatu.aicallbridge.textagent.LocalPhoneLlmBackendFactory
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.ExecutorService
@@ -28,23 +29,37 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 
-/** One bounded live cellular turn: telephony RX -> local STT -> phone LLM -> approval -> TTS -> TX. */
+/** One bounded live cellular turn: telephony RX -> local STT -> selected text LLM -> approval -> TTS -> TX. */
 internal object LocalPhoneLlmLiveCallProbe {
     private const val REPORT_FILE = "local-phone-llm-live-call-report.txt"
     private const val TIMEOUT_MS = 45_000L
 
-    fun run(context: Context, callback: (String) -> Unit) {
+    fun run(context: Context, callback: (String) -> Unit) =
+        run(context, TextLlmProvider.LOCAL_PHONE_LLM, callback)
+
+    fun run(
+        context: Context,
+        provider: TextLlmProvider,
+        callback: (String) -> Unit,
+    ) {
+        require(
+            provider == TextLlmProvider.LOCAL_PHONE_LLM ||
+                provider == TextLlmProvider.EDGE_GALLERY,
+        ) {
+            "provider_not_enabled_for_local_live_call_${provider.name.lowercase()}"
+        }
         val appContext = context.applicationContext
         val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audioManager == null || audioManager.mode != AudioManager.MODE_IN_CALL) {
-            callback(immediateReport("cellular_call_not_active"))
+            callback(immediateReport("cellular_call_not_active", provider))
             return
         }
-        Run(appContext, callback).start()
+        Run(appContext, provider, callback).start()
     }
 
     private class Run(
         private val context: Context,
+        private val provider: TextLlmProvider,
         private val callback: (String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
@@ -57,12 +72,13 @@ internal object LocalPhoneLlmLiveCallProbe {
             "probe=local_phone_llm_live_call",
             "call_required=true",
             "backend_location=phone_loopback",
+            "text_llm_provider=${provider.name}",
             "approval_policy=application_owned",
             "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
             "target_pcm=mono,pcm16,${LocalSpeechFormat.SAMPLE_RATE_HZ}",
         )
-        private val backend = LocalPhoneLlmBackendFactory.create(context)
+        private val backend = AndroidLocalTextCallBackendFactory.create(context, provider)
         private val workflow = activeWorkflow()
         private val pipeline = LocalSpeechTextPipeline(
             context,
@@ -226,6 +242,7 @@ internal object LocalPhoneLlmLiveCallProbe {
             try { mediaRuntime?.close() } catch (_: Throwable) {}
             mediaRuntime = null
             executor.shutdownNow()
+            lines += "local_text_llm_live_call_success=$success"
             lines += "local_phone_llm_live_call_success=$success"
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
@@ -251,8 +268,10 @@ internal object LocalPhoneLlmLiveCallProbe {
         return workflow
     }
 
-    private fun immediateReport(reason: String): String =
+    private fun immediateReport(reason: String, provider: TextLlmProvider): String =
         "probe=local_phone_llm_live_call\n" +
+            "text_llm_provider=${provider.name}\n" +
+            "local_text_llm_live_call_success=false\n" +
             "local_phone_llm_live_call_success=false\n" +
             "failure_reason=$reason\n" +
             "probe_complete=true\n"
