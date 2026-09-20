@@ -18,6 +18,7 @@ enum class CallAudioMode(
 enum class TextLlmProvider(val displayName: String) {
     OPENAI_TEXT("OpenAI API (text)"),
     LOCAL_PHONE_LLM("Local LLM (S22)"),
+    EDGE_GALLERY("Google AI Edge Gallery (Gemma 4 E2B)"),
     LOCAL_MAC_LLM("Local LLM server (Mac)"),
     ;
 

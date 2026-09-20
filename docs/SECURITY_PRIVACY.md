@@ -26,6 +26,7 @@ Text providers for `LOCAL_STT_TTS`:
 
 ```text
 LOCAL_PHONE_LLM
+EDGE_GALLERY
 LOCAL_MAC_LLM
 OPENAI_TEXT
 ```
@@ -53,6 +54,8 @@ Production local speech must:
 Readiness must verify exact expected model identity, not only endpoint health. A stale or unexpected process fails closed or is recovered through the owned runtime path.
 
 The model never receives authority merely because it runs locally. Local model output is still untrusted candidate text until application approval.
+
+`EDGE_GALLERY` is restricted by the bridge to phone loopback. Readiness requires both `/health` and exact model identity from `/v1/models`; a healthy server with the wrong or missing model fails closed. The adapter supports an optional local Bearer token without weakening the rule that standard OpenAI API keys never live on Android. Production must not expose the Edge Gallery API on LAN/public interfaces or persist call prompts/responses as HTTP traffic logs.
 
 ## CallPlan and authorized facts
 
@@ -215,8 +218,8 @@ Physically proven now includes:
 Not yet proven:
 
 - larger phone-local text model;
+- Edge Gallery/Gemma phone-local inference path;
 - GPT-5.6 Sol interactive relay benchmark;
-- `READY_TO_DIAL` product gate;
 - `CallPlan v1` constrained multi-turn task execution;
 - local audio-model path;
 - paid OpenAI text or genuine OpenAI Realtime end-to-end path.

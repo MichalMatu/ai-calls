@@ -4,7 +4,10 @@ import android.content.Context
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.OnDeviceSpeechInput
+import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
+import pl.michalmatu.aicallbridge.textagent.EdgeGalleryTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LocalPhoneLlmBackendFactory
+import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /** Proves that the selected on-device STT and a non-network TTS voice are usable before dialing. */
 internal class AndroidLocalTextCallSpeechPreflight(
@@ -146,15 +149,41 @@ internal class AndroidLocalTextCallSpeechPreflight(
     }
 }
 
+internal object AndroidLocalTextCallBackendFactory {
+    fun create(context: Context, provider: TextLlmProvider): TextCallAgentBackend = when (provider) {
+        TextLlmProvider.LOCAL_PHONE_LLM -> LocalPhoneLlmBackendFactory.create(context.applicationContext)
+        TextLlmProvider.EDGE_GALLERY -> EdgeGalleryTextBackendFactory.create()
+        TextLlmProvider.LOCAL_MAC_LLM,
+        TextLlmProvider.OPENAI_TEXT,
+        -> throw IllegalArgumentException("text_provider_not_product_ready_${provider.name.lowercase()}")
+    }
+}
+
+internal object AndroidTextCallReadiness {
+    fun create(
+        context: Context,
+        workflow: CallWorkflow,
+        targetAuthorization: DialTargetAuthorization,
+        provider: TextLlmProvider,
+    ): LocalTextCallReadinessCoordinator = LocalTextCallReadinessCoordinator(
+        workflow = workflow,
+        targetAuthorization = targetAuthorization,
+        speechPreflight = AndroidLocalTextCallSpeechPreflight(context.applicationContext),
+        backendFactory = {
+            AndroidLocalTextCallBackendFactory.create(context.applicationContext, provider)
+        },
+    )
+}
+
 internal object LocalPhoneTextCallReadiness {
     fun create(
         context: Context,
         workflow: CallWorkflow,
         targetAuthorization: DialTargetAuthorization,
-    ): LocalTextCallReadinessCoordinator = LocalTextCallReadinessCoordinator(
+    ): LocalTextCallReadinessCoordinator = AndroidTextCallReadiness.create(
+        context = context,
         workflow = workflow,
         targetAuthorization = targetAuthorization,
-        speechPreflight = AndroidLocalTextCallSpeechPreflight(context.applicationContext),
-        backendFactory = { LocalPhoneLlmBackendFactory.create(context.applicationContext) },
+        provider = TextLlmProvider.LOCAL_PHONE_LLM,
     )
 }
