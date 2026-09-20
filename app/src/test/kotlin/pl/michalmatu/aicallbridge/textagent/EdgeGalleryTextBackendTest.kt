@@ -101,11 +101,11 @@ class EdgeGalleryTextBackendTest {
 
     private fun generate(backend: TextCallAgentBackend): Result {
         val latch = CountDownLatch(1)
-        var text: String? = null
+        var generatedText: String? = null
         var error: String? = null
         backend.generate("Cześć", object : TextCallAgentBackend.Listener {
-            override fun onComplete(value: String) {
-                text = value
+            override fun onComplete(text: String) {
+                generatedText = text
                 latch.countDown()
             }
 
@@ -115,7 +115,7 @@ class EdgeGalleryTextBackendTest {
             }
         })
         assertTrue(latch.await(5, TimeUnit.SECONDS))
-        return Result(text, error)
+        return Result(generatedText, error)
     }
 
     private data class Result(val text: String?, val error: String?)
