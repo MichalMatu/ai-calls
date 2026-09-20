@@ -1,9 +1,12 @@
 import unittest
 
 from local_phone_llm_live_call import (
+    EDGE_GALLERY_PROVIDER,
+    LOCAL_PHONE_PROVIDER,
     ORANGE_SUPPORT_NUMBER,
     build_probe_start_args,
     normalize_allowlisted_target,
+    normalize_provider,
     parse_probe_report,
 )
 
@@ -17,22 +20,33 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_allowlisted_target("112")
 
-    def test_probe_args_are_fixed_to_local_phone_live_probe(self):
-        args = build_probe_start_args("RFCT70L7E8J")
+    def test_probe_args_can_select_edge_gallery_without_dialing(self):
+        args = build_probe_start_args("RFCT70L7E8J", EDGE_GALLERY_PROVIDER)
         joined = " ".join(args)
         self.assertIn("run_local_phone_llm_live_call_probe", joined)
+        self.assertIn("text_llm_provider EDGE_GALLERY", joined)
         self.assertNotIn(ORANGE_SUPPORT_NUMBER, joined)
+
+    def test_provider_selection_is_fail_closed(self):
+        self.assertEqual(LOCAL_PHONE_PROVIDER, normalize_provider(LOCAL_PHONE_PROVIDER))
+        self.assertEqual(EDGE_GALLERY_PROVIDER, normalize_provider(EDGE_GALLERY_PROVIDER))
+        with self.assertRaises(ValueError):
+            normalize_provider("OPENAI_TEXT")
+        with self.assertRaises(ValueError):
+            normalize_provider("unknown")
 
     def test_report_parser_requires_terminal_marker(self):
         self.assertIsNone(parse_probe_report("stt_text=test\n"))
         report = parse_probe_report(
-            "stt_text=witaj\napproved_text=dzień dobry\n"
+            "text_llm_provider=EDGE_GALLERY\nstt_text=witaj\napproved_text=dzień dobry\n"
+            "local_text_llm_live_call_success=true\n"
             "local_phone_llm_live_call_success=true\nprobe_complete=true\n"
         )
         self.assertIsNotNone(report)
+        self.assertEqual("EDGE_GALLERY", report["text_llm_provider"])
         self.assertEqual("witaj", report["stt_text"])
         self.assertEqual("dzień dobry", report["approved_text"])
-        self.assertEqual("true", report["local_phone_llm_live_call_success"])
+        self.assertEqual("true", report["local_text_llm_live_call_success"])
 
 
 if __name__ == "__main__":
