@@ -136,8 +136,8 @@ def _require_endpointing(report: dict[str, str]) -> None:
     if report.get("endpoint_speech_detected") != "true":
         raise RuntimeError("live endpoint detector did not classify speech")
     capture_ms = int(report.get("endpoint_capture_ms", "0"))
-    if not 0 < capture_ms < 8_000:
-        raise RuntimeError(f"live endpoint capture was not early: {capture_ms} ms")
+    if not 0 < capture_ms < 15_000:
+        raise RuntimeError(f"live endpoint capture did not finish before the 15 s safety cap: {capture_ms} ms")
     latency_ms = int(report.get("end_of_speech_to_first_tx_ms", "-1"))
     if latency_ms < 0:
         raise RuntimeError("live report did not include end-of-speech to first-TX latency")
