@@ -53,6 +53,26 @@ class PcmEndOfUtteranceDetectorTest {
     }
 
     @Test
+    fun naturalPauseDoesNotEndLiveStyleUtterance() {
+        val detector = PcmEndOfUtteranceDetector(
+            trailingSilenceMs = 1_500,
+            maxCaptureMs = 60_000,
+        )
+
+        assertFalse(detector.acceptPcm16(pcm(600, 3_000)).shouldStop)
+        assertFalse(detector.acceptPcm16(pcm(900, 0)).shouldStop)
+        assertFalse(detector.acceptPcm16(pcm(800, 3_000)).shouldStop)
+
+        val result = detector.acceptPcm16(pcm(1_600, 0))
+
+        assertTrue(result.shouldStop)
+        assertEquals(PcmEndOfUtteranceDetector.EndReason.TRAILING_SILENCE, result.reason)
+        assertTrue(result.speechDetected)
+        assertEquals(3_800L, result.capturedMs)
+        assertEquals(2_300L, result.estimatedSpeechEndMs)
+    }
+
+    @Test
     fun handlesPcmSamplesSplitAcrossOddByteBoundaries() {
         val detector = PcmEndOfUtteranceDetector(
             minSpeechMs = 40,

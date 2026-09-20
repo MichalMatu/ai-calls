@@ -168,7 +168,10 @@ internal object LocalPhoneLlmLiveCallProbe {
         }
 
         private fun captureInputTurn(lease: CallMediaEndpointLease) {
-            val detector = PcmEndOfUtteranceDetector(maxCaptureMs = 60_000)
+            val detector = PcmEndOfUtteranceDetector(
+                trailingSilenceMs = 1_500,
+                maxCaptureMs = 60_000,
+            )
             val buffer = ByteArray(LocalSpeechFormat.bytesForDurationMs(20))
             val captureStartedElapsedMs = elapsedTurnMs()
             var total = 0
