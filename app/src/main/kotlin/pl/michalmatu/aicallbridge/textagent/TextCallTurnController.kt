@@ -3,8 +3,12 @@ package pl.michalmatu.aicallbridge.textagent
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechGenerationGate
 
 /**
- * One conservative text turn: FINAL ASR text -> COMPLETE backend text -> app approval.
- * Partial backend output is intentionally not part of this contract.
+ * One conservative text turn: FINAL ASR text -> COMPLETE text candidate -> app approval.
+ *
+ * Generative turns obtain the candidate from [TextCallAgentBackend]. Deterministic product-owned
+ * callers may submit an already-complete candidate directly, but both paths share the same
+ * application-owned approval and generation invalidation. Partial output is intentionally not part
+ * of this contract.
  */
 internal class TextCallTurnController(
     private val backend: TextCallAgentBackend,
@@ -30,16 +34,7 @@ internal class TextCallTurnController(
                         finishError(generation, listener, "backend_empty_response")
                         return
                     }
-                    when (approvalPolicy.evaluate(text)) {
-                        TextOutputDecision.RELEASE -> {
-                            finishGeneration(generation)
-                            listener.onApprovedResponse(text)
-                        }
-                        TextOutputDecision.DROP -> {
-                            finishGeneration(generation)
-                            listener.onDroppedResponse()
-                        }
-                    }
+                    evaluateCandidate(generation, text, listener)
                 }
 
                 override fun onError(reason: String) {
@@ -51,6 +46,17 @@ internal class TextCallTurnController(
         }
     }
 
+    /**
+     * Sends one already-complete deterministic candidate through the same application-owned output
+     * approval without invoking backend generation. Starting it invalidates any older backend turn.
+     */
+    fun submitCandidateText(text: String, listener: Listener) {
+        require(text.isNotBlank()) { "candidate_text_must_not_be_blank" }
+        backend.cancel()
+        val generation = gate.begin()
+        evaluateCandidate(generation, text, listener)
+    }
+
     fun cancel() {
         gate.invalidate()
         backend.cancel()
@@ -59,6 +65,20 @@ internal class TextCallTurnController(
     override fun close() {
         cancel()
         try { backend.close() } catch (_: Throwable) {}
+    }
+
+    private fun evaluateCandidate(generation: Long, text: String, listener: Listener) {
+        if (!gate.isCurrent(generation)) return
+        when (approvalPolicy.evaluate(text)) {
+            TextOutputDecision.RELEASE -> {
+                finishGeneration(generation)
+                listener.onApprovedResponse(text)
+            }
+            TextOutputDecision.DROP -> {
+                finishGeneration(generation)
+                listener.onDroppedResponse()
+            }
+        }
     }
 
     private fun finishError(generation: Long, listener: Listener, reason: String) {
