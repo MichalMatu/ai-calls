@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One bounded allowlisted cellular call using the S22 STT -> local text LLM -> TTS pipeline."""
+"""One bounded allowlisted cellular call using the S22 local text-call pipeline."""
 
 from __future__ import annotations
 
@@ -38,13 +38,28 @@ def normalize_provider(raw: str) -> str:
     return provider
 
 
-def build_probe_start_args(serial: str, provider: str = LOCAL_PHONE_PROVIDER) -> list[str]:
+def build_probe_start_args(
+    serial: str,
+    provider: str = LOCAL_PHONE_PROVIDER,
+    *,
+    gate_c_fast_path: bool = False,
+    target: Optional[str] = None,
+) -> list[str]:
     selected_provider = normalize_provider(provider)
-    return [
+    args = [
         "adb", "-s", serial, "shell", "am", "start", "-W", "-n", PROBE_ACTIVITY,
         "--ez", "run_local_phone_llm_live_call_probe", "true",
         "--es", "text_llm_provider", selected_provider,
     ]
+    if gate_c_fast_path:
+        if selected_provider != LOCAL_PHONE_PROVIDER:
+            raise ValueError("Gate C live probe is restricted to LOCAL_PHONE_LLM diagnostics")
+        selected_target = normalize_allowlisted_target(target or "")
+        args += [
+            "--ez", "gate_c_fast_path", "true",
+            "--es", "live_call_target", selected_target,
+        ]
+    return args
 
 
 def parse_probe_report(text: str) -> Optional[dict[str, str]]:
@@ -147,9 +162,13 @@ def _require_endpointing(report: dict[str, str]) -> None:
 def run_orange_support_once(
     serial: str = DEFAULT_SERIAL,
     provider: str = LOCAL_PHONE_PROVIDER,
+    *,
+    gate_c_fast_path: bool = False,
 ) -> dict[str, str]:
     selected_provider = normalize_provider(provider)
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
+    if gate_c_fast_path and selected_provider != LOCAL_PHONE_PROVIDER:
+        raise ValueError("Gate C live probe is restricted to LOCAL_PHONE_LLM diagnostics")
     adb = Adb(serial)
     if not is_direct_usb_target(_devices_output(), serial):
         raise RuntimeError("target S22 is not connected through exact direct USB ADB")
@@ -171,6 +190,7 @@ def run_orange_support_once(
 
         print(f"allowlisted_target={number}")
         print(f"text_llm_provider={selected_provider}")
+        print(f"gate_c_fast_path={str(gate_c_fast_path).lower()}")
         adb.dial(number)
         dialed = True
         print("dial_requested=true")
@@ -189,7 +209,15 @@ def run_orange_support_once(
 
         _remove_report(adb)
         adb.shell(["am", "force-stop", PACKAGE_NAME], check=False)
-        subprocess.run(build_probe_start_args(serial, selected_provider), check=True)
+        subprocess.run(
+            build_probe_start_args(
+                serial,
+                selected_provider,
+                gate_c_fast_path=gate_c_fast_path,
+                target=number if gate_c_fast_path else None,
+            ),
+            check=True,
+        )
         report = _wait_report(adb)
         if report.get("text_llm_provider") != selected_provider:
             raise RuntimeError("live probe provider mismatch")
@@ -229,16 +257,21 @@ def run_orange_support_once(
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    gate_c_fast_path = False
+    if "--gate-c-fast-path" in args:
+        gate_c_fast_path = True
+        args.remove("--gate-c-fast-path")
     if len(args) > 2:
         print(
-            "usage: local_phone_llm_live_call.py [adb-serial] [LOCAL_PHONE_LLM|EDGE_GALLERY]",
+            "usage: local_phone_llm_live_call.py [adb-serial] [LOCAL_PHONE_LLM|EDGE_GALLERY] "
+            "[--gate-c-fast-path]",
             file=sys.stderr,
         )
         return 2
     serial = args[0] if args else DEFAULT_SERIAL
     provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
     try:
-        run_orange_support_once(serial, provider)
+        run_orange_support_once(serial, provider, gate_c_fast_path=gate_c_fast_path)
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:
         print(f"local phone live call failed: {error}", file=sys.stderr)
