@@ -33,40 +33,7 @@ Target: Samsung Galaxy S22+ `SM-S906B`.
 
 Status: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
 
-The development harness remains useful evidence:
-
-- clean official Google AI Edge Gallery upstream base: `6353707057ccc524a6e513e73f0d6d5886f348a8`;
-- experimental package: `com.google.aiedge.gallery`;
-- loopback API: `127.0.0.1:8080`;
-- model: `Gemma-4-E2B-it`;
-- official Agent Skills phone tools were proposal-only: `say`, `listenMore`, `takeOver`;
-- CallBridge retained target authorization, sensitive-data authority, commitment authority, application approval and TAKE OVER.
-
-Positive evidence remains valid:
-
-- warm Agent Skills `SAY` decisions were repeatedly about `3.58-4.07 s` in v16;
-- a decision started from the real late Orange partial completed about `2.33 s` before the simulated final endpoint;
-- `/v1/agent/interrupt` was fast and stale work could be cancelled cleanly;
-- real Orange partial STT exposed a semantically complete greeting several seconds before final endpoint;
-- the temporary v17 speculative integration built, unit-tested and installed cleanly without changing durable product code.
-
-The final bounded live experiment did **not** establish a reliable product path:
-
-- v18 made exactly one allowlisted information-only call to `510100100`;
-- Orange RX and local STT worked and captured the full Max question;
-- Edge failed with `backend_agent_network_IOException` before application approval, TTS or cellular TX;
-- therefore no model-generated reply was transmitted in v18;
-- cleanup hung up the created call, restored Bluetooth and returned the phone to idle.
-
-Root-cause evidence from v19/v20:
-
-- after v18 the Edge Gallery process was gone and port 8080 was closed;
-- historical logcat showed a crash in `com.google.aiedge.gallery` while `LocalPhoneAgentRuntime.decide()` was contending on the `edge-local-api-worker` monitor;
-- after relaunch, loopback from the CallBridge UID worked and a normal off-call decision succeeded, so the basic loopback transport was not the blocker;
-- the first post-relaunch decision took about `10.65 s`;
-- the Edge process was about `2.58 GB` total PSS after inference, with additional swap pressure.
-
-Conclusion: speculative timing is technically plausible, but the current Gemma 4 E2B / Edge Gallery Agent Skills runtime is not sufficiently reliable or lightweight for the live S22 product path. Do not continue adding Edge probe hacks or repeat Orange calls by default. Preserve the evidence and revisit only after a materially improved runtime/model/hardware condition or an explicit user decision.
+The bounded Edge/Gemma experiment remains historical evidence only. The final live Orange experiment failed before application approval/TTS/TX, historical logcat showed the Edge process crashing around `LocalPhoneAgentRuntime.decide()`, the first post-relaunch decision was about 10.65 s, and the Edge process used about 2.58 GB total PSS plus swap pressure. Do not add more Edge probe hacks or make further Orange calls by default.
 
 Representative evidence:
 
@@ -80,62 +47,90 @@ Representative evidence:
 
 ## Active goal: Gate C — CallPlan v1
 
-Gate C is now the active productization gate. The objective is a deterministic call brain for common bounded turns, with any future model/helper restricted to language classification or paraphrase proposals.
+Gate C is the active productization gate: a deterministic call brain for common bounded turns, with any future model/helper restricted to proposal-only language classification or paraphrase.
 
-### Preimplementation audit result
+Existing authority remains unchanged:
 
-Existing authority types already cover the important security ownership and should be reused rather than copied:
+- `CallTask` owns immutable user/operator task authority, including `CallConstraints`, `CallPreferences` and `authorizedFacts`;
+- `CallResolvedTarget` is one resolved target but does not grant dialing authority or widen a runtime allowlist;
+- `CallWorkflow` owns progress, pending proposals, user-decision state and terminal outcome;
+- `CallConfirmationPolicy` evaluates concrete `CallProposal` data;
+- `CallCommitmentGate` owns one-shot exact-proposal commitment permission;
+- application-owned output approval remains required before TTS/TX.
 
-- `CallTask` — immutable operator/user-authorized task, including `CallConstraints`, `CallPreferences` and `authorizedFacts`;
-- `CallResolvedTarget` — one concrete resolved target; it does not itself grant dialing authority or widen a runtime allowlist;
-- `CallWorkflow` — task progress, resolved-target state, concrete pending proposal and user-decision state;
-- `CallConfirmationPolicy` — deterministic evaluation of a concrete `CallProposal` against immutable task constraints/preferences;
-- `CallCommitmentGate` — one-shot permit bound to one exact concrete proposal;
-- application-owned output approval — final speech release remains fail-closed outside normal active negotiation and while a commitment permit is pending.
+`CallPlan` is deliberately not another authority store. It references the existing task and resolved target and carries only immutable deterministic dialogue policy.
 
-The narrow new responsibility is **not another authority model**. Introduce an immutable `CallPlan` execution context that references existing authority objects instead of duplicating their fields. Its product responsibility is limited to:
+## Completed Gate C host slices
 
-- the existing `CallTask`;
-- the already resolved `CallResolvedTarget`;
-- immutable deterministic dialogue rules for known intents/questions;
-- completion criteria;
-- bounded repeat/escalation policy.
+### Slice 1 — immutable known-fact CallPlan engine
 
-A deterministic plan engine may classify a final transcript into one of the plan's known rules and produce a **proposal decision** such as `SAY`, `ASK_REPEAT`, `PROPOSAL`, `COMPLETE` or `TAKE_OVER`. It must not dial, mutate the task, create authorized facts, approve a commitment, issue a commitment token, or directly write to telephony TX.
+Status: `DONE / HOST_GREEN`.
 
-Known-fact answers should refer to an `authorizedFacts` key and resolve the value from the existing `CallTask` at decision time. A plan must fail closed if a referenced fact is absent. Counterparty offers remain `CallProposal` data and continue through the existing `CallWorkflow` / `CallConfirmationPolicy` / `CallCommitmentGate` path.
+Durable behavior now includes:
 
-A future language helper may only suggest a bounded intent/rule match or wording. It may not introduce a new fact, rule, target, action, commitment or authority. The deterministic application layer validates the helper result against the plan before use.
+- immutable `CallPlan` referencing the existing `CallTask` and `CallResolvedTarget`;
+- immutable `CallPlanRule` containing utterance variants plus an `authorizedFacts` key, never a copied fact value;
+- deterministic final-transcript normalization/matching;
+- exact `SAY` proposal using the value read from `CallTask.authorizedFacts` at decision time;
+- missing referenced fact -> fail-closed `TAKE_OVER`;
+- unknown/ambiguous transcript -> fallback, never guessed authority;
+- defensive immutable collection copies;
+- redacted ordinary rendering of task/target-sensitive data.
 
-### RED/GREEN matrix before implementation
+TDD evidence:
 
-Start Gate C implementation with host tests only and TDD. The first slice should prove:
+```text
+.agent/results/chatgpt-gate-c-callplan-red-v22-20260921.json
+.agent/results/chatgpt-gate-c-callplan-green-v23-20260921.json
+```
 
-| Case | RED expectation | GREEN behavior |
-| --- | --- | --- |
-| known question -> authorized fact | no deterministic plan path exists yet | returns a `SAY` proposal using exactly the value already present in `CallTask.authorizedFacts` |
-| rule references missing fact | current code has no plan validation | construction/decision fails closed; never invents a value |
-| unknown or ambiguous final transcript | no bounded deterministic classifier exists | returns `ASK_REPEAT` or `TAKE_OVER` according to bounded fallback policy; never guesses |
-| known counterparty offer | no CallPlan routing exists | emits typed `CallProposal` data for the existing workflow policy; never accepts it directly |
-| proposal outside constraints/preferences | preserve current authority behavior | existing `CallConfirmationPolicy` returns `NEEDS_USER_DECISION`; plan cannot override it |
-| commitment without exact permit | preserve current commitment gate | remains blocked; only the existing one-shot exact-proposal permit can authorize commit execution |
-| output outside active negotiation / while permit pending | preserve current output gate | final speech remains dropped/fail-closed |
-| target binding | plan has no dialing authority | plan references the resolved target but cannot mutate or widen the runtime dial allowlist |
-| completion criterion matched | no deterministic plan completion route exists | produces structured completion proposal/outcome; `CallWorkflow.complete` remains owner of terminal workflow state |
-| optional helper proposes unsupported intent/fact/action | helper is untrusted | deterministic validator rejects it and falls back; helper never widens plan or task authority |
-| mutable caller collections | new plan types must not leak mutation | all plan/rule/fallback collections are defensively copied and immutable |
-| privacy rendering | new plan may contain task/target references | `toString()`/ordinary diagnostics redact task facts and dial target just like existing models |
+`v23` passed the targeted `CallPlanTest`, the full `bash scripts/verify_host.sh` host gate, exact seven-file diff validation and `privileged-helper/` unchanged.
+
+### Slice 2 — bounded repeat/escalation policy
+
+Status: `DONE / HOST_GREEN`.
+
+Durable behavior now includes `CallPlanFallbackPolicy` with stateless bounded escalation:
+
+```text
+priorUnknownCount < maxRepeats -> ASK_REPEAT
+priorUnknownCount >= maxRepeats -> TAKE_OVER
+```
+
+The retry count is explicit input to `CallPlanEngine`; the plan/engine keep no hidden mutable conversation counter. Known deterministic rules still win even after earlier unknown turns. Negative counters and invalid limits fail at the API boundary. The old two-argument `decide(plan, transcript)` path remains source-compatible and behaves as `priorUnknownCount = 0`.
+
+TDD evidence:
+
+```text
+.agent/results/chatgpt-gate-c-callplan-bounded-fallback-red-v24-20260921.json
+.agent/results/chatgpt-gate-c-callplan-bounded-fallback-green-v25-20260921.json
+```
+
+`v25` passed both targeted CallPlan test classes, exact four-file diff validation, the full host gate and `privileged-helper/` unchanged.
+
+No S22/device/live-call gate was required for either slice because they are pure host/data-policy behavior.
+
+## Remaining Gate C matrix
+
+Still open:
+
+- completion criteria -> structured `COMPLETE` proposal/outcome while `CallWorkflow.complete(...)` remains the sole terminal-state owner;
+- known counterparty offer -> typed `CallProposal` routed to the existing workflow/policy, never auto-accepted by CallPlan;
+- explicit regression proof that proposal policy, commitment gate and output approval cannot be bypassed by plan decisions;
+- optional bounded language-helper validation that rejects unsupported rule/fact/action suggestions;
+- product wiring only after the deterministic policy model is complete and host-green.
 
 ## Next exact engineering step
 
-Implement only the first host-only Gate C slice after confirming fresh `main`:
+Implement the next host-only TDD slice for **completion criteria**:
 
-1. add the minimal immutable `CallPlan` / rule / decision data model needed for the first deterministic known-question path;
-2. RED tests first for authorized-fact lookup, missing-fact fail-closed behavior, unknown-intent fallback, immutability and redacted rendering;
-3. GREEN with the smallest deterministic engine; do not wire telephony, STT, TTS, diagnostics or a model yet;
-4. reuse `CallTask` and `CallResolvedTarget` by reference; do not duplicate constraints/preferences/facts;
-5. do not modify `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` or frozen media unless a failing test proves a concrete integration gap;
-6. run `bash scripts/verify_host.sh`;
-7. update authoritative docs only when behavior actually changes.
+1. start from fresh `main` plus fresh Local Agent status/binding;
+2. RED first for an immutable completion criterion that matches only a known final transcript and returns a structured `COMPLETE` proposal carrying a `CallOutcome`;
+3. prove unknown/ambiguous completion text never fabricates completion;
+4. keep completion matching deterministic and immutable; defensive-copy caller collections and redact diagnostics;
+5. do **not** call or mutate `CallWorkflow` inside `CallPlanEngine`; `CallWorkflow.complete(CallOutcome)` remains the sole owner of terminal `COMPLETED` state;
+6. keep existing known-fact and bounded-fallback behavior source-compatible;
+7. do not touch `CallConfirmationPolicy`, `CallCommitmentGate`, media, STT/TTS, diagnostics or `privileged-helper/` unless a failing test proves a concrete gap;
+8. run targeted tests and `bash scripts/verify_host.sh` before declaring GREEN.
 
-No S22 gate is needed for this first pure host/data-policy slice. No further Orange call is part of this continuation.
+No S22 gate and no live Orange call are part of this next slice.
