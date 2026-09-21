@@ -169,6 +169,8 @@ Physical S22 validation follows only after host integration is complete and only
 
 Status: `PLANNED / HIGH-VALUE GATE-C EXTENSION AFTER FINAL-STT WIRING`
 
+Detailed third-party engine research and integration checklist: `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`.
+
 This is a potentially key product architecture, not a side experiment.
 
 Goal: let the phone answer common turns immediately from a tiny deterministic local matrix while a bounded LLM supervisor has time to warm up, accumulate conversational context and intervene only on ambiguous or important turns.
@@ -225,6 +227,15 @@ Measure at minimum:
 - number of important turns needing supervisor assistance.
 
 Do not implement this by bypassing the current final-STT/CallPlan/approval wiring. First complete the clean final-STT integration, then add the matrix as a product-owned classification fast path ahead of bounded helper/model use.
+
+Before selecting an engine, explicitly compare:
+
+- `aichaos/rivescript-java` as the first lightweight Java spike;
+- `ChatScript/ChatScript` as a mature source of pattern/topic/rejoinder ideas and only then as a possible native dependency;
+- `KStateMachine/kstatemachine` only if dialogue-stage state becomes complex enough to justify another non-authority state abstraction;
+- a tiny native CallBridge PhraseMatrix baseline.
+
+Do not vendor any of them before the integration/license/footprint checks in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md` are completed.
 
 Gate C exit: bounded product-session turns use deterministic plan data without general-purpose reasoning, missing facts are never invented, structured actions never silently become speech/model fallback, and no model/helper grants itself authority.
 
