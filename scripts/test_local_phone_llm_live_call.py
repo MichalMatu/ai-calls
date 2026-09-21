@@ -3,9 +3,11 @@ import unittest
 from local_phone_llm_live_call import (
     EDGE_GALLERY_PROVIDER,
     LOCAL_PHONE_PROVIDER,
+    ORANGE_ACTION_LIST_CAPABILITIES,
     ORANGE_SUPPORT_NUMBER,
     _is_ignorable_gate_c_preroll,
     _require_gate_c_fast_path_report,
+    _require_gate_c_observation_report,
     build_probe_start_args,
     normalize_allowlisted_target,
     normalize_provider,
@@ -47,6 +49,26 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
                 target="501234567",
             )
 
+    def test_gate_c_probe_args_can_select_only_named_orange_explorer_action(self):
+        args = build_probe_start_args(
+            "RFCT70L7E8J",
+            LOCAL_PHONE_PROVIDER,
+            gate_c_fast_path=True,
+            target=ORANGE_SUPPORT_NUMBER,
+            orange_action=ORANGE_ACTION_LIST_CAPABILITIES,
+        )
+        joined = " ".join(args)
+        self.assertIn("orange_live_action list_capabilities", joined)
+
+        with self.assertRaises(ValueError):
+            build_probe_start_args(
+                "RFCT70L7E8J",
+                LOCAL_PHONE_PROVIDER,
+                gate_c_fast_path=True,
+                target=ORANGE_SUPPORT_NUMBER,
+                orange_action="arbitrary_speech",
+            )
+
     def test_provider_selection_is_fail_closed(self):
         self.assertEqual(LOCAL_PHONE_PROVIDER, normalize_provider(LOCAL_PHONE_PROVIDER))
         self.assertEqual(EDGE_GALLERY_PROVIDER, normalize_provider(EDGE_GALLERY_PROVIDER))
@@ -72,6 +94,7 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         _require_gate_c_fast_path_report({
             "gate_c_fast_path": "true",
             "gate_c_call_plan_bound": "true",
+            "orange_live_action": "greeting",
             "backend_generate_calls": "0",
             "approved_text": "Dzień dobry.",
         })
@@ -80,24 +103,28 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
             {
                 "gate_c_fast_path": "false",
                 "gate_c_call_plan_bound": "true",
+                "orange_live_action": "greeting",
                 "backend_generate_calls": "0",
                 "approved_text": "Dzień dobry.",
             },
             {
                 "gate_c_fast_path": "true",
                 "gate_c_call_plan_bound": "false",
+                "orange_live_action": "greeting",
                 "backend_generate_calls": "0",
                 "approved_text": "Dzień dobry.",
             },
             {
                 "gate_c_fast_path": "true",
                 "gate_c_call_plan_bound": "true",
+                "orange_live_action": "greeting",
                 "backend_generate_calls": "1",
                 "approved_text": "Dzień dobry.",
             },
             {
                 "gate_c_fast_path": "true",
                 "gate_c_call_plan_bound": "true",
+                "orange_live_action": "greeting",
                 "backend_generate_calls": "0",
                 "approved_text": "inna odpowiedź",
             },
@@ -126,6 +153,32 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         ]
         for report in neighboring_fail_closed_reports:
             self.assertFalse(_is_ignorable_gate_c_preroll(report), report)
+
+    def test_gate_c_observation_requires_takeover_zero_backend_and_nonblank_transcript(self):
+        report = {
+            "gate_c_fast_path": "true",
+            "gate_c_call_plan_bound": "true",
+            "orange_live_action": "observe_only",
+            "backend_generate_calls": "0",
+            "local_text_llm_live_call_success": "false",
+            "failure_reason": "gate_c_take_over",
+            "stt_text": "mam kilka możliwości",
+            "stt_transcript_nonblank": "true",
+            "endpointing": "trailing_silence",
+            "endpoint_reason": "trailing_silence",
+            "endpoint_speech_detected": "true",
+            "endpoint_capture_ms": "4200",
+        }
+        _require_gate_c_observation_report(report)
+
+        for invalid in [
+            {**report, "backend_generate_calls": "1"},
+            {**report, "failure_reason": "probe_timeout"},
+            {**report, "stt_text": ""},
+            {**report, "orange_live_action": "list_capabilities"},
+        ]:
+            with self.assertRaises(RuntimeError):
+                _require_gate_c_observation_report(invalid)
 
 
 if __name__ == "__main__":
