@@ -161,9 +161,24 @@ class DiagnosticProbeActivity : Activity() {
                     finishWithError("local_live_text_provider_not_supported_${provider.name.lowercase()}")
                     return
                 }
+                val gateCFastPath = intent.getBooleanExtra(EXTRA_GATE_C_FAST_PATH, false)
+                val liveCallTarget = intent.getStringExtra(EXTRA_LIVE_CALL_TARGET)
+                val request = try {
+                    LocalPhoneLlmLiveCallProbeRequest.create(
+                        provider = provider,
+                        gateCFastPath = gateCFastPath,
+                        liveCallTarget = liveCallTarget,
+                    )
+                } catch (error: IllegalArgumentException) {
+                    finishWithError("local_live_request_${error.message.orEmpty().take(120)}")
+                    return
+                }
                 statusView.text = "Running local text LLM live-call probe: ${provider.displayName}…"
-                Log.i(TAG, "local_phone_llm_live_call_probe_start=true,provider=${provider.name}")
-                LocalPhoneLlmLiveCallProbe.run(this, provider) { result ->
+                Log.i(
+                    TAG,
+                    "local_phone_llm_live_call_probe_start=true,provider=${provider.name},gate_c_fast_path=$gateCFastPath",
+                )
+                LocalPhoneLlmLiveCallProbe.run(this, request) { result ->
                     runOnUiThread {
                         statusView.text = result
                         Log.i(TAG, "local_phone_llm_live_call_probe_result:\n$result")
@@ -318,6 +333,8 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_LOCAL_SPEECH_PFD_LOOPBACK_PROBE = "run_local_speech_pfd_loopback_probe"
         const val EXTRA_RUN_LOCAL_PHONE_LLM_LIVE_CALL_PROBE = "run_local_phone_llm_live_call_probe"
         const val EXTRA_TEXT_LLM_PROVIDER = "text_llm_provider"
+        const val EXTRA_GATE_C_FAST_PATH = "gate_c_fast_path"
+        const val EXTRA_LIVE_CALL_TARGET = "live_call_target"
         const val EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE = "run_realtime_live_call_smoke"
         const val EXTRA_REALTIME_LIVE_DURATION_MS = "realtime_live_duration_ms"
         const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"
