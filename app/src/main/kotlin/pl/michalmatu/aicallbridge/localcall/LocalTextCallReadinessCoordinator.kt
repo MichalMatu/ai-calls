@@ -268,8 +268,13 @@ internal class PreparedLocalTextCall internal constructor(
     val workflow: CallWorkflow,
     private val backend: TextCallAgentBackend,
     internal val callPlan: CallPlan? = null,
+    internal val phraseMatrix: PhraseMatrix? = null,
 ) : AutoCloseable {
     private val claimed = AtomicBoolean(false)
+
+    init {
+        require(phraseMatrix == null || callPlan != null) { "phrase_matrix_requires_call_plan" }
+    }
 
     internal fun claimBackend(): TextCallAgentBackend {
         check(claimed.compareAndSet(false, true)) { "prepared_local_text_call_already_claimed" }
