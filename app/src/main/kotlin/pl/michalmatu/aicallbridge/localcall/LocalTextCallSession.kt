@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.localcall
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
@@ -28,6 +29,9 @@ internal class LocalTextCallSession private constructor(
         fun create(backend: TextCallAgentBackend): Pipeline
     }
 
+    private val planFallbackLock = Any()
+    private var consecutiveUnknownCount = 0
+
     internal constructor(
         prepared: PreparedLocalTextCall,
         pipelineFactory: PipelineFactory,
@@ -47,8 +51,24 @@ internal class LocalTextCallSession private constructor(
     fun finishInput() = pipeline.finishInput()
 
     /**
-     * Routes one already-final transcript through the bound CallPlan without speaking or invoking
-     * the generative backend. A plan must have been bound during readiness.
+     * Routes one already-final transcript through the bound CallPlan while owning the bounded
+     * consecutive-unknown state for this session. ASK_REPEAT advances the counter; every other
+     * deterministic result resets it. A plan must have been bound during readiness.
+     */
+    fun handlePlanFinalTranscript(finalTranscript: String): CallPlanTurnResult =
+        synchronized(planFallbackLock) {
+            val result = handlePlanFinalTranscript(finalTranscript, consecutiveUnknownCount)
+            consecutiveUnknownCount = if (result.decision().action() == CallPlanAction.ASK_REPEAT) {
+                consecutiveUnknownCount + 1
+            } else {
+                0
+            }
+            result
+        }
+
+    /**
+     * Explicit stateless CallPlan entry point retained for focused diagnostics/tests. Product
+     * session routing should use the overload that owns the consecutive-unknown counter.
      */
     fun handlePlanFinalTranscript(finalTranscript: String, priorUnknownCount: Int): CallPlanTurnResult {
         val coordinator = checkNotNull(planTurnCoordinator) { "call_plan_not_bound" }
