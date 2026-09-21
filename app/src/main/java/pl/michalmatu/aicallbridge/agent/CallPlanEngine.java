@@ -24,18 +24,30 @@ public final class CallPlanEngine {
             return fallback(plan.fallbackPolicy(), priorUnknownCount);
         }
 
-        List<CallPlanRule> matches = new ArrayList<>();
+        List<CallPlanRule> factMatches = new ArrayList<>();
         for (CallPlanRule rule : plan.rules()) {
-            if (matches(rule, normalizedTranscript)) {
-                matches.add(rule);
+            if (matches(rule.utterances(), normalizedTranscript)) {
+                factMatches.add(rule);
             }
         }
 
-        if (matches.size() != 1) {
+        List<CallPlanCompletionRule> completionMatches = new ArrayList<>();
+        for (CallPlanCompletionRule rule : plan.completionRules()) {
+            if (matches(rule.utterances(), normalizedTranscript)) {
+                completionMatches.add(rule);
+            }
+        }
+
+        if (factMatches.size() + completionMatches.size() != 1) {
             return fallback(plan.fallbackPolicy(), priorUnknownCount);
         }
 
-        CallPlanRule rule = matches.get(0);
+        if (completionMatches.size() == 1) {
+            CallPlanCompletionRule rule = completionMatches.get(0);
+            return CallPlanDecision.complete(rule.outcome(), rule.id());
+        }
+
+        CallPlanRule rule = factMatches.get(0);
         String authorizedValue = plan.task().authorizedFacts().get(rule.authorizedFactKey());
         if (authorizedValue == null) {
             return CallPlanDecision.takeOver(rule.id());
@@ -43,8 +55,8 @@ public final class CallPlanEngine {
         return CallPlanDecision.say(authorizedValue, rule.id());
     }
 
-    private static boolean matches(CallPlanRule rule, String normalizedTranscript) {
-        for (String utterance : rule.utterances()) {
+    private static boolean matches(Iterable<String> utterances, String normalizedTranscript) {
+        for (String utterance : utterances) {
             if (normalize(utterance).equals(normalizedTranscript)) {
                 return true;
             }
@@ -59,7 +71,9 @@ public final class CallPlanEngine {
         return switch (policy.actionFor(priorUnknownCount)) {
             case ASK_REPEAT -> CallPlanDecision.askRepeat();
             case TAKE_OVER -> CallPlanDecision.takeOver(null);
-            case SAY -> throw new IllegalStateException("fallback policy must not produce SAY");
+            case SAY, COMPLETE -> throw new IllegalStateException(
+                "fallback policy must not produce speech or completion"
+            );
         };
     }
 
