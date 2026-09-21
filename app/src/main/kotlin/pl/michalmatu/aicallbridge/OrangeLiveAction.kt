@@ -13,6 +13,8 @@ internal enum class OrangeLiveAction(
     GREETING("greeting", "Dzień dobry."),
     LIST_CAPABILITIES("list_capabilities", "Jakie sprawy możesz załatwić?"),
     INVOICE_STATUS("invoice_status", "Chcę sprawdzić fakturę."),
+    INVOICE_TOPIC("invoice_topic", "Faktura."),
+    INTERNET_PROBLEM("internet_problem", "Mam problem z internetem."),
     OBSERVE_ONLY("observe_only", null),
     ;
 
