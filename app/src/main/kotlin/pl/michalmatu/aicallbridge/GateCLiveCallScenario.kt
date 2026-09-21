@@ -29,9 +29,11 @@ internal object GateCLiveCallScenarioFactory {
     const val ORANGE_SUPPORT_NUMBER = "510100100"
     const val GREETING_RULE_ID = "orange-greeting"
     const val MAX_ROOT_RULE_ID = "orange-max-root"
+    const val INVOICE_STATUS_RULE_ID = "orange-invoice-status-root"
 
     private const val GREETING_FACT_KEY = "orange-greeting-response"
     private const val EXPLORER_FACT_KEY = "orange-explorer-response"
+    private const val INVOICE_STATUS_FACT_KEY = "orange-invoice-status-response"
     private const val REVIEWED_GREETING = "orange dzień dobry jestem max twój wi"
     private const val REVIEWED_GREETING_FULL =
         "orange dzień dobry jestem max twój wirtualny asystent"
@@ -110,6 +112,13 @@ internal object GateCLiveCallScenarioFactory {
         OrangeLiveAction.LIST_CAPABILITIES -> ReviewedTurn(
             ruleId = MAX_ROOT_RULE_ID,
             factKey = EXPLORER_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = emptySet(),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.INVOICE_STATUS -> ReviewedTurn(
+            ruleId = INVOICE_STATUS_RULE_ID,
+            factKey = INVOICE_STATUS_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
             aliases = emptySet(),
             response = checkNotNull(action.reviewedResponse),
