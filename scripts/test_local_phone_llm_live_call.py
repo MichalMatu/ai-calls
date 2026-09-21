@@ -239,6 +239,12 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
             "endpoint_capture_ms": "4200",
         }
         _require_gate_c_observation_report(report)
+        _require_gate_c_observation_report({
+            **report,
+            "endpoint_reason": "max_duration",
+            "endpoint_capture_ms": "15000",
+            "rx_max_capture_ms": "15000",
+        })
 
         for invalid in [
             {**report, "backend_generate_calls": "1"},
