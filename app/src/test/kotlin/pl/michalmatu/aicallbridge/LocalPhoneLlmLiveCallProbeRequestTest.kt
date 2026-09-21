@@ -19,6 +19,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
 
         assertTrue(request.gateCFastPath)
         assertEquals(GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER, request.liveCallTarget)
+        assertEquals(OrangeLiveAction.GREETING, request.orangeLiveAction)
 
         assertThrows(IllegalArgumentException::class.java) {
             LocalPhoneLlmLiveCallProbeRequest.create(
@@ -37,7 +38,27 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
     }
 
     @Test
-    fun `legacy request preserves provider and carries no target`() {
+    fun `gate c request accepts only known orange explorer actions`() {
+        val request = LocalPhoneLlmLiveCallProbeRequest.create(
+            provider = TextLlmProvider.LOCAL_PHONE_LLM,
+            gateCFastPath = true,
+            liveCallTarget = GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
+            orangeLiveActionId = "list_capabilities",
+        )
+        assertEquals(OrangeLiveAction.LIST_CAPABILITIES, request.orangeLiveAction)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            LocalPhoneLlmLiveCallProbeRequest.create(
+                provider = TextLlmProvider.LOCAL_PHONE_LLM,
+                gateCFastPath = true,
+                liveCallTarget = GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
+                orangeLiveActionId = "arbitrary_speech",
+            )
+        }
+    }
+
+    @Test
+    fun `legacy request preserves provider and carries no target or explorer action`() {
         val request = LocalPhoneLlmLiveCallProbeRequest.create(
             provider = TextLlmProvider.EDGE_GALLERY,
             gateCFastPath = false,
@@ -46,6 +67,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
 
         assertFalse(request.gateCFastPath)
         assertNull(request.liveCallTarget)
+        assertNull(request.orangeLiveAction)
         assertEquals(TextLlmProvider.EDGE_GALLERY, request.provider)
     }
 }
