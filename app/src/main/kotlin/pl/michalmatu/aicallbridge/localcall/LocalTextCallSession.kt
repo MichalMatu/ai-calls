@@ -43,6 +43,14 @@ internal class LocalTextCallSession private constructor(
         fun onStructuredResult(result: CallPlanTurnResult)
     }
 
+    /**
+     * Narrow cross-package diagnostic view. It exposes only the bounded action and validated rule id;
+     * CallPlanTurnResult and its payload-bearing internals remain package-private to localcall.
+     */
+    internal fun interface StructuredPlanTurnListener {
+        fun onStructuredDecision(action: CallPlanAction, ruleId: String?)
+    }
+
     private val phraseMatrixTurnRouter: PhraseMatrixProductTurnRouter? =
         if (phraseMatrix != null) {
             PhraseMatrixProductTurnRouter(
@@ -87,6 +95,19 @@ internal class LocalTextCallSession private constructor(
                 )
                 selection.structuredResult?.let(planTurnListener::onStructuredResult)
                 selection.route
+            },
+        )
+    }
+
+    fun startWithPlanRouting(
+        listener: LocalSpeechTextPipeline.Listener,
+        structuredListener: StructuredPlanTurnListener,
+    ) {
+        start(
+            listener,
+            PlanTurnListener { result ->
+                val decision = result.decision()
+                structuredListener.onStructuredDecision(decision.action(), decision.ruleId())
             },
         )
     }
