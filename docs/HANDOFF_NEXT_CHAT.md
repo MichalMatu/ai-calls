@@ -1,4 +1,4 @@
-# Handoff — Gate C / deterministic PhraseMatrix fast path
+# Handoff — Orange Service Pack Explorer / deterministic Gate C
 
 Date: 2026-09-21
 
@@ -10,157 +10,401 @@ Local Agent control/evidence branch: `agent-control`
 
 ## Start here in the next chat
 
-1. Read fresh `AGENTS.md`, this file, `README.md` and `docs/ROADMAP.md`.
-2. Read `docs/ARCHITECTURE.md` / `docs/SECURITY_PRIVACY.md` before changing ownership or safety boundaries.
-3. Read `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md` before changing matcher-engine direction.
+1. Read fresh `AGENTS.md`, `README.md`, this file, `docs/ROADMAP.md` and `service-packs/orange/service_tree.v1.json`.
+2. Read `docs/ARCHITECTURE.md` / `docs/SECURITY_PRIVACY.md` before changing ownership or authority boundaries.
+3. Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media behavior.
 4. Fetch fresh `main` and fresh `agent-control:.agent/status/daemon.json`.
-5. Trust only the fresh daemon binding.
+5. Trust only the fresh Bridge envelope + fresh daemon binding. Never copy an old binding from this handoff.
 6. Inspect the latest terminal Local Agent result before creating a successor task.
 7. Keep `privileged-helper/` and the frozen Samsung media path untouched.
+8. Do not assume live-call authorization from this chat. The new chat must explicitly authorize physical Orange calls again.
 
-Live Orange calls require explicit current-session operator authorization and the exact operator-defined allowlisted destination.
+Current Local Agent daemon contract requires explicit `resources` on tasks. For physical S22 work the canonical resource used successfully is:
+
+```text
+device:rfct70l7e8j
+```
 
 ## Frozen foundation
 
-Target: Samsung Galaxy S22+ `SM-S906B`.
+Target phone: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8, direct USB ADB serial `RFCT70L7E8J`.
 
 - cellular RX/TX and fail-safe media lifecycle: `DONE / PROVEN_S22 / FROZEN`;
 - local Polish STT/TTS: `DONE / PROVEN_S22`;
 - provider-neutral text pipeline + application-owned output approval: `DONE / PROVEN_S22`;
-- Gate A readiness/prepared-call boundary: `DONE`;
+- product readiness/prepared-call boundary: `DONE`;
+- deterministic `CallPlan + PhraseMatrix` final-STT path: `HOST_GREEN`;
+- controlled cellular deterministic RX -> STT -> route -> approved TTS -> TX: `PROVEN_S22`;
 - general-purpose phone-local llama.cpp route: frozen;
 - Edge Gallery / Gemma 4 E2B / official Agent Skills: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`;
 - interactive ChatGPT relay: developer benchmark only.
 
-## Gate C checkpoint
+Authority remains unchanged:
 
-The deterministic `CallPlan v1` final-STT path, native PhraseMatrix fast path, bounded fuzzy extension and controlled Gate C live-call wiring are `HOST_GREEN`.
+- `CallTask` owns immutable task/constraints/preferences/authorized facts;
+- `CallResolvedTarget` owns the concrete resolved target but never widens allowlists;
+- `CallWorkflow` owns progress/proposals/user decisions/outcomes;
+- `CallConfirmationPolicy` evaluates typed proposals;
+- `CallCommitmentGate` owns one exact commitment permit;
+- application-owned output approval is mandatory before TTS/TX.
 
-Authority remains unchanged: `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and application-owned output approval remain the only authority owners. Models/helpers/skills/matchers are proposal- or classification-only.
+Models, helpers, matchers, service-pack discovery logic and Agent Skills remain proposal/classification-only.
 
-### Completed product wiring
+## Gate C status now
 
-- CallPlan policy core, coordinator and prepared-call binding;
-- exact deterministic candidates through the existing output approval;
-- neutral `Generate` / `Candidate` / `Consumed` final-turn dispatcher;
-- final-STT selector before backend generation;
-- session-owned consecutive-unknown fallback state;
-- native `PhraseMatrix` exact/alias classification with deterministic normalization and collision fail-closed behavior;
-- matcher `ruleId` validation through the existing CallPlan coordinator;
-- explicit optional previous-rule constraints;
-- session-owned `previousValidatedRuleId`, sourced only from a validated `CallPlanDecision.ruleId()`;
-- PhraseMatrix transport through readiness and `PreparedLocalTextCall`;
-- Android readiness factory binding for optional `CallPlan + PhraseMatrix`;
-- bounded opt-in fuzzy matching: max one edit, same token count, minimum source length, exact/alias priority and ambiguity fail-closed;
-- context-specific fuzzy ambiguity cannot fall back to a generic fuzzy rule;
-- controlled Orange Gate C diagnostic scenario bound to exact allowlist target `510100100`;
-- controlled scenario authorizes only the reviewed `Dzień dobry.` response and otherwise takes over/fails closed;
-- Gate C sentinel backend forbids model generation and records `backend_generate_calls`;
-- `LocalPhoneLlmLiveCallProbe` uses `LocalTextCallSession + CallPlan + PhraseMatrix` for Gate C;
-- `DiagnosticProbeActivity` accepts explicit `gate_c_fast_path` and exact `live_call_target` extras;
-- Python live runner validates exact allowlist, requires Gate C report markers and requires `backend_generate_calls=0`;
-- no-plan/default path remains ordinary `Generate`.
+Gate C is no longer waiting for its first live proof.
 
-Key GREEN evidence:
+Status:
 
 ```text
-.agent/results/chatgpt-gate-c-phrase-matrix-baseline-green-v55-20260921.json
-.agent/results/chatgpt-gate-c-suggested-rule-coordinator-green-v57-20260921.json
-.agent/results/chatgpt-gate-c-phrase-router-green-v59-20260921.json
-.agent/results/chatgpt-phrase-matrix-previous-context-green-v64-20260921.json
-.agent/results/chatgpt-phrase-router-previous-context-green-v66-20260921.json
-.agent/results/chatgpt-session-phrase-context-green-v68-20260921.json
-.agent/results/chatgpt-readiness-phrase-matrix-green-v70-20260921.json
-.agent/results/chatgpt-android-readiness-binding-green-v72-20260921.json
-.agent/results/chatgpt-phrase-matrix-fuzzy-green-v75-20260921.json
-.agent/results/chatgpt-phrase-matrix-fuzzy-context-green-v77-20260921.json
-.agent/results/chatgpt-gate-c-live-safety-green-v82-20260921.json
-.agent/results/chatgpt-gate-c-live-fastpath-green-v84-20260921.json
-.agent/results/chatgpt-gate-c-live-report-green-v86-20260921.json
-.agent/results/chatgpt-gate-c-host-final-v96-20260921.json
+ACTIVE / HOST_GREEN / LIVE DETERMINISTIC PATH PROVEN_S22
+CURRENT SLICE: ORANGE SERVICE PACK EXPLORER
 ```
 
-`v96` is the host-final checkpoint: targeted Gate C live tests, Python runner tests, full `bash scripts/verify_host.sh` and `:app:assembleDebug` all pass. It emits `GATE_C_HOST_FINAL_GREEN=true` and `APK_READY_FOR_S22_INSTALL=true`.
-
-Physical pre-dial evidence is now also green:
+The current product goal is to make Orange the first fully decoded deterministic service pack so that eventually:
 
 ```text
-.agent/results/chatgpt-gate-c-s22-predial-v97-20260921.json
-.agent/results/chatgpt-gate-c-s22-speech-preflight-v98-20260921.json
+natural user request
+ -> validated Orange service_id
+ -> verified deterministic route
+ -> automatic traversal
+ -> auth/confirmation only where the verified route requires it
 ```
 
-`v97` proved exact direct USB S22, `SM-S906B`, API 36, cellular state `IDLE`, fresh APK install, healthy Shizuku diagnostic path, exact Gate C intent/allowlist and explicitly `NO_DIAL_EXECUTED=true`. `v98` proved the production local TTS -> PCM -> on-device STT round trip on the same S22 while the cellular state remained `IDLE`.
+The model must not improvise each IVR turn.
 
-## Engine-selection decision
+## Key physical live evidence
 
-Use the native Kotlin `PhraseMatrix` as the production direction.
-
-Measured host spikes:
+### v101 — first real Gate C call / safe fail-closed
 
 ```text
-native PhraseMatrix:
-  init ~11.85 ms
-  average match ~0.815 us
-
-RiveScript Java:
-  init/sort ~46.56 ms
-  average reply ~88.85 us
-  debug APK delta +134,132 bytes
-  adds slf4j-api
+.agent/results/chatgpt-gate-c-orange-live-v101-20260921.json
 ```
 
-RiveScript proved Polish UTF-8 and `%Previous` behavior but also exposes arbitrary reply-text scripting and a wider capability surface. Do not add it to production now. ChatScript is reference material for pattern/topic/rejoinder design; its C++/JNI/data footprint is not justified for the current matcher. KStateMachine remains deferred.
+Orange answered; real downlink audio reached STT; the first final transcript was only `orange`; CallPlan failed closed to `TAKE_OVER`; `backend_generate_calls=0`; no TTS/TX reply was sent; cleanup returned the phone to idle and restored Bluetooth.
 
-These are host measurements, not `PROVEN_S22` performance evidence.
+This proved the need for explicit root-acquisition handling rather than treating branding fragments as intent.
 
-## Exact current product gap
-
-The host/product path and all non-call S22 pre-dial prerequisites are proven. What is **not** yet proven on the current wiring is only the complete live cellular chain:
+### v115 — first complete deterministic live RX -> TX + observation
 
 ```text
-Orange cellular RX
- -> S22 telephony downlink
- -> local final STT
+.agent/results/chatgpt-orange-explorer-live-v115-20260921.json
+```
+
+This is the main physical Gate C success checkpoint.
+
+Observed sequence:
+
+```text
+Orange pre-roll `orange`
+ -> bounded root-acquisition retry
+ -> STT full Max root prompt
+ -> PhraseMatrix / CallPlan validated `list_capabilities`
+ -> approved_text_source=call_plan_candidate
+ -> approved_text=Jakie sprawy możesz załatwić?
+ -> local TTS
+ -> telephony TX
+ -> OBSERVE_ONLY
+ -> Max reprompt transcript
+ -> hangup / IDLE cleanup
+```
+
+Important evidence:
+
+```text
+gate_c_fast_path=true
+gate_c_call_plan_bound=true
+backend_generate_calls=0
+approved_text=Jakie sprawy możesz załatwić?
+output_tts_pcm_bytes=59966
+telephony_tx_pcm_bytes=59966
+end_of_speech_to_first_tx_ms=2333
+```
+
+Observed Max root:
+
+```text
+dobry wieczór jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana chętnie pomogę powiedz w jakiej sprawie dzwonisz
+```
+
+Observed response after `Jakie sprawy możesz załatwić?`:
+
+```text
+abym mógł ci pomóc muszę mieć pewność w jakiej sprawie dzwonisz dlatego powiedz proszę czego dotyczy twoja sprawa
+```
+
+Conclusion: Max is a voice-first intent router. Asking for a capability list produces a reprompt, not a menu listing.
+
+### v123 — invoice seed physically attempted
+
+```text
+.agent/results/chatgpt-orange-invoice-live-v123-20260921.json
+```
+
+Observed sequence:
+
+```text
+pre-roll `orange`
+ -> bounded retry
+ -> full verified root prompt
+ -> reviewed invoice_status action
+ -> approved_text=Chcę sprawdzić fakturę.
+ -> local TTS / telephony TX
+ -> OBSERVE_ONLY
+ -> same Max root reprompt
+ -> cleanup to IDLE
+```
+
+Important evidence:
+
+```text
+gate_c_fast_path=true
+gate_c_call_plan_bound=true
+backend_generate_calls=0
+approved_text=Chcę sprawdzić fakturę.
+output_tts_pcm_bytes=49612
+telephony_tx_pcm_bytes=49612
+end_of_speech_to_first_tx_ms=2297
+ORANGE_INVOICE_V123_GREEN=true
+```
+
+Max again answered:
+
+```text
+abym mógł ci pomóc muszę mieć pewność w jakiej sprawie dzwonisz dlatego powiedz proszę czego dotyczy twoja sprawa
+```
+
+Interpretation: the exact reviewed utterance `Chcę sprawdzić fakturę.` was physically transmitted successfully but did **not** reach a verified invoice service route. Do not claim otherwise. The service seed is `DISCOVERED`, not `VERIFIED`.
+
+## Final host checkpoint before this handoff
+
+Product/data checkpoint validated by Local Agent:
+
+```text
+5b0f599b98aefcef2279490cb14824f70e63ea17
+```
+
+Evidence:
+
+```text
+.agent/results/chatgpt-orange-service-tree-final-green-v125-20260921.json
+```
+
+Result:
+
+```text
+12 Python tests OK
+bash scripts/verify_host.sh -> host_quality_gate_green=true
+ORANGE_SERVICE_TREE_HANDOFF_HOST_GREEN=true
+```
+
+Later commits in this handoff update only authoritative documentation and do not change runtime behavior.
+
+## Orange Explorer implementation
+
+### Exact live target
+
+```text
+510100100
+```
+
+No other target is authorized by the current Orange diagnostic implementation.
+
+### Named reviewed live actions
+
+`OrangeLiveAction.kt` currently contains:
+
+```text
+GREETING          -> Dzień dobry.
+LIST_CAPABILITIES -> Jakie sprawy możesz załatwić?
+INVOICE_STATUS    -> Chcę sprawdzić fakturę.
+OBSERVE_ONLY      -> no speech
+```
+
+This is intentionally not a free-text surface.
+
+`GateCLiveCallScenarioFactory` binds every speech-producing action to a reviewed root phrase and authorized fact. `OBSERVE_ONLY` builds no `SAY` rules at all.
+
+### Root acquisition
+
+Current exact physically observed ignorable pre-roll fragments in `scripts/local_phone_llm_live_call.py`:
+
+```text
+orange
+jakości orange
+5g jakości orange
+```
+
+They may be ignored only when all root-acquisition safety conditions pass. Do not generalize them into fuzzy branding logic without new physical evidence.
+
+Root acquisition also permits a bounded retry for Android `SpeechRecognizer ERROR_NO_MATCH(7)` only when the tested report proves:
+
+- Gate C fast path;
+- bound CallPlan;
+- root-acquisition action;
+- zero backend generation;
+- actual detected speech;
+- trailing-silence endpointing.
+
+`OBSERVE_ONLY` never uses pre-roll/no-match retry policy.
+
+Current retry bound remains small (`MAX_GATE_C_PREROLL_RETRIES = 2`).
+
+### Authority invariant
+
+The live explorer must continue to use:
+
+```text
+final STT
  -> PhraseMatrix
  -> existing CallPlan ruleId validation
  -> application-owned output approval
- -> local TTS
- -> S22 telephony uplink
+ -> TTS/TX
 ```
 
-The physical success report must prove all of the following at once:
+No arbitrary matcher/model output becomes speech.
 
-- exact allowlisted target `510100100`;
-- `gate_c_fast_path=true`;
-- `gate_c_call_plan_bound=true`;
-- reviewed response only: `approved_text=Dzień dobry.`;
-- `backend_generate_calls=0`;
-- nonblank STT transcript;
-- nonzero TTS / telephony TX PCM;
-- bounded trailing-silence endpointing;
-- cleanup/hangup returns the phone to idle.
+Do not reinterpret `TAKE_OVER` globally as `continue listening`. Root-acquisition continuation is an explicit runner policy with strict evidence conditions.
 
-A no-match or changed Orange prompt must fail closed / take over. Do not broaden the matcher just to make a live test pass.
+## Durable service tree
 
-## Next exact engineering step — one bounded Orange call
+Source of truth:
 
-No more host implementation or non-call S22 preflight is required before the first controlled Gate C attempt. `v97` and `v98` already proved the installed build, Shizuku path, exact Gate C intent, local production TTS/STT round trip and cellular `IDLE` state without dialing.
+```text
+service-packs/orange/service_tree.v1.json
+```
 
-Immediately before the live attempt, re-check exact USB identity and cellular `IDLE` state. Then, only with explicit current-session operator authorization, execute one bounded call to the exact allowlisted Orange target `510100100`, validate every required Gate C report marker, and restore/hang up in `finally`. Do not broaden PhraseMatrix rules merely to make the physical test pass.
+Current verified nodes:
 
-Important: `.agent/results/chatgpt-gate-c-s22-predial-v93-20260921.json` is **not** valid physical preflight evidence. The S22 was absent and the shell command did not use `set -e`, so later commands masked the failed assertion. Future physical tasks must use `set -euo pipefail` or otherwise preserve the first failure.
+```text
+orange.root
+orange.root.reprompt
+```
 
-## After the first physical Gate C proof
+Current verified observed edges:
 
-Then continue Gate C quality work:
+```text
+orange.root.list_capabilities
+  orange.root -> orange.root.reprompt
+  speech: Jakie sprawy możesz załatwić?
+  outcome: REPROMPT
+  evidence: v115
 
-1. measure matcher hit/false-positive/no-match rates and p50/p95 latency on a larger Polish ASR-like corpus;
-2. add reviewed phrases/aliases/fuzzy rules only from concrete corpus failures;
-3. define a bounded LLM supervisor that may suggest only an existing ruleId and cannot release speech or mutate authority itself;
-4. invalidate stale supervisor work on newer transcript/resumed speech/cancel/workflow change;
-5. later expand to bounded multi-turn non-committing tasks.
+orange.root.invoice_status
+  orange.root -> orange.root.reprompt
+  speech: Chcę sprawdzić fakturę.
+  outcome: REPROMPT
+  evidence: v123
+```
 
-Do not turn fuzzy matching into free semantic guessing. Sensitive/committing actions never become generic shortcuts.
+Current service seed:
+
+```text
+orange.invoice.status
+status: DISCOVERED
+last_outcome: REPROMPT
+service route: NOT VERIFIED
+```
+
+Important distinction: an observed edge can be `VERIFIED` because its actual transition was physically reproduced while the desired service seed remains only `DISCOVERED` because the target service node was not reached.
+
+State discipline for service seeds:
+
+```text
+SEED -> DISCOVERED -> VERIFIED
+```
+
+Use explicit barrier/risk metadata when applicable, e.g.:
+
+```text
+READ_ONLY
+AUTH_REQUIRED
+STATE_CHANGE
+PAID_COMMITMENT
+HUMAN_HANDOFF
+```
+
+Do not promote from public documentation alone.
+
+## Discovery policy for the next chat
+
+The user wants iterative Orange mapping, not one isolated call.
+
+Within a chat that explicitly authorizes repeated calls to exact target `510100100`, continue automatically across safe discovery branches instead of asking for confirmation before every single call.
+
+For each branch:
+
+1. choose one unverified capability seed;
+2. define one exact reviewed, non-committing utterance;
+3. RED test the action/route boundary;
+4. minimal GREEN through existing CallPlan/PhraseMatrix;
+5. targeted tests + `bash scripts/verify_host.sh`;
+6. one bounded physical Orange call with `--observe-next`;
+7. persist observed node/edge/transcript outcome;
+8. if it reaches an auth/customer-data/payment/state-change/commitment barrier, record that node/barrier and move to another branch instead of finalizing the action;
+9. repeat.
+
+The user specifically said not to stop the overall exploration at the first auth barrier. That means **continue with another branch**, not bypass the barrier or invent credentials.
+
+Never guess or send PESEL, customer number, SMS codes, payment data or other sensitive credentials. Never confirm a purchase, paid option, activation, tariff/contract change or other irreversible commitment merely to map the route.
+
+## Seed backlog direction
+
+Orange public capability material may be used only to seed hypotheses such as:
+
+- invoice / payment information;
+- outage / technical support;
+- PUK;
+- Neostrada / Wi-Fi;
+- roaming information;
+- voicemail;
+- SIM / eSIM;
+- data usage / internet packages;
+- prepaid / top-up information;
+- call forwarding;
+- My Orange;
+- human consultant / handoff.
+
+These are not verified routes until physically reproduced.
+
+Prefer informational/non-committing phrasing first. State-changing variants become barriers rather than automatic commitments.
+
+## Exact next engineering step
+
+Do **not** redo the first live Gate C proof.
+
+Start from the current tree and expand discovery.
+
+The invoice seed already demonstrated that `Chcę sprawdzić fakturę.` yields a reprompt. Preserve that evidence. For invoice, the next experiment should use a separately reviewed, simpler/operator-native phrasing selected deliberately (for example from concrete Orange wording/corpus evidence), with its own RED/GREEN path; do not overwrite the v123 edge.
+
+In parallel, add at least one new low-risk seed from another capability so exploration does not stall on invoice phrasing alone.
+
+Once several service intents are proven, consider replacing the growing hard-coded explorer enum with a **data-driven reviewed action catalog** sourced from service-pack data, but only if it preserves all current authority properties:
+
+- no arbitrary runtime speech;
+- exact allowlisted target;
+- CallPlan validation;
+- application-owned approval;
+- zero backend generation on deterministic routes;
+- tested fail-closed behavior.
+
+Do not refactor into a generic free-text IVR bot just to speed discovery.
+
+## Final Orange acceptance target
+
+Orange can be called the first fully decoded service only when the service pack supports a meaningful catalog of verified routes plus recovery/back/repeat/barrier behavior and passes a final acceptance test like:
+
+```text
+user prompt: natural language request for one catalog service
+ -> resolver proposes existing service_id only
+ -> service_id validated against verified Orange service pack
+ -> exact target 510100100
+ -> deterministic route executes without model improvisation
+ -> expected verified terminal/barrier reached
+ -> cleanup to IDLE
+```
+
+The final resolver/model may propose a known `service_id`; it must not invent new route actions or release arbitrary speech.
 
 ## Do not restart these paths by default
 
@@ -169,6 +413,6 @@ Do not turn fuzzy matching into free semantic guessing. Sensitive/committing act
 - paid OpenAI gates;
 - Samsung media refactors;
 - `privileged-helper/` work;
-- broad new diagnostic probe growth.
+- broad arbitrary diagnostic speech surfaces.
 
-Historical experiment detail belongs in Git history and `.agent/results`, not in new status documents.
+Historical detail remains in Git history and `.agent/results`; continue from this checkpoint rather than reconstructing old phases.
