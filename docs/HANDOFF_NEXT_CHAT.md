@@ -18,7 +18,7 @@ Local Agent control/evidence branch: `agent-control`
 6. Inspect the latest terminal Local Agent result before creating a successor task.
 7. Keep `privileged-helper/` and the frozen Samsung media path untouched.
 
-Live Orange calls require explicit current-session operator authorization and an exact operator-defined allowlisted destination.
+Live Orange calls require explicit current-session operator authorization and the exact operator-defined allowlisted destination.
 
 ## Frozen foundation
 
@@ -34,7 +34,7 @@ Target: Samsung Galaxy S22+ `SM-S906B`.
 
 ## Gate C checkpoint
 
-The deterministic `CallPlan v1` final-STT path plus the native PhraseMatrix fast-path baseline are `HOST_GREEN`.
+The deterministic `CallPlan v1` final-STT path, native PhraseMatrix fast path, bounded fuzzy extension and controlled Gate C live-call wiring are `HOST_GREEN`.
 
 Authority remains unchanged: `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and application-owned output approval remain the only authority owners. Models/helpers/skills/matchers are proposal- or classification-only.
 
@@ -51,6 +51,14 @@ Authority remains unchanged: `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `
 - session-owned `previousValidatedRuleId`, sourced only from a validated `CallPlanDecision.ruleId()`;
 - PhraseMatrix transport through readiness and `PreparedLocalTextCall`;
 - Android readiness factory binding for optional `CallPlan + PhraseMatrix`;
+- bounded opt-in fuzzy matching: max one edit, same token count, minimum source length, exact/alias priority and ambiguity fail-closed;
+- context-specific fuzzy ambiguity cannot fall back to a generic fuzzy rule;
+- controlled Orange Gate C diagnostic scenario bound to exact allowlist target `510100100`;
+- controlled scenario authorizes only the reviewed `Dzień dobry.` response and otherwise takes over/fails closed;
+- Gate C sentinel backend forbids model generation and records `backend_generate_calls`;
+- `LocalPhoneLlmLiveCallProbe` uses `LocalTextCallSession + CallPlan + PhraseMatrix` for Gate C;
+- `DiagnosticProbeActivity` accepts explicit `gate_c_fast_path` and exact `live_call_target` extras;
+- Python live runner validates exact allowlist, requires Gate C report markers and requires `backend_generate_calls=0`;
 - no-plan/default path remains ordinary `Generate`.
 
 Key GREEN evidence:
@@ -64,9 +72,15 @@ Key GREEN evidence:
 .agent/results/chatgpt-session-phrase-context-green-v68-20260921.json
 .agent/results/chatgpt-readiness-phrase-matrix-green-v70-20260921.json
 .agent/results/chatgpt-android-readiness-binding-green-v72-20260921.json
+.agent/results/chatgpt-phrase-matrix-fuzzy-green-v75-20260921.json
+.agent/results/chatgpt-phrase-matrix-fuzzy-context-green-v77-20260921.json
+.agent/results/chatgpt-gate-c-live-safety-green-v82-20260921.json
+.agent/results/chatgpt-gate-c-live-fastpath-green-v84-20260921.json
+.agent/results/chatgpt-gate-c-live-report-green-v86-20260921.json
+.agent/results/chatgpt-gate-c-host-final-v96-20260921.json
 ```
 
-`v72` passed targeted regressions plus full `bash scripts/verify_host.sh`.
+`v96` is the current host-final checkpoint: targeted Gate C live tests, Python runner tests, full `bash scripts/verify_host.sh` and `:app:assembleDebug` all pass. It emits `GATE_C_HOST_FINAL_GREEN=true` and `APK_READY_FOR_S22_INSTALL=true`.
 
 ## Engine-selection decision
 
@@ -92,23 +106,61 @@ These are host measurements, not `PROVEN_S22` performance evidence.
 
 ## Exact current product gap
 
-The fast path is now wired end-to-end at the host/product boundary, but it is intentionally conservative: exact normalized phrases, explicit aliases and explicit previous-rule context only.
+The host/product path is ready for the first controlled physical Gate C proof. What is **not** yet proven on the current wiring is the complete physical chain:
 
-Open Gate C work:
+```text
+Orange cellular RX
+ -> S22 telephony downlink
+ -> local final STT
+ -> PhraseMatrix
+ -> existing CallPlan ruleId validation
+ -> application-owned output approval
+ -> local TTS
+ -> S22 telephony uplink
+```
 
-1. add a small **bounded deterministic fuzzy/pattern layer** only where corpus tests justify it;
-2. preserve fail-closed behavior for ambiguous, negated or multi-intent text;
-3. measure matcher hit/false-positive/no-match rates and p50/p95 latency on a larger Polish ASR-like corpus;
-4. then define a bounded LLM supervisor that may suggest only an existing ruleId and cannot release speech or mutate authority itself;
-5. invalidate stale supervisor work on newer transcript/resumed speech/cancel/workflow change.
+The physical success report must prove all of the following at once:
+
+- exact allowlisted target `510100100`;
+- `gate_c_fast_path=true`;
+- `gate_c_call_plan_bound=true`;
+- reviewed response only: `approved_text=Dzień dobry.`;
+- `backend_generate_calls=0`;
+- nonblank STT transcript;
+- nonzero TTS / telephony TX PCM;
+- bounded trailing-silence endpointing;
+- cleanup/hangup returns the phone to idle.
+
+A no-match or changed Orange prompt must fail closed / take over. Do not broaden the matcher just to make a live test pass.
+
+## Next exact engineering step — requires S22 connected
+
+No more host-only implementation is required before the first controlled physical Gate C attempt.
+
+When the S22 is available again:
+
+1. fetch fresh `main` and daemon binding;
+2. build `:app:assembleDebug` from fresh `main`;
+3. require exact direct USB S22 `RFCT70L7E8J`, model `SM-S906B`, API 36 and cellular state `IDLE`;
+4. install the fresh debug APK;
+5. prove the Shizuku diagnostic probe is healthy;
+6. confirm the Gate C probe intent contains `gate_c_fast_path=true` and `live_call_target=510100100` and contains no dial/tel action;
+7. only with explicit current-session operator authorization, perform one bounded call to the exact allowlisted Orange target;
+8. inspect the terminal report against the success conditions above and hang up/restore state in `finally`.
+
+Important: `.agent/results/chatgpt-gate-c-s22-predial-v93-20260921.json` is **not** valid physical preflight evidence. The S22 was absent and the shell command did not use `set -e`, so later commands masked the failed assertion. Future physical tasks must use `set -euo pipefail` or otherwise preserve the first failure.
+
+## After the first physical Gate C proof
+
+Then continue Gate C quality work:
+
+1. measure matcher hit/false-positive/no-match rates and p50/p95 latency on a larger Polish ASR-like corpus;
+2. add reviewed phrases/aliases/fuzzy rules only from concrete corpus failures;
+3. define a bounded LLM supervisor that may suggest only an existing ruleId and cannot release speech or mutate authority itself;
+4. invalidate stale supervisor work on newer transcript/resumed speech/cancel/workflow change;
+5. later expand to bounded multi-turn non-committing tasks.
 
 Do not turn fuzzy matching into free semantic guessing. Sensitive/committing actions never become generic shortcuts.
-
-## Next exact engineering step
-
-Start one host-only TDD slice for the bounded native matcher extension. Prefer the smallest rule data/algorithm that covers a concrete failing corpus case. RED must prove the intended safe match and at least one neighboring false-positive/negation case; GREEN must remain deterministic and classification-only.
-
-After every behavior slice run targeted regressions and `bash scripts/verify_host.sh`. A host matcher slice does not require a physical call.
 
 ## Do not restart these paths by default
 
@@ -117,6 +169,6 @@ After every behavior slice run targeted regressions and `bash scripts/verify_hos
 - paid OpenAI gates;
 - Samsung media refactors;
 - `privileged-helper/` work;
-- new diagnostic probe growth.
+- broad new diagnostic probe growth.
 
 Historical experiment detail belongs in Git history and `.agent/results`, not in new status documents.
