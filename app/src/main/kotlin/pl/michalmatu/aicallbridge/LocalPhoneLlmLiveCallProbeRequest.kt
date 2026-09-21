@@ -6,12 +6,14 @@ internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
     val provider: TextLlmProvider,
     val gateCFastPath: Boolean,
     val liveCallTarget: String?,
+    val orangeLiveAction: OrangeLiveAction?,
 ) {
     companion object {
         fun create(
             provider: TextLlmProvider,
             gateCFastPath: Boolean,
             liveCallTarget: String?,
+            orangeLiveActionId: String? = null,
         ): LocalPhoneLlmLiveCallProbeRequest {
             require(
                 provider == TextLlmProvider.LOCAL_PHONE_LLM ||
@@ -21,10 +23,14 @@ internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
             }
 
             if (!gateCFastPath) {
+                require(orangeLiveActionId.isNullOrBlank()) {
+                    "orange_live_action_requires_gate_c"
+                }
                 return LocalPhoneLlmLiveCallProbeRequest(
                     provider = provider,
                     gateCFastPath = false,
                     liveCallTarget = null,
+                    orangeLiveAction = null,
                 )
             }
 
@@ -39,6 +45,7 @@ internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
                 provider = provider,
                 gateCFastPath = true,
                 liveCallTarget = target,
+                orangeLiveAction = OrangeLiveAction.fromWireId(orangeLiveActionId),
             )
         }
     }
