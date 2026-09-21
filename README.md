@@ -20,7 +20,7 @@ The old fixed 8-second capture wait is gone, and real Orange evidence proved tha
 
 The general-purpose phone-local LLM route is frozen. Qwen2.5-1.5B was too weak as the call brain, while Qwen3-4B caused unacceptable latency/resource pressure and user-visible S22 instability. The runtime and benchmark harness remain available for future hardware/model experiments, but they are not the current product direction.
 
-The separate Google AI Edge Gallery / Gemma 4 E2B / official Agent Skills checkpoint is also now frozen. It proved useful capabilities — official headless Agent Skills, real Orange partial STT, fast warm decisions and cancelable speculative inference — but the final bounded live test exposed an Edge process crash during `LocalPhoneAgentRuntime.decide()`. After relaunch, the first decision was about 10.65 seconds and the Edge process used about 2.58 GB total PSS. The live S22 path therefore remains `NOT PRODUCT_READY`; no further Orange calls or Edge probe hacks are the default plan.
+The separate Google AI Edge Gallery / Gemma 4 E2B / official Agent Skills checkpoint is also frozen. It proved useful capabilities — official headless Agent Skills, real Orange partial STT, fast warm decisions and cancelable speculative inference — but the final bounded live test exposed an Edge process crash during `LocalPhoneAgentRuntime.decide()`. After relaunch, the first decision was about 10.65 seconds and the Edge process used about 2.58 GB total PSS. The live S22 path therefore remains `NOT PRODUCT_READY`; no further Orange calls or Edge probe hacks are the default plan.
 
 Representative evidence:
 
@@ -72,9 +72,9 @@ The telephony transport, speech layer, language/reasoning helper and authority m
 
 ## Active execution plan — Gate C / CallPlan v1
 
-The active productization gate is now `CallPlan v1`: make common known turns deterministic and use a model only as an optional bounded language helper.
+`CallPlan v1` is the active productization gate. The deterministic host-policy core is now `DONE / HOST_GREEN`; product wiring is next.
 
-The preimplementation audit found that the current authority model should be reused rather than replaced:
+The existing authority model is reused rather than replaced:
 
 - `CallTask` remains the immutable source of user-authorized task data, hard constraints, soft preferences and `authorizedFacts`;
 - `CallResolvedTarget` represents the resolved concrete target without granting permission to widen any runtime dial allowlist;
@@ -83,9 +83,29 @@ The preimplementation audit found that the current authority model should be reu
 - `CallCommitmentGate` remains the one-shot permit bound to one exact proposal;
 - final speech still passes application-owned approval before TTS/TX.
 
-`CallPlan` must therefore be a narrow immutable execution context, not another authority store. It should reference the existing `CallTask` and resolved target, carry deterministic known-turn rules, completion criteria and bounded repeat/escalation policy. For authorized-fact answers, rules store a fact key and resolve the value from `CallTask.authorizedFacts` at decision time; a missing fact fails closed rather than being guessed.
+The host-green `CallPlan` core now provides immutable known-fact rules, completion rules, typed proposal rules, bounded repeat/escalation, defensive copying/redaction, and a bounded helper validator that accepts only an already-existing `ruleId`. Exact known turns can produce `SAY`, `ASK_REPEAT`, `PROPOSAL`, `COMPLETE` or `TAKE_OVER`; the engine itself never mutates workflow state or grants commitment/output authority.
 
-The first implementation slice is host-only and TDD-first: authorized-fact answer, missing-fact fail-closed behavior, unknown-intent fallback, immutability and redacted rendering. It must not wire telephony, STT/TTS, diagnostics or a model yet. See `docs/ROADMAP.md` for the RED/GREEN matrix and `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point.
+Cross-boundary regression tests prove that:
+
+- out-of-policy plan proposals still become `NEEDS_USER_DECISION` through the existing workflow/policy;
+- a plan decision cannot create a commitment permit;
+- speech remains fail-closed outside `ACTIVE_NEGOTIATION` and while commitment authority is pending;
+- helper suggestions cannot create facts, payloads, targets, actions or commitments.
+
+Representative Gate C evidence:
+
+```text
+.agent/results/chatgpt-gate-c-callplan-green-v23-20260921.json
+.agent/results/chatgpt-gate-c-callplan-bounded-fallback-green-v25-20260921.json
+.agent/results/chatgpt-gate-c-callplan-completion-green-v27-20260921.json
+.agent/results/chatgpt-gate-c-callplan-proposal-green-v29-20260921.json
+.agent/results/chatgpt-gate-c-callplan-authority-regression-v30-20260921.json
+.agent/results/chatgpt-gate-c-callplan-helper-green-v32-20260921.json
+```
+
+The next implementation slice is host-only and TDD-first: add a narrow product-owned `CallPlanTurnCoordinator` outside the speech/media layer. It should delegate classification to `CallPlanEngine`, route `PROPOSAL` only through `CallWorkflow.evaluateProposal(...)`, route `COMPLETE` only through `CallWorkflow.complete(...)`, and leave `SAY` / `ASK_REPEAT` / `TAKE_OVER` as structured outputs for a later session-output wiring slice. It must not dial, touch TTS/TX, authorize commitments, approve pending proposals or fall back to a model in this first wiring step.
+
+See `docs/ROADMAP.md` for the matrix and `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point.
 
 ## Interactive ChatGPT relay
 
