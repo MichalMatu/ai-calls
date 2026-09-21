@@ -30,10 +30,14 @@ internal object GateCLiveCallScenarioFactory {
     const val GREETING_RULE_ID = "orange-greeting"
     const val MAX_ROOT_RULE_ID = "orange-max-root"
     const val INVOICE_STATUS_RULE_ID = "orange-invoice-status-root"
+    const val INVOICE_TOPIC_RULE_ID = "orange-invoice-topic-root"
+    const val INTERNET_PROBLEM_RULE_ID = "orange-internet-problem-root"
 
     private const val GREETING_FACT_KEY = "orange-greeting-response"
     private const val EXPLORER_FACT_KEY = "orange-explorer-response"
     private const val INVOICE_STATUS_FACT_KEY = "orange-invoice-status-response"
+    private const val INVOICE_TOPIC_FACT_KEY = "orange-invoice-topic-response"
+    private const val INTERNET_PROBLEM_FACT_KEY = "orange-internet-problem-response"
     private const val REVIEWED_GREETING = "orange dzień dobry jestem max twój wi"
     private const val REVIEWED_GREETING_FULL =
         "orange dzień dobry jestem max twój wirtualny asystent"
@@ -119,6 +123,20 @@ internal object GateCLiveCallScenarioFactory {
         OrangeLiveAction.INVOICE_STATUS -> ReviewedTurn(
             ruleId = INVOICE_STATUS_RULE_ID,
             factKey = INVOICE_STATUS_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = emptySet(),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.INVOICE_TOPIC -> ReviewedTurn(
+            ruleId = INVOICE_TOPIC_RULE_ID,
+            factKey = INVOICE_TOPIC_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = emptySet(),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.INTERNET_PROBLEM -> ReviewedTurn(
+            ruleId = INTERNET_PROBLEM_RULE_ID,
+            factKey = INTERNET_PROBLEM_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
             aliases = emptySet(),
             response = checkNotNull(action.reviewedResponse),
