@@ -75,6 +75,78 @@ class LocalTextCallSessionFinalTurnRoutingTest {
         session.close()
     }
 
+    @Test
+    fun `session owns validated phrase context and clears rejected matcher context`() {
+        val task = task(
+            mapOf(
+                "ask_time_text" to "Proszę podać termin.",
+                "ack_text" to "Rozumiem.",
+                "confirm_time_text" to "Termin potwierdzony.",
+            ),
+        )
+        val target = target()
+        val workflow = workflow(task, target)
+        val plan = CallPlan(
+            task,
+            target,
+            listOf(
+                CallPlanRule("ask-time", setOf("pytanie o termin"), "ask_time_text"),
+                CallPlanRule("ack", setOf("potwierdzam"), "ack_text"),
+                CallPlanRule("confirm-time", setOf("potwierdzenie terminu"), "confirm_time_text"),
+            ),
+            CallPlanFallbackPolicy.repeatThenTakeOver(1),
+        )
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule("ask-time", setOf("jaki termin")),
+                PhraseMatrixRule("ack", setOf("tak")),
+                PhraseMatrixRule(
+                    "confirm-time",
+                    setOf("tak"),
+                    previousRuleIds = setOf("ask-time"),
+                ),
+                PhraseMatrixRule("not-in-plan", setOf("fałszywy skrót")),
+            ),
+        )
+        val pipeline = FakePipeline()
+        val backend = FakeBackend()
+        val session = LocalTextCallSession(
+            PreparedLocalTextCall(workflow, backend, plan, phraseMatrix = matrix),
+            LocalTextCallSession.PipelineFactory { pipeline },
+        )
+        val structured = mutableListOf<CallPlanTurnResult>()
+
+        session.start(
+            RecordingSpeechListener(),
+            LocalTextCallSession.PlanTurnListener { structured += it },
+        )
+
+        val selector = checkNotNull(pipeline.selector)
+        assertEquals(
+            TextCallFinalTurnRoute.Candidate("Proszę podać termin."),
+            selector.select("jaki termin"),
+        )
+        assertEquals(
+            TextCallFinalTurnRoute.Candidate("Termin potwierdzony."),
+            selector.select("tak"),
+        )
+
+        assertEquals(
+            TextCallFinalTurnRoute.Candidate("Proszę podać termin."),
+            selector.select("jaki termin"),
+        )
+        assertSame(TextCallFinalTurnRoute.Consumed, selector.select("fałszywy skrót"))
+        assertEquals(CallPlanAction.ASK_REPEAT, structured.single().decision().action())
+        assertNull(structured.single().decision().ruleId())
+
+        assertEquals(
+            TextCallFinalTurnRoute.Candidate("Rozumiem."),
+            selector.select("tak"),
+        )
+        assertEquals(0, backend.generateCalls)
+        session.close()
+    }
+
     @Test(expected = IllegalStateException::class)
     fun `plan-bound session requires a structured result owner`() {
         val task = task(emptyMap())
