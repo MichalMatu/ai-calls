@@ -163,11 +163,13 @@ class DiagnosticProbeActivity : Activity() {
                 }
                 val gateCFastPath = intent.getBooleanExtra(EXTRA_GATE_C_FAST_PATH, false)
                 val liveCallTarget = intent.getStringExtra(EXTRA_LIVE_CALL_TARGET)
+                val orangeLiveActionId = intent.getStringExtra(EXTRA_ORANGE_LIVE_ACTION)
                 val request = try {
                     LocalPhoneLlmLiveCallProbeRequest.create(
                         provider = provider,
                         gateCFastPath = gateCFastPath,
                         liveCallTarget = liveCallTarget,
+                        orangeLiveActionId = orangeLiveActionId,
                     )
                 } catch (error: IllegalArgumentException) {
                     finishWithError("local_live_request_${error.message.orEmpty().take(120)}")
@@ -176,7 +178,8 @@ class DiagnosticProbeActivity : Activity() {
                 statusView.text = "Running local text LLM live-call probe: ${provider.displayName}…"
                 Log.i(
                     TAG,
-                    "local_phone_llm_live_call_probe_start=true,provider=${provider.name},gate_c_fast_path=$gateCFastPath",
+                    "local_phone_llm_live_call_probe_start=true,provider=${provider.name}," +
+                        "gate_c_fast_path=$gateCFastPath,orange_live_action=${request.orangeLiveAction?.wireId ?: "none"}",
                 )
                 LocalPhoneLlmLiveCallProbe.run(this, request) { result ->
                     runOnUiThread {
@@ -335,6 +338,7 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_TEXT_LLM_PROVIDER = "text_llm_provider"
         const val EXTRA_GATE_C_FAST_PATH = "gate_c_fast_path"
         const val EXTRA_LIVE_CALL_TARGET = "live_call_target"
+        const val EXTRA_ORANGE_LIVE_ACTION = "orange_live_action"
         const val EXTRA_RUN_REALTIME_LIVE_CALL_SMOKE = "run_realtime_live_call_smoke"
         const val EXTRA_REALTIME_LIVE_DURATION_MS = "realtime_live_duration_ms"
         const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"
