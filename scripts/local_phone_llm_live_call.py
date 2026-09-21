@@ -160,16 +160,25 @@ def _require_gate_c_observation_report(report: dict[str, str]) -> None:
         raise RuntimeError("observe-only Gate C turn produced no final transcript")
     if report.get("endpointing") != "trailing_silence":
         raise RuntimeError("observe-only Gate C turn did not advertise trailing-silence endpointing")
-    if report.get("endpoint_reason") != "trailing_silence":
-        raise RuntimeError("observe-only Gate C turn did not end on trailing silence")
+    endpoint_reason = report.get("endpoint_reason")
+    if endpoint_reason not in {"trailing_silence", "max_duration"}:
+        raise RuntimeError("observe-only Gate C turn did not end on a reviewed bounded endpoint")
     if report.get("endpoint_speech_detected") != "true":
         raise RuntimeError("observe-only Gate C turn did not classify speech")
     try:
         capture_ms = int(report.get("endpoint_capture_ms", "0"))
     except ValueError as error:
         raise RuntimeError("observe-only Gate C report has invalid capture duration") from error
-    if not 0 < capture_ms < 60_000:
-        raise RuntimeError(f"observe-only capture reached the 60 s watchdog: {capture_ms} ms")
+    if endpoint_reason == "trailing_silence":
+        if not 0 < capture_ms < 60_000:
+            raise RuntimeError(f"observe-only capture reached the 60 s watchdog: {capture_ms} ms")
+    else:
+        try:
+            max_capture_ms = int(report.get("rx_max_capture_ms", "0"))
+        except ValueError as error:
+            raise RuntimeError("observe-only Gate C report has invalid hard cap") from error
+        if max_capture_ms != 15_000 or capture_ms != max_capture_ms:
+            raise RuntimeError("observe-only Gate C max-duration endpoint was not the reviewed 15 s hard cap")
 
 
 def _is_ignorable_gate_c_preroll(report: dict[str, str]) -> bool:
