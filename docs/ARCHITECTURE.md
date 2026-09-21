@@ -104,7 +104,7 @@ PCM input
 
 It deliberately does not emit TTS PCM until the complete model response has passed application-owned approval.
 
-`PcmEndOfUtteranceDetector` determines normal live input completion. The old fixed eight-second normal wait is gone; eight seconds remains only the hard safety maximum.
+The old fixed normal capture wait is gone. Real Orange IVR evidence shows that neither a short trailing-silence threshold nor one `SpeechRecognizer.onEndOfSpeech()` event is a sufficient final-turn signal: Max emits multiple phrases, multi-second pauses and multiple recognizer end events. The experimental turn boundary now treats recognizer end as a candidate, cancels it on resumed speech, and uses a later bounded hangover plus a long watchdog. Partial/segment callbacks are diagnostic/preparation signals; they must not authorize early TX.
 
 ## Text-model boundary
 
@@ -144,6 +144,33 @@ A health response alone is not identity. `/props` alias/model path verification 
 ### Google AI Edge Gallery provider
 
 `EDGE_GALLERY` is a separate phone-local text provider for Gemma through a loopback-only OpenAI-compatible API. It reuses `LocalOpenAiCompatibleTextBackend`; the provider-specific adapter first requires `/health` status `ok` and an exact `Gemma-4-E2B-it` entry from `/v1/models`. The normal READY_TO_DIAL warm-up then proves real inference before dialing. Edge Gallery owns inference only and never owns Samsung media, dialing, workflow authority or TAKE OVER.
+
+### Edge Gallery Agent Skills
+
+The official Google AI Edge Gallery Agent Skills runtime can be invoked headlessly from the development harness. For phone navigation the intended composition is:
+
+```text
+final/partial STT + explicit call goal
+        |
+        v
+preloaded phone-call-navigation skill
+        |
+        v
+constrained tool proposal
+  ├─ SAY(text)
+  ├─ LISTEN_MORE
+  └─ TAKE_OVER(reason)
+        |
+        v
+CallBridge deterministic policy / authority validation
+        |
+        v
+approved action only
+```
+
+The skill is **not** an execution authority. Tool methods only record a proposal. CallBridge decides whether any proposal is permitted and owns TTS/media execution. DTMF is intentionally absent from the current tool set.
+
+Latency architecture should separate preparation from the final decision. Model/skill/session reset may occur while the counterparty is still speaking. Stable partial STT may start cancelable speculative inference, but the result remains quarantined until the final endpoint and must match the final transcript/goal before application approval. Resumed/changed speech invalidates stale speculation.
 
 ## Authority boundary
 

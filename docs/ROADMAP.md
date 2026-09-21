@@ -43,19 +43,35 @@ telephony RX
 
 `LocalSpeechTextPipeline` and `TextCallTurnController` are the established text-turn boundary. New work must reuse them rather than duplicate speech or approval logic.
 
-### End-of-utterance detection
+### End-of-utterance / IVR turn boundary
 
-Status: `DONE / PROVEN_S22`
+Status: `SIGNALS PROVEN_S22 / PRODUCTION STATE MACHINE OPEN`
 
-Current defaults: 20 ms frames, RMS threshold 600, minimum detected speech 200 ms, trailing silence 700 ms and 8000 ms hard safety cap.
+The old fixed eight-second normal capture wait is gone. Real Orange testing subsequently proved that a short fixed trailing-silence threshold is also insufficient for multi-phrase IVR prompts:
 
-Representative Orange evidence:
+- 700 ms and 1500 ms trailing silence cut Max mid-prompt;
+- one complete greeting contained multiple `onEndOfSpeech` callbacks and multi-second internal pauses;
+- a recognizer-end candidate with about 4.5 s hangover captured the complete prompt instead of treating every `onEndOfSpeech` as final;
+- partial STT exposed the greeting progressively and reached the complete semantic prompt before final endpoint, making it useful for preparation/speculation.
+
+Target state model:
 
 ```text
-.agent/results/live-endpointing-orange-s22-20260919-1214.json
+speech/begin -> cancel pending END
+recognizer END -> candidate end
+resumed speech/partial growth -> cancel candidate
+stable later END + bounded hangover -> final turn
+60 s class watchdog -> safety only
 ```
 
-The old normal fixed eight-second capture wait is gone.
+Do not promote a diagnostic timeout into product semantics without physical evidence.
+
+Representative evidence:
+
+```text
+.agent/results/chatgpt-orange-agent-skills-endpoint-v9b-20260921.json
+.agent/results/chatgpt-orange-partial-stt-v12d-20260921.json
+```
 
 ---
 
@@ -150,11 +166,48 @@ This relay is a closed benchmark checkpoint. Further relay optimization is not t
 
 ---
 
-# Active gate
+## Edge Gallery + Agent Skills feasibility checkpoint
+
+Status: `ACTIVE EXPERIMENT / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`
+
+This checkpoint is deliberately separate from the frozen llama.cpp sweep. The current S22 has `Gemma-4-E2B-it` running through a clean-upstream Google AI Edge Gallery/LiteRT development harness. The CallBridge provider is loopback-only and requires health plus exact model identity.
+
+The official upstream Agent Skills machinery is callable headlessly. The experimental `phone-call-navigation` skill exposes only proposal tools:
+
+```text
+say(text)
+listenMore()
+takeOver(reason)
+```
+
+No skill/tool directly owns dialing, DTMF, Samsung media, credentials, sensitive disclosures, purchases, activations, tariff changes or commitments.
+
+Measured findings:
+
+- ReAct/load-skill path: functionally correct but too slow for Orange IVR (roughly mid-teens seconds in representative runs);
+- already-warm conversation path: successful `SAY` tool calls around 3.5-4.4 s were observed, but history contamination can cause a later no-action result;
+- resetting the conversation before each decision restored deterministic `SAY`, but cost roughly 10-11.5 s;
+- v12d physically proved rich partial STT throughout the full Max greeting, but the live reply still arrived about 38 s after recognizer end because model work began too late; Orange ended the call before another bounded turn completed.
+
+Next experiment: separate **prepare** from **decide**. Load/reset the skill/session while the other side is speaking and use stable partial STT for cancelable speculative work. Never transmit a speculative result. At final endpoint, validate that the result corresponds to the final transcript/goal, run application-owned approval, and only then synthesize/TX. If the partial transcript changes materially, cancel/restart the speculative generation.
+
+Evidence:
+
+```text
+.agent/results/chatgpt-edge-phone-skill-output-v4-20260921.json
+.agent/results/chatgpt-orange-agent-skills-endpoint-v9b-20260921.json
+.agent/results/chatgpt-edge-agent-full-greeting-latency-v10-20260921.json
+.agent/results/chatgpt-edge-agent-session-reset-v11-20260921.json
+.agent/results/chatgpt-orange-partial-stt-v12d-20260921.json
+```
+
+This feasibility work does not replace Gate C. It should either produce a bounded language/action-proposal helper that fits the application authority model, or be frozen with evidence.
+
+# Active product gate
 
 ## Gate C — CallPlan v1: deterministic call brain with optional bounded language helper
 
-Status: `NEXT / NOT STARTED`
+Status: `NEXT PRODUCTIZATION GATE / AFTER CURRENT EDGE FEASIBILITY CHECKPOINT`
 
 Goal: prepare structured task context and authority before the call so useful calls do not depend on a general-purpose local LLM.
 

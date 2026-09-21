@@ -16,19 +16,19 @@ Do not create a new planning/status document for every task. Put durable decisio
 
 ## Current priority
 
-Gate A readiness/orchestration and Gate B model evaluation are complete. The general-purpose phone-local LLM route on the current S22 is frozen.
+Gate A readiness/orchestration and the original Gate B local-model sweep are complete. The llama.cpp general-purpose phone-local route on the current S22 is frozen.
 
-The interactive ChatGPT relay is now physically proven as **developer benchmark infrastructure only**. It is not a production/background backend and must not become the product authority layer.
+The current **experimental checkpoint** is the materially different `EDGE_GALLERY` path: Gemma 4 E2B through LiteRT plus the official Google AI Edge Gallery Agent Skills runtime. It is promising language/tool infrastructure, not product authority. The application still owns target authorization, sensitive-data policy, commitments, output approval, TAKE OVER and Samsung media.
 
-Current product order:
+Current execution order:
 
-1. perform the Gate C preimplementation audit for `CallPlan v1` and deterministic conversation-state ownership;
-2. reuse existing `CallTask`, constraints/preferences, `authorizedFacts`, `CallWorkflow`, confirmation and commitment semantics instead of creating a second authority system;
-3. make common known turns deterministic and fail closed on unknown/low-confidence input;
-4. prove bounded multi-turn real tasks after Gate C;
-5. evaluate local audio-capable models only later.
+1. close the Orange turn-boundary/latency experiment using real `SpeechRecognizer` begin/end/segment/partial evidence; do not go back to arbitrary short trailing-silence thresholds;
+2. exploit partial STT only for bounded preparation/speculative inference while the counterparty is still speaking; never release speculative output before a final endpoint plus application approval;
+3. keep the phone skill narrow: `say`, `listenMore`, `takeOver` proposals only. Do not expose DTMF, dialing, purchase, authentication or commitment tools until a deterministic application-owned action gate exists;
+4. prove a fast, bounded information-only Orange multi-turn path only after offline latency/safety checks pass;
+5. then return to Gate C / `CallPlan v1` productization and deterministic conversation-state ownership, reusing `CallTask`, constraints/preferences, `authorizedFacts`, `CallWorkflow`, confirmation and commitment semantics.
 
-Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work is preserved but deferred until the user explicitly resumes it. Do not resume local-model hunting on the S22 or API-dependent OpenAI work by default.
+The interactive ChatGPT relay remains developer benchmark infrastructure only. Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work remains deferred. Do not resume the old nearby-size local-model sweep or paid OpenAI work by default.
 
 ## Architecture discipline
 
@@ -61,6 +61,7 @@ For the frozen media path, preserve the invariants documented in `docs/PHASE2D_F
 - Use Local Agent for Gradle, lint, host tests, ADB and physical-device work.
 - Direct GitHub edits are appropriate when the exact code/docs diff can be reviewed without local/device execution.
 - Never launch local Codex from a Local Agent task.
+- For an autonomous overnight Chat Bridge run, read `docs/NIGHT_AUTONOMOUS_RUN_2026-09-21.md`. Trust the bridge identity envelope and fresh daemon binding, not a binding copied from prose. Keep one active goal/task chain at a time and inspect terminal evidence before continuing.
 
 ## Branch policy
 

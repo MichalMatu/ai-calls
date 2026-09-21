@@ -16,13 +16,17 @@ Current foundation:
 - live end-of-utterance detection: `DONE / PROVEN_S22`;
 - interactive ChatGPT developer relay over bounded STT text/local TTS: `DONE / PROVEN_S22` as test infrastructure only.
 
-The old normal fixed 8-second capture wait is gone. The current endpointing path stops on trailing silence; 8 seconds remains only as a hard safety cap.
+The old fixed 8-second capture wait is gone, but real Orange evidence also proved that a short fixed trailing-silence threshold is not a correct IVR turn boundary. Max can pause for several seconds inside one prompt and Android emits multiple `onEndOfSpeech` callbacks. The current experimental direction is an end-candidate state machine: resumed speech cancels the candidate; a later recognizer end plus bounded hangover closes the turn; a long watchdog is safety-only. Partial STT is now physically proven useful for preparing the next decision before the final endpoint.
 
 The general-purpose phone-local LLM route is currently **frozen**. Qwen2.5-1.5B is operationally usable but too weak as the call brain, while Qwen3-4B caused unacceptable latency/resource pressure and user-visible S22 instability. The runtime and benchmark harness remain available for future hardware/model experiments, but they are not the current product direction.
 
 Representative evidence:
 
 ```text
+.agent/results/chatgpt-orange-agent-skills-endpoint-v9b-20260921.json
+.agent/results/chatgpt-edge-agent-full-greeting-latency-v10-20260921.json
+.agent/results/chatgpt-edge-agent-session-reset-v11-20260921.json
+.agent/results/chatgpt-orange-partial-stt-v12d-20260921.json
 .agent/results/live-endpointing-orange-s22-20260919-1214.json
 .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 .agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json
@@ -79,17 +83,19 @@ The latest physical pacing confirmation also records blocking TX-write time sepa
 
 ## Active execution plan
 
-Paid OpenAI API work is deferred. The phone-local general-purpose LLM search is also frozen on the current S22.
+Paid OpenAI API work and the old llama.cpp phone-model sweep are deferred. The current experimental checkpoint is `EDGE_GALLERY` + Gemma 4 E2B + the official Agent Skills runtime.
 
-The next product gate is **Gate C — `CallPlan v1` preimplementation audit**:
+What is already proven on the S22:
 
-1. reuse the existing `CallTask`, constraints/preferences, `authorizedFacts`, workflow, confirmation and commitment semantics;
-2. define the narrowest structured pre-call plan and deterministic conversation-state boundary;
-3. keep common known answers/actions deterministic;
-4. unknown or low-confidence input asks for repetition or escalates;
-5. any future model/provider is a replaceable language/reasoning helper and never gains application authority.
+- Edge Gallery/Gemma local inference through the separate loopback provider;
+- a real Orange cellular STT -> Gemma -> approval -> TTS -> TX turn;
+- a spoken information-only IVR selection ("oferta na kartę") that Orange classified into the SIM branch;
+- official Agent Skills runtime use headlessly, with a narrow phone skill producing application-reviewed `SAY` proposals;
+- rich partial STT during the complete Orange greeting.
 
-After Gate C, prove bounded multi-turn real tasks. Local audio-capable/speech-to-speech experiments remain later work.
+The current blocker is latency/turn timing, not basic connectivity. ReAct/load-skill decisions were too slow for IVR. Warm already-loaded sessions can produce tool decisions in a few seconds, while resetting/reinitializing at the wrong point adds large delay. The next experiment prepares the skill/session and may run cancelable speculative inference from stable partial STT while the counterparty is still speaking; output remains quarantined until the final endpoint and policy gate.
+
+After this feasibility checkpoint, **Gate C — `CallPlan v1`** remains the productization gate: reuse existing task/authority types, make known turns deterministic, fail closed on unknown/low-confidence input, and keep any model/skill as a bounded language/action-proposal helper rather than authority.
 
 See `docs/ROADMAP.md` for gates and `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point.
 

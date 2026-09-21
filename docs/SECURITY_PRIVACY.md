@@ -57,6 +57,22 @@ The model never receives authority merely because it runs locally. Local model o
 
 `EDGE_GALLERY` is restricted by the bridge to phone loopback. Readiness requires both `/health` and exact model identity from `/v1/models`; a healthy server with the wrong or missing model fails closed. The adapter supports an optional local Bearer token without weakening the rule that standard OpenAI API keys never live on Android. Production must not expose the Edge Gallery API on LAN/public interfaces or persist call prompts/responses as HTTP traffic logs.
 
+The current headless Edge Gallery development harness is **not PRODUCT_READY**. It exists for controlled local experiments and must not be treated as a network service security baseline.
+
+### Agent Skills action boundary
+
+Agent Skills are untrusted proposal generators. The current phone-navigation experiment intentionally exposes only `say`, `listenMore` and `takeOver`. A skill must not receive direct implementations for dialing, arbitrary DTMF, authentication, purchases, activations, tariff/plan changes, payments or commitments until a deterministic application-owned action policy exists for that capability.
+
+Partial STT/speculative inference may reduce latency, but speculative output is quarantined:
+
+```text
+partial transcript -> optional cancelable prepare/inference
+final endpoint -> final transcript/goal match -> deterministic policy
+              -> approved output/action -> TTS/TX
+```
+
+A changed/resumed utterance invalidates stale speculative output. No partial transcript may grant authority or cause early telephony TX.
+
 ## CallPlan and authorized facts
 
 Future `CallPlan v1` must distinguish:
@@ -212,14 +228,18 @@ Physically proven now includes:
 - on-device `pl-PL` STT and local TTS;
 - provider-neutral local speech/text pipeline;
 - product-owned Qwen2.5-1.5B runtime lifecycle and identity verification;
-- one bounded local-LLM Orange cellular turn;
-- trailing-silence endpointing during that live turn.
+- Edge Gallery/Gemma phone-local inference through the experimental loopback harness;
+- a bounded real Orange STT -> Gemma -> approval -> TTS -> TX turn;
+- spoken information-only IVR branch selection that Orange classified as a SIM-related request;
+- official Agent Skills headless tool proposal reaching a real Orange TX turn;
+- Android recognizer begin/end/segment and rich partial STT timing on the complete Orange greeting.
 
-Not yet proven:
+Not yet proven/product-ready:
 
-- larger phone-local text model;
-- Edge Gallery/Gemma phone-local inference path;
-- GPT-5.6 Sol interactive relay benchmark;
+- a robust product IVR endpoint state machine across varied prompts;
+- low-latency two-turn Agent Skills Orange execution;
+- an authenticated/hardened production Edge Gallery server boundary;
+- deterministic application gating for DTMF or other non-speech tools;
 - `CallPlan v1` constrained multi-turn task execution;
 - local audio-model path;
 - paid OpenAI text or genuine OpenAI Realtime end-to-end path.
