@@ -38,13 +38,25 @@ public final class CallPlanEngine {
             }
         }
 
-        if (factMatches.size() + completionMatches.size() != 1) {
+        List<CallPlanProposalRule> proposalMatches = new ArrayList<>();
+        for (CallPlanProposalRule rule : plan.proposalRules()) {
+            if (matches(rule.utterances(), normalizedTranscript)) {
+                proposalMatches.add(rule);
+            }
+        }
+
+        if (factMatches.size() + completionMatches.size() + proposalMatches.size() != 1) {
             return fallback(plan.fallbackPolicy(), priorUnknownCount);
         }
 
         if (completionMatches.size() == 1) {
             CallPlanCompletionRule rule = completionMatches.get(0);
             return CallPlanDecision.complete(rule.outcome(), rule.id());
+        }
+
+        if (proposalMatches.size() == 1) {
+            CallPlanProposalRule rule = proposalMatches.get(0);
+            return CallPlanDecision.proposal(rule.proposal(), rule.id());
         }
 
         CallPlanRule rule = factMatches.get(0);
@@ -71,8 +83,8 @@ public final class CallPlanEngine {
         return switch (policy.actionFor(priorUnknownCount)) {
             case ASK_REPEAT -> CallPlanDecision.askRepeat();
             case TAKE_OVER -> CallPlanDecision.takeOver(null);
-            case SAY, COMPLETE -> throw new IllegalStateException(
-                "fallback policy must not produce speech or completion"
+            case SAY, PROPOSAL, COMPLETE -> throw new IllegalStateException(
+                "fallback policy must not produce speech, proposal, or completion"
             );
         };
     }
