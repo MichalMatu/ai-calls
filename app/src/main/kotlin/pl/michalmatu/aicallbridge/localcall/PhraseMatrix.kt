@@ -2,10 +2,12 @@ package pl.michalmatu.aicallbridge.localcall
 
 import java.text.Normalizer
 import java.util.Locale
+import kotlin.math.abs
 
 enum class PhraseMatcherKind {
     EXACT,
     ALIAS,
+    FUZZY,
 }
 
 data class PhraseMatch(
@@ -19,6 +21,7 @@ class PhraseMatrixRule(
     ruleId: String,
     phrases: Set<String>,
     aliases: Set<String> = emptySet(),
+    fuzzyPhrases: Set<String> = emptySet(),
     variantClass: String? = null,
     previousRuleIds: Set<String> = emptySet(),
 ) {
@@ -29,6 +32,7 @@ class PhraseMatrixRule(
         require(it.isNotEmpty()) { "phrases_must_not_be_empty" }
     }
     val aliases: Set<String> = copyNonBlank(aliases, "aliases")
+    val fuzzyPhrases: Set<String> = copyNonBlank(fuzzyPhrases, "fuzzy_phrases")
     val variantClass: String? = variantClass?.trim()?.also {
         require(it.isNotEmpty()) { "variant_class_must_not_be_blank" }
     }
@@ -47,9 +51,10 @@ class PhraseMatrixRule(
 /**
  * Small deterministic classification-only phrase matcher.
  *
- * It returns only a predeclared rule id plus matcher diagnostics. It does not resolve CallPlan
- * authority, mutate workflow state, generate speech, or invoke a model. Previous-turn context is
- * explicit input only; PhraseMatrix stores no dialogue state. Unknown input returns null.
+ * Exact phrases and explicit aliases always win. Optional fuzzy phrases are opt-in per rule and
+ * accept at most one character insertion, deletion, or substitution while preserving token count.
+ * A fuzzy tie between different classifications fails closed. Previous-turn context is explicit
+ * input only; PhraseMatrix stores no dialogue state. Unknown input returns null.
  */
 class PhraseMatrix(rules: List<PhraseMatrixRule>) {
     private data class IndexedMatches(
@@ -62,7 +67,15 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         val byPreviousRuleId: MutableMap<String, PhraseMatch> = linkedMapOf()
     }
 
-    private val index: Map<String, IndexedMatches> = buildIndex(rules.toList())
+    private data class FuzzyCandidate(
+        val normalized: String,
+        val match: PhraseMatch,
+        val previousRuleIds: Set<String>,
+    )
+
+    private val declaredRules = rules.toList()
+    private val index: Map<String, IndexedMatches> = buildIndex(declaredRules)
+    private val fuzzyCandidates: List<FuzzyCandidate> = buildFuzzyCandidates(declaredRules)
 
     fun match(transcript: String, previousRuleId: String? = null): PhraseMatch? {
         val normalized = normalize(transcript)
@@ -71,8 +84,13 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         val previous = previousRuleId?.trim()?.also {
             require(it.isNotEmpty()) { "previous_rule_id_must_not_be_blank" }
         }
-        val matches = index[normalized] ?: return null
-        return previous?.let(matches.byPreviousRuleId::get) ?: matches.generic
+
+        val indexedMatches = index[normalized]
+        if (indexedMatches != null) {
+            return previous?.let(indexedMatches.byPreviousRuleId::get) ?: indexedMatches.generic
+        }
+
+        return fuzzyMatch(normalized, previous)
     }
 
     private fun buildIndex(rules: List<PhraseMatrixRule>): Map<String, IndexedMatches> {
@@ -91,6 +109,41 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
                 byPreviousRuleId = matches.byPreviousRuleId.toMap(),
             )
         }.toMap()
+    }
+
+    private fun buildFuzzyCandidates(rules: List<PhraseMatrixRule>): List<FuzzyCandidate> {
+        val result = mutableListOf<FuzzyCandidate>()
+        val genericSources = mutableSetOf<String>()
+        val contextualSources = mutableSetOf<Pair<String, String>>()
+
+        for (rule in rules) {
+            for (source in rule.fuzzyPhrases) {
+                val normalized = normalize(source)
+                require(normalized.length >= MIN_FUZZY_SOURCE_LENGTH) { "fuzzy_phrase_too_short" }
+
+                if (rule.previousRuleIds.isEmpty()) {
+                    require(genericSources.add(normalized)) { "normalized_fuzzy_phrase_collision" }
+                } else {
+                    for (previousRuleId in rule.previousRuleIds) {
+                        require(contextualSources.add(normalized to previousRuleId)) {
+                            "normalized_fuzzy_phrase_previous_rule_collision"
+                        }
+                    }
+                }
+
+                result += FuzzyCandidate(
+                    normalized = normalized,
+                    match = PhraseMatch(
+                        ruleId = rule.ruleId,
+                        confidence = FUZZY_CONFIDENCE,
+                        matcherKind = PhraseMatcherKind.FUZZY,
+                        variantClass = rule.variantClass,
+                    ),
+                    previousRuleIds = rule.previousRuleIds,
+                )
+            }
+        }
+        return result.toList()
     }
 
     private fun insert(
@@ -123,7 +176,87 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         }
     }
 
+    private fun fuzzyMatch(normalized: String, previousRuleId: String?): PhraseMatch? {
+        val inputTokenCount = tokenCount(normalized)
+
+        if (previousRuleId != null) {
+            val contextual = bestFuzzyMatch(
+                normalized = normalized,
+                tokenCount = inputTokenCount,
+                candidates = fuzzyCandidates.filter { previousRuleId in it.previousRuleIds },
+            )
+            if (contextual != null) return contextual
+        }
+
+        return bestFuzzyMatch(
+            normalized = normalized,
+            tokenCount = inputTokenCount,
+            candidates = fuzzyCandidates.filter { it.previousRuleIds.isEmpty() },
+        )
+    }
+
+    private fun bestFuzzyMatch(
+        normalized: String,
+        tokenCount: Int,
+        candidates: List<FuzzyCandidate>,
+    ): PhraseMatch? {
+        var bestDistance = Int.MAX_VALUE
+        val bestMatches = linkedSetOf<PhraseMatch>()
+
+        for (candidate in candidates) {
+            if (tokenCount(candidate.normalized) != tokenCount) continue
+            val distance = editDistanceAtMostOne(normalized, candidate.normalized) ?: continue
+
+            when {
+                distance < bestDistance -> {
+                    bestDistance = distance
+                    bestMatches.clear()
+                    bestMatches += candidate.match
+                }
+                distance == bestDistance -> bestMatches += candidate.match
+            }
+        }
+
+        return bestMatches.singleOrNull()
+    }
+
     private companion object {
+        const val MIN_FUZZY_SOURCE_LENGTH = 6
+        const val FUZZY_CONFIDENCE = 0.9
+
+        fun tokenCount(value: String): Int = 1 + value.count { it == ' ' }
+
+        fun editDistanceAtMostOne(left: String, right: String): Int? {
+            if (left == right) return 0
+            if (abs(left.length - right.length) > 1) return null
+
+            if (left.length == right.length) {
+                var mismatches = 0
+                for (index in left.indices) {
+                    if (left[index] != right[index] && ++mismatches > 1) return null
+                }
+                return 1
+            }
+
+            val shorter = if (left.length < right.length) left else right
+            val longer = if (left.length < right.length) right else left
+            var shortIndex = 0
+            var longIndex = 0
+            var skipped = false
+
+            while (shortIndex < shorter.length && longIndex < longer.length) {
+                if (shorter[shortIndex] == longer[longIndex]) {
+                    shortIndex += 1
+                    longIndex += 1
+                } else {
+                    if (skipped) return null
+                    skipped = true
+                    longIndex += 1
+                }
+            }
+            return 1
+        }
+
         fun normalize(value: String): String {
             val source = Normalizer.normalize(value, Normalizer.Form.NFKC).lowercase(Locale.ROOT)
             val normalized = StringBuilder(source.length)
