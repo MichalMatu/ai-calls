@@ -165,6 +165,67 @@ After mapper GREEN:
 
 Physical S22 validation follows only after host integration is complete and only when explicitly authorized.
 
+### Key follow-on — Phrase / Intent Matrix fast path + LLM supervisor
+
+Status: `PLANNED / HIGH-VALUE GATE-C EXTENSION AFTER FINAL-STT WIRING`
+
+This is a potentially key product architecture, not a side experiment.
+
+Goal: let the phone answer common turns immediately from a tiny deterministic local matrix while a bounded LLM supervisor has time to warm up, accumulate conversational context and intervene only on ambiguous or important turns.
+
+Target routing:
+
+```text
+final STT
+ -> normalize
+ -> exact phrase/intent matrix
+ -> deterministic fuzzy matcher
+ -> if known/high confidence: CallPlan rule / reviewed response variant
+ -> if ambiguous/important: bounded LLM supervisor suggests existing intent/ruleId
+ -> CallPlan / workflow / output approval
+ -> TTS
+```
+
+Initial matrix candidates:
+
+- greetings (`GREETING`);
+- acknowledgements (`ACK`);
+- simple yes/no (`CONFIRM`, `REJECT`) where policy allows;
+- repeat requests (`ASK_REPEAT`);
+- wait/hold phrases (`WAIT`);
+- common identity/purpose questions backed by authorized facts;
+- task-specific phrases already represented by CallPlan rules.
+
+Design rules:
+
+1. deterministic path wins for known high-confidence turns;
+2. no arbitrary generated text is required for common turns;
+3. each safe intent may expose a small reviewed allowlist of response variants;
+4. a temperature-like setting may control eligible variants, but selection remains deterministic/testable (for example stable seed from call/turn/intent);
+5. the LLM is a supervisor/classifier, not an authority owner: it may suggest an existing intent/rule/ruleId only;
+6. matrix and LLM outputs still pass existing CallPlan/workflow/output approval;
+7. LLM work may run speculatively or maintain bounded context, but stale context/result is invalidated by resumed speech, newer transcript, cancellation or workflow change;
+8. LLM output may not retroactively replace a deterministic turn that has already been approved/released;
+9. sensitive/committing operations never become generic phrase-matrix shortcuts.
+
+Why this matters:
+
+- common conversational latency can approach local lookup rather than inference latency;
+- LLM invocation rate, RAM/thermal pressure and hallucination surface should fall substantially;
+- the model gains "breathing room" to understand broader context instead of racing to answer every greeting/acknowledgement;
+- model capacity is reserved for genuinely contextual moments.
+
+Measure at minimum:
+
+- matrix hit rate;
+- fuzzy false-match rate;
+- LLM invocation rate;
+- deterministic vs supervised p50/p95 turn latency;
+- takeover/unknown rate;
+- number of important turns needing supervisor assistance.
+
+Do not implement this by bypassing the current final-STT/CallPlan/approval wiring. First complete the clean final-STT integration, then add the matrix as a product-owned classification fast path ahead of bounded helper/model use.
+
 Gate C exit: bounded product-session turns use deterministic plan data without general-purpose reasoning, missing facts are never invented, structured actions never silently become speech/model fallback, and no model/helper grants itself authority.
 
 ## Later gates
