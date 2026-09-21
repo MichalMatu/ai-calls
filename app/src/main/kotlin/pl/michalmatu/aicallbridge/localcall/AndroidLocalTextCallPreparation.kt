@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.localcall
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.agent.CallPlan
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.OnDeviceSpeechInput
@@ -165,6 +166,8 @@ internal object AndroidTextCallReadiness {
         workflow: CallWorkflow,
         targetAuthorization: DialTargetAuthorization,
         provider: TextLlmProvider,
+        callPlan: CallPlan? = null,
+        phraseMatrix: PhraseMatrix? = null,
     ): LocalTextCallReadinessCoordinator = LocalTextCallReadinessCoordinator(
         workflow = workflow,
         targetAuthorization = targetAuthorization,
@@ -172,6 +175,8 @@ internal object AndroidTextCallReadiness {
         backendFactory = {
             AndroidLocalTextCallBackendFactory.create(context.applicationContext, provider)
         },
+        callPlan = callPlan,
+        phraseMatrix = phraseMatrix,
     )
 }
 
@@ -180,10 +185,14 @@ internal object LocalPhoneTextCallReadiness {
         context: Context,
         workflow: CallWorkflow,
         targetAuthorization: DialTargetAuthorization,
+        callPlan: CallPlan? = null,
+        phraseMatrix: PhraseMatrix? = null,
     ): LocalTextCallReadinessCoordinator = AndroidTextCallReadiness.create(
         context = context,
         workflow = workflow,
         targetAuthorization = targetAuthorization,
         provider = TextLlmProvider.LOCAL_PHONE_LLM,
+        callPlan = callPlan,
+        phraseMatrix = phraseMatrix,
     )
 }
