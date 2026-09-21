@@ -22,6 +22,7 @@ LIVE_TEXT_PROVIDERS = frozenset({LOCAL_PHONE_PROVIDER, EDGE_GALLERY_PROVIDER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
 PROBE_TIMEOUT_SECONDS = 100.0
+GATE_C_APPROVED_TEXT = "Dzień dobry."
 
 
 def normalize_allowlisted_target(raw: str) -> str:
@@ -72,6 +73,23 @@ def parse_probe_report(text: str) -> Optional[dict[str, str]]:
     if values.get("probe_complete") != "true":
         return None
     return values
+
+
+def _require_gate_c_fast_path_report(report: dict[str, str]) -> None:
+    if report.get("gate_c_fast_path") != "true":
+        raise RuntimeError("Gate C live report did not confirm fast-path mode")
+    if report.get("gate_c_call_plan_bound") != "true":
+        raise RuntimeError("Gate C live report did not confirm bound CallPlan")
+    try:
+        backend_generate_calls = int(report.get("backend_generate_calls", "-1"))
+    except ValueError as error:
+        raise RuntimeError("Gate C live report has invalid backend generation count") from error
+    if backend_generate_calls != 0:
+        raise RuntimeError(
+            f"Gate C live path reached forbidden backend generation: {backend_generate_calls}"
+        )
+    if report.get("approved_text") != GATE_C_APPROVED_TEXT:
+        raise RuntimeError("Gate C live path did not approve the exact reviewed response")
 
 
 def _devices_output() -> str:
@@ -232,7 +250,9 @@ def run_orange_support_once(
         if report.get("stt_transcript_nonblank") != "true":
             raise RuntimeError("live STT transcript was blank")
         if report.get("approved_text_nonblank") != "true":
-            raise RuntimeError("live LLM response was blank or not approved")
+            raise RuntimeError("live response was blank or not approved")
+        if gate_c_fast_path:
+            _require_gate_c_fast_path_report(report)
         if int(report.get("telephony_tx_pcm_bytes", "0")) <= 0:
             raise RuntimeError("live TTS produced no telephony TX bytes")
         _require_endpointing(report)
