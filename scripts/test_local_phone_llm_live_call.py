@@ -6,6 +6,7 @@ from local_phone_llm_live_call import (
     ORANGE_ACTION_LIST_CAPABILITIES,
     ORANGE_SUPPORT_NUMBER,
     _is_ignorable_gate_c_preroll,
+    _is_retryable_gate_c_root_no_match,
     _require_gate_c_fast_path_report,
     _require_gate_c_observation_report,
     build_probe_start_args,
@@ -156,6 +157,28 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         ]
         for report in neighboring_fail_closed_reports:
             self.assertFalse(_is_ignorable_gate_c_preroll(report), report)
+
+    def test_gate_c_root_acquisition_can_retry_only_speech_recognizer_no_match(self):
+        no_match = {
+            "gate_c_fast_path": "true",
+            "gate_c_call_plan_bound": "true",
+            "orange_live_action": "list_capabilities",
+            "backend_generate_calls": "0",
+            "local_text_llm_live_call_success": "false",
+            "failure_reason": "stt_recognition_error_7",
+            "endpoint_reason": "trailing_silence",
+            "endpoint_speech_detected": "true",
+        }
+        self.assertTrue(_is_retryable_gate_c_root_no_match(no_match))
+
+        for invalid in [
+            {**no_match, "failure_reason": "stt_recognition_error_6"},
+            {**no_match, "endpoint_speech_detected": "false"},
+            {**no_match, "endpoint_reason": "max_capture"},
+            {**no_match, "backend_generate_calls": "1"},
+            {**no_match, "orange_live_action": "observe_only"},
+        ]:
+            self.assertFalse(_is_retryable_gate_c_root_no_match(invalid), invalid)
 
     def test_gate_c_observation_requires_takeover_zero_backend_and_nonblank_transcript(self):
         report = {
