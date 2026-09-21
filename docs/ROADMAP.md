@@ -69,7 +69,7 @@ Useful feasibility was proven, but the bounded live checkpoint exposed unaccepta
 
 ## Active gate — Gate C / deterministic fast path
 
-Status: `ACTIVE / CALLPLAN + NATIVE PHRASE MATRIX HOST_GREEN / BOUNDED MATCHER EXTENSION NEXT`
+Status: `ACTIVE / HOST_GREEN / FIRST CONTROLLED S22 PHYSICAL GATE NEXT`
 
 Goal: common bounded turns execute deterministically while all authority remains application-owned. Matchers and language helpers may only propose bounded matches to already-authorized product data.
 
@@ -100,7 +100,7 @@ Goal: common bounded turns execute deterministically while all authority remains
 | plan-bound session structured-result delivery | GREEN |
 | no-plan/default `Generate` compatibility | GREEN |
 
-### Native PhraseMatrix baseline + product binding — `HOST_GREEN`
+### Native PhraseMatrix + bounded matcher — `HOST_GREEN`
 
 | Slice | Status |
 | --- | --- |
@@ -112,7 +112,12 @@ Goal: common bounded turns execute deterministically while all authority remains
 | session-owned `previousValidatedRuleId` | GREEN |
 | PhraseMatrix through readiness/prepared call | GREEN |
 | Android readiness factory `CallPlan + PhraseMatrix` binding | GREEN |
-| canonical host gate after product binding | GREEN |
+| opt-in one-edit fuzzy rule with token-count guard | GREEN |
+| exact/alias priority over fuzzy | GREEN |
+| short fuzzy sources rejected | GREEN |
+| fuzzy ties fail closed | GREEN |
+| context-specific fuzzy ambiguity cannot fall through to generic fuzzy | GREEN |
+| canonical host gate after matcher extension | GREEN |
 
 Key evidence:
 
@@ -123,9 +128,9 @@ Key evidence:
 .agent/results/chatgpt-session-phrase-context-green-v68-20260921.json
 .agent/results/chatgpt-readiness-phrase-matrix-green-v70-20260921.json
 .agent/results/chatgpt-android-readiness-binding-green-v72-20260921.json
+.agent/results/chatgpt-phrase-matrix-fuzzy-green-v75-20260921.json
+.agent/results/chatgpt-phrase-matrix-fuzzy-context-green-v77-20260921.json
 ```
-
-The product can now bind a native PhraseMatrix with the same CallPlan during Android readiness, carry it through `PreparedLocalTextCall`, and intercept final STT without introducing another controller, workflow owner or approval path.
 
 ### Matcher engine decision
 
@@ -142,32 +147,80 @@ Host comparison on the same small Polish corpus:
 
 RiveScript did prove Polish UTF-8 and previous-turn support, but it can emit arbitrary reply text and its broader scripting surface is unnecessary for the current product boundary. These numbers are host-spike measurements, not S22 performance claims.
 
-### Current slice — bounded native matcher extension
+### Controlled Gate C live diagnostic — `HOST_GREEN / PHYSICAL PROOF NEXT`
 
-Status: `NEXT / HOST TDD`
+The first physical Gate C proof is intentionally tiny and non-committing.
 
-Start from concrete corpus failures, not feature count:
+Bounded scenario:
+
+- exact operator-defined Orange allowlist target: `510100100`;
+- one reviewed Orange greeting rule;
+- only authorized spoken candidate: `Dzień dobry.`;
+- no proposal rules and no completion rules;
+- unknown/changed input fails closed to takeover;
+- no model fallback.
+
+Live wiring now uses:
 
 ```text
-final STT
- -> normalize
- -> exact/alias PhraseMatrix
- -> optional bounded deterministic fuzzy/pattern rule
- -> existing ruleId + confidence + matcher diagnostics
- -> CallPlan/workflow/output approval
+cellular RX
+ -> local STT
+ -> LocalTextCallSession
+ -> PhraseMatrix
+ -> CallPlan rule validation
+ -> existing application-owned output approval
+ -> local TTS
+ -> cellular TX
 ```
 
-Requirements:
+Safety/evidence properties:
 
-1. classification-only output; no arbitrary response text;
-2. fail closed on ambiguous, negated and multi-intent inputs;
-3. deterministic same-input/state replay;
-4. every new positive test must have neighboring false-positive guards;
-5. previous-turn context remains explicit and session-owned only after CallPlan validation;
-6. no third-party matcher dependency unless later measurements show a clear need;
-7. collect hit/no-match/false-positive and p50/p95 matcher metrics on an expanded Polish ASR-like corpus.
+- `LocalPhoneLlmLiveCallProbeRequest` accepts Gate C only for `LOCAL_PHONE_LLM` diagnostics and exact target `510100100`;
+- `DiagnosticProbeActivity` receives explicit `gate_c_fast_path` and `live_call_target` extras;
+- `GateCFastPathSentinelBackend` forbids `generate()` as a successful path;
+- the physical report must show `backend_generate_calls=0`;
+- Python runner validates the Gate C report before declaring success;
+- legacy provider mode remains available without Gate C binding.
 
-After the deterministic matcher is strong enough, define the bounded LLM supervisor contract: it may suggest only an existing ruleId, cannot release speech or mutate authority itself, and stale speculative work is invalidated by newer transcript/resumed speech/cancel/workflow state.
+Key evidence:
+
+```text
+.agent/results/chatgpt-gate-c-live-safety-green-v82-20260921.json
+.agent/results/chatgpt-gate-c-live-fastpath-green-v84-20260921.json
+.agent/results/chatgpt-gate-c-live-report-green-v86-20260921.json
+.agent/results/chatgpt-gate-c-host-final-v96-20260921.json
+```
+
+`v96` passed targeted Gate C live/session/authority regressions, 6 Python runner tests, the full canonical `bash scripts/verify_host.sh`, and `:app:assembleDebug`. The debug APK exists and is ready for S22 installation.
+
+### Current slice — first physical Gate C proof
+
+Status: `NEXT / REQUIRES S22 CONNECTED`
+
+No additional host implementation is required before this physical checkpoint.
+
+Required pre-dial sequence:
+
+1. exact direct USB S22 serial `RFCT70L7E8J` is present;
+2. model is `SM-S906B` and API level is 36;
+3. cellular call state is `IDLE`;
+4. install fresh `app-debug.apk` built from fresh `main`;
+5. prove Shizuku diagnostic path healthy;
+6. confirm generated Gate C probe intent contains `gate_c_fast_path=true` and `live_call_target=510100100` and contains no `tel:` / dial action;
+7. only after explicit current-session operator authorization, execute one bounded call to the exact allowlisted target;
+8. require final report markers:
+   - `gate_c_fast_path=true`;
+   - `gate_c_call_plan_bound=true`;
+   - nonblank final STT;
+   - `approved_text=Dzień dobry.`;
+   - `backend_generate_calls=0`;
+   - nonzero TTS and telephony TX PCM;
+   - bounded trailing-silence endpointing;
+9. hang up and restore phone state in `finally`.
+
+`.agent/results/chatgpt-gate-c-s22-predial-v93-20260921.json` is not valid physical evidence: the S22 was absent, and its command did not fail-fast, allowing later shell commands to mask the failed device assertion. Any successor physical task must use `set -euo pipefail` or equivalent first-failure preservation.
+
+After this physical proof, continue with expanded Polish ASR-like corpus metrics and only then define the bounded LLM supervisor contract. The supervisor may suggest only an existing ruleId, cannot release speech or mutate authority itself, and stale speculative work must be invalidated by newer transcript/resumed speech/cancel/workflow state.
 
 Gate C exit: bounded product-session turns use deterministic plan data without general-purpose reasoning, common safe turns have a measured deterministic fast path, missing facts are never invented, structured actions never silently become speech/model fallback, and no matcher/model/helper grants itself authority.
 
