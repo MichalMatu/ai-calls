@@ -117,6 +117,67 @@ class LocalTextCallPlanBindingTest {
     }
 
     @Test
+    fun `readiness carries PhraseMatrix into prepared session without widening CallPlan authority`() {
+        val task = task(mapOf("birth_year" to "1990"))
+        val target = CallResolvedTarget("Clinic A", "+48123456789")
+        val workflow = readyWorkflow(task, target)
+        val plan = CallPlan(
+            task,
+            target,
+            listOf(CallPlanRule("birth-year", setOf("planowa fraza"), "birth_year")),
+            CallPlanFallbackPolicy.repeatThenTakeOver(1),
+        )
+        val matrix = PhraseMatrix(
+            listOf(PhraseMatrixRule("birth-year", setOf("proszę podać rocznik"))),
+        )
+        val backend = FakeBackend(autoResponse = "gotowe")
+        val listener = RecordingReadinessListener()
+
+        LocalTextCallReadinessCoordinator(
+            workflow = workflow,
+            targetAuthorization = DialTargetAuthorization { true },
+            speechPreflight = FakeSpeechPreflight(autoReady = true),
+            backendFactory = { backend },
+            timeoutScheduler = FakeTimeoutScheduler(),
+            callPlan = plan,
+            phraseMatrix = matrix,
+        ).prepare(listener)
+
+        val prepared = requireNotNull(listener.prepared)
+        workflow.markDialing()
+        workflow.markCallActive()
+        val session = LocalTextCallSession(
+            prepared = prepared,
+            pipelineFactory = LocalTextCallSession.PipelineFactory { FakePipeline() },
+        )
+
+        val result = session.handlePlanFinalTranscript("proszę podać rocznik")
+
+        assertEquals(CallPlanAction.SAY, result.decision().action())
+        assertEquals("birth-year", result.decision().ruleId())
+        assertEquals("1990", result.decision().text())
+        assertEquals(1, backend.generateCalls)
+        session.close()
+    }
+
+    @Test
+    fun `readiness rejects PhraseMatrix without a bound CallPlan`() {
+        val task = task(emptyMap())
+        val target = CallResolvedTarget("Clinic A", "+48123456789")
+
+        assertThrows(IllegalArgumentException::class.java) {
+            LocalTextCallReadinessCoordinator(
+                workflow = readyWorkflow(task, target),
+                targetAuthorization = DialTargetAuthorization { true },
+                speechPreflight = FakeSpeechPreflight(),
+                backendFactory = { FakeBackend() },
+                timeoutScheduler = FakeTimeoutScheduler(),
+                phraseMatrix = PhraseMatrix(listOf(PhraseMatrixRule("x", setOf("tak")))),
+            )
+        }
+    }
+
+    @Test
     fun `session without bound plan refuses plan routing`() {
         val backend = FakeBackend()
         val prepared = PreparedLocalTextCall(
