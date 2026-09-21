@@ -139,6 +139,69 @@ ASK_REPEAT / PROPOSAL / COMPLETE / TAKE_OVER -> Consumed + structured callback
 
 Only after that host mapper is green should `LocalSpeechTextPipeline` receive an optional route selector. The default/no-plan path must remain `Generate`.
 
+## Phrase / Intent Matrix fast path + LLM supervisor
+
+A high-value follow-on architecture is a **local deterministic phrase/intent matrix in front of general-purpose LLM reasoning**. The purpose is not only lower latency: common conversational turns should be resolved immediately while a bounded LLM supervisor has time to warm up, accumulate context, and enter only when a turn is ambiguous or materially important.
+
+Target composition:
+
+```text
+final STT
+   |
+   v
+normalize / classify locally
+   |
+   v
+Phrase / Intent Matrix
+   |------------------------------|
+   | high-confidence known turn   | unknown / ambiguous / important turn
+   v                              v
+exact CallPlan rule /         bounded local LLM supervisor
+approved response variant       -> suggest existing intent/ruleId only
+   |                              |
+   +--------------+---------------+
+                  v
+         CallPlan / workflow policy
+                  v
+       application-owned approval
+                  v
+                 TTS
+```
+
+Suggested layers:
+
+1. **Exact normalized matrix** — fastest path for greetings, acknowledgements, repeat requests and other common phrases.
+2. **Deterministic fuzzy matcher** — bounded matching for harmless wording variants without invoking an LLM.
+3. **LLM supervisor** — receives bounded conversation context and may propose an existing intent/rule/ruleId; it does not create facts, targets, actions, commitments or authority.
+
+Typical matrix entries may include intents such as `GREETING`, `ACK`, `CONFIRM`, `REJECT`, `ASK_REPEAT`, `WAIT`, `ASK_NAME`, `ASK_PURPOSE`, and other task-specific CallPlan rules. Sensitive or committing actions remain outside generic phrase matching and continue through the existing typed policy/workflow gates.
+
+### Deterministic response variation
+
+Natural variation should not require free-form generation. Each safe intent may carry a small finite allowlist of reviewed response variants, for example:
+
+```text
+GREETING:
+  - "Dzień dobry."
+  - "Dzień dobry, słucham."
+```
+
+A `temperature`-like product setting may control the size of the eligible variant set, but selection should remain deterministic/testable, for example from a stable seed such as `callId + turnIndex + intent`. The matrix must never generate arbitrary new text merely to sound less repetitive.
+
+### LLM gets time without becoming the turn owner
+
+The matrix fast path intentionally gives the LLM "breathing room": while trivial turns are answered locally in milliseconds, the supervisor can maintain or refresh a bounded semantic view of the conversation and be ready for later key moments. This is useful only if the authority boundary remains strict:
+
+- matrix output is still subject to CallPlan/workflow/output approval;
+- LLM output is quarantined until validated against current final transcript and current plan state;
+- an LLM suggestion cannot retroactively replace an already-approved deterministic turn;
+- resumed/changed speech, cancellation, workflow change or newer context invalidates stale supervisor work;
+- the LLM should be invoked selectively rather than on every turn.
+
+The desired steady state is therefore **deterministic first, LLM on demand**, not "LLM writes every response". This architecture should reduce perceived latency, model invocation rate, RAM/thermal pressure and hallucination surface while reserving model capacity for genuinely contextual turns.
+
+Useful future metrics include matrix hit rate, deterministic/fuzzy false-match rate, LLM invocation rate, p50/p95 response latency, takeover rate, and the fraction of important turns that required supervisor help.
+
 ## Provider boundary
 
 Text providers for local STT/TTS remain selectable infrastructure:
