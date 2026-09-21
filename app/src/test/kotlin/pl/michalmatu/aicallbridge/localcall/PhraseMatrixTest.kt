@@ -47,6 +47,80 @@ class PhraseMatrixTest {
     }
 
     @Test
+    fun `explicit fuzzy phrase tolerates only one reviewed character error`() {
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule(
+                    ruleId = "repeat",
+                    phrases = setOf("proszę powtórzyć"),
+                    fuzzyPhrases = setOf("prosze powtorzyc"),
+                    variantClass = "ASK_REPEAT",
+                ),
+            ),
+        )
+
+        val match = matrix.match("prosze powturzyc")
+
+        assertEquals("repeat", match?.ruleId)
+        assertEquals(0.9, match?.confidence ?: 0.0, 0.0)
+        assertEquals(PhraseMatcherKind.FUZZY, match?.matcherKind)
+        assertEquals("ASK_REPEAT", match?.variantClass)
+        assertNull(matrix.match("prosze powtarzac"))
+    }
+
+    @Test
+    fun `bounded fuzzy phrase does not absorb negation extra words or another intent`() {
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule(
+                    ruleId = "repeat",
+                    phrases = setOf("proszę powtórzyć"),
+                    fuzzyPhrases = setOf("prosze powtorzyc"),
+                ),
+            ),
+        )
+
+        assertNull(matrix.match("nie prosze powturzyc"))
+        assertNull(matrix.match("prosze powturzyc i podac cene"))
+        assertNull(matrix.match("prosze teraz powturzyc"))
+    }
+
+    @Test
+    fun `ambiguous fuzzy candidates fail closed`() {
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule(
+                    ruleId = "repeat-a",
+                    phrases = setOf("proszę powtórzyć"),
+                    fuzzyPhrases = setOf("prosze powtorzyc"),
+                ),
+                PhraseMatrixRule(
+                    ruleId = "repeat-b",
+                    phrases = setOf("proszę powtarzać"),
+                    fuzzyPhrases = setOf("prosze powtarzyc"),
+                ),
+            ),
+        )
+
+        assertNull(matrix.match("prosze powtvrzyc"))
+    }
+
+    @Test
+    fun `short fuzzy sources are rejected instead of fuzzing confirmations`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            PhraseMatrix(
+                listOf(
+                    PhraseMatrixRule(
+                        ruleId = "confirm",
+                        phrases = setOf("tak"),
+                        fuzzyPhrases = setOf("tak"),
+                    ),
+                ),
+            )
+        }
+    }
+
+    @Test
     fun `previous rule context selects a more specific reviewed meaning`() {
         val matrix = PhraseMatrix(
             listOf(
@@ -172,7 +246,7 @@ class PhraseMatrixTest {
     }
 
     @Test
-    fun `rules reject blank ids phrases aliases variant classes and previous rule ids`() {
+    fun `rules reject blank ids phrases aliases fuzzy phrases variant classes and previous rule ids`() {
         assertThrows(IllegalArgumentException::class.java) {
             PhraseMatrixRule(" ", setOf("tak"))
         }
@@ -184,6 +258,9 @@ class PhraseMatrixTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             PhraseMatrixRule("confirm", setOf("tak"), aliases = setOf(" "))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PhraseMatrixRule("confirm", setOf("tak"), fuzzyPhrases = setOf(" "))
         }
         assertThrows(IllegalArgumentException::class.java) {
             PhraseMatrixRule("confirm", setOf("tak"), variantClass = " ")
