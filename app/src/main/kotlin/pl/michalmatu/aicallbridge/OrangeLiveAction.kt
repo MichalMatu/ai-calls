@@ -12,6 +12,7 @@ internal enum class OrangeLiveAction(
 ) {
     GREETING("greeting", "Dzień dobry."),
     LIST_CAPABILITIES("list_capabilities", "Jakie sprawy możesz załatwić?"),
+    INVOICE_STATUS("invoice_status", "Chcę sprawdzić fakturę."),
     OBSERVE_ONLY("observe_only", null),
     ;
 
