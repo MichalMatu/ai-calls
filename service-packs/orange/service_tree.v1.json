@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "service": "orange",
+  "target": "510100100",
+  "nodes": [
+    {
+      "id": "orange.root",
+      "status": "VERIFIED",
+      "kind": "VOICE_INTENT_ROUTER",
+      "observed_prompt": "dobry wieczór jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana chętnie pomogę powiedz w jakiej sprawie dzwonisz",
+      "evidence_task": "chatgpt-orange-explorer-live-v115-20260921"
+    },
+    {
+      "id": "orange.root.reprompt",
+      "status": "VERIFIED",
+      "kind": "VOICE_INTENT_ROUTER",
+      "observed_prompt": "abym mógł ci pomóc muszę mieć pewność w jakiej sprawie dzwonisz dlatego powiedz proszę czego dotyczy twoja sprawa",
+      "evidence_task": "chatgpt-orange-explorer-live-v115-20260921"
+    }
+  ],
+  "edges": [
+    {
+      "id": "orange.root.list_capabilities",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "list_capabilities",
+      "speech": "Jakie sprawy możesz załatwić?",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "evidence_task": "chatgpt-orange-explorer-live-v115-20260921"
+    }
+  ],
+  "seeds": [
+    {
+      "service_id": "orange.invoice.status",
+      "status": "SEED",
+      "action_id": "invoice_status",
+      "speech": "Chcę sprawdzić fakturę.",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "operator_capability_backlog",
+      "next_evidence": "live_discovery_required"
+    }
+  ]
+}
