@@ -19,13 +19,14 @@ internal data class GateCLiveCallScenario(
 )
 
 /**
- * Deliberately tiny live-call diagnostic plan for the allowlisted Orange support target.
+ * Deliberately tiny live-call diagnostic plan for the exact allowlisted Orange support target.
  *
  * It authorizes exactly one reviewed greeting response and no proposal/completion action. Unknown
  * or changed counterparty speech fails closed to TAKE_OVER; this scenario never grants dialing
  * authority and never enables a model fallback.
  */
 internal object GateCLiveCallScenarioFactory {
+    const val ORANGE_SUPPORT_NUMBER = "510100100"
     const val GREETING_RULE_ID = "orange-greeting"
     private const val GREETING_FACT_KEY = "orange-greeting-response"
     private const val REVIEWED_GREETING = "orange dzień dobry jestem max twój wi"
@@ -35,6 +36,7 @@ internal object GateCLiveCallScenarioFactory {
     fun create(targetDialAddress: String): GateCLiveCallScenario {
         val normalizedTarget = targetDialAddress.trim()
         require(normalizedTarget.isNotEmpty()) { "target_dial_address_must_not_be_blank" }
+        require(normalizedTarget == ORANGE_SUPPORT_NUMBER) { "target_not_allowlisted_for_gate_c_live_probe" }
 
         val task = CallTask(
             "Controlled Orange Gate C diagnostic",
