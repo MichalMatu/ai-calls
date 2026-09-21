@@ -29,6 +29,7 @@ ORANGE_ACTION_LIST_CAPABILITIES = "list_capabilities"
 ORANGE_ACTION_INVOICE_STATUS = "invoice_status"
 ORANGE_ACTION_INVOICE_TOPIC = "invoice_topic"
 ORANGE_ACTION_INTERNET_PROBLEM = "internet_problem"
+ORANGE_ACTION_ROAMING_INFO = "roaming_info"
 ORANGE_ACTION_OBSERVE_ONLY = "observe_only"
 ORANGE_LIVE_ACTIONS = frozenset({
     ORANGE_ACTION_GREETING,
@@ -36,6 +37,7 @@ ORANGE_LIVE_ACTIONS = frozenset({
     ORANGE_ACTION_INVOICE_STATUS,
     ORANGE_ACTION_INVOICE_TOPIC,
     ORANGE_ACTION_INTERNET_PROBLEM,
+    ORANGE_ACTION_ROAMING_INFO,
     ORANGE_ACTION_OBSERVE_ONLY,
 })
 GATE_C_ROOT_ACQUISITION_ACTIONS = frozenset({
@@ -44,6 +46,7 @@ GATE_C_ROOT_ACQUISITION_ACTIONS = frozenset({
     ORANGE_ACTION_INVOICE_STATUS,
     ORANGE_ACTION_INVOICE_TOPIC,
     ORANGE_ACTION_INTERNET_PROBLEM,
+    ORANGE_ACTION_ROAMING_INFO,
 })
 ORANGE_REVIEWED_RESPONSES = {
     ORANGE_ACTION_GREETING: "Dzień dobry.",
@@ -51,6 +54,7 @@ ORANGE_REVIEWED_RESPONSES = {
     ORANGE_ACTION_INVOICE_STATUS: "Chcę sprawdzić fakturę.",
     ORANGE_ACTION_INVOICE_TOPIC: "Faktura.",
     ORANGE_ACTION_INTERNET_PROBLEM: "Mam problem z internetem.",
+    ORANGE_ACTION_ROAMING_INFO: "Roaming.",
 }
 
 
@@ -522,7 +526,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             raise ValueError(
                 "usage: local_phone_llm_live_call.py [adb-serial] "
                 "[LOCAL_PHONE_LLM|EDGE_GALLERY] [--gate-c-fast-path] "
-                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|observe_only] [--observe-next]"
+                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|roaming_info|observe_only] [--observe-next]"
             )
         serial = args[0] if args else DEFAULT_SERIAL
         provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
