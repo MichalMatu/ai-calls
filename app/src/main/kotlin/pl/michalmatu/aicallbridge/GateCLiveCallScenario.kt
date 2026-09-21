@@ -19,63 +19,101 @@ internal data class GateCLiveCallScenario(
 )
 
 /**
- * Deliberately tiny live-call diagnostic plan for the exact allowlisted Orange support target.
+ * Deliberately bounded live-call diagnostic plan for the exact allowlisted Orange support target.
  *
- * It authorizes exactly one reviewed greeting response and no proposal/completion action. Unknown
- * or changed counterparty speech fails closed to TAKE_OVER; this scenario never grants dialing
- * authority and never enables a model fallback.
+ * Every speech-producing explorer action maps to one reviewed utterance. OBSERVE_ONLY has no SAY
+ * rules at all and therefore can only fail closed to TAKE_OVER after recording the final STT text.
+ * This scenario never grants dialing, proposal, completion, transaction, or model authority.
  */
 internal object GateCLiveCallScenarioFactory {
     const val ORANGE_SUPPORT_NUMBER = "510100100"
     const val GREETING_RULE_ID = "orange-greeting"
+    const val MAX_ROOT_RULE_ID = "orange-max-root"
+
     private const val GREETING_FACT_KEY = "orange-greeting-response"
+    private const val EXPLORER_FACT_KEY = "orange-explorer-response"
     private const val REVIEWED_GREETING = "orange dzień dobry jestem max twój wi"
     private const val REVIEWED_GREETING_FULL =
         "orange dzień dobry jestem max twój wirtualny asystent"
+    private const val REVIEWED_MAX_ROOT_EVENING =
+        "dobry wieczór jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana " +
+            "chętnie pomogę powiedz w jakiej sprawie dzwonisz"
 
-    fun create(targetDialAddress: String): GateCLiveCallScenario {
+    private data class ReviewedTurn(
+        val ruleId: String,
+        val factKey: String,
+        val phrases: Set<String>,
+        val aliases: Set<String>,
+        val response: String,
+    )
+
+    fun create(
+        targetDialAddress: String,
+        action: OrangeLiveAction = OrangeLiveAction.GREETING,
+    ): GateCLiveCallScenario {
         val normalizedTarget = targetDialAddress.trim()
         require(normalizedTarget.isNotEmpty()) { "target_dial_address_must_not_be_blank" }
         require(normalizedTarget == ORANGE_SUPPORT_NUMBER) { "target_not_allowlisted_for_gate_c_live_probe" }
 
+        val reviewedTurn = reviewedTurn(action)
         val task = CallTask(
             "Controlled Orange Gate C diagnostic",
-            "Reply only with the reviewed diagnostic greeting; do not transact or commit",
+            "Execute only reviewed Orange action ${action.wireId}; do not transact or commit",
             "Orange support",
             CallConstraints.unconstrained(),
             CallPreferences.none(),
-            mapOf(GREETING_FACT_KEY to "Dzień dobry."),
+            reviewedTurn?.let { mapOf(it.factKey to it.response) } ?: emptyMap(),
         )
         val target = CallResolvedTarget("Orange support", normalizedTarget)
         val workflow = CallWorkflow(task, CallConfirmationPolicy()) { }
         workflow.resolveTarget(target)
 
-        val callPlan = CallPlan(
-            task,
-            target,
+        val callPlanRules = reviewedTurn?.let { turn ->
             listOf(
                 CallPlanRule(
-                    GREETING_RULE_ID,
-                    setOf(REVIEWED_GREETING, REVIEWED_GREETING_FULL),
-                    GREETING_FACT_KEY,
+                    turn.ruleId,
+                    turn.phrases + turn.aliases,
+                    turn.factKey,
                 ),
-            ),
-            CallPlanFallback.TAKE_OVER,
-        )
-        val phraseMatrix = PhraseMatrix(
+            )
+        } ?: emptyList()
+        val phraseRules = reviewedTurn?.let { turn ->
             listOf(
                 PhraseMatrixRule(
-                    ruleId = GREETING_RULE_ID,
-                    phrases = setOf(REVIEWED_GREETING),
-                    aliases = setOf(REVIEWED_GREETING_FULL),
+                    ruleId = turn.ruleId,
+                    phrases = turn.phrases,
+                    aliases = turn.aliases,
                 ),
-            ),
-        )
+            )
+        } ?: emptyList()
 
         return GateCLiveCallScenario(
             workflow = workflow,
-            callPlan = callPlan,
-            phraseMatrix = phraseMatrix,
+            callPlan = CallPlan(
+                task,
+                target,
+                callPlanRules,
+                CallPlanFallback.TAKE_OVER,
+            ),
+            phraseMatrix = PhraseMatrix(phraseRules),
         )
+    }
+
+    private fun reviewedTurn(action: OrangeLiveAction): ReviewedTurn? = when (action) {
+        OrangeLiveAction.GREETING -> ReviewedTurn(
+            ruleId = GREETING_RULE_ID,
+            factKey = GREETING_FACT_KEY,
+            phrases = setOf(REVIEWED_GREETING),
+            aliases = setOf(REVIEWED_GREETING_FULL),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.LIST_CAPABILITIES -> ReviewedTurn(
+            ruleId = MAX_ROOT_RULE_ID,
+            factKey = EXPLORER_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = emptySet(),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.OBSERVE_ONLY -> null
     }
 }
