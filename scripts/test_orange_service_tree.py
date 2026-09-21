@@ -43,6 +43,28 @@ class OrangeServiceTreeTest(unittest.TestCase):
         self.assertEqual("BOUNDED_RETRY_ALLOWED", item["effect"])
         self.assertEqual("chatgpt-orange-internet-live-retry-v141-20260922", item["evidence_task"])
 
+    def test_v145_internet_problem_reprompt_edge_is_durable_without_claiming_service_route(self):
+        tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
+        edges = {edge["id"]: edge for edge in tree["edges"]}
+        edge = edges["orange.root.internet_problem"]
+        self.assertEqual("orange.root", edge["from"])
+        self.assertEqual("orange.root.reprompt", edge["to"])
+        self.assertEqual("internet_problem", edge["action_id"])
+        self.assertEqual("Mam problem z internetem.", edge["speech"])
+        self.assertEqual("VERIFIED", edge["status"])
+        self.assertEqual("READ_ONLY", edge["risk"])
+        self.assertEqual("REPROMPT", edge["observed_outcome"])
+        self.assertEqual("chatgpt-orange-internet-live-v145-20260922", edge["evidence_task"])
+        self.assertFalse(edge["service_route_verified"])
+
+        seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
+        seed = seeds["orange.internet.problem"]
+        self.assertEqual("DISCOVERED", seed["status"])
+        self.assertEqual("internet_problem", seed["action_id"])
+        self.assertEqual("Mam problem z internetem.", seed["speech"])
+        self.assertEqual("REPROMPT", seed["last_outcome"])
+        self.assertIn("service_route_not_verified", seed["next_evidence"])
+
     def test_v123_invoice_attempt_is_discovered_but_service_route_is_not_claimed_verified(self):
         tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
         edges = {edge["id"]: edge for edge in tree["edges"]}
