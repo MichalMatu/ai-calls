@@ -69,7 +69,7 @@ Useful feasibility was proven, but the bounded live checkpoint exposed unaccepta
 
 ## Active gate — Gate C / deterministic fast path
 
-Status: `ACTIVE / CALLPLAN FINAL-STT WIRING HOST_GREEN / PHRASE MATRIX BASELINE NEXT`
+Status: `ACTIVE / CALLPLAN + NATIVE PHRASE MATRIX HOST_GREEN / BOUNDED MATCHER EXTENSION NEXT`
 
 Goal: common bounded turns execute deterministically while all authority remains application-owned. Matchers and language helpers may only propose bounded matches to already-authorized product data.
 
@@ -99,46 +99,75 @@ Goal: common bounded turns execute deterministically while all authority remains
 | optional final-STT route selector in `LocalSpeechTextPipeline` | GREEN |
 | plan-bound session structured-result delivery | GREEN |
 | no-plan/default `Generate` compatibility | GREEN |
-| full canonical host gate | GREEN |
 
-Latest evidence:
+### Native PhraseMatrix baseline + product binding — `HOST_GREEN`
+
+| Slice | Status |
+| --- | --- |
+| normalized exact phrase + explicit alias matcher | GREEN |
+| collision/unknown deterministic fail-closed behavior | GREEN |
+| matcher `ruleId` -> existing CallPlan coordinator | GREEN |
+| explicit previous-rule constraints | GREEN |
+| previous-rule context through product router | GREEN |
+| session-owned `previousValidatedRuleId` | GREEN |
+| PhraseMatrix through readiness/prepared call | GREEN |
+| Android readiness factory `CallPlan + PhraseMatrix` binding | GREEN |
+| canonical host gate after product binding | GREEN |
+
+Key evidence:
 
 ```text
-.agent/results/chatgpt-gate-c-final-turn-mapper-green-v49-20260921.json
-.agent/results/chatgpt-gate-c-final-stt-selector-green-v51-20260921.json
+.agent/results/chatgpt-gate-c-phrase-matrix-baseline-green-v55-20260921.json
+.agent/results/chatgpt-gate-c-phrase-router-green-v59-20260921.json
+.agent/results/chatgpt-phrase-matrix-previous-context-green-v64-20260921.json
+.agent/results/chatgpt-session-phrase-context-green-v68-20260921.json
+.agent/results/chatgpt-readiness-phrase-matrix-green-v70-20260921.json
+.agent/results/chatgpt-android-readiness-binding-green-v72-20260921.json
 ```
 
-Final STT can now be routed before backend generation without introducing a second controller, approval path or workflow owner.
+The product can now bind a native PhraseMatrix with the same CallPlan during Android readiness, carry it through `PreparedLocalTextCall`, and intercept final STT without introducing another controller, workflow owner or approval path.
 
-### Current slice — Phrase / Intent Matrix baseline
+### Matcher engine decision
+
+Status: `DONE / NATIVE SELECTED`
+
+Host comparison on the same small Polish corpus:
+
+| Candidate | Init | Average match/reply | Incremental production cost | Decision |
+| --- | ---: | ---: | --- | --- |
+| native `PhraseMatrix` | ~11.85 ms | ~0.815 us | no third-party matcher dependency | SELECTED |
+| RiveScript Java | ~46.56 ms | ~88.85 us | +134,132 B debug APK, `slf4j-api` | REFERENCE ONLY |
+| ChatScript | not embedded | not benchmarked | large C++/JNI/data integration surface | DESIGN REFERENCE |
+| KStateMachine | not needed | n/a | state abstraction only, not matcher | DEFERRED |
+
+RiveScript did prove Polish UTF-8 and previous-turn support, but it can emit arbitrary reply text and its broader scripting surface is unnecessary for the current product boundary. These numbers are host-spike measurements, not S22 performance claims.
+
+### Current slice — bounded native matcher extension
 
 Status: `NEXT / HOST TDD`
 
-First build the tiny native CallBridge baseline described in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`:
+Start from concrete corpus failures, not feature count:
 
 ```text
 final STT
  -> normalize
- -> exact phrase / alias / bounded deterministic pattern match
+ -> exact/alias PhraseMatrix
+ -> optional bounded deterministic fuzzy/pattern rule
  -> existing ruleId + confidence + matcher diagnostics
- -> validate against bound CallPlan
- -> existing CallPlan / workflow / output approval
+ -> CallPlan/workflow/output approval
 ```
 
-Initial requirements:
+Requirements:
 
 1. classification-only output; no arbitrary response text;
-2. deterministic same-input replay;
-3. fail closed on unknowns, cross-intent collisions and negation ambiguity;
-4. Polish UTF-8 plus missing-diacritic/ASR-like variants in the test corpus;
-5. explicit previous-turn/stage constraints only where needed, with no authority ownership;
-6. no third-party dependency in the baseline implementation;
-7. after baseline GREEN, compare RiveScript Java against it on build compatibility, Polish behavior, latency, APK/RAM/startup cost and matcher quality;
-8. study ChatScript for pattern/topic/rejoinder ideas before any native embedding decision;
-9. use KStateMachine only if non-authority dialogue-stage complexity later warrants it;
-10. matrix output and any future LLM supervisor remain behind existing CallPlan/workflow/output approval.
+2. fail closed on ambiguous, negated and multi-intent inputs;
+3. deterministic same-input/state replay;
+4. every new positive test must have neighboring false-positive guards;
+5. previous-turn context remains explicit and session-owned only after CallPlan validation;
+6. no third-party matcher dependency unless later measurements show a clear need;
+7. collect hit/no-match/false-positive and p50/p95 matcher metrics on an expanded Polish ASR-like corpus.
 
-Useful metrics: matrix hit rate, false-positive rate, ambiguous/no-match rate, p50/p95 matching latency, LLM invocation rate, takeover rate, incremental APK/RAM/startup cost and deterministic replay.
+After the deterministic matcher is strong enough, define the bounded LLM supervisor contract: it may suggest only an existing ruleId, cannot release speech or mutate authority itself, and stale speculative work is invalidated by newer transcript/resumed speech/cancel/workflow state.
 
 Gate C exit: bounded product-session turns use deterministic plan data without general-purpose reasoning, common safe turns have a measured deterministic fast path, missing facts are never invented, structured actions never silently become speech/model fallback, and no matcher/model/helper grants itself authority.
 
