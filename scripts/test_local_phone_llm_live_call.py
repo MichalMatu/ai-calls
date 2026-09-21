@@ -3,6 +3,7 @@ import unittest
 from local_phone_llm_live_call import (
     EDGE_GALLERY_PROVIDER,
     LOCAL_PHONE_PROVIDER,
+    ORANGE_ACTION_INVOICE_STATUS,
     ORANGE_ACTION_LIST_CAPABILITIES,
     ORANGE_SUPPORT_NUMBER,
     _is_ignorable_gate_c_preroll,
@@ -60,6 +61,15 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         )
         joined = " ".join(args)
         self.assertIn("orange_live_action list_capabilities", joined)
+
+        invoice_args = build_probe_start_args(
+            "RFCT70L7E8J",
+            LOCAL_PHONE_PROVIDER,
+            gate_c_fast_path=True,
+            target=ORANGE_SUPPORT_NUMBER,
+            orange_action=ORANGE_ACTION_INVOICE_STATUS,
+        )
+        self.assertIn("orange_live_action invoice_status", " ".join(invoice_args))
 
         with self.assertRaises(ValueError):
             build_probe_start_args(
