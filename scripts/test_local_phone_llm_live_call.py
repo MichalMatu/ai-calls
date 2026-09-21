@@ -4,6 +4,7 @@ from local_phone_llm_live_call import (
     EDGE_GALLERY_PROVIDER,
     LOCAL_PHONE_PROVIDER,
     ORANGE_SUPPORT_NUMBER,
+    _is_ignorable_gate_c_preroll,
     _require_gate_c_fast_path_report,
     build_probe_start_args,
     normalize_allowlisted_target,
@@ -104,6 +105,27 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         for report in invalid_reports:
             with self.assertRaises(RuntimeError):
                 _require_gate_c_fast_path_report(report)
+
+    def test_gate_c_can_retry_only_exact_observed_orange_preroll(self):
+        observed_preroll = {
+            "gate_c_fast_path": "true",
+            "gate_c_call_plan_bound": "true",
+            "backend_generate_calls": "0",
+            "local_text_llm_live_call_success": "false",
+            "failure_reason": "gate_c_take_over",
+            "stt_text": "orange",
+        }
+        self.assertTrue(_is_ignorable_gate_c_preroll(observed_preroll))
+
+        neighboring_fail_closed_reports = [
+            {**observed_preroll, "stt_text": "orange dzień dobry"},
+            {**observed_preroll, "stt_text": "proszę podać pesel"},
+            {**observed_preroll, "failure_reason": "probe_timeout"},
+            {**observed_preroll, "backend_generate_calls": "1"},
+            {**observed_preroll, "gate_c_call_plan_bound": "false"},
+        ]
+        for report in neighboring_fail_closed_reports:
+            self.assertFalse(_is_ignorable_gate_c_preroll(report), report)
 
 
 if __name__ == "__main__":
