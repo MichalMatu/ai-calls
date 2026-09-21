@@ -108,29 +108,53 @@ TDD evidence:
 
 `v25` passed both targeted CallPlan test classes, exact four-file diff validation, the full host gate and `privileged-helper/` unchanged.
 
-No S22/device/live-call gate was required for either slice because they are pure host/data-policy behavior.
+### Slice 3 — deterministic completion criteria
+
+Status: `DONE / HOST_GREEN`.
+
+Durable behavior now includes:
+
+- immutable `CallPlanCompletionRule` containing known final utterances plus a predeclared structured `CallOutcome`;
+- exact normalized completion match -> `CallPlanAction.COMPLETE` carrying that structured outcome;
+- unknown or ambiguous completion text -> bounded fallback, never fabricated completion;
+- collision between a known-fact rule and completion rule -> fail-closed fallback rather than implicit priority;
+- completion collections are defensively copied/immutable;
+- `CallPlanDecision.toString()` redacts SAY text and structured outcome data;
+- `CallPlanEngine` does not call or mutate `CallWorkflow`; `CallWorkflow.complete(CallOutcome)` remains the sole terminal-state owner.
+
+TDD evidence:
+
+```text
+.agent/results/chatgpt-gate-c-callplan-completion-red-v26-20260921.json
+.agent/results/chatgpt-gate-c-callplan-completion-green-v27-20260921.json
+```
+
+`v27` passed the three targeted CallPlan suites, exact six-file diff validation, the full host gate and `privileged-helper/` unchanged.
+
+No S22/device/live-call gate was required for these slices because they are pure host/data-policy behavior.
 
 ## Remaining Gate C matrix
 
 Still open:
 
-- completion criteria -> structured `COMPLETE` proposal/outcome while `CallWorkflow.complete(...)` remains the sole terminal-state owner;
-- known counterparty offer -> typed `CallProposal` routed to the existing workflow/policy, never auto-accepted by CallPlan;
+- known counterparty offer -> typed `CallProposal` emitted as a proposal decision and routed to the existing workflow/policy, never auto-accepted by CallPlan;
 - explicit regression proof that proposal policy, commitment gate and output approval cannot be bypassed by plan decisions;
 - optional bounded language-helper validation that rejects unsupported rule/fact/action suggestions;
 - product wiring only after the deterministic policy model is complete and host-green.
 
 ## Next exact engineering step
 
-Implement the next host-only TDD slice for **completion criteria**:
+Implement the next host-only TDD slice for **typed counterparty proposal routing**:
 
 1. start from fresh `main` plus fresh Local Agent status/binding;
-2. RED first for an immutable completion criterion that matches only a known final transcript and returns a structured `COMPLETE` proposal carrying a `CallOutcome`;
-3. prove unknown/ambiguous completion text never fabricates completion;
-4. keep completion matching deterministic and immutable; defensive-copy caller collections and redact diagnostics;
-5. do **not** call or mutate `CallWorkflow` inside `CallPlanEngine`; `CallWorkflow.complete(CallOutcome)` remains the sole owner of terminal `COMPLETED` state;
-6. keep existing known-fact and bounded-fallback behavior source-compatible;
-7. do not touch `CallConfirmationPolicy`, `CallCommitmentGate`, media, STT/TTS, diagnostics or `privileged-helper/` unless a failing test proves a concrete gap;
-8. run targeted tests and `bash scripts/verify_host.sh` before declaring GREEN.
+2. RED first for an immutable known-offer rule that matches only a known final transcript and returns `CallPlanAction.PROPOSAL` carrying one typed `CallProposal`;
+3. prove unknown/ambiguous proposal text never fabricates or chooses a proposal;
+4. prove collisions with fact/completion rules fail closed rather than establishing implicit precedence;
+5. prove `CallPlanDecision` ordinary rendering redacts proposal data and all caller collections are defensively copied;
+6. route the returned proposal through the existing `CallWorkflow.evaluateProposal(...)` in the test and prove an out-of-policy proposal becomes `NEEDS_USER_DECISION`; do not put approval/commit authority into `CallPlanDecision`;
+7. do **not** call `CallWorkflow.evaluateProposal`, issue `CallCommitmentAuthorization`, or accept/commit inside `CallPlanEngine`;
+8. keep known-fact, completion and bounded-fallback behavior source-compatible;
+9. do not touch media, STT/TTS, diagnostics or `privileged-helper/`;
+10. run targeted tests and `bash scripts/verify_host.sh` before declaring GREEN.
 
 No S22 gate and no live Orange call are part of this next slice.
