@@ -92,7 +92,10 @@ internal object LocalPhoneLlmLiveCallProbe {
             Thread(runnable, "LocalPhoneLlmLiveTurn").apply { isDaemon = true }
         }
         private val fastPath: GateCLiveCallFastPath? = if (request.gateCFastPath) {
-            GateCLiveCallFastPathFactory.create(checkNotNull(request.liveCallTarget))
+            GateCLiveCallFastPathFactory.create(
+                checkNotNull(request.liveCallTarget),
+                checkNotNull(request.orangeLiveAction),
+            )
         } else {
             null
         }
@@ -123,6 +126,7 @@ internal object LocalPhoneLlmLiveCallProbe {
             "text_llm_provider=${provider.name}",
             "gate_c_fast_path=${request.gateCFastPath}",
             "gate_c_call_plan_bound=${fastPath != null}",
+            "orange_live_action=${request.orangeLiveAction?.wireId ?: "none"}",
             "approval_policy=application_owned",
             "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
@@ -344,6 +348,7 @@ internal object LocalPhoneLlmLiveCallProbe {
             "text_llm_provider=${request.provider.name}\n" +
             "gate_c_fast_path=${request.gateCFastPath}\n" +
             "gate_c_call_plan_bound=false\n" +
+            "orange_live_action=${request.orangeLiveAction?.wireId ?: "none"}\n" +
             "local_text_llm_live_call_success=false\n" +
             "local_phone_llm_live_call_success=false\n" +
             "failure_reason=$reason\n" +
