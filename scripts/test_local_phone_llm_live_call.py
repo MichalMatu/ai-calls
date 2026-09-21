@@ -27,6 +27,24 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         self.assertIn("text_llm_provider EDGE_GALLERY", joined)
         self.assertNotIn(ORANGE_SUPPORT_NUMBER, joined)
 
+    def test_gate_c_probe_args_require_explicit_allowlisted_target(self):
+        args = build_probe_start_args(
+            "RFCT70L7E8J",
+            LOCAL_PHONE_PROVIDER,
+            gate_c_fast_path=True,
+            target=ORANGE_SUPPORT_NUMBER,
+        )
+        joined = " ".join(args)
+        self.assertIn("gate_c_fast_path true", joined)
+        self.assertIn(f"live_call_target {ORANGE_SUPPORT_NUMBER}", joined)
+        with self.assertRaises(ValueError):
+            build_probe_start_args(
+                "RFCT70L7E8J",
+                LOCAL_PHONE_PROVIDER,
+                gate_c_fast_path=True,
+                target="501234567",
+            )
+
     def test_provider_selection_is_fail_closed(self):
         self.assertEqual(LOCAL_PHONE_PROVIDER, normalize_provider(LOCAL_PHONE_PROVIDER))
         self.assertEqual(EDGE_GALLERY_PROVIDER, normalize_provider(EDGE_GALLERY_PROVIDER))
