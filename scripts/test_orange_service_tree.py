@@ -106,5 +106,26 @@ class OrangeServiceTreeTest(unittest.TestCase):
         self.assertFalse(edge["service_route_verified"])
 
 
+    def test_v151_roaming_reprompt_edge_is_verified_without_claiming_service_route(self):
+        tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
+        edges = {edge["id"]: edge for edge in tree["edges"]}
+        edge = edges["orange.root.roaming_info"]
+        self.assertEqual("orange.root", edge["from"])
+        self.assertEqual("orange.root.reprompt", edge["to"])
+        self.assertEqual("roaming_info", edge["action_id"])
+        self.assertEqual("Roaming.", edge["speech"])
+        self.assertEqual("VERIFIED", edge["status"])
+        self.assertEqual("REPROMPT", edge["observed_outcome"])
+        self.assertEqual("chatgpt-orange-roaming-live-v151-20260922", edge["evidence_task"])
+        self.assertEqual("max_duration", edge["observation_endpoint_reason"])
+        self.assertFalse(edge["service_route_verified"])
+        seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
+        seed = seeds["orange.roaming.info"]
+        self.assertEqual("DISCOVERED", seed["status"])
+        self.assertEqual("roaming_info", seed["action_id"])
+        self.assertEqual("REPROMPT", seed["last_outcome"])
+        self.assertIn("service_route_not_verified", seed["next_evidence"])
+
+
 if __name__ == "__main__":
     unittest.main()

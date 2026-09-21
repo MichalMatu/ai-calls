@@ -66,6 +66,19 @@
       "evidence_task": "chatgpt-orange-internet-live-v145-20260922",
       "observation_endpoint_reason": "max_duration",
       "service_route_verified": false
+    },
+    {
+      "id": "orange.root.roaming_info",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "roaming_info",
+      "speech": "Roaming.",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
+      "evidence_task": "chatgpt-orange-roaming-live-v151-20260922",
+      "observation_endpoint_reason": "max_duration",
+      "service_route_verified": false
     }
   ],
   "seeds": [
@@ -88,6 +101,17 @@
       "risk": "AUTH_REQUIRED_POSSIBLE",
       "source": "operator_capability_backlog",
       "last_evidence": "chatgpt-orange-internet-live-v145-20260922",
+      "last_outcome": "REPROMPT",
+      "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
+    },
+    {
+      "service_id": "orange.roaming.info",
+      "status": "DISCOVERED",
+      "action_id": "roaming_info",
+      "speech": "Roaming.",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "reviewed_low_risk_seed",
+      "last_evidence": "chatgpt-orange-roaming-live-v151-20260922",
       "last_outcome": "REPROMPT",
       "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
     }
