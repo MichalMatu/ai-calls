@@ -4,6 +4,7 @@ package pl.michalmatu.aicallbridge.agent;
 public enum CallPlanAction {
     SAY,
     ASK_REPEAT,
+    PROPOSAL,
     COMPLETE,
     TAKE_OVER
 }
