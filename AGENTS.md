@@ -9,8 +9,9 @@ Read only the current sources of truth:
 1. `README.md` for product state;
 2. `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point;
 3. `docs/ROADMAP.md` for gate status;
-4. `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` when changing boundaries;
-5. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media behavior.
+4. `service-packs/orange/service_tree.v1.json` during Orange Explorer work;
+5. `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` when changing boundaries;
+6. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media behavior.
 
 Fetch fresh `main` and fresh `agent-control:.agent/status/daemon.json` before writes/tasks. Trust the current Bridge envelope plus fresh daemon binding for repository identity; never copy a binding from historical prose.
 
@@ -18,59 +19,61 @@ Do not create a planning/status document for every experiment. Put durable decis
 
 ## Current priority
 
-The active product gate is **Gate C / deterministic fast path**.
+The active product gate is **Gate C / deterministic fast path**, now focused on the first evidence-backed **Orange Service Pack Explorer**.
 
-`HOST_GREEN` now includes:
+The first controlled live proof is complete. `v115` physically proved the full Orange cellular RX -> local STT -> PhraseMatrix -> CallPlan -> application-owned approval -> local TTS -> cellular TX chain with `backend_generate_calls=0`, followed by an `OBSERVE_ONLY` turn. `v123` physically proved the same chain for the reviewed `invoice_status` utterance and observed that Max returned the same root reprompt instead of entering a verified invoice route.
 
-- deterministic `CallPlan` policy core and `CallPlanTurnCoordinator`;
-- prepared-call CallPlan binding;
-- exact deterministic candidate text through the existing application-owned output approval;
-- session-owned consecutive-unknown fallback state;
-- neutral `TextCallFinalTurnDispatcher` (`Generate` / exact `Candidate` / `Consumed`);
-- final-STT selector before backend generation;
-- native `PhraseMatrix` exact/alias classification with deterministic normalization and collision fail-closed behavior;
-- PhraseMatrix ruleId validation through the existing CallPlan coordinator;
-- explicit optional previous-rule matching;
-- session-owned `previousValidatedRuleId`, sourced only from a validated CallPlan decision;
-- PhraseMatrix binding through readiness / `PreparedLocalTextCall`;
-- Android readiness factory binding for optional `CallPlan + PhraseMatrix`;
-- one `TextCallTurnController`, one approval path and one generation-cancellation lifecycle.
+Current durable Orange data is `service-packs/orange/service_tree.v1.json`.
 
-Latest full host checkpoint:
+Latest final host checkpoint for the current code/data slice:
 
 ```text
-.agent/results/chatgpt-android-readiness-binding-green-v72-20260921.json
+.agent/results/chatgpt-orange-service-tree-final-green-v125-20260921.json
 ```
 
-### Matcher engine decision
+It passed Orange tree/runner tests plus the full `bash scripts/verify_host.sh` gate on checkpoint `5b0f599b98aefcef2279490cb14824f70e63ea17`.
 
-Use the native Kotlin `PhraseMatrix` as the production matcher direction.
+### Orange Explorer facts
 
-Measured host spikes on the same small Polish corpus:
+- exact live target: `510100100`;
+- Max is a voice intent router at the root, not a fixed DTMF menu;
+- verified nodes: `orange.root`, `orange.root.reprompt`;
+- verified observed edge `orange.root.list_capabilities -> orange.root.reprompt` from `v115`;
+- verified observed edge `orange.root.invoice_status -> orange.root.reprompt` from `v123`;
+- `orange.invoice.status` is `DISCOVERED`, not a verified service route;
+- `OBSERVE_ONLY` has no speech-producing rules;
+- the sentinel backend must remain at `backend_generate_calls=0`.
 
-- native: ~11.85 ms init, ~0.815 us average match;
-- RiveScript Java: ~46.56 ms init/sort, ~88.85 us average reply, +134,132 B debug APK and `slf4j-api`.
+Known exact physically observed root-acquisition pre-roll fragments are:
 
-RiveScript remains a reference/spike; do not add it to production now. ChatScript remains a source of pattern/topic/rejoinder ideas, not an embedded dependency. KStateMachine remains deferred unless non-authority dialogue-stage state becomes genuinely complex.
+```text
+orange
+jakości orange
+5g jakości orange
+```
 
-These are host measurements, not S22 performance evidence.
+Ignore them only in the bounded root-acquisition phase. Do not turn them into broad fuzzy rules. A bounded retry for `SpeechRecognizer ERROR_NO_MATCH(7)` is allowed only under the strict tested root-acquisition conditions. `OBSERVE_ONLY` must never use those retries.
 
 ### Next execution order
 
-1. add one small bounded deterministic fuzzy/pattern matcher slice only for a concrete failing corpus case;
-2. every new positive fuzzy/pattern case must include neighboring false-positive/negation/ambiguity guards;
-3. keep output classification-only: existing `ruleId` + confidence/matcher diagnostics, never arbitrary speech or authority;
-4. expand the Polish ASR-like corpus and measure hit/no-match/false-positive plus p50/p95 latency;
-5. then define the bounded LLM supervisor contract: it may suggest only an existing ruleId and remains behind CallPlan/workflow/output approval;
-6. stale supervisor work must be invalidated by newer transcript, resumed speech, cancellation or workflow change;
-7. run targeted regressions and `bash scripts/verify_host.sh` for every behavior slice.
+1. inspect the latest terminal Local Agent result and current Orange tree;
+2. choose one unverified Orange capability seed;
+3. define one exact reviewed non-committing utterance with RED tests;
+4. minimal GREEN through the existing `CallPlan + PhraseMatrix` authority path;
+5. run targeted regressions and `bash scripts/verify_host.sh`;
+6. only with explicit current-session operator authorization, execute one bounded call to exact allowlisted target `510100100` and follow it with `OBSERVE_ONLY`;
+7. persist the observed node/edge/result into `service_tree.v1.json`;
+8. if a branch reaches authentication, customer data, payment, purchase, activation, tariff/contract change or another commitment barrier, record the barrier and continue another branch rather than finalizing it;
+9. repeat until the service catalog is broad enough for a final natural-intent -> `service_id` -> verified deterministic route acceptance test.
 
-Live Orange calls require explicit current-session operator authorization plus an exact operator-defined allowlisted destination and a runner that actually exercises the changed path. Host matcher work does not require a call.
+Public Orange documentation is a seed backlog only. Never mark a route `VERIFIED` from web/docs evidence alone.
+
+Do not use arbitrary free-text speech to explore. Each speech-producing action must map to one reviewed constant/product datum. Consider making the reviewed explorer catalog data-driven only after the current pattern is proven across several seeds; do not bypass CallPlan/output approval to make iteration faster.
 
 ## Frozen / deferred boundaries
 
 - Samsung cellular RX/TX path: `DONE / PROVEN_S22 / FROZEN`.
-- `privileged-helper/`: do not change during Gate C product wiring.
+- `privileged-helper/`: do not change during Gate C product/service-pack work.
 - General-purpose phone-local llama.cpp path: frozen.
 - Edge Gallery / Gemma 4 E2B / official Agent Skills: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
 - Interactive ChatGPT relay: developer benchmark infrastructure only.
@@ -87,7 +90,7 @@ Keep the existing owners; do not create a second authority store:
 - `CallCommitmentGate` owns one exact one-shot commitment permit;
 - application-owned output approval remains mandatory before speech release/TTS/TX.
 
-Models, helpers, matchers and Agent Skills are proposal/classification-only. They must not own dialing, DTMF, credentials, sensitive-data authority, payments, purchases, activations, tariff/contract changes or commitments.
+Models, helpers, matchers, service-pack discovery tools and Agent Skills are proposal/classification-only. They must not own dialing, DTMF, credentials, sensitive-data authority, payments, purchases, activations, tariff/contract changes or commitments.
 
 Only `CallPlanAction.SAY` carries speech text. Structured actions without text remain structured.
 
@@ -97,6 +100,16 @@ PhraseMatrix-specific invariants:
 - raw matcher ids never become authority;
 - only validated CallPlan decision ids may become previous-turn context;
 - unknown/ambiguous/rejected matches fail closed and cannot silently become sensitive action/model speech.
+
+Orange Explorer-specific invariants:
+
+- exact allowlisted target only;
+- named reviewed actions only;
+- no model generation on the deterministic fast path;
+- root-acquisition exceptions are exact evidence-backed diagnostics, not semantic shortcuts;
+- `TAKE_OVER` retains its semantic meaning; runner-level retry policy must be explicit and bounded;
+- `OBSERVE_ONLY` cannot release speech;
+- a physically observed edge may be `VERIFIED` while the corresponding service seed remains only `DISCOVERED` if the desired service route was not reached.
 
 ## Architecture discipline
 
@@ -117,8 +130,9 @@ PhraseMatrix-specific invariants:
 - Every task must use the current chat's exact immutable `agent_binding`.
 - Check fresh daemon state before creating a task that touches the same worktree.
 - Inspect terminal evidence; queued/ACK is not success.
+- Current daemon contract requires explicit `resources` on tasks. For physical S22 work use the canonical lowercase resource `device:rfct70l7e8j`.
 - Use Local Agent for Gradle, lint, host tests, ADB/device work and repository branch cleanup.
-- Direct GitHub edits are appropriate for exact reviewable code/docs diffs.
+- Direct GitHub edits are appropriate for exact reviewable code/docs/data diffs.
 - Never launch local Codex from a Local Agent task.
 
 ## Branch policy
@@ -127,7 +141,9 @@ Work directly on `main` unless temporary isolation is genuinely required. Integr
 
 ## Controlled live-call policy
 
-Automated dialing/hangup is permitted only for an explicitly operator-defined allowlisted test destination and only when the current task authorizes a physical call. Keep one active cellular call, bounded retries/duration, and fail closed on target/device/media uncertainty. Never allow model/tool output to create or widen the dial allowlist.
+Automated dialing/hangup is permitted only for an explicitly operator-defined allowlisted test destination and only when the **current chat/task** authorizes physical calls. Authorization from an older chat must not be assumed.
+
+For Orange Explorer the only current live target is `510100100`. Keep one active cellular call, bounded retries/duration, and fail closed on target/device/media uncertainty. Never allow model/tool output to create or widen the dial allowlist.
 
 No emergency, premium-rate or arbitrary short-code dialing. A runner may hang up the call it created; it must not terminate an unrelated pre-existing call without explicit authorization.
 
@@ -135,15 +151,16 @@ No emergency, premium-rate or arbitrary short-code dialing. A runner may hang up
 
 A standard OpenAI API key is host/backend-only. Never put it in Android source, APK/BuildConfig, Intent, ADB argv, phone storage or logs.
 
-Do not retain raw PCM, call recordings, full transcripts, credentials or unrelated phone data by default. Prefer state, timing, sizes and sanitized failures.
+Do not retain raw PCM, call recordings, credentials or unrelated phone data by default. For controlled service discovery, retain only the minimum transcript/evidence needed to identify deterministic IVR nodes and transitions.
 
 ## Completion gate
 
-Before declaring a product slice complete:
+Before declaring a product/service-pack behavior slice complete:
 
 1. run targeted tests for the changed boundary;
 2. run `bash scripts/verify_host.sh`;
-3. run only the physical gate actually required by changed OEM/hardware behavior;
+3. run only the physical gate actually required by changed OEM/hardware/IVR behavior;
 4. verify evidence rather than infer success;
-5. update only authoritative docs;
-6. leave `main` clean and delete temporary work branches.
+5. update `service_tree.v1.json` for durable Orange evidence;
+6. update only authoritative docs when gate/continuation status changes;
+7. leave `main` clean and delete temporary work branches.
