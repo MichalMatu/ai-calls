@@ -46,9 +46,12 @@ class GateCLiveCallScenarioTest {
     }
 
     @Test
-    fun `orange diagnostic scenario rejects blank target`() {
+    fun `orange diagnostic scenario rejects any target outside its exact allowlist`() {
         assertThrows(IllegalArgumentException::class.java) {
             GateCLiveCallScenarioFactory.create("   ")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            GateCLiveCallScenarioFactory.create("501234567")
         }
     }
 }
