@@ -31,16 +31,29 @@ class OrangeServiceTreeTest(unittest.TestCase):
         self.assertEqual("list_capabilities", edge["action_id"])
         self.assertEqual("Jakie sprawy możesz załatwić?", edge["speech"])
         self.assertEqual("VERIFIED", edge["status"])
+        self.assertEqual("REPROMPT", edge["observed_outcome"])
         self.assertEqual("chatgpt-orange-explorer-live-v115-20260921", edge["evidence_task"])
 
-    def test_invoice_status_seed_is_not_claimed_verified_before_live_evidence(self):
+    def test_v123_invoice_attempt_is_discovered_but_service_route_is_not_claimed_verified(self):
         tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
+        edges = {edge["id"]: edge for edge in tree["edges"]}
+        edge = edges["orange.root.invoice_status"]
+        self.assertEqual("orange.root", edge["from"])
+        self.assertEqual("orange.root.reprompt", edge["to"])
+        self.assertEqual("invoice_status", edge["action_id"])
+        self.assertEqual("Chcę sprawdzić fakturę.", edge["speech"])
+        self.assertEqual("VERIFIED", edge["status"])
+        self.assertEqual("REPROMPT", edge["observed_outcome"])
+        self.assertEqual("chatgpt-orange-invoice-live-v123-20260921", edge["evidence_task"])
+
         seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
         invoice = seeds["orange.invoice.status"]
-        self.assertEqual("SEED", invoice["status"])
+        self.assertEqual("DISCOVERED", invoice["status"])
         self.assertEqual("invoice_status", invoice["action_id"])
         self.assertEqual("AUTH_REQUIRED_POSSIBLE", invoice["risk"])
         self.assertEqual("Chcę sprawdzić fakturę.", invoice["speech"])
+        self.assertEqual("REPROMPT", invoice["last_outcome"])
+        self.assertIn("service_route_not_verified", invoice["next_evidence"])
 
 
 if __name__ == "__main__":
