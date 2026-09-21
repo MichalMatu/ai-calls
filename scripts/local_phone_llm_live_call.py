@@ -181,6 +181,28 @@ def _is_ignorable_gate_c_preroll(report: dict[str, str]) -> bool:
     return transcript in GATE_C_IGNORABLE_PREROLLS
 
 
+def _is_retryable_gate_c_root_no_match(report: dict[str, str]) -> bool:
+    """Retry only SpeechRecognizer NO_MATCH after real speech during root acquisition."""
+    if report.get("gate_c_fast_path") != "true":
+        return False
+    if report.get("gate_c_call_plan_bound") != "true":
+        return False
+    if report.get("orange_live_action") not in GATE_C_ROOT_ACQUISITION_ACTIONS:
+        return False
+    if report.get("local_text_llm_live_call_success") != "false":
+        return False
+    if report.get("failure_reason") != "stt_recognition_error_7":
+        return False
+    if report.get("endpoint_reason") != "trailing_silence":
+        return False
+    if report.get("endpoint_speech_detected") != "true":
+        return False
+    try:
+        return _backend_generate_calls(report) == 0
+    except RuntimeError:
+        return False
+
+
 def _devices_output() -> str:
     return subprocess.run(
         ["adb", "devices", "-l"], check=True, text=True,
@@ -370,15 +392,19 @@ def run_orange_support_once(
             if success == "true":
                 break
 
-            can_retry_preroll = (
+            can_retry_root_acquisition = (
                 gate_c_fast_path and
                 probe_turn < max_probe_turns and
-                _is_ignorable_gate_c_preroll(report)
+                (
+                    _is_ignorable_gate_c_preroll(report) or
+                    _is_retryable_gate_c_root_no_match(report)
+                )
             )
-            if can_retry_preroll:
+            if can_retry_root_acquisition:
                 print(
-                    "gate_c_preroll_ignored=true," +
-                    f"turn:{probe_turn},transcript:{report.get('stt_text', '')}"
+                    "gate_c_root_acquisition_retry=true," +
+                    f"turn:{probe_turn},reason:{report.get('failure_reason', '')}," +
+                    f"transcript:{report.get('stt_text', '')}"
                 )
                 continue
 
