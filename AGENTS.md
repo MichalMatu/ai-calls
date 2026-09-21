@@ -20,21 +20,39 @@ Gate A readiness/orchestration and the original Gate B local-model sweep are com
 
 The separate `EDGE_GALLERY` / Gemma 4 E2B / official Agent Skills feasibility checkpoint is also frozen as `PROVEN_S22 PARTIAL / NOT PRODUCT_READY`. Warm speculative timing was promising, but the bounded live Orange experiment ended in an Edge Gallery process crash during `LocalPhoneAgentRuntime.decide()`. After relaunch the first decision was about 10.65 s and the Edge process used about 2.58 GB total PSS. Do not keep extending Edge diagnostic probes or repeat Orange calls by default; reopen that path only after a materially improved runtime/model/hardware condition or an explicit user decision.
 
-The current product gate is **Gate C / `CallPlan v1`**: build a deterministic call brain for common bounded turns while preserving all existing application-owned authority.
+The current product gate is **Gate C / `CallPlan v1`**. Its deterministic host-policy core is `DONE / HOST_GREEN`; the active work is product wiring.
+
+Completed Gate C policy behavior includes:
+
+1. known final question -> exact value from existing `CallTask.authorizedFacts`;
+2. missing fact -> fail-closed `TAKE_OVER`;
+3. unknown/ambiguous final -> bounded `ASK_REPEAT` / `TAKE_OVER`;
+4. known offer -> typed predeclared `CallProposal` only;
+5. completion rule -> typed predeclared `CallOutcome` only;
+6. cross-kind collisions -> fail closed rather than implicit priority;
+7. optional helper -> may suggest only an existing `ruleId`, never payload/authority;
+8. immutable defensive copies and redacted ordinary rendering;
+9. regression proof that plan decisions cannot bypass `CallConfirmationPolicy`, `CallWorkflow`, exact one-shot `CallCommitmentGate`, or application-owned output approval.
 
 Current execution order:
 
-1. reuse `CallTask` as the immutable source of task authority (`CallConstraints`, `CallPreferences`, `authorizedFacts`); do not create a second authority store;
-2. reuse `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy` and `CallCommitmentGate` for target/workflow/proposal/commitment ownership;
-3. add only a narrow immutable `CallPlan` execution context: existing task + resolved target references, deterministic known-turn rules, completion criteria and bounded repeat/escalation policy;
-4. for authorized-fact answers, store a fact key and resolve the value from `CallTask.authorizedFacts` at decision time; missing facts fail closed;
-5. make the first slice host-only and TDD-first: known fact answer, missing-fact failure, unknown-intent fallback, immutability and redacted rendering;
-6. do not wire telephony, STT/TTS, diagnostics or a model into that first slice;
-7. any future language helper is proposal-only: it may suggest a bounded rule/intent match or wording but may not create facts, targets, actions, authority or commitments;
-8. counterparty offers remain typed `CallProposal` data and continue through the existing workflow/confirmation/commitment path;
-9. final speech still requires the existing application-owned output approval before TTS/TX.
+1. keep `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy` and `CallCommitmentGate` as the existing authority owners; do not create a second authority store;
+2. keep `CallPlanEngine` deterministic and mutation-free with respect to workflow/media/output authority;
+3. implement the next host-only TDD slice as a narrow product-owned `CallPlanTurnCoordinator` (or equivalently scoped name), outside diagnostics/media/speech ownership;
+4. coordinator input is the existing immutable `CallPlan`, existing `CallWorkflow`, final transcript and explicit prior-unknown count;
+5. delegate classification to `CallPlanEngine`; do not duplicate rule matching;
+6. `SAY`, `ASK_REPEAT`, `TAKE_OVER` remain structured coordinator results only in this slice — no direct TTS/TX;
+7. `PROPOSAL` routes the exact typed proposal through existing `CallWorkflow.evaluateProposal(...)`; expose its `CallPolicyDecision` but do not authorize commitment or approve a pending proposal;
+8. `COMPLETE` routes the exact outcome through existing `CallWorkflow.complete(...)`; the workflow remains terminal-state owner;
+9. reject plan/workflow target mismatch before any workflow mutation and let invalid workflow state fail closed via the existing state machine;
+10. do not add model/backend fallback to the first coordinator slice;
+11. after coordinator HOST_GREEN, wire structured coordinator output into the existing product text/session boundary in a separate slice, preserving application-owned output approval before TTS/TX.
+
+The existing `TextCallTurnController` remains the narrow complete-backend-text -> application-approval controller. `LocalSpeechTextPipeline` remains speech lifecycle. Do not push CallPlan workflow ownership into those classes merely for convenience.
 
 The interactive ChatGPT relay remains developer benchmark infrastructure only. Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work remains deferred. Do not resume the old nearby-size local-model sweep or Edge live-call work by default.
+
+No further Orange live-call authorization is currently available.
 
 ## Architecture discipline
 
