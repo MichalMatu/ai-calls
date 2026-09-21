@@ -140,6 +140,44 @@ After that mapper is `HOST_GREEN`, the following slice may add an optional final
 
 Then run targeted regressions + full `bash scripts/verify_host.sh`. Physical S22 validation comes only after the host integration is complete and only with explicit authorization for any real call.
 
+## Important follow-on idea — Phrase / Intent Matrix + LLM supervisor
+
+Do not lose this after final-STT integration. It may become a key product architecture.
+
+The idea is to put a tiny deterministic local phrase/intent matrix in front of LLM reasoning so trivial conversational turns are answered immediately, while the LLM gets time to build/refresh context and only enters when a turn is ambiguous or important.
+
+Target shape:
+
+```text
+final STT
+ -> normalize
+ -> exact phrase/intent matrix
+ -> deterministic fuzzy match
+ -> high confidence: exact CallPlan rule / reviewed response variant
+ -> otherwise: bounded LLM supervisor suggests existing intent/ruleId
+ -> CallPlan/workflow/output approval
+ -> TTS
+```
+
+Examples worth covering first: `GREETING`, `ACK`, `CONFIRM`, `REJECT`, `ASK_REPEAT`, `WAIT`, common identity/purpose questions backed by authorized facts, and task-specific known rules.
+
+Naturalness should come from a small reviewed variant bank, not free-form generation. A temperature-like setting may widen/narrow the eligible variant set, but the actual choice should remain deterministic/testable (for example stable seed from call id + turn index + intent).
+
+The strategic point is important: **the matrix gives the LLM breathing room**. The phone can answer `Dzień dobry`, acknowledgement, repeat/wait and similar turns locally in effectively lookup time while the model observes bounded context, warms up or performs a shadow classification. Model capacity is then reserved for key moments rather than racing every turn.
+
+Safety/ownership rules:
+
+- matrix output still goes through CallPlan/workflow/output approval;
+- LLM remains a supervisor/proposal layer and may only suggest existing intent/rule/ruleId;
+- it cannot invent facts, targets, commitments or authority;
+- speculative/shadow LLM output is quarantined and invalidated by newer transcript, resumed speech, cancellation or workflow change;
+- it cannot retroactively replace a deterministic response already approved/released;
+- sensitive/committing actions never become generic matrix shortcuts.
+
+Useful metrics: matrix hit rate, fuzzy false-match rate, LLM invocation rate, deterministic vs supervised p50/p95 latency, takeover rate, and how often important turns required supervisor help.
+
+This is now also recorded in `docs/ARCHITECTURE.md` and `docs/ROADMAP.md`. Implement it only after the clean final-STT/CallPlan selector wiring, so it reuses the same authority and cancellation path instead of becoming a parallel dialogue system.
+
 ## Do not restart these paths by default
 
 - Edge Gallery live-call experiments;
