@@ -31,4 +31,11 @@ class GateCLiveCallFastPathTest {
         fastPath.backend.close()
         assertTrue(fastPath.backend.isClosed)
     }
+
+    @Test
+    fun `fast path bounds root capture well below carrier idle timeout`() {
+        val fastPath = GateCLiveCallFastPathFactory.create("510100100")
+
+        assertEquals(15_000, fastPath.maxCaptureMs)
+    }
 }
