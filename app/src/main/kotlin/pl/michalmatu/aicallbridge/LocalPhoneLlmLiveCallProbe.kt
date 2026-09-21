@@ -8,11 +8,14 @@ import android.os.SystemClock
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallConstraints
+import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallPreferences
 import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.localcall.AndroidLocalTextCallBackendFactory
+import pl.michalmatu.aicallbridge.localcall.LocalTextCallSession
+import pl.michalmatu.aicallbridge.localcall.PreparedLocalTextCall
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
@@ -29,64 +32,101 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 
-/** One bounded live cellular turn: telephony RX -> local STT -> selected text LLM -> approval -> TTS -> TX. */
+/**
+ * One bounded live cellular turn. Legacy providers use the neutral LocalTextCallSession path;
+ * Gate C binds PhraseMatrix + CallPlan and a fail-closed backend sentinel before final STT routing.
+ */
 internal object LocalPhoneLlmLiveCallProbe {
     private const val REPORT_FILE = "local-phone-llm-live-call-report.txt"
     private const val TIMEOUT_MS = 90_000L
 
     fun run(context: Context, callback: (String) -> Unit) =
-        run(context, TextLlmProvider.LOCAL_PHONE_LLM, callback)
+        run(
+            context,
+            LocalPhoneLlmLiveCallProbeRequest.create(
+                provider = TextLlmProvider.LOCAL_PHONE_LLM,
+                gateCFastPath = false,
+                liveCallTarget = null,
+            ),
+            callback,
+        )
 
     fun run(
         context: Context,
         provider: TextLlmProvider,
         callback: (String) -> Unit,
+    ) = run(
+        context,
+        LocalPhoneLlmLiveCallProbeRequest.create(
+            provider = provider,
+            gateCFastPath = false,
+            liveCallTarget = null,
+        ),
+        callback,
+    )
+
+    fun run(
+        context: Context,
+        request: LocalPhoneLlmLiveCallProbeRequest,
+        callback: (String) -> Unit,
     ) {
-        require(
-            provider == TextLlmProvider.LOCAL_PHONE_LLM ||
-                provider == TextLlmProvider.EDGE_GALLERY,
-        ) {
-            "provider_not_enabled_for_local_live_call_${provider.name.lowercase()}"
-        }
         val appContext = context.applicationContext
         val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audioManager == null || audioManager.mode != AudioManager.MODE_IN_CALL) {
-            callback(immediateReport("cellular_call_not_active", provider))
+            callback(immediateReport("cellular_call_not_active", request))
             return
         }
-        Run(appContext, provider, callback).start()
+        Run(appContext, request, callback).start()
     }
 
     private class Run(
         private val context: Context,
-        private val provider: TextLlmProvider,
+        private val request: LocalPhoneLlmLiveCallProbeRequest,
         private val callback: (String) -> Unit,
     ) {
+        private val provider = request.provider
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
         private val mediaTurnStarted = AtomicBoolean(false)
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "LocalPhoneLlmLiveTurn").apply { isDaemon = true }
         }
+        private val fastPath: GateCLiveCallFastPath? = if (request.gateCFastPath) {
+            GateCLiveCallFastPathFactory.create(checkNotNull(request.liveCallTarget))
+        } else {
+            null
+        }
+        private val workflow: CallWorkflow = fastPath?.scenario?.workflow?.also { workflow ->
+            workflow.markDialing()
+            workflow.markCallActive()
+        } ?: activeWorkflow()
+        private val backend = fastPath?.backend ?: AndroidLocalTextCallBackendFactory.create(context, provider)
+        private val approvalPolicy = CallTextAgentOutputApprovalPolicy(
+            workflow,
+            CallCommitmentGate { "live-local-phone-llm-token" },
+        )
+        private val prepared = PreparedLocalTextCall(
+            workflow = workflow,
+            backend = backend,
+            callPlan = fastPath?.scenario?.callPlan,
+            phraseMatrix = fastPath?.scenario?.phraseMatrix,
+        )
+        private val session = LocalTextCallSession.create(
+            context = context,
+            prepared = prepared,
+            approvalPolicy = approvalPolicy,
+        )
         private val lines = mutableListOf(
             "probe=local_phone_llm_live_call",
             "call_required=true",
-            "backend_location=phone_loopback",
+            "backend_location=${if (request.gateCFastPath) "gate_c_sentinel" else "phone_loopback"}",
             "text_llm_provider=${provider.name}",
+            "gate_c_fast_path=${request.gateCFastPath}",
+            "gate_c_call_plan_bound=${fastPath != null}",
             "approval_policy=application_owned",
             "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
             "target_pcm=mono,pcm16,${LocalSpeechFormat.SAMPLE_RATE_HZ}",
-        )
-        private val backend = AndroidLocalTextCallBackendFactory.create(context, provider)
-        private val workflow = activeWorkflow()
-        private val pipeline = LocalSpeechTextPipeline(
-            context,
-            backend,
-            CallTextAgentOutputApprovalPolicy(
-                workflow,
-                CallCommitmentGate { "live-local-phone-llm-token" },
-            ),
         )
         private var mediaRuntime: CallMediaSessionRuntime? = null
         private var activeLease: CallMediaEndpointLease? = null
@@ -138,7 +178,8 @@ internal object LocalPhoneLlmLiveCallProbe {
             activeLease = lease
             lines += "media_active=true"
             turnStartedAtMs = SystemClock.elapsedRealtime()
-            pipeline.start(object : LocalSpeechTextPipeline.Listener {
+
+            val listener = object : LocalSpeechTextPipeline.Listener {
                 override fun onSpeechInputReady() {
                     lines += "stt_ready=true"
                     executor.execute { captureInputTurn(lease) }
@@ -151,7 +192,13 @@ internal object LocalPhoneLlmLiveCallProbe {
                 }
 
                 override fun onApprovedText(text: String) {
-                    lines += "backend_complete_response=true"
+                    if (request.gateCFastPath) {
+                        lines += "backend_complete_response=false"
+                        lines += "approved_text_source=call_plan_candidate"
+                    } else {
+                        lines += "backend_complete_response=true"
+                        lines += "approved_text_source=backend"
+                    }
                     lines += "approved_text=${sanitize(text)}"
                     lines += "approved_text_nonblank=${text.isNotBlank()}"
                     lines += "llm_approved_elapsed_ms=${elapsedTurnMs()}"
@@ -164,7 +211,25 @@ internal object LocalPhoneLlmLiveCallProbe {
 
                 override fun onDroppedText() = finish(false, "output_dropped")
                 override fun onError(reason: String) = finish(false, reason)
-            })
+            }
+
+            if (request.gateCFastPath) {
+                session.start(
+                    listener,
+                    LocalTextCallSession.PlanTurnListener { result ->
+                        val decision = result.decision()
+                        lines += "call_plan_action=${decision.action().name.lowercase()}"
+                        decision.ruleId()?.let { lines += "call_plan_rule_id=${sanitize(it)}" }
+                        if (decision.action() != CallPlanAction.SAY) {
+                            context.mainExecutor.execute {
+                                finish(false, "gate_c_${decision.action().name.lowercase()}")
+                            }
+                        }
+                    },
+                )
+            } else {
+                session.start(listener)
+            }
         }
 
         private fun captureInputTurn(lease: CallMediaEndpointLease) {
@@ -185,7 +250,7 @@ internal object LocalPhoneLlmLiveCallProbe {
                         break
                     }
                     if (read == 0) continue
-                    if (!pipeline.writeInputPcm(buffer, 0, read)) {
+                    if (!session.writeInputPcm(buffer, 0, read)) {
                         throw IllegalStateException("stt_pcm_write_failed")
                     }
                     total += read
@@ -203,7 +268,7 @@ internal object LocalPhoneLlmLiveCallProbe {
                     context.mainExecutor.execute { finish(false, "telephony_rx_too_short") }
                     return
                 }
-                pipeline.finishInput()
+                session.finishInput()
                 lines += "stt_pcm_eof_sent=true"
                 lines += "stt_eof_elapsed_ms=${elapsedTurnMs()}"
             } catch (error: Throwable) {
@@ -239,12 +304,13 @@ internal object LocalPhoneLlmLiveCallProbe {
         private fun finish(success: Boolean, reason: String? = null) {
             if (!finished.compareAndSet(false, true)) return
             handler.removeCallbacks(timeout)
-            try { pipeline.close() } catch (_: Throwable) {}
+            try { session.close() } catch (_: Throwable) {}
             activeLease = null
             try { mediaRuntime?.coordinator()?.takeOverNow() } catch (_: Throwable) {}
             try { mediaRuntime?.close() } catch (_: Throwable) {}
             mediaRuntime = null
             executor.shutdownNow()
+            fastPath?.backend?.let { lines += "backend_generate_calls=${it.generateCalls}" }
             lines += "local_text_llm_live_call_success=$success"
             lines += "local_phone_llm_live_call_success=$success"
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
@@ -271,9 +337,14 @@ internal object LocalPhoneLlmLiveCallProbe {
         return workflow
     }
 
-    private fun immediateReport(reason: String, provider: TextLlmProvider): String =
+    private fun immediateReport(
+        reason: String,
+        request: LocalPhoneLlmLiveCallProbeRequest,
+    ): String =
         "probe=local_phone_llm_live_call\n" +
-            "text_llm_provider=${provider.name}\n" +
+            "text_llm_provider=${request.provider.name}\n" +
+            "gate_c_fast_path=${request.gateCFastPath}\n" +
+            "gate_c_call_plan_bound=false\n" +
             "local_text_llm_live_call_success=false\n" +
             "local_phone_llm_live_call_success=false\n" +
             "failure_reason=$reason\n" +
