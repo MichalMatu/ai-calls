@@ -13,27 +13,28 @@ Current foundation:
 - provider-neutral text-agent pipeline with application-owned output approval: `DONE / PROVEN_S22`;
 - product-owned local LLM start/identity-check/stop lifecycle: `DONE / PROVEN_S22`;
 - pre-dial local `READY_TO_DIAL` + prepared local text-call session boundary: `DONE / PROVEN_S22` (off-call readiness);
-- live end-of-utterance detection: `DONE / PROVEN_S22`;
+- live end-of-utterance signals: `PROVEN_S22`, with the production state machine still to be integrated outside diagnostics;
 - interactive ChatGPT developer relay over bounded STT text/local TTS: `DONE / PROVEN_S22` as test infrastructure only.
 
-The old fixed 8-second capture wait is gone, but real Orange evidence also proved that a short fixed trailing-silence threshold is not a correct IVR turn boundary. Max can pause for several seconds inside one prompt and Android emits multiple `onEndOfSpeech` callbacks. The current experimental direction is an end-candidate state machine: resumed speech cancels the candidate; a later recognizer end plus bounded hangover closes the turn; a long watchdog is safety-only. Partial STT is now physically proven useful for preparing the next decision before the final endpoint.
+The old fixed 8-second capture wait is gone, and real Orange evidence proved that a short fixed trailing-silence threshold is not a correct IVR turn boundary. Max can pause for several seconds inside one prompt and Android emits multiple `onEndOfSpeech` callbacks. The proven direction is an end-candidate state machine: resumed speech cancels the candidate; a later recognizer end plus bounded hangover closes the turn; a long watchdog is safety-only. Partial STT is physically proven useful for bounded preparation, but partial/model output never creates authority or reaches TX by itself.
 
-The general-purpose phone-local LLM route is currently **frozen**. Qwen2.5-1.5B is operationally usable but too weak as the call brain, while Qwen3-4B caused unacceptable latency/resource pressure and user-visible S22 instability. The runtime and benchmark harness remain available for future hardware/model experiments, but they are not the current product direction.
+The general-purpose phone-local LLM route is frozen. Qwen2.5-1.5B was too weak as the call brain, while Qwen3-4B caused unacceptable latency/resource pressure and user-visible S22 instability. The runtime and benchmark harness remain available for future hardware/model experiments, but they are not the current product direction.
+
+The separate Google AI Edge Gallery / Gemma 4 E2B / official Agent Skills checkpoint is also now frozen. It proved useful capabilities — official headless Agent Skills, real Orange partial STT, fast warm decisions and cancelable speculative inference — but the final bounded live test exposed an Edge process crash during `LocalPhoneAgentRuntime.decide()`. After relaunch, the first decision was about 10.65 seconds and the Edge process used about 2.58 GB total PSS. The live S22 path therefore remains `NOT PRODUCT_READY`; no further Orange calls or Edge probe hacks are the default plan.
 
 Representative evidence:
 
 ```text
-.agent/results/chatgpt-orange-agent-skills-endpoint-v9b-20260921.json
-.agent/results/chatgpt-edge-agent-full-greeting-latency-v10-20260921.json
-.agent/results/chatgpt-edge-agent-session-reset-v11-20260921.json
-.agent/results/chatgpt-orange-partial-stt-v12d-20260921.json
+.agent/results/chatgpt-edge-speculative-offcall-benchmark-v16-20260921.json
+.agent/results/chatgpt-edge-speculative-live-build-v17-20260921.json
+.agent/results/chatgpt-orange-speculative-live-v18-20260921.json
+.agent/results/chatgpt-edge-live-transport-diagnosis-v19-20260921.json
+.agent/results/chatgpt-edge-exit-reason-offcall-v20-20260921.json
 .agent/results/live-endpointing-orange-s22-20260919-1214.json
 .agent/results/gate-a-offcall-ready-s22-20260919-1335.json
 .agent/results/gate-b-qwen15b-baseline-s22-retry-20260919-1424.json
 .agent/results/gate-b-qwen3-4b-full-benchmark-s22-retry-20260919-1500.json
 .agent/results/chatgpt-relay-orange-active-v4b.json
-.agent/results/chatgpt-relay-full-host-tx-pacing-v2.json
-.agent/results/chatgpt-relay-orange-pacing-confirm-v1.json
 ```
 
 ## Architecture
@@ -42,7 +43,7 @@ Representative evidence:
 explicit user task / authority
           |
           v
- deterministic workflow / future CallPlan
+ deterministic CallPlan / workflow
           |
           v
    telephony RX (frozen)
@@ -54,10 +55,11 @@ explicit user task / authority
      local S22 STT
           |
           v
- TextCallAgentBackend
+ deterministic rule engine
+   + optional bounded language helper
           |
           v
- application-owned approval / commitment rules
+ application-owned proposal / confirmation / commitment / output gates
           |
           v
      local S22 TTS
@@ -66,7 +68,24 @@ explicit user task / authority
    telephony TX (frozen)
 ```
 
-The telephony transport, speech layer, reasoning provider and authority model are separate boundaries. No model or developer relay may own Samsung media behavior, dialing authority, sensitive-data authority or commitment authority.
+The telephony transport, speech layer, language/reasoning helper and authority model are separate boundaries. No model, Agent Skill or developer relay may own Samsung media behavior, dialing authority, sensitive-data authority or commitment authority.
+
+## Active execution plan — Gate C / CallPlan v1
+
+The active productization gate is now `CallPlan v1`: make common known turns deterministic and use a model only as an optional bounded language helper.
+
+The preimplementation audit found that the current authority model should be reused rather than replaced:
+
+- `CallTask` remains the immutable source of user-authorized task data, hard constraints, soft preferences and `authorizedFacts`;
+- `CallResolvedTarget` represents the resolved concrete target without granting permission to widen any runtime dial allowlist;
+- `CallWorkflow` remains the owner of task progress, pending proposals, user-decision state and terminal outcome;
+- `CallConfirmationPolicy` remains the deterministic evaluator of concrete counterparty proposals;
+- `CallCommitmentGate` remains the one-shot permit bound to one exact proposal;
+- final speech still passes application-owned approval before TTS/TX.
+
+`CallPlan` must therefore be a narrow immutable execution context, not another authority store. It should reference the existing `CallTask` and resolved target, carry deterministic known-turn rules, completion criteria and bounded repeat/escalation policy. For authorized-fact answers, rules store a fact key and resolve the value from `CallTask.authorizedFacts` at decision time; a missing fact fails closed rather than being guessed.
+
+The first implementation slice is host-only and TDD-first: authorized-fact answer, missing-fact fail-closed behavior, unknown-intent fallback, immutability and redacted rendering. It must not wire telephony, STT/TTS, diagnostics or a model yet. See `docs/ROADMAP.md` for the RED/GREEN matrix and `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point.
 
 ## Interactive ChatGPT relay
 
@@ -79,31 +98,11 @@ interactive ChatGPT response -> ADB delivery -> local S22 TTS -> cellular TX
 
 This path is physically proven for repeated turns on Orange. It is useful for comparing strong-model behavior against the local stack, but it is **not** a production/background backend: it requires an active interactive ChatGPT session. Raw relay text is kept only on a transient relay branch and that branch is deleted during cleanup.
 
-The latest physical pacing confirmation also records blocking TX-write time separately from the remaining playback hold, so time already spent inside a blocking write is not double-counted. The hold still keeps a 250 ms guard and never intentionally truncates PCM.
-
-## Active execution plan
-
-Paid OpenAI API work and the old llama.cpp phone-model sweep are deferred. The current experimental checkpoint is `EDGE_GALLERY` + Gemma 4 E2B + the official Agent Skills runtime.
-
-What is already proven on the S22:
-
-- Edge Gallery/Gemma local inference through the separate loopback provider;
-- a real Orange cellular STT -> Gemma -> approval -> TTS -> TX turn;
-- a spoken information-only IVR selection ("oferta na kartę") that Orange classified into the SIM branch;
-- official Agent Skills runtime use headlessly, with a narrow phone skill producing application-reviewed `SAY` proposals;
-- rich partial STT during the complete Orange greeting.
-
-The current blocker is latency/turn timing, not basic connectivity. ReAct/load-skill decisions were too slow for IVR. Warm already-loaded sessions can produce tool decisions in a few seconds, while resetting/reinitializing at the wrong point adds large delay. The next experiment prepares the skill/session and may run cancelable speculative inference from stable partial STT while the counterparty is still speaking; output remains quarantined until the final endpoint and policy gate.
-
-After this feasibility checkpoint, **Gate C — `CallPlan v1`** remains the productization gate: reuse existing task/authority types, make known turns deterministic, fail closed on unknown/low-confidence input, and keep any model/skill as a bounded language/action-proposal helper rather than authority.
-
-See `docs/ROADMAP.md` for gates and `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point.
-
 ## Architecture discipline
 
 Do not grow product behavior inside diagnostic probes.
 
-`LocalPhoneLlmLiveCallProbe` and the ChatGPT relay probe are evidence tooling, not the future product session. `DiagnosticProbeActivity` remains a diagnostic entry point. New call planning and multi-turn ownership must live in dedicated product code and reuse the existing media/speech/backend/authority boundaries.
+`LocalPhoneLlmLiveCallProbe`, Edge diagnostic harnesses and the ChatGPT relay probe are evidence tooling, not the future product session. `DiagnosticProbeActivity` remains a diagnostic entry point. New call planning and multi-turn ownership must live in dedicated product code and reuse the existing media/speech/backend/authority boundaries.
 
 Large safety state machines are not split merely to reduce line count. In particular, the frozen media coordinator and preserved Realtime state machines should not be refactored without a concrete behavioral reason and matching regression evidence.
 
@@ -112,6 +111,7 @@ Large safety state machines are not split merely to reduce line count. In partic
 The repository preserves:
 
 - `LOCAL_PHONE_LLM` as experimental infrastructure;
+- `EDGE_GALLERY` as a frozen experimental provider;
 - `OPENAI_TEXT`;
 - `OPENAI_REALTIME_AUDIO`;
 - `LOCAL_MAC_LLM`;
