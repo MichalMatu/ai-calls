@@ -157,6 +157,14 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         self.assertTrue(_is_ignorable_gate_c_preroll(observed_preroll))
         self.assertTrue(_is_ignorable_gate_c_preroll({**observed_preroll, "stt_text": "jakości orange"}))
 
+        invoice_preroll = {
+            **observed_preroll,
+            "orange_live_action": ORANGE_ACTION_INVOICE_STATUS,
+            "stt_text": "5g jakości orange",
+        }
+        self.assertTrue(_is_ignorable_gate_c_preroll(invoice_preroll))
+        self.assertFalse(_is_ignorable_gate_c_preroll({**invoice_preroll, "orange_live_action": "observe_only"}))
+
         neighboring_fail_closed_reports = [
             {**observed_preroll, "stt_text": "orange dzień dobry"},
             {**observed_preroll, "stt_text": "proszę podać pesel"},
@@ -180,6 +188,7 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
             "endpoint_speech_detected": "true",
         }
         self.assertTrue(_is_retryable_gate_c_root_no_match(no_match))
+        self.assertTrue(_is_retryable_gate_c_root_no_match({**no_match, "orange_live_action": ORANGE_ACTION_INVOICE_STATUS}))
 
         for invalid in [
             {**no_match, "failure_reason": "stt_recognition_error_6"},
