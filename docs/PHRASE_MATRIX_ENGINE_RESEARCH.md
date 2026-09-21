@@ -2,7 +2,7 @@
 
 Date: 2026-09-21
 
-Status: `PLANNED / RESEARCH NOTE`
+Status: `ACTIVE / NATIVE BASELINE NEXT`
 
 This document preserves the concrete follow-on research for the local Phrase / Intent Matrix idea. It is not permission to add another dialogue authority layer. The current `CallTask` / `CallWorkflow` / `CallPlan` / output-approval boundaries remain authoritative.
 
@@ -246,9 +246,7 @@ Before adoption, prove that the added state abstraction reduces complexity rathe
 
 ## Recommended order
 
-Do not interrupt the current Gate C final-STT integration to add any of these engines.
-
-After clean final-STT / CallPlan selector wiring is `HOST_GREEN`:
+The clean final-STT / CallPlan selector wiring is now `HOST_GREEN`. Continue in this order:
 
 1. Build a tiny native CallBridge `PhraseMatrix` reference implementation first so we have a baseline.
 2. Run a bounded **RiveScript Java vs native PhraseMatrix** spike on the same Polish corpus.

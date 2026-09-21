@@ -18,7 +18,7 @@ Local Agent control/evidence branch: `agent-control`
 6. Inspect the latest terminal Local Agent result before creating a successor task.
 7. Keep `privileged-helper/` and the frozen Samsung media path untouched.
 
-No further Orange live-call authorization is currently available.
+Live Orange calls require explicit current-session operator authorization and an exact operator-defined allowlisted destination.
 
 ## Frozen foundation
 
@@ -34,7 +34,7 @@ Target: Samsung Galaxy S22+ `SM-S906B`.
 
 ## Gate C checkpoint
 
-The deterministic `CallPlan v1` policy core and the current host-side product-wiring checkpoint are `DONE / HOST_GREEN`.
+The deterministic `CallPlan v1` policy core and final-STT product wiring are `DONE / HOST_GREEN`.
 
 Authority remains unchanged:
 
@@ -45,105 +45,69 @@ Authority remains unchanged:
 - `CallCommitmentGate` owns exact one-shot commitment authorization;
 - application-owned output approval remains mandatory before TTS/TX.
 
-Models/helpers/skills are proposal-only.
+Models/helpers/skills/matchers are proposal- or classification-only.
 
-### Completed wiring slices
+### Completed final-STT wiring
 
-1. `CallPlanTurnCoordinator`
-   - final transcript + explicit unknown count -> `CallPlanEngine`;
-   - `PROPOSAL` only through `CallWorkflow.evaluateProposal(...)`;
-   - `COMPLETE` only through `CallWorkflow.complete(...)`;
-   - task/target/state mismatch fails closed.
+1. `CallPlanTurnCoordinator` remains the sole CallPlan/workflow mutation boundary.
+2. Prepared-call CallPlan binding keeps task/target/workflow identity fixed.
+3. `TextCallTurnController.submitCandidateText(...)` routes exact deterministic text through the existing approval path without backend generation.
+4. Session-owned consecutive-unknown state remains the only product fallback counter.
+5. `TextCallFinalTurnDispatcher` provides `Generate`, exact `Candidate(text)` and `Consumed`; `Consumed` invalidates stale backend/controller work.
+6. `CallPlanFinalTurnRouteMapper` maps:
+   - `SAY` -> exact `Candidate(text)`;
+   - `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, `TAKE_OVER` -> `Consumed` and preserves the exact structured `CallPlanTurnResult`.
+7. `LocalSpeechTextPipeline` now has one optional neutral final-turn selector at final STT.
+8. `LocalTextCallSession` owns plan selection and structured-result delivery; `localspeech` does not own CallPlan/workflow policy.
+9. No-plan/default behavior remains `Generate`.
+10. There is still exactly one `TextCallTurnController`, approval path and generation-cancellation lifecycle.
 
-2. prepared-call plan binding
-   - readiness carries one plan bound to the same task/target/workflow;
-   - mismatched plan is rejected before backend/speech work.
-
-3. deterministic candidate approval
-   - `TextCallTurnController.submitCandidateText(...)` sends exact pre-determined text through the same application-owned approval without `backend.generate(...)`.
-
-4. plan output/product routing
-   - `CallPlanTextOutputRouter`: only `SAY` enters candidate approval;
-   - `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, `TAKE_OVER` stay structured;
-   - `CallPlanProductTurnRouter` composes coordinator + output routing.
-
-5. session-owned bounded fallback state
-   - `LocalTextCallSession.handlePlanFinalTranscript(finalTranscript)` owns the consecutive-unknown counter;
-   - `ASK_REPEAT` increments it;
-   - any recognized/terminal result resets it;
-   - bounded escalation reaches `TAKE_OVER` correctly.
-
-6. neutral final-turn dispatcher
-   - `TextCallFinalTurnDispatcher` accepts exactly one route:
-     - `Generate` -> ordinary backend generation;
-     - `Candidate(text)` -> exact deterministic text through existing approval;
-     - `Consumed` -> no text generation and immediate controller cancellation;
-   - `Consumed` invalidates stale backend callbacks so an older LLM response cannot leak after a structured CallPlan turn.
-
-Latest checkpoint evidence:
+Evidence:
 
 ```text
-.agent/results/chatgpt-gate-c-session-fallback-state-green-v45b-20260921.json
-.agent/results/chatgpt-gate-c-final-text-dispatcher-red-v46-20260921.json
-.agent/results/chatgpt-gate-c-final-text-dispatcher-green-v47-20260921.json
+.agent/results/chatgpt-gate-c-final-turn-mapper-red-v48c-20260921.json
+.agent/results/chatgpt-gate-c-final-turn-mapper-green-v49-20260921.json
+.agent/results/chatgpt-gate-c-final-stt-selector-red-v50-20260921.json
+.agent/results/chatgpt-gate-c-final-stt-selector-green-v51-20260921.json
 ```
 
-`v47` passed targeted regressions plus full `bash scripts/verify_host.sh` with `privileged-helper/` unchanged.
+`v51` passed targeted regressions plus full `bash scripts/verify_host.sh`.
 
 ## Exact current product gap
 
-The Android speech pipeline is still intentionally unchanged:
+Final STT no longer falls through unconditionally to backend generation. The next open product item is the Phrase / Intent Matrix engine-selection slice: common safe conversational turns need a tiny deterministic local classifier before bounded LLM supervision.
 
-```text
-LocalTextCallSession
-  -> LocalSpeechTextPipeline
-      -> final STT transcript
-      -> TextCallTurnController.submitUserText(...)
-      -> backend.generate(...)
-      -> TextOutputApprovalPolicy
-      -> local TTS
-```
-
-So CallPlan is fully host-wired up to a safe final-text routing primitive, but **final STT is not yet automatically intercepted before generative backend execution**.
-
-Do not fix this by creating a second controller/generation gate in the session. There must remain one approval/cancellation path.
+A current S22 probe uses `LocalTextCallSession`, but it is an off-call no-CallPlan/generative probe. A live Orange call with that harness would not prove the new plan-bound `Candidate` / `Consumed` path. Do not create physical evidence with a runner that does not exercise the changed boundary.
 
 ## Next exact engineering step
 
-Start with one small host-only TDD slice that maps a structured CallPlan result to the neutral dispatcher route.
+Start with one host-only TDD slice for the tiny native CallBridge `PhraseMatrix` baseline described in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`.
 
-Required behavior:
+Required first contract:
 
 ```text
-CallPlanAction.SAY
-  -> TextCallFinalTurnRoute.Candidate(exact plan text)
-
-ASK_REPEAT / PROPOSAL / COMPLETE / TAKE_OVER
-  -> TextCallFinalTurnRoute.Consumed
-  -> preserve the exact structured CallPlanTurnResult for the product owner
+normalized final transcript
+ -> deterministic match against a bounded set of existing rule ids
+ -> PhraseMatch(existingRuleId, confidence, matcherKind, optionalVariantClass)
 ```
 
 Rules:
 
-- no invented retry/takeover/proposal/completion speech;
-- no silent fallback to `Generate` for a plan-bound structured turn;
-- reuse session-owned consecutive-unknown state;
-- keep workflow mutations in the existing coordinator/workflow owners;
-- no Android STT/TTS/media changes in this first mapper slice.
+- classification only; no arbitrary generated/reply text;
+- output rule id must already exist in the bound product data before it can influence CallPlan;
+- fail closed on collisions, negation ambiguity and unknown text;
+- deterministic replay for identical state + transcript;
+- start with exact/alias matching and only then add bounded fuzzy logic if tests justify it;
+- keep previous-turn/stage context non-authoritative and explicit;
+- do not add third-party matcher dependencies in the baseline slice;
+- after the baseline is green, run an isolated RiveScript Java compatibility/Polish/footprint comparison on the same corpus;
+- keep ChatScript as a design/reference audit first and KStateMachine deferred unless stage state demonstrably needs it.
 
-After that mapper is `HOST_GREEN`, the following slice may add an optional final-turn route selector to `LocalSpeechTextPipeline`:
-
-- no-plan/default path remains `Generate` and behavior-compatible;
-- plan-bound path selects `Candidate` or `Consumed` before backend generation;
-- the pipeline continues to own a single `TextCallTurnController`, a single generation/cancellation lifecycle and the existing TTS path;
-- product/session code owns CallPlan/workflow decisions;
-- resumed speech/cancel/new generation must invalidate stale work.
-
-Then run targeted regressions + full `bash scripts/verify_host.sh`. Physical S22 validation comes only after the host integration is complete and only with explicit authorization for any real call.
+Live Orange calls are allowed only when the current operator explicitly authorizes them, an exact allowlisted target is bound, and the selected runner exercises the behavior under test. Host matcher work does not require a call by itself.
 
 ## Important follow-on idea — Phrase / Intent Matrix + LLM supervisor
 
-Do not lose this after final-STT integration. It may become a key product architecture.
+This is now the active Gate C follow-on after final-STT integration.
 
 Detailed engine/repository research, integration constraints and benchmark checklist are now preserved in:
 

@@ -86,20 +86,22 @@ Current Android speech pipeline:
 PCM input
  -> OnDeviceSpeechInput
  -> final transcript
- -> TextCallTurnController.submitUserText(...)
- -> backend complete text
- -> TextOutputApprovalPolicy
+ -> optional product-owned final-turn selector
+      no plan: Generate
+      plan SAY: Candidate(exact text)
+      plan structured action: Consumed
+ -> TextCallFinalTurnDispatcher
+ -> one TextCallTurnController
+ -> TextOutputApprovalPolicy for released text
  -> LocalTtsSpeechOutput
  -> PCM output
 ```
 
-`LocalSpeechTextPipeline` owns speech lifecycle and its outer generation gate. `TextCallTurnController` owns complete-text generation/candidate approval and controller-level generation invalidation.
+`LocalSpeechTextPipeline` owns speech lifecycle and its outer generation gate. `TextCallTurnController` owns complete-text generation/candidate approval and controller-level generation invalidation. `LocalTextCallSession` owns plan-bound final-turn selection and consecutive-unknown state. CallPlan/workflow policy does not move into `localspeech`.
 
-Do not duplicate either owner in the session.
+### Neutral final-turn dispatcher — integrated host-green
 
-### Neutral final-turn dispatcher — host-green checkpoint
-
-`TextCallFinalTurnDispatcher` is the neutral seam prepared for final-STT integration. It knows nothing about CallPlan or Android speech.
+`TextCallFinalTurnDispatcher` remains neutral and knows nothing about CallPlan or workflow:
 
 ```text
 TextCallFinalTurnRoute.Generate
@@ -113,31 +115,17 @@ TextCallFinalTurnRoute.Consumed
   -> no text generation
 ```
 
-`Consumed` exists specifically to invalidate stale backend/controller callbacks after a structured product decision.
-
-This dispatcher is `HOST_GREEN` but is **not yet wired into `LocalSpeechTextPipeline.onFinalTranscript`**.
-
-## CallPlan product routing checkpoint
-
-Host-green components now separate decision ownership from text release:
-
-```text
-final transcript
- -> CallPlanTurnCoordinator
- -> typed CallPlanTurnResult
- -> product routing
-```
-
-Existing `CallPlanTextOutputRouter` / `CallPlanProductTurnRouter` prove that only `SAY` may enter exact candidate approval; `ASK_REPEAT`, `PROPOSAL`, `COMPLETE` and `TAKE_OVER` remain structured and do not invent speech.
-
-The next integration should map those structured results into the neutral final-turn route:
+`CallPlanFinalTurnRouteMapper` is the product adapter:
 
 ```text
 SAY -> Candidate(exact text)
-ASK_REPEAT / PROPOSAL / COMPLETE / TAKE_OVER -> Consumed + structured callback
+ASK_REPEAT / PROPOSAL / COMPLETE / TAKE_OVER
+  -> Consumed + exact structured CallPlanTurnResult
 ```
 
-Only after that host mapper is green should `LocalSpeechTextPipeline` receive an optional route selector. The default/no-plan path must remain `Generate`.
+`LocalSpeechTextPipeline` receives only the neutral route selector. It does not evaluate CallPlan, mutate workflow or own the structured result. The default/no-plan selector is absent and therefore resolves to `Generate`.
+
+This integration is `HOST_GREEN` in `.agent/results/chatgpt-gate-c-final-stt-selector-green-v51-20260921.json`. It preserves one controller, one approval path and one cancellation lifecycle; `Consumed` invalidates stale backend/controller callbacks before the speech generation closes.
 
 ## Phrase / Intent Matrix fast path + LLM supervisor
 

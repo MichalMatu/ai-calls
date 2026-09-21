@@ -67,11 +67,11 @@ Status: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`
 
 Useful feasibility was proven, but the bounded live checkpoint exposed unacceptable process robustness/memory/first-decision behavior. Do not continue live Edge probe work by default.
 
-## Active gate — Gate C / CallPlan v1
+## Active gate — Gate C / deterministic fast path
 
-Status: `ACTIVE / HOST POLICY + HOST PRODUCT-WIRING CHECKPOINT GREEN / FINAL-STT INTEGRATION NEXT`
+Status: `ACTIVE / CALLPLAN FINAL-STT WIRING HOST_GREEN / PHRASE MATRIX BASELINE NEXT`
 
-Goal: common bounded turns execute deterministically while all authority remains application-owned. A language helper may only propose a bounded match to already-authorized plan data.
+Goal: common bounded turns execute deterministically while all authority remains application-owned. Matchers and language helpers may only propose bounded matches to already-authorized product data.
 
 ### Authority ownership
 
@@ -82,162 +82,65 @@ Goal: common bounded turns execute deterministically while all authority remains
 - `CallCommitmentGate` — one exact one-shot commitment permit;
 - application-owned output approval — final release before TTS/TX.
 
-`CallPlan`, models, helpers and Agent Skills do not replace these owners.
+`CallPlan`, phrase matchers, models, helpers and Agent Skills do not replace these owners.
 
-### Completed deterministic policy core — `HOST_GREEN`
-
-- known authorized facts;
-- missing-fact fail closed;
-- bounded `ASK_REPEAT` / `TAKE_OVER`;
-- typed predeclared `CallProposal`;
-- typed predeclared `CallOutcome`;
-- cross-kind collisions fail closed;
-- helper suggestion restricted to one existing `ruleId`;
-- immutable defensive copies / redacted ordinary rendering;
-- authority regression coverage for workflow, policy, commitment and output approval.
-
-### Completed product-wiring checkpoint — `HOST_GREEN`
+### CallPlan policy + final-STT product wiring — `HOST_GREEN`
 
 | Slice | Status |
 | --- | --- |
+| deterministic CallPlan policy core | GREEN |
 | `CallPlanTurnCoordinator` | GREEN |
 | prepared-call CallPlan binding | GREEN |
 | deterministic candidate text through existing approval | GREEN |
-| `CallPlanTextOutputRouter` (`SAY` only) | GREEN |
-| `CallPlanProductTurnRouter` | GREEN |
 | session-owned consecutive-unknown state | GREEN |
 | neutral `TextCallFinalTurnDispatcher` (`Generate` / `Candidate` / `Consumed`) | GREEN |
 | stale backend callback invalidation on `Consumed` | GREEN |
+| `CallPlanFinalTurnRouteMapper` | GREEN |
+| optional final-STT route selector in `LocalSpeechTextPipeline` | GREEN |
+| plan-bound session structured-result delivery | GREEN |
+| no-plan/default `Generate` compatibility | GREEN |
 | full canonical host gate | GREEN |
 
-Latest checkpoint evidence:
+Latest evidence:
 
 ```text
-.agent/results/chatgpt-gate-c-session-fallback-state-green-v45b-20260921.json
-.agent/results/chatgpt-gate-c-final-text-dispatcher-green-v47-20260921.json
+.agent/results/chatgpt-gate-c-final-turn-mapper-green-v49-20260921.json
+.agent/results/chatgpt-gate-c-final-stt-selector-green-v51-20260921.json
 ```
 
-### Current open gap
+Final STT can now be routed before backend generation without introducing a second controller, approval path or workflow owner.
 
-Current Android path still does:
+### Current slice — Phrase / Intent Matrix baseline
 
-```text
-final STT
- -> TextCallTurnController.submitUserText(...)
- -> backend.generate(...)
- -> approval
- -> TTS
-```
+Status: `NEXT / HOST TDD`
 
-CallPlan is not yet automatically selected at this final-STT boundary.
-
-### Next slice — exact start point
-
-Host-only TDD first: map one structured `CallPlanTurnResult` to one `TextCallFinalTurnRoute`.
-
-Required mapping:
-
-```text
-SAY -> Candidate(exact plan text)
-ASK_REPEAT -> Consumed + structured result
-PROPOSAL -> Consumed + structured result
-COMPLETE -> Consumed + structured result
-TAKE_OVER -> Consumed + structured result
-```
-
-Rules:
-
-- no invented text;
-- no plan-bound fallthrough to `Generate`;
-- session remains owner of consecutive-unknown state;
-- workflow mutations remain in coordinator/workflow;
-- no Android speech/media change in this mapper slice.
-
-After mapper GREEN:
-
-1. add one optional final-turn route selector at the `LocalSpeechTextPipeline` final-transcript seam;
-2. default/no-plan path remains behavior-compatible `Generate`;
-3. plan-bound path selects `Candidate`/`Consumed` before backend generation;
-4. keep one `TextCallTurnController`, one application approval path and one cancellation lifecycle;
-5. keep CallPlan/workflow decisions outside `localspeech`;
-6. prove stale callbacks cannot escape after consumed/cancelled turns;
-7. targeted tests + `bash scripts/verify_host.sh`.
-
-Physical S22 validation follows only after host integration is complete and only when explicitly authorized.
-
-### Key follow-on — Phrase / Intent Matrix fast path + LLM supervisor
-
-Status: `PLANNED / HIGH-VALUE GATE-C EXTENSION AFTER FINAL-STT WIRING`
-
-Detailed third-party engine research and integration checklist: `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`.
-
-This is a potentially key product architecture, not a side experiment.
-
-Goal: let the phone answer common turns immediately from a tiny deterministic local matrix while a bounded LLM supervisor has time to warm up, accumulate conversational context and intervene only on ambiguous or important turns.
-
-Target routing:
+First build the tiny native CallBridge baseline described in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`:
 
 ```text
 final STT
  -> normalize
- -> exact phrase/intent matrix
- -> deterministic fuzzy matcher
- -> if known/high confidence: CallPlan rule / reviewed response variant
- -> if ambiguous/important: bounded LLM supervisor suggests existing intent/ruleId
- -> CallPlan / workflow / output approval
- -> TTS
+ -> exact phrase / alias / bounded deterministic pattern match
+ -> existing ruleId + confidence + matcher diagnostics
+ -> validate against bound CallPlan
+ -> existing CallPlan / workflow / output approval
 ```
 
-Initial matrix candidates:
+Initial requirements:
 
-- greetings (`GREETING`);
-- acknowledgements (`ACK`);
-- simple yes/no (`CONFIRM`, `REJECT`) where policy allows;
-- repeat requests (`ASK_REPEAT`);
-- wait/hold phrases (`WAIT`);
-- common identity/purpose questions backed by authorized facts;
-- task-specific phrases already represented by CallPlan rules.
+1. classification-only output; no arbitrary response text;
+2. deterministic same-input replay;
+3. fail closed on unknowns, cross-intent collisions and negation ambiguity;
+4. Polish UTF-8 plus missing-diacritic/ASR-like variants in the test corpus;
+5. explicit previous-turn/stage constraints only where needed, with no authority ownership;
+6. no third-party dependency in the baseline implementation;
+7. after baseline GREEN, compare RiveScript Java against it on build compatibility, Polish behavior, latency, APK/RAM/startup cost and matcher quality;
+8. study ChatScript for pattern/topic/rejoinder ideas before any native embedding decision;
+9. use KStateMachine only if non-authority dialogue-stage complexity later warrants it;
+10. matrix output and any future LLM supervisor remain behind existing CallPlan/workflow/output approval.
 
-Design rules:
+Useful metrics: matrix hit rate, false-positive rate, ambiguous/no-match rate, p50/p95 matching latency, LLM invocation rate, takeover rate, incremental APK/RAM/startup cost and deterministic replay.
 
-1. deterministic path wins for known high-confidence turns;
-2. no arbitrary generated text is required for common turns;
-3. each safe intent may expose a small reviewed allowlist of response variants;
-4. a temperature-like setting may control eligible variants, but selection remains deterministic/testable (for example stable seed from call/turn/intent);
-5. the LLM is a supervisor/classifier, not an authority owner: it may suggest an existing intent/rule/ruleId only;
-6. matrix and LLM outputs still pass existing CallPlan/workflow/output approval;
-7. LLM work may run speculatively or maintain bounded context, but stale context/result is invalidated by resumed speech, newer transcript, cancellation or workflow change;
-8. LLM output may not retroactively replace a deterministic turn that has already been approved/released;
-9. sensitive/committing operations never become generic phrase-matrix shortcuts.
-
-Why this matters:
-
-- common conversational latency can approach local lookup rather than inference latency;
-- LLM invocation rate, RAM/thermal pressure and hallucination surface should fall substantially;
-- the model gains "breathing room" to understand broader context instead of racing to answer every greeting/acknowledgement;
-- model capacity is reserved for genuinely contextual moments.
-
-Measure at minimum:
-
-- matrix hit rate;
-- fuzzy false-match rate;
-- LLM invocation rate;
-- deterministic vs supervised p50/p95 turn latency;
-- takeover/unknown rate;
-- number of important turns needing supervisor assistance.
-
-Do not implement this by bypassing the current final-STT/CallPlan/approval wiring. First complete the clean final-STT integration, then add the matrix as a product-owned classification fast path ahead of bounded helper/model use.
-
-Before selecting an engine, explicitly compare:
-
-- `aichaos/rivescript-java` as the first lightweight Java spike;
-- `ChatScript/ChatScript` as a mature source of pattern/topic/rejoinder ideas and only then as a possible native dependency;
-- `KStateMachine/kstatemachine` only if dialogue-stage state becomes complex enough to justify another non-authority state abstraction;
-- a tiny native CallBridge PhraseMatrix baseline.
-
-Do not vendor any of them before the integration/license/footprint checks in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md` are completed.
-
-Gate C exit: bounded product-session turns use deterministic plan data without general-purpose reasoning, missing facts are never invented, structured actions never silently become speech/model fallback, and no model/helper grants itself authority.
+Gate C exit: bounded product-session turns use deterministic plan data without general-purpose reasoning, common safe turns have a measured deterministic fast path, missing facts are never invented, structured actions never silently become speech/model fallback, and no matcher/model/helper grants itself authority.
 
 ## Later gates
 

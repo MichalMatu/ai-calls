@@ -18,35 +18,38 @@ Do not create a planning/status document for every experiment. Put durable decis
 
 ## Current priority
 
-The active product gate is **Gate C / CallPlan v1 product wiring**.
+The active product gate is **Gate C / deterministic fast path**. The CallPlan final-STT product wiring is now `DONE / HOST_GREEN`; the next product slice is the Phrase / Intent Matrix baseline described in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`.
 
 Completed and `HOST_GREEN`:
 
 - deterministic `CallPlan` policy core;
 - bounded repeat/escalation, typed proposal/completion, authority regressions and bounded helper validation;
-- `CallPlanTurnCoordinator`;
-- prepared-call CallPlan binding;
-- already-determined candidate text through the existing application-owned output approval;
-- `CallPlanTextOutputRouter`;
-- `CallPlanProductTurnRouter`;
+- `CallPlanTurnCoordinator` and prepared-call CallPlan binding;
+- exact candidate text through the existing application-owned output approval;
 - session-owned consecutive-unknown fallback state;
-- neutral `TextCallFinalTurnDispatcher` with `Generate`, exact `Candidate`, and `Consumed` routes; `Consumed` invalidates stale controller/backend work.
+- neutral `TextCallFinalTurnDispatcher` with `Generate`, exact `Candidate`, and `Consumed` routes;
+- `CallPlanFinalTurnRouteMapper` preserving exact structured results;
+- optional final-turn selector at the `LocalSpeechTextPipeline` final-STT seam;
+- plan-bound final STT now selects `Candidate` / `Consumed` before backend generation while the no-plan path remains `Generate`;
+- one `TextCallTurnController`, one approval path and one generation-cancellation lifecycle remain authoritative.
 
-The important remaining gap is explicit: `LocalSpeechTextPipeline` still sends final STT directly into the ordinary generative controller path. CallPlan is not yet automatically selected at that final-STT boundary.
+Latest full host checkpoint:
+
+```text
+.agent/results/chatgpt-gate-c-final-stt-selector-green-v51-20260921.json
+```
 
 ### Next execution order
 
-1. add a small host-testable product mapping from one `CallPlanTurnResult` to one `TextCallFinalTurnRoute`:
-   - `SAY` -> exact `Candidate(text)`;
-   - `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, `TAKE_OVER` -> `Consumed` plus the exact structured result for the product owner;
-   - never invent text and never silently fall through to a model;
-2. keep the session-owned consecutive-unknown state as the only product counter owner;
-3. after that mapper is `HOST_GREEN`, wire one optional final-turn route selector into `LocalSpeechTextPipeline` while preserving the no-plan default `Generate` path;
-4. keep exactly one `TextCallTurnController` / approval / generation-cancellation path;
-5. do not move CallPlan workflow authority into `localspeech`;
-6. run targeted regressions and `bash scripts/verify_host.sh` before considering the slice complete.
+1. build a tiny native CallBridge `PhraseMatrix` reference implementation first;
+2. keep its output classification-only: existing `ruleId` + confidence/matcher diagnostics, never arbitrary speech or authority;
+3. cover the bounded Polish corpus in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`, including negation collisions, missing diacritics, previous-turn context and unknown/ambiguous fail-closed cases;
+4. compare that baseline against an isolated RiveScript Java spike; do not vendor it into production before build/UTF-8/footprint/license checks;
+5. study ChatScript for pattern/topic/rejoinder ideas and consider KStateMachine only if non-authority dialogue-stage state becomes genuinely complex;
+6. keep matrix and any future LLM supervisor behind the same CallPlan/workflow/output-approval path;
+7. run targeted regressions and `bash scripts/verify_host.sh` for every behavior slice.
 
-No further Orange live-call authorization is currently available. Do not resume Edge Gallery live-call experiments by default.
+Live Orange calls require explicit current-session operator authorization plus an exact operator-defined allowlisted destination and a test that actually exercises the changed path. Do not run a physical call merely to create evidence for an unrelated host-only slice.
 
 ## Frozen / deferred boundaries
 
