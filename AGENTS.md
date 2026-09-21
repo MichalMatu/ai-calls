@@ -18,17 +18,23 @@ Do not create a new planning/status document for every task. Put durable decisio
 
 Gate A readiness/orchestration and the original Gate B local-model sweep are complete. The llama.cpp general-purpose phone-local route on the current S22 is frozen.
 
-The current **experimental checkpoint** is the materially different `EDGE_GALLERY` path: Gemma 4 E2B through LiteRT plus the official Google AI Edge Gallery Agent Skills runtime. It is promising language/tool infrastructure, not product authority. The application still owns target authorization, sensitive-data policy, commitments, output approval, TAKE OVER and Samsung media.
+The separate `EDGE_GALLERY` / Gemma 4 E2B / official Agent Skills feasibility checkpoint is also frozen as `PROVEN_S22 PARTIAL / NOT PRODUCT_READY`. Warm speculative timing was promising, but the bounded live Orange experiment ended in an Edge Gallery process crash during `LocalPhoneAgentRuntime.decide()`. After relaunch the first decision was about 10.65 s and the Edge process used about 2.58 GB total PSS. Do not keep extending Edge diagnostic probes or repeat Orange calls by default; reopen that path only after a materially improved runtime/model/hardware condition or an explicit user decision.
+
+The current product gate is **Gate C / `CallPlan v1`**: build a deterministic call brain for common bounded turns while preserving all existing application-owned authority.
 
 Current execution order:
 
-1. close the Orange turn-boundary/latency experiment using real `SpeechRecognizer` begin/end/segment/partial evidence; do not go back to arbitrary short trailing-silence thresholds;
-2. exploit partial STT only for bounded preparation/speculative inference while the counterparty is still speaking; never release speculative output before a final endpoint plus application approval;
-3. keep the phone skill narrow: `say`, `listenMore`, `takeOver` proposals only. Do not expose DTMF, dialing, purchase, authentication or commitment tools until a deterministic application-owned action gate exists;
-4. prove a fast, bounded information-only Orange multi-turn path only after offline latency/safety checks pass;
-5. then return to Gate C / `CallPlan v1` productization and deterministic conversation-state ownership, reusing `CallTask`, constraints/preferences, `authorizedFacts`, `CallWorkflow`, confirmation and commitment semantics.
+1. reuse `CallTask` as the immutable source of task authority (`CallConstraints`, `CallPreferences`, `authorizedFacts`); do not create a second authority store;
+2. reuse `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy` and `CallCommitmentGate` for target/workflow/proposal/commitment ownership;
+3. add only a narrow immutable `CallPlan` execution context: existing task + resolved target references, deterministic known-turn rules, completion criteria and bounded repeat/escalation policy;
+4. for authorized-fact answers, store a fact key and resolve the value from `CallTask.authorizedFacts` at decision time; missing facts fail closed;
+5. make the first slice host-only and TDD-first: known fact answer, missing-fact failure, unknown-intent fallback, immutability and redacted rendering;
+6. do not wire telephony, STT/TTS, diagnostics or a model into that first slice;
+7. any future language helper is proposal-only: it may suggest a bounded rule/intent match or wording but may not create facts, targets, actions, authority or commitments;
+8. counterparty offers remain typed `CallProposal` data and continue through the existing workflow/confirmation/commitment path;
+9. final speech still requires the existing application-owned output approval before TTS/TX.
 
-The interactive ChatGPT relay remains developer benchmark infrastructure only. Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work remains deferred. Do not resume the old nearby-size local-model sweep or paid OpenAI work by default.
+The interactive ChatGPT relay remains developer benchmark infrastructure only. Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` work remains deferred. Do not resume the old nearby-size local-model sweep or Edge live-call work by default.
 
 ## Architecture discipline
 
