@@ -14,7 +14,7 @@ The frozen media path is documented in `docs/PHASE2D_FREEZE_2026-09-18.md` and i
 
 ## Authority owners
 
-Do not create parallel authority in CallPlan, a model, helper or Agent Skill.
+Do not create parallel authority in CallPlan, a matcher, model, helper or Agent Skill.
 
 - `CallTask` — immutable task, hard constraints, preferences and `authorizedFacts`;
 - `CallResolvedTarget` — one concrete target, without authority to widen a live dial allowlist;
@@ -23,19 +23,34 @@ Do not create parallel authority in CallPlan, a model, helper or Agent Skill.
 - `CallCommitmentGate` — exact one-shot permit bound to one concrete proposal;
 - application-owned output approval — final text release before TTS/TX.
 
-Counterparty/model/helper text cannot create new authorized facts, destinations, actions or commitments.
+Counterparty/model/helper/matcher text cannot create new authorized facts, destinations, actions or commitments. Missing required user data must fail closed or escalate; never invent sensitive data to satisfy a prompt.
 
-Missing required user data must fail closed or escalate; never invent sensitive data to satisfy a prompt.
+## CallPlan + PhraseMatrix boundary
 
-## CallPlan boundary
-
-`CallPlan v1` is current product policy, not future authority.
-
-Host-green behavior includes authorized facts, bounded repeat/escalation, typed proposals/completions and helper matching restricted to an existing `ruleId`.
+`CallPlan v1` is product policy, not independent authority. Host-green behavior includes authorized facts, bounded repeat/escalation, typed proposals/completions and helper/matcher routing restricted to an existing `ruleId`.
 
 Only `CallPlanAction.SAY` carries speech text. `ASK_REPEAT`, `PROPOSAL`, `COMPLETE` and `TAKE_OVER` do not carry implicit speech and must not silently become model fallback.
 
 Workflow mutation remains in `CallPlanTurnCoordinator` + existing `CallWorkflow` APIs.
+
+The native PhraseMatrix is classification-only. Its output is not trusted authority:
+
+```text
+final transcript
+ -> PhraseMatrix match(existing ruleId)
+ -> CallPlanTurnCoordinator validation
+ -> typed CallPlanDecision
+ -> existing workflow/output approval path
+```
+
+Security invariants:
+
+- PhraseMatrix cannot be bound through readiness/prepared-call state without a CallPlan;
+- a raw matcher `ruleId` is never sufficient to release speech or mutate workflow;
+- only a validated `CallPlanDecision.ruleId()` may become session `previousValidatedRuleId`;
+- an unknown/rejected matcher rule clears/does not advance previous-rule context;
+- matcher miss/ambiguity must not silently widen into a sensitive action;
+- any future fuzzy matcher or LLM supervisor remains subject to the same CallPlan validation.
 
 ## Final-text release boundary
 
@@ -52,15 +67,15 @@ exact deterministic candidate
  -> TextOutputApprovalPolicy
 ```
 
-The host-green `TextCallFinalTurnDispatcher` adds a neutral route seam:
+`TextCallFinalTurnDispatcher` provides the neutral route seam:
 
 - `Generate` — ordinary backend path;
 - `Candidate(text)` — exact pre-determined candidate through the same approval;
 - `Consumed` — no generation and controller cancellation.
 
-`Consumed` must invalidate stale work so an older backend callback cannot be released after a structured CallPlan decision.
+`Consumed` invalidates stale work so an older backend callback cannot be released after a structured CallPlan decision.
 
-CallPlan is not yet automatically wired into real final STT; that integration remains the next product slice.
+CallPlan and the optional native PhraseMatrix are now host-green at the real product final-STT selector boundary and can be bound through Android readiness. This is still host evidence; no new S22/OEM claim is implied.
 
 ## Model / helper boundary
 
@@ -76,6 +91,8 @@ OPENAI_TEXT
 The current phone-local llama.cpp path is frozen as a product direction. Edge Gallery / Gemma / Agent Skills is also frozen as `PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
 
 Agent Skills are proposal generators only. Do not expose direct implementations for arbitrary dialing, DTMF, authentication, purchases, activations, tariff/plan changes, payments or commitments without a separate deterministic application-owned policy.
+
+A future bounded LLM supervisor may suggest only an existing ruleId plus diagnostics/confidence. It cannot release arbitrary reply text, create authority or retroactively replace a deterministic response already approved/released.
 
 ## Speculative / partial speech rule
 
@@ -96,6 +113,7 @@ A local call must fail closed before dialing unless:
 - task and target are valid;
 - live target is explicitly authorized;
 - required plan data is consistent with the same task/target/workflow;
+- an optional PhraseMatrix is bound only with that same CallPlan;
 - STT/TTS readiness is proven;
 - the selected local backend is ready and identity-verified where applicable;
 - required warm-up succeeds.
@@ -167,6 +185,4 @@ The first steps cannot wait for model/network acknowledgement. App/helper death 
 
 ## Evidence rule
 
-`HOST_GREEN` is not `PROVEN_S22`.
-
-Current host-green CallPlan/product routing does not by itself prove real Android final-STT interception. Physical proof comes only after that integration is complete and a specifically authorized device gate is run.
+`HOST_GREEN` is not `PROVEN_S22`. Current CallPlan/PhraseMatrix product routing is host-proven; physical proof requires an explicitly authorized device gate whose runner actually exercises that changed path.
