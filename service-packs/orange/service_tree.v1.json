@@ -27,18 +27,32 @@
       "speech": "Jakie sprawy możesz załatwić?",
       "status": "VERIFIED",
       "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
       "evidence_task": "chatgpt-orange-explorer-live-v115-20260921"
+    },
+    {
+      "id": "orange.root.invoice_status",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "invoice_status",
+      "speech": "Chcę sprawdzić fakturę.",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
+      "evidence_task": "chatgpt-orange-invoice-live-v123-20260921"
     }
   ],
   "seeds": [
     {
       "service_id": "orange.invoice.status",
-      "status": "SEED",
+      "status": "DISCOVERED",
       "action_id": "invoice_status",
       "speech": "Chcę sprawdzić fakturę.",
       "risk": "AUTH_REQUIRED_POSSIBLE",
       "source": "operator_capability_backlog",
-      "next_evidence": "live_discovery_required"
+      "last_evidence": "chatgpt-orange-invoice-live-v123-20260921",
+      "last_outcome": "REPROMPT",
+      "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
     }
   ]
 }
