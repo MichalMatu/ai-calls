@@ -41,7 +41,7 @@ telephony RX
  -> telephony TX
 ```
 
-`LocalSpeechTextPipeline` and `TextCallTurnController` are the established text-turn boundary. New work must reuse them rather than duplicate speech or approval logic.
+`LocalSpeechTextPipeline` and `TextCallTurnController` are the established speech/text and complete-text approval boundaries. New planning work must reuse those boundaries rather than duplicate speech or approval logic.
 
 ### End-of-utterance / IVR turn boundary
 
@@ -209,39 +209,36 @@ Evidence:
 
 ## Gate C — CallPlan v1: deterministic call brain with optional bounded language helper
 
-Status: `ACTIVE / PREIMPLEMENTATION AUDIT COMPLETE / IMPLEMENTATION NEXT`
+Status: `ACTIVE / DETERMINISTIC HOST-POLICY CORE DONE / PRODUCT WIRING NEXT`
 
-Goal: prepare structured task context and deterministic dialogue policy before the call so common bounded turns do not require a general-purpose LLM.
+Goal: make common bounded turns deterministic and preserve all existing application-owned authority. A language helper may only propose a bounded match to already-authorized plan data.
 
-### Reuse existing authority; do not create a second authority model
-
-The audit of current code and tests establishes these owners:
+### Authority ownership is frozen
 
 - `CallTask` — immutable user/operator authority: task description/action/service plus `CallConstraints`, `CallPreferences` and `authorizedFacts`;
-- `CallResolvedTarget` — one concrete resolved target. Research/resolution does not itself widen the live dial allowlist;
+- `CallResolvedTarget` — one concrete resolved target. It does not widen the live dial allowlist;
 - `CallWorkflow` — task progress, resolved-target state, concrete pending proposal, user-decision state and structured completion/failure;
 - `CallConfirmationPolicy` — deterministic evaluation of one typed `CallProposal` against immutable task constraints/preferences;
 - `CallCommitmentGate` — one-shot authorization bound to exactly one concrete proposal;
 - application-owned output approval — final speech release remains fail-closed outside normal active negotiation and while commitment authority is pending.
 
-These types stay authoritative. `CallPlan v1` must reference them rather than copying or mutating their authority data.
+`CallPlan` references these owners rather than copying or mutating authority data.
 
-### Narrow responsibility split
+### Deterministic host-policy core — DONE / HOST_GREEN
 
-Add an immutable pre-dial execution context, provisionally named `CallPlan`, whose responsibility is only deterministic dialogue planning:
+Durable `CallPlan` behavior now includes:
 
 ```text
 CallPlan
   -> existing CallTask reference
   -> existing CallResolvedTarget reference
-  -> immutable known-turn rules
-  -> completion criteria
+  -> immutable known-fact rules
+  -> immutable completion rules
+  -> immutable typed proposal rules
   -> bounded repeat/escalation policy
 ```
 
-Known-turn rules should be small typed data. For an authorized-fact answer, store the **fact key**, not a copied value; the engine resolves the value from `CallTask.authorizedFacts` at decision time and fails closed if it is absent.
-
-A deterministic plan engine consumes a **final** transcript plus immutable plan/workflow state and may produce a proposal decision such as:
+`CallPlanEngine` consumes a **final** transcript plus an explicit prior-unknown count and produces only typed decisions:
 
 ```text
 SAY
@@ -251,49 +248,82 @@ COMPLETE
 TAKE_OVER
 ```
 
-Those are decision proposals, not execution authority. The plan engine must not:
+It does not dial, mutate the workflow, authorize commitments, approve proposals, access media/TTS/TX, or convert partial/model output into authority.
 
-- dial or widen a dial allowlist;
-- mutate `CallTask`, constraints, preferences or authorized facts;
-- approve a `CallProposal`;
-- issue/consume commitment authorization;
-- directly access Samsung media, TTS or cellular TX;
-- convert partial/model output into authority.
+Host-green slices:
 
-Counterparty offers remain typed `CallProposal` data and route through the existing `CallWorkflow` -> `CallConfirmationPolicy` -> `CallCommitmentGate` path. Final speech still passes the existing application-owned output approval boundary.
+- v22/v23 — known authorized facts, missing-fact fail closed, ambiguity, immutability/redaction;
+- v24/v25 — explicit stateless bounded repeat/escalation;
+- v26/v27 — structured completion proposals with `CallWorkflow.complete` retained as terminal-state owner;
+- v28/v29 — typed counterparty `CallProposal` routing with collisions fail closed;
+- v30 — integrated regression proving plan decisions cannot bypass policy, exact commitment permit, or output approval;
+- v31/v32 — bounded helper suggestion/validation by existing `ruleId` only.
 
-An optional future language helper may only suggest a bounded rule/intent match or wording. The application validates the suggestion against the immutable plan. Unsupported intents, facts, actions or commitments are rejected/fallback; a helper can never extend the plan.
+Representative evidence:
 
-### RED/GREEN test matrix
+```text
+.agent/results/chatgpt-gate-c-callplan-green-v23-20260921.json
+.agent/results/chatgpt-gate-c-callplan-bounded-fallback-green-v25-20260921.json
+.agent/results/chatgpt-gate-c-callplan-completion-green-v27-20260921.json
+.agent/results/chatgpt-gate-c-callplan-proposal-green-v29-20260921.json
+.agent/results/chatgpt-gate-c-callplan-authority-regression-v30-20260921.json
+.agent/results/chatgpt-gate-c-callplan-helper-green-v32-20260921.json
+```
 
-Implementation begins host-only and TDD-first:
+### Gate C matrix
 
-| Case | RED | GREEN |
-| --- | --- | --- |
-| known question -> authorized fact | no plan decision path | `SAY` proposal resolves exactly the existing authorized fact |
-| referenced fact missing | no plan validation | fail closed; never invent a value |
-| unknown/ambiguous final transcript | no bounded deterministic classifier | `ASK_REPEAT` or `TAKE_OVER` according to bounded fallback; never guess |
-| known counterparty offer | no plan routing | typed `CallProposal` is produced for existing workflow policy, never accepted directly |
-| offer outside task policy | preserve authority behavior | existing `CallConfirmationPolicy` returns `NEEDS_USER_DECISION`; plan cannot override |
-| commitment without exact permit | preserve gate behavior | blocked; only existing exact one-shot permit can authorize commitment execution |
-| speech outside ACTIVE_NEGOTIATION or while permit pending | preserve output policy | dropped/fail-closed |
-| target binding | plan has no dialing authority | plan references resolved target but cannot mutate/widen runtime allowlist |
-| completion criterion matched | no plan completion route | structured completion proposal/outcome; `CallWorkflow.complete` remains terminal-state owner |
-| optional helper proposes unsupported item | helper untrusted | deterministic validator rejects/falls back; no authority widening |
-| mutable input collections | no new immutable model yet | plan/rule/fallback collections defensively copied and immutable |
-| privacy rendering | new plan can reference sensitive task/target | ordinary `toString()`/diagnostics redact facts and dial address |
+| Case | Status |
+| --- | --- |
+| known question -> authorized fact | `GREEN` — exact value from existing `authorizedFacts` |
+| referenced fact missing | `GREEN` — fail closed |
+| unknown/ambiguous final transcript | `GREEN` — bounded `ASK_REPEAT` / `TAKE_OVER` |
+| known counterparty offer | `GREEN` — typed predeclared `CallProposal` only |
+| offer outside task policy | `GREEN` — existing policy returns `NEEDS_USER_DECISION` |
+| commitment without exact permit | `GREEN` regression — blocked by existing one-shot gate |
+| speech outside ACTIVE_NEGOTIATION or while permit pending | `GREEN` regression — dropped |
+| target binding | preserved — plan has no dialing/allowlist authority |
+| completion criterion | `GREEN` — structured outcome; workflow owns terminal mutation |
+| optional helper unsupported item | `GREEN` — unknown/duplicate `ruleId` falls back/fails closed |
+| mutable input collections | `GREEN` — defensive immutable copies |
+| privacy rendering | `GREEN` — facts/target/outcome/proposal speech data redacted from ordinary rendering |
 
-### First implementation slice
+No S22/live-call gate was required for the deterministic core because it is pure host/data-policy behavior.
 
-1. Add only the minimal immutable `CallPlan` / known-turn rule / decision model required for authorized-fact answers and bounded fallback.
-2. Write RED tests first for authorized-fact lookup, missing-fact fail-closed behavior, unknown-intent fallback, immutability and redacted rendering.
-3. GREEN with the smallest deterministic engine.
-4. Reuse `CallTask` and `CallResolvedTarget` by reference; do not duplicate constraints/preferences/facts.
-5. Do not modify `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate`, media, STT/TTS or diagnostics unless a failing test demonstrates a concrete integration gap.
-6. Run `bash scripts/verify_host.sh`.
-7. This first pure host/data-policy slice requires no S22 gate and no live call.
+### Product wiring audit
 
-Gate C exit: common bounded turns do not require general-purpose reasoning, missing user facts are never invented, and no model/helper can grant itself authority.
+Existing product path:
+
+```text
+LocalTextCallSession
+  -> LocalSpeechTextPipeline
+      -> final STT transcript
+      -> TextCallTurnController
+          -> TextCallAgentBackend.generate(...)
+          -> TextOutputApprovalPolicy
+      -> local TTS
+```
+
+`TextCallTurnController` is a deliberately narrow complete-backend-text -> application-approval contract. `LocalSpeechTextPipeline` owns speech lifecycle. Do not place CallPlan state/mutations inside either merely for convenience, and do not grow `MainActivity` or diagnostics into the product orchestrator.
+
+### Next host-only wiring slice
+
+Add a narrow product-owned `CallPlanTurnCoordinator` (or equivalently scoped name) outside media/speech ownership:
+
+1. inputs: existing immutable `CallPlan`, existing `CallWorkflow`, final transcript, explicit prior-unknown count;
+2. delegate classification to `CallPlanEngine`; do not duplicate matching;
+3. `SAY`, `ASK_REPEAT`, `TAKE_OVER` remain structured results only — no direct TTS/TX;
+4. `PROPOSAL` routes the exact typed proposal to `CallWorkflow.evaluateProposal(...)` and exposes the resulting `CallPolicyDecision`;
+5. `COMPLETE` routes the exact outcome to `CallWorkflow.complete(...)`;
+6. it must not authorize commitment, approve/reject pending proposals, dial, touch target allowlists, media or speech;
+7. product routing must reject plan/workflow target mismatch before any workflow mutation;
+8. invalid workflow state fails closed using the existing workflow state machine;
+9. no model/backend fallback in this first wiring slice;
+10. RED first, minimal GREEN, targeted tests + `bash scripts/verify_host.sh`;
+11. no S22 gate and no live Orange call.
+
+After this coordinator is host-green, a separate slice can connect its structured results to the existing text/session output boundary while retaining application-owned output approval before TTS/TX.
+
+Gate C exit remains: common bounded turns work through the product session without general-purpose reasoning, missing user facts are never invented, and no helper/model can grant itself authority.
 
 ---
 
