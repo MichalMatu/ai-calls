@@ -70,6 +70,30 @@ class GateCLiveCallScenarioTest {
     }
 
     @Test
+    fun `orange invoice status seed uses the same verified root and one reviewed utterance`() {
+        val scenario = GateCLiveCallScenarioFactory.create(
+            GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
+            OrangeLiveAction.INVOICE_STATUS,
+        )
+        val observedRoot =
+            "dobry wieczór jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana " +
+                "chętnie pomogę powiedz w jakiej sprawie dzwonisz"
+
+        val match = scenario.phraseMatrix.match(observedRoot)
+        assertNotNull(match)
+
+        val decision = CallPlanHelperValidator().validate(
+            scenario.callPlan,
+            CallPlanHelperSuggestion(checkNotNull(match).ruleId),
+            0,
+        )
+        assertEquals(CallPlanAction.SAY, decision.action())
+        assertEquals("Chcę sprawdzić fakturę.", decision.text())
+        assertEquals(0, scenario.callPlan.proposalRules().size)
+        assertEquals(0, scenario.callPlan.completionRules().size)
+    }
+
+    @Test
     fun `orange explorer observe only can classify nothing into speech`() {
         val scenario = GateCLiveCallScenarioFactory.create(
             GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
