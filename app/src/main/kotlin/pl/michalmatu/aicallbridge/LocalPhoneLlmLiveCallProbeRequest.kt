@@ -2,7 +2,7 @@ package pl.michalmatu.aicallbridge
 
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
-internal data class LocalPhoneLlmLiveCallProbeRequest private constructor(
+internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
     val provider: TextLlmProvider,
     val gateCFastPath: Boolean,
     val liveCallTarget: String?,
