@@ -18,6 +18,7 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
 internal class LocalTextCallSession private constructor(
     private val pipeline: Pipeline,
     private val planTurnCoordinator: CallPlanTurnCoordinator?,
+    phraseMatrix: PhraseMatrix?,
 ) : AutoCloseable {
     internal interface Pipeline : AutoCloseable {
         fun start(listener: LocalSpeechTextPipeline.Listener)
@@ -42,8 +43,19 @@ internal class LocalTextCallSession private constructor(
         fun onStructuredResult(result: CallPlanTurnResult)
     }
 
+    private val phraseMatrixTurnRouter: PhraseMatrixProductTurnRouter? =
+        if (phraseMatrix != null) {
+            PhraseMatrixProductTurnRouter(
+                phraseMatrix,
+                checkNotNull(planTurnCoordinator) { "phrase_matrix_requires_call_plan" },
+            )
+        } else {
+            null
+        }
+
     private val planFallbackLock = Any()
     private var consecutiveUnknownCount = 0
+    private var previousValidatedRuleId: String? = null
 
     internal constructor(
         prepared: PreparedLocalTextCall,
@@ -51,6 +63,7 @@ internal class LocalTextCallSession private constructor(
     ) : this(
         pipeline = claimPipeline(prepared, pipelineFactory),
         planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
+        phraseMatrix = prepared.phraseMatrix,
     )
 
     fun start(listener: LocalSpeechTextPipeline.Listener) {
@@ -87,24 +100,41 @@ internal class LocalTextCallSession private constructor(
     fun finishInput() = pipeline.finishInput()
 
     /**
-     * Routes one already-final transcript through the bound CallPlan while owning the bounded
-     * consecutive-unknown state for this session. ASK_REPEAT advances the counter; every other
-     * deterministic result resets it. A plan must have been bound during readiness.
+     * Routes one already-final transcript through the optional PhraseMatrix fast path and then the
+     * bound CallPlan while owning all bounded dialogue context for this session. ASK_REPEAT advances
+     * the consecutive-unknown counter; every other deterministic result resets it. Previous-rule
+     * context is retained only from a validated SAY decision and is cleared by fallback/structured
+     * actions, so raw matcher ids never become session authority.
      */
     fun handlePlanFinalTranscript(finalTranscript: String): CallPlanTurnResult =
         synchronized(planFallbackLock) {
-            val result = handlePlanFinalTranscript(finalTranscript, consecutiveUnknownCount)
+            val coordinator = checkNotNull(planTurnCoordinator) { "call_plan_not_bound" }
+            val result = phraseMatrixTurnRouter
+                ?.handleFinalTranscript(
+                    finalTranscript = finalTranscript,
+                    priorUnknownCount = consecutiveUnknownCount,
+                    previousRuleId = previousValidatedRuleId,
+                )
+                ?.turnResult
+                ?: coordinator.handleFinalTranscript(finalTranscript, consecutiveUnknownCount)
+
             consecutiveUnknownCount = if (result.decision().action() == CallPlanAction.ASK_REPEAT) {
                 consecutiveUnknownCount + 1
             } else {
                 0
+            }
+            previousValidatedRuleId = if (result.decision().action() == CallPlanAction.SAY) {
+                result.decision().ruleId()
+            } else {
+                null
             }
             result
         }
 
     /**
      * Explicit stateless CallPlan entry point retained for focused diagnostics/tests. Product
-     * session routing should use the overload that owns the consecutive-unknown counter.
+     * session routing should use the overload that owns the consecutive-unknown counter and
+     * previous validated PhraseMatrix/CallPlan rule context.
      */
     fun handlePlanFinalTranscript(finalTranscript: String, priorUnknownCount: Int): CallPlanTurnResult {
         val coordinator = checkNotNull(planTurnCoordinator) { "call_plan_not_bound" }
