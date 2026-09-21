@@ -176,6 +176,7 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         }
         self.assertTrue(_is_ignorable_gate_c_preroll(observed_preroll))
         self.assertTrue(_is_ignorable_gate_c_preroll({**observed_preroll, "stt_text": "jakości orange"}))
+        self.assertTrue(_is_ignorable_gate_c_preroll({**observed_preroll, "stt_text": "kości orange"}))
 
         invoice_preroll = {
             **observed_preroll,
