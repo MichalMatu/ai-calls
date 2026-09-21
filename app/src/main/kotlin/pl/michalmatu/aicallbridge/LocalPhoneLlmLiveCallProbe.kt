@@ -214,15 +214,14 @@ internal object LocalPhoneLlmLiveCallProbe {
             }
 
             if (request.gateCFastPath) {
-                session.start(
+                session.startWithPlanRouting(
                     listener,
-                    LocalTextCallSession.PlanTurnListener { result ->
-                        val decision = result.decision()
-                        lines += "call_plan_action=${decision.action().name.lowercase()}"
-                        decision.ruleId()?.let { lines += "call_plan_rule_id=${sanitize(it)}" }
-                        if (decision.action() != CallPlanAction.SAY) {
+                    LocalTextCallSession.StructuredPlanTurnListener { action, ruleId ->
+                        lines += "call_plan_action=${action.name.lowercase()}"
+                        ruleId?.let { lines += "call_plan_rule_id=${sanitize(it)}" }
+                        if (action != CallPlanAction.SAY) {
                             context.mainExecutor.execute {
-                                finish(false, "gate_c_${decision.action().name.lowercase()}")
+                                finish(false, "gate_c_${action.name.lowercase()}")
                             }
                         }
                     },
