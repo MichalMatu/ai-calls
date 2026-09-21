@@ -4,6 +4,7 @@ from local_phone_llm_live_call import (
     EDGE_GALLERY_PROVIDER,
     LOCAL_PHONE_PROVIDER,
     ORANGE_ACTION_INTERNET_PROBLEM,
+    ORANGE_ACTION_ROAMING_INFO,
     ORANGE_ACTION_INVOICE_STATUS,
     ORANGE_ACTION_INVOICE_TOPIC,
     ORANGE_ACTION_LIST_CAPABILITIES,
@@ -90,6 +91,15 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
             orange_action=ORANGE_ACTION_INTERNET_PROBLEM,
         )
         self.assertIn("orange_live_action internet_problem", " ".join(internet_args))
+
+        roaming_args = build_probe_start_args(
+            "RFCT70L7E8J",
+            LOCAL_PHONE_PROVIDER,
+            gate_c_fast_path=True,
+            target=ORANGE_SUPPORT_NUMBER,
+            orange_action=ORANGE_ACTION_ROAMING_INFO,
+        )
+        self.assertIn("orange_live_action roaming_info", " ".join(roaming_args))
 
         with self.assertRaises(ValueError):
             build_probe_start_args(
