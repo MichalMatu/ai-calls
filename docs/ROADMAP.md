@@ -69,7 +69,7 @@ Useful feasibility was proven, but the bounded live checkpoint exposed unaccepta
 
 ## Active gate — Gate C / deterministic fast path
 
-Status: `ACTIVE / HOST_GREEN / FIRST CONTROLLED S22 PHYSICAL GATE NEXT`
+Status: `ACTIVE / HOST_GREEN + S22 PREDIAL GREEN / FIRST LIVE CALL NEXT`
 
 Goal: common bounded turns execute deterministically while all authority remains application-owned. Matchers and language helpers may only propose bounded matches to already-authorized product data.
 
@@ -147,7 +147,7 @@ Host comparison on the same small Polish corpus:
 
 RiveScript did prove Polish UTF-8 and previous-turn support, but it can emit arbitrary reply text and its broader scripting surface is unnecessary for the current product boundary. These numbers are host-spike measurements, not S22 performance claims.
 
-### Controlled Gate C live diagnostic — `HOST_GREEN / PHYSICAL PROOF NEXT`
+### Controlled Gate C live diagnostic — `HOST_GREEN / S22 PREDIAL GREEN / LIVE PROOF NEXT`
 
 The first physical Gate C proof is intentionally tiny and non-committing.
 
@@ -191,24 +191,28 @@ Key evidence:
 .agent/results/chatgpt-gate-c-host-final-v96-20260921.json
 ```
 
-`v96` passed targeted Gate C live/session/authority regressions, 6 Python runner tests, the full canonical `bash scripts/verify_host.sh`, and `:app:assembleDebug`. The debug APK exists and is ready for S22 installation.
+`v96` passed targeted Gate C live/session/authority regressions, 6 Python runner tests, the full canonical `bash scripts/verify_host.sh`, and `:app:assembleDebug`.
 
-### Current slice — first physical Gate C proof
+S22 pre-dial evidence:
 
-Status: `NEXT / REQUIRES S22 CONNECTED`
+```text
+.agent/results/chatgpt-gate-c-s22-predial-v97-20260921.json
+.agent/results/chatgpt-gate-c-s22-speech-preflight-v98-20260921.json
+```
 
-No additional host implementation is required before this physical checkpoint.
+`v97` proved exact direct USB identity, `SM-S906B`, API 36, `IDLE` cellular state, fresh APK install, healthy Shizuku diagnostics and a ready Gate C intent with no dial action. `v98` proved the production local TTS -> PCM -> on-device STT round trip on the S22 while remaining off-call.
 
-Required pre-dial sequence:
+### Current slice — first live Gate C proof
 
-1. exact direct USB S22 serial `RFCT70L7E8J` is present;
-2. model is `SM-S906B` and API level is 36;
-3. cellular call state is `IDLE`;
-4. install fresh `app-debug.apk` built from fresh `main`;
-5. prove Shizuku diagnostic path healthy;
-6. confirm generated Gate C probe intent contains `gate_c_fast_path=true` and `live_call_target=510100100` and contains no `tel:` / dial action;
-7. only after explicit current-session operator authorization, execute one bounded call to the exact allowlisted target;
-8. require final report markers:
+Status: `NEXT / ALL PRE-DIAL CHECKS GREEN / LIVE CALL ONLY`
+
+All non-call prerequisites have passed on the target S22. Immediately before the live attempt, re-check exact USB identity and cellular `IDLE`; the remaining proof is one bounded call.
+
+Live proof requirements:
+
+1. re-check exact direct USB target and cellular state `IDLE`;
+2. only after explicit current-session operator authorization, execute one bounded call to exact allowlisted target `510100100`;
+3. require final report markers:
    - `gate_c_fast_path=true`;
    - `gate_c_call_plan_bound=true`;
    - nonblank final STT;
@@ -216,7 +220,7 @@ Required pre-dial sequence:
    - `backend_generate_calls=0`;
    - nonzero TTS and telephony TX PCM;
    - bounded trailing-silence endpointing;
-9. hang up and restore phone state in `finally`.
+4. hang up and restore phone state in `finally`.
 
 `.agent/results/chatgpt-gate-c-s22-predial-v93-20260921.json` is not valid physical evidence: the S22 was absent, and its command did not fail-fast, allowing later shell commands to mask the failed device assertion. Any successor physical task must use `set -euo pipefail` or equivalent first-failure preservation.
 

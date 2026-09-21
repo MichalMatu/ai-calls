@@ -80,7 +80,16 @@ Key GREEN evidence:
 .agent/results/chatgpt-gate-c-host-final-v96-20260921.json
 ```
 
-`v96` is the current host-final checkpoint: targeted Gate C live tests, Python runner tests, full `bash scripts/verify_host.sh` and `:app:assembleDebug` all pass. It emits `GATE_C_HOST_FINAL_GREEN=true` and `APK_READY_FOR_S22_INSTALL=true`.
+`v96` is the host-final checkpoint: targeted Gate C live tests, Python runner tests, full `bash scripts/verify_host.sh` and `:app:assembleDebug` all pass. It emits `GATE_C_HOST_FINAL_GREEN=true` and `APK_READY_FOR_S22_INSTALL=true`.
+
+Physical pre-dial evidence is now also green:
+
+```text
+.agent/results/chatgpt-gate-c-s22-predial-v97-20260921.json
+.agent/results/chatgpt-gate-c-s22-speech-preflight-v98-20260921.json
+```
+
+`v97` proved exact direct USB S22, `SM-S906B`, API 36, cellular state `IDLE`, fresh APK install, healthy Shizuku diagnostic path, exact Gate C intent/allowlist and explicitly `NO_DIAL_EXECUTED=true`. `v98` proved the production local TTS -> PCM -> on-device STT round trip on the same S22 while the cellular state remained `IDLE`.
 
 ## Engine-selection decision
 
@@ -106,7 +115,7 @@ These are host measurements, not `PROVEN_S22` performance evidence.
 
 ## Exact current product gap
 
-The host/product path is ready for the first controlled physical Gate C proof. What is **not** yet proven on the current wiring is the complete physical chain:
+The host/product path and all non-call S22 pre-dial prerequisites are proven. What is **not** yet proven on the current wiring is only the complete live cellular chain:
 
 ```text
 Orange cellular RX
@@ -133,20 +142,11 @@ The physical success report must prove all of the following at once:
 
 A no-match or changed Orange prompt must fail closed / take over. Do not broaden the matcher just to make a live test pass.
 
-## Next exact engineering step — requires S22 connected
+## Next exact engineering step — one bounded Orange call
 
-No more host-only implementation is required before the first controlled physical Gate C attempt.
+No more host implementation or non-call S22 preflight is required before the first controlled Gate C attempt. `v97` and `v98` already proved the installed build, Shizuku path, exact Gate C intent, local production TTS/STT round trip and cellular `IDLE` state without dialing.
 
-When the S22 is available again:
-
-1. fetch fresh `main` and daemon binding;
-2. build `:app:assembleDebug` from fresh `main`;
-3. require exact direct USB S22 `RFCT70L7E8J`, model `SM-S906B`, API 36 and cellular state `IDLE`;
-4. install the fresh debug APK;
-5. prove the Shizuku diagnostic probe is healthy;
-6. confirm the Gate C probe intent contains `gate_c_fast_path=true` and `live_call_target=510100100` and contains no dial/tel action;
-7. only with explicit current-session operator authorization, perform one bounded call to the exact allowlisted Orange target;
-8. inspect the terminal report against the success conditions above and hang up/restore state in `finally`.
+Immediately before the live attempt, re-check exact USB identity and cellular `IDLE` state. Then, only with explicit current-session operator authorization, execute one bounded call to the exact allowlisted Orange target `510100100`, validate every required Gate C report marker, and restore/hang up in `finally`. Do not broaden PhraseMatrix rules merely to make the physical test pass.
 
 Important: `.agent/results/chatgpt-gate-c-s22-predial-v93-20260921.json` is **not** valid physical preflight evidence. The S22 was absent and the shell command did not use `set -e`, so later commands masked the failed assertion. Future physical tasks must use `set -euo pipefail` or otherwise preserve the first failure.
 
