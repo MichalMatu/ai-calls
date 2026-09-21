@@ -23,6 +23,8 @@ DEFAULT_SERIAL = "RFCT70L7E8J"
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
 PROBE_TIMEOUT_SECONDS = 100.0
 GATE_C_APPROVED_TEXT = "Dzień dobry."
+GATE_C_IGNORABLE_PREROLLS = frozenset({"orange"})
+MAX_GATE_C_PREROLL_RETRIES = 2
 
 
 def normalize_allowlisted_target(raw: str) -> str:
@@ -90,6 +92,25 @@ def _require_gate_c_fast_path_report(report: dict[str, str]) -> None:
         )
     if report.get("approved_text") != GATE_C_APPROVED_TEXT:
         raise RuntimeError("Gate C live path did not approve the exact reviewed response")
+
+
+def _is_ignorable_gate_c_preroll(report: dict[str, str]) -> bool:
+    """Return true only for an exact observed, authority-neutral Orange branding pre-roll."""
+    if report.get("gate_c_fast_path") != "true":
+        return False
+    if report.get("gate_c_call_plan_bound") != "true":
+        return False
+    if report.get("local_text_llm_live_call_success") != "false":
+        return False
+    if report.get("failure_reason") != "gate_c_take_over":
+        return False
+    try:
+        if int(report.get("backend_generate_calls", "-1")) != 0:
+            return False
+    except ValueError:
+        return False
+    transcript = report.get("stt_text", "").strip().casefold()
+    return transcript in GATE_C_IGNORABLE_PREROLLS
 
 
 def _devices_output() -> str:
@@ -177,6 +198,28 @@ def _require_endpointing(report: dict[str, str]) -> None:
     print(f"live_endpointing_proven_s22=true,capture_ms:{capture_ms},eos_to_first_tx_ms:{latency_ms}")
 
 
+def _start_probe(
+    adb: Adb,
+    serial: str,
+    provider: str,
+    *,
+    gate_c_fast_path: bool,
+    target: str,
+) -> dict[str, str]:
+    _remove_report(adb)
+    adb.shell(["am", "force-stop", PACKAGE_NAME], check=False)
+    subprocess.run(
+        build_probe_start_args(
+            serial,
+            provider,
+            gate_c_fast_path=gate_c_fast_path,
+            target=target if gate_c_fast_path else None,
+        ),
+        check=True,
+    )
+    return _wait_report(adb)
+
+
 def run_orange_support_once(
     serial: str = DEFAULT_SERIAL,
     provider: str = LOCAL_PHONE_PROVIDER,
@@ -225,28 +268,50 @@ def run_orange_support_once(
         if time.monotonic() - started_at > 60.0:
             raise TimeoutError("bounded call budget exhausted before AI turn")
 
-        _remove_report(adb)
-        adb.shell(["am", "force-stop", PACKAGE_NAME], check=False)
-        subprocess.run(
-            build_probe_start_args(
+        max_probe_turns = 1 + (MAX_GATE_C_PREROLL_RETRIES if gate_c_fast_path else 0)
+        report: dict[str, str] | None = None
+        for probe_turn in range(1, max_probe_turns + 1):
+            report = _start_probe(
+                adb,
                 serial,
                 selected_provider,
                 gate_c_fast_path=gate_c_fast_path,
-                target=number if gate_c_fast_path else None,
-            ),
-            check=True,
-        )
-        report = _wait_report(adb)
-        if report.get("text_llm_provider") != selected_provider:
-            raise RuntimeError("live probe provider mismatch")
+                target=number,
+            )
+            if report.get("text_llm_provider") != selected_provider:
+                raise RuntimeError("live probe provider mismatch")
+
+            success = report.get(
+                "local_text_llm_live_call_success",
+                report.get("local_phone_llm_live_call_success"),
+            )
+            if success == "true":
+                break
+
+            can_retry_preroll = (
+                gate_c_fast_path and
+                probe_turn < max_probe_turns and
+                _is_ignorable_gate_c_preroll(report)
+            )
+            if can_retry_preroll:
+                print(
+                    "gate_c_preroll_ignored=true," +
+                    f"turn:{probe_turn},transcript:{report.get('stt_text', '')}"
+                )
+                continue
+
+            raise RuntimeError(
+                "local text live probe reported failure: " + report.get("failure_reason", "unknown")
+            )
+
+        if report is None:
+            raise RuntimeError("live probe produced no report")
         success = report.get(
             "local_text_llm_live_call_success",
             report.get("local_phone_llm_live_call_success"),
         )
         if success != "true":
-            raise RuntimeError(
-                "local text live probe reported failure: " + report.get("failure_reason", "unknown")
-            )
+            raise RuntimeError("local text live probe did not reach a successful terminal turn")
         if report.get("stt_transcript_nonblank") != "true":
             raise RuntimeError("live STT transcript was blank")
         if report.get("approved_text_nonblank") != "true":
