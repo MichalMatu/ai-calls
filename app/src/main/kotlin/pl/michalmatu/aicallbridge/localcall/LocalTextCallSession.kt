@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.localcall
 
 import android.content.Context
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
+import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFinalTurnRouteSelector
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
@@ -20,6 +21,14 @@ internal class LocalTextCallSession private constructor(
 ) : AutoCloseable {
     internal interface Pipeline : AutoCloseable {
         fun start(listener: LocalSpeechTextPipeline.Listener)
+
+        fun start(
+            listener: LocalSpeechTextPipeline.Listener,
+            finalTurnRouteSelector: LocalSpeechFinalTurnRouteSelector,
+        ) {
+            error("final_turn_route_selector_not_supported")
+        }
+
         fun writeInputPcm(bytes: ByteArray, offset: Int, length: Int): Boolean
         fun finishInput()
         fun cancel()
@@ -27,6 +36,10 @@ internal class LocalTextCallSession private constructor(
 
     internal fun interface PipelineFactory {
         fun create(backend: TextCallAgentBackend): Pipeline
+    }
+
+    internal fun interface PlanTurnListener {
+        fun onStructuredResult(result: CallPlanTurnResult)
     }
 
     private val planFallbackLock = Any()
@@ -40,7 +53,30 @@ internal class LocalTextCallSession private constructor(
         planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
     )
 
-    fun start(listener: LocalSpeechTextPipeline.Listener) = pipeline.start(listener)
+    fun start(listener: LocalSpeechTextPipeline.Listener) {
+        check(planTurnCoordinator == null) { "call_plan_turn_listener_required" }
+        pipeline.start(listener)
+    }
+
+    fun start(
+        listener: LocalSpeechTextPipeline.Listener,
+        planTurnListener: PlanTurnListener,
+    ) {
+        if (planTurnCoordinator == null) {
+            pipeline.start(listener)
+            return
+        }
+        pipeline.start(
+            listener,
+            LocalSpeechFinalTurnRouteSelector { finalTranscript ->
+                val selection = CallPlanFinalTurnRouteMapper.map(
+                    handlePlanFinalTranscript(finalTranscript),
+                )
+                selection.structuredResult?.let(planTurnListener::onStructuredResult)
+                selection.route
+            },
+        )
+    }
 
     fun writeInputPcm(
         bytes: ByteArray,
@@ -117,6 +153,11 @@ internal class LocalTextCallSession private constructor(
         private val delegate: LocalSpeechTextPipeline,
     ) : Pipeline {
         override fun start(listener: LocalSpeechTextPipeline.Listener) = delegate.start(listener)
+
+        override fun start(
+            listener: LocalSpeechTextPipeline.Listener,
+            finalTurnRouteSelector: LocalSpeechFinalTurnRouteSelector,
+        ) = delegate.start(listener, finalTurnRouteSelector)
 
         override fun writeInputPcm(bytes: ByteArray, offset: Int, length: Int): Boolean =
             delegate.writeInputPcm(bytes, offset, length)
