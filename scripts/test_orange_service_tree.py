@@ -55,6 +55,25 @@ class OrangeServiceTreeTest(unittest.TestCase):
         self.assertEqual("REPROMPT", invoice["last_outcome"])
         self.assertIn("service_route_not_verified", invoice["next_evidence"])
 
+    def test_v136_simpler_invoice_topic_is_separate_verified_reprompt_evidence(self):
+        tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
+        edges = {edge["id"]: edge for edge in tree["edges"]}
+
+        original = edges["orange.root.invoice_status"]
+        self.assertEqual("chatgpt-orange-invoice-live-v123-20260921", original["evidence_task"])
+
+        edge = edges["orange.root.invoice_topic"]
+        self.assertEqual("orange.root", edge["from"])
+        self.assertEqual("orange.root.reprompt", edge["to"])
+        self.assertEqual("invoice_topic", edge["action_id"])
+        self.assertEqual("Faktura.", edge["speech"])
+        self.assertEqual("VERIFIED", edge["status"])
+        self.assertEqual("READ_ONLY", edge["risk"])
+        self.assertEqual("REPROMPT", edge["observed_outcome"])
+        self.assertEqual("chatgpt-orange-invoice-topic-live-installed-v136-20260922", edge["evidence_task"])
+        self.assertEqual("max_duration", edge["observation_endpoint_reason"])
+        self.assertFalse(edge["service_route_verified"])
+
 
 if __name__ == "__main__":
     unittest.main()
