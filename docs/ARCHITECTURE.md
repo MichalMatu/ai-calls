@@ -2,65 +2,15 @@
 
 ## Goal
 
-Bridge an ordinary cellular call on the target Samsung S22+ to selectable AI engines while keeping five ownership boundaries separate:
+Bridge an ordinary cellular call on the target Samsung S22+ to selectable AI engines while keeping these ownership boundaries separate:
 
 1. cellular media;
 2. speech conversion;
-3. model inference;
+3. text generation / deterministic text routing;
 4. task/dialogue authority;
 5. user takeover and fail-safe cleanup.
 
-Failure must move toward a normal human call. Model text or counterparty speech must never widen authority.
-
-## Current proven local path
-
-```text
-CallTask / explicit authority
-          |
-          v
-CallWorkflow + deterministic policy
-          |
-          v
-frozen telephony RX
-          |
-          v
-PcmEndOfUtteranceDetector
-          |
-          v
-local on-device STT
-          |
-          v
-TextCallAgentBackend
-          |
-          v
-application-owned output / commitment approval
-          |
-          v
-local on-device TTS
-          |
-          v
-frozen telephony TX
-```
-
-One bounded `LOCAL_PHONE_LLM` cellular turn and silence endpointing are physically proven on the S22+.
-
-## Runtime selection
-
-Current selector model:
-
-```text
-Audio mode
-├── LOCAL_STT_TTS
-│   └── text provider
-│       ├── LOCAL_PHONE_LLM
-│       ├── EDGE_GALLERY         (Gemma 4 E2B via phone-loopback LiteRT API)
-│       ├── LOCAL_MAC_LLM
-│       └── OPENAI_TEXT          (preserved/deferred)
-├── OPENAI_REALTIME_AUDIO        (preserved/frozen)
-└── LOCAL_REALTIME_AUDIO         (future)
-```
-
-Provider selection does not change task authority or Samsung media ownership.
+Failure must move toward a normal human call. Counterparty speech, model text and helper/tool output never widen authority.
 
 ## Frozen media boundary
 
@@ -68,7 +18,7 @@ Provider selection does not change task authority or Samsung media ownership.
 
 Continuous PCM crosses the privilege boundary through transferred PFDs. Binder/AIDL is control only.
 
-Internal telephony format:
+Internal format:
 
 ```text
 signed PCM16LE
@@ -76,7 +26,7 @@ mono
 16 kHz
 ```
 
-Privileged Samsung implementation remains in `privileged-helper/`:
+Samsung implementation stays in `privileged-helper/`:
 
 ```text
 RX: VOICE_DOWNLINK -> SamsungVoiceDownlinkCapture -> PFD
@@ -86,242 +36,141 @@ TX: PFD -> SamsungUplinkPipeSession -> SamsungCallAssistantTrack
 
 Stereo duplication exists only at the Samsung TX boundary.
 
-Before touching this layer, read `docs/PHASE2D_FREEZE_2026-09-18.md`.
-
-## Speech boundary
-
-`LocalSpeechTextPipeline` is the current conservative local-speech turn:
-
-```text
-PCM input
- -> OnDeviceSpeechInput
- -> final transcript
- -> TextCallTurnController
- -> complete approved text
- -> LocalTtsSpeechOutput
- -> PCM output
-```
-
-It deliberately does not emit TTS PCM until the complete model response has passed application-owned approval.
-
-The old fixed normal capture wait is gone. Real Orange IVR evidence shows that neither a short trailing-silence threshold nor one `SpeechRecognizer.onEndOfSpeech()` event is a sufficient final-turn signal: Max emits multiple phrases, multi-second pauses and multiple recognizer end events. The experimental turn boundary now treats recognizer end as a candidate, cancels it on resumed speech, and uses a later bounded hangover plus a long watchdog. Partial/segment callbacks are diagnostic/preparation signals; they must not authorize early TX.
-
-## Text-model boundary
-
-Provider-neutral contract:
-
-```text
-final transcript
- -> TextCallAgentBackend
- -> complete candidate text
- -> TextCallTurnController
- -> TextOutputApprovalPolicy
-```
-
-Model adapters own inference only. They do not own:
-
-- dialing;
-- target selection authority;
-- workflow mutation;
-- commitment authorization;
-- Samsung media;
-- TAKE OVER.
-
-### Local phone model
-
-Current proven model:
-
-```text
-Qwen2.5-1.5B-Instruct Q4_K_M
-alias qwen-phone-1.5b
-loopback http://127.0.0.1:18115/v1/
-```
-
-`IdentityVerifiedLocalPhoneLlmBackend` requires runtime readiness plus exact model identity. `ShizukuLocalPhoneLlmRuntimeGate` and `LocalPhoneLlmRuntimeUserService` provide product-owned start/stop/recovery.
-
-A health response alone is not identity. `/props` alias/model path verification is required because a stale 0.5B server previously occupied the expected port.
-
-### Google AI Edge Gallery provider
-
-`EDGE_GALLERY` is a separate phone-local text provider for Gemma through a loopback-only OpenAI-compatible API. It reuses `LocalOpenAiCompatibleTextBackend`; the provider-specific adapter first requires `/health` status `ok` and an exact `Gemma-4-E2B-it` entry from `/v1/models`. The normal READY_TO_DIAL warm-up then proves real inference before dialing. Edge Gallery owns inference only and never owns Samsung media, dialing, workflow authority or TAKE OVER.
-
-### Edge Gallery Agent Skills
-
-The official Google AI Edge Gallery Agent Skills runtime can be invoked headlessly from the development harness. For phone navigation the intended composition is:
-
-```text
-final/partial STT + explicit call goal
-        |
-        v
-preloaded phone-call-navigation skill
-        |
-        v
-constrained tool proposal
-  ├─ SAY(text)
-  ├─ LISTEN_MORE
-  └─ TAKE_OVER(reason)
-        |
-        v
-CallBridge deterministic policy / authority validation
-        |
-        v
-approved action only
-```
-
-The skill is **not** an execution authority. Tool methods only record a proposal. CallBridge decides whether any proposal is permitted and owns TTS/media execution. DTMF is intentionally absent from the current tool set.
-
-Latency architecture should separate preparation from the final decision. Model/skill/session reset may occur while the counterparty is still speaking. Stable partial STT may start cancelable speculative inference, but the result remains quarantined until the final endpoint and must match the final transcript/goal before application approval. Resumed/changed speech invalidates stale speculation.
+Before changing this layer, read `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
 ## Authority boundary
 
 The existing domain model remains authoritative:
 
-- `CallTask`;
-- `CallConstraints`;
-- `CallPreferences`;
-- `authorizedFacts`;
+- `CallTask` / `CallConstraints` / `CallPreferences` / `authorizedFacts`;
+- `CallResolvedTarget`;
 - `CallWorkflow`;
 - `CallConfirmationPolicy`;
 - `CallCommitmentGate`;
-- output approval policies.
+- application-owned output approval.
 
-Strict proposal parsing and model output are untrusted input. One approved proposal does not create standing authority for another.
+`CallPlan` references those owners; it is not a parallel authority store.
 
-Future `CallPlan v1` must build on these concepts rather than create a parallel authority system.
+`CallPlanEngine` is deterministic policy logic. It can produce only typed `SAY`, `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, or `TAKE_OVER` decisions. It does not dial, mutate workflow state, authorize commitments or touch media/TTS/TX.
 
-## Product ownership boundaries
+`CallPlanTurnCoordinator` is the narrow product owner that applies typed proposal/completion decisions through the existing `CallWorkflow` methods and rejects task/target/state mismatch fail-closed.
 
-Gate A now provides a narrow pre-dial/product session seam without turning probes or Activities into product orchestrators:
+## Prepared product session
+
+Pre-dial ownership:
 
 ```text
-CallWorkflow READY_TO_DIAL + explicit target authorization
+CallWorkflow + explicit target authorization + optional CallPlan
         |
         v
 LocalTextCallReadinessCoordinator
-   |       |       |
-   |       |       `-> selected backend runtime + exact identity + bounded warm-up
-   |       `----------> AndroidLocalTextCallSpeechPreflight (on-device STT + local TTS)
-   `------------------> existing task/target/authority state
+        |
+        +-> STT/TTS preflight
+        +-> selected backend readiness / exact identity / warm-up
+        +-> task/target/plan consistency
         |
         v
-PreparedLocalTextCall  (one-shot ownership transfer)
+PreparedLocalTextCall
         |
         v
 LocalTextCallSession
-        |
-        `-> existing LocalSpeechTextPipeline
 ```
 
-The new session intentionally does **not** own telephony media or endpointing yet. Those remain outside the Gate A layer so the frozen Samsung path is unchanged; a later call orchestrator composes the prepared session with the already-proven media generation/endpoint lease.
+`PreparedLocalTextCall` is a one-shot handoff. `LocalTextCallSession` owns the prepared backend/session dialogue state, including the consecutive-unknown CallPlan counter. It still does not own frozen telephony media.
 
-The longer-term conceptual target remains:
+## Speech and final-text boundary
+
+Current Android speech pipeline:
 
 ```text
-pre-call task/research
-        |
-        v
-     CallPlan v1
-        |
-        v
- Ready-to-dial coordinator
-   |       |       |
-   |       |       `-> model readiness + warm-up
-   |       `----------> local STT/TTS readiness
-   `------------------> task/target/authority validation
-        |
-        v
-   READY_TO_DIAL
-        |
-        v
- product local text-call session
-        |
-        +-> frozen media generation
-        +-> endpointing
-        +-> LocalSpeechTextPipeline
-        +-> deterministic dialogue state
-        +-> selected TextCallAgentBackend
-        `-> TAKE OVER / fail-safe cleanup
+PCM input
+ -> OnDeviceSpeechInput
+ -> final transcript
+ -> TextCallTurnController.submitUserText(...)
+ -> backend complete text
+ -> TextOutputApprovalPolicy
+ -> LocalTtsSpeechOutput
+ -> PCM output
 ```
 
-Names above are architectural roles, not a requirement to create one class per box.
+`LocalSpeechTextPipeline` owns speech lifecycle and its outer generation gate. `TextCallTurnController` owns complete-text generation/candidate approval and controller-level generation invalidation.
 
-### READY_TO_DIAL
+Do not duplicate either owner in the session.
 
-Dialing must not race model loading.
+### Neutral final-turn dispatcher — host-green checkpoint
 
-A local call may become ready only after:
-
-- task/scenario is valid;
-- destination is explicitly authorized;
-- STT is usable;
-- local TTS is usable;
-- selected local model runtime is started;
-- exact model identity is verified;
-- bounded warm-up succeeds;
-- required plan/preset data is available.
-
-A failed readiness check blocks dial rather than degrading silently to a different provider.
-
-### CallPlan and constrained dialogue
-
-The desired local model role is primarily language handling, not unrestricted world planning.
-
-Preferred order for a turn:
+`TextCallFinalTurnDispatcher` is the neutral seam prepared for final-STT integration. It knows nothing about CallPlan or Android speech.
 
 ```text
-caller transcript
- -> deterministic intent/state check
- -> use authorized fact/preset/rule when sufficient
- -> local LLM only for bounded classification/paraphrase when useful
- -> low confidence/unknown -> repeat or escalate
- -> commitment -> existing application-owned gate
- -> approved text -> TTS
+TextCallFinalTurnRoute.Generate
+  -> TextCallTurnController.submitUserText(finalTranscript)
+
+TextCallFinalTurnRoute.Candidate(text)
+  -> TextCallTurnController.submitCandidateText(exact text)
+
+TextCallFinalTurnRoute.Consumed
+  -> TextCallTurnController.cancel()
+  -> no text generation
 ```
 
-Research and task preparation may occur before the call in a stronger interactive environment. The resulting plan is data, not new authority: a researched phone number still requires explicit live-call authorization.
+`Consumed` exists specifically to invalidate stale backend/controller callbacks after a structured product decision.
 
-## Diagnostic separation audit
+This dispatcher is `HOST_GREEN` but is **not yet wired into `LocalSpeechTextPipeline.onFinalTranscript`**.
 
-Current audit decision:
+## CallPlan product routing checkpoint
 
-### Keep cohesive
-
-- `CallMediaSessionCoordinator`: large but safety-cohesive and frozen;
-- `CallRealtimeSessionOrchestrator`: large but preserved/frozen and not current work;
-- `LocalSpeechTextPipeline`: cohesive speech-turn boundary;
-- `TextCallTurnController`: cohesive backend + approval boundary;
-- local LLM runtime gate/service: currently cohesive around privileged process readiness.
-
-Do not split these merely for line count.
-
-### Prevent further growth
-
-`DiagnosticProbeActivity` currently routes many unrelated probes. It is diagnostic infrastructure, not a product god object yet, but it is the clearest growth hotspot. If the next change needs another substantial probe route, extract a diagnostic dispatcher/registry first instead of adding more branches.
-
-`LocalPhoneLlmLiveCallProbe` currently combines live evidence orchestration, metrics and a one-turn test workflow. Do not evolve it into multi-turn product logic. The first readiness/live-session work should extract/reuse product-owned orchestration and leave this probe as a thin evidence driver.
-
-`MainActivity` should remain UI/configuration. It must not own the future call session, planning state or model lifecycle.
-
-This is intentionally a targeted separation policy rather than a broad refactor of physically proven code.
-
-## Developer ChatGPT relay benchmark
-
-A future benchmark may use:
+Host-green components now separate decision ownership from text release:
 
 ```text
-S22 RX -> local STT -> Local Agent/ADB -> current ChatGPT conversation
-       -> response text -> Local Agent/ADB -> local TTS -> S22 TX
+final transcript
+ -> CallPlanTurnCoordinator
+ -> typed CallPlanTurnResult
+ -> product routing
 ```
 
-This is interactive developer tooling only. It is not an autonomous/background runtime and must not be presented as one. Prefer transcript/reply text over exporting raw call audio.
+Existing `CallPlanTextOutputRouter` / `CallPlanProductTurnRouter` prove that only `SAY` may enter exact candidate approval; `ASK_REPEAT`, `PROPOSAL`, `COMPLETE` and `TAKE_OVER` remain structured and do not invent speech.
 
-It exists to provide a strong-model quality reference while keeping the phone STT/TTS and telephony path identical to local-model tests.
+The next integration should map those structured results into the neutral final-turn route:
 
-## Remote/OpenAI paths
+```text
+SAY -> Candidate(exact text)
+ASK_REPEAT / PROPOSAL / COMPLETE / TAKE_OVER -> Consumed + structured callback
+```
 
-`OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO` code is preserved but API-dependent work is currently deferred.
+Only after that host mapper is green should `LocalSpeechTextPipeline` receive an optional route selector. The default/no-plan path must remain `Generate`.
 
-The standard OpenAI API key remains host/backend-only if this work is resumed. It must never enter Android source, APK, Intent, ADB argv or phone storage.
+## Provider boundary
+
+Text providers for local STT/TTS remain selectable infrastructure:
+
+- `LOCAL_PHONE_LLM` — preserved experiment;
+- `EDGE_GALLERY` — frozen experimental provider;
+- `LOCAL_MAC_LLM` — retained option;
+- `OPENAI_TEXT` — preserved/deferred.
+
+`OPENAI_REALTIME_AUDIO` is preserved/frozen and `LOCAL_REALTIME_AUDIO` is future work.
+
+Provider selection never changes task, target, confirmation, commitment, output approval or TAKE OVER authority.
+
+## Endpointing
+
+Real Orange IVR evidence proved that short fixed trailing silence and a single recognizer end event are not valid universal turn boundaries. The intended endpoint state is:
+
+```text
+speech/begin -> cancel pending END
+recognizer END -> candidate end
+resumed speech/partial growth -> cancel candidate
+stable later END + bounded hangover -> final turn
+long watchdog -> safety only
+```
+
+Partial/speculative inference may prepare work but never creates authority or early TX. Changed/resumed speech invalidates stale work.
+
+## Diagnostics separation
+
+Diagnostic probes are evidence drivers only. Do not grow `DiagnosticProbeActivity`, `MainActivity`, `LocalPhoneLlmLiveCallProbe`, Edge harnesses or the ChatGPT relay into product session orchestrators.
+
+Keep the frozen media coordinator cohesive. Do not refactor physically proven Samsung media merely for line count or stylistic cleanup.
 
 ## TAKE OVER invariant
 
@@ -330,15 +179,13 @@ Every engine preserves local-first cancellation:
 ```text
 stop accepting/releasing AI output
  -> abort local telephony media generation
- -> stop local speech/audio workers
- -> invalidate active model generation
- -> best-effort cancel remote/local model work
+ -> stop speech/audio workers
+ -> invalidate active text/model generation
+ -> best-effort cancel remote/local inference
 ```
 
-The first steps never wait for model or network acknowledgement.
+The first steps never wait for model/network acknowledgement.
 
-## Diagnostics and evidence
+## Evidence rule
 
-Diagnostics retain bounded state/timing/size/sanitized text only as required for validation. Raw PCM and full call recordings are not default product logs.
-
-`HOST_GREEN` never implies `PROVEN_S22`. Hardware/OEM claims require target-device evidence.
+`HOST_GREEN` never implies `PROVEN_S22`. Host-only CallPlan/product routing changes require physical S22 evidence only when a later slice actually changes or exercises Android/OEM behavior.
