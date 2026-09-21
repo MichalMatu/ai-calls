@@ -47,6 +47,75 @@ class PhraseMatrixTest {
     }
 
     @Test
+    fun `previous rule context selects a more specific reviewed meaning`() {
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule(
+                    ruleId = "ack",
+                    phrases = setOf("tak"),
+                ),
+                PhraseMatrixRule(
+                    ruleId = "confirm-time",
+                    phrases = setOf("tak"),
+                    previousRuleIds = setOf("ask-time"),
+                ),
+            ),
+        )
+
+        assertEquals("ack", matrix.match("tak")?.ruleId)
+        assertEquals("ack", matrix.match("tak", previousRuleId = "other")?.ruleId)
+        assertEquals("confirm-time", matrix.match("tak", previousRuleId = "ask-time")?.ruleId)
+    }
+
+    @Test
+    fun `context-only phrase stays unmatched without its declared previous rule`() {
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule(
+                    ruleId = "confirm-time",
+                    phrases = setOf("tak"),
+                    previousRuleIds = setOf("ask-time"),
+                ),
+            ),
+        )
+
+        assertNull(matrix.match("tak"))
+        assertNull(matrix.match("tak", previousRuleId = "ask-price"))
+        assertEquals("confirm-time", matrix.match("tak", previousRuleId = " ask-time ")?.ruleId)
+    }
+
+    @Test
+    fun `same phrase may use disjoint previous rule contexts but overlapping context fails closed`() {
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule("confirm-time", setOf("tak"), previousRuleIds = setOf("ask-time")),
+                PhraseMatrixRule("confirm-price", setOf("tak"), previousRuleIds = setOf("ask-price")),
+            ),
+        )
+
+        assertEquals("confirm-time", matrix.match("tak", previousRuleId = "ask-time")?.ruleId)
+        assertEquals("confirm-price", matrix.match("tak", previousRuleId = "ask-price")?.ruleId)
+        assertNull(matrix.match("tak"))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            PhraseMatrix(
+                listOf(
+                    PhraseMatrixRule(
+                        "confirm-a",
+                        setOf("tak"),
+                        previousRuleIds = setOf("ask-shared", "ask-a"),
+                    ),
+                    PhraseMatrixRule(
+                        "confirm-b",
+                        setOf("TAK!"),
+                        previousRuleIds = setOf("ask-shared", "ask-b"),
+                    ),
+                ),
+            )
+        }
+    }
+
+    @Test
     fun `unknown transcript fails closed without a match`() {
         val matrix = PhraseMatrix(
             listOf(PhraseMatrixRule("greeting", setOf("dzień dobry"))),
@@ -103,7 +172,7 @@ class PhraseMatrixTest {
     }
 
     @Test
-    fun `rules reject blank ids phrases aliases and variant classes`() {
+    fun `rules reject blank ids phrases aliases variant classes and previous rule ids`() {
         assertThrows(IllegalArgumentException::class.java) {
             PhraseMatrixRule(" ", setOf("tak"))
         }
@@ -118,6 +187,14 @@ class PhraseMatrixTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             PhraseMatrixRule("confirm", setOf("tak"), variantClass = " ")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PhraseMatrixRule("confirm", setOf("tak"), previousRuleIds = setOf(" "))
+        }
+
+        val matrix = PhraseMatrix(listOf(PhraseMatrixRule("confirm", setOf("tak"))))
+        assertThrows(IllegalArgumentException::class.java) {
+            matrix.match("tak", previousRuleId = " ")
         }
     }
 }
