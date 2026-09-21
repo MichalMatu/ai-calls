@@ -35,7 +35,7 @@ Status: `DONE / PROVEN_S22`
 telephony RX
  -> end-of-utterance detector
  -> local S22 STT
- -> TextCallAgentBackend
+ -> TextCallAgentBackend / deterministic text decision source
  -> application-owned approval
  -> local S22 TTS
  -> telephony TX
@@ -47,12 +47,12 @@ telephony RX
 
 Status: `SIGNALS PROVEN_S22 / PRODUCTION STATE MACHINE OPEN`
 
-The old fixed eight-second normal capture wait is gone. Real Orange testing subsequently proved that a short fixed trailing-silence threshold is also insufficient for multi-phrase IVR prompts:
+Real Orange testing proved that fixed capture duration and short trailing-silence thresholds are not correct IVR semantics:
 
 - 700 ms and 1500 ms trailing silence cut Max mid-prompt;
 - one complete greeting contained multiple `onEndOfSpeech` callbacks and multi-second internal pauses;
-- a recognizer-end candidate with about 4.5 s hangover captured the complete prompt instead of treating every `onEndOfSpeech` as final;
-- partial STT exposed the greeting progressively and reached the complete semantic prompt before final endpoint, making it useful for preparation/speculation.
+- a recognizer-end candidate with about 4.5 s hangover captured the complete prompt;
+- partial STT exposed the greeting progressively and reached the complete semantic prompt before final endpoint.
 
 Target state model:
 
@@ -61,10 +61,10 @@ speech/begin -> cancel pending END
 recognizer END -> candidate end
 resumed speech/partial growth -> cancel candidate
 stable later END + bounded hangover -> final turn
-60 s class watchdog -> safety only
+long watchdog -> safety only
 ```
 
-Do not promote a diagnostic timeout into product semantics without physical evidence.
+Do not promote diagnostic timeout values into product semantics without physical evidence.
 
 Representative evidence:
 
@@ -117,7 +117,7 @@ Measured decision:
 - GPT-5.6 Sol interactive reference: `8/8` deterministic-safe on one reference pass; quality reference only, not a production backend and not latency/RAM-comparable to local llama.cpp;
 - Qwen3-4B-Instruct-2507 Q4_K_M: `3/24` deterministic-safe, median `5427.353 ms`, p95 `180717.272 ms`, max `258447.910 ms`, warm-up `13936.281 ms`; severe memory/swap pressure and user-visible S22 instability/hanging.
 
-Decision: do not spend the current phase testing nearby-size 2B/3B/4B general-purpose models on this S22. Preserve the local runtime/harness only as experimental infrastructure and reopen that path only with materially better hardware/runtime/model capability or an explicit user decision.
+Decision: do not spend the current phase testing nearby-size 2B/3B/4B general-purpose models on this S22. Preserve the runtime/harness only as experimental infrastructure.
 
 Representative evidence:
 
@@ -135,22 +135,12 @@ Status: `DONE / HOST_GREEN / PROVEN_S22 / DEVELOPER-ONLY`
 
 Purpose: compare strong interactive-model behavior against the same local S22 speech/media stack without turning ChatGPT into a production backend.
 
-```text
-live S22 call
- -> local STT
- -> transient GitHub relay request
- -> interactive ChatGPT response
- -> ADB delivery
- -> local S22 TTS
- -> cellular TX
-```
-
 Proven:
 
 - repeated 3-turn Orange flow completed end-to-end;
 - cleanup deletes transient relay branches and restores call/media state;
 - response delivery to Android is fast once a response exists;
-- the dominant delay in the interactive run was waiting for the chat-side response, not local STT/TTS/media;
+- the dominant delay was waiting for the chat-side response;
 - TX pacing accounts for time already spent inside a blocking pipe write while retaining a minimum 250 ms playback guard;
 - final one-turn physical confirmation completed without TTS truncation.
 
@@ -164,15 +154,11 @@ Evidence:
 
 This relay is a closed benchmark checkpoint. Further relay optimization is not the default next task.
 
----
-
 ## Edge Gallery + Agent Skills feasibility checkpoint
 
-Status: `ACTIVE EXPERIMENT / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`
+Status: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`
 
-This checkpoint is deliberately separate from the frozen llama.cpp sweep. The current S22 has `Gemma-4-E2B-it` running through a clean-upstream Google AI Edge Gallery/LiteRT development harness. The CallBridge provider is loopback-only and requires health plus exact model identity.
-
-The official upstream Agent Skills machinery is callable headlessly. The experimental `phone-call-navigation` skill exposes only proposal tools:
+This was deliberately separate from the frozen llama.cpp sweep. `Gemma-4-E2B-it` ran through a clean-upstream Google AI Edge Gallery/LiteRT development harness. Official Agent Skills were callable headlessly with proposal-only tools:
 
 ```text
 say(text)
@@ -180,81 +166,134 @@ listenMore()
 takeOver(reason)
 ```
 
-No skill/tool directly owns dialing, DTMF, Samsung media, credentials, sensitive disclosures, purchases, activations, tariff changes or commitments.
+No skill/tool owned dialing, DTMF, Samsung media, credentials, sensitive disclosure, purchase, activation, tariff change or commitment authority.
 
-Measured findings:
+Positive findings:
 
-- ReAct/load-skill path: functionally correct but too slow for Orange IVR (roughly mid-teens seconds in representative runs);
-- already-warm conversation path: successful `SAY` tool calls around 3.5-4.4 s were observed, but history contamination can cause a later no-action result;
-- resetting the conversation before each decision restored deterministic `SAY`, but cost roughly 10-11.5 s;
-- v12d physically proved rich partial STT throughout the full Max greeting, but the live reply still arrived about 38 s after recognizer end because model work began too late; Orange ended the call before another bounded turn completed.
+- warm official Agent Skills `SAY` decisions repeated around `3.58-4.07 s` in v16;
+- late-partial speculative inference on the real Orange greeting completed about `2.33 s` before the simulated final endpoint;
+- cancellation was fast (`~8.7 ms` request, stale work released) and a clean post-cancel decision recovered;
+- real Orange partial STT exposed the full semantic prompt before endpoint closure;
+- the temporary v17 speculative integration built, unit-tested and installed cleanly while remaining diagnostic-only.
 
-Next experiment: separate **prepare** from **decide**. Load/reset the skill/session while the other side is speaking and use stable partial STT for cancelable speculative work. Never transmit a speculative result. At final endpoint, validate that the result corresponds to the final transcript/goal, run application-owned approval, and only then synthesize/TX. If the partial transcript changes materially, cancel/restart the speculative generation.
+Final bounded live result:
+
+- v18 made exactly one allowlisted information-only call to `510100100`;
+- cellular RX and local STT succeeded and captured the complete Max prompt;
+- Edge returned `backend_agent_network_IOException` before application approval, TTS or TX, so no generated reply was transmitted;
+- cleanup returned the call/device state to idle.
+
+Root cause / recovery evidence:
+
+- v19 found the Edge process gone and port 8080 closed after v18;
+- v20 historical logcat showed `com.google.aiedge.gallery` crashing while `LocalPhoneAgentRuntime.decide()` was under long monitor contention;
+- after relaunch, loopback from the CallBridge UID worked and off-call inference succeeded, so basic transport was sound;
+- the first post-relaunch decision took about `10.65 s`;
+- Edge consumed about `2.58 GB` total PSS after inference, with swap pressure.
+
+Decision: the current Edge Gallery / Gemma 4 E2B / Agent Skills runtime is not robust or lightweight enough for the live S22 product path. Do not add further probe hacks or repeat Orange calls by default. Reopen only after a materially improved runtime/model/hardware condition or an explicit user decision.
 
 Evidence:
 
 ```text
-.agent/results/chatgpt-edge-phone-skill-output-v4-20260921.json
-.agent/results/chatgpt-orange-agent-skills-endpoint-v9b-20260921.json
-.agent/results/chatgpt-edge-agent-full-greeting-latency-v10-20260921.json
-.agent/results/chatgpt-edge-agent-session-reset-v11-20260921.json
-.agent/results/chatgpt-orange-partial-stt-v12d-20260921.json
+.agent/results/chatgpt-edge-speculative-offcall-benchmark-v16-20260921.json
+.agent/results/chatgpt-edge-speculative-live-build-v17-20260921.json
+.agent/results/chatgpt-orange-speculative-live-v18-20260921.json
+.agent/results/chatgpt-edge-live-transport-diagnosis-v19-20260921.json
+.agent/results/chatgpt-edge-exit-reason-offcall-v20-20260921.json
 ```
 
-This feasibility work does not replace Gate C. It should either produce a bounded language/action-proposal helper that fits the application authority model, or be frozen with evidence.
+---
 
 # Active product gate
 
 ## Gate C — CallPlan v1: deterministic call brain with optional bounded language helper
 
-Status: `NEXT PRODUCTIZATION GATE / AFTER CURRENT EDGE FEASIBILITY CHECKPOINT`
+Status: `ACTIVE / PREIMPLEMENTATION AUDIT COMPLETE / IMPLEMENTATION NEXT`
 
-Goal: prepare structured task context and authority before the call so useful calls do not depend on a general-purpose local LLM.
+Goal: prepare structured task context and deterministic dialogue policy before the call so common bounded turns do not require a general-purpose LLM.
 
-Do not create a second authority model. Reuse/extend the existing:
+### Reuse existing authority; do not create a second authority model
 
-- `CallTask`;
-- `CallConstraints`;
-- `CallPreferences`;
-- `authorizedFacts`;
-- `CallWorkflow`;
-- confirmation and commitment semantics.
+The audit of current code and tests establishes these owners:
 
-A future plan should carry only what is needed for the call:
+- `CallTask` — immutable user/operator authority: task description/action/service plus `CallConstraints`, `CallPreferences` and `authorizedFacts`;
+- `CallResolvedTarget` — one concrete resolved target. Research/resolution does not itself widen the live dial allowlist;
+- `CallWorkflow` — task progress, resolved-target state, concrete pending proposal, user-decision state and structured completion/failure;
+- `CallConfirmationPolicy` — deterministic evaluation of one typed `CallProposal` against immutable task constraints/preferences;
+- `CallCommitmentGate` — one-shot authorization bound to exactly one concrete proposal;
+- application-owned output approval — final speech release remains fail-closed outside normal active negotiation and while commitment authority is pending.
 
-- resolved target metadata;
-- explicit user goal;
-- authorized facts;
-- preferences/hard constraints;
-- preset answers/actions;
-- decisions requiring confirmation;
-- fallback/escalation rules;
-- completion criteria.
+These types stay authoritative. `CallPlan v1` must reference them rather than copying or mutating their authority data.
 
-Authority rule: research may propose a phone number, but it may not silently widen the dialing allowlist. The actual live target remains explicitly operator-authorized under `AGENTS.md`.
+### Narrow responsibility split
 
-Dialogue policy:
+Add an immutable pre-dial execution context, provisionally named `CallPlan`, whose responsibility is only deterministic dialogue planning:
 
 ```text
-known question + authorized fact -> deterministic answer
-known choice + rule -> deterministic action
-language variation -> deterministic patterns/classification first
-unknown / low confidence -> ask to repeat or escalate
-new commitment / sensitive disclosure -> existing application-owned authority gate
-optional future model -> language/reasoning helper only, never authority
+CallPlan
+  -> existing CallTask reference
+  -> existing CallResolvedTarget reference
+  -> immutable known-turn rules
+  -> completion criteria
+  -> bounded repeat/escalation policy
 ```
 
-### Gate C entry task
+Known-turn rules should be small typed data. For an authorized-fact answer, store the **fact key**, not a copied value; the engine resolves the value from `CallTask.authorizedFacts` at decision time and fails closed if it is absent.
 
-Perform a **preimplementation audit first**:
+A deterministic plan engine consumes a **final** transcript plus immutable plan/workflow state and may produce a proposal decision such as:
 
-1. read the current authority/workflow classes and tests;
-2. define the narrowest responsibility split;
-3. identify which existing types are reused and what new immutable plan/state data is actually required;
-4. define the RED/GREEN test matrix;
-5. do not implement until that split is clear.
+```text
+SAY
+ASK_REPEAT
+PROPOSAL
+COMPLETE
+TAKE_OVER
+```
 
-Exit: common bounded turns do not require general-purpose reasoning, and no model/helper can invent missing user facts or grant itself authority.
+Those are decision proposals, not execution authority. The plan engine must not:
+
+- dial or widen a dial allowlist;
+- mutate `CallTask`, constraints, preferences or authorized facts;
+- approve a `CallProposal`;
+- issue/consume commitment authorization;
+- directly access Samsung media, TTS or cellular TX;
+- convert partial/model output into authority.
+
+Counterparty offers remain typed `CallProposal` data and route through the existing `CallWorkflow` -> `CallConfirmationPolicy` -> `CallCommitmentGate` path. Final speech still passes the existing application-owned output approval boundary.
+
+An optional future language helper may only suggest a bounded rule/intent match or wording. The application validates the suggestion against the immutable plan. Unsupported intents, facts, actions or commitments are rejected/fallback; a helper can never extend the plan.
+
+### RED/GREEN test matrix
+
+Implementation begins host-only and TDD-first:
+
+| Case | RED | GREEN |
+| --- | --- | --- |
+| known question -> authorized fact | no plan decision path | `SAY` proposal resolves exactly the existing authorized fact |
+| referenced fact missing | no plan validation | fail closed; never invent a value |
+| unknown/ambiguous final transcript | no bounded deterministic classifier | `ASK_REPEAT` or `TAKE_OVER` according to bounded fallback; never guess |
+| known counterparty offer | no plan routing | typed `CallProposal` is produced for existing workflow policy, never accepted directly |
+| offer outside task policy | preserve authority behavior | existing `CallConfirmationPolicy` returns `NEEDS_USER_DECISION`; plan cannot override |
+| commitment without exact permit | preserve gate behavior | blocked; only existing exact one-shot permit can authorize commitment execution |
+| speech outside ACTIVE_NEGOTIATION or while permit pending | preserve output policy | dropped/fail-closed |
+| target binding | plan has no dialing authority | plan references resolved target but cannot mutate/widen runtime allowlist |
+| completion criterion matched | no plan completion route | structured completion proposal/outcome; `CallWorkflow.complete` remains terminal-state owner |
+| optional helper proposes unsupported item | helper untrusted | deterministic validator rejects/falls back; no authority widening |
+| mutable input collections | no new immutable model yet | plan/rule/fallback collections defensively copied and immutable |
+| privacy rendering | new plan can reference sensitive task/target | ordinary `toString()`/diagnostics redact facts and dial address |
+
+### First implementation slice
+
+1. Add only the minimal immutable `CallPlan` / known-turn rule / decision model required for authorized-fact answers and bounded fallback.
+2. Write RED tests first for authorized-fact lookup, missing-fact fail-closed behavior, unknown-intent fallback, immutability and redacted rendering.
+3. GREEN with the smallest deterministic engine.
+4. Reuse `CallTask` and `CallResolvedTarget` by reference; do not duplicate constraints/preferences/facts.
+5. Do not modify `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate`, media, STT/TTS or diagnostics unless a failing test demonstrates a concrete integration gap.
+6. Run `bash scripts/verify_host.sh`.
+7. This first pure host/data-policy slice requires no S22 gate and no live call.
+
+Gate C exit: common bounded turns do not require general-purpose reasoning, missing user facts are never invented, and no model/helper can grant itself authority.
 
 ---
 
@@ -277,7 +316,7 @@ Only after the text/product baseline is strong, compare current mobile-feasible 
 ## Preserved but deferred paths
 
 - `LOCAL_PHONE_LLM` — experimental infrastructure only on the current S22;
-- `EDGE_GALLERY` — explicit experimental Gemma 4 E2B/LiteRT phone-local provider; this is a materially different runtime path from the frozen llama.cpp model sweep;
+- `EDGE_GALLERY` — frozen experimental Gemma 4 E2B/LiteRT path; not current product work;
 - `LOCAL_MAC_LLM` — retained provider option/experiment;
 - `OPENAI_TEXT` — implementation preserved, paid API proof deferred;
 - `OPENAI_REALTIME_AUDIO` — preserved/frozen;
