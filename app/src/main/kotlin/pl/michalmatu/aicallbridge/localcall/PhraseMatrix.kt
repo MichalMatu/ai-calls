@@ -73,6 +73,12 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         val previousRuleIds: Set<String>,
     )
 
+    private sealed interface FuzzyResolution {
+        data object NoMatch : FuzzyResolution
+        data object Ambiguous : FuzzyResolution
+        data class Matched(val match: PhraseMatch) : FuzzyResolution
+    }
+
     private val declaredRules = rules.toList()
     private val index: Map<String, IndexedMatches> = buildIndex(declaredRules)
     private val fuzzyCandidates: List<FuzzyCandidate> = buildFuzzyCandidates(declaredRules)
@@ -180,26 +186,38 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         val inputTokenCount = tokenCount(normalized)
 
         if (previousRuleId != null) {
-            val contextual = bestFuzzyMatch(
-                normalized = normalized,
-                tokenCount = inputTokenCount,
-                candidates = fuzzyCandidates.filter { previousRuleId in it.previousRuleIds },
-            )
-            if (contextual != null) return contextual
+            when (
+                val contextual = resolveFuzzyMatch(
+                    normalized = normalized,
+                    tokenCount = inputTokenCount,
+                    candidates = fuzzyCandidates.filter { previousRuleId in it.previousRuleIds },
+                )
+            ) {
+                is FuzzyResolution.Matched -> return contextual.match
+                FuzzyResolution.Ambiguous -> return null
+                FuzzyResolution.NoMatch -> Unit
+            }
         }
 
-        return bestFuzzyMatch(
-            normalized = normalized,
-            tokenCount = inputTokenCount,
-            candidates = fuzzyCandidates.filter { it.previousRuleIds.isEmpty() },
-        )
+        return when (
+            val generic = resolveFuzzyMatch(
+                normalized = normalized,
+                tokenCount = inputTokenCount,
+                candidates = fuzzyCandidates.filter { it.previousRuleIds.isEmpty() },
+            )
+        ) {
+            is FuzzyResolution.Matched -> generic.match
+            FuzzyResolution.Ambiguous,
+            FuzzyResolution.NoMatch,
+            -> null
+        }
     }
 
-    private fun bestFuzzyMatch(
+    private fun resolveFuzzyMatch(
         normalized: String,
         tokenCount: Int,
         candidates: List<FuzzyCandidate>,
-    ): PhraseMatch? {
+    ): FuzzyResolution {
         var bestDistance = Int.MAX_VALUE
         val bestMatches = linkedSetOf<PhraseMatch>()
 
@@ -217,7 +235,11 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
             }
         }
 
-        return bestMatches.singleOrNull()
+        return when (bestMatches.size) {
+            0 -> FuzzyResolution.NoMatch
+            1 -> FuzzyResolution.Matched(bestMatches.single())
+            else -> FuzzyResolution.Ambiguous
+        }
     }
 
     private companion object {
