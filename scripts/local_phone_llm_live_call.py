@@ -6,7 +6,6 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
-from pathlib import Path
 from typing import Optional
 
 from autonomous_call_loop import wait_for_active_call, wait_for_audio_signal, wait_for_idle
@@ -22,9 +21,21 @@ LIVE_TEXT_PROVIDERS = frozenset({LOCAL_PHONE_PROVIDER, EDGE_GALLERY_PROVIDER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
 PROBE_TIMEOUT_SECONDS = 100.0
-GATE_C_APPROVED_TEXT = "Dzień dobry."
 GATE_C_IGNORABLE_PREROLLS = frozenset({"orange"})
 MAX_GATE_C_PREROLL_RETRIES = 2
+
+ORANGE_ACTION_GREETING = "greeting"
+ORANGE_ACTION_LIST_CAPABILITIES = "list_capabilities"
+ORANGE_ACTION_OBSERVE_ONLY = "observe_only"
+ORANGE_LIVE_ACTIONS = frozenset({
+    ORANGE_ACTION_GREETING,
+    ORANGE_ACTION_LIST_CAPABILITIES,
+    ORANGE_ACTION_OBSERVE_ONLY,
+})
+ORANGE_REVIEWED_RESPONSES = {
+    ORANGE_ACTION_GREETING: "Dzień dobry.",
+    ORANGE_ACTION_LIST_CAPABILITIES: "Jakie sprawy możesz załatwić?",
+}
 
 
 def normalize_allowlisted_target(raw: str) -> str:
@@ -41,12 +52,20 @@ def normalize_provider(raw: str) -> str:
     return provider
 
 
+def normalize_orange_action(raw: Optional[str]) -> str:
+    action = (raw or ORANGE_ACTION_GREETING).strip().lower()
+    if action not in ORANGE_LIVE_ACTIONS:
+        raise ValueError("Orange live action is not in the reviewed explorer action set")
+    return action
+
+
 def build_probe_start_args(
     serial: str,
     provider: str = LOCAL_PHONE_PROVIDER,
     *,
     gate_c_fast_path: bool = False,
     target: Optional[str] = None,
+    orange_action: Optional[str] = None,
 ) -> list[str]:
     selected_provider = normalize_provider(provider)
     args = [
@@ -58,10 +77,14 @@ def build_probe_start_args(
         if selected_provider != LOCAL_PHONE_PROVIDER:
             raise ValueError("Gate C live probe is restricted to LOCAL_PHONE_LLM diagnostics")
         selected_target = normalize_allowlisted_target(target or "")
+        selected_action = normalize_orange_action(orange_action)
         args += [
             "--ez", "gate_c_fast_path", "true",
             "--es", "live_call_target", selected_target,
+            "--es", "orange_live_action", selected_action,
         ]
+    elif orange_action is not None:
+        raise ValueError("Orange live action requires Gate C fast-path mode")
     return args
 
 
@@ -77,21 +100,60 @@ def parse_probe_report(text: str) -> Optional[dict[str, str]]:
     return values
 
 
-def _require_gate_c_fast_path_report(report: dict[str, str]) -> None:
+def _backend_generate_calls(report: dict[str, str]) -> int:
+    try:
+        return int(report.get("backend_generate_calls", "-1"))
+    except ValueError as error:
+        raise RuntimeError("Gate C live report has invalid backend generation count") from error
+
+
+def _require_gate_c_base(report: dict[str, str], expected_action: str) -> None:
     if report.get("gate_c_fast_path") != "true":
         raise RuntimeError("Gate C live report did not confirm fast-path mode")
     if report.get("gate_c_call_plan_bound") != "true":
         raise RuntimeError("Gate C live report did not confirm bound CallPlan")
-    try:
-        backend_generate_calls = int(report.get("backend_generate_calls", "-1"))
-    except ValueError as error:
-        raise RuntimeError("Gate C live report has invalid backend generation count") from error
+    if report.get("orange_live_action") != expected_action:
+        raise RuntimeError("Gate C live report action does not match requested Orange action")
+    backend_generate_calls = _backend_generate_calls(report)
     if backend_generate_calls != 0:
         raise RuntimeError(
             f"Gate C live path reached forbidden backend generation: {backend_generate_calls}"
         )
-    if report.get("approved_text") != GATE_C_APPROVED_TEXT:
+
+
+def _require_gate_c_fast_path_report(
+    report: dict[str, str],
+    expected_action: str = ORANGE_ACTION_GREETING,
+) -> None:
+    selected_action = normalize_orange_action(expected_action)
+    if selected_action == ORANGE_ACTION_OBSERVE_ONLY:
+        raise RuntimeError("observe-only action cannot be validated as a speech-producing Gate C turn")
+    _require_gate_c_base(report, selected_action)
+    expected_text = ORANGE_REVIEWED_RESPONSES[selected_action]
+    if report.get("approved_text") != expected_text:
         raise RuntimeError("Gate C live path did not approve the exact reviewed response")
+
+
+def _require_gate_c_observation_report(report: dict[str, str]) -> None:
+    _require_gate_c_base(report, ORANGE_ACTION_OBSERVE_ONLY)
+    if report.get("local_text_llm_live_call_success") != "false":
+        raise RuntimeError("observe-only Gate C turn unexpectedly reported success")
+    if report.get("failure_reason") != "gate_c_take_over":
+        raise RuntimeError("observe-only Gate C turn did not fail closed to TAKE_OVER")
+    if report.get("stt_transcript_nonblank") != "true" or not report.get("stt_text", "").strip():
+        raise RuntimeError("observe-only Gate C turn produced no final transcript")
+    if report.get("endpointing") != "trailing_silence":
+        raise RuntimeError("observe-only Gate C turn did not advertise trailing-silence endpointing")
+    if report.get("endpoint_reason") != "trailing_silence":
+        raise RuntimeError("observe-only Gate C turn did not end on trailing silence")
+    if report.get("endpoint_speech_detected") != "true":
+        raise RuntimeError("observe-only Gate C turn did not classify speech")
+    try:
+        capture_ms = int(report.get("endpoint_capture_ms", "0"))
+    except ValueError as error:
+        raise RuntimeError("observe-only Gate C report has invalid capture duration") from error
+    if not 0 < capture_ms < 60_000:
+        raise RuntimeError(f"observe-only capture reached the 60 s watchdog: {capture_ms} ms")
 
 
 def _is_ignorable_gate_c_preroll(report: dict[str, str]) -> bool:
@@ -105,9 +167,9 @@ def _is_ignorable_gate_c_preroll(report: dict[str, str]) -> bool:
     if report.get("failure_reason") != "gate_c_take_over":
         return False
     try:
-        if int(report.get("backend_generate_calls", "-1")) != 0:
+        if _backend_generate_calls(report) != 0:
             return False
-    except ValueError:
+    except RuntimeError:
         return False
     transcript = report.get("stt_text", "").strip().casefold()
     return transcript in GATE_C_IGNORABLE_PREROLLS
@@ -205,6 +267,7 @@ def _start_probe(
     *,
     gate_c_fast_path: bool,
     target: str,
+    orange_action: Optional[str] = None,
 ) -> dict[str, str]:
     _remove_report(adb)
     adb.shell(["am", "force-stop", PACKAGE_NAME], check=False)
@@ -214,6 +277,7 @@ def _start_probe(
             provider,
             gate_c_fast_path=gate_c_fast_path,
             target=target if gate_c_fast_path else None,
+            orange_action=orange_action,
         ),
         check=True,
     )
@@ -225,11 +289,19 @@ def run_orange_support_once(
     provider: str = LOCAL_PHONE_PROVIDER,
     *,
     gate_c_fast_path: bool = False,
+    orange_action: Optional[str] = None,
+    observe_next: bool = False,
 ) -> dict[str, str]:
     selected_provider = normalize_provider(provider)
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
+    selected_action = normalize_orange_action(orange_action) if gate_c_fast_path else None
     if gate_c_fast_path and selected_provider != LOCAL_PHONE_PROVIDER:
         raise ValueError("Gate C live probe is restricted to LOCAL_PHONE_LLM diagnostics")
+    if not gate_c_fast_path and (orange_action is not None or observe_next):
+        raise ValueError("Orange Explorer actions require Gate C fast-path mode")
+    if selected_action == ORANGE_ACTION_OBSERVE_ONLY and observe_next:
+        raise ValueError("observe-only primary action cannot request another observe-next turn")
+
     adb = Adb(serial)
     if not is_direct_usb_target(_devices_output(), serial):
         raise RuntimeError("target S22 is not connected through exact direct USB ADB")
@@ -252,6 +324,9 @@ def run_orange_support_once(
         print(f"allowlisted_target={number}")
         print(f"text_llm_provider={selected_provider}")
         print(f"gate_c_fast_path={str(gate_c_fast_path).lower()}")
+        if selected_action is not None:
+            print(f"orange_live_action={selected_action}")
+        print(f"orange_observe_next={str(observe_next).lower()}")
         adb.dial(number)
         dialed = True
         print("dial_requested=true")
@@ -277,6 +352,7 @@ def run_orange_support_once(
                 selected_provider,
                 gate_c_fast_path=gate_c_fast_path,
                 target=number,
+                orange_action=selected_action,
             )
             if report.get("text_llm_provider") != selected_provider:
                 raise RuntimeError("live probe provider mismatch")
@@ -300,6 +376,11 @@ def run_orange_support_once(
                 )
                 continue
 
+            if selected_action == ORANGE_ACTION_OBSERVE_ONLY:
+                _require_gate_c_observation_report(report)
+                print(f"orange_observation_text={report.get('stt_text', '').strip()}")
+                return report
+
             raise RuntimeError(
                 "local text live probe reported failure: " + report.get("failure_reason", "unknown")
             )
@@ -317,11 +398,30 @@ def run_orange_support_once(
         if report.get("approved_text_nonblank") != "true":
             raise RuntimeError("live response was blank or not approved")
         if gate_c_fast_path:
-            _require_gate_c_fast_path_report(report)
+            assert selected_action is not None
+            _require_gate_c_fast_path_report(report, selected_action)
         if int(report.get("telephony_tx_pcm_bytes", "0")) <= 0:
             raise RuntimeError("live TTS produced no telephony TX bytes")
         _require_endpointing(report)
         print(f"local_text_llm_orange_live_turn_proven_s22=true,provider:{selected_provider}")
+
+        if observe_next:
+            if adb.call_state() != 2:
+                raise RuntimeError("Orange call ended before observe-next turn")
+            observation = _start_probe(
+                adb,
+                serial,
+                selected_provider,
+                gate_c_fast_path=True,
+                target=number,
+                orange_action=ORANGE_ACTION_OBSERVE_ONLY,
+            )
+            _require_gate_c_observation_report(observation)
+            print(f"orange_observation_text={observation.get('stt_text', '').strip()}")
+            report = dict(report)
+            report["orange_observation_text"] = observation.get("stt_text", "").strip()
+            report["orange_observation_capture_ms"] = observation.get("endpoint_capture_ms", "")
+
         return report
     finally:
         adb.shell(["am", "force-stop", PACKAGE_NAME], check=False)
@@ -340,23 +440,46 @@ def run_orange_support_once(
                 print(f"bluetooth_restore_error={error}", file=sys.stderr)
 
 
+def _pop_option(args: list[str], name: str) -> Optional[str]:
+    if name not in args:
+        return None
+    index = args.index(name)
+    if index + 1 >= len(args):
+        raise ValueError(f"{name} requires a value")
+    value = args[index + 1]
+    del args[index:index + 2]
+    return value
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    gate_c_fast_path = False
-    if "--gate-c-fast-path" in args:
-        gate_c_fast_path = True
-        args.remove("--gate-c-fast-path")
-    if len(args) > 2:
-        print(
-            "usage: local_phone_llm_live_call.py [adb-serial] [LOCAL_PHONE_LLM|EDGE_GALLERY] "
-            "[--gate-c-fast-path]",
-            file=sys.stderr,
-        )
-        return 2
-    serial = args[0] if args else DEFAULT_SERIAL
-    provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
     try:
-        run_orange_support_once(serial, provider, gate_c_fast_path=gate_c_fast_path)
+        gate_c_fast_path = False
+        if "--gate-c-fast-path" in args:
+            gate_c_fast_path = True
+            args.remove("--gate-c-fast-path")
+
+        observe_next = False
+        if "--observe-next" in args:
+            observe_next = True
+            args.remove("--observe-next")
+
+        orange_action = _pop_option(args, "--orange-action")
+        if len(args) > 2:
+            raise ValueError(
+                "usage: local_phone_llm_live_call.py [adb-serial] "
+                "[LOCAL_PHONE_LLM|EDGE_GALLERY] [--gate-c-fast-path] "
+                "[--orange-action greeting|list_capabilities|observe_only] [--observe-next]"
+            )
+        serial = args[0] if args else DEFAULT_SERIAL
+        provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
+        run_orange_support_once(
+            serial,
+            provider,
+            gate_c_fast_path=gate_c_fast_path,
+            orange_action=orange_action,
+            observe_next=observe_next,
+        )
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:
         print(f"local phone live call failed: {error}", file=sys.stderr)
