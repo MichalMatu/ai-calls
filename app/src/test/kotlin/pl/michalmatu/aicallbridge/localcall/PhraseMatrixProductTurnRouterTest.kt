@@ -61,6 +61,49 @@ class PhraseMatrixProductTurnRouterTest {
     }
 
     @Test
+    fun `explicit previous rule context selects the specific matrix rule before plan validation`() {
+        val task = task(
+            CallConstraints.unconstrained(),
+            mapOf(
+                "ack_text" to "Rozumiem.",
+                "confirm_time_text" to "Termin potwierdzony.",
+            ),
+        )
+        val target = target()
+        val workflow = activeWorkflow(task, target)
+        val plan = CallPlan(
+            task,
+            target,
+            listOf(
+                CallPlanRule("ack", setOf("rozumiem"), "ack_text"),
+                CallPlanRule("confirm-time", setOf("potwierdzenie terminu"), "confirm_time_text"),
+            ),
+            emptyList(),
+            emptyList(),
+            CallPlanFallbackPolicy.takeOverImmediately(),
+        )
+        val matrix = PhraseMatrix(
+            listOf(
+                PhraseMatrixRule("ack", setOf("tak")),
+                PhraseMatrixRule(
+                    "confirm-time",
+                    setOf("tak"),
+                    previousRuleIds = setOf("ask-time"),
+                ),
+            ),
+        )
+        val router = PhraseMatrixProductTurnRouter(matrix, CallPlanTurnCoordinator(plan, workflow))
+
+        val generic = router.handleFinalTranscript("tak", 0)
+        val contextual = router.handleFinalTranscript("tak", 0, previousRuleId = "ask-time")
+
+        assertEquals("ack", generic?.match?.ruleId)
+        assertEquals("Rozumiem.", generic?.turnResult?.decision()?.text())
+        assertEquals("confirm-time", contextual?.match?.ruleId)
+        assertEquals("Termin potwierdzony.", contextual?.turnResult?.decision()?.text())
+    }
+
+    @Test
     fun `no matrix match is explicitly unhandled and does not mutate workflow`() {
         val task = task(CallConstraints.unconstrained(), mapOf("birth_year" to "1990"))
         val target = target()
