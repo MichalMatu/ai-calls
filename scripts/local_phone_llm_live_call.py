@@ -21,7 +21,7 @@ LIVE_TEXT_PROVIDERS = frozenset({LOCAL_PHONE_PROVIDER, EDGE_GALLERY_PROVIDER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
 PROBE_TIMEOUT_SECONDS = 100.0
-GATE_C_IGNORABLE_PREROLLS = frozenset({"orange"})
+GATE_C_IGNORABLE_PREROLLS = frozenset({"orange", "jakości orange"})
 MAX_GATE_C_PREROLL_RETRIES = 2
 
 ORANGE_ACTION_GREETING = "greeting"
@@ -31,6 +31,10 @@ ORANGE_LIVE_ACTIONS = frozenset({
     ORANGE_ACTION_GREETING,
     ORANGE_ACTION_LIST_CAPABILITIES,
     ORANGE_ACTION_OBSERVE_ONLY,
+})
+GATE_C_ROOT_ACQUISITION_ACTIONS = frozenset({
+    ORANGE_ACTION_GREETING,
+    ORANGE_ACTION_LIST_CAPABILITIES,
 })
 ORANGE_REVIEWED_RESPONSES = {
     ORANGE_ACTION_GREETING: "Dzień dobry.",
@@ -157,10 +161,12 @@ def _require_gate_c_observation_report(report: dict[str, str]) -> None:
 
 
 def _is_ignorable_gate_c_preroll(report: dict[str, str]) -> bool:
-    """Return true only for an exact observed, authority-neutral Orange branding pre-roll."""
+    """Return true only for an exact observed, authority-neutral Orange root-acquisition fragment."""
     if report.get("gate_c_fast_path") != "true":
         return False
     if report.get("gate_c_call_plan_bound") != "true":
+        return False
+    if report.get("orange_live_action") not in GATE_C_ROOT_ACQUISITION_ACTIONS:
         return False
     if report.get("local_text_llm_live_call_success") != "false":
         return False
