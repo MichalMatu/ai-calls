@@ -67,5 +67,14 @@
       "last_outcome": "REPROMPT",
       "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
     }
+  ],
+  "root_acquisition_observations": [
+    {
+      "transcript": "kości orange",
+      "status": "VERIFIED",
+      "kind": "IGNORABLE_PREROLL_FRAGMENT",
+      "effect": "BOUNDED_RETRY_ALLOWED",
+      "evidence_task": "chatgpt-orange-internet-live-retry-v141-20260922"
+    }
   ]
 }
