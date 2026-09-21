@@ -11,235 +11,140 @@ Local Agent control branch: `agent-control`
 ## Start here next time
 
 1. Read fresh `AGENTS.md`, this file, `README.md`, `docs/ROADMAP.md`, and `docs/NIGHT_AUTONOMOUS_RUN_2026-09-21.md`.
-2. Read `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` before changing authority or privacy boundaries.
-3. Fetch fresh `main` and `agent-control:.agent/status/daemon.json` before any write or Local Agent task.
+2. Read `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` before changing authority/privacy boundaries.
+3. Fetch fresh `main` and `agent-control:.agent/status/daemon.json` before any write/task.
 4. Inspect the exact latest Local Agent terminal result before creating a successor task.
-5. Never trust a Local Agent binding or commit SHA copied from prose; use the current Bridge envelope and fresh daemon state.
+5. Trust the current Bridge envelope + fresh daemon binding, never prose history, for repository/binding identity.
 6. Keep `privileged-helper/` and the frozen Samsung media path untouched.
 
 ## Frozen foundation
 
 Target: Samsung Galaxy S22+ `SM-S906B`.
 
-- cellular RX/TX bridge: `DONE / PROVEN_S22 / FROZEN`;
+- cellular RX/TX: `DONE / PROVEN_S22 / FROZEN`;
 - local Polish STT/TTS: `DONE / PROVEN_S22`;
-- provider-neutral text turn + application-owned approval: `DONE / PROVEN_S22`;
+- provider-neutral text turn + application-owned output approval: `DONE / PROVEN_S22`;
 - Gate A readiness: `DONE`;
-- original llama.cpp phone-local model sweep: frozen;
+- phone-local general-purpose llama.cpp sweep: frozen;
+- Edge Gallery / Gemma 4 E2B / official Agent Skills checkpoint: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`;
 - interactive ChatGPT relay: developer benchmark infrastructure only;
-- `privileged-helper/`: frozen.
+- no further Orange live-call authorization is currently available.
 
-## Edge Gallery + Agent Skills checkpoint is closed
+## Active goal: Gate C product wiring
 
-Status: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
+The deterministic `CallPlan v1` host-policy core is `DONE / HOST_GREEN`.
 
-The bounded Edge/Gemma experiment remains historical evidence only. The final live Orange experiment failed before application approval/TTS/TX, historical logcat showed the Edge process crashing around `LocalPhoneAgentRuntime.decide()`, the first post-relaunch decision was about 10.65 s, and the Edge process used about 2.58 GB total PSS plus swap pressure. Do not add more Edge probe hacks or make further Orange calls by default.
+Authority remains unchanged:
+
+- `CallTask` owns immutable task/constraints/preferences/authorized facts;
+- `CallResolvedTarget` is a resolved target but grants no dial/allowlist authority;
+- `CallWorkflow` owns progress, pending proposal/user-decision state and terminal outcome;
+- `CallConfirmationPolicy` evaluates typed `CallProposal` values;
+- `CallCommitmentGate` owns exact one-shot commitment authorization;
+- application-owned output approval remains mandatory before speech release/TTS/TX.
+
+`CallPlan` is policy/context, not an authority store. Model/helper output remains proposal-only.
+
+## Completed Gate C host-policy core
+
+Host-green behavior:
+
+1. known question -> exact value from existing `CallTask.authorizedFacts`;
+2. missing fact -> fail-closed `TAKE_OVER`;
+3. unknown/ambiguous final -> bounded `ASK_REPEAT` / `TAKE_OVER`;
+4. known offer -> predeclared typed `CallProposal`;
+5. out-of-policy proposal -> existing workflow/policy -> `NEEDS_USER_DECISION`;
+6. exact commitment permit remains required and one-shot;
+7. output remains fail-closed outside `ACTIVE_NEGOTIATION` or while commitment authority is pending;
+8. completion -> predeclared `CallOutcome`, with `CallWorkflow` as terminal-state owner;
+9. optional helper may suggest only one existing `ruleId`; it cannot supply payload/action/authority;
+10. mutable caller collections are defensively copied and normal rendering redacts sensitive payloads.
 
 Representative evidence:
 
 ```text
-.agent/results/chatgpt-edge-speculative-offcall-benchmark-v16-20260921.json
-.agent/results/chatgpt-edge-speculative-live-build-v17-20260921.json
-.agent/results/chatgpt-orange-speculative-live-v18-20260921.json
-.agent/results/chatgpt-edge-live-transport-diagnosis-v19-20260921.json
-.agent/results/chatgpt-edge-exit-reason-offcall-v20-20260921.json
-```
-
-No further Orange live-call authorization is currently available.
-
-## Active goal: Gate C — CallPlan v1 product wiring
-
-Gate C deterministic host-policy core is now `DONE / HOST_GREEN`.
-
-The active continuation is **product wiring**, still host-only first: connect the completed `CallPlan` decision model to a product-owned turn coordinator without moving planning into diagnostics, speech/media ownership, or a generative backend.
-
-Existing authority remains unchanged:
-
-- `CallTask` owns immutable user/operator task authority, including `CallConstraints`, `CallPreferences` and `authorizedFacts`;
-- `CallResolvedTarget` is one resolved target but does not grant dialing authority or widen a runtime allowlist;
-- `CallWorkflow` owns progress, pending proposals, user-decision state and terminal outcome;
-- `CallConfirmationPolicy` evaluates concrete `CallProposal` data;
-- `CallCommitmentGate` owns one-shot exact-proposal commitment permission;
-- application-owned output approval remains required before TTS/TX.
-
-`CallPlan` is deliberately not another authority store. It references the existing task and resolved target and carries only immutable deterministic dialogue policy.
-
-## Completed Gate C host-policy slices
-
-### Slice 1 — known authorized facts
-
-Status: `DONE / HOST_GREEN`.
-
-- immutable `CallPlan` references existing `CallTask` and `CallResolvedTarget`;
-- `CallPlanRule` stores a fact key, never a copied fact value;
-- exact normalized known question -> `SAY` using the value read from `CallTask.authorizedFacts` at decision time;
-- missing fact -> fail-closed `TAKE_OVER`;
-- unknown/ambiguous text -> bounded fallback;
-- immutable defensive copies and redacted rendering.
-
-Evidence:
-
-```text
-.agent/results/chatgpt-gate-c-callplan-red-v22-20260921.json
 .agent/results/chatgpt-gate-c-callplan-green-v23-20260921.json
-```
-
-### Slice 2 — bounded repeat/escalation
-
-Status: `DONE / HOST_GREEN`.
-
-`CallPlanFallbackPolicy` is stateless and uses explicit `priorUnknownCount`:
-
-```text
-priorUnknownCount < repeatLimit -> ASK_REPEAT
-priorUnknownCount >= repeatLimit -> TAKE_OVER
-```
-
-Known deterministic matches still win after earlier unknown turns. Invalid counters/limits fail at the API boundary.
-
-Evidence:
-
-```text
-.agent/results/chatgpt-gate-c-callplan-bounded-fallback-red-v24-20260921.json
 .agent/results/chatgpt-gate-c-callplan-bounded-fallback-green-v25-20260921.json
-```
-
-### Slice 3 — deterministic completion criteria
-
-Status: `DONE / HOST_GREEN`.
-
-- immutable `CallPlanCompletionRule` contains known final utterances plus one predeclared structured `CallOutcome`;
-- exact completion -> `COMPLETE`;
-- ambiguity/collision -> bounded fallback;
-- `CallPlanEngine` does not mutate `CallWorkflow`;
-- `CallWorkflow.complete(CallOutcome)` remains the terminal-state owner;
-- `CallPlanDecision` redacts SAY/outcome data.
-
-Evidence:
-
-```text
-.agent/results/chatgpt-gate-c-callplan-completion-red-v26-20260921.json
 .agent/results/chatgpt-gate-c-callplan-completion-green-v27-20260921.json
-```
-
-### Slice 4 — typed counterparty proposal routing
-
-Status: `DONE / HOST_GREEN`.
-
-- immutable `CallPlanProposalRule` contains known final utterances plus one predeclared typed `CallProposal`;
-- exact known offer -> `CallPlanAction.PROPOSAL` carrying that same proposal object;
-- unknown/ambiguous proposal text never fabricates a proposal;
-- collisions across fact/completion/proposal rules fail closed instead of establishing priority;
-- proposal collections are defensive/immutable and ordinary rendering redacts proposal data;
-- `CallPlanEngine` does not evaluate policy, authorize commitment, or accept anything;
-- routing the returned proposal through the existing `CallWorkflow.evaluateProposal(...)` proves an out-of-policy proposal becomes `NEEDS_USER_DECISION`.
-
-Evidence:
-
-```text
-.agent/results/chatgpt-gate-c-callplan-proposal-red-v28-20260921.json
 .agent/results/chatgpt-gate-c-callplan-proposal-green-v29-20260921.json
-```
-
-### Slice 5 — authority-boundary regression
-
-Status: `DONE / HOST_GREEN`.
-
-The test-only integration slice proves that a `CallPlan.PROPOSAL` decision:
-
-- creates no commitment authorization by itself;
-- remains subject to `CallConfirmationPolicy` / `CallWorkflow`;
-- cannot bypass `NEEDS_USER_DECISION`;
-- cannot release speech while the workflow is pending a user decision;
-- does not change the exact one-shot semantics of `CallCommitmentGate`;
-- leaves application-owned output approval authoritative.
-
-Evidence:
-
-```text
 .agent/results/chatgpt-gate-c-callplan-authority-regression-v30-20260921.json
-```
-
-### Slice 6 — bounded helper validation
-
-Status: `DONE / HOST_GREEN`.
-
-The optional helper contract is intentionally tiny:
-
-```text
-CallPlanHelperSuggestion(ruleId)
-```
-
-The helper may suggest only an already-existing plan rule id. `CallPlanHelperValidator` maps that id back to exactly one predeclared fact/completion/proposal rule. It cannot supply speech text, fact values, outcomes, proposals, targets, actions, policy decisions or commitment authority.
-
-- unknown id -> normal bounded fallback;
-- duplicate id across rule kinds -> fail closed;
-- known fact id still reads `CallTask.authorizedFacts` at validation time;
-- missing fact still fails closed;
-- completion/proposal payloads remain plan-owned predeclared objects.
-
-Evidence:
-
-```text
-.agent/results/chatgpt-gate-c-callplan-helper-red-v31-20260921.json
 .agent/results/chatgpt-gate-c-callplan-helper-green-v32-20260921.json
 ```
 
-`v32` passed the complete CallPlan/authority targeted set plus `bash scripts/verify_host.sh`, with exact three-file helper diff, clean worktree and `privileged-helper/` unchanged.
+## Completed product-wiring slices
 
-## Gate C deterministic matrix status
+### CallPlan turn coordinator — DONE / HOST_GREEN
 
-All host-policy cases are now covered:
+`CallPlanTurnCoordinator` is product-owned and outside media/speech ownership.
 
-1. known question -> exact authorized fact: GREEN;
-2. missing fact -> fail closed: GREEN;
-3. unknown/ambiguous final -> bounded `ASK_REPEAT` / `TAKE_OVER`: GREEN;
-4. known offer -> typed `CallProposal`: GREEN;
-5. outside policy -> `NEEDS_USER_DECISION`: GREEN;
-6. commitment without exact permit remains blocked: GREEN regression evidence;
-7. output outside active negotiation or while commitment authority is pending remains dropped: GREEN regression evidence;
-8. target binding does not grant/widen dial authority: structural invariant preserved;
-9. completion criterion -> structured `COMPLETE`; workflow remains terminal owner: GREEN;
-10. unsupported helper suggestion rejected/fallback: GREEN;
-11. caller mutable collections copied: GREEN;
-12. plan/decision sensitive rendering redacted: GREEN.
+- final transcript + explicit prior-unknown count -> `CallPlanEngine`;
+- `SAY`, `ASK_REPEAT`, `TAKE_OVER` remain structured results;
+- `PROPOSAL` routes only through `CallWorkflow.evaluateProposal(...)`;
+- `COMPLETE` routes only through `CallWorkflow.complete(...)`;
+- plan/workflow task+target mismatch and invalid workflow state fail before mutation;
+- no dialing, commitment authorization, TTS/TX or backend/model fallback.
 
-No S22/device/live-call gate was required because these slices are pure deterministic host/data-policy behavior.
+Evidence:
 
-## Product wiring audit — current boundary
+```text
+.agent/results/chatgpt-gate-c-callplan-turn-coordinator-red-v33-20260921.json
+.agent/results/chatgpt-gate-c-callplan-turn-coordinator-green-v34-20260921.json
+```
 
-Existing product flow:
+### Prepared-call CallPlan binding — DONE / HOST_GREEN
+
+The one-shot readiness/session handoff can now carry one immutable `CallPlan` bound to the same workflow/task/target.
+
+- readiness rejects mismatched plan task/target before speech/backend work;
+- `PreparedLocalTextCall` carries the bound plan alongside the same workflow/backend ownership;
+- `LocalTextCallSession.handlePlanFinalTranscript(...)` returns the structured coordinator result;
+- deterministic plan routing does not invoke the generative backend;
+- existing no-plan diagnostic/session path remains compatible;
+- no media/TTS/TX semantics changed.
+
+`v37` itself was an invalid harness run (`mapfile` unavailable in macOS bash) and tested no product code. `v37b` fixed only the control script and passed the targeted regression set plus full `bash scripts/verify_host.sh`, with the exact three-file product diff and `privileged-helper/` unchanged.
+
+Evidence:
+
+```text
+.agent/results/chatgpt-gate-c-prepared-callplan-binding-red-v36-20260921.json
+.agent/results/chatgpt-gate-c-prepared-callplan-binding-green-v37b-20260921.json
+```
+
+## Current product boundary
+
+Existing speech path remains:
 
 ```text
 LocalTextCallSession
   -> LocalSpeechTextPipeline
       -> final STT transcript
       -> TextCallTurnController
-          -> TextCallAgentBackend.generate(...)
+          -> backend complete text
           -> TextOutputApprovalPolicy
       -> local TTS
 ```
 
-Do **not** inject `CallPlan` into Samsung media, STT/TTS, `MainActivity`, diagnostic probes, or `CallPlanEngine` workflow mutation.
+Current plan path is available structurally through the plan-bound session, but final STT is not yet automatically intercepted before the generative backend.
 
-`TextCallTurnController` currently has a narrow generative-backend contract: final user text -> complete backend text -> application approval. Keep that contract intact unless a failing wiring test proves it must change.
+Important current contracts:
 
-The lowest-risk next seam is a new **product-owned CallPlan turn coordinator** outside the speech/media layer. It consumes a final transcript and the immutable plan and owns only routing of the already-typed decision to existing workflow owners.
+- `TextCallTurnController` is the existing complete-text approval owner;
+- `LocalSpeechTextPipeline` owns STT/TTS lifecycle and generation cancellation;
+- no `CallPlan` class should own media or output approval;
+- only `CallPlanAction.SAY` carries speech text;
+- `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, `TAKE_OVER` carry no implicit speech text and must not invent one or silently fall through to a model.
 
 ## Next exact engineering step
 
-Implement a host-only RED/GREEN slice for a product-owned `CallPlanTurnCoordinator` (name may vary only if the codebase gives a clearly better product-owned name):
+Continue host-only/TDD with the smallest safe speech-output seam:
 
-1. place it in product orchestration (`localcall` or an equally narrow product package), not diagnostics, media, `MainActivity`, or the frozen helper;
-2. input: immutable `CallPlan`, existing `CallWorkflow`, final transcript, explicit prior-unknown count;
-3. call `CallPlanEngine` for deterministic classification; do not duplicate matching logic;
-4. `SAY`, `ASK_REPEAT`, and `TAKE_OVER` remain structured coordinator results only — no direct TTS/TX;
-5. `PROPOSAL` must route the exact typed proposal through existing `CallWorkflow.evaluateProposal(...)` and expose the resulting `CallPolicyDecision`; it must not call `CallCommitmentGate.authorize` or approve pending proposals;
-6. `COMPLETE` must route the exact predeclared `CallOutcome` through existing `CallWorkflow.complete(...)`; the engine itself remains mutation-free;
-7. invalid workflow state must fail closed/propagate deterministic workflow rejection rather than silently widening behavior;
-8. preserve target identity: the plan target must match the workflow resolved target for product routing, or the coordinator must reject before any workflow mutation;
-9. no fallback to a model/backend in this first wiring slice; helper/backend delegation is a separate later decision and must remain proposal-only;
-10. RED first, then minimal GREEN, targeted tests plus `bash scripts/verify_host.sh`;
-11. no S22 gate and no live Orange call for this slice.
-
-After this coordinator is host-green, wire its structured output into the existing product text/session boundary in a separate slice so application-owned output approval still precedes TTS/TX.
+1. first add a controller-level path for **already-determined candidate text** to pass through the existing `TextOutputApprovalPolicy` without invoking `TextCallAgentBackend.generate(...)`;
+2. RED must prove RELEASE returns the exact candidate, DROP stays dropped, blank input fails, and backend generation is never called;
+3. keep ordinary `submitUserText(...)` backend behavior unchanged;
+4. after that primitive is GREEN, add a separate product/pipeline routing slice where final STT can be intercepted before backend generation;
+5. for a plan-bound turn, `SAY` may supply only its exact authorized/predeclared text to the candidate-approval path;
+6. non-speech plan actions (`ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, `TAKE_OVER`) must stop backend fallback and remain structured product callbacks/results;
+7. no new hard-coded conversational text in this step;
+8. do not touch Samsung media, dial authorization, commitment authorization, `privileged-helper/`, or live calls;
+9. every behavior slice: RED -> minimal GREEN -> targeted regressions -> `bash scripts/verify_host.sh`.
