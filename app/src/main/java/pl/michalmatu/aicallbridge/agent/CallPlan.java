@@ -7,13 +7,14 @@ import java.util.Objects;
  * Immutable pre-dial execution context for deterministic bounded dialogue rules.
  *
  * <p>This type references existing task and target authority. It does not grant dialing,
- * commitment, fact, or output authority.</p>
+ * commitment, fact, proposal-approval, or output authority.</p>
  */
 public final class CallPlan {
     private final CallTask task;
     private final CallResolvedTarget resolvedTarget;
     private final List<CallPlanRule> rules;
     private final List<CallPlanCompletionRule> completionRules;
+    private final List<CallPlanProposalRule> proposalRules;
     private final CallPlanFallbackPolicy fallbackPolicy;
 
     public CallPlan(
@@ -22,7 +23,7 @@ public final class CallPlan {
         List<CallPlanRule> rules,
         CallPlanFallback fallback
     ) {
-        this(task, resolvedTarget, rules, List.of(), CallPlanFallbackPolicy.fromLegacy(fallback));
+        this(task, resolvedTarget, rules, List.of(), List.of(), CallPlanFallbackPolicy.fromLegacy(fallback));
     }
 
     public CallPlan(
@@ -31,7 +32,7 @@ public final class CallPlan {
         List<CallPlanRule> rules,
         CallPlanFallbackPolicy fallbackPolicy
     ) {
-        this(task, resolvedTarget, rules, List.of(), fallbackPolicy);
+        this(task, resolvedTarget, rules, List.of(), List.of(), fallbackPolicy);
     }
 
     public CallPlan(
@@ -39,6 +40,17 @@ public final class CallPlan {
         CallResolvedTarget resolvedTarget,
         List<CallPlanRule> rules,
         List<CallPlanCompletionRule> completionRules,
+        CallPlanFallbackPolicy fallbackPolicy
+    ) {
+        this(task, resolvedTarget, rules, completionRules, List.of(), fallbackPolicy);
+    }
+
+    public CallPlan(
+        CallTask task,
+        CallResolvedTarget resolvedTarget,
+        List<CallPlanRule> rules,
+        List<CallPlanCompletionRule> completionRules,
+        List<CallPlanProposalRule> proposalRules,
         CallPlanFallbackPolicy fallbackPolicy
     ) {
         this.task = Objects.requireNonNull(task, "task");
@@ -52,6 +64,11 @@ public final class CallPlan {
         this.completionRules = List.copyOf(completionRules);
         for (CallPlanCompletionRule rule : this.completionRules) {
             Objects.requireNonNull(rule, "completionRules item");
+        }
+        Objects.requireNonNull(proposalRules, "proposalRules");
+        this.proposalRules = List.copyOf(proposalRules);
+        for (CallPlanProposalRule rule : this.proposalRules) {
+            Objects.requireNonNull(rule, "proposalRules item");
         }
         this.fallbackPolicy = Objects.requireNonNull(fallbackPolicy, "fallbackPolicy");
     }
@@ -72,6 +89,10 @@ public final class CallPlan {
         return completionRules;
     }
 
+    public List<CallPlanProposalRule> proposalRules() {
+        return proposalRules;
+    }
+
     /** Compatibility accessor for the original one-step fallback API. */
     public CallPlanFallback fallback() {
         return fallbackPolicy.initialFallback();
@@ -87,6 +108,8 @@ public final class CallPlan {
             + rules.size()
             + ", completionRules="
             + completionRules.size()
+            + ", proposalRules="
+            + proposalRules.size()
             + ", fallbackPolicy="
             + fallbackPolicy
             + "]";
