@@ -7,11 +7,15 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
 
 /**
  * Narrow product-owned local dialogue session. Telephony media ownership and endpointing stay
- * outside this class; the session only owns the already-proven backend plus the existing
- * LocalSpeechTextPipeline lifecycle.
+ * outside this class; the session owns the already-proven backend/speech pipeline plus an optional
+ * deterministic CallPlan turn coordinator carried by the prepared call.
+ *
+ * CallPlan routing remains structured only here: this class does not synthesize or transmit plan
+ * output directly, authorize commitment, approve proposals, or fall back to a backend/model.
  */
 internal class LocalTextCallSession private constructor(
     private val pipeline: Pipeline,
+    private val planTurnCoordinator: CallPlanTurnCoordinator?,
 ) : AutoCloseable {
     internal interface Pipeline : AutoCloseable {
         fun start(listener: LocalSpeechTextPipeline.Listener)
@@ -27,7 +31,10 @@ internal class LocalTextCallSession private constructor(
     internal constructor(
         prepared: PreparedLocalTextCall,
         pipelineFactory: PipelineFactory,
-    ) : this(claimPipeline(prepared, pipelineFactory))
+    ) : this(
+        pipeline = claimPipeline(prepared, pipelineFactory),
+        planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
+    )
 
     fun start(listener: LocalSpeechTextPipeline.Listener) = pipeline.start(listener)
 
@@ -38,6 +45,15 @@ internal class LocalTextCallSession private constructor(
     ): Boolean = pipeline.writeInputPcm(bytes, offset, length)
 
     fun finishInput() = pipeline.finishInput()
+
+    /**
+     * Routes one already-final transcript through the bound CallPlan without speaking or invoking
+     * the generative backend. A plan must have been bound during readiness.
+     */
+    fun handlePlanFinalTranscript(finalTranscript: String, priorUnknownCount: Int): CallPlanTurnResult {
+        val coordinator = checkNotNull(planTurnCoordinator) { "call_plan_not_bound" }
+        return coordinator.handleFinalTranscript(finalTranscript, priorUnknownCount)
+    }
 
     fun cancel() = pipeline.cancel()
 
