@@ -16,7 +16,8 @@ internal data class PhraseMatrixProductTurnResult(
  *
  * A miss is explicitly unhandled so a later product layer may choose another bounded classifier or
  * supervisor. A hit contributes only its existing rule id; CallPlan validation and workflow
- * mutation remain inside [CallPlanTurnCoordinator].
+ * mutation remain inside [CallPlanTurnCoordinator]. Previous-rule context is explicit input only;
+ * this router owns no dialogue state.
  */
 internal class PhraseMatrixProductTurnRouter(
     private val matrix: PhraseMatrix,
@@ -25,9 +26,10 @@ internal class PhraseMatrixProductTurnRouter(
     fun handleFinalTranscript(
         finalTranscript: String,
         priorUnknownCount: Int,
+        previousRuleId: String? = null,
     ): PhraseMatrixProductTurnResult? {
         require(priorUnknownCount >= 0) { "prior_unknown_count_must_be_non_negative" }
-        val match = matrix.match(finalTranscript) ?: return null
+        val match = matrix.match(finalTranscript, previousRuleId) ?: return null
         return PhraseMatrixProductTurnResult(
             match = match,
             turnResult = coordinator.handleSuggestedRuleId(match.ruleId, priorUnknownCount),
