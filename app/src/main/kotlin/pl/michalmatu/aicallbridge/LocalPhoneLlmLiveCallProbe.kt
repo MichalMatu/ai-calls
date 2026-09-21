@@ -129,6 +129,7 @@ internal object LocalPhoneLlmLiveCallProbe {
             "orange_live_action=${request.orangeLiveAction?.wireId ?: "none"}",
             "approval_policy=application_owned",
             "endpointing=trailing_silence",
+            "rx_max_capture_ms=${fastPath?.maxCaptureMs ?: 60_000}",
             "timestamp_utc=${Instant.now()}",
             "target_pcm=mono,pcm16,${LocalSpeechFormat.SAMPLE_RATE_HZ}",
         )
@@ -238,7 +239,7 @@ internal object LocalPhoneLlmLiveCallProbe {
         private fun captureInputTurn(lease: CallMediaEndpointLease) {
             val detector = PcmEndOfUtteranceDetector(
                 trailingSilenceMs = 1_500,
-                maxCaptureMs = 60_000,
+                maxCaptureMs = fastPath?.maxCaptureMs ?: 60_000,
             )
             val buffer = ByteArray(LocalSpeechFormat.bytesForDurationMs(20))
             val captureStartedElapsedMs = elapsedTurnMs()
