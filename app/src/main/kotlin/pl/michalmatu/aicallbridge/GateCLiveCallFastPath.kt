@@ -37,14 +37,18 @@ internal class GateCFastPathSentinelBackend : TextCallAgentBackend {
 internal data class GateCLiveCallFastPath(
     val scenario: GateCLiveCallScenario,
     val backend: GateCFastPathSentinelBackend,
+    val maxCaptureMs: Int,
 )
 
 internal object GateCLiveCallFastPathFactory {
+    private const val MAX_CAPTURE_MS = 15_000
+
     fun create(
         targetDialAddress: String,
         action: OrangeLiveAction = OrangeLiveAction.GREETING,
     ): GateCLiveCallFastPath = GateCLiveCallFastPath(
         scenario = GateCLiveCallScenarioFactory.create(targetDialAddress, action),
         backend = GateCFastPathSentinelBackend(),
+        maxCaptureMs = MAX_CAPTURE_MS,
     )
 }
