@@ -4,6 +4,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import pl.michalmatu.aicallbridge.agent.CallPlan
 import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.agent.CallWorkflowState
@@ -62,6 +63,10 @@ internal class ExecutorLocalTextCallTimeoutScheduler : LocalTextCallTimeoutSched
  * readiness and one bounded backend warm-up. The production backend performs runtime startup and
  * exact model identity verification before the warm-up inference, so success here is the only
  * technical READY_TO_DIAL signal used by the local text-call path.
+ *
+ * An optional CallPlan is binding-only data. It is checked against the exact workflow task and
+ * resolved target before speech/model work, then carried into the one-shot prepared session. It
+ * does not grant target, commitment, workflow, output or media authority.
  */
 internal class LocalTextCallReadinessCoordinator(
     private val workflow: CallWorkflow,
@@ -70,6 +75,7 @@ internal class LocalTextCallReadinessCoordinator(
     private val backendFactory: () -> TextCallAgentBackend,
     private val timeoutScheduler: LocalTextCallTimeoutScheduler = ExecutorLocalTextCallTimeoutScheduler(),
     private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
+    private val callPlan: CallPlan? = null,
 ) : AutoCloseable {
     interface Listener {
         fun onReady(prepared: PreparedLocalTextCall)
@@ -115,6 +121,18 @@ internal class LocalTextCallReadinessCoordinator(
         if (!authorized) {
             fail("target_not_authorized", listener)
             return
+        }
+
+        val plan = callPlan
+        if (plan != null) {
+            if (plan.task() !== workflowSnapshot.task) {
+                fail("call_plan_task_mismatch", listener)
+                return
+            }
+            if (plan.resolvedTarget() != target) {
+                fail("call_plan_target_mismatch", listener)
+                return
+            }
         }
 
         try {
@@ -196,7 +214,7 @@ internal class LocalTextCallReadinessCoordinator(
         val timeoutToClose: AutoCloseable?
         synchronized(lock) {
             if (state != LocalTextCallReadinessState.PREPARING || warmingBackend !== backend) return
-            ready = PreparedLocalTextCall(workflow, backend)
+            ready = PreparedLocalTextCall(workflow, backend, callPlan)
             prepared = ready
             warmingBackend = null
             failureReason = null
@@ -249,6 +267,7 @@ internal class LocalTextCallReadinessCoordinator(
 internal class PreparedLocalTextCall internal constructor(
     val workflow: CallWorkflow,
     private val backend: TextCallAgentBackend,
+    internal val callPlan: CallPlan? = null,
 ) : AutoCloseable {
     private val claimed = AtomicBoolean(false)
 
