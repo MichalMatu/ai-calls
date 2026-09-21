@@ -65,8 +65,9 @@ internal class ExecutorLocalTextCallTimeoutScheduler : LocalTextCallTimeoutSched
  * technical READY_TO_DIAL signal used by the local text-call path.
  *
  * An optional CallPlan is binding-only data. It is checked against the exact workflow task and
- * resolved target before speech/model work, then carried into the one-shot prepared session. It
- * does not grant target, commitment, workflow, output or media authority.
+ * resolved target before speech/model work, then carried into the one-shot prepared session. An
+ * optional PhraseMatrix may travel only with a CallPlan and contributes classification data only;
+ * neither binding grants target, commitment, workflow, output or media authority.
  */
 internal class LocalTextCallReadinessCoordinator(
     private val workflow: CallWorkflow,
@@ -76,6 +77,7 @@ internal class LocalTextCallReadinessCoordinator(
     private val timeoutScheduler: LocalTextCallTimeoutScheduler = ExecutorLocalTextCallTimeoutScheduler(),
     private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
     private val callPlan: CallPlan? = null,
+    private val phraseMatrix: PhraseMatrix? = null,
 ) : AutoCloseable {
     interface Listener {
         fun onReady(prepared: PreparedLocalTextCall)
@@ -91,6 +93,7 @@ internal class LocalTextCallReadinessCoordinator(
 
     init {
         require(timeoutMs > 0L) { "timeout_ms_must_be_positive" }
+        require(phraseMatrix == null || callPlan != null) { "phrase_matrix_requires_call_plan" }
     }
 
     fun snapshot(): LocalTextCallReadinessSnapshot = synchronized(lock) {
@@ -214,7 +217,12 @@ internal class LocalTextCallReadinessCoordinator(
         val timeoutToClose: AutoCloseable?
         synchronized(lock) {
             if (state != LocalTextCallReadinessState.PREPARING || warmingBackend !== backend) return
-            ready = PreparedLocalTextCall(workflow, backend, callPlan)
+            ready = PreparedLocalTextCall(
+                workflow = workflow,
+                backend = backend,
+                callPlan = callPlan,
+                phraseMatrix = phraseMatrix,
+            )
             prepared = ready
             warmingBackend = null
             failureReason = null
