@@ -12,10 +12,11 @@ Local Agent control/evidence branch: `agent-control`
 
 1. Read fresh `AGENTS.md`, this file, `README.md` and `docs/ROADMAP.md`.
 2. Read `docs/ARCHITECTURE.md` / `docs/SECURITY_PRIVACY.md` before changing ownership or safety boundaries.
-3. Fetch fresh `main` and fresh `agent-control:.agent/status/daemon.json`.
-4. Trust only the current Bridge envelope plus fresh daemon binding for repo/binding identity.
-5. Inspect the latest terminal Local Agent result before creating a successor task.
-6. Keep `privileged-helper/` and the frozen Samsung media path untouched.
+3. Read `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md` before starting the planned Phrase/Intent Matrix engine-selection spike.
+4. Fetch fresh `main` and fresh `agent-control:.agent/status/daemon.json`.
+5. Trust only the current Bridge envelope plus fresh daemon binding for repo/binding identity.
+6. Inspect the latest terminal Local Agent result before creating a successor task.
+7. Keep `privileged-helper/` and the frozen Samsung media path untouched.
 
 No further Orange live-call authorization is currently available.
 
@@ -144,7 +145,22 @@ Then run targeted regressions + full `bash scripts/verify_host.sh`. Physical S22
 
 Do not lose this after final-STT integration. It may become a key product architecture.
 
-The idea is to put a tiny deterministic local phrase/intent matrix in front of LLM reasoning so trivial conversational turns are answered immediately, while the LLM gets time to build/refresh context and only enters when a turn is ambiguous or important.
+Detailed engine/repository research, integration constraints and benchmark checklist are now preserved in:
+
+```text
+docs/PHRASE_MATRIX_ENGINE_RESEARCH.md
+```
+
+The dedicated note records the exact repositories to inspect and how to evaluate them:
+
+- `aichaos/rivescript-java` — preferred first lightweight Java spike; MIT, simple trigger/topic/previous-turn machinery, but stale upstream/UTF-8/Android compatibility must be measured rather than assumed;
+- `ChatScript/ChatScript` — mature source of pattern/topic/rejoinder ideas and possibly a native engine only after a minimal Android/NDK + path-by-path license/footprint audit;
+- `KStateMachine/kstatemachine` — modern Kotlin state-machine candidate only if non-authority dialogue-stage state becomes genuinely complex;
+- a tiny native CallBridge PhraseMatrix baseline used as the control implementation.
+
+Do **not** simply copy/vendor those repositories. The research file contains explicit build, Polish UTF-8, APK/RAM/startup, matcher-quality, thread/cancellation, license and authority-boundary checks that must be completed before adoption.
+
+The core product idea is to put a tiny deterministic local phrase/intent matrix in front of LLM reasoning so trivial conversational turns are answered immediately, while the LLM gets time to build/refresh context and only enters when a turn is ambiguous or important.
 
 Target shape:
 
@@ -176,7 +192,7 @@ Safety/ownership rules:
 
 Useful metrics: matrix hit rate, fuzzy false-match rate, LLM invocation rate, deterministic vs supervised p50/p95 latency, takeover rate, and how often important turns required supervisor help.
 
-This is now also recorded in `docs/ARCHITECTURE.md` and `docs/ROADMAP.md`. Implement it only after the clean final-STT/CallPlan selector wiring, so it reuses the same authority and cancellation path instead of becoming a parallel dialogue system.
+Implement it only after the clean final-STT/CallPlan selector wiring, so it reuses the same authority and cancellation path instead of becoming a parallel dialogue system.
 
 ## Do not restart these paths by default
 
