@@ -2,46 +2,42 @@
 
 Date: 2026-09-21
 
-Status: `ACTIVE / NATIVE BASELINE NEXT`
+Status: `DECISION RECORDED / NATIVE PHRASE MATRIX SELECTED`
 
-This document preserves the concrete follow-on research for the local Phrase / Intent Matrix idea. It is not permission to add another dialogue authority layer. The current `CallTask` / `CallWorkflow` / `CallPlan` / output-approval boundaries remain authoritative.
+This document records the matcher-engine research for the local Phrase / Intent Matrix. It is not permission to add another dialogue authority layer. `CallTask` / `CallWorkflow` / `CallPlan` / output approval remain authoritative.
 
-## Why this matters
+## Product goal
 
 The target architecture is **deterministic fast path first, LLM supervisor on demand**:
 
 ```text
 final STT
- -> normalization
- -> exact / lightweight phrase-intent matcher
- -> high-confidence existing ruleId
+ -> normalize
+ -> native PhraseMatrix
+ -> existing ruleId + confidence/diagnostics
  -> CallPlan / workflow / approval
  -> TTS
 
-                 +-> bounded LLM supervisor in parallel/background
-                     observes context / warms / classifies
-                     may suggest only an existing ruleId
+unknown / ambiguous / important turn
+ -> bounded LLM supervisor
+ -> suggest existing ruleId only
+ -> same CallPlan / workflow / approval
 ```
 
-Typical turns such as greetings, acknowledgements, repeat/wait requests and simple task-known questions should complete in lookup/matcher time. This gives the local LLM breathing room to accumulate context and enter only when the turn is ambiguous or materially important.
-
-Naturalness should come from a small reviewed response-variant bank. A temperature-like product setting may control how wide the eligible variant set is, but selection should remain deterministic/replayable, for example from a stable seed derived from call id + turn index + intent/rule id.
+Naturalness may later come from small reviewed response-variant banks. Free-form matcher/script output is not an authority path.
 
 ## Non-negotiable integration boundary
 
-Any imported script/matcher technology is **classification/matching infrastructure only**.
-
-It must not:
+Matcher/script/model technology must not:
 
 - create or widen dialing authority;
 - invent facts, targets, prices, proposals, outcomes or commitments;
 - bypass `CallConfirmationPolicy`, `CallWorkflow`, `CallCommitmentGate` or output approval;
-- call Android/OS/network code from a conversation script;
-- perform DTMF, authentication, payment, purchase, activation or contract/tariff changes;
+- perform DTMF, authentication, payment, purchase, activation or tariff/contract changes;
 - emit arbitrary speech directly to TTS/TX;
 - create a second conversation authority/state store parallel to `CallWorkflow`.
 
-Preferred output contract:
+The selected contract remains:
 
 ```text
 PhraseMatch(
@@ -52,274 +48,149 @@ PhraseMatch(
 )
 ```
 
-The product layer then validates the `ruleId` against the bound `CallPlan`. Only an already-authorized/predeclared rule can become a `CallPlanDecision`.
+The product layer validates the `ruleId` against the bound `CallPlan`. Only the validated `CallPlanDecision.ruleId()` may become session previous-turn context.
 
-## Repository candidate A — RiveScript Java
+## Native CallBridge PhraseMatrix — selected
 
-Repository: `aichaos/rivescript-java`
+The host-green Kotlin implementation currently provides:
 
-First-pass revision inspected: `04abeca7fffeaf0783e6aa9c2fe84c34829e5a67` (2019-08-06).
+- NFKC normalization, lowercasing and deterministic punctuation/space normalization;
+- exact phrase matching;
+- explicit aliases for reviewed ASR/missing-diacritic variants;
+- deterministic collision rejection and unknown fail-closed behavior;
+- `PhraseMatch(ruleId, confidence, matcherKind, variantClass?)` only;
+- optional explicit previous-rule constraints;
+- no matcher-owned session state;
+- validation through `CallPlanTurnCoordinator` before workflow/output effects;
+- session-owned `previousValidatedRuleId`, populated only from validated CallPlan decisions;
+- readiness / prepared-call / Android factory binding for optional `CallPlan + PhraseMatrix`.
 
-### What is attractive
-
-- Native Java library rather than a standalone server.
-- Simple trigger -> reply scripting model.
-- Topics, conditions, user/session variables and `%Previous`-style previous-turn matching are already implemented.
-- Supports custom Java subroutines/object handlers, although CallBridge should **not** expose those to ordinary conversation scripts.
-- UTF-8 mode exists, which is essential for Polish.
-- Published as `com.rivescript:rivescript-core` and licensed MIT.
-- Core was compiled for Java 7, so bytecode/language requirements are conservative enough to make Android feasibility plausible.
-
-Relevant upstream files to inspect in a dedicated spike:
-
-```text
-README.md
-LICENSE
-build.gradle
-rivescript-core/src/main/java/com/rivescript/RiveScript.java
-rivescript-core/src/main/java/com/rivescript/Config.java
-rivescript-core/src/main/java/com/rivescript/parser/Parser.java
-rivescript-core/src/main/java/com/rivescript/session/...
-rivescript-core/src/integration-test/resources/testsuite.rive
-```
-
-### Risks / caveats
-
-- Upstream Java repository appears inactive since 2019; do not assume modern Android/Gradle compatibility from the README alone.
-- The old build uses deprecated Gradle/JCenter-era configuration.
-- `rivescript-core` has at least an SLF4J API dependency in the upstream build; dependency and APK-size impact must be measured.
-- UTF-8 was described upstream as experimental. Polish diacritics, punctuation stripping and ASR-normalized text need explicit tests.
-- RiveScript normally produces reply text. In CallBridge, raw RiveScript reply text must **not** become authority or direct TTS output.
-- Object handlers/macros are too powerful for the intended safety boundary and should be disabled/not registered unless a future narrowly-scoped audited adapter requires one.
-
-### Preferred CallBridge adaptation
-
-Do not start by allowing `.rive` scripts to freely generate sentences. Use RiveScript, if selected, primarily as a matcher/context engine.
-
-Example concept:
+Key evidence:
 
 ```text
-+ dzień dobry
-- rule:GREETING
-
-+ proszę powtórzyć
-- rule:ASK_REPEAT
-
-+ tak
-% czy termin jutro pasuje
-- rule:CONFIRM_TIME
+.agent/results/chatgpt-gate-c-phrase-matrix-baseline-green-v55-20260921.json
+.agent/results/chatgpt-gate-c-phrase-router-green-v59-20260921.json
+.agent/results/chatgpt-phrase-matrix-previous-context-green-v64-20260921.json
+.agent/results/chatgpt-session-phrase-context-green-v68-20260921.json
+.agent/results/chatgpt-readiness-phrase-matrix-green-v70-20260921.json
+.agent/results/chatgpt-android-readiness-binding-green-v72-20260921.json
 ```
 
-The adapter parses only the restricted result form (`rule:<existingRuleId>`), rejects everything else fail-closed, and passes the id to the existing deterministic CallPlan validator.
+### Host benchmark
 
-Reviewed speech variants remain CallBridge-owned data, not arbitrary script output.
+Evidence: `.agent/results/chatgpt-native-phrase-matrix-bench-v62b-20260921.json`.
 
-### Required RiveScript spike before adoption
-
-1. Add `rivescript-core` only in an isolated host/Android build experiment; do not wire it into live calls.
-2. Verify current AGP/Gradle/R8 compatibility and min/target API behavior.
-3. Measure incremental APK size, cold initialization time and steady RAM on S22.
-4. Verify loading scripts from packaged Android assets or a safe app-private representation; if the upstream API requires filesystem paths, decide whether copying assets to app-private storage is acceptable or whether a small custom loader is cleaner.
-5. Run Polish UTF-8 tests with `ą ć ę ł ń ó ś ź ż`, punctuation and casing.
-6. Test ASR-like noise/variants: missing punctuation, repeated words, short fillers and spacing.
-7. Verify topic / `%Previous` behavior for bounded conversational context.
-8. Verify deterministic behavior: same state + same transcript -> same rule id.
-9. Verify no hidden random reply selection is enabled for authority-bearing routing.
-10. Verify cancellation/thread-safety assumptions if matching can happen while the LLM supervisor is running.
-11. Disable/not register object handlers and arbitrary Java callbacks.
-12. Build a restricted adapter that returns only an existing rule id and matcher diagnostics.
-13. Compare latency/accuracy against a tiny native CallBridge matcher on the same Polish test corpus.
-
-Decision criterion: use RiveScript only if it materially reduces our parser/matcher work without importing stale build risk or a broader scripting authority surface.
-
-## Repository candidate B — ChatScript
-
-Repository: `ChatScript/ChatScript`
-
-First-pass revision inspected: `9f5eec4736ba22bd992a6498c1e0052e2a795125` (`CS 14.1`, 2024-05-06).
-
-### What is attractive
-
-ChatScript is a mature rule/dialog engine with mechanisms very relevant to our problem:
-
-- powerful semantic/pattern matching;
-- topics and pending-topic management;
-- rejoinders / follow-ups tied to prior conversation output;
-- wildcard captures and concepts/ontologies;
-- persistent interaction state;
-- extensive debugging/testing tools;
-- UTF-8 support;
-- upstream explicitly lists Android among supported OS targets.
-
-The most valuable design material for CallBridge is likely:
+Small Polish corpus used 8 rules / 20 reviewed variants and false-positive guards.
 
 ```text
-README.md
-WIKI/ChatScript-Basic-User-Manual.md
-WIKI/ChatScript-Advanced-Pattern-Manual.md
-WIKI/ChatScript-Advanced-Topic-Manual.md
-SRC/patternSystem.cpp
-SRC/topicSystem.cpp
-SRC/common.h
+init:              11.845833 ms
+average match:      0.815414585 us
+Polish corpus:      GREEN
+false-positive guard: GREEN
 ```
 
-In particular, study how ChatScript models:
+This is a host microbenchmark, not an S22 performance claim.
+
+## RiveScript Java — spike complete, not selected
+
+Repository: `aichaos/rivescript-java`.
+
+Revision inspected: `04abeca7fffeaf0783e6aa9c2fe84c34829e5a67`.
+
+Evidence:
+
+```text
+.agent/results/chatgpt-rivescript-java-spike-v60b-20260921.json
+.agent/results/chatgpt-rivescript-apk-size-v61-20260921.json
+```
+
+The isolated spike proved:
+
+- Polish UTF-8 matching works for the tested examples;
+- `%Previous`-style context works;
+- current project toolchain can assemble with `rivescript-core:0.11.0`;
+- the library can emit arbitrary free reply text, which is broader than the desired classification-only contract.
+
+Measured host/build results:
+
+```text
+init + sort:         46.557333 ms
+average reply:       88.8522959 us
+rivescript jar:      79,391 B
+slf4j-api jar:       41,472 B
+clean baseline APK:  5,383,492 B
+RiveScript APK:      5,517,624 B
+APK delta:           +134,132 B
+```
+
+Dependency path:
+
+```text
+com.rivescript:rivescript-core:0.11.0
+ -> org.slf4j:slf4j-api:1.7.26
+```
+
+### Decision
+
+Do **not** add RiveScript to production now.
+
+It provides useful proof that previous-turn scripting is feasible, but the native implementation is substantially smaller in capability surface, roughly two orders of magnitude faster in this host microbenchmark, has no extra matcher dependency/APK cost, and naturally enforces the classification-only contract.
+
+Re-evaluate only if the native matcher later accumulates enough parser complexity that measured maintenance cost clearly outweighs the dependency/scripting surface.
+
+## ChatScript — design reference only
+
+Repository: `ChatScript/ChatScript`.
+
+Revision inspected: `9f5eec4736ba22bd992a6498c1e0052e2a795125` (`CS 14.1`, 2024-05-06).
+
+Useful concepts to borrow selectively:
 
 - pattern specificity and ordering;
 - negative terms / exclusions;
-- wildcard capture;
+- bounded wildcard capture;
 - concepts/synonym classes;
-- rejoinders after a previous response;
-- topic activation/priority;
-- deterministic testing/debug traces.
+- rejoinders / previous-response context;
+- topic/stage priority;
+- deterministic debug traces.
 
-These ideas may be more valuable than embedding the whole engine.
+The audit found Android-specific preprocessor paths, but the engine remains a broad C++ system with native/JNI, data-file and dictionary integration concerns. Its embedding documentation describes compiling the C++ engine and using APIs such as `InitSystem` / `PerformChat`; a large configuration is documented around 15–18 MB memory, with miniaturized dictionaries as a special concern.
 
-### Integration concerns
+For the current CallBridge need this is disproportionate. Do not vendor ChatScript or its dictionaries. Treat it as mature design/reference material; any later native embedding would first require a minimal Android/JNI/data/license/footprint audit.
 
-- This is a large C/C++ codebase with dictionaries, tooling and server-oriented infrastructure; the repository itself is very large compared with what CallBridge needs.
-- Upstream claims Android support and contains Android-specific preprocessor paths, but the first-pass search did not expose a modern first-class Android Gradle/JNI integration that we should blindly drop into the app. Treat Android embedding as an NDK/native integration question until proven otherwise.
-- Full ChatScript would add a large amount of capability that CallBridge explicitly does not want scripts to own (I/O, general scripting, broader state, potentially network/system integrations).
-- Native/JNI ownership, startup, data files, ABI packaging and crash isolation would add complexity next to an already safety-sensitive telephony application.
+## KStateMachine — deferred
 
-### License caution
+Repository: `KStateMachine/kstatemachine`.
 
-Do **not** vendor the entire ChatScript tree or dictionaries merely because many source headers contain permissive MIT-style permission text.
+It is a state-machine library, not a phrase matcher. Current session state (`consecutiveUnknownCount`, `previousValidatedRuleId`) does not justify introducing another state abstraction.
 
-The repository has component/data-specific licensing details. For example, dictionary license notes mention separate commercial licensing for some language POS-tagger use. Before copying any source/data, perform a path-by-path license audit of the exact files we would take.
+Reconsider only if non-authority navigation/stage state becomes materially complex. `CallWorkflow` must remain the authority owner regardless.
 
-Safer initial use: study algorithms/concepts and reimplement the small ideas we actually need unless a later audit proves a clean minimal embeddable subset.
+## Decision table
 
-### Required ChatScript research spike
+| Candidate | Matching/context result | Host cost | Product-surface cost | Decision |
+| --- | --- | --- | --- | --- |
+| native Kotlin PhraseMatrix | exact/alias + explicit previous rule GREEN | ~11.85 ms init, ~0.815 us/match | no new dependency | **SELECTED** |
+| RiveScript Java | Polish UTF-8 + previous context GREEN | ~46.56 ms init, ~88.85 us/reply | +134,132 B debug APK, SLF4J, arbitrary reply scripting | reference only |
+| ChatScript | mature patterns/topics/rejoinders | not embedded | C++/JNI/data/license/memory complexity | design reference |
+| KStateMachine | stage/state only | not measured | unnecessary second abstraction today | deferred |
 
-1. Identify the smallest actual Android build target and required native/data files.
-2. Determine whether there is a supported JNI API or whether a custom JNI bridge would be required.
-3. Measure minimal native binary + required dictionary/data footprint for **Polish use without unnecessary English NLP features**.
-4. Determine which pattern features are language-neutral and usable without licensed/large linguistic datasets.
-5. Audit licenses for every proposed source/data path.
-6. Extract a feature comparison against the custom matcher:
-   - exact tokens/phrases;
-   - synonym/concept sets;
-   - optional tokens;
-   - negation;
-   - bounded wildcards/captures;
-   - previous-turn/rejoinder matching;
-   - topic/stage priority.
-7. Prototype only if the minimal footprint and integration are clearly better than a small Kotlin implementation.
+## Next matcher work
 
-Expected role today: **reference implementation / source of mature dialogue ideas**, not the default dependency choice.
+The next product/research slice stays native and bounded:
 
-## Repository candidate C — KStateMachine
+1. expand the Polish ASR-like corpus;
+2. add a deterministic fuzzy/pattern rule only for a concrete exact/alias miss;
+3. every new positive rule must include neighboring negative/negation/multi-intent guards;
+4. preserve deterministic replay and classification-only output;
+5. measure hit rate, no-match rate, false-positive rate and p50/p95 latency;
+6. keep sensitive/committing actions out of generic fuzzy shortcuts.
 
-Repository: `KStateMachine/kstatemachine`
-
-First-pass revision inspected: `d3d94c3e7e30de2abaa0c056a0d9c1ebea125362` (active on 2026-09-21).
-
-License: Boost Software License.
-
-### What it is good for
-
-- Modern Kotlin Multiplatform library with Android support.
-- Core has zero mandatory dependencies beyond Kotlin stdlib.
-- Typed events, guards, nested states, parallel regions, history/pseudo states and persistence helpers.
-- Actively maintained.
-
-### What it is **not**
-
-It is not a phrase matcher and does not replace the PhraseMatrix.
-
-It becomes interesting only if conversational stage tracking becomes sufficiently complex that our own small product state becomes error-prone.
-
-### Integration rule
-
-Do not let KStateMachine become a second authority machine next to `CallWorkflow`.
-
-Possible future use is limited to non-authority dialogue/navigation state, for example:
-
-```text
-INTRO -> PURPOSE -> INFORMATION -> WRAP_UP
-```
-
-while `CallWorkflow` still owns proposals, user-decision state, commitments and terminal outcome.
-
-Before adoption, prove that the added state abstraction reduces complexity rather than duplicating the existing workflow.
-
-## Recommended order
-
-The clean final-STT / CallPlan selector wiring is now `HOST_GREEN`. Continue in this order:
-
-1. Build a tiny native CallBridge `PhraseMatrix` reference implementation first so we have a baseline.
-2. Run a bounded **RiveScript Java vs native PhraseMatrix** spike on the same Polish corpus.
-3. Study ChatScript pattern/topic/rejoinder behavior and selectively port only high-value ideas.
-4. Consider KStateMachine only if multi-stage dialogue state becomes complex enough to justify it.
-5. Choose based on measured data, not feature count.
-
-## Baseline native PhraseMatrix to compare against
-
-Keep the baseline deliberately small:
-
-```text
-normalize(text)
- -> exact phrase map
- -> token/phrase aliases
- -> small deterministic pattern rules
- -> optional bounded fuzzy score
- -> existing ruleId + confidence
-```
-
-Suggested rule data:
-
-```text
-ruleId
-stage/topic constraints
-positive phrases/tokens
-negative phrases/tokens
-optional previous-rule constraint
-confidence threshold
-reviewed response variant class
-```
-
-No arbitrary executable script code is required for the baseline.
-
-## Polish evaluation corpus
-
-The spike should contain at least these groups, with real ASR-like variants:
-
-- greetings: `dzień dobry`, `witam`, `halo`, combinations;
-- acknowledgements: `dobrze`, `okej`, `rozumiem`, `mhm`;
-- confirmation/rejection: `tak`, `zgadza się`, `nie`, `nie zgadzam się`;
-- repeat/wait: `proszę powtórzyć`, `jeszcze raz`, `chwileczkę`, `proszę poczekać`;
-- identity/purpose questions backed by authorized facts;
-- negation collisions (`nie, dzień dobry...`, `nie zgadzam się` vs `zgadzam się`);
-- multiple intents in one utterance;
-- inflection and common word-order changes;
-- missing diacritics (`dzien dobry`, `prosze`);
-- common STT substitutions / repeated fragments;
-- previous-turn context where `tak` only makes sense after a concrete question;
-- unknown/ambiguous utterances that must not falsely match.
-
-## Metrics / decision table
-
-Record for each candidate:
-
-| Metric | Why |
-| --- | --- |
-| exact/high-confidence hit rate | how much traffic avoids LLM |
-| false-positive rate | safety-critical matcher quality |
-| ambiguous/no-match rate | expected supervisor load |
-| p50/p95 matching latency | fast-path benefit |
-| cold init latency | call readiness impact |
-| incremental APK/native/data size | deployment cost |
-| steady + peak RAM | S22 pressure |
-| Polish/UTF-8 behavior | language viability |
-| deterministic replay | testability |
-| previous-turn/context support | conversation usefulness |
-| cancellation/thread behavior | safe parallel LLM supervision |
-| license/integration burden | product maintainability |
+A possible rule model may eventually include reviewed positive/negative tokens, optional tokens, bounded edit/token distance and explicit previous/stage constraints. Do not implement all of these merely for feature parity with third-party engines.
 
 ## LLM supervisor relationship
 
-The LLM is not the fallback author of arbitrary speech by default. It should act as a bounded semantic supervisor:
+The future LLM layer is a bounded semantic supervisor, not the default reply author:
 
 ```text
 transcript + bounded recent context + current stage + available rule ids
@@ -328,20 +199,18 @@ transcript + bounded recent context + current stage + available rule ids
  -> CallPlan / workflow
 ```
 
-The fast matrix may answer trivial turns while the supervisor processes bounded context in the background. Shadow/speculative results remain quarantined. A newer transcript, resumed speech, cancellation, workflow state change or already-released deterministic response invalidates stale supervisor output.
+Its output remains quarantined until validated. A newer transcript, resumed speech, cancellation, workflow state change or already-released deterministic response invalidates stale supervisor output.
 
-This gives the LLM time to understand the conversation without forcing it to win the latency race on every turn.
+## Research item conclusion
 
-## Exit criteria for this research item
+The original engine-selection exit criteria are satisfied at host level:
 
-The engine-selection spike is complete only when we have:
+1. native PhraseMatrix baseline exists and is integrated;
+2. RiveScript was measured rather than assumed;
+3. ChatScript minimal-integration concerns were documented;
+4. KStateMachine is not currently needed;
+5. native PhraseMatrix is the recommended implementation path;
+6. matcher rule ids flow through existing CallPlan authority tests;
+7. there is no script/matcher -> direct TTS/TX or commitment path.
 
-1. a native PhraseMatrix baseline;
-2. a measured RiveScript Java experiment or a documented build incompatibility;
-3. a documented ChatScript minimal-integration/license conclusion;
-4. a decision whether KStateMachine is needed at all;
-5. one recommended implementation path with measured S22/host costs;
-6. explicit mapping into existing `CallPlan` rule ids and authority tests;
-7. no new direct script -> TTS/TX or script -> commitment path.
-
-Until then, do not vendor large third-party dialogue engines into production code.
+Further work belongs to matcher-quality and supervisor slices, not another engine-selection round unless new evidence changes the tradeoff.
