@@ -6,15 +6,34 @@ import java.util.Objects;
 public record CallPlanDecision(
     CallPlanAction action,
     String text,
-    String ruleId
+    String ruleId,
+    CallOutcome outcome
 ) {
+    public CallPlanDecision(CallPlanAction action, String text, String ruleId) {
+        this(action, text, ruleId, null);
+    }
+
     public CallPlanDecision {
         action = Objects.requireNonNull(action, "action");
         if (action == CallPlanAction.SAY) {
             requireNonBlank(text, "text");
             requireNonBlank(ruleId, "ruleId");
-        } else if (text != null) {
-            throw new IllegalArgumentException(action + " must not carry speech text");
+            if (outcome != null) {
+                throw new IllegalArgumentException("SAY must not carry outcome");
+            }
+        } else if (action == CallPlanAction.COMPLETE) {
+            if (text != null) {
+                throw new IllegalArgumentException("COMPLETE must not carry speech text");
+            }
+            requireNonBlank(ruleId, "ruleId");
+            outcome = Objects.requireNonNull(outcome, "outcome");
+        } else {
+            if (text != null) {
+                throw new IllegalArgumentException(action + " must not carry speech text");
+            }
+            if (outcome != null) {
+                throw new IllegalArgumentException(action + " must not carry outcome");
+            }
         }
         if (ruleId != null) {
             ruleId = requireNonBlank(ruleId, "ruleId");
@@ -22,15 +41,28 @@ public record CallPlanDecision(
     }
 
     public static CallPlanDecision say(String text, String ruleId) {
-        return new CallPlanDecision(CallPlanAction.SAY, text, ruleId);
+        return new CallPlanDecision(CallPlanAction.SAY, text, ruleId, null);
     }
 
     public static CallPlanDecision askRepeat() {
-        return new CallPlanDecision(CallPlanAction.ASK_REPEAT, null, null);
+        return new CallPlanDecision(CallPlanAction.ASK_REPEAT, null, null, null);
+    }
+
+    public static CallPlanDecision complete(CallOutcome outcome, String ruleId) {
+        return new CallPlanDecision(CallPlanAction.COMPLETE, null, ruleId, outcome);
     }
 
     public static CallPlanDecision takeOver(String ruleId) {
-        return new CallPlanDecision(CallPlanAction.TAKE_OVER, null, ruleId);
+        return new CallPlanDecision(CallPlanAction.TAKE_OVER, null, ruleId, null);
+    }
+
+    @Override
+    public String toString() {
+        return "CallPlanDecision[action=" + action
+            + ", text=" + (text == null ? "null" : "REDACTED")
+            + ", ruleId=" + ruleId
+            + ", outcome=" + (outcome == null ? "null" : "REDACTED")
+            + "]";
     }
 
     private static String requireNonBlank(String value, String name) {
