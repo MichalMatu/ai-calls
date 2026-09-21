@@ -3,7 +3,9 @@ import unittest
 from local_phone_llm_live_call import (
     EDGE_GALLERY_PROVIDER,
     LOCAL_PHONE_PROVIDER,
+    ORANGE_ACTION_INTERNET_PROBLEM,
     ORANGE_ACTION_INVOICE_STATUS,
+    ORANGE_ACTION_INVOICE_TOPIC,
     ORANGE_ACTION_LIST_CAPABILITIES,
     ORANGE_SUPPORT_NUMBER,
     _is_ignorable_gate_c_preroll,
@@ -70,6 +72,24 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
             orange_action=ORANGE_ACTION_INVOICE_STATUS,
         )
         self.assertIn("orange_live_action invoice_status", " ".join(invoice_args))
+
+        invoice_topic_args = build_probe_start_args(
+            "RFCT70L7E8J",
+            LOCAL_PHONE_PROVIDER,
+            gate_c_fast_path=True,
+            target=ORANGE_SUPPORT_NUMBER,
+            orange_action=ORANGE_ACTION_INVOICE_TOPIC,
+        )
+        self.assertIn("orange_live_action invoice_topic", " ".join(invoice_topic_args))
+
+        internet_args = build_probe_start_args(
+            "RFCT70L7E8J",
+            LOCAL_PHONE_PROVIDER,
+            gate_c_fast_path=True,
+            target=ORANGE_SUPPORT_NUMBER,
+            orange_action=ORANGE_ACTION_INTERNET_PROBLEM,
+        )
+        self.assertIn("orange_live_action internet_problem", " ".join(internet_args))
 
         with self.assertRaises(ValueError):
             build_probe_start_args(
@@ -163,6 +183,8 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
             "stt_text": "5g jakości orange",
         }
         self.assertTrue(_is_ignorable_gate_c_preroll(invoice_preroll))
+        self.assertTrue(_is_ignorable_gate_c_preroll({**invoice_preroll, "orange_live_action": ORANGE_ACTION_INVOICE_TOPIC}))
+        self.assertTrue(_is_ignorable_gate_c_preroll({**invoice_preroll, "orange_live_action": ORANGE_ACTION_INTERNET_PROBLEM}))
         self.assertFalse(_is_ignorable_gate_c_preroll({**invoice_preroll, "orange_live_action": "observe_only"}))
 
         neighboring_fail_closed_reports = [
@@ -189,6 +211,8 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         }
         self.assertTrue(_is_retryable_gate_c_root_no_match(no_match))
         self.assertTrue(_is_retryable_gate_c_root_no_match({**no_match, "orange_live_action": ORANGE_ACTION_INVOICE_STATUS}))
+        self.assertTrue(_is_retryable_gate_c_root_no_match({**no_match, "orange_live_action": ORANGE_ACTION_INVOICE_TOPIC}))
+        self.assertTrue(_is_retryable_gate_c_root_no_match({**no_match, "orange_live_action": ORANGE_ACTION_INTERNET_PROBLEM}))
 
         for invalid in [
             {**no_match, "failure_reason": "stt_recognition_error_6"},
