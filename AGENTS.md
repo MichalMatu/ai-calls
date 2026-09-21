@@ -18,45 +18,61 @@ Do not create a planning/status document for every experiment. Put durable decis
 
 ## Current priority
 
-The active product gate is **Gate C / deterministic fast path**. The CallPlan final-STT product wiring is now `DONE / HOST_GREEN`; the next product slice is the Phrase / Intent Matrix baseline described in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`.
+The active product gate is **Gate C / deterministic fast path**.
 
-Completed and `HOST_GREEN`:
+`HOST_GREEN` now includes:
 
-- deterministic `CallPlan` policy core;
-- bounded repeat/escalation, typed proposal/completion, authority regressions and bounded helper validation;
-- `CallPlanTurnCoordinator` and prepared-call CallPlan binding;
-- exact candidate text through the existing application-owned output approval;
+- deterministic `CallPlan` policy core and `CallPlanTurnCoordinator`;
+- prepared-call CallPlan binding;
+- exact deterministic candidate text through the existing application-owned output approval;
 - session-owned consecutive-unknown fallback state;
-- neutral `TextCallFinalTurnDispatcher` with `Generate`, exact `Candidate`, and `Consumed` routes;
-- `CallPlanFinalTurnRouteMapper` preserving exact structured results;
-- optional final-turn selector at the `LocalSpeechTextPipeline` final-STT seam;
-- plan-bound final STT now selects `Candidate` / `Consumed` before backend generation while the no-plan path remains `Generate`;
-- one `TextCallTurnController`, one approval path and one generation-cancellation lifecycle remain authoritative.
+- neutral `TextCallFinalTurnDispatcher` (`Generate` / exact `Candidate` / `Consumed`);
+- final-STT selector before backend generation;
+- native `PhraseMatrix` exact/alias classification with deterministic normalization and collision fail-closed behavior;
+- PhraseMatrix ruleId validation through the existing CallPlan coordinator;
+- explicit optional previous-rule matching;
+- session-owned `previousValidatedRuleId`, sourced only from a validated CallPlan decision;
+- PhraseMatrix binding through readiness / `PreparedLocalTextCall`;
+- Android readiness factory binding for optional `CallPlan + PhraseMatrix`;
+- one `TextCallTurnController`, one approval path and one generation-cancellation lifecycle.
 
 Latest full host checkpoint:
 
 ```text
-.agent/results/chatgpt-gate-c-final-stt-selector-green-v51-20260921.json
+.agent/results/chatgpt-android-readiness-binding-green-v72-20260921.json
 ```
+
+### Matcher engine decision
+
+Use the native Kotlin `PhraseMatrix` as the production matcher direction.
+
+Measured host spikes on the same small Polish corpus:
+
+- native: ~11.85 ms init, ~0.815 us average match;
+- RiveScript Java: ~46.56 ms init/sort, ~88.85 us average reply, +134,132 B debug APK and `slf4j-api`.
+
+RiveScript remains a reference/spike; do not add it to production now. ChatScript remains a source of pattern/topic/rejoinder ideas, not an embedded dependency. KStateMachine remains deferred unless non-authority dialogue-stage state becomes genuinely complex.
+
+These are host measurements, not S22 performance evidence.
 
 ### Next execution order
 
-1. build a tiny native CallBridge `PhraseMatrix` reference implementation first;
-2. keep its output classification-only: existing `ruleId` + confidence/matcher diagnostics, never arbitrary speech or authority;
-3. cover the bounded Polish corpus in `docs/PHRASE_MATRIX_ENGINE_RESEARCH.md`, including negation collisions, missing diacritics, previous-turn context and unknown/ambiguous fail-closed cases;
-4. compare that baseline against an isolated RiveScript Java spike; do not vendor it into production before build/UTF-8/footprint/license checks;
-5. study ChatScript for pattern/topic/rejoinder ideas and consider KStateMachine only if non-authority dialogue-stage state becomes genuinely complex;
-6. keep matrix and any future LLM supervisor behind the same CallPlan/workflow/output-approval path;
+1. add one small bounded deterministic fuzzy/pattern matcher slice only for a concrete failing corpus case;
+2. every new positive fuzzy/pattern case must include neighboring false-positive/negation/ambiguity guards;
+3. keep output classification-only: existing `ruleId` + confidence/matcher diagnostics, never arbitrary speech or authority;
+4. expand the Polish ASR-like corpus and measure hit/no-match/false-positive plus p50/p95 latency;
+5. then define the bounded LLM supervisor contract: it may suggest only an existing ruleId and remains behind CallPlan/workflow/output approval;
+6. stale supervisor work must be invalidated by newer transcript, resumed speech, cancellation or workflow change;
 7. run targeted regressions and `bash scripts/verify_host.sh` for every behavior slice.
 
-Live Orange calls require explicit current-session operator authorization plus an exact operator-defined allowlisted destination and a test that actually exercises the changed path. Do not run a physical call merely to create evidence for an unrelated host-only slice.
+Live Orange calls require explicit current-session operator authorization plus an exact operator-defined allowlisted destination and a runner that actually exercises the changed path. Host matcher work does not require a call.
 
 ## Frozen / deferred boundaries
 
 - Samsung cellular RX/TX path: `DONE / PROVEN_S22 / FROZEN`.
 - `privileged-helper/`: do not change during Gate C product wiring.
 - General-purpose phone-local llama.cpp path: frozen.
-- Edge Gallery / Gemma 4 E2B / official Agent Skills checkpoint: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
+- Edge Gallery / Gemma 4 E2B / official Agent Skills: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
 - Interactive ChatGPT relay: developer benchmark infrastructure only.
 - Paid `OPENAI_TEXT` and `OPENAI_REALTIME_AUDIO`: deferred.
 
@@ -65,15 +81,22 @@ Live Orange calls require explicit current-session operator authorization plus a
 Keep the existing owners; do not create a second authority store:
 
 - `CallTask` owns immutable task/constraints/preferences/authorized facts;
-- `CallResolvedTarget` is a concrete target but does not widen a dial allowlist;
+- `CallResolvedTarget` is concrete but does not widen a dial allowlist;
 - `CallWorkflow` owns progress, proposals, user-decision state and terminal outcome;
 - `CallConfirmationPolicy` evaluates one typed proposal;
 - `CallCommitmentGate` owns one exact one-shot commitment permit;
 - application-owned output approval remains mandatory before speech release/TTS/TX.
 
-Models, helpers and Agent Skills are proposal-only. They must not own dialing, DTMF, credentials, sensitive-data authority, payments, purchases, activations, tariff/contract changes or commitments.
+Models, helpers, matchers and Agent Skills are proposal/classification-only. They must not own dialing, DTMF, credentials, sensitive-data authority, payments, purchases, activations, tariff/contract changes or commitments.
 
-Only `CallPlanAction.SAY` carries speech text. Structured actions without text must remain structured.
+Only `CallPlanAction.SAY` carries speech text. Structured actions without text remain structured.
+
+PhraseMatrix-specific invariants:
+
+- PhraseMatrix requires a bound CallPlan in readiness/prepared product state;
+- raw matcher ids never become authority;
+- only validated CallPlan decision ids may become previous-turn context;
+- unknown/ambiguous/rejected matches fail closed and cannot silently become sensitive action/model speech.
 
 ## Architecture discipline
 
@@ -100,7 +123,7 @@ Only `CallPlanAction.SAY` carries speech text. Structured actions without text m
 
 ## Branch policy
 
-Work directly on `main` unless temporary isolation is genuinely required. Integrate verified work and delete temporary branches. Keep only `main` plus infrastructure branches that have an active purpose (`agent-control`). Git history and Local Agent evidence are the bookmarks.
+Work directly on `main` unless temporary isolation is genuinely required. Integrate verified work and delete temporary branches. Keep only `main` plus infrastructure branches that have an active purpose (`agent-control`).
 
 ## Controlled live-call policy
 
