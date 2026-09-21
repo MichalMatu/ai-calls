@@ -4,6 +4,7 @@ from local_phone_llm_live_call import (
     EDGE_GALLERY_PROVIDER,
     LOCAL_PHONE_PROVIDER,
     ORANGE_SUPPORT_NUMBER,
+    _require_gate_c_fast_path_report,
     build_probe_start_args,
     normalize_allowlisted_target,
     normalize_provider,
@@ -65,6 +66,44 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         self.assertEqual("witaj", report["stt_text"])
         self.assertEqual("dzień dobry", report["approved_text"])
         self.assertEqual("true", report["local_text_llm_live_call_success"])
+
+    def test_gate_c_report_requires_bound_plan_zero_backend_generation_and_exact_reply(self):
+        _require_gate_c_fast_path_report({
+            "gate_c_fast_path": "true",
+            "gate_c_call_plan_bound": "true",
+            "backend_generate_calls": "0",
+            "approved_text": "Dzień dobry.",
+        })
+
+        invalid_reports = [
+            {
+                "gate_c_fast_path": "false",
+                "gate_c_call_plan_bound": "true",
+                "backend_generate_calls": "0",
+                "approved_text": "Dzień dobry.",
+            },
+            {
+                "gate_c_fast_path": "true",
+                "gate_c_call_plan_bound": "false",
+                "backend_generate_calls": "0",
+                "approved_text": "Dzień dobry.",
+            },
+            {
+                "gate_c_fast_path": "true",
+                "gate_c_call_plan_bound": "true",
+                "backend_generate_calls": "1",
+                "approved_text": "Dzień dobry.",
+            },
+            {
+                "gate_c_fast_path": "true",
+                "gate_c_call_plan_bound": "true",
+                "backend_generate_calls": "0",
+                "approved_text": "inna odpowiedź",
+            },
+        ]
+        for report in invalid_reports:
+            with self.assertRaises(RuntimeError):
+                _require_gate_c_fast_path_report(report)
 
 
 if __name__ == "__main__":
