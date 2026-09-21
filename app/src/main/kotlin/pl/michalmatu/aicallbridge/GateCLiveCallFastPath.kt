@@ -40,8 +40,11 @@ internal data class GateCLiveCallFastPath(
 )
 
 internal object GateCLiveCallFastPathFactory {
-    fun create(targetDialAddress: String): GateCLiveCallFastPath = GateCLiveCallFastPath(
-        scenario = GateCLiveCallScenarioFactory.create(targetDialAddress),
+    fun create(
+        targetDialAddress: String,
+        action: OrangeLiveAction = OrangeLiveAction.GREETING,
+    ): GateCLiveCallFastPath = GateCLiveCallFastPath(
+        scenario = GateCLiveCallScenarioFactory.create(targetDialAddress, action),
         backend = GateCFastPathSentinelBackend(),
     )
 }
