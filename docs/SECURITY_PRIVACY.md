@@ -2,7 +2,7 @@
 
 ## Objective
 
-The agent may speak, dial or commit only inside authority explicitly granted by the user. Technical failure must disable AI injection or return control to the human caller; it must never broaden authority.
+The agent may speak, dial or commit only inside authority explicitly granted by the user/operator. Technical failure must disable AI injection or return control to the human caller; it must never broaden authority.
 
 ## Privilege boundary
 
@@ -10,19 +10,61 @@ Protected Samsung call-audio access stays inside the privileged helper / Shizuku
 
 Continuous PCM crosses through transferred PFDs. Binder/AIDL is control only. The privileged helper has no model networking and no business-policy authority.
 
-The frozen media path is documented in `docs/PHASE2D_FREEZE_2026-09-18.md`.
+The frozen media path is documented in `docs/PHASE2D_FREEZE_2026-09-18.md` and is not part of ordinary Gate C work.
 
-## Engine boundary
+## Authority owners
 
-Supported/preserved audio modes:
+Do not create parallel authority in CallPlan, a model, helper or Agent Skill.
+
+- `CallTask` — immutable task, hard constraints, preferences and `authorizedFacts`;
+- `CallResolvedTarget` — one concrete target, without authority to widen a live dial allowlist;
+- `CallWorkflow` — task progress, proposal/user-decision state and terminal outcome;
+- `CallConfirmationPolicy` — deterministic evaluation of one typed `CallProposal`;
+- `CallCommitmentGate` — exact one-shot permit bound to one concrete proposal;
+- application-owned output approval — final text release before TTS/TX.
+
+Counterparty/model/helper text cannot create new authorized facts, destinations, actions or commitments.
+
+Missing required user data must fail closed or escalate; never invent sensitive data to satisfy a prompt.
+
+## CallPlan boundary
+
+`CallPlan v1` is current product policy, not future authority.
+
+Host-green behavior includes authorized facts, bounded repeat/escalation, typed proposals/completions and helper matching restricted to an existing `ruleId`.
+
+Only `CallPlanAction.SAY` carries speech text. `ASK_REPEAT`, `PROPOSAL`, `COMPLETE` and `TAKE_OVER` do not carry implicit speech and must not silently become model fallback.
+
+Workflow mutation remains in `CallPlanTurnCoordinator` + existing `CallWorkflow` APIs.
+
+## Final-text release boundary
+
+The existing controller remains the single text release/generation owner:
 
 ```text
-LOCAL_STT_TTS
-OPENAI_REALTIME_AUDIO
-LOCAL_REALTIME_AUDIO
+ordinary final transcript
+ -> TextCallTurnController.submitUserText(...)
+ -> backend.generate(...)
+ -> TextOutputApprovalPolicy
+
+exact deterministic candidate
+ -> TextCallTurnController.submitCandidateText(...)
+ -> TextOutputApprovalPolicy
 ```
 
-Text providers for `LOCAL_STT_TTS`:
+The host-green `TextCallFinalTurnDispatcher` adds a neutral route seam:
+
+- `Generate` — ordinary backend path;
+- `Candidate(text)` — exact pre-determined candidate through the same approval;
+- `Consumed` — no generation and controller cancellation.
+
+`Consumed` must invalidate stale work so an older backend callback cannot be released after a structured CallPlan decision.
+
+CallPlan is not yet automatically wired into real final STT; that integration remains the next product slice.
+
+## Model / helper boundary
+
+Preserved providers do not change authority:
 
 ```text
 LOCAL_PHONE_LLM
@@ -31,178 +73,83 @@ LOCAL_MAC_LLM
 OPENAI_TEXT
 ```
 
-Model/provider selection never changes `CallTask`, confirmation, commitment, output approval or TAKE OVER semantics.
+The current phone-local llama.cpp path is frozen as a product direction. Edge Gallery / Gemma / Agent Skills is also frozen as `PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
 
-Paid OpenAI paths are currently deferred, not deleted.
+Agent Skills are proposal generators only. Do not expose direct implementations for arbitrary dialing, DTMF, authentication, purchases, activations, tariff/plan changes, payments or commitments without a separate deterministic application-owned policy.
 
-## Local speech privacy
+## Speculative / partial speech rule
 
-The proven `LOCAL_STT_TTS` path uses on-device Polish speech recognition and local non-network-required TTS voices on the target S22+.
-
-Production local speech must:
-
-- require on-device recognition rather than silently falling back to cloud STT;
-- use TTS voices that do not require a network connection;
-- bound and clean temporary PCM/files;
-- close temporary PFDs on completion, cancellation and TAKE OVER;
-- avoid retaining call recordings or full transcripts by default.
-
-## Local model boundary
-
-`LOCAL_PHONE_LLM` uses a phone-loopback server and product-owned privileged runtime.
-
-Readiness must verify exact expected model identity, not only endpoint health. A stale or unexpected process fails closed or is recovered through the owned runtime path.
-
-The model never receives authority merely because it runs locally. Local model output is still untrusted candidate text until application approval.
-
-`EDGE_GALLERY` is restricted by the bridge to phone loopback. Readiness requires both `/health` and exact model identity from `/v1/models`; a healthy server with the wrong or missing model fails closed. The adapter supports an optional local Bearer token without weakening the rule that standard OpenAI API keys never live on Android. Production must not expose the Edge Gallery API on LAN/public interfaces or persist call prompts/responses as HTTP traffic logs.
-
-The current headless Edge Gallery development harness is **not PRODUCT_READY**. It exists for controlled local experiments and must not be treated as a network service security baseline.
-
-### Agent Skills action boundary
-
-Agent Skills are untrusted proposal generators. The current phone-navigation experiment intentionally exposes only `say`, `listenMore` and `takeOver`. A skill must not receive direct implementations for dialing, arbitrary DTMF, authentication, purchases, activations, tariff/plan changes, payments or commitments until a deterministic application-owned action policy exists for that capability.
-
-Partial STT/speculative inference may reduce latency, but speculative output is quarantined:
+Partial STT or speculative inference may reduce latency only while quarantined:
 
 ```text
-partial transcript -> optional cancelable prepare/inference
+partial transcript -> optional cancelable preparation
 final endpoint -> final transcript/goal match -> deterministic policy
-              -> approved output/action -> TTS/TX
+              -> approved text/action -> TTS/TX
 ```
 
-A changed/resumed utterance invalidates stale speculative output. No partial transcript may grant authority or cause early telephony TX.
+Changed or resumed speech invalidates stale speculation. Partial text never grants authority and never triggers early telephony TX.
 
-## CallPlan and authorized facts
+## READY_TO_DIAL
 
-Future `CallPlan v1` must distinguish:
+A local call must fail closed before dialing unless:
 
-- hard constraints;
-- preferences;
-- authorized facts;
-- preset answers;
-- allowed actions;
-- decisions requiring user confirmation;
-- model/counterparty text.
-
-Model/counterparty text cannot create new authorized facts.
-
-Pre-call research may suggest a destination or fact, but research output does not silently widen automated dialing authority. The actual live destination must be explicitly operator/user authorized under `AGENTS.md`.
-
-Never invent sensitive user data to satisfy a counterparty question. Missing required data must cause a bounded clarification/escalation.
-
-## Commitment and output integrity
-
-The application owns commitment authorization.
-
-```text
-evaluate proposal
- -> deterministic policy
- -> optional explicit user decision
- -> exact one-shot permit
- -> commit exact proposal once
-```
-
-Replacement proposal, stale generation, TAKE OVER, close or failed submission invalidates authorization.
-
-For local text mode:
-
-```text
-final caller transcript
- -> complete candidate response
- -> application policy/approval
- -> local TTS
- -> telephony TX
-```
-
-Do not synthesize/release unsafe model text merely to reduce latency.
-
-## READY_TO_DIAL security gate
-
-A future local call must fail closed before dialing unless:
-
-- the task and target are valid;
-- the live target is explicitly authorized;
-- required plan data is present;
+- task and target are valid;
+- live target is explicitly authorized;
+- required plan data is consistent with the same task/target/workflow;
 - STT/TTS readiness is proven;
-- the selected local model is loaded and identity-verified;
-- warm-up succeeds.
+- the selected local backend is ready and identity-verified where applicable;
+- required warm-up succeeds.
 
 Readiness must not silently switch to a provider with different privacy, cost or network semantics.
 
 ## Controlled live-call policy
 
-Automated live validation follows `AGENTS.md`:
+Physical validation follows `AGENTS.md`:
 
-- only explicit operator-defined allowlisted destinations;
+- explicit operator-defined allowlisted destination only;
 - one active cellular call at a time;
 - bounded duration/retries;
-- no model/tool expansion of the dialing allowlist;
-- no emergency/premium/arbitrary short-code targets;
+- no model/tool expansion of the dial allowlist;
+- no emergency, premium-rate or arbitrary short-code destinations;
 - a runner may hang up the bounded call it created;
 - an unrelated pre-existing call must not be terminated without explicit authorization.
 
-Keep selected destination, call-state transitions and cleanup outcome observable without logging unrelated phone data.
+No further Orange live-call authorization is currently available.
 
-## Developer ChatGPT relay benchmark
+## Local speech privacy
 
-A planned quality benchmark may send the local STT transcript to the current interactive ChatGPT conversation through Local Agent/ADB and return response text to local S22 TTS.
+Production local speech must:
 
-This is developer tooling, not a production autonomous backend.
+- require on-device recognition rather than silently falling back to cloud STT;
+- use local/non-network-required TTS voices;
+- bound and clean temporary PCM/files;
+- close temporary PFDs on completion, cancellation and TAKE OVER;
+- avoid retaining call recordings or full transcripts by default.
 
-Privacy rules:
+## Credentials
 
-- prefer transcript and response text; do not export raw call audio when not required;
-- run only intentionally during a controlled benchmark;
-- keep payloads bounded to the current test task;
-- do not write transcripts into durable repo logs by default;
-- never treat the chat relay as a hidden background listener.
-
-## Remote/OpenAI credentials
-
-If paid OpenAI work is resumed, a standard API key must never be:
+A standard OpenAI API key is host/backend-only if paid work is resumed. It must never be:
 
 - embedded in source/resources/BuildConfig/APK;
-- stored in Android app-private configuration;
-- passed through an Android Intent;
+- stored in Android app-private config;
+- passed through Android Intent;
 - passed in ADB argv/process arguments;
 - logged by app/helper/scripts.
 
-Existing broker-based OpenAI code is preserved for future use. Long-lived credentials remain host/backend-only.
+Do not silently switch from a local provider to a paid/network provider.
 
-`OPENAI_TEXT` should transmit text/context only unless a different mode is explicitly selected. OpenAI Realtime Audio is a separate preserved/frozen audio path.
-
-## Local Mac provider
-
-`LOCAL_MAC_LLM` remains a provider option.
-
-Preferred boundary:
-
-```text
-S22 -> trusted LAN/authenticated narrow endpoint -> local model server
-```
-
-Do not expose a local model server publicly by default. Failure must not silently switch to another provider with different privacy/cost semantics.
-
-## Diagnostics and data minimization
+## Data minimization
 
 Do not retain by default:
 
 - raw PCM;
 - call recordings;
 - full transcripts;
-- model/tool arguments containing user data;
+- model/tool arguments containing user secrets;
 - credentials;
 - unrelated counterparty identifiers.
 
-Prefer:
-
-- state;
-- sizes;
-- timings;
-- sanitized failure reasons;
-- local correlation IDs;
-- bounded text only when needed for an explicit development proof.
+Prefer state, sizes, timings, sanitized failure reasons, local correlation IDs and bounded text only when needed for an explicit development proof.
 
 ## TAKE OVER
 
@@ -212,34 +159,14 @@ Required local-first ordering:
 stop accepting/releasing AI output
  -> abort telephony media generation
  -> stop STT/TTS/audio workers
- -> invalidate model/tool generation
- -> best-effort cancel remote/local model work
+ -> invalidate controller/model/tool generation
+ -> best-effort cancel remote/local work
 ```
 
-The first steps cannot wait for network/model acknowledgement. App/helper death must likewise disable injection.
+The first steps cannot wait for model/network acknowledgement. App/helper death must likewise disable injection.
 
 ## Evidence rule
 
 `HOST_GREEN` is not `PROVEN_S22`.
 
-Physically proven now includes:
-
-- frozen bidirectional Samsung cellular media and fail-safe cleanup;
-- on-device `pl-PL` STT and local TTS;
-- provider-neutral local speech/text pipeline;
-- product-owned Qwen2.5-1.5B runtime lifecycle and identity verification;
-- Edge Gallery/Gemma phone-local inference through the experimental loopback harness;
-- a bounded real Orange STT -> Gemma -> approval -> TTS -> TX turn;
-- spoken information-only IVR branch selection that Orange classified as a SIM-related request;
-- official Agent Skills headless tool proposal reaching a real Orange TX turn;
-- Android recognizer begin/end/segment and rich partial STT timing on the complete Orange greeting.
-
-Not yet proven/product-ready:
-
-- a robust product IVR endpoint state machine across varied prompts;
-- low-latency two-turn Agent Skills Orange execution;
-- an authenticated/hardened production Edge Gallery server boundary;
-- deterministic application gating for DTMF or other non-speech tools;
-- `CallPlan v1` constrained multi-turn task execution;
-- local audio-model path;
-- paid OpenAI text or genuine OpenAI Realtime end-to-end path.
+Current host-green CallPlan/product routing does not by itself prove real Android final-STT interception. Physical proof comes only after that integration is complete and a specifically authorized device gate is run.
