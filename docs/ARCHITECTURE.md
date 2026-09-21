@@ -34,9 +34,7 @@ TX: PFD -> SamsungUplinkPipeSession -> SamsungCallAssistantTrack
     -> USAGE_CALL_ASSISTANT / TELEPHONY_TX
 ```
 
-Stereo duplication exists only at the Samsung TX boundary.
-
-Before changing this layer, read `docs/PHASE2D_FREEZE_2026-09-18.md`.
+Stereo duplication exists only at the Samsung TX boundary. Before changing this layer, read `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
 ## Authority boundary
 
@@ -49,18 +47,16 @@ The existing domain model remains authoritative:
 - `CallCommitmentGate`;
 - application-owned output approval.
 
-`CallPlan` references those owners; it is not a parallel authority store.
-
-`CallPlanEngine` is deterministic policy logic. It can produce only typed `SAY`, `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, or `TAKE_OVER` decisions. It does not dial, mutate workflow state, authorize commitments or touch media/TTS/TX.
-
-`CallPlanTurnCoordinator` is the narrow product owner that applies typed proposal/completion decisions through the existing `CallWorkflow` methods and rejects task/target/state mismatch fail-closed.
+`CallPlan` references those owners; it is not a parallel authority store. `CallPlanEngine` can produce only typed `SAY`, `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, or `TAKE_OVER` decisions. `CallPlanTurnCoordinator` is the narrow product owner that applies typed proposal/completion decisions through the existing workflow and rejects task/target/state mismatch fail-closed.
 
 ## Prepared product session
 
 Pre-dial ownership:
 
 ```text
-CallWorkflow + explicit target authorization + optional CallPlan
+CallWorkflow + explicit target authorization
+ + optional CallPlan
+ + optional PhraseMatrix (requires CallPlan)
         |
         v
 LocalTextCallReadinessCoordinator
@@ -76,7 +72,14 @@ PreparedLocalTextCall
 LocalTextCallSession
 ```
 
-`PreparedLocalTextCall` is a one-shot handoff. `LocalTextCallSession` owns the prepared backend/session dialogue state, including the consecutive-unknown CallPlan counter. It still does not own frozen telephony media.
+`PreparedLocalTextCall` is a one-shot handoff. PhraseMatrix cannot be carried without a bound CallPlan. The Android readiness factories accept the same optional `CallPlan + PhraseMatrix` pair and pass it into the existing readiness owner.
+
+`LocalTextCallSession` owns prepared dialogue state, including:
+
+- the consecutive-unknown CallPlan counter;
+- `previousValidatedRuleId` for bounded previous-turn matching.
+
+The previous-rule value is sourced only from a successful validated `CallPlanDecision.ruleId()`. A raw matcher hit, unknown rule or fallback cannot become later-turn context. The session still does not own frozen telephony media.
 
 ## Speech and final-text boundary
 
@@ -86,8 +89,9 @@ Current Android speech pipeline:
 PCM input
  -> OnDeviceSpeechInput
  -> final transcript
- -> optional product-owned final-turn selector
+ -> product-owned final-turn selector
       no plan: Generate
+      plan + matrix hit: validate existing ruleId through CallPlan
       plan SAY: Candidate(exact text)
       plan structured action: Consumed
  -> TextCallFinalTurnDispatcher
@@ -97,115 +101,88 @@ PCM input
  -> PCM output
 ```
 
-`LocalSpeechTextPipeline` owns speech lifecycle and its outer generation gate. `TextCallTurnController` owns complete-text generation/candidate approval and controller-level generation invalidation. `LocalTextCallSession` owns plan-bound final-turn selection and consecutive-unknown state. CallPlan/workflow policy does not move into `localspeech`.
+`LocalSpeechTextPipeline` owns speech lifecycle and its outer generation gate. `TextCallTurnController` owns complete-text generation/candidate approval and controller-level generation invalidation. `LocalTextCallSession` owns plan/matrix selection and bounded dialogue context. CallPlan/workflow policy does not move into `localspeech`.
 
-### Neutral final-turn dispatcher — integrated host-green
-
-`TextCallFinalTurnDispatcher` remains neutral and knows nothing about CallPlan or workflow:
+`TextCallFinalTurnDispatcher` remains neutral:
 
 ```text
-TextCallFinalTurnRoute.Generate
-  -> TextCallTurnController.submitUserText(finalTranscript)
-
-TextCallFinalTurnRoute.Candidate(text)
-  -> TextCallTurnController.submitCandidateText(exact text)
-
-TextCallFinalTurnRoute.Consumed
-  -> TextCallTurnController.cancel()
-  -> no text generation
+Generate -> TextCallTurnController.submitUserText(finalTranscript)
+Candidate(text) -> TextCallTurnController.submitCandidateText(exact text)
+Consumed -> TextCallTurnController.cancel(); no text generation
 ```
 
-`CallPlanFinalTurnRouteMapper` is the product adapter:
+`CallPlanFinalTurnRouteMapper` maps `SAY` to an exact candidate and maps `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, `TAKE_OVER` to `Consumed` while preserving the exact structured result.
+
+This path is host-green and preserves exactly one controller, approval path and generation/cancellation lifecycle.
+
+## Native PhraseMatrix fast path
+
+The selected production matcher is the small native Kotlin `PhraseMatrix`.
+
+Current host-green contract:
 
 ```text
-SAY -> Candidate(exact text)
-ASK_REPEAT / PROPOSAL / COMPLETE / TAKE_OVER
-  -> Consumed + exact structured CallPlanTurnResult
+final transcript
+ -> NFKC/lowercase/punctuation-space normalization
+ -> exact phrase / explicit alias lookup
+ -> optional explicit previousRuleId constraint
+ -> PhraseMatch(ruleId, confidence, matcherKind, variantClass?)
+ -> PhraseMatrixProductTurnRouter
+ -> CallPlanTurnCoordinator.handleSuggestedRuleId(...)
+ -> existing workflow/output path
 ```
 
-`LocalSpeechTextPipeline` receives only the neutral route selector. It does not evaluate CallPlan, mutate workflow or own the structured result. The default/no-plan selector is absent and therefore resolves to `Generate`.
+Properties:
 
-This integration is `HOST_GREEN` in `.agent/results/chatgpt-gate-c-final-stt-selector-green-v51-20260921.json`. It preserves one controller, one approval path and one cancellation lifecycle; `Consumed` invalidates stale backend/controller callbacks before the speech generation closes.
+- classification only, no arbitrary response text;
+- deterministic replay;
+- normalized collisions rejected fail-closed;
+- unknown input returns no match;
+- previous-turn matching receives context explicitly and owns no state;
+- all rule ids are revalidated against the bound CallPlan before authority/workflow/output effects;
+- rejected matcher ids do not poison later-turn context.
 
-## Phrase / Intent Matrix fast path + LLM supervisor
+The next layer may add bounded deterministic fuzzy/pattern matching, but only with explicit false-positive/negation guards and the same classification-only contract.
 
-A high-value follow-on architecture is a **local deterministic phrase/intent matrix in front of general-purpose LLM reasoning**. The purpose is not only lower latency: common conversational turns should be resolved immediately while a bounded LLM supervisor has time to warm up, accumulate context, and enter only when a turn is ambiguous or materially important.
+## Matcher engine decision
 
-Target composition:
+Host spikes selected the native matcher over importing a dialogue engine:
+
+- native PhraseMatrix: ~11.85 ms init, ~0.815 us average match;
+- RiveScript Java: ~46.56 ms init/sort, ~88.85 us average reply, +134,132 B debug APK and `slf4j-api`;
+- RiveScript proved UTF-8/previous-turn feasibility but can emit arbitrary reply text, so it remains reference-only;
+- ChatScript remains design reference for pattern/topic/rejoinder ideas because full C++/JNI/data integration is too broad for the current need;
+- KStateMachine is deferred unless non-authority stage tracking becomes complex enough to justify it.
+
+These are host measurements, not S22 performance claims.
+
+## Bounded LLM supervisor — future Gate C layer
+
+The desired steady state is deterministic first, LLM on demand:
 
 ```text
-final STT
-   |
-   v
-normalize / classify locally
-   |
-   v
-Phrase / Intent Matrix
-   |------------------------------|
-   | high-confidence known turn   | unknown / ambiguous / important turn
-   v                              v
-exact CallPlan rule /         bounded local LLM supervisor
-approved response variant       -> suggest existing intent/ruleId only
-   |                              |
-   +--------------+---------------+
-                  v
-         CallPlan / workflow policy
-                  v
-       application-owned approval
-                  v
-                 TTS
+transcript + bounded recent context + current stage + available rule ids
+ -> supervisor suggests existing ruleId + confidence
+ -> deterministic validator
+ -> CallPlan / workflow / output approval
 ```
 
-Suggested layers:
-
-1. **Exact normalized matrix** — fastest path for greetings, acknowledgements, repeat requests and other common phrases.
-2. **Deterministic fuzzy matcher** — bounded matching for harmless wording variants without invoking an LLM.
-3. **LLM supervisor** — receives bounded conversation context and may propose an existing intent/rule/ruleId; it does not create facts, targets, actions, commitments or authority.
-
-Typical matrix entries may include intents such as `GREETING`, `ACK`, `CONFIRM`, `REJECT`, `ASK_REPEAT`, `WAIT`, `ASK_NAME`, `ASK_PURPOSE`, and other task-specific CallPlan rules. Sensitive or committing actions remain outside generic phrase matching and continue through the existing typed policy/workflow gates.
-
-### Deterministic response variation
-
-Natural variation should not require free-form generation. Each safe intent may carry a small finite allowlist of reviewed response variants, for example:
-
-```text
-GREETING:
-  - "Dzień dobry."
-  - "Dzień dobry, słucham."
-```
-
-A `temperature`-like product setting may control the size of the eligible variant set, but selection should remain deterministic/testable, for example from a stable seed such as `callId + turnIndex + intent`. The matrix must never generate arbitrary new text merely to sound less repetitive.
-
-### LLM gets time without becoming the turn owner
-
-The matrix fast path intentionally gives the LLM "breathing room": while trivial turns are answered locally in milliseconds, the supervisor can maintain or refresh a bounded semantic view of the conversation and be ready for later key moments. This is useful only if the authority boundary remains strict:
-
-- matrix output is still subject to CallPlan/workflow/output approval;
-- LLM output is quarantined until validated against current final transcript and current plan state;
-- an LLM suggestion cannot retroactively replace an already-approved deterministic turn;
-- resumed/changed speech, cancellation, workflow change or newer context invalidates stale supervisor work;
-- the LLM should be invoked selectively rather than on every turn.
-
-The desired steady state is therefore **deterministic first, LLM on demand**, not "LLM writes every response". This architecture should reduce perceived latency, model invocation rate, RAM/thermal pressure and hallucination surface while reserving model capacity for genuinely contextual turns.
-
-Useful future metrics include matrix hit rate, deterministic/fuzzy false-match rate, LLM invocation rate, p50/p95 response latency, takeover rate, and the fraction of important turns that required supervisor help.
+The supervisor cannot invent facts, targets, actions, commitments or authority. Speculative output remains quarantined and is invalidated by a newer transcript, resumed speech, cancellation, workflow change or an already-released deterministic response.
 
 ## Provider boundary
 
-Text providers for local STT/TTS remain selectable infrastructure:
+Text providers remain selectable infrastructure:
 
 - `LOCAL_PHONE_LLM` — preserved experiment;
 - `EDGE_GALLERY` — frozen experimental provider;
 - `LOCAL_MAC_LLM` — retained option;
 - `OPENAI_TEXT` — preserved/deferred.
 
-`OPENAI_REALTIME_AUDIO` is preserved/frozen and `LOCAL_REALTIME_AUDIO` is future work.
-
-Provider selection never changes task, target, confirmation, commitment, output approval or TAKE OVER authority.
+`OPENAI_REALTIME_AUDIO` is preserved/frozen and `LOCAL_REALTIME_AUDIO` is future work. Provider selection never changes task, target, confirmation, commitment, output approval or TAKE OVER authority.
 
 ## Endpointing
 
-Real Orange IVR evidence proved that short fixed trailing silence and a single recognizer end event are not valid universal turn boundaries. The intended endpoint state is:
+Real Orange IVR evidence proved that short fixed trailing silence and a single recognizer end event are not valid universal turn boundaries:
 
 ```text
 speech/begin -> cancel pending END
@@ -239,4 +216,4 @@ The first steps never wait for model/network acknowledgement.
 
 ## Evidence rule
 
-`HOST_GREEN` never implies `PROVEN_S22`. Host-only CallPlan/product routing changes require physical S22 evidence only when a later slice actually changes or exercises Android/OEM behavior.
+`HOST_GREEN` never implies `PROVEN_S22`. Host-only matcher/product-routing changes require physical S22 evidence only when a later slice actually changes or exercises Android/OEM behavior.
