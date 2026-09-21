@@ -77,6 +77,12 @@ exact deterministic candidate
 
 CallPlan and the optional native PhraseMatrix are now host-green at the real product final-STT selector boundary and can be bound through Android readiness. This is still host evidence; no new S22/OEM claim is implied.
 
+## Service intent resolver boundary
+
+`serviceintent/` is classification and validation infrastructure, not a new authority owner. The model receives a bounded candidate catalog and may return only an existing `service_id` or null with confidence/classification metadata. Unknown IDs, cross-pack IDs, low confidence, stale generations and metadata attempting to carry speech/action/target authority fail closed.
+
+A successful classification does not authorize execution. The authoritative registry is checked again; `DISCOVERED` routes remain `ROUTE_NOT_VERIFIED`; verified-route eligibility additionally requires existing application authority. The resolver has no direct dial/TTS/TX surface.
+
 ## Model / helper boundary
 
 Preserved providers do not change authority:
@@ -132,7 +138,7 @@ Physical validation follows `AGENTS.md`:
 - a runner may hang up the bounded call it created;
 - an unrelated pre-existing call must not be terminated without explicit authorization.
 
-No further Orange live-call authorization is currently available.
+Orange live-call authorization is session-scoped. Never infer it from this document or a previous chat; use only explicit authorization in the current operator session and the exact allowlisted target.
 
 ## Local speech privacy
 

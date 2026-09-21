@@ -136,155 +136,42 @@ Required safety markers were present, including `gate_c_fast_path=true`, `gate_c
 
 Therefore do not repeat work whose sole purpose is proving the first deterministic live RX -> TX path.
 
-## Current slice — Orange Service Pack Explorer
+## Current slice — Orange Service Pack + intent resolver
 
-Status: `ACTIVE / FIRST NODES AND EDGES PHYSICALLY VERIFIED`
+Status: `ACTIVE / HOST_GREEN / LIVE DETERMINISTIC PATH PROVEN_S22 / SERVICE ROUTES STILL DISCOVERED`.
 
-Goal: make Orange the first fully decoded deterministic service pack.
+Durable graph: `service-packs/orange/service_tree.v1.json`. Verified physical nodes are `orange.root` and `orange.root.reprompt`. Verified observed root edges include `list_capabilities`, `invoice_status`, `invoice_topic`, `internet_problem` and `roaming_info`. These edges verify observed transitions only.
 
-Durable graph:
+Current service seeds `orange.invoice.status`, `orange.internet.problem` and `orange.roaming.info` remain `DISCOVERED`; their tested utterances returned the root reprompt, so no complete service route is claimed `VERIFIED`.
 
-```text
-service-packs/orange/service_tree.v1.json
-```
+Latest bounded physical evidence is `chatgpt-orange-roaming-live-v151-20260922`: exact reviewed `Roaming.`, `backend_generate_calls=0`, passive `OBSERVE_ONLY`, known root reprompt and cleanup to `IDLE`.
 
-### Current verified nodes
+### Generic service-intent resolver
 
-```text
-orange.root
-orange.root.reprompt
-```
+Status: `HOST_GREEN`.
 
-Max is a voice-first intent router. The verified root asks the caller to state what the call concerns.
-
-### Current verified observed edges
-
-`v115`:
+The new `serviceintent/` layer implements a provider-neutral classifier boundary, bounded `ServiceRegistry`, fail-closed resolver and separate execution validator. It accepts only existing service IDs and keeps `DISCOVERED` routes blocked as `ROUTE_NOT_VERIFIED`.
 
 ```text
-orange.root.list_capabilities
-orange.root -> orange.root.reprompt
-speech: Jakie sprawy możesz załatwić?
-outcome: REPROMPT
+Mam problem z internetem w Orange
+ -> orange.internet.problem
+ -> registry validation
+ -> ROUTE_NOT_VERIFIED
+ -> no call / no speech / no commitment
 ```
 
-`v123`:
+### Near-term priorities
 
-```text
-orange.root.invoice_status
-orange.root -> orange.root.reprompt
-speech: Chcę sprawdzić fakturę.
-outcome: REPROMPT
-```
+1. Continue evidence-driven low-risk Orange mapping without overwriting old evidence.
+2. Preserve strict edge-vs-service-route verification semantics.
+3. Keep the current small reviewed action enum until it becomes a real bottleneck.
+4. Add classifier provider/registry loading only behind the generic resolver boundary.
+5. Keep auth/payment/commitment points as recorded barriers, not discovery shortcuts.
+6. Use `docs/ORANGE_OVERNIGHT_MAPPING_PROMPT.md` only in a future explicitly authorized session; it is prepared, not running.
 
-The invoice edge verifies what actually happened, not that the invoice service was reached.
+### Orange acceptance target
 
-### Current service seed state
-
-```text
-orange.invoice.status
-status: DISCOVERED
-service route: NOT VERIFIED
-last outcome: REPROMPT
-```
-
-Service-state progression:
-
-```text
-SEED -> DISCOVERED -> VERIFIED
-```
-
-Only physical Orange evidence promotes a route to `VERIFIED`.
-
-### Root-acquisition policy
-
-Physically observed exact ignorable branding/pre-roll fragments:
-
-```text
-orange
-jakości orange
-5g jakości orange
-```
-
-They are ignored only in bounded root acquisition with the tested Gate C safety conditions. `OBSERVE_ONLY` never consumes them as retryable pre-roll.
-
-A strict bounded retry for Android `SpeechRecognizer ERROR_NO_MATCH(7)` also exists only for root acquisition after real detected speech + trailing-silence endpointing + bound Gate C + zero backend generation.
-
-Do not replace these exact evidence-backed rules with generic semantic guessing.
-
-### Current host checkpoint
-
-Product/data checkpoint:
-
-```text
-5b0f599b98aefcef2279490cb14824f70e63ea17
-```
-
-Evidence:
-
-```text
-.agent/results/chatgpt-orange-service-tree-final-green-v125-20260921.json
-```
-
-Result:
-
-```text
-12 Orange tree/runner tests OK
-bash scripts/verify_host.sh -> host_quality_gate_green=true
-ORANGE_SERVICE_TREE_HANDOFF_HOST_GREEN=true
-```
-
-Documentation commits after that checkpoint do not change runtime behavior.
-
-### Discovery execution loop
-
-For each unverified Orange capability:
-
-1. select one service seed;
-2. define one exact reviewed non-committing utterance;
-3. RED test the action/route contract;
-4. minimal GREEN through the existing authority path;
-5. targeted regressions + `bash scripts/verify_host.sh`;
-6. only with explicit current-session authorization, execute one bounded call to exact target `510100100` with `OBSERVE_ONLY` follow-up;
-7. persist the observed node/edge/outcome into the service tree;
-8. if the branch reaches authentication, customer-data entry, payment, purchase, activation, tariff/contract change or other commitment barrier, record the barrier and continue another branch instead of finalizing it;
-9. repeat.
-
-The overall explorer should continue across branches rather than stop permanently at the first barrier. This does not authorize bypassing barriers or inventing credentials.
-
-Public Orange capability information is a seed backlog only. Candidate low-risk domains include invoice/payment information, outages/technical support, PUK, Neostrada/Wi-Fi, roaming information, voicemail, SIM/eSIM, data usage, prepaid/top-up information, forwarding, My Orange and human handoff. None is route-verified until reproduced physically.
-
-### Near-term engineering priorities
-
-1. Preserve the `v123` invoice reprompt edge; do not overwrite history.
-2. Try a separately reviewed simpler/operator-native invoice utterance based on concrete vocabulary evidence.
-3. Add at least one new low-risk capability seed so exploration does not stall on invoice wording.
-4. After several intents prove the pattern, consider a data-driven reviewed explorer action catalog instead of an ever-growing enum — only if it keeps exact reviewed speech, CallPlan validation, output approval and zero model generation.
-5. Map repeat/back/recovery behavior when concrete nodes expose those options.
-6. Build the eventual service resolver only after the verified catalog is meaningful.
-
-### Gate C / Orange acceptance target
-
-Orange service-pack acceptance requires:
-
-- meaningful catalog of verified service routes;
-- deterministic recovery/repeat/back/barrier behavior where available;
-- exact target allowlist retained;
-- no arbitrary model speech during route execution;
-- natural-language user intent resolves only to an existing verified `service_id`;
-- validated service route reaches the expected terminal node or explicit barrier;
-- call always cleans up to `IDLE`.
-
-Final intended flow:
-
-```text
-natural user request
- -> bounded resolver proposes existing service_id
- -> service_id validated against verified service pack
- -> deterministic Orange route
- -> expected service terminal/barrier
- -> explicit auth/confirmation only if required
-```
+Orange is not complete until a meaningful catalog of service routes is physically verified with deterministic recovery/barrier behavior and natural user intent resolves only to existing verified service IDs before existing authority validates execution.
 
 ## Later gate — bounded multi-turn product tasks
 

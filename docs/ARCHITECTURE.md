@@ -156,18 +156,27 @@ Host spikes selected the native matcher over importing a dialogue engine:
 
 These are host measurements, not S22 performance claims.
 
-## Bounded LLM supervisor — future Gate C layer
+## Service intent resolver boundary
 
-The desired steady state is deterministic first, LLM on demand:
+Status: `HOST_GREEN`. Generic code lives in `serviceintent/` and is intentionally independent of Orange, telephony and speech output.
 
 ```text
-transcript + bounded recent context + current stage + available rule ids
- -> supervisor suggests existing ruleId + confidence
- -> deterministic validator
- -> CallPlan / workflow / output approval
+natural user text + bounded catalog
+ -> UserIntentClassificationModel
+ -> existing service_id or null + confidence
+ -> ModelBackedUserIntentResolver fail-closed checks
+ -> ServiceRegistry revalidation
+ -> ServiceIntentExecutionValidator
+ -> existing authority owners
 ```
 
-The supervisor cannot invent facts, targets, actions, commitments or authority. Speculative output remains quarantined and is invalidated by a newer transcript, resumed speech, cancellation, workflow change or an already-released deterministic response.
+Unknown IDs, cross-pack IDs, low confidence, stale generations and authority-bearing metadata such as speech/action/target are rejected. A `DISCOVERED` service may classify but yields `ROUTE_NOT_VERIFIED`; only a `VERIFIED` route may become eligible, and existing application authority must separately allow execution. The resolver never dials, speaks or mutates workflow.
+
+Provider implementations can later be local, OpenAI, Gemma or deterministic without changing service-pack or validator semantics.
+
+## Bounded rule supervisor — deferred
+
+A later supervisor may suggest an existing CallPlan rule id plus confidence from bounded context. It remains classification-only and must pass deterministic CallPlan/workflow/output-approval authority.
 
 ## Provider boundary
 
