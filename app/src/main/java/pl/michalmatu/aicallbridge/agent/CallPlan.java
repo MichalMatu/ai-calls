@@ -13,6 +13,7 @@ public final class CallPlan {
     private final CallTask task;
     private final CallResolvedTarget resolvedTarget;
     private final List<CallPlanRule> rules;
+    private final List<CallPlanCompletionRule> completionRules;
     private final CallPlanFallbackPolicy fallbackPolicy;
 
     public CallPlan(
@@ -21,7 +22,7 @@ public final class CallPlan {
         List<CallPlanRule> rules,
         CallPlanFallback fallback
     ) {
-        this(task, resolvedTarget, rules, CallPlanFallbackPolicy.fromLegacy(fallback));
+        this(task, resolvedTarget, rules, List.of(), CallPlanFallbackPolicy.fromLegacy(fallback));
     }
 
     public CallPlan(
@@ -30,12 +31,27 @@ public final class CallPlan {
         List<CallPlanRule> rules,
         CallPlanFallbackPolicy fallbackPolicy
     ) {
+        this(task, resolvedTarget, rules, List.of(), fallbackPolicy);
+    }
+
+    public CallPlan(
+        CallTask task,
+        CallResolvedTarget resolvedTarget,
+        List<CallPlanRule> rules,
+        List<CallPlanCompletionRule> completionRules,
+        CallPlanFallbackPolicy fallbackPolicy
+    ) {
         this.task = Objects.requireNonNull(task, "task");
         this.resolvedTarget = Objects.requireNonNull(resolvedTarget, "resolvedTarget");
         Objects.requireNonNull(rules, "rules");
         this.rules = List.copyOf(rules);
         for (CallPlanRule rule : this.rules) {
             Objects.requireNonNull(rule, "rules item");
+        }
+        Objects.requireNonNull(completionRules, "completionRules");
+        this.completionRules = List.copyOf(completionRules);
+        for (CallPlanCompletionRule rule : this.completionRules) {
+            Objects.requireNonNull(rule, "completionRules item");
         }
         this.fallbackPolicy = Objects.requireNonNull(fallbackPolicy, "fallbackPolicy");
     }
@@ -52,6 +68,10 @@ public final class CallPlan {
         return rules;
     }
 
+    public List<CallPlanCompletionRule> completionRules() {
+        return completionRules;
+    }
+
     /** Compatibility accessor for the original one-step fallback API. */
     public CallPlanFallback fallback() {
         return fallbackPolicy.initialFallback();
@@ -65,6 +85,8 @@ public final class CallPlan {
     public String toString() {
         return "CallPlan[task=REDACTED, resolvedTarget=REDACTED, rules="
             + rules.size()
+            + ", completionRules="
+            + completionRules.size()
             + ", fallbackPolicy="
             + fallbackPolicy
             + "]";
