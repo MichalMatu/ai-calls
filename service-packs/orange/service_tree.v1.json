@@ -53,6 +53,19 @@
       "evidence_task": "chatgpt-orange-invoice-topic-live-installed-v136-20260922",
       "observation_endpoint_reason": "max_duration",
       "service_route_verified": false
+    },
+    {
+      "id": "orange.root.internet_problem",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "internet_problem",
+      "speech": "Mam problem z internetem.",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
+      "evidence_task": "chatgpt-orange-internet-live-v145-20260922",
+      "observation_endpoint_reason": "max_duration",
+      "service_route_verified": false
     }
   ],
   "seeds": [
@@ -64,6 +77,17 @@
       "risk": "AUTH_REQUIRED_POSSIBLE",
       "source": "operator_capability_backlog",
       "last_evidence": "chatgpt-orange-invoice-live-v123-20260921",
+      "last_outcome": "REPROMPT",
+      "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
+    },
+    {
+      "service_id": "orange.internet.problem",
+      "status": "DISCOVERED",
+      "action_id": "internet_problem",
+      "speech": "Mam problem z internetem.",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "operator_capability_backlog",
+      "last_evidence": "chatgpt-orange-internet-live-v145-20260922",
       "last_outcome": "REPROMPT",
       "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
     }
