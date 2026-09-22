@@ -414,6 +414,13 @@
       "kind": "IGNORABLE_PREROLL_FRAGMENT",
       "effect": "BOUNDED_RETRY_ALLOWED",
       "evidence_task": "chatgpt-orange-sms-problem-live-v218-20260922"
+    },
+    {
+      "transcript": "wie jakości orange",
+      "status": "VERIFIED",
+      "kind": "IGNORABLE_PREROLL_FRAGMENT",
+      "effect": "BOUNDED_RETRY_ALLOWED",
+      "evidence_task": "chatgpt-orange-sms-receive-problem-live-v235-20260922"
     }
   ]
 }
