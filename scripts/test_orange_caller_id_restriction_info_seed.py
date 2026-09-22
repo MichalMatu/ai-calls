@@ -25,7 +25,7 @@ class OrangeCallerIdRestrictionInfoSeedTest(unittest.TestCase):
             live.ORANGE_REVIEWED_RESPONSES[live.ORANGE_ACTION_CALLER_ID_RESTRICTION_INFO],
         )
 
-    def test_public_support_caller_id_restriction_info_seed_is_discovered_only(self):
+    def test_caller_id_restriction_info_seed_stays_discovered_after_v264_reprompt(self):
         tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
         seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
         seed = seeds["orange.caller_id.restriction_info"]
@@ -34,9 +34,12 @@ class OrangeCallerIdRestrictionInfoSeedTest(unittest.TestCase):
         self.assertEqual("Jak działa zastrzeganie numeru?", seed["speech"])
         self.assertEqual("AUTH_REQUIRED_POSSIBLE", seed["risk"])
         self.assertEqual("operator_public_support_backlog", seed["source"])
-        self.assertEqual("public_orange_support_page", seed["last_evidence"])
-        self.assertEqual("NOT_PHYSICALLY_PROBED", seed["last_outcome"])
-        self.assertIn("physical_route_required", seed["next_evidence"])
+        self.assertEqual(
+            "chatgpt-orange-caller-id-restriction-info-live-v264-20260922",
+            seed["last_evidence"],
+        )
+        self.assertEqual("REPROMPT", seed["last_outcome"])
+        self.assertIn("closed_after_reviewed_root_reprompt", seed["next_evidence"])
         self.assertIn("service_route_not_verified", seed["next_evidence"])
 
 
