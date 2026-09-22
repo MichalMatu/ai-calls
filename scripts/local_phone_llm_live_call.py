@@ -32,6 +32,7 @@ ORANGE_ACTION_INTERNET_PROBLEM = "internet_problem"
 ORANGE_ACTION_OUTAGE_TOPIC = "outage_topic"
 ORANGE_ACTION_WIFI_PROBLEM = "wifi_problem"
 ORANGE_ACTION_COVERAGE_INFO = "coverage_info"
+ORANGE_ACTION_INTERNET_CONFIG = "internet_config"
 ORANGE_ACTION_ROAMING_INFO = "roaming_info"
 ORANGE_ACTION_ROAMING_PRICES = "roaming_prices"
 ORANGE_ACTION_OBSERVE_ONLY = "observe_only"
@@ -44,6 +45,7 @@ ORANGE_LIVE_ACTIONS = frozenset({
     ORANGE_ACTION_OUTAGE_TOPIC,
     ORANGE_ACTION_WIFI_PROBLEM,
     ORANGE_ACTION_COVERAGE_INFO,
+    ORANGE_ACTION_INTERNET_CONFIG,
     ORANGE_ACTION_ROAMING_INFO,
     ORANGE_ACTION_ROAMING_PRICES,
     ORANGE_ACTION_OBSERVE_ONLY,
@@ -57,6 +59,7 @@ GATE_C_ROOT_ACQUISITION_ACTIONS = frozenset({
     ORANGE_ACTION_OUTAGE_TOPIC,
     ORANGE_ACTION_WIFI_PROBLEM,
     ORANGE_ACTION_COVERAGE_INFO,
+    ORANGE_ACTION_INTERNET_CONFIG,
     ORANGE_ACTION_ROAMING_INFO,
     ORANGE_ACTION_ROAMING_PRICES,
 })
@@ -69,6 +72,7 @@ ORANGE_REVIEWED_RESPONSES = {
     ORANGE_ACTION_OUTAGE_TOPIC: "Awaria.",
     ORANGE_ACTION_WIFI_PROBLEM: "Mam problem z Wi-Fi.",
     ORANGE_ACTION_COVERAGE_INFO: "Chcę sprawdzić zasięg.",
+    ORANGE_ACTION_INTERNET_CONFIG: "Jak skonfigurować internet w telefonie?",
     ORANGE_ACTION_ROAMING_INFO: "Roaming.",
     ORANGE_ACTION_ROAMING_PRICES: "Chcę sprawdzić ceny w roamingu.",
 }
@@ -542,7 +546,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             raise ValueError(
                 "usage: local_phone_llm_live_call.py [adb-serial] "
                 "[LOCAL_PHONE_LLM|EDGE_GALLERY] [--gate-c-fast-path] "
-                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|outage_topic|wifi_problem|coverage_info|roaming_info|roaming_prices|observe_only] [--observe-next]"
+                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|outage_topic|wifi_problem|coverage_info|internet_config|roaming_info|roaming_prices|observe_only] [--observe-next]"
             )
         serial = args[0] if args else DEFAULT_SERIAL
         provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
