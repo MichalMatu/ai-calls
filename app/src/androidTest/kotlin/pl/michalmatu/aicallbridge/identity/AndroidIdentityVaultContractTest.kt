@@ -42,7 +42,7 @@ class AndroidIdentityVaultContractTest {
     }
 
     @Test
-    fun `ciphertext storage is app private no-backup and atomically replaces the record`() {
+    fun ciphertextStorageIsAppPrivateNoBackupAndAtomic() {
         val recordName = newRecordName()
         val storage = AndroidIdentityVaultBlobStorage(context, recordName)
         val first = "ciphertext-v1".toByteArray()
@@ -57,7 +57,7 @@ class AndroidIdentityVaultContractTest {
     }
 
     @Test
-    fun `keystore key is non-exportable created once and reused for AES GCM`() {
+    fun keystoreKeyIsNonExportableCreatedOnceAndReusedForAesGcm() {
         val alias = newAlias()
         val aad = "vault-aad".toByteArray()
         val plaintext = "sensitive".toByteArray()
@@ -76,7 +76,7 @@ class AndroidIdentityVaultContractTest {
     }
 
     @Test
-    fun `aad and algorithm identity are authenticated and plaintext never reaches durable bytes`() {
+    fun aadAndAlgorithmIdentityAreAuthenticatedAndPlaintextIsNotDurable() {
         val alias = newAlias()
         val recordName = newRecordName()
         val secretText = "jan.identity@example.test"
@@ -100,7 +100,7 @@ class AndroidIdentityVaultContractTest {
     }
 
     @Test
-    fun `missing keystore key fails closed and does not replace ciphertext or silently create a new key`() {
+    fun missingKeystoreKeyFailsClosedWithoutReplacingCiphertext() {
         val alias = newAlias()
         val recordName = newRecordName()
         val vault = AndroidIdentityVault.create(context, alias, recordName)
@@ -120,7 +120,7 @@ class AndroidIdentityVaultContractTest {
     }
 
     @Test
-    fun `invalid keystore entry fails closed instead of replacing it`() {
+    fun invalidKeystoreEntryFailsClosedInsteadOfReplacingIt() {
         val alias = newAlias()
         val recordName = newRecordName()
         val vault = AndroidIdentityVault.create(context, alias, recordName)
@@ -138,7 +138,7 @@ class AndroidIdentityVaultContractTest {
     }
 
     @Test
-    fun `corrupt ciphertext and unsupported records fail closed`() {
+    fun corruptCiphertextAndUnsupportedRecordsFailClosed() {
         val corruptAlias = newAlias()
         val corruptRecord = newRecordName()
         val vault = AndroidIdentityVault.create(context, corruptAlias, corruptRecord)
@@ -165,7 +165,7 @@ class AndroidIdentityVaultContractTest {
     }
 
     @Test
-    fun `ordinary diagnostics do not expose plaintext secrets`() {
+    fun ordinaryDiagnosticsDoNotExposePlaintextSecrets() {
         val alias = newAlias()
         val recordName = newRecordName()
         val rawSecret = "DIAGNOSTIC-SECRET-${UUID.randomUUID()}"
