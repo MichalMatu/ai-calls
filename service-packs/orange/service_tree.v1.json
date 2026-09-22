@@ -383,6 +383,17 @@
       "last_evidence": "chatgpt-orange-sms-receive-problem-live-v240-20260922",
       "last_outcome": "REPROMPT",
       "next_evidence": "closed_after_reviewed_root_reprompt; service_route_not_verified"
+    },
+    {
+      "service_id": "orange.voice.incoming_calls",
+      "status": "DISCOVERED",
+      "action_id": "incoming_call_problem",
+      "speech": "Nie mogę odbierać połączeń.",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "operator_public_support_backlog",
+      "last_evidence": "public_orange_support_page",
+      "last_outcome": "NOT_PHYSICALLY_PROBED",
+      "next_evidence": "physical_route_required; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
