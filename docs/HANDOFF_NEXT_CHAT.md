@@ -1,555 +1,240 @@
-# Handoff — Gate D hybrid Task Engine
+# Handoff — Gate D TaskGraph v1 foundation
 
 Date: 2026-09-22
 
 Repository: `MichalMatu/android-ai-call-bridge`
 
-Durable branch: `main`
+Durable base branch: `main`
 
-Local Agent control/evidence branch: `agent-control`
+Active work branch: `gate-d-taskgraph-core`
 
-This file is the current session checkpoint. It is not live-call authorization and does not contain a reusable Local Agent binding.
+Pull request: `#5` — `Gate D TaskGraph v1 core` (draft)
 
-The authoritative execution order is `docs/ROADMAP.md`. Session-transfer rules are `docs/HANDOFF_PROTOCOL.md`. A ready-to-paste prompt for the next chat is `docs/NEXT_CHAT_PROMPT.md`.
+Code checkpoint before this docs-only closeout:
 
-## Start here in the next chat
+```text
+a8e6130c7dd85dd011ed420ddd7be1294b2322a2
+Bind Gate D context through Android readiness
+```
 
-Read fresh, in this order:
+This handoff is a state snapshot. It is **not** live-call authorization and contains no reusable Local Chat Bridge binding.
 
-1. `AGENTS.md`;
-2. `README.md`;
-3. this file;
-4. `docs/ROADMAP.md`;
-5. `docs/HANDOFF_PROTOCOL.md`;
-6. `docs/ARCHITECTURE.md`;
-7. `docs/SECURITY_PRIVACY.md`;
-8. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media;
-9. Orange files only if ServicePack/Orange work becomes relevant: `service-packs/orange/service_tree.v1.json` and `docs/ORANGE_MAPPING_RUNBOOK.md`.
+Use fresh repository state in the next chat. `docs/ROADMAP.md` is the authoritative execution order; `docs/ARCHITECTURE.md` owns component boundaries; `docs/SECURITY_PRIVACY.md` owns privacy/live-call rules; `docs/NEXT_CHAT_PROMPT.md` is the ready-to-paste bootstrap prompt.
 
-Always fetch fresh `origin/main` before acting. Do not assume an SHA embedded in historical evidence is still HEAD.
+## Read first
 
-## Active product goal
+1. `AGENTS.md`
+2. `README.md`
+3. `docs/HANDOFF_NEXT_CHAT.md`
+4. `docs/ROADMAP.md`
+5. `docs/ARCHITECTURE.md`
+6. `docs/GATE_D_TASKGRAPH_V1_AUDIT_2026-09-22.md`
+7. `docs/SECURITY_PRIVACY.md`
+8. `docs/HANDOFF_PROTOCOL.md`
+9. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media
 
-The project has intentionally pivoted from broad Orange IVR mapping to:
+Orange files are relevant only when that side track is intentionally resumed: `service-packs/orange/service_tree.v1.json` and `docs/ORANGE_MAPPING_RUNBOOK.md`.
+
+## Current product goal
+
+Active milestone:
 
 ```text
 Gate D — hybrid multi-turn Task Engine
 ```
 
-Primary acceptance task:
+First acceptance task:
 
 ```text
 BOOK_APPOINTMENT
 ```
 
-Example product goal:
+The goal is a bounded real multi-turn appointment task where deterministic interpretation stays primary, the model may observe/propose within a quarantined boundary, and all target/disclosure/speech/proposal/commitment authority remains application-owned.
 
-```text
-Umów mnie do dentysty w przyszłym tygodniu, najlepiej po 16.
-```
+## What is complete on the work branch
 
-The next session should start building the generic task engine, not resume broad Orange mapping.
+### TaskGraph core
 
-## What is already proven
+Implemented `CustomTaskGraphCore` with:
 
-### Cellular/media foundation
-
-Status:
-
-```text
-DONE / PROVEN_S22 / FROZEN
-```
-
-Physically proven Samsung S22+ path:
-
-```text
-VOICE_DOWNLINK
- -> app/local STT
- -> deterministic routing
- -> application-owned approval
- -> local TTS
- -> CALL_ASSISTANT / TELEPHONY_TX
-```
-
-Do not redesign the frozen media path for Gate D.
-
-### Deterministic fast path
-
-Status:
-
-```text
-HOST_GREEN / LIVE PATH PROVEN_S22
-```
-
-Orange physical evidence proved:
-
-```text
-cellular RX
- -> local STT
- -> PhraseMatrix
- -> CallPlan rule validation
- -> application-owned output approval
- -> local TTS
- -> cellular TX
- -> bounded next-turn handling
- -> cleanup to IDLE
-```
-
-The purpose of Gate D is not to re-prove this path; reuse it.
-
-### Existing authority owners
-
-Keep these as the execution authority owners:
-
-- `CallTask` / constraints / preferences / `authorizedFacts`;
-- `CallResolvedTarget`;
-- `CallWorkflow`;
-- `CallConfirmationPolicy`;
-- `CallCommitmentGate`;
-- application-owned output approval.
-
-Gate D also adds a dedicated application-owned **fact-disclosure decision** for identity data; it must compose with `CallTask.authorizedFacts`, not replace or duplicate task authority.
-
-Do not create a second authority store in TaskGraph, a ServicePack, LLM supervisor, Skill, matcher or diagnostic runner.
-
-### Generic bounded classifier precedent
-
-`app/src/main/kotlin/pl/michalmatu/aicallbridge/serviceintent/` is host-green and demonstrates the desired fail-closed model boundary:
-
-```text
-bounded candidate set
- -> structured model classification
- -> generation/confidence checks
- -> unsafe metadata rejection
- -> authoritative registry revalidation
- -> separate execution validator
-```
-
-Gate D's LLM supervisor should reuse this philosophy.
-
-## Key architectural decision: TaskGraph + ServicePack + IdentityVault
-
-The product has three complementary durable layers with different jobs.
-
-### TaskGraph
-
-Describes **what the user wants and how the bounded task progresses**:
-
-- typed states/transitions/events;
-- required/optional slots;
-- user constraints/preferences;
-- authorized fact references;
-- pure guards;
-- recovery/retry;
-- proposal;
-- confirmation;
-- commitment;
-- completion/failure/takeover;
-- versioned replayable event/evidence log.
-
-TaskGraph is generic where possible and independent of Orange.
-
-### ServicePack
-
-Describes **how a specific service/counterparty behaves**:
-
-- known IVR prompts and variants;
-- observed nodes/edges;
-- reviewed responses/actions;
-- service IDs;
-- barriers/risk;
-- evidence and future freshness metadata.
-
-A ServicePack does not authorize a task or commitment.
-
-### IdentityVault
-
-Stores durable encrypted user identity/contact facts, for example:
-
-```text
-FIRST_NAME
-LAST_NAME
-PHONE
-EMAIL
-ADDRESS
-DATE_OF_BIRTH
-PESEL
-```
-
-IdentityVault is **not model memory and not execution authority**.
-
-Separate:
-
-```text
-IdentityVault       = persistent encrypted values
-CallTask            = per-task authorized fact snapshot/references
-DialogueState       = transient facts learned in this conversation
-```
-
-A value existing in the vault does not authorize disclosure. Gate D needs a typed `FactDisclosurePolicy` returning `ALLOW`, `ASK_USER`, or `DENY` based on task, exact target, graph state, field sensitivity and per-task authorization.
-
-Plaintext identity values should be resolved as late as practical and kept out of LLM context by default. The supervisor normally needs fact availability/name, not PESEL/email/phone plaintext.
-
-Android persistence before real personal-data calls should use app-private ciphertext with a non-exportable Android Keystore key and authenticated encryption. Do not implement new vault storage with deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
-
-## Orange is preserved, not abandoned
-
-Orange is the project's first persistent evidence-backed IVR ServicePack.
-
-Durable source:
-
-```text
-service-packs/orange/service_tree.v1.json
-```
-
-Current checkpoint:
-
-- 3 physically verified nodes including the activation clarification barrier;
-- 19 physically verified observed root edges;
-- 16 service seeds, all `DISCOVERED`;
-- no complete service route with `service_route_verified=true`;
-- deterministic route calls proved `backend_generate_calls=0`, bounded `OBSERVE_ONLY` and cleanup to `IDLE`.
-
-Orange broad mapping is **checkpointed**, because further root-edge accumulation is currently lower value than building the task engine.
-
-Do not delete, flatten or treat this as disposable test data. Preserve it for:
-
-- future real Orange user tasks;
-- deterministic IVR navigation;
-- IVR regression;
-- ServicePack schema/runtime evolution;
-- route freshness/staleness work;
-- future operator/service catalogs.
-
-Resume Orange only when a real Orange task or generic ServicePack feature justifies it. Follow `docs/ORANGE_MAPPING_RUNBOOK.md` when resumed.
-
-## Gate D target architecture
-
-```text
-User goal
-  -> Skill / bounded intent resolver
-  -> IdentityVault availability + per-task fact authorization
-  -> CallTask + AuthorizedFactSnapshot + constraints + preferences
-  -> TaskGraph
-  -> CallWorkflow
-  -> final STT
-       -> deterministic PhraseMatrix / typed parsers
-       -> shadow LLM observer from the beginning when enabled
-       -> DialogueFit / escalation policy
-       -> bounded LLM proposal only when needed
-  -> existing transition ID + typed non-secret slots only
-  -> deterministic validation
-  -> FactDisclosurePolicy when identity data is requested
-  -> CallPlan / typed decision
-  -> output approval
-  -> TTS / telephony
-  -> typed proposal
-  -> user confirmation when required
-  -> CallCommitmentGate
-  -> completion
-```
-
-## Shadow supervisor: observe from the start, decide only when needed
-
-The LLM does **not** have to start cold only after the script fails.
-
-When enabled, it may observe every **finalized** counterparty turn from the beginning in a quarantined shadow mode with bounded context:
-
-```text
-task goal
-+ current TaskGraph state
-+ legal transitions
-+ typed non-secret validated slots
-+ fact availability/names, not plaintext secrets by default
-+ bounded recent conversation/summary
-+ final transcript
-```
-
-Shadow output may maintain an interpretation/summary but cannot mutate TaskGraph, workflow, speech, facts or commitment state.
-
-A separate application-owned `DialogueFit` policy decides when deterministic interpretation is sufficient.
-
-Do not implement DialogueFit as raw phrase similarity or one LLM confidence score. Combine explainable signals such as:
-
-- STT quality when available;
-- PhraseMatrix result/confidence;
-- typed parser completeness;
-- state/expected-transition compatibility;
-- contradiction/negation signals;
-- missing required slots;
-- repeated unknown/recovery count;
-- disagreement between deterministic and shadow interpretations.
-
-Start with typed decisions:
-
-```text
-HIGH       -> deterministic path
-UNCERTAIN  -> clarification or optional supervisor check
-LOW        -> supervisor proposal required
-BROKEN     -> recovery / TAKE_OVER / safe stop
-```
-
-Calibrate numeric internals/thresholds using scripted/simulated eval scenarios and add hysteresis before live use.
-
-When escalation asks for the supervisor, it may propose only an existing transition ID + typed slots + confidence/diagnostics. Everything is revalidated before state changes.
-
-## External patterns reviewed
-
-Do not import large frameworks blindly, but copy proven contracts:
-
-- **Pipecat Flows** — graph/config owns transitions; handlers return structured data/results; per-stage context/actions are narrow.
-- **XState/statecharts** — pure guards, explicit state/event/context, versioned persistence/event replay, effects outside guards/transitions.
-- **LiveKit Tasks/TaskGroups** — small focused subtasks with typed results under a session owner; useful for identity/contact verification and appointment subtasks.
-- **Rasa/form slot filling** — extraction produces a candidate; explicit validation decides whether it may enter state; support required/dynamic slots and unhappy paths.
-- **KStateMachine** — credible Kotlin Multiplatform statechart implementation to evaluate against a minimal custom reducer, not an automatic dependency choice.
-
-### TaskGraph engine decision spike
-
-Before implementing the production state-machine core, create **one set of host contract tests** and run them against:
-
-```text
-minimal custom reducer
-vs
-KStateMachine
-```
-
-Compare:
-
-- typed/sealed states and events;
-- pure guards;
-- state-compatible transitions;
+- typed state/event/transition/slot/effect IDs;
+- pure guards and state compatibility;
+- stale generation/version/state rejection;
 - bounded recovery;
-- proposal/confirmation/commitment states;
-- nested/composed states where useful;
-- serialization/versioning approach;
-- explicit replayable event/evidence log;
-- side-effect separation;
-- deterministic JVM tests without Android.
+- proposal/confirmation/commitment/terminal state kinds;
+- effects as data;
+- versioned event evidence;
+- deterministic replay and fail-closed mismatch handling.
 
-Adopt KStateMachine only if it materially reduces complexity while authority, evidence, persistence and side-effect semantics remain application-owned. Otherwise keep the minimal custom reducer. Do not maintain both long term.
+Engine decision is closed for v1: keep the minimal custom reducer. No KStateMachine runtime/dependency is part of the production branch.
 
-## Slot/fact extraction invariant
+### Identity/fact-disclosure contracts
 
-For conversation-derived data use:
+Implemented host contracts for:
 
-```text
-extract candidate
- -> validate type/state/constraints/provenance/authorization
- -> commit to authoritative TaskState only after validation
-```
+- `IdentityFieldId`;
+- sensitivity metadata;
+- per-task `AuthorizedFactSnapshot`;
+- application-owned `FactDisclosurePolicy` returning `ALLOW / ASK_USER / DENY`.
 
-Parser/NLU/LLM confidence alone never makes a slot authoritative.
+Android encrypted IdentityVault persistence is **not** implemented yet.
 
-## Exact next implementation order
+### BOOK_APPOINTMENT host simulator
 
-Do not invent a different sequence unless evidence requires it. Follow `docs/ROADMAP.md`.
+Implemented a deterministic receptionist simulator that composes TaskGraph with existing `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and disclosure policy.
 
-The next chat should begin host-only:
+Covered semantics include proposal, user confirmation/rejection, one-shot commitment, no availability, clarification/harmless-question recovery, identity requests, cancel/takeover and replay evidence.
 
-1. audit existing domain types (`CallTask`, `CallWorkflow`, CallPlan/coordinator, proposal/confirmation/commitment APIs, prepared session ownership) before adding abstractions;
-2. define TaskGraph contract tests for typed states/events/transitions, pure guards, recovery, proposal/confirmation/commitment and versioned replay;
-3. run the custom reducer vs KStateMachine host spike against those same tests and choose exactly one core;
-4. define host contracts for `IdentityVault`, `IdentityFieldId`, per-task `AuthorizedFactSnapshot`/references and `FactDisclosurePolicy`;
-5. implement the chosen minimal TaskGraph core;
-6. implement `BOOK_APPOINTMENT` on host;
-7. deterministic simulated receptionist scenarios;
-8. typed date/time/offer/identity-request parsers + PhraseMatrix dialogue acts using `extract -> validate -> commit`;
-9. prove disclosure decisions + proposal -> confirmation -> commitment -> completion in simulation;
-10. add ambiguity/recovery/unauthorized-data/high-sensitivity/takeover/cancel cases;
-11. add shadow supervisor context tracking with zero execution authority;
-12. implement/calibrate `DialogueFit` from simulator/eval scenarios;
-13. add bounded active supervisor proposal interface;
-14. prove malicious/unknown/stale/authority-bearing/identity-leaking supervisor output fails closed;
-15. implement Android encrypted IdentityVault with Android Keystore semantics before a real call needs personal data;
-16. integrate with a real product session owner;
-17. only after host/simulation is strong, move to small real-world reception tests;
-18. add Skills after TaskGraph/supervisor/fact-disclosure boundaries are stable.
+### DialogueFit + bounded supervisor contracts
 
-The first coding slice should therefore be **preimplementation audit + shared TaskGraph contract RED tests + engine decision spike + identity/fact-disclosure contract**, not a live call.
+Implemented:
 
-## BOOK_APPOINTMENT minimum task flow
+- categorical explainable `DialogueFit` (`HIGH / UNCERTAIN / LOW / BROKEN`);
+- bounded `ShadowDialogueObservation`;
+- quarantined `ShadowDialogueHypothesis`;
+- `SupervisorProposalValidator` with generation, allowed-transition, slot-scope, authority-bearing-slot and confidence checks.
+
+Accepted supervisor output remains candidate data only.
+
+### Product/session binding
+
+Implemented optional Gate D context flow:
 
 ```text
-START
- -> REQUEST_APPOINTMENT
- -> identify/confirm requested service
- -> collect/express date constraints
- -> collect/express time constraints
- -> receive offered slot
- -> parse candidate date/time
- -> validate constraints
-    -> reject/request alternative
-    -> or create typed proposal
- -> respond to identity/contact-data requests only through FactDisclosurePolicy
- -> confirmation policy
- -> commitment gate
- -> COMMIT_APPOINTMENT
- -> COMPLETE
+AndroidTextCallReadiness / LocalPhoneTextCallReadiness
+ -> LocalTextCallReadinessCoordinator
+ -> PreparedLocalTextCall
+ -> LocalTextCallSession
+ -> LocalTextCallGateDRuntime
 ```
 
-Required recovery cases include ambiguous date/time, unavailable slot, alternative offer, unexpected harmless question, STT uncertainty, request for unauthorized information, high-sensitivity fact requiring user approval, cancel/takeover, no suitable slot and explicit refusal.
+The session-owned runtime can create a bounded observation and revalidate a hypothesis from a real bound task/graph/fact scope.
 
-## Real-world call policy for the next phase
+## Hard stop line at this checkpoint
 
-Real calls are **not the first Gate D step**. First prove host simulation and the data-disclosure contract.
+The current Gate D runtime is deliberately **read-only**.
 
-Later, use a small reviewed set of ordinary public reception/business numbers from current public web sources.
+It does not:
 
-Two modes:
+- call `TaskGraphCore.reduce()`;
+- execute graph effects;
+- mutate `CallWorkflow`;
+- release TTS/telephony speech;
+- dial or widen a target;
+- read plaintext IdentityVault values;
+- approve proposals;
+- consume commitment authority.
 
-### `TEST_ONLY_CONSENTED`
+Do not erase this boundary in the first continuation slice.
 
-Disclose the AI/test purpose at the start and ask whether a short non-booking test is acceptable.
+## Exact next slice
 
-If they decline: thank them and hang up.
+Start with the real finalized-turn product path, host-only.
 
-Never create/hold a real appointment in test-only mode. Do not reveal only at the end that it was a test.
+Write RED contracts first for:
 
-### `GENUINE_TASK`
+1. a Gate-D-bound `LocalTextCallSession` creating exactly one bounded shadow observation for a finalized turn from current authoritative snapshot/context;
+2. existing PhraseMatrix/CallPlan deterministic result remaining unchanged;
+3. observer/hypothesis lifecycle being session-owned and stale-generation/cancel/close safe;
+4. no plaintext identity values in observation/ordinary diagnostics;
+5. hypothesis revalidation plus `DialogueFit` yielding only diagnostics/candidate data;
+6. **no automatic TaskGraph reduction in this slice**.
 
-If the user genuinely wants the appointment, execute the real task using only authorized facts and the normal disclosure/proposal/confirmation/commitment path.
+Then minimal GREEN. Do not broad-refactor provider/media/session code to achieve it.
 
-Do not retract a genuine booking merely because the call also produced development evidence.
-
-Default per-target budget:
-
-- one meaningful call per organization/reception;
-- second call only after early technical failure or explicit agreement to repeat;
-- no repeated probing of the same staff to tune wording;
-- no broad unsolicited campaigns;
-- never use emergency/urgent-care/crisis/critical-service lines for tests.
-
-Live-call authorization remains session-scoped. This handoff authorizes **no future call**.
-
-## Skills direction
-
-Do not discard Skills; introduce them at the correct layer after TaskGraph v1.
-
-Preferred Skill role:
+Only after that observation/lifecycle slice is host-green should a later separate slice add an explicit application-owned:
 
 ```text
-User request
- -> build/update bounded CallTask
- -> choose existing TaskGraph/ServicePack
- -> gather missing pre-call facts/preferences
- -> request permission for specific IdentityFieldIds
- -> optionally suggest existing transition/slot
- -> application authority validates everything
+validated candidate
+ -> typed TaskGraph event
+ -> CustomTaskGraphCore.reduce()
+ -> effects as data
+ -> existing workflow/proposal/confirmation/commitment owners
 ```
 
-Skills do not directly dial, widen allowlists, read/export the whole IdentityVault, invent credentials, release arbitrary telephony speech or bypass fact-disclosure/commitment authority.
+## Known open work after the next slice
 
-## Frozen/deferred areas
+- reusable typed appointment parsers/normalizers outside the simulator;
+- PhraseMatrix dialogue-act coverage for appointment conversation;
+- deterministic-to-shadow comparison mapping and DialogueFit eval/hysteresis calibration;
+- candidate -> TaskGraph event/reducer bridge;
+- Android IdentityVault encrypted persistence;
+- product-level Gate D integration tests;
+- only later, a small reviewed physical reception call with fresh user authorization.
+
+## Frozen boundaries
 
 Do not casually touch:
 
-- `privileged-helper/` / frozen Samsung media;
+- `privileged-helper/`;
+- frozen Samsung media path;
 - physically proven `CallMediaSessionCoordinator` behavior;
 - general-purpose phone-local llama.cpp product direction;
 - Edge Gallery/Gemma experiment path;
-- ChatGPT relay as product orchestration;
-- realtime audio-model redesign before Gate D hybrid text/task baseline works.
+- diagnostic runners/probes as product orchestrators;
+- realtime audio-model redesign before Gate D hybrid text/task baseline is mature.
 
-Diagnostic probes/runners are evidence drivers only. Do not turn them into the Gate D orchestrator.
+Read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
 
-## Verification state at handoff
+## Verification state
 
-Last full stabilization seal before the Gate D documentation pivot:
-
-```text
-.agent/results/chatgpt-stabilization-checkpoint-v267-20260922.json
-```
-
-It proved:
+Latest full GitHub Actions verification for the code checkpoint:
 
 ```text
-46 Orange Python tests: OK
-bash scripts/verify_host.sh: GREEN
-frozen media guard: GREEN
-serviceintent neutrality guard: GREEN
-FINAL_CALL_STATE=0
+commit: a8e6130c7dd85dd011ed420ddd7be1294b2322a2
+workflow: Android CI
+run id: 35748536552
+run number: 468
+conclusion: success
 ```
 
-Final handoff sanity evidence:
+The docs-only closeout commit should be verified from fresh branch state before a new code slice starts.
+
+### Known media-test signal
+
+Earlier full runs around `59b5f75` repeatedly failed only the frozen-area test:
 
 ```text
-.agent/results/chatgpt-stabilization-handoff-final-v269-20260922.json
+CallRealtimeMediaSessionTest.pumpFailure...
 ```
 
-It proved:
+The Gate D tests were green and no media code was changed. Latest full CI on `a8e6130` passed, so this is not a current Gate D blocker, but 3/3 earlier repetition means it should not be casually dismissed as random.
+
+If it reappears, first audit test order/pollution by running the media test separately and alongside Gate D tests. Do **not** patch frozen media as part of Gate D without a separate root-cause result and explicit scope decision.
+
+## Branch / PR state
+
+PR #5 is open and draft, targeting `main` from `gate-d-taskgraph-core`.
+
+Before this docs closeout it was:
 
 ```text
-remote branches: main + agent-control
-one active worktree
-historical local chat-relay/orange-chatgpt-pump-v1 branch preserved with 21 unique commits
-FINAL_CALL_STATE=0
+base: 7b6519238808599a5084f3f1c72d103ea43abd9b
+head: a8e6130c7dd85dd011ed420ddd7be1294b2322a2
+27 commits ahead / 0 behind
 ```
 
-All changes after the stabilized runtime/code checkpoint have been documentation/plan changes only. No Gate D runtime implementation has started yet.
+The final handoff commit is documentation-only and should be treated as a successor to that code checkpoint.
 
-Use fresh `origin/main` in the next chat and run verification appropriate to the first code slice before claiming new evidence.
+This GitHub-only closeout did not verify local-only worktrees/branches on the developer machine. Do not delete historical local branches based only on this document.
 
-## Repository/branch notes
+## Local Agent / Local Chat Bridge
 
-Normal remote branch set:
+- trust only the fresh binding envelope injected into the new chat;
+- never copy an old `agent_binding` from documentation/history;
+- work only in the exact bound repository;
+- inspect fresh daemon/current-task evidence before queueing local work;
+- use Local Agent for Gradle/ADB/device/local-machine execution;
+- direct GitHub edits are fine for small exact reviewable docs/code changes;
+- `.agent/tasks` and `.agent/results` remain control/evidence data and must not become product architecture;
+- never restart Local Agent merely to hide an unclear task/root cause.
 
-```text
-main
-agent-control
-```
+## Live-call rule
 
-Historical local branch:
+No physical call was required for this closeout, and this handoff authorizes **no future call**.
 
-```text
-chat-relay/orange-chatgpt-pump-v1
-```
+Every future real call requires fresh user/operator authorization in that new session and must follow `docs/ROADMAP.md` + `docs/SECURITY_PRIVACY.md`.
 
-It is intentionally preserved because it contains 21 unique commits not present on remotes. It has no active role in Gate D. Do not delete it casually until intentionally archived or judged disposable.
+## Ready prompt
 
-## Local Agent / Local Chat Bridge rules
-
-Full rules are in `docs/HANDOFF_PROTOCOL.md` and `AGENTS.md`.
-
-Critical rules for the next chat:
-
-- if Local Chat Bridge is used, trust only the **fresh binding envelope injected into that new chat**;
-- work only on the exact bound repository;
-- never copy the current/old `agent_binding` from chat history, docs or old task JSON;
-- every Local Agent task must contain exactly the new chat's current binding;
-- inspect fresh daemon/current-task evidence before queueing work or writing the same worktree;
-- terminal result evidence, not queued/ACK state, determines success;
-- direct GitHub edits are preferred for exact reviewable diffs;
-- Local Agent is for local builds/tests/Gradle/ADB/device actions;
-- `.agent/tasks` and `.agent/results` stay on `agent-control`;
-- never launch local Codex from Local Agent;
-- never restart Local Agent merely to bypass an unclear failure;
-- another repository requires explicit bridge rebind + fresh bootstrap; never infer/guess a repository ID.
-
-No Local Agent binding is stored in this handoff on purpose.
-
-## Handoff discipline going forward
-
-This repository has a permanent handoff process:
-
-```text
-docs/HANDOFF_PROTOCOL.md
-```
-
-Every major new-chat transfer should refresh:
-
-```text
-docs/HANDOFF_NEXT_CHAT.md
-docs/NEXT_CHAT_PROMPT.md
-```
-
-The prompt is bootstrap text only; repository docs remain the source of truth.
-
-## New-chat entry point
-
-Paste the current contents of:
-
-```text
-docs/NEXT_CHAT_PROMPT.md
-```
-
-into the new chat. If Local Chat Bridge is used, allow it to provide the fresh binding envelope there before any Local Agent task is created.
+Use `docs/NEXT_CHAT_PROMPT.md` or paste the prompt provided at the end of the closing chat response.

@@ -1,155 +1,240 @@
-# Gate D TaskGraph v1 preimplementation audit — 2026-09-22
+# Gate D TaskGraph v1 audit + implementation decision record — 2026-09-22
 
-Status: preimplementation audit complete. This document records ownership boundaries before product integration.
+Status: **preimplementation audit complete; first Gate D host/product-binding foundation implemented and verified**.
 
-## Scope and conclusion
+This document records the ownership analysis, engine decision and the implementation checkpoint reached before handoff. It is not live-call authorization.
 
-Gate D needs a bounded, replayable conversational TaskGraph. The existing product already owns target authorization, call workflow, proposal confirmation, commitment authority, output approval, media and readiness. TaskGraph must compose those boundaries, not replace them.
+## Repository checkpoint
 
-No blocker was found for a host-only TaskGraph v1. The safest insertion is a pure application-owned reducer with immutable context and explicit event records. Product integration should happen under `LocalTextCallSession`, which is already the bounded live-session owner for finalized turns and recovery context.
+Repository: `MichalMatu/android-ai-call-bridge`
 
-## Existing ownership map
+Work branch: `gate-d-taskgraph-core`
+
+PR: `#5` — `Gate D TaskGraph v1 core` (draft)
+
+Code checkpoint before the docs-only closeout commit:
+
+```text
+a8e6130c7dd85dd011ed420ddd7be1294b2322a2
+Bind Gate D context through Android readiness
+```
+
+That code checkpoint is 27 commits ahead of `main` base `7b6519238808599a5084f3f1c72d103ea43abd9b` and changes only the Gate D/domain/local-session surface plus this audit document; the frozen media implementation is not part of the Gate D diff.
+
+Verified GitHub Actions evidence for the code checkpoint:
+
+```text
+Android CI
+run id: 35748536552
+run number: 468
+conclusion: success
+```
+
+## Audit conclusion
+
+The existing product already owns target authorization, coarse call workflow, proposal confirmation, one-shot commitment authority, output approval, media and readiness.
+
+Gate D therefore belongs as a bounded conversational micro-state layer under the real product session owner. It must compose existing owners rather than introduce a second workflow/authority stack.
+
+`LocalTextCallSession` is the correct product owner for the first integration because it already owns finalized-turn dialogue context on the deterministic local text-call path.
+
+## Existing owners preserved
 
 ### `CallTask`
 
-Owns the bounded user goal plus `CallConstraints`, `CallPreferences` and the current legacy `authorizedFacts: Map<String, String>`.
-
-Gate D consequence: do not copy this map into TaskGraph context. Identity values need a typed identity/disclosure boundary. TaskGraph may hold validated non-secret dialogue slots and typed field IDs, never a second plaintext authority store.
-
-### `CallConstraints` / `CallPreferences`
-
-Already distinguish hard constraints from soft preferences. Appointment candidate validation should reuse/compose these contracts rather than invent parallel constraint semantics in the graph.
+Owns bounded user goal, hard constraints, preferences and task scope. Gate D must not duplicate a plaintext fact-authority map inside TaskGraph.
 
 ### `CallResolvedTarget`
 
-Already represents the concrete authorized target. TaskGraph must not choose arbitrary dial addresses or widen target authorization.
+Owns the concrete authorized target. TaskGraph/supervisor cannot choose or widen a dial address.
 
 ### `CallWorkflow`
 
-Already owns coarse product progress and structured proposal/completion flow: ready-to-dial, dialing, active negotiation, pending user decision and completion/failure.
-
-TaskGraph should own the finer conversational micro-state inside an active task. It must not become a second product workflow or mark the call task complete on its own.
+Owns coarse task/call progress and proposal/completion flow. TaskGraph owns finer conversational state only.
 
 ### `CallConfirmationPolicy`
 
-Already evaluates a concrete proposal against hard constraints/preferences and decides whether user confirmation is required. TaskGraph may create a typed proposal candidate but must delegate confirmation authority here.
+Evaluates concrete proposals and decides whether user confirmation is required. TaskGraph proposal/confirmation states do not replace this authority.
 
 ### `CallCommitmentGate`
 
-Already owns one-shot commitment authority tied to an exact concrete proposal. TaskGraph states such as `COMMITMENT` are descriptive orchestration states only; they do not grant a commitment permit.
+Owns one-shot commitment permits for exact proposals. A `COMMITMENT` TaskGraph state is orchestration state, not a permit.
 
-### `CallPlan` / `CallPlanEngine`
+### `CallPlan` / `CallPlanTurnCoordinator`
 
-Already provide a deterministic bounded dialogue plan and final-transcript rule evaluation. The current fact path reads the legacy `authorizedFacts` map, so Gate D identity work should replace that boundary deliberately rather than copy it.
-
-TaskGraph should reuse the concept of existing legal transition/rule IDs. It should not generate arbitrary executable actions or arbitrary speech.
-
-### `CallPlanTurnCoordinator`
-
-Already bridges finalized turns / bounded rule suggestions into `CallPlan` and delegates typed proposals/completion to `CallWorkflow`. Its bounded suggested-rule validation is a useful precedent for future supervisor suggestions.
-
-Do not turn diagnostic runners/probes into the new product orchestrator.
-
-### `PhraseMatrix`
-
-Classification only. It returns deterministic match diagnostics and remains outside authority. A PhraseMatrix match is an extraction/interpretation signal, not slot commitment.
+Remain the proven deterministic dialogue decision path and provide the design precedent for revalidating bounded suggested IDs before action.
 
 ### `LocalTextCallSession`
 
-This is the existing product session owner for the local deterministic text-call path. It already owns finalized-turn handling, previous validated rule context and bounded unknown/recovery count while explicitly not owning commitment or telephony output authority.
+Owns the prepared deterministic dialogue session, finalized-turn handling context, prior validated rule context and bounded unknown/recovery state. Gate D is bound here rather than in diagnostic runners or media code.
 
-Recommended future Gate D seam:
+## Engine spike decision
+
+Decision: **keep the minimal custom application-owned reducer**.
+
+Production implementation:
 
 ```text
-final transcript
-  -> PhraseMatrix / typed parser candidates
-  -> shadow supervisor observation
-  -> DialogueFit
-  -> validated TaskGraph event/candidate
-  -> pure TaskGraph reduction
-  -> approved effect/proposal handoff to existing owners
+CustomTaskGraphCore
 ```
 
-The physically proven media path does not need redesign for TaskGraph v1.
+KStateMachine was considered as a candidate but is not carried as a runtime/dependency in the work branch.
 
-### preparation/readiness
+Reasons:
 
-`AndroidLocalTextCallPreparation`, `LocalTextCallReadinessCoordinator` and `PreparedLocalTextCall` already enforce pre-dial readiness and one-shot ownership transfer. TaskGraph integration should carry only immutable/binding data through readiness if needed later; it should not move dial/media authority into the graph.
+- the required v1 semantics fit a small deterministic reducer;
+- explicit application-owned event/evidence records remain the source for replay;
+- effects remain returned data rather than hidden runtime actions;
+- no framework needs to own persistence, side effects or authority;
+- no second state-machine abstraction must be maintained.
 
-### `serviceintent/`
+Revisit only if a later concrete requirement such as genuinely necessary hierarchical/composed state behavior cannot remain simple without a framework.
 
-`ServiceIntentExecutionValidator` already demonstrates the required fail-closed pattern: registry/generation/service-pack/route/authority validation before execution. Supervisor proposals should follow the same pattern: known transition ID, current generation, compatible state, valid typed candidates, then application-owned validation.
+## Implemented TaskGraph v1 contract
 
-## TaskGraph v1 ownership
+`TaskGraphCore.kt` now provides:
 
-TaskGraph should own only:
-
-- typed state, event, transition and non-secret slot IDs;
-- legal state-compatible transitions;
+- typed state/event/transition/slot/effect IDs;
+- declared state kinds including proposal, confirmation, commitment and terminal kinds;
+- immutable snapshots/context;
+- state-compatible transitions;
 - pure guards;
-- immutable validated dialogue context;
+- stale generation/version/state rejection;
+- ambiguous/no-compatible transition rejection;
 - bounded recovery counters;
-- explicit proposal/confirmation/commitment orchestration states;
-- explicit completion/failure/takeover terminal states;
-- effects as returned data, never executed inside the reducer;
-- versioned replayable event evidence;
-- stale/invalid event rejection and deterministic replay.
+- context reduction;
+- effects as data;
+- versioned immutable event records;
+- deterministic replay;
+- fail-closed replay on schema/version/sequence/evidence mismatch.
 
-TaskGraph must not own:
+It does not execute speech, media, workflow or commitments.
 
-- target resolution or dial allowlists;
-- telephony/media/TTS execution;
-- arbitrary output approval;
-- identity plaintext storage;
-- identity disclosure permission;
-- user confirmation authority;
-- commitment permits;
-- final `CallWorkflow` completion authority.
+## Identity/disclosure seam implemented
 
-## Identity / disclosure seam
-
-Use three distinct layers:
+Host contracts separate:
 
 ```text
 IdentityVault
-  persistent encrypted values
+  future persistent encrypted values
 
 AuthorizedFactSnapshot
-  typed field IDs authorized/available for this task
+  typed field IDs available/authorized for one task
 
 DialogueState / TaskGraph context
-  transient validated non-secret facts from this call
+  transient validated non-secret values
 ```
 
-`FactDisclosurePolicy` should receive the task, exact target, current TaskGraph state, typed `IdentityFieldId`, sensitivity and per-task authorization. It returns `ALLOW`, `ASK_USER` or `DENY`. Availability in the vault alone is never permission to disclose.
+`FactDisclosurePolicy` is application-owned and produces typed `ALLOW / ASK_USER / DENY` decisions. High-sensitivity fields require additional explicit task approval before they may appear as available field IDs to the shadow runtime.
 
-The Android encrypted persistence layer should be implemented only after this host contract is stable.
+No Android encrypted value store is implemented yet; that remains a later slice after host semantics stabilize.
 
-## DialogueFit / supervisor seam
+## BOOK_APPOINTMENT host simulator implemented
 
-Do not start the LLM only after deterministic failure. When enabled, the shadow observer may see bounded non-secret finalized-turn context from the start, but its output remains a hypothesis.
+`BookAppointmentTaskGraph` + `BookAppointmentSimulator` provide a deterministic host harness that composes the new graph with the existing:
 
-`DialogueFit` should be application-owned and combine available deterministic signals such as STT quality, PhraseMatrix/parser result, expected transition compatibility, negation/contradiction, missing slots, recovery count and deterministic-vs-shadow disagreement.
+- `CallWorkflow`;
+- `CallConfirmationPolicy`;
+- `CallCommitmentGate`;
+- `FactDisclosurePolicy`.
 
-Initial categories remain `HIGH`, `UNCERTAIN`, `LOW`, `BROKEN`. No arbitrary numeric thresholds are selected in this slice.
+The simulator covers the first useful product semantics: offered appointment parsing, policy rejection, proposal creation, required confirmation, user rejection/confirmation, one-shot commitment, no availability, harmless-question/clarification recovery, identity-field disclosure decisions, cancel/takeover and deterministic replay evidence.
 
-Supervisor activation comes only after deterministic TaskGraph + simulator evidence. Supervisor output must be revalidated against existing transition IDs, state, generation, typed slots, constraints and disclosure policy.
+This simulator is not a live-call orchestrator.
 
-## Event log / replay recommendation
+## DialogueFit and bounded supervisor contracts implemented
 
-Each accepted reduction should emit a versioned immutable record containing at least:
+`DialogueFit.kt` defines:
 
-- graph/schema version;
-- sequence and generation before/after;
-- transition ID and typed event;
-- state before/after;
-- resulting bounded context/recovery count;
-- returned effects as data.
+- deterministic signal types;
+- categorical `HIGH / UNCERTAIN / LOW / BROKEN` result;
+- explainable reasons;
+- bounded `ShadowDialogueObservation`;
+- quarantined `ShadowDialogueHypothesis`.
 
-Replay starts from a known initial snapshot and re-runs the reducer. Any unsupported schema, wrong graph version, stale generation, sequence discontinuity or mismatch between recorded and recomputed evidence fails closed.
+`SupervisorProposalValidator` rejects:
 
-## Core spike
+- stale generation;
+- missing/unknown-for-observation transition;
+- low confidence;
+- slots outside the allowed non-secret slot set;
+- authority-bearing slot IDs.
 
-Shared RED contract tests were added before implementation. They cover the required TaskGraph v1 semantics and intentionally failed because no TaskGraph implementation existed.
+Accepted output is `ValidatedSupervisorCandidate`, still candidate data only.
 
-The production choice between a minimal custom reducer and KStateMachine is evaluated against those same semantics. The final choice and rationale will be appended here and copied into the session handoff; only one engine will remain production code.
+## Real product binding implemented
+
+The branch now carries optional `TaskGraphDefinition + AuthorizedFactSnapshot` through:
+
+```text
+AndroidTextCallReadiness / LocalPhoneTextCallReadiness
+ -> LocalTextCallReadinessCoordinator
+ -> PreparedLocalTextCall
+ -> LocalTextCallSession
+ -> LocalTextCallGateDRuntime
+```
+
+`LocalTextCallGateDRuntime` can:
+
+- create a bounded observation from a real session-bound task/graph/fact scope;
+- expose only currently legal transitions;
+- expose only authorized/available field IDs valid in the current graph state;
+- filter high-sensitivity fields unless explicitly approved;
+- revalidate a shadow hypothesis.
+
+The runtime deliberately has no reducer/workflow/speech/dial/commitment/plaintext-vault API.
+
+## Current architectural stop line
+
+This checkpoint intentionally stops before automatic Gate D execution.
+
+The following are **not** implemented yet:
+
+- automatic invocation of the shadow observer on every finalized product turn;
+- observer lifecycle/cancellation/provider integration;
+- production mapping from existing deterministic turn evidence into `DialogueFitSignals`;
+- conversion of an accepted supervisor candidate into a TaskGraph event;
+- automatic `TaskGraphCore.reduce()` from the session path;
+- graph effect execution;
+- Android encrypted IdentityVault persistence;
+- a Gate D live appointment call.
+
+That stop line is deliberate and should remain visible in the next slice.
+
+## Exact next slice
+
+Start with a RED contract for the real `LocalTextCallSession` finalized-turn path:
+
+1. when Gate D is bound, a finalized turn can create one bounded shadow observation from the current authoritative graph snapshot/context;
+2. deterministic PhraseMatrix/CallPlan behavior remains identical;
+3. the observer is quarantined and session-owned;
+4. stale/failed/cancelled observer work fails closed and cannot affect speech/workflow;
+5. hypothesis validation and `DialogueFit` produce diagnostics/candidate data only;
+6. **no `reduce()` in this slice**.
+
+After that is host-green, a separate later RED/GREEN slice may introduce an explicit application-owned candidate -> typed TaskGraph event -> reducer bridge.
+
+## Known media-test history
+
+During the Gate D branch work, repeated full host runs around `59b5f75` hit an existing/frozen test failure in:
+
+```text
+CallRealtimeMediaSessionTest.pumpFailure...
+```
+
+The Gate D slice tests were green and the frozen media implementation was not modified. The failure repeated enough times that it should not simply be labelled random without a focused order/pollution audit.
+
+However, the latest full Android CI for code checkpoint `a8e6130` passed completely. Therefore this is a **known follow-up signal, not a current Gate D blocker**.
+
+Do not patch frozen media as part of Gate D unless a separate audit proves a real media defect and the user explicitly accepts that scope.
+
+## Safety and handoff rules
+
+- no physical call is authorized by this document;
+- fresh live-call authorization is required in every new session;
+- never copy an old Local Chat Bridge `agent_binding` into a new session;
+- use the fresh binding envelope provided by the new bridge session;
+- do not promote diagnostic runners into the product orchestrator;
+- do not touch `privileged-helper/` or frozen Samsung media for stylistic cleanup;
+- keep `extract -> validate -> commit` semantics for all dialogue-derived data;
+- update `docs/HANDOFF_NEXT_CHAT.md` and `docs/NEXT_CHAT_PROMPT.md` when the next major slice closes.
