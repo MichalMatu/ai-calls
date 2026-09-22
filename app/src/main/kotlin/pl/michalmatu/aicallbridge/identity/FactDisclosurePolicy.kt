@@ -53,13 +53,13 @@ class AuthorizedFactSnapshot(
     init {
         require(generation >= 0L)
         require(this.highSensitivityApprovedFields.all { it in this.authorizedFields }) {
-            "high-sensitivity approvals must also be task-authorized"
+            "high-sensitivity approvals must also be authorized for this task"
         }
         require(this.allowedDisclosureStates.keys.all { it in this.authorizedFields }) {
-            "disclosure state scopes must reference task-authorized fields"
+            "disclosure state scopes must reference fields authorized for this task"
         }
         require(this.authorizedFields.all { this.allowedDisclosureStates[it].orEmpty().isNotEmpty() }) {
-            "every task-authorized field needs at least one allowed disclosure state"
+            "every field authorized for this task needs at least one allowed disclosure state"
         }
     }
 }
