@@ -1,71 +1,106 @@
 # Agent workflow
 
-This repository is single-developer and main-first. Durable product code and current documentation live on `main`; `agent-control` exists only for Local Agent task/result traffic.
+This repository is single-developer and main-first. Durable product code and current documentation live on `main`; `agent-control` exists only for Local Agent task/result traffic when that execution path is used.
 
 ## Start of every work session
 
-Read the current sources of truth in this order:
+Read the current sources of truth:
 
-1. `README.md` — product/checkpoint state;
-2. `docs/HANDOFF_NEXT_CHAT.md` — exact continuation point;
-3. `docs/ROADMAP.md` — authoritative execution order and gate status;
-4. `docs/ORANGE_MAPPING_RUNBOOK.md` — Orange evidence/mapping procedure;
-5. `service-packs/orange/service_tree.v1.json` — current Orange physical/service evidence;
-6. `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` when changing boundaries;
-7. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media behavior.
+1. `README.md` for product state;
+2. `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point;
+3. `docs/ROADMAP.md` for the authoritative execution order;
+4. `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` when changing boundaries;
+5. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media behavior;
+6. `service-packs/orange/service_tree.v1.json` and `docs/ORANGE_MAPPING_RUNBOOK.md` only when Orange work is actually resumed.
 
-Fetch fresh `main` and fresh `agent-control:.agent/status/daemon.json` before writes/tasks. Trust the current Bridge envelope plus fresh daemon binding for repository identity; never copy a binding from historical prose.
+Fetch fresh `main` before writes. If Local Agent is used, also fetch fresh `agent-control:.agent/status/daemon.json` and use only the fresh current-session binding.
 
-Do not create a planning/status document for every experiment. Put durable decisions into the authoritative files above and leave detailed history in Git commits and `.agent/results`.
-
-Repository documentation is not physical-call authorization. A live call requires explicit authorization in the current operator session.
+Do not create a planning/status document for every experiment. Put durable decisions into the authoritative docs above and leave detailed history in Git commits and `.agent/results`.
 
 ## Current priority
 
-The active product gate is **Gate C / deterministic fast path**, focused on the first evidence-backed **Orange Service Pack Explorer** plus the generic bounded `serviceintent/` resolver.
+The active product gate is **Gate D — hybrid multi-turn Task Engine**.
 
-The first deterministic Orange cellular RX -> local STT -> PhraseMatrix -> CallPlan -> application-owned approval -> local TTS -> cellular TX proof is complete and physically proven. Do not repeat work whose only purpose is proving that base path again.
+Orange mapping is checkpointed. Do not continue broad Orange mapping by default.
 
-Current durable Orange state is always read from `service-packs/orange/service_tree.v1.json`; current checkpoint/continuation details are in `docs/HANDOFF_NEXT_CHAT.md`.
+Primary acceptance use case:
 
-### Orange execution order
+```text
+BOOK_APPOINTMENT
+```
 
-Use `docs/ORANGE_MAPPING_RUNBOOK.md` for the complete procedure. At a high level:
+Target flow:
 
-1. inspect the fresh handoff, tree, daemon/binding and latest terminal result;
-2. choose one new low-risk unclosed capability seed;
-3. define one exact reviewed non-committing utterance/action with RED tests;
-4. implement minimal GREEN through existing `CallPlan + PhraseMatrix` authority;
-5. run targeted regressions and `bash scripts/verify_host.sh`;
-6. only with explicit current-session authorization, install the exact GREEN SHA and execute one bounded call to the exact allowlisted target followed by `OBSERVE_ONLY`;
-7. persist only physically observed evidence into the service tree;
-8. stop/record auth, credentials, payment, purchase, activation/deactivation, tariff/contract/package, ticket or other commitment barriers;
-9. never repeat a closed reviewed utterance merely to collect duplicate evidence.
+```text
+natural user goal
+ -> CallTask + constraints/preferences/authorized facts
+ -> TaskGraph
+ -> CallWorkflow
+ -> deterministic PhraseMatrix/parsers first
+ -> bounded LLM supervisor only for ambiguity/unknown
+ -> existing transition ID + typed slot proposals only
+ -> deterministic validation
+ -> CallPlan / output approval
+ -> proposal / confirmation / commitment
+ -> structured completion
+```
 
-Public Orange documentation is a seed backlog only. It can create `DISCOVERED` candidates, never physical `VERIFIED` route evidence.
+The deterministic cellular path is already physically proven on S22. Do not spend new work merely reproving RX -> STT -> CallPlan -> TTS -> TX.
 
-## Evidence semantics
+### Immediate execution order
 
-Keep these claims separate:
+Follow `docs/ROADMAP.md`. In summary:
 
-- `HOST_GREEN` — deterministic host tests/build/lint passed;
-- `PROVEN_S22` — the required behavior was physically reproduced on the target S22+;
-- `DISCOVERED` service seed — capability known/touched but full route not proven;
-- `VERIFIED` node/observed edge — exact physical node/transition was observed;
-- `service_route_verified=true` — the intended complete deterministic route itself was physically reached.
+1. specify `TaskGraph v1` with typed states/transitions/slots/guards/recovery/event log;
+2. implement `BOOK_APPOINTMENT` on host;
+3. build a deterministic simulated receptionist harness;
+4. add typed date/time/offer parsing and PhraseMatrix dialogue-act coverage;
+5. prove proposal -> confirmation -> commitment -> completion in simulation;
+6. add recovery/cancel/takeover/unauthorized-information cases;
+7. add the bounded LLM supervisor interface;
+8. prove invalid/stale/authority-bearing supervisor output fails closed;
+9. integrate into a real product session owner;
+10. only then run small, bounded real-world appointment tests.
 
-A root reprompt can verify an observed edge while the service remains `DISCOVERED`.
+## Hybrid supervisor rules
 
-## Frozen / deferred boundaries
+The LLM remains useful but does not own execution authority.
 
-- Samsung cellular RX/TX path: `DONE / PROVEN_S22 / FROZEN`.
-- `privileged-helper/` and frozen Samsung media path: do not change during ordinary Gate C service-pack work.
-- General-purpose phone-local llama.cpp path: frozen.
-- Edge Gallery / Gemma / Agent Skills experiment: frozen / not product-ready.
-- Interactive ChatGPT relay: developer benchmark infrastructure only.
-- Paid/network provider work: deferred unless a later roadmap slice explicitly reopens it.
+Allowed supervisor output is bounded structured data such as:
 
-Do not refactor physically proven media for line count, naming or style cleanup.
+- existing TaskGraph transition ID;
+- typed slot values;
+- confidence/diagnostic metadata.
+
+Every result must be revalidated against the current task, graph state, generation/session identity, slot schema, constraints and authority.
+
+The supervisor must not directly own:
+
+- dialing or target widening;
+- arbitrary telephony speech release;
+- credentials or sensitive facts;
+- workflow mutation outside validated existing transitions;
+- purchases/bookings/other commitments;
+- completion authority.
+
+The existing `serviceintent/` resolver is the design precedent: bounded candidates, structured classification, stale-result rejection, unsafe-metadata rejection, authoritative registry revalidation and a separate execution validator.
+
+## Skills
+
+Skills may be reintroduced after `TaskGraph v1` exists.
+
+Preferred Skill role:
+
+```text
+User request
+ -> build/update bounded CallTask
+ -> choose existing TaskGraph/service pack
+ -> gather missing pre-call facts/preferences
+ -> optionally suggest existing transition/slot
+ -> existing application authority validates everything
+```
+
+Skills never bypass `CallWorkflow`, `CallPlan`, output approval, `CallConfirmationPolicy` or `CallCommitmentGate`.
 
 ## Authority invariants
 
@@ -74,31 +109,85 @@ Keep the existing owners; do not create a second authority store:
 - `CallTask` owns immutable task/constraints/preferences/authorized facts;
 - `CallResolvedTarget` is concrete but does not widen a dial allowlist;
 - `CallWorkflow` owns progress, proposals, user-decision state and terminal outcome;
-- `CallConfirmationPolicy` evaluates typed proposals;
-- `CallCommitmentGate` owns an exact one-shot commitment permit;
+- `CallConfirmationPolicy` evaluates one typed proposal;
+- `CallCommitmentGate` owns one exact one-shot commitment permit;
 - application-owned output approval remains mandatory before speech release/TTS/TX.
 
-Models, helpers, matchers, service-pack discovery tools and Agent Skills are proposal/classification-only. They must not own dialing, DTMF, credentials, sensitive-data authority, payments, purchases, activations, tariff/contract changes or commitments.
+Models, matchers, TaskGraph supervisors, service-pack tools and Skills are proposal/classification-only unless an existing application authority owner explicitly validates the effect.
 
 Only `CallPlanAction.SAY` carries speech text. Structured actions without text remain structured.
 
-PhraseMatrix-specific invariants:
+## TaskGraph discipline
 
-- PhraseMatrix requires a bound CallPlan in readiness/prepared product state;
-- raw matcher ids never become authority;
-- only validated CallPlan decision ids may become previous-turn context;
-- unknown/ambiguous/rejected matches fail closed and cannot silently become sensitive action/model speech;
-- do not broaden fuzzy matching merely to make live Orange prompts pass.
+`TaskGraph` is application-owned product data, not a runtime model-generated program.
 
-Orange-specific invariants:
+Required properties:
 
-- exact operator-defined allowlisted target only;
-- named reviewed actions only;
-- no model-generated runtime IVR speech;
-- deterministic route tests require `backend_generate_calls=0`;
-- root-acquisition exceptions are exact evidence-backed diagnostics, not semantic shortcuts;
-- `OBSERVE_ONLY` cannot release speech;
-- a physically observed edge may be `VERIFIED` while the corresponding service seed remains `DISCOVERED`.
+- typed state and transition IDs;
+- deterministic guards;
+- typed slot schemas;
+- explicit retry/recovery bounds;
+- proposal/confirmation/commitment states;
+- takeover/cancel/failure terminals;
+- replayable event/evidence log;
+- model suggestions can reference only existing graph transitions/slot fields.
+
+Unknown/ambiguous/rejected model or matcher output fails closed and cannot silently become sensitive action or arbitrary speech.
+
+## Real-world appointment tests
+
+Real calls happen only after the relevant host/simulation slice is green.
+
+Use a small reviewed target set of ordinary public business/reception numbers from current public sources. Do not use emergency, urgent-care, crisis or other critical-service lines for testing.
+
+### Test-only calls
+
+Disclose at the **start** that this is an AI assistant test and ask whether a short non-booking test is acceptable.
+
+If the person declines, thank them and hang up.
+
+A test-only call must not create or hold a real appointment, ticket, order or other commitment. Do not wait until the end to reveal that the interaction was only a test.
+
+### Genuine user-authorized tasks
+
+If the user genuinely wants the appointment, the call may execute the real task using only authorized facts and the normal proposal/confirmation/commitment path.
+
+Do not create a real booking and then retract it merely because the call also served as a product test.
+
+### Per-target budget
+
+Default:
+
+- one meaningful call per organization/reception;
+- second call only after an early technical failure or explicit agreement to repeat;
+- no repeated probing of the same staff to tune wording;
+- no broad unsolicited call campaigns;
+- retain target source, test mode, call count and structured outcome.
+
+## Orange side track
+
+Current Orange data is durable in `service-packs/orange/service_tree.v1.json`.
+
+Checkpoint facts:
+
+- 3 physically verified nodes including the activation clarification barrier;
+- 19 verified observed root edges;
+- 16 service seeds, all `DISCOVERED`;
+- no complete service route verified;
+- deterministic live path and cleanup physically proven.
+
+Orange is now a regression/evidence pack and future service-pack-format source. Resume it only when it exercises a generic product capability or supports a real Orange product use case.
+
+Public operator documentation is seed/backlog evidence only. It never creates a `VERIFIED` physical route.
+
+## Frozen / deferred boundaries
+
+- Samsung cellular RX/TX path: `DONE / PROVEN_S22 / FROZEN`.
+- `privileged-helper/` and physically proven media path: do not change during ordinary Gate D work.
+- General-purpose phone-local llama.cpp product direction: frozen; infrastructure may be reused for bounded supervisor experiments.
+- Edge Gallery/Gemma path: frozen experiment.
+- Interactive ChatGPT relay: developer benchmark infrastructure only.
+- Realtime audio models: later, after the hybrid text/task baseline works.
 
 ## Architecture discipline
 
@@ -106,63 +195,61 @@ Orange-specific invariants:
 - Establish root cause before fixing bugs.
 - Prefer small cohesive modules over broad abstractions.
 - Do not split frozen/safety-critical state machines merely to reduce line count.
-- Diagnostic probes/runners are evidence drivers, not product runtime orchestrators.
-- `LocalSpeechTextPipeline` owns speech lifecycle; `TextCallTurnController` owns complete-text approval/generation invalidation; product CallPlan/workflow ownership stays outside them.
+- Diagnostic probes are evidence drivers, not product runtime owners.
+- Do not turn `DiagnosticProbeActivity`, Orange runners or `LocalPhoneLlmLiveCallProbe` into the Gate D orchestrator.
+- `LocalSpeechTextPipeline` owns speech lifecycle; `TextCallTurnController` owns complete-text approval/generation invalidation; TaskGraph/CallPlan/workflow ownership stays outside them.
 - Resumed speech/new generation must invalidate stale model/candidate output.
 - Host tests cannot create `PROVEN_S22` evidence.
-- The repeated Orange reviewed-action wiring may become data-driven only when it is a demonstrated maintenance bottleneck and all typed-ID/reviewed-speech/CallPlan/output-approval/allowlist/fail-closed invariants are preserved.
 
 ## Local Agent
 
-`MichalMatu/local-agent` is an execution worker, not the source of truth.
+`MichalMatu/local-agent` is an optional execution worker, not the source of truth.
 
 - `.agent/tasks` and `.agent/results` stay on `agent-control`; never merge them into `main`.
 - Every task must use the current chat's exact immutable `agent_binding`.
 - Check fresh daemon state before creating a task that touches the same worktree.
 - Inspect terminal evidence; queued/ACK is not success.
-- Every task declares explicit `resources`; physical S22 work uses `device:rfct70l7e8j`.
-- Use Local Agent for Gradle, lint, host tests, ADB/device work and local repository checks.
+- For physical S22 work use the canonical device resource required by the current daemon contract.
+- Use Local Agent for Gradle, lint, host tests, ADB/device work when needed.
 - Direct GitHub edits are appropriate for exact reviewable code/docs/data diffs.
 - Never launch local Codex from a Local Agent task.
 
 ## Branch policy
 
-Work directly on `main` unless temporary isolation is genuinely required. Integrate verified work and delete temporary branches when they no longer have an explicit purpose.
+Work directly on `main` unless temporary isolation is genuinely required. Integrate verified work and delete temporary remote branches when no longer needed.
 
-Normal steady state is:
-
-```text
-main
-agent-control
-```
-
-Do not preserve dead experiment branches merely as history; Git commits and `.agent/results` are the history.
-
-## Controlled live-call policy
-
-Automated dialing/hangup is permitted only for an explicitly operator-defined allowlisted test destination and only when the **current chat/task** authorizes physical calls. Authorization from an older chat, documentation or Git history must not be assumed.
-
-For the Orange Explorer the known test target is `510100100`, but repository documentation does not authorize calling it. When a current operator session does authorize it, keep one active cellular call, bounded retries/duration, deterministic reviewed speech and fail closed on target/device/media uncertainty.
-
-No emergency, premium-rate or arbitrary short-code dialing. A runner may hang up the call it created; it must not terminate an unrelated pre-existing call without explicit authorization.
+Historical local branch `chat-relay/orange-chatgpt-pump-v1` is intentionally preserved because it contains unique commits not present on remotes; it is not part of the active product path.
 
 ## Credentials and privacy
 
-Do not invent or retain credentials to get through IVR barriers. Never fabricate PESEL, customer/contract identifiers, SMS codes, payment data or similar secrets.
+A standard OpenAI API key is host/backend-only. Never put it in Android source, APK/BuildConfig, Intent, ADB argv, phone storage or logs.
 
-A standard OpenAI API key is host/backend-only if paid work is ever resumed. Never put it in Android source, APK/BuildConfig, Intent, ADB argv, phone storage or logs.
+Do not retain raw PCM, call recordings, credentials or unrelated phone data by default. Prefer structured events/slots/outcomes and retain only the minimum text needed for explicit development evidence.
 
-Do not retain raw PCM, call recordings, credentials or unrelated phone data by default. For controlled service discovery, retain only the minimum transcript/evidence needed to identify deterministic IVR nodes and transitions.
+Do not invent missing sensitive information to satisfy a counterparty prompt.
+
+## TAKE OVER
+
+Required local-first ordering:
+
+```text
+stop accepting/releasing AI output
+ -> abort telephony media generation
+ -> stop STT/TTS/audio workers
+ -> invalidate controller/model/supervisor generation
+ -> best-effort cancel remote/local work
+```
+
+The first steps cannot wait for model/network acknowledgement.
 
 ## Completion gate
 
-Before declaring a product/service-pack behavior slice complete:
+Before declaring a Gate D slice complete:
 
 1. run targeted tests for the changed boundary;
 2. run `bash scripts/verify_host.sh`;
-3. run only the physical gate actually required by changed OEM/hardware/IVR behavior and only with current-session authorization;
+3. run only the physical gate actually required by changed OEM/hardware/dialogue behavior;
 4. verify evidence rather than infer success;
-5. persist durable Orange evidence in `service_tree.v1.json`;
-6. update only authoritative docs when gate/continuation status changes;
-7. leave `main` clean and remove temporary branches without active purpose;
-8. if physical calls were made, leave the phone in `IDLE`.
+5. update only authoritative docs when gate/continuation status changes;
+6. leave `main` clean;
+7. for real business/reception tests, enforce disclosure/consent policy for test-only calls and the per-target call budget.
