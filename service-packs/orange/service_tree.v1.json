@@ -25,6 +25,13 @@
         "niestety nie jestem pewien w czym mogę ci pomóc czy możesz dokładniej opisać problem"
       ],
       "latest_variant_evidence_task": "chatgpt-orange-mms-config-live-v209-20260922"
+    },
+    {
+      "id": "orange.activation.clarification_barrier",
+      "status": "VERIFIED",
+      "kind": "ACTIVATION_CLARIFICATION_BARRIER",
+      "observed_prompt": "rozumiem że twoja sprawa dotyczy aktywacji czy możesz jednak dokładnie powiedzieć o co chodzi",
+      "evidence_task": "chatgpt-orange-manual-network-selection-live-v214-20260922"
     }
   ],
   "edges": [
@@ -166,6 +173,19 @@
       "evidence_task": "chatgpt-orange-mms-config-live-v209-20260922",
       "observation_endpoint_reason": "trailing_silence",
       "service_route_verified": false
+    },
+    {
+      "id": "orange.root.manual_network_selection",
+      "from": "orange.root",
+      "to": "orange.activation.clarification_barrier",
+      "action_id": "manual_network_selection",
+      "speech": "Jak włączyć ręczny wybór sieci operatora?",
+      "status": "VERIFIED",
+      "risk": "ACTIVATION_BARRIER",
+      "observed_outcome": "ACTIVATION_CLARIFICATION_BARRIER",
+      "evidence_task": "chatgpt-orange-manual-network-selection-live-v214-20260922",
+      "observation_endpoint_reason": "trailing_silence",
+      "service_route_verified": false
     }
   ],
   "seeds": [
@@ -264,9 +284,9 @@
       "speech": "Jak włączyć ręczny wybór sieci operatora?",
       "risk": "AUTH_REQUIRED_POSSIBLE",
       "source": "operator_public_support_backlog",
-      "last_evidence": "public_orange_support_page",
-      "last_outcome": "NOT_PHYSICALLY_PROBED",
-      "next_evidence": "physical_route_required; service_route_not_verified"
+      "last_evidence": "chatgpt-orange-manual-network-selection-live-v214-20260922",
+      "last_outcome": "ACTIVATION_CLARIFICATION_BARRIER",
+      "next_evidence": "closed_after_activation_barrier; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
@@ -297,6 +317,13 @@
       "kind": "IGNORABLE_PREROLL_FRAGMENT",
       "effect": "BOUNDED_RETRY_ALLOWED",
       "evidence_task": "chatgpt-orange-mms-config-live-v209-20260922"
+    },
+    {
+      "transcript": "jakości orange",
+      "status": "VERIFIED",
+      "kind": "IGNORABLE_PREROLL_FRAGMENT",
+      "effect": "BOUNDED_RETRY_ALLOWED",
+      "evidence_task": "chatgpt-orange-manual-network-selection-live-v214-20260922"
     }
   ]
 }
