@@ -39,6 +39,7 @@ ORANGE_ACTION_SMS_PROBLEM = "sms_problem"
 ORANGE_ACTION_SMS_RECEIVE_PROBLEM = "sms_receive_problem"
 ORANGE_ACTION_VOICE_QUALITY_PROBLEM = "voice_quality_problem"
 ORANGE_ACTION_OUTGOING_CALL_PROBLEM = "outgoing_call_problem"
+ORANGE_ACTION_INCOMING_CALL_PROBLEM = "incoming_call_problem"
 ORANGE_ACTION_ROAMING_INFO = "roaming_info"
 ORANGE_ACTION_ROAMING_PRICES = "roaming_prices"
 ORANGE_ACTION_OBSERVE_ONLY = "observe_only"
@@ -58,6 +59,7 @@ ORANGE_LIVE_ACTIONS = frozenset({
     ORANGE_ACTION_SMS_RECEIVE_PROBLEM,
     ORANGE_ACTION_VOICE_QUALITY_PROBLEM,
     ORANGE_ACTION_OUTGOING_CALL_PROBLEM,
+    ORANGE_ACTION_INCOMING_CALL_PROBLEM,
     ORANGE_ACTION_ROAMING_INFO,
     ORANGE_ACTION_ROAMING_PRICES,
     ORANGE_ACTION_OBSERVE_ONLY,
@@ -78,6 +80,7 @@ GATE_C_ROOT_ACQUISITION_ACTIONS = frozenset({
     ORANGE_ACTION_SMS_RECEIVE_PROBLEM,
     ORANGE_ACTION_VOICE_QUALITY_PROBLEM,
     ORANGE_ACTION_OUTGOING_CALL_PROBLEM,
+    ORANGE_ACTION_INCOMING_CALL_PROBLEM,
     ORANGE_ACTION_ROAMING_INFO,
     ORANGE_ACTION_ROAMING_PRICES,
 })
@@ -97,6 +100,7 @@ ORANGE_REVIEWED_RESPONSES = {
     ORANGE_ACTION_SMS_RECEIVE_PROBLEM: "Nie mogę odbierać SMS-ów.",
     ORANGE_ACTION_VOICE_QUALITY_PROBLEM: "Podczas rozmów zanika głos.",
     ORANGE_ACTION_OUTGOING_CALL_PROBLEM: "Nie mogę wykonywać połączeń.",
+    ORANGE_ACTION_INCOMING_CALL_PROBLEM: "Nie mogę odbierać połączeń.",
     ORANGE_ACTION_ROAMING_INFO: "Roaming.",
     ORANGE_ACTION_ROAMING_PRICES: "Chcę sprawdzić ceny w roamingu.",
 }
@@ -417,7 +421,6 @@ def run_orange_support_once(
             _set_bluetooth(adb, False)
             changed_bt = True
             print("bluetooth_disabled_for_test=true")
-
         print(f"allowlisted_target={number}")
         print(f"text_llm_provider={selected_provider}")
         print(f"gate_c_fast_path={str(gate_c_fast_path).lower()}")
@@ -570,7 +573,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             raise ValueError(
                 "usage: local_phone_llm_live_call.py [adb-serial] "
                 "[LOCAL_PHONE_LLM|EDGE_GALLERY] [--gate-c-fast-path] "
-                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|outage_topic|wifi_problem|coverage_info|internet_config|mms_config|manual_network_selection|sms_problem|sms_receive_problem|voice_quality_problem|outgoing_call_problem|roaming_info|roaming_prices|observe_only] [--observe-next]"
+                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|outage_topic|wifi_problem|coverage_info|internet_config|mms_config|manual_network_selection|sms_problem|sms_receive_problem|voice_quality_problem|outgoing_call_problem|incoming_call_problem|roaming_info|roaming_prices|observe_only] [--observe-next]"
             )
         serial = args[0] if args else DEFAULT_SERIAL
         provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
