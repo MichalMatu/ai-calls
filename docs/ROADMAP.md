@@ -1,6 +1,6 @@
 # Roadmap
 
-This is the authoritative execution plan. Detailed experiment history belongs in Git history and `.agent/results`.
+This is the authoritative execution plan. Detailed experiment history belongs in Git history and `.agent/results`. Operational Orange procedure lives in `docs/ORANGE_MAPPING_RUNBOOK.md`.
 
 Evidence levels:
 
@@ -65,7 +65,7 @@ Do not continue live Edge probe work by default.
 
 ## Active gate — Gate C / deterministic fast path
 
-Status: `ACTIVE / HOST_GREEN / LIVE DETERMINISTIC PATH PROVEN_S22 / ORANGE SERVICE PACK EXPLORER ACTIVE`
+Status: `ACTIVE / HOST_GREEN / LIVE DETERMINISTIC PATH PROVEN_S22 / ORANGE CHECKPOINTED`
 
 Goal: common bounded turns execute deterministically while all authority remains application-owned. Matchers, language helpers and service-pack discovery tools may only classify/propose already-reviewed product data.
 
@@ -106,7 +106,7 @@ Do not broaden fuzzy matching to make live Orange prompts pass.
 
 Status: `DONE / PROVEN_S22`
 
-Exact allowlisted target:
+Exact allowlisted target used for explicit physical proof:
 
 ```text
 510100100
@@ -138,19 +138,29 @@ Therefore do not repeat work whose sole purpose is proving the first determinist
 
 ## Current slice — Orange Service Pack + intent resolver
 
-Status: `ACTIVE / HOST_GREEN / LIVE DETERMINISTIC PATH PROVEN_S22 / SERVICE ROUTES STILL DISCOVERED`.
+Status: `CHECKPOINTED / LIVE EVIDENCE PROVEN_S22 / SERVICE ROUTES STILL DISCOVERED`.
 
-Durable graph: `service-packs/orange/service_tree.v1.json`. Verified physical nodes are `orange.root` and `orange.root.reprompt`. Verified observed root edges include `list_capabilities`, `invoice_status`, `invoice_topic`, `internet_problem` and `roaming_info`. These edges verify observed transitions only.
+Durable graph: `service-packs/orange/service_tree.v1.json`.
 
-Current service seeds `orange.invoice.status`, `orange.internet.problem` and `orange.roaming.info` remain `DISCOVERED`; their tested utterances returned the root reprompt, so no complete service route is claimed `VERIFIED`.
+Checkpoint state after the 2026-09-22 mapping session:
 
-Latest bounded physical evidence is `chatgpt-orange-roaming-live-v151-20260922`: exact reviewed `Roaming.`, `backend_generate_calls=0`, passive `OBSERVE_ONLY`, known root reprompt and cleanup to `IDLE`.
+- verified physical nodes: `orange.root`, `orange.root.reprompt`, `orange.activation.clarification_barrier`;
+- 19 verified observed root edges;
+- 16 service seeds, all `DISCOVERED`;
+- no complete service route has `service_route_verified=true`;
+- manual network selection reached the activation clarification barrier and is closed;
+- all other currently closed reviewed diagnostic/informational wordings ended in a known root reprompt;
+- latest physical evidence: `chatgpt-orange-caller-id-restriction-info-live-v264-20260922`;
+- latest exact reviewed speech: `Jak działa zastrzeganie numeru?`;
+- latest physical call used `backend_generate_calls=0`, then `OBSERVE_ONLY`, then cleanup to `IDLE`.
+
+The last code/data persistence slice adds `orange.root.caller_id_restriction_info -> orange.root.reprompt` as a physically `VERIFIED` observed edge while `orange.caller_id.restriction_info` remains `DISCOVERED`.
 
 ### Generic service-intent resolver
 
 Status: `HOST_GREEN`.
 
-The new `serviceintent/` layer implements a provider-neutral classifier boundary, bounded `ServiceRegistry`, fail-closed resolver and separate execution validator. It accepts only existing service IDs and keeps `DISCOVERED` routes blocked as `ROUTE_NOT_VERIFIED`.
+The `serviceintent/` layer implements a provider-neutral classifier boundary, bounded `ServiceRegistry`, fail-closed resolver and separate execution validator. It accepts only existing service IDs and keeps `DISCOVERED` routes blocked as `ROUTE_NOT_VERIFIED`.
 
 ```text
 Mam problem z internetem w Orange
@@ -160,14 +170,21 @@ Mam problem z internetem w Orange
  -> no call / no speech / no commitment
 ```
 
-### Near-term priorities
+### Next execution order
 
-1. Continue evidence-driven low-risk Orange mapping without overwriting old evidence.
-2. Preserve strict edge-vs-service-route verification semantics.
-3. Keep the current small reviewed action enum until it becomes a real bottleneck.
-4. Add classifier provider/registry loading only behind the generic resolver boundary.
-5. Keep auth/payment/commitment points as recorded barriers, not discovery shortcuts.
-6. Use `docs/ORANGE_OVERNIGHT_MAPPING_PROMPT.md` only in a future explicitly authorized session; it is prepared, not running.
+The next work session should follow this order without a separate paste-ready prompt:
+
+1. Read `docs/HANDOFF_NEXT_CHAT.md` and `docs/ORANGE_MAPPING_RUNBOOK.md`, then fetch fresh `main` and fresh Local Agent daemon/binding state.
+2. Confirm the stabilized checkpoint with the canonical host gate if it has not already been proven for the exact fresh HEAD.
+3. Do not repeat any closed reviewed utterance from the current service tree.
+4. Select one new low-risk informational/diagnostic seed only after reviewing the existing tree and official operator backlog.
+5. Add it with RED -> minimal GREEN -> targeted tests -> full host gate.
+6. Only when the current operator session explicitly authorizes the exact physical target, install the exact GREEN SHA and perform one bounded reviewed turn followed by `OBSERVE_ONLY`.
+7. Persist physical evidence conservatively; a reprompt verifies only the observed edge, not the complete service route.
+8. Stop and record barriers for auth, credentials, payment, purchase, activation/deactivation, tariff/contract/package changes, ticket creation or any other commitment.
+9. Repeat one seed at a time until enough genuinely verified service routes exist for a natural-intent -> `service_id` -> deterministic route acceptance test.
+
+Do not start the next session by refactoring frozen media or broadening the matcher. The repeated Orange action wiring may be made data-driven only if it becomes a demonstrated maintenance bottleneck and the same typed IDs, reviewed speech, CallPlan validation, output approval, exact target allowlist and zero-backend-generation invariants remain intact.
 
 ### Orange acceptance target
 
@@ -206,7 +223,8 @@ Every product/service-pack behavior slice:
 2. uses TDD where deterministic behavior is testable;
 3. runs targeted regressions;
 4. runs `bash scripts/verify_host.sh`;
-5. runs only the physical gate required by changed OEM/hardware/IVR behavior;
+5. runs only the physical gate required by changed OEM/hardware/IVR behavior and only with current-session authorization;
 6. persists physical Orange evidence into `service_tree.v1.json`;
 7. updates existing authoritative docs instead of adding status files;
-8. leaves `main` clean and keeps `.agent` traffic only on `agent-control`.
+8. follows `docs/ORANGE_MAPPING_RUNBOOK.md` for Orange work;
+9. leaves `main` clean and keeps `.agent` traffic only on `agent-control`.
