@@ -52,6 +52,9 @@ internal object GateCLiveCallScenarioFactory {
     private const val REVIEWED_MAX_ROOT_EVENING =
         "dobry wieczór jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana " +
             "chętnie pomogę powiedz w jakiej sprawie dzwonisz"
+    private const val REVIEWED_MAX_ROOT_DAY =
+        "dzień dobry jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana " +
+            "chętnie pomogę powiedz w jakiej sprawie dzwonisz"
 
     private data class ReviewedTurn(
         val ruleId: String,
@@ -125,56 +128,56 @@ internal object GateCLiveCallScenarioFactory {
             ruleId = MAX_ROOT_RULE_ID,
             factKey = EXPLORER_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.INVOICE_STATUS -> ReviewedTurn(
             ruleId = INVOICE_STATUS_RULE_ID,
             factKey = INVOICE_STATUS_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.INVOICE_TOPIC -> ReviewedTurn(
             ruleId = INVOICE_TOPIC_RULE_ID,
             factKey = INVOICE_TOPIC_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.INTERNET_PROBLEM -> ReviewedTurn(
             ruleId = INTERNET_PROBLEM_RULE_ID,
             factKey = INTERNET_PROBLEM_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.OUTAGE_TOPIC -> ReviewedTurn(
             ruleId = OUTAGE_TOPIC_RULE_ID,
             factKey = OUTAGE_TOPIC_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.WIFI_PROBLEM -> ReviewedTurn(
             ruleId = WIFI_PROBLEM_RULE_ID,
             factKey = WIFI_PROBLEM_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.ROAMING_INFO -> ReviewedTurn(
             ruleId = ROAMING_INFO_RULE_ID,
             factKey = ROAMING_INFO_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.ROAMING_PRICES -> ReviewedTurn(
             ruleId = ROAMING_PRICES_RULE_ID,
             factKey = ROAMING_PRICES_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
-            aliases = emptySet(),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
         OrangeLiveAction.OBSERVE_ONLY -> null
