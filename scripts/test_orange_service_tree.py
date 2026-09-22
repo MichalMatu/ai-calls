@@ -43,6 +43,15 @@ class OrangeServiceTreeTest(unittest.TestCase):
         self.assertEqual("BOUNDED_RETRY_ALLOWED", item["effect"])
         self.assertEqual("chatgpt-orange-internet-live-retry-v141-20260922", item["evidence_task"])
 
+    def test_v167_exact_wielkosci_orange_preroll_is_durable_physical_evidence(self):
+        tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
+        observations = {item["transcript"]: item for item in tree["root_acquisition_observations"]}
+        item = observations["wielkości orange"]
+        self.assertEqual("VERIFIED", item["status"])
+        self.assertEqual("IGNORABLE_PREROLL_FRAGMENT", item["kind"])
+        self.assertEqual("BOUNDED_RETRY_ALLOWED", item["effect"])
+        self.assertEqual("chatgpt-orange-roaming-prices-live-v167-20260922", item["evidence_task"])
+
     def test_v145_internet_problem_reprompt_edge_is_durable_without_claiming_service_route(self):
         tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
         edges = {edge["id"]: edge for edge in tree["edges"]}
