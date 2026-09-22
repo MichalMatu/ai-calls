@@ -70,7 +70,7 @@ internal class GateDShadowTurnDiagnostics(
  * revalidated or surfaced as diagnostics. No TaskGraph reducer or application authority exists
  * here. An optional validated-candidate callback still receives candidate data only.
  */
-internal class LocalTextCallGateDShadowLifecycle private constructor(
+internal class LocalTextCallGateDShadowLifecycle internal constructor(
     private val runtime: LocalTextCallGateDRuntime,
     private val authoritativeSnapshotProvider: () -> TaskGraphSnapshot,
     maxRecoveryCount: Int,
@@ -101,26 +101,6 @@ internal class LocalTextCallGateDShadowLifecycle private constructor(
         diagnosticsListener = diagnosticsListener,
         allowedNonSecretSlotsProvider = null,
         validatedCandidateListener = null,
-    )
-
-    constructor(
-        runtime: LocalTextCallGateDRuntime,
-        authoritativeSnapshotProvider: () -> TaskGraphSnapshot,
-        maxRecoveryCount: Int,
-        observer: ShadowDialogueObserver,
-        executor: GateDShadowExecutor,
-        diagnosticsListener: GateDShadowDiagnosticsListener,
-        allowedNonSecretSlotsProvider: (TaskGraphSnapshot) -> Set<TaskGraphSlotId>,
-        validatedCandidateListener: (ValidatedSupervisorCandidate) -> Unit,
-    ) : this(
-        runtime = runtime,
-        authoritativeSnapshotProvider = authoritativeSnapshotProvider,
-        maxRecoveryCount = maxRecoveryCount,
-        observer = observer,
-        executor = executor,
-        diagnosticsListener = diagnosticsListener,
-        allowedNonSecretSlotsProvider = allowedNonSecretSlotsProvider,
-        validatedCandidateListener = validatedCandidateListener,
     )
 
     fun onFinalizedTurn(
