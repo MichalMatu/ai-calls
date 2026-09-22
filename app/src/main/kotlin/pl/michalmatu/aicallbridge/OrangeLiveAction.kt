@@ -23,6 +23,7 @@ internal enum class OrangeLiveAction(
     MANUAL_NETWORK_SELECTION("manual_network_selection", "Jak włączyć ręczny wybór sieci operatora?"),
     SMS_PROBLEM("sms_problem", "Nie mogę wysyłać SMS-ów."),
     VOICE_QUALITY_PROBLEM("voice_quality_problem", "Podczas rozmów zanika głos."),
+    OUTGOING_CALL_PROBLEM("outgoing_call_problem", "Nie mogę wykonywać połączeń."),
     ROAMING_INFO("roaming_info", "Roaming."),
     ROAMING_PRICES("roaming_prices", "Chcę sprawdzić ceny w roamingu."),
     OBSERVE_ONLY("observe_only", null),
