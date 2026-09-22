@@ -2,7 +2,7 @@
 
 ## Objective
 
-The agent may speak, dial or commit only inside authority explicitly granted by the user/operator. Technical failure must disable AI injection or return control to the human caller; it must never broaden authority.
+The agent may speak, dial, disclose data or commit only inside authority explicitly granted by the user/operator. Technical failure must disable AI injection, fail closed, or return control to the human caller; it must never broaden authority.
 
 ## Privilege boundary
 
@@ -10,11 +10,11 @@ Protected Samsung call-audio access stays inside the privileged helper / Shizuku
 
 Continuous PCM crosses through transferred PFDs. Binder/AIDL is control only. The privileged helper has no model networking and no business-policy authority.
 
-The frozen media path is documented in `docs/PHASE2D_FREEZE_2026-09-18.md` and is not part of ordinary Gate C work.
+The frozen media path is documented in `docs/PHASE2D_FREEZE_2026-09-18.md` and is not part of ordinary Gate D work.
 
 ## Authority owners
 
-Do not create parallel authority in CallPlan, a matcher, model, helper or Agent Skill.
+Do not create parallel authority in TaskGraph, ServicePack, CallPlan, a matcher, model, helper or Skill.
 
 - `CallTask` — immutable task, hard constraints, preferences and `authorizedFacts`;
 - `CallResolvedTarget` — one concrete target, without authority to widen a live dial allowlist;
@@ -23,34 +23,98 @@ Do not create parallel authority in CallPlan, a matcher, model, helper or Agent 
 - `CallCommitmentGate` — exact one-shot permit bound to one concrete proposal;
 - application-owned output approval — final text release before TTS/TX.
 
-Counterparty/model/helper/matcher text cannot create new authorized facts, destinations, actions or commitments. Missing required user data must fail closed or escalate; never invent sensitive data to satisfy a prompt.
+Counterparty/model/helper/matcher/service-pack text cannot create new authorized facts, destinations, actions or commitments. Missing required user data must fail closed or escalate; never invent sensitive data to satisfy a prompt.
+
+## TaskGraph boundary
+
+TaskGraph is application-owned product logic, not model-generated runtime code.
+
+A TaskGraph may define existing typed states, transitions, slot schemas, guards, recovery counters, proposal/confirmation/commitment stages and terminal outcomes.
+
+A model/Skill may suggest only bounded existing transitions and typed slot values. Every suggestion must be revalidated against:
+
+- current graph state;
+- current task/session generation;
+- slot schema/types;
+- user constraints/preferences;
+- authorized facts;
+- confirmation/commitment requirements.
+
+Unknown state/transition IDs, stale results, invalid slot data or authority-bearing metadata fail closed.
+
+## ServicePack / IVR knowledge boundary
+
+A ServicePack such as the Orange pack stores evidence and navigation knowledge about a particular service/counterparty. It may contain reviewed speech/actions, known IVR nodes/edges, prompt variants, route status, risks and barriers.
+
+ServicePack data does not itself authorize execution. In particular:
+
+- a known route does not widen the dial target allowlist;
+- a reviewed utterance does not authorize a new commitment;
+- a `VERIFIED` node/edge does not imply a service route or task is authorized;
+- stale/historical evidence must not silently override current live observations;
+- authentication/payment/activation/contract barriers remain barriers even if a route is known.
+
+Orange remains a durable future product ServicePack, but its existence is never permission to call Orange in a new session.
 
 ## CallPlan + PhraseMatrix boundary
 
-`CallPlan v1` is product policy, not independent authority. Host-green behavior includes authorized facts, bounded repeat/escalation, typed proposals/completions and helper/matcher routing restricted to an existing `ruleId`.
+`CallPlan` is product policy, not independent authority. Workflow mutation remains in `CallPlanTurnCoordinator` + existing `CallWorkflow` APIs.
 
 Only `CallPlanAction.SAY` carries speech text. `ASK_REPEAT`, `PROPOSAL`, `COMPLETE` and `TAKE_OVER` do not carry implicit speech and must not silently become model fallback.
 
-Workflow mutation remains in `CallPlanTurnCoordinator` + existing `CallWorkflow` APIs.
-
-The native PhraseMatrix is classification-only. Its output is not trusted authority:
+The native PhraseMatrix is classification-only:
 
 ```text
 final transcript
  -> PhraseMatrix match(existing ruleId)
- -> CallPlanTurnCoordinator validation
+ -> deterministic validation
  -> typed CallPlanDecision
  -> existing workflow/output approval path
 ```
 
 Security invariants:
 
-- PhraseMatrix cannot be bound through readiness/prepared-call state without a CallPlan;
-- a raw matcher `ruleId` is never sufficient to release speech or mutate workflow;
-- only a validated `CallPlanDecision.ruleId()` may become session `previousValidatedRuleId`;
-- an unknown/rejected matcher rule clears/does not advance previous-rule context;
+- PhraseMatrix cannot release speech merely from a raw match;
+- only validated rule IDs may advance dialogue context;
 - matcher miss/ambiguity must not silently widen into a sensitive action;
-- any future fuzzy matcher or LLM supervisor remains subject to the same CallPlan validation.
+- future fuzzy matching and LLM supervision remain subject to the same authority validation.
+
+## Hybrid LLM supervisor boundary
+
+The Gate D supervisor is interpretation assistance, not a dialogue authority owner.
+
+Allowed result shape is bounded structured data such as:
+
+```text
+existing transition ID
++ typed slot values
++ confidence/diagnostic metadata
+```
+
+The supervisor must not own or smuggle through:
+
+- arbitrary telephony speech/utterance text;
+- target numbers or dialing instructions;
+- new graph/service/action IDs;
+- credentials or new authorized facts;
+- confirmation/commitment/completion decisions.
+
+Reject stale generations, low/invalid confidence, unknown IDs, state-incompatible transitions, invalid slots, constraint violations and metadata carrying authority.
+
+The existing `serviceintent/` resolver is the security precedent: bounded candidates, unsafe-metadata rejection, stale-result rejection, registry revalidation and a separate execution validator.
+
+## Skills boundary
+
+Skills may help build/update a bounded `CallTask`, select an existing TaskGraph/ServicePack, gather missing pre-call preferences, or suggest existing transitions/slots.
+
+Skills must not directly:
+
+- dial arbitrary targets;
+- widen allowlists;
+- emit arbitrary telephony speech;
+- invent credentials or sensitive facts;
+- confirm bookings/purchases;
+- bypass `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` or output approval.
 
 ## Final-text release boundary
 
@@ -59,7 +123,7 @@ The existing controller remains the single text release/generation owner:
 ```text
 ordinary final transcript
  -> TextCallTurnController.submitUserText(...)
- -> backend.generate(...)
+ -> backend.generate(...) when that path is explicitly selected
  -> TextOutputApprovalPolicy
 
 exact deterministic candidate
@@ -73,79 +137,78 @@ exact deterministic candidate
 - `Candidate(text)` — exact pre-determined candidate through the same approval;
 - `Consumed` — no generation and controller cancellation.
 
-`Consumed` invalidates stale work so an older backend callback cannot be released after a structured CallPlan decision.
-
-CallPlan and the optional native PhraseMatrix are now host-green at the real product final-STT selector boundary and can be bound through Android readiness. This is still host evidence; no new S22/OEM claim is implied.
-
-## Service intent resolver boundary
-
-`serviceintent/` is classification and validation infrastructure, not a new authority owner. The model receives a bounded candidate catalog and may return only an existing `service_id` or null with confidence/classification metadata. Unknown IDs, cross-pack IDs, low confidence, stale generations and metadata attempting to carry speech/action/target authority fail closed.
-
-A successful classification does not authorize execution. The authoritative registry is checked again; `DISCOVERED` routes remain `ROUTE_NOT_VERIFIED`; verified-route eligibility additionally requires existing application authority. The resolver has no direct dial/TTS/TX surface.
-
-## Model / helper boundary
-
-Preserved providers do not change authority:
-
-```text
-LOCAL_PHONE_LLM
-EDGE_GALLERY
-LOCAL_MAC_LLM
-OPENAI_TEXT
-```
-
-The current phone-local llama.cpp path is frozen as a product direction. Edge Gallery / Gemma / Agent Skills is also frozen as `PROVEN_S22 PARTIAL / NOT PRODUCT_READY`.
-
-Agent Skills are proposal generators only. Do not expose direct implementations for arbitrary dialing, DTMF, authentication, purchases, activations, tariff/plan changes, payments or commitments without a separate deterministic application-owned policy.
-
-A future bounded LLM supervisor may suggest only an existing ruleId plus diagnostics/confidence. It cannot release arbitrary reply text, create authority or retroactively replace a deterministic response already approved/released.
-
-## Speculative / partial speech rule
-
-Partial STT or speculative inference may reduce latency only while quarantined:
-
-```text
-partial transcript -> optional cancelable preparation
-final endpoint -> final transcript/goal match -> deterministic policy
-              -> approved text/action -> TTS/TX
-```
-
-Changed or resumed speech invalidates stale speculation. Partial text never grants authority and never triggers early telephony TX.
+`Consumed` invalidates stale work so an older backend/supervisor callback cannot be released after a structured decision.
 
 ## READY_TO_DIAL
 
-A local call must fail closed before dialing unless:
+A call must fail closed before dialing unless:
 
 - task and target are valid;
-- live target is explicitly authorized;
-- required plan data is consistent with the same task/target/workflow;
-- an optional PhraseMatrix is bound only with that same CallPlan;
-- STT/TTS readiness is proven;
-- the selected local backend is ready and identity-verified where applicable;
-- required warm-up succeeds.
+- live target is explicitly authorized in the current operator session;
+- task/target/workflow/plan/graph data are mutually consistent;
+- required STT/TTS readiness is proven;
+- any selected local/network model provider is explicitly allowed and ready;
+- required warm-up succeeds;
+- the live-test mode and commitment policy are known.
 
 Readiness must not silently switch to a provider with different privacy, cost or network semantics.
 
 ## Controlled live-call policy
 
-Physical validation follows `AGENTS.md`:
+Physical validation follows `AGENTS.md` and `docs/ROADMAP.md`.
 
-- explicit operator-defined allowlisted destination only;
+General rules:
+
+- fresh explicit operator authorization for the current target/task;
 - one active cellular call at a time;
 - bounded duration/retries;
 - no model/tool expansion of the dial allowlist;
-- no emergency, premium-rate or arbitrary short-code destinations;
+- no emergency, urgent-care, crisis, premium-rate or arbitrary short-code test destinations;
 - a runner may hang up the bounded call it created;
 - an unrelated pre-existing call must not be terminated without explicit authorization.
 
-Orange live-call authorization is session-scoped. Never infer it from this document or a previous chat; use only explicit authorization in the current operator session and the exact allowlisted target.
+Authorization from an old chat, handoff, ServicePack or `.agent/results` never carries into a new session.
+
+### Test-only real-world calls
+
+For ordinary public business/reception validation, disclose the AI/test purpose at the **start** and ask whether a brief non-booking test is acceptable.
+
+If consent is declined, thank the person and stop.
+
+A test-only call must not create or hold a real appointment, ticket, order or other commitment. Do not wait until the end to reveal that it was only a test.
+
+### Genuine user-authorized calls
+
+If the user genuinely wants the appointment/task, the call may pursue a real outcome using only authorized facts and the normal proposal/confirmation/commitment path.
+
+A genuine booking is not retracted merely because the interaction also provided product evidence.
+
+### Per-target budget
+
+Default development policy:
+
+- one meaningful call per organization/reception in a slice;
+- second call only after an early technical failure or explicit agreement to repeat;
+- no repeated probing of the same staff to tune wording;
+- no broad unsolicited call campaigns;
+- retain public target source, mode, call count and structured outcome.
+
+## Personal and medical data
+
+Appointment calls may naturally expose personal or medical context. Minimize it.
+
+- Use only user-authorized facts necessary for the task.
+- Do not infer or invent medical details.
+- Do not retain unnecessary medical/reception transcripts.
+- Prefer typed slots/events and minimal evidence over raw dialogue logs.
+- If a counterparty asks for information not authorized by `CallTask`, fail closed/escalate rather than improvise.
 
 ## Local speech privacy
 
 Production local speech must:
 
 - require on-device recognition rather than silently falling back to cloud STT;
-- use local/non-network-required TTS voices;
+- use local/non-network-required TTS voices unless a different provider is explicitly selected;
 - bound and clean temporary PCM/files;
 - close temporary PFDs on completion, cancellation and TAKE OVER;
 - avoid retaining call recordings or full transcripts by default.
@@ -171,9 +234,24 @@ Do not retain by default:
 - full transcripts;
 - model/tool arguments containing user secrets;
 - credentials;
-- unrelated counterparty identifiers.
+- unrelated counterparty identifiers;
+- unnecessary personal/medical details.
 
-Prefer state, sizes, timings, sanitized failure reasons, local correlation IDs and bounded text only when needed for an explicit development proof.
+Prefer state transitions, typed slots, sizes/timings, sanitized failure reasons, local correlation IDs and bounded text only when needed for explicit evidence.
+
+## Speculative / partial speech rule
+
+Partial STT or speculative inference may reduce latency only while quarantined:
+
+```text
+partial transcript -> optional cancelable preparation
+final endpoint -> deterministic/supervisor interpretation
+              -> validated policy
+              -> approved text/action
+              -> TTS/TX
+```
+
+Changed or resumed speech invalidates stale speculation. Partial text never grants authority and never triggers early telephony TX.
 
 ## TAKE OVER
 
@@ -183,12 +261,18 @@ Required local-first ordering:
 stop accepting/releasing AI output
  -> abort telephony media generation
  -> stop STT/TTS/audio workers
- -> invalidate controller/model/tool generation
+ -> invalidate controller/model/supervisor generation
  -> best-effort cancel remote/local work
 ```
 
 The first steps cannot wait for model/network acknowledgement. App/helper death must likewise disable injection.
 
+## Handoff safety
+
+Follow `docs/HANDOFF_PROTOCOL.md` when ending a major session.
+
+Handoff and continuation-prompt files must never embed secrets, stale Local Agent bindings or implied future live-call authorization. A new chat must use a fresh Local Chat Bridge binding if that mode is active and obtain fresh authorization before physical calls.
+
 ## Evidence rule
 
-`HOST_GREEN` is not `PROVEN_S22`. Current CallPlan/PhraseMatrix product routing is host-proven; physical proof requires an explicitly authorized device gate whose runner actually exercises that changed path.
+`HOST_GREEN` is not `PROVEN_S22`. ServicePack edge verification is not task completion. A real commitment is not authorized merely because the dialogue path is known.
