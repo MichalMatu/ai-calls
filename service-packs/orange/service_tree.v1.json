@@ -151,6 +151,17 @@
       "last_evidence": "chatgpt-orange-outage-live-v184-20260922",
       "last_outcome": "REPROMPT",
       "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
+    },
+    {
+      "service_id": "orange.wifi.problem",
+      "status": "DISCOVERED",
+      "action_id": "wifi_problem",
+      "speech": "Mam problem z Wi-Fi.",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "operator_public_support_backlog",
+      "last_evidence": "public_orange_support_page",
+      "last_outcome": "NOT_PHYSICALLY_PROBED",
+      "next_evidence": "physical_route_required; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [

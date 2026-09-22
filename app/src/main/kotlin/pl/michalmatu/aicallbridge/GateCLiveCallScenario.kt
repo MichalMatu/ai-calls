@@ -33,6 +33,7 @@ internal object GateCLiveCallScenarioFactory {
     const val INVOICE_TOPIC_RULE_ID = "orange-invoice-topic-root"
     const val INTERNET_PROBLEM_RULE_ID = "orange-internet-problem-root"
     const val OUTAGE_TOPIC_RULE_ID = "orange-outage-topic-root"
+    const val WIFI_PROBLEM_RULE_ID = "orange-wifi-problem-root"
     const val ROAMING_INFO_RULE_ID = "orange-roaming-info-root"
     const val ROAMING_PRICES_RULE_ID = "orange-roaming-prices-root"
 
@@ -42,6 +43,7 @@ internal object GateCLiveCallScenarioFactory {
     private const val INVOICE_TOPIC_FACT_KEY = "orange-invoice-topic-response"
     private const val INTERNET_PROBLEM_FACT_KEY = "orange-internet-problem-response"
     private const val OUTAGE_TOPIC_FACT_KEY = "orange-outage-topic-response"
+    private const val WIFI_PROBLEM_FACT_KEY = "orange-wifi-problem-response"
     private const val ROAMING_INFO_FACT_KEY = "orange-roaming-info-response"
     private const val ROAMING_PRICES_FACT_KEY = "orange-roaming-prices-response"
     private const val REVIEWED_GREETING = "orange dzień dobry jestem max twój wi"
@@ -150,6 +152,13 @@ internal object GateCLiveCallScenarioFactory {
         OrangeLiveAction.OUTAGE_TOPIC -> ReviewedTurn(
             ruleId = OUTAGE_TOPIC_RULE_ID,
             factKey = OUTAGE_TOPIC_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = emptySet(),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.WIFI_PROBLEM -> ReviewedTurn(
+            ruleId = WIFI_PROBLEM_RULE_ID,
+            factKey = WIFI_PROBLEM_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
             aliases = emptySet(),
             response = checkNotNull(action.reviewedResponse),
