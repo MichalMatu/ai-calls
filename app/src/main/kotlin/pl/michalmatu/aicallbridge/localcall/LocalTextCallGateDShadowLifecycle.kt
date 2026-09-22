@@ -12,6 +12,7 @@ import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObserver
 import pl.michalmatu.aicallbridge.dialogue.StateCompatibility
 import pl.michalmatu.aicallbridge.dialogue.SupervisorProposalRejectReason
 import pl.michalmatu.aicallbridge.dialogue.SupervisorProposalValidation
+import pl.michalmatu.aicallbridge.dialogue.ValidatedSupervisorCandidate
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSlotId
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSnapshot
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphTransitionId
@@ -67,20 +68,60 @@ internal class GateDShadowTurnDiagnostics(
  * Session-owned host shadow lifecycle. Every finalized turn receives a monotonically increasing
  * session epoch. Newer turns, cancel and close invalidate queued work before observer output can be
  * revalidated or surfaced as diagnostics. No TaskGraph reducer or application authority exists
- * here.
+ * here. An optional validated-candidate callback still receives candidate data only.
  */
-internal class LocalTextCallGateDShadowLifecycle(
+internal class LocalTextCallGateDShadowLifecycle private constructor(
     private val runtime: LocalTextCallGateDRuntime,
-    private val authoritativeSnapshot: TaskGraphSnapshot,
+    private val authoritativeSnapshotProvider: () -> TaskGraphSnapshot,
     maxRecoveryCount: Int,
     private val observer: ShadowDialogueObserver,
     private val executor: GateDShadowExecutor,
     private val diagnosticsListener: GateDShadowDiagnosticsListener,
+    private val allowedNonSecretSlotsProvider: ((TaskGraphSnapshot) -> Set<TaskGraphSlotId>)?,
+    private val validatedCandidateListener: ((ValidatedSupervisorCandidate) -> Unit)?,
 ) : AutoCloseable {
     private val lock = Any()
     private val fitPolicy = DefaultDialogueFitPolicy(maxRecoveryCount.coerceAtLeast(1))
     private var epoch = 0L
     private var closed = false
+
+    constructor(
+        runtime: LocalTextCallGateDRuntime,
+        authoritativeSnapshot: TaskGraphSnapshot,
+        maxRecoveryCount: Int,
+        observer: ShadowDialogueObserver,
+        executor: GateDShadowExecutor,
+        diagnosticsListener: GateDShadowDiagnosticsListener,
+    ) : this(
+        runtime = runtime,
+        authoritativeSnapshotProvider = { authoritativeSnapshot },
+        maxRecoveryCount = maxRecoveryCount,
+        observer = observer,
+        executor = executor,
+        diagnosticsListener = diagnosticsListener,
+        allowedNonSecretSlotsProvider = null,
+        validatedCandidateListener = null,
+    )
+
+    constructor(
+        runtime: LocalTextCallGateDRuntime,
+        authoritativeSnapshotProvider: () -> TaskGraphSnapshot,
+        maxRecoveryCount: Int,
+        observer: ShadowDialogueObserver,
+        executor: GateDShadowExecutor,
+        diagnosticsListener: GateDShadowDiagnosticsListener,
+        allowedNonSecretSlotsProvider: (TaskGraphSnapshot) -> Set<TaskGraphSlotId>,
+        validatedCandidateListener: (ValidatedSupervisorCandidate) -> Unit,
+    ) : this(
+        runtime = runtime,
+        authoritativeSnapshotProvider = authoritativeSnapshotProvider,
+        maxRecoveryCount = maxRecoveryCount,
+        observer = observer,
+        executor = executor,
+        diagnosticsListener = diagnosticsListener,
+        allowedNonSecretSlotsProvider = allowedNonSecretSlotsProvider,
+        validatedCandidateListener = validatedCandidateListener,
+    )
 
     fun onFinalizedTurn(
         finalizedTranscript: String,
@@ -92,10 +133,20 @@ internal class LocalTextCallGateDShadowLifecycle(
             epoch += 1L
             epoch
         }
-        val observation = runtime.createShadowObservation(
-            snapshot = authoritativeSnapshot,
-            finalizedTranscript = finalizedTranscript,
-        )
+        val authoritativeSnapshot = try {
+            authoritativeSnapshotProvider()
+        } catch (_: Throwable) {
+            return
+        }
+        if (!isCurrent(turnEpoch)) return
+        val observation = try {
+            runtime.createShadowObservation(
+                snapshot = authoritativeSnapshot,
+                finalizedTranscript = finalizedTranscript,
+            )
+        } catch (_: Throwable) {
+            return
+        }
 
         executor.execute {
             if (!isCurrent(turnEpoch)) return@execute
@@ -106,11 +157,19 @@ internal class LocalTextCallGateDShadowLifecycle(
             }
             if (!isCurrent(turnEpoch)) return@execute
 
+            val allowedNonSecretSlots = try {
+                allowedNonSecretSlotsProvider?.invoke(authoritativeSnapshot)?.toSet()
+                    ?: observation.validatedSlots.keys
+            } catch (_: Throwable) {
+                return@execute
+            }
+            if (!isCurrent(turnEpoch)) return@execute
+
             val validation = try {
                 runtime.validateShadowProposal(
                     observation = observation,
                     hypothesis = hypothesis,
-                    allowedNonSecretSlots = observation.validatedSlots.keys,
+                    allowedNonSecretSlots = allowedNonSecretSlots,
                 )
             } catch (_: Throwable) {
                 return@execute
@@ -127,6 +186,15 @@ internal class LocalTextCallGateDShadowLifecycle(
                 recoveryCount = recoveryCount,
                 transitionCompatible = hypothesis.suggestedTransition in observation.allowedTransitions,
             )
+            if (!isCurrent(turnEpoch)) return@execute
+
+            if (validation is SupervisorProposalValidation.Accepted) {
+                try {
+                    validatedCandidateListener?.invoke(validation.candidate)
+                } catch (_: Throwable) {
+                    // Candidate consumers remain outside this shadow lifecycle's authority.
+                }
+            }
             if (!isCurrent(turnEpoch)) return@execute
             diagnosticsListener.onDiagnostics(diagnostics)
         }
