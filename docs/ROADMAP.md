@@ -163,9 +163,9 @@ Umów mnie do dentysty w przyszłym tygodniu, najlepiej po 16.
 
 The product must transform that into an application-owned task and conduct a real multi-turn call to a structured result without allowing an LLM or Skill to own execution authority.
 
-### Product model: TaskGraph + ServicePack
+### Product model: TaskGraph + ServicePack + IdentityVault
 
-Keep the two durable knowledge layers distinct:
+Keep the durable knowledge/data layers distinct:
 
 ```text
 TaskGraph
@@ -175,9 +175,12 @@ TaskGraph
 ServicePack
   = how a specific counterparty/service behaves: prompts, nodes,
     routes, reviewed actions, barriers, evidence
+
+IdentityVault
+  = durable encrypted personal/contact facts; never task authority by itself
 ```
 
-A simple appointment to an ordinary reception may need only TaskGraph + dialogue logic.
+A simple appointment to an ordinary reception may need TaskGraph + dialogue logic + a small authorized-facts snapshot from IdentityVault.
 
 A future Orange task may combine:
 
@@ -185,26 +188,31 @@ A future Orange task may combine:
 CallTask
  + TaskGraph
  + Orange ServicePack
+ + authorized fact references
  + deterministic matcher/parsers
  + bounded supervisor on ambiguity
  + existing authority owners
 ```
 
-Knowing a ServicePack route never authorizes the task commitment by itself.
+Knowing a ServicePack route or possessing an identity value never authorizes disclosure or commitment by itself.
 
 ### Gate D target architecture
 
 ```text
 User goal
   -> Skill / bounded intent resolver
-  -> CallTask + authorizedFacts + constraints + preferences
+  -> IdentityVault availability + per-task authorization
+  -> CallTask + AuthorizedFactSnapshot + constraints + preferences
   -> TaskGraph
   -> CallWorkflow
   -> final STT
-       -> deterministic PhraseMatrix / typed parsers first
-       -> bounded LLM supervisor only on ambiguity/unknown
+       -> deterministic PhraseMatrix / typed parsers
+       -> shadow supervisor observes finalized turn when enabled
+       -> DialogueFit / escalation policy
+       -> bounded LLM proposal only when needed
   -> suggested existing transition / typed slots only
   -> deterministic validation
+  -> FactDisclosurePolicy when identity data is requested
   -> CallPlan / typed decision
   -> output approval
   -> TTS / telephony
@@ -217,11 +225,24 @@ User goal
 Hybrid principle:
 
 - deterministic path handles known/common turns;
-- local or selectable LLM supervisor handles ambiguity and natural-language variation;
+- LLM may track finalized dialogue from the beginning in non-authoritative shadow mode;
+- a separate explainable `DialogueFit` policy decides when deterministic understanding is no longer sufficient;
 - LLM output is structured proposal/classification only;
 - proposed transitions/slots/facts/IDs are revalidated;
-- LLM never directly owns dialing, arbitrary speech release, credentials, commitment or completion;
-- Skills prepare tasks/suggest bounded actions but do not bypass authority.
+- plaintext identity values stay outside model context by default;
+- LLM never directly owns dialing, arbitrary speech release, credentials, fact disclosure, commitment or completion;
+- Skills prepare tasks/request bounded fact permissions/suggest bounded actions but do not bypass authority.
+
+### Implementation direction after external review
+
+Reuse proven design patterns without importing their runtimes blindly:
+
+- **Pipecat Flows**: graph/config owns legal transitions; handlers return structured results instead of arbitrary next-node authority; keep stage context/actions narrow.
+- **XState/statecharts**: pure guards, explicit states/events/context, versionable serializable state and event replay.
+- **LiveKit Tasks/TaskGroups**: small focused tasks return typed results and compose under a session owner; useful model for contact-data verification and appointment subtasks.
+- **slot-filling/form systems**: required/dynamic slots, validation after extraction and explicit unhappy-path handling.
+
+Keep the product implementation Kotlin-native unless a later spike proves a dependency is worth its runtime/maintenance cost.
 
 ### TaskGraph v1
 
@@ -230,20 +251,62 @@ Build a generic data-driven state machine independent of Orange.
 Required concepts:
 
 - typed node/state IDs;
-- typed transitions;
+- typed transitions/events;
 - required/optional slots;
 - user constraints/preferences;
-- authorized facts;
-- deterministic guards;
+- authorized fact references;
+- deterministic pure guards;
 - bounded retry/recovery counters;
 - unknown/escalation state;
 - proposal state;
 - explicit confirmation state;
 - commitment state;
 - completion/failure/takeover terminal states;
-- replayable event/evidence log.
+- versioned replayable event/evidence log;
+- side effects separated from transition evaluation.
 
 The graph is application-owned product data. A model may suggest an existing transition or structured slot values but cannot invent executable graph structure at runtime.
+
+### IdentityVault + AuthorizedFacts v1
+
+Define the contract before the first real appointment call.
+
+Persistent fields may include typed IDs such as:
+
+```text
+FIRST_NAME
+LAST_NAME
+PHONE
+EMAIL
+ADDRESS
+DATE_OF_BIRTH
+PESEL
+```
+
+Do not make all of them required for `BOOK_APPOINTMENT`. Requirements are task/counterparty dependent.
+
+Required Gate D semantics:
+
+- vault value existence != disclosure authorization;
+- per-task authorization snapshot/reference list;
+- sensitivity metadata;
+- `FactDisclosurePolicy` with typed `ALLOW / ASK_USER / DENY`;
+- no plaintext secrets in TaskGraph/ServicePack/general event log;
+- LLM sees fact availability/name rather than plaintext by default;
+- high-sensitivity identifiers such as PESEL default to explicit per-task approval and may require device/user authentication at disclosure time;
+- unknown counterparty request for a non-authorized field triggers user decision/takeover/defer, never invention.
+
+Android persistence target before real calls:
+
+```text
+app-private ciphertext storage
++ non-exportable Android Keystore key
++ authenticated encryption (AES/GCM class of primitive)
++ versioned records
++ explicit backup/restore policy
+```
+
+Do not implement new vault storage with deprecated `EncryptedSharedPreferences` / `MasterKey` APIs. Evaluate Tink only if key rotation/envelope/keyset management becomes valuable enough to justify the dependency.
 
 ### First graph — BOOK_APPOINTMENT
 
@@ -262,6 +325,7 @@ START
  -> validate against constraints
     -> reject/request alternative when invalid
     -> create typed proposal when acceptable
+ -> request/disclose only authorized identity facts as needed
  -> confirmation policy
  -> commitment gate
  -> COMMIT_APPOINTMENT
@@ -276,6 +340,7 @@ Required recovery paths:
 - alternative offer;
 - STT uncertainty;
 - request for information not authorized by `CallTask`;
+- high-sensitivity fact needs user approval;
 - human takeover/cancel;
 - no suitable slot;
 - explicit refusal by counterparty.
@@ -290,15 +355,50 @@ Build typed parsers/normalizers before relying on the supervisor for:
 - offered appointment candidates;
 - accept/reject/alternative semantics;
 - common service/type names;
-- yes/no/confirmation with negation guards.
+- yes/no/confirmation with negation guards;
+- requests for common identity fields (name, phone, email, PESEL etc.) without exposing their values.
 
 PhraseMatrix remains the first path for known dialogue acts.
 
+### Shadow supervisor + DialogueFit v1
+
+After the deterministic TaskGraph/simulator is useful, enable a bounded shadow observer.
+
+Shadow mode:
+
+- may observe every finalized turn from the beginning;
+- receives bounded task/state/allowed-transition context;
+- receives validated non-secret slots and fact availability, not full vault values;
+- maintains only quarantined interpretation/summary;
+- cannot mutate TaskGraph/workflow or release speech.
+
+Define `DialogueFit` as an application-owned explainable result, not raw text similarity and not one LLM score.
+
+Initial signal set:
+
+- STT quality/confidence when available;
+- PhraseMatrix result;
+- parser completeness/confidence;
+- expected-transition/state compatibility;
+- contradiction/negation signals;
+- missing required slots;
+- repeated unknown/recovery count;
+- deterministic-vs-shadow disagreement.
+
+Start with categorical decisions:
+
+```text
+HIGH       -> deterministic path
+UNCERTAIN  -> clarification or optional supervisor check
+LOW        -> supervisor proposal required
+BROKEN     -> recovery / TAKE_OVER / safe stop
+```
+
+Calibrate any numeric internals and thresholds from simulator/eval evidence. Add hysteresis/debouncing before live use.
+
 ### Bounded LLM supervisor v1
 
-Add after the host TaskGraph path works deterministically.
-
-Allowed output resembles:
+When escalation policy asks for help, allowed output resembles:
 
 ```json
 {
@@ -311,7 +411,7 @@ Allowed output resembles:
 }
 ```
 
-It must not return or own runtime TTS text, target number, authorization changes or commitment.
+It must not return or own runtime TTS text, target number, authorization changes, identity values or commitment.
 
 Validate:
 
@@ -322,7 +422,8 @@ Validate:
 - user constraints;
 - authority-bearing metadata rejection;
 - confidence threshold;
-- stale result rejection.
+- stale result rejection;
+- identity/value leakage rejection.
 
 ### Skills integration
 
@@ -335,21 +436,22 @@ User request
  -> Skill builds/updates bounded CallTask
  -> selects existing TaskGraph/ServicePack
  -> gathers missing pre-call facts/preferences
+ -> requests authorization for specific IdentityFieldIds
  -> may suggest existing transition/slot
  -> application authority validates everything
 ```
 
-Skills must not directly dial arbitrary targets, widen allowlists, emit arbitrary telephony speech, invent credentials, confirm bookings/purchases or bypass `CallCommitmentGate`.
+Skills must not directly dial arbitrary targets, widen allowlists, emit arbitrary telephony speech, read/export the whole IdentityVault, invent credentials, confirm bookings/purchases or bypass `FactDisclosurePolicy` / `CallCommitmentGate`.
 
 ### Product orchestration
 
 Do not promote `DiagnosticProbeActivity`, `LocalPhoneLlmLiveCallProbe`, Orange runners or other diagnostics into the product orchestrator.
 
-Gate D must introduce or narrowly extend a real product session owner that composes readiness, `CallWorkflow`, TaskGraph, optional ServicePack, CallPlan/PhraseMatrix, supervisor and speech/media layers.
+Gate D must introduce or narrowly extend a real product session owner that composes readiness, `CallWorkflow`, TaskGraph, optional ServicePack, authorized-fact snapshot, DialogueFit, CallPlan/PhraseMatrix, supervisor and speech/media layers.
 
 ## Real-world appointment testing policy
 
-After `BOOK_APPOINTMENT` is host-green against a simulated receptionist, real tests may use a small reviewed set of ordinary public business/reception numbers found from current public web sources.
+After `BOOK_APPOINTMENT` is host-green against a simulated receptionist and IdentityVault/disclosure handling required by the scenario is implemented, real tests may use a small reviewed set of ordinary public business/reception numbers found from current public web sources.
 
 Do not use emergency, urgent-care, crisis, premium-rate or other critical-service lines for development testing.
 
@@ -369,7 +471,7 @@ A test-only call must never create or hold a real appointment, ticket, order or 
 
 ### Genuine user-authorized task
 
-If the user genuinely wants an appointment, the call may execute the real task using only authorized facts and the normal proposal/confirmation/commitment path.
+If the user genuinely wants an appointment, the call may execute the real task using only authorized facts and the normal disclosure/proposal/confirmation/commitment path.
 
 A genuine booking must not be retracted merely because it also produced product evidence.
 
@@ -393,6 +495,7 @@ Record at minimum:
 - target organization/category;
 - test mode (`TEST_ONLY_CONSENTED` or `GENUINE_TASK`);
 - exact task/constraints;
+- authorized identity-field names (not plaintext values);
 - call count for that target;
 - disclosure/consent status where applicable;
 - structured dialogue events rather than unnecessary full transcripts;
@@ -404,19 +507,24 @@ Do not retain unnecessary personal or medical data.
 ## Gate D execution order
 
 1. Keep Orange frozen at the current persistent ServicePack checkpoint; no broad mapping by default.
-2. Specify `TaskGraph v1` models, invariants and event log with RED tests.
-3. Implement `BOOK_APPOINTMENT` graph entirely on host.
-4. Build a deterministic simulated receptionist harness with multiple scripted scenarios.
-5. Add typed date/time/offer parsers and PhraseMatrix dialogue-act coverage.
-6. Exercise proposal -> confirmation -> commitment -> completion entirely in simulation.
-7. Add failure/recovery/takeover scenarios and make them deterministic/replayable.
-8. Add bounded LLM supervisor interface returning only existing transition IDs + typed slots.
-9. Test malicious/invalid/stale supervisor output fail-closed.
-10. Integrate TaskGraph into a real product session owner without growing diagnostics into orchestrators.
-11. Physically verify one non-committing real-world test-only call with disclosure/consent, or one genuine user-authorized appointment call.
-12. Expand to a small number of distinct public reception targets, respecting the per-target call budget.
-13. Add Skills as task builders/supervisors over the same authority boundary.
-14. Standardize reusable TaskGraph + ServicePack formats and add additional domains.
+2. Preimplementation audit of existing `CallTask` / `CallWorkflow` / CallPlan / prepared-session ownership for TaskGraph composition.
+3. Specify `TaskGraph v1` models, pure guards, typed events and versioned replayable event log with RED tests.
+4. Specify `IdentityVault`, `IdentityFieldId`, per-task `AuthorizedFactSnapshot` and `FactDisclosurePolicy` contracts with host tests; storage implementation can follow later.
+5. Implement `BOOK_APPOINTMENT` graph entirely on host.
+6. Build a deterministic simulated receptionist harness with multiple scripted scenarios and typed results.
+7. Add typed date/time/offer/identity-request parsers and PhraseMatrix dialogue-act coverage.
+8. Exercise proposal -> confirmation -> commitment -> completion and disclosure decisions entirely in simulation.
+9. Add failure/recovery/takeover/unauthorized-fact scenarios and make them deterministic/replayable.
+10. Add shadow supervisor context tracking with **no execution authority**.
+11. Implement and calibrate explainable `DialogueFit` using simulator/eval scenarios; test hysteresis and deterministic-supervisor disagreement.
+12. Add bounded LLM supervisor proposal interface returning only existing transition IDs + typed non-secret slots.
+13. Test malicious/invalid/stale/authority-bearing/identity-leaking supervisor output fail-closed.
+14. Implement Android IdentityVault persistence with Android Keystore-protected authenticated encryption and explicit backup/restore behavior before a real call requires personal data.
+15. Integrate TaskGraph/DialogueFit/supervisor/vault into a real product session owner without growing diagnostics into orchestrators.
+16. Physically verify one non-committing real-world test-only call with disclosure/consent, or one genuine user-authorized appointment call.
+17. Expand to a small number of distinct public reception targets, respecting the per-target call budget.
+18. Add Skills as task builders/supervisors over the same authority boundary.
+19. Standardize reusable TaskGraph + ServicePack formats and add additional domains.
 
 ## Gate D acceptance target
 
@@ -430,14 +538,18 @@ and, on S22, complete a bounded real multi-turn call where:
 
 - target is explicitly authorized;
 - task/constraints/preferences are structural;
+- required identity fields are available only through per-task disclosure authority;
 - common turns run deterministically;
-- LLM supervisor is used only where needed and cannot gain authority;
+- LLM can observe from the beginning in shadow mode but cannot mutate authoritative state;
+- DialogueFit/escalation is explainable and simulator-calibrated;
+- supervisor is used for ambiguous/unknown turns and cannot gain authority;
 - offered appointment data is parsed to typed fields;
 - unsuitable offers are rejected by policy;
 - an acceptable offer becomes a typed proposal;
+- unauthorized/high-sensitivity identity requests fail closed or ask the user;
 - required user confirmation occurs before commitment;
 - exactly one authorized commitment is released;
-- structured result is returned to the user;
+- structured/redacted result is returned to the user;
 - cancellation/takeover remains local-first and safe;
 - call cleanup returns to `IDLE`.
 
@@ -485,7 +597,7 @@ Every product behavior slice:
 4. runs `bash scripts/verify_host.sh` before claiming `HOST_GREEN`;
 5. runs only the physical gate required by changed behavior;
 6. keeps test targets and live-call authorization explicit and bounded;
-7. records real-world call evidence conservatively;
+7. records real-world call evidence conservatively and redacts identity values;
 8. updates authoritative docs rather than proliferating status files;
 9. leaves `main` clean.
 
