@@ -1,4 +1,4 @@
-# Handoff — Orange service pack + bounded service intent resolver
+# Handoff — stabilized Orange service-pack checkpoint
 
 Date: 2026-09-22
 
@@ -8,102 +8,188 @@ Durable branch: `main`
 
 Local Agent control/evidence branch: `agent-control`
 
-## Start here
+This handoff is a state snapshot, not a prompt. The execution order is authoritative in `docs/ROADMAP.md` and the Orange operating procedure is in `docs/ORANGE_MAPPING_RUNBOOK.md`.
 
-1. Read fresh `AGENTS.md`, `README.md`, this file, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, `docs/PHASE2D_FREEZE_2026-09-18.md` and `service-packs/orange/service_tree.v1.json`.
-2. Fetch fresh `main`, fresh `agent-control:.agent/status/daemon.json`, latest Local Agent terminal result, `git status`, worktrees and branches.
-3. Use only the fresh `agent_binding`; never copy a binding from this handoff.
-4. Keep `privileged-helper/` and the frozen Samsung media path untouched unless a direct bug requires a separately justified physical regression gate.
-5. Do not infer live-call authorization from this document or an earlier chat. A future session must explicitly authorize the exact target again.
+## Start here next session
 
-## Current product state
+1. Read fresh `AGENTS.md`, `README.md`, this file, `docs/ROADMAP.md`, `docs/ORANGE_MAPPING_RUNBOOK.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, `docs/PHASE2D_FREEZE_2026-09-18.md`, and `service-packs/orange/service_tree.v1.json`.
+2. Fetch fresh `origin/main`, fresh `agent-control:.agent/status/daemon.json`, the latest terminal Local Agent result, `git status`, branches and worktrees.
+3. Use only the fresh current-session `agent_binding`; never copy a binding from this file or an old task.
+4. Do not infer physical-call authorization from repository documentation or old results. A new live call requires explicit authorization in the current operator session.
+5. Follow the next-work order from `docs/ROADMAP.md`; use `docs/ORANGE_MAPPING_RUNBOOK.md` for each Orange slice.
 
-The frozen Samsung media foundation remains `DONE / PROVEN_S22 / FROZEN`. Gate C deterministic Orange speech is physically proven. Current work is service-pack mapping plus a generic natural-intent classifier that cannot gain authority.
+## Stabilized checkpoint
 
-Current durable code/data checkpoint before this handoff refresh:
+The frozen Samsung media foundation remains `DONE / PROVEN_S22 / FROZEN`.
+
+The deterministic Gate C Orange RX -> local STT -> PhraseMatrix -> CallPlan -> application-owned approval -> local TTS -> cellular TX path remains physically proven with `backend_generate_calls=0`.
+
+The generic `serviceintent/` resolver remains provider-neutral and authority-free. No Orange-specific behavior belongs there.
+
+Last code/data checkpoint before the documentation-only stabilization refresh:
 
 ```text
-61ea6470320e574dda37cd9bc11905462dc9305c
+40b04c6c269ed327abb0742cb66f6f64b8f2b545
 ```
 
-Always use fresh `origin/main` rather than assuming that hash is still HEAD.
+That checkpoint contains the persisted final overnight physical evidence (`v264`) and aligned tests. Always use fresh `origin/main` rather than assuming this SHA is current HEAD.
 
-## Orange service tree
+The final stabilization gate for the documentation/checkpoint HEAD is expected at:
+
+```text
+.agent/results/chatgpt-stabilization-checkpoint-v266-20260922.json
+```
+
+A later session must inspect the terminal result rather than assuming it passed merely because the task exists.
+
+## Orange service tree state
 
 Source of truth: `service-packs/orange/service_tree.v1.json`.
 
-Verified physical nodes: `orange.root`, `orange.root.reprompt`.
-
-Verified observed root edges include `orange.root.list_capabilities`, `orange.root.invoice_status`, `orange.root.invoice_topic`, `orange.root.internet_problem`, `orange.root.roaming_info`, and `orange.root.roaming_prices`. Edge `VERIFIED` means only that the physical transition was observed; it does not mean a complete service route was reached.
-
-Current service seeds remain `DISCOVERED`:
+Current physically verified nodes:
 
 ```text
-orange.invoice.status
-orange.internet.problem
-orange.roaming.info
+orange.root
+orange.root.reprompt
+orange.activation.clarification_barrier
 ```
 
-No complete service route is `VERIFIED`. Do not promote one without physical evidence reaching the intended node, terminal, or barrier.
+Current summary:
 
-## Latest physical roaming evidence
+- 19 physically `VERIFIED` observed root edges;
+- 16 service seeds;
+- all 16 service seeds remain `DISCOVERED`;
+- no complete service route has `service_route_verified=true`;
+- `orange.network.manual_selection` is closed at the activation clarification barrier;
+- all other currently closed reviewed informational/diagnostic wordings ended in a known root reprompt.
 
-The 2026-09-22 overnight session added reviewed action `roaming_prices` with exact speech `Chcę sprawdzić ceny w roamingu.`. Kotlin changed and the resulting debug APK was installed before live testing.
+Do not confuse a `VERIFIED` observed edge with a verified service route.
 
-Three bounded physical calls were made, all to exact target `510100100`. The first two stopped fail-closed during root acquisition and produced exact observed pre-roll fragments `wielkości orange` and `g jakości orange`. Both are stored as `VERIFIED` `IGNORABLE_PREROLL_FRAGMENT` evidence and authorize only exact bounded root-acquisition retry.
+## Latest physical evidence
 
-Final evidence task: `chatgpt-orange-roaming-prices-live-final-v176-20260922`.
+Latest bounded physical task:
 
 ```text
-known exact pre-roll: orange
+chatgpt-orange-caller-id-restriction-info-live-v264-20260922
+```
+
+Exact reviewed speech:
+
+```text
+Jak działa zastrzeganie numeru?
+```
+
+Observed sequence:
+
+```text
+known exact preroll: orange
  -> bounded root-acquisition retry
- -> verified Max root
- -> reviewed speech: Chcę sprawdzić ceny w roamingu.
+ -> verified daytime Max root
+ -> exact reviewed speech once
  -> backend_generate_calls=0
- -> exact reviewed speech transmitted
  -> OBSERVE_ONLY
- -> known Max root reprompt
- -> hangup
+ -> known root reprompt
+ -> hangup/cleanup
  -> FINAL_CALL_STATE=0
 ```
 
-The corresponding `orange.root.roaming_prices -> orange.root.reprompt` edge is `VERIFIED` with `service_route_verified=false`. `orange.roaming.info` remains `DISCOVERED`. Further physical calls were stopped because this second reviewed roaming wording again returned the same known root reprompt, so repetition no longer added useful route evidence.
-
-A later queued experiment attempted to start an `outage_topic` RED/green cycle after that stop condition. The green task failed before tests/call/install and left only checkpointed workspace edits; those edits were discarded and the RED commit was explicitly reverted. There is therefore no durable outage seed/action from that attempt.
-
-## Service intent resolver
-
-Generic package: `app/src/main/kotlin/pl/michalmatu/aicallbridge/serviceintent/`.
+Persisted result:
 
 ```text
-UserIntentResolutionRequest
- -> UserIntentClassificationModel(bounded candidates only)
- -> ModelBackedUserIntentResolver
- -> existing service_id or null
- -> ServiceRegistry revalidation
- -> ServiceIntentExecutionValidator
+orange.root.caller_id_restriction_info
+  from: orange.root
+  to: orange.root.reprompt
+  status: VERIFIED
+  observed_outcome: REPROMPT
+  service_route_verified: false
+
+orange.caller_id.restriction_info
+  status: DISCOVERED
+  last_outcome: REPROMPT
+  next_evidence: closed_after_reviewed_root_reprompt; service_route_not_verified
 ```
 
-Fail-closed rules remain: hallucinated or cross-pack IDs reject; low confidence/unrelated input rejects; stale generation rejects; model metadata cannot gain speech/action/target authority; `DISCOVERED` routes stop at `ROUTE_NOT_VERIFIED`; only an existing `VERIFIED` route plus application authority can become eligible. No Orange-specific logic belongs in `serviceintent`.
+The exact reviewed wording `Jak działa zastrzeganie numeru?` is closed. Do not repeat it merely for another identical reprompt.
 
-## Architecture and branch checkpoint
+## Closed reviewed root wordings
 
-Do not turn diagnostic runners or probe activities into product orchestrators. Discovery and product execution remain separate. Authority remains with `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate`, and application-owned output approval.
+The service tree is authoritative, but the currently closed reviewed actions include:
 
-Historical relay/worktree branches containing unique evidence remain intentionally preserved. Do not perform aggressive branch cleanup.
+```text
+Jakie sprawy możesz załatwić?
+Chcę sprawdzić fakturę.
+Faktura.
+Mam problem z internetem.
+Roaming.
+Chcę sprawdzić ceny w roamingu.
+Awaria.
+Mam problem z Wi-Fi.
+Chcę sprawdzić zasięg.
+Jak skonfigurować internet w telefonie?
+Jak skonfigurować MMS w telefonie?
+Jak włączyć ręczny wybór sieci operatora?
+Nie mogę wysyłać SMS-ów.
+Podczas rozmów zanika głos.
+Nie mogę wykonywać połączeń.
+Nie mogę odbierać SMS-ów.
+Nie mogę odbierać połączeń.
+Nie działają mi dane komórkowe.
+Jak działa zastrzeganie numeru?
+```
+
+Manual network selection is closed at an activation barrier; the remaining listed diagnostic/informational variants are closed after their physically observed root outcomes.
+
+## Root acquisition evidence
+
+Exact bounded ignorable preroll fragments currently persisted/implemented include:
+
+```text
+orange
+jakości orange
+5g jakości orange
+kości orange
+wielkości orange
+g jakości orange
+wie jakości orange
+```
+
+These are root-acquisition diagnostic exceptions only. Do not broaden them into fuzzy semantic rules. `OBSERVE_ONLY` never speaks.
+
+## Repository cleanup state
+
+The intended branch set is now exactly:
+
+```text
+main
+agent-control
+```
+
+No temporary product/experiment branch needs to be preserved for handoff. Git history and `.agent/results` carry experiment history.
+
+The obsolete `docs/ORANGE_OVERNIGHT_MAPPING_PROMPT.md` has been removed. There should be no paste-ready prompt in the repository. The durable procedure is `docs/ORANGE_MAPPING_RUNBOOK.md`.
+
+Do not perform style-driven refactors of the frozen Samsung path. The growing Orange reviewed-action wiring may be made data-driven later only if it becomes a demonstrated maintenance bottleneck and all typed-ID/reviewed-speech/CallPlan/output-approval/fail-closed invariants remain unchanged.
 
 ## Next work
 
-Do not repeat `roaming_info` / `roaming_prices` against the same root prompt just to obtain another identical reprompt. Start a later session from fresh state and choose another low-risk informational seed only with fresh live-call authorization. A future live session must stop at auth/payment/purchase/activation/contract barriers and must never invent credentials.
+Do not invent a new sequence from this handoff. Follow `docs/ROADMAP.md` and `docs/ORANGE_MAPPING_RUNBOOK.md`.
+
+The next session begins with fresh-state/checkpoint verification, then selects one **new** low-risk unclosed informational/diagnostic seed. It must not repeat any closed reviewed wording above just to collect another reprompt.
+
+Public Orange support material may create a `DISCOVERED` seed only. A future live session must stop at auth, credentials, customer-data, payment, purchase, activation/deactivation, tariff/contract/package change, ticket creation or other commitment barriers and must never invent credentials.
 
 ## Final invariants
 
 - one active cellular call at a time;
-- deterministic reviewed route speech only, no model-generated runtime IVR speech;
+- deterministic reviewed route speech only;
+- no model-generated runtime IVR speech;
 - `OBSERVE_ONLY` never speaks;
 - `backend_generate_calls=0` on deterministic route tests;
-- no invented PESEL/customer/SMS/payment credentials;
-- no purchase, activation, tariff/contract or other commitment merely for discovery;
-- every call cleans up to `IDLE`;
+- no invented credentials or sensitive customer data;
+- no purchase, activation, tariff/contract/package change or other commitment merely for discovery;
+- every created physical test call cleans up to `IDLE`;
 - observed edge `VERIFIED` is distinct from service route `VERIFIED`;
-- `HOST_GREEN` is distinct from `PROVEN_S22`.
+- `HOST_GREEN` is distinct from `PROVEN_S22`;
+- `privileged-helper/` and frozen Samsung media remain untouched during ordinary Orange mapping;
+- Local Agent control/evidence traffic stays on `agent-control`;
+- durable product code/data/docs stay on `main`.
