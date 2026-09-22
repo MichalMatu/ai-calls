@@ -28,9 +28,12 @@ class OrangeIncomingCallProblemSeedTest(unittest.TestCase):
         self.assertEqual("Nie mogę odbierać połączeń.", seed["speech"])
         self.assertEqual("AUTH_REQUIRED_POSSIBLE", seed["risk"])
         self.assertEqual("operator_public_support_backlog", seed["source"])
-        self.assertEqual("public_orange_support_page", seed["last_evidence"])
-        self.assertEqual("NOT_PHYSICALLY_PROBED", seed["last_outcome"])
-        self.assertIn("physical_route_required", seed["next_evidence"])
+        self.assertEqual(
+            "chatgpt-orange-incoming-call-problem-live-v248-20260922",
+            seed["last_evidence"],
+        )
+        self.assertEqual("REPROMPT", seed["last_outcome"])
+        self.assertIn("closed_after_reviewed_root_reprompt", seed["next_evidence"])
         self.assertIn("service_route_not_verified", seed["next_evidence"])
 
 
