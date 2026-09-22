@@ -37,7 +37,7 @@ That checkpoint contains the persisted final overnight physical evidence (`v264`
 The final stabilization gate for the documentation/checkpoint HEAD is expected at:
 
 ```text
-.agent/results/chatgpt-stabilization-checkpoint-v266-20260922.json
+.agent/results/chatgpt-stabilization-checkpoint-v267-20260922.json
 ```
 
 A later session must inspect the terminal result rather than assuming it passed merely because the task exists.
@@ -166,7 +166,7 @@ agent-control
 
 No temporary product/experiment branch needs to be preserved for handoff. Git history and `.agent/results` carry experiment history.
 
-The obsolete `docs/ORANGE_OVERNIGHT_MAPPING_PROMPT.md` has been removed. There should be no paste-ready prompt in the repository. The durable procedure is `docs/ORANGE_MAPPING_RUNBOOK.md`.
+The obsolete paste-ready overnight prompt has been removed. There should be no paste-ready prompt in the repository. The durable procedure is `docs/ORANGE_MAPPING_RUNBOOK.md`.
 
 Do not perform style-driven refactors of the frozen Samsung path. The growing Orange reviewed-action wiring may be made data-driven later only if it becomes a demonstrated maintenance bottleneck and all typed-ID/reviewed-speech/CallPlan/output-approval/fail-closed invariants remain unchanged.
 
