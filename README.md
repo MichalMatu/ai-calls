@@ -8,7 +8,7 @@ Target: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
 The active product direction is **Gate D: hybrid multi-turn Task Engine** with `BOOK_APPOINTMENT` as the first acceptance task.
 
-The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-green TaskGraph foundation, Android IdentityVault production adapter, finalized-turn shadow lifecycle and explicit reviewed product shadow/apply integration seam.
+The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-green TaskGraph foundation, Android IdentityVault production adapter, finalized-turn shadow lifecycle, explicit reviewed product shadow/apply integration seam and a no-call synthetic finalized-text ingress for exercising the same product turn path without STT/audio/media.
 
 Current Gate D implementation on the active work branch includes:
 
@@ -24,14 +24,16 @@ Current Gate D implementation on the active work branch includes:
 - explicit application-owned `TaskGraphApplyBridge` that re-checks graph version/state/generation, transition-to-event mapping, provenance, slot scope, authorization and schema before constructing an event and calling the reducer;
 - host `PersistentIdentityVault` plus Android production adapters using app-private no-backup atomic ciphertext storage and Android Keystore AES-256/GCM;
 - explicit internal `LocalTextCallGateDProductBinding` / product integration seam implementing deterministic-first interpretation, optional bounded shadow, `SupervisorProposalValidator`, current-state/slot-authorization re-check and `TaskGraphApplyBridge`;
+- explicit `LocalTextCallSession.injectSyntheticFinalTranscript(...)` test/diagnostic ingress: an already-finalized text turn enters the same PhraseMatrix/CallPlan + Gate D finalized-turn processing as STT, without starting the speech pipeline, feeding PCM, invoking backend generation or releasing TTS/media;
 - deterministic Gate D sequence corpus for ambiguity, recovery exhaustion, alternate offers, user rejection, unauthorized/high-sensitivity facts, stale supervisor, cancel/takeover and clean recovery.
 
-The public Android `LocalTextCallSession.create(...)` path still does **not** automatically bind a shadow provider or product apply binding. Reviewed internal composition must opt in explicitly.
+The public Android `LocalTextCallSession.create(...)` path still does **not** automatically bind a shadow provider or product apply binding. Reviewed internal composition must opt in explicitly. The synthetic ingress is internal test/diagnostic plumbing, not a second authority path and not a public dialing API.
 
 For the reviewed product seam, one finalized turn follows:
 
 ```text
-finalized turn
+STT-finalized text OR explicit synthetic finalized text
+ -> shared finalized-turn ingress
  -> deterministic interpretation first
  -> optional bounded shadow proposal
  -> SupervisorProposalValidator
@@ -48,10 +50,10 @@ A deterministic candidate rejection fails closed instead of falling through to s
 Run Android/S22 integration proof for the boundaries that now exist but are only `HOST_GREEN`:
 
 1. execute the Android IdentityVault instrumentation contract on the target S22 and prove Android Keystore key creation/reuse, non-exportability, no-backup storage, AES/GCM/AAD and fail-closed corruption/missing-key behavior;
-2. exercise the reviewed product binding through Android/session integration without making a cellular call;
+2. exercise the reviewed product binding through Android/session integration without making a cellular call, using the synthetic finalized-text ingress where useful to bypass STT/media while still traversing the exact shared finalized-turn product path;
 3. keep the public Android session path non-automatic unless a separately reviewed product composition intentionally supplies the binding.
 
-Only after those device/integration checks should Gate D advance toward one bounded real-world `BOOK_APPOINTMENT` task. Any live call requires fresh explicit authorization in that chat/session.
+Only after those device/integration checks should Gate D wire the bounded `BOOK_APPOINTMENT` effects to the existing proposal/confirmation/one-shot-commitment/disclosure owners and advance toward one bounded real-world task. Any live call requires fresh explicit authorization in that chat/session.
 
 ## Product layers
 
@@ -98,6 +100,7 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media or `privi
 - `extract -> validate -> commit` for dialogue-derived facts/slots;
 - only the explicit application-owned apply bridge may turn an already validated candidate into a typed TaskGraph event;
 - graph effects remain data until an existing application owner consumes them;
+- synthetic finalized-text input changes only the source of finalized transcript text; it grants no dialing, disclosure, speech, confirmation, commitment or completion authority;
 - no model, Skill, parser, storage adapter or reducer widens target, disclosure, speech or commitment authority;
 - unknown/stale/authority-bearing supervisor output fails closed;
 - ordinary diagnostics contain typed IDs/status, not transcript/identity/candidate plaintext;
