@@ -6,22 +6,21 @@ This repository is single-developer and main-first. Durable product code and cur
 
 Read the current sources of truth:
 
-1. `README.md` for product state;
-2. `docs/HANDOFF_NEXT_CHAT.md` for the exact continuation point;
-3. `docs/ROADMAP.md` for the authoritative execution order;
-4. `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` when changing boundaries;
-5. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media behavior;
-6. `service-packs/orange/service_tree.v1.json` and `docs/ORANGE_MAPPING_RUNBOOK.md` only when Orange work is actually resumed.
+1. `README.md` — current product state;
+2. `docs/HANDOFF_NEXT_CHAT.md` — exact continuation checkpoint;
+3. `docs/ROADMAP.md` — authoritative execution order;
+4. `docs/HANDOFF_PROTOCOL.md` — how sessions are closed/transferred;
+5. `docs/ARCHITECTURE.md` and `docs/SECURITY_PRIVACY.md` — boundaries and authority;
+6. `docs/PHASE2D_FREEZE_2026-09-18.md` — before touching Samsung media behavior;
+7. `service-packs/orange/service_tree.v1.json` and `docs/ORANGE_MAPPING_RUNBOOK.md` only when Orange/ServicePack work is actually resumed.
 
-Fetch fresh `main` before writes. If Local Agent is used, also fetch fresh `agent-control:.agent/status/daemon.json` and use only the fresh current-session binding.
+Fetch fresh `origin/main` before writes. If Local Agent / Local Chat Bridge is used, also fetch fresh `agent-control:.agent/status/daemon.json` and use only the fresh current-session binding.
 
 Do not create a planning/status document for every experiment. Put durable decisions into the authoritative docs above and leave detailed history in Git commits and `.agent/results`.
 
 ## Current priority
 
 The active product gate is **Gate D — hybrid multi-turn Task Engine**.
-
-Orange mapping is checkpointed. Do not continue broad Orange mapping by default.
 
 Primary acceptance use case:
 
@@ -60,7 +59,26 @@ Follow `docs/ROADMAP.md`. In summary:
 7. add the bounded LLM supervisor interface;
 8. prove invalid/stale/authority-bearing supervisor output fails closed;
 9. integrate into a real product session owner;
-10. only then run small, bounded real-world appointment tests.
+10. only then run small, bounded real-world appointment tests;
+11. add Skills after the TaskGraph/supervisor boundary is stable.
+
+## Product knowledge layers
+
+Keep these distinct.
+
+### TaskGraph
+
+TaskGraph describes the bounded user task: goal, states, transitions, slots, constraints, proposal/confirmation/commitment and completion.
+
+TaskGraph is application-owned data/code. Runtime models may suggest only existing transition IDs and typed slot values.
+
+### ServicePack
+
+ServicePack describes a particular service/counterparty environment: known prompts, nodes, edges, reviewed responses, barriers, risk and evidence.
+
+Orange is the first persistent evidence-backed IVR ServicePack. Its broad mapping is checkpointed, not discarded. Preserve it for future Orange product use, IVR regression and ServicePack schema/runtime development.
+
+ServicePack knowledge never replaces TaskGraph/workflow/commitment authority.
 
 ## Hybrid supervisor rules
 
@@ -79,17 +97,17 @@ The supervisor must not directly own:
 - dialing or target widening;
 - arbitrary telephony speech release;
 - credentials or sensitive facts;
-- workflow mutation outside validated existing transitions;
+- new transitions/actions/service IDs;
 - purchases/bookings/other commitments;
 - completion authority.
 
-The existing `serviceintent/` resolver is the design precedent: bounded candidates, structured classification, stale-result rejection, unsafe-metadata rejection, authoritative registry revalidation and a separate execution validator.
+The existing `serviceintent/` resolver is the design precedent: bounded candidates, structured classification, stale-result rejection, unsafe-metadata rejection, authoritative registry revalidation and separate execution validation.
 
 ## Skills
 
 Skills may be reintroduced after `TaskGraph v1` exists.
 
-Preferred Skill role:
+Preferred role:
 
 ```text
 User request
@@ -113,13 +131,11 @@ Keep the existing owners; do not create a second authority store:
 - `CallCommitmentGate` owns one exact one-shot commitment permit;
 - application-owned output approval remains mandatory before speech release/TTS/TX.
 
-Models, matchers, TaskGraph supervisors, service-pack tools and Skills are proposal/classification-only unless an existing application authority owner explicitly validates the effect.
+Models, matchers, TaskGraph supervisors, ServicePacks and Skills are proposal/classification/knowledge layers only unless an existing application authority owner explicitly validates the effect.
 
 Only `CallPlanAction.SAY` carries speech text. Structured actions without text remain structured.
 
 ## TaskGraph discipline
-
-`TaskGraph` is application-owned product data, not a runtime model-generated program.
 
 Required properties:
 
@@ -176,7 +192,7 @@ Checkpoint facts:
 - no complete service route verified;
 - deterministic live path and cleanup physically proven.
 
-Orange is now a regression/evidence pack and future service-pack-format source. Resume it only when it exercises a generic product capability or supports a real Orange product use case.
+Orange is now a persistent regression/evidence ServicePack and future product knowledge source. Resume it only when it exercises a generic product capability or supports a real Orange task.
 
 Public operator documentation is seed/backlog evidence only. It never creates a `VERIFIED` physical route.
 
@@ -201,18 +217,26 @@ Public operator documentation is seed/backlog evidence only. It never creates a 
 - Resumed speech/new generation must invalidate stale model/candidate output.
 - Host tests cannot create `PROVEN_S22` evidence.
 
-## Local Agent
+## Local Agent / Local Chat Bridge
 
 `MichalMatu/local-agent` is an optional execution worker, not the source of truth.
 
-- `.agent/tasks` and `.agent/results` stay on `agent-control`; never merge them into `main`.
-- Every task must use the current chat's exact immutable `agent_binding`.
-- Check fresh daemon state before creating a task that touches the same worktree.
+When Local Chat Bridge is active, obey the current chat's binding envelope exactly.
+
+- Work only in the exact bound repository.
+- Never infer/substitute another repository or copy an old `agent_binding` from docs/history.
+- Every Local Agent task must use the current chat's exact fresh immutable binding.
+- Check fresh daemon state before creating a task touching the same worktree/branch.
 - Inspect terminal evidence; queued/ACK is not success.
-- For physical S22 work use the canonical device resource required by the current daemon contract.
-- Use Local Agent for Gradle, lint, host tests, ADB/device work when needed.
-- Direct GitHub edits are appropriate for exact reviewable code/docs/data diffs.
+- Do not aggressively poll healthy long-running tasks.
+- Use direct GitHub edits for exact reviewable code/docs/data diffs.
+- Use Local Agent for developer-machine commands, Gradle/Android tooling, tests, ADB/device state and physical gates.
+- `.agent/tasks` and `.agent/results` stay on `agent-control`; never merge them into `main`.
 - Never launch local Codex from a Local Agent task.
+- Never restart Local Agent merely to bypass unclear evidence/root cause.
+- If another repository is genuinely required, use an explicit bridge rebind and wait for the fresh bootstrap; never guess a repository ID.
+
+Full session-transfer rules are in `docs/HANDOFF_PROTOCOL.md`.
 
 ## Branch policy
 
@@ -253,3 +277,14 @@ Before declaring a Gate D slice complete:
 5. update only authoritative docs when gate/continuation status changes;
 6. leave `main` clean;
 7. for real business/reception tests, enforce disclosure/consent policy for test-only calls and the per-target call budget.
+
+## Handoff / new-chat gate
+
+When work moves to a new chat, follow `docs/HANDOFF_PROTOCOL.md`.
+
+Mandatory outputs are:
+
+- refreshed `docs/HANDOFF_NEXT_CHAT.md`;
+- refreshed ready-to-paste `docs/NEXT_CHAT_PROMPT.md`;
+- documentation consistent with `docs/ROADMAP.md`;
+- no stale Local Agent binding or inherited live-call authorization in either file.
