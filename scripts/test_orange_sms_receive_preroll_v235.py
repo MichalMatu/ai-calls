@@ -23,7 +23,7 @@ class OrangeSmsReceivePrerollV235Test(unittest.TestCase):
         }
         self.assertTrue(live._is_ignorable_gate_c_preroll(report))
 
-    def test_v235_preroll_evidence_is_persisted_without_service_route_claim(self):
+    def test_v235_preroll_evidence_persists_after_v240_root_reprompt(self):
         tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
         observations = [
             item for item in tree["root_acquisition_observations"]
@@ -42,8 +42,13 @@ class OrangeSmsReceivePrerollV235Test(unittest.TestCase):
         seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
         seed = seeds["orange.sms.receive"]
         self.assertEqual("DISCOVERED", seed["status"])
-        self.assertEqual("NOT_PHYSICALLY_PROBED", seed["last_outcome"])
-        self.assertIn("physical_route_required", seed["next_evidence"])
+        self.assertEqual(
+            "chatgpt-orange-sms-receive-problem-live-v240-20260922",
+            seed["last_evidence"],
+        )
+        self.assertEqual("REPROMPT", seed["last_outcome"])
+        self.assertIn("closed_after_reviewed_root_reprompt", seed["next_evidence"])
+        self.assertIn("service_route_not_verified", seed["next_evidence"])
 
 
 if __name__ == "__main__":
