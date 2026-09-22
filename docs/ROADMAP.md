@@ -1,12 +1,14 @@
 # Roadmap
 
-This is the authoritative execution plan. Detailed experiment history belongs in Git history and `.agent/results`. Orange mapping is now a checkpointed evidence pack and side track, not the main product goal.
+This is the authoritative execution plan. Detailed experiment history belongs in Git history and `.agent/results`. Session transfer rules live in `docs/HANDOFF_PROTOCOL.md`.
 
 Evidence levels:
 
 - `HOST_GREEN` — deterministic host tests/build/lint pass;
 - `PROVEN_S22` — physically reproduced on the target Samsung S22+;
-- `PRODUCT_READY` — proven, fail-safe and acceptable for normal use.
+- ServicePack `VERIFIED` node/edge — that external node/transition was physically observed;
+- `service_route_verified=true` — the intended external service route was physically proven;
+- `PRODUCT_READY` — the bounded product task is proven, fail-safe and acceptable for normal use.
 
 ## Foundation
 
@@ -21,7 +23,7 @@ TX: app -> transferred PFD -> CALL_ASSISTANT / TELEPHONY_TX -> cellular uplink
 
 Frozen checkpoint: `59b0505537a53306acdab6a2a66ca6eed2b3f1c0`.
 
-Do not redesign this path during model/planning/dialogue/service-pack work. See `docs/PHASE2D_FREEZE_2026-09-18.md`.
+Do not redesign this path during Gate D. See `docs/PHASE2D_FREEZE_2026-09-18.md`.
 
 ### Local speech/text boundary
 
@@ -39,7 +41,7 @@ Status: `SIGNALS PROVEN_S22 / PRODUCT STATE MACHINE OPEN`
 
 Real Orange evidence proved that fixed capture durations and short trailing-silence thresholds are not complete IVR semantics. Resumed speech must invalidate an end candidate; a later stable end plus bounded hangover closes a turn; long watchdog is safety-only.
 
-Endpointing hardening remains required for product-quality multi-turn calls, but it no longer blocks building the next product layer on host/simulation first.
+Endpointing hardening remains required for product-quality human conversations, but it does not block host/simulation work on the task engine.
 
 ## Completed gates / frozen experiments
 
@@ -51,7 +53,7 @@ Status: `DONE / HOST_GREEN / PROVEN_S22` (off-call readiness)
 
 Status: `DONE / PROVEN_S22 / FROZEN`
 
-The tested general-purpose llama.cpp models on the current S22 are not the product direction. Preserve runtime/benchmark infrastructure only.
+The tested general-purpose llama.cpp models on the current S22 are not the product direction. Preserve runtime/benchmark infrastructure for bounded supervisor experiments only.
 
 ### Interactive ChatGPT relay
 
@@ -59,58 +61,28 @@ Status: `DONE / PROVEN_S22 / DEVELOPER-ONLY`
 
 Benchmark infrastructure only; not a production/background backend.
 
-### Edge Gallery + Agent Skills feasibility
+### Edge Gallery / Gemma experiments
 
 Status: `FROZEN / PROVEN_S22 PARTIAL / NOT PRODUCT_READY`
 
-Do not continue live Edge probe work by default. Skills become relevant again only as bounded task builders/supervisors behind application-owned authority.
+Do not continue live Edge probing by default.
 
 ## Gate C — deterministic fast path
 
 Status: `DONE / HOST_GREEN / LIVE DETERMINISTIC PATH PROVEN_S22 / CHECKPOINTED`
 
-Gate C proved that common bounded turns can execute deterministically while all authority remains application-owned.
+Gate C proved that bounded turns can execute deterministically while all authority remains application-owned.
 
-### Authority ownership
+Authority remains owned by:
 
-- `CallTask` — immutable task, constraints, preferences, authorized facts;
-- `CallResolvedTarget` — concrete target, no allowlist expansion;
-- `CallWorkflow` — progress, proposal/user-decision state, terminal outcome;
-- `CallConfirmationPolicy` — deterministic typed-proposal evaluation;
-- `CallCommitmentGate` — one exact one-shot commitment permit;
-- application-owned output approval — final release before TTS/TX.
+- `CallTask`;
+- `CallResolvedTarget`;
+- `CallWorkflow`;
+- `CallConfirmationPolicy`;
+- `CallCommitmentGate`;
+- application-owned output approval.
 
-`CallPlan`, PhraseMatrix, models, helpers, service-pack explorers and Agent Skills do not replace these owners.
-
-### Deterministic CallPlan + PhraseMatrix path
-
-Status: `HOST_GREEN / LIVE PATH PROVEN_S22`
-
-Completed product wiring includes:
-
-- deterministic CallPlan policy core and coordinator;
-- prepared-call CallPlan binding;
-- final-STT selector before backend generation;
-- neutral `Generate` / `Candidate` / `Consumed` dispatch;
-- exact candidate text through existing output approval;
-- structured actions remain structured;
-- native `PhraseMatrix` exact/alias matching with fail-closed collision handling;
-- explicit optional previous-rule context owned by the session only after validated decisions;
-- bounded opt-in one-edit fuzzy matching with token-count/length/ambiguity guards;
-- Android readiness binding for optional `CallPlan + PhraseMatrix`;
-- no-plan/default path remains ordinary `Generate`.
-
-Matcher direction remains native Kotlin `PhraseMatrix`. Do not broaden fuzzy matching merely to make a specific live prompt pass.
-
-### Controlled live proof
-
-Exact allowlisted target used for physical proof:
-
-```text
-510100100
-```
-
-Orange physically proved:
+Physically proven path:
 
 ```text
 cellular RX
@@ -124,15 +96,24 @@ cellular RX
  -> cleanup to IDLE
 ```
 
-Required safety markers included `gate_c_fast_path=true`, `gate_c_call_plan_bound=true`, `backend_generate_calls=0`, exact reviewed approved text and nonzero telephony TX.
+Required safety markers included exact reviewed approved text, nonzero telephony TX and `backend_generate_calls=0` on the deterministic route.
 
-Do not repeat Orange work whose only purpose is proving this path again.
+Do not repeat work whose only purpose is proving this transport/fast path again.
 
-## Orange Service Pack — checkpointed side track
+## Orange ServicePack — persistent checkpointed side track
 
-Status: `CHECKPOINTED / LIVE EVIDENCE PROVEN_S22 / NOT THE MAIN ROADMAP`.
+Status: `CHECKPOINTED / LIVE EVIDENCE PROVEN_S22 / PERSISTENT PRODUCT KNOWLEDGE / NOT THE MAIN ROADMAP`.
 
 Durable graph: `service-packs/orange/service_tree.v1.json`.
+
+Orange is the project's first persistent evidence-backed IVR ServicePack. It is **not a discarded test**. Preserve its mapping and evidence for:
+
+- future real Orange tasks;
+- deterministic IVR navigation;
+- regression of machine-counterparty handling;
+- ServicePack schema/runtime development;
+- route freshness/staleness work;
+- future operator/service catalogs.
 
 Checkpoint state after the 2026-09-22 mapping session:
 
@@ -141,32 +122,32 @@ Checkpoint state after the 2026-09-22 mapping session:
 - 16 service seeds, all `DISCOVERED`;
 - no complete service route has `service_route_verified=true`;
 - manual network selection reached the activation clarification barrier and is closed;
-- all other currently closed reviewed diagnostic/informational wordings ended in a known root reprompt;
+- other closed reviewed diagnostic/informational wordings ended in known root reprompts;
 - latest physical evidence: `chatgpt-orange-caller-id-restriction-info-live-v264-20260922`;
-- latest physical call used `backend_generate_calls=0`, then `OBSERVE_ONLY`, then cleanup to `IDLE`.
+- deterministic live calls used `backend_generate_calls=0`, `OBSERVE_ONLY` follow-up and cleanup to `IDLE`.
 
-Orange remains useful for:
+Orange mapping must not block Gate D. Resume it only when:
 
-- regression of deterministic IVR handling;
-- evidence-backed service-pack format experiments;
-- future data-driven route catalogs;
-- testing a known machine counterparty.
+1. a specific Orange task becomes a real product target;
+2. a new generic ServicePack feature needs physical validation;
+3. a new TaskGraph/ServicePack integration capability needs a known IVR counterparty;
+4. route freshness/regression needs intentional evidence.
 
-Orange must not block the product task engine. Continue mapping only when it directly exercises a new generic product capability or when a specific Orange route becomes a real target use case.
+When resumed, follow `docs/ORANGE_MAPPING_RUNBOOK.md`. Never discard or overwrite historical physical evidence merely to fit a new schema; migrate it losslessly.
 
 ### Generic service-intent resolver
 
 Status: `HOST_GREEN / PRESERVED`.
 
-The `serviceintent/` layer implements a provider-neutral classifier boundary, bounded `ServiceRegistry`, fail-closed resolver and separate execution validator. A model may classify only into existing bounded IDs. It cannot gain speech, action, target or commitment authority.
+The `serviceintent/` layer implements a provider-neutral bounded classifier + authoritative registry + separate execution validator. A model may classify only into existing bounded IDs and cannot gain speech/action/target/commitment authority.
 
-This pattern becomes the template for the hybrid supervisor in Gate D.
+This is the design precedent for the Gate D supervisor.
 
 ## ACTIVE Gate D — hybrid multi-turn Task Engine
 
 Status: `ACTIVE / NEXT MAIN PRODUCT MILESTONE`.
 
-Goal: move from a proven phone-call transport/demo to a real autonomous task executor that can complete bounded multi-turn tasks such as booking an appointment.
+Goal: move from a proven phone-call transport/demo to a real autonomous bounded task executor.
 
 Primary acceptance use case:
 
@@ -180,7 +161,36 @@ Example user goal:
 Umów mnie do dentysty w przyszłym tygodniu, najlepiej po 16.
 ```
 
-The product must transform that into an application-owned task and drive a real conversation to a structured result without allowing an LLM or Skill to own authority.
+The product must transform that into an application-owned task and conduct a real multi-turn call to a structured result without allowing an LLM or Skill to own execution authority.
+
+### Product model: TaskGraph + ServicePack
+
+Keep the two durable knowledge layers distinct:
+
+```text
+TaskGraph
+  = what the user wants, constraints, slots, state, proposal,
+    confirmation, commitment, completion
+
+ServicePack
+  = how a specific counterparty/service behaves: prompts, nodes,
+    routes, reviewed actions, barriers, evidence
+```
+
+A simple appointment to an ordinary reception may need only TaskGraph + dialogue logic.
+
+A future Orange task may combine:
+
+```text
+CallTask
+ + TaskGraph
+ + Orange ServicePack
+ + deterministic matcher/parsers
+ + bounded supervisor on ambiguity
+ + existing authority owners
+```
+
+Knowing a ServicePack route never authorizes the task commitment by itself.
 
 ### Gate D target architecture
 
@@ -191,7 +201,7 @@ User goal
   -> TaskGraph
   -> CallWorkflow
   -> final STT
-       -> deterministic PhraseMatrix / parsers first
+       -> deterministic PhraseMatrix / typed parsers first
        -> bounded LLM supervisor only on ambiguity/unknown
   -> suggested existing transition / typed slots only
   -> deterministic validation
@@ -204,14 +214,14 @@ User goal
   -> completion
 ```
 
-The hybrid principle is explicit:
+Hybrid principle:
 
 - deterministic path handles known/common turns;
 - local or selectable LLM supervisor handles ambiguity and natural-language variation;
 - LLM output is structured proposal/classification only;
-- all proposed transitions, slots, facts and service/task IDs are revalidated;
-- LLM never directly owns dialing, free-form speech release, credentials, commitment or completion;
-- Skills prepare tasks and suggest bounded actions but do not bypass CallWorkflow/CallPlan/approval/commitment authority.
+- proposed transitions/slots/facts/IDs are revalidated;
+- LLM never directly owns dialing, arbitrary speech release, credentials, commitment or completion;
+- Skills prepare tasks/suggest bounded actions but do not bypass authority.
 
 ### TaskGraph v1
 
@@ -250,7 +260,7 @@ START
  -> receive offered slot
  -> parse structured candidate date/time
  -> validate against constraints
-    -> reject and request alternative when invalid
+    -> reject/request alternative when invalid
     -> create typed proposal when acceptable
  -> confirmation policy
  -> commitment gate
@@ -260,24 +270,24 @@ START
 
 Required recovery paths:
 
-- counterparty asks an unexpected but harmless question;
+- unexpected but harmless question;
 - ambiguous date/time;
 - unavailable requested time;
 - alternative offer;
 - STT uncertainty;
-- counterparty requests information not authorized by `CallTask`;
+- request for information not authorized by `CallTask`;
 - human takeover/cancel;
 - no suitable slot;
 - explicit refusal by counterparty.
 
 ### Deterministic extraction first
 
-Build small typed parsers/normalizers for high-value appointment data before relying on the supervisor:
+Build typed parsers/normalizers before relying on the supervisor for:
 
 - dates and relative dates;
 - weekdays;
 - clock times/time ranges;
-- offered appointment candidate;
+- offered appointment candidates;
 - accept/reject/alternative semantics;
 - common service/type names;
 - yes/no/confirmation with negation guards.
@@ -286,9 +296,9 @@ PhraseMatrix remains the first path for known dialogue acts.
 
 ### Bounded LLM supervisor v1
 
-After the host TaskGraph path works deterministically, add a supervisor behind a narrow interface.
+Add after the host TaskGraph path works deterministically.
 
-The supervisor may return only bounded structured data such as:
+Allowed output resembles:
 
 ```json
 {
@@ -308,13 +318,11 @@ Validate:
 - generation/session identity;
 - existing transition ID;
 - slot schema/types;
-- task graph state compatibility;
+- TaskGraph state compatibility;
 - user constraints;
 - authority-bearing metadata rejection;
 - confidence threshold;
 - stale result rejection.
-
-The existing `serviceintent/` resolver is the design precedent for this boundary.
 
 ### Skills integration
 
@@ -325,38 +333,29 @@ Preferred role:
 ```text
 User request
  -> Skill builds/updates bounded CallTask
- -> selects existing TaskGraph/service pack
+ -> selects existing TaskGraph/ServicePack
  -> gathers missing pre-call facts/preferences
- -> may suggest existing transition/slot during execution
+ -> may suggest existing transition/slot
  -> application authority validates everything
 ```
 
-Skills must not directly:
-
-- dial arbitrary targets;
-- widen target allowlists;
-- emit arbitrary telephony speech;
-- invent credentials/sensitive facts;
-- confirm bookings/purchases on their own;
-- bypass `CallCommitmentGate`.
+Skills must not directly dial arbitrary targets, widen allowlists, emit arbitrary telephony speech, invent credentials, confirm bookings/purchases or bypass `CallCommitmentGate`.
 
 ### Product orchestration
 
 Do not promote `DiagnosticProbeActivity`, `LocalPhoneLlmLiveCallProbe`, Orange runners or other diagnostics into the product orchestrator.
 
-Gate D must introduce/narrowly extend a real product session owner that composes existing readiness, `CallWorkflow`, TaskGraph, CallPlan/PhraseMatrix, supervisor and speech/media layers.
+Gate D must introduce or narrowly extend a real product session owner that composes readiness, `CallWorkflow`, TaskGraph, optional ServicePack, CallPlan/PhraseMatrix, supervisor and speech/media layers.
 
 ## Real-world appointment testing policy
 
-After `BOOK_APPOINTMENT` is host-green with a simulated receptionist, real tests may move beyond Orange to ordinary public business/reception numbers found from current public web sources.
+After `BOOK_APPOINTMENT` is host-green against a simulated receptionist, real tests may use a small reviewed set of ordinary public business/reception numbers found from current public web sources.
 
-Use only non-emergency, ordinary public contact numbers appropriate for appointment enquiries. Do not use emergency/urgent-care/crisis lines or otherwise burden critical services for testing.
+Do not use emergency, urgent-care, crisis, premium-rate or other critical-service lines for development testing.
 
-### Two test modes
+### Test-only call
 
-#### A. Test-only call
-
-A test-only call must disclose the test at the **start**, before asking staff to spend time checking schedules or creating any reservation.
+Disclose the AI/test purpose at the **start**, before asking staff to spend time checking schedules or creating a reservation.
 
 Preferred opening intent:
 
@@ -366,48 +365,45 @@ Dzień dobry, testuję automatycznego asystenta głosowego. Czy możemy przeprow
 
 Continue only if the person agrees. If they decline, thank them and hang up.
 
-Do not wait until the end to say “to był tylko test, proszę zignorować”. By then a person may already have spent time, entered data or held a real slot.
+A test-only call must never create or hold a real appointment, ticket, order or other commitment. Do not wait until the end to reveal that it was only a test.
 
-A test-only call must never create or hold a real appointment, ticket, order or other commitment.
+### Genuine user-authorized task
 
-#### B. Genuine user-authorized task
+If the user genuinely wants an appointment, the call may execute the real task using only authorized facts and the normal proposal/confirmation/commitment path.
 
-If the user genuinely wants an appointment, the call may execute the real task. The system should identify itself as an automated/AI assistant early in the conversation where practical, use only user-authorized facts, and reach a real booking only through the normal proposal/confirmation/commitment path.
-
-A genuine booking must not be retracted at the end merely because it was also a product test.
+A genuine booking must not be retracted merely because it also produced product evidence.
 
 ### Per-target call budget
 
-Default policy:
+Default:
 
 - one meaningful call per organization/reception during a development slice;
-- a second call only when the first failed technically before meaningful interaction, or the counterparty explicitly agreed to another test;
-- do not repeatedly probe the same staff/organization to tune wording;
+- second call only after an early technical failure or explicit agreement to repeat;
+- no repeated probing of the same staff/organization to tune wording;
 - avoid known peak/busy periods when practical;
-- record target source, purpose, call count and outcome to enforce the budget.
+- record public target source, purpose/mode, call count and structured outcome.
 
-Do not automate broad unsolicited calling campaigns. Real-world validation should use a small, reviewed target set and bounded test plan.
+Do not automate broad unsolicited calling campaigns.
 
 ### Real-call evidence
 
-For every live business/reception test record at minimum:
+Record at minimum:
 
 - public source for the number;
 - target organization/category;
 - test mode (`TEST_ONLY_CONSENTED` or `GENUINE_TASK`);
 - exact task/constraints;
 - call count for that target;
-- whether AI/test disclosure occurred;
-- whether consent was given for test-only mode;
+- disclosure/consent status where applicable;
 - structured dialogue events rather than unnecessary full transcripts;
 - proposals/commitments and their authority evidence;
 - cleanup/final call state.
 
-Do not retain unnecessary personal or medical data from the counterparty.
+Do not retain unnecessary personal or medical data.
 
 ## Gate D execution order
 
-1. Freeze Orange as the current evidence pack; no more broad Orange mapping by default.
+1. Keep Orange frozen at the current persistent ServicePack checkpoint; no broad mapping by default.
 2. Specify `TaskGraph v1` models, invariants and event log with RED tests.
 3. Implement `BOOK_APPOINTMENT` graph entirely on host.
 4. Build a deterministic simulated receptionist harness with multiple scripted scenarios.
@@ -416,38 +412,38 @@ Do not retain unnecessary personal or medical data from the counterparty.
 7. Add failure/recovery/takeover scenarios and make them deterministic/replayable.
 8. Add bounded LLM supervisor interface returning only existing transition IDs + typed slots.
 9. Test malicious/invalid/stale supervisor output fail-closed.
-10. Integrate the TaskGraph into a real product session owner without growing diagnostics into orchestrators.
+10. Integrate TaskGraph into a real product session owner without growing diagnostics into orchestrators.
 11. Physically verify one non-committing real-world test-only call with disclosure/consent, or one genuine user-authorized appointment call.
 12. Expand to a small number of distinct public reception targets, respecting the per-target call budget.
-13. Only after this works, add Skills as task builders/supervisors over the same authority boundary.
-14. Generalize the appointment graph into reusable task templates and additional domains.
+13. Add Skills as task builders/supervisors over the same authority boundary.
+14. Standardize reusable TaskGraph + ServicePack formats and add additional domains.
 
 ## Gate D acceptance target
 
-Gate D is complete when the system can take a natural user goal such as:
+Gate D is complete when the system can take a natural goal such as:
 
 ```text
 Umów mnie do dentysty w przyszłym tygodniu po 16.
 ```
 
-and, on the S22, complete a bounded real multi-turn call where:
+and, on S22, complete a bounded real multi-turn call where:
 
-- the target is explicitly authorized;
-- task/constraints/preferences are represented structurally;
+- target is explicitly authorized;
+- task/constraints/preferences are structural;
 - common turns run deterministically;
-- the LLM supervisor is used only where needed and cannot gain authority;
+- LLM supervisor is used only where needed and cannot gain authority;
 - offered appointment data is parsed to typed fields;
 - unsuitable offers are rejected by policy;
 - an acceptable offer becomes a typed proposal;
 - required user confirmation occurs before commitment;
 - exactly one authorized commitment is released;
-- the structured result is returned to the user;
+- structured result is returned to the user;
 - cancellation/takeover remains local-first and safe;
 - call cleanup returns to `IDLE`.
 
-## Later — reusable service/task packs
+## Later — reusable TaskGraph + ServicePack ecosystem
 
-After Gate D proves the generic engine, standardize reusable data packs:
+After Gate D proves the engine, standardize reusable data packs without losing existing evidence:
 
 ```text
 TaskGraph template
@@ -456,12 +452,11 @@ TaskGraph template
 + typed slot schema
 + recovery rules
 + commitment/barrier metadata
-+ optional service-specific discovery graph
++ optional service-specific IVR/discovery graph
++ evidence/freshness metadata
 ```
 
-At that point large mappings can become valuable because they populate reusable packs rather than being the product itself.
-
-Orange may then be converted to this standardized format incrementally.
+Orange should be migrated incrementally into the standardized ServicePack format while preserving its historical observed nodes/edges/evidence. Future packs may cover other operators, insurers, banks, utilities or appointment providers where doing so supports real user tasks.
 
 ## Later — local audio-model experiments
 
@@ -484,14 +479,16 @@ Provider selection never changes authority semantics. Do not put standard OpenAI
 
 Every product behavior slice:
 
-1. starts from fresh `main`;
+1. starts from fresh `origin/main`;
 2. uses TDD where deterministic behavior is testable;
 3. runs targeted regressions;
 4. runs `bash scripts/verify_host.sh` before claiming `HOST_GREEN`;
-5. runs only the physical gate required by the changed behavior;
+5. runs only the physical gate required by changed behavior;
 6. keeps test targets and live-call authorization explicit and bounded;
 7. records real-world call evidence conservatively;
 8. updates authoritative docs rather than proliferating status files;
 9. leaves `main` clean.
 
-Orange-specific work additionally follows `docs/ORANGE_MAPPING_RUNBOOK.md`, but Orange mapping is no longer the default next task.
+When moving work to a new chat, follow `docs/HANDOFF_PROTOCOL.md`, refresh `docs/HANDOFF_NEXT_CHAT.md`, and create/update the ready-to-paste `docs/NEXT_CHAT_PROMPT.md`.
+
+Orange-specific work additionally follows `docs/ORANGE_MAPPING_RUNBOOK.md`.
