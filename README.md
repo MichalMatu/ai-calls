@@ -8,37 +8,50 @@ Target: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
 The active product direction is **Gate D: hybrid multi-turn Task Engine** with `BOOK_APPOINTMENT` as the first acceptance task.
 
-The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-only product foundation, a host-green finalized-turn shadow lifecycle and a host-green explicit TaskGraph apply boundary.
+The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-green TaskGraph foundation, Android IdentityVault production adapter, finalized-turn shadow lifecycle and explicit reviewed product shadow/apply integration seam.
 
 Current Gate D implementation on the active work branch includes:
 
 - application-owned `CustomTaskGraphCore` with typed states/events/transitions, pure guards, bounded recovery, effects-as-data and versioned deterministic replay;
 - `BOOK_APPOINTMENT` TaskGraph plus deterministic receptionist simulator covering proposal, confirmation, one-shot commitment, recovery, cancellation/takeover and fact-disclosure decisions;
 - typed `IdentityFieldId`, per-task `AuthorizedFactSnapshot` and application-owned `FactDisclosurePolicy` (`ALLOW / ASK_USER / DENY`);
-- explainable categorical `DialogueFit` contract;
+- reusable generic `AppointmentInterpreter` preserving `extract -> validate -> commit`;
+- explainable categorical `DialogueFit` plus evidence-backed hysteresis;
 - bounded `ShadowDialogueObservation` / `ShadowDialogueHypothesis` contracts and fail-closed `SupervisorProposalValidator`;
 - read-only `LocalTextCallGateDRuntime` owned by `LocalTextCallSession`;
 - Android/LocalPhone readiness composition carrying `TaskGraphDefinition + AuthorizedFactSnapshot` through coordinator -> prepared call -> session;
-- host-only `LocalTextCallGateDShadowLifecycle` attached to the real finalized-turn selector through an explicit test/host observer seam;
-- explicit application-owned `TaskGraphApplyBridge` that re-checks graph version/state/generation, transition-to-event mapping, provenance, slot scope, authorization and schema before constructing an event and calling the reducer.
+- session-owned `LocalTextCallGateDShadowLifecycle` with stale/cancel/close invalidation and redacted diagnostics;
+- explicit application-owned `TaskGraphApplyBridge` that re-checks graph version/state/generation, transition-to-event mapping, provenance, slot scope, authorization and schema before constructing an event and calling the reducer;
+- host `PersistentIdentityVault` plus Android production adapters using app-private no-backup atomic ciphertext storage and Android Keystore AES-256/GCM;
+- explicit internal `LocalTextCallGateDProductBinding` / product integration seam implementing deterministic-first interpretation, optional bounded shadow, `SupervisorProposalValidator`, current-state/slot-authorization re-check and `TaskGraphApplyBridge`;
+- deterministic Gate D sequence corpus for ambiguity, recovery exhaustion, alternate offers, user rejection, unauthorized/high-sensitivity facts, stale supervisor, cancel/takeover and clean recovery.
 
-For an explicitly bound host shadow observer, the session computes the existing PhraseMatrix/CallPlan result first, then creates exactly one bounded observation, runs quarantined observer work, revalidates the hypothesis and emits redacted candidate/`DialogueFit` diagnostics. Session epochs invalidate stale queued turns; `cancel()` and `close()` invalidate pending work. Observer failure cannot change the deterministic route.
+The public Android `LocalTextCallSession.create(...)` path still does **not** automatically bind a shadow provider or product apply binding. Reviewed internal composition must opt in explicitly.
 
-The apply bridge is deliberately separate from the observer/session lifecycle. Rejected candidates never reach `TaskGraphCore.reduce()`. Accepted reductions return the new snapshot, event record and graph effects as inert data only; the bridge has no workflow, speech/TTS, dialing/target, plaintext identity or commitment API. The public Android session path still does not bind a production shadow provider and does not automatically apply shadow output.
+For the reviewed product seam, one finalized turn follows:
+
+```text
+finalized turn
+ -> deterministic interpretation first
+ -> optional bounded shadow proposal
+ -> SupervisorProposalValidator
+ -> application-owned current-state / slot-authorization re-check
+ -> TaskGraphApplyBridge
+ -> effects as inert data
+ -> existing workflow / proposal / confirmation / commitment / output owners
+```
+
+A deterministic candidate rejection fails closed instead of falling through to shadow. Accepted graph effects are returned only as data; there is no generic effect executor and no new workflow, dialing, speech/TTS, plaintext disclosure, proposal approval or commitment authority.
 
 ## Immediate next milestone
 
-Finish **generic appointment interpretation** by extracting reusable typed parsers/normalizers from the host simulator for dates/relative dates/weekdays, times/time ranges, offered appointment candidates, accept/reject/alternative semantics and common identity-field requests. Add deterministic PhraseMatrix dialogue-act coverage where appropriate.
+Run Android/S22 integration proof for the boundaries that now exist but are only `HOST_GREEN`:
 
-The interpretation path must continue to preserve:
+1. execute the Android IdentityVault instrumentation contract on the target S22 and prove Android Keystore key creation/reuse, non-exportability, no-backup storage, AES/GCM/AAD and fail-closed corruption/missing-key behavior;
+2. exercise the reviewed product binding through Android/session integration without making a cellular call;
+3. keep the public Android session path non-automatic unless a separately reviewed product composition intentionally supplies the binding.
 
-```text
-extract candidate
- -> validate type/state/constraints/provenance/authorization
- -> commit only through the explicit application-owned apply boundary
-```
-
-Parser, matcher or model output never becomes authoritative merely because it parsed successfully.
+Only after those device/integration checks should Gate D advance toward one bounded real-world `BOOK_APPOINTMENT` task. Any live call requires fresh explicit authorization in that chat/session.
 
 ## Product layers
 
@@ -57,7 +70,7 @@ IdentityVault
   durable encrypted personal/contact values; never task authority by itself
 ```
 
-Existing authority owners remain authoritative: `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and application-owned output approval.
+Existing authority owners remain authoritative: `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate`, `FactDisclosurePolicy` and application-owned output approval.
 
 Identity values follow:
 
@@ -67,7 +80,7 @@ AuthorizedFactSnapshot   = per-task authorized field IDs/scope
 DialogueState            = transient validated non-secret facts learned in this call
 ```
 
-A vault value existing does not authorize disclosure. Plaintext high-sensitivity values stay outside model context by default.
+A vault value existing does not authorize disclosure. Plaintext high-sensitivity values stay outside model context by default and should be resolved only after the application-owned disclosure boundary allows it.
 
 ## Frozen foundation
 
@@ -81,11 +94,11 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media or `privi
 
 ## Safety and execution invariants
 
-- model/shadow output is candidate data only;
+- model/shadow/parser output is candidate data only;
 - `extract -> validate -> commit` for dialogue-derived facts/slots;
 - only the explicit application-owned apply bridge may turn an already validated candidate into a typed TaskGraph event;
 - graph effects remain data until an existing application owner consumes them;
-- no model, Skill or reducer widens target, disclosure, speech or commitment authority;
+- no model, Skill, parser, storage adapter or reducer widens target, disclosure, speech or commitment authority;
 - unknown/stale/authority-bearing supervisor output fails closed;
 - ordinary diagnostics contain typed IDs/status, not transcript/identity/candidate plaintext;
 - test-only real calls require disclosure/consent at the start;
@@ -94,11 +107,13 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media or `privi
 
 ## Verification and workflow
 
-Canonical host gate:
+Canonical host/Android CI gate:
 
 ```bash
 bash scripts/verify_host.sh
 ```
+
+The gate compiles/packages Android instrumentation tests but does not itself execute them on the S22. Device execution is separate evidence and is required before calling a new Android boundary `PROVEN_S22`.
 
 Operational sources of truth:
 

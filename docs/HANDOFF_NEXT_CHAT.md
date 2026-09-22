@@ -1,4 +1,4 @@
-# Handoff — Gate D host foundation complete; Android IdentityVault next
+# Handoff — Gate D Android vault + reviewed product integration host-green
 
 Date: 2026-09-22
 
@@ -10,17 +10,7 @@ Active work branch: `gate-d-taskgraph-core`
 
 Pull request: `#5` — `Gate D TaskGraph v1 core` (draft)
 
-Latest host-green checkpoint at handoff:
-
-```text
-27457e3e103b89dac9f7e86a1b427f297128b7dc
-Add encrypted IdentityVault persistence core
-Android CI #488: success
-```
-
-This handoff is a state snapshot. It is **not** live-call authorization and contains no reusable Local Chat Bridge binding.
-
-Use fresh repository state in the next chat. Do not trust an embedded SHA as current until it is re-fetched. `docs/ROADMAP.md` is the authoritative execution order; `docs/ARCHITECTURE.md` owns component boundaries; `docs/SECURITY_PRIVACY.md` owns privacy/live-call rules.
+This handoff is a state snapshot. It is **not** live-call authorization and contains no reusable Local Chat Bridge binding. Always fetch fresh branch/PR state before work; documentation commits may make the live HEAD newer than the code checkpoints below.
 
 ## Read first
 
@@ -50,177 +40,184 @@ Primary acceptance task remains:
 BOOK_APPOINTMENT
 ```
 
-The work is no longer in architecture-selection mode. The remaining Gate D work is primarily safe product integration, Android IdentityVault persistence and physical proof on the existing S22 path.
+The project is no longer in TaskGraph architecture-selection mode. Current work is safe application integration and physical proof of already-defined boundaries.
 
-## Physically proven vs host-only
+## Current code checkpoints
 
-### Already physically proven on Samsung S22+
-
-The pre-existing cellular/media and deterministic local speech/text path remains:
+### Android IdentityVault production adapter
 
 ```text
-DONE / PROVEN_S22 / FROZEN
+3b79d42012d80c7cc6956bac77f590bfae20dc72
+Fix Android IdentityVault test method names
+Android CI #494: success
 ```
 
-Do not casually modify `privileged-helper/`, Samsung media behavior or `CallMediaSessionCoordinator`.
+The preceding RED proved the instrumentation contract failed only because the Android adapter classes did not yet exist. Production implementation now provides:
 
-During this chat the target phone was also re-identified read-only through Local Agent/ADB as Samsung `SM-S906B`, serial `RFCT70L7E8J`, Android 16 / SDK 36. That proves current ADB reachability only; it does **not** upgrade any new Gate D behavior to `PROVEN_S22` and does not authorize a call.
+- `AndroidIdentityVault.create(...)`;
+- `AndroidIdentityVaultBlobStorage` under `Context.noBackupFilesDir` using `AtomicFile` replacement;
+- `AndroidKeystoreIdentityVaultAead` using Android Keystore AES-256/GCM/NoPadding;
+- non-exportable SecretKey expectation;
+- create-on-first-encrypt and reuse behavior;
+- decrypt-only-existing-key behavior so missing/invalid keys fail closed instead of silently replacing ciphertext;
+- stable algorithm ID + AAD use;
+- ordinary diagnostics without plaintext secret values.
 
-### Host-green Gate D foundation
+Canonical CI compiles/packages `AndroidIdentityVaultContractTest`, but the instrumentation tests have **not** yet been executed on the physical S22 in this checkpoint. Therefore this boundary is `HOST_GREEN`, not `PROVEN_S22`.
 
-The active branch now includes:
+### Reviewed Gate D product shadow/apply integration
 
-- application-owned `CustomTaskGraphCore` with typed state/event/transition/slot/effect IDs, pure guards, stale/version/state rejection, bounded recovery, effects-as-data and deterministic replay/evidence;
-- closed v1 engine decision: no KStateMachine production runtime/dependency;
-- typed `IdentityFieldId`, `AuthorizedFactSnapshot` and `FactDisclosurePolicy` contracts;
-- deterministic `BOOK_APPOINTMENT` TaskGraph/simulator using existing workflow/confirmation/commitment owners;
-- reusable `AppointmentInterpreter` for explicit-anchored relative dates/weekdays, times/ranges, concrete offer candidates, accept/reject/alternative semantics and identity-field request IDs;
-- preserved `extract -> validate -> commit` semantics;
-- categorical explainable `DialogueFit`;
-- bounded `ShadowDialogueObservation` / `ShadowDialogueHypothesis`;
-- fail-closed `SupervisorProposalValidator`;
-- session-owned finalized-turn shadow lifecycle with generation/epoch invalidation and redacted diagnostics;
-- application-owned `TaskGraphApplyBridge` that rechecks mapping, state, generation, provenance, slot scope, authorization and schema before `CustomTaskGraphCore.reduce()`;
-- categorical `DialogueFitHysteresis` where deterioration is immediate and recovery requires consecutive deterministic evidence;
-- sequence-level Gate D evaluation corpus covering recovery exhaustion, ambiguity/recovery, unacceptable/alternate offers, user rejection, unauthorized/high-sensitivity disclosure, cancel/takeover, stale supervisor results and clean recovery;
-- host persistence core `PersistentIdentityVault` with typed secret wrapper, versioned encrypted envelope/payload, AEAD port, associated data, defensive copies, fail-closed decode/decrypt behavior and explicit `DEVICE_BOUND_NO_BACKUP` policy.
-
-## Important recent checkpoints
+RED checkpoint:
 
 ```text
-c2bd394df32f389aa6e2cb218df44a3b8b66de1d
-Add categorical DialogueFit hysteresis
+86dcbb78d1f22efdc9d3d5b443524a32cb810778
+Add RED Gate D product integration contracts
 ```
+
+The RED gate failed exactly on missing product-binding seams after production compilation reached the new test contract.
+
+GREEN implementation:
 
 ```text
-a86034c77df23cd9375cad20a04e7609aef13956
-Add Gate D sequence evaluation corpus
+fcd16bbffb40d1262b45d61dd22e53f7835162fb
+Add reviewed Gate D product integration seam
 ```
+
+A Kotlin constructor-delegation compile issue was then fixed without behavior change:
 
 ```text
-502f13a1c9e5b8b0f7aae2383629e451a8d8821c
-Persistent IdentityVault RED contract
+a355f604484a78d7a99d7594455f3344ca081e04
+Fix Gate D shadow constructor delegation
+Android CI #497: success
 ```
 
-```text
-27457e3e103b89dac9f7e86a1b427f297128b7dc
-Add encrypted IdentityVault persistence core
-Android CI #488: success
-```
+The final canonical gate passed host unit tests, lint, app build, Android test APK build, Python tests and repository scans.
 
-Earlier appointment/shadow/apply RED->GREEN evidence remains valid in Git history and prior documented checkpoints; do not repeat those slices.
+The new internal composition includes:
+
+- `GateDFinalizedTurn` with redacted ordinary diagnostics;
+- candidate-only `GateDDeterministicCandidateInterpreter`;
+- application-owned `GateDAuthorizedSlotIdsProvider`;
+- inert `GateDTaskGraphApplyResultListener`;
+- explicit `LocalTextCallGateDProductBinding`;
+- `LocalTextCallGateDProductIntegration` owning only the current TaskGraph snapshot/apply sequence;
+- dynamic current-snapshot support in `LocalTextCallGateDShadowLifecycle` while preserving the old fixed-snapshot host path;
+- explicit internal `LocalTextCallSession` constructor for reviewed product binding.
+
+Contracts prove:
+
+1. deterministic candidate apply happens before optional shadow;
+2. shadow observes the updated current snapshot/generation;
+3. deterministic rejection fails closed and does not fall through to shadow;
+4. shadow candidates pass `SupervisorProposalValidator` and still face a fresh application-owned slot-authorization check at apply time;
+5. accepted effects are observed only as `TaskGraphApplyResult` data;
+6. `CallWorkflow` is not mutated by this integration seam;
+7. cancel invalidates queued product shadow before observer/apply.
 
 ## Current authority stop line
 
-The public Android session path still does **not** automatically:
+The public Android `LocalTextCallSession.create(...)` path still does **not** automatically bind:
 
-- bind a production shadow provider;
-- apply a shadow hypothesis;
-- call `TaskGraphApplyBridge` from `LocalTextCallSession`;
-- execute graph effects;
-- mutate `CallWorkflow` from reducer output;
-- release model speech/TTS;
-- dial or widen a target;
-- resolve/disclose plaintext IdentityVault values;
-- approve a proposal;
-- consume commitment authority.
+- a production shadow provider;
+- `LocalTextCallGateDProductBinding`;
+- automatic shadow apply;
+- an effect executor.
 
-This is intentional. Shadow/model/parser output remains candidate-only. `TaskGraphApplyBridge` may invoke the reducer only after application-owned validation, and reducer effects remain data until existing owners are deliberately wired.
-
-## Exact next implementation order
-
-### 1. Android IdentityVault production adapter — next slice
-
-Do this before any real call that needs personal data.
-
-Start with a narrow seam audit of the new host ports in `PersistentIdentityVault.kt` and the requirements in `docs/SECURITY_PRIVACY.md`. Then use RED -> minimal GREEN.
-
-Implement Android-owned adapters for:
-
-- app-private ciphertext storage with atomic write semantics;
-- a non-exportable Android Keystore key;
-- authenticated encryption, expected to be AES/GCM unless a concrete platform constraint proves otherwise;
-- stable algorithm identity + associated-data use compatible with the host core;
-- key creation/reuse and fail-closed behavior when ciphertext/key/version data is invalid;
-- explicit device-bound/no-backup semantics;
-- no plaintext secrets in logs, diagnostics, Git, Local Agent task JSON or supervisor context.
-
-Do **not** use deprecated `EncryptedSharedPreferences` / `MasterKey` for new persistence.
-
-Keep disclosure policy separate from encrypted storage. A value existing in the vault still does not authorize disclosure.
-
-### 2. Product shadow/apply integration
-
-After the Android IdentityVault persistence boundary is host/Android-green, intentionally wire the reviewed product seam:
+The reviewed internal product path follows:
 
 ```text
 finalized turn
  -> deterministic interpretation first
  -> optional bounded shadow proposal
  -> SupervisorProposalValidator
- -> application-owned current-state/apply policy
+ -> application-owned current-state / slot-authorization re-check
  -> TaskGraphApplyBridge
- -> effects as data
+ -> effects as inert data
  -> existing workflow / proposal / confirmation / commitment / output owners
 ```
 
-Do not introduce a generic effect executor that bypasses existing application owners.
+Shadow/model/parser/storage/reducer still have no authority to:
 
-### 3. Integration verification and device proof
+- dial or widen a target;
+- resolve/disclose plaintext facts;
+- release speech/TTS;
+- approve a proposal;
+- approve user confirmation;
+- consume commitment authority;
+- claim completion authority.
 
-Run targeted tests + `bash scripts/verify_host.sh` / canonical Android CI for every deterministic slice.
+Do not add a generic effect executor.
 
-Use Local Agent only for developer-machine/Android/ADB evidence. Physical tests should prove only the boundary that changed. Android IdentityVault/device behavior may be tested on the connected S22 without making a cellular call.
+## Exact next implementation order
 
-Host evidence remains `HOST_GREEN`; device evidence must be explicitly reproduced before using `PROVEN_S22`.
+### 1. S22 Android IdentityVault proof — no cellular call
 
-### 4. Real-world BOOK_APPOINTMENT gate
+Requires a fresh Local Chat Bridge / Local Agent binding in the new chat.
 
-Only after the required identity handling and product integration are proven.
+Execute the instrumentation contract on the target S22 and capture terminal evidence for:
 
-A future physical call requires fresh explicit authorization in that chat/session. Never infer authorization from this handoff, an old allowlist, previous `.agent/results` or the fact that the phone is connected.
+- no-backup app-private ciphertext file;
+- atomic overwrite behavior;
+- Android Keystore AES key creation and reuse;
+- non-exportability;
+- AES/GCM/AAD behavior;
+- corruption / unsupported record / missing-or-invalid key fail-closed cases;
+- no plaintext secret in ordinary diagnostics/durable bytes.
 
-For test-only ordinary reception/business validation, disclose AI/test purpose at the start, obtain consent and do not create a real booking. Genuine booking requires fresh user authorization plus normal fact-disclosure, proposal, confirmation and one-shot commitment gates.
+Do not label this `PROVEN_S22` before physical execution.
 
-## Known non-product issue
+### 2. Android/S22 product-binding integration proof — still no cellular call
 
-`CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` previously exposed a test synchronization race: `transport.close()` may precede the final `STOPPING -> FAILED` publication. The test was corrected to wait on the existing terminal-state callback. No production media/helper code was changed. If this test flakes again, investigate test ordering/synchronization before touching frozen media.
+Exercise reviewed session wiring on device/Android boundaries and prove:
 
-## Frozen / deferred boundaries
+- deterministic-first order;
+- current snapshot generation progression;
+- optional shadow only when deterministic interpreter returns no candidate;
+- stale/cancel behavior;
+- apply-time authorization re-check;
+- public Android create path remains non-automatic.
+
+### 3. Bounded `BOOK_APPOINTMENT` owner wiring
+
+Only after the device proof above, map the minimum required TaskGraph effects to existing application owners. Preserve proposal -> user confirmation -> one-shot commitment and late `FactDisclosurePolicy`-approved plaintext resolution.
+
+Wire one reviewed effect/owner boundary at a time; do not create a generic executor.
+
+### 4. Real-world gate
+
+Only after simulation/host/device integration is strong.
+
+Every live call requires fresh explicit target/task authorization in that session. The fact that the Samsung is connected is not authorization. No authorization from this handoff, an old chat, an old allowlist or `.agent/results` carries forward.
+
+For test-only ordinary reception/business validation, disclose AI/test purpose at the start, obtain consent and create no real booking. Genuine booking requires fresh user authorization plus the normal fact-disclosure, proposal, confirmation and one-shot commitment gates.
+
+## Frozen boundaries
 
 Do not casually touch:
 
 - `privileged-helper/`;
 - frozen Samsung cellular/media path;
-- physically proven `CallMediaSessionCoordinator` behavior;
-- general-purpose phone-local llama.cpp product direction;
-- Edge Gallery/Gemma experiment path;
-- diagnostic runners/probes as product orchestrators;
-- broad Orange mapping unless a concrete product need resumes it.
+- physically proven `CallMediaSessionCoordinator` behavior.
+
+If `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` returns, inspect test ordering/synchronization/test pollution first. The known prior root cause was a test milestone race and the correction was test-only.
 
 Read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
 
 ## Local Agent / Local Chat Bridge
 
-If Local Chat Bridge is used in the new window:
+If Local Chat Bridge is used in the next chat:
 
 - trust only the fresh binding envelope injected into that chat;
-- never copy an old `agent_binding` from this file, chat history, Git history or an old task;
-- work only in the exact bound repository;
+- never copy an old `agent_binding` from this file, history, Git or old tasks;
 - inspect fresh daemon/current-task evidence before local work;
-- use direct GitHub changes for bounded reviewable source/docs diffs when CI evidence is sufficient;
-- use Local Agent for local Gradle/Android tooling, ADB/device state and physical evidence;
-- queue/ACK is not success — inspect exact terminal result;
+- work only in the exact bound repository;
+- use GitHub for bounded reviewable source/docs/data diffs;
+- use Local Agent for local Gradle/Android tooling, ADB/Keystore/device evidence;
+- queue/ACK is not success — require the terminal task result;
 - never launch local Codex from a Local Agent task.
 
 No current binding is persisted here intentionally.
 
 ## New-chat bootstrap
 
-Use:
-
-```text
-docs/NEXT_CHAT_PROMPT.md
-```
-
-That prompt is intentionally short and points back to these authoritative sources instead of duplicating hidden chat history.
+Use `docs/NEXT_CHAT_PROMPT.md`.

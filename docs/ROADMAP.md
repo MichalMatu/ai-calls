@@ -71,91 +71,87 @@ model/parser/matcher output
 11. fail-closed `SupervisorProposalValidator` for generation, allowed transition, slot scope, authority-bearing slot IDs and confidence;
 12. read-only `LocalTextCallGateDRuntime` owned by `LocalTextCallSession`;
 13. product composition of `TaskGraphDefinition + AuthorizedFactSnapshot` through Android/LocalPhone readiness -> coordinator -> prepared call -> session;
-14. finalized-turn selector can create one bounded Gate D observation for an explicitly host-bound shadow observer after deterministic PhraseMatrix/CallPlan routing is already decided;
+14. finalized-turn selector can create one bounded Gate D observation for an explicitly bound shadow observer after deterministic PhraseMatrix/CallPlan routing is already decided;
 15. session-owned shadow epoch/lifecycle invalidates older queued turns and pending work on cancel/close; observer failure degrades to unchanged deterministic behavior;
 16. hypotheses are revalidated through `SupervisorProposalValidator` and exposed only as redacted candidate/`DialogueFit` diagnostics;
 17. explicit application-owned `TaskGraphApplyBridge` re-checks graph version/state/generation, legal transition/event mapping, provenance, slot scope, authorization and schema before creating a typed event;
 18. rejected apply candidates never call the reducer; accepted reductions return snapshot/event evidence/effects as data only;
 19. reusable `AppointmentInterpreter` provides typed absolute/relative/weekday dates, times/time ranges, concrete offer candidates, deterministic accept/reject/alternative acts and identity-field request IDs;
 20. relative appointment interpretation has no hidden clock: it requires an explicit caller-supplied `referenceDate` and otherwise fails closed;
-21. `BookAppointmentSimulator` delegates offer parsing to the same interpreter, preserving the existing validation/confirmation/commitment owners and `extract -> validate -> commit`;
+21. `BookAppointmentSimulator` delegates offer parsing to the same interpreter, preserving existing validation/confirmation/commitment owners and `extract -> validate -> commit`;
 22. appointment parser/matcher output remains candidate-only and has no TaskGraph/workflow/speech/dial/commitment/IdentityVault authority;
 23. categorical `DialogueFitHysteresis` provides immediate deterioration and evidence-backed recovery without execution authority;
 24. deterministic sequence-level Gate D evaluation corpus covers repeated unknowns/recovery exhaustion, ambiguity/recovery, unacceptable/alternate offers, user rejection, unauthorized/high-sensitivity disclosure, cancel/takeover, stale supervisor results and clean recovery;
-25. host `PersistentIdentityVault` core provides typed redacted secret capability, versioned encrypted envelope/payload, AEAD + associated-data port, defensive copies, fail-closed decode/decrypt behavior and explicit `DEVICE_BOUND_NO_BACKUP` semantics.
+25. host `PersistentIdentityVault` core provides typed redacted secret capability, versioned encrypted envelope/payload, AEAD + associated-data port, defensive copies, fail-closed decode/decrypt behavior and explicit `DEVICE_BOUND_NO_BACKUP` semantics;
+26. Android IdentityVault production adapter provides `noBackupFilesDir` + `AtomicFile` ciphertext storage and Android Keystore AES-256/GCM with non-exportable key, key create/reuse, stable algorithm identity/AAD and fail-closed missing/invalid-key behavior;
+27. reviewed internal Gate D product binding composes deterministic interpretation first, optional bounded shadow, `SupervisorProposalValidator`, application-owned current snapshot/slot authorization re-check and `TaskGraphApplyBridge`; deterministic rejection does not fall through to shadow and reducer effects remain inert result data.
 
-Verification checkpoints include:
+### Verification checkpoints
 
 - finalized-turn shadow lifecycle: `4f7dcdd9051bc2090b5dde9ede3d688d17655f1e`, Android CI #471 `success`;
-- TaskGraph apply bridge RED: `8041ffa57181a6a5bf75581134b85d6d10347758`, Android CI #473 Host quality gate failed as intended;
 - TaskGraph apply bridge GREEN: `052f20ea11d20b97ade324ee734a1cff1c43bec3`, Android CI #474 `success`;
-- appointment interpretation RED: `9a56ddf2bdc58b27b2ca52fae982637930a9b250`, Android CI #476 Host quality gate failed as intended;
 - appointment interpretation integrated GREEN: `cd91a2dbaafdf570c9e3e67b132c02cb88c0cf96`, Android CI #482 `success`;
 - DialogueFit hysteresis GREEN: `c2bd394df32f389aa6e2cb218df44a3b8b66de1d`;
 - sequence evaluation corpus GREEN: `a86034c77df23cd9375cad20a04e7609aef13956`;
-- persistent IdentityVault RED: `502f13a1c9e5b8b0f7aae2383629e451a8d8821c`;
-- persistent IdentityVault host core GREEN: `27457e3e103b89dac9f7e86a1b427f297128b7dc`, Android CI #488 `success`.
+- persistent IdentityVault host core GREEN: `27457e3e103b89dac9f7e86a1b427f297128b7dc`, Android CI #488 `success`;
+- Android IdentityVault adapter GREEN checkpoint: `3b79d42012d80c7cc6956bac77f590bfae20dc72`, Android CI #494 `success`;
+- reviewed Gate D product integration RED: `86dcbb78d1f22efdc9d3d5b443524a32cb810778`, failed as intended on missing product-binding seams;
+- reviewed Gate D product integration GREEN: `a355f604484a78d7a99d7594455f3344ca081e04`, Android CI #497 `success`.
 
-During appointment verification the known `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` flake reappeared. Root-cause audit found no shared/static fixture or production media defect: the test waited for `transport.close()` although the session publishes `FAILED` only after cleanup returns. The test now waits on the existing `onTerminalState` callback. No production media/helper code changed.
+The Android IdentityVault instrumentation contract is compiled and packaged by canonical CI but has not yet been executed on the physical S22 in this checkpoint. Therefore the new Android vault boundary remains `HOST_GREEN`, not `PROVEN_S22`.
 
-The public Android session path still binds no production shadow observer/provider and does not automatically apply shadow output. Graph effects remain inert data until existing application owners explicitly consume them.
+During earlier appointment verification the known `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` flake reappeared. Root-cause audit found a test milestone race; the correction was test-only and no production media/helper code changed. If it reappears, inspect test ordering/synchronization first.
+
+The public Android `LocalTextCallSession.create(...)` path still binds no production shadow observer/provider and no product apply binding. Reviewed internal composition must supply `LocalTextCallGateDProductBinding` explicitly. Graph effects remain inert data until existing application owners deliberately consume them.
 
 ## NEXT — exact execution order
 
-### 1. Android IdentityVault production persistence
+### 1. Android/S22 IdentityVault proof
 
-This is the first concrete next slice.
+Use a fresh Local Chat Bridge/Local Agent binding for local Android/ADB work. No cellular call is required.
 
-Start from the existing host `PersistentIdentityVault` ports and keep encrypted storage separate from disclosure authority.
-
-Implement and prove:
+Execute the Android instrumentation contract on the target S22 and prove at least:
 
 ```text
-app-private ciphertext storage with atomic write semantics
-+ non-exportable Android Keystore key
-+ authenticated encryption (AES/GCM unless a concrete platform constraint says otherwise)
-+ stable algorithm identity / associated data
-+ versioned record compatibility
-+ fail-closed corruption/key/version handling
-+ explicit device-bound/no-backup semantics
+app-private no-backup ciphertext storage
++ atomic replacement
++ Android Keystore AES-256/GCM key creation/reuse
++ non-exportable key material
++ stable algorithm identity / AAD
++ fail-closed corruption / unsupported record / missing-or-invalid key
++ no plaintext secret in ordinary diagnostics or durable record
 ```
 
-Use RED -> minimal GREEN. Do not build new persistence on deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
+Do not upgrade this boundary to `PROVEN_S22` from CI compilation alone.
 
-No plaintext identity value may enter ordinary diagnostics, TaskGraph definitions, ServicePack data, Local Agent task JSON, Git history or supervisor context by default.
+### 2. Reviewed product integration verification on Android/S22
 
-A stored value remains non-authoritative. `AuthorizedFactSnapshot` + `FactDisclosurePolicy` still decide whether it may be disclosed, and plaintext should be resolved only after the application-owned disclosure/action boundary permits it.
-
-### 2. Product shadow/apply integration
-
-After Android IdentityVault persistence is stable, bind an intentionally reviewed product observer/provider through an application-owned seam.
-
-The product composition must keep this order:
+Exercise the internal product composition without a cellular call first:
 
 ```text
 finalized turn
- -> deterministic interpretation first
+ -> deterministic candidate first
  -> optional bounded shadow proposal
- -> existing SupervisorProposalValidator
- -> application-owned apply policy / current snapshot re-check
+ -> SupervisorProposalValidator
+ -> application-owned current-state / slot-authorization re-check
  -> TaskGraphApplyBridge
  -> effects as data
- -> existing workflow / proposal / confirmation / commitment / output owners
+ -> existing owners only
 ```
 
-Preserve session cancellation/generation rules and zero execution authority for the observer itself. Do not create a generic effect executor that bypasses existing owners.
+Verify session cancellation/staleness and confirm that the public Android path remains non-automatic unless reviewed wiring intentionally opts in.
 
-### 3. Product integration verification
+Do not add a generic effect executor. Do not let shadow/model/parser/reducer gain dialing, target widening, plaintext disclosure, speech/TTS release, proposal approval, user-confirmation, commitment or completion authority.
 
-Run targeted tests plus the canonical host gate for every deterministic slice. Add Android/device tests only for boundaries actually changed.
+### 3. Bounded BOOK_APPOINTMENT product composition
 
-The connected S22 may be used for bounded Android/Keystore/ADB proof without making a call. Physical evidence must be explicitly reproduced before upgrading a boundary from `HOST_GREEN` to `PROVEN_S22`.
+After Android/device proof is green, wire only the specific existing owners needed for the first acceptance task. Preserve proposal -> user confirmation -> one-shot commitment and late authorized fact disclosure. Prefer one reviewed effect-to-existing-owner mapping at a time over a generic execution layer.
 
-Do not touch frozen Samsung media to make Gate D tests easier. If a media timing test reappears, audit test ordering/synchronization first and keep any correction test-only unless a separate production root cause is proven.
+Run targeted host/Android tests after every deterministic slice.
 
 ### 4. Real-world call gate
 
-Only after host/simulation, Android IdentityVault and reviewed product integration are strong:
+Only after host/simulation, Android IdentityVault proof and reviewed product integration are strong:
 
 - one small reviewed ordinary reception/business target at a time;
 - `TEST_ONLY_CONSENTED`: disclose AI/test purpose at the start and obtain consent; never create a real booking;

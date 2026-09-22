@@ -1,8 +1,8 @@
-# Next-chat prompt — Gate D Android IdentityVault + product integration
+# Next-chat prompt — Gate D S22 proof + bounded BOOK_APPOINTMENT integration
 
 Kontynuuj rozwój repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego checkpointu Gate D.
 
-Pracuj na branchu `gate-d-taskgraph-core`, PR #5. Najpierw pobierz świeży stan repo/PR i nie zakładaj, że SHA zapisane w tym promptcie lub starym czacie jest nadal HEAD.
+Pracuj na branchu `gate-d-taskgraph-core`, PR #5. Najpierw pobierz świeży stan repo/PR i nie zakładaj, że SHA zapisane tutaj jest nadal HEAD.
 
 Przed zmianami przeczytaj kolejno:
 
@@ -16,66 +16,68 @@ Przed zmianami przeczytaj kolejno:
 - `docs/HANDOFF_PROTOCOL.md`
 - `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
 
-Nie powtarzaj zakończonego preimplementation audytu ani spike `custom reducer vs KStateMachine`. Produkcyjnym core v1 pozostaje minimalny application-owned `CustomTaskGraphCore`.
+Nie powtarzaj zakończonych audytów/spike’ów ani slice’ów: `CustomTaskGraphCore`, finalized-turn shadow lifecycle, `TaskGraphApplyBridge`, generic `AppointmentInterpreter`, sequence eval corpus, `DialogueFitHysteresis`, host `PersistentIdentityVault`, Android IdentityVault adapter ani reviewed product shadow/apply seam.
 
-Nie powtarzaj też zakończonych slice’ów: finalized-turn shadow lifecycle, `TaskGraphApplyBridge`, generic `AppointmentInterpreter`, sequence-level eval corpus ani categorical `DialogueFitHysteresis`.
+Historyczne host-green checkpointy do weryfikacji przez świeży HEAD:
 
-Aktualny checkpoint ma już host-green:
+```text
+3b79d42012d80c7cc6956bac77f590bfae20dc72
+Android IdentityVault adapter
+Android CI #494: success
+```
 
-- typed/replayable `CustomTaskGraphCore` + `BOOK_APPOINTMENT` simulator;
-- `AuthorizedFactSnapshot` / `FactDisclosurePolicy`;
-- generic appointment interpretation z `extract -> validate -> commit`;
-- bounded shadow observation/hypothesis + fail-closed `SupervisorProposalValidator`;
-- session-owned stale/cancel/close-safe shadow lifecycle;
-- application-owned `TaskGraphApplyBridge` z pełnym re-check przed reducerem;
-- categorical `DialogueFit` + evidence-backed hysteresis;
-- deterministic sequence corpus dla recovery exhaustion, ambiguity, alternate offers, user rejection, unauthorized/high-sensitivity facts, cancel/takeover, stale supervisor i clean recovery;
-- hostowy `PersistentIdentityVault` z versioned encrypted envelope/payload, AEAD portem, associated data, redacted secret wrapper, fail-closed decode i `DEVICE_BOUND_NO_BACKUP`.
+```text
+a355f604484a78d7a99d7594455f3344ca081e04
+reviewed Gate D product integration after constructor-only compile fix
+Android CI #497: success
+```
 
-Ostatni host-green checkpoint przed handoffem był `27457e3e103b89dac9f7e86a1b427f297128b7dc` (`Add encrypted IdentityVault persistence core`), Android CI #488 success. Traktuj to tylko jako historyczny checkpoint i zweryfikuj świeży HEAD.
+Android vault ma `noBackupFilesDir + AtomicFile`, Android Keystore AES-256/GCM, non-exportable key contract, create/reuse, AAD/algorithm identity i fail-closed missing/invalid-key semantics. Instrumentation tests są kompilowane/pakowane przez CI, ale nie zostały jeszcze fizycznie wykonane na S22 — to nadal `HOST_GREEN`, nie `PROVEN_S22`.
 
-## Pierwszy konkretny cel
-
-Następny slice to **Android IdentityVault production adapter**.
-
-Najpierw zrób wąski seam audit istniejącego `PersistentIdentityVault.kt` oraz wymagań w `docs/SECURITY_PRIVACY.md`. Bez broad refactoru. Następnie RED contracts / Android tests dla co najmniej:
-
-1. app-private ciphertext storage z atomic write semantics;
-2. non-exportable Android Keystore key;
-3. authenticated encryption (AES/GCM, jeśli nie pojawi się konkretny platformowy powód inaczej);
-4. key creation + reuse;
-5. prawidłowego AAD/algorithm identity;
-6. fail-closed corruption / unsupported record / missing-or-invalid key behavior;
-7. explicit `DEVICE_BOUND_NO_BACKUP` semantics;
-8. braku plaintext secrets w zwykłych diagnostics/logach.
-
-Po udowodnionym RED zrób minimal GREEN, targeted regressions i pełny host/Android CI zgodnie z repo. Nie używaj nowych implementacji opartych o deprecated `EncryptedSharedPreferences` / `MasterKey`.
-
-Storage nie przejmuje disclosure authority. Fakt zapisany w vault nadal musi przejść `AuthorizedFactSnapshot` + `FactDisclosurePolicy`; plaintext ma być rozwiązywany możliwie późno i nie może trafić domyślnie do supervisor/model context.
-
-## Następny etap po vault
-
-Dopiero po stabilnym Android IdentityVault przejdź do reviewed product shadow/apply integration w kolejności:
+Reviewed product integration ma jawny internal binding:
 
 ```text
 finalized turn
  -> deterministic interpretation first
  -> optional bounded shadow proposal
  -> SupervisorProposalValidator
- -> application-owned current-state/apply policy
+ -> application-owned current-state / slot-authorization re-check
  -> TaskGraphApplyBridge
- -> effects as data
+ -> effects as inert data
  -> existing workflow / proposal / confirmation / commitment / output owners
 ```
 
-Nie twórz generic effect executora omijającego istniejących ownerów. Shadow/model/parser/reducer nie mogą przejąć authority nad dialem, target widening, plaintext disclosure, speech/TTS release, proposal approval ani commitment.
+Deterministic rejection nie może fallbackować do shadow. Publiczne `LocalTextCallSession.create(...)` nadal nie aktywuje automatycznie shadow ani product apply bindingu. Nie twórz generic effect executora.
 
-Frozen boundaries: nie ruszaj `privileged-helper/`, zamrożonego Samsung media path ani fizycznie sprawdzonego `CallMediaSessionCoordinator` bez osobnego root-cause i jawnej decyzji scope. Jeśli wróci `CallRealtimeMediaSessionTest.pumpFailure...`, najpierw sprawdź test ordering/synchronization; nie naprawiaj produkcyjnego media na ślepo.
+## Pierwszy konkretny cel
 
-Orange pozostaje persistent checkpointed ServicePack i nie jest teraz głównym celem.
+Po świeżym bindingu Local Chat Bridge / Local Agent wykonaj **S22 proof Android IdentityVault bez połączenia telefonicznego**.
 
-Jeżeli używasz Local Chat Bridge / Local Agent, użyj wyłącznie świeżego binding envelope z bieżącego czatu, sprawdź fresh daemon/current-task state w dokładnie bound repo i nie kopiuj starego `agent_binding`. GitHub jest właściwy dla bounded reviewowalnych diffów, Local Agent dla lokalnych buildów/ADB/device evidence. Queue/ACK nie jest sukcesem — wymagaj terminal result.
+Najpierw sprawdź fresh daemon/current-task state i exact bound repo. Następnie uruchom istniejący Android instrumentation contract na Samsung S22+ i zbierz terminal evidence dla:
 
-Telefon może być użyty do testów Android/Keystore/ADB po świeżym bindingu, ale samo podłączenie telefonu nie jest zgodą na połączenie. Każdy fizyczny live-call wymaga świeżej, jawnej autoryzacji targetu i zadania w tej sesji.
+1. app-private `noBackupFilesDir` ciphertext storage;
+2. atomic replacement;
+3. Android Keystore AES key creation + reuse;
+4. non-exportability;
+5. AES/GCM + AAD/algorithm identity;
+6. fail-closed corruption / unsupported record / missing-or-invalid key;
+7. `DEVICE_BOUND_NO_BACKUP` semantics;
+8. braku plaintext secret w ordinary diagnostics/durable bytes.
 
-Pracuj autonomicznie: fresh state -> seam audit -> RED -> potwierdzenie właściwego failure -> minimal GREEN -> regressions -> canonical verification -> aktualizacja authoritative docs/handoffu. Nie pytaj ponownie o decyzje już jednoznacznie zapisane w repo.
+Nie zmieniaj kodu tylko po to, żeby test przeszedł, jeśli failure jest środowiskowy. Najpierw root cause.
+
+## Następny etap
+
+Po udanym vault proof wykonaj Android/S22 integration proof reviewed product bindingu — nadal bez cellular call — dla deterministic-first order, generation/current snapshot progression, optional shadow, stale/cancel behavior, apply-time authorization re-check i braku automatycznego public wiring.
+
+Dopiero potem przejdź do minimalnego `BOOK_APPOINTMENT` owner wiring. Mapuj konkretne effects do istniejących workflow/proposal/confirmation/commitment/output ownerów pojedynczo i reviewowalnie. Storage/model/parser/shadow/reducer nie mogą przejąć authority nad dialem, target widening, plaintext disclosure, speech/TTS release, proposal approval, user confirmation, commitment ani completion.
+
+Plaintext IdentityVault rozwiązuj możliwie późno, wyłącznie po `AuthorizedFactSnapshot -> FactDisclosurePolicy -> aktualny task/target/state/generation -> ewentualne user approval`.
+
+Frozen boundaries: nie ruszaj `privileged-helper/`, Samsung media path ani `CallMediaSessionCoordinator` bez osobnego root-cause i scope. Jeśli wróci `CallRealtimeMediaSessionTest.pumpFailure...`, najpierw test ordering/synchronization/test pollution.
+
+Orange pozostaje checkpointed ServicePack i nie jest teraz głównym celem.
+
+Telefon może być użyty do Android/Keystore/ADB proof po świeżym bindingu, ale samo podłączenie telefonu nie jest zgodą na wykonanie połączenia. Każdy live-call wymaga świeżej jawnej autoryzacji targetu i zadania w bieżącej sesji.
+
+Pracuj autonomicznie: fresh state -> device seam check -> physical RED/GREEN evidence lub root cause -> canonical regressions jeśli kod się zmienia -> Android/session proof -> dopiero bounded owner wiring -> aktualizacja authoritative docs/handoffu.
