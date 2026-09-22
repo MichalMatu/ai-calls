@@ -79,6 +79,19 @@
       "evidence_task": "chatgpt-orange-roaming-live-v151-20260922",
       "observation_endpoint_reason": "max_duration",
       "service_route_verified": false
+    },
+    {
+      "id": "orange.root.roaming_prices",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "roaming_prices",
+      "speech": "Chcę sprawdzić ceny w roamingu.",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
+      "evidence_task": "chatgpt-orange-roaming-prices-live-final-v176-20260922",
+      "observation_endpoint_reason": "max_duration",
+      "service_route_verified": false
     }
   ],
   "seeds": [
