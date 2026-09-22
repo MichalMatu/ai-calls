@@ -240,9 +240,36 @@ Reuse proven design patterns without importing their runtimes blindly:
 - **Pipecat Flows**: graph/config owns legal transitions; handlers return structured results instead of arbitrary next-node authority; keep stage context/actions narrow.
 - **XState/statecharts**: pure guards, explicit states/events/context, versionable serializable state and event replay.
 - **LiveKit Tasks/TaskGroups**: small focused tasks return typed results and compose under a session owner; useful model for contact-data verification and appointment subtasks.
-- **slot-filling/form systems**: required/dynamic slots, validation after extraction and explicit unhappy-path handling.
+- **Rasa/form slot filling**: extraction creates a candidate value; explicit validation decides whether it may enter authoritative state; support required/dynamic slots and unhappy paths.
+- **KStateMachine**: credible Kotlin Multiplatform statechart candidate with guarded transitions, nested states, coroutines and a small core dependency surface. Evaluate it, do not adopt it by default.
 
-Keep the product implementation Kotlin-native unless a later spike proves a dependency is worth its runtime/maintenance cost.
+Keep the product implementation Kotlin-native unless a controlled host spike proves a dependency is worth its runtime/maintenance cost.
+
+### TaskGraph engine decision spike
+
+Before committing the production TaskGraph core to either a custom reducer or KStateMachine, run one host-only comparison against the **same contract tests**.
+
+The spike must cover at least:
+
+- sealed/typed state and event IDs;
+- pure deterministic guards;
+- state-compatible transition validation;
+- bounded recovery counters;
+- proposal/confirmation/commitment states;
+- nested/composed state feasibility without hiding authority;
+- versioned state/event serialization strategy;
+- replay from event log;
+- side effects outside transition evaluation;
+- deterministic testability without Android dependencies.
+
+Decision rule:
+
+- choose KStateMachine only if it materially reduces state-machine complexity without taking ownership of authority, evidence logging, side effects or persistence semantics;
+- otherwise keep a minimal custom TaskGraph reducer;
+- never let the library's runtime state become the only source of truth: product events/evidence must remain explicit and replayable;
+- do not add both abstractions long-term.
+
+This spike is architectural due diligence, not permission for a broad framework migration.
 
 ### TaskGraph v1
 
@@ -359,6 +386,16 @@ Build typed parsers/normalizers before relying on the supervisor for:
 - requests for common identity fields (name, phone, email, PESEL etc.) without exposing their values.
 
 PhraseMatrix remains the first path for known dialogue acts.
+
+For any parsed slot/fact-like input, preserve a two-phase rule:
+
+```text
+extract candidate
+ -> validate type/state/constraints/provenance
+ -> only then commit to authoritative TaskState
+```
+
+An NLU/parser/LLM extraction result is never authoritative merely because it was produced confidently.
 
 ### Shadow supervisor + DialogueFit v1
 
@@ -508,23 +545,25 @@ Do not retain unnecessary personal or medical data.
 
 1. Keep Orange frozen at the current persistent ServicePack checkpoint; no broad mapping by default.
 2. Preimplementation audit of existing `CallTask` / `CallWorkflow` / CallPlan / prepared-session ownership for TaskGraph composition.
-3. Specify `TaskGraph v1` models, pure guards, typed events and versioned replayable event log with RED tests.
-4. Specify `IdentityVault`, `IdentityFieldId`, per-task `AuthorizedFactSnapshot` and `FactDisclosurePolicy` contracts with host tests; storage implementation can follow later.
-5. Implement `BOOK_APPOINTMENT` graph entirely on host.
-6. Build a deterministic simulated receptionist harness with multiple scripted scenarios and typed results.
-7. Add typed date/time/offer/identity-request parsers and PhraseMatrix dialogue-act coverage.
-8. Exercise proposal -> confirmation -> commitment -> completion and disclosure decisions entirely in simulation.
-9. Add failure/recovery/takeover/unauthorized-fact scenarios and make them deterministic/replayable.
-10. Add shadow supervisor context tracking with **no execution authority**.
-11. Implement and calibrate explainable `DialogueFit` using simulator/eval scenarios; test hysteresis and deterministic-supervisor disagreement.
-12. Add bounded LLM supervisor proposal interface returning only existing transition IDs + typed non-secret slots.
-13. Test malicious/invalid/stale/authority-bearing/identity-leaking supervisor output fail-closed.
-14. Implement Android IdentityVault persistence with Android Keystore-protected authenticated encryption and explicit backup/restore behavior before a real call requires personal data.
-15. Integrate TaskGraph/DialogueFit/supervisor/vault into a real product session owner without growing diagnostics into orchestrators.
-16. Physically verify one non-committing real-world test-only call with disclosure/consent, or one genuine user-authorized appointment call.
-17. Expand to a small number of distinct public reception targets, respecting the per-target call budget.
-18. Add Skills as task builders/supervisors over the same authority boundary.
-19. Standardize reusable TaskGraph + ServicePack formats and add additional domains.
+3. Specify TaskGraph contract tests first: typed states/events, pure guards, state compatibility, recovery, proposal/confirmation/commitment and versioned replay.
+4. Run the host-only **custom reducer vs KStateMachine** decision spike against those same contract tests; choose one core and remove/avoid the loser.
+5. Specify `IdentityVault`, `IdentityFieldId`, per-task `AuthorizedFactSnapshot` and `FactDisclosurePolicy` contracts with host tests; storage implementation can follow later.
+6. Implement the chosen minimal TaskGraph core.
+7. Implement `BOOK_APPOINTMENT` graph entirely on host.
+8. Build a deterministic simulated receptionist harness with multiple scripted scenarios and typed results.
+9. Add typed date/time/offer/identity-request parsers and PhraseMatrix dialogue-act coverage using `extract -> validate -> commit` semantics.
+10. Exercise proposal -> confirmation -> commitment -> completion and disclosure decisions entirely in simulation.
+11. Add failure/recovery/takeover/unauthorized-fact scenarios and make them deterministic/replayable.
+12. Add shadow supervisor context tracking with **no execution authority**.
+13. Implement and calibrate explainable `DialogueFit` using simulator/eval scenarios; test hysteresis and deterministic-supervisor disagreement.
+14. Add bounded LLM supervisor proposal interface returning only existing transition IDs + typed non-secret slots.
+15. Test malicious/invalid/stale/authority-bearing/identity-leaking supervisor output fail-closed.
+16. Implement Android IdentityVault persistence with Android Keystore-protected authenticated encryption and explicit backup/restore behavior before a real call requires personal data.
+17. Integrate TaskGraph/DialogueFit/supervisor/vault into a real product session owner without growing diagnostics into orchestrators.
+18. Physically verify one non-committing real-world test-only call with disclosure/consent, or one genuine user-authorized appointment call.
+19. Expand to a small number of distinct public reception targets, respecting the per-target call budget.
+20. Add Skills as task builders/supervisors over the same authority boundary.
+21. Standardize reusable TaskGraph + ServicePack formats and add additional domains.
 
 ## Gate D acceptance target
 
