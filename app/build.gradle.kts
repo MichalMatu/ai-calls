@@ -33,5 +33,4 @@ dependencies {
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
     testImplementation("junit:junit:4.13.2")
-    testImplementation("io.github.nsk90:kstatemachine:0.38.1")
 }
