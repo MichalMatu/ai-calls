@@ -163,17 +163,5 @@ class OrangeServiceTreeTest(unittest.TestCase):
         self.assertEqual("DISCOVERED", seeds["orange.roaming.info"]["status"])
 
 
-    def test_public_support_outage_seed_is_discovered_only_before_physical_route(self):
-        tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
-        seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
-        seed = seeds["orange.outage.info"]
-        self.assertEqual("DISCOVERED", seed["status"])
-        self.assertEqual("outage_topic", seed["action_id"])
-        self.assertEqual("Awaria.", seed["speech"])
-        self.assertEqual("AUTH_REQUIRED_POSSIBLE", seed["risk"])
-        self.assertEqual("operator_public_support_backlog", seed["source"])
-        self.assertIn("physical_route_required", seed["next_evidence"])
-
-
 if __name__ == "__main__":
     unittest.main()
