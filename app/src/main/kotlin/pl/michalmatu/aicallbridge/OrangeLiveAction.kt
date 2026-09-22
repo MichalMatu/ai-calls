@@ -17,6 +17,7 @@ internal enum class OrangeLiveAction(
     INTERNET_PROBLEM("internet_problem", "Mam problem z internetem."),
     OUTAGE_TOPIC("outage_topic", "Awaria."),
     WIFI_PROBLEM("wifi_problem", "Mam problem z Wi-Fi."),
+    COVERAGE_INFO("coverage_info", "Chcę sprawdzić zasięg."),
     ROAMING_INFO("roaming_info", "Roaming."),
     ROAMING_PRICES("roaming_prices", "Chcę sprawdzić ceny w roamingu."),
     OBSERVE_ONLY("observe_only", null),
