@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Host-only sequence contract: hysteresis never grants TaskGraph or output authority. */
 class DialogueFitHysteresisContractTest {
     private val policy = DefaultDialogueFitPolicy(maxRecoveryCount = 2)
 
