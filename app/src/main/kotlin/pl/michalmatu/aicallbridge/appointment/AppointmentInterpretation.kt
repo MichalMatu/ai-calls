@@ -90,7 +90,7 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         }
 
         val weekday = WEEKDAY_ALIASES.entries.firstOrNull { (_, aliases) ->
-            aliases.any(normalized::hasToken)
+            aliases.any { alias -> normalized.hasToken(alias) }
         }?.key ?: return null
         return AppointmentDateCandidate(
             date = anchor.with(TemporalAdjusters.nextOrSame(weekday)),
