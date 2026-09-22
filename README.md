@@ -17,11 +17,21 @@ Current foundation:
 - controlled deterministic Orange RX -> STT -> CallPlan -> approved TTS -> TX: `PROVEN_S22`;
 - generic bounded service-intent resolver contract: `HOST_GREEN`.
 
-Durable Orange data is in `service-packs/orange/service_tree.v1.json`. Verified physical root nodes are `orange.root` and `orange.root.reprompt`. Verified observed root edges currently include `list_capabilities`, `invoice_status`, `invoice_topic`, `internet_problem` and `roaming_info`. These edges record what physically happened and do **not** imply that the desired service route is verified.
+Durable Orange data is in `service-packs/orange/service_tree.v1.json`.
 
-Current service seeds include `orange.invoice.status`, `orange.internet.problem` and `orange.roaming.info`. They remain `DISCOVERED`, because the tested utterances reprompted at the root instead of reaching a verified service route.
+Checkpoint state after the 2026-09-22 mapping session:
 
-Latest bounded physical roaming evidence: `.agent/results/chatgpt-orange-roaming-live-v151-20260922.json`. The reviewed speech was exactly `Roaming.`, `backend_generate_calls=0`, the next turn was `OBSERVE_ONLY`, Max returned the known root reprompt, and cleanup ended with phone state `IDLE`.
+- verified physical nodes: `orange.root`, `orange.root.reprompt`, `orange.activation.clarification_barrier`;
+- 19 verified observed root edges;
+- 16 service seeds, all still `DISCOVERED`;
+- no complete service route has `service_route_verified=true`;
+- the manual-network-selection wording reached the activation clarification barrier and is closed;
+- all other currently closed reviewed diagnostic/informational wordings returned a known root reprompt;
+- latest physical evidence: `chatgpt-orange-caller-id-restriction-info-live-v264-20260922`;
+- latest reviewed speech: `Jak działa zastrzeganie numeru?`;
+- `backend_generate_calls=0`, follow-up `OBSERVE_ONLY`, known root reprompt, cleanup to phone state `IDLE`.
+
+A verified observed edge records what physically happened. It does **not** imply that the intended service route is verified.
 
 ## Service intent resolver
 
@@ -38,15 +48,6 @@ natural user request
 
 The resolver has no Orange dependency and no dial/TTS/telephony authority. It rejects unknown IDs, cross-pack IDs, low confidence, stale generations and model metadata attempting to carry speech/action/target authority. A `DISCOVERED` service may classify successfully but execution remains `ROUTE_NOT_VERIFIED`.
 
-Host demo covered by tests:
-
-```text
-Mam problem z internetem w Orange
- -> orange.internet.problem
- -> ROUTE_NOT_VERIFIED
- -> no call / no speech / no commitment
-```
-
 Authority remains owned by `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and application-owned output approval.
 
 ## FROZEN
@@ -58,13 +59,15 @@ The general-purpose phone-local llama.cpp model sweep and Edge Gallery/Gemma exp
 ## DEFERRED
 
 - broader provider adapters for the service-intent classifier;
-- a data-driven reviewed Orange action catalog, only when the current small enum becomes a real bottleneck;
+- a data-driven reviewed Orange action catalog, only when the current enum/repeated wiring becomes a demonstrated maintenance bottleneck;
 - generalized multi-provider service packs after Orange establishes the pattern;
 - local realtime-audio model experiments after the deterministic service-pack baseline.
 
 ## Repository workflow
 
-Durable product code/docs live on `main`. Local Agent control/evidence stays on `agent-control`. Always fetch the fresh daemon binding before creating a Local Agent task.
+Durable product code/docs live on `main`. Local Agent control/evidence stays on `agent-control`. The intended normal branch set is only these two branches unless another branch has an explicitly documented active purpose.
+
+Always fetch the fresh daemon binding before creating a Local Agent task.
 
 Canonical host gate:
 
@@ -72,4 +75,10 @@ Canonical host gate:
 bash scripts/verify_host.sh
 ```
 
-Current operational continuation is `docs/HANDOFF_NEXT_CHAT.md`. The prepared but intentionally **not started** maximum-10-hour Orange mapping prompt is `docs/ORANGE_OVERNIGHT_MAPPING_PROMPT.md`.
+Operational continuation is documented in:
+
+- `docs/HANDOFF_NEXT_CHAT.md` — exact checkpoint and continuation state;
+- `docs/ROADMAP.md` — authoritative execution order and priorities;
+- `docs/ORANGE_MAPPING_RUNBOOK.md` — durable Orange evidence/mapping procedure.
+
+There is intentionally no paste-ready overnight prompt. Live-call authorization is session-scoped and must never be inferred from repository documentation.
