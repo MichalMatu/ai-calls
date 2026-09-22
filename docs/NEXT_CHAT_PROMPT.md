@@ -1,4 +1,4 @@
-# Next-chat prompt — Gate D S22 proof + bounded BOOK_APPOINTMENT integration
+# Next-chat prompt — Gate D S22 no-call proof + bounded BOOK_APPOINTMENT integration
 
 Kontynuuj rozwój repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego checkpointu Gate D.
 
@@ -16,9 +16,9 @@ Przed zmianami przeczytaj kolejno:
 - `docs/HANDOFF_PROTOCOL.md`
 - `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
 
-Nie powtarzaj zakończonych audytów/spike’ów ani slice’ów: `CustomTaskGraphCore`, finalized-turn shadow lifecycle, `TaskGraphApplyBridge`, generic `AppointmentInterpreter`, sequence eval corpus, `DialogueFitHysteresis`, host `PersistentIdentityVault`, Android IdentityVault adapter ani reviewed product shadow/apply seam.
+Nie powtarzaj zakończonych audytów/spike’ów ani slice’ów: `CustomTaskGraphCore`, finalized-turn shadow lifecycle, `TaskGraphApplyBridge`, generic `AppointmentInterpreter`, sequence eval corpus, `DialogueFitHysteresis`, host `PersistentIdentityVault`, Android IdentityVault adapter, reviewed product shadow/apply seam ani synthetic finalized-text ingress.
 
-Historyczne host-green checkpointy do weryfikacji przez świeży HEAD:
+Historyczne checkpointy do weryfikacji przez świeży HEAD:
 
 ```text
 3b79d42012d80c7cc6956bac77f590bfae20dc72
@@ -32,12 +32,26 @@ reviewed Gate D product integration after constructor-only compile fix
 Android CI #497: success
 ```
 
-Android vault ma `noBackupFilesDir + AtomicFile`, Android Keystore AES-256/GCM, non-exportable key contract, create/reuse, AAD/algorithm identity i fail-closed missing/invalid-key semantics. Instrumentation tests są kompilowane/pakowane przez CI, ale nie zostały jeszcze fizycznie wykonane na S22 — to nadal `HOST_GREEN`, nie `PROVEN_S22`.
+```text
+e10f5d3de036f8d76b2276cd1b61fc5ae45c7c1b
+synthetic finalized-text ingress RED contract
+Android CI #499: expected failure at Host quality gate
+```
+
+```text
+79e6dabd62cb325b41bc37615252165fe563c3e4
+synthetic finalized-text ingress implementation
+```
+
+Nie traktuj powyższych SHA jako aktualnego HEAD; authoritative wynik końcowego CI jest w `docs/HANDOFF_NEXT_CHAT.md`.
+
+Android vault ma `noBackupFilesDir + AtomicFile`, Android Keystore AES-256/GCM, non-exportable key contract, create/reuse, AAD/algorithm identity i fail-closed missing/invalid-key semantics. Instrumentation tests są kompilowane/pakowane przez CI, ale dopóki handoff nie mówi inaczej, nie zostały fizycznie wykonane na S22 — to `HOST_GREEN`, nie `PROVEN_S22`.
 
 Reviewed product integration ma jawny internal binding:
 
 ```text
-finalized turn
+STT-finalized text OR explicit synthetic finalized text
+ -> shared finalized-turn ingress
  -> deterministic interpretation first
  -> optional bounded shadow proposal
  -> SupervisorProposalValidator
@@ -46,6 +60,8 @@ finalized turn
  -> effects as inert data
  -> existing workflow / proposal / confirmation / commitment / output owners
 ```
+
+`LocalTextCallSession.injectSyntheticFinalTranscript(...)` jest test/diagnostic ingress dla tekstu już uznanego za finalny. Omija start speech pipeline, PCM/STT, backend generation i TTS/media, ale używa tego samego post-STT CallPlan + Gate D path. Nie daje żadnego nowego authority i nie jest publicznym API do dzwonienia.
 
 Deterministic rejection nie może fallbackować do shadow. Publiczne `LocalTextCallSession.create(...)` nadal nie aktywuje automatycznie shadow ani product apply bindingu. Nie twórz generic effect executora.
 
@@ -68,9 +84,11 @@ Nie zmieniaj kodu tylko po to, żeby test przeszedł, jeśli failure jest środo
 
 ## Następny etap
 
-Po udanym vault proof wykonaj Android/S22 integration proof reviewed product bindingu — nadal bez cellular call — dla deterministic-first order, generation/current snapshot progression, optional shadow, stale/cancel behavior, apply-time authorization re-check i braku automatycznego public wiring.
+Po udanym vault proof wykonaj Android/S22 integration proof reviewed product bindingu — nadal bez cellular call. Preferuj synthetic finalized-text ingress, gdy celem jest post-STT product flow, żeby nie dotykać zamrożonej ścieżki media bez potrzeby.
 
-Dopiero potem przejdź do minimalnego `BOOK_APPOINTMENT` owner wiring. Mapuj konkretne effects do istniejących workflow/proposal/confirmation/commitment/output ownerów pojedynczo i reviewowalnie. Storage/model/parser/shadow/reducer nie mogą przejąć authority nad dialem, target widening, plaintext disclosure, speech/TTS release, proposal approval, user confirmation, commitment ani completion.
+Udowodnij deterministic-first order, generation/current snapshot progression, optional shadow, stale/cancel behavior, apply-time authorization re-check, brak mutacji `CallWorkflow` przez sam apply seam oraz brak automatycznego public wiring.
+
+Dopiero potem przejdź do minimalnego `BOOK_APPOINTMENT` owner wiring. Mapuj konkretne effects do istniejących workflow/proposal/confirmation/commitment/output ownerów pojedynczo i reviewowalnie. Storage/model/parser/shadow/reducer/synthetic input nie mogą przejąć authority nad dialem, target widening, plaintext disclosure, speech/TTS release, proposal approval, user confirmation, commitment ani completion.
 
 Plaintext IdentityVault rozwiązuj możliwie późno, wyłącznie po `AuthorizedFactSnapshot -> FactDisclosurePolicy -> aktualny task/target/state/generation -> ewentualne user approval`.
 
@@ -80,4 +98,4 @@ Orange pozostaje checkpointed ServicePack i nie jest teraz głównym celem.
 
 Telefon może być użyty do Android/Keystore/ADB proof po świeżym bindingu, ale samo podłączenie telefonu nie jest zgodą na wykonanie połączenia. Każdy live-call wymaga świeżej jawnej autoryzacji targetu i zadania w bieżącej sesji.
 
-Pracuj autonomicznie: fresh state -> device seam check -> physical RED/GREEN evidence lub root cause -> canonical regressions jeśli kod się zmienia -> Android/session proof -> dopiero bounded owner wiring -> aktualizacja authoritative docs/handoffu.
+Pracuj autonomicznie: fresh state -> no-call device seam check -> physical evidence lub root cause -> canonical regressions jeśli kod się zmienia -> synthetic Android/session proof -> bounded owner wiring -> authoritative docs/handoff -> zatrzymaj się przed live-call, dopóki użytkownik nie da świeżej jawnej autoryzacji konkretnego targetu i zadania.
