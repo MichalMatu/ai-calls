@@ -16,6 +16,7 @@ internal enum class OrangeLiveAction(
     INVOICE_TOPIC("invoice_topic", "Faktura."),
     INTERNET_PROBLEM("internet_problem", "Mam problem z internetem."),
     ROAMING_INFO("roaming_info", "Roaming."),
+    ROAMING_PRICES("roaming_prices", "Chcę sprawdzić ceny w roamingu."),
     OBSERVE_ONLY("observe_only", null),
     ;
 
