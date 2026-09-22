@@ -84,7 +84,8 @@ model/parser/matcher output
 24. deterministic sequence-level Gate D evaluation corpus covers repeated unknowns/recovery exhaustion, ambiguity/recovery, unacceptable/alternate offers, user rejection, unauthorized/high-sensitivity disclosure, cancel/takeover, stale supervisor results and clean recovery;
 25. host `PersistentIdentityVault` core provides typed redacted secret capability, versioned encrypted envelope/payload, AEAD + associated-data port, defensive copies, fail-closed decode/decrypt behavior and explicit `DEVICE_BOUND_NO_BACKUP` semantics;
 26. Android IdentityVault production adapter provides `noBackupFilesDir` + `AtomicFile` ciphertext storage and Android Keystore AES-256/GCM with non-exportable key, key create/reuse, stable algorithm identity/AAD and fail-closed missing/invalid-key behavior;
-27. reviewed internal Gate D product binding composes deterministic interpretation first, optional bounded shadow, `SupervisorProposalValidator`, application-owned current snapshot/slot authorization re-check and `TaskGraphApplyBridge`; deterministic rejection does not fall through to shadow and reducer effects remain inert result data.
+27. reviewed internal Gate D product binding composes deterministic interpretation first, optional bounded shadow, `SupervisorProposalValidator`, application-owned current snapshot/slot authorization re-check and `TaskGraphApplyBridge`; deterministic rejection does not fall through to shadow and reducer effects remain inert result data;
+28. `LocalTextCallSession.injectSyntheticFinalTranscript(...)` provides an explicit no-call test/diagnostic ingress for already-finalized text and converges with STT output at one shared finalized-turn product path; the contract proves it can drive CallPlan + Gate D apply while the speech pipeline, PCM input, backend generation, TTS/media and `CallWorkflow` mutation remain untouched.
 
 ### Verification checkpoints
 
@@ -96,7 +97,9 @@ model/parser/matcher output
 - persistent IdentityVault host core GREEN: `27457e3e103b89dac9f7e86a1b427f297128b7dc`, Android CI #488 `success`;
 - Android IdentityVault adapter GREEN checkpoint: `3b79d42012d80c7cc6956bac77f590bfae20dc72`, Android CI #494 `success`;
 - reviewed Gate D product integration RED: `86dcbb78d1f22efdc9d3d5b443524a32cb810778`, failed as intended on missing product-binding seams;
-- reviewed Gate D product integration GREEN: `a355f604484a78d7a99d7594455f3344ca081e04`, Android CI #497 `success`.
+- reviewed Gate D product integration GREEN: `a355f604484a78d7a99d7594455f3344ca081e04`, Android CI #497 `success`;
+- synthetic finalized-text ingress RED: `e10f5d3de036f8d76b2276cd1b61fc5ae45c7c1b`, Android CI #499 `failure` at the host quality gate before the ingress existed;
+- synthetic finalized-text ingress implementation: `79e6dabd62cb325b41bc37615252165fe563c3e4`; canonical GREEN status is recorded in the current handoff after the final branch verification.
 
 The Android IdentityVault instrumentation contract is compiled and packaged by canonical CI but has not yet been executed on the physical S22 in this checkpoint. Therefore the new Android vault boundary remains `HOST_GREEN`, not `PROVEN_S22`.
 
@@ -126,10 +129,11 @@ Do not upgrade this boundary to `PROVEN_S22` from CI compilation alone.
 
 ### 2. Reviewed product integration verification on Android/S22
 
-Exercise the internal product composition without a cellular call first:
+Exercise the internal product composition without a cellular call first. Prefer the synthetic finalized-text ingress for deterministic post-STT proof when audio itself is not the boundary under test:
 
 ```text
-finalized turn
+synthetic finalized text OR STT-finalized text
+ -> shared finalized-turn ingress
  -> deterministic candidate first
  -> optional bounded shadow proposal
  -> SupervisorProposalValidator
@@ -141,7 +145,7 @@ finalized turn
 
 Verify session cancellation/staleness and confirm that the public Android path remains non-automatic unless reviewed wiring intentionally opts in.
 
-Do not add a generic effect executor. Do not let shadow/model/parser/reducer gain dialing, target widening, plaintext disclosure, speech/TTS release, proposal approval, user-confirmation, commitment or completion authority.
+Do not add a generic effect executor. Do not let shadow/model/parser/reducer or synthetic test input gain dialing, target widening, plaintext disclosure, speech/TTS release, proposal approval, user-confirmation, commitment or completion authority.
 
 ### 3. Bounded BOOK_APPOINTMENT product composition
 
