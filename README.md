@@ -26,19 +26,22 @@ Target hybrid flow:
 
 ```text
 natural user goal
- -> CallTask + constraints/preferences/authorized facts
+ -> IdentityVault availability + per-task fact authorization
+ -> CallTask + constraints/preferences/AuthorizedFactSnapshot
  -> TaskGraph
  -> deterministic PhraseMatrix/parsers first
- -> bounded LLM supervisor only for ambiguity/unknown
- -> suggested existing transition + typed slots
+ -> shadow LLM observer from the beginning when enabled
+ -> explainable DialogueFit / escalation policy
+ -> bounded LLM supervisor only when needed
+ -> existing transition ID + typed non-secret slots
  -> deterministic validation
- -> CallWorkflow / CallPlan
- -> output approval
+ -> FactDisclosurePolicy for identity data
+ -> CallWorkflow / CallPlan / output approval
  -> proposal / confirmation / commitment
  -> structured completion
 ```
 
-The model remains useful, but as a **bounded supervisor/classifier**, not the authority owner. It may suggest existing transitions or structured slot values; it must not directly own dialing, arbitrary speech release, credentials, target widening or commitments.
+The model remains useful, but as a **bounded supervisor/classifier**, not the authority owner. It may track finalized dialogue in quarantined shadow mode and later suggest existing transitions or structured slot candidates. It must not directly own dialing, arbitrary speech release, plaintext identity facts, target widening, fact disclosure or commitments.
 
 Primary acceptance use case:
 
@@ -46,22 +49,22 @@ Primary acceptance use case:
 Umów mnie do dentysty w przyszłym tygodniu, najlepiej po 16.
 ```
 
-The system should conduct a bounded real multi-turn call, parse offered appointment slots, reject unsuitable offers, create a typed proposal, obtain required confirmation and release exactly one authorized commitment.
+The system should conduct a bounded real multi-turn call, parse offered appointment slots, reject unsuitable offers, request/disclose only authorized identity data, create a typed proposal, obtain required confirmation and release exactly one authorized commitment.
 
-## TaskGraph + ServicePack
+## Product layers
 
-The product now treats these as two complementary durable knowledge layers.
+The product keeps three durable knowledge/data layers separate.
 
 ### TaskGraph
 
 Describes **what the user wants to achieve** and how the bounded task progresses:
 
-- states/transitions;
-- slots;
-- constraints/preferences;
+- typed states/events/transitions;
+- slots and constraints/preferences;
 - recovery;
 - proposal/confirmation/commitment;
-- completion/failure/takeover.
+- completion/failure/takeover;
+- replayable event/evidence semantics.
 
 ### ServicePack
 
@@ -75,18 +78,76 @@ Describes **how a specific service/counterparty behaves**:
 
 Orange is the first persistent evidence-backed IVR ServicePack. Its mapping is preserved for future real Orange support, IVR regression and ServicePack standardization. It is not discarded as a one-off test.
 
+### IdentityVault
+
+Stores durable encrypted personal/contact data such as name, phone, email, address, date of birth or PESEL.
+
+IdentityVault is not model memory and does not itself authorize disclosure. A task receives only per-task authorized field references/snapshot, and a dedicated `FactDisclosurePolicy` decides `ALLOW / ASK_USER / DENY` for a concrete request. Plaintext high-sensitivity values stay outside LLM context by default.
+
+Keep separate:
+
+```text
+IdentityVault       = persistent encrypted values
+CallTask            = per-task authorized fact references/snapshot
+DialogueState       = transient facts learned during this call
+```
+
 A future Orange task can combine:
 
 ```text
 CallTask
  + generic TaskGraph
  + Orange ServicePack
+ + authorized fact references
  + deterministic matcher/parsers
  + bounded supervisor on ambiguity
  + existing authority owners
 ```
 
-Knowing the route never authorizes the commitment by itself.
+Knowing the route or having a value in the vault never authorizes disclosure or commitment by itself.
+
+## Hybrid supervisor and DialogueFit
+
+The LLM may observe every **finalized** counterparty turn from the beginning in shadow mode so escalation does not cold-start.
+
+Shadow mode is non-authoritative. It may maintain a bounded interpretation/summary but cannot mutate TaskGraph, workflow, output speech, authorized facts or commitment state.
+
+A separate application-owned `DialogueFit` policy decides when deterministic understanding is sufficient. It should combine explainable signals such as matcher confidence, parser completeness, current-state compatibility, negation/contradiction, repeated unknowns and deterministic-vs-shadow disagreement — not raw text similarity or one opaque LLM score.
+
+Initial outcome classes:
+
+```text
+HIGH       -> deterministic path
+UNCERTAIN  -> clarification / optional supervisor check
+LOW        -> supervisor proposal required
+BROKEN     -> recovery / TAKE_OVER / safe stop
+```
+
+Supervisor output remains bounded structured data: an existing transition ID, typed non-secret slot candidates and diagnostics/confidence. Everything is revalidated before authoritative state changes.
+
+## TaskGraph engine decision
+
+Before committing the runtime to a custom state-machine implementation, Gate D performs a small host-only comparison:
+
+```text
+minimal custom reducer
+vs
+KStateMachine
+```
+
+Both must pass the same contract tests for typed events/states, pure guards, recovery, proposal/confirmation/commitment, replayable evidence and side-effect separation. KStateMachine is adopted only if it materially reduces complexity without taking ownership of authority/evidence/persistence semantics. Only one core should survive the spike.
+
+## Slot/fact extraction rule
+
+Dialogue data follows two-phase semantics:
+
+```text
+extract candidate
+ -> validate type/state/constraints/provenance/authorization
+ -> commit to authoritative TaskState only after validation
+```
+
+A parser/LLM/NLU result never becomes authoritative merely because it is confident.
 
 ## Orange checkpoint
 
@@ -105,30 +166,13 @@ A verified observed edge records what physically happened. It does **not** imply
 
 Continue Orange only when it supports a real Orange product task, validates a new generic ServicePack capability, or intentionally checks route freshness/regression.
 
-## Hybrid supervisor boundary
-
-Generic classifier infrastructure currently lives in `app/src/main/kotlin/pl/michalmatu/aicallbridge/serviceintent/` and provides the precedent for the Gate D supervisor boundary.
-
-```text
-bounded candidates
- -> model classification
- -> existing ID only
- -> generation/confidence checks
- -> authoritative registry revalidation
- -> separate execution validator
-```
-
-The same philosophy applies to TaskGraph supervision: structured proposals only, no direct execution authority.
-
-Authority remains owned by `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and application-owned output approval.
-
 ## Real-world testing
 
-After `BOOK_APPOINTMENT` is host-green against a simulated receptionist, physical tests may use a small reviewed set of ordinary public reception/business numbers from current public sources.
+After `BOOK_APPOINTMENT` is host-green against a simulated receptionist **and** required identity/fact-disclosure behavior is implemented, physical tests may use a small reviewed set of ordinary public reception/business numbers from current public sources.
 
 For **test-only** calls, disclose at the start that this is an AI assistant test and ask whether a short non-booking test is acceptable. Do not wait until the end to say that the call should be ignored.
 
-For a **genuine user-authorized appointment**, execute the real task through proposal/confirmation/commitment policy; do not create a booking and then retract it merely because the call also served as a product test.
+For a **genuine user-authorized appointment**, execute the real task through disclosure/proposal/confirmation/commitment policy; do not create a booking and then retract it merely because the call also served as a product test.
 
 Default live-test budget is one meaningful call per organization. A second call is reserved for an early technical failure or explicit agreement to repeat. Do not use emergency/urgent/crisis lines or broad unsolicited calling campaigns.
 
@@ -156,7 +200,7 @@ Operational continuation is documented in:
 - `docs/NEXT_CHAT_PROMPT.md` — ready-to-paste bootstrap for a fresh chat;
 - `docs/HANDOFF_PROTOCOL.md` — mandatory session close/transfer rules;
 - `docs/ROADMAP.md` — authoritative execution order and priorities;
-- `docs/ARCHITECTURE.md` — TaskGraph/ServicePack/supervisor boundaries;
+- `docs/ARCHITECTURE.md` — TaskGraph/ServicePack/IdentityVault/supervisor boundaries;
 - `docs/ORANGE_MAPPING_RUNBOOK.md` — Orange-only evidence/mapping procedure when that side track is resumed.
 
 Live-call authorization and Local Chat Bridge bindings are session-scoped and must never be inferred from repository documentation.
