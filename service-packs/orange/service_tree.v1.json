@@ -256,6 +256,17 @@
       "last_evidence": "chatgpt-orange-mms-config-live-v209-20260922",
       "last_outcome": "REPROMPT",
       "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
+    },
+    {
+      "service_id": "orange.network.manual_selection",
+      "status": "DISCOVERED",
+      "action_id": "manual_network_selection",
+      "speech": "Jak włączyć ręczny wybór sieci operatora?",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "operator_public_support_backlog",
+      "last_evidence": "public_orange_support_page",
+      "last_outcome": "NOT_PHYSICALLY_PROBED",
+      "next_evidence": "physical_route_required; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
