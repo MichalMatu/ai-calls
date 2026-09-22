@@ -61,6 +61,22 @@ class FactDisclosurePolicyContractTest {
     }
 
     @Test
+    fun `authorized field in wrong taskgraph state fails closed`() {
+        val snapshot = snapshot(
+            available = setOf(IdentityFieldId.EMAIL),
+            authorized = setOf(IdentityFieldId.EMAIL),
+        )
+
+        assertEquals(
+            FactDisclosureDecision.DENY,
+            policy.decide(
+                request(IdentityFieldId.EMAIL).copy(currentState = TaskGraphStateId("WAITING_OFFER")),
+                snapshot,
+            ),
+        )
+    }
+
+    @Test
     fun `high sensitivity field requires explicit per task approval`() {
         val snapshot = snapshot(
             available = setOf(IdentityFieldId.PESEL),
@@ -133,7 +149,7 @@ class FactDisclosurePolicyContractTest {
     }
 
     @Test
-    fun `authorized fact snapshot contains field ids but no identity plaintext values`() {
+    fun `authorized fact snapshot contains field ids and state scope but no identity plaintext values`() {
         val snapshot = snapshot(
             available = setOf(IdentityFieldId.EMAIL, IdentityFieldId.PHONE),
             authorized = setOf(IdentityFieldId.EMAIL),
@@ -141,6 +157,7 @@ class FactDisclosurePolicyContractTest {
 
         assertEquals(setOf(IdentityFieldId.EMAIL, IdentityFieldId.PHONE), snapshot.availableFields)
         assertEquals(setOf(IdentityFieldId.EMAIL), snapshot.authorizedFields)
+        assertEquals(setOf(state), snapshot.allowedDisclosureStates.getValue(IdentityFieldId.EMAIL))
         assertEquals(7L, snapshot.generation)
     }
 
@@ -155,6 +172,7 @@ class FactDisclosurePolicyContractTest {
         availableFields = available,
         authorizedFields = authorized,
         highSensitivityApprovedFields = highSensitivityApproved,
+        allowedDisclosureStates = authorized.associateWith { setOf(state) },
     )
 
     private fun request(
