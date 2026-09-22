@@ -335,6 +335,17 @@
       "last_evidence": "chatgpt-orange-voice-quality-problem-live-v223-20260922",
       "last_outcome": "REPROMPT",
       "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
+    },
+    {
+      "service_id": "orange.voice.outgoing_calls",
+      "status": "DISCOVERED",
+      "action_id": "outgoing_call_problem",
+      "speech": "Nie mogę wykonywać połączeń.",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "operator_public_support_backlog",
+      "last_evidence": "public_orange_support_page",
+      "last_outcome": "NOT_PHYSICALLY_PROBED",
+      "next_evidence": "physical_route_required; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
