@@ -15,6 +15,7 @@ internal enum class OrangeLiveAction(
     INVOICE_STATUS("invoice_status", "Chcę sprawdzić fakturę."),
     INVOICE_TOPIC("invoice_topic", "Faktura."),
     INTERNET_PROBLEM("internet_problem", "Mam problem z internetem."),
+    MOBILE_DATA_PROBLEM("mobile_data_problem", "Nie działają mi dane komórkowe."),
     OUTAGE_TOPIC("outage_topic", "Awaria."),
     WIFI_PROBLEM("wifi_problem", "Mam problem z Wi-Fi."),
     COVERAGE_INFO("coverage_info", "Chcę sprawdzić zasięg."),
