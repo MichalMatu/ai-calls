@@ -1,4 +1,4 @@
-# Handoff — Gate D TaskGraph v1 foundation
+# Handoff — Gate D finalized-turn shadow lifecycle complete
 
 Date: 2026-09-22
 
@@ -10,16 +10,16 @@ Active work branch: `gate-d-taskgraph-core`
 
 Pull request: `#5` — `Gate D TaskGraph v1 core` (draft)
 
-Code checkpoint before this docs-only closeout:
+Code checkpoint before this documentation closeout:
 
 ```text
-a8e6130c7dd85dd011ed420ddd7be1294b2322a2
-Bind Gate D context through Android readiness
+4f7dcdd9051bc2090b5dde9ede3d688d17655f1e
+Add session-owned Gate D shadow finalized-turn lifecycle
 ```
 
 This handoff is a state snapshot. It is **not** live-call authorization and contains no reusable Local Chat Bridge binding.
 
-Use fresh repository state in the next chat. `docs/ROADMAP.md` is the authoritative execution order; `docs/ARCHITECTURE.md` owns component boundaries; `docs/SECURITY_PRIVACY.md` owns privacy/live-call rules; `docs/NEXT_CHAT_PROMPT.md` is the ready-to-paste bootstrap prompt.
+Use fresh repository state in the next chat. `docs/ROADMAP.md` is the authoritative execution order; `docs/ARCHITECTURE.md` owns component boundaries; `docs/SECURITY_PRIVACY.md` owns privacy/live-call rules.
 
 ## Read first
 
@@ -33,134 +33,123 @@ Use fresh repository state in the next chat. `docs/ROADMAP.md` is the authoritat
 8. `docs/HANDOFF_PROTOCOL.md`
 9. `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media
 
-Orange files are relevant only when that side track is intentionally resumed: `service-packs/orange/service_tree.v1.json` and `docs/ORANGE_MAPPING_RUNBOOK.md`.
+Orange remains relevant only when intentionally resumed; it is not the active target.
 
 ## Current product goal
 
-Active milestone:
+Active milestone remains:
 
 ```text
 Gate D — hybrid multi-turn Task Engine
 ```
 
-First acceptance task:
-
-```text
-BOOK_APPOINTMENT
-```
-
-The goal is a bounded real multi-turn appointment task where deterministic interpretation stays primary, the model may observe/propose within a quarantined boundary, and all target/disclosure/speech/proposal/commitment authority remains application-owned.
+First acceptance task remains `BOOK_APPOINTMENT`.
 
 ## What is complete on the work branch
 
-### TaskGraph core
+### TaskGraph / identity / simulator foundation
 
-Implemented `CustomTaskGraphCore` with:
+- application-owned `CustomTaskGraphCore` with typed state/event/transition/slot/effect IDs, pure guards, stale/version/state rejection, bounded recovery, effects as data and deterministic replay/evidence;
+- engine decision closed for v1: no KStateMachine production runtime/dependency;
+- `AuthorizedFactSnapshot` / `FactDisclosurePolicy` host contracts;
+- deterministic `BOOK_APPOINTMENT` receptionist simulator composing existing workflow/confirmation/commitment owners;
+- categorical `DialogueFit`;
+- bounded `ShadowDialogueObservation` / `ShadowDialogueHypothesis`;
+- fail-closed `SupervisorProposalValidator`;
+- `TaskGraphDefinition + AuthorizedFactSnapshot` binding through Android/LocalPhone readiness -> coordinator -> prepared call -> session;
+- read-only `LocalTextCallGateDRuntime`.
 
-- typed state/event/transition/slot/effect IDs;
-- pure guards and state compatibility;
-- stale generation/version/state rejection;
-- bounded recovery;
-- proposal/confirmation/commitment/terminal state kinds;
-- effects as data;
-- versioned event evidence;
-- deterministic replay and fail-closed mismatch handling.
+### Finalized-turn shadow lifecycle — completed in this slice
 
-Engine decision is closed for v1: keep the minimal custom reducer. No KStateMachine runtime/dependency is part of the production branch.
-
-### Identity/fact-disclosure contracts
-
-Implemented host contracts for:
-
-- `IdentityFieldId`;
-- sensitivity metadata;
-- per-task `AuthorizedFactSnapshot`;
-- application-owned `FactDisclosurePolicy` returning `ALLOW / ASK_USER / DENY`.
-
-Android encrypted IdentityVault persistence is **not** implemented yet.
-
-### BOOK_APPOINTMENT host simulator
-
-Implemented a deterministic receptionist simulator that composes TaskGraph with existing `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and disclosure policy.
-
-Covered semantics include proposal, user confirmation/rejection, one-shot commitment, no availability, clarification/harmless-question recovery, identity requests, cancel/takeover and replay evidence.
-
-### DialogueFit + bounded supervisor contracts
-
-Implemented:
-
-- categorical explainable `DialogueFit` (`HIGH / UNCERTAIN / LOW / BROKEN`);
-- bounded `ShadowDialogueObservation`;
-- quarantined `ShadowDialogueHypothesis`;
-- `SupervisorProposalValidator` with generation, allowed-transition, slot-scope, authority-bearing-slot and confidence checks.
-
-Accepted supervisor output remains candidate data only.
-
-### Product/session binding
-
-Implemented optional Gate D context flow:
+RED contract commit:
 
 ```text
-AndroidTextCallReadiness / LocalPhoneTextCallReadiness
- -> LocalTextCallReadinessCoordinator
- -> PreparedLocalTextCall
- -> LocalTextCallSession
- -> LocalTextCallGateDRuntime
+1a58e174bafa0d9a03334e8ff14906601539b129
+test: define Gate D finalized-turn shadow lifecycle contracts
 ```
 
-The session-owned runtime can create a bounded observation and revalidate a hypothesis from a real bound task/graph/fact scope.
+Android CI #470 failed at the host quality gate as expected because the new session shadow seam/types were not implemented yet. Setup/JDK/Gradle/SDK steps passed.
+
+Minimal GREEN code checkpoint:
+
+```text
+4f7dcdd9051bc2090b5dde9ede3d688d17655f1e
+Add session-owned Gate D shadow finalized-turn lifecycle
+```
+
+Implemented without changing providers/media:
+
+- real `LocalTextCallSession` plan selector computes the existing PhraseMatrix/CallPlan result first and returns the same route;
+- when an explicit host shadow observer is bound, that finalized turn creates one bounded observation from the bound TaskGraph snapshot/context;
+- `AuthorizedFactSnapshot` fact IDs are exposed only when generation/state/sensitivity scope matches; plaintext fact values are never added;
+- a session-owned epoch invalidates older queued shadow turns;
+- `cancel()` / `close()` invalidate pending work; close also closes the shadow executor;
+- observer/validator exceptions cannot alter deterministic routing;
+- hypotheses pass through existing `SupervisorProposalValidator`;
+- accepted/rejected candidate metadata may feed categorical `DialogueFit` diagnostics only;
+- ordinary diagnostics expose typed IDs/status/reasons, not transcript, identity values, slot candidate values or model diagnostic values.
+
+The public Android `LocalTextCallSession.create(...)` path still binds no production shadow observer/provider. This slice is intentionally host-only.
+
+## Verification
+
+Canonical full repo gate for GREEN:
+
+```text
+commit: 4f7dcdd9051bc2090b5dde9ede3d688d17655f1e
+workflow: Android CI
+run id: 35752853447
+run number: 471
+conclusion: success
+```
+
+The canonical workflow runs `bash scripts/verify_host.sh`, including app/module unit tests, lint/build checks, Python tests and repository policy scans. The new focused Gate D lifecycle tests are therefore covered by the full host run.
+
+No physical call or device proof was required or authorized for this host-only slice.
 
 ## Hard stop line at this checkpoint
 
-The current Gate D runtime is deliberately **read-only**.
-
-It does not:
+The shadow/session boundary remains non-authoritative. It does **not**:
 
 - call `TaskGraphCore.reduce()`;
 - execute graph effects;
 - mutate `CallWorkflow`;
-- release TTS/telephony speech;
+- release model speech/TTS;
 - dial or widen a target;
-- read plaintext IdentityVault values;
+- read/disclose plaintext IdentityVault values;
 - approve proposals;
 - consume commitment authority.
 
-Do not erase this boundary in the first continuation slice.
+Do not collapse this boundary into the observer in the next slice.
 
 ## Exact next slice
 
-Start with the real finalized-turn product path, host-only.
+Add a separate explicit **application-owned TaskGraph apply bridge**, RED first.
 
-Write RED contracts first for:
-
-1. a Gate-D-bound `LocalTextCallSession` creating exactly one bounded shadow observation for a finalized turn from current authoritative snapshot/context;
-2. existing PhraseMatrix/CallPlan deterministic result remaining unchanged;
-3. observer/hypothesis lifecycle being session-owned and stale-generation/cancel/close safe;
-4. no plaintext identity values in observation/ordinary diagnostics;
-5. hypothesis revalidation plus `DialogueFit` yielding only diagnostics/candidate data;
-6. **no automatic TaskGraph reduction in this slice**.
-
-Then minimal GREEN. Do not broad-refactor provider/media/session code to achieve it.
-
-Only after that observation/lifecycle slice is host-green should a later separate slice add an explicit application-owned:
+Target:
 
 ```text
-validated candidate
+already validated deterministic/supervisor candidate
+ -> re-check current generation/state
+ -> application-owned legal transition/event mapping
+ -> validate slot type/schema/constraints/provenance/authorization
  -> typed TaskGraph event
  -> CustomTaskGraphCore.reduce()
  -> effects as data
- -> existing workflow/proposal/confirmation/commitment owners
+ -> existing workflow / proposal / confirmation / commitment / output owners
 ```
 
-## Known open work after the next slice
+Required RED contracts should prove:
 
-- reusable typed appointment parsers/normalizers outside the simulator;
-- PhraseMatrix dialogue-act coverage for appointment conversation;
-- deterministic-to-shadow comparison mapping and DialogueFit eval/hysteresis calibration;
-- candidate -> TaskGraph event/reducer bridge;
-- Android IdentityVault encrypted persistence;
-- product-level Gate D integration tests;
-- only later, a small reviewed physical reception call with fresh user authorization.
+1. stale generation cannot reduce;
+2. an illegal/unmapped transition cannot become an event;
+3. invalid, unauthorized or authority-bearing candidate slots cannot enter authoritative TaskGraph context;
+4. `extract -> validate -> commit` is preserved;
+5. accepted reduction returns effects as data only;
+6. reducer output does not directly speak, dial, mutate workflow or consume commitment;
+7. existing deterministic PhraseMatrix/CallPlan behavior remains unchanged.
+
+Use the smallest owner/seam that preserves existing authority boundaries. Do not broad-refactor provider/session/media code.
 
 ## Frozen boundaries
 
@@ -171,70 +160,21 @@ Do not casually touch:
 - physically proven `CallMediaSessionCoordinator` behavior;
 - general-purpose phone-local llama.cpp product direction;
 - Edge Gallery/Gemma experiment path;
-- diagnostic runners/probes as product orchestrators;
-- realtime audio-model redesign before Gate D hybrid text/task baseline is mature.
+- diagnostic runners/probes as product orchestrators.
 
 Read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
 
-## Verification state
-
-Latest full GitHub Actions verification for the code checkpoint:
-
-```text
-commit: a8e6130c7dd85dd011ed420ddd7be1294b2322a2
-workflow: Android CI
-run id: 35748536552
-run number: 468
-conclusion: success
-```
-
-The docs-only closeout commit should be verified from fresh branch state before a new code slice starts.
-
-### Known media-test signal
-
-Earlier full runs around `59b5f75` repeatedly failed only the frozen-area test:
-
-```text
-CallRealtimeMediaSessionTest.pumpFailure...
-```
-
-The Gate D tests were green and no media code was changed. Latest full CI on `a8e6130` passed, so this is not a current Gate D blocker, but 3/3 earlier repetition means it should not be casually dismissed as random.
-
-If it reappears, first audit test order/pollution by running the media test separately and alongside Gate D tests. Do **not** patch frozen media as part of Gate D without a separate root-cause result and explicit scope decision.
-
-## Branch / PR state
-
-PR #5 is open and draft, targeting `main` from `gate-d-taskgraph-core`.
-
-Before this docs closeout it was:
-
-```text
-base: 7b6519238808599a5084f3f1c72d103ea43abd9b
-head: a8e6130c7dd85dd011ed420ddd7be1294b2322a2
-27 commits ahead / 0 behind
-```
-
-The final handoff commit is documentation-only and should be treated as a successor to that code checkpoint.
-
-This GitHub-only closeout did not verify local-only worktrees/branches on the developer machine. Do not delete historical local branches based only on this document.
+If `CallRealtimeMediaSessionTest.pumpFailure...` reappears, first audit test order/pollution by running the media test separately and alongside Gate D tests. Do **not** patch frozen media as part of Gate D without a separate root-cause result and explicit scope decision.
 
 ## Local Agent / Local Chat Bridge
 
-- trust only the fresh binding envelope injected into the new chat;
+- trust only a fresh binding envelope injected into the new chat;
 - never copy an old `agent_binding` from documentation/history;
 - work only in the exact bound repository;
-- inspect fresh daemon/current-task evidence before queueing local work;
-- use Local Agent for Gradle/ADB/device/local-machine execution;
-- direct GitHub edits are fine for small exact reviewable docs/code changes;
-- `.agent/tasks` and `.agent/results` remain control/evidence data and must not become product architecture;
+- use fresh daemon/current-task evidence before queueing local work;
+- `.agent/tasks` and `.agent/results` are control/evidence data, not product architecture;
 - never restart Local Agent merely to hide an unclear task/root cause.
 
 ## Live-call rule
 
-No physical call was required for this closeout, and this handoff authorizes **no future call**.
-
-Every future real call requires fresh user/operator authorization in that new session and must follow `docs/ROADMAP.md` + `docs/SECURITY_PRIVACY.md`.
-
-## Ready prompt
-
-Use `docs/NEXT_CHAT_PROMPT.md` or paste the prompt provided at the end of the closing chat response.
+No physical call was performed or authorized in this slice. Every future real call requires fresh user/operator authorization in that session and must follow `docs/ROADMAP.md` + `docs/SECURITY_PRIVACY.md`.

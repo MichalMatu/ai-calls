@@ -1,8 +1,8 @@
-# Next-chat prompt — Gate D continuation
+# Next-chat prompt — Gate D apply-bridge continuation
 
 Kontynuuj rozwój repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego checkpointu Gate D.
 
-Pracuj na branchu `gate-d-taskgraph-core` / PR #5 i najpierw pobierz świeży stan repo. Nie zakładaj, że SHA zapisane w starym czacie jest nadal HEAD.
+Pracuj na branchu `gate-d-taskgraph-core`, PR #5. Najpierw pobierz świeży stan repo i nie zakładaj, że SHA zapisane w starym czacie jest nadal HEAD.
 
 Przed zmianami przeczytaj kolejno:
 
@@ -16,37 +16,33 @@ Przed zmianami przeczytaj kolejno:
 - `docs/HANDOFF_PROTOCOL.md`
 - `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
 
-Stan wejściowy: Gate D ma już hostowy `CustomTaskGraphCore`, `BOOK_APPOINTMENT` simulator, typed `AuthorizedFactSnapshot`/`FactDisclosurePolicy`, `DialogueFit`, `SupervisorProposalValidator`, read-only `LocalTextCallGateDRuntime` oraz binding `TaskGraphDefinition + AuthorizedFactSnapshot` przez Android/LocalPhone readiness -> coordinator -> prepared call -> `LocalTextCallSession`.
+Nie powtarzaj preimplementation audytu ani spike `custom reducer vs KStateMachine`. Produkcyjnym core v1 pozostaje minimalny application-owned `CustomTaskGraphCore`.
 
-Nie powtarzaj preimplementation audytu ani spike `custom reducer vs KStateMachine`: decyzja v1 jest zamknięta na minimalnym custom reducerze. Nie dodawaj KStateMachine bez nowego konkretnego dowodu, że jest potrzebny.
+Aktualny checkpoint ma już host-green real finalized-turn shadow lifecycle w `LocalTextCallSession`: deterministyczny PhraseMatrix/CallPlan wynik jest ustalany najpierw; explicit host-bound observer dostaje dokładnie jedną bounded `ShadowDialogueObservation`; lifecycle jest session-owned i stale/cancel/close-safe; hypothesis przechodzi przez `SupervisorProposalValidator`; ordinary diagnostics są redacted i mogą zasilać `DialogueFit` wyłącznie jako candidate/diagnostic data. Publiczny Android path nie ma jeszcze produkcyjnego shadow providera.
 
-Najbliższy slice ma być host-only i **shadow-only**. Zacznij od RED contract tests dla realnego finalized-turn path w `LocalTextCallSession`, tak aby przy zbindowanym Gate D:
-
-1. finalized turn tworzył dokładnie jedną bounded `ShadowDialogueObservation` z aktualnego autorytatywnego snapshot/context;
-2. obecny PhraseMatrix/CallPlan deterministic result pozostał bez zmian;
-3. observer/hypothesis lifecycle był session-owned i odporny na stale generation / cancel / close;
-4. observation i zwykłe diagnostics nie zawierały plaintext identity values;
-5. hypothesis przechodziła przez istniejący `SupervisorProposalValidator`, a wynik mógł zasilać `DialogueFit` wyłącznie jako diagnostics/candidate data;
-6. w tym slice **nie wolno wywoływać `TaskGraphCore.reduce()`**, mutować `CallWorkflow`, wypuszczać modelowego speech/TTS, dialować, ujawniać plaintext facts ani konsumować commitment authority.
-
-Po udowodnionym RED zrób minimal GREEN i targeted regressions. Następnie uruchom pełny host gate / Android CI zgodnie z repo. Nie wykonuj broad refactoru providerów/session/media tylko po to, żeby ten slice przeprowadzić.
-
-Dopiero w osobnym późniejszym slice, po host-green shadow lifecycle, wolno dodać jawny application-owned bridge:
+Nie powtarzaj tego slice. Następny osobny slice to application-owned apply bridge:
 
 ```text
-validated candidate
- -> typed TaskGraph event
+already validated deterministic/supervisor candidate
+ -> re-check current generation/state
+ -> legal transition/event mapping owned by application
+ -> validate slot types/constraints/provenance/authorization
+ -> typed TaskGraphEvent
  -> CustomTaskGraphCore.reduce()
  -> effects as data
- -> istniejący workflow / proposal / confirmation / commitment owners
+ -> istniejący workflow / proposal / confirmation / commitment / output owners
 ```
 
-Zachowaj `extract -> validate -> commit` dla wszystkich slot/fact candidates.
+Zacznij od konkretnego seam audit, potem RED contracts. Udowodnij co najmniej, że stale generation i nielegalny/unmapped transition nie mogą wywołać redukcji; invalid/unauthorized/authority-bearing slots nie mogą wejść do autorytatywnego context; `extract -> validate -> commit` jest zachowane; accepted reduction zwraca effects wyłącznie jako data; reducer output sam nie mówi, nie dialuje, nie mutuje `CallWorkflow` i nie konsumuje commitment authority.
 
-Frozen boundaries: nie ruszaj `privileged-helper/`, zamrożonego Samsung media path ani fizycznie sprawdzonego `CallMediaSessionCoordinator` bez osobnego root-cause i jawnej decyzji scope. Jeśli wróci `CallRealtimeMediaSessionTest.pumpFailure...`, najpierw zbadaj test order/pollution; nie naprawiaj media w ramach Gate D na ślepo.
+Po udowodnionym RED zrób minimal GREEN, targeted regressions i pełny `bash scripts/verify_host.sh` / Android CI zgodnie z repo. Nie rób broad refactoru providerów/session/media.
 
-Orange pozostaje persistent checkpointed ServicePack i nie jest teraz głównym celem. Nie wracaj do broad Orange mappingu bez konkretnego powodu z roadmapy.
+Nie przenoś authority do observera/modelu/TaskGraph. Target authorization, plaintext fact disclosure, speech/TTS release, proposal approval, user confirmation i commitment pozostają u istniejących application owners.
 
-Jeżeli używasz Local Chat Bridge / Local Agent, użyj wyłącznie świeżego binding envelope z tego nowego czatu. Nie kopiuj starego `agent_binding` z handoffu ani historii. Live-call authorization również nie przechodzi między czatami.
+Frozen boundaries: nie ruszaj `privileged-helper/`, zamrożonego Samsung media path ani fizycznie sprawdzonego `CallMediaSessionCoordinator` bez osobnego root-cause i jawnej decyzji scope. Jeśli wróci `CallRealtimeMediaSessionTest.pumpFailure...`, najpierw zbadaj test-order/test-pollution; nie naprawiaj media w ramach Gate D na ślepo.
 
-Pracuj autonomicznie w opisanym scope: audit konkretnego seam -> RED -> udowodniony failure -> minimal GREEN -> regressions -> aktualizacja dokumentacji/handoffu. Nie pytaj ponownie o rzeczy jednoznacznie zapisane w repo.
+Orange pozostaje persistent checkpointed ServicePack i nie jest teraz głównym celem.
+
+Jeżeli używasz Local Chat Bridge / Local Agent, użyj wyłącznie świeżego binding envelope z tego nowego czatu. Nie kopiuj starego `agent_binding`. Live-call authorization również nie przechodzi między czatami.
+
+Pracuj autonomicznie: audit konkretnego seam -> RED -> potwierdzenie właściwego failure -> minimal GREEN -> regressions -> aktualizacja dokumentacji/handoffu. Nie pytaj ponownie o decyzje już jednoznacznie zapisane w repo.

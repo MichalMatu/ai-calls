@@ -8,7 +8,7 @@ Target: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
 The active product direction is **Gate D: hybrid multi-turn Task Engine** with `BOOK_APPOINTMENT` as the first acceptance task.
 
-The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-only product foundation rather than being only a design target.
+The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-only product foundation plus a host-green finalized-turn shadow lifecycle.
 
 Current Gate D implementation on the active work branch includes:
 
@@ -16,27 +16,30 @@ Current Gate D implementation on the active work branch includes:
 - `BOOK_APPOINTMENT` TaskGraph plus deterministic receptionist simulator covering proposal, confirmation, one-shot commitment, recovery, cancellation/takeover and fact-disclosure decisions;
 - typed `IdentityFieldId`, per-task `AuthorizedFactSnapshot` and application-owned `FactDisclosurePolicy` (`ALLOW / ASK_USER / DENY`);
 - explainable categorical `DialogueFit` contract;
-- bounded shadow observation/hypothesis contracts and fail-closed `SupervisorProposalValidator`;
-- a read-only Gate D runtime owned by `LocalTextCallSession`;
-- Android/LocalPhone readiness composition that can carry `TaskGraphDefinition + AuthorizedFactSnapshot` through coordinator -> prepared call -> session.
+- bounded `ShadowDialogueObservation` / `ShadowDialogueHypothesis` contracts and fail-closed `SupervisorProposalValidator`;
+- read-only `LocalTextCallGateDRuntime` owned by `LocalTextCallSession`;
+- Android/LocalPhone readiness composition carrying `TaskGraphDefinition + AuthorizedFactSnapshot` through coordinator -> prepared call -> session;
+- host-only `LocalTextCallGateDShadowLifecycle` attached to the real finalized-turn selector through an explicit test/host observer seam.
 
-The session runtime is intentionally **read-only for Gate D** at this checkpoint. It can create a bounded shadow observation and revalidate a supervisor hypothesis, but it does not call `TaskGraphCore.reduce()`, execute graph effects, release speech, disclose plaintext identity values, authorize a target, approve a proposal or consume commitment authority.
+For an explicitly bound host shadow observer, the session now computes the existing PhraseMatrix/CallPlan result first, then creates exactly one bounded observation, runs quarantined observer work, revalidates the hypothesis and emits redacted candidate/`DialogueFit` diagnostics. Session epochs invalidate stale queued turns; `cancel()` and `close()` invalidate pending work. Observer failure cannot change the deterministic route.
+
+The Gate D boundary is still intentionally **non-authoritative**. It does not call `TaskGraphCore.reduce()`, execute graph effects, mutate `CallWorkflow`, release model speech/TTS, widen a target, disclose plaintext identity values, approve proposals or consume commitment authority. The public Android session path does not yet bind a production shadow provider.
 
 ## Immediate next milestone
 
-Activate the already-bound read-only Gate D seam on finalized product turns without changing deterministic behavior:
+Add a separate application-owned apply bridge, starting with RED contracts:
 
 ```text
-finalized transcript
- -> existing PhraseMatrix / CallPlan path remains authoritative
- -> session creates bounded shadow observation when Gate D is bound
- -> quarantined observer hypothesis
- -> SupervisorProposalValidator
- -> DialogueFit / comparison evidence
- -> candidate data only
+already validated deterministic/supervisor candidate
+ -> re-check current generation/state + legal transition/event mapping
+ -> validate typed slot candidates / constraints / provenance / authorization
+ -> typed TaskGraph event
+ -> CustomTaskGraphCore.reduce()
+ -> effects as data
+ -> existing workflow / proposal / confirmation / commitment / output owners
 ```
 
-The first integration slice must remain shadow-only: **no automatic TaskGraph reduction and no speech/workflow/commitment authority**. Only after that lifecycle/generation boundary is host-green should a later slice introduce an explicit application-owned bridge from validated candidate data to a typed TaskGraph event/reduction.
+This bridge must preserve `extract -> validate -> commit`. It must not make the observer, model or TaskGraph reducer an owner of speech, dialing, identity disclosure, user confirmation or commitment.
 
 ## Product layers
 
@@ -61,8 +64,8 @@ Identity values follow:
 
 ```text
 IdentityVault       = persistent encrypted values
-CallTask            = per-task authorized fact references/snapshot
-DialogueState       = transient facts learned during this call
+AuthorizedFactSnapshot = per-task authorized field IDs/scope
+DialogueState       = transient validated non-secret facts learned in this call
 ```
 
 A vault value existing does not authorize disclosure. Plaintext high-sensitivity values stay outside model context by default.
@@ -83,6 +86,7 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media or `privi
 - `extract -> validate -> commit` for dialogue-derived facts/slots;
 - no model or Skill widens target, disclosure, speech or commitment authority;
 - unknown/stale/authority-bearing supervisor output fails closed;
+- ordinary diagnostics contain typed IDs/status, not transcript/identity/candidate plaintext;
 - test-only real calls require disclosure/consent at the start;
 - genuine tasks require fresh user authorization;
 - no live-call authorization is inherited from documentation or a previous chat.

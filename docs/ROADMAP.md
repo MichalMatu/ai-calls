@@ -37,7 +37,7 @@ Status: `CHECKPOINTED / PROVEN_S22 EVIDENCE / NOT THE MAIN ROADMAP`.
 
 Durable graph: `service-packs/orange/service_tree.v1.json`.
 
-Preserve the existing observed nodes/edges and evidence. Resume broad Orange mapping only when a concrete user task, ServicePack feature, route-regression check or TaskGraph/ServicePack integration test justifies it. Follow `docs/ORANGE_MAPPING_RUNBOOK.md` when resumed.
+Preserve existing observed nodes/edges and evidence. Resume broad Orange mapping only when a concrete user task, ServicePack feature, route-regression check or TaskGraph/ServicePack integration test justifies it.
 
 ## ACTIVE Gate D — hybrid multi-turn Task Engine
 
@@ -45,12 +45,6 @@ Primary acceptance task:
 
 ```text
 BOOK_APPOINTMENT
-```
-
-Example user goal:
-
-```text
-Umów mnie do dentysty w przyszłym tygodniu, najlepiej po 16.
 ```
 
 Core authority rule:
@@ -64,12 +58,10 @@ model/parser/matcher output
 
 ### Completed Gate D foundation on the active work branch
 
-The following slices are complete at the current handoff checkpoint:
-
 1. preimplementation ownership audit;
 2. shared TaskGraph RED contracts;
-3. engine decision: keep the minimal application-owned custom reducer; no KStateMachine runtime/dependency is carried in production code;
-4. typed TaskGraph core with guards, state compatibility, bounded recovery, proposal/confirmation/commitment state kinds, terminal states, effects-as-data and deterministic versioned replay;
+3. engine decision: minimal application-owned custom reducer; no KStateMachine production dependency;
+4. typed TaskGraph core with guards, bounded recovery, proposal/confirmation/commitment state kinds, terminal states, effects-as-data and deterministic versioned replay;
 5. host `IdentityFieldId`, `AuthorizedFactSnapshot` and `FactDisclosurePolicy` contracts;
 6. host `BOOK_APPOINTMENT` TaskGraph and deterministic receptionist simulator;
 7. simulated proposal -> confirmation -> one-shot commitment -> completion path;
@@ -78,73 +70,40 @@ The following slices are complete at the current handoff checkpoint:
 10. bounded `ShadowDialogueObservation` / hypothesis contracts;
 11. fail-closed `SupervisorProposalValidator` for generation, allowed transition, slot scope, authority-bearing slot IDs and confidence;
 12. read-only `LocalTextCallGateDRuntime` owned by `LocalTextCallSession`;
-13. product composition of `TaskGraphDefinition + AuthorizedFactSnapshot` through Android/LocalPhone readiness -> coordinator -> prepared call -> session.
+13. product composition of `TaskGraphDefinition + AuthorizedFactSnapshot` through Android/LocalPhone readiness -> coordinator -> prepared call -> session;
+14. real `LocalTextCallSession` finalized-turn selector can create one bounded Gate D observation for an explicitly host-bound shadow observer after the deterministic PhraseMatrix/CallPlan result is already decided;
+15. session-owned shadow epoch/lifecycle invalidates older queued turns and pending work on `cancel()` / `close()`; observer failure degrades to unchanged deterministic behavior;
+16. hypotheses are revalidated through `SupervisorProposalValidator` and exposed only as redacted candidate/`DialogueFit` diagnostics; plaintext identity/candidate values are absent from ordinary diagnostics.
 
-The current read-only runtime deliberately does **not** call `TaskGraphCore.reduce()` and has no graph-effect executor, workflow mutation, speech, dial, plaintext vault or commitment API.
+The completed shadow lifecycle is `HOST_GREEN` at code checkpoint `4f7dcdd9051bc2090b5dde9ede3d688d17655f1e` (Android CI #471). It remains host-only: the public Android session path does not bind a production shadow observer/provider.
+
+The runtime/lifecycle deliberately does **not** call `TaskGraphCore.reduce()` and has no graph-effect executor, workflow mutation, model speech/TTS, dial/target, plaintext vault or commitment API.
 
 ## NEXT — exact execution order
 
-### 1. Activate shadow observation on finalized turns
+### 1. Add the application-owned TaskGraph apply bridge
 
-Start with a RED contract around the real product session path. When Gate D is bound, every relevant finalized turn should be able to produce one bounded `ShadowDialogueObservation` from session-owned deterministic state/context.
+Start a separate RED/GREEN slice. The input must already be an application-validated deterministic or supervisor candidate; shadow output itself is never executable authority.
 
-Constraints for this slice:
+The bridge must:
 
-- existing PhraseMatrix/CallPlan deterministic behavior must remain unchanged;
-- observation happens only for finalized turns;
-- generation/state/allowed transition/fact scopes come from the bound session/runtime;
-- no `TaskGraphCore.reduce()`;
-- no supervisor candidate may release speech, mutate workflow or consume commitment authority;
-- no plaintext identity value enters the observation.
-
-### 2. Bind a quarantined observer lifecycle
-
-Add the smallest session-owned observer seam needed to consume `ShadowDialogueObservation` and return `ShadowDialogueHypothesis`.
-
-Prove:
-
-- one-session ownership;
-- stale/generation mismatch fail-closed;
-- cancellation/close invalidates pending work;
-- exceptions/timeouts degrade to deterministic behavior or safe recovery;
-- diagnostic output does not leak transcript/identity plaintext through ordinary `toString`/logs.
-
-Do not add a broad provider abstraction unless the existing backend/provider layer cannot safely host the bounded observer.
-
-### 3. Feed validated shadow comparison into DialogueFit
-
-Map deterministic turn evidence plus optional validated shadow hypothesis into `DialogueFitSignals`.
-
-Keep the first integration categorical and explainable. Do not tune arbitrary numeric scoring in production before simulator/eval evidence exists.
-
-Expected behavior:
-
-```text
-HIGH       -> current deterministic path
-UNCERTAIN  -> clarification / optional supervisor evidence
-LOW        -> bounded supervisor candidate required
-BROKEN     -> recovery / TAKE_OVER / safe stop
-```
-
-At this checkpoint, a validated supervisor candidate is still **candidate data only**.
-
-### 4. Only then add the application-owned TaskGraph apply bridge
-
-After shadow lifecycle + DialogueFit are stable, add a separate RED/GREEN slice that converts an already-validated deterministic/supervisor candidate into an explicit typed TaskGraph event and calls the reducer.
-
-This bridge must:
-
-- re-check current generation/state;
-- accept only an existing legal transition/event mapping;
-- validate slot types/constraints/provenance;
+- re-check current TaskGraph generation/state before applying anything;
+- accept only an existing legal transition/event mapping owned by the application;
+- convert candidates into an explicit typed `TaskGraphEvent` only after slot type/schema/constraint/provenance/authorization validation;
 - preserve `extract -> validate -> commit`;
+- call `CustomTaskGraphCore.reduce()` only at this explicit boundary;
 - return effects as data;
-- delegate proposal/confirmation/commitment/completion authority to existing owners;
-- never directly render/release arbitrary model speech.
+- leave proposal, user confirmation, commitment, completion, target authorization and output approval with their existing owners;
+- never directly render/release arbitrary model speech;
+- fail closed on stale generation, illegal transition/event mapping or invalid candidates.
 
-### 5. Finish generic appointment interpretation
+RED contracts should prove at minimum: stale candidate cannot reduce; illegal transition cannot reduce; invalid/authority-bearing candidate cannot become context; accepted reduction emits data only; no effect executes until an existing application owner consumes it.
 
-Extract the useful parsing logic from the simulator into reusable typed parsers/normalizers for:
+Do not broaden providers/session/media merely to add the bridge.
+
+### 2. Finish generic appointment interpretation
+
+Extract useful parsing logic from the simulator into reusable typed parsers/normalizers for:
 
 - dates/relative dates/weekdays;
 - times/time ranges;
@@ -154,13 +113,13 @@ Extract the useful parsing logic from the simulator into reusable typed parsers/
 
 Add PhraseMatrix dialogue-act coverage where deterministic phrases are appropriate.
 
-### 6. Expand deterministic replay/eval coverage
+### 3. Expand deterministic replay/eval coverage
 
 Add scripted scenarios for ambiguity, contradiction, repeated unknowns, unavailable slots, alternate offers, unauthorized/high-sensitivity fact requests, user rejection, takeover, cancellation and stale supervisor results.
 
-Use those scenarios to calibrate DialogueFit/hysteresis before live use.
+Use those scenarios to calibrate DialogueFit/hysteresis before live use. The current shadow integration intentionally avoids inventing numeric production scoring.
 
-### 7. Android IdentityVault persistence
+### 4. Android IdentityVault persistence
 
 Only after the host disclosure contract is stable and before a real call requires personal data:
 
@@ -174,13 +133,17 @@ app-private ciphertext storage
 
 Do not implement new persistence with deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
 
-### 8. Product integration verification
+### 5. Product shadow-provider integration
+
+After the host shadow lifecycle and apply boundary are stable, bind an intentionally reviewed product observer/provider through an application-owned seam. Preserve the same session cancellation/generation rules and zero execution authority for the observer itself.
+
+### 6. Product integration verification
 
 Run targeted tests plus the canonical host gate. Add Android/device tests only for boundaries actually changed.
 
-Do not touch frozen Samsung media to make Gate D tests easier.
+Do not touch frozen Samsung media to make Gate D tests easier. If `CallRealtimeMediaSessionTest.pumpFailure...` reappears, audit test order/pollution before any media change.
 
-### 9. Real-world call gate
+### 7. Real-world call gate
 
 Only after host/simulation and required identity handling are strong:
 
