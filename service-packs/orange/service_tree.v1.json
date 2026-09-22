@@ -109,6 +109,19 @@
       "evidence_task": "chatgpt-orange-outage-live-v184-20260922",
       "observation_endpoint_reason": "max_duration",
       "service_route_verified": false
+    },
+    {
+      "id": "orange.root.wifi_problem",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "wifi_problem",
+      "speech": "Mam problem z Wi-Fi.",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
+      "evidence_task": "chatgpt-orange-wifi-live-retry-v196-20260922",
+      "observation_endpoint_reason": "max_duration",
+      "service_route_verified": false
     }
   ],
   "seeds": [
@@ -163,9 +176,9 @@
       "speech": "Mam problem z Wi-Fi.",
       "risk": "AUTH_REQUIRED_POSSIBLE",
       "source": "operator_public_support_backlog",
-      "last_evidence": "public_orange_support_page",
-      "last_outcome": "NOT_PHYSICALLY_PROBED",
-      "next_evidence": "physical_route_required; service_route_not_verified"
+      "last_evidence": "chatgpt-orange-wifi-live-retry-v196-20260922",
+      "last_outcome": "REPROMPT",
+      "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
