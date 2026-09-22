@@ -152,7 +152,8 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         val normalized = normalizeWords(text)
         val field = when {
             normalized.hasSequence("e mail") || normalized.hasToken("email") -> IdentityFieldId.EMAIL
-            normalized.hasSequence("data urodzenia") -> IdentityFieldId.DATE_OF_BIRTH
+            normalized.hasSequence("data urodzenia") || normalized.hasSequence("date urodzenia") ->
+                IdentityFieldId.DATE_OF_BIRTH
             normalized.hasToken("pesel") -> IdentityFieldId.PESEL
             normalized.hasSequence("numer telefonu") || normalized.hasToken("telefon") -> IdentityFieldId.PHONE
             normalized.hasToken("imie") -> IdentityFieldId.FIRST_NAME
