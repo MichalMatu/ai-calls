@@ -129,7 +129,7 @@ Gate D's LLM supervisor should reuse this philosophy.
 
 ## Key architectural decision: TaskGraph + ServicePack + IdentityVault
 
-The product now has three complementary durable layers with different jobs.
+The product has three complementary durable layers with different jobs.
 
 ### TaskGraph
 
@@ -186,7 +186,7 @@ CallTask            = per-task authorized fact snapshot/references
 DialogueState       = transient facts learned in this conversation
 ```
 
-A value existing in the vault does not authorize disclosure. Gate D needs a typed `FactDisclosurePolicy` that can return `ALLOW`, `ASK_USER`, or `DENY` based on task, exact target, graph state, field sensitivity and per-task authorization.
+A value existing in the vault does not authorize disclosure. Gate D needs a typed `FactDisclosurePolicy` returning `ALLOW`, `ASK_USER`, or `DENY` based on task, exact target, graph state, field sensitivity and per-task authorization.
 
 Plaintext identity values should be resolved as late as practical and kept out of LLM context by default. The supervisor normally needs fact availability/name, not PESEL/email/phone plaintext.
 
@@ -289,20 +289,56 @@ LOW        -> supervisor proposal required
 BROKEN     -> recovery / TAKE_OVER / safe stop
 ```
 
-Calibrate any numeric internals/thresholds using scripted/simulated eval scenarios and add hysteresis before live use.
+Calibrate numeric internals/thresholds using scripted/simulated eval scenarios and add hysteresis before live use.
 
 When escalation asks for the supervisor, it may propose only an existing transition ID + typed slots + confidence/diagnostics. Everything is revalidated before state changes.
 
-## Useful external patterns already reviewed
+## External patterns reviewed
 
-Do not import large frameworks blindly, but copy their proven contracts:
+Do not import large frameworks blindly, but copy proven contracts:
 
 - **Pipecat Flows** — graph/config owns transitions; handlers return structured data/results; per-stage context/actions are narrow.
 - **XState/statecharts** — pure guards, explicit state/event/context, versioned persistence/event replay, effects outside guards/transitions.
 - **LiveKit Tasks/TaskGroups** — small focused subtasks with typed results under a session owner; useful for identity/contact verification and appointment subtasks.
-- **slot-filling/form systems** — required/dynamic slots, validation after extraction, explicit unhappy-path handling.
+- **Rasa/form slot filling** — extraction produces a candidate; explicit validation decides whether it may enter state; support required/dynamic slots and unhappy paths.
+- **KStateMachine** — credible Kotlin Multiplatform statechart implementation to evaluate against a minimal custom reducer, not an automatic dependency choice.
 
-Current direction remains a Kotlin-native TaskGraph unless a later spike demonstrates that an external runtime is worth its cost.
+### TaskGraph engine decision spike
+
+Before implementing the production state-machine core, create **one set of host contract tests** and run them against:
+
+```text
+minimal custom reducer
+vs
+KStateMachine
+```
+
+Compare:
+
+- typed/sealed states and events;
+- pure guards;
+- state-compatible transitions;
+- bounded recovery;
+- proposal/confirmation/commitment states;
+- nested/composed states where useful;
+- serialization/versioning approach;
+- explicit replayable event/evidence log;
+- side-effect separation;
+- deterministic JVM tests without Android.
+
+Adopt KStateMachine only if it materially reduces complexity while authority, evidence, persistence and side-effect semantics remain application-owned. Otherwise keep the minimal custom reducer. Do not maintain both long term.
+
+## Slot/fact extraction invariant
+
+For conversation-derived data use:
+
+```text
+extract candidate
+ -> validate type/state/constraints/provenance/authorization
+ -> commit to authoritative TaskState only after validation
+```
+
+Parser/NLU/LLM confidence alone never makes a slot authoritative.
 
 ## Exact next implementation order
 
@@ -311,13 +347,13 @@ Do not invent a different sequence unless evidence requires it. Follow `docs/ROA
 The next chat should begin host-only:
 
 1. audit existing domain types (`CallTask`, `CallWorkflow`, CallPlan/coordinator, proposal/confirmation/commitment APIs, prepared session ownership) before adding abstractions;
-2. define the smallest TaskGraph v1 that composes existing owners rather than duplicating them;
-3. RED tests for typed states/events/transitions, pure guards, recovery and versioned replayable event log;
+2. define TaskGraph contract tests for typed states/events/transitions, pure guards, recovery, proposal/confirmation/commitment and versioned replay;
+3. run the custom reducer vs KStateMachine host spike against those same tests and choose exactly one core;
 4. define host contracts for `IdentityVault`, `IdentityFieldId`, per-task `AuthorizedFactSnapshot`/references and `FactDisclosurePolicy`;
-5. minimal GREEN TaskGraph core;
+5. implement the chosen minimal TaskGraph core;
 6. implement `BOOK_APPOINTMENT` on host;
 7. deterministic simulated receptionist scenarios;
-8. typed date/time/offer/identity-request parsers + PhraseMatrix dialogue acts;
+8. typed date/time/offer/identity-request parsers + PhraseMatrix dialogue acts using `extract -> validate -> commit`;
 9. prove disclosure decisions + proposal -> confirmation -> commitment -> completion in simulation;
 10. add ambiguity/recovery/unauthorized-data/high-sensitivity/takeover/cancel cases;
 11. add shadow supervisor context tracking with zero execution authority;
@@ -329,7 +365,7 @@ The next chat should begin host-only:
 17. only after host/simulation is strong, move to small real-world reception tests;
 18. add Skills after TaskGraph/supervisor/fact-disclosure boundaries are stable.
 
-The first coding slice should therefore be **preimplementation audit + RED tests for TaskGraph v1 and the identity/fact-disclosure contract**, not a live call.
+The first coding slice should therefore be **preimplementation audit + shared TaskGraph contract RED tests + engine decision spike + identity/fact-disclosure contract**, not a live call.
 
 ## BOOK_APPOINTMENT minimum task flow
 
