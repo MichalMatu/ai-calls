@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.appointment
 
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.function.Consumer
@@ -215,7 +216,10 @@ class BookAppointmentSimulator(
     private val target: CallResolvedTarget,
     private val authorizedFacts: AuthorizedFactSnapshot,
     private val zone: ZoneId,
+    private val referenceDate: LocalDate? = null,
 ) {
+    private val appointmentInterpreter = AppointmentInterpreter(zone)
+
     fun run(steps: List<BookAppointmentSimulationStep>): BookAppointmentSimulationResult {
         val core = CustomTaskGraphCore(BookAppointmentTaskGraph.definition)
         val initialSnapshot = BookAppointmentTaskGraph.definition.initialSnapshot()
@@ -434,37 +438,10 @@ class BookAppointmentSimulator(
         )
     }
 
-    private fun parseOffer(text: String): ZonedDateTime? {
-        val iso = ISO_DATE_TIME.find(text)
-        if (iso != null) {
-            return zoned(
-                iso.groupValues[1].toInt(),
-                iso.groupValues[2].toInt(),
-                iso.groupValues[3].toInt(),
-                iso.groupValues[4].toInt(),
-                iso.groupValues[5].toInt(),
-            )
-        }
-
-        val polish = POLISH_DATE_TIME.find(text)
-        if (polish != null) {
-            return zoned(
-                polish.groupValues[3].toInt(),
-                polish.groupValues[2].toInt(),
-                polish.groupValues[1].toInt(),
-                polish.groupValues[4].toInt(),
-                polish.groupValues[5].toInt(),
-            )
-        }
-        return null
-    }
-
-    private fun zoned(year: Int, month: Int, day: Int, hour: Int, minute: Int): ZonedDateTime? =
-        runCatching { ZonedDateTime.of(year, month, day, hour, minute, 0, 0, zone) }.getOrNull()
+    private fun parseOffer(text: String): ZonedDateTime? =
+        appointmentInterpreter.parseOffer(text, referenceDate)?.scheduledAt
 
     private companion object {
-        val ISO_DATE_TIME = Regex("(\\d{4})-(\\d{2})-(\\d{2})\\s+(\\d{1,2}):(\\d{2})")
-        val POLISH_DATE_TIME = Regex("(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4}).*?(\\d{1,2}):(\\d{2})")
         val HARD_POLICY_REASONS = setOf(
             CallPolicyReason.TIME_UNKNOWN,
             CallPolicyReason.TIME_OUTSIDE_ALLOWED,
