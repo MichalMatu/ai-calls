@@ -32,13 +32,17 @@ Target flow:
 
 ```text
 natural user goal
- -> CallTask + constraints/preferences/authorized facts
+ -> IdentityVault availability + per-task fact authorization
+ -> CallTask + constraints/preferences/AuthorizedFactSnapshot
  -> TaskGraph
  -> CallWorkflow
  -> deterministic PhraseMatrix/parsers first
- -> bounded LLM supervisor only for ambiguity/unknown
- -> existing transition ID + typed slot proposals only
+ -> shadow supervisor observes finalized turns when enabled
+ -> DialogueFit / escalation policy
+ -> bounded LLM proposal only when needed
+ -> existing transition ID + typed non-secret slots only
  -> deterministic validation
+ -> FactDisclosurePolicy for identity data
  -> CallPlan / output approval
  -> proposal / confirmation / commitment
  -> structured completion
@@ -50,19 +54,24 @@ The deterministic cellular path is already physically proven on S22. Do not spen
 
 Follow `docs/ROADMAP.md`. In summary:
 
-1. specify `TaskGraph v1` with typed states/transitions/slots/guards/recovery/event log;
-2. implement `BOOK_APPOINTMENT` on host;
-3. build a deterministic simulated receptionist harness;
-4. add typed date/time/offer parsing and PhraseMatrix dialogue-act coverage;
-5. prove proposal -> confirmation -> commitment -> completion in simulation;
-6. add recovery/cancel/takeover/unauthorized-information cases;
-7. add the bounded LLM supervisor interface;
-8. prove invalid/stale/authority-bearing supervisor output fails closed;
-9. integrate into a real product session owner;
-10. only then run small, bounded real-world appointment tests;
-11. add Skills after the TaskGraph/supervisor boundary is stable.
+1. audit existing `CallTask`, `CallWorkflow`, CallPlan/coordinator and prepared-session ownership;
+2. define TaskGraph contract tests first;
+3. run the host-only custom reducer vs KStateMachine decision spike against those same tests and choose one core;
+4. define `IdentityVault` / `IdentityFieldId` / `AuthorizedFactSnapshot` / `FactDisclosurePolicy` host contracts;
+5. implement the chosen minimal TaskGraph core and `BOOK_APPOINTMENT`;
+6. build deterministic simulated receptionist scenarios;
+7. add date/time/offer/identity-request parsing with `extract -> validate -> commit` semantics;
+8. prove disclosure + proposal -> confirmation -> commitment -> completion in simulation;
+9. add recovery/cancel/takeover/unauthorized/high-sensitivity fact cases;
+10. add shadow supervisor context tracking with zero execution authority;
+11. implement/calibrate explainable `DialogueFit`;
+12. add the bounded active supervisor proposal interface and fail-closed tests;
+13. implement Android encrypted IdentityVault before a real call needs personal data;
+14. integrate into a real product session owner;
+15. only then run small, bounded real-world appointment tests;
+16. add Skills after TaskGraph/supervisor/fact-disclosure boundaries are stable.
 
-## Product knowledge layers
+## Product knowledge/data layers
 
 Keep these distinct.
 
@@ -70,7 +79,7 @@ Keep these distinct.
 
 TaskGraph describes the bounded user task: goal, states, transitions, slots, constraints, proposal/confirmation/commitment and completion.
 
-TaskGraph is application-owned data/code. Runtime models may suggest only existing transition IDs and typed slot values.
+TaskGraph is application-owned data/code. Runtime models may suggest only existing transition IDs and typed slot candidates.
 
 ### ServicePack
 
@@ -80,14 +89,34 @@ Orange is the first persistent evidence-backed IVR ServicePack. Its broad mappin
 
 ServicePack knowledge never replaces TaskGraph/workflow/commitment authority.
 
+### IdentityVault / authorized facts
+
+IdentityVault stores durable encrypted identity/contact values. It is not model memory and not execution authority.
+
+Keep separate:
+
+```text
+IdentityVault       = persistent encrypted values
+CallTask            = per-task authorized fact references/snapshot
+DialogueState       = transient facts learned during this call
+```
+
+A value existing in the vault does not authorize disclosure. `FactDisclosurePolicy` must make a typed `ALLOW / ASK_USER / DENY` decision. Plaintext identity values stay out of LLM context by default and should be resolved as late as practical.
+
+High-sensitivity fields such as PESEL require explicit per-task authority and may require user/device authentication before disclosure.
+
 ## Hybrid supervisor rules
 
 The LLM remains useful but does not own execution authority.
 
-Allowed supervisor output is bounded structured data such as:
+When enabled, it may observe finalized turns from the beginning in quarantined **shadow mode** so escalation is not cold-started. Shadow output cannot mutate authoritative state or release speech.
+
+`DialogueFit` is application-owned and explainable. Do not implement it as raw text similarity or one opaque model-confidence value. Combine deterministic signals such as matcher result, parser completeness, state compatibility, contradiction/negation, repeated unknowns and deterministic-vs-shadow disagreement.
+
+Allowed active supervisor output is bounded structured data such as:
 
 - existing TaskGraph transition ID;
-- typed slot values;
+- typed non-secret slot candidates;
 - confidence/diagnostic metadata.
 
 Every result must be revalidated against the current task, graph state, generation/session identity, slot schema, constraints and authority.
@@ -96,12 +125,41 @@ The supervisor must not directly own:
 
 - dialing or target widening;
 - arbitrary telephony speech release;
-- credentials or sensitive facts;
+- credentials, plaintext identity facts or disclosure authority;
 - new transitions/actions/service IDs;
 - purchases/bookings/other commitments;
 - completion authority.
 
 The existing `serviceintent/` resolver is the design precedent: bounded candidates, structured classification, stale-result rejection, unsafe-metadata rejection, authoritative registry revalidation and separate execution validation.
+
+## Slot/fact extraction discipline
+
+For parsed dialogue data use two-phase semantics:
+
+```text
+extract candidate
+ -> validate type/state/constraints/provenance/authorization
+ -> commit to authoritative TaskState only after validation
+```
+
+A parser, NLU system, LLM or matcher output is never authoritative merely because it is confident.
+
+## TaskGraph engine dependency rule
+
+KStateMachine is a valid Kotlin/Android candidate, not a preselected dependency.
+
+Before adoption, compare a minimal custom reducer and KStateMachine against the same host contract tests. Choose one implementation only.
+
+Adopt KStateMachine only if it materially reduces complexity while preserving:
+
+- pure guards;
+- explicit typed events/transitions;
+- side effects outside transition evaluation;
+- application-owned authority;
+- explicit versioned event/evidence log;
+- deterministic replay/testability.
+
+Do not let framework runtime state become the only source of truth.
 
 ## Skills
 
@@ -112,13 +170,14 @@ Preferred role:
 ```text
 User request
  -> build/update bounded CallTask
- -> choose existing TaskGraph/service pack
+ -> choose existing TaskGraph/ServicePack
  -> gather missing pre-call facts/preferences
+ -> request authorization for specific IdentityFieldIds
  -> optionally suggest existing transition/slot
  -> existing application authority validates everything
 ```
 
-Skills never bypass `CallWorkflow`, `CallPlan`, output approval, `CallConfirmationPolicy` or `CallCommitmentGate`.
+Skills never bypass `CallWorkflow`, `CallPlan`, output approval, `FactDisclosurePolicy`, `CallConfirmationPolicy` or `CallCommitmentGate`, and never read/export the whole IdentityVault.
 
 ## Authority invariants
 
@@ -129,7 +188,8 @@ Keep the existing owners; do not create a second authority store:
 - `CallWorkflow` owns progress, proposals, user-decision state and terminal outcome;
 - `CallConfirmationPolicy` evaluates one typed proposal;
 - `CallCommitmentGate` owns one exact one-shot commitment permit;
-- application-owned output approval remains mandatory before speech release/TTS/TX.
+- application-owned output approval remains mandatory before speech release/TTS/TX;
+- fact disclosure is a separate application-owned decision composing with `CallTask.authorizedFacts`.
 
 Models, matchers, TaskGraph supervisors, ServicePacks and Skills are proposal/classification/knowledge layers only unless an existing application authority owner explicitly validates the effect.
 
@@ -139,20 +199,21 @@ Only `CallPlanAction.SAY` carries speech text. Structured actions without text r
 
 Required properties:
 
-- typed state and transition IDs;
-- deterministic guards;
+- typed state/event/transition IDs;
+- deterministic pure guards;
 - typed slot schemas;
 - explicit retry/recovery bounds;
 - proposal/confirmation/commitment states;
 - takeover/cancel/failure terminals;
-- replayable event/evidence log;
+- versioned replayable event/evidence log;
+- side effects separated from transition evaluation;
 - model suggestions can reference only existing graph transitions/slot fields.
 
 Unknown/ambiguous/rejected model or matcher output fails closed and cannot silently become sensitive action or arbitrary speech.
 
 ## Real-world appointment tests
 
-Real calls happen only after the relevant host/simulation slice is green.
+Real calls happen only after the relevant host/simulation slice is green **and** the data-disclosure behavior required by that scenario is implemented.
 
 Use a small reviewed target set of ordinary public business/reception numbers from current public sources. Do not use emergency, urgent-care, crisis or other critical-service lines for testing.
 
@@ -166,7 +227,7 @@ A test-only call must not create or hold a real appointment, ticket, order or ot
 
 ### Genuine user-authorized tasks
 
-If the user genuinely wants the appointment, the call may execute the real task using only authorized facts and the normal proposal/confirmation/commitment path.
+If the user genuinely wants the appointment, the call may execute the real task using only authorized facts and the normal disclosure/proposal/confirmation/commitment path.
 
 Do not create a real booking and then retract it merely because the call also served as a product test.
 
@@ -178,7 +239,7 @@ Default:
 - second call only after an early technical failure or explicit agreement to repeat;
 - no repeated probing of the same staff to tune wording;
 - no broad unsolicited call campaigns;
-- retain target source, test mode, call count and structured outcome.
+- retain target source, test mode, call count and structured/redacted outcome.
 
 ## Orange side track
 
@@ -248,7 +309,7 @@ Historical local branch `chat-relay/orange-chatgpt-pump-v1` is intentionally pre
 
 A standard OpenAI API key is host/backend-only. Never put it in Android source, APK/BuildConfig, Intent, ADB argv, phone storage or logs.
 
-Do not retain raw PCM, call recordings, credentials or unrelated phone data by default. Prefer structured events/slots/outcomes and retain only the minimum text needed for explicit development evidence.
+Do not retain raw PCM, call recordings, credentials, plaintext identity values or unrelated phone data by default. Prefer structured events/slots/outcomes and retain only the minimum redacted text needed for explicit development evidence.
 
 Do not invent missing sensitive information to satisfy a counterparty prompt.
 
@@ -276,7 +337,7 @@ Before declaring a Gate D slice complete:
 4. verify evidence rather than infer success;
 5. update only authoritative docs when gate/continuation status changes;
 6. leave `main` clean;
-7. for real business/reception tests, enforce disclosure/consent policy for test-only calls and the per-target call budget.
+7. for real business/reception tests, enforce disclosure/consent policy, data minimization and the per-target call budget.
 
 ## Handoff / new-chat gate
 
