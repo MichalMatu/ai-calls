@@ -264,6 +264,19 @@
       "evidence_task": "chatgpt-orange-mobile-data-problem-live-v256-20260922",
       "observation_endpoint_reason": "max_duration",
       "service_route_verified": false
+    },
+    {
+      "id": "orange.root.caller_id_restriction_info",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "caller_id_restriction_info",
+      "speech": "Jak działa zastrzeganie numeru?",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
+      "evidence_task": "chatgpt-orange-caller-id-restriction-info-live-v264-20260922",
+      "observation_endpoint_reason": "max_duration",
+      "service_route_verified": false
     }
   ],
   "seeds": [
@@ -439,9 +452,9 @@
       "speech": "Jak działa zastrzeganie numeru?",
       "risk": "AUTH_REQUIRED_POSSIBLE",
       "source": "operator_public_support_backlog",
-      "last_evidence": "public_orange_support_page",
-      "last_outcome": "NOT_PHYSICALLY_PROBED",
-      "next_evidence": "physical_route_required; service_route_not_verified"
+      "last_evidence": "chatgpt-orange-caller-id-restriction-info-live-v264-20260922",
+      "last_outcome": "REPROMPT",
+      "next_evidence": "closed_after_reviewed_root_reprompt; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
