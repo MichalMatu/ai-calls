@@ -71,7 +71,28 @@ KStateMachine was evaluated as a spike candidate and is not carried as a product
 
 Typed IDs/state kinds, immutable snapshots/context, pure guarded transitions, stale generation/state/version checks, bounded recovery, effects-as-data and deterministic versioned replay.
 
-`TaskGraphContext` now has only an internal read-only map snapshot used to form the bounded shadow observation from already-authoritative context. That accessor does not validate or commit new values.
+`TaskGraphContext` has only an internal read-only map snapshot used to form the bounded shadow observation from already-authoritative context. That accessor does not validate or commit new values.
+
+### `TaskGraphApplyBridge.kt`
+
+Explicit application-owned boundary from already validated candidate data to `TaskGraphCore.reduce()`.
+
+Before constructing a typed event it re-checks:
+
+- graph version and current state;
+- candidate generation;
+- application-owned transition-to-event mapping;
+- transition legality from the current state;
+- deterministic/supervisor provenance policy;
+- allowed slot IDs;
+- dynamic slot authorization;
+- required slot presence;
+- slot type/schema/constraint predicates;
+- authority-bearing slot IDs as a defense-in-depth fail-closed guard.
+
+Rejected candidates do not call the reducer. Accepted reductions expose only the new immutable snapshot, event record and effects as data. The bridge imports no workflow, output, telephony, IdentityVault or commitment owner and performs none of those side effects.
+
+`TaskGraphApplyCandidate.fromSupervisor(...)` is only an adapter from an already `SupervisorProposalValidator`-accepted candidate into the application apply boundary. It does not upgrade candidate data into authority.
 
 ### `BookAppointmentSimulator.kt`
 
@@ -121,6 +142,8 @@ LocalTextCallSession
 
 The public Android `LocalTextCallSession.create(...)` path currently does **not** bind a production shadow observer/provider. The completed activation seam is explicit/internal and host-tested so provider architecture was not broadened during this slice.
 
+The new `TaskGraphApplyBridge` is not automatically invoked by this session path. Keeping it separate prevents shadow observation from silently acquiring execution authority.
+
 ## Read-only Gate D runtime boundary
 
 `LocalTextCallGateDRuntime` may:
@@ -136,7 +159,7 @@ It has no reducer, effect executor, workflow mutation, speech/TTS, target/dial, 
 
 ## Finalized-turn shadow lifecycle
 
-For an explicitly host-bound observer, the real selector now follows:
+For an explicitly host-bound observer, the real selector follows:
 
 ```text
 STT final transcript
@@ -156,14 +179,31 @@ Observer/validator exceptions are contained inside the shadow path. `LocalTextCa
 
 Ordinary `GateDShadowTurnDiagnostics` contains typed IDs, generations, validation status/reject reason and `DialogueFitResult`; it does not carry transcript text, task/fact plaintext, slot candidate values or model diagnostic values.
 
-The lifecycle passes hypothesis output through the existing `SupervisorProposalValidator`. Accepted output remains candidate data only. Current first integration deliberately does not invent semantic deterministic-vs-shadow scoring; `DialogueFit` remains categorical diagnostic evidence.
+The lifecycle passes hypothesis output through the existing `SupervisorProposalValidator`. Accepted output remains candidate data only. Current integration deliberately does not invent semantic deterministic-vs-shadow scoring; `DialogueFit` remains categorical diagnostic evidence.
 
-## Hard authority invariant after shadow activation
+## Explicit apply boundary
 
-The completed lifecycle still does **not**:
+The application may separately compose:
 
-- call `TaskGraphCore.reduce()`;
-- create/apply a TaskGraph event automatically;
+```text
+already validated deterministic/supervisor candidate
+ -> TaskGraphApplyPolicy
+ -> re-check current generation/state/mapping
+ -> validate slot scope/schema/constraints/provenance/authorization
+ -> typed TaskGraphEvent
+ -> CustomTaskGraphCore.reduce()
+ -> snapshot + event record + effects as data
+ -> existing application owners, if and only if explicitly wired
+```
+
+No effect is executable merely because the reducer returned it. Product integration must delegate proposal, confirmation, commitment, target and output behavior to their existing owners rather than creating a generic effect executor.
+
+## Hard authority invariant after apply-bridge completion
+
+The shadow/session lifecycle still does **not** automatically:
+
+- call the apply bridge or `TaskGraphCore.reduce()`;
+- create/apply a TaskGraph event from observer output;
 - execute graph effects;
 - mutate `CallWorkflow`;
 - release model speech/TTS;
@@ -172,25 +212,11 @@ The completed lifecycle still does **not**:
 - approve a proposal;
 - consume commitment authority.
 
-This is the stop line of the current checkpoint.
+The apply bridge itself may call the reducer only after its explicit validation boundary passes, and then only returns data. It owns none of the side effects above.
 
-## Next integration boundary — application-owned TaskGraph apply bridge
+## Next implementation focus — generic appointment interpretation
 
-The next slice must be separate from the observer and begin with RED contracts.
-
-Target:
-
-```text
-already validated candidate
- -> application-owned freshness + legal transition/event mapping check
- -> validate slot type/schema/constraints/provenance/authorization
- -> typed TaskGraph event
- -> CustomTaskGraphCore.reduce()
- -> effects as data
- -> existing workflow/proposal/confirmation/commitment/output owners
-```
-
-The bridge must re-check current generation/state at apply time. A `ValidatedSupervisorCandidate` is insufficient by itself: transition-to-event mapping and candidate validity remain application-owned. No effect is executable simply because the reducer returned it.
+Extract reusable typed appointment parsers/normalizers from simulator-only logic before product provider/apply wiring. Cover dates/relative dates/weekdays, times/time ranges, offered candidates, accept/reject/alternative semantics and common identity-field requests. Parsed output remains candidate data and must pass the same application validation/apply boundary before becoming authoritative.
 
 ## Slot/fact extraction invariant
 

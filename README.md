@@ -8,7 +8,7 @@ Target: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
 The active product direction is **Gate D: hybrid multi-turn Task Engine** with `BOOK_APPOINTMENT` as the first acceptance task.
 
-The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-only product foundation plus a host-green finalized-turn shadow lifecycle.
+The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-only product foundation, a host-green finalized-turn shadow lifecycle and a host-green explicit TaskGraph apply boundary.
 
 Current Gate D implementation on the active work branch includes:
 
@@ -19,27 +19,26 @@ Current Gate D implementation on the active work branch includes:
 - bounded `ShadowDialogueObservation` / `ShadowDialogueHypothesis` contracts and fail-closed `SupervisorProposalValidator`;
 - read-only `LocalTextCallGateDRuntime` owned by `LocalTextCallSession`;
 - Android/LocalPhone readiness composition carrying `TaskGraphDefinition + AuthorizedFactSnapshot` through coordinator -> prepared call -> session;
-- host-only `LocalTextCallGateDShadowLifecycle` attached to the real finalized-turn selector through an explicit test/host observer seam.
+- host-only `LocalTextCallGateDShadowLifecycle` attached to the real finalized-turn selector through an explicit test/host observer seam;
+- explicit application-owned `TaskGraphApplyBridge` that re-checks graph version/state/generation, transition-to-event mapping, provenance, slot scope, authorization and schema before constructing an event and calling the reducer.
 
-For an explicitly bound host shadow observer, the session now computes the existing PhraseMatrix/CallPlan result first, then creates exactly one bounded observation, runs quarantined observer work, revalidates the hypothesis and emits redacted candidate/`DialogueFit` diagnostics. Session epochs invalidate stale queued turns; `cancel()` and `close()` invalidate pending work. Observer failure cannot change the deterministic route.
+For an explicitly bound host shadow observer, the session computes the existing PhraseMatrix/CallPlan result first, then creates exactly one bounded observation, runs quarantined observer work, revalidates the hypothesis and emits redacted candidate/`DialogueFit` diagnostics. Session epochs invalidate stale queued turns; `cancel()` and `close()` invalidate pending work. Observer failure cannot change the deterministic route.
 
-The Gate D boundary is still intentionally **non-authoritative**. It does not call `TaskGraphCore.reduce()`, execute graph effects, mutate `CallWorkflow`, release model speech/TTS, widen a target, disclose plaintext identity values, approve proposals or consume commitment authority. The public Android session path does not yet bind a production shadow provider.
+The apply bridge is deliberately separate from the observer/session lifecycle. Rejected candidates never reach `TaskGraphCore.reduce()`. Accepted reductions return the new snapshot, event record and graph effects as inert data only; the bridge has no workflow, speech/TTS, dialing/target, plaintext identity or commitment API. The public Android session path still does not bind a production shadow provider and does not automatically apply shadow output.
 
 ## Immediate next milestone
 
-Add a separate application-owned apply bridge, starting with RED contracts:
+Finish **generic appointment interpretation** by extracting reusable typed parsers/normalizers from the host simulator for dates/relative dates/weekdays, times/time ranges, offered appointment candidates, accept/reject/alternative semantics and common identity-field requests. Add deterministic PhraseMatrix dialogue-act coverage where appropriate.
+
+The interpretation path must continue to preserve:
 
 ```text
-already validated deterministic/supervisor candidate
- -> re-check current generation/state + legal transition/event mapping
- -> validate typed slot candidates / constraints / provenance / authorization
- -> typed TaskGraph event
- -> CustomTaskGraphCore.reduce()
- -> effects as data
- -> existing workflow / proposal / confirmation / commitment / output owners
+extract candidate
+ -> validate type/state/constraints/provenance/authorization
+ -> commit only through the explicit application-owned apply boundary
 ```
 
-This bridge must preserve `extract -> validate -> commit`. It must not make the observer, model or TaskGraph reducer an owner of speech, dialing, identity disclosure, user confirmation or commitment.
+Parser, matcher or model output never becomes authoritative merely because it parsed successfully.
 
 ## Product layers
 
@@ -63,9 +62,9 @@ Existing authority owners remain authoritative: `CallTask`, `CallResolvedTarget`
 Identity values follow:
 
 ```text
-IdentityVault       = persistent encrypted values
-AuthorizedFactSnapshot = per-task authorized field IDs/scope
-DialogueState       = transient validated non-secret facts learned in this call
+IdentityVault            = persistent encrypted values
+AuthorizedFactSnapshot   = per-task authorized field IDs/scope
+DialogueState            = transient validated non-secret facts learned in this call
 ```
 
 A vault value existing does not authorize disclosure. Plaintext high-sensitivity values stay outside model context by default.
@@ -84,7 +83,9 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media or `privi
 
 - model/shadow output is candidate data only;
 - `extract -> validate -> commit` for dialogue-derived facts/slots;
-- no model or Skill widens target, disclosure, speech or commitment authority;
+- only the explicit application-owned apply bridge may turn an already validated candidate into a typed TaskGraph event;
+- graph effects remain data until an existing application owner consumes them;
+- no model, Skill or reducer widens target, disclosure, speech or commitment authority;
 - unknown/stale/authority-bearing supervisor output fails closed;
 - ordinary diagnostics contain typed IDs/status, not transcript/identity/candidate plaintext;
 - test-only real calls require disclosure/consent at the start;

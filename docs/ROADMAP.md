@@ -73,53 +73,39 @@ model/parser/matcher output
 13. product composition of `TaskGraphDefinition + AuthorizedFactSnapshot` through Android/LocalPhone readiness -> coordinator -> prepared call -> session;
 14. real `LocalTextCallSession` finalized-turn selector can create one bounded Gate D observation for an explicitly host-bound shadow observer after the deterministic PhraseMatrix/CallPlan result is already decided;
 15. session-owned shadow epoch/lifecycle invalidates older queued turns and pending work on `cancel()` / `close()`; observer failure degrades to unchanged deterministic behavior;
-16. hypotheses are revalidated through `SupervisorProposalValidator` and exposed only as redacted candidate/`DialogueFit` diagnostics; plaintext identity/candidate values are absent from ordinary diagnostics.
+16. hypotheses are revalidated through `SupervisorProposalValidator` and exposed only as redacted candidate/`DialogueFit` diagnostics; plaintext identity/candidate values are absent from ordinary diagnostics;
+17. explicit application-owned `TaskGraphApplyBridge` re-checks graph version/state/generation, legal transition/event mapping, provenance, slot scope, authorization and schema before creating a typed event;
+18. rejected apply candidates never call the reducer; accepted reductions return snapshot/event evidence/effects as data only, with no workflow/speech/dial/identity/commitment authority in the bridge.
 
-The completed shadow lifecycle is `HOST_GREEN` at code checkpoint `4f7dcdd9051bc2090b5dde9ede3d688d17655f1e` (Android CI #471). It remains host-only: the public Android session path does not bind a production shadow observer/provider.
+The finalized-turn shadow lifecycle is `HOST_GREEN` at code checkpoint `4f7dcdd9051bc2090b5dde9ede3d688d17655f1e` (Android CI #471).
 
-The runtime/lifecycle deliberately does **not** call `TaskGraphCore.reduce()` and has no graph-effect executor, workflow mutation, model speech/TTS, dial/target, plaintext vault or commitment API.
+The TaskGraph apply boundary is `HOST_GREEN` at code checkpoint `052f20ea11d20b97ade324ee734a1cff1c43bec3` (Android CI #474). Its RED contract checkpoint is `8041ffa57181a6a5bf75581134b85d6d10347758` (Android CI #473 failed at Host quality gate as intended).
+
+Both remain host-side safety boundaries. The public Android session path does not bind a production shadow observer/provider and does not automatically apply shadow output. No graph effect is executable merely because the reducer returned it.
 
 ## NEXT — exact execution order
 
-### 1. Add the application-owned TaskGraph apply bridge
-
-Start a separate RED/GREEN slice. The input must already be an application-validated deterministic or supervisor candidate; shadow output itself is never executable authority.
-
-The bridge must:
-
-- re-check current TaskGraph generation/state before applying anything;
-- accept only an existing legal transition/event mapping owned by the application;
-- convert candidates into an explicit typed `TaskGraphEvent` only after slot type/schema/constraint/provenance/authorization validation;
-- preserve `extract -> validate -> commit`;
-- call `CustomTaskGraphCore.reduce()` only at this explicit boundary;
-- return effects as data;
-- leave proposal, user confirmation, commitment, completion, target authorization and output approval with their existing owners;
-- never directly render/release arbitrary model speech;
-- fail closed on stale generation, illegal transition/event mapping or invalid candidates.
-
-RED contracts should prove at minimum: stale candidate cannot reduce; illegal transition cannot reduce; invalid/authority-bearing candidate cannot become context; accepted reduction emits data only; no effect executes until an existing application owner consumes it.
-
-Do not broaden providers/session/media merely to add the bridge.
-
-### 2. Finish generic appointment interpretation
+### 1. Finish generic appointment interpretation
 
 Extract useful parsing logic from the simulator into reusable typed parsers/normalizers for:
 
-- dates/relative dates/weekdays;
-- times/time ranges;
+- dates, relative dates and weekdays;
+- times and time ranges;
 - offered appointment candidates;
 - accept/reject/alternative semantics;
 - common identity-field requests.
 
 Add PhraseMatrix dialogue-act coverage where deterministic phrases are appropriate.
 
-### 3. Expand deterministic replay/eval coverage
+Start with a focused seam audit and RED contracts. Parsed values remain candidates until application-owned validation and the explicit apply bridge accept them. Do not move workflow, confirmation, commitment, speech or disclosure authority into parsers.
+
+### 2. Expand deterministic replay/eval coverage
 
 Add scripted scenarios for ambiguity, contradiction, repeated unknowns, unavailable slots, alternate offers, unauthorized/high-sensitivity fact requests, user rejection, takeover, cancellation and stale supervisor results.
 
 Use those scenarios to calibrate DialogueFit/hysteresis before live use. The current shadow integration intentionally avoids inventing numeric production scoring.
 
-### 4. Android IdentityVault persistence
+### 3. Android IdentityVault persistence
 
 Only after the host disclosure contract is stable and before a real call requires personal data:
 
@@ -133,17 +119,32 @@ app-private ciphertext storage
 
 Do not implement new persistence with deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
 
-### 5. Product shadow-provider integration
+### 4. Product shadow/apply integration
 
-After the host shadow lifecycle and apply boundary are stable, bind an intentionally reviewed product observer/provider through an application-owned seam. Preserve the same session cancellation/generation rules and zero execution authority for the observer itself.
+After the host shadow lifecycle, apply boundary and appointment interpretation are stable, bind an intentionally reviewed product observer/provider through an application-owned seam.
 
-### 6. Product integration verification
+The product composition must keep this order:
+
+```text
+finalized turn
+ -> deterministic interpretation first
+ -> optional bounded shadow proposal
+ -> existing SupervisorProposalValidator
+ -> application-owned apply policy / current snapshot re-check
+ -> TaskGraphApplyBridge
+ -> effects as data
+ -> existing workflow / proposal / confirmation / commitment / output owners
+```
+
+Preserve the same session cancellation/generation rules and zero execution authority for the observer itself. Do not create a generic effect executor that bypasses existing owners.
+
+### 5. Product integration verification
 
 Run targeted tests plus the canonical host gate. Add Android/device tests only for boundaries actually changed.
 
 Do not touch frozen Samsung media to make Gate D tests easier. If `CallRealtimeMediaSessionTest.pumpFailure...` reappears, audit test order/pollution before any media change.
 
-### 7. Real-world call gate
+### 6. Real-world call gate
 
 Only after host/simulation and required identity handling are strong:
 

@@ -1,4 +1,4 @@
-# Next-chat prompt — Gate D apply-bridge continuation
+# Next-chat prompt — Gate D generic appointment interpretation
 
 Kontynuuj rozwój repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego checkpointu Gate D.
 
@@ -18,31 +18,38 @@ Przed zmianami przeczytaj kolejno:
 
 Nie powtarzaj preimplementation audytu ani spike `custom reducer vs KStateMachine`. Produkcyjnym core v1 pozostaje minimalny application-owned `CustomTaskGraphCore`.
 
-Aktualny checkpoint ma już host-green real finalized-turn shadow lifecycle w `LocalTextCallSession`: deterministyczny PhraseMatrix/CallPlan wynik jest ustalany najpierw; explicit host-bound observer dostaje dokładnie jedną bounded `ShadowDialogueObservation`; lifecycle jest session-owned i stale/cancel/close-safe; hypothesis przechodzi przez `SupervisorProposalValidator`; ordinary diagnostics są redacted i mogą zasilać `DialogueFit` wyłącznie jako candidate/diagnostic data. Publiczny Android path nie ma jeszcze produkcyjnego shadow providera.
+Nie powtarzaj także zakończonego finalized-turn shadow lifecycle ani application-owned apply bridge.
 
-Nie powtarzaj tego slice. Następny osobny slice to application-owned apply bridge:
+Aktualny checkpoint ma już:
 
-```text
-already validated deterministic/supervisor candidate
- -> re-check current generation/state
- -> legal transition/event mapping owned by application
- -> validate slot types/constraints/provenance/authorization
- -> typed TaskGraphEvent
- -> CustomTaskGraphCore.reduce()
- -> effects as data
- -> istniejący workflow / proposal / confirmation / commitment / output owners
-```
+- host-green real finalized-turn shadow lifecycle w `LocalTextCallSession`, gdzie deterministyczny PhraseMatrix/CallPlan wynik jest ustalany najpierw, observer pozostaje bounded/stale-safe i zero-authority;
+- fail-closed `SupervisorProposalValidator`;
+- host-green `TaskGraphApplyBridge`, który ponownie sprawdza graph version/current state/generation, legal transition-to-event mapping, provenance, slot scope/authorization/schema oraz authority-bearing slot IDs **przed** redukcją;
+- rejected apply candidates nie wywołują reducer; accepted candidate tworzy typed `TaskGraphEvent`, wywołuje `TaskGraphCore.reduce()` raz i zwraca snapshot/event record/effects wyłącznie jako data;
+- bridge nie ma workflow/speech/TTS/dial/target/plaintext identity/commitment authority i nie jest automatycznie podpięty do shadow/session path.
 
-Zacznij od konkretnego seam audit, potem RED contracts. Udowodnij co najmniej, że stale generation i nielegalny/unmapped transition nie mogą wywołać redukcji; invalid/unauthorized/authority-bearing slots nie mogą wejść do autorytatywnego context; `extract -> validate -> commit` jest zachowane; accepted reduction zwraca effects wyłącznie jako data; reducer output sam nie mówi, nie dialuje, nie mutuje `CallWorkflow` i nie konsumuje commitment authority.
+Apply-bridge RED: `8041ffa57181a6a5bf75581134b85d6d10347758`, Android CI #473 — expected failure na Host quality gate.
 
-Po udowodnionym RED zrób minimal GREEN, targeted regressions i pełny `bash scripts/verify_host.sh` / Android CI zgodnie z repo. Nie rób broad refactoru providerów/session/media.
+Apply-bridge GREEN: `052f20ea11d20b97ade324ee734a1cff1c43bec3`, Android CI #474 — success pełnego host gate.
 
-Nie przenoś authority do observera/modelu/TaskGraph. Target authorization, plaintext fact disclosure, speech/TTS release, proposal approval, user confirmation i commitment pozostają u istniejących application owners.
+Następny slice to **generic appointment interpretation**. Najpierw zrób konkretny seam audit istniejącej logiki w `BookAppointmentSimulator.kt` i obecnego PhraseMatrix/CallPlan, bez broad refactoru. Następnie RED contracts dla reusable typed parsers/normalizers obejmujących co najmniej:
+
+1. daty, relative dates i weekdays;
+2. godziny i time ranges;
+3. offered appointment candidates;
+4. accept/reject/alternative semantics;
+5. common identity-field requests.
+
+Dodaj PhraseMatrix dialogue-act coverage tam, gdzie deterministic phrases mają sens. Parser/matcher output pozostaje candidate data only. Zachowaj `extract -> validate -> commit`; nic z parsera nie może bezpośrednio wejść do authoritative TaskGraph context. Finalny apply nadal ma przechodzić przez application-owned validation + `TaskGraphApplyBridge`.
+
+Po udowodnionym RED zrób minimal GREEN, targeted regressions i pełny `bash scripts/verify_host.sh` / Android CI zgodnie z repo. Nie rób broad refactoru providerów/session/media i nie podpinaj produkcyjnego shadow providera jako efekt uboczny tego slice.
+
+Nie przenoś authority do parsera/matchera/observera/modelu/TaskGraph. Target authorization, plaintext fact disclosure, speech/TTS release, proposal approval, user confirmation i commitment pozostają u istniejących application owners.
 
 Frozen boundaries: nie ruszaj `privileged-helper/`, zamrożonego Samsung media path ani fizycznie sprawdzonego `CallMediaSessionCoordinator` bez osobnego root-cause i jawnej decyzji scope. Jeśli wróci `CallRealtimeMediaSessionTest.pumpFailure...`, najpierw zbadaj test-order/test-pollution; nie naprawiaj media w ramach Gate D na ślepo.
 
 Orange pozostaje persistent checkpointed ServicePack i nie jest teraz głównym celem.
 
-Jeżeli używasz Local Chat Bridge / Local Agent, użyj wyłącznie świeżego binding envelope z tego nowego czatu. Nie kopiuj starego `agent_binding`. Live-call authorization również nie przechodzi między czatami.
+Jeżeli używasz Local Chat Bridge / Local Agent, użyj wyłącznie świeżego binding envelope z bieżącego czatu, sprawdź fresh daemon/current-task state w dokładnie bound repo i nie kopiuj starego `agent_binding`. GitHub jest właściwy dla bounded reviewowalnych diffów, Local Agent dla lokalnych buildów/ADB/device evidence. Queue/ACK nie jest sukcesem — wymagaj terminal result. Live-call authorization również nie przechodzi między czatami.
 
 Pracuj autonomicznie: audit konkretnego seam -> RED -> potwierdzenie właściwego failure -> minimal GREEN -> regressions -> aktualizacja dokumentacji/handoffu. Nie pytaj ponownie o decyzje już jednoznacznie zapisane w repo.

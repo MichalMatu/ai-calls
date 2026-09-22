@@ -1,4 +1,4 @@
-# Handoff — Gate D finalized-turn shadow lifecycle complete
+# Handoff — Gate D TaskGraph apply bridge complete
 
 Date: 2026-09-22
 
@@ -13,8 +13,8 @@ Pull request: `#5` — `Gate D TaskGraph v1 core` (draft)
 Code checkpoint before this documentation closeout:
 
 ```text
-4f7dcdd9051bc2090b5dde9ede3d688d17655f1e
-Add session-owned Gate D shadow finalized-turn lifecycle
+052f20ea11d20b97ade324ee734a1cff1c43bec3
+Add application-owned TaskGraph apply bridge
 ```
 
 This handoff is a state snapshot. It is **not** live-call authorization and contains no reusable Local Chat Bridge binding.
@@ -59,97 +59,123 @@ First acceptance task remains `BOOK_APPOINTMENT`.
 - `TaskGraphDefinition + AuthorizedFactSnapshot` binding through Android/LocalPhone readiness -> coordinator -> prepared call -> session;
 - read-only `LocalTextCallGateDRuntime`.
 
-### Finalized-turn shadow lifecycle — completed in this slice
+### Finalized-turn shadow lifecycle
 
-RED contract commit:
-
-```text
-1a58e174bafa0d9a03334e8ff14906601539b129
-test: define Gate D finalized-turn shadow lifecycle contracts
-```
-
-Android CI #470 failed at the host quality gate as expected because the new session shadow seam/types were not implemented yet. Setup/JDK/Gradle/SDK steps passed.
-
-Minimal GREEN code checkpoint:
+Code checkpoint:
 
 ```text
 4f7dcdd9051bc2090b5dde9ede3d688d17655f1e
 Add session-owned Gate D shadow finalized-turn lifecycle
 ```
 
-Implemented without changing providers/media:
+For an explicit host observer, the real finalized-turn selector preserves the existing PhraseMatrix/CallPlan route, creates one bounded observation, owns stale/cancel/close-safe session epochs, revalidates hypotheses through `SupervisorProposalValidator` and exposes redacted `DialogueFit`/candidate diagnostics only. The public Android session path still binds no production shadow provider.
 
-- real `LocalTextCallSession` plan selector computes the existing PhraseMatrix/CallPlan result first and returns the same route;
-- when an explicit host shadow observer is bound, that finalized turn creates one bounded observation from the bound TaskGraph snapshot/context;
-- `AuthorizedFactSnapshot` fact IDs are exposed only when generation/state/sensitivity scope matches; plaintext fact values are never added;
-- a session-owned epoch invalidates older queued shadow turns;
-- `cancel()` / `close()` invalidate pending work; close also closes the shadow executor;
-- observer/validator exceptions cannot alter deterministic routing;
-- hypotheses pass through existing `SupervisorProposalValidator`;
-- accepted/rejected candidate metadata may feed categorical `DialogueFit` diagnostics only;
-- ordinary diagnostics expose typed IDs/status/reasons, not transcript, identity values, slot candidate values or model diagnostic values.
+### Application-owned TaskGraph apply bridge — completed in this slice
 
-The public Android `LocalTextCallSession.create(...)` path still binds no production shadow observer/provider. This slice is intentionally host-only.
+RED contract commit:
+
+```text
+8041ffa57181a6a5bf75581134b85d6d10347758
+test: define Gate D TaskGraph apply bridge contracts
+```
+
+Android CI #473 failed at the Host quality gate as expected because the apply bridge API/types were not implemented. Setup/JDK/Gradle/SDK steps passed.
+
+Minimal GREEN code checkpoint:
+
+```text
+052f20ea11d20b97ade324ee734a1cff1c43bec3
+Add application-owned TaskGraph apply bridge
+```
+
+Implemented as a standalone `taskgraph` boundary without changing session/providers/media/workflow:
+
+- `TaskGraphApplyCandidate` carries typed generation, transition ID, slot candidates and provenance only;
+- `TaskGraphApplyPolicy` owns allowed transition-to-event mappings, provenance and slot rules;
+- the bridge re-checks graph version, known/current state and candidate generation at apply time;
+- the mapped transition must exist, be legal from the current state and map to the exact application-owned event ID;
+- provenance must be explicitly allowed;
+- candidate slots must be mapped, dynamically authorized and schema/constraint-valid;
+- required slots must be present;
+- authority-bearing slot IDs such as speech/dial/target/commitment/identity-value metadata are rejected again as defense in depth;
+- all of those checks occur before event construction/reduction;
+- rejected candidates never call `TaskGraphCore.reduce()`;
+- accepted candidates create one typed `TaskGraphEvent`, call the reducer once and return immutable snapshot/event record/effects as data;
+- no workflow, speech/TTS, dialing/target, plaintext IdentityVault, proposal approval or commitment API exists in the bridge.
+
+The bridge is **not** automatically wired to `LocalTextCallSession` or the host shadow lifecycle. Shadow output remains non-authoritative and the public Android path still has no production observer/provider.
 
 ## Verification
 
-Canonical full repo gate for GREEN:
+RED evidence:
 
 ```text
-commit: 4f7dcdd9051bc2090b5dde9ede3d688d17655f1e
+commit: 8041ffa57181a6a5bf75581134b85d6d10347758
 workflow: Android CI
-run id: 35752853447
-run number: 471
+run id: 35757487319
+run number: 473
+conclusion: failure
+failed step: Host quality gate
+```
+
+GREEN evidence:
+
+```text
+commit: 052f20ea11d20b97ade324ee734a1cff1c43bec3
+workflow: Android CI
+run id: 35757837255
+run number: 474
 conclusion: success
 ```
 
-The canonical workflow runs `bash scripts/verify_host.sh`, including app/module unit tests, lint/build checks, Python tests and repository policy scans. The new focused Gate D lifecycle tests are therefore covered by the full host run.
+The canonical workflow runs `bash scripts/verify_host.sh`, so the GREEN result covers the new focused apply contracts plus the existing app/module unit tests, lint/build checks, Python tests and repository policy scans.
+
+The slice diff from the previous documentation checkpoint `01bb372d8355aab5cda52ee558bb0dda94302382` to the GREEN code checkpoint contains exactly two files: `TaskGraphApplyBridge.kt` and `TaskGraphApplyBridgeTest.kt`.
 
 No physical call or device proof was required or authorized for this host-only slice.
 
 ## Hard stop line at this checkpoint
 
-The shadow/session boundary remains non-authoritative. It does **not**:
+Do not confuse an explicit reducer boundary with side-effect authority.
 
-- call `TaskGraphCore.reduce()`;
+Current product/session code still does **not** automatically:
+
+- apply a shadow hypothesis;
+- call `TaskGraphApplyBridge` from `LocalTextCallSession`;
 - execute graph effects;
-- mutate `CallWorkflow`;
+- mutate `CallWorkflow` from reducer output;
 - release model speech/TTS;
 - dial or widen a target;
 - read/disclose plaintext IdentityVault values;
 - approve proposals;
 - consume commitment authority.
 
-Do not collapse this boundary into the observer in the next slice.
+The apply bridge itself may call `TaskGraphCore.reduce()` only after its application-owned validation checks pass. Returned effects remain inert data until an existing owner is explicitly wired to consume them.
 
 ## Exact next slice
 
-Add a separate explicit **application-owned TaskGraph apply bridge**, RED first.
+Finish **generic appointment interpretation**, RED first.
 
-Target:
+Extract simulator-local interpretation into reusable typed parsers/normalizers for:
 
-```text
-already validated deterministic/supervisor candidate
- -> re-check current generation/state
- -> application-owned legal transition/event mapping
- -> validate slot type/schema/constraints/provenance/authorization
- -> typed TaskGraph event
- -> CustomTaskGraphCore.reduce()
- -> effects as data
- -> existing workflow / proposal / confirmation / commitment / output owners
-```
+1. dates, relative dates and weekdays;
+2. times and time ranges;
+3. offered appointment candidates;
+4. accept/reject/alternative semantics;
+5. common identity-field requests.
 
-Required RED contracts should prove:
+Add PhraseMatrix dialogue-act coverage where deterministic phrases are appropriate.
 
-1. stale generation cannot reduce;
-2. an illegal/unmapped transition cannot become an event;
-3. invalid, unauthorized or authority-bearing candidate slots cannot enter authoritative TaskGraph context;
-4. `extract -> validate -> commit` is preserved;
-5. accepted reduction returns effects as data only;
-6. reducer output does not directly speak, dial, mutate workflow or consume commitment;
-7. existing deterministic PhraseMatrix/CallPlan behavior remains unchanged.
+Required boundaries:
 
-Use the smallest owner/seam that preserves existing authority boundaries. Do not broad-refactor provider/session/media code.
+- parser/matcher output is candidate data only;
+- do not directly mutate TaskGraph context from a parser;
+- preserve `extract -> validate -> commit`;
+- final authoritative apply still goes through application validation + `TaskGraphApplyBridge`;
+- keep `CallWorkflow`, confirmation, commitment, speech/output approval and disclosure policy as existing owners;
+- do not broad-refactor session/provider/media while extracting interpretation.
+
+After that, expand deterministic replay/eval scenarios and calibrate `DialogueFit`/hysteresis from evidence before product shadow/apply wiring.
 
 ## Frozen boundaries
 
@@ -168,12 +194,17 @@ If `CallRealtimeMediaSessionTest.pumpFailure...` reappears, first audit test ord
 
 ## Local Agent / Local Chat Bridge
 
-- trust only a fresh binding envelope injected into the new chat;
+- trust only a fresh binding envelope injected into the current/new chat;
 - never copy an old `agent_binding` from documentation/history;
-- work only in the exact bound repository;
-- use fresh daemon/current-task evidence before queueing local work;
+- one bridge conversation stays hard-bound to exactly one repository identity;
+- use direct GitHub changes when exact diff + CI are sufficient;
+- use Local Agent when local Mac commands, Gradle/Android tools, ADB/device access or other machine-local evidence are needed;
+- before a local task, read fresh bound-repository daemon/current-task evidence;
+- a queued task or ACK is not proof of success; inspect the exact terminal result;
 - `.agent/tasks` and `.agent/results` are control/evidence data, not product architecture;
 - never restart Local Agent merely to hide an unclear task/root cause.
+
+No fresh Local Chat Bridge binding envelope was used for this completed code slice; GitHub + canonical Android CI supplied the required source/execution evidence.
 
 ## Live-call rule
 
