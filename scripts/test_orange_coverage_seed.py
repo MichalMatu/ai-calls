@@ -19,8 +19,21 @@ class OrangeCoverageSeedTest(unittest.TestCase):
             live.ORANGE_REVIEWED_RESPONSES[live.ORANGE_ACTION_COVERAGE_INFO],
         )
 
-    def test_public_support_coverage_seed_is_discovered_only(self):
+    def test_v201_coverage_reprompt_edge_is_verified_without_claiming_service_route(self):
         tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
+        edges = {edge["id"]: edge for edge in tree["edges"]}
+        edge = edges["orange.root.coverage_info"]
+        self.assertEqual("orange.root", edge["from"])
+        self.assertEqual("orange.root.reprompt", edge["to"])
+        self.assertEqual("coverage_info", edge["action_id"])
+        self.assertEqual("Chcę sprawdzić zasięg.", edge["speech"])
+        self.assertEqual("VERIFIED", edge["status"])
+        self.assertEqual("READ_ONLY", edge["risk"])
+        self.assertEqual("REPROMPT", edge["observed_outcome"])
+        self.assertEqual("chatgpt-orange-coverage-live-v201-20260922", edge["evidence_task"])
+        self.assertEqual("max_duration", edge["observation_endpoint_reason"])
+        self.assertFalse(edge["service_route_verified"])
+
         seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
         seed = seeds["orange.coverage.info"]
         self.assertEqual("DISCOVERED", seed["status"])
@@ -28,7 +41,9 @@ class OrangeCoverageSeedTest(unittest.TestCase):
         self.assertEqual("Chcę sprawdzić zasięg.", seed["speech"])
         self.assertEqual("AUTH_REQUIRED_POSSIBLE", seed["risk"])
         self.assertEqual("operator_public_support_backlog", seed["source"])
-        self.assertIn("physical_route_required", seed["next_evidence"])
+        self.assertEqual("chatgpt-orange-coverage-live-v201-20260922", seed["last_evidence"])
+        self.assertEqual("REPROMPT", seed["last_outcome"])
+        self.assertIn("service_route_not_verified", seed["next_evidence"])
 
 
 if __name__ == "__main__":
