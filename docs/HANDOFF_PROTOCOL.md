@@ -28,7 +28,8 @@ Create/refesh the handoff when any of these is true:
 - a long implementation/testing session is ending;
 - work is intentionally moving to a fresh chat window;
 - the current chat has accumulated enough history that continuation would be clearer from repository state;
-- a risky hardware/live-call slice has just been stabilized.
+- a risky hardware/live-call slice has just been stabilized;
+- an architectural spike/dependency decision changes the next implementation path.
 
 ## Mandatory close-out order
 
@@ -42,10 +43,11 @@ Before writing the final handoff:
 6. If a phone call was made, require cleanup to normal `IDLE` before handoff.
 7. Audit branch/worktree state. Preserve historical local branches with unique commits until intentionally archived or judged disposable.
 8. Audit documentation for contradictions: active gate, next execution order, frozen/deferred work, safety policy and latest checkpoint must agree.
-9. Update `README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md` and domain runbooks only when their durable meaning changed.
-10. Refresh `docs/HANDOFF_NEXT_CHAT.md`.
-11. Refresh `docs/NEXT_CHAT_PROMPT.md` last, so it points to the current authoritative documents rather than duplicating a large amount of volatile state.
-12. Confirm no prompt or handoff contains secrets, stale credentials, an old immutable Local Agent binding, or implied live-call authorization for a future session.
+9. If an external library/framework or architecture spike was evaluated, record the actual decision and rationale in `docs/ROADMAP.md` / `docs/ARCHITECTURE.md`: accepted, rejected, or still pending. Do not make the next chat repeat the same comparison from memory.
+10. Update `README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md` and domain runbooks only when their durable meaning changed.
+11. Refresh `docs/HANDOFF_NEXT_CHAT.md`.
+12. Refresh `docs/NEXT_CHAT_PROMPT.md` last, so it points to the current authoritative documents rather than duplicating a large amount of volatile state.
+13. Confirm no prompt or handoff contains secrets, plaintext identity values, stale credentials, an old immutable Local Agent binding, or implied live-call authorization for a future session.
 
 ## Required handoff contents
 
@@ -58,6 +60,7 @@ Before writing the final handoff:
 - current architectural direction and important decisions;
 - exact continuation order, preferably by referencing `docs/ROADMAP.md` rather than duplicating it;
 - any incomplete/known-risk work;
+- any pending/decided framework or dependency spike that changes the next slice;
 - evidence/checkpoint references that materially matter;
 - branch/worktree exceptions worth preserving;
 - Local Agent / Local Chat Bridge operating rules;
@@ -81,9 +84,10 @@ It should be short enough to review, but self-contained enough to bootstrap the 
 7. state the expected working style: audit first, RED -> minimal GREEN -> verification, small cohesive commits, no broad speculative refactors;
 8. describe Local Agent / Local Chat Bridge bootstrap without embedding a stale `agent_binding`;
 9. never carry physical-call authorization into the new session;
-10. ask the new session to continue autonomously inside the documented scope instead of re-asking questions already answered by the repository.
+10. identify any first-slice architecture/dependency spike that must happen before implementation lock-in;
+11. ask the new session to continue autonomously inside the documented scope instead of re-asking questions already answered by the repository.
 
-The continuation prompt should not duplicate detailed service trees, full test logs or large architecture sections. Those belong in repository sources.
+The continuation prompt should not duplicate detailed service trees, full test logs, secrets, plaintext identity values or large architecture sections. Those belong in repository sources or protected runtime storage, not in the bootstrap prompt.
 
 ## Local Agent and Local Chat Bridge
 
@@ -129,7 +133,7 @@ A future session must never infer permission to dial from:
 
 Every new physical-call session requires fresh user/operator authorization appropriate to that target and task.
 
-For real-world appointment development, follow the live-test policy in `docs/ROADMAP.md` and `docs/SECURITY_PRIVACY.md`: small reviewed target sets, test disclosure/consent for test-only calls, genuine user authorization for real bookings, no critical-service test traffic, and strict commitment authority.
+For real-world appointment development, follow the live-test policy in `docs/ROADMAP.md` and `docs/SECURITY_PRIVACY.md`: small reviewed target sets, test disclosure/consent for test-only calls, genuine user authorization for real bookings, no critical-service test traffic, strict fact-disclosure policy, and strict commitment authority.
 
 ## Handoff quality check
 
@@ -139,6 +143,7 @@ A handoff is good when a fresh chat can answer all of these from the repository 
 - What is already proven?
 - What must not be changed casually?
 - What exact slice comes next?
+- Is there a framework/dependency decision that must be made before implementation?
 - Which tests/evidence prove the checkpoint?
 - How should Local Agent/Local Chat Bridge be used?
 - What requires fresh user authorization?
