@@ -287,6 +287,17 @@
       "last_evidence": "chatgpt-orange-manual-network-selection-live-v214-20260922",
       "last_outcome": "ACTIVATION_CLARIFICATION_BARRIER",
       "next_evidence": "closed_after_activation_barrier; service_route_not_verified"
+    },
+    {
+      "service_id": "orange.sms.problem",
+      "status": "DISCOVERED",
+      "action_id": "sms_problem",
+      "speech": "Nie mogę wysyłać SMS-ów.",
+      "risk": "AUTH_REQUIRED_POSSIBLE",
+      "source": "operator_public_support_backlog",
+      "last_evidence": "public_orange_support_page",
+      "last_outcome": "NOT_PHYSICALLY_PROBED",
+      "next_evidence": "physical_route_required; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
