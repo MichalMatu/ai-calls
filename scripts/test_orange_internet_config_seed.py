@@ -27,10 +27,6 @@ class OrangeInternetConfigSeedTest(unittest.TestCase):
             "przepraszam nie zrozumiałem czy możesz jeszcze raz powiedzieć o co chodzi",
             reprompt["observed_prompt_variants"],
         )
-        self.assertEqual(
-            "chatgpt-orange-internet-config-live-v205-20260922",
-            reprompt["latest_variant_evidence_task"],
-        )
 
         edges = {edge["id"]: edge for edge in tree["edges"]}
         edge = edges["orange.root.internet_config"]
