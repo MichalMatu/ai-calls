@@ -79,15 +79,22 @@ model/parser/matcher output
 19. reusable `AppointmentInterpreter` provides typed absolute/relative/weekday dates, times/time ranges, concrete offer candidates, deterministic accept/reject/alternative acts and identity-field request IDs;
 20. relative appointment interpretation has no hidden clock: it requires an explicit caller-supplied `referenceDate` and otherwise fails closed;
 21. `BookAppointmentSimulator` delegates offer parsing to the same interpreter, preserving the existing validation/confirmation/commitment owners and `extract -> validate -> commit`;
-22. appointment parser/matcher output remains candidate-only and has no TaskGraph/workflow/speech/dial/commitment/IdentityVault authority.
+22. appointment parser/matcher output remains candidate-only and has no TaskGraph/workflow/speech/dial/commitment/IdentityVault authority;
+23. categorical `DialogueFitHysteresis` provides immediate deterioration and evidence-backed recovery without execution authority;
+24. deterministic sequence-level Gate D evaluation corpus covers repeated unknowns/recovery exhaustion, ambiguity/recovery, unacceptable/alternate offers, user rejection, unauthorized/high-sensitivity disclosure, cancel/takeover, stale supervisor results and clean recovery;
+25. host `PersistentIdentityVault` core provides typed redacted secret capability, versioned encrypted envelope/payload, AEAD + associated-data port, defensive copies, fail-closed decode/decrypt behavior and explicit `DEVICE_BOUND_NO_BACKUP` semantics.
 
-Verification checkpoints:
+Verification checkpoints include:
 
 - finalized-turn shadow lifecycle: `4f7dcdd9051bc2090b5dde9ede3d688d17655f1e`, Android CI #471 `success`;
 - TaskGraph apply bridge RED: `8041ffa57181a6a5bf75581134b85d6d10347758`, Android CI #473 Host quality gate failed as intended;
 - TaskGraph apply bridge GREEN: `052f20ea11d20b97ade324ee734a1cff1c43bec3`, Android CI #474 `success`;
 - appointment interpretation RED: `9a56ddf2bdc58b27b2ca52fae982637930a9b250`, Android CI #476 Host quality gate failed as intended;
-- appointment interpretation integrated GREEN checkpoint: `cd91a2dbaafdf570c9e3e67b132c02cb88c0cf96`, Android CI #482 `success`.
+- appointment interpretation integrated GREEN: `cd91a2dbaafdf570c9e3e67b132c02cb88c0cf96`, Android CI #482 `success`;
+- DialogueFit hysteresis GREEN: `c2bd394df32f389aa6e2cb218df44a3b8b66de1d`;
+- sequence evaluation corpus GREEN: `a86034c77df23cd9375cad20a04e7609aef13956`;
+- persistent IdentityVault RED: `502f13a1c9e5b8b0f7aae2383629e451a8d8821c`;
+- persistent IdentityVault host core GREEN: `27457e3e103b89dac9f7e86a1b427f297128b7dc`, Android CI #488 `success`.
 
 During appointment verification the known `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` flake reappeared. Root-cause audit found no shared/static fixture or production media defect: the test waited for `transport.close()` although the session publishes `FAILED` only after cleanup returns. The test now waits on the existing `onTerminalState` callback. No production media/helper code changed.
 
@@ -95,41 +102,33 @@ The public Android session path still binds no production shadow observer/provid
 
 ## NEXT — exact execution order
 
-### 1. Expand deterministic replay/eval coverage
+### 1. Android IdentityVault production persistence
 
-Build a host-only scripted Gate D evaluation corpus covering sequences rather than isolated turns:
+This is the first concrete next slice.
 
-- ambiguity and parser incompleteness;
-- contradiction;
-- repeated deterministic unknowns / recovery exhaustion;
-- unavailable slots and alternate offers;
-- unauthorized and high-sensitivity fact requests;
-- user rejection;
-- takeover and cancellation;
-- stale supervisor results;
-- clean recovery back toward deterministic handling.
+Start from the existing host `PersistentIdentityVault` ports and keep encrypted storage separate from disclosure authority.
 
-For each scenario keep authoritative business outcome, TaskGraph replay, evidence ordering and `DialogueFit` reasons explicit. Do not invent model scores or execution authority.
-
-Use the corpus to decide whether a small categorical hysteresis boundary is justified. If added, safety deterioration must be immediate; recovery must be evidence-backed and deterministic. Hysteresis remains diagnostic/routing policy only and must not approve a transition, proposal, speech, dial, disclosure or commitment.
-
-### 2. Android IdentityVault persistence
-
-Only after the host disclosure contract/eval corpus is stable and before a real call requires personal data:
+Implement and prove:
 
 ```text
-app-private ciphertext storage
+app-private ciphertext storage with atomic write semantics
 + non-exportable Android Keystore key
-+ authenticated encryption
-+ versioned records
-+ explicit backup/restore semantics
++ authenticated encryption (AES/GCM unless a concrete platform constraint says otherwise)
++ stable algorithm identity / associated data
++ versioned record compatibility
++ fail-closed corruption/key/version handling
++ explicit device-bound/no-backup semantics
 ```
 
-Do not implement new persistence with deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
+Use RED -> minimal GREEN. Do not build new persistence on deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
 
-### 3. Product shadow/apply integration
+No plaintext identity value may enter ordinary diagnostics, TaskGraph definitions, ServicePack data, Local Agent task JSON, Git history or supervisor context by default.
 
-After host shadow lifecycle, apply boundary, appointment interpretation and evaluation coverage are stable, bind an intentionally reviewed product observer/provider through an application-owned seam.
+A stored value remains non-authoritative. `AuthorizedFactSnapshot` + `FactDisclosurePolicy` still decide whether it may be disclosed, and plaintext should be resolved only after the application-owned disclosure/action boundary permits it.
+
+### 2. Product shadow/apply integration
+
+After Android IdentityVault persistence is stable, bind an intentionally reviewed product observer/provider through an application-owned seam.
 
 The product composition must keep this order:
 
@@ -146,15 +145,17 @@ finalized turn
 
 Preserve session cancellation/generation rules and zero execution authority for the observer itself. Do not create a generic effect executor that bypasses existing owners.
 
-### 4. Product integration verification
+### 3. Product integration verification
 
-Run targeted tests plus the canonical host gate. Add Android/device tests only for boundaries actually changed.
+Run targeted tests plus the canonical host gate for every deterministic slice. Add Android/device tests only for boundaries actually changed.
+
+The connected S22 may be used for bounded Android/Keystore/ADB proof without making a call. Physical evidence must be explicitly reproduced before upgrading a boundary from `HOST_GREEN` to `PROVEN_S22`.
 
 Do not touch frozen Samsung media to make Gate D tests easier. If a media timing test reappears, audit test ordering/synchronization first and keep any correction test-only unless a separate production root cause is proven.
 
-### 5. Real-world call gate
+### 4. Real-world call gate
 
-Only after host/simulation and required identity handling are strong:
+Only after host/simulation, Android IdentityVault and reviewed product integration are strong:
 
 - one small reviewed ordinary reception/business target at a time;
 - `TEST_ONLY_CONSENTED`: disclose AI/test purpose at the start and obtain consent; never create a real booking;
@@ -162,7 +163,7 @@ Only after host/simulation and required identity handling are strong:
 - never emergency/urgent/crisis/critical-service lines;
 - default one meaningful call per organization, second only after early technical failure or explicit agreement to repeat.
 
-Live-call authorization is session-scoped and never inherited from documentation or an old chat.
+Live-call authorization is session-scoped and never inherited from documentation, an old chat, an old Local Agent result or the fact that the phone is connected.
 
 ## Gate D acceptance target
 

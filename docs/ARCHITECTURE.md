@@ -26,9 +26,10 @@ The following remain authoritative:
 - `CallWorkflow`;
 - `CallConfirmationPolicy`;
 - `CallCommitmentGate`;
-- application-owned output approval.
+- application-owned output approval;
+- application-owned `FactDisclosurePolicy` for personal-data disclosure.
 
-TaskGraph, PhraseMatrix, parsers, ServicePacks, shadow observers, LLMs and Skills may classify or propose into those owners but do not replace them.
+TaskGraph, PhraseMatrix, parsers, ServicePacks, shadow observers, LLMs, encrypted storage and Skills may classify, persist or propose into those owners but do not replace them.
 
 ## Product knowledge/data layers
 
@@ -98,17 +99,56 @@ Rejected candidates do not call the reducer. Accepted reductions expose only the
 
 Host-only deterministic product simulator composing TaskGraph with existing `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and `FactDisclosurePolicy`. It is an evidence/simulation harness, not a telephony orchestrator.
 
+### `AppointmentInterpreter.kt`
+
+Reusable typed appointment interpretation for absolute dates, explicitly anchored relative dates/weekdays, concrete times/time ranges, concrete offer candidates, deterministic accept/reject/request-alternative dialogue acts and identity-field request IDs.
+
+It has no hidden clock. Relative/weekday interpretation requires a caller-supplied reference date and fails closed without it. Parser/matcher output remains candidate data only and must still pass state/type/constraint/provenance/authorization validation before authoritative commit.
+
 ### `FactDisclosurePolicy.kt`
 
 Defines typed identity-field/sensitivity/per-task snapshot boundaries. It owns disclosure decisions, not encrypted value storage.
 
+### `PersistentIdentityVault.kt`
+
+Host persistence core for durable identity values. It owns a versioned encrypted envelope/payload format around explicit ports:
+
+```text
+IdentityVaultBlobStorage
+IdentityVaultAead
+```
+
+The host core provides:
+
+- typed/redacted `IdentitySecretValue`;
+- AEAD associated-data binding;
+- versioned envelope/payload parsing;
+- bounds checks and defensive copies;
+- fail-closed decode/decrypt behavior;
+- best-effort zeroing of transient plaintext byte arrays;
+- explicit `DEVICE_BOUND_NO_BACKUP` policy.
+
+This is not yet the Android production storage/key implementation. The next persistence slice must provide app-private atomic ciphertext storage plus a non-exportable Android Keystore key and authenticated encryption. Encrypted storage does not gain disclosure authority merely by holding a value.
+
 ### `DialogueFit.kt`
 
-Defines categorical fit signals/results plus bounded shadow observation/hypothesis types. The first policy is intentionally categorical; numeric tuning/hysteresis must come from simulator/eval evidence.
+Defines explainable categorical fit signals/results plus bounded shadow observation/hypothesis types.
+
+### `DialogueFitHysteresis.kt`
+
+Caller-owned categorical sequence policy. Safety deterioration is immediate. Recovery to a better category requires configured consecutive evidence at the same target level; same/worse evidence or target changes reset pending recovery.
+
+Hysteresis is non-authoritative. It cannot approve TaskGraph transitions, workflow changes, speech, dialing, disclosure or commitments. Callers must reset it at session/generation boundaries.
 
 ### `SupervisorProposalValidator.kt`
 
 Fail-closed boundary from quarantined hypothesis to candidate data. It checks generation, transition scope, allowed non-secret slot IDs, authority-bearing slot names and confidence. An accepted `ValidatedSupervisorCandidate` is still not executable.
+
+### Sequence-level evaluation corpus
+
+`GateDSequenceEvaluationCorpusTest` composes existing owners without creating a product orchestrator. It covers repeated unknowns/recovery exhaustion, ambiguity recovery, hard-rejected and alternate offers, user rejection, unauthorized/high-sensitivity disclosure, cancel/takeover replay, stale supervisor rejection and clean hysteresis recovery.
+
+The corpus is acceptance/evidence infrastructure only. It does not add runtime authority.
 
 ## Prepared product session and Gate D binding
 
@@ -140,9 +180,9 @@ LocalTextCallSession
 
 `PreparedLocalTextCall` remains a one-shot ownership handoff. `LocalTextCallSession` is the Gate D product owner because it already owns finalized-turn deterministic dialogue context.
 
-The public Android `LocalTextCallSession.create(...)` path currently does **not** bind a production shadow observer/provider. The completed activation seam is explicit/internal and host-tested so provider architecture was not broadened during this slice.
+The public Android `LocalTextCallSession.create(...)` path currently does **not** bind a production shadow observer/provider. The activation seam is explicit/internal and host-tested so provider architecture was not broadened prematurely.
 
-The new `TaskGraphApplyBridge` is not automatically invoked by this session path. Keeping it separate prevents shadow observation from silently acquiring execution authority.
+`TaskGraphApplyBridge` is also not automatically invoked by this session path. Keeping it separate prevents shadow observation from silently acquiring execution authority.
 
 ## Read-only Gate D runtime boundary
 
@@ -179,7 +219,7 @@ Observer/validator exceptions are contained inside the shadow path. `LocalTextCa
 
 Ordinary `GateDShadowTurnDiagnostics` contains typed IDs, generations, validation status/reject reason and `DialogueFitResult`; it does not carry transcript text, task/fact plaintext, slot candidate values or model diagnostic values.
 
-The lifecycle passes hypothesis output through the existing `SupervisorProposalValidator`. Accepted output remains candidate data only. Current integration deliberately does not invent semantic deterministic-vs-shadow scoring; `DialogueFit` remains categorical diagnostic evidence.
+The lifecycle passes hypothesis output through the existing `SupervisorProposalValidator`. Accepted output remains candidate data only.
 
 ## Explicit apply boundary
 
@@ -198,7 +238,7 @@ already validated deterministic/supervisor candidate
 
 No effect is executable merely because the reducer returned it. Product integration must delegate proposal, confirmation, commitment, target and output behavior to their existing owners rather than creating a generic effect executor.
 
-## Hard authority invariant after apply-bridge completion
+## Hard authority invariant
 
 The shadow/session lifecycle still does **not** automatically:
 
@@ -208,15 +248,28 @@ The shadow/session lifecycle still does **not** automatically:
 - mutate `CallWorkflow`;
 - release model speech/TTS;
 - dial or widen a target;
-- disclose plaintext facts;
+- resolve/disclose plaintext facts;
 - approve a proposal;
 - consume commitment authority.
 
 The apply bridge itself may call the reducer only after its explicit validation boundary passes, and then only returns data. It owns none of the side effects above.
 
-## Next implementation focus — generic appointment interpretation
+## Next implementation focus — Android IdentityVault persistence
 
-Extract reusable typed appointment parsers/normalizers from simulator-only logic before product provider/apply wiring. Cover dates/relative dates/weekdays, times/time ranges, offered candidates, accept/reject/alternative semantics and common identity-field requests. Parsed output remains candidate data and must pass the same application validation/apply boundary before becoming authoritative.
+The host vault contract/core is stable enough to move to the Android production adapter before a real call needs identity values.
+
+Required boundary:
+
+```text
+PersistentIdentityVault
+ -> app-private atomic ciphertext storage
+ -> Android Keystore non-exportable key
+ -> authenticated encryption / AAD
+```
+
+The Android adapter must preserve `DEVICE_BOUND_NO_BACKUP`, fail closed on corruption/key/version mismatch and avoid deprecated `EncryptedSharedPreferences` / `MasterKey` as the new persistence foundation.
+
+After that boundary is green, move to reviewed product shadow/apply integration. Keep deterministic interpretation first, supervisor proposals bounded, `TaskGraphApplyBridge` explicit, graph effects as data and all real side effects owned by the existing workflow/output/disclosure/commitment authorities.
 
 ## Slot/fact extraction invariant
 
@@ -237,5 +290,6 @@ Failure moves toward deterministic fallback, local recovery, takeover or safe st
 - `HOST_GREEN` is host evidence only;
 - `PROVEN_S22` requires physical reproduction on the target phone;
 - documentation or a host test never upgrades a hardware claim;
+- current ADB reachability alone is not product proof;
 - host-only Gate D contracts do not justify a live call;
 - live-call authorization is session-scoped and must be freshly granted.
