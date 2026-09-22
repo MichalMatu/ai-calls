@@ -156,6 +156,27 @@ Two explicit internal modes exist:
 
 They are mutually exclusive for one session instance.
 
+## Shared finalized-text ingress
+
+`LocalTextCallSession` has one shared finalized-turn processing path. The source may be either the normal speech pipeline after STT finalization or the explicit internal test/diagnostic method `injectSyntheticFinalTranscript(...)`.
+
+```text
+live audio
+ -> STT final transcript ----+
+                             |
+synthetic finalized text ----+-> shared finalized-turn ingress
+                                  -> PhraseMatrix / CallPlan
+                                  -> deterministic Gate D interpretation
+                                  -> optional bounded shadow
+                                  -> current-state/application authorization re-check
+                                  -> TaskGraphApplyBridge
+                                  -> inert route/result/effects data
+```
+
+Synthetic input deliberately bypasses pipeline start, PCM ingestion, STT, backend generation and TTS/media output. It is intended to make no-call host/Android integration tests deterministic while exercising the same post-STT product path. It does not create a parallel state machine or authority store.
+
+Changing the source of finalized text does not grant authority to dial, widen a target, disclose identity plaintext, release speech, approve a proposal or user confirmation, consume commitment authority or claim completion. Those boundaries remain exactly the same as for an STT-derived finalized turn.
+
 ## Read-only Gate D runtime boundary
 
 `LocalTextCallGateDRuntime` may bind one `CallTask`, graph and optional authorized-fact snapshot, create bounded shadow observations from authoritative state/context, expose legal transition IDs and authorized fact field IDs, and revalidate a shadow hypothesis through `SupervisorProposalValidator`.
@@ -206,7 +227,7 @@ The result listener is not an effect executor. Existing workflow/proposal/confir
 
 ## Hard authority invariant
 
-Neither the shadow lifecycle, product binding, TaskGraph reducer nor Android vault may automatically:
+Neither the shadow lifecycle, product binding, TaskGraph reducer, synthetic finalized-text ingress nor Android vault may automatically:
 
 - dial or widen a target;
 - execute graph effects;
@@ -225,7 +246,7 @@ The public Android session path also does not automatically opt into the reviewe
 The next evidence step is physical Android proof without a call:
 
 1. execute the IdentityVault instrumentation contract on the S22;
-2. exercise reviewed product binding/session behavior on Android/S22;
+2. exercise reviewed product binding/session behavior on Android/S22, using synthetic finalized text where useful so post-STT behavior can be proven without touching the frozen media path;
 3. keep the public session path non-automatic;
 4. only then wire the specific existing owners required for bounded `BOOK_APPOINTMENT`, one reviewed effect mapping at a time.
 
