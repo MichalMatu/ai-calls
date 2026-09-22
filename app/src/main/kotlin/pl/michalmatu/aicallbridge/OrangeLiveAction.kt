@@ -20,6 +20,7 @@ internal enum class OrangeLiveAction(
     COVERAGE_INFO("coverage_info", "Chcę sprawdzić zasięg."),
     INTERNET_CONFIG("internet_config", "Jak skonfigurować internet w telefonie?"),
     MMS_CONFIG("mms_config", "Jak skonfigurować MMS w telefonie?"),
+    MANUAL_NETWORK_SELECTION("manual_network_selection", "Jak włączyć ręczny wybór sieci operatora?"),
     ROAMING_INFO("roaming_info", "Roaming."),
     ROAMING_PRICES("roaming_prices", "Chcę sprawdzić ceny w roamingu."),
     OBSERVE_ONLY("observe_only", null),
