@@ -40,6 +40,7 @@ internal object GateCLiveCallScenarioFactory {
     const val MANUAL_NETWORK_SELECTION_RULE_ID = "orange-manual-network-selection-root"
     const val SMS_PROBLEM_RULE_ID = "orange-sms-problem-root"
     const val VOICE_QUALITY_PROBLEM_RULE_ID = "orange-voice-quality-problem-root"
+    const val OUTGOING_CALL_PROBLEM_RULE_ID = "orange-outgoing-call-problem-root"
     const val ROAMING_INFO_RULE_ID = "orange-roaming-info-root"
     const val ROAMING_PRICES_RULE_ID = "orange-roaming-prices-root"
 
@@ -56,6 +57,7 @@ internal object GateCLiveCallScenarioFactory {
     private const val MANUAL_NETWORK_SELECTION_FACT_KEY = "orange-manual-network-selection-response"
     private const val SMS_PROBLEM_FACT_KEY = "orange-sms-problem-response"
     private const val VOICE_QUALITY_PROBLEM_FACT_KEY = "orange-voice-quality-problem-response"
+    private const val OUTGOING_CALL_PROBLEM_FACT_KEY = "orange-outgoing-call-problem-response"
     private const val ROAMING_INFO_FACT_KEY = "orange-roaming-info-response"
     private const val ROAMING_PRICES_FACT_KEY = "orange-roaming-prices-response"
     private const val REVIEWED_GREETING = "orange dzień dobry jestem max twój wi"
@@ -216,6 +218,13 @@ internal object GateCLiveCallScenarioFactory {
         OrangeLiveAction.VOICE_QUALITY_PROBLEM -> ReviewedTurn(
             ruleId = VOICE_QUALITY_PROBLEM_RULE_ID,
             factKey = VOICE_QUALITY_PROBLEM_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.OUTGOING_CALL_PROBLEM -> ReviewedTurn(
+            ruleId = OUTGOING_CALL_PROBLEM_RULE_ID,
+            factKey = OUTGOING_CALL_PROBLEM_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
             aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
