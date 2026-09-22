@@ -61,7 +61,7 @@ model/parser/matcher output
 1. preimplementation ownership audit;
 2. shared TaskGraph RED contracts;
 3. engine decision: minimal application-owned custom reducer; no KStateMachine production dependency;
-4. typed TaskGraph core with guards, bounded recovery, proposal/confirmation/commitment state kinds, terminal states, effects-as-data and deterministic versioned replay;
+4. typed `CustomTaskGraphCore` with guards, bounded recovery, proposal/confirmation/commitment state kinds, terminal states, effects-as-data and deterministic versioned replay;
 5. host `IdentityFieldId`, `AuthorizedFactSnapshot` and `FactDisclosurePolicy` contracts;
 6. host `BOOK_APPOINTMENT` TaskGraph and deterministic receptionist simulator;
 7. simulated proposal -> confirmation -> one-shot commitment -> completion path;
@@ -71,43 +71,51 @@ model/parser/matcher output
 11. fail-closed `SupervisorProposalValidator` for generation, allowed transition, slot scope, authority-bearing slot IDs and confidence;
 12. read-only `LocalTextCallGateDRuntime` owned by `LocalTextCallSession`;
 13. product composition of `TaskGraphDefinition + AuthorizedFactSnapshot` through Android/LocalPhone readiness -> coordinator -> prepared call -> session;
-14. real `LocalTextCallSession` finalized-turn selector can create one bounded Gate D observation for an explicitly host-bound shadow observer after the deterministic PhraseMatrix/CallPlan result is already decided;
-15. session-owned shadow epoch/lifecycle invalidates older queued turns and pending work on `cancel()` / `close()`; observer failure degrades to unchanged deterministic behavior;
-16. hypotheses are revalidated through `SupervisorProposalValidator` and exposed only as redacted candidate/`DialogueFit` diagnostics; plaintext identity/candidate values are absent from ordinary diagnostics;
+14. finalized-turn selector can create one bounded Gate D observation for an explicitly host-bound shadow observer after deterministic PhraseMatrix/CallPlan routing is already decided;
+15. session-owned shadow epoch/lifecycle invalidates older queued turns and pending work on cancel/close; observer failure degrades to unchanged deterministic behavior;
+16. hypotheses are revalidated through `SupervisorProposalValidator` and exposed only as redacted candidate/`DialogueFit` diagnostics;
 17. explicit application-owned `TaskGraphApplyBridge` re-checks graph version/state/generation, legal transition/event mapping, provenance, slot scope, authorization and schema before creating a typed event;
-18. rejected apply candidates never call the reducer; accepted reductions return snapshot/event evidence/effects as data only, with no workflow/speech/dial/identity/commitment authority in the bridge.
+18. rejected apply candidates never call the reducer; accepted reductions return snapshot/event evidence/effects as data only;
+19. reusable `AppointmentInterpreter` provides typed absolute/relative/weekday dates, times/time ranges, concrete offer candidates, deterministic accept/reject/alternative acts and identity-field request IDs;
+20. relative appointment interpretation has no hidden clock: it requires an explicit caller-supplied `referenceDate` and otherwise fails closed;
+21. `BookAppointmentSimulator` delegates offer parsing to the same interpreter, preserving the existing validation/confirmation/commitment owners and `extract -> validate -> commit`;
+22. appointment parser/matcher output remains candidate-only and has no TaskGraph/workflow/speech/dial/commitment/IdentityVault authority.
 
-The finalized-turn shadow lifecycle is `HOST_GREEN` at code checkpoint `4f7dcdd9051bc2090b5dde9ede3d688d17655f1e` (Android CI #471).
+Verification checkpoints:
 
-The TaskGraph apply boundary is `HOST_GREEN` at code checkpoint `052f20ea11d20b97ade324ee734a1cff1c43bec3` (Android CI #474). Its RED contract checkpoint is `8041ffa57181a6a5bf75581134b85d6d10347758` (Android CI #473 failed at Host quality gate as intended).
+- finalized-turn shadow lifecycle: `4f7dcdd9051bc2090b5dde9ede3d688d17655f1e`, Android CI #471 `success`;
+- TaskGraph apply bridge RED: `8041ffa57181a6a5bf75581134b85d6d10347758`, Android CI #473 Host quality gate failed as intended;
+- TaskGraph apply bridge GREEN: `052f20ea11d20b97ade324ee734a1cff1c43bec3`, Android CI #474 `success`;
+- appointment interpretation RED: `9a56ddf2bdc58b27b2ca52fae982637930a9b250`, Android CI #476 Host quality gate failed as intended;
+- appointment interpretation integrated GREEN checkpoint: `cd91a2dbaafdf570c9e3e67b132c02cb88c0cf96`, Android CI #482 `success`.
 
-Both remain host-side safety boundaries. The public Android session path does not bind a production shadow observer/provider and does not automatically apply shadow output. No graph effect is executable merely because the reducer returned it.
+During appointment verification the known `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` flake reappeared. Root-cause audit found no shared/static fixture or production media defect: the test waited for `transport.close()` although the session publishes `FAILED` only after cleanup returns. The test now waits on the existing `onTerminalState` callback. No production media/helper code changed.
+
+The public Android session path still binds no production shadow observer/provider and does not automatically apply shadow output. Graph effects remain inert data until existing application owners explicitly consume them.
 
 ## NEXT — exact execution order
 
-### 1. Finish generic appointment interpretation
+### 1. Expand deterministic replay/eval coverage
 
-Extract useful parsing logic from the simulator into reusable typed parsers/normalizers for:
+Build a host-only scripted Gate D evaluation corpus covering sequences rather than isolated turns:
 
-- dates, relative dates and weekdays;
-- times and time ranges;
-- offered appointment candidates;
-- accept/reject/alternative semantics;
-- common identity-field requests.
+- ambiguity and parser incompleteness;
+- contradiction;
+- repeated deterministic unknowns / recovery exhaustion;
+- unavailable slots and alternate offers;
+- unauthorized and high-sensitivity fact requests;
+- user rejection;
+- takeover and cancellation;
+- stale supervisor results;
+- clean recovery back toward deterministic handling.
 
-Add PhraseMatrix dialogue-act coverage where deterministic phrases are appropriate.
+For each scenario keep authoritative business outcome, TaskGraph replay, evidence ordering and `DialogueFit` reasons explicit. Do not invent model scores or execution authority.
 
-Start with a focused seam audit and RED contracts. Parsed values remain candidates until application-owned validation and the explicit apply bridge accept them. Do not move workflow, confirmation, commitment, speech or disclosure authority into parsers.
+Use the corpus to decide whether a small categorical hysteresis boundary is justified. If added, safety deterioration must be immediate; recovery must be evidence-backed and deterministic. Hysteresis remains diagnostic/routing policy only and must not approve a transition, proposal, speech, dial, disclosure or commitment.
 
-### 2. Expand deterministic replay/eval coverage
+### 2. Android IdentityVault persistence
 
-Add scripted scenarios for ambiguity, contradiction, repeated unknowns, unavailable slots, alternate offers, unauthorized/high-sensitivity fact requests, user rejection, takeover, cancellation and stale supervisor results.
-
-Use those scenarios to calibrate DialogueFit/hysteresis before live use. The current shadow integration intentionally avoids inventing numeric production scoring.
-
-### 3. Android IdentityVault persistence
-
-Only after the host disclosure contract is stable and before a real call requires personal data:
+Only after the host disclosure contract/eval corpus is stable and before a real call requires personal data:
 
 ```text
 app-private ciphertext storage
@@ -119,9 +127,9 @@ app-private ciphertext storage
 
 Do not implement new persistence with deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
 
-### 4. Product shadow/apply integration
+### 3. Product shadow/apply integration
 
-After the host shadow lifecycle, apply boundary and appointment interpretation are stable, bind an intentionally reviewed product observer/provider through an application-owned seam.
+After host shadow lifecycle, apply boundary, appointment interpretation and evaluation coverage are stable, bind an intentionally reviewed product observer/provider through an application-owned seam.
 
 The product composition must keep this order:
 
@@ -136,15 +144,15 @@ finalized turn
  -> existing workflow / proposal / confirmation / commitment / output owners
 ```
 
-Preserve the same session cancellation/generation rules and zero execution authority for the observer itself. Do not create a generic effect executor that bypasses existing owners.
+Preserve session cancellation/generation rules and zero execution authority for the observer itself. Do not create a generic effect executor that bypasses existing owners.
 
-### 5. Product integration verification
+### 4. Product integration verification
 
 Run targeted tests plus the canonical host gate. Add Android/device tests only for boundaries actually changed.
 
-Do not touch frozen Samsung media to make Gate D tests easier. If `CallRealtimeMediaSessionTest.pumpFailure...` reappears, audit test order/pollution before any media change.
+Do not touch frozen Samsung media to make Gate D tests easier. If a media timing test reappears, audit test ordering/synchronization first and keep any correction test-only unless a separate production root cause is proven.
 
-### 6. Real-world call gate
+### 5. Real-world call gate
 
 Only after host/simulation and required identity handling are strong:
 
