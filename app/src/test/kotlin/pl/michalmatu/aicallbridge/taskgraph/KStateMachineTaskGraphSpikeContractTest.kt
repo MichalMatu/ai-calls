@@ -60,8 +60,8 @@ private class KStateMachineTaskGraphSpikeCore(
             val source = machineStates.getValue(transition.from)
             source.transition<SpikeEvent>(transition.id.value) {
                 guard = {
-                    event.taskGraphEvent.id == transition.event &&
-                        transition.guard(snapshot, event.taskGraphEvent)
+                    this.event.taskGraphEvent.id == transition.event &&
+                        transition.guard(snapshot, this.event.taskGraphEvent)
                 }
                 targetState = machineStates.getValue(transition.to)
                 onTriggered { triggered = transition }
