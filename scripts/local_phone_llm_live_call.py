@@ -29,6 +29,7 @@ ORANGE_ACTION_LIST_CAPABILITIES = "list_capabilities"
 ORANGE_ACTION_INVOICE_STATUS = "invoice_status"
 ORANGE_ACTION_INVOICE_TOPIC = "invoice_topic"
 ORANGE_ACTION_INTERNET_PROBLEM = "internet_problem"
+ORANGE_ACTION_MOBILE_DATA_PROBLEM = "mobile_data_problem"
 ORANGE_ACTION_OUTAGE_TOPIC = "outage_topic"
 ORANGE_ACTION_WIFI_PROBLEM = "wifi_problem"
 ORANGE_ACTION_COVERAGE_INFO = "coverage_info"
@@ -49,6 +50,7 @@ ORANGE_LIVE_ACTIONS = frozenset({
     ORANGE_ACTION_INVOICE_STATUS,
     ORANGE_ACTION_INVOICE_TOPIC,
     ORANGE_ACTION_INTERNET_PROBLEM,
+    ORANGE_ACTION_MOBILE_DATA_PROBLEM,
     ORANGE_ACTION_OUTAGE_TOPIC,
     ORANGE_ACTION_WIFI_PROBLEM,
     ORANGE_ACTION_COVERAGE_INFO,
@@ -70,6 +72,7 @@ GATE_C_ROOT_ACQUISITION_ACTIONS = frozenset({
     ORANGE_ACTION_INVOICE_STATUS,
     ORANGE_ACTION_INVOICE_TOPIC,
     ORANGE_ACTION_INTERNET_PROBLEM,
+    ORANGE_ACTION_MOBILE_DATA_PROBLEM,
     ORANGE_ACTION_OUTAGE_TOPIC,
     ORANGE_ACTION_WIFI_PROBLEM,
     ORANGE_ACTION_COVERAGE_INFO,
@@ -90,6 +93,7 @@ ORANGE_REVIEWED_RESPONSES = {
     ORANGE_ACTION_INVOICE_STATUS: "Chcę sprawdzić fakturę.",
     ORANGE_ACTION_INVOICE_TOPIC: "Faktura.",
     ORANGE_ACTION_INTERNET_PROBLEM: "Mam problem z internetem.",
+    ORANGE_ACTION_MOBILE_DATA_PROBLEM: "Nie działają mi dane komórkowe.",
     ORANGE_ACTION_OUTAGE_TOPIC: "Awaria.",
     ORANGE_ACTION_WIFI_PROBLEM: "Mam problem z Wi-Fi.",
     ORANGE_ACTION_COVERAGE_INFO: "Chcę sprawdzić zasięg.",
@@ -573,7 +577,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             raise ValueError(
                 "usage: local_phone_llm_live_call.py [adb-serial] "
                 "[LOCAL_PHONE_LLM|EDGE_GALLERY] [--gate-c-fast-path] "
-                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|outage_topic|wifi_problem|coverage_info|internet_config|mms_config|manual_network_selection|sms_problem|sms_receive_problem|voice_quality_problem|outgoing_call_problem|incoming_call_problem|roaming_info|roaming_prices|observe_only] [--observe-next]"
+                "[--orange-action greeting|list_capabilities|invoice_status|invoice_topic|internet_problem|mobile_data_problem|outage_topic|wifi_problem|coverage_info|internet_config|mms_config|manual_network_selection|sms_problem|sms_receive_problem|voice_quality_problem|outgoing_call_problem|incoming_call_problem|roaming_info|roaming_prices|observe_only] [--observe-next]"
             )
         serial = args[0] if args else DEFAULT_SERIAL
         provider = args[1] if len(args) == 2 else LOCAL_PHONE_PROVIDER
