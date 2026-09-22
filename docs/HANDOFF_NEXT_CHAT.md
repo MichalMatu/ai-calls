@@ -32,15 +32,33 @@ Last code/data checkpoint before the documentation-only stabilization refresh:
 40b04c6c269ed327abb0742cb66f6f64b8f2b545
 ```
 
-That checkpoint contains the persisted final overnight physical evidence (`v264`) and aligned tests. Always use fresh `origin/main` rather than assuming this SHA is current HEAD.
+That checkpoint contains the persisted final overnight physical evidence (`v264`) and aligned tests.
 
-The final stabilization gate for the documentation/checkpoint HEAD is expected at:
+The full stabilization seal gate passed on documentation/checkpoint HEAD:
+
+```text
+54650bc835af0085fa6b0c952d5fdb92b2251936
+```
+
+Terminal evidence:
 
 ```text
 .agent/results/chatgpt-stabilization-checkpoint-v267-20260922.json
 ```
 
-A later session must inspect the terminal result rather than assuming it passed merely because the task exists.
+`v267` proved:
+
+```text
+46 Orange Python tests: OK
+bash scripts/verify_host.sh: GREEN
+no privileged-helper/ or audio-bridge/ changes since code/data checkpoint
+no serviceintent/ changes since code/data checkpoint
+remote branches: agent-control, main
+FINAL_CALL_STATE=0
+STABILIZATION_CHECKPOINT_VERIFIED=true
+```
+
+The only post-seal repository change is this documentation-only handoff refresh. Always use fresh `origin/main` rather than assuming any hash in this file is still HEAD.
 
 ## Orange service tree state
 
@@ -157,14 +175,22 @@ These are root-acquisition diagnostic exceptions only. Do not broaden them into 
 
 ## Repository cleanup state
 
-The intended branch set is now exactly:
+The intended **remote** branch set is exactly:
 
 ```text
 main
 agent-control
 ```
 
-No temporary product/experiment branch needs to be preserved for handoff. Git history and `.agent/results` carry experiment history.
+No temporary remote product/experiment branch is required for continuation.
+
+Local cleanup task:
+
+```text
+.agent/results/chatgpt-stabilization-local-cleanup-v268-20260922.json
+```
+
+`v268` pruned a dead temporary worktree registration. It also inspected local branch `chat-relay/orange-chatgpt-pump-v1` and found 21 commits not present on any remote, so that local historical branch was deliberately preserved rather than deleted. It has no active worktree and is not part of the continuation path. Do not delete it casually until those unique commits are intentionally archived or judged disposable.
 
 The obsolete paste-ready overnight prompt has been removed. There should be no paste-ready prompt in the repository. The durable procedure is `docs/ORANGE_MAPPING_RUNBOOK.md`.
 
