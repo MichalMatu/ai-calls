@@ -21,9 +21,10 @@
       "observed_prompt": "abym mógł ci pomóc muszę mieć pewność w jakiej sprawie dzwonisz dlatego powiedz proszę czego dotyczy twoja sprawa",
       "evidence_task": "chatgpt-orange-explorer-live-v115-20260921",
       "observed_prompt_variants": [
-        "przepraszam nie zrozumiałem czy możesz jeszcze raz powiedzieć o co chodzi"
+        "przepraszam nie zrozumiałem czy możesz jeszcze raz powiedzieć o co chodzi",
+        "niestety nie jestem pewien w czym mogę ci pomóc czy możesz dokładniej opisać problem"
       ],
-      "latest_variant_evidence_task": "chatgpt-orange-internet-config-live-v205-20260922"
+      "latest_variant_evidence_task": "chatgpt-orange-mms-config-live-v209-20260922"
     }
   ],
   "edges": [
@@ -152,6 +153,19 @@
       "evidence_task": "chatgpt-orange-internet-config-live-v205-20260922",
       "observation_endpoint_reason": "trailing_silence",
       "service_route_verified": false
+    },
+    {
+      "id": "orange.root.mms_config",
+      "from": "orange.root",
+      "to": "orange.root.reprompt",
+      "action_id": "mms_config",
+      "speech": "Jak skonfigurować MMS w telefonie?",
+      "status": "VERIFIED",
+      "risk": "READ_ONLY",
+      "observed_outcome": "REPROMPT",
+      "evidence_task": "chatgpt-orange-mms-config-live-v209-20260922",
+      "observation_endpoint_reason": "trailing_silence",
+      "service_route_verified": false
     }
   ],
   "seeds": [
@@ -239,9 +253,9 @@
       "speech": "Jak skonfigurować MMS w telefonie?",
       "risk": "AUTH_REQUIRED_POSSIBLE",
       "source": "operator_public_support_backlog",
-      "last_evidence": "public_orange_support_page",
-      "last_outcome": "NOT_PHYSICALLY_PROBED",
-      "next_evidence": "physical_route_required; service_route_not_verified"
+      "last_evidence": "chatgpt-orange-mms-config-live-v209-20260922",
+      "last_outcome": "REPROMPT",
+      "next_evidence": "refine_reviewed_utterance_or_operator_vocabulary; service_route_not_verified"
     }
   ],
   "root_acquisition_observations": [
@@ -265,6 +279,13 @@
       "kind": "IGNORABLE_PREROLL_FRAGMENT",
       "effect": "BOUNDED_RETRY_ALLOWED",
       "evidence_task": "chatgpt-orange-roaming-prices-live-retry-v172-20260922"
+    },
+    {
+      "transcript": "5g jakości orange",
+      "status": "VERIFIED",
+      "kind": "IGNORABLE_PREROLL_FRAGMENT",
+      "effect": "BOUNDED_RETRY_ALLOWED",
+      "evidence_task": "chatgpt-orange-mms-config-live-v209-20260922"
     }
   ]
 }
