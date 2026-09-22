@@ -33,7 +33,7 @@ enum class FactDisclosureDecision {
 
 /**
  * Per-task authorization metadata only. Identity plaintext remains in the IdentityVault boundary.
- * All field sets are defensively copied so later caller mutation cannot widen disclosure authority.
+ * Collections are defensively copied so later caller mutation cannot widen disclosure authority.
  */
 class AuthorizedFactSnapshot(
     val task: CallTask,
@@ -42,15 +42,24 @@ class AuthorizedFactSnapshot(
     availableFields: Set<IdentityFieldId>,
     authorizedFields: Set<IdentityFieldId>,
     highSensitivityApprovedFields: Set<IdentityFieldId> = emptySet(),
+    allowedDisclosureStates: Map<IdentityFieldId, Set<TaskGraphStateId>> = emptyMap(),
 ) {
     val availableFields: Set<IdentityFieldId> = availableFields.toSet()
     val authorizedFields: Set<IdentityFieldId> = authorizedFields.toSet()
     val highSensitivityApprovedFields: Set<IdentityFieldId> = highSensitivityApprovedFields.toSet()
+    val allowedDisclosureStates: Map<IdentityFieldId, Set<TaskGraphStateId>> =
+        allowedDisclosureStates.mapValues { (_, states) -> states.toSet() }.toMap()
 
     init {
         require(generation >= 0L)
         require(this.highSensitivityApprovedFields.all { it in this.authorizedFields }) {
             "high-sensitivity approvals must also be task-authorized"
+        }
+        require(this.allowedDisclosureStates.keys.all { it in this.authorizedFields }) {
+            "disclosure state scopes must reference task-authorized fields"
+        }
+        require(this.authorizedFields.all { this.allowedDisclosureStates[it].orEmpty().isNotEmpty() }) {
+            "every task-authorized field needs at least one allowed disclosure state"
         }
     }
 }
@@ -102,6 +111,10 @@ class DefaultFactDisclosurePolicy : FactDisclosurePolicy {
 
         if (request.fieldId !in snapshot.authorizedFields) {
             return FactDisclosureDecision.ASK_USER
+        }
+
+        if (request.currentState !in snapshot.allowedDisclosureStates.getValue(request.fieldId)) {
+            return FactDisclosureDecision.DENY
         }
 
         if (
