@@ -193,21 +193,8 @@ internal class LocalTextCallSession private constructor(
         pipeline.start(
             listener,
             LocalSpeechFinalTurnRouteSelector { finalTranscript ->
-                val turnResult = handlePlanFinalTranscript(finalTranscript)
-                val selection = CallPlanFinalTurnRouteMapper.map(turnResult)
+                val selection = processFinalizedTranscript(finalTranscript)
                 selection.structuredResult?.let(planTurnListener::onStructuredResult)
-                val deterministicAction = turnResult.decision().action()
-                val recoveryCount = currentRecoveryCount()
-                activateGateDProductIntegration(
-                    finalTranscript = finalTranscript,
-                    deterministicAction = deterministicAction,
-                    recoveryCount = recoveryCount,
-                )
-                activateGateDShadow(
-                    finalTranscript = finalTranscript,
-                    deterministicAction = deterministicAction,
-                    recoveryCount = recoveryCount,
-                )
                 selection.route
             },
         )
@@ -233,6 +220,18 @@ internal class LocalTextCallSession private constructor(
     ): Boolean = pipeline.writeInputPcm(bytes, offset, length)
 
     fun finishInput() = pipeline.finishInput()
+
+    /**
+     * Explicit test/diagnostic ingress for one already-finalized transcript. It uses the exact same
+     * PhraseMatrix/CallPlan + Gate D finalized-turn processing as an STT-finalized turn, while
+     * bypassing pipeline start, STT/audio input, backend generation and TTS/media output.
+     *
+     * The returned route/result is inert data. This method does not dial, widen a target, disclose
+     * identity facts, approve a proposal or user confirmation, consume commitment authority, release
+     * speech, or claim completion authority.
+     */
+    internal fun injectSyntheticFinalTranscript(finalTranscript: String): CallPlanFinalTurnSelection =
+        processFinalizedTranscript(finalTranscript)
 
     /**
      * Routes one already-final transcript through the optional PhraseMatrix fast path and then the
@@ -302,6 +301,24 @@ internal class LocalTextCallSession private constructor(
             hypothesis = hypothesis,
             allowedNonSecretSlots = allowedNonSecretSlots,
         )
+
+    private fun processFinalizedTranscript(finalTranscript: String): CallPlanFinalTurnSelection {
+        val turnResult = handlePlanFinalTranscript(finalTranscript)
+        val selection = CallPlanFinalTurnRouteMapper.map(turnResult)
+        val deterministicAction = turnResult.decision().action()
+        val recoveryCount = currentRecoveryCount()
+        activateGateDProductIntegration(
+            finalTranscript = finalTranscript,
+            deterministicAction = deterministicAction,
+            recoveryCount = recoveryCount,
+        )
+        activateGateDShadow(
+            finalTranscript = finalTranscript,
+            deterministicAction = deterministicAction,
+            recoveryCount = recoveryCount,
+        )
+        return selection
+    }
 
     private fun activateGateDProductIntegration(
         finalTranscript: String,
