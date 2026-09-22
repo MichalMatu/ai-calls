@@ -8,7 +8,11 @@
       "status": "VERIFIED",
       "kind": "VOICE_INTENT_ROUTER",
       "observed_prompt": "dobry wieczór jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana chętnie pomogę powiedz w jakiej sprawie dzwonisz",
-      "evidence_task": "chatgpt-orange-explorer-live-v115-20260921"
+      "evidence_task": "chatgpt-orange-explorer-live-v115-20260921",
+      "observed_prompt_variants": [
+        "dzień dobry jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana chętnie pomogę powiedz w jakiej sprawie dzwonisz"
+      ],
+      "latest_variant_evidence_task": "chatgpt-orange-wifi-live-v193-20260922"
     },
     {
       "id": "orange.root.reprompt",
