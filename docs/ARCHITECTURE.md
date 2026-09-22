@@ -10,7 +10,8 @@ Bridge an ordinary cellular call on the target Samsung S22+ to a bounded autonom
 4. task/service knowledge;
 5. task/workflow authority;
 6. optional bounded LLM/Skill supervision;
-7. user takeover and fail-safe cleanup.
+7. personal-data disclosure authority;
+8. user takeover and fail-safe cleanup.
 
 Failure must move toward a normal human call or a safe stop. Counterparty speech, model text, service-pack data and helper/tool output never widen authority by themselves.
 
@@ -54,6 +55,83 @@ The existing domain model remains authoritative:
 `CallPlan`, TaskGraph, PhraseMatrix, service packs, models and Skills reference or propose into those owners; none is a parallel authority store.
 
 `CallPlanEngine` can produce only typed `SAY`, `ASK_REPEAT`, `PROPOSAL`, `COMPLETE`, or `TAKE_OVER` decisions. `CallPlanTurnCoordinator` applies typed proposal/completion decisions through existing workflow APIs and rejects task/target/state mismatch fail-closed.
+
+## Personal identity and fact-disclosure boundary
+
+Gate D must not treat persistent identity data as ordinary TaskGraph slots.
+
+Keep three stores conceptually separate:
+
+```text
+IdentityVault
+  durable user identity/contact facts
+  e.g. first name, last name, phone, email, address, date of birth, PESEL
+
+TaskState / CallTask
+  facts and permissions authorized for this one task
+  + task constraints/preferences
+
+DialogueState
+  transient facts learned during this call
+  e.g. offered appointment = Thursday 17:30
+```
+
+### IdentityVault
+
+`IdentityVault` is a product data source, not an authority owner and not model memory.
+
+Target contract:
+
+```text
+IdentityFieldId
++ encrypted stored value
++ sensitivity metadata
++ provenance / last-updated metadata
+        |
+        v
+per-task authorization
+        |
+        v
+AuthorizedFactSnapshot / fact reference
+        |
+        v
+CallTask
+```
+
+The first implementation should expose a narrow typed interface rather than a generic key/value bag. Persistent secret values must not be copied into TaskGraph definitions, ServicePacks, event logs or prompts.
+
+The Android implementation should use app-private encrypted storage with cryptographic key material protected by Android Keystore. Do not build a new vault on deprecated `EncryptedSharedPreferences` / `MasterKey`. The storage format must be versioned and backup/restore behavior must be explicit because encrypted records are useless or dangerous if restored without the corresponding key semantics.
+
+### FactDisclosurePolicy
+
+Having a value in `IdentityVault` does not mean the call may disclose it.
+
+A dedicated application-owned disclosure decision should evaluate at minimum:
+
+```text
+task id / purpose
++ exact target
++ current TaskGraph state
++ requested IdentityFieldId
++ field sensitivity
++ per-task authorization
++ live/test mode
++ optional user-auth requirement
+```
+
+Result should be typed, e.g.:
+
+```text
+ALLOW
+ASK_USER
+DENY
+```
+
+High-sensitivity identifiers such as PESEL should default to explicit per-task authorization and may additionally require device/user authentication at disclosure time.
+
+The actual secret value should be resolved as late as practical, ideally only when an already-approved deterministic `SAY`/typed disclosure action is being rendered. A supervisor usually needs to know that an authorized field is available, not its plaintext value.
+
+If a counterparty requests a fact not authorized for the current task, the correct behavior is `ASK_USER`, `TAKE_OVER`, defer, or fail closed — never model invention.
 
 ## Product knowledge layers
 
@@ -132,6 +210,7 @@ Pre-dial ownership remains:
 ```text
 CallWorkflow + explicit target authorization
  + CallTask
+ + authorized fact references/snapshot
  + optional TaskGraph
  + optional service pack
  + optional CallPlan
@@ -142,7 +221,8 @@ LocalTextCallReadinessCoordinator
         |
         +-> STT/TTS preflight
         +-> selected backend/supervisor readiness if enabled
-        +-> task/target/plan consistency
+        +-> task/target/plan/graph consistency
+        +-> required fact availability/authorization checks
         |
         v
 PreparedLocalTextCall
@@ -163,9 +243,11 @@ Current Android speech pipeline:
 PCM input
  -> OnDeviceSpeechInput
  -> final transcript
- -> product-owned final-turn selector
+ -> product-owned interpretation plane
       deterministic matcher/parser first
-      bounded supervisor only when needed
+      shadow supervisor observation in parallel when enabled
+      DialogueFit evaluation
+      bounded supervisor proposal only when escalation policy requests it
       validated existing rule/transition only
  -> CallPlan / typed decision
  -> TextCallFinalTurnDispatcher
@@ -219,11 +301,64 @@ Gate D adds deterministic typed parsers/normalizers for high-value appointment d
 
 Do not broaden fuzzy matching simply to make unknown counterparty speech pass.
 
-## Hybrid supervisor boundary
+## Shadow supervisor + DialogueFit
 
 Status: **ACTIVE DESIGN TARGET FOR GATE D**, after deterministic TaskGraph simulation is green.
 
-The bounded LLM supervisor is useful for natural-language variation and ambiguous turns, but its output is proposal/classification only.
+The supervisor has two distinct roles that must not be conflated.
+
+### Observation plane
+
+When enabled, the LLM may observe every **finalized** counterparty turn from the beginning of the call in shadow mode. It receives bounded context such as:
+
+```text
+task goal / current TaskGraph state
++ allowed transitions
++ slot schema and already validated non-secret slots
++ availability of authorized identity fields (not plaintext secrets by default)
++ bounded recent dialogue / summary
++ final counterparty transcript
+```
+
+Shadow output is quarantined interpretation only. It cannot mutate TaskGraph, CallWorkflow, authorized facts, output text or commitment state.
+
+This lets the supervisor maintain context before it is needed, so escalation does not start from a cold prompt.
+
+### Decision plane
+
+The deterministic engine remains primary. A separate application-owned `DialogueFit`/escalation policy decides whether the current turn is sufficiently understood.
+
+Do **not** define DialogueFit as one opaque LLM confidence number or raw text similarity. It should combine observable signals such as:
+
+- STT confidence/quality signal when available;
+- PhraseMatrix match kind/confidence;
+- typed parser completeness/confidence;
+- compatibility with transitions expected from the current TaskGraph state;
+- contradiction/negation signals;
+- missing required slots;
+- repeated unknown/recovery count;
+- disagreement between deterministic interpretation and shadow observation.
+
+Prefer an explainable categorical result initially, for example:
+
+```text
+HIGH       -> deterministic transition/action
+UNCERTAIN  -> deterministic clarification or optional supervisor check
+LOW        -> supervisor proposal required
+BROKEN     -> recovery / TAKE_OVER / safe stop
+```
+
+Any internal numeric score/thresholds must be calibrated from scripted/simulated scenario evidence rather than guessed and should use hysteresis/debouncing to avoid flapping between deterministic and supervisor modes.
+
+### Bounded supervisor proposal
+
+When escalation policy requests help, the supervisor may propose only bounded structured data:
+
+```text
+existing TaskGraph transition ID
++ typed slot values
++ confidence/diagnostic metadata
+```
 
 Target shape:
 
@@ -232,6 +367,7 @@ current TaskGraph state
 + bounded existing transitions
 + allowed slot schema
 + final counterparty transcript
++ shadow context
         |
         v
 LLM supervisor
@@ -289,11 +425,44 @@ User request
  -> Skill builds/updates bounded CallTask
  -> selects existing TaskGraph/service pack
  -> gathers missing pre-call facts/preferences
+ -> requests per-task authorization for needed IdentityFieldIds
  -> may suggest existing transition/slot
  -> application authority validates everything
 ```
 
-Skills do not directly widen target allowlists, speak arbitrary telephony text, invent credentials, commit bookings/purchases, or bypass workflow/confirmation/commitment/output approval.
+Skills do not directly widen target allowlists, speak arbitrary telephony text, invent credentials, read the entire IdentityVault, commit bookings/purchases, or bypass workflow/confirmation/commitment/output approval.
+
+## External design patterns to adopt, not import blindly
+
+Gate D should reuse proven ideas from mature conversation/workflow systems while keeping the current Kotlin/S22 authority boundaries.
+
+### Pipecat Flows pattern
+
+Adopt the separation where graph/configuration owns legal transitions and handlers return structured data/results instead of choosing arbitrary next nodes. Keep per-stage context/tool/action surfaces narrow. This maps well to TaskGraph + typed parser/supervisor results.
+
+Do **not** import Pipecat as the Android product runtime; its useful contribution here is the flow contract and evaluation ideas.
+
+### XState/statechart pattern
+
+Adopt:
+
+- pure deterministic guards;
+- explicit states/events/context separation;
+- serializable/versioned graph data where practical;
+- event sourcing/replay for audit and deterministic simulation;
+- side effects outside transition/guard logic.
+
+The Kotlin TaskGraph can implement these semantics without a JavaScript runtime dependency.
+
+### LiveKit task/workflow pattern
+
+Adopt small, reusable tasks that return typed results rather than one mega-agent owning everything. Appointment subtasks such as name/contact verification, slot parsing, disclosure consent and final confirmation should compose into the parent TaskGraph while the parent session remains authoritative.
+
+### Slot-filling pattern
+
+Adopt the durable idea used by form/dialogue systems: explicit required/optional slots, typed extraction, validation after extraction, dynamic requirements and explicit unhappy-path handling. Do not accept a slot merely because an NLU/LLM extracted a value.
+
+These references are design inputs, not new sources of authority and not automatic dependency choices.
 
 ## Provider boundary
 
@@ -352,4 +521,4 @@ Evidence labels stay strict:
 - `service_route_verified=true` — the intended service route itself was physically proven;
 - `PRODUCT_READY` — the bounded product task is proven, fail-safe and acceptable for normal use.
 
-Host-only matcher/TaskGraph/supervisor changes require physical S22 evidence only when a later slice actually changes or exercises Android/OEM/live-dialogue behavior.
+Host-only matcher/TaskGraph/supervisor/vault-contract changes require physical S22 evidence only when a later slice actually changes or exercises Android/OEM/live-dialogue behavior.
