@@ -58,7 +58,24 @@ FINAL_CALL_STATE=0
 STABILIZATION_CHECKPOINT_VERIFIED=true
 ```
 
-The only post-seal repository change is this documentation-only handoff refresh. Always use fresh `origin/main` rather than assuming any hash in this file is still HEAD.
+Final handoff sanity was then proven on documentation HEAD:
+
+```text
+3cee94299186d0b110b55ee64fd1f27c370c5b73
+.agent/results/chatgpt-stabilization-handoff-final-v269-20260922.json
+```
+
+`v269` proved:
+
+```text
+remote branches: agent-control, main
+active worktree count: 1
+local chat-relay/orange-chatgpt-pump-v1 unique commits: 21 (preserved)
+FINAL_CALL_STATE=0
+STABILIZATION_HANDOFF_FINALIZED=true
+```
+
+This file was updated directly afterward only to record that final result. No runtime, Orange service-tree, frozen media or `serviceintent/` code changed after the green seal gate. Always use fresh `origin/main` rather than assuming any hash in this file is still HEAD.
 
 ## Orange service tree state
 
