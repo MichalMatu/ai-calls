@@ -33,6 +33,8 @@ data class TaskGraphContext(
 
     fun with(id: TaskGraphSlotId, value: TaskGraphSlotValue): TaskGraphContext =
         TaskGraphContext(values + (id to value))
+
+    internal fun asMap(): Map<TaskGraphSlotId, TaskGraphSlotValue> = values.toMap()
 }
 
 enum class TaskGraphStateKind {

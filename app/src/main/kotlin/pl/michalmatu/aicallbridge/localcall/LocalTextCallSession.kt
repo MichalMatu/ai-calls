@@ -4,6 +4,7 @@ import android.content.Context
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueHypothesis
 import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObservation
+import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObserver
 import pl.michalmatu.aicallbridge.dialogue.SupervisorProposalValidation
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFinalTurnRouteSelector
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
@@ -20,14 +21,18 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
  *
  * CallPlan routing remains structured only here: this class does not synthesize or transmit plan
  * output directly, authorize commitment, approve proposals, or fall back to a backend/model.
- * Optional Gate D context is exposed only through a read-only shadow observation/proposal boundary;
- * this session does not reduce TaskGraph events or execute supervisor candidates.
+ * Optional Gate D context remains shadow-only: finalized plan turns may create one bounded
+ * observation for an explicitly host-bound observer, but this session never reduces TaskGraph
+ * events or executes supervisor candidates.
  */
 internal class LocalTextCallSession private constructor(
     private val pipeline: Pipeline,
     private val planTurnCoordinator: CallPlanTurnCoordinator?,
     phraseMatrix: PhraseMatrix?,
     private val gateDRuntime: LocalTextCallGateDRuntime?,
+    gateDSnapshot: TaskGraphSnapshot?,
+    gateDMaxRecoveryCount: Int,
+    gateDShadowDependencies: GateDShadowDependencies?,
 ) : AutoCloseable {
     internal interface Pipeline : AutoCloseable {
         fun start(listener: LocalSpeechTextPipeline.Listener)
@@ -60,6 +65,12 @@ internal class LocalTextCallSession private constructor(
         fun onStructuredDecision(action: CallPlanAction, ruleId: String?)
     }
 
+    private data class GateDShadowDependencies(
+        val observer: ShadowDialogueObserver,
+        val executor: GateDShadowExecutor,
+        val diagnosticsListener: GateDShadowDiagnosticsListener,
+    )
+
     private val phraseMatrixTurnRouter: PhraseMatrixProductTurnRouter? =
         if (phraseMatrix != null) {
             PhraseMatrixProductTurnRouter(
@@ -70,13 +81,28 @@ internal class LocalTextCallSession private constructor(
             null
         }
 
+    private val gateDShadowLifecycle: LocalTextCallGateDShadowLifecycle? =
+        gateDShadowDependencies?.let { dependencies ->
+            LocalTextCallGateDShadowLifecycle(
+                runtime = checkNotNull(gateDRuntime) { "gate_d_shadow_requires_runtime" },
+                authoritativeSnapshot = checkNotNull(gateDSnapshot) {
+                    "gate_d_shadow_requires_snapshot"
+                },
+                maxRecoveryCount = gateDMaxRecoveryCount,
+                observer = dependencies.observer,
+                executor = dependencies.executor,
+                diagnosticsListener = dependencies.diagnosticsListener,
+            )
+        }
+
     private val planFallbackLock = Any()
     private var consecutiveUnknownCount = 0
     private var previousValidatedRuleId: String? = null
 
-    internal constructor(
+    private constructor(
         prepared: PreparedLocalTextCall,
         pipelineFactory: PipelineFactory,
+        gateDShadowDependencies: GateDShadowDependencies?,
     ) : this(
         pipeline = claimPipeline(prepared, pipelineFactory),
         planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
@@ -88,6 +114,34 @@ internal class LocalTextCallSession private constructor(
                 authorizedFacts = prepared.authorizedFacts,
             )
         },
+        gateDSnapshot = prepared.taskGraph?.initialSnapshot(),
+        gateDMaxRecoveryCount = prepared.taskGraph?.maxRecoveryCount ?: 0,
+        gateDShadowDependencies = gateDShadowDependencies,
+    )
+
+    internal constructor(
+        prepared: PreparedLocalTextCall,
+        pipelineFactory: PipelineFactory,
+    ) : this(
+        prepared = prepared,
+        pipelineFactory = pipelineFactory,
+        gateDShadowDependencies = null,
+    )
+
+    internal constructor(
+        prepared: PreparedLocalTextCall,
+        pipelineFactory: PipelineFactory,
+        gateDShadowObserver: ShadowDialogueObserver,
+        gateDShadowExecutor: GateDShadowExecutor,
+        gateDShadowDiagnosticsListener: GateDShadowDiagnosticsListener,
+    ) : this(
+        prepared = prepared,
+        pipelineFactory = pipelineFactory,
+        gateDShadowDependencies = GateDShadowDependencies(
+            observer = gateDShadowObserver,
+            executor = gateDShadowExecutor,
+            diagnosticsListener = gateDShadowDiagnosticsListener,
+        ),
     )
 
     fun start(listener: LocalSpeechTextPipeline.Listener) {
@@ -106,10 +160,14 @@ internal class LocalTextCallSession private constructor(
         pipeline.start(
             listener,
             LocalSpeechFinalTurnRouteSelector { finalTranscript ->
-                val selection = CallPlanFinalTurnRouteMapper.map(
-                    handlePlanFinalTranscript(finalTranscript),
-                )
+                val turnResult = handlePlanFinalTranscript(finalTranscript)
+                val selection = CallPlanFinalTurnRouteMapper.map(turnResult)
                 selection.structuredResult?.let(planTurnListener::onStructuredResult)
+                activateGateDShadow(
+                    finalTranscript = finalTranscript,
+                    deterministicAction = turnResult.decision().action(),
+                    recoveryCount = currentRecoveryCount(),
+                )
                 selection.route
             },
         )
@@ -205,9 +263,38 @@ internal class LocalTextCallSession private constructor(
             allowedNonSecretSlots = allowedNonSecretSlots,
         )
 
-    fun cancel() = pipeline.cancel()
+    private fun activateGateDShadow(
+        finalTranscript: String,
+        deterministicAction: CallPlanAction,
+        recoveryCount: Int,
+    ) {
+        try {
+            gateDShadowLifecycle?.onFinalizedTurn(
+                finalizedTranscript = finalTranscript,
+                deterministicAction = deterministicAction,
+                recoveryCount = recoveryCount,
+            )
+        } catch (_: Throwable) {
+            // Shadow observation is diagnostic only and must never change deterministic routing.
+        }
+    }
 
-    override fun close() = pipeline.close()
+    private fun currentRecoveryCount(): Int = synchronized(planFallbackLock) {
+        consecutiveUnknownCount
+    }
+
+    fun cancel() {
+        gateDShadowLifecycle?.cancel()
+        pipeline.cancel()
+    }
+
+    override fun close() {
+        try {
+            gateDShadowLifecycle?.close()
+        } finally {
+            pipeline.close()
+        }
+    }
 
     companion object {
         fun create(

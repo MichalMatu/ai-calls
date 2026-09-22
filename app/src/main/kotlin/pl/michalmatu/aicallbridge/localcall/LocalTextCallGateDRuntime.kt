@@ -33,6 +33,15 @@ internal class LocalTextCallGateDRuntime(
     fun createShadowObservation(
         snapshot: TaskGraphSnapshot,
         finalizedTranscript: String,
+    ): ShadowDialogueObservation = createShadowObservation(
+        snapshot = snapshot,
+        finalizedTranscript = finalizedTranscript,
+        validatedNonSecretSlots = snapshot.context.asMap(),
+    )
+
+    fun createShadowObservation(
+        snapshot: TaskGraphSnapshot,
+        finalizedTranscript: String,
         validatedNonSecretSlots: Map<TaskGraphSlotId, TaskGraphSlotValue>,
     ): ShadowDialogueObservation {
         requireBoundSnapshot(snapshot)
@@ -42,7 +51,7 @@ internal class LocalTextCallGateDRuntime(
             state = snapshot.state,
             allowedTransitions = allowedTransitions(snapshot.state),
             validatedSlots = validatedNonSecretSlots,
-            availableFacts = availableFactIds(snapshot.state),
+            availableFacts = availableFactIds(snapshot.state, snapshot.generation),
             finalizedTranscript = finalizedTranscript,
         )
     }
@@ -73,7 +82,7 @@ internal class LocalTextCallGateDRuntime(
         check(observation.allowedTransitions == allowedTransitions(observation.state)) {
             "gate_d_observation_transition_scope_mismatch"
         }
-        check(observation.availableFacts == availableFactIds(observation.state)) {
+        check(observation.availableFacts == availableFactIds(observation.state, observation.generation)) {
             "gate_d_observation_fact_scope_mismatch"
         }
     }
@@ -85,8 +94,9 @@ internal class LocalTextCallGateDRuntime(
             .map { transition -> transition.id }
             .toSet()
 
-    private fun availableFactIds(state: TaskGraphStateId): Set<IdentityFieldId> {
+    private fun availableFactIds(state: TaskGraphStateId, generation: Long): Set<IdentityFieldId> {
         val facts = authorizedFacts ?: return emptySet()
+        if (facts.generation != generation) return emptySet()
         return facts.authorizedFields
             .asSequence()
             .filter { field -> field in facts.availableFields }
