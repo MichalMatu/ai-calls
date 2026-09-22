@@ -21,7 +21,7 @@ LIVE_TEXT_PROVIDERS = frozenset({LOCAL_PHONE_PROVIDER, EDGE_GALLERY_PROVIDER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
 REPORT_PATH = "files/local-phone-llm-live-call-report.txt"
 PROBE_TIMEOUT_SECONDS = 100.0
-GATE_C_IGNORABLE_PREROLLS = frozenset({"orange", "jakości orange", "5g jakości orange", "kości orange", "wielkości orange"})
+GATE_C_IGNORABLE_PREROLLS = frozenset({"orange", "jakości orange", "5g jakości orange", "kości orange", "wielkości orange", "g jakości orange"})
 MAX_GATE_C_PREROLL_RETRIES = 2
 
 ORANGE_ACTION_GREETING = "greeting"

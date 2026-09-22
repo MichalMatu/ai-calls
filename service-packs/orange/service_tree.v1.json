@@ -130,6 +130,13 @@
       "kind": "IGNORABLE_PREROLL_FRAGMENT",
       "effect": "BOUNDED_RETRY_ALLOWED",
       "evidence_task": "chatgpt-orange-roaming-prices-live-v167-20260922"
+    },
+    {
+      "transcript": "g jakości orange",
+      "status": "VERIFIED",
+      "kind": "IGNORABLE_PREROLL_FRAGMENT",
+      "effect": "BOUNDED_RETRY_ALLOWED",
+      "evidence_task": "chatgpt-orange-roaming-prices-live-retry-v172-20260922"
     }
   ]
 }
