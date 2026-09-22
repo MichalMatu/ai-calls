@@ -140,6 +140,29 @@ class GateCLiveCallScenarioTest {
     }
 
     @Test
+    fun `orange wifi problem seed uses one reviewed non committing utterance`() {
+        val scenario = GateCLiveCallScenarioFactory.create(
+            GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
+            OrangeLiveAction.WIFI_PROBLEM,
+        )
+        val observedRoot =
+            "dobry wieczór jestem max twój wirtualny asystent orange nasza rozmowa jest nagrywana " +
+                "chętnie pomogę powiedz w jakiej sprawie dzwonisz"
+
+        val match = scenario.phraseMatrix.match(observedRoot)
+        assertNotNull(match)
+        val decision = CallPlanHelperValidator().validate(
+            scenario.callPlan,
+            CallPlanHelperSuggestion(checkNotNull(match).ruleId),
+            0,
+        )
+        assertEquals(CallPlanAction.SAY, decision.action())
+        assertEquals("Mam problem z Wi-Fi.", decision.text())
+        assertEquals(0, scenario.callPlan.proposalRules().size)
+        assertEquals(0, scenario.callPlan.completionRules().size)
+    }
+
+    @Test
     fun `orange outage topic seed uses one reviewed non committing utterance`() {
         val scenario = GateCLiveCallScenarioFactory.create(
             GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,

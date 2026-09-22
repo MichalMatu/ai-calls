@@ -187,5 +187,17 @@ class OrangeServiceTreeTest(unittest.TestCase):
         self.assertIn("service_route_not_verified", seed["next_evidence"])
 
 
+    def test_public_support_wifi_seed_is_discovered_only_before_physical_route(self):
+        tree = json.loads(TREE_PATH.read_text(encoding="utf-8"))
+        seeds = {seed["service_id"]: seed for seed in tree["seeds"]}
+        seed = seeds["orange.wifi.problem"]
+        self.assertEqual("DISCOVERED", seed["status"])
+        self.assertEqual("wifi_problem", seed["action_id"])
+        self.assertEqual("Mam problem z Wi-Fi.", seed["speech"])
+        self.assertEqual("AUTH_REQUIRED_POSSIBLE", seed["risk"])
+        self.assertEqual("operator_public_support_backlog", seed["source"])
+        self.assertIn("physical_route_required", seed["next_evidence"])
+
+
 if __name__ == "__main__":
     unittest.main()
