@@ -39,6 +39,7 @@ internal object GateCLiveCallScenarioFactory {
     const val MMS_CONFIG_RULE_ID = "orange-mms-config-root"
     const val MANUAL_NETWORK_SELECTION_RULE_ID = "orange-manual-network-selection-root"
     const val SMS_PROBLEM_RULE_ID = "orange-sms-problem-root"
+    const val SMS_RECEIVE_PROBLEM_RULE_ID = "orange-sms-receive-problem-root"
     const val VOICE_QUALITY_PROBLEM_RULE_ID = "orange-voice-quality-problem-root"
     const val OUTGOING_CALL_PROBLEM_RULE_ID = "orange-outgoing-call-problem-root"
     const val ROAMING_INFO_RULE_ID = "orange-roaming-info-root"
@@ -56,6 +57,7 @@ internal object GateCLiveCallScenarioFactory {
     private const val MMS_CONFIG_FACT_KEY = "orange-mms-config-response"
     private const val MANUAL_NETWORK_SELECTION_FACT_KEY = "orange-manual-network-selection-response"
     private const val SMS_PROBLEM_FACT_KEY = "orange-sms-problem-response"
+    private const val SMS_RECEIVE_PROBLEM_FACT_KEY = "orange-sms-receive-problem-response"
     private const val VOICE_QUALITY_PROBLEM_FACT_KEY = "orange-voice-quality-problem-response"
     private const val OUTGOING_CALL_PROBLEM_FACT_KEY = "orange-outgoing-call-problem-response"
     private const val ROAMING_INFO_FACT_KEY = "orange-roaming-info-response"
@@ -211,6 +213,13 @@ internal object GateCLiveCallScenarioFactory {
         OrangeLiveAction.SMS_PROBLEM -> ReviewedTurn(
             ruleId = SMS_PROBLEM_RULE_ID,
             factKey = SMS_PROBLEM_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.SMS_RECEIVE_PROBLEM -> ReviewedTurn(
+            ruleId = SMS_RECEIVE_PROBLEM_RULE_ID,
+            factKey = SMS_RECEIVE_PROBLEM_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
             aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
