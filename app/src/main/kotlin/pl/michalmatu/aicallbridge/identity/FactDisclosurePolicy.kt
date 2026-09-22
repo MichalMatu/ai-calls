@@ -33,26 +33,26 @@ enum class FactDisclosureDecision {
 
 /**
  * Per-task authorization metadata only. Identity plaintext remains in the IdentityVault boundary.
+ * All field sets are defensively copied so later caller mutation cannot widen disclosure authority.
  */
-data class AuthorizedFactSnapshot(
+class AuthorizedFactSnapshot(
     val task: CallTask,
     val target: CallResolvedTarget,
     val generation: Long,
-    val availableFields: Set<IdentityFieldId>,
-    val authorizedFields: Set<IdentityFieldId>,
-    val highSensitivityApprovedFields: Set<IdentityFieldId> = emptySet(),
+    availableFields: Set<IdentityFieldId>,
+    authorizedFields: Set<IdentityFieldId>,
+    highSensitivityApprovedFields: Set<IdentityFieldId> = emptySet(),
 ) {
+    val availableFields: Set<IdentityFieldId> = availableFields.toSet()
+    val authorizedFields: Set<IdentityFieldId> = authorizedFields.toSet()
+    val highSensitivityApprovedFields: Set<IdentityFieldId> = highSensitivityApprovedFields.toSet()
+
     init {
         require(generation >= 0L)
-        require(highSensitivityApprovedFields.all { it in authorizedFields }) {
+        require(this.highSensitivityApprovedFields.all { it in this.authorizedFields }) {
             "high-sensitivity approvals must also be task-authorized"
         }
     }
-
-    val normalizedAvailableFields: Set<IdentityFieldId> = availableFields.toSet()
-    val normalizedAuthorizedFields: Set<IdentityFieldId> = authorizedFields.toSet()
-    val normalizedHighSensitivityApprovedFields: Set<IdentityFieldId> =
-        highSensitivityApprovedFields.toSet()
 }
 
 data class FactDisclosureRequest(
@@ -89,7 +89,7 @@ class DefaultFactDisclosurePolicy : FactDisclosurePolicy {
             return FactDisclosureDecision.DENY
         }
 
-        if (request.fieldId !in snapshot.normalizedAvailableFields) {
+        if (request.fieldId !in snapshot.availableFields) {
             return FactDisclosureDecision.DENY
         }
 
@@ -100,13 +100,13 @@ class DefaultFactDisclosurePolicy : FactDisclosurePolicy {
             return FactDisclosureDecision.DENY
         }
 
-        if (request.fieldId !in snapshot.normalizedAuthorizedFields) {
+        if (request.fieldId !in snapshot.authorizedFields) {
             return FactDisclosureDecision.ASK_USER
         }
 
         if (
             request.fieldId.sensitivity == IdentitySensitivity.HIGH &&
-            request.fieldId !in snapshot.normalizedHighSensitivityApprovedFields
+            request.fieldId !in snapshot.highSensitivityApprovedFields
         ) {
             return FactDisclosureDecision.ASK_USER
         }
