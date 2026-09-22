@@ -18,12 +18,12 @@ Local Agent control/evidence branch: `agent-control`
 
 ## Current product state
 
-The frozen Samsung media foundation remains `DONE / PROVEN_S22 / FROZEN`. Gate C deterministic Orange speech has already been physically proven. The current work is service-pack mapping plus a generic natural-intent classifier that cannot gain authority.
+The frozen Samsung media foundation remains `DONE / PROVEN_S22 / FROZEN`. Gate C deterministic Orange speech is physically proven. Current work is service-pack mapping plus a generic natural-intent classifier that cannot gain authority.
 
-Code/data checkpoint before this documentation cleanup:
+Current durable code/data checkpoint before this handoff refresh:
 
 ```text
-6860f2ad3a7c80a1927ce03a3462aaa99fbd3ee4
+61ea6470320e574dda37cd9bc11905462dc9305c
 ```
 
 Always use fresh `origin/main` rather than assuming that hash is still HEAD.
@@ -34,9 +34,7 @@ Source of truth: `service-packs/orange/service_tree.v1.json`.
 
 Verified physical nodes: `orange.root`, `orange.root.reprompt`.
 
-Verified observed root edges include `orange.root.list_capabilities`, `orange.root.invoice_status`, `orange.root.invoice_topic`, `orange.root.internet_problem`, and `orange.root.roaming_info`.
-
-The edge status means the transition itself was physically observed. It does not mean a complete target service route was reached.
+Verified observed root edges include `orange.root.list_capabilities`, `orange.root.invoice_status`, `orange.root.invoice_topic`, `orange.root.internet_problem`, `orange.root.roaming_info`, and `orange.root.roaming_prices`. Edge `VERIFIED` means only that the physical transition was observed; it does not mean a complete service route was reached.
 
 Current service seeds remain `DISCOVERED`:
 
@@ -46,23 +44,32 @@ orange.internet.problem
 orange.roaming.info
 ```
 
-Do not promote a service route to `VERIFIED` without physical evidence reaching the intended node/terminal/barrier.
+No complete service route is `VERIFIED`. Do not promote one without physical evidence reaching the intended node, terminal, or barrier.
 
 ## Latest physical roaming evidence
 
-Evidence task: `chatgpt-orange-roaming-live-v151-20260922`.
+The 2026-09-22 overnight session added reviewed action `roaming_prices` with exact speech `Chcę sprawdzić ceny w roamingu.`. Kotlin changed and the resulting debug APK was installed before live testing.
+
+Three bounded physical calls were made, all to exact target `510100100`. The first two stopped fail-closed during root acquisition and produced exact observed pre-roll fragments `wielkości orange` and `g jakości orange`. Both are stored as `VERIFIED` `IGNORABLE_PREROLL_FRAGMENT` evidence and authorize only exact bounded root-acquisition retry.
+
+Final evidence task: `chatgpt-orange-roaming-prices-live-final-v176-20260922`.
 
 ```text
-verified Max root
- -> reviewed speech: Roaming.
+known exact pre-roll: orange
+ -> bounded root-acquisition retry
+ -> verified Max root
+ -> reviewed speech: Chcę sprawdzić ceny w roamingu.
  -> backend_generate_calls=0
+ -> exact reviewed speech transmitted
  -> OBSERVE_ONLY
  -> known Max root reprompt
  -> hangup
  -> FINAL_CALL_STATE=0
 ```
 
-The corresponding `orange.root.roaming_info -> orange.root.reprompt` edge is `VERIFIED`; `orange.roaming.info` is still only `DISCOVERED`.
+The corresponding `orange.root.roaming_prices -> orange.root.reprompt` edge is `VERIFIED` with `service_route_verified=false`. `orange.roaming.info` remains `DISCOVERED`. Further physical calls were stopped because this second reviewed roaming wording again returned the same known root reprompt, so repetition no longer added useful route evidence.
+
+A later queued experiment attempted to start an `outage_topic` RED/green cycle after that stop condition. The green task failed before tests/call/install and left only checkpointed workspace edits; those edits were discarded and the RED commit was explicitly reverted. There is therefore no durable outage seed/action from that attempt.
 
 ## Service intent resolver
 
@@ -77,60 +84,22 @@ UserIntentResolutionRequest
  -> ServiceIntentExecutionValidator
 ```
 
-Fail-closed rules already tested:
+Fail-closed rules remain: hallucinated or cross-pack IDs reject; low confidence/unrelated input rejects; stale generation rejects; model metadata cannot gain speech/action/target authority; `DISCOVERED` routes stop at `ROUTE_NOT_VERIFIED`; only an existing `VERIFIED` route plus application authority can become eligible. No Orange-specific logic belongs in `serviceintent`.
 
-- nonexistent/hallucinated service ID -> reject;
-- service from another pack -> reject;
-- low confidence -> reject;
-- unrelated request -> null/unknown;
-- stale generation -> reject;
-- model metadata attempting speech/action/target authority -> reject;
-- `DISCOVERED` route -> classification may succeed, execution `ROUTE_NOT_VERIFIED`;
-- `VERIFIED` route -> may become eligible only if existing application authority also allows it.
+## Architecture and branch checkpoint
 
-Demonstration:
+Do not turn diagnostic runners or probe activities into product orchestrators. Discovery and product execution remain separate. Authority remains with `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate`, and application-owned output approval.
 
-```text
-Mam problem z internetem w Orange
- -> orange.internet.problem
- -> ROUTE_NOT_VERIFIED
-```
+Historical relay/worktree branches containing unique evidence remain intentionally preserved. Do not perform aggressive branch cleanup.
 
-There is intentionally no telephony call or speech released by this resolver demo.
+## Next work
 
-## Architecture checkpoint
-
-The 2026-09-22 pre-refactor audit found no Orange-specific leakage in `serviceintent`, no session changes to frozen media, and no `TODO/FIXME/HACK` markers in active Kotlin/Python sources. `OrangeLiveAction.kt` is still small, so replacing it with a data-driven action catalog now would add churn without solving a current bottleneck.
-
-Do not turn diagnostic runners or probe activities into product orchestrators. Discovery and product execution remain separate.
-
-Authority remains with `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate`, and application-owned output approval.
-
-## Branch checkpoint
-
-Local Agent cleanup task `chatgpt-branch-cleanup-v159-20260922` removed only branches proven merged with zero unique commits and no worktree:
-
-```text
-agent/edge-gallery-live-flow
-agent/gate-a-ready-to-dial
-agent/gate-b-freeze-local-llm
-agent/gate-b-text-benchmark
-work/phase1-live-call-probes
-```
-
-Preserved intentionally: `agent-work`, `agent/chatgpt-relay-developer-path`, all `chat-relay/*` branches with unique evidence/commits, `main`, and remote `agent-control`.
-
-## Next large task
-
-A ready-to-paste prompt for a later maximum-10-hour autonomous Orange mapping session is stored at `docs/ORANGE_OVERNIGHT_MAPPING_PROMPT.md`.
-
-It has **not** been started in this checkpoint. The future session must explicitly authorize repeated calls to exact target `510100100`; then it may iterate low-risk branches without asking before each individual bounded test, while stopping each branch at auth/payment/commitment barriers and continuing elsewhere.
+Do not repeat `roaming_info` / `roaming_prices` against the same root prompt just to obtain another identical reprompt. Start a later session from fresh state and choose another low-risk informational seed only with fresh live-call authorization. A future live session must stop at auth/payment/purchase/activation/contract barriers and must never invent credentials.
 
 ## Final invariants
 
-- exact Orange target only: `510100100`;
 - one active cellular call at a time;
-- deterministic route speech only, no model-generated runtime IVR speech;
+- deterministic reviewed route speech only, no model-generated runtime IVR speech;
 - `OBSERVE_ONLY` never speaks;
 - `backend_generate_calls=0` on deterministic route tests;
 - no invented PESEL/customer/SMS/payment credentials;
