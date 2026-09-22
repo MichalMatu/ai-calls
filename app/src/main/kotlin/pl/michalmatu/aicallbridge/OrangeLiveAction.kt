@@ -27,6 +27,7 @@ internal enum class OrangeLiveAction(
     VOICE_QUALITY_PROBLEM("voice_quality_problem", "Podczas rozmów zanika głos."),
     OUTGOING_CALL_PROBLEM("outgoing_call_problem", "Nie mogę wykonywać połączeń."),
     INCOMING_CALL_PROBLEM("incoming_call_problem", "Nie mogę odbierać połączeń."),
+    CALLER_ID_RESTRICTION_INFO("caller_id_restriction_info", "Jak działa zastrzeganie numeru?"),
     ROAMING_INFO("roaming_info", "Roaming."),
     ROAMING_PRICES("roaming_prices", "Chcę sprawdzić ceny w roamingu."),
     OBSERVE_ONLY("observe_only", null),
