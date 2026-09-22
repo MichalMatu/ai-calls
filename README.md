@@ -1,23 +1,56 @@
 # Android AI Call Bridge
 
-Android prototype for bridging an ordinary cellular call on a stock Samsung Galaxy S22+ to deterministic service-pack logic and selectable AI classifiers without external audio hardware.
+Android prototype for bridging an ordinary cellular call on a stock Samsung Galaxy S22+ to a hybrid deterministic + AI task engine without external audio hardware.
 
 Target: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
 ## CURRENT
 
-The product direction is Gate C: evidence-backed deterministic service packs. Orange at exact target `510100100` is the first pack under active mapping.
+The product direction is now **Gate D: hybrid multi-turn Task Engine**.
+
+Orange mapping is checkpointed as a proven evidence/test pack. It is no longer the main product goal.
 
 Current foundation:
 
 - cellular RX/TX + fail-safe media lifecycle: `DONE / PROVEN_S22 / FROZEN`;
 - local Polish STT/TTS: `DONE / PROVEN_S22`;
 - provider-neutral text turn + application-owned output approval: `DONE / PROVEN_S22`;
-- deterministic `CallPlan + PhraseMatrix` path: `HOST_GREEN`;
+- deterministic `CallPlan + PhraseMatrix` path: `HOST_GREEN / LIVE PATH PROVEN_S22`;
+- generic bounded service-intent resolver contract: `HOST_GREEN`;
 - controlled deterministic Orange RX -> STT -> CallPlan -> approved TTS -> TX: `PROVEN_S22`;
-- generic bounded service-intent resolver contract: `HOST_GREEN`.
+- Orange service-pack mapping checkpoint: `DONE AS TEST/EVIDENCE SLICE`.
 
-Durable Orange data is in `service-packs/orange/service_tree.v1.json`.
+The next main milestone is a generic data-driven `TaskGraph v1` with `BOOK_APPOINTMENT` as the first end-to-end task.
+
+Target hybrid flow:
+
+```text
+natural user goal
+ -> CallTask + constraints/preferences/authorized facts
+ -> TaskGraph
+ -> deterministic PhraseMatrix/parsers first
+ -> bounded LLM supervisor only for ambiguity/unknown
+ -> suggested existing transition + typed slots
+ -> deterministic validation
+ -> CallWorkflow / CallPlan
+ -> output approval
+ -> proposal / confirmation / commitment
+ -> structured completion
+```
+
+The model remains useful, but it is a **supervisor/classifier**, not the authority owner. It may suggest existing transitions or structured slot values; it must not directly own dialing, arbitrary speech release, credentials, target widening or commitments.
+
+Primary acceptance use case:
+
+```text
+Umów mnie do dentysty w przyszłym tygodniu, najlepiej po 16.
+```
+
+The system should be able to conduct a bounded real multi-turn call, parse offered appointment slots, reject unsuitable offers, create a typed proposal, obtain required confirmation and release exactly one authorized commitment.
+
+## Orange checkpoint
+
+Durable Orange data remains in `service-packs/orange/service_tree.v1.json`.
 
 Checkpoint state after the 2026-09-22 mapping session:
 
@@ -25,30 +58,41 @@ Checkpoint state after the 2026-09-22 mapping session:
 - 19 verified observed root edges;
 - 16 service seeds, all still `DISCOVERED`;
 - no complete service route has `service_route_verified=true`;
-- the manual-network-selection wording reached the activation clarification barrier and is closed;
-- all other currently closed reviewed diagnostic/informational wordings returned a known root reprompt;
 - latest physical evidence: `chatgpt-orange-caller-id-restriction-info-live-v264-20260922`;
-- latest reviewed speech: `Jak działa zastrzeganie numeru?`;
-- `backend_generate_calls=0`, follow-up `OBSERVE_ONLY`, known root reprompt, cleanup to phone state `IDLE`.
+- `backend_generate_calls=0`, follow-up `OBSERVE_ONLY`, cleanup to phone state `IDLE`.
 
 A verified observed edge records what physically happened. It does **not** imply that the intended service route is verified.
 
-## Service intent resolver
+Continue Orange only when it directly exercises a new generic product capability or a specific Orange route becomes a real product use case.
 
-Generic product code lives in `app/src/main/kotlin/pl/michalmatu/aicallbridge/serviceintent/`.
+## Hybrid supervisor boundary
+
+Generic classifier infrastructure currently lives in `app/src/main/kotlin/pl/michalmatu/aicallbridge/serviceintent/` and provides the precedent for the next supervisor boundary.
 
 ```text
-natural user request
- -> UserIntentClassificationModel over a bounded service catalog
- -> existing service_id or null + confidence
- -> ServiceRegistry revalidation
- -> ServiceIntentExecutionValidator
- -> only a VERIFIED route may become eligible for existing authority owners
+bounded candidates
+ -> model classification
+ -> existing ID only
+ -> generation/confidence checks
+ -> authoritative registry revalidation
+ -> separate execution validator
 ```
 
-The resolver has no Orange dependency and no dial/TTS/telephony authority. It rejects unknown IDs, cross-pack IDs, low confidence, stale generations and model metadata attempting to carry speech/action/target authority. A `DISCOVERED` service may classify successfully but execution remains `ROUTE_NOT_VERIFIED`.
+The same philosophy will be applied to TaskGraph supervision: structured proposals only, no direct execution authority.
 
 Authority remains owned by `CallTask`, `CallResolvedTarget`, `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and application-owned output approval.
+
+## Real-world testing
+
+After `BOOK_APPOINTMENT` is host-green against a simulated receptionist, physical tests may use a small reviewed set of ordinary public reception/business numbers found from current public sources.
+
+For **test-only** calls, disclose at the start that this is an AI assistant test and ask whether a short non-booking test is acceptable. Do not wait until the end to say that the call should be ignored.
+
+For a **genuine user-authorized appointment**, execute the real task through proposal/confirmation/commitment policy; do not create a booking and then retract it merely because the call also served as a product test.
+
+Default live-test budget is one meaningful call per organization. A second call is reserved for an early technical failure or explicit agreement to repeat. Do not use emergency/urgent/crisis lines or broad unsolicited calling campaigns.
+
+See `docs/ROADMAP.md` for the full Gate D execution order and test policy.
 
 ## FROZEN
 
@@ -56,18 +100,9 @@ The Samsung media implementation and invariants are frozen at the Phase 2D found
 
 The general-purpose phone-local llama.cpp model sweep and Edge Gallery/Gemma experiments are frozen as product directions. Interactive ChatGPT relay branches are historical/developer evidence, not the product orchestrator.
 
-## DEFERRED
-
-- broader provider adapters for the service-intent classifier;
-- a data-driven reviewed Orange action catalog, only when the current enum/repeated wiring becomes a demonstrated maintenance bottleneck;
-- generalized multi-provider service packs after Orange establishes the pattern;
-- local realtime-audio model experiments after the deterministic service-pack baseline.
-
 ## Repository workflow
 
-Durable product code/docs live on `main`. Local Agent control/evidence stays on `agent-control`. The intended normal branch set is only these two branches unless another branch has an explicitly documented active purpose.
-
-Always fetch the fresh daemon binding before creating a Local Agent task.
+Durable product code/docs live on `main`. Local Agent control/evidence stays on `agent-control` when that execution path is used.
 
 Canonical host gate:
 
@@ -79,6 +114,4 @@ Operational continuation is documented in:
 
 - `docs/HANDOFF_NEXT_CHAT.md` — exact checkpoint and continuation state;
 - `docs/ROADMAP.md` — authoritative execution order and priorities;
-- `docs/ORANGE_MAPPING_RUNBOOK.md` — durable Orange evidence/mapping procedure.
-
-There is intentionally no paste-ready overnight prompt. Live-call authorization is session-scoped and must never be inferred from repository documentation.
+- `docs/ORANGE_MAPPING_RUNBOOK.md` — Orange-only evidence/mapping procedure when that side track is resumed.
