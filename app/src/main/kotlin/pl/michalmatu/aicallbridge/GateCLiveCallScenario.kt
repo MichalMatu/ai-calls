@@ -35,6 +35,7 @@ internal object GateCLiveCallScenarioFactory {
     const val OUTAGE_TOPIC_RULE_ID = "orange-outage-topic-root"
     const val WIFI_PROBLEM_RULE_ID = "orange-wifi-problem-root"
     const val COVERAGE_INFO_RULE_ID = "orange-coverage-info-root"
+    const val INTERNET_CONFIG_RULE_ID = "orange-internet-config-root"
     const val ROAMING_INFO_RULE_ID = "orange-roaming-info-root"
     const val ROAMING_PRICES_RULE_ID = "orange-roaming-prices-root"
 
@@ -46,6 +47,7 @@ internal object GateCLiveCallScenarioFactory {
     private const val OUTAGE_TOPIC_FACT_KEY = "orange-outage-topic-response"
     private const val WIFI_PROBLEM_FACT_KEY = "orange-wifi-problem-response"
     private const val COVERAGE_INFO_FACT_KEY = "orange-coverage-info-response"
+    private const val INTERNET_CONFIG_FACT_KEY = "orange-internet-config-response"
     private const val ROAMING_INFO_FACT_KEY = "orange-roaming-info-response"
     private const val ROAMING_PRICES_FACT_KEY = "orange-roaming-prices-response"
     private const val REVIEWED_GREETING = "orange dzień dobry jestem max twój wi"
@@ -171,6 +173,13 @@ internal object GateCLiveCallScenarioFactory {
         OrangeLiveAction.COVERAGE_INFO -> ReviewedTurn(
             ruleId = COVERAGE_INFO_RULE_ID,
             factKey = COVERAGE_INFO_FACT_KEY,
+            phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
+            aliases = setOf(REVIEWED_MAX_ROOT_DAY),
+            response = checkNotNull(action.reviewedResponse),
+        )
+        OrangeLiveAction.INTERNET_CONFIG -> ReviewedTurn(
+            ruleId = INTERNET_CONFIG_RULE_ID,
+            factKey = INTERNET_CONFIG_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
             aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
