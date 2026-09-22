@@ -22,6 +22,7 @@ internal enum class OrangeLiveAction(
     MMS_CONFIG("mms_config", "Jak skonfigurować MMS w telefonie?"),
     MANUAL_NETWORK_SELECTION("manual_network_selection", "Jak włączyć ręczny wybór sieci operatora?"),
     SMS_PROBLEM("sms_problem", "Nie mogę wysyłać SMS-ów."),
+    SMS_RECEIVE_PROBLEM("sms_receive_problem", "Nie mogę odbierać SMS-ów."),
     VOICE_QUALITY_PROBLEM("voice_quality_problem", "Podczas rozmów zanika głos."),
     OUTGOING_CALL_PROBLEM("outgoing_call_problem", "Nie mogę wykonywać połączeń."),
     ROAMING_INFO("roaming_info", "Roaming."),
