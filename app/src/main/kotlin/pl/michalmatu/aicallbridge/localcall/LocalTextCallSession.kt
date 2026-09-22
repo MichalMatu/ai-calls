@@ -226,9 +226,10 @@ internal class LocalTextCallSession private constructor(
      * PhraseMatrix/CallPlan + Gate D finalized-turn processing as an STT-finalized turn, while
      * bypassing pipeline start, STT/audio input, backend generation and TTS/media output.
      *
-     * The returned route/result is inert data. This method does not dial, widen a target, disclose
-     * identity facts, approve a proposal or user confirmation, consume commitment authority, release
-     * speech, or claim completion authority.
+     * Changing the source of finalized text adds no authority beyond the normal STT-finalized path.
+     * Any structured CallPlan/workflow behavior remains subject to the same existing owners and
+     * policies; this ingress creates no separate dialing, target-widening, disclosure, output,
+     * confirmation, commitment or completion path.
      */
     internal fun injectSyntheticFinalTranscript(finalTranscript: String): CallPlanFinalTurnSelection =
         processFinalizedTranscript(finalTranscript)
