@@ -17,7 +17,10 @@ GRADLE_BIN="${GRADLE_BIN:-gradle}"
   :audio-bridge:lintDebug \
   --no-daemon
 
-"$GRADLE_BIN" :app:assembleDebug --no-daemon
+"$GRADLE_BIN" \
+  :app:assembleDebug \
+  :app:assembleDebugAndroidTest \
+  --no-daemon
 python3 -m unittest discover -s scripts -p 'test_*.py'
 
 if grep -RInE --include='*.kt' --include='*.java' --include='*.xml' \
