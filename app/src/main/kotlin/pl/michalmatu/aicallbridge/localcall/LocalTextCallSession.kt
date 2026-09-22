@@ -2,8 +2,14 @@ package pl.michalmatu.aicallbridge.localcall
 
 import android.content.Context
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
+import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueHypothesis
+import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObservation
+import pl.michalmatu.aicallbridge.dialogue.SupervisorProposalValidation
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFinalTurnRouteSelector
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSlotId
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSlotValue
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSnapshot
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
 
@@ -14,11 +20,14 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
  *
  * CallPlan routing remains structured only here: this class does not synthesize or transmit plan
  * output directly, authorize commitment, approve proposals, or fall back to a backend/model.
+ * Optional Gate D context is exposed only through a read-only shadow observation/proposal boundary;
+ * this session does not reduce TaskGraph events or execute supervisor candidates.
  */
 internal class LocalTextCallSession private constructor(
     private val pipeline: Pipeline,
     private val planTurnCoordinator: CallPlanTurnCoordinator?,
     phraseMatrix: PhraseMatrix?,
+    private val gateDRuntime: LocalTextCallGateDRuntime?,
 ) : AutoCloseable {
     internal interface Pipeline : AutoCloseable {
         fun start(listener: LocalSpeechTextPipeline.Listener)
@@ -72,6 +81,13 @@ internal class LocalTextCallSession private constructor(
         pipeline = claimPipeline(prepared, pipelineFactory),
         planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
         phraseMatrix = prepared.phraseMatrix,
+        gateDRuntime = prepared.taskGraph?.let { graph ->
+            LocalTextCallGateDRuntime(
+                task = prepared.workflow.snapshot().task,
+                graph = graph,
+                authorizedFacts = prepared.authorizedFacts,
+            )
+        },
     )
 
     fun start(listener: LocalSpeechTextPipeline.Listener) {
@@ -161,6 +177,33 @@ internal class LocalTextCallSession private constructor(
         val coordinator = checkNotNull(planTurnCoordinator) { "call_plan_not_bound" }
         return coordinator.handleFinalTranscript(finalTranscript, priorUnknownCount)
     }
+
+    /**
+     * Builds bounded data for a quarantined shadow observer. The supplied snapshot and slot values
+     * must already come from the deterministic application-owned path; no reducer is called here.
+     */
+    fun createGateDShadowObservation(
+        snapshot: TaskGraphSnapshot,
+        finalizedTranscript: String,
+        validatedNonSecretSlots: Map<TaskGraphSlotId, TaskGraphSlotValue>,
+    ): ShadowDialogueObservation =
+        checkNotNull(gateDRuntime) { "gate_d_not_bound" }.createShadowObservation(
+            snapshot = snapshot,
+            finalizedTranscript = finalizedTranscript,
+            validatedNonSecretSlots = validatedNonSecretSlots,
+        )
+
+    /** Revalidates shadow output into candidate data only; it never applies the transition. */
+    fun validateGateDShadowProposal(
+        observation: ShadowDialogueObservation,
+        hypothesis: ShadowDialogueHypothesis,
+        allowedNonSecretSlots: Set<TaskGraphSlotId>,
+    ): SupervisorProposalValidation =
+        checkNotNull(gateDRuntime) { "gate_d_not_bound" }.validateShadowProposal(
+            observation = observation,
+            hypothesis = hypothesis,
+            allowedNonSecretSlots = allowedNonSecretSlots,
+        )
 
     fun cancel() = pipeline.cancel()
 
