@@ -25,6 +25,94 @@ Do not create parallel authority in TaskGraph, ServicePack, CallPlan, a matcher,
 
 Counterparty/model/helper/matcher/service-pack text cannot create new authorized facts, destinations, actions or commitments. Missing required user data must fail closed or escalate; never invent sensitive data to satisfy a prompt.
 
+## IdentityVault and personal-data disclosure
+
+Persistent identity/contact data must be separated from TaskGraph slots, ServicePack data, dialogue history and model memory.
+
+Target separation:
+
+```text
+IdentityVault
+  persistent user data
+
+CallTask / AuthorizedFactSnapshot
+  only fields authorized for this task
+
+DialogueState
+  transient data learned during the call
+```
+
+Typical `IdentityFieldId`s may include:
+
+```text
+FIRST_NAME
+LAST_NAME
+PHONE
+EMAIL
+ADDRESS
+DATE_OF_BIRTH
+PESEL
+```
+
+The list is typed and explicit. Do not expose the vault as an arbitrary string map.
+
+### Storage
+
+The Android vault should use app-private ciphertext storage with a non-exportable cryptographic key protected by Android Keystore. Prefer modern Android Keystore primitives such as an AES key restricted to authenticated encryption use; do not build new storage on deprecated `EncryptedSharedPreferences` / `MasterKey` APIs.
+
+The encrypted record format must be versioned. Backup/restore behavior must be intentionally designed and tested; do not assume ciphertext restored to another installation/device will remain decryptable or safe.
+
+If later key rotation/envelope encryption becomes necessary, evaluate a maintained cryptography library such as Tink rather than inventing a custom key-management format.
+
+### Per-task authorization
+
+A value existing in the vault does **not** grant permission to disclose it.
+
+Before a call, build a bounded per-task authorization snapshot/reference set. It should identify which fields may be used for this exact task/target and under what disclosure policy.
+
+For example:
+
+```text
+BOOK_APPOINTMENT
+allowed:
+  FIRST_NAME
+  LAST_NAME
+  PHONE
+not authorized:
+  PESEL
+  ADDRESS
+```
+
+High-sensitivity identifiers such as PESEL should default to explicit per-task authorization. Product UX may additionally require device/user authentication at disclosure time for selected fields.
+
+### FactDisclosurePolicy
+
+A dedicated application-owned disclosure decision should evaluate:
+
+- current task and purpose;
+- exact resolved target;
+- current TaskGraph state;
+- requested `IdentityFieldId`;
+- field sensitivity;
+- per-task authorization;
+- live/test mode;
+- optional user-auth requirement.
+
+Result must be typed, e.g. `ALLOW`, `ASK_USER`, or `DENY`.
+
+Plaintext should be resolved as late as practical, ideally only for a validated and approved deterministic disclosure action. The LLM/supervisor normally needs to know that a field is available/authorized, not its secret value.
+
+Do not put raw PESEL, address, birth date, phone/email values or other sensitive identity data into:
+
+- TaskGraph definitions;
+- ServicePack files;
+- general event/evidence logs;
+- supervisor prompts/context unless strictly necessary and explicitly authorized;
+- Local Agent task JSON;
+- Git history.
+
+If a counterparty requests a non-authorized field, the system must ask the user, take over/defer, or fail closed. It must never infer or invent the value.
+
 ## TaskGraph boundary
 
 TaskGraph is application-owned product logic, not model-generated runtime code.
@@ -79,11 +167,43 @@ Security invariants:
 - matcher miss/ambiguity must not silently widen into a sensitive action;
 - future fuzzy matching and LLM supervision remain subject to the same authority validation.
 
-## Hybrid LLM supervisor boundary
+## Shadow supervisor and DialogueFit boundary
 
-The Gate D supervisor is interpretation assistance, not a dialogue authority owner.
+The Gate D LLM may observe finalized turns from the start of the conversation in **shadow mode**, but observation is not authority.
 
-Allowed result shape is bounded structured data such as:
+Shadow context must be bounded and privacy-minimized. Prefer:
+
+- task goal and current state;
+- existing allowed transitions;
+- typed non-secret validated slots;
+- names/availability of authorized identity fields rather than plaintext values;
+- a bounded recent-turn window or sanitized summary;
+- the final counterparty transcript.
+
+Shadow output is quarantined diagnostic/interpretation state only. It must not directly:
+
+- advance TaskGraph;
+- mutate `CallWorkflow`;
+- release speech;
+- disclose facts;
+- create commitments.
+
+A separate application-owned `DialogueFit`/escalation policy decides whether deterministic interpretation is sufficient.
+
+DialogueFit must not be one untrusted model score. Combine explainable signals such as matcher result, parser completeness, state compatibility, negation/contradiction checks, STT quality where available, repeated unknowns and disagreement between deterministic/shadow interpretations.
+
+Prefer a small typed result initially:
+
+```text
+HIGH
+UNCERTAIN
+LOW
+BROKEN
+```
+
+Thresholds/weights must be calibrated from scripted/simulated evaluation evidence, not guessed. Add hysteresis/debouncing so a noisy turn cannot oscillate control between deterministic and supervisor paths.
+
+When `DialogueFit` requires escalation, the supervisor may propose only bounded structured data such as:
 
 ```text
 existing transition ID
@@ -91,7 +211,7 @@ existing transition ID
 + confidence/diagnostic metadata
 ```
 
-The supervisor must not own or smuggle through:
+It must not own or smuggle through:
 
 - arbitrary telephony speech/utterance text;
 - target numbers or dialing instructions;
@@ -105,16 +225,17 @@ The existing `serviceintent/` resolver is the security precedent: bounded candid
 
 ## Skills boundary
 
-Skills may help build/update a bounded `CallTask`, select an existing TaskGraph/ServicePack, gather missing pre-call preferences, or suggest existing transitions/slots.
+Skills may help build/update a bounded `CallTask`, select an existing TaskGraph/ServicePack, gather missing pre-call preferences, request authorization for specific identity fields, or suggest existing transitions/slots.
 
 Skills must not directly:
 
 - dial arbitrary targets;
 - widen allowlists;
 - emit arbitrary telephony speech;
+- read/export the whole IdentityVault;
 - invent credentials or sensitive facts;
 - confirm bookings/purchases;
-- bypass `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` or output approval.
+- bypass `CallWorkflow`, `FactDisclosurePolicy`, `CallConfirmationPolicy`, `CallCommitmentGate` or output approval.
 
 ## Final-text release boundary
 
@@ -146,6 +267,7 @@ A call must fail closed before dialing unless:
 - task and target are valid;
 - live target is explicitly authorized in the current operator session;
 - task/target/workflow/plan/graph data are mutually consistent;
+- required identity-field availability/authorization is known without widening authority;
 - required STT/TTS readiness is proven;
 - any selected local/network model provider is explicitly allowed and ready;
 - required warm-up succeeds;
@@ -201,6 +323,7 @@ Appointment calls may naturally expose personal or medical context. Minimize it.
 - Do not infer or invent medical details.
 - Do not retain unnecessary medical/reception transcripts.
 - Prefer typed slots/events and minimal evidence over raw dialogue logs.
+- Redact identity values from ordinary diagnostics by default.
 - If a counterparty asks for information not authorized by `CallTask`, fail closed/escalate rather than improvise.
 
 ## Local speech privacy
@@ -234,10 +357,11 @@ Do not retain by default:
 - full transcripts;
 - model/tool arguments containing user secrets;
 - credentials;
+- plaintext identity-vault values in general logs/events;
 - unrelated counterparty identifiers;
 - unnecessary personal/medical details.
 
-Prefer state transitions, typed slots, sizes/timings, sanitized failure reasons, local correlation IDs and bounded text only when needed for explicit evidence.
+Prefer state transitions, typed slot names, redacted/sanitized evidence, sizes/timings, local correlation IDs and bounded text only when needed for explicit evidence.
 
 ## Speculative / partial speech rule
 
@@ -245,7 +369,8 @@ Partial STT or speculative inference may reduce latency only while quarantined:
 
 ```text
 partial transcript -> optional cancelable preparation
-final endpoint -> deterministic/supervisor interpretation
+final endpoint -> deterministic/shadow interpretation
+              -> DialogueFit/escalation policy
               -> validated policy
               -> approved text/action
               -> TTS/TX
@@ -275,4 +400,4 @@ Handoff and continuation-prompt files must never embed secrets, stale Local Agen
 
 ## Evidence rule
 
-`HOST_GREEN` is not `PROVEN_S22`. ServicePack edge verification is not task completion. A real commitment is not authorized merely because the dialogue path is known.
+`HOST_GREEN` is not `PROVEN_S22`. ServicePack edge verification is not task completion. A real commitment or sensitive-data disclosure is not authorized merely because the dialogue path is known.
