@@ -206,6 +206,15 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
                 }
             )
         )
+        self.assertTrue(
+            _is_ignorable_gate_c_preroll(
+                {
+                    **observed_preroll,
+                    "orange_live_action": ORANGE_ACTION_ROAMING_PRICES,
+                    "stt_text": "g jakości orange",
+                }
+            )
+        )
 
         invoice_preroll = {
             **observed_preroll,
