@@ -8,7 +8,7 @@ import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.OnDeviceSpeechInput
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphDefinition
-import pl.michalmatu.aicallbridge.textagent.EdgeGalleryTextBackendFactory
+import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LocalPhoneLlmBackendFactory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -155,7 +155,7 @@ internal class AndroidLocalTextCallSpeechPreflight(
 internal object AndroidLocalTextCallBackendFactory {
     fun create(context: Context, provider: TextLlmProvider): TextCallAgentBackend = when (provider) {
         TextLlmProvider.LOCAL_PHONE_LLM -> LocalPhoneLlmBackendFactory.create(context.applicationContext)
-        TextLlmProvider.EDGE_GALLERY -> EdgeGalleryTextBackendFactory.create()
+        TextLlmProvider.EDGE_GALLERY -> Gemma4LiteRtTextBackendFactory.create(context.applicationContext)
         TextLlmProvider.LOCAL_MAC_LLM,
         TextLlmProvider.OPENAI_TEXT,
         -> throw IllegalArgumentException("text_provider_not_product_ready_${provider.name.lowercase()}")
