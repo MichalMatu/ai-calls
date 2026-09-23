@@ -6,7 +6,7 @@ Android prototype for bridging an ordinary cellular call on a stock Samsung Gala
 
 Gate D (`BOOK_APPOINTMENT`) is **DONE / HOST_GREEN / PROVEN_S22 / MERGED**. Samsung cellular/media, local STT/TTS and Gate D authority remain **PROVEN_S22 / FROZEN**.
 
-The dialogue-resilience architecture is **HOST_GREEN** and direct Gemma 4 no-call inference is **PROVEN_S22**:
+The dialogue-resilience architecture is **HOST_GREEN** and the direct Gemma 4 no-call path is **PROVEN_S22**:
 
 ```text
 finalized STT
@@ -25,12 +25,13 @@ Gemma returns only typed `skill/confidence/reason`. The application owns allowed
 
 ## Gemma 4
 
-Current target:
+Current target/provider:
 
 ```text
-Gemma 4 E2B IT
-gemma-4-E2B-it.litertlm
-LiteRT-LM
+provider: LOCAL_GEMMA_4
+model: Gemma 4 E2B IT
+file: gemma-4-E2B-it.litertlm
+runtime: LiteRT-LM
 com.google.ai.edge.litertlm:litertlm-android:0.17.1
 ```
 
@@ -40,13 +41,7 @@ Direct in-process runtime:
 app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Gemma4LiteRtTextBackend.kt
 ```
 
-The old `EdgeGalleryTextBackend` assumption that another app exposes an OpenAI-compatible server on `127.0.0.1:8080` was physically disproven and is not the product direction. Qwen comparison/tuning is out of scope unless explicitly reopened.
-
-The no-call S22 proof succeeded with an app-readable copy at:
-
-```text
-<app external files>/models/gemma-4-E2B-it.litertlm
-```
+The old Edge Gallery HTTP assumption that another app exposes an OpenAI-compatible server on `127.0.0.1:8080` was physically disproven. The dead HTTP backend has been removed. A stored legacy provider value `EDGE_GALLERY` is migrated to `LOCAL_GEMMA_4`; it is not a runtime dependency. Qwen comparison/tuning is out of scope unless explicitly reopened.
 
 Pinned/verified SHA-256:
 
@@ -54,7 +49,27 @@ Pinned/verified SHA-256:
 181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
 ```
 
-Observed physical bounded result:
+## Application-owned model lifecycle — PROVEN_S22
+
+The application owns an explicit model-import path:
+
+```text
+user-selected Android SAF document
+ -> AndroidGemma4ModelImporter
+ -> Gemma4ModelInstaller
+ -> app-owned sibling staging file
+ -> streaming pinned SHA-256
+ -> flush + fsync
+ -> atomic same-filesystem replacement
+ -> <app external files>/models/gemma-4-E2B-it.litertlm
+ -> direct LiteRT-LM runtime
+```
+
+The installer rejects unreadable, empty or wrong-hash data before activation; failed writes/activation remove staging data and preserve the previous active model. There is no silent non-atomic replacement fallback.
+
+Physical S22 proof exercised the actual app UI and Android DocumentsUI/SAF importer, not a direct ADB destination copy. The selected 2,588,147,712-byte source was imported by the application process; the active destination changed inode and mtime, retained the exact pinned SHA-256, had app-owned external-files ownership/SELinux labeling, and left no `.importing` file.
+
+Immediately after that fresh import, the physical no-call Gemma contract passed:
 
 ```text
 skill=ACKNOWLEDGE_NEUTRAL
@@ -62,40 +77,23 @@ confidence=0.95
 reason=Potwierdzenie odbioru telefonu
 ```
 
-## Application-owned model lifecycle
+No telephony, microphone, STT/TTS or call-media session was started for this proof.
 
-The application now has an explicit model-import path, currently **HOST_GREEN / PENDING_PHYSICAL**.
-
-`Gemma4ModelInstaller` and `AndroidGemma4ModelImporter`:
-
-- accept a user-selected document through Android SAF rather than depending on Edge Gallery storage;
-- pin the expected Gemma 4 E2B identity and exact SHA-256;
-- stream into an app-owned sibling staging file while hashing;
-- reject empty or wrong-hash data before activation;
-- flush + `fsync` staged bytes;
-- request same-filesystem atomic replacement only after verification;
-- preserve the previous active model if verification or activation fails;
-- remove failed staging bytes;
-- expose a minimal `Import Gemma 4 model` action in the existing app UI.
-
-The importer is source-agnostic. Edge Gallery/ADB may still provide development source bytes, but neither is a production runtime dependency. No arbitrary network model URL or downloader authority was introduced.
-
-Important previous provisioning finding: a plain `adb shell cp` produced a file LiteRT could not open (`PERMISSION_DENIED`) on the S22; writing via the app UID fixed ownership/SELinux. The new import path writes destination bytes from the application process itself.
+Edge Gallery/ADB may still be used as development sources for already-downloaded bytes, but neither is a production runtime dependency. No arbitrary network model URL or downloader authority has been introduced.
 
 ## Verification
 
-Current model-lifecycle implementation passed on its exact HEAD:
+Current Gemma/model-lifecycle/provider work has:
 
-- RED proof before the installer existed;
+- RED -> GREEN model-installer evidence;
 - targeted installer + Gemma + dialogue-skill + hybrid tests;
 - `bash scripts/verify_host.sh`;
-- Android debug APK;
-- AndroidTest APK;
-- clean worktree/diff checks.
-
-This proves **HOST_GREEN**, not physical activation. The next required gate is an S22 no-call test of the new import path, including whether the target external-files filesystem honors the required atomic move, followed by the existing terminal `skill/confidence/reason` inference proof.
-
-No live call is required or authorized for that gate.
+- Android debug + AndroidTest package gates;
+- physical S22 SAF import + atomic activation proof;
+- physical S22 post-import no-call inference proof;
+- provider migration RED -> GREEN;
+- physical S22 no-call regression under `LOCAL_GEMMA_4`;
+- removal of the unused HTTP `EdgeGalleryTextBackend` path.
 
 ## Stable authority
 
