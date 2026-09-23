@@ -145,7 +145,7 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
             "gate_c_call_plan_bound": "true",
             "orange_live_action": ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE,
             "backend_generate_calls": "0",
-            "approved_text": "Chcę włączyć stałe zastrzeganie numeru.",
+            "approved_text": "Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.",
         }, ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE)
 
         with self.assertRaises(ValueError):

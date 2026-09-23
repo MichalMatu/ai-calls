@@ -112,7 +112,7 @@ ORANGE_REVIEWED_RESPONSES = {
     ORANGE_ACTION_OUTGOING_CALL_PROBLEM: "Nie mogę wykonywać połączeń.",
     ORANGE_ACTION_INCOMING_CALL_PROBLEM: "Nie mogę odbierać połączeń.",
     ORANGE_ACTION_CALLER_ID_RESTRICTION_INFO: "Jak działa zastrzeganie numeru?",
-    ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE: "Chcę włączyć stałe zastrzeganie numeru.",
+    ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE: "Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.",
     ORANGE_ACTION_ROAMING_INFO: "Roaming.",
     ORANGE_ACTION_ROAMING_PRICES: "Chcę sprawdzić ceny w roamingu.",
 }
