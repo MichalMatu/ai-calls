@@ -122,13 +122,38 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
     def test_audio_signal_wait_retries_transient_registry_failure(self, wait_signal, sleep):
         marker = object()
         wait_signal.side_effect = [
-            subprocess.CalledProcessError(1, ["adb", "dumpsys"]),
+            subprocess.CalledProcessError(
+                1,
+                ["adb", "-s", "RFCT70L7E8J", "shell", "dumpsys", "telephony.registry"],
+            ),
             marker,
         ]
 
         self.assertIs(marker, live.wait_for_audio_signal_resilient(mock.Mock(), timeout_seconds=5.0))
         self.assertEqual(2, wait_signal.call_count)
         sleep.assert_called_once()
+
+    @mock.patch("chatgpt_relay_live_call.time.sleep")
+    @mock.patch("chatgpt_relay_live_call.time.monotonic", side_effect=[0.0, 0.0, 1.0])
+    @mock.patch("chatgpt_relay_live_call.wait_for_audio_signal")
+    def test_audio_signal_wait_does_not_retry_non_registry_adb_failure(
+        self,
+        wait_signal,
+        monotonic,
+        sleep,
+    ):
+        error = subprocess.CalledProcessError(
+            1,
+            ["adb", "-s", "RFCT70L7E8J", "shell", "pm", "path", "pl.michalmatu.aicallbridge"],
+        )
+        wait_signal.side_effect = error
+
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            live.wait_for_audio_signal_resilient(mock.Mock(), timeout_seconds=0.5)
+
+        self.assertIs(error, raised.exception)
+        wait_signal.assert_called_once()
+        sleep.assert_not_called()
 
     @mock.patch("chatgpt_relay_live_call.wait_for_audio_signal_resilient")
     def test_initial_audio_wait_after_confirmed_offhook_skips_redundant_registry_probe(self, wait_signal):
