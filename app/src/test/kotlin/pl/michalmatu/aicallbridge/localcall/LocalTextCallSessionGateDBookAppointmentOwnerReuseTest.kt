@@ -9,6 +9,7 @@ import org.junit.Test
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallConstraints
 import pl.michalmatu.aicallbridge.agent.CallPlan
+import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallPlanFallbackPolicy
 import pl.michalmatu.aicallbridge.agent.CallPlanProposalRule
 import pl.michalmatu.aicallbridge.agent.CallPolicyAction
@@ -85,7 +86,7 @@ class LocalTextCallSessionGateDBookAppointmentOwnerReuseTest {
         val requireConfirmationTransition = TaskGraphTransitionId("require-confirmation")
         val binding = LocalTextCallGateDProductBinding(
             deterministicInterpreter = GateDDeterministicCandidateInterpreter { turn ->
-                assertEquals(CallPolicyAction.PROPOSAL, turn.deterministicAction)
+                assertEquals(CallPlanAction.PROPOSAL, turn.deterministicAction)
                 assertEquals(proposal, turn.deterministicProposal)
                 assertEquals(
                     CallPolicyAction.NEEDS_USER_DECISION,
@@ -158,7 +159,7 @@ class LocalTextCallSessionGateDBookAppointmentOwnerReuseTest {
         val selection = session.injectSyntheticFinalTranscript("mamy termin")
 
         assertEquals(TextCallFinalTurnRoute.Consumed, selection.route)
-        assertEquals(CallPolicyAction.PROPOSAL, selection.structuredResult?.decision()?.action())
+        assertEquals(CallPlanAction.PROPOSAL, selection.structuredResult?.decision()?.action())
         assertEquals(CallPolicyAction.NEEDS_USER_DECISION, selection.structuredResult?.policyDecision()?.action())
         assertEquals(CallWorkflowState.NEEDS_USER_DECISION, workflow.snapshot().state())
         assertEquals(proposal, workflow.snapshot().pendingProposal())
