@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.localcall
 
+import pl.michalmatu.aicallbridge.agent.CallCommitmentAuthorization
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallPolicyDecision
@@ -138,7 +139,8 @@ internal class LocalTextCallGateDProductIntegration(
     private var cancelled = false
     private var closed = false
     private var bookAppointmentApprovedProposal: CallProposal? = null
-    private var bookAppointmentCommitmentAuthorizationIssued = false
+    private var bookAppointmentApprovedWorkflow: CallWorkflow? = null
+    private var bookAppointmentCommitmentAuthorization: CallCommitmentAuthorization? = null
 
     private val shadowLifecycle: LocalTextCallGateDShadowLifecycle? =
         binding.shadowObserver?.let { observer ->
@@ -319,7 +321,8 @@ internal class LocalTextCallGateDProductIntegration(
             }
             if (ownerProposal != pendingProposal) {
                 cancelled = true
-                binding.bookAppointmentCommitmentGate?.clear()
+                clearBookAppointmentApprovalLocked()
+                revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
                 return@synchronized rejected(
                     GateDBookAppointmentUserDecisionRejectReason.OWNER_PROPOSAL_MISMATCH,
                 )
@@ -329,10 +332,11 @@ internal class LocalTextCallGateDProductIntegration(
             when (decision) {
                 GateDBookAppointmentUserDecision.CONFIRM -> {
                     bookAppointmentApprovedProposal = ownerProposal
+                    bookAppointmentApprovedWorkflow = workflow
                 }
                 GateDBookAppointmentUserDecision.REJECT -> {
-                    bookAppointmentApprovedProposal = null
-                    binding.bookAppointmentCommitmentGate?.clear()
+                    clearBookAppointmentApprovalLocked()
+                    revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
                 }
             }
             resultToNotify = staged
@@ -348,7 +352,8 @@ internal class LocalTextCallGateDProductIntegration(
 
     /**
      * Issues at most one opaque CallCommitmentGate permit for the exact proposal previously consumed
-     * by the CallWorkflow user-confirmation owner. It does not consume the permit, advance the graph,
+     * by the CallWorkflow user-confirmation owner. The same workflow owner must still be in active
+     * negotiation at issuance time. This method does not consume the permit, advance the graph,
      * complete the workflow, or execute an external commitment.
      */
     fun authorizeBookAppointmentCommitment():
@@ -371,7 +376,23 @@ internal class LocalTextCallGateDProductIntegration(
             ?: return@synchronized commitmentRejected(
                 GateDBookAppointmentCommitmentAuthorizationRejectReason.MISSING_APPROVED_PROPOSAL,
             )
-        if (bookAppointmentCommitmentAuthorizationIssued || gate.hasAuthorization()) {
+        val workflow = bookAppointmentApprovedWorkflow
+            ?: return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.WORKFLOW_NOT_ACTIVE,
+            )
+        val workflowSnapshot = try {
+            workflow.snapshot()
+        } catch (_: Throwable) {
+            return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.WORKFLOW_NOT_ACTIVE,
+            )
+        }
+        if (workflowSnapshot.state() != CallWorkflowState.ACTIVE_NEGOTIATION) {
+            return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.WORKFLOW_NOT_ACTIVE,
+            )
+        }
+        if (bookAppointmentCommitmentAuthorization != null || gate.hasAuthorization()) {
             return@synchronized commitmentRejected(
                 GateDBookAppointmentCommitmentAuthorizationRejectReason.ALREADY_ISSUED,
             )
@@ -384,23 +405,23 @@ internal class LocalTextCallGateDProductIntegration(
                 GateDBookAppointmentCommitmentAuthorizationRejectReason.AUTHORIZATION_FAILED,
             )
         }
-        bookAppointmentCommitmentAuthorizationIssued = true
+        bookAppointmentCommitmentAuthorization = authorization
         GateDBookAppointmentCommitmentAuthorizationResult.Authorized(authorization)
     }
 
     fun cancel() {
         synchronized(lock) {
             if (!closed) cancelled = true
-            bookAppointmentApprovedProposal = null
-            binding.bookAppointmentCommitmentGate?.clear()
+            clearBookAppointmentApprovalLocked()
+            revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
         }
         shadowLifecycle?.cancel()
     }
 
     override fun close() {
         val shouldClose = synchronized(lock) {
-            binding.bookAppointmentCommitmentGate?.clear()
-            bookAppointmentApprovedProposal = null
+            revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
+            clearBookAppointmentApprovalLocked()
             if (closed) {
                 false
             } else {
@@ -446,6 +467,17 @@ internal class LocalTextCallGateDProductIntegration(
         } catch (_: Throwable) {
             // Result observation cannot change deterministic routing or gain execution authority.
         }
+    }
+
+    private fun clearBookAppointmentApprovalLocked() {
+        bookAppointmentApprovedProposal = null
+        bookAppointmentApprovedWorkflow = null
+    }
+
+    private fun revokeIssuedBookAppointmentCommitmentAuthorizationLocked() {
+        val authorization = bookAppointmentCommitmentAuthorization ?: return
+        binding.bookAppointmentCommitmentGate?.revoke(authorization)
+        bookAppointmentCommitmentAuthorization = null
     }
 
     private fun rejected(

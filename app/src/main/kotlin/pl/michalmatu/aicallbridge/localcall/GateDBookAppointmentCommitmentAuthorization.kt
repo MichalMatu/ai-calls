@@ -8,6 +8,7 @@ internal enum class GateDBookAppointmentCommitmentAuthorizationRejectReason {
     COMMITMENT_GATE_NOT_BOUND,
     GRAPH_NOT_COMMITMENT,
     MISSING_APPROVED_PROPOSAL,
+    WORKFLOW_NOT_ACTIVE,
     ALREADY_ISSUED,
     AUTHORIZATION_FAILED,
     INTERNAL_FAILURE,

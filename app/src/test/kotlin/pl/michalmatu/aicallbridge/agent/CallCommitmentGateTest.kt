@@ -44,6 +44,21 @@ class CallCommitmentGateTest {
     }
 
     @Test
+    fun scopedRevokeClearsOnlyMatchingAuthorization() {
+        val tokens = ArrayDeque(listOf("permit-old", "permit-new"))
+        val gate = CallCommitmentGate { tokens.removeFirst() }
+        val oldAuthorization = gate.authorize(proposal("Clinic A", "150.00"))
+        val newProposal = proposal("Clinic B", "175.00")
+        val newAuthorization = gate.authorize(newProposal)
+
+        assertFalse(gate.revoke(oldAuthorization))
+        assertTrue(gate.hasAuthorization())
+        assertTrue(gate.revoke(newAuthorization))
+        assertFalse(gate.hasAuthorization())
+        assertTrue(gate.consume(newAuthorization.value).isFailure)
+    }
+
+    @Test
     fun clearRevokesOutstandingAuthorization() {
         val gate = CallCommitmentGate { "permit-clear" }
         val authorization = gate.authorize(proposal("Clinic A", "150.00"))
