@@ -29,9 +29,7 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching this layer.
 
 TaskGraph, CallPlan, PhraseMatrix, shadow/supervisor, ServicePack and IdentityVault provide bounded data to those owners but do not replace them.
 
-## Product layers
-
-### TaskGraph
+## TaskGraph and apply boundary
 
 `CustomTaskGraphCore` owns typed bounded conversational state, legal transitions, validated non-secret slots, recovery, immutable snapshots, effects-as-data and replay evidence.
 
@@ -39,7 +37,7 @@ TaskGraph, CallPlan, PhraseMatrix, shadow/supervisor, ServicePack and IdentityVa
 
 TaskGraph does not own dialing, target authorization, plaintext identity, speech release, user confirmation, commitment permits or factual business completion.
 
-### Identity
+## Identity
 
 ```text
 IdentityVault
@@ -66,17 +64,13 @@ IdentityVault
 
 Android persistence uses app-private no-backup `AtomicFile` ciphertext plus Android Keystore AES-256/GCM and is `PROVEN_S22`.
 
-## Shared finalized-text ingress
+## Finalized-text ingress and shadow
 
 Normal STT-finalized text and explicit synthetic finalized text converge before deterministic product processing. Synthetic ingress bypasses pipeline start, PCM/STT, backend generation and TTS/media, adds no authority, and is `PROVEN_S22`.
 
 The public Android `LocalTextCallSession.create(...)` path does not automatically bind reviewed Gate D product integration.
 
-## Shadow and supervisor
-
-`LocalTextCallGateDShadowLifecycle` invalidates stale work on newer turns, cancel and close. `SupervisorProposalValidator` converts quarantined hypotheses only into bounded candidate data after generation/transition/slot/confidence checks.
-
-A deterministic candidate rejection fails closed and cannot fall through to shadow as a bypass.
+`LocalTextCallGateDShadowLifecycle` invalidates stale work on newer turns, cancel and close. `SupervisorProposalValidator` converts quarantined hypotheses only into bounded candidate data after generation/transition/slot/confidence checks. Deterministic rejection fails closed and cannot fall through to shadow as a bypass.
 
 ## Reviewed BOOK_APPOINTMENT owner composition
 
@@ -94,18 +88,16 @@ Cancellation/rejection/close revoke only the exact permit issued by this integra
 
 ### Consumption evidence
 
-`CallRealtimeCommitmentFunctionHandler` emits `CallCommitmentConsumptionEvidence` only after `CallCommitmentGate.consume(...)` succeeds. The reviewed product binding records exact proposal-bound redacted consumption evidence; recording consumption does not advance TaskGraph and does not call `CallWorkflow.complete(...)`.
+`CallRealtimeCommitmentFunctionHandler` emits `CallCommitmentConsumptionEvidence` only after `CallCommitmentGate.consume(...)` succeeds. Recording exact proposal-bound redacted consumption evidence does not advance TaskGraph and does not call `CallWorkflow.complete(...)`.
 
-### Deferred COMPLETE
+### Deferred COMPLETE and factual completion
 
 ```text
 APPLY_TO_WORKFLOW       default/public behavior
 DEFER_TO_PRODUCT_OWNER explicit reviewed opt-in
 ```
 
-For reviewed BOOK_APPOINTMENT wiring, deterministic COMPLETE remains structured data and the workflow stays `ACTIVE_NEGOTIATION` until factual completion is explicitly accepted.
-
-### Factual completion owner
+For reviewed BOOK_APPOINTMENT wiring, deterministic COMPLETE remains structured data until factual completion is explicitly accepted.
 
 ```text
 permit issued
@@ -114,8 +106,6 @@ permit issued
 ```
 
 `completeBookAppointment(outcome)` is the only reviewed BOOK_APPOINTMENT path allowed to own `COMMITMENT -> COMPLETE`.
-
-It requires exact approved proposal/workflow, recorded exact consumption evidence, workflow still active, `CallOutcomeStatus.SUCCESS`, matching scheduled time/graph slot, matching known price/provider/location fields, current slot authorization, and an accepted effect-free staged `commit-complete` transition.
 
 Ordering:
 
@@ -130,9 +120,11 @@ Generic deterministic or shadow `commit-complete` candidates are blocked in ordi
 
 ## Verification status
 
-Host/canonical implementation is complete. The newest owner boundaries are now physically `PROVEN_S22` on `SM-S906B`, Android 16, without a cellular call.
+Gate D is `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-Evidence:
+PR #5 was squash-merged to `main` as `46bcfc9e13bed747e13429c50f54c7b4d3e47f69`; the feature branch was deleted.
+
+Latest physical proof on `SM-S906B`, Android 16, without a cellular call:
 
 ```text
 chatgpt-gated-s22-final-owner-proofs-v049-20260923
@@ -143,8 +135,6 @@ FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
 chatgpt-gated-s22-commitment-regression-v050-20260923
 BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
 ```
-
-This extends the previously proven IdentityVault, synthetic product ingress and BOOK_APPOINTMENT permit-issuance boundaries.
 
 ## Hard authority invariant
 
@@ -160,4 +150,6 @@ Neither TaskGraph, shadow/supervisor, CallPlan/PhraseMatrix, parser, storage, sy
 
 ## Next gate
 
-Re-check and merge PR #5 to `main`, then delete `gate-d-taskgraph-core`. A live acceptance call remains a separate gate requiring fresh explicit authorization for one concrete target and task.
+There is no unfinished Gate D implementation boundary. Continue from `main`.
+
+A live acceptance call is a separate authority gate and requires fresh explicit authorization for one concrete target/number and one concrete task in the current session before any dialing action.

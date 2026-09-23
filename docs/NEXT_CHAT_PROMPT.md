@@ -1,8 +1,8 @@
-# Next-chat prompt — Gate D proven; merge and live acceptance gate next
+# Next-chat prompt — Gate D merged and PROVEN_S22; live acceptance gate next
 
-Kontynuuj repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego checkpointu Gate D.
+Kontynuuj repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego `main`.
 
-Najpierw pobierz świeży stan repo/PR #5 i użyj wyłącznie świeżego Local Chat Bridge bindingu z bieżącego okna. Nie kopiuj bindingu z dokumentów ani starych tasków.
+Najpierw pobierz świeży `origin/main` i użyj wyłącznie świeżego/current Local Chat Bridge bindingu z bieżącego okna. Nie kopiuj bindingu z dokumentów ani starych tasków.
 
 Przeczytaj kolejno:
 
@@ -11,14 +11,21 @@ Przeczytaj kolejno:
 3. `docs/HANDOFF_NEXT_CHAT.md`
 4. `docs/ROADMAP.md`
 5. `docs/ARCHITECTURE.md`
-6. `docs/GATE_D_TASKGRAPH_V1_AUDIT_2026-09-22.md`
-7. `docs/SECURITY_PRIVACY.md`
-8. `docs/HANDOFF_PROTOCOL.md`
-9. `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
+6. `docs/SECURITY_PRIVACY.md`
+7. `docs/HANDOFF_PROTOCOL.md`
+8. `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
 
 ## Stan wejściowy
 
-Gate D `BOOK_APPOINTMENT` jest `DONE / HOST_GREEN / PROVEN_S22` dla reviewed no-call product boundary.
+Gate D `BOOK_APPOINTMENT` jest `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
+
+PR #5 został squash-merged do `main` jako:
+
+```text
+46bcfc9e13bed747e13429c50f54c7b4d3e47f69
+```
+
+`gate-d-taskgraph-core` został usunięty; trwałe branche to `main` i `agent-control`.
 
 Finalny owner chain:
 
@@ -53,26 +60,24 @@ chatgpt-gated-s22-commitment-regression-v050-20260923
 BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
 ```
 
-Wcześniejsze proofy IdentityVault, synthetic product ingress i BOOK_APPOINTMENT permit issuance również pozostają `PROVEN_S22`.
+Wcześniejsze proofy IdentityVault, synthetic product ingress i permit issuance również pozostają `PROVEN_S22`.
 
 ## Pierwszy krok
 
-Nie implementuj kolejnego Gate D feature slice.
+Nie implementuj kolejnego Gate D feature slice bez konkretnego nowego problemu.
 
-1. sprawdź świeży HEAD PR #5, CI i mergeability;
-2. jeśli wszystko zielone, oznacz PR gotowym i merge do `main`;
-3. usuń `gate-d-taskgraph-core` po merge, zachowaj `agent-control`;
-4. kontynuuj z `main`.
+Jeśli użytkownik chce przejść do live acceptance call, przed dialowaniem wymagaj świeżej jawnej autoryzacji **jednego konkretnego targetu/numeru i jednego konkretnego zadania** w bieżącej sesji.
 
-## Live acceptance call
+Dla test-only public business/reception call:
+- ujawnij na początku, że to krótki test AI;
+- poproś o zgodę;
+- brak zgody -> zakończ;
+- nie twórz realnej rezerwacji ani innego zobowiązania.
 
-Live call jest osobnym gate'em. Nie dziedzicz zgody ze starego czatu, handoffu, poprzednich testów ani samego faktu, że telefon jest podłączony.
-
-Przed dialowaniem wymagaj świeżej jawnej autoryzacji **jednego konkretnego targetu/numeru i jednego konkretnego zadania** w bieżącej sesji.
-
-Dla test-only public business/reception call: ujawnij na początku, że to krótki test AI i poproś o zgodę; brak zgody -> zakończ. Nie twórz realnej rezerwacji w trybie test-only.
-
-Dla genuine user-authorized booking: wolno dążyć do realnego wyniku wyłącznie w granicach `CallTask`, `FactDisclosurePolicy`, proposal/user-confirmation/commitment/completion owners.
+Dla genuine user-authorized booking:
+- wolno dążyć do realnego wyniku tylko w granicach `CallTask`;
+- używaj wyłącznie autoryzowanych faktów;
+- zachowaj `FactDisclosurePolicy`, proposal/user-confirmation/commitment/completion owners.
 
 ## Invariants
 

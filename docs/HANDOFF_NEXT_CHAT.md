@@ -1,4 +1,4 @@
-# Handoff — Gate D fully proven on S22; merge and live acceptance gate next
+# Handoff — Gate D merged and physically proven; live acceptance gate next
 
 Date: 2026-09-23
 
@@ -6,29 +6,37 @@ Date: 2026-09-23
 
 Repository: `MichalMatu/android-ai-call-bridge`
 
-Active work branch before merge: `gate-d-taskgraph-core`
+Durable product branch: `main`
 
-PR: #5 `Gate D TaskGraph v1 core`.
-
-Final no-phone code checkpoint:
+Gate D PR #5 `Gate D TaskGraph v1 core` was squash-merged to `main` as:
 
 ```text
-cefe6492c7e714a8124e08cb1f42a68554955832
+46bcfc9e13bed747e13429c50f54c7b4d3e47f69
 ```
 
-Pre-device-proof documentation checkpoint:
+The temporary `gate-d-taskgraph-core` branch was deleted after merge.
+
+Expected remote branches:
 
 ```text
-39b2749f85b51a9cb533631326ce1fec4439ca10
+agent-control
+main
 ```
 
-Always fetch fresh HEAD/PR state before acting.
+Branch-cleanup evidence:
+
+```text
+chatgpt-gated-post-merge-branch-cleanup-v051-20260923
+GATE_D_POST_MERGE_BRANCH_CLEANUP_GREEN=true
+```
+
+Always fetch fresh `origin/main` before acting.
 
 ## Gate D status
 
-Gate D `BOOK_APPOINTMENT` is `DONE / HOST_GREEN / PROVEN_S22` for the reviewed no-call product boundary.
+Gate D `BOOK_APPOINTMENT` is `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-The reviewed owner chain covers:
+The reviewed owner chain is complete:
 
 ```text
 proposal
@@ -36,7 +44,7 @@ proposal
  -> TaskGraph PROPOSAL / CONFIRMATION
  -> explicit app-owned user CONFIRM / REJECT
  -> exact proposal-bound one-shot commitment permit
- -> exact permit consumption evidence
+ -> exact permit-consumption evidence
  -> deferred structured COMPLETE data
  -> exact SUCCESS outcome validation
  -> staged TaskGraph COMMIT_SUCCEEDED
@@ -57,29 +65,20 @@ Hard invariants:
 ## Host/canonical evidence
 
 ```text
-chatgpt-gated-book-appointment-completion-red-v041-20260923
 BOOK_APPOINTMENT_COMPLETION_RED=true
-
-chatgpt-gated-book-appointment-completion-green-v042-20260923
 BOOK_APPOINTMENT_COMPLETION_GREEN=true
-
-chatgpt-gated-book-appointment-completion-canonical-v043-20260923
 BOOK_APPOINTMENT_COMPLETION_CANONICAL_GREEN=true
-
-chatgpt-gated-android-completion-contract-build-v044-20260923
 ANDROID_COMPLETION_CONTRACT_PACKAGED=true
-
-chatgpt-gated-final-canonical-v045-20260923
 FINAL_GATE_D_NO_PHONE_CANONICAL_GREEN=true
 ```
 
-Android CI #546 and #547 completed successfully.
+Android CI #546, #547 and #552 completed successfully.
 
 ## Physical S22 evidence
 
 The target Samsung S22+ (`SM-S906B`, Android 16) is physically proven without making a cellular call.
 
-Newest proof:
+Latest proof:
 
 ```text
 chatgpt-gated-s22-final-owner-proofs-v049-20260923
@@ -97,15 +96,18 @@ BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
 
 Earlier physical proofs remain valid for Android IdentityVault, synthetic reviewed Gate D product ingress and BOOK_APPOINTMENT permit issuance.
 
-The failed v048 attempt was only a test-runner matcher typo (`SM-S906B` vs ADB's `SM_S906B`) and stopped before Gradle; v049 corrected the matcher and passed both focused tests.
+The failed v048 attempt was only a runner matcher typo (`SM-S906B` vs ADB's `SM_S906B`) and stopped before Gradle; v049 corrected it and passed both focused tests.
 
 ## Exact continuation order
 
-1. Fetch fresh PR #5 state and latest CI for the proof-documentation HEAD.
-2. If CI is green and PR remains mergeable, mark PR ready and merge to `main`.
-3. Delete `gate-d-taskgraph-core` after merge. Keep `agent-control` for Local Agent evidence/workflow.
-4. Continue from `main`; do not start another Gate D feature slice unless a concrete acceptance-flow failure exposes a root cause.
-5. A live acceptance call is a separate gate. Before dialing, obtain fresh explicit authorization for one concrete target and task in the current session.
+There is no unfinished Gate D implementation slice.
+
+1. Start from fresh `origin/main` and a fresh/current Local Chat Bridge binding.
+2. Read `AGENTS.md`, `README.md`, this handoff, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md` and `docs/HANDOFF_PROTOCOL.md`; read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
+3. Do not reopen Gate D internals unless a concrete acceptance-flow failure exposes a root cause.
+4. If the requested next step is a live acceptance call, require fresh explicit authorization for one concrete target/number and one concrete task before any dialing action.
+5. For a test-only public business/reception call, disclose the AI/test purpose at the start and ask consent. If consent is declined, stop without creating a real commitment.
+6. For a genuine user-authorized booking, use only authorized facts and the existing proposal/user-confirmation/commitment/completion owners.
 
 ## Frozen / do-not-repeat work
 
@@ -117,15 +119,15 @@ Identity plaintext remains late-bound through `AuthorizedFactSnapshot -> FactDis
 
 ## Local Agent / bridge rules
 
-- use the fresh bridge-provided binding for the current chat;
+- use the fresh/current bridge-provided binding for the current chat;
 - work only in the bound repository;
-- inspect daemon/current-task state before queueing another task on the same branch;
+- inspect daemon/current-task state before queueing another task;
 - queue terminally checkable tasks; queue/ACK is not success;
 - do not run local Codex from a Local Agent task;
 - `.agent/tasks` / `.agent/results` stay on `agent-control` and are evidence, not product documentation.
 
 ## Live-call rule
 
-This handoff, a connected S22 and successful device proofs are not authorization to dial. Every real call requires fresh explicit authorization for the exact target and task.
+This handoff, a connected S22 and successful device proofs are not authorization to dial. Every real call requires fresh explicit authorization for the exact target/number and task.
 
 Ready-to-paste continuation prompt: `docs/NEXT_CHAT_PROMPT.md`.
