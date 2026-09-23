@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.localcall
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionListener
+import pl.michalmatu.aicallbridge.agent.CallOutcome
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueHypothesis
@@ -26,7 +28,9 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
  * Gate D activation remains explicit. The public Android create path binds neither a shadow
  * observer nor product apply wiring; reviewed internal composition may opt into exactly one of
  * those paths. The bounded BOOK_APPOINTMENT methods below only delegate to existing application
- * owners and do not dial, speak, disclose identity, execute a commitment, or complete a workflow.
+ * owners and do not dial, speak, disclose identity or execute an external commitment. Factual
+ * completion remains explicit and is accepted only by the reviewed owner boundary after exact
+ * commitment-consumption and success-evidence checks.
  */
 internal class LocalTextCallSession private constructor(
     private val workflow: CallWorkflow,
@@ -283,6 +287,42 @@ internal class LocalTextCallSession private constructor(
         } catch (_: Throwable) {
             GateDBookAppointmentCommitmentAuthorizationResult.Rejected(
                 GateDBookAppointmentCommitmentAuthorizationRejectReason.INTERNAL_FAILURE,
+            )
+        }
+    }
+
+    /**
+     * Listener for the reviewed Realtime commitment handler. It records exact consumption evidence
+     * only after CallCommitmentGate.consume succeeds. A rejected record throws before the handler
+     * can return its authorization response, preserving fail-closed behavior.
+     */
+    internal fun bookAppointmentCommitmentConsumptionListener(): CallCommitmentConsumptionListener {
+        val integration = checkNotNull(gateDProductIntegration) {
+            "gate_d_product_integration_not_bound"
+        }
+        return CallCommitmentConsumptionListener { evidence ->
+            when (val result = integration.recordBookAppointmentCommitmentConsumption(evidence)) {
+                GateDBookAppointmentCommitmentConsumptionResult.Recorded -> Unit
+                is GateDBookAppointmentCommitmentConsumptionResult.Rejected ->
+                    error("book_appointment_commitment_consumption_rejected:${result.reason}")
+            }
+        }
+    }
+
+    /**
+     * Explicit factual-completion boundary for the reviewed BOOK_APPOINTMENT product path.
+     * A structured COMPLETE turn remains data until this owner call succeeds.
+     */
+    internal fun completeBookAppointment(outcome: CallOutcome): GateDBookAppointmentCompletionResult {
+        val integration = gateDProductIntegration
+            ?: return GateDBookAppointmentCompletionResult.Rejected(
+                GateDBookAppointmentCompletionRejectReason.PRODUCT_INTEGRATION_NOT_BOUND,
+            )
+        return try {
+            integration.completeBookAppointment(outcome)
+        } catch (_: Throwable) {
+            GateDBookAppointmentCompletionResult.Rejected(
+                GateDBookAppointmentCompletionRejectReason.INTERNAL_FAILURE,
             )
         }
     }
