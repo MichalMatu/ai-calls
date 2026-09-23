@@ -113,7 +113,7 @@ Gemma4ModelAcquisitionCatalog
 
 The reviewed source currently resolves through Hugging Face to its CDN and supports byte ranges. A one-byte proof confirmed the pinned artifact total is 2,588,147,712 bytes. Mutable `main`, redirect metadata, `Content-Length` and the transport itself cannot override the pinned application model identity.
 
-This source/downloader contract is `HOST_GREEN`; a full Android network transfer was not performed and no normal product download UI is exposed yet.
+The source/downloader and lifecycle core are `HOST_GREEN`. Normal product UI is explicit and two-step: a reviewed source/license/size confirmation is shown before the positive download action; import/download share one operation gate; progress and cancellation are surfaced. The confirmation/cancel Android boundary is `PROVEN_S22`. A full Android network transfer has not been performed.
 
 ## TaskGraph and apply boundary
 
@@ -230,6 +230,6 @@ Neither TaskGraph, model/runtime/model import/readiness, shadow/supervisor, Call
 
 ## Next gate
 
-The next generic engineering gate is explicit model-download lifecycle UX: user initiation, progress, cancellation and a reviewed retry/resume policy. Network acquisition must continue to terminate at `Gemma4ModelInstaller`; partial/download state cannot become runtime identity or activation authority. The full 2.59 GB transfer should be exercised physically only when that explicit product flow exists and is intentionally started.
+The next remaining model-acquisition gate is a deliberate physical full transfer of the pinned 2,588,147,712-byte artifact through `Gemma4ModelDownloader -> Gemma4ModelInstaller -> atomic activation`. This must be explicitly operator-started; readiness, startup, tests and handoff continuation must not trigger it. Current lifecycle intentionally cancels on Activity destruction and retries from byte 0 rather than claiming resumability.
 
 A live acceptance call is a separate authority gate and requires fresh explicit authorization for one concrete target/number and one concrete task in the current session before any dialing action.

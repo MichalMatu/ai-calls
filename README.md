@@ -99,34 +99,37 @@ No telephony/media path was started. Host tests cover `MISSING`, `INVALID` and `
 
 The audit also found explicit developer/diagnostic constructors (including Gate C hybrid/live-probe tooling). They are not product readiness owners and backend construction itself does not initialize LiteRT. Product session preparation is the fail-closed owner.
 
-## Reviewed acquisition source and downloader — HOST_GREEN
+## Reviewed acquisition and download lifecycle
 
-A network source is now pinned by immutable revision rather than a mutable branch:
+The reviewed network source remains pinned to immutable revision `6e5c4f1e395deb959c494953478fa5cec4b8008f` of `litert-community/gemma-4-E2B-it-litert-lm`. The transport is anonymous HTTPS, sends no Authorization header, restricts redirect completion to the reviewed Hugging Face/CDN host family, and streams bytes directly into `Gemma4ModelInstaller`.
 
-```text
-repository=litert-community/gemma-4-E2B-it-litert-lm
-revision=6e5c4f1e395deb959c494953478fa5cec4b8008f
-file=gemma-4-E2B-it.litertlm
-bytes=2588147712
-sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-license=apache-2.0
-auth=none
-```
+`Gemma4ModelInstaller` remains the only activation authority: full expected-size/SHA-256 verification, app-owned staging, fsync and atomic replacement happen there. A one-byte remote Range proof returned HTTP 206 with `Content-Range: bytes 0-0/2588147712` from `us.aws.cdn.hf.co`; that is endpoint evidence, not a full download proof.
 
-`Gemma4ModelAcquisitionCatalog` describes the reviewed source only. `Gemma4ModelDownloader` performs an anonymous HTTPS GET and streams the response directly into `Gemma4ModelInstaller`; HTTP errors and a known mismatching `Content-Length` fail before body consumption. Redirect completion is restricted to HTTPS Hugging Face/CDN hosts. No Authorization header is sent.
-
-Transport metadata is never activation authority. The installer still performs the full expected-size and SHA-256 checks, writes the app-owned staging file, fsyncs it and atomically replaces the active model only after verification.
-
-A bounded live endpoint proof requested only `bytes=0-0` from the immutable revision and returned:
+The product download lifecycle is now implemented:
 
 ```text
-status=206
-final_host=us.aws.cdn.hf.co
-content_range=bytes 0-0/2588147712
-bytes_read=1
+explicit Download button
+ -> confirmation: reviewed source + Apache-2.0 + immutable revision + 2.59 GB
+ -> separate positive Download 2.59 GB action
+ -> one serialized model operation (no concurrent SAF import/download)
+ -> streamed progress
+ -> Cancel closes active transport/response
+ -> partial staging fails closed and is removed by installer
+ -> retry starts from byte 0
+ -> only fully verified bytes may atomically replace active model
 ```
 
-The full 2.59 GB network download was intentionally **not** run and the downloader is not yet exposed as a normal UI button. The next product slice is explicit download lifecycle UX (progress/cancel/retry-resume policy) before any full-device transfer.
+Core lifecycle, downloader and UI host/package tests are `HOST_GREEN`. The S22 physically proved the **confirmation/cancel UI boundary** without starting the transfer: the dialog showed the reviewed repository, Apache-2.0, pinned revision, exact 2,588,147,712-byte size, SHA-256 verification statement, restart-from-zero policy and Wi-Fi recommendation. Back/Cancel left no staging file and preserved the active model's size/inode/mtime exactly.
+
+A subsequent physical no-call Gemma regression remained green:
+
+```text
+skill=ACKNOWLEDGE_NEUTRAL
+confidence=0.95
+reason=Potwierdzenie odbioru telefonu
+```
+
+The **full 2.59 GB network transfer was intentionally not started**. Therefore network-download-to-verified-atomic-activation remains pending physical execution and requires an explicit operator start from the confirmation UI.
 
 ## Verification
 

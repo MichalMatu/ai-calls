@@ -23,11 +23,11 @@ Do not create a status document for every experiment. Keep durable decisions in 
 
 Gate D `BOOK_APPOINTMENT` remains `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup and model readiness semantics remain `HOST_GREEN / PROVEN_S22`.
+Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup and model readiness remain `HOST_GREEN / PROVEN_S22`.
 
-The reviewed immutable acquisition-source contract and verified streaming downloader are now **HOST_GREEN**. The source is pinned to one LiteRT Community Hugging Face repository revision; transport is anonymous HTTPS and feeds bytes only into the existing `Gemma4ModelInstaller`, which remains the sole size/SHA-256/atomic-activation authority. A one-byte Range proof confirmed the pinned remote artifact reports the expected total size.
+The reviewed immutable acquisition source, streaming downloader and download lifecycle core are **HOST_GREEN**. The explicit source/license/2.59 GB confirmation-and-cancel UI boundary is **PROVEN_S22**. A full 2,588,147,712-byte network download has **not** been started physically.
 
-The next product gate is **download lifecycle UX**: explicit user initiation, progress, cancellation and safe retry/resume policy before exposing the 2.59 GB network transfer in normal UI. Do not silently or automatically download the model.
+The next physical gate is the deliberate full network download only when the operator explicitly chooses `Download 2.59 GB`. Do not auto-start it from readiness, startup, tests or handoff continuation. Until then, keep retry semantics as restart-from-byte-0 and keep the active model unchanged.
 
 Do not start a live call for this gate.
 
@@ -98,7 +98,9 @@ auth=none
 
 Never use mutable `main` as model identity. `Gemma4ModelAcquisitionCatalog` may identify a reviewed network source, but `Gemma4ModelInstaller` still owns expected bytes, SHA-256 verification, fsync/staging cleanup and atomic activation. `Gemma4ModelDownloader` must stream; do not buffer the model in memory. Redirects must remain HTTPS and on the reviewed Hugging Face/CDN host family.
 
-The downloader is not yet normal product UI. Full model transfer has not been performed in this slice; only a one-byte Range proof was executed. Any product download must be an explicit user action with visible lifecycle controls.
+The downloader is exposed only behind an explicit two-step product UI: the first button opens a source/license/size/revision confirmation and only the separate positive action starts transfer. Progress and cancellation are implemented; SAF import and network download share one operation gate. Retry intentionally restarts from byte 0.
+
+The confirmation/cancel boundary is `PROVEN_S22`. The full 2.59 GB transfer has not been performed; do not infer physical downloader/activation proof from the one-byte Range proof or from the dialog proof.
 
 ## Skills
 

@@ -138,18 +138,35 @@ Host evidence: RED `chatgpt-gemma4-downloader-red-v151-20260923`; GREEN `chatgpt
 
 Bounded remote proof `chatgpt-gemma4-acquisition-range-v153-20260923` read exactly one byte and returned HTTP 206 from `us.aws.cdn.hf.co` with `Content-Range: bytes 0-0/2588147712`. No full model transfer occurred.
 
+## Download lifecycle UX — HOST_GREEN / confirmation UI PROVEN_S22
+
+The explicit product lifecycle is implemented:
+
+1. `Gemma4ModelOperationGate` serializes `IDLE / IMPORTING / DOWNLOADING`;
+2. SAF import and network download cannot run concurrently;
+3. `Gemma4ModelDownloader` reports real streamed byte progress;
+4. cancel calls transport cancellation, closes the active response and causes partial installer staging to fail closed;
+5. the previously active model survives cancelled/failed transfer unchanged;
+6. retry deliberately restarts from byte 0 — resumable partial transfer is not claimed;
+7. UI shows reviewed repository, Apache-2.0, immutable revision and ~2.59 GB size before a second explicit positive action can begin transfer;
+8. no automatic download is triggered by `MISSING` readiness or app startup.
+
+Host evidence: lifecycle RED `chatgpt-gemma4-download-lifecycle-red-v157-20260923`; lifecycle core GREEN `chatgpt-gemma4-download-lifecycle-core-green-v158-20260923`; UI RED `chatgpt-gemma4-download-ui-red-v159-20260923`; UI GREEN `chatgpt-gemma4-download-ui-green-v161-20260923`. Targeted tests, full `verify_host.sh`, debug APK and AndroidTest APK are green.
+
+Physical S22 confirmation proof `chatgpt-gemma4-download-ui-s22-v164-20260923` verified the entry UI and confirmation dialog, then cancelled before transfer. Model stat remained exactly `2588147712:551596:1790194198` before, during and after the dialog, and `.importing` remained absent. Post-UI no-call regression `chatgpt-gemma4-download-ui-inference-v165-20260923` returned the bounded `ACKNOWLEDGE_NEUTRAL / 0.95` decision.
+
 ## Next product engineering gate
 
-Implement **explicit download lifecycle UX** before exposing the downloader to ordinary users:
+The only missing end-to-end acquisition proof is the **full 2,588,147,712-byte network transfer -> installer verification -> atomic activation on S22**. It is not authorized merely by a handoff, connected phone or continuation command. Run it only when the operator explicitly initiates/authorizes the large transfer.
 
-1. explicit user-start action only; never automatic background acquisition merely because readiness is `MISSING`;
-2. progress reporting based on streamed bytes/expected size;
-3. cancellation that closes the network response and leaves no activatable partial file;
-4. define retry/resume policy deliberately — if resume is added, partial bytes remain non-active and final full SHA-256 verification is still mandatory;
-5. prevent concurrent import/download operations and preserve the existing active model until verified replacement succeeds;
-6. surface source identity/license and expected download size before start;
-7. keep model transfer separate from call/session readiness and all call authority;
-8. host/package tests first; physical S22 network download only after an explicit product action is ready and the operator intentionally initiates the large transfer.
+Before or alongside that physical acceptance, keep these constraints:
+
+- no automatic download on readiness/startup;
+- retry starts from byte 0;
+- activity destruction cancels current transfer rather than silently continuing;
+- installer remains the only size/SHA-256/activation authority;
+- preserve the old active model until verified replacement succeeds;
+- no live call is part of this gate.
 
 A bounded live acceptance call remains a separate authorization gate and is not an automatic roadmap step.
 

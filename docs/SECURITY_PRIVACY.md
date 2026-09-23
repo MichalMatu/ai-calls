@@ -76,7 +76,7 @@ Acquisition rules:
 - no automatic multi-gigabyte download is triggered by readiness state; normal UI must require explicit user initiation;
 - future resume support must still verify the complete final byte stream before activation.
 
-The source/downloader contract is `HOST_GREEN`. Only a one-byte Range request was used for remote endpoint proof; no full 2.59 GB transfer was performed.
+The source/downloader and cancellation/progress lifecycle contracts are `HOST_GREEN`. The explicit confirmation/cancel UI boundary is `PROVEN_S22`: backing out before the positive action created no staging data and did not alter the active model. Only a one-byte Range request was used for remote endpoint proof; no full 2.59 GB network transfer was performed. A full transfer requires an explicit operator start from the reviewed confirmation UI.
 
 ## Identity and disclosure
 
