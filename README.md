@@ -14,7 +14,7 @@ PR #5 was squash-merged as:
 
 The Samsung cellular/media path and Gate D authority chain remain stable/frozen.
 
-The active work is now **dialogue resilience + direct Gemma 4 local fallback**, prompted by real Orange IVR acceptance where exact phrase matching proved too brittle.
+The active dialogue architecture is now **HOST_GREEN**, and the direct Gemma 4 no-call inference boundary is **PROVEN_S22**.
 
 ## Active dialogue architecture
 
@@ -30,7 +30,7 @@ finalized STT
  -> TTS
 ```
 
-`PhraseMatrix` now exposes bounded response-temperature bands:
+`PhraseMatrix` exposes bounded response-temperature bands:
 
 ```text
 HOT / WARM / UNCERTAIN / COLD / AMBIGUOUS
@@ -70,7 +70,44 @@ The app-owned model target is:
 <app external files>/models/gemma-4-E2B-it.litertlm
 ```
 
-A copy of the model already exists on the phone in Edge Gallery external storage, so the next engineering gate is clean model provisioning into the app-owned path followed by a physical **no-call** Gemma skill proof.
+The development proof copied the already-downloaded Edge Gallery model into that app-owned path using the app UID. Source and target SHA-256 matched:
+
+```text
+181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+```
+
+A plain `adb shell cp` is not sufficient on this Samsung build: the resulting file could not be opened by LiteRT from the app process. Writing the file through `run-as pl.michalmatu.aicallbridge` produced app-readable ownership/SELinux labeling and fixed the model-path failure.
+
+Production must not depend on Edge Gallery storage; the application still needs an explicit owned import/download lifecycle for the model.
+
+## Verification state
+
+The direct Gemma 4 path is now **PROVEN_S22 for no-call synthetic dialogue-skill inference**:
+
+- app-owned model hash verified;
+- LiteRT-LM JNI/native runtime loaded;
+- GPU delegate initialized on S22;
+- physical instrumentation completed successfully;
+- terminal bounded output contained `skill/confidence/reason`;
+- no telephony/media path was started.
+
+Observed physical proof:
+
+```text
+skill=ACKNOWLEDGE_NEUTRAL
+confidence=0.95
+reason=Potwierdzenie odbioru telefonu
+```
+
+The synthetic hybrid contract is **HOST_GREEN**:
+
+- HOT/WARM remain on deterministic owner paths;
+- bounded local skill completion records `LOCAL_SKILL` as the final source;
+- low confidence falls through once to injected-response/ChatRelay and records `CHAT_RELAY`;
+- local classifier error also falls through once and records `CHAT_RELAY`;
+- diagnostics retain the bounded model decision and final response source.
+
+No live call was made for these proofs.
 
 ## Stable Gate D authority
 
@@ -98,19 +135,6 @@ permit issued != permit consumed != business success confirmed
 
 No generic effect/completion executor exists.
 
-## Verification state
-
-Gate D and Samsung media have physical S22 evidence.
-
-The new direct Gemma 4 path is **not yet PROVEN_S22**. The immediate next gate is:
-
-1. current-head host/canonical regression;
-2. Android compile/package with LiteRT-LM;
-3. app-owned Gemma model provisioning;
-4. physical S22 no-call skill inference using synthetic text;
-5. synthetic hybrid fallback proof;
-6. only then consider another bounded live-call acceptance test.
-
 ## Orange checkpoint
 
 Real Orange acceptance proved call control, in-call audio, STT and reviewed TTS injection. A reviewed CLIR request was understood by Orange, which then asked whether the matter concerned the number being used for the call.
@@ -133,6 +157,12 @@ IdentityVault
  -> optional user approval
  -> resolve plaintext only after ALLOW
 ```
+
+## Next gate
+
+The next product engineering gap is explicit application-owned Gemma model acquisition/import rather than relying on an ADB development copy from Edge Gallery.
+
+A future bounded live acceptance call may be considered only after fresh explicit authorization in that same chat for one concrete target/number and one concrete task. Current proof/handoff state never authorizes dialing.
 
 ## Sources of truth
 
