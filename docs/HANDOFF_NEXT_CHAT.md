@@ -1,4 +1,4 @@
-# Handoff — Gate D merged and physically proven; Orange live acceptance paused for architecture review
+# Handoff — Gate D done; dialogue resilience + Gemma 4 fallback is the active work
 
 Date: 2026-09-23
 
@@ -6,173 +6,257 @@ Date: 2026-09-23
 
 Repository: `MichalMatu/android-ai-call-bridge`
 
-Durable product branch: `main`
-
-Gate D PR #5 `Gate D TaskGraph v1 core` was squash-merged to `main` as:
-
-```text
-46bcfc9e13bed747e13429c50f54c7b4d3e47f69
-```
-
-The temporary `gate-d-taskgraph-core` branch was deleted after merge.
-
-Expected remote branches:
-
-```text
-agent-control
-main
-```
-
-Branch-cleanup evidence:
-
-```text
-chatgpt-gated-post-merge-branch-cleanup-v051-20260923
-GATE_D_POST_MERGE_BRANCH_CLEANUP_GREEN=true
-```
+Durable branch: `main`
 
 Always fetch fresh `origin/main` before acting.
 
-## Gate D status
-
-Gate D `BOOK_APPOINTMENT` is `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
-
-The reviewed owner chain is complete:
+Current implementation checkpoint before this handoff documentation update:
 
 ```text
-proposal
- -> existing CallWorkflow policy owner
- -> TaskGraph PROPOSAL / CONFIRMATION
- -> explicit app-owned user CONFIRM / REJECT
- -> exact proposal-bound one-shot commitment permit
- -> exact permit-consumption evidence
- -> deferred structured COMPLETE data
- -> exact SUCCESS outcome validation
- -> staged TaskGraph COMMIT_SUCCEEDED
- -> CallWorkflow.complete(outcome)
- -> commit TaskGraph COMPLETE only after workflow success
+e35152f78446e69df8b98f4f403943751eb1a130
+Use direct Gemma 4 backend for Android text calls
 ```
 
-Hard invariants:
-
-- `permit issued != permit consumed != business success confirmed`;
-- consumption alone does not advance graph or complete workflow;
-- generic deterministic/shadow `commit-complete` candidates are blocked from factual completion ownership;
-- default/public CallPlan COMPLETE behavior remains unchanged; deferral is explicit reviewed opt-in;
-- no generic effect/completion executor;
-- public `LocalTextCallSession.create(...)` does not automatically activate the reviewed product binding;
-- `privileged-helper/`, Samsung media path and `CallMediaSessionCoordinator` remain frozen.
-
-## Host/canonical evidence
+Expected durable remote branches remain:
 
 ```text
-BOOK_APPOINTMENT_COMPLETION_RED=true
-BOOK_APPOINTMENT_COMPLETION_GREEN=true
-BOOK_APPOINTMENT_COMPLETION_CANONICAL_GREEN=true
-ANDROID_COMPLETION_CONTRACT_PACKAGED=true
-FINAL_GATE_D_NO_PHONE_CANONICAL_GREEN=true
+main
+agent-control
 ```
 
-Android CI #546, #547 and #552 completed successfully.
+Local Agent is currently idle. A new chat must use its own fresh bridge-provided binding; never copy the old binding from task history.
 
-## Physical S22 evidence
+## Stable foundation — do not redo
 
-The target Samsung S22+ (`SM-S906B`, Android 16) is physically proven without making a cellular call.
+Gate D `BOOK_APPOINTMENT` remains `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-Latest proof:
+The Samsung S22+ cellular/media path remains `PROVEN_S22 / FROZEN`:
+
+- call control;
+- downlink capture;
+- local STT;
+- reviewed TTS/uplink;
+- Shizuku privileged media path;
+- Gate D proposal/user-confirmation/commitment/completion authority.
+
+Do not reopen `privileged-helper/`, `CallMediaSessionCoordinator`, Gate D authority owners, IdentityVault, commitment ordering or completion ordering unless a new concrete root cause points there.
+
+## Why the Orange exact-phrase approach was changed
+
+Real Orange acceptance proved that the physical call/STT/TTS path works, but exact IVR wording is too variable for a script that stops on every small transcript or timing variation.
+
+Observed live example:
 
 ```text
-chatgpt-gated-s22-final-owner-proofs-v049-20260923
-DEFERRED_COMPLETION_BINDING_S22_PROVEN=true
-BOOK_APPOINTMENT_COMPLETION_S22_PROVEN=true
-FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
+AI: Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.
+Orange: Czy sprawa dotyczy numeru, z którego dzwonisz?
 ```
 
-Regression:
+No CLIR setting was changed. The old strategy of adding another reviewed exact phrase/action per Orange follow-up is no longer the main direction.
+
+## Active architecture: two-track dialogue resilience
+
+The requested design is now explicitly two-track:
 
 ```text
-chatgpt-gated-s22-commitment-regression-v050-20260923
-BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
+finalized STT turn
+ -> deterministic PhraseMatrix
+ -> response temperature / semantic tolerance
+ -> HOT/WARM: deterministic existing owner path
+ -> unresolved/ambiguous/cold: local Gemma 4 skill classifier
+ -> app-owned skill policy + exact reviewed response
+ -> if local model fails / confidence too low / TAKE_OVER:
+      existing injected-response / ChatRelay fallback
+ -> normal output approval
+ -> TTS only after approval
 ```
 
-Earlier physical proofs remain valid for Android IdentityVault, synthetic reviewed Gate D product ingress and BOOK_APPOINTMENT permit issuance.
+The model remains a proposal/classification layer. It does not gain dial, target widening, plaintext disclosure, confirmation, commitment, completion or direct speech-release authority.
 
-The failed v048 attempt was only a runner matcher typo (`SM-S906B` vs ADB's `SM_S906B`) and stopped before Gradle; v049 corrected it and passed both focused tests.
+## Response temperature already implemented
 
-## Orange live acceptance checkpoint
-
-The first real Orange acceptance work proved the physical speech path, but it also exposed that the current operator-specific Gate C phrase mapping is too brittle to keep extending as a production strategy.
-
-Current status:
+`PhraseMatrix` now has a bounded `PhraseResponseTemperature` classifier with bands:
 
 ```text
-MEDIA / STT / TTS PATH: PROVEN_S22
-REVIEWED SINGLE-TURN ORANGE RESPONSE: PROVEN_S22
-ORANGE IVR AUTOMATION: EXPERIMENTAL / BRITTLE / PAUSED
-CLIR ACTIVATION: NOT COMPLETED
+HOT
+WARM
+UNCERTAIN
+COLD
+AMBIGUOUS
 ```
 
-A reviewed CLIR request was spoken successfully in a real call:
+Important semantics:
+
+- HOT = existing exact/alias/fuzzy deterministic match;
+- WARM = one semantically/lexically dominant rule above threshold and margin;
+- UNCERTAIN = one possible rule but not strong enough for deterministic ownership;
+- AMBIGUOUS = competing near-equal rules; fail closed;
+- COLD = no useful deterministic interpretation.
+
+`WARM` can route through the existing deterministic CallPlan owner. Ambiguous/cold input must not be guessed deterministically.
+
+## Hybrid fallback / Skills already implemented
+
+The repository now contains a bounded dialogue skill layer:
+
+- `DialogueSkillTextBackend`;
+- `DialogueSkillPolicy` / typed skill IDs;
+- model returns only structured `skill + confidence + reason`;
+- the application owns the exact approved response text for each skill;
+- local model errors/low confidence can fall through to the existing injected-response/ChatRelay path;
+- output approval remains mandatory before speech release.
+
+The session/router work also has an explicit opt-in unresolved-turn mode that can return `Generate` for the reviewed hybrid path while default/Gate D behavior remains fail-closed and unchanged.
+
+Do not turn Skills into a second authority store.
+
+## Model decision: Gemma 4 only for this stage
+
+User decision: **do not compare Qwen vs Gemma in the current task.**
+
+Target local model:
 
 ```text
-Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.
+Gemma 4 E2B IT
+model file: gemma-4-E2B-it.litertlm
+runtime: LiteRT-LM
 ```
 
-Orange responded with the semantic follow-up:
+Qwen infrastructure may remain in the repository as historical/fallback infrastructure, but do not spend the next session benchmarking or tuning it unless the user explicitly reopens that scope.
+
+## Critical Gemma root-cause findings
+
+The previous `EdgeGalleryTextBackend` assumed an OpenAI-compatible HTTP server at:
 
 ```text
-Czy sprawa dotyczy numeru, z którego dzwonisz?
+127.0.0.1:8080
 ```
 
-The call was then stopped after observation. No account setting was changed.
+Physical S22 diagnostics proved this assumption is wrong for the installed AI Edge Gallery app:
 
-Important lessons:
+- `com.google.ai.edge.gallery` is installed;
+- launching `MainActivity` starts the application process;
+- no port `8080` is exposed before or after launch;
+- therefore the old `Edge Gallery = HTTP server` path must not be revived.
 
-- Orange prerolls and prompt wording vary; exact transcript strings are diagnostic fixtures, not a robust runtime contract;
-- adding one special-case reviewed action per follow-up does not scale;
-- reinstalling the APK resets runtime environment state such as `RECORD_AUDIO`, and Shizuku has its own authorization state;
-- the physical media/STT/TTS path should stay frozen rather than being blamed for IVR wording drift;
-- transient Git relay branches are developer tooling only, not a product conversation transport.
-
-The detailed checkpoint and recommended architecture directions are in:
+The S22 does contain the actual Gemma 4 LiteRT-LM model file in Edge Gallery external storage. Proven locations include:
 
 ```text
-docs/ORANGE_LIVE_ACCEPTANCE_2026-09-23.md
+/sdcard/Android/data/com.google.ai.edge.gallery/files/Gemma_4_E2B_it/6e5c4f1e395deb959c494953478fa5cec4b8008f/gemma-4-E2B-it.litertlm
+
+/sdcard/Android/data/com.google.aiedge.gallery/files/Gemma_4_E2B_it/6e5c4f1e395deb959c494953478fa5cec4b8008f/gemma-4-E2B-it.litertlm
 ```
 
-Do not continue adding Orange phrase variants before an architecture decision.
+The first package is not debuggable; the second installed variant is debuggable. Do not build a production dependency on another app's private sandbox.
 
-## Exact continuation order
+## Direct Gemma 4 implementation already on `main`
 
-There is no unfinished Gate D implementation slice and no active Orange live-call task to continue.
+Current `main` already contains the new direct in-process LiteRT-LM path:
 
-1. Start from fresh `origin/main` and a fresh/current Local Chat Bridge binding.
-2. Read `AGENTS.md`, `README.md`, this handoff, `docs/ORANGE_LIVE_ACCEPTANCE_2026-09-23.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md` and `docs/HANDOFF_PROTOCOL.md`; read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
-3. Discuss the next dialogue architecture before implementing more operator-specific IVR logic.
-4. Prefer an operator-agnostic typed dialogue-state layer plus semantic interpretation/confidence handling over exact phrase growth.
-5. Preserve existing app-owned dial/disclosure/confirmation/commitment/completion authority.
-6. If a future live call is requested, require fresh explicit authorization for one concrete target/number and one concrete task before dialing.
+```text
+app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Gemma4LiteRtTextBackend.kt
+```
 
-## Frozen / do-not-repeat work
+and Gradle dependency:
 
-Do not redo completed Gate D slices: TaskGraph core/apply bridge, AppointmentInterpreter, DialogueFit/hysteresis, shadow lifecycle/supervisor validation, IdentityVault, synthetic ingress, proposal owner reuse, explicit user decision, commitment authorization/hardening, consumption evidence, deferred completion or factual completion ordering.
+```text
+com.google.ai.edge.litertlm:litertlm-android:0.17.1
+```
 
-Do not reopen Samsung media or `privileged-helper/` without a separate root-cause scope.
+`Gemma4LiteRtTextBackend` / `LiteRtGemma4Runtime` currently:
 
-Do not keep extending Orange Gate C with one exact phrase/action for each IVR follow-up. Treat the existing Orange mappings as diagnostic fixtures until the dialogue architecture is redesigned.
+- owns a direct LiteRT-LM `Engine`;
+- uses deterministic sampling for skill classification;
+- disables thinking/tool calling;
+- supports JSON `ResponseFormat` for typed dialogue skills;
+- invalidates stale generations and supports cancellation;
+- tries GPU and falls back to CPU;
+- keeps Gemma as inference only; app policy remains authoritative.
 
-Identity plaintext remains late-bound through `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval`.
+The current app-owned model target is:
 
-## Local Agent / bridge rules
+```text
+<app external files>/models/gemma-4-E2B-it.litertlm
+```
 
-- use the fresh/current bridge-provided binding for the current chat;
-- work only in the bound repository;
-- inspect daemon/current-task state before queueing another task;
-- queue terminally checkable tasks; queue/ACK is not success;
-- do not run local Codex from a Local Agent task;
-- `.agent/tasks` / `.agent/results` stay on `agent-control` and are evidence, not product documentation.
+via `Gemma4LiteRtTextBackendFactory.modelFile(context)`.
 
-## Live-call rule
+The Android text backend/provider path has already been changed to use direct Gemma 4 rather than the old HTTP Edge Gallery backend.
 
-This handoff, a connected S22 and successful device proofs are not authorization to dial. Every real call requires fresh explicit authorization for the exact target/number and task.
+## What is NOT yet proven
 
-Ready-to-paste continuation prompt: `docs/NEXT_CHAT_PROMPT.md`.
+Do not overclaim the new Gemma path.
+
+Before the direct LiteRT-LM implementation, the physical S22 `AndroidEdgeGalleryDialogueSkillContractTest` failed because no `:8080` runtime existed. That failure is evidence against the old HTTP assumption, not against Gemma 4 itself.
+
+The new direct LiteRT-LM implementation on current `main` still needs:
+
+1. host/canonical regression on the current HEAD;
+2. explicit model provisioning into the app-owned model path;
+3. physical **no-call** S22 execution of the Gemma dialogue-skill contract;
+4. telemetry proving parsed `skill/confidence/reason` and the final response source;
+5. only after that, an optional bounded live dialogue acceptance test.
+
+No fresh live-call authorization is carried into the next chat.
+
+## First concrete continuation slice
+
+Start with **no-call Gemma provisioning + proof**, not Orange.
+
+Recommended order:
+
+1. Fetch fresh `origin/main` and inspect current Gemma commits around `e35152f7...`.
+2. Run targeted host tests plus `bash scripts/verify_host.sh` on fresh HEAD.
+3. Establish a clean app-owned model provisioning rule.
+   - For development, it is acceptable to copy the already-downloaded `gemma-4-E2B-it.litertlm` from accessible shared/external Edge Gallery storage into the app's external-files `models/` directory using Local Agent/ADB.
+   - Do not hard-code another app's private data directory as the production runtime path.
+   - Longer term, the app should own/import/download its model explicitly.
+4. Run the physical no-call S22 Gemma skill contract using synthetic text only.
+5. If it fails, classify the failure precisely: model path, LiteRT engine init, GPU/CPU backend, JSON response format, timeout, memory, or parser.
+6. Once no-call Gemma is green, verify the hybrid path offline/synthetic:
+   - HOT/WARM deterministic routing;
+   - unresolved -> Gemma skill;
+   - low confidence/error -> injected-response fallback;
+   - telemetry of model decision and final response source.
+7. Only after those gates are green should another live IVR call be considered.
+
+## Important tests/files to inspect first
+
+- `app/src/main/kotlin/pl/michalmatu/aicallbridge/localcall/PhraseMatrix.kt`
+- `app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/DialogueSkillTextBackend.kt`
+- `app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/DialogueSkillBackendFactory.kt`
+- `app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Gemma4LiteRtTextBackend.kt`
+- `app/src/main/kotlin/pl/michalmatu/aicallbridge/localcall/CallPlanFinalTurnRouteMapper.kt`
+- `app/src/main/kotlin/pl/michalmatu/aicallbridge/localcall/LocalTextCallSession.kt`
+- `app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/textagent/AndroidEdgeGalleryDialogueSkillContractTest.kt`
+- `docs/ORANGE_LIVE_ACCEPTANCE_2026-09-23.md` for historical live evidence only.
+
+The Android test name still contains `EdgeGallery`; it now exercises the `EDGE_GALLERY` provider identity which is being redirected to direct Gemma 4. Renaming the test/provider label for clarity is optional cleanup after the direct path is proven; do not let naming cleanup block the proof.
+
+## Frozen / safety boundaries
+
+- Samsung media/privileged-helper remains frozen.
+- Gate D authority remains frozen unless a real regression is proven.
+- Gemma/skills cannot directly dial, disclose secrets, approve a proposal, issue/consume commitment authority, complete a task or bypass output approval.
+- Identity plaintext remains late-bound through `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval`.
+- Do not add more exact Orange phrase variants as the main strategy.
+- Do not use transient Git relay branches as a product runtime transport; ChatRelay remains a developer/injected-response fallback boundary.
+
+## Local Agent / Local Chat Bridge
+
+For a new chat:
+
+- use only the fresh binding supplied by that chat;
+- work only in `MichalMatu/android-ai-call-bridge` unless explicitly rebound;
+- inspect fresh `.agent/status/daemon.json` before queueing device/local work;
+- Local Agent is for Gradle/ADB/device/local commands; direct GitHub edits are preferred for exact reviewable diffs;
+- `.agent/tasks` and `.agent/results` stay on `agent-control`;
+- never launch local Codex through Local Agent.
+
+## Live-call authorization
+
+This handoff contains **no authorization to dial**.
+
+A future real call requires fresh explicit authorization in the new chat for one concrete target/number and one concrete task.
+
+Ready-to-paste bootstrap is in `docs/NEXT_CHAT_PROMPT.md`.
