@@ -24,8 +24,6 @@ import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.taskgraph.CustomTaskGraphCore
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphContext
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphDefinition
-import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEffect
-import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEffectId
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEvent
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEventId
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEventRecord
@@ -65,8 +63,6 @@ object BookAppointmentTaskGraph {
     internal val TAKE_OVER_EVENT = TaskGraphEventId("TAKE_OVER")
 
     internal val PROPOSE_APPOINTMENT_TRANSITION = TaskGraphTransitionId("propose-appointment")
-    internal val EVALUATE_PROPOSAL_EFFECT =
-        TaskGraphEffect(TaskGraphEffectId("BOOK_APPOINTMENT_EVALUATE_PROPOSAL"))
 
     val definition = TaskGraphDefinition(
         version = 1,
@@ -87,7 +83,6 @@ object BookAppointmentTaskGraph {
                 event = PROPOSE_APPOINTMENT,
                 to = PROPOSAL,
                 contextReducer = ::commitAppointmentCandidate,
-                effects = listOf(EVALUATE_PROPOSAL_EFFECT),
             ),
             TaskGraphTransition(
                 id = TaskGraphTransitionId("proposal-to-commitment"),
