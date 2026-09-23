@@ -6,7 +6,7 @@ Date: 2026-09-24
 
 `MichalMatu/android-ai-call-bridge`
 
-Durable code/docs live on `main`; `agent-control` is Local Agent task/result transport only. At handoff completion the intended branch set is only:
+Durable code/docs live on `main`; `agent-control` is Local Agent task/result transport only. Handoff cleanup is complete and the remote branch set is:
 
 ```text
 main
@@ -169,7 +169,14 @@ No CLIR account change was completed. Do not claim otherwise.
 
 ## Branch/noise cleanup
 
-During closeout GitHub branch enumeration showed only `main` and `agent-control` before the temporary documentation branch was created. Remove the temporary documentation branch after fast-forwarding the docs to `main`. Do not retain transient `chat-relay/*` or `work/*` branches.
+Cleanup is complete. Final remote branch enumeration is exactly:
+
+```text
+main
+agent-control
+```
+
+No `chat-relay/*`, `work/*` or temporary documentation branches remain. Keep that minimal branch policy unless a new temporary branch is genuinely required.
 
 ## Authorization stop line
 
