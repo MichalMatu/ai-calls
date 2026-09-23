@@ -23,6 +23,8 @@ import pl.michalmatu.aicallbridge.identity.FactDisclosureRequest
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.taskgraph.CustomTaskGraphCore
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphDefinition
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEffect
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEffectId
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEvent
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEventId
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphEventRecord
@@ -61,6 +63,11 @@ object BookAppointmentTaskGraph {
     internal val CANCEL = TaskGraphEventId("CANCEL")
     internal val TAKE_OVER_EVENT = TaskGraphEventId("TAKE_OVER")
 
+    internal val ACCEPT_AUTONOMOUS_TRANSITION = TaskGraphTransitionId("accept-autonomous")
+    internal val REQUIRE_CONFIRMATION_TRANSITION = TaskGraphTransitionId("require-confirmation")
+    internal val EVALUATE_PROPOSAL_EFFECT =
+        TaskGraphEffect(TaskGraphEffectId("BOOK_APPOINTMENT_EVALUATE_PROPOSAL"))
+
     val definition = TaskGraphDefinition(
         version = 1,
         initialState = WAITING_OFFER,
@@ -75,11 +82,12 @@ object BookAppointmentTaskGraph {
         ),
         transitions = listOf(
             TaskGraphTransition(
-                id = TaskGraphTransitionId("accept-autonomous"),
+                id = ACCEPT_AUTONOMOUS_TRANSITION,
                 from = WAITING_OFFER,
                 event = ACCEPT_AUTONOMOUS,
                 to = PROPOSAL,
                 contextReducer = ::commitAppointmentCandidate,
+                effects = listOf(EVALUATE_PROPOSAL_EFFECT),
             ),
             TaskGraphTransition(
                 id = TaskGraphTransitionId("proposal-to-commitment"),
@@ -88,10 +96,12 @@ object BookAppointmentTaskGraph {
                 to = COMMITMENT,
             ),
             TaskGraphTransition(
-                id = TaskGraphTransitionId("require-confirmation"),
+                id = REQUIRE_CONFIRMATION_TRANSITION,
                 from = WAITING_OFFER,
                 event = REQUIRE_CONFIRMATION,
                 to = CONFIRMATION,
+                contextReducer = ::commitAppointmentCandidate,
+                effects = listOf(EVALUATE_PROPOSAL_EFFECT),
             ),
             TaskGraphTransition(
                 id = TaskGraphTransitionId("confirm-proposal"),
@@ -316,7 +326,13 @@ class BookAppointmentSimulator(
 
                     if (workflowDecision.action() == CallPolicyAction.NEEDS_USER_DECISION) {
                         pendingProposal = proposal
-                        dispatch(BookAppointmentTaskGraph.REQUIRE_CONFIRMATION)
+                        dispatch(
+                            BookAppointmentTaskGraph.REQUIRE_CONFIRMATION,
+                            mapOf(
+                                BookAppointmentTaskGraph.APPOINTMENT_AT to
+                                    TaskGraphSlotValue.Text(scheduledAt.toString()),
+                            ),
+                        )
                         evidence += BookAppointmentEvidence(
                             BookAppointmentEvidenceType.USER_CONFIRMATION_REQUIRED,
                             workflowDecision.reasons().joinToString(",") { it.name },
