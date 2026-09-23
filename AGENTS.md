@@ -23,13 +23,13 @@ Do not create a status document for every experiment. Keep durable decisions in 
 
 Gate D `BOOK_APPOINTMENT` remains `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup and model readiness remain `HOST_GREEN / PROVEN_S22`.
+Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup, model readiness, immutable acquisition source, streaming downloader and explicit download lifecycle are now **HOST_GREEN / PROVEN_S22**.
 
-The reviewed immutable acquisition source, streaming downloader and download lifecycle core are **HOST_GREEN**. The explicit source/license/2.59 GB confirmation-and-cancel UI boundary is **PROVEN_S22**. A full 2,588,147,712-byte network download has **not** been started physically.
+The full reviewed 2,588,147,712-byte network acquisition was physically executed on the S22 through the explicit two-step product UI. Staging grew during the transfer, `Gemma4ModelInstaller` atomically replaced the active model, the final SHA-256 exactly matched the pinned catalog identity, app-owned ownership/SELinux remained correct, staging was absent afterwards, UI readiness returned `READY`, and a synthetic no-call Gemma skill inference remained green.
 
-The next physical gate is the deliberate full network download only when the operator explicitly chooses `Download 2.59 GB`. Do not auto-start it from readiness, startup, tests or handoff continuation. Until then, keep retry semantics as restart-from-byte-0 and keep the active model unchanged.
+There is no remaining model-acquisition proof gate. Choose the next roadmap scope explicitly; do not infer that a live call is next or authorized.
 
-Do not start a live call for this gate.
+Do not start a live call without fresh explicit target/task authorization.
 
 ## Dialogue architecture
 
@@ -100,7 +100,7 @@ Never use mutable `main` as model identity. `Gemma4ModelAcquisitionCatalog` may 
 
 The downloader is exposed only behind an explicit two-step product UI: the first button opens a source/license/size/revision confirmation and only the separate positive action starts transfer. Progress and cancellation are implemented; SAF import and network download share one operation gate. Retry intentionally restarts from byte 0.
 
-The confirmation/cancel boundary is `PROVEN_S22`. The full 2.59 GB transfer has not been performed; do not infer physical downloader/activation proof from the one-byte Range proof or from the dialog proof.
+The confirmation/cancel boundary and the full reviewed network acquisition are `PROVEN_S22`. Physical evidence includes streamed staging growth, atomic replacement to a new inode, exact final size `2588147712`, SHA-256 `181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c`, app-owned SELinux/UID, no remaining `.importing` file, UI `READY`, and a green post-download no-call Gemma inference.
 
 ## Skills
 

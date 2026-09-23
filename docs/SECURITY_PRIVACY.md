@@ -76,7 +76,7 @@ Acquisition rules:
 - no automatic multi-gigabyte download is triggered by readiness state; normal UI must require explicit user initiation;
 - future resume support must still verify the complete final byte stream before activation.
 
-The source/downloader and cancellation/progress lifecycle contracts are `HOST_GREEN`. The explicit confirmation/cancel UI boundary is `PROVEN_S22`: backing out before the positive action created no staging data and did not alter the active model. Only a one-byte Range request was used for remote endpoint proof; no full 2.59 GB network transfer was performed. A full transfer requires an explicit operator start from the reviewed confirmation UI.
+The source/downloader, cancellation/progress lifecycle and explicit confirmation UI are `HOST_GREEN / PROVEN_S22`. The operator explicitly authorized and initiated the full 2,588,147,712-byte transfer through the reviewed UI. The installer accepted only the exact pinned size/SHA-256, atomically replaced the prior model, left no staging file, and preserved app-owned UID/SELinux labeling. A subsequent clean UI restart reported `READY` and no-call inference remained green. This proof does not authorize dialing or widen any call/data authority.
 
 ## Identity and disclosure
 

@@ -113,7 +113,7 @@ Gemma4ModelAcquisitionCatalog
 
 The reviewed source currently resolves through Hugging Face to its CDN and supports byte ranges. A one-byte proof confirmed the pinned artifact total is 2,588,147,712 bytes. Mutable `main`, redirect metadata, `Content-Length` and the transport itself cannot override the pinned application model identity.
 
-The source/downloader and lifecycle core are `HOST_GREEN`. Normal product UI is explicit and two-step: a reviewed source/license/size confirmation is shown before the positive download action; import/download share one operation gate; progress and cancellation are surfaced. The confirmation/cancel Android boundary is `PROVEN_S22`. A full Android network transfer has not been performed.
+The source/downloader and lifecycle core are `HOST_GREEN / PROVEN_S22`. Normal product UI is explicit and two-step: a reviewed source/license/size confirmation is shown before the positive download action; import/download share one operation gate; progress and cancellation are surfaced. The full 2,588,147,712-byte Android network transfer has been physically executed through this path, followed by installer verification, atomic replacement, UI readiness and no-call inference.
 
 ## TaskGraph and apply boundary
 
@@ -230,6 +230,6 @@ Neither TaskGraph, model/runtime/model import/readiness, shadow/supervisor, Call
 
 ## Next gate
 
-The next remaining model-acquisition gate is a deliberate physical full transfer of the pinned 2,588,147,712-byte artifact through `Gemma4ModelDownloader -> Gemma4ModelInstaller -> atomic activation`. This must be explicitly operator-started; readiness, startup, tests and handoff continuation must not trigger it. Current lifecycle intentionally cancels on Activity destruction and retries from byte 0 rather than claiming resumability.
+There is no remaining Gemma acquisition gate. The complete network path from explicit reviewed UI action through streaming transport, installer verification, atomic activation, readiness and synthetic inference is `PROVEN_S22`. Further downloader/storage work requires a new concrete product requirement or root cause.
 
 A live acceptance call is a separate authority gate and requires fresh explicit authorization for one concrete target/number and one concrete task in the current session before any dialing action.

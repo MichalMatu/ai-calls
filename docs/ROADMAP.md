@@ -138,37 +138,30 @@ Host evidence: RED `chatgpt-gemma4-downloader-red-v151-20260923`; GREEN `chatgpt
 
 Bounded remote proof `chatgpt-gemma4-acquisition-range-v153-20260923` read exactly one byte and returned HTTP 206 from `us.aws.cdn.hf.co` with `Content-Range: bytes 0-0/2588147712`. No full model transfer occurred.
 
-## Download lifecycle UX — HOST_GREEN / confirmation UI PROVEN_S22
+## Full Gemma network acquisition — HOST_GREEN / PROVEN_S22
 
-The explicit product lifecycle is implemented:
+The complete explicit acquisition lifecycle is now physically proven on the target S22:
 
-1. `Gemma4ModelOperationGate` serializes `IDLE / IMPORTING / DOWNLOADING`;
-2. SAF import and network download cannot run concurrently;
-3. `Gemma4ModelDownloader` reports real streamed byte progress;
-4. cancel calls transport cancellation, closes the active response and causes partial installer staging to fail closed;
-5. the previously active model survives cancelled/failed transfer unchanged;
-6. retry deliberately restarts from byte 0 — resumable partial transfer is not claimed;
-7. UI shows reviewed repository, Apache-2.0, immutable revision and ~2.59 GB size before a second explicit positive action can begin transfer;
-8. no automatic download is triggered by `MISSING` readiness or app startup.
+1. reviewed immutable source and anonymous HTTPS transport;
+2. explicit two-step user confirmation;
+3. serialized `IDLE / IMPORTING / DOWNLOADING` model operation gate;
+4. real streamed progress and cancellable transport;
+5. installer-owned staging, expected-size and SHA-256 verification;
+6. fsync + same-filesystem atomic replacement;
+7. old active model preserved until verified replacement;
+8. retry semantics remain restart-from-byte-0;
+9. final app-owned file and semantic readiness `READY`;
+10. post-download no-call Gemma inference remains green.
 
-Host evidence: lifecycle RED `chatgpt-gemma4-download-lifecycle-red-v157-20260923`; lifecycle core GREEN `chatgpt-gemma4-download-lifecycle-core-green-v158-20260923`; UI RED `chatgpt-gemma4-download-ui-red-v159-20260923`; UI GREEN `chatgpt-gemma4-download-ui-green-v161-20260923`. Targeted tests, full `verify_host.sh`, debug APK and AndroidTest APK are green.
+Full-transfer evidence: `chatgpt-gemma4-full-download-s22-v169-20260923`. The task intentionally entered through the UI positive action and recorded staging growth at `477934181`, `1027826896`, `1615416174` and `2178292139` bytes. Atomic replacement produced final stat `2588147712:561969:1790200763`, exact pinned SHA-256 `181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c`, correct `u0_a736/ext_data_rw` ownership and no remaining staging file.
 
-Physical S22 confirmation proof `chatgpt-gemma4-download-ui-s22-v164-20260923` verified the entry UI and confirmation dialog, then cancelled before transfer. Model stat remained exactly `2588147712:551596:1790194198` before, during and after the dialog, and `.importing` remained absent. Post-UI no-call regression `chatgpt-gemma4-download-ui-inference-v165-20260923` returned the bounded `ACKNOWLEDGE_NEUTRAL / 0.95` decision.
+`v169` exited nonzero only on a post-success immediate UI text assertion. Follow-up `chatgpt-gemma4-full-download-postcheck-v170-20260923` is fully GREEN: final stat/hash/ownership persisted, restarted UI reported `READY`, and synthetic no-call inference returned `ACKNOWLEDGE_NEUTRAL / 0.95 / Potwierdzenie odbioru telefonu`.
 
 ## Next product engineering gate
 
-The only missing end-to-end acquisition proof is the **full 2,588,147,712-byte network transfer -> installer verification -> atomic activation on S22**. It is not authorized merely by a handoff, connected phone or continuation command. Run it only when the operator explicitly initiates/authorizes the large transfer.
+The model acquisition lifecycle has no remaining physical gate. Select the next roadmap task explicitly from product priorities rather than reopening downloader/storage/media code without a concrete root cause.
 
-Before or alongside that physical acceptance, keep these constraints:
-
-- no automatic download on readiness/startup;
-- retry starts from byte 0;
-- activity destruction cancels current transfer rather than silently continuing;
-- installer remains the only size/SHA-256/activation authority;
-- preserve the old active model until verified replacement succeeds;
-- no live call is part of this gate.
-
-A bounded live acceptance call remains a separate authorization gate and is not an automatic roadmap step.
+A bounded live acceptance call remains a separate authorization gate. It is **not** authorized by this acquisition proof, a connected phone, documentation, or continuation command.
 
 ## Authority invariant
 

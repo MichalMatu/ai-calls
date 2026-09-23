@@ -101,27 +101,19 @@ The audit also found explicit developer/diagnostic constructors (including Gate 
 
 ## Reviewed acquisition and download lifecycle
 
-The reviewed network source remains pinned to immutable revision `6e5c4f1e395deb959c494953478fa5cec4b8008f` of `litert-community/gemma-4-E2B-it-litert-lm`. The transport is anonymous HTTPS, sends no Authorization header, restricts redirect completion to the reviewed Hugging Face/CDN host family, and streams bytes directly into `Gemma4ModelInstaller`.
+The reviewed network source is pinned to immutable revision `6e5c4f1e395deb959c494953478fa5cec4b8008f` of `litert-community/gemma-4-E2B-it-litert-lm`. Transport is anonymous HTTPS, sends no Authorization header, restricts redirect completion to the reviewed Hugging Face/CDN host family, and streams bytes directly into `Gemma4ModelInstaller`.
 
-`Gemma4ModelInstaller` remains the only activation authority: full expected-size/SHA-256 verification, app-owned staging, fsync and atomic replacement happen there. A one-byte remote Range proof returned HTTP 206 with `Content-Range: bytes 0-0/2588147712` from `us.aws.cdn.hf.co`; that is endpoint evidence, not a full download proof.
+`Gemma4ModelInstaller` remains the only activation authority: full expected-size/SHA-256 verification, app-owned staging, fsync and atomic replacement happen there. The product lifecycle is explicit and two-step: source/license/revision/size confirmation first, then a separate `Download 2.59 GB` action; SAF import and network download are serialized, progress is streamed, cancel closes active transport, partial staging fails closed, and retry restarts from byte 0.
 
-The product download lifecycle is now implemented:
+### Full physical S22 acquisition proof
+
+The complete 2,588,147,712-byte artifact was downloaded through the product UI on the S22. Observed staging checkpoints included `477934181`, `1027826896`, `1615416174` and `2178292139` bytes before atomic replacement. The active model changed from stat `2588147712:551596:1790194198` to `2588147712:561969:1790200763`. Final SHA-256 was exactly:
 
 ```text
-explicit Download button
- -> confirmation: reviewed source + Apache-2.0 + immutable revision + 2.59 GB
- -> separate positive Download 2.59 GB action
- -> one serialized model operation (no concurrent SAF import/download)
- -> streamed progress
- -> Cancel closes active transport/response
- -> partial staging fails closed and is removed by installer
- -> retry starts from byte 0
- -> only fully verified bytes may atomically replace active model
+181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
 ```
 
-Core lifecycle, downloader and UI host/package tests are `HOST_GREEN`. The S22 physically proved the **confirmation/cancel UI boundary** without starting the transfer: the dialog showed the reviewed repository, Apache-2.0, pinned revision, exact 2,588,147,712-byte size, SHA-256 verification statement, restart-from-zero policy and Wi-Fi recommendation. Back/Cancel left no staging file and preserved the active model's size/inode/mtime exactly.
-
-A subsequent physical no-call Gemma regression remained green:
+The final file remained app-owned (`u0_a736`, `ext_data_rw`, `media_rw_data_file`), `.importing` was absent, and a clean MainActivity restart reported `Gemma 4 model: READY (2588147712 bytes)`. The post-download synthetic no-call contract passed with:
 
 ```text
 skill=ACKNOWLEDGE_NEUTRAL
@@ -129,7 +121,7 @@ confidence=0.95
 reason=Potwierdzenie odbioru telefonu
 ```
 
-The **full 2.59 GB network transfer was intentionally not started**. Therefore network-download-to-verified-atomic-activation remains pending physical execution and requires an explicit operator start from the confirmation UI.
+The first full-transfer driver task (`v169`) was marked failed only because its final immediate UI-text assertion was too strict; the network transfer, atomic replacement, final size/hash and ownership had already succeeded. Follow-up `v170` independently revalidated the final file, UI readiness and no-call inference. Full application-owned network acquisition is therefore **PROVEN_S22**.
 
 ## Verification
 
