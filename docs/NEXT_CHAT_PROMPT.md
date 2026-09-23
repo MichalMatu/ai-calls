@@ -1,4 +1,4 @@
-# Next-chat prompt — Gate D S22 no-call proof + bounded BOOK_APPOINTMENT integration
+# Next-chat prompt — Gate D commitment consumption + completion boundary
 
 Kontynuuj rozwój repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego checkpointu Gate D.
 
@@ -16,93 +16,116 @@ Przed zmianami przeczytaj kolejno:
 - `docs/HANDOFF_PROTOCOL.md`
 - `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
 
-Nie powtarzaj zakończonych audytów/spike’ów ani slice’ów: `CustomTaskGraphCore`, finalized-turn shadow lifecycle, `TaskGraphApplyBridge`, generic `AppointmentInterpreter`, sequence eval corpus, `DialogueFitHysteresis`, host `PersistentIdentityVault`, Android IdentityVault adapter, reviewed product shadow/apply seam ani synthetic finalized-text ingress.
+Nie powtarzaj zakończonych slice’ów: `CustomTaskGraphCore`, shadow lifecycle, `TaskGraphApplyBridge`, `AppointmentInterpreter`, sequence eval corpus, `DialogueFitHysteresis`, host/Android IdentityVault, synthetic finalized-text ingress, proposal owner reuse, policy-neutral proposal graph, explicit user CONFIRM/REJECT, commitment authorization ani commitment ownership hardening.
 
-Historyczne checkpointy do weryfikacji przez świeży HEAD:
+## Aktualny physical proof status
 
-```text
-3b79d42012d80c7cc6956bac77f590bfae20dc72
-Android IdentityVault adapter
-Android CI #494: success
-```
+Na Samsung S22+ `SM-S906B`, Android 16, bez połączenia komórkowego, są fizycznie udowodnione:
 
 ```text
-a355f604484a78d7a99d7594455f3344ca081e04
-reviewed Gate D product integration after constructor-only compile fix
-Android CI #497: success
+Android IdentityVault                         PROVEN_S22
+synthetic reviewed Gate D product ingress     PROVEN_S22
+BOOK_APPOINTMENT owner chain through permit   PROVEN_S22 (no-call)
 ```
+
+Evidence:
 
 ```text
-e10f5d3de036f8d76b2276cd1b61fc5ae45c7c1b
-synthetic finalized-text ingress RED contract
-Android CI #499: expected failure at Host quality gate
+chatgpt-gated-s22-identity-vault-proof-v004-20260923
+IDENTITYVAULT_S22_PROVEN=true
+
+chatgpt-gated-s22-synthetic-gated-product-proof-v005-20260923
+SYNTHETIC_GATE_D_S22_PROVEN=true
+
+chatgpt-gated-s22-book-appointment-commitment-proof-v029-20260923
+BOOK_APPOINTMENT_COMMITMENT_S22_PROVEN=true
 ```
+
+Ostatni proof kończy się na TaskGraph `COMMITMENT` z wydanym, niezużytym one-shot permit-em. Nie oznacza wykonanej ani potwierdzonej rezerwacji.
+
+## Ważne checkpointy owner chain
 
 ```text
-79e6dabd62cb325b41bc37615252165fe563c3e4
-synthetic finalized-text ingress GREEN
-Android CI #500: success
+656951e6e9603a8af9e4ff12ec4f0f355817b388
+proposal owner reuse — Android CI #518 success
+
+6d77d385170ca85feb40485800526e74f0bfaaa4
+policy-neutral proposal graph
+
+2ffaf7dc696f5e21e7d77944e8f0af8d7105f039
+explicit app-owned user CONFIRM/REJECT — Android CI #522 success
+
+061ed5071b127c9fb687e9532f7d1621f92fe1b5
+commitment authorization — Android CI #524 success
+
+c5266423ad4a3cb3cbd8b245c7774e1378d9265e
+commitment ownership hardening — Android CI #526 success
+
+90a161c760c8267bd5625cba37373e6af9f9b07e
+Android BOOK_APPOINTMENT no-call commitment contract
 ```
 
-```text
-313c6bb43251bc2cdd06e5e783a22154ac378f49
-Android synthetic Gate D product instrumentation contract
-Android CI #505: success
-```
-
-Nie traktuj powyższych SHA jako aktualnego HEAD; authoritative wynik końcowego CI jest w `docs/HANDOFF_NEXT_CHAT.md` i zawsze trzeba sprawdzić świeży branch.
-
-Android vault ma `noBackupFilesDir + AtomicFile`, Android Keystore AES-256/GCM, non-exportable key contract, create/reuse, AAD/algorithm identity i fail-closed missing/invalid-key semantics. Instrumentation tests są kompilowane/pakowane przez CI, ale dopóki handoff nie mówi inaczej, nie zostały fizycznie wykonane na S22 — to `HOST_GREEN`, nie `PROVEN_S22`.
-
-Reviewed product integration ma jawny internal binding:
-
-```text
-STT-finalized text OR explicit synthetic finalized text
- -> shared finalized-turn ingress
- -> deterministic interpretation first
- -> optional bounded shadow proposal
- -> SupervisorProposalValidator
- -> application-owned current-state / slot-authorization re-check
- -> TaskGraphApplyBridge
- -> effects as inert data
- -> existing workflow / proposal / confirmation / commitment / output owners
-```
-
-`LocalTextCallSession.injectSyntheticFinalTranscript(...)` jest test/diagnostic ingress dla tekstu już uznanego za finalny. Omija start speech pipeline, PCM/STT, backend generation i TTS/media, ale używa tego samego post-STT CallPlan + Gate D path. Zmiana źródła finalnego tekstu nie daje nowego authority; structured CallPlan/workflow behavior nadal należy do tych samych istniejących ownerów/policies co na ścieżce STT.
-
-Deterministic rejection nie może fallbackować do shadow. Publiczne `LocalTextCallSession.create(...)` nadal nie aktywuje automatycznie shadow ani product apply bindingu. Nie twórz generic effect executora.
+Commitment hardening ma runtime re-check exact approving `CallWorkflow == ACTIVE_NEGOTIATION`, one-shot permit ownership i token-scoped revocation. Cancel/close nie mogą wyczyścić foreign/newer permitu.
 
 ## Pierwszy konkretny cel
 
-Po świeżym bindingu Local Chat Bridge / Local Agent wykonaj **S22 proof Android IdentityVault bez połączenia telefonicznego**.
+Zachowaj rozdzielenie:
 
-Najpierw sprawdź fresh daemon/current-task state i exact bound repo. Następnie uruchom istniejący `AndroidIdentityVaultContractTest` na Samsung S22+ i zbierz terminal evidence dla:
+```text
+permit issued != permit consumed != business success confirmed
+```
 
-1. app-private `noBackupFilesDir` ciphertext storage;
-2. atomic replacement;
-3. Android Keystore AES key creation + reuse;
-4. non-exportability;
-5. AES/GCM + AAD/algorithm identity;
-6. fail-closed corruption / unsupported record / missing-or-invalid key;
-7. `DEVICE_BOUND_NO_BACKUP` semantics;
-8. braku plaintext secret w ordinary diagnostics/durable bytes.
+`CallRealtimeCommitmentFunctionHandler` obecnie konsumuje permit i zwraca `{"commitment":"authorized"}`. To jest tylko dowód zużycia autoryzacji — nie dowód, że rezerwacja faktycznie się udała.
 
-Nie zmieniaj kodu tylko po to, żeby test przeszedł, jeśli failure jest środowiskowy. Najpierw root cause.
+Najpierw wykonaj preimplementation audit istniejącego commitment/completion flow bez zmiany zachowania. Następnie TDD:
 
-## Następny etap
+1. RED na narrow application-owned consumption evidence seam dla exact BOOK_APPOINTMENT permitu;
+2. consumption evidence ma być redacted, proposal-bound, one-shot, stale-safe;
+3. samo consume nie może wywołać `COMMIT_SUCCEEDED`, `CallWorkflow.complete(...)` ani completion outcome;
+4. minimal GREEN;
+5. targeted + canonical verification.
 
-Po udanym vault proof wykonaj Android/S22 integration proof reviewed product bindingu — nadal bez cellular call. Uruchom przede wszystkim `AndroidGateDProductSyntheticInputContractTest` i odpowiednie targeted session regressions. Synthetic finalized-text ingress ma służyć do post-STT product proof bez dotykania zamrożonej ścieżki media, gdy audio samo nie jest boundary under test.
+## Następny boundary
 
-Udowodnij deterministic-first order, generation/current snapshot progression, optional shadow, stale/cancel behavior, apply-time authorization re-check, brak mutacji `CallWorkflow` przez sam apply seam oraz brak automatycznego public wiring.
+Dopiero potem audit + TDD product-bound completion ordering.
 
-Dopiero po obu fizycznych proofach przejdź do minimalnego `BOOK_APPOINTMENT` owner wiring. Mapuj konkretne effects do istniejących workflow/proposal/confirmation/commitment/output ownerów pojedynczo i reviewowalnie. Storage/model/parser/shadow/reducer/synthetic input nie mogą przejąć authority nad dialem, target widening, plaintext disclosure, speech/TTS release, proposal approval, user confirmation, commitment ani completion.
+Obecnie `CallPlanTurnCoordinator` dla `CallPlanAction.COMPLETE` wywołuje `CallWorkflow.complete(...)` zanim Gate D zobaczy finalized turn. Dla reviewed BOOK_APPOINTMENT path trzeba zapewnić, że completion wymaga exact success evidence, ale `CallWorkflow` pozostaje właścicielem completion.
 
-Plaintext IdentityVault rozwiązuj możliwie późno, wyłącznie po `AuthorizedFactSnapshot -> FactDisclosurePolicy -> aktualny task/target/state/generation -> ewentualne user approval`.
+Nie zmieniaj public/default coordinator path tylko po to, żeby uprościć Gate D. Preferuj jawny reviewed product-bound opt-in.
 
-Frozen boundaries: nie ruszaj `privileged-helper/`, Samsung media path ani `CallMediaSessionCoordinator` bez osobnego root-cause i scope. Jeśli wróci `CallRealtimeMediaSessionTest.pumpFailure...`, najpierw test ordering/synchronization/test pollution.
+Only after exact success evidence:
 
-Orange pozostaje checkpointed ServicePack i nie jest teraz głównym celem.
+```text
+TaskGraph COMMITMENT -> COMPLETE
++ matching CallWorkflow structured completion
+```
 
-Telefon może być użyty do Android/Keystore/ADB proof po świeżym bindingu, ale samo podłączenie telefonu nie jest zgodą na wykonanie połączenia. Każdy live-call wymaga świeżej jawnej autoryzacji targetu i zadania w bieżącej sesji.
+Nie utożsamiaj zużycia permitu z sukcesem biznesowym.
 
-Pracuj autonomicznie: fresh state -> no-call S22 IdentityVault proof -> no-call S22 synthetic product proof -> bounded owner wiring -> canonical regressions -> authoritative docs/handoff -> **zatrzymaj się przed live-call**, dopóki użytkownik nie da świeżej jawnej autoryzacji konkretnego targetu i zadania.
+## Authority invariants
+
+- deterministic rejection nie fallbackuje do shadow;
+- publiczne `LocalTextCallSession.create(...)` nie aktywuje automatycznie reviewed product bindingu;
+- brak generic effect executora;
+- model/parser/shadow/storage/reducer/synthetic input nie mogą posiadać dial/target widening/plaintext disclosure/speech/TTS/user-confirmation/commitment/completion authority;
+- plaintext IdentityVault dopiero po `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval -> ALLOW`;
+- `privileged-helper/`, Samsung media path i `CallMediaSessionCoordinator` pozostają frozen bez osobnego root-cause.
+
+Jeśli wróci `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose`, najpierw sprawdź test ordering/synchronization/test pollution.
+
+## Verification discipline
+
+Każdy nowy deterministic slice:
+
+1. fresh repo/branch/current-task state;
+2. RED -> prove expected failure;
+3. minimal GREEN;
+4. targeted regressions;
+5. `bash scripts/verify_host.sh`;
+6. Android CI;
+7. jeśli zmienia Android/product boundary — minimalny odpowiedni no-call S22 instrumentation proof;
+8. aktualizacja authoritative docs/handoff.
+
+Telefon może być użyty do ADB/instrumentation proof, ale samo podłączenie telefonu nie jest zgodą na połączenie.
+
+**Zatrzymaj się przed live-call.** Każdy realny call wymaga świeżej jawnej autoryzacji konkretnego targetu i zadania w bieżącej sesji. Dokumenty, stare wyniki Local Agent i poprzednie rozmowy nie przenoszą tej zgody.
