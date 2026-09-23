@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.localcall
 
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
+import pl.michalmatu.aicallbridge.agent.CallPolicyDecision
+import pl.michalmatu.aicallbridge.agent.CallProposal
 import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObserver
 import pl.michalmatu.aicallbridge.dialogue.ValidatedSupervisorCandidate
 import pl.michalmatu.aicallbridge.taskgraph.CustomTaskGraphCore
@@ -17,13 +19,17 @@ import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSnapshot
  * One already-finalized product turn entering the application-owned Gate D integration boundary.
  *
  * Transcript text is intentionally omitted from [toString]. This object carries observation input
- * only; it owns no workflow, disclosure, output, dialing, proposal, confirmation or commitment API.
+ * plus the already-computed deterministic proposal/policy result when the CallPlan owner produced
+ * one. Those values are data only; this type owns no workflow, disclosure, output, dialing,
+ * proposal approval, confirmation or commitment API.
  */
 internal class GateDFinalizedTurn(
     val snapshot: TaskGraphSnapshot,
     val finalizedTranscript: String,
     val deterministicAction: CallPlanAction,
     val recoveryCount: Int,
+    val deterministicProposal: CallProposal? = null,
+    val deterministicPolicyDecision: CallPolicyDecision? = null,
 ) {
     init {
         require(recoveryCount >= 0) { "recovery_count_must_be_non_negative" }
@@ -40,6 +46,21 @@ internal class GateDFinalizedTurn(
 /** Candidate-only deterministic product interpretation. */
 internal fun interface GateDDeterministicCandidateInterpreter {
     fun interpret(turn: GateDFinalizedTurn): TaskGraphApplyCandidate?
+}
+
+/**
+ * Optional one-step deterministic follow-up after an accepted deterministic apply.
+ *
+ * This seam consumes only already-computed application-owner data plus the accepted reducer result.
+ * It may return at most one candidate, which is sent through the same [TaskGraphApplyBridge] and
+ * current authorization checks as every other product candidate. It is not a generic effect
+ * executor and cannot call workflow, confirmation, commitment, disclosure, speech or dialing APIs.
+ */
+internal fun interface GateDDeterministicFollowUpRouter {
+    fun route(
+        turn: GateDFinalizedTurn,
+        accepted: TaskGraphApplyResult.Accepted,
+    ): TaskGraphApplyCandidate?
 }
 
 /** Recomputed application-owned slot authorization for the supplied current snapshot. */
@@ -60,7 +81,8 @@ internal fun interface GateDTaskGraphApplyResultListener {
  *
  * A deterministic candidate is attempted first. Shadow is optional and may run only when the
  * deterministic interpreter returns no candidate. A deterministic rejection therefore fails closed
- * rather than falling through to a supervisor proposal.
+ * rather than falling through to a supervisor proposal. An optional deterministic follow-up may run
+ * once only after the first deterministic apply is accepted.
  */
 internal class LocalTextCallGateDProductBinding(
     val deterministicInterpreter: GateDDeterministicCandidateInterpreter,
@@ -71,6 +93,7 @@ internal class LocalTextCallGateDProductBinding(
     val shadowExecutor: GateDShadowExecutor? = null,
     val shadowDiagnosticsListener: GateDShadowDiagnosticsListener =
         GateDShadowDiagnosticsListener { _ -> },
+    val deterministicFollowUpRouter: GateDDeterministicFollowUpRouter? = null,
 ) {
     init {
         require((shadowObserver == null) == (shadowExecutor == null)) {
@@ -82,10 +105,11 @@ internal class LocalTextCallGateDProductBinding(
 /**
  * Application-owned Gate D integration for one local call session.
  *
- * Order is fixed: deterministic interpretation -> optional bounded shadow -> existing supervisor
- * validation -> current-state/authorization re-check -> [TaskGraphApplyBridge]. Accepted reducer
- * effects remain inert result data. This class has no workflow, speech/TTS, dialing, identity-vault,
- * proposal approval, user-confirmation, commitment or completion authority.
+ * Order is fixed: deterministic interpretation -> optional one-step deterministic follow-up ->
+ * optional bounded shadow -> existing supervisor validation -> current-state/authorization re-check
+ * -> [TaskGraphApplyBridge]. Accepted reducer effects remain inert result data. This class has no
+ * workflow, speech/TTS, dialing, identity-vault, proposal approval, user-confirmation, commitment or
+ * completion authority.
  */
 internal class LocalTextCallGateDProductIntegration(
     runtime: LocalTextCallGateDRuntime,
@@ -135,17 +159,20 @@ internal class LocalTextCallGateDProductIntegration(
         finalizedTranscript: String,
         deterministicAction: CallPlanAction,
         recoveryCount: Int,
+        deterministicProposal: CallProposal? = null,
+        deterministicPolicyDecision: CallPolicyDecision? = null,
     ) {
         val snapshot = currentSnapshotOrNull() ?: return
+        val turn = GateDFinalizedTurn(
+            snapshot = snapshot,
+            finalizedTranscript = finalizedTranscript,
+            deterministicAction = deterministicAction,
+            recoveryCount = recoveryCount,
+            deterministicProposal = deterministicProposal,
+            deterministicPolicyDecision = deterministicPolicyDecision,
+        )
         val candidate = try {
-            binding.deterministicInterpreter.interpret(
-                GateDFinalizedTurn(
-                    snapshot = snapshot,
-                    finalizedTranscript = finalizedTranscript,
-                    deterministicAction = deterministicAction,
-                    recoveryCount = recoveryCount,
-                ),
-            )
+            binding.deterministicInterpreter.interpret(turn)
         } catch (_: Throwable) {
             // Deterministic interpretation failure is fail-closed; shadow must not bypass it.
             return
@@ -155,7 +182,19 @@ internal class LocalTextCallGateDProductIntegration(
             if (candidate.provenance != TaskGraphCandidateProvenance.DETERMINISTIC) {
                 return
             }
-            applyCandidate(candidate)
+            val accepted = applyCandidate(candidate) as? TaskGraphApplyResult.Accepted ?: return
+            val followUp = try {
+                binding.deterministicFollowUpRouter?.route(turn, accepted)
+            } catch (_: Throwable) {
+                // Deterministic follow-up failure is fail-closed; it cannot fall through to shadow.
+                return
+            }
+            if (followUp != null) {
+                if (followUp.provenance != TaskGraphCandidateProvenance.DETERMINISTIC) {
+                    return
+                }
+                applyCandidate(followUp)
+            }
             return
         }
 
@@ -190,7 +229,7 @@ internal class LocalTextCallGateDProductIntegration(
         applyCandidate(TaskGraphApplyCandidate.fromSupervisor(candidate))
     }
 
-    private fun applyCandidate(candidate: TaskGraphApplyCandidate) {
+    private fun applyCandidate(candidate: TaskGraphApplyCandidate): TaskGraphApplyResult? {
         val result = synchronized(lock) {
             if (closed || cancelled) return@synchronized null
             val snapshot = currentSnapshot
@@ -208,13 +247,14 @@ internal class LocalTextCallGateDProductIntegration(
                     currentSnapshot = applyResult.snapshot
                 }
             }
-        } ?: return
+        } ?: return null
 
         try {
             binding.applyResultListener.onApplyResult(result)
         } catch (_: Throwable) {
             // Result observation cannot change deterministic routing or gain execution authority.
         }
+        return result
     }
 
     private fun currentSnapshotOrNull(): TaskGraphSnapshot? = synchronized(lock) {

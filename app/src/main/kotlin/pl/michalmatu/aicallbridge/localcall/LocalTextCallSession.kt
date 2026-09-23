@@ -310,7 +310,7 @@ internal class LocalTextCallSession private constructor(
         val recoveryCount = currentRecoveryCount()
         activateGateDProductIntegration(
             finalTranscript = finalTranscript,
-            deterministicAction = deterministicAction,
+            turnResult = turnResult,
             recoveryCount = recoveryCount,
         )
         activateGateDShadow(
@@ -323,14 +323,17 @@ internal class LocalTextCallSession private constructor(
 
     private fun activateGateDProductIntegration(
         finalTranscript: String,
-        deterministicAction: CallPlanAction,
+        turnResult: CallPlanTurnResult,
         recoveryCount: Int,
     ) {
         try {
+            val decision = turnResult.decision()
             gateDProductIntegration?.onFinalizedTurn(
                 finalizedTranscript = finalTranscript,
-                deterministicAction = deterministicAction,
+                deterministicAction = decision.action(),
                 recoveryCount = recoveryCount,
+                deterministicProposal = decision.proposal(),
+                deterministicPolicyDecision = turnResult.policyDecision(),
             )
         } catch (_: Throwable) {
             // Gate D application state must never alter the already-selected CallPlan route.
