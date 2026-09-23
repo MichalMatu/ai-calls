@@ -22,10 +22,11 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
  * deterministic CallPlan turn coordinator carried by the prepared call.
  *
  * CallPlan routing remains structured only here: this class does not synthesize or transmit plan
- * output directly, authorize commitment, approve proposals, or fall back to a backend/model.
+ * output directly, approve proposals, execute external commitments, or fall back to a backend/model.
  * Gate D activation remains explicit. The public Android create path binds neither a shadow
  * observer nor product apply wiring; reviewed internal composition may opt into exactly one of
- * those paths.
+ * those paths. The bounded BOOK_APPOINTMENT methods below only delegate to existing application
+ * owners and do not dial, speak, disclose identity, execute a commitment, or complete a workflow.
  */
 internal class LocalTextCallSession private constructor(
     private val workflow: CallWorkflow,
@@ -256,6 +257,25 @@ internal class LocalTextCallSession private constructor(
         } catch (_: Throwable) {
             GateDBookAppointmentUserDecisionResult.Rejected(
                 GateDBookAppointmentUserDecisionRejectReason.INTERNAL_FAILURE,
+            )
+        }
+    }
+
+    /**
+     * Requests one opaque BOOK_APPOINTMENT commitment permit after explicit user confirmation.
+     * The permit is not consumed here and this method does not advance or complete the workflow.
+     */
+    internal fun authorizeBookAppointmentCommitment():
+        GateDBookAppointmentCommitmentAuthorizationResult {
+        val integration = gateDProductIntegration
+            ?: return GateDBookAppointmentCommitmentAuthorizationResult.Rejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.PRODUCT_INTEGRATION_NOT_BOUND,
+            )
+        return try {
+            integration.authorizeBookAppointmentCommitment()
+        } catch (_: Throwable) {
+            GateDBookAppointmentCommitmentAuthorizationResult.Rejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.INTERNAL_FAILURE,
             )
         }
     }

@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.localcall
 
+import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallPolicyDecision
 import pl.michalmatu.aicallbridge.agent.CallProposal
@@ -87,7 +88,8 @@ internal fun interface GateDTaskGraphApplyResultListener {
  * A deterministic candidate is attempted first. Shadow is optional and may run only when the
  * deterministic interpreter returns no candidate. A deterministic rejection therefore fails closed
  * rather than falling through to a supervisor proposal. An optional deterministic follow-up may run
- * once only after the first deterministic apply is accepted.
+ * once only after the first deterministic apply is accepted. The optional commitment gate remains
+ * inert until the explicit BOOK_APPOINTMENT authorization boundary is called.
  */
 internal class LocalTextCallGateDProductBinding(
     val deterministicInterpreter: GateDDeterministicCandidateInterpreter,
@@ -99,6 +101,7 @@ internal class LocalTextCallGateDProductBinding(
     val shadowDiagnosticsListener: GateDShadowDiagnosticsListener =
         GateDShadowDiagnosticsListener { _ -> },
     val deterministicFollowUpRouter: GateDDeterministicFollowUpRouter? = null,
+    val bookAppointmentCommitmentGate: CallCommitmentGate? = null,
 ) {
     init {
         require((shadowObserver == null) == (shadowExecutor == null)) {
@@ -113,10 +116,10 @@ internal class LocalTextCallGateDProductBinding(
  * Order is fixed: deterministic interpretation -> optional one-step deterministic follow-up ->
  * optional bounded shadow -> existing supervisor validation -> current-state/authorization re-check
  * -> [TaskGraphApplyBridge]. Accepted reducer effects remain inert result data. This class has no
- * workflow, speech/TTS, dialing, identity-vault, proposal approval, user-confirmation, commitment or
- * completion authority. The one BOOK_APPOINTMENT user-decision method below is an explicit reviewed
- * composition boundary: it reuses CallWorkflow as the decision owner and still creates no
- * commitment authorization.
+ * speech/TTS, dialing, identity-vault, proposal-policy, external-commit execution or completion
+ * authority. The BOOK_APPOINTMENT user-decision and commitment-authorization methods below are
+ * explicit reviewed composition boundaries: they reuse CallWorkflow and CallCommitmentGate owners
+ * without creating a generic effect executor.
  */
 internal class LocalTextCallGateDProductIntegration(
     runtime: LocalTextCallGateDRuntime,
@@ -134,6 +137,8 @@ internal class LocalTextCallGateDProductIntegration(
     private var currentSnapshot = initialSnapshot
     private var cancelled = false
     private var closed = false
+    private var bookAppointmentApprovedProposal: CallProposal? = null
+    private var bookAppointmentCommitmentAuthorizationIssued = false
 
     private val shadowLifecycle: LocalTextCallGateDShadowLifecycle? =
         binding.shadowObserver?.let { observer ->
@@ -314,12 +319,22 @@ internal class LocalTextCallGateDProductIntegration(
             }
             if (ownerProposal != pendingProposal) {
                 cancelled = true
+                binding.bookAppointmentCommitmentGate?.clear()
                 return@synchronized rejected(
                     GateDBookAppointmentUserDecisionRejectReason.OWNER_PROPOSAL_MISMATCH,
                 )
             }
 
             currentSnapshot = staged.snapshot
+            when (decision) {
+                GateDBookAppointmentUserDecision.CONFIRM -> {
+                    bookAppointmentApprovedProposal = ownerProposal
+                }
+                GateDBookAppointmentUserDecision.REJECT -> {
+                    bookAppointmentApprovedProposal = null
+                    binding.bookAppointmentCommitmentGate?.clear()
+                }
+            }
             resultToNotify = staged
             GateDBookAppointmentUserDecisionResult.Applied(
                 state = staged.snapshot.state,
@@ -331,15 +346,61 @@ internal class LocalTextCallGateDProductIntegration(
         return result
     }
 
+    /**
+     * Issues at most one opaque CallCommitmentGate permit for the exact proposal previously consumed
+     * by the CallWorkflow user-confirmation owner. It does not consume the permit, advance the graph,
+     * complete the workflow, or execute an external commitment.
+     */
+    fun authorizeBookAppointmentCommitment():
+        GateDBookAppointmentCommitmentAuthorizationResult = synchronized(lock) {
+        if (closed || cancelled) {
+            return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.INTEGRATION_INACTIVE,
+            )
+        }
+        val gate = binding.bookAppointmentCommitmentGate
+            ?: return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.COMMITMENT_GATE_NOT_BOUND,
+            )
+        if (currentSnapshot.state != BookAppointmentTaskGraph.COMMITMENT) {
+            return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.GRAPH_NOT_COMMITMENT,
+            )
+        }
+        val proposal = bookAppointmentApprovedProposal
+            ?: return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.MISSING_APPROVED_PROPOSAL,
+            )
+        if (bookAppointmentCommitmentAuthorizationIssued || gate.hasAuthorization()) {
+            return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.ALREADY_ISSUED,
+            )
+        }
+
+        val authorization = try {
+            gate.authorize(proposal)
+        } catch (_: Throwable) {
+            return@synchronized commitmentRejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.AUTHORIZATION_FAILED,
+            )
+        }
+        bookAppointmentCommitmentAuthorizationIssued = true
+        GateDBookAppointmentCommitmentAuthorizationResult.Authorized(authorization)
+    }
+
     fun cancel() {
         synchronized(lock) {
             if (!closed) cancelled = true
+            bookAppointmentApprovedProposal = null
+            binding.bookAppointmentCommitmentGate?.clear()
         }
         shadowLifecycle?.cancel()
     }
 
     override fun close() {
         val shouldClose = synchronized(lock) {
+            binding.bookAppointmentCommitmentGate?.clear()
+            bookAppointmentApprovedProposal = null
             if (closed) {
                 false
             } else {
@@ -391,6 +452,11 @@ internal class LocalTextCallGateDProductIntegration(
         reason: GateDBookAppointmentUserDecisionRejectReason,
     ): GateDBookAppointmentUserDecisionResult.Rejected =
         GateDBookAppointmentUserDecisionResult.Rejected(reason)
+
+    private fun commitmentRejected(
+        reason: GateDBookAppointmentCommitmentAuthorizationRejectReason,
+    ): GateDBookAppointmentCommitmentAuthorizationResult.Rejected =
+        GateDBookAppointmentCommitmentAuthorizationResult.Rejected(reason)
 
     private fun currentSnapshotOrNull(): TaskGraphSnapshot? = synchronized(lock) {
         if (closed || cancelled) null else currentSnapshot
