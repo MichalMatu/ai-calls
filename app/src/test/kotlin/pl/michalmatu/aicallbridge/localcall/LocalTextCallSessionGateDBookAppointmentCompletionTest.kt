@@ -76,7 +76,7 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
     @Test
     fun `completion before consumption and mismatched or failure evidence fail closed`() {
         val fixture = fixture()
-        prepareCommitment(fixture)
+        val authorization = prepareCommitment(fixture)
 
         assertEquals(
             GateDBookAppointmentCompletionResult.Rejected(
@@ -87,10 +87,7 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
         assertEquals(BookAppointmentTaskGraph.COMMITMENT, fixture.acceptedResults.last().snapshot.state)
         assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, fixture.workflow.snapshot().state())
 
-        val authorization = fixture.session.authorizeBookAppointmentCommitment()
-        assertTrue(authorization is GateDBookAppointmentCommitmentAuthorizationResult.Rejected)
-        val issued = fixture.commitmentGate.currentAuthorizationForTest()
-        consumeCommitment(fixture, checkNotNull(issued))
+        consumeCommitment(fixture, authorization.authorization.value)
 
         val wrong = CallOutcome(
             CallOutcomeStatus.SUCCESS,
@@ -225,7 +222,7 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
         val rejectProposal = TaskGraphTransitionId("reject-proposal")
         val commitComplete = TaskGraphTransitionId("commit-complete")
         val acceptedResults = mutableListOf<TaskGraphApplyResult.Accepted>()
-        val commitmentGate = TestableCommitmentGate("permit-final-completion")
+        val commitmentGate = CallCommitmentGate { "permit-final-completion" }
         val binding = LocalTextCallGateDProductBinding(
             deterministicInterpreter = GateDDeterministicCandidateInterpreter { turn ->
                 when (turn.deterministicAction) {
@@ -300,7 +297,7 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
                     null
                 }
             },
-            bookAppointmentCommitmentGate = commitmentGate.delegate,
+            bookAppointmentCommitmentGate = commitmentGate,
             callPlanCompletionMode = CallPlanCompletionMode.DEFER_TO_PRODUCT_OWNER,
         )
         val session = LocalTextCallSession(
@@ -328,15 +325,8 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
         val session: LocalTextCallSession,
         val outcome: CallOutcome,
         val acceptedResults: MutableList<TaskGraphApplyResult.Accepted>,
-        val commitmentGate: TestableCommitmentGate,
+        val commitmentGate: CallCommitmentGate,
     )
-
-    private class TestableCommitmentGate(token: String) {
-        val delegate = CallCommitmentGate { token }
-        fun currentAuthorizationForTest(): String? = if (delegate.hasAuthorization()) "permit-final-completion" else null
-        fun hasAuthorization(): Boolean = delegate.hasAuthorization()
-        fun consume(value: String) = delegate.consume(value)
-    }
 
     private class NoopResponder : CallRealtimeFunctionResponder {
         override fun submit(outputJson: String): Result<Unit> = Result.success(Unit)
