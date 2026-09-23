@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.appointment
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
@@ -26,34 +27,38 @@ class BookAppointmentTaskGraphEffectOwnerBridgeTest {
     private val target = CallResolvedTarget("Example clinic", "+48123456789")
 
     @Test
-    fun `autonomous proposal effect is rechecked by workflow and does not create commitment authority`() {
+    fun `proposal effect keeps graph in proposal while workflow decides autonomous path`() {
         val workflow = activeWorkflow(task())
-        val before = workflow.snapshot()
-        val result = acceptedResult(BookAppointmentTaskGraph.ACCEPT_AUTONOMOUS)
+        val result = proposedResult()
 
         val ownerResult = BookAppointmentTaskGraphEffectOwnerBridge(workflow).onApplyResult(result)
 
+        assertEquals(BookAppointmentTaskGraph.PROPOSAL, result.snapshot.state)
         assertEquals(
             BookAppointmentEffectOwnerResult.Applied(CallPolicyAction.AUTONOMOUSLY_ALLOWED),
             ownerResult,
         )
         assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, workflow.snapshot().state())
         assertEquals(null, workflow.snapshot().pendingProposal())
-        assertEquals(before.task(), workflow.snapshot().task())
+        assertEquals(
+            TaskGraphSlotValue.Text(scheduledAt.toString()),
+            result.snapshot.context[BookAppointmentTaskGraph.APPOINTMENT_AT],
+        )
         assertTrue(result.effects.contains(BookAppointmentTaskGraph.EVALUATE_PROPOSAL_EFFECT))
     }
 
     @Test
-    fun `confirmation proposal effect stores only the exact workflow-owned pending proposal`() {
+    fun `proposal effect lets workflow own pending user decision without advancing graph`() {
         val preferredWindow = CallTimeWindow(
             ZonedDateTime.of(2026, 9, 24, 16, 0, 0, 0, zone),
             ZonedDateTime.of(2026, 9, 24, 17, 0, 0, 0, zone),
         )
         val workflow = activeWorkflow(task(CallPreferences(listOf(preferredWindow), emptyList(), emptyList())))
-        val result = acceptedResult(BookAppointmentTaskGraph.REQUIRE_CONFIRMATION)
+        val result = proposedResult()
 
         val ownerResult = BookAppointmentTaskGraphEffectOwnerBridge(workflow).onApplyResult(result)
 
+        assertEquals(BookAppointmentTaskGraph.PROPOSAL, result.snapshot.state)
         assertEquals(
             BookAppointmentEffectOwnerResult.Applied(CallPolicyAction.NEEDS_USER_DECISION),
             ownerResult,
@@ -64,35 +69,58 @@ class BookAppointmentTaskGraphEffectOwnerBridgeTest {
         assertEquals(null, workflow.snapshot().pendingProposal().paymentMode())
         assertEquals(null, workflow.snapshot().pendingProposal().provider())
         assertEquals(null, workflow.snapshot().pendingProposal().location())
-        assertTrue(result.effects.contains(BookAppointmentTaskGraph.EVALUATE_PROPOSAL_EFFECT))
     }
 
     @Test
-    fun `policy transition mismatch fails closed before workflow mutation`() {
-        val preferredWindow = CallTimeWindow(
-            ZonedDateTime.of(2026, 9, 24, 16, 0, 0, 0, zone),
-            ZonedDateTime.of(2026, 9, 24, 17, 0, 0, 0, zone),
-        )
-        val workflow = activeWorkflow(task(CallPreferences(listOf(preferredWindow), emptyList(), emptyList())))
-        val before = workflow.snapshot()
-        val result = acceptedResult(BookAppointmentTaskGraph.ACCEPT_AUTONOMOUS)
-
-        val ownerResult = BookAppointmentTaskGraphEffectOwnerBridge(workflow).onApplyResult(result)
-
-        assertEquals(
-            BookAppointmentEffectOwnerResult.Rejected(
-                BookAppointmentEffectOwnerRejectReason.POLICY_TRANSITION_MISMATCH,
+    fun `user rejection clears proposal candidate before returning to waiting offer`() {
+        val core = CustomTaskGraphCore(BookAppointmentTaskGraph.definition)
+        val initial = BookAppointmentTaskGraph.definition.initialSnapshot()
+        val proposal = accepted(
+            core,
+            initial,
+            BookAppointmentTaskGraph.PROPOSE_APPOINTMENT,
+            mapOf(
+                BookAppointmentTaskGraph.APPOINTMENT_AT to
+                    TaskGraphSlotValue.Text(scheduledAt.toString()),
             ),
-            ownerResult,
         )
+        val confirmation = accepted(
+            core,
+            proposal,
+            BookAppointmentTaskGraph.REQUIRE_CONFIRMATION,
+        )
+
+        val waiting = accepted(
+            core,
+            confirmation,
+            BookAppointmentTaskGraph.USER_REJECTED,
+        )
+
+        assertEquals(BookAppointmentTaskGraph.WAITING_OFFER, waiting.state)
+        assertFalse(waiting.context.contains(BookAppointmentTaskGraph.APPOINTMENT_AT))
+    }
+
+    @Test
+    fun `rejected apply result is ignored without workflow mutation`() {
+        val workflow = activeWorkflow(task())
+        val before = workflow.snapshot()
+        val rejected = TaskGraphApplyResult.Rejected(
+            snapshot = BookAppointmentTaskGraph.definition.initialSnapshot(),
+            reason = pl.michalmatu.aicallbridge.taskgraph.TaskGraphApplyRejectReason.UNMAPPED_TRANSITION,
+        )
+
+        val ownerResult = BookAppointmentTaskGraphEffectOwnerBridge(workflow).onApplyResult(rejected)
+
+        assertEquals(BookAppointmentEffectOwnerResult.Ignored, ownerResult)
         assertEquals(before, workflow.snapshot())
     }
 
-    private fun acceptedResult(eventId: pl.michalmatu.aicallbridge.taskgraph.TaskGraphEventId): TaskGraphApplyResult.Accepted {
-        val reduction = CustomTaskGraphCore(BookAppointmentTaskGraph.definition).reduce(
+    private fun proposedResult(): TaskGraphApplyResult.Accepted {
+        val core = CustomTaskGraphCore(BookAppointmentTaskGraph.definition)
+        val reduction = core.reduce(
             BookAppointmentTaskGraph.definition.initialSnapshot(),
             TaskGraphEvent(
-                id = eventId,
+                id = BookAppointmentTaskGraph.PROPOSE_APPOINTMENT,
                 generation = 0L,
                 candidates = mapOf(
                     BookAppointmentTaskGraph.APPOINTMENT_AT to
@@ -105,6 +133,19 @@ class BookAppointmentTaskGraphEffectOwnerBridgeTest {
             effects = reduction.effects,
             record = reduction.record,
         )
+    }
+
+    private fun accepted(
+        core: CustomTaskGraphCore,
+        snapshot: pl.michalmatu.aicallbridge.taskgraph.TaskGraphSnapshot,
+        eventId: pl.michalmatu.aicallbridge.taskgraph.TaskGraphEventId,
+        candidates: Map<pl.michalmatu.aicallbridge.taskgraph.TaskGraphSlotId, TaskGraphSlotValue> = emptyMap(),
+    ): pl.michalmatu.aicallbridge.taskgraph.TaskGraphSnapshot {
+        val reduction = core.reduce(
+            snapshot,
+            TaskGraphEvent(eventId, snapshot.generation, candidates),
+        ) as TaskGraphReduction.Accepted
+        return reduction.snapshot
     }
 
     private fun activeWorkflow(task: CallTask): CallWorkflow =
