@@ -12,6 +12,7 @@ internal data class Gemma4ModelSpec(
     val modelId: String,
     val fileName: String,
     val sha256: String,
+    val expectedBytes: Long? = null,
 ) {
     init {
         require(modelId.isNotBlank()) { "model_id_must_not_be_blank" }
@@ -19,6 +20,7 @@ internal data class Gemma4ModelSpec(
             "model_file_name_invalid"
         }
         require(SHA256_REGEX.matches(sha256)) { "model_sha256_invalid" }
+        require(expectedBytes == null || expectedBytes > 0L) { "model_expected_bytes_invalid" }
     }
 
     private companion object {
@@ -31,7 +33,71 @@ internal object Gemma4ModelCatalog {
         modelId = "Gemma 4 E2B IT",
         fileName = "gemma-4-E2B-it.litertlm",
         sha256 = "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c",
+        expectedBytes = 2_588_147_712L,
     )
+}
+
+internal enum class Gemma4ModelReadinessState {
+    MISSING,
+    INVALID,
+    READY,
+}
+
+internal data class Gemma4ModelReadiness(
+    val state: Gemma4ModelReadinessState,
+    val file: File,
+    val reason: String? = null,
+)
+
+/**
+ * Cheap ordinary readiness check for the app-owned active model.
+ *
+ * Full content integrity remains owned by [Gemma4ModelInstaller] at import time. Ordinary call
+ * preparation intentionally does not re-hash the multi-gigabyte model on every session; it checks
+ * the reviewed destination plus pinned catalog size so missing/truncated/replaced files fail before
+ * LiteRT initialization. A future stronger revalidation policy can remain a separate explicit gate.
+ */
+internal class Gemma4ModelReadinessProbe(
+    private val directory: File,
+    private val spec: Gemma4ModelSpec = Gemma4ModelCatalog.GEMMA_4_E2B_IT,
+) {
+    fun check(): Gemma4ModelReadiness {
+        val active = File(directory, spec.fileName)
+        if (!active.exists()) {
+            return Gemma4ModelReadiness(
+                state = Gemma4ModelReadinessState.MISSING,
+                file = active,
+                reason = "model_missing",
+            )
+        }
+        if (!active.isFile || !active.canRead()) {
+            return Gemma4ModelReadiness(
+                state = Gemma4ModelReadinessState.INVALID,
+                file = active,
+                reason = "model_unreadable",
+            )
+        }
+        val bytes = active.length()
+        if (bytes <= 0L) {
+            return Gemma4ModelReadiness(
+                state = Gemma4ModelReadinessState.INVALID,
+                file = active,
+                reason = "model_empty",
+            )
+        }
+        val expectedBytes = spec.expectedBytes
+        if (expectedBytes != null && bytes != expectedBytes) {
+            return Gemma4ModelReadiness(
+                state = Gemma4ModelReadinessState.INVALID,
+                file = active,
+                reason = "model_size_mismatch",
+            )
+        }
+        return Gemma4ModelReadiness(
+            state = Gemma4ModelReadinessState.READY,
+            file = active,
+        )
+    }
 }
 
 internal sealed interface Gemma4ModelInstallResult {
@@ -106,6 +172,12 @@ internal class Gemma4ModelInstaller(
         if (bytesWritten <= 0L) {
             staged.delete()
             return Gemma4ModelInstallResult.Failure("model_empty")
+        }
+
+        val expectedBytes = spec.expectedBytes
+        if (expectedBytes != null && bytesWritten != expectedBytes) {
+            staged.delete()
+            return Gemma4ModelInstallResult.Failure("model_size_mismatch")
         }
 
         val actualSha256 = digest.digest().toHex()
