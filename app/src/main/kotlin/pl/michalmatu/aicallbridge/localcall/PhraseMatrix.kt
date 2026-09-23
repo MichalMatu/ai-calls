@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.localcall
 import java.text.Normalizer
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.max
 
 enum class PhraseMatcherKind {
     EXACT,
@@ -16,6 +17,39 @@ data class PhraseMatch(
     val matcherKind: PhraseMatcherKind,
     val variantClass: String? = null,
 )
+
+enum class PhraseResponseTemperatureBand {
+    HOT,
+    WARM,
+    UNCERTAIN,
+    COLD,
+    AMBIGUOUS,
+}
+
+data class PhraseResponseTemperature(
+    val band: PhraseResponseTemperatureBand,
+    val ruleId: String?,
+    val confidence: Double,
+    val candidateRuleIds: Set<String> = emptySet(),
+    val reason: String? = null,
+) {
+    init {
+        require(confidence.isFinite() && confidence in 0.0..1.0) {
+            "response_temperature_confidence_out_of_range"
+        }
+        if (band == PhraseResponseTemperatureBand.HOT ||
+            band == PhraseResponseTemperatureBand.WARM ||
+            band == PhraseResponseTemperatureBand.UNCERTAIN
+        ) {
+            require(!ruleId.isNullOrBlank()) { "response_temperature_rule_required" }
+        }
+        if (band == PhraseResponseTemperatureBand.COLD ||
+            band == PhraseResponseTemperatureBand.AMBIGUOUS
+        ) {
+            require(ruleId == null) { "response_temperature_rule_must_be_absent" }
+        }
+    }
+}
 
 class PhraseMatrixRule(
     ruleId: String,
@@ -55,6 +89,11 @@ class PhraseMatrixRule(
  * accept at most one character insertion, deletion, or substitution while preserving token count.
  * A fuzzy tie between different classifications fails closed. Previous-turn context is explicit
  * input only; PhraseMatrix stores no dialogue state. Unknown input returns null.
+ *
+ * [assessResponseTemperature] is a second, bounded classification surface for natural wording
+ * drift. It never mutates dialogue state and never grants output/telephony authority. HOT is an
+ * existing exact/alias/fuzzy match. WARM/UNCERTAIN use lexical similarity only when one rule wins by
+ * a minimum margin; competing near-equal intents are AMBIGUOUS and therefore fail closed.
  */
 class PhraseMatrix(rules: List<PhraseMatrixRule>) {
     private data class IndexedMatches(
@@ -71,6 +110,11 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         val normalized: String,
         val match: PhraseMatch,
         val previousRuleIds: Set<String>,
+    )
+
+    private data class TemperatureCandidate(
+        val ruleId: String,
+        val score: Double,
     )
 
     private sealed interface FuzzyResolution {
@@ -97,6 +141,105 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         }
 
         return fuzzyMatch(normalized, previous)
+    }
+
+    fun assessResponseTemperature(
+        transcript: String,
+        previousRuleId: String? = null,
+    ): PhraseResponseTemperature {
+        val normalized = normalize(transcript)
+        if (normalized.isEmpty()) {
+            return PhraseResponseTemperature(
+                band = PhraseResponseTemperatureBand.COLD,
+                ruleId = null,
+                confidence = 0.0,
+                reason = "blank_after_normalization",
+            )
+        }
+
+        match(transcript, previousRuleId)?.let { deterministic ->
+            return PhraseResponseTemperature(
+                band = PhraseResponseTemperatureBand.HOT,
+                ruleId = deterministic.ruleId,
+                confidence = deterministic.confidence,
+                candidateRuleIds = setOf(deterministic.ruleId),
+                reason = "deterministic_${deterministic.matcherKind.name.lowercase()}",
+            )
+        }
+
+        val previous = previousRuleId?.trim()?.also {
+            require(it.isNotEmpty()) { "previous_rule_id_must_not_be_blank" }
+        }
+        val contextualRules = if (previous == null) {
+            emptyList()
+        } else {
+            declaredRules.filter { previous in it.previousRuleIds }
+        }
+        val candidateRules = if (contextualRules.isNotEmpty()) {
+            contextualRules
+        } else {
+            declaredRules.filter { it.previousRuleIds.isEmpty() }
+        }
+        if (candidateRules.isEmpty()) {
+            return PhraseResponseTemperature(
+                band = PhraseResponseTemperatureBand.COLD,
+                ruleId = null,
+                confidence = 0.0,
+                reason = "no_applicable_rules",
+            )
+        }
+
+        val ranked = candidateRules
+            .map { rule ->
+                TemperatureCandidate(
+                    ruleId = rule.ruleId,
+                    score = bestTemperatureScore(normalized, rule),
+                )
+            }
+            .sortedByDescending { it.score }
+
+        val best = ranked.first()
+        if (best.score < UNCERTAIN_THRESHOLD) {
+            return PhraseResponseTemperature(
+                band = PhraseResponseTemperatureBand.COLD,
+                ruleId = null,
+                confidence = best.score,
+                candidateRuleIds = ranked
+                    .filter { it.score >= CANDIDATE_DIAGNOSTIC_THRESHOLD }
+                    .mapTo(linkedSetOf()) { it.ruleId },
+                reason = "below_uncertain_threshold",
+            )
+        }
+
+        val competing = ranked.filter {
+            it.score >= UNCERTAIN_THRESHOLD && best.score - it.score <= AMBIGUITY_MARGIN
+        }
+        val competingRuleIds = competing.mapTo(linkedSetOf()) { it.ruleId }
+        if (competingRuleIds.size > 1) {
+            return PhraseResponseTemperature(
+                band = PhraseResponseTemperatureBand.AMBIGUOUS,
+                ruleId = null,
+                confidence = best.score,
+                candidateRuleIds = competingRuleIds,
+                reason = "candidate_margin_too_small",
+            )
+        }
+
+        return PhraseResponseTemperature(
+            band = if (best.score >= WARM_THRESHOLD) {
+                PhraseResponseTemperatureBand.WARM
+            } else {
+                PhraseResponseTemperatureBand.UNCERTAIN
+            },
+            ruleId = best.ruleId,
+            confidence = best.score,
+            candidateRuleIds = setOf(best.ruleId),
+            reason = if (contextualRules.isNotEmpty()) {
+                "unique_contextual_temperature_match"
+            } else {
+                "unique_temperature_match"
+            },
+        )
     }
 
     private fun buildIndex(rules: List<PhraseMatrixRule>): Map<String, IndexedMatches> {
@@ -242,11 +385,66 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         }
     }
 
+    private fun bestTemperatureScore(normalizedTranscript: String, rule: PhraseMatrixRule): Double {
+        val sources = rule.phrases + rule.aliases + rule.fuzzyPhrases
+        return sources.maxOfOrNull { source ->
+            responseTemperatureScore(normalizedTranscript, normalize(source))
+        } ?: 0.0
+    }
+
     private companion object {
         const val MIN_FUZZY_SOURCE_LENGTH = 6
         const val FUZZY_CONFIDENCE = 0.9
+        const val WARM_THRESHOLD = 0.72
+        const val UNCERTAIN_THRESHOLD = 0.55
+        const val CANDIDATE_DIAGNOSTIC_THRESHOLD = 0.40
+        const val AMBIGUITY_MARGIN = 0.06
+        const val MAX_TEMPERATURE_CHARS = 320
 
         fun tokenCount(value: String): Int = 1 + value.count { it == ' ' }
+
+        fun responseTemperatureScore(left: String, right: String): Double {
+            if (left.isEmpty() || right.isEmpty()) return 0.0
+            if (left == right) return 1.0
+            val leftTokens = left.split(' ')
+            val rightTokens = right.split(' ')
+            val leftCounts = leftTokens.groupingBy { it }.eachCount()
+            val rightCounts = rightTokens.groupingBy { it }.eachCount()
+            val shared = leftCounts.keys.sumOf { token ->
+                minOf(leftCounts[token] ?: 0, rightCounts[token] ?: 0)
+            }
+            val tokenDice = (2.0 * shared) / (leftTokens.size + rightTokens.size)
+
+            val boundedLeft = left.take(MAX_TEMPERATURE_CHARS)
+            val boundedRight = right.take(MAX_TEMPERATURE_CHARS)
+            val distance = levenshteinDistance(boundedLeft, boundedRight)
+            val charSimilarity = 1.0 - distance.toDouble() / max(boundedLeft.length, boundedRight.length)
+            return (0.65 * tokenDice + 0.35 * charSimilarity).coerceIn(0.0, 1.0)
+        }
+
+        fun levenshteinDistance(left: String, right: String): Int {
+            if (left == right) return 0
+            if (left.isEmpty()) return right.length
+            if (right.isEmpty()) return left.length
+
+            var previous = IntArray(right.length + 1) { it }
+            var current = IntArray(right.length + 1)
+            for (leftIndex in left.indices) {
+                current[0] = leftIndex + 1
+                for (rightIndex in right.indices) {
+                    val substitutionCost = if (left[leftIndex] == right[rightIndex]) 0 else 1
+                    current[rightIndex + 1] = minOf(
+                        current[rightIndex] + 1,
+                        previous[rightIndex + 1] + 1,
+                        previous[rightIndex] + substitutionCost,
+                    )
+                }
+                val swap = previous
+                previous = current
+                current = swap
+            }
+            return previous[right.length]
+        }
 
         fun editDistanceAtMostOne(left: String, right: String): Int? {
             if (left == right) return 0
