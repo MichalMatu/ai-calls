@@ -1,32 +1,36 @@
-# Next-chat prompt — Gemma acquisition-source semantics
+# Next-chat prompt — Gemma download lifecycle UX
 
-Kontynuuj repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego `main`. Pobierz świeży `origin/main` i świeży/current Local Chat Bridge binding; nie kopiuj starego `agent_binding`.
+Kontynuuj `MichalMatu/android-ai-call-bridge` z aktualnego `main`. Pobierz świeży `origin/main`, świeży daemon i wyłącznie current Local Chat Bridge binding.
 
 Przeczytaj `AGENTS.md`, `README.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, `docs/HANDOFF_PROTOCOL.md`; `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media.
 
-Gate D oraz Samsung media/STT/TTS są zakończone/proven/frozen. Gemma 4 direct no-call runtime, app-owned SAF import/atomic activation, provider `LOCAL_GEMMA_4` i model readiness `MISSING / INVALID / READY` są `HOST_GREEN / PROVEN_S22`.
+Gate D i Samsung media/STT/TTS pozostają proven/frozen. Gemma runtime, SAF import/atomic activation, provider/readiness są PROVEN_S22. Pinned acquisition source oraz streaming downloader są HOST_GREEN.
 
-Target:
+Reviewed source:
 
 ```text
-Gemma 4 E2B IT
-gemma-4-E2B-it.litertlm
-LiteRT-LM
+repo=litert-community/gemma-4-E2B-it-litert-lm
+revision=6e5c4f1e395deb959c494953478fa5cec4b8008f
+file=gemma-4-E2B-it.litertlm
 bytes=2588147712
 sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+license=apache-2.0
+auth=none
 ```
 
-Readiness product path fail-closed działa przed STT/TTS/backend construction; pełny hash pozostaje import-time, ordinary readiness używa cheap pinned metadata. Nie wracaj do Edge Gallery HTTP, nie porównuj Qwena, nie ruszaj frozen media.
+`Gemma4ModelDownloader` jest transportem, nie authority. Installer nadal jako jedyny zatwierdza size/SHA-256 i atomic activation. Range proof przeczytał tylko 1 bajt i dostał `206`, `Content-Range: bytes 0-0/2588147712` z `us.aws.cdn.hf.co`. Pełnego 2.59 GB downloadu nie wykonano.
 
 ## Pierwszy task
 
-**Nie wykonuj live calla.**
+**Nie wykonuj live calla. Nie rozpoczynaj automatycznie pełnego model downloadu.**
 
-1. Sprawdź świeży HEAD/daemon/binding i baseline.
-2. Zrób preimplementation research/audit oficjalnego lub autorytatywnego źródła dokładnego artefaktu Gemma 4 E2B LiteRT: source identity, license/terms, auth/entitlement, stable URL/API, version/redirect semantics i expected hash/size.
-3. Nie implementuj downloadu na podstawie przypadkowego linku. Najpierw zapisz decyzję: pozostajemy przy SAF albo akceptujemy jeden reviewed source catalog/downloader.
-4. Jeżeli downloader jest uzasadniony i możliwy bez ukrytych credentials, RED -> minimal GREEN. Downloader ma wyłącznie dostarczać bytes do istniejącego `Gemma4ModelInstaller`; nie może zmieniać pinned identity/atomic activation/authority.
-5. Nigdy nie commituj tokenów/credentials. Jeśli oficjalne pobranie wymaga interaktywnego zaakceptowania licencji lub sekretu użytkownika, zatrzymaj implementację na jasno opisanym boundary zamiast obchodzić wymaganie.
-6. Po zmianie: targeted tests, `verify_host.sh`, Android package; physical no-call tylko jeśli faktycznie zmieni się Android acquisition UI/network boundary.
+1. Fresh HEAD/daemon/binding + baseline.
+2. RED: kontrakt download lifecycle: jawny user start, progress, cancel, brak concurrent SAF import/download, active model zachowany do verified activation.
+3. Zdefiniuj retry/resume. Jeżeli resume: partial state nieaktywny, a finalny pełny SHA-256 nadal obowiązkowy.
+4. Pokaż w UI reviewed source/license i expected ~2.59 GB przed startem.
+5. Cancellation ma zamknąć request/stream i nie aktywować partiala.
+6. Nie używaj auth tokenu; source jest publiczny. Nie używaj mutable `main`.
+7. Po GREEN: targeted, `verify_host.sh`, debug + AndroidTest package.
+8. Physical full network transfer na S22 dopiero po jawnym uruchomieniu dużego downloadu przez operatora w gotowym UI; sama obecność telefonu nie jest zgodą na transfer ani call.
 
-Każdy realny call wymaga świeżej jawnej autoryzacji konkretnego targetu/numeru i zadania w tym samym oknie.
+Każdy realny call wymaga osobnej świeżej autoryzacji konkretnego numeru/targetu i zadania w tym samym oknie.

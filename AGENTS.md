@@ -23,9 +23,11 @@ Do not create a status document for every experiment. Keep durable decisions in 
 
 Gate D `BOOK_APPOINTMENT` remains `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup and model readiness semantics are now `HOST_GREEN / PROVEN_S22`.
+Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup and model readiness semantics remain `HOST_GREEN / PROVEN_S22`.
 
-The next generic gate is **reviewed model acquisition-source semantics**. Audit official/distributable source identity, licensing/terms, authentication and transport before implementing any downloader. Any future acquisition path may only feed bytes into the already-proven `Gemma4ModelInstaller`; it does not become runtime or authority.
+The reviewed immutable acquisition-source contract and verified streaming downloader are now **HOST_GREEN**. The source is pinned to one LiteRT Community Hugging Face repository revision; transport is anonymous HTTPS and feeds bytes only into the existing `Gemma4ModelInstaller`, which remains the sole size/SHA-256/atomic-activation authority. A one-byte Range proof confirmed the pinned remote artifact reports the expected total size.
+
+The next product gate is **download lifecycle UX**: explicit user initiation, progress, cancellation and safe retry/resume policy before exposing the 2.59 GB network transfer in normal UI. Do not silently or automatically download the model.
 
 Do not start a live call for this gate.
 
@@ -81,6 +83,22 @@ MISSING / INVALID / READY
 ```
 
 `LOCAL_GEMMA_4` product call preparation checks this readiness before STT/TTS and before backend construction. UI exposes the same semantic state. Full SHA-256 remains an import-time verification boundary. Developer diagnostic factories are not product readiness owners; merely constructing a Gemma backend still does not create a LiteRT engine.
+
+## Reviewed model acquisition
+
+The current reviewed candidate source is:
+
+```text
+repository=litert-community/gemma-4-E2B-it-litert-lm
+revision=6e5c4f1e395deb959c494953478fa5cec4b8008f
+file=gemma-4-E2B-it.litertlm
+license=apache-2.0
+auth=none
+```
+
+Never use mutable `main` as model identity. `Gemma4ModelAcquisitionCatalog` may identify a reviewed network source, but `Gemma4ModelInstaller` still owns expected bytes, SHA-256 verification, fsync/staging cleanup and atomic activation. `Gemma4ModelDownloader` must stream; do not buffer the model in memory. Redirects must remain HTTPS and on the reviewed Hugging Face/CDN host family.
+
+The downloader is not yet normal product UI. Full model transfer has not been performed in this slice; only a one-byte Range proof was executed. Any product download must be an explicit user action with visible lifecycle controls.
 
 ## Skills
 

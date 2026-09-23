@@ -99,6 +99,35 @@ No telephony/media path was started. Host tests cover `MISSING`, `INVALID` and `
 
 The audit also found explicit developer/diagnostic constructors (including Gate C hybrid/live-probe tooling). They are not product readiness owners and backend construction itself does not initialize LiteRT. Product session preparation is the fail-closed owner.
 
+## Reviewed acquisition source and downloader — HOST_GREEN
+
+A network source is now pinned by immutable revision rather than a mutable branch:
+
+```text
+repository=litert-community/gemma-4-E2B-it-litert-lm
+revision=6e5c4f1e395deb959c494953478fa5cec4b8008f
+file=gemma-4-E2B-it.litertlm
+bytes=2588147712
+sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+license=apache-2.0
+auth=none
+```
+
+`Gemma4ModelAcquisitionCatalog` describes the reviewed source only. `Gemma4ModelDownloader` performs an anonymous HTTPS GET and streams the response directly into `Gemma4ModelInstaller`; HTTP errors and a known mismatching `Content-Length` fail before body consumption. Redirect completion is restricted to HTTPS Hugging Face/CDN hosts. No Authorization header is sent.
+
+Transport metadata is never activation authority. The installer still performs the full expected-size and SHA-256 checks, writes the app-owned staging file, fsyncs it and atomically replaces the active model only after verification.
+
+A bounded live endpoint proof requested only `bytes=0-0` from the immutable revision and returned:
+
+```text
+status=206
+final_host=us.aws.cdn.hf.co
+content_range=bytes 0-0/2588147712
+bytes_read=1
+```
+
+The full 2.59 GB network download was intentionally **not** run and the downloader is not yet exposed as a normal UI button. The next product slice is explicit download lifecycle UX (progress/cancel/retry-resume policy) before any full-device transfer.
+
 ## Verification
 
 Current Gemma/model-lifecycle/provider work has:

@@ -97,6 +97,24 @@ This is intentionally cheaper than import-time identity verification: full SHA-2
 
 The readiness boundary is `HOST_GREEN / PROVEN_S22`. Developer/diagnostic backend constructors are evidence tooling, not alternate product readiness owners.
 
+## Gemma reviewed acquisition transport
+
+Network acquisition is a candidate-byte transport, not a new model owner:
+
+```text
+Gemma4ModelAcquisitionCatalog
+  immutable HF repository revision + file + declared license/auth
+ -> Gemma4ModelDownloader
+  anonymous HTTPS streaming + HTTP/known-length checks
+ -> Gemma4ModelInstaller
+  app-owned staging + full expected bytes + SHA-256 + fsync + atomic activation
+ -> active runtime model
+```
+
+The reviewed source currently resolves through Hugging Face to its CDN and supports byte ranges. A one-byte proof confirmed the pinned artifact total is 2,588,147,712 bytes. Mutable `main`, redirect metadata, `Content-Length` and the transport itself cannot override the pinned application model identity.
+
+This source/downloader contract is `HOST_GREEN`; a full Android network transfer was not performed and no normal product download UI is exposed yet.
+
 ## TaskGraph and apply boundary
 
 `CustomTaskGraphCore` owns typed bounded conversational state, legal transitions, validated non-secret slots, recovery, immutable snapshots, effects-as-data and replay evidence.
@@ -212,6 +230,6 @@ Neither TaskGraph, model/runtime/model import/readiness, shadow/supervisor, Call
 
 ## Next gate
 
-The next generic engineering gate is a reviewed Gemma acquisition-source contract: determine authoritative artifact source, licensing/terms, authentication and stable version/identity semantics before deciding whether to add a downloader. Any acquisition implementation must terminate at the existing verified `Gemma4ModelInstaller` boundary and cannot become runtime or authority.
+The next generic engineering gate is explicit model-download lifecycle UX: user initiation, progress, cancellation and a reviewed retry/resume policy. Network acquisition must continue to terminate at `Gemma4ModelInstaller`; partial/download state cannot become runtime identity or activation authority. The full 2.59 GB transfer should be exercised physically only when that explicit product flow exists and is intentionally started.
 
 A live acceptance call is a separate authority gate and requires fresh explicit authorization for one concrete target/number and one concrete task in the current session before any dialing action.

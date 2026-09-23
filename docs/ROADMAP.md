@@ -121,17 +121,35 @@ Evidence: `.agent/results/chatgpt-gemma4-readiness-s22-v145-20260923.json` with 
 
 Audit classification: product call preparation owns fail-closed readiness. Developer/diagnostic constructors such as Gate C hybrid/live-probe tooling may construct a backend directly, but construction itself does not initialize LiteRT and those paths are not product readiness authority.
 
+## Reviewed acquisition source and downloader — HOST_GREEN
+
+The source/transport boundary is now implemented without changing model activation authority:
+
+1. `Gemma4ModelAcquisitionCatalog` pins `litert-community/gemma-4-E2B-it-litert-lm` at immutable revision `6e5c4f1e395deb959c494953478fa5cec4b8008f`;
+2. filename, expected bytes and SHA-256 are derived from the existing production `Gemma4ModelCatalog`;
+3. source metadata records Apache-2.0 and no authentication requirement;
+4. `Gemma4ModelDownloader` streams HTTP body bytes directly to `Gemma4ModelInstaller`;
+5. non-2xx, transport failure and a known wrong `Content-Length` fail closed before activation;
+6. the production request is anonymous HTTPS GET with no Authorization header;
+7. redirect completion must remain HTTPS on the reviewed Hugging Face/CDN host family;
+8. full expected-size/SHA-256 verification and atomic activation remain exclusively installer-owned.
+
+Host evidence: RED `chatgpt-gemma4-downloader-red-v151-20260923`; GREEN `chatgpt-gemma4-downloader-green-v152-20260923` with targeted tests, `verify_host.sh` and Android debug/AndroidTest package gates.
+
+Bounded remote proof `chatgpt-gemma4-acquisition-range-v153-20260923` read exactly one byte and returned HTTP 206 from `us.aws.cdn.hf.co` with `Content-Range: bytes 0-0/2588147712`. No full model transfer occurred.
+
 ## Next product engineering gate
 
-The next generic gap is **reviewed model acquisition-source semantics**, not a runtime rewrite and not an arbitrary downloader URL:
+Implement **explicit download lifecycle UX** before exposing the downloader to ordinary users:
 
-1. audit authoritative Gemma 4 E2B LiteRT distribution sources and the exact artifact identity currently used;
-2. record license/terms, authentication or entitlement requirements, redirect/version behavior and whether a stable machine-download contract exists;
-3. decide whether product acquisition should remain explicit SAF import or add one reviewed downloader/source catalog;
-4. if a downloader is justified, it may only stream candidate bytes into the existing proven `Gemma4ModelInstaller` boundary;
-5. source metadata or transport must never override pinned model identity, activation checks or application authority;
-6. do not embed user credentials/tokens in Git or Local Agent evidence;
-7. verify host/package before any changed Android acquisition UI/network physical gate.
+1. explicit user-start action only; never automatic background acquisition merely because readiness is `MISSING`;
+2. progress reporting based on streamed bytes/expected size;
+3. cancellation that closes the network response and leaves no activatable partial file;
+4. define retry/resume policy deliberately — if resume is added, partial bytes remain non-active and final full SHA-256 verification is still mandatory;
+5. prevent concurrent import/download operations and preserve the existing active model until verified replacement succeeds;
+6. surface source identity/license and expected download size before start;
+7. keep model transfer separate from call/session readiness and all call authority;
+8. host/package tests first; physical S22 network download only after an explicit product action is ready and the operator intentionally initiates the large transfer.
 
 A bounded live acceptance call remains a separate authorization gate and is not an automatic roadmap step.
 

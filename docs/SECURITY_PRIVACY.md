@@ -61,6 +61,23 @@ The active model has one application-owned readiness result: `MISSING / INVALID 
 
 Developer/diagnostic backend constructors do not become product readiness owners. Their existence never grants dialing permission, and every real call still requires the separate fresh live-call authorization gate.
 
+## Model network acquisition security
+
+The reviewed acquisition source is pinned to an immutable Hugging Face revision, not `main`. The current artifact is public/non-authenticated, so Android must not attach credentials or bearer tokens to the model request. Secrets must never be stored in the acquisition catalog, Git, Local Agent tasks/results or ordinary logs.
+
+Acquisition rules:
+
+- initial request uses HTTPS and immutable repository revision;
+- redirects may complete only over HTTPS to the reviewed Hugging Face/CDN host family;
+- HTTP failure or known wrong `Content-Length` fails before model body activation;
+- response bytes stream directly into the existing installer rather than being held in memory;
+- source metadata and HTTP headers are hints/rejection gates only; full installer SHA-256 and expected-size checks remain authoritative;
+- partial/cancelled/network-failed downloads cannot replace the active model;
+- no automatic multi-gigabyte download is triggered by readiness state; normal UI must require explicit user initiation;
+- future resume support must still verify the complete final byte stream before activation.
+
+The source/downloader contract is `HOST_GREEN`. Only a one-byte Range request was used for remote endpoint proof; no full 2.59 GB transfer was performed.
+
 ## Identity and disclosure
 
 A value existing in IdentityVault is not permission to disclose it.
