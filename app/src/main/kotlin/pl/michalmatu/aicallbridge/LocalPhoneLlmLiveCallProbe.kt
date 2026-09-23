@@ -5,6 +5,12 @@ import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import java.io.File
+import java.time.Instant
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallConstraints
@@ -14,6 +20,7 @@ import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.localcall.AndroidLocalTextCallBackendFactory
+import pl.michalmatu.aicallbridge.localcall.LocalTextCallHybridSessionFactory
 import pl.michalmatu.aicallbridge.localcall.LocalTextCallSession
 import pl.michalmatu.aicallbridge.localcall.PreparedLocalTextCall
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
@@ -25,16 +32,15 @@ import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
 import pl.michalmatu.aicallbridge.session.CallMediaSessionState
 import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
-import java.io.File
-import java.time.Instant
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.function.Consumer
 
 /**
- * One bounded live cellular turn. Legacy providers use the neutral LocalTextCallSession path;
- * Gate C binds PhraseMatrix + CallPlan and a fail-closed backend sentinel before final STT routing.
+ * One bounded live cellular turn. Legacy providers use the neutral LocalTextCallSession path.
+ *
+ * Gate C always binds PhraseMatrix + CallPlan first. Legacy Gate C diagnostics retain the sentinel
+ * backend. An explicit relay session opts into the reviewed hybrid path: unresolved ASK_REPEAT or
+ * TAKE_OVER turns may ask the selected phone-local model for one bounded dialogue skill; local
+ * failure/low-confidence/TAKE_OVER then falls through exactly once to the existing ChatRelay. Both
+ * local-skill and relay text still pass through application-owned output approval before TTS.
  */
 internal object LocalPhoneLlmLiveCallProbe {
     private const val REPORT_FILE = "local-phone-llm-live-call-report.txt"
@@ -103,7 +109,18 @@ internal object LocalPhoneLlmLiveCallProbe {
             workflow.markDialing()
             workflow.markCallActive()
         } ?: activeWorkflow()
-        private val backend = fastPath?.backend ?: AndroidLocalTextCallBackendFactory.create(context, provider)
+        private val hybridDiagnostics: GateCHybridDiagnostics? =
+            if (request.gateCHybridDialogue) GateCHybridDiagnostics() else null
+        private val backend = when {
+            request.gateCHybridDialogue -> GateCHybridDialogueBackendFactory.create(
+                context = context,
+                provider = provider,
+                relaySessionId = checkNotNull(request.gateCRelaySessionId),
+                diagnostics = checkNotNull(hybridDiagnostics),
+            )
+            fastPath != null -> fastPath.backend
+            else -> AndroidLocalTextCallBackendFactory.create(context, provider)
+        }
         private val approvalPolicy = CallTextAgentOutputApprovalPolicy(
             workflow,
             CallCommitmentGate { "live-local-phone-llm-token" },
@@ -114,18 +131,29 @@ internal object LocalPhoneLlmLiveCallProbe {
             callPlan = fastPath?.scenario?.callPlan,
             phraseMatrix = fastPath?.scenario?.phraseMatrix,
         )
-        private val session = LocalTextCallSession.create(
-            context = context,
-            prepared = prepared,
-            approvalPolicy = approvalPolicy,
-        )
+        private val session = if (request.gateCHybridDialogue) {
+            LocalTextCallHybridSessionFactory.create(
+                context = context,
+                prepared = prepared,
+                approvalPolicy = approvalPolicy,
+            )
+        } else {
+            LocalTextCallSession.create(
+                context = context,
+                prepared = prepared,
+                approvalPolicy = approvalPolicy,
+            )
+        }
         private val lines = mutableListOf(
             "probe=local_phone_llm_live_call",
             "call_required=true",
-            "backend_location=${if (request.gateCFastPath) "gate_c_sentinel" else "phone_loopback"}",
+            "backend_location=${backendLocation()}",
             "text_llm_provider=${provider.name}",
             "gate_c_fast_path=${request.gateCFastPath}",
             "gate_c_call_plan_bound=${fastPath != null}",
+            "gate_c_hybrid_dialogue=${request.gateCHybridDialogue}",
+            "gate_c_relay_bound=${request.gateCRelaySessionId != null}",
+            "gate_c_unresolved_route=${if (request.gateCHybridDialogue) "backend_generate" else "consumed"}",
             "orange_live_action=${request.orangeLiveAction?.wireId ?: "none"}",
             "approval_policy=application_owned",
             "endpointing=trailing_silence",
@@ -197,12 +225,23 @@ internal object LocalPhoneLlmLiveCallProbe {
                 }
 
                 override fun onApprovedText(text: String) {
-                    if (request.gateCFastPath) {
-                        lines += "backend_complete_response=false"
-                        lines += "approved_text_source=call_plan_candidate"
-                    } else {
-                        lines += "backend_complete_response=true"
-                        lines += "approved_text_source=backend"
+                    val hybridSource = hybridDiagnostics
+                        ?.snapshot()
+                        ?.responseSources
+                        ?.lastOrNull()
+                    when {
+                        hybridSource != null -> {
+                            lines += "backend_complete_response=true"
+                            lines += "approved_text_source=${hybridSource.name.lowercase()}"
+                        }
+                        request.gateCFastPath -> {
+                            lines += "backend_complete_response=false"
+                            lines += "approved_text_source=call_plan_candidate"
+                        }
+                        else -> {
+                            lines += "backend_complete_response=true"
+                            lines += "approved_text_source=backend"
+                        }
                     }
                     lines += "approved_text=${sanitize(text)}"
                     lines += "approved_text_nonblank=${text.isNotBlank()}"
@@ -224,8 +263,13 @@ internal object LocalPhoneLlmLiveCallProbe {
                     LocalTextCallSession.StructuredPlanTurnListener { action, ruleId ->
                         lines += "call_plan_action=${action.name.lowercase()}"
                         ruleId?.let { lines += "call_plan_rule_id=${sanitize(it)}" }
-                        if (action != CallPlanAction.SAY) {
-                            context.mainExecutor.execute {
+                        when {
+                            action == CallPlanAction.SAY -> Unit
+                            request.gateCHybridDialogue &&
+                                (action == CallPlanAction.ASK_REPEAT || action == CallPlanAction.TAKE_OVER) -> {
+                                lines += "gate_c_backend_fallback_requested=true"
+                            }
+                            else -> context.mainExecutor.execute {
                                 finish(false, "gate_c_${action.name.lowercase()}")
                             }
                         }
@@ -308,13 +352,31 @@ internal object LocalPhoneLlmLiveCallProbe {
         private fun finish(success: Boolean, reason: String? = null) {
             if (!finished.compareAndSet(false, true)) return
             handler.removeCallbacks(timeout)
+            val hybridSnapshot = hybridDiagnostics?.snapshot()
             try { session.close() } catch (_: Throwable) {}
             activeLease = null
             try { mediaRuntime?.coordinator()?.takeOverNow() } catch (_: Throwable) {}
             try { mediaRuntime?.close() } catch (_: Throwable) {}
             mediaRuntime = null
             executor.shutdownNow()
-            fastPath?.backend?.let { lines += "backend_generate_calls=${it.generateCalls}" }
+            if (!request.gateCHybridDialogue) {
+                fastPath?.backend?.let { lines += "backend_generate_calls=${it.generateCalls}" }
+            }
+            hybridSnapshot?.let { snapshot ->
+                lines += "local_skill_decision_count=${snapshot.decisions.size}"
+                snapshot.decisions.lastOrNull()?.let { decision ->
+                    lines += "local_skill_id=${decision.skillId.name.lowercase()}"
+                    lines += "local_skill_confidence=${decision.confidence}"
+                    decision.reason?.let { lines += "local_skill_reason=${sanitize(it)}" }
+                }
+                lines += "local_skill_error_count=${snapshot.localSkillErrors.size}"
+                snapshot.localSkillErrors.lastOrNull()?.let {
+                    lines += "local_skill_last_error=${sanitize(it)}"
+                }
+                snapshot.responseSources.lastOrNull()?.let {
+                    lines += "hybrid_response_source=${it.name.lowercase()}"
+                }
+            }
             lines += "local_text_llm_live_call_success=$success"
             lines += "local_phone_llm_live_call_success=$success"
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
@@ -322,6 +384,12 @@ internal object LocalPhoneLlmLiveCallProbe {
             val report = lines.joinToString("\n") + "\n"
             try { File(context.filesDir, REPORT_FILE).writeText(report) } catch (_: Throwable) {}
             context.mainExecutor.execute { callback(report) }
+        }
+
+        private fun backendLocation(): String = when {
+            request.gateCHybridDialogue -> "phone_local_skills_then_chat_relay"
+            request.gateCFastPath -> "gate_c_sentinel"
+            else -> "phone_loopback"
         }
     }
 
@@ -349,6 +417,8 @@ internal object LocalPhoneLlmLiveCallProbe {
             "text_llm_provider=${request.provider.name}\n" +
             "gate_c_fast_path=${request.gateCFastPath}\n" +
             "gate_c_call_plan_bound=false\n" +
+            "gate_c_hybrid_dialogue=${request.gateCHybridDialogue}\n" +
+            "gate_c_relay_bound=${request.gateCRelaySessionId != null}\n" +
             "orange_live_action=${request.orangeLiveAction?.wireId ?: "none"}\n" +
             "local_text_llm_live_call_success=false\n" +
             "local_phone_llm_live_call_success=false\n" +
