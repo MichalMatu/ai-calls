@@ -6,10 +6,9 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 /**
  * Reviewed composition for bounded dialogue-skill classification on phone-local models.
  *
- * Both Qwen/llama.cpp and Edge Gallery/Gemma receive the same skill-only system contract. The
- * selected model returns only skill id/confidence/reason; [DialogueSkillTextBackend] maps that onto
- * exact application-owned response text. This factory grants no dialing, disclosure, commitment,
- * completion or direct speech authority.
+ * The selected local model returns only skill id/confidence/reason; [DialogueSkillTextBackend]
+ * maps that onto exact application-owned response text. This factory grants no dialing,
+ * disclosure, commitment, completion or direct speech authority.
  */
 internal object LocalDialogueSkillBackendFactory {
     fun create(
@@ -24,10 +23,10 @@ internal object LocalDialogueSkillBackendFactory {
                 LocalPhoneLlmBackendFactory.create(context.applicationContext, systemPrompt)
 
             TextLlmProvider.EDGE_GALLERY ->
-                EdgeGalleryTextBackend(
-                    baseUrl = EdgeGalleryTextBackendFactory.BASE_URL,
-                    expectedModelId = EdgeGalleryTextBackendFactory.MODEL,
-                    systemPrompt = systemPrompt,
+                Gemma4LiteRtTextBackendFactory.createSkillClassifier(
+                    context = context.applicationContext,
+                    systemInstruction = systemPrompt,
+                    allowedSkills = policy.allowedSkills,
                 )
 
             TextLlmProvider.OPENAI_TEXT,
