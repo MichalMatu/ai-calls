@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.localcall
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallConstraints
@@ -14,6 +15,7 @@ import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
+import pl.michalmatu.aicallbridge.textagent.TextCallFinalTurnRoute
 
 class LocalTextCallSessionFallbackStateTest {
     @Test
@@ -63,6 +65,31 @@ class LocalTextCallSessionFallbackStateTest {
         assertEquals(CallPlanAction.ASK_REPEAT, unknownAfterKnown.decision().action())
         assertEquals(0, backend.generateCalls)
         session.close()
+    }
+
+    @Test
+    fun `default session consumes unresolved turn while explicit hybrid session generates`() {
+        val task = task(emptyMap())
+        val target = target()
+        val planDefault = CallPlan(task, target, emptyList(), CallPlanFallbackPolicy.takeOverImmediately())
+        val planHybrid = CallPlan(task, target, emptyList(), CallPlanFallbackPolicy.takeOverImmediately())
+        val defaultSession = session(activeWorkflow(task, target), planDefault, FakeBackend())
+        val hybridWorkflow = activeWorkflow(task, target)
+        val hybridSession = LocalTextCallSession(
+            prepared = PreparedLocalTextCall(hybridWorkflow, FakeBackend(), planHybrid),
+            pipelineFactory = LocalTextCallSession.PipelineFactory { FakePipeline() },
+            unresolvedTurnRouting = CallPlanUnresolvedTurnRouting.GENERATE_WITH_BACKEND,
+        )
+
+        val defaultSelection = defaultSession.injectSyntheticFinalTranscript("nieznane")
+        val hybridSelection = hybridSession.injectSyntheticFinalTranscript("nieznane")
+
+        assertSame(TextCallFinalTurnRoute.Consumed, defaultSelection.route)
+        assertSame(TextCallFinalTurnRoute.Generate, hybridSelection.route)
+        assertEquals(CallPlanAction.TAKE_OVER, hybridSelection.structuredResult?.decision()?.action())
+
+        defaultSession.close()
+        hybridSession.close()
     }
 
     private fun session(
