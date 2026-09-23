@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.localcall
 
 import android.content.Context
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
+import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueHypothesis
 import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObservation
 import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObserver
@@ -27,6 +28,7 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
  * those paths.
  */
 internal class LocalTextCallSession private constructor(
+    private val workflow: CallWorkflow,
     private val pipeline: Pipeline,
     private val planTurnCoordinator: CallPlanTurnCoordinator?,
     phraseMatrix: PhraseMatrix?,
@@ -122,6 +124,7 @@ internal class LocalTextCallSession private constructor(
         gateDShadowDependencies: GateDShadowDependencies?,
         gateDProductBinding: LocalTextCallGateDProductBinding?,
     ) : this(
+        workflow = prepared.workflow,
         pipeline = claimPipeline(prepared, pipelineFactory),
         planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
         phraseMatrix = prepared.phraseMatrix,
@@ -233,6 +236,29 @@ internal class LocalTextCallSession private constructor(
      */
     internal fun injectSyntheticFinalTranscript(finalTranscript: String): CallPlanFinalTurnSelection =
         processFinalizedTranscript(finalTranscript)
+
+    /**
+     * Explicit application-owned BOOK_APPOINTMENT confirmation/rejection entry point.
+     *
+     * This is intentionally separate from counterparty finalized text and creates no commitment
+     * permit. The product integration re-checks the exact graph state and pending workflow proposal
+     * before the existing CallWorkflow owner consumes the user's decision.
+     */
+    internal fun applyBookAppointmentUserDecision(
+        decision: GateDBookAppointmentUserDecision,
+    ): GateDBookAppointmentUserDecisionResult {
+        val integration = gateDProductIntegration
+            ?: return GateDBookAppointmentUserDecisionResult.Rejected(
+                GateDBookAppointmentUserDecisionRejectReason.PRODUCT_INTEGRATION_NOT_BOUND,
+            )
+        return try {
+            integration.applyBookAppointmentUserDecision(workflow, decision)
+        } catch (_: Throwable) {
+            GateDBookAppointmentUserDecisionResult.Rejected(
+                GateDBookAppointmentUserDecisionRejectReason.INTERNAL_FAILURE,
+            )
+        }
+    }
 
     /**
      * Routes one already-final transcript through the optional PhraseMatrix fast path and then the
