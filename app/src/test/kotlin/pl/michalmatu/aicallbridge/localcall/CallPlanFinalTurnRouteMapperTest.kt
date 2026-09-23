@@ -24,7 +24,7 @@ class CallPlanFinalTurnRouteMapperTest {
     }
 
     @Test
-    fun `all structured plan actions map to consumed and preserve exact result`() {
+    fun `all structured plan actions map to consumed by default and preserve exact result`() {
         val outcome = CallOutcome(
             CallOutcomeStatus.SUCCESS,
             "done",
@@ -50,5 +50,46 @@ class CallPlanFinalTurnRouteMapperTest {
             assertSame(TextCallFinalTurnRoute.Consumed, mapped.route)
             assertSame(result, mapped.structuredResult)
         }
+    }
+
+    @Test
+    fun `explicit hybrid mode generates only for unresolved dialogue actions`() {
+        val askRepeat = CallPlanTurnResult(CallPlanDecision.askRepeat(), null)
+        val takeOver = CallPlanTurnResult(CallPlanDecision.takeOver("fallback"), null)
+        val proposal = CallPlanTurnResult(
+            CallPlanDecision.proposal(CallProposal(null, null, null, "Clinic A", "Wrocław"), "offer"),
+            CallPolicyDecision(CallPolicyAction.AUTONOMOUSLY_ALLOWED, emptyList()),
+        )
+        val outcome = CallOutcome(CallOutcomeStatus.SUCCESS, "done", null, null, null, null, null, null)
+        val complete = CallPlanTurnResult(CallPlanDecision.complete(outcome, "done"), null)
+
+        assertSame(
+            TextCallFinalTurnRoute.Generate,
+            CallPlanFinalTurnRouteMapper.map(
+                askRepeat,
+                CallPlanUnresolvedTurnRouting.GENERATE_WITH_BACKEND,
+            ).route,
+        )
+        assertSame(
+            TextCallFinalTurnRoute.Generate,
+            CallPlanFinalTurnRouteMapper.map(
+                takeOver,
+                CallPlanUnresolvedTurnRouting.GENERATE_WITH_BACKEND,
+            ).route,
+        )
+        assertSame(
+            TextCallFinalTurnRoute.Consumed,
+            CallPlanFinalTurnRouteMapper.map(
+                proposal,
+                CallPlanUnresolvedTurnRouting.GENERATE_WITH_BACKEND,
+            ).route,
+        )
+        assertSame(
+            TextCallFinalTurnRoute.Consumed,
+            CallPlanFinalTurnRouteMapper.map(
+                complete,
+                CallPlanUnresolvedTurnRouting.GENERATE_WITH_BACKEND,
+            ).route,
+        )
     }
 }
