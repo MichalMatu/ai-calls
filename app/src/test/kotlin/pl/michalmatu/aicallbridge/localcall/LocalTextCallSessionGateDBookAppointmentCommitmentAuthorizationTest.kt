@@ -95,6 +95,50 @@ class LocalTextCallSessionGateDBookAppointmentCommitmentAuthorizationTest {
     }
 
     @Test
+    fun `stale workflow fails closed before commitment permit issuance`() {
+        val fixture = fixture()
+        fixture.session.injectSyntheticFinalTranscript("mamy termin")
+        assertTrue(
+            fixture.session.applyBookAppointmentUserDecision(GateDBookAppointmentUserDecision.CONFIRM)
+                is GateDBookAppointmentUserDecisionResult.Applied,
+        )
+        assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, fixture.workflow.snapshot().state())
+
+        fixture.workflow.fail(IllegalStateException("stale-workflow"))
+
+        val result = fixture.session.authorizeBookAppointmentCommitment()
+        assertTrue(result is GateDBookAppointmentCommitmentAuthorizationResult.Rejected)
+        assertFalse(fixture.commitmentGate.hasAuthorization())
+        fixture.session.close()
+    }
+
+    @Test
+    fun `foreign commitment permits survive reject and cancel boundaries`() {
+        val rejected = fixture()
+        rejected.session.injectSyntheticFinalTranscript("mamy termin")
+        val rejectForeign = rejected.commitmentGate.authorize(rejected.proposal)
+
+        rejected.session.applyBookAppointmentUserDecision(GateDBookAppointmentUserDecision.REJECT)
+
+        assertEquals(
+            rejected.proposal,
+            rejected.commitmentGate.consume(rejectForeign.value).getOrThrow(),
+        )
+        rejected.session.close()
+
+        val cancelled = fixture()
+        val cancelForeign = cancelled.commitmentGate.authorize(cancelled.proposal)
+
+        cancelled.session.cancel()
+
+        assertEquals(
+            cancelled.proposal,
+            cancelled.commitmentGate.consume(cancelForeign.value).getOrThrow(),
+        )
+        cancelled.session.close()
+    }
+
+    @Test
     fun `cancel revokes an unconsumed appointment commitment permit`() {
         val fixture = fixture()
         fixture.session.injectSyntheticFinalTranscript("mamy termin")
