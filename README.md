@@ -8,7 +8,7 @@ Target: Samsung Galaxy S22+ `SM-S906B`, Android 16 / API 36 / One UI 8.
 
 The active product direction is **Gate D: hybrid multi-turn Task Engine** with `BOOK_APPOINTMENT` as the first acceptance task.
 
-The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-green TaskGraph foundation, Android IdentityVault production adapter, finalized-turn shadow lifecycle, explicit reviewed product shadow/apply integration seam and a no-call synthetic finalized-text ingress for exercising the same product turn path without STT/audio/media.
+The cellular/media foundation and deterministic fast path are already proven and remain frozen. Gate D now has a host-green TaskGraph foundation, physically proven Android IdentityVault and synthetic product boundaries, and a bounded `BOOK_APPOINTMENT` owner chain proven on the target S22 without making a cellular call.
 
 Current Gate D implementation on the active work branch includes:
 
@@ -25,6 +25,8 @@ Current Gate D implementation on the active work branch includes:
 - host `PersistentIdentityVault` plus Android production adapters using app-private no-backup atomic ciphertext storage and Android Keystore AES-256/GCM;
 - explicit internal `LocalTextCallGateDProductBinding` / product integration seam implementing deterministic-first interpretation, optional bounded shadow, `SupervisorProposalValidator`, current-state/slot-authorization re-check and `TaskGraphApplyBridge`;
 - explicit `LocalTextCallSession.injectSyntheticFinalTranscript(...)` test/diagnostic ingress: an already-finalized text turn enters the same PhraseMatrix/CallPlan + Gate D finalized-turn processing as STT, without starting the speech pipeline, feeding PCM, invoking backend generation or releasing TTS/media;
+- bounded `BOOK_APPOINTMENT` product composition that reuses the already-computed `CallWorkflow` proposal/policy decision, keeps `PROPOSE_APPOINTMENT` policy-neutral, stages explicit user confirm/reject through the same apply bridge, and issues an opaque one-shot `CallCommitmentGate` authorization only for the exact user-approved proposal;
+- commitment hardening that re-checks the exact approving `CallWorkflow` immediately before permit issuance and revokes only the exact permit issued by this integration, so stale workflows fail closed and foreign/newer permits are not cleared accidentally;
 - deterministic Gate D sequence corpus for ambiguity, recovery exhaustion, alternate offers, user rejection, unauthorized/high-sensitivity facts, stale supervisor, cancel/takeover and clean recovery.
 
 The public Android `LocalTextCallSession.create(...)` path still does **not** automatically bind a shadow provider or product apply binding. Reviewed internal composition must opt in explicitly. The synthetic ingress is internal test/diagnostic plumbing, not a second authority path and not a public dialing API.
@@ -43,17 +45,52 @@ STT-finalized text OR explicit synthetic finalized text
  -> existing workflow / proposal / confirmation / commitment / output owners
 ```
 
-A deterministic candidate rejection fails closed instead of falling through to shadow. Accepted graph effects are returned only as data; there is no generic effect executor and no new workflow, dialing, speech/TTS, plaintext disclosure, proposal approval or commitment authority.
+For the reviewed `BOOK_APPOINTMENT` owner chain:
+
+```text
+CallPlan proposal
+ -> existing CallWorkflow evaluates proposal once
+ -> TaskGraph PROPOSAL (policy-neutral)
+ -> bounded deterministic follow-up
+ -> TaskGraph CONFIRMATION when user decision is required
+ -> explicit app-owned user CONFIRM / REJECT boundary
+ -> exact CallWorkflow pending proposal is consumed
+ -> TaskGraph COMMITMENT only after CONFIRM
+ -> exact active workflow re-check
+ -> one opaque CallCommitmentGate permit for that exact proposal
+```
+
+A deterministic candidate rejection fails closed instead of falling through to shadow. Accepted graph effects are returned only as data; there is no generic effect executor and no new dialing, speech/TTS, plaintext disclosure, proposal-policy or completion authority.
+
+## Physical no-call proof status
+
+The following boundaries have been physically reproduced on the target Samsung S22+ (`SM-S906B`, Android 16) without making a cellular call:
+
+- Android IdentityVault contract: `PROVEN_S22` — app-private no-backup ciphertext, AtomicFile replacement, Android Keystore AES-256/GCM, key create/reuse/non-exportability, AAD/algorithm identity and fail-closed corrupt/missing/invalid-key behavior;
+- synthetic reviewed Gate D product ingress: `PROVEN_S22` — the same post-STT finalized-turn product path executes while speech pipeline start, PCM/STT, backend generation and TTS/media stay untouched;
+- bounded `BOOK_APPOINTMENT` proposal -> confirmation -> explicit user confirmation -> commitment-authorization chain: `PROVEN_S22` at commit `90a161c760c8267bd5625cba37373e6af9f9b07e`; the device contract stops in TaskGraph `COMMITMENT` with workflow outcome still unset and the permit unconsumed.
+
+These proofs do **not** authorize or imply a live call.
 
 ## Immediate next milestone
 
-Run Android/S22 integration proof for the boundaries that now exist but are only `HOST_GREEN`:
+The remaining Gate D gap is the commitment/completion boundary. Keep these three facts distinct:
 
-1. execute the Android IdentityVault instrumentation contract on the target S22 and prove Android Keystore key creation/reuse, non-exportability, no-backup storage, AES/GCM/AAD and fail-closed corruption/missing-key behavior;
-2. exercise the reviewed product binding through Android/session integration without making a cellular call, using the synthetic finalized-text ingress where useful to bypass STT/media while still traversing the exact shared finalized-turn product path;
-3. keep the public Android session path non-automatic unless a separately reviewed product composition intentionally supplies the binding.
+```text
+1. commitment permit issued
+2. commitment permit consumed
+3. counterparty/business success actually confirmed
+```
 
-Only after those device/integration checks should Gate D wire the bounded `BOOK_APPOINTMENT` effects to the existing proposal/confirmation/one-shot-commitment/disclosure owners and advance toward one bounded real-world task. Any live call requires fresh explicit authorization in that chat/session.
+`CallRealtimeCommitmentFunctionHandler` currently consumes the opaque permit and reports only that commitment is authorized. That is not evidence that a booking succeeded. Likewise, `CallPlanTurnCoordinator` currently owns `CallPlanAction.COMPLETE` by calling `CallWorkflow.complete(...)`, so product-bound completion ordering must be reviewed before TaskGraph may transition `COMMITMENT -> COMPLETE`.
+
+Next work must therefore be fail-closed and TDD-driven:
+
+1. define bounded evidence that the exact commitment authorization was consumed, without treating consumption as success;
+2. define a reviewed product-bound completion boundary that requires the exact successful completion evidence while preserving `CallWorkflow` as the completion owner;
+3. keep public/default behavior unchanged unless explicit reviewed product wiring opts in;
+4. run targeted/canonical regressions and no-call Android/S22 proof for any new boundary;
+5. stop before dialing. Any live call requires fresh explicit authorization for the concrete target and task in the current chat/session.
 
 ## Product layers
 
@@ -102,6 +139,8 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching Samsung media or `privi
 - graph effects remain data until an existing application owner consumes them;
 - synthetic finalized-text input changes only the source of finalized transcript text; it grants no dialing, disclosure, speech, confirmation, commitment or completion authority;
 - no model, Skill, parser, storage adapter or reducer widens target, disclosure, speech or commitment authority;
+- commitment authorization is one-shot, proposal-bound, workflow-rechecked and ownership-scoped;
+- permit consumption is not business-success evidence;
 - unknown/stale/authority-bearing supervisor output fails closed;
 - ordinary diagnostics contain typed IDs/status, not transcript/identity/candidate plaintext;
 - test-only real calls require disclosure/consent at the start;
