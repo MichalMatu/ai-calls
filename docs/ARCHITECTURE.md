@@ -2,7 +2,7 @@
 
 ## Goal
 
-Bridge an ordinary cellular call on the target Samsung S22+ to a bounded autonomous task engine while keeping ownership explicit across cellular media, speech conversion, deterministic dialogue routing, task/service knowledge, task/workflow authority, optional bounded supervisor observation/proposals, identity disclosure authority, takeover and fail-safe cleanup.
+Bridge an ordinary cellular call on the target Samsung S22+ to a bounded autonomous task engine while keeping ownership explicit across cellular media, speech conversion, deterministic dialogue routing, task/service knowledge, task/workflow authority, optional bounded supervisor observation/proposals, identity disclosure authority, user confirmation, commitment authorization, completion, takeover and fail-safe cleanup.
 
 Counterparty speech, model output, ServicePack data, parsers, encrypted storage and diagnostic tools never widen authority by themselves.
 
@@ -23,9 +23,9 @@ The following remain authoritative:
 
 - `CallTask`, including constraints/preferences and task scope;
 - `CallResolvedTarget`;
-- `CallWorkflow`;
+- `CallWorkflow` for proposal state, explicit user-decision state and structured completion;
 - `CallConfirmationPolicy`;
-- `CallCommitmentGate`;
+- `CallCommitmentGate` for opaque one-shot proposal-bound commitment permits;
 - application-owned output approval;
 - application-owned `FactDisclosurePolicy` for personal-data disclosure.
 
@@ -37,7 +37,7 @@ TaskGraph, PhraseMatrix, parsers, ServicePacks, shadow observers, LLMs, encrypte
 
 TaskGraph owns bounded conversational micro-state: typed state/event/transition IDs, legal state-compatible transitions, pure guards, validated non-secret dialogue slots, bounded recovery, orchestration state, terminal state, effects as returned data and versioned replay evidence.
 
-TaskGraph does **not** own target authorization, telephony execution, arbitrary speech approval, identity plaintext, disclosure permission, user-confirmation authority or commitment permits.
+TaskGraph does **not** own target authorization, telephony execution, arbitrary speech approval, identity plaintext, disclosure permission, user-confirmation authority, commitment permits or factual completion authority.
 
 ### ServicePack
 
@@ -58,7 +58,7 @@ DialogueState / TaskGraph context
   transient validated non-secret facts learned in this call
 ```
 
-A value existing in the vault is not permission to disclose it. `FactDisclosurePolicy` is application-owned. Plaintext identity values should be resolved as late as practical and stay outside supervisor context by default.
+A value existing in the vault is not permission to disclose it. `FactDisclosurePolicy` is application-owned. Plaintext identity values are resolved only after an application-owned disclosure decision allows it and stay outside supervisor context by default.
 
 ## TaskGraph engine decision
 
@@ -66,7 +66,7 @@ The production Gate D core is the minimal application-owned custom reducer: `Cus
 
 KStateMachine was evaluated as a spike candidate and is not carried as a production runtime/dependency. Do not reopen this decision without new concrete capability evidence.
 
-## Current Gate D components
+## Core Gate D components
 
 ### `TaskGraphCore.kt`
 
@@ -78,7 +78,7 @@ Explicit application-owned boundary from already validated candidate data to `Ta
 
 Before constructing a typed event it re-checks graph version/current state, candidate generation, application transition/event mapping, transition legality, provenance policy, slot scope, dynamic slot authorization, required slot presence, schema/constraints and authority-bearing slot IDs.
 
-Rejected candidates do not call the reducer. Accepted reductions expose only the new immutable snapshot, event record and effects as data. The bridge imports no workflow, output, telephony, IdentityVault or commitment owner and performs none of those side effects.
+Rejected candidates do not call the reducer. Accepted reductions expose only the new immutable snapshot, event record and effects as data. The bridge imports no telephony, IdentityVault, generic effect executor or commitment authority.
 
 ### `AppointmentInterpreter.kt` / `BookAppointmentSimulator.kt`
 
@@ -86,13 +86,9 @@ The reusable interpreter owns typed appointment extraction for explicit dates, a
 
 The host simulator composes those candidates with existing `CallWorkflow`, `CallConfirmationPolicy`, `CallCommitmentGate` and `FactDisclosurePolicy` owners. Parser output stays candidate-only and follows `extract -> validate -> commit`.
 
-### `PersistentIdentityVault.kt`
+### `PersistentIdentityVault.kt` / `AndroidIdentityVault.kt`
 
-Host persistence core for durable identity values. It owns a versioned encrypted envelope/payload around explicit `IdentityVaultBlobStorage` and `IdentityVaultAead` ports, typed/redacted `IdentitySecretValue`, associated-data binding, bounds/defensive copies, fail-closed decode/decrypt and explicit `DEVICE_BOUND_NO_BACKUP` semantics.
-
-### `AndroidIdentityVault.kt`
-
-Production Android implementation of the host vault ports:
+Host persistence core plus production Android adapters:
 
 ```text
 PersistentIdentityVault
@@ -108,7 +104,7 @@ PersistentIdentityVault
 
 Key creation occurs only when encrypting a new/empty record. Decryption requires an already-existing valid AES Keystore entry; a missing or invalid key fails closed and must not silently replace ciphertext or create a new key. Storage/key adapters expose no disclosure authority and log no plaintext secret values.
 
-Canonical CI compiles/packages the Android instrumentation contract for this adapter. Physical S22 execution is still separate evidence; this boundary is `HOST_GREEN`, not yet `PROVEN_S22`.
+This boundary is `PROVEN_S22`: `AndroidIdentityVaultContractTest` was physically executed on `SM-S906B` / Android 16 with terminal marker `IDENTITYVAULT_S22_PROVEN=true`.
 
 ### `DialogueFit.kt` / `DialogueFitHysteresis.kt`
 
@@ -173,25 +169,25 @@ synthetic finalized text ----+-> shared finalized-turn ingress
                                   -> inert route/result/effects data
 ```
 
-Synthetic input deliberately bypasses pipeline start, PCM ingestion, STT, backend generation and TTS/media output. It is intended to make no-call host/Android integration tests deterministic while exercising the same post-STT product path. It does not create a parallel state machine or authority store.
+Synthetic input deliberately bypasses pipeline start, PCM ingestion, STT, backend generation and TTS/media output. It does not create a parallel state machine or authority store.
 
-Changing the source of finalized text does not grant authority to dial, widen a target, disclose identity plaintext, release speech, approve a proposal or user confirmation, consume commitment authority or claim completion. Those boundaries remain exactly the same as for an STT-derived finalized turn.
+This boundary is `PROVEN_S22`: `AndroidGateDProductSyntheticInputContractTest` was physically executed on the target S22 with terminal marker `SYNTHETIC_GATE_D_S22_PROVEN=true`.
+
+Changing the source of finalized text does not grant authority to dial, widen a target, disclose identity plaintext, release speech, approve a proposal or user confirmation, consume commitment authority or claim completion.
 
 ## Read-only Gate D runtime boundary
 
 `LocalTextCallGateDRuntime` may bind one `CallTask`, graph and optional authorized-fact snapshot, create bounded shadow observations from authoritative state/context, expose legal transition IDs and authorized fact field IDs, and revalidate a shadow hypothesis through `SupervisorProposalValidator`.
 
-It has no reducer, effect executor, workflow mutation, speech/TTS, target/dial, commitment or plaintext IdentityVault API.
+It has no reducer, generic effect executor, telephony mutation, commitment consumption or plaintext IdentityVault API.
 
 ## Session-owned shadow lifecycle
 
 `LocalTextCallGateDShadowLifecycle` owns a monotonically increasing session epoch. A newer finalized turn invalidates older queued shadow work. `cancel()` invalidates pending work; `close()` invalidates it and closes the executor. Observer/validator exceptions are contained and cannot change the already-selected deterministic route.
 
-The lifecycle now accepts either the original fixed snapshot seam or an application-owned current-snapshot provider. In reviewed product mode it may return an already `SupervisorProposalValidator`-accepted candidate to the application integration seam, but it still does not apply a graph event itself.
+Ordinary diagnostics contain typed IDs, generations, validation status/reject reason and `DialogueFitResult`; they omit transcript text, task/fact plaintext, slot candidate values and model diagnostic values.
 
-Ordinary `GateDShadowTurnDiagnostics` contains typed IDs, generations, validation status/reject reason and `DialogueFitResult`; it omits transcript text, task/fact plaintext, slot candidate values and model diagnostic values.
-
-## Reviewed product shadow/apply integration
+## Reviewed product integration
 
 `LocalTextCallGateDProductBinding` is an explicit internal application-owned composition seam. It binds:
 
@@ -199,58 +195,128 @@ Ordinary `GateDShadowTurnDiagnostics` contains typed IDs, generations, validatio
 - `TaskGraphApplyPolicy`;
 - dynamic authorized slot IDs provider;
 - apply-result listener;
-- optional shadow observer/executor/diagnostics listener.
+- optional shadow observer/executor/diagnostics listener;
+- optional bounded deterministic follow-up router;
+- optional `CallCommitmentGate` for the reviewed BOOK_APPOINTMENT commitment boundary.
 
-`LocalTextCallGateDProductIntegration` owns the current immutable TaskGraph snapshot for that session and follows this fixed order:
+`LocalTextCallGateDProductIntegration` owns the current immutable TaskGraph snapshot for that session.
+
+Base order:
 
 ```text
 finalized turn
  -> application deterministic candidate interpretation
- -> if candidate exists: provenance check + current-state/slot-authorization re-check
+ -> provenance check + current-state/slot-authorization re-check
  -> TaskGraphApplyBridge
  -> accepted snapshot becomes current
- -> effects remain inert TaskGraphApplyResult data
+ -> optional one-step deterministic follow-up through the same apply bridge
 
 only when deterministic interpreter returns no candidate:
  -> bounded shadow observation from current snapshot
  -> optional quarantined observer
  -> SupervisorProposalValidator
  -> application slot-authorization provider
- -> TaskGraphApplyBridge performs the final current-state/generation/slot re-check
+ -> TaskGraphApplyBridge final re-check
  -> accepted snapshot becomes current
- -> effects remain inert data
 ```
 
 A deterministic candidate that is stale/invalid/rejected fails closed; it does **not** fall through to shadow as a bypass. Cancel/close prevent queued shadow work from applying later.
 
-The result listener is not an effect executor. Existing workflow/proposal/confirmation/commitment/output owners must consume any allowed effect through their own reviewed boundaries.
+## BOOK_APPOINTMENT owner composition
+
+The production composition deliberately reuses existing owners instead of making TaskGraph an effect executor.
+
+### Proposal
+
+`CallPlanTurnCoordinator` evaluates a proposal through the existing `CallWorkflow` once. The already-computed exact proposal plus policy decision are passed as data into the Gate D finalized turn.
+
+The TaskGraph `PROPOSE_APPOINTMENT` transition is policy-neutral: it stores the validated non-secret appointment candidate and enters `PROPOSAL`. The obsolete `BOOK_APPOINTMENT_EVALUATE_PROPOSAL` effect/bridge was removed so graph processing cannot independently call `workflow.evaluateProposal()` again.
+
+When the existing policy decision requires a user decision, one bounded deterministic follow-up uses the same apply bridge to move `PROPOSAL -> CONFIRMATION`.
+
+### Explicit user decision
+
+`applyBookAppointmentUserDecision(...)` is an application-owned entry point separate from counterparty speech.
+
+Before owner mutation it requires:
+
+- active integration;
+- TaskGraph state `CONFIRMATION`;
+- `CallWorkflow` state `NEEDS_USER_DECISION`;
+- exact pending workflow proposal;
+- matching graph appointment candidate;
+- current slot authorization re-check;
+- an accepted, effect-free exact graph transition staged through `TaskGraphApplyBridge`.
+
+Only then does the existing `CallWorkflow.approvePendingProposal()` or `rejectPendingProposal()` consume the user decision. The staged graph snapshot becomes current only after the owner mutation succeeds.
+
+CONFIRM moves TaskGraph to `COMMITMENT` and remembers the exact proposal returned by the workflow owner. REJECT returns TaskGraph to `WAITING_OFFER` and clears the candidate. No commitment permit is issued by the user-decision method itself.
+
+### Commitment authorization
+
+`authorizeBookAppointmentCommitment()` is a second explicit application-owned boundary. It requires:
+
+- active integration;
+- a bound `CallCommitmentGate`;
+- current TaskGraph state `COMMITMENT`;
+- the exact proposal returned by the preceding workflow approval;
+- the exact `CallWorkflow` owner that approved it still in `ACTIVE_NEGOTIATION` immediately before authorization;
+- no permit previously issued by this integration and no already-active gate permit.
+
+It then asks the existing `CallCommitmentGate` owner to issue one opaque authorization for that exact proposal. The integration stores the exact authorization it issued.
+
+`CallCommitmentGate.revoke(authorization)` is token-scoped. Cancel/close/reject may revoke only the exact permit issued by this integration; a newer or foreign permit is not globally cleared by this boundary.
+
+Permit issuance does **not** consume the permit, execute an external commitment, advance TaskGraph beyond `COMMITMENT` or call `CallWorkflow.complete(...)`.
+
+This complete no-call owner chain is `PROVEN_S22`: `AndroidGateDBookAppointmentCommitmentContractTest` ran physically on `SM-S906B` / Android 16 at commit `90a161c760c8267bd5625cba37373e6af9f9b07e` with terminal marker `BOOK_APPOINTMENT_COMMITMENT_S22_PROVEN=true`. The test also proves stale workflow rejection and foreign-permit preservation on device while speech pipeline/PCM/backend remain untouched.
+
+## Commitment consumption is not completion
+
+The architecture keeps three facts separate:
+
+```text
+commitment authorization issued
+ != commitment authorization consumed
+ != counterparty/business success confirmed
+```
+
+`CallRealtimeCommitmentFunctionHandler` currently consumes a valid opaque authorization and responds with `{"commitment":"authorized"}`. It does not prove the appointment was booked and must not by itself cause `COMMIT_SUCCEEDED`.
+
+Separately, `CallPlanTurnCoordinator` currently handles `CallPlanAction.COMPLETE` by calling `CallWorkflow.complete(...)` before Gate D product integration processes the finalized turn. That ordering is acceptable for the existing default deterministic path but is not yet a sufficient reviewed BOOK_APPOINTMENT completion boundary.
+
+Before TaskGraph may transition `COMMITMENT -> COMPLETE` in the reviewed product path, implementation must define and TDD:
+
+1. redacted one-shot evidence that the exact commitment authorization was consumed;
+2. exact counterparty/business success evidence distinct from authorization consumption;
+3. product-bound completion ordering that preserves `CallWorkflow` as completion owner and prevents completion before those checks;
+4. unchanged public/default behavior unless explicit reviewed product wiring opts in.
+
+No generic completion/effect executor should be introduced.
 
 ## Hard authority invariant
 
 Neither the shadow lifecycle, product binding, TaskGraph reducer, synthetic finalized-text ingress nor Android vault may automatically:
 
 - dial or widen a target;
-- execute graph effects;
-- mutate `CallWorkflow` from arbitrary reducer output;
+- execute arbitrary graph effects;
 - release model speech/TTS;
 - resolve/disclose plaintext facts;
-- approve a proposal;
+- approve a proposal outside existing policy owners;
 - approve user confirmation;
 - consume commitment authority;
+- infer business success from permit consumption;
 - claim completion authority.
 
 The public Android session path also does not automatically opt into the reviewed product binding.
 
-## Next implementation focus — Android/S22 proof and bounded owner wiring
+## Next implementation focus
 
-The next evidence step is physical Android proof without a call:
-
-1. execute the IdentityVault instrumentation contract on the S22;
-2. exercise reviewed product binding/session behavior on Android/S22, using synthetic finalized text where useful so post-STT behavior can be proven without touching the frozen media path;
-3. keep the public session path non-automatic;
-4. only then wire the specific existing owners required for bounded `BOOK_APPOINTMENT`, one reviewed effect mapping at a time.
-
-Do not introduce a generic effect executor.
+1. design/TDD exact commitment-consumption evidence without treating consumption as success;
+2. design/TDD reviewed BOOK_APPOINTMENT completion ordering around exact success evidence while preserving `CallWorkflow` as completion owner;
+3. run targeted/canonical regressions and the minimal relevant Android/S22 no-call proof;
+4. wire late plaintext disclosure only through `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval` if acceptance-task flow requires it;
+5. stop before live dialing. A live call requires fresh explicit authorization for the concrete target and task in the current session.
 
 ## TAKE OVER and failure invariant
 
@@ -262,5 +328,5 @@ Failure moves toward deterministic fallback, local recovery, takeover or safe st
 - compiled/packaged instrumentation tests are not physical device proof;
 - `PROVEN_S22` requires explicit reproduction on the target phone;
 - current ADB reachability alone is not product proof;
-- host-only Gate D contracts do not justify a live call;
+- no-call S22 proof does not justify a live call;
 - live-call authorization is session-scoped and must be freshly granted.
