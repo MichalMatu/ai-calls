@@ -24,19 +24,22 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
  * deterministic CallPlan turn coordinator carried by the prepared call.
  *
  * CallPlan routing remains structured only here: this class does not synthesize or transmit plan
- * output directly, approve proposals, execute external commitments, or fall back to a backend/model.
- * Gate D activation remains explicit. The public Android create path binds neither a shadow
- * observer nor product apply wiring; reviewed internal composition may opt into exactly one of
- * those paths. The bounded BOOK_APPOINTMENT methods below only delegate to existing application
- * owners and do not dial, speak, disclose identity or execute an external commitment. Factual
- * completion remains explicit and is accepted only by the reviewed owner boundary after exact
- * commitment-consumption and success-evidence checks.
+ * output directly, approve proposals, execute external commitments, or implicitly fall back to a
+ * backend/model. A reviewed internal composition may explicitly opt into bounded backend generation
+ * for unresolved ASK_REPEAT/TAKE_OVER turns; the public/default path stays fail-closed. Gate D
+ * activation remains explicit. The public Android create path binds neither a shadow observer nor
+ * product apply wiring; reviewed internal composition may opt into exactly one of those paths. The
+ * bounded BOOK_APPOINTMENT methods below only delegate to existing application owners and do not
+ * dial, speak, disclose identity or execute an external commitment. Factual completion remains
+ * explicit and is accepted only by the reviewed owner boundary after exact commitment-consumption
+ * and success-evidence checks.
  */
 internal class LocalTextCallSession private constructor(
     private val workflow: CallWorkflow,
     private val pipeline: Pipeline,
     private val planTurnCoordinator: CallPlanTurnCoordinator?,
     phraseMatrix: PhraseMatrix?,
+    private val unresolvedTurnRouting: CallPlanUnresolvedTurnRouting,
     private val gateDRuntime: LocalTextCallGateDRuntime?,
     gateDDefinition: TaskGraphDefinition?,
     gateDSnapshot: TaskGraphSnapshot?,
@@ -126,6 +129,7 @@ internal class LocalTextCallSession private constructor(
     private constructor(
         prepared: PreparedLocalTextCall,
         pipelineFactory: PipelineFactory,
+        unresolvedTurnRouting: CallPlanUnresolvedTurnRouting,
         gateDShadowDependencies: GateDShadowDependencies?,
         gateDProductBinding: LocalTextCallGateDProductBinding?,
     ) : this(
@@ -140,6 +144,7 @@ internal class LocalTextCallSession private constructor(
             )
         },
         phraseMatrix = prepared.phraseMatrix,
+        unresolvedTurnRouting = unresolvedTurnRouting,
         gateDRuntime = prepared.taskGraph?.let { graph ->
             LocalTextCallGateDRuntime(
                 task = prepared.workflow.snapshot().task,
@@ -157,9 +162,11 @@ internal class LocalTextCallSession private constructor(
     internal constructor(
         prepared: PreparedLocalTextCall,
         pipelineFactory: PipelineFactory,
+        unresolvedTurnRouting: CallPlanUnresolvedTurnRouting = CallPlanUnresolvedTurnRouting.CONSUME,
     ) : this(
         prepared = prepared,
         pipelineFactory = pipelineFactory,
+        unresolvedTurnRouting = unresolvedTurnRouting,
         gateDShadowDependencies = null,
         gateDProductBinding = null,
     )
@@ -173,6 +180,7 @@ internal class LocalTextCallSession private constructor(
     ) : this(
         prepared = prepared,
         pipelineFactory = pipelineFactory,
+        unresolvedTurnRouting = CallPlanUnresolvedTurnRouting.CONSUME,
         gateDShadowDependencies = GateDShadowDependencies(
             observer = gateDShadowObserver,
             executor = gateDShadowExecutor,
@@ -188,6 +196,7 @@ internal class LocalTextCallSession private constructor(
     ) : this(
         prepared = prepared,
         pipelineFactory = pipelineFactory,
+        unresolvedTurnRouting = CallPlanUnresolvedTurnRouting.CONSUME,
         gateDShadowDependencies = null,
         gateDProductBinding = gateDProductBinding,
     )
@@ -398,7 +407,7 @@ internal class LocalTextCallSession private constructor(
 
     private fun processFinalizedTranscript(finalTranscript: String): CallPlanFinalTurnSelection {
         val turnResult = handlePlanFinalTranscript(finalTranscript)
-        val selection = CallPlanFinalTurnRouteMapper.map(turnResult)
+        val selection = CallPlanFinalTurnRouteMapper.map(turnResult, unresolvedTurnRouting)
         val deterministicAction = turnResult.decision().action()
         val recoveryCount = currentRecoveryCount()
         activateGateDProductIntegration(
