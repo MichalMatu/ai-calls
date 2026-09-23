@@ -1,10 +1,10 @@
-# Next-chat prompt — final S22 no-call proof and Gate D merge
+# Next-chat prompt — Gate D proven; merge and live acceptance gate next
 
 Kontynuuj repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego checkpointu Gate D.
 
-Pracuj na świeżym stanie repo/PR #5; nie ufaj historycznemu SHA bez ponownego fetch. Użyj wyłącznie świeżego Local Chat Bridge bindingu dostarczonego w nowym oknie — nie kopiuj bindingu z poprzednich tasków ani dokumentów.
+Najpierw pobierz świeży stan repo/PR #5 i użyj wyłącznie świeżego Local Chat Bridge bindingu z bieżącego okna. Nie kopiuj bindingu z dokumentów ani starych tasków.
 
-Najpierw przeczytaj kolejno:
+Przeczytaj kolejno:
 
 1. `AGENTS.md`
 2. `README.md`
@@ -18,98 +18,69 @@ Najpierw przeczytaj kolejno:
 
 ## Stan wejściowy
 
-Wszystko, co dało się domknąć bez telefonu, jest zakończone.
+Gate D `BOOK_APPOINTMENT` jest `DONE / HOST_GREEN / PROVEN_S22` dla reviewed no-call product boundary.
 
-Finalny no-phone code checkpoint przed close-out docs:
-
-```text
-cefe6492c7e714a8124e08cb1f42a68554955832
-```
-
-`BOOK_APPOINTMENT` ma host-green pełny owner chain:
+Finalny owner chain:
 
 ```text
-proposal -> user CONFIRM -> permit issued -> exact permit consumed
+proposal -> user CONFIRM -> exact one-shot permit
+ -> exact permit consumed evidence
  -> structured COMPLETE deferred
  -> exact SUCCESS evidence
  -> CallWorkflow.complete(outcome)
  -> TaskGraph COMPLETE committed only after workflow owner succeeds
 ```
 
-`permit issued != permit consumed != business success confirmed` pozostaje twardym invariantem. Generic deterministic/shadow `commit-complete` candidate nie ma factual completion authority. Default/public CallPlan COMPLETE zachowuje stare zachowanie; deferral jest tylko explicit reviewed opt-in.
-
-Final evidence:
+Twardy invariant:
 
 ```text
-chatgpt-gated-book-appointment-completion-red-v041-20260923
-BOOK_APPOINTMENT_COMPLETION_RED=true
-
-chatgpt-gated-book-appointment-completion-green-v042-20260923
-BOOK_APPOINTMENT_COMPLETION_GREEN=true
-
-chatgpt-gated-book-appointment-completion-canonical-v043-20260923
-BOOK_APPOINTMENT_COMPLETION_CANONICAL_GREEN=true
-
-chatgpt-gated-android-completion-contract-build-v044-20260923
-ANDROID_COMPLETION_CONTRACT_PACKAGED=true
-
-chatgpt-gated-final-canonical-v045-20260923
-FINAL_GATE_D_NO_PHONE_CANONICAL_GREEN=true
+permit issued != permit consumed != business success confirmed
 ```
 
-Android CI #546 dla `cefe6492...` zakończył się `success`.
+Generic deterministic/shadow `commit-complete` candidate nie ma factual completion authority. Public/default CallPlan COMPLETE zachowuje dotychczasowe zachowanie; deferral jest tylko explicit reviewed opt-in.
 
-## Pierwszy i jedyny aktywny gate
+## Fizyczny proof
 
-Nie zaczynaj kolejnego hostowego feature slice. Najpierw fizyczny **no-call** S22 proof.
-
-Poprzednia próba nie wykazała product failure: `chatgpt-gated-s22-deferred-completion-proof-v039-20260923` zatrzymał się przed Gradle, bo `RFCT70L7E8J` nie był widoczny; `chatgpt-gated-adb-inventory-v040-20260923` pokazał pustą listę ADB.
-
-Gdy telefon jest dostępny:
-
-```bash
-adb devices -l
-
-ANDROID_SERIAL=<S22_SERIAL> gradle :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=pl.michalmatu.aicallbridge.localcall.AndroidGateDDeferredCompletionBindingContractTest
-
-ANDROID_SERIAL=<S22_SERIAL> gradle :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=pl.michalmatu.aicallbridge.localcall.AndroidGateDBookAppointmentCompletionContractTest
-```
-
-Opcjonalnie dołóż regression:
+Na Samsung S22+ (`SM-S906B`, Android 16), bez wykonywania połączenia komórkowego, przeszły:
 
 ```text
-AndroidGateDBookAppointmentCommitmentContractTest
+chatgpt-gated-s22-final-owner-proofs-v049-20260923
+DEFERRED_COMPLETION_BINDING_S22_PROVEN=true
+BOOK_APPOINTMENT_COMPLETION_S22_PROVEN=true
+FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
+
+chatgpt-gated-s22-commitment-regression-v050-20260923
+BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
 ```
 
-Wymagaj terminalnego PASS; samo queue/ACK/connected device nie jest dowodem.
+Wcześniejsze proofy IdentityVault, synthetic product ingress i BOOK_APPOINTMENT permit issuance również pozostają `PROVEN_S22`.
 
-Jeśli oba nowe kontrakty przejdą:
+## Pierwszy krok
 
-1. oznacz nowe boundaries jako `PROVEN_S22` w README/ROADMAP/ARCHITECTURE/HANDOFF/PR;
-2. uruchom/re-check canonical CI, jeśli repo się zmieniło;
-3. re-check PR #5; jeśli nadal clean/mergeable, merge `gate-d-taskgraph-core` do `main`;
-4. usuń `gate-d-taskgraph-core` po merge;
-5. zostaw `agent-control` jako branch tooling/evidence, dopóki Local Chat Bridge go używa.
+Nie implementuj kolejnego Gate D feature slice.
 
-Remote branch cleanup z poprzedniej sesji jest już zakończony: poprawny zestaw to tylko `agent-control`, `gate-d-taskgraph-core`, `main`.
+1. sprawdź świeży HEAD PR #5, CI i mergeability;
+2. jeśli wszystko zielone, oznacz PR gotowym i merge do `main`;
+3. usuń `gate-d-taskgraph-core` po merge, zachowaj `agent-control`;
+4. kontynuuj z `main`.
 
-## Nie powtarzaj
+## Live acceptance call
 
-Nie powtarzaj auditów/slice’ów: `CustomTaskGraphCore`, `TaskGraphApplyBridge`, AppointmentInterpreter, DialogueFit/hysteresis, shadow lifecycle, SupervisorProposalValidator, host/Android IdentityVault, synthetic ingress, proposal owner reuse, policy-neutral proposal graph, user CONFIRM/REJECT, commitment authorization/hardening, consumption evidence, deferred completion ani factual completion owner ordering.
+Live call jest osobnym gate'em. Nie dziedzicz zgody ze starego czatu, handoffu, poprzednich testów ani samego faktu, że telefon jest podłączony.
 
-`privileged-helper/`, Samsung media path i `CallMediaSessionCoordinator` pozostają frozen bez osobnego root-cause.
+Przed dialowaniem wymagaj świeżej jawnej autoryzacji **jednego konkretnego targetu/numeru i jednego konkretnego zadania** w bieżącej sesji.
 
-Plaintext identity tylko przez:
+Dla test-only public business/reception call: ujawnij na początku, że to krótki test AI i poproś o zgodę; brak zgody -> zakończ. Nie twórz realnej rezerwacji w trybie test-only.
 
-```text
-AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation
- -> optional user approval -> ALLOW -> late plaintext resolution
-```
+Dla genuine user-authorized booking: wolno dążyć do realnego wyniku wyłącznie w granicach `CallTask`, `FactDisclosurePolicy`, proposal/user-confirmation/commitment/completion owners.
 
-## Live-call stop line
+## Invariants
 
-**Nie wykonuj realnego połączenia na podstawie tego promptu.** Nowe okno nie dziedziczy żadnej zgody na telefon. Każdy live call wymaga świeżej, jawnej autoryzacji konkretnego targetu i zadania w bieżącej sesji.
+- deterministic rejection nie fallbackuje do shadow;
+- public `LocalTextCallSession.create(...)` nie aktywuje automatycznie reviewed product bindingu;
+- brak generic effect/completion executora;
+- model/parser/shadow/storage/reducer/synthetic ingress nie posiadają dial/target widening/plaintext disclosure/speech/TTS/user-confirmation/commitment/completion authority;
+- plaintext IdentityVault dopiero po `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval -> ALLOW`;
+- `privileged-helper/`, Samsung media path i `CallMediaSessionCoordinator` pozostają frozen bez osobnego root-cause.
 
-Po fizycznym no-call proofie i merge możesz przygotować następny etap, ale przed dial zatrzymaj się po świeżą autoryzację użytkownika.
+Pracuj autonomicznie w tym zakresie i nie powtarzaj zakończonych audytów ani slice'ów.
