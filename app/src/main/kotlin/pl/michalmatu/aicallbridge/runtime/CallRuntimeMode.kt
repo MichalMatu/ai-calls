@@ -18,13 +18,15 @@ enum class CallAudioMode(
 enum class TextLlmProvider(val displayName: String) {
     OPENAI_TEXT("OpenAI API (text)"),
     LOCAL_PHONE_LLM("Local LLM (S22)"),
-    EDGE_GALLERY("Google AI Edge Gallery (Gemma 4 E2B)"),
+    LOCAL_GEMMA_4("Local Gemma 4 E2B (S22)"),
     LOCAL_MAC_LLM("Local LLM server (Mac)"),
     ;
 
     companion object {
-        fun fromStored(value: String?): TextLlmProvider =
-            entries.firstOrNull { it.name == value } ?: OPENAI_TEXT
+        fun fromStored(value: String?): TextLlmProvider = when (value) {
+            "EDGE_GALLERY" -> LOCAL_GEMMA_4
+            else -> entries.firstOrNull { it.name == value } ?: OPENAI_TEXT
+        }
     }
 }
 
