@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.textagent
 
 import android.content.Context
+import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.util.concurrent.CountDownLatch
@@ -13,11 +14,11 @@ import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
 /**
- * Physical S22 contract for the Edge Gallery/Gemma dialogue-skill path only.
+ * Physical S22 contract for the direct LiteRT-LM Gemma dialogue-skill path only.
  *
  * No telephony, microphone, STT, TTS or media session is started. The test supplies synthetic text
- * directly to the phone-local backend. Reaching a parsed decision proves Edge Gallery readiness,
- * exact expected model identity and the bounded JSON skill contract in one no-call path.
+ * directly to the phone-local backend. Reaching a parsed decision proves direct Gemma readiness,
+ * expected model identity and the bounded JSON skill contract in one no-call path.
  */
 @RunWith(AndroidJUnit4::class)
 class AndroidEdgeGalleryDialogueSkillContractTest {
@@ -68,6 +69,13 @@ class AndroidEdgeGalleryDialogueSkillContractTest {
                 observed,
             )
             checkNotNull(observed)
+            val terminalProof = buildString {
+                append("skill=${observed.skillId.name}")
+                append(" confidence=${observed.confidence}")
+                append(" reason=${observed.reason ?: "none"}")
+            }
+            println("GEMMA_SKILL_DECISION $terminalProof")
+            Log.i("GemmaSkillProof", terminalProof)
             assertTrue(observed.skillId in policy.allowedSkills)
             assertTrue(observed.confidence in 0.0..1.0)
         } finally {
