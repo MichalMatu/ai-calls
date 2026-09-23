@@ -14,6 +14,47 @@ import pl.michalmatu.aicallbridge.textagent.FailoverTextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.LocalDialogueSkillBackendFactory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
+internal enum class GateCHybridResponseSource {
+    LOCAL_SKILL,
+    CHAT_RELAY,
+}
+
+internal data class GateCHybridDiagnosticsSnapshot(
+    val decisions: List<DialogueSkillDecision>,
+    val localSkillErrors: List<String>,
+    val responseSources: List<GateCHybridResponseSource>,
+)
+
+internal class GateCHybridDiagnostics : DialogueSkillDecisionObserver {
+    private val lock = Any()
+    private val decisions = mutableListOf<DialogueSkillDecision>()
+    private val localSkillErrors = mutableListOf<String>()
+    private val responseSources = mutableListOf<GateCHybridResponseSource>()
+
+    override fun onDecision(decision: DialogueSkillDecision) {
+        synchronized(lock) { decisions += decision }
+    }
+
+    fun recordLocalSkillError(reason: String) {
+        synchronized(lock) { localSkillErrors += sanitize(reason) }
+    }
+
+    fun recordResponseSource(source: GateCHybridResponseSource) {
+        synchronized(lock) { responseSources += source }
+    }
+
+    fun snapshot(): GateCHybridDiagnosticsSnapshot = synchronized(lock) {
+        GateCHybridDiagnosticsSnapshot(
+            decisions = decisions.toList(),
+            localSkillErrors = localSkillErrors.toList(),
+            responseSources = responseSources.toList(),
+        )
+    }
+
+    private fun sanitize(value: String): String =
+        value.replace('\n', ' ').replace('\r', ' ').replace('=', ':').take(160)
+}
+
 /**
  * Explicit developer-only Gate C hybrid backend.
  *
@@ -27,7 +68,7 @@ internal object GateCHybridDialogueBackendFactory {
         context: Context,
         provider: TextLlmProvider,
         relaySessionId: String,
-        observer: DialogueSkillDecisionObserver? = null,
+        diagnostics: GateCHybridDiagnostics,
     ): TextCallAgentBackend {
         require(
             provider == TextLlmProvider.LOCAL_PHONE_LLM || provider == TextLlmProvider.EDGE_GALLERY,
@@ -46,26 +87,49 @@ internal object GateCHybridDialogueBackendFactory {
             context = context.applicationContext,
             provider = provider,
             policy = skillPolicy,
-            observer = observer,
+            observer = diagnostics,
+        ).observed(
+            onComplete = {
+                diagnostics.recordResponseSource(GateCHybridResponseSource.LOCAL_SKILL)
+            },
+            onError = diagnostics::recordLocalSkillError,
         )
         val relayBackend = InteractiveChatRelayBackend(
             mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME)),
             sessionId = relaySessionId,
+        ).observed(
+            onComplete = {
+                diagnostics.recordResponseSource(GateCHybridResponseSource.CHAT_RELAY)
+            },
         )
         return FailoverTextCallAgentBackend(
             primary = localSkillBackend,
             fallback = relayBackend,
         )
     }
-}
 
-internal class GateCHybridDecisionLog : DialogueSkillDecisionObserver {
-    private val lock = Any()
-    private val decisions = mutableListOf<DialogueSkillDecision>()
+    private fun TextCallAgentBackend.observed(
+        onComplete: () -> Unit,
+        onError: (String) -> Unit = {},
+    ): TextCallAgentBackend {
+        val delegate = this
+        return object : TextCallAgentBackend {
+            override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                delegate.generate(userText, object : TextCallAgentBackend.Listener {
+                    override fun onComplete(text: String) {
+                        onComplete()
+                        listener.onComplete(text)
+                    }
 
-    override fun onDecision(decision: DialogueSkillDecision) {
-        synchronized(lock) { decisions += decision }
+                    override fun onError(reason: String) {
+                        onError(reason)
+                        listener.onError(reason)
+                    }
+                })
+            }
+
+            override fun cancel() = delegate.cancel()
+            override fun close() = delegate.close()
+        }
     }
-
-    fun snapshot(): List<DialogueSkillDecision> = synchronized(lock) { decisions.toList() }
 }
