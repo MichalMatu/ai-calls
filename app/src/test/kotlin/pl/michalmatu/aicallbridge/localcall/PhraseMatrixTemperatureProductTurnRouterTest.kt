@@ -63,9 +63,10 @@ class PhraseMatrixTemperatureProductTurnRouterTest {
             0,
         )
 
-        assertEquals("confirm-current-line", result?.match?.ruleId)
-        assertEquals(PhraseMatcherKind.TEMPERATURE, result?.match?.matcherKind)
-        assertTrue((result?.match?.confidence ?: 0.0) >= 0.70)
+        assertNull(result?.match)
+        assertEquals(PhraseResponseTemperatureBand.WARM, result?.temperature?.band)
+        assertEquals("confirm-current-line", result?.temperature?.ruleId)
+        assertTrue((result?.temperature?.confidence ?: 0.0) >= 0.70)
         assertEquals(CallPlanAction.SAY, result?.turnResult?.decision()?.action())
         assertEquals(
             "Tak, sprawa dotyczy numeru, z którego dzwonię.",
