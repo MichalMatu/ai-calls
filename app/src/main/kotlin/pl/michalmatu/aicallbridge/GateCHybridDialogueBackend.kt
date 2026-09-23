@@ -88,23 +88,33 @@ internal object GateCHybridDialogueBackendFactory {
             provider = provider,
             policy = skillPolicy,
             observer = diagnostics,
-        ).observed(
+        )
+        val relayBackend = InteractiveChatRelayBackend(
+            mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME)),
+            sessionId = relaySessionId,
+        )
+        return compose(localSkillBackend, relayBackend, diagnostics)
+    }
+
+    internal fun compose(
+        localSkillBackend: TextCallAgentBackend,
+        relayBackend: TextCallAgentBackend,
+        diagnostics: GateCHybridDiagnostics,
+    ): TextCallAgentBackend {
+        val observedLocalSkillBackend = localSkillBackend.observed(
             onComplete = {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.LOCAL_SKILL)
             },
             onError = diagnostics::recordLocalSkillError,
         )
-        val relayBackend = InteractiveChatRelayBackend(
-            mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME)),
-            sessionId = relaySessionId,
-        ).observed(
+        val observedRelayBackend = relayBackend.observed(
             onComplete = {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.CHAT_RELAY)
             },
         )
         return FailoverTextCallAgentBackend(
-            primary = localSkillBackend,
-            fallback = relayBackend,
+            primary = observedLocalSkillBackend,
+            fallback = observedRelayBackend,
         )
     }
 
