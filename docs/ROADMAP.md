@@ -27,9 +27,7 @@ The following stay frozen unless a new concrete root cause requires reopening:
 
 Read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
 
-## Active gate — robust hybrid dialogue with Gemma 4
-
-The current task is not another Gate D slice and not more Orange exact-phrase mapping.
+## Robust hybrid dialogue with Gemma 4
 
 Target flow:
 
@@ -45,6 +43,15 @@ finalized STT
  -> TTS
 ```
 
+Current state:
+
+- response-temperature routing: **HOST_GREEN**;
+- typed bounded dialogue skills: **HOST_GREEN**;
+- synthetic hybrid failover + diagnostics: **HOST_GREEN**;
+- direct Gemma 4 LiteRT-LM Android package/runtime: **HOST_GREEN**;
+- physical no-call Gemma 4 skill inference: **PROVEN_S22**;
+- Samsung media path: still **PROVEN_S22 / FROZEN** and was not reopened.
+
 ### Implemented pieces
 
 1. `PhraseResponseTemperature` with `HOT/WARM/UNCERTAIN/COLD/AMBIGUOUS`.
@@ -55,15 +62,8 @@ finalized STT
 6. failover backend path for local model -> injected-response fallback.
 7. direct Gemma 4 LiteRT-LM backend on Android.
 8. `litertlm-android:0.17.1` dependency.
-
-Implementation checkpoint before latest handoff docs:
-
-```text
-e35152f78446e69df8b98f4f403943751eb1a130
-Use direct Gemma 4 backend for Android text calls
-```
-
-Always use fresh `origin/main` rather than hard-coding this SHA.
+9. hybrid diagnostics that record bounded model decisions, local-skill errors and final response source.
+10. physical no-call terminal proof of the direct Gemma path.
 
 ## Model decision
 
@@ -83,45 +83,75 @@ The product direction is direct in-process LiteRT-LM with an app-owned model pat
 
 ## Physical model evidence
 
-The S22 already contains the Gemma 4 model downloaded by Edge Gallery in external storage, including:
+The S22 contains the Gemma 4 model downloaded by Edge Gallery in external storage, including:
 
 ```text
 /sdcard/Android/data/com.google.ai.edge.gallery/files/Gemma_4_E2B_it/6e5c4f1e395deb959c494953478fa5cec4b8008f/gemma-4-E2B-it.litertlm
 ```
 
-A second installed Edge Gallery variant also has the same model in its external files.
-
-Do not make production depend on another application's private sandbox. For development proof, Local Agent/ADB may copy an already-downloaded model from accessible external storage into the app-owned model location.
-
-Current app-owned target:
+The development proof provisioned the same bytes into:
 
 ```text
 <app external files>/models/gemma-4-E2B-it.litertlm
 ```
 
-## Immediate execution order
+Verified SHA-256:
 
-1. Fetch fresh `origin/main` and fresh Local Agent daemon/binding evidence.
-2. Run targeted host tests for response-temperature, skill backend, hybrid routing and direct Gemma backend.
-3. Run `bash scripts/verify_host.sh` on current HEAD.
-4. Verify Android compile/package with LiteRT-LM dependency.
-5. Provision `gemma-4-E2B-it.litertlm` into the app-owned model directory.
-6. Run physical S22 **no-call** Gemma dialogue-skill test using synthetic text only.
-7. Require parsed bounded `skill/confidence/reason` and no telephony/media side effect.
-8. If the physical test fails, classify the exact layer before changing code:
-   - model path/provisioning;
-   - LiteRT Engine initialization;
-   - GPU backend / CPU fallback;
-   - native runtime/dependency;
-   - memory/timeout;
-   - JSON `ResponseFormat`;
-   - skill parser/policy.
-9. After Gemma no-call proof, run synthetic hybrid-flow regressions:
-   - HOT/WARM deterministic;
-   - unresolved -> Gemma;
-   - low confidence/error -> injection fallback;
-   - telemetry identifies Gemma decision and final response source.
-10. Only then consider another bounded live acceptance call.
+```text
+181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+```
+
+Important provisioning finding: a plain `adb shell cp` created a file that LiteRT could not open from the app process (`PERMISSION_DENIED`). Writing the destination through the application UID with `run-as pl.michalmatu.aicallbridge` produced app-readable ownership/SELinux labeling and made the direct LiteRT engine path work.
+
+Edge Gallery is only a development source for the already-downloaded bytes. Production must explicitly import/download and own its model.
+
+## Proven no-call Gemma gate
+
+Fresh-head verification completed successfully with:
+
+1. targeted host response-temperature/dialogue/Gemma/hybrid tests;
+2. `bash scripts/verify_host.sh`;
+3. Android debug + AndroidTest compile/package with LiteRT-LM;
+4. app-owned model hash verification;
+5. physical S22 no-call instrumentation using synthetic text;
+6. terminal `skill/confidence/reason` proof;
+7. no telephony/media side effect.
+
+Observed physical S22 decision:
+
+```text
+skill=ACKNOWLEDGE_NEUTRAL
+confidence=0.95
+reason=Potwierdzenie odbioru telefonu
+```
+
+LiteRT loaded its JNI/native runtime and initialized the GPU delegate. The earlier failed run was isolated to model-file ownership/SELinux, not engine format, JSON `ResponseFormat`, parser, memory or timeout.
+
+## Proven synthetic hybrid gate
+
+Host contract evidence now covers:
+
+```text
+bounded skill -> reviewed app response -> source=LOCAL_SKILL
+low confidence -> injected fallback -> source=CHAT_RELAY
+classifier error -> injected fallback -> source=CHAT_RELAY
+```
+
+The diagnostics retain the parsed decision (`skill/confidence/reason`) when a decision exists and separately record the source of the final response. Existing PhraseMatrix tests keep HOT/WARM on the deterministic owner path and ambiguity fail-closed.
+
+ChatRelay remains developer/injected-response fallback infrastructure, not product runtime authority.
+
+## Next product engineering gate
+
+The remaining generic product gap is model lifecycle/provisioning:
+
+1. define an explicit app-owned Gemma import/download path;
+2. verify integrity/version/expected model identity before activation;
+3. keep runtime independent of Edge Gallery storage;
+4. preserve the existing bounded skill policy and output approval;
+5. rerun targeted/canonical tests and the no-call S22 model gate after provisioning changes.
+
+A bounded live acceptance call is now technically eligible for consideration, but it is a separate authorization gate, not an automatic roadmap step.
 
 ## Authority invariant
 
@@ -153,10 +183,10 @@ Live evidence already proved:
 
 No CLIR account change was completed.
 
-Do not continue growing exact Orange phrase aliases as the main strategy. Resume Orange only after the generic hybrid dialogue path is green or when it tests a specific generic capability.
+Do not continue growing exact Orange phrase aliases as the main strategy.
 
 ## Live-call stop line
 
-A connected phone, existing allowlist, old chat or previous successful call never authorizes a new call.
+A connected phone, existing allowlist, old chat, previous successful call, documentation or no-call proof never authorizes a new call.
 
 Every real call requires fresh explicit authorization in the current session for one concrete target/number and one concrete task.
