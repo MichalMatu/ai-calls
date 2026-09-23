@@ -1,6 +1,6 @@
 # Agent workflow
 
-This repository is single-developer and main-first. Durable product code and current documentation live on `main`; `agent-control` is only Local Agent task/result traffic.
+This repository is single-developer and main-first. Durable product code/docs live on `main`; `agent-control` is only Local Agent task/result traffic.
 
 ## Start of every work session
 
@@ -10,116 +10,101 @@ Read fresh repository sources in this order:
 2. `docs/HANDOFF_NEXT_CHAT.md`
 3. `docs/ROADMAP.md`
 4. `docs/ARCHITECTURE.md`
-5. `docs/SECURITY_PRIVACY.md`
-6. `docs/HANDOFF_PROTOCOL.md`
-7. `docs/PHASE2D_FREEZE_2026-09-18.md` before any Samsung media change
-8. Orange ServicePack/runbook only if Orange-specific work is explicitly resumed.
+5. `docs/GENERIC_PHONE_TASK_AUTHORITY.md`
+6. `docs/SECURITY_PRIVACY.md`
+7. `docs/HANDOFF_PROTOCOL.md`
+8. `docs/PHASE2D_FREEZE_2026-09-18.md` before any Samsung media change.
 
-Fetch fresh `origin/main` before writes. If Local Agent / Local Chat Bridge is used, fetch fresh `agent-control:.agent/status/daemon.json` and use only the current chat's fresh immutable binding.
-
-Do not create a status document for every experiment. Keep durable decisions in authoritative docs and detailed evidence in Git / `.agent/results`.
+Fetch fresh `origin/main`. If Local Agent is used, fetch fresh `agent-control:.agent/status/daemon.json` and use only the current binding.
 
 ## Current priority
 
-Gate D `BOOK_APPOINTMENT` remains `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
+Build a **generic autonomous phone task engine**. Do not create service-specific authority architectures for Orange CLIR, clinics or other individual cases.
 
-Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup, model readiness, immutable acquisition source, streaming downloader and explicit download lifecycle are now **HOST_GREEN / PROVEN_S22**.
+Immediate next scope is ROADMAP `G1`: preimplementation audit of appointment-shaped `CallProposal` coupling in the commitment/Gate D path, followed by the narrowest generic external-effect commitment subject that preserves all existing `BOOK_APPOINTMENT` behavior.
 
-The full reviewed 2,588,147,712-byte network acquisition was physically executed on the S22 through the explicit two-step product UI. Staging grew during the transfer, `Gemma4ModelInstaller` atomically replaced the active model, the final SHA-256 exactly matched the pinned catalog identity, app-owned ownership/SELinux remained correct, staging was absent afterwards, UI readiness returned `READY`, and a synthetic no-call Gemma skill inference remained green.
+CLIR is the first acceptance case; clinic booking is the next broader case.
 
-There is no remaining model-acquisition proof gate. Choose the next roadmap scope explicitly; do not infer that a live call is next or authorized.
+Do not start by implementing `ClirCommitmentGate`, adding Orange phrase aliases, rewriting media, or changing the Gemma model lifecycle.
 
-Do not start a live call without fresh explicit target/task authorization.
+## Stable foundation
 
-## Dialogue architecture
+Keep these closed absent a concrete root cause:
+
+- Samsung cellular RX/TX and `CallMediaSessionCoordinator`: `PROVEN_S22 / FROZEN`;
+- `privileged-helper/` / Shizuku media boundary: `PROVEN_S22 / FROZEN`;
+- local STT/TTS foundation: proven;
+- IdentityVault encryption/disclosure boundary: proven;
+- existing `BOOK_APPOINTMENT` Gate D proposal/confirmation/commitment/completion path: `DONE / HOST_GREEN / PROVEN_S22 / MERGED`;
+- Gemma 4 direct runtime, app-owned import/download/readiness: `HOST_GREEN / PROVEN_S22`.
+
+Do not redownload Gemma merely to reprove it.
+
+## Target dialogue architecture
 
 ```text
 finalized STT
- -> PhraseMatrix + response temperature
- -> HOT/WARM: existing deterministic CallPlan/TaskGraph owner path
- -> unresolved/ambiguous/cold: bounded Gemma 4 dialogue skill classifier
- -> app-owned skill policy selects reviewed response
- -> local model failure / low confidence / TAKE_OVER: injected-response / ChatRelay fallback
+ -> PhraseMatrix / deterministic task state
+ -> HOT/WARM deterministic owner path
+ -> unresolved/ambiguous/cold: bounded Gemma 4 dialogue skills
+ -> app-owned reviewed response
+ -> Gemma error / low confidence / TAKE_OVER: supervisor/ChatRelay fallback
  -> application output approval
  -> TTS/TX
 ```
 
-`PhraseMatrix` bands remain `HOT / WARM / UNCERTAIN / COLD / AMBIGUOUS`. WARM may route only when one candidate wins the reviewed threshold/margin; ambiguity remains fail-closed.
+Gemma and supervisor output are proposal/dialogue data only.
 
-## Gemma 4
+## Generic external-effect authority
 
-Gemma 4 is the only target local model unless the user explicitly reopens Qwen.
+`CallTask` remains the task/constraints/preferences/authorized-scope owner.
 
-```text
-Gemma 4 E2B IT
-gemma-4-E2B-it.litertlm
-LiteRT-LM
-sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-```
-
-Do not revive the disproven Edge Gallery HTTP `127.0.0.1:8080` path. Runtime is direct in-process LiteRT-LM through `Gemma4LiteRtTextBackend` with an app-owned model file.
-
-Edge Gallery/ADB may be used only as development sources for bytes, never as production runtime authority or a required dependency.
-
-## Application-owned model lifecycle and readiness
-
-The reviewed import boundary is:
+Target commitment flow:
 
 ```text
-Android SAF source
- -> AndroidGemma4ModelImporter
- -> Gemma4ModelInstaller
- -> app-owned sibling staging file
- -> streaming pinned SHA-256
- -> flush + fsync
- -> atomic same-filesystem replacement
- -> active app-owned model path
+CallTask + exact target + constraints + authorized facts
+ -> typed ExternalEffect candidate
+ -> application validation
+ -> user-decision policy when needed
+ -> exact one-shot commitment permit
+ -> reviewed effect execution/speech
+ -> permit consumption evidence
+ -> external success evidence
+ -> factual completion
 ```
 
-Import/activation is fail-closed and `PROVEN_S22`. Ordinary readiness is deliberately cheap and uses the pinned catalog identity plus expected file metadata rather than hashing 2.6 GB every turn:
+Keep separate:
 
 ```text
-MISSING / INVALID / READY
+task authorization
+ != candidate validation
+ != permit issuance
+ != permit consumption
+ != external success
+ != task completion
 ```
 
-`LOCAL_GEMMA_4` product call preparation checks this readiness before STT/TTS and before backend construction. UI exposes the same semantic state. Full SHA-256 remains an import-time verification boundary. Developer diagnostic factories are not product readiness owners; merely constructing a Gemma backend still does not create a LiteRT engine.
+Do not create a second authority store. Generalize the existing owner path.
 
-## Reviewed model acquisition
+If the current-chat user instruction already exactly authorizes the eventual concrete effect and no material terms have changed, do not invent a redundant second confirmation. If new material terms are negotiated, application-owned policy decides whether a new user decision is required.
 
-The current reviewed candidate source is:
+## Authority invariants
 
-```text
-repository=litert-community/gemma-4-E2B-it-litert-lm
-revision=6e5c4f1e395deb959c494953478fa5cec4b8008f
-file=gemma-4-E2B-it.litertlm
-license=apache-2.0
-auth=none
-```
+The following cannot independently own dialing, target widening, task/effect widening, plaintext disclosure, commitment, factual completion or speech release:
 
-Never use mutable `main` as model identity. `Gemma4ModelAcquisitionCatalog` may identify a reviewed network source, but `Gemma4ModelInstaller` still owns expected bytes, SHA-256 verification, fsync/staging cleanup and atomic activation. `Gemma4ModelDownloader` must stream; do not buffer the model in memory. Redirects must remain HTTPS and on the reviewed Hugging Face/CDN host family.
+- Gemma / any model;
+- supervisor / ChatRelay;
+- TaskGraph / CallPlan / PhraseMatrix;
+- ServicePack;
+- parsers/matchers;
+- model storage/import/readiness;
+- synthetic ingress / diagnostics.
 
-The downloader is exposed only behind an explicit two-step product UI: the first button opens a source/license/size/revision confirmation and only the separate positive action starts transfer. Progress and cancellation are implemented; SAF import and network download share one operation gate. Retry intentionally restarts from byte 0.
+Application-owned `FactDisclosurePolicy` remains the plaintext disclosure owner. Application output approval remains final speech-release owner.
 
-The confirmation/cancel boundary and the full reviewed network acquisition are `PROVEN_S22`. Physical evidence includes streamed staging growth, atomic replacement to a new inode, exact final size `2588147712`, SHA-256 `181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c`, app-owned SELinux/UID, no remaining `.importing` file, UI `READY`, and a green post-download no-call Gemma inference.
+## Identity
 
-## Skills
-
-Dialogue Skills are bounded model output, not authority. Gemma may return only typed `skill/confidence/reason`; the application owns allowed skills and exact reviewed speech.
-
-Skills/model/model import never bypass `CallWorkflow`, `CallPlan`, output approval, `FactDisclosurePolicy`, `CallConfirmationPolicy`, `CallCommitmentGate` or factual completion ownership.
-
-## Product knowledge/data layers
-
-Keep these distinct:
-
-- `TaskGraph` = bounded task state/transitions/slots;
-- `ServicePack` = counterparty/service knowledge and evidence;
-- `IdentityVault` = encrypted durable personal values;
-- `DialogueState` = transient validated facts learned in the current call.
-
-ServicePack/model/matcher confidence never creates authority.
-
-Plaintext identity remains late-bound:
+Plaintext stays late-bound:
 
 ```text
 IdentityVault
@@ -131,90 +116,75 @@ IdentityVault
  -> resolve plaintext late
 ```
 
-## Authority invariants
+Do not put plaintext identity in TaskGraph definitions, ServicePacks, ordinary logs/evidence, Git or model/supervisor context by default.
 
-Keep existing owners; do not create a second authority store.
+## Model
 
-- `CallTask` owns task/constraints/preferences/authorized scope.
-- `CallResolvedTarget` is concrete but cannot widen a dial allowlist.
-- `CallWorkflow` owns proposal/user-decision state and terminal outcome.
-- `CallConfirmationPolicy` evaluates one typed proposal.
-- `CallCommitmentGate` owns one exact one-shot commitment permit.
-- `FactDisclosurePolicy` owns personal-data disclosure decisions.
-- application output approval owns final speech release.
+Only target local model unless explicitly reopened:
 
-Gemma, model import/storage, matchers, TaskGraph supervisors, ServicePacks, Skills, parsers and injected-response tooling do not independently own dialing, target widening, plaintext disclosure, user confirmation, commitment, completion or speech release.
+```text
+provider=LOCAL_GEMMA_4
+model=Gemma 4 E2B IT
+file=gemma-4-E2B-it.litertlm
+bytes=2588147712
+sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+runtime=LiteRT-LM
+```
 
-## Frozen boundaries
-
-- Samsung cellular RX/TX and `CallMediaSessionCoordinator`: `DONE / PROVEN_S22 / FROZEN`.
-- `privileged-helper/` and proven media path: do not modify without a separate media root cause.
-- Gate D proposal/confirmation/commitment/completion ownership: finished; reopen only for a proven regression.
-- IdentityVault Android encryption boundary: proven; do not bypass it.
-- Orange exact-phrase mappings are diagnostic fixtures, not a stable IVR API.
-- Interactive ChatRelay is developer/injected-response fallback infrastructure, not product runtime authority.
+Do not revive the disproven Edge Gallery HTTP runtime.
 
 ## Implementation discipline
 
-- Behavior changes use RED -> prove intended failure -> minimal GREEN -> regressions.
-- Establish root cause before fixing.
-- Prefer small cohesive modules over broad abstractions.
+- Behavior changes use RED -> minimal GREEN -> regression coverage.
+- Establish root cause before changing frozen boundaries.
+- Prefer one generic abstraction over service-specific parallel paths.
+- Preserve existing `BOOK_APPOINTMENT` semantics during commitment generalization.
 - Diagnostic probes are evidence drivers, not product runtime owners.
-- Resumed speech/newer generations must invalidate stale model/candidate output.
 - `HOST_GREEN` is never automatically `PROVEN_S22`.
-- Do not reprove or rewrite frozen cellular/media behavior for a model/storage-only change.
+- Prove generic effect authority synthetically/no-call before a live acceptance call.
 
 ## Autonomy-first developer tooling
 
-Developer automation is expected to run autonomously. Do not add repository-local confirmation prompts, policy gates, approval files, manual-click requirements, allowlists, artificial interlocks or other blockers whose only effect is to stop ordinary engineering work that the current task already authorizes.
+Developer automation should run autonomously. Do not add repository-local approval prompts, manual-click gates, approval files or artificial interlocks around ordinary coding/testing operations already authorized by the current task.
 
-The following are ordinary engineering operations and should remain directly automatable through Local Agent when technically available: source edits, builds, unit/instrumentation tests, Gradle tasks, ADB queries, APK install/reinstall, app launch/force-stop, log collection, device-state probes, model/readiness checks, local inference, synthetic media tests, emulator/simulator work, diagnostics, screenshots/dumps, benchmark runs and cleanup.
+Builds, tests, ADB queries, APK installation, app launch, logs, device probes, local inference, synthetic media tests and cleanup should remain directly automatable through Local Agent when technically available.
 
-Do not introduce a repository-local "safety" layer that shadows or duplicates platform/tool safety checks. If an upstream connector/platform refuses an operation, record that as an external execution limitation; do not encode the refusal into product code, Local Agent, scripts or `AGENTS.md` as a new permanent gate.
-
-Do not require a second confirmation for an operation after the user has already given fresh, explicit authorization for that exact external action in the current chat. Repository tooling should preserve the existing task/target scope and then execute it; it should not invent an additional approval ceremony.
-
-Safety/authority checks that protect actual product correctness remain valid when they are part of the product contract itself (for example exact target/task binding, commitment ownership, fact-disclosure policy, emergency-number rejection, or fail-closed handling of malformed state). They must not be repurposed as generic blockers for coding, testing or diagnostics.
+Do not copy an upstream connector/platform refusal into product code as a permanent restriction.
 
 ## Live-call policy
 
-A connected phone, old chat, handoff, ServicePack, previous allowlist or `.agent/results` never authorizes dialing.
+A connected phone, previous call, old chat, handoff, ServicePack, old allowlist or `.agent/results` never authorizes dialing.
 
-Every real call requires fresh explicit authorization in the current session for one concrete target/number and one concrete task. Once that exact authorization exists, repository-local tooling must not require an additional confirmation merely to execute the authorized call; keep execution bounded to the authorized target and task.
+Every real call requires fresh explicit authorization in the current chat for the concrete target/number and task.
 
-For test-only public business/reception calls, disclose AI/test purpose at the start and obtain consent; stop if declined. Genuine user-authorized tasks must stay within authorized facts and normal workflow/commitment/completion owners.
+After that exact authorization exists, repository tooling must not ask for a redundant second confirmation merely to start the same authorized action. Product authority rules still constrain what may happen inside the call.
 
-Do not use emergency, crisis, urgent-care, premium-rate or unrelated critical-service numbers for testing.
+No emergency, urgent-care, crisis, premium-rate or unrelated critical-service numbers for testing.
 
-## Local Agent / Local Chat Bridge
+## Local Agent
 
 `MichalMatu/local-agent` is an execution worker, not source of truth.
 
-- Work only in the exact bound repository.
-- Never infer another repository or copy an old `agent_binding`.
-- Every Local Agent task must contain the fresh current binding exactly.
-- Check fresh daemon/current-task evidence before queueing or writing the same worktree.
-- Do not aggressively poll healthy long tasks; require terminal evidence.
-- Use direct GitHub edits for exact reviewable diffs.
-- Use Local Agent for Gradle/Android/ADB/device/local commands.
-- Local Agent should execute authorized developer operations directly; do not add generic confirmation gates around ordinary engineering work.
-- `.agent/tasks` and `.agent/results` stay on `agent-control`.
-- Never launch local Codex from Local Agent.
+- use only the fresh binding from current daemon status;
+- work only in this repository;
+- `.agent/tasks` and `.agent/results` stay on `agent-control`;
+- durable product changes go to `main`;
+- use Local Agent for Gradle/Android/ADB/device/local commands;
+- do not launch local Codex from Local Agent.
 
 ## Branch policy
 
-Work directly on `main` unless temporary isolation is genuinely required. Preserve only branches with intentional unique work.
+Keep repository branches minimal. Normal steady state is `main` + `agent-control`. Temporary work/relay/docs branches must be deleted after their work is merged/preserved.
 
 ## Completion / handoff gate
 
-Before declaring a slice complete:
+Before closing a scope:
 
 1. run targeted tests;
-2. run `bash scripts/verify_host.sh` for code behavior;
-3. run only the physical gate required by the changed device/model/dialogue boundary;
-4. distinguish `HOST_GREEN` from `PROVEN_S22`;
-5. update authoritative docs when gate/continuation meaning changes;
-6. leave `main` clean;
-7. never carry live-call authorization into a new chat.
-
-For a new chat, refresh `docs/HANDOFF_NEXT_CHAT.md` and `docs/NEXT_CHAT_PROMPT.md` according to `docs/HANDOFF_PROTOCOL.md`.
+2. run `bash scripts/verify_host.sh` for behavior changes;
+3. run only the physical proof required by the changed boundary;
+4. update authoritative docs;
+5. leave `main` clean;
+6. remove temporary branches;
+7. refresh `docs/HANDOFF_NEXT_CHAT.md` and `docs/NEXT_CHAT_PROMPT.md`;
+8. never carry live-call authorization into the new chat.
