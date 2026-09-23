@@ -22,7 +22,7 @@ internal object LocalDialogueSkillBackendFactory {
             TextLlmProvider.LOCAL_PHONE_LLM ->
                 LocalPhoneLlmBackendFactory.create(context.applicationContext, systemPrompt)
 
-            TextLlmProvider.EDGE_GALLERY ->
+            TextLlmProvider.LOCAL_GEMMA_4 ->
                 Gemma4LiteRtTextBackendFactory.createSkillClassifier(
                     context = context.applicationContext,
                     systemInstruction = systemPrompt,
