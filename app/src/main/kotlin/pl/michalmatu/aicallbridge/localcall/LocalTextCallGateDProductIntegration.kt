@@ -90,13 +90,15 @@ internal fun interface GateDTaskGraphApplyResultListener {
  * deterministic interpreter returns no candidate. A deterministic rejection therefore fails closed
  * rather than falling through to a supervisor proposal. An optional deterministic follow-up may run
  * once only after the first deterministic apply is accepted. The optional commitment gate remains
- * inert until the explicit BOOK_APPOINTMENT authorization boundary is called.
+ * inert until the explicit BOOK_APPOINTMENT authorization boundary is called. CallPlan completion
+ * keeps historic workflow-owned behavior unless this reviewed binding explicitly opts into deferral.
  */
 internal class LocalTextCallGateDProductBinding(
     val deterministicInterpreter: GateDDeterministicCandidateInterpreter,
     val applyPolicy: TaskGraphApplyPolicy,
     val authorizedSlotIdsProvider: GateDAuthorizedSlotIdsProvider,
     val applyResultListener: GateDTaskGraphApplyResultListener,
+    val callPlanCompletionMode: CallPlanCompletionMode = CallPlanCompletionMode.APPLY_TO_WORKFLOW,
     val shadowObserver: ShadowDialogueObserver? = null,
     val shadowExecutor: GateDShadowExecutor? = null,
     val shadowDiagnosticsListener: GateDShadowDiagnosticsListener =
