@@ -7,7 +7,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.agent.CallPlan
 import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
+import pl.michalmatu.aicallbridge.agent.CallWorkflowSnapshot
 import pl.michalmatu.aicallbridge.agent.CallWorkflowState
+import pl.michalmatu.aicallbridge.identity.AuthorizedFactSnapshot
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphDefinition
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 internal enum class LocalTextCallReadinessState {
@@ -68,6 +71,11 @@ internal class ExecutorLocalTextCallTimeoutScheduler : LocalTextCallTimeoutSched
  * resolved target before speech/model work, then carried into the one-shot prepared session. An
  * optional PhraseMatrix may travel only with a CallPlan and contributes classification data only;
  * neither binding grants target, commitment, workflow, output or media authority.
+ *
+ * Gate D context is also binding-only here. A TaskGraph definition may be carried without identity
+ * facts, but an AuthorizedFactSnapshot may travel only with an explicit graph, the exact workflow
+ * task/target, and disclosure states declared by that graph. Readiness never resolves fact values
+ * and never executes TaskGraph transitions.
  */
 internal class LocalTextCallReadinessCoordinator(
     private val workflow: CallWorkflow,
@@ -78,6 +86,8 @@ internal class LocalTextCallReadinessCoordinator(
     private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
     private val callPlan: CallPlan? = null,
     private val phraseMatrix: PhraseMatrix? = null,
+    private val taskGraph: TaskGraphDefinition? = null,
+    private val authorizedFacts: AuthorizedFactSnapshot? = null,
 ) : AutoCloseable {
     interface Listener {
         fun onReady(prepared: PreparedLocalTextCall)
@@ -94,6 +104,7 @@ internal class LocalTextCallReadinessCoordinator(
     init {
         require(timeoutMs > 0L) { "timeout_ms_must_be_positive" }
         require(phraseMatrix == null || callPlan != null) { "phrase_matrix_requires_call_plan" }
+        require(authorizedFacts == null || taskGraph != null) { "authorized_facts_require_task_graph" }
     }
 
     fun snapshot(): LocalTextCallReadinessSnapshot = synchronized(lock) {
@@ -136,6 +147,11 @@ internal class LocalTextCallReadinessCoordinator(
                 fail("call_plan_target_mismatch", listener)
                 return
             }
+        }
+
+        gateDBindingFailure(workflowSnapshot, target)?.let { reason ->
+            fail(reason, listener)
+            return
         }
 
         try {
@@ -222,6 +238,8 @@ internal class LocalTextCallReadinessCoordinator(
                 backend = backend,
                 callPlan = callPlan,
                 phraseMatrix = phraseMatrix,
+                taskGraph = taskGraph,
+                authorizedFacts = authorizedFacts,
             )
             prepared = ready
             warmingBackend = null
@@ -233,6 +251,28 @@ internal class LocalTextCallReadinessCoordinator(
         closeQuietly(timeoutToClose)
         try { timeoutScheduler.close() } catch (_: Throwable) {}
         listener.onReady(ready)
+    }
+
+    private fun gateDBindingFailure(
+        workflowSnapshot: CallWorkflowSnapshot,
+        target: CallResolvedTarget,
+    ): String? {
+        val facts = authorizedFacts ?: return null
+        val graph = taskGraph ?: return "authorized_facts_task_graph_missing"
+        if (facts.task !== workflowSnapshot.task) {
+            return "authorized_facts_task_mismatch"
+        }
+        if (facts.target != target) {
+            return "authorized_facts_target_mismatch"
+        }
+        val allStatesDeclared = facts.allowedDisclosureStates.values
+            .asSequence()
+            .flatten()
+            .all { stateId -> runCatching { graph.state(stateId) }.isSuccess }
+        if (!allStatesDeclared) {
+            return "authorized_facts_state_not_in_task_graph"
+        }
+        return null
     }
 
     private fun fail(reason: String, listener: Listener) {
@@ -277,11 +317,26 @@ internal class PreparedLocalTextCall internal constructor(
     private val backend: TextCallAgentBackend,
     internal val callPlan: CallPlan? = null,
     internal val phraseMatrix: PhraseMatrix? = null,
+    internal val taskGraph: TaskGraphDefinition? = null,
+    internal val authorizedFacts: AuthorizedFactSnapshot? = null,
 ) : AutoCloseable {
     private val claimed = AtomicBoolean(false)
 
     init {
         require(phraseMatrix == null || callPlan != null) { "phrase_matrix_requires_call_plan" }
+        require(authorizedFacts == null || taskGraph != null) { "authorized_facts_require_task_graph" }
+        authorizedFacts?.let { facts ->
+            val workflowSnapshot = workflow.snapshot()
+            require(facts.task === workflowSnapshot.task) { "authorized_facts_task_mismatch" }
+            require(facts.target == workflowSnapshot.resolvedTarget) { "authorized_facts_target_mismatch" }
+            val graph = checkNotNull(taskGraph)
+            require(
+                facts.allowedDisclosureStates.values
+                    .asSequence()
+                    .flatten()
+                    .all { stateId -> runCatching { graph.state(stateId) }.isSuccess },
+            ) { "authorized_facts_state_not_in_task_graph" }
+        }
     }
 
     internal fun claimBackend(): TextCallAgentBackend {

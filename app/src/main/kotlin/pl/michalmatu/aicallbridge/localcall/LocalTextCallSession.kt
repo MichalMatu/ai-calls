@@ -1,9 +1,20 @@
 package pl.michalmatu.aicallbridge.localcall
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionListener
+import pl.michalmatu.aicallbridge.agent.CallOutcome
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
+import pl.michalmatu.aicallbridge.agent.CallWorkflow
+import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueHypothesis
+import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObservation
+import pl.michalmatu.aicallbridge.dialogue.ShadowDialogueObserver
+import pl.michalmatu.aicallbridge.dialogue.SupervisorProposalValidation
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFinalTurnRouteSelector
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphDefinition
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSlotId
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSlotValue
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphSnapshot
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
 
@@ -13,12 +24,25 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputApprovalPolicy
  * deterministic CallPlan turn coordinator carried by the prepared call.
  *
  * CallPlan routing remains structured only here: this class does not synthesize or transmit plan
- * output directly, authorize commitment, approve proposals, or fall back to a backend/model.
+ * output directly, approve proposals, execute external commitments, or fall back to a backend/model.
+ * Gate D activation remains explicit. The public Android create path binds neither a shadow
+ * observer nor product apply wiring; reviewed internal composition may opt into exactly one of
+ * those paths. The bounded BOOK_APPOINTMENT methods below only delegate to existing application
+ * owners and do not dial, speak, disclose identity or execute an external commitment. Factual
+ * completion remains explicit and is accepted only by the reviewed owner boundary after exact
+ * commitment-consumption and success-evidence checks.
  */
 internal class LocalTextCallSession private constructor(
+    private val workflow: CallWorkflow,
     private val pipeline: Pipeline,
     private val planTurnCoordinator: CallPlanTurnCoordinator?,
     phraseMatrix: PhraseMatrix?,
+    private val gateDRuntime: LocalTextCallGateDRuntime?,
+    gateDDefinition: TaskGraphDefinition?,
+    gateDSnapshot: TaskGraphSnapshot?,
+    gateDMaxRecoveryCount: Int,
+    gateDShadowDependencies: GateDShadowDependencies?,
+    gateDProductBinding: LocalTextCallGateDProductBinding?,
 ) : AutoCloseable {
     internal interface Pipeline : AutoCloseable {
         fun start(listener: LocalSpeechTextPipeline.Listener)
@@ -51,6 +75,12 @@ internal class LocalTextCallSession private constructor(
         fun onStructuredDecision(action: CallPlanAction, ruleId: String?)
     }
 
+    private data class GateDShadowDependencies(
+        val observer: ShadowDialogueObserver,
+        val executor: GateDShadowExecutor,
+        val diagnosticsListener: GateDShadowDiagnosticsListener,
+    )
+
     private val phraseMatrixTurnRouter: PhraseMatrixProductTurnRouter? =
         if (phraseMatrix != null) {
             PhraseMatrixProductTurnRouter(
@@ -61,17 +91,105 @@ internal class LocalTextCallSession private constructor(
             null
         }
 
+    private val gateDShadowLifecycle: LocalTextCallGateDShadowLifecycle? =
+        gateDShadowDependencies?.let { dependencies ->
+            LocalTextCallGateDShadowLifecycle(
+                runtime = checkNotNull(gateDRuntime) { "gate_d_shadow_requires_runtime" },
+                authoritativeSnapshot = checkNotNull(gateDSnapshot) {
+                    "gate_d_shadow_requires_snapshot"
+                },
+                maxRecoveryCount = gateDMaxRecoveryCount,
+                observer = dependencies.observer,
+                executor = dependencies.executor,
+                diagnosticsListener = dependencies.diagnosticsListener,
+            )
+        }
+
+    private val gateDProductIntegration: LocalTextCallGateDProductIntegration? =
+        gateDProductBinding?.let { binding ->
+            require(gateDShadowDependencies == null) {
+                "gate_d_shadow_and_product_integration_are_mutually_exclusive"
+            }
+            LocalTextCallGateDProductIntegration(
+                runtime = checkNotNull(gateDRuntime) { "gate_d_product_requires_runtime" },
+                definition = checkNotNull(gateDDefinition) { "gate_d_product_requires_definition" },
+                initialSnapshot = checkNotNull(gateDSnapshot) { "gate_d_product_requires_snapshot" },
+                maxRecoveryCount = gateDMaxRecoveryCount,
+                binding = binding,
+            )
+        }
+
     private val planFallbackLock = Any()
     private var consecutiveUnknownCount = 0
     private var previousValidatedRuleId: String? = null
+
+    private constructor(
+        prepared: PreparedLocalTextCall,
+        pipelineFactory: PipelineFactory,
+        gateDShadowDependencies: GateDShadowDependencies?,
+        gateDProductBinding: LocalTextCallGateDProductBinding?,
+    ) : this(
+        workflow = prepared.workflow,
+        pipeline = claimPipeline(prepared, pipelineFactory),
+        planTurnCoordinator = prepared.callPlan?.let { plan ->
+            CallPlanTurnCoordinator(
+                plan,
+                prepared.workflow,
+                gateDProductBinding?.callPlanCompletionMode
+                    ?: CallPlanCompletionMode.APPLY_TO_WORKFLOW,
+            )
+        },
+        phraseMatrix = prepared.phraseMatrix,
+        gateDRuntime = prepared.taskGraph?.let { graph ->
+            LocalTextCallGateDRuntime(
+                task = prepared.workflow.snapshot().task,
+                graph = graph,
+                authorizedFacts = prepared.authorizedFacts,
+            )
+        },
+        gateDDefinition = prepared.taskGraph,
+        gateDSnapshot = prepared.taskGraph?.initialSnapshot(),
+        gateDMaxRecoveryCount = prepared.taskGraph?.maxRecoveryCount ?: 0,
+        gateDShadowDependencies = gateDShadowDependencies,
+        gateDProductBinding = gateDProductBinding,
+    )
 
     internal constructor(
         prepared: PreparedLocalTextCall,
         pipelineFactory: PipelineFactory,
     ) : this(
-        pipeline = claimPipeline(prepared, pipelineFactory),
-        planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
-        phraseMatrix = prepared.phraseMatrix,
+        prepared = prepared,
+        pipelineFactory = pipelineFactory,
+        gateDShadowDependencies = null,
+        gateDProductBinding = null,
+    )
+
+    internal constructor(
+        prepared: PreparedLocalTextCall,
+        pipelineFactory: PipelineFactory,
+        gateDShadowObserver: ShadowDialogueObserver,
+        gateDShadowExecutor: GateDShadowExecutor,
+        gateDShadowDiagnosticsListener: GateDShadowDiagnosticsListener,
+    ) : this(
+        prepared = prepared,
+        pipelineFactory = pipelineFactory,
+        gateDShadowDependencies = GateDShadowDependencies(
+            observer = gateDShadowObserver,
+            executor = gateDShadowExecutor,
+            diagnosticsListener = gateDShadowDiagnosticsListener,
+        ),
+        gateDProductBinding = null,
+    )
+
+    internal constructor(
+        prepared: PreparedLocalTextCall,
+        pipelineFactory: PipelineFactory,
+        gateDProductBinding: LocalTextCallGateDProductBinding,
+    ) : this(
+        prepared = prepared,
+        pipelineFactory = pipelineFactory,
+        gateDShadowDependencies = null,
+        gateDProductBinding = gateDProductBinding,
     )
 
     fun start(listener: LocalSpeechTextPipeline.Listener) {
@@ -90,9 +208,7 @@ internal class LocalTextCallSession private constructor(
         pipeline.start(
             listener,
             LocalSpeechFinalTurnRouteSelector { finalTranscript ->
-                val selection = CallPlanFinalTurnRouteMapper.map(
-                    handlePlanFinalTranscript(finalTranscript),
-                )
+                val selection = processFinalizedTranscript(finalTranscript)
                 selection.structuredResult?.let(planTurnListener::onStructuredResult)
                 selection.route
             },
@@ -119,6 +235,97 @@ internal class LocalTextCallSession private constructor(
     ): Boolean = pipeline.writeInputPcm(bytes, offset, length)
 
     fun finishInput() = pipeline.finishInput()
+
+    /**
+     * Explicit test/diagnostic ingress for one already-finalized transcript. It uses the exact same
+     * PhraseMatrix/CallPlan + Gate D finalized-turn processing as an STT-finalized turn, while
+     * bypassing pipeline start, STT/audio input, backend generation and TTS/media output.
+     *
+     * Changing the source of finalized text adds no authority beyond the normal STT-finalized path.
+     * Any structured CallPlan/workflow behavior remains subject to the same existing owners and
+     * policies; this ingress creates no separate dialing, target-widening, disclosure, output,
+     * confirmation, commitment or completion path.
+     */
+    internal fun injectSyntheticFinalTranscript(finalTranscript: String): CallPlanFinalTurnSelection =
+        processFinalizedTranscript(finalTranscript)
+
+    /**
+     * Explicit application-owned BOOK_APPOINTMENT confirmation/rejection entry point.
+     *
+     * This is intentionally separate from counterparty finalized text and creates no commitment
+     * permit. The product integration re-checks the exact graph state and pending workflow proposal
+     * before the existing CallWorkflow owner consumes the user's decision.
+     */
+    internal fun applyBookAppointmentUserDecision(
+        decision: GateDBookAppointmentUserDecision,
+    ): GateDBookAppointmentUserDecisionResult {
+        val integration = gateDProductIntegration
+            ?: return GateDBookAppointmentUserDecisionResult.Rejected(
+                GateDBookAppointmentUserDecisionRejectReason.PRODUCT_INTEGRATION_NOT_BOUND,
+            )
+        return try {
+            integration.applyBookAppointmentUserDecision(workflow, decision)
+        } catch (_: Throwable) {
+            GateDBookAppointmentUserDecisionResult.Rejected(
+                GateDBookAppointmentUserDecisionRejectReason.INTERNAL_FAILURE,
+            )
+        }
+    }
+
+    /**
+     * Requests one opaque BOOK_APPOINTMENT commitment permit after explicit user confirmation.
+     * The permit is not consumed here and this method does not advance or complete the workflow.
+     */
+    internal fun authorizeBookAppointmentCommitment():
+        GateDBookAppointmentCommitmentAuthorizationResult {
+        val integration = gateDProductIntegration
+            ?: return GateDBookAppointmentCommitmentAuthorizationResult.Rejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.PRODUCT_INTEGRATION_NOT_BOUND,
+            )
+        return try {
+            integration.authorizeBookAppointmentCommitment()
+        } catch (_: Throwable) {
+            GateDBookAppointmentCommitmentAuthorizationResult.Rejected(
+                GateDBookAppointmentCommitmentAuthorizationRejectReason.INTERNAL_FAILURE,
+            )
+        }
+    }
+
+    /**
+     * Listener for the reviewed Realtime commitment handler. It records exact consumption evidence
+     * only after CallCommitmentGate.consume succeeds. A rejected record throws before the handler
+     * can return its authorization response, preserving fail-closed behavior.
+     */
+    internal fun bookAppointmentCommitmentConsumptionListener(): CallCommitmentConsumptionListener {
+        val integration = checkNotNull(gateDProductIntegration) {
+            "gate_d_product_integration_not_bound"
+        }
+        return CallCommitmentConsumptionListener { evidence ->
+            when (val result = integration.recordBookAppointmentCommitmentConsumption(evidence)) {
+                GateDBookAppointmentCommitmentConsumptionResult.Recorded -> Unit
+                is GateDBookAppointmentCommitmentConsumptionResult.Rejected ->
+                    error("book_appointment_commitment_consumption_rejected:${result.reason}")
+            }
+        }
+    }
+
+    /**
+     * Explicit factual-completion boundary for the reviewed BOOK_APPOINTMENT product path.
+     * A structured COMPLETE turn remains data until this owner call succeeds.
+     */
+    internal fun completeBookAppointment(outcome: CallOutcome): GateDBookAppointmentCompletionResult {
+        val integration = gateDProductIntegration
+            ?: return GateDBookAppointmentCompletionResult.Rejected(
+                GateDBookAppointmentCompletionRejectReason.PRODUCT_INTEGRATION_NOT_BOUND,
+            )
+        return try {
+            integration.completeBookAppointment(outcome)
+        } catch (_: Throwable) {
+            GateDBookAppointmentCompletionResult.Rejected(
+                GateDBookAppointmentCompletionRejectReason.INTERNAL_FAILURE,
+            )
+        }
+    }
 
     /**
      * Routes one already-final transcript through the optional PhraseMatrix fast path and then the
@@ -162,9 +369,107 @@ internal class LocalTextCallSession private constructor(
         return coordinator.handleFinalTranscript(finalTranscript, priorUnknownCount)
     }
 
-    fun cancel() = pipeline.cancel()
+    /**
+     * Builds bounded data for a quarantined shadow observer. The supplied snapshot and slot values
+     * must already come from the deterministic application-owned path; no reducer is called here.
+     */
+    fun createGateDShadowObservation(
+        snapshot: TaskGraphSnapshot,
+        finalizedTranscript: String,
+        validatedNonSecretSlots: Map<TaskGraphSlotId, TaskGraphSlotValue>,
+    ): ShadowDialogueObservation =
+        checkNotNull(gateDRuntime) { "gate_d_not_bound" }.createShadowObservation(
+            snapshot = snapshot,
+            finalizedTranscript = finalizedTranscript,
+            validatedNonSecretSlots = validatedNonSecretSlots,
+        )
 
-    override fun close() = pipeline.close()
+    /** Revalidates shadow output into candidate data only; it never applies the transition. */
+    fun validateGateDShadowProposal(
+        observation: ShadowDialogueObservation,
+        hypothesis: ShadowDialogueHypothesis,
+        allowedNonSecretSlots: Set<TaskGraphSlotId>,
+    ): SupervisorProposalValidation =
+        checkNotNull(gateDRuntime) { "gate_d_not_bound" }.validateShadowProposal(
+            observation = observation,
+            hypothesis = hypothesis,
+            allowedNonSecretSlots = allowedNonSecretSlots,
+        )
+
+    private fun processFinalizedTranscript(finalTranscript: String): CallPlanFinalTurnSelection {
+        val turnResult = handlePlanFinalTranscript(finalTranscript)
+        val selection = CallPlanFinalTurnRouteMapper.map(turnResult)
+        val deterministicAction = turnResult.decision().action()
+        val recoveryCount = currentRecoveryCount()
+        activateGateDProductIntegration(
+            finalTranscript = finalTranscript,
+            turnResult = turnResult,
+            recoveryCount = recoveryCount,
+        )
+        activateGateDShadow(
+            finalTranscript = finalTranscript,
+            deterministicAction = deterministicAction,
+            recoveryCount = recoveryCount,
+        )
+        return selection
+    }
+
+    private fun activateGateDProductIntegration(
+        finalTranscript: String,
+        turnResult: CallPlanTurnResult,
+        recoveryCount: Int,
+    ) {
+        try {
+            val decision = turnResult.decision()
+            gateDProductIntegration?.onFinalizedTurn(
+                finalizedTranscript = finalTranscript,
+                deterministicAction = decision.action(),
+                recoveryCount = recoveryCount,
+                deterministicProposal = decision.proposal(),
+                deterministicPolicyDecision = turnResult.policyDecision(),
+            )
+        } catch (_: Throwable) {
+            // Gate D application state must never alter the already-selected CallPlan route.
+        }
+    }
+
+    private fun activateGateDShadow(
+        finalTranscript: String,
+        deterministicAction: CallPlanAction,
+        recoveryCount: Int,
+    ) {
+        try {
+            gateDShadowLifecycle?.onFinalizedTurn(
+                finalizedTranscript = finalTranscript,
+                deterministicAction = deterministicAction,
+                recoveryCount = recoveryCount,
+            )
+        } catch (_: Throwable) {
+            // Shadow observation is diagnostic only and must never change deterministic routing.
+        }
+    }
+
+    private fun currentRecoveryCount(): Int = synchronized(planFallbackLock) {
+        consecutiveUnknownCount
+    }
+
+    fun cancel() {
+        gateDProductIntegration?.cancel()
+        gateDShadowLifecycle?.cancel()
+        pipeline.cancel()
+    }
+
+    override fun close() {
+        try {
+            gateDProductIntegration?.close()
+        } finally {
+            try {
+                gateDShadowLifecycle?.close()
+            } finally {
+                pipeline.close()
+            }
+        }
+    }
 
     companion object {
         fun create(

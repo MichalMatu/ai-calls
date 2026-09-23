@@ -16,10 +16,16 @@ import pl.michalmatu.aicallbridge.session.CallRealtimeFunctionResponder
  * The model receives only an opaque permit after `evaluate_proposal` succeeds. It cannot resubmit
  * price, time, provider, or other proposal fields here, so it cannot swap the evaluated proposal
  * between policy evaluation and the commitment step.
+ *
+ * A reviewed application composition may observe [CallCommitmentConsumptionEvidence] after the
+ * one-shot gate consume succeeds. That evidence reports authorization consumption only; it does not
+ * mean the external business action succeeded and it grants no completion authority.
  */
-class CallRealtimeCommitmentFunctionHandler(
+class CallRealtimeCommitmentFunctionHandler @JvmOverloads constructor(
     private val workflow: CallWorkflow,
     private val commitmentGate: CallCommitmentGate,
+    private val consumptionListener: CallCommitmentConsumptionListener =
+        CallCommitmentConsumptionListener { },
 ) : CallRealtimeFunctionCallHandler {
     override fun onFunctionCall(
         call: RealtimeFunctionCall,
@@ -31,7 +37,8 @@ class CallRealtimeCommitmentFunctionHandler(
         }
 
         val authorization = parseAuthorization(call.argumentsJson)
-        commitmentGate.consume(authorization).getOrThrow()
+        val consumedProposal = commitmentGate.consume(authorization).getOrThrow()
+        consumptionListener.onConsumed(CallCommitmentConsumptionEvidence(consumedProposal))
         responder.submit(AUTHORIZED_OUTPUT, RealtimeFunctionFollowup.NoTools).getOrThrow()
     }
 

@@ -3,9 +3,11 @@ package pl.michalmatu.aicallbridge.localcall
 import android.content.Context
 import pl.michalmatu.aicallbridge.agent.CallPlan
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
+import pl.michalmatu.aicallbridge.identity.AuthorizedFactSnapshot
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.OnDeviceSpeechInput
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphDefinition
 import pl.michalmatu.aicallbridge.textagent.EdgeGalleryTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LocalPhoneLlmBackendFactory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
@@ -168,6 +170,8 @@ internal object AndroidTextCallReadiness {
         provider: TextLlmProvider,
         callPlan: CallPlan? = null,
         phraseMatrix: PhraseMatrix? = null,
+        taskGraph: TaskGraphDefinition? = null,
+        authorizedFacts: AuthorizedFactSnapshot? = null,
     ): LocalTextCallReadinessCoordinator = LocalTextCallReadinessCoordinator(
         workflow = workflow,
         targetAuthorization = targetAuthorization,
@@ -177,6 +181,8 @@ internal object AndroidTextCallReadiness {
         },
         callPlan = callPlan,
         phraseMatrix = phraseMatrix,
+        taskGraph = taskGraph,
+        authorizedFacts = authorizedFacts,
     )
 }
 
@@ -187,6 +193,8 @@ internal object LocalPhoneTextCallReadiness {
         targetAuthorization: DialTargetAuthorization,
         callPlan: CallPlan? = null,
         phraseMatrix: PhraseMatrix? = null,
+        taskGraph: TaskGraphDefinition? = null,
+        authorizedFacts: AuthorizedFactSnapshot? = null,
     ): LocalTextCallReadinessCoordinator = AndroidTextCallReadiness.create(
         context = context,
         workflow = workflow,
@@ -194,5 +202,7 @@ internal object LocalPhoneTextCallReadiness {
         provider = TextLlmProvider.LOCAL_PHONE_LLM,
         callPlan = callPlan,
         phraseMatrix = phraseMatrix,
+        taskGraph = taskGraph,
+        authorizedFacts = authorizedFacts,
     )
 }

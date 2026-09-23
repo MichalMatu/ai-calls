@@ -17,21 +17,50 @@ import pl.michalmatu.aicallbridge.agent.CallWorkflowState;
  * into the deterministic CallPlan layer.
  *
  * <p>This class does not own dialing, media, speech output, commitment authorization, or model
- * behavior. It only delegates typed proposal/completion mutations to the existing CallWorkflow.
+ * behavior. It delegates typed proposal mutations to the existing CallWorkflow. COMPLETE keeps the
+ * historic workflow-owned mutation by default; an explicitly reviewed product composition may
+ * defer only that mutation so stronger application-owned success evidence can be required first.
  * SAY/ASK_REPEAT/TAKE_OVER remain structured decisions for a later session/output layer.</p>
  */
 final class CallPlanTurnCoordinator {
     private final CallPlan plan;
     private final CallWorkflow workflow;
+    private final CallPlanCompletionMode completionMode;
     private final CallPlanEngine engine;
     private final CallPlanHelperValidator helperValidator;
 
     CallPlanTurnCoordinator(CallPlan plan, CallWorkflow workflow) {
-        this(plan, workflow, new CallPlanEngine(), new CallPlanHelperValidator());
+        this(
+            plan,
+            workflow,
+            CallPlanCompletionMode.APPLY_TO_WORKFLOW,
+            new CallPlanEngine(),
+            new CallPlanHelperValidator()
+        );
+    }
+
+    CallPlanTurnCoordinator(
+        CallPlan plan,
+        CallWorkflow workflow,
+        CallPlanCompletionMode completionMode
+    ) {
+        this(
+            plan,
+            workflow,
+            completionMode,
+            new CallPlanEngine(),
+            new CallPlanHelperValidator()
+        );
     }
 
     CallPlanTurnCoordinator(CallPlan plan, CallWorkflow workflow, CallPlanEngine engine) {
-        this(plan, workflow, engine, new CallPlanHelperValidator());
+        this(
+            plan,
+            workflow,
+            CallPlanCompletionMode.APPLY_TO_WORKFLOW,
+            engine,
+            new CallPlanHelperValidator()
+        );
     }
 
     CallPlanTurnCoordinator(
@@ -40,8 +69,25 @@ final class CallPlanTurnCoordinator {
         CallPlanEngine engine,
         CallPlanHelperValidator helperValidator
     ) {
+        this(
+            plan,
+            workflow,
+            CallPlanCompletionMode.APPLY_TO_WORKFLOW,
+            engine,
+            helperValidator
+        );
+    }
+
+    private CallPlanTurnCoordinator(
+        CallPlan plan,
+        CallWorkflow workflow,
+        CallPlanCompletionMode completionMode,
+        CallPlanEngine engine,
+        CallPlanHelperValidator helperValidator
+    ) {
         this.plan = Objects.requireNonNull(plan, "plan");
         this.workflow = Objects.requireNonNull(workflow, "workflow");
+        this.completionMode = Objects.requireNonNull(completionMode, "completionMode");
         this.engine = Objects.requireNonNull(engine, "engine");
         this.helperValidator = Objects.requireNonNull(helperValidator, "helperValidator");
     }
@@ -84,7 +130,10 @@ final class CallPlanTurnCoordinator {
     }
 
     private CallPlanTurnResult routeCompletion(CallPlanDecision decision) {
-        workflow.complete(Objects.requireNonNull(decision.outcome(), "completion decision outcome"));
+        Objects.requireNonNull(decision.outcome(), "completion decision outcome");
+        if (completionMode == CallPlanCompletionMode.APPLY_TO_WORKFLOW) {
+            workflow.complete(decision.outcome());
+        }
         return new CallPlanTurnResult(decision, null);
     }
 

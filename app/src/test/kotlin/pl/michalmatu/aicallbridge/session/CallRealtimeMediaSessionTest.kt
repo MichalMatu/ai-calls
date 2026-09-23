@@ -48,10 +48,12 @@ class CallRealtimeMediaSessionTest {
         val order = CopyOnWriteArrayList<String>()
         val fixture = Fixture(order)
         fixture.transport.sendFailure = IOException("socket lost")
+        val terminal = CountDownLatch(1)
         val session = CallRealtimeMediaSession(
             fixture.coordinator,
             fixture.generation,
             fixture.transport,
+            onTerminalState = { terminal.countDown() },
         )
         session.start()
 
@@ -59,6 +61,7 @@ class CallRealtimeMediaSessionTest {
 
         assertTrue(fixture.endpoint.closed.await(1, TimeUnit.SECONDS))
         assertTrue(fixture.transport.closed.await(1, TimeUnit.SECONDS))
+        assertTrue(terminal.await(1, TimeUnit.SECONDS))
         assertEquals(CallRealtimeMediaSessionState.FAILED, session.snapshot().state)
         assertTrue(session.snapshot().failureReason!!.contains("socket lost"))
         assertEquals(CallMediaSessionState.IDLE, fixture.coordinator.snapshot().state())

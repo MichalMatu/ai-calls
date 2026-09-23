@@ -56,6 +56,14 @@ class CallCommitmentGate(
         }
     }
 
+    /** Revokes only the exact authorization supplied by its owner; a newer/foreign permit survives. */
+    fun revoke(authorization: CallCommitmentAuthorization): Boolean = synchronized(lock) {
+        val entry = current ?: return@synchronized false
+        if (entry.token != authorization.value) return@synchronized false
+        current = null
+        true
+    }
+
     fun hasAuthorization(): Boolean = synchronized(lock) { current != null }
 
     fun clear() {
