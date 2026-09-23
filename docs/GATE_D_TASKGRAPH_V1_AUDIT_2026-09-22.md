@@ -6,7 +6,7 @@ This document records the ownership analysis, engine decision and the implementa
 
 ## Repository checkpoint
 
-Repository: `MichalMatu/android-ai-call-bridge`
+Repository: `MichalMatu/ai-calls`
 
 Work branch: `gate-d-taskgraph-core`
 

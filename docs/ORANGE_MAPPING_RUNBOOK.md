@@ -6,7 +6,7 @@ Orange is the project's first persistent evidence-backed IVR ServicePack. Broad 
 
 ## Scope
 
-Repository: `MichalMatu/android-ai-call-bridge`.
+Repository: `MichalMatu/ai-calls`.
 
 Durable product branch: `main`.
 

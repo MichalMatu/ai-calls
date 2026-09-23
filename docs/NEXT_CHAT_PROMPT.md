@@ -1,6 +1,6 @@
 # Next-chat prompt — generic autonomous phone task authority
 
-Kontynuuj `MichalMatu/android-ai-call-bridge` z aktualnego `main`.
+Kontynuuj `MichalMatu/ai-calls` z aktualnego `main`.
 
 Najpierw pobierz świeży `origin/main`, świeży `agent-control:.agent/status/daemon.json` i użyj wyłącznie aktualnego Local Agent binding. Przeczytaj w tej kolejności:
 

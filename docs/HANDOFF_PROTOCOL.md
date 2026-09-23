@@ -1,6 +1,6 @@
 # Handoff protocol
 
-This document defines how a development session in `MichalMatu/android-ai-call-bridge` is closed and transferred to a new ChatGPT window/session.
+This document defines how a development session in `MichalMatu/ai-calls` is closed and transferred to a new ChatGPT window/session.
 
 The goal is that a new session can continue from repository state without depending on hidden chat history, stale Local Agent state, or remembered verbal instructions.
 
@@ -75,7 +75,7 @@ The handoff is a state snapshot, not the authority to invent a different plan.
 
 It should be short enough to review, but self-contained enough to bootstrap the work. It must:
 
-1. name the exact repository: `MichalMatu/android-ai-call-bridge`;
+1. name the exact repository: `MichalMatu/ai-calls`;
 2. tell the new session to read fresh repository sources before acting;
 3. tell it to fetch/use fresh `origin/main` rather than trusting an embedded historical SHA;
 4. state the active gate and first concrete objective;
@@ -97,8 +97,8 @@ When the Local Chat Bridge mode is used, the chat receives a binding envelope si
 
 ```text
 [LA_AGENT=...]
-[LA_REPO=android-ai-call-bridge]
-[LA_REPOSITORY=MichalMatu/android-ai-call-bridge]
+[LA_REPO=ai-calls]
+[LA_REPOSITORY=MichalMatu/ai-calls]
 [LA_CHAT=...]
 ```
 

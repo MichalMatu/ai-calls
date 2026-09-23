@@ -197,7 +197,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 48, 32, 32)
             addView(TextView(this@MainActivity).apply {
-                text = "Android AI Call Bridge"
+                text = "AI Calls"
                 textSize = 24f
             })
             addView(TextView(this@MainActivity).apply { text = "Audio mode" })

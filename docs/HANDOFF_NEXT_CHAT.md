@@ -4,7 +4,7 @@ Date: 2026-09-24
 
 ## Repository
 
-`MichalMatu/android-ai-call-bridge`
+`MichalMatu/ai-calls`
 
 Durable code/docs live on `main`; `agent-control` is Local Agent task/result transport only. Handoff cleanup is complete and the remote branch set is:
 

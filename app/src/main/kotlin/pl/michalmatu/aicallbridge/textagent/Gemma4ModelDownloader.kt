@@ -202,7 +202,7 @@ internal class OkHttpGemma4ModelDownloadTransport(
             return Request.Builder()
                 .url(source.downloadUrl)
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "android-ai-call-bridge/0.2")
+                .header("User-Agent", "ai-calls/0.2")
                 .get()
                 .build()
         }

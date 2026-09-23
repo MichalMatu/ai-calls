@@ -1,4 +1,4 @@
-# Android AI Call Bridge
+# AI Calls
 
 Android prototype for completing bounded real-world tasks over ordinary cellular calls on a stock Samsung Galaxy S22+ (`SM-S906B`).
 
