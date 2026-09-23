@@ -1,4 +1,4 @@
-# Next-chat prompt — Gate D merged and PROVEN_S22; live acceptance gate next
+# Next-chat prompt — Gate D done; Orange live acceptance paused for dialogue-architecture review
 
 Kontynuuj repozytorium `MichalMatu/android-ai-call-bridge` z aktualnego `main`.
 
@@ -9,83 +9,70 @@ Przeczytaj kolejno:
 1. `AGENTS.md`
 2. `README.md`
 3. `docs/HANDOFF_NEXT_CHAT.md`
-4. `docs/ROADMAP.md`
-5. `docs/ARCHITECTURE.md`
-6. `docs/SECURITY_PRIVACY.md`
-7. `docs/HANDOFF_PROTOCOL.md`
-8. `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
+4. `docs/ORANGE_LIVE_ACCEPTANCE_2026-09-23.md`
+5. `docs/ROADMAP.md`
+6. `docs/ARCHITECTURE.md`
+7. `docs/SECURITY_PRIVACY.md`
+8. `docs/HANDOFF_PROTOCOL.md`
+9. `docs/PHASE2D_FREEZE_2026-09-18.md` przed jakąkolwiek zmianą media
 
 ## Stan wejściowy
 
 Gate D `BOOK_APPOINTMENT` jest `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-PR #5 został squash-merged do `main` jako:
+Finalny owner chain i authority invariants są zakończone i nie należy ich ponownie implementować bez konkretnego nowego błędu.
+
+Fizyczny tor Samsung S22+ (`SM-S906B`, Android 16) ma dowody dla call control, downlink capture, STT i reviewed TTS injection.
+
+Orange live acceptance osiągnął następujący checkpoint:
 
 ```text
-46bcfc9e13bed747e13429c50f54c7b4d3e47f69
+MEDIA / STT / TTS PATH: PROVEN_S22
+REVIEWED SINGLE-TURN ORANGE RESPONSE: PROVEN_S22
+ORANGE IVR AUTOMATION: EXPERIMENTAL / BRITTLE / PAUSED
+CLIR ACTIVATION: NOT COMPLETED
 ```
 
-`gate-d-taskgraph-core` został usunięty; trwałe branche to `main` i `agent-control`.
-
-Finalny owner chain:
-
-```text
-proposal -> user CONFIRM -> exact one-shot permit
- -> exact permit consumed evidence
- -> structured COMPLETE deferred
- -> exact SUCCESS evidence
- -> CallWorkflow.complete(outcome)
- -> TaskGraph COMPLETE committed only after workflow owner succeeds
-```
-
-Twardy invariant:
-
-```text
-permit issued != permit consumed != business success confirmed
-```
-
-Generic deterministic/shadow `commit-complete` candidate nie ma factual completion authority. Public/default CallPlan COMPLETE zachowuje dotychczasowe zachowanie; deferral jest tylko explicit reviewed opt-in.
-
-## Fizyczny proof
-
-Na Samsung S22+ (`SM-S906B`, Android 16), bez wykonywania połączenia komórkowego, przeszły:
-
-```text
-chatgpt-gated-s22-final-owner-proofs-v049-20260923
-DEFERRED_COMPLETION_BINDING_S22_PROVEN=true
-BOOK_APPOINTMENT_COMPLETION_S22_PROVEN=true
-FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
-
-chatgpt-gated-s22-commitment-regression-v050-20260923
-BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
-```
-
-Wcześniejsze proofy IdentityVault, synthetic product ingress i permit issuance również pozostają `PROVEN_S22`.
+W realnym połączeniu system poprawnie wypowiedział reviewed prośbę o włączenie CLIR, a Orange odpowiedział pytaniem, czy sprawa dotyczy numeru, z którego wykonywane jest połączenie. Na tym eksperyment został celowo zatrzymany.
 
 ## Pierwszy krok
 
-Nie implementuj kolejnego Gate D feature slice bez konkretnego nowego problemu.
+**Nie wykonuj kolejnego live calla i nie dodawaj kolejnych exact-phrase Orange actions na starcie nowego okna.**
 
-Jeśli użytkownik chce przejść do live acceptance call, przed dialowaniem wymagaj świeżej jawnej autoryzacji **jednego konkretnego targetu/numeru i jednego konkretnego zadania** w bieżącej sesji.
+Najpierw przedyskutuj z użytkownikiem dalszą architekturę dialogu.
 
-Dla test-only public business/reception call:
-- ujawnij na początku, że to krótki test AI;
-- poproś o zgodę;
-- brak zgody -> zakończ;
-- nie twórz realnej rezerwacji ani innego zobowiązania.
+Preferowany kierunek do oceny:
 
-Dla genuine user-authorized booking:
-- wolno dążyć do realnego wyniku tylko w granicach `CallTask`;
-- używaj wyłącznie autoryzowanych faktów;
-- zachowaj `FactDisclosurePolicy`, proposal/user-confirmation/commitment/completion owners.
+```text
+observed utterance
+ -> semantic interpretation into a small typed intent/event set
+ -> app-owned dialogue state + expected-slot validation
+ -> bounded candidate response
+ -> authority/policy re-check
+ -> reviewed/generated speech
+ -> observe next turn
+```
 
-## Invariants
+Tematy do decyzji przed implementacją:
 
-- deterministic rejection nie fallbackuje do shadow;
-- public `LocalTextCallSession.create(...)` nie aktywuje automatycznie reviewed product bindingu;
-- brak generic effect/completion executora;
-- model/parser/shadow/storage/reducer/synthetic ingress nie posiadają dial/target widening/plaintext disclosure/speech/TTS/user-confirmation/commitment/completion authority;
-- plaintext IdentityVault dopiero po `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval -> ALLOW`;
-- `privileged-helper/`, Samsung media path i `CallMediaSessionCoordinator` pozostają frozen bez osobnego root-cause.
+- generic dialogue reducer vs dalsze operator-specific skrypty;
+- semantic intent classifier + confidence/ambiguity handling;
+- deterministic-first + bounded model candidate/shadow;
+- operator adapters tylko dla stabilnych faktów/DTMF/USSD/API;
+- preflight readiness dla `RECORD_AUDIO`, Shizuku, ADB/device i media;
+- replayable redacted conversation fixtures;
+- human takeover dla identyfikacji, sekretów i niespodziewanych turnów.
 
-Pracuj autonomicznie w tym zakresie i nie powtarzaj zakończonych audytów ani slice'ów.
+## Czego nie robić
+
+- nie rozbudowuj Orange o kolejne exact phrase aliases jako główną strategię;
+- nie używaj transient Git relay jako product runtime transport;
+- nie dawaj modelowi/parserowi/shadow/storage/reducerowi dial/target widening/plaintext disclosure/user-confirmation/commitment/completion authority;
+- nie otwieraj Samsung media path ani `privileged-helper/` bez konkretnego root cause;
+- nie traktuj istniejących Orange fixture jako stabilnego API infolinii.
+
+## Jeśli później wróci live call
+
+Każde realne połączenie nadal wymaga świeżej jawnej autoryzacji konkretnego targetu/numeru i konkretnego zadania w bieżącej sesji.
+
+Pracuj autonomicznie dopiero po ustaleniu nowego kierunku architektonicznego.
