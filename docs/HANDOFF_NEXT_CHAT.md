@@ -1,4 +1,4 @@
-# Handoff — Gate D merged and physically proven; live acceptance gate next
+# Handoff — Gate D merged and physically proven; Orange live acceptance paused for architecture review
 
 Date: 2026-09-23
 
@@ -98,22 +98,67 @@ Earlier physical proofs remain valid for Android IdentityVault, synthetic review
 
 The failed v048 attempt was only a runner matcher typo (`SM-S906B` vs ADB's `SM_S906B`) and stopped before Gradle; v049 corrected it and passed both focused tests.
 
+## Orange live acceptance checkpoint
+
+The first real Orange acceptance work proved the physical speech path, but it also exposed that the current operator-specific Gate C phrase mapping is too brittle to keep extending as a production strategy.
+
+Current status:
+
+```text
+MEDIA / STT / TTS PATH: PROVEN_S22
+REVIEWED SINGLE-TURN ORANGE RESPONSE: PROVEN_S22
+ORANGE IVR AUTOMATION: EXPERIMENTAL / BRITTLE / PAUSED
+CLIR ACTIVATION: NOT COMPLETED
+```
+
+A reviewed CLIR request was spoken successfully in a real call:
+
+```text
+Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.
+```
+
+Orange responded with the semantic follow-up:
+
+```text
+Czy sprawa dotyczy numeru, z którego dzwonisz?
+```
+
+The call was then stopped after observation. No account setting was changed.
+
+Important lessons:
+
+- Orange prerolls and prompt wording vary; exact transcript strings are diagnostic fixtures, not a robust runtime contract;
+- adding one special-case reviewed action per follow-up does not scale;
+- reinstalling the APK resets runtime environment state such as `RECORD_AUDIO`, and Shizuku has its own authorization state;
+- the physical media/STT/TTS path should stay frozen rather than being blamed for IVR wording drift;
+- transient Git relay branches are developer tooling only, not a product conversation transport.
+
+The detailed checkpoint and recommended architecture directions are in:
+
+```text
+docs/ORANGE_LIVE_ACCEPTANCE_2026-09-23.md
+```
+
+Do not continue adding Orange phrase variants before an architecture decision.
+
 ## Exact continuation order
 
-There is no unfinished Gate D implementation slice.
+There is no unfinished Gate D implementation slice and no active Orange live-call task to continue.
 
 1. Start from fresh `origin/main` and a fresh/current Local Chat Bridge binding.
-2. Read `AGENTS.md`, `README.md`, this handoff, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md` and `docs/HANDOFF_PROTOCOL.md`; read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
-3. Do not reopen Gate D internals unless a concrete acceptance-flow failure exposes a root cause.
-4. If the requested next step is a live acceptance call, require fresh explicit authorization for one concrete target/number and one concrete task before any dialing action.
-5. For a test-only public business/reception call, disclose the AI/test purpose at the start and ask consent. If consent is declined, stop without creating a real commitment.
-6. For a genuine user-authorized booking, use only authorized facts and the existing proposal/user-confirmation/commitment/completion owners.
+2. Read `AGENTS.md`, `README.md`, this handoff, `docs/ORANGE_LIVE_ACCEPTANCE_2026-09-23.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md` and `docs/HANDOFF_PROTOCOL.md`; read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
+3. Discuss the next dialogue architecture before implementing more operator-specific IVR logic.
+4. Prefer an operator-agnostic typed dialogue-state layer plus semantic interpretation/confidence handling over exact phrase growth.
+5. Preserve existing app-owned dial/disclosure/confirmation/commitment/completion authority.
+6. If a future live call is requested, require fresh explicit authorization for one concrete target/number and one concrete task before dialing.
 
 ## Frozen / do-not-repeat work
 
 Do not redo completed Gate D slices: TaskGraph core/apply bridge, AppointmentInterpreter, DialogueFit/hysteresis, shadow lifecycle/supervisor validation, IdentityVault, synthetic ingress, proposal owner reuse, explicit user decision, commitment authorization/hardening, consumption evidence, deferred completion or factual completion ordering.
 
 Do not reopen Samsung media or `privileged-helper/` without a separate root-cause scope.
+
+Do not keep extending Orange Gate C with one exact phrase/action for each IVR follow-up. Treat the existing Orange mappings as diagnostic fixtures until the dialogue architecture is redesigned.
 
 Identity plaintext remains late-bound through `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval`.
 
