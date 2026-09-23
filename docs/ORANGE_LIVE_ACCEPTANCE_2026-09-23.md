@@ -117,11 +117,19 @@ Discuss these before writing more production code:
 
 ## Repository checkpoint
 
-At this pause point:
+The product-code checkpoint immediately before documentation closure is:
 
 ```text
-main = 9658a55981c4aed5ebc0b2445e65dc52ab7e064d
-remote branches = main, agent-control
+9658a55981c4aed5ebc0b2445e65dc52ab7e064d
+```
+
+Documentation-only commits follow this code checkpoint. Fetch fresh `origin/main` rather than relying on a hard-coded documentation HEAD.
+
+Expected durable remote branches remain:
+
+```text
+main
+agent-control
 ```
 
 The reviewed Orange CLIR root action remains in `main` as diagnostic evidence. No bounded own-line follow-up action was merged; the attempted v090 task was rejected before execution because its task JSON was invalid.
