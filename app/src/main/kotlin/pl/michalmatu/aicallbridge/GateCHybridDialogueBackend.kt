@@ -71,7 +71,7 @@ internal object GateCHybridDialogueBackendFactory {
         diagnostics: GateCHybridDiagnostics,
     ): TextCallAgentBackend {
         require(
-            provider == TextLlmProvider.LOCAL_PHONE_LLM || provider == TextLlmProvider.EDGE_GALLERY,
+            provider == TextLlmProvider.LOCAL_PHONE_LLM || provider == TextLlmProvider.LOCAL_GEMMA_4,
         ) { "gate_c_hybrid_requires_phone_local_model" }
         ChatRelayEnvelope(relaySessionId, 1, "probe").validate()
 
