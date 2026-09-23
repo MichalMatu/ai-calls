@@ -1,4 +1,4 @@
-# Handoff — Gemma 4 no-call PROVEN_S22; hybrid dialogue HOST_GREEN
+# Handoff — Gemma model lifecycle HOST_GREEN; physical S22 import gate next
 
 Date: 2026-09-23
 
@@ -8,113 +8,58 @@ Repository: `MichalMatu/android-ai-call-bridge`
 
 Durable branch: `main`
 
-Always fetch fresh `origin/main` before acting. Do not rely on a handoff SHA as the current tip.
+Always fetch fresh `origin/main` before acting. Never treat a handoff SHA or old Local Agent binding as current.
 
-Expected durable remote branches remain:
+Expected durable remote branches after close-out:
 
 ```text
 main
 agent-control
 ```
 
-A new chat must read fresh `.agent/status/daemon.json` and use only that chat's current immutable Local Chat Bridge binding. Never copy an old `agent_binding` from task history or documentation.
+A new chat must read fresh `.agent/status/daemon.json` and use only that chat's current immutable Local Chat Bridge binding.
 
 ## Stable foundation — do not redo
 
 Gate D `BOOK_APPOINTMENT` remains `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-The Samsung S22+ cellular/media path remains `PROVEN_S22 / FROZEN`:
+Samsung S22+ cellular/media, local STT/TTS and Gate D authority remain `PROVEN_S22 / FROZEN`. Do not reopen `privileged-helper/`, `CallMediaSessionCoordinator`, IdentityVault, commitment/completion ordering or Orange exact-phrase scripting without a concrete root cause.
 
-- call control;
-- downlink capture;
-- local STT;
-- reviewed TTS/uplink;
-- Shizuku privileged media path;
-- Gate D proposal/user-confirmation/commitment/completion authority.
-
-Do not reopen `privileged-helper/`, `CallMediaSessionCoordinator`, Gate D authority owners, IdentityVault, commitment ordering or completion ordering unless a new concrete root cause points there.
-
-## Active dialogue architecture
+## Dialogue architecture
 
 ```text
-finalized STT turn
- -> PhraseMatrix
- -> response temperature
+finalized STT
+ -> PhraseMatrix + response temperature
  -> HOT/WARM: deterministic existing owner path
  -> unresolved/ambiguous/cold: local Gemma 4 bounded skill classifier
- -> app-owned skill policy selects exact reviewed response
- -> local model error / low confidence / TAKE_OVER:
-      injected-response / ChatRelay fallback
+ -> app-owned exact reviewed response
+ -> model error / low confidence / TAKE_OVER: injected-response / ChatRelay fallback
  -> application output approval
  -> TTS
 ```
 
-`PhraseMatrix` has bounded bands:
+PhraseMatrix bands remain `HOT / WARM / UNCERTAIN / COLD / AMBIGUOUS`; ambiguity fails closed. Gemma returns only `skill/confidence/reason` and gains no dial, disclosure, confirmation, commitment, completion or speech-release authority.
+
+ChatRelay remains developer/injected-response fallback infrastructure, not product runtime transport.
+
+## Gemma 4 decision
+
+Current target only:
 
 ```text
-HOT / WARM / UNCERTAIN / COLD / AMBIGUOUS
+Gemma 4 E2B IT
+gemma-4-E2B-it.litertlm
+LiteRT-LM
+sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
 ```
 
-WARM may route deterministically only when one candidate wins the reviewed threshold/margin. Ambiguity remains fail-closed.
+Do not compare/tune Qwen unless explicitly reopened.
 
-The model returns only bounded `skill + confidence + reason`. It does not gain dial, target widening, plaintext disclosure, confirmation, commitment, completion or direct speech-release authority.
+The old Edge Gallery HTTP `127.0.0.1:8080` path was physically disproven and must not be revived. Runtime is direct in-process LiteRT-LM through `Gemma4LiteRtTextBackend`.
 
-## Model decision
+## What is already physically proven
 
-For this stage use **Gemma 4 E2B IT only**.
-
-```text
-model: Gemma 4 E2B IT
-file: gemma-4-E2B-it.litertlm
-runtime: LiteRT-LM
-```
-
-Do not compare/tune Qwen unless the user explicitly reopens that scope.
-
-The old `EdgeGalleryTextBackend` assumption that Edge Gallery exposes an OpenAI-compatible server on `127.0.0.1:8080` was physically disproven and must not be revived.
-
-Current runtime direction is direct in-process LiteRT-LM through:
-
-```text
-app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Gemma4LiteRtTextBackend.kt
-```
-
-with:
-
-```text
-com.google.ai.edge.litertlm:litertlm-android:0.17.1
-```
-
-## Gemma no-call gate — now PROVEN_S22
-
-The model already downloaded by Edge Gallery was used only as a development source. Proven source path includes:
-
-```text
-/sdcard/Android/data/com.google.ai.edge.gallery/files/Gemma_4_E2B_it/6e5c4f1e395deb959c494953478fa5cec4b8008f/gemma-4-E2B-it.litertlm
-```
-
-The app-owned runtime target is:
-
-```text
-<pl.michalmatu.aicallbridge external files>/models/gemma-4-E2B-it.litertlm
-```
-
-Verified source/app-owned SHA-256:
-
-```text
-181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-```
-
-Important root cause discovered during provisioning:
-
-- `adb shell cp` produced a destination that the app/LiteRT could not open (`PERMISSION_DENIED`);
-- JNI/native LiteRT loading itself was working;
-- writing the model through `run-as pl.michalmatu.aicallbridge` produced app-owned readable ownership/SELinux labeling;
-- after that, `Engine.create()` and physical inference succeeded.
-
-Therefore the failed intermediate run was a **model-file ownership/SELinux** problem, not GPU/CPU fallback, native runtime, model format, JSON `ResponseFormat`, parser, memory or timeout.
-
-Physical no-call S22 evidence:
+The earlier app-readable development provision is **PROVEN_S22** for no-call direct Gemma inference. Physical output:
 
 ```text
 skill=ACKNOWLEDGE_NEUTRAL
@@ -122,79 +67,109 @@ confidence=0.95
 reason=Potwierdzenie odbioru telefonu
 ```
 
-The instrumentation test completed `OK (1 test)`. LiteRT-LM loaded the GPU delegate. No telephony, microphone, STT, TTS or call media session was started.
+LiteRT JNI/native runtime and GPU delegate worked. No telephony/media session was started.
 
-Relevant Local Agent evidence on `agent-control`:
+A previous provisioning failure was isolated to destination ownership/SELinux: plain `adb shell cp` caused `PERMISSION_DENIED`; writing destination through the application UID made the model readable. That finding motivated the app-process-owned importer.
 
-```text
-.agent/results/chatgpt-gemma4-s22-appowned-v121-20260923.json
-.agent/results/chatgpt-gemma4-hybrid-proof-v122-20260923.json
-```
+## New application-owned lifecycle — HOST_GREEN / PENDING_PHYSICAL
 
-## Synthetic hybrid gate — HOST_GREEN
-
-The reviewed hybrid composition now has direct host contract coverage for telemetry and fallback source:
+New code:
 
 ```text
-ASK_REPEAT confidence=0.93 reason=fragmented_input -> source=LOCAL_SKILL
-ASK_CLARIFY confidence=0.41 reason=ambiguous -> source=CHAT_RELAY
-classifier error=engine_unavailable -> source=CHAT_RELAY
+app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Gemma4ModelInstaller.kt
+app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/AndroidGemma4ModelImporter.kt
+app/src/main/kotlin/pl/michalmatu/aicallbridge/MainActivity.kt
+app/src/test/kotlin/pl/michalmatu/aicallbridge/textagent/Gemma4ModelInstallerTest.kt
 ```
 
-Existing PhraseMatrix tests cover WARM deterministic routing and ambiguous/unresolved fail-closed routing. `DialogueSkillTextBackend` still owns bounded parsing/policy behavior, while the application owns exact speech.
+Flow:
 
-`GateCHybridDiagnostics` records the model decision, local-skill error and final response source. ChatRelay remains developer/injected-response fallback infrastructure, not product runtime transport authority.
+```text
+Android SAF source URI
+ -> app process opens stream
+ -> app-owned .importing sibling
+ -> streaming SHA-256 against pinned Gemma identity
+ -> flush + fsync
+ -> atomic same-filesystem replacement request
+ -> <app external files>/models/gemma-4-E2B-it.litertlm
+ -> existing direct LiteRT runtime
+```
 
-## Code changes in this slice
+Properties:
 
-- physical no-call Android test now emits terminal `skill/confidence/reason` evidence;
-- Gate C hybrid composition has a small internal seam so the real failover/telemetry wiring is host-testable without changing runtime policy;
-- `GateCHybridDialogueBackendTest` verifies local success, low-confidence fallback and classifier-error fallback.
+- source is user-selected/readable; product has no dependency on Edge Gallery storage;
+- exact expected model identity/hash is pinned in `Gemma4ModelCatalog`;
+- wrong/empty/unreadable input fails before activation;
+- failed write/hash/activation removes staging bytes;
+- previous active model survives failed verification/activation;
+- no silent non-atomic fallback exists;
+- existing UI exposes `Import Gemma 4 model` via Android SAF;
+- installer is source-agnostic so a future reviewed downloader can reuse the same activation boundary without changing runtime authority.
 
-No Samsung media, `privileged-helper/`, Gate D authority, IdentityVault or Orange exact-phrase aliases were changed.
+No model downloader URL was invented or hard-coded in this slice.
 
-## Verification completed
+## RED -> GREEN evidence
 
-On fresh current code before merge:
+RED was recorded at the host/build layer before implementation:
 
-1. targeted PhraseMatrix/dialogue/Gemma/hybrid host tests — GREEN;
-2. `bash scripts/verify_host.sh` — GREEN;
-3. Android debug + AndroidTest compile/package with LiteRT-LM — GREEN;
-4. app-owned model hash/ownership verification — GREEN;
-5. physical S22 no-call Gemma inference — `PROVEN_S22`;
-6. terminal bounded decision proof — GREEN;
-7. synthetic hybrid fallback + telemetry source proof — `HOST_GREEN`.
+```text
+.agent/results/chatgpt-gemma4-model-lifecycle-red-v126-20260923.json
+GEMMA4_MODEL_LIFECYCLE_RED=true
+```
 
-No live call was made.
+Installer GREEN:
 
-## Next product engineering gap
+```text
+.agent/results/chatgpt-gemma4-model-installer-green-v127-20260923.json
+GEMMA4_MODEL_INSTALLER_GREEN=true
+```
 
-Production must not depend on Edge Gallery storage or ADB provisioning.
+Exact current-code behavior gate before documentation-only commits:
 
-The next generic product task is to design/implement an explicit **application-owned model lifecycle**:
+```text
+code HEAD: 68812a3c577c4488b4152b9f3fe55c8feb9162b8
+.agent/results/chatgpt-gemma4-model-lifecycle-host-v129-20260923.json
+GEMMA4_MODEL_LIFECYCLE_CURRENT_HEAD_GREEN=true
+```
 
-- import or download `gemma-4-E2B-it.litertlm` into app-owned storage;
-- verify integrity/version/expected identity before activation;
-- keep Edge Gallery completely optional and development-only;
-- rerun the physical no-call Gemma gate after provisioning changes.
+Final verified checkpoint including authoritative documentation at that point:
 
-Do not invent a production dependency on another app's sandbox.
+```text
+checkpoint: 5a6b49b9aab1cbaf12dc9be624ec4659e7af82f5
+.agent/results/chatgpt-gemma4-model-lifecycle-final-v130-20260923.json
+GEMMA4_MODEL_LIFECYCLE_FINAL_HOST_GREEN=true
+```
 
-A bounded live acceptance call is technically eligible for consideration only after the no-call/hybrid gates above, but it remains a separate authorization event.
+Verification included installer/Gemma/dialogue/hybrid tests, full `bash scripts/verify_host.sh`, debug APK, AndroidTest APK and clean diff/worktree checks. Commits after that checkpoint are documentation-only handoff metadata.
 
-## Frozen / safety boundaries
+The implementation is therefore **HOST_GREEN**, not yet `PROVEN_S22`.
 
-- Samsung media/`privileged-helper/` remains frozen.
-- Gate D authority remains frozen unless a real regression is proven.
-- Gemma/skills cannot directly dial, disclose secrets, approve proposals, issue/consume commitment authority, complete tasks or bypass output approval.
-- Identity plaintext remains late-bound through `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval`.
-- Do not add more exact Orange phrase variants as the main strategy.
-- ChatRelay remains a developer/injected-response fallback boundary.
+## Exact next gate — phone required, no call
+
+Further meaningful validation now requires the physical S22.
+
+1. Fetch fresh `origin/main`, fresh daemon and current Local Chat Bridge binding.
+2. Build/install current debug + AndroidTest APK if needed.
+3. Make the exact Gemma model available through a readable source document for development proof. ADB/Edge Gallery may stage source bytes, but destination activation must go through the new app UI/SAF importer.
+4. Exercise `Import Gemma 4 model` in the app.
+5. Require exact SHA-256 success and active app-owned destination.
+6. Prove whether Android external-files supports the required `ATOMIC_MOVE` replacement. If it fails, isolate the filesystem/activation root cause; do **not** silently weaken activation to a non-atomic overwrite.
+7. Re-run the existing physical **no-call** Gemma dialogue-skill test and require terminal `skill/confidence/reason`.
+8. Only after that promote lifecycle to `PROVEN_S22`.
+
+No telephony, microphone, STT/TTS or media path needs to be started for this gate.
+
+## Frozen/safety boundaries
+
+- Samsung media/`privileged-helper/`: frozen.
+- Gate D authority: frozen unless a real regression is proven.
+- Gemma/model import cannot dial, disclose secrets, confirm proposals, commit, complete tasks or bypass output approval.
+- Identity plaintext remains late-bound through existing authorization/disclosure owners.
+- Do not add Orange exact phrase aliases as the main strategy.
+- No live call is authorized by this handoff.
 
 ## Live-call authorization
 
-This handoff contains **no authorization to dial**.
+Every future real call requires fresh explicit authorization in the same chat for one concrete target/number and one concrete task. A connected phone, prior proof, handoff, old allowlist or `.agent/results` never grants dialing permission.
 
-A future real call requires fresh explicit authorization in that same chat for one concrete target/number and one concrete task.
-
-Ready-to-paste bootstrap is in `docs/NEXT_CHAT_PROMPT.md`.
+Ready-to-paste bootstrap: `docs/NEXT_CHAT_PROMPT.md`.

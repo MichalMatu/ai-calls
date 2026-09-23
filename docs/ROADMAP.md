@@ -5,6 +5,7 @@
 - `DONE` — implementation complete for stated scope.
 - `HOST_GREEN` — targeted/canonical host evidence is green.
 - `PROVEN_S22` — physically executed successfully on the target phone.
+- `PENDING_PHYSICAL` — host/package work is complete but the changed Android/device boundary still needs physical proof.
 - `FROZEN` — do not modify without a separate root-cause scope.
 
 ## Stable completed foundation
@@ -49,21 +50,11 @@ Current state:
 - typed bounded dialogue skills: **HOST_GREEN**;
 - synthetic hybrid failover + diagnostics: **HOST_GREEN**;
 - direct Gemma 4 LiteRT-LM Android package/runtime: **HOST_GREEN**;
-- physical no-call Gemma 4 skill inference: **PROVEN_S22**;
-- Samsung media path: still **PROVEN_S22 / FROZEN** and was not reopened.
+- physical no-call Gemma 4 skill inference on the previously provisioned model: **PROVEN_S22**;
+- application-owned model import lifecycle: **HOST_GREEN / PENDING_PHYSICAL**;
+- Samsung media path: **PROVEN_S22 / FROZEN** and was not reopened.
 
-### Implemented pieces
-
-1. `PhraseResponseTemperature` with `HOT/WARM/UNCERTAIN/COLD/AMBIGUOUS`.
-2. deterministic WARM routing only when one candidate wins by threshold/margin.
-3. typed bounded dialogue skills with `skill/confidence/reason`.
-4. app-owned exact response text; model does not own arbitrary speech.
-5. explicit unresolved-turn routing mode for reviewed hybrid sessions; default/Gate D behavior remains unchanged.
-6. failover backend path for local model -> injected-response fallback.
-7. direct Gemma 4 LiteRT-LM backend on Android.
-8. `litertlm-android:0.17.1` dependency.
-9. hybrid diagnostics that record bounded model decisions, local-skill errors and final response source.
-10. physical no-call terminal proof of the direct Gemma path.
+Implemented dialogue pieces include `HOT/WARM/UNCERTAIN/COLD/AMBIGUOUS`, typed `skill/confidence/reason`, app-owned exact speech, reviewed unresolved-turn generation, local-model -> injected-response failover, direct LiteRT-LM, and diagnostics for model decision/error/final response source.
 
 ## Model decision
 
@@ -73,49 +64,22 @@ For this stage use **Gemma 4 E2B IT only**.
 model: Gemma 4 E2B IT
 file: gemma-4-E2B-it.litertlm
 runtime: LiteRT-LM
+sha256: 181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
 ```
 
-Do not spend roadmap work comparing Qwen and Gemma unless the user explicitly reopens that scope.
+Do not compare or tune Qwen unless the user explicitly reopens that scope.
 
-The old `EdgeGalleryTextBackend` HTTP assumption (`127.0.0.1:8080`) is not the product direction. Physical diagnostics showed that the installed Edge Gallery app does not expose that server, even after launching its activity.
+The old `EdgeGalleryTextBackend` HTTP assumption (`127.0.0.1:8080`) is not the product direction. The runtime is direct in-process LiteRT-LM with an app-owned model path.
 
-The product direction is direct in-process LiteRT-LM with an app-owned model path.
+## Physical no-call Gemma evidence
 
-## Physical model evidence
-
-The S22 contains the Gemma 4 model downloaded by Edge Gallery in external storage, including:
-
-```text
-/sdcard/Android/data/com.google.ai.edge.gallery/files/Gemma_4_E2B_it/6e5c4f1e395deb959c494953478fa5cec4b8008f/gemma-4-E2B-it.litertlm
-```
-
-The development proof provisioned the same bytes into:
+The previous development proof provisioned model bytes into:
 
 ```text
 <app external files>/models/gemma-4-E2B-it.litertlm
 ```
 
-Verified SHA-256:
-
-```text
-181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-```
-
-Important provisioning finding: a plain `adb shell cp` created a file that LiteRT could not open from the app process (`PERMISSION_DENIED`). Writing the destination through the application UID with `run-as pl.michalmatu.aicallbridge` produced app-readable ownership/SELinux labeling and made the direct LiteRT engine path work.
-
-Edge Gallery is only a development source for the already-downloaded bytes. Production must explicitly import/download and own its model.
-
-## Proven no-call Gemma gate
-
-Fresh-head verification completed successfully with:
-
-1. targeted host response-temperature/dialogue/Gemma/hybrid tests;
-2. `bash scripts/verify_host.sh`;
-3. Android debug + AndroidTest compile/package with LiteRT-LM;
-4. app-owned model hash verification;
-5. physical S22 no-call instrumentation using synthetic text;
-6. terminal `skill/confidence/reason` proof;
-7. no telephony/media side effect.
+A plain `adb shell cp` produced a file the app/LiteRT could not open (`PERMISSION_DENIED`). Writing through the application UID fixed ownership/SELinux and allowed direct LiteRT inference.
 
 Observed physical S22 decision:
 
@@ -125,11 +89,55 @@ confidence=0.95
 reason=Potwierdzenie odbioru telefonu
 ```
 
-LiteRT loaded its JNI/native runtime and initialized the GPU delegate. The earlier failed run was isolated to model-file ownership/SELinux, not engine format, JSON `ResponseFormat`, parser, memory or timeout.
+LiteRT JNI/native runtime and GPU delegate were proven. That proof predates the new application-owned import implementation and therefore does not prove the new importer.
 
-## Proven synthetic hybrid gate
+## Application-owned model lifecycle
 
-Host contract evidence now covers:
+The generic provisioning gap is now implemented on the host side.
+
+New reviewed boundary:
+
+```text
+user-selected SAF document
+ -> app process opens source stream
+ -> app-owned sibling staging file
+ -> streaming SHA-256 against pinned Gemma 4 identity
+ -> flush + fsync
+ -> same-filesystem atomic replacement request
+ -> active app-owned model path
+ -> existing direct LiteRT-LM runtime
+```
+
+Failure behavior is fail-closed:
+
+- unreadable source fails;
+- empty source fails;
+- wrong SHA-256 fails before activation;
+- import/write failure removes staging data;
+- atomic activation failure preserves the previous active model;
+- no non-atomic activation fallback is silently used.
+
+The UI exposes `Import Gemma 4 model` through Android Storage Access Framework. The product does not hard-code Edge Gallery storage or an arbitrary model download URL. The installer is source-agnostic so a future reviewed downloader can feed the same verified activation boundary without changing runtime authority.
+
+RED -> GREEN evidence exists for the installer. On exact implementation HEAD `68812a3c577c4488b4152b9f3fe55c8feb9162b8`, targeted installer/Gemma/dialogue/hybrid tests, `bash scripts/verify_host.sh`, debug APK and AndroidTest APK all passed.
+
+## Immediate next gate — physical S22, no call
+
+The next step requires the physical phone. Do not do any live call.
+
+1. Install the current APK/AndroidTest APK on the S22.
+2. Provide a readable source copy of the exact Gemma model for development proof if necessary; ADB/Edge Gallery may be used only to stage source bytes, never as production runtime authority.
+3. Exercise the **application UI/SAF importer**, not the old direct ADB destination copy.
+4. Require successful exact SHA-256 verification and activation into the app-owned model path.
+5. Verify the Android external-files filesystem supports the required atomic replacement. If `ATOMIC_MOVE` fails, classify that exact filesystem/activation root cause; do not silently weaken to a non-atomic replacement.
+6. Re-run the physical no-call Gemma dialogue-skill contract and require terminal `skill/confidence/reason`.
+7. Only after this gate may model lifecycle be promoted from `PENDING_PHYSICAL` to `PROVEN_S22`.
+
+No telephony/media proof needs repeating for this slice.
+
+## Synthetic hybrid gate
+
+Host contract evidence remains:
 
 ```text
 bounded skill -> reviewed app response -> source=LOCAL_SKILL
@@ -137,53 +145,15 @@ low confidence -> injected fallback -> source=CHAT_RELAY
 classifier error -> injected fallback -> source=CHAT_RELAY
 ```
 
-The diagnostics retain the parsed decision (`skill/confidence/reason`) when a decision exists and separately record the source of the final response. Existing PhraseMatrix tests keep HOT/WARM on the deterministic owner path and ambiguity fail-closed.
-
 ChatRelay remains developer/injected-response fallback infrastructure, not product runtime authority.
-
-## Next product engineering gate
-
-The remaining generic product gap is model lifecycle/provisioning:
-
-1. define an explicit app-owned Gemma import/download path;
-2. verify integrity/version/expected model identity before activation;
-3. keep runtime independent of Edge Gallery storage;
-4. preserve the existing bounded skill policy and output approval;
-5. rerun targeted/canonical tests and the no-call S22 model gate after provisioning changes.
-
-A bounded live acceptance call is now technically eligible for consideration, but it is a separate authorization gate, not an automatic roadmap step.
 
 ## Authority invariant
 
-Gemma, matchers, Skills, injected-response tooling, ServicePacks and TaskGraph helpers are proposal/classification layers only.
-
-They cannot independently:
-
-- dial or widen a target;
-- disclose plaintext identity;
-- release speech without output approval;
-- confirm a user decision;
-- issue/consume commitment authority;
-- infer factual external success;
-- complete the workflow/task.
-
-The existing application owners remain authoritative.
+Gemma, model storage/import, matchers, Skills, injected-response tooling, ServicePacks and TaskGraph helpers are proposal/data layers only. They cannot independently dial or widen a target, disclose plaintext identity, release speech without output approval, confirm a user decision, issue/consume commitment authority, infer factual external success or complete the workflow/task.
 
 ## Orange status
 
-Orange remains a useful ServicePack/acceptance fixture, not the active architecture owner.
-
-Live evidence already proved:
-
-- cellular control and cleanup;
-- in-call audio/downlink;
-- STT;
-- reviewed TTS injection;
-- Orange response to reviewed CLIR request.
-
-No CLIR account change was completed.
-
-Do not continue growing exact Orange phrase aliases as the main strategy.
+Orange remains a ServicePack/acceptance fixture, not the active architecture owner. Existing live evidence already proved call control, downlink, STT and reviewed TTS injection. No CLIR account change was completed. Do not grow exact Orange phrase aliases as the main strategy.
 
 ## Live-call stop line
 

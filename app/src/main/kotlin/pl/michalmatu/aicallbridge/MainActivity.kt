@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -13,10 +14,14 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.runtime.CallAudioMode
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
+import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelImporter
+import pl.michalmatu.aicallbridge.textagent.Gemma4ModelInstallResult
 import rikka.shizuku.Shizuku
 
 class MainActivity : Activity() {
@@ -25,6 +30,11 @@ class MainActivity : Activity() {
     private lateinit var selectedAudioMode: CallAudioMode
     private lateinit var selectedTextLlmProvider: TextLlmProvider
     private lateinit var textLlmProviderSpinner: Spinner
+    private lateinit var modelImporter: AndroidGemma4ModelImporter
+    private lateinit var modelImportButton: Button
+    private val modelImportExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "aicall-gemma4-import").apply { isDaemon = true }
+    }
     private var pendingShizukuProbe = false
     private var pendingShizukuLiveProbe = false
 
@@ -56,6 +66,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         runtimePreferences = CallRuntimePreferences(this)
+        modelImporter = AndroidGemma4ModelImporter(this)
         val initialSelection = runtimePreferences.load()
         selectedAudioMode = initialSelection.audioMode
         selectedTextLlmProvider = initialSelection.textLlmProvider
@@ -106,6 +117,11 @@ class MainActivity : Activity() {
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
 
+        modelImportButton = Button(this).apply {
+            text = "Import Gemma 4 model"
+            setOnClickListener { chooseGemma4Model() }
+        }
+
         val requestMicButton = Button(this).apply {
             text = "Grant microphone permission"
             setOnClickListener { requestMicrophonePermissionIfNeeded() }
@@ -154,6 +170,7 @@ class MainActivity : Activity() {
             addView(audioModeSpinner)
             addView(TextView(this@MainActivity).apply { text = "LLM provider (text mode)" })
             addView(textLlmProviderSpinner)
+            addView(modelImportButton)
             addView(requestMicButton)
             addView(capabilityProbeButton)
             addView(shizukuProbeButton)
@@ -190,6 +207,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        modelImportExecutor.shutdownNow()
         Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
         Shizuku.removeRequestPermissionResultListener(shizukuPermissionResultListener)
         super.onDestroy()
@@ -201,6 +219,52 @@ class MainActivity : Activity() {
             CallAudioMode.LOCAL_STT_TTS -> append("LLM provider: ").append(selectedTextLlmProvider.displayName)
             CallAudioMode.OPENAI_REALTIME_AUDIO -> append("LLM provider: OpenAI Realtime audio; text preference preserved")
             CallAudioMode.LOCAL_REALTIME_AUDIO -> append("LLM provider: local realtime audio engine; text preference preserved")
+        }
+        append('\n')
+        val modelFile = modelImporter.activeModelFile()
+        if (modelFile.isFile) {
+            append("Gemma 4 model: app-owned (").append(modelFile.length()).append(" bytes)")
+        } else {
+            append("Gemma 4 model: not installed")
+        }
+    }
+
+    private fun chooseGemma4Model() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        startActivityForResult(intent, REQUEST_IMPORT_GEMMA4_MODEL)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_IMPORT_GEMMA4_MODEL) return
+        if (resultCode != RESULT_OK) {
+            statusView.text = "Gemma 4 model import cancelled"
+            return
+        }
+        val uri = data?.data
+        if (uri == null) {
+            statusView.text = "Gemma 4 model import failed: model_source_missing"
+            return
+        }
+
+        modelImportButton.isEnabled = false
+        statusView.text = "Importing Gemma 4 model and verifying SHA-256…"
+        modelImportExecutor.execute {
+            val result = modelImporter.import(uri)
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                modelImportButton.isEnabled = true
+                statusView.text = when (result) {
+                    is Gemma4ModelInstallResult.Success ->
+                        "Gemma 4 model ready: ${result.modelId}; ${result.bytesWritten} bytes; sha256=${result.sha256}"
+
+                    is Gemma4ModelInstallResult.Failure ->
+                        "Gemma 4 model import failed: ${result.reason}"
+                }
+            }
         }
     }
 
@@ -296,6 +360,7 @@ class MainActivity : Activity() {
         const val TAG = "AiCallBridge"
         const val REQUEST_RECORD_AUDIO = 1001
         const val REQUEST_SHIZUKU = 1002
+        const val REQUEST_IMPORT_GEMMA4_MODEL = 1003
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
         const val EXTRA_RUN_CAPABILITY_PROBE = "run_probe"
     }

@@ -4,7 +4,7 @@
 
 Bridge an ordinary cellular call on the target Samsung S22+ to a bounded autonomous task engine while keeping authority explicit across media, dialogue state, identity disclosure, proposal policy, user confirmation, commitment and factual completion.
 
-Counterparty text, model output, parsers, ServicePacks, encrypted storage and TaskGraph state never widen authority by themselves.
+Counterparty text, model output, model storage/import, parsers, ServicePacks, encrypted storage and TaskGraph state never widen authority by themselves.
 
 ## Frozen media boundary
 
@@ -27,7 +27,60 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching this layer.
 - application-owned `FactDisclosurePolicy` — personal-data disclosure;
 - application-owned output approval — final speech release.
 
-TaskGraph, CallPlan, PhraseMatrix, shadow/supervisor, ServicePack and IdentityVault provide bounded data to those owners but do not replace them.
+TaskGraph, CallPlan, PhraseMatrix, model/Skills, model storage/import, shadow/supervisor, ServicePack and IdentityVault provide bounded data to those owners but do not replace them.
+
+## Dialogue resilience
+
+Finalized STT uses two bounded tracks:
+
+```text
+finalized STT
+ -> PhraseMatrix + response temperature
+ -> HOT/WARM: deterministic existing owner path
+ -> unresolved/ambiguous/cold: Gemma 4 bounded skill classifier
+ -> app-owned exact reviewed response
+ -> error / low confidence / TAKE_OVER: injected-response / ChatRelay fallback
+ -> application output approval
+ -> TTS
+```
+
+Gemma may return only typed `skill/confidence/reason`; it does not own arbitrary speech or any call/business authority. ChatRelay remains developer/injected-response fallback infrastructure.
+
+## Gemma 4 runtime and model lifecycle
+
+The local target is `Gemma 4 E2B IT`, file `gemma-4-E2B-it.litertlm`, through direct in-process LiteRT-LM. The old Edge Gallery HTTP assumption is not part of the product architecture.
+
+Runtime path:
+
+```text
+<app external files>/models/gemma-4-E2B-it.litertlm
+ -> Gemma4LiteRtTextBackend
+ -> LiteRtGemma4Runtime
+ -> bounded dialogue skill policy
+```
+
+The application-owned import boundary is:
+
+```text
+Android SAF source URI
+ -> AndroidGemma4ModelImporter
+ -> Gemma4ModelInstaller
+ -> sibling app-owned staging file
+ -> streaming SHA-256 against pinned reviewed identity
+ -> flush + fsync
+ -> atomic same-filesystem replacement request
+ -> active runtime model path
+```
+
+Pinned SHA-256:
+
+```text
+181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+```
+
+Activation is fail-closed. Empty/wrong/unreadable input, write failure or atomic-move failure cannot replace the previously active model. No non-atomic fallback is silently used. Edge Gallery and ADB may be development sources for bytes but are not runtime owners or production dependencies.
+
+This lifecycle is **HOST_GREEN / PENDING_PHYSICAL**. The physical S22 gate must prove the SAF/app-process import and filesystem atomic-replacement behavior before it becomes `PROVEN_S22`.
 
 ## TaskGraph and apply boundary
 
@@ -122,23 +175,19 @@ Generic deterministic or shadow `commit-complete` candidates are blocked in ordi
 
 Gate D is `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-PR #5 was squash-merged to `main` as `46bcfc9e13bed747e13429c50f54c7b4d3e47f69`; the feature branch was deleted.
-
-Latest physical proof on `SM-S906B`, Android 16, without a cellular call:
+Direct Gemma 4 no-call inference using the earlier app-readable development provision is `PROVEN_S22`; observed bounded output was:
 
 ```text
-chatgpt-gated-s22-final-owner-proofs-v049-20260923
-DEFERRED_COMPLETION_BINDING_S22_PROVEN=true
-BOOK_APPOINTMENT_COMPLETION_S22_PROVEN=true
-FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
-
-chatgpt-gated-s22-commitment-regression-v050-20260923
-BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
+skill=ACKNOWLEDGE_NEUTRAL
+confidence=0.95
+reason=Potwierdzenie odbioru telefonu
 ```
+
+The new application-owned SAF import/verified activation boundary is `HOST_GREEN / PENDING_PHYSICAL`. Host verification includes RED -> GREEN installer tests, canonical `verify_host.sh`, debug APK and AndroidTest APK.
 
 ## Hard authority invariant
 
-Neither TaskGraph, shadow/supervisor, CallPlan/PhraseMatrix, parser, storage, synthetic ingress nor IdentityVault may independently:
+Neither TaskGraph, model/runtime/model import, shadow/supervisor, CallPlan/PhraseMatrix, parser, storage, synthetic ingress nor IdentityVault may independently:
 
 - dial or widen a target;
 - release speech/TTS;
@@ -150,6 +199,6 @@ Neither TaskGraph, shadow/supervisor, CallPlan/PhraseMatrix, parser, storage, sy
 
 ## Next gate
 
-There is no unfinished Gate D implementation boundary. Continue from `main`.
+The next engineering gate is physical S22 validation of the new application-owned model importer followed by the existing no-call Gemma skill contract. No call/media path needs to be started.
 
 A live acceptance call is a separate authority gate and requires fresh explicit authorization for one concrete target/number and one concrete task in the current session before any dialing action.

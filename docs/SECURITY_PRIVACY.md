@@ -12,7 +12,7 @@ This path is `PROVEN_S22 / FROZEN`. Read `docs/PHASE2D_FREEZE_2026-09-18.md` bef
 
 ## Authority owners
 
-Do not create parallel authority in TaskGraph, ServicePack, CallPlan/PhraseMatrix, model/shadow, parser, storage or Skills.
+Do not create parallel authority in TaskGraph, ServicePack, CallPlan/PhraseMatrix, model/shadow, model storage/import, parser, storage or Skills.
 
 - `CallTask` — immutable task, hard constraints, preferences and authorized scope.
 - `CallResolvedTarget` — exact target; cannot widen a live allowlist.
@@ -21,6 +21,39 @@ Do not create parallel authority in TaskGraph, ServicePack, CallPlan/PhraseMatri
 - `CallCommitmentGate` — exact one-shot permit bound to one concrete proposal.
 - `FactDisclosurePolicy` — application-owned personal-data disclosure decision.
 - output approval — final text release before TTS/TX.
+
+## Gemma model integrity and ownership
+
+Local model bytes are data, not authority. The production runtime must not depend on another app's sandbox or trust an unverified model file merely because it has the expected filename.
+
+The reviewed import path pins the expected Gemma 4 E2B identity and SHA-256:
+
+```text
+181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+```
+
+Import ordering is fail-closed:
+
+```text
+user-selected SAF source
+ -> app-owned staging file
+ -> streaming SHA-256 verification
+ -> flush + fsync
+ -> atomic replacement request
+ -> active app-owned model path
+```
+
+Rules:
+
+- unreadable, empty or wrong-hash data never activates;
+- verification happens before active-path replacement;
+- failed writes/verification remove staging data;
+- activation failure preserves the previous active model;
+- do not silently weaken an atomic activation failure to an ordinary non-atomic overwrite;
+- Edge Gallery/ADB may be development sources for bytes but never runtime authority or a required production dependency;
+- model import does not grant dial, disclosure, commitment, completion or speech-release authority.
+
+This import/activation boundary is `HOST_GREEN / PENDING_PHYSICAL` until exercised on the S22 filesystem.
 
 ## Identity and disclosure
 
@@ -103,7 +136,7 @@ Ordering is fail-closed:
 ```text
 validate exact evidence
  -> stage TaskGraph COMPLETE candidate
- -> CallWorkflow.complete(outcome)        existing owner
+ -> CallWorkflow.complete(outcome)
  -> commit staged TaskGraph snapshot only after owner success
 ```
 
@@ -148,4 +181,6 @@ stop accepting/releasing AI output
 
 ## Evidence rule
 
-`HOST_GREEN` is not `PROVEN_S22`. Compiled/packaged instrumentation is not a physical device proof. A device being connected is not live-call authorization. The two newest completion-owner instrumentation contracts remain `PENDING_PHYSICAL` until successful terminal execution on the S22.
+`HOST_GREEN` is not `PROVEN_S22`. Compiled/packaged instrumentation is not a physical device proof. A device being connected is not live-call authorization.
+
+Gate D and the prior direct Gemma no-call runtime have physical S22 proof. The newly changed Gemma SAF import/atomic-activation boundary remains `PENDING_PHYSICAL` until successful terminal execution on the S22.
