@@ -8,7 +8,9 @@ import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.OnDeviceSpeechInput
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphDefinition
+import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
+import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 import pl.michalmatu.aicallbridge.textagent.LocalPhoneLlmBackendFactory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -163,6 +165,17 @@ internal object AndroidLocalTextCallBackendFactory {
 }
 
 internal object AndroidTextCallReadiness {
+    internal fun backendPreflightFailure(context: Context, provider: TextLlmProvider): String? {
+        if (provider != TextLlmProvider.LOCAL_GEMMA_4) return null
+        val readiness = AndroidGemma4ModelReadiness.check(context.applicationContext)
+        return when (readiness.state) {
+            Gemma4ModelReadinessState.READY -> null
+            Gemma4ModelReadinessState.MISSING -> "gemma4_model_missing"
+            Gemma4ModelReadinessState.INVALID ->
+                "gemma4_${readiness.reason ?: "model_invalid"}"
+        }
+    }
+
     fun create(
         context: Context,
         workflow: CallWorkflow,
@@ -175,6 +188,7 @@ internal object AndroidTextCallReadiness {
     ): LocalTextCallReadinessCoordinator = LocalTextCallReadinessCoordinator(
         workflow = workflow,
         targetAuthorization = targetAuthorization,
+        backendPreflight = { backendPreflightFailure(context.applicationContext, provider) },
         speechPreflight = AndroidLocalTextCallSpeechPreflight(context.applicationContext),
         backendFactory = {
             AndroidLocalTextCallBackendFactory.create(context.applicationContext, provider)

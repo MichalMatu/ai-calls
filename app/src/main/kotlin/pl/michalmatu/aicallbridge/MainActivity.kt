@@ -22,6 +22,7 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
 import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelImporter
 import pl.michalmatu.aicallbridge.textagent.Gemma4ModelInstallResult
+import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 import rikka.shizuku.Shizuku
 
 class MainActivity : Activity() {
@@ -221,11 +222,16 @@ class MainActivity : Activity() {
             CallAudioMode.LOCAL_REALTIME_AUDIO -> append("LLM provider: local realtime audio engine; text preference preserved")
         }
         append('\n')
-        val modelFile = modelImporter.activeModelFile()
-        if (modelFile.isFile) {
-            append("Gemma 4 model: app-owned (").append(modelFile.length()).append(" bytes)")
-        } else {
-            append("Gemma 4 model: not installed")
+        val modelReadiness = modelImporter.readiness()
+        when (modelReadiness.state) {
+            Gemma4ModelReadinessState.READY ->
+                append("Gemma 4 model: READY (").append(modelReadiness.file.length()).append(" bytes)")
+
+            Gemma4ModelReadinessState.MISSING ->
+                append("Gemma 4 model: MISSING")
+
+            Gemma4ModelReadinessState.INVALID ->
+                append("Gemma 4 model: INVALID (").append(modelReadiness.reason ?: "unknown").append(')')
         }
     }
 

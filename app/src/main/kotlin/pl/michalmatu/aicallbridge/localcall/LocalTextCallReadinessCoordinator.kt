@@ -80,6 +80,7 @@ internal class ExecutorLocalTextCallTimeoutScheduler : LocalTextCallTimeoutSched
 internal class LocalTextCallReadinessCoordinator(
     private val workflow: CallWorkflow,
     private val targetAuthorization: DialTargetAuthorization,
+    private val backendPreflight: (() -> String?)? = null,
     private val speechPreflight: LocalTextCallSpeechPreflight,
     private val backendFactory: () -> TextCallAgentBackend,
     private val timeoutScheduler: LocalTextCallTimeoutScheduler = ExecutorLocalTextCallTimeoutScheduler(),
@@ -151,6 +152,16 @@ internal class LocalTextCallReadinessCoordinator(
 
         gateDBindingFailure(workflowSnapshot, target)?.let { reason ->
             fail(reason, listener)
+            return
+        }
+
+        val backendPreflightFailure = try {
+            backendPreflight?.invoke()?.takeIf { it.isNotBlank() }
+        } catch (error: Throwable) {
+            "backend_preflight_${error.javaClass.simpleName.ifBlank { "Throwable" }}"
+        }
+        if (backendPreflightFailure != null) {
+            fail(sanitize(backendPreflightFailure), listener)
             return
         }
 

@@ -2,7 +2,6 @@ package pl.michalmatu.aicallbridge.textagent
 
 import java.nio.file.Files
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Test
 
 class Gemma4ModelReadinessProbeTest {
@@ -27,7 +26,7 @@ class Gemma4ModelReadinessProbeTest {
 
         assertEquals(Gemma4ModelReadinessState.INVALID, readiness.state)
         assertEquals("model_size_mismatch", readiness.reason)
-        assertSame(active, readiness.file)
+        assertEquals(active, readiness.file)
     }
 
     @Test
@@ -40,7 +39,7 @@ class Gemma4ModelReadinessProbeTest {
 
         assertEquals(Gemma4ModelReadinessState.READY, readiness.state)
         assertEquals(null, readiness.reason)
-        assertSame(active, readiness.file)
+        assertEquals(active, readiness.file)
     }
 
     private fun testSpec(expectedBytes: Long) = Gemma4ModelSpec(
