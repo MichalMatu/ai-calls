@@ -6,11 +6,12 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 /**
  * Provider-neutral construction for bounded dialogue-skill classification.
  *
- * Qwen and Gemma receive the same app-owned classifier contract. The returned backend may only
+ * Local models receive the same app-owned classifier contract. The returned backend may only
  * select a skill/confidence through [DialogueSkillTextBackend]; it does not gain direct speech or
  * call authority. Exact spoken text remains in [DialogueSkillPolicy].
  */
 internal object DialogueSkillBackendFactory {
+    @Suppress("UNUSED_PARAMETER")
     fun create(
         context: Context,
         provider: TextLlmProvider,
@@ -24,11 +25,10 @@ internal object DialogueSkillBackendFactory {
                 LocalPhoneLlmBackendFactory.create(context.applicationContext, prompt)
 
             TextLlmProvider.EDGE_GALLERY ->
-                EdgeGalleryTextBackend(
-                    baseUrl = EdgeGalleryTextBackendFactory.BASE_URL,
-                    expectedModelId = EdgeGalleryTextBackendFactory.MODEL,
-                    bearerToken = edgeGalleryBearerToken,
-                    systemPrompt = prompt,
+                Gemma4LiteRtTextBackendFactory.createSkillClassifier(
+                    context = context.applicationContext,
+                    systemInstruction = prompt,
+                    allowedSkills = policy.allowedSkills,
                 )
 
             else -> throw IllegalArgumentException(
