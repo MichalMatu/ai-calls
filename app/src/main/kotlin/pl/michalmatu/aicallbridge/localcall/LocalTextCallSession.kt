@@ -127,7 +127,14 @@ internal class LocalTextCallSession private constructor(
     ) : this(
         workflow = prepared.workflow,
         pipeline = claimPipeline(prepared, pipelineFactory),
-        planTurnCoordinator = prepared.callPlan?.let { CallPlanTurnCoordinator(it, prepared.workflow) },
+        planTurnCoordinator = prepared.callPlan?.let { plan ->
+            CallPlanTurnCoordinator(
+                plan,
+                prepared.workflow,
+                gateDProductBinding?.callPlanCompletionMode
+                    ?: CallPlanCompletionMode.APPLY_TO_WORKFLOW,
+            )
+        },
         phraseMatrix = prepared.phraseMatrix,
         gateDRuntime = prepared.taskGraph?.let { graph ->
             LocalTextCallGateDRuntime(
