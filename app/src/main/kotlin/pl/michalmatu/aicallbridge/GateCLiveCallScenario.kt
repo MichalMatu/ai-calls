@@ -258,7 +258,8 @@ internal object GateCLiveCallScenarioFactory {
             aliases = setOf(REVIEWED_MAX_ROOT_DAY),
             response = checkNotNull(action.reviewedResponse),
         )
-        OrangeLiveAction.CALLER_ID_RESTRICTION_INFO -> ReviewedTurn(
+        OrangeLiveAction.CALLER_ID_RESTRICTION_INFO,
+        OrangeLiveAction.CALLER_ID_RESTRICTION_ENABLE -> ReviewedTurn(
             ruleId = CALLER_ID_RESTRICTION_INFO_RULE_ID,
             factKey = CALLER_ID_RESTRICTION_INFO_FACT_KEY,
             phrases = setOf(REVIEWED_MAX_ROOT_EVENING),
