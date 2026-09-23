@@ -381,6 +381,27 @@ def wait_for_audio_signal_resilient(adb: Adb, *, timeout_seconds: float):
             time.sleep(min(0.25, max(0.0, remaining)))
 
 
+class _ConfirmedOffhookAdbView:
+    """Narrow ADB view for the first audio probe after OFFHOOK was already observed."""
+
+    def __init__(self, adb: Adb):
+        self._adb = adb
+
+    def call_state(self) -> int:
+        return 2
+
+    def __getattr__(self, name: str):
+        return getattr(self._adb, name)
+
+
+def wait_for_initial_audio_signal_after_confirmed_offhook(adb: Adb, *, timeout_seconds: float):
+    """Probe real downlink audio without re-reading transient telephony.registry state."""
+    return wait_for_audio_signal_resilient(
+        _ConfirmedOffhookAdbView(adb),
+        timeout_seconds=timeout_seconds,
+    )
+
+
 def _require_preflight(adb: Adb, *, known_call_state: int) -> None:
     devices = _devices_output()
     if not is_direct_usb_target(devices, adb.serial or ""):
@@ -452,7 +473,10 @@ def run_orange_chat_relay(
         muted = True
         time.sleep(0.3)
         _require_preflight(adb, known_call_state=2)
-        signal = wait_for_audio_signal_resilient(adb, timeout_seconds=25.0)
+        signal = wait_for_initial_audio_signal_after_confirmed_offhook(
+            adb,
+            timeout_seconds=25.0,
+        )
         print(f"orange_downlink_signal=true,rms:{signal.rms:.3f},peak:{signal.peak}")
 
         mailbox.clear()
