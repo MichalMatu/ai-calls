@@ -23,7 +23,7 @@ internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
         ): LocalPhoneLlmLiveCallProbeRequest {
             require(
                 provider == TextLlmProvider.LOCAL_PHONE_LLM ||
-                    provider == TextLlmProvider.EDGE_GALLERY,
+                    provider == TextLlmProvider.LOCAL_GEMMA_4,
             ) {
                 "provider_not_enabled_for_local_live_call_${provider.name.lowercase()}"
             }
