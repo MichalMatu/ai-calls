@@ -1,9 +1,42 @@
-# Next-chat prompt — Gemma acquisition complete / PROVEN_S22
+# Next-chat prompt — generic autonomous phone task authority
 
-Kontynuuj `MichalMatu/android-ai-call-bridge` z aktualnego `main`. Pobierz świeży `origin/main`, świeży daemon i current Local Chat Bridge binding. Przeczytaj `AGENTS.md`, `README.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, `docs/HANDOFF_PROTOCOL.md`; freeze doc przed media changes.
+Kontynuuj `MichalMatu/android-ai-call-bridge` z aktualnego `main`.
 
-Gate D/media pozostają proven/frozen. Gemma runtime, SAF lifecycle, provider/readiness, immutable acquisition source, streaming downloader, progress/cancel UI i pełny 2,588,147,712-byte network download + SHA-256 + atomic activation są `HOST_GREEN / PROVEN_S22`. Nie pobieraj modelu ponownie tylko po to, żeby go re-prove.
+Najpierw pobierz świeży `origin/main`, świeży `agent-control:.agent/status/daemon.json` i użyj wyłącznie aktualnego Local Agent binding. Przeczytaj w tej kolejności:
 
-Pierwszy task: zrób fresh baseline i wybierz kolejny produktowy scope zgodnie z aktualnym ROADMAP/handoff oraz poleceniem użytkownika. Nie ruszaj frozen Samsung media/privileged-helper bez nowego root cause.
+1. `AGENTS.md`
+2. `README.md`
+3. `docs/HANDOFF_NEXT_CHAT.md`
+4. `docs/ROADMAP.md`
+5. `docs/ARCHITECTURE.md`
+6. `docs/GENERIC_PHONE_TASK_AUTHORITY.md`
+7. `docs/SECURITY_PRIVACY.md`
+8. `docs/HANDOFF_PROTOCOL.md`
+9. `docs/PHASE2D_FREEZE_2026-09-18.md` tylko przed zmianami media.
 
-Nie wykonuj live calla bez osobnej świeżej autoryzacji konkretnego numeru/targetu i zadania. Handoff, podłączony telefon ani poprzedni proof nie autoryzują połączenia.
+Produkt ma być **generycznym autonomous phone task engine**, a nie Orange/CLIR botem ani appointment-only botem.
+
+Pierwszy task: wykonaj wyłącznie ROADMAP **G1 — preimplementation audit generic commitment subject**. Zmapuj każde miejsce, gdzie appointment-shaped `CallProposal` jest traktowane jako uniwersalny commitment subject (`CallCommitmentGate`, realtime commitment handler, Gate D product integration, confirmation/consumption/completion evidence, `LocalTextCallSession`, testy). Nie zmieniaj jeszcze zachowania.
+
+Następnie zaproponuj minimalną migrację do generycznego typed external-effect commitment subject, zachowując wszystkie istniejące `BOOK_APPOINTMENT` invariants i bez tworzenia drugiego authority store. Nie twórz `ClirCommitmentGate`.
+
+Docelowy flow:
+
+```text
+CallTask + exact target + constraints + authorized facts
+ -> dialogue: PhraseMatrix / deterministic state / Gemma / supervisor fallback
+ -> typed external-effect candidate
+ -> application validation
+ -> user-decision policy when needed
+ -> exact one-shot permit
+ -> reviewed speech/execution
+ -> consumption evidence
+ -> external success evidence
+ -> factual completion
+```
+
+CLIR ma być pierwszym acceptance case'em `SET_SERVICE(CLIR=true)`, a kolejny szeroki case to przychodnia z negocjowanym terminem/ceną. Orange exact aliases nie są architekturą.
+
+Nie ruszaj frozen Samsung media/privileged-helper ani Gemma download/storage bez nowego konkretnego root cause. Model jest już `PROVEN_S22`.
+
+Nie wykonuj żadnego live calla bez osobnej świeżej autoryzacji w nowym czacie dla konkretnego numeru/targetu i konkretnego zadania. Poprzednia zgoda na Orange/CLIR nie przechodzi przez handoff.
