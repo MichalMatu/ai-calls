@@ -12,7 +12,6 @@ internal enum class BookAppointmentEffectOwnerRejectReason {
     UNSUPPORTED_TRANSITION,
     MISSING_APPOINTMENT_AT,
     INVALID_APPOINTMENT_AT,
-    POLICY_TRANSITION_MISMATCH,
     WORKFLOW_NOT_READY,
 }
 
@@ -31,11 +30,11 @@ internal sealed interface BookAppointmentEffectOwnerResult {
 /**
  * BOOK_APPOINTMENT-only effect mapping into the existing CallWorkflow owner.
  *
- * This is deliberately not a generic effect executor. It recognizes exactly one reviewed effect,
- * reconstructs one typed non-secret proposal field from the already-applied graph snapshot, and
- * asks CallWorkflow to atomically re-check the expected policy action before any workflow mutation.
- * It has no dialing, speech/TTS, identity disclosure, user-confirmation, commitment or completion
- * authority.
+ * This is deliberately not a generic effect executor. It recognizes exactly one reviewed proposal
+ * effect after the graph has entered the policy-neutral PROPOSAL state, reconstructs one typed
+ * non-secret proposal field, and delegates the decision to CallWorkflow. The returned action is
+ * inert data for a separately reviewed follow-up graph transition. This bridge has no dialing,
+ * speech/TTS, identity disclosure, user-confirmation, commitment or completion authority.
  */
 internal class BookAppointmentTaskGraphEffectOwnerBridge(
     private val workflow: CallWorkflow,
@@ -51,13 +50,8 @@ internal class BookAppointmentTaskGraphEffectOwnerBridge(
         if (effectCount != 1) {
             return rejected(BookAppointmentEffectOwnerRejectReason.INVALID_EFFECT_COUNT)
         }
-
-        val expectedAction = when (accepted.record.transitionId) {
-            BookAppointmentTaskGraph.ACCEPT_AUTONOMOUS_TRANSITION ->
-                CallPolicyAction.AUTONOMOUSLY_ALLOWED
-            BookAppointmentTaskGraph.REQUIRE_CONFIRMATION_TRANSITION ->
-                CallPolicyAction.NEEDS_USER_DECISION
-            else -> return rejected(BookAppointmentEffectOwnerRejectReason.UNSUPPORTED_TRANSITION)
+        if (accepted.record.transitionId != BookAppointmentTaskGraph.PROPOSE_APPOINTMENT_TRANSITION) {
+            return rejected(BookAppointmentEffectOwnerRejectReason.UNSUPPORTED_TRANSITION)
         }
 
         val slot = accepted.snapshot.context[BookAppointmentTaskGraph.APPOINTMENT_AT]
@@ -67,13 +61,8 @@ internal class BookAppointmentTaskGraphEffectOwnerBridge(
             ?: return rejected(BookAppointmentEffectOwnerRejectReason.INVALID_APPOINTMENT_AT)
         val proposal = CallProposal(scheduledAt, null, null, null, null)
 
-        val decision = runCatching {
-            workflow.evaluateProposalIfExpectedAction(proposal, expectedAction)
-        }.getOrElse {
+        val decision = runCatching { workflow.evaluateProposal(proposal) }.getOrElse {
             return rejected(BookAppointmentEffectOwnerRejectReason.WORKFLOW_NOT_READY)
-        }
-        if (decision.action() != expectedAction) {
-            return rejected(BookAppointmentEffectOwnerRejectReason.POLICY_TRANSITION_MISMATCH)
         }
         return BookAppointmentEffectOwnerResult.Applied(decision.action())
     }

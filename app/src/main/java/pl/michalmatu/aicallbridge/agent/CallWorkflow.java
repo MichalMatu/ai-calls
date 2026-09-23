@@ -75,23 +75,23 @@ public final class CallWorkflow {
      * Neither path mutates the task, constraints, preferences or authorized facts.</p>
      */
     public CallPolicyDecision evaluateProposal(CallProposal proposal) {
-        return evaluateProposalInternal(proposal, null);
-    }
-
-    /**
-     * Atomically re-evaluates a proposal and mutates workflow state only when policy returns the
-     * caller-supplied expected action. A mismatch returns the current policy decision without
-     * storing pending proposal state. This lets bounded application routing fail closed without a
-     * preview/evaluate race and does not widen task authority.
-     */
-    public CallPolicyDecision evaluateProposalIfExpectedAction(
-        CallProposal proposal,
-        CallPolicyAction expectedAction
-    ) {
-        return evaluateProposalInternal(
-            proposal,
-            Objects.requireNonNull(expectedAction, "expectedAction")
-        );
+        Objects.requireNonNull(proposal, "proposal");
+        final CallPolicyDecision decision;
+        final CallWorkflowSnapshot next;
+        synchronized (lock) {
+            requireState(CallWorkflowState.ACTIVE_NEGOTIATION);
+            decision = confirmationPolicy.evaluate(task, proposal);
+            if (decision.action() == CallPolicyAction.NEEDS_USER_DECISION) {
+                pendingProposal = proposal;
+                pendingDecision = decision;
+                state = CallWorkflowState.NEEDS_USER_DECISION;
+                next = snapshotLocked();
+            } else {
+                next = null;
+            }
+        }
+        publish(next);
+        return decision;
     }
 
     /**
@@ -144,31 +144,6 @@ public final class CallWorkflow {
             next = snapshotLocked();
         }
         publish(next);
-    }
-
-    private CallPolicyDecision evaluateProposalInternal(
-        CallProposal proposal,
-        CallPolicyAction expectedAction
-    ) {
-        Objects.requireNonNull(proposal, "proposal");
-        final CallPolicyDecision decision;
-        final CallWorkflowSnapshot next;
-        synchronized (lock) {
-            requireState(CallWorkflowState.ACTIVE_NEGOTIATION);
-            decision = confirmationPolicy.evaluate(task, proposal);
-            if (expectedAction != null && decision.action() != expectedAction) {
-                next = null;
-            } else if (decision.action() == CallPolicyAction.NEEDS_USER_DECISION) {
-                pendingProposal = proposal;
-                pendingDecision = decision;
-                state = CallWorkflowState.NEEDS_USER_DECISION;
-                next = snapshotLocked();
-            } else {
-                next = null;
-            }
-        }
-        publish(next);
-        return decision;
     }
 
     private CallProposal finishPendingDecision() {
