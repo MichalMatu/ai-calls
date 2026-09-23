@@ -17,7 +17,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
             liveCallTarget = GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
         )
         val gemma = LocalPhoneLlmLiveCallProbeRequest.create(
-            provider = TextLlmProvider.EDGE_GALLERY,
+            provider = TextLlmProvider.LOCAL_GEMMA_4,
             gateCFastPath = true,
             liveCallTarget = GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
         )
@@ -25,7 +25,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
         assertTrue(qwen.gateCFastPath)
         assertEquals(GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER, qwen.liveCallTarget)
         assertEquals(OrangeLiveAction.GREETING, qwen.orangeLiveAction)
-        assertEquals(TextLlmProvider.EDGE_GALLERY, gemma.provider)
+        assertEquals(TextLlmProvider.LOCAL_GEMMA_4, gemma.provider)
         assertFalse(gemma.gateCHybridDialogue)
 
         assertThrows(IllegalArgumentException::class.java) {
@@ -40,7 +40,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
     @Test
     fun `gate c relay session explicitly enables hybrid dialogue`() {
         val request = LocalPhoneLlmLiveCallProbeRequest.create(
-            provider = TextLlmProvider.EDGE_GALLERY,
+            provider = TextLlmProvider.LOCAL_GEMMA_4,
             gateCFastPath = true,
             liveCallTarget = GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
             gateCRelaySessionId = "  gate-c-hybrid-1  ",
@@ -51,7 +51,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
 
         assertThrows(IllegalArgumentException::class.java) {
             LocalPhoneLlmLiveCallProbeRequest.create(
-                provider = TextLlmProvider.EDGE_GALLERY,
+                provider = TextLlmProvider.LOCAL_GEMMA_4,
                 gateCFastPath = false,
                 liveCallTarget = null,
                 gateCRelaySessionId = "relay-without-gate-c",
@@ -59,7 +59,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             LocalPhoneLlmLiveCallProbeRequest.create(
-                provider = TextLlmProvider.EDGE_GALLERY,
+                provider = TextLlmProvider.LOCAL_GEMMA_4,
                 gateCFastPath = true,
                 liveCallTarget = GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER,
                 gateCRelaySessionId = "bad session id",
@@ -90,7 +90,7 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
     @Test
     fun `legacy request preserves provider and carries no target action or relay`() {
         val request = LocalPhoneLlmLiveCallProbeRequest.create(
-            provider = TextLlmProvider.EDGE_GALLERY,
+            provider = TextLlmProvider.LOCAL_GEMMA_4,
             gateCFastPath = false,
             liveCallTarget = null,
         )
@@ -100,6 +100,6 @@ class LocalPhoneLlmLiveCallProbeRequestTest {
         assertNull(request.liveCallTarget)
         assertNull(request.orangeLiveAction)
         assertNull(request.gateCRelaySessionId)
-        assertEquals(TextLlmProvider.EDGE_GALLERY, request.provider)
+        assertEquals(TextLlmProvider.LOCAL_GEMMA_4, request.provider)
     }
 }

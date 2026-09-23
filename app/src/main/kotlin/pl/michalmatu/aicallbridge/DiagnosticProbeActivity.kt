@@ -156,7 +156,7 @@ class DiagnosticProbeActivity : Activity() {
                 val provider = TextLlmProvider.fromStored(providerName)
                 if (
                     provider != TextLlmProvider.LOCAL_PHONE_LLM &&
-                    provider != TextLlmProvider.EDGE_GALLERY
+                    provider != TextLlmProvider.LOCAL_GEMMA_4
                 ) {
                     finishWithError("local_live_text_provider_not_supported_${provider.name.lowercase()}")
                     return

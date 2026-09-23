@@ -155,7 +155,7 @@ internal class AndroidLocalTextCallSpeechPreflight(
 internal object AndroidLocalTextCallBackendFactory {
     fun create(context: Context, provider: TextLlmProvider): TextCallAgentBackend = when (provider) {
         TextLlmProvider.LOCAL_PHONE_LLM -> LocalPhoneLlmBackendFactory.create(context.applicationContext)
-        TextLlmProvider.EDGE_GALLERY -> Gemma4LiteRtTextBackendFactory.create(context.applicationContext)
+        TextLlmProvider.LOCAL_GEMMA_4 -> Gemma4LiteRtTextBackendFactory.create(context.applicationContext)
         TextLlmProvider.LOCAL_MAC_LLM,
         TextLlmProvider.OPENAI_TEXT,
         -> throw IllegalArgumentException("text_provider_not_product_ready_${provider.name.lowercase()}")

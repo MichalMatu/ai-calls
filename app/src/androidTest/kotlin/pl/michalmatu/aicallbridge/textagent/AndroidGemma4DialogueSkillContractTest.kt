@@ -21,7 +21,7 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
  * expected model identity and the bounded JSON skill contract in one no-call path.
  */
 @RunWith(AndroidJUnit4::class)
-class AndroidEdgeGalleryDialogueSkillContractTest {
+class AndroidGemma4DialogueSkillContractTest {
     @Test
     fun gemmaProducesBoundedSkillDecisionFromSyntheticTextWithoutCallMedia() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -38,7 +38,7 @@ class AndroidEdgeGalleryDialogueSkillContractTest {
         )
         val backend = LocalDialogueSkillBackendFactory.create(
             context = context,
-            provider = TextLlmProvider.EDGE_GALLERY,
+            provider = TextLlmProvider.LOCAL_GEMMA_4,
             policy = policy,
             observer = DialogueSkillDecisionObserver { value -> decision.set(value) },
         )
