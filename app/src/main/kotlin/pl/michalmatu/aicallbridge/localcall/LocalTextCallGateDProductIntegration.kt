@@ -1,7 +1,10 @@
 package pl.michalmatu.aicallbridge.localcall
 
 import pl.michalmatu.aicallbridge.agent.CallCommitmentAuthorization
+import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
+import pl.michalmatu.aicallbridge.agent.CallOutcome
+import pl.michalmatu.aicallbridge.agent.CallOutcomeStatus
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallPolicyDecision
 import pl.michalmatu.aicallbridge.agent.CallProposal
@@ -118,11 +121,10 @@ internal class LocalTextCallGateDProductBinding(
  *
  * Order is fixed: deterministic interpretation -> optional one-step deterministic follow-up ->
  * optional bounded shadow -> existing supervisor validation -> current-state/authorization re-check
- * -> [TaskGraphApplyBridge]. Accepted reducer effects remain inert result data. This class has no
- * speech/TTS, dialing, identity-vault, proposal-policy, external-commit execution or completion
- * authority. The BOOK_APPOINTMENT user-decision and commitment-authorization methods below are
- * explicit reviewed composition boundaries: they reuse CallWorkflow and CallCommitmentGate owners
- * without creating a generic effect executor.
+ * -> [TaskGraphApplyBridge]. Accepted reducer effects remain inert result data. This class does not
+ * independently own speech/TTS, dialing, identity-vault, proposal-policy, external commitment or
+ * factual completion. The explicit BOOK_APPOINTMENT boundaries below delegate user decision,
+ * commitment and terminal outcome mutation to the existing CallWorkflow/CallCommitmentGate owners.
  */
 internal class LocalTextCallGateDProductIntegration(
     runtime: LocalTextCallGateDRuntime,
@@ -143,6 +145,7 @@ internal class LocalTextCallGateDProductIntegration(
     private var bookAppointmentApprovedProposal: CallProposal? = null
     private var bookAppointmentApprovedWorkflow: CallWorkflow? = null
     private var bookAppointmentCommitmentAuthorization: CallCommitmentAuthorization? = null
+    private var bookAppointmentCommitmentConsumptionEvidence: CallCommitmentConsumptionEvidence? = null
 
     private val shadowLifecycle: LocalTextCallGateDShadowLifecycle? =
         binding.shadowObserver?.let { observer ->
@@ -324,6 +327,7 @@ internal class LocalTextCallGateDProductIntegration(
             if (ownerProposal != pendingProposal) {
                 cancelled = true
                 clearBookAppointmentApprovalLocked()
+                clearBookAppointmentConsumptionLocked()
                 revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
                 return@synchronized rejected(
                     GateDBookAppointmentUserDecisionRejectReason.OWNER_PROPOSAL_MISMATCH,
@@ -333,10 +337,12 @@ internal class LocalTextCallGateDProductIntegration(
             currentSnapshot = staged.snapshot
             when (decision) {
                 GateDBookAppointmentUserDecision.CONFIRM -> {
+                    clearBookAppointmentConsumptionLocked()
                     bookAppointmentApprovedProposal = ownerProposal
                     bookAppointmentApprovedWorkflow = workflow
                 }
                 GateDBookAppointmentUserDecision.REJECT -> {
+                    clearBookAppointmentConsumptionLocked()
                     clearBookAppointmentApprovalLocked()
                     revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
                 }
@@ -411,9 +417,193 @@ internal class LocalTextCallGateDProductIntegration(
         GateDBookAppointmentCommitmentAuthorizationResult.Authorized(authorization)
     }
 
+    /**
+     * Records evidence emitted only after the exact app-issued one-shot permit was consumed.
+     * Consumption alone never advances TaskGraph and never completes CallWorkflow.
+     */
+    fun recordBookAppointmentCommitmentConsumption(
+        evidence: CallCommitmentConsumptionEvidence,
+    ): GateDBookAppointmentCommitmentConsumptionResult = synchronized(lock) {
+        if (closed || cancelled) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.INTEGRATION_INACTIVE,
+            )
+        }
+        if (currentSnapshot.state != BookAppointmentTaskGraph.COMMITMENT) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.GRAPH_NOT_COMMITMENT,
+            )
+        }
+        val proposal = bookAppointmentApprovedProposal
+            ?: return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.MISSING_APPROVED_PROPOSAL,
+            )
+        val workflow = bookAppointmentApprovedWorkflow
+            ?: return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.WORKFLOW_NOT_ACTIVE,
+            )
+        val workflowSnapshot = try {
+            workflow.snapshot()
+        } catch (_: Throwable) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.WORKFLOW_NOT_ACTIVE,
+            )
+        }
+        if (workflowSnapshot.state() != CallWorkflowState.ACTIVE_NEGOTIATION) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.WORKFLOW_NOT_ACTIVE,
+            )
+        }
+        if (bookAppointmentCommitmentAuthorization == null) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.COMMITMENT_NOT_ISSUED,
+            )
+        }
+        if (bookAppointmentCommitmentConsumptionEvidence != null) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.ALREADY_RECORDED,
+            )
+        }
+        val gate = binding.bookAppointmentCommitmentGate
+            ?: return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.COMMITMENT_NOT_ISSUED,
+            )
+        if (gate.hasAuthorization()) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.PERMIT_STILL_AUTHORIZED,
+            )
+        }
+        if (evidence.proposal != proposal) {
+            return@synchronized consumptionRejected(
+                GateDBookAppointmentCommitmentConsumptionRejectReason.PROPOSAL_MISMATCH,
+            )
+        }
+
+        bookAppointmentCommitmentConsumptionEvidence = evidence
+        GateDBookAppointmentCommitmentConsumptionResult.Recorded
+    }
+
+    /**
+     * Completes BOOK_APPOINTMENT only after exact commitment consumption and exact SUCCESS evidence.
+     *
+     * The COMMIT_SUCCEEDED graph transition is staged first and remains uncommitted. The existing
+     * CallWorkflow owner then records the matching outcome. Only after that owner mutation succeeds
+     * is the staged TaskGraph snapshot committed. Generic deterministic/shadow candidates are never
+     * allowed to own this transition.
+     */
+    fun completeBookAppointment(outcome: CallOutcome): GateDBookAppointmentCompletionResult {
+        var resultToNotify: TaskGraphApplyResult? = null
+        val result = synchronized(lock) {
+            if (closed || cancelled) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.INTEGRATION_INACTIVE,
+                )
+            }
+            val snapshot = currentSnapshot
+            if (snapshot.state != BookAppointmentTaskGraph.COMMITMENT) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.GRAPH_NOT_COMMITMENT,
+                )
+            }
+            val proposal = bookAppointmentApprovedProposal
+                ?: return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.MISSING_APPROVED_PROPOSAL,
+                )
+            val workflow = bookAppointmentApprovedWorkflow
+                ?: return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.WORKFLOW_NOT_ACTIVE,
+                )
+            val consumption = bookAppointmentCommitmentConsumptionEvidence
+                ?: return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.COMMITMENT_NOT_CONSUMED,
+                )
+            if (consumption.proposal != proposal) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.CONSUMED_PROPOSAL_MISMATCH,
+                )
+            }
+            val workflowSnapshot = try {
+                workflow.snapshot()
+            } catch (_: Throwable) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.WORKFLOW_NOT_ACTIVE,
+                )
+            }
+            if (workflowSnapshot.state() != CallWorkflowState.ACTIVE_NEGOTIATION) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.WORKFLOW_NOT_ACTIVE,
+                )
+            }
+            if (outcome.status() != CallOutcomeStatus.SUCCESS) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.OUTCOME_NOT_SUCCESS,
+                )
+            }
+            if (!outcomeMatchesApprovedProposal(proposal, outcome, snapshot)) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.OUTCOME_MISMATCH,
+                )
+            }
+
+            val authorizedSlotIds = try {
+                binding.authorizedSlotIdsProvider.authorizedSlotIds(snapshot).toSet()
+            } catch (_: Throwable) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.AUTHORIZATION_RECHECK_FAILED,
+                )
+            }
+            val staged = applyBridge.apply(
+                snapshot = snapshot,
+                candidate = TaskGraphApplyCandidate.deterministic(
+                    generation = snapshot.generation,
+                    transitionId = BOOK_APPOINTMENT_COMMIT_COMPLETE_TRANSITION,
+                ),
+                authorizedSlotIds = authorizedSlotIds,
+            )
+            if (staged !is TaskGraphApplyResult.Accepted) {
+                resultToNotify = staged
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.GRAPH_APPLY_REJECTED,
+                )
+            }
+            if (staged.effects.isNotEmpty()) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.UNEXPECTED_EFFECTS,
+                )
+            }
+            if (staged.snapshot.state != BookAppointmentTaskGraph.COMPLETE) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.UNEXPECTED_GRAPH_RESULT,
+                )
+            }
+
+            try {
+                workflow.complete(outcome)
+            } catch (_: Throwable) {
+                return@synchronized completionRejected(
+                    GateDBookAppointmentCompletionRejectReason.WORKFLOW_COMPLETION_FAILED,
+                )
+            }
+
+            currentSnapshot = staged.snapshot
+            bookAppointmentCommitmentAuthorization = null
+            clearBookAppointmentConsumptionLocked()
+            clearBookAppointmentApprovalLocked()
+            resultToNotify = staged
+            GateDBookAppointmentCompletionResult.Applied(
+                state = staged.snapshot.state,
+                generation = staged.snapshot.generation,
+            )
+        }
+
+        resultToNotify?.let(::notifyApplyResult)
+        return result
+    }
+
     fun cancel() {
         synchronized(lock) {
             if (!closed) cancelled = true
+            clearBookAppointmentConsumptionLocked()
             clearBookAppointmentApprovalLocked()
             revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
         }
@@ -423,6 +613,7 @@ internal class LocalTextCallGateDProductIntegration(
     override fun close() {
         val shouldClose = synchronized(lock) {
             revokeIssuedBookAppointmentCommitmentAuthorizationLocked()
+            clearBookAppointmentConsumptionLocked()
             clearBookAppointmentApprovalLocked()
             if (closed) {
                 false
@@ -440,6 +631,10 @@ internal class LocalTextCallGateDProductIntegration(
     }
 
     private fun applyCandidate(candidate: TaskGraphApplyCandidate): TaskGraphApplyResult? {
+        if (candidate.transitionId == BOOK_APPOINTMENT_COMMIT_COMPLETE_TRANSITION) {
+            // Factual completion is reserved for completeBookAppointment after exact success evidence.
+            return null
+        }
         val result = synchronized(lock) {
             if (closed || cancelled) return@synchronized null
             val snapshot = currentSnapshot
@@ -463,6 +658,30 @@ internal class LocalTextCallGateDProductIntegration(
         return result
     }
 
+    private fun outcomeMatchesApprovedProposal(
+        proposal: CallProposal,
+        outcome: CallOutcome,
+        snapshot: TaskGraphSnapshot,
+    ): Boolean {
+        val scheduledAt = proposal.scheduledAt() ?: return false
+        if (outcome.scheduledAt() != scheduledAt) return false
+        val graphAppointment = snapshot.context[BookAppointmentTaskGraph.APPOINTMENT_AT]
+            as? TaskGraphSlotValue.Text ?: return false
+        if (graphAppointment.value != scheduledAt.toString()) return false
+
+        val approvedPrice = proposal.price()
+        if (approvedPrice != null) {
+            val cost = outcome.cost() ?: return false
+            if (approvedPrice.currencyCode() != cost.currencyCode()) return false
+            if (approvedPrice.amount().compareTo(cost.amount()) != 0) return false
+        }
+        val approvedProvider = proposal.provider()
+        if (approvedProvider != null && approvedProvider != outcome.provider()) return false
+        val approvedLocation = proposal.location()
+        if (approvedLocation != null && approvedLocation != outcome.location()) return false
+        return true
+    }
+
     private fun notifyApplyResult(result: TaskGraphApplyResult) {
         try {
             binding.applyResultListener.onApplyResult(result)
@@ -474,6 +693,10 @@ internal class LocalTextCallGateDProductIntegration(
     private fun clearBookAppointmentApprovalLocked() {
         bookAppointmentApprovedProposal = null
         bookAppointmentApprovedWorkflow = null
+    }
+
+    private fun clearBookAppointmentConsumptionLocked() {
+        bookAppointmentCommitmentConsumptionEvidence = null
     }
 
     private fun revokeIssuedBookAppointmentCommitmentAuthorizationLocked() {
@@ -492,6 +715,16 @@ internal class LocalTextCallGateDProductIntegration(
     ): GateDBookAppointmentCommitmentAuthorizationResult.Rejected =
         GateDBookAppointmentCommitmentAuthorizationResult.Rejected(reason)
 
+    private fun consumptionRejected(
+        reason: GateDBookAppointmentCommitmentConsumptionRejectReason,
+    ): GateDBookAppointmentCommitmentConsumptionResult.Rejected =
+        GateDBookAppointmentCommitmentConsumptionResult.Rejected(reason)
+
+    private fun completionRejected(
+        reason: GateDBookAppointmentCompletionRejectReason,
+    ): GateDBookAppointmentCompletionResult.Rejected =
+        GateDBookAppointmentCompletionResult.Rejected(reason)
+
     private fun currentSnapshotOrNull(): TaskGraphSnapshot? = synchronized(lock) {
         if (closed || cancelled) null else currentSnapshot
     }
@@ -504,5 +737,6 @@ internal class LocalTextCallGateDProductIntegration(
     private companion object {
         val BOOK_APPOINTMENT_CONFIRM_TRANSITION = TaskGraphTransitionId("confirm-proposal")
         val BOOK_APPOINTMENT_REJECT_TRANSITION = TaskGraphTransitionId("reject-proposal")
+        val BOOK_APPOINTMENT_COMMIT_COMPLETE_TRANSITION = TaskGraphTransitionId("commit-complete")
     }
 }
