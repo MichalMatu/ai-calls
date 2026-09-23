@@ -108,14 +108,31 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         self.assertIsNone(live.call_state_or_none(adb))
         adb.call_state.assert_called_once_with()
 
-    def test_best_effort_hangup_does_not_depend_on_call_state_probe(self):
+    @mock.patch("chatgpt_relay_live_call.time.sleep")
+    def test_best_effort_hangup_retries_then_uses_telecom_fallback(self, sleep):
         adb = mock.Mock()
-        adb.call_state.side_effect = subprocess.CalledProcessError(1, ["adb", "dumpsys"])
         adb.hangup.side_effect = RuntimeError("synthetic hangup failure")
+        adb.shell.return_value = "Call ended"
 
-        self.assertFalse(live.best_effort_hangup(adb))
-        adb.hangup.assert_called_once_with()
-        adb.call_state.assert_not_called()
+        self.assertTrue(live.best_effort_hangup(adb))
+        self.assertEqual(3, adb.hangup.call_count)
+        adb.shell.assert_called_once_with(["cmd", "telecom", "end-call"], check=False)
+        self.assertEqual(2, sleep.call_count)
+
+    @mock.patch("chatgpt_relay_live_call.time.sleep")
+    def test_adb_shell_retry_recovers_from_transient_audio_probe_failure(self, sleep):
+        adb = mock.Mock()
+        adb.shell.side_effect = [
+            subprocess.CalledProcessError(255, ["adb", "shell", "dumpsys", "audio"]),
+            "Audio mode: MODE_IN_CALL",
+        ]
+
+        self.assertEqual(
+            "Audio mode: MODE_IN_CALL",
+            live.adb_shell_retry(adb, ["dumpsys", "audio"]),
+        )
+        self.assertEqual(2, adb.shell.call_count)
+        sleep.assert_called_once_with(0.25)
 
     @mock.patch("chatgpt_relay_live_call.time.sleep")
     @mock.patch("chatgpt_relay_live_call.wait_for_audio_signal")

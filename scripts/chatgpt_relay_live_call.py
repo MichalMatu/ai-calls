@@ -343,13 +343,50 @@ def call_state_or_none(adb: Adb) -> int | None:
         return None
 
 
-def best_effort_hangup(adb: Adb) -> bool:
-    """Always request hangup once dial was requested; never let cleanup mask the primary error."""
+def adb_shell_retry(
+    adb: Adb,
+    args: list[str],
+    *,
+    attempts: int = 3,
+    delay_seconds: float = 0.25,
+) -> str:
+    """Retry a narrow read-only ADB shell probe across transient transport failures."""
+    if not 1 <= attempts <= 5:
+        raise ValueError("invalid_adb_retry_attempts")
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            return adb.shell(args)
+        except (subprocess.CalledProcessError, RuntimeError) as error:
+            last_error = error
+            if attempt + 1 < attempts:
+                print(
+                    f"adb_shell_transient_retry=true,command:{' '.join(args)},attempt:{attempt + 1}",
+                    file=sys.stderr,
+                )
+                time.sleep(delay_seconds)
+    assert last_error is not None
+    raise last_error
+
+
+def best_effort_hangup(adb: Adb, attempts: int = 3) -> bool:
+    """Retry transient hangup failures and fall back to telecom end-call."""
+    if not 1 <= attempts <= 5:
+        raise ValueError("invalid_hangup_attempts")
+    for attempt in range(attempts):
+        try:
+            adb.hangup()
+            return True
+        except Exception as error:
+            print(f"hangup_error={error}", file=sys.stderr)
+            if attempt + 1 < attempts:
+                time.sleep(0.25)
     try:
-        adb.hangup()
+        adb.shell(["cmd", "telecom", "end-call"], check=False)
+        print("hangup_telecom_fallback_requested=true", file=sys.stderr)
         return True
     except Exception as error:
-        print(f"hangup_error={error}", file=sys.stderr)
+        print(f"hangup_telecom_fallback_error={error}", file=sys.stderr)
         return False
 
 
@@ -411,7 +448,7 @@ def _require_preflight(adb: Adb, *, known_call_state: int) -> None:
     if not is_direct_usb_target(devices, adb.serial or ""):
         raise RuntimeError("ChatGPT relay requires exact direct USB S22 target")
     bluetooth = adb.shell(["settings", "get", "global", "bluetooth_on"]).strip()
-    audio_dump = adb.shell(["dumpsys", "audio"])
+    audio_dump = adb_shell_retry(adb, ["dumpsys", "audio"])
     snapshot = validate_live_preflight(
         serial=adb.serial or "",
         devices_output=devices,
