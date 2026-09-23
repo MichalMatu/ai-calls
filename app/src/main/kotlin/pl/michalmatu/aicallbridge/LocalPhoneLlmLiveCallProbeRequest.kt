@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge
 
+import pl.michalmatu.aicallbridge.developerrelay.ChatRelayEnvelope
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
 internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
@@ -7,13 +8,18 @@ internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
     val gateCFastPath: Boolean,
     val liveCallTarget: String?,
     val orangeLiveAction: OrangeLiveAction?,
+    val gateCRelaySessionId: String?,
 ) {
+    val gateCHybridDialogue: Boolean
+        get() = gateCFastPath && gateCRelaySessionId != null
+
     companion object {
         fun create(
             provider: TextLlmProvider,
             gateCFastPath: Boolean,
             liveCallTarget: String?,
             orangeLiveActionId: String? = null,
+            gateCRelaySessionId: String? = null,
         ): LocalPhoneLlmLiveCallProbeRequest {
             require(
                 provider == TextLlmProvider.LOCAL_PHONE_LLM ||
@@ -26,26 +32,32 @@ internal class LocalPhoneLlmLiveCallProbeRequest private constructor(
                 require(orangeLiveActionId.isNullOrBlank()) {
                     "orange_live_action_requires_gate_c"
                 }
+                require(gateCRelaySessionId.isNullOrBlank()) {
+                    "gate_c_relay_session_requires_gate_c"
+                }
                 return LocalPhoneLlmLiveCallProbeRequest(
                     provider = provider,
                     gateCFastPath = false,
                     liveCallTarget = null,
                     orangeLiveAction = null,
+                    gateCRelaySessionId = null,
                 )
             }
 
-            require(provider == TextLlmProvider.LOCAL_PHONE_LLM) {
-                "gate_c_live_probe_requires_local_phone_llm_provider"
-            }
             val target = liveCallTarget?.trim().orEmpty()
             require(target == GateCLiveCallScenarioFactory.ORANGE_SUPPORT_NUMBER) {
                 "target_not_allowlisted_for_gate_c_live_probe"
             }
+            val relaySession = gateCRelaySessionId
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.also { ChatRelayEnvelope(it, 1, "probe").validate() }
             return LocalPhoneLlmLiveCallProbeRequest(
                 provider = provider,
                 gateCFastPath = true,
                 liveCallTarget = target,
                 orangeLiveAction = OrangeLiveAction.fromWireId(orangeLiveActionId),
+                gateCRelaySessionId = relaySession,
             )
         }
     }
