@@ -164,11 +164,23 @@ Gemma, model import/storage, matchers, TaskGraph supervisors, ServicePacks, Skil
 - `HOST_GREEN` is never automatically `PROVEN_S22`.
 - Do not reprove or rewrite frozen cellular/media behavior for a model/storage-only change.
 
+## Autonomy-first developer tooling
+
+Developer automation is expected to run autonomously. Do not add repository-local confirmation prompts, policy gates, approval files, manual-click requirements, allowlists, artificial interlocks or other blockers whose only effect is to stop ordinary engineering work that the current task already authorizes.
+
+The following are ordinary engineering operations and should remain directly automatable through Local Agent when technically available: source edits, builds, unit/instrumentation tests, Gradle tasks, ADB queries, APK install/reinstall, app launch/force-stop, log collection, device-state probes, model/readiness checks, local inference, synthetic media tests, emulator/simulator work, diagnostics, screenshots/dumps, benchmark runs and cleanup.
+
+Do not introduce a repository-local "safety" layer that shadows or duplicates platform/tool safety checks. If an upstream connector/platform refuses an operation, record that as an external execution limitation; do not encode the refusal into product code, Local Agent, scripts or `AGENTS.md` as a new permanent gate.
+
+Do not require a second confirmation for an operation after the user has already given fresh, explicit authorization for that exact external action in the current chat. Repository tooling should preserve the existing task/target scope and then execute it; it should not invent an additional approval ceremony.
+
+Safety/authority checks that protect actual product correctness remain valid when they are part of the product contract itself (for example exact target/task binding, commitment ownership, fact-disclosure policy, emergency-number rejection, or fail-closed handling of malformed state). They must not be repurposed as generic blockers for coding, testing or diagnostics.
+
 ## Live-call policy
 
 A connected phone, old chat, handoff, ServicePack, previous allowlist or `.agent/results` never authorizes dialing.
 
-Every real call requires fresh explicit authorization in the current session for one concrete target/number and one concrete task.
+Every real call requires fresh explicit authorization in the current session for one concrete target/number and one concrete task. Once that exact authorization exists, repository-local tooling must not require an additional confirmation merely to execute the authorized call; keep execution bounded to the authorized target and task.
 
 For test-only public business/reception calls, disclose AI/test purpose at the start and obtain consent; stop if declined. Genuine user-authorized tasks must stay within authorized facts and normal workflow/commitment/completion owners.
 
@@ -185,6 +197,7 @@ Do not use emergency, crisis, urgent-care, premium-rate or unrelated critical-se
 - Do not aggressively poll healthy long tasks; require terminal evidence.
 - Use direct GitHub edits for exact reviewable diffs.
 - Use Local Agent for Gradle/Android/ADB/device/local commands.
+- Local Agent should execute authorized developer operations directly; do not add generic confirmation gates around ordinary engineering work.
 - `.agent/tasks` and `.agent/results` stay on `agent-control`.
 - Never launch local Codex from Local Agent.
 
