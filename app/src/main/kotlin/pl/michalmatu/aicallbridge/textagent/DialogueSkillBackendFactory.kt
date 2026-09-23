@@ -11,20 +11,18 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
  * call authority. Exact spoken text remains in [DialogueSkillPolicy].
  */
 internal object DialogueSkillBackendFactory {
-    @Suppress("UNUSED_PARAMETER")
     fun create(
         context: Context,
         provider: TextLlmProvider,
         policy: DialogueSkillPolicy,
         observer: DialogueSkillDecisionObserver? = null,
-        edgeGalleryBearerToken: String? = null,
     ): TextCallAgentBackend {
         val prompt = DialogueSkillCatalog.systemPrompt(policy.allowedSkills)
         val classifier = when (provider) {
             TextLlmProvider.LOCAL_PHONE_LLM ->
                 LocalPhoneLlmBackendFactory.create(context.applicationContext, prompt)
 
-            TextLlmProvider.EDGE_GALLERY ->
+            TextLlmProvider.LOCAL_GEMMA_4 ->
                 Gemma4LiteRtTextBackendFactory.createSkillClassifier(
                     context = context.applicationContext,
                     systemInstruction = prompt,
