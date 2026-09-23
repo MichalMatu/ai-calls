@@ -81,6 +81,24 @@ No telephony, microphone, STT/TTS or call-media session was started for this pro
 
 Edge Gallery/ADB may still be used as development sources for already-downloaded bytes, but neither is a production runtime dependency. No arbitrary network model URL or downloader authority has been introduced.
 
+## Model readiness — PROVEN_S22
+
+The app exposes one cheap application-owned readiness result for the active Gemma file: `MISSING / INVALID / READY`. It reuses `Gemma4ModelCatalog` and expected size metadata; it does **not** hash the 2.6 GB model on every turn. Full SHA-256 verification stays at import/activation time.
+
+For product local-text-call preparation, `LOCAL_GEMMA_4` readiness is checked before speech preflight and backend construction. Missing/invalid model state therefore fails deterministically before STT/TTS or LiteRT engine initialization. The main UI reports the same state.
+
+Physical S22 proof showed:
+
+```text
+Gemma 4 model: READY (2588147712 bytes)
+state=READY bytes=2588147712 reason=none
+skill=ACKNOWLEDGE_NEUTRAL confidence=0.95 reason=Potwierdzenie odbioru telefonu
+```
+
+No telephony/media path was started. Host tests cover `MISSING`, `INVALID` and `READY`; the physical test exercised the existing valid app-owned model without destructively corrupting it.
+
+The audit also found explicit developer/diagnostic constructors (including Gate C hybrid/live-probe tooling). They are not product readiness owners and backend construction itself does not initialize LiteRT. Product session preparation is the fail-closed owner.
+
 ## Verification
 
 Current Gemma/model-lifecycle/provider work has:

@@ -53,7 +53,13 @@ Rules:
 - Edge Gallery/ADB may be development sources for bytes but never runtime authority or a required production dependency;
 - model import does not grant dial, disclosure, commitment, completion or speech-release authority.
 
-This import/activation boundary is `HOST_GREEN / PENDING_PHYSICAL` until exercised on the S22 filesystem.
+This import/activation boundary is `HOST_GREEN / PROVEN_S22` on the S22 filesystem.
+
+## Model readiness fail-closed rule
+
+The active model has one application-owned readiness result: `MISSING / INVALID / READY`. Ordinary readiness uses cheap pinned catalog metadata (including expected size); full SHA-256 remains mandatory before activation/import. A missing or invalid `LOCAL_GEMMA_4` model fails product call preparation before STT/TTS/backend construction and before lazy LiteRT engine initialization. Readiness is data, not authority.
+
+Developer/diagnostic backend constructors do not become product readiness owners. Their existence never grants dialing permission, and every real call still requires the separate fresh live-call authorization gate.
 
 ## Identity and disclosure
 
@@ -183,4 +189,4 @@ stop accepting/releasing AI output
 
 `HOST_GREEN` is not `PROVEN_S22`. Compiled/packaged instrumentation is not a physical device proof. A device being connected is not live-call authorization.
 
-Gate D and the prior direct Gemma no-call runtime have physical S22 proof. The newly changed Gemma SAF import/atomic-activation boundary remains `PENDING_PHYSICAL` until successful terminal execution on the S22.
+Gate D, direct Gemma no-call runtime, SAF import/atomic activation and the `MISSING / INVALID / READY` readiness boundary have physical S22 proof for their stated successful paths. Host tests cover missing/invalid readiness without destructively corrupting the physical model.

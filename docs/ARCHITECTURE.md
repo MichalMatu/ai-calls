@@ -82,6 +82,21 @@ Activation is fail-closed. Empty/wrong/unreadable input, write failure or atomic
 
 The lifecycle is **PROVEN_S22**. Physical proof exercised the app UI + Android SAF, exact SHA verification, app-owned destination replacement and post-import direct LiteRT inference. The filesystem accepted the required atomic replacement; staging was absent after success.
 
+## Gemma model readiness
+
+The product preparation boundary reuses one application-owned readiness result:
+
+```text
+app-owned active model + Gemma4ModelCatalog expected metadata
+ -> MISSING / INVALID / READY
+ -> LOCAL_GEMMA_4 product preparation
+ -> only READY may continue to speech preflight/backend construction
+```
+
+This is intentionally cheaper than import-time identity verification: full SHA-256 is verified before activation, while ordinary readiness checks existence/readability/expected size. UI and product preparation use the same result. Backend object construction does not itself initialize LiteRT; native engine initialization remains lazy at generation time.
+
+The readiness boundary is `HOST_GREEN / PROVEN_S22`. Developer/diagnostic backend constructors are evidence tooling, not alternate product readiness owners.
+
 ## TaskGraph and apply boundary
 
 `CustomTaskGraphCore` owns typed bounded conversational state, legal transitions, validated non-secret slots, recovery, immutable snapshots, effects-as-data and replay evidence.
@@ -197,6 +212,6 @@ Neither TaskGraph, model/runtime/model import/readiness, shadow/supervisor, Call
 
 ## Next gate
 
-The next generic engineering gate is application-owned Gemma readiness semantics: a selected/startable `LOCAL_GEMMA_4` provider should expose missing/invalid/ready model state before LiteRT engine initialization, reusing the pinned model identity and existing installer boundary. Acquisition source remains separate from activation authority; do not invent an arbitrary model URL.
+The next generic engineering gate is a reviewed Gemma acquisition-source contract: determine authoritative artifact source, licensing/terms, authentication and stable version/identity semantics before deciding whether to add a downloader. Any acquisition implementation must terminate at the existing verified `Gemma4ModelInstaller` boundary and cannot become runtime or authority.
 
 A live acceptance call is a separate authority gate and requires fresh explicit authorization for one concrete target/number and one concrete task in the current session before any dialing action.

@@ -105,19 +105,35 @@ classifier error -> injected fallback -> source=CHAT_RELAY
 
 ChatRelay remains developer/injected-response fallback infrastructure, not product runtime authority.
 
+## Model readiness gate — PROVEN_S22
+
+Application-owned Gemma readiness is complete for the current product boundary:
+
+1. `Gemma4ModelReadinessProbe` reports `MISSING / INVALID / READY` from the pinned catalog identity and cheap file metadata;
+2. import-time SHA-256 remains the strong identity verification, avoiding a 2.6 GB hash on each call/turn;
+3. `AndroidTextCallReadiness` fails `LOCAL_GEMMA_4` preparation before STT/TTS/backend construction when readiness is not `READY`;
+4. `MainActivity` exposes the same semantic state;
+5. host tests cover all three states and ordering;
+6. physical S22 UI/readiness contract returned `READY` for exactly 2,588,147,712 bytes;
+7. the subsequent no-call Gemma skill inference remained green.
+
+Evidence: `.agent/results/chatgpt-gemma4-readiness-s22-v145-20260923.json` with `GEMMA4_READINESS_S22_GREEN=true`.
+
+Audit classification: product call preparation owns fail-closed readiness. Developer/diagnostic constructors such as Gate C hybrid/live-probe tooling may construct a backend directly, but construction itself does not initialize LiteRT and those paths are not product readiness authority.
+
 ## Next product engineering gate
 
-The model runtime and manual app-owned SAF lifecycle are now proven. The next generic gap is **product readiness/acquisition semantics**, not another runtime rewrite:
+The next generic gap is **reviewed model acquisition-source semantics**, not a runtime rewrite and not an arbitrary downloader URL:
 
-1. audit where `LOCAL_GEMMA_4` can be selected/started without a verified active model;
-2. define one application-owned readiness result for missing/invalid/ready model state using the pinned catalog identity;
-3. surface that readiness consistently in UI/session preparation instead of waiting for LiteRT engine initialization to fail;
-4. keep acquisition source separate from activation authority — do not invent an arbitrary network URL;
-5. if a reviewed downloader/source catalog is added later, feed its bytes into the existing verified `Gemma4ModelInstaller` boundary;
-6. preserve all existing dialogue/authority/output-approval rules;
-7. verify host/package first and run only the physical no-call gate required by any changed Android readiness/UI boundary.
+1. audit authoritative Gemma 4 E2B LiteRT distribution sources and the exact artifact identity currently used;
+2. record license/terms, authentication or entitlement requirements, redirect/version behavior and whether a stable machine-download contract exists;
+3. decide whether product acquisition should remain explicit SAF import or add one reviewed downloader/source catalog;
+4. if a downloader is justified, it may only stream candidate bytes into the existing proven `Gemma4ModelInstaller` boundary;
+5. source metadata or transport must never override pinned model identity, activation checks or application authority;
+6. do not embed user credentials/tokens in Git or Local Agent evidence;
+7. verify host/package before any changed Android acquisition UI/network physical gate.
 
-A bounded live acceptance call remains technically eligible for consideration, but it is a separate authorization gate and is not an automatic roadmap step.
+A bounded live acceptance call remains a separate authorization gate and is not an automatic roadmap step.
 
 ## Authority invariant
 

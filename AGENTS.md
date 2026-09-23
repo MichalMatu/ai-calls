@@ -21,13 +21,13 @@ Do not create a status document for every experiment. Keep durable decisions in 
 
 ## Current priority
 
-Gate D `BOOK_APPOINTMENT` is finished: `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
+Gate D `BOOK_APPOINTMENT` remains `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
 
-Dialogue resilience with direct Gemma 4 is implemented: response-temperature routing and synthetic hybrid failover are `HOST_GREEN`; earlier direct Gemma 4 no-call inference is `PROVEN_S22`.
+Gemma 4 dialogue resilience, direct no-call inference, application-owned SAF lifecycle, provider cleanup and model readiness semantics are now `HOST_GREEN / PROVEN_S22`.
 
-The immediate active gate is now **physical validation of the new application-owned Gemma model importer**, which is `HOST_GREEN / PENDING_PHYSICAL`.
+The next generic gate is **reviewed model acquisition-source semantics**. Audit official/distributable source identity, licensing/terms, authentication and transport before implementing any downloader. Any future acquisition path may only feed bytes into the already-proven `Gemma4ModelInstaller`; it does not become runtime or authority.
 
-Do not start another live call for this gate.
+Do not start a live call for this gate.
 
 ## Dialogue architecture
 
@@ -59,7 +59,7 @@ Do not revive the disproven Edge Gallery HTTP `127.0.0.1:8080` path. Runtime is 
 
 Edge Gallery/ADB may be used only as development sources for bytes, never as production runtime authority or a required dependency.
 
-## Application-owned model lifecycle
+## Application-owned model lifecycle and readiness
 
 The reviewed import boundary is:
 
@@ -70,13 +70,17 @@ Android SAF source
  -> app-owned sibling staging file
  -> streaming pinned SHA-256
  -> flush + fsync
- -> atomic same-filesystem replacement request
+ -> atomic same-filesystem replacement
  -> active app-owned model path
 ```
 
-The importer is fail-closed. Wrong/empty/unreadable source, write failure, hash mismatch or activation failure must not replace the previous active model. Do not add a silent non-atomic overwrite fallback if Android external-files rejects `ATOMIC_MOVE`; isolate the physical filesystem root cause first.
+Import/activation is fail-closed and `PROVEN_S22`. Ordinary readiness is deliberately cheap and uses the pinned catalog identity plus expected file metadata rather than hashing 2.6 GB every turn:
 
-Current lifecycle state is `HOST_GREEN / PENDING_PHYSICAL`. The next physical S22 proof must use the application UI/SAF importer for destination activation, then rerun the no-call Gemma skill contract with terminal `skill/confidence/reason`.
+```text
+MISSING / INVALID / READY
+```
+
+`LOCAL_GEMMA_4` product call preparation checks this readiness before STT/TTS and before backend construction. UI exposes the same semantic state. Full SHA-256 remains an import-time verification boundary. Developer diagnostic factories are not product readiness owners; merely constructing a Gemma backend still does not create a LiteRT engine.
 
 ## Skills
 
