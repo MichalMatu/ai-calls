@@ -4,21 +4,33 @@ Android prototype for bridging an ordinary cellular call on a stock Samsung Gala
 
 ## Current status
 
-Gate D (`BOOK_APPOINTMENT`) is **complete for all work that can be proven without a phone**.
+Gate D (`BOOK_APPOINTMENT`) is **DONE / HOST_GREEN / PROVEN_S22** for the reviewed no-call product boundary.
 
 ```text
-implementation             HOST_COMPLETE
+implementation             DONE
 canonical host gate         GREEN
-Android instrumentation APK GREEN / PACKAGED
-latest new device boundary  PENDING_PHYSICAL
-live acceptance call        NOT AUTHORIZED / NOT RUN
+Android instrumentation     PROVEN_S22
+final owner boundaries      PROVEN_S22
+live acceptance call        SEPARATE AUTHORIZATION GATE
 ```
 
-The remaining device gap is not a known product failure: Local Agent task `chatgpt-gated-s22-deferred-completion-proof-v039-20260923` stopped before Gradle because ADB could not find `RFCT70L7E8J`, and `chatgpt-gated-adb-inventory-v040-20260923` confirmed an empty device list.
+Latest physical evidence:
+
+```text
+chatgpt-gated-s22-final-owner-proofs-v049-20260923
+DEFERRED_COMPLETION_BINDING_S22_PROVEN=true
+BOOK_APPOINTMENT_COMPLETION_S22_PROVEN=true
+FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
+
+chatgpt-gated-s22-commitment-regression-v050-20260923
+BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
+```
+
+Those tests ran physically on the target S22 and made no cellular call.
 
 ## Gate D product boundary
 
-The reviewed product path now covers the whole bounded owner chain:
+The reviewed owner chain is:
 
 ```text
 finalized STT text OR explicit synthetic finalized text
@@ -37,60 +49,57 @@ finalized STT text OR explicit synthetic finalized text
  -> commit staged TaskGraph COMPLETE snapshot only after workflow success
 ```
 
-Important invariants:
+Hard invariants:
 
 - `permit issued != permit consumed != business success confirmed`;
-- a generic deterministic/shadow `commit-complete` candidate cannot own factual completion;
+- generic deterministic/shadow `commit-complete` candidates cannot own factual completion;
 - default/public `CallPlan` completion behavior is unchanged; deferral requires explicit reviewed product binding;
-- the public Android `LocalTextCallSession.create(...)` path does not automatically bind Gate D product execution;
-- no generic effect executor was introduced;
+- public `LocalTextCallSession.create(...)` does not automatically activate Gate D product execution;
+- no generic effect/completion executor exists;
 - model/parser/shadow/storage/reducer/synthetic input do not own dialing, target widening, plaintext disclosure, speech/TTS release, user confirmation, commitment or factual completion;
 - accepted graph effects remain inert data until an existing application owner consumes them.
 
-The implementation also includes the application-owned `CustomTaskGraphCore`, replay/evidence, `TaskGraphApplyBridge`, reusable `AppointmentInterpreter`, categorical `DialogueFit` + hysteresis, bounded shadow/supervisor validation, `AuthorizedFactSnapshot` / `FactDisclosurePolicy`, host `PersistentIdentityVault`, and Android Keystore-backed IdentityVault storage.
+The implementation also includes `CustomTaskGraphCore`, deterministic replay/evidence, `TaskGraphApplyBridge`, reusable `AppointmentInterpreter`, categorical `DialogueFit` + hysteresis, bounded shadow/supervisor validation, `AuthorizedFactSnapshot` / `FactDisclosurePolicy`, host `PersistentIdentityVault`, and Android Keystore-backed IdentityVault storage.
 
 ## Verification checkpoint
 
-Final no-phone code checkpoint before this documentation close-out:
+Final no-phone code checkpoint:
 
 ```text
 cefe6492c7e714a8124e08cb1f42a68554955832
 ```
 
-Evidence:
+No-phone documentation checkpoint before device proof:
 
-- `chatgpt-gated-book-appointment-completion-red-v041-20260923` — expected RED on missing completion-owner APIs;
-- `chatgpt-gated-book-appointment-completion-green-v042-20260923` — targeted GREEN;
-- `chatgpt-gated-book-appointment-completion-canonical-v043-20260923` — canonical GREEN for factual completion owner;
-- `chatgpt-gated-android-completion-contract-build-v044-20260923` — Android completion contract compiled/packaged;
-- `chatgpt-gated-final-canonical-v045-20260923` — `FINAL_GATE_D_NO_PHONE_CANONICAL_GREEN=true`.
+```text
+39b2749f85b51a9cb533631326ce1fec4439ca10
+```
 
-Ready Android instrumentation contracts include:
+Canonical evidence includes:
 
-- `AndroidGateDDeferredCompletionBindingContractTest`;
-- `AndroidGateDBookAppointmentCompletionContractTest`;
-- existing `AndroidGateDBookAppointmentCommitmentContractTest` regression.
+- `BOOK_APPOINTMENT_COMPLETION_RED=true`;
+- `BOOK_APPOINTMENT_COMPLETION_GREEN=true`;
+- `BOOK_APPOINTMENT_COMPLETION_CANONICAL_GREEN=true`;
+- `ANDROID_COMPLETION_CONTRACT_PACKAGED=true`;
+- `FINAL_GATE_D_NO_PHONE_CANONICAL_GREEN=true`;
+- Android CI #546 and #547 success.
 
 ## Physical proof status
 
-Already physically proven on the target S22 without a cellular call:
+Physically `PROVEN_S22` without making a cellular call:
 
-- Android IdentityVault — `PROVEN_S22`;
-- synthetic reviewed Gate D product ingress — `PROVEN_S22`;
-- `BOOK_APPOINTMENT` proposal -> confirmation -> explicit user confirmation -> one-shot permit issuance — `PROVEN_S22 (no-call)`.
+- Android IdentityVault;
+- synthetic reviewed Gate D product ingress;
+- BOOK_APPOINTMENT proposal -> confirmation -> explicit user confirmation -> one-shot permit issuance;
+- reviewed deferred-completion binding;
+- factual BOOK_APPOINTMENT completion owner;
+- commitment regression after the final owner proof.
 
-The newer deferred-completion and factual-completion owner boundaries are **not** labeled `PROVEN_S22` until their instrumentation tests actually run on the phone.
+## Next gate
 
-## Next exact gate
+PR #5 can be merged after the fresh CI/mergeability re-check for this proof documentation update. After merge, delete `gate-d-taskgraph-core` and continue from `main`.
 
-When the S22 is available again:
-
-1. run the focused no-call Android deferred-completion and full BOOK_APPOINTMENT completion contracts;
-2. if both pass, update evidence to `PROVEN_S22`;
-3. re-check PR #5, merge `gate-d-taskgraph-core` to `main` if clean, then delete the work branch;
-4. only after that consider a bounded live acceptance call.
-
-A real call always requires fresh explicit authorization for the concrete target and task in the current chat/session. Documentation, old Local Agent results, a connected phone, or prior calls never carry that authorization forward.
+A live acceptance call is intentionally separate. It requires fresh explicit authorization for the concrete target and task in the current chat/session; a connected phone, successful tests, documentation or prior calls do not grant that authority.
 
 ## Frozen foundation
 
@@ -122,5 +131,3 @@ Canonical local gate:
 ```bash
 bash scripts/verify_host.sh
 ```
-
-It compiles/packages instrumentation tests but does not substitute for physical S22 execution.
