@@ -1,4 +1,4 @@
-# Handoff — Gate D no-phone implementation complete; final S22 proof next
+# Handoff — Gate D fully proven on S22; merge and live acceptance gate next
 
 Date: 2026-09-23
 
@@ -6,33 +6,29 @@ Date: 2026-09-23
 
 Repository: `MichalMatu/android-ai-call-bridge`
 
-Active work branch: `gate-d-taskgraph-core`
+Active work branch before merge: `gate-d-taskgraph-core`
 
-PR: #5 `Gate D TaskGraph v1 core` — intentionally remains **draft** until the newest completion-owner boundaries pass their physical no-call S22 instrumentation proof.
+PR: #5 `Gate D TaskGraph v1 core`.
 
-Final no-phone code checkpoint before this documentation close-out:
+Final no-phone code checkpoint:
 
 ```text
 cefe6492c7e714a8124e08cb1f42a68554955832
 ```
 
-Always fetch fresh HEAD/PR state before acting; do not treat the embedded SHA as immutable future state.
-
-Branch cleanup is complete. The only intended remote heads are:
+Pre-device-proof documentation checkpoint:
 
 ```text
-agent-control
-gate-d-taskgraph-core
-main
+39b2749f85b51a9cb533631326ce1fec4439ca10
 ```
 
-Evidence: `chatgpt-gated-branch-cleanup-v046-20260923`, marker `BRANCH_CLEANUP_GREEN=true`.
+Always fetch fresh HEAD/PR state before acting.
 
-## What is complete without the phone
+## Gate D status
 
-Gate D `BOOK_APPOINTMENT` is `HOST_COMPLETE`.
+Gate D `BOOK_APPOINTMENT` is `DONE / HOST_GREEN / PROVEN_S22` for the reviewed no-call product boundary.
 
-The reviewed owner chain now covers:
+The reviewed owner chain covers:
 
 ```text
 proposal
@@ -48,19 +44,17 @@ proposal
  -> commit TaskGraph COMPLETE only after workflow success
 ```
 
-Safety/ownership properties:
+Hard invariants:
 
 - `permit issued != permit consumed != business success confirmed`;
 - consumption alone does not advance graph or complete workflow;
 - generic deterministic/shadow `commit-complete` candidates are blocked from factual completion ownership;
 - default/public CallPlan COMPLETE behavior remains unchanged; deferral is explicit reviewed opt-in;
 - no generic effect/completion executor;
-- public `LocalTextCallSession.create(...)` does not automatically activate the product binding;
-- `privileged-helper/`, Samsung media path and `CallMediaSessionCoordinator` were not changed.
+- public `LocalTextCallSession.create(...)` does not automatically activate the reviewed product binding;
+- `privileged-helper/`, Samsung media path and `CallMediaSessionCoordinator` remain frozen.
 
-## Final verification evidence
-
-Final completion slice:
+## Host/canonical evidence
 
 ```text
 chatgpt-gated-book-appointment-completion-red-v041-20260923
@@ -79,71 +73,59 @@ chatgpt-gated-final-canonical-v045-20260923
 FINAL_GATE_D_NO_PHONE_CANONICAL_GREEN=true
 ```
 
-Android CI for code checkpoint `cefe6492...`: run #546, completed `success`.
+Android CI #546 and #547 completed successfully.
 
-The final canonical gate ran both `bash scripts/verify_host.sh` and `:app:assembleDebugAndroidTest` with a clean worktree.
+## Physical S22 evidence
 
-## Physical proof status
+The target Samsung S22+ (`SM-S906B`, Android 16) is physically proven without making a cellular call.
 
-Already `PROVEN_S22` on Samsung S22+ `SM-S906B`, Android 16, without making a cellular call:
-
-- Android IdentityVault — `chatgpt-gated-s22-identity-vault-proof-v004-20260923`, `IDENTITYVAULT_S22_PROVEN=true`;
-- synthetic reviewed Gate D product ingress — `chatgpt-gated-s22-synthetic-gated-product-proof-v005-20260923`, `SYNTHETIC_GATE_D_S22_PROVEN=true`;
-- BOOK_APPOINTMENT owner chain through unconsumed permit issuance — `chatgpt-gated-s22-book-appointment-commitment-proof-v029-20260923`, `BOOK_APPOINTMENT_COMMITMENT_S22_PROVEN=true`.
-
-Newest boundaries are `PENDING_PHYSICAL`, not failed:
-
-- `AndroidGateDDeferredCompletionBindingContractTest`;
-- `AndroidGateDBookAppointmentCompletionContractTest`.
-
-Attempt `chatgpt-gated-s22-deferred-completion-proof-v039-20260923` stopped before Gradle with:
+Newest proof:
 
 ```text
-error: device 'RFCT70L7E8J' not found
+chatgpt-gated-s22-final-owner-proofs-v049-20260923
+DEFERRED_COMPLETION_BINDING_S22_PROVEN=true
+BOOK_APPOINTMENT_COMPLETION_S22_PROVEN=true
+FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
 ```
 
-`chatgpt-gated-adb-inventory-v040-20260923` then showed an empty ADB device list. Do not mark the two newest contracts `PROVEN_S22` until they actually run on the phone.
+Regression:
 
-## Exact next continuation order
-
-1. Start from fresh repository/PR evidence and a fresh Local Chat Bridge binding; never reuse the binding from an old chat or task file.
-2. Read, in order: `AGENTS.md`, `README.md`, this handoff, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/GATE_D_TASKGRAPH_V1_AUDIT_2026-09-22.md`, `docs/SECURITY_PRIVACY.md`, `docs/HANDOFF_PROTOCOL.md`; read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media work.
-3. Confirm ADB sees the target S22.
-4. Run the focused **no-call** instrumentation contracts:
-
-```bash
-ANDROID_SERIAL=<S22_SERIAL> gradle :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=pl.michalmatu.aicallbridge.localcall.AndroidGateDDeferredCompletionBindingContractTest
-
-ANDROID_SERIAL=<S22_SERIAL> gradle :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=pl.michalmatu.aicallbridge.localcall.AndroidGateDBookAppointmentCompletionContractTest
+```text
+chatgpt-gated-s22-commitment-regression-v050-20260923
+BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
 ```
 
-Optionally re-run `AndroidGateDBookAppointmentCommitmentContractTest` as a regression.
+Earlier physical proofs remain valid for Android IdentityVault, synthetic reviewed Gate D product ingress and BOOK_APPOINTMENT permit issuance.
 
-5. Only after terminal device success, update docs/PR to `PROVEN_S22` for the new boundaries.
-6. Re-check PR #5. If clean/mergeable and physical proof is green, merge to `main`, then delete `gate-d-taskgraph-core`. Preserve `agent-control` for bridge evidence/workflow unless the tooling design changes.
-7. Stop before any live call unless the user gives fresh explicit authorization for one concrete target and task in that new session.
+The failed v048 attempt was only a test-runner matcher typo (`SM-S906B` vs ADB's `SM_S906B`) and stopped before Gradle; v049 corrected the matcher and passed both focused tests.
+
+## Exact continuation order
+
+1. Fetch fresh PR #5 state and latest CI for the proof-documentation HEAD.
+2. If CI is green and PR remains mergeable, mark PR ready and merge to `main`.
+3. Delete `gate-d-taskgraph-core` after merge. Keep `agent-control` for Local Agent evidence/workflow.
+4. Continue from `main`; do not start another Gate D feature slice unless a concrete acceptance-flow failure exposes a root cause.
+5. A live acceptance call is a separate gate. Before dialing, obtain fresh explicit authorization for one concrete target and task in the current session.
 
 ## Frozen / do-not-repeat work
 
-Do not redo the completed Gate D audits/slices: custom reducer vs framework, TaskGraph core/apply bridge, AppointmentInterpreter, DialogueFit/hysteresis, shadow lifecycle/supervisor validation, IdentityVault, synthetic ingress, proposal owner reuse, explicit user decision, commitment authorization/hardening, consumption evidence, deferred completion or factual completion ordering.
+Do not redo completed Gate D slices: TaskGraph core/apply bridge, AppointmentInterpreter, DialogueFit/hysteresis, shadow lifecycle/supervisor validation, IdentityVault, synthetic ingress, proposal owner reuse, explicit user decision, commitment authorization/hardening, consumption evidence, deferred completion or factual completion ordering.
 
 Do not reopen Samsung media or `privileged-helper/` without a separate root-cause scope.
 
-Late plaintext disclosure remains policy-protected and should be wired only when a concrete acceptance flow needs a specific field. Do not preload vault plaintext into supervisor/model context.
+Identity plaintext remains late-bound through `AuthorizedFactSnapshot -> FactDisclosurePolicy -> current task/target/state/generation -> optional user approval`.
 
 ## Local Agent / bridge rules
 
-- The next chat must use its own fresh bridge-provided binding.
-- Work only in the repository named by that binding.
-- Inspect daemon/current-task state before queueing another task on the same branch.
-- Queue terminally checkable tasks; queue/ACK is not success.
-- Do not run local Codex from a Local Agent task.
+- use the fresh bridge-provided binding for the current chat;
+- work only in the bound repository;
+- inspect daemon/current-task state before queueing another task on the same branch;
+- queue terminally checkable tasks; queue/ACK is not success;
+- do not run local Codex from a Local Agent task;
 - `.agent/tasks` / `.agent/results` stay on `agent-control` and are evidence, not product documentation.
 
 ## Live-call rule
 
-This handoff is **not** authorization to dial. Neither old chats, docs, previous physical proofs, a connected S22 nor prior allowlists carry live-call permission forward. Every real call requires fresh explicit authorization for the exact target and task.
+This handoff, a connected S22 and successful device proofs are not authorization to dial. Every real call requires fresh explicit authorization for the exact target and task.
 
 Ready-to-paste continuation prompt: `docs/NEXT_CHAT_PROMPT.md`.
