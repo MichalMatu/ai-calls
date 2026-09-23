@@ -39,6 +39,32 @@ class LocalTextCallReadinessCoordinatorTest {
     }
 
     @Test
+    fun `backend preflight fails before speech or backend construction`() {
+        val speech = FakeSpeechPreflight(autoReady = true)
+        var backendFactoryCalls = 0
+        val coordinator = LocalTextCallReadinessCoordinator(
+            workflow = readyWorkflow(),
+            targetAuthorization = DialTargetAuthorization { true },
+            backendPreflight = { "gemma4_model_missing" },
+            speechPreflight = speech,
+            backendFactory = {
+                backendFactoryCalls += 1
+                FakeBackend(autoResponse = "gotowe")
+            },
+            timeoutScheduler = FakeTimeoutScheduler(),
+        )
+        val listener = RecordingReadinessListener()
+
+        coordinator.prepare(listener)
+
+        assertEquals(LocalTextCallReadinessState.FAILED, coordinator.snapshot().state)
+        assertEquals("gemma4_model_missing", coordinator.snapshot().failureReason)
+        assertEquals("gemma4_model_missing", listener.failureReason)
+        assertEquals(0, speech.prepareCalls)
+        assertEquals(0, backendFactoryCalls)
+    }
+
+    @Test
     fun `preparation completes speech before identity verified model warmup`() {
         val events = mutableListOf<String>()
         val speech = FakeSpeechPreflight(autoReady = true, events = events)
