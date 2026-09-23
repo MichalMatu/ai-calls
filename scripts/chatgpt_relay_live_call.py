@@ -376,6 +376,10 @@ def wait_for_audio_signal_resilient(adb: Adb, *, timeout_seconds: float):
         try:
             return wait_for_audio_signal(adb, timeout_seconds=remaining)
         except subprocess.CalledProcessError as error:
+            command = error.cmd
+            tokens = [str(token) for token in command] if isinstance(command, (list, tuple)) else []
+            if not ("dumpsys" in tokens and "telephony.registry" in tokens):
+                raise
             last_error = error
             print("call_state_probe_transient_error=true", file=sys.stderr)
             time.sleep(min(0.25, max(0.0, remaining)))
