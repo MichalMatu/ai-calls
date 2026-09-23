@@ -6,80 +6,122 @@ Android prototype for bridging an ordinary cellular call on a stock Samsung Gala
 
 Gate D (`BOOK_APPOINTMENT`) is **DONE / HOST_GREEN / PROVEN_S22 / MERGED**.
 
-PR #5 `Gate D TaskGraph v1 core` was squash-merged to `main` as:
+PR #5 was squash-merged as:
 
 ```text
 46bcfc9e13bed747e13429c50f54c7b4d3e47f69
 ```
 
-The temporary `gate-d-taskgraph-core` branch was deleted after merge. The intended durable remote branches are now `main` and `agent-control`.
+The Samsung cellular/media path and Gate D authority chain remain stable/frozen.
 
-## Product boundary
+The active work is now **dialogue resilience + direct Gemma 4 local fallback**, prompted by real Orange IVR acceptance where exact phrase matching proved too brittle.
 
-The reviewed BOOK_APPOINTMENT owner chain is:
+## Active dialogue architecture
 
 ```text
-finalized STT text OR explicit synthetic finalized text
- -> PhraseMatrix / CallPlan deterministic routing
- -> optional bounded shadow candidate
- -> current-state / generation / slot-authorization re-check
+finalized STT
+ -> PhraseMatrix
+ -> response temperature
+ -> HOT/WARM: deterministic existing owner path
+ -> unresolved/ambiguous/cold: bounded Gemma 4 dialogue skill classifier
+ -> app-owned reviewed skill response
+ -> local model failure / low confidence / TAKE_OVER: injected-response / ChatRelay fallback
+ -> application output approval
+ -> TTS
+```
+
+`PhraseMatrix` now exposes bounded response-temperature bands:
+
+```text
+HOT / WARM / UNCERTAIN / COLD / AMBIGUOUS
+```
+
+WARM tolerates natural wording drift only when one rule wins by threshold and margin. Ambiguity remains fail-closed.
+
+Dialogue Skills are structured model output (`skill/confidence/reason`); the application owns the allowed skill set and exact reviewed speech. The model never gains dial, disclosure, confirmation, commitment, completion or speech-release authority.
+
+## Gemma 4 direction
+
+For the current stage the target local model is:
+
+```text
+Gemma 4 E2B IT
+gemma-4-E2B-it.litertlm
+LiteRT-LM
+```
+
+Qwen comparison/tuning is intentionally out of scope unless explicitly reopened.
+
+The old assumption that Google AI Edge Gallery exposes an OpenAI-compatible HTTP server on `127.0.0.1:8080` was physically disproven on the S22. The product direction is direct in-process LiteRT-LM through:
+
+```text
+app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Gemma4LiteRtTextBackend.kt
+```
+
+with dependency:
+
+```text
+com.google.ai.edge.litertlm:litertlm-android:0.17.1
+```
+
+The app-owned model target is:
+
+```text
+<app external files>/models/gemma-4-E2B-it.litertlm
+```
+
+A copy of the model already exists on the phone in Edge Gallery external storage, so the next engineering gate is clean model provisioning into the app-owned path followed by a physical **no-call** Gemma skill proof.
+
+## Stable Gate D authority
+
+The reviewed BOOK_APPOINTMENT owner chain remains:
+
+```text
+finalized text
+ -> deterministic/bounded interpretation
  -> TaskGraphApplyBridge
- -> existing CallWorkflow proposal policy owner
- -> explicit app-owned user CONFIRM / REJECT
- -> exact proposal-bound one-shot CallCommitmentGate permit
- -> exact permit-consumption evidence
- -> structured COMPLETE remains deferred data
- -> exact SUCCESS outcome validation
- -> staged COMMIT_SUCCEEDED graph transition
- -> existing CallWorkflow.complete(outcome) owner
- -> commit staged TaskGraph COMPLETE only after workflow success
+ -> CallWorkflow proposal owner
+ -> explicit app-owned user decision
+ -> exact one-shot CallCommitmentGate permit
+ -> permit-consumption evidence
+ -> deferred structured COMPLETE
+ -> exact SUCCESS evidence validation
+ -> CallWorkflow.complete(outcome)
+ -> commit TaskGraph COMPLETE only after owner success
 ```
 
-Hard invariants:
-
-- `permit issued != permit consumed != business success confirmed`;
-- generic deterministic/shadow `commit-complete` candidates cannot own factual completion;
-- default/public CallPlan completion behavior is unchanged; deferral requires explicit reviewed product binding;
-- public `LocalTextCallSession.create(...)` does not automatically activate Gate D product execution;
-- no generic effect/completion executor exists;
-- model/parser/shadow/storage/reducer/synthetic input do not own dialing, target widening, plaintext disclosure, speech/TTS release, user confirmation, commitment or factual completion.
-
-## Verification
-
-Final no-phone implementation evidence includes:
-
-- `BOOK_APPOINTMENT_COMPLETION_RED=true`;
-- `BOOK_APPOINTMENT_COMPLETION_GREEN=true`;
-- `BOOK_APPOINTMENT_COMPLETION_CANONICAL_GREEN=true`;
-- `ANDROID_COMPLETION_CONTRACT_PACKAGED=true`;
-- `FINAL_GATE_D_NO_PHONE_CANONICAL_GREEN=true`;
-- Android CI #546, #547 and proof-doc CI #552 success.
-
-Physical Samsung S22+ proof without a cellular call:
+Hard invariant:
 
 ```text
-chatgpt-gated-s22-final-owner-proofs-v049-20260923
-DEFERRED_COMPLETION_BINDING_S22_PROVEN=true
-BOOK_APPOINTMENT_COMPLETION_S22_PROVEN=true
-FINAL_GATE_D_S22_OWNER_PROOFS_GREEN=true
-
-chatgpt-gated-s22-commitment-regression-v050-20260923
-BOOK_APPOINTMENT_COMMITMENT_REGRESSION_S22_GREEN=true
+permit issued != permit consumed != business success confirmed
 ```
 
-Earlier physical proofs remain valid for Android IdentityVault, synthetic reviewed Gate D product ingress and BOOK_APPOINTMENT permit issuance.
+No generic effect/completion executor exists.
 
-## Next product gate
+## Verification state
 
-There is no unfinished Gate D implementation slice.
+Gate D and Samsung media have physical S22 evidence.
 
-A live acceptance call is a separate gate. Before dialing, the current session must contain fresh explicit authorization for **one concrete target/number and one concrete task**. A connected phone, successful device proofs, documentation or previous calls never grant that authority.
+The new direct Gemma 4 path is **not yet PROVEN_S22**. The immediate next gate is:
 
-For test-only public business/reception calls, disclose the AI/test purpose at the start and ask consent; if consent is declined, stop without creating a real commitment. For genuine user-authorized tasks, stay within `CallTask`, `FactDisclosurePolicy`, user-confirmation, commitment and completion owners.
+1. current-head host/canonical regression;
+2. Android compile/package with LiteRT-LM;
+3. app-owned Gemma model provisioning;
+4. physical S22 no-call skill inference using synthetic text;
+5. synthetic hybrid fallback proof;
+6. only then consider another bounded live-call acceptance test.
+
+## Orange checkpoint
+
+Real Orange acceptance proved call control, in-call audio, STT and reviewed TTS injection. A reviewed CLIR request was understood by Orange, which then asked whether the matter concerned the number being used for the call.
+
+No CLIR account change was completed.
+
+Orange exact-phrase mappings remain diagnostic fixtures. Do not grow them into the main conversation engine.
 
 ## Frozen foundation
 
-Cellular RX/TX, `CallMediaSessionCoordinator`, Samsung privileged-helper media path, local speech foundation and previously proven media behavior remain frozen. Read `docs/PHASE2D_FREEZE_2026-09-18.md` before touching them.
+Cellular RX/TX, `CallMediaSessionCoordinator`, Samsung `privileged-helper/`, local speech and proven Gate D authority remain frozen unless a concrete root cause requires reopening them.
 
 Identity plaintext remains late-bound through:
 
@@ -94,10 +136,10 @@ IdentityVault
 
 ## Sources of truth
 
-- `docs/ROADMAP.md` — authoritative execution order and acceptance gates;
+- `docs/HANDOFF_NEXT_CHAT.md` — exact current continuation checkpoint;
+- `docs/ROADMAP.md` — authoritative execution order;
 - `docs/ARCHITECTURE.md` — component and authority ownership;
-- `docs/SECURITY_PRIVACY.md` — privacy and live-call rules;
-- `docs/HANDOFF_NEXT_CHAT.md` — exact current checkpoint;
+- `docs/SECURITY_PRIVACY.md` — privacy/live-call rules;
 - `docs/NEXT_CHAT_PROMPT.md` — ready-to-paste continuation prompt;
 - `docs/HANDOFF_PROTOCOL.md` — close-out/transfer rules.
 
@@ -106,3 +148,5 @@ Canonical local gate:
 ```bash
 bash scripts/verify_host.sh
 ```
+
+Every future live call requires fresh explicit authorization in the current session for one concrete target/number and one concrete task.
