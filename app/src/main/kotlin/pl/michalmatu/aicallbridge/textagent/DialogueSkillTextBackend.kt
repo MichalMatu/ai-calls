@@ -4,7 +4,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.util.concurrent.atomic.AtomicLong
 
-enum class DialogueSkillId {
+internal enum class DialogueSkillId {
     ASK_REPEAT,
     ASK_CLARIFY,
     ACKNOWLEDGE_NEUTRAL,
@@ -12,7 +12,7 @@ enum class DialogueSkillId {
     TAKE_OVER,
 }
 
-data class DialogueSkillDecision(
+internal data class DialogueSkillDecision(
     val skillId: DialogueSkillId,
     val confidence: Double,
     val reason: String? = null,
@@ -31,11 +31,11 @@ data class DialogueSkillDecision(
     }
 }
 
-fun interface DialogueSkillDecisionObserver {
+internal fun interface DialogueSkillDecisionObserver {
     fun onDecision(decision: DialogueSkillDecision)
 }
 
-class DialogueSkillPolicy(
+internal class DialogueSkillPolicy(
     allowedResponses: Map<DialogueSkillId, String>,
     val minimumConfidence: Double = 0.70,
 ) {
@@ -63,7 +63,7 @@ class DialogueSkillPolicy(
     }
 }
 
-object DialogueSkillCatalog {
+internal object DialogueSkillCatalog {
     private val descriptions = mapOf(
         DialogueSkillId.ASK_REPEAT to
             "Wypowiedź jest urwana, zaszumiona lub za krótka; poproś o powtórzenie.",
@@ -106,7 +106,7 @@ object DialogueSkillCatalog {
  * exact response text is supplied by [DialogueSkillPolicy]. Any extra model field, low-confidence
  * result, unavailable skill, or TAKE_OVER fails closed through [TextCallAgentBackend.Listener].
  */
-class DialogueSkillTextBackend(
+internal class DialogueSkillTextBackend(
     private val classifierBackend: TextCallAgentBackend,
     private val policy: DialogueSkillPolicy,
     private val observer: DialogueSkillDecisionObserver? = null,
@@ -220,7 +220,7 @@ class DialogueSkillTextBackend(
  * from leaking into a newer turn. Both candidates still pass through the caller's normal output
  * approval because this class only implements [TextCallAgentBackend].
  */
-class FailoverTextCallAgentBackend(
+internal class FailoverTextCallAgentBackend(
     private val primary: TextCallAgentBackend,
     private val fallback: TextCallAgentBackend,
 ) : TextCallAgentBackend {
