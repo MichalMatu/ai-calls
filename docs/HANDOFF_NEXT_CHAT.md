@@ -1,79 +1,178 @@
-# Handoff — full Gemma network acquisition PROVEN_S22
+# Handoff — generic autonomous phone task authority
 
 Date: 2026-09-24
 
-## Repository state
+## Repository
 
-Repository: `MichalMatu/android-ai-call-bridge`. Durable work lives on `main`; `agent-control` is Local Agent task/result traffic only. Every new chat must fetch fresh `origin/main` and fresh Local Agent daemon/binding.
+`MichalMatu/android-ai-call-bridge`
 
-## Stable foundation
-
-- Gate D `BOOK_APPOINTMENT`: `DONE / HOST_GREEN / PROVEN_S22 / MERGED`.
-- Samsung cellular/media, local STT/TTS, `privileged-helper/`, Gate D authority and IdentityVault: `PROVEN_S22 / FROZEN`.
-- Gemma direct no-call runtime, SAF import/activation, provider/readiness: `HOST_GREEN / PROVEN_S22`.
-- immutable network source, streaming downloader, progress/cancel/serialization lifecycle, explicit download UI and **full 2.59 GB network acquisition**: `HOST_GREEN / PROVEN_S22`.
-
-No live-call authorization is carried by this handoff.
-
-## Model identity
+Durable code/docs live on `main`; `agent-control` is Local Agent task/result transport only. At handoff completion the intended branch set is only:
 
 ```text
+main
+agent-control
+```
+
+Always fetch fresh `origin/main` and fresh `.agent/status/daemon.json` / binding in the next chat.
+
+The last code change before this documentation handoff is:
+
+```text
+ceefbf7cbd25e27510fa003638269d2132c0f645
+Harden live relay against transient ADB failures
+```
+
+## Product direction now frozen for continuation
+
+The product is a **generic autonomous phone task engine**, not an Orange-specific bot and not an appointment-only bot.
+
+Examples using the same architecture:
+
+- enable Orange CLIR;
+- call a clinic and book within date/time/price constraints;
+- change/cancel a reservation;
+- handle a bounded service request;
+- make read-only information calls.
+
+Do not create separate authority stacks for each use case.
+
+Read `docs/GENERIC_PHONE_TASK_AUTHORITY.md` before implementation.
+
+## Stable proven foundation
+
+Keep closed absent a concrete root cause:
+
+- Samsung cellular RX/TX + `CallMediaSessionCoordinator`: `PROVEN_S22 / FROZEN`;
+- `privileged-helper/` / Shizuku media boundary: proven/frozen;
+- local Polish STT/TTS foundation: proven;
+- IdentityVault Android encryption/disclosure boundary: proven;
+- Gate D `BOOK_APPOINTMENT`: `DONE / HOST_GREEN / PROVEN_S22 / MERGED`;
+- Gemma 4 direct LiteRT-LM runtime: proven;
+- Gemma app-owned SAF/network acquisition, SHA verification, atomic activation and readiness: `HOST_GREEN / PROVEN_S22`.
+
+Do not redownload Gemma merely to reprove it.
+
+Model identity:
+
+```text
+provider=LOCAL_GEMMA_4
 model=Gemma 4 E2B IT
 file=gemma-4-E2B-it.litertlm
 bytes=2588147712
 sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-provider=LOCAL_GEMMA_4
 runtime=LiteRT-LM
 ```
 
-Reviewed source:
+## Dialogue target
 
 ```text
-repository=litert-community/gemma-4-E2B-it-litert-lm
-revision=6e5c4f1e395deb959c494953478fa5cec4b8008f
-license=apache-2.0
-auth=none
+STT
+ -> PhraseMatrix / deterministic task state
+ -> Gemma 4 bounded dialogue skills
+ -> supervisor/ChatRelay fallback when unresolved
+ -> application output approval
+ -> TTS/TX
 ```
 
-## Full S22 acquisition evidence
+Models/supervisor remain dialogue/proposal helpers only. They never gain business authority.
 
-Preflight `chatgpt-gemma4-full-download-preflight-v168-20260923` proved S22, Wi-Fi default route, correct existing model and ~99 GB free space.
+## Architecture decision from this chat
 
-`chatgpt-gemma4-full-download-s22-v169-20260923` then entered the normal product UI, opened reviewed confirmation and tapped the explicit positive `Download 2.59 GB` action. Staging checkpoints included:
+`CallTask` is already appropriately generic. The main coupling to remove is that `CallCommitmentGate` and related Gate D wiring use appointment-shaped `CallProposal` as the commitment subject.
+
+Do **not** solve CLIR by adding `ClirCommitmentGate`.
+
+Next architecture:
 
 ```text
-477934181
-1027826896
-1615416174
-2178292139
+CallTask + target + constraints + authorized facts
+ -> typed external-effect candidate
+ -> application validation
+ -> user-decision policy if needed
+ -> one-shot permit bound to exact effect
+ -> reviewed execution/speech
+ -> permit-consumption evidence
+ -> external success evidence
+ -> factual completion
 ```
 
-Atomic replacement changed the active stat from:
+Keep distinct:
 
 ```text
-2588147712:551596:1790194198
+task authorization
+ != candidate validation
+ != permit issuance
+ != permit consumption
+ != external success
+ != workflow completion
 ```
 
-to:
+If the user already explicitly authorized the exact concrete effect and no new material term was negotiated, do not add a redundant second confirmation. Application policy decides this; never Gemma/supervisor.
+
+## Exact next implementation scope
+
+### G1 — preimplementation audit first
+
+Before behavior changes, map every appointment-specific coupling of `CallProposal` through:
+
+- `CallCommitmentGate`;
+- realtime commitment handler;
+- Gate D product integration;
+- confirmation/consumption/completion evidence;
+- `LocalTextCallSession` appointment-specific seams;
+- tests/docs.
+
+Produce the narrowest migration plan preserving all existing `BOOK_APPOINTMENT` invariants.
+
+### G2 — generic commitment subject
+
+Introduce the generic typed external-effect commitment subject with RED -> GREEN tests. Existing appointment behavior must remain green through an adapter/compatibility path. Do not create a second authority store.
+
+### G3 — CLIR adapter
+
+Add `SET_SERVICE(CLIR=true)` as the first new generic effect. Prove task/target binding, permit lifecycle and factual success evidence synthetically/no-call.
+
+### G4 — full runner
+
+Wire one real product acceptance runner through:
 
 ```text
-2588147712:561969:1790200763
+RX -> STT -> deterministic routing -> Gemma -> supervisor fallback
+ -> output approval -> TTS/TX -> generic effect authority -> success evidence
 ```
 
-Final SHA-256 exactly matched the pinned model. Final ownership/label remained `u0_a736`, `ext_data_rw`, `media_rw_data_file`; staging was absent.
+Do the no-call/S22 synthetic proof before dialing.
 
-`v169` is recorded as failed only because the driver required an immediate `Gemma 4 model ready` text in the same UI dump after the already-successful transfer. This was a test-driver assertion, not a download/installer failure.
+### G5 — live CLIR acceptance
 
-`chatgpt-gemma4-full-download-postcheck-v170-20260923` is GREEN and independently confirmed final stat/hash/ownership, no staging, restarted MainActivity `Gemma 4 model: READY (2588147712 bytes)`, and the post-download no-call inference:
+Only with a **new fresh live-call authorization in that chat**, run one bounded Orange call to complete CLIR and collect redacted evidence.
 
-```text
-skill=ACKNOWLEDGE_NEUTRAL
-confidence=0.95
-reason=Potwierdzenie odbioru telefonu
-```
+### G6 — clinic booking
 
-## Current next gate
+Use a clinic booking with negotiated time/price/provider constraints as the next acceptance case to prove the architecture is actually generic.
 
-There is no remaining model acquisition proof. Do not redownload merely to reprove it. Select the next product task explicitly. Frozen Samsung media/Gate D boundaries stay closed absent a new root cause.
+## Latest physical call checkpoint from this chat
 
-A real cellular call still requires fresh explicit authorization in the current chat for one concrete target/number and one concrete task. This handoff does not authorize any call.
+Two live Orange attempts were used to diagnose the runner under an explicit authorization that is now spent and **does not carry into the next chat**.
+
+What was established:
+
+- real dialing and `OFFHOOK` work;
+- real Orange downlink audio works;
+- first attempt exposed transient ADB `dumpsys audio` / cleanup fragility;
+- commit `ceefbf7c...` added bounded retries and hangup fallback;
+- second attempt passed the audio probe but did not publish a first transcript;
+- fresh APK diagnostics showed Android microphone permission needed to be granted again after reinstall;
+- after the user re-granted microphone permission, a no-call probe confirmed Shizuku granted, `RECORD_AUDIO` granted and `chat_relay_probe_complete=true`.
+
+No CLIR account change was completed. Do not claim otherwise.
+
+## Branch/noise cleanup
+
+During closeout GitHub branch enumeration showed only `main` and `agent-control` before the temporary documentation branch was created. Remove the temporary documentation branch after fast-forwarding the docs to `main`. Do not retain transient `chat-relay/*` or `work/*` branches.
+
+## Authorization stop line
+
+No live-call permission is transferred by this handoff.
+
+A future real call requires fresh explicit authorization in the new chat for the concrete target/number and task. Connected S22, old call evidence, an allowlist, this handoff or a generic `continue` are not authorization.
