@@ -130,6 +130,32 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         self.assertEqual(2, wait_signal.call_count)
         sleep.assert_called_once()
 
+    @mock.patch("chatgpt_relay_live_call.wait_for_audio_signal_resilient")
+    def test_initial_audio_wait_after_confirmed_offhook_skips_redundant_registry_probe(self, wait_signal):
+        real_adb = mock.Mock()
+        real_adb.call_state.side_effect = AssertionError("real call_state must not be re-read here")
+        delegated_marker = object()
+        real_adb.delegated_marker = delegated_marker
+        audio_marker = object()
+
+        def capture(adb_view, *, timeout_seconds):
+            self.assertEqual(2, adb_view.call_state())
+            self.assertIs(delegated_marker, adb_view.delegated_marker)
+            self.assertEqual(25.0, timeout_seconds)
+            return audio_marker
+
+        wait_signal.side_effect = capture
+
+        self.assertIs(
+            audio_marker,
+            live.wait_for_initial_audio_signal_after_confirmed_offhook(
+                real_adb,
+                timeout_seconds=25.0,
+            ),
+        )
+        real_adb.call_state.assert_not_called()
+        wait_signal.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
