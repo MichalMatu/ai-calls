@@ -1,4 +1,4 @@
-# Handoff — Gate D synthetic no-call ingress ready for S22 proof
+# Handoff — Gate D BOOK_APPOINTMENT owner chain proven on S22, completion boundary next
 
 Date: 2026-09-23
 
@@ -40,175 +40,264 @@ Primary acceptance task remains:
 BOOK_APPOINTMENT
 ```
 
-The architecture-selection/audit phase is complete. Current work is physical proof of already-defined Android boundaries, followed by bounded application-owner wiring.
+The current boundary is no longer Android proof or user confirmation. Those are complete. The next work is to separate commitment authorization consumption from factual business completion, then add exact success-evidence ordering without changing the public/default path.
 
-## Current verified checkpoints
+## Physical S22 proof status
 
-### Android IdentityVault adapter
+All three boundaries below are now physically reproduced on the target Samsung S22+ (`SM-S906B`, Android 16), without a cellular call:
+
+```text
+Android IdentityVault                         PROVEN_S22
+synthetic reviewed Gate D product ingress     PROVEN_S22
+BOOK_APPOINTMENT owner chain through permit   PROVEN_S22 (no-call)
+```
+
+### Android IdentityVault
+
+Production checkpoint:
 
 ```text
 3b79d42012d80c7cc6956bac77f590bfae20dc72
 Android CI #494: success
 ```
 
-Production adapter provides app-private `noBackupFilesDir + AtomicFile` ciphertext storage and Android Keystore AES-256/GCM with non-exportable key expectations, key create/reuse, stable algorithm identity/AAD and fail-closed missing/invalid-key behavior.
+Physical proof:
 
-Its instrumentation contract is compiled/packaged by canonical CI but has not yet been physically executed on the S22. Status remains `HOST_GREEN`, not `PROVEN_S22`.
+```text
+Local Agent result:
+chatgpt-gated-s22-identity-vault-proof-v004-20260923
+IDENTITYVAULT_S22_PROVEN=true
+```
 
-### Reviewed Gate D product integration
+This covers app-private `noBackupFilesDir` ciphertext storage, `AtomicFile` replacement, Android Keystore AES-256/GCM key create/reuse, non-exportability, algorithm/AAD binding, fail-closed corruption/unsupported/missing-or-invalid-key behavior and absence of plaintext secret in ordinary durable bytes/diagnostics.
+
+### Reviewed synthetic Gate D product ingress
+
+Core product checkpoint:
 
 ```text
 a355f604484a78d7a99d7594455f3344ca081e04
 Android CI #497: success
 ```
 
-The reviewed internal binding preserves:
-
-```text
-finalized turn
- -> deterministic interpretation first
- -> optional bounded shadow proposal
- -> SupervisorProposalValidator
- -> application-owned current-state / slot-authorization re-check
- -> TaskGraphApplyBridge
- -> effects as inert data
- -> existing application owners only
-```
-
-Deterministic rejection fails closed and cannot fall through to shadow. Cancel invalidates queued product shadow. The public Android `LocalTextCallSession.create(...)` path still does not auto-bind the product integration or an effect executor.
-
-### Synthetic finalized-text ingress
-
-RED contract:
-
-```text
-e10f5d3de036f8d76b2276cd1b61fc5ae45c7c1b
-Android CI #499: expected failure at Host quality gate
-```
-
-GREEN implementation:
+Synthetic ingress checkpoint:
 
 ```text
 79e6dabd62cb325b41bc37615252165fe563c3e4
 Android CI #500: success
 ```
 
-Android instrumentation contract:
+Android contract checkpoint:
 
 ```text
 313c6bb43251bc2cdd06e5e783a22154ac378f49
 Android CI #505: success
 ```
 
-`LocalTextCallSession.injectSyntheticFinalTranscript(...)` is now an explicit internal test/diagnostic ingress for text already considered final. It converges with normal STT output at the same shared finalized-turn processing path:
+Physical proof:
 
 ```text
-STT-finalized text --------+
-                           +-> shared finalized-turn ingress
-synthetic finalized text --+     -> PhraseMatrix / CallPlan
-                                  -> deterministic Gate D interpretation
-                                  -> optional bounded shadow
-                                  -> current-state / authorization re-check
-                                  -> TaskGraphApplyBridge
-                                  -> effects as data
+Local Agent result:
+chatgpt-gated-s22-synthetic-gated-product-proof-v005-20260923
+SYNTHETIC_GATE_D_S22_PROVEN=true
 ```
 
-Synthetic input bypasses speech-pipeline start, PCM input, STT, backend generation and TTS/media output. It does not create a second state machine or new authority boundary. Any structured CallPlan/workflow behavior remains owned by exactly the same existing owners/policies as on the STT-finalized path.
+The shared finalized-turn path remains:
 
-The host deterministic SAY contract proves Gate D apply and route selection while speech/media/backend paths stay untouched; its fixture also verifies no `CallWorkflow` mutation for that SAY case. The Android contract is compiled/packaged and ready for physical no-call execution on S22, but has not yet run there.
+```text
+STT-finalized text OR explicit synthetic finalized text
+ -> shared finalized-turn ingress
+ -> deterministic interpretation first
+ -> optional bounded shadow proposal
+ -> SupervisorProposalValidator
+ -> application-owned current-state / slot-authorization re-check
+ -> TaskGraphApplyBridge
+ -> existing application owners
+```
+
+Synthetic input bypasses speech-pipeline start, PCM/STT, backend generation and TTS/media. It adds no dialing, disclosure, confirmation, commitment or completion authority.
+
+## BOOK_APPOINTMENT owner composition completed so far
+
+The production composition deliberately reuses existing owners rather than introducing a generic effect executor.
+
+### Proposal owner reuse
+
+Checkpoint:
+
+```text
+656951e6e9603a8af9e4ff12ec4f0f355817b388
+Android CI #518: success
+```
+
+The exact proposal and already-computed `CallWorkflow` policy decision are reused by Gate D. The proposal is not evaluated a second time.
+
+### Policy-neutral proposal graph
+
+Checkpoint:
+
+```text
+6d77d385170ca85feb40485800526e74f0bfaaa4
+```
+
+`PROPOSE_APPOINTMENT` stores validated non-secret proposal data and enters proposal state. TaskGraph does not own proposal-policy authority.
+
+### Explicit user CONFIRM / REJECT
+
+Checkpoint:
+
+```text
+2ffaf7dc696f5e21e7d77944e8f0af8d7105f039
+Android CI #522: success
+```
+
+The app-owned user-decision boundary re-checks graph state/generation, slot authorization and the exact `CallWorkflow` pending proposal before owner mutation. Finalized counterparty/model text cannot approve the user decision.
+
+### Commitment authorization
+
+Checkpoint:
+
+```text
+061ed5071b127c9fb687e9532f7d1621f92fe1b5
+Android CI #524: success
+```
+
+After explicit confirmation, the reviewed boundary may issue at most one opaque `CallCommitmentGate` permit for exactly the proposal returned by `CallWorkflow.approvePendingProposal()`. Issuing the permit does not consume it and does not claim completion.
+
+### Commitment ownership hardening
+
+Checkpoint:
+
+```text
+c5266423ad4a3cb3cbd8b245c7774e1378d9265e
+Android CI #526: success
+```
+
+Hardening adds:
+
+- immediate `CallWorkflowState.ACTIVE_NEGOTIATION` re-check before issuance;
+- exact approving-workflow ownership;
+- token-scoped revocation;
+- protection against clearing a foreign/newer permit on reject/cancel/close;
+- stale workflow fails closed.
+
+### Physical S22 BOOK_APPOINTMENT owner-chain proof
+
+Android instrumentation checkpoint:
+
+```text
+90a161c760c8267bd5625cba37373e6af9f9b07e
+```
+
+Physical proof:
+
+```text
+Local Agent result:
+chatgpt-gated-s22-book-appointment-commitment-proof-v029-20260923
+BUILD SUCCESSFUL
+BOOK_APPOINTMENT_COMMITMENT_S22_PROVEN=true
+```
+
+The test physically proves proposal -> confirmation -> explicit user confirmation -> opaque one-shot permit issuance on `SM-S906B` / Android 16 while pipeline start, PCM, backend generation and media remain unused.
+
+It deliberately stops at TaskGraph `COMMITMENT` with an unconsumed permit. It does **not** claim that a booking was executed or completed.
 
 ## Current authority stop line
 
-Neither the synthetic ingress, shadow, model, parser, storage nor reducer may independently:
+Keep these facts separate:
+
+```text
+permit issued != permit consumed != business success confirmed
+```
+
+Neither synthetic ingress, model, parser, shadow, storage, TaskGraph reducer nor generic data flow may independently:
 
 - dial or widen a target;
 - resolve/disclose plaintext identity facts;
 - release speech/TTS;
 - approve a proposal;
-- approve user confirmation;
-- consume commitment authority;
-- claim completion authority.
+- approve the user's confirmation;
+- create or consume commitment authority outside the existing owner;
+- claim factual business completion.
 
 No generic effect executor exists or should be introduced.
 
 Plaintext IdentityVault values remain late-bound through:
 
 ```text
-AuthorizedFactSnapshot
+IdentityVault
+ -> AuthorizedFactSnapshot
  -> FactDisclosurePolicy
  -> current task / target / state / generation
  -> optional user approval
+ -> plaintext resolution only after ALLOW
 ```
 
-## Exact next order — all still before any live call
+## Exact next order — still before any live call
 
-### 1. S22 Android IdentityVault proof
+### 1. Commitment-consumption evidence boundary
 
-Requires a **fresh** Local Chat Bridge / Local Agent binding for this chat/repository. No cellular call is required.
+`CallRealtimeCommitmentFunctionHandler` currently consumes a valid one-shot permit and returns:
 
-Physically execute the existing instrumentation contract on the target S22 and capture terminal evidence for:
+```json
+{"commitment":"authorized"}
+```
 
-- app-private no-backup ciphertext storage;
-- atomic replacement;
-- Android Keystore AES key creation/reuse;
-- non-exportability;
-- AES/GCM + AAD/algorithm identity;
-- corruption / unsupported record / missing-or-invalid key fail-closed cases;
-- no plaintext secret in ordinary diagnostics/durable bytes.
+That means authorization was consumed. It does **not** mean the external business action succeeded.
 
-### 2. S22 reviewed product-binding proof with synthetic text
+Audit then TDD a narrow application-owned, redacted, proposal-bound, one-shot, stale-safe signal/evidence seam for exact BOOK_APPOINTMENT permit consumption. Do not make consumption drive `COMMIT_SUCCEEDED` or `CallWorkflow.complete(...)`.
 
-Still **no cellular call**.
+### 2. Product-bound completion ordering
 
-Execute `AndroidGateDProductSyntheticInputContractTest` and targeted session regressions on the physical S22. Verify deterministic-first behavior, current generation progression, optional shadow, stale/cancel handling, apply-time authorization re-check and non-automatic public Android wiring.
+Audit before behavior change. `CallPlanTurnCoordinator` currently handles `CallPlanAction.COMPLETE` by calling `CallWorkflow.complete(...)` before Gate D observes that finalized turn.
 
-Use the synthetic finalized-text ingress to exercise post-STT product flow without touching the frozen media path when audio itself is not under test.
+For the reviewed BOOK_APPOINTMENT path, factual completion must require exact success evidence. Preserve `CallWorkflow` as completion owner. Keep the public/default coordinator behavior unchanged unless an explicit reviewed product composition opts into a safer completion path.
 
-### 3. Bounded `BOOK_APPOINTMENT` owner wiring
+Only after exact success evidence may the TaskGraph move `COMMITMENT -> COMPLETE` and the workflow record the matching structured outcome.
 
-Only after both physical device proofs pass, map the minimum required TaskGraph effects to existing application owners, one reviewed boundary at a time. Preserve proposal -> user confirmation -> one-shot commitment and late disclosure through `FactDisclosurePolicy`.
+### 3. Verification
 
-Do not create a generic executor and do not transfer authority into model/parser/shadow/reducer/storage/synthetic input.
+For every consumption/completion slice:
 
-### 4. Canonical regressions + docs
+1. RED contract;
+2. prove the expected failure;
+3. minimal GREEN;
+4. targeted regressions;
+5. `bash scripts/verify_host.sh`;
+6. Android CI;
+7. minimal relevant no-call S22 instrumentation proof if the Android/product boundary changed.
 
-After owner wiring, run targeted regressions and the canonical host/Android verification, then refresh this handoff/roadmap with the actual evidence.
+### 4. Late disclosure wiring only if required
+
+Do not widen disclosure scope just to complete Gate D. Use the existing `AuthorizedFactSnapshot -> FactDisclosurePolicy` boundary and resolve plaintext only after ALLOW.
 
 ### 5. STOP before live call
 
-After all no-call work is green, stop before dialing. Every live call requires fresh explicit authorization for the concrete target and task in the current chat/session. A connected phone, prior call, old allowlist, old `.agent/results`, this handoff or an old chat is not authorization.
-
-No cellular call was attempted or performed in the work captured by this handoff.
-
-## Why work stops here in this chat
-
-No fresh Local Chat Bridge / Local Agent binding is available in the current chat/tooling, so physical S22 instrumentation cannot be truthfully claimed here. The new Android contracts are prepared and CI-green, but they remain `HOST_GREEN` until executed on the device.
-
-Because the authoritative roadmap requires those device proofs before bounded `BOOK_APPOINTMENT` owner wiring, that wiring was intentionally not started rather than bypassing the gate.
+Do not dial as part of preparation. A real call requires fresh explicit authorization for the concrete target and task in the current chat/session. Old docs, old Local Agent results, a connected phone or prior calls are not authorization.
 
 ## Frozen boundaries
 
-No changes were made to:
+Do not casually change:
 
 - `privileged-helper/`;
-- frozen Samsung cellular/media path;
-- physically proven `CallMediaSessionCoordinator` behavior.
+- Samsung cellular/media path;
+- physically proven `CallMediaSessionCoordinator`.
 
-If `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` returns, inspect test ordering/synchronization/test pollution first. The known prior root cause was a test milestone race and the correction was test-only.
+If `CallRealtimeMediaSessionTest.pumpFailureTriggersWholeGenerationCleanupBeforeTransportClose` reappears, inspect test ordering/synchronization/test pollution first. The known prior root cause was a test milestone race and the correction was test-only.
 
 Read `docs/PHASE2D_FREEZE_2026-09-18.md` before any media change.
 
 ## Local Agent / Local Chat Bridge
 
-For the next session:
+For a later session:
 
 - trust only the fresh binding envelope injected into that chat;
 - never copy an old `agent_binding` from this file, history, Git or old tasks;
 - inspect fresh daemon/current-task evidence before local work;
 - work only in the exact bound repository;
 - use GitHub for bounded reviewable source/docs/data diffs;
-- use Local Agent for local Gradle/Android tooling, ADB/Keystore/device evidence;
-- queue/ACK is not success — require the terminal task result;
+- use Local Agent for local Gradle/Android tooling and physical device evidence;
+- queue/ACK is not success — require terminal task result;
 - never launch local Codex from a Local Agent task.
 
 No binding is persisted here intentionally.
