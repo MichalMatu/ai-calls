@@ -8,10 +8,19 @@ import org.junit.Test
 
 class CallSetServiceExternalEffectTest {
     @Test
-    fun clirEnableRequiresTypedPermitConsumptionAndExactExternalSuccess() {
+    fun clirEnableBindsTaskTargetPermitConsumptionAndExactExternalSuccess() {
+        val target = orangeTarget()
+        val effect = CallExternalEffect.SetService(target, CallService.CLIR, enabled = true)
+        val validation = CallExternalEffectValidator.validateSetService(
+            clirTask(enabled = true),
+            target,
+            effect,
+        )
+        val validatedEffect = (validation as CallExternalEffectValidation.Accepted).effect
+        assertEquals(effect, validatedEffect)
+
         val gate = CallCommitmentGate { "clir-enable-permit" }
-        val effect = CallExternalEffect.SetService(CallService.CLIR, enabled = true)
-        val authorization = gate.authorize(effect)
+        val authorization = gate.authorize(validatedEffect)
 
         // Legacy BOOK_APPOINTMENT execution must not consume a non-appointment permit.
         assertTrue(gate.consume(authorization.value).isFailure)
@@ -26,7 +35,7 @@ class CallSetServiceExternalEffectTest {
         val completion = CallExternalEffectCompletionTracker.fromConsumption(consumption)
 
         val wrongSuccess = CallExternalEffectSuccessEvidence(
-            CallExternalEffect.SetService(CallService.CLIR, enabled = false),
+            CallExternalEffect.SetService(target, CallService.CLIR, enabled = false),
         )
         assertTrue(completion.complete(wrongSuccess).isFailure)
         assertFalse(completion.isCompleted())
@@ -38,13 +47,62 @@ class CallSetServiceExternalEffectTest {
     }
 
     @Test
+    fun clirValidatorRejectsTargetAndServiceValueWidening() {
+        val target = orangeTarget()
+        val task = clirTask(enabled = true)
+
+        val wrongTarget = CallExternalEffect.SetService(
+            CallResolvedTarget("Other operator", "+48999999999"),
+            CallService.CLIR,
+            enabled = true,
+        )
+        assertEquals(
+            CallExternalEffectValidation.Rejected(
+                CallExternalEffectValidation.RejectReason.TARGET_MISMATCH,
+            ),
+            CallExternalEffectValidator.validateSetService(task, target, wrongTarget),
+        )
+
+        val wrongValue = CallExternalEffect.SetService(target, CallService.CLIR, enabled = false)
+        assertEquals(
+            CallExternalEffectValidation.Rejected(
+                CallExternalEffectValidation.RejectReason.SERVICE_VALUE_MISMATCH,
+            ),
+            CallExternalEffectValidator.validateSetService(task, target, wrongValue),
+        )
+
+        val missingValueTask = CallTask(
+            "Orange",
+            "SET_SERVICE",
+            "CLIR",
+            CallConstraints.unconstrained(),
+            CallPreferences.none(),
+            emptyMap(),
+        )
+        assertEquals(
+            CallExternalEffectValidation.Rejected(
+                CallExternalEffectValidation.RejectReason.MISSING_EXPLICIT_SERVICE_VALUE,
+            ),
+            CallExternalEffectValidator.validateSetService(
+                missingValueTask,
+                target,
+                CallExternalEffect.SetService(target, CallService.CLIR, enabled = true),
+            ),
+        )
+    }
+
+    @Test
     fun clirPermitAndAppointmentPermitUseTheSameOneShotAuthorityStore() {
         val tokens = ArrayDeque(listOf("appointment-permit", "clir-permit"))
         val gate = CallCommitmentGate { tokens.removeFirst() }
         val appointment = appointmentProposal()
 
         val oldAuthorization = gate.authorize(appointment)
-        val clirEffect = CallExternalEffect.SetService(CallService.CLIR, enabled = true)
+        val clirEffect = CallExternalEffect.SetService(
+            orangeTarget(),
+            CallService.CLIR,
+            enabled = true,
+        )
         val clirAuthorization = gate.authorize(clirEffect)
 
         assertTrue(gate.consumeEffect(oldAuthorization.value).isFailure)
@@ -54,13 +112,30 @@ class CallSetServiceExternalEffectTest {
 
     @Test
     fun serviceEffectAndSuccessEvidenceDoNotLeakValuesThroughToString() {
-        val effect = CallExternalEffect.SetService(CallService.CLIR, enabled = true)
+        val effect = CallExternalEffect.SetService(
+            orangeTarget(),
+            CallService.CLIR,
+            enabled = true,
+        )
         val success = CallExternalEffectSuccessEvidence(effect)
 
         assertFalse(effect.toString().contains("CLIR"))
+        assertFalse(effect.toString().contains("Orange"))
         assertFalse(success.toString().contains("CLIR"))
         assertFalse(success.toString().contains("true"))
     }
+
+    private fun clirTask(enabled: Boolean) =
+        CallTask(
+            "Orange",
+            "SET_SERVICE",
+            "CLIR",
+            CallConstraints.unconstrained(),
+            CallPreferences.none(),
+            mapOf(CallExternalEffectValidator.SERVICE_ENABLED_FACT to enabled.toString()),
+        )
+
+    private fun orangeTarget() = CallResolvedTarget("Orange", "+48123456789")
 
     private fun appointmentProposal() =
         CallProposal(
