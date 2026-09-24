@@ -67,12 +67,17 @@ scripted CLIR navigation
 
 Host cleanup previously raced the Android report write when Orange disconnected. `scripts/chatgpt_relay_live_call.py` was changed to preserve a sanitized live-probe report before cleanup so the next physical failure is diagnosable.
 
+The host runner now also generates a relay session ID automatically when one is not supplied and defaults to the full bounded 10-turn budget. A new chat must not ask the operator for either value. The explicit CLIR-effect runner guard remains required internally and is supplied by the executor when the accepted authorization context covers the exact effect.
+
 Relevant durable commits from this physical sequence include:
 
 - `d08f20bed` — local Orange CLIR clarification handling;
 - `417bf6240` — contextual CLIR commit/success handling;
 - `1b2ef395e` — preserve live CLIR probe report before cleanup;
-- `d0071fe0` — normative autonomous-operation documentation.
+- `d0071fe0` — normative autonomous-operation documentation;
+- `d1b3baa78` — allow application-owned scoped campaign grants as an authorization source;
+- `42d37efa6` — make Local Agent the primary executor;
+- `2ecb02451` — harden the autonomous loop against avoidable stalls.
 
 Always fetch fresh `origin/main` rather than assuming these remain the tip.
 
