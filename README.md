@@ -13,11 +13,12 @@ user task
  -> STT
  -> deterministic task state / PhraseMatrix
  -> Gemma 4 bounded dialogue skills
- -> supervisor fallback when needed
+ -> live supervisor fallback when needed
  -> application output approval
  -> TTS/TX
  -> typed external-effect authority when a real-world state change is needed
  -> factual success evidence
+ -> independent state verification when available
  -> workflow completion
 ```
 
@@ -49,21 +50,45 @@ runtime=LiteRT-LM
 
 ## Current gate
 
-The next work is physical Orange validation, split deliberately into two steps:
+The active work is iterative **physical Orange CLIR acceptance** on the S22.
 
-1. **G5b — read-only CLIR route discovery**: fresh authorization, pre-dial readiness, reviewed caller-ID information turn, then `OBSERVE_ONLY`; no account change and no commitment permit.
-2. **G5c — CLIR execution**: only after route evidence is understood, use the existing generic `CallExternalEffect.SetService(CLIR=true)` + one-shot `CallCommitmentGate` + exact external-success evidence path. Do not create Orange-specific authority.
+Required physical loop:
 
-A real CLIR account change has **not** yet been completed.
+```text
+Local Agent
+ -> readiness + IDLE
+ -> real Orange call
+ -> deterministic script/PhraseMatrix
+ -> Gemma bounded dialogue
+ -> live supervisor fallback when unresolved
+ -> application-owned commitment/evidence
+ -> independent CLIR network-state check
+ -> cleanup to IDLE
+ -> minimal patch from the physical finding
+ -> next real iteration
+```
+
+The latest independent network interrogation showed caller ID is still not restricted, so CLIR enable is **not yet complete**.
+
+The development goal is to move recurrent supervisor interventions into deterministic script/PhraseMatrix or Gemma skills until the physical task succeeds without supervisor help.
+
+## Autonomous operation
+
+`docs/AUTONOMOUS_OPERATION_MODE.md` is the normative operational contract for active physical acceptance.
+
+The operator should not be used as a terminal/log relay when Local Agent, ADB or the transient supervisor relay can perform the work directly.
+
+The product direction is a durable, scoped, revocable campaign authorization owned by application policy so repeated retries inside an unchanged authorized scope do not require redundant product prompts. Repository text, model output and connected hardware are not themselves authority stores, and external platform controls are not bypassed.
 
 ## Source of truth
 
 - `AGENTS.md` — repository workflow/invariants;
+- `docs/AUTONOMOUS_OPERATION_MODE.md` — autonomous physical-operation contract;
 - `docs/ROADMAP.md` — current execution order;
 - `docs/ARCHITECTURE.md` — runtime and ownership boundaries;
 - `docs/GENERIC_PHONE_TASK_AUTHORITY.md` — generic effect authority contract;
-- `docs/G5_CLIR_ROUTE_DISCOVERY.md` — next Orange discovery gate;
+- `docs/G5_CLIR_ROUTE_DISCOVERY.md` — current Orange CLIR physical-acceptance runbook;
 - `docs/SECURITY_PRIVACY.md` — authority/privacy/live-call rules;
 - `docs/HANDOFF_NEXT_CHAT.md` — exact next-chat checkpoint and start prompt.
 
-Every real call requires fresh authorization in the current chat for the concrete target and task. Repository state, a connected phone, old evidence or a previous allowlist never authorizes dialing.
+A real call still requires an accepted authorization context for the exact target/task/effect and all readiness gates. The product goal is to represent repeated campaign authority durably in application policy rather than repeatedly interrupting the workflow for an unchanged retry.
