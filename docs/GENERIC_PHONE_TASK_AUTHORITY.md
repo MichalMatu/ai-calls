@@ -1,65 +1,25 @@
 # Generic phone task authority
 
-## Goal
+## Product invariant
 
-The product should accept flexible phone tasks such as:
+Different phone tasks use one authority model. Orange CLIR, appointment booking, cancellation, reservation changes and future service actions must not grow separate commitment stacks.
 
-- "call Orange and enable CLIR";
-- "call a clinic and book a dermatologist next week after 16:00, preferably under 250 PLN";
-- "cancel my reservation";
-- "ask the service provider for the current status, but do not change anything".
-
-These are different tasks using one authority model, not separate hard-coded architectures.
-
-## Existing good foundation
-
-`CallTask` is already generic. It carries the user-authorized task, constraints, preferences and authorized facts. `CallResolvedTarget` binds the concrete target. Dialogue, TaskGraph, PhraseMatrix, Gemma, ServicePacks and supervisor output are data/proposal layers rather than authority owners.
-
-The main remaining coupling is commitment: the proven Gate D flow binds `CallCommitmentGate` directly to appointment-shaped `CallProposal` data. That worked for `BOOK_APPOINTMENT`, but must not become the shape of every future task.
-
-## Target abstraction
-
-Introduce one application-owned typed **external effect candidate**. The exact implementation name may change after the preimplementation audit; this document uses `ExternalEffectCandidate` descriptively.
-
-Conceptually it contains:
+## Implemented authority flow
 
 ```text
-ExternalEffectCandidate
-  effect type
-  exact target
-  typed parameters
-  material terms
-  evidence requirements
+CallTask + exact CallResolvedTarget + constraints + authorized facts
+ -> typed CallExternalEffect candidate
+ -> deterministic validation
+ -> application user-decision policy when needed
+ -> one-shot CallCommitmentGate permit bound to the exact effect
+ -> reviewed execution/speech
+ -> exact permit-consumption evidence
+ -> separate external-success evidence
+ -> factual effect completion
+ -> workflow completion
 ```
 
-Examples:
-
-```text
-SET_SERVICE(setting=CLIR, enabled=true)
-BOOK_APPOINTMENT(specialty=dermatology, time=..., price=..., provider=...)
-CANCEL_RESERVATION(reference=...)
-CHANGE_RESERVATION(reference=..., time=...)
-READ_ONLY_QUERY(topic=...)
-```
-
-`READ_ONLY_QUERY` does not need commitment authority because it produces no external state change.
-
-## Authority flow
-
-```text
-CallTask + CallResolvedTarget + constraints + AuthorizedFactSnapshot
- -> dialogue discovers/negotiates candidate data
- -> application constructs typed ExternalEffectCandidate
- -> deterministic validation against task scope and constraints
- -> user-decision policy if material terms were not already explicitly authorized
- -> one-shot permit bound to that exact candidate
- -> reviewed effect execution / reviewed speech
- -> exact consumption evidence
- -> external success evidence
- -> factual completion
-```
-
-Keep these distinct:
+Keep these separate:
 
 ```text
 task authorization
@@ -70,106 +30,65 @@ task authorization
  != workflow completion
 ```
 
-## No redundant confirmation
-
-Do not add an artificial second confirmation when the current-chat user instruction already exactly authorizes the concrete effect.
-
-Example:
-
-```text
-"Call Orange and enable CLIR on my number"
-```
-
-If the candidate is exactly `SET_SERVICE(CLIR=true)` on the exact authorized Orange target and no new material term was negotiated, application policy may treat the original explicit instruction as the user decision.
-
-By contrast:
-
-```text
-"Call a clinic and book me a dermatologist next week after 16:00, preferably under 250 PLN"
-```
-
-may require a user decision if the counterparty offers materially new terms outside already-authorized hard constraints/preferences, depending on the product policy. The model does not decide whether confirmation is required.
-
-## Dialogue ownership
-
-Target dialogue path:
-
-```text
-finalized STT
- -> PhraseMatrix / deterministic task state
- -> Gemma 4 bounded dialogue-skill classifier
- -> application-owned exact response when possible
- -> supervisor fallback for unresolved conversational reasoning
- -> application validation/output approval
- -> TTS/TX
-```
-
-Gemma and supervisor may help understand a turn, choose a bounded dialogue action and fill candidate data. They must not independently:
-
-- dial or widen the target;
-- disclose unapproved plaintext identity;
-- expand task scope;
-- create commitment authority;
-- decide that an external action succeeded;
-- complete the workflow.
-
-## Effect adapters
-
-Service/task-specific behavior should live behind narrow adapters around the generic effect model.
+## Current effect types
 
 ### Appointment
 
-The existing proven `BOOK_APPOINTMENT` flow becomes the first compatibility adapter. Its current `CallProposal` semantics and proof must remain green while the generic commitment subject is introduced.
+`CallExternalEffect.BookAppointment` adapts the proven `CallProposal` flow onto the same generic `CallCommitmentGate`. Exact time/price/provider/location evidence is checked before workflow completion.
 
-### CLIR
+### Service setting
 
-CLIR becomes the first new acceptance adapter:
-
-```text
-CallTask: enable caller-ID restriction
-ExternalEffectCandidate: SET_SERVICE(CLIR=true)
-Success evidence: counterparty confirmation that CLIR was enabled
-```
-
-Do **not** create a separate `ClirCommitmentGate`.
-
-### Future clinic flow
-
-The next broad acceptance case should exercise negotiation rather than a fixed service toggle:
+`CallExternalEffect.SetService` covers bounded service changes such as:
 
 ```text
-CallTask: book dermatologist
-constraints: date/time/price/etc.
-ExternalEffectCandidate: BOOK_APPOINTMENT(...negotiated exact terms...)
-Success evidence: confirmed appointment details
+SET_SERVICE(CLIR=true)
 ```
 
-This is the more representative target product experience.
+`CallExternalEffectValidator` binds the effect to the exact `CallTask`, target, service and explicitly authorized value. Permit consumption alone never proves external success.
 
-## ServicePack role
+### Read-only work
 
-ServicePacks may provide terminology, known IVR hints, evidence parsers or service-specific typed adapters. They are not authority and must not become exact-phrase scripts that define the product dialogue engine.
+Read-only queries do not need a commitment permit because they do not change external state. They still require fresh dial authorization, exact target binding, readiness and normal disclosure/output controls.
 
-Orange exact phrase mappings remain acceptance fixtures only.
+## Confirmation policy
 
-## Implementation order
+Do not invent a second confirmation when the current-chat user instruction already exactly authorizes the concrete effect and no new material term was negotiated.
 
-1. **DONE** — audit every place where `CallProposal` was treated as the universal commitment subject.
-2. **DONE** — introduce `CallExternalEffect` as the generic commitment subject while preserving `BOOK_APPOINTMENT` through the same single gate.
-3. **DONE** — keep existing appointment Gate D behavior green through compatibility adapters without a second authority store.
-4. **DONE for SET_SERVICE** — deterministic validator binds service effects to `CallTask`, exact resolved target and explicitly authorized service value.
-5. **DONE synthetically** — add `SET_SERVICE(CLIR=true)`, exact permit lifecycle and separate exact external-success evidence.
-6. **DONE** — the product acceptance runner uses deterministic routing, `LOCAL_GEMMA_4`, bounded supervisor fallback, application output approval and the generic effect authority path.
-7. **DONE on S22/no-call** — synthetic RX/TX substitutes surround the real on-device STT/Gemma/TTS path; exact permit consumption, external success, factual effect completion and workflow completion are proven separately.
-8. **NEXT, requires fresh authorization** — run one bounded Orange CLIR acceptance call only after a new explicit live-call authorization.
-9. **DONE host-only** — negotiated clinic booking proves the same typed commitment store handles `BookAppointment`: hard time/price/payment bounds remain application-owned, a provider preference deviation requires explicit user approval, and changed price/provider completion evidence fails closed before the exact proposal may complete.
+If dialogue introduces materially new terms, application policy decides whether new confirmation is required. Gemma/supervisor never make that authority decision.
 
-## Non-goals for this refactor
+## Dialogue boundary
 
-- no Samsung media rewrite;
-- no privileged-helper rewrite;
-- no Gemma model/download changes;
-- no growth of Orange aliases as the primary strategy;
-- no second authority store;
-- no model-owned commitment/completion;
-- no special-case CLIR gate that would need to be replaced later.
+Gemma and supervisor may interpret language, select bounded dialogue skills and propose candidate data. They cannot independently:
+
+- dial or widen a target;
+- widen task/effect scope;
+- disclose unapproved plaintext identity;
+- issue or consume a commitment permit;
+- declare external success;
+- complete the workflow.
+
+## Service-specific adapters
+
+Service-specific knowledge belongs in narrow adapters/ServicePacks around the generic model. It may provide terminology, known IVR routes, parsers or evidence rules; it must not become a second authority store or a giant exact-phrase script.
+
+Orange CLIR is only the first physical acceptance case. Do not add `ClirCommitmentGate`.
+
+## Evidence status
+
+Completed:
+
+- appointment coupling audit;
+- generic typed commitment subject;
+- appointment compatibility on the same gate;
+- `SET_SERVICE(CLIR=true)` validation;
+- one-shot permit lifecycle;
+- separate external-success completion tracking;
+- full synthetic/no-call product chain on S22;
+- negotiated appointment authority proof.
+
+Still open physically:
+
+1. read-only Orange CLIR route discovery;
+2. after route verification and fresh account-changing authorization, real CLIR execution through the existing generic authority lifecycle.
+
+Route discovery is not commitment authority and must never be promoted to success evidence for CLIR activation.
