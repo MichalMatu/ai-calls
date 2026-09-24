@@ -31,7 +31,7 @@ fi
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
   --no-daemon
-python3 -m unittest discover -s scripts -p 'test_*.py'
+PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'
 
 if grep -RInE --include='*.kt' --include='*.java' --include='*.xml' \
   '(OPENAI_API_KEY|sk-[A-Za-z0-9_-]{8,}|apiKey|api_key)' \
@@ -40,7 +40,7 @@ if grep -RInE --include='*.kt' --include='*.java' --include='*.xml' \
   exit 1
 fi
 
-if grep -nE '(tel:|KEYCODE_CALL|KEYCODE_ENDCALL|ACTION_CALL)' scripts/realtime_live_call_smoke.py; then
+if grep -nE '(tel:|KEYCODE_CALL|KEYCODE_ENDCALL|ACTION_CALL)' scripts/aicall_tools/realtime/realtime_live_call_smoke.py; then
   echo "live_runner_telephony_control_scan_failed=true" >&2
   exit 1
 fi

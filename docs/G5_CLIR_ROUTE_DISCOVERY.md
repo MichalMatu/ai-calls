@@ -6,7 +6,7 @@ Read `docs/AUTONOMOUS_OPERATION_MODE.md` before continuing this gate.
 
 ## Historical G5a — DONE host-only
 
-The pure discovery contract lives in `scripts/g5_clir_route_discovery_plan.py`.
+The historical pure discovery contract is retained at `scripts/aicall_tools/orange/history/g5_clir_route_discovery_plan.py`.
 
 ```text
 exact allowlisted Orange target

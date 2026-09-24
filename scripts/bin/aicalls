@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$SCRIPTS_DIR${PYTHONPATH:+:$PYTHONPATH}"
+command_name="${1:-}"
+[[ -n "$command_name" ]] || { echo "usage: scripts/bin/aicalls <command> [args...]" >&2; exit 2; }
+shift
+case "$command_name" in
+  relay-live) module="aicall_tools.calls.chatgpt_relay_live_call" ;;
+  readiness) module="aicall_tools.calls.live_call_readiness" ;;
+  local-phone-live) module="aicall_tools.calls.local_phone_llm_live_call" ;;
+  historical-route-discovery) module="aicall_tools.orange.history.g5_clir_route_discovery_plan" ;;
+  realtime-live-smoke) module="aicall_tools.realtime.realtime_live_call_smoke" ;;
+  realtime-network-smoke) module="aicall_tools.realtime.realtime_network_smoke" ;;
+  realtime-offcall-lab) module="aicall_tools.realtime.realtime_offcall_lab" ;;
+  openai-text-offcall-lab) module="aicall_tools.text.openai_text_offcall_lab" ;;
+  s22-app-death-gate) module="aicall_tools.device.s22_app_death_gate" ;;
+  s22-call-end-gate) module="aicall_tools.device.s22_call_end_gate" ;;
+  s22-resource-telemetry) module="aicall_tools.device.s22_resource_telemetry" ;;
+  text-benchmark) module="aicall_tools.benchmarks.text_model_benchmark" ;;
+  *) echo "unknown command: $command_name" >&2; exit 2 ;;
+esac
+exec python3 -m "$module" "$@"

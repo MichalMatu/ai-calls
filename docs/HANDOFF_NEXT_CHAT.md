@@ -65,7 +65,7 @@ scripted CLIR navigation
  -> factual completion path
 ```
 
-Host cleanup previously raced the Android report write when Orange disconnected. `scripts/chatgpt_relay_live_call.py` was changed to preserve a sanitized live-probe report before cleanup so the next physical failure is diagnosable.
+Host cleanup previously raced the Android report write when Orange disconnected. `scripts/aicall_tools/calls/chatgpt_relay_live_call.py` was changed to preserve a sanitized live-probe report before cleanup so the next physical failure is diagnosable.
 
 The host runner now also generates a relay session ID automatically when one is not supplied and defaults to the full bounded 10-turn budget. A new chat must not ask the operator for either value. The explicit CLIR-effect runner guard remains required internally and is supplied by the executor when the accepted authorization context covers the exact effect.
 
@@ -123,8 +123,8 @@ Existing `CallCommitmentGate` and external-success evidence remain mandatory for
 ## Relevant files
 
 - `docs/AUTONOMOUS_OPERATION_MODE.md`
-- `scripts/live_call_readiness.py`
-- `scripts/chatgpt_relay_live_call.py`
+- `scripts/aicall_tools/calls/live_call_readiness.py`
+- `scripts/aicall_tools/calls/chatgpt_relay_live_call.py`
 - `app/src/main/kotlin/pl/michalmatu/aicallbridge/developerrelay/ChatRelayLiveCallProbe.kt`
 - `docs/G5_CLIR_ROUTE_DISCOVERY.md`
 - `docs/ORANGE_MAPPING_RUNBOOK.md`
