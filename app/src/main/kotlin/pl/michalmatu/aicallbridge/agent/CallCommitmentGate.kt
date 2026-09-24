@@ -3,7 +3,7 @@ package pl.michalmatu.aicallbridge.agent
 import java.security.SecureRandom
 import java.util.Base64
 
-/** Opaque one-shot authorization proving that app-owned policy approved one concrete proposal. */
+/** Opaque one-shot authorization proving that app-owned policy approved one concrete effect. */
 class CallCommitmentAuthorization(
     val value: String,
 ) {
@@ -24,8 +24,12 @@ class CallCommitmentAuthorization(
  * App-owned one-shot gate for external commitments.
  *
  * The language model never creates authority. Policy/user approval calls [authorize], which binds
- * an opaque permit to the exact concrete proposal. Only the current permit can be consumed and it
- * disappears atomically after one successful consume. Issuing a newer permit revokes the older one.
+ * an opaque permit to one exact typed [CallExternalEffect]. Only the current permit can be consumed
+ * and it disappears atomically after one successful consume. Issuing a newer permit revokes the
+ * older one.
+ *
+ * The [CallProposal] overloads are a compatibility adapter for the already-proven
+ * BOOK_APPOINTMENT path. They use the same single store as typed effects.
  */
 class CallCommitmentGate(
     private val tokenFactory: () -> String = ::newSecureToken,
@@ -33,15 +37,19 @@ class CallCommitmentGate(
     private val lock = Any()
     private var current: Entry? = null
 
-    fun authorize(proposal: CallProposal): CallCommitmentAuthorization {
+    fun authorize(effect: CallExternalEffect): CallCommitmentAuthorization {
         val authorization = CallCommitmentAuthorization(tokenFactory())
         synchronized(lock) {
-            current = Entry(authorization.value, proposal)
+            current = Entry(authorization.value, effect)
         }
         return authorization
     }
 
-    fun consume(token: String): Result<CallProposal> {
+    fun authorize(proposal: CallProposal): CallCommitmentAuthorization =
+        authorize(CallExternalEffect.BookAppointment(proposal))
+
+    /** Consumes the current permit and returns its exact typed effect. */
+    fun consumeEffect(token: String): Result<CallExternalEffect> {
         if (!TOKEN_PATTERN.matches(token)) {
             return Result.failure(IllegalArgumentException("invalid commitment authorization token"))
         }
@@ -52,7 +60,32 @@ class CallCommitmentGate(
                 return Result.failure(IllegalStateException("commitment authorization does not match"))
             }
             current = null
-            return Result.success(entry.proposal)
+            return Result.success(entry.effect)
+        }
+    }
+
+    /**
+     * BOOK_APPOINTMENT compatibility consume.
+     *
+     * A non-appointment typed effect is rejected without consuming its permit, so legacy execution
+     * code cannot accidentally destroy authority owned by another effect type.
+     */
+    fun consume(token: String): Result<CallProposal> {
+        if (!TOKEN_PATTERN.matches(token)) {
+            return Result.failure(IllegalArgumentException("invalid commitment authorization token"))
+        }
+        synchronized(lock) {
+            val entry = current
+                ?: return Result.failure(IllegalStateException("no commitment authorization is active"))
+            if (entry.token != token) {
+                return Result.failure(IllegalStateException("commitment authorization does not match"))
+            }
+            val appointment = entry.effect as? CallExternalEffect.BookAppointment
+                ?: return Result.failure(
+                    IllegalStateException("commitment authorization is not a BOOK_APPOINTMENT effect"),
+                )
+            current = null
+            return Result.success(appointment.proposal)
         }
     }
 
@@ -77,7 +110,7 @@ class CallCommitmentGate(
 
     private data class Entry(
         val token: String,
-        val proposal: CallProposal,
+        val effect: CallExternalEffect,
     )
 
     private companion object {
