@@ -154,13 +154,13 @@ Orange exact phrase mappings remain acceptance fixtures only.
 
 ## Implementation order
 
-1. Preimplementation audit every place where `CallProposal` is treated as the universal commitment subject.
-2. Introduce the narrowest generic commitment-subject abstraction while preserving all existing `BOOK_APPOINTMENT` behavior/tests.
-3. Adapt existing appointment Gate D wiring to the generic subject without weakening its proof.
-4. Add a generic effect policy/validator bound to `CallTask`, target and constraints.
-5. Add `SET_SERVICE(CLIR=true)` as the first new effect adapter.
-6. Wire the real live runner to `LOCAL_GEMMA_4` + deterministic routing + supervisor fallback + generic effect authority.
-7. Prove the entire CLIR flow synthetically/no-call first.
+1. **DONE** — audit every place where `CallProposal` was treated as the universal commitment subject.
+2. **DONE** — introduce `CallExternalEffect` as the generic commitment subject while preserving `BOOK_APPOINTMENT` through the same single gate.
+3. **DONE** — keep existing appointment Gate D behavior green through compatibility adapters without a second authority store.
+4. **DONE for SET_SERVICE** — deterministic validator binds service effects to `CallTask`, exact resolved target and explicitly authorized service value.
+5. **DONE synthetically** — add `SET_SERVICE(CLIR=true)`, exact permit lifecycle and separate exact external-success evidence.
+6. **NEXT** — wire the product acceptance runner to `LOCAL_GEMMA_4` + deterministic routing + supervisor fallback + generic effect authority.
+7. Prove the full runner end-to-end synthetically/no-call before dialing.
 8. With fresh live-call authorization, run one bounded Orange CLIR acceptance call.
 9. Add the clinic booking acceptance case to prove the architecture is truly generic.
 

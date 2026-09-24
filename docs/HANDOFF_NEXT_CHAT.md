@@ -128,28 +128,19 @@ If the user already explicitly authorized the exact concrete effect and no new m
 
 ## Exact next implementation scope
 
-### G1 — preimplementation audit first
+### G1 — DONE: appointment coupling audit
 
-Before behavior changes, map every appointment-specific coupling of `CallProposal` through:
+Mapped `CallProposal` through `CallCommitmentGate`, the Realtime commitment path, Gate D product integration, consumption/completion evidence, `LocalTextCallSession`, tests and docs. The narrow migration point was confirmed to be the existing single commitment store rather than a new task-specific gate.
 
-- `CallCommitmentGate`;
-- realtime commitment handler;
-- Gate D product integration;
-- confirmation/consumption/completion evidence;
-- `LocalTextCallSession` appointment-specific seams;
-- tests/docs.
+### G2 — DONE: generic commitment subject
 
-Produce the narrowest migration plan preserving all existing `BOOK_APPOINTMENT` invariants.
+`CallCommitmentGate` now stores one typed `CallExternalEffect`. Existing `BOOK_APPOINTMENT` code uses `CallExternalEffect.BookAppointment` through compatibility overloads on that same store. `CallCommitmentConsumptionEvidence` carries the typed effect while preserving the reviewed appointment view. Existing appointment behavior remains green; there is still exactly one authority store.
 
-### G2 — generic commitment subject
+### G3 — DONE: synthetic CLIR effect lifecycle
 
-Introduce the generic typed external-effect commitment subject with RED -> GREEN tests. Existing appointment behavior must remain green through an adapter/compatibility path. Do not create a second authority store.
+Added `CallExternalEffect.SetService(target, CLIR, enabled)` and deterministic `CallExternalEffectValidator` binding the candidate to the exact `CallTask`, exact `CallResolvedTarget`, service and explicitly authorized `service.enabled` value. Permit consumption is separate from external success; `CallExternalEffectCompletionTracker` accepts completion only after exact matching success evidence and only once. Targeted tests and the full `scripts/verify_host.sh` baseline are green. This was synthetic/no-call only; no CLIR account change was attempted.
 
-### G3 — CLIR adapter
-
-Add `SET_SERVICE(CLIR=true)` as the first new generic effect. Prove task/target binding, permit lifecycle and factual success evidence synthetically/no-call.
-
-### G4 — full runner
+### G4 — NEXT: full runner
 
 Wire one real product acceptance runner through:
 
