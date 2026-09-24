@@ -4,11 +4,14 @@ package pl.michalmatu.aicallbridge
  * Fixed, reviewed developer actions for the controlled Orange IVR discovery loop.
  *
  * This is not a free-text surface. Each action id maps to one reviewed response or to an
- * observation-only mode that cannot release speech.
+ * observation-only mode that cannot release speech. Actions that can request an external account
+ * change remain named for historical evidence, but are not executable through this legacy
+ * diagnostic surface; they must use the generic CallExternalEffect authority lifecycle instead.
  */
 internal enum class OrangeLiveAction(
     val wireId: String,
     val reviewedResponse: String?,
+    val legacyDiagnosticAllowed: Boolean = true,
 ) {
     GREETING("greeting", "Dzień dobry."),
     LIST_CAPABILITIES("list_capabilities", "Jakie sprawy możesz załatwić?"),
@@ -28,7 +31,11 @@ internal enum class OrangeLiveAction(
     OUTGOING_CALL_PROBLEM("outgoing_call_problem", "Nie mogę wykonywać połączeń."),
     INCOMING_CALL_PROBLEM("incoming_call_problem", "Nie mogę odbierać połączeń."),
     CALLER_ID_RESTRICTION_INFO("caller_id_restriction_info", "Jak działa zastrzeganie numeru?"),
-    CALLER_ID_RESTRICTION_ENABLE("caller_id_restriction_enable", "Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących."),
+    CALLER_ID_RESTRICTION_ENABLE(
+        "caller_id_restriction_enable",
+        "Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.",
+        legacyDiagnosticAllowed = false,
+    ),
     ROAMING_INFO("roaming_info", "Roaming."),
     ROAMING_PRICES("roaming_prices", "Chcę sprawdzić ceny w roamingu."),
     OBSERVE_ONLY("observe_only", null),
@@ -38,8 +45,12 @@ internal enum class OrangeLiveAction(
         fun fromWireId(raw: String?): OrangeLiveAction {
             val normalized = raw?.trim().orEmpty()
             if (normalized.isEmpty()) return GREETING
-            return entries.singleOrNull { it.wireId == normalized }
+            val action = entries.singleOrNull { it.wireId == normalized }
                 ?: throw IllegalArgumentException("unknown_orange_live_action")
+            require(action.legacyDiagnosticAllowed) {
+                "external_effect_requires_generic_authority"
+            }
+            return action
         }
     }
 }
