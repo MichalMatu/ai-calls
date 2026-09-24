@@ -33,7 +33,7 @@ internal enum class OrangeLiveAction(
     CALLER_ID_RESTRICTION_INFO("caller_id_restriction_info", "Jak działa zastrzeganie numeru?"),
     CALLER_ID_RESTRICTION_ENABLE(
         "caller_id_restriction_enable",
-        "Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.",
+        null,
         legacyDiagnosticAllowed = false,
     ),
     ROAMING_INFO("roaming_info", "Roaming."),
