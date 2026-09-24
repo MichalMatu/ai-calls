@@ -142,6 +142,47 @@ class CallRealtimeSessionOrchestratorTest {
     }
 
     @Test
+    fun closeOnActiveSessionUsesLocalTakeoverOrderingBeforeRealtimeCleanup() {
+        val events = Collections.synchronizedList(mutableListOf<String>())
+        val fixture = Fixture(events = events)
+        val orchestrator = fixture.orchestrator()
+        orchestrator.start(request())
+        assertEquals(CallRealtimeSessionOrchestratorState.ACTIVE, orchestrator.snapshot().state)
+
+        orchestrator.close()
+
+        assertEquals(CallRealtimeSessionOrchestratorState.TAKEN_OVER, orchestrator.snapshot().state)
+        val abortIndex = events.indexOf("media_abort")
+        val cancelIndex = events.indexOf("realtime_cancel")
+        val closeIndex = events.indexOf("realtime_close")
+        assertTrue(abortIndex >= 0)
+        assertTrue(cancelIndex > abortIndex)
+        assertTrue(closeIndex > abortIndex)
+        fixture.endpoint.closePipe()
+    }
+
+    @Test
+    fun closeDuringCredentialFetchInvalidatesLateCredentialLikeTakeover() {
+        val events = Collections.synchronizedList(mutableListOf<String>())
+        val credential = DeferredCredentialProvider(events)
+        val fixture = Fixture(events = events, credentialProvider = credential)
+        val orchestrator = fixture.orchestrator()
+
+        orchestrator.start(request())
+        assertEquals(CallRealtimeSessionOrchestratorState.FETCHING_CREDENTIAL, orchestrator.snapshot().state)
+
+        orchestrator.close()
+        assertEquals(CallRealtimeSessionOrchestratorState.TAKEN_OVER, orchestrator.snapshot().state)
+        credential.resume(Result.success(RealtimeClientSecret("eph_late_close", 9_999_999_999L)))
+
+        assertEquals(CallRealtimeSessionOrchestratorState.TAKEN_OVER, orchestrator.snapshot().state)
+        assertEquals(0, fixture.transport.connectCalls.get())
+        assertFalse(events.contains("media_bind"))
+        assertTrue(fixture.transport.closeCalls.get() >= 1)
+        fixture.endpoint.closePipe()
+    }
+
+    @Test
     fun dataPlaneFailureBecomesOrchestratorFailureAndCleansMedia() {
         val events = Collections.synchronizedList(mutableListOf<String>())
         val transport = FakeTransport(events).apply {

@@ -215,7 +215,7 @@ class CallRealtimeSessionOrchestrator(
             }
         }
         if (shouldTakeOver) {
-            takeOverNowAfterCloseFlag()
+            takeOverNow()
         } else {
             val resources = synchronized(lock) {
                 val values = Triple(mediaSession, transport, coordinatorSubscription)
@@ -695,50 +695,6 @@ class CallRealtimeSessionOrchestrator(
         }
         publish(nextSnapshot)
         return true
-    }
-
-    private fun takeOverNowAfterCloseFlag() {
-        val stoppingSnapshot: CallRealtimeSessionOrchestratorSnapshot
-        val currentSession: CallRealtimeMediaSession?
-        val currentTransport: RealtimeTransport?
-        val subscription: AutoCloseable?
-        val mayHavePrivilegedMedia: Boolean
-        synchronized(lock) {
-            if (
-                state == CallRealtimeSessionOrchestratorState.IDLE ||
-                state == CallRealtimeSessionOrchestratorState.TAKEN_OVER ||
-                state == CallRealtimeSessionOrchestratorState.FAILED ||
-                state == CallRealtimeSessionOrchestratorState.STOPPING
-            ) {
-                return
-            }
-            state = CallRealtimeSessionOrchestratorState.STOPPING
-            stoppingSnapshot = snapshotLocked()
-            currentSession = mediaSession
-            currentTransport = transport
-            subscription = coordinatorSubscription
-            coordinatorSubscription = null
-            mayHavePrivilegedMedia = mediaGeneration != null ||
-                coordinator.snapshot().state != CallMediaSessionState.IDLE
-        }
-        publish(stoppingSnapshot)
-        closeQuietly(subscription)
-        if (currentSession != null) {
-            currentSession.takeOverNow()
-        } else {
-            if (mayHavePrivilegedMedia) coordinator.takeOverNow()
-            cleanupRealtimeBestEffort(currentTransport)
-        }
-        val terminal = synchronized(lock) {
-            mediaSession = null
-            transport = null
-            mediaGeneration = null
-            functionCalls.clear()
-            failureReason = null
-            state = CallRealtimeSessionOrchestratorState.TAKEN_OVER
-            snapshotLocked()
-        }
-        publish(terminal)
     }
 
     private fun isCurrentLocked(
