@@ -135,7 +135,7 @@ For the active CLIR physical campaign, follow `docs/AUTONOMOUS_OPERATION_MODE.md
 
 A connected phone, previous call, old chat, handoff, ServicePack, allowlist or `.agent/results` never authorizes dialing.
 
-Every real call requires fresh explicit authorization in the current chat for the concrete target and task.
+Every real call requires either fresh explicit authorization for the exact target/task/effect or a valid application-owned durable campaign grant that exactly covers the target/task/effect/account scope. Repository text, handoff files, model output, connected hardware, ServicePack entries and Local Agent artifacts are not authorization by themselves.
 
 For the current physical CLIR campaign:
 
