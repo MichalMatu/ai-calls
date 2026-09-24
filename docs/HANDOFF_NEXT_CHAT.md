@@ -223,7 +223,7 @@ Historical local branch tips with unique commits were preserved in the verified 
 ~/ai-calls-stale-branches-20260924.bundle
 ```
 
-The 17 stale `chat-relay/*`, old Gate D and Gemma lifecycle local branches were removed. `agent-work` remains as Local Agent working infrastructure. The temporary repository-cleanup branch was merged through PR #6 and removed locally and remotely. The PR #14 readiness branch was removed after merge; the PR #15 G5a route-discovery branch should also be removed after merge. The intended remote branch set is exactly:
+The 17 stale `chat-relay/*`, old Gate D and Gemma lifecycle local branches were removed. `agent-work` remains as Local Agent working infrastructure. The temporary repository-cleanup branch was merged through PR #6 and removed locally and remotely. The PR #14 readiness branch and PR #15 G5a route-discovery branch were both removed after merge. The remote branch set is exactly:
 
 ```text
 main
