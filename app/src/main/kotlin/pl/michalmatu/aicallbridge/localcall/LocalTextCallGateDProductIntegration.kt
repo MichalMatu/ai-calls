@@ -539,7 +539,7 @@ internal class LocalTextCallGateDProductIntegration(
                     GateDBookAppointmentCompletionRejectReason.OUTCOME_NOT_SUCCESS,
                 )
             }
-            if (!outcomeMatchesApprovedProposal(proposal, outcome, snapshot)) {
+            if (!BookAppointmentOutcomeMatcher.matches(proposal, outcome, snapshot)) {
                 return@synchronized completionRejected(
                     GateDBookAppointmentCompletionRejectReason.OUTCOME_MISMATCH,
                 )
@@ -656,30 +656,6 @@ internal class LocalTextCallGateDProductIntegration(
 
         notifyApplyResult(result)
         return result
-    }
-
-    private fun outcomeMatchesApprovedProposal(
-        proposal: CallProposal,
-        outcome: CallOutcome,
-        snapshot: TaskGraphSnapshot,
-    ): Boolean {
-        val scheduledAt = proposal.scheduledAt() ?: return false
-        if (outcome.scheduledAt() != scheduledAt) return false
-        val graphAppointment = snapshot.context[BookAppointmentTaskGraph.APPOINTMENT_AT]
-            as? TaskGraphSlotValue.Text ?: return false
-        if (graphAppointment.value != scheduledAt.toString()) return false
-
-        val approvedPrice = proposal.price()
-        if (approvedPrice != null) {
-            val cost = outcome.cost() ?: return false
-            if (approvedPrice.currencyCode() != cost.currencyCode()) return false
-            if (approvedPrice.amount().compareTo(cost.amount()) != 0) return false
-        }
-        val approvedProvider = proposal.provider()
-        if (approvedProvider != null && approvedProvider != outcome.provider()) return false
-        val approvedLocation = proposal.location()
-        if (approvedLocation != null && approvedLocation != outcome.location()) return false
-        return true
     }
 
     private fun notifyApplyResult(result: TaskGraphApplyResult) {
