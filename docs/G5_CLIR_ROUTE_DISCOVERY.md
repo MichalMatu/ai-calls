@@ -1,10 +1,12 @@
-# G5 CLIR route discovery
+# G5 CLIR physical acceptance
 
-G5 is split so unknown Orange routing can never be treated as commitment authority or CLIR success evidence.
+G5 started as route discovery, but the active work is now iterative physical CLIR execution on the S22. Unknown routing, commitment authority and factual success must still remain separate.
 
-## G5a — DONE host-only: discovery contract
+Read `docs/AUTONOMOUS_OPERATION_MODE.md` before continuing this gate.
 
-The pure contract lives in `scripts/g5_clir_route_discovery_plan.py`.
+## Historical G5a — DONE host-only
+
+The pure discovery contract lives in `scripts/g5_clir_route_discovery_plan.py`.
 
 ```text
 exact allowlisted Orange target
@@ -14,57 +16,112 @@ exact allowlisted Orange target
  -> nonblank observation evidence
 ```
 
-It records `live_call_readiness_required=true`, `external_effect_execution=false`, `commitment_permit_use=false` and `fresh_live_call_authorization_required=true`.
+This historical phase intentionally had no external effect or commitment permit.
 
-## G5b — PHYSICAL ATTEMPT COMPLETE, ROUTE UNVERIFIED
+## Historical G5b — PHYSICAL ATTEMPT COMPLETE
 
-On 2026-09-24 one explicitly authorized read-only Orange call executed the reviewed G5b contract. Immediately before dial, app live-call readiness passed for `RECORD_AUDIO` and Shizuku and phone state was `IDLE`.
+On 2026-09-24 the first physical Orange discovery call used the reviewed information turn and returned a generic Orange clarification/reprompt rather than a CLIR-specific route.
 
-The call used only:
-
-```text
-caller_id_restriction_info: "Jak działa zastrzeganie numeru?"
- -> OBSERVE_ONLY
-```
-
-Redacted observation evidence was a generic Orange clarification/reprompt rather than a CLIR-specific route:
+Redacted observation:
 
 ```text
 Przepraszam, że przedłużyć Dale. Chcę mieć pewność, w jakiej sprawie dzwonisz do nas. Powiedz proszę, czego dotyczy twoja sprawa.
 ```
 
-Evidence task: `chatgpt-g5b-live-readonly-route-discovery-v275-20260924`. Observation capture was bounded to 15000 ms. The owned call was cleaned back to `IDLE`.
+That evidence remains useful history, but the active implementation has moved beyond the single-turn `OBSERVE_ONLY` probe.
+
+## Active G5c — PHYSICAL EXECUTION LOOP
+
+The current live path uses the Orange on-net route `*100` and a bounded multi-turn dialogue:
+
+```text
+readiness + IDLE
+ -> real Orange call
+ -> deterministic CLIR navigation
+ -> deterministic clarification for known generic reprompt
+ -> Gemma skill for bounded dialogue
+ -> live supervisor takeover when unresolved
+ -> application-owned approval/commitment
+ -> factual Orange result
+ -> independent CLIR network-state interrogation
+ -> cleanup to IDLE
+```
+
+Observed physical behavior includes the Orange prompt:
+
+```text
+podaj dowolny numer twojej usługi lub wprowadź go na klawiaturze
+```
+
+Identity data required by that prompt must remain late-bound and transient. Do not copy the current SIM/service number into durable Git history, ServicePacks or ordinary logs.
+
+## Current factual state
+
+The latest independent network interrogation with the supported CLIR status flow returned:
+
+```text
+Caller ID defaults to not restricted. Next call: Not restricted
+```
 
 Therefore:
 
-- `service_route_verified=false`;
-- no CLIR/account state was changed;
-- no commitment permit was issued or consumed;
-- this discovery is **not** success evidence for `SET_SERVICE(CLIR=true)`;
-- the single live-call authorization used for this G5b attempt is consumed and does not authorize another call.
+```text
+CLIR enabled = false
+G5c physical success = false
+```
 
-## G5c — PREPARED, BLOCKED
+Do not treat the previous call, route entry, permit state or model output as success.
 
-The execution contract is prepared, but it must fail closed while the physical CLIR service route is unverified. Do not execute it from the G5b reprompt evidence.
+## Dialogue order
 
-Only after the route is physically verified and the current chat contains fresh authorization covering the concrete account-changing effect may G5c use the existing generic lifecycle:
+The required dialogue fallback order is:
 
 ```text
-mandatory live-call readiness
- -> require phone IDLE + exact allowlisted target
- -> exact CallTask + service.enabled=true
- -> CallExternalEffect.SetService(CLIR=true)
- -> deterministic validation against the verified route
- -> issue exactly one CallCommitmentGate permit immediately before commitment
+known turn -> script/PhraseMatrix
+unknown bounded turn -> Gemma skill
+Gemma unresolved / TAKE_OVER -> live supervisor in the same call
+```
+
+A supervisor takeover is part of the development loop. It should not terminate an otherwise healthy call. Recurrent takeover cases should be converted into deterministic script/PhraseMatrix or bounded Gemma skills in later iterations.
+
+## Commitment lifecycle
+
+A real CLIR mutation must use only the existing generic lifecycle:
+
+```text
+accepted authorization context + exact target/task
+ -> CallExternalEffect.SetService(CLIR=<desired state>)
+ -> deterministic validation
+ -> exactly one shared CallCommitmentGate permit immediately before commitment
  -> reviewed effect speech/execution
  -> exact one-shot permit consumption evidence
  -> separate factual external-success evidence
+ -> independent network-state verification when practical
  -> cleanup owned call to IDLE
- -> effect/workflow completion only from factual success evidence
+ -> factual workflow completion
 ```
 
-No `ClirCommitmentGate` may be introduced. Unknown or changed routing, ambiguous evidence, changed target, missing fresh authorization, failed readiness, missing/invalid permit, or missing factual external-success evidence must fail closed. Permit consumption is not external success, and route discovery is not mutation success evidence.
+No `ClirCommitmentGate` may be introduced. Permit consumption is not external success.
 
-## Current stop line
+## Autonomous campaign direction
 
-G5c is **not authorized and not executable yet** because `service_route_verified=false`. Any further Orange call, including another read-only route-discovery attempt, needs separate fresh live-call authorization in the current chat.
+The product target is a durable, scoped, revocable campaign grant owned by application policy. It should allow repeated physical retries inside an unchanged Orange CLIR scope without redundant product prompts while preserving exact target/task/effect/account boundaries.
+
+Chat prose, documentation, connected hardware, ServicePacks, model output and old evidence are not themselves the authority store. External platform/tool controls must not be bypassed.
+
+## Physical-first development rule
+
+During the active CLIR campaign:
+
+- real calls are the acceptance loop;
+- unit/synthetic suites must not replace physical progress unless the operator explicitly requests them;
+- build/compile/install is allowed when code changes;
+- preserve a sanitized probe report before cleanup;
+- monitor supervisor relay requests while the call is still active;
+- patch the smallest observed physical failure, then repeat the real call.
+
+## Completion condition
+
+Enable acceptance requires factual success evidence plus an independent network-state check confirming caller-ID restriction is active.
+
+After enable succeeds, the next physical task is the inverse operation (`SET_SERVICE(CLIR=false)`) and the same loop repeats until the recurrent dialogue can complete through script + Gemma without supervisor help.
