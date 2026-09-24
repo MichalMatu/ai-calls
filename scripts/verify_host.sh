@@ -3,6 +3,13 @@ set -euo pipefail
 
 GRADLE_BIN="${GRADLE_BIN:-./gradlew}"
 
+flat_python_files="$(find scripts -maxdepth 1 -type f -name '*.py' -print)"
+if [[ -n "$flat_python_files" ]]; then
+  echo "scripts_layout_failed=top_level_python_files" >&2
+  printf '%s\n' "$flat_python_files" >&2
+  exit 1
+fi
+
 if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
   if [[ -d "$HOME/Library/Android/sdk" ]]; then
     export ANDROID_HOME="$HOME/Library/Android/sdk"
