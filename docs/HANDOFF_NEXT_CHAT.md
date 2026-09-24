@@ -10,17 +10,14 @@ Durable code/docs live on `main`; `agent-control` is Local Agent task/result tra
 
 Always fetch fresh `origin/main` and fresh `.agent/status/daemon.json` / binding in the next chat.
 
-The repository-cleanup code checkpoint is:
+The merged repository-cleanup checkpoint is:
 
 ```text
-299a847dfc03d762319d62bef4f19f4fe13201e7
-Clean repository foundation and build bootstrap
-
-63e2f81a14047c030a2956b7aba49df30339ea5f
-Preindex phrase matching hot paths
+e998fb2e104265a9bd39f9e798c45924cfe39151
+Repository cleanup before generic task development
 ```
 
-Cleanup validation passed targeted `PhraseMatrix*` / `realtime-client` tests and the full `bash scripts/verify_host.sh` baseline.
+Cleanup validation passed targeted `PhraseMatrix*` / `realtime-client` tests, the full `bash scripts/verify_host.sh` baseline, and GitHub `Android CI` / `Host quality gate` on PR #6.
 
 ## Repository cleanup checkpoint
 
@@ -195,7 +192,7 @@ Historical local branch tips with unique commits were preserved in the verified 
 ~/ai-calls-stale-branches-20260924.bundle
 ```
 
-The 17 stale `chat-relay/*`, old Gate D and Gemma lifecycle local branches were then removed. `agent-work` remains as Local Agent working infrastructure. After the temporary repository-cleanup branch is merged and removed, the intended remote branch set is again exactly:
+The 17 stale `chat-relay/*`, old Gate D and Gemma lifecycle local branches were removed. `agent-work` remains as Local Agent working infrastructure. The temporary repository-cleanup branch was merged through PR #6 and removed locally and remotely. The remote branch set is exactly:
 
 ```text
 main
