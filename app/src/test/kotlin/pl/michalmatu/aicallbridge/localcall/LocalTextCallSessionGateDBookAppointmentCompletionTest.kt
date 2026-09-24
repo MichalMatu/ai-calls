@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.localcall
 
+import java.math.BigDecimal
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import org.junit.Assert.assertEquals
@@ -7,11 +8,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallConstraints
+import pl.michalmatu.aicallbridge.agent.CallExternalEffect
 import pl.michalmatu.aicallbridge.agent.CallOutcome
 import pl.michalmatu.aicallbridge.agent.CallOutcomeStatus
+import pl.michalmatu.aicallbridge.agent.CallPaymentMode
 import pl.michalmatu.aicallbridge.agent.CallPlan
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallPlanCompletionRule
@@ -19,6 +23,7 @@ import pl.michalmatu.aicallbridge.agent.CallPlanFallbackPolicy
 import pl.michalmatu.aicallbridge.agent.CallPlanProposalRule
 import pl.michalmatu.aicallbridge.agent.CallPolicyAction
 import pl.michalmatu.aicallbridge.agent.CallPreferences
+import pl.michalmatu.aicallbridge.agent.MoneyAmount
 import pl.michalmatu.aicallbridge.agent.CallProposal
 import pl.michalmatu.aicallbridge.agent.CallRealtimeCommitmentFunctionHandler
 import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
@@ -140,6 +145,104 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
         assertNull(fixture.workflow.snapshot().outcome())
     }
 
+    @Test
+    fun `negotiated clinic terms remain exact through generic effect authority`() {
+        val allowed = CallTimeWindow(
+            ZonedDateTime.of(2026, 9, 24, 16, 0, 0, 0, zone),
+            ZonedDateTime.of(2026, 9, 24, 18, 0, 0, 0, zone),
+        )
+        val price = MoneyAmount(BigDecimal("180.00"), "PLN")
+        val task = CallTask(
+            "Clinic A",
+            "book appointment",
+            "appointment",
+            CallConstraints(
+                listOf(allowed),
+                MoneyAmount(BigDecimal("250.00"), "PLN"),
+                setOf(CallPaymentMode.PRIVATE),
+            ),
+            CallPreferences(
+                emptyList(),
+                listOf("dr Preferowana"),
+                listOf("Centrum Medyczne"),
+            ),
+            emptyMap(),
+        )
+        val proposal = CallProposal(
+            scheduledAt,
+            price,
+            CallPaymentMode.PRIVATE,
+            "dr Alternatywna",
+            "Centrum Medyczne",
+        )
+        val outcome = CallOutcome(
+            CallOutcomeStatus.SUCCESS,
+            "Booked negotiated clinic appointment",
+            scheduledAt,
+            "dr Alternatywna",
+            "Centrum Medyczne",
+            price,
+            "booking-g6",
+            null,
+        )
+        val fixture = fixture(task, proposal, outcome)
+
+        val offer = fixture.session.injectSyntheticFinalTranscript("mamy termin")
+        assertEquals(CallPlanAction.PROPOSAL, offer.structuredResult?.decision()?.action())
+        assertTrue(
+            fixture.session.applyBookAppointmentUserDecision(GateDBookAppointmentUserDecision.CONFIRM)
+                is GateDBookAppointmentUserDecisionResult.Applied,
+        )
+
+        val authorization = fixture.session.authorizeBookAppointmentCommitment()
+            as GateDBookAppointmentCommitmentAuthorizationResult.Authorized
+        val effect = fixture.commitmentGate.consumeEffect(authorization.authorization.value).getOrThrow()
+        assertEquals(CallExternalEffect.BookAppointment(proposal), effect)
+        fixture.session.bookAppointmentCommitmentConsumptionListener().onConsumed(
+            CallCommitmentConsumptionEvidence(effect),
+        )
+
+        val wrongPrice = CallOutcome(
+            CallOutcomeStatus.SUCCESS,
+            "Wrong price",
+            scheduledAt,
+            "dr Alternatywna",
+            "Centrum Medyczne",
+            MoneyAmount(BigDecimal("181.00"), "PLN"),
+            "booking-g6",
+            null,
+        )
+        assertEquals(
+            GateDBookAppointmentCompletionResult.Rejected(
+                GateDBookAppointmentCompletionRejectReason.OUTCOME_MISMATCH,
+            ),
+            fixture.session.completeBookAppointment(wrongPrice),
+        )
+
+        val wrongProvider = CallOutcome(
+            CallOutcomeStatus.SUCCESS,
+            "Wrong provider",
+            scheduledAt,
+            "dr Inna",
+            "Centrum Medyczne",
+            price,
+            "booking-g6",
+            null,
+        )
+        assertEquals(
+            GateDBookAppointmentCompletionResult.Rejected(
+                GateDBookAppointmentCompletionRejectReason.OUTCOME_MISMATCH,
+            ),
+            fixture.session.completeBookAppointment(wrongProvider),
+        )
+
+        val completion = fixture.session.completeBookAppointment(outcome)
+            as GateDBookAppointmentCompletionResult.Applied
+        assertEquals(BookAppointmentTaskGraph.COMPLETE, completion.state)
+        assertEquals(CallWorkflowState.COMPLETED, fixture.workflow.snapshot().state())
+        assertSame(outcome, fixture.workflow.snapshot().outcome())
+    }
+
     private fun prepareCommitment(
         fixture: Fixture,
     ): GateDBookAppointmentCommitmentAuthorizationResult.Authorized {
@@ -168,7 +271,11 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
         )
     }
 
-    private fun fixture(): Fixture {
+    private fun fixture(
+        taskOverride: CallTask? = null,
+        proposalOverride: CallProposal? = null,
+        outcomeOverride: CallOutcome? = null,
+    ): Fixture {
         val allowed = CallTimeWindow(
             ZonedDateTime.of(2026, 9, 24, 16, 0, 0, 0, zone),
             ZonedDateTime.of(2026, 9, 24, 18, 0, 0, 0, zone),
@@ -177,7 +284,7 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
             ZonedDateTime.of(2026, 9, 24, 16, 0, 0, 0, zone),
             ZonedDateTime.of(2026, 9, 24, 17, 0, 0, 0, zone),
         )
-        val task = CallTask(
+        val task = taskOverride ?: CallTask(
             "Clinic A",
             "book appointment",
             "appointment",
@@ -186,8 +293,8 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
             emptyMap(),
         )
         val target = CallResolvedTarget("Clinic A", "+48123456789")
-        val proposal = CallProposal(scheduledAt, null, null, null, null)
-        val outcome = CallOutcome(
+        val proposal = proposalOverride ?: CallProposal(scheduledAt, null, null, null, null)
+        val outcome = outcomeOverride ?: CallOutcome(
             CallOutcomeStatus.SUCCESS,
             "Booked",
             scheduledAt,
