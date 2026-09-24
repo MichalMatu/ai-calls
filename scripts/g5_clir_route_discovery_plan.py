@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from local_phone_llm_live_call import (
     ORANGE_ACTION_CALLER_ID_RESTRICTION_INFO,
+    ORANGE_REVIEWED_RESPONSES,
     ORANGE_SUPPORT_NUMBER,
     normalize_allowlisted_target,
 )
@@ -38,7 +39,8 @@ def build_g5_clir_route_discovery_plan(
 def validate_g5_clir_route_discovery_report(report: dict[str, str]) -> str:
     if report.get("orange_live_action") != ORANGE_ACTION_CALLER_ID_RESTRICTION_INFO:
         raise ValueError("G5 route discovery action mismatch")
-    if report.get("approved_text") != "Jak działa zastrzeganie numeru?":
+    expected_text = ORANGE_REVIEWED_RESPONSES[ORANGE_ACTION_CALLER_ID_RESTRICTION_INFO]
+    if report.get("approved_text") != expected_text:
         raise ValueError("G5 route discovery did not use the reviewed read-only utterance")
     observation = report.get("orange_observation_text", "").strip()
     if not observation:
