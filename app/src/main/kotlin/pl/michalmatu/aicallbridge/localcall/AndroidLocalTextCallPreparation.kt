@@ -185,12 +185,13 @@ internal object AndroidTextCallReadiness {
         phraseMatrix: PhraseMatrix? = null,
         taskGraph: TaskGraphDefinition? = null,
         authorizedFacts: AuthorizedFactSnapshot? = null,
+        backendFactoryOverride: (() -> TextCallAgentBackend)? = null,
     ): LocalTextCallReadinessCoordinator = LocalTextCallReadinessCoordinator(
         workflow = workflow,
         targetAuthorization = targetAuthorization,
         backendPreflight = { backendPreflightFailure(context.applicationContext, provider) },
         speechPreflight = AndroidLocalTextCallSpeechPreflight(context.applicationContext),
-        backendFactory = {
+        backendFactory = backendFactoryOverride ?: {
             AndroidLocalTextCallBackendFactory.create(context.applicationContext, provider)
         },
         callPlan = callPlan,

@@ -140,18 +140,22 @@ Mapped `CallProposal` through `CallCommitmentGate`, the Realtime commitment path
 
 Added `CallExternalEffect.SetService(target, CLIR, enabled)` and deterministic `CallExternalEffectValidator` binding the candidate to the exact `CallTask`, exact `CallResolvedTarget`, service and explicitly authorized `service.enabled` value. Permit consumption is separate from external success; `CallExternalEffectCompletionTracker` accepts completion only after exact matching success evidence and only once. Targeted tests and the full `scripts/verify_host.sh` baseline are green. This was synthetic/no-call only; no CLIR account change was attempted.
 
-### G4 — NEXT: full runner
+### G4 — DONE: full no-call acceptance runner
 
-Wire one real product acceptance runner through:
+`GenericPhoneTaskAcceptanceProbe` now exercises the production ownership chain without dialing or applying a real service change:
 
 ```text
-RX -> STT -> deterministic routing -> Gemma -> supervisor fallback
- -> output approval -> TTS/TX -> generic effect authority -> success evidence
+synthetic RX PCM -> on-device STT -> deterministic CallPlan TAKE_OVER
+ -> LOCAL_GEMMA_4 bounded classifier -> supervisor fallback
+ -> application output approval -> on-device TTS -> synthetic TX
+ -> exact SET_SERVICE(CLIR=true) validation -> one-shot permit issuance/consumption
+ -> exact synthetic external-success evidence -> factual effect completion
+ -> explicit workflow completion
 ```
 
-Do the no-call/S22 synthetic proof before dialing.
+The full `scripts/verify_host.sh` gate is green. The S22 no-call proof is also green with nonblank STT, one Gemma classifier turn, exactly one supervisor fallback, approved output, nonempty TTS PCM, synthetic TX, exact effect validation, permit issuance/consumption, external-success evidence, factual effect completion and separate workflow completion. The report explicitly records `call_required=false` and `external_effect_real_execution=false`. No call was placed and no CLIR account change was attempted.
 
-### G5 — live CLIR acceptance
+### G5 — NEXT: live CLIR acceptance
 
 Only with a **new fresh live-call authorization in that chat**, run one bounded Orange call to complete CLIR and collect redacted evidence.
 

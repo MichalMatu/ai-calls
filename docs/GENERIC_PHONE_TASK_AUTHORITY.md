@@ -159,9 +159,9 @@ Orange exact phrase mappings remain acceptance fixtures only.
 3. **DONE** — keep existing appointment Gate D behavior green through compatibility adapters without a second authority store.
 4. **DONE for SET_SERVICE** — deterministic validator binds service effects to `CallTask`, exact resolved target and explicitly authorized service value.
 5. **DONE synthetically** — add `SET_SERVICE(CLIR=true)`, exact permit lifecycle and separate exact external-success evidence.
-6. **NEXT** — wire the product acceptance runner to `LOCAL_GEMMA_4` + deterministic routing + supervisor fallback + generic effect authority.
-7. Prove the full runner end-to-end synthetically/no-call before dialing.
-8. With fresh live-call authorization, run one bounded Orange CLIR acceptance call.
+6. **DONE** — the product acceptance runner uses deterministic routing, `LOCAL_GEMMA_4`, bounded supervisor fallback, application output approval and the generic effect authority path.
+7. **DONE on S22/no-call** — synthetic RX/TX substitutes surround the real on-device STT/Gemma/TTS path; exact permit consumption, external success, factual effect completion and workflow completion are proven separately.
+8. **NEXT, requires fresh authorization** — run one bounded Orange CLIR acceptance call only after a new explicit live-call authorization.
 9. Add the clinic booking acceptance case to prove the architecture is truly generic.
 
 ## Non-goals for this refactor
