@@ -1,5 +1,10 @@
 package pl.michalmatu.aicallbridge.agent
 
+/** Service identifiers currently supported by typed external-effect authority. */
+enum class CallService {
+    CLIR,
+}
+
 /**
  * Application-owned typed description of one concrete external effect that a call may commit.
  *
@@ -20,5 +25,14 @@ sealed interface CallExternalEffect {
     ) : CallExternalEffect {
         override fun toString(): String =
             "CallExternalEffect.BookAppointment(proposal=REDACTED)"
+    }
+
+    /** Exact service-setting effect; CLIR is the first generic non-appointment product case. */
+    data class SetService(
+        val service: CallService,
+        val enabled: Boolean,
+    ) : CallExternalEffect {
+        override fun toString(): String =
+            "CallExternalEffect.SetService(data=REDACTED)"
     }
 }
