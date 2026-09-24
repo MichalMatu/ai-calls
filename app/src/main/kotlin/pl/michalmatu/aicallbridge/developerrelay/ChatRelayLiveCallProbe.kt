@@ -51,6 +51,8 @@ internal object ChatRelayLiveCallProbe {
     const val REPORT_FILE = "chat-relay-live-call-report.txt"
     const val MAX_TURNS = 10
     private const val RESPONSE_TIMEOUT_MS = 90_000L
+    private const val MAX_NO_SPEECH_RETRIES = 3
+    private const val NO_SPEECH_RETRY_DELAY_MS = 750L
     private const val ORANGE_SUPPORT_NUMBER = "510100100"
     private const val COMMIT_CLIR_ENABLE = "[[COMMIT_CLIR_ENABLE]]"
     private const val CONFIRM_CLIR_ENABLE = "[[CONFIRM_CLIR_ENABLE]]"
@@ -140,6 +142,7 @@ internal object ChatRelayLiveCallProbe {
         private var estimatedSpeechEndElapsedMs: Long? = null
         private var totalRxBytes = 0L
         private var totalTxBytes = 0L
+        private var noSpeechRetries = 0
 
         private val timeout = Runnable { finish(false, "probe_timeout") }
 
@@ -203,6 +206,7 @@ internal object ChatRelayLiveCallProbe {
                 return
             }
             currentTurn = turnsCompleted + 1
+            noSpeechRetries = 0
             turnStartedAtMs = SystemClock.elapsedRealtime()
             estimatedSpeechEndElapsedMs = null
             lines += "turn_${currentTurn}_started=true"
@@ -273,9 +277,19 @@ internal object ChatRelayLiveCallProbe {
                             lines += "turn_${turn}_estimated_eos_elapsed_ms=$estimated"
                         }
                         if (!endpoint.speechDetected) {
-                            context.mainExecutor.execute { finish(false, "turn_${turn}_no_speech") }
+                            if (noSpeechRetries < MAX_NO_SPEECH_RETRIES) {
+                                noSpeechRetries += 1
+                                lines += "turn_${turn}_no_speech_retry=$noSpeechRetries"
+                                handler.postDelayed(
+                                    { if (!finished.get() && turn == currentTurn) beginCaptureInputTurn(turn) },
+                                    NO_SPEECH_RETRY_DELAY_MS,
+                                )
+                            } else {
+                                context.mainExecutor.execute { finish(false, "turn_${turn}_no_speech") }
+                            }
                             return
                         }
+                        noSpeechRetries = 0
                         pipeline.finishInput()
                     }
 
