@@ -7,16 +7,19 @@ import org.junit.Test
 class OrangeLiveActionAuthorityBoundaryTest {
     @Test
     fun `read-only caller id info remains available to legacy diagnostics`() {
-        assertEquals(
-            OrangeLiveAction.CALLER_ID_RESTRICTION_INFO,
-            OrangeLiveAction.fromWireId("caller_id_restriction_info"),
-        )
+        val action = OrangeLiveAction.fromWireId("caller_id_restriction_info")
+
+        assertEquals(OrangeLiveAction.CALLER_ID_RESTRICTION_INFO, action)
+        assertEquals("Jak działa zastrzeganie numeru?", action.reviewedResponse)
     }
 
     @Test
     fun `committing CLIR enable action requires generic authority`() {
         assertThrows(IllegalArgumentException::class.java) {
             OrangeLiveAction.fromWireId("caller_id_restriction_enable")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            OrangeLiveAction.CALLER_ID_RESTRICTION_ENABLE.reviewedResponse
         }
         assertThrows(IllegalArgumentException::class.java) {
             GateCLiveCallFastPathFactory.create(
