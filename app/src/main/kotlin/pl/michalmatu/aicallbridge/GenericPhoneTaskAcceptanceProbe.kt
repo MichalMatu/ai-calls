@@ -50,7 +50,7 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
  * exact synthetic external-success evidence -> factual completion.
  */
 internal object GenericPhoneTaskAcceptanceProbe {
-    private const val REPORT_FILE = "generic-phone-task-acceptance-report.txt"
+    private const val REPORT_FILE = "generic-phone-acceptance-report.txt"
     private const val TIMEOUT_MS = 240_000L
     private const val SYNTHETIC_DIAL_ADDRESS = "000"
     private const val SOURCE_TEXT =
