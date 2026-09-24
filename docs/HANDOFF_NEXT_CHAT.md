@@ -1,4 +1,4 @@
-# Handoff — generic autonomous phone task authority
+# Handoff — next chat: Orange physical acceptance
 
 Date: 2026-09-24
 
@@ -6,162 +6,58 @@ Date: 2026-09-24
 
 `MichalMatu/ai-calls`
 
-Durable code/docs live on `main`; `agent-control` is Local Agent task/result transport only.
+Durable product/docs branch: `main`.
+Local Agent transport branch: `agent-control` only.
 
-Always fetch fresh `origin/main` and fresh `.agent/status/daemon.json` / binding in the next chat.
-
-The merged repository-cleanup checkpoint is:
-
-```text
-e998fb2e104265a9bd39f9e798c45924cfe39151
-Repository cleanup before generic task development
-```
-
-Cleanup validation passed targeted `PhraseMatrix*` / `realtime-client` tests, the full `bash scripts/verify_host.sh` baseline, and GitHub `Android CI` / `Host quality gate` on PR #6.
-
-## Repository cleanup checkpoint
-
-Before further product development, the repository was normalized without changing the frozen Samsung/media or Gate D authority behavior:
-
-- added a Gradle 9.6 wrapper and made `scripts/verify_host.sh` self-bootstrapping for the local Android SDK;
-- aligned the Gradle root name and app label with `AI Calls`;
-- removed transient/redundant handoff and experiment documents while keeping durable architecture, roadmap, security, runbook and freeze sources;
-- consolidated new-chat continuation into `docs/HANDOFF_NEXT_CHAT.md` + `docs/HANDOFF_PROTOCOL.md` instead of maintaining a second copied prompt file;
-- preindexed `PhraseMatrix` fuzzy/context/temperature lookup data so normalization, candidate filtering and token counts are not rebuilt on every turn;
-- removed one obsolete nullable-response-body branch in the Realtime credential provider that is impossible with the current OkHttp API;
-- archived 17 stale local experimental branch tips into the verified bundle `~/ai-calls-stale-branches-20260924.bundle`, then removed those local branch refs.
-
-The audit also identified larger modularity debt that was intentionally **not** mixed into this cleanup because it crosses behavior-critical state machines:
-
-- `CallRealtimeSessionOrchestrator` still combines bootstrap, state transitions, resource lifecycle, function-call handling and cleanup;
-- `LocalTextCallGateDProductIntegration` still mixes generic apply/reducer plumbing with appointment-specific permit/evidence/completion logic;
-- production app wiring still carries developer/probe surfaces used by physical acceptance workflows.
-
-Treat those as focused RED -> GREEN refactors only when their boundary becomes the active task. Do not perform a broad rewrite before G1.
-
-## Product direction now frozen for continuation
-
-The product is a **generic autonomous phone task engine**, not an Orange-specific bot and not an appointment-only bot.
-
-Examples using the same architecture:
-
-- enable Orange CLIR;
-- call a clinic and book within date/time/price constraints;
-- change/cancel a reservation;
-- handle a bounded service request;
-- make read-only information calls.
-
-Do not create separate authority stacks for each use case.
-
-Read `docs/GENERIC_PHONE_TASK_AUTHORITY.md` before implementation.
-
-## Stable proven foundation
-
-Keep closed absent a concrete root cause:
-
-- Samsung cellular RX/TX + `CallMediaSessionCoordinator`: `PROVEN_S22 / FROZEN`;
-- `privileged-helper/` / Shizuku media boundary: proven/frozen;
-- local Polish STT/TTS foundation: proven;
-- IdentityVault Android encryption/disclosure boundary: proven;
-- Gate D `BOOK_APPOINTMENT`: `DONE / HOST_GREEN / PROVEN_S22 / MERGED`;
-- Gemma 4 direct LiteRT-LM runtime: proven;
-- Gemma app-owned SAF/network acquisition, SHA verification, atomic activation and readiness: `HOST_GREEN / PROVEN_S22`.
-
-Do not redownload Gemma merely to reprove it.
-
-Model identity:
+At handoff close, remote branches are intentionally only:
 
 ```text
-provider=LOCAL_GEMMA_4
-model=Gemma 4 E2B IT
-file=gemma-4-E2B-it.litertlm
-bytes=2588147712
-sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-runtime=LiteRT-LM
+main
+agent-control
 ```
 
-## Dialogue target
+The next chat must use its **fresh bridge-provided Local Agent binding**. Never copy an old `agent_binding` from history/docs.
+
+## Product goal
+
+AI Calls is a generic autonomous phone-task engine, not an Orange-specific bot. The same architecture must eventually handle carrier settings, appointment availability/booking, changes/cancellations and other bounded phone tasks.
+
+Dialogue/runtime target:
 
 ```text
-STT
- -> PhraseMatrix / deterministic task state
- -> Gemma 4 bounded dialogue skills
- -> supervisor/ChatRelay fallback when unresolved
- -> application output approval
- -> TTS/TX
+cellular RX -> STT -> deterministic state/PhraseMatrix
+ -> bounded Gemma 4 skill -> supervisor fallback if unresolved
+ -> application output approval -> TTS/TX
+ -> generic external-effect authority when state changes are needed
+ -> factual external-success evidence -> workflow completion
 ```
 
-Models/supervisor remain dialogue/proposal helpers only. They never gain business authority.
+Models/supervisor are dialogue helpers only; they never own business authority.
 
-## Architecture decision from this chat
+## Proven/frozen foundation
 
-`CallTask` is already appropriately generic. The main coupling to remove is that `CallCommitmentGate` and related Gate D wiring use appointment-shaped `CallProposal` as the commitment subject.
+Keep closed unless a concrete root cause appears:
 
-Do **not** solve CLIR by adding `ClirCommitmentGate`.
+- Samsung cellular RX/TX + `CallMediaSessionCoordinator` — `PROVEN_S22 / FROZEN`;
+- Shizuku / privileged media boundary — `PROVEN_S22 / FROZEN`;
+- local Polish STT/TTS — proven;
+- IdentityVault disclosure boundary — proven;
+- Gemma 4 LiteRT-LM runtime/model lifecycle — proven;
+- `BOOK_APPOINTMENT` Gate D — proven;
+- generic `CallExternalEffect` + single shared `CallCommitmentGate` — host/no-call proven;
+- `SET_SERVICE(CLIR=true)` exact validation + one-shot permit + separate external-success evidence — host/no-call proven;
+- full synthetic/no-call product chain on S22 — proven.
 
-Next architecture:
+Do not redownload Gemma or rewrite frozen media merely to reprove them.
 
-```text
-CallTask + target + constraints + authorized facts
- -> typed external-effect candidate
- -> application validation
- -> user-decision policy if needed
- -> one-shot permit bound to exact effect
- -> reviewed execution/speech
- -> permit-consumption evidence
- -> external success evidence
- -> factual completion
-```
+## Important completed checkpoints
 
-Keep distinct:
+- PR #14 / `a3cd0dd99e977b3e5aca8fd4b7b19c43a8625563`: live-call readiness + legacy CLIR authority hardening.
+- PR #15 / `5037c21aadea06e3204f5d9db60476f1c8dbaba1`: host-only G5 CLIR route-discovery contract.
 
-```text
-task authorization
- != candidate validation
- != permit issuance
- != permit consumption
- != external success
- != workflow completion
-```
+PR #14 added fail-closed app readiness for `RECORD_AUDIO` + Shizuku and blocked the legacy commit-capable `caller_id_restriction_enable` diagnostic path.
 
-If the user already explicitly authorized the exact concrete effect and no new material term was negotiated, do not add a redundant second confirmation. Application policy decides this; never Gemma/supervisor.
-
-## Exact next implementation scope
-
-### G1 — DONE: appointment coupling audit
-
-Mapped `CallProposal` through `CallCommitmentGate`, the Realtime commitment path, Gate D product integration, consumption/completion evidence, `LocalTextCallSession`, tests and docs. The narrow migration point was confirmed to be the existing single commitment store rather than a new task-specific gate.
-
-### G2 — DONE: generic commitment subject
-
-`CallCommitmentGate` now stores one typed `CallExternalEffect`. Existing `BOOK_APPOINTMENT` code uses `CallExternalEffect.BookAppointment` through compatibility overloads on that same store. `CallCommitmentConsumptionEvidence` carries the typed effect while preserving the reviewed appointment view. Existing appointment behavior remains green; there is still exactly one authority store.
-
-### G3 — DONE: synthetic CLIR effect lifecycle
-
-Added `CallExternalEffect.SetService(target, CLIR, enabled)` and deterministic `CallExternalEffectValidator` binding the candidate to the exact `CallTask`, exact `CallResolvedTarget`, service and explicitly authorized `service.enabled` value. Permit consumption is separate from external success; `CallExternalEffectCompletionTracker` accepts completion only after exact matching success evidence and only once. Targeted tests and the full `scripts/verify_host.sh` baseline are green. This was synthetic/no-call only; no CLIR account change was attempted.
-
-### G4 — DONE: full no-call acceptance runner
-
-`GenericPhoneTaskAcceptanceProbe` now exercises the production ownership chain without dialing or applying a real service change:
-
-```text
-synthetic RX PCM -> on-device STT -> deterministic CallPlan TAKE_OVER
- -> LOCAL_GEMMA_4 bounded classifier -> supervisor fallback
- -> application output approval -> on-device TTS -> synthetic TX
- -> exact SET_SERVICE(CLIR=true) validation -> one-shot permit issuance/consumption
- -> exact synthetic external-success evidence -> factual effect completion
- -> explicit workflow completion
-```
-
-The full `scripts/verify_host.sh` gate is green. The S22 no-call proof is also green with nonblank STT, one Gemma classifier turn, exactly one supervisor fallback, approved output, nonempty TTS PCM, synthetic TX, exact effect validation, permit issuance/consumption, external-success evidence, factual effect completion and separate workflow completion. The report explicitly records `call_required=false` and `external_effect_real_execution=false`. No call was placed and no CLIR account change was attempted.
-
-### G5 prerequisite — DONE: live-call readiness and legacy authority hardening
-
-PR #14 / `a3cd0dd99e977b3e5aca8fd4b7b19c43a8625563` added a DUMP-protected no-call readiness probe for `RECORD_AUDIO` plus Shizuku binder/runtime/app permission and a host reader that fails closed. The legacy Gate C `caller_id_restriction_enable` path is blocked at wire-id parsing, reviewed-speech access, fast-path construction and the host action allowlist; the dormant committing CLIR speech was removed from the legacy runtime enum. Read-only caller-ID restriction information remains available. Exact-head Local Agent verification and GitHub Android CI / Host quality gate were green. No call was placed and no account change was attempted.
-
-### G5a — DONE host-only: CLIR route-discovery contract
-
-PR #15 / `5037c21aadea06e3204f5d9db60476f1c8dbaba1` added `scripts/g5_clir_route_discovery_plan.py` and `docs/G5_CLIR_ROUTE_DISCOVERY.md`. The plan is bound to the existing exact Orange allowlist and requires:
+PR #15 established the next physical discovery contract:
 
 ```text
 live_call_readiness_required=true
@@ -172,68 +68,105 @@ commitment_permit_use=false
 fresh_live_call_authorization_required=true
 ```
 
-It validates only the exact reviewed read-only utterance plus a nonblank observation transcript. It does not dial, execute CLIR, issue a permit or create a second authority store. Exact-head Local Agent verification and GitHub Android CI / Host quality gate were green.
+## Current gate — G5b
 
-### G5b — NEXT: read-only live route discovery
+Next step is **one bounded, read-only Orange call** to discover/confirm the current CLIR route/response using the code in practice.
 
-Only with a **new fresh explicit live-call authorization** for the concrete Orange target and read-only CLIR route-discovery task, run the bounded caller-ID information turn followed by the existing `OBSERVE_ONLY` next turn. Before any dial, `scripts/live_call_readiness.py` must pass. The current Orange ServicePack proves only a read-only caller-ID information edge and still has `service_route_verified=false`; discovery evidence is not commitment authority and is not success evidence for CLIR activation.
+Before dialing:
 
-### G5c — NEXT after route verification: generic CLIR effect execution
+1. fetch fresh `origin/main`;
+2. read `AGENTS.md`, `docs/ROADMAP.md`, `docs/G5_CLIR_ROUTE_DISCOVERY.md`, `docs/SECURITY_PRIVACY.md`;
+3. verify fresh Local Agent binding/daemon state if Local Agent is used;
+4. require fresh explicit authorization in that new chat for the exact Orange target and read-only discovery task;
+5. run the app-level live-call readiness check (`RECORD_AUDIO` + Shizuku); fail closed if not ready;
+6. require phone call state `IDLE`.
 
-Execution must remain the existing generic authority lifecycle: exact `CallTask` + exact target + explicit `service.enabled=true` -> `CallExternalEffect.SetService(CLIR=true)` validation -> one-shot `CallCommitmentGate` permit -> exact permit consumption -> separate external success evidence -> factual effect completion -> workflow completion. Do not add `ClirCommitmentGate`. If the fresh user instruction does not already cover the concrete effect execution, obtain a separate explicit authorization before any account-changing call step.
+Physical G5b shape:
 
-### G6 — DONE: negotiated clinic booking authority proof
+```text
+exact allowlisted Orange target
+ -> reviewed caller_id_restriction_info utterance
+ -> existing OBSERVE_ONLY next turn
+ -> capture redacted nonblank observation evidence
+ -> hang up/cleanup to IDLE
+```
 
-A host-only Gate D acceptance case now proves that appointment booking shares the same generic commitment store instead of relying on a parallel authority stack. The synthetic offer is inside the hard time/price/payment constraints but uses a non-preferred provider, so the existing application policy requires an explicit user decision. After confirmation, the exact proposal is consumed as `CallExternalEffect.BookAppointment` from the same `CallCommitmentGate`. Completion with a changed price or changed provider fails closed with `OUTCOME_MISMATCH`; only the exact scheduled time, price, provider and location completes the TaskGraph and `CallWorkflow`. Provider remains a soft preference by design rather than being silently promoted to a hard constraint. Targeted tests and the full `scripts/verify_host.sh` gate are green. No call was placed.
+G5b must NOT:
 
-## Post-roadmap modular cleanup
+- change CLIR/account state;
+- issue or consume a commitment permit;
+- treat route discovery as CLIR success evidence;
+- broaden the target/task;
+- pass authentication/customer-data/payment/commitment barriers.
 
-Four narrow behavior-preserving slices are merged after G6:
+The current ServicePack still has `service_route_verified=false` for the service route. Persist only what is physically observed.
 
-- `8dfb324e7e7ee38508ecfe99309ce0e8946bfae1` / PR #10: `MainActivity` delegates developer/probe controls and the Shizuku probe listener lifecycle to `MainActivityDeveloperProbes`. Launcher behavior, probe labels, `run_probe`, permissions and manifest entries are unchanged.
-- `534837e75ba8c1f19ed21469d8a1545b253152b6` / PR #11: pending Realtime function-call ID collection semantics live in `CallRealtimeFunctionCallTracker`. `CallRealtimeSessionOrchestrator` still owns generation, transport identity, state transitions, media cleanup and takeover ordering; duplicate IDs, one-shot response and stale-generation fail-closed behavior remain covered.
-- `547b133c6cfeca77a6f457b96951df86db72808a` / PR #12: exact approved BOOK_APPOINTMENT terms vs factual outcome comparison lives in pure `BookAppointmentOutcomeMatcher`. Outcome SUCCESS validation, permit consumption, workflow state, authorization recheck, TaskGraph commit and workflow completion remain owned by Gate D integration.
-- `519d66d7a8945122dcdd63cf38dd58189efae0dc` / PR #13: `close()` now reuses the same `takeOverNow()` cleanup path instead of maintaining a second copy. Added regression tests prove active close still aborts local media before Realtime cancel/close, and close during credential fetch invalidates the late credential. Orchestrator state definitions, generation checks and cleanup ownership remain unchanged.
+## After G5b — G5c
 
-Targeted tests, each full `scripts/verify_host.sh` gate and GitHub Android CI / Host quality gate are green for these slices. No live call or external account change was performed.
+Only after route evidence is understood, an account-changing CLIR step may be attempted under authorization covering that concrete effect.
 
-Remaining large behavior-critical owners include `CallRealtimeSessionOrchestrator` and `LocalTextCallGateDProductIntegration`; continue only with narrow RED→GREEN slices. Do not move session/media lifecycle authority out of the orchestrator, and do not move commitment/consumption/completion authority into pure Gate D helpers.
+Use the existing generic path only:
 
-## Latest physical call checkpoint from this chat
+```text
+exact CallTask + exact target + service.enabled=true
+ -> CallExternalEffect.SetService(CLIR=true)
+ -> deterministic validation
+ -> one-shot CallCommitmentGate permit
+ -> reviewed execution/speech
+ -> exact permit consumption evidence
+ -> separate factual external-success evidence
+ -> effect completion
+ -> workflow completion
+```
 
-Two live Orange attempts were used to diagnose the runner under an explicit authorization that is now spent and **does not carry into the next chat**.
+Do not add `ClirCommitmentGate`. Do not claim CLIR completed without accepted factual external-success evidence.
 
-What was established:
+## Latest physical evidence
+
+Prior authorized Orange experiments already established:
 
 - real dialing and `OFFHOOK` work;
-- real Orange downlink audio works;
-- first attempt exposed transient ADB `dumpsys audio` / cleanup fragility;
-- commit `ceefbf7c...` added bounded retries and hangup fallback;
-- second attempt passed the audio probe but did not publish a first transcript;
-- fresh APK diagnostics showed Android microphone permission needed to be granted again after reinstall;
-- after the user re-granted microphone permission, a no-call probe confirmed Shizuku granted, `RECORD_AUDIO` granted and `chat_relay_probe_complete=true`.
+- real Orange downlink works;
+- transient ADB audio/hangup handling was hardened;
+- microphone permission can need re-grant after reinstall;
+- later no-call diagnostics confirmed Shizuku + `RECORD_AUDIO` readiness.
 
-No CLIR account change was completed. Do not claim otherwise.
+No CLIR account change has been completed yet.
 
-## Branch/noise cleanup
+## Relevant files
 
-Historical local branch tips with unique commits were preserved in the verified bundle:
+- `scripts/live_call_readiness.py`
+- `scripts/local_phone_llm_live_call.py`
+- `scripts/g5_clir_route_discovery_plan.py`
+- `docs/G5_CLIR_ROUTE_DISCOVERY.md`
+- `docs/ORANGE_MAPPING_RUNBOOK.md`
+- `docs/GENERIC_PHONE_TASK_AUTHORITY.md`
+- `service-packs/orange/service_tree.v1.json`
 
-```text
-~/ai-calls-stale-branches-20260924.bundle
-```
+## Local Agent rules
 
-The 17 stale `chat-relay/*`, old Gate D and Gemma lifecycle local branches were removed. `agent-work` remains as Local Agent working infrastructure. The temporary repository-cleanup branch was merged through PR #6 and removed locally and remotely. The PR #14 readiness branch and PR #15 G5a route-discovery branch were both removed after merge. The remote branch set is exactly:
-
-```text
-main
-agent-control
-```
-
-Keep that minimal remote-branch policy unless a new temporary branch is genuinely required.
+- use only the fresh binding supplied by the new chat;
+- inspect daemon/active-task evidence before queueing work;
+- direct GitHub edits for small reviewable repository changes;
+- Local Agent for Gradle/tests/ADB/device commands;
+- every Local Agent task JSON must contain exactly the fresh binding from that new chat;
+- never launch local Codex from Local Agent;
+- `.agent/*` remains on `agent-control`, never merge it into `main`.
 
 ## Authorization stop line
 
-No live-call permission is transferred by this handoff.
+This handoff itself authorizes nothing. A connected S22, old call evidence, allowlists or previous chat permission do not authorize a new dial.
 
-A future real call requires fresh explicit authorization in the new chat for the concrete target/number and task. Connected S22, old call evidence, an allowlist, this handoff or a generic `continue` are not authorization.
+The new chat must receive fresh explicit authorization for G5b. A later account-changing G5c also needs authorization covering `SET_SERVICE(CLIR=true)` unless the new-chat instruction explicitly and unambiguously authorizes both discovery and that effect.
+
+## Start prompt for the new chat
+
+Copy/paste this into the new chat after the fresh Local Agent binding envelope appears:
+
+```text
+Kontynuuj rozwój wyłącznie repozytorium MichalMatu/ai-calls zgodnie z aktualnym main i docs/HANDOFF_NEXT_CHAT.md. Najpierw przeczytaj AGENTS.md, docs/ROADMAP.md, docs/G5_CLIR_ROUTE_DISCOVERY.md i docs/SECURITY_PRIVACY.md oraz sprawdź świeży stan Local Agenta. Nie wracaj do zakończonych G1–G4/G6 ani do szerokiego cleanupu.
+
+Następne zadanie to G5b: użyć istniejącego kodu w praktyce w jednym ograniczonym, read-only połączeniu z Orange, aby sprawdzić trasę/odpowiedź dotyczącą zastrzegania numeru. Przed dialem obowiązkowo uruchom live-call readiness i wymagaj IDLE. W rozmowie użyj tylko reviewed caller_id_restriction_info, potem OBSERVE_ONLY, zbierz redacted evidence i zakończ połączenie do IDLE. Nie zmieniaj CLIR, nie wydawaj/zużywaj commitment permitu i nie traktuj discovery jako success evidence.
+
+Autoryzuję jedno read-only połączenie do aktualnie allowlistowanego celu Orange wyłącznie w celu G5b route discovery, bez zmiany ustawień konta/CLIR. Po G5b pokaż wynik i na jego podstawie przygotuj G5c. Nie wykonuj G5c ani żadnej zmiany konta bez osobnej świeżej autoryzacji, chyba że udzielę jej później w tym samym czacie.
+```
