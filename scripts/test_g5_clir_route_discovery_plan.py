@@ -11,12 +11,13 @@ from local_phone_llm_live_call import (
 
 
 class G5ClirRouteDiscoveryPlanTest(unittest.TestCase):
-    def test_plan_is_read_only_and_requires_fresh_live_authorization(self):
+    def test_plan_is_read_only_and_requires_readiness_and_fresh_live_authorization(self):
         plan = build_g5_clir_route_discovery_plan()
 
         self.assertEqual(ORANGE_SUPPORT_NUMBER, plan.target)
         self.assertEqual(ORANGE_ACTION_CALLER_ID_RESTRICTION_INFO, plan.primary_action)
         self.assertTrue(plan.observe_next)
+        self.assertTrue(plan.live_call_readiness_required)
         self.assertFalse(plan.external_effect_execution)
         self.assertFalse(plan.commitment_permit_use)
         self.assertTrue(plan.fresh_live_call_authorization_required)
