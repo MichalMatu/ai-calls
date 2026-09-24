@@ -7,7 +7,7 @@ Different phone tasks use one authority model. Orange CLIR, appointment booking,
 ## Implemented authority flow
 
 ```text
-CallTask + exact CallResolvedTarget + constraints + authorized facts
+accepted authorization context + exact CallTask + exact CallResolvedTarget + constraints + authorized facts
  -> typed CallExternalEffect candidate
  -> deterministic validation
  -> application user-decision policy when needed
@@ -30,6 +30,16 @@ task authorization
  != workflow completion
 ```
 
+## Authorization context
+
+The authority model must not depend on repeatedly asking the operator the same question for every retry.
+
+The target product supports a durable, scoped, revocable campaign grant owned by application policy. A grant binds at least target(s), task/effect set, account/SIM scope when relevant, revocation state, optional retry/expiry bounds and disclosure scope.
+
+A retry that remains inside a valid unchanged grant does not need another redundant product confirmation. A material widening of target, task, effect, account/SIM or disclosure scope remains fail-closed.
+
+Chat prose, documentation, ServicePacks, model output and connected hardware are not themselves authority stores. External platform/tool controls remain outside repository authority and must not be bypassed.
+
 ## Current effect types
 
 ### Appointment
@@ -42,17 +52,18 @@ task authorization
 
 ```text
 SET_SERVICE(CLIR=true)
+SET_SERVICE(CLIR=false)
 ```
 
 `CallExternalEffectValidator` binds the effect to the exact `CallTask`, target, service and explicitly authorized value. Permit consumption alone never proves external success.
 
 ### Read-only work
 
-Read-only queries do not need a commitment permit because they do not change external state. They still require fresh dial authorization, exact target binding, readiness and normal disclosure/output controls.
+Read-only queries do not need a commitment permit because they do not change external state. They still require an accepted dial authorization context, exact target binding, readiness and normal disclosure/output controls.
 
 ## Confirmation policy
 
-Do not invent a second confirmation when the current-chat user instruction already exactly authorizes the concrete effect and no new material term was negotiated.
+Do not invent a second confirmation when the active accepted authorization context already exactly covers the concrete effect and no new material term was negotiated.
 
 If dialogue introduces materially new terms, application policy decides whether new confirmation is required. Gemma/supervisor never make that authority decision.
 
@@ -66,6 +77,8 @@ Gemma and supervisor may interpret language, select bounded dialogue skills and 
 - issue or consume a commitment permit;
 - declare external success;
 - complete the workflow.
+
+During physical acceptance the live supervisor may continue the same already-authorized call after a Gemma `TAKE_OVER`; recurrent cases should later move into deterministic script/PhraseMatrix or bounded Gemma skills.
 
 ## Service-specific adapters
 
@@ -84,11 +97,15 @@ Completed:
 - one-shot permit lifecycle;
 - separate external-success completion tracking;
 - full synthetic/no-call product chain on S22;
-- negotiated appointment authority proof.
+- negotiated appointment authority proof;
+- physical Orange multi-turn `script -> Gemma -> supervisor` execution plumbing;
+- independent CLIR state interrogation.
 
 Still open physically:
 
-1. read-only Orange CLIR route discovery;
-2. after route verification and fresh account-changing authorization, real CLIR execution through the existing generic authority lifecycle.
+1. complete real CLIR enable with factual external-success evidence;
+2. independently verify caller-ID restriction is active;
+3. execute the inverse CLIR disable flow;
+4. iterate until recurrent supervisor interventions are removed from the common path.
 
-Route discovery is not commitment authority and must never be promoted to success evidence for CLIR activation.
+Current independent network-state evidence says CLIR is still disabled. Route discovery, permit consumption and call termination are not success evidence for CLIR activation.
