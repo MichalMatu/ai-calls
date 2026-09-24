@@ -20,55 +20,110 @@
 - full synthetic/no-call acceptance chain on S22 — `PROVEN_S22`.
 - negotiated clinic booking proof on the same generic commitment store — `HOST_GREEN`.
 
-## Current Orange gate
+## Autonomous operation direction
+
+`docs/AUTONOMOUS_OPERATION_MODE.md` is normative for active physical acceptance work.
+
+The product/development target is:
+
+```text
+Local Agent
+ -> real physical task
+ -> deterministic script/PhraseMatrix
+ -> bounded Gemma skill
+ -> live supervisor takeover only when unresolved
+ -> application-owned commitment/evidence
+ -> independent state verification
+ -> minimal patch from physical evidence
+ -> next physical iteration
+```
+
+The operator should not be used as a terminal/log relay when the system can perform the step directly. Recurrent supervisor interventions should be moved into script/PhraseMatrix or bounded Gemma skills until the physical task completes without supervisor help.
+
+A durable, scoped, revocable campaign authorization owned by application policy is a product requirement. It should remove redundant per-retry prompts inside an unchanged authorized scope without weakening exact target/task/effect validation or external platform controls.
+
+## Current Orange CLIR gate
 
 ### G5 prerequisite — DONE
 
 PR #14 added fail-closed live-call readiness for `RECORD_AUDIO` + Shizuku and blocked the legacy commit-capable diagnostic path. The generic `CallExternalEffect` path remains the only valid CLIR commitment route.
 
-### G5a — DONE host-only
+### G5a / G5b discovery — COMPLETE AS HISTORICAL STEPS
 
-PR #15 added the read-only discovery contract: exact allowlisted Orange target -> live-call readiness -> reviewed `caller_id_restriction_info` -> `OBSERVE_ONLY`. No external effect, permit or account change occurs in G5a.
+The first physical read-only discovery on 2026-09-24 produced a generic Orange clarification/reprompt, not a CLIR-specific route. That result remains valid historical evidence, but it is no longer the active development loop.
 
-### G5b — PHYSICAL ATTEMPT COMPLETE, ROUTE UNVERIFIED
+### G5c physical execution — ACTIVE / NOT YET SUCCESSFUL
 
-One fresh-authorized read-only call was executed on 2026-09-24. Pre-dial readiness was green and phone state was `IDLE`; only the reviewed caller-ID restriction information utterance and `OBSERVE_ONLY` were used. Orange returned a generic clarification/reprompt, not a CLIR-specific route. Cleanup returned the phone to `IDLE`.
+The live CLIR execution path is now exercised physically on the S22.
 
-Persistent result:
+Observed real behavior and implemented responses:
 
-- `service_route_verified=false`;
-- `external_effect_execution=false`;
-- `commitment_permit_use=false`;
-- `success_evidence=false`;
-- no account/CLIR change occurred.
+- use Orange on-net `*100` for the active campaign;
+- deterministic first CLIR phrase;
+- deterministic second clarification phrase for Orange's generic uncertainty response;
+- retry no-speech windows rather than failing immediately;
+- multi-turn `script/PhraseMatrix -> Gemma -> live supervisor` fallback;
+- live supervisor takeover while the cellular call remains active;
+- handling of Orange's `podaj dowolny numer twojej usługi lub wprowadź go na klawiaturze` prompt with late-bound identity data;
+- contextual CLIR commit recognition after route context exists;
+- contextual success recognition after commitment;
+- one shared `CallCommitmentGate` only;
+- sanitized live report preservation before cleanup.
 
-Evidence task: `chatgpt-g5b-live-readonly-route-discovery-v275-20260924`.
-
-### G5c — PREPARED / BLOCKED
-
-The generic execution contract is prepared, but account-changing CLIR execution is blocked until the CLIR route is physically verified and a current chat supplies fresh authorization covering `SET_SERVICE(CLIR=true)`.
-
-When both conditions are satisfied, use only:
+The most recent independent network interrogation returned:
 
 ```text
-live-call readiness + IDLE + exact target + verified route
- -> exact CallTask + service.enabled=true
- -> CallExternalEffect.SetService(CLIR=true)
- -> deterministic validation
- -> exactly one fresh CallCommitmentGate permit immediately before commitment
- -> reviewed execution/speech
- -> exact one-shot permit consumption evidence
- -> separate factual external-success evidence
- -> cleanup to IDLE
- -> factual effect/workflow completion
+Caller ID defaults to not restricted. Next call: Not restricted
 ```
 
-Do not add `ClirCommitmentGate`; do not infer route verification or mutation success from the G5b reprompt.
+Therefore current factual state is:
+
+```text
+CLIR enabled = false
+physical task complete = false
+```
+
+The next iteration is another real Orange call driven by the autonomous physical loop, followed by independent network-state verification.
+
+## Acceptance condition
+
+CLIR enable is accepted only when all of the following are true:
+
+```text
+exact authorized task/target/effect
+ -> one-shot commitment permit consumed exactly once
+ -> factual Orange success evidence
+ -> independent network-state check confirms caller-ID restriction active
+ -> owned call/session cleaned to IDLE
+```
+
+Call termination, a model statement, permit consumption or host/synthetic results are insufficient by themselves.
+
+After successful enable acceptance, the next physical acceptance task is the inverse operation (`SET_SERVICE(CLIR=false)`) and the same loop repeats. The goal is to reduce supervisor intervention until script + Gemma complete both directions without supervisor help.
+
+## Physical-first development rule
+
+During the active CLIR campaign, real physical iterations are the acceptance loop. Do not substitute unit/synthetic suites for physical progress unless the operator explicitly asks for them. Build/compile/install steps needed to deploy a patch are allowed.
+
+## Authority direction
+
+Do not add `ClirCommitmentGate` or service-specific authority stores.
+
+The long-term authority path remains:
+
+```text
+durable scoped campaign grant / accepted authorization context
+ -> exact CallTask + target
+ -> typed CallExternalEffect
+ -> deterministic validation
+ -> one shared CallCommitmentGate permit immediately before commitment
+ -> separate factual external-success evidence
+ -> independent state verification when practical
+ -> workflow completion
+```
+
+A material widening of target, task, effect or account scope remains fail-closed. External platform/tool controls are not bypassed by repository documentation.
 
 ## After CLIR acceptance
 
 Return to generic product development. Representative next cases are multi-turn negotiated tasks such as appointment availability/booking, modification and cancellation. Extend shared TaskGraph/effect adapters rather than service-specific bots.
-
-## Live-call stop line
-
-Every real call requires fresh explicit authorization in the current chat for the concrete target and task. The single G5b authorization used on 2026-09-24 is consumed. Handoff text, old calls, connected hardware, ServicePack evidence or allowlists do not authorize another dial.
