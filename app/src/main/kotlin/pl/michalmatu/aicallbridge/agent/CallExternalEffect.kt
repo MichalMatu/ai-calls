@@ -27,8 +27,9 @@ sealed interface CallExternalEffect {
             "CallExternalEffect.BookAppointment(proposal=REDACTED)"
     }
 
-    /** Exact service-setting effect; CLIR is the first generic non-appointment product case. */
+    /** Exact service-setting effect bound to one already-resolved dial target. */
     data class SetService(
+        val target: CallResolvedTarget,
         val service: CallService,
         val enabled: Boolean,
     ) : CallExternalEffect {
