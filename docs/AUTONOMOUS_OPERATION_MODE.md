@@ -38,6 +38,38 @@ Local Agent end-to-end when it can perform the task
 
 Do not fragment a workflow merely because a connector can perform one small sub-step. If Local Agent has the context and capability to inspect, edit, build, install, observe and verify a slice coherently, prefer that coherent path. External platform/tool controls still apply and must not be bypassed.
 
+## Anti-stall decision protocol
+
+Do not ask a question merely because a value was not supplied in the latest message. Resolve context before interrupting the operator:
+
+```text
+current instruction / handoff / repository state
+ -> Local Agent / device / logs / files
+ -> safe reversible repository-consistent default
+ -> repair/retry transient or mechanical failure
+ -> continue independent non-blocked work
+ -> ask operator only for an unrecoverable material decision
+```
+
+A material decision is one that changes target, task, external effect, account/SIM, privacy/disclosure scope, meaningful cost or another irreversible outcome. Paths, branch/session names, routine retry counts, build/install after a required patch, state inspection and recovery from a mechanical tool failure are executor decisions, not operator questions.
+
+Do not ask `continue?`, `should I retry?`, `should I inspect?`, or equivalent when the active goal and scope already answer those questions.
+
+## Local Agent watchdog and recovery
+
+After queueing a Local Agent task, keep ownership of its lifecycle:
+
+1. poll daemon/result state;
+2. treat an early result `404` as normal while the daemon has not published the result;
+3. on a mechanical failure, read the result, correct the invocation/anchor/state and requeue without operator involvement;
+4. restore a dirty failed workspace to the intended `origin/main` or deliberately recover its checkpoint before retry;
+5. avoid concurrent mutations of the same checkout;
+6. report to the operator only when the blocker is genuinely external or material.
+
+## Hot-call mode
+
+While the owned cellular call is `OFFHOOK`, live conversation handling has absolute execution priority. Do not start documentation cleanup, broad audits, builds or unrelated tasks until the call ends. Monitor the transient relay and call state continuously enough to answer supervisor handoffs during the same call. A pending relay request is handled before post-call diagnostics.
+
 ## No-stop rule
 
 During an active authorized campaign:
@@ -49,7 +81,7 @@ During an active authorized campaign:
 - if Gemma cannot progress, the live supervisor takes over the same call instead of treating the handoff as terminal failure;
 - do not replace a physical acceptance problem with synthetic/unit-test churn.
 
-If an external platform or tool blocks an action, do not bypass that control and do not pretend the action executed. Continue every non-blocked step autonomously and report the exact external blocker only when operator action is genuinely unavoidable.
+If an external platform or tool blocks an action, do not bypass that control and do not pretend the action executed. Continue every non-blocked step autonomously and report the exact external blocker only when operator action is genuinely unavoidable. Internal runner guard flags remain executor-owned: when a valid accepted authorization context covers the exact action, Local Agent supplies the required internal flag itself rather than asking the operator to type a command or flag.
 
 ## Dialogue takeover order
 

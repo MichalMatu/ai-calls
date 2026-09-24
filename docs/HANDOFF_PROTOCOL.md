@@ -50,6 +50,8 @@ Do not duplicate the full roadmap, architecture or old experiment chronology.
 
 ## New chat bootstrap
 
+A fresh chat should inherit the autonomous anti-stall rule: do not ask the operator for recoverable repository/device/tool state or non-material executor choices. Inspect with Local Agent first, retry mechanical failures automatically, and ask only for an unrecoverable material decision.
+
 A fresh chat should:
 
 1. use the fresh bridge binding supplied in that chat;

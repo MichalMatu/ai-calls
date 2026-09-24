@@ -28,6 +28,16 @@ Use the direct GitHub connector mainly for lightweight read-only inspection, Loc
 
 Local Agent priority does not bypass application authority, external platform safety checks or tool enforcement. If an external layer blocks an action, report the blocker rather than routing around it.
 
+### Autonomous decision / question policy
+
+The operator-question budget is **zero by default**. Before asking any question, first recover the answer from the active instruction, repository sources, current handoff, Local Agent, device state, logs, local files or other available tools.
+
+If a remaining choice is non-material, reversible and inside the existing scope, choose the conservative repository-consistent default and continue. If a command/task fails for a mechanical or transient reason, inspect the evidence, repair the invocation/state and retry without asking the operator. If one substep is externally blocked, continue every independent non-blocked step before reporting the blocker.
+
+Ask the operator only when all of the following are true: the missing fact/decision cannot be recovered with available context/tools; it materially changes target, task, effect, account, privacy/disclosure, cost or another irreversible outcome; no safe scoped default exists; and meaningful progress cannot continue without that decision.
+
+Do **not** ask the operator for repository paths, branch names, session IDs, retry counts within existing bounds, whether to inspect state, whether to build/install after a required code change, whether to continue after a recoverable tool failure, terminal commands, log copies, or internal runner flags already implied by a valid accepted authorization context.
+
 `docs/AUTONOMOUS_OPERATION_MODE.md` is normative for active physical acceptance work. Do not make the operator act as a terminal/log relay when Local Agent, ADB or the transient relay can perform the step directly.
 
 ## Current priority
@@ -105,7 +115,7 @@ task authorization
 
 Never create a second authority store such as `ClirCommitmentGate`.
 
-If the current-chat instruction already exactly authorizes the same concrete effect and no material term changed, do not invent a redundant second confirmation. If new material terms appear, application-owned policy decides whether new confirmation is required.
+If the accepted authorization context (fresh explicit authorization or a valid application-owned campaign grant) already exactly authorizes the same concrete effect and no material term changed, do not invent a redundant second confirmation. If new material terms appear, application-owned policy decides whether new confirmation is required.
 
 ## Authority invariants
 
@@ -149,6 +159,8 @@ Every real call requires either fresh explicit authorization for the exact targe
 
 For the current physical CLIR campaign:
 
+When call state is `OFFHOOK`, enter **hot-call mode**: live call state and relay handling preempt documentation, audits, builds and unrelated repository work. Poll the relay/request path at the highest practical cadence, answer a supervisor handoff before doing post-call analysis, and stay on the same physical call while bounded progress remains possible.
+
 - require live-call readiness immediately before dial;
 - require phone `IDLE`;
 - continue the same live call through bounded reprompts instead of terminating after one clarification;
@@ -168,6 +180,10 @@ For the current physical CLIR campaign:
 - do not ask the operator to execute local shell commands when Local Agent can execute them;
 - every task JSON must contain exactly the current binding;
 - every task JSON must declare `resources` explicitly;
+- after queueing a task, poll daemon/result state yourself; an early result `404` is not a reason to ask the operator;
+- if a Local Agent task fails from a stale SHA, text-anchor mismatch, transient ADB/Git/control-plane condition or other mechanical issue, inspect the result and requeue a corrected task automatically;
+- if a failed mutation leaves the workspace dirty, restore/reset it to the intended `origin/main` (or deliberately recover the saved checkpoint) before retrying;
+- do not run competing mutations against the same repo while another Local Agent mutation is active;
 - never launch local Codex from Local Agent;
 - `.agent/tasks` and `.agent/results` stay on `agent-control`;
 - durable changes go to `main`.
@@ -183,8 +199,9 @@ Before closing a scope:
 1. obtain factual physical evidence appropriate to the changed boundary;
 2. run independent external-state verification when technically available;
 3. update authoritative docs;
-4. leave `main` clean and branches minimal;
-5. refresh `docs/HANDOFF_NEXT_CHAT.md`;
-6. preserve the autonomous-operation contract and do not regress to operator-driven terminal work.
+4. leave `main` clean and branches minimal (`main` + `agent-control` in normal steady state, no stale `chat-relay/*`);
+5. confirm Local Agent is idle, phone is `IDLE`, and no owned live-call host process is still running before handing off;
+6. refresh `docs/HANDOFF_NEXT_CHAT.md`;
+7. preserve the autonomous-operation contract and do not regress to operator-driven terminal work.
 
 Do not declare a physical CLIR task complete from synthetic/no-call results, permit consumption, a model statement or call termination alone.

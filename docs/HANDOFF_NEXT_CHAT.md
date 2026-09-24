@@ -1,6 +1,6 @@
 # Handoff — next chat: Orange CLIR physical loop
 
-Date: 2026-09-24
+Date: 2026-09-25
 
 ## Repository
 
@@ -99,6 +99,12 @@ Do not substitute unit/synthetic suites for this physical loop unless the operat
 
 Do not ask the operator to paste commands, copy terminal output or manually watch relay branches when Local Agent/ADB/GitHub can do it. Monitor relay requests while the call is still active.
 
+Before asking any operator question, use the anti-stall ladder from `docs/AUTONOMOUS_OPERATION_MODE.md`. Recover facts from repo/device/logs first, choose safe reversible defaults for non-material choices, and repair/retry mechanical failures automatically. While a call is `OFFHOOK`, hot-call monitoring preempts all unrelated work.
+
+Internal runner details such as relay session ID, bounded retry count, build/install decision after a code patch and required internal authorization guard flags are executor-owned; do not ask the operator to supply them.
+
+Known remaining automation gap: Orange may request the service number. S22 shell probes (`dumpsys isub` and `content://telephony/siminfo`) do not expose the own MSISDN on this device. Until an app-owned `IdentityVault -> FactDisclosurePolicy -> local DTMF/speech` path is wired for this state, handle the authorized phone field only through transient live handling and never persist plaintext in Git, Local Agent JSON or durable logs. This gap must not trigger a generic operator question during the call if an already-authorized transient disclosure path is available.
+
 If an external platform/tool blocks an action, do not bypass the platform control and do not fabricate execution. Continue all non-blocked work autonomously and report the exact blocker only when operator action is genuinely unavoidable.
 
 ## Authorization architecture direction
@@ -142,5 +148,5 @@ After that, the next acceptance task is the inverse physical operation (`SET_SER
 ## Suggested next-chat instruction
 
 ```text
-Kontynuuj wyłącznie MichalMatu/ai-calls z aktualnego main. Najpierw przeczytaj AGENTS.md, docs/HANDOFF_NEXT_CHAT.md i docs/AUTONOMOUS_OPERATION_MODE.md oraz sprawdź świeży Local Agent. Pracuj w trybie fizycznej pętli: Local Agent -> realny Orange call -> script/PhraseMatrix -> Gemma -> live supervisor takeover tylko gdy potrzebny -> factual evidence -> niezależny status CLIR -> minimalna poprawka -> kolejny call. Nie rób syntetycznych/unit testów jako pętli akceptacyjnej i nie używaj operatora jako terminala/log relayu, jeśli agent może wykonać krok sam. Aktualny stan sieci po ostatniej iteracji: CLIR nadal wyłączony.
+Kontynuuj wyłącznie MichalMatu/ai-calls z aktualnego main. Najpierw przeczytaj AGENTS.md, docs/HANDOFF_NEXT_CHAT.md i docs/AUTONOMOUS_OPERATION_MODE.md oraz sprawdź świeży Local Agent. Local Agent ma pierwszeństwo i powinien prowadzić zadania end-to-end. Pracuj w trybie fizycznej pętli: Local Agent -> realny Orange call -> script/PhraseMatrix -> Gemma -> live supervisor takeover tylko gdy potrzebny -> factual evidence -> niezależny status CLIR -> minimalna poprawka -> kolejny call. Operator-question budget jest zero domyślnie: odzyskaj fakty z repo/telefonu/logów, sam wybieraj bezpieczne odwracalne defaulty i automatycznie naprawiaj/retry mechanical failures; pytaj tylko o unrecoverable material decision. Gdy call jest OFFHOOK, relay/call monitoring ma absolutny priorytet nad inną pracą. Nie rób syntetycznych/unit testów jako pętli akceptacyjnej i nie używaj operatora jako terminala/log relayu. Aktualny stan sieci po ostatniej iteracji: CLIR nadal wyłączony.
 ```

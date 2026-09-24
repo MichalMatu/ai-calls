@@ -37,6 +37,11 @@ RESPONSE_TIMEOUT_SECONDS = 100.0
 CLIR_COMMIT_CONTROL = "[[COMMIT_CLIR_ENABLE]]"
 
 
+def default_session_id() -> str:
+    """Generate a collision-resistant relay session so the executor need not ask for one."""
+    return time.strftime("clir-live-%Y%m%dT%H%M%SZ", time.gmtime())
+
+
 def normalize_allowlisted_target(raw: str) -> str:
     target = raw.strip().replace(" ", "")
     if target not in ALLOWLIST:
@@ -677,17 +682,18 @@ def run_orange_chat_relay(
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--serial", default=DEFAULT_SERIAL)
-    parser.add_argument("--session", required=True)
-    parser.add_argument("--max-turns", type=int, default=2)
+    parser.add_argument("--session")
+    parser.add_argument("--max-turns", type=int, default=MAX_TURNS)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--allow-clir-enable", action="store_true")
     args = parser.parse_args(argv)
     try:
         if not args.allow_clir_enable:
             raise ValueError("explicit --allow-clir-enable is required for the CLIR effect path")
+        session_id = args.session or default_session_id()
         run_orange_chat_relay(
             serial=args.serial,
-            session_id=args.session,
+            session_id=session_id,
             max_turns=args.max_turns,
             repo_root=args.repo_root,
         )
