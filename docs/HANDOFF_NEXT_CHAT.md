@@ -165,11 +165,12 @@ A host-only Gate D acceptance case now proves that appointment booking shares th
 
 ## Post-roadmap modular cleanup
 
-Three narrow behavior-preserving slices are merged after G6:
+Four narrow behavior-preserving slices are merged after G6:
 
 - `8dfb324e7e7ee38508ecfe99309ce0e8946bfae1` / PR #10: `MainActivity` delegates developer/probe controls and the Shizuku probe listener lifecycle to `MainActivityDeveloperProbes`. Launcher behavior, probe labels, `run_probe`, permissions and manifest entries are unchanged.
 - `534837e75ba8c1f19ed21469d8a1545b253152b6` / PR #11: pending Realtime function-call ID collection semantics live in `CallRealtimeFunctionCallTracker`. `CallRealtimeSessionOrchestrator` still owns generation, transport identity, state transitions, media cleanup and takeover ordering; duplicate IDs, one-shot response and stale-generation fail-closed behavior remain covered.
 - `547b133c6cfeca77a6f457b96951df86db72808a` / PR #12: exact approved BOOK_APPOINTMENT terms vs factual outcome comparison lives in pure `BookAppointmentOutcomeMatcher`. Outcome SUCCESS validation, permit consumption, workflow state, authorization recheck, TaskGraph commit and workflow completion remain owned by Gate D integration.
+- `519d66d7a8945122dcdd63cf38dd58189efae0dc` / PR #13: `close()` now reuses the same `takeOverNow()` cleanup path instead of maintaining a second copy. Added regression tests prove active close still aborts local media before Realtime cancel/close, and close during credential fetch invalidates the late credential. Orchestrator state definitions, generation checks and cleanup ownership remain unchanged.
 
 Targeted tests, each full `scripts/verify_host.sh` gate and GitHub Android CI / Host quality gate are green for these slices. No live call or external account change was performed.
 
