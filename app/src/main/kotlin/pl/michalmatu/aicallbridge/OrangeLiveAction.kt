@@ -10,7 +10,7 @@ package pl.michalmatu.aicallbridge
  */
 internal enum class OrangeLiveAction(
     val wireId: String,
-    val reviewedResponse: String?,
+    private val response: String?,
     val legacyDiagnosticAllowed: Boolean = true,
 ) {
     GREETING("greeting", "Dzień dobry."),
@@ -40,6 +40,14 @@ internal enum class OrangeLiveAction(
     ROAMING_PRICES("roaming_prices", "Chcę sprawdzić ceny w roamingu."),
     OBSERVE_ONLY("observe_only", null),
     ;
+
+    val reviewedResponse: String?
+        get() {
+            require(legacyDiagnosticAllowed) {
+                "external_effect_requires_generic_authority"
+            }
+            return response
+        }
 
     companion object {
         fun fromWireId(raw: String?): OrangeLiveAction {
