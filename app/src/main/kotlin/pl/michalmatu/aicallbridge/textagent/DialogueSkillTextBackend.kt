@@ -72,7 +72,7 @@ internal object DialogueSkillCatalog {
         DialogueSkillId.ACKNOWLEDGE_NEUTRAL to
             "Można jedynie neutralnie potwierdzić odbiór informacji, bez przyjmowania faktów lub zobowiązań.",
         DialogueSkillId.CONFIRM_EXPECTED_SUBJECT to
-            "Rozmówca pyta, czy rozmowa dotyczy dokładnie wcześniej autoryzowanego przez aplikację obiektu/tematu.",
+            "Rozmówca pyta wyłącznie, czego dotyczy wcześniej autoryzowana sprawa lub jaki jest jej temat. Nie wybieraj tego skilla dla pytań o aktywację, zmianę, zgodę, potwierdzenie zobowiązania ani wykonanie efektu; wtedy wybierz TAKE_OVER.",
         DialogueSkillId.TAKE_OVER to
             "Potrzebne są fakty, dane wrażliwe, decyzja użytkownika, zobowiązanie, nietypowe rozumowanie albo brak pewności.",
     )

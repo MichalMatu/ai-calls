@@ -9,23 +9,37 @@ import java.io.File
 import java.time.Instant
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
+import pl.michalmatu.aicallbridge.GateCHybridDiagnostics
+import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
+import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
+import pl.michalmatu.aicallbridge.agent.CallExternalEffect
+import pl.michalmatu.aicallbridge.agent.CallExternalEffectCompletionTracker
+import pl.michalmatu.aicallbridge.agent.CallExternalEffectSuccessEvidence
+import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidation
+import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidator
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallConstraints
+import pl.michalmatu.aicallbridge.agent.CallOutcome
+import pl.michalmatu.aicallbridge.agent.CallOutcomeStatus
 import pl.michalmatu.aicallbridge.agent.CallPreferences
 import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
+import pl.michalmatu.aicallbridge.agent.CallService
 import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
+import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
 import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
 import pl.michalmatu.aicallbridge.session.CallMediaSessionState
 import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
+import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /**
  * Developer-only bounded multi-turn proof:
@@ -35,8 +49,13 @@ import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
  */
 internal object ChatRelayLiveCallProbe {
     const val REPORT_FILE = "chat-relay-live-call-report.txt"
-    const val MAX_TURNS = 5
+    const val MAX_TURNS = 10
     private const val RESPONSE_TIMEOUT_MS = 90_000L
+    private const val ORANGE_SUPPORT_NUMBER = "510100100"
+    private const val COMMIT_CLIR_ENABLE = "[[COMMIT_CLIR_ENABLE]]"
+    private const val CONFIRM_CLIR_ENABLE = "[[CONFIRM_CLIR_ENABLE]]"
+    private const val REVIEWED_CLIR_COMMIT_SPEECH =
+        "Potwierdzam. Proszę włączyć blokadę prezentacji numeru, usługę CLIR."
 
     fun run(
         context: Context,
@@ -68,23 +87,42 @@ internal object ChatRelayLiveCallProbe {
             Thread(runnable, "ChatRelayLiveCall").apply { isDaemon = true }
         }
         private val mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME))
-        private val backend = InteractiveChatRelayBackend(
-            mailbox = mailbox,
-            sessionId = sessionId,
-            responseTimeoutMs = RESPONSE_TIMEOUT_MS,
+        private val target = CallResolvedTarget("Orange support", ORANGE_SUPPORT_NUMBER)
+        private val task = CallTask(
+            "Orange CLIR enable",
+            "SET_SERVICE",
+            "CLIR",
+            CallConstraints.unconstrained(),
+            CallPreferences.none(),
+            mapOf(CallExternalEffectValidator.SERVICE_ENABLED_FACT to "true"),
         )
-        private val workflow = activeWorkflow()
+        private val effect = CallExternalEffect.SetService(target, CallService.CLIR, true)
+        private val workflow = activeWorkflow(task, target)
+        private val commitmentGate = CallCommitmentGate { "clir-live-${UUID.randomUUID()}" }
+        private val hybridDiagnostics = GateCHybridDiagnostics()
+        private val routeVerified = AtomicBoolean(false)
+        private val commitmentConsumed = AtomicBoolean(false)
+        private val externalSuccess = AtomicBoolean(false)
+        @Volatile private var completionTracker: CallExternalEffectCompletionTracker? = null
+        @Volatile private var pendingExternalSuccessTranscript: String? = null
+        private val hybridBackend = GateCHybridDialogueBackendFactory.create(
+            context = context,
+            provider = TextLlmProvider.LOCAL_GEMMA_4,
+            relaySessionId = sessionId,
+            diagnostics = hybridDiagnostics,
+        )
+        private val backend = controlAwareBackend(hybridBackend)
         private val pipeline = LocalSpeechTextPipeline(
             context,
             backend,
-            CallTextAgentOutputApprovalPolicy(
-                workflow,
-                CallCommitmentGate { "chat-relay-live-token" },
-            ),
+            CallTextAgentOutputApprovalPolicy(workflow, commitmentGate),
         )
         private val lines = mutableListOf(
             "probe=chat_relay_live_call",
             "developer_relay=true",
+            "hybrid_dialogue=gemma_then_chatgpt",
+            "clir_commit_control=$COMMIT_CLIR_ENABLE",
+            "clir_success_control=$CONFIRM_CLIR_ENABLE",
             "call_required=true",
             "session_id=$sessionId",
             "max_turns=$maxTurns",
@@ -176,6 +214,13 @@ internal object ChatRelayLiveCallProbe {
                 override fun onUserTranscript(text: String) {
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
+                    if (isClirRouteEvidence(text) && routeVerified.compareAndSet(false, true)) {
+                        lines += "clir_route_verified=true"
+                    }
+                    if (commitmentConsumed.get() && isClirSuccessEvidence(text)) {
+                        pendingExternalSuccessTranscript = text
+                        lines += "clir_success_evidence_detected=true"
+                    }
                 }
 
                 override fun onApprovedText(text: String) {
@@ -293,11 +338,114 @@ internal object ChatRelayLiveCallProbe {
             if (finished.get() || turn != currentTurn) return
             turnsCompleted = turn
             lines += "turn_${turn}_complete_elapsed_ms=${elapsedTurnMs()}"
-            if (turnsCompleted >= maxTurns) {
+            val factualSuccess = pendingExternalSuccessTranscript
+            if (factualSuccess != null) {
+                pendingExternalSuccessTranscript = null
+                if (!finalizeExternalSuccess(factualSuccess)) return
                 finish(true)
+                return
+            }
+            if (turnsCompleted >= maxTurns) {
+                finish(false, "clir_external_success_not_observed")
             } else {
                 beginNextTurn(generation, lease)
             }
+        }
+
+        private fun controlAwareBackend(delegate: TextCallAgentBackend): TextCallAgentBackend =
+            object : TextCallAgentBackend {
+                override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                    delegate.generate(userText, object : TextCallAgentBackend.Listener {
+                        override fun onComplete(text: String) {
+                            try {
+                                when (text.trim()) {
+                                    COMMIT_CLIR_ENABLE -> listener.onComplete(commitClirEnable())
+                                    CONFIRM_CLIR_ENABLE -> {
+                                        require(commitmentConsumed.get()) { "clir_commitment_not_consumed" }
+                                        pendingExternalSuccessTranscript = userText
+                                        lines += "clir_success_evidence_supervisor_confirmed=true"
+                                        listener.onComplete("Dziękuję.")
+                                    }
+                                    else -> listener.onComplete(text)
+                                }
+                            } catch (error: Throwable) {
+                                listener.onError("clir_control_${error.javaClass.simpleName}")
+                            }
+                        }
+
+                        override fun onError(reason: String) = listener.onError(reason)
+                    })
+                }
+
+                override fun cancel() = delegate.cancel()
+                override fun close() = delegate.close()
+            }
+
+        private fun commitClirEnable(): String {
+            require(routeVerified.get()) { "clir_route_not_verified" }
+            require(!commitmentConsumed.get()) { "clir_commitment_already_consumed" }
+            val validation = CallExternalEffectValidator.validateSetService(task, target, effect)
+            require(validation is CallExternalEffectValidation.Accepted) { "clir_effect_validation_rejected" }
+            val authorization = commitmentGate.authorize(validation.effect)
+            lines += "clir_effect_permit_issued=true"
+            val consumed = commitmentGate.consumeEffect(authorization.value).getOrThrow()
+            require(consumed == effect && !commitmentGate.hasAuthorization()) {
+                "clir_effect_consumption_mismatch"
+            }
+            completionTracker = CallExternalEffectCompletionTracker.fromConsumption(
+                CallCommitmentConsumptionEvidence(consumed),
+            )
+            commitmentConsumed.set(true)
+            lines += "clir_effect_permit_consumed=true"
+            return REVIEWED_CLIR_COMMIT_SPEECH
+        }
+
+        private fun finalizeExternalSuccess(transcript: String): Boolean {
+            val tracker = completionTracker ?: run {
+                finish(false, "clir_completion_tracker_missing")
+                return false
+            }
+            val completed = tracker.complete(CallExternalEffectSuccessEvidence(effect))
+            if (completed.isFailure || completed.getOrNull() != effect || !tracker.isCompleted()) {
+                finish(false, "clir_external_success_completion_failed")
+                return false
+            }
+            try {
+                workflow.complete(
+                    CallOutcome(
+                        CallOutcomeStatus.SUCCESS,
+                        "Orange confirmed CLIR enabled",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                    ),
+                )
+            } catch (error: Throwable) {
+                finish(false, "clir_workflow_complete_${error.javaClass.simpleName}")
+                return false
+            }
+            externalSuccess.set(true)
+            lines += "clir_external_success=true"
+            lines += "clir_external_success_text=${sanitize(transcript)}"
+            return true
+        }
+
+        private fun isClirRouteEvidence(text: String): Boolean {
+            val value = text.lowercase()
+            return value.contains("clir") ||
+                (value.contains("blokad") && value.contains("prezentac") && value.contains("numer")) ||
+                (value.contains("zastrz") && value.contains("numer"))
+        }
+
+        private fun isClirSuccessEvidence(text: String): Boolean {
+            if (!isClirRouteEvidence(text)) return false
+            val value = text.lowercase()
+            return value.contains("włączon") || value.contains("wlaczon") ||
+                value.contains("aktyw") || value.contains("uruchom") ||
+                value.contains("została ustawiona") || value.contains("zostala ustawiona")
         }
 
         private fun elapsedTurnMs(): Long =
@@ -317,6 +465,12 @@ internal object ChatRelayLiveCallProbe {
             try { mediaRuntime?.close() } catch (_: Throwable) {}
             mediaRuntime = null
             executor.shutdownNow()
+            val hybridSnapshot = hybridDiagnostics.snapshot()
+            lines += "gemma_skill_decision_count=${hybridSnapshot.decisions.size}"
+            lines += "chatgpt_fallback_count=${hybridSnapshot.responseSources.count { it.name == "CHAT_RELAY" }}"
+            lines += "clir_route_verified=${routeVerified.get()}"
+            lines += "clir_commitment_consumed=${commitmentConsumed.get()}"
+            lines += "clir_external_success=${externalSuccess.get()}"
             lines += "turns_completed=$turnsCompleted"
             lines += "telephony_rx_pcm_bytes=$totalRxBytes"
             lines += "telephony_tx_pcm_bytes=$totalTxBytes"
@@ -329,17 +483,9 @@ internal object ChatRelayLiveCallProbe {
         }
     }
 
-    private fun activeWorkflow(): CallWorkflow {
-        val task = CallTask(
-            "Orange interactive ChatGPT relay test",
-            "test STT plus TTS transport only; make no purchases, account changes, commitments or sensitive disclosures",
-            "customer service",
-            CallConstraints.unconstrained(),
-            CallPreferences.none(),
-            emptyMap(),
-        )
+    private fun activeWorkflow(task: CallTask, target: CallResolvedTarget): CallWorkflow {
         val workflow = CallWorkflow(task, CallConfirmationPolicy()) { }
-        workflow.resolveTarget(CallResolvedTarget("Orange support", "allowlisted"))
+        workflow.resolveTarget(target)
         workflow.markDialing()
         workflow.markCallActive()
         return workflow

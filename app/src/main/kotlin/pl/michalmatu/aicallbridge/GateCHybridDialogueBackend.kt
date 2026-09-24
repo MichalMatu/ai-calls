@@ -80,6 +80,8 @@ internal object GateCHybridDialogueBackendFactory {
                 DialogueSkillId.ASK_REPEAT to "Proszę powtórzyć.",
                 DialogueSkillId.ASK_CLARIFY to "Proszę doprecyzować.",
                 DialogueSkillId.ACKNOWLEDGE_NEUTRAL to "Rozumiem.",
+                DialogueSkillId.CONFIRM_EXPECTED_SUBJECT to
+                    "Chodzi o blokadę prezentacji numeru, usługę CLIR.",
             ),
             minimumConfidence = 0.72,
         )

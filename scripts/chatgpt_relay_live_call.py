@@ -30,8 +30,8 @@ PROBE_ACTIVITY = f"{PACKAGE_NAME}/.developerrelay.ChatRelayProbeActivity"
 REQUEST_PATH = "files/chat-relay/request.txt"
 RESPONSE_PATH = "files/chat-relay/response.txt"
 REPORT_PATH = "files/chat-relay-live-call-report.txt"
-MAX_TURNS = 5
-MAX_SESSION_SECONDS = 240.0
+MAX_TURNS = 10
+MAX_SESSION_SECONDS = 600.0
 RESPONSE_TIMEOUT_SECONDS = 100.0
 
 
