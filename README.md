@@ -110,6 +110,5 @@ A full CLIR account change has **not** yet been completed. No live-call authoriz
 - `docs/GENERIC_PHONE_TASK_AUTHORITY.md` — target generic effect/commitment model;
 - `docs/SECURITY_PRIVACY.md` — authority/privacy/live-call rules;
 - `docs/HANDOFF_NEXT_CHAT.md` — exact continuation checkpoint;
-- `docs/NEXT_CHAT_PROMPT.md` — ready-to-paste next-chat instruction.
 
 Every real call requires fresh authorization in the current chat for the concrete target/number and task. A handoff, connected phone, previous proof or old allowlist never authorizes dialing.

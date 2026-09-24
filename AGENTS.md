@@ -186,5 +186,5 @@ Before closing a scope:
 4. update authoritative docs;
 5. leave `main` clean;
 6. remove temporary branches;
-7. refresh `docs/HANDOFF_NEXT_CHAT.md` and `docs/NEXT_CHAT_PROMPT.md`;
+7. refresh `docs/HANDOFF_NEXT_CHAT.md`;
 8. never carry live-call authorization into the new chat.

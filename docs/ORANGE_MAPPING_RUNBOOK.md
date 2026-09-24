@@ -121,6 +121,6 @@ When an Orange slice ends or a major session is handed off:
 6. if a phone was used, verify final call state `IDLE` without dialing again;
 7. update authoritative docs if their meaning changed;
 8. follow `docs/HANDOFF_PROTOCOL.md`;
-9. refresh `docs/HANDOFF_NEXT_CHAT.md` and `docs/NEXT_CHAT_PROMPT.md` when the work is moving to a new chat.
+9. refresh `docs/HANDOFF_NEXT_CHAT.md` when the work is moving to a new chat.
 
 Detailed experiment logs belong in Git history and `.agent/results`, not in new status documents.
