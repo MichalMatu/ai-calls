@@ -401,6 +401,15 @@ internal object ChatRelayLiveCallProbe {
         private fun controlAwareBackend(delegate: TextCallAgentBackend): TextCallAgentBackend =
             object : TextCallAgentBackend {
                 override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                    if (routeVerified.get() && !commitmentConsumed.get() && isClirEnablePrompt(userText)) {
+                        try {
+                            lines += "clir_contextual_commit_prompt=true"
+                            listener.onComplete(commitClirEnable())
+                        } catch (error: Throwable) {
+                            listener.onError("clir_control_${error.javaClass.simpleName}")
+                        }
+                        return
+                    }
                     delegate.generate(userText, object : TextCallAgentBackend.Listener {
                         override fun onComplete(text: String) {
                             try {
@@ -486,12 +495,21 @@ internal object ChatRelayLiveCallProbe {
                 (value.contains("zastrz") && value.contains("numer"))
         }
 
+        private fun isClirEnablePrompt(text: String): Boolean {
+            val value = text.lowercase()
+            return value.contains("czy chcesz") || value.contains("czy mam") ||
+                value.contains("potwierdź") || value.contains("potwierdz") ||
+                value.contains("włączyć") || value.contains("wlaczyc") ||
+                value.contains("aktywować") || value.contains("aktywowac") ||
+                value.contains("uruchomić") || value.contains("uruchomic")
+        }
+
         private fun isClirSuccessEvidence(text: String): Boolean {
-            if (!isClirRouteEvidence(text)) return false
             val value = text.lowercase()
             return value.contains("włączon") || value.contains("wlaczon") ||
                 value.contains("aktyw") || value.contains("uruchom") ||
-                value.contains("została ustawiona") || value.contains("zostala ustawiona")
+                value.contains("została ustawiona") || value.contains("zostala ustawiona") ||
+                value.contains("zmiana została wykonana") || value.contains("zmiana zostala wykonana")
         }
 
         private fun elapsedTurnMs(): Long =
