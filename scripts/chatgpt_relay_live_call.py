@@ -555,20 +555,30 @@ def run_orange_chat_relay(
         mailbox.clear()
         subprocess.run(build_probe_start_args(serial, session_id, max_turns), check=True)
 
+        def finish_from_report(report: dict[str, str]) -> dict[str, str]:
+            if report.get("chat_relay_live_call_success") != "true":
+                raise RuntimeError("relay probe failed: " + report.get("failure_reason", "unknown"))
+            if int(report.get("turns_completed", "0")) < 1:
+                raise RuntimeError("relay probe completed without a spoken turn")
+            print(f"relay_probe_complete=true,turns:{report.get('turns_completed')}")
+            for metric in format_probe_metric_lines(report):
+                print(f"relay_probe_metric={metric}")
+            return report
+
         while time.monotonic() - started_at < MAX_SESSION_SECONDS:
             state = call_state_or_none(adb)
             if state is not None and state != 2:
+                grace_deadline = time.monotonic() + 3.0
+                while time.monotonic() < grace_deadline:
+                    report = parse_probe_report(mailbox.read_report())
+                    if report is not None:
+                        print("relay_probe_report_after_call_end=true")
+                        return finish_from_report(report)
+                    time.sleep(0.2)
                 raise RuntimeError("cellular call ended during ChatGPT relay")
             report = parse_probe_report(mailbox.read_report())
             if report is not None:
-                if report.get("chat_relay_live_call_success") != "true":
-                    raise RuntimeError("relay probe failed: " + report.get("failure_reason", "unknown"))
-                if int(report.get("turns_completed", "0")) < 1:
-                    raise RuntimeError("relay probe completed without a spoken turn")
-                print(f"relay_probe_complete=true,turns:{report.get('turns_completed')}")
-                for metric in format_probe_metric_lines(report):
-                    print(f"relay_probe_metric={metric}")
-                return report
+                return finish_from_report(report)
 
             request = mailbox.read_request()
             if request is None or request.turn_id <= last_turn:
@@ -617,6 +627,14 @@ def run_orange_chat_relay(
         raise TimeoutError("bounded ChatGPT relay call budget exhausted")
     finally:
         primary_error_active = sys.exc_info()[0] is not None
+        try:
+            raw_report = mailbox.read_report()
+            if raw_report.strip():
+                snapshot = Path(tempfile.gettempdir()) / f"aicall-{session_id}-last-probe-report.txt"
+                snapshot.write_text(raw_report, encoding="utf-8")
+                print(f"relay_probe_report_snapshot={snapshot}")
+        except Exception as error:
+            print(f"relay_probe_report_snapshot_error={error}", file=sys.stderr)
         subprocess.run(
             ["adb", "-s", serial, "shell", "am", "force-stop", PACKAGE_NAME],
             text=True,
