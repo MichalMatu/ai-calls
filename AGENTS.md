@@ -16,7 +16,17 @@ Read fresh repository sources in this order:
 8. `docs/SECURITY_PRIVACY.md`
 9. `docs/PHASE2D_FREEZE_2026-09-18.md` only before Samsung media changes.
 
-Fetch fresh `origin/main`. If Local Agent is used, read fresh daemon status and use only the binding supplied to the current chat.
+Fetch fresh `origin/main`. Read fresh Local Agent daemon status and use only the binding supplied to the current chat.
+
+### Execution tool priority
+
+Local Agent is the **default and preferred executor** for repository/device/local work because it has the broadest access to the real workspace and target device. When in doubt, use Local Agent first.
+
+Use Local Agent by default for repository mutations, multi-file edits, scripts, branch cleanup, builds, Gradle, Android tooling, ADB, device state, local files, logs, process inspection and multi-step workflows. Let it carry a task end-to-end when possible instead of splitting the same work across multiple tools or asking the operator to bridge steps manually.
+
+Use the direct GitHub connector mainly for lightweight read-only inspection, Local Agent control-plane task/result transport, or a tiny isolated repository edit when Local Agent would add no practical value. Do not prefer direct GitHub merely because an edit is small if the surrounding task already depends on Local Agent state.
+
+Local Agent priority does not bypass application authority, external platform safety checks or tool enforcement. If an external layer blocks an action, report the blocker rather than routing around it.
 
 `docs/AUTONOMOUS_OPERATION_MODE.md` is normative for active physical acceptance work. Do not make the operator act as a terminal/log relay when Local Agent, ADB or the transient relay can perform the step directly.
 
@@ -152,8 +162,9 @@ For the current physical CLIR campaign:
 - use only the fresh current-chat binding;
 - work only in `MichalMatu/ai-calls` under this repository binding;
 - inspect daemon/active-task evidence before queueing the same branch;
-- direct GitHub edits for small reviewable repository changes;
-- Local Agent for Gradle/Android/ADB/device/local commands;
+- Local Agent is the first-choice executor for repository mutations and any workflow involving the real checkout, build system, Android/ADB, device, local processes/files/logs or multiple dependent steps;
+- prefer one end-to-end Local Agent task over fragmented GitHub edits plus manual/local follow-up;
+- use direct GitHub primarily for read-only inspection, control-plane transport, or truly isolated tiny edits where Local Agent adds no useful context/capability;
 - do not ask the operator to execute local shell commands when Local Agent can execute them;
 - every task JSON must contain exactly the current binding;
 - every task JSON must declare `resources` explicitly;

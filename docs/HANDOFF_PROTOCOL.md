@@ -55,8 +55,8 @@ A fresh chat should:
 1. use the fresh bridge binding supplied in that chat;
 2. read fresh `origin/main` plus `AGENTS.md`, `HANDOFF_NEXT_CHAT.md`, `AUTONOMOUS_OPERATION_MODE.md`, roadmap and the active domain runbook;
 3. inspect current daemon/active-task evidence before queueing Local Agent work;
-4. use direct GitHub edits for small reviewable repository changes and Local Agent for local commands/builds/device work;
-5. do not make the operator paste commands or copy logs if Local Agent/ADB can perform the step;
+4. use Local Agent as the first-choice executor for repository mutations and any task that benefits from the real checkout/local environment/device; use direct GitHub mainly for read-only/control-plane work or a truly isolated tiny edit where Local Agent adds no value;
+5. prefer one end-to-end Local Agent workflow over fragmented connector/manual steps, and do not make the operator paste commands or copy logs if Local Agent/ADB can perform the step;
 6. never copy an `agent_binding` from docs/history;
 7. never launch local Codex from Local Agent;
 8. keep `.agent/tasks` and `.agent/results` on `agent-control`, never merge them into `main`.

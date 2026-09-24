@@ -24,6 +24,20 @@ agent/supervisor
 
 The development goal is that recurrent supervisor interventions are progressively moved into deterministic script/PhraseMatrix or bounded Gemma skills until the task completes without supervisor help.
 
+## Executor priority
+
+Local Agent is the default executor for autonomous development work that touches the real repository, local environment or phone. It should be used proactively, not only after a direct connector path fails.
+
+Priority order for operational work is:
+
+```text
+Local Agent end-to-end when it can perform the task
+ -> specialized connector/API only when it is a better fit for a narrow read-only/control-plane action
+ -> operator action only when genuinely unavoidable
+```
+
+Do not fragment a workflow merely because a connector can perform one small sub-step. If Local Agent has the context and capability to inspect, edit, build, install, observe and verify a slice coherently, prefer that coherent path. External platform/tool controls still apply and must not be bypassed.
+
 ## No-stop rule
 
 During an active authorized campaign:

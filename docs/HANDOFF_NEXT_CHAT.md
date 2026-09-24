@@ -126,8 +126,9 @@ Existing `CallCommitmentGate` and external-success evidence remain mandatory for
 - use only the fresh current-chat binding;
 - inspect daemon/active-task evidence before queueing work;
 - every task JSON declares `resources` explicitly;
-- direct GitHub edits for small reviewable repository changes;
-- Local Agent for Gradle/Android/ADB/device/local commands;
+- Local Agent is the default/first-choice executor for repository mutations, multi-step work, builds, Android/ADB/device state, local files/processes/logs and physical-call support;
+- prefer one coherent Local Agent workflow over splitting a task across direct GitHub edits and manual/local follow-up;
+- direct GitHub is mainly for lightweight read-only inspection, control-plane transport or a truly isolated tiny edit when Local Agent adds no practical value;
 - do not make the operator a local-shell proxy;
 - `.agent/*` stays on `agent-control`, never merge it into `main`;
 - durable changes go to `main`.
