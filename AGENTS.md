@@ -8,14 +8,17 @@ Read fresh repository sources in this order:
 
 1. `README.md`
 2. `docs/HANDOFF_NEXT_CHAT.md`
-3. `docs/ROADMAP.md`
-4. active domain runbook (`docs/G5_CLIR_ROUTE_DISCOVERY.md` for the current gate)
-5. `docs/ARCHITECTURE.md`
-6. `docs/GENERIC_PHONE_TASK_AUTHORITY.md`
-7. `docs/SECURITY_PRIVACY.md`
-8. `docs/PHASE2D_FREEZE_2026-09-18.md` only before Samsung media changes.
+3. `docs/AUTONOMOUS_OPERATION_MODE.md`
+4. `docs/ROADMAP.md`
+5. active domain runbook (`docs/G5_CLIR_ROUTE_DISCOVERY.md` for the current gate)
+6. `docs/ARCHITECTURE.md`
+7. `docs/GENERIC_PHONE_TASK_AUTHORITY.md`
+8. `docs/SECURITY_PRIVACY.md`
+9. `docs/PHASE2D_FREEZE_2026-09-18.md` only before Samsung media changes.
 
 Fetch fresh `origin/main`. If Local Agent is used, read fresh daemon status and use only the binding supplied to the current chat.
+
+`docs/AUTONOMOUS_OPERATION_MODE.md` is normative for active physical acceptance work. Do not make the operator act as a terminal/log relay when Local Agent, ADB or the transient relay can perform the step directly.
 
 ## Current priority
 
@@ -56,6 +59,8 @@ finalized STT
 ```
 
 Gemma/supervisor output is proposal/dialogue data only.
+
+During active physical acceptance, supervisor fallback should continue the same live call when possible; recurrent supervisor interventions should be moved back into deterministic script/PhraseMatrix or bounded Gemma skills.
 
 ## External-effect authority
 
@@ -121,6 +126,8 @@ Do not put plaintext identity in TaskGraph definitions, ServicePacks, ordinary l
 - route discovery is not CLIR success evidence;
 - permit consumption is not external success.
 
+For the active CLIR physical campaign, follow `docs/AUTONOMOUS_OPERATION_MODE.md`: physical calls are the acceptance loop and synthetic/unit suites must not replace physical iteration unless the operator explicitly requests them.
+
 ## Live-call policy
 
 A connected phone, previous call, old chat, handoff, ServicePack, allowlist or `.agent/results` never authorizes dialing.
@@ -145,7 +152,9 @@ G5c requires authorization covering the concrete `SET_SERVICE(CLIR=true)` effect
 - inspect daemon/active-task evidence before queueing the same branch;
 - direct GitHub edits for small reviewable repository changes;
 - Local Agent for Gradle/Android/ADB/device/local commands;
+- do not ask the operator to execute local shell commands when Local Agent can execute them;
 - every task JSON must contain exactly the current binding;
+- every task JSON must declare `resources` explicitly;
 - never launch local Codex from Local Agent;
 - `.agent/tasks` and `.agent/results` stay on `agent-control`;
 - durable changes go to `main`.
@@ -158,10 +167,11 @@ Normal steady state is exactly `main` + `agent-control`. Delete temporary branch
 
 Before closing a scope:
 
-1. run tests appropriate to the changed boundary;
-2. run `bash scripts/verify_host.sh` for behavior changes;
-3. run physical proof only when the changed boundary requires it;
-4. update authoritative docs;
-5. leave `main` clean and branches minimal;
-6. refresh `docs/HANDOFF_NEXT_CHAT.md`;
-7. never carry live-call authorization into another chat.
+1. obtain factual physical evidence appropriate to the changed boundary;
+2. run independent external-state verification when technically available;
+3. update authoritative docs;
+4. leave `main` clean and branches minimal;
+5. refresh `docs/HANDOFF_NEXT_CHAT.md`;
+6. preserve the autonomous-operation contract and do not regress to operator-driven terminal work.
+
+Do not declare a physical CLIR task complete from synthetic/no-call results, permit consumption, a model statement or call termination alone.
