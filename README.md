@@ -83,6 +83,7 @@ The product direction is a durable, scoped, revocable campaign authorization own
 ## Source of truth
 
 - `AGENTS.md` — repository workflow/invariants;
+- `docs/REPOSITORY_LAYOUT.md` — repository tree, ownership and file-placement contract;
 - `docs/AUTONOMOUS_OPERATION_MODE.md` — autonomous physical-operation contract;
 - `docs/ROADMAP.md` — current execution order;
 - `docs/ARCHITECTURE.md` — runtime and ownership boundaries;

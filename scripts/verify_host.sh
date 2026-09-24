@@ -3,6 +3,58 @@ set -euo pipefail
 
 GRADLE_BIN="${GRADLE_BIN:-./gradlew}"
 
+allowed_root_entries=(
+  .github
+  .gitignore
+  AGENTS.md
+  README.md
+  app
+  audio-bridge
+  benchmarks
+  build.gradle.kts
+  docs
+  gradle
+  gradle.properties
+  gradlew
+  gradlew.bat
+  privileged-helper
+  realtime-client
+  scripts
+  service-packs
+  settings.gradle.kts
+)
+
+tracked_root_entries="$(git ls-files | awk -F/ '{print $1}' | sort -u)"
+unexpected_root_entries="$(comm -23 \
+  <(printf '%s\n' "$tracked_root_entries") \
+  <(printf '%s\n' "${allowed_root_entries[@]}" | sort -u))"
+if [[ -n "$unexpected_root_entries" ]]; then
+  echo "repository_layout_failed=unexpected_top_level_entries" >&2
+  printf '%s\n' "$unexpected_root_entries" >&2
+  echo "See docs/REPOSITORY_LAYOUT.md before adding a new top-level path." >&2
+  exit 1
+fi
+
+allowed_scripts_entries=(
+  README.md
+  aicall_tools
+  bin
+  local_agent
+  tests
+  verify_host.sh
+)
+
+tracked_scripts_entries="$(git ls-files scripts | awk -F/ 'NF >= 2 {print $2}' | sort -u)"
+unexpected_scripts_entries="$(comm -23 \
+  <(printf '%s\n' "$tracked_scripts_entries") \
+  <(printf '%s\n' "${allowed_scripts_entries[@]}" | sort -u))"
+if [[ -n "$unexpected_scripts_entries" ]]; then
+  echo "scripts_layout_failed=unexpected_top_level_entries" >&2
+  printf '%s\n' "$unexpected_scripts_entries" >&2
+  echo "See docs/REPOSITORY_LAYOUT.md and scripts/README.md for placement rules." >&2
+  exit 1
+fi
+
 flat_python_files="$(find scripts -maxdepth 1 -type f -name '*.py' -print)"
 if [[ -n "$flat_python_files" ]]; then
   echo "scripts_layout_failed=top_level_python_files" >&2
