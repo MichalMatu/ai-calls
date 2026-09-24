@@ -2,52 +2,47 @@
 
 ## Objective
 
-The agent may dial, speak, disclose data, confirm or change external state only inside authority explicitly granted by the user and existing application owners. Failure must narrow capability, fail closed or return control to the human; it must never broaden authority.
+The agent may dial, speak, disclose data or change external state only inside authority explicitly granted by the user and enforced by application-owned policy. Failure must narrow capability or return control to the human; it must never broaden authority.
 
-## Stable privilege/media boundary
+## Frozen privilege/media boundary
 
-Protected Samsung call-audio access stays inside the privileged helper / Shizuku UserService. Continuous PCM crosses through transferred PFDs; Binder/AIDL is control only.
+Samsung call-audio access remains inside the privileged helper / Shizuku UserService. Continuous PCM crosses through transferred PFDs; Binder/AIDL is control only.
 
 This path is `PROVEN_S22 / FROZEN`. Read `docs/PHASE2D_FREEZE_2026-09-18.md` before changing it.
 
 ## Authority owners
 
-- `CallTask` — exact task, hard constraints, preferences and authorized facts;
+- `CallTask` — exact task, constraints, preferences and authorized facts;
 - `CallResolvedTarget` — exact target;
-- application-owned task/effect policy — validates whether a concrete external effect is inside the task scope;
-- `CallWorkflow` — proposal/user-decision state and terminal outcome;
-- `CallCommitmentGate` — exact one-shot external commitment permit;
+- `CallExternalEffectValidator` — exact effect/task/target binding;
+- `CallCommitmentGate` — single one-shot commitment permit store;
+- `CallExternalEffectCompletionTracker` — exact post-consumption success evidence;
+- workflow/TaskGraph owner — terminal task state;
 - `FactDisclosurePolicy` — plaintext personal-data disclosure;
-- output approval — final text release before TTS/TX.
+- application output approval — final text release before TTS/TX.
 
-TaskGraph, PhraseMatrix, CallPlan, Gemma, supervisor/ChatRelay, ServicePacks, parsers, model storage/import and diagnostics are not authority owners.
+TaskGraph definitions, PhraseMatrix, CallPlan, Gemma, supervisor/ChatRelay, ServicePacks, parsers, storage and diagnostics are not independent authority owners.
 
-## Generic external-effect rule
-
-The next architecture generalizes commitment from appointment-shaped `CallProposal` into a typed application-owned external effect.
-
-Keep these separate:
+## External-effect rule
 
 ```text
 user task authorization
- != candidate effect validation
+ != effect validation
  != permit issuance
  != permit consumption
  != external success
  != workflow completion
 ```
 
-A model/supervisor may help extract or propose candidate effect data. It cannot create the permit, widen the candidate, declare success or complete the workflow.
+A model may help extract or propose effect data. It cannot create authority, widen the effect, declare success or complete the workflow.
 
-See `docs/GENERIC_PHONE_TASK_AUTHORITY.md`.
+Do not create per-service commitment gates such as `ClirCommitmentGate`.
 
-## No redundant confirmation
+## Confirmation rule
 
-Do not require a second confirmation merely because a previously explicit, current-chat instruction reaches the commitment point later.
+Do not require a redundant second confirmation when the current-chat instruction already exactly authorizes the same concrete effect and no material term changed.
 
-Example: if the user explicitly authorized `enable CLIR` for the exact current call target, and the application constructs exactly that effect with no new material term, policy may treat that instruction as the user decision.
-
-If the counterparty introduces materially new terms outside the already-authorized scope, the application — not the model — decides whether new user confirmation is needed.
+If the counterparty introduces new material terms, application policy decides whether fresh confirmation is required.
 
 ## Identity and disclosure
 
@@ -60,76 +55,54 @@ IdentityVault
  -> exact task / target / state / generation
  -> optional user approval
  -> ALLOW
- -> resolve plaintext as late as practical
+ -> resolve plaintext late
 ```
 
-Plaintext identity values must stay out of TaskGraph definitions/context, ServicePacks, ordinary evidence/logs, Local Agent JSON, Git history and supervisor/model context by default.
-
-Android vault storage remains app-private no-backup ciphertext backed by Android Keystore AES-256/GCM and is `PROVEN_S22`.
+Plaintext identity values stay out of TaskGraph definitions, ServicePacks, ordinary logs/evidence, Local Agent JSON, Git history and model/supervisor context by default.
 
 ## Dialogue/model boundary
-
-Current dialogue stack:
 
 ```text
 STT
  -> deterministic state / PhraseMatrix
- -> bounded Gemma dialogue skills
+ -> bounded Gemma dialogue skill
  -> supervisor fallback when unresolved
  -> application validation/output approval
  -> TTS/TX
 ```
 
-Gemma and supervisor output are candidate dialogue data. They must not independently:
-
-- dial or widen the target;
-- disclose unauthorized facts;
-- widen task/effect scope;
-- bypass output approval;
-- create/consume commitment authority;
-- mark external success;
-- complete the task.
-
-## Model integrity/readiness
-
-Gemma 4 model bytes are data, not authority. The app-owned import/download/readiness lifecycle is `HOST_GREEN / PROVEN_S22` and verifies the pinned model identity before activation.
-
-A missing/invalid model fails product preparation before local model use. Do not reopen model acquisition/storage merely as part of the generic task refactor.
-
-## ServicePack boundary
-
-ServicePacks may provide service knowledge, IVR hints, typed parsers, effect adapters and success-evidence rules. A known route or phrase never authorizes dialing, disclosure or commitment.
-
-Orange exact phrase mappings remain acceptance fixtures, not product authority.
+Gemma and supervisor cannot independently dial, widen target/task/effect scope, disclose unauthorized facts, bypass output approval, issue/consume commitment authority, mark external success or complete the task.
 
 ## Live-call policy
 
-A call must fail closed before dialing unless the exact task/target is valid, freshly authorized in the current chat and required readiness gates are satisfied.
+A call must fail closed before dialing unless the exact task/target is freshly authorized in the current chat and required readiness gates pass.
 
 Rules:
 
 - one active cellular call at a time;
+- exact target only; no model/tool target widening;
 - bounded duration/retries;
-- no emergency, urgent-care, crisis, premium-rate or unrelated critical-service test targets;
-- no model/tool target widening;
-- unrelated pre-existing calls must not be terminated;
-- genuine user-authorized tasks stay within authorized facts/effects;
-- no old chat, handoff, ServicePack, connected phone or `.agent/results` file carries dialing permission forward.
+- do not touch emergency, urgent-care, crisis, premium-rate or unrelated critical-service targets;
+- do not terminate unrelated pre-existing calls;
+- no old chat, handoff, ServicePack, connected phone or `.agent/results` file carries dialing permission forward;
+- if a physical call is made, cleanup must return the owned call to `IDLE`.
 
-Repository tooling must not add a redundant second approval ceremony after a fresh exact authorization already exists for that same external action.
+## Orange G5 split
+
+G5b route discovery is read-only:
+
+- fresh authorization is required for the exact Orange target and discovery task;
+- pre-dial readiness must confirm microphone + Shizuku state;
+- use only reviewed caller-ID information speech followed by `OBSERVE_ONLY`;
+- do not issue/consume a commitment permit;
+- do not change CLIR or account state;
+- stop on authentication/customer-data/commitment barriers.
+
+G5c account-changing CLIR execution is a separate step. It requires authorization covering `SET_SERVICE(CLIR=true)` and must use the generic one-shot permit + separate factual external-success evidence lifecycle. Route discovery is never success evidence.
 
 ## Data minimization
 
-Do not retain by default raw PCM, recordings, full transcripts, credentials, plaintext identity values, unnecessary medical details or unrelated counterparty identifiers.
-
-Prefer:
-
-- typed task/effect/state IDs;
-- redacted success/consumption evidence;
-- sizes/timings;
-- bounded correlation IDs.
-
-Transient ChatRelay raw turn files must be cleaned after the session.
+Do not retain by default raw PCM, recordings, full transcripts, credentials, plaintext identity values or unrelated counterparty data. Prefer typed IDs, redacted evidence, sizes/timings and bounded correlation IDs.
 
 ## TAKE OVER / failure ordering
 
@@ -144,6 +117,4 @@ stop accepting/releasing AI output
 
 ## Evidence rule
 
-`HOST_GREEN` is not `PROVEN_S22`. Compiled/packaged instrumentation is not physical proof. A connected device is not live-call authorization.
-
-Existing S22 proof remains valid for frozen media, IdentityVault, Gemma lifecycle and appointment Gate D. The new generic external-effect abstraction must preserve those proofs and receive its own host/no-call evidence before any live acceptance call.
+`HOST_GREEN` is not `PROVEN_S22`. A connected phone is not live-call authorization. Permit consumption is not external success. The CLIR task is not complete until exact factual external-success evidence has been accepted by application-owned completion logic.
