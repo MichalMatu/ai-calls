@@ -1,6 +1,6 @@
 # G5 CLIR route discovery
 
-G5 is split so unknown Orange routing can never be treated as commitment authority or success evidence.
+G5 is split so unknown Orange routing can never be treated as commitment authority or CLIR success evidence.
 
 ## G5a — DONE host-only: discovery contract
 
@@ -14,58 +14,57 @@ exact allowlisted Orange target
  -> nonblank observation evidence
 ```
 
-It records:
+It records `live_call_readiness_required=true`, `external_effect_execution=false`, `commitment_permit_use=false` and `fresh_live_call_authorization_required=true`.
+
+## G5b — PHYSICAL ATTEMPT COMPLETE, ROUTE UNVERIFIED
+
+On 2026-09-24 one explicitly authorized read-only Orange call executed the reviewed G5b contract. Immediately before dial, app live-call readiness passed for `RECORD_AUDIO` and Shizuku and phone state was `IDLE`.
+
+The call used only:
 
 ```text
-live_call_readiness_required=true
-external_effect_execution=false
-commitment_permit_use=false
-fresh_live_call_authorization_required=true
-```
-
-The existing Gate C `--observe-next` transport already provides the reviewed speech turn plus observation turn; no second audio/runtime stack or authority store is needed.
-
-## G5b — NEXT: physical read-only discovery
-
-A real G5b call requires fresh explicit authorization in the current chat for the exact Orange target and **read-only CLIR route-discovery task**.
-
-Before dial:
-
-- phone call state must be `IDLE`;
-- `scripts/live_call_readiness.py` / app readiness must confirm `RECORD_AUDIO`, Shizuku binder/runtime support and app-specific Shizuku permission;
-- target/action must match the reviewed discovery plan.
-
-During the call:
-
-```text
-reviewed caller_id_restriction_info speech
+caller_id_restriction_info: "Jak działa zastrzeganie numeru?"
  -> OBSERVE_ONLY
- -> redacted nonblank observation evidence
- -> cleanup to IDLE
 ```
 
-G5b must not change account state, issue/consume a commitment permit or cross authentication/customer-data/payment/commitment barriers.
-
-## G5c — after route verification: effect execution
-
-Do not execute CLIR merely because G5b found a route. Execution is a separate generic authority lifecycle:
+Redacted observation evidence was a generic Orange clarification/reprompt rather than a CLIR-specific route:
 
 ```text
-CallTask + exact target + explicit service.enabled=true
- -> CallExternalEffect.SetService(CLIR=true)
- -> deterministic validation
- -> one-shot CallCommitmentGate permit
- -> reviewed effect speech/execution
- -> exact permit-consumption evidence
- -> separate external-success evidence
- -> factual effect completion
- -> workflow completion
+Przepraszam, że przedłużyć Dale. Chcę mieć pewność, w jakiej sprawie dzwonisz do nas. Powiedz proszę, czego dotyczy twoja sprawa.
 ```
 
-No `ClirCommitmentGate` may be introduced.
+Evidence task: `chatgpt-g5b-live-readonly-route-discovery-v275-20260924`. Observation capture was bounded to 15000 ms. The owned call was cleaned back to `IDLE`.
 
-Unknown/changed routing, blank or ambiguous discovery evidence, changed target, missing fresh authorization, failed readiness, missing exact permit or missing factual external-success evidence must fail closed.
+Therefore:
 
-## Current evidence boundary
+- `service_route_verified=false`;
+- no CLIR/account state was changed;
+- no commitment permit was issued or consumed;
+- this discovery is **not** success evidence for `SET_SERVICE(CLIR=true)`;
+- the single live-call authorization used for this G5b attempt is consumed and does not authorize another call.
 
-The Orange ServicePack currently proves only read-only caller-ID restriction information and records `service_route_verified=false` for the service route. It does not prove a CLIR activation edge and must not be interpreted as success evidence for `SET_SERVICE(CLIR=true)`.
+## G5c — PREPARED, BLOCKED
+
+The execution contract is prepared, but it must fail closed while the physical CLIR service route is unverified. Do not execute it from the G5b reprompt evidence.
+
+Only after the route is physically verified and the current chat contains fresh authorization covering the concrete account-changing effect may G5c use the existing generic lifecycle:
+
+```text
+mandatory live-call readiness
+ -> require phone IDLE + exact allowlisted target
+ -> exact CallTask + service.enabled=true
+ -> CallExternalEffect.SetService(CLIR=true)
+ -> deterministic validation against the verified route
+ -> issue exactly one CallCommitmentGate permit immediately before commitment
+ -> reviewed effect speech/execution
+ -> exact one-shot permit consumption evidence
+ -> separate factual external-success evidence
+ -> cleanup owned call to IDLE
+ -> effect/workflow completion only from factual success evidence
+```
+
+No `ClirCommitmentGate` may be introduced. Unknown or changed routing, ambiguous evidence, changed target, missing fresh authorization, failed readiness, missing/invalid permit, or missing factual external-success evidence must fail closed. Permit consumption is not external success, and route discovery is not mutation success evidence.
+
+## Current stop line
+
+G5c is **not authorized and not executable yet** because `service_route_verified=false`. Any further Orange call, including another read-only route-discovery attempt, needs separate fresh live-call authorization in the current chat.
