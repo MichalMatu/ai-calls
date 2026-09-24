@@ -507,5 +507,27 @@
       "effect": "BOUNDED_RETRY_ALLOWED",
       "evidence_task": "chatgpt-orange-sms-receive-problem-live-v235-20260922"
     }
+  ],
+  "g5_clir_route_discovery_observations": [
+    {
+      "id": "orange.g5b.caller_id_restriction_info.20260924.v275",
+      "action_id": "caller_id_restriction_info",
+      "speech": "Jak działa zastrzeganie numeru?",
+      "risk": "READ_ONLY",
+      "observe_next": true,
+      "observed_outcome": "REPROMPT",
+      "redacted_observation": "Przepraszam, że przedłużyć Dale. Chcę mieć pewność, w jakiej sprawie dzwonisz do nas. Powiedz proszę, czego dotyczy twoja sprawa.",
+      "observation_capture_ms": 15000,
+      "observation_endpoint_reason": "max_duration",
+      "evidence_source": "physical_orange_live_call_redacted",
+      "evidence_task": "chatgpt-g5b-live-readonly-route-discovery-v275-20260924",
+      "live_call_readiness": true,
+      "pre_dial_phone_state": "IDLE",
+      "final_phone_state": "IDLE",
+      "service_route_verified": false,
+      "external_effect_execution": false,
+      "commitment_permit_use": false,
+      "success_evidence": false
+    }
   ]
 }
