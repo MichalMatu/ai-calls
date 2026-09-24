@@ -16,6 +16,8 @@ import pl.michalmatu.aicallbridge.agent.CallExternalEffectCompletionTracker
 import pl.michalmatu.aicallbridge.agent.CallExternalEffectSuccessEvidence
 import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidation
 import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidator
+import pl.michalmatu.aicallbridge.agent.CallOutcome
+import pl.michalmatu.aicallbridge.agent.CallOutcomeStatus
 import pl.michalmatu.aicallbridge.agent.CallPlan
 import pl.michalmatu.aicallbridge.agent.CallPlanAction
 import pl.michalmatu.aicallbridge.agent.CallPlanFallback
@@ -24,6 +26,7 @@ import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallService
 import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
+import pl.michalmatu.aicallbridge.agent.CallWorkflowState
 import pl.michalmatu.aicallbridge.localcall.AndroidTextCallReadiness
 import pl.michalmatu.aicallbridge.localcall.DialTargetAuthorization
 import pl.michalmatu.aicallbridge.localcall.LocalTextCallHybridSessionFactory
@@ -184,6 +187,29 @@ internal object GenericPhoneTaskAcceptanceProbe {
             }
             lines += "external_success_evidence_exact=true"
             lines += "effect_factual_completion=true"
+
+            try {
+                workflow.complete(
+                    CallOutcome(
+                        CallOutcomeStatus.SUCCESS,
+                        "Synthetic CLIR effect completed",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                    ),
+                )
+            } catch (error: Throwable) {
+                finish(false, "workflow_complete_${error.javaClass.simpleName}")
+                return
+            }
+            if (workflow.snapshot().state() != CallWorkflowState.COMPLETED) {
+                finish(false, "workflow_completion_state_mismatch")
+                return
+            }
+            lines += "workflow_completion=true"
             finish(true)
         }
 
