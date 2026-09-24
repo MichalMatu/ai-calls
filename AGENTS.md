@@ -26,8 +26,11 @@ The product is a **generic autonomous phone task engine**. Do not create service
 
 Current physical acceptance sequence:
 
-1. **G5b** — one fresh-authorized, read-only Orange CLIR route-discovery call using the existing reviewed `caller_id_restriction_info` turn followed by `OBSERVE_ONLY`.
-2. **G5c** — only after route evidence is understood and authorization covers the account-changing effect, attempt `SET_SERVICE(CLIR=true)` through the existing generic authority lifecycle.
+1. Continue the active Orange CLIR physical loop on S22 using `*100`: deterministic script/PhraseMatrix -> bounded Gemma -> live supervisor fallback only when unresolved.
+2. Preserve sanitized live evidence, verify actual network CLIR state independently when available, patch only the observed physical failure, then iterate with another real call.
+3. After CLIR enable is factually confirmed, run the inverse `SET_SERVICE(CLIR=false)` acceptance loop and drive recurrent supervisor turns back into script/PhraseMatrix or Gemma skills.
+
+Historical G5b read-only discovery is closed evidence, not the current task.
 
 Do not return to completed G1–G4/G6 work unless a concrete regression/root cause requires it. Do not start a broad cleanup/refactor before the physical acceptance gate.
 
@@ -134,16 +137,15 @@ A connected phone, previous call, old chat, handoff, ServicePack, allowlist or `
 
 Every real call requires fresh explicit authorization in the current chat for the concrete target and task.
 
-For current G5b:
+For the current physical CLIR campaign:
 
-- require live-call readiness before dial;
+- require live-call readiness immediately before dial;
 - require phone `IDLE`;
-- read-only reviewed caller-ID information turn + `OBSERVE_ONLY` only;
-- no commitment permit and no account state change;
-- stop at authentication/customer-data/payment/commitment barriers;
-- clean the owned call back to `IDLE`.
-
-G5c requires authorization covering the concrete `SET_SERVICE(CLIR=true)` effect.
+- continue the same live call through bounded reprompts instead of terminating after one clarification;
+- use deterministic script/PhraseMatrix first, Gemma second, and live supervisor takeover when unresolved;
+- keep the single shared `CallCommitmentGate` for concrete account-changing effects;
+- require factual external success plus independent CLIR state verification before declaring completion;
+- preserve sanitized report evidence before cleanup and return the owned call to `IDLE`.
 
 ## Local Agent
 
