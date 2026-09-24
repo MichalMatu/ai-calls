@@ -5,6 +5,7 @@ Use repository state, not chat memory, as the durable continuation source.
 ## Sources of truth
 
 - `README.md` — product and high-level status;
+- `docs/AUTONOMOUS_OPERATION_MODE.md` — normative autonomous physical-work contract;
 - `docs/ROADMAP.md` — current execution order;
 - `docs/ARCHITECTURE.md` — ownership boundaries;
 - `docs/SECURITY_PRIVACY.md` — authority/privacy/live-call rules;
@@ -20,14 +21,14 @@ Before handing work to a new chat:
 
 1. finish or explicitly stop the current bounded slice;
 2. persist durable changes on `main`;
-3. run verification appropriate to the changed boundary (`verify_host.sh` for code; docs-only changes do not need device proof);
+3. run verification appropriate to the changed boundary; during an active physical campaign, do not substitute synthetic/unit suites for the required physical evidence;
 4. never upgrade host evidence to `PROVEN_S22` without physical execution;
 5. if a call was made, return the owned call to `IDLE`;
 6. remove temporary branches after merge unless they intentionally preserve unique work;
-7. make `README`, roadmap, architecture, security and handoff agree;
+7. make `README`, autonomous-operation mode, roadmap, architecture, security and handoff agree;
 8. keep historical logs/details in Git instead of copying them into the handoff;
 9. remove secrets, plaintext identity, stale credentials and old Local Agent bindings;
-10. explicitly state that live-call authorization does not transfer to the new chat.
+10. preserve the autonomous-operation contract: do not make the next operator act as a shell/log relay when Local Agent can do the work.
 
 ## Handoff contents
 
@@ -35,13 +36,14 @@ Before handing work to a new chat:
 
 - repository/product goal;
 - what is already proven/frozen;
-- active gate;
+- active physical gate;
 - exact next execution order;
 - blockers/stop lines;
 - relevant files/scripts;
 - important recent PR/commit checkpoints;
 - Local Agent operating rule;
-- fresh live-call authorization rule;
+- autonomous-operation rule;
+- current accepted authorization mechanism/grant state without copying secrets or plaintext identity;
 - one concise copy/paste start prompt.
 
 Do not duplicate the full roadmap, architecture or old experiment chronology.
@@ -51,15 +53,20 @@ Do not duplicate the full roadmap, architecture or old experiment chronology.
 A fresh chat should:
 
 1. use the fresh bridge binding supplied in that chat;
-2. read fresh `origin/main` plus `HANDOFF_NEXT_CHAT.md`, roadmap and the active domain runbook;
+2. read fresh `origin/main` plus `AGENTS.md`, `HANDOFF_NEXT_CHAT.md`, `AUTONOMOUS_OPERATION_MODE.md`, roadmap and the active domain runbook;
 3. inspect current daemon/active-task evidence before queueing Local Agent work;
-4. use direct GitHub edits for small reviewable repository changes and Local Agent for local commands/builds/tests/device work;
-5. never copy an `agent_binding` from docs/history;
-6. never launch local Codex from Local Agent;
-7. keep `.agent/tasks` and `.agent/results` on `agent-control`, never merge them into `main`.
+4. use direct GitHub edits for small reviewable repository changes and Local Agent for local commands/builds/device work;
+5. do not make the operator paste commands or copy logs if Local Agent/ADB can perform the step;
+6. never copy an `agent_binding` from docs/history;
+7. never launch local Codex from Local Agent;
+8. keep `.agent/tasks` and `.agent/results` on `agent-control`, never merge them into `main`.
 
-## Live-call rule
+## Authorization continuity
 
-A handoff, old chat, connected phone, ServicePack entry, allowlist or old `.agent/results` file never authorizes dialing.
+Handoff text, an old chat, connected hardware, ServicePack data, allowlists or `.agent/results` are not themselves authority stores.
 
-Every new physical-call session requires fresh explicit authorization for the concrete target and task. If the task includes an external state change, the authorization must cover that concrete effect; read-only discovery permission does not automatically authorize a later account-changing action.
+A new physical call requires an **accepted application authorization context** for the exact target/task/effect. Today that may be supplied by an explicit current-chat instruction; the product target is a durable, scoped, revocable application-owned campaign grant.
+
+When a durable grant exists and remains valid for an unchanged retry scope, the next chat should rehydrate/use that grant rather than interrupt the workflow for another redundant product confirmation. A material widening of target, task, effect, account/SIM or disclosure scope remains fail-closed.
+
+External platform/tool controls are outside repository authority and must not be bypassed.
