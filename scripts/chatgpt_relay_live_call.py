@@ -19,6 +19,7 @@ from typing import Callable, Optional
 
 import chat_relay_protocol as protocol
 from autonomous_call_loop import wait_for_active_call, wait_for_audio_signal
+from live_call_readiness import run_live_call_readiness
 from realtime_live_call_smoke import validate_live_preflight
 from realtime_network_smoke import PACKAGE_NAME, is_direct_usb_target
 from s22_call_control import Adb, normalize_number
@@ -504,6 +505,10 @@ def run_orange_chat_relay(
     adb = Adb(serial)
     mailbox = AdbRelayMailbox(serial)
     transport = GitChatRelayTransport(repo_root, session_id)
+    readiness = run_live_call_readiness(serial)
+    if readiness.get("live_call_readiness") != "true":
+        raise RuntimeError("live-call readiness is not green immediately before dial")
+    print("live_call_readiness=true")
     if not is_direct_usb_target(_devices_output(), serial):
         raise RuntimeError("target S22 is not connected through exact direct USB ADB")
     initial_call_state = call_state_or_none(adb)
