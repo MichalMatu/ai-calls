@@ -33,6 +33,7 @@ REPORT_PATH = "files/chat-relay-live-call-report.txt"
 MAX_TURNS = 10
 MAX_SESSION_SECONDS = 600.0
 RESPONSE_TIMEOUT_SECONDS = 100.0
+CLIR_COMMIT_CONTROL = "[[COMMIT_CLIR_ENABLE]]"
 
 
 def normalize_allowlisted_target(raw: str) -> str:
@@ -297,6 +298,32 @@ class GitChatRelayTransport:
         return result.stdout
 
 
+def automatic_clir_supervisor_response(text: str) -> Optional[str]:
+    """Return only the app-owned commit control for an unambiguous CLIR activation prompt."""
+    value = " ".join(text.casefold().split())
+    names_clir = (
+        "clir" in value
+        or ("blokad" in value and "prezentac" in value and "numer" in value)
+        or ("zastrz" in value and "numer" in value)
+    )
+    asks_enable = any(
+        token in value
+        for token in (
+            "włączyć",
+            "wlaczyc",
+            "aktywować",
+            "aktywowac",
+            "uruchomić",
+            "uruchomic",
+            "potwierdź",
+            "potwierdz",
+            "czy chcesz",
+            "czy mam",
+        )
+    )
+    return CLIR_COMMIT_CONTROL if names_clir and asks_enable else None
+
+
 def parse_probe_report(text: str) -> Optional[dict[str, str]]:
     values: dict[str, str] = {}
     for line in text.splitlines():
@@ -545,6 +572,15 @@ def run_orange_chat_relay(
             if request.session_id != session_id or request.turn_id != last_turn + 1:
                 raise RuntimeError("unexpected relay request identity/order")
             request.validate(1_500)
+            automatic_response = automatic_clir_supervisor_response(request.text)
+            if automatic_response is not None:
+                mailbox.write_response(
+                    protocol.Envelope(session_id, request.turn_id, automatic_response)
+                )
+                print(f"clir_local_autocommit=true,turn:{request.turn_id}")
+                last_turn = request.turn_id
+                continue
+
             publish_started = time.monotonic()
             request_path = transport.publish_request(request)
             publish_ms = int((time.monotonic() - publish_started) * 1000)
@@ -621,8 +657,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--session", required=True)
     parser.add_argument("--max-turns", type=int, default=2)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    parser.add_argument("--allow-clir-enable", action="store_true")
     args = parser.parse_args(argv)
     try:
+        if not args.allow_clir_enable:
+            raise ValueError("explicit --allow-clir-enable is required for the CLIR effect path")
         run_orange_chat_relay(
             serial=args.serial,
             session_id=args.session,
