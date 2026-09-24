@@ -18,6 +18,7 @@ class G5ClirRouteDiscoveryPlan:
     target: str
     primary_action: str
     observe_next: bool
+    live_call_readiness_required: bool
     external_effect_execution: bool
     commitment_permit_use: bool
     fresh_live_call_authorization_required: bool
@@ -30,6 +31,7 @@ def build_g5_clir_route_discovery_plan(
         target=normalize_allowlisted_target(target),
         primary_action=ORANGE_ACTION_CALLER_ID_RESTRICTION_INFO,
         observe_next=True,
+        live_call_readiness_required=True,
         external_effect_execution=False,
         commitment_permit_use=False,
         fresh_live_call_authorization_required=True,
