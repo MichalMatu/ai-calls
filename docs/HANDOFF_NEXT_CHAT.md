@@ -159,9 +159,9 @@ The full `scripts/verify_host.sh` gate is green. The S22 no-call proof is also g
 
 Only with a **new fresh live-call authorization in that chat**, run one bounded Orange call to complete CLIR and collect redacted evidence.
 
-### G6 — clinic booking
+### G6 — DONE: negotiated clinic booking authority proof
 
-Use a clinic booking with negotiated time/price/provider constraints as the next acceptance case to prove the architecture is actually generic.
+A host-only Gate D acceptance case now proves that appointment booking shares the same generic commitment store instead of relying on a parallel authority stack. The synthetic offer is inside the hard time/price/payment constraints but uses a non-preferred provider, so the existing application policy requires an explicit user decision. After confirmation, the exact proposal is consumed as `CallExternalEffect.BookAppointment` from the same `CallCommitmentGate`. Completion with a changed price or changed provider fails closed with `OUTCOME_MISMATCH`; only the exact scheduled time, price, provider and location completes the TaskGraph and `CallWorkflow`. Provider remains a soft preference by design rather than being silently promoted to a hard constraint. Targeted tests and the full `scripts/verify_host.sh` gate are green. No call was placed.
 
 ## Latest physical call checkpoint from this chat
 
