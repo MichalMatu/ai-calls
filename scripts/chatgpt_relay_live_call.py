@@ -24,7 +24,7 @@ from realtime_live_call_smoke import validate_live_preflight
 from realtime_network_smoke import PACKAGE_NAME, is_direct_usb_target
 from s22_call_control import Adb, normalize_number
 
-ORANGE_SUPPORT_NUMBER = "510100100"
+ORANGE_SUPPORT_NUMBER = "*100"
 ALLOWLIST = frozenset({ORANGE_SUPPORT_NUMBER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
 PROBE_ACTIVITY = f"{PACKAGE_NAME}/.developerrelay.ChatRelayProbeActivity"
@@ -38,10 +38,10 @@ CLIR_COMMIT_CONTROL = "[[COMMIT_CLIR_ENABLE]]"
 
 
 def normalize_allowlisted_target(raw: str) -> str:
-    number = normalize_number(raw)
-    if number not in ALLOWLIST:
+    target = raw.strip().replace(" ", "")
+    if target not in ALLOWLIST:
         raise ValueError("target is not in the operator-defined live-test allowlist")
-    return number
+    return target
 
 
 def relay_branch_name(session_id: str) -> str:

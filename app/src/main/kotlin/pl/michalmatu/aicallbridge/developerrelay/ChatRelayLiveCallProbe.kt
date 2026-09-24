@@ -53,7 +53,7 @@ internal object ChatRelayLiveCallProbe {
     private const val RESPONSE_TIMEOUT_MS = 90_000L
     private const val MAX_NO_SPEECH_RETRIES = 3
     private const val NO_SPEECH_RETRY_DELAY_MS = 750L
-    private const val ORANGE_SUPPORT_NUMBER = "510100100"
+    private const val ORANGE_SUPPORT_NUMBER = "*100"
     private const val COMMIT_CLIR_ENABLE = "[[COMMIT_CLIR_ENABLE]]"
     private const val CONFIRM_CLIR_ENABLE = "[[CONFIRM_CLIR_ENABLE]]"
     private const val CLIR_NAVIGATION_SPEECH = "Blokada prezentacji numeru, CLIR."

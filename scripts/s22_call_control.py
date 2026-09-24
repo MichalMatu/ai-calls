@@ -23,6 +23,7 @@ from typing import Iterable, Sequence
 
 CALL_STATE_NAMES = {0: "IDLE", 1: "RINGING", 2: "OFFHOOK"}
 EMERGENCY_NUMBERS = {"112", "911", "997", "998", "999"}
+ALLOWED_SERVICE_DIAL_CODES = {"*100"}
 KEYPAD_LABELS = (
     "klawiatura",
     "pokaż klawiaturę",
@@ -186,7 +187,8 @@ class Adb:
         raise last_error
 
     def dial(self, number: str) -> None:
-        normalized = normalize_number(number)
+        raw = number.strip().replace(" ", "")
+        normalized = raw if raw in ALLOWED_SERVICE_DIAL_CODES else normalize_number(raw)
         self.shell(
             ["am", "start", "-a", "android.intent.action.CALL", "-d", f"tel:{normalized}"]
         )
