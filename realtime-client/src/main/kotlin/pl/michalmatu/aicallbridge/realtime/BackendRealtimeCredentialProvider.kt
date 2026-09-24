@@ -28,9 +28,7 @@ class BackendRealtimeCredentialProvider(
                 throw IOException("Realtime credential backend returned HTTP ${response.code}")
             }
 
-            val responseBody = response.body
-                ?: throw IOException("Realtime credential backend returned no response body")
-            val body = responseBody.string()
+            val body = response.body.string()
             if (body.length > MAX_RESPONSE_CHARS) {
                 throw IOException("Realtime credential backend response is too large")
             }

@@ -108,8 +108,14 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
 
     private data class FuzzyCandidate(
         val normalized: String,
+        val tokenCount: Int,
         val match: PhraseMatch,
         val previousRuleIds: Set<String>,
+    )
+
+    private data class TemperatureRule(
+        val ruleId: String,
+        val normalizedSources: List<String>,
     )
 
     private data class TemperatureCandidate(
@@ -126,21 +132,28 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
     private val declaredRules = rules.toList()
     private val index: Map<String, IndexedMatches> = buildIndex(declaredRules)
     private val fuzzyCandidates: List<FuzzyCandidate> = buildFuzzyCandidates(declaredRules)
+    private val genericFuzzyCandidates: List<FuzzyCandidate> =
+        fuzzyCandidates.filter { it.previousRuleIds.isEmpty() }
+    private val fuzzyCandidatesByPreviousRuleId: Map<String, List<FuzzyCandidate>> =
+        buildFuzzyCandidatesByPreviousRuleId(fuzzyCandidates)
+    private val temperatureRules: List<TemperatureRule> = declaredRules.map(::buildTemperatureRule)
+    private val genericTemperatureRules: List<TemperatureRule> =
+        temperatureRules.filterIndexed { index, _ -> declaredRules[index].previousRuleIds.isEmpty() }
+    private val temperatureRulesByPreviousRuleId: Map<String, List<TemperatureRule>> =
+        buildTemperatureRulesByPreviousRuleId(declaredRules, temperatureRules)
 
     fun match(transcript: String, previousRuleId: String? = null): PhraseMatch? {
         val normalized = normalize(transcript)
         if (normalized.isEmpty()) return null
+        return matchNormalized(normalized, validatedPreviousRuleId(previousRuleId))
+    }
 
-        val previous = previousRuleId?.trim()?.also {
-            require(it.isNotEmpty()) { "previous_rule_id_must_not_be_blank" }
-        }
-
+    private fun matchNormalized(normalized: String, previousRuleId: String?): PhraseMatch? {
         val indexedMatches = index[normalized]
         if (indexedMatches != null) {
-            return previous?.let(indexedMatches.byPreviousRuleId::get) ?: indexedMatches.generic
+            return previousRuleId?.let(indexedMatches.byPreviousRuleId::get) ?: indexedMatches.generic
         }
-
-        return fuzzyMatch(normalized, previous)
+        return fuzzyMatch(normalized, previousRuleId)
     }
 
     fun assessResponseTemperature(
@@ -157,7 +170,8 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
             )
         }
 
-        match(transcript, previousRuleId)?.let { deterministic ->
+        val previous = validatedPreviousRuleId(previousRuleId)
+        matchNormalized(normalized, previous)?.let { deterministic ->
             return PhraseResponseTemperature(
                 band = PhraseResponseTemperatureBand.HOT,
                 ruleId = deterministic.ruleId,
@@ -167,18 +181,11 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
             )
         }
 
-        val previous = previousRuleId?.trim()?.also {
-            require(it.isNotEmpty()) { "previous_rule_id_must_not_be_blank" }
-        }
-        val contextualRules = if (previous == null) {
-            emptyList()
-        } else {
-            declaredRules.filter { previous in it.previousRuleIds }
-        }
+        val contextualRules = previous?.let(temperatureRulesByPreviousRuleId::get).orEmpty()
         val candidateRules = if (contextualRules.isNotEmpty()) {
             contextualRules
         } else {
-            declaredRules.filter { it.previousRuleIds.isEmpty() }
+            genericTemperatureRules
         }
         if (candidateRules.isEmpty()) {
             return PhraseResponseTemperature(
@@ -282,6 +289,7 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
 
                 result += FuzzyCandidate(
                     normalized = normalized,
+                    tokenCount = tokenCount(normalized),
                     match = PhraseMatch(
                         ruleId = rule.ruleId,
                         confidence = FUZZY_CONFIDENCE,
@@ -294,6 +302,42 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         }
         return result.toList()
     }
+
+    private fun buildFuzzyCandidatesByPreviousRuleId(
+        candidates: List<FuzzyCandidate>,
+    ): Map<String, List<FuzzyCandidate>> {
+        val result = linkedMapOf<String, MutableList<FuzzyCandidate>>()
+        for (candidate in candidates) {
+            for (previousRuleId in candidate.previousRuleIds) {
+                result.getOrPut(previousRuleId) { mutableListOf() } += candidate
+            }
+        }
+        return result.mapValues { (_, values) -> values.toList() }.toMap()
+    }
+
+    private fun buildTemperatureRule(rule: PhraseMatrixRule): TemperatureRule =
+        TemperatureRule(
+            ruleId = rule.ruleId,
+            normalizedSources = (rule.phrases + rule.aliases + rule.fuzzyPhrases).map(::normalize),
+        )
+
+    private fun buildTemperatureRulesByPreviousRuleId(
+        rules: List<PhraseMatrixRule>,
+        indexedRules: List<TemperatureRule>,
+    ): Map<String, List<TemperatureRule>> {
+        val result = linkedMapOf<String, MutableList<TemperatureRule>>()
+        for (index in rules.indices) {
+            for (previousRuleId in rules[index].previousRuleIds) {
+                result.getOrPut(previousRuleId) { mutableListOf() } += indexedRules[index]
+            }
+        }
+        return result.mapValues { (_, values) -> values.toList() }.toMap()
+    }
+
+    private fun validatedPreviousRuleId(previousRuleId: String?): String? =
+        previousRuleId?.trim()?.also {
+            require(it.isNotEmpty()) { "previous_rule_id_must_not_be_blank" }
+        }
 
     private fun insert(
         result: MutableMap<String, MutableIndexedMatches>,
@@ -333,7 +377,7 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
                 val contextual = resolveFuzzyMatch(
                     normalized = normalized,
                     tokenCount = inputTokenCount,
-                    candidates = fuzzyCandidates.filter { previousRuleId in it.previousRuleIds },
+                    candidates = fuzzyCandidatesByPreviousRuleId[previousRuleId].orEmpty(),
                 )
             ) {
                 is FuzzyResolution.Matched -> return contextual.match
@@ -346,7 +390,7 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
             val generic = resolveFuzzyMatch(
                 normalized = normalized,
                 tokenCount = inputTokenCount,
-                candidates = fuzzyCandidates.filter { it.previousRuleIds.isEmpty() },
+                candidates = genericFuzzyCandidates,
             )
         ) {
             is FuzzyResolution.Matched -> generic.match
@@ -365,7 +409,7 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         val bestMatches = linkedSetOf<PhraseMatch>()
 
         for (candidate in candidates) {
-            if (tokenCount(candidate.normalized) != tokenCount) continue
+            if (candidate.tokenCount != tokenCount) continue
             val distance = editDistanceAtMostOne(normalized, candidate.normalized) ?: continue
 
             when {
@@ -385,12 +429,10 @@ class PhraseMatrix(rules: List<PhraseMatrixRule>) {
         }
     }
 
-    private fun bestTemperatureScore(normalizedTranscript: String, rule: PhraseMatrixRule): Double {
-        val sources = rule.phrases + rule.aliases + rule.fuzzyPhrases
-        return sources.maxOfOrNull { source ->
-            responseTemperatureScore(normalizedTranscript, normalize(source))
+    private fun bestTemperatureScore(normalizedTranscript: String, rule: TemperatureRule): Double =
+        rule.normalizedSources.maxOfOrNull { source ->
+            responseTemperatureScore(normalizedTranscript, source)
         } ?: 0.0
-    }
 
     private companion object {
         const val MIN_FUZZY_SOURCE_LENGTH = 6
