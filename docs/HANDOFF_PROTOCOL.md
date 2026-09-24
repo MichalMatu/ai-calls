@@ -13,7 +13,6 @@ Keep roles separate:
 - `docs/ARCHITECTURE.md` — component boundaries and ownership;
 - `docs/SECURITY_PRIVACY.md` — authority, privacy and live-call safety invariants;
 - `docs/HANDOFF_NEXT_CHAT.md` — exact current checkpoint and continuation state;
-- `docs/NEXT_CHAT_PROMPT.md` — ready-to-paste bootstrap prompt for the next chat;
 - domain runbooks such as `docs/ORANGE_MAPPING_RUNBOOK.md` — operating procedures for a specific side track;
 - Git history and `.agent/results` — detailed experiment/evidence history, not the product plan.
 
@@ -46,8 +45,7 @@ Before writing the final handoff:
 9. If an external library/framework or architecture spike was evaluated, record the actual decision and rationale in `docs/ROADMAP.md` / `docs/ARCHITECTURE.md`: accepted, rejected, or still pending. Do not make the next chat repeat the same comparison from memory.
 10. Update `README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md` and domain runbooks only when their durable meaning changed.
 11. Refresh `docs/HANDOFF_NEXT_CHAT.md`.
-12. Refresh `docs/NEXT_CHAT_PROMPT.md` last, so it points to the current authoritative documents rather than duplicating a large amount of volatile state.
-13. Confirm no prompt or handoff contains secrets, plaintext identity values, stale credentials, an old immutable Local Agent binding, or implied live-call authorization for a future session.
+12. Confirm no handoff contains secrets, plaintext identity values, stale credentials, an old immutable Local Agent binding, or implied live-call authorization for a future session.
 
 ## Required handoff contents
 
@@ -65,29 +63,16 @@ Before writing the final handoff:
 - branch/worktree exceptions worth preserving;
 - Local Agent / Local Chat Bridge operating rules;
 - live-call authorization rule: authorization is session-scoped and never inherited from the handoff;
-- the path to `docs/NEXT_CHAT_PROMPT.md`.
 
 The handoff is a state snapshot, not the authority to invent a different plan.
 
-## Continuation prompt rules
+## New-chat continuation rules
 
-`docs/NEXT_CHAT_PROMPT.md` is intentionally a ready-to-paste prompt for a new chat.
+A fresh chat should bootstrap from repository state rather than a copied prompt file.
 
-It should be short enough to review, but self-contained enough to bootstrap the work. It must:
+The operator should identify the exact repository, then the new session must read fresh repository sources before acting, use fresh `origin/main`, follow `docs/ROADMAP.md` as authoritative execution order and `docs/HANDOFF_NEXT_CHAT.md` as checkpoint state, preserve frozen/safety boundaries, and bootstrap Local Agent / Local Chat Bridge only from the fresh binding supplied to that chat.
 
-1. name the exact repository: `MichalMatu/ai-calls`;
-2. tell the new session to read fresh repository sources before acting;
-3. tell it to fetch/use fresh `origin/main` rather than trusting an embedded historical SHA;
-4. state the active gate and first concrete objective;
-5. tell it to follow `docs/ROADMAP.md` as authoritative execution order and `docs/HANDOFF_NEXT_CHAT.md` as checkpoint state;
-6. include the key frozen/safety boundaries;
-7. state the expected working style: audit first, RED -> minimal GREEN -> verification, small cohesive commits, no broad speculative refactors;
-8. describe Local Agent / Local Chat Bridge bootstrap without embedding a stale `agent_binding`;
-9. never carry physical-call authorization into the new session;
-10. identify any first-slice architecture/dependency spike that must happen before implementation lock-in;
-11. ask the new session to continue autonomously inside the documented scope instead of re-asking questions already answered by the repository.
-
-The continuation prompt should not duplicate detailed service trees, full test logs, secrets, plaintext identity values or large architecture sections. Those belong in repository sources or protected runtime storage, not in the bootstrap prompt.
+Do not carry physical-call authorization, stale `agent_binding` values, detailed service trees, full test logs, secrets, or plaintext identity values into a new session. The repository and protected runtime storage remain the durable sources of truth.
 
 ## Local Agent and Local Chat Bridge
 
@@ -106,7 +91,7 @@ Rules:
 
 - Treat the current chat's binding envelope as immutable for that wake/session.
 - Work only in the exact bound repository. Never infer or substitute another repository.
-- Never copy an `agent_binding` value from `HANDOFF_NEXT_CHAT.md`, `NEXT_CHAT_PROMPT.md`, Git history or an old task. The new chat must use the fresh bridge-provided binding.
+- Never copy an `agent_binding` value from `HANDOFF_NEXT_CHAT.md`, Git history or an old task. The new chat must use the fresh bridge-provided binding.
 - Every Local Agent task created under a bridge binding must carry exactly that current binding.
 - If another repository is genuinely required, use the bridge's explicit rebind mechanism and wait for a fresh bootstrap; never guess a repository ID.
 - Before writing the same worktree/branch or queueing another task, inspect fresh daemon state and active-task evidence.
@@ -126,7 +111,6 @@ A future session must never infer permission to dial from:
 
 - this protocol;
 - `HANDOFF_NEXT_CHAT.md`;
-- `NEXT_CHAT_PROMPT.md`;
 - an old chat;
 - previous `.agent/results`;
 - a previously allowlisted target.

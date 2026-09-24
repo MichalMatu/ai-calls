@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GRADLE_BIN="${GRADLE_BIN:-gradle}"
+GRADLE_BIN="${GRADLE_BIN:-./gradlew}"
+
+if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
+  if [[ -d "$HOME/Library/Android/sdk" ]]; then
+    export ANDROID_HOME="$HOME/Library/Android/sdk"
+    export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  elif [[ -d "$HOME/Android/Sdk" ]]; then
+    export ANDROID_HOME="$HOME/Android/Sdk"
+    export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  fi
+fi
 
 "$GRADLE_BIN" \
   :realtime-client:testDebugUnitTest \

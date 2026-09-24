@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AndroidAiCallBridge"
+rootProject.name = "AiCalls"
 include(":app")
 include(":audio-bridge")
 include(":privileged-helper")

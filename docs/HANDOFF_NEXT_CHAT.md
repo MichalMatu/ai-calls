@@ -6,21 +6,41 @@ Date: 2026-09-24
 
 `MichalMatu/ai-calls`
 
-Durable code/docs live on `main`; `agent-control` is Local Agent task/result transport only. Handoff cleanup is complete and the remote branch set is:
-
-```text
-main
-agent-control
-```
+Durable code/docs live on `main`; `agent-control` is Local Agent task/result transport only.
 
 Always fetch fresh `origin/main` and fresh `.agent/status/daemon.json` / binding in the next chat.
 
-The last code change before this documentation handoff is:
+The repository-cleanup code checkpoint is:
 
 ```text
-ceefbf7cbd25e27510fa003638269d2132c0f645
-Harden live relay against transient ADB failures
+299a847dfc03d762319d62bef4f19f4fe13201e7
+Clean repository foundation and build bootstrap
+
+63e2f81a14047c030a2956b7aba49df30339ea5f
+Preindex phrase matching hot paths
 ```
+
+Cleanup validation passed targeted `PhraseMatrix*` / `realtime-client` tests and the full `bash scripts/verify_host.sh` baseline.
+
+## Repository cleanup checkpoint
+
+Before further product development, the repository was normalized without changing the frozen Samsung/media or Gate D authority behavior:
+
+- added a Gradle 9.6 wrapper and made `scripts/verify_host.sh` self-bootstrapping for the local Android SDK;
+- aligned the Gradle root name and app label with `AI Calls`;
+- removed transient/redundant handoff and experiment documents while keeping durable architecture, roadmap, security, runbook and freeze sources;
+- consolidated new-chat continuation into `docs/HANDOFF_NEXT_CHAT.md` + `docs/HANDOFF_PROTOCOL.md` instead of maintaining a second copied prompt file;
+- preindexed `PhraseMatrix` fuzzy/context/temperature lookup data so normalization, candidate filtering and token counts are not rebuilt on every turn;
+- removed one obsolete nullable-response-body branch in the Realtime credential provider that is impossible with the current OkHttp API;
+- archived 17 stale local experimental branch tips into the verified bundle `~/ai-calls-stale-branches-20260924.bundle`, then removed those local branch refs.
+
+The audit also identified larger modularity debt that was intentionally **not** mixed into this cleanup because it crosses behavior-critical state machines:
+
+- `CallRealtimeSessionOrchestrator` still combines bootstrap, state transitions, resource lifecycle, function-call handling and cleanup;
+- `LocalTextCallGateDProductIntegration` still mixes generic apply/reducer plumbing with appointment-specific permit/evidence/completion logic;
+- production app wiring still carries developer/probe surfaces used by physical acceptance workflows.
+
+Treat those as focused RED -> GREEN refactors only when their boundary becomes the active task. Do not perform a broad rewrite before G1.
 
 ## Product direction now frozen for continuation
 
@@ -169,14 +189,20 @@ No CLIR account change was completed. Do not claim otherwise.
 
 ## Branch/noise cleanup
 
-Cleanup is complete. Final remote branch enumeration is exactly:
+Historical local branch tips with unique commits were preserved in the verified bundle:
+
+```text
+~/ai-calls-stale-branches-20260924.bundle
+```
+
+The 17 stale `chat-relay/*`, old Gate D and Gemma lifecycle local branches were then removed. `agent-work` remains as Local Agent working infrastructure. After the temporary repository-cleanup branch is merged and removed, the intended remote branch set is again exactly:
 
 ```text
 main
 agent-control
 ```
 
-No `chat-relay/*`, `work/*` or temporary documentation branches remain. Keep that minimal branch policy unless a new temporary branch is genuinely required.
+Keep that minimal remote-branch policy unless a new temporary branch is genuinely required.
 
 ## Authorization stop line
 
