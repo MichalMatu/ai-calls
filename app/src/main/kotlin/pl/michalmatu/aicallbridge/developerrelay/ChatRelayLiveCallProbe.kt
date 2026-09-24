@@ -57,6 +57,8 @@ internal object ChatRelayLiveCallProbe {
     private const val COMMIT_CLIR_ENABLE = "[[COMMIT_CLIR_ENABLE]]"
     private const val CONFIRM_CLIR_ENABLE = "[[CONFIRM_CLIR_ENABLE]]"
     private const val CLIR_NAVIGATION_SPEECH = "Blokada prezentacji numeru, CLIR."
+    private const val CLIR_NAVIGATION_CLARIFY_SPEECH =
+        "Chodzi o blokadę prezentacji numeru, usługę CLIR."
     private const val REVIEWED_CLIR_COMMIT_SPEECH =
         "Potwierdzam. Proszę włączyć blokadę prezentacji numeru, usługę CLIR."
 
@@ -115,7 +117,8 @@ internal object ChatRelayLiveCallProbe {
             diagnostics = hybridDiagnostics,
         )
         private val scriptedNavigationUsed = AtomicBoolean(false)
-        private val backend = scriptedFirstTurnBackend(controlAwareBackend(hybridBackend))
+        private val scriptedClarifyUsed = AtomicBoolean(false)
+        private val backend = scriptedNavigationBackend(controlAwareBackend(hybridBackend))
         private val pipeline = LocalSpeechTextPipeline(
             context,
             backend,
@@ -368,12 +371,17 @@ internal object ChatRelayLiveCallProbe {
             }
         }
 
-        private fun scriptedFirstTurnBackend(delegate: TextCallAgentBackend): TextCallAgentBackend =
+        private fun scriptedNavigationBackend(delegate: TextCallAgentBackend): TextCallAgentBackend =
             object : TextCallAgentBackend {
                 override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
                     if (scriptedNavigationUsed.compareAndSet(false, true)) {
                         lines += "clir_scripted_navigation_used=true"
                         listener.onComplete(CLIR_NAVIGATION_SPEECH)
+                        return
+                    }
+                    if (isNavigationUncertainPrompt(userText) && scriptedClarifyUsed.compareAndSet(false, true)) {
+                        lines += "clir_scripted_clarify_used=true"
+                        listener.onComplete(CLIR_NAVIGATION_CLARIFY_SPEECH)
                         return
                     }
                     delegate.generate(userText, listener)
@@ -382,6 +390,13 @@ internal object ChatRelayLiveCallProbe {
                 override fun cancel() = delegate.cancel()
                 override fun close() = delegate.close()
             }
+
+        private fun isNavigationUncertainPrompt(text: String): Boolean {
+            val value = text.lowercase()
+            return (value.contains("nie jestem pew") && value.contains("pomóc")) ||
+                (value.contains("nie rozumiem") && value.contains("spraw")) ||
+                (value.contains("doprecyz") && value.contains("spraw"))
+        }
 
         private fun controlAwareBackend(delegate: TextCallAgentBackend): TextCallAgentBackend =
             object : TextCallAgentBackend {
@@ -500,6 +515,7 @@ internal object ChatRelayLiveCallProbe {
             lines += "gemma_skill_decision_count=${hybridSnapshot.decisions.size}"
             lines += "chatgpt_fallback_count=${hybridSnapshot.responseSources.count { it.name == "CHAT_RELAY" }}"
             lines += "clir_scripted_navigation_used=${scriptedNavigationUsed.get()}"
+            lines += "clir_scripted_clarify_used=${scriptedClarifyUsed.get()}"
             lines += "clir_route_verified=${routeVerified.get()}"
             lines += "clir_commitment_consumed=${commitmentConsumed.get()}"
             lines += "clir_external_success=${externalSuccess.get()}"
