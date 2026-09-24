@@ -162,7 +162,7 @@ Orange exact phrase mappings remain acceptance fixtures only.
 6. **DONE** — the product acceptance runner uses deterministic routing, `LOCAL_GEMMA_4`, bounded supervisor fallback, application output approval and the generic effect authority path.
 7. **DONE on S22/no-call** — synthetic RX/TX substitutes surround the real on-device STT/Gemma/TTS path; exact permit consumption, external success, factual effect completion and workflow completion are proven separately.
 8. **NEXT, requires fresh authorization** — run one bounded Orange CLIR acceptance call only after a new explicit live-call authorization.
-9. Add the clinic booking acceptance case to prove the architecture is truly generic.
+9. **DONE host-only** — negotiated clinic booking proves the same typed commitment store handles `BookAppointment`: hard time/price/payment bounds remain application-owned, a provider preference deviation requires explicit user approval, and changed price/provider completion evidence fails closed before the exact proposal may complete.
 
 ## Non-goals for this refactor
 
