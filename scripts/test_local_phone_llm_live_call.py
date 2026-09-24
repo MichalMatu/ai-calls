@@ -132,21 +132,14 @@ class LocalPhoneLlmLiveCallTest(unittest.TestCase):
         )
         self.assertIn("orange_live_action outage_topic", " ".join(outage_args))
 
-        clir_enable_args = build_probe_start_args(
-            "RFCT70L7E8J",
-            LOCAL_PHONE_PROVIDER,
-            gate_c_fast_path=True,
-            target=ORANGE_SUPPORT_NUMBER,
-            orange_action=ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE,
-        )
-        self.assertIn("orange_live_action caller_id_restriction_enable", " ".join(clir_enable_args))
-        _require_gate_c_fast_path_report({
-            "gate_c_fast_path": "true",
-            "gate_c_call_plan_bound": "true",
-            "orange_live_action": ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE,
-            "backend_generate_calls": "0",
-            "approved_text": "Chcę włączyć usługę CLIR, czyli stałą blokadę prezentacji mojego numeru przy połączeniach wychodzących.",
-        }, ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE)
+        with self.assertRaises(ValueError):
+            build_probe_start_args(
+                "RFCT70L7E8J",
+                LOCAL_PHONE_PROVIDER,
+                gate_c_fast_path=True,
+                target=ORANGE_SUPPORT_NUMBER,
+                orange_action=ORANGE_ACTION_CALLER_ID_RESTRICTION_ENABLE,
+            )
 
         with self.assertRaises(ValueError):
             build_probe_start_args(

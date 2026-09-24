@@ -46,9 +46,14 @@ internal object GateCLiveCallFastPathFactory {
     fun create(
         targetDialAddress: String,
         action: OrangeLiveAction = OrangeLiveAction.GREETING,
-    ): GateCLiveCallFastPath = GateCLiveCallFastPath(
-        scenario = GateCLiveCallScenarioFactory.create(targetDialAddress, action),
-        backend = GateCFastPathSentinelBackend(),
-        maxCaptureMs = MAX_CAPTURE_MS,
-    )
+    ): GateCLiveCallFastPath {
+        require(action.legacyDiagnosticAllowed) {
+            "external_effect_requires_generic_authority"
+        }
+        return GateCLiveCallFastPath(
+            scenario = GateCLiveCallScenarioFactory.create(targetDialAddress, action),
+            backend = GateCFastPathSentinelBackend(),
+            maxCaptureMs = MAX_CAPTURE_MS,
+        )
+    }
 }
