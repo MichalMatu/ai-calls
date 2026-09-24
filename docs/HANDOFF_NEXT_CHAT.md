@@ -163,6 +163,12 @@ Only with a **new fresh live-call authorization in that chat**, run one bounded 
 
 A host-only Gate D acceptance case now proves that appointment booking shares the same generic commitment store instead of relying on a parallel authority stack. The synthetic offer is inside the hard time/price/payment constraints but uses a non-preferred provider, so the existing application policy requires an explicit user decision. After confirmation, the exact proposal is consumed as `CallExternalEffect.BookAppointment` from the same `CallCommitmentGate`. Completion with a changed price or changed provider fails closed with `OUTCOME_MISMATCH`; only the exact scheduled time, price, provider and location completes the TaskGraph and `CallWorkflow`. Provider remains a soft preference by design rather than being silently promoted to a hard constraint. Targeted tests and the full `scripts/verify_host.sh` gate are green. No call was placed.
 
+## Post-roadmap modular cleanup
+
+`MainActivity` now delegates developer/probe controls and the Shizuku probe listener lifecycle to `MainActivityDeveloperProbes`. Launcher behavior, probe labels, `run_probe`, permissions and the manifest are unchanged; the change only separates diagnostic ownership from product runtime/model settings. Compile, lint and the full `scripts/verify_host.sh` gate are green.
+
+Remaining large behavior-critical owners include `CallRealtimeSessionOrchestrator` and `LocalTextCallGateDProductIntegration`; refactor them only in narrow RED→GREEN slices that preserve the proven Samsung media and Gate D authority behavior.
+
 ## Latest physical call checkpoint from this chat
 
 Two live Orange attempts were used to diagnose the runner under an explicit authorization that is now spent and **does not carry into the next chat**.
