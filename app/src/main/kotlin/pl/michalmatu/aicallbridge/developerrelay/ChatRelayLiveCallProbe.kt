@@ -30,6 +30,13 @@ import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
 import pl.michalmatu.aicallbridge.agent.CallService
 import pl.michalmatu.aicallbridge.agent.CallTask
 import pl.michalmatu.aicallbridge.agent.CallWorkflow
+import pl.michalmatu.aicallbridge.identity.AndroidIdentityVault
+import pl.michalmatu.aicallbridge.identity.AuthorizedFactSnapshot
+import pl.michalmatu.aicallbridge.identity.CallTaskMode
+import pl.michalmatu.aicallbridge.identity.DefaultFactDisclosurePolicy
+import pl.michalmatu.aicallbridge.identity.FactDisclosureDecision
+import pl.michalmatu.aicallbridge.identity.FactDisclosureRequest
+import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
@@ -38,6 +45,7 @@ import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
 import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
 import pl.michalmatu.aicallbridge.session.CallMediaSessionState
+import pl.michalmatu.aicallbridge.taskgraph.TaskGraphStateId
 import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -63,6 +71,7 @@ internal object ChatRelayLiveCallProbe {
         context: Context,
         sessionId: String,
         maxTurns: Int,
+        phoneDisclosureAuthorized: Boolean,
         callback: (String) -> Unit,
     ) {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -73,13 +82,14 @@ internal object ChatRelayLiveCallProbe {
             callback(immediateReport("cellular_call_not_active"))
             return
         }
-        Run(appContext, sessionId, maxTurns, callback).start()
+        Run(appContext, sessionId, maxTurns, phoneDisclosureAuthorized, callback).start()
     }
 
     private class Run(
         private val context: Context,
         private val sessionId: String,
         private val maxTurns: Int,
+        private val phoneDisclosureAuthorized: Boolean,
         private val callback: (String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
@@ -105,6 +115,25 @@ internal object ChatRelayLiveCallProbe {
         private val routeVerified = AtomicBoolean(false)
         private val commitmentConsumed = AtomicBoolean(false)
         private val externalSuccess = AtomicBoolean(false)
+        private val identityVault = AndroidIdentityVault.create(context)
+        private val factDisclosurePolicy = DefaultFactDisclosurePolicy()
+        private val phoneDisclosureState = TaskGraphStateId("clir-service-number-request")
+        private val localPhoneFactBackend = object : TextCallAgentBackend {
+            override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                if (userText.trim() != GateCHybridDialogueBackendFactory.DISCLOSE_PHONE_CONTROL) {
+                    listener.onError("authorized_fact_control_not_supported")
+                    return
+                }
+                try {
+                    listener.onComplete(resolveAuthorizedPhoneSpeech())
+                } catch (error: Throwable) {
+                    listener.onError("authorized_phone_fact_${error.javaClass.simpleName}")
+                }
+            }
+
+            override fun cancel() = Unit
+            override fun close() = Unit
+        }
         @Volatile private var completionTracker: CallExternalEffectCompletionTracker? = null
         @Volatile private var pendingExternalSuccessTranscript: String? = null
         private val hybridBackend = GateCHybridDialogueBackendFactory.create(
@@ -112,6 +141,7 @@ internal object ChatRelayLiveCallProbe {
             provider = TextLlmProvider.LOCAL_GEMMA_4,
             relaySessionId = sessionId,
             diagnostics = hybridDiagnostics,
+            authorizedFactBackend = localPhoneFactBackend,
             effectCommitControl = COMMIT_CLIR_ENABLE,
             canConfirmEffect = { routeVerified.get() && !commitmentConsumed.get() },
         )
@@ -131,6 +161,7 @@ internal object ChatRelayLiveCallProbe {
             "session_id=$sessionId",
             "max_turns=$maxTurns",
             "approval_policy=application_owned",
+            "phone_disclosure_authorized=$phoneDisclosureAuthorized",
             "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
         )
@@ -388,6 +419,58 @@ internal object ChatRelayLiveCallProbe {
             } else {
                 beginNextTurn(generation, lease)
             }
+        }
+
+        private fun resolveAuthorizedPhoneSpeech(): String {
+            val available = identityVault.availableFields().getOrThrow()
+            val authorized =
+                phoneDisclosureAuthorized &&
+                    routeVerified.get() &&
+                    IdentityFieldId.PHONE in available
+            val authorizedFields = if (authorized) {
+                setOf(IdentityFieldId.PHONE)
+            } else {
+                emptySet()
+            }
+            val snapshot = AuthorizedFactSnapshot(
+                task = task,
+                target = target,
+                generation = 0L,
+                availableFields = available,
+                authorizedFields = authorizedFields,
+                allowedDisclosureStates = if (authorized) {
+                    mapOf(IdentityFieldId.PHONE to setOf(phoneDisclosureState))
+                } else {
+                    emptyMap()
+                },
+            )
+            val request = FactDisclosureRequest(
+                task = task,
+                target = target,
+                currentState = phoneDisclosureState,
+                fieldId = IdentityFieldId.PHONE,
+                mode = CallTaskMode.GENUINE,
+                snapshotGeneration = snapshot.generation,
+            )
+            when (factDisclosurePolicy.decide(request, snapshot)) {
+                FactDisclosureDecision.ALLOW -> Unit
+                FactDisclosureDecision.ASK_USER ->
+                    throw IllegalStateException("phone_disclosure_requires_user")
+                FactDisclosureDecision.DENY ->
+                    throw IllegalStateException("phone_disclosure_denied")
+            }
+            val secret = identityVault.get(IdentityFieldId.PHONE).getOrThrow()
+                ?: throw IllegalStateException("phone_fact_unavailable")
+            val speech = secret.withPlaintext { value ->
+                require(value.all { it.isDigit() || it in " +-()" }) {
+                    "phone_fact_format_invalid"
+                }
+                val digits = value.filter { it.isDigit() }
+                require(digits.length in 7..15) { "phone_fact_length_invalid" }
+                "Numer usługi to ${digits.toCharArray().joinToString(" ")}."
+            }
+            lines += "identity_phone_disclosure_local=true"
+            return speech
         }
 
         private fun controlAwareBackend(delegate: TextCallAgentBackend): TextCallAgentBackend =

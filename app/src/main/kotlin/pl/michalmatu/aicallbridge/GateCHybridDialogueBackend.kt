@@ -18,6 +18,7 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 internal enum class GateCHybridResponseSource {
     LOCAL_ACTION,
+    LOCAL_FACT,
     HOST_ACTION,
     CHAT_RELAY,
 }
@@ -73,6 +74,7 @@ internal object GateCHybridDialogueBackendFactory {
         provider: TextLlmProvider,
         relaySessionId: String,
         diagnostics: GateCHybridDiagnostics,
+        authorizedFactBackend: TextCallAgentBackend? = null,
         effectCommitControl: String? = null,
         canConfirmEffect: () -> Boolean = { false },
     ): TextCallAgentBackend {
@@ -98,12 +100,21 @@ internal object GateCHybridDialogueBackendFactory {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.CHAT_RELAY)
             },
         )
+        val factActionBackend = if (authorizedFactBackend == null) {
+            hostActionRelay
+        } else {
+            authorizedFactBackend.observed(
+                onComplete = {
+                    diagnostics.recordResponseSource(GateCHybridResponseSource.LOCAL_FACT)
+                },
+            )
+        }
         val actionBackend = DialogueActionBackendFactory.create(
             context = context.applicationContext,
             provider = provider,
             policy = actionPolicy(allowEffectConfirmation = effectCommitControl != null),
             executor = actionExecutor(
-                hostActionRelay = hostActionRelay,
+                hostActionRelay = factActionBackend,
                 diagnostics = diagnostics,
                 effectCommitControl = effectCommitControl,
                 canConfirmEffect = canConfirmEffect,

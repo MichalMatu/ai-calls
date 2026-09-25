@@ -32,6 +32,7 @@ PROBE_ACTIVITY = f"{PACKAGE_NAME}/.developerrelay.ChatRelayProbeActivity"
 REQUEST_PATH = "files/chat-relay/request.txt"
 RESPONSE_PATH = "files/chat-relay/response.txt"
 REPORT_PATH = "files/chat-relay-live-call-report.txt"
+PHONE_BOOTSTRAP_PATH = "files/identity-phone-bootstrap.txt"
 MAX_TURNS = 10
 MAX_SESSION_SECONDS = 600.0
 RESPONSE_TIMEOUT_SECONDS = 100.0
@@ -125,7 +126,13 @@ def format_probe_metric_lines(report: dict[str, str]) -> list[str]:
     return lines
 
 
-def build_probe_start_args(serial: str, session_id: str, max_turns: int) -> list[str]:
+def build_probe_start_args(
+    serial: str,
+    session_id: str,
+    max_turns: int,
+    *,
+    phone_disclosure_authorized: bool = False,
+) -> list[str]:
     protocol.validate_session_id(session_id)
     if not 1 <= max_turns <= MAX_TURNS:
         raise ValueError("invalid_relay_max_turns")
@@ -133,6 +140,7 @@ def build_probe_start_args(serial: str, session_id: str, max_turns: int) -> list
         "adb", "-s", serial, "shell", "am", "start", "-W", "-n", PROBE_ACTIVITY,
         "--es", "relay_session_id", session_id,
         "--ei", "relay_max_turns", str(max_turns),
+        "--ez", "phone_disclosure_authorized", str(phone_disclosure_authorized).lower(),
     ]
 
 
@@ -143,7 +151,10 @@ class AdbRelayMailbox:
         self.serial = serial
 
     def clear(self) -> None:
-        self._shell_run_as(["rm", "-rf", "files/chat-relay", REPORT_PATH], check=False)
+        self._shell_run_as(
+            ["rm", "-rf", "files/chat-relay", REPORT_PATH, PHONE_BOOTSTRAP_PATH],
+            check=False,
+        )
 
     def read_request(self) -> Optional[protocol.Envelope]:
         result = self._shell_run_as(["cat", REQUEST_PATH], check=False)
@@ -165,6 +176,33 @@ class AdbRelayMailbox:
         )
         subprocess.run(
             ["adb", "-s", self.serial, "shell", "run-as", PACKAGE_NAME, "mv", temp_path, RESPONSE_PATH],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+
+    def stage_phone_bootstrap(self, service_number: str) -> None:
+        normalized = normalize_service_number(service_number)
+        if normalized is None:
+            raise ValueError("service number is required for bootstrap")
+        temp_path = PHONE_BOOTSTRAP_PATH + ".tmp"
+        subprocess.run(
+            [
+                "adb", "-s", self.serial, "shell", "run-as", PACKAGE_NAME,
+                "tee", temp_path,
+            ],
+            input=normalized + "\n",
+            text=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        subprocess.run(
+            [
+                "adb", "-s", self.serial, "shell", "run-as", PACKAGE_NAME,
+                "mv", temp_path, PHONE_BOOTSTRAP_PATH,
+            ],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -507,12 +545,15 @@ def run_orange_chat_relay(
     max_turns: int,
     repo_root: Path,
     service_number: Optional[str] = None,
+    phone_disclosure_authorized: bool = False,
 ) -> dict[str, str]:
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
     protocol.validate_session_id(session_id)
     if not 1 <= max_turns <= MAX_TURNS:
         raise ValueError("invalid_relay_max_turns")
     service_number = normalize_service_number(service_number)
+    if not phone_disclosure_authorized:
+        raise ValueError("phone disclosure authorization is required for CLIR relay")
 
     adb = Adb(serial)
     mailbox = AdbRelayMailbox(serial)
@@ -565,7 +606,18 @@ def run_orange_chat_relay(
         print(f"orange_downlink_signal=true,rms:{signal.rms:.3f},peak:{signal.peak}")
 
         mailbox.clear()
-        subprocess.run(build_probe_start_args(serial, session_id, max_turns), check=True)
+        if service_number is not None:
+            mailbox.stage_phone_bootstrap(service_number)
+            print("identity_phone_bootstrap_staged=true")
+        subprocess.run(
+            build_probe_start_args(
+                serial,
+                session_id,
+                max_turns,
+                phone_disclosure_authorized=phone_disclosure_authorized,
+            ),
+            check=True,
+        )
 
         def finish_from_report(report: dict[str, str]) -> dict[str, str]:
             if report.get("chat_relay_live_call_success") != "true":
@@ -712,6 +764,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             max_turns=args.max_turns,
             repo_root=args.repo_root,
             service_number=args.service_number,
+            phone_disclosure_authorized=True,
         )
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:

@@ -38,11 +38,17 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
             live.relay_branch_name("../bad")
 
     def test_probe_start_args_use_dedicated_activity(self):
-        args = live.build_probe_start_args("RFCT70L7E8J", "orange-demo_1", 3)
+        args = live.build_probe_start_args(
+            "RFCT70L7E8J",
+            "orange-demo_1",
+            3,
+            phone_disclosure_authorized=True,
+        )
         joined = " ".join(args)
         self.assertIn("ChatRelayProbeActivity", joined)
         self.assertIn("orange-demo_1", joined)
         self.assertIn("3", joined)
+        self.assertIn("phone_disclosure_authorized true", joined)
         self.assertNotIn("response_text", joined)
 
     @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.subprocess.run")
@@ -67,6 +73,26 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         self.assertIn(live.RESPONSE_PATH + ".tmp", publish_argv)
         self.assertIn(live.RESPONSE_PATH, publish_argv)
         self.assertIsNone(publish_call.kwargs.get("input"))
+
+    @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.subprocess.run")
+    def test_phone_bootstrap_is_atomic_and_plaintext_stays_on_stdin(self, run):
+        run.return_value = subprocess.CompletedProcess([], 0, "", "")
+        mailbox = live.AdbRelayMailbox("RFCT70L7E8J")
+
+        mailbox.stage_phone_bootstrap("123 456 789")
+
+        self.assertEqual(2, run.call_count)
+        write_call, publish_call = run.call_args_list
+        write_argv = write_call.args[0]
+        publish_argv = publish_call.args[0]
+        argv_text = " ".join(write_argv + publish_argv)
+        self.assertNotIn("123456789", argv_text)
+        self.assertEqual("123456789\n", write_call.kwargs["input"])
+        self.assertIn("tee", write_argv)
+        self.assertIn(live.PHONE_BOOTSTRAP_PATH + ".tmp", write_argv)
+        self.assertIn("mv", publish_argv)
+        self.assertIn(live.PHONE_BOOTSTRAP_PATH, publish_argv)
+
 
     def test_metric_formatter_whitelists_only_non_text_timing_fields(self):
         report = {
