@@ -4,92 +4,62 @@ Android prototype for completing bounded real-world tasks over ordinary cellular
 
 ## Product
 
-AI Calls is a **generic autonomous phone task engine**, not an Orange bot and not an appointment-only bot.
+AI Calls is a generic autonomous phone-task engine. The common runtime is:
 
 ```text
-user task
- -> exact target + constraints + authorized facts
- -> cellular call
- -> STT
- -> deterministic task state / PhraseMatrix
- -> Gemma 4 bounded dialogue skills
- -> live supervisor fallback when needed
- -> application output approval
- -> TTS/TX
- -> typed external-effect authority when a real-world state change is needed
- -> factual success evidence
- -> independent state verification when available
- -> workflow completion
+user task + exact target + authorized facts
+ -> cellular call -> STT
+ -> deterministic state / PhraseMatrix
+ -> bounded Gemma action router
+ -> live supervisor fallback only when unresolved
+ -> application output approval -> TTS/TX
+ -> typed external-effect authority when state changes
+ -> factual success evidence + independent verification
+ -> cleanup
 ```
-
-Examples: enable a carrier service, ask for availability, book or change an appointment, cancel a reservation, resolve a bounded service request, or make a read-only information call.
 
 ## Proven foundation
 
-Keep these closed unless a concrete root cause requires reopening them:
+Keep closed unless a concrete root cause requires reopening it:
 
 - Samsung cellular RX/TX + `CallMediaSessionCoordinator` — `PROVEN_S22 / FROZEN`;
-- `privileged-helper/` / Shizuku media boundary — `PROVEN_S22 / FROZEN`;
+- Shizuku / privileged media path — `PROVEN_S22 / FROZEN`;
 - local Polish STT/TTS — proven on S22;
-- IdentityVault disclosure boundary — proven;
-- Gemma 4 LiteRT-LM runtime and app-owned model lifecycle — proven;
-- `BOOK_APPOINTMENT` Gate D flow — proven;
-- generic `CallExternalEffect` authority with one shared `CallCommitmentGate` — host/no-call proven;
-- `SET_SERVICE(CLIR=true)` validation, one-shot permit lifecycle and separate external-success evidence — host/no-call proven;
-- full synthetic/no-call product chain on S22 — proven.
+- Gemma 4 LiteRT-LM lifecycle and Gemma-first action router — proven on S22, including the current 8-case router probe;
+- Android Keystore-backed `IdentityVault` — physically proven on S22;
+- `BOOK_APPOINTMENT` Gate D — proven;
+- generic `CallExternalEffect` + one shared `CallCommitmentGate` — host/no-call proven;
+- `SET_SERVICE(CLIR=true)` validation, one-shot permit and separate external-success tracking — host/no-call proven;
+- app-owned local `PHONE` fact resolver (`IdentityVault -> FactDisclosurePolicy`) — implemented and host-green.
 
-Current local model:
-
-```text
-provider=LOCAL_GEMMA_4
-model=Gemma 4 E2B IT
-file=gemma-4-E2B-it.litertlm
-sha256=181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-runtime=LiteRT-LM
-```
+Current local model is `LOCAL_GEMMA_4` / Gemma 4 E2B IT (`gemma-4-E2B-it.litertlm`).
 
 ## Current gate
 
-The active work is iterative **physical Orange CLIR acceptance** on the S22.
+Active work is physical Orange CLIR acceptance on the S22. The latest independent network-state evidence still says caller ID is **not restricted**, therefore CLIR enable is not complete.
 
-Required physical loop:
+Current execution order:
 
 ```text
-Local Agent
- -> readiness + IDLE
- -> real Orange call
- -> deterministic script/PhraseMatrix
- -> Gemma bounded dialogue
- -> live supervisor fallback when unresolved
- -> application-owned commitment/evidence
- -> independent CLIR network-state check
+safe local enrollment of the real PHONE fact
+ -> no-call proof of the complete local fact resolver on S22
+ -> real *100 call
+ -> script/PhraseMatrix -> Gemma -> supervisor only if unresolved
+ -> factual Orange success evidence
+ -> independent *#31# verification
  -> cleanup to IDLE
- -> minimal patch from the physical finding
- -> next real iteration
 ```
 
-The latest independent network interrogation showed caller ID is still not restricted, so CLIR enable is **not yet complete**.
+The real service number must not be placed in Git, Local Agent JSON, ordinary logs or model/supervisor context. A previous attempt to bootstrap that plaintext through an ADB/Local-Agent task was blocked by an external platform safety layer; do not bypass that control. Use an app-owned/local enrollment path instead.
 
-The development goal is to move recurrent supervisor interventions into deterministic script/PhraseMatrix or Gemma skills until the physical task succeeds without supervisor help.
+## Operating contract
 
-## Autonomous operation
+`docs/AUTONOMOUS_OPERATION_MODE.md` is normative for physical work. Local Agent is the default executor for repo/device work. Application policy owns authorization, identity disclosure, commitment and factual completion; model output and repository text do not.
 
-`docs/AUTONOMOUS_OPERATION_MODE.md` is the normative operational contract for active physical acceptance.
+Sources of truth:
 
-The operator should not be used as a terminal/log relay when Local Agent, ADB or the transient supervisor relay can perform the work directly.
-
-The product direction is a durable, scoped, revocable campaign authorization owned by application policy so repeated retries inside an unchanged authorized scope do not require redundant product prompts. Repository text, model output and connected hardware are not themselves authority stores, and external platform controls are not bypassed.
-
-## Source of truth
-
-- `AGENTS.md` — repository workflow/invariants;
-- `docs/REPOSITORY_LAYOUT.md` — repository tree, ownership and file-placement contract;
-- `docs/AUTONOMOUS_OPERATION_MODE.md` — autonomous physical-operation contract;
-- `docs/ROADMAP.md` — current execution order;
-- `docs/ARCHITECTURE.md` — runtime and ownership boundaries;
-- `docs/GENERIC_PHONE_TASK_AUTHORITY.md` — generic effect authority contract;
-- `docs/G5_CLIR_ROUTE_DISCOVERY.md` — current Orange CLIR physical-acceptance runbook;
-- `docs/SECURITY_PRIVACY.md` — authority/privacy/live-call rules;
-- `docs/HANDOFF_NEXT_CHAT.md` — exact next-chat checkpoint and start prompt.
-
-A real call still requires an accepted authorization context for the exact target/task/effect and all readiness gates. The product goal is to represent repeated campaign authority durably in application policy rather than repeatedly interrupting the workflow for an unchanged retry.
+- `AGENTS.md` — workflow/invariants;
+- `docs/HANDOFF_NEXT_CHAT.md` — exact continuation checkpoint;
+- `docs/ROADMAP.md` — execution order;
+- `docs/G5_CLIR_ROUTE_DISCOVERY.md` — active CLIR runbook;
+- `docs/ARCHITECTURE.md`, `docs/GENERIC_PHONE_TASK_AUTHORITY.md`, `docs/SECURITY_PRIVACY.md` — stable ownership/security contracts.

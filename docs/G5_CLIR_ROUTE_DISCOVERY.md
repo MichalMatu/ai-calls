@@ -1,127 +1,80 @@
 # G5 CLIR physical acceptance
 
-G5 started as route discovery, but the active work is now iterative physical CLIR execution on the S22. Unknown routing, commitment authority and factual success must still remain separate.
+G5 began as route discovery; the active gate is now iterative physical CLIR execution on the S22. Read `docs/AUTONOMOUS_OPERATION_MODE.md` before continuing.
 
-Read `docs/AUTONOMOUS_OPERATION_MODE.md` before continuing this gate.
-
-## Historical G5a — DONE host-only
-
-The historical pure discovery contract is retained at `scripts/aicall_tools/orange/history/g5_clir_route_discovery_plan.py`.
+## Current physical state
 
 ```text
-exact allowlisted Orange target
- -> mandatory live-call readiness before dialing
- -> reviewed caller_id_restriction_info turn
- -> OBSERVE_ONLY next turn
- -> nonblank observation evidence
+Orange campaign route = *100
+CLIR enabled = false
+physical enable acceptance = incomplete
 ```
 
-This historical phase intentionally had no external effect or commitment permit.
+The latest independent network interrogation reports caller ID as not restricted. Never infer success from route entry, model output, permit consumption or call termination.
 
-## Historical G5b — PHYSICAL ATTEMPT COMPLETE
-
-On 2026-09-24 the first physical Orange discovery call used the reviewed information turn and returned a generic Orange clarification/reprompt rather than a CLIR-specific route.
-
-Redacted observation:
-
-```text
-Przepraszam, że przedłużyć Dale. Chcę mieć pewność, w jakiej sprawie dzwonisz do nas. Powiedz proszę, czego dotyczy twoja sprawa.
-```
-
-That evidence remains useful history, but the active implementation has moved beyond the single-turn `OBSERVE_ONLY` probe.
-
-## Active G5c — PHYSICAL EXECUTION LOOP
-
-The current live path uses the Orange on-net route `*100` and a bounded multi-turn dialogue:
+## Live dialogue path
 
 ```text
 readiness + IDLE
  -> real Orange call
- -> deterministic CLIR navigation
- -> deterministic clarification for known generic reprompt
- -> Gemma skill for bounded dialogue
- -> live supervisor takeover when unresolved
- -> application-owned approval/commitment
+ -> known turn: script/PhraseMatrix
+ -> bounded unknown turn: Gemma action router
+ -> unresolved/TAKE_OVER: live supervisor in the same call
+ -> application output approval
+ -> commitment only through shared CallCommitmentGate
  -> factual Orange result
- -> independent CLIR network-state interrogation
+ -> independent *#31# state check
  -> cleanup to IDLE
 ```
 
-Observed physical behavior includes the Orange prompt:
+Relevant physical findings already absorbed into the implementation:
+
+- Orange asks for the service number (`podaj dowolny numer twojej usługi...`);
+- the real Gemma router maps this to `DISCLOSE_AUTHORIZED_FACT(PHONE)`;
+- live endpointing is 1.5 s trailing silence / 60 s hard capture to tolerate IVR pauses;
+- recurrent unsupported facts fail closed to takeover;
+- supervisor relay is dialogue fallback, not an identity transport.
+
+## Identity boundary and current blocker
+
+`PHONE` must resolve locally:
 
 ```text
-podaj dowolny numer twojej usługi lub wprowadź go na klawiaturze
+IdentityVault
+ -> AuthorizedFactSnapshot
+ -> FactDisclosurePolicy
+ -> exact CLIR task/target/state/generation
+ -> ALLOW
+ -> plaintext resolved only on-device
+ -> approved local speech
 ```
 
-Identity data required by that prompt must remain late-bound and transient. Do not copy the current SIM/service number into durable Git history, ServicePacks or ordinary logs.
+The local resolver is implemented and host-green; Android Keystore-backed vault storage is physically proven on S22. The remaining blocker is safe local enrollment of the real service number. Do not place that plaintext in Git, Local Agent task JSON, normal logs, ServicePacks or model/supervisor context, and do not bypass external platform controls that block such transfer.
 
-## Current factual state
+Before the next real call, prove the complete local disclosure path on S22 with a synthetic value, then enroll the real value through an app-owned local mechanism.
 
-The latest independent network interrogation with the supported CLIR status flow returned:
+## Commitment and completion
 
-```text
-Caller ID defaults to not restricted. Next call: Not restricted
-```
-
-Therefore:
+For a real mutation use only the generic lifecycle:
 
 ```text
-CLIR enabled = false
-G5c physical success = false
-```
-
-Do not treat the previous call, route entry, permit state or model output as success.
-
-## Dialogue order
-
-The required dialogue fallback order is:
-
-```text
-known turn -> script/PhraseMatrix
-unknown bounded turn -> Gemma skill
-Gemma unresolved / TAKE_OVER -> live supervisor in the same call
-```
-
-A supervisor takeover is part of the development loop. It should not terminate an otherwise healthy call. Recurrent takeover cases should be converted into deterministic script/PhraseMatrix or bounded Gemma skills in later iterations.
-
-## Commitment lifecycle
-
-A real CLIR mutation must use only the existing generic lifecycle:
-
-```text
-accepted authorization context + exact target/task
+accepted exact authorization scope
  -> CallExternalEffect.SetService(CLIR=<desired state>)
  -> deterministic validation
- -> exactly one shared CallCommitmentGate permit immediately before commitment
- -> reviewed effect speech/execution
- -> exact one-shot permit consumption evidence
+ -> one fresh shared CallCommitmentGate permit
+ -> reviewed commitment speech/execution
+ -> exact permit consumption
  -> separate factual external-success evidence
- -> independent network-state verification when practical
- -> cleanup owned call to IDLE
- -> factual workflow completion
+ -> independent network-state verification
+ -> workflow completion
 ```
 
-No `ClirCommitmentGate` may be introduced. Permit consumption is not external success.
+Do not add a `ClirCommitmentGate`. Permit consumption is not external success.
 
-## Autonomous campaign direction
+## Physical-first rule
 
-The product target is a durable, scoped, revocable campaign grant owned by application policy. It should allow repeated physical retries inside an unchanged Orange CLIR scope without redundant product prompts while preserving exact target/task/effect/account boundaries.
+Real calls are the acceptance loop after code/device prerequisites are green. During an owned `OFFHOOK` call, relay/call handling has priority over docs/builds. Preserve only sanitized evidence and return the phone to `IDLE`.
 
-Chat prose, documentation, connected hardware, ServicePacks, model output and old evidence are not themselves the authority store. External platform/tool controls must not be bypassed.
+After enable succeeds, execute the inverse `SET_SERVICE(CLIR=false)` flow and move recurrent supervisor cases into script/PhraseMatrix or Gemma skills.
 
-## Physical-first development rule
-
-During the active CLIR campaign:
-
-- real calls are the acceptance loop;
-- unit/synthetic suites must not replace physical progress unless the operator explicitly requests them;
-- build/compile/install is allowed when code changes;
-- preserve a sanitized probe report before cleanup;
-- monitor supervisor relay requests while the call is still active;
-- patch the smallest observed physical failure, then repeat the real call.
-
-## Completion condition
-
-Enable acceptance requires factual success evidence plus an independent network-state check confirming caller-ID restriction is active.
-
-After enable succeeds, the next physical task is the inverse operation (`SET_SERVICE(CLIR=false)`) and the same loop repeats until the recurrent dialogue can complete through script + Gemma without supervisor help.
+Historical G5a/G5b discovery remains in Git history and `scripts/aicall_tools/orange/history/`; it does not need to be repeated in this runbook.

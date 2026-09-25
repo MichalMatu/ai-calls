@@ -1,20 +1,21 @@
-# Gemma-First Dialogue Action Router
+# Gemma-first dialogue action router
 
-## Decision
+## Contract
 
-The live-call dialogue path is Gemma-first. Natural-language understanding is no longer implemented as a growing collection of Orange-specific phrase matchers or scripted first/second turns.
+Natural-language dialogue routing is Gemma-first; application policy and executors remain authoritative.
 
-The runtime is split into three boundaries:
+```text
+finalized STT
+ -> Gemma returns one structured action
+ -> policy validates action / argument / confidence / state
+ -> app-owned executor produces speech or a typed control
+ -> output approval -> TTS/TX
+ -> TAKE_OVER/failure falls back to the live supervisor
+```
 
-1. **Classifier (Gemma)** — interprets the other party and returns one structured action.
-2. **Policy + executor (application-owned)** — validates confidence, allowed actions/arguments, disclosure/commitment readiness, and produces the exact app-owned response or control token.
-3. **Control plane** — owns call lifecycle, identity facts, external-effect permits, success evidence, independent verification, evidence retention, and cleanup.
+Gemma never receives identity plaintext, commitment authority or permission to declare external success.
 
-Gemma never receives authority to read arbitrary secrets, invent fact values, consume external-effect permits, or declare task success.
-
-## Core action vocabulary
-
-The initial generic vocabulary is:
+## Action vocabulary
 
 - `ASK_REPEAT`
 - `ASK_CLARIFY`
@@ -24,30 +25,30 @@ The initial generic vocabulary is:
 - `CONFIRM_AUTHORIZED_EFFECT`
 - `TAKE_OVER`
 
-`DISCLOSE_AUTHORIZED_FACT` carries a symbolic argument such as `PHONE`; the model never receives or returns the value itself.
+Arguments are symbolic and allowlisted. For the current CLIR task the only fact argument is `PHONE`.
 
-## CLIR mapping
+## Current proof
 
-For the current Orange CLIR campaign:
+The real Gemma 4 model on the S22 passes the current 8-case off-call action-router probe, including task-subject, service-number, effect-confirmation, repeat and unsupported-sensitive-fact cases.
 
-- purpose-of-call prompt -> `STATE_TASK_SUBJECT` -> app-owned CLIR subject phrase,
-- request for service number -> `DISCLOSE_AUTHORIZED_FACT(argument=PHONE)` -> host action control token -> runtime-only number executor,
-- request to confirm activation -> `CONFIRM_AUTHORIZED_EFFECT` -> app-owned commitment control, only if the route is independently verified,
-- unsupported or low-confidence input -> `TAKE_OVER` / error -> interactive supervisor relay.
+For the Orange service-number prompt:
 
-The host no longer decides these intents by matching Polish natural-language phrases. Host-side deterministic logic consumes only exact control tokens emitted after model classification.
+```text
+Gemma -> DISCLOSE_AUTHORIZED_FACT(PHONE)
+ -> app-owned local fact backend
+ -> IdentityVault + AuthorizedFactSnapshot + FactDisclosurePolicy
+ -> local plaintext resolution only after ALLOW
+ -> approved speech
+```
+
+The supervisor/Git relay is not an identity-value transport. Unsupported arguments are normalized/fail-closed to takeover.
 
 ## Invariants
 
-- STT transcript may be shown to Gemma; identity plaintext is not.
-- Model output is structured JSON with a closed action enum.
-- Model output is untrusted until policy validation succeeds.
-- Action arguments are allowlisted per task.
-- External effects still require `CallCommitmentGate`.
-- Success remains factual external evidence plus independent verification; a model statement is never enough.
-- Low confidence, malformed output, unsupported action/argument, or state mismatch fails closed to takeover/fallback.
-- Host scripts remain responsible for build/test/device lifecycle/evidence, not natural-language dialogue interpretation.
-
-## Migration rule
-
-New conversational behavior should be added as a reusable action/skill and executor capability. Do not add provider-specific natural-language `if`/regex branches for IVR wording unless they are evidence/safety guards rather than dialogue routing.
+- model output is closed structured JSON and untrusted until policy validation;
+- argumentless actions discard stray model arguments;
+- unsupported fact identifiers fail closed;
+- `CONFIRM_AUTHORIZED_EFFECT` is available only when application policy exposes that capability;
+- external effects still require the shared `CallCommitmentGate`;
+- factual success requires external evidence and independent verification when available;
+- do not add provider-specific natural-language regex routing when a reusable action/skill can represent the behavior.

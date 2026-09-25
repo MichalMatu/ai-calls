@@ -1,129 +1,63 @@
 # Roadmap
 
-## Status
+## Status legend
 
-- `DONE` — implementation complete for stated scope.
+- `DONE` — implementation complete for the stated scope.
 - `HOST_GREEN` — canonical host verification passed.
-- `PROVEN_S22` — physically executed successfully on the target phone.
-- `FROZEN` — do not modify without a concrete root cause.
+- `PROVEN_S22` — physically executed on the target phone.
+- `FROZEN` — change only with a concrete root cause.
 
 ## Stable foundation
 
-- Samsung cellular RX/TX + `CallMediaSessionCoordinator` — `PROVEN_S22 / FROZEN`.
-- Shizuku / privileged media boundary — `PROVEN_S22 / FROZEN`.
+- Samsung cellular media + Shizuku helper — `PROVEN_S22 / FROZEN`.
 - local Polish STT/TTS — proven.
-- IdentityVault disclosure boundary — proven.
-- Gemma 4 LiteRT-LM runtime + model lifecycle — proven.
+- Gemma 4 LiteRT-LM runtime + Gemma-first dialogue action router — `PROVEN_S22`; current real-model off-call probe is 8/8.
+- Android Keystore-backed `IdentityVault` — `PROVEN_S22`.
 - `BOOK_APPOINTMENT` Gate D — `DONE / HOST_GREEN / PROVEN_S22`.
-- generic typed `CallExternalEffect` commitment subject — `DONE / HOST_GREEN`.
-- `SET_SERVICE(CLIR=true)` validator + one-shot permit + separate external-success evidence — `DONE / HOST_GREEN`.
-- full synthetic/no-call acceptance chain on S22 — `PROVEN_S22`.
-- negotiated clinic booking proof on the same generic commitment store — `HOST_GREEN`.
+- generic `CallExternalEffect` + shared one-shot `CallCommitmentGate` — `DONE / HOST_GREEN`.
+- `SET_SERVICE(CLIR=true)` validation + separate external-success tracking — `DONE / HOST_GREEN`.
+- local `PHONE` fact resolver through `IdentityVault -> AuthorizedFactSnapshot -> FactDisclosurePolicy` — `DONE / HOST_GREEN`.
 
-## Autonomous operation direction
+`docs/AUTONOMOUS_OPERATION_MODE.md` remains normative for physical acceptance.
 
-`docs/AUTONOMOUS_OPERATION_MODE.md` is normative for active physical acceptance work.
+## Active gate — Orange CLIR enable
 
-The product/development target is:
+Physical execution is active and **not yet successful**.
 
-```text
-Local Agent
- -> real physical task
- -> deterministic script/PhraseMatrix
- -> bounded Gemma skill
- -> live supervisor takeover only when unresolved
- -> application-owned commitment/evidence
- -> independent state verification
- -> minimal patch from physical evidence
- -> next physical iteration
-```
+Already established on the real S22/Orange path:
 
-The operator should not be used as a terminal/log relay when the system can perform the step directly. Recurrent supervisor interventions should be moved into script/PhraseMatrix or bounded Gemma skills until the physical task completes without supervisor help.
+- on-net campaign route is `*100`;
+- multi-turn dialogue is `script/PhraseMatrix -> Gemma -> live supervisor`;
+- endpointing uses 1.5 s trailing silence / 60 s hard capture to tolerate IVR pauses;
+- Gemma correctly classifies the service-number prompt as `DISCLOSE_AUTHORIZED_FACT(PHONE)`;
+- unsupported fact requests fail closed;
+- commitment and factual success remain application-owned;
+- independent state interrogation is available;
+- latest independent state: caller ID defaults to **not restricted**.
 
-A durable, scoped, revocable campaign authorization owned by application policy is a product requirement. It should remove redundant per-retry prompts inside an unchanged authorized scope without weakening exact target/task/effect validation or external platform controls.
+Current blocker is identity enrollment, not model understanding: the real service number is not yet present in the app-owned vault through a production-safe local enrollment path. The resolver itself is implemented; Android vault/Keystore has been physically proven. Plaintext must not move through Git, Local Agent JSON, durable logs or supervisor/model context.
 
-## Current Orange CLIR gate
+### Next execution order
 
-### G5 prerequisite — DONE
+1. Confirm whether a suitable app-owned `PHONE` enrollment path already exists; if not, implement the smallest local-only enrollment path with redacted diagnostics and encrypted persistence.
+2. Add/run a no-call S22 proof of the complete local disclosure path using a synthetic phone value: exact control -> policy `ALLOW` -> vault read -> local speech text, with no plaintext in logs/evidence.
+3. Enroll the real service number locally through that app-owned path; do not route it through Git/relay/task JSON.
+4. Run one controlled real `*100` iteration with readiness + `IDLE`, preserving sanitized evidence.
+5. Accept enable only after factual Orange success **and** independent `*#31#` confirms restriction active.
+6. Then run the inverse `SET_SERVICE(CLIR=false)` acceptance loop.
 
-PR #14 added fail-closed live-call readiness for `RECORD_AUDIO` + Shizuku and blocked the legacy commit-capable diagnostic path. The generic `CallExternalEffect` path remains the only valid CLIR commitment route.
-
-### G5a / G5b discovery — COMPLETE AS HISTORICAL STEPS
-
-The first physical read-only discovery on 2026-09-24 produced a generic Orange clarification/reprompt, not a CLIR-specific route. That result remains valid historical evidence, but it is no longer the active development loop.
-
-### G5c physical execution — ACTIVE / NOT YET SUCCESSFUL
-
-The live CLIR execution path is now exercised physically on the S22.
-
-Observed real behavior and implemented responses:
-
-- use Orange on-net `*100` for the active campaign;
-- deterministic first CLIR phrase;
-- deterministic second clarification phrase for Orange's generic uncertainty response;
-- retry no-speech windows rather than failing immediately;
-- multi-turn `script/PhraseMatrix -> Gemma -> live supervisor` fallback;
-- live supervisor takeover while the cellular call remains active;
-- handling of Orange's `podaj dowolny numer twojej usługi lub wprowadź go na klawiaturze` prompt with late-bound identity data;
-- contextual CLIR commit recognition after route context exists;
-- contextual success recognition after commitment;
-- one shared `CallCommitmentGate` only;
-- sanitized live report preservation before cleanup.
-
-The most recent independent network interrogation returned:
-
-```text
-Caller ID defaults to not restricted. Next call: Not restricted
-```
-
-Therefore current factual state is:
-
-```text
-CLIR enabled = false
-physical task complete = false
-```
-
-The next iteration is another real Orange call driven by the autonomous physical loop, followed by independent network-state verification.
-
-## Acceptance condition
-
-CLIR enable is accepted only when all of the following are true:
+## Acceptance invariant
 
 ```text
 exact authorized task/target/effect
- -> one-shot commitment permit consumed exactly once
- -> factual Orange success evidence
- -> independent network-state check confirms caller-ID restriction active
- -> owned call/session cleaned to IDLE
-```
-
-Call termination, a model statement, permit consumption or host/synthetic results are insufficient by themselves.
-
-After successful enable acceptance, the next physical acceptance task is the inverse operation (`SET_SERVICE(CLIR=false)`) and the same loop repeats. The goal is to reduce supervisor intervention until script + Gemma complete both directions without supervisor help.
-
-## Physical-first development rule
-
-During the active CLIR campaign, real physical iterations are the acceptance loop. Do not substitute unit/synthetic suites for physical progress unless the operator explicitly asks for them. Build/compile/install steps needed to deploy a patch are allowed.
-
-## Authority direction
-
-Do not add `ClirCommitmentGate` or service-specific authority stores.
-
-The long-term authority path remains:
-
-```text
-durable scoped campaign grant / accepted authorization context
- -> exact CallTask + target
- -> typed CallExternalEffect
  -> deterministic validation
- -> one shared CallCommitmentGate permit immediately before commitment
- -> separate factual external-success evidence
- -> independent state verification when practical
- -> workflow completion
+ -> one fresh shared CallCommitmentGate permit
+ -> permit consumed exactly once
+ -> factual external success
+ -> independent state verification
+ -> cleanup to IDLE
 ```
 
-A material widening of target, task, effect or account scope remains fail-closed. External platform/tool controls are not bypassed by repository documentation.
+Authorization, route discovery, model output, permit consumption and call termination are not success evidence by themselves.
 
-## After CLIR acceptance
-
-Return to generic product development. Representative next cases are multi-turn negotiated tasks such as appointment availability/booking, modification and cancellation. Extend shared TaskGraph/effect adapters rather than service-specific bots.
+After CLIR enable/disable acceptance, return to generic phone-task development rather than building an Orange-specific bot.
