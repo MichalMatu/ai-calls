@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pl.michalmatu.aicallbridge.textagent.DialogueSkillDecisionObserver
@@ -41,6 +42,40 @@ class GateCHybridDialogueBackendTest {
                 "reason=${snapshot.decisions.single().reason} " +
                 "source=${snapshot.responseSources.single()}",
         )
+        backend.close()
+    }
+
+    @Test
+    fun `Orange service number prompt bypasses local skill and reaches relay`() {
+        val diagnostics = GateCHybridDiagnostics()
+        val classifier = FakeBackend.complete(
+            """{"skill":"ACKNOWLEDGE_NEUTRAL","confidence":0.99,"reason":"simple_prompt"}""",
+        )
+        val local = DialogueSkillTextBackend(
+            classifierBackend = classifier,
+            policy = policy(),
+            observer = DialogueSkillDecisionObserver(diagnostics::onDecision),
+        )
+        val injected = FakeBackend.complete("runtime relay response")
+        val backend = GateCHybridDialogueBackendFactory.compose(local, injected, diagnostics)
+        var completed: String? = null
+        val prompt = "Podaj dowolny numer twojej usługi lub wprowadź go na klawiaturze."
+
+        backend.generate(prompt, listener(complete = { completed = it }))
+
+        val snapshot = diagnostics.snapshot()
+        assertTrue(GateCHybridDialogueBackendFactory.isOrangeServiceNumberPrompt(prompt))
+        assertFalse(
+            GateCHybridDialogueBackendFactory.isOrangeServiceNumberPrompt(
+                "Podaj numer telefonu konsultanta.",
+            ),
+        )
+        assertEquals("runtime relay response", completed)
+        assertEquals(0, classifier.generateCalls)
+        assertEquals(1, injected.generateCalls)
+        assertTrue(snapshot.decisions.isEmpty())
+        assertTrue(snapshot.localSkillErrors.isEmpty())
+        assertEquals(listOf(GateCHybridResponseSource.CHAT_RELAY), snapshot.responseSources)
         backend.close()
     }
 
