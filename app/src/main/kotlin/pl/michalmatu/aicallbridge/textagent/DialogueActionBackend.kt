@@ -104,6 +104,27 @@ internal class DialogueActionPolicy(
         }
     }
 
+    fun normalize(decision: DialogueActionDecision): DialogueActionDecision {
+        if (decision.actionId !in allowedActions) return decision
+        if (decision.actionId == DialogueActionId.TAKE_OVER) {
+            return if (decision.argument == null) decision else decision.copy(argument = null)
+        }
+        val permitted = allowedArguments[decision.actionId].orEmpty()
+        if (permitted.isEmpty()) {
+            return if (decision.argument == null) decision else decision.copy(argument = null)
+        }
+        val normalizedArgument = decision.argument?.uppercase()
+        return if (normalizedArgument in permitted) {
+            if (normalizedArgument == decision.argument) decision else decision.copy(argument = normalizedArgument)
+        } else {
+            DialogueActionDecision(
+                actionId = DialogueActionId.TAKE_OVER,
+                confidence = decision.confidence,
+                reason = decision.reason ?: "unsupported_action_argument",
+            )
+        }
+    }
+
     fun allows(decision: DialogueActionDecision): Boolean {
         if (decision.actionId !in allowedActions) return false
         if (decision.actionId == DialogueActionId.TAKE_OVER) return decision.argument == null
@@ -210,7 +231,8 @@ internal class DialogueActionBackend(
                     listener.onError(parsed.reason)
                     return
                 }
-                val decision = (parsed as ParseResult.Success).decision
+                val rawDecision = (parsed as ParseResult.Success).decision
+                val decision = policy.normalize(rawDecision)
                 try {
                     observer?.onDecision(decision)
                 } catch (_: Throwable) {

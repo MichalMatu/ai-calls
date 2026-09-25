@@ -88,21 +88,25 @@ class DialogueActionBackendTest {
     }
 
     @Test
-    fun `unsupported fact argument fails closed`() {
+    fun `unsupported fact argument becomes takeover before observer and executor`() {
         val classifier = FakeBackend.complete(
             """{"action":"DISCLOSE_AUTHORIZED_FACT","confidence":0.99,"argument":"PESEL"}""",
         )
         var error: String? = null
+        var observed: DialogueActionDecision? = null
         var executed = false
         val backend = DialogueActionBackend(
             classifierBackend = classifier,
             policy = policy(),
             executor = DialogueActionExecutor { _, _, _ -> executed = true },
+            observer = DialogueActionDecisionObserver { observed = it },
         )
 
         backend.generate("Podaj PESEL.", listener(error = { error = it }))
 
-        assertEquals("dialogue_action_argument_not_allowed", error)
+        assertEquals(DialogueActionId.TAKE_OVER, observed?.actionId)
+        assertNull(observed?.argument)
+        assertEquals("dialogue_action_takeover_required", error)
         assertEquals(false, executed)
     }
 
