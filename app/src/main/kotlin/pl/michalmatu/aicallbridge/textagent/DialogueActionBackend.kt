@@ -44,6 +44,28 @@ internal data class DialogueActionDecision(
     }
 }
 
+internal class DialogueTaskContext(
+    val subject: String,
+    val authorizedEffect: String? = null,
+    argumentHints: Map<String, String> = emptyMap(),
+) {
+    val argumentHints: Map<String, String> = argumentHints
+        .mapKeys { (key, _) -> key.trim().uppercase() }
+        .mapValues { (_, value) -> value.trim() }
+        .filterKeys { it.isNotEmpty() }
+        .filterValues { it.isNotEmpty() }
+        .toMap()
+
+    init {
+        require(subject.isNotBlank() && subject.length <= 320) { "dialogue_task_subject_invalid" }
+        require(authorizedEffect == null || (authorizedEffect.isNotBlank() && authorizedEffect.length <= 320)) {
+            "dialogue_task_effect_invalid"
+        }
+        require(this.argumentHints.keys.all { it.length <= 80 }) { "dialogue_task_argument_hint_key_too_long" }
+        require(this.argumentHints.values.all { it.length <= 320 }) { "dialogue_task_argument_hint_too_long" }
+    }
+}
+
 internal fun interface DialogueActionDecisionObserver {
     fun onDecision(decision: DialogueActionDecision)
 }
@@ -112,7 +134,10 @@ internal object DialogueActionCatalog {
             "Potrzebna jest nieobsługiwana akcja, nieautoryzowany fakt, nietypowe rozumowanie albo brak wystarczającej pewności.",
     )
 
-    fun systemPrompt(policy: DialogueActionPolicy): String {
+    fun systemPrompt(
+        policy: DialogueActionPolicy,
+        taskContext: DialogueTaskContext? = null,
+    ): String {
         val list = policy.allowedActions.sortedBy { it.name }.joinToString("\n") { action ->
             val arguments = policy.allowedArguments[action].orEmpty()
             val suffix = if (arguments.isEmpty()) {
@@ -122,13 +147,33 @@ internal object DialogueActionCatalog {
             }
             "- ${action.name}: ${checkNotNull(descriptions[action])}$suffix"
         }
+        val contextBlock = if (taskContext == null) {
+            "Kontekst bieżącego zadania nie został podany. Nie zakładaj celu ani efektu; w razie potrzeby wybierz TAKE_OVER."
+        } else {
+            buildString {
+                append("Kontekst bieżącego zadania:\n")
+                append("- temat/cel: ${taskContext.subject}\n")
+                taskContext.authorizedEffect?.let { append("- autoryzowany efekt: $it\n") }
+                if (taskContext.argumentHints.isNotEmpty()) {
+                    append("- znaczenie identyfikatorów faktów:\n")
+                    taskContext.argumentHints.toSortedMap().forEach { (id, hint) ->
+                        append("  - $id: $hint\n")
+                    }
+                }
+            }.trimEnd()
+        }
         return """
             Jesteś lokalnym routerem akcji dla rozmowy telefonicznej. Wejście to finalny transkrypt drugiej strony i może zawierać błędy STT.
             Masz WYŁĄCZNIE zinterpretować intencję rozmówcy i wybrać jedną dozwoloną akcję.
             Nie generuj odpowiedzi dla rozmówcy. Nie wymyślaj faktów. Nie podawaj numerów, danych osobowych ani wartości sekretów.
             Nie wykonuj efektów zewnętrznych. Nie zmieniaj celu rozmowy.
-            Jeżeli rozmówca prosi o fakt, wybierz DISCLOSE_AUTHORIZED_FACT i podaj tylko dozwolony identyfikator w argument.
-            Jeżeli rozmówca prosi o potwierdzenie wykonania bieżącego autoryzowanego celu, wybierz CONFIRM_AUTHORIZED_EFFECT.
+
+            $contextBlock
+
+            Jeżeli rozmówca prosi o konkretny fakt, wybierz DISCLOSE_AUTHORIZED_FACT WYŁĄCZNIE gdy jego identyfikator jest dozwolonym argumentem tej akcji. W przeciwnym razie wybierz TAKE_OVER.
+            Pytanie o numer usługi, numer abonenta albo numer telefonu dotyczący bieżącej sprawy jest prośbą o fakt, a nie pytaniem o temat zadania.
+            Jeżeli rozmówca pyta czy wykonać, włączyć, aktywować lub potwierdzić dokładnie autoryzowany efekt z kontekstu, wybierz CONFIRM_AUTHORIZED_EFFECT.
+            STATE_TASK_SUBJECT wybieraj tylko gdy rozmówca pyta w jakiej sprawie dzwonimy, czego dotyczy rozmowa albo jak może pomóc.
             Jeżeli prosi o coś poza katalogiem lub nie jesteś pewien, wybierz TAKE_OVER.
 
             Dozwolone akcje:
@@ -136,7 +181,8 @@ internal object DialogueActionCatalog {
 
             Zwróć wyłącznie jeden obiekt JSON bez markdownu i dodatkowych kluczy:
             {"action":"ACTION_ID","confidence":0.0,"argument":"OPTIONAL_ARGUMENT","reason":"krótki_powód"}
-            argument pomiń, gdy dana akcja go nie używa. confidence musi być liczbą 0..1.
+            Klucz argument wolno zwrócić WYŁĄCZNIE dla akcji, która ma jawnie wymienione dozwolone argumenty. Dla pozostałych akcji pomiń go całkowicie.
+            confidence musi być liczbą 0..1.
         """.trimIndent()
     }
 }
@@ -258,11 +304,12 @@ internal class DialogueActionBackend(
         } catch (_: IllegalArgumentException) {
             return ParseResult.Error("dialogue_action_unknown")
         }
-        val argument = root.optionalString("argument")
+        val rawArgument = root.optionalString("argument")
             ?.trim()
             ?.uppercase()
             ?.take(MAX_ARGUMENT_CHARS)
             ?.ifBlank { null }
+        val argument = if (policy.allowedArguments[action].orEmpty().isEmpty()) null else rawArgument
         val reason = root.optionalString("reason")?.take(MAX_REASON_CHARS)
         return ParseResult.Success(
             DialogueActionDecision(
@@ -311,8 +358,9 @@ internal object DialogueActionBackendFactory {
         policy: DialogueActionPolicy,
         executor: DialogueActionExecutor,
         observer: DialogueActionDecisionObserver? = null,
+        taskContext: DialogueTaskContext? = null,
     ): TextCallAgentBackend {
-        val prompt = DialogueActionCatalog.systemPrompt(policy)
+        val prompt = DialogueActionCatalog.systemPrompt(policy, taskContext)
         val classifier = when (provider) {
             TextLlmProvider.LOCAL_PHONE_LLM ->
                 LocalPhoneLlmBackendFactory.create(context.applicationContext, prompt)

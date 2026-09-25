@@ -29,6 +29,44 @@ class DialogueActionBackendTest {
     }
 
     @Test
+    fun `extraneous argument is discarded for argumentless action`() {
+        val classifier = FakeBackend.complete(
+            """{"action":"STATE_TASK_SUBJECT","confidence":0.97,"argument":"SPRAWA"}""",
+        )
+        var decision: DialogueActionDecision? = null
+        val backend = DialogueActionBackend(
+            classifierBackend = classifier,
+            policy = policy(),
+            executor = DialogueActionExecutor { _, selected, listener ->
+                decision = selected
+                listener.onComplete("ok")
+            },
+        )
+
+        backend.generate("W jakiej sprawie dzwonisz?", listener())
+
+        assertEquals(DialogueActionId.STATE_TASK_SUBJECT, decision?.actionId)
+        assertNull(decision?.argument)
+    }
+
+    @Test
+    fun `system prompt carries task effect and fact semantics without values`() {
+        val prompt = DialogueActionCatalog.systemPrompt(
+            policy(),
+            DialogueTaskContext(
+                subject = "Włączenie CLIR dla bieżącej usługi.",
+                authorizedEffect = "Włączyć usługę CLIR.",
+                argumentHints = mapOf("PHONE" to "numer telefonu lub numer usługi"),
+            ),
+        )
+
+        assert(prompt.contains("Włączenie CLIR"))
+        assert(prompt.contains("Włączyć usługę CLIR"))
+        assert(prompt.contains("PHONE"))
+        assert(prompt.contains("numer telefonu lub numer usługi"))
+    }
+
+    @Test
     fun `authorized fact action carries identifier but never value`() {
         val classifier = FakeBackend.complete(
             """{"action":"DISCLOSE_AUTHORIZED_FACT","confidence":0.95,"argument":"phone"}""",

@@ -12,6 +12,7 @@ import pl.michalmatu.aicallbridge.textagent.DialogueActionDecisionObserver
 import pl.michalmatu.aicallbridge.textagent.DialogueActionExecutor
 import pl.michalmatu.aicallbridge.textagent.DialogueActionId
 import pl.michalmatu.aicallbridge.textagent.DialogueActionPolicy
+import pl.michalmatu.aicallbridge.textagent.DialogueTaskContext
 import pl.michalmatu.aicallbridge.textagent.FailoverTextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -108,6 +109,7 @@ internal object GateCHybridDialogueBackendFactory {
                 canConfirmEffect = canConfirmEffect,
             ),
             observer = diagnostics,
+            taskContext = actionContext(allowEffectConfirmation = effectCommitControl != null),
         )
         return FailoverTextCallAgentBackend(
             primary = actionBackend.observed(
@@ -116,6 +118,20 @@ internal object GateCHybridDialogueBackendFactory {
             fallback = supervisorRelay,
         )
     }
+
+    internal fun actionContext(
+        allowEffectConfirmation: Boolean = true,
+    ) = DialogueTaskContext(
+        subject = "Włączenie stałego zastrzegania prezentacji numeru telefonu (CLIR) dla bieżącej usługi.",
+        authorizedEffect = if (allowEffectConfirmation) {
+            "Włączyć lub aktywować usługę CLIR, czyli stałe zastrzeganie prezentacji numeru telefonu."
+        } else {
+            null
+        },
+        argumentHints = mapOf(
+            "PHONE" to "numer telefonu, numer usługi lub numer abonenta, którego dotyczy bieżące zadanie",
+        ),
+    )
 
     internal fun actionPolicy(
         allowEffectConfirmation: Boolean = true,

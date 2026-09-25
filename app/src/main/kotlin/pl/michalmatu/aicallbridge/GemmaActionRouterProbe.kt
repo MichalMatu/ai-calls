@@ -105,6 +105,9 @@ internal object GemmaActionRouterProbe {
                 observer = DialogueActionDecisionObserver { decision ->
                     latestDecision.set(decision)
                 },
+                taskContext = GateCHybridDialogueBackendFactory.actionContext(
+                    allowEffectConfirmation = true,
+                ),
             )
         } catch (error: Throwable) {
             val report = buildReport(
