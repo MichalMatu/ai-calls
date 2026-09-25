@@ -137,8 +137,12 @@ internal object GateCHybridDialogueBackendFactory {
     }
 
     internal fun isOrangeServiceNumberPrompt(text: String): Boolean {
-        val value = " ".joinToString(" ")
-        return value.isNotEmpty()
+        val value = text.lowercase()
+        val namesServiceNumber =
+            value.contains("numer") && (value.contains("usług") || value.contains("uslug"))
+        val asksToProvide =
+            value.contains("podaj") || value.contains("wprowadź") || value.contains("wprowadz")
+        return namesServiceNumber && asksToProvide
     }
 
     private fun TextCallAgentBackend.observed(
