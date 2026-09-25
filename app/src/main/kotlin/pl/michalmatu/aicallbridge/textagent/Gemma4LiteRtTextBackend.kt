@@ -398,6 +398,33 @@ internal object Gemma4LiteRtTextBackendFactory {
         )
     }
 
+    fun createActionClassifier(
+        context: Context,
+        systemInstruction: String,
+        allowedActions: Set<DialogueActionId>,
+    ): TextCallAgentBackend {
+        require(allowedActions.isNotEmpty()) { "dialogue_action_set_must_not_be_empty" }
+        val allowed = allowedActions.sortedBy { it.name }.joinToString(",") { "\"${it.name}\"" }
+        val schema = """
+            {
+              "type":"object",
+              "properties":{
+                "action":{"type":"string","enum":[$allowed]},
+                "confidence":{"type":"number","minimum":0,"maximum":1},
+                "argument":{"type":"string","maxLength":80},
+                "reason":{"type":"string","maxLength":160}
+              },
+              "required":["action","confidence"],
+              "additionalProperties":false
+            }
+        """.trimIndent()
+        return createInternal(
+            context = context,
+            systemInstruction = systemInstruction,
+            responseFormat = ResponseFormat.json(schema),
+        )
+    }
+
     private fun createInternal(
         context: Context,
         systemInstruction: String?,

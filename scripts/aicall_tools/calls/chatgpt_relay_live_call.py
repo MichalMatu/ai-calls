@@ -36,6 +36,7 @@ MAX_TURNS = 10
 MAX_SESSION_SECONDS = 600.0
 RESPONSE_TIMEOUT_SECONDS = 100.0
 CLIR_COMMIT_CONTROL = "[[COMMIT_CLIR_ENABLE]]"
+DISCLOSE_PHONE_CONTROL = "[[DISCLOSE_AUTHORIZED_FACT:PHONE]]"
 
 
 def default_session_id() -> str:
@@ -351,25 +352,11 @@ def automatic_orange_supervisor_response(
     *,
     service_number: Optional[str],
 ) -> Optional[str]:
-    """Handle deterministic Orange prompts locally before opening the Git relay."""
-    commit = automatic_clir_supervisor_response(text)
-    if commit is not None:
-        return commit
+    """Execute exact app-owned action controls; never infer intent from operator wording."""
+    if text.strip() != DISCLOSE_PHONE_CONTROL:
+        return None
     if service_number is None:
-        return None
-
-    value = " ".join(text.casefold().split())
-    names_service_number = (
-        "numer" in value
-        and ("usług" in value or "uslug" in value)
-    )
-    asks_to_provide = any(
-        token in value
-        for token in ("podaj", "wprowadź", "wprowadz")
-    )
-    if not (names_service_number and asks_to_provide):
-        return None
-
+        raise RuntimeError("service number unavailable for authorized disclosure action")
     spoken_digits = " ".join(service_number)
     return f"Numer usługi to {spoken_digits}."
 

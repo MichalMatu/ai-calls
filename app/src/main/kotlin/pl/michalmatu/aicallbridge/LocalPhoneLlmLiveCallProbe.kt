@@ -365,7 +365,8 @@ internal object LocalPhoneLlmLiveCallProbe {
             hybridSnapshot?.let { snapshot ->
                 lines += "local_skill_decision_count=${snapshot.decisions.size}"
                 snapshot.decisions.lastOrNull()?.let { decision ->
-                    lines += "local_skill_id=${decision.skillId.name.lowercase()}"
+                    lines += "local_action_id=${decision.actionId.name.lowercase()}"
+                    lines += "local_skill_id=${decision.actionId.name.lowercase()}"
                     lines += "local_skill_confidence=${decision.confidence}"
                     decision.reason?.let { lines += "local_skill_reason=${sanitize(it)}" }
                 }

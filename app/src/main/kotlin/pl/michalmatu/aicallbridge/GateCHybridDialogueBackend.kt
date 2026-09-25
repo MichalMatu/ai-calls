@@ -6,32 +6,34 @@ import pl.michalmatu.aicallbridge.developerrelay.ChatRelayEnvelope
 import pl.michalmatu.aicallbridge.developerrelay.ChatRelayMailbox
 import pl.michalmatu.aicallbridge.developerrelay.InteractiveChatRelayBackend
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
-import pl.michalmatu.aicallbridge.textagent.DialogueSkillDecision
-import pl.michalmatu.aicallbridge.textagent.DialogueSkillDecisionObserver
-import pl.michalmatu.aicallbridge.textagent.DialogueSkillId
-import pl.michalmatu.aicallbridge.textagent.DialogueSkillPolicy
+import pl.michalmatu.aicallbridge.textagent.DialogueActionBackendFactory
+import pl.michalmatu.aicallbridge.textagent.DialogueActionDecision
+import pl.michalmatu.aicallbridge.textagent.DialogueActionDecisionObserver
+import pl.michalmatu.aicallbridge.textagent.DialogueActionExecutor
+import pl.michalmatu.aicallbridge.textagent.DialogueActionId
+import pl.michalmatu.aicallbridge.textagent.DialogueActionPolicy
 import pl.michalmatu.aicallbridge.textagent.FailoverTextCallAgentBackend
-import pl.michalmatu.aicallbridge.textagent.LocalDialogueSkillBackendFactory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 internal enum class GateCHybridResponseSource {
-    LOCAL_SKILL,
+    LOCAL_ACTION,
+    HOST_ACTION,
     CHAT_RELAY,
 }
 
 internal data class GateCHybridDiagnosticsSnapshot(
-    val decisions: List<DialogueSkillDecision>,
+    val decisions: List<DialogueActionDecision>,
     val localSkillErrors: List<String>,
     val responseSources: List<GateCHybridResponseSource>,
 )
 
-internal class GateCHybridDiagnostics : DialogueSkillDecisionObserver {
+internal class GateCHybridDiagnostics : DialogueActionDecisionObserver {
     private val lock = Any()
-    private val decisions = mutableListOf<DialogueSkillDecision>()
+    private val decisions = mutableListOf<DialogueActionDecision>()
     private val localSkillErrors = mutableListOf<String>()
     private val responseSources = mutableListOf<GateCHybridResponseSource>()
 
-    override fun onDecision(decision: DialogueSkillDecision) {
+    override fun onDecision(decision: DialogueActionDecision) {
         synchronized(lock) { decisions += decision }
     }
 
@@ -56,97 +58,137 @@ internal class GateCHybridDiagnostics : DialogueSkillDecisionObserver {
 }
 
 /**
- * Explicit developer-only Gate C hybrid backend.
+ * Gemma-first dialogue router used by the controlled live call.
  *
- * The selected phone-local model may classify only bounded conversational repair skills. Exact
- * spoken text is application-owned. Any model error, low confidence or TAKE_OVER classification
- * falls through exactly once to the existing ChatRelay mailbox, where a host/ChatGPT response is
- * still subject to the normal application output-approval policy in LocalTextCallSession.
- *
- * Orange service-number prompts are intentionally routed straight to the relay. The service number
- * is runtime-only host context and must never be exposed to the phone-local classifier or persisted
- * in the Android app.
+ * Gemma interprets each transcript into a structured action. Application-owned executors produce
+ * speech, request an authorized runtime fact from the host, or emit the reviewed external-effect
+ * control token. Model errors, low confidence and TAKE_OVER fall through to the interactive relay.
  */
 internal object GateCHybridDialogueBackendFactory {
+    const val DISCLOSE_PHONE_CONTROL = "[[DISCLOSE_AUTHORIZED_FACT:PHONE]]"
+
     fun create(
         context: Context,
         provider: TextLlmProvider,
         relaySessionId: String,
         diagnostics: GateCHybridDiagnostics,
+        effectCommitControl: String? = null,
+        canConfirmEffect: () -> Boolean = { false },
     ): TextCallAgentBackend {
         require(
             provider == TextLlmProvider.LOCAL_PHONE_LLM || provider == TextLlmProvider.LOCAL_GEMMA_4,
         ) { "gate_c_hybrid_requires_phone_local_model" }
+        if (effectCommitControl != null) {
+            require(effectCommitControl.isNotBlank()) { "effect_commit_control_required" }
+        }
         ChatRelayEnvelope(relaySessionId, 1, "probe").validate()
 
-        val skillPolicy = DialogueSkillPolicy(
-            allowedResponses = mapOf(
-                DialogueSkillId.ASK_REPEAT to "Proszę powtórzyć.",
-                DialogueSkillId.ASK_CLARIFY to "Proszę doprecyzować.",
-                DialogueSkillId.ACKNOWLEDGE_NEUTRAL to "Rozumiem.",
-                DialogueSkillId.CONFIRM_EXPECTED_SUBJECT to
-                    "Chodzi o blokadę prezentacji numeru, usługę CLIR.",
-            ),
-            minimumConfidence = 0.72,
-        )
-        val localSkillBackend = LocalDialogueSkillBackendFactory.create(
-            context = context.applicationContext,
-            provider = provider,
-            policy = skillPolicy,
-            observer = diagnostics,
-        )
         val relayBackend = InteractiveChatRelayBackend(
             mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME)),
             sessionId = relaySessionId,
         )
-        return compose(localSkillBackend, relayBackend, diagnostics)
-    }
-
-    internal fun compose(
-        localSkillBackend: TextCallAgentBackend,
-        relayBackend: TextCallAgentBackend,
-        diagnostics: GateCHybridDiagnostics,
-    ): TextCallAgentBackend {
-        val observedLocalSkillBackend = localSkillBackend.observed(
+        val hostActionRelay = relayBackend.observed(
             onComplete = {
-                diagnostics.recordResponseSource(GateCHybridResponseSource.LOCAL_SKILL)
+                diagnostics.recordResponseSource(GateCHybridResponseSource.HOST_ACTION)
             },
-            onError = diagnostics::recordLocalSkillError,
         )
-        val observedRelayBackend = relayBackend.observed(
+        val supervisorRelay = relayBackend.observed(
             onComplete = {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.CHAT_RELAY)
             },
         )
-        val failoverBackend = FailoverTextCallAgentBackend(
-            primary = observedLocalSkillBackend,
-            fallback = observedRelayBackend,
+        val actionBackend = DialogueActionBackendFactory.create(
+            context = context.applicationContext,
+            provider = provider,
+            policy = actionPolicy(allowEffectConfirmation = effectCommitControl != null),
+            executor = actionExecutor(
+                hostActionRelay = hostActionRelay,
+                diagnostics = diagnostics,
+                effectCommitControl = effectCommitControl,
+                canConfirmEffect = canConfirmEffect,
+            ),
+            observer = diagnostics,
         )
-        return object : TextCallAgentBackend {
-            override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
-                if (isOrangeServiceNumberPrompt(userText)) {
-                    observedRelayBackend.generate(userText, listener)
+        return FailoverTextCallAgentBackend(
+            primary = actionBackend.observed(
+                onError = diagnostics::recordLocalSkillError,
+            ),
+            fallback = supervisorRelay,
+        )
+    }
+
+    internal fun actionPolicy(
+        allowEffectConfirmation: Boolean = true,
+    ): DialogueActionPolicy {
+        val actions = mutableSetOf(
+            DialogueActionId.ASK_REPEAT,
+            DialogueActionId.ASK_CLARIFY,
+            DialogueActionId.ACKNOWLEDGE_NEUTRAL,
+            DialogueActionId.STATE_TASK_SUBJECT,
+            DialogueActionId.DISCLOSE_AUTHORIZED_FACT,
+        )
+        if (allowEffectConfirmation) {
+            actions += DialogueActionId.CONFIRM_AUTHORIZED_EFFECT
+        }
+        return DialogueActionPolicy(
+            allowedActions = actions,
+            allowedArguments = mapOf(
+                DialogueActionId.DISCLOSE_AUTHORIZED_FACT to setOf("PHONE"),
+            ),
+            minimumConfidence = 0.72,
+        )
+    }
+
+    internal fun actionExecutor(
+        hostActionRelay: TextCallAgentBackend,
+        diagnostics: GateCHybridDiagnostics,
+        effectCommitControl: String?,
+        canConfirmEffect: () -> Boolean,
+    ) = DialogueActionExecutor { _, decision, listener ->
+        fun completeLocal(text: String) {
+            diagnostics.recordResponseSource(GateCHybridResponseSource.LOCAL_ACTION)
+            listener.onComplete(text)
+        }
+
+        when (decision.actionId) {
+            DialogueActionId.ASK_REPEAT ->
+                completeLocal("Proszę powtórzyć.")
+
+            DialogueActionId.ASK_CLARIFY ->
+                completeLocal("Proszę doprecyzować.")
+
+            DialogueActionId.ACKNOWLEDGE_NEUTRAL ->
+                completeLocal("Rozumiem.")
+
+            DialogueActionId.STATE_TASK_SUBJECT ->
+                completeLocal("Chodzi o blokadę prezentacji numeru, usługę CLIR.")
+
+            DialogueActionId.DISCLOSE_AUTHORIZED_FACT -> {
+                if (decision.argument != "PHONE") {
+                    listener.onError("dialogue_action_fact_not_supported")
                 } else {
-                    failoverBackend.generate(userText, listener)
+                    hostActionRelay.generate(DISCLOSE_PHONE_CONTROL, listener)
                 }
             }
 
-            override fun cancel() = failoverBackend.cancel()
-            override fun close() = failoverBackend.close()
+            DialogueActionId.CONFIRM_AUTHORIZED_EFFECT -> {
+                val control = effectCommitControl
+                if (control == null) {
+                    listener.onError("dialogue_action_effect_not_configured")
+                } else if (!canConfirmEffect()) {
+                    listener.onError("dialogue_action_effect_not_ready")
+                } else {
+                    completeLocal(control)
+                }
+            }
+
+            DialogueActionId.TAKE_OVER ->
+                listener.onError("dialogue_action_takeover_required")
         }
     }
 
-    internal fun isOrangeServiceNumberPrompt(text: String): Boolean {
-        val value = text.lowercase()
-        val namesServiceNumber =
-            value.contains("numer") && (value.contains("usług") || value.contains("uslug"))
-        val asksToProvide =
-            value.contains("podaj") || value.contains("wprowadź") || value.contains("wprowadz")
-        return namesServiceNumber && asksToProvide
-    }
-
     private fun TextCallAgentBackend.observed(
-        onComplete: () -> Unit,
+        onComplete: () -> Unit = {},
         onError: (String) -> Unit = {},
     ): TextCallAgentBackend {
         val delegate = this
