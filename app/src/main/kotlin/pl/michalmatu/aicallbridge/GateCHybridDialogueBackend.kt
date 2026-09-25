@@ -62,6 +62,10 @@ internal class GateCHybridDiagnostics : DialogueSkillDecisionObserver {
  * spoken text is application-owned. Any model error, low confidence or TAKE_OVER classification
  * falls through exactly once to the existing ChatRelay mailbox, where a host/ChatGPT response is
  * still subject to the normal application output-approval policy in LocalTextCallSession.
+ *
+ * Orange service-number prompts are intentionally routed straight to the relay. The service number
+ * is runtime-only host context and must never be exposed to the phone-local classifier or persisted
+ * in the Android app.
  */
 internal object GateCHybridDialogueBackendFactory {
     fun create(
@@ -114,10 +118,27 @@ internal object GateCHybridDialogueBackendFactory {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.CHAT_RELAY)
             },
         )
-        return FailoverTextCallAgentBackend(
+        val failoverBackend = FailoverTextCallAgentBackend(
             primary = observedLocalSkillBackend,
             fallback = observedRelayBackend,
         )
+        return object : TextCallAgentBackend {
+            override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                if (isOrangeServiceNumberPrompt(userText)) {
+                    observedRelayBackend.generate(userText, listener)
+                } else {
+                    failoverBackend.generate(userText, listener)
+                }
+            }
+
+            override fun cancel() = failoverBackend.cancel()
+            override fun close() = failoverBackend.close()
+        }
+    }
+
+    internal fun isOrangeServiceNumberPrompt(text: String): Boolean {
+        val value = " ".joinToString(" ")
+        return value.isNotEmpty()
     }
 
     private fun TextCallAgentBackend.observed(
