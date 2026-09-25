@@ -9,6 +9,7 @@ The branch is deleted during cleanup and raw transcripts are not copied into dur
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -47,6 +48,21 @@ def normalize_allowlisted_target(raw: str) -> str:
     if target not in ALLOWLIST:
         raise ValueError("target is not in the operator-defined live-test allowlist")
     return target
+
+
+def normalize_service_number(raw: Optional[str]) -> Optional[str]:
+    """Normalize an optional runtime service number without persisting it in source."""
+    if raw is None:
+        return None
+    value = raw.strip()
+    if not value:
+        raise ValueError("service number is empty")
+    if any(char not in "0123456789 +-()" for char in value):
+        raise ValueError("service number contains unsupported characters")
+    digits = "".join(char for char in value if char.isdigit())
+    if not 7 <= len(digits) <= 15:
+        raise ValueError("service number must contain 7 to 15 digits")
+    return digits
 
 
 def relay_branch_name(session_id: str) -> str:
@@ -330,6 +346,34 @@ def automatic_clir_supervisor_response(text: str) -> Optional[str]:
     return CLIR_COMMIT_CONTROL if names_clir and asks_enable else None
 
 
+def automatic_orange_supervisor_response(
+    text: str,
+    *,
+    service_number: Optional[str],
+) -> Optional[str]:
+    """Handle deterministic Orange prompts locally before opening the Git relay."""
+    commit = automatic_clir_supervisor_response(text)
+    if commit is not None:
+        return commit
+    if service_number is None:
+        return None
+
+    value = " ".join(text.casefold().split())
+    names_service_number = (
+        "numer" in value
+        and ("usług" in value or "uslug" in value)
+    )
+    asks_to_provide = any(
+        token in value
+        for token in ("podaj", "wprowadź", "wprowadz")
+    )
+    if not (names_service_number and asks_to_provide):
+        return None
+
+    spoken_digits = " ".join(service_number)
+    return f"Numer usługi to {spoken_digits}."
+
+
 def parse_probe_report(text: str) -> Optional[dict[str, str]]:
     values: dict[str, str] = {}
     for line in text.splitlines():
@@ -501,11 +545,13 @@ def run_orange_chat_relay(
     session_id: str,
     max_turns: int,
     repo_root: Path,
+    service_number: Optional[str] = None,
 ) -> dict[str, str]:
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
     protocol.validate_session_id(session_id)
     if not 1 <= max_turns <= MAX_TURNS:
         raise ValueError("invalid_relay_max_turns")
+    service_number = normalize_service_number(service_number)
 
     adb = Adb(serial)
     mailbox = AdbRelayMailbox(serial)
@@ -592,7 +638,10 @@ def run_orange_chat_relay(
             if request.session_id != session_id or request.turn_id != last_turn + 1:
                 raise RuntimeError("unexpected relay request identity/order")
             request.validate(1_500)
-            automatic_response = automatic_clir_supervisor_response(request.text)
+            automatic_response = automatic_orange_supervisor_response(
+                request.text,
+                service_number=service_number,
+            )
             if automatic_response is not None:
                 mailbox.write_response(
                     protocol.Envelope(session_id, request.turn_id, automatic_response)
@@ -685,6 +734,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--session")
     parser.add_argument("--max-turns", type=int, default=MAX_TURNS)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--service-number",
+        default=os.environ.get("AICALL_SERVICE_NUMBER"),
+        help="runtime-only service number used for an explicit Orange service-number prompt",
+    )
     parser.add_argument("--allow-clir-enable", action="store_true")
     args = parser.parse_args(argv)
     try:
@@ -696,6 +750,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             session_id=session_id,
             max_turns=args.max_turns,
             repo_root=args.repo_root,
+            service_number=args.service_number,
         )
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:

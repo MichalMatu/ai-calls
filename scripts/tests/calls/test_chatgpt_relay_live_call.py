@@ -201,5 +201,47 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         wait_signal.assert_called_once()
 
 
+    def test_service_number_normalization_is_runtime_safe_and_strict(self):
+        self.assertEqual("123456789", live.normalize_service_number("123 456 789"))
+        self.assertEqual("48123456789", live.normalize_service_number("+48 (123) 456-789"))
+        self.assertIsNone(live.normalize_service_number(None))
+        with self.assertRaises(ValueError):
+            live.normalize_service_number("12345")
+        with self.assertRaises(ValueError):
+            live.normalize_service_number("abc123456789")
+
+    def test_orange_service_number_prompt_is_answered_locally_when_configured(self):
+        response = live.automatic_orange_supervisor_response(
+            "Podaj dowolny numer twojej usługi lub wprowadź go na klawiaturze.",
+            service_number="123456789",
+        )
+        self.assertEqual("Numer usługi to 1 2 3 4 5 6 7 8 9.", response)
+
+    def test_orange_service_number_prompt_falls_back_without_runtime_number(self):
+        self.assertIsNone(
+            live.automatic_orange_supervisor_response(
+                "Podaj dowolny numer twojej usługi lub wprowadź go na klawiaturze.",
+                service_number=None,
+            )
+        )
+
+    def test_orange_fast_path_does_not_disclose_number_for_unrelated_prompt(self):
+        self.assertIsNone(
+            live.automatic_orange_supervisor_response(
+                "Podaj numer telefonu konsultanta.",
+                service_number="123456789",
+            )
+        )
+
+    def test_orange_fast_path_preserves_clir_commit_control(self):
+        self.assertEqual(
+            live.CLIR_COMMIT_CONTROL,
+            live.automatic_orange_supervisor_response(
+                "Czy chcesz włączyć zastrzeganie numeru?",
+                service_number="123456789",
+            ),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
