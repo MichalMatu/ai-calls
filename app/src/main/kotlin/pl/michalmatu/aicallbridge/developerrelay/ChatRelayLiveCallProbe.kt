@@ -143,6 +143,9 @@ internal object ChatRelayLiveCallProbe {
         private var totalRxBytes = 0L
         private var totalTxBytes = 0L
         private var noSpeechRetries = 0
+        private var turnDecisionBaseline = 0
+        private var turnResponseSourceBaseline = 0
+        private var turnLocalSkillErrorBaseline = 0
 
         private val timeout = Runnable { finish(false, "probe_timeout") }
 
@@ -207,6 +210,10 @@ internal object ChatRelayLiveCallProbe {
             }
             currentTurn = turnsCompleted + 1
             noSpeechRetries = 0
+            val diagnosticsBeforeTurn = hybridDiagnostics.snapshot()
+            turnDecisionBaseline = diagnosticsBeforeTurn.decisions.size
+            turnResponseSourceBaseline = diagnosticsBeforeTurn.responseSources.size
+            turnLocalSkillErrorBaseline = diagnosticsBeforeTurn.localSkillErrors.size
             turnStartedAtMs = SystemClock.elapsedRealtime()
             estimatedSpeechEndElapsedMs = null
             lines += "turn_${currentTurn}_started=true"
@@ -220,8 +227,12 @@ internal object ChatRelayLiveCallProbe {
                 override fun onUserTranscript(text: String) {
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
-                    if (isClirRouteEvidence(text) && routeVerified.compareAndSet(false, true)) {
-                        lines += "clir_route_verified=true"
+                    val routeEvidence = isClirRouteEvidence(text)
+                    if (routeEvidence) {
+                        lines += "turn_${currentTurn}_clir_route_evidence=true"
+                        if (routeVerified.compareAndSet(false, true)) {
+                            lines += "clir_route_verified=true"
+                        }
                     }
                     if (commitmentConsumed.get() && isClirSuccessEvidence(text)) {
                         pendingExternalSuccessTranscript = text
@@ -232,6 +243,7 @@ internal object ChatRelayLiveCallProbe {
                 override fun onApprovedText(text: String) {
                     lines += "turn_${currentTurn}_approved_chars=${text.length}"
                     lines += "turn_${currentTurn}_approved_elapsed_ms=${elapsedTurnMs()}"
+                    recordTurnDialogueDiagnostics(currentTurn)
                 }
 
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
@@ -239,8 +251,15 @@ internal object ChatRelayLiveCallProbe {
                     executor.execute { writeOutputTurn(lease, pcm, currentTurn, generation) }
                 }
 
-                override fun onDroppedText() = finish(false, "output_dropped")
-                override fun onError(reason: String) = finish(false, reason)
+                override fun onDroppedText() {
+                    recordTurnDialogueDiagnostics(currentTurn)
+                    finish(false, "output_dropped")
+                }
+
+                override fun onError(reason: String) {
+                    recordTurnDialogueDiagnostics(currentTurn)
+                    finish(false, reason)
+                }
             })
         }
 
@@ -462,6 +481,23 @@ internal object ChatRelayLiveCallProbe {
                 value.contains("aktyw") || value.contains("uruchom") ||
                 value.contains("została ustawiona") || value.contains("zostala ustawiona") ||
                 value.contains("zmiana została wykonana") || value.contains("zmiana zostala wykonana")
+        }
+
+        private fun recordTurnDialogueDiagnostics(turn: Int) {
+            val snapshot = hybridDiagnostics.snapshot()
+            snapshot.decisions.drop(turnDecisionBaseline).lastOrNull()?.let { decision ->
+                lines += "turn_${turn}_dialogue_action=${decision.actionId.name}"
+                lines += "turn_${turn}_dialogue_confidence=${decision.confidence}"
+                decision.argument?.let { argument ->
+                    lines += "turn_${turn}_dialogue_argument=${sanitize(argument)}"
+                }
+            }
+            snapshot.responseSources.drop(turnResponseSourceBaseline).lastOrNull()?.let { source ->
+                lines += "turn_${turn}_response_source=${source.name}"
+            }
+            snapshot.localSkillErrors.drop(turnLocalSkillErrorBaseline).lastOrNull()?.let { error ->
+                lines += "turn_${turn}_local_error=${sanitize(error)}"
+            }
         }
 
         private fun elapsedTurnMs(): Long =
