@@ -217,12 +217,13 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         )
         self.assertEqual("Numer usługi to 1 2 3 4 5 6 7 8 9.", response)
 
-    def test_authorized_phone_control_requires_runtime_value(self):
-        with self.assertRaises(RuntimeError):
+    def test_authorized_phone_control_without_runtime_value_falls_through_to_transient_relay(self):
+        self.assertIsNone(
             live.automatic_orange_supervisor_response(
                 live.DISCLOSE_PHONE_CONTROL,
                 service_number=None,
             )
+        )
 
     def test_natural_language_is_not_interpreted_by_host_dialogue_script(self):
         self.assertIsNone(

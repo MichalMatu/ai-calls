@@ -330,7 +330,7 @@ def automatic_orange_supervisor_response(
     if text.strip() != DISCLOSE_PHONE_CONTROL:
         return None
     if service_number is None:
-        raise RuntimeError("service number unavailable for authorized disclosure action")
+        return None
     spoken_digits = " ".join(service_number)
     return f"Numer usługi to {spoken_digits}."
 
