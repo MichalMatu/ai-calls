@@ -321,32 +321,6 @@ class GitChatRelayTransport:
         return result.stdout
 
 
-def automatic_clir_supervisor_response(text: str) -> Optional[str]:
-    """Return only the app-owned commit control for an unambiguous CLIR activation prompt."""
-    value = " ".join(text.casefold().split())
-    names_clir = (
-        "clir" in value
-        or ("blokad" in value and "prezentac" in value and "numer" in value)
-        or ("zastrz" in value and "numer" in value)
-    )
-    asks_enable = any(
-        token in value
-        for token in (
-            "włączyć",
-            "wlaczyc",
-            "aktywować",
-            "aktywowac",
-            "uruchomić",
-            "uruchomic",
-            "potwierdź",
-            "potwierdz",
-            "czy chcesz",
-            "czy mam",
-        )
-    )
-    return CLIR_COMMIT_CONTROL if names_clir and asks_enable else None
-
-
 def automatic_orange_supervisor_response(
     text: str,
     *,
