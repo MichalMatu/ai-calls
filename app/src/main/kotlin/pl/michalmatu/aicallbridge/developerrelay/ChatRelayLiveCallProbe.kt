@@ -268,7 +268,10 @@ internal object ChatRelayLiveCallProbe {
                 finish(false, "turn_${turn}_downlink_pump_unavailable")
                 return
             }
-            val detector = PcmEndOfUtteranceDetector()
+            val detector = PcmEndOfUtteranceDetector(
+                trailingSilenceMs = 1_500,
+                maxCaptureMs = 60_000,
+            )
             val captureStartedElapsedMs = elapsedTurnMs()
             var total = 0
             var endpoint = detector.acceptPcm16(ByteArray(0))
