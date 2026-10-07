@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <queries>
@@ -52,6 +55,10 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:noHistory="true" />
+
+        <activity
+            android:name=".campaign.CampaignToolActivity"
+            android:exported="false" />
 
         <activity
             android:name=".DiagnosticProbeActivity"
