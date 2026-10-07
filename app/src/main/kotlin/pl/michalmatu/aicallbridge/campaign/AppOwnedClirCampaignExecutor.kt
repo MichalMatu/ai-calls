@@ -69,6 +69,14 @@ internal object AppOwnedClirCampaignExecutor {
             onStatus("Telecom service unavailable")
             return
         }
+        if (
+            appContext.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            running.set(false)
+            onStatus("Required phone-state permission is not granted")
+            return
+        }
         val existingCall = runCatching { telecomManager.isInCall }.getOrElse {
             running.set(false)
             onStatus("Could not verify cellular call state")
@@ -86,6 +94,14 @@ internal object AppOwnedClirCampaignExecutor {
             return
         }
 
+        if (
+            appContext.checkSelfPermission(Manifest.permission.CALL_PHONE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            running.set(false)
+            onStatus("Required phone-call permission is not granted")
+            return
+        }
         val callIntent = Intent(
             Intent.ACTION_CALL,
             Uri.fromParts("tel", request.target, null),
@@ -136,7 +152,7 @@ internal object AppOwnedClirCampaignExecutor {
                 return
             }
             if (System.currentTimeMillis() >= deadlineEpochMs) {
-                val cleanupOk = endOwnedCall(telecomManager)
+                val cleanupOk = endOwnedCall(appContext, telecomManager)
                 running.set(false)
                 onStatus(
                     "Call did not become active before timeout; " +
@@ -171,7 +187,7 @@ internal object AppOwnedClirCampaignExecutor {
             val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
             val externalSuccess = reportValue(report, "clir_external_success") == "true"
             val failureReason = reportValue(report, "failure_reason")
-            val cleanupOk = endOwnedCall(telecomManager)
+            val cleanupOk = endOwnedCall(appContext, telecomManager)
             running.set(false)
 
             onStatus(
@@ -207,13 +223,26 @@ internal object AppOwnedClirCampaignExecutor {
     }
 
     @Suppress("DEPRECATION")
-    private fun endOwnedCall(telecomManager: TelecomManager): Boolean = runCatching {
-        if (!telecomManager.isInCall) {
-            true
-        } else {
-            telecomManager.endCall()
+    private fun endOwnedCall(
+        context: Context,
+        telecomManager: TelecomManager,
+    ): Boolean {
+        if (
+            context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED ||
+            context.checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
         }
-    }.getOrDefault(false)
+        return runCatching {
+            if (!telecomManager.isInCall) {
+                true
+            } else {
+                telecomManager.endCall()
+            }
+        }.getOrDefault(false)
+    }
 
     private fun reportValue(report: String, key: String): String? =
         report.lineSequence()
