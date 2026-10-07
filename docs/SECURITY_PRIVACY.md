@@ -139,7 +139,7 @@ During the active CLIR campaign, physical calls and independent state interrogat
 
 ## Data minimization
 
-Do not retain by default raw PCM, recordings, full transcripts, credentials, plaintext identity values or unrelated counterparty data. Prefer typed IDs, redacted evidence, sizes/timings and bounded correlation IDs.
+Do not retain by default raw PCM, recordings, full transcripts, credentials, plaintext identity values or unrelated counterparty data. Prefer typed IDs, redacted evidence, sizes/timings and bounded correlation IDs. Durable external-success reports must store typed/redacted evidence, never the matched transcript text.
 
 Transient supervisor relay branches may contain raw turn data only for the active session and must be deleted during cleanup. Sanitized evidence must be preserved before cleanup when needed for debugging.
 
