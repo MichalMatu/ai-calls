@@ -15,11 +15,12 @@ The latest independent network interrogation reports caller ID as not restricted
 ## Live dialogue path
 
 ```text
-readiness + IDLE (direct USB by default; verified wireless ADB is allowed only with explicit `--allow-wireless-adb` and exact S22 model/physical-serial match)
- -> real Orange call
+app-owned scoped campaign grant
+ -> readiness + IDLE
+ -> app-owned exact `*100` dial
  -> known turn: script/PhraseMatrix
  -> bounded unknown turn: Gemma action router
- -> unresolved/TAKE_OVER: live supervisor in the same call
+ -> unresolved in app-owned mode: fail closed
  -> application output approval
  -> commitment only through shared CallCommitmentGate
  -> factual Orange result
@@ -33,7 +34,7 @@ Relevant physical findings already absorbed into the implementation:
 - the real Gemma router maps this to `DISCLOSE_AUTHORIZED_FACT(PHONE)`;
 - live endpointing is 1.5 s trailing silence / 60 s hard capture to tolerate IVR pauses;
 - recurrent unsupported facts fail closed to takeover;
-- supervisor relay is dialogue fallback, not an identity transport.
+- ChatRelay/supervisor remains an optional developer fallback, not an identity transport and not a dependency of the app-owned campaign executor.
 
 ## Identity boundary and current blocker
 
@@ -49,9 +50,9 @@ IdentityVault
  -> approved local speech
 ```
 
-The local resolver and private app-owned enrollment path are implemented and host-green; Android Keystore-backed vault storage is physically proven on S22. The old ADB/host plaintext bootstrap is removed. The remaining blocker is physical proof of the new enrollment/disclosure path on S22 and then local enrollment of the real service number. Do not place that plaintext in Git, Local Agent task JSON, ADB transport, normal logs, ServicePacks or model/supervisor context.
+The local resolver and private app-owned enrollment/disclosure path are `PROVEN_S22`; Android Keystore-backed vault storage is physically proven as well. The old ADB/host plaintext bootstrap is removed and the real value is enrolled locally. The remaining blocker is physical proof of the new app-owned campaign grant/dial/runtime path and factual CLIR success. Do not place that plaintext in Git, Local Agent task JSON, ADB transport, normal logs, ServicePacks or model/supervisor context.
 
-Before the next real call, install the exact-head APK, prove the complete enrollment/disclosure path on S22 with a synthetic value and redacted evidence, then enter the real value manually through the private app-owned screen.
+Before the next real call, install the exact-head APK, open `Campaign tools`, authorize the bounded CLIR-enable campaign locally, and start it from the app. ChatGPT/Local Agent/ADB must not be required to dial or sustain the product call.
 
 ## Commitment and completion
 
@@ -73,7 +74,7 @@ Do not add a `ClirCommitmentGate`. Permit consumption is not external success.
 
 ## Physical-first rule
 
-Real calls are the acceptance loop after code/device prerequisites are green. During an owned `OFFHOOK` call, relay/call handling has priority over docs/builds. Preserve only sanitized evidence and return the phone to `IDLE`.
+Real calls are the acceptance loop after code/device prerequisites are green. During an app-owned `OFFHOOK` call, its local runtime has priority; developer relay tooling is optional rather than a product dependency. Preserve only sanitized evidence and return the phone to `IDLE`.
 
 After enable succeeds, execute the inverse `SET_SERVICE(CLIR=false)` flow and move recurrent supervisor cases into script/PhraseMatrix or Gemma skills.
 
