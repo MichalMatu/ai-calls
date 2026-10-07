@@ -74,6 +74,52 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         self.assertIn(live.RESPONSE_PATH, publish_argv)
         self.assertIsNone(publish_call.kwargs.get("input"))
 
+    def test_wireless_transport_requires_explicit_opt_in(self):
+        adb = mock.Mock()
+        adb.serial = "192.168.0.100:34855"
+        devices = (
+            "List of devices attached\n"
+            "192.168.0.100:34855 device product:g0sxeea model:SM_S906B device:g0s\n"
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "direct USB"):
+            live.require_adb_transport(adb, devices, allow_wireless_adb=False)
+
+        adb.shell.assert_not_called()
+
+    def test_wireless_transport_accepts_exact_s22_identity(self):
+        adb = mock.Mock()
+        adb.serial = "192.168.0.100:34855"
+        adb.shell.side_effect = ["SM-S906B\n", "RFCT70L7E8J\n"]
+        devices = (
+            "List of devices attached\n"
+            "192.168.0.100:34855 device product:g0sxeea model:SM_S906B device:g0s\n"
+        )
+
+        self.assertEqual(
+            "wireless",
+            live.require_adb_transport(adb, devices, allow_wireless_adb=True),
+        )
+        self.assertEqual(
+            [
+                mock.call(["getprop", "ro.product.model"]),
+                mock.call(["getprop", "ro.serialno"]),
+            ],
+            adb.shell.call_args_list,
+        )
+
+    def test_wireless_transport_rejects_wrong_physical_identity(self):
+        adb = mock.Mock()
+        adb.serial = "192.168.0.100:34855"
+        adb.shell.side_effect = ["SM-S906B\n", "WRONG-SERIAL\n"]
+        devices = (
+            "List of devices attached\n"
+            "192.168.0.100:34855 device product:g0sxeea model:SM_S906B device:g0s\n"
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "identity mismatch"):
+            live.require_adb_transport(adb, devices, allow_wireless_adb=True)
+
     def test_metric_formatter_whitelists_only_non_text_timing_fields(self):
         report = {
             "turns_completed": "1",
