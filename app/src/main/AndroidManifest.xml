@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <uses-feature
@@ -63,6 +65,12 @@
         <activity
             android:name=".campaign.CampaignToolActivity"
             android:exported="false" />
+
+        <service
+            android:name=".campaign.AppOwnedCampaignService"
+            android:exported="false"
+            android:foregroundServiceType="microphone"
+            android:stopWithTask="false" />
 
         <activity
             android:name=".DiagnosticProbeActivity"
