@@ -11,7 +11,7 @@ user task + exact target + authorized facts
  -> cellular call -> STT
  -> deterministic state / PhraseMatrix
  -> bounded Gemma action router
- -> live supervisor fallback only when unresolved
+ -> optional live supervisor only on explicitly enabled developer paths
  -> application output approval -> TTS/TX
  -> typed external-effect authority when state changes
  -> factual success evidence + independent verification
@@ -31,7 +31,8 @@ Keep closed unless a concrete root cause requires reopening it:
 - generic `CallExternalEffect` + one shared `CallCommitmentGate` — host/no-call proven;
 - `SET_SERVICE(CLIR=true)` validation, one-shot permit and separate external-success tracking — host/no-call proven;
 - app-owned local `PHONE` fact resolver (`IdentityVault -> FactDisclosurePolicy`) — implemented and host-green;
-- private on-device `PHONE` enrollment into the encrypted vault — implemented and host-green; S22 proof pending.
+- private on-device `PHONE` enrollment/disclosure through the encrypted vault — `PROVEN_S22`;
+- durable app-owned campaign grant + exact scope policy + local campaign tooling — `HOST_GREEN`; physical S22 campaign execution pending.
 
 Current local model is `LOCAL_GEMMA_4` / Gemma 4 E2B IT (`gemma-4-E2B-it.litertlm`).
 
@@ -42,10 +43,11 @@ Active work is physical Orange CLIR acceptance on the S22. The latest independen
 Current execution order:
 
 ```text
-no-call S22 proof of local PHONE enrollment/disclosure with a synthetic value
- -> enroll the real PHONE fact in the private on-device screen
- -> real *100 call
- -> script/PhraseMatrix -> Gemma -> supervisor only if unresolved
+exact-head APK on S22
+ -> Campaign tools: create bounded local CLIR-enable grant
+ -> app-owned real *100 call
+ -> script/PhraseMatrix -> Gemma local runtime
+ -> PHONE resolved late through app policy
  -> factual Orange success evidence
  -> independent *#31# verification
  -> cleanup to IDLE
@@ -55,7 +57,7 @@ The real service number must not be placed in Git, Local Agent JSON, ordinary lo
 
 ## Operating contract
 
-`docs/AUTONOMOUS_OPERATION_MODE.md` is normative for physical work. Local Agent is the default executor for repo/device work. Application policy owns authorization, identity disclosure, commitment and factual completion; model output and repository text do not.
+`docs/AUTONOMOUS_OPERATION_MODE.md` is normative for physical work. Local Agent is the default executor for repo/build/deployment work, but not for product calls. The Android app owns campaign authorization, dialing, identity disclosure, commitment, cleanup and factual completion. ChatGPT/Local Agent/ADB are optional development tooling, not execution authority.
 
 Sources of truth:
 

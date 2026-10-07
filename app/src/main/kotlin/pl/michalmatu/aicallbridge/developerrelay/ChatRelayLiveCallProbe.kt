@@ -70,6 +70,7 @@ internal object ChatRelayLiveCallProbe {
         sessionId: String,
         maxTurns: Int,
         phoneDisclosureAuthorized: Boolean,
+        supervisorRelayEnabled: Boolean = true,
         callback: (String) -> Unit,
     ) {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -80,7 +81,14 @@ internal object ChatRelayLiveCallProbe {
             callback(immediateReport("cellular_call_not_active"))
             return
         }
-        Run(appContext, sessionId, maxTurns, phoneDisclosureAuthorized, callback).start()
+        Run(
+            appContext,
+            sessionId,
+            maxTurns,
+            phoneDisclosureAuthorized,
+            callback,
+            supervisorRelayEnabled,
+        ).start()
     }
 
     private class Run(
@@ -89,6 +97,7 @@ internal object ChatRelayLiveCallProbe {
         private val maxTurns: Int,
         private val phoneDisclosureAuthorized: Boolean,
         private val callback: (String) -> Unit,
+        private val supervisorRelayEnabled: Boolean,
     ) {
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
@@ -141,6 +150,7 @@ internal object ChatRelayLiveCallProbe {
             authorizedFactBackend = localPhoneFactBackend,
             effectCommitControl = COMMIT_CLIR_ENABLE,
             canConfirmEffect = { routeVerified.get() && !commitmentConsumed.get() },
+            supervisorRelayEnabled = supervisorRelayEnabled,
         )
         private val backend = controlAwareBackend(hybridBackend)
         private val pipeline = LocalSpeechTextPipeline(
@@ -150,8 +160,8 @@ internal object ChatRelayLiveCallProbe {
         )
         private val lines = mutableListOf(
             "probe=chat_relay_live_call",
-            "developer_relay=true",
-            "hybrid_dialogue=gemma_then_chatgpt",
+            "developer_relay=$supervisorRelayEnabled",
+            "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
             "clir_commit_control=$COMMIT_CLIR_ENABLE",
             "clir_success_control=$CONFIRM_CLIR_ENABLE",
             "call_required=true",

@@ -78,6 +78,7 @@ internal object GateCHybridDialogueBackendFactory {
         authorizedFactBackend: TextCallAgentBackend? = null,
         effectCommitControl: String? = null,
         canConfirmEffect: () -> Boolean = { false },
+        supervisorRelayEnabled: Boolean = true,
     ): TextCallAgentBackend {
         require(
             provider == TextLlmProvider.LOCAL_PHONE_LLM || provider == TextLlmProvider.LOCAL_GEMMA_4,
@@ -85,22 +86,36 @@ internal object GateCHybridDialogueBackendFactory {
         if (effectCommitControl != null) {
             require(effectCommitControl.isNotBlank()) { "effect_commit_control_required" }
         }
-        ChatRelayEnvelope(relaySessionId, 1, "probe").validate()
+        val unavailableRelayBackend = object : TextCallAgentBackend {
+            override fun generate(
+                userText: String,
+                listener: TextCallAgentBackend.Listener,
+            ) {
+                listener.onError("supervisor_relay_disabled")
+            }
 
-        val relayBackend = InteractiveChatRelayBackend(
-            mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME)),
-            sessionId = relaySessionId,
-        )
-        val hostActionRelay = relayBackend.observed(
+            override fun cancel() = Unit
+            override fun close() = Unit
+        }
+        val relayBackend = if (supervisorRelayEnabled) {
+            ChatRelayEnvelope(relaySessionId, 1, "probe").validate()
+            InteractiveChatRelayBackend(
+                mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME)),
+                sessionId = relaySessionId,
+            )
+        } else {
+            null
+        }
+        val hostActionRelay = relayBackend?.observed(
             onComplete = {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.HOST_ACTION)
             },
-        )
-        val supervisorRelay = relayBackend.observed(
+        ) ?: unavailableRelayBackend
+        val supervisorRelay = relayBackend?.observed(
             onComplete = {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.CHAT_RELAY)
             },
-        )
+        ) ?: unavailableRelayBackend
         val factActionBackend = if (authorizedFactBackend == null) {
             hostActionRelay
         } else {

@@ -1,5 +1,10 @@
 package pl.michalmatu.aicallbridge
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import rikka.shizuku.Shizuku
+
 internal data class LiveCallReadinessInputs(
     val recordAudioGranted: Boolean,
     val shizukuBinderAvailable: Boolean,
@@ -44,5 +49,30 @@ internal object LiveCallReadinessPolicy {
             else -> null
         }
         return LiveCallReadinessResult(inputs, failure)
+    }
+}
+
+
+internal object AndroidLiveCallReadiness {
+    fun evaluate(context: Context): LiveCallReadinessResult {
+        val recordAudioGranted =
+            context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+        val shizukuBinderAvailable = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
+        val shizukuSupported = shizukuBinderAvailable &&
+            runCatching { !Shizuku.isPreV11() }.getOrDefault(false)
+        val shizukuPermissionGranted = shizukuSupported &&
+            runCatching {
+                Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+            }.getOrDefault(false)
+
+        return LiveCallReadinessPolicy.evaluate(
+            LiveCallReadinessInputs(
+                recordAudioGranted = recordAudioGranted,
+                shizukuBinderAvailable = shizukuBinderAvailable,
+                shizukuSupported = shizukuSupported,
+                shizukuPermissionGranted = shizukuPermissionGranted,
+            ),
+        )
     }
 }

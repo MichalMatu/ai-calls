@@ -17,7 +17,8 @@
 - generic `CallExternalEffect` + shared one-shot `CallCommitmentGate` — `DONE / HOST_GREEN`.
 - `SET_SERVICE(CLIR=true)` validation + separate external-success tracking — `DONE / HOST_GREEN`.
 - local `PHONE` fact resolver through `IdentityVault -> AuthorizedFactSnapshot -> FactDisclosurePolicy` — `DONE / HOST_GREEN`.
-- private app-owned `PHONE` enrollment into `AndroidIdentityVault` — `DONE / HOST_GREEN`; `PROVEN_S22` pending.
+- private app-owned `PHONE` enrollment/disclosure into `AndroidIdentityVault` — `DONE / HOST_GREEN / PROVEN_S22`.
+- durable app-owned CLIR-enable campaign grant + exact scope matcher + local dial/runtime tooling — `DONE / HOST_GREEN`; `PROVEN_S22` pending.
 
 `docs/AUTONOMOUS_OPERATION_MODE.md` remains normative for physical acceptance.
 
@@ -28,7 +29,7 @@ Physical execution is active and **not yet successful**.
 Already established on the real S22/Orange path:
 
 - on-net campaign route is `*100`;
-- multi-turn dialogue is `script/PhraseMatrix -> Gemma -> live supervisor`;
+- developer relay dialogue can use `script/PhraseMatrix -> Gemma -> live supervisor`; the app-owned campaign path is `script/PhraseMatrix -> Gemma -> fail closed` with no ChatGPT dependency;
 - endpointing uses 1.5 s trailing silence / 60 s hard capture to tolerate IVR pauses;
 - Gemma correctly classifies the service-number prompt as `DISCLOSE_AUTHORIZED_FACT(PHONE)`;
 - unsupported fact requests fail closed;
@@ -36,15 +37,15 @@ Already established on the real S22/Orange path:
 - independent state interrogation is available;
 - latest independent state: caller ID defaults to **not restricted**.
 
-The code blocker for identity enrollment is closed: the private app-owned enrollment path and reusable authorized PHONE backend are host-green, and the old ADB/host plaintext bootstrap is removed. The remaining blocker is physical proof on S22 plus local enrollment of the real service number. Plaintext must not move through Git, Local Agent JSON, durable logs or supervisor/model context.
+The identity blocker is closed and physically proven: private app-owned PHONE enrollment/disclosure is `PROVEN_S22`. The transport blocker is also closed in code: the app now owns the bounded campaign grant, scope validation, dial and local runtime; ChatGPT/Local Agent/ADB are not part of product call execution. The remaining blocker is physical proof of this app-owned campaign executor and factual CLIR success. Plaintext must not move through Git, Local Agent JSON, durable logs or supervisor/model context.
 
 ### Next execution order
 
-1. Install the exact current-head APK and run the no-call S22 proof using a synthetic phone value: local enrollment -> exact control -> policy `ALLOW` -> encrypted vault read -> application output approval -> local speech, with no plaintext in logs/evidence.
-2. Enroll the real service number manually through the private app-owned screen; do not route it through Git/ADB/relay/task JSON.
-3. Run one controlled real `*100` iteration with readiness + `IDLE`, preserving typed/redacted evidence.
+1. Install the exact current-head APK on S22 and open `Campaign tools`.
+2. Create the bounded local CLIR-enable grant; the app binds it to the current default voice subscription and requests any missing Android runtime permissions locally.
+3. Start the campaign from the app. The app must validate the grant/readiness/IDLE state, reserve an attempt, dial exact `*100`, run local dialogue/PHONE disclosure/commitment and clean up its owned call without ChatGPT/Local Agent/ADB.
 4. Accept enable only after factual Orange success **and** independent `*#31#` confirms restriction active.
-5. Then run the inverse `SET_SERVICE(CLIR=false)` acceptance loop.
+5. Then add/authorize the separately scoped inverse `SET_SERVICE(CLIR=false)` campaign and run its acceptance loop.
 
 ## Acceptance invariant
 

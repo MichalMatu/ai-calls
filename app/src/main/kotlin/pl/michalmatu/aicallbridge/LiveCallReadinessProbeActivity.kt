@@ -1,13 +1,10 @@
 package pl.michalmatu.aicallbridge
 
-import android.Manifest
 import android.app.Activity
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import java.io.File
-import rikka.shizuku.Shizuku
 
 /** ADB-only, no-call probe for prerequisites required before any live-call runner may dial. */
 class LiveCallReadinessProbeActivity : Activity() {
@@ -20,7 +17,7 @@ class LiveCallReadinessProbeActivity : Activity() {
         }
         setContentView(statusView)
 
-        val result = evaluateReadiness()
+        val result = AndroidLiveCallReadiness.evaluate(this)
         val report = result.renderReport()
         runCatching {
             File(filesDir, REPORT_FILENAME).writeText(report)
@@ -30,27 +27,6 @@ class LiveCallReadinessProbeActivity : Activity() {
         statusView.text = report
         Log.i(TAG, "live_call_readiness_complete=${result.ready}")
         finish()
-    }
-
-    private fun evaluateReadiness(): LiveCallReadinessResult {
-        val recordAudioGranted =
-            checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-        val shizukuBinderAvailable = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
-        val shizukuSupported = shizukuBinderAvailable &&
-            runCatching { !Shizuku.isPreV11() }.getOrDefault(false)
-        val shizukuPermissionGranted = shizukuSupported &&
-            runCatching {
-                Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-            }.getOrDefault(false)
-
-        return LiveCallReadinessPolicy.evaluate(
-            LiveCallReadinessInputs(
-                recordAudioGranted = recordAudioGranted,
-                shizukuBinderAvailable = shizukuBinderAvailable,
-                shizukuSupported = shizukuSupported,
-                shizukuPermissionGranted = shizukuPermissionGranted,
-            ),
-        )
     }
 
     companion object {

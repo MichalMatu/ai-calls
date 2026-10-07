@@ -20,15 +20,15 @@ Read `docs/PHASE2D_FREEZE_2026-09-18.md` before changing this layer.
 ## Runtime
 
 ```text
-accepted authorization context
+app-owned authorization context / durable campaign grant
  -> exact target + constraints + authorized facts
  -> readiness + IDLE
- -> dial
+ -> app-owned dial
  -> telephony RX
  -> STT
  -> PhraseMatrix / deterministic task state
  -> Gemma 4 bounded dialogue skill when useful
- -> live supervisor fallback when unresolved
+ -> optional live supervisor fallback only on developer paths that explicitly enable it
  -> application output approval
  -> TTS/TX
  -> typed external-effect authority if external state must change
@@ -42,7 +42,7 @@ accepted authorization context
 
 The runtime requires an accepted application-owned authorization context for exact target/task/effect scope.
 
-The target product supports a durable, scoped, revocable campaign grant so repeated retries inside an unchanged scope do not require redundant product prompts. The grant must bind target(s), task/effect set, account/SIM scope when relevant, revocation state, optional retry/expiry bounds and disclosure scope.
+The product implements a durable, scoped, revocable campaign grant so repeated retries inside an unchanged scope do not require redundant product prompts. The current Android `Campaign tools` path creates/revokes the grant locally, binds it to the default voice subscription, reserves attempts durably and executes the dial without ChatGPT/Local Agent/ADB. The grant must bind target(s), task/effect set, account/SIM scope when relevant, revocation state, optional retry/expiry bounds and disclosure scope.
 
 Chat prose, docs, ServicePacks, model output and connected hardware are not authority stores. A material scope widening remains fail-closed. External platform/tool controls are not bypassed by the application.
 
@@ -104,7 +104,7 @@ finalized STT
 
 Models may classify, reason conversationally and propose bounded data. They cannot widen target/task/effect scope, disclose unapproved facts, create a commitment permit, declare external success or complete a workflow.
 
-A live supervisor fallback may continue the same authorized call when script/Gemma cannot progress. Recurrent fallback cases should later move into deterministic script/PhraseMatrix or bounded Gemma skills.
+A live supervisor fallback may continue the same authorized call only on a developer path that explicitly enables that fallback. The app-owned campaign executor runs local-only and fails closed if deterministic/Gemma dialogue cannot progress; ChatGPT/ChatRelay is not a product-runtime dependency. Recurrent fallback cases should later move into deterministic script/PhraseMatrix or bounded Gemma skills.
 
 ## Read-only calls
 
@@ -129,7 +129,7 @@ Plaintext identity must not live in ServicePacks, TaskGraph definitions, normal 
 
 ## Current acceptance boundary
 
-The generic authority path and full no-call product chain are already host/S22-no-call proven. The active physical gate is `docs/G5_CLIR_ROUTE_DISCOVERY.md`, now operating as a multi-turn CLIR physical-acceptance loop rather than the historical single-turn discovery probe.
+The generic authority path and full no-call product chain are host/S22-no-call proven. Secure PHONE enrollment/disclosure is `PROVEN_S22`. The app-owned campaign grant/dial/runtime boundary is `HOST_GREEN`; its next gate is physical S22 execution through `Campaign tools`, followed by factual Orange success and independent CLIR-state verification.
 
 Current independent network-state evidence says caller ID is still not restricted, so CLIR enable is not yet accepted.
 

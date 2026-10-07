@@ -16,7 +16,7 @@ This path is `PROVEN_S22 / FROZEN`. Read `docs/PHASE2D_FREEZE_2026-09-18.md` bef
 
 - `CallTask` — exact task, constraints, preferences and authorized facts;
 - `CallResolvedTarget` — exact target;
-- application-owned authorization context / future durable campaign grant — exact scope in which repeated attempts are allowed;
+- application-owned authorization context / durable campaign grant — exact scope in which repeated attempts are allowed;
 - `CallExternalEffectValidator` — exact effect/task/target binding;
 - `CallCommitmentGate` — single one-shot commitment permit store;
 - `CallExternalEffectCompletionTracker` — exact post-consumption success evidence;
@@ -43,7 +43,7 @@ Do not create per-service commitment gates such as `ClirCommitmentGate`.
 
 ## Durable campaign grant
 
-The target autonomous product mode requires an explicit durable, scoped, revocable campaign grant owned by application policy.
+The autonomous product mode implements an explicit durable, scoped, revocable campaign grant owned by application policy. The grant is created/revoked locally, persisted privately, bound to the current default voice subscription, and checked again immediately before an app-owned dial.
 
 A grant must bind at least:
 
@@ -58,7 +58,7 @@ When a valid grant already covers an unchanged retry, the product should not ask
 
 Chat prose, markdown files, ServicePacks, model output, connected hardware and diagnostic artifacts are not substitutes for this authority object.
 
-External platform/tool confirmation requirements remain outside repository control and must not be bypassed.
+External platform/tool confirmation requirements remain outside repository control and must not be bypassed. The product runtime therefore does not depend on ChatGPT/Local Agent/ADB for authority or dialing; removing those developer transports from the execution path is architectural decoupling, not a bypass of Android permissions or application policy.
 
 ## Confirmation rule
 
@@ -88,14 +88,14 @@ Plaintext identity values stay out of TaskGraph definitions, ServicePacks, ordin
 STT
  -> deterministic state / PhraseMatrix
  -> bounded Gemma dialogue skill
- -> supervisor fallback when unresolved
+ -> optional supervisor fallback only on an explicitly enabled developer path
  -> application validation/output approval
  -> TTS/TX
 ```
 
 Gemma and supervisor cannot independently dial, widen target/task/effect scope, disclose unauthorized facts, bypass output approval, issue/consume commitment authority, mark external success or complete the task.
 
-Supervisor fallback is permitted to continue the same already-authorized live task when script/Gemma cannot progress. Recurrent fallback cases should be moved into deterministic script/PhraseMatrix or bounded Gemma skills in later iterations.
+Supervisor fallback is permitted only when an explicit developer path enables it. The app-owned campaign executor disables ChatRelay/supervisor fallback and fails closed when local dialogue cannot progress. Recurrent fallback cases should be moved into deterministic script/PhraseMatrix or bounded Gemma skills in later iterations.
 
 ## Live-call policy
 
@@ -113,7 +113,7 @@ Rules:
 - do not infer authority from a ServicePack, allowlist, connected phone, prior call, handoff text, model output or `.agent/results`;
 - if a physical call is made, cleanup must return the owned call to `IDLE`.
 
-Operational autonomy means Local Agent/ADB/supervisor should perform the work directly rather than using the operator as a terminal/log relay. It does not mean bypassing authority or platform controls.
+Product autonomy means the Android app performs authorized campaign execution directly. Local Agent/ADB/supervisor remain development and diagnostic tooling and are not product authority or a prerequisite for dialing. This does not weaken application authority or platform controls.
 
 ## Orange CLIR physical campaign
 
@@ -123,7 +123,7 @@ Requirements:
 
 - exact Orange CLIR campaign target/task/effect only;
 - pre-dial readiness + `IDLE`;
-- script/PhraseMatrix first, Gemma second, live supervisor fallback when unresolved;
+- script/PhraseMatrix first, Gemma second; the app-owned campaign path is local-only and fails closed when unresolved;
 - late-bound identity disclosure only through application policy;
 - exactly one shared `CallCommitmentGate` permit immediately before each real account-changing commitment;
 - separate factual external-success evidence;
