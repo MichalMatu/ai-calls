@@ -24,6 +24,7 @@ internal object ClirCampaignSpec {
         accountScope: String,
         nowEpochMs: Long,
         grantId: String = UUID.randomUUID().toString(),
+        issuerEvidenceRef: String = "local-ui:$grantId",
     ) = CampaignAuthorizationGrant(
         grantId = grantId,
         version = GRANT_VERSION,
@@ -38,6 +39,6 @@ internal object ClirCampaignSpec {
         allowedDisclosureFields = setOf(IdentityFieldId.PHONE),
         maxAttempts = MAX_ATTEMPTS,
         attemptsUsed = 0,
-        issuerEvidenceRef = "local-ui:$grantId",
+        issuerEvidenceRef = issuerEvidenceRef,
     )
 }
