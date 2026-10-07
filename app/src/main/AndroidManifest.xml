@@ -48,6 +48,12 @@
         </activity>
 
         <activity
+            android:name=".identity.PhoneEnrollmentActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true" />
+
+        <activity
             android:name=".DiagnosticProbeActivity"
             android:excludeFromRecents="true"
             android:exported="true"
