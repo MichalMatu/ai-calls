@@ -6,6 +6,7 @@ import pl.michalmatu.aicallbridge.developerrelay.ChatRelayEnvelope
 import pl.michalmatu.aicallbridge.developerrelay.ChatRelayMailbox
 import pl.michalmatu.aicallbridge.developerrelay.InteractiveChatRelayBackend
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
+import pl.michalmatu.aicallbridge.textagent.AuthorizedPhoneFactBackend
 import pl.michalmatu.aicallbridge.textagent.DialogueActionBackendFactory
 import pl.michalmatu.aicallbridge.textagent.DialogueActionDecision
 import pl.michalmatu.aicallbridge.textagent.DialogueActionDecisionObserver
@@ -67,7 +68,7 @@ internal class GateCHybridDiagnostics : DialogueActionDecisionObserver {
  * control token. Model errors, low confidence and TAKE_OVER fall through to the interactive relay.
  */
 internal object GateCHybridDialogueBackendFactory {
-    const val DISCLOSE_PHONE_CONTROL = "[[DISCLOSE_AUTHORIZED_FACT:PHONE]]"
+    const val DISCLOSE_PHONE_CONTROL = AuthorizedPhoneFactBackend.DISCLOSE_PHONE_CONTROL
 
     fun create(
         context: Context,

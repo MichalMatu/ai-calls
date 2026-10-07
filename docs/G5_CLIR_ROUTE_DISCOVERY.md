@@ -49,9 +49,9 @@ IdentityVault
  -> approved local speech
 ```
 
-The local resolver is implemented and host-green; Android Keystore-backed vault storage is physically proven on S22. The remaining blocker is safe local enrollment of the real service number. Do not place that plaintext in Git, Local Agent task JSON, normal logs, ServicePacks or model/supervisor context, and do not bypass external platform controls that block such transfer.
+The local resolver and private app-owned enrollment path are implemented and host-green; Android Keystore-backed vault storage is physically proven on S22. The old ADB/host plaintext bootstrap is removed. The remaining blocker is physical proof of the new enrollment/disclosure path on S22 and then local enrollment of the real service number. Do not place that plaintext in Git, Local Agent task JSON, ADB transport, normal logs, ServicePacks or model/supervisor context.
 
-Before the next real call, prove the complete local disclosure path on S22 with a synthetic value, then enroll the real value through an app-owned local mechanism.
+Before the next real call, install the exact-head APK, prove the complete enrollment/disclosure path on S22 with a synthetic value and redacted evidence, then enter the real value manually through the private app-owned screen.
 
 ## Commitment and completion
 

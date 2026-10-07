@@ -9,7 +9,6 @@ The branch is deleted during cleanup and raw transcripts are not copied into dur
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
@@ -32,7 +31,6 @@ PROBE_ACTIVITY = f"{PACKAGE_NAME}/.developerrelay.ChatRelayProbeActivity"
 REQUEST_PATH = "files/chat-relay/request.txt"
 RESPONSE_PATH = "files/chat-relay/response.txt"
 REPORT_PATH = "files/chat-relay-live-call-report.txt"
-PHONE_BOOTSTRAP_PATH = "files/identity-phone-bootstrap.txt"
 MAX_TURNS = 10
 MAX_SESSION_SECONDS = 600.0
 RESPONSE_TIMEOUT_SECONDS = 100.0
@@ -50,21 +48,6 @@ def normalize_allowlisted_target(raw: str) -> str:
     if target not in ALLOWLIST:
         raise ValueError("target is not in the operator-defined live-test allowlist")
     return target
-
-
-def normalize_service_number(raw: Optional[str]) -> Optional[str]:
-    """Normalize an optional runtime service number without persisting it in source."""
-    if raw is None:
-        return None
-    value = raw.strip()
-    if not value:
-        raise ValueError("service number is empty")
-    if any(char not in "0123456789 +-()" for char in value):
-        raise ValueError("service number contains unsupported characters")
-    digits = "".join(char for char in value if char.isdigit())
-    if not 7 <= len(digits) <= 15:
-        raise ValueError("service number must contain 7 to 15 digits")
-    return digits
 
 
 def relay_branch_name(session_id: str) -> str:
@@ -152,7 +135,7 @@ class AdbRelayMailbox:
 
     def clear(self) -> None:
         self._shell_run_as(
-            ["rm", "-rf", "files/chat-relay", REPORT_PATH, PHONE_BOOTSTRAP_PATH],
+            ["rm", "-rf", "files/chat-relay", REPORT_PATH],
             check=False,
         )
 
@@ -176,33 +159,6 @@ class AdbRelayMailbox:
         )
         subprocess.run(
             ["adb", "-s", self.serial, "shell", "run-as", PACKAGE_NAME, "mv", temp_path, RESPONSE_PATH],
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-        )
-
-    def stage_phone_bootstrap(self, service_number: str) -> None:
-        normalized = normalize_service_number(service_number)
-        if normalized is None:
-            raise ValueError("service number is required for bootstrap")
-        temp_path = PHONE_BOOTSTRAP_PATH + ".tmp"
-        subprocess.run(
-            [
-                "adb", "-s", self.serial, "shell", "run-as", PACKAGE_NAME,
-                "tee", temp_path,
-            ],
-            input=normalized + "\n",
-            text=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            check=True,
-        )
-        subprocess.run(
-            [
-                "adb", "-s", self.serial, "shell", "run-as", PACKAGE_NAME,
-                "mv", temp_path, PHONE_BOOTSTRAP_PATH,
-            ],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -359,18 +315,10 @@ class GitChatRelayTransport:
         return result.stdout
 
 
-def automatic_orange_supervisor_response(
-    text: str,
-    *,
-    service_number: Optional[str],
-) -> Optional[str]:
-    """Execute exact app-owned action controls; never infer intent from operator wording."""
-    if text.strip() != DISCLOSE_PHONE_CONTROL:
-        return None
-    if service_number is None:
-        return None
-    spoken_digits = " ".join(service_number)
-    return f"Numer usługi to {spoken_digits}."
+def validate_supervisor_request_text(text: str) -> None:
+    """Identity disclosure controls must be resolved on-device, never by the host relay."""
+    if text.strip() == DISCLOSE_PHONE_CONTROL:
+        raise RuntimeError("identity_disclosure_control_escaped_app")
 
 
 def parse_probe_report(text: str) -> Optional[dict[str, str]]:
@@ -544,14 +492,12 @@ def run_orange_chat_relay(
     session_id: str,
     max_turns: int,
     repo_root: Path,
-    service_number: Optional[str] = None,
     phone_disclosure_authorized: bool = False,
 ) -> dict[str, str]:
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
     protocol.validate_session_id(session_id)
     if not 1 <= max_turns <= MAX_TURNS:
         raise ValueError("invalid_relay_max_turns")
-    service_number = normalize_service_number(service_number)
     if not phone_disclosure_authorized:
         raise ValueError("phone disclosure authorization is required for CLIR relay")
 
@@ -606,9 +552,6 @@ def run_orange_chat_relay(
         print(f"orange_downlink_signal=true,rms:{signal.rms:.3f},peak:{signal.peak}")
 
         mailbox.clear()
-        if service_number is not None:
-            mailbox.stage_phone_bootstrap(service_number)
-            print("identity_phone_bootstrap_staged=true")
         subprocess.run(
             build_probe_start_args(
                 serial,
@@ -651,17 +594,7 @@ def run_orange_chat_relay(
             if request.session_id != session_id or request.turn_id != last_turn + 1:
                 raise RuntimeError("unexpected relay request identity/order")
             request.validate(1_500)
-            automatic_response = automatic_orange_supervisor_response(
-                request.text,
-                service_number=service_number,
-            )
-            if automatic_response is not None:
-                mailbox.write_response(
-                    protocol.Envelope(session_id, request.turn_id, automatic_response)
-                )
-                print(f"clir_local_autocommit=true,turn:{request.turn_id}")
-                last_turn = request.turn_id
-                continue
+            validate_supervisor_request_text(request.text)
 
             publish_started = time.monotonic()
             request_path = transport.publish_request(request)
@@ -747,11 +680,6 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--session")
     parser.add_argument("--max-turns", type=int, default=MAX_TURNS)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
-    parser.add_argument(
-        "--service-number",
-        default=os.environ.get("AICALL_SERVICE_NUMBER"),
-        help="runtime-only service number used for an explicit Orange service-number prompt",
-    )
     parser.add_argument("--allow-clir-enable", action="store_true")
     args = parser.parse_args(argv)
     try:
@@ -763,7 +691,6 @@ def main(argv: Optional[list[str]] = None) -> int:
             session_id=session_id,
             max_turns=args.max_turns,
             repo_root=args.repo_root,
-            service_number=args.service_number,
             phone_disclosure_authorized=True,
         )
         return 0

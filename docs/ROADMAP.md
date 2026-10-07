@@ -17,6 +17,7 @@
 - generic `CallExternalEffect` + shared one-shot `CallCommitmentGate` — `DONE / HOST_GREEN`.
 - `SET_SERVICE(CLIR=true)` validation + separate external-success tracking — `DONE / HOST_GREEN`.
 - local `PHONE` fact resolver through `IdentityVault -> AuthorizedFactSnapshot -> FactDisclosurePolicy` — `DONE / HOST_GREEN`.
+- private app-owned `PHONE` enrollment into `AndroidIdentityVault` — `DONE / HOST_GREEN`; `PROVEN_S22` pending.
 
 `docs/AUTONOMOUS_OPERATION_MODE.md` remains normative for physical acceptance.
 
@@ -35,16 +36,15 @@ Already established on the real S22/Orange path:
 - independent state interrogation is available;
 - latest independent state: caller ID defaults to **not restricted**.
 
-Current blocker is identity enrollment, not model understanding: the real service number is not yet present in the app-owned vault through a production-safe local enrollment path. The resolver itself is implemented; Android vault/Keystore has been physically proven. Plaintext must not move through Git, Local Agent JSON, durable logs or supervisor/model context.
+The code blocker for identity enrollment is closed: the private app-owned enrollment path and reusable authorized PHONE backend are host-green, and the old ADB/host plaintext bootstrap is removed. The remaining blocker is physical proof on S22 plus local enrollment of the real service number. Plaintext must not move through Git, Local Agent JSON, durable logs or supervisor/model context.
 
 ### Next execution order
 
-1. Confirm whether a suitable app-owned `PHONE` enrollment path already exists; if not, implement the smallest local-only enrollment path with redacted diagnostics and encrypted persistence.
-2. Add/run a no-call S22 proof of the complete local disclosure path using a synthetic phone value: exact control -> policy `ALLOW` -> vault read -> local speech text, with no plaintext in logs/evidence.
-3. Enroll the real service number locally through that app-owned path; do not route it through Git/relay/task JSON.
-4. Run one controlled real `*100` iteration with readiness + `IDLE`, preserving sanitized evidence.
-5. Accept enable only after factual Orange success **and** independent `*#31#` confirms restriction active.
-6. Then run the inverse `SET_SERVICE(CLIR=false)` acceptance loop.
+1. Install the exact current-head APK and run the no-call S22 proof using a synthetic phone value: local enrollment -> exact control -> policy `ALLOW` -> encrypted vault read -> application output approval -> local speech, with no plaintext in logs/evidence.
+2. Enroll the real service number manually through the private app-owned screen; do not route it through Git/ADB/relay/task JSON.
+3. Run one controlled real `*100` iteration with readiness + `IDLE`, preserving typed/redacted evidence.
+4. Accept enable only after factual Orange success **and** independent `*#31#` confirms restriction active.
+5. Then run the inverse `SET_SERVICE(CLIR=false)` acceptance loop.
 
 ## Acceptance invariant
 
