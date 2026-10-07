@@ -457,6 +457,23 @@ def wait_for_idle_best_effort(adb: Adb, timeout_seconds: float = 10.0) -> bool:
     return call_state_or_none(adb) == 0
 
 
+def validate_initial_call_state(
+    call_state: int | None,
+    *,
+    attach_existing_call: bool,
+) -> None:
+    if attach_existing_call:
+        if call_state != 2:
+            raise RuntimeError(
+                "attach-existing-call requires an already active cellular call"
+            )
+        return
+    if call_state != 0:
+        raise RuntimeError(
+            "refusing to dial because cellular call state is not confirmed IDLE"
+        )
+
+
 def wait_for_audio_signal_resilient(adb: Adb, *, timeout_seconds: float):
     """Retry only transient ADB/registry failures while preserving the overall signal deadline."""
     deadline = time.monotonic() + timeout_seconds
@@ -536,6 +553,7 @@ def run_orange_chat_relay(
     repo_root: Path,
     phone_disclosure_authorized: bool = False,
     allow_wireless_adb: bool = False,
+    attach_existing_call: bool = False,
 ) -> dict[str, str]:
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
     protocol.validate_session_id(session_id)
@@ -553,21 +571,24 @@ def run_orange_chat_relay(
         allow_wireless_adb=allow_wireless_adb,
     )
     print(f"adb_transport={adb_transport}")
-    readiness = run_live_call_readiness(serial)
-    if readiness.get("live_call_readiness") != "true":
-        raise RuntimeError("live-call readiness is not green immediately before dial")
-    print("live_call_readiness=true")
+    if attach_existing_call:
+        print("live_call_readiness=external_preflight_required")
+    else:
+        readiness = run_live_call_readiness(serial)
+        if readiness.get("live_call_readiness") != "true":
+            raise RuntimeError("live-call readiness is not green immediately before dial")
+        print("live_call_readiness=true")
     initial_call_state = call_state_or_none(adb)
-    if initial_call_state != 0:
-        raise RuntimeError(
-            "refusing to dial because cellular call state is not confirmed IDLE"
-        )
+    validate_initial_call_state(
+        initial_call_state,
+        attach_existing_call=attach_existing_call,
+    )
 
     original_bt = adb.shell(["settings", "get", "global", "bluetooth_on"], check=False).strip()
     if original_bt not in {"0", "1"}:
         raise RuntimeError("could not determine Bluetooth state")
     changed_bt = False
-    dialed = False
+    owns_call = attach_existing_call
     muted = False
     started_at = time.monotonic()
     last_turn = 0
@@ -583,10 +604,14 @@ def run_orange_chat_relay(
             print("bluetooth_disabled_for_test=true")
 
         print(f"allowlisted_target={number}")
-        adb.dial(number)
-        dialed = True
-        print("dial_requested=true")
-        wait_for_active_call(adb, 30.0)
+        if attach_existing_call:
+            print("attach_existing_call=true")
+            print("dial_requested=false")
+        else:
+            adb.dial(number)
+            owns_call = True
+            print("dial_requested=true")
+            wait_for_active_call(adb, 30.0)
 
         adb.shell(["cmd", "audio", "adj-mute", "0"])
         muted = True
@@ -697,7 +722,7 @@ def run_orange_chat_relay(
             mailbox.clear()
         except Exception as error:
             print(f"mailbox_cleanup_error={error}", file=sys.stderr)
-        if dialed:
+        if owns_call:
             hangup_requested = best_effort_hangup(adb)
             print(f"hangup_requested={str(hangup_requested).lower()}")
             idle = wait_for_idle_best_effort(adb, 10.0)
@@ -737,6 +762,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         action="store_true",
         help="allow a verified wireless ADB transport to the exact target S22",
     )
+    parser.add_argument(
+        "--attach-existing-call",
+        action="store_true",
+        help="attach to an already active operator-dialed call instead of dialing",
+    )
     args = parser.parse_args(argv)
     try:
         if not args.allow_clir_enable:
@@ -749,6 +779,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             repo_root=args.repo_root,
             phone_disclosure_authorized=True,
             allow_wireless_adb=args.allow_wireless_adb,
+            attach_existing_call=args.attach_existing_call,
         )
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:
