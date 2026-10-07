@@ -51,8 +51,13 @@ class AppOwnedCampaignService : Service() {
             accountScope = accountScope,
         ) { status ->
             statusStore.save(status)
-            notificationManager.notify(NOTIFICATION_ID, notification(status))
-            if (!AppOwnedClirCampaignExecutor.isRunning()) {
+            if (AppOwnedClirCampaignExecutor.isRunning()) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification(status),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+                )
+            } else {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -64,7 +69,6 @@ class AppOwnedCampaignService : Service() {
 
     private fun finish(status: String) {
         statusStore.save(status)
-        notificationManager.notify(NOTIFICATION_ID, notification(status))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
