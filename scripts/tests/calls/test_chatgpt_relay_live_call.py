@@ -74,26 +74,6 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         self.assertIn(live.RESPONSE_PATH, publish_argv)
         self.assertIsNone(publish_call.kwargs.get("input"))
 
-    @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.subprocess.run")
-    def test_phone_bootstrap_is_atomic_and_plaintext_stays_on_stdin(self, run):
-        run.return_value = subprocess.CompletedProcess([], 0, "", "")
-        mailbox = live.AdbRelayMailbox("RFCT70L7E8J")
-
-        mailbox.stage_phone_bootstrap("123 456 789")
-
-        self.assertEqual(2, run.call_count)
-        write_call, publish_call = run.call_args_list
-        write_argv = write_call.args[0]
-        publish_argv = publish_call.args[0]
-        argv_text = " ".join(write_argv + publish_argv)
-        self.assertNotIn("123456789", argv_text)
-        self.assertEqual("123456789\n", write_call.kwargs["input"])
-        self.assertIn("tee", write_argv)
-        self.assertIn(live.PHONE_BOOTSTRAP_PATH + ".tmp", write_argv)
-        self.assertIn("mv", publish_argv)
-        self.assertIn(live.PHONE_BOOTSTRAP_PATH, publish_argv)
-
-
     def test_metric_formatter_whitelists_only_non_text_timing_fields(self):
         report = {
             "turns_completed": "1",
@@ -227,35 +207,17 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         wait_signal.assert_called_once()
 
 
-    def test_service_number_normalization_is_runtime_safe_and_strict(self):
-        self.assertEqual("123456789", live.normalize_service_number("123 456 789"))
-        self.assertEqual("48123456789", live.normalize_service_number("+48 (123) 456-789"))
-        self.assertIsNone(live.normalize_service_number(None))
-        with self.assertRaises(ValueError):
-            live.normalize_service_number("12345")
-        with self.assertRaises(ValueError):
-            live.normalize_service_number("abc123456789")
+    def test_authorized_phone_control_fails_closed_at_host_boundary(self):
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "identity_disclosure_control_escaped_app",
+        ):
+            live.validate_supervisor_request_text(live.DISCLOSE_PHONE_CONTROL)
 
-    def test_authorized_phone_control_is_answered_from_runtime_value(self):
-        response = live.automatic_orange_supervisor_response(
-            live.DISCLOSE_PHONE_CONTROL,
-            service_number="123456789",
-        )
-        self.assertEqual("Numer usługi to 1 2 3 4 5 6 7 8 9.", response)
-
-    def test_authorized_phone_control_without_runtime_value_falls_through_to_transient_relay(self):
+    def test_natural_language_is_not_interpreted_as_identity_disclosure_by_host(self):
         self.assertIsNone(
-            live.automatic_orange_supervisor_response(
-                live.DISCLOSE_PHONE_CONTROL,
-                service_number=None,
-            )
-        )
-
-    def test_natural_language_is_not_interpreted_by_host_dialogue_script(self):
-        self.assertIsNone(
-            live.automatic_orange_supervisor_response(
-                "Podaj dowolny numer twojej usługi.",
-                service_number="123456789",
+            live.validate_supervisor_request_text(
+                "Podaj dowolny numer twojej usługi."
             )
         )
 
