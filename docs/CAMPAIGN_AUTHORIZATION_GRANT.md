@@ -1,6 +1,6 @@
 # Campaign authorization grant
 
-Status: design contract for the application-owned authorization layer.
+Status: **IMPLEMENTED / HOST_GREEN** for the current bounded CLIR-enable campaign; physical app-owned dial/runtime acceptance on S22 is still pending.
 
 ## Purpose
 
@@ -141,6 +141,29 @@ purpose = repeated physical acceptance iterations
 ```
 
 The grant must not authorize unrelated carrier services, purchases, payments, contracts, premium/emergency calls or another account/SIM.
+
+## Current implementation
+
+The Android app now owns this boundary directly:
+
+```text
+Campaign tools UI
+ -> private CampaignAuthorizationStore
+ -> exact CampaignAuthorizationPolicy match
+ -> default voice-subscription binding
+ -> durable attempt reservation
+ -> AndroidLiveCallReadiness
+ -> app-owned ACTION_CALL
+ -> local PhraseMatrix / Gemma dialogue
+ -> IdentityVault / FactDisclosurePolicy for PHONE
+ -> shared CallCommitmentGate
+ -> typed/redacted result
+ -> app-owned best-effort hangup
+```
+
+The current CLIR-enable grant is intentionally narrow: exact Orange target `*100`, `SET_SERVICE(CLIR=true)`, current default voice subscription, PHONE disclosure only, five attempts and 24-hour expiry. CLIR disable is not authorized by that grant.
+
+ChatGPT, ChatRelay, Local Agent and ADB are not required to create, validate, consume or execute the grant. ChatRelay remains an optional developer fallback for separate developer-controlled call paths. This separation does not bypass Android permissions or external platform controls; it removes those external developer transports from the application execution path.
 
 ## Acceptance criteria for this feature
 
