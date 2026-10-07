@@ -18,6 +18,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.runtime.CallAudioMode
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
@@ -134,6 +135,13 @@ class MainActivity : Activity() {
             setOnClickListener { requestMicrophonePermissionIfNeeded() }
         }
 
+        val enrollPhoneButton = Button(this).apply {
+            text = "Enroll phone number"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, PhoneEnrollmentActivity::class.java))
+            }
+        }
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 48, 32, 32)
@@ -151,6 +159,7 @@ class MainActivity : Activity() {
             addView(modelDownloadProgress)
             addView(modelDownloadCancelButton)
             addView(requestMicButton)
+            addView(enrollPhoneButton)
             developerProbes.addControls(this)
             addView(
                 statusView,
