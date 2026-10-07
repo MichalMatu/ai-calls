@@ -42,7 +42,7 @@ class AndroidPhoneEnrollmentDisclosureContractTest {
                     )
 
                     val root = activity.window.decorView.rootView
-                    val input = findFirst<EditText>(root)
+                    val input = findFirst(root, EditText::class.java)
                     val save = findButton(root, "Save locally")
                     checkNotNull(input) { "phone input missing" }
                     checkNotNull(save) { "save button missing" }
@@ -140,11 +140,14 @@ class AndroidPhoneEnrollmentDisclosureContractTest {
         }
     }
 
-    private inline fun <reified T> findFirst(root: android.view.View): T? {
-        if (root is T) return root
+    private fun <T> findFirst(
+        root: android.view.View,
+        type: Class<T>,
+    ): T? {
+        if (type.isInstance(root)) return type.cast(root)
         val group = root as? android.view.ViewGroup ?: return null
         for (index in 0 until group.childCount) {
-            findFirst<T>(group.getChildAt(index))?.let { return it }
+            findFirst(group.getChildAt(index), type)?.let { return it }
         }
         return null
     }
