@@ -150,9 +150,10 @@ def validate_live_preflight(
     bluetooth_setting: str,
     call_state: int,
     audio_dump: str,
+    require_direct_usb: bool = True,
 ) -> LivePreflightSnapshot:
     direct_usb = is_direct_usb_target(devices_output, serial)
-    if not direct_usb:
+    if require_direct_usb and not direct_usb:
         raise RuntimeError("Realtime live-call smoke requires direct USB ADB to the target S22+")
 
     bluetooth_value = bluetooth_setting.strip()
