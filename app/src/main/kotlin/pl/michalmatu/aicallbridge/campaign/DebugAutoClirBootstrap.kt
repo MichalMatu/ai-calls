@@ -3,8 +3,8 @@ package pl.michalmatu.aicallbridge.campaign
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import pl.michalmatu.aicallbridge.BuildConfig
 
 internal object DebugAutoClirBootstrap {
     private const val PREFERENCES_NAME = "debug_auto_clir_bootstrap"
@@ -13,7 +13,7 @@ internal object DebugAutoClirBootstrap {
     private const val ISSUER_EVIDENCE = "debug-one-shot-e2e:20261008-v1"
 
     fun maybeStart(context: Context): String? {
-        if (!BuildConfig.DEBUG) return null
+        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) == 0) return null
 
         val appContext = context.applicationContext
         val preferences = appContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
