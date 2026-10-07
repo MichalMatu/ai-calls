@@ -1,10 +1,18 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.telephony.SubscriptionManager
 
 internal object CampaignAccountScope {
     fun currentVoiceSubscription(context: Context): String? {
+        if (
+            context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return null
+        }
         val subscriptionId = SubscriptionManager.getDefaultVoiceSubscriptionId()
         if (subscriptionId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return null
 
