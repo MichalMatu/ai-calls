@@ -7,13 +7,13 @@ This repository is developed toward a fully autonomous phone-task loop. A new ch
 ## Target working loop
 
 ```text
-agent/supervisor
- -> Local Agent
+application-owned campaign grant
+ -> exact scope check + durable attempt reservation
  -> readiness + IDLE
- -> real phone call
+ -> app-owned real phone call
  -> deterministic script / PhraseMatrix
  -> bounded Gemma skill
- -> live supervisor takeover only when unresolved
+ -> local fail-closed behavior; optional supervisor only on explicit developer paths
  -> application-owned approval / commitment
  -> factual external result
  -> independent state verification when available
@@ -26,7 +26,7 @@ The development goal is that recurrent supervisor interventions are progressivel
 
 ## Executor priority
 
-Local Agent is the default executor for autonomous development work that touches the real repository, local environment or phone. It should be used proactively, not only after a direct connector path fails.
+Local Agent is the default executor for autonomous **development** work that touches the repository, build environment or device deployment. It is not the product call executor. The Android app owns campaign authority, dialing, dialogue runtime and cleanup for app-owned campaigns.
 
 Priority order for operational work is:
 
@@ -95,7 +95,7 @@ Supervisor takeover is an intended fallback during development. The physical cal
 
 ## Durable campaign authorization is a product requirement
 
-Chat text and documentation are not themselves an authority store. The target product mode therefore requires an explicit **durable, scoped, revocable campaign grant** owned by application policy.
+Chat text and documentation are not themselves an authority store. The product mode now implements an explicit **durable, scoped, revocable campaign grant** owned by application policy.
 
 A campaign grant must bind at least:
 
@@ -110,7 +110,7 @@ When such a grant is valid and the requested action remains inside its exact sco
 
 For the current Orange CLIR development campaign the intended grant scope is the same test SIM/account, Orange CLIR management, repeated physical enable/disable iterations required for acceptance, read-only CLIR state interrogation, and the Orange service route used by that campaign. This does not widen to unrelated services, numbers, purchases, payments, contracts, premium/emergency targets or another account.
 
-Until the durable grant is implemented in application-owned policy, use the strongest currently available authorization context without inventing redundant confirmations, while respecting any external platform/tool confirmation that cannot be represented or bypassed by repository code.
+The current CLIR-enable implementation creates/revokes this grant in the non-exported `Campaign tools` UI, persists only typed scope metadata, binds to the current default voice subscription, and executes the authorized dial locally. ChatGPT/Local Agent/ADB are not in this runtime path.
 
 ## Commitment and success remain application-owned
 
