@@ -547,16 +547,16 @@ def run_orange_chat_relay(
     adb = Adb(serial)
     mailbox = AdbRelayMailbox(serial)
     transport = GitChatRelayTransport(repo_root, session_id)
-    readiness = run_live_call_readiness(serial)
-    if readiness.get("live_call_readiness") != "true":
-        raise RuntimeError("live-call readiness is not green immediately before dial")
-    print("live_call_readiness=true")
-    transport = require_adb_transport(
+    adb_transport = require_adb_transport(
         adb,
         _devices_output(),
         allow_wireless_adb=allow_wireless_adb,
     )
-    print(f"adb_transport={transport}")
+    print(f"adb_transport={adb_transport}")
+    readiness = run_live_call_readiness(serial)
+    if readiness.get("live_call_readiness") != "true":
+        raise RuntimeError("live-call readiness is not green immediately before dial")
+    print("live_call_readiness=true")
     initial_call_state = call_state_or_none(adb)
     if initial_call_state != 0:
         raise RuntimeError(
