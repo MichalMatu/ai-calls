@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.campaign
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.ViewGroup
@@ -14,12 +15,14 @@ import java.time.Instant
 
 class CampaignToolActivity : Activity() {
     private lateinit var authorizationStore: CampaignAuthorizationStore
+    private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView
     private var pendingAction: PendingAction? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         authorizationStore = CampaignAuthorizationStore(this)
+        runtimeStatusStore = CampaignRuntimeStatusStore(this)
 
         statusView = TextView(this).apply {
             textSize = 15f
@@ -185,21 +188,17 @@ class CampaignToolActivity : Activity() {
             return
         }
 
-        statusView.text = "Starting app-owned campaign…"
-        AppOwnedClirCampaignExecutor.start(
-            context = this,
-            authorizationStore = authorizationStore,
-            accountScope = accountScope,
-        ) { status ->
-            runOnUiThread {
-                statusView.text = status
-            }
-        }
+        runtimeStatusStore.save("Starting app-owned campaign…")
+        statusView.text = runtimeStatusStore.load()
+        startForegroundService(
+            Intent(this, AppOwnedCampaignService::class.java)
+                .setAction(AppOwnedCampaignService.ACTION_START_CLIR_ENABLE),
+        )
     }
 
     private fun refreshGrantStatus() {
         val grant = authorizationStore.load()
-        statusView.text = when {
+        val grantStatus = when {
             grant == null -> "No local campaign grant"
             grant.revokedAtEpochMs != null -> "Campaign grant revoked"
             else ->
@@ -207,6 +206,8 @@ class CampaignToolActivity : Activity() {
                     "Attempts: ${grant.attemptsUsed}/${grant.maxAttempts}\n" +
                     "Expires: ${Instant.ofEpochMilli(grant.expiresAtEpochMs)}"
         }
+        val runtimeStatus = runtimeStatusStore.load()
+        statusView.text = listOfNotNull(runtimeStatus, grantStatus).joinToString("\n\n")
     }
 
     private enum class PendingAction {
