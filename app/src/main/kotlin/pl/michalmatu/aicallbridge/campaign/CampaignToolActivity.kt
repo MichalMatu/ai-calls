@@ -94,9 +94,7 @@ class CampaignToolActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (!AppOwnedClirCampaignExecutor.isRunning()) {
-            refreshGrantStatus()
-        }
+        refreshGrantStatus()
     }
 
     override fun onRequestPermissionsResult(
