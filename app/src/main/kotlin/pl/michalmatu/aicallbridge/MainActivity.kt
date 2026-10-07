@@ -19,6 +19,7 @@ import android.widget.TextView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.DebugAutoClirBootstrap
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.runtime.CallAudioMode
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
@@ -192,6 +193,10 @@ class MainActivity : Activity() {
         )
 
         developerProbes.attach()
+
+        DebugAutoClirBootstrap.maybeStart(this)?.let { status ->
+            statusView.text = status
+        }
 
         if (intent.getBooleanExtra(EXTRA_RUN_CAPABILITY_PROBE, false)) {
             developerProbes.runCapabilityProbe()
