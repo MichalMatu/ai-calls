@@ -14,6 +14,9 @@ from aicall_tools.realtime.realtime_network_smoke import SmokeEnvironment
 SAFE_DEVICES = """List of devices attached
 RFCT70L7E8J device usb:18874368X product:g0sxeea model:SM_S906B device:g0s transport_id:3
 """
+WIRELESS_DEVICES = """List of devices attached
+192.168.0.100:34855 device product:g0sxeea model:SM_S906B device:g0s transport_id:9
+"""
 SAFE_AUDIO = """- STREAM_VOICE_CALL:
    Muted: true
    Muted Internally: false
@@ -46,6 +49,22 @@ class RealtimeLiveCallSmokeTest(unittest.TestCase):
 
         self.assertTrue(snapshot.direct_usb)
         self.assertFalse(snapshot.bluetooth_enabled)
+        self.assertEqual(2, snapshot.call_state)
+        self.assertEqual("MODE_IN_CALL", snapshot.audio_mode)
+        self.assertEqual("earpiece", snapshot.active_device_type)
+        self.assertTrue(snapshot.voice_call_muted)
+
+    def test_live_preflight_can_reuse_physical_checks_for_verified_wireless_caller(self):
+        snapshot = validate_live_preflight(
+            serial="192.168.0.100:34855",
+            devices_output=WIRELESS_DEVICES,
+            bluetooth_setting="0\n",
+            call_state=2,
+            audio_dump=SAFE_AUDIO,
+            require_direct_usb=False,
+        )
+
+        self.assertFalse(snapshot.direct_usb)
         self.assertEqual(2, snapshot.call_state)
         self.assertEqual("MODE_IN_CALL", snapshot.audio_mode)
         self.assertEqual("earpiece", snapshot.active_device_type)
