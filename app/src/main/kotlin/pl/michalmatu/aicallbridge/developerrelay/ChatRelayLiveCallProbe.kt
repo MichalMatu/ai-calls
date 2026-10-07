@@ -71,6 +71,7 @@ internal object ChatRelayLiveCallProbe {
         maxTurns: Int,
         phoneDisclosureAuthorized: Boolean,
         supervisorRelayEnabled: Boolean = true,
+        dialogueProvider: TextLlmProvider = TextLlmProvider.LOCAL_GEMMA_4,
         callback: (String) -> Unit,
     ) {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -88,6 +89,7 @@ internal object ChatRelayLiveCallProbe {
             phoneDisclosureAuthorized,
             callback,
             supervisorRelayEnabled,
+            dialogueProvider,
         ).start()
     }
 
@@ -98,6 +100,7 @@ internal object ChatRelayLiveCallProbe {
         private val phoneDisclosureAuthorized: Boolean,
         private val callback: (String) -> Unit,
         private val supervisorRelayEnabled: Boolean,
+        private val dialogueProvider: TextLlmProvider,
     ) {
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
@@ -144,7 +147,7 @@ internal object ChatRelayLiveCallProbe {
         private val pendingExternalSuccessEvidence = AtomicBoolean(false)
         private val hybridBackend = GateCHybridDialogueBackendFactory.create(
             context = context,
-            provider = TextLlmProvider.LOCAL_GEMMA_4,
+            provider = dialogueProvider,
             relaySessionId = sessionId,
             diagnostics = hybridDiagnostics,
             authorizedFactBackend = localPhoneFactBackend,
