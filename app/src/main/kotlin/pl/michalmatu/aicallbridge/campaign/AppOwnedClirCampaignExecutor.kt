@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
 import pl.michalmatu.aicallbridge.developerrelay.ChatRelayLiveCallProbe
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
+import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
 internal object AppOwnedClirCampaignExecutor {
     private const val CALL_ACTIVE_TIMEOUT_MS = 30_000L
@@ -183,6 +184,7 @@ internal object AppOwnedClirCampaignExecutor {
             maxTurns = ChatRelayLiveCallProbe.MAX_TURNS,
             phoneDisclosureAuthorized = phoneDisclosureAuthorized,
             supervisorRelayEnabled = false,
+            dialogueProvider = TextLlmProvider.LOCAL_PHONE_LLM,
         ) { report ->
             val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
             val externalSuccess = reportValue(report, "clir_external_success") == "true"
