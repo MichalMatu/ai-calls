@@ -27,6 +27,7 @@ from aicall_tools.device.s22_call_control import Adb, normalize_number
 ORANGE_SUPPORT_NUMBER = "*100"
 ALLOWLIST = frozenset({ORANGE_SUPPORT_NUMBER})
 DEFAULT_SERIAL = "RFCT70L7E8J"
+TARGET_MODEL = "SM-S906B"
 PROBE_ACTIVITY = f"{PACKAGE_NAME}/.developerrelay.ChatRelayProbeActivity"
 REQUEST_PATH = "files/chat-relay/request.txt"
 RESPONSE_PATH = "files/chat-relay/response.txt"
@@ -341,6 +342,38 @@ def _devices_output() -> str:
     ).stdout
 
 
+def _device_is_listed(devices_output: str, selector: str) -> bool:
+    for raw_line in devices_output.splitlines():
+        parts = raw_line.split()
+        if len(parts) >= 2 and parts[0] == selector and parts[1] == "device":
+            return True
+    return False
+
+
+def require_adb_transport(
+    adb: Adb,
+    devices_output: str,
+    *,
+    allow_wireless_adb: bool,
+) -> str:
+    selector = adb.serial or ""
+    if is_direct_usb_target(devices_output, selector):
+        return "usb"
+
+    if not allow_wireless_adb:
+        raise RuntimeError("target S22 is not connected through exact direct USB ADB")
+    if not _device_is_listed(devices_output, selector):
+        raise RuntimeError("wireless ADB selector is not connected")
+    if ":" not in selector:
+        raise RuntimeError("wireless ADB requires an explicit host:port selector")
+
+    model = adb.shell(["getprop", "ro.product.model"]).strip()
+    physical_serial = adb.shell(["getprop", "ro.serialno"]).strip()
+    if model != TARGET_MODEL or physical_serial != DEFAULT_SERIAL:
+        raise RuntimeError("wireless ADB target identity mismatch")
+    return "wireless"
+
+
 def _wait_bluetooth(adb: Adb, expected: str, timeout: float = 8.0) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -467,10 +500,18 @@ def wait_for_initial_audio_signal_after_confirmed_offhook(adb: Adb, *, timeout_s
     )
 
 
-def _require_preflight(adb: Adb, *, known_call_state: int) -> None:
+def _require_preflight(
+    adb: Adb,
+    *,
+    known_call_state: int,
+    allow_wireless_adb: bool = False,
+) -> None:
     devices = _devices_output()
-    if not is_direct_usb_target(devices, adb.serial or ""):
-        raise RuntimeError("ChatGPT relay requires exact direct USB S22 target")
+    transport = require_adb_transport(
+        adb,
+        devices,
+        allow_wireless_adb=allow_wireless_adb,
+    )
     bluetooth = adb.shell(["settings", "get", "global", "bluetooth_on"]).strip()
     audio_dump = adb_shell_retry(adb, ["dumpsys", "audio"])
     snapshot = validate_live_preflight(
@@ -479,6 +520,7 @@ def _require_preflight(adb: Adb, *, known_call_state: int) -> None:
         bluetooth_setting=bluetooth,
         call_state=known_call_state,
         audio_dump=audio_dump,
+        require_direct_usb=transport == "usb",
     )
     print(
         "live_preflight=true," +
@@ -493,6 +535,7 @@ def run_orange_chat_relay(
     max_turns: int,
     repo_root: Path,
     phone_disclosure_authorized: bool = False,
+    allow_wireless_adb: bool = False,
 ) -> dict[str, str]:
     number = normalize_allowlisted_target(ORANGE_SUPPORT_NUMBER)
     protocol.validate_session_id(session_id)
@@ -508,8 +551,12 @@ def run_orange_chat_relay(
     if readiness.get("live_call_readiness") != "true":
         raise RuntimeError("live-call readiness is not green immediately before dial")
     print("live_call_readiness=true")
-    if not is_direct_usb_target(_devices_output(), serial):
-        raise RuntimeError("target S22 is not connected through exact direct USB ADB")
+    transport = require_adb_transport(
+        adb,
+        _devices_output(),
+        allow_wireless_adb=allow_wireless_adb,
+    )
+    print(f"adb_transport={transport}")
     initial_call_state = call_state_or_none(adb)
     if initial_call_state != 0:
         raise RuntimeError(
@@ -544,7 +591,11 @@ def run_orange_chat_relay(
         adb.shell(["cmd", "audio", "adj-mute", "0"])
         muted = True
         time.sleep(0.3)
-        _require_preflight(adb, known_call_state=2)
+        _require_preflight(
+            adb,
+            known_call_state=2,
+            allow_wireless_adb=allow_wireless_adb,
+        )
         signal = wait_for_initial_audio_signal_after_confirmed_offhook(
             adb,
             timeout_seconds=25.0,
@@ -681,6 +732,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--max-turns", type=int, default=MAX_TURNS)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--allow-clir-enable", action="store_true")
+    parser.add_argument(
+        "--allow-wireless-adb",
+        action="store_true",
+        help="allow a verified wireless ADB transport to the exact target S22",
+    )
     args = parser.parse_args(argv)
     try:
         if not args.allow_clir_enable:
@@ -692,6 +748,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             max_turns=args.max_turns,
             repo_root=args.repo_root,
             phone_disclosure_authorized=True,
+            allow_wireless_adb=args.allow_wireless_adb,
         )
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:
