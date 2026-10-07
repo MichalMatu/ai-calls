@@ -5,10 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
-import java.io.File
-import pl.michalmatu.aicallbridge.identity.AndroidIdentityVault
-import pl.michalmatu.aicallbridge.identity.IdentityFieldId
-import pl.michalmatu.aicallbridge.identity.IdentitySecretValue
 import rikka.shizuku.Shizuku
 
 /** Dedicated ADB/shell-only entry point for the interactive developer relay. */
@@ -36,13 +32,6 @@ class ChatRelayProbeActivity : Activity() {
             require(maxTurns in 1..ChatRelayLiveCallProbe.MAX_TURNS)
         } catch (_: IllegalArgumentException) {
             finishWithError("invalid_relay_config")
-            return
-        }
-
-        try {
-            consumePhoneBootstrap()
-        } catch (_: Throwable) {
-            finishWithError("identity_phone_bootstrap_failed")
             return
         }
 
@@ -75,27 +64,6 @@ class ChatRelayProbeActivity : Activity() {
         }
     }
 
-    private fun consumePhoneBootstrap() {
-        val bootstrap = File(filesDir, PHONE_BOOTSTRAP_FILE)
-        if (!bootstrap.exists()) return
-        val raw = try {
-            bootstrap.readText()
-        } finally {
-            bootstrap.delete()
-        }
-        val value = raw.trim()
-        require(value.isNotEmpty()) { "phone bootstrap is empty" }
-        require(value.all { it.isDigit() || it in " +-()" }) {
-            "phone bootstrap format is invalid"
-        }
-        val digits = value.filter { it.isDigit() }
-        require(digits.length in 7..15) { "phone bootstrap length is invalid" }
-        AndroidIdentityVault.create(this)
-            .put(IdentityFieldId.PHONE, IdentitySecretValue.of(digits))
-            .getOrThrow()
-        Log.i(TAG, "identity_phone_bootstrap_consumed=true")
-    }
-
     private fun finishWithError(reason: String) {
         val result = "chat_relay_probe_error=$reason"
         statusView.text = result
@@ -108,6 +76,5 @@ class ChatRelayProbeActivity : Activity() {
         const val EXTRA_SESSION_ID = "relay_session_id"
         const val EXTRA_MAX_TURNS = "relay_max_turns"
         const val EXTRA_PHONE_DISCLOSURE_AUTHORIZED = "phone_disclosure_authorized"
-        const val PHONE_BOOTSTRAP_FILE = "identity-phone-bootstrap.txt"
     }
 }
