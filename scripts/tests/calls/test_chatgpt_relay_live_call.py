@@ -120,6 +120,28 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "identity mismatch"):
             live.require_adb_transport(adb, devices, allow_wireless_adb=True)
 
+    def test_attach_existing_call_requires_active_call(self):
+        live.validate_initial_call_state(2, attach_existing_call=True)
+
+        for state in (0, None):
+            with self.subTest(state=state):
+                with self.assertRaisesRegex(RuntimeError, "already active"):
+                    live.validate_initial_call_state(
+                        state,
+                        attach_existing_call=True,
+                    )
+
+    def test_dial_mode_requires_confirmed_idle(self):
+        live.validate_initial_call_state(0, attach_existing_call=False)
+
+        for state in (2, None):
+            with self.subTest(state=state):
+                with self.assertRaisesRegex(RuntimeError, "confirmed IDLE"):
+                    live.validate_initial_call_state(
+                        state,
+                        attach_existing_call=False,
+                    )
+
     def test_metric_formatter_whitelists_only_non_text_timing_fields(self):
         report = {
             "turns_completed": "1",
