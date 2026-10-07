@@ -70,8 +70,8 @@ internal object ChatRelayLiveCallProbe {
         sessionId: String,
         maxTurns: Int,
         phoneDisclosureAuthorized: Boolean,
-        callback: (String) -> Unit,
         supervisorRelayEnabled: Boolean = true,
+        callback: (String) -> Unit,
     ) {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
         require(maxTurns in 1..MAX_TURNS) { "invalid_relay_max_turns" }
