@@ -15,7 +15,7 @@ The latest independent network interrogation reports caller ID as not restricted
 ## Live dialogue path
 
 ```text
-readiness + IDLE
+readiness + IDLE (direct USB by default; verified wireless ADB is allowed only with explicit `--allow-wireless-adb` and exact S22 model/physical-serial match)
  -> real Orange call
  -> known turn: script/PhraseMatrix
  -> bounded unknown turn: Gemma action router
