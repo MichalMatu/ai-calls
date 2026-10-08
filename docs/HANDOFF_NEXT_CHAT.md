@@ -1,75 +1,117 @@
 # Handoff — Orange CLIR physical acceptance
 
-Date: 2026-10-08
+Date: 2026-10-08 02:50 CEST
 
-## Checkpoint
+## Frozen checkpoint
 
-Repository: `MichalMatu/ai-calls`. Durable code/docs are on `main`; Local Agent transport stays on `agent-control`.
+Repository: `MichalMatu/ai-calls`.
 
-The active implementation checkpoint is PR #20, `work/app-owned-campaign-executor-v1`, which decouples product call execution from ChatGPT/Local Agent/ADB. Always resolve fresh `origin/main` / PR state rather than relying on a copied SHA.
+Durable product code is on `main`. Local Agent transport/history remains on `agent-control`.
 
-## Proven / closed
+Stable main checkpoint at session stop:
 
-- Samsung cellular RX/TX and privileged-helper media path — `PROVEN_S22 / FROZEN`.
-- local Polish STT/TTS — proven.
-- Gemma 4 LiteRT-LM lifecycle — proven.
-- Gemma-first dialogue action router — real S22 model probe 8/8.
-- generic external-effect authority + single shared `CallCommitmentGate` — host/no-call proven.
-- Android Keystore-backed `IdentityVault` — physically proven on S22 by `AndroidIdentityVaultContractTest` on 2026-09-25.
-- app-owned local `PHONE` resolver (`IdentityVault -> AuthorizedFactSnapshot -> FactDisclosurePolicy`) — implemented and host-green.
-- private app-owned `PHONE` enrollment plus reusable `AuthorizedPhoneFactBackend` — `PROVEN_S22`.
-- app-owned durable campaign authorization, exact CLIR-enable scope matcher, current voice-subscription binding and local Campaign tools UI — host-green on the PR head; physical S22 execution pending.
-- live endpointing for the CLIR relay — 1.5 s trailing silence / 60 s capture limit.
-- latest APK from `c9b3f3b34...` installed on S22; phone returned to `IDLE` after the vault proof.
+```text
+d4f73bef621a198d384d5ba9ff3e1a775c3aa57a
+Decouple campaign execution from ChatGPT transport
+```
 
-Do not reopen frozen media or redesign Gemma/authority boundaries without new physical evidence.
+Do not infer a newer product checkpoint from Local Agent task history.
 
-## Current factual CLIR state
+## What is complete
 
-Real Orange calls have reached the service-number prompt and Gemma correctly selected `DISCLOSE_AUTHORIZED_FACT(PHONE)`. No call produced accepted factual CLIR success. The latest independent `*#31#` evidence still says caller ID is not restricted.
+- Samsung S22 cellular media path + privileged helper: `PROVEN_S22 / FROZEN`.
+- Local Polish STT/TTS: proven.
+- Local phone LLM/Gemma dialogue infrastructure: proven in earlier S22 probes.
+- Generic external-effect authority + one shared `CallCommitmentGate`: host-green.
+- Android Keystore-backed `IdentityVault`: `PROVEN_S22`.
+- Private app-owned PHONE enrollment/disclosure path: `PROVEN_S22`.
+- App-owned campaign architecture is merged on `main`:
+  - durable scoped grant;
+  - exact `*100` / `SET_SERVICE(CLIR=true)` matching;
+  - current voice-subscription binding;
+  - bounded attempt reservation;
+  - app-owned readiness + dial + foreground execution + cleanup;
+  - ChatGPT/Local Agent/ADB removed from the product call execution path.
+
+## Physical state at stop
+
+No accepted app-owned CLIR-enable call was completed in this session.
+
+Latest independent network state remains:
 
 ```text
 CLIR enabled = false
-physical enable task complete = false
+physical enable acceptance = incomplete
 ```
 
-## Exact blocker
+Physical S22 evidence gathered today:
 
-The ChatGPT/Local Agent transport dependency has been removed from the product execution design. The Android app now owns the bounded campaign grant, exact scope validation, attempt reservation, readiness check, exact `*100` dial, local script/Gemma runtime, late-bound PHONE disclosure, shared commitment gate and best-effort owned-call cleanup. ChatRelay remains optional developer tooling only.
+- wireless ADB discovery and install path works when the local network is healthy;
+- required call permissions were granted;
+- PHONE vault was present in the later physical preflight;
+- local phone-LLM runtime/model files are present;
+- Shizuku Manager 13.6.0 is installed;
+- the legacy external `start.sh` path is absent;
+- live readiness still failed on `shizuku_binder_unavailable`.
 
-The current app-owned executor is host-green but not yet `PROVEN_S22`. No accepted factual CLIR-enable success exists yet; the latest independent network evidence still says caller ID is not restricted.
+The next physical blocker is therefore the Shizuku server/binder startup/readiness path, not campaign authority, PHONE storage, or Android call permissions.
 
-The remaining gate is physical deployment and execution from t## Next tasks — in order
+## Unmerged experiment that was intentionally NOT accepted
 
-1. Confirm PR #20 exact-head CI is green and merge it to `main`.
-2. Build/install the exact merged APK on S22 via deployment tooling only; opening the app is allowed, but do not use Local Agent/ADB to initiate the product call.
-3. In `Campaign tools`, authorize the narrow CLIR-enable campaign locally. It must bind exact `*100`, `SET_SERVICE(CLIR=true)`, current default voice subscription, PHONE-only disclosure, bounded attempts and expiry.
-4. Start the campaign from the app. The app must own readiness, IDLE check, dial, dialogue, disclosure, commitment and cleanup without ChatGPT/Local Agent/ADB.
-5. Preserve only typed/redacted result evidence. Declare enable complete only if Orange factual success and independent `*#31#` both show CLIR enabled.
-6. Add/authorize the separately scoped inverse `SET_SERVICE(CLIR=false)` grant only after enable acceptance, then run the same physical acceptance loop.
+PR #21, `Auto-start one-shot debug CLIR E2E`, was a debug-only experiment to remove manual Authorize/Start clicks during physical testing.
 
-If app-owned execution exposes a lifecycle or Samsung-specific failure, patch that exact observed failure; do not move dialing back into ChatGPT/Local Agent.
+Last branch head before cleanup:
 
-## Important files
+```text
+work/debug-one-shot-clir-e2e-v1
+a0221e906e694e2f2554e21c307f8fe603e218a1
+```
 
-- `AGENTS.md`
-- `docs/AUTONOMOUS_OPERATION_MODE.md`
-- `docs/ROADMAP.md`
-- `docs/G5_CLIR_ROUTE_DISCOVERY.md`
-- `docs/GEMMA_ACTION_ROUTER.md`
-- `docs/ARCHITECTURE.md`
-- `docs/SECURITY_PRIVACY.md`
-- `app/src/main/kotlin/pl/michalmatu/aicallbridge/GateCHybridDialogueBackend.kt`
-- `app/src/main/kotlin/pl/michalmatu/aicallbridge/developerrelay/ChatRelayLiveCallProbe.kt`
-- `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignAuthorizationGrant.kt`
-- `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignAuthorizationStore.kt`
-- `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/AppOwnedClirCampaignExecutor.kt`
-- `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignToolActivity.kt`
-- `app/src/main/kotlin/pl/michalmatu/aicallbridge/developerrelay/ChatRelayProbeActivity.kt`
-- `scripts/aicall_tools/calls/chatgpt_relay_live_call.py`
+Important evidence from that line:
+
+- CI was green at `0bca996803c3b00930c95d7d041112d60eb1cbf2`;
+- a low-memory local debug APK build at that exact SHA also completed successfully;
+- the one-shot branch was not physically accepted;
+- a later manifest-only PHONE-number-read permission change existed after that green build;
+- do not merge or recreate this experiment blindly. Re-audit the diff first if the idea is reused.
+
+## Session shutdown state
+
+- no active physical call;
+- Local Agent `ai-calls` worker is idle;
+- zero pending task JSONs without run/result;
+- no additional device work should auto-start after this handoff;
+- work stopped because the operator ended the session, not because CLIR acceptance succeeded.
+
+## Resume order
+
+1. Start from fresh `origin/main`; read `AGENTS.md`, this file, `AUTONOMOUS_OPERATION_MODE.md`, `ROADMAP.md`, `CAMPAIGN_AUTHORIZATION_GRANT.md`, and `G5_CLIR_ROUTE_DISCOVERY.md`.
+2. Confirm S22 is reachable and phone is `IDLE`.
+3. Restore Shizuku server/binder readiness using the currently installed Shizuku version; do not assume the historical `start.sh` path exists.
+4. Re-run live readiness only.
+5. Deploy an exact reviewed APK.
+6. Run one real app-owned `*100` iteration. Do not add unrelated audits, synthetic churn, or more authorization UI before this physical test.
+7. Accept CLIR enable only if Orange gives factual success and independent `*#31#` confirms restriction active.
+8. Only after enable acceptance, implement/run the separately scoped inverse `CLIR=false` acceptance.
+
+If the first real call exposes a concrete runtime failure, patch only that observed failure and repeat the physical test.
+
+## Security boundary
+
+Never put the real PHONE value in Git, Local Agent task JSON, durable logs, relay transcripts, model/supervisor context, or handoff text.
+
+The allowed disclosure path remains:
+
+```text
+IdentityVault
+ -> AuthorizedFactSnapshot
+ -> FactDisclosurePolicy
+ -> late on-device read
+ -> approved local speech
+```
 
 ## Start prompt for the next chat
 
 ```text
-Kontynuuj wyłącznie MichalMatu/ai-calls z aktualnego origin/main. Przeczytaj świeże AGENTS.md, docs/HANDOFF_NEXT_CHAT.md, docs/AUTONOMOUS_OPERATION_MODE.md, docs/ROADMAP.md, docs/CAMPAIGN_AUTHORIZATION_GRANT.md i docs/G5_CLIR_ROUTE_DISCOVERY.md. Product call execution jest app-owned: Campaign tools -> durable exact-scope grant -> readiness/IDLE -> app-owned *100 dial -> local script/Gemma -> late-bound PHONE policy -> shared CallCommitmentGate -> typed/redacted result -> app-owned cleanup. ChatGPT/Local Agent/ADB nie są authority ani product call executor; używaj ich tylko do repo/build/install/diagnostics. PHONE enrollment/disclosure jest PROVEN_S22. Następny gate: exact-head APK -> lokalna autoryzacja kampanii w app -> fizyczny app-owned *100 -> factual Orange success -> niezależne *#31#. Nie przenoś plaintext identity przez Git, Local Agent JSON, trwałe logi ani model/supervisor context.
+Kontynuuj wyłącznie MichalMatu/ai-calls od świeżego origin/main. Przeczytaj AGENTS.md i docs/HANDOFF_NEXT_CHAT.md. Main checkpoint z handoffu to d4f73bef621a198d384d5ba9ff3e1a775c3aa57a, ale zawsze potwierdź świeży HEAD. Product call execution jest app-owned; ChatGPT/Local Agent/ADB służą tylko do repo/build/install/diagnostics. PHONE vault i call permissions były fizycznie gotowe. Ostatni konkretny blocker: Shizuku binder unavailable na S22 z Shizuku Manager 13.6.0; historyczny start.sh nie istnieje. Najpierw napraw readiness Shizuku, potem jeden realny app-owned *100 i niezależne *#31#. Nie reaktywuj debug one-shot PR #21 bez ponownego audytu.
 ```
