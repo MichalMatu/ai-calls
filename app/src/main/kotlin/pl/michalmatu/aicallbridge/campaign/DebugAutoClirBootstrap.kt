@@ -5,12 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import rikka.shizuku.Shizuku
 
 internal object DebugAutoClirBootstrap {
     private const val PREFERENCES_NAME = "debug_auto_clir_bootstrap"
     private const val KEY_CONSUMED = "debug_auto_clir_e2e_20261008_v1_consumed"
     private const val GRANT_ID = "debug-auto-clir-e2e-20261008-v1"
     private const val ISSUER_EVIDENCE = "debug-one-shot-e2e:20261008-v1"
+    private const val SHIZUKU_PERMISSION_REQUEST_CODE = 7001
 
     fun maybeStart(context: Context): String? {
         if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) == 0) return null
@@ -26,6 +28,22 @@ internal object DebugAutoClirBootstrap {
         }
         if (missingPermission != null) {
             return "Debug CLIR one-shot blocked: missing ${permissionLabel(missingPermission)} permission"
+        }
+
+        val shizukuReady = runCatching {
+            Shizuku.pingBinder() &&
+                !Shizuku.isPreV11() &&
+                Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        }.getOrDefault(false)
+        if (!shizukuReady) {
+            return runCatching {
+                check(Shizuku.pingBinder()) { "shizuku_binder_unavailable" }
+                check(!Shizuku.isPreV11()) { "shizuku_pre_v11_unsupported" }
+                Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
+                "Debug CLIR one-shot waiting for Shizuku permission"
+            }.getOrElse { error ->
+                "Debug CLIR one-shot blocked: ${error.message ?: error.javaClass.simpleName}"
+            }
         }
 
         val accountScope = CampaignAccountScope.currentVoiceSubscription(appContext)
