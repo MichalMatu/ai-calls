@@ -1,0 +1,21 @@
+{
+  "id": "s22-start-shizuku-discover-components-20261008-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/debug-one-shot-clir-e2e-v1",
+  "allow_write": false,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 180,
+  "idle_timeout": 120,
+  "task_timeout": 600,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "inspect-shizuku-runtime-components",
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\necho '--- version ---'\nadb -s \"$SEL\" shell dumpsys package moe.shizuku.privileged.api | grep -E 'versionName=|versionCode=' | head -4 || true\necho '--- package paths ---'\nadb -s \"$SEL\" shell pm path moe.shizuku.privileged.api\necho '--- components matching starter/service ---'\nadb -s \"$SEL\" shell dumpsys package moe.shizuku.privileged.api | grep -Ei 'starter|service|receiver|provider|mainactivity' | head -120 || true\necho '--- process check before ---'\nadb -s \"$SEL\" shell ps -A | grep -i shizuku || true",
+      "timeout": 180
+    }
+  ]
+}

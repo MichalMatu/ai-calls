@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "4fbc4b07059b7f439c006f1d",
+  "command_timeout": 420,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 584,
+      "command": "set -euo pipefail\ntest \"$(git rev-parse HEAD)\" = \"0bca996803c3b00930c95d7d041112d60eb1cbf2\"\nAPK='app/build/outputs/apk/debug/app-debug.apk'\ntest -s \"$APK\"\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\nadb -s \"$SEL\" install --no-streaming -r \"$APK\"\nfor P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do\n  adb -s \"$SEL\" shell pm grant \"$PKG\" \"$P\"\ndone\nBASE=\"$(adb -s \"$SEL\" shell pm path moe.shizuku.privileged.api | head -1 | sed 's/^package://' | tr -d '\\r')\"\nROOT=\"$(dirname \"$BASE\")\"\nSTARTER=\"$(adb -s \"$SEL\" shell find \"$ROOT/lib\" -type f -name libshizuku.so 2>/dev/null | head -1 | tr -d '\\r')\"\ntest -n \"$STARTER\"\nadb -s \"$SEL\" shell \"$STARTER\"\nsleep 3\nadb -s \"$SEL\" shell ps -A | grep -q shizuku_server\necho shizuku_server_running=true\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "current_rss_mb": 2.03,
+      "elapsed_seconds": 31.727,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 512,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\napp/build/outputs/apk/debug/app-debug.apk: 1 file pushed, 0 skipped. 5.6 MB/s (59625530 bytes in 10.110s)\nPerforming Push Install\nSuccess\ninfo: starter begin\ninfo: killing old process...\ninfo: apk path is /data/app/~~BMmZoYhwymCj0IkO63CAYw==/moe.shizuku.privileged.api-xdnM1MSs-zl-toUhlVScAw==/base.apk\ninfo: starting server...\ninfo: shizuku_server pid is 12739\ninfo: shizuku_starter exit with 0\nshizuku_server_running=true\nlive_call_readiness_failed=live-call readiness failed: shizuku_permission_required\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 12.16,
+      "stage_index": 1,
+      "stage_name": "install-start-shizuku-readiness",
+      "stage_phase": "commands",
+      "stage_timeout": 300,
+      "stage_total": 2,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-08T00:35:49.289199+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.097,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.174,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-real-clir-e2e-20261008-v4",
+  "idle_timeout": 300,
+  "memory_limit_mb": 512,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 31.727,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "install-start-shizuku-readiness",
+      "stage_phase": "commands",
+      "stage_total": 2
+    }
+  ],
+  "started_at": "2026-10-08T00:35:15.735266+00:00",
+  "status": "failed",
+  "task_digest": "7760bbb34d45e8a736c1332f052b8ec50f4e2916466554a2c912d25349214a3d",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

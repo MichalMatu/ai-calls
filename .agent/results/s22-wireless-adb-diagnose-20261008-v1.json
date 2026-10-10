@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "c91c4ef51dd876e41dee95cb",
+  "command_timeout": 180,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 166,
+      "command": "set -euo pipefail; adb start-server >/dev/null; echo '--- mdns ---'; adb mdns services || true; echo '--- devices ---'; adb devices -l || true",
+      "current_rss_mb": 7.22,
+      "elapsed_seconds": 4.049,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\n--- mdns ---\nList of discovered mdns services\n\n--- devices ---\nList of devices attached\n\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 7.22,
+      "stage_index": 1,
+      "stage_name": "adb-discovery",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "finished_at": "2026-10-07T23:17:16.036447+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.43,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 1.153,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-wireless-adb-diagnose-20261008-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 4.049,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "adb-discovery",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-10-07T23:17:07.299647+00:00",
+  "status": "done",
+  "task_digest": "a5151b8e47c48d43e0cf350926e6eb3cf2b773e7c84fb8cb4f2b83773b967e7d",
+  "task_timeout": 600,
+  "verification": [],
+  "work_branch": "main"
+}

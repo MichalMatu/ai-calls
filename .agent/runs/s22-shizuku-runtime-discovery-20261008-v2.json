@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-shizuku-runtime-discovery-20261008-v2",
+  "task_digest": "490e74d204b972bed67d21d301ec3002679e7115b0e1504675644df7dbf5331d",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-08T00:06:51.608211+00:00",
+  "attempt_id": "274a742d55c4cd572a0cca13",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 49328,
+  "updated_at": "2026-10-08T00:06:51.912312+00:00",
+  "pid": 49328
+}

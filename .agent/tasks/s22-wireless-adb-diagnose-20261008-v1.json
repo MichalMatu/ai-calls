@@ -1,0 +1,21 @@
+{
+  "id": "s22-wireless-adb-diagnose-20261008-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 180,
+  "idle_timeout": 120,
+  "task_timeout": 600,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "adb-discovery",
+      "command": "set -euo pipefail; adb start-server >/dev/null; echo '--- mdns ---'; adb mdns services || true; echo '--- devices ---'; adb devices -l || true",
+      "timeout": 120
+    }
+  ]
+}

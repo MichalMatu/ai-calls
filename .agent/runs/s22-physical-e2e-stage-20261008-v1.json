@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-physical-e2e-stage-20261008-v1",
+  "task_digest": "e3e8fdda44187ee377771ce7ae58996bc656ec87d62b36d0d417347ad7acbdfa",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-07T23:40:07.907137+00:00",
+  "attempt_id": "0376ae5a05c9894933bee93e",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 3434,
+  "updated_at": "2026-10-07T23:40:08.195253+00:00",
+  "pid": 3434
+}

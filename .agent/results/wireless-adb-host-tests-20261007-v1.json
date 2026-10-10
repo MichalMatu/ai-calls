@@ -1,0 +1,90 @@
+{
+  "allow_write": false,
+  "attempt_id": "18346aa41815cc04a7c45c9d",
+  "command_timeout": 300,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 265,
+      "command": "set -euo pipefail; git fetch origin work/wireless-adb-live-call-v1; git checkout -B work/wireless-adb-live-call-v1 origin/work/wireless-adb-live-call-v1; test \"$(git rev-parse HEAD)\" = \"a182558fcc44bb489c78865e436dc263d126c21d\"",
+      "current_rss_mb": 8.16,
+      "elapsed_seconds": 0.973,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch            work/wireless-adb-live-call-v1 -> FETCH_HEAD\nSwitched to a new branch 'work/wireless-adb-live-call-v1'\nbranch 'work/wireless-adb-live-call-v1' set up to track 'origin/work/wireless-adb-live-call-v1'.\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 8.16,
+      "stage_index": 1,
+      "stage_name": "sync-branch",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 2,
+      "timed_out": false
+    },
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 379,
+      "command": "set -euo pipefail; PYTHONPATH=scripts python3 -m unittest scripts.tests.calls.test_chatgpt_relay_live_call scripts.tests.realtime.test_realtime_live_call_smoke",
+      "current_rss_mb": 2.02,
+      "elapsed_seconds": 0.599,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "adb_shell_transient_retry=true,command:dumpsys audio,attempt:1\n..call_state_probe_transient_error=true\n..hangup_error=synthetic hangup failure\nhangup_error=synthetic hangup failure\nhangup_error=synthetic hangup failure\nhangup_telecom_fallback_requested=true\n......................\n----------------------------------------------------------------------\nRan 26 tests in 0.004s\n\nOK\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 2.02,
+      "stage_index": 2,
+      "stage_name": "targeted-python-tests",
+      "stage_phase": "commands",
+      "stage_timeout": 300,
+      "stage_total": 2,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "finished_at": "2026-10-07T21:39:12.871374+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.1,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.095,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "wireless-adb-host-tests-20261007-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 2048,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 0.973,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "sync-branch",
+      "stage_phase": "commands",
+      "stage_total": 2
+    },
+    {
+      "elapsed_seconds": 0.599,
+      "outcome": "passed",
+      "stage_index": 2,
+      "stage_name": "targeted-python-tests",
+      "stage_phase": "commands",
+      "stage_total": 2
+    }
+  ],
+  "started_at": "2026-10-07T21:39:09.297571+00:00",
+  "status": "done",
+  "task_digest": "4af3d7dd1e88e51f6d426874a0a1042d45a802af82e2e5a08ea8a8d98428e5ae",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "work/wireless-adb-live-call-v1"
+}

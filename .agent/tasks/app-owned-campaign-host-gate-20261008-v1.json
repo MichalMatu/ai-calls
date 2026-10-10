@@ -1,0 +1,24 @@
+{
+  "id": "app-owned-campaign-host-gate-20261008-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/app-owned-campaign-executor-v1",
+  "allow_write": false,
+  "resources": [],
+  "command_timeout": 1800,
+  "idle_timeout": 300,
+  "task_timeout": 2400,
+  "memory_limit_mb": 4096,
+  "steps": [
+    {
+      "name": "sync-branch",
+      "command": "set -euo pipefail; git fetch origin work/app-owned-campaign-executor-v1; git checkout -B work/app-owned-campaign-executor-v1 origin/work/app-owned-campaign-executor-v1; test \"$(git rev-parse HEAD)\" = \"cd0ea5b56f0596780eadadabb2437456b31c9f5e\"",
+      "timeout": 120
+    },
+    {
+      "name": "host-quality-gate",
+      "command": "set -euo pipefail; export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; bash scripts/verify_host.sh",
+      "timeout": 1800
+    }
+  ]
+}

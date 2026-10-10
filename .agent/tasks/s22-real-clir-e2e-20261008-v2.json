@@ -1,0 +1,31 @@
+{
+  "id": "s22-real-clir-e2e-20261008-v2",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/debug-one-shot-clir-e2e-v1",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 900,
+  "idle_timeout": 300,
+  "task_timeout": 1800,
+  "memory_limit_mb": 3072,
+  "steps": [
+    {
+      "name": "build-exact-one-shot-head",
+      "command": "set -euo pipefail; git fetch origin work/debug-one-shot-clir-e2e-v1; git checkout -B work/debug-one-shot-clir-e2e-v1 origin/work/debug-one-shot-clir-e2e-v1; test \"$(git rev-parse HEAD)\" = \"ca1952cd6b06a8ba999bd54f4ad41606e63e4727\"; export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; ./gradlew :app:assembleDebug --no-daemon",
+      "timeout": 900
+    },
+    {
+      "name": "install-and-readiness",
+      "command": "set -euo pipefail; SEL='192.168.0.100:46769'; PKG='pl.michalmatu.aicallbridge'; adb start-server >/dev/null; adb connect \"$SEL\" >/dev/null; M=\"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\"; S=\"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\"; test \"$M\" = 'SM-S906B'; test \"$S\" = 'RFCT70L7E8J'; adb -s \"$SEL\" install --no-streaming -r app/build/outputs/apk/debug/app-debug.apk; for P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do adb -s \"$SEL\" shell pm grant \"$PKG\" \"$P\"; done; adb -s \"$SEL\" shell run-as \"$PKG\" sh -c 'test -s no_backup/identity-vault-v1.bin && echo identity_vault_present=true || { echo identity_vault_present=false; exit 7; }'; MODEL='/sdcard/Android/data/pl.michalmatu.aicallbridge/files/models/gemma-4-E2B-it.litertlm'; if adb -s \"$SEL\" shell test -s \"$MODEL\"; then echo 'gemma4_model_present=true'; else echo 'gemma4_model_present=false'; fi; PYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "timeout": 300
+    },
+    {
+      "name": "launch-and-observe-real-call",
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb -s \"$SEL\" shell am force-stop \"$PKG\"\nadb -s \"$SEL\" shell am start -W -n \"$PKG/.MainActivity\" >/dev/null\npython3 - <<'PY'\nimport re, subprocess, time, xml.etree.ElementTree as ET\nSEL=\"192.168.0.100:46769\"\nPKG=\"pl.michalmatu.aicallbridge\"\n\ndef run(args, timeout=8):\n    p=subprocess.run(args,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout,check=False)\n    return p.returncode,p.stdout.replace(\"\\r\",\"\")\n\ndef call_state():\n    _,out=run([\"adb\",\"-s\",SEL,\"shell\",\"dumpsys\",\"telephony.registry\"],10)\n    vals=re.findall(r\"mCallState=(\\d+)\",out)\n    return int(vals[0]) if vals else None\n\ndef status():\n    code,out=run([\"adb\",\"-s\",SEL,\"shell\",\"run-as\",PKG,\"cat\",\"shared_prefs/campaign_runtime_status_v1.xml\"],5)\n    if code!=0 or not out.strip():\n        return None\n    try:\n        root=ET.fromstring(out)\n        for node in root:\n            if node.attrib.get(\"name\")==\"status\":\n                return (node.text or \"\").strip()\n    except Exception:\n        return None\n    return None\n\nseen=[]\nlast_status=None\nactive_seen=False\ndeadline=time.time()+300\nwhile time.time()<deadline:\n    st=call_state()\n    if st is not None and (not seen or seen[-1]!=st):\n        seen.append(st)\n        print(f\"call_state_transition={st}\",flush=True)\n    if st in (1,2):\n        active_seen=True\n    cur=status()\n    if cur and cur!=last_status:\n        last_status=cur\n        print(\"campaign_status=\"+cur.replace(\"\\n\",\" \").replace(\"\\r\",\" \")[:500],flush=True)\n    if active_seen and st==0 and cur and (\n        \"cleanup=\" in cur.lower() or\n        \"success\" in cur.lower() or\n        \"failed\" in cur.lower() or\n        \"without accepted success\" in cur.lower()\n    ):\n        break\n    time.sleep(2)\n\nprint(\"active_call_observed=\"+str(active_seen).lower())\nprint(\"call_state_sequence=\"+\",\".join(map(str,seen)))\nprint(\"final_campaign_status=\"+((last_status or \"missing\").replace(\"\\n\",\" \").replace(\"\\r\",\" \")[:500]))\nif not active_seen:\n    raise SystemExit(\"real_call_was_not_observed\")\nPY",
+      "timeout": 420
+    }
+  ]
+}

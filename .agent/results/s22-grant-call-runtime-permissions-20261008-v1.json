@@ -1,0 +1,61 @@
+{
+  "allow_write": true,
+  "attempt_id": "1bf44ca7136b5a75463a42df",
+  "command_timeout": 180,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 601,
+      "command": "set -euo pipefail; SEL='192.168.0.100:46769'; adb start-server >/dev/null; adb connect \"$SEL\" >/dev/null; M=\"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\"; S=\"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\"; test \"$M\" = 'SM-S906B'; test \"$S\" = 'RFCT70L7E8J'; PKG='pl.michalmatu.aicallbridge'; adb -s \"$SEL\" shell pm grant \"$PKG\" android.permission.CALL_PHONE; adb -s \"$SEL\" shell pm grant \"$PKG\" android.permission.READ_PHONE_STATE; adb -s \"$SEL\" shell pm grant \"$PKG\" android.permission.ANSWER_PHONE_CALLS; OUT=\"$(adb -s \"$SEL\" shell dumpsys package \"$PKG\")\"; for P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do echo \"$OUT\" | grep -E \"$P: granted=true\" | head -1; done; echo 'runtime_permissions_ready=true'",
+      "current_rss_mb": 12.73,
+      "elapsed_seconds": 5.615,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\n        android.permission.RECORD_AUDIO: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\n        android.permission.CALL_PHONE: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\n        android.permission.READ_PHONE_STATE: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\n        android.permission.ANSWER_PHONE_CALLS: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\nruntime_permissions_ready=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 12.73,
+      "stage_index": 1,
+      "stage_name": "grant-and-verify",
+      "stage_phase": "commands",
+      "stage_timeout": 180,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "finished_at": "2026-10-07T23:42:39.239625+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.071,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.104,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-grant-call-runtime-permissions-20261008-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 5.615,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "grant-and-verify",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-10-07T23:42:31.967962+00:00",
+  "status": "done",
+  "task_digest": "7920557612095186813e117f71bcb616c92fef52a9314dccc6a37321813ca858",
+  "task_timeout": 600,
+  "verification": [],
+  "work_branch": "main"
+}

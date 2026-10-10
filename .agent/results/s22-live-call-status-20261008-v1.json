@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "7b48744d1c25f9cee84c6326",
+  "command_timeout": 120,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 494,
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\necho '--- call state ---'\nadb -s \"$SEL\" shell dumpsys telephony.registry | grep -m1 'mCallState=' || true\necho '--- audio mode ---'\nadb -s \"$SEL\" shell dumpsys audio | grep -m1 -E 'mode:|Phone state:' || true\necho '--- app process ---'\nadb -s \"$SEL\" shell ps -A | grep \"$PKG\" || true\necho '--- campaign status ---'\nadb -s \"$SEL\" shell run-as \"$PKG\" cat shared_prefs/campaign_runtime_status_v1.xml 2>/dev/null | sed -E 's/<string name=\"status\">([^<]*)<\\/string>/STATUS=\\1/' | grep -E '^STATUS=' || true\necho '--- focused app ---'\nadb -s \"$SEL\" shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -4 || true",
+      "current_rss_mb": 11.75,
+      "elapsed_seconds": 6.769,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 256,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\n--- call state ---\n    mCallState=0\n--- audio mode ---\nRinger mode: \n--- app process ---\nu0_a739      17115  1390   18653688  81420 0                   0 S pl.michalmatu.aicallbridge\n--- campaign status ---\n--- focused app ---\n  mCurrentFocus=Window{7ca6ca u0 pl.michalmatu.aicallbridge/pl.michalmatu.aicallbridge.MainActivity}\n  mFocusedApp=ActivityRecord{58645190 u0 pl.michalmatu.aicallbridge/.MainActivity t2877}\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 12.0,
+      "stage_index": 1,
+      "stage_name": "inspect-live-call-status",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "finished_at": "2026-10-08T00:50:18.394805+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.07,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.098,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-live-call-status-20261008-v1",
+  "idle_timeout": 90,
+  "memory_limit_mb": 256,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 6.769,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "inspect-live-call-status",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-10-08T00:50:09.965978+00:00",
+  "status": "done",
+  "task_digest": "36ad2d7318ad6d74bb3ecf4b8d00aaae78ca3a415a89b05eacb7ed55940e5374",
+  "task_timeout": 300,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

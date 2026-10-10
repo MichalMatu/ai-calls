@@ -1,0 +1,24 @@
+{
+  "id": "app-owned-campaign-service-gate-20261008-v2",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/app-owned-campaign-executor-v1",
+  "allow_write": false,
+  "resources": [],
+  "command_timeout": 1200,
+  "idle_timeout": 300,
+  "task_timeout": 1800,
+  "memory_limit_mb": 4096,
+  "steps": [
+    {
+      "name": "sync-service-fix-head",
+      "command": "set -euo pipefail; git fetch origin work/app-owned-campaign-executor-v1; git checkout -B work/app-owned-campaign-executor-v1 origin/work/app-owned-campaign-executor-v1; test \"$(git rev-parse HEAD)\" = \"9c87aed78f4ef19c3dff31d6d98c7ce84a22b1c1\"",
+      "timeout": 120
+    },
+    {
+      "name": "app-service-gate",
+      "command": "set -euo pipefail; export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon",
+      "timeout": 1200
+    }
+  ]
+}

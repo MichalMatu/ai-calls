@@ -1,0 +1,19 @@
+{
+  "id": "s22-shizuku-runtime-discovery-20261008-v2",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/debug-one-shot-clir-e2e-v1",
+  "allow_write": true,
+  "resources": [],
+  "command_timeout": 240,
+  "idle_timeout": 120,
+  "task_timeout": 600,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "discover-shizuku-launcher-and-runtime",
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\necho '--- shizuku package path ---'\nadb -s \"$SEL\" shell pm path moe.shizuku.privileged.api\necho '--- shizuku launcher ---'\nLAUNCHER=\"$(adb -s \"$SEL\" shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER moe.shizuku.privileged.api 2>/dev/null | tr -d '\\r' | tail -1)\"\necho \"shizuku_launcher=$LAUNCHER\"\nif [ -n \"$LAUNCHER\" ] && [ \"$LAUNCHER\" != 'No activity found' ]; then\n  adb -s \"$SEL\" shell am start -W -n \"$LAUNCHER\" >/dev/null || true\n  sleep 2\nfi\necho '--- Shizuku external files ---'\nadb -s \"$SEL\" shell 'find /sdcard/Android/data/moe.shizuku.privileged.api /storage/emulated/0/Android/data/moe.shizuku.privileged.api -maxdepth 4 -type f 2>/dev/null | sort -u' || true\necho '--- start.sh search ---'\nadb -s \"$SEL\" shell 'find /sdcard /storage/emulated/0 -path \"*moe.shizuku.privileged.api*\" -name \"start.sh\" -type f 2>/dev/null | sort -u' || true\necho '--- pinned phone LLM ---'\nadb -s \"$SEL\" shell 'ls -la /data/local/tmp/aicall-phone-llm 2>&1 || true'",
+      "timeout": 240
+    }
+  ]
+}

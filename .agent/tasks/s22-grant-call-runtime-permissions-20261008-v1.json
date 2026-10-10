@@ -1,0 +1,21 @@
+{
+  "id": "s22-grant-call-runtime-permissions-20261008-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 180,
+  "idle_timeout": 120,
+  "task_timeout": 600,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "grant-and-verify",
+      "command": "set -euo pipefail; SEL='192.168.0.100:46769'; adb start-server >/dev/null; adb connect \"$SEL\" >/dev/null; M=\"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\"; S=\"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\"; test \"$M\" = 'SM-S906B'; test \"$S\" = 'RFCT70L7E8J'; PKG='pl.michalmatu.aicallbridge'; adb -s \"$SEL\" shell pm grant \"$PKG\" android.permission.CALL_PHONE; adb -s \"$SEL\" shell pm grant \"$PKG\" android.permission.READ_PHONE_STATE; adb -s \"$SEL\" shell pm grant \"$PKG\" android.permission.ANSWER_PHONE_CALLS; OUT=\"$(adb -s \"$SEL\" shell dumpsys package \"$PKG\")\"; for P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do echo \"$OUT\" | grep -E \"$P: granted=true\" | head -1; done; echo 'runtime_permissions_ready=true'",
+      "timeout": 180
+    }
+  ]
+}

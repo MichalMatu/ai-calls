@@ -1,0 +1,91 @@
+{
+  "allow_write": true,
+  "attempt_id": "5179eaa63cd4410bf90824fd",
+  "command_timeout": 300,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 217,
+      "command": "set -euo pipefail; git fetch origin main; test \"$(git rev-parse origin/main)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"; git checkout -B main origin/main; test \"$(git rev-parse HEAD)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"",
+      "current_rss_mb": 7.98,
+      "elapsed_seconds": 1.283,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 4096,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch            main       -> FETCH_HEAD\nSwitched to and reset branch 'main'\nbranch 'main' set up to track 'origin/main'.\nYour branch is up to date with 'origin/main'.\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 7.98,
+      "stage_index": 1,
+      "stage_name": "sync-exact-head",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 3,
+      "timed_out": false
+    },
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 124,
+      "command": "set -euo pipefail; SERIAL=RFCT70L7E8J; adb start-server >/dev/null; adb devices -l; LINE=\"$(adb devices -l | awk -v s=\"$SERIAL\" '$1==s && $2==\"device\" {print}')\"; test -n \"$LINE\" || { echo 'direct_usb_s22=false' >&2; exit 2; }; MODEL=\"$(adb -s \"$SERIAL\" shell getprop ro.product.model | tr -d '\\r')\"; test \"$MODEL\" = SM-S906B; STATE=\"$(python3 - <<'PY'\nfrom scripts.aicall_tools.device.s22_call_control import Adb\nprint(Adb('RFCT70L7E8J').call_state())\nPY\n)\"; test \"$STATE\" = 0 || { echo \"call_state_not_idle=$STATE\" >&2; exit 3; }; echo 'direct_usb_s22=true'; echo 'call_state_idle=true'",
+      "current_rss_mb": 7.77,
+      "elapsed_seconds": 4.167,
+      "exit_code": 2,
+      "idle_timed_out": false,
+      "memory_limit_mb": 4096,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\nList of devices attached\n\ndirect_usb_s22=false\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 7.77,
+      "stage_index": 2,
+      "stage_name": "require-direct-usb-and-idle",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 3,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T21:31:40.233030+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.139,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.209,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "clir-real-enable-preflight-20261007-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 4096,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.283,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "sync-exact-head",
+      "stage_phase": "commands",
+      "stage_total": 3
+    },
+    {
+      "elapsed_seconds": 4.167,
+      "outcome": "failed",
+      "stage_index": 2,
+      "stage_name": "require-direct-usb-and-idle",
+      "stage_phase": "commands",
+      "stage_total": 3
+    }
+  ],
+  "started_at": "2026-10-07T21:31:32.238907+00:00",
+  "status": "failed",
+  "task_digest": "ee55f6edbbe433fafc4c4bcce0a089382e32fab70641686b99f2c2846a849280",
+  "task_timeout": 600,
+  "verification": [],
+  "work_branch": "main"
+}

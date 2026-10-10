@@ -1,0 +1,91 @@
+{
+  "allow_write": true,
+  "attempt_id": "56423da69e705f204452ad34",
+  "command_timeout": 900,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 6583,
+      "command": "set -euo pipefail; git fetch origin work/debug-one-shot-clir-e2e-v1; git checkout -B work/debug-one-shot-clir-e2e-v1 origin/work/debug-one-shot-clir-e2e-v1; test \"$(git rev-parse HEAD)\" = \"ca1952cd6b06a8ba999bd54f4ad41606e63e4727\"; export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; ./gradlew :app:assembleDebug --no-daemon",
+      "current_rss_mb": 51.03,
+      "elapsed_seconds": 40.234,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 3072,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch            work/debug-one-shot-clir-e2e-v1 -> FETCH_HEAD\nSwitched to and reset branch 'work/debug-one-shot-clir-e2e-v1'\nbranch 'work/debug-one-shot-clir-e2e-v1' set up to track 'origin/work/debug-one-shot-clir-e2e-v1'.\nYour branch is up to date with 'origin/work/debug-one-shot-clir-e2e-v1'.\nTo honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.\nDaemon will be stopped at the end of the build \nReusing configuration cache.\n> Task :privileged-helper:preBuild UP-TO-DATE\n> Task :audio-bridge:generateDebugAssets UP-TO-DATE\n> Task :audio-bridge:preBuild UP-TO-DATE\n> Task :realtime-client:preBuild UP-TO-DATE\n> Task :app:generateDebugAssets UP-TO-DATE\n> Task :realtime-client:generateDebugAssets UP-TO-DATE\n> Task :privileged-helper:generateDebugAssets UP-TO-DATE\n> Task :app:preBuild UP-TO-DATE\n> Task :privileged-helper:preDebugBuild UP-TO-DATE\n> Task :realtime-client:preDebugBuild UP-TO-DATE\n> Task :audio-bridge:preDebugBuild UP-TO-DATE\n> Task :app:preDebugBuild UP-TO-DATE\n> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE\n> Task :audio-bridge:generateDebugResources UP-TO-DATE\n> Task :privileged-helper:generateDebugResources UP-TO-DATE\n> Task :app:generateDebugResources UP-TO-DATE\n> Task :privileged-helper:processDebugNavigationResources UP-TO-DATE\n> Task :realtime-client:processDebugNavigationResources UP-TO-DATE\n> Task :audio-bridge:javaPreCompileDebug UP-TO-DATE\n> Task :audio-bridge:processDebugNavigationResources UP-TO-DATE\n> Task :privileged-helper:javaPreCompileDebug UP-TO-DATE\n> Task :realtime-client:generateDebugResources UP-TO-DATE\n> Task :realtime-client:javaPreCompileDebug UP-TO-DATE\n> Task :app:javaPreCompileDebug UP-TO-DATE\n> Task :privileged-helper:mergeDebugAssets UP-TO-DATE\n> Task :audio-bridge:mergeDebugAssets UP-TO-DATE\n> Task :app:packageDebugResources UP-TO-DATE\n> Task :realtime-client:mergeDebugAssets UP-TO-DATE\n> Task :audio-bridge:packageDebugResources UP-TO-DATE\n> Task :privileged-helper:packageDebugResources UP-TO-DATE\n> Task :app:generateDebugGlobalSynthetics UP-TO-DATE\n> Task :realtime-client:packageDebugResources UP-TO-DATE\n> Task :app:desugarDebugFileDependencies UP-TO-DATE\n> Task :audio-bridge:writeDebugAarMetadata UP-TO-DATE\n> Task :privileged-helper:writeDebugAarMetadata UP-TO-DATE\n> Task :realtime-client:writeDebugAarMetadata UP-TO-DATE\n> Task :realtime-client:parseDebugLocalResources UP-TO-DATE\n> Task :audio-bridge:parseDebugLocalResources UP-TO-DATE\n> Task :privileged-helper:parseDebugLocalResources UP-TO-DATE\n> Task :audio-bridge:generateDebugRFile UP-TO-DATE\n> Task :realtime-client:generateDebugRFile UP-TO-DATE\n> Task :app:mapDebugSourceSetPaths UP-TO-DATE\n> Task :privileged-helper:generateDebugRFile UP-TO-DATE\n> Task :privileged-helper:compileDebugKotlin NO-SOURCE\n> Task :app:checkDebugAarMetadata UP-TO-DATE\n> Task :app:processDebugNavigationResources UP-TO-DATE\n> Task :app:mergeDebugAssets UP-TO-DATE\n> Task :app:mergeDebugResources UP-TO-DATE\n> Task :app:parseDebugLocalResources UP-TO-DATE\n> Task :privileged-helper:compileDebugJavaWithJavac UP-TO-DATE\n> Task :app:compressDebugAssets UP-TO-DATE\n> Task :privileged-helper:processDebugJavaRes NO-SOURCE\n> Task :app:compileDebugNavigationResources UP-TO-DATE\n> Task :privileged-helper:bundleLibCompileToJarDebug UP-TO-DATE\n> Task :app:extractDeepLinksDebug UP-TO-DATE\n> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE\n> Task :audio-bridge:extractDeepLinksDebug UP-TO-DATE\n> Task :app:generateDebugRFile UP-TO-DATE\n> Task :privileged-helper:extractDeepLinksDebug UP-TO-DATE\n> Task :realtime-client:extractDeepLinksDebug UP-TO-DATE\n> Task :privileged-helper:bundleLibRuntimeToDirDebug UP-TO-DATE\n> Task :audio-bridge:mapDebugSourceSetPaths UP-TO-DATE\n> Task :realtime-client:processDebugManifest UP-TO-DATE\n> Task :audio-bridge:compileDebugLibraryResources UP-TO-DATE\n> Task :privileged-helper:mapDebugSourceSetPaths UP-TO-DATE\n> Task :realtime-client:mapDebugSourceSetPaths UP-TO-DATE\n> Task :privileged-helper:compileDebugLibraryResources UP-TO-DATE\n> Task :realtime-client:compileDebugLibraryResources UP-TO-DATE\n> Task :audio-bridge:mergeDebugJniLibFolders UP-TO-DATE\n> Task :app:mergeDebugJniLibFolders UP-TO-DATE\n> Task :audio-bridge:mergeDebugNativeLibs NO-SOURCE\n> Task :privileged-helper:mergeDebugJniLibFolders UP-TO-DATE\n> Task :audio-bridge:copyDebugJniLibsProjectOnly UP-TO-DATE\n> Task :app:checkDebugDuplicateClasses UP-TO-DATE\n> Task :privileged-helper:mergeDebugNativeLibs NO-SOURCE\n> Task :audio-bridge:processDebugManifest UP-TO-DATE\n> Task :realtime-client:mergeDebugJniLibFolders UP-TO-DATE\n> Task :privileged-helper:processDebugManifest UP-TO-DATE\n> Task :privileged-helper:copyDebugJniLibsProjectOnly UP-TO-DATE\n> Task :app:writeDebugAppMetadata UP-TO-DATE\n> Task :realtime-client:mergeDebugNativeLibs NO-SOURCE\n> Task :app:writeDebugSigningConfigVersions UP-TO-DATE\n> Task :realtime-client:copyDebugJniLibsProjectOnly UP-TO-DATE\n> Task :app:validateSigningDebug UP-TO-DATE\n> Task :audio-bridge:compileDebugKotlin UP-TO-DATE\n> Task :app:mergeDebugNativeLibs UP-TO-DATE\n> Task :audio-bridge:compileDebugJavaWithJavac NO-SOURCE\n> Task :app:processDebugMainManifest UP-TO-DATE\n> Task :audio-bridge:bundleLibCompileToJarDebug UP-TO-DATE\n> Task :audio-bridge:processDebugJavaRes UP-TO-DATE\n> Task :app:stripDebugDebugSymbols UP-TO-DATE\n> Task :app:mergeExtDexDebug UP-TO-DATE\n> Task :app:processDebugManifest UP-TO-DATE\n> Task :audio-bridge:bundleLibRuntimeToDirDebug UP-TO-DATE\n> Task :app:processDebugManifestForPackage UP-TO-DATE\n> Task :realtime-client:compileDebugKotlin UP-TO-DATE\n> Task :realtime-client:processDebugJavaRes UP-TO-DATE\n> Task :realtime-client:compileDebugJavaWithJavac UP-TO-DATE\n> Task :realtime-client:bundleLibCompileToJarDebug UP-TO-DATE\n> Task :realtime-client:bundleLibRuntimeToDirDebug UP-TO-DATE\n> Task :app:mergeLibDexDebug UP-TO-DATE\n> Task :app:compileDebugAidl UP-TO-DATE\n> Task :app:processDebugResources UP-TO-DATE\n> Task :app:compileDebugKotlin\n> Task :app:processDebugJavaRes UP-TO-DATE\n> Task :app:mergeDebugJavaResource UP-TO-DATE\n> Task :app:compileDebugJavaWithJavac UP-TO-DATE\n> Task :app:dexBuilderDebug\n> Task :app:mergeProjectDexDebug\n> Task :app:packageDebug\n> Task :app:assembleDebug\n> Task :app:createDebugApkListingFileRedirect UP-TO-DATE\n\nBUILD SUCCESSFUL in 38s\n92 actionable tasks: 4 executed, 88 up-to-date\nConfiguration cache entry reused.\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 224.23,
+      "stage_index": 1,
+      "stage_name": "build-exact-one-shot-head",
+      "stage_phase": "commands",
+      "stage_timeout": 900,
+      "stage_total": 3,
+      "timed_out": false
+    },
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 244,
+      "command": "set -euo pipefail; SEL='192.168.0.100:46769'; PKG='pl.michalmatu.aicallbridge'; adb start-server >/dev/null; adb connect \"$SEL\" >/dev/null; M=\"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\"; S=\"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\"; test \"$M\" = 'SM-S906B'; test \"$S\" = 'RFCT70L7E8J'; adb -s \"$SEL\" install --no-streaming -r app/build/outputs/apk/debug/app-debug.apk; for P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do adb -s \"$SEL\" shell pm grant \"$PKG\" \"$P\"; done; adb -s \"$SEL\" shell run-as \"$PKG\" sh -c 'test -s no_backup/identity-vault-v1.bin && echo identity_vault_present=true || { echo identity_vault_present=false; exit 7; }'; MODEL='/sdcard/Android/data/pl.michalmatu.aicallbridge/files/models/gemma-4-E2B-it.litertlm'; if adb -s \"$SEL\" shell test -s \"$MODEL\"; then echo 'gemma4_model_present=true'; else echo 'gemma4_model_present=false'; fi; PYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "current_rss_mb": 9.52,
+      "elapsed_seconds": 29.448,
+      "exit_code": 7,
+      "idle_timed_out": false,
+      "memory_limit_mb": 3072,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\napp/build/outputs/apk/debug/app-debug.apk: 1 file pushed, 0 skipped. 4.6 MB/s (59625530 bytes in 12.390s)\nPerforming Push Install\nSuccess\nidentity_vault_present=false\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 11.28,
+      "stage_index": 2,
+      "stage_name": "install-and-readiness",
+      "stage_phase": "commands",
+      "stage_timeout": 300,
+      "stage_total": 3,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T23:47:42.809970+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.072,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.124,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-real-clir-e2e-20261008-v2",
+  "idle_timeout": 300,
+  "memory_limit_mb": 3072,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 40.234,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "build-exact-one-shot-head",
+      "stage_phase": "commands",
+      "stage_total": 3
+    },
+    {
+      "elapsed_seconds": 29.448,
+      "outcome": "failed",
+      "stage_index": 2,
+      "stage_name": "install-and-readiness",
+      "stage_phase": "commands",
+      "stage_total": 3
+    }
+  ],
+  "started_at": "2026-10-07T23:46:31.084902+00:00",
+  "status": "failed",
+  "task_digest": "fd4dac805ff6bad1c6f558832d44dcdb5a2603324bb20c967a855c7b7845c62e",
+  "task_timeout": 1800,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "phone-enrollment-s22-proof-20261007-v1",
+  "task_digest": "e57c6877291d6318ec197a25da5f13c8306c44076fb8e88a79523a9a92738ac8",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T21:11:07.313139+00:00",
+  "attempt_id": "2b8706de085b6faf8ca72351",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 66534,
+  "updated_at": "2026-10-07T21:11:07.578408+00:00",
+  "pid": 66534
+}

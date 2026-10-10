@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-real-clir-e2e-20261008-v1",
+  "task_digest": "586579f2805fc23ba997b594cc2b6adee9382429304ad4bffa017cbb247f2895",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T23:45:50.088337+00:00",
+  "attempt_id": "fd702676e4c4d7c7897e513c",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 11167,
+  "updated_at": "2026-10-07T23:45:50.686615+00:00",
+  "pid": 11167
+}

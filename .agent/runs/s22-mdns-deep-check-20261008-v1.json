@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-mdns-deep-check-20261008-v1",
+  "task_digest": "1aafe6a562f550ab00c1ffdb3834e353a12424e97902db83e4923a2abc51015f",
+  "status": "failed",
+  "failure_reason": "command_timeout",
+  "finished_at": "2026-10-07T23:34:51.858865+00:00",
+  "attempt_id": "26462c71f5b483f15d065a8c",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 93584,
+  "updated_at": "2026-10-07T23:34:52.159130+00:00",
+  "pid": 93584
+}

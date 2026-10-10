@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "app-owned-campaign-app-gate-20261008-v2",
+  "task_digest": "eb130ec379eb6db94fd49fea4a9e4582fb63f27a955da1b69c4a18caa0dd4fe6",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-07T22:43:22.222143+00:00",
+  "attempt_id": "9ede2028ed05768b66287dec",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 18407,
+  "updated_at": "2026-10-07T22:43:22.517664+00:00",
+  "pid": 18407
+}

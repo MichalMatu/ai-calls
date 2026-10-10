@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "c5f7b5f3c8b17f032c8b56a9",
+  "command_timeout": 420,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 869,
+      "command": "set -euo pipefail\ntest \"$(git rev-parse HEAD)\" = \"ca1952cd6b06a8ba999bd54f4ad41606e63e4727\"\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\necho '--- vault ---'\nadb -s \"$SEL\" shell run-as \"$PKG\" ls -l no_backup/identity-vault-v1.bin\necho 'identity_vault_present=true'\necho '--- grants ---'\nOUT=\"$(adb -s \"$SEL\" shell dumpsys package \"$PKG\")\"\nfor P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do\n  echo \"$OUT\" | grep -E \"$P: granted=true\" | head -1\ndone\necho 'runtime_permissions_ready=true'\necho '--- local model ---'\nMODEL='/sdcard/Android/data/pl.michalmatu.aicallbridge/files/models/gemma-4-E2B-it.litertlm'\nif adb -s \"$SEL\" shell ls -l \"$MODEL\" >/dev/null 2>&1; then\n  echo 'gemma4_model_present=true'\nelse\n  echo 'gemma4_model_present=false'\nfi\nadb -s \"$SEL\" shell run-as \"$PKG\" rm -f shared_prefs/debug_auto_clir_bootstrap.xml shared_prefs/campaign_runtime_status_v1.xml\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "current_rss_mb": 28.05,
+      "elapsed_seconds": 7.181,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\n--- vault ---\n-rw------- 1 u0_a739 u0_a739 121 2026-10-07 23:29 no_backup/identity-vault-v1.bin\nidentity_vault_present=true\n--- grants ---\n        android.permission.RECORD_AUDIO: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\n        android.permission.CALL_PHONE: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\n        android.permission.READ_PHONE_STATE: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\n        android.permission.ANSWER_PHONE_CALLS: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]\nruntime_permissions_ready=true\n--- local model ---\ngemma4_model_present=false\nlive_call_readiness_failed=live-call readiness failed: shizuku_binder_unavailable\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 28.05,
+      "stage_index": 1,
+      "stage_name": "verified-preflight-and-arm",
+      "stage_phase": "commands",
+      "stage_timeout": 240,
+      "stage_total": 2,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T23:52:16.210139+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.08,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.106,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-real-clir-e2e-20261008-v3",
+  "idle_timeout": 300,
+  "memory_limit_mb": 2048,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 7.181,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "verified-preflight-and-arm",
+      "stage_phase": "commands",
+      "stage_total": 2
+    }
+  ],
+  "started_at": "2026-10-07T23:52:06.828207+00:00",
+  "status": "failed",
+  "task_digest": "c3805d562b6a2b76cb45d76e634c4da1909f35c72c73ec278e203120d10d9d09",
+  "task_timeout": 1200,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

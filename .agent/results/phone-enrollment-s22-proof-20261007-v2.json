@@ -1,0 +1,120 @@
+{
+  "allow_write": true,
+  "attempt_id": "115835c3b1d31a8796fbf696",
+  "command_timeout": 1800,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 217,
+      "command": "set -euo pipefail; git fetch origin main; test \"$(git rev-parse origin/main)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"; git checkout -B main origin/main; test \"$(git rev-parse HEAD)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"",
+      "current_rss_mb": 3.06,
+      "elapsed_seconds": 1.601,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 4096,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch            main       -> FETCH_HEAD\nSwitched to and reset branch 'main'\nbranch 'main' set up to track 'origin/main'.\nYour branch is up to date with 'origin/main'.\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 3.06,
+      "stage_index": 1,
+      "stage_name": "sync-exact-head",
+      "stage_phase": "commands",
+      "stage_timeout": 300,
+      "stage_total": 5,
+      "timed_out": false
+    },
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 333,
+      "command": "set -euo pipefail; rm -f /tmp/aicall-s22-selector; adb start-server >/dev/null; pick(){ for D in $(adb devices | awk 'NR>1 && $2==\"device\" {print $1}'); do M=\"$(adb -s \"$D\" shell getprop ro.product.model 2>/dev/null | tr -d '\\r')\"; S=\"$(adb -s \"$D\" shell getprop ro.serialno 2>/dev/null | tr -d '\\r')\"; if [ \"$M\" = SM-S906B ] && [ \"$S\" = RFCT70L7E8J ]; then printf '%s' \"$D\"; return 0; fi; done; return 1; }; SEL=\"$(pick || true)\"; if [ -z \"$SEL\" ]; then adb mdns services || true; for E in $(adb mdns services 2>/dev/null | awk '/_adb-tls-connect\\._tcp/ {print $NF}'); do adb connect \"$E\" >/dev/null 2>&1 || true; done; sleep 2; SEL=\"$(pick || true)\"; fi; test -n \"$SEL\"; printf '%s' \"$SEL\" >/tmp/aicall-s22-selector; printf 's22_adb_ready=true\\nselector_kind=%s\\n' \"$(case \"$SEL\" in *:*) echo wireless;; *) echo direct;; esac)\"",
+      "current_rss_mb": 1.95,
+      "elapsed_seconds": 6.182,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 4096,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\nList of discovered mdns services\nadb-RFCT70L7E8J-HNMIWH\t_adb-tls-connect._tcp\t192.168.0.100:34855\n\n/bin/sh: command substitution: line 0: syntax error near unexpected token `newline'\ns22_adb_ready=true\nselector_kind= echo wireless;; *) echo direct;; esac)\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 7.33,
+      "stage_index": 2,
+      "stage_name": "recover-and-verify-s22-adb",
+      "stage_phase": "commands",
+      "stage_timeout": 180,
+      "stage_total": 5,
+      "timed_out": false
+    },
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 1086,
+      "command": "set -euo pipefail; ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon",
+      "current_rss_mb": 48.0,
+      "elapsed_seconds": 14.226,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 4096,
+      "memory_limited": false,
+      "output": "To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.\nDaemon will be stopped at the end of the build \nCalculating task graph as configuration cache cannot be reused because environment variable 'ANDROID_HOME' has changed.\n\nFAILURE: Build failed with an exception.\n\n* What went wrong:\nCould not determine the dependencies of task ':app:compileDebugJavaWithJavac'.\n> SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in your project's local properties file at '/Users/michal/agent-workspace/repos/ai-calls/work/local.properties'.\n\n* Try:\n> Run with --stacktrace option to get the stack trace.\n> Run with --info or --debug option to get more log output.\n> Run with --scan to get full insights from a Build Scan (powered by Develocity).\n> Get more help at https://help.gradle.org.\n\nBUILD FAILED in 11s\nConfiguration cache entry stored.\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 190.17,
+      "stage_index": 3,
+      "stage_name": "build-proof-apks",
+      "stage_phase": "commands",
+      "stage_timeout": 1800,
+      "stage_total": 5,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T21:14:07.742127+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.072,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.098,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "phone-enrollment-s22-proof-20261007-v2",
+  "idle_timeout": 600,
+  "memory_limit_mb": 4096,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.601,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "sync-exact-head",
+      "stage_phase": "commands",
+      "stage_total": 5
+    },
+    {
+      "elapsed_seconds": 6.182,
+      "outcome": "passed",
+      "stage_index": 2,
+      "stage_name": "recover-and-verify-s22-adb",
+      "stage_phase": "commands",
+      "stage_total": 5
+    },
+    {
+      "elapsed_seconds": 14.226,
+      "outcome": "failed",
+      "stage_index": 3,
+      "stage_name": "build-proof-apks",
+      "stage_phase": "commands",
+      "stage_total": 5
+    }
+  ],
+  "started_at": "2026-10-07T21:13:42.298132+00:00",
+  "status": "failed",
+  "task_digest": "1577d0cce791978118d712de03f41d980cc7e3672d423047bb198118d3d3576f",
+  "task_timeout": 3600,
+  "verification": [],
+  "work_branch": "main"
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-start-shizuku-discover-components-20261008-v1",
+  "task_digest": "c76a689b33a031dbe68a9024157a8e7ff63379d75e4c1bbecef82bc4c29af67e",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-08T00:21:18.967342+00:00",
+  "attempt_id": "72cf6c1fb5273bd80050c29a",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 88175,
+  "updated_at": "2026-10-08T00:21:19.655130+00:00",
+  "pid": 88175
+}
