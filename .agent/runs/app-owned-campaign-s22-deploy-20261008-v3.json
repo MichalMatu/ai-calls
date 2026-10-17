@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "app-owned-campaign-s22-deploy-20261008-v3",
+  "task_digest": "86a00e50947b3e3644cd68b65f9f3bb268228e730612fa5161090717fdd55c42",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T23:11:37.680715+00:00",
+  "attempt_id": "c3d31e07f915bb151e8e9b6c",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 66761,
+  "updated_at": "2026-10-07T23:11:37.956799+00:00",
+  "pid": 66761
+}

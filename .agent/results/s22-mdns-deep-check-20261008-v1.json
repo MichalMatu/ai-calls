@@ -1,0 +1,62 @@
+{
+  "allow_write": false,
+  "attempt_id": "26462c71f5b483f15d065a8c",
+  "command_timeout": 180,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 246,
+      "command": "set -euo pipefail\nadb start-server >/dev/null\necho '--- adb mdns services ---'\nadb mdns services || true\nbrowse() {\n  SERVICE=\"$1\"\n  echo \"--- dns-sd browse $SERVICE ---\"\n  OUT=\"/tmp/mdns-$RANDOM.txt\"\n  dns-sd -B \"$SERVICE\" local. >\"$OUT\" 2>&1 &\n  PID=$!\n  sleep 8\n  kill -INT \"$PID\" 2>/dev/null || true\n  wait \"$PID\" 2>/dev/null || true\n  cat \"$OUT\"\n  rm -f \"$OUT\"\n}\nbrowse _adb-tls-connect._tcp\nbrowse _adb-tls-pairing._tcp\necho '--- dns-sd service types ---'\nOUT=\"/tmp/mdns-services-$RANDOM.txt\"\ndns-sd -B _services._dns-sd._udp local. >\"$OUT\" 2>&1 &\nPID=$!\nsleep 8\nkill -INT \"$PID\" 2>/dev/null || true\nwait \"$PID\" 2>/dev/null || true\ncat \"$OUT\" | grep -Ei 'adb|googlecast|airplay|raop|companion-link|device-info|workstation|ssh|sftp|http|https' || cat \"$OUT\"\nrm -f \"$OUT\"\necho '--- arp target ---'\narp -an | grep '192\\.168\\.0\\.100' || true",
+      "current_rss_mb": 1.42,
+      "elapsed_seconds": 120.274,
+      "exit_code": 124,
+      "idle_timed_out": false,
+      "memory_limit_mb": 512,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\n--- adb mdns services ---\nList of discovered mdns services\nadb-RFCT70L7E8J-HNMIWH\t_adb-tls-connect._tcp\t192.168.0.100:46769\n\n--- dns-sd browse _adb-tls-connect._tcp ---\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 7.25,
+      "stage_index": 1,
+      "stage_name": "mdns-deep-check",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 1,
+      "timed_out": true
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_timeout",
+  "finished_at": "2026-10-07T23:34:51.858865+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.085,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.144,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-mdns-deep-check-20261008-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 512,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 120.274,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "mdns-deep-check",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-10-07T23:32:49.747092+00:00",
+  "status": "failed",
+  "task_digest": "1aafe6a562f550ab00c1ffdb3834e353a12424e97902db83e4923a2abc51015f",
+  "task_timeout": 600,
+  "verification": [],
+  "work_branch": "main"
+}

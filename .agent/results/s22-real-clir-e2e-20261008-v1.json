@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "fd702676e4c4d7c7897e513c",
+  "command_timeout": 900,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 7329,
+      "command": "set -euo pipefail; git fetch origin work/debug-one-shot-clir-e2e-v1; git checkout -B work/debug-one-shot-clir-e2e-v1 origin/work/debug-one-shot-clir-e2e-v1; test \"$(git rev-parse HEAD)\" = \"10d75de8d325c4c57b97da7e2e2736dda2bb76a5\"; export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; ./gradlew :app:assembleDebug --no-daemon",
+      "current_rss_mb": 31.94,
+      "elapsed_seconds": 16.724,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 3072,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch            work/debug-one-shot-clir-e2e-v1 -> FETCH_HEAD\nSwitched to a new branch 'work/debug-one-shot-clir-e2e-v1'\nbranch 'work/debug-one-shot-clir-e2e-v1' set up to track 'origin/work/debug-one-shot-clir-e2e-v1'.\nTo honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.\nDaemon will be stopped at the end of the build \nReusing configuration cache.\n> Task :audio-bridge:generateDebugAssets UP-TO-DATE\n> Task :realtime-client:preBuild UP-TO-DATE\n> Task :privileged-helper:generateDebugAssets UP-TO-DATE\n> Task :app:generateDebugAssets UP-TO-DATE\n> Task :realtime-client:generateDebugAssets UP-TO-DATE\n> Task :audio-bridge:preBuild UP-TO-DATE\n> Task :privileged-helper:preBuild UP-TO-DATE\n> Task :app:preBuild UP-TO-DATE\n> Task :app:preDebugBuild UP-TO-DATE\n> Task :privileged-helper:preDebugBuild UP-TO-DATE\n> Task :audio-bridge:preDebugBuild UP-TO-DATE\n> Task :realtime-client:preDebugBuild UP-TO-DATE\n> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE\n> Task :audio-bridge:generateDebugResources UP-TO-DATE\n> Task :audio-bridge:javaPreCompileDebug UP-TO-DATE\n> Task :realtime-client:processDebugNavigationResources UP-TO-DATE\n> Task :privileged-helper:processDebugNavigationResources UP-TO-DATE\n> Task :audio-bridge:processDebugNavigationResources UP-TO-DATE\n> Task :app:generateDebugResources UP-TO-DATE\n> Task :privileged-helper:generateDebugResources UP-TO-DATE\n> Task :realtime-client:generateDebugResources UP-TO-DATE\n> Task :realtime-client:javaPreCompileDebug UP-TO-DATE\n> Task :privileged-helper:javaPreCompileDebug UP-TO-DATE\n> Task :app:javaPreCompileDebug UP-TO-DATE\n> Task :audio-bridge:mergeDebugAssets UP-TO-DATE\n> Task :privileged-helper:mergeDebugAssets UP-TO-DATE\n> Task :audio-bridge:packageDebugResources UP-TO-DATE\n> Task :app:packageDebugResources UP-TO-DATE\n> Task :realtime-client:packageDebugResources UP-TO-DATE\n> Task :privileged-helper:packageDebugResources UP-TO-DATE\n> Task :realtime-client:mergeDebugAssets UP-TO-DATE\n> Task :app:generateDebugGlobalSynthetics UP-TO-DATE\n> Task :app:desugarDebugFileDependencies UP-TO-DATE\n> Task :realtime-client:parseDebugLocalResources UP-TO-DATE\n> Task :audio-bridge:parseDebugLocalResources UP-TO-DATE\n> Task :privileged-helper:parseDebugLocalResources UP-TO-DATE\n> Task :audio-bridge:writeDebugAarMetadata UP-TO-DATE\n> Task :privileged-helper:writeDebugAarMetadata UP-TO-DATE\n> Task :realtime-client:writeDebugAarMetadata UP-TO-DATE\n> Task :audio-bridge:generateDebugRFile UP-TO-DATE\n> Task :realtime-client:generateDebugRFile UP-TO-DATE\n> Task :app:mapDebugSourceSetPaths UP-TO-DATE\n> Task :privileged-helper:generateDebugRFile UP-TO-DATE\n> Task :privileged-helper:compileDebugKotlin NO-SOURCE\n> Task :privileged-helper:compileDebugJavaWithJavac UP-TO-DATE\n> Task :privileged-helper:bundleLibCompileToJarDebug UP-TO-DATE\n> Task :privileged-helper:processDebugJavaRes NO-SOURCE\n> Task :app:processDebugNavigationResources UP-TO-DATE\n> Task :app:mergeDebugAssets UP-TO-DATE\n> Task :app:checkDebugAarMetadata UP-TO-DATE\n> Task :app:mergeDebugResources UP-TO-DATE\n> Task :app:compileDebugNavigationResources UP-TO-DATE\n> Task :app:parseDebugLocalResources UP-TO-DATE\n> Task :app:compressDebugAssets UP-TO-DATE\n> Task :app:extractDeepLinksDebug UP-TO-DATE\n> Task :audio-bridge:extractDeepLinksDebug UP-TO-DATE\n> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE\n> Task :privileged-helper:bundleLibRuntimeToDirDebug UP-TO-DATE\n> Task :app:generateDebugRFile UP-TO-DATE\n> Task :privileged-helper:extractDeepLinksDebug UP-TO-DATE\n> Task :realtime-client:extractDeepLinksDebug UP-TO-DATE\n> Task :audio-bridge:processDebugManifest UP-TO-DATE\n> Task :audio-bridge:mapDebugSourceSetPaths UP-TO-DATE\n> Task :privileged-helper:mapDebugSourceSetPaths UP-TO-DATE\n> Task :privileged-helper:processDebugManifest UP-TO-DATE\n> Task :audio-bridge:compileDebugLibraryResources UP-TO-DATE\n> Task :realtime-client:mapDebugSourceSetPaths UP-TO-DATE\n> Task :privileged-helper:compileDebugLibraryResources UP-TO-DATE\n> Task :audio-bridge:compileDebugKotlin UP-TO-DATE\n> Task :realtime-client:processDebugManifest UP-TO-DATE\n> Task :audio-bridge:mergeDebugJniLibFolders UP-TO-DATE\n> Task :app:mergeDebugJniLibFolders UP-TO-DATE\n> Task :realtime-client:compileDebugLibraryResources UP-TO-DATE\n> Task :audio-bridge:compileDebugJavaWithJavac NO-SOURCE\n> Task :audio-bridge:bundleLibCompileToJarDebug UP-TO-DATE\n> Task :realtime-client:mergeDebugJniLibFolders UP-TO-DATE\n> Task :privileged-helper:mergeDebugJniLibFolders UP-TO-DATE\n> Task :audio-bridge:processDebugJavaRes UP-TO-DATE\n> Task :audio-bridge:mergeDebugNativeLibs NO-SOURCE\n> Task :privileged-helper:mergeDebugNativeLibs NO-SOURCE\n> Task :realtime-client:mergeDebugNativeLibs NO-SOURCE\n> Task :audio-bridge:bundleLibRuntimeToDirDebug UP-TO-DATE\n> Task :audio-bridge:copyDebugJniLibsProjectOnly UP-TO-DATE\n> Task :privileged-helper:copyDebugJniLibsProjectOnly UP-TO-DATE\n> Task :realtime-client:copyDebugJniLibsProjectOnly UP-TO-DATE\n> Task :app:validateSigningDebug UP-TO-DATE\n> Task :app:writeDebugAppMetadata UP-TO-DATE\n> Task :app:writeDebugSigningConfigVersions UP-TO-DATE\n> Task :app:checkDebugDuplicateClasses UP-TO-DATE\n> Task :app:mergeDebugNativeLibs UP-TO-DATE\n> Task :app:processDebugMainManifest UP-TO-DATE\n> Task :app:stripDebugDebugSymbols UP-TO-DATE\n> Task :app:processDebugManifest UP-TO-DATE\n> Task :app:processDebugManifestForPackage UP-TO-DATE\n> Task :app:mergeExtDexDebug UP-TO-DATE\n> Task :realtime-client:compileDebugKotlin UP-TO-DATE\n> Task :realtime-client:processDebugJavaRes UP-TO-DATE\n> Task :realtime-client:compileDebugJavaWithJavac UP-TO-DATE\n> Task :realtime-client:bundleLibCompileToJarDebug UP-TO-DATE\n> Task :realtime-client:bundleLibRuntimeToDirDebug UP-TO-DATE\n> Task :app:mergeLibDexDebug UP-TO-DATE\n> Task :app:compileDebugAidl UP-TO-DATE\n> Task :app:processDebugResources UP-TO-DATE\n\n> Task :app:compileDebugKotlin\ne: file:///Users/michal/agent-workspace/repos/ai-calls/work/app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/DebugAutoClirBootstrap.kt:7:35 Unresolved reference 'BuildConfig'.\ne: file:///Users/michal/agent-workspace/repos/ai-calls/work/app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/DebugAutoClirBootstrap.kt:16:14 Unresolved reference 'BuildConfig'.\n\n> Task :app:compileDebugKotlin FAILED\n\n[Incubating] Problems report is available at: file:///Users/michal/agent-workspace/repos/ai-calls/work/build/reports/problems/problems-report.html\n\nFAILURE: Build failed with an exception.\n\n* What went wrong:\nExecution failed for task ':app:compileDebugKotlin' (registered by plugin 'com.android.internal.application').\n> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork\n   > Compilation error. See log for more details\n\n* Try:\n> Run with --stacktrace option to get the stack trace.\n> Run with --info or --debug option to get more log output.\n> Run with --scan to get full insights from a Build Scan (powered by Develocity).\n> Get more help at https://help.gradle.org.\n\nBUILD FAILED in 15s\n85 actionable tasks: 1 executed, 84 up-to-date\nConfiguration cache entry reused.\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 197.3,
+      "stage_index": 1,
+      "stage_name": "build-exact-one-shot-head",
+      "stage_phase": "commands",
+      "stage_timeout": 900,
+      "stage_total": 3,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T23:45:50.088337+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.079,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.101,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-real-clir-e2e-20261008-v1",
+  "idle_timeout": 300,
+  "memory_limit_mb": 3072,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 16.724,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "build-exact-one-shot-head",
+      "stage_phase": "commands",
+      "stage_total": 3
+    }
+  ],
+  "started_at": "2026-10-07T23:45:31.367617+00:00",
+  "status": "failed",
+  "task_digest": "586579f2805fc23ba997b594cc2b6adee9382429304ad4bffa017cbb247f2895",
+  "task_timeout": 1800,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

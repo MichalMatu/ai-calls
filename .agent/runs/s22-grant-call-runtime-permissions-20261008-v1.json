@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-grant-call-runtime-permissions-20261008-v1",
+  "task_digest": "7920557612095186813e117f71bcb616c92fef52a9314dccc6a37321813ca858",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-07T23:42:39.239625+00:00",
+  "attempt_id": "1bf44ca7136b5a75463a42df",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 7514,
+  "updated_at": "2026-10-07T23:42:39.545116+00:00",
+  "pid": 7514
+}

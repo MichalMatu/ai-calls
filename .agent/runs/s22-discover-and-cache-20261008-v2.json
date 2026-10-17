@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-discover-and-cache-20261008-v2",
+  "task_digest": "44f58de34c9d016705d22b184303907eeb670c6d3dc87a1f48788acc04f5ab0e",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T23:26:28.610741+00:00",
+  "attempt_id": "636c965e42a98d34176e29df",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 87361,
+  "updated_at": "2026-10-07T23:26:29.106674+00:00",
+  "pid": 87361
+}

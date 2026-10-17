@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-wireless-adb-diagnose-20261008-v1",
+  "task_digest": "a5151b8e47c48d43e0cf350926e6eb3cf2b773e7c84fb8cb4f2b83773b967e7d",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-07T23:17:16.036447+00:00",
+  "attempt_id": "c91c4ef51dd876e41dee95cb",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 75887,
+  "updated_at": "2026-10-07T23:17:18.618581+00:00",
+  "pid": 75887
+}

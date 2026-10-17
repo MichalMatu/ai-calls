@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "app-owned-campaign-host-gate-20261008-v1",
+  "task_digest": "f954f1a67a9f4c97a301b8d5c9e8b0b38f8533a872fad5600e383541cd455b24",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T22:39:14.157169+00:00",
+  "attempt_id": "73ccc4045dc370def86f4276",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 6754,
+  "updated_at": "2026-10-07T22:39:15.004754+00:00",
+  "pid": 6754
+}

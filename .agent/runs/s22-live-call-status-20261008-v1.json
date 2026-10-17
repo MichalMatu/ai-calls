@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-live-call-status-20261008-v1",
+  "task_digest": "36ad2d7318ad6d74bb3ecf4b8d00aaae78ca3a415a89b05eacb7ed55940e5374",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-08T00:50:18.394805+00:00",
+  "attempt_id": "7b48744d1c25f9cee84c6326",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 37023,
+  "updated_at": "2026-10-08T00:50:18.850792+00:00",
+  "pid": 37023
+}

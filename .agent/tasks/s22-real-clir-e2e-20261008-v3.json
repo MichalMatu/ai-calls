@@ -1,0 +1,26 @@
+{
+  "id": "s22-real-clir-e2e-20261008-v3",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/debug-one-shot-clir-e2e-v1",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 420,
+  "idle_timeout": 300,
+  "task_timeout": 1200,
+  "memory_limit_mb": 2048,
+  "steps": [
+    {
+      "name": "verified-preflight-and-arm",
+      "command": "set -euo pipefail\ntest \"$(git rev-parse HEAD)\" = \"ca1952cd6b06a8ba999bd54f4ad41606e63e4727\"\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\necho '--- vault ---'\nadb -s \"$SEL\" shell run-as \"$PKG\" ls -l no_backup/identity-vault-v1.bin\necho 'identity_vault_present=true'\necho '--- grants ---'\nOUT=\"$(adb -s \"$SEL\" shell dumpsys package \"$PKG\")\"\nfor P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do\n  echo \"$OUT\" | grep -E \"$P: granted=true\" | head -1\ndone\necho 'runtime_permissions_ready=true'\necho '--- local model ---'\nMODEL='/sdcard/Android/data/pl.michalmatu.aicallbridge/files/models/gemma-4-E2B-it.litertlm'\nif adb -s \"$SEL\" shell ls -l \"$MODEL\" >/dev/null 2>&1; then\n  echo 'gemma4_model_present=true'\nelse\n  echo 'gemma4_model_present=false'\nfi\nadb -s \"$SEL\" shell run-as \"$PKG\" rm -f shared_prefs/debug_auto_clir_bootstrap.xml shared_prefs/campaign_runtime_status_v1.xml\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "timeout": 240
+    },
+    {
+      "name": "launch-and-observe-real-call",
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb -s \"$SEL\" shell am force-stop \"$PKG\"\nadb -s \"$SEL\" shell am start -W -n \"$PKG/.MainActivity\" >/dev/null\nPYTHONPATH=scripts python3 - <<'PY'\nimport subprocess, time, xml.etree.ElementTree as ET\nfrom aicall_tools.device.s22_call_control import Adb\n\nSEL=\"192.168.0.100:46769\"\nPKG=\"pl.michalmatu.aicallbridge\"\nadb=Adb(SEL)\n\ndef run(args, timeout=8):\n    p=subprocess.run(args,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout,check=False)\n    return p.returncode,p.stdout.replace(\"\\r\",\"\")\n\ndef status():\n    code,out=run([\"adb\",\"-s\",SEL,\"shell\",\"run-as\",PKG,\"cat\",\"shared_prefs/campaign_runtime_status_v1.xml\"],5)\n    if code!=0 or not out.strip():\n        return None\n    try:\n        root=ET.fromstring(out)\n        for node in root:\n            if node.attrib.get(\"name\")==\"status\":\n                return (node.text or \"\").strip()\n    except Exception:\n        return None\n    return None\n\nseen=[]\nlast_status=None\nactive_seen=False\ndeadline=time.time()+300\nwhile time.time()<deadline:\n    try:\n        st=adb.call_state()\n    except Exception:\n        st=None\n    if st is not None and (not seen or seen[-1]!=st):\n        seen.append(st)\n        print(f\"call_state_transition={st}\",flush=True)\n    if st in (1,2):\n        active_seen=True\n    cur=status()\n    if cur and cur!=last_status:\n        last_status=cur\n        print(\"campaign_status=\"+cur.replace(\"\\n\",\" \").replace(\"\\r\",\" \")[:500],flush=True)\n    if active_seen and st==0 and cur and (\n        \"cleanup=\" in cur.lower() or\n        \"success\" in cur.lower() or\n        \"failed\" in cur.lower() or\n        \"without accepted success\" in cur.lower()\n    ):\n        break\n    time.sleep(2)\n\nprint(\"active_call_observed=\"+str(active_seen).lower())\nprint(\"call_state_sequence=\"+\",\".join(map(str,seen)))\nprint(\"final_campaign_status=\"+((last_status or \"missing\").replace(\"\\n\",\" \").replace(\"\\r\",\" \")[:500]))\nif not active_seen:\n    raise SystemExit(\"real_call_was_not_observed\")\nPY",
+      "timeout": 420
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "clir-wireless-readiness-20261008-v1",
+  "task_digest": "4c5d879c970bec6baa1aca263de479e63e2d72299449219696b88d148badf8cb",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T22:16:14.623298+00:00",
+  "attempt_id": "50fda9511f255f3a69cfe80a",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 77786,
+  "updated_at": "2026-10-07T22:16:14.952679+00:00",
+  "pid": 77786
+}

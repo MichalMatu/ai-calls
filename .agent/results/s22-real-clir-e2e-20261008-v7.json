@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "64d03a46233fad0007fb7acc",
+  "command_timeout": 420,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 2165,
+      "command": "set -euo pipefail\ntest \"$(git rev-parse HEAD)\" = \"a0221e906e694e2f2554e21c307f8fe603e218a1\"\nAPK='app/build/outputs/apk/debug/app-debug.apk'\ntest -s \"$APK\"\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nSHIZUKU='moe.shizuku.privileged.api'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\nadb -s \"$SEL\" install --no-streaming -r \"$APK\"\nfor P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do\n  adb -s \"$SEL\" shell pm grant \"$PKG\" \"$P\"\ndone\nBASE=\"$(adb -s \"$SEL\" shell pm path \"$SHIZUKU\" | head -1 | sed 's/^package://' | tr -d '\\r')\"\nROOT=\"$(dirname \"$BASE\")\"\nSTARTER=\"$(adb -s \"$SEL\" shell find \"$ROOT/lib\" -type f -name libshizuku.so 2>/dev/null | head -1 | tr -d '\\r')\"\ntest -n \"$STARTER\"\nadb -s \"$SEL\" shell \"$STARTER\"\nsleep 3\nadb -s \"$SEL\" shell ps -A | grep -q shizuku_server\nadb -s \"$SEL\" shell run-as \"$PKG\" rm -f shared_prefs/debug_auto_clir_bootstrap.xml shared_prefs/campaign_runtime_status_v1.xml\nadb -s \"$SEL\" shell am force-stop \"$PKG\"\nadb -s \"$SEL\" shell input keyevent 224 >/dev/null 2>&1 || true\nadb -s \"$SEL\" shell wm dismiss-keyguard >/dev/null 2>&1 || true\nadb -s \"$SEL\" shell am start -W -n \"$PKG/.MainActivity\" >/dev/null\npython3 - <<'PY'\nimport re, subprocess, time, xml.etree.ElementTree as ET\nSEL=\"192.168.0.100:46769\"\nTARGET_PACKAGE=\"moe.shizuku.privileged.api\"\nTARGET_ID=\"moe.shizuku.privileged.api:id/button1\"\n\ndef run(args, timeout=10):\n    p=subprocess.run(args,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout,check=False)\n    return p.returncode,p.stdout.replace(\"\\r\",\"\")\n\ndeadline=time.time()+20\nclicked=False\nwhile time.time()<deadline:\n    _,focus=run([\"adb\",\"-s\",SEL,\"shell\",\"dumpsys\",\"window\",\"windows\"],10)\n    run([\"adb\",\"-s\",SEL,\"shell\",\"uiautomator\",\"dump\",\"/sdcard/aicall-shizuku-permission.xml\"],10)\n    _,xml=run([\"adb\",\"-s\",SEL,\"shell\",\"cat\",\"/sdcard/aicall-shizuku-permission.xml\"],10)\n    if TARGET_PACKAGE not in focus and TARGET_PACKAGE not in xml:\n        time.sleep(0.5)\n        continue\n    try:\n        root=ET.fromstring(xml[xml.find(\"<?xml\"):])\n    except Exception:\n        time.sleep(0.5)\n        continue\n    node=None\n    for candidate in root.iter(\"node\"):\n        if candidate.attrib.get(\"resource-id\")==TARGET_ID:\n            node=candidate\n            break\n    if node is None:\n        time.sleep(0.5)\n        continue\n    bounds=node.attrib.get(\"bounds\",\"\")\n    m=re.fullmatch(r\"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]\",bounds)\n    if not m:\n        raise SystemExit(\"shizuku_allow_bounds_invalid\")\n    x1,y1,x2,y2=map(int,m.groups())\n    x=(x1+x2)//2; y=(y1+y2)//2\n    code,out=run([\"adb\",\"-s\",SEL,\"shell\",\"input\",\"tap\",str(x),str(y)],10)\n    if code!=0:\n        raise SystemExit(\"shizuku_allow_tap_failed\")\n    print(\"shizuku_permission_allow_clicked=true\",flush=True)\n    clicked=True\n    break\nif not clicked:\n    print(\"last_focus=\"+focus.replace(\"\\n\",\" \")[:600],flush=True)\n    print(\"last_ui=\"+xml.replace(\"\\n\",\" \")[:1000],flush=True)\n    raise SystemExit(\"shizuku_permission_dialog_not_found\")\nPY\nsleep 2\nadb -s \"$SEL\" shell am force-stop \"$PKG\"\nsleep 1\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "current_rss_mb": 14.16,
+      "elapsed_seconds": 50.205,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 512,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\napp/build/outputs/apk/debug/app-debug.apk: 1 file pushed, 0 skipped. 8.5 MB/s (59625530 bytes in 6.680s)\nPerforming Push Install\nSuccess\ninfo: starter begin\ninfo: killing old process...\ninfo: killed 15304 (shizuku_server)\ninfo: apk path is /data/app/~~BMmZoYhwymCj0IkO63CAYw==/moe.shizuku.privileged.api-xdnM1MSs-zl-toUhlVScAw==/base.apk\ninfo: starting server...\ninfo: shizuku_server pid is 17012\ninfo: shizuku_starter exit with 0\nlast_focus=WINDOW MANAGER WINDOWS (dumpsys window windows)   Window #0 Window{7c7d6c7 u0 ScreenDecorOverlayBottom}:     mDisplayId=0 mSession=Session{c3f3ed6 2606:u0a10051} mClient=android.os.BinderProxy@48c7ae1     mOwnerUid=10051 showForAllUsers=true package=com.android.systemui appop=NONE     mAttrs={(0,0)(fillxwrap) gr=BOTTOM CENTER_VERTICAL sim={adjust=pan} layoutInDisplayCutoutMode=always ty=NAVIGATION_BAR_PANEL fmt=TRANSLUCENT       fl=21000138       pfl=31100050       vsysui=100       bhv=1       frameRateBoostOnTouch=true       dvrrWindowFrameRateHint=true naviIconColor=0}     Requested w=1080 h\nlast_ui=<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation=\"0\"><node index=\"0\" text=\"\" resource-id=\"\" class=\"android.widget.FrameLayout\" package=\"com.google.android.dialer\" content-desc=\"\" checkable=\"false\" checked=\"false\" clickable=\"false\" enabled=\"true\" focusable=\"false\" focused=\"false\" scrollable=\"false\" long-clickable=\"false\" password=\"false\" selected=\"false\" bounds=\"[0,0][1080,2340]\" drawing-order=\"0\" hint=\"\"><node index=\"0\" text=\"\" resource-id=\"\" class=\"android.widget.LinearLayout\" package=\"com.google.android.dialer\" content-desc=\"\" checkable=\"false\" checked=\"false\" clickable=\"false\" enabled=\"true\" focusable=\"false\" focused=\"false\" scrollable=\"false\" long-clickable=\"false\" password=\"false\" selected=\"false\" bounds=\"[0,0][1080,2340]\" drawing-order=\"1\" hint=\"\"><node index=\"0\" text=\"\" resource-id=\"\" class=\"android.widget.FrameLayout\" package=\"com.google.android.dialer\" content-desc=\"\" checkable=\"false\" checked=\"false\" clickable=\"false\" enabled=\"true\" focusable=\"false\nshizuku_permission_dialog_not_found\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 22.61,
+      "stage_index": 1,
+      "stage_name": "install-start-shizuku-request-and-approve",
+      "stage_phase": "commands",
+      "stage_timeout": 240,
+      "stage_total": 2,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-08T00:46:34.707186+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.123,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.153,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-real-clir-e2e-20261008-v7",
+  "idle_timeout": 300,
+  "memory_limit_mb": 512,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 50.205,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "install-start-shizuku-request-and-approve",
+      "stage_phase": "commands",
+      "stage_total": 2
+    }
+  ],
+  "started_at": "2026-10-08T00:45:42.153658+00:00",
+  "status": "failed",
+  "task_digest": "4aa53c62ee43418c686150d0ad69a2c1cd66c335598f9987b5e3b1957296c8bb",
+  "task_timeout": 1200,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

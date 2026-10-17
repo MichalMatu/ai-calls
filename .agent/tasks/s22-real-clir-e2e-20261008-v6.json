@@ -1,0 +1,26 @@
+{
+  "id": "s22-real-clir-e2e-20261008-v6",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/debug-one-shot-clir-e2e-v1",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 420,
+  "idle_timeout": 300,
+  "task_timeout": 900,
+  "memory_limit_mb": 512,
+  "steps": [
+    {
+      "name": "grant-shizuku-readiness",
+      "command": "set -euo pipefail\ntest \"$(git rev-parse HEAD)\" = \"0bca996803c3b00930c95d7d041112d60eb1cbf2\"\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\nBASE=\"$(adb -s \"$SEL\" shell pm path moe.shizuku.privileged.api | head -1 | sed 's/^package://' | tr -d '\\r')\"\nROOT=\"$(dirname \"$BASE\")\"\nSTARTER=\"$(adb -s \"$SEL\" shell find \"$ROOT/lib\" -type f -name libshizuku.so 2>/dev/null | head -1 | tr -d '\\r')\"\ntest -n \"$STARTER\"\nadb -s \"$SEL\" shell \"$STARTER\"\nsleep 3\nadb -s \"$SEL\" shell ps -A | grep -q shizuku_server\nadb -s \"$SEL\" shell pm grant \"$PKG\" moe.shizuku.manager.permission.API_V23\nOUT=\"$(adb -s \"$SEL\" shell dumpsys package \"$PKG\")\"\necho \"$OUT\" | grep -E 'moe\\.shizuku\\.manager\\.permission\\.API_V23: granted=true' | head -1\necho shizuku_api_permission_granted=true\nadb -s \"$SEL\" shell am force-stop \"$PKG\"\nsleep 1\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "timeout": 180
+    },
+    {
+      "name": "launch-and-observe-real-call",
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb -s \"$SEL\" shell run-as \"$PKG\" rm -f shared_prefs/debug_auto_clir_bootstrap.xml shared_prefs/campaign_runtime_status_v1.xml\nadb -s \"$SEL\" shell am force-stop \"$PKG\"\nadb -s \"$SEL\" shell am start -W -n \"$PKG/.MainActivity\" >/dev/null\npython3 - <<'PY'\nimport re, subprocess, time, xml.etree.ElementTree as ET\nSEL=\"192.168.0.100:46769\"\nPKG=\"pl.michalmatu.aicallbridge\"\ndef run(args, timeout=8):\n    p=subprocess.run(args,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout,check=False)\n    return p.returncode,p.stdout.replace(\"\\r\",\"\")\ndef call_state():\n    _,out=run([\"adb\",\"-s\",SEL,\"shell\",\"dumpsys\",\"telephony.registry\"],10)\n    vals=re.findall(r\"mCallState=(\\d+)\",out)\n    return int(vals[0]) if vals else None\ndef status():\n    code,out=run([\"adb\",\"-s\",SEL,\"shell\",\"run-as\",PKG,\"cat\",\"shared_prefs/campaign_runtime_status_v1.xml\"],5)\n    if code!=0 or not out.strip(): return None\n    try:\n        root=ET.fromstring(out)\n        for node in root:\n            if node.attrib.get(\"name\")==\"status\":\n                return (node.text or \"\").strip()\n    except Exception:\n        return None\n    return None\nseen=[]; last_status=None; active_seen=False; deadline=time.time()+300\nwhile time.time()<deadline:\n    st=call_state()\n    if st is not None and (not seen or seen[-1]!=st):\n        seen.append(st); print(f\"call_state_transition={st}\",flush=True)\n    if st in (1,2): active_seen=True\n    cur=status()\n    if cur and cur!=last_status:\n        last_status=cur; print(\"campaign_status=\"+cur.replace(\"\\n\",\" \").replace(\"\\r\",\" \")[:500],flush=True)\n    if active_seen and st==0 and cur and any(x in cur.lower() for x in (\"cleanup=\",\"success\",\"failed\",\"without accepted success\")):\n        break\n    time.sleep(2)\nprint(\"active_call_observed=\"+str(active_seen).lower())\nprint(\"call_state_sequence=\"+\",\".join(map(str,seen)))\nprint(\"final_campaign_status=\"+((last_status or \"missing\").replace(\"\\n\",\" \").replace(\"\\r\",\" \")[:500]))\nif not active_seen:\n    raise SystemExit(\"real_call_was_not_observed\")\nPY",
+      "timeout": 420
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "clir-real-enable-preflight-20261007-v1",
+  "task_digest": "ee55f6edbbe433fafc4c4bcce0a089382e32fab70641686b99f2c2846a849280",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T21:31:40.233030+00:00",
+  "attempt_id": "5179eaa63cd4410bf90824fd",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 8012,
+  "updated_at": "2026-10-07T21:31:40.601851+00:00",
+  "pid": 8012
+}

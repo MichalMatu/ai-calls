@@ -1,0 +1,24 @@
+{
+  "id": "wireless-adb-host-tests-20261007-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/wireless-adb-live-call-v1",
+  "allow_write": false,
+  "resources": [],
+  "command_timeout": 300,
+  "idle_timeout": 120,
+  "task_timeout": 900,
+  "memory_limit_mb": 2048,
+  "steps": [
+    {
+      "name": "sync-branch",
+      "command": "set -euo pipefail; git fetch origin work/wireless-adb-live-call-v1; git checkout -B work/wireless-adb-live-call-v1 origin/work/wireless-adb-live-call-v1; test \"$(git rev-parse HEAD)\" = \"a182558fcc44bb489c78865e436dc263d126c21d\"",
+      "timeout": 120
+    },
+    {
+      "name": "targeted-python-tests",
+      "command": "set -euo pipefail; PYTHONPATH=scripts python3 -m unittest scripts.tests.calls.test_chatgpt_relay_live_call scripts.tests.realtime.test_realtime_live_call_smoke",
+      "timeout": 300
+    }
+  ]
+}

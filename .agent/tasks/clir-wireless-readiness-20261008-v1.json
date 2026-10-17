@@ -1,0 +1,31 @@
+{
+  "id": "clir-wireless-readiness-20261008-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 300,
+  "idle_timeout": 180,
+  "task_timeout": 900,
+  "memory_limit_mb": 2048,
+  "steps": [
+    {
+      "name": "sync-exact-head",
+      "command": "set -euo pipefail; git fetch origin main; test \"$(git rev-parse origin/main)\" = \"9ed643b046ee213b6ebc56b849cb9c91911dcc85\"; git checkout -B main origin/main; test \"$(git rev-parse HEAD)\" = \"9ed643b046ee213b6ebc56b849cb9c91911dcc85\"",
+      "timeout": 120
+    },
+    {
+      "name": "recover-wireless-s22",
+      "command": "set -euo pipefail; rm -f /tmp/aicall-wireless-selector; adb start-server >/dev/null; for E in $(adb mdns services 2>/dev/null | awk '/_adb-tls-connect\\._tcp/ {print $NF}'); do adb connect \"$E\" >/dev/null 2>&1 || true; done; sleep 2; SEL=''; for D in $(adb devices | awk 'NR>1 && $2==\"device\" {print $1}'); do case \"$D\" in *:*) M=\"$(adb -s \"$D\" shell getprop ro.product.model 2>/dev/null | tr -d '\\r')\"; S=\"$(adb -s \"$D\" shell getprop ro.serialno 2>/dev/null | tr -d '\\r')\"; if [ \"$M\" = SM-S906B ] && [ \"$S\" = RFCT70L7E8J ]; then SEL=\"$D\"; break; fi;; esac; done; test -n \"$SEL\" || { echo 'verified_wireless_s22_not_found=true' >&2; exit 2; }; printf '%s' \"$SEL\" >/tmp/aicall-wireless-selector; echo 'verified_wireless_s22=true'",
+      "timeout": 180
+    },
+    {
+      "name": "require-idle-and-readiness",
+      "command": "set -euo pipefail; SEL=\"$(cat /tmp/aicall-wireless-selector)\"; STATE=\"$(PYTHONPATH=scripts python3 - <<PY\nfrom aicall_tools.device.s22_call_control import Adb\nprint(Adb('$SEL').call_state())\nPY\n)\"; test \"$STATE\" = 0 || { echo \"call_state_not_idle=$STATE\" >&2; exit 3; }; echo 'call_state_idle=true'; PYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "timeout": 240
+    }
+  ]
+}

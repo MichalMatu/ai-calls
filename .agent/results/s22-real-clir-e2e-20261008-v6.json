@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "28f3bd3cc7dc625945736325",
+  "command_timeout": 420,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 551,
+      "command": "set -euo pipefail\ntest \"$(git rev-parse HEAD)\" = \"0bca996803c3b00930c95d7d041112d60eb1cbf2\"\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\nBASE=\"$(adb -s \"$SEL\" shell pm path moe.shizuku.privileged.api | head -1 | sed 's/^package://' | tr -d '\\r')\"\nROOT=\"$(dirname \"$BASE\")\"\nSTARTER=\"$(adb -s \"$SEL\" shell find \"$ROOT/lib\" -type f -name libshizuku.so 2>/dev/null | head -1 | tr -d '\\r')\"\ntest -n \"$STARTER\"\nadb -s \"$SEL\" shell \"$STARTER\"\nsleep 3\nadb -s \"$SEL\" shell ps -A | grep -q shizuku_server\nadb -s \"$SEL\" shell pm grant \"$PKG\" moe.shizuku.manager.permission.API_V23\nOUT=\"$(adb -s \"$SEL\" shell dumpsys package \"$PKG\")\"\necho \"$OUT\" | grep -E 'moe\\.shizuku\\.manager\\.permission\\.API_V23: granted=true' | head -1\necho shizuku_api_permission_granted=true\nadb -s \"$SEL\" shell am force-stop \"$PKG\"\nsleep 1\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "current_rss_mb": 3.19,
+      "elapsed_seconds": 11.109,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 512,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\ninfo: starter begin\ninfo: killing old process...\ninfo: killed 12739 (shizuku_server)\ninfo: apk path is /data/app/~~BMmZoYhwymCj0IkO63CAYw==/moe.shizuku.privileged.api-xdnM1MSs-zl-toUhlVScAw==/base.apk\ninfo: starting server...\ninfo: shizuku_server pid is 15304\ninfo: shizuku_starter exit with 0\n        moe.shizuku.manager.permission.API_V23: granted=true\nshizuku_api_permission_granted=true\nlive_call_readiness_failed=live-call readiness failed: shizuku_permission_required\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 10.61,
+      "stage_index": 1,
+      "stage_name": "grant-shizuku-readiness",
+      "stage_phase": "commands",
+      "stage_timeout": 180,
+      "stage_total": 2,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-08T00:41:23.368341+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.076,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.1,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-real-clir-e2e-20261008-v6",
+  "idle_timeout": 300,
+  "memory_limit_mb": 512,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 11.109,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "grant-shizuku-readiness",
+      "stage_phase": "commands",
+      "stage_total": 2
+    }
+  ],
+  "started_at": "2026-10-08T00:41:10.591349+00:00",
+  "status": "failed",
+  "task_digest": "79ad20e3289c9c1c16255a0b10af10d2f47d8ef091247e0dd59e9247d6e567b8",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

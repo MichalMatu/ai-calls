@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-identity-vault-locate-20261008-v2",
+  "task_digest": "ab11c4edb876066c015ff27ac79f29242ea0394649db5a4d53f8892306a1fbd4",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-07T23:50:30.875916+00:00",
+  "attempt_id": "2f315842835393bfe2483d2e",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 20020,
+  "updated_at": "2026-10-07T23:50:31.159414+00:00",
+  "pid": 20020
+}

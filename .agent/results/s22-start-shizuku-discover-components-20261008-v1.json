@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "72cf6c1fb5273bd80050c29a",
+  "command_timeout": 180,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 4185,
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\necho '--- version ---'\nadb -s \"$SEL\" shell dumpsys package moe.shizuku.privileged.api | grep -E 'versionName=|versionCode=' | head -4 || true\necho '--- package paths ---'\nadb -s \"$SEL\" shell pm path moe.shizuku.privileged.api\necho '--- components matching starter/service ---'\nadb -s \"$SEL\" shell dumpsys package moe.shizuku.privileged.api | grep -Ei 'starter|service|receiver|provider|mainactivity' | head -120 || true\necho '--- process check before ---'\nadb -s \"$SEL\" shell ps -A | grep -i shizuku || true",
+      "current_rss_mb": 12.09,
+      "elapsed_seconds": 6.438,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\n--- version ---\n    versionCode=1086 minSdk=24 targetSdk=36\n    versionName=13.6.0.r1086.2650830c\n--- package paths ---\npackage:/data/app/~~BMmZoYhwymCj0IkO63CAYw==/moe.shizuku.privileged.api-xdnM1MSs-zl-toUhlVScAw==/base.apk\n--- components matching starter/service ---\n        76748df moe.shizuku.privileged.api/moe.shizuku.manager.MainActivity filter aa8292c\nReceiver Resolver Table:\n        d4658ad moe.shizuku.privileged.api/moe.shizuku.manager.receiver.BootCompleteReceiver filter 8c6a7e2\n        f58e630 moe.shizuku.privileged.api/moe.shizuku.manager.receiver.ShizukuReceiver filter 81cd2a9\n        d4658ad moe.shizuku.privileged.api/moe.shizuku.manager.receiver.BootCompleteReceiver filter e888773\nRegistered ContentProviders:\n  moe.shizuku.privileged.api/moe.shizuku.manager.ShizukuManagerProvider:\n    Provider{98723b8 moe.shizuku.privileged.api/moe.shizuku.manager.ShizukuManagerProvider}\n  moe.shizuku.privileged.api/androidx.startup.InitializationProvider:\n    Provider{3bc7591 moe.shizuku.privileged.api/androidx.startup.InitializationProvider}\nContentProvider Authorities:\n    Provider{3bc7591 moe.shizuku.privileged.api/androidx.startup.InitializationProvider}\n    Provider{98723b8 moe.shizuku.privileged.api/moe.shizuku.manager.ShizukuManagerProvider}\n      android.permission.FOREGROUND_SERVICE\n      android.permission.FOREGROUND_SERVICE: granted=true\n      [com.sec.android.emergencylauncher,com.sem.factoryapp,com.samsung.android.ese,com.android.dynsystem,com.wssyncmldm,com.sec.imsservice,com.sec.android.sdhms,com.samsung.android.knox.pushmanager,com.samsung.android.dck.timesync,com.samsung.slsi.telephony.silentlogging,com.samsung.android.bbc.bbcagent,com.samsung.android.hdmapp,com.sec.android.CcInfo,com.sec.android.app.quicktool,com.android.location.fused,com.samsung.android.lool,com.sec.android.app.servicemodeapp,com.samsung.euicc,com.samsung.android.motionphoto.app,com.sec.android.app.parser,com.sec.facatfunction,com.sec.imslogger,android,com.samsung.android.knox.zt.framework,com.samsung.android.app.dressroom,com.samsung.android.knox.attestation,com.sec.app.RilErrorNotifier,com.sec.factory.camera,com.samsung.android.photoremasterservice,com.sec.android.app.personalization,com.sec.bcservice,com.sec.android.app.uwbtest,com.sec.android.app.RilPhoneNumberService,com.samsung.android.brightnessbackupservice,com.samsung.android.app.esimkeystring,com.samsung.sec.android.teegris.tui_service,com.samsung.android.stickercenter,com.samsung.android.dqagent,com.samsung.android.emergency,com.samsung.android.da.daagent,com.samsung.android.camerasdkservice,com.samsung.android.globalpostprocmgr,com.android.providers.settings,com.skms.android.agent,com.sec.android.app.desktoplauncher,com.android.server.telecom,com.samsung.oda.service,com.sec.android.iaft,com.samsung.gpuwatchapp,com.samsung.sait.sohservice,com.samsung.android.mdecservice,com.android.inputdevices,com.samsung.accessibility,com.samsung.android.fmm,com.sec.sve,com.samsung.android.wifi.ai,com.sec.mhs.smarttethering,com.samsung.android.forest,com.samsung.android.bixby.wakeup,com.samsung.android.vexfwk.service,com.samsung.android.provider.filterprovider,com.samsung.SMT,com.samsung.android.themecenter,com.sec.android.app.SecSetupWizard,com.samsung.aasaservice,com.samsung.android.biometrics.app.setting,com.sec.android.smartfpsadjuster,com.samsung.android.knox.mpos,com.samsung.android.aircommandmanager,com.sec.android.app.factorykeystring,com.samsung.android.smartswitchassistant,com.samsung.android.providers.factory,com.sec.epdg,com.android.settings,com.android.localtransport,com.samsung.android.vtcamerasettings,com.sec.android.app.hwmoduletest,com.sec.android.diagmonagent,com.android.keychain,com.sec.modem.settings,com.sec.usbsettings,com.samsung.android.simagent,com.samsung.android.svcagent,com.samsung.android.smartface,com.sec.automation,com.sec.android.app.wlantest,com.samsung.android.app.omcagent,com.samsung.android.cameraxservice,com.sec.android.soagent]:\n      Service:\n--- process check before ---\nu0_a654      30772  1390   18636520  81696 0                   0 S moe.shizuku.privileged.api\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 12.09,
+      "stage_index": 1,
+      "stage_name": "inspect-shizuku-runtime-components",
+      "stage_phase": "commands",
+      "stage_timeout": 180,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "finished_at": "2026-10-08T00:21:18.967342+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.378,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.15,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-start-shizuku-discover-components-20261008-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 6.438,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "inspect-shizuku-runtime-components",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-10-08T00:21:09.598460+00:00",
+  "status": "done",
+  "task_digest": "c76a689b33a031dbe68a9024157a8e7ff63379d75e4c1bbecef82bc4c29af67e",
+  "task_timeout": 600,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

@@ -1,0 +1,11 @@
+{
+  "event": "result_republished",
+  "status": "done",
+  "failure_reason": null,
+  "attempt_id": "2c4b767fde514f8cbae1eab8",
+  "task_digest": "3f7d77b464674b95812dbe7f9828e51fd83d183fcec761cee38e5f47f1f19fe7",
+  "updated_at": "2026-10-08T00:35:09.224782+00:00",
+  "task_id": "s22-one-shot-build-20261008-v1",
+  "daemon_version": "4.20.6",
+  "pid": 10209
+}

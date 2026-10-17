@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "wireless-adb-host-tests-20261007-v1",
+  "task_digest": "4af3d7dd1e88e51f6d426874a0a1042d45a802af82e2e5a08ea8a8d98428e5ae",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-07T21:39:12.871374+00:00",
+  "attempt_id": "18346aa41815cc04a7c45c9d",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 22325,
+  "updated_at": "2026-10-07T21:39:13.174657+00:00",
+  "pid": 22325
+}
