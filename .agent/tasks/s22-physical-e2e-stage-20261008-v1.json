@@ -1,0 +1,36 @@
+{
+  "id": "s22-physical-e2e-stage-20261008-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 900,
+  "idle_timeout": 300,
+  "task_timeout": 1500,
+  "memory_limit_mb": 3072,
+  "steps": [
+    {
+      "name": "sync-and-build-exact-main",
+      "command": "set -euo pipefail; git fetch origin main; git checkout -B main origin/main; test \"$(git rev-parse HEAD)\" = \"d4f73bef621a198d384d5ba9ff3e1a775c3aa57a\"; export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; ./gradlew :app:assembleDebug --no-daemon",
+      "timeout": 900
+    },
+    {
+      "name": "connect-and-verify-s22",
+      "command": "set -euo pipefail; SEL='192.168.0.100:46769'; adb start-server >/dev/null; adb connect \"$SEL\"; sleep 2; adb devices -l; M=\"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\"; S=\"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\"; test \"$M\" = 'SM-S906B'; test \"$S\" = 'RFCT70L7E8J'; printf '%s' \"$SEL\" >/tmp/aicall-s22-selector; echo 'verified_s22=true'",
+      "timeout": 120
+    },
+    {
+      "name": "install-exact-apk",
+      "command": "set -euo pipefail; SEL=\"$(cat /tmp/aicall-s22-selector)\"; APK='app/build/outputs/apk/debug/app-debug.apk'; test -f \"$APK\"; adb -s \"$SEL\" install --no-streaming -r \"$APK\"; echo 'apk_installed=true'",
+      "timeout": 300
+    },
+    {
+      "name": "launch-and-inspect-permissions",
+      "command": "set -euo pipefail; SEL=\"$(cat /tmp/aicall-s22-selector)\"; adb -s \"$SEL\" shell am force-stop pl.michalmatu.aicallbridge; adb -s \"$SEL\" shell monkey -p pl.michalmatu.aicallbridge 1 >/dev/null; sleep 2; OUT=\"$(adb -s \"$SEL\" shell dumpsys package pl.michalmatu.aicallbridge)\"; echo 'app_launched=true'; for P in android.permission.RECORD_AUDIO android.permission.CALL_PHONE android.permission.READ_PHONE_STATE android.permission.ANSWER_PHONE_CALLS; do MATCH=\"$(printf '%s\\n' \"$OUT\" | grep -E \"$P: granted=(true|false)\" | head -1 || true)\"; echo \"${MATCH:-$P: grant_state=unknown}\"; done; echo '--- foreground ---'; adb -s \"$SEL\" shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -4 || true",
+      "timeout": 180
+    }
+  ]
+}

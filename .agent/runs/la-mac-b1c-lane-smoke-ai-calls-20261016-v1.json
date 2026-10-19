@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "la-mac-b1c-lane-smoke-ai-calls-20261016-v1",
+  "task_digest": "e4df79a945617e648e9582b1041b880796befb9aad4785670e93c99158945ea8",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-10-16T16:38:21.342756+00:00",
+  "attempt_id": "cb25962989a620fca0467f72",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 35414,
+  "updated_at": "2026-10-16T16:38:21.595165+00:00",
+  "pid": 35414
+}

@@ -1,0 +1,21 @@
+{
+  "id": "s22-shizuku-phone-llm-ready-20261008-v2",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "work/debug-one-shot-clir-e2e-v1",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 300,
+  "idle_timeout": 180,
+  "task_timeout": 900,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "start-shizuku-and-check-phone-llm",
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\nSTART=''\nfor P in /sdcard/Android/data/moe.shizuku.privileged.api/start.sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh; do\n  if adb -s \"$SEL\" shell ls \"$P\" >/dev/null 2>&1; then START=\"$P\"; break; fi\ndone\ntest -n \"$START\" || { echo 'shizuku_start_script_missing=true' >&2; exit 11; }\nadb -s \"$SEL\" shell sh \"$START\"\nsleep 3\nadb -s \"$SEL\" shell ls -l /data/local/tmp/aicall-phone-llm/llama-server\nadb -s \"$SEL\" shell ls -l /data/local/tmp/aicall-phone-llm/model-1.5b.gguf\necho 'phone_llm_runtime_files_present=true'\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "timeout": 300
+    }
+  ]
+}

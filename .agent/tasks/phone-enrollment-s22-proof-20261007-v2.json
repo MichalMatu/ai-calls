@@ -1,0 +1,41 @@
+{
+  "id": "phone-enrollment-s22-proof-20261007-v2",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 1800,
+  "idle_timeout": 600,
+  "task_timeout": 3600,
+  "memory_limit_mb": 4096,
+  "steps": [
+    {
+      "name": "sync-exact-head",
+      "command": "set -euo pipefail; git fetch origin main; test \"$(git rev-parse origin/main)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"; git checkout -B main origin/main; test \"$(git rev-parse HEAD)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"",
+      "timeout": 300
+    },
+    {
+      "name": "recover-and-verify-s22-adb",
+      "command": "set -euo pipefail; rm -f /tmp/aicall-s22-selector; adb start-server >/dev/null; pick(){ for D in $(adb devices | awk 'NR>1 && $2==\"device\" {print $1}'); do M=\"$(adb -s \"$D\" shell getprop ro.product.model 2>/dev/null | tr -d '\\r')\"; S=\"$(adb -s \"$D\" shell getprop ro.serialno 2>/dev/null | tr -d '\\r')\"; if [ \"$M\" = SM-S906B ] && [ \"$S\" = RFCT70L7E8J ]; then printf '%s' \"$D\"; return 0; fi; done; return 1; }; SEL=\"$(pick || true)\"; if [ -z \"$SEL\" ]; then adb mdns services || true; for E in $(adb mdns services 2>/dev/null | awk '/_adb-tls-connect\\._tcp/ {print $NF}'); do adb connect \"$E\" >/dev/null 2>&1 || true; done; sleep 2; SEL=\"$(pick || true)\"; fi; test -n \"$SEL\"; printf '%s' \"$SEL\" >/tmp/aicall-s22-selector; printf 's22_adb_ready=true\\nselector_kind=%s\\n' \"$(case \"$SEL\" in *:*) echo wireless;; *) echo direct;; esac)\"",
+      "timeout": 180
+    },
+    {
+      "name": "build-proof-apks",
+      "command": "set -euo pipefail; ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon",
+      "timeout": 1800
+    },
+    {
+      "name": "install-and-run-redacted-proof",
+      "command": "set -euo pipefail; SERIAL=\"$(cat /tmp/aicall-s22-selector)\"; adb -s \"$SERIAL\" install -r app/build/outputs/apk/debug/app-debug.apk >/dev/null; adb -s \"$SERIAL\" install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk >/dev/null; OUT=\"$(adb -s \"$SERIAL\" shell am instrument -w -r -e class pl.michalmatu.aicallbridge.identity.AndroidPhoneEnrollmentDisclosureContractTest pl.michalmatu.aicallbridge.test/androidx.test.runner.AndroidJUnitRunner)\"; printf '%s\\n' \"$OUT\"; printf '%s\\n' \"$OUT\" | grep -q '^OK (1 test)' || { printf 'phone_enrollment_s22_proof=false\\n' >&2; exit 1; }; printf 'phone_enrollment_s22_proof=true\\n'",
+      "timeout": 600
+    },
+    {
+      "name": "leave-app-ready",
+      "command": "set -euo pipefail; SERIAL=\"$(cat /tmp/aicall-s22-selector)\"; adb -s \"$SERIAL\" shell am force-stop pl.michalmatu.aicallbridge; adb -s \"$SERIAL\" shell monkey -p pl.michalmatu.aicallbridge -c android.intent.category.LAUNCHER 1 >/dev/null; printf 'main_activity_opened=true\\nreal_phone_not_transported=true\\n'",
+      "timeout": 120
+    }
+  ]
+}

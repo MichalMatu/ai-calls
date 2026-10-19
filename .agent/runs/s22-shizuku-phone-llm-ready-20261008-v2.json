@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "s22-shizuku-phone-llm-ready-20261008-v2",
+  "task_digest": "cf08d8c7855bffda25ba3ba9551ad68cd3ca6194fe322d61d17d2f1b8085fd26",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-08T00:01:40.949198+00:00",
+  "attempt_id": "e2db07ad1494dcd8e6844e10",
+  "daemon_version": "4.20.6",
+  "daemon_pid": 42021,
+  "updated_at": "2026-10-08T00:01:41.197978+00:00",
+  "pid": 42021
+}

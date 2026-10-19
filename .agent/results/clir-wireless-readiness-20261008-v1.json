@@ -1,0 +1,120 @@
+{
+  "allow_write": true,
+  "attempt_id": "50fda9511f255f3a69cfe80a",
+  "command_timeout": 300,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 217,
+      "command": "set -euo pipefail; git fetch origin main; test \"$(git rev-parse origin/main)\" = \"9ed643b046ee213b6ebc56b849cb9c91911dcc85\"; git checkout -B main origin/main; test \"$(git rev-parse HEAD)\" = \"9ed643b046ee213b6ebc56b849cb9c91911dcc85\"",
+      "current_rss_mb": 1.92,
+      "elapsed_seconds": 1.01,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch            main       -> FETCH_HEAD\nSwitched to and reset branch 'main'\nbranch 'main' set up to track 'origin/main'.\nYour branch is up to date with 'origin/main'.\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 1.92,
+      "stage_index": 1,
+      "stage_name": "sync-exact-head",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 3,
+      "timed_out": false
+    },
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 104,
+      "command": "set -euo pipefail; rm -f /tmp/aicall-wireless-selector; adb start-server >/dev/null; for E in $(adb mdns services 2>/dev/null | awk '/_adb-tls-connect\\._tcp/ {print $NF}'); do adb connect \"$E\" >/dev/null 2>&1 || true; done; sleep 2; SEL=''; for D in $(adb devices | awk 'NR>1 && $2==\"device\" {print $1}'); do case \"$D\" in *:*) M=\"$(adb -s \"$D\" shell getprop ro.product.model 2>/dev/null | tr -d '\\r')\"; S=\"$(adb -s \"$D\" shell getprop ro.serialno 2>/dev/null | tr -d '\\r')\"; if [ \"$M\" = SM-S906B ] && [ \"$S\" = RFCT70L7E8J ]; then SEL=\"$D\"; break; fi;; esac; done; test -n \"$SEL\" || { echo 'verified_wireless_s22_not_found=true' >&2; exit 2; }; printf '%s' \"$SEL\" >/tmp/aicall-wireless-selector; echo 'verified_wireless_s22=true'",
+      "current_rss_mb": 2.75,
+      "elapsed_seconds": 6.255,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\nverified_wireless_s22=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 7.34,
+      "stage_index": 2,
+      "stage_name": "recover-wireless-s22",
+      "stage_phase": "commands",
+      "stage_timeout": 180,
+      "stage_total": 3,
+      "timed_out": false
+    },
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 109,
+      "command": "set -euo pipefail; SEL=\"$(cat /tmp/aicall-wireless-selector)\"; STATE=\"$(PYTHONPATH=scripts python3 - <<PY\nfrom aicall_tools.device.s22_call_control import Adb\nprint(Adb('$SEL').call_state())\nPY\n)\"; test \"$STATE\" = 0 || { echo \"call_state_not_idle=$STATE\" >&2; exit 3; }; echo 'call_state_idle=true'; PYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "current_rss_mb": 3.45,
+      "elapsed_seconds": 1.898,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "call_state_idle=true\nlive_call_readiness_failed=live-call readiness failed: record_audio_permission_required\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 3.45,
+      "stage_index": 3,
+      "stage_name": "require-idle-and-readiness",
+      "stage_phase": "commands",
+      "stage_timeout": 240,
+      "stage_total": 3,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-07T22:16:14.623298+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.076,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.101,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "clir-wireless-readiness-20261008-v1",
+  "idle_timeout": 180,
+  "memory_limit_mb": 2048,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.01,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "sync-exact-head",
+      "stage_phase": "commands",
+      "stage_total": 3
+    },
+    {
+      "elapsed_seconds": 6.255,
+      "outcome": "passed",
+      "stage_index": 2,
+      "stage_name": "recover-wireless-s22",
+      "stage_phase": "commands",
+      "stage_total": 3
+    },
+    {
+      "elapsed_seconds": 1.898,
+      "outcome": "failed",
+      "stage_index": 3,
+      "stage_name": "require-idle-and-readiness",
+      "stage_phase": "commands",
+      "stage_total": 3
+    }
+  ],
+  "started_at": "2026-10-07T22:16:02.741304+00:00",
+  "status": "failed",
+  "task_digest": "4c5d879c970bec6baa1aca263de479e63e2d72299449219696b88d148badf8cb",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "main"
+}

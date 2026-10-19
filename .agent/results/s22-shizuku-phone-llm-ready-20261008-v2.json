@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "e2db07ad1494dcd8e6844e10",
+  "command_timeout": 300,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 111,
+      "command": "set -euo pipefail\nSEL='192.168.0.100:46769'\nPKG='pl.michalmatu.aicallbridge'\nadb start-server >/dev/null\nadb connect \"$SEL\" >/dev/null\ntest \"$(adb -s \"$SEL\" shell getprop ro.product.model | tr -d '\\r')\" = 'SM-S906B'\ntest \"$(adb -s \"$SEL\" shell getprop ro.serialno | tr -d '\\r')\" = 'RFCT70L7E8J'\nSTART=''\nfor P in /sdcard/Android/data/moe.shizuku.privileged.api/start.sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh; do\n  if adb -s \"$SEL\" shell ls \"$P\" >/dev/null 2>&1; then START=\"$P\"; break; fi\ndone\ntest -n \"$START\" || { echo 'shizuku_start_script_missing=true' >&2; exit 11; }\nadb -s \"$SEL\" shell sh \"$START\"\nsleep 3\nadb -s \"$SEL\" shell ls -l /data/local/tmp/aicall-phone-llm/llama-server\nadb -s \"$SEL\" shell ls -l /data/local/tmp/aicall-phone-llm/model-1.5b.gguf\necho 'phone_llm_runtime_files_present=true'\nPYTHONPATH=scripts python3 -m aicall_tools.calls.live_call_readiness --serial \"$SEL\"",
+      "current_rss_mb": 9.3,
+      "elapsed_seconds": 4.365,
+      "exit_code": 11,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "* daemon not running; starting now at tcp:5037\n* daemon started successfully\nshizuku_start_script_missing=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 9.3,
+      "stage_index": 1,
+      "stage_name": "start-shizuku-and-check-phone-llm",
+      "stage_phase": "commands",
+      "stage_timeout": 300,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-10-08T00:01:40.949198+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.075,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.093,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "s22-shizuku-phone-llm-ready-20261008-v2",
+  "idle_timeout": 180,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 4.365,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "start-shizuku-and-check-phone-llm",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-10-08T00:01:34.791539+00:00",
+  "status": "failed",
+  "task_digest": "cf08d8c7855bffda25ba3ba9551ad68cd3ca6194fe322d61d17d2f1b8085fd26",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "work/debug-one-shot-clir-e2e-v1"
+}

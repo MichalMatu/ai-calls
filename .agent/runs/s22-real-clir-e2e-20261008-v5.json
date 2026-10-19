@@ -1,0 +1,13 @@
+{
+  "event": "duplicate_task_suppressed",
+  "status": "done",
+  "outcome": "duplicate_task_suppressed",
+  "execution_fingerprint": "fd762c52176c1ae6305655fe7412c015628425833734105e463f444bf84a7061",
+  "dedupe_queue_key": "effect:fd762c52176c1ae6305655fe7412c015628425833734105e463f444bf84a7061",
+  "duplicate_of": "s22-real-clir-e2e-20261008-v4",
+  "duplicate_reason": "queued_duplicate",
+  "updated_at": "2026-10-08T00:32:44.037995+00:00",
+  "task_id": "s22-real-clir-e2e-20261008-v5",
+  "daemon_version": "4.20.6",
+  "pid": 6592
+}

@@ -1,0 +1,31 @@
+{
+  "id": "clir-real-enable-preflight-20261007-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 300,
+  "idle_timeout": 120,
+  "task_timeout": 600,
+  "memory_limit_mb": 4096,
+  "steps": [
+    {
+      "name": "sync-exact-head",
+      "command": "set -euo pipefail; git fetch origin main; test \"$(git rev-parse origin/main)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"; git checkout -B main origin/main; test \"$(git rev-parse HEAD)\" = \"c6bf72310289c88b9644723ce8635c5288cad6f6\"",
+      "timeout": 120
+    },
+    {
+      "name": "require-direct-usb-and-idle",
+      "command": "set -euo pipefail; SERIAL=RFCT70L7E8J; adb start-server >/dev/null; adb devices -l; LINE=\"$(adb devices -l | awk -v s=\"$SERIAL\" '$1==s && $2==\"device\" {print}')\"; test -n \"$LINE\" || { echo 'direct_usb_s22=false' >&2; exit 2; }; MODEL=\"$(adb -s \"$SERIAL\" shell getprop ro.product.model | tr -d '\\r')\"; test \"$MODEL\" = SM-S906B; STATE=\"$(python3 - <<'PY'\nfrom scripts.aicall_tools.device.s22_call_control import Adb\nprint(Adb('RFCT70L7E8J').call_state())\nPY\n)\"; test \"$STATE\" = 0 || { echo \"call_state_not_idle=$STATE\" >&2; exit 3; }; echo 'direct_usb_s22=true'; echo 'call_state_idle=true'",
+      "timeout": 120
+    },
+    {
+      "name": "live-call-readiness",
+      "command": "set -euo pipefail; python3 scripts/aicall_tools/calls/live_call_readiness.py --serial RFCT70L7E8J",
+      "timeout": 180
+    }
+  ]
+}

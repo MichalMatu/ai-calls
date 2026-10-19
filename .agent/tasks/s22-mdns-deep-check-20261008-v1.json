@@ -1,0 +1,21 @@
+{
+  "id": "s22-mdns-deep-check-20261008-v1",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "command_timeout": 180,
+  "idle_timeout": 120,
+  "task_timeout": 600,
+  "memory_limit_mb": 512,
+  "steps": [
+    {
+      "name": "mdns-deep-check",
+      "command": "set -euo pipefail\nadb start-server >/dev/null\necho '--- adb mdns services ---'\nadb mdns services || true\nbrowse() {\n  SERVICE=\"$1\"\n  echo \"--- dns-sd browse $SERVICE ---\"\n  OUT=\"/tmp/mdns-$RANDOM.txt\"\n  dns-sd -B \"$SERVICE\" local. >\"$OUT\" 2>&1 &\n  PID=$!\n  sleep 8\n  kill -INT \"$PID\" 2>/dev/null || true\n  wait \"$PID\" 2>/dev/null || true\n  cat \"$OUT\"\n  rm -f \"$OUT\"\n}\nbrowse _adb-tls-connect._tcp\nbrowse _adb-tls-pairing._tcp\necho '--- dns-sd service types ---'\nOUT=\"/tmp/mdns-services-$RANDOM.txt\"\ndns-sd -B _services._dns-sd._udp local. >\"$OUT\" 2>&1 &\nPID=$!\nsleep 8\nkill -INT \"$PID\" 2>/dev/null || true\nwait \"$PID\" 2>/dev/null || true\ncat \"$OUT\" | grep -Ei 'adb|googlecast|airplay|raop|companion-link|device-info|workstation|ssh|sftp|http|https' || cat \"$OUT\"\nrm -f \"$OUT\"\necho '--- arp target ---'\narp -an | grep '192\\.168\\.0\\.100' || true",
+      "timeout": 120
+    }
+  ]
+}

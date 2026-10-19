@@ -1,0 +1,59 @@
+{
+  "allow_write": false,
+  "attempt_id": "cb25962989a620fca0467f72",
+  "command_timeout": 105,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 45,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngit rev-parse --is-inside-work-tree | grep -Fx true\nprintf 'MAC_B1C_LANE_E2E_OK repository=ai-calls\\n'\n",
+      "elapsed_seconds": 0.13,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 460,
+      "memory_limited": false,
+      "output": "true\nMAC_B1C_LANE_E2E_OK repository=ai-calls\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": null,
+      "stage_index": 1,
+      "stage_name": "command-1",
+      "stage_phase": "commands",
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.6",
+  "edits": {},
+  "finished_at": "2026-10-16T16:38:21.342756+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.072,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.078,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "la-mac-b1c-lane-smoke-ai-calls-20261016-v1",
+  "idle_timeout": 100,
+  "memory_limit_mb": 460,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 0.13,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "command-1",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-10-16T16:38:19.349448+00:00",
+  "status": "done",
+  "task_digest": "e4df79a945617e648e9582b1041b880796befb9aad4785670e93c99158945ea8",
+  "task_timeout": 300,
+  "verification": [],
+  "work_branch": "main"
+}
