@@ -183,28 +183,35 @@ class SupervisedCallPilotActivity : Activity() {
                 .show()
             return
         }
+        val approvedGemmaMode = gemmaMode.isChecked
         AlertDialog.Builder(this)
             .setTitle("Uruchomić AI w rozmowie?")
             .setMessage(
                 "Potwierdź, że to Twoja świadomie rozpoczęta rozmowa testowa. " +
                     "AI wyśle maksymalnie trzy krótkie odpowiedzi " +
-                    "w trybie ${if (gemmaMode.isChecked) "Gemma 4" else "skryptowym"}. " +
+                    "w trybie ${if (approvedGemmaMode) "Gemma 4" else "skryptowym"}. " +
                     "Nie wybierze numeru, nie zmieni usług i nie rozłączy połączenia. " +
                     "STOP natychmiast wyłącza audio AI.",
             )
-            .setPositiveButton("Uruchom test") { _, _ -> startPilot() }
+            .setPositiveButton("Uruchom test") { _, _ -> startPilot(approvedGemmaMode) }
             .setNegativeButton("Anuluj", null)
             .show()
     }
 
-    private fun startPilot() {
+    private fun startPilot(approvedGemmaMode: Boolean) {
+        if (approvedGemmaMode &&
+            AndroidGemma4ModelReadiness.check(this).state != Gemma4ModelReadinessState.READY
+        ) {
+            status.text = "Model Gemma 4 nie jest już gotowy. Nie uruchomiono audio."
+            return
+        }
         if (preflight() != null || !allowed.compareAndSet(false, true)) {
             status.text = "Warunki rozmowy zmieniły się. Test nie został uruchomiony."
             return
         }
         startButton.isEnabled = false
         stopButton.isEnabled = true
-        status.text = "Nasłuch STT → ${if (gemmaMode.isChecked) "Gemma 4" else "skrypt"} → TTS. " +
+        status.text = "Nasłuch STT → ${if (approvedGemmaMode) "Gemma 4" else "skrypt"} → TTS. " +
             "AI odpowiada na usłyszaną wypowiedź. STOP wyłącza tylko AI."
         val sessionId = "pilot-" + UUID.randomUUID().toString()
         try {
@@ -215,7 +222,7 @@ class SupervisedCallPilotActivity : Activity() {
                 phoneDisclosureAuthorized = false,
                 supervisorRelayEnabled = false,
                 readOnlySupervised = true,
-                supervisedGemmaEnabled = gemmaMode.isChecked,
+                supervisedGemmaEnabled = approvedGemmaMode,
                 liveAuthorization = {
                     allowed.get() && preflight() == null
                 },
