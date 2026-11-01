@@ -142,11 +142,14 @@ internal object ChatRelayLiveCallProbe {
         private val supervisedGemmaEnabled: Boolean,
     ) : SessionControl {
         override fun stopAudio() {
+            // Revoke TX synchronously, even if the main-thread cleanup is delayed.
+            stopRequested.set(true)
             handler.post { finish(false, "operator_stopped") }
         }
 
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
+        private val stopRequested = AtomicBoolean(false)
         private val mediaTurnStarted = AtomicBoolean(false)
         private val supervisedGemmaReplies = AtomicInteger(0)
         private val supervisedFallbackReplies = AtomicInteger(0)
@@ -274,7 +277,7 @@ internal object ChatRelayLiveCallProbe {
         }
 
         private fun authorizedNow(): Boolean =
-            runCatching { liveAuthorization() }.getOrDefault(false)
+            !stopRequested.get() && runCatching { liveAuthorization() }.getOrDefault(false)
 
         fun start() {
             if (!authorizedNow()) {
