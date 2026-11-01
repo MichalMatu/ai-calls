@@ -104,3 +104,6 @@ After CLIR enable/disable acceptance, return to generic phone-task development r
 
 
 **2026-11-01 latest MVP S22 deployment acceptance:** `aicalls-mvp-install-retry-20261101-v2` done/0 `adb install -r` Success (nondestructive), `aicalls-mvp-postinstall-ui-smoke-20261101-v1` done/0 launched `MainActivity`, visible supervised-first-call button, Google Phone remains default. Verified current S22 via Wireless ADB port 44441, identity and IDLE. Only install/launcher UI gate closed; in-pilot negative acceptance and carrier audio RX/STT/TTS/TX remain untested. Exact-call autonomous controller remains blocked. See `docs/SUPERVISED_FIRST_CALL_MVP_2026-11-01.md`.
+
+
+**2026-11-01 supervised Gemma speech hardening:** the free-form denylist was replaced by app-owned dialogue-skill speech; the local model classifies only, and the exact allowlist rejects raw prose regardless of synonyms. Script mode is the default on devices without the reviewed Gemma file. Regression tests added. Outstanding delivery gates: exact-HEAD host test/lint/APK, safe S22 deployment and no-call refusal UI, model provision/READY, and a manually initiated consenting real-call STT/Gemma/TTS/TX observation. No automated CLIR dial or global hangup.
