@@ -7,6 +7,10 @@
 - `PROVEN_S22` — physically executed on the target phone.
 - `FROZEN` — change only with a concrete root cause.
 
+## Najnowszy checkpoint MVP E2E — 2026-11-01
+
+Szczegóły i dokładne receipty: `docs/checkpoints/2026-11-01-ai-calls-mvp-e2e-precontinuation.md`. S22 Gemma inference **PASS**, host `7aa1d952` **PASS**, lecz `shizuku_binder_unavailable` **FAIL**. Dwa późniejsze testy zakończyły się przed kompilacją i instalacją z powodu nieaktualnego literalnego SHA. Zanim zacznie się rozmowa: wynik QA najnowszego kodu, przywrócenie Shizuku Binder, testy bez rozmowy STT/Gemma/TTS na nowym APK. Połączenie tylko ręcznie zainicjowane i świadomie nadzorowane; autonomiczny exact-call controller nadal zablokowany.
+
 ## Stable foundation
 
 - Samsung cellular media + privileged helper — `PROVEN_S22 / FROZEN`.
