@@ -140,7 +140,7 @@ internal object AppOwnedClirCampaignExecutor {
             ownedCall.dialedTarget == request.target && ownedCall.phoneAccount == voiceAccount
         }.getOrDefault(false)
         if (!exactIdentityMatches) {
-            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+            val cleanup = cleanupOwnedCall(ownedCall)
             running.set(false)
             onStatus("Owned dial identity missing or mismatched; cleanup=$cleanup")
             return
@@ -164,7 +164,7 @@ internal object AppOwnedClirCampaignExecutor {
             )
         }
         if (launched.isFailure) {
-            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+            val cleanup = cleanupOwnedCall(ownedCall)
             running.set(false)
             onStatus("Campaign call setup failed; cleanup=$cleanup")
         }
@@ -183,7 +183,7 @@ internal object AppOwnedClirCampaignExecutor {
     ) {
         val audioManager = appContext.getSystemService(AudioManager::class.java)
         if (audioManager == null) {
-            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+            val cleanup = cleanupOwnedCall(ownedCall)
             running.set(false)
             onStatus("Audio service unavailable; cleanup=$cleanup")
             return
@@ -192,7 +192,7 @@ internal object AppOwnedClirCampaignExecutor {
         fun poll() {
             if (!running.get()) return
             val exactActive = runCatching { ownedCall.isExactCallActive() }.getOrElse {
-                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+                val cleanup = cleanupOwnedCall(ownedCall)
                 running.set(false)
                 onStatus("Owned call state unavailable; cleanup=$cleanup")
                 return
@@ -203,13 +203,13 @@ internal object AppOwnedClirCampaignExecutor {
                 return
             }
             if (System.currentTimeMillis() >= deadlineEpochMs) {
-                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+                val cleanup = cleanupOwnedCall(ownedCall)
                 running.set(false)
                 onStatus("Call did not become active before timeout; cleanup=$cleanup")
                 return
             }
             if (!handler.postDelayed({ poll() }, CALL_ACTIVE_POLL_MS)) {
-                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+                val cleanup = cleanupOwnedCall(ownedCall)
                 running.set(false)
                 onStatus("Call state watchdog unavailable; cleanup=$cleanup")
             }
@@ -252,7 +252,7 @@ internal object AppOwnedClirCampaignExecutor {
                 val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
                 val carrierReportedSuccess = reportValue(report, "clir_carrier_reported_success") == "true"
                 val failureReason = reportValue(report, "failure_reason")
-                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+                val cleanup = cleanupOwnedCall(ownedCall)
                 running.set(false)
 
                 onStatus(
@@ -273,7 +273,7 @@ internal object AppOwnedClirCampaignExecutor {
             }
         }
         if (launched.isFailure) {
-            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+            val cleanup = cleanupOwnedCall(ownedCall)
             running.set(false)
             onStatus(
                 "Campaign runtime launch failed: " +
@@ -298,12 +298,11 @@ internal object AppOwnedClirCampaignExecutor {
     /** The only permitted hangup is through the exact call handle returned by the dial controller. */
     private fun cleanupOwnedCall(
         ownedCall: CampaignOwnedCallSession,
-        telecomManager: TelecomManager,
     ): String = runCatching {
-        val ended = ownedCall.disconnectExactCall()
-        if (!ended) "targeted_disconnect_failed"
-        else if (telecomManager.isInCall) "other_call_or_disconnecting"
-        else "idle"
+        // The exact session is the only authority here. A global TelecomManager
+        // state cannot prove that our call ended, and may describe another call.
+        if (ownedCall.disconnectExactCall()) "targeted_disconnect_requested"
+        else "targeted_disconnect_failed"
     }.getOrDefault("targeted_disconnect_exception")
 
     private fun reportValue(report: String, key: String): String? =
