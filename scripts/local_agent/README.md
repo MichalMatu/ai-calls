@@ -9,3 +9,5 @@ These repository-owned wrappers run on a Mac/host that has ADB. They do not bypa
 - `scripts/bin/aicalls relay-live --attach-existing-call --allow-clir-enable` — manual developer attach to an already operator-controlled call. May change CLIR only with separately valid authorization; **never dials or hangs up**. Default CLI discovers the verified ADB transport; Bluetooth must already be OFF; do not force audio settings of unrelated live calls.
 
 Latest details: `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. The repository's `agent-control` branch is historical transport; a previous `daemon.json` is not proof that a current Local Agent task is running.
+
+**Queue and visibility (2026-11-01):** tasks are submitted through the GitHub `agent-control` branch to `.agent/tasks/`, with evidence in `.agent/runs/` and `.agent/results/`. A GitHub commit does **not** guarantee Mac execution; require a fresh `.agent/status/daemon.json.updated_at` and a result. The current queued no-call task is `aicalls-sprint-host-phone-preflight-20261101-v1`; see `docs/SPRINT_AGENT_CONTROL_CALL_LIFECYCLE_2026-11-01.md`.

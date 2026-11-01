@@ -84,3 +84,5 @@ After CLIR enable/disable acceptance, return to generic phone-task development r
 
 
 **2026-11-01 Wireless/Call-Safety sprint checkpoint:** `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. Wireless S22 discovery and identity verification are in the host tooling. Unsafe developer global end-call and automatic dial were removed/disabled. **Android app-specific dial/hangup adapter remains unimplemented** and physical S22/CLIR validation is open. Next gates: Local Agent Python+Gradle host tests, no-call wireless ADB/IDLE/Shizuku readiness, then actual exact-call controller and device acceptance. Do not treat the attach-only probe as an autonomous calling solution.
+
+**2026-11-01 Local Agent control sprint:** GitHub task transport now has a pending Mac host/phone preflight task; `agent-control` heartbeat is stale (2026-10-19) so its acceptance is **not verified**. Android call lifecycle exceptional cleanup and pre-dial authorization recheck hardened. Wireless mDNS reconnect is restricted to the S22 service identity. Full results and remaining controller gate: `docs/SPRINT_AGENT_CONTROL_CALL_LIFECYCLE_2026-11-01.md`.

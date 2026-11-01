@@ -37,3 +37,7 @@ Zobacz `docs/LOGICAL_ARCHITECTURE_AUDIT_2026-11-01.md`. Sam szkielet autoryzacji
 ## Sprint Wireless ADB + telephony safety (2026-11-01)
 
 **Read `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`** before S22 work. Last source changes correct `device_readiness.sh` wireless-vs-USB detection, add verified mDNS discovery, remove developer-runner `KEYCODE_ENDCALL` / `cmd telecom end-call`, disable automatic old `clir_iteration.sh`, make `relay-live` and Phase1 runner attach-only, and stop forcibly disabling Bluetooth on externally owned calls. 12 standalone discovery smoke and 12 static source checks passed; full repo host/Android/physical checks are still **not run**. Android call controller **still has no real adapter**, so no autonomous real call should be claimed. Resume from fresh main, then host tests + read-only phone preflight, not legacy dial.
+
+## 2026-11-01 GitHub Agent transport / call cleanup checkpoint
+
+Read `docs/SPRINT_AGENT_CONTROL_CALL_LIFECYCLE_2026-11-01.md`. New `agent-control` task `aicalls-sprint-host-phone-preflight-20261101-v1` (rev 2) queues Python+Gradle+safe ADB readiness, but **no run/result** was yet observed and daemon heartbeat remains 2026-10-19. Latest `main` fixes mDNS target service scoping, app call-session cleanup on exceptional paths, and pre-dial grant recheck. Standalone Python mock smoke passed 12/12; do not claim host/device GREEN. No real calls made.
