@@ -124,6 +124,12 @@ internal object AppOwnedClirCampaignExecutor {
             onStatus("Owned dial failed: ${error.javaClass.simpleName}")
             return
         }
+        if (ownedCall.dialedTarget != request.target || ownedCall.phoneAccount != voiceAccount) {
+            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+            running.set(false)
+            onStatus("Owned dial identity mismatch; cleanup=$cleanup")
+            return
+        }
 
         onStatus(
             "Authorized campaign dial started " +
@@ -162,7 +168,13 @@ internal object AppOwnedClirCampaignExecutor {
 
         fun poll() {
             if (!running.get()) return
-            if (ownedCall.isExactCallActive() && audioManager.mode == AudioManager.MODE_IN_CALL) {
+            val exactActive = runCatching { ownedCall.isExactCallActive() }.getOrElse {
+                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+                running.set(false)
+                onStatus("Owned call state unavailable; cleanup=$cleanup")
+                return
+            }
+            if (exactActive && audioManager.mode == AudioManager.MODE_IN_CALL) {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
                 startLocalRuntime(appContext, telecomManager, grant, ownedCall, request, authorizationStore, onStatus)
                 return
@@ -200,7 +212,7 @@ internal object AppOwnedClirCampaignExecutor {
             phoneDisclosureAuthorized = phoneDisclosureAuthorized,
             supervisorRelayEnabled = false,
             liveAuthorization = {
-                ownedCall.isExactCallActive() &&
+                runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
                     CampaignAccountScope.currentVoiceSubscription(appContext) == request.accountScope &&
                     authorizationStore.isAuthorizedInFlight(
                         grantId = grant.grantId,

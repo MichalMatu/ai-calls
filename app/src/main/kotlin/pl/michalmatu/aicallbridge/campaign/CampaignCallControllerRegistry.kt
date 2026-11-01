@@ -8,6 +8,8 @@ import android.telecom.PhoneAccountHandle
  * ACTION_CALL + global isInCall()/endCall() never provides such ownership.
  */
 internal interface CampaignOwnedCallSession {
+    val dialedTarget: String
+    val phoneAccount: PhoneAccountHandle
     fun isExactCallActive(): Boolean
     fun disconnectExactCall(): Boolean
 }
