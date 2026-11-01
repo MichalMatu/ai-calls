@@ -52,3 +52,15 @@ Follow-up host tasks:
 - `aicalls-mac-shizuku-readonly-diagnose-20261101-v1` — inspect installed Shizuku/server and AI Calls package, read-only.
 
 At this revision those two jobs have no confirmed terminal result. Do not mark final host gate green. Do not attempt any Orange `*100` call or global hangup. Shizuku health is an independent prerequisite and must not be silently bypassed.
+
+## Shizuku restored — verified Mac/S22 acceptance, 2026-11-01 10:22:13 UTC
+
+After the operator manually started Shizuku on S22, the new host task `aicalls-shizuku-user-start-readiness-20261101-v1` in `MichalMatu/local-agent:agent-control` published `done`, exit 0. The task checked AI Calls source `cb4ebdd6a94033c80dc6cbec2942983833076c90` from a disposable checkout.
+
+- Wireless ADB transport `192.168.0.100:41703`; verified exact hardware identity by `s22_adb_discovery`.
+- `shizuku_server` process exists; `moe.shizuku.privileged.api` running.
+- Android app probe reported `record_audio_granted=true`, `shizuku_binder_available=true`, `shizuku_supported=true`, `shizuku_permission_granted=true`, `live_call_readiness=true`.
+- Wrapper reported `device_readiness=true`, `call_state=IDLE`, `readiness_gate=PASS`.
+- Independently, host quality task `aicalls-mac-host-quality-20261101-v2` published `done`, exit 0 at 10:06:41 UTC for exact **source** `0ce0d6586b59f8956fd14f1266f14f75ac9548a4`: all canonical Android Gradle unit tests/lint/assembleDebug/assembleDebugAndroidTest passed, and 185 Python tests passed. Later commits before Shizuku readiness were docs-only.
+
+**Accepted now:** Mac host quality at the tested source SHA; verified Wireless ADB and app-level Shizuku/audio/no-call readiness at the recorded timestamp. **Not accepted:** real call-specific Android controller, autonomous dial, any live operator call, or independent CLIR status. Shizuku startup may need repetition after reboot; do not extrapolate one status snapshot to future runtime availability.

@@ -49,3 +49,7 @@ Read `docs/SPRINT_AGENT_CONTROL_CALL_LIFECYCLE_2026-11-01.md`. New `agent-contro
 ## Live Mac Wireless ADB acceptance — 2026-11-01
 
 See `docs/HOST_S22_MAC_ACCEPTANCE_2026-11-01.md`. New Mac host task `aicalls-mac-wireless-preflight-20261101-v1` ended `done/0` and proved live S22 through mDNS at `192.168.0.100:41703`, hardware model/serial and cellular `IDLE`. Two follow-up Mac host jobs (`aicalls-mac-host-quality-20261101-v1`, `aicalls-mac-s22-app-readiness-20261101-v1`) were queued but lacked terminal results at checkpoint time; do not claim Gradle/Shizuku green until independently read. App call owner remains missing.
+
+## 2026-11-01 Shizuku restored / physical readiness PASS
+
+Fresh actual Mac Host Control result `aicalls-shizuku-user-start-readiness-20261101-v1` is `done/0`: exact S22, wireless ADB, `shizuku_server`, granted microphone/Shizuku, `live_call_readiness=true`, `IDLE`. Clean Mac full host gate `aicalls-mac-host-quality-20261101-v2` is `done/0` (185 Python tests plus Gradle unit/lint/debug APKs) on `0ce0d658`. See `docs/HOST_S22_MAC_ACCEPTANCE_2026-11-01.md`. Only the **no-call gate** is accepted; exact-call Android adapter still absent. Do not dial or infer CLIR activation from these results.
