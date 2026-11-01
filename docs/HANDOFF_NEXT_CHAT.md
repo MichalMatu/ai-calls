@@ -24,3 +24,7 @@ Do not assume HEAD; check fresh `origin/main` at every session. Durable changes 
 At the 2026-10-08 stop the S22 had Shizuku Manager 13.6.0 but readiness failed `shizuku_binder_unavailable`; historical `start.sh` was missing. The independently checked CLIR state was not restricted. No new physical state can be inferred from the 2026-11-01 source-only campaign. PHONE vault and permissions were present during an earlier preflight; do not leak plaintext to Git, logs, model or relay.
 
 Do not revive the unaccepted debug one-shot PR #21. Frozen media, privilege and identity architecture stay closed absent a concrete failure.
+
+## Logiczny reaudyt (2026-11-01, późniejszy checkpoint)
+
+Zobacz `docs/LOGICAL_ARCHITECTURE_AUDIT_2026-11-01.md`. Sam szkielet autoryzacji i odpowiedzialności jest sensowny, ale aktualny kod **zawsze odrzuca dial** przez stałe `CampaignCallOwnershipProof(false,false)`; to nie jest dynamiczny test własności. Nie usuwać blokady mechanicznie bez konkretnego kontrolera/cleanup własnego połączenia. Pozostałe odkrycia: nadmiar `accounts.size==1`, pominięcie deterministycznego `PhraseMatrix` w kampanii, `generation=0L` zamiast sesji, pozytywny matcher dopuszcza pytania, brak niezależnej weryfikacji/terminalnego sukcesu i wymaganie uprawnień do połączenia przy samym tworzeniu grantu. Ten dokument jest **wynikiem audytu**, nie listą napraw już wdrożonych. Przed pracą sprawdzić świeży HEAD; bez połączeń bez ważnej autoryzacji.
