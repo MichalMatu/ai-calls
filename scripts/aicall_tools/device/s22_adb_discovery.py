@@ -20,12 +20,15 @@ Runner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]
 
 
 def mdns_connect_endpoints(output: str) -> list[str]:
-    """Only accept advertised private/link-local IP TCP endpoints for TLS ADB."""
+    """Only attempt TLS ADB discovery for this S22, not neighboring devices."""
     found: list[str] = []
     for line in output.splitlines():
-        if "_adb-tls-connect._tcp" not in line:
+        fields = line.split()
+        if len(fields) < 3 or fields[1] != "_adb-tls-connect._tcp":
             continue
-        candidate = line.split()[-1]
+        if not fields[0].startswith(f"adb-{EXPECTED_HARDWARE_SERIAL}-"):
+            continue
+        candidate = fields[-1]
         host, sep, port_text = candidate.rpartition(":")
         if not sep or not port_text.isascii() or not port_text.isdigit():
             continue

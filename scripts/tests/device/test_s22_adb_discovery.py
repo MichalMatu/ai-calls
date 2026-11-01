@@ -38,7 +38,7 @@ class FakeRunner:
         if argv == ["adb", "mdns", "services"]:
             return result(
                 "List of discovered mdns services\n"
-                f"adb-device\t_adb-tls-connect._tcp\t{WIFI}\n"
+                f"adb-RFCT70L7E8J-HNMIWH\t_adb-tls-connect._tcp\t{WIFI}\n"
             )
         if argv[:2] == ["adb", "connect"]:
             if self.after_connect is not None:
@@ -54,15 +54,22 @@ class FakeRunner:
 class S22AdbDiscoveryTest(unittest.TestCase):
     def test_accepts_only_private_tls_adb_endpoints(self):
         raw = (
-            "_adb-tls-connect._tcp 192.168.0.100:46769\n"
-            "_adb-tls-connect._tcp 192.168.0.100:46769\n"
+            "adb-RFCT70L7E8J-HNMIWH _adb-tls-connect._tcp 192.168.0.100:46769\n"
+            "adb-RFCT70L7E8J-HNMIWH _adb-tls-connect._tcp 192.168.0.100:46769\n"
             "_adb-tls-pairing._tcp 192.168.0.101:3000\n"
-            "_adb-tls-connect._tcp example.com:1234\n"
-            "_adb-tls-connect._tcp 8.8.8.8:5555\n"
-            "_adb-tls-connect._tcp 127.0.0.1:5555\n"
-            "_adb-tls-connect._tcp 192.168.0.12:99999\n"
+            "adb-RFCT70L7E8J-HNMIWH _adb-tls-connect._tcp example.com:1234\n"
+            "adb-RFCT70L7E8J-HNMIWH _adb-tls-connect._tcp 8.8.8.8:5555\n"
+            "adb-RFCT70L7E8J-HNMIWH _adb-tls-connect._tcp 127.0.0.1:5555\n"
+            "adb-RFCT70L7E8J-HNMIWH _adb-tls-connect._tcp 192.168.0.12:99999\n"
         )
         self.assertEqual([WIFI], mdns_connect_endpoints(raw))
+        self.assertEqual(
+            [],
+            mdns_connect_endpoints(
+                "_adb-tls-connect._tcp 192.168.0.100:46769\\n"
+                "adb-WRONG-HNMIWH _adb-tls-connect._tcp 192.168.0.100:46769\\n"
+            ),
+        )
 
     def test_prefers_connected_wireless_over_usb_without_mdns(self):
         runner = FakeRunner(DEVICES_BOTH)
