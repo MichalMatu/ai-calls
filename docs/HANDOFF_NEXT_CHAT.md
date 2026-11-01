@@ -45,3 +45,7 @@ Zobacz `docs/LOGICAL_ARCHITECTURE_AUDIT_2026-11-01.md`. Sam szkielet autoryzacji
 ## 2026-11-01 GitHub Agent transport / call cleanup checkpoint
 
 Read `docs/SPRINT_AGENT_CONTROL_CALL_LIFECYCLE_2026-11-01.md`. New `agent-control` task `aicalls-sprint-host-phone-preflight-20261101-v1` (rev 2) queues Python+Gradle+safe ADB readiness, but **no run/result** was yet observed and daemon heartbeat remains 2026-10-19. Latest `main` fixes mDNS target service scoping, app call-session cleanup on exceptional paths, and pre-dial grant recheck. Standalone Python mock smoke passed 12/12; do not claim host/device GREEN. No real calls made.
+
+## Live Mac Wireless ADB acceptance — 2026-11-01
+
+See `docs/HOST_S22_MAC_ACCEPTANCE_2026-11-01.md`. New Mac host task `aicalls-mac-wireless-preflight-20261101-v1` ended `done/0` and proved live S22 through mDNS at `192.168.0.100:41703`, hardware model/serial and cellular `IDLE`. Two follow-up Mac host jobs (`aicalls-mac-host-quality-20261101-v1`, `aicalls-mac-s22-app-readiness-20261101-v1`) were queued but lacked terminal results at checkpoint time; do not claim Gradle/Shizuku green until independently read. App call owner remains missing.
