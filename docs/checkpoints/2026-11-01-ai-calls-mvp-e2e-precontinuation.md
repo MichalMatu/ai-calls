@@ -77,3 +77,11 @@ Wcześniejsze stwierdzenie, że Mac Local Agent „nie działa”, zostało wyja
 - `HOST_GREEN` = kompilacja/testy host; `PROVEN_S22_NOCALL` = bezrozmowne próby Android; `LIVE_SUPERVISED_PASS` = potwierdzona prawdziwa rozmowa i słyszalność; `AUTONOMOUS_SERVICE_PASS` = osobna, późniejsza akceptacja exact-call ownership i efektów. **Na ten checkpoint nie osiągnięto dwóch ostatnich.**
 - Zachować zanonimizowane dowody (identyfikator zadania, SHA, status, liczniki PCM, czasy). Bez numerów telefonów, transkryptów, nagrań, danych kont, kluczy w publicznym Git.
 - Nie pozostawiono w tym checkpoincie gałęzi roboczej; `main` pozostaje źródłem prawdy. Stan niezweryfikowanych lokalnych checkoutów na Macu należy odczytać w preflight, nie zgadywać.
+
+
+## 8. Domknięcie spójności checkpointu
+
+- Po zapisaniu checkpointu odświeżono `README.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md` i `docs/MVP_E2E_SPRINT_2026-11-01.md`, usuwając m.in. nieaktualne stwierdzenie, że model Gemma jest brakujący na S22, oraz stwierdzenie o nieistniejącym niezależnym 4/4 harnessie. To **tylko dokumentacja**.
+- Odczyt `compare_commits(aed472de, 40e26cdb)` wykazał wyłącznie zmiany `README.md` i `docs/**`: drzewo kodu aplikacji pozostaje bez zmian względem `aed472dececaef711e2198fd26a995e27c9ad6ba`.
+- Aby uniknąć powtarzania mechanicznego mismatch SHA po zmianach dokumentacji, w prywatnym Mac Host Control zapisano **osobny stabilny quality gate** `aicalls-checkpoint-product-tree-qa-20261101-v1`, porównujący drzewa produktu do `aed472de` zamiast literalnego HEAD, a następnie wykonujący `scripts/local_agent/host_verify.sh`. **Wynik nie był jeszcze opublikowany przy zamykaniu checkpointu**. Sprawdź ten dokładny receipt przed jakimkolwiek ponownym zadaniem QA.
+- Nie tworzono nowych gałęzi, nie wykonywano instalacji ani połączeń w ramach samego checkpointu. Ewentualne późniejsze wykonanie zaakceptowanego tasku jest osobnym wynikiem, którego nie wolno automatycznie zaliczać.
