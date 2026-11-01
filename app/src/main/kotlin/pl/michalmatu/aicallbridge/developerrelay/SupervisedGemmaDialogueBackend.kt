@@ -77,10 +77,10 @@ internal class SupervisedGemmaDialogueBackend(
 /** Second, deterministic release gate between untrusted model text and cellular TTS. */
 internal object SupervisedGemmaSpeechPolicy {
     private val prohibited = Regex(
-        "(?i)(https?://|www\\.|@|\\[\\[|\\{\\{|\\b(?:pesel|pin|hasło|haslo|kod sms|" +
+        "(?i)(https?://|www\\.|@|\\[\\[|\\{\\{|(?<!\\p{L})(?:pesel|pin|hasło|haslo|kod sms|" +
             "przelew|konto bankowe|numer karty|aktywuję|aktywuje|wyłączam|wylaczam|" +
             "zamawiam|kupuję|kupuje|zgadzam się|zgadzam sie|potwierdzam|" +
-            "podaję|podaje|udostępniam|udostepniam|zobowiązuję|zobowiazuje)\\b)",
+            "podaję|podaje|udostępniam|udostepniam|zobowiązuję|zobowiazuje)(?!\\p{L}))",
     )
     private val longNumber = Regex("\\d[\\d\\s-]{5,}\\d")
 
