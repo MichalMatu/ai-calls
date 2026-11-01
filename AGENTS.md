@@ -1,5 +1,8 @@
 # Agent workflow
 
+
+> **Safety override — 2026-11-01:** the autonomous CLIR dial is deliberately fail-closed until a real exact-call owner with targeted hangup exists; the generic TelecomManager call cannot establish ownership. Do not resume old physical `*100` loops, bypass the call-ownership guard, or equate carrier-reported success with independent network verification. Read `docs/CORRECTION_CAMPAIGN_2026-11-01.md` and fresh `main` before further work. Full Gradle/Android/S22 acceptance remains open.
+
 This repository is single-developer and main-first. Durable product code/docs live on `main`; `agent-control` is Local Agent task/result transport only.
 
 ## Start of every work session
