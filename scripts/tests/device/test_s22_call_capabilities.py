@@ -21,7 +21,7 @@ class FakeAdb:
             ("getprop", "ro.build.version.sdk"): outcome(sdk),
             ("cmd", "role", "get-role-holders", "android.app.role.DIALER"): outcome(roles),
             ("cmd", "telecom", "get-default-dialer"): outcome(
-                roles.splitlines()[0] + "\\n" if roles.splitlines() else ""
+                roles.splitlines()[0] + "\n" if roles.splitlines() else ""
             ),
             ("pm", "path", APP_PACKAGE): outcome(app),
             ("dumpsys", "telephony.registry"): outcome(call),
@@ -74,8 +74,8 @@ class CallCapabilityTests(unittest.TestCase):
         self.assertFalse(result["exact_call_controller_proven"])
 
     def test_role_telecom_disagreement_fails_closed(self):
-        fake = FakeAdb(roles=APP_PACKAGE + "\\n")
-        fake.entries[("cmd", "telecom", "get-default-dialer")] = outcome("com.google.android.dialer\\n")
+        fake = FakeAdb(roles=APP_PACKAGE + "\n")
+        fake.entries[("cmd", "telecom", "get-default-dialer")] = outcome("com.google.android.dialer\n")
         result = inspect_phone(SERIAL, runner=fake)
         self.assertEqual("UNKNOWN", result["default_dialer"])
         self.assertFalse(result["app_is_default_dialer"])
