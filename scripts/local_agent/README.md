@@ -1,10 +1,11 @@
 # Local Agent entrypoints
 
-These wrappers keep routine Local Agent task payloads small and repository-owned. They do **not** bypass application authority, runner guards, or external platform/tool controls.
+These repository-owned wrappers run on a Mac/host that has ADB. They do not bypass application authority or Android restrictions.
 
-- `repo_state.sh` — refresh remote refs and report the current checkout/branch state.
-- `host_verify.sh` — run the canonical host quality gate.
-- `device_readiness.sh` — require the exact S22 over ADB, require cellular `IDLE`, then run the existing no-call readiness probe.
-- `bash scripts/local_agent/clir_iteration.sh --allow-clir-enable` — run the current guarded physical CLIR enable iteration through the existing `relay-live` runner, then require the phone to return to `IDLE`. It preserves the runner's explicit CLIR-effect guard and does not duplicate call/media/dialogue logic.
+- `repo_state.sh` — refresh remote refs and report the checkout.
+- `host_verify.sh` — canonical Gradle, lint, Android build and Python host gate.
+- `device_readiness.sh` — **no-call** physical S22 check. Discovers USB or a paired Wireless Debugging transport via `s22_adb_discovery.py`; verifies actual model and hardware identity, then `IDLE` and existing Shizuku/audio readiness. Supports an optional `AICALL_SERIAL` override after verification.
+- `clir_iteration.sh --allow-clir-enable` — **disabled (exit 3)** while no safe call-specific Android dial/hangup controller exists. Never resume the former `KEYCODE_ENDCALL`/global telecom fallback.
+- `scripts/bin/aicalls relay-live --attach-existing-call --allow-clir-enable` — manual developer attach to an already operator-controlled call. May change CLIR only with separately valid authorization; **never dials or hangs up**. Default CLI discovers the verified ADB transport; Bluetooth must already be OFF; do not force audio settings of unrelated live calls.
 
-The physical live-call implementation remains behind the existing guarded CLI entrypoint in `scripts/bin/aicalls`. Wrappers here must never weaken application authority, remove runner guards, conceal the requested external effect, or route around an external safety decision.
+Latest details: `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. The repository's `agent-control` branch is historical transport; a previous `daemon.json` is not proof that a current Local Agent task is running.

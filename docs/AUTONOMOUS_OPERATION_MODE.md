@@ -170,3 +170,6 @@ Full autonomy remains bounded by application policy:
 ## Repository precedence
 
 `AGENTS.md`, `docs/HANDOFF_NEXT_CHAT.md`, active runbooks and `docs/SECURITY_PRIVACY.md` must remain aligned with this autonomous-mode contract. Older wording that mechanically requests another confirmation despite an unchanged valid authorization context should be removed or narrowed.
+
+
+**Safety correction after host tooling sprint, 2026-11-01:** historical `scripts/local_agent/clir_iteration.sh` is now fail-closed; the `relay-live` and Phase1 ADB runners can attach to an already operator-controlled call, but cannot dial or terminate it. Automatic Bluetooth toggling during an attached call was also removed. The product autonomy goal is unchanged; only the unsafe legacy device-wide control path is suspended. See `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`.

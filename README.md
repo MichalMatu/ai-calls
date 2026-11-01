@@ -69,3 +69,6 @@ Sources of truth:
 - `docs/ROADMAP.md` — execution order;
 - `docs/G5_CLIR_ROUTE_DISCOVERY.md` — active CLIR runbook;
 - `docs/ARCHITECTURE.md`, `docs/GENERIC_PHONE_TASK_AUTHORITY.md`, `docs/SECURITY_PRIVACY.md` — stable ownership/security contracts.
+
+
+**AI Calls 2026-11-01 host-tooling checkpoint:** verified Wireless ADB discovery, attach-only developer relay, and disabled generic device-wide hangup are documented in `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. The exact-call Android adapter and device acceptance are still pending; source changes do not mean the autonomous CLIR flow is live.
