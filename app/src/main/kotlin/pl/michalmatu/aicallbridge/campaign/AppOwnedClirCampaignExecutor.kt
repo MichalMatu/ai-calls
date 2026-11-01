@@ -134,21 +134,28 @@ internal object AppOwnedClirCampaignExecutor {
             return
         }
 
-        onStatus(
-            "Authorized campaign dial started " +
-                "(attempt ${reservedGrant.attemptsUsed}/${reservedGrant.maxAttempts})",
-        )
-        waitForActiveCall(
-            appContext = appContext,
-            handler = handler,
-            deadlineEpochMs = System.currentTimeMillis() + CALL_ACTIVE_TIMEOUT_MS,
-            telecomManager = telecomManager,
-            grant = reservedGrant,
-            ownedCall = ownedCall,
-            request = request,
-            authorizationStore = authorizationStore,
-            onStatus = onStatus,
-        )
+        val launched = runCatching {
+            onStatus(
+                "Authorized campaign dial started " +
+                    "(attempt ${reservedGrant.attemptsUsed}/${reservedGrant.maxAttempts})",
+            )
+            waitForActiveCall(
+                appContext = appContext,
+                handler = handler,
+                deadlineEpochMs = System.currentTimeMillis() + CALL_ACTIVE_TIMEOUT_MS,
+                telecomManager = telecomManager,
+                grant = reservedGrant,
+                ownedCall = ownedCall,
+                request = request,
+                authorizationStore = authorizationStore,
+                onStatus = onStatus,
+            )
+        }
+        if (launched.isFailure) {
+            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+            running.set(false)
+            onStatus("Campaign call setup failed; cleanup=$cleanup")
+        }
     }
 
     private fun waitForActiveCall(
@@ -211,43 +218,43 @@ internal object AppOwnedClirCampaignExecutor {
 
         val launched = runCatching {
             ChatRelayLiveCallProbe.run(
-            context = appContext,
-            sessionId = sessionId,
-            maxTurns = ChatRelayLiveCallProbe.MAX_TURNS,
-            phoneDisclosureAuthorized = phoneDisclosureAuthorized,
-            supervisorRelayEnabled = false,
-            liveAuthorization = {
-                runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
-                    CampaignAccountScope.currentVoiceSubscription(appContext) == request.accountScope &&
-                    authorizationStore.isAuthorizedInFlight(
-                        grantId = grant.grantId,
-                        request = request,
-                        nowEpochMs = System.currentTimeMillis(),
-                    )
-            },
-        ) { report ->
-            val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
-            val carrierReportedSuccess = reportValue(report, "clir_carrier_reported_success") == "true"
-            val failureReason = reportValue(report, "failure_reason")
-            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
-            running.set(false)
-
-            onStatus(
-                when {
-                    probeSuccess && carrierReportedSuccess ->
-                        "Carrier reports CLIR activation, independent network verification pending; " +
-                            "cleanup=$cleanup"
-
-                    failureReason != null ->
-                        "Campaign call ended without accepted success: $failureReason; " +
-                            "cleanup=$cleanup"
-
-                    else ->
-                        "Campaign call ended without accepted success; " +
-                            "cleanup=$cleanup"
+                context = appContext,
+                sessionId = sessionId,
+                maxTurns = ChatRelayLiveCallProbe.MAX_TURNS,
+                phoneDisclosureAuthorized = phoneDisclosureAuthorized,
+                supervisorRelayEnabled = false,
+                liveAuthorization = {
+                    runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
+                        CampaignAccountScope.currentVoiceSubscription(appContext) == request.accountScope &&
+                        authorizationStore.isAuthorizedInFlight(
+                            grantId = grant.grantId,
+                            request = request,
+                            nowEpochMs = System.currentTimeMillis(),
+                        )
                 },
-            )
-        }
+            ) { report ->
+                val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
+                val carrierReportedSuccess = reportValue(report, "clir_carrier_reported_success") == "true"
+                val failureReason = reportValue(report, "failure_reason")
+                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+                running.set(false)
+
+                onStatus(
+                    when {
+                        probeSuccess && carrierReportedSuccess ->
+                            "Carrier reports CLIR activation, independent network verification pending; " +
+                                "cleanup=$cleanup"
+
+                        failureReason != null ->
+                            "Campaign call ended without accepted success: $failureReason; " +
+                                "cleanup=$cleanup"
+
+                        else ->
+                            "Campaign call ended without accepted success; " +
+                                "cleanup=$cleanup"
+                    },
+                )
+            }
         }
         if (launched.isFailure) {
             val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
