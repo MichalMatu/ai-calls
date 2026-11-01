@@ -36,3 +36,7 @@
 Przeszło 14 przypadków samodzielnego smoke-testu `kotlinc`/JVM detektora CLIR po poprawce polskiego `ł`. Testy Gradle, Android instrumentation i próby na S22 **nie zostały wykonane**. Ostatni historyczny stan S22 z 2026-10-08: `shizuku_binder_unavailable`, brak akceptacji CLIR enable. Dzisiejszy stan urządzenia jest nieznany.
 
 **Wynik kampanii:** ochrona fail-closed w kodzie; pełna akceptacja urządzeniowa i pełna funkcjonalność autonomicznego połączenia — otwarte.
+
+## Later logical sprint (2026-11-01)
+
+The fixed false ownership proof is no longer used: executor now requires an installed `CampaignOwnedCallController` capable of identifying and disconnecting its own exact call. No such Android adapter is installed, so no actual call will start. The single-SIM veto was removed in favor of precise default outgoing phone-account and subscription matching; creating grant no longer asks for CALL_PHONE/RECORD_AUDIO. Active media generation replaced `generation=0L` in phone fact scope. Neutral PhraseMatrix-first turns precede Gemma and CLIR question responses no longer register provisional success. Only 27/27 standalone Kotlin/JVM classifier/route smoke passed; Gradle and S22 acceptance still open. Full delta: `docs/SPRINT_LOGIC_CORRECTIONS_2026-11-01.md`.

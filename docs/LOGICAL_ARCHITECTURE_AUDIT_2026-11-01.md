@@ -59,3 +59,7 @@ Rozdzielić `dev probe` od `product controller`. Nie tworzyć nowej bramki CLIR-
 ## Granice tego audytu
 
 Przeprowadzono przegląd kodu i test adversarialny lokalnej logiki `ClirCarrierEvidence` (bez Androida). **Nie** uruchomiono Gradle, instrumentacji, S22, rzeczywistej telefonii ani Shizuku. Nie modyfikowano produkcyjnej logiki w ramach tego audytu. Kontrolne uruchomienie obecnego Local Agenta nie było dostępne. Wynik nie stanowi fizycznej akceptacji.
+
+## Corrective sprint follow-up
+
+See `docs/SPRINT_LOGIC_CORRECTIONS_2026-11-01.md`. Findings L-01/L-02/L-04/L-05/L-08 received source fixes: fixed false proof removed in favor of a true call-session integration port (adapter pending); SIM account count veto removed; active media generation used instead of `0L`; interrogative carrier evidence rejected; permission requests deferred. L-03 partially addressed with **neutral PhraseMatrix-first dialogue**, not full CallPlan. L-06/L-07 are **still open** pending independent network-state verification and a physically proven targeted call controller. None is device-accepted.

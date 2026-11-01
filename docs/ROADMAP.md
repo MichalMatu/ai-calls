@@ -79,3 +79,5 @@ exact authorized task/target/effect
 Authorization, model output, route entry, permit consumption and hangup are not success evidence by themselves.
 
 After CLIR enable/disable acceptance, return to generic phone-task development rather than building an Orange-specific bot.
+
+**Update — logical sprint 2026-11-01:** `docs/SPRINT_LOGIC_CORRECTIONS_2026-11-01.md` is the current source checkpoint. The fake fixed-`false` call ownership gate, false questions, `generation=0L`, single-account SIM veto and early microphone/dial permission prompts have been replaced. A proper exact-call lifecycle interface now defines the safe integration boundary; **no installed Android/S22 controller exists yet**, so physical call remains blocked on a *real missing capability*, not synthetic flags. Neutral PhraseMatrix routing precedes Gemma, but full CallPlan integration, independent network verification, Android test runs and S22 acceptance remain open.

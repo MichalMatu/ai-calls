@@ -208,3 +208,5 @@ Before closing a scope:
 7. preserve the autonomous-operation contract and do not regress to operator-driven terminal work.
 
 Do not declare a physical CLIR task complete from synthetic/no-call results, permit consumption, a model statement or call termination alone.
+
+> **Update after logical sprint, 2026-11-01:** The artificial `CampaignCallOwnershipProof(false,false)` was removed. Current runtime expects a concrete `CampaignOwnedCallController` with exact session identity and targeted hangup; **no Android/S22 adapter is currently installed**, so physical dialing is still unavailable. New neutral PhraseMatrix-first dialogue, live media generation binding, more precise SIM matching and deferred permission requests are source-only; Gradle/device acceptance is not yet claimed. See `docs/SPRINT_LOGIC_CORRECTIONS_2026-11-01.md`.
