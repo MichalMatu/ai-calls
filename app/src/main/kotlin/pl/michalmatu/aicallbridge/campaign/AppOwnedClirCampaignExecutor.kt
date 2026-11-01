@@ -124,10 +124,13 @@ internal object AppOwnedClirCampaignExecutor {
             onStatus("Owned dial failed: ${error.javaClass.simpleName}")
             return
         }
-        if (ownedCall.dialedTarget != request.target || ownedCall.phoneAccount != voiceAccount) {
+        val exactIdentityMatches = runCatching {
+            ownedCall.dialedTarget == request.target && ownedCall.phoneAccount == voiceAccount
+        }.getOrDefault(false)
+        if (!exactIdentityMatches) {
             val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
             running.set(false)
-            onStatus("Owned dial identity mismatch; cleanup=$cleanup")
+            onStatus("Owned dial identity missing or mismatched; cleanup=$cleanup")
             return
         }
 
@@ -161,8 +164,9 @@ internal object AppOwnedClirCampaignExecutor {
     ) {
         val audioManager = appContext.getSystemService(AudioManager::class.java)
         if (audioManager == null) {
+            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
             running.set(false)
-            onStatus("Audio service unavailable")
+            onStatus("Audio service unavailable; cleanup=$cleanup")
             return
         }
 
@@ -205,7 +209,8 @@ internal object AppOwnedClirCampaignExecutor {
         val phoneDisclosureAuthorized =
             IdentityFieldId.PHONE in grant.allowedDisclosureFields
 
-        ChatRelayLiveCallProbe.run(
+        val launched = runCatching {
+            ChatRelayLiveCallProbe.run(
             context = appContext,
             sessionId = sessionId,
             maxTurns = ChatRelayLiveCallProbe.MAX_TURNS,
@@ -241,6 +246,16 @@ internal object AppOwnedClirCampaignExecutor {
                         "Campaign call ended without accepted success; " +
                             "cleanup=$cleanup"
                 },
+            )
+        }
+        }
+        if (launched.isFailure) {
+            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+            running.set(false)
+            onStatus(
+                "Campaign runtime launch failed: " +
+                    "${launched.exceptionOrNull()?.javaClass?.simpleName ?: "unknown"}; " +
+                    "cleanup=$cleanup",
             )
         }
     }
