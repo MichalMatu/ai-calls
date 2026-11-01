@@ -99,6 +99,9 @@ Supervisor fallback is permitted only when an explicit developer path enables it
 
 ## Live-call policy
 
+
+**Ownership and result-evidence hold (2026-11-01):** `TelecomManager.isInCall()` / `AudioManager.MODE_IN_CALL` do not prove ownership, and `TelecomManager.endCall()` can terminate unrelated calls. Therefore app-owned CLIR dialing now fails closed before any call until an exact-call owner with targeted hangup exists. Carrier speech may create only a provisional claim; only independent network verification can close verified success. Fresh in-flight grant scope/expiry/revocation checks run during the dialogue and before commitment/disclosure/speech. See `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+
 A call must fail closed before dialing unless the exact task/target is covered by an accepted application authorization context and required readiness gates pass.
 
 Rules:
