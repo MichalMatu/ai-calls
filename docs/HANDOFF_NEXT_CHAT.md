@@ -2,6 +2,10 @@
 
 Do not assume HEAD; check fresh `origin/main` at every session. Durable changes belong on `main`; `agent-control` is transport only. Read `AGENTS.md`, `README.md`, `docs/CORRECTION_CAMPAIGN_2026-11-01.md`, `docs/REAUDIT_2026-11-01.md`, `docs/AUTONOMOUS_OPERATION_MODE.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`.
 
+## 2026-11-01 canonical Mac Host Control migration (LATEST)
+
+**Start here:** `docs/LOCAL_AGENT_HOST_FLOW_2026-11-01.md` and the current installed `MichalMatu/local-agent` `docs/HOST_CONTROL_PLANE.md`. `ai-calls:agent-control/.agent/status/daemon.json` is **not** the Mac host-status source. New Mac host tasks belong to `MichalMatu/local-agent:agent-control/.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/tasks/`; corresponding `task-results/` and `status.json` prove execution. The old preflight queued to `ai-calls:.agent/tasks/` was sent to the legacy **project** route and does not prove current Mac connectivity. Fetch live host evidence, then run safe Wireless ADB and Android host tests. No calls until exact-call owner adapter + fresh grant.
+
 ## Current verified status
 
 2026-11-01 corrective source changes on `main`: negation-safe provisional CLIR carrier evidence, removal of supervisor-based success token, atomic in-process grant reservation/revocation, live authorization watchdog and pre-disclosure/commit/PCM checks, conservative single-default voice phone account binding, and removal of unsafe broad `TelecomManager.endCall()`.
@@ -12,7 +16,7 @@ Do not assume HEAD; check fresh `origin/main` at every session. Durable changes 
 
 ## Next steps
 
-1. Obtain a fresh current-chat Local Agent binding, confirm daemon and task state, clean checkout, latest main and physical S22 condition. Do not infer present daemon health from old `.agent/status`.
+1. Select the exact installed Mac Host Control identity, read its current status and task results on `MichalMatu/local-agent:agent-control`, confirm clean checkout, latest main and read-only physical S22 condition. Do not infer present daemon health from old `.agent/status`.
 2. Run `./gradlew testDebugUnitTest`, Android build and safe instrumentation with the new grant race test. Repair observed compile/regression failures; no GitHub Actions, Codex or Work.
 3. Implement/prove a real Android exact-call owner with selective hangup; preserve the normal default dialer and unrelated calls. Only then remove the fail-closed dial block on evidence.
 4. Verify Shizuku version-specific binder/startup path and phone `IDLE` using current device facts.

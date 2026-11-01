@@ -3,7 +3,7 @@
 
 > **Safety override — 2026-11-01:** the autonomous CLIR dial is deliberately fail-closed until a real exact-call owner with targeted hangup exists; the generic TelecomManager call cannot establish ownership. Do not resume old physical `*100` loops, bypass the call-ownership guard, or equate carrier-reported success with independent network verification. Read `docs/CORRECTION_CAMPAIGN_2026-11-01.md` and fresh `main` before further work. Full Gradle/Android/S22 acceptance remains open.
 
-This repository is single-developer and main-first. Durable product code/docs live on `main`; `agent-control` is Local Agent task/result transport only.
+This repository is single-developer and main-first. Durable product code/docs live on `main`. The local `ai-calls:agent-control` branch is an **older project-task mailbox**, not the Mac Host Control queue. For machine/ADB/build tasks use the selected Mac installation on **`MichalMatu/local-agent:agent-control`**, as documented below.
 
 ## Start of every work session
 
@@ -19,7 +19,18 @@ Read fresh repository sources in this order:
 8. `docs/SECURITY_PRIVACY.md`
 9. `docs/PHASE2D_FREEZE_2026-09-18.md` only before Samsung media changes.
 
-Fetch fresh `origin/main`. Read fresh Local Agent daemon status and use only the binding supplied to the current chat.
+Fetch fresh `origin/main`. Read current Local Agent source/protocol from `MichalMatu/local-agent` and the **installed Mac host status**, not the legacy `ai-calls:.agent/status/daemon.json`. Reuse exact target identities from the installed Local Agent contract; no chat-to-host manual rebinding is needed.
+
+### Active Local Agent transport — installed 4.20.16 (2026-11-01)
+
+**Canonical source:** `MichalMatu/local-agent`, `AGENTS.md`, `docs/HOST_CONTROL_PLANE.md`, `docs/CURRENT_HANDOFF.md`. Read installed state from the live host namespace; source `main` alone is not installation evidence.
+
+- Select the existing **Mac** explicitly: `target_host_id=macbook-michal`, `target_installation_id=cfea4cc3-b54c-4b6d-b9a6-758d12733e98`. No automatic host selection or fallback. The Android/Termux agent has a separate identity and task queue.
+- For **Host Ops** including Mac shells, Android SDK/Gradle, device ADB and physical inspections, publish unique immutable task JSON to `MichalMatu/local-agent` branch `agent-control`, path `.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/tasks/<task-id>.json`. Required fields: `version:1`, `id`, exact target IDs, absolute existing `cwd`, bounded `commands` or `steps`, and appropriate resource/time/output limits. Do **not** include project `agent_binding` or `work_branch` in standalone host requests.
+- Inspect **exact task result** at `.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/task-results/<task-id>.json` and `status.json`, on the same private `local-agent:agent-control` branch. A Git commit / historical heartbeat does not imply execution. Distinguish `done`, `failed` and `UNKNOWN`; do not replay unknown effects.
+- For repository-specific agent tasks the **separate** `ai-calls:agent-control/.agent/tasks/` mailbox remains a supported *project* route with exact `agent_binding=c25f88c0-4682-414c-8062-c47fa4034cb0`. Use only when the task truly belongs to that registered repository. An old project mailbox never establishes Mac Host Control liveness.
+- Host-task authorization follows the Mac owner's already installed `github_writers` intake, exact host+installation ID, local STOP and resource leases. Never put commands or outputs in a public repo. Do not run GitHub Actions, Codex or Work. Do not reconfigure the service or alter host identity for ordinary project work.
+- **Telephone gate:** read-only `adb devices -l`, paired Wireless ADB, identity and `IDLE` readiness are allowed. No `*100`, `ACTION_CALL`, CLIR mutation or device-wide hangup unless actual exact-call Android owner, current explicit effect grant and physical safety are established. Existing app `CampaignCallControllerRegistry` is still unimplemented.
 
 ### Execution tool priority
 
@@ -47,11 +58,11 @@ Do **not** ask the operator for repository paths, branch names, session IDs, ret
 
 The product is a **generic autonomous phone task engine**. Do not create service-specific authority architectures.
 
-Current physical acceptance sequence:
+Current acceptance sequence (safety override supersedes older Orange call-loop plans):
 
-1. Continue the active Orange CLIR physical loop on S22 using `*100`: deterministic script/PhraseMatrix -> bounded Gemma -> live supervisor fallback only when unresolved.
-2. Preserve sanitized live evidence, verify actual network CLIR state independently when available, patch only the observed physical failure, then iterate with another real call.
-3. After CLIR enable is factually confirmed, run the inverse `SET_SERVICE(CLIR=false)` acceptance loop and drive recurrent supervisor turns back into script/PhraseMatrix or Gemma skills.
+1. Use Mac Host Control to get fresh no-call Wireless ADB/IDLE/Shizuku evidence and full Gradle/Python tests. Repair verified failures before trusting hardware readiness.
+2. Implement and physically validate a real call-specific Android controller for exactly the application's own phone call; maintain a targeted hangup and per-SIM identity. Global phone state or `KEYCODE_ENDCALL` is not sufficient.
+3. **Only after** explicit matching authorization and exact ownership can a bounded Orange CLIR scenario run. Preserve sanitized evidence and independently verify network state, including `*#31#` when safe and available. Disable is a separate authorized effect.
 
 Historical G5b read-only discovery is closed evidence, not the current task.
 
@@ -213,3 +224,5 @@ Do not declare a physical CLIR task complete from synthetic/no-call results, per
 
 
 > **2026-11-01 developer-tool safety update:** the Local Agent wrappers now resolve paired Wireless ADB/USB by live mDNS/device enumeration and verify the exact S22. The legacy `adb.hangup()`, telecom global fallback, and autonomous `relay-live` / `clir_iteration.sh` are disabled to prevent disconnection of unrelated calls. A user-controlled attach-only probe may run on an explicitly authorized existing call; it does **not** own that call and never hangs it up. New repo checkpoint: `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. Do not equate historical `agent-control` status with active host execution. Current Android exact-call adapter missing; physical verification open.
+
+> **2026-11-01 Local Agent 4.20.16 migration:** the old `ai-calls:agent-control/.agent/daemon` task/status preflight is obsolete for **Mac Host Ops**. Prefer `local-agent:agent-control/.agent/hosts/macbook-michal/supervisor/<installation-id>/` for exact-machine commands; read `docs/LOCAL_AGENT_HOST_FLOW_2026-11-01.md` before any hardware sprint. The earlier 2026-11-01 checkpoint describing an allegedly offline Mac checked the wrong namespace and is superseded.

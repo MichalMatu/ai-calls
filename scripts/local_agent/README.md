@@ -1,13 +1,13 @@
-# Local Agent entrypoints
+# Local Agent entrypoints — current Mac Host Control 4.20.16
 
-These repository-owned wrappers run on a Mac/host that has ADB. They do not bypass application authority or Android restrictions.
+**Transport is owned by `MichalMatu/local-agent`, NOT this application's `.agent/daemon`.** See `docs/LOCAL_AGENT_HOST_FLOW_2026-11-01.md` for the exact host/installation identifiers, immutable host JSON, `task-results`, status and recovery contract.
 
-- `repo_state.sh` — refresh remote refs and report the checkout.
-- `host_verify.sh` — canonical Gradle, lint, Android build and Python host gate.
-- `device_readiness.sh` — **no-call** physical S22 check. Discovers USB or a paired Wireless Debugging transport via `s22_adb_discovery.py`; verifies actual model and hardware identity, then `IDLE` and existing Shizuku/audio readiness. Supports an optional `AICALL_SERIAL` override after verification.
-- `clir_iteration.sh --allow-clir-enable` — **disabled (exit 3)** while no safe call-specific Android dial/hangup controller exists. Never resume the former `KEYCODE_ENDCALL`/global telecom fallback.
-- `scripts/bin/aicalls relay-live --attach-existing-call --allow-clir-enable` — manual developer attach to an already operator-controlled call. May change CLIR only with separately valid authorization; **never dials or hangs up**. Default CLI discovers the verified ADB transport; Bluetooth must already be OFF; do not force audio settings of unrelated live calls.
+These scripts are repository-owned **commands to invoke within a Mac host task** after selecting a clean, fresh AI Calls worktree. They do not schedule Local Agent work themselves and do not bypass telephony permissions.
 
-Latest details: `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. The repository's `agent-control` branch is historical transport; a previous `daemon.json` is not proof that a current Local Agent task is running.
+- `repo_state.sh` — repository refs and checkout inspection.
+- `host_verify.sh` — canonical Gradle tests, lint, Android builds and Python checks.
+- `device_readiness.sh` — paired Wireless ADB/USB discovery for exact S22, `IDLE`, Android/Shizuku no-call readiness. Optionally `AICALL_SERIAL` must still pass identity verification.
+- `clir_iteration.sh` — fails closed while a real exact-call dial/controller is missing.
+- `scripts/bin/aicalls relay-live --attach-existing-call --allow-clir-enable` — separate developer attach-only mode with explicit effect authority; never dials or hangs up.
 
-**Queue and visibility (2026-11-01):** tasks are submitted through the GitHub `agent-control` branch to `.agent/tasks/`, with evidence in `.agent/runs/` and `.agent/results/`. A GitHub commit does **not** guarantee Mac execution; require a fresh `.agent/status/daemon.json.updated_at` and a result. The current queued no-call task is `aicalls-sprint-host-phone-preflight-20261101-v1`; see `docs/SPRINT_AGENT_CONTROL_CALL_LIFECYCLE_2026-11-01.md`.
+Never infer current Mac status from `ai-calls:agent-control/.agent/status/daemon.json`. For Host Ops submit only to the selected installation's private `local-agent:agent-control` namespace and check its immutable result. No GitHub Actions, Codex or Work.
