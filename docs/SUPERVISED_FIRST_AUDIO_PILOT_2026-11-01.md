@@ -26,3 +26,11 @@ Source commits on `main` began at `0799911`. `aicalls-supervised-audio-host-2026
 1. Inspect the exact Mac task result and repair any compiler/lint/JVM regressions.
 2. Verify pilot UI/readiness without a call, then arrange a distinct user-controlled call to test the actual RX/STT/script/TTS/TX audio loop.
 3. For autonomous dialing, implement and physically prove a call-specific Telecom controller. Preserving the default Google Phone prevents relying on Android `InCallService` directly. Any change to that role requires explicit user selection and a complete dialer implementation. Neither Shizuku Binder nor a global `isInCall` is an acceptable shortcut.
+
+## Verified closeout — 2026-11-01
+
+- Final source: `a503add6e150ac66da2c555d7f2eacff9bc1ad1c`.
+- Mac Host Control `aicalls-supervised-audio-host-20261101-v3`: **done / exit 0**; 199 Python tests, Gradle Android/JVM unit, Lint, debug APK and AndroidTest APK **PASS**. `SUPERVISED_READONLY_FINAL_HOST_GATE=PASS`.
+- S22 preflight `aicalls-supervised-audio-s22-nocall-20261101-v2`: **done / exit 0**; Wireless ADB, Shizuku Binder and permission, microphone and cellular `IDLE` **PASS**.
+- Safe deployment `aicalls-supervised-audio-safe-deploy-s22-20261101-v2`: **done / exit 0**, `adb install -r` reported `Success` and the app package was present. Default dialer remained `com.google.android.dialer`. The first deployment task failed only because it redundantly invoked Gradle after the host script without exporting the SDK path; v2 reused the verified APK.
+- **No real call, dial, hangup, change to CLIR or switch of the default dialer was performed.** Pilot dialogue STT/TTS over a real user-controlled call is still awaiting an explicitly user-initiated physical test. Autonomous targeted call ownership is still blocked.
