@@ -133,6 +133,13 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "identity mismatch"):
             live.require_adb_transport(adb, devices, allow_wireless_adb=True)
 
+    def test_attach_never_turns_off_bluetooth_behind_operator_back(self):
+        live.require_bluetooth_off_for_attach("0")
+        with self.assertRaisesRegex(RuntimeError, "attached_call_requires_bluetooth_off"):
+            live.require_bluetooth_off_for_attach("1")
+        with self.assertRaisesRegex(RuntimeError, "could not determine"):
+            live.require_bluetooth_off_for_attach("unknown")
+
     def test_attach_existing_call_requires_active_call(self):
         live.validate_initial_call_state(2, attach_existing_call=True)
 

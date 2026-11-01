@@ -375,22 +375,14 @@ def require_adb_transport(
     return "wireless"
 
 
-def _wait_bluetooth(adb: Adb, expected: str, timeout: float = 8.0) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        value = adb.shell(["settings", "get", "global", "bluetooth_on"], check=False).strip()
-        if value == expected:
-            return
-        time.sleep(0.25)
-    raise RuntimeError(f"Bluetooth did not reach expected state {expected}")
-
-
-def _set_bluetooth(adb: Adb, enabled: bool) -> None:
-    action = "enable" if enabled else "disable"
-    output = adb.shell(["cmd", "bluetooth_manager", action], check=False)
-    if "Unknown command" in output or "not found" in output:
-        raise RuntimeError(f"could not {action} Bluetooth through shell")
-    _wait_bluetooth(adb, "1" if enabled else "0")
+def require_bluetooth_off_for_attach(setting: str) -> None:
+    # The call belongs to its external operator. Never flip Bluetooth out from under it.
+    if setting not in {"0", "1"}:
+        raise RuntimeError("could not determine Bluetooth state")
+    if setting == "1":
+        raise RuntimeError(
+            "attached_call_requires_bluetooth_off: adjust the audio route before attachment"
+        )
 
 
 def call_state_or_none(adb: Adb) -> int | None:
@@ -564,9 +556,7 @@ def run_orange_chat_relay(
     )
 
     original_bt = adb.shell(["settings", "get", "global", "bluetooth_on"], check=False).strip()
-    if original_bt not in {"0", "1"}:
-        raise RuntimeError("could not determine Bluetooth state")
-    changed_bt = False
+    require_bluetooth_off_for_attach(original_bt)
     # Attaching to a pre-existing call never gives us ownership of it.
     muted = False
     started_at = time.monotonic()
@@ -576,11 +566,6 @@ def run_orange_chat_relay(
         print(f"relay_session={session_id}")
         print(f"relay_branch={transport.branch}")
         print("relay_raw_text_retention=transient_branch_only")
-
-        if original_bt == "1":
-            _set_bluetooth(adb, False)
-            changed_bt = True
-            print("bluetooth_disabled_for_test=true")
 
         print(f"allowlisted_target={number}")
         print("attach_existing_call=true")
@@ -703,12 +688,6 @@ def run_orange_chat_relay(
                 print("voice_call_unmute_cleanup_requested=true")
             except Exception as error:
                 print(f"voice_call_unmute_cleanup_error={error}", file=sys.stderr)
-        if changed_bt:
-            try:
-                _set_bluetooth(adb, True)
-                print("bluetooth_restored=true")
-            except Exception as error:
-                print(f"bluetooth_restore_error={error}", file=sys.stderr)
         branch_deleted = False
         try:
             branch_deleted = transport.close()
