@@ -45,6 +45,34 @@ class CampaignToolActivity : Activity() {
                 }
             }
         }
+        val supervisedAudioButton = Button(this).apply {
+            text = "Attach read-only audio pilot to my existing call"
+            setOnClickListener {
+                AlertDialog.Builder(this@CampaignToolActivity)
+                    .setTitle("Supervised audio test")
+                    .setMessage(
+                        "First start a normal call yourself in Google Phone. " +
+                            "This two-turn test checks speech recognition and audio. " +
+                            "It cannot dial, hang up, change CLIR or disclose your phone number. " +
+                            "You remain responsible for ending the phone call.",
+                    )
+                    .setPositiveButton("Attach") { _, _ ->
+                        ensurePermissionsThen(PendingAction.SUPERVISED_AUDIO)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        }
+        val stopSupervisedAudioButton = Button(this).apply {
+            text = "Stop audio pilot (do not hang up)"
+            setOnClickListener {
+                startService(
+                    Intent(this@CampaignToolActivity, AppOwnedCampaignService::class.java)
+                        .setAction(AppOwnedCampaignService.ACTION_STOP_SUPERVISED_AUDIO),
+                )
+                statusView.text = "Stopping app audio test; manage the phone call in Google Phone"
+            }
+        }
         val revokeButton = Button(this).apply {
             text = "Revoke campaign grant"
             setOnClickListener {
@@ -72,6 +100,8 @@ class CampaignToolActivity : Activity() {
             })
             addView(authorizeButton)
             addView(startButton)
+            addView(supervisedAudioButton)
+            addView(stopSupervisedAudioButton)
             addView(revokeButton)
             addView(
                 statusView,
@@ -121,16 +151,20 @@ class CampaignToolActivity : Activity() {
         when (action) {
             PendingAction.AUTHORIZE -> showAuthorizationConfirmation()
             PendingAction.START -> startAuthorizedCampaign()
+            PendingAction.SUPERVISED_AUDIO -> startSupervisedAudio()
             null -> Unit
         }
     }
 
     private fun ensurePermissionsThen(action: PendingAction) {
         // Grant creation only needs SIM identity. Speech/dial permissions belong to execution.
-        val required = if (action == PendingAction.AUTHORIZE) {
-            listOf(Manifest.permission.READ_PHONE_STATE)
-        } else {
-            REQUIRED_PERMISSIONS
+        val required = when (action) {
+            PendingAction.AUTHORIZE -> listOf(Manifest.permission.READ_PHONE_STATE)
+            PendingAction.START -> REQUIRED_PERMISSIONS
+            PendingAction.SUPERVISED_AUDIO -> listOf(
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_PHONE_STATE,
+            )
         }
         val missing = required.filter {
             checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
@@ -139,6 +173,7 @@ class CampaignToolActivity : Activity() {
             when (action) {
                 PendingAction.AUTHORIZE -> showAuthorizationConfirmation()
                 PendingAction.START -> startAuthorizedCampaign()
+                PendingAction.SUPERVISED_AUDIO -> startSupervisedAudio()
             }
             return
         }
@@ -176,6 +211,14 @@ class CampaignToolActivity : Activity() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun startSupervisedAudio() {
+        statusView.text = "Attaching read-only audio test to existing user-controlled call"
+        startForegroundService(
+            Intent(this, AppOwnedCampaignService::class.java)
+                .setAction(AppOwnedCampaignService.ACTION_START_SUPERVISED_AUDIO),
+        )
     }
 
     private fun startAuthorizedCampaign() {
@@ -221,6 +264,7 @@ class CampaignToolActivity : Activity() {
     private enum class PendingAction {
         AUTHORIZE,
         START,
+        SUPERVISED_AUDIO,
     }
 
     companion object {
