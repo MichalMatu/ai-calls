@@ -45,6 +45,8 @@ internal class LocalSpeechTextPipeline(
             override fun onFinalTranscript(text: String) {
                 if (!gate.isCurrent(generation)) return
                 listener.onUserTranscript(text)
+                // The listener may close/cancel the turn after factual carrier evidence.
+                if (!gate.isCurrent(generation)) return
                 try {
                     val route = selectLocalSpeechFinalTurnRoute(text, finalTurnRouteSelector)
                     dispatcher.dispatch(text, route, object : TextCallFinalTurnDispatcher.Listener {

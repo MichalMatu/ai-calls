@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
 import pl.michalmatu.aicallbridge.campaign.ClirCarrierEvidence
+import pl.michalmatu.aicallbridge.campaign.ClirDeterministicDialogueBackend
+import pl.michalmatu.aicallbridge.campaign.ClirRouteEvidence
 
 import android.content.Context
 import android.media.AudioManager
@@ -13,6 +15,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.GateCHybridDiagnostics
 import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
@@ -125,6 +128,7 @@ internal object ChatRelayLiveCallProbe {
         private val hybridDiagnostics = GateCHybridDiagnostics()
         private val routeVerified = AtomicBoolean(false)
         private val commitmentConsumed = AtomicBoolean(false)
+        private val activeMediaGeneration = AtomicLong(-1L)
         private val identityVault = AndroidIdentityVault.create(context)
         private val factDisclosurePolicy = DefaultFactDisclosurePolicy()
         private val phoneDisclosureState = TaskGraphStateId("clir-service-number-request")
@@ -136,9 +140,10 @@ internal object ChatRelayLiveCallProbe {
                     task = task,
                     target = target,
                     state = phoneDisclosureState,
-                    generation = 0L,
+                    generation = activeMediaGeneration.get(),
                     mode = CallTaskMode.GENUINE,
-                    authorized = phoneDisclosureAuthorized && routeVerified.get() && authorizedNow(),
+                    authorized = phoneDisclosureAuthorized && routeVerified.get() &&
+                        activeMediaGeneration.get() > 0L && authorizedNow(),
                 )
             },
             onDisclosure = { lines += "identity_phone_disclosure_local=true" },
@@ -152,10 +157,17 @@ internal object ChatRelayLiveCallProbe {
             diagnostics = hybridDiagnostics,
             authorizedFactBackend = localPhoneFactBackend,
             effectCommitControl = COMMIT_CLIR_ENABLE,
-            canConfirmEffect = { routeVerified.get() && !commitmentConsumed.get() },
+            canConfirmEffect = {
+                activeMediaGeneration.get() > 0L && authorizedNow() &&
+                    routeVerified.get() && !commitmentConsumed.get()
+            },
             supervisorRelayEnabled = supervisorRelayEnabled,
         )
-        private val backend = controlAwareBackend(hybridBackend)
+        private val backend = controlAwareBackend(
+            ClirDeterministicDialogueBackend(hybridBackend) { ruleId ->
+                lines += "clir_phrase_matrix_rule=$ruleId"
+            },
+        )
         private val pipeline = LocalSpeechTextPipeline(
             context,
             backend,
@@ -223,11 +235,13 @@ internal object ChatRelayLiveCallProbe {
             if (finished.get()) return
             when (snapshot.state) {
                 CallMediaSessionState.ACTIVE -> {
+                    activeMediaGeneration.set(snapshot.generation)
                     if (mediaTurnStarted.compareAndSet(false, true)) {
                         context.mainExecutor.execute { startTurns(snapshot.generation) }
                     }
                 }
                 CallMediaSessionState.FAILED -> context.mainExecutor.execute {
+                    activeMediaGeneration.set(-1L)
                     finish(false, "media_${snapshot.failure.name.lowercase()}")
                 }
                 else -> Unit
@@ -259,6 +273,10 @@ internal object ChatRelayLiveCallProbe {
 
         private fun beginNextTurn(generation: Long, lease: CallMediaEndpointLease) {
             if (finished.get()) return
+            if (activeMediaGeneration.get() != generation) {
+                finish(false, "stale_media_generation")
+                return
+            }
             if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
             if (turnsCompleted >= maxTurns) {
                 finish(true)
@@ -285,7 +303,7 @@ internal object ChatRelayLiveCallProbe {
                     if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
-                    val routeEvidence = isClirRouteEvidence(text)
+                    val routeEvidence = ClirRouteEvidence.isExplicitServiceContext(text)
                     if (routeEvidence) {
                         lines += "turn_${currentTurn}_clir_route_evidence=true"
                         if (routeVerified.compareAndSet(false, true)) {
@@ -295,6 +313,12 @@ internal object ChatRelayLiveCallProbe {
                     if (commitmentConsumed.get() && ClirCarrierEvidence.isConfirmedCarrierStatement(text)) {
                         pendingExternalSuccessEvidence.set(true)
                         lines += "clir_success_evidence_detected=true"
+                        // Carrier evidence does not depend on completing another local TTS turn.
+                        handler.post {
+                            if (!finished.get() && pendingExternalSuccessEvidence.compareAndSet(true, false)) {
+                                if (finalizeExternalSuccess()) finish(true)
+                            }
+                        }
                     }
                 }
 
@@ -308,6 +332,7 @@ internal object ChatRelayLiveCallProbe {
 
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
                     if (finished.get() || !authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
+                    if (activeMediaGeneration.get() != generation) { finish(false, "stale_media_generation"); return }
                     lines += "turn_${currentTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
                     executor.execute { writeOutputTurn(lease, pcm, currentTurn, generation) }
                 }
@@ -396,6 +421,7 @@ internal object ChatRelayLiveCallProbe {
         ) {
             try {
                 if (finished.get() || !authorizedNow()) return
+                if (activeMediaGeneration.get() != generation) return
                 if (pcm.isEmpty()) throw IllegalStateException("tts_pcm_empty")
                 val firstTxElapsed = elapsedTurnMs()
                 val ttsPcmDurationMs = ChatRelayTurnPacing.pcmDurationMs(pcm.size)
@@ -476,6 +502,7 @@ internal object ChatRelayLiveCallProbe {
 
         private fun commitClirEnable(): String {
             require(authorizedNow()) { "campaign_authority_revoked_or_expired" }
+            require(activeMediaGeneration.get() > 0L) { "media_generation_unbound" }
             require(routeVerified.get()) { "clir_route_not_verified" }
             require(!commitmentConsumed.get()) { "clir_commitment_already_consumed" }
             val validation = CallExternalEffectValidator.validateSetService(task, target, effect)
@@ -509,13 +536,6 @@ internal object ChatRelayLiveCallProbe {
             return true
         }
 
-        private fun isClirRouteEvidence(text: String): Boolean {
-            val value = text.lowercase()
-            return value.contains("clir") ||
-                (value.contains("blokad") && value.contains("prezentac") && value.contains("numer")) ||
-                (value.contains("zastrz") && value.contains("numer"))
-        }
-
         private fun recordTurnDialogueDiagnostics(turn: Int) {
             val snapshot = hybridDiagnostics.snapshot()
             snapshot.decisions.drop(turnDecisionBaseline).lastOrNull()?.let { decision ->
@@ -538,6 +558,7 @@ internal object ChatRelayLiveCallProbe {
 
         private fun finish(success: Boolean, reason: String? = null) {
             if (!finished.compareAndSet(false, true)) return
+            activeMediaGeneration.set(-1L)
             handler.removeCallbacks(timeout)
             handler.removeCallbacks(authorityWatchdog)
             try { pipeline.close() } catch (_: Throwable) {}
