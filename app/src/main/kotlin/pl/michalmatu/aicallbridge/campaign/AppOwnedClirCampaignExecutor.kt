@@ -35,6 +35,19 @@ internal object AppOwnedClirCampaignExecutor {
         val appContext = context.applicationContext
         val handler = Handler(Looper.getMainLooper())
         val request = ClirCampaignSpec.enableRequest(accountScope)
+        // Safety: stock TelecomManager has no exact-call ownership or targeted hangup.
+        // Keep the live campaign disabled until a real per-call controller is available.
+        if (!CampaignCallOwnershipPolicy.allowsAutonomousDial(
+                CampaignCallOwnershipProof(
+                    exactCallIdentityBound = false,
+                    targetedTerminationAvailable = false,
+                ),
+            )
+        ) {
+            running.set(false)
+            onStatus("Dial blocked: exact call ownership and targeted cleanup unavailable")
+            return
+        }
         val permissionFailure = requiredPermissionFailure(appContext)
         if (permissionFailure != null) {
             running.set(false)
@@ -74,19 +87,6 @@ internal object AppOwnedClirCampaignExecutor {
             return
         }
 
-        // No application-owned Call handle exists in the stock Android Telecom path.
-        // Fail before dialing rather than risk ending a different foreground call.
-        if (!CampaignCallOwnershipPolicy.allowsAutonomousDial(
-                CampaignCallOwnershipProof(
-                    exactCallIdentityBound = false,
-                    targetedTerminationAvailable = false,
-                ),
-            )
-        ) {
-            running.set(false)
-            onStatus("Dial blocked: exact call ownership and targeted cleanup unavailable")
-            return
-        }
         val voiceAccount = runCatching {
             val accounts = telecomManager.callCapablePhoneAccounts
             val defaultAccount = telecomManager.getDefaultOutgoingPhoneAccount("tel")
@@ -240,7 +240,6 @@ internal object AppOwnedClirCampaignExecutor {
             Manifest.permission.RECORD_AUDIO to "microphone",
             Manifest.permission.CALL_PHONE to "phone-call",
             Manifest.permission.READ_PHONE_STATE to "phone-state",
-            Manifest.permission.ANSWER_PHONE_CALLS to "call-control",
         )
         val missing = required.firstOrNull { (permission, _) ->
             context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED
