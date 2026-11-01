@@ -231,3 +231,5 @@ Do not declare a physical CLIR task complete from synthetic/no-call results, per
 
 
 > **2026-11-01 supervised audio pilot implementation:** `docs/SUPERVISED_FIRST_AUDIO_PILOT_2026-11-01.md`. First-audio path is now installed on S22 and allows only attaching an effect-free local two-turn script to a human-started, human-ended existing call. Mac quality and S22 idle/readiness gates passed, but actual on-call RX/TX acceptance has not happened. The supervised path never supplies an owned call handle and does not authorize autonomous dialing, global hangup, CLIR changes or changing the user's default dialer. Keep `CampaignCallControllerRegistry` fail-closed until a physically accepted exact-call controller exists.
+
+> **MVP 2026-11-01:** istnieje operator-controlled `SupervisedCallPilotActivity` dla manualnego dialera i 3 lokalnych odpowiedzi w trwającym połączeniu. Jedynym STOP jest zatrzymanie aplikacyjnej ścieżki audio, nigdy device-wide hangup. `main@5cb13fc` przeszedł host unit/lint/APK + 199 Python, lecz instalację S22 zablokowało offline Wireless ADB. Więcej: `docs/SUPERVISED_FIRST_CALL_MVP_2026-11-01.md`. NIE utożsamiać tego z autonomicznym dialerem.

@@ -72,3 +72,7 @@ Sources of truth:
 
 
 **AI Calls 2026-11-01 host-tooling checkpoint:** verified Wireless ADB discovery, attach-only developer relay, and disabled generic device-wide hangup are documented in `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. The exact-call Android adapter and device acceptance are still pending; source changes do not mean the autonomous CLIR flow is live.
+
+### First supervised call MVP (2026-11-01)
+
+The app now includes **Pierwsze połączenie — test nadzorowany**. The operator manually calls a chosen test number in the default dialer, returns to AI Calls, and starts a bounded three-turn local scripted audio check; STOP affects only AI audio. This does **not** implement autonomous calling or selective call termination. Host QA passed; S22 deployment is pending restoration of Wireless ADB. See `docs/SUPERVISED_FIRST_CALL_MVP_2026-11-01.md`.
