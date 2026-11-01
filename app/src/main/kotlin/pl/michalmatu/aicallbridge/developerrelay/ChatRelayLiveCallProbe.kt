@@ -498,8 +498,20 @@ internal object ChatRelayLiveCallProbe {
                     lines += "turn_${turn}_eos_to_first_tx_ms=${(firstTxElapsed - speechEndMs).coerceAtLeast(0L)}"
                 }
                 val txWriteStarted = SystemClock.elapsedRealtime()
-                lease.uplink().write(pcm)
-                lease.uplink().flush()
+                val bytesWritten = AuthorizedPcmUplinkWriter.write(
+                    uplink = lease.uplink(),
+                    pcm = pcm,
+                    isAuthorized = {
+                        !finished.get() && authorizedNow() &&
+                            activeMediaGeneration.get() == generation
+                    },
+                )
+                if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
+                    activeMediaGeneration.get() != generation
+                ) {
+                    context.mainExecutor.execute { finish(false, "tx_authority_revoked") }
+                    return
+                }
                 val txWriteWallMs =
                     (SystemClock.elapsedRealtime() - txWriteStarted).coerceAtLeast(0L)
                 val postWriteHoldMs = ChatRelayTurnPacing.postWriteHoldMs(
