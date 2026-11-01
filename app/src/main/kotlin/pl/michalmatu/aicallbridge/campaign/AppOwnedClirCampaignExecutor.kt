@@ -117,6 +117,18 @@ internal object AppOwnedClirCampaignExecutor {
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, voiceAccount)
 
+        // Revalidate the reserved grant immediately before the irreversible dial edge.
+        // The controller implementation must also check revocation at its own dial boundary.
+        if (!authorizationStore.isAuthorizedInFlight(
+                grantId = reservedGrant.grantId,
+                request = request,
+                nowEpochMs = System.currentTimeMillis(),
+            )
+        ) {
+            running.set(false)
+            onStatus("Grant revoked or expired before dialing")
+            return
+        }
         val ownedCall = runCatching {
             callController.dial(callIntent, voiceAccount, request.target)
         }.getOrElse { error ->
@@ -196,7 +208,11 @@ internal object AppOwnedClirCampaignExecutor {
                 onStatus("Call did not become active before timeout; cleanup=$cleanup")
                 return
             }
-            handler.postDelayed({ poll() }, CALL_ACTIVE_POLL_MS)
+            if (!handler.postDelayed({ poll() }, CALL_ACTIVE_POLL_MS)) {
+                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
+                running.set(false)
+                onStatus("Call state watchdog unavailable; cleanup=$cleanup")
+            }
         }
 
         poll()
