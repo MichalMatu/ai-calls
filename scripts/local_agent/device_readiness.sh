@@ -3,11 +3,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-DISCOVERY_ARGS=()
+# macOS ships Bash 3.2; an empty Bash array under 'set -u' is unbound.
+# Positional arguments are safe even when no serial override was supplied.
 if [[ -n "${AICALL_SERIAL:-}" ]]; then
-  DISCOVERY_ARGS+=(--serial "$AICALL_SERIAL")
+  set -- --serial "$AICALL_SERIAL"
+else
+  set --
 fi
-SERIAL="$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery "${DISCOVERY_ARGS[@]}")" || {
+SERIAL="$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery "$@")" || {
   echo "device_readiness_failed=exact_s22_not_connected" >&2
   exit 1
 }
