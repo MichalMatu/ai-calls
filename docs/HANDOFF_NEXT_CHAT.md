@@ -6,6 +6,10 @@ Do not assume HEAD; check fresh `origin/main` at every session. Durable changes 
 
 **Start here:** `docs/LOCAL_AGENT_HOST_FLOW_2026-11-01.md` and the current installed `MichalMatu/local-agent` `docs/HOST_CONTROL_PLANE.md`. `ai-calls:agent-control/.agent/status/daemon.json` is **not** the Mac host-status source. New Mac host tasks belong to `MichalMatu/local-agent:agent-control/.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/tasks/`; corresponding `task-results/` and `status.json` prove execution. The old preflight queued to `ai-calls:.agent/tasks/` was sent to the legacy **project** route and does not prove current Mac connectivity. Fetch live host evidence, then run safe Wireless ADB and Android host tests. No calls until exact-call owner adapter + fresh grant.
 
+## Exact-call Telecom feasibility sprint — 2026-11-01
+
+Read `docs/EXACT_CALL_CAPABILITY_SPRINT_2026-11-01.md` after Host Flow. A new no-call `call-capabilities` CLI and negative test suite inspect default-dialer role, SDK, installed package, cellular IDLE and Shizuku process on verified S22. Actual Mac task `aicalls-exact-capabilities-s22-20261101-v1` returned `done/0`: Android 16, app installed, Shizuku visible, phone IDLE, role query unsupported/UNKNOWN, **no proven exact-call owner**. Host QA and role fallback task results must be checked before calling this gate complete. Never auto-change default dialer, call `*100`, or use global hangup.
+
 ## Current verified status
 
 2026-11-01 corrective source changes on `main`: negation-safe provisional CLIR carrier evidence, removal of supervisor-based success token, atomic in-process grant reservation/revocation, live authorization watchdog and pre-disclosure/commit/PCM checks, conservative single-default voice phone account binding, and removal of unsafe broad `TelecomManager.endCall()`.

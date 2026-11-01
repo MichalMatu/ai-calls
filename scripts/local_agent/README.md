@@ -11,3 +11,5 @@ These scripts are repository-owned **commands to invoke within a Mac host task**
 - `scripts/bin/aicalls relay-live --attach-existing-call --allow-clir-enable` — separate developer attach-only mode with explicit effect authority; never dials or hangs up.
 
 Never infer current Mac status from `ai-calls:agent-control/.agent/status/daemon.json`. For Host Ops submit only to the selected installation's private `local-agent:agent-control` namespace and check its immutable result. No GitHub Actions, Codex or Work.
+
+- `scripts/bin/aicalls call-capabilities` — read-only host-side S22 Telecom role/SDK/app/Shizuku/call-state inspection. Requires exact-device ADB identity verification, does not place or hang up calls, and **cannot authorize dialing**. See `docs/EXACT_CALL_CAPABILITY_SPRINT_2026-11-01.md`.
