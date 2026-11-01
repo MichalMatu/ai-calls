@@ -39,3 +39,13 @@ Do fizycznej walidacji skryptowego RX/STT/TTS/TX operator musi sam rozpocząć �
 ## Niezamknięta funkcja product
 
 Tryb autonomiczny (aplikacja sama wybiera numer i selektywnie rozłącza własną rozmowę) nadal wymaga prawdziwego backendu `CampaignOwnedCallController`. Nadzorowany MVP nie rozwiązuje tej niezależnej zależności; jest pierwszą ograniczoną ścieżką produktu bez przejmowania dialera.
+
+
+## Instalacja MVP na S22 — PASS (najnowszy stan, 2026-11-01)
+
+**Powyższa sekcja „blokada transportu” opisuje historyczne nieudane próby i nie jest już aktualnym stanem.** Po ponownym włączeniu Wireless Debugging Mac Host Control potwierdził mDNS, dokładną tożsamość S22 (`SM-S906B` / `RFCT70L7E8J`), `IDLE`, domyślny dialer `com.google.android.dialer` i nowy transport `192.168.0.100:44441` (`aicalls-mvp-s22-newport-44441-preflight-20261101-v1`, `done/0`).
+
+- `aicalls-mvp-install-retry-20261101-v2`: **done/0**, `adb install -r` zwróciło `Success`, `MVP_INSTALL_RETRY=PASS`. Zainstalowano APK z aktualnego `main@d31ae1a`, zawierającego kod MVP `5cb13fc` oraz zmiany dokumentacyjne. **Bez odinstalowywania i czyszczenia danych.**
+- `aicalls-mvp-postinstall-ui-smoke-20261101-v1`: **done/0**, pakiet jest zainstalowany, `MainActivity` uruchamia się jako `Status: ok`, a odczyt UI wykazał przycisk `PIERWSZE POŁĄCZENIE — TEST NADZOROWANY`. Warunek `MVP_BUTTON_PRESENT=false` wynikał wyłącznie z porównania etykiety uwzględniającego wielkość liter; w tym samym raporcie `VISIBLE_CONTROLS` potwierdza faktyczną obecność przycisku. Domyślny Google Phone pozostał bez zmian.
+
+**Status:** HOST BUILD/TEST PASS + S22 APK INSTALL PASS + MAIN UI SMOKE PASS. **Nie przetestowano jeszcze** uruchomienia wewnętrznego ekranu pilota, jego odmowy bez połączenia ani rzeczywistego audio RX/STT/TTS/TX podczas świadomie rozpoczętej rozmowy. Nie ma autonomicznego kontrolera selektywnego rozłączania. Kolejny krok to bezpieczna akceptacja UI bez rozmowy, następnie uzgodniona rozmowa nadzorowana.
