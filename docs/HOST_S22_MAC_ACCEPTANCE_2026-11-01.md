@@ -36,3 +36,19 @@ At this checkpoint, no terminal `task-results` have yet been observed for these 
 ## Remaining product blocker
 
 The Android `CampaignCallControllerRegistry` lacks a real call-specific controller, so autonomous CLIR dialing is still fail-closed. This task did **not** start `*100`, change CLIR, or globally disconnect any calls. Don't bypass targeted call lifecycle or explicit grants to force a physical test.
+
+
+## Physical Mac QA and discovered corrections — same-day continuation
+
+These terminal host results came from the real Mac 4.20.16 installation, not a simulated sandbox.
+
+- `aicalls-mac-host-quality-20261101-v1`, tested AI Calls source `cf6fe805`: **185 Python unit tests PASS**. Gradle's Android JVM unit test stage **BUILD SUCCESSFUL**. The combined host gate then **FAILED at `:app:lintDebug`**, 4 errors and 105 warnings. First `MissingPermission` occurred in `AppOwnedClirCampaignExecutor` global `telecomManager.isInCall` cleanup. Source fix `a8df31f` eliminated global-call-state post-cleanup inference; it now reports only `targeted_disconnect_requested`.
+- `aicalls-mac-lint-all-errors-20261101-v1`, tested `a8df31f`: 3 remaining lint errors, all in `CampaignPhoneAccountResolver`: `getDefaultOutgoingPhoneAccount` and `callCapablePhoneAccounts` require checked `READ_PHONE_STATE`, and `TelephonyManager.subscriptionId` is API 30 while minSdk is 29. Source fixes `bd9aec7`, `0ce0d65` enforce permission checking and a fail-closed Android 10 (API 29) branch.
+- `aicalls-mac-s22-app-readiness-20261101-v1`, tested `4b23ee5`: Mac's Bash 3.2 with `set -u` treats the empty `DISCOVERY_ARGS[@]` as unbound, so discovery failed before contacting phone. Source fix `4576160` uses safe positional arguments.
+- `aicalls-mac-s22-app-readiness-20261101-v2`, tested `4576160`: Wireless ADB device discovery and telephony IDLE passed far enough for Android app probe; **FAILED with `shizuku_binder_unavailable`**. This proves a separate Shizuku availability issue, not a loss of Wireless ADB.
+
+Follow-up host tasks:
+- `aicalls-mac-host-quality-20261101-v2` — repeat full canonical host QA on corrected source.
+- `aicalls-mac-shizuku-readonly-diagnose-20261101-v1` — inspect installed Shizuku/server and AI Calls package, read-only.
+
+At this revision those two jobs have no confirmed terminal result. Do not mark final host gate green. Do not attempt any Orange `*100` call or global hangup. Shizuku health is an independent prerequisite and must not be silently bypassed.
