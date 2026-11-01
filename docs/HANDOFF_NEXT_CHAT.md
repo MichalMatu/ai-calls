@@ -57,3 +57,8 @@ See `docs/HOST_S22_MAC_ACCEPTANCE_2026-11-01.md`. New Mac host task `aicalls-mac
 ## 2026-11-01 Shizuku restored / physical readiness PASS
 
 Fresh actual Mac Host Control result `aicalls-shizuku-user-start-readiness-20261101-v1` is `done/0`: exact S22, wireless ADB, `shizuku_server`, granted microphone/Shizuku, `live_call_readiness=true`, `IDLE`. Clean Mac full host gate `aicalls-mac-host-quality-20261101-v2` is `done/0` (185 Python tests plus Gradle unit/lint/debug APKs) on `0ce0d658`. See `docs/HOST_S22_MAC_ACCEPTANCE_2026-11-01.md`. Only the **no-call gate** is accepted; exact-call Android adapter still absent. Do not dial or infer CLIR activation from these results.
+
+
+## Supervised first-audio pilot — 2026-11-01 (latest source milestone)
+
+Read `docs/SUPERVISED_FIRST_AUDIO_PILOT_2026-11-01.md`. `main@a503add6` adds a user-attached, two-turn deterministic read-only test for an existing ordinary phone call (start/stop the app's audio only, never hang up). **Host GREEN** on Mac task `aicalls-supervised-audio-host-20261101-v3` (199 Python + Gradle unit/lint/APKs PASS), S22 no-call Shizuku/IDLE preflight **PASS** on `aicalls-supervised-audio-s22-nocall-20261101-v2`, and exact APK install **PASS** on `aicalls-supervised-audio-safe-deploy-s22-20261101-v2`. Google Phone remains the default dialer. No real conversation has been run. Next is a human-controlled, consenting test call to validate the actual audio loop, followed separately by an exact-call controller engineering decision; **autonomous CLIR dialing is still blocked**. Do not interpret the supervised pilot as call ownership or authorization to dial.
