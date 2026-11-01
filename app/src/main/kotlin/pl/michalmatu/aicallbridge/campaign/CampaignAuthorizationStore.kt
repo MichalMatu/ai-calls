@@ -36,11 +36,10 @@ internal class CampaignAuthorizationStore(context: Context) {
         ) { "campaign_grant_persist_failed" }
     }
 
-    fun load(): CampaignAuthorizationGrant? {
-        return synchronized(STORE_LOCK) {
+    fun load(): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
         val grantId = preferences.getString(KEY_GRANT_ID, null)?.takeIf { it.isNotBlank() }
-            ?: return null
-        return runCatching {
+            ?: return@synchronized null
+        runCatching {
             CampaignAuthorizationGrant(
                 grantId = grantId,
                 version = preferences.getInt(KEY_VERSION, 0),
@@ -67,7 +66,6 @@ internal class CampaignAuthorizationStore(context: Context) {
                     preferences.getString(KEY_ISSUER_EVIDENCE_REF, null).orEmpty(),
             )
         }.getOrNull()
-        }
     }
 
     /** Authorize and reserve in one cross-instance transaction, including expiry/scope. */
@@ -104,13 +102,11 @@ internal class CampaignAuthorizationStore(context: Context) {
             ) is CampaignAuthorizationDecision.Authorized
     }
 
-    fun revoke(nowEpochMs: Long): CampaignAuthorizationGrant? {
-        return synchronized(STORE_LOCK) {
-        val current = load() ?: return null
+    fun revoke(nowEpochMs: Long): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
+        val current = load() ?: return@synchronized null
         val revoked = current.revoked(nowEpochMs)
         save(revoked)
-        return@synchronized revoked
-        }
+        revoked
     }
 
     companion object {
