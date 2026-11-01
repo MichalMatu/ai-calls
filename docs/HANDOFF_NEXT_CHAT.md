@@ -1,117 +1,26 @@
-# Handoff — Orange CLIR physical acceptance
+# AI Calls — handoff, 2026-11-01: corrective safety hold
 
-Date: 2026-10-08 02:50 CEST
+Do not assume HEAD; check fresh `origin/main` at every session. Durable changes belong on `main`; `agent-control` is transport only. Read `AGENTS.md`, `README.md`, `docs/CORRECTION_CAMPAIGN_2026-11-01.md`, `docs/REAUDIT_2026-11-01.md`, `docs/AUTONOMOUS_OPERATION_MODE.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`.
 
-## Frozen checkpoint
+## Current verified status
 
-Repository: `MichalMatu/ai-calls`.
+2026-11-01 corrective source changes on `main`: negation-safe provisional CLIR carrier evidence, removal of supervisor-based success token, atomic in-process grant reservation/revocation, live authorization watchdog and pre-disclosure/commit/PCM checks, conservative single-default voice phone account binding, and removal of unsafe broad `TelecomManager.endCall()`.
 
-Durable product code is on `main`. Local Agent transport/history remains on `agent-control`.
+**Safety block:** current app-owned CLIR dial is intentionally disabled before any call, because no mechanism to identify and selectively terminate **only** an app-owned call exists. Do not remove the guard or use generic `isInCall()`/global `endCall()` as ownership proof. There is no verified autonomous physical CLIR feature at this checkpoint.
 
-Stable main checkpoint at session stop:
+**Validation:** standalone `kotlinc`/JVM classifier harness passed 14/14 positive+negative cases after the Polish letter `ł` fix. Host Gradle suite, Android build, Android instrumentation concurrency tests, actual S22 media/readiness, SIM selection, real call and independent `*#31#` have **not** run or been accepted.
 
-```text
-d4f73bef621a198d384d5ba9ff3e1a775c3aa57a
-Decouple campaign execution from ChatGPT transport
-```
+## Next steps
 
-Do not infer a newer product checkpoint from Local Agent task history.
+1. Obtain a fresh current-chat Local Agent binding, confirm daemon and task state, clean checkout, latest main and physical S22 condition. Do not infer present daemon health from old `.agent/status`.
+2. Run `./gradlew testDebugUnitTest`, Android build and safe instrumentation with the new grant race test. Repair observed compile/regression failures; no GitHub Actions, Codex or Work.
+3. Implement/prove a real Android exact-call owner with selective hangup; preserve the normal default dialer and unrelated calls. Only then remove the fail-closed dial block on evidence.
+4. Verify Shizuku version-specific binder/startup path and phone `IDLE` using current device facts.
+5. With current exact application authorization and confirmed call ownership, physically test one Orange `*100` interaction; accept only carrier factual evidence **plus independent `*#31#`**, safe own-call cleanup to `IDLE`, and sanitized evidence.
+6. Update ROADMAP, evidence and handoff after physical tests. No unverified success claims.
 
-## What is complete
+## Historical context (not refreshed today)
 
-- Samsung S22 cellular media path + privileged helper: `PROVEN_S22 / FROZEN`.
-- Local Polish STT/TTS: proven.
-- Local phone LLM/Gemma dialogue infrastructure: proven in earlier S22 probes.
-- Generic external-effect authority + one shared `CallCommitmentGate`: host-green.
-- Android Keystore-backed `IdentityVault`: `PROVEN_S22`.
-- Private app-owned PHONE enrollment/disclosure path: `PROVEN_S22`.
-- App-owned campaign architecture is merged on `main`:
-  - durable scoped grant;
-  - exact `*100` / `SET_SERVICE(CLIR=true)` matching;
-  - current voice-subscription binding;
-  - bounded attempt reservation;
-  - app-owned readiness + dial + foreground execution + cleanup;
-  - ChatGPT/Local Agent/ADB removed from the product call execution path.
+At the 2026-10-08 stop the S22 had Shizuku Manager 13.6.0 but readiness failed `shizuku_binder_unavailable`; historical `start.sh` was missing. The independently checked CLIR state was not restricted. No new physical state can be inferred from the 2026-11-01 source-only campaign. PHONE vault and permissions were present during an earlier preflight; do not leak plaintext to Git, logs, model or relay.
 
-## Physical state at stop
-
-No accepted app-owned CLIR-enable call was completed in this session.
-
-Latest independent network state remains:
-
-```text
-CLIR enabled = false
-physical enable acceptance = incomplete
-```
-
-Physical S22 evidence gathered today:
-
-- wireless ADB discovery and install path works when the local network is healthy;
-- required call permissions were granted;
-- PHONE vault was present in the later physical preflight;
-- local phone-LLM runtime/model files are present;
-- Shizuku Manager 13.6.0 is installed;
-- the legacy external `start.sh` path is absent;
-- live readiness still failed on `shizuku_binder_unavailable`.
-
-The next physical blocker is therefore the Shizuku server/binder startup/readiness path, not campaign authority, PHONE storage, or Android call permissions.
-
-## Unmerged experiment that was intentionally NOT accepted
-
-PR #21, `Auto-start one-shot debug CLIR E2E`, was a debug-only experiment to remove manual Authorize/Start clicks during physical testing.
-
-Last branch head before cleanup:
-
-```text
-work/debug-one-shot-clir-e2e-v1
-a0221e906e694e2f2554e21c307f8fe603e218a1
-```
-
-Important evidence from that line:
-
-- CI was green at `0bca996803c3b00930c95d7d041112d60eb1cbf2`;
-- a low-memory local debug APK build at that exact SHA also completed successfully;
-- the one-shot branch was not physically accepted;
-- a later manifest-only PHONE-number-read permission change existed after that green build;
-- do not merge or recreate this experiment blindly. Re-audit the diff first if the idea is reused.
-
-## Session shutdown state
-
-- no active physical call;
-- Local Agent `ai-calls` worker is idle;
-- zero pending task JSONs without run/result;
-- no additional device work should auto-start after this handoff;
-- work stopped because the operator ended the session, not because CLIR acceptance succeeded.
-
-## Resume order
-
-1. Start from fresh `origin/main`; read `AGENTS.md`, this file, `AUTONOMOUS_OPERATION_MODE.md`, `ROADMAP.md`, `CAMPAIGN_AUTHORIZATION_GRANT.md`, and `G5_CLIR_ROUTE_DISCOVERY.md`.
-2. Confirm S22 is reachable and phone is `IDLE`.
-3. Restore Shizuku server/binder readiness using the currently installed Shizuku version; do not assume the historical `start.sh` path exists.
-4. Re-run live readiness only.
-5. Deploy an exact reviewed APK.
-6. Run one real app-owned `*100` iteration. Do not add unrelated audits, synthetic churn, or more authorization UI before this physical test.
-7. Accept CLIR enable only if Orange gives factual success and independent `*#31#` confirms restriction active.
-8. Only after enable acceptance, implement/run the separately scoped inverse `CLIR=false` acceptance.
-
-If the first real call exposes a concrete runtime failure, patch only that observed failure and repeat the physical test.
-
-## Security boundary
-
-Never put the real PHONE value in Git, Local Agent task JSON, durable logs, relay transcripts, model/supervisor context, or handoff text.
-
-The allowed disclosure path remains:
-
-```text
-IdentityVault
- -> AuthorizedFactSnapshot
- -> FactDisclosurePolicy
- -> late on-device read
- -> approved local speech
-```
-
-## Start prompt for the next chat
-
-```text
-Kontynuuj wyłącznie MichalMatu/ai-calls od świeżego origin/main. Przeczytaj AGENTS.md i docs/HANDOFF_NEXT_CHAT.md. Main checkpoint z handoffu to d4f73bef621a198d384d5ba9ff3e1a775c3aa57a, ale zawsze potwierdź świeży HEAD. Product call execution jest app-owned; ChatGPT/Local Agent/ADB służą tylko do repo/build/install/diagnostics. PHONE vault i call permissions były fizycznie gotowe. Ostatni konkretny blocker: Shizuku binder unavailable na S22 z Shizuku Manager 13.6.0; historyczny start.sh nie istnieje. Najpierw napraw readiness Shizuku, potem jeden realny app-owned *100 i niezależne *#31#. Nie reaktywuj debug one-shot PR #21 bez ponownego audytu.
-```
+Do not revive the unaccepted debug one-shot PR #21. Frozen media, privilege and identity architecture stay closed absent a concrete failure.
