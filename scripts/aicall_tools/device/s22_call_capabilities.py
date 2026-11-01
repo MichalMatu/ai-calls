@@ -56,7 +56,8 @@ def inspect_phone(serial: str, *, runner: Runner = run_adb) -> dict[str, Any]:
         return result.returncode, result.stdout if result.returncode == 0 else ""
 
     sdk_rc, sdk_raw = read("getprop", "ro.build.version.sdk")
-    role_rc, role_raw = read("cmd", "role", "holders", DIALER_ROLE)
+    role_rc, role_raw = read("cmd", "role", "get-role-holders", DIALER_ROLE)
+    telecom_rc, telecom_raw = read("cmd", "telecom", "get-default-dialer")
     app_rc, app_raw = read("pm", "path", APP_PACKAGE)
     call_rc, call_raw = read("dumpsys", "telephony.registry")
     ps_rc, ps_raw = read("ps", "-A")
@@ -64,6 +65,16 @@ def inspect_phone(serial: str, *, runner: Runner = run_adb) -> dict[str, Any]:
     sdk_text = sdk_raw.strip()
     sdk = int(sdk_text) if sdk_rc == 0 and sdk_text.isascii() and sdk_text.isdigit() else None
     holders = parse_role_holders(role_raw) if role_rc == 0 else []
+    telecom_packages = parse_role_holders(telecom_raw) if telecom_rc == 0 else []
+    # Prefer independent agreement. A stock Telecom fallback is useful on
+    # vendor builds that do not expose RoleManager's command interface.
+    if role_rc == 0:
+        default_dialer = (
+            holders[0] if len(holders) == 1 and holders == telecom_packages
+            else "UNKNOWN"
+        )
+    else:
+        default_dialer = telecom_packages[0] if len(telecom_packages) == 1 else "UNKNOWN"
     state = parse_call_state(call_raw) if call_rc == 0 else "UNKNOWN"
     app_installed = app_rc == 0 and any(
         row.startswith("package:") for row in app_raw.splitlines()
@@ -76,8 +87,9 @@ def inspect_phone(serial: str, *, runner: Runner = run_adb) -> dict[str, Any]:
         "probe": "s22_call_capabilities",
         "sdk": sdk,
         "role_query_succeeded": role_rc == 0,
-        "default_dialer": holders[0] if len(holders) == 1 else "UNKNOWN",
-        "app_is_default_dialer": role_rc == 0 and holders == [APP_PACKAGE],
+        "telecom_query_succeeded": telecom_rc == 0,
+        "default_dialer": default_dialer,
+        "app_is_default_dialer": default_dialer == APP_PACKAGE,
         "ai_calls_installed": app_installed,
         "call_state": state,
         "shizuku_process_visible": shizuku_running,

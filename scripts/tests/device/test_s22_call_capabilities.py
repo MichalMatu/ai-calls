@@ -19,7 +19,10 @@ class FakeAdb:
                  ps="shell 412 1 S shizuku_server\n"):
         self.entries = {
             ("getprop", "ro.build.version.sdk"): outcome(sdk),
-            ("cmd", "role", "holders", "android.app.role.DIALER"): outcome(roles),
+            ("cmd", "role", "get-role-holders", "android.app.role.DIALER"): outcome(roles),
+            ("cmd", "telecom", "get-default-dialer"): outcome(
+                roles.splitlines()[0] + "\\n" if roles.splitlines() else ""
+            ),
             ("pm", "path", APP_PACKAGE): outcome(app),
             ("dumpsys", "telephony.registry"): outcome(call),
             ("ps", "-A"): outcome(ps),
@@ -53,9 +56,10 @@ class CallCapabilityTests(unittest.TestCase):
     def test_no_mutating_adb_command_is_sent(self):
         fake = FakeAdb()
         inspect_phone(SERIAL, runner=fake)
-        self.assertEqual(5, len(fake.calls))
+        self.assertEqual(6, len(fake.calls))
         self.assertEqual({("getprop", "ro.build.version.sdk"),
-                          ("cmd", "role", "holders", "android.app.role.DIALER"),
+                          ("cmd", "role", "get-role-holders", "android.app.role.DIALER"),
+                          ("cmd", "telecom", "get-default-dialer"),
                           ("pm", "path", APP_PACKAGE),
                           ("dumpsys", "telephony.registry"),
                           ("ps", "-A")},
@@ -63,10 +67,25 @@ class CallCapabilityTests(unittest.TestCase):
 
     def test_unavailable_role_fails_closed(self):
         fake = FakeAdb(roles=APP_PACKAGE + "\n")
-        fake.entries[("cmd", "role", "holders", "android.app.role.DIALER")] = outcome("", 1)
+        fake.entries[("cmd", "role", "get-role-holders", "android.app.role.DIALER")] = outcome("", 1)
+        result = inspect_phone(SERIAL, runner=fake)
+        self.assertEqual(APP_PACKAGE, result["default_dialer"])
+        self.assertTrue(result["app_is_default_dialer"])
+        self.assertFalse(result["exact_call_controller_proven"])
+
+    def test_role_telecom_disagreement_fails_closed(self):
+        fake = FakeAdb(roles=APP_PACKAGE + "\\n")
+        fake.entries[("cmd", "telecom", "get-default-dialer")] = outcome("com.google.android.dialer\\n")
         result = inspect_phone(SERIAL, runner=fake)
         self.assertEqual("UNKNOWN", result["default_dialer"])
         self.assertFalse(result["app_is_default_dialer"])
+
+    def test_failed_both_queries_fail_closed(self):
+        fake = FakeAdb()
+        fake.entries[("cmd", "role", "get-role-holders", "android.app.role.DIALER")] = outcome("", 255)
+        fake.entries[("cmd", "telecom", "get-default-dialer")] = outcome("", 255)
+        result = inspect_phone(SERIAL, runner=fake)
+        self.assertEqual("UNKNOWN", result["default_dialer"])
 
     def test_multiple_role_holders_are_ambiguous(self):
         result = inspect_phone(SERIAL, runner=FakeAdb(roles=APP_PACKAGE + "\nother.app\n"))
