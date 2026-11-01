@@ -30,3 +30,14 @@ Reviewed code head: `9017a12f1f85e2e2697ebcb923f462679cf6e5cb`.
 4. Autonomous dialing and selective own-call termination remain separately BLOCKED by `CampaignCallControllerRegistry`. No global hangup, *100 action, role switch or silent call initiation.
 
 **Acceptance boundary:** code/build and safe APK installation are proved, but a physically heard **Gemma** live conversation is not yet proved.
+
+
+## Follow-up safety re-audit and implementation (2026-11-01)
+
+**Finding:** the original free-form Gemma speech filter was a denylist. It could reject particular words and digits but could not prevent paraphrased agreements such as "Wyrażam zgodę na zmianę usługi" or "Akceptuję warunki umowy". Host GREEN did not prove this semantic safety property.
+
+**Correction:** the supervised Gemma backend now uses the existing `DialogueSkillBackendFactory` and structured Gemma 4 skill classifier, not raw model prose for speech. `DialogueSkillPolicy` accepts only `ASK_REPEAT`, `ASK_CLARIFY`, `ACKNOWLEDGE_NEUTRAL`, `CONFIRM_EXPECTED_SUBJECT` at confidence >= 0.75, and substitutes one of four fixed, application-owned, effect-free phrases. `TAKE_OVER`, low-confidence, malformed JSON and unrecognized decisions fail to the existing reviewed script. A second *exact-response allowlist* prevents any unexpected model text reaching TTS even if an upstream adapter misbehaves. Tests cover paraphrased commitments, secret/data disclosure, JSON injection, fallback and positive selected-skill speech.
+
+**Usability:** when the Gemma file is missing, the supervised screen defaults to script mode so audio testing does not require the ~2.59 GB model. When the reviewed model is READY, Gemma is selected by default. A human still starts and ends the cellular call; the app may only attach after explicit approval and must never hang up the phone.
+
+**Evidence to refresh:** these source changes need a new exact-HEAD Mac Gradle unit/lint/APK + Python receipt and a nondestructive S22 deployment/negative no-call UI check. Previously passed receipts apply only to the earlier source. Gemma model readiness and real RX/STT/Gemma/TTS/TX are still not physically accepted. Do not remove the autonomous exact-call guard, initiate `*100`, switch default dialer or claim successful CLIR.
