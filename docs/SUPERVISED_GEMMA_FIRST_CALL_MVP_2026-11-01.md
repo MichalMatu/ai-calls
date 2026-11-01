@@ -20,12 +20,12 @@ Reviewed code head: `9017a12f1f85e2e2697ebcb923f462679cf6e5cb`.
 - Mac Host Control `aicalls-gemma-supervised-host-20261101-v2`: **done / exit 0** on exact `9017a12`. All Android unit tests, Lint, `assembleDebug` and AndroidTest APK assembly PASS. Existing Python/host quality suite **199/199 PASS**. No GitHub Actions.
 - Exact S22 read-only task `aicalls-gemma-model-s22-readonly-20261101-v1`: **done / exit 0**; serial/model match, `mCallState=0`, and reviewed Gemma 4 E2B IT file **MISSING** in app's external models directory. No model inferred as ready.
 - S22 deploy task `aicalls-gemma-supervised-deploy-s22-20261101-v1`: **actual `adb install -r` = `Success`** with existing data preserved and app launcher `Status: ok`; task **failed afterwards** in the independent UI-smoke script because its Python ADB path was written as a literal shell variable. This is a harness failure after successful installation, not APK build/install failure.
-- Separate S22 no-call UI smoke `aicalls-gemma-supervised-ui-s22-20261101-v2` is queued for direct result verification.
+- Separate S22 no-call UI smoke `aicalls-gemma-supervised-ui-s22-20261101-v2`: **done / exit 0**; app launch `Status: ok`, Gemma toggle visible, missing-model notice visible, STOP AI visible; S22 remained `IDLE`. This verifies UI only, not telephony audio or model inference.
 
 ## Still open — do not mark complete prematurely
 
 1. Install/download the reviewed Gemma 4 E2B IT model (~2.59 GB) through the existing in-app confirmation, preferably on Wi-Fi. Model readiness should change to READY; do not claim the model is installed on the S22 before that happens.
-2. Confirm the new toggle, model readiness text and STOP AI through direct no-call UI smoke.
+2. Completed: direct S22 no-call UI smoke (Gemma toggle, model readiness, STOP AI) PASS.
 3. User starts a **consenting** test call manually, returns to AI Calls, approves attach and verifies one real STT/Gemma/TTS/TX exchange. Inspect the sanitized `chat-relay-live-call-report.txt` for Gemma vs fallback counters and PCM RX/TX, not the transcript or personal content.
 4. Autonomous dialing and selective own-call termination remain separately BLOCKED by `CampaignCallControllerRegistry`. No global hangup, *100 action, role switch or silent call initiation.
 
