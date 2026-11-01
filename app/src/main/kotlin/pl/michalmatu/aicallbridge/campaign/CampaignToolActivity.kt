@@ -219,7 +219,6 @@ class CampaignToolActivity : Activity() {
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CALL_PHONE,
             Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.ANSWER_PHONE_CALLS,
         )
     }
 }
