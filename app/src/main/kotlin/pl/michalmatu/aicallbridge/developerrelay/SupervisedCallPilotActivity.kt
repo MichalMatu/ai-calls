@@ -9,12 +9,15 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.telecom.TelecomManager
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
+import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness
+import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 
 /**
  * Minimum operator-supervised call product. NEVER dials, changes the default
@@ -26,6 +29,9 @@ class SupervisedCallPilotActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var startButton: Button
     private lateinit var stopButton: Button
+    private lateinit var gemmaMode: CheckBox
+    private lateinit var modelStatus: TextView
+    private var returnedFromDialer = false
     private val allowed = AtomicBoolean(false)
     private var session: ChatRelayLiveCallProbe.SessionControl? = null
 
@@ -46,6 +52,11 @@ class SupervisedCallPilotActivity : Activity() {
             setOnClickListener { stopAudio() }
         }
 
+        gemmaMode = CheckBox(this).apply {
+            text = "Rozmowa z Gemmą 4 (lokalnie)"
+            isChecked = true
+        }
+        modelStatus = TextView(this).apply { textSize = 14f }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 32, 32, 32)
@@ -54,24 +65,61 @@ class SupervisedCallPilotActivity : Activity() {
                 textSize = 22f
             })
             addView(TextView(this@SupervisedCallPilotActivity).apply {
-                text = "1. Otwórz dialer i samodzielnie połącz się z uzgodnionym numerem.\n" +
-                    "2. Wróć do AI Calls i uruchom test.\n" +
-                    "3. AI odpowie na maksymalnie trzy proste wypowiedzi przez Shizuku.\n" +
-                    "4. STOP wyłącza WYŁĄCZNIE audio AI. Połączenie nadal trwa.\n\n" +
-                    "To test dźwięku, bez Gemmy, danych osobowych, CLIR i zmian usług."
+                text = "1. W zwykłym dialerze zadzwoń samodzielnie na uzgodniony numer.\n" +
+                    "2. Podczas rozmowy wróć tutaj przez ostatnie aplikacje.\n" +
+                    "3. Potwierdź włączenie AI: STT → Gemma/skrypt → TTS → Shizuku.\n" +
+                    "4. STOP wyłącza wyłącznie AI, nie rozłącza telefonu.\n\n" +
+                    "Bez danych osobowych, CLIR i zmian usług."
             })
             addView(Button(this@SupervisedCallPilotActivity).apply {
                 text = "Otwórz zwykły dialer (bez wybierania numeru)"
                 setOnClickListener {
+                    returnedFromDialer = true
                     runCatching { startActivity(Intent(Intent.ACTION_DIAL)) }
-                        .onFailure { status.text = "Nie można otworzyć dialera." }
+                        .onFailure {
+                            returnedFromDialer = false
+                            status.text = "Nie można otworzyć dialera."
+                        }
                 }
+            })
+            addView(gemmaMode)
+            addView(modelStatus)
+            addView(Button(this@SupervisedCallPilotActivity).apply {
+                text = "Pobierz lub importuj Gemmę na ekranie głównym"
+                setOnClickListener { finish() }
             })
             addView(startButton)
             addView(stopButton)
             addView(status)
         }
         setContentView(ScrollView(this).apply { addView(content) })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!::modelStatus.isInitialized) return
+        refreshModelStatus()
+        if (returnedFromDialer && !allowed.get()) {
+            returnedFromDialer = false
+            if (preflight() == null) {
+                status.text = "Rozmowa wykryta. Potwierdź, aby uruchomić AI."
+                confirmAttach()
+            } else {
+                status.text = "Wrócono z dialera. Jeśli rozmowa trwa, " +
+                    "dotknij «Uruchom AI w trwającej rozmowie»."
+            }
+        }
+    }
+
+    private fun refreshModelStatus() {
+        val readiness = AndroidGemma4ModelReadiness.check(this)
+        modelStatus.text = when (readiness.state) {
+            Gemma4ModelReadinessState.READY -> "Gemma 4: gotowa do lokalnego dialogu."
+            Gemma4ModelReadinessState.MISSING ->
+                "Gemma 4: niepobrana (2,59 GB). Pobierz ją na ekranie głównym albo odznacz tryb Gemma."
+            Gemma4ModelReadinessState.INVALID ->
+                "Gemma 4: nieprawidłowa (${readiness.reason}). Pobierz lub zaimportuj ponownie."
+        }
     }
 
     private fun preflight(): SupervisedCallPilotFailure? {
@@ -117,11 +165,28 @@ class SupervisedCallPilotActivity : Activity() {
             }
             null -> Unit
         }
+        if (gemmaMode.isChecked &&
+            AndroidGemma4ModelReadiness.check(this).state != Gemma4ModelReadinessState.READY
+        ) {
+            AlertDialog.Builder(this)
+                .setTitle("Brakuje modelu Gemma 4")
+                .setMessage("Aby rozmawiać z modelem, pobierz 2,59 GB na ekranie głównym. " +
+                    "Możesz też przetestować samo audio w trybie skryptowym.")
+                .setPositiveButton("Pobierz Gemmę") { _, _ -> finish() }
+                .setNeutralButton("Użyj skryptu") { _, _ ->
+                    gemmaMode.isChecked = false
+                    confirmAttach()
+                }
+                .setNegativeButton("Anuluj", null)
+                .show()
+            return
+        }
         AlertDialog.Builder(this)
-            .setTitle("Rozpocząć test audio?")
+            .setTitle("Uruchomić AI w rozmowie?")
             .setMessage(
                 "Potwierdź, że to Twoja świadomie rozpoczęta rozmowa testowa. " +
-                    "AI wyśle maksymalnie trzy krótkie, neutralne odpowiedzi. " +
+                    "AI wyśle maksymalnie trzy krótkie odpowiedzi " +
+                    "w trybie ${if (gemmaMode.isChecked) "Gemma 4" else "skryptowym"}. " +
                     "Nie wybierze numeru, nie zmieni usług i nie rozłączy połączenia. " +
                     "STOP natychmiast wyłącza audio AI.",
             )
@@ -137,7 +202,8 @@ class SupervisedCallPilotActivity : Activity() {
         }
         startButton.isEnabled = false
         stopButton.isEnabled = true
-        status.text = "Test AI uruchomiony. Mów do rozmówcy. STOP wyłącza tylko AI."
+        status.text = "Nasłuch STT → ${if (gemmaMode.isChecked) "Gemma 4" else "skrypt"} → TTS. " +
+            "AI odpowiada na usłyszaną wypowiedź. STOP wyłącza tylko AI."
         val sessionId = "pilot-" + UUID.randomUUID().toString()
         try {
             session = ChatRelayLiveCallProbe.run(
@@ -147,6 +213,7 @@ class SupervisedCallPilotActivity : Activity() {
                 phoneDisclosureAuthorized = false,
                 supervisorRelayEnabled = false,
                 readOnlySupervised = true,
+                supervisedGemmaEnabled = gemmaMode.isChecked,
                 liveAuthorization = {
                     allowed.get() && preflight() == null
                 },
