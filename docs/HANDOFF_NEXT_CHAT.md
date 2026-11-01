@@ -66,3 +66,8 @@ Read `docs/SUPERVISED_FIRST_AUDIO_PILOT_2026-11-01.md`. `main@a503add6` adds a u
 ## 2026-11-01 — pierwszy nadzorowany MVP (najnowsze)
 
 Przeczytaj `docs/SUPERVISED_FIRST_CALL_MVP_2026-11-01.md`. Na `main@5cb13fc` dodano UI + neutralną lokalną 3-turową ścieżkę skryptową dla rozmowy rozpoczętej **ręcznie** w Google Phone, STOP wyłączający jedynie audio AI, bez dial/hangup oraz testy bramek. Mac Host Control `aicalls-supervised-mvp-build-20261101-v1` **PASS** (Android unit/lint/debug APK, 199 Python). **APK nie jest jeszcze zainstalowane na S22:** Wireless ADB straciło połączenie w trakcie `adb install`, wcześniejszy port nie odpowiada, mDNS pusty. Wymagane ponowne włączenie Wireless Debugging na odblokowanym S22, następnie bezpieczne `adb install -r` i UI smoke. Żadnej rozmowy nie wykonywano; autonomiczny exact-call controller nadal nie istnieje.
+
+
+## Pierwszy nadzorowany MVP — instalacja S22 już POTWIERDZONA (2026-11-01, najnowsze)
+
+Przeczytaj `docs/SUPERVISED_FIRST_CALL_MVP_2026-11-01.md`. Historyczny bloker Wireless ADB został rozwiązany. Na S22 przez Mac Host Control `aicalls-mvp-install-retry-20261101-v2` = `done/0`, APK `adb install -r` = `Success`. `aicalls-mvp-postinstall-ui-smoke-20261101-v1` = `done/0`, `MainActivity` = `Status: ok`, `VISIBLE_CONTROLS` zawiera `PIERWSZE POŁĄCZENIE — TEST NADZOROWANY`, Google Phone nadal default. Widoczne `MVP_BUTTON_PRESENT=false` jest fałszywą negatywną asercją testu (niedopasowana wielkość liter), **nie** brakiem przycisku. Host unit/lint/APK i 199 Python PASS na `5cb13fc`. Następnie test bezrozmownej odmowy pilota i świadomie autoryzowana ręczna rozmowa testowa; brak dowodu RX/STT/TTS/TX i brak autonomicznego dial/hangup.
