@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import ipaddress
 import os
-import re
 import subprocess
 import sys
 from typing import Callable, Sequence

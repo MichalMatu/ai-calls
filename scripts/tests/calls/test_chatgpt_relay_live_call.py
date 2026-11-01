@@ -25,6 +25,19 @@ class ChatRelayProtocolTest(unittest.TestCase):
 
 
 class ChatGptRelayLiveCallTest(unittest.TestCase):
+    @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.run_orange_chat_relay")
+    @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.resolve_s22_serial")
+    def test_cli_auto_discovers_verified_wireless_s22_for_attach(self, discovery, run):
+        discovery.return_value = "192.168.0.100:46769"
+        self.assertEqual(
+            0,
+            live.main(["--allow-clir-enable", "--attach-existing-call"]),
+        )
+        discovery.assert_called_once_with()
+        self.assertEqual("192.168.0.100:46769", run.call_args.kwargs["serial"])
+        self.assertTrue(run.call_args.kwargs["allow_wireless_adb"])
+        self.assertTrue(run.call_args.kwargs["attach_existing_call"])
+
     def test_orange_target_is_explicitly_allowlisted(self):
         self.assertEqual("*100", live.normalize_allowlisted_target("*100"))
         with self.assertRaises(ValueError):

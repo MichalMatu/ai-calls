@@ -23,6 +23,7 @@ from aicall_tools.calls.live_call_readiness import run_live_call_readiness
 from aicall_tools.realtime.realtime_live_call_smoke import validate_live_preflight
 from aicall_tools.realtime.realtime_network_smoke import PACKAGE_NAME, is_direct_usb_target
 from aicall_tools.device.s22_call_control import Adb, normalize_number
+from aicall_tools.device.s22_adb_discovery import resolve_s22_serial
 
 ORANGE_SUPPORT_NUMBER = "*100"
 ALLOWLIST = frozenset({ORANGE_SUPPORT_NUMBER})
@@ -721,7 +722,8 @@ def run_orange_chat_relay(
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--serial", default=DEFAULT_SERIAL)
+    parser.add_argument("--serial", default=None,
+                        help="ADB transport; omitted selects and verifies S22 over Wi-Fi or USB")
     parser.add_argument("--session")
     parser.add_argument("--max-turns", type=int, default=MAX_TURNS)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
@@ -741,13 +743,16 @@ def main(argv: Optional[list[str]] = None) -> int:
         if not args.allow_clir_enable:
             raise ValueError("explicit --allow-clir-enable is required for the CLIR effect path")
         session_id = args.session or default_session_id()
+        # Discovery verifies the exact S22 hardware, not merely an IP/port label.
+        auto_discovered = args.serial is None
+        serial = resolve_s22_serial() if auto_discovered else args.serial
         run_orange_chat_relay(
-            serial=args.serial,
+            serial=serial,
             session_id=session_id,
             max_turns=args.max_turns,
             repo_root=args.repo_root,
             phone_disclosure_authorized=True,
-            allow_wireless_adb=args.allow_wireless_adb,
+            allow_wireless_adb=args.allow_wireless_adb or auto_discovered,
             attach_existing_call=args.attach_existing_call,
         )
         return 0

@@ -190,7 +190,7 @@ def run_once(
     if time.monotonic() - started_at >= max_call_seconds:
         raise TimeoutError("max call duration reached before capture")
     probe_output = adb.capture_downlink(capture_ms, output_path)
-    print(probe_output, end="" if probe_output.endswith("\\n") else "\\n")
+    print(probe_output, end="" if probe_output.endswith("\n") else "\n")
     print(f"wav_path={output_path}")
     if time.monotonic() - started_at >= max_call_seconds:
         raise TimeoutError("max call duration reached after capture")
