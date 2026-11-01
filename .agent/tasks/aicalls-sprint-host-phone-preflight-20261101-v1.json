@@ -1,0 +1,34 @@
+{
+  "id": "aicalls-sprint-host-phone-preflight-20261101-v1",
+  "dedupe_key": "aicalls-sprint-host-phone-preflight-20261101-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 1600,
+  "idle_timeout": 500,
+  "task_timeout": 2900,
+  "memory_limit_mb": 4096,
+  "steps": [
+    {
+      "name": "fresh-main-and-python-regressions",
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngit status --short\ntest -z \"$(git status --porcelain)\"\ngit fetch origin main\ngit checkout -B main origin/main\ntest \"$(git rev-parse HEAD)\" = \"5442848ba697f4a669ad300c31bda3b87f41d66a\"\nPYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'\necho PYTHON_UNITTTESTS_OK=true",
+      "timeout": 500
+    },
+    {
+      "name": "gradle-build-and-tests",
+      "command": "set -euo pipefail\nbash scripts/local_agent/host_verify.sh\necho HOST_VERIFY_GREEN=true",
+      "timeout": 1550
+    },
+    {
+      "name": "wireless-adb-read-only-preflight",
+      "command": "set -euo pipefail\nprintf 'phone_probe=non_dialing\\n'\nbash scripts/local_agent/device_readiness.sh\nprintf 'phone_ready=true\\n'",
+      "timeout": 240
+    }
+  ]
+}
