@@ -75,4 +75,4 @@ Sources of truth:
 
 ### First supervised call MVP (2026-11-01)
 
-The app now includes **Pierwsze połączenie — test nadzorowany**. The operator manually calls a chosen test number in the default dialer, returns to AI Calls, and starts a bounded three-turn local scripted audio check; STOP affects only AI audio. This does **not** implement autonomous calling or selective call termination. Host QA passed; S22 deployment is pending restoration of Wireless ADB. See `docs/SUPERVISED_FIRST_CALL_MVP_2026-11-01.md`.
+The **Pierwsze połączenie — test nadzorowany** screen now offers a 3-turn **local Gemma 4** dialogue (or explicit script mode): after manual dialing the operator returns to AI Calls and confirms audio attach. STOP releases AI audio, never the phone call. Mac unit/lint/APKs + 199 Python tests PASS and the revised APK is **installed on S22**; no-call UI smoke PASS. The reviewed Gemma model is **MISSING on S22** and a real Gemini/STT/TTS cellular dialogue has **not** yet been tested. The app's Gemma 4 download/importer is the next user-facing action. Autonomous exact-call control is still blocked. See `docs/SUPERVISED_GEMMA_FIRST_CALL_MVP_2026-11-01.md`.
