@@ -25,19 +25,19 @@ internal object CampaignPhoneAccountResolver {
         ) return null
 
         return runCatching {
-        val handle = telecomManager.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL)
-            ?: return@runCatching null
-        if (handle !in telecomManager.callCapablePhoneAccounts) return@runCatching null
-        val telephony = context.getSystemService(TelephonyManager::class.java)
-            ?: return@runCatching null
-        val voice = telephony.createForPhoneAccountHandle(handle)
-            ?: return@runCatching null
-        if (!accountMatchesDefault(
-                candidateSubscriptionId = voice.subscriptionId,
-                defaultVoiceSubscriptionId = SubscriptionManager.getDefaultVoiceSubscriptionId(),
-            )
-        ) return@runCatching null
-        handle
+            val handle = telecomManager.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL)
+                ?: return@runCatching null
+            if (handle !in telecomManager.callCapablePhoneAccounts) return@runCatching null
+            val telephony = context.getSystemService(TelephonyManager::class.java)
+                ?: return@runCatching null
+            val voice = telephony.createForPhoneAccountHandle(handle)
+                ?: return@runCatching null
+            if (!accountMatchesDefault(
+                    candidateSubscriptionId = voice.subscriptionId,
+                    defaultVoiceSubscriptionId = SubscriptionManager.getDefaultVoiceSubscriptionId(),
+                )
+            ) return@runCatching null
+            handle
         }.getOrNull()
     }
 
