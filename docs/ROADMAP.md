@@ -107,3 +107,8 @@ After CLIR enable/disable acceptance, return to generic phone-task development r
 
 
 **2026-11-01 supervised Gemma speech hardening:** the free-form denylist was replaced by app-owned dialogue-skill speech; the local model classifies only, and the exact allowlist rejects raw prose regardless of synonyms. Script mode is the default on devices without the reviewed Gemma file. Regression tests added. Outstanding delivery gates: exact-HEAD host test/lint/APK, safe S22 deployment and no-call refusal UI, model provision/READY, and a manually initiated consenting real-call STT/Gemma/TTS/TX observation. No automated CLIR dial or global hangup.
+
+
+## 2026-11-01 — supervised MVP E2E physical-check sprint (newest)
+
+Read `docs/MVP_E2E_SPRINT_2026-11-01.md`. Exact S22 no-call Gemma readiness + real LiteRT skill inference **PASS** (`aicalls-mvp-phone-gemma-inference-20261101-v1`, 30.317s). Hardening adds 20ms consent-checked PCM uplink and synchronous STOP authorization revocation, binds call-start confirmation to Gemma/script mode, and adds STT/TTS/supervised-Gemma Android instrumentation tests. Final host QA and Binder-readiness tasks are queued; do not infer their PASS until results. No real service call or phone audio acceptance occurred, no automatic dial/hangup or CLIR mutation. Real end-to-end supervised MVP still needs fresh APK/device tests plus consenting human-initiated call.
