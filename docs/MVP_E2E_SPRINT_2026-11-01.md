@@ -69,7 +69,7 @@ Never use *100 automation, global hangup, dialer role changes or CLIR mutation i
 ## Sprint execution state at final observation (2026-11-01, 16:27 UTC)
 
 - Exact current GitHub main source before this note: `60838eb5609776674c572bf68b82bd92be6e3ab1` (application code unchanged by this documentation update).
-- Separate standalone Kotlin/JVM PCM write authorization harness: **4/4 PASS**. This is a pure Kotlin check, not a Gradle/Android-device receipt.
+- Four PCM authorization JUnit cases were included in the `7aa1d952` full host Gradle unit suite PASS. No independently verified standalone Kotlin harness receipt is claimed.
 - Host tasks were published to the selected Mac: `aicalls-mvp-full-quality-20261101-v1`, `aicalls-mvp-final-source-qa-20261101-v1`,
   `aicalls-mvp-s22-shizuku-media-preflight-20261101-v1` and
   `aicalls-mvp-physical-nocall-stt-gemma-tts-20261101-v1` (the last one checks host quality, updates application and AndroidTest APK with `install -r`, runs bounded no-call tests and verifies Google Phone/IDLE).
@@ -80,3 +80,8 @@ Never use *100 automation, global hangup, dialer role changes or CLIR mutation i
 - Most recent physically verified phone state still belongs to the earlier, already-installed APK and no-call Gemma instrumentation. Current source APK has **not been proven deployed**.
 - Zero service calls were made. A consensual manual test call is still needed to verify
   remote RX/TX and audible STOP; a claimed full infoline MVP at this stage would be inaccurate.
+
+
+## Po odzyskaniu wyników (zastępuje wcześniejsze „pending”)
+
+Pełny aktualny checkpoint: `docs/checkpoints/2026-11-01-ai-calls-mvp-e2e-precontinuation.md`. `aicalls-mvp-full-quality-20261101-v1`: **done/0**, exact `7aa1d952`, Gradle/lint/APK + 199 Python PASS. `aicalls-mvp-final-source-qa-20261101-v1` i `aicalls-mvp-physical-nocall-stt-gemma-tts-20261101-v1`: **failed/1** przed budową/instalacją przez nieaktualny literalny SHA, nie błędy aplikacji. `aicalls-mvp-s22-shizuku-media-preflight-20261101-v1`: **failed/1**, rzeczywisty `shizuku_binder_unavailable`. Nowszy APK, testy STT/TTS/Gemma oraz realna rozmowa pozostają niezweryfikowane; wcześniejszy brak resultów był obserwacją historyczną.
