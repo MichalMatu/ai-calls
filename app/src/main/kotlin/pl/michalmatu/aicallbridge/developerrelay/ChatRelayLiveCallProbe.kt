@@ -482,7 +482,8 @@ internal object ChatRelayLiveCallProbe {
                 return
             }
             if (turnsCompleted >= maxTurns) {
-                finish(false, "clir_external_success_not_observed")
+                if (readOnlySupervised) finish(true)
+                else finish(false, "clir_external_success_not_observed")
             } else {
                 beginNextTurn(generation, lease)
             }
