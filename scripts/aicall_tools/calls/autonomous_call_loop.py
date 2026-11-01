@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """Bounded live-call runner for the physical S22+.
 
-The runner is intentionally conservative:
-- it refuses to start while another call is active;
-- it waits for OFFHOOK and then for real downlink energy;
-- it captures only a bounded WAV;
-- after it requests a dial it always requests hangup from a finally block;
-- emergency/short-number blocking is inherited from s22_call_control.
+The runner now supports only explicitly attaching to an operator-controlled call.
+It never dials or hangs up: global ADB hangup is not exact-call scoped.
+It waits for OFFHOOK and then records a bounded downlink sample.
 
 This is Phase 1 developer tooling, not the final product call engine.
 """
@@ -179,54 +176,37 @@ def run_once(
     max_call_seconds: float,
     transcribe: bool,
     locale: str,
+    attach_existing_call: bool = False,
 ) -> str | None:
-    normalize_number(number)
-    if adb.call_state() != 0:
-        raise RuntimeError("refusing to start: phone is not IDLE")
-
-    call_started_at = time.monotonic()
-    dial_requested = False
-    try:
-        adb.dial(number)
-        dial_requested = True
-        print("dial_requested=true")
-        wait_for_active_call(adb, active_timeout_seconds)
-
-        signal = wait_for_audio_signal(adb, timeout_seconds=signal_timeout_seconds)
-        print(f"audio_signal=true rms={signal.rms:.3f} peak={signal.peak}")
-
-        if time.monotonic() - call_started_at >= max_call_seconds:
-            raise TimeoutError("max call duration reached before capture")
-
-        probe_output = adb.capture_downlink(capture_ms, output_path)
-        print(probe_output, end="" if probe_output.endswith("\n") else "\n")
-        print(f"wav_path={output_path}")
-
-        if time.monotonic() - call_started_at >= max_call_seconds:
-            raise TimeoutError("max call duration reached after capture")
-
-        if transcribe:
-            transcript = transcribe_wav(output_path, locale)
-            print(f"transcript_final={transcript}")
-            return transcript
-        return None
-    finally:
-        if dial_requested:
-            try:
-                adb.hangup()
-                print("hangup_requested=true")
-            except Exception as cleanup_error:  # best-effort cleanup must not mask the primary error
-                print(f"hangup_error={cleanup_error}", file=sys.stderr)
-            try:
-                print(f"idle_after_hangup={wait_for_idle(adb)}")
-            except Exception as cleanup_error:
-                print(f"idle_check_error={cleanup_error}", file=sys.stderr)
+    # Preserve the existing signature for callers, but a target string cannot
+    # prove an external call belongs to the tool. No automatic dial is allowed.
+    if not attach_existing_call:
+        raise RuntimeError("exact_call_controller_unavailable_for_autonomous_dial")
+    if adb.call_state() != 2:
+        raise RuntimeError("attach_existing_call_requires_offhook")
+    started_at = time.monotonic()
+    signal = wait_for_audio_signal(adb, timeout_seconds=signal_timeout_seconds)
+    print(f"audio_signal=true rms={signal.rms:.3f} peak={signal.peak}")
+    if time.monotonic() - started_at >= max_call_seconds:
+        raise TimeoutError("max call duration reached before capture")
+    probe_output = adb.capture_downlink(capture_ms, output_path)
+    print(probe_output, end="" if probe_output.endswith("\\n") else "\\n")
+    print(f"wav_path={output_path}")
+    if time.monotonic() - started_at >= max_call_seconds:
+        raise TimeoutError("max call duration reached after capture")
+    if transcribe:
+        transcript = transcribe_wav(output_path, locale)
+        print(f"transcript_final={transcript}")
+        return transcript
+    return None
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("number")
     parser.add_argument("--serial")
+    parser.add_argument("--attach-existing-call", action="store_true",
+                        help="read an already operator-controlled call; never dial or hang up")
     parser.add_argument("--output", type=Path, default=Path("/tmp/aicallbridge-live/capture.wav"))
     parser.add_argument("--capture-ms", type=int, default=3000)
     parser.add_argument("--active-timeout", type=float, default=DEFAULT_ACTIVE_TIMEOUT_SECONDS)
@@ -252,6 +232,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_call_seconds=args.max_call_seconds,
             transcribe=args.transcribe,
             locale=args.locale,
+            attach_existing_call=args.attach_existing_call,
         )
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:

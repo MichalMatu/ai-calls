@@ -187,14 +187,14 @@ class Adb:
         raise last_error
 
     def dial(self, number: str) -> None:
-        raw = number.strip().replace(" ", "")
-        normalized = raw if raw in ALLOWED_SERVICE_DIAL_CODES else normalize_number(raw)
-        self.shell(
-            ["am", "start", "-a", "android.intent.action.CALL", "-d", f"tel:{normalized}"]
-        )
+        # This helper has no identity-bound Call handle or selective termination.
+        # Do not dial and leave the user with an unmanaged live call.
+        raise RuntimeError("exact_call_controller_required_for_adb_dial")
 
     def hangup(self) -> None:
-        self.shell(["input", "keyevent", "KEYCODE_ENDCALL"])
+        # KEYCODE_ENDCALL and 'cmd telecom end-call' target the device's call,
+        # not necessarily the call our app began. Never use them here.
+        raise RuntimeError("unsafe_global_hangup_disabled")
 
     def dump_ui(self) -> str:
         path = "/data/local/tmp/aicallbridge-window.xml"

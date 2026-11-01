@@ -60,41 +60,38 @@ read_errors=0
 
 
 class FailSafeTest(unittest.TestCase):
-    def test_post_dial_adb_failure_still_requests_hangup(self):
-        class FaultyAdb:
-            def __init__(self):
-                self.call_state_reads = 0
-                self.dialed = False
-                self.hangup_called = False
+    def test_default_autonomous_dial_is_refused_before_touching_phone(self):
+        class NoPhoneTouch:
+            def __getattr__(self, name):
+                raise AssertionError(f"unexpected device action: {name}")
 
-            def call_state(self):
-                self.call_state_reads += 1
-                if self.call_state_reads == 1:
-                    return 0
-                raise subprocess.CalledProcessError(1, ["adb", "shell", "dumpsys"])
-
-            def dial(self, number):
-                self.dialed = True
-
-            def hangup(self):
-                self.hangup_called = True
-
-        adb = FaultyAdb()
         with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(subprocess.CalledProcessError):
+            with self.assertRaisesRegex(RuntimeError, "exact_call_controller_unavailable"):
                 run_once(
-                    adb,
-                    "510100100",
-                    Path(tmp) / "capture.wav",
-                    capture_ms=3000,
-                    active_timeout_seconds=1,
-                    signal_timeout_seconds=1,
-                    max_call_seconds=5,
-                    transcribe=False,
-                    locale="pl-PL",
+                    NoPhoneTouch(), "510100100", Path(tmp) / "capture.wav",
+                    capture_ms=3000, active_timeout_seconds=1,
+                    signal_timeout_seconds=1, max_call_seconds=5,
+                    transcribe=False, locale="pl-PL",
                 )
-        self.assertTrue(adb.dialed)
-        self.assertTrue(adb.hangup_called)
+
+    def test_attach_requires_existing_offhook_and_never_dials(self):
+        class IdlePhone:
+            def call_state(self):
+                return 0
+            def dial(self, number):
+                raise AssertionError("must not dial")
+            def hangup(self):
+                raise AssertionError("must not hangup")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(RuntimeError, "requires_offhook"):
+                run_once(
+                    IdlePhone(), "510100100", Path(tmp) / "capture.wav",
+                    capture_ms=3000, active_timeout_seconds=1,
+                    signal_timeout_seconds=1, max_call_seconds=5,
+                    transcribe=False, locale="pl-PL",
+                    attach_existing_call=True,
+                )
 
 
 if __name__ == "__main__":

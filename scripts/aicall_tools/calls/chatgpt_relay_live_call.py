@@ -426,27 +426,6 @@ def adb_shell_retry(
     raise last_error
 
 
-def best_effort_hangup(adb: Adb, attempts: int = 3) -> bool:
-    """Retry transient hangup failures and fall back to telecom end-call."""
-    if not 1 <= attempts <= 5:
-        raise ValueError("invalid_hangup_attempts")
-    for attempt in range(attempts):
-        try:
-            adb.hangup()
-            return True
-        except Exception as error:
-            print(f"hangup_error={error}", file=sys.stderr)
-            if attempt + 1 < attempts:
-                time.sleep(0.25)
-    try:
-        adb.shell(["cmd", "telecom", "end-call"], check=False)
-        print("hangup_telecom_fallback_requested=true", file=sys.stderr)
-        return True
-    except Exception as error:
-        print(f"hangup_telecom_fallback_error={error}", file=sys.stderr)
-        return False
-
-
 def wait_for_idle_best_effort(adb: Adb, timeout_seconds: float = 10.0) -> bool:
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
@@ -561,6 +540,11 @@ def run_orange_chat_relay(
         raise ValueError("invalid_relay_max_turns")
     if not phone_disclosure_authorized:
         raise ValueError("phone disclosure authorization is required for CLIR relay")
+    if not attach_existing_call:
+        raise RuntimeError(
+            "exact_call_controller_unavailable: automated dial/cleanup is unsafe; "
+            "use --attach-existing-call for an already operator-controlled call"
+        )
 
     adb = Adb(serial)
     mailbox = AdbRelayMailbox(serial)
@@ -571,13 +555,7 @@ def run_orange_chat_relay(
         allow_wireless_adb=allow_wireless_adb,
     )
     print(f"adb_transport={adb_transport}")
-    if attach_existing_call:
-        print("live_call_readiness=external_preflight_required")
-    else:
-        readiness = run_live_call_readiness(serial)
-        if readiness.get("live_call_readiness") != "true":
-            raise RuntimeError("live-call readiness is not green immediately before dial")
-        print("live_call_readiness=true")
+    print("live_call_readiness=external_preflight_required")
     initial_call_state = call_state_or_none(adb)
     validate_initial_call_state(
         initial_call_state,
@@ -588,7 +566,7 @@ def run_orange_chat_relay(
     if original_bt not in {"0", "1"}:
         raise RuntimeError("could not determine Bluetooth state")
     changed_bt = False
-    owns_call = attach_existing_call
+    # Attaching to a pre-existing call never gives us ownership of it.
     muted = False
     started_at = time.monotonic()
     last_turn = 0
@@ -604,14 +582,8 @@ def run_orange_chat_relay(
             print("bluetooth_disabled_for_test=true")
 
         print(f"allowlisted_target={number}")
-        if attach_existing_call:
-            print("attach_existing_call=true")
-            print("dial_requested=false")
-        else:
-            adb.dial(number)
-            owns_call = True
-            print("dial_requested=true")
-            wait_for_active_call(adb, 30.0)
+        print("attach_existing_call=true")
+        print("dial_requested=false")
 
         adb.shell(["cmd", "audio", "adj-mute", "0"])
         muted = True
@@ -722,11 +694,8 @@ def run_orange_chat_relay(
             mailbox.clear()
         except Exception as error:
             print(f"mailbox_cleanup_error={error}", file=sys.stderr)
-        if owns_call:
-            hangup_requested = best_effort_hangup(adb)
-            print(f"hangup_requested={str(hangup_requested).lower()}")
-            idle = wait_for_idle_best_effort(adb, 10.0)
-            print(f"idle_after_hangup={idle}")
+        # The external caller remains in control. Never disconnect on relay cleanup.
+        print("attached_call_left_untouched=true")
         if muted:
             try:
                 adb.shell(["cmd", "audio", "adj-unmute", "0"], check=False)

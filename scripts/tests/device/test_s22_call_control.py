@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest import mock
 import wave
 from pathlib import Path
 
@@ -60,6 +61,16 @@ class CallControlParsingTest(unittest.TestCase):
                 self.assertEqual(16000, wav.getframerate())
                 self.assertEqual(4, wav.getnframes())
                 self.assertEqual(pcm, wav.readframes(4))
+
+    def test_global_dial_and_hangup_are_never_sent_to_adb(self):
+        from aicall_tools.device.s22_call_control import Adb
+
+        device = Adb("192.168.0.100:46769")
+        with mock.patch.object(device, "shell", side_effect=AssertionError("unsafe ADB call")):
+            with self.assertRaisesRegex(RuntimeError, "exact_call_controller_required"):
+                device.dial("*100")
+            with self.assertRaisesRegex(RuntimeError, "unsafe_global_hangup_disabled"):
+                device.hangup()
 
     def test_rejects_odd_pcm_byte_count(self):
         with tempfile.TemporaryDirectory() as tmp:

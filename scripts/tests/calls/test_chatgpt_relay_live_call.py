@@ -184,16 +184,15 @@ class ChatGptRelayLiveCallTest(unittest.TestCase):
         self.assertIsNone(live.call_state_or_none(adb))
         adb.call_state.assert_called_once_with()
 
-    @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.time.sleep")
-    def test_best_effort_hangup_retries_then_uses_telecom_fallback(self, sleep):
-        adb = mock.Mock()
-        adb.hangup.side_effect = RuntimeError("synthetic hangup failure")
-        adb.shell.return_value = "Call ended"
-
-        self.assertTrue(live.best_effort_hangup(adb))
-        self.assertEqual(3, adb.hangup.call_count)
-        adb.shell.assert_called_once_with(["cmd", "telecom", "end-call"], check=False)
-        self.assertEqual(2, sleep.call_count)
+    @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.Adb")
+    def test_unsafe_automatic_dial_refused_before_connecting(self, adb_class):
+        with self.assertRaisesRegex(RuntimeError, "exact_call_controller_unavailable"):
+            live.run_orange_chat_relay(
+                serial="RFCT70L7E8J", session_id="s22-safe", max_turns=2,
+                repo_root=Path("."), phone_disclosure_authorized=True,
+                attach_existing_call=False,
+            )
+        adb_class.assert_not_called()
 
     @mock.patch("aicall_tools.calls.chatgpt_relay_live_call.time.sleep")
     def test_adb_shell_retry_recovers_from_transient_audio_probe_failure(self, sleep):
