@@ -1,5 +1,9 @@
 # AI Calls — handoff, 2026-11-01: corrective safety hold
 
+## 2026-11-01 — NOWY checkpoint przed kontynuacją
+
+**Najpierw przeczytaj `docs/checkpoints/2026-11-01-ai-calls-mvp-e2e-precontinuation.md`.** Gemma S22 READY/inference PASS; ostatni pełny host PASS `7aa1d952`; nowsze dwa failed wynikały z mechanicznego mismatch SHA przed QA/instalacją, za to `shizuku_binder_unavailable` jest realną awarią bieżącego preflightu. Nowe testy STT/TTS/Gemma i rzeczywisty tor cellular RX/TX nie mają akceptacji. Najnowszy commit kodu aplikacji `aed472de`; kolejne commity zmieniają dokumentację. Local Agent ma terminalne receipty i aktywny host, nie myl opóźnienia statusu z awarią. Żadnych nieautoryzowanych połączeń, CLIR, global hangup ani zmiany dialera.
+
 Do not assume HEAD; check fresh `origin/main` at every session. Durable changes belong on `main`; `agent-control` is transport only. Read `AGENTS.md`, `README.md`, `docs/CORRECTION_CAMPAIGN_2026-11-01.md`, `docs/REAUDIT_2026-11-01.md`, `docs/AUTONOMOUS_OPERATION_MODE.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`.
 
 ## 2026-11-01 canonical Mac Host Control migration (LATEST)
