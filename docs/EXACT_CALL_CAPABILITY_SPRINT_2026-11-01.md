@@ -39,6 +39,17 @@ Shizuku may enable special device-specific integration, but a Shizuku Binder/pro
 6. Do not change default-dialer role, install app or call a real carrier number without a distinct scoped authorization and appropriate hardware acceptance step.
 7. Retain user-facing source of truth: `CampaignCallControllerRegistry.available()==null` must block the app-owned campaign until a real backend is installed and accepted.
 
-## Next gate
+## Final accepted results and closeout
 
-Read `task-results` for host QA and the independent role fallback. If the role command is unsupported, preserve `UNKNOWN` or implement only a **read-only** verified fallback. When source and device tests are green, close this feasibility sprint as a completed diagnostic milestone, **not** completed autonomous calling. Android exact-call implementation remains an unsatisfied product dependency.
+The installed Mac Host Control 4.20.16 published independent, immutable results on `MichalMatu/local-agent:agent-control`.
+
+- **Final canonical host gate:** `aicalls-exact-capabilities-closeout-host-20261101-v2` — `done`, exit 0; **exact source SHA `31bc42f42c2f0c0145a6c8badaad147395df84ee`**, Gradle unit tests, Android lint, `assembleDebug`, `assembleDebugAndroidTest`, **199 Python tests PASS**, `host_quality_gate_green=true`, `EXACT_CALL_FEASIBILITY_HOST_GATE=PASS`. The final commit after this receipt is docs-only.
+- **Physical S22 + Shizuku/media no-call gate:** `aicalls-exact-capabilities-final-s22-20261101-v1` — `done`, exit 0 on `23c331704c66a1d11cb13a78f5e49d4cd6a1926c` (same runtime logic as final SHA; final change is test data only). Android **SDK 36**, AI Calls installed, default dialer **`com.google.android.dialer`**, both `get-role-holders` and `get-default-dialer` queries succeeded and agreed, phone `IDLE`, Shizuku process visible, app Shizuku binder and permissions `true`, microphone granted, `live_call_readiness=true`, `COMPLETE_SPRINT_NO_CALL_DEVICE_GATE=PASS`.
+- **Read-only Telecom syntax diagnosis:** `aicalls-telecom-readonly-role-fallback-20261101-v1` — `done`/0. On the S22 `cmd role holders` failed as unsupported; supported syntax is `cmd role get-role-holders android.app.role.DIALER`. `cmd telecom get-default-dialer` returned `com.google.android.dialer`. The runtime probe now checks both sources and conservatively reports `UNKNOWN` if they disagree.
+- **Honest failed-attempt history:** `aicalls-exact-capabilities-final-host-20261101-v1` had 3 test-fixture failures caused by incorrectly escaped newline literals, corrected at `31bc42f`. `aicalls-exact-capabilities-closeout-host-20261101-v1` reported a misleading exit 0 because its `trap rm -rf` masked an undefined shell variable; no host gate ran. The corrected `v2` task preserved exit status and actually ran the complete gate. Neither historical attempt is a PASS.
+
+**Sprint result: COMPLETE for the diagnostic/negative-safety scope.** No dialing, hangup, role change, CLIR mutation, app installation or carrier transaction was performed. The product's app-owned controller remains unavailable; it must not be called completed by the tooling gate.
+
+## Next product gate
+
+Design and separately accept a call-specific controller that preserves the current default dialer, binds an actual outgoing session to the authorized account/target and disconnects only that exact session. Before any real call, prove revocation, callback duplication, unrelated-call preservation and exact terminal cleanup. Do not silently take over `ROLE_DIALER`, introduce device-wide hangup or classify carrier statements as independently verified CLIR state.
