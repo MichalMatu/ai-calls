@@ -76,10 +76,14 @@ internal object ChatRelayLiveCallProbe {
         phoneDisclosureAuthorized: Boolean,
         supervisorRelayEnabled: Boolean = true,
         liveAuthorization: () -> Boolean = { true },
+        readOnlySupervised: Boolean = false,
         callback: (String) -> Unit,
     ) {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
         require(maxTurns in 1..MAX_TURNS) { "invalid_relay_max_turns" }
+        require(!readOnlySupervised || (!phoneDisclosureAuthorized && !supervisorRelayEnabled)) {
+            "supervised_probe_must_be_read_only_local"
+        }
         val appContext = context.applicationContext
         val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audioManager == null || audioManager.mode != AudioManager.MODE_IN_CALL) {
@@ -94,6 +98,7 @@ internal object ChatRelayLiveCallProbe {
             callback,
             supervisorRelayEnabled,
             liveAuthorization,
+            readOnlySupervised,
         ).start()
     }
 
@@ -105,6 +110,7 @@ internal object ChatRelayLiveCallProbe {
         private val callback: (String) -> Unit,
         private val supervisorRelayEnabled: Boolean,
         private val liveAuthorization: () -> Boolean,
+        private val readOnlySupervised: Boolean,
     ) {
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
@@ -158,16 +164,20 @@ internal object ChatRelayLiveCallProbe {
             authorizedFactBackend = localPhoneFactBackend,
             effectCommitControl = COMMIT_CLIR_ENABLE,
             canConfirmEffect = {
-                activeMediaGeneration.get() > 0L && authorizedNow() &&
+                !readOnlySupervised && activeMediaGeneration.get() > 0L && authorizedNow() &&
                     routeVerified.get() && !commitmentConsumed.get()
             },
             supervisorRelayEnabled = supervisorRelayEnabled,
         )
-        private val backend = controlAwareBackend(
-            ClirDeterministicDialogueBackend(hybridBackend) { ruleId ->
-                lines += "clir_phrase_matrix_rule=$ruleId"
-            },
-        )
+        private val backend: TextCallAgentBackend = if (readOnlySupervised) {
+            SupervisedReadOnlyDialogueBackend()
+        } else {
+            controlAwareBackend(
+                ClirDeterministicDialogueBackend(hybridBackend) { ruleId ->
+                    lines += "clir_phrase_matrix_rule=$ruleId"
+                },
+            )
+        }
         private val pipeline = LocalSpeechTextPipeline(
             context,
             backend,
@@ -175,6 +185,7 @@ internal object ChatRelayLiveCallProbe {
         )
         private val lines = mutableListOf(
             "probe=chat_relay_live_call",
+            "supervised_read_only=$readOnlySupervised",
             "developer_relay=$supervisorRelayEnabled",
             "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
             "clir_commit_control=$COMMIT_CLIR_ENABLE",
@@ -501,6 +512,7 @@ internal object ChatRelayLiveCallProbe {
             }
 
         private fun commitClirEnable(): String {
+            require(!readOnlySupervised) { "supervised_external_effect_blocked" }
             require(authorizedNow()) { "campaign_authority_revoked_or_expired" }
             require(activeMediaGeneration.get() > 0L) { "media_generation_unbound" }
             require(routeVerified.get()) { "clir_route_not_verified" }
