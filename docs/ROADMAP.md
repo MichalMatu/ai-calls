@@ -22,6 +22,9 @@
 
 ## Active gate — Orange CLIR enable
 
+
+**2026-11-01 SAFETY HOLD:** The corrective campaign fixed the source-level CLIR wording matcher, in-flight scope checks, shared grant locking, provisional carrier-result reporting and conservative SIM selection. The app-owned call now **refuses to dial** until exact-call ownership and targeted termination exist; do not bypass. Android build, tests and physical acceptance are not complete. Next: fresh Local Agent, host/Android tests, exact owned-call controller, then current Shizuku readiness and app-authorized physical proof. Details: `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+
 The product execution path is app-owned:
 
 ```text
