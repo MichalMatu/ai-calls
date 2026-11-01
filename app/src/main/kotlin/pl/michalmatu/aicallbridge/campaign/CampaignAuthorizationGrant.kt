@@ -59,6 +59,7 @@ internal data class CampaignExecutionRequest(
 internal enum class CampaignAuthorizationDenialReason {
     GRANT_MISSING,
     GRANT_REVOKED,
+    GRANT_NOT_YET_VALID,
     GRANT_EXPIRED,
     ATTEMPT_LIMIT_REACHED,
     ACCOUNT_SCOPE_MISMATCH,
@@ -96,7 +97,12 @@ internal object CampaignAuthorizationPolicy {
                 CampaignAuthorizationDenialReason.GRANT_REVOKED,
             )
         }
-        if (nowEpochMs < grant.createdAtEpochMs || nowEpochMs >= grant.expiresAtEpochMs) {
+        if (nowEpochMs < grant.createdAtEpochMs) {
+            return CampaignAuthorizationDecision.Denied(
+                CampaignAuthorizationDenialReason.GRANT_NOT_YET_VALID,
+            )
+        }
+        if (nowEpochMs >= grant.expiresAtEpochMs) {
             return CampaignAuthorizationDecision.Denied(
                 CampaignAuthorizationDenialReason.GRANT_EXPIRED,
             )
