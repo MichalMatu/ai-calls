@@ -26,6 +26,10 @@ class ClirCarrierEvidenceTest {
             "Czy mamy włączyć usługę CLIR?",
             "Usługa CLIR zostanie aktywowana.",
             "CLIR aktywny?",
+            "Usługa CLIR jest aktywna?",
+            "CLIR jest aktywny, prawda?",
+            "Zastrzeganie numeru zostało uruchomione?",
+            "Usługa CLIR została włączona, zgadza się?",
             "",
             "OK",
         ).forEach { assertFalse(it, ClirCarrierEvidence.isConfirmedCarrierStatement(it)) }

@@ -18,10 +18,12 @@ internal object ClirCarrierEvidence {
         """\b(zostal\w*|jest|sa|pomyslnie|poprawnie)\b.{0,64}\b(wlacz\w*|aktywow\w*|aktywn\w*|uruchom\w*|ustawion\w*)\b|\b(wlaczylismy|aktywowalismy|uruchomilismy)\b""",
     )
     private val pendingOrQuestion = Regex(
-        """\b(czy|mozemy|prosimy|prosze|chcesz|potwierdz|wybier\w*|zostanie|bedzie|wkrotce|oczekuj\w*)\b""",
+        """\b(czy|mozemy|prosimy|prosze|chcesz|potwierdz|wybier\w*|zostanie|bedzie|wkrotce|oczekuj\w*|prawda|tak\s+czy\s+nie|zgadza\s+sie)\b""",
     )
 
     fun isConfirmedCarrierStatement(transcript: String): Boolean {
+        // Preserve question boundaries: normalization strips punctuation.
+        if (transcript.any { it == '?' || it == '？' }) return false
         val text = Normalizer.normalize(
             transcript.lowercase(Locale.ROOT),
             Normalizer.Form.NFD,
