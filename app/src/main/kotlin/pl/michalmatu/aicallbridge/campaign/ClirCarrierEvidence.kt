@@ -26,6 +26,7 @@ internal object ClirCarrierEvidence {
             transcript.lowercase(Locale.ROOT),
             Normalizer.Form.NFD,
         ).replace(Regex("\\p{M}+"), "")
+            .replace('ł', 'l')
             .replace(Regex("[^a-z0-9]+"), " ")
             .trim()
         if (text.length !in 18..512) return false
