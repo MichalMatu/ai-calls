@@ -9,7 +9,7 @@ import java.util.Locale
  */
 internal object ClirRouteEvidence {
     private val explicit = Regex(
-        """\b(usluga|uslugi|wlaczenie|ustawienia|obsluga|blokada|zastrzeganie)\b.{0,60}\bclir\b|\bclir\b.{0,60}\b(usluga|uslugi|wlaczenie|ustawienia|obsluga|blokada|zastrzeganie)\b|\bblokad\w* prezentac\w* numer\w*\b|\bzastrzegani\w* numer\w*\b""",
+        """\b(usluga|uslugi|usluge|wlaczenie|ustawienia|ustawieniami|obsluga|blokada|zastrzeganie)\b.{0,60}\bclir\b|\bclir\b.{0,60}\b(usluga|uslugi|usluge|wlaczenie|ustawienia|ustawieniami|obsluga|blokada|zastrzeganie)\b|\bblokad\w* prezentac\w* numer\w*\b|\bzastrzegani\w* numer\w*\b""",
     )
     fun isExplicitServiceContext(transcript: String): Boolean {
         val text = Normalizer.normalize(
