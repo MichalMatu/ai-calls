@@ -84,6 +84,7 @@ internal object CampaignAuthorizationPolicy {
         grant: CampaignAuthorizationGrant?,
         request: CampaignExecutionRequest,
         nowEpochMs: Long,
+        attemptAlreadyReserved: Boolean = false,
     ): CampaignAuthorizationDecision {
         if (grant == null) {
             return CampaignAuthorizationDecision.Denied(
@@ -95,12 +96,12 @@ internal object CampaignAuthorizationPolicy {
                 CampaignAuthorizationDenialReason.GRANT_REVOKED,
             )
         }
-        if (nowEpochMs >= grant.expiresAtEpochMs) {
+        if (nowEpochMs < grant.createdAtEpochMs || nowEpochMs >= grant.expiresAtEpochMs) {
             return CampaignAuthorizationDecision.Denied(
                 CampaignAuthorizationDenialReason.GRANT_EXPIRED,
             )
         }
-        if (grant.attemptsUsed >= grant.maxAttempts) {
+        if (grant.attemptsUsed >= grant.maxAttempts && !attemptAlreadyReserved) {
             return CampaignAuthorizationDecision.Denied(
                 CampaignAuthorizationDenialReason.ATTEMPT_LIMIT_REACHED,
             )

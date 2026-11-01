@@ -8,8 +8,7 @@ internal class CampaignAuthorizationStore(context: Context) {
     private val preferences =
         context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
-    @Synchronized
-    fun save(grant: CampaignAuthorizationGrant) {
+    fun save(grant: CampaignAuthorizationGrant) = synchronized(STORE_LOCK) {
         check(
             preferences.edit()
                 .clear()
@@ -37,8 +36,7 @@ internal class CampaignAuthorizationStore(context: Context) {
         ) { "campaign_grant_persist_failed" }
     }
 
-    @Synchronized
-    fun load(): CampaignAuthorizationGrant? {
+    fun load(): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
         val grantId = preferences.getString(KEY_GRANT_ID, null)?.takeIf { it.isNotBlank() }
             ?: return null
         return runCatching {
@@ -70,18 +68,41 @@ internal class CampaignAuthorizationStore(context: Context) {
         }.getOrNull()
     }
 
-    @Synchronized
-    fun reserveAttempt(grantId: String): Result<CampaignAuthorizationGrant> = runCatching {
-        val current = requireNotNull(load()) { "campaign_grant_missing" }
-        require(current.grantId == grantId) { "campaign_grant_changed" }
-        require(current.revokedAtEpochMs == null) { "campaign_grant_revoked" }
-        val updated = current.withReservedAttempt()
-        save(updated)
-        updated
+    /** Authorize and reserve in one cross-instance transaction, including expiry/scope. */
+    fun reserveAuthorizedAttempt(
+        request: CampaignExecutionRequest,
+        nowEpochMs: Long,
+    ): Result<CampaignAuthorizationGrant> = runCatching {
+        synchronized(STORE_LOCK) {
+            val current = load()
+            val decision = CampaignAuthorizationPolicy.authorize(current, request, nowEpochMs)
+            require(decision is CampaignAuthorizationDecision.Authorized) {
+                "campaign_authorization_denied"
+            }
+            val updated = decision.grant.withReservedAttempt()
+            save(updated)
+            updated
+        }
     }
 
-    @Synchronized
-    fun revoke(nowEpochMs: Long): CampaignAuthorizationGrant? {
+    /** A reserved attempt stays valid at the attempt limit but not after revoke/expiry/scope change. */
+    fun isAuthorizedInFlight(
+        grantId: String,
+        request: CampaignExecutionRequest,
+        nowEpochMs: Long,
+    ): Boolean = synchronized(STORE_LOCK) {
+        val grant = load() ?: return@synchronized false
+        grant.grantId == grantId &&
+            grant.attemptsUsed > 0 &&
+            CampaignAuthorizationPolicy.authorize(
+                grant = grant,
+                request = request,
+                nowEpochMs = nowEpochMs,
+                attemptAlreadyReserved = true,
+            ) is CampaignAuthorizationDecision.Authorized
+    }
+
+    fun revoke(nowEpochMs: Long): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
         val current = load() ?: return null
         val revoked = current.revoked(nowEpochMs)
         save(revoked)
@@ -89,6 +110,7 @@ internal class CampaignAuthorizationStore(context: Context) {
     }
 
     companion object {
+        private val STORE_LOCK = Any()
         private const val PREFERENCES_NAME = "campaign_authorization_grant_v1"
         private const val KEY_GRANT_ID = "grant_id"
         private const val KEY_VERSION = "version"
