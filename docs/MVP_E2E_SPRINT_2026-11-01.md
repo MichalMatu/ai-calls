@@ -64,3 +64,19 @@ Never use *100 automation, global hangup, dialer role changes or CLIR mutation i
    cellular call under human control. No recordings/transcripts/identifiers in Git.
 5. Autonomous service tasks still need a **real call-specific owner and targeted
    hangup**. Do not remove `CampaignCallControllerRegistry` safety block.
+
+
+## Sprint execution state at final observation (2026-11-01, 16:27 UTC)
+
+- Exact current GitHub main source before this note: `60838eb5609776674c572bf68b82bd92be6e3ab1` (application code unchanged by this documentation update).
+- Separate standalone Kotlin/JVM PCM write authorization harness: **4/4 PASS**. This is a pure Kotlin check, not a Gradle/Android-device receipt.
+- Host tasks were published to the selected Mac: `aicalls-mvp-full-quality-20261101-v1`, `aicalls-mvp-final-source-qa-20261101-v1`,
+  `aicalls-mvp-s22-shizuku-media-preflight-20261101-v1` and
+  `aicalls-mvp-physical-nocall-stt-gemma-tts-20261101-v1` (the last one checks host quality, updates application and AndroidTest APK with `install -r`, runs bounded no-call tests and verifies Google Phone/IDLE).
+- **No terminal results for these tasks have been published yet.** Mac Host Control
+  `status.json` remains at `2026-11-01T16:17:16.077281Z` with `state=idle`,
+  so its liveness after that instant is **unconfirmed**. Do not claim any of the queued
+  builds, installation or physical speech tests PASS or FAIL without exact receipts.
+- Most recent physically verified phone state still belongs to the earlier, already-installed APK and no-call Gemma instrumentation. Current source APK has **not been proven deployed**.
+- Zero service calls were made. A consensual manual test call is still needed to verify
+  remote RX/TX and audible STOP; a claimed full infoline MVP at this stage would be inaccurate.
