@@ -122,7 +122,13 @@ class CampaignToolActivity : Activity() {
     }
 
     private fun ensurePermissionsThen(action: PendingAction) {
-        val missing = REQUIRED_PERMISSIONS.filter {
+        // Grant creation only needs SIM identity. Speech/dial permissions belong to execution.
+        val required = if (action == PendingAction.AUTHORIZE) {
+            listOf(Manifest.permission.READ_PHONE_STATE)
+        } else {
+            REQUIRED_PERMISSIONS
+        }
+        val missing = required.filter {
             checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isEmpty()) {

@@ -35,17 +35,12 @@ internal object AppOwnedClirCampaignExecutor {
         val appContext = context.applicationContext
         val handler = Handler(Looper.getMainLooper())
         val request = ClirCampaignSpec.enableRequest(accountScope)
-        // Safety: stock TelecomManager has no exact-call ownership or targeted hangup.
-        // Keep the live campaign disabled until a real per-call controller is available.
-        if (!CampaignCallOwnershipPolicy.allowsAutonomousDial(
-                CampaignCallOwnershipProof(
-                    exactCallIdentityBound = false,
-                    targetedTerminationAvailable = false,
-                ),
-            )
-        ) {
+        // Android does not expose an app-owned cellular Call handle via ACTION_CALL.
+        // Resolve an actual call controller, not a synthetic proof with constant booleans.
+        val callController = CampaignCallControllerRegistry.available()
+        if (callController == null) {
             running.set(false)
-            onStatus("Dial blocked: exact call ownership and targeted cleanup unavailable")
+            onStatus("Call controller unavailable: no exact-call dial/cleanup implementation installed")
             return
         }
         val permissionFailure = requiredPermissionFailure(appContext)
@@ -87,11 +82,10 @@ internal object AppOwnedClirCampaignExecutor {
             return
         }
 
-        val voiceAccount = runCatching {
-            val accounts = telecomManager.callCapablePhoneAccounts
-            val defaultAccount = telecomManager.getDefaultOutgoingPhoneAccount("tel")
-            if (accounts.size == 1 && accounts.single() == defaultAccount) defaultAccount else null
-        }.getOrNull()
+        val voiceAccount = CampaignPhoneAccountResolver.resolveDefaultVoiceAccount(
+            appContext,
+            telecomManager,
+        )
         if (voiceAccount == null ||
             CampaignAccountScope.currentVoiceSubscription(appContext) != request.accountScope
         ) {
@@ -123,11 +117,11 @@ internal object AppOwnedClirCampaignExecutor {
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, voiceAccount)
 
-        try {
-            appContext.startActivity(callIntent)
-        } catch (error: Throwable) {
+        val ownedCall = runCatching {
+            callController.dial(callIntent, voiceAccount, request.target)
+        }.getOrElse { error ->
             running.set(false)
-            onStatus("Dial failed: ${error.javaClass.simpleName}")
+            onStatus("Owned dial failed: ${error.javaClass.simpleName}")
             return
         }
 
@@ -141,6 +135,7 @@ internal object AppOwnedClirCampaignExecutor {
             deadlineEpochMs = System.currentTimeMillis() + CALL_ACTIVE_TIMEOUT_MS,
             telecomManager = telecomManager,
             grant = reservedGrant,
+            ownedCall = ownedCall,
             request = request,
             authorizationStore = authorizationStore,
             onStatus = onStatus,
@@ -153,6 +148,7 @@ internal object AppOwnedClirCampaignExecutor {
         deadlineEpochMs: Long,
         telecomManager: TelecomManager,
         grant: CampaignAuthorizationGrant,
+        ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         onStatus: (String) -> Unit,
@@ -166,13 +162,13 @@ internal object AppOwnedClirCampaignExecutor {
 
         fun poll() {
             if (!running.get()) return
-            if (audioManager.mode == AudioManager.MODE_IN_CALL) {
-                onStatus("Cellular call active; starting local campaign runtime")
-                startLocalRuntime(appContext, telecomManager, grant, request, authorizationStore, onStatus)
+            if (ownedCall.isExactCallActive() && audioManager.mode == AudioManager.MODE_IN_CALL) {
+                onStatus("Exact owned cellular call active; starting campaign runtime")
+                startLocalRuntime(appContext, telecomManager, grant, ownedCall, request, authorizationStore, onStatus)
                 return
             }
             if (System.currentTimeMillis() >= deadlineEpochMs) {
-                val cleanup = safeCleanupStatus(telecomManager)
+                val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
                 running.set(false)
                 onStatus("Call did not become active before timeout; cleanup=$cleanup")
                 return
@@ -187,6 +183,7 @@ internal object AppOwnedClirCampaignExecutor {
         appContext: Context,
         telecomManager: TelecomManager,
         grant: CampaignAuthorizationGrant,
+        ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         onStatus: (String) -> Unit,
@@ -203,7 +200,8 @@ internal object AppOwnedClirCampaignExecutor {
             phoneDisclosureAuthorized = phoneDisclosureAuthorized,
             supervisorRelayEnabled = false,
             liveAuthorization = {
-                CampaignAccountScope.currentVoiceSubscription(appContext) == request.accountScope &&
+                ownedCall.isExactCallActive() &&
+                    CampaignAccountScope.currentVoiceSubscription(appContext) == request.accountScope &&
                     authorizationStore.isAuthorizedInFlight(
                         grantId = grant.grantId,
                         request = request,
@@ -214,7 +212,7 @@ internal object AppOwnedClirCampaignExecutor {
             val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
             val carrierReportedSuccess = reportValue(report, "clir_carrier_reported_success") == "true"
             val failureReason = reportValue(report, "failure_reason")
-            val cleanup = safeCleanupStatus(telecomManager)
+            val cleanup = cleanupOwnedCall(ownedCall, telecomManager)
             running.set(false)
 
             onStatus(
@@ -247,11 +245,16 @@ internal object AppOwnedClirCampaignExecutor {
         return missing?.let { (_, label) -> "Required $label permission is not granted" }
     }
 
-    /** Generic TelecomManager.endCall() could terminate an unrelated call: never invoke it. */
-    private fun safeCleanupStatus(telecomManager: TelecomManager): String =
-        runCatching {
-            if (telecomManager.isInCall) "owned_hangup_unavailable" else "idle"
-        }.getOrDefault("call_state_unverified")
+    /** The only permitted hangup is through the exact call handle returned by the dial controller. */
+    private fun cleanupOwnedCall(
+        ownedCall: CampaignOwnedCallSession,
+        telecomManager: TelecomManager,
+    ): String = runCatching {
+        val ended = ownedCall.disconnectExactCall()
+        if (!ended) "targeted_disconnect_failed"
+        else if (telecomManager.isInCall) "other_call_or_disconnecting"
+        else "idle"
+    }.getOrDefault("targeted_disconnect_exception")
 
     private fun reportValue(report: String, key: String): String? =
         report.lineSequence()
