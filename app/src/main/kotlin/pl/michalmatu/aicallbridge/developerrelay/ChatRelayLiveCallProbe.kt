@@ -15,10 +15,13 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.GateCHybridDiagnostics
+import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness
+import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
 import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
@@ -85,6 +88,7 @@ internal object ChatRelayLiveCallProbe {
         supervisorRelayEnabled: Boolean = true,
         liveAuthorization: () -> Boolean = { true },
         readOnlySupervised: Boolean = false,
+        supervisedGemmaEnabled: Boolean = false,
         callback: (String) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -93,10 +97,19 @@ internal object ChatRelayLiveCallProbe {
             "supervised_probe_must_be_read_only_local"
         }
         val appContext = context.applicationContext
+        if (supervisedGemmaEnabled &&
+            AndroidGemma4ModelReadiness.check(appContext).state != Gemma4ModelReadinessState.READY
+        ) {
+            callback(immediateReport("gemma_model_not_ready"))
+            return null
+        }
         val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audioManager == null || audioManager.mode != AudioManager.MODE_IN_CALL) {
             callback(immediateReport("cellular_call_not_active"))
             return null
+        }
+        require(!supervisedGemmaEnabled || readOnlySupervised) {
+            "gemma_supervised_requires_read_only_session"
         }
         val session = Run(
             appContext,
@@ -107,6 +120,7 @@ internal object ChatRelayLiveCallProbe {
             supervisorRelayEnabled,
             liveAuthorization,
             readOnlySupervised,
+            supervisedGemmaEnabled,
         )
         if (!activeSession.compareAndSet(null, session)) {
             callback(immediateReport("audio_session_already_active"))
@@ -125,6 +139,7 @@ internal object ChatRelayLiveCallProbe {
         private val supervisorRelayEnabled: Boolean,
         private val liveAuthorization: () -> Boolean,
         private val readOnlySupervised: Boolean,
+        private val supervisedGemmaEnabled: Boolean,
     ) : SessionControl {
         override fun stopAudio() {
             handler.post { finish(false, "operator_stopped") }
@@ -133,6 +148,8 @@ internal object ChatRelayLiveCallProbe {
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
         private val mediaTurnStarted = AtomicBoolean(false)
+        private val supervisedGemmaReplies = AtomicInteger(0)
+        private val supervisedFallbackReplies = AtomicInteger(0)
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "ChatRelayLiveCall").apply { isDaemon = true }
         }
@@ -198,7 +215,15 @@ internal object ChatRelayLiveCallProbe {
             supervisorRelayEnabled = supervisorRelayEnabled,
         ) }
         private val backend: TextCallAgentBackend = if (readOnlySupervised) {
-            SupervisedReadOnlyDialogueBackend()
+            if (supervisedGemmaEnabled) {
+                SupervisedGemmaDialogueBackend(
+                    context = context,
+                    onModelReply = { supervisedGemmaReplies.incrementAndGet() },
+                    onFallbackReply = { supervisedFallbackReplies.incrementAndGet() },
+                )
+            } else {
+                SupervisedReadOnlyDialogueBackend()
+            }
         } else {
             controlAwareBackend(
                 ClirDeterministicDialogueBackend(hybridBackend) { ruleId ->
@@ -214,6 +239,7 @@ internal object ChatRelayLiveCallProbe {
         private val lines = mutableListOf(
             "probe=chat_relay_live_call",
             "supervised_read_only=$readOnlySupervised",
+            "supervised_dialogue_mode=${if (supervisedGemmaEnabled) "gemma4" else "script"}",
             "developer_relay=$supervisorRelayEnabled",
             "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
             "clir_commit_control=$COMMIT_CLIR_ENABLE",
@@ -622,6 +648,8 @@ internal object ChatRelayLiveCallProbe {
             lines += "clir_route_verified=${routeVerified.get()}"
             lines += "clir_commitment_consumed=${commitmentConsumed.get()}"
             lines += "clir_external_success=false" // never independently verified here
+            lines += "supervised_gemma_replies=${supervisedGemmaReplies.get()}"
+            lines += "supervised_script_fallback_replies=${supervisedFallbackReplies.get()}"
             lines += "turns_completed=$turnsCompleted"
             lines += "telephony_rx_pcm_bytes=$totalRxBytes"
             lines += "telephony_tx_pcm_bytes=$totalTxBytes"
