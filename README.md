@@ -38,6 +38,9 @@ Current local model is `LOCAL_GEMMA_4` / Gemma 4 E2B IT (`gemma-4-E2B-it.litertl
 
 ## Current gate
 
+
+**Safety hold (2026-11-01):** source correction campaign added strict CLIR evidence handling and in-flight authorization checks. Autonomous app-owned dialing is **blocked before execution** until a real exact-call owner with targeted hangup is proven. A carrier statement remains provisional without independent CLIR status confirmation. Android/Gradle/physical S22 acceptance are still pending; see `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+
 Active work is physical Orange CLIR acceptance on the S22. The latest independent network-state evidence still says caller ID is **not restricted**, therefore CLIR enable is not complete.
 
 Current execution order:
