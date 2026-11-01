@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.campaign.ClirCarrierEvidence
+
 import android.content.Context
 import android.media.AudioManager
 import android.os.Handler
@@ -61,7 +63,6 @@ internal object ChatRelayLiveCallProbe {
     private const val NO_SPEECH_RETRY_DELAY_MS = 750L
     private const val ORANGE_SUPPORT_NUMBER = "*100"
     private const val COMMIT_CLIR_ENABLE = "[[COMMIT_CLIR_ENABLE]]"
-    private const val CONFIRM_CLIR_ENABLE = "[[CONFIRM_CLIR_ENABLE]]"
     private const val REVIEWED_CLIR_COMMIT_SPEECH =
         "Potwierdzam. Proszę włączyć blokadę prezentacji numeru, usługę CLIR."
 
@@ -71,6 +72,7 @@ internal object ChatRelayLiveCallProbe {
         maxTurns: Int,
         phoneDisclosureAuthorized: Boolean,
         supervisorRelayEnabled: Boolean = true,
+        liveAuthorization: () -> Boolean = { true },
         callback: (String) -> Unit,
     ) {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -88,6 +90,7 @@ internal object ChatRelayLiveCallProbe {
             phoneDisclosureAuthorized,
             callback,
             supervisorRelayEnabled,
+            liveAuthorization,
         ).start()
     }
 
@@ -98,6 +101,7 @@ internal object ChatRelayLiveCallProbe {
         private val phoneDisclosureAuthorized: Boolean,
         private val callback: (String) -> Unit,
         private val supervisorRelayEnabled: Boolean,
+        private val liveAuthorization: () -> Boolean,
     ) {
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
@@ -121,7 +125,6 @@ internal object ChatRelayLiveCallProbe {
         private val hybridDiagnostics = GateCHybridDiagnostics()
         private val routeVerified = AtomicBoolean(false)
         private val commitmentConsumed = AtomicBoolean(false)
-        private val externalSuccess = AtomicBoolean(false)
         private val identityVault = AndroidIdentityVault.create(context)
         private val factDisclosurePolicy = DefaultFactDisclosurePolicy()
         private val phoneDisclosureState = TaskGraphStateId("clir-service-number-request")
@@ -135,7 +138,7 @@ internal object ChatRelayLiveCallProbe {
                     state = phoneDisclosureState,
                     generation = 0L,
                     mode = CallTaskMode.GENUINE,
-                    authorized = phoneDisclosureAuthorized && routeVerified.get(),
+                    authorized = phoneDisclosureAuthorized && routeVerified.get() && authorizedNow(),
                 )
             },
             onDisclosure = { lines += "identity_phone_disclosure_local=true" },
@@ -163,7 +166,6 @@ internal object ChatRelayLiveCallProbe {
             "developer_relay=$supervisorRelayEnabled",
             "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
             "clir_commit_control=$COMMIT_CLIR_ENABLE",
-            "clir_success_control=$CONFIRM_CLIR_ENABLE",
             "call_required=true",
             "session_id=$sessionId",
             "max_turns=$maxTurns",
@@ -186,8 +188,23 @@ internal object ChatRelayLiveCallProbe {
         private var turnLocalSkillErrorBaseline = 0
 
         private val timeout = Runnable { finish(false, "probe_timeout") }
+        private val authorityWatchdog = object : Runnable {
+            override fun run() {
+                if (finished.get()) return
+                if (!authorizedNow()) finish(false, "campaign_authority_revoked_or_expired")
+                else handler.postDelayed(this, 500L)
+            }
+        }
+
+        private fun authorizedNow(): Boolean =
+            runCatching { liveAuthorization() }.getOrDefault(false)
 
         fun start() {
+            if (!authorizedNow()) {
+                finish(false, "campaign_authority_revoked_or_expired")
+                return
+            }
+            handler.postDelayed(authorityWatchdog, 500L)
             mailbox.clear()
             try {
                 mediaRuntime = CallMediaSessionRuntime(
@@ -242,6 +259,7 @@ internal object ChatRelayLiveCallProbe {
 
         private fun beginNextTurn(generation: Long, lease: CallMediaEndpointLease) {
             if (finished.get()) return
+            if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
             if (turnsCompleted >= maxTurns) {
                 finish(true)
                 return
@@ -263,6 +281,8 @@ internal object ChatRelayLiveCallProbe {
                 }
 
                 override fun onUserTranscript(text: String) {
+                    if (finished.get()) return
+                    if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
                     val routeEvidence = isClirRouteEvidence(text)
@@ -272,19 +292,22 @@ internal object ChatRelayLiveCallProbe {
                             lines += "clir_route_verified=true"
                         }
                     }
-                    if (commitmentConsumed.get() && isClirSuccessEvidence(text)) {
+                    if (commitmentConsumed.get() && ClirCarrierEvidence.isConfirmedCarrierStatement(text)) {
                         pendingExternalSuccessEvidence.set(true)
                         lines += "clir_success_evidence_detected=true"
                     }
                 }
 
                 override fun onApprovedText(text: String) {
+                    if (finished.get()) return
+                    if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
                     lines += "turn_${currentTurn}_approved_chars=${text.length}"
                     lines += "turn_${currentTurn}_approved_elapsed_ms=${elapsedTurnMs()}"
                     recordTurnDialogueDiagnostics(currentTurn)
                 }
 
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
+                    if (finished.get() || !authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
                     lines += "turn_${currentTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
                     executor.execute { writeOutputTurn(lease, pcm, currentTurn, generation) }
                 }
@@ -372,6 +395,7 @@ internal object ChatRelayLiveCallProbe {
             generation: Long,
         ) {
             try {
+                if (finished.get() || !authorizedNow()) return
                 if (pcm.isEmpty()) throw IllegalStateException("tts_pcm_empty")
                 val firstTxElapsed = elapsedTurnMs()
                 val ttsPcmDurationMs = ChatRelayTurnPacing.pcmDurationMs(pcm.size)
@@ -414,6 +438,7 @@ internal object ChatRelayLiveCallProbe {
             if (finished.get() || turn != currentTurn) return
             turnsCompleted = turn
             lines += "turn_${turn}_complete_elapsed_ms=${elapsedTurnMs()}"
+            if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
             if (pendingExternalSuccessEvidence.compareAndSet(true, false)) {
                 if (!finalizeExternalSuccess()) return
                 finish(true)
@@ -434,12 +459,6 @@ internal object ChatRelayLiveCallProbe {
                             try {
                                 when (text.trim()) {
                                     COMMIT_CLIR_ENABLE -> listener.onComplete(commitClirEnable())
-                                    CONFIRM_CLIR_ENABLE -> {
-                                        require(commitmentConsumed.get()) { "clir_commitment_not_consumed" }
-                                        pendingExternalSuccessEvidence.set(true)
-                                        lines += "clir_success_evidence_supervisor_confirmed=true"
-                                        listener.onComplete("Dziękuję.")
-                                    }
                                     else -> listener.onComplete(text)
                                 }
                             } catch (error: Throwable) {
@@ -456,6 +475,7 @@ internal object ChatRelayLiveCallProbe {
             }
 
         private fun commitClirEnable(): String {
+            require(authorizedNow()) { "campaign_authority_revoked_or_expired" }
             require(routeVerified.get()) { "clir_route_not_verified" }
             require(!commitmentConsumed.get()) { "clir_commitment_already_consumed" }
             val validation = CallExternalEffectValidator.validateSetService(task, target, effect)
@@ -474,38 +494,18 @@ internal object ChatRelayLiveCallProbe {
             return REVIEWED_CLIR_COMMIT_SPEECH
         }
 
+        /** Carrier claim is provisional; network status verification is a separate acceptance gate. */
         private fun finalizeExternalSuccess(): Boolean {
-            val tracker = completionTracker ?: run {
+            if (!authorizedNow()) {
+                finish(false, "campaign_authority_revoked_or_expired")
+                return false
+            }
+            if (completionTracker == null) {
                 finish(false, "clir_completion_tracker_missing")
                 return false
             }
-            val completed = tracker.complete(CallExternalEffectSuccessEvidence(effect))
-            if (completed.isFailure || completed.getOrNull() != effect || !tracker.isCompleted()) {
-                finish(false, "clir_external_success_completion_failed")
-                return false
-            }
-            try {
-                workflow.complete(
-                    CallOutcome(
-                        CallOutcomeStatus.SUCCESS,
-                        "Orange confirmed CLIR enabled",
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                    ),
-                )
-            } catch (error: Throwable) {
-                finish(false, "clir_workflow_complete_${error.javaClass.simpleName}")
-                return false
-            }
-            externalSuccess.set(true)
-            lines += "clir_external_success=true"
-            lines += "clir_external_success_evidence_type=set_service"
-            lines += "clir_external_success_service=CLIR"
-            lines += "clir_external_success_enabled=true"
+            lines += "clir_carrier_reported_success=true"
+            lines += "clir_network_verification=pending"
             return true
         }
 
@@ -514,14 +514,6 @@ internal object ChatRelayLiveCallProbe {
             return value.contains("clir") ||
                 (value.contains("blokad") && value.contains("prezentac") && value.contains("numer")) ||
                 (value.contains("zastrz") && value.contains("numer"))
-        }
-
-        private fun isClirSuccessEvidence(text: String): Boolean {
-            val value = text.lowercase()
-            return value.contains("włączon") || value.contains("wlaczon") ||
-                value.contains("aktyw") || value.contains("uruchom") ||
-                value.contains("została ustawiona") || value.contains("zostala ustawiona") ||
-                value.contains("zmiana została wykonana") || value.contains("zmiana zostala wykonana")
         }
 
         private fun recordTurnDialogueDiagnostics(turn: Int) {
@@ -547,6 +539,7 @@ internal object ChatRelayLiveCallProbe {
         private fun finish(success: Boolean, reason: String? = null) {
             if (!finished.compareAndSet(false, true)) return
             handler.removeCallbacks(timeout)
+            handler.removeCallbacks(authorityWatchdog)
             try { pipeline.close() } catch (_: Throwable) {}
             try { mailbox.clear() } catch (_: Throwable) {}
             downlinkPump?.let { pump ->
@@ -565,7 +558,7 @@ internal object ChatRelayLiveCallProbe {
             lines += "chatgpt_fallback_count=${hybridSnapshot.responseSources.count { it.name == "CHAT_RELAY" }}"
             lines += "clir_route_verified=${routeVerified.get()}"
             lines += "clir_commitment_consumed=${commitmentConsumed.get()}"
-            lines += "clir_external_success=${externalSuccess.get()}"
+            lines += "clir_external_success=false" // never independently verified here
             lines += "turns_completed=$turnsCompleted"
             lines += "telephony_rx_pcm_bytes=$totalRxBytes"
             lines += "telephony_tx_pcm_bytes=$totalTxBytes"
