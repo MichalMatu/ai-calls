@@ -1,7 +1,7 @@
 {
   "id": "aicalls-sprint-host-phone-preflight-20261101-v1",
   "dedupe_key": "aicalls-sprint-host-phone-preflight-20261101-v1",
-  "dedupe_revision": 1,
+  "dedupe_revision": 2,
   "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
   "mode": "commands",
   "work_branch": "main",
@@ -17,7 +17,7 @@
   "steps": [
     {
       "name": "fresh-main-and-python-regressions",
-      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngit status --short\ntest -z \"$(git status --porcelain)\"\ngit fetch origin main\ngit checkout -B main origin/main\ntest \"$(git rev-parse HEAD)\" = \"5442848ba697f4a669ad300c31bda3b87f41d66a\"\nPYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'\necho PYTHON_UNITTTESTS_OK=true",
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngit status --short\ntest -z \"$(git status --porcelain)\"\ngit fetch origin main\ngit checkout -B main origin/main\nprintf \"tested_main_head=%s\\n\" \"$(git rev-parse HEAD)\"\nPYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'\necho PYTHON_UNITTTESTS_OK=true",
       "timeout": 500
     },
     {
