@@ -4,6 +4,9 @@ Read `docs/AUTONOMOUS_OPERATION_MODE.md` before continuing.
 
 ## Current state
 
+
+**Safety hold (2026-11-01):** app-owned dialing intentionally refuses to start until exact-call identity and targeted termination are implemented and physically proven. Do not resume the old `*100` loop or use global `TelecomManager.endCall()`. Historical 2026-10-08 network state and Shizuku binder failure have not been re-measured today. Details in `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+
 ```text
 Orange campaign route = *100
 CLIR enabled = false
