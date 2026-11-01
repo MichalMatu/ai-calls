@@ -19,6 +19,7 @@ import android.widget.TextView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotActivity
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.runtime.CallAudioMode
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
@@ -143,6 +144,12 @@ class MainActivity : Activity() {
             }
         }
 
+        val supervisedCallButton = Button(this).apply {
+            text = "Pierwsze połączenie — test nadzorowany"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, SupervisedCallPilotActivity::class.java))
+            }
+        }
         val campaignToolsButton = Button(this).apply {
             text = "Campaign tools"
             setOnClickListener {
@@ -168,6 +175,7 @@ class MainActivity : Activity() {
             addView(modelDownloadCancelButton)
             addView(requestMicButton)
             addView(enrollPhoneButton)
+            addView(supervisedCallButton)
             addView(campaignToolsButton)
             developerProbes.addControls(this)
             addView(

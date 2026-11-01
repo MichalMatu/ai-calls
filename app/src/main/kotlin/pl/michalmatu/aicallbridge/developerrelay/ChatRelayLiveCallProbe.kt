@@ -16,6 +16,7 @@ import java.util.concurrent.Executors
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.GateCHybridDiagnostics
 import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
@@ -59,6 +60,13 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
  * It intentionally reuses production speech/backend/approval boundaries and owns no model runtime.
  */
 internal object ChatRelayLiveCallProbe {
+    /** Stops *only* the application audio/media session, never the cellular call. */
+    internal fun interface SessionControl {
+        fun stopAudio()
+    }
+
+    private val activeSession = AtomicReference<Run?>(null)
+
     const val REPORT_FILE = "chat-relay-live-call-report.txt"
     const val MAX_TURNS = 10
     private const val RESPONSE_TIMEOUT_MS = 90_000L
@@ -78,7 +86,7 @@ internal object ChatRelayLiveCallProbe {
         liveAuthorization: () -> Boolean = { true },
         readOnlySupervised: Boolean = false,
         callback: (String) -> Unit,
-    ) {
+    ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
         require(maxTurns in 1..MAX_TURNS) { "invalid_relay_max_turns" }
         require(!readOnlySupervised || (!phoneDisclosureAuthorized && !supervisorRelayEnabled)) {
@@ -88,9 +96,9 @@ internal object ChatRelayLiveCallProbe {
         val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audioManager == null || audioManager.mode != AudioManager.MODE_IN_CALL) {
             callback(immediateReport("cellular_call_not_active"))
-            return
+            return null
         }
-        Run(
+        val session = Run(
             appContext,
             sessionId,
             maxTurns,
@@ -99,7 +107,13 @@ internal object ChatRelayLiveCallProbe {
             supervisorRelayEnabled,
             liveAuthorization,
             readOnlySupervised,
-        ).start()
+        )
+        if (!activeSession.compareAndSet(null, session)) {
+            callback(immediateReport("audio_session_already_active"))
+            return null
+        }
+        session.start()
+        return session
     }
 
     private class Run(
@@ -111,7 +125,11 @@ internal object ChatRelayLiveCallProbe {
         private val supervisorRelayEnabled: Boolean,
         private val liveAuthorization: () -> Boolean,
         private val readOnlySupervised: Boolean,
-    ) {
+    ) : SessionControl {
+        override fun stopAudio() {
+            handler.post { finish(false, "operator_stopped") }
+        }
+
         private val handler = Handler(Looper.getMainLooper())
         private val finished = AtomicBoolean(false)
         private val mediaTurnStarted = AtomicBoolean(false)
@@ -119,26 +137,36 @@ internal object ChatRelayLiveCallProbe {
             Thread(runnable, "ChatRelayLiveCall").apply { isDaemon = true }
         }
         private val mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME))
-        private val target = CallResolvedTarget("Orange support", ORANGE_SUPPORT_NUMBER)
-        private val task = CallTask(
-            "Orange CLIR enable",
-            "SET_SERVICE",
-            "CLIR",
-            CallConstraints.unconstrained(),
-            CallPreferences.none(),
-            mapOf(CallExternalEffectValidator.SERVICE_ENABLED_FACT to "true"),
-        )
-        private val effect = CallExternalEffect.SetService(target, CallService.CLIR, true)
+        private val target = if (readOnlySupervised) {
+            CallResolvedTarget("User-controlled existing call", "manual-call")
+        } else {
+            CallResolvedTarget("Orange support", ORANGE_SUPPORT_NUMBER)
+        }
+        private val task = if (readOnlySupervised) {
+            CallTask(
+                "Supervised sound test", "READ_ONLY_AUDIO_TEST", "audio",
+                CallConstraints.unconstrained(), CallPreferences.none(), emptyMap(),
+            )
+        } else {
+            CallTask(
+                "Orange CLIR enable", "SET_SERVICE", "CLIR",
+                CallConstraints.unconstrained(), CallPreferences.none(),
+                mapOf(CallExternalEffectValidator.SERVICE_ENABLED_FACT to "true"),
+            )
+        }
+        private val effect by lazy {
+            CallExternalEffect.SetService(target, CallService.CLIR, true)
+        }
         private val workflow = activeWorkflow(task, target)
         private val commitmentGate = CallCommitmentGate { "clir-live-${UUID.randomUUID()}" }
         private val hybridDiagnostics = GateCHybridDiagnostics()
         private val routeVerified = AtomicBoolean(false)
         private val commitmentConsumed = AtomicBoolean(false)
         private val activeMediaGeneration = AtomicLong(-1L)
-        private val identityVault = AndroidIdentityVault.create(context)
+        private val identityVault by lazy { AndroidIdentityVault.create(context) }
         private val factDisclosurePolicy = DefaultFactDisclosurePolicy()
         private val phoneDisclosureState = TaskGraphStateId("clir-service-number-request")
-        private val localPhoneFactBackend = AuthorizedPhoneFactBackend(
+        private val localPhoneFactBackend by lazy { AuthorizedPhoneFactBackend(
             vault = identityVault,
             policy = factDisclosurePolicy,
             scopeProvider = {
@@ -153,10 +181,10 @@ internal object ChatRelayLiveCallProbe {
                 )
             },
             onDisclosure = { lines += "identity_phone_disclosure_local=true" },
-        )
+        ) }
         @Volatile private var completionTracker: CallExternalEffectCompletionTracker? = null
         private val pendingExternalSuccessEvidence = AtomicBoolean(false)
-        private val hybridBackend = GateCHybridDialogueBackendFactory.create(
+        private val hybridBackend by lazy { GateCHybridDialogueBackendFactory.create(
             context = context,
             provider = TextLlmProvider.LOCAL_GEMMA_4,
             relaySessionId = sessionId,
@@ -168,7 +196,7 @@ internal object ChatRelayLiveCallProbe {
                     routeVerified.get() && !commitmentConsumed.get()
             },
             supervisorRelayEnabled = supervisorRelayEnabled,
-        )
+        ) }
         private val backend: TextCallAgentBackend = if (readOnlySupervised) {
             SupervisedReadOnlyDialogueBackend()
         } else {
@@ -571,6 +599,7 @@ internal object ChatRelayLiveCallProbe {
 
         private fun finish(success: Boolean, reason: String? = null) {
             if (!finished.compareAndSet(false, true)) return
+            activeSession.compareAndSet(this, null)
             activeMediaGeneration.set(-1L)
             handler.removeCallbacks(timeout)
             handler.removeCallbacks(authorityWatchdog)

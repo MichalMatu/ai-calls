@@ -63,6 +63,10 @@
             android:noHistory="true" />
 
         <activity
+            android:name=".developerrelay.SupervisedCallPilotActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".campaign.CampaignToolActivity"
             android:exported="false" />
 
