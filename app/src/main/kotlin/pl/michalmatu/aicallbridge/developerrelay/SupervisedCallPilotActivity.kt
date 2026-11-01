@@ -23,7 +23,7 @@ import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
  * Minimum operator-supervised call product. NEVER dials, changes the default
  * dialer, changes an account, discloses identity, or disconnects a cellular call.
  * It only attaches the frozen Shizuku RX/TX path to a call the operator already
- * started and executes up to three local, reviewed audio-script turns.
+ * started and executes up to three reviewed, effect-free dialogue turns.
  */
 class SupervisedCallPilotActivity : Activity() {
     private lateinit var status: TextView
@@ -54,7 +54,9 @@ class SupervisedCallPilotActivity : Activity() {
 
         gemmaMode = CheckBox(this).apply {
             text = "Rozmowa z Gemmą 4 (lokalnie)"
-            isChecked = true
+            // The audio script works without the 2.59 GB model; prefer it until ready.
+            isChecked = AndroidGemma4ModelReadiness.check(this@SupervisedCallPilotActivity).state ==
+                Gemma4ModelReadinessState.READY
         }
         modelStatus = TextView(this).apply { textSize = 14f }
         val content = LinearLayout(this).apply {
