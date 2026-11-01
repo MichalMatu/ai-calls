@@ -2,6 +2,9 @@
 
 Status: **NORMATIVE for active physical acceptance work**.
 
+
+**Temporary safety suspension, 2026-11-01:** do not run the previous automatic Orange loop while exact-call ownership/targeted termination is unavailable. The executor blocks new dialing. This hold overrides older physical-acceptance instructions until fixed and verified on-device; see `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+
 This repository is developed toward a fully autonomous phone-task loop. A new chat, supervisor session or Local Agent session must not regress to making the operator act as a terminal proxy, log copier or manual dialogue relay when the system can do the work itself.
 
 ## Target working loop
