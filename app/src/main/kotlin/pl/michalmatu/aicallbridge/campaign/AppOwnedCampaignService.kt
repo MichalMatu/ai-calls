@@ -39,7 +39,7 @@ class AppOwnedCampaignService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START_SUPERVISED_AUDIO -> {
-                startSupervisedAudio(startId)
+                startSupervisedAudio()
                 return START_NOT_STICKY
             }
             ACTION_STOP_SUPERVISED_AUDIO -> {
@@ -50,8 +50,12 @@ class AppOwnedCampaignService : Service() {
                 return START_NOT_STICKY
             }
         }
-        if (intent?.action != ACTION_START_CLIR_ENABLE || supervisedAudioActive.get()) {
+        if (intent?.action != ACTION_START_CLIR_ENABLE) {
             stopSelf(startId)
+            return START_NOT_STICKY
+        }
+        if (supervisedAudioActive.get()) {
+            statusStore.save("Cannot start a campaign during the supervised audio pilot")
             return START_NOT_STICKY
         }
 
@@ -93,11 +97,22 @@ class AppOwnedCampaignService : Service() {
      * Explicit, user-attached, read-only pilot. It never dials or disconnects a call.
      * The user must start and end the ordinary cellular call in the existing dialer.
      */
-    private fun startSupervisedAudio(startId: Int) {
+    private fun startSupervisedAudio() {
         if (AppOwnedClirCampaignExecutor.isRunning() ||
             !supervisedAudioActive.compareAndSet(false, true)
         ) {
             statusStore.save("Another call runtime is already active")
+            return
+        }
+        val telecom = getSystemService(TelecomManager::class.java)
+        val audio = getSystemService(AudioManager::class.java)
+        val permissionsReady = listOf(
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.RECORD_AUDIO,
+        ).all { checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+        if (!permissionsReady) {
+            supervisedAudioActive.set(false)
+            finish("Read-only audio pilot blocked: microphone and phone-state permission required")
             return
         }
         startForeground(
@@ -105,12 +120,6 @@ class AppOwnedCampaignService : Service() {
             notification("Read-only audio pilot on user-controlled call"),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
         )
-        val telecom = getSystemService(TelecomManager::class.java)
-        val audio = getSystemService(AudioManager::class.java)
-        val permissionsReady = listOf(
-            Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.RECORD_AUDIO,
-        ).all { checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
         val shizukuReady = runCatching {
             Shizuku.pingBinder() && !Shizuku.isPreV11() &&
                 Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
