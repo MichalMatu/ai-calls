@@ -55,6 +55,44 @@ class AndroidLocalSpeechMvpContractTest {
         }
     }
 
+    /** The phone must report either readiness or a concrete service error, never hang. */
+    @Test
+    fun polishOnDeviceSttStartupResolvesWithoutSilentHang() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val outcome = AtomicReference("no_callback")
+        val complete = CountDownLatch(1)
+        val input = OnDeviceSpeechInput(context)
+        try {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                input.start(object : OnDeviceSpeechInput.Listener {
+                    override fun onReady() {
+                        outcome.set("ready")
+                        complete.countDown()
+                    }
+
+                    override fun onFinalTranscript(text: String) {
+                        outcome.set("unexpected_transcript")
+                        complete.countDown()
+                    }
+
+                    override fun onError(reason: String) {
+                        outcome.set("error:$reason")
+                        complete.countDown()
+                    }
+                })
+            }
+            assertTrue("STT startup callback must not hang", complete.await(15, TimeUnit.SECONDS))
+            val terminal = outcome.get()
+            assertTrue(
+                "Expected readiness or a surfaced failure, got $terminal",
+                terminal == "ready" || terminal.startsWith("error:"),
+            )
+            println("LOCAL_STT_STARTUP_OUTCOME=$terminal")
+        } finally {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync { input.close() }
+        }
+    }
+
     @Test
     fun polishOnDeviceSttStartsWithoutTelephonyOrIncomingAudio() {
         val context = ApplicationProvider.getApplicationContext<Context>()
