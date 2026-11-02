@@ -8,7 +8,11 @@ This is the **current** execution plan. The complete 2026-11-01 engineering/audi
 - **Supervised first-call MVP:** physical *off-call* gates `PROVEN_S22`; cellular real-call acceptance **OPEN**.
 - **Autonomous owned calls / Orange CLIR:** **BLOCKED** by absence of a proven exact-call owner with targeted hangup; the safety refusal must stay enabled.
 
-## 2026-11-02 S22 reconnected and app deployed (latest physical state)
+## 2026-11-02 — newest no-click S22 diagnostic acceptance
+
+**DONE:** source `8f976a1` approved by new focused tests, Android app build+lint and DUMP-permission no-media/no-dial contract. Mac Local Agent installed the new APK on the exact idle S22 and ran the app-process readiness probe without on-screen interaction: `microphone_permission=true`, `phone_state_permission=true`, `shizuku_ready=true`, `telecom_in_call=false`, `telecom_managed_call=false`, `audio_mode=MODE_NORMAL`, `failure_reason=no_active_cellular_call`, `report_complete=true`. **This is an off-call PASS**, not an in-call routing PASS. The actual screenshot showed `MODE_IN_COMMUNICATION` during a real user call and still needs contemporaneous read-only triage. Fully automated Orange dialing remains **BLOCKED** until the app has verified exact-call identity and selective disconnect; do not substitute global hangup. See [latest S22 no-click checkpoint](checkpoints/2026-11-02-s22-no-touch-call-readiness-installed.md). Do not rerun completed acceptance suites.
+
+## 2026-11-02 S22 reconnected and app deployed (earlier hardware step)
 
 **APP INSTALLED / READINESS PASS:** Mac Local Agent has verified exact S22+ hardware `SM-S906B / RFCT70L7E8J`, idle carrier state, built the audited Android APK and installed it using `adb install -r` successfully. Post-install Shizuku, microphone permission and live-call readiness are true. Both Google speech support packages are not disabled under Android user 0. **Do not repeat completed PASS tests.** Next and only physical gate is one manual human-consented supervised call proving in-call audio mode, RX/STT, reviewed local dialogue, TTS/TX audibility and STOP while retaining Google Phone control. [S22 checkpoint](checkpoints/2026-11-02-s22-reconnected-audited-apk-installed.md).
 
