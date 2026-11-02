@@ -8,6 +8,10 @@ This is the **current** execution plan. The complete 2026-11-01 engineering/audi
 - **Supervised first-call MVP:** physical *off-call* gates `PROVEN_S22`; cellular real-call acceptance **OPEN**.
 - **Autonomous owned calls / Orange CLIR:** **BLOCKED** by absence of a proven exact-call owner with targeted hangup; the safety refusal must stay enabled.
 
+## 2026-11-02 S22 reconnected and app deployed (latest physical state)
+
+**APP INSTALLED / READINESS PASS:** Mac Local Agent has verified exact S22+ hardware `SM-S906B / RFCT70L7E8J`, idle carrier state, built the audited Android APK and installed it using `adb install -r` successfully. Post-install Shizuku, microphone permission and live-call readiness are true. Both Google speech support packages are not disabled under Android user 0. **Do not repeat completed PASS tests.** Next and only physical gate is one manual human-consented supervised call proving in-call audio mode, RX/STT, reviewed local dialogue, TTS/TX audibility and STOP while retaining Google Phone control. [S22 checkpoint](checkpoints/2026-11-02-s22-reconnected-audited-apk-installed.md).
+
 ## 2026-11-02 offline diagnostics gate (newer than the original pre-call quality receipt)
 
 The first on-call attempt reported `AUDIO_ROUTE_NOT_READY`. The current diagnostic module refactor (code `cce1fe99`) removes inconsistent double-sampling, uses synchronized diagnostics and atomic private receipts, and avoids model argument/local error content in evidence. **New diagnostic source HOST_GREEN**: Mac task `aicalls-diagnostics-modular-audit-host-20261102-v2` is terminal **DONE/0** on pinned production code `cce1fe99`; new focused tests, app assemble/lint, static safety and clean-worktree checks all **PASS**. The initial v1 compile failure is retained as a failed attempt, not relabeled. Current phone is disconnected, so **physical deployment, real-call RX/TX and acoustic STOP remain OPEN**. Install only after exact S22 identity + IDLE preflight. Do **not** rerun earlier PASS full suites. See [offline diagnostics audit](checkpoints/2026-11-02-offline-supervised-diagnostics-architecture-audit.md) and [handoff](HANDOFF_NEXT_CHAT.md).
