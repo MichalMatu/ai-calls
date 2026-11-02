@@ -162,8 +162,14 @@ class SupervisedCallPilotActivity : Activity() {
     /** Report contains only system readiness signals; never a phone number, audio or transcript. */
     private fun saveReadinessReport(failure: SupervisedCallPilotFailure?) {
         val telecom = getSystemService(TelecomManager::class.java)
-        val hasCall = runCatching { telecom?.isInCall == true }.getOrDefault(false)
-        val managedCall = runCatching { telecom?.isInManagedCall == true }.getOrDefault(false)
+        val phonePermission = checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasCall = if (phonePermission) {
+            runCatching { telecom?.isInCall == true }.getOrDefault(false)
+        } else false
+        val managedCall = if (phonePermission) {
+            runCatching { telecom?.isInManagedCall == true }.getOrDefault(false)
+        } else false
         val audioMode = audioModeLabel()
         val content = buildString {
             appendLine("probe=supervised_call_readiness")
