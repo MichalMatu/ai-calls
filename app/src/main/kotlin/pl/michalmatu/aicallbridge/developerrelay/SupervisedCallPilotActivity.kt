@@ -7,12 +7,16 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.telecom.TelecomManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
@@ -34,6 +38,8 @@ class SupervisedCallPilotActivity : Activity() {
     private var returnedFromDialer = false
     private val allowed = AtomicBoolean(false)
     private var session: ChatRelayLiveCallProbe.SessionControl? = null
+    private val routeHandler = Handler(Looper.getMainLooper())
+    private var pendingRouteProbe: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,11 +109,13 @@ class SupervisedCallPilotActivity : Activity() {
         refreshModelStatus()
         if (returnedFromDialer && !allowed.get()) {
             returnedFromDialer = false
-            if (preflight() == null) {
-                status.text = "Rozmowa wykryta. Potwierdź, aby uruchomić AI."
-                confirmAttach()
-            } else {
-                status.text = "Wrócono z dialera. Jeśli rozmowa trwa, " +
+            when (preflight()) {
+                null -> {
+                    status.text = "Rozmowa wykryta. Potwierdź, aby uruchomić AI."
+                    confirmAttach()
+                }
+                SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY -> awaitAudioRoute()
+                else -> status.text = "Wrócono z dialera. Jeśli rozmowa trwa, " +
                     "dotknij «Uruchom AI w trwającej rozmowie»."
             }
         }
@@ -139,6 +147,76 @@ class SupervisedCallPilotActivity : Activity() {
         return SupervisedCallPilotPolicy.check(mic, phone, ready, active, inCallAudio)
     }
 
+    private fun audioModeLabel(): String {
+        val mode = getSystemService(AudioManager::class.java)?.mode
+        return when (mode) {
+            AudioManager.MODE_IN_CALL -> "MODE_IN_CALL"
+            AudioManager.MODE_IN_COMMUNICATION -> "MODE_IN_COMMUNICATION"
+            AudioManager.MODE_NORMAL -> "MODE_NORMAL"
+            AudioManager.MODE_RINGTONE -> "MODE_RINGTONE"
+            null -> "UNAVAILABLE"
+            else -> "OTHER_$mode"
+        }
+    }
+
+    /** Report contains only system readiness signals; never a phone number, audio or transcript. */
+    private fun saveReadinessReport(failure: SupervisedCallPilotFailure?) {
+        val telecom = getSystemService(TelecomManager::class.java)
+        val hasCall = runCatching { telecom?.isInCall == true }.getOrDefault(false)
+        val managedCall = runCatching { telecom?.isInManagedCall == true }.getOrDefault(false)
+        val audioMode = audioModeLabel()
+        val content = buildString {
+            appendLine("probe=supervised_call_readiness")
+            appendLine("telecom_in_call=$hasCall")
+            appendLine("telecom_managed_call=$managedCall")
+            appendLine("audio_mode=$audioMode")
+            appendLine("failure_reason=${failure?.name?.lowercase() ?: "none"}")
+            appendLine("report_complete=true")
+        }
+        runCatching { File(filesDir, "supervised-call-readiness-report.txt").writeText(content) }
+    }
+
+    private fun cancelRouteProbe() {
+        pendingRouteProbe?.let(routeHandler::removeCallbacks)
+        pendingRouteProbe = null
+    }
+
+    /** Retry an Android routing transition only; never override the frozen media gate. */
+    private fun awaitAudioRoute() {
+        if (pendingRouteProbe != null) return
+        status.text = "Rozmowa wykryta. Sprawdzam tor audio Androida (do 3 s)…"
+        val start = SystemClock.elapsedRealtime()
+        val probe = object : Runnable {
+            override fun run() {
+                if (isFinishing || isDestroyed) {
+                    pendingRouteProbe = null
+                    return
+                }
+                val failure = preflight()
+                if (failure == null) {
+                    pendingRouteProbe = null
+                    saveReadinessReport(null)
+                    confirmAttach() // The explicit consent dialog remains mandatory.
+                } else if (SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
+                        failure, SystemClock.elapsedRealtime() - start)) {
+                    routeHandler.postDelayed(this, 300L)
+                } else {
+                    pendingRouteProbe = null
+                    saveReadinessReport(failure)
+                    if (failure == SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY) {
+                        status.text = "Połączenie wykryte, lecz tryb audio to ${audioModeLabel()}, " +
+                            "nie MODE_IN_CALL. Bezpiecznie nie uruchomiono AI. " +
+                            "Zapisano diagnostykę dla Local Agenta."
+                    } else {
+                        confirmAttach() // Displays the current permission/call error without a dial.
+                    }
+                }
+            }
+        }
+        pendingRouteProbe = probe
+        routeHandler.postDelayed(probe, 250L)
+    }
+
     private fun confirmAttach() {
         if (allowed.get()) {
             status.text = "Sesja AI już działa."
@@ -162,7 +240,7 @@ class SupervisedCallPilotActivity : Activity() {
                 return
             }
             SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY -> {
-                status.text = "Tor rozmowy nie jest aktywny. Spróbuj podczas trwającego połączenia."
+                awaitAudioRoute()
                 return
             }
             null -> Unit
@@ -199,6 +277,7 @@ class SupervisedCallPilotActivity : Activity() {
     }
 
     private fun startPilot(approvedGemmaMode: Boolean) {
+        cancelRouteProbe()
         if (approvedGemmaMode &&
             AndroidGemma4ModelReadiness.check(this).state != Gemma4ModelReadinessState.READY
         ) {
@@ -261,12 +340,14 @@ class SupervisedCallPilotActivity : Activity() {
     }
 
     override fun onStop() {
+        cancelRouteProbe()
         // A foreground UI is our operator supervision; no unattended audio on Home/dialer.
         if (allowed.get()) stopAudio()
         super.onStop()
     }
 
     override fun onDestroy() {
+        cancelRouteProbe()
         if (allowed.get() || session != null) stopAudio()
         super.onDestroy()
     }
