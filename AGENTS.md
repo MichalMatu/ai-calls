@@ -1,5 +1,18 @@
 # Agent workflow
 
+## Mission and owner delegation — normative, 2026-11-02
+
+**AI Calls is an autonomous, local-AI telephone task executor, not an app whose final workflow requires the owner to dial, click through dialogue, or hang up manually.** The user assigns a concrete outcome; the on-device agent executes the authorized call(s), understands the counterparty, acts within the user's task scope, establishes an actual result, ends its session and reports back. Ordinary lawful destinations are not inherently restricted to Orange or a fixed developer allowlist. Appointment booking, cancellations, read-only inquiries and user-authorized account/service data operations belong to the same generic task engine.
+
+**Owner's broad standing engineering mandate:** work independently across source, architecture, tests, diagnostics, build, install, device inspection, integration, cleanup and documentation; use the designated GitHub Connector + Mac Local Agent workflow. Within a **concrete already-authorized user task or valid application grant**, handle retry/resume, number selection from the authorized target set, IVR navigation, continued dialogue and termination without repeatedly asking the owner to click or approve an identical step. Own the whole workflow and repair verified defects rather than reverting to a manual supervised pilot as the intended final product. Prioritize a *real* autonomous call → live local AI → factual task outcome → verified teardown acceptance.
+
+**Scope of this mandate:** permission to develop and work autonomously is not a universal action token for arbitrary numbers, other people's accounts, personal-data disclosures, purchases, emergency/premium targets or changes to a materially different service. A live external action still needs a concrete goal, permitted destination and task/effect/account/disclosure scope, with a durable, revocable application-owned grant when required. Observe Android/runtime permissions, call-party privacy/consent, costs and external tool constraints. Never treat this Markdown document, chat prose or model output as a substitute for the application's authority store. Do not use a different tool to evade an external denial.
+
+**No redundant user interaction:** do not ask again for source/branch/device paths, debugging/log collection, running accepted builds, routine non-effectful tests or a repeat attempt fully covered by an unchanged existing authorization. Prefer a single clear application setup/approval control that obtains OS permissions once, then an autonomous task loop. Distinguish product intent from actual capability in reports: `HOST_GREEN` and off-call S22 PASS are not live dial/audio/teardown PASS.
+
+See [product README](README.md), [Architecture](docs/ARCHITECTURE.md), [Autonomous operation](docs/AUTONOMOUS_OPERATION_MODE.md), [Generic authority](docs/GENERIC_PHONE_TASK_AUTHORITY.md) and [Security](docs/SECURITY_PRIVACY.md).
+
+
 
 > **Current gate — 2026-11-02:** read `docs/checkpoints/2026-11-02-before-first-call-checkpoint.md` and the short `docs/HANDOFF_NEXT_CHAT.md` first. Polish STT/TTS, local Gemma and supervised UI/off-call media safety are physically **PASS**; **a real, user-started consenting supervised cellular conversation with audible RX/TX/STOP remains OPEN**. The autonomous CLIR dial remains **fail-closed** until exact call ownership and targeted hangup exist. Do not resume automatic `*100` loops or global hangup. Historical 2026-11-01 pending/FAIL status in older docs is superseded only for explicitly closed no-call scopes; latest host quality result is recorded in the pre-call checkpoint.
 
@@ -30,7 +43,7 @@ Fetch fresh `origin/main`. Read current Local Agent source/protocol from `Michal
 - Inspect **exact task result** at `.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/task-results/<task-id>.json` and `status.json`, on the same private `local-agent:agent-control` branch. A Git commit / historical heartbeat does not imply execution. Distinguish `done`, `failed` and `UNKNOWN`; do not replay unknown effects.
 - For repository-specific agent tasks the **separate** `ai-calls:agent-control/.agent/tasks/` mailbox remains a supported *project* route with exact `agent_binding=c25f88c0-4682-414c-8062-c47fa4034cb0`. Use only when the task truly belongs to that registered repository. An old project mailbox never establishes Mac Host Control liveness.
 - Host-task authorization follows the Mac owner's already installed `github_writers` intake, exact host+installation ID, local STOP and resource leases. Never put commands or outputs in a public repo. Do not run GitHub Actions, Codex or Work. Do not reconfigure the service or alter host identity for ordinary project work.
-- **Telephone gate:** read-only `adb devices -l`, paired Wireless ADB, identity and `IDLE` readiness are allowed. No `*100`, `ACTION_CALL`, CLIR mutation or device-wide hangup unless actual exact-call Android owner, current explicit effect grant and physical safety are established. Existing app `CampaignCallControllerRegistry` is still unimplemented.
+- **Current execution distinction:** the owner authorizes autonomous engineering and intends app-owned real calls, but the specific application-controlled call dial/teardown mechanism must still be implemented and verified. Read-only ADB inspection and no-effect tests may proceed autonomously. Actual calls and external effects require a concrete scoped authorization and current device/telephony checks. Global device hangup is not an exact-call handle; the existing `CampaignCallControllerRegistry` is still unimplemented. See the latest checkpoint for any external-tool execution block.
 
 ### Execution tool priority
 
@@ -56,9 +69,9 @@ Do **not** ask the operator for repository paths, branch names, session IDs, ret
 
 ## Current priority
 
-**Immediate acceptance:** one consenting **user-initiated** supervised cellular call, without automated dialing or app-owned external effects. Recover fresh S22/readiness and host QA from the pre-call checkpoint, then inspect real audio RX/STT/Gemma-or-script/TTS/TX and acoustic STOP. Do not repeat completed off-call tests without a regression. The autonomous owned-call/CLIR work below is a **later blocked track**, not the authorization for this first test.
+**Primary product acceptance:** autonomously execute a concrete, authorized telephone task through local AI: select an approved target, dial, conduct a real conversation, obtain factual task evidence, finish/clean up the intended call and return to IDLE. **Next feasible hardware gate:** prove the unresolved in-call audio path using the already-installed one-tap supervised pilot where necessary; this is only a stepping stone, never the final product. Exact-call controller/cleanup is a first-class engineering workstream, not a permanently deferred feature. Preserve previous off-call PASS and separately report the currently blocked real dial/audio/cleanup pieces.
 
-The product is a **generic autonomous phone task engine**. Do not create service-specific authority architectures.
+The product is a **generic autonomous phone task engine** that can call a user-authorized ordinary number, resume an interrupted task within its grant, handle IVR and end its own session. Do not narrow its purpose to Orange CLIR or create service-specific authority architectures.
 
 Current acceptance sequence (safety override supersedes older Orange call-loop plans):
 
