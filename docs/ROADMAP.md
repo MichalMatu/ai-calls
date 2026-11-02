@@ -8,6 +8,10 @@ This is the **current** execution plan. The complete 2026-11-01 engineering/audi
 - **Supervised first-call MVP:** physical *off-call* gates `PROVEN_S22`; cellular real-call acceptance **OPEN**.
 - **Autonomous owned calls / Orange CLIR:** **BLOCKED** by absence of a proven exact-call owner with targeted hangup; the safety refusal must stay enabled.
 
+## 2026-11-02 offline diagnostics gate (newer than the original pre-call quality receipt)
+
+The first on-call attempt reported `AUDIO_ROUTE_NOT_READY`. The current diagnostic module refactor (code `cce1fe99`) removes inconsistent double-sampling, uses synchronized diagnostics and atomic private receipts, and avoids model argument/local error content in evidence. **New source is not yet host-qualified**: latest Mac diagnostic test/lint task `aicalls-diagnostics-modular-audit-host-20261102-v2` was nonterminal at the handoff; the previous v1 failed compilation and was corrected. Current phone is disconnected, so no deployment or real-call claim is possible. Resolve the new targeted code gate, then install after precise S22 identity + IDLE preflight. Do **not** rerun earlier PASS full suites. See [offline diagnostics audit](checkpoints/2026-11-02-offline-supervised-diagnostics-architecture-audit.md) and [handoff](HANDOFF_NEXT_CHAT.md).
+
 ## Immediate next step — one first supervised call
 
 1. Read [pre-call checkpoint](checkpoints/2026-11-02-before-first-call-checkpoint.md) and [new-chat handoff](HANDOFF_NEXT_CHAT.md). Inspect fresh `main` HEAD, current Mac Local Agent task results, S22 USB identity, Shizuku and `IDLE`; do not repeat completed speech/model/off-call tests absent a code/configuration regression.
