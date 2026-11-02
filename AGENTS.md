@@ -1,7 +1,7 @@
 # Agent workflow
 
 
-> **Safety override — 2026-11-01:** the autonomous CLIR dial is deliberately fail-closed until a real exact-call owner with targeted hangup exists; the generic TelecomManager call cannot establish ownership. Do not resume old physical `*100` loops, bypass the call-ownership guard, or equate carrier-reported success with independent network verification. Read `docs/CORRECTION_CAMPAIGN_2026-11-01.md` and fresh `main` before further work. Full Gradle/Android/S22 acceptance remains open.
+> **Current gate — 2026-11-02:** read `docs/checkpoints/2026-11-02-before-first-call-checkpoint.md` and the short `docs/HANDOFF_NEXT_CHAT.md` first. Polish STT/TTS, local Gemma and supervised UI/off-call media safety are physically **PASS**; **a real, user-started consenting supervised cellular conversation with audible RX/TX/STOP remains OPEN**. The autonomous CLIR dial remains **fail-closed** until exact call ownership and targeted hangup exist. Do not resume automatic `*100` loops or global hangup. Historical 2026-11-01 pending/FAIL status in older docs is superseded only for explicitly closed no-call scopes; latest host quality result is recorded in the pre-call checkpoint.
 
 This repository is single-developer and main-first. Durable product code/docs live on `main`. The local `ai-calls:agent-control` branch is an **older project-task mailbox**, not the Mac Host Control queue. For machine/ADB/build tasks use the selected Mac installation on **`MichalMatu/local-agent:agent-control`**, as documented below.
 
@@ -13,7 +13,7 @@ Read fresh repository sources in this order:
 2. `docs/HANDOFF_NEXT_CHAT.md`
 3. `docs/AUTONOMOUS_OPERATION_MODE.md`
 4. `docs/ROADMAP.md`
-5. active domain runbook (`docs/G5_CLIR_ROUTE_DISCOVERY.md` for the current gate)
+5. `docs/checkpoints/2026-11-02-before-first-call-checkpoint.md` for supervised first-call acceptance; `docs/G5_CLIR_ROUTE_DISCOVERY.md` only for the later CLIR track
 6. `docs/ARCHITECTURE.md`
 7. `docs/GENERIC_PHONE_TASK_AUTHORITY.md`
 8. `docs/SECURITY_PRIVACY.md`
@@ -55,6 +55,8 @@ Do **not** ask the operator for repository paths, branch names, session IDs, ret
 `docs/AUTONOMOUS_OPERATION_MODE.md` is normative for active physical acceptance work. Do not make the operator act as a terminal/log relay when Local Agent, ADB or the transient relay can perform the step directly.
 
 ## Current priority
+
+**Immediate acceptance:** one consenting **user-initiated** supervised cellular call, without automated dialing or app-owned external effects. Recover fresh S22/readiness and host QA from the pre-call checkpoint, then inspect real audio RX/STT/Gemma-or-script/TTS/TX and acoustic STOP. Do not repeat completed off-call tests without a regression. The autonomous owned-call/CLIR work below is a **later blocked track**, not the authorization for this first test.
 
 The product is a **generic autonomous phone task engine**. Do not create service-specific authority architectures.
 
