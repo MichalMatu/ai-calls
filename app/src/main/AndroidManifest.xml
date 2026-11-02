@@ -66,6 +66,14 @@
             android:name=".developerrelay.SupervisedCallPilotActivity"
             android:exported="false" />
 
+        <!-- ADB/shell-only observation. Never dials, attaches media or changes call state. -->
+        <activity
+            android:name=".developerrelay.SupervisedCallReadinessProbeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
         <activity
             android:name=".campaign.CampaignToolActivity"
             android:exported="false" />
