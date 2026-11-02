@@ -30,7 +30,7 @@ Dokładne logi i granice testów: [checkpoint odzyskania STT](2026-11-02-ai-call
 - Zadanie: `aicalls-20261102-precall-quality-gate-v1`, prywatne `MichalMatu/local-agent:agent-control`, Mac `macbook-michal`, instalacja `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`.
 - Sprawdzane źródło `de648700bdd83abb3cf652532f78b75b5f2842dd` (ostatnie zmiany tylko dokumentacyjne).
 - `scripts/verify_host.sh`: testy Android/JVM wszystkich modułów, lint wszystkich modułów, `app:assembleDebug`, AndroidTest APK, Python unittest, skany sekretów i zakazanych komend, `git diff --check`. Dodatkowo niedestrukcyjny S22 ADB/IDLE/dialer i kontrola czystości `git status`.
-- **WYNIK: PENDING — nie przypisuj PASS bez terminalnego receiptu.** Po odebraniu rezultatu zastąp ten wiersz wynikiem i ewentualnie zapisz rzeczywisty bloker.
+- **WYNIK: PASS — terminalny receipt `done/0`, `QUALITY_SCRIPT_EXIT=0`, `host_quality_gate_green=true`, `QUALITY_GATE_MAIN_PRODUCT_CODE=PASS`.** Trzy uruchomienia Gradle zakończone `BUILD SUCCESSFUL` (1m27s / 2m21s / 49s): testy jednostkowe JVM/Android czterech modułów, lint czterech modułów oraz oba APK. Python: `Ran 199 tests`, `OK`. Skan tajnych danych i zakazanych prymitywów połączeń: PASS; `SAFETY_STATIC_CHECK=PASS`, `CLEAN_CHECKOUT=PASS`, `WORKTREE_CLEAN_AFTER=PASS`. Fizyczny S22 obecny na USB ADB, `mCallState=0`, domyślny `com.google.android.dialer`, oba komponenty `com.google.android.as` i `com.google.android.as.oss` włączone. Bez instalacji APK i bez połączenia. Następne commity w tej sesji modyfikowały **jedynie dokumentację**; źródła aplikacji sprawdzone w quality gate nie zmieniły się.
 
 ## Realny test pozostaje OTWARTY
 
