@@ -21,6 +21,7 @@ class AppOwnedCampaignService : Service() {
     private lateinit var statusStore: CampaignRuntimeStatusStore
     private lateinit var notificationManager: NotificationManager
     private val supervisedAudioActive = AtomicBoolean(false)
+    private var supervisedAudioSession: ChatRelayLiveCallProbe.SessionControl? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -44,6 +45,8 @@ class AppOwnedCampaignService : Service() {
             }
             ACTION_STOP_SUPERVISED_AUDIO -> {
                 supervisedAudioActive.set(false)
+                supervisedAudioSession?.stopAudio()
+                supervisedAudioSession = null
                 if (!AppOwnedClirCampaignExecutor.isRunning()) {
                     finish("Supervised audio test stopped; the cellular call remains under your control")
                 }
@@ -151,6 +154,7 @@ class AppOwnedCampaignService : Service() {
                 readOnlySupervised = true,
             ) { report ->
                 supervisedAudioActive.set(false)
+                supervisedAudioSession = null
                 val reason = report.lineSequence()
                     .firstOrNull { it.startsWith("failure_reason=") }
                     ?.substringAfter('=')?.take(80)
@@ -165,11 +169,15 @@ class AppOwnedCampaignService : Service() {
         if (result.isFailure) {
             supervisedAudioActive.set(false)
             finish("Read-only audio pilot failed to start; cellular call remains untouched")
+        } else if (supervisedAudioActive.get()) {
+            supervisedAudioSession = result.getOrNull()
         }
     }
 
     override fun onDestroy() {
         supervisedAudioActive.set(false)
+        supervisedAudioSession?.stopAudio()
+        supervisedAudioSession = null
         super.onDestroy()
     }
 
