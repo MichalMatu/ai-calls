@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.speech.RecognitionListener
 import android.speech.RecognitionSupport
@@ -30,6 +32,8 @@ internal class OnDeviceSpeechInput(
     private val appContext = context.applicationContext
     private val gate = LocalSpeechGenerationGate()
     private val lock = Any()
+    private val startupHandler = Handler(Looper.getMainLooper())
+    private var startupWatchdog: Runnable? = null
     private var recognizer: SpeechRecognizer? = null
     private var readPfd: ParcelFileDescriptor? = null
     private var writer: OutputStream? = null
@@ -51,19 +55,75 @@ internal class OnDeviceSpeechInput(
             return
         }
 
-        val active = SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext)
+        val active = try {
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext)
+        } catch (error: Throwable) {
+            finishWithError(generation, listener, "create_recognizer_${error.javaClass.simpleName}")
+            return
+        }
         synchronized(lock) { recognizer = active }
-        active.checkRecognitionSupport(
+        try {
+            active.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {
+                    if (gate.isCurrent(generation)) {
+                        disarmStartupWatchdog()
+                        listener.onReady()
+                    }
+                }
+    
+                override fun onBeginningOfSpeech() = Unit
+                override fun onRmsChanged(rmsdB: Float) = Unit
+                override fun onBufferReceived(buffer: ByteArray?) = Unit
+                override fun onEndOfSpeech() = Unit
+                override fun onPartialResults(partialResults: Bundle?) = Unit
+                override fun onEvent(eventType: Int, params: Bundle?) = Unit
+    
+                override fun onSegmentResults(segmentResults: Bundle) {
+                    if (!gate.isCurrent(generation)) return
+                    val top = segmentResults
+                        .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        ?.firstOrNull()
+                        .orEmpty()
+                    if (top.isNotBlank()) synchronized(lock) { segments += top }
+                }
+    
+                override fun onEndOfSegmentedSession() {
+                    if (!gate.isCurrent(generation)) return
+                    completeTranscript(generation, listener, "")
+                }
+    
+                override fun onError(error: Int) {
+                    finishWithError(generation, listener, "recognition_error_$error")
+                }
+    
+                override fun onResults(results: Bundle?) {
+                    if (!gate.isCurrent(generation)) return
+                    val direct = results
+                        ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        ?.firstOrNull()
+                        .orEmpty()
+                    completeTranscript(generation, listener, direct)
+                }
+            })
+        } catch (error: Throwable) {
+            finishWithError(generation, listener, "set_listener_${error.javaClass.simpleName}")
+            return
+        }
+        armStartupWatchdog(generation, listener, "support_check_timeout")
+        try {
+            active.checkRecognitionSupport(
             baseIntent(),
             appContext.mainExecutor,
             object : RecognitionSupportCallback {
                 override fun onSupportResult(recognitionSupport: RecognitionSupport) {
                     if (!gate.isCurrent(generation)) return
+                    disarmStartupWatchdog()
                     val installed = recognitionSupport.installedOnDeviceLanguages.any(::isSelectedLanguage)
                     if (!installed) {
                         finishWithError(generation, listener, "language_model_not_installed")
                         return
                     }
+                    armStartupWatchdog(generation, listener, "recognition_ready_timeout")
                     beginPipeRecognition(generation, listener, active)
                 }
 
@@ -71,7 +131,10 @@ internal class OnDeviceSpeechInput(
                     finishWithError(generation, listener, "support_check_error_$error")
                 }
             },
-        )
+            )
+        } catch (error: Throwable) {
+            finishWithError(generation, listener, "support_check_exception_${error.javaClass.simpleName}")
+        }
     }
 
     fun writePcm(bytes: ByteArray, offset: Int = 0, length: Int = bytes.size): Boolean {
@@ -135,46 +198,6 @@ internal class OnDeviceSpeechInput(
             putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE)
         }
 
-        active.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {
-                if (gate.isCurrent(generation)) listener.onReady()
-            }
-
-            override fun onBeginningOfSpeech() = Unit
-            override fun onRmsChanged(rmsdB: Float) = Unit
-            override fun onBufferReceived(buffer: ByteArray?) = Unit
-            override fun onEndOfSpeech() = Unit
-            override fun onPartialResults(partialResults: Bundle?) = Unit
-            override fun onEvent(eventType: Int, params: Bundle?) = Unit
-
-            override fun onSegmentResults(segmentResults: Bundle) {
-                if (!gate.isCurrent(generation)) return
-                val top = segmentResults
-                    .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    ?.firstOrNull()
-                    .orEmpty()
-                if (top.isNotBlank()) synchronized(lock) { segments += top }
-            }
-
-            override fun onEndOfSegmentedSession() {
-                if (!gate.isCurrent(generation)) return
-                completeTranscript(generation, listener, "")
-            }
-
-            override fun onError(error: Int) {
-                finishWithError(generation, listener, "recognition_error_$error")
-            }
-
-            override fun onResults(results: Bundle?) {
-                if (!gate.isCurrent(generation)) return
-                val direct = results
-                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    ?.firstOrNull()
-                    .orEmpty()
-                completeTranscript(generation, listener, direct)
-            }
-        })
-
         try {
             active.startListening(request)
         } catch (error: Throwable) {
@@ -206,7 +229,24 @@ internal class OnDeviceSpeechInput(
         cleanup()
     }
 
+    private fun armStartupWatchdog(generation: Long, listener: Listener, reason: String) {
+        disarmStartupWatchdog()
+        val timeout = Runnable { finishWithError(generation, listener, reason) }
+        synchronized(lock) { startupWatchdog = timeout }
+        startupHandler.postDelayed(timeout, STARTUP_TIMEOUT_MS)
+    }
+
+    private fun disarmStartupWatchdog() {
+        val timeout = synchronized(lock) {
+            val current = startupWatchdog
+            startupWatchdog = null
+            current
+        }
+        if (timeout != null) startupHandler.removeCallbacks(timeout)
+    }
+
     private fun cleanup() {
+        disarmStartupWatchdog()
         val currentRecognizer: SpeechRecognizer?
         val currentRead: ParcelFileDescriptor?
         val currentWriter: OutputStream?
@@ -231,6 +271,10 @@ internal class OnDeviceSpeechInput(
         putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+    }
+
+    private companion object {
+        const val STARTUP_TIMEOUT_MS = 10_000L
     }
 
     private fun isSelectedLanguage(tag: String): Boolean =
