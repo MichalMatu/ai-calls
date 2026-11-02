@@ -250,6 +250,7 @@ internal object AppOwnedClirCampaignExecutor {
         authorizationStore: CampaignAuthorizationStore,
         onStatus: (String) -> Unit,
     ) {
+        if (!running.get()) return
         val sessionId = "app-clir-" +
             grant.grantId.filter(Char::isLetterOrDigit).take(20).ifBlank { "campaign" }
         val phoneDisclosureAuthorized =
@@ -263,7 +264,8 @@ internal object AppOwnedClirCampaignExecutor {
                 phoneDisclosureAuthorized = phoneDisclosureAuthorized,
                 supervisorRelayEnabled = false,
                 liveAuthorization = {
-                    runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
+                    running.get() &&
+                        runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
                         CampaignAccountScope.currentVoiceSubscription(appContext) == request.accountScope &&
                         authorizationStore.isAuthorizedInFlight(
                             grantId = grant.grantId,
@@ -277,9 +279,9 @@ internal object AppOwnedClirCampaignExecutor {
                 val failureReason = reportValue(report, "failure_reason")
                 audioSession.set(null)
                 val cleanup = ownedCalls.release(ownedCall)
-                running.set(false)
+                val wasRunning = running.getAndSet(false)
 
-                onStatus(
+                if (wasRunning) onStatus(
                     when {
                         probeSuccess && carrierReportedSuccess ->
                             "Carrier reports CLIR activation, independent network verification pending; " +
@@ -297,6 +299,7 @@ internal object AppOwnedClirCampaignExecutor {
             }
             if (running.get()) {
                 audioSession.set(launchedAudio)
+                if (!running.get()) audioSession.getAndSet(null)?.stopAudio()
             } else {
                 launchedAudio?.stopAudio()
             }

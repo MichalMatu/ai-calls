@@ -48,11 +48,9 @@ class AppOwnedCampaignService : Service() {
                 supervisedAudioActive.set(false)
                 supervisedAudioSession?.stopAudio()
                 supervisedAudioSession = null
-                val ownedStopped = AppOwnedClirCampaignExecutor.stop { statusStore.save(it) }
-                finish(
-                    if (ownedStopped) "STOP AI: owned campaign stopped; targeted cleanup requested"
-                    else "STOP AI: app audio stopped; external calls remain untouched",
-                )
+                var ownedStatus: String? = null
+                AppOwnedClirCampaignExecutor.stop { ownedStatus = it }
+                finish(ownedStatus ?: "STOP AI: app audio stopped; external calls remain untouched")
                 return START_NOT_STICKY
             }
         }

@@ -155,9 +155,9 @@ class MainActivity : Activity() {
             setOnClickListener {
                 startService(
                     Intent(this@MainActivity, AppOwnedCampaignService::class.java)
-                        .setAction(AppOwnedCampaignService.ACTION_STOP_SUPERVISED_AUDIO),
+                        .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI),
                 )
-                statusView.text = "Zatrzymano lokalną sesję audio AI."
+                statusView.text = "Wysłano STOP AI; wynik zapisze serwis."
             }
         }
 

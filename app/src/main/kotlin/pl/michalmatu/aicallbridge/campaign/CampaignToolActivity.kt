@@ -38,11 +38,7 @@ class CampaignToolActivity : Activity() {
         val startButton = Button(this).apply {
             text = "Start authorized CLIR enable"
             setOnClickListener {
-                if (CampaignCallControllerRegistry.available() == null) {
-                    statusView.text = "No verified call controller installed; dialing is unavailable"
-                } else {
-                    ensurePermissionsThen(PendingAction.START)
-                }
+                ensurePermissionsThen(PendingAction.START)
             }
         }
         val supervisedAudioButton = Button(this).apply {
