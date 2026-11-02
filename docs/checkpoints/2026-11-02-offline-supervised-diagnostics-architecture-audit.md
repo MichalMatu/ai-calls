@@ -27,15 +27,16 @@ The live symptom was: `AUDIO_ROUTE_NOT_READY` while the user reported a manually
 
 - Historical **PASS, not rerun:** on-device Polish STT/TTS, locally approved Gemma 4, Shizuku, off-call media refusal, original no-call supervised UI and former full host gate. Their success applies only to the previous source and tested physical scope.
 - Task `aicalls-diagnostics-modular-audit-host-20261102-v1`: **FAILED**. New source was pinned and clean but the first compile caught a leftover expression at end of `ChatRelayLiveCallProbe.kt`; **no new tests ran**. Syntax was corrected at `cce1fe99`.
-- Task `aicalls-diagnostics-modular-audit-host-20261102-v2`: queued on the exact pinned source `cce1fe99` for **only** two new test classes, `:app:assembleDebug`, `:app:lintDebug`, static safety/privacy checks and clean-worktree proof; **no terminal result was published at checkpoint time**. Do not call it PASS or retry if its effects are UNKNOWN; inspect the exact immutable receipt first.
-- Last observed Mac `local-agent:agent-control` status was `idle` at `2026-11-02T19:01:46Z`; it is a dated observation and **not proof of current host activity**. The v2 control task publication is an enqueue, not execution.
+- Task `aicalls-diagnostics-modular-audit-host-20261102-v2`: **terminal DONE / exit 0**, verified immutable receipt, exact pinned clean source `cce1fe99c7110f5c43a5f5406cdcae7b8238ed3e`. `NEW_DIAGNOSTICS_TESTS=PASS` (only the two new focused test classes); `APP_COMPILE_LINT=PASS` (`:app:assembleDebug` and `:app:lintDebug`); `DIFF_CHECK=PASS`, `SAFETY_AND_PRIVACY_STATIC=PASS`, `WORKTREE_CLEAN=PASS`, `NO_DEVICE_NO_DIAL_NO_INSTALL=true`. Execution duration ~116 seconds. This is **HOST_GREEN for the new diagnostics source**, not physical audio evidence.
+- GitHub comparison of tested code `cce1fe99` with documentation HEAD `f299393`: only `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md`, and this checkpoint had changed. No product-code drift.
+- Mac live runtime is 4.20.16; the exact task receipt proves this host executed the scoped source verification. The earlier `idle` heartbeat timestamp is historical, not a substitute for a current status check.
 - **New APK NOT installed on S22**; no physical real-call RX/TX/STOP acceptance.
 
 ## Edge-case inventory and decisions
 
 | Severity | Case / reasoning | Current decision / next proof |
 |---|---|---|
-| P0 | Host source build/test/lint not yet terminal after diagnostics refactor | Read v2 result; repair only verified compile/lint/test failure; run the smallest impacted regression |
+| CLOSED | Exact diagnostic source build/test/lint gate | v2 terminal DONE/0: new tests, compile, lint, static checks PASS; no repeated unrelated tests |
 | P0 | S22 disconnected, new APK absent; live RX/TX/STOP not accepted | Do not infer `PROVEN_S22` from host compile. Resume after exact device reconnect and manual consenting call |
 | P1 | Telecom indicates call but app AudioManager reports another mode | Keep fail-closed; capture one timestamp-correlated app snapshot and read-only `dumpsys audio` / `telephony.registry` **during** a human-initiated call; only then isolate app-versus-helper mode attribution |
 | P1 | UI destroyed/backgrounded during capture, consent confirmation or route wait | Existing onStop revokes AI media, handler route wait is canceled; retain as safe-by-default; assess UX after physical test |
@@ -60,11 +61,11 @@ The live symptom was: `AUDIO_ROUTE_NOT_READY` while the user reported a manually
 
 ## Recovery / exact next sprint
 
-1. Read `docs/HANDOFF_NEXT_CHAT.md` and this checkpoint; resolve task `aicalls-diagnostics-modular-audit-host-20261102-v2` (check **terminal result**, not branch commit/heartbeat). If no result, check host liveness and report that preflight is blocked; do not assert PASS.
-2. Run/fix only new diagnostics-focused tests, compile and lint for the exact reviewed source. No previous STT/TTS/Gemma or unrelated Python full-test rerun absent specific regression.
+1. Read `docs/HANDOFF_NEXT_CHAT.md` and this checkpoint. Reuse immutable Mac receipt `aicalls-diagnostics-modular-audit-host-20261102-v2` **DONE/0** for the unchanged production source; do not rerun PASS tests without a new code/config regression.
+2. Skip completed diagnostics/compile/lint PASS. If the source changes again, run only affected targeted regressions; do not repeat STT/TTS/Gemma or unrelated Python full suite without cause.
 3. Once S22 physically reconnects, match exact `SM-S906B` / `RFCT70L7E8J`, verify `IDLE`, and use a scoped `adb install -r` with preserved data; no deployment while a call is active.
 4. On a **user-started, human-consented** test call with explicit UI AI confirmation, capture a live snapshot before and after route check. If mismatch persists, read only sanitized report and contemporaneous system call/mode evidence; never dial `*100` or `510 100 100` on behalf of the user.
 5. If media becomes active, assess RX bytes, `turn_*_stt_chars`, Gemma/script fallback count, TX bytes, remote perceived audibility and acoustic STOP; verify user still controls the Google Phone call and manually ends it.
 6. Preserve a sanitized terminal result; only then label the **real call** `PASS` or `FAIL`, adjust the smallest actual defect and revalidate affected boundary.
 
-**Checkpoint status: OFFLINE REVIEW/REFACTOR SOURCE SAVED; NEW HOST GATE PENDING, PHONE DEPLOY OPEN, SUPERVISED LIVE AUDIO/STOP OPEN, AUTONOMOUS OWNED DIAL BLOCKED.**
+**Checkpoint status: OFFLINE REVIEW/REFACTOR HOST_GREEN (focused new tests + compile/lint PASS); PHONE DEPLOY OPEN, SUPERVISED LIVE AUDIO/STOP OPEN, AUTONOMOUS OWNED DIAL BLOCKED.**
