@@ -1,5 +1,14 @@
 # AI Calls
 
+## 2026-11-03 — historical dialing regression and real Telecom controller source
+
+Git history proves a dial regression: before `6e732af`, `AppOwnedClirCampaignExecutor` used `ACTION_CALL` and generic `TelecomManager.endCall()`. Commit `6e732af` added a constant-false ownership check; `c48685b` introduced `CampaignCallControllerRegistry` without a provider; `a019795` separately removed ADB-script automatic dial/hangup. These were real removed paths, but the old hangup did **not** select one specific Call.
+
+New code `0226d61` → `294cc2d` → `33e27cc` → `3ee183c` implements Android default-dialer-role-gated `InCallService`, `TelecomManager.placeCall`, exact matched `Call.disconnect()`, minimal human call controls and one-tap START continuation after real OS role/notification consent. This is **candidate production code**, not a live-call physical PASS. It does not mutate the Google Phone role without OS user selection.
+
+Mac task `aicalls-20261103-controller-build-cache-adb-recover-v3`: **DONE/0**, `EXACT_CONTROLLER_BUILD_LINT_UNIT=PASS` and `APK_CACHE_READY=true` for `3ee183c`; device disappeared from ADB, so **not installed**. Separate `aicalls-20261103-cached-apk-last-s22-usb-diagnose-v2`: DONE/0, cached APK verified, `S22_TRANSPORT_NOT_AVAILABLE=true`, `NO_INSTALL=true`. Real role grant, live dial, RX/STT/Gemma/TTS/TX, selective live teardown, and `MODE_IN_COMMUNICATION` root-cause acceptance remain OPEN. Detailed checkpoint: `docs/checkpoints/2026-11-03-historical-dial-regression-controller-recovery.md`.
+
+
 **Autonomous local-AI phone task agent for Android.** A person delegates an outcome in natural language; the application plans and performs ordinary telephone tasks on the person's behalf. **The supervised call pilot is a test harness, not the product definition.**
 
 The target device is the Samsung Galaxy S22+ (`SM-S906B`). The implementation uses Android Telecom/telephony, Samsung/Shizuku cellular RX/TX, Polish STT/TTS, deterministic task state and a local Gemma 4 dialogue skill. The intention is that execution happens **on the phone with local AI**, not by having a person click through every dialogue or by requiring ChatGPT/ADB to serve as the product runtime.

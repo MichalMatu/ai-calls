@@ -1,5 +1,14 @@
 # AI Calls — current roadmap
 
+## 2026-11-03 — historical dialing regression and real Telecom controller source
+
+Git history proves a dial regression: before `6e732af`, `AppOwnedClirCampaignExecutor` used `ACTION_CALL` and generic `TelecomManager.endCall()`. Commit `6e732af` added a constant-false ownership check; `c48685b` introduced `CampaignCallControllerRegistry` without a provider; `a019795` separately removed ADB-script automatic dial/hangup. These were real removed paths, but the old hangup did **not** select one specific Call.
+
+New code `0226d61` → `294cc2d` → `33e27cc` → `3ee183c` implements Android default-dialer-role-gated `InCallService`, `TelecomManager.placeCall`, exact matched `Call.disconnect()`, minimal human call controls and one-tap START continuation after real OS role/notification consent. This is **candidate production code**, not a live-call physical PASS. It does not mutate the Google Phone role without OS user selection.
+
+Mac task `aicalls-20261103-controller-build-cache-adb-recover-v3`: **DONE/0**, `EXACT_CONTROLLER_BUILD_LINT_UNIT=PASS` and `APK_CACHE_READY=true` for `3ee183c`; device disappeared from ADB, so **not installed**. Separate `aicalls-20261103-cached-apk-last-s22-usb-diagnose-v2`: DONE/0, cached APK verified, `S22_TRANSPORT_NOT_AVAILABLE=true`, `NO_INSTALL=true`. Real role grant, live dial, RX/STT/Gemma/TTS/TX, selective live teardown, and `MODE_IN_COMMUNICATION` root-cause acceptance remain OPEN. Detailed checkpoint: `docs/checkpoints/2026-11-03-historical-dial-regression-controller-recovery.md`.
+
+
 ## 2026-11-03 newest engineering gate
 
 Focused source `4c47c308`: STOP now revokes app audio and targets only an exact owned-call handle; local Gemma pilot enabled; redundant UI controller pre-check removed later in `30d2634`. Source `4c47c308` passed Mac JVM-focused/assemble/lint and exact S22 IDLE installation (`aicalls-20261103-stop-gemma-build-s22-install-v1`: DONE/0). Newer source `4b79a302` carries cancellation-race fixes and Android STOP-idempotence test, now **S22 OFF-CALL PASS** (`aicalls-20261103-stop-final-regression-s22-v1` DONE/0: focused unit/build/lint, both APKs installed, two-press STOP instrument PASS, post-test IDLE PASS). This is not an in-call acoustic STOP or autonomous dial PASS. Platform-exact autonomous call controller and live RX/TX remain OPEN. Historic manual pilot instructions below do not supersede P0. See [2026-11-03 sprint](checkpoints/2026-11-03-stop-friction-sprint.md).
