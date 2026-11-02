@@ -2,6 +2,8 @@
 
 ## Objective
 
+**Product goal clarification (2026-11-02):** autonomy means the local AI can place, conduct, resume and end its authorized ordinary phone calls, including legitimate user-authorized inquiries, reservations and account/service changes. A human initiating each call is a temporary test setup, not an intended permanent policy. Owner-approved engineering work may proceed without redundant confirmations; however neither this file nor that engineering mandate authorizes arbitrary external numbers, disclosures, purchases or mutations outside a concrete task. Apply the existing scoped, revocable grant and platform permissions to real effects. Prefer solving the call-controller/telephony gaps over treating indefinite manual calling as a finished feature.
+
 The agent may dial, speak, disclose data or change external state only inside authority explicitly granted by the user and enforced by application-owned policy. Failure must narrow capability or return control to the human; it must never broaden authority.
 
 `docs/AUTONOMOUS_OPERATION_MODE.md` defines the operational target: high autonomy without weakening application-owned authority boundaries.
