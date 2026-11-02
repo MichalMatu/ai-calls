@@ -112,9 +112,9 @@ internal class OnDeviceSpeechInput(
         armStartupWatchdog(generation, listener, "support_check_timeout")
         try {
             active.checkRecognitionSupport(
-            baseIntent(),
-            appContext.mainExecutor,
-            object : RecognitionSupportCallback {
+                baseIntent(),
+                appContext.mainExecutor,
+                object : RecognitionSupportCallback {
                 override fun onSupportResult(recognitionSupport: RecognitionSupport) {
                     if (!gate.isCurrent(generation)) return
                     disarmStartupWatchdog()
@@ -130,7 +130,7 @@ internal class OnDeviceSpeechInput(
                 override fun onError(error: Int) {
                     finishWithError(generation, listener, "support_check_error_$error")
                 }
-            },
+                },
             )
         } catch (error: Throwable) {
             finishWithError(generation, listener, "support_check_exception_${error.javaClass.simpleName}")
