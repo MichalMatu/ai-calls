@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.campaign
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -34,6 +35,10 @@ class CampaignToolActivity : Activity() {
             setOnClickListener {
                 ensurePermissionsThen(PendingAction.AUTHORIZE)
             }
+        }
+        val callRoleButton = Button(this).apply {
+            text = "Włącz autonomiczne połączenia (rola dialera Android)"
+            setOnClickListener { requestCallRole() }
         }
         val startButton = Button(this).apply {
             text = "Start authorized CLIR enable"
@@ -85,6 +90,7 @@ class CampaignToolActivity : Activity() {
                 textSize = 14f
             })
             addView(authorizeButton)
+            addView(callRoleButton)
             addView(startButton)
             addView(supervisedAudioButton)
             addView(stopSupervisedAudioButton)
@@ -165,6 +171,30 @@ class CampaignToolActivity : Activity() {
         }
         pendingAction = action
         requestPermissions(missing.toTypedArray(), REQUEST_CAMPAIGN_PERMISSIONS)
+    }
+
+    private fun requestCallRole() {
+        val manager = getSystemService(RoleManager::class.java)
+        if (manager == null || !manager.isRoleAvailable(RoleManager.ROLE_DIALER)) {
+            statusView.text = "System nie udostępnia roli domyślnego dialera"
+            return
+        }
+        if (manager.isRoleHeld(RoleManager.ROLE_DIALER)) {
+            statusView.text = "AI Calls ma już rolę dialera"
+            return
+        }
+        // Android alone grants/revokes this role. Never change Google Phone silently.
+        statusView.text = "Android poprosi o świadomy wybór: AI Calls zastąpi Google Phone jako domyślny dialer."
+        startActivityForResult(manager.createRequestRoleIntent(RoleManager.ROLE_DIALER), REQUEST_DIALER_ROLE)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_DIALER_ROLE) {
+            statusView.text = if (AndroidTelecomOwnedCallController.canControl(this)) {
+                "Kontroler połączeń Android aktywny — można wykonać autoryzowane zadanie"
+            } else "Rola dialera nie została przyznana; Google Phone pozostaje aktywny"
+        }
     }
 
     private fun showAuthorizationConfirmation() {
@@ -255,6 +285,7 @@ class CampaignToolActivity : Activity() {
 
     companion object {
         private const val REQUEST_CAMPAIGN_PERMISSIONS = 2001
+        private const val REQUEST_DIALER_ROLE = 2002
         private val REQUIRED_PERMISSIONS = listOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CALL_PHONE,

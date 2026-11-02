@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import android.content.Context
 import android.content.Intent
 import android.telecom.PhoneAccountHandle
 
@@ -27,7 +28,8 @@ internal interface CampaignOwnedCallController {
 internal object CampaignCallControllerRegistry {
     @Volatile private var provider: CampaignOwnedCallController? = null
 
-    fun available(): CampaignOwnedCallController? = provider
+    fun available(context: Context): CampaignOwnedCallController? =
+        provider ?: AndroidTelecomOwnedCallController.obtain(context)
 
     internal fun installVerified(controller: CampaignOwnedCallController) {
         check(provider == null) { "owned_call_controller_already_installed" }

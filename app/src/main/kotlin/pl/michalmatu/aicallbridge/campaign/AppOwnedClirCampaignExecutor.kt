@@ -49,10 +49,10 @@ internal object AppOwnedClirCampaignExecutor {
         val request = ClirCampaignSpec.enableRequest(accountScope)
         // Android does not expose an app-owned cellular Call handle via ACTION_CALL.
         // Resolve an actual call controller, not a synthetic proof with constant booleans.
-        val callController = CampaignCallControllerRegistry.available()
+        val callController = CampaignCallControllerRegistry.available(appContext)
         if (callController == null) {
             running.set(false)
-            onStatus("Call controller unavailable: no exact-call dial/cleanup implementation installed")
+            onStatus("Kontroler niedostępny: wybierz AI Calls jako domyślny dialer w systemowym oknie konfiguracji")
             return
         }
         val permissionFailure = requiredPermissionFailure(appContext)
