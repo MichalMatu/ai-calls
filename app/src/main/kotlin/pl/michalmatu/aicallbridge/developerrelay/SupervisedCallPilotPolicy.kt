@@ -12,6 +12,10 @@ internal enum class SupervisedCallPilotFailure {
 }
 
 internal object SupervisedCallPilotPolicy {
+    /** Bounded retry only for an already detected call waiting for Android's audio routing. */
+    fun shouldAwaitAudioRoute(failure: SupervisedCallPilotFailure?, elapsedMs: Long): Boolean =
+        failure == SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY && elapsedMs in 0L until 3_000L
+
     fun check(
         microphonePermission: Boolean,
         phoneStatePermission: Boolean,
