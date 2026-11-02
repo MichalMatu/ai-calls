@@ -2,6 +2,10 @@
 
 ## Goal
 
+**Full product definition (owner clarification, 2026-11-02):** the user delegates a real-world outcome to local AI and need not manually place, supervise or end each normal call. The product should accept ordinary lawful user-selected destinations and perform user-authorized read-only or data-changing phone tasks in a unified engine. Its complete lifecycle is task interpretation, approved target/SIM selection, autonomous dial, speech/IVR reasoning, controlled action, independently verified result, call teardown, optional bounded retry/resume and concise user report. Orange CLIR is an acceptance case; manual supervised audio is diagnostic scaffolding, neither defines product scope.
+
+The developer is authorized to independently implement, test, refactor and deploy this architecture on the designated project/test environment, without repetitive operator confirmation for routine development or an unchanged user-approved task. An actual live external effect still uses the application-owned exact task/target/effect/disclosure authority contract; engineering permission is not a blanket license to call arbitrary people or modify unrelated accounts.
+
 AI Calls is a bounded autonomous phone-task engine for ordinary cellular calls. Carrier settings, appointments, reservations, service requests and read-only calls must share one task/dialogue/authority model rather than separate bots.
 
 `docs/AUTONOMOUS_OPERATION_MODE.md` defines the normative physical-operation mode.
