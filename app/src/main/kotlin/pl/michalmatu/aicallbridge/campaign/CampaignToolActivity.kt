@@ -46,21 +46,11 @@ class CampaignToolActivity : Activity() {
             }
         }
         val supervisedAudioButton = Button(this).apply {
-            text = "Attach read-only audio pilot to my existing call"
+            text = "Uruchom AI w trwającej rozmowie"
+            // The tap is the explicit request. Android permissions and actual
+            // live-call/media gates are checked by the service; no redundant dialog.
             setOnClickListener {
-                AlertDialog.Builder(this@CampaignToolActivity)
-                    .setTitle("Supervised audio test")
-                    .setMessage(
-                        "First start a normal call yourself in Google Phone. " +
-                            "This two-turn test checks speech recognition and audio. " +
-                            "It cannot dial, hang up, change CLIR or disclose your phone number. " +
-                            "You remain responsible for ending the phone call.",
-                    )
-                    .setPositiveButton("Attach") { _, _ ->
-                        ensurePermissionsThen(PendingAction.SUPERVISED_AUDIO)
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
+                ensurePermissionsThen(PendingAction.SUPERVISED_AUDIO)
             }
         }
         val stopSupervisedAudioButton = Button(this).apply {
