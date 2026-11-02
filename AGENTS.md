@@ -1,6 +1,6 @@
 # Agent workflow
 
-> **Current 2026-11-03 source/phone gate:** STOP now covers supervised audio and an actually owned campaign session, revokes TX promptly and requests targeted release once. Focused unit/build/lint and S22 IDLE installation are PASS on `4c47c308`; later source `4b79a302` adds race fixes and a physical STOP-idempotence regression whose exact Mac receipt must be checked. Full autonomous dial/in-call RX-TX/owned teardown remain OPEN: `CampaignCallControllerRegistry` has no platform call handle. See `docs/checkpoints/2026-11-03-stop-friction-sprint.md`. Do not infer full-call PASS from an off-call APK install.
+> **Current 2026-11-03 source/phone gate:** STOP now covers supervised audio and an actually owned campaign session, revokes TX promptly and requests targeted release once. Focused unit/build/lint and S22 IDLE installation are PASS on `4c47c308`; later source `4b79a302` adds race fixes and physical two-press STOP-idempotence acceptance **PASS** (Mac `aicalls-20261103-stop-final-regression-s22-v1` DONE/0: focused unit, build/lint, both APKs installed, exact S22 post-test IDLE). Full autonomous dial/in-call RX-TX/owned teardown remain OPEN: `CampaignCallControllerRegistry` has no platform call handle. See `docs/checkpoints/2026-11-03-stop-friction-sprint.md`. Do not infer full-call PASS from an off-call APK install.
 
 ## Mission and owner delegation — normative, 2026-11-02
 

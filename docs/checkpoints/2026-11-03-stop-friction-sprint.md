@@ -8,7 +8,7 @@
 - Source scan `aicalls-20261103-audio-mode-rootcause-code-scan-v1`: DONE/0. No application/helper `AudioManager.setMode` mutation found in searched Java/Kotlin production sources. Historical `dumpsys audio` reports that `com.android.server.telecom` requested `MODE_IN_CALL` then `MODE_NORMAL` and selection briefly became `MODE_IN_COMMUNICATION`. This narrows investigation, but is NOT a live-call root-cause proof.
 - Strict friction scan `aicalls-20261103-friction-audit-sweep-v1`: DONE/0. This is a grep-driven inventory, not a proof that every program path was executed.
 - Focused STOP/unit + app APK/lint and exact-IDLE S22 installation `aicalls-20261103-stop-gemma-build-s22-install-v1`: DONE/0 on `4c47c308`. Focused Kotlin test PASS, assembleDebug PASS, lintDebug PASS, `adb install -r` PASS, no dial/hangup.
-- Later single regression `aicalls-20261103-stop-final-regression-s22-v1` targets `4b79a302` and includes Android instrumentation of two STOP presses; **result must be read from its exact task-results**, not inferred from queueing. At this checkpoint writing its receipt was not yet available.
+- Later single regression `aicalls-20261103-stop-final-regression-s22-v1` on `4b79a302`: **DONE/0**, focused unit/APK/androidTest APK/lint **PASS**; exact `SM-S906B/RFCT70L7E8J` and `IDLE` **PASS**; both APKs installed with `adb install -r`; `AndroidStopAiIdempotenceContractTest` **OK (1 test)**; `POSTTEST_IDLE=PASS`. This is intentionally OFF-CALL only. The installed binary source is `4b79a302`; later documentation commits do not alter device binaries.
 
 ## Classified locations
 
