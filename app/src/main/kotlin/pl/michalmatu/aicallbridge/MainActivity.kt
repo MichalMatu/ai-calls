@@ -19,7 +19,10 @@ import android.widget.TextView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotActivity
+import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotFailure
+import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallReadinessDiagnostics
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.runtime.CallAudioMode
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
@@ -144,6 +147,11 @@ class MainActivity : Activity() {
             }
         }
 
+        val oneTapButton = Button(this).apply {
+            text = "Jeden przycisk: uruchom AI w trwającej rozmowie"
+            setOnClickListener { startOneTapSupervisedTest() }
+        }
+
         val supervisedCallButton = Button(this).apply {
             text = "Pierwsze połączenie — test nadzorowany"
             setOnClickListener {
@@ -175,6 +183,7 @@ class MainActivity : Activity() {
             addView(modelDownloadCancelButton)
             addView(requestMicButton)
             addView(enrollPhoneButton)
+            addView(oneTapButton)
             addView(supervisedCallButton)
             addView(campaignToolsButton)
             developerProbes.addControls(this)
@@ -384,6 +393,55 @@ class MainActivity : Activity() {
         }
     }
 
+    /**
+     * One explicit on-screen opt-in replaces multi-screen/manual attach clicks.
+     * It never dials, hangs up, impersonates the dialer, or weakens the media gate.
+     * The same user action continues after Android permission approval.
+     */
+    private fun startOneTapSupervisedTest() {
+        val required = arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.READ_PHONE_STATE,
+        )
+        val missing = required.filter {
+            checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            statusView.text = "Android wymaga zgody na mikrofon i stan telefonu."
+            requestPermissions(missing.toTypedArray(), REQUEST_ONE_TAP_SUPERVISED)
+            return
+        }
+        val snapshot = SupervisedCallReadinessDiagnostics.capture(this)
+        val reportSaved = SupervisedCallReadinessDiagnostics.write(this, snapshot)
+        val reportInfo = if (reportSaved) "Raport zapisany." else "Nie udało się zapisać raportu."
+        when (snapshot.failure) {
+            null -> {
+                statusView.text = "Zgoda na test udzielona przyciskiem. Uruchamiam lokalny " +
+                    "STT → Gemma/skrypt → TTS → Shizuku (maksymalnie 2 odpowiedzi)."
+                runCatching {
+                    startForegroundService(
+                        Intent(this, AppOwnedCampaignService::class.java)
+                            .setAction(AppOwnedCampaignService.ACTION_START_SUPERVISED_AUDIO),
+                    )
+                }.onFailure {
+                    statusView.text = "Nie można uruchomić serwisu testowego: " +
+                        it.javaClass.simpleName
+                }
+            }
+            SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL ->
+                statusView.text = "Brak aktywnej rozmowy komórkowej. " +
+                    "Rozpocznij ją w Google Phone i naciśnij ten sam przycisk. $reportInfo"
+            SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY ->
+                statusView.text = "Rozmowa wykryta, ale Android zgłosił " +
+                    "${snapshot.audioModeLabel}. AI nie zostało podłączone. $reportInfo"
+            SupervisedCallPilotFailure.SHIZUKU_NOT_READY ->
+                statusView.text = "Shizuku niedostępne — uruchom je i naciśnij ten sam przycisk. " +
+                    reportInfo
+            SupervisedCallPilotFailure.PERMISSION_REQUIRED ->
+                statusView.text = "Brakuje zgód Androida. $reportInfo"
+        }
+    }
+
     private fun requestMicrophonePermissionIfNeeded() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             statusView.text = "Microphone permission already granted"
@@ -400,6 +458,18 @@ class MainActivity : Activity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
+        if (requestCode == REQUEST_ONE_TAP_SUPERVISED) {
+            if (permissions.isNotEmpty() && permissions.indices.all {
+                    grantResults.getOrNull(it) == PackageManager.PERMISSION_GRANTED
+                }
+            ) {
+                startOneTapSupervisedTest()
+            } else {
+                statusView.text = "Android odmówił uprawnień. Nie uruchomiono audio AI."
+            }
+            return
+        }
+
         if (requestCode == REQUEST_RECORD_AUDIO) {
             val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
             statusView.text = if (granted) {
@@ -412,6 +482,7 @@ class MainActivity : Activity() {
 
     private companion object {
         const val MODEL_DOWNLOAD_PROGRESS_STEP_BYTES = 16L * 1024L * 1024L
+        const val REQUEST_ONE_TAP_SUPERVISED = 1007
         const val REQUEST_RECORD_AUDIO = 1001
         const val REQUEST_IMPORT_GEMMA4_MODEL = 1003
         const val EXTRA_RUN_CAPABILITY_PROBE = "run_probe"
