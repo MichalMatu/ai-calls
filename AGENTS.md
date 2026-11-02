@@ -1,5 +1,7 @@
 # Agent workflow
 
+> **Current 2026-11-03 source/phone gate:** STOP now covers supervised audio and an actually owned campaign session, revokes TX promptly and requests targeted release once. Focused unit/build/lint and S22 IDLE installation are PASS on `4c47c308`; later source `4b79a302` adds race fixes and a physical STOP-idempotence regression whose exact Mac receipt must be checked. Full autonomous dial/in-call RX-TX/owned teardown remain OPEN: `CampaignCallControllerRegistry` has no platform call handle. See `docs/checkpoints/2026-11-03-stop-friction-sprint.md`. Do not infer full-call PASS from an off-call APK install.
+
 ## Mission and owner delegation — normative, 2026-11-02
 
 **AI Calls is an autonomous, local-AI telephone task executor, not an app whose final workflow requires the owner to dial, click through dialogue, or hang up manually.** The user assigns a concrete outcome; the on-device agent executes the authorized call(s), understands the counterparty, acts within the user's task scope, establishes an actual result, ends its session and reports back. Ordinary lawful destinations are not inherently restricted to Orange or a fixed developer allowlist. Appointment booking, cancellations, read-only inquiries and user-authorized account/service data operations belong to the same generic task engine.

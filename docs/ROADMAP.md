@@ -1,5 +1,9 @@
 # AI Calls — current roadmap
 
+## 2026-11-03 newest engineering gate
+
+Focused source `4c47c308`: STOP now revokes app audio and targets only an exact owned-call handle; local Gemma pilot enabled; redundant UI controller pre-check removed later in `30d2634`. Source `4c47c308` passed Mac JVM-focused/assemble/lint and exact S22 IDLE installation (`aicalls-20261103-stop-gemma-build-s22-install-v1`: DONE/0). Newer source `4b79a302` carries cancellation-race and Android STOP-idempotence test; read the pending exact physical receipt before counting it as installed/verified. Platform-exact autonomous call controller and live RX/TX remain OPEN. Historic manual pilot instructions below do not supersede P0. See [2026-11-03 sprint](checkpoints/2026-11-03-stop-friction-sprint.md).
+
 This is the **current** execution plan. The complete 2026-11-01 engineering/audit chronology stays in Git history and the named sprint/checkpoint documents; historical `latest` labels are not current acceptance evidence.
 
 ## Product objective and state

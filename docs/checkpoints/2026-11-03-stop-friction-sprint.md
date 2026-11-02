@@ -1,0 +1,29 @@
+# AI Calls — 2026-11-03 STOP / zero redundant friction sprint
+
+## Scope and evidence
+- Start main: `4b455b89c640f10eb6b29f28e477201d28e25c19`.
+- Code commits: `4c47c30824ae5dcfd05be89e4949bef60c4c912c`, `30d26344713635c582227996e8bdb2ef509e1491`, `4b79a302497a61a7bc4807e1849078ec3771874e`.
+- Exact Mac host: `macbook-michal` / installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, installed Local Agent 4.20.16.
+- Physical read-only preflight `aicalls-20261103-s22-reconnected-preflight-v1`: DONE/0, `SM-S906B` / `RFCT70L7E8J`, ADB USB, cellular `IDLE`, actual audio `MODE_NORMAL`, app microphone and phone permissions granted.
+- Source scan `aicalls-20261103-audio-mode-rootcause-code-scan-v1`: DONE/0. No application/helper `AudioManager.setMode` mutation found in searched Java/Kotlin production sources. Historical `dumpsys audio` reports that `com.android.server.telecom` requested `MODE_IN_CALL` then `MODE_NORMAL` and selection briefly became `MODE_IN_COMMUNICATION`. This narrows investigation, but is NOT a live-call root-cause proof.
+- Strict friction scan `aicalls-20261103-friction-audit-sweep-v1`: DONE/0. This is a grep-driven inventory, not a proof that every program path was executed.
+- Focused STOP/unit + app APK/lint and exact-IDLE S22 installation `aicalls-20261103-stop-gemma-build-s22-install-v1`: DONE/0 on `4c47c308`. Focused Kotlin test PASS, assembleDebug PASS, lintDebug PASS, `adb install -r` PASS, no dial/hangup.
+- Later single regression `aicalls-20261103-stop-final-regression-s22-v1` targets `4b79a302` and includes Android instrumentation of two STOP presses; **result must be read from its exact task-results**, not inferred from queueing. At this checkpoint writing its receipt was not yet available.
+
+## Classified locations
+
+| Classification | Location | Finding and disposition |
+|---|---|---|
+| Removed redundant UI gate | `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignToolActivity.kt`, former 41–46 | Preemptive controller check duplicated the executor's definitive error. Removed: START enters normal permission/grant/execution path. This does not create an Android Call handle. |
+| Real START/STOP defect fixed | `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/AppOwnedCampaignService.kt`, around 40–60, 175–215 | STOP used to terminate only supervised audio, not an app-owned campaign. Unified STOP, notification action, onDestroy cleanup and truthful status now use the same service. |
+| Real race and incomplete cleanup fixed | `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/AppOwnedClirCampaignExecutor.kt`, around 20–35, 145–170, 260–315 | Added synchronous TX revocation, exact-session cleanup, STOP checks before runtime start and during authorization, and late audio-handle revocation. |
+| New regression coverage | `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignOwnedCallLifecycle.kt` and `app/src/test/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignOwnedCallLifecycleTest.kt` | Binds one exact call session and makes release idempotent, never global. Focused JVM test PASS. |
+| New S22 regression | `app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/AndroidStopAiIdempotenceContractTest.kt` | Repeated STOP while IDLE must preserve idle, publish result and never start a call; physical receipt remains necessary. |
+| Incomplete product path | `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignCallControllerRegistry.kt:27–35` | Provider is still null; no implementation returning an independently identified platform `Call` and selective `Call.disconnect()`. **P0 missing engineering**, not an arbitrary toggle to remove. |
+| Incomplete product path | `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/AppOwnedClirCampaignExecutor.kt`, around 50–58 | Real controller unavailable stops dialing. Must implement a verified call-specific backend (including Android role/permission and SIM identity), not substitute global hangup or a fake handle. |
+| Real physical audio gap | `app/src/main/kotlin/pl/michalmatu/aicallbridge/developerrelay/ChatRelayLiveCallProbe.kt:106–110`; `privileged-helper/src/main/java/pl/michalmatu/aicallbridge/helper/samsung/SamsungCallAssistantTrack.java:106`; `SamsungVoiceDownlinkCapture.java:116`; `CallModeWatchdog.java:92` | Media requires `MODE_IN_CALL`; observed `MODE_IN_COMMUNICATION` remains unexplained until synchronized in-call measurement and valid RX/TX acceptance. Do not falsely override Android mode or disable helper safety. |
+| Legitimate controls retained | `app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignAuthorizationStore.kt`, `AppOwnedClirCampaignExecutor.kt`, `docs/SECURITY_PRIVACY.md` | Valid scoped grant, revocation, permissions, exact SIM, privacy, no unrelated call hangup. They are necessary for autonomous authorized calls. |
+| Historical test-only instruction | `docs/checkpoints/2026-11-02-before-first-call-checkpoint.md:39–51` | Human-started supervised call is historical acceptance methodology, not final product scope. Retain dated history, supersede in active handoff. |
+
+## Next real engineering gate
+A reliable cellular call-specific controller needs the Android Telecom/InCallService/default-dialer capability or another verifiable platform-supported exact-call mechanism; do not silently change the user's Google Phone role. Once installed and eligible, test a specifically authorized and consenting live target: selected SIM → exact owned dial → RX/STT/Gemma/PhraseMatrix/TTS/TX → verified result → STOP/targeted disconnect → independent `IDLE`. No live call was made in this sprint; no full conversation/teardown PASS is claimed.
