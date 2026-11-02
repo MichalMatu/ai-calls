@@ -12,7 +12,7 @@ This mandate is **not a universal carrier/data authorization**. A real external 
 Status: **NORMATIVE for active physical acceptance work**.
 
 
-**Temporary safety suspension, 2026-11-01:** do not run the previous automatic Orange loop while exact-call ownership/targeted termination is unavailable. The executor blocks new dialing. This hold overrides older physical-acceptance instructions until fixed and verified on-device; see `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+**Current implementation status (2026-11-02):** the original Orange loop remains incomplete because the Android runtime has no installed app-owned call controller and no verified in-call RX/TX. This is a specific missing implementation, **not a change to the objective** of autonomous dialing, dialogue, task execution and cleanup. The explicit ADB global hangup helper has focused unit tests but lacks physical in-call acceptance; it does not establish session ownership. Continue fixing these gaps through normal accepted engineering work. Historical details: `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
 
 This repository is developed toward a fully autonomous phone-task loop. A new chat, supervisor session or Local Agent session must not regress to making the operator act as a terminal proxy, log copier or manual dialogue relay when the system can do the work itself.
 
@@ -181,4 +181,4 @@ Full autonomy remains bounded by application policy:
 `AGENTS.md`, `docs/HANDOFF_NEXT_CHAT.md`, active runbooks and `docs/SECURITY_PRIVACY.md` must remain aligned with this autonomous-mode contract. Older wording that mechanically requests another confirmation despite an unchanged valid authorization context should be removed or narrowed.
 
 
-**Safety correction after host tooling sprint, 2026-11-01:** historical `scripts/local_agent/clir_iteration.sh` is now fail-closed; the `relay-live` and Phase1 ADB runners can attach to an already operator-controlled call, but cannot dial or terminate it. Automatic Bluetooth toggling during an attached call was also removed. The product autonomy goal is unchanged; only the unsafe legacy device-wide control path is suspended. See `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`.
+**Historical development note (2026-11-01):** early ADB/relay iteration tools lacked a reliable call-specific controller; see `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. This record must not be treated as a permanent product requirement for manual dialing or operator intervention. Use fresh source and physical evidence to distinguish current capability from the autonomous product target.
