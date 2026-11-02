@@ -18,6 +18,18 @@ class SupervisedCallPilotPolicyTest {
         assertEquals(SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL, check(active = false))
     }
 
+    @Test fun transientRouteRetryIsBoundedAndNeverAcceptsMissingCall() {
+        assertEquals(true, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
+            SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, 0L))
+        assertEquals(true, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
+            SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, 2_999L))
+        assertEquals(false, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
+            SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, 3_000L))
+        assertEquals(false, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
+            SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL, 500L))
+        assertEquals(false, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(null, 500L))
+    }
+
     @Test fun audioRouteMustBeAnActualCellularCallRoute() {
         assertEquals(SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, check(mode = false))
     }
