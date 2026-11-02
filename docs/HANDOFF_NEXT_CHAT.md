@@ -1,6 +1,10 @@
 # AI Calls — handoff, 2026-11-01: corrective safety hold
 
-## 2026-11-01 — NOWY checkpoint przed kontynuacją
+## 2026-11-02 — fizyczny S22, polskie STT i lokalny pipeline PASS (najnowsze)
+
+**Najpierw przeczytaj `docs/checkpoints/2026-11-02-ai-calls-s22-polish-stt-recovery.md`.** Po przywróceniu wyłączonych `com.google.android.as` i `com.google.android.as.oss` Google STT odzyskało gotowość. Na S22 przez USB ADB przeszły pełne bezrozmowne testy `TTS PCM -> STT` (`production_roundtrip_success=true`) oraz `STT -> deterministyczny backend tekstowy -> zatwierdzenie -> TTS PCM` (`text_pipeline_success=true`); zobacz dokładne receipty w checkpoincie. Oryginalny błąd `recognition_error_10` nie występuje w tych testach po przywróceniu obu pakietów. `main` zawiera też obsługę błędów/timeoutu startu STT z PR #22. **Nie powtarzaj testów, które już mają PASS, bez zmiany konfiguracji.** Żadnej rozmowy telefonicznej nie wykonywano; realna, jawnie nadzorowana rozmowa cellular RX/TX i akustyczny STOP pozostają niezweryfikowane. Nie usuwaj zabezpieczenia braku kontrolera exact-call ownership.
+
+## 2026-11-01 — checkpoint historyczny przed kontynuacją
 
 **Najpierw przeczytaj `docs/checkpoints/2026-11-01-ai-calls-mvp-e2e-precontinuation.md`.** Gemma S22 READY/inference PASS; ostatni pełny host PASS `7aa1d952`; nowsze dwa failed wynikały z mechanicznego mismatch SHA przed QA/instalacją, za to `shizuku_binder_unavailable` jest realną awarią bieżącego preflightu. Nowe testy STT/TTS/Gemma i rzeczywisty tor cellular RX/TX nie mają akceptacji. Najnowszy commit kodu aplikacji `aed472de`; kolejne commity zmieniają dokumentację. Local Agent ma terminalne receipty i aktywny host, nie myl opóźnienia statusu z awarią. Żadnych nieautoryzowanych połączeń, CLIR, global hangup ani zmiany dialera.
 
