@@ -4,22 +4,17 @@ import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.telecom.TelecomManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
-import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
 import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness
 import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 
@@ -132,55 +127,8 @@ class SupervisedCallPilotActivity : Activity() {
         }
     }
 
-    private fun preflight(): SupervisedCallPilotFailure? {
-        val mic = checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        val phone = checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
-            PackageManager.PERMISSION_GRANTED
-        val ready = runCatching { AndroidLiveCallReadiness.evaluate(this).ready }.getOrDefault(false)
-        val telecom = getSystemService(TelecomManager::class.java)
-        val active = if (phone) {
-            runCatching { telecom?.isInCall == true }.getOrDefault(false)
-        } else false
-        val inCallAudio = getSystemService(AudioManager::class.java)?.mode ==
-            AudioManager.MODE_IN_CALL
-        return SupervisedCallPilotPolicy.check(mic, phone, ready, active, inCallAudio)
-    }
-
-    private fun audioModeLabel(): String {
-        val mode = getSystemService(AudioManager::class.java)?.mode
-        return when (mode) {
-            AudioManager.MODE_IN_CALL -> "MODE_IN_CALL"
-            AudioManager.MODE_IN_COMMUNICATION -> "MODE_IN_COMMUNICATION"
-            AudioManager.MODE_NORMAL -> "MODE_NORMAL"
-            AudioManager.MODE_RINGTONE -> "MODE_RINGTONE"
-            null -> "UNAVAILABLE"
-            else -> "OTHER_$mode"
-        }
-    }
-
-    /** Report contains only system readiness signals; never a phone number, audio or transcript. */
-    private fun saveReadinessReport(failure: SupervisedCallPilotFailure?) {
-        val telecom = getSystemService(TelecomManager::class.java)
-        val phonePermission = checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
-            PackageManager.PERMISSION_GRANTED
-        val hasCall = if (phonePermission) {
-            runCatching { telecom?.isInCall == true }.getOrDefault(false)
-        } else false
-        val managedCall = if (phonePermission) {
-            runCatching { telecom?.isInManagedCall == true }.getOrDefault(false)
-        } else false
-        val audioMode = audioModeLabel()
-        val content = buildString {
-            appendLine("probe=supervised_call_readiness")
-            appendLine("telecom_in_call=$hasCall")
-            appendLine("telecom_managed_call=$managedCall")
-            appendLine("audio_mode=$audioMode")
-            appendLine("failure_reason=${failure?.name?.lowercase() ?: "none"}")
-            appendLine("report_complete=true")
-        }
-        runCatching { File(filesDir, "supervised-call-readiness-report.txt").writeText(content) }
-    }
+    private fun preflight(): SupervisedCallPilotFailure? =
+        SupervisedCallReadinessDiagnostics.capture(this).failure
 
     private fun cancelRouteProbe() {
         pendingRouteProbe?.let(routeHandler::removeCallbacks)
@@ -198,21 +146,24 @@ class SupervisedCallPilotActivity : Activity() {
                     pendingRouteProbe = null
                     return
                 }
-                val failure = preflight()
+                val snapshot = SupervisedCallReadinessDiagnostics.capture(this@SupervisedCallPilotActivity)
+                val failure = snapshot.failure
                 if (failure == null) {
                     pendingRouteProbe = null
-                    saveReadinessReport(null)
+                    SupervisedCallReadinessDiagnostics.write(this@SupervisedCallPilotActivity, snapshot)
                     confirmAttach() // The explicit consent dialog remains mandatory.
                 } else if (SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
                         failure, SystemClock.elapsedRealtime() - start)) {
                     routeHandler.postDelayed(this, 300L)
                 } else {
                     pendingRouteProbe = null
-                    saveReadinessReport(failure)
+                    val saved = SupervisedCallReadinessDiagnostics.write(
+                        this@SupervisedCallPilotActivity, snapshot)
                     if (failure == SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY) {
-                        status.text = "Połączenie wykryte, lecz tryb audio to ${audioModeLabel()}, " +
+                        status.text = "Połączenie wykryte, lecz tryb audio to ${snapshot.audioModeLabel}, " +
                             "nie MODE_IN_CALL. Bezpiecznie nie uruchomiono AI. " +
-                            "Zapisano diagnostykę dla Local Agenta."
+                            if (saved) "Zapisano diagnostykę dla Local Agenta."
+                            else "Nie udało się zapisać diagnostyki."
                     } else {
                         confirmAttach() // Displays the current permission/call error without a dial.
                     }
