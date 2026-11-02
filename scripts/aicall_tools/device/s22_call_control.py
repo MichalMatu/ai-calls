@@ -191,10 +191,36 @@ class Adb:
         # Do not dial and leave the user with an unmanaged live call.
         raise RuntimeError("exact_call_controller_required_for_adb_dial")
 
-    def hangup(self) -> None:
-        # KEYCODE_ENDCALL and 'cmd telecom end-call' target the device's call,
-        # not necessarily the call our app began. Never use them here.
-        raise RuntimeError("unsafe_global_hangup_disabled")
+    def hangup(self, *, allow_global: bool = False) -> bool:
+        """Optionally end the foreground OFFHOOK call on the exact test S22.
+
+        WARNING: Android KEYCODE_ENDCALL is device-global, not call-specific.
+        This lab-only fallback is explicit, single-shot and refuses RINGING,
+        unknown state or an unexpected physical device. No automatic retry.
+        Returns False if already IDLE, True only if IDLE was observed afterwards.
+        """
+        if not allow_global:
+            raise RuntimeError("global_hangup_requires_explicit_opt_in")
+        serial = self.shell(["getprop", "ro.serialno"]).strip()
+        model = self.shell(["getprop", "ro.product.model"]).strip()
+        if serial != "RFCT70L7E8J" or model != "SM-S906B":
+            raise RuntimeError("global_hangup_requires_exact_test_s22")
+        state = self.call_state()
+        if state == 0:
+            return False
+        if state != 2:
+            raise RuntimeError("global_hangup_requires_offhook")
+        # A final call-state check narrows the time-of-check/time-of-use window.
+        if self.call_state() != 2:
+            raise RuntimeError("global_hangup_call_state_changed")
+        self.shell(["input", "keyevent", "KEYCODE_ENDCALL"])
+        # Never fire a second global key event if the first did not succeed.
+        deadline = time.monotonic() + 4.0
+        while time.monotonic() < deadline:
+            if self.call_state() == 0:
+                return True
+            time.sleep(0.2)
+        raise RuntimeError("global_hangup_not_confirmed_idle")
 
     def dump_ui(self) -> str:
         path = "/data/local/tmp/aicallbridge-window.xml"
@@ -300,7 +326,11 @@ def build_parser() -> argparse.ArgumentParser:
     capture.add_argument("duration_ms", type=int)
     capture.add_argument("output", type=Path)
 
-    sub.add_parser("hangup")
+    hangup = sub.add_parser("hangup")
+    hangup.add_argument(
+        "--global", dest="allow_global", action="store_true",
+        help="explicitly end the foreground OFFHOOK call on the verified S22 (lab only)",
+    )
     sub.add_parser("dump-ui")
     return parser
 
@@ -328,9 +358,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(probe_output, end="" if probe_output.endswith("\n") else "\n")
             print(f"wav_path={args.output}")
         elif args.command == "hangup":
-            adb.hangup()
+            ended = adb.hangup(allow_global=args.allow_global)
             print(f"serial={adb.serial}")
-            print("hangup_requested=true")
+            print(f"global_hangup_confirmed_idle={str(ended).lower()}")
+            print("global_hangup_mode=explicit_lab_fallback")
         elif args.command == "dump-ui":
             print(adb.dump_ui())
         else:
