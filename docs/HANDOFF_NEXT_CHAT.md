@@ -1,5 +1,8 @@
 # AI Calls — handoff do nowego czatu: PIERWSZA ROZMOWA NADZOROWANA
 
+> **Aktualizacja 2026-11-02 po błędzie UI:** operator zgłosił `AUDIO_ROUTE_NOT_READY` mimo trwającej rozmowy. Bounded 3-sekundowy retry + prywatny sanityzowany raport wdrożono **w źródłach** na `main@5396cce`; targeted unit **PASS**, naprawione build+lint **PASS**. **Nowego APK nie zainstalowano na S22**: Mac USB niedostępny, sparowane Wireless ADB również niedostępne (`aicalls-s22-deploy-discover-wireless-20261102-v3`). Dotychczasowe testy PASS pozostają zamknięte. Następny krok: przywrócić ADB, sprawdzić exact S22 + `IDLE`, tylko zbudować i zainstalować nowe APK, potem jedna ręcznie rozpoczęta rozmowa ze świadomą zgodą i odczyt prywatnego `supervised-call-readiness-report.txt` oraz sanityzowanych liczników `chat-relay-live-call-report.txt`. **Nie omijać `MODE_IN_CALL`; tryb z błędnej chwili nie został jeszcze zmierzony.** Szczegóły: [checkpoint trybu audio](checkpoints/2026-11-02-supervised-in-call-audio-mode-retry.md).
+
+
 **Stan zamknięcia:** 2026-11-02. Szczegóły i wyniki pełnego quality gate: [checkpoint przed pierwszym połączeniem](checkpoints/2026-11-02-before-first-call-checkpoint.md). **Nie używaj starych wpisów „latest” z dokumentów 2026-11-01 jako aktualnego stanu.**
 
 ## Cel następnego czatu
