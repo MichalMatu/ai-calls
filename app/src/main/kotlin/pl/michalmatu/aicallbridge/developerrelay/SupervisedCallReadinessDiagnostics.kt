@@ -5,9 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.telecom.TelecomManager
-import android.util.AtomicFile
-import java.io.File
-import java.io.FileOutputStream
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
 
 /**
@@ -78,19 +75,7 @@ internal object SupervisedCallReadinessDiagnostics {
         return SupervisedCallReadinessSnapshot(mic, phone, shizuku, active, managed, mode)
     }
 
-    /** Atomic replace: a collector never reads a half-written readiness report. */
-    fun write(context: Context, snapshot: SupervisedCallReadinessSnapshot): Boolean {
-        val file = AtomicFile(File(context.filesDir, REPORT_FILE))
-        var stream: FileOutputStream? = null
-        return try {
-            val output = file.startWrite()
-            stream = output
-            output.write(snapshot.renderReport().toByteArray(Charsets.UTF_8))
-            file.finishWrite(output)
-            true
-        } catch (_: Throwable) {
-            stream?.let { file.failWrite(it) }
-            false
-        }
-    }
+    /** Atomic replace: the collector never sees a partially written report. */
+    fun write(context: Context, snapshot: SupervisedCallReadinessSnapshot): Boolean =
+        PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, snapshot.renderReport())
 }
