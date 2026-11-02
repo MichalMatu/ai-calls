@@ -239,7 +239,7 @@ internal object ChatRelayLiveCallProbe {
             backend,
             CallTextAgentOutputApprovalPolicy(workflow, commitmentGate),
         )
-        private val lines = mutableListOf(
+        private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",
             "supervised_read_only=$readOnlySupervised",
             "supervised_dialogue_mode=${if (supervisedGemmaEnabled) "gemma4" else "script"}",
@@ -253,7 +253,7 @@ internal object ChatRelayLiveCallProbe {
             "phone_disclosure_authorized=$phoneDisclosureAuthorized",
             "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
-        )
+        ))
         private var mediaRuntime: CallMediaSessionRuntime? = null
         private var downlinkPump: ChatRelayDownlinkPump? = null
         private var turnsCompleted = 0
@@ -623,15 +623,15 @@ internal object ChatRelayLiveCallProbe {
             snapshot.decisions.drop(turnDecisionBaseline).lastOrNull()?.let { decision ->
                 lines += "turn_${turn}_dialogue_action=${decision.actionId.name}"
                 lines += "turn_${turn}_dialogue_confidence=${decision.confidence}"
-                decision.argument?.let { argument ->
-                    lines += "turn_${turn}_dialogue_argument=${sanitize(argument)}"
+                if (decision.argument != null) {
+                    lines += "turn_${turn}_dialogue_argument_present=true"
                 }
             }
             snapshot.responseSources.drop(turnResponseSourceBaseline).lastOrNull()?.let { source ->
                 lines += "turn_${turn}_response_source=${source.name}"
             }
-            snapshot.localSkillErrors.drop(turnLocalSkillErrorBaseline).lastOrNull()?.let { error ->
-                lines += "turn_${turn}_local_error=${sanitize(error)}"
+            snapshot.localSkillErrors.drop(turnLocalSkillErrorBaseline).lastOrNull()?.let { _ ->
+                lines += "turn_${turn}_local_error_present=true"
             }
         }
 
@@ -671,8 +671,8 @@ internal object ChatRelayLiveCallProbe {
             lines += "chat_relay_live_call_success=$success"
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
-            val report = lines.joinToString("\n") + "\n"
-            try { File(context.filesDir, REPORT_FILE).writeText(report) } catch (_: Throwable) {}
+            val report = lines.render()
+            PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, report)
             context.mainExecutor.execute { callback(report) }
         }
     }
@@ -692,5 +692,6 @@ internal object ChatRelayLiveCallProbe {
             "probe_complete=true\n"
 
     private fun sanitize(value: String): String =
+        CallDiagnosticEvidence.safeCode(value)
         value.replace('\n', ' ').replace('\r', ' ').replace('=', ':').take(160)
 }
