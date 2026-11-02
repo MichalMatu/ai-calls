@@ -693,5 +693,4 @@ internal object ChatRelayLiveCallProbe {
 
     private fun sanitize(value: String): String =
         CallDiagnosticEvidence.safeCode(value)
-        value.replace('\n', ' ').replace('\r', ' ').replace('=', ':').take(160)
 }
