@@ -19,6 +19,7 @@ class CampaignToolActivity : Activity() {
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView
     private var pendingAction: PendingAction? = null
+    private var continueStartAfterRole = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +44,11 @@ class CampaignToolActivity : Activity() {
         val startButton = Button(this).apply {
             text = "Start authorized CLIR enable"
             setOnClickListener {
-                ensurePermissionsThen(PendingAction.START)
+                if (AndroidTelecomOwnedCallController.canControl(this@CampaignToolActivity)) {
+                    ensurePermissionsThen(PendingAction.START)
+                } else {
+                    requestCallRole(continueWithStart = true)
+                }
             }
         }
         val supervisedAudioButton = Button(this).apply {
@@ -129,6 +134,15 @@ class CampaignToolActivity : Activity() {
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CALL_NOTIFICATIONS) {
+            val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
+            if (granted) requestPlatformCallRole()
+            else {
+                continueStartAfterRole = false
+                statusView.text = "Powiadomienia połączeń są wymagane dla aktywnego panelu rozmowy"
+            }
+            return
+        }
         if (requestCode != REQUEST_CAMPAIGN_PERMISSIONS) return
 
         val allGranted = permissions.indices.all { index ->
@@ -173,7 +187,21 @@ class CampaignToolActivity : Activity() {
         requestPermissions(missing.toTypedArray(), REQUEST_CAMPAIGN_PERMISSIONS)
     }
 
-    private fun requestCallRole() {
+    private fun requestCallRole(continueWithStart: Boolean = false) {
+        continueStartAfterRole = continueWithStart
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                REQUEST_CALL_NOTIFICATIONS,
+            )
+            return
+        }
+        requestPlatformCallRole()
+    }
+
+    private fun requestPlatformCallRole() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager == null || !manager.isRoleAvailable(RoleManager.ROLE_DIALER)) {
             statusView.text = "System nie udostępnia roli domyślnego dialera"
@@ -181,6 +209,10 @@ class CampaignToolActivity : Activity() {
         }
         if (manager.isRoleHeld(RoleManager.ROLE_DIALER)) {
             statusView.text = "AI Calls ma już rolę dialera"
+            if (continueStartAfterRole) {
+                continueStartAfterRole = false
+                ensurePermissionsThen(PendingAction.START)
+            }
             return
         }
         // Android alone grants/revokes this role. Never change Google Phone silently.
@@ -191,9 +223,13 @@ class CampaignToolActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_DIALER_ROLE) {
-            statusView.text = if (AndroidTelecomOwnedCallController.canControl(this)) {
+            val roleActive = AndroidTelecomOwnedCallController.canControl(this)
+            statusView.text = if (roleActive) {
                 "Kontroler połączeń Android aktywny — można wykonać autoryzowane zadanie"
             } else "Rola dialera nie została przyznana; Google Phone pozostaje aktywny"
+            val shouldStart = continueStartAfterRole
+            continueStartAfterRole = false
+            if (roleActive && shouldStart) ensurePermissionsThen(PendingAction.START)
         }
     }
 
@@ -286,6 +322,7 @@ class CampaignToolActivity : Activity() {
     companion object {
         private const val REQUEST_CAMPAIGN_PERMISSIONS = 2001
         private const val REQUEST_DIALER_ROLE = 2002
+        private const val REQUEST_CALL_NOTIFICATIONS = 2003
         private val REQUIRED_PERMISSIONS = listOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CALL_PHONE,
