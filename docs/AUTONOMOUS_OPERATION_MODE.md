@@ -1,5 +1,14 @@
 # Autonomous operation mode
 
+## Product mission and owner's operating preference (2026-11-02)
+
+**AI Calls must ultimately carry out delegated telephone tasks end-to-end through local on-device AI.** The operator states a task once; a locally running agent chooses a destination from the task's approved targets, autonomously places an ordinary call, navigates IVR and dialogue, uses authorized facts, optionally performs authorized service/data changes, obtains factual completion evidence, disconnects the intended session and reports the result. A supervised Google Phone call is a diagnostic bridge, not the desired user experience. The system must be generic across services and user-selected ordinary lawful numbers, not a CLIR/`*100`-only bot.
+
+**Standing developer-operational delegation:** the owner permits self-directed source changes, integration, build/deploy, read-only ADB, non-effectful tests, evidence collection, bounded repair and retries on the designated development setup. Do not request redundant approvals or require manual call/log/UI relay when work is within a *specific previously approved task/grant* and available execution capabilities. The primary milestone is a measured live task loop, not more synthetic test churn.
+
+This mandate is **not a universal carrier/data authorization**. A real external call, data disclosure, service mutation or other consequential act still needs a concrete allowed target, task, account/SIM, effect and disclosure scope, and the application-owned revocable authorization required by its policy. Never infer authorization for arbitrary contacts, other people's data, purchases or materially different effects merely from the broad product intent. Android permissions, counterparty privacy, emergency/premium exclusions and external tool restrictions remain effective. If a tool denies an operation, report it instead of attempting a disguised reroute.
+
+
 Status: **NORMATIVE for active physical acceptance work**.
 
 
