@@ -20,7 +20,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
-import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotActivity
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotFailure
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallReadinessDiagnostics
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
@@ -152,12 +151,6 @@ class MainActivity : Activity() {
             setOnClickListener { startOneTapSupervisedTest() }
         }
 
-        val supervisedCallButton = Button(this).apply {
-            text = "Pierwsze połączenie — test nadzorowany"
-            setOnClickListener {
-                startActivity(Intent(this@MainActivity, SupervisedCallPilotActivity::class.java))
-            }
-        }
         val campaignToolsButton = Button(this).apply {
             text = "Campaign tools"
             setOnClickListener {
@@ -184,7 +177,6 @@ class MainActivity : Activity() {
             addView(requestMicButton)
             addView(enrollPhoneButton)
             addView(oneTapButton)
-            addView(supervisedCallButton)
             addView(campaignToolsButton)
             developerProbes.addControls(this)
             addView(
