@@ -13,7 +13,10 @@
 | AUDIT-05, przedwczesne zakończenie sukcesem | Raport operatora jest stanem przejściowym `clir_carrier_reported_success`; brak `workflow.complete(SUCCESS)` bez niezależnego potwierdzenia | Weryfikacja `*#31#` nadal niewykonana i niezintegrowana |
 | AUDIT-06, nieokreślona karta SIM | Jedyny dostępny, domyślny `PhoneAccountHandle` jest warunkiem; do intencji dodano wybrane konto, a scope ponownie porównano | Test realnego jedno-/dwu-SIM nadal potrzebny; połączenia blokuje AUDIT-02 |
 
-## Obowiązujące ograniczenia
+## Historyczne wyniki audytu — 2026-11-01
+
+> To jest zapis przyczyn i decyzji z audytu, **nie bieżący zestaw trwałych ograniczeń produktu**. Aktualną misją jest samodzielne wykonywanie zleconych rozmów przez lokalne AI zgodnie z `README.md`, `AGENTS.md` i `docs/ROADMAP.md`. Brak implementacji kontrolera `Call` to konkretne zadanie naprawcze, nie zakaz projektowania automatycznych połączeń. Jednorazowe globalne zakończenie ADB zostało później dodane do testów deweloperskich (unit PASS, fizyczna weryfikacja otwarta), co nie oznacza gotowej selektywnej obsługi połączeń.
+
 
 - **Nie wolno zdejmować blokady wybierania numeru** do czasu wdrożenia zweryfikowanej kontroli własnego połączenia z selektywnym rozłączeniem. Samo `isInCall()`, `MODE_IN_CALL` i `PhoneAccountHandle` nie zapewniają własności.
 - Nie wolno używać `TelecomManager.endCall()` do przerwania połączenia, którego tożsamości nie potwierdzono.
