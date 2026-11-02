@@ -1,10 +1,12 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.SystemClock
 import android.telecom.Call
 import android.telecom.InCallService
@@ -49,6 +51,10 @@ class AndroidOwnedInCallService : InCallService() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        // Android 13+ can deny notifications. Never crash call ownership or TX teardown.
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) return
         notifications.notify(
             CALL_NOTIFICATION,
             Notification.Builder(this, "aicalls_incall")
