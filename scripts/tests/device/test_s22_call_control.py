@@ -62,15 +62,80 @@ class CallControlParsingTest(unittest.TestCase):
                 self.assertEqual(4, wav.getnframes())
                 self.assertEqual(pcm, wav.readframes(4))
 
-    def test_global_dial_and_hangup_are_never_sent_to_adb(self):
+    def test_dial_still_requires_exact_controller_but_global_hangup_is_explicit(self):
         from aicall_tools.device.s22_call_control import Adb
 
-        device = Adb("192.168.0.100:46769")
-        with mock.patch.object(device, "shell", side_effect=AssertionError("unsafe ADB call")):
+        device = Adb("RFCT70L7E8J")
+        with mock.patch.object(device, "shell", side_effect=AssertionError("unexpected ADB call")):
             with self.assertRaisesRegex(RuntimeError, "exact_call_controller_required"):
                 device.dial("*100")
-            with self.assertRaisesRegex(RuntimeError, "unsafe_global_hangup_disabled"):
+            with self.assertRaisesRegex(RuntimeError, "global_hangup_requires_explicit_opt_in"):
                 device.hangup()
+
+    def test_global_hangup_issues_one_event_and_confirms_idle(self):
+        from aicall_tools.device.s22_call_control import Adb
+
+        device = Adb("RFCT70L7E8J")
+        observations = []
+        def fake_shell(args, **kwargs):
+            observations.append(tuple(args))
+            return {
+                ("getprop", "ro.serialno"): "RFCT70L7E8J",
+                ("getprop", "ro.product.model"): "SM-S906B",
+            }.get(tuple(args), "")
+
+        with mock.patch.object(device, "shell", side_effect=fake_shell), \
+             mock.patch.object(device, "call_state", side_effect=[2, 2, 0]):
+            self.assertTrue(device.hangup(allow_global=True))
+        self.assertEqual(1, observations.count(("input", "keyevent", "KEYCODE_ENDCALL")))
+
+    def test_global_hangup_on_idle_is_noop(self):
+        from aicall_tools.device.s22_call_control import Adb
+
+        device = Adb("RFCT70L7E8J")
+        def fake_shell(args, **kwargs):
+            if args == ["getprop", "ro.serialno"]:
+                return "RFCT70L7E8J"
+            if args == ["getprop", "ro.product.model"]:
+                return "SM-S906B"
+            raise AssertionError("no call-control input is allowed on idle")
+        with mock.patch.object(device, "shell", side_effect=fake_shell), \
+             mock.patch.object(device, "call_state", return_value=0):
+            self.assertFalse(device.hangup(allow_global=True))
+
+    def test_global_hangup_never_rejects_incoming_or_unknown_state(self):
+        from aicall_tools.device.s22_call_control import Adb
+
+        device = Adb("RFCT70L7E8J")
+        def fake_shell(args, **kwargs):
+            if args == ["getprop", "ro.serialno"]:
+                return "RFCT70L7E8J"
+            if args == ["getprop", "ro.product.model"]:
+                return "SM-S906B"
+            raise AssertionError("unexpected global key event")
+        for state in (None, 1, 3):
+            with self.subTest(state=state), \
+                 mock.patch.object(device, "shell", side_effect=fake_shell), \
+                 mock.patch.object(device, "call_state", return_value=state):
+                with self.assertRaisesRegex(RuntimeError, "global_hangup_requires_offhook"):
+                    device.hangup(allow_global=True)
+
+    def test_global_hangup_refuses_unexpected_hardware(self):
+        from aicall_tools.device.s22_call_control import Adb
+
+        device = Adb("RFCT70L7E8J")
+        with mock.patch.object(device, "shell", side_effect=["WRONG_SERIAL", "SM-S906B"]):
+            with self.assertRaisesRegex(RuntimeError, "global_hangup_requires_exact_test_s22"):
+                device.hangup(allow_global=True)
+
+    def test_global_hangup_refuses_changed_call_state(self):
+        from aicall_tools.device.s22_call_control import Adb
+
+        device = Adb("RFCT70L7E8J")
+        with mock.patch.object(device, "shell", side_effect=["RFCT70L7E8J", "SM-S906B"]), \
+             mock.patch.object(device, "call_state", side_effect=[2, 0]):
+            with self.assertRaisesRegex(RuntimeError, "global_hangup_call_state_changed"):
+                device.hangup(allow_global=True)
 
     def test_rejects_odd_pcm_byte_count(self):
         with tempfile.TemporaryDirectory() as tmp:
