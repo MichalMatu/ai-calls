@@ -2,6 +2,10 @@
 
 ## Product invariant
 
+**Owner's desired delegation model (2026-11-02):** AI Calls is a local autonomous caller, not a permanent human-supervised call attachment. A person issues a task with a destination or criteria and permitted scope; local AI executes telephone dialogue, can resume bounded attempts, act on user-authorized data and service tasks, terminate its own session and return factual results. The system should support the user's normal lawful destinations and must not be restricted by a product-wide Orange number allowlist.
+
+**One authorization, autonomous execution:** a valid scoped application grant should allow the entire matching call/IVR/conversation/retry/cleanup workflow without forcing manual phone interaction or a repeated app prompt for every step. The owner has given broad permission for independent development and testing, which is not itself a production grant for unspecified destinations, other persons' accounts, new purchases or unapproved disclosure. Material changes still require the product's real authorization checks; never treat a Markdown sentence or chat message as the external-effect permit.
+
 Different phone tasks use one authority model. Orange CLIR, appointment booking, cancellation, reservation changes and future service actions must not grow separate commitment stacks.
 
 ## Implemented authority flow
