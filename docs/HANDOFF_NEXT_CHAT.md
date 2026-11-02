@@ -1,6 +1,10 @@
 # AI Calls — handoff, 2026-11-01: corrective safety hold
 
-## 2026-11-02 — fizyczny S22, polskie STT i lokalny pipeline PASS (najnowsze)
+## 2026-11-02 — autonomiczna akceptacja S22 bez rozmowy PASS (najnowsza)
+
+Przeczytaj `docs/checkpoints/2026-11-02-ai-calls-autonomous-nocall-supervised-acceptance.md`. Mac Host Control `aicalls-s22-autonomous-nocall-gemma-ui-media-20261102-v1` **done/0**: pełna gotowość Shizuku i mikrofonu, prawdziwy telefoniczny model Gemma zatwierdzający odpowiedź **OK (1 test)**, odmowa startu toru komórkowego poza rozmową **PASS** (BINDING>PREPARING>STOPPING>FAILED>IDLE), brak zmian usług. `aicalls-s22-pilot-no-call-button-rejection-20261102-v2` **done/0**: automatyczny test UI kliknął „Uruchom AI w trwającej rozmowie” w IDLE, otrzymał „Najpierw rozpocznij rozmowę…” i potwierdził nieaktywny STOP. Nie powtarzaj wcześniejszych PASS testów offline STT/TTS. **Jedyne istotne otwarte przejście:** dobrowolna, rozpoczęta ręcznie przez użytkownika rozmowa z wyrażającą zgodę drugą stroną, akustycznie zweryfikowany RX/STT/Gemma/TTS/TX oraz STOP. Bez samodzielnego wybierania numeru przez Local Agenta lub obchodzenia zabezpieczeń exact-call.
+
+## 2026-11-02 — fizyczny S22, polskie STT i lokalny pipeline PASS (wcześniejszy punkt kontrolny)
 
 **Najpierw przeczytaj `docs/checkpoints/2026-11-02-ai-calls-s22-polish-stt-recovery.md`.** Po przywróceniu wyłączonych `com.google.android.as` i `com.google.android.as.oss` Google STT odzyskało gotowość. Na S22 przez USB ADB przeszły pełne bezrozmowne testy `TTS PCM -> STT` (`production_roundtrip_success=true`) oraz `STT -> deterministyczny backend tekstowy -> zatwierdzenie -> TTS PCM` (`text_pipeline_success=true`); zobacz dokładne receipty w checkpoincie. Oryginalny błąd `recognition_error_10` nie występuje w tych testach po przywróceniu obu pakietów. `main` zawiera też obsługę błędów/timeoutu startu STT z PR #22. **Nie powtarzaj testów, które już mają PASS, bez zmiany konfiguracji.** Żadnej rozmowy telefonicznej nie wykonywano; realna, jawnie nadzorowana rozmowa cellular RX/TX i akustyczny STOP pozostają niezweryfikowane. Nie usuwaj zabezpieczenia braku kontrolera exact-call ownership.
 
