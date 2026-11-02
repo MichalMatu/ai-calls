@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.campaign
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
+import android.app.PendingIntent
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
@@ -43,13 +44,15 @@ class AppOwnedCampaignService : Service() {
                 startSupervisedAudio()
                 return START_NOT_STICKY
             }
-            ACTION_STOP_SUPERVISED_AUDIO -> {
+            ACTION_STOP_SUPERVISED_AUDIO, ACTION_STOP_ALL_AI -> {
                 supervisedAudioActive.set(false)
                 supervisedAudioSession?.stopAudio()
                 supervisedAudioSession = null
-                if (!AppOwnedClirCampaignExecutor.isRunning()) {
-                    finish("Supervised audio test stopped; the cellular call remains under your control")
-                }
+                val ownedStopped = AppOwnedClirCampaignExecutor.stop { statusStore.save(it) }
+                finish(
+                    if (ownedStopped) "STOP AI: owned campaign stopped; targeted cleanup requested"
+                    else "STOP AI: app audio stopped; external calls remain untouched",
+                )
                 return START_NOT_STICKY
             }
         }
@@ -152,6 +155,7 @@ class AppOwnedCampaignService : Service() {
                         }.getOrDefault(false)
                 },
                 readOnlySupervised = true,
+                supervisedGemmaEnabled = true,
             ) { report ->
                 supervisedAudioActive.set(false)
                 supervisedAudioSession = null
@@ -178,6 +182,7 @@ class AppOwnedCampaignService : Service() {
         supervisedAudioActive.set(false)
         supervisedAudioSession?.stopAudio()
         supervisedAudioSession = null
+        AppOwnedClirCampaignExecutor.stop { statusStore.save(it) }
         super.onDestroy()
     }
 
@@ -194,6 +199,16 @@ class AppOwnedCampaignService : Service() {
             .setContentText(status.take(NOTIFICATION_TEXT_LIMIT))
             .setOngoing(AppOwnedClirCampaignExecutor.isRunning())
             .setOnlyAlertOnce(true)
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "STOP AI",
+                PendingIntent.getService(
+                    this, 0,
+                    Intent(this, AppOwnedCampaignService::class.java)
+                        .setAction(ACTION_STOP_ALL_AI),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
             .build()
 
     companion object {
@@ -203,6 +218,8 @@ class AppOwnedCampaignService : Service() {
             "pl.michalmatu.aicallbridge.action.START_SUPERVISED_AUDIO"
         const val ACTION_STOP_SUPERVISED_AUDIO =
             "pl.michalmatu.aicallbridge.action.STOP_SUPERVISED_AUDIO"
+        const val ACTION_STOP_ALL_AI =
+            "pl.michalmatu.aicallbridge.action.STOP_ALL_AI"
 
         private const val CHANNEL_ID = "aicall_campaign"
         private const val NOTIFICATION_ID = 3101

@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.telecom.TelecomManager
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
 import pl.michalmatu.aicallbridge.developerrelay.ChatRelayLiveCallProbe
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
@@ -18,8 +19,19 @@ internal object AppOwnedClirCampaignExecutor {
     private const val CALL_ACTIVE_TIMEOUT_MS = 30_000L
     private const val CALL_ACTIVE_POLL_MS = 250L
     private val running = AtomicBoolean(false)
+    private val ownedCalls = CampaignOwnedCallLifecycle<CampaignOwnedCallSession> { cleanupOwnedCall(it) }
+    private val audioSession = AtomicReference<ChatRelayLiveCallProbe.SessionControl?>(null)
 
     fun isRunning(): Boolean = running.get()
+
+    /** STOP revokes AI TX and cleans up only a call identified by this app's controller. */
+    fun stop(onStatus: (String) -> Unit): Boolean {
+        val wasRunning = running.getAndSet(false)
+        audioSession.getAndSet(null)?.stopAudio()
+        val cleanup = ownedCalls.releaseCurrent()
+        if (wasRunning) onStatus("AI stopped; owned-call cleanup=$cleanup")
+        return wasRunning
+    }
 
     fun start(
         context: Context,
@@ -136,11 +148,22 @@ internal object AppOwnedClirCampaignExecutor {
             onStatus("Owned dial failed: ${error.javaClass.simpleName}")
             return
         }
+        if (!ownedCalls.bind(ownedCall)) {
+            running.set(false)
+            val cleanup = cleanupOwnedCall(ownedCall)
+            onStatus("Another owned call session is still present; cleanup=$cleanup")
+            return
+        }
+        // An operator STOP can arrive while Telecom is placing the call.
+        if (!running.get()) {
+            ownedCalls.release(ownedCall)
+            return
+        }
         val exactIdentityMatches = runCatching {
             ownedCall.dialedTarget == request.target && ownedCall.phoneAccount == voiceAccount
         }.getOrDefault(false)
         if (!exactIdentityMatches) {
-            val cleanup = cleanupOwnedCall(ownedCall)
+            val cleanup = ownedCalls.release(ownedCall)
             running.set(false)
             onStatus("Owned dial identity missing or mismatched; cleanup=$cleanup")
             return
@@ -164,7 +187,7 @@ internal object AppOwnedClirCampaignExecutor {
             )
         }
         if (launched.isFailure) {
-            val cleanup = cleanupOwnedCall(ownedCall)
+            val cleanup = ownedCalls.release(ownedCall)
             running.set(false)
             onStatus("Campaign call setup failed; cleanup=$cleanup")
         }
@@ -183,7 +206,7 @@ internal object AppOwnedClirCampaignExecutor {
     ) {
         val audioManager = appContext.getSystemService(AudioManager::class.java)
         if (audioManager == null) {
-            val cleanup = cleanupOwnedCall(ownedCall)
+            val cleanup = ownedCalls.release(ownedCall)
             running.set(false)
             onStatus("Audio service unavailable; cleanup=$cleanup")
             return
@@ -192,7 +215,7 @@ internal object AppOwnedClirCampaignExecutor {
         fun poll() {
             if (!running.get()) return
             val exactActive = runCatching { ownedCall.isExactCallActive() }.getOrElse {
-                val cleanup = cleanupOwnedCall(ownedCall)
+                val cleanup = ownedCalls.release(ownedCall)
                 running.set(false)
                 onStatus("Owned call state unavailable; cleanup=$cleanup")
                 return
@@ -203,13 +226,13 @@ internal object AppOwnedClirCampaignExecutor {
                 return
             }
             if (System.currentTimeMillis() >= deadlineEpochMs) {
-                val cleanup = cleanupOwnedCall(ownedCall)
+                val cleanup = ownedCalls.release(ownedCall)
                 running.set(false)
                 onStatus("Call did not become active before timeout; cleanup=$cleanup")
                 return
             }
             if (!handler.postDelayed({ poll() }, CALL_ACTIVE_POLL_MS)) {
-                val cleanup = cleanupOwnedCall(ownedCall)
+                val cleanup = ownedCalls.release(ownedCall)
                 running.set(false)
                 onStatus("Call state watchdog unavailable; cleanup=$cleanup")
             }
@@ -233,7 +256,7 @@ internal object AppOwnedClirCampaignExecutor {
             IdentityFieldId.PHONE in grant.allowedDisclosureFields
 
         val launched = runCatching {
-            ChatRelayLiveCallProbe.run(
+            val launchedAudio = ChatRelayLiveCallProbe.run(
                 context = appContext,
                 sessionId = sessionId,
                 maxTurns = ChatRelayLiveCallProbe.MAX_TURNS,
@@ -252,7 +275,8 @@ internal object AppOwnedClirCampaignExecutor {
                 val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
                 val carrierReportedSuccess = reportValue(report, "clir_carrier_reported_success") == "true"
                 val failureReason = reportValue(report, "failure_reason")
-                val cleanup = cleanupOwnedCall(ownedCall)
+                audioSession.set(null)
+                val cleanup = ownedCalls.release(ownedCall)
                 running.set(false)
 
                 onStatus(
@@ -271,9 +295,14 @@ internal object AppOwnedClirCampaignExecutor {
                     },
                 )
             }
+            if (running.get()) {
+                audioSession.set(launchedAudio)
+            } else {
+                launchedAudio?.stopAudio()
+            }
         }
         if (launched.isFailure) {
-            val cleanup = cleanupOwnedCall(ownedCall)
+            val cleanup = ownedCalls.release(ownedCall)
             running.set(false)
             onStatus(
                 "Campaign runtime launch failed: " +

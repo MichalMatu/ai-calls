@@ -54,13 +54,13 @@ class CampaignToolActivity : Activity() {
             }
         }
         val stopSupervisedAudioButton = Button(this).apply {
-            text = "Stop audio pilot (do not hang up)"
+            text = "STOP AI"
             setOnClickListener {
                 startService(
                     Intent(this@CampaignToolActivity, AppOwnedCampaignService::class.java)
-                        .setAction(AppOwnedCampaignService.ACTION_STOP_SUPERVISED_AUDIO),
+                        .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI),
                 )
-                statusView.text = "Stopping app audio test; manage the phone call in Google Phone"
+                statusView.text = "Stopping AI; only an app-owned call may be disconnected"
             }
         }
         val revokeButton = Button(this).apply {
