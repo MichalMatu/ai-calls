@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.localspeech
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -87,6 +88,7 @@ class AndroidLocalSpeechMvpContractTest {
                 "Expected readiness or a surfaced failure, got $terminal",
                 terminal == "ready" || terminal.startsWith("error:"),
             )
+            Log.i("AiCallsSttStartup", "LOCAL_STT_STARTUP_OUTCOME=$terminal")
             println("LOCAL_STT_STARTUP_OUTCOME=$terminal")
         } finally {
             InstrumentationRegistry.getInstrumentation().runOnMainSync { input.close() }
