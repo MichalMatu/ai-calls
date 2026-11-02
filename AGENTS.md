@@ -14,7 +14,7 @@ See [product README](README.md), [Architecture](docs/ARCHITECTURE.md), [Autonomo
 
 
 
-> **Current gate — 2026-11-02:** read `docs/checkpoints/2026-11-02-before-first-call-checkpoint.md` and the short `docs/HANDOFF_NEXT_CHAT.md` first. Polish STT/TTS, local Gemma and supervised UI/off-call media safety are physically **PASS**; **a real, user-started consenting supervised cellular conversation with audible RX/TX/STOP remains OPEN**. The autonomous CLIR dial remains **fail-closed** until exact call ownership and targeted hangup exist. Do not resume automatic `*100` loops or global hangup. Historical 2026-11-01 pending/FAIL status in older docs is superseded only for explicitly closed no-call scopes; latest host quality result is recorded in the pre-call checkpoint.
+> **Current product/engineering state — 2026-11-02:** AI Calls must autonomously execute user-delegated telephone tasks with the locally running AI. Begin with the current `README.md`, `docs/HANDOFF_NEXT_CHAT.md` and `docs/ROADMAP.md`. Local Polish STT/TTS, Gemma, Shizuku and one-tap no-call hardware tests are PASS. Autonomous live-call dial/AI RX-TX/actual call teardown are still OPEN engineering work, not permanent product prohibitions. Existing Android/media and task-authorization checks must be validated and implemented correctly; do not misrepresent test gaps as product capability. The developer may independently continue all authorized, nonblocked implementation and test work without repeated approval.
 
 This repository is single-developer and main-first. Durable product code/docs live on `main`. The local `ai-calls:agent-control` branch is an **older project-task mailbox**, not the Mac Host Control queue. For machine/ADB/build tasks use the selected Mac installation on **`MichalMatu/local-agent:agent-control`**, as documented below.
 
@@ -73,7 +73,7 @@ Do **not** ask the operator for repository paths, branch names, session IDs, ret
 
 The product is a **generic autonomous phone task engine** that can call a user-authorized ordinary number, resume an interrupted task within its grant, handle IVR and end its own session. Do not narrow its purpose to Orange CLIR or create service-specific authority architectures.
 
-Current acceptance sequence (safety override supersedes older Orange call-loop plans):
+Engineering acceptance sequence for the autonomous product (Orange is one example):
 
 1. Use Mac Host Control to get fresh no-call Wireless ADB/IDLE/Shizuku evidence and full Gradle/Python tests. Repair verified failures before trusting hardware readiness.
 2. Implement and physically validate a real call-specific Android controller for exactly the application's own phone call; maintain a targeted hangup and per-SIM identity. Global phone state or `KEYCODE_ENDCALL` is not sufficient.
@@ -235,16 +235,6 @@ Before closing a scope:
 
 Do not declare a physical CLIR task complete from synthetic/no-call results, permit consumption, a model statement or call termination alone.
 
-> **Update after logical sprint, 2026-11-01:** The artificial `CampaignCallOwnershipProof(false,false)` was removed. Current runtime expects a concrete `CampaignOwnedCallController` with exact session identity and targeted hangup; **no Android/S22 adapter is currently installed**, so physical dialing is still unavailable. New neutral PhraseMatrix-first dialogue, live media generation binding, more precise SIM matching and deferred permission requests are source-only; Gradle/device acceptance is not yet claimed. See `docs/SPRINT_LOGIC_CORRECTIONS_2026-11-01.md`.
+## Historical notes
 
-
-> **2026-11-01 developer-tool safety update:** the Local Agent wrappers now resolve paired Wireless ADB/USB by live mDNS/device enumeration and verify the exact S22. The legacy `adb.hangup()`, telecom global fallback, and autonomous `relay-live` / `clir_iteration.sh` are disabled to prevent disconnection of unrelated calls. A user-controlled attach-only probe may run on an explicitly authorized existing call; it does **not** own that call and never hangs it up. New repo checkpoint: `docs/SPRINT_WIRELESS_ADB_CALL_SAFETY_2026-11-01.md`. Do not equate historical `agent-control` status with active host execution. Current Android exact-call adapter missing; physical verification open.
-
-> **2026-11-01 Local Agent 4.20.16 migration:** the old `ai-calls:agent-control/.agent/daemon` task/status preflight is obsolete for **Mac Host Ops**. Prefer `local-agent:agent-control/.agent/hosts/macbook-michal/supervisor/<installation-id>/` for exact-machine commands; read `docs/LOCAL_AGENT_HOST_FLOW_2026-11-01.md` before any hardware sprint. The earlier 2026-11-01 checkpoint describing an allegedly offline Mac checked the wrong namespace and is superseded.
-
-> **2026-11-01 exact-call feasibility sprint:** ADB/Shizuku ready is only a no-call gate. Use `scripts/bin/aicalls call-capabilities` through exact `local-agent:agent-control` Mac Host Control to inspect Telecom capabilities without changing dialer roles or making calls. `docs/EXACT_CALL_CAPABILITY_SPRINT_2026-11-01.md` is the source checkpoint. The stock Android default-dialer InCallService path is not a safe retrofit while the user's dialer must remain unchanged; device-wide hangup remains forbidden. An authorized, physically tested exact-call backend is still missing.
-
-
-> **2026-11-01 supervised audio pilot implementation:** `docs/SUPERVISED_FIRST_AUDIO_PILOT_2026-11-01.md`. First-audio path is now installed on S22 and allows only attaching an effect-free local two-turn script to a human-started, human-ended existing call. Mac quality and S22 idle/readiness gates passed, but actual on-call RX/TX acceptance has not happened. The supervised path never supplies an owned call handle and does not authorize autonomous dialing, global hangup, CLIR changes or changing the user's default dialer. Keep `CampaignCallControllerRegistry` fail-closed until a physically accepted exact-call controller exists.
-
-> **MVP 2026-11-01:** istnieje operator-controlled `SupervisedCallPilotActivity` dla manualnego dialera i 3 lokalnych odpowiedzi w trwającym połączeniu. Jedynym STOP jest zatrzymanie aplikacyjnej ścieżki audio, nigdy device-wide hangup. `main@5cb13fc` przeszedł host unit/lint/APK + 199 Python, lecz instalację S22 zablokowało offline Wireless ADB. Więcej: `docs/SUPERVISED_FIRST_CALL_MVP_2026-11-01.md`. NIE utożsamiać tego z autonomicznym dialerem.
+The 2026-11-01 interim experiments and their previous limitations belong to the versioned checkpoint documents and Git history, not to the live product mandate. Do not treat past supervised-test instructions as the definition of AI Calls or claim historical test status is current. The current state and unresolved engineering defects are recorded in [handoff](docs/HANDOFF_NEXT_CHAT.md), [roadmap](docs/ROADMAP.md) and the linked checkpoints.
