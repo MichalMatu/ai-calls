@@ -1,40 +1,39 @@
 # AI Calls
 
-Prototype Android for bounded phone tasks on **Samsung Galaxy S22+ (SM-S906B)**. User-controlled call audio uses Shizuku, local Polish STT, a constrained Gemma 4 dialogue skill (or deterministic script), application-approved speech and local TTS. Google Phone remains the default dialer.
+**Autonomous local-AI phone task agent for Android.** A person delegates an outcome in natural language; the application plans and performs ordinary telephone tasks on the person's behalf. **The supervised call pilot is a test harness, not the product definition.**
 
-## Current acceptance target — first supervised call
+The target device is the Samsung Galaxy S22+ (`SM-S906B`). The implementation uses Android Telecom/telephony, Samsung/Shizuku cellular RX/TX, Polish STT/TTS, deterministic task state and a local Gemma 4 dialogue skill. The intention is that execution happens **on the phone with local AI**, not by having a person click through every dialogue or by requiring ChatGPT/ADB to serve as the product runtime.
 
-**The app is ready for one *consenting, manually started* supervised test call; live cellular audio has not yet been accepted.** On the phone, open **Pierwsze połączenie — test nadzorowany**. The user starts the call in Google Phone, returns to AI Calls, confirms attaching AI audio and retains control of the call. STOP revokes **AI audio only**, not the cellular call. No unattended dialing, service changes or personal-data disclosure are authorized by this test.
-
-Physical Galaxy S22+ evidence (2026-11-02, off-call):
-
-- Local Polish TTS PCM16/16 kHz → STT exact transcript: **PASS**.
-- Local Polish STT → deterministic complete-text backend → application approval → TTS PCM: **PASS**.
-- Real on-device Gemma 4 approved dialogue skill, no-call Android instrumentation: **PASS**. Local model is READY; no redownload needed.
-- Shizuku Binder, permissions and device readiness: **PASS**.
-- Call media correctly refuses to start off-call and returns to IDLE: **PASS**.
-- UI refuses supervised attach while no call is active; STOP stays disabled: **PASS**.
-- Actual carrier RX/STT/Gemma-or-script/TTS/TX, remote audibility and acoustic STOP: **NOT TESTED**.
-
-A former Google STT `recognition_error_10` issue resolved after re-enabling `com.google.android.as` and `com.google.android.as.oss`. Keep both enabled. The app also has a bounded startup/error handling fix (PR #22).
-
-**Current point of truth:** [Pre-call checkpoint](docs/checkpoints/2026-11-02-before-first-call-checkpoint.md) and [new-chat handoff](docs/HANDOFF_NEXT_CHAT.md). Historical evidence remains in the [STT recovery checkpoint](docs/checkpoints/2026-11-02-ai-calls-s22-polish-stt-recovery.md) and [no-call acceptance checkpoint](docs/checkpoints/2026-11-02-ai-calls-autonomous-nocall-supervised-acceptance.md).
-
-## Safety and architecture
-
-The separate **autonomous CLIR / app-owned dialing** development track remains **BLOCKED**: no proven exact-call owner with targeted hangup. Do not bypass the guard, place an automatic `*100` call, change the default dialer or use a global hangup. A supervised attach-only call is not proof of autonomous call ownership.
-
-The product architecture is:
+## Product contract
 
 ```text
-exact task + authorization -> call audio -> Polish STT
-  -> deterministic state / PhraseMatrix -> bounded local Gemma skill or reviewed script
-  -> application-owned speech approval -> Polish TTS / PCM uplink
-  -> separate factual external-success verification where an effect is authorized
+user delegates a concrete telephone task and permitted scope
+ -> local AI interprets goal, target(s), constraints and needed facts
+ -> application authorizes and schedules bounded attempt(s)
+ -> check device/SIM/permissions and absence of an unrelated active call
+ -> autonomously dial the approved target
+ -> understand IVR and live replies: cellular RX -> Polish STT
+ -> deterministic workflow/PhraseMatrix -> local Gemma 4 when needed
+ -> validate response and permitted data disclosure -> Polish TTS -> cellular TX
+ -> carry out authorized read-only inquiries or typed changes
+ -> verify the factual outcome (and external state when relevant)
+ -> stop/retry/escalate according to the task; end only the test's own call
+ -> return result, evidence and next action to the user
 ```
 
-Frozen boundaries: Samsung media/Shizuku helper, `IdentityVault` disclosure, app-owned external-effect permits and approval. See [AGENTS.md](AGENTS.md), [ARCHITECTURE](docs/ARCHITECTURE.md), [SECURITY_PRIVACY](docs/SECURITY_PRIVACY.md), and [AUTONOMOUS_OPERATION_MODE](docs/AUTONOMOUS_OPERATION_MODE.md).
+Generic examples include inquiries, appointments, reservations and changes or cancellations of **user-authorized** services. The system must be designed for user-specified ordinary, lawful destinations, **not hard-coded to Orange, `*100`, or a test whitelist**. Authorized tasks may involve reading, submitting or updating the user's own account data when the task's granted scope explicitly permits it.
 
-## Development and continuation
+**Delegation and developer autonomy:** The owner authorizes self-directed code changes, building, deploying to the designated test handset, read-only diagnostics, tests, routine retries, and cleanup within already accepted task scope. Do not request a new confirmation for the same unchanged approved action. This is a product/development objective, **not** an unrestricted standing grant to dial unspecified numbers, alter arbitrary third-party data, reveal personal details, spend money, or bypass Android, telecom-provider, legal or external tool safeguards. The application stores a specific, revocable authorization scope for external actions; permissions and consequential actions still need their applicable authority. Details: [Autonomous operation](docs/AUTONOMOUS_OPERATION_MODE.md), [Task authority](docs/GENERIC_PHONE_TASK_AUTHORITY.md), [Security](docs/SECURITY_PRIVACY.md).
 
-Run work through **Mac Local Agent + GitHub Connector**. No Codex, Work or GitHub Actions. Exact source quality gate: `scripts/verify_host.sh` (Android unit, lint, debug APK, AndroidTest APK, Python tests, static safety checks). Follow [Local Agent Host Control](docs/LOCAL_AGENT_HOST_FLOW_2026-11-01.md) and [ROADMAP](docs/ROADMAP.md). Read the short handoff before a new session; source code and `main` SHA must be verified afresh.
+## Actual status — 2026-11-02
+
+- **PASS on S22, off-call:** Polish STT/TTS, local Gemma 4, Shizuku, approved speech pipeline, no-call safety and the one-tap supervised pilot's idle-state instrumented acceptance. The one-tap button is installed and verified; it **attaches to an existing call**, not a fully autonomous dialer.
+- **OPEN:** genuine cellular RX/STT/local AI/TTS/TX, audible response at the other end and physical STOP acceptance. A real-call screenshot showed `MODE_IN_COMMUNICATION` while the Samsung media path expects `MODE_IN_CALL`; do not label routing as working until measured and fixed.
+- **OPEN:** a working app-owned autonomous call controller and verified termination of the intended call. The current CLIR campaign executor refuses autonomous dialing because its `CampaignOwnedCallController` adapter is not installed. A separate ADB global-endcall experiment has only targeted unit-test acceptance, not physical in-call proof.
+- An experimental Orange dial-and-global-cleanup runner remains unqualified and its external tool execution was blocked; do not treat that as a successful product call.
+
+The immediate next hardware step is only one acceptance gate **toward** the full product; it is not a change of the product goal to permanent manual calling. A useful complete product milestone must demonstrate a user-authorized **real** call from start through measurable audio/dialogue, actual task result, cleanup and independently verified `IDLE`.
+
+## Engineering
+
+Read [AGENTS.md](AGENTS.md), [Architecture](docs/ARCHITECTURE.md), [Roadmap](docs/ROADMAP.md), and the [handoff](docs/HANDOFF_NEXT_CHAT.md). Build/test/device work uses **GitHub Connector + Mac Local Agent**; do not use Codex, ChatGPT Work or GitHub Actions. Verify the current `main` HEAD and exact Mac host/device; use existing PASS receipts and avoid redundant test churn. No result is PASS merely because code was committed or a task was queued.
