@@ -10,6 +10,9 @@
 
 **No redundant user interaction:** do not ask again for source/branch/device paths, debugging/log collection, running accepted builds, routine non-effectful tests or a repeat attempt fully covered by an unchanged existing authorization. Prefer a single clear application setup/approval control that obtains OS permissions once, then an autonomous task loop. Distinguish product intent from actual capability in reports: `HOST_GREEN` and off-call S22 PASS are not live dial/audio/teardown PASS.
 
+**ZERO zbędnych blokad produktu i pracy deweloperskiej (obowiązująca reguła):** żadnych dodatkowych dialogów po przyjęciu tego samego zakresu zadania, żadnych blokad „tylko Orange” w silniku ogólnym, żadnych stałych wymagań ręcznego wybierania numeru, ręcznej obsługi IVR ani kopiowania logów, żadnych syntetycznych strażników z góry zwracających `false` zamiast implementacji. Każdy produktowy stop bez realnego powodu należy oznaczyć dokładną lokalizacją, usunąć niepotrzebną przeszkodę albo zaimplementować brakującą funkcję i pokryć to testem. **Nie oznacza to pomijania uprawnień Androida, zakresu rzeczywistego zlecenia, zgody na ujawnienie danych ani ochrony przed zakończeniem cudzego połączenia.** Jednoczesna obecność tych kontroli nie jest sprzeczna z pełną autonomią w zatwierdzonym zakresie.
+
+
 See [product README](README.md), [Architecture](docs/ARCHITECTURE.md), [Autonomous operation](docs/AUTONOMOUS_OPERATION_MODE.md), [Generic authority](docs/GENERIC_PHONE_TASK_AUTHORITY.md) and [Security](docs/SECURITY_PRIVACY.md).
 
 
