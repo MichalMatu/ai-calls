@@ -150,6 +150,16 @@ class MainActivity : Activity() {
             text = "Jeden przycisk: uruchom AI w trwającej rozmowie"
             setOnClickListener { startOneTapSupervisedTest() }
         }
+        val stopAiButton = Button(this).apply {
+            text = "STOP AI"
+            setOnClickListener {
+                startService(
+                    Intent(this@MainActivity, AppOwnedCampaignService::class.java)
+                        .setAction(AppOwnedCampaignService.ACTION_STOP_SUPERVISED_AUDIO),
+                )
+                statusView.text = "Zatrzymano lokalną sesję audio AI."
+            }
+        }
 
         val campaignToolsButton = Button(this).apply {
             text = "Campaign tools"
@@ -177,6 +187,7 @@ class MainActivity : Activity() {
             addView(requestMicButton)
             addView(enrollPhoneButton)
             addView(oneTapButton)
+            addView(stopAiButton)
             addView(campaignToolsButton)
             developerProbes.addControls(this)
             addView(
