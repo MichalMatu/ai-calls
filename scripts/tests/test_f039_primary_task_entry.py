@@ -27,13 +27,7 @@ class PrimaryTaskEntryContractTest(unittest.TestCase):
 
     def test_single_primary_start_uses_existing_campaign_screen_flow(self):
         self.assertIn('text = "Rozpocznij autoryzowane zadanie AI"', self.main)
-        self.assertRegex(
-            self.main,
-            r"startAuthorizedTaskButton = Button\(this\).*?"
-            r"startActivity\(\s*Intent\(this@MainActivity, "
-            r"CampaignToolActivity::class\.java\)"
-            r"\s*\.putExtra\(CampaignToolActivity\.EXTRA_START_AUTHORIZED_CAMPAIGN, true\)",
-        ) if False else self.assertTrue(
+        self.assertTrue(
             re.search(
                 r"startAuthorizedTaskButton = Button\(this\).*?"
                 r"startActivity\(\s*Intent\(this@MainActivity, "
