@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 26):
+    for identifier in range(1, 27):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
@@ -87,6 +87,7 @@ def audit(root: Path) -> list[str]:
             "CampaignStartDisposition.REUSE_SAVED")
     require("AppOwnedCampaignService.kt", service, "CampaignStartReconciliationPolicy.decide(")
     require("AppOwnedCampaignService.kt", service, "awaitPhoneIdle()")
+    require("AppOwnedCampaignService.kt", service, "checkSelfPermission(Manifest.permission.READ_PHONE_STATE)")
     require("AppOwnedCampaignService.kt", service,
             "continuationHandler.postDelayed(retry, PHONE_IDLE_RECHECK_MS)")
     forbid("AppOwnedCampaignService.kt", service,
