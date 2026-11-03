@@ -4,7 +4,7 @@ import android.content.Context
 
 internal class CampaignRuntimeStatusStore(context: Context) {
     private val preferences =
-        context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        (context.applicationContext ?: context).getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun save(status: String) {
         require(status.length <= MAX_STATUS_CHARS) { "campaign_status_too_large" }
