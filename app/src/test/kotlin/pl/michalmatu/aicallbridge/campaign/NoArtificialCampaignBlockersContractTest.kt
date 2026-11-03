@@ -84,4 +84,19 @@ class NoArtificialCampaignBlockersContractTest {
         assertFalse("returning from dialer must not retry attach automatically", resumeBlock.contains("awaitAudioRoute()"))
     }
 
+    @Test fun continuationRespectsExactGrantAndStopWithoutAnotherApprovalDialog() {
+        val service = source("campaign/AppOwnedCampaignService.kt")
+        val continuation = source("campaign/CampaignContinuationStore.kt")
+        val executor = source("campaign/AppOwnedClirCampaignExecutor.kt")
+        assertTrue(service.contains("val restoring = intent == null && continuationStore.load() != null"))
+        assertTrue(service.contains("continuationStore.begin(grant.grantId, accountScope, now)"))
+        assertTrue(service.contains("isContinuationAuthorized(state)"))
+        assertTrue(service.contains("continuationStore.planRetry(grantId"))
+        assertTrue(service.contains("continuationStore.clear()"))
+        assertTrue(service.contains("continuationGeneration != generation"))
+        assertTrue(continuation.contains("fun prepareAttempt("))
+        assertTrue(continuation.contains("fun planRetry("))
+        assertTrue(executor.contains("onAttemptFinished(probeSuccess && carrierReportedSuccess"))
+    }
+
 }
