@@ -44,6 +44,7 @@ import pl.michalmatu.aicallbridge.identity.AndroidIdentityVault
 import pl.michalmatu.aicallbridge.identity.CallTaskMode
 import pl.michalmatu.aicallbridge.identity.DefaultFactDisclosurePolicy
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
+import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
@@ -162,6 +163,10 @@ internal object ChatRelayLiveCallProbe {
         private val mediaTurnStarted = AtomicBoolean(false)
         private val supervisedGemmaReplies = AtomicInteger(0)
         private val supervisedFallbackReplies = AtomicInteger(0)
+        private val quickAckPcm = AtomicReference<ByteArray?>(null)
+        private val lastQuickAckTurn = AtomicInteger(0)
+        private val finalAudioReadyTurn = AtomicInteger(0)
+        private val quickAckSynthesizer = LocalTtsSpeechOutput(context)
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "ChatRelayLiveCall").apply { isDaemon = true }
         }
@@ -305,6 +310,25 @@ internal object ChatRelayLiveCallProbe {
             }
             handler.postDelayed(authorityWatchdog, 500L)
             mailbox.clear()
+            if (!readOnlySupervised) {
+                // Pre-render once per authorized call without delaying STT, Gemma, or dialing.
+                // Failure to prepare a neutral filler never blocks the real answer.
+                quickAckSynthesizer.synthesize(
+                    QuickAcknowledgementPolicy.TEXT,
+                    object : LocalTtsSpeechOutput.Listener {
+                        override fun onPcm16Mono16k(pcm: ByteArray) {
+                            if (!finished.get() && pcm.isNotEmpty()) {
+                                quickAckPcm.set(pcm)
+                                lines += "quick_ack_local_pcm_ready=true"
+                            }
+                        }
+
+                        override fun onError(reason: String) {
+                            lines += "quick_ack_prewarm_error=${sanitize(reason)}"
+                        }
+                    },
+                )
+            }
             try {
                 mediaRuntime = CallMediaSessionRuntime(
                     context,
@@ -426,8 +450,10 @@ internal object ChatRelayLiveCallProbe {
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
                     if (finished.get() || !authorizedNow()) { finish(false, authorityFailureReason()); return }
                     if (activeMediaGeneration.get() != generation) { finish(false, "stale_media_generation"); return }
-                    lines += "turn_${currentTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
-                    executor.execute { writeOutputTurn(lease, pcm, currentTurn, generation) }
+                    val outputTurn = currentTurn
+                    finalAudioReadyTurn.set(outputTurn)
+                    lines += "turn_${outputTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
+                    executor.execute { writeOutputTurn(lease, pcm, outputTurn, generation) }
                 }
 
                 override fun onDroppedText() {
@@ -523,7 +549,10 @@ internal object ChatRelayLiveCallProbe {
                             return
                         }
                         silenceWindows = 0L
+                        // The listener still generates its full answer on the existing
+                        // independent Gemma/STT path. No waiting for this optional filler.
                         pipeline.finishInput()
+                        scheduleQuickAcknowledgement(turn, generation, lease)
                     }
 
                     override fun onError(reason: String) {
@@ -537,6 +566,72 @@ internal object ChatRelayLiveCallProbe {
             } catch (error: Throwable) {
                 evidenceRx?.finish()
                 finish(false, "turn_${turn}_rx_${error.javaClass.simpleName}")
+            }
+        }
+
+        private fun scheduleQuickAcknowledgement(
+            turn: Int,
+            generation: Long,
+            lease: CallMediaEndpointLease,
+        ) {
+            if (readOnlySupervised) return
+            handler.postDelayed({
+                val pcm = quickAckPcm.get()
+                if (!QuickAcknowledgementPolicy.shouldPlay(
+                        authorized = !finished.get() && authorizedNow() &&
+                            runCatching { callStillActive() }.getOrDefault(false) &&
+                            currentTurn == turn && activeMediaGeneration.get() == generation,
+                        readOnlySupervised = readOnlySupervised,
+                        speechDetected = true,
+                        clipReady = pcm != null,
+                        turn = turn,
+                        lastAcknowledgedTurn = lastQuickAckTurn.get(),
+                        finalAudioReadyForTurn = finalAudioReadyTurn.get(),
+                    )
+                ) return@postDelayed
+                if (lastQuickAckTurn.getAndSet(turn) >= turn) return@postDelayed
+                val ready = pcm ?: return@postDelayed
+                executor.execute { writeQuickAcknowledgement(lease, ready, turn, generation) }
+            }, QuickAcknowledgementPolicy.AFTER_SPEECH_END_DELAY_MS)
+        }
+
+        private fun writeQuickAcknowledgement(
+            lease: CallMediaEndpointLease,
+            pcm: ByteArray,
+            turn: Int,
+            generation: Long,
+        ) {
+            if (finished.get() || !authorizedNow() ||
+                !runCatching { callStillActive() }.getOrDefault(false) ||
+                currentTurn != turn || activeMediaGeneration.get() != generation ||
+                finalAudioReadyTurn.get() == turn
+            ) return
+            try {
+                val atMs = elapsedTurnMs()
+                val evidenceAtMs = evidenceRecorder?.elapsed() ?: 0L
+                val sent = AuthorizedPcmUplinkWriter.write(
+                    uplink = lease.uplink(),
+                    pcm = pcm,
+                    isAuthorized = {
+                        !finished.get() && authorizedNow() &&
+                            runCatching { callStillActive() }.getOrDefault(false) &&
+                            currentTurn == turn && activeMediaGeneration.get() == generation
+                    },
+                )
+                evidenceRecorder?.recordAcknowledgementAudio(turn, pcm, sent, evidenceAtMs)
+                totalTxBytes += sent.toLong()
+                lines += "turn_${turn}_quick_ack_tx_bytes=$sent"
+                lines += "turn_${turn}_quick_ack_tx_elapsed_ms=$atMs"
+                if (sent != pcm.size) return
+                // Serial TX executor: wait for the buffered filler to finish playing
+                // before the full answer is allowed onto this same uplink.
+                // This does NOT hold or delay the Gemma inference worker.
+                Thread.sleep(ChatRelayTurnPacing.postTxHoldMs(pcm.size))
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            } catch (error: Throwable) {
+                // Filler is best-effort; the already-running real answer must not fail.
+                lines += "turn_${turn}_quick_ack_error=${error.javaClass.simpleName}"
             }
         }
 
@@ -706,6 +801,8 @@ internal object ChatRelayLiveCallProbe {
             handler.removeCallbacks(timeout)
             handler.removeCallbacks(authorityWatchdog)
             try { pipeline.close() } catch (_: Throwable) {}
+            try { quickAckSynthesizer.close() } catch (_: Throwable) {}
+            quickAckPcm.set(null)
             try { mailbox.clear() } catch (_: Throwable) {}
             downlinkPump?.let { pump ->
                 lines += "downlink_discarded_pcm_bytes=${pump.discardedBytes()}"
