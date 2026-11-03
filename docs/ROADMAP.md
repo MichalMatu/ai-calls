@@ -1,3 +1,7 @@
+## 2026-11-03 — zakaz reintrodukcji samowolnych bramek (najnowsze)
+
+Stare instrukcje AGENTS nakazujące osobny 10-minutowy opt-in zapisu były sprzeczne z autonomicznym, bezproblemowym produktem. Zmieniono je na historyczny opis stanu kodu, nie regułę projektu. F-002 pozostaje jawną luką UX; nie maskować statusu. Jedyna norma: **nie tworzyć samowolnych dodatkowych kliknięć, liczników, whitelist ani ręcznego relaya w ramach już zatwierdzonego zadania**. Każdy taki przypadek wpisz natychmiast do `docs/FRICTION_BLOCKER_LEDGER.md` i usuń z testem; nie usuwaj rzeczywistych uprawnień i praw rozmówców.
+
 ## 2026-11-03 — five-call attempt ceiling removed
 
 Owner decision: eliminate the arbitrary maximum number of phone calls as a redundant blocker to repeated authorized testing. `maxAttempts` and `ATTEMPT_LIMIT_REACHED` removed from code and UI. Existing scoped grants migrate without renewal; old `max_attempts` preference is ignored, and `attemptsUsed` remains only an internal reservation marker (never a call limit).

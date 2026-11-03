@@ -1,12 +1,14 @@
 # AI Calls — current handoff
 
-## 2026-11-03 — prywatna diagnostyka audio i transkryptu (weryfikacja w toku)
+## 2026-11-03 — aktualne, POTWIERDZONE S22 i niezamknięte tarcie UX
 
-W realnym teście po wyłączeniu VoWiFi `87c7d903`: RX→STT, trzy decyzje Gemma, trzy TTS→TX PASS w prywatnym świeżym raporcie; `MODE_IN_CALL` PASS. Telecom wskazał zakończenie **REMOTE**, mimo wcześniejszego mylnego statusu `campaign_authority_revoked_or_expired`; to oznacza utratę uchwytu, nie utratę grantu.
+Fizyczna rozmowa po wyłączeniu Wi-Fi Calling: `MODE_IN_CALL`, pełny RX→STT→Gemma→TTS→TX dla **trzech tur** potwierdzone nowym raportem. Telekom pokazuje zakończenie po stronie zdalnej (`REMOTE`), nie wygaśnięcie grantu. Wyniku aktywacji CLIR nie potwierdzono.
 
-Bieżący kod dodaje **osobny jednorazowy opt-in** z UI na zapis prywatnej rozmowy (10 min), `timeline.jsonl` z rozróżnieniem konsultant/agent, WAV RX i WAV rzeczywiście wysłanego TX na turę, bez modyfikacji Samsung RX/TX, odsłuch AI poza połączeniem oraz opcjonalny lokalny eksport ADB do `~/Documents/AI-Calls/private-exports`. Nagrania **nie trafiają do GitHub, Local Agent task-results ani chmury**. Przy braku opt-in żaden tekst ani PCM nie jest utrwalany. Po zakończeniu zdalnym poprawny kod diagnostyczny to `owned_call_ended`, nie `campaign_authority_revoked_or_expired`.
+Mac Local Agent `aicalls-20261103-private-duplex-transcript-ui-build-s22-v3` — **DONE/0**: build, skupione testy WAV, lint, oba APK zainstalowane, instrumentowany test roli dialera PASS. HEAD tego wdrożenia: `9f0d035`. Są dostępne: transkrypt osobno rozmówca/AI, lokalny odsłuch RX i TX, prywatne pliki WAV, ręczny eksport na Maca. Nie przeprowadzono jeszcze kolejnego fizycznego testu pełnych plików nagrania.
 
-Ten sprint wymaga jeszcze Mac build/unit/lint, fizycznej instalacji, sprawdzenia opt-in i odbioru nowych plików. Szczegóły: `docs/checkpoints/2026-11-03-duplex-audio-and-private-transcript.md`.
+**F-002 NIEZAMKNIĘTY BLOKER UX:** implementacja nadal ma osobne kliknięcie i 10-minutowe uzbrojenie zapisu przed jedną sesją. Jest to **stan starej implementacji, NIE przyszła zasada ani norma AGENTS.md**. Zmiana nieautoryzująca automatycznie ukrytego nagrywania nie została zaakceptowana przez warstwę wykonawczą; nie obchodź tej odmowy przez inne narzędzie ani skrypt. Zaprojektuj autoryzację diagnostyki jako część jednego legalnego przepływu zlecenia, bez ciągłego powtarzania potwierdzeń.
+
+NADRZĘDNA REGUŁA: `AGENTS.md` → „ZERO SAMOWOLNIE DODANYCH BLOKERÓW”; `docs/FRICTION_BLOCKER_LEDGER.md`. Nowa ręczna bramka, limiter, timeout użytkownika lub zależność od manualnego kopiowania logów bez konkretnej konieczności to regresja. Każdą natychmiast loguj w ledger i naprawiaj. Szczegóły techniczne: `docs/checkpoints/2026-11-03-duplex-audio-and-private-transcript.md`.
 
 ## 2026-11-03 — five-call attempt ceiling removed
 
