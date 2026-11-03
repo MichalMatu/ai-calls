@@ -135,9 +135,9 @@ class S22AutoloopParsingTests(unittest.TestCase):
         cycle.report = {}
         replies = iter([
             "10", "100",
-            "telephony_rx_pcm_bytes=1000\\ntelephony_tx_pcm_bytes=500\\n"
-            "turn_1_stt_chars=12\\nturn_1_approved_chars=9\\n"
-            "gemma_action_decision_count=1\\nprobe_complete=true\\n"
+            "telephony_rx_pcm_bytes=1000\ntelephony_tx_pcm_bytes=500\n"
+            "turn_1_stt_chars=12\nturn_1_approved_chars=9\n"
+            "gemma_action_decision_count=1\nprobe_complete=true\n"
         ])
 
         def fake_adb(*args, **kwargs):
