@@ -18,6 +18,7 @@
 | F-018 | Spóźniony callback poprzedniej rozmowy mógł nadpisać diagnostykę STOP lub nowego uruchomienia | `AppOwnedCampaignService.handleAttemptStatus`: brak filtra generacji/statusu; wprowadzony razem z F-010 | Dodano porównanie `continuationGeneration`, `campaignRequested`, `grantId` przed zapisaniem stanu i retry; test contract; weryfikacja nowego HEAD oczekuje | **VERIFIED (Mac QA v6 source; fizyczny S22 OPEN)** |
 | F-020 | W trakcie oczekiwania na ponowną próbę CLIR pilot nadzorowany mógł uruchomić inny tor audio i przy zakończeniu niezamierzenie wyczyścić autoryzowaną kontynuację | `AppOwnedCampaignService.startSupervisedAudio`: sprawdzał tylko aktywny dial, nie `campaignRequested`/trwały stan oczekującej kampanii | Nie uruchamiać równoległego pilota podczas już rozpoczętej kampanii; bez dodatkowego dialogu, zachować STOP i zaplanowaną próbę. Test `NoArtificialCampaignBlockersContractTest` i Mac build/unit/lint | **VERIFIED (Mac v12 source/unit/build/lint; S22 off-call pending)** |
 | F-021 | Test ochrony kampanii błędnie traktował komentarz `finish()/STOP` jako wywołanie `finish(`, przez co pełne QA v10 miało 1 FAIL na 637 testów | `NoArtificialCampaignBlockersContractTest.supervisedPilotCannotDestroyWaitingCampaignContinuation`, asercja `substringBefore(...).contains("finish(")`; fałszywy alarm skanera tekstu | Sprawdzać tylko wykonywalną linię rozpoczynającą się od `finish(`, wykluczając komentarz; pełny Mac QA nowego HEAD | **VERIFIED (Mac v12 unit; false positive resolved)** |
+| F-022 | Po instalacji na S22 bezpołączeniowe testy magazynów kampanii zakończyły się 4/4 FAIL przez NPE: instrumentalny `Context.applicationContext` bywa `null` | `CampaignAuthorizationStore(context)` i `CampaignContinuationStore(context)` bezwarunkowo wywoływały `context.applicationContext.getSharedPreferences`; wynik Mac v13 `APP_INSTALL=PASS`, `TEST_APK_INSTALL=PASS`, `FAILURES!!! Tests run:4, Failures:4` | Stosować `context.applicationContext ?: context` dla testowego i normalnego kontekstu, zachować izolację instrumentacyjnych prefs od rzeczywistego grantu; ponowić tylko Android instrumentation, potem źródłowe QA nowych zmian | **OPEN — SOURCE_FIX_PENDING** |
 
 **WERYFIKACJA:** Mac task aicalls-20261103-friction-two-layer-source-qa-v3, SHA 338ce662, ANTI_FRICTION=PASS, Python anti-friction PASS, Kotlin unit/build/debugAndroidTest APK/lint PASS (BUILD SUCCESSFUL in 2m 14s). Bez wdrożenia ani rozmowy na S22.
 
@@ -67,7 +68,7 @@
 ## OBOWIĄZKOWE POLA KAŻDEGO NOWEGO NARUSZENIA
 
 ```text
-ID: F-022 (kolejny wolny)
+ID: F-023 (kolejny wolny)
 Wykryto: data + commit/agent
 Ścieżka i symbol: dokładny kod
 Warunek stopu: pełny warunek logiczny lub ograniczenie UX
