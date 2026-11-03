@@ -1,5 +1,13 @@
 # Agent workflow
 
+## REGUŁA WŁAŚCICIELA: ZERO SAMOWOLNIE DODANYCH BLOKERÓW (OBOWIĄZKOWA)
+
+**Nie wprowadzaj bez zlecenia właściciela żadnych nowych, sztucznych ograniczeń produktu ani pracy deweloperskiej.** Dotyczy to limitów prób, zbędnych potwierdzeń i kliknięć, liczników, ręcznego przenoszenia logów, arbitralnych whitelist, tymczasowych blokad zastępujących implementację oraz nowych opóźnień lub testowych restrykcji. Najpierw wykorzystaj istniejącą autoryzację i napraw rzeczywistą przyczynę problemu.
+
+**AUTOMATYCZNY REJESTR I NAPRAWA:** gdy agent zauważy samodzielnie dodany zbędny bloker (także po commicie albo w późniejszej sesji), **natychmiast** wpisuje go do `docs/FRICTION_BLOCKER_LEDGER.md` z lokalizacją, wpływem, statusem i planem usunięcia. Jeśli może, w tym samym sprincie usuwa kod, interfejs i sprzeczną aktywną dokumentację oraz dodaje test regresji. Jeśli naprawa nie jest możliwa, pozostawia jawne `OPEN`; nigdy nie oznacza problemu jako zamkniętego bez dowodów. Sprawdzaj rejestr przy każdej zmianie w przepływie kampanii.
+
+**NIE MYL BLOKERÓW Z RZECZYWISTYMI GRANICAMI:** obowiązują wymagane uprawnienia Androida, ważny zakres zadania i efektu, prawa osób uczestniczących w rozmowie, zabezpieczenie danych, selektywne zakończenie własnego połączenia i blokady narzędzi. Uproszczenie interfejsu nie może służyć do obchodzenia tych granic. Wątpliwe dodatkowe potwierdzenia dotyczące zapisu audio wpisz jako otwarty problem projektowy do oceny i zgodnego z prawem uproszczenia.
+
 **2026-11-03 private audio diagnostic:** Recording is OFF by default and requires separate one-call local UI opt-in (10 minutes), never general CLI authorization. Two independent app-private WAV streams (captured RX, actually written TX) and text-only JSONL conversation timeline are sensitive; no GitHub/Local-Agent receipt/logcat transport. Third-party recording/disclosure must be appropriate. Remote call end is not grant revocation. Details in `docs/checkpoints/2026-11-03-duplex-audio-and-private-transcript.md`.
 
 **2026-11-03 authorization update:** total CLIR call-attempt ceiling was a redundant blocker and has been removed. Keep exact target/effect/SIM scope, expiry/revocation, default dialer, single owned call, targeted disconnect and Android permission gates. Internal reservation marker does not limit total calls.
