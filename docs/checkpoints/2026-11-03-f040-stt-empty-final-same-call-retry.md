@@ -24,6 +24,12 @@
 - When Mac QA passes, install tested source on idle exact S22 with `adb install -r` only and verify preserved grant and continuation preferences. Do not change OS role, dial, capture audio or auto-start service for this verification.
 - Real call acceptance remains OPEN. Repeat only if independently permitted and exactly authorized; otherwise state missing real-call evidence without claiming the application itself has a false denial.
 
+## Confirmed Mac and device readiness results
+
+- **Mac host QA done/0**, exact task `aicalls-20261103-f040-empty-stt-final-host-qa-v1` on source `5b8ee947d4f1ba7cb922fcdb95af66851caa2e5a`: `ANTI_FRICTION=PASS`, `FULL_HOST_GATE=PASS`, three successful Gradle phases, **247 Python tests PASS**, `host_quality_gate_green=true`, `F040_WHOLE_STT_RECOVERY_WIRING=PASS`, `F040_ONLY_EXPECTED_FILES=true` (exactly code, Kotlin regression, canonical blocker register). No device action or external call.
+- **Read-only Samsung readiness done/0**, task `aicalls-20261103-s22-safe-campaign-livecall-readiness-v1`: `EXACT_S22=true`, `IDLE=true`, `DEFAULT_DIALER_AI_CALLS=true`, `CAMPAIGN_AGENT_READINESS=READY`, `CAMPAIGN_AGENT_START=NOT_REQUESTED`, `CAMPAIGN_AGENT_SCOPE=EXISTING_GRANT_ONLY`; Android RECORD_AUDIO, Shizuku binder and Shizuku permission all ready (`LIVE_CALL_READINESS=true`, failure reason none). No external call and no grant/audio/number exports. **This is readiness, not a completed phone call.**
+- **Device F-040 installation queued**: `aicalls-20261103-f040-s22-install-safe-offcall-v1` (pin `5b8ee947d4f1ba7cb922fcdb95af66851caa2e5a`). Safe `adb install -r` only if exact device IDLE and no running campaign, verify authorization + continuation hashes unchanged and re-run *read-only* campaign preflight with `campaign_agent_start=NOT_REQUESTED`. **Read result before claiming deployment.**
+
 ## Current status
 
-`FIXED_IN_SOURCE / QA_PENDING` at checkpoint creation. The final state must cite the actual host task result and any installation result.
+`SOURCE_QA_VERIFIED` — Mac full host receipt and S22 readiness checks PASS. Device F-040 package installation result PENDING at this revision. Real in-call F-035/F-040 recovery, audible far-end AI and CLIR outcome are still OPEN.
