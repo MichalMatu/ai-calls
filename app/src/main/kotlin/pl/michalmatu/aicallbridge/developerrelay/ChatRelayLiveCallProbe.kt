@@ -57,6 +57,7 @@ import pl.michalmatu.aicallbridge.taskgraph.TaskGraphStateId
 import pl.michalmatu.aicallbridge.textagent.AuthorizedPhoneFactBackend
 import pl.michalmatu.aicallbridge.textagent.AuthorizedPhoneFactScope
 import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
+import pl.michalmatu.aicallbridge.textagent.TextOutputDecision
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /**
@@ -253,10 +254,11 @@ internal object ChatRelayLiveCallProbe {
                 },
             )
         }
+        private val outputApprovalPolicy = CallTextAgentOutputApprovalPolicy(workflow, commitmentGate)
         private val pipeline = LocalSpeechTextPipeline(
             context,
             backend,
-            CallTextAgentOutputApprovalPolicy(workflow, commitmentGate),
+            outputApprovalPolicy,
         )
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",
@@ -582,7 +584,9 @@ internal object ChatRelayLiveCallProbe {
                 if (!QuickAcknowledgementPolicy.shouldPlay(
                         authorized = !finished.get() && authorizedNow() &&
                             runCatching { callStillActive() }.getOrDefault(false) &&
-                            currentTurn == turn && activeMediaGeneration.get() == generation,
+                            currentTurn == turn && activeMediaGeneration.get() == generation &&
+                            outputApprovalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) ==
+                                TextOutputDecision.RELEASE,
                         readOnlySupervised = readOnlySupervised,
                         speechDetected = true,
                         clipReady = pcm != null,
@@ -606,7 +610,9 @@ internal object ChatRelayLiveCallProbe {
             if (finished.get() || !authorizedNow() ||
                 !runCatching { callStillActive() }.getOrDefault(false) ||
                 currentTurn != turn || activeMediaGeneration.get() != generation ||
-                finalAudioReadyTurn.get() == turn
+                finalAudioReadyTurn.get() == turn ||
+                outputApprovalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) !=
+                    TextOutputDecision.RELEASE
             ) return
             try {
                 val atMs = elapsedTurnMs()
