@@ -21,6 +21,7 @@
 | F-022 | Po instalacji na S22 bezpołączeniowe testy magazynów kampanii zakończyły się 4/4 FAIL przez NPE: instrumentalny `Context.applicationContext` bywa `null` | `CampaignAuthorizationStore(context)` i `CampaignContinuationStore(context)` bezwarunkowo wywoływały `context.applicationContext.getSharedPreferences`; wynik Mac v13 `APP_INSTALL=PASS`, `TEST_APK_INSTALL=PASS`, `FAILURES!!! Tests run:4, Failures:4` | Stosować `context.applicationContext ?: context` dla testowego i normalnego kontekstu, zachować izolację instrumentacyjnych prefs od rzeczywistego grantu; ponowić tylko Android instrumentation, potem źródłowe QA nowych zmian | **VERIFIED (S22 v15 4/4 off-call PASS)** |
 | F-023 | Po F-022 instrumentalny kontekst pakietu testowego nie mógł trwale zapisać SharedPreferences; 4/4 testy FAIL `campaign_grant_persist_failed` / `continuation_stop_persist_failed` mimo kompilacji i instalacji PASS | `AndroidCampaignAuthorizationStoreContractTest` i `CampaignContinuationStoreContractTest`: użycie `InstrumentationRegistry.getInstrumentation().context` z domyślnymi nazwami prefs, nieizolowane źródło danych lub niewspierana prywatna przestrzeń testowego Context | Użyć `targetContext` z dedykowanymi nazwami preferencji w konstruktorach store, nie odczytywać ani nie czyścić prawdziwego `campaign_authorization_grant_v1` czy `campaign_continuation_v1`; powtórzyć 4 bezpołączeniowe testy S22 i potwierdzić brak zmian grantu produkcyjnego | **VERIFIED (S22 v15 4/4 off-call PASS)** |
 | F-024 | Mac task v15 poprawnie zbudował/wgrał SHA `5d19bfcf`, ale lokalne nazwy dwóch APK zachowały stary skrót `d2c869d4` z poprzedniej próby; może to pomylić instalowane wersje | `aicalls-20261103-s22-isolated-preferences-retest-v15`: skrót SHA był tekstem stałym w skopiowanej komendzie Mac zadania | Sprawdzić SHA256 z potwierdzonego v15, przemianować wyłącznie dwa APK w Downloads na `5d19bfcf`, bez rebuildu/reinstalacji; test obecności i sumy kontrolnej | **VERIFIED (Mac v16 SHA256 and filename PASS)** |
+| F-025 | Ponowny START mógł resetować zapisane opóźnienie po restarcie procesu, a nowy autoryzowany grant w czasie aktywnej rozmowy mógł pozostać bez wznowienia: planista odpalał się gdy poprzedni executor nadal pracował i kończył bez harmonogramu | `AppOwnedCampaignService.onStartCommand`, `scheduleAuthorizedAttempt`, `startAuthorizedAttempt`; brak rozróżnienia tego samego zadania, zmiany zakresu i oczekiwania na pełne IDLE telefonu | Zachować zapisany termin dla tego samego grantu, ignorować duplikat aktywnego START, dla nowego grantu zakończyć poprzedni wyłącznie jego własnym trybem i uruchomić następne dopiero po IDLE (nie rozłączać połączeń obcych); deterministyczny test planisty + test urządzenia bez wywołań | **OPEN — FIX_PENDING** |
 
 **WERYFIKACJA:** Mac task aicalls-20261103-friction-two-layer-source-qa-v3, SHA 338ce662, ANTI_FRICTION=PASS, Python anti-friction PASS, Kotlin unit/build/debugAndroidTest APK/lint PASS (BUILD SUCCESSFUL in 2m 14s). Bez wdrożenia ani rozmowy na S22.
 
@@ -78,7 +79,7 @@
 ## OBOWIĄZKOWE POLA KAŻDEGO NOWEGO NARUSZENIA
 
 ```text
-ID: F-025 (kolejny wolny)
+ID: F-026 (kolejny wolny)
 Wykryto: data + commit/agent
 Ścieżka i symbol: dokładny kod
 Warunek stopu: pełny warunek logiczny lub ograniczenie UX
