@@ -23,6 +23,8 @@
 | F-013 | Stary test nadal wymagał dokładnie pięciu rezerwacji, wymuszałby powrót usuniętego limitu F-001 | `AndroidCampaignAuthorizationStoreContractTest`: 10/10 równoległych rezerwacji, zachowanie autoryzacji. Test instrumentalny jeszcze nieuruchomiony dla nowego HEAD | **FIXED_IN_SOURCE — QA_PENDING** |
 | F-014 | **Regresja w bieżącym sprincie:** bez drugiego dialogu `onResume()` mógł sam uruchomić AI po powrocie z dialera, bez naciśnięcia START. Naruszenie granicy świadomego uruchomienia | `SupervisedCallPilotActivity.onResume`: tylko informuje, nie wywołuje `confirmAttach` ani `awaitAudioRoute`. Test source-contract | **FIXED_IN_SOURCE — QA_PENDING** |
 
+| F-015 | Przestarzały test `CallDiagnosticEvidenceTest.evidenceIsBoundedEvenIfAProducerMisbehaves` żądał obcinania po 1024 zdarzeniach (sprzeczny z naprawionym F-009), co blokowało nowe QA | `CallDiagnosticEvidenceTest.kt`: 1100/1100 zdarzeń, nadal ogranicza niezaufaną długość pojedynczego kodu diagnostycznego do 256 znaków. Commit `2c84513`; poprzedni QA `aicalls-20261103-campaign-evidence-simplification-qa-v1` wykazał FAIL 2/624 na `556bf67` | **FIXED_IN_SOURCE — QA_PENDING** |
+
 ## WCZEŚNIEJSZE POPRAWKI — dowód źródłowy i granica jego ważności
 
 | ID | Problem | Stan i dowód |
@@ -46,7 +48,7 @@
 ## OBOWIĄZKOWE POLA KAŻDEGO NOWEGO NARUSZENIA
 
 ```text
-ID: F-015 (kolejny wolny)
+ID: F-016 (kolejny wolny)
 Wykryto: data + commit/agent
 Ścieżka i symbol: dokładny kod
 Warunek stopu: pełny warunek logiczny lub ograniczenie UX
