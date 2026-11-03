@@ -12,6 +12,7 @@ import android.telecom.TelecomManager
 import java.io.File
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
+import pl.michalmatu.aicallbridge.UiAccordionSection
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
@@ -105,36 +106,48 @@ class CampaignToolActivity : Activity() {
             }
         }
 
+        // Keep campaign scope, start, STOP and revocation on the primary surface.
+        // All previously available setup and diagnostic actions remain one expansion away.
+        val dialerSection = UiAccordionSection(this, "dialer", "Rola dialera i ustawienia").apply {
+            addControl(callRoleButton)
+        }
+        val supervisedSection = UiAccordionSection(this, "supervised", "Test AI w bieżącej rozmowie").apply {
+            addControl(supervisedAudioButton)
+        }
+        val evidenceSection = UiAccordionSection(this, "evidence", "Prywatna diagnostyka rozmowy").apply {
+            addControl(disableEvidenceButton)
+            addControl(playbackButton)
+            addControl(playbackRxButton)
+            addControl(transcriptButton)
+        }
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 48, 32, 32)
             addView(TextView(this@CampaignToolActivity).apply {
-                text = "App-owned campaign tools"
+                text = "Kampanie i zadania AI Calls"
                 textSize = 22f
             })
             addView(TextView(this@CampaignToolActivity).apply {
                 text =
-                    "Authority, dial and call execution happen on-device. " +
-                    "ChatGPT/ADB are not part of the execution path."
+                    "Autoryzacja i wykonanie połączeń odbywają się na telefonie. " +
+                    "Diagnostyka nie zastępuje zgody ani weryfikacji efektu."
                 textSize = 14f
             })
-            addView(authorizeButton)
-            addView(callRoleButton)
-            addView(startButton)
-            addView(supervisedAudioButton)
-            addView(stopSupervisedAudioButton)
-            addView(disableEvidenceButton)
-            addView(playbackButton)
-            addView(playbackRxButton)
-            addView(transcriptButton)
-            addView(revokeButton)
             addView(
                 statusView,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { topMargin = 24 },
+                ).apply { bottomMargin = 16 },
             )
+            addView(authorizeButton)
+            addView(startButton)
+            addView(stopSupervisedAudioButton)
+            addView(revokeButton)
+            addView(dialerSection)
+            addView(supervisedSection)
+            addView(evidenceSection)
         }
 
         setContentView(
