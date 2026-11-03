@@ -26,9 +26,13 @@
 ## Gałęzie — kontrola porządkowa
 
 - `main`: jedyna gałąź produktu. `agent-control`: zachować, bo to odrębna skrzynka projektu; brak wspólnego przodka z `main`.
-- `checkpoint/2026-11-03-f035-s22-baseline`: 0 commitów przed `main`, 109 commitów za nim. **Kandydat do usunięcia** po potwierdzeniu braku odniesień operacyjnych.
-- `fix/stt-startup-errors-20261102`: 4 własne commity, 400 commitów za `main`, różnice w `OnDeviceSpeechInput.kt` i teście Android. **Nie usuwać bez porównania znaczenia zmian**; przydatny kod musi zostać przeniesiony albo świadomie odrzucony.
-- Żadna gałąź nie została oznaczona jako skasowana bez potwierdzonego wyniku operacji usunięcia. Docelowy stan zgodny z `AGENTS.md`: `main` + `agent-control`.
+- `checkpoint/2026-11-03-f035-s22-baseline`: **USUNIĘTA** po potwierdzeniu `CHECKPOINT_UNMERGED_COMMITS=0`; Mac task `aicalls-20261104-doc-audit-branch-prune-v2` potwierdził `CHECKPOINT_DELETE=PASS` i `CHECKPOINT_REMOTE_PRESENT=false`.
+- `fix/stt-startup-errors-20261102`: **ZACHOWANA** — 4 niepołączone commity, `FIX_PATCH_EQUIVALENT_COMMITS=0` względem main (Mac v2), różnice w `OnDeviceSpeechInput.kt` i teście Android. Najpierw ocenić semantyczną przydatność; dopiero po migracji lub świadomym odrzuceniu usunąć.
+- Potwierdzony zdalny stan po usunięciu: `main`, `agent-control`, `fix/stt-startup-errors-20261102`. Docelowo `main` + `agent-control`, ale nie kasować jedynych unikalnych commitów.
+
+## Reaudyt dokumentacji — potwierdzone QA
+
+Mac `aicalls-20261104-doc-audit-branch-prune-v2` **DONE/0** na `main` `1c9dca9`: `DOC_LINKS_AND_ANTI_BLOCKER_HEADING=PASS`, `ANTI_FRICTION=PASS`, pięć aktywnych dokumentów razem **21 396 znaków** po usunięciu sprzecznej chronologii. Zmieniono wyłącznie dokumentację, bez nowych buildów, instalacji i połączeń. Dotychczasowe F-042/F-043 testy kodu zachowują zakres swoich wcześniejszych receiptów. To nie jest nowe urządzeniowe QA.
 
 ## Nawigacja
 
