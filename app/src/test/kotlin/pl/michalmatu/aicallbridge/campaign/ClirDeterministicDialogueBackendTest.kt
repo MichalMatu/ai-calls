@@ -31,6 +31,35 @@ class ClirDeterministicDialogueBackendTest {
         assertEquals(null, delegate)
     }
 
+    @Test fun routineClirProceduresAnswerWithoutWaitingForGemma() {
+        val responses = mapOf(
+            "Czym jest usługa CLIR?" to "stałe zastrzeganie",
+            "Na czym polega usługa CLIR?" to "stałe zastrzeganie",
+            "Jakie są kolejne kroki, żeby włączyć usługę CLIR?" to "Jaki krok",
+            "Tą usługą zajmuje się inny dział." to "Proszę połączyć",
+        )
+        responses.forEach { (transcript, expectedFragment) ->
+            val (answer, modelInput) = evaluate(transcript)
+            assertEquals(null, modelInput)
+            org.junit.Assert.assertTrue(answer.contains(expectedFragment))
+            org.junit.Assert.assertTrue(!answer.contains("[[COMMIT"))
+        }
+    }
+
+    @Test fun ambiguousIdentityOrCarrierEffectsStillRequireAppPolicy() {
+        listOf(
+            "Proszę podać PESEL.",
+            "Czy autoryzuje pan płatność?",
+            "Czy mam aktywować usługę CLIR?",
+            "Proszę podać numer abonenta.",
+            "Czy zgadza się pan na zmianę operatora?",
+        ).forEach { input ->
+            val (answer, delegated) = evaluate(input)
+            assertEquals("model-fallback", answer)
+            assertEquals(input, delegated)
+        }
+    }
+
     @Test fun unknownOrEffectRequestCannotBeCommittedByMatcher() {
         listOf(
             "Czy potwierdza pan aktywację CLIR?",
