@@ -63,9 +63,9 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
         key, value = match.groups()
         if key in numeric and value.isdecimal():
             safe[key] = int(value)
-        elif re.fullmatch(r"turn_\\d+_stt_chars", key) and value.isdecimal():
+        elif re.fullmatch(r"turn_\d+_stt_chars", key) and value.isdecimal():
             stt_turns += int(value) > 0
-        elif re.fullmatch(r"turn_\\d+_approved_chars", key) and value.isdecimal():
+        elif re.fullmatch(r"turn_\d+_approved_chars", key) and value.isdecimal():
             approved_turns += int(value) > 0
         elif key in ("chat_relay_live_call_success", "probe_complete") and value in ("true", "false"):
             safe[key] = value == "true"
