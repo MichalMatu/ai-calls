@@ -150,6 +150,28 @@ class S22AutoloopParsingTests(unittest.TestCase):
         self.assertNotIn(private_text, str(metrics))
         self.assertNotIn("transcript", metrics)
 
+    def test_stt_no_match_retries_and_rx_release_are_counted_without_private_text(self):
+        report = """turn_2_stt_transient_no_transcript=true
+turn_2_stt_rx_abandoned=true
+turn_2_stt_transient_no_transcript=true
+turn_2_stt_rx_abandoned=false
+turn_2_stt_chars=30
+turn_2_approved_chars=40
+telephony_rx_pcm_bytes=220000
+telephony_tx_pcm_bytes=9000
+gemma_action_decision_count=1
+probe_complete=true
+transcript=private-account-123
+"""
+        metrics = parse_pipeline_metrics(report)
+        self.assertEqual(metrics["stt_transient_retries"], 2)
+        self.assertEqual(metrics["stt_rx_capture_abandoned"], 1)
+        self.assertEqual(metrics["stt_turns"], 1)
+        self.assertEqual(metrics["approved_turns"], 1)
+        self.assertNotIn("transcript", metrics)
+        self.assertNotIn("private-account", str(metrics))
+        self.assertTrue(technical_pipeline_evidence(metrics))
+
     def test_late_private_report_replaces_stale_before_false_unverified(self):
         from unittest.mock import patch
 
