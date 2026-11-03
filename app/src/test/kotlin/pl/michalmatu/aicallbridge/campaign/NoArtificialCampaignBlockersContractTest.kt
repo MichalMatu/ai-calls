@@ -84,6 +84,16 @@ class NoArtificialCampaignBlockersContractTest {
         assertFalse("returning from dialer must not retry attach automatically", resumeBlock.contains("awaitAudioRoute()"))
     }
 
+    @Test fun supervisedPilotCannotDestroyWaitingCampaignContinuation() {
+        val service = source("campaign/AppOwnedCampaignService.kt")
+        val pilot = service.substringAfter("private fun startSupervisedAudio()")
+            .substringBefore("override fun onDestroy()")
+        assertTrue(pilot.contains("campaignRequested || continuationStore.load() != null"))
+        assertTrue(pilot.contains("statusStore.save("))
+        assertFalse(pilot.substringBefore("val telecom =").contains("finish("))
+        assertFalse(pilot.substringBefore("val telecom =").contains("continuationStore.clear()"))
+    }
+
     @Test fun continuationRespectsExactGrantAndStopWithoutAnotherApprovalDialog() {
         val service = source("campaign/AppOwnedCampaignService.kt")
         val continuation = source("campaign/CampaignContinuationStore.kt")
