@@ -16,6 +16,7 @@
 | F-016 | Historyczny tekst w aktywnie czytanych dokumentach nadal używa sformułowań „F-002 open / recording workflow must be redesigned”, mimo nowej poprawki w źródłach; przyszły agent mógłby odtworzyć niepotrzebne uzbrajanie | `AGENTS.md` (historyczna sekcja F-002), starsze części `docs/HANDOFF_NEXT_CHAT.md` i `docs/ROADMAP.md`. Sprzeczność normatywna: pierwsze linie AGENTS i ten rejestr mają pierwszeństwo | Doprecyzować wyłącznie nieaktualne opisy do stanu historycznego, bez reintrodukcji osobnych zgód; próba porządkowania tych fragmentów została odrzucona przez kontrolę narzędzia. Nie obchodzić odmowy innym wykonawcą | **OPEN — DOC HYGIENE / TOOL_DENIED** |
 | F-017 | Integracja prywatnego eksportu ZIP z ekranem kampanii odrzucona przez kontrolę narzędzia | CampaignToolActivity / F-003. Moduł CampaignEvidenceArchive istnieje, ale nie jest używany w UI; brak testu na S22 | Nie obchodzić odmowy, nie deklarować gotowego eksportu. Wdrożyć interfejs przez dozwoloną ścieżkę po usunięciu ograniczenia; walidować bez rozmowy | **OPEN — TOOL_DENIED** |
 | F-018 | Spóźniony callback poprzedniej rozmowy mógł nadpisać diagnostykę STOP lub nowego uruchomienia | `AppOwnedCampaignService.handleAttemptStatus`: brak filtra generacji/statusu; wprowadzony razem z F-010 | Dodano porównanie `continuationGeneration`, `campaignRequested`, `grantId` przed zapisaniem stanu i retry; test contract; weryfikacja nowego HEAD oczekuje | **VERIFIED (Mac QA v6 source; fizyczny S22 OPEN)** |
+| F-020 | W trakcie oczekiwania na ponowną próbę CLIR pilot nadzorowany mógł uruchomić inny tor audio i przy zakończeniu niezamierzenie wyczyścić autoryzowaną kontynuację | `AppOwnedCampaignService.startSupervisedAudio`: sprawdzał tylko aktywny dial, nie `campaignRequested`/trwały stan oczekującej kampanii | Nie uruchamiać równoległego pilota podczas już rozpoczętej kampanii; bez dodatkowego dialogu, zachować STOP i zaplanowaną próbę. Test source-contract i Mac build/unit/lint | **OPEN — SOURCE_FIX_PENDING** |
 
 **WERYFIKACJA:** Mac task aicalls-20261103-friction-two-layer-source-qa-v3, SHA 338ce662, ANTI_FRICTION=PASS, Python anti-friction PASS, Kotlin unit/build/debugAndroidTest APK/lint PASS (BUILD SUCCESSFUL in 2m 14s). Bez wdrożenia ani rozmowy na S22.
 
@@ -61,7 +62,7 @@
 ## OBOWIĄZKOWE POLA KAŻDEGO NOWEGO NARUSZENIA
 
 ```text
-ID: F-020 (kolejny wolny)
+ID: F-021 (kolejny wolny)
 Wykryto: data + commit/agent
 Ścieżka i symbol: dokładny kod
 Warunek stopu: pełny warunek logiczny lub ograniczenie UX
