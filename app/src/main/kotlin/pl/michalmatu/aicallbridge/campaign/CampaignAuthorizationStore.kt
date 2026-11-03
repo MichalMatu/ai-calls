@@ -30,6 +30,7 @@ internal class CampaignAuthorizationStore(context: Context) {
                     grant.allowedDisclosureFields.map { it.name }.toSet(),
                 )
                 .putInt(KEY_ATTEMPTS_USED, grant.attemptsUsed)
+                .putBoolean(KEY_RECORD_CALL_EVIDENCE, grant.recordCallEvidence)
                 .putString(KEY_ISSUER_EVIDENCE_REF, grant.issuerEvidenceRef)
                 .commit(),
         ) { "campaign_grant_persist_failed" }
@@ -61,6 +62,8 @@ internal class CampaignAuthorizationStore(context: Context) {
                         .map(IdentityFieldId::valueOf)
                         .toSet(),
                 attemptsUsed = preferences.getInt(KEY_ATTEMPTS_USED, 0),
+                // Pre-upgrade grants cannot silently gain recording authority.
+                recordCallEvidence = preferences.getBoolean(KEY_RECORD_CALL_EVIDENCE, false),
                 issuerEvidenceRef =
                     preferences.getString(KEY_ISSUER_EVIDENCE_REF, null).orEmpty(),
             )
@@ -100,6 +103,14 @@ internal class CampaignAuthorizationStore(context: Context) {
             ) is CampaignAuthorizationDecision.Authorized
     }
 
+    /** Stop future evidence capture immediately without revoking the task grant. */
+    fun disableEvidenceRecording(): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
+        val grant = load() ?: return@synchronized null
+        val updated = grant.copy(recordCallEvidence = false)
+        save(updated)
+        updated
+    }
+
     fun revoke(nowEpochMs: Long): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
         val current = load() ?: return@synchronized null
         val revoked = current.revoked(nowEpochMs)
@@ -122,6 +133,7 @@ internal class CampaignAuthorizationStore(context: Context) {
         private const val KEY_EFFECT_VALUES = "effect_values"
         private const val KEY_DISCLOSURE_FIELDS = "disclosure_fields"
         private const val KEY_ATTEMPTS_USED = "attempts_used"
+        private const val KEY_RECORD_CALL_EVIDENCE = "record_call_evidence"
         private const val KEY_ISSUER_EVIDENCE_REF = "issuer_evidence_ref"
         private const val NOT_REVOKED = Long.MIN_VALUE
     }
