@@ -33,6 +33,13 @@ No additional approval prompts, arbitrary retry/turn limits, unapproved facts, h
 - Synthetic policy check in Linux sandbox `F042_PURE_KOTLIN_POLICY_8_CASES=PASS`. This is supplemental and does not replace Mac v4/device tests.
 - **S22 has not been updated with F-042 at this checkpoint.** Keep previous installed F-040 source until approved QA. No automatically placed external calls; host's previous tool refusal must not be bypassed.
 
+## Follow-up: final Mac QA and installation with F-043 (2026-11-04)
+
+- Final F-042 safe-source Mac receipt **`aicalls-20261103-f042-final-owned-campaign-qa-v4` DONE/0** pinned `0be652d4e79ba552708d23d5707733a4770d0f4e`: `ANTI_FRICTION=PASS`, `FULL_HOST_QA=PASS`, three successful Android Gradle phases, **248 Python PASS**, `host_quality_gate_green=true`, `F042_AUTHORIZED_APP_OWNED_ONLY=PASS`. v3 optional prewarm/filler failure handling also **DONE/0**. These supersede the original pending status.
+- Source F-043 `bcbe0a2a84781bf79033ccbef7293ce5f29dcc47` contains all guarded F-042 quick-ack changes **plus one persistent native Gemma Conversation per phone call**. Full Mac QA on exact F-043 source DONE/0.
+- Owner STOP AI confirmed and retained all grants. `aicalls-20261104-f043-s22-post-stop-deploy-two-turn-v3` **DONE/0** installed that exact F-043 APK on real S22; app + test APK PASS and grant/continuation/dialer role intact. S22 synthetic two-turn GPU Gemma **PASS**, conversation reused on second turn; native generate time **6233 ms → 3998 ms**. [F-043 physical checkpoint](2026-11-04-f043-gemma-one-conversation-per-call.md).
+- This **does not validate F-042's audible quick-ack in a carrier call**. `turn_N_quick_ack_tx_elapsed_ms`, resulting remote audio, final answer speech overlap and EOS→first spoken acknowledgment remain pending user-led authorized live-call evidence. No host-initiated call or audio upload occurred.
+
 ## Current scope/status
 
-**F-042: SOURCE_QA_PASS on earlier functional source, final guarded source `0be652d4` QA_PENDING, S22 field acceptance OPEN** at current checkpoint. No claim of a user-audible first acknowledgment or achieved subsecond end-to-end latency until physical evidence exists. F-041 private USB export remains VERIFIED.
+**F-042: SOURCE_QA_AND_INSTALL_VERIFIED / REAL_CALL_ACOUSTIC_PENDING.** Final guarded quick-ack source passed Mac QA and is included in the installed S22 F-043 APK; two-turn synthetic Gemma reuse passed. Live quick-ack timing/sound and carrier outcomes remain OPEN. No claim of a user-audible first acknowledgment or achieved subsecond end-to-end latency until physical evidence exists. F-041 private USB export remains VERIFIED.
