@@ -7,13 +7,20 @@
 - Telefon: dokładnie `SM-S906B`, identyfikator ADB `RFCT70L7E8J`; Mac ma `/Users/michal/Library/Android/sdk/platform-tools/adb`.
 - Źródło na urządzeniu: katalog prywatny debugowanej aplikacji `pl.michalmatu.aicallbridge`, `files/call-session-evidence/`. Wewnątrz są lokalne foldery sesji, `timeline.jsonl`, oddzielne `turn-*-rx.wav` / `turn-*-tx.wav` i `COMPLETE` po poprawnym zakończeniu zapisu.
 - Istniejący, zatwierdzony mechanizm: `scripts/aicall_tools/diagnostics/export_private_call_evidence.sh`. Mac Local Agent uruchamia go z `adb` w `PATH`, po sprawdzeniu jednego właściwego urządzenia i połączenia `IDLE`.
-- Wyjście: **wyłącznie Mac**, `~/Documents/AI-Calls/private-exports/call-evidence-YYYYMMDDTHHMMSSZ.tar.gz`, uprawnienia katalogu `0700`, archiwum `0600`. Pliki są dostępne w folderze projektu lokalnie do analiz. Nie przesyłać prywatnych danych przez GitHub, `agent-control`, historię komend ani standardowe wyniki Local Agenta.
+- Wyjście: **wyłącznie Mac**, `~/Documents/AI-Calls/private-exports/call-evidence-YYYYMMDDTHHMMSSZ-<losowy_sufiks>.tar.gz`, uprawnienia katalogu `0700`, archiwum `0600`. Pliki są dostępne w folderze projektu lokalnie do analiz. Nie przesyłać prywatnych danych przez GitHub, `agent-control`, historię komend ani standardowe wyniki Local Agenta.
 - W razie potrzeby użytkownik może **sam zdecydować** o przesłaniu sprawdzonego archiwum tutaj na czat. Nie jest to warunek pracy nad kodem.
 - Po kolejnej zaakceptowanej sesji nagranej zgodnie z zakresem autoryzacji ponowić eksport automatycznie; brak folderu oznacza **NO_DATA**, a nie błąd ADB ani potrzebę nowej sztucznej blokady.
 
 ## Potwierdzona diagnostyka USB
 
 Mac Local Agent `aicalls-20261103-usb-private-evidence-export-v21`: terminalne `DONE/0`, `ADB_AUTHORIZED_DEVICE_COUNT=1`, `DEVICE_MODEL=SM-S906B`, `CALL_STATE=mCallState=0`, `EVIDENCE_DIRECTORY=NOT_PRESENT`, `USB_EXPORT=NOTHING_TO_COPY`. W tej chwili **brak faktycznych nagrań do kopiowania**. Nie deklarować testu prawdziwej archiwizacji ani audio RX/TX, dopóki pliki nie powstaną; po ich pojawieniu uruchomić wskazany skrypt.
+
+## Końcowe QA ścieżki USB i folder projektu
+
+- Mac `aicalls-20261103-usb-run-as-and-grant-readonly-v23` **DONE/0**: `RUN_AS=PASS`, katalog `~/Documents/AI-Calls/private-exports` faktycznie utworzony z uprawnieniami `0700`, prawidłowy telefon przez USB/ADB, brak `files/call-session-evidence/` i brak istniejącego grantu.
+- Mac `aicalls-20261103-usb-export-script-synthetic-and-real-nodata-qa-v24` wykrył **F-027**: próba dwa razy w jednej sekundzie wcześniej nadpisywała archiwum. Zmieniono szablon `mktemp` na zgodny z macOS, a końcowy plik publikowany jest atomowo przez `ln` bez możliwości nadpisania starego archiwum.
+- Mac `aicalls-20261103-usb-noclobber-final-qa-v25` **DONE/0**, kod `7a9dae192b9295980a38120823a7eea843cb1579`: `bash -n` PASS, 4/4 testy syntetycznego ADB (dwa różne archiwa, uprawnienia 0600, `NO_DATA`, obcy model oraz brak `run-as`) PASS, skaner anti-friction PASS i 3/3 jego testy. Rzeczywisty S22 przez USB: `USB_EXPORT=NO_DATA`, ponieważ brak sesji, folder na Macu istnieje. Nie kopiowano cudzych danych ani nie inicjowano połączeń.
+- **Kryterium sukcesu przy prawdziwym nagraniu:** skrypt ma zwrócić `USB_EXPORT=PASS`, archiwum `.tar.gz` przejść kontrolę integralności, pozostać wyłącznie na Macu i dać się otworzyć w prywatnym folderze. Do czasu sesji nie deklarować rzeczywistej kopii nagrania.
 
 ## Zakres prywatności i testów
 
