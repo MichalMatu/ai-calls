@@ -54,6 +54,42 @@ class Gemma4LiteRtTextBackendTest {
     }
 
     @Test
+    fun `one backend retains runtime across call turns but prewarm can reset synthetic chat`() {
+        val runtime = RecordingRuntime()
+        var modelLoads = 0
+        val backend = Gemma4LiteRtTextBackend(
+            runtimeFactory = Gemma4RuntimeFactory { _, _ ->
+                modelLoads += 1
+                runtime
+            },
+            modelPath = "/models/gemma-4-E2B-it.litertlm",
+            systemInstruction = "structured actions",
+        )
+        backend.generate("synthetic-prewarm", RecordingListener())
+        runtime.complete("prewarm")
+        backend.resetConversationContext()
+
+        val first = RecordingListener()
+        backend.generate("real-call-turn-1", first)
+        runtime.complete("first-answer")
+        val second = RecordingListener()
+        backend.generate("real-call-turn-2", second)
+        runtime.complete("second-answer")
+
+        assertEquals(1, modelLoads)
+        assertEquals(1, runtime.contextResets)
+        assertEquals(
+            listOf("synthetic-prewarm", "real-call-turn-1", "real-call-turn-2"),
+            runtime.prompts,
+        )
+        assertEquals("first-answer", first.text)
+        assertEquals("second-answer", second.text)
+        assertEquals(0, runtime.closeCalls)
+        backend.close()
+        assertEquals(1, runtime.closeCalls)
+    }
+
+    @Test
     fun `runtime error is sanitized and close is idempotent`() {
         val runtime = RecordingRuntime()
         val backend = Gemma4LiteRtTextBackend(
@@ -78,6 +114,7 @@ class Gemma4LiteRtTextBackendTest {
         val prompts = mutableListOf<String>()
         var currentListener: TextCallAgentBackend.Listener? = null
         var cancelCalls = 0
+        var contextResets = 0
         var closeCalls = 0
 
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
@@ -95,6 +132,10 @@ class Gemma4LiteRtTextBackendTest {
 
         override fun cancel() {
             cancelCalls += 1
+        }
+
+        override fun resetConversationContext() {
+            contextResets += 1
         }
 
         override fun close() {
