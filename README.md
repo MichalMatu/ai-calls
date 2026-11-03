@@ -1,116 +1,27 @@
 # AI Calls
 
-## F-043 — jedna konwersacja Gemmy przez całe połączenie
+Autonomiczny agent telefoniczny na Androida: użytkownik określa legalne zadanie, numer i zakres uprawnień, a aplikacja prowadzi rozmowę lokalnie (STT → reguły/stan zadania → Gemma → zatwierdzona wypowiedź → TTS/TX). Testem pilotażowym jest CLIR; umówienie wizyty, mechanika i inne skutki wymagają jeszcze osobnych, jawnie autoryzowanych akcji. Pilot ręczny nie jest produktem docelowym.
 
-Gemma zachowuje **ten sam natywny `Conversation`** przy kolejnych turach rozmowy. Silnik nie tworzy już nowego czatu ani nie ponawia całej instrukcji; poprzednie wypowiedzi pozostają w kontekście modelu. Po prawidłowej odpowiedzi `cancel()` nie niszczy pamięci; przerwana inferencja i STOP nadal odrzucają niebezpieczny kontekst. Syntetyczne rozgrzanie modelu jest usuwane przed prawdziwą rozmową bez ponownego ładowania wag. **Mac full QA PASS: 248 testów Python, wszystkie moduły Android i audyt tarcia PASS.**
+## Aktualny stan — 2026-11-04
 
-**S22 zaktualizowano i zweryfikowano:** po STOP AI wykonano `adb install -r`, a instrumentowany test dwóch sztucznych tur na GPU przeszedł **PASS**. Jedna natywna konwersacja: `conversation_reused=false` → `true`; generowanie **6,23 s → 4,00 s**, bez ponownej inicjalizacji silnika lub czatu. Grant, kolejka kontynuacji i rola dialera zachowane; telefon `IDLE`. **F-043 VERIFIED**, nie trzeba ponawiać tych testów bez zmian. Nie jest to jeszcze dowód słyszalności u rozmówcy ani sukcesu CLIR. Katalog akcji jest obecnie głównie CLIR — rejestracja wizyty lub mechanika wymaga osobnych dozwolonych akcji.
+- **Kod główny:** main `a834d2171a02e8a1daaceeed4b9311c4b767edd8` (sprawdzaj świeży HEAD przy każdym wznowieniu).
+- **F-043 VERIFIED:** jeden natywny czat Gemmy na połączenie, bez powtarzania instrukcji i tworzenia nowego `Conversation` po każdej udanej turze. Na S22+ (`SM-S906B`) zainstalowano źródło `bcbe0a2a`; test dwóch syntetycznych tur GPU potwierdził `conversation_reused=false → true`. Samo `generate` trwało 6233 ms → 3998 ms; nie są to czasy odpowiedzi w rozmowie.
+- **F-042 CZĘŚCIOWO ZWERYFIKOWANE:** neutralne „Proszę chwilę zaczekać.” przygotowywane równolegle i odtwarzane wyłącznie w autoryzowanej kampanii, przez jeden tor TX bez nakładania głosów. Kod przeszedł pełne QA Mac (248 testów Python + Android + audyt) i jest na S22 w APK F-043. **Słyszalność i opóźnienie podczas rzeczywistego połączenia nadal OPEN.**
+- **Ostatni rzeczywisty pomiar przed F-042/F-043:** około 11,7–11,9 s od końca mowy do TX. Rzeczywista słyszalność u rozmówcy i efekt CLIR nie zostały niezależnie potwierdzone.
+- **Po testach S22:** `IDLE`, kampania zatrzymana przyciskiem STOP AI, rola dialera i zapisany grant bez zmian. To ostatni udokumentowany stan, nie zdalny odczyt bieżący.
 
-[Checkpoint F-043](docs/checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md)
+## Następny etap
 
+Na nowej, konkretnie autoryzowanej rozmowie zmierzyć EOS→pierwsze TX zapowiedzi, EOS→pełna odpowiedź, Gemma/TTS i słyszalność po drugiej stronie; zweryfikować brak nakładania się głosów, respektowanie STOP oraz rzeczywisty wynik zadania. Nie powtarzać zakończonego testu dwóch tur F-043 bez zmiany kodu lub urządzenia.
 
-## F-042 — dwutorowa odpowiedź i profilowanie Gemmy
+## Źródła prawdy
 
-Źródło `0be652d4` dodaje **neutralną, lokalnie przygotowaną zapowiedź** po wykryciu końca mowy rozmówcy, równolegle z STT/Gemmą. Jedno TX na turę, brak nakładania głosów, istniejące uprawnienia i STOP, osobne prywatne WAV. Zapowiedź uruchamia się tylko w autoryzowanej kampanii, nie w diagnostyce. W raporcie będą czasy klasyfikatora oraz GPU/CPU modelu. **Pełny Mac QA F-042 v4 PASS (248 Python, wszystkie moduły Android)**; F-042/F-043 APK nie został jeszcze wdrożony na S22 (telefon zniknął z ADB). Rzeczywiste przyspieszenie zostanie sprawdzone dopiero na telefonie. [Checkpoint F-042](docs/checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md).
+- [AGENTS.md](AGENTS.md) — reguły wykonania, autoryzacja, testy i bezpieczeństwo.
+- [BLOCKERS.md](BLOCKERS.md) — jedyny rejestr F-xxx i ich statusów (historia pozostaje dla audytowalności).
+- [Handoff](docs/HANDOFF_NEXT_CHAT.md) — bieżący stan, identyfikatory Mac Local Agenta, plan wejścia do kolejnego sprintu.
+- [Roadmap](docs/ROADMAP.md) i [architektura](docs/ARCHITECTURE.md) — plan oraz granice warstw.
+- Dowody: [F-042](docs/checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md), [F-043](docs/checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md), [F-041](docs/checkpoints/2026-11-03-f041-private-rx-tx-silence-f042-latency.md). Starsze checkpointy są historią, nie instrukcją bieżącą.
 
+## Zasady
 
-## Ostatnia diagnostyka — zapis rzeczywistej rozmowy (F-041/F-042)
-
-**Nagrania RX/TX pobrane na Mac lokalnie**, eksport przez USB naprawiony (F-041 **VERIFIED**, 5/5 testów i rzeczywisty eksport PASS). Prywatny folder: `~/Documents/AI-Calls/private-exports/` (nie publikuje nagrań do GitHuba). Ostatnia sesja: 4 fragmenty RX, 3 odpowiedzi TX. **F-042 OPEN:** 8,5–10,6 s od STT do TX, ok. 11,7–11,9 s od końca mowy rozmówcy do TX; kolejny RX bez odpowiedzi przed rozłączeniem. Rozdzielić czas Gemmy/skills od TTS, naprawić nadmierną ciszę, zachować zabezpieczenia. [Checkpoint](docs/checkpoints/2026-11-03-f041-private-rx-tx-silence-f042-latency.md).
-
-
-## F-040 — naprawa pustego transkryptu STT, gotowość S22
-
-Na S22 zainstalowano źródło `5b8ee947`: pusty wynik STT nie kończy już całego zadania, tylko korzysta z tej samej bezpiecznej kontynuacji nasłuchu co `NO_MATCH`/timeout. Pełna bramka jakości na Mac **PASS** (247 Python i wszystkie moduły Android), instalacja S22 i zachowanie grantu/roli dialera **PASS**. Diagnostyka na telefonie: `CAMPAIGN_AGENT_READINESS=READY`, Shizuku i Android gotowe. **Rzeczywiste połączenie po zmianie nie zostało wykonane**, więc nie deklarujemy jeszcze sukcesu rozmowy ani wyniku CLIR. [Checkpoint i dowody](docs/checkpoints/2026-11-03-f040-stt-empty-final-same-call-retry.md).
-
-
-## F-039 — bezpośredni START zamiast dwóch ekranów
-
-Nowa główna akcja `Rozpocznij autoryzowane zadanie AI` kieruje po jednym dotknięciu do **istniejącej** ścieżki START kampanii z tym samym grantem, kontrolą roli dialera i STOP. Zbędne `Campaign tools → START` nie jest już wymagane; dawny pilot `Jeden przycisk` pozostał pod Diagnostyką i nie powinien udawać autonomicznej kampanii. [Dowód i checkpoint](docs/checkpoints/2026-11-03-f039-primary-task-start-no-extra-click.md), [F-039](BLOCKERS.md). **F-039 VERIFIED — poprawka wdrożona na S22** (źródło `1659bdc0`); Mac pełny test PASS, **247 Python**, fizyczne **5/5 off-call testów PASS**, granty i rola dialera zachowane. Rzeczywista rozmowa/CLIR nadal wymaga oddzielnej akceptacji.
-
-
-## S22 — wdrożenie uproszczonego UI i testy (PASS)
-
-Nowe UI jest **zainstalowane na Samsungu S22**, źródło `64ce6fba`. Testy rzeczywistego urządzenia: **5/5 PASS** (akordeony, rola dialera, lokalny model Gemma, bezpieczny start poza rozmową). Instalacja `-r` zachowała zapisane uprawnienia i stan kontynuacji; telefon pozostał `IDLE`, dialer AI Calls niezmieniony. [Pełny checkpoint](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md). Testy silnika i UI na Mac także PASS. **Nie oznacza to wykonania zadania CLIR ani potwierdzenia TX u konsultanta** — potrzebny oddzielny dopuszczony test połączenia.
-
-**Historyczne `S22 UI PENDING` poniżej odnosi się do wcześniejszego przebiegu, gdy urządzenie nie było dostępne.**
-
-## UI — pierwszy etap uproszczenia, 2026-11-03
-
-[Checkpoint zmian UI](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md): na wierzchu status, kampanie, nadzorowany start AI i **STOP AI**; zwijane ustawienia audio, Gemma, uprawnienia i diagnostyka. W kampaniach na wierzchu pozostają autoryzacja, START, STOP i cofnięcie grantu. **Wszystkie istniejące przyciski zachowane**. Nie zmieniano silnika rozmowy ani danych uprawnień. Źródła w `main`; **pełne testy Mac PASS** (`aicalls-20261103-ui-accordion-source-full-qa-v1`, 244 Python oraz wszystkie moduły Android). **S22 UI PENDING**: przy próbie bezpiecznej instalacji `EXACT_S22=false`, więc niczego nie wgrano i nie przeprowadzono testu fizycznego.
-
-## Stan bazowy — checkpoint organizacyjny 2026-11-03
-
-**[Aktualny checkpoint jakości i architektury](docs/checkpoints/2026-11-03-organizational-freeze-f035-pre-voice-skills.md)** · [jedyny aktualny rejestr F-xxx](BLOCKERS.md) · [handoff](docs/HANDOFF_NEXT_CHAT.md).
-
-**Checkpoint QA: PASS** — Mac `aicalls-20261103-organizational-freeze-full-host-qa-v3`, all-module unit/build/lint + **244 Python tests**, audyt blokerów/dokumentacji/skaner sekretów. Odtwarzalna gałąź kodu sprzed porządkowania: `checkpoint/2026-11-03-f035-s22-baseline` (SHA `6d3db915`). Nie wykonywano nowych rozmów ani nie instalowano APK w tym etapie.
-
-- **Zweryfikowane:** autonomicznie autoryzowane połączenie S22 z realnymi RX/STT/Gemma/zaakceptowanym TTS/TX, zakończone stanem IDLE; pięć tur na wersji `eb2f5058`; opóźnienie pierwszego TX po zakończeniu mowy **10 567 ms** (wcześniej 47 567 ms). To nie jest akceptacja słyszalności po drugiej stronie.
-- **Prewarm Gemmy już działa przed wybieraniem numeru** w `CampaignGemmaPreflight` i `AppOwnedCampaignService`. Ponowne ładowanie jej „dopiero podczas połączenia” nie opisuje obecnej implementacji.
-- **F-035:** wersja `7176f32b` z kontynuacją nasłuchu po STT 6/7, odpinaniem starego RX i testami współbieżności **Mac QA PASS, instalacja S22 PASS**. Na nowej wersji nie wykonano rozmowy z takim błędem — **fizyczny retest OPEN**.
-- **Nadal OPEN:** potwierdzenie, że konsultant słyszy AI, faktyczna realizacja CLIR, szybki dialog IVR, fizyczne wznowienie STT 6/7. Ostatni raport rzeczywistej rozmowy jest **sprzed** instalacji F-035.
-- **Decyzja projektowa na następny etap:** oddzielić model AI (wybór ustrukturyzowanego skilla) od katalogu skills/kontraktów i deterministycznych wykonawców; uprawnienia, skutki zewnętrzne i ich dowody pozostają własnością aplikacji. Wymiana silnika głosowego wyłącznie po benchmarku na S22.
-
-**Dalej w tym README zachowano chronologiczne notatki ze starszych commitów; ich „obecnie”, „najnowszy”, `OPEN` lub `QA_PENDING` nie zastępują powyższego checkpointu i rejestru.**
-
-## Aktualna decyzja — USB/ADB, zero sztucznych blokerów (2026-11-03)
-
-**Eksport diagnostyki jest zorganizowany przez USB/ADB i Mac Local Agenta**, bez zależności od brakującego przycisku ZIP w aplikacji. Prywatne dane z telefonu trafiają wyłącznie do `~/Documents/AI-Calls/private-exports/` na Macu; więcej: [USB — prywatna diagnostyka](docs/USB_PRIVATE_DIAGNOSTICS.md). Preflight: jeden autoryzowany S22, stan IDLE; **obecnie nie ma utworzonego folderu nagrań, więc brak plików do kopiowania**. To stan danych, a nie blokada; przy następnej zatwierdzonej sesji Mac Local Agent ponowi eksport.
-
-**Dalej realizować prawdziwy runtime kodu, bez dalszych sztucznych blokad**: lokalny START i dokładnie autoryzowana kampania → rola dialera i stan telefonu → RX/STT/AI/TTS/TX → wynik i selektywne zakończenie → automatyczne wznowienie. Mac/S22 off-call: 4/4 magazyny i 3/3 polityka START/restart (ostatni fizyczny PASS `e77b86b6`), testy build/unit/lint PASS. **Nie ma jeszcze fizycznego końcowego PASS kompletnej rozmowy.** Zasady Android, zakres grantu, prywatność rozmówców i STOP są rzeczywistymi wymaganiami, nie sztucznymi ograniczeniami. [Jedyny aktualny rejestr](BLOCKERS.md) zachowuje historię wszystkich F-xxx; niezrealizowany eksport ZIP w UI i nieaktualne historyczne akapity nie zatrzymują dalszych prac.
-
-
-## 2026-11-03 — najnowszy status źródeł: ZERO sztucznych bramek (weryfikacja trwa)
-
-Źródło statusów: [BLOCKERS.md](BLOCKERS.md). Ochrona: pierwsze linie [AGENTS.md](AGENTS.md) oraz skaner `scripts/aicall_tools/diagnostics/audit_product_friction.py`. W źródłach usunięto `F-002` (10-minutowe uzbrajanie zapisu), `F-012` (drugi dialog pilota), `F-013` (stary pięcio-połączeniowy test), `F-014` (autostart po powrocie z dialera). Flaga diagnostyki jest opcjonalną, domyślnie wyłączoną częścią jednego zakresu kampanii; utrzymuje się przez kolejne rozmowy tylko w jego ramach. **Dla nowego HEAD brak jeszcze potwierdzonego Mac QA i instalacji S22.** `F-003`, `F-010`, `F-011` pozostają otwarte do dalszej pracy.
-
-Wszystkie starsze statusy PASS poniżej dotyczą wskazanych tam historycznych commitów i testów.
-
-## 2026-11-03 — historical dialing regression and real Telecom controller source
-
-Git history proves a dial regression: before `6e732af`, `AppOwnedClirCampaignExecutor` used `ACTION_CALL` and generic `TelecomManager.endCall()`. Commit `6e732af` added a constant-false ownership check; `c48685b` introduced `CampaignCallControllerRegistry` without a provider; `a019795` separately removed ADB-script automatic dial/hangup. These were real removed paths, but the old hangup did **not** select one specific Call.
-
-New code `0226d61` → `294cc2d` → `33e27cc` → `3ee183c` implements Android default-dialer-role-gated `InCallService`, `TelecomManager.placeCall`, exact matched `Call.disconnect()`, minimal human call controls and one-tap START continuation after real OS role/notification consent. This is **candidate production code**, not a live-call physical PASS. It does not mutate the Google Phone role without OS user selection.
-
-Mac task `aicalls-20261103-controller-build-cache-adb-recover-v3`: **DONE/0**, `EXACT_CONTROLLER_BUILD_LINT_UNIT=PASS` and `APK_CACHE_READY=true` for `3ee183c`; device disappeared from ADB, so **not installed**. Separate `aicalls-20261103-cached-apk-last-s22-usb-diagnose-v2`: DONE/0, cached APK verified, `S22_TRANSPORT_NOT_AVAILABLE=true`, `NO_INSTALL=true`. Real role grant, live dial, RX/STT/Gemma/TTS/TX, selective live teardown, and `MODE_IN_COMMUNICATION` root-cause acceptance remain OPEN. Detailed checkpoint: `docs/checkpoints/2026-11-03-historical-dial-regression-controller-recovery.md`.
-
-
-**Autonomous local-AI phone task agent for Android.** A person delegates an outcome in natural language; the application plans and performs ordinary telephone tasks on the person's behalf. **The supervised call pilot is a test harness, not the product definition.**
-
-The target device is the Samsung Galaxy S22+ (`SM-S906B`). The implementation uses Android Telecom/telephony, Samsung/Shizuku cellular RX/TX, Polish STT/TTS, deterministic task state and a local Gemma 4 dialogue skill. The intention is that execution happens **on the phone with local AI**, not by having a person click through every dialogue or by requiring ChatGPT/ADB to serve as the product runtime.
-
-## Product contract
-
-```text
-user delegates a concrete telephone task and permitted scope
- -> local AI interprets goal, target(s), constraints and needed facts
- -> application authorizes and schedules bounded attempt(s)
- -> check device/SIM/permissions and absence of an unrelated active call
- -> autonomously dial the approved target
- -> understand IVR and live replies: cellular RX -> Polish STT
- -> deterministic workflow/PhraseMatrix -> local Gemma 4 when needed
- -> validate response and permitted data disclosure -> Polish TTS -> cellular TX
- -> carry out authorized read-only inquiries or typed changes
- -> verify the factual outcome (and external state when relevant)
- -> stop/retry/escalate according to the task; end only the test's own call
- -> return result, evidence and next action to the user
-```
-
-Generic examples include inquiries, appointments, reservations and changes or cancellations of **user-authorized** services. The system must be designed for user-specified ordinary, lawful destinations, **not hard-coded to Orange, `*100`, or a test whitelist**. Authorized tasks may involve reading, submitting or updating the user's own account data when the task's granted scope explicitly permits it.
-
-**Delegation and developer autonomy:** The owner authorizes self-directed code changes, building, deploying to the designated test handset, read-only diagnostics, tests, routine retries, and cleanup within already accepted task scope. Do not request a new confirmation for the same unchanged approved action. This is a product/development objective, **not** an unrestricted standing grant to dial unspecified numbers, alter arbitrary third-party data, reveal personal details, spend money, or bypass Android, telecom-provider, legal or external tool safeguards. The application stores a specific, revocable authorization scope for external actions; permissions and consequential actions still need their applicable authority. Details: [Autonomous operation](docs/AUTONOMOUS_OPERATION_MODE.md), [Task authority](docs/GENERIC_PHONE_TASK_AUTHORITY.md), [Security](docs/SECURITY_PRIVACY.md).
-
-## Actual status — 2026-11-02
-
-**2026-11-03 update:** unified STOP, one-time targeted owned-call cleanup, supervised local Gemma selection, and removal of a redundant START precheck are committed on `main` through `4b79a302`. The focused source `4c47c308` built, passed lint/unit tests and was installed on the exact idle S22. Newer source `4b79a302` is also **installed on exact S22** and the two-press STOP-idempotence Android instrumentation **PASS** (`aicalls-20261103-stop-final-regression-s22-v1`, DONE/0; build/lint and post-test IDLE PASS). No live autonomous call/verified RX-TX yet. [Sprint findings](docs/checkpoints/2026-11-03-stop-friction-sprint.md).
-
-- **PASS on S22, off-call:** Polish STT/TTS, local Gemma 4, Shizuku, approved speech pipeline, no-call safety and the one-tap supervised pilot's idle-state instrumented acceptance. The one-tap button is installed and verified; it **attaches to an existing call**, not a fully autonomous dialer.
-- **OPEN:** genuine cellular RX/STT/local AI/TTS/TX, audible response at the other end and physical STOP acceptance. A real-call screenshot showed `MODE_IN_COMMUNICATION` while the Samsung media path expects `MODE_IN_CALL`; do not label routing as working until measured and fixed.
-- **OPEN:** a working app-owned autonomous call controller and verified termination of the intended call. The current CLIR campaign executor refuses autonomous dialing because its `CampaignOwnedCallController` adapter is not installed. A separate ADB global-endcall experiment has only targeted unit-test acceptance, not physical in-call proof.
-- An experimental Orange dial-and-global-cleanup runner remains unqualified and its external tool execution was blocked; do not treat that as a successful product call.
-
-The immediate next hardware step is only one acceptance gate **toward** the full product; it is not a change of the product goal to permanent manual calling. A useful complete product milestone must demonstrate a user-authorized **real** call from start through measurable audio/dialogue, actual task result, cleanup and independently verified `IDLE`.
-
-## Engineering
-
-Read [AGENTS.md](AGENTS.md), [Architecture](docs/ARCHITECTURE.md), [Roadmap](docs/ROADMAP.md), and the [handoff](docs/HANDOFF_NEXT_CHAT.md). Build/test/device work uses **GitHub Connector + Mac Local Agent**; do not use Codex, ChatGPT Work or GitHub Actions. Verify the current `main` HEAD and exact Mac host/device; use existing PASS receipts and avoid redundant test churn. No result is PASS merely because code was committed or a task was queued.
+Stosuj GitHub Connector + Mac Local Agent; bez Codex, Work i GitHub Actions. Nie omijaj odmów narzędzia, autoryzacji zadania, uprawnień Androida, prywatności rozmówców ani selektywnego STOP. Nagrania i transkrypcje tylko prywatnie na urządzeniu/Macu — nie w GitHub. **Test hostowy lub syntetyczny nie dowodzi zrealizowania zadania ani słyszalności rozmowy.**
