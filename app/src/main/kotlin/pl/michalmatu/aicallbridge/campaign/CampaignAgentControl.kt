@@ -37,7 +37,7 @@ internal object CampaignAgentControl {
         val disposition = CampaignAgentLaunchPolicy.decide(
             permissionsPresent = permissionsPresent,
             voiceSubscriptionPresent = scope != null,
-            authorization = authorization,
+            grantAuthorized = authorization is CampaignAuthorizationDecision.Authorized,
             dialerRoleReady = roleReady,
         )
         val commandStatus = when {
@@ -72,12 +72,12 @@ internal object CampaignAgentLaunchPolicy {
     fun decide(
         permissionsPresent: Boolean,
         voiceSubscriptionPresent: Boolean,
-        authorization: CampaignAuthorizationDecision?,
+        grantAuthorized: Boolean,
         dialerRoleReady: Boolean,
     ): CampaignAgentReadiness = when {
         !permissionsPresent -> CampaignAgentReadiness.MISSING_RUNTIME_PERMISSION
         !voiceSubscriptionPresent -> CampaignAgentReadiness.NO_VOICE_SUBSCRIPTION
-        authorization !is CampaignAuthorizationDecision.Authorized ->
+        !grantAuthorized ->
             CampaignAgentReadiness.NO_VALID_EXACT_GRANT
         !dialerRoleReady -> CampaignAgentReadiness.DIALER_ROLE_REQUIRED
         else -> CampaignAgentReadiness.READY
