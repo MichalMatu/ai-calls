@@ -80,6 +80,39 @@ class TextBrokerTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 broker.parse_client_body(invalid)
 
+    def test_long_stt_transcript_is_not_truncated_or_rejected_at_4000_chars(self) -> None:
+        transcript = ("Potwierdzam pełną treść rozmowy z polskimi znakami ąę. " * 180)
+        self.assertGreater(len(transcript), 4000)
+        body = json.dumps({"input": transcript}, ensure_ascii=False).encode("utf-8")
+        self.assertEqual(broker.parse_client_body(body), transcript.strip())
+        request = broker.build_openai_request(self.config, transcript)
+        payload = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(payload["input"], transcript)
+        self.assertGreater(payload["max_output_tokens"], 160)
+        self.assertIs(payload["store"], False)
+
+    def test_broker_preserves_long_completed_output_and_rejects_incomplete(self) -> None:
+        text = "Autoryzowana wypowiedź dialogowa. " * 220
+        payload = {
+            "status": "completed",
+            "output": [
+                {"type": "message", "content": [
+                    {"type": "output_text", "text": text},
+                ]},
+            ],
+        }
+        raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.assertEqual(broker.extract_output_text(raw), text.strip())
+        payload["status"] = "incomplete"
+        with self.assertRaises(broker.TextBrokerUpstreamError):
+            broker.extract_output_text(json.dumps(payload).encode("utf-8"))
+
+    def test_real_body_byte_capacity_remains_bounded(self) -> None:
+        too_large = json.dumps({"input": "x" * broker.MAX_CLIENT_BODY_BYTES}).encode("utf-8")
+        with self.assertRaises(ValueError):
+            broker.parse_client_body(too_large)
+        self.assertLessEqual(len(too_large), 2 * broker.MAX_CLIENT_BODY_BYTES)
+
     def test_client_bearer_must_be_distinct_and_never_be_openai_key(self) -> None:
         with self.assertRaises(ValueError):
             broker.TextBrokerConfig("sk-same-secret-abcdefghijklmnopqrstuvwxyz", "sk-same-secret-abcdefghijklmnopqrstuvwxyz")
