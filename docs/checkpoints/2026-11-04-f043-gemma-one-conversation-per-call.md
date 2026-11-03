@@ -28,6 +28,19 @@ The official native C++ API explicitly warns **not to reuse a Conversation after
 
 **First physical attempt deferred — exact phone unavailable.** Mac Local Agent task `aicalls-20261104-f043-s22-one-conversation-synthetic-benchmark-v1` ended rc=81 at the *first read-only precheck*: `EXACT_S22=false`, `PRECHECK=DEFERRED_EXACT_DEVICE_MISSING`. No APK was built or installed, no test instrumented, no grant was modified and no call started. The previously installed S22 APK is still from F-040. On reconnect, recheck exact model/ADB serial, IDLE/default dialer/no active campaign, preference hash baseline; only then build + `adb install -r`, run `AndroidGemmaActionLatencyProfileTest` synthetic 2-turn text, and report JSON PASS plus first/warm durations and whether `conversation_reused=false` on first, `true` on second. Never infer remote acoustic behavior from a no-call test.
 
+## Physical Samsung S22 acceptance after owner STOP AI — PASS (synthetic only)
+
+- Mac Agent read-only `aicalls-20261104-s22-post-stop-no-call-readiness-v1` **DONE/0**: exact `SM-S906B` connected; `PHONE_IDLE=true`, AI Calls default dialer, `CAMPAIGN_SERVICE_RECORD=false`, `CAMPAIGN_CONTINUATION_SAVED=false` and original grant preference file present. Owner explicitly stopped the prior auto-retry campaign; no service/campaign was force-stopped by our tools.
+- Mac Agent `aicalls-20261104-f043-s22-post-stop-deploy-two-turn-v3` **DONE/0**, source pin `bcbe0a2a84781bf79033ccbef7293ce5f29dcc47`, `F043_DEVICE_APKS_BUILD=PASS`, app `adb install -r` **PASS**, AndroidTest APK install **PASS**, persisted grant and continuation SHA fingerprints unchanged.
+- **Real S22 instrumented 2-turn synthetic Gemma test PASS**; both completions logged as `complete`, acceleration mode **GPU**. Text and model answers were not exported, and the test did not dial, use mic or change the grant.
+- Direct, sanitized `AiCallBridgePerf` logs confirm **one actual native conversation**:
+  - Synthetic turn 1: `conversation_reused=false`, `conversation_turn=1`, `engine_ready_ms=6709`, `conversation_create_ms=3191`, `generate_ms=6233`.
+  - Synthetic turn 2: `conversation_reused=true`, `conversation_turn=2`, `engine_ready_ms=0`, `conversation_create_ms=0`, `generate_ms=3998`.
+  - `F043_NATIVE_CONVERSATION_REUSE_PROVEN=true`. The synthetic benchmark's standalone `System.out` turn-duration markers were not surfaced by Android instrumentation (`NOT_REPORTED`), but two independently logged native runtime timings were collected. Do **not** present these as actual telephone EOS-to-TX or far-end audible voice durations.
+- `POST_IDLE=true`, `POST_ROLE=true`, `AUTHORIZATION_PRESERVED=true`, `CONTINUATION_PRESERVED=true`. No spontaneous campaign start or carrier call.
+
+This supersedes the earlier `EXACT_S22=false` and later `APP_OWNED_CAMPAIGN_SERVICE_ACTIVE=true` deferments. Those were real, temporary preconditions, not test passes. **F-043 source and physical two-turn chat reuse are now VERIFIED.** F-042 subsecond audible filler, external CLIR outcome, and general appointment/mechanic skills remain separately open.
+
 ## Status
 
-**F-043 FIXED_IN_SOURCE / HOST_QA_PASS / PHYSICAL_ACCEPTANCE_DEFERRED**, due to absent S22 USB device. The code is fully built/tested and committed; real native two-turn session reuse/latency has not been measured on the handset, and real external CLIR remains unproven.
+**F-043 VERIFIED — one native LiteRT-LM Conversation reused across two actual on-device synthetic turns on S22**, source and Mac QA PASS, installed source `bcbe0a2a`. Physical live-call dialogue timing, quick-ack remote audibility and CLIR result remain **OPEN**. Do not repeat the completed host or two-turn synthetic test without changes.
