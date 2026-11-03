@@ -210,10 +210,13 @@ class AppOwnedCampaignService : Service() {
      * The user must start and end the ordinary cellular call in the existing dialer.
      */
     private fun startSupervisedAudio() {
-        if (AppOwnedClirCampaignExecutor.isRunning() ||
+        // A queued retry is still an active owner-authorized campaign even between
+        // calls. An unrelated pilot must not tear it down through finish()/STOP.
+        if (campaignRequested || continuationStore.load() != null ||
+            AppOwnedClirCampaignExecutor.isRunning() ||
             !supervisedAudioActive.compareAndSet(false, true)
         ) {
-            statusStore.save("Another call runtime is already active")
+            statusStore.save("Campaign or another audio runtime is active; current task continues")
             return
         }
         val telecom = getSystemService(TelecomManager::class.java)
