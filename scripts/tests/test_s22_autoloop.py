@@ -128,6 +128,29 @@ class S22AutoloopParsingTests(unittest.TestCase):
             "FAIL_LOCAL_ONLY_DIALOGUE_FALLBACK",
         )
 
+    def test_late_private_report_replaces_stale_before_false_unverified(self):
+        from unittest.mock import patch
+
+        cycle = LocalCycle.__new__(LocalCycle)
+        cycle.report = {}
+        replies = iter([
+            "10", "100",
+            "telephony_rx_pcm_bytes=1000\\ntelephony_tx_pcm_bytes=500\\n"
+            "turn_1_stt_chars=12\\nturn_1_approved_chars=9\\n"
+            "gemma_action_decision_count=1\\nprobe_complete=true\\n"
+        ])
+
+        def fake_adb(*args, **kwargs):
+            return next(replies)
+
+        cycle.adb_run = fake_adb
+        with patch("aicall_tools.diagnostics.s22_autoloop.time.sleep", return_value=None):
+            cycle.collect_pipeline_metrics(started_epoch=100)
+
+        self.assertEqual(cycle.report["pipeline_report"], "CURRENT_SESSION")
+        self.assertEqual(cycle.report["live_rx_tx"], "REAL_PIPELINE_COUNTERS_PRESENT")
+        self.assertEqual(cycle.report["pipeline_metrics"]["stt_turns"], 1)
+
     def test_observer_window_never_forces_campaign_stop(self):
         import inspect
         code = inspect.getsource(LocalCycle.authorized_call)
