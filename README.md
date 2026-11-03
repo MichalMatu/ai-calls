@@ -1,5 +1,10 @@
 # AI Calls
 
+## Ostatnia diagnostyka — zapis rzeczywistej rozmowy (F-041/F-042)
+
+**Nagrania RX/TX pobrane na Mac lokalnie**, eksport przez USB naprawiony (F-041 **VERIFIED**, 5/5 testów i rzeczywisty eksport PASS). Prywatny folder: `~/Documents/AI-Calls/private-exports/` (nie publikuje nagrań do GitHuba). Ostatnia sesja: 4 fragmenty RX, 3 odpowiedzi TX. **F-042 OPEN:** 8,5–10,6 s od STT do TX, ok. 11,7–11,9 s od końca mowy rozmówcy do TX; kolejny RX bez odpowiedzi przed rozłączeniem. Rozdzielić czas Gemmy/skills od TTS, naprawić nadmierną ciszę, zachować zabezpieczenia. [Checkpoint](docs/checkpoints/2026-11-03-f041-private-rx-tx-silence-f042-latency.md).
+
+
 ## F-040 — naprawa pustego transkryptu STT, gotowość S22
 
 Na S22 zainstalowano źródło `5b8ee947`: pusty wynik STT nie kończy już całego zadania, tylko korzysta z tej samej bezpiecznej kontynuacji nasłuchu co `NO_MATCH`/timeout. Pełna bramka jakości na Mac **PASS** (247 Python i wszystkie moduły Android), instalacja S22 i zachowanie grantu/roli dialera **PASS**. Diagnostyka na telefonie: `CAMPAIGN_AGENT_READINESS=READY`, Shizuku i Android gotowe. **Rzeczywiste połączenie po zmianie nie zostało wykonane**, więc nie deklarujemy jeszcze sukcesu rozmowy ani wyniku CLIR. [Checkpoint i dowody](docs/checkpoints/2026-11-03-f040-stt-empty-final-same-call-retry.md).
