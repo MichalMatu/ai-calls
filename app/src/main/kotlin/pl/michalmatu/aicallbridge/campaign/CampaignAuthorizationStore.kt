@@ -6,7 +6,7 @@ import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 
 internal class CampaignAuthorizationStore(context: Context) {
     private val preferences =
-        context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        (context.applicationContext ?: context).getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun save(grant: CampaignAuthorizationGrant) = synchronized(STORE_LOCK) {
         check(
