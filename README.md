@@ -1,8 +1,17 @@
 # AI Calls
 
+## F-043 — jedna konwersacja Gemmy przez całe połączenie
+
+Gemma zachowuje **ten sam natywny `Conversation`** przy kolejnych turach rozmowy. Silnik nie tworzy już nowego czatu ani nie ponawia całej instrukcji; poprzednie wypowiedzi pozostają w kontekście modelu. Po prawidłowej odpowiedzi `cancel()` nie niszczy pamięci; przerwana inferencja i STOP nadal odrzucają niebezpieczny kontekst. Syntetyczne rozgrzanie modelu jest usuwane przed prawdziwą rozmową bez ponownego ładowania wag. **Mac full QA PASS: 248 testów Python, wszystkie moduły Android i audyt tarcia PASS.**
+
+**S22 jeszcze nie zaktualizowano:** Mac Local Agent potwierdził `EXACT_S22=false` w próbie F-043. Po ponownym podłączeniu zostanie wykonana bezpieczna instalacja i dwuturowy benchmark bez połączenia telefonicznego. Prawdziwa szybkość, słyszalność i sukces zadania wymagają dalszych danych. Katalog akcji jest obecnie głównie CLIR — rejestracja wizyty lub mechanika wymaga przygotowania odpowiednich akcji i danych dla konkretnego, autoryzowanego celu.
+
+[Checkpoint F-043](docs/checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md)
+
+
 ## F-042 — dwutorowa odpowiedź i profilowanie Gemmy
 
-Źródło `0be652d4` dodaje **neutralną, lokalnie przygotowaną zapowiedź** po wykryciu końca mowy rozmówcy, równolegle z STT/Gemmą. Jedno TX na turę, brak nakładania głosów, istniejące uprawnienia i STOP, osobne prywatne WAV. Zapowiedź uruchamia się tylko w autoryzowanej kampanii, nie w diagnostyce. W raporcie będą czasy klasyfikatora oraz GPU/CPU modelu. **Mac QA v2 PASS (248 Python, wszystkie moduły Android)**; ostatnia poprawka zabezpieczeń czeka na wynik v4, **nowy APK nie jest jeszcze na S22**. Rzeczywiste przyspieszenie zostanie sprawdzone dopiero na telefonie. [Checkpoint F-042](docs/checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md).
+Źródło `0be652d4` dodaje **neutralną, lokalnie przygotowaną zapowiedź** po wykryciu końca mowy rozmówcy, równolegle z STT/Gemmą. Jedno TX na turę, brak nakładania głosów, istniejące uprawnienia i STOP, osobne prywatne WAV. Zapowiedź uruchamia się tylko w autoryzowanej kampanii, nie w diagnostyce. W raporcie będą czasy klasyfikatora oraz GPU/CPU modelu. **Pełny Mac QA F-042 v4 PASS (248 Python, wszystkie moduły Android)**; F-042/F-043 APK nie został jeszcze wdrożony na S22 (telefon zniknął z ADB). Rzeczywiste przyspieszenie zostanie sprawdzone dopiero na telefonie. [Checkpoint F-042](docs/checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md).
 
 
 ## Ostatnia diagnostyka — zapis rzeczywistej rozmowy (F-041/F-042)
