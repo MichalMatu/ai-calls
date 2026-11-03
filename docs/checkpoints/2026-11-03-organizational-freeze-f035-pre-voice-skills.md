@@ -75,6 +75,25 @@ APP / EXECUTOR (never delegated to a model)
 - **Full gate redo submitted:** `aicalls-20261103-organizational-freeze-full-host-qa-v2`, pinned `873bfac74d1b56e97ea2b79062f1e2f5d1ae22d5`. It covers the regression, doc links, anti-friction, all four Android module test/lint suites, Android build/test APK, Python discovery and source/privacy scans via `scripts/verify_host.sh`. **Outcome must be read from Mac task-results**; the queued task is not a PASS until it reports `done/0`.
 - **Known code hygiene / deferred refactor:** the project currently has `DialogueSkillBackendFactory` and `LocalDialogueSkillBackendFactory` with overlapping local classifier construction, plus CLIR-specific responses in `GateCHybridDialogueBackendFactory`. These are candidates for carefully tested consolidation in the **next** architecture sprint, not reasons to change phone behavior during this checkpoint.
 
+## Final Mac quality gate — PASS
+
+**Task**: `aicalls-20261103-organizational-freeze-full-host-qa-v3`, result **DONE/0**, pinned source `dab3ca25778a7e9e5bd1f28273470c5a3a96ca59`. This is the exact Android/tooling source tested after both F-036 and F-037 corrections. The final-only commits updating `BLOCKERS.md` and this checkpoint are Markdown documentation, not Android or tooling behavior changes.
+
+| Area | Evidence |
+| --- | --- |
+| Anti-friction source audit | **PASS** |
+| F-036 tracked-layout regression | **PASS** |
+| F-037 bounded secret-scan regression | **PASS** |
+| Canonical freeze/documentation link consistency | **PASS** |
+| Kotlin/Android | All four modules test/lint and app APK + AndroidTest APK **PASS**, Gradle 3× `BUILD SUCCESSFUL` |
+| Python tests | **244 PASS** |
+| Secret scan / repository layout / host gate | `host_quality_gate_green=true` **PASS** |
+| S22 side effects | **NONE** — no calls, installs, grants, evidence uploads or runtime behavior changes |
+
+The initial QA v1 failed due to missing mandatory `BLOCKERS.md` in the layout allowlist (**F-036**); v2 passed layout, all Gradle and 243 Python tests but failed on an innocuous `task-approved` token in the secret scan (**F-037**). Both are fixed and regression-tested in v3. The historical failed receipts are preserved; neither is an Android live-call failure.
+
+**Checkpoint status: ORGANIZATIONAL_FREEZE_QA_PASS.** This freeze covers source QA, organization and documentation only. F-035 in-call recovery, low-latency Polish dialogue, independent far-end audibility and CLIR activation are **not** accepted.
+
 ## QA and final sign-off
 
 Target: `python3 scripts/aicall_tools/diagnostics/audit_product_friction.py`; Python regression suites; `./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` and module-specific tests as available; optionally `scripts/verify_host.sh` as a separate read-only quality gate after examining its side effects. The exact final test receipt, pinned SHA and pass/fail must be **filled from the Mac Local Agent task result**, not assumed.
