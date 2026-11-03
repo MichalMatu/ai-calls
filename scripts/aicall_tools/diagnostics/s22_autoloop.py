@@ -211,6 +211,7 @@ class LocalCycle:
         self.command(
             ["./gradlew", "--no-daemon", ":app:testDebugUnitTest", "--tests",
              "pl.michalmatu.aicallbridge.campaign.CampaignAgentLaunchPolicyTest",
+             "--tests", "pl.michalmatu.aicallbridge.GateCHybridDialogueBackendTest",
              ":app:assembleDebug", ":app:lintDebug"],
             timeout=3600,
         )
