@@ -2,7 +2,7 @@
 
 ## UI — pierwszy etap uproszczenia, 2026-11-03
 
-[Checkpoint zmian UI](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md): na wierzchu status, kampanie, nadzorowany start AI i **STOP AI**; zwijane ustawienia audio, Gemma, uprawnienia i diagnostyka. W kampaniach na wierzchu pozostają autoryzacja, START, STOP i cofnięcie grantu. **Wszystkie istniejące przyciski zachowane**. Nie zmieniano silnika rozmowy ani danych uprawnień. Źródła w `main`, pełny test Mac i weryfikacja na S22 **oczekują na wyniki**.
+[Checkpoint zmian UI](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md): na wierzchu status, kampanie, nadzorowany start AI i **STOP AI**; zwijane ustawienia audio, Gemma, uprawnienia i diagnostyka. W kampaniach na wierzchu pozostają autoryzacja, START, STOP i cofnięcie grantu. **Wszystkie istniejące przyciski zachowane**. Nie zmieniano silnika rozmowy ani danych uprawnień. Źródła w `main`; **pełne testy Mac PASS** (`aicalls-20261103-ui-accordion-source-full-qa-v1`, 244 Python oraz wszystkie moduły Android). **S22 UI PENDING**: przy próbie bezpiecznej instalacji `EXACT_S22=false`, więc niczego nie wgrano i nie przeprowadzono testu fizycznego.
 
 ## Stan bazowy — checkpoint organizacyjny 2026-11-03
 
