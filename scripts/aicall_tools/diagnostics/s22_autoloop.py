@@ -366,12 +366,24 @@ def main() -> int:
     parser.add_argument("--execute-authorized", action="store_true", help="Use only a currently valid app-owned grant")
     parser.add_argument("--observe-seconds", type=int, default=190)
     parser.add_argument("--skip-offcall-probes", action="store_true", help="Reuse prior matching hardware receipts")
+    parser.add_argument("--inspect-last-call", action="store_true", help="Read existing private numeric counters without new dial or install")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[3]
     private = Path.home() / "Documents/AI-Calls/private-exports"
     cycle = LocalCycle(args.adb, root, private)
     try:
         cycle.assert_device()
+        if args.inspect_last_call:
+            cycle.collect_pipeline_metrics(None)
+            evidence = cycle.report.get("pipeline_metrics", {})
+            verdict = ("TECHNICAL_COUNTS_PRESENT_HISTORICAL"
+                       if technical_pipeline_evidence(evidence)
+                       else "NO_COMPLETE_TECHNICAL_COUNTERS")
+            cycle.report["verdict"] = verdict
+            print("S22_AUTOLOOP=" + verdict)
+            print("LIVE_RX_TX=" + str(cycle.report.get("live_rx_tx", "UNPROVEN")))
+            print("FAILURE_REASON_CODE=" + str(cycle.report.get("dialogue_failure_code", "NONE")))
+            return 0 if verdict == "TECHNICAL_COUNTS_PRESENT_HISTORICAL" else 2
         if not args.reuse_installed:
             cycle.build_and_install()
         cycle.adb_run("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
