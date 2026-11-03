@@ -154,11 +154,14 @@ def cycle_verdict(report: dict[str, object], *, call_requested: bool, probes_ski
         return "INCOMPLETE_CAMPAIGN_START"
     if report.get("offhook_observed") is not True:
         return "INCOMPLETE_OFFHOOK_NOT_OBSERVED"
-    if (report.get("owned_stop") != "DISPATCHED_TO_INTERNAL_SERVICE"
-            or report.get("after_owned_stop_idle") is not True):
-        return "INCOMPLETE_EXACT_TEARDOWN"
-    # Private WAVs, a synthetic response, or Telecom OFFHOOK alone do not establish
-    # a verified audible RX/STT/AI/TTS/TX conversation with the counterparty.
+    if report.get("after_autonomous_idle") is not True:
+        return "INCOMPLETE_AUTONOMOUS_CALL_TEARDOWN"
+    if report.get("dialogue_failure_code") == "backend_supervisor_relay_disabled":
+        return "FAIL_LOCAL_ONLY_DIALOGUE_FALLBACK"
+    if technical_pipeline_evidence(report.get("pipeline_metrics", {})):
+        # Nonzero captured RX, STT, approved speech and accepted TX bytes are
+        # actual runtime data-path evidence, not proof of remote audibility or task outcome.
+        return "LIVE_TECHNICAL_PIPELINE_VERIFIED_EXTERNAL_RESULT_OPEN"
     return "LIVE_AUDIO_ACCEPTANCE_UNVERIFIED"
 
 
@@ -255,6 +258,32 @@ class LocalCycle:
         except (RuntimeError, subprocess.TimeoutExpired):
             return "UNAVAILABLE"
 
+    def collect_pipeline_metrics(self, started_epoch: int | None) -> None:
+        """Read only numeric app-owned telemetry, never the full private report to Git."""
+        file_name = "files/chat-relay-live-call-report.txt"
+        try:
+            mtime = int(
+                self.adb_run("shell", "run-as", PACKAGE, "stat", "-c", "%Y", file_name).strip()
+            )
+            if started_epoch is not None and mtime < started_epoch - 2:
+                self.report["pipeline_report"] = "STALE_PRIOR_SESSION"
+                return
+            raw = self.adb_run("shell", "run-as", PACKAGE, "cat", file_name)
+        except (RuntimeError, ValueError, subprocess.TimeoutExpired):
+            self.report["pipeline_report"] = "NOT_AVAILABLE"
+            return
+        metrics = parse_pipeline_metrics(raw)
+        self.report["pipeline_report"] = (
+            "CURRENT_SESSION" if started_epoch is not None else "HISTORICAL_SESSION"
+        )
+        self.report["pipeline_metrics"] = metrics
+        self.report["live_rx_tx"] = (
+            "REAL_PIPELINE_COUNTERS_PRESENT" if technical_pipeline_evidence(metrics)
+            else "INCOMPLETE_PIPELINE_COUNTERS"
+        )
+        if "failure_reason_code" in metrics:
+            self.report["dialogue_failure_code"] = metrics["failure_reason_code"]
+
     def phone_state(self) -> set[str]:
         return call_states(self.adb_run("shell", "dumpsys", "telephony.registry"))
 
@@ -265,6 +294,7 @@ class LocalCycle:
             self.report["call"] = "NOT_STARTED_NO_VALID_EXACT_GRANT_OR_ROLE"
             return
         self.assert_device()
+        call_started_epoch = int(time.time())
         started = self.app_command("run_campaign_agent_start")
         status = started.get("campaign_agent_start", "UNKNOWN")
         self.report["start_command"] = status
@@ -274,34 +304,34 @@ class LocalCycle:
         seen: list[str] = []
         phases: list[str] = []
         offhook = False
-        try:
-            until = time.monotonic() + observe_seconds
-            while time.monotonic() < until:
-                states = self.phone_state()
-                state = ",".join(sorted(states)) or "UNKNOWN"
-                if not seen or seen[-1] != state:
-                    seen.append(state)
-                phase = self.runtime_phase()
-                if not phases or phases[-1] != phase:
-                    phases.append(phase)
-                offhook = offhook or "2" in states
-                if offhook and states == {"0"}:
-                    break
-                time.sleep(3)
-        finally:
-            # Internal service uses the exact owned Call object. Never issue global endCall.
-            stopped = self.app_command("run_campaign_agent_stop")
-            self.report["owned_stop"] = stopped.get("campaign_agent_stop", "UNKNOWN")
-            self.report["runtime_phases"] = phases
-            self.report["diagnosis"] = diagnose_phases(phases)
-        for _ in range(15):
-            if self.phone_state() == {"0"}:
+        until = time.monotonic() + observe_seconds
+        while time.monotonic() < until:
+            states = self.phone_state()
+            state = ",".join(sorted(states)) or "UNKNOWN"
+            if not seen or seen[-1] != state:
+                seen.append(state)
+            phase = self.runtime_phase()
+            if not phases or phases[-1] != phase:
+                phases.append(phase)
+            offhook = offhook or "2" in states
+            if offhook and states == {"0"}:
                 break
-            time.sleep(2)
+            time.sleep(3)
+        # An observation window is NOT a product call limit. The Android app
+        # owns its authorized call, retries and exact teardown. Never interrupt
+        # a healthy task just because the Mac diagnostic observation has ended.
+        final = self.phone_state()
         self.report["call_states"] = seen
+        self.report["runtime_phases"] = phases
+        self.report["diagnosis"] = diagnose_phases(phases)
         self.report["offhook_observed"] = offhook
-        self.report["after_owned_stop_idle"] = self.phone_state() == {"0"}
-        self.report["live_rx_tx"] = "UNPROVEN_UNLESS_PRIVATE_SESSION_EVIDENCE_EXISTS"
+        self.report["after_autonomous_idle"] = final == {"0"}
+        self.report["owned_stop"] = "NOT_SENT_AUTONOMOUS_CALL_LIFECYCLE"
+        if final == {"0"}:
+            self.collect_pipeline_metrics(call_started_epoch)
+        else:
+            self.report["call"] = "AUTONOMOUS_CAMPAIGN_STILL_ACTIVE"
+            self.report["pipeline_report"] = "PENDING_CALL_END"
 
     def export_private(self) -> None:
         if self.phone_state() != {"0"}:
@@ -363,7 +393,8 @@ def main() -> int:
         cycle.report["verdict"] = verdict
         print("S22_AUTOLOOP=" + verdict)
         for field in ("build_install", "campaign_readiness", "call", "offhook_observed",
-                      "owned_stop", "diagnosis", "usb", "final_idle"):
+                      "owned_stop", "diagnosis", "live_rx_tx", "dialogue_failure_code",
+                      "usb", "final_idle"):
             if field in cycle.report:
                 print(field.upper() + "=" + str(cycle.report[field]))
         return 0 if verdict == "PASS_OFFCALL_ONLY" else 2
