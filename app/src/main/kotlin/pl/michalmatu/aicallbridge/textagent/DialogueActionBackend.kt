@@ -17,6 +17,9 @@ internal enum class DialogueActionId {
     STATE_TASK_SUBJECT,
     DISCLOSE_AUTHORIZED_FACT,
     CONFIRM_AUTHORIZED_EFFECT,
+    EXPLAIN_SERVICE_SCOPE,
+    ASK_NEXT_SERVICE_STEP,
+    REQUEST_SERVICE_TRANSFER,
     TAKE_OVER,
 }
 
@@ -151,6 +154,12 @@ internal object DialogueActionCatalog {
             "Rozmówca prosi o konkretny fakt/daną potrzebną do bieżącego zadania. W argument podaj wyłącznie identyfikator faktu, nigdy jego wartość.",
         DialogueActionId.CONFIRM_AUTHORIZED_EFFECT to
             "Rozmówca pyta o zgodę/potwierdzenie wykonania dokładnie tego efektu, który jest już celem bieżącego zadania.",
+        DialogueActionId.EXPLAIN_SERVICE_SCOPE to
+            "Rozmówca dopytuje, czym jest CLIR, czy chodzi o stałe zastrzeganie numeru, albo wyjaśnia szczegóły usługi.",
+        DialogueActionId.ASK_NEXT_SERVICE_STEP to
+            "Rozmówca opisał procedurę, warunki, kolejne kroki albo poprosił o dalsze informacje; zapytaj o dokładny następny krok bez ponownego przedstawiania celu.",
+        DialogueActionId.REQUEST_SERVICE_TRANSFER to
+            "Rozmówca informuje, że obecny dział nie może aktywować usługi lub potrzebna jest inna komórka; poproś o skierowanie do właściwego zespołu.",
         DialogueActionId.TAKE_OVER to
             "Potrzebna jest nieobsługiwana akcja, nieautoryzowany fakt, nietypowe rozumowanie albo brak wystarczającej pewności.",
     )
@@ -194,7 +203,11 @@ internal object DialogueActionCatalog {
             Jeżeli rozmówca prosi o konkretny fakt, wybierz DISCLOSE_AUTHORIZED_FACT WYŁĄCZNIE gdy jego identyfikator jest dozwolonym argumentem tej akcji. W przeciwnym razie wybierz TAKE_OVER.
             Pytanie o numer usługi, numer abonenta albo numer telefonu dotyczący bieżącej sprawy jest prośbą o fakt, a nie pytaniem o temat zadania.
             Jeżeli rozmówca pyta czy wykonać, włączyć, aktywować lub potwierdzić dokładnie autoryzowany efekt z kontekstu, wybierz CONFIRM_AUTHORIZED_EFFECT.
-            STATE_TASK_SUBJECT wybieraj tylko gdy rozmówca pyta w jakiej sprawie dzwonimy, czego dotyczy rozmowa albo jak może pomóc.
+            STATE_TASK_SUBJECT wybieraj tylko gdy rozmówca wyraźnie pyta w jakiej sprawie dzwonimy, czego dotyczy rozmowa albo jak może pomóc.
+            Gdy temat już został podany, a rozmówca pyta o definicję usługi, wybierz EXPLAIN_SERVICE_SCOPE.
+            Gdy rozmówca podał instrukcję, pyta o kolejny krok lub przekazuje warunek aktywacji, wybierz ASK_NEXT_SERVICE_STEP.
+            Gdy rozmówca wskazuje inny dział jako właściwy, wybierz REQUEST_SERVICE_TRANSFER.
+            Nie stosuj STATE_TASK_SUBJECT do każdej wypowiedzi jedynie dlatego, że rozmowa dotyczy CLIR.
             Jeżeli prosi o coś poza katalogiem lub nie jesteś pewien, wybierz TAKE_OVER.
 
             Dozwolone akcje:
@@ -216,6 +229,7 @@ internal class DialogueActionBackend(
     private val policy: DialogueActionPolicy,
     private val executor: DialogueActionExecutor,
     private val observer: DialogueActionDecisionObserver? = null,
+    private val turnMemory: DialogueActionTurnMemory? = null,
 ) : TextCallAgentBackend {
     private val generation = AtomicLong(0L)
 
@@ -223,7 +237,7 @@ internal class DialogueActionBackend(
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }
         val requestGeneration = generation.incrementAndGet()
         classifierBackend.cancel()
-        classifierBackend.generate(userText, object : TextCallAgentBackend.Listener {
+        classifierBackend.generate(turnMemory?.classifierInput(userText) ?: userText, object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
                 if (!isCurrent(requestGeneration)) return
                 val parsed = parseDecision(text)
@@ -258,7 +272,9 @@ internal class DialogueActionBackend(
                     executor.execute(
                         userText,
                         decision,
-                        guardedListener(requestGeneration, listener),
+                        guardedListener(requestGeneration, listener) {
+                            turnMemory?.remember(userText, decision.actionId)
+                        },
                     )
                 } catch (error: Throwable) {
                     if (isCurrent(requestGeneration)) {
@@ -288,9 +304,13 @@ internal class DialogueActionBackend(
     private fun guardedListener(
         requestGeneration: Long,
         listener: TextCallAgentBackend.Listener,
+        onAccepted: () -> Unit = {},
     ) = object : TextCallAgentBackend.Listener {
         override fun onComplete(text: String) {
-            if (isCurrent(requestGeneration)) listener.onComplete(text)
+            if (isCurrent(requestGeneration)) {
+                onAccepted()
+                listener.onComplete(text)
+            }
         }
 
         override fun onError(reason: String) {
@@ -381,6 +401,7 @@ internal object DialogueActionBackendFactory {
         executor: DialogueActionExecutor,
         observer: DialogueActionDecisionObserver? = null,
         taskContext: DialogueTaskContext? = null,
+        turnMemory: DialogueActionTurnMemory? = null,
     ): TextCallAgentBackend {
         val prompt = DialogueActionCatalog.systemPrompt(policy, taskContext)
         val classifier = when (provider) {
@@ -398,6 +419,6 @@ internal object DialogueActionBackendFactory {
                 "provider_not_enabled_for_dialogue_actions_${provider.name.lowercase()}",
             )
         }
-        return DialogueActionBackend(classifier, policy, executor, observer)
+        return DialogueActionBackend(classifier, policy, executor, observer, turnMemory)
     }
 }
