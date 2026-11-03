@@ -16,6 +16,7 @@ import re
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 SERIAL = "RFCT70L7E8J"
@@ -43,6 +44,55 @@ def authorized_devices(text: str) -> list[str]:
         for line in text.splitlines()
         if (match := re.fullmatch(r"([A-Za-z0-9]+)\s+device", line.strip()))
     ]
+
+
+def classify_runtime_status(xml_document: str) -> str:
+    """Only a fixed machine-state vocabulary can escape the Mac's private logs."""
+    try:
+        xml = ET.fromstring(xml_document)
+    except ET.ParseError:
+        return "UNAVAILABLE"
+    status = next(
+        ((element.text or "") for element in xml.iter("string") if element.get("name") == "status"),
+        "",
+    )
+    states = (
+        ("Wi-Fi Calling", "WIFI_CALLING_MEDIA_GATE"),
+        ("Call activation timeout", "ACTIVATION_TIMEOUT"),
+        ("Exact owned cellular call active", "LOCAL_RUNTIME_STARTED"),
+        ("Campaign runtime launch failed", "LOCAL_RUNTIME_LAUNCH_FAILED"),
+        ("Campaign call ended without accepted success", "CALL_ENDED_INCOMPLETE"),
+        ("Live-call readiness failed", "READINESS_FAILED"),
+        ("Authorized campaign dial started", "DIAL_STARTED"),
+        ("Campaign call setup failed", "DIAL_SETUP_FAILED"),
+        ("STOP AI", "STOP_DISPATCHED"),
+        ("Autoryzowana kontynuacja", "CONTINUATION_SCHEDULED"),
+    )
+    phase = next((code for needle, code in states if needle.lower() in status.lower()), "OTHER")
+    if phase == "ACTIVATION_TIMEOUT":
+        mode = re.search(r"audio_mode=(MODE_IN_CALL|MODE_IN_COMMUNICATION|MODE_NORMAL)", status)
+        if mode:
+            phase += "_" + mode.group(1)
+    return phase
+
+
+def diagnose_phases(phases: list[str]) -> str:
+    """Do not guess an audio root cause from OFFHOOK or build success."""
+    if any("WIFI_CALLING_MEDIA_GATE" in phase for phase in phases):
+        return "WIFI_CALLING_UNSUPPORTED_AUDIO_ROUTE"
+    if any("ACTIVATION_TIMEOUT_MODE_IN_COMMUNICATION" in phase for phase in phases):
+        return "CELLULAR_AUDIO_MODE_NOT_IN_CALL"
+    if any("ACTIVATION_TIMEOUT" in phase for phase in phases):
+        return "CALL_ACTIVATION_NOT_VERIFIED"
+    if "LOCAL_RUNTIME_LAUNCH_FAILED" in phases:
+        return "LOCAL_AUDIO_RUNTIME_LAUNCH_FAILURE"
+    if "READINESS_FAILED" in phases:
+        return "TELECOM_OR_MEDIA_READINESS_FAILED"
+    if "LOCAL_RUNTIME_STARTED" in phases:
+        return "LOCAL_RUNTIME_STARTED_RX_TX_NOT_PROVEN"
+    if "DIAL_STARTED" in phases:
+        return "DIAL_STARTED_NO_RUNTIME_EVIDENCE"
+    return "NO_RUNTIME_PHASE_EVIDENCE"
 
 
 def cycle_verdict(report: dict[str, object], *, call_requested: bool, probes_skipped: bool) -> str:
@@ -153,6 +203,17 @@ class LocalCycle:
                 "CALLBACK_OBSERVED" if marker in recent else "NO_RESULT_MARKER"
             )
 
+    def runtime_phase(self) -> str:
+        try:
+            report = self.adb_run(
+                "shell", "run-as", PACKAGE, "cat",
+                "shared_prefs/campaign_runtime_status_v1.xml",
+                timeout=20,
+            )
+            return classify_runtime_status(report)
+        except (RuntimeError, subprocess.TimeoutExpired):
+            return "UNAVAILABLE"
+
     def phone_state(self) -> set[str]:
         return call_states(self.adb_run("shell", "dumpsys", "telephony.registry"))
 
@@ -170,6 +231,7 @@ class LocalCycle:
             self.report["call"] = "NOT_DISPATCHED"
             return
         seen: list[str] = []
+        phases: list[str] = []
         offhook = False
         try:
             until = time.monotonic() + observe_seconds
@@ -178,6 +240,9 @@ class LocalCycle:
                 state = ",".join(sorted(states)) or "UNKNOWN"
                 if not seen or seen[-1] != state:
                     seen.append(state)
+                phase = self.runtime_phase()
+                if not phases or phases[-1] != phase:
+                    phases.append(phase)
                 offhook = offhook or "2" in states
                 if offhook and states == {"0"}:
                     break
@@ -186,6 +251,8 @@ class LocalCycle:
             # Internal service uses the exact owned Call object. Never issue global endCall.
             stopped = self.app_command("run_campaign_agent_stop")
             self.report["owned_stop"] = stopped.get("campaign_agent_stop", "UNKNOWN")
+            self.report["runtime_phases"] = phases
+            self.report["diagnosis"] = diagnose_phases(phases)
         for _ in range(15):
             if self.phone_state() == {"0"}:
                 break
@@ -255,7 +322,7 @@ def main() -> int:
         cycle.report["verdict"] = verdict
         print("S22_AUTOLOOP=" + verdict)
         for field in ("build_install", "campaign_readiness", "call", "offhook_observed",
-                      "owned_stop", "usb", "final_idle"):
+                      "owned_stop", "diagnosis", "usb", "final_idle"):
             if field in cycle.report:
                 print(field.upper() + "=" + str(cycle.report[field]))
         return 0 if verdict == "PASS_OFFCALL_ONLY" else 2
