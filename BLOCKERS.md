@@ -9,17 +9,18 @@
 | ID | Co blokuje i dlaczego | Lokalizacja | Co należy zrobić | Stan |
 | --- | --- | --- | --- | --- |
 | F-002 | Osobne kliknięcie, drugi dialog i 10-minutowy „arm” dla diagnostyki każdej następnej rozmowy. Rozbija ciągły przepływ i zmusza użytkownika do ręcznej interwencji | `CampaignToolActivity.kt`, `CallSessionEvidenceConsent`, `AppOwnedClirCampaignExecutor.kt` | Jeden zgodny z prawem przepływ ustawienia kampanii obejmujący diagnostykę; nie obchodź odmowy narzędzia ani praw rozmówców | **OPEN** |
+| F-011 | Limity długości argumentów i odpowiedzi modeli mogą kończyć dłuższy dialog błędem walidacji, zamiast prowadzić rozmowę dalej | `DialogueActionBackend.MAX_ARGUMENT_CHARS`, `DialogueSkillTextBackend.MAX_RESPONSE_CHARS`, `Gemma4LiteRtTextBackend.MAX_OUTPUT_TOKENS` | Sprawdzić długie rozmowy i w razie regresji zastosować porcjowanie bez pomijania treści; nie rozluźniać protokołu na ślepo | **OPEN — AUDYT WPŁYWU** |
 | F-003 / F-010 | Manualny terminal/ADB eksport nagrań i ręczna orkiestracja kolejnych kroków, mimo że Local Agent i aplikacja mają wykonać techniczną pracę | `export_private_call_evidence.sh`, UI i silnik kampanii | Bezpieczny automatyczny przepływ lokalnych dowodów do analizy, bez wycieku danych w GitHub; wznowienia autoryzowanego zadania | **OPEN** |
 
 ## POPRAWIONE W KODZIE — wymagają testów/weryfikacji
 
 | ID | Zbędna bariera | Poprawka | Stan |
 | --- | --- | --- | --- |
-| F-004 | Twardy koniec kampanii po 10 turach (`MAX_TURNS=10`) | Kampania działa do własnego końca/rozłączenia/STOP; tylko wyraźnie ograniczony pilot testowy zachowuje liczbę tur | **FIXED_IN_SOURCE, QA OPEN** |
-| F-005 | Ucinanie WAV po 2 MB/turę i 24 MB/sesję, kasowanie po 3 sesjach oraz limit 2000 znaków transkryptu | Brak arbitralnych progów; zarządzanie miejscem wyłącznie przy faktycznej presji pojemności Androida | **FIXED_IN_SOURCE, QA OPEN** |
-| F-008 | Podgląd transkryptu ograniczony do 100 wpisów i 24 000 znaków | Pełny transkrypt w UI; do sprawdzenia na długim zapisie | **FIXED_IN_SOURCE, QA OPEN** |
-| F-007 | Trzy puste odsłuchy powodowały koniec połączenia z konsultantem | Skanowanie kolejnych okien ciszy trwa do realnego końca aktywnej, własnej rozmowy albo STOP | **FIXED_IN_SOURCE, QA OPEN** |
-| F-009 | Po 1024 wpisach znikała dalsza telemetria długiej rozmowy | Zachowanie wszystkich technicznych zdarzeń; test sprawdza 1801 wpisów | **FIXED_IN_SOURCE, QA OPEN** |
+| F-004 | Twardy koniec kampanii po 10 turach (`MAX_TURNS=10`) | Kampania działa do własnego końca/rozłączenia/STOP; tylko wyraźnie ograniczony pilot testowy zachowuje liczbę tur | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
+| F-005 | Ucinanie WAV po 2 MB/turę i 24 MB/sesję, kasowanie po 3 sesjach oraz limit 2000 znaków transkryptu | Brak arbitralnych progów; zarządzanie miejscem wyłącznie przy faktycznej presji pojemności Androida | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
+| F-008 | Podgląd transkryptu ograniczony do 100 wpisów i 24 000 znaków | Pełny transkrypt w UI; do sprawdzenia na długim zapisie | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
+| F-007 | Trzy puste odsłuchy powodowały koniec połączenia z konsultantem | Skanowanie kolejnych okien ciszy trwa do realnego końca aktywnej, własnej rozmowy albo STOP | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
+| F-009 | Po 1024 wpisach znikała dalsza telemetria długiej rozmowy | Zachowanie wszystkich technicznych zdarzeń; test sprawdza 1801 wpisów | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
 
 ## ZAMKNIĘTE
 
@@ -31,7 +32,7 @@
 ## SZABLON — obowiązkowo dla każdego nowego blokera
 
 ```text
-ID: F-011 (kolejny wolny)
+ID: F-012 (kolejny wolny)
 Status: OPEN / FIXED_IN_SOURCE / VERIFIED
 Kiedy i kto dodał:
 Ścieżka + symbol + warunek blokujący:
