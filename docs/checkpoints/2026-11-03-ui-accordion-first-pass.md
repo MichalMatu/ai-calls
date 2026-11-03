@@ -35,8 +35,21 @@
 - Mac Local Agent `aicalls-20261103-ui-accordion-s22-nocall-instrumentation-v1` **DONE/0 as a safely deferred deployment**, not a physical UI PASS: application and AndroidTest APK both built PASS, but `EXACT_S22=false` for expected `RFCT70L7E8J`/`SM-S906B`; `DEPLOY=DEFERRED_UNAVAILABLE_S22`. **No install and no UI instrumentation tests executed.** No claim about app behavior on handset or call grant changes.
 - Existing `F-035` in-call STT recovery, remote audible TX and external CLIR completion are **still OPEN**. Do not consider UI QA a substitute for them.
 
+## Physical Samsung S22 UI acceptance — PASS (after reconnect)
+
+- Read-only Mac Local Agent `aicalls-20261103-s22-post-reconnect-preflight-v1` **DONE/0**: the exact `RFCT70L7E8J` / `SM-S906B` reappeared, phone **IDLE**, AI Calls the default dialer, no active app-owned campaign service.
+- `aicalls-20261103-s22-ui-install-and-offcall-flow-v2`: pinned UI app `64ce6fbae5201c8246b2b80dd8f35cf0373505ad`, `APK_AND_UI_TEST_BUILD=PASS`, **`APP_INSTALL=PASS`** and **`TEST_INSTALL=PASS`** with `adb install -r` (no `pm clear` / uninstall). An unnecessarily fragile diagnostic attempted to hash private grant/continuation files through incorrectly passed `run-as sh -c` quoting; this failed to *read the fingerprints*, not evidence of missing or modified grants. The task safely deferred actual instrumentation, returning rc=75. It did **not** revoke, clear or replace grant files.
+- `aicalls-20261103-s22-grant-readonly-hash-diagnostics-v1` **DONE/0**: direct `run-as <package> sha256sum <known path>` succeeded for both existing app-owned preferences and correctly detected S22 IDLE, without publishing hash values, grants or personal data. Use this validated read-only command pattern for future checks.
+- Final **`aicalls-20261103-s22-ui-four-flows-instrumentation-v3` DONE/0** on the installed APK and test APK:
+  - `UI_ACCORDIONS=PASS` — **2** native Android UI instrumentation tests; confirms visible real STOP and preserved authorization/revocation actions, hidden settings retain controls and expand/collapse correctly.
+  - `DIALER_READINESS=PASS` — **1** test: real Android dialer role and exact-call-controller prerequisite without dialing.
+  - `GEMMA_READINESS=PASS` — **1** test: locally stored Gemma 4 model recognized as READY, no inference or microphone.
+  - `ONE_TAP_OFFCALL=PASS` — **1** test: protected one-tap flow safely reports readiness when no call exists, without placing/attaching a call.
+  - **Total 5 physical device instrumentation tests PASS.** `AUTHORIZATION_PRESERVED=true`, `CONTINUATION_PRESERVED=true`, `AFTER_IDLE=true`, `AFTER_ROLE_READY=true`; no audio/media export and no live call.
+- **Acceptance split:** `UI_SOURCE_FULL_QA_PASS`, `S22_APP_INSTALLED_PASS`, `S22_OFFCALL_UI_FLOW_PASS`. **NOT** equivalent to `IN_CALL_STT_RECOVERY_PASS`, `FAR_END_TX_AUDIBLE_PASS` or `CARRIER_CLIR_EFFECT_PASS`; these remain OPEN.
+
 ## Next safe step
 
-1. **Do not repeat the full source QA**: receipt `aicalls-20261103-ui-accordion-source-full-qa-v1` already proves anti-friction, all-module host gate and 244 Python tests PASS on the exact source pin.
-2. When the exact S22 is accessible again, read current agent/device status. Only if `RFCT70L7E8J`/`SM-S906B`, phone IDLE and correct Android default-dialer role hold, deploy the already-tested UI APK, install targeted AndroidTest APK and run **only** `AndroidUiAccordionContractTest` (2 UI-only cases, no clicks on START/STOP/revoke). Preserve all grants/data. The previous job did not attempt this because `EXACT_S22=false`.
-3. Keep `UI_SOURCE_QA_PASS / S22_UI_ACCEPTANCE_PENDING` until physical result is recorded. In-call STT and CLIR remain separate open acceptance tracks; do not retry external calls for UI acceptance.
+1. Preserve this physical UI acceptance; **do not repeat** installation or the same five tests unless UI code/device state changes.
+2. Optional UI polish should be verified against unchanged STOP, grant/revocation, callback and model preference behavior. The already-safe current UI is installed and user-visible.
+3. Model voice, audio/AI engine performance, in-call F-035 recovery, independently audible TX and actual CLIR effect require **separate** evidence and a separately permitted/authorized external call. Do not infer them from off-call UI tests or bypass previous tool refusals.
