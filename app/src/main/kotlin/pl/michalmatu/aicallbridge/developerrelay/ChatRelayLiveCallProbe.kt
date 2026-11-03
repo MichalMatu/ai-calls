@@ -313,7 +313,8 @@ internal object ChatRelayLiveCallProbe {
             }
             handler.postDelayed(authorityWatchdog, 500L)
             mailbox.clear()
-            if (!readOnlySupervised) {
+            if (!readOnlySupervised && !supervisorRelayEnabled) {
+                // Preparation is only for the authorized app-owned campaign, not any dev relay.
                 // Preparation is optional: a TTS constructor/service failure cannot abort the call.
                 runCatching { quickAckSynthesizer.synthesize(
                     QuickAcknowledgementPolicy.TEXT,
@@ -583,7 +584,7 @@ internal object ChatRelayLiveCallProbe {
             generation: Long,
             lease: CallMediaEndpointLease,
         ) {
-            if (readOnlySupervised) return
+            if (readOnlySupervised || supervisorRelayEnabled) return
             handler.postDelayed({
                 val pcm = quickAckPcm.get()
                 if (!QuickAcknowledgementPolicy.shouldPlay(
