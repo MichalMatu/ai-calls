@@ -286,6 +286,7 @@ internal object ChatRelayLiveCallProbe {
         private var turnDecisionBaseline = 0
         private var turnResponseSourceBaseline = 0
         private var turnLocalSkillErrorBaseline = 0
+        private var turnClassifierTimingBaseline = 0
 
         private val timeout = Runnable { finish(false, "probe_timeout") }
         private val authorityWatchdog = object : Runnable {
@@ -403,6 +404,7 @@ internal object ChatRelayLiveCallProbe {
             turnDecisionBaseline = diagnosticsBeforeTurn.decisions.size
             turnResponseSourceBaseline = diagnosticsBeforeTurn.responseSources.size
             turnLocalSkillErrorBaseline = diagnosticsBeforeTurn.localSkillErrors.size
+            turnClassifierTimingBaseline = diagnosticsBeforeTurn.classifierLatenciesMs.size
             turnStartedAtMs = SystemClock.elapsedRealtime()
             estimatedSpeechEndElapsedMs = null
             lines += "turn_${currentTurn}_started=true"
@@ -785,6 +787,9 @@ internal object ChatRelayLiveCallProbe {
             }
             snapshot.responseSources.drop(turnResponseSourceBaseline).lastOrNull()?.let { source ->
                 lines += "turn_${turn}_response_source=${source.name}"
+            }
+            snapshot.classifierLatenciesMs.drop(turnClassifierTimingBaseline).lastOrNull()?.let { millis ->
+                lines += "turn_${turn}_gemma_classifier_wall_ms=$millis"
             }
             snapshot.localSkillErrors.drop(turnLocalSkillErrorBaseline).lastOrNull()?.let { _ ->
                 lines += "turn_${turn}_local_error_present=true"
