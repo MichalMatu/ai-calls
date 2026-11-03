@@ -27,6 +27,7 @@ class AppOwnedCampaignService : Service() {
     private var scheduledAttempt: Runnable? = null
     private var campaignRequested = false
     private var attemptOutcome: Pair<Boolean, String?>? = null
+    private var continuationGeneration = 0L
     private lateinit var notificationManager: NotificationManager
     private val supervisedAudioActive = AtomicBoolean(false)
     private var supervisedAudioSession: ChatRelayLiveCallProbe.SessionControl? = null
@@ -54,6 +55,7 @@ class AppOwnedCampaignService : Service() {
             }
             ACTION_STOP_SUPERVISED_AUDIO, ACTION_STOP_ALL_AI -> {
                 campaignRequested = false
+                continuationGeneration += 1
                 continuationStore.clear()
                 scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
                 scheduledAttempt = null
@@ -99,6 +101,7 @@ class AppOwnedCampaignService : Service() {
 
         val saved = continuationStore.load()
         if (explicitStart && (!campaignRequested || saved?.grantId != grant.grantId)) {
+            continuationGeneration += 1
             continuationStore.begin(grant.grantId, accountScope, now)
         } else if (saved == null || saved.grantId != grant.grantId ||
             saved.accountScope != accountScope
@@ -154,21 +157,30 @@ class AppOwnedCampaignService : Service() {
         continuationStore.prepareAttempt(state.grantId, System.currentTimeMillis())
             ?: run { finish("Continuation state unavailable"); return }
         attemptOutcome = null
+        val generation = continuationGeneration
         AppOwnedClirCampaignExecutor.start(
             context = this,
             authorizationStore = authorizationStore,
             accountScope = state.accountScope,
             onAttemptFinished = { success, reason ->
-                continuationHandler.post { attemptOutcome = success to reason }
+                continuationHandler.post {
+                    if (campaignRequested && continuationGeneration == generation) {
+                        attemptOutcome = success to reason
+                    }
+                }
             },
         ) { status ->
-            continuationHandler.post { handleAttemptStatus(status, state.grantId) }
+            continuationHandler.post { handleAttemptStatus(status, state.grantId, generation) }
         }
     }
 
-    private fun handleAttemptStatus(status: String, grantId: String) {
+    private fun handleAttemptStatus(status: String, grantId: String, generation: Long) {
+        // A late result from STOP or a previous run must never overwrite the
+        // current diagnostic state or schedule an unexpected follow-up call.
+        if (!campaignRequested || continuationGeneration != generation ||
+            continuationStore.load()?.grantId != grantId
+        ) return
         statusStore.save(status)
-        if (!campaignRequested) return
         if (AppOwnedClirCampaignExecutor.isRunning()) {
             startForeground(
                 NOTIFICATION_ID,
@@ -278,12 +290,14 @@ class AppOwnedCampaignService : Service() {
         supervisedAudioSession = null
         scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
         scheduledAttempt = null
+        continuationGeneration += 1
         AppOwnedClirCampaignExecutor.stop { statusStore.save(it) }
         super.onDestroy()
     }
 
     private fun finish(status: String) {
         campaignRequested = false
+        continuationGeneration += 1
         scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
         scheduledAttempt = null
         continuationStore.clear()
