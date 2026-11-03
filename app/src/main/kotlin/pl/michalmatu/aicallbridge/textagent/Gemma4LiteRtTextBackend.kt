@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.textagent
 
 import android.content.Context
+import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
@@ -138,6 +139,7 @@ internal class LiteRtGemma4Runtime(
     private var generation = 0L
     private var engine: Engine? = null
     private var activeConversation: Conversation? = null
+    @Volatile private var activeBackendLabel = "unknown"
     private var closed = false
 
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
@@ -196,8 +198,15 @@ internal class LiteRtGemma4Runtime(
         if (!isCurrent(requestGeneration)) return
 
         var conversation: Conversation? = null
+        val startedNs = System.nanoTime()
+        var engineReadyNs = startedNs
+        var conversationReadyNs = startedNs
+        var inferenceReadyNs = startedNs
+        var outputChars = 0
+        var status = "cancelled"
         try {
             val readyEngine = ensureEngine()
+            engineReadyNs = System.nanoTime()
             if (!isCurrent(requestGeneration)) return
 
             conversation = readyEngine.createConversation(
@@ -216,6 +225,7 @@ internal class LiteRtGemma4Runtime(
                     enableResponseFormat = responseFormat != null,
                 ),
             )
+            conversationReadyNs = System.nanoTime()
             synchronized(lock) {
                 if (!isCurrentLocked(requestGeneration)) return
                 activeConversation = conversation
@@ -227,17 +237,29 @@ internal class LiteRtGemma4Runtime(
                 thinkingConfig = ThinkingConfig(enableThinking = false),
                 responseFormat = responseFormat,
             )
+            inferenceReadyNs = System.nanoTime()
             val text = message.toString().trim()
+            outputChars = text.length
             if (text.isBlank()) {
+                status = "empty"
                 if (isCurrent(requestGeneration)) listener.onError("empty_response")
             } else if (isCurrent(requestGeneration)) {
+                status = "complete"
                 listener.onComplete(text)
             }
         } catch (error: Throwable) {
+            status = "error_${error.javaClass.simpleName}"
             if (isCurrent(requestGeneration)) {
                 listener.onError(sanitizeRuntimeError(error))
             }
         } finally {
+            // Pure timings/backend only: NEVER log spoken/transcribed text, account
+            // numbers, model file paths, JSON response or raw audio.
+            Log.i("AiCallBridgePerf", "gemma4_runtime_backend=$activeBackendLabel" +
+                ",engine_ready_ms=${((engineReadyNs - startedNs) / 1_000_000).coerceAtLeast(0)}" +
+                ",conversation_create_ms=${((conversationReadyNs - engineReadyNs) / 1_000_000).coerceAtLeast(0)}" +
+                ",generate_ms=${((inferenceReadyNs - conversationReadyNs) / 1_000_000).coerceAtLeast(0)}" +
+                ",output_chars=$outputChars,status=$status")
             val conversationToClose = synchronized(lock) {
                 if (activeConversation === conversation) activeConversation = null
                 conversation
@@ -260,9 +282,13 @@ internal class LiteRtGemma4Runtime(
         require(file.isFile && file.length() > 0L) { "model_missing" }
 
         val initialized = try {
-            initializeEngine(Backend.GPU())
-        } catch (_: Throwable) {
+            initializeEngine(Backend.GPU()).also { activeBackendLabel = "GPU" }
+        } catch (error: Throwable) {
+            // A silent GPU→CPU fallback would otherwise look like a mysterious
+            // "slow small model". Log only the exception class (no private data).
+            Log.w("AiCallBridgePerf", "gemma4_gpu_fallback_reason=${error.javaClass.simpleName}")
             initializeEngine(Backend.CPU(threadCount = cpuThreadCount()))
+                .also { activeBackendLabel = "CPU" }
         }
 
         synchronized(lock) {
