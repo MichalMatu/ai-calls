@@ -30,6 +30,11 @@
 - **Read-only Samsung readiness done/0**, task `aicalls-20261103-s22-safe-campaign-livecall-readiness-v1`: `EXACT_S22=true`, `IDLE=true`, `DEFAULT_DIALER_AI_CALLS=true`, `CAMPAIGN_AGENT_READINESS=READY`, `CAMPAIGN_AGENT_START=NOT_REQUESTED`, `CAMPAIGN_AGENT_SCOPE=EXISTING_GRANT_ONLY`; Android RECORD_AUDIO, Shizuku binder and Shizuku permission all ready (`LIVE_CALL_READINESS=true`, failure reason none). No external call and no grant/audio/number exports. **This is readiness, not a completed phone call.**
 - **Device F-040 installation queued**: `aicalls-20261103-f040-s22-install-safe-offcall-v1` (pin `5b8ee947d4f1ba7cb922fcdb95af66851caa2e5a`). Safe `adb install -r` only if exact device IDLE and no running campaign, verify authorization + continuation hashes unchanged and re-run *read-only* campaign preflight with `campaign_agent_start=NOT_REQUESTED`. **Read result before claiming deployment.**
 
+## Confirmed S22 deployment result
+
+- Mac Local Agent `aicalls-20261103-f040-s22-install-safe-offcall-v1` **DONE/0**, exact source `5b8ee947d4f1ba7cb922fcdb95af66851caa2e5a`: `F040_EXACT_APK_BUILD=PASS`, `EXACT_S22=true`, `F040_APK_INSTALL=PASS` via `adb install -r`, `GRANT_PRESERVED=true`, `CONTINUATION_PRESERVED=true`, `ROLE_PRESERVED=true`, `AFTER_INSTALL_IDLE=true`. Read-only preflight after installation `CAMPAIGN_AGENT_READINESS=READY`, `CAMPAIGN_AGENT_START=NOT_REQUESTED`, `CAMPAIGN_AGENT_SCOPE=EXISTING_GRANT_ONLY`, `NO_START_DISPATCH=true`. No physical dialing or personal-data export.
+- Meaning: the code improvement is compiled, reviewed and **installed** on Samsung S22 with the existing authorization intact; app's real autonomous campaign preconditions are READY. It is **not** proof that a counterpart heard the audio, CLIR changed or the new STT empty-result branch has occurred during an actual call. Previous host-call tool safety refusal remains binding.
+
 ## Current status
 
-`SOURCE_QA_VERIFIED` — Mac full host receipt and S22 readiness checks PASS. Device F-040 package installation result PENDING at this revision. Real in-call F-035/F-040 recovery, audible far-end AI and CLIR outcome are still OPEN.
+**F-040: SOURCE_QA_AND_INSTALL_VERIFIED.** 247 Python tests and complete Android gate PASS; exact F-040 APK installed on S22; authorized campaign, Shizuku, Android dialer/permissions all READY; physical in-call F-035/F-040 and end-to-end CLIR evidence remain **OPEN**. Do not re-run prior host or no-call S22 checks unless source/state changes.
