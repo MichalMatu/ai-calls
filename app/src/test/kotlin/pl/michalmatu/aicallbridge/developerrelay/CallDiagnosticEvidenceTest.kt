@@ -45,10 +45,10 @@ class CallDiagnosticEvidenceTest {
         }
     }
 
-    @Test fun evidenceIsBoundedEvenIfAProducerMisbehaves() {
+    @Test fun evidencePreservesEventsAndSanitizesOversizedTechnicalLine() {
         val log = CallDiagnosticEvidence(emptyList())
         repeat(1100) { log += "event_${it}=true" }
-        assertEquals(1024, log.render().lineSequence().count { it.isNotEmpty() })
+        assertEquals(1100, log.render().lineSequence().count { it.isNotEmpty() })
         val longLine = CallDiagnosticEvidence(emptyList())
         longLine += "status=" + "a".repeat(500)
         assertEquals(256, longLine.render().trimEnd('\n').length)
