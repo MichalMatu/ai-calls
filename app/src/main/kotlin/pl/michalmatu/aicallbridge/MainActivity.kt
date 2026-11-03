@@ -161,6 +161,18 @@ class MainActivity : Activity() {
             }
         }
 
+        val startAuthorizedTaskButton = Button(this).apply {
+            text = "Rozpocznij autoryzowane zadanie AI"
+            setOnClickListener {
+                // This tap enters the same existing app-owned START flow, without
+                // requiring a second click in the campaign settings screen.
+                startActivity(
+                    Intent(this@MainActivity, CampaignToolActivity::class.java)
+                        .putExtra(CampaignToolActivity.EXTRA_START_AUTHORIZED_CAMPAIGN, true),
+                )
+            }
+        }
+
         val campaignToolsButton = Button(this).apply {
             text = "Campaign tools"
             setOnClickListener {
@@ -188,6 +200,9 @@ class MainActivity : Activity() {
             addControl(enrollPhoneButton)
         }
         val diagnosticSection = UiAccordionSection(this, "diagnostics", "Diagnostyka developerska")
+        // The supervised pilot is a diagnostic of an already active cellular call,
+        // not the autonomous task START; keep it available without mislabelling it.
+        diagnosticSection.addControl(oneTapButton)
         developerProbes.addControls(diagnosticSection.controlsContainer)
 
         val content = LinearLayout(this).apply {
@@ -204,8 +219,8 @@ class MainActivity : Activity() {
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply { bottomMargin = 16 },
             )
+            addView(startAuthorizedTaskButton)
             addView(campaignToolsButton)
-            addView(oneTapButton)
             addView(stopAiButton)
             addView(audioSection)
             addView(gemmaSection)
