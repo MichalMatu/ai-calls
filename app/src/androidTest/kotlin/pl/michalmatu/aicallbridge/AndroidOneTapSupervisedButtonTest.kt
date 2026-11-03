@@ -36,8 +36,15 @@ class AndroidOneTapSupervisedButtonTest {
         report.delete()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                val button = findOneTap(activity.window.decorView)
+                val root = activity.window.decorView
+                val diagnosticToggle = root.findViewWithTag<Button>(
+                    "ui-accordion-toggle:diagnostics",
+                )
+                requireNotNull(diagnosticToggle) { "developer_diagnostics_toggle_not_found" }
+                diagnosticToggle.performClick()
+                val button = findOneTap(root)
                 requireNotNull(button) { "one_tap_button_not_found" }
+                assertTrue("supervised pilot is available after expanding diagnostics", button.isShown)
                 button.performClick()
             }
         }
