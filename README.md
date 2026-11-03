@@ -1,5 +1,10 @@
 # AI Calls
 
+## F-042 — dwutorowa odpowiedź i profilowanie Gemmy
+
+Źródło `0be652d4` dodaje **neutralną, lokalnie przygotowaną zapowiedź** po wykryciu końca mowy rozmówcy, równolegle z STT/Gemmą. Jedno TX na turę, brak nakładania głosów, istniejące uprawnienia i STOP, osobne prywatne WAV. Zapowiedź uruchamia się tylko w autoryzowanej kampanii, nie w diagnostyce. W raporcie będą czasy klasyfikatora oraz GPU/CPU modelu. **Mac QA v2 PASS (248 Python, wszystkie moduły Android)**; ostatnia poprawka zabezpieczeń czeka na wynik v4, **nowy APK nie jest jeszcze na S22**. Rzeczywiste przyspieszenie zostanie sprawdzone dopiero na telefonie. [Checkpoint F-042](docs/checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md).
+
+
 ## Ostatnia diagnostyka — zapis rzeczywistej rozmowy (F-041/F-042)
 
 **Nagrania RX/TX pobrane na Mac lokalnie**, eksport przez USB naprawiony (F-041 **VERIFIED**, 5/5 testów i rzeczywisty eksport PASS). Prywatny folder: `~/Documents/AI-Calls/private-exports/` (nie publikuje nagrań do GitHuba). Ostatnia sesja: 4 fragmenty RX, 3 odpowiedzi TX. **F-042 OPEN:** 8,5–10,6 s od STT do TX, ok. 11,7–11,9 s od końca mowy rozmówcy do TX; kolejny RX bez odpowiedzi przed rozłączeniem. Rozdzielić czas Gemmy/skills od TTS, naprawić nadmierną ciszę, zachować zabezpieczenia. [Checkpoint](docs/checkpoints/2026-11-03-f041-private-rx-tx-silence-f042-latency.md).
