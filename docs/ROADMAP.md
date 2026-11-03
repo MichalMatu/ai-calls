@@ -1,4 +1,8 @@
-# AI Calls — current roadmap\n\n## Aktualna kolejność po freeze 2026-11-03
+# AI Calls — current roadmap\n\n## Aktualny etap: uporządkowanie UI bez zmiany silnika
+
+[UI first pass — checkpoint](checkpoints/2026-11-03-ui-accordion-first-pass.md). Przegrupowano istniejące kontrolki dwóch ekranów, zachowano niezwijane STOP/revoke i wszystkie stare callbacki. Nowy Android UI contract test źródłowo sprawdza obecność akcji oraz otwieranie sekcji. **Mac source full QA PENDING**. Nie instalowano nowego APK i nie wykonano połączenia. Po wynikach: ewentualny bezpieczny test UI na S22 IDLE; dopiero następnie wizualne dopracowanie lub projekt porównywanych profili, bez ingerencji w STT/Gemma/TTS.
+
+## Aktualna kolejność po freeze 2026-11-03
 
 **Źródło prawdy:** [organizacyjny checkpoint F-035](checkpoints/2026-11-03-organizational-freeze-f035-pre-voice-skills.md), [BLOCKERS.md](../BLOCKERS.md), [architektura](ARCHITECTURE.md). Poniżej zostaje pełna historyczna chronologia, nie nowa lista statusów.
 
