@@ -27,11 +27,9 @@ DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_REASONING_EFFORT = "none"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8766
-MAX_CLIENT_BODY_BYTES = 16 * 1024
-MAX_INPUT_CHARS = 4_000
-MAX_UPSTREAM_RESPONSE_BYTES = 256 * 1024
-MAX_OUTPUT_CHARS = 2_000
-MAX_OUTPUT_TOKENS = 160
+MAX_CLIENT_BODY_BYTES = 256 * 1024  # Resource/protocol envelope, not a transcript character quota
+MAX_UPSTREAM_RESPONSE_BYTES = 1024 * 1024  # Bounded network allocation
+MAX_OUTPUT_TOKENS = 2_048  # Provider-side compute budget; real completion is verified below
 TOKEN_MIN_CHARS = 32
 MODEL_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 ALLOWED_REASONING_EFFORTS = frozenset({"none", "low"})
@@ -121,7 +119,7 @@ def parse_client_body(body: bytes) -> str:
     if not isinstance(value, str):
         raise ValueError("input must be a string")
     value = value.strip()
-    if not value or len(value) > MAX_INPUT_CHARS or any(ord(ch) == 0 for ch in value):
+    if not value or any(ord(ch) == 0 for ch in value):
         raise ValueError("input is invalid")
     return value
 
@@ -182,8 +180,6 @@ def extract_output_text(raw: bytes) -> str:
             text = fallback.strip()
     if not text:
         raise TextBrokerUpstreamError("OpenAI text response contained no output text")
-    if len(text) > MAX_OUTPUT_CHARS:
-        raise TextBrokerUpstreamError("OpenAI text output exceeded size limit")
     return text
 
 
