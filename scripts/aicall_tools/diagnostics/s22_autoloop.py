@@ -46,6 +46,47 @@ def authorized_devices(text: str) -> list[str]:
     ]
 
 
+def parse_pipeline_metrics(text: str) -> dict[str, object]:
+    """The private runtime report is filtered down to numeric counters and stable codes."""
+    numeric = {
+        "telephony_rx_pcm_bytes", "telephony_tx_pcm_bytes",
+        "turns_completed", "gemma_action_decision_count",
+        "gemma_skill_decision_count",
+    }
+    safe: dict[str, object] = {}
+    stt_turns = 0
+    approved_turns = 0
+    for line in text.splitlines():
+        match = re.fullmatch(r"([a-z0-9_]+)=([A-Za-z0-9_.-]{1,100})", line.strip())
+        if not match:
+            continue
+        key, value = match.groups()
+        if key in numeric and value.isdecimal():
+            safe[key] = int(value)
+        elif re.fullmatch(r"turn_\\d+_stt_chars", key) and value.isdecimal():
+            stt_turns += int(value) > 0
+        elif re.fullmatch(r"turn_\\d+_approved_chars", key) and value.isdecimal():
+            approved_turns += int(value) > 0
+        elif key in ("chat_relay_live_call_success", "probe_complete") and value in ("true", "false"):
+            safe[key] = value == "true"
+        elif key == "failure_reason" and re.fullmatch(r"[a-z0-9_]{1,90}", value):
+            safe["failure_reason_code"] = value
+    safe["stt_turns"] = stt_turns
+    safe["approved_turns"] = approved_turns
+    return safe
+
+
+def technical_pipeline_evidence(metrics: dict[str, object]) -> bool:
+    return (
+        metrics.get("probe_complete") is True
+        and int(metrics.get("telephony_rx_pcm_bytes", 0)) > 0
+        and int(metrics.get("telephony_tx_pcm_bytes", 0)) > 0
+        and int(metrics.get("stt_turns", 0)) > 0
+        and int(metrics.get("approved_turns", 0)) > 0
+        and int(metrics.get("gemma_action_decision_count", 0)) > 0
+    )
+
+
 def classify_runtime_status(xml_document: str) -> str:
     """Only a fixed machine-state vocabulary can escape the Mac's private logs."""
     try:
