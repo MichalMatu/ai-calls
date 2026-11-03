@@ -246,7 +246,14 @@ internal class DialogueActionBackend(
                     return
                 }
                 val rawDecision = (parsed as ParseResult.Success).decision
-                val decision = policy.normalize(rawDecision)
+                val normalizedDecision = policy.normalize(rawDecision)
+                // Real S22 regressions showed Gemma repeating the CLIR subject across
+                // unrelated turns. Use per-call dialogue context only to select a
+                // reviewed non-committing next-step response, never to widen authority.
+                val decision = if (DialogueActionId.ASK_NEXT_SERVICE_STEP in policy.allowedActions) {
+                    turnMemory?.adjustRepetitiveSubject(userText, normalizedDecision)
+                        ?: normalizedDecision
+                } else normalizedDecision
                 try {
                     observer?.onDecision(decision)
                 } catch (_: Throwable) {
