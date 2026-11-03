@@ -179,9 +179,18 @@ class AppOwnedCampaignService : Service() {
         // or any cellular call remains active. This also handles replacement of
         // a grant during an old call without hanging the new task indefinitely.
         val ownedCallRunning = AppOwnedClirCampaignExecutor.isRunning()
-        val phoneBusy = runCatching {
-            getSystemService(TelecomManager::class.java)?.isInCall == true
-        }.getOrDefault(false)
+        val phoneBusy = if (
+            checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            runCatching {
+                getSystemService(TelecomManager::class.java)?.isInCall == true
+            }.getOrDefault(false)
+        } else {
+            // The executor already reports the missing Android permission;
+            // never probe a protected Telecom API without that permission.
+            false
+        }
         if (ownedCallRunning || phoneBusy) {
             awaitPhoneIdle()
             return
