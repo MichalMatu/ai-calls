@@ -38,6 +38,7 @@ internal object AppOwnedClirCampaignExecutor {
         context: Context,
         authorizationStore: CampaignAuthorizationStore,
         accountScope: String,
+        onAttemptFinished: (Boolean, String?) -> Unit = { _, _ -> },
         onStatus: (String) -> Unit,
     ) {
         if (!running.compareAndSet(false, true)) {
@@ -181,6 +182,7 @@ internal object AppOwnedClirCampaignExecutor {
                 ownedCall = ownedCall,
                 request = request,
                 authorizationStore = authorizationStore,
+                onAttemptFinished = onAttemptFinished,
                 onStatus = onStatus,
             )
         }
@@ -200,6 +202,7 @@ internal object AppOwnedClirCampaignExecutor {
         ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
+        onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
         val audioManager = appContext.getSystemService(AudioManager::class.java)
@@ -230,7 +233,7 @@ internal object AppOwnedClirCampaignExecutor {
             }
             if (exactActive && audioManager.mode == AudioManager.MODE_IN_CALL) {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
-                startLocalRuntime(appContext, telecomManager, grant, ownedCall, request, authorizationStore, onStatus)
+                startLocalRuntime(appContext, telecomManager, grant, ownedCall, request, authorizationStore, onAttemptFinished, onStatus)
                 return
             }
             if (System.currentTimeMillis() >= deadlineEpochMs) {
@@ -264,6 +267,7 @@ internal object AppOwnedClirCampaignExecutor {
         ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
+        onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
         if (!running.get()) return
@@ -303,8 +307,9 @@ internal object AppOwnedClirCampaignExecutor {
                 val cleanup = ownedCalls.release(ownedCall)
                 val wasRunning = running.getAndSet(false)
 
-                if (wasRunning) onStatus(
-                    when {
+                if (wasRunning) {
+                    onAttemptFinished(probeSuccess && carrierReportedSuccess, failureReason)
+                    onStatus(when {
                         probeSuccess && carrierReportedSuccess ->
                             "Carrier reports CLIR activation, independent network verification pending; " +
                                 "cleanup=$cleanup"
@@ -316,8 +321,8 @@ internal object AppOwnedClirCampaignExecutor {
                         else ->
                             "Campaign call ended without accepted success; " +
                                 "cleanup=$cleanup"
-                    },
-                )
+                    })
+                }
             }
             if (running.get()) {
                 audioSession.set(launchedAudio)
