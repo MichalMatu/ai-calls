@@ -1,3 +1,16 @@
+# AI Calls — current roadmap
+
+## 2026-11-03 — NOWY STAN: druga warstwa ochrony przed blokerami (źródła, QA niepotwierdzone)
+
+Aktualna lista wszystkich naruszeń, statusów i klasyfikacja ważnych limitów: [BLOCKERS.md](../BLOCKERS.md). Nadrzędny zakaz: pierwsze linie [AGENTS.md](../AGENTS.md). `docs/FRICTION_BLOCKER_LEDGER.md` przechowuje **historię**, nie konkurencyjne statusy.
+
+- Audyt Mac `aicalls-20261103-policy-code-deep-audit-v1`: `done/0`, 293 pliki źródłowe/skrypty, 1197 dopasowań kandydujących, nie 1197 potwierdzonych błędów.
+- `F-002` poprawiony **w źródłach**: usunięte 10-minutowe uzbrojenie jednej rozmowy. W jednym jawnie zatwierdzanym zakresie kampanii użytkownik może opcjonalnie zaznaczyć lokalny zapis RX/TX/transkryptu (domyślnie OFF), a potem wyłączyć zapis kolejnych rozmów. Rozmówcy i ich prawa nadal wymagają właściwej obsługi.
+- `F-012`: usunięty redundantny dialog w pilocie audio. `F-014`: naprawione niezamierzone auto-START przy powrocie z dialera. `F-013`: naprawiony stary test limitu pięciu prób.
+- Mechaniczna druga warstwa: `scripts/aicall_tools/diagnostics/audit_product_friction.py`, testy Python i rozszerzone testy Kotlin/Android. **Nie uznawać ich za PASS bez terminalnego wyniku Mac**.
+- Pozostałe `OPEN`: `F-003` eksport bez technicznego ręcznego przenoszenia, `F-010` pełne autonomiczne wznowienia, `F-011` realny wpływ limitów modelu/transportu. S22 dla tej nowej wersji nie został potwierdzony.
+- Wpisy poniżej opisujące nagrywanie jako nadal wymagające osobnego uzbrojenia są **archiwalnym stanem poprzedniego APK**, nie aktualną regułą ani statusem nowego kodu.
+
 ## 2026-11-03 — usuwanie sztucznych limitów: QA PASS na S22, fizyczne długie sesje OPEN
 
 - `F-004`: kampania nie ma arbitralnego stopu po dziesiątej turze; rozłączenie/STOP/autoryzacja i rzeczowe zakończenie pozostają.
