@@ -22,6 +22,8 @@ internal class ChatRelayDownlinkPump(
         fun onFrame(bytes: ByteArray, length: Int): Boolean
         fun onFinished()
         fun onError(reason: String)
+        /** Called only on explicit capture abandonment; never means end-of-call. */
+        fun onAbandoned() = Unit
     }
 
     private val lock = Any()
@@ -49,6 +51,21 @@ internal class ChatRelayDownlinkPump(
             check(activeCapture == null) { "relay_downlink_capture_already_active" }
             activeCapture = capture
         }
+    }
+
+    /**
+     * Detach a recognizer's abandoned capture without closing the shared
+     * downlink or issuing a global hangup. An in-flight frame can still reach
+     * the old callback, but cannot terminate its already detached successor.
+     */
+    fun abandonActiveCapture(): Boolean {
+        val abandoned = synchronized(lock) {
+            val old = activeCapture
+            activeCapture = null
+            old
+        } ?: return false
+        try { abandoned.onAbandoned() } catch (_: Throwable) {}
+        return true
     }
 
     fun discardedBytes(): Long = discardedBytes.get()
