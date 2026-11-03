@@ -1,5 +1,10 @@
 # AI Calls
 
+## F-039 — bezpośredni START zamiast dwóch ekranów
+
+Nowa główna akcja `Rozpocznij autoryzowane zadanie AI` kieruje po jednym dotknięciu do **istniejącej** ścieżki START kampanii z tym samym grantem, kontrolą roli dialera i STOP. Zbędne `Campaign tools → START` nie jest już wymagane; dawny pilot `Jeden przycisk` pozostał pod Diagnostyką i nie powinien udawać autonomicznej kampanii. [Dowód i checkpoint](docs/checkpoints/2026-11-03-f039-primary-task-start-no-extra-click.md), [F-039](BLOCKERS.md). **Zmiana w źródłach; pełny Mac QA oczekuje na wynik, nowy APK nie jest jeszcze zainstalowany**.
+
+
 ## S22 — wdrożenie uproszczonego UI i testy (PASS)
 
 Nowe UI jest **zainstalowane na Samsungu S22**, źródło `64ce6fba`. Testy rzeczywistego urządzenia: **5/5 PASS** (akordeony, rola dialera, lokalny model Gemma, bezpieczny start poza rozmową). Instalacja `-r` zachowała zapisane uprawnienia i stan kontynuacji; telefon pozostał `IDLE`, dialer AI Calls niezmieniony. [Pełny checkpoint](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md). Testy silnika i UI na Mac także PASS. **Nie oznacza to wykonania zadania CLIR ani potwierdzenia TX u konsultanta** — potrzebny oddzielny dopuszczony test połączenia.
