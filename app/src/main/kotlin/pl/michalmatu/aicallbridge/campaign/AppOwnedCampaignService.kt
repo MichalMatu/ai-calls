@@ -28,6 +28,7 @@ class AppOwnedCampaignService : Service() {
     private var campaignRequested = false
     private var attemptOutcome: Pair<Boolean, String?>? = null
     private var awaitingPhoneIdle = false
+    private var preparingLocalModel = false
     private var continuationGeneration = 0L
     private lateinit var notificationManager: NotificationManager
     private val supervisedAudioActive = AtomicBoolean(false)
@@ -175,27 +176,56 @@ class AppOwnedCampaignService : Service() {
             finish("Campaign stopped or authorization expired")
             return
         }
-        // Never consume or abandon the next attempt while an earlier owned call
-        // or any cellular call remains active. This also handles replacement of
-        // a grant during an old call without hanging the new task indefinitely.
-        val ownedCallRunning = AppOwnedClirCampaignExecutor.isRunning()
-        val phoneBusy = if (
-            checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            runCatching {
-                getSystemService(TelecomManager::class.java)?.isInCall == true
-            }.getOrDefault(false)
-        } else {
-            // The executor already reports the missing Android permission;
-            // never probe a protected Telecom API without that permission.
-            false
-        }
-        if (ownedCallRunning || phoneBusy) {
+        if (AppOwnedClirCampaignExecutor.isRunning() || isPhoneBusy()) {
             awaitPhoneIdle()
             return
         }
         awaitingPhoneIdle = false
+        if (preparingLocalModel) return
+
+        // The first local LiteRT/Gemma generation can take tens of seconds on S22.
+        // Warm the exact classifier before placing an external call, not while
+        // the remote IVR is waiting for the first spoken response.
+        preparingLocalModel = true
+        statusStore.save("Preparing local Gemma before authorized Telecom dial")
+        val generation = continuationGeneration
+        CampaignGemmaPreflight.prepare(this) { ready ->
+            continuationHandler.post {
+                preparingLocalModel = false
+                if (!campaignRequested || generation != continuationGeneration) {
+                    CampaignGemmaPreflight.discardUnused()
+                    return@post
+                }
+                if (!ready) {
+                    finish("Local Gemma failed to prepare before dialing")
+                    return@post
+                }
+                val latest = continuationStore.load()
+                if (latest == null || latest.grantId != state.grantId ||
+                    !isContinuationAuthorized(latest)
+                ) {
+                    finish("Campaign scope changed while preparing local model")
+                    return@post
+                }
+                if (AppOwnedClirCampaignExecutor.isRunning() || isPhoneBusy()) {
+                    awaitPhoneIdle()
+                    return@post
+                }
+                launchPreparedAttempt(latest)
+            }
+        }
+    }
+
+    private fun isPhoneBusy(): Boolean {
+        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) return false // The executor will reject missing permissions before dialing.
+        return runCatching {
+            getSystemService(TelecomManager::class.java)?.isInCall == true
+        }.getOrDefault(false)
+    }
+
+    private fun launchPreparedAttempt(state: CampaignContinuationState) {
         continuationStore.prepareAttempt(state.grantId, System.currentTimeMillis())
             ?: run { finish("Continuation state unavailable"); return }
         attemptOutcome = null
@@ -345,6 +375,8 @@ class AppOwnedCampaignService : Service() {
     }
 
     override fun onDestroy() {
+        preparingLocalModel = false
+        CampaignGemmaPreflight.discardUnused()
         supervisedAudioActive.set(false)
         supervisedAudioSession?.stopAudio()
         supervisedAudioSession = null
@@ -356,6 +388,8 @@ class AppOwnedCampaignService : Service() {
     }
 
     private fun finish(status: String) {
+        preparingLocalModel = false
+        CampaignGemmaPreflight.discardUnused()
         campaignRequested = false
         awaitingPhoneIdle = false
         continuationGeneration += 1
