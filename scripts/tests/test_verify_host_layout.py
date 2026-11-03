@@ -33,6 +33,16 @@ class VerifyHostLayoutTest(unittest.TestCase):
         allowed = allowed_entries("allowed_root_entries")
         self.assertTrue({"AGENTS.md", "BLOCKERS.md", "README.md"}.issubset(allowed))
 
+    def test_secret_scan_distinguishes_key_prefix_from_word_suffix(self):
+        source = VERIFY_HOST.read_text(encoding="utf-8")
+        match = re.search(r"^production_secret_pattern='([^']+)'$", source, re.M)
+        self.assertIsNotNone(match)
+        pattern = re.compile(match.group(1))
+        self.assertIsNone(pattern.search("task-approved speech can exceed 600 chars"))
+        self.assertIsNone(pattern.search("risk-approved is not an access key"))
+        self.assertIsNotNone(pattern.search("secret: " + "sk-" + "a" * 18))
+        self.assertIsNotNone(pattern.search("OPENAI_API_KEY"))
+
     def test_tracked_root_and_scripts_entries_are_accepted(self):
         paths = tracked_paths()
         roots = {path.split("/", 1)[0] for path in paths}
