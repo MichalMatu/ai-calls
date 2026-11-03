@@ -23,7 +23,14 @@ internal fun interface Gemma4RuntimeFactory {
 internal interface Gemma4Runtime : AutoCloseable {
     fun generate(userText: String, listener: TextCallAgentBackend.Listener)
     fun cancel()
+    /** Drop only synthetic prewarm history, not the initialized model engine. */
+    fun resetConversationContext() = Unit
     override fun close()
+}
+
+/** Model-native chat context persists per owned call instead of prompt-duplicating recent turns. */
+internal interface NativeConversationContextBackend {
+    fun resetConversationContext()
 }
 
 /**
@@ -36,7 +43,7 @@ internal class Gemma4LiteRtTextBackend(
     private val runtimeFactory: Gemma4RuntimeFactory,
     private val modelPath: String,
     private val systemInstruction: String? = null,
-) : TextCallAgentBackend {
+) : TextCallAgentBackend, NativeConversationContextBackend {
     private val lock = Any()
     private var generation = 0L
     private var runtime: Gemma4Runtime? = null
@@ -68,6 +75,12 @@ internal class Gemma4LiteRtTextBackend(
                 listener.onError("gemma4_runtime_${sanitize(error.javaClass.simpleName)}")
             }
         }
+    }
+
+    /** Reset preflight's synthetic utterance without shutting down the prewarmed engine. */
+    override fun resetConversationContext() {
+        val activeRuntime = synchronized(lock) { if (closed) null else runtime }
+        activeRuntime?.resetConversationContext()
     }
 
     override fun cancel() {
@@ -139,6 +152,10 @@ internal class LiteRtGemma4Runtime(
     private var generation = 0L
     private var engine: Engine? = null
     private var activeConversation: Conversation? = null
+    /** A normal between-turn cancel invalidates a callback but must not cancel native chat. */
+    private var sendingGeneration: Long? = null
+    private var discardAfterSend = false
+    private var conversationTurnCount = 0
     @Volatile private var activeBackendLabel = "unknown"
     private var closed = false
 
@@ -159,34 +176,81 @@ internal class LiteRtGemma4Runtime(
     }
 
     override fun cancel() {
-        val conversation = synchronized(lock) {
+        val currentlySending = synchronized(lock) {
             if (closed) return
             generation += 1
-            activeConversation
+            // TextCallTurnController calls cancel after every completed output.
+            // Calling native cancelProcess on an IDLE conversation destroys its context.
+            if (sendingGeneration != null) {
+                discardAfterSend = true
+                activeConversation
+            } else null
         }
         try {
-            conversation?.cancelProcess()
+            currentlySending?.cancelProcess()
         } catch (_: Throwable) {
-            // Generation invalidation above is authoritative; native cancellation is best-effort.
+            // The generation gate and discard flag still invalidate the work.
+        }
+    }
+
+    override fun resetConversationContext() {
+        // Only the synthetic prewarm turn uses this. Keep the expensive Engine alive.
+        val detached = synchronized(lock) {
+            if (closed) return
+            if (sendingGeneration != null) {
+                discardAfterSend = true
+                null
+            } else {
+                activeConversation.also {
+                    activeConversation = null
+                    conversationTurnCount = 0
+                }
+            }
+        }
+        if (detached != null) {
+            // Queue cleanup behind any completing model callback and before a new
+            // call turn's sendMessage. Never close native Conversation mid-callback.
+            try {
+                executor.execute { closeConversation(detached) }
+            } catch (_: RejectedExecutionException) {
+                closeConversation(detached)
+            }
         }
     }
 
     override fun close() {
-        val conversation: Conversation?
-        val engineToClose: Engine?
+        val idleConversation: Conversation?
+        val idleEngine: Engine?
+        val inFlight: Conversation?
         synchronized(lock) {
             if (closed) return
             closed = true
             generation += 1
-            conversation = activeConversation
-            engineToClose = if (conversation == null) engine.also { engine = null } else null
+            if (sendingGeneration != null) {
+                discardAfterSend = true
+                inFlight = activeConversation
+                idleConversation = null
+                idleEngine = null
+            } else {
+                inFlight = null
+                idleConversation = activeConversation
+                idleEngine = engine
+                activeConversation = null
+                engine = null
+            }
         }
-        try {
-            conversation?.cancelProcess()
-        } catch (_: Throwable) {
-            // The worker will finish/tear down stale work.
+        try { inFlight?.cancelProcess() } catch (_: Throwable) {}
+        if (idleConversation != null || idleEngine != null) {
+            try {
+                executor.execute {
+                    closeConversation(idleConversation)
+                    closeEngine(idleEngine)
+                }
+            } catch (_: RejectedExecutionException) {
+                closeConversation(idleConversation)
+                closeEngine(idleEngine)
+            }
         }
-        closeEngine(engineToClose)
         executor.shutdown()
     }
 
@@ -198,6 +262,10 @@ internal class LiteRtGemma4Runtime(
         if (!isCurrent(requestGeneration)) return
 
         var conversation: Conversation? = null
+        var registeredConversation = false
+        var successfulSend = false
+        var reused = false
+        var turnIndex = 0
         val startedNs = System.nanoTime()
         var engineReadyNs = startedNs
         var conversationReadyNs = startedNs
@@ -209,29 +277,47 @@ internal class LiteRtGemma4Runtime(
             engineReadyNs = System.nanoTime()
             if (!isCurrent(requestGeneration)) return
 
-            conversation = readyEngine.createConversation(
-                ConversationConfig(
-                    systemInstruction = systemInstruction?.let(Contents::of),
-                    samplerConfig = SamplerConfig(
-                        topK = 1,
-                        topP = 1.0,
-                        temperature = 0.0,
-                        seed = 0,
+            val cached = synchronized(lock) {
+                if (!isCurrentLocked(requestGeneration)) return
+                activeConversation
+            }
+            if (cached != null) {
+                conversation = cached
+                registeredConversation = true
+                reused = true
+            } else {
+                conversation = readyEngine.createConversation(
+                    ConversationConfig(
+                        systemInstruction = systemInstruction?.let(Contents::of),
+                        samplerConfig = SamplerConfig(
+                            topK = 1,
+                            topP = 1.0,
+                            temperature = 0.0,
+                            seed = 0,
+                        ),
+                        automaticToolCalling = false,
+                        channels = emptyList(),
+                        maxOutputToken = MAX_OUTPUT_TOKENS,
+                        thinkingConfig = ThinkingConfig(enableThinking = false),
+                        enableResponseFormat = responseFormat != null,
                     ),
-                    automaticToolCalling = false,
-                    channels = emptyList(),
-                    maxOutputToken = MAX_OUTPUT_TOKENS,
-                    thinkingConfig = ThinkingConfig(enableThinking = false),
-                    enableResponseFormat = responseFormat != null,
-                ),
-            )
+                )
+                synchronized(lock) {
+                    if (!isCurrentLocked(requestGeneration)) return
+                    activeConversation = conversation
+                    conversationTurnCount = 0
+                    registeredConversation = true
+                }
+            }
             conversationReadyNs = System.nanoTime()
+            val currentConversation = checkNotNull(conversation)
             synchronized(lock) {
                 if (!isCurrentLocked(requestGeneration)) return
-                activeConversation = conversation
+                sendingGeneration = requestGeneration
+                turnIndex = conversationTurnCount + 1
             }
 
-            val message = conversation.sendMessage(
+            val message = currentConversation.sendMessage(
                 text = userText,
                 maxOutputToken = MAX_OUTPUT_TOKENS,
                 thinkingConfig = ThinkingConfig(enableThinking = false),
@@ -240,37 +326,58 @@ internal class LiteRtGemma4Runtime(
             inferenceReadyNs = System.nanoTime()
             val text = message.toString().trim()
             outputChars = text.length
+            synchronized(lock) {
+                if (sendingGeneration == requestGeneration) sendingGeneration = null
+                if (isCurrentLocked(requestGeneration) && text.isNotBlank()) {
+                    conversationTurnCount += 1
+                    successfulSend = true
+                }
+            }
             if (text.isBlank()) {
                 status = "empty"
                 if (isCurrent(requestGeneration)) listener.onError("empty_response")
-            } else if (isCurrent(requestGeneration)) {
+            } else if (successfulSend && isCurrent(requestGeneration)) {
                 status = "complete"
                 listener.onComplete(text)
             }
         } catch (error: Throwable) {
             status = "error_${error.javaClass.simpleName}"
-            if (isCurrent(requestGeneration)) {
-                listener.onError(sanitizeRuntimeError(error))
-            }
+            successfulSend = false
+            if (isCurrent(requestGeneration)) listener.onError(sanitizeRuntimeError(error))
         } finally {
-            // Pure timings/backend only: NEVER log spoken/transcribed text, account
-            // numbers, model file paths, JSON response or raw audio.
+            // Only timing/accelerator metadata. Never print transcripts, history,
+            // prompt, model reply, phone details, model file path or personal data.
             Log.i("AiCallBridgePerf", "gemma4_runtime_backend=$activeBackendLabel" +
                 ",engine_ready_ms=${((engineReadyNs - startedNs) / 1_000_000).coerceAtLeast(0)}" +
                 ",conversation_create_ms=${((conversationReadyNs - engineReadyNs) / 1_000_000).coerceAtLeast(0)}" +
                 ",generate_ms=${((inferenceReadyNs - conversationReadyNs) / 1_000_000).coerceAtLeast(0)}" +
+                ",conversation_reused=$reused,conversation_turn=$turnIndex" +
                 ",output_chars=$outputChars,status=$status")
-            val conversationToClose = synchronized(lock) {
-                if (activeConversation === conversation) activeConversation = null
-                conversation
+
+            val toClose = synchronized(lock) {
+                if (sendingGeneration == requestGeneration) sendingGeneration = null
+                when {
+                    // A conversation created just before cancellation never became
+                    // owned by the runtime and must be closed in this worker.
+                    !registeredConversation -> conversation
+                    // resetConversationContext or close has already detached it.
+                    activeConversation !== conversation -> null
+                    closed || !successfulSend || discardAfterSend -> {
+                        activeConversation = null
+                        conversationTurnCount = 0
+                        discardAfterSend = false
+                        conversation
+                    }
+                    else -> null // Same active, healthy chat reused next turn.
+                }
             }
-            try {
-                conversationToClose?.close()
-            } catch (_: Throwable) {
-                // Best-effort native teardown.
-            }
+            closeConversation(toClose)
             closeEngineIfRuntimeClosed()
         }
+    }
+
+    private fun closeConversation(value: Conversation?) {
+        try { value?.close() } catch (_: Throwable) {}
     }
 
     private fun ensureEngine(): Engine {
@@ -428,7 +535,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         context: Context,
         systemInstruction: String,
         allowedActions: Set<DialogueActionId>,
-    ): TextCallAgentBackend {
+    ): Gemma4LiteRtTextBackend {
         require(allowedActions.isNotEmpty()) { "dialogue_action_set_must_not_be_empty" }
         val allowed = allowedActions.sortedBy { it.name }.joinToString(",") { "\"${it.name}\"" }
         val schema = """
@@ -455,7 +562,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         context: Context,
         systemInstruction: String?,
         responseFormat: ResponseFormat?,
-    ): TextCallAgentBackend {
+    ): Gemma4LiteRtTextBackend {
         val modelPath = modelFile(context).absolutePath
         return Gemma4LiteRtTextBackend(
             runtimeFactory = Gemma4RuntimeFactory { path, instruction ->
