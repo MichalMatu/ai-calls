@@ -13,27 +13,28 @@ import org.junit.runner.RunWith
 /** Preferences-only test: does not start the service, dial or capture audio. */
 @RunWith(AndroidJUnit4::class)
 class CampaignContinuationStoreContractTest {
-    private val context: Context get() = InstrumentationRegistry.getInstrumentation().context
+    private val testPreferencesName = "campaign_continuation_instrumentation_v1"
+    private val context: Context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
     @After fun clear() {
-        context.getSharedPreferences("campaign_continuation_v1", Context.MODE_PRIVATE)
+        context.getSharedPreferences(testPreferencesName, Context.MODE_PRIVATE)
             .edit().clear().commit()
     }
 
     @Test fun authorizedRunAndRetryDueTimeSurviveStoreRecreation() {
-        val first = CampaignContinuationStore(context)
+        val first = CampaignContinuationStore(context, testPreferencesName)
         first.clear()
         first.begin("granted-run", "sim-a", 1_000L)
-        assertEquals(1_000L, CampaignContinuationStore(context).load()!!.nextAttemptAtEpochMs)
+        assertEquals(1_000L, CampaignContinuationStore(context, testPreferencesName).load()!!.nextAttemptAtEpochMs)
         val prepared = first.prepareAttempt("granted-run", 1_000L)
         assertEquals(31_000L, prepared!!.nextAttemptAtEpochMs)
-        val next = CampaignContinuationStore(context).planRetry("granted-run", 2_000L)
+        val next = CampaignContinuationStore(context, testPreferencesName).planRetry("granted-run", 2_000L)
         assertNotNull(next)
         assertEquals(1, next!!.incompleteAttempts)
         assertEquals(32_000L, next.nextAttemptAtEpochMs)
-        assertEquals("sim-a", CampaignContinuationStore(context).load()!!.accountScope)
+        assertEquals("sim-a", CampaignContinuationStore(context, testPreferencesName).load()!!.accountScope)
         assertNull(first.planRetry("different-grant", 3_000L))
         first.clear()
-        assertNull(CampaignContinuationStore(context).load())
+        assertNull(CampaignContinuationStore(context, testPreferencesName).load())
     }
 }
