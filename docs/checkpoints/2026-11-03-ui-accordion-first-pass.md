@@ -31,11 +31,12 @@
 ## Regression and QA
 
 - New instrumentation source `AndroidUiAccordionContractTest` checks that real STOP, primary access and revocation stay visible, setup/model/diagnostic controls still exist, the sections toggle, and essential actions remain visible after toggling. It clicks **only** accordion toggles.
-- Full source QA submitted to Mac Local Agent as `aicalls-20261103-ui-accordion-source-full-qa-v1` in `MichalMatu/local-agent:agent-control`; pinned source `64ce6fbae5201c8246b2b80dd8f35cf0373505ad`. Runs anti-friction audit, complete `scripts/verify_host.sh` (all app module test/lint/assemble, Python), and a diff allowlist against prior `165e5deb`. **Read actual result** before declaring PASS. No APK installation or instrumentation run in this task.
+- Mac Local Agent `aicalls-20261103-ui-accordion-source-full-qa-v1` **DONE/0**, pinned source `64ce6fbae5201c8246b2b80dd8f35cf0373505ad`: anti-friction PASS, complete `scripts/verify_host.sh` **host_quality_gate_green=true**, 3 successful Gradle build phases, **244 Python tests PASS**, and exact `UI_ONLY_SOURCE_DELTA=PASS` (**four UI/test files only** compared to `165e5deb`). No S22 interaction in this task.
+- Mac Local Agent `aicalls-20261103-ui-accordion-s22-nocall-instrumentation-v1` **DONE/0 as a safely deferred deployment**, not a physical UI PASS: application and AndroidTest APK both built PASS, but `EXACT_S22=false` for expected `RFCT70L7E8J`/`SM-S906B`; `DEPLOY=DEFERRED_UNAVAILABLE_S22`. **No install and no UI instrumentation tests executed.** No claim about app behavior on handset or call grant changes.
 - Existing `F-035` in-call STT recovery, remote audible TX and external CLIR completion are **still OPEN**. Do not consider UI QA a substitute for them.
 
 ## Next safe step
 
-1. Read `task-results/aicalls-20261103-ui-accordion-source-full-qa-v1.json` from Mac host installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`. Fix compilation/QA regressions if any without changing phone logic.
-2. If source gate passes, consider separately checking the UI instrumentation on the exact S22 in `IDLE` state only, without starting any call or enabling capture. This requires a verified installed test APK and the existing tool permissions. Do not evade tool denial by alternate execution paths.
-3. Do not prematurely claim UI field acceptance before it is observed.
+1. **Do not repeat the full source QA**: receipt `aicalls-20261103-ui-accordion-source-full-qa-v1` already proves anti-friction, all-module host gate and 244 Python tests PASS on the exact source pin.
+2. When the exact S22 is accessible again, read current agent/device status. Only if `RFCT70L7E8J`/`SM-S906B`, phone IDLE and correct Android default-dialer role hold, deploy the already-tested UI APK, install targeted AndroidTest APK and run **only** `AndroidUiAccordionContractTest` (2 UI-only cases, no clicks on START/STOP/revoke). Preserve all grants/data. The previous job did not attempt this because `EXACT_S22=false`.
+3. Keep `UI_SOURCE_QA_PASS / S22_UI_ACCEPTANCE_PENDING` until physical result is recorded. In-call STT and CLIR remain separate open acceptance tracks; do not retry external calls for UI acceptance.
