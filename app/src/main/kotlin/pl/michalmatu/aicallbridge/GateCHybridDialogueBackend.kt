@@ -30,6 +30,7 @@ internal data class GateCHybridDiagnosticsSnapshot(
     val decisions: List<DialogueActionDecision>,
     val localSkillErrors: List<String>,
     val responseSources: List<GateCHybridResponseSource>,
+    val classifierLatenciesMs: List<Long> = emptyList(),
 )
 
 internal class GateCHybridDiagnostics : DialogueActionDecisionObserver {
@@ -37,9 +38,14 @@ internal class GateCHybridDiagnostics : DialogueActionDecisionObserver {
     private val decisions = mutableListOf<DialogueActionDecision>()
     private val localSkillErrors = mutableListOf<String>()
     private val responseSources = mutableListOf<GateCHybridResponseSource>()
+    private val classifierLatenciesMs = mutableListOf<Long>()
 
     override fun onDecision(decision: DialogueActionDecision) {
         synchronized(lock) { decisions += decision }
+    }
+
+    override fun onClassifierTiming(elapsedMs: Long) {
+        synchronized(lock) { classifierLatenciesMs += elapsedMs.coerceAtLeast(0L) }
     }
 
     fun recordLocalSkillError(reason: String) {
@@ -55,6 +61,7 @@ internal class GateCHybridDiagnostics : DialogueActionDecisionObserver {
             decisions = decisions.toList(),
             localSkillErrors = localSkillErrors.toList(),
             responseSources = responseSources.toList(),
+            classifierLatenciesMs = classifierLatenciesMs.toList(),
         )
     }
 
