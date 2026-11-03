@@ -12,7 +12,7 @@ VERIFY_HOST = ROOT / "scripts" / "verify_host.sh"
 
 def allowed_entries(section: str) -> set[str]:
     source = VERIFY_HOST.read_text(encoding="utf-8")
-    match = re.search(rf"^\{section}=\(\n(.*?)^\)", source, flags=re.M | re.S)
+    match = re.search(rf"^{re.escape(section)}=\(\n(.*?)^\)", source, flags=re.M | re.S)
     if not match:
         raise AssertionError(f"missing verify_host.sh allowlist: {section}")
     return {line.strip() for line in match.group(1).splitlines() if line.strip()}
