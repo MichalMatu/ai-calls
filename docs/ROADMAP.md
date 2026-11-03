@@ -1,4 +1,4 @@
-# AI Calls — current roadmap
+# AI Calls — current roadmap\n\n**2026-11-03 test receipt:** pierwsze QA nowego F-002 (`556bf67`) FAIL 2/624 z powodu dwóch nieaktualnych testów przywracających oczekiwania F-002/F-009. Testy zaktualizowano (ostatni `2c84513`), weryfikacja nowego HEAD PENDING. Nowy wpis `F-015` w [BLOCKERS.md](../BLOCKERS.md).
 
 ## 2026-11-03 — NOWY STAN: druga warstwa ochrony przed blokerami (źródła, QA niepotwierdzone)
 
