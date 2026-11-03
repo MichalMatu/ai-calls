@@ -36,3 +36,15 @@ Mac Local Agent `aicalls-20261103-sprint-export-debug-apk-v8` DONE/0, source SHA
 
 ## Bezpieczny dalszy krok
 Gdy dokładnie jeden fizyczny S22 jest widoczny w ADB i w stanie IDLE, zainstalować APK przygotowany z SHA `32ff901b`, uruchomić wyłącznie bezpołączeniowe testy `CampaignContinuationStoreContractTest` oraz `AndroidCampaignAuthorizationStoreContractTest`, potem prowadzić świadomie zainicjowane testy kampanii w już zatwierdzonym zakresie. Nie wykonywać automatycznych połączeń w zadaniu buildowym ani publikować prywatnych WAV/transkryptów w GitHub/task-results.
+
+## Kontynuacja sprintu 06:43 — źródła nowsze niż poprzedni APK
+
+- Punktem wejścia był main `a5c85b8` z poprzednim QA v6 PASS, urządzenie wcześniej niedostępne.
+- Mac `aicalls-20261103-s22-check-0643-readonly-v9` DONE/0: SM-S906B, jeden autoryzowany S22 pod ADB, `mCallState=0`.
+- Mac `aicalls-20261103-s22-install-readiness-v11` DONE/0: `INSTALL_READY=YES_READONLY`, wersja zainstalowanej aplikacji 2, nieaktywny `AppOwnedCampaignService`, bez ingerencji w telefon.
+- F-020: wykryto, że pilotaż audio w czasie oczekiwania na retry mógł przejąć serwis i wyczyścić kontynuację. `AppOwnedCampaignService.startSupervisedAudio` nie przechodzi do pilota, gdy zatwierdzona kampania już czeka; nie dodano dialogu ani limitu. Test kontraktowy z `NoArtificialCampaignBlockersContractTest`.
+- F-011: `scripts/aicall_tools/text/openai_text_broker.py` oraz `BackendOpenAiTextBackend` nie odrzucają już tekstu po 4000 znakach wejścia i 2000 znakach wyjścia. Broker utrzymuje ograniczenie rozmiaru HTTP dla ochrony pamięci i tokenów modelu, a nie licznik produktu. Test Unicode STT >4000, długi wynik >2000, bounded HTTP i nieukończony upstream. Bez użycia klucza API i bez zewnętrznych rozmów.
+- Mac QA v10 SHA `3f5b345`: Python 225 PASS, Kotlin 637 testów/1 FAIL w teście kontraktowym F-020. Powodem był fałszywy match komentarza `finish()/STOP` do `.contains("finish(")`, **nie błąd aplikacji**. Rejestr F-021, poprawka testu do sprawdzania linii wykonywalnego wywołania.
+- Mac pełne QA `aicalls-20261103-broker-pilot-sprint-qa-v12`, pinned `f42ce03e14d9be60ef4036d6850971fc27e99832`: **QA_PENDING** do publikacji potwierdzonego terminalnego wyniku. Nie instalować nowego APK ani nie oznaczać PASS tylko na podstawie kolejki.
+- Po v12 PASS można zainstalować nowe APK wyłącznie na dokładnie jednym S22 w stanie IDLE i z nieaktywną usługą kampanii; uruchomić jedynie instrumentację SharedPreferences (bez wykonywania połączeń). Do realnego dialera/rozmowy konieczne są granice systemowej roli i konkretnej zgody aplikacyjnej.
+- F-003/F-017 eksport z UI i F-016 historyczna dokumentacja pozostają OPEN z odmową narzędzia; nie próbować obchodzić odmowy.
