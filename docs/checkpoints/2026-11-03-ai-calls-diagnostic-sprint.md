@@ -1,4 +1,12 @@
 # AI Calls — sprint pętli diagnostycznej i usuwania sztucznego tarcia
+
+## Decyzja właściciela i USB/ADB — 2026-11-03, aktualne
+
+1. **Prywatna diagnostyka**: lokalny Mac Local Agent pobiera istniejący katalog `files/call-session-evidence/` z debug APK `pl.michalmatu.aicallbridge` na dokładnie jednym Samsungu S22 po USB/ADB i tworzy prywatne archiwum w `~/Documents/AI-Calls/private-exports/`. Skrypt: `scripts/aicall_tools/diagnostics/export_private_call_evidence.sh`; instrukcja: `docs/USB_PRIVATE_DIAGNOSTICS.md`. Nie wysyłać WAV/transkryptu do GitHub ani wyników agenta. Upload do czatu jest opcjonalny, nie wymagany.
+2. **Wykonano preflight i próbę transferu**: Mac `aicalls-20261103-usb-private-evidence-export-v21` DONE/0; `ADB_AUTHORIZED_DEVICE_COUNT=1`, `DEVICE_MODEL=SM-S906B`, `CALL_STATE=mCallState=0`, `EVIDENCE_DIRECTORY=NOT_PRESENT`, `USB_EXPORT=NOTHING_TO_COPY`. Nie było danych do skopiowania, więc nie nazywać tego archiwum PASS. USB działa, brak danych nie blokuje dalszego kodu.
+3. **Zero sztucznych bramek**: F-003/F-017 nie są zależnością rozwoju, właściciel wybrał USB zamiast przycisku ZIP w UI. F-016 to nieblokujący historyczny dług dokumentacyjny; wcześniejszych odmów edycji nie obchodzić. Normatywne `AGENTS.md` i `BLOCKERS.md` mają pierwszeństwo wobec archiwalnych akapitów.
+4. **Teraz kod**: wrócić do uruchomienia aplikacji na S22, sprawdzić dokładnie grant, domyślną rolę dialera i gotowość media, następnie doprowadzić rzeczywisty autoryzowany START → RX/STT/AI/TTS/TX → wynik → STOP/ponowienie. Dotychczas S22 off-call 4/4 i 3/3 PASS. Bez udokumentowanej żywej rozmowy nie ogłaszać `END_TO_END_PASS`.
+
 Data: 2026-11-03
 
 ## Źródło prawdy i granice
