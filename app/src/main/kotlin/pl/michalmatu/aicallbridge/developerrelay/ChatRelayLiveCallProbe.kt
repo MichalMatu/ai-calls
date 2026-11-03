@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.developerrelay
 
 import pl.michalmatu.aicallbridge.campaign.ClirCarrierEvidence
 import pl.michalmatu.aicallbridge.campaign.ClirDeterministicDialogueBackend
+import pl.michalmatu.aicallbridge.campaign.CampaignGemmaPreflight
 import pl.michalmatu.aicallbridge.campaign.ClirRouteEvidence
 
 import android.content.Context
@@ -223,6 +224,11 @@ internal object ChatRelayLiveCallProbe {
                     routeVerified.get() && !commitmentConsumed.get()
             },
             supervisorRelayEnabled = supervisorRelayEnabled,
+            // Only the app-owned campaign may consume its already initialized engine.
+            // Supervised and developer probes keep independent model ownership.
+            preparedClassifier = if (!readOnlySupervised && !supervisorRelayEnabled) {
+                CampaignGemmaPreflight.takePrepared()
+            } else null,
         ) }
         private val backend: TextCallAgentBackend = if (readOnlySupervised) {
             if (supervisedGemmaEnabled) {
