@@ -178,8 +178,12 @@ class CampaignToolActivity : Activity() {
     }
 
     private fun playLastAgentAudio() {
+        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            statusView.text = "Odsłuch wymaga uprawnienia do sprawdzenia stanu telefonu."
+            return
+        }
         val telecom = getSystemService(TelecomManager::class.java)
-        if (runCatching { telecom?.isInCall == true }.getOrDefault(true)) {
+        if (runCatching { telecom == null || telecom.isInCall }.getOrDefault(true)) {
             statusView.text = "Odsłuch tylko poza rozmową; bez ryzyka sprzężenia audio."
             return
         }
