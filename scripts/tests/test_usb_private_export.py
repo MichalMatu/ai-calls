@@ -32,13 +32,20 @@ elif args[2:] == ["shell", "run-as", "pl.michalmatu.aicallbridge", "pwd"]:
         sys.exit(1)
     print("/data/user/0/pl.michalmatu.aicallbridge")
 elif args[2:] == [
-    "shell", "run-as", "pl.michalmatu.aicallbridge", "sh", "-c",
-    "test -d files/call-session-evidence",
+    "shell", "run-as", "pl.michalmatu.aicallbridge", "ls", "-d",
+    "files/call-session-evidence",
 ]:
     sys.exit(0 if os.environ.get("FAKE_EVIDENCE") == "YES" else 1)
 elif args[2:] == [
-    "exec-out", "run-as", "pl.michalmatu.aicallbridge", "sh", "-c",
-    "cd files && tar -czf - call-session-evidence",
+    "shell", "run-as", "pl.michalmatu.aicallbridge", "sh", "-c",
+    "test -d files/call-session-evidence",
+]:
+    # Physical Samsung ADB can break sh -c argument forwarding even with real files.
+    sys.exit(1 if os.environ.get("FAKE_SHELL_C_BROKEN") == "YES"
+             else (0 if os.environ.get("FAKE_EVIDENCE") == "YES" else 1))
+elif args[2:] == [
+    "exec-out", "run-as", "pl.michalmatu.aicallbridge",
+    "tar", "-czf", "-", "-C", "files", "call-session-evidence",
 ]:
     if os.environ.get("FAKE_EVIDENCE") != "YES":
         sys.exit(1)
@@ -104,6 +111,14 @@ class UsbPrivateExportContractTest(unittest.TestCase):
             with tarfile.open(archive, mode="r:gz") as source:
                 self.assertIn("call-session-evidence/test/COMPLETE", source.getnames())
                 self.assertIn("call-session-evidence/test/timeline.jsonl", source.getnames())
+
+    def test_real_folder_survives_broken_android_shell_c_quoting(self) -> None:
+        # Regression for physical S22 F-041: old check returned false NO_DATA.
+        result = self.run_export(FAKE_EVIDENCE="YES", FAKE_SHELL_C_BROKEN="YES")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("USB_EXPORT=PASS", result.stdout)
+        self.assertNotIn("USB_EXPORT=NO_DATA", result.stdout)
+        self.assertEqual(1, len(list(self.out.glob("*.tar.gz"))))
 
     def test_wrong_hardware_is_rejected(self) -> None:
         result = self.run_export(FAKE_MODEL="other")
