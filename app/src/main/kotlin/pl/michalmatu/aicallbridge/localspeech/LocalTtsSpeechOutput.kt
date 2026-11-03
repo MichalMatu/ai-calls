@@ -54,15 +54,37 @@ internal class LocalTtsSpeechOutput(
                     return@execute
                 }
 
-                val waveFile = File(appContext.cacheDir, "local-speech-${UUID.randomUUID()}.wav")
-                synchronized(lock) { outputFile = waveFile }
+                val chunks = LocalTtsTextChunker.split(
+                    text, TextToSpeech.getMaxSpeechInputLength(),
+                )
+                val allPcm = java.io.ByteArrayOutputStream()
+                var chunkIndex = 0
+                var waveFile: File? = null
+
+                fun enqueueChunk() {
+                    if (!gate.isCurrent(generation)) return
+                    val candidate = File(appContext.cacheDir, "local-speech-${UUID.randomUUID()}.wav")
+                    waveFile = candidate
+                    synchronized(lock) { outputFile = candidate }
+                    val result = tts.synthesizeToFile(
+                        chunks[chunkIndex], Bundle.EMPTY, candidate,
+                        "local-speech-$generation-$chunkIndex",
+                    )
+                    if (result != TextToSpeech.SUCCESS) {
+                        finishWithError(generation, listener, "tts_queue_failed")
+                    }
+                }
+
                 tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) = Unit
                     override fun onDone(utteranceId: String?) {
                         appContext.mainExecutor.execute {
-                            if (!gate.isCurrent(generation)) return@execute
+                            if (!gate.isCurrent(generation) ||
+                                utteranceId != "local-speech-$generation-$chunkIndex"
+                            ) return@execute
                             try {
-                                val decoded = LocalSpeechPcm.decodeWaveToMonoPcm16(waveFile.readBytes())
+                                val recordedFile = checkNotNull(waveFile)
+                                val decoded = LocalSpeechPcm.decodeWaveToMonoPcm16(recordedFile.readBytes())
                                 val target = LocalSpeechPcm.resampleLinear(
                                     decoded.monoSamples,
                                     decoded.sampleRate,
@@ -73,8 +95,16 @@ internal class LocalTtsSpeechOutput(
                                     finishWithError(generation, listener, "tts_empty_pcm")
                                     return@execute
                                 }
-                                finishGeneration(generation)
-                                listener.onPcm16Mono16k(raw)
+                                allPcm.write(raw)
+                                recordedFile.delete()
+                                chunkIndex += 1
+                                if (chunkIndex < chunks.size) {
+                                    enqueueChunk()
+                                } else {
+                                    val complete = allPcm.toByteArray()
+                                    finishGeneration(generation)
+                                    listener.onPcm16Mono16k(complete)
+                                }
                             } catch (error: Throwable) {
                                 finishWithError(generation, listener, "tts_decode_${error.javaClass.simpleName}")
                             }
@@ -83,17 +113,18 @@ internal class LocalTtsSpeechOutput(
 
                     @Deprecated("Deprecated by framework")
                     override fun onError(utteranceId: String?) {
-                        finishWithError(generation, listener, "tts_synthesis_error")
+                        if (utteranceId == "local-speech-$generation-$chunkIndex") {
+                            finishWithError(generation, listener, "tts_synthesis_error")
+                        }
                     }
 
                     override fun onError(utteranceId: String?, errorCode: Int) {
-                        finishWithError(generation, listener, "tts_synthesis_error_$errorCode")
+                        if (utteranceId == "local-speech-$generation-$chunkIndex") {
+                            finishWithError(generation, listener, "tts_synthesis_error_$errorCode")
+                        }
                     }
                 })
-                val result = tts.synthesizeToFile(text, Bundle.EMPTY, waveFile, "local-speech-$generation")
-                if (result != TextToSpeech.SUCCESS) {
-                    finishWithError(generation, listener, "tts_queue_failed")
-                }
+                enqueueChunk()
             }
         }
     }
