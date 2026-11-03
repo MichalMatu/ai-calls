@@ -440,6 +440,11 @@ internal object ChatRelayLiveCallProbe {
                     if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
                         val retryTurn = currentTurn
                         lines += "turn_${retryTurn}_stt_transient_no_transcript=true"
+                        // The SpeechRecognizer has already closed its pipe. Detach
+                        // its RX capture before the next frame tries to write
+                        // into that closed pipe and incorrectly ends the call.
+                        val rxAbandoned = downlinkPump?.abandonActiveCapture() == true
+                        lines += "turn_${retryTurn}_stt_rx_abandoned=$rxAbandoned"
                         // A no-match is not a failed task or reason to redial.
                         // Re-open the same listening turn if exact Call/grant still
                         // owns the media session. No arbitrary retry ceiling.
@@ -484,6 +489,13 @@ internal object ChatRelayLiveCallProbe {
                         total += length
                         endpoint = detector.acceptPcm16(bytes, 0, length)
                         return !endpoint.shouldStop && !finished.get()
+                    }
+
+                    override fun onAbandoned() {
+                        // STT no-match while downlink capture is still running.
+                        // Abandon just that capture; the Call's RX pump stays alive.
+                        evidenceRx?.finish()
+                        totalRxBytes += total.toLong()
                     }
 
                     override fun onFinished() {
