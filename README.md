@@ -4,6 +4,8 @@
 
 **[Aktualny checkpoint jakości i architektury](docs/checkpoints/2026-11-03-organizational-freeze-f035-pre-voice-skills.md)** · [jedyny aktualny rejestr F-xxx](BLOCKERS.md) · [handoff](docs/HANDOFF_NEXT_CHAT.md).
 
+**Checkpoint QA: PASS** — Mac `aicalls-20261103-organizational-freeze-full-host-qa-v3`, all-module unit/build/lint + **244 Python tests**, audyt blokerów/dokumentacji/skaner sekretów. Odtwarzalna gałąź kodu sprzed porządkowania: `checkpoint/2026-11-03-f035-s22-baseline` (SHA `6d3db915`). Nie wykonywano nowych rozmów ani nie instalowano APK w tym etapie.
+
 - **Zweryfikowane:** autonomicznie autoryzowane połączenie S22 z realnymi RX/STT/Gemma/zaakceptowanym TTS/TX, zakończone stanem IDLE; pięć tur na wersji `eb2f5058`; opóźnienie pierwszego TX po zakończeniu mowy **10 567 ms** (wcześniej 47 567 ms). To nie jest akceptacja słyszalności po drugiej stronie.
 - **Prewarm Gemmy już działa przed wybieraniem numeru** w `CampaignGemmaPreflight` i `AppOwnedCampaignService`. Ponowne ładowanie jej „dopiero podczas połączenia” nie opisuje obecnej implementacji.
 - **F-035:** wersja `7176f32b` z kontynuacją nasłuchu po STT 6/7, odpinaniem starego RX i testami współbieżności **Mac QA PASS, instalacja S22 PASS**. Na nowej wersji nie wykonano rozmowy z takim błędem — **fizyczny retest OPEN**.
