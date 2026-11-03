@@ -66,8 +66,15 @@ internal object CampaignGemmaPreflight {
             candidate.generate(
                 "W jakiej sprawie Pan dzwoni?",
                 object : TextCallAgentBackend.Listener {
-                    override fun onComplete(text: String) =
-                        complete(token, candidate, text.isNotBlank(), SystemClock.elapsedRealtime() - startedAt)
+                    override fun onComplete(text: String) {
+                        // The preflight is a synthetic benchmark, NOT the first
+                        // message of the real consultant's persistent conversation.
+                        // Keep the initialized Engine, discard this fake turn.
+                        val clean = text.isNotBlank() && runCatching {
+                            candidate.resetConversationContext()
+                        }.isSuccess
+                        complete(token, candidate, clean, SystemClock.elapsedRealtime() - startedAt)
+                    }
 
                     override fun onError(reason: String) =
                         complete(token, candidate, false, SystemClock.elapsedRealtime() - startedAt)
