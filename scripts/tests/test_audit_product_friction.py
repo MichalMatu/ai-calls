@@ -23,6 +23,7 @@ REQUIRED = (
     MAIN + "developerrelay/ChatRelayLiveCallProbe.kt",
     "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/campaign/"
     "AndroidCampaignAuthorizationStoreContractTest.kt",
+    "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignContinuationStoreContractTest.kt",
     "app/src/test/kotlin/pl/michalmatu/aicallbridge/developerrelay/CallDiagnosticEvidenceTest.kt",
 )
 
