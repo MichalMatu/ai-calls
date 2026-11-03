@@ -15,6 +15,8 @@ REQUIRED = (
     MAIN + "campaign/CampaignAuthorizationStore.kt",
     MAIN + "campaign/CampaignContinuationStore.kt",
     MAIN + "campaign/AppOwnedCampaignService.kt",
+    MAIN + "textagent/BackendOpenAiTextBackend.kt",
+    "scripts/aicall_tools/text/openai_text_broker.py",
     MAIN + "campaign/AppOwnedClirCampaignExecutor.kt",
     MAIN + "developerrelay/CallSessionEvidenceRecorder.kt",
     MAIN + "developerrelay/SupervisedCallPilotActivity.kt",
