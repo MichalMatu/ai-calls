@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 18):
+    for identifier in range(1, 19):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
@@ -62,6 +62,7 @@ def audit(root: Path) -> list[str]:
     require("CampaignContinuationStore.kt", continuation, "fun planRetry(")
     require("CampaignContinuationStore.kt", continuation, "fun clear()")
     require("AppOwnedCampaignService.kt", service, "continuationStore.clear()")
+    require("AppOwnedCampaignService.kt", service, "continuationGeneration != generation")
     require("AppOwnedCampaignService.kt", service, "isContinuationAuthorized(state)")
     require("AppOwnedCampaignService.kt", service, "val restoring = intent == null && continuationStore.load() != null")
     require("campaign/CampaignToolActivity.kt", ui, "recordCallEvidence = evidenceChoice.isChecked")
