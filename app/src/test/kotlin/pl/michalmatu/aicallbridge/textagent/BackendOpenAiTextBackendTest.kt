@@ -31,6 +31,23 @@ class BackendOpenAiTextBackendTest {
     }
 
     @Test
+    fun `long STT input survives outbound JSON encoding without 4000 character rejection`() {
+        val config = BackendOpenAiTextConfig(
+            "https://bridge.example.test/v1/call-text-turn", sessionToken,
+        )
+        val backend = BackendOpenAiTextBackend(config)
+        val message = "Długi transkrypt rozmówcy ąęć. ".repeat(400)
+        assertTrue(message.length > 4_000)
+        val request = backend.buildRequest(message)
+        val buffer = Buffer()
+        request.body!!.writeTo(buffer)
+        val encoded = com.google.gson.JsonParser.parseString(buffer.readUtf8())
+            .asJsonObject.get("input").asString
+        assertEquals(message, encoded)
+        backend.close()
+    }
+
+    @Test
     fun `parses only bounded complete text`() {
         val backend = BackendOpenAiTextBackend(
             BackendOpenAiTextConfig("https://bridge.example.test/v1/call-text-turn", sessionToken),
