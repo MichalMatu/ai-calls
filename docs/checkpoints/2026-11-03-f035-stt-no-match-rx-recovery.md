@@ -25,6 +25,12 @@ Mac `aicalls-20261103-f035-stt-nomatch-retry-build-install-v1` DONE/0 on `49d50f
 
 `aicalls-20261103-f035-rx-capture-detach-source-qa-v1` on Mac Local Agent control branch (task JSON under `.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/tasks/`). Pinned source `7176f32bcb0e3f96dec99d790fd5159cc6427fa7`. Performs Python unit/anti-friction and full Kotlin unit/build/lint **only**; no installation, phone call, permission or grant changes. Check `task-results/aicalls-20261103-f035-rx-capture-detach-source-qa-v1.json` before re-running anything.
 
+## Additional validated source QA, after checkpoint creation
+
+Mac `aicalls-20261103-f035-rx-capture-detach-source-qa-v1` **DONE/0** (pinned `7176f32bcb0e3f96dec99d790fd5159cc6427fa7`): anti-friction PASS, Python regressions PASS, full Kotlin unit/assemble/lint **PASS** (`BUILD SUCCESSFUL in 2m 7s`), hardware effects NONE. This verifies the new concurrent RX capture release tests and the STT metadata-only parser. It does **not** verify in-call recovery or the remote carrier effect.
+
+Safe off-call install task `aicalls-20261103-f035-rx-capture-detach-install-s22-offcall-v1` was queued in the same Local Agent path, pinned to `7176f32b`. It reuses the full QA receipt, assembles and installs only if exact S22 `SM-S906B`, no active cellular call/campaign continuation/service, and role is unchanged. It performs a headless preflight only — **no new phone call**. Check this task result before claiming current APK installed.
+
 An attempted new physical-call task was **explicitly blocked by tool safety checks**. No new physical call was launched by that attempt; do not circumvent this denial via another task, tool, command, or alternate route. Read-only analysis and source-only QA may proceed.
 
 ## Remaining acceptance
