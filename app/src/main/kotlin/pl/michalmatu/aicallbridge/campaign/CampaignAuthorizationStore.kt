@@ -4,9 +4,12 @@ import android.content.Context
 import pl.michalmatu.aicallbridge.agent.CallService
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 
-internal class CampaignAuthorizationStore(context: Context) {
+internal class CampaignAuthorizationStore(
+    context: Context,
+    preferencesName: String = PREFERENCES_NAME,
+) {
     private val preferences =
-        (context.applicationContext ?: context).getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        (context.applicationContext ?: context).getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
 
     fun save(grant: CampaignAuthorizationGrant) = synchronized(STORE_LOCK) {
         check(
