@@ -13,6 +13,8 @@ REQUIRED = (
     MAIN + "campaign/CampaignToolActivity.kt",
     MAIN + "campaign/CampaignAuthorizationGrant.kt",
     MAIN + "campaign/CampaignAuthorizationStore.kt",
+    MAIN + "campaign/CampaignContinuationStore.kt",
+    MAIN + "campaign/AppOwnedCampaignService.kt",
     MAIN + "campaign/AppOwnedClirCampaignExecutor.kt",
     MAIN + "developerrelay/CallSessionEvidenceRecorder.kt",
     MAIN + "developerrelay/SupervisedCallPilotActivity.kt",
