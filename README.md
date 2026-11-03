@@ -1,5 +1,10 @@
 # AI Calls
 
+## F-040 — naprawa pustego transkryptu STT, gotowość S22
+
+Na S22 zainstalowano źródło `5b8ee947`: pusty wynik STT nie kończy już całego zadania, tylko korzysta z tej samej bezpiecznej kontynuacji nasłuchu co `NO_MATCH`/timeout. Pełna bramka jakości na Mac **PASS** (247 Python i wszystkie moduły Android), instalacja S22 i zachowanie grantu/roli dialera **PASS**. Diagnostyka na telefonie: `CAMPAIGN_AGENT_READINESS=READY`, Shizuku i Android gotowe. **Rzeczywiste połączenie po zmianie nie zostało wykonane**, więc nie deklarujemy jeszcze sukcesu rozmowy ani wyniku CLIR. [Checkpoint i dowody](docs/checkpoints/2026-11-03-f040-stt-empty-final-same-call-retry.md).
+
+
 ## F-039 — bezpośredni START zamiast dwóch ekranów
 
 Nowa główna akcja `Rozpocznij autoryzowane zadanie AI` kieruje po jednym dotknięciu do **istniejącej** ścieżki START kampanii z tym samym grantem, kontrolą roli dialera i STOP. Zbędne `Campaign tools → START` nie jest już wymagane; dawny pilot `Jeden przycisk` pozostał pod Diagnostyką i nie powinien udawać autonomicznej kampanii. [Dowód i checkpoint](docs/checkpoints/2026-11-03-f039-primary-task-start-no-extra-click.md), [F-039](BLOCKERS.md). **F-039 VERIFIED — poprawka wdrożona na S22** (źródło `1659bdc0`); Mac pełny test PASS, **247 Python**, fizyczne **5/5 off-call testów PASS**, granty i rola dialera zachowane. Rzeczywista rozmowa/CLIR nadal wymaga oddzielnej akceptacji.
