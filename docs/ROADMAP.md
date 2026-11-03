@@ -1,6 +1,6 @@
 # AI Calls — current roadmap\n\n## Aktualny etap: uporządkowanie UI bez zmiany silnika
 
-[UI first pass — checkpoint](checkpoints/2026-11-03-ui-accordion-first-pass.md). Przegrupowano istniejące kontrolki dwóch ekranów, zachowano niezwijane STOP/revoke i wszystkie stare callbacki. Nowy Android UI contract test źródłowo sprawdza obecność akcji oraz otwieranie sekcji. **Mac source full QA PENDING**. Nie instalowano nowego APK i nie wykonano połączenia. Po wynikach: ewentualny bezpieczny test UI na S22 IDLE; dopiero następnie wizualne dopracowanie lub projekt porównywanych profili, bez ingerencji w STT/Gemma/TTS.
+[UI first pass — checkpoint](checkpoints/2026-11-03-ui-accordion-first-pass.md). Przegrupowano istniejące kontrolki dwóch ekranów, zachowano niezwijane STOP/revoke i wszystkie stare callbacki. Nowy Android UI contract test źródłowo sprawdza obecność akcji oraz otwieranie sekcji. **Mac source full QA PASS** (wszystkie moduły + 244 Python + audit i porównanie 4 plików UI). Bezpieczny test na S22 został **odroczony**, bo `EXACT_S22=false`; nie instalowano nowego APK i nie wykonano połączenia. Po wynikach: ewentualny bezpieczny test UI na S22 IDLE; dopiero następnie wizualne dopracowanie lub projekt porównywanych profili, bez ingerencji w STT/Gemma/TTS.
 
 ## Aktualna kolejność po freeze 2026-11-03
 
