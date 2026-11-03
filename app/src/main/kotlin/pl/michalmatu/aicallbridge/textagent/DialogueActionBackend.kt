@@ -71,6 +71,8 @@ internal class DialogueTaskContext(
 
 internal fun interface DialogueActionDecisionObserver {
     fun onDecision(decision: DialogueActionDecision)
+    /** Optional metric; no transcript, model output, fact or account data. */
+    fun onClassifierTiming(elapsedMs: Long) = Unit
 }
 
 internal fun interface DialogueActionExecutor {
@@ -236,10 +238,14 @@ internal class DialogueActionBackend(
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }
         val requestGeneration = generation.incrementAndGet()
+        val classifierStartNs = System.nanoTime()
         classifierBackend.cancel()
         classifierBackend.generate(turnMemory?.classifierInput(userText) ?: userText, object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
                 if (!isCurrent(requestGeneration)) return
+                runCatching { observer?.onClassifierTiming(
+                    ((System.nanoTime() - classifierStartNs) / 1_000_000L).coerceAtLeast(0L),
+                ) }
                 val parsed = parseDecision(text)
                 if (parsed is ParseResult.Error) {
                     listener.onError(parsed.reason)
@@ -292,6 +298,9 @@ internal class DialogueActionBackend(
 
             override fun onError(reason: String) {
                 if (isCurrent(requestGeneration)) {
+                    runCatching { observer?.onClassifierTiming(
+                        ((System.nanoTime() - classifierStartNs) / 1_000_000L).coerceAtLeast(0L),
+                    ) }
                     listener.onError("dialogue_action_classifier_${sanitize(reason)}")
                 }
             }
