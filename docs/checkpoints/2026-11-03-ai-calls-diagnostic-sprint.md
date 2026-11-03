@@ -22,6 +22,12 @@ Data: 2026-11-03
 - `aicalls-20261103-sprint-verified-source-qa-v6`, SHA `32ff901b20481c5670ce157e856cf42fc217308b`: **PASS** — Python 222/222, skaner, Kotlin units, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`, `:app:lintDebug`. `BUILD SUCCESSFUL in 1m 35s`. To źródłowe QA, nie test live-call.
 - `aicalls-20261103-s22-readonly-preflight-v7`: `AUTHORIZED_DEVICE_COUNT=0`; na Macu nie było podłączonego S22. Nie uruchamiano ADB install, zmiany roli dialera, połączeń ani nagrań.
 
+## Gotowe APK na Macu (bez ingerencji w telefon)
+Mac Local Agent `aicalls-20261103-sprint-export-debug-apk-v8` DONE/0, source SHA `32ff901b`:
+- `/Users/michal/Downloads/ai-calls-sprint-32ff901b-debug.apk` (SHA256 `0cde4749fc86e1ee2b69977f279a10c6de8de1e3c79c3549fa1f2fe8f3226c67`).
+- `/Users/michal/Downloads/ai-calls-sprint-32ff901b-androidTest.apk` (SHA256 `12450f21cedecfdc477a2a2f0df09b358d07157183b12f637d22087690d2edd7`).
+- Nie było instalacji, zmiany roli ani połączenia; aplikacja gotowa do instalacji po podłączeniu S22.
+
 ## Niedomknięte — nie wolno ogłaszać pełnego PASS
 - F-003/F-017: wygodny, prywatny eksport przez UI nie działa; moduł archiwum samodzielnie nie zapewnia UX.
 - F-011: limit 4000 znaków wejścia brokera i fizyczne długie dialogi; klasyfikator JSON/ID ma własne zasadne limity protokołu. Nie podnosić ich bez kontraktu backendu.
