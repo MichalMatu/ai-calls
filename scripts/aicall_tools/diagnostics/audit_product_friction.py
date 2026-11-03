@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 19):
+    for identifier in range(1, 20):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
