@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 22):
+    for identifier in range(1, 23):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
@@ -59,6 +59,8 @@ def audit(root: Path) -> list[str]:
     # An automatic continuation must remain tied to the approved grant and STOP.
     continuation = read(prefix + "campaign/CampaignContinuationStore.kt")
     service = read(prefix + "campaign/AppOwnedCampaignService.kt")
+    require("CampaignContinuationStore.kt", continuation, "(context.applicationContext ?: context)")
+    require("CampaignAuthorizationStore.kt", store, "(context.applicationContext ?: context)")
     require("CampaignContinuationStore.kt", continuation, "fun planRetry(")
     require("CampaignContinuationStore.kt", continuation, "fun clear()")
     require("AppOwnedCampaignService.kt", service, "continuationStore.clear()")
