@@ -25,6 +25,14 @@ No additional approval prompts, arbitrary retry/turn limits, unapproved facts, h
 3. After source PASS, on **exact S22**, only when phone is **IDLE** and active app campaign service is not mid-call, install `adb install -r` APK and test APK after checking unchanged authorization/continuation fingerprints and Android dialer role. Run only no-dialing isolated synthetic Gemma action latency test + existing safe UI/role tests where appropriate. Report GPU/CPU and first/warm inference ms; don't conclude remote acoustic behavior from this.
 4. Real in-call fast acknowledgment and final audio sequencing need independently user-authorized call evidence. Never start such a call via a previously denied host-control route. Record *only* numerical `quick_ack_tx_elapsed_ms`, `quick_ack_tx_bytes`, `gemma_classifier_wall_ms` and real EOS→TX; keep private WAVs on owner's Mac.
 
+## Source QA and last safety refinement
+
+- `aicalls-20261103-f042-quick-ack-gemma-full-qa-v2` **DONE/0**, pinned `c7ca83dbd5e9ff97edb2858c588841bc34254093`: `PRODUCT_FRICTION_AUDIT=PASS`, `FULL_HOST_QA=PASS`, three successful Android Gradle phases, **248 Python tests PASS**, `host_quality_gate_green=true`, `F042_END_TO_END_SOURCE_INVARIANTS=PASS`, no calls or device mutation.
+- The follow-up source-only hardening `895aa726dc4fe9fe18f1090ac0577ea484a4f54d` catches optional TTS prewarm constructor and TX executor submission errors so they **cannot block the existing full answer**. Job `aicalls-20261103-f042-final-no-blocker-qa-v3` launched; read receipt.
+- Final change `0be652d4e79ba552708d23d5707733a4770d0f4e` ensures filler is prepared and emitted **only** for explicitly authorized autonomous, app-owned (`!readOnlySupervised && !supervisorRelayEnabled`) campaign calls, never for the independent developer relay or supervised audio test. Job `aicalls-20261103-f042-final-owned-campaign-qa-v4` launched with full host gate and exact source pin. **Read this v4 result before any physical deployment or claim of finished QA.**
+- Synthetic policy check in Linux sandbox `F042_PURE_KOTLIN_POLICY_8_CASES=PASS`. This is supplemental and does not replace Mac v4/device tests.
+- **S22 has not been updated with F-042 at this checkpoint.** Keep previous installed F-040 source until approved QA. No automatically placed external calls; host's previous tool refusal must not be bypassed.
+
 ## Current scope/status
 
-**F-042 FIXED_IN_SOURCE / SOURCE_QA_PENDING** at document creation. No claim of a user-audible first acknowledgment or achieved subsecond end-to-end latency until physical evidence exists. F-041 private USB export remains VERIFIED.
+**F-042: SOURCE_QA_PASS on earlier functional source, final guarded source `0be652d4` QA_PENDING, S22 field acceptance OPEN** at current checkpoint. No claim of a user-audible first acknowledgment or achieved subsecond end-to-end latency until physical evidence exists. F-041 private USB export remains VERIFIED.
