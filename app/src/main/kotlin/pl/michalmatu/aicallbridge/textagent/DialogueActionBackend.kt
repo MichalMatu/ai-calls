@@ -402,9 +402,12 @@ internal object DialogueActionBackendFactory {
         observer: DialogueActionDecisionObserver? = null,
         taskContext: DialogueTaskContext? = null,
         turnMemory: DialogueActionTurnMemory? = null,
+        preparedClassifier: TextCallAgentBackend? = null,
     ): TextCallAgentBackend {
         val prompt = DialogueActionCatalog.systemPrompt(policy, taskContext)
-        val classifier = when (provider) {
+        // A prewarmed backend retains its already initialized local LiteRT engine.
+        // It still passes through the exact same structured decision policy and executor.
+        val classifier = preparedClassifier ?: when (provider) {
             TextLlmProvider.LOCAL_PHONE_LLM ->
                 LocalPhoneLlmBackendFactory.create(context.applicationContext, prompt)
 
