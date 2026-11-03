@@ -95,6 +95,13 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         saveWave(turn, "tx", txAtMs, copied)
     }
 
+    /** Keep neutral filler in its own WAV; never overwrite the approved answer TX WAV. */
+    fun recordAcknowledgementAudio(turn: Int, pcm: ByteArray, sentBytes: Int, txAtMs: Long) {
+        if (completed.get() || sentBytes <= 0) return
+        val aligned = minOf(sentBytes, pcm.size).let { it - it % 2 }
+        saveWave(turn, "tx-ack", txAtMs, pcm.copyOf(aligned))
+    }
+
     fun elapsed(): Long = (SystemClock.elapsedRealtime() - initialElapsedMs).coerceAtLeast(0L)
 
     private fun saveWave(turn: Int, direction: String, atMs: Long, pcm: ByteArray) {
@@ -108,7 +115,11 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
                 runCatching { CallSessionPcmWav.write(destination, pcm) }.isSuccess
             if (!saved) destination.delete()
             appendEvent(JSONObject()
-                .put("type", if (direction == "rx") "RX_PCM" else "TX_PCM")
+                .put("type", when (direction) {
+                    "rx" -> "RX_PCM"
+                    "tx-ack" -> "TX_ACK_PCM"
+                    else -> "TX_PCM"
+                })
                 .put("turn", turn)
                 .put("elapsed_ms", atMs)
                 .put("file", if (saved) fileName else JSONObject.NULL)
