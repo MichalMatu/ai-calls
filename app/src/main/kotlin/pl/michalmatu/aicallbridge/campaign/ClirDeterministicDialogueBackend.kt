@@ -32,6 +32,9 @@ internal class ClirDeterministicDialogueBackend(
             "CLIR_REASON" to "Dzwonię w sprawie włączenia usługi CLIR, czyli blokady prezentacji mojego numeru.",
             "CLIR_REPEAT_REASON" to "Oczywiście. Chodzi o włączenie blokady prezentacji mojego numeru, usługi CLIR.",
             "CLIR_GREETING" to "Dzień dobry. Dzwonię w sprawie usługi CLIR.",
+            "CLIR_EXPLAIN" to "Chodzi o stałe zastrzeganie mojego numeru przy połączeniach wychodzących, czyli usługę CLIR.",
+            "CLIR_NEXT_STEP" to "Jaki krok albo informacja jest potrzebna, żeby aktywować usługę CLIR?",
+            "CLIR_TRANSFER" to "Proszę połączyć mnie z działem, który zajmuje się aktywacją usługi CLIR.",
         )
         val MATRIX = PhraseMatrix(
             listOf(
@@ -58,6 +61,41 @@ internal class ClirDeterministicDialogueBackend(
                         "Czy może pani powtórzyć?",
                         "Nie dosłyszałem",
                         "Nie dosłyszałam",
+                    ),
+                ),
+                PhraseMatrixRule(
+                    ruleId = "CLIR_EXPLAIN",
+                    phrases = setOf(
+                        "Czym jest usługa CLIR?",
+                        "Co oznacza CLIR?",
+                        "Co to jest zastrzeganie numeru?",
+                        "Czy chodzi o stałe zastrzeganie numeru?",
+                    ),
+                    aliases = setOf(
+                        "Na czym polega usługa CLIR?",
+                        "Co daje blokada prezentacji numeru?",
+                    ),
+                ),
+                PhraseMatrixRule(
+                    ruleId = "CLIR_NEXT_STEP",
+                    phrases = setOf(
+                        "Jakie są kolejne kroki, żeby włączyć usługę CLIR?",
+                        "Co trzeba zrobić, aby włączyć CLIR?",
+                        "Jak mogę aktywować usługę CLIR?",
+                    ),
+                    aliases = setOf(
+                        "Jakie kroki są potrzebne do aktywacji CLIR?",
+                    ),
+                ),
+                PhraseMatrixRule(
+                    ruleId = "CLIR_TRANSFER",
+                    phrases = setOf(
+                        "Tą usługą zajmuje się inny dział.",
+                        "Proszę skontaktować się z innym działem w sprawie CLIR.",
+                        "Ten dział nie zajmuje się aktywacją CLIR.",
+                    ),
+                    aliases = setOf(
+                        "W tej sprawie muszę przekierować do innego działu.",
                     ),
                 ),
                 PhraseMatrixRule(
