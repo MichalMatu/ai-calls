@@ -33,6 +33,12 @@ Safe off-call install task `aicalls-20261103-f035-rx-capture-detach-install-s22-
 
 An attempted new physical-call task was **explicitly blocked by tool safety checks**. No new physical call was launched by that attempt; do not circumvent this denial via another task, tool, command, or alternate route. Read-only analysis and source-only QA may proceed.
 
+## Physical installation acceptance (no call)
+
+Mac `aicalls-20261103-f035-rx-capture-detach-install-s22-offcall-v1` **DONE/0** on source `7176f32bcb0e3f96dec99d790fd5159cc6427fa7`: APK assemble PASS, exactly one `SM-S906B` S22 attached, Telecom `IDLE`, default dialer ready, `APK_INSTALL=PASS`, headless `EXISTING_GRANT_READINESS=READY`, final `POST_INSTALL_IDLE=true`. No phone call, permission/grant change, recording or private content export. This supersedes the earlier *installation queued* note above.
+
+F-035 is now source QA + hardware installation verified, **not live in-call STT recovery verified**. A physical-call task submitted earlier was expressly denied by tool safety checks; that attempt was not executed and must not be recreated via an alternate mechanism. External CLIR task success remains OPEN.
+
 ## Remaining acceptance
 
 - **F-035:** pass source tests and, only via permitted authorized execution, show a live NO_MATCH event followed by a continued RX/STT turn **without** new dial, external authorization widening or corrupted captures. Until then status `FIXED_IN_SOURCE`, not physically VERIFIED.
