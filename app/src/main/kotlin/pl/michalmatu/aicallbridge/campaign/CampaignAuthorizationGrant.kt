@@ -16,6 +16,7 @@ internal data class CampaignAuthorizationGrant(
     val allowedEffectValues: Set<Boolean>,
     val allowedDisclosureFields: Set<IdentityFieldId>,
     val attemptsUsed: Int,
+    val recordCallEvidence: Boolean = false,
     val issuerEvidenceRef: String,
 ) {
     init {
