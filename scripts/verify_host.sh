@@ -7,6 +7,7 @@ allowed_root_entries=(
   .github
   .gitignore
   AGENTS.md
+  BLOCKERS.md
   README.md
   app
   audio-bridge
