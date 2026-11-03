@@ -85,7 +85,6 @@ internal class BackendOpenAiTextBackend(
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         val normalized = userText.trim()
         require(normalized.isNotEmpty()) { "user_text_must_not_be_blank" }
-        require(normalized.length <= MAX_INPUT_CHARS) { "user_text_too_large" }
         cancel()
         val call = callFactory.newCall(buildRequest(normalized))
         synchronized(lock) { activeCall = call }
@@ -164,8 +163,7 @@ internal class BackendOpenAiTextBackend(
     }
 
     private companion object {
-        const val MAX_INPUT_CHARS = 4_000
-        const val MAX_RESPONSE_CHARS = 64 * 1024
+        const val MAX_RESPONSE_CHARS = 1024 * 1024  // Decoder allocation guard, not a speech-length quota
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
