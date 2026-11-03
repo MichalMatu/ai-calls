@@ -131,15 +131,15 @@ class S22AutoloopParsingTests(unittest.TestCase):
     def test_private_latency_and_repeated_subject_actions_are_machine_only(self):
         private_text = "Moje konto 123456789, numer telefonu 500600700"
         report = (
-            "turn_1_dialogue_action=STATE_TASK_SUBJECT\\n"
-            "turn_2_dialogue_action=STATE_TASK_SUBJECT\\n"
-            "turn_3_dialogue_action=ASK_NEXT_SERVICE_STEP\\n"
-            "turn_4_dialogue_action=STATE_TASK_SUBJECT\\n"
-            "turn_1_eos_to_first_tx_ms=47567\\n"
-            "turn_2_eos_to_first_tx_ms=1900\\n"
-            "telephony_rx_pcm_bytes=1024\\n"
-            "probe_complete=true\\n"
-            "transcript=" + private_text + "\\n"
+            "turn_1_dialogue_action=STATE_TASK_SUBJECT\n"
+            "turn_2_dialogue_action=STATE_TASK_SUBJECT\n"
+            "turn_3_dialogue_action=ASK_NEXT_SERVICE_STEP\n"
+            "turn_4_dialogue_action=STATE_TASK_SUBJECT\n"
+            "turn_1_eos_to_first_tx_ms=47567\n"
+            "turn_2_eos_to_first_tx_ms=1900\n"
+            "telephony_rx_pcm_bytes=1024\n"
+            "probe_complete=true\n"
+            "transcript=" + private_text + "\n"
         )
         metrics = parse_pipeline_metrics(report)
         self.assertEqual(metrics["first_eos_to_tx_ms"], 47567)
