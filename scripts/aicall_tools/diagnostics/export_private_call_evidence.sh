@@ -26,16 +26,18 @@ if ! adb -s "$SERIAL" shell run-as "$PACKAGE" sh -c 'test -d files/call-session-
   exit 0
 fi
 STAMP="$(date -u '+%Y%m%dT%H%M%SZ')"
-TMP="$(mktemp "$OUT/.call-evidence-$STAMP.XXXXXX.part")"
-SUFFIX="${TMP##*.call-evidence-$STAMP.}"
-SUFFIX="${SUFFIX%.part}"
+# BSD/macOS mktemp requires Xs at the *end* of the template.
+# A hard link creates the final name only if absent, never overwriting evidence.
+TMP="$(mktemp "$OUT/.call-evidence-$STAMP.XXXXXXXX")"
+SUFFIX="${TMP##*.}"
 ARCHIVE="$OUT/call-evidence-$STAMP-$SUFFIX.tar.gz"
 trap 'rm -f "$TMP"' EXIT
 adb -s "$SERIAL" exec-out run-as "$PACKAGE" sh -c \
   'cd files && tar -czf - call-session-evidence' > "$TMP"
 [[ -s "$TMP" ]] || { echo 'USB_EXPORT=EMPTY_ARCHIVE_ERROR' >&2; exit 3; }
 tar -tzf "$TMP" >/dev/null
-mv "$TMP" "$ARCHIVE"
+ln "$TMP" "$ARCHIVE"
+rm -f "$TMP"
 chmod 600 "$ARCHIVE"
 printf 'USB_EXPORT=PASS\n'
 printf 'Private local export created: %s\n' "$ARCHIVE"
