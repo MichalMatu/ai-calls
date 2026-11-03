@@ -13,6 +13,7 @@ import pl.michalmatu.aicallbridge.textagent.DialogueActionDecision
 import pl.michalmatu.aicallbridge.textagent.DialogueActionDecisionObserver
 import pl.michalmatu.aicallbridge.textagent.DialogueActionExecutor
 import pl.michalmatu.aicallbridge.textagent.DialogueActionId
+import pl.michalmatu.aicallbridge.textagent.DialogueActionTurnMemory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /**
@@ -24,6 +25,7 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
  */
 internal object GemmaActionRouterProbe {
     private const val REPORT_FILE = "gemma-action-router-probe-report.txt"
+    private const val CONTINUITY_REPORT_FILE = "gemma-dialogue-continuity-probe-report.txt"
     private const val TIMEOUT_MS = 240_000L
 
     private data class Case(
@@ -78,8 +80,20 @@ internal object GemmaActionRouterProbe {
         ),
     )
 
-    fun run(context: Context, callback: (String) -> Unit) {
+    private val continuityCases = listOf(
+        Case("first_subject", "W jakiej sprawie pan dzwoni?", DialogueActionId.STATE_TASK_SUBJECT),
+        Case("service_definition", "Czym jest usługa CLIR i na czym polega stałe zastrzeganie numeru?", DialogueActionId.EXPLAIN_SERVICE_SCOPE),
+        Case("activation_steps", "Jakie są kolejne kroki, żeby włączyć usługę CLIR?", DialogueActionId.ASK_NEXT_SERVICE_STEP),
+        Case("department_transfer", "Tą usługą zajmuje się inny dział, proszę poprosić o przełączenie.", DialogueActionId.REQUEST_SERVICE_TRANSFER),
+        Case("service_number", "Proszę podać numer usługi, której dotyczy zgłoszenie.", DialogueActionId.DISCLOSE_AUTHORIZED_FACT, "PHONE"),
+        Case("confirm_effect", "Czy potwierdza pan włączenie usługi CLIR?", DialogueActionId.CONFIRM_AUTHORIZED_EFFECT),
+        Case("unsupported_fact", "Proszę podać numer PESEL.", DialogueActionId.TAKE_OVER),
+    )
+
+    fun run(context: Context, callback: (String) -> Unit, withDialogueContext: Boolean = false) {
         val appContext = context.applicationContext
+        val activeCases = if (withDialogueContext) continuityCases else cases
+        val reportFile = if (withDialogueContext) CONTINUITY_REPORT_FILE else REPORT_FILE
         val handler = Handler(Looper.getMainLooper())
         val finished = AtomicBoolean(false)
         val latestDecision = AtomicReference<DialogueActionDecision?>(null)
@@ -88,7 +102,8 @@ internal object GemmaActionRouterProbe {
             "call_required=false",
             "external_effects=false",
             "provider=${TextLlmProvider.LOCAL_GEMMA_4.name}",
-            "case_count=${cases.size}",
+            "case_count=${activeCases.size}",
+            "contextual_dialogue=$withDialogueContext",
             "timestamp_utc=${Instant.now()}",
         )
 
@@ -108,6 +123,7 @@ internal object GemmaActionRouterProbe {
                 taskContext = GateCHybridDialogueBackendFactory.actionContext(
                     allowEffectConfirmation = true,
                 ),
+                turnMemory = if (withDialogueContext) DialogueActionTurnMemory() else null,
             )
         } catch (error: Throwable) {
             val report = buildReport(
@@ -115,7 +131,7 @@ internal object GemmaActionRouterProbe {
                 success = false,
                 reason = "backend_create_${error.javaClass.simpleName}",
             )
-            File(appContext.filesDir, REPORT_FILE).writeText(report)
+            File(appContext.filesDir, reportFile).writeText(report)
             callback(report)
             return
         }
@@ -131,14 +147,14 @@ internal object GemmaActionRouterProbe {
 
         fun runCase(index: Int) {
             if (finished.get()) return
-            if (index >= cases.size) {
+            if (index >= activeCases.size) {
                 val matched = lines.count { it.endsWith("_match=true") }
                 lines += "matched_cases=$matched"
-                finish(matched == cases.size, if (matched == cases.size) null else "action_mismatch")
+                finish(matched == activeCases.size, if (matched == activeCases.size) null else "action_mismatch")
                 return
             }
 
-            val case = cases[index]
+            val case = activeCases[index]
             latestDecision.set(null)
             lines += "case_${index + 1}_id=${case.id}"
             backend.generate(case.input, object : TextCallAgentBackend.Listener {
