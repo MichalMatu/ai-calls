@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import java.io.File
+import pl.michalmatu.aicallbridge.campaign.CampaignAgentControl
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaOffCallSmokeProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
@@ -33,6 +34,19 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        // Existing shell/DUMP-only activity can invoke an internal service without UI taps.
+        // A real call is possible only after the app revalidates an existing exact grant.
+        val requestCampaignStart = intent.getBooleanExtra(EXTRA_RUN_CAMPAIGN_AGENT_START, false)
+        if (requestCampaignStart ||
+            intent.getBooleanExtra(EXTRA_RUN_CAMPAIGN_AGENT_PREFLIGHT, false)
+        ) {
+            val report = CampaignAgentControl.run(this, requestCampaignStart)
+            File(filesDir, CampaignAgentControl.REPORT_FILE_NAME).writeText(report)
+            statusView.text = report
+            Log.i(TAG, "campaign_agent_report:\n" + report)
+            finish()
+            return
+        }
         if (intent.getBooleanExtra(EXTRA_RUN_OPENAI_TEXT_SPEECH_PIPELINE_PROBE, false)) {
             val config = try {
                 OpenAiTextSmokeConfig.loadAndDelete(File(filesDir, OpenAiTextSmokeConfig.FILE_NAME))
@@ -341,6 +355,8 @@ class DiagnosticProbeActivity : Activity() {
 
     private companion object {
         const val TAG = "AiCallBridge"
+        const val EXTRA_RUN_CAMPAIGN_AGENT_PREFLIGHT = "run_campaign_agent_preflight"
+        const val EXTRA_RUN_CAMPAIGN_AGENT_START = "run_campaign_agent_start"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
         const val EXTRA_RUN_OPENAI_TEXT_SPEECH_PIPELINE_PROBE = "run_openai_text_speech_pipeline_probe"
         const val EXTRA_RUN_LOCAL_PHONE_LLM_SPEECH_PIPELINE_PROBE = "run_local_phone_llm_speech_pipeline_probe"
