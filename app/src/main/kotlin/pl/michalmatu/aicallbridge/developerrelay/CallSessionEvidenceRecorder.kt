@@ -13,43 +13,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 
-/**
- * Optional, once-armed user diagnostic. The frozen RX/TX media transports are untouched:
- * their already available PCM is copied only when explicitly enabled by the owner in UI.
- * Text and waveforms are APP-PRIVATE. Never print or upload either to GitHub/logcat.
- */
-internal object CallSessionEvidenceConsent {
-    private const val PREFS = "call_session_evidence_consent_v1"
-    private const val KEY_UNTIL = "armed_until_ms"
-    private const val ARM_TTL_MS = 10L * 60_000L
-
-    @Synchronized
-    fun armNextCall(context: Context, now: Long = System.currentTimeMillis()) {
-        check(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putLong(KEY_UNTIL, now + ARM_TTL_MS).commit())
-    }
-
-    @Synchronized
-    fun cancel(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().remove(KEY_UNTIL).commit()
-    }
-
-    @Synchronized
-    fun isArmed(context: Context, now: Long = System.currentTimeMillis()): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getLong(KEY_UNTIL, 0L) > now
-
-    /** Consume for one qualifying local audio session. Never auto-arm another call. */
-    @Synchronized
-    fun consume(context: Context, now: Long = System.currentTimeMillis()): Boolean {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val enabled = prefs.getLong(KEY_UNTIL, 0L) > now
-        if (!prefs.edit().remove(KEY_UNTIL).commit()) return false
-        return enabled
-    }
-}
-
 /** 16 kHz mono signed PCM16LE -> real RIFF WAV; never rescales or re-routes audio. */
 internal object CallSessionPcmWav {
     fun write(file: File, bytes: ByteArray) {
