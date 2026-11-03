@@ -11,10 +11,10 @@ import android.media.MediaPlayer
 import android.telecom.TelecomManager
 import java.io.File
 import org.json.JSONObject
-import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceConsent
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -73,37 +73,12 @@ class CampaignToolActivity : Activity() {
                 statusView.text = "Stopping AI; only an app-owned call may be disconnected"
             }
         }
-        val evidenceButton = Button(this).apply {
-            text = "Zapisz następną rozmowę: transkrypt + obie ścieżki WAV"
+        val disableEvidenceButton = Button(this).apply {
+            text = "Wyłącz nagrywanie w zatwierdzonej kampanii"
             setOnClickListener {
-                AlertDialog.Builder(this@CampaignToolActivity)
-                    .setTitle("Prywatna diagnostyka jednej rozmowy")
-                    .setMessage(
-                        "Tylko następna rozmowa w ciągu 10 minut. Zapis w pamięci prywatnej " +
-                            "aplikacji: rozpoznana mowa rozmówcy, zatwierdzony tekst agenta, " +
-                            "osobne WAV odebrane (RX) i wysłane (TX). " +
-                            "Pliki mogą zawierać dane osobowe i poufne wypowiedzi. " +
-                            "Poinformuj rozmówcę o nagrywaniu, jeżeli jest to wymagane. " +
-                            "Brak automatycznego wysyłania do ChatGPT, GitHub ani chmury. " +
-                            "Zachowujemy najwyżej trzy ostatnie sesje. Możesz anulować zgodę."
-                    )
-                    .setPositiveButton("Uzbrój jedną sesję") { _, _ ->
-                        runCatching {
-                            CallSessionEvidenceConsent.armNextCall(this@CampaignToolActivity)
-                            statusView.text = "Prywatne RX/TX + transkrypt uzbrojone na jedną sesję (10 min)."
-                        }.onFailure {
-                            statusView.text = "Nie udało się uzbroić zapisu diagnostycznego."
-                        }
-                    }
-                    .setNegativeButton("Anuluj", null)
-                    .show()
-            }
-        }
-        val cancelEvidenceButton = Button(this).apply {
-            text = "Wyłącz zapis diagnostyczny następnej rozmowy"
-            setOnClickListener {
-                CallSessionEvidenceConsent.cancel(this@CampaignToolActivity)
-                statusView.text = "Następna rozmowa nie będzie nagrywana."
+                val grant = authorizationStore.disableEvidenceRecording()
+                statusView.text = if (grant == null) "Brak kampanii" else
+                    "Nagrywanie wyłączone dla kolejnych rozmów. Zadanie pozostaje autoryzowane."
             }
         }
         val playbackButton = Button(this).apply {
@@ -148,8 +123,7 @@ class CampaignToolActivity : Activity() {
             addView(startButton)
             addView(supervisedAudioButton)
             addView(stopSupervisedAudioButton)
-            addView(evidenceButton)
-            addView(cancelEvidenceButton)
+            addView(disableEvidenceButton)
             addView(playbackButton)
             addView(playbackRxButton)
             addView(transcriptButton)
@@ -369,6 +343,13 @@ class CampaignToolActivity : Activity() {
             return
         }
 
+        // One campaign approval includes an explicit, optional diagnostic scope.
+        // No per-call prompt, expiry timer or second approval during the same grant.
+        val evidenceChoice = CheckBox(this).apply {
+            text = "Zapisuj RX/TX i transkrypcje rozmów tej kampanii (lokalnie)"
+            isChecked = false
+            setPadding(24, 12, 24, 12)
+        }
         AlertDialog.Builder(this)
             .setTitle("Authorize bounded CLIR campaign")
             .setMessage(
@@ -378,13 +359,18 @@ class CampaignToolActivity : Activity() {
                     "Account: current default voice subscription\n" +
                     "Disclosure: PHONE only when policy allows\n" +
                     "Expiry: 24 hours\n\n" +
+                    "Opcjonalny zapis RX/TX i transkryptu na telefonie może zawierać dane osobowe. " +
+                    "Wybierz zapis poniżej tylko po spełnieniu obowiązków wobec rozmówcy. " +
+                    "Pliki nie są automatycznie wysyłane do chmury ani GitHub.\n\n" +
                     "It does not authorize other services, targets, purchases, contracts, " +
                     "premium/emergency calls or CLIR disable.",
             )
+            .setView(evidenceChoice)
             .setPositiveButton("Authorize locally") { _, _ ->
                 val grant = ClirCampaignSpec.newEnableGrant(
                     accountScope = accountScope,
                     nowEpochMs = System.currentTimeMillis(),
+                    recordCallEvidence = evidenceChoice.isChecked,
                 )
                 authorizationStore.save(grant)
                 refreshGrantStatus()
@@ -445,9 +431,10 @@ class CampaignToolActivity : Activity() {
                 "Campaign grant present\n" +
                     "Expires: ${Instant.ofEpochMilli(grant.expiresAtEpochMs)}"
         }
-        val evidenceStatus = if (CallSessionEvidenceConsent.isArmed(this)) {
-            "Diagnostyka następnej rozmowy: uzbrojona (jedna sesja, maks. 10 min)."
-        } else null
+        val evidenceStatus = if (grant?.recordCallEvidence == true &&
+            grant.revokedAtEpochMs == null) {
+            "Zapis RX/TX + transkrypt: w zakresie zatwierdzonej kampanii."
+        } else "Zapis RX/TX + transkrypt: wyłączony."
         val runtimeStatus = runtimeStatusStore.load()
         statusView.text = listOfNotNull(evidenceStatus, runtimeStatus, grantStatus).joinToString("\n\n")
     }
