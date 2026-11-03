@@ -6,7 +6,6 @@ import android.app.AlertDialog
 import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.Button
@@ -132,15 +131,6 @@ class CampaignToolActivity : Activity() {
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CALL_NOTIFICATIONS) {
-            val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
-            if (granted) requestPlatformCallRole()
-            else {
-                continueStartAfterRole = false
-                statusView.text = "Powiadomienia połączeń są wymagane dla aktywnego panelu rozmowy"
-            }
-            return
-        }
         if (requestCode != REQUEST_CAMPAIGN_PERMISSIONS) return
 
         val allGranted = permissions.indices.all { index ->
@@ -187,16 +177,8 @@ class CampaignToolActivity : Activity() {
 
     private fun requestCallRole(continueWithStart: Boolean = false) {
         continueStartAfterRole = continueWithStart
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(
-                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                REQUEST_CALL_NOTIFICATIONS,
-            )
-            return
-        }
+        // Android 13 notification permission is optional for placing a call.
+        // Denial may hide our optional notification, never block the platform dialer role.
         requestPlatformCallRole()
     }
 
@@ -330,7 +312,6 @@ class CampaignToolActivity : Activity() {
     companion object {
         private const val REQUEST_CAMPAIGN_PERMISSIONS = 2001
         private const val REQUEST_DIALER_ROLE = 2002
-        private const val REQUEST_CALL_NOTIFICATIONS = 2003
         private val REQUIRED_PERMISSIONS = listOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CALL_PHONE,
