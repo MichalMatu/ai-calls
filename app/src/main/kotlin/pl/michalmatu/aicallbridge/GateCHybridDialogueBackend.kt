@@ -19,6 +19,7 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 internal enum class GateCHybridResponseSource {
     LOCAL_ACTION,
+    LOCAL_RECOVERY,
     LOCAL_FACT,
     HOST_ACTION,
     CHAT_RELAY,
@@ -115,7 +116,7 @@ internal object GateCHybridDialogueBackendFactory {
             onComplete = {
                 diagnostics.recordResponseSource(GateCHybridResponseSource.CHAT_RELAY)
             },
-        ) ?: unavailableRelayBackend
+        ) ?: localRecoveryBackend(diagnostics)
         val factActionBackend = if (authorizedFactBackend == null) {
             hostActionRelay
         } else {
@@ -145,6 +146,25 @@ internal object GateCHybridDialogueBackendFactory {
             fallback = supervisorRelay,
         )
     }
+
+    /**
+     * App-owned calls never depend on a human supervisor or a ChatGPT mailbox.
+     * When the local action classifier cannot decide, continue with a narrow
+     * question that contains no fact disclosure, promise, confirmation or effect.
+     * The normal application output approval gate still applies to this text.
+     */
+    internal fun localRecoveryBackend(diagnostics: GateCHybridDiagnostics): TextCallAgentBackend =
+        object : TextCallAgentBackend {
+            override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                diagnostics.recordResponseSource(GateCHybridResponseSource.LOCAL_RECOVERY)
+                listener.onComplete(
+                    "Chcę kontynuować włączenie usługi CLIR. " +
+                        "Proszę doprecyzować pytanie albo wskazać, co jest jeszcze potrzebne.",
+                )
+            }
+
+            override fun cancel() = Unit
+        }
 
     internal fun actionContext(
         allowEffectConfirmation: Boolean = true,
