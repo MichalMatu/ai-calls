@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 14):
+    for identifier in range(1, 16):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
@@ -79,6 +79,9 @@ def audit(root: Path) -> list[str]:
     for text, token in ((probe, "const val MAX_TURNS = 10"),
                         (probe, "const val MAX_NO_SPEECH_RETRIES = 3")):
         forbid("ChatRelayLiveCallProbe.kt", text, token)
+    event_test = read("app/src/test/kotlin/pl/michalmatu/aicallbridge/developerrelay/CallDiagnosticEvidenceTest.kt")
+    require("CallDiagnosticEvidenceTest.kt", event_test, "assertEquals(1100, log.render().lineSequence().count")
+    forbid("CallDiagnosticEvidenceTest.kt", event_test, "assertEquals(1024, log.render()")
     require("AndroidCampaignAuthorizationStoreContractTest.kt", android_test,
             "assertEquals(10, successes)")
     forbid("AndroidCampaignAuthorizationStoreContractTest.kt", android_test,
