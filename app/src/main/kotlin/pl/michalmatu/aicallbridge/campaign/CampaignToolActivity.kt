@@ -7,6 +7,11 @@ import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.media.MediaPlayer
+import android.telecom.TelecomManager
+import java.io.File
+import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceConsent
+import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -20,6 +25,7 @@ class CampaignToolActivity : Activity() {
     private lateinit var statusView: TextView
     private var pendingAction: PendingAction? = null
     private var continueStartAfterRole = false
+    private var playback: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +72,43 @@ class CampaignToolActivity : Activity() {
                 statusView.text = "Stopping AI; only an app-owned call may be disconnected"
             }
         }
+        val evidenceButton = Button(this).apply {
+            text = "Zapisz następną rozmowę: transkrypt + obie ścieżki WAV"
+            setOnClickListener {
+                AlertDialog.Builder(this@CampaignToolActivity)
+                    .setTitle("Prywatna diagnostyka jednej rozmowy")
+                    .setMessage(
+                        "Tylko następna rozmowa w ciągu 10 minut. Zapis w pamięci prywatnej " +
+                            "aplikacji: rozpoznana mowa rozmówcy, zatwierdzony tekst agenta, " +
+                            "osobne WAV odebrane (RX) i wysłane (TX). " +
+                            "Pliki mogą zawierać dane osobowe i poufne wypowiedzi. " +
+                            "Poinformuj rozmówcę o nagrywaniu, jeżeli jest to wymagane. " +
+                            "Brak automatycznego wysyłania do ChatGPT, GitHub ani chmury. " +
+                            "Zachowujemy najwyżej trzy ostatnie sesje. Możesz anulować zgodę."
+                    )
+                    .setPositiveButton("Uzbrój jedną sesję") { _, _ ->
+                        runCatching {
+                            CallSessionEvidenceConsent.armNextCall(this@CampaignToolActivity)
+                            statusView.text = "Prywatne RX/TX + transkrypt uzbrojone na jedną sesję (10 min)."
+                        }.onFailure {
+                            statusView.text = "Nie udało się uzbroić zapisu diagnostycznego."
+                        }
+                    }
+                    .setNegativeButton("Anuluj", null)
+                    .show()
+            }
+        }
+        val cancelEvidenceButton = Button(this).apply {
+            text = "Wyłącz zapis diagnostyczny następnej rozmowy"
+            setOnClickListener {
+                CallSessionEvidenceConsent.cancel(this@CampaignToolActivity)
+                statusView.text = "Następna rozmowa nie będzie nagrywana."
+            }
+        }
+        val playbackButton = Button(this).apply {
+            text = "Odsłuchaj ostatnią odpowiedź AI (tylko poza rozmową)"
+            setOnClickListener { playLastAgentAudio() }
+        }
         val revokeButton = Button(this).apply {
             text = "Revoke campaign grant"
             setOnClickListener {
@@ -96,6 +139,9 @@ class CampaignToolActivity : Activity() {
             addView(startButton)
             addView(supervisedAudioButton)
             addView(stopSupervisedAudioButton)
+            addView(evidenceButton)
+            addView(cancelEvidenceButton)
+            addView(playbackButton)
             addView(revokeButton)
             addView(
                 statusView,
@@ -123,6 +169,46 @@ class CampaignToolActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refreshGrantStatus()
+    }
+
+    override fun onDestroy() {
+        playback?.release()
+        playback = null
+        super.onDestroy()
+    }
+
+    private fun playLastAgentAudio() {
+        val telecom = getSystemService(TelecomManager::class.java)
+        if (runCatching { telecom?.isInCall == true }.getOrDefault(true)) {
+            statusView.text = "Odsłuch tylko poza rozmową; bez ryzyka sprzężenia audio."
+            return
+        }
+        val root = File(filesDir, CallSessionEvidenceRecorder.ROOT)
+        val latest = root.listFiles()?.filter { it.isDirectory }?.maxByOrNull { it.name }
+        val audio = latest?.listFiles()?.filter {
+            it.name.matches(Regex("turn-[0-9]{2}-tx\\.wav"))
+        }?.maxByOrNull { it.name }
+        if (audio == null) {
+            statusView.text = "Brak zapisanego audio AI. Najpierw uzbrój prywatną diagnostykę."
+            return
+        }
+        runCatching {
+            playback?.release()
+            val newPlayer = MediaPlayer()
+            playback = newPlayer
+            newPlayer.setDataSource(audio.absolutePath)
+            newPlayer.setOnCompletionListener {
+                it.release()
+                if (playback === it) playback = null
+            }
+            newPlayer.prepare()
+            newPlayer.start()
+            statusView.text = "Odtwarzanie prywatnego pliku AI: " + audio.name
+        }.onFailure {
+            playback?.release()
+            playback = null
+            statusView.text = "Nie udało się odtworzyć ostatniego pliku WAV."
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -296,6 +382,10 @@ class CampaignToolActivity : Activity() {
             else ->
                 "Campaign grant present\n" +
                     "Expires: ${Instant.ofEpochMilli(grant.expiresAtEpochMs)}"
+        }
+        if (CallSessionEvidenceConsent.isArmed(this)) {
+            // Display separately, do not include content of conversations.
+            statusView.text = "Diagnostyka następnej rozmowy: uzbrojona na 10 minut."
         }
         val runtimeStatus = runtimeStatusStore.load()
         statusView.text = listOfNotNull(runtimeStatus, grantStatus).joinToString("\n\n")

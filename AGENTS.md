@@ -1,5 +1,7 @@
 # Agent workflow
 
+**2026-11-03 private audio diagnostic:** Recording is OFF by default and requires separate one-call local UI opt-in (10 minutes), never general CLI authorization. Two independent app-private WAV streams (captured RX, actually written TX) and text-only JSONL conversation timeline are sensitive; no GitHub/Local-Agent receipt/logcat transport. Third-party recording/disclosure must be appropriate. Remote call end is not grant revocation. Details in `docs/checkpoints/2026-11-03-duplex-audio-and-private-transcript.md`.
+
 **2026-11-03 authorization update:** total CLIR call-attempt ceiling was a redundant blocker and has been removed. Keep exact target/effect/SIM scope, expiry/revocation, default dialer, single owned call, targeted disconnect and Android permission gates. Internal reservation marker does not limit total calls.
 
 ## 2026-11-03 — historical dialing regression and real Telecom controller source

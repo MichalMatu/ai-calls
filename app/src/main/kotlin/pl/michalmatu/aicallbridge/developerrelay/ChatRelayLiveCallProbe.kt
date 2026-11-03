@@ -89,6 +89,8 @@ internal object ChatRelayLiveCallProbe {
         liveAuthorization: () -> Boolean = { true },
         readOnlySupervised: Boolean = false,
         supervisedGemmaEnabled: Boolean = false,
+        callStillActive: () -> Boolean = { true },
+        evidenceRecorder: CallSessionEvidenceRecorder? = null,
         callback: (String) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -121,8 +123,11 @@ internal object ChatRelayLiveCallProbe {
             liveAuthorization,
             readOnlySupervised,
             supervisedGemmaEnabled,
+            callStillActive,
+            evidenceRecorder,
         )
         if (!activeSession.compareAndSet(null, session)) {
+            evidenceRecorder?.finish("audio_session_already_active")
             callback(immediateReport("audio_session_already_active"))
             return null
         }
@@ -140,6 +145,8 @@ internal object ChatRelayLiveCallProbe {
         private val liveAuthorization: () -> Boolean,
         private val readOnlySupervised: Boolean,
         private val supervisedGemmaEnabled: Boolean,
+        private val callStillActive: () -> Boolean,
+        private val evidenceRecorder: CallSessionEvidenceRecorder?,
     ) : SessionControl {
         override fun stopAudio() {
             // Revoke TX synchronously, even if the main-thread cleanup is delayed.
@@ -253,6 +260,7 @@ internal object ChatRelayLiveCallProbe {
             "phone_disclosure_authorized=$phoneDisclosureAuthorized",
             "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
+            "private_audio_recording=${evidenceRecorder != null}",
         ))
         private var mediaRuntime: CallMediaSessionRuntime? = null
         private var downlinkPump: ChatRelayDownlinkPump? = null
@@ -271,7 +279,7 @@ internal object ChatRelayLiveCallProbe {
         private val authorityWatchdog = object : Runnable {
             override fun run() {
                 if (finished.get()) return
-                if (!authorizedNow()) finish(false, "campaign_authority_revoked_or_expired")
+                if (!authorizedNow()) finish(false, authorityFailureReason())
                 else handler.postDelayed(this, 500L)
             }
         }
@@ -279,9 +287,13 @@ internal object ChatRelayLiveCallProbe {
         private fun authorizedNow(): Boolean =
             !stopRequested.get() && runCatching { liveAuthorization() }.getOrDefault(false)
 
+        private fun authorityFailureReason(): String =
+            if (!runCatching { callStillActive() }.getOrDefault(false)) "owned_call_ended"
+            else "campaign_authority_revoked_or_expired"
+
         fun start() {
             if (!authorizedNow()) {
-                finish(false, "campaign_authority_revoked_or_expired")
+                finish(false, authorityFailureReason())
                 return
             }
             handler.postDelayed(authorityWatchdog, 500L)
@@ -345,7 +357,7 @@ internal object ChatRelayLiveCallProbe {
                 finish(false, "stale_media_generation")
                 return
             }
-            if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
+            if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
             if (turnsCompleted >= maxTurns) {
                 finish(true)
                 return
@@ -368,7 +380,8 @@ internal object ChatRelayLiveCallProbe {
 
                 override fun onUserTranscript(text: String) {
                     if (finished.get()) return
-                    if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
+                    if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
+                    evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text)
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
                     val routeEvidence = ClirRouteEvidence.isExplicitServiceContext(text)
@@ -392,14 +405,15 @@ internal object ChatRelayLiveCallProbe {
 
                 override fun onApprovedText(text: String) {
                     if (finished.get()) return
-                    if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
+                    if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
+                    evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text)
                     lines += "turn_${currentTurn}_approved_chars=${text.length}"
                     lines += "turn_${currentTurn}_approved_elapsed_ms=${elapsedTurnMs()}"
                     recordTurnDialogueDiagnostics(currentTurn)
                 }
 
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
-                    if (finished.get() || !authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
+                    if (finished.get() || !authorizedNow()) { finish(false, authorityFailureReason()); return }
                     if (activeMediaGeneration.get() != generation) { finish(false, "stale_media_generation"); return }
                     lines += "turn_${currentTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
                     executor.execute { writeOutputTurn(lease, pcm, currentTurn, generation) }
@@ -427,6 +441,7 @@ internal object ChatRelayLiveCallProbe {
                 maxCaptureMs = 60_000,
             )
             val captureStartedElapsedMs = elapsedTurnMs()
+            val evidenceRx = evidenceRecorder?.openRxTurn(turn)
             var total = 0
             var endpoint = detector.acceptPcm16(ByteArray(0))
             try {
@@ -436,12 +451,14 @@ internal object ChatRelayLiveCallProbe {
                         if (!pipeline.writeInputPcm(bytes, 0, length)) {
                             throw IllegalStateException("stt_pcm_write_failed")
                         }
+                        evidenceRx?.append(bytes, length)
                         total += length
                         endpoint = detector.acceptPcm16(bytes, 0, length)
                         return !endpoint.shouldStop && !finished.get()
                     }
 
                     override fun onFinished() {
+                        evidenceRx?.finish()
                         totalRxBytes += total.toLong()
                         lines += "turn_${turn}_rx_pcm_bytes=$total"
                         lines += "turn_${turn}_endpoint_reason=${endpoint.reason?.name?.lowercase() ?: "capture_finished"}"
@@ -470,6 +487,7 @@ internal object ChatRelayLiveCallProbe {
                     }
 
                     override fun onError(reason: String) {
+                        evidenceRx?.finish()
                         if (finished.get()) return
                         context.mainExecutor.execute {
                             finish(false, "turn_${turn}_rx_${sanitize(reason)}")
@@ -477,6 +495,7 @@ internal object ChatRelayLiveCallProbe {
                     }
                 })
             } catch (error: Throwable) {
+                evidenceRx?.finish()
                 finish(false, "turn_${turn}_rx_${error.javaClass.simpleName}")
             }
         }
@@ -501,6 +520,7 @@ internal object ChatRelayLiveCallProbe {
                     lines += "turn_${turn}_eos_to_first_tx_ms=${(firstTxElapsed - speechEndMs).coerceAtLeast(0L)}"
                 }
                 val txWriteStarted = SystemClock.elapsedRealtime()
+                val txEvidenceAtMs = evidenceRecorder?.elapsed() ?: 0L
                 val bytesWritten = AuthorizedPcmUplinkWriter.write(
                     uplink = lease.uplink(),
                     pcm = pcm,
@@ -509,6 +529,7 @@ internal object ChatRelayLiveCallProbe {
                             activeMediaGeneration.get() == generation
                     },
                 )
+                evidenceRecorder?.recordTransmittedAudio(turn, pcm, bytesWritten, txEvidenceAtMs)
                 if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
                     activeMediaGeneration.get() != generation
                 ) {
@@ -544,7 +565,7 @@ internal object ChatRelayLiveCallProbe {
             if (finished.get() || turn != currentTurn) return
             turnsCompleted = turn
             lines += "turn_${turn}_complete_elapsed_ms=${elapsedTurnMs()}"
-            if (!authorizedNow()) { finish(false, "campaign_authority_revoked_or_expired"); return }
+            if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
             if (pendingExternalSuccessEvidence.compareAndSet(true, false)) {
                 if (!finalizeExternalSuccess()) return
                 finish(true)
@@ -606,7 +627,7 @@ internal object ChatRelayLiveCallProbe {
         /** Carrier claim is provisional; network status verification is a separate acceptance gate. */
         private fun finalizeExternalSuccess(): Boolean {
             if (!authorizedNow()) {
-                finish(false, "campaign_authority_revoked_or_expired")
+                finish(false, authorityFailureReason())
                 return false
             }
             if (completionTracker == null) {
@@ -671,6 +692,7 @@ internal object ChatRelayLiveCallProbe {
             lines += "chat_relay_live_call_success=$success"
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
+            evidenceRecorder?.finish(reason)
             val report = lines.render()
             PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, report)
             context.mainExecutor.execute { callback(report) }

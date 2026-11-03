@@ -1,5 +1,13 @@
 # AI Calls — current handoff
 
+## 2026-11-03 — prywatna diagnostyka audio i transkryptu (weryfikacja w toku)
+
+W realnym teście po wyłączeniu VoWiFi `87c7d903`: RX→STT, trzy decyzje Gemma, trzy TTS→TX PASS w prywatnym świeżym raporcie; `MODE_IN_CALL` PASS. Telecom wskazał zakończenie **REMOTE**, mimo wcześniejszego mylnego statusu `campaign_authority_revoked_or_expired`; to oznacza utratę uchwytu, nie utratę grantu.
+
+Bieżący kod dodaje **osobny jednorazowy opt-in** z UI na zapis prywatnej rozmowy (10 min), `timeline.jsonl` z rozróżnieniem konsultant/agent, WAV RX i WAV rzeczywiście wysłanego TX na turę, bez modyfikacji Samsung RX/TX, odsłuch AI poza połączeniem oraz opcjonalny lokalny eksport ADB do `~/Documents/AI-Calls/private-exports`. Nagrania **nie trafiają do GitHub, Local Agent task-results ani chmury**. Przy braku opt-in żaden tekst ani PCM nie jest utrwalany. Po zakończeniu zdalnym poprawny kod diagnostyczny to `owned_call_ended`, nie `campaign_authority_revoked_or_expired`.
+
+Ten sprint wymaga jeszcze Mac build/unit/lint, fizycznej instalacji, sprawdzenia opt-in i odbioru nowych plików. Szczegóły: `docs/checkpoints/2026-11-03-duplex-audio-and-private-transcript.md`.
+
 ## 2026-11-03 — five-call attempt ceiling removed
 
 Owner decision: eliminate the arbitrary maximum number of phone calls as a redundant blocker to repeated authorized testing. `maxAttempts` and `ATTEMPT_LIMIT_REACHED` removed from code and UI. Existing scoped grants migrate without renewal; old `max_attempts` preference is ignored, and `attemptsUsed` remains only an internal reservation marker (never a call limit).

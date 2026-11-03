@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
 import pl.michalmatu.aicallbridge.developerrelay.ChatRelayLiveCallProbe
+import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceConsent
+import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 
 internal object AppOwnedClirCampaignExecutor {
@@ -278,6 +280,12 @@ internal object AppOwnedClirCampaignExecutor {
                 maxTurns = ChatRelayLiveCallProbe.MAX_TURNS,
                 phoneDisclosureAuthorized = phoneDisclosureAuthorized,
                 supervisorRelayEnabled = false,
+                callStillActive = {
+                    runCatching { ownedCall.isExactCallActive() }.getOrDefault(false)
+                },
+                evidenceRecorder = if (CallSessionEvidenceConsent.consume(appContext)) {
+                    CallSessionEvidenceRecorder.create(appContext)
+                } else null,
                 liveAuthorization = {
                     running.get() &&
                         runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
