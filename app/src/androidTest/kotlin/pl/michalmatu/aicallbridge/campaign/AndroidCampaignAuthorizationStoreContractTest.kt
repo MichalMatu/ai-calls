@@ -20,25 +20,26 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class AndroidCampaignAuthorizationStoreContractTest {
+    private val testPreferencesName = "campaign_authorization_grant_instrumentation_v1"
     private lateinit var context: Context
     private lateinit var store: CampaignAuthorizationStore
     private val request = ClirCampaignSpec.enableRequest("test-voice")
 
     @Before fun setup() {
-        context = InstrumentationRegistry.getInstrumentation().context
-        context.getSharedPreferences("campaign_authorization_grant_v1", Context.MODE_PRIVATE)
+        context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences(testPreferencesName, Context.MODE_PRIVATE)
             .edit().clear().commit()
-        store = CampaignAuthorizationStore(context)
+        store = CampaignAuthorizationStore(context, testPreferencesName)
         store.save(ClirCampaignSpec.newEnableGrant("test-voice", 1_000L, "test-grant"))
     }
 
     @After fun tearDown() {
-        context.getSharedPreferences("campaign_authorization_grant_v1", Context.MODE_PRIVATE)
+        context.getSharedPreferences(testPreferencesName, Context.MODE_PRIVATE)
             .edit().clear().commit()
     }
 
     @Test fun revokedGrantCannotBeResurrectedByConcurrentAttemptReservation() {
-        val other = CampaignAuthorizationStore(context)
+        val other = CampaignAuthorizationStore(context, testPreferencesName)
         val barrier = CountDownLatch(1)
         val executor = Executors.newFixedThreadPool(2)
         try {
@@ -67,9 +68,9 @@ class AndroidCampaignAuthorizationStoreContractTest {
     @Test fun recordingIsOffByDefaultAndExplicitCampaignSettingIsDurable() {
         assertTrue(store.load()!!.recordCallEvidence == false)
         store.save(store.load()!!.copy(recordCallEvidence = true))
-        assertTrue(CampaignAuthorizationStore(context).load()!!.recordCallEvidence)
+        assertTrue(CampaignAuthorizationStore(context, testPreferencesName).load()!!.recordCallEvidence)
         store.disableEvidenceRecording()
-        assertTrue(CampaignAuthorizationStore(context).load()!!.recordCallEvidence == false)
+        assertTrue(CampaignAuthorizationStore(context, testPreferencesName).load()!!.recordCallEvidence == false)
         assertTrue(store.reserveAuthorizedAttempt(request, 2_000L).isSuccess)
     }
 
@@ -78,7 +79,7 @@ class AndroidCampaignAuthorizationStoreContractTest {
         val executor = Executors.newFixedThreadPool(10)
         try {
             val futures = (1..10).map {
-                val independentStore = CampaignAuthorizationStore(context)
+                val independentStore = CampaignAuthorizationStore(context, testPreferencesName)
                 executor.submit<Boolean> {
                     barrier.await()
                     independentStore.reserveAuthorizedAttempt(request, 2_000L).isSuccess
