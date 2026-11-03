@@ -1,5 +1,24 @@
 # Architecture
 
+## Freeze 2026-11-03 — rozdział odpowiedzialności (bez zmiany runtime)
+
+Pełny [checkpoint organizacyjny](checkpoints/2026-11-03-organizational-freeze-f035-pre-voice-skills.md) ustala, co zweryfikowano na realnym S22 i jakie prace **nie** zostały jeszcze wykonane. **Nie oznaczaj całości rozmowy jako PASS**: techniczne RX/STT/Gemma/TTS/TX z wcześniejszej próby są realne, ale słyszalność u konsultanta i zewnętrzny efekt CLIR pozostają OPEN.
+
+```text
+Telefon/Android: autoryzacja + stan Call + RX/STT/TTS/TX + STOP
+  → deterministyczny stan zadania / workflow / PhraseMatrix
+    → AI model (interpretacja wejścia i propozycja strukturalnego skill/action)
+      → kontrakt skilla (dozwolone akcje/fakty/preconditions/fallback)
+        → deterministyczny executor + fact/disclosure/effect policies
+          → approved speech → TTS/TX → external evidence/verification
+```
+
+**Kontrakt:** AI nie jest skryptem i nie ma kontroli nad telefonem; skille nie są uprawnieniami; skrypty (silnik zadania/IVR/tekst odpowiedzi) nie mogą same poszerzać grantu. `service-packs/` to dane domenowe; `scripts/` w repozytorium to również hostowe narzędzia developerskie i nie jest to automatycznie Android skill runtime. Istniejące `DialogueActionBackend`, `DialogueSkillTextBackend`, `CallCommitmentGate` i `FactDisclosurePolicy` należy zachować i migrować stopniowo, z testami równoważności.
+
+**Model przed połączeniem:** `AppOwnedCampaignService.startAuthorizedAttempt` korzysta już z `CampaignGemmaPreflight.prepare`, a `GateCHybridDialogueBackendFactory` dostaje przygotowaną instancję lokalnej Gemmy **przed Telecom dial**. Po prewarm autoryzacja, SIM i IDLE są ponownie sprawdzane. Pierwszy EOS→TX: 47 567 ms przed zmianą, 10 567 ms po niej; pozostałe opóźnienie wymaga profilowania, nie drugiego identycznego prewarm.
+
+**Głos:** natywne wejście audio Gemmy nie oznacza automatycznego wyjścia głosowego ani wsparcia realnego half/full-duplex w tej aplikacji. Nowe modele są **opcją przyszłego benchmarku**, nie zależnością checkpointu. Zmiany w zamrożonym media/Telecom tylko po oddzielnym QA.
+
 ## Goal
 
 **Full product definition (owner clarification, 2026-11-02):** the user delegates a real-world outcome to local AI and need not manually place, supervise or end each normal call. The product should accept ordinary lawful user-selected destinations and perform user-authorized read-only or data-changing phone tasks in a unified engine. Its complete lifecycle is task interpretation, approved target/SIM selection, autonomous dial, speech/IVR reasoning, controlled action, independently verified result, call teardown, optional bounded retry/resume and concise user report. Orange CLIR is an acceptance case; manual supervised audio is diagnostic scaffolding, neither defines product scope.
