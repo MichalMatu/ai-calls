@@ -67,3 +67,21 @@ Gdy dokładnie jeden fizyczny S22 jest widoczny w ADB i w stanie IDLE, zainstalo
   - `~/Downloads/ai-calls-sprint-f023-5d19bfcf-androidTest.apk` — SHA256 `85c52d82c1254089bce398b990578a9b292741cd7a4557e8f31d16a1eebea790`.
 - **Pozostają OPEN**: pełny test długiej żywej rozmowy i automatycznego ponowienia (bez inicjowania połączenia w zadaniu buildowym), F-003/F-017 eksport ZIP z UI (narzędzie odmówiło zmiany; nie obchodzić), F-016 historyczny tekst aktywnych instrukcji (narzędzie odmówiło zmiany, pierwsze reguły `AGENTS.md` i `BLOCKERS.md` mają pierwszeństwo).
 - Powyższe PASS to **fizyczne S22 off-call** dla magazynów i testów, nie dowód RX/STT/TTS/TX, legalności zapisu czy zamknięcia realnej rozmowy z infolinią.
+
+## Sprint F-025 / F-026 — START, restart i zmiana autoryzowanego grantu
+
+Stan wejściowy: `main=47b35272c6c67dc0e94c5c0b1e5c0c34772f8e1e`; wcześniejsze S22 testy magazynów 4/4 PASS.
+
+**F-025 — znaleziony problem:** `AppOwnedCampaignService.onStartCommand` przy ponownym START mógł skasować trwały termin kolejnej próby (reset `continuationStore.begin`), a zatwierdzenie nowego grantu podczas aktywnego połączenia mogło zgubić nowy harmonogram: `startAuthorizedAttempt` zwracał na `isRunning` bez zaplanowania kolejnego sprawdzenia. Nowa `CampaignStartReconciliationPolicy` daje determistyczne `BEGIN_NEW / REUSE_SAVED / ALREADY_RUNNING / QUEUE_REPLACEMENT`. Ten sam grant zachowuje termin i licznik retry, aktywny START nie wybiera nowego numeru. Nowy zaakceptowany grant podczas kończącej się rozmowy pozostaje oczekujący do faktycznego stanu IDLE, a nie znika. `AppOwnedCampaignService.awaitPhoneIdle()` sprawdza stan bez dodatkowego potwierdzenia i bez kwoty prób. Wciąż obowiązuje dokładna autoryzacja i tylko własne połączenie podlega selektywnemu zakończeniu. Dodano 5 jednostkowych testów polityki, test źródłowy i 3 AndroidTest bez połączenia.
+
+**F-026 — regresja podczas QA:** nowa kontrola `TelecomManager.isInCall` w serwisie wymaga jawnego sprawdzenia uprawnienia `READ_PHONE_STATE`. Mac v18 (SHA `c97a8cde`) miał ANTI_FRICTION PASS i Python PASS, ale `:app:lintDebug` zgłosił `MissingPermission` 1 error. Naprawiono bez wyłączania lint, przez realne `checkSelfPermission(Manifest.permission.READ_PHONE_STATE)`, z dotychczasową kontrolą wymagań w executorze. Wpisy F-025 i F-026 w `BLOCKERS.md` pozostają jako historia.
+
+**Wynik końcowy:** Mac `aicalls-20261103-f025-permission-safe-s22-v19`, pinned `e77b86b6b73bebed5376f0a800d0ad082a53613d`, **DONE/0**: skaner antyregresyjny PASS, Python mutation PASS, wybrane testy Kotlin PASS, debug APK/androidTest APK/lint PASS (`BUILD SUCCESSFUL in 1m 38s`). Fizyczny SM-S906B, `mCallState=0`, nieaktywny serwis, instalacja obu APK **PASS**, `CampaignStartReconciliationContractTest` **3/3 PASS**, stan po testach `mCallState=0`. Test nie wykonywał połączenia, nie nagrywał i nie modyfikował systemowej roli dialera.
+
+**Artefakty Mac:**
+- `~/Downloads/ai-calls-f025-e77b86b6-debug.apk` SHA256 `623c50b4700f46f2691d8a0f65fe6859ff40a42443abc175ace59861ea2f3177`
+- `~/Downloads/ai-calls-f025-e77b86b6-androidTest.apk` SHA256 `687b94f8e01188d48c7002f664c4501b464ead735eba9cc161f4739fc328b55d`
+
+**Granice dowodu:** START/restart/switch nie zostały sprawdzone przez prawdziwe połączenie. Nie potwierdzono końca rzeczywistego połączenia, poprawności trasy RX/STT/TTS/TX ani autonomicznego retry fizycznego. F-003/F-017 (brak eksportu ZIP z UI, odmowa narzędzia) i F-016 (historyczne opisy, odmowa narzędzia) nadal OPEN. Nie omijać odmów. Źródłem prawdy o statusach pozostaje `BLOCKERS.md`, a ten checkpoint wyłącznie przechowuje dowody i kontekst.
+
+**Następny krok bez powtórek:** pełna diagnostyka żywej rozmowy w *konkretnym wcześniej autoryzowanym zakresie* na S22, z identyfikacją roli dialera, rzeczywistego call handle, RX/STT/TTS/TX, końca i następnej próby. O ile brak takiej bieżącej autoryzacji lub urządzenie jest zajęte, nie uruchamiać samodzielnie nowej rozmowy; rozwijać niezależne testy off-call i dokumentację.
