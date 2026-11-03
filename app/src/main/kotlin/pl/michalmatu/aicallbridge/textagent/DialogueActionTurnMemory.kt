@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.textagent
 
+import java.text.Normalizer
+import java.util.Locale
+
 /**
  * Ephemeral, per-call context for an action classifier. Never persisted, sent to
  * diagnostic logs, or permitted to grant call/fact/effect authority.
@@ -10,6 +13,7 @@ package pl.michalmatu.aicallbridge.textagent
 internal class DialogueActionTurnMemory {
     private data class Turn(val incoming: String, val action: DialogueActionId)
     private val recent = ArrayDeque<Turn>()
+    private var subjectAlreadyExplained = false
 
     @Synchronized
     fun classifierInput(currentTranscript: String): String {
@@ -32,8 +36,37 @@ internal class DialogueActionTurnMemory {
         }
     }
 
+    /**
+     * Guard against repeating a canned task introduction for every different IVR
+     * utterance after the subject has already been explained. A real repeat request
+     * still receives its original action. This cannot grant facts or effects.
+     */
+    @Synchronized
+    fun adjustRepetitiveSubject(
+        currentTranscript: String,
+        decision: DialogueActionDecision,
+    ): DialogueActionDecision {
+        if (!subjectAlreadyExplained || decision.actionId != DialogueActionId.STATE_TASK_SUBJECT) {
+            return decision
+        }
+        val normalized = Normalizer.normalize(
+            currentTranscript.lowercase(Locale.ROOT), Normalizer.Form.NFD,
+        ).replace(Regex("\\p{M}+"), "").replace('ł', 'l')
+        val repeatSubjectRequest = listOf(
+            "w jakiej sprawie", "czego dotyczy", "w czym moge pomoc",
+            "jak moge pomoc", "po co pan dzwoni", "po co pani dzwoni",
+            "o co chodzi", "proszę powiedzieć w jakiej",
+            "prosze powiedziec w jakiej",
+        ).any { it in normalized }
+        return if (repeatSubjectRequest) decision else decision.copy(
+            actionId = DialogueActionId.ASK_NEXT_SERVICE_STEP,
+            reason = "subject_already_explained",
+        )
+    }
+
     @Synchronized
     fun remember(incoming: String, action: DialogueActionId) {
+        if (action == DialogueActionId.STATE_TASK_SUBJECT) subjectAlreadyExplained = true
         // Only conversation context is shortened for the on-device model's token window.
         // Never truncate the actual current STT transcript, action, approved TTS or task result.
         recent.addLast(Turn(incoming.takeLast(HISTORY_TURN_CHARS).replace('\n', ' '), action))
