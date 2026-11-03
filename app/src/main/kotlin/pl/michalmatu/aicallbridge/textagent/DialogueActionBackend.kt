@@ -240,7 +240,15 @@ internal class DialogueActionBackend(
         val requestGeneration = generation.incrementAndGet()
         val classifierStartNs = System.nanoTime()
         classifierBackend.cancel()
-        classifierBackend.generate(turnMemory?.classifierInput(userText) ?: userText, object : TextCallAgentBackend.Listener {
+        // Native LiteRT Conversation already holds the entire call history.
+        // Re-inserting the last three utterances on every turn wastes tokens
+        // and causes repetition. Keep action memory only for policy safeguards.
+        val modelInput = if (classifierBackend is NativeConversationContextBackend) {
+            userText
+        } else {
+            turnMemory?.classifierInput(userText) ?: userText
+        }
+        classifierBackend.generate(modelInput, object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
                 if (!isCurrent(requestGeneration)) return
                 runCatching { observer?.onClassifierTiming(
