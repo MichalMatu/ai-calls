@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 23):
+    for identifier in range(1, 24):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
@@ -60,6 +60,22 @@ def audit(root: Path) -> list[str]:
     continuation = read(prefix + "campaign/CampaignContinuationStore.kt")
     service = read(prefix + "campaign/AppOwnedCampaignService.kt")
     require("CampaignContinuationStore.kt", continuation, "(context.applicationContext ?: context)")
+    require("CampaignAuthorizationStore.kt", store, "preferencesName: String = PREFERENCES_NAME")
+    require("CampaignContinuationStore.kt", continuation, "preferencesName: String = PREFERENCES_NAME")
+    continuation_test = read(
+        "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/campaign/"
+        "CampaignContinuationStoreContractTest.kt"
+    )
+    require("AndroidCampaignAuthorizationStoreContractTest.kt", android_test, ".targetContext")
+    require("CampaignContinuationStoreContractTest.kt", continuation_test, ".targetContext")
+    require("AndroidCampaignAuthorizationStoreContractTest.kt", android_test,
+            "campaign_authorization_grant_instrumentation_v1")
+    require("CampaignContinuationStoreContractTest.kt", continuation_test,
+            "campaign_continuation_instrumentation_v1")
+    forbid("AndroidCampaignAuthorizationStoreContractTest.kt", android_test,
+           'getSharedPreferences("campaign_authorization_grant_v1"')
+    forbid("CampaignContinuationStoreContractTest.kt", continuation_test,
+           'getSharedPreferences("campaign_continuation_v1"')
     require("CampaignAuthorizationStore.kt", store, "(context.applicationContext ?: context)")
     require("CampaignContinuationStore.kt", continuation, "fun planRetry(")
     require("CampaignContinuationStore.kt", continuation, "fun clear()")
