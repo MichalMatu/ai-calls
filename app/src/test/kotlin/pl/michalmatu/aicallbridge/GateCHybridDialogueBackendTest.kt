@@ -100,6 +100,56 @@ class GateCHybridDialogueBackendTest {
     }
 
     @Test
+    fun `CLIR procedural questions release distinct reviewed answers`() {
+        val actions = listOf(
+            DialogueActionId.EXPLAIN_SERVICE_SCOPE,
+            DialogueActionId.ASK_NEXT_SERVICE_STEP,
+            DialogueActionId.REQUEST_SERVICE_TRANSFER,
+        )
+        val expected = listOf(
+            "stałe ukrywanie",
+            "Jaki krok",
+            "połączyć z działem",
+        )
+        val diagnostics = GateCHybridDiagnostics()
+        val control = GateCHybridDialogueBackendFactory.actionExecutor(
+            hostActionRelay = FakeBackend.complete("unused"),
+            diagnostics = diagnostics,
+            effectCommitControl = "[[COMMIT]]",
+            canConfirmEffect = { false },
+        )
+        actions.zip(expected).forEach { (action, fragment) ->
+            var text: String? = null
+            control.execute(
+                "Pytanie konsultanta o usługę i dalsze kroki",
+                pl.michalmatu.aicallbridge.textagent.DialogueActionDecision(action, 0.97),
+                listener(complete = { text = it }),
+            )
+            assertTrue(text!!.contains(fragment))
+            assertTrue(!text!!.contains("[[COMMIT]]"))
+        }
+        val policy = GateCHybridDialogueBackendFactory.actionPolicy()
+        assertTrue(actions.all { it in policy.allowedActions })
+        assertEquals(
+            listOf(
+                GateCHybridResponseSource.LOCAL_ACTION,
+                GateCHybridResponseSource.LOCAL_ACTION,
+                GateCHybridResponseSource.LOCAL_ACTION,
+            ),
+            diagnostics.snapshot().responseSources,
+        )
+    }
+
+    @Test
+    fun `CLIR new procedural responses never add effect confirmation without authority`() {
+        val policy = GateCHybridDialogueBackendFactory.actionPolicy(false)
+        assertTrue(DialogueActionId.CONFIRM_AUTHORIZED_EFFECT !in policy.allowedActions)
+        assertTrue(DialogueActionId.ASK_NEXT_SERVICE_STEP in policy.allowedActions)
+        assertTrue(DialogueActionId.EXPLAIN_SERVICE_SCOPE in policy.allowedActions)
+        assertTrue(DialogueActionId.REQUEST_SERVICE_TRANSFER in policy.allowedActions)
+    }
+
+    @Test
     fun `generic action policy omits effect confirmation without explicit authority`() {
         val policy = GateCHybridDialogueBackendFactory.actionPolicy(
             allowEffectConfirmation = false,
