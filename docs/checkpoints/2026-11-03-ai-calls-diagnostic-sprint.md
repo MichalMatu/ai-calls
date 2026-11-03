@@ -48,3 +48,10 @@ Gdy dokładnie jeden fizyczny S22 jest widoczny w ADB i w stanie IDLE, zainstalo
 - Mac pełne QA `aicalls-20261103-broker-pilot-sprint-qa-v12`, pinned `f42ce03e14d9be60ef4036d6850971fc27e99832`: **QA_PENDING** do publikacji potwierdzonego terminalnego wyniku. Nie instalować nowego APK ani nie oznaczać PASS tylko na podstawie kolejki.
 - Po v12 PASS można zainstalować nowe APK wyłącznie na dokładnie jednym S22 w stanie IDLE i z nieaktywną usługą kampanii; uruchomić jedynie instrumentację SharedPreferences (bez wykonywania połączeń). Do realnego dialera/rozmowy konieczne są granice systemowej roli i konkretnej zgody aplikacyjnej.
 - F-003/F-017 eksport z UI i F-016 historyczna dokumentacja pozostają OPEN z odmową narzędzia; nie próbować obchodzić odmowy.
+
+## S22 — prawdziwe wyniki testów instrumentalnych (po 06:00)
+
+- Mac `aicalls-20261103-broker-pilot-sprint-qa-v12` zakończył się **DONE/0** na SHA `f42ce03e`: ANTI_FRICTION PASS, Python 225/225 PASS, Android unit/build/debug+androidTest APK/lint PASS. To QA źródeł.
+- Mac `aicalls-20261103-s22-install-offcall-instrumentation-v13` zakończył się `failed/86`: dokładnie jeden SM-S906B w IDLE, brak aktywnej usługi, oba APK z SHA `f42ce03e` **zainstalowane PASS**, ale **cztery testy Android instrumentation FAIL**. Wszystkie cztery zwróciły NPE na magazynach SharedPreferences, gdy `context.applicationContext` w pakiecie instrumentalnym jest `null`; błędu nie wykryło wcześniejsze QA hostowe. Nie było połączenia, nagrywania ani zmiany roli dialera.
+- Rejestr F-022: `CampaignAuthorizationStore`, `CampaignContinuationStore`, `CampaignRuntimeStatusStore` otrzymały fallback `context.applicationContext ?: context`. Gwarantuje zachowanie prywatnego scope test runnera, a nie modyfikację grantów aplikacji produkcyjnej.
+- Kolejny Mac `aicalls-20261103-s22-f022-instrumentation-retest-v14` pinned `d2c869d468bd5bff794cabad601cda4c79138779` uruchomiono z warunkami dokładnego S22/IDLE/no-active-service i z ponowną instalacją tylko po kompilacji. **Wynik oczekiwany — nie uznawać za PASS bez potwierdzenia.**
