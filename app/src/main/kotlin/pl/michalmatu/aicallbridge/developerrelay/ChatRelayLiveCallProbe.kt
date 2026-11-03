@@ -314,9 +314,8 @@ internal object ChatRelayLiveCallProbe {
             handler.postDelayed(authorityWatchdog, 500L)
             mailbox.clear()
             if (!readOnlySupervised) {
-                // Pre-render once per authorized call without delaying STT, Gemma, or dialing.
-                // Failure to prepare a neutral filler never blocks the real answer.
-                quickAckSynthesizer.synthesize(
+                // Preparation is optional: a TTS constructor/service failure cannot abort the call.
+                runCatching { quickAckSynthesizer.synthesize(
                     QuickAcknowledgementPolicy.TEXT,
                     object : LocalTtsSpeechOutput.Listener {
                         override fun onPcm16Mono16k(pcm: ByteArray) {
@@ -330,7 +329,9 @@ internal object ChatRelayLiveCallProbe {
                             lines += "quick_ack_prewarm_error=${sanitize(reason)}"
                         }
                     },
-                )
+                ) }.onFailure { error ->
+                    lines += "quick_ack_prewarm_error=${error.javaClass.simpleName}"
+                }
             }
             try {
                 mediaRuntime = CallMediaSessionRuntime(
@@ -601,7 +602,11 @@ internal object ChatRelayLiveCallProbe {
                 ) return@postDelayed
                 if (lastQuickAckTurn.getAndSet(turn) >= turn) return@postDelayed
                 val ready = pcm ?: return@postDelayed
-                executor.execute { writeQuickAcknowledgement(lease, ready, turn, generation) }
+                runCatching {
+                    executor.execute { writeQuickAcknowledgement(lease, ready, turn, generation) }
+                }.onFailure { error ->
+                    lines += "turn_${turn}_quick_ack_queue_error=${error.javaClass.simpleName}"
+                }
             }, QuickAcknowledgementPolicy.AFTER_SPEECH_END_DELAY_MS)
         }
 
