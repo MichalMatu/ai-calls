@@ -42,6 +42,17 @@ class BackendOpenAiTextBackendTest {
     }
 
     @Test
+    fun `keeps long complete broker text rather than silently enforcing 2000 characters`() {
+        val backend = BackendOpenAiTextBackend(
+            BackendOpenAiTextConfig("https://bridge.example.test/v1/call-text-turn", sessionToken),
+        )
+        val expected = "Długi test dialogu. ".repeat(450)
+        val response = """{"text":"$expected"}"""
+        assertEquals(expected.trim(), backend.parseCompleteText(response))
+        backend.close()
+    }
+
+    @Test
     fun `rejects direct OpenAI endpoint`() {
         try {
             BackendOpenAiTextConfig("https://api.openai.com/v1/call-text-turn", sessionToken)
