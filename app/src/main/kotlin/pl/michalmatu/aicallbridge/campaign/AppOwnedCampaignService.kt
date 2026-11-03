@@ -27,6 +27,7 @@ class AppOwnedCampaignService : Service() {
     private var scheduledAttempt: Runnable? = null
     private var campaignRequested = false
     private var attemptOutcome: Pair<Boolean, String?>? = null
+    private var awaitingPhoneIdle = false
     private var continuationGeneration = 0L
     private lateinit var notificationManager: NotificationManager
     private val supervisedAudioActive = AtomicBoolean(false)
@@ -100,16 +101,37 @@ class AppOwnedCampaignService : Service() {
         }
 
         val saved = continuationStore.load()
-        if (explicitStart && (!campaignRequested || saved?.grantId != grant.grantId)) {
-            continuationGeneration += 1
-            continuationStore.begin(grant.grantId, accountScope, now)
-        } else if (saved == null || saved.grantId != grant.grantId ||
-            saved.accountScope != accountScope
+        if (!explicitStart && (saved == null || saved.grantId != grant.grantId ||
+                saved.accountScope != accountScope)
         ) {
             finish("Saved campaign scope does not match the current approved grant")
             return START_NOT_STICKY
         }
-
+        val disposition = CampaignStartReconciliationPolicy.decide(
+            saved = saved,
+            requestedGrantId = grant.grantId,
+            requestedAccountScope = accountScope,
+            ownedCallRunning = AppOwnedClirCampaignExecutor.isRunning(),
+        )
+        when (disposition) {
+            CampaignStartDisposition.BEGIN_NEW,
+            CampaignStartDisposition.QUEUE_REPLACEMENT -> {
+                // A changed, separately authorized grant supersedes the previous
+                // pending campaign. The previous exact owned call must finish
+                // before the replacement is allowed to start.
+                continuationGeneration += 1
+                continuationStore.begin(grant.grantId, accountScope, now)
+            }
+            CampaignStartDisposition.REUSE_SAVED -> Unit // Keep existing due time.
+            CampaignStartDisposition.ALREADY_RUNNING -> {
+                if (campaignRequested) {
+                    statusStore.save("Autoryzowana rozmowa już trwa; bez ponownego wybierania numeru")
+                    return START_STICKY
+                }
+                // A recreated Service may not own the old executor's callbacks.
+                // Reconcile from phone IDLE instead of stranding the saved task.
+            }
+        }
         campaignRequested = true
         scheduleAuthorizedAttempt()
         return START_STICKY
@@ -153,7 +175,18 @@ class AppOwnedCampaignService : Service() {
             finish("Campaign stopped or authorization expired")
             return
         }
-        if (AppOwnedClirCampaignExecutor.isRunning()) return
+        // Never consume or abandon the next attempt while an earlier owned call
+        // or any cellular call remains active. This also handles replacement of
+        // a grant during an old call without hanging the new task indefinitely.
+        val ownedCallRunning = AppOwnedClirCampaignExecutor.isRunning()
+        val phoneBusy = runCatching {
+            getSystemService(TelecomManager::class.java)?.isInCall == true
+        }.getOrDefault(false)
+        if (ownedCallRunning || phoneBusy) {
+            awaitPhoneIdle()
+            return
+        }
+        awaitingPhoneIdle = false
         continuationStore.prepareAttempt(state.grantId, System.currentTimeMillis())
             ?: run { finish("Continuation state unavailable"); return }
         attemptOutcome = null
@@ -172,6 +205,21 @@ class AppOwnedCampaignService : Service() {
         ) { status ->
             continuationHandler.post { handleAttemptStatus(status, state.grantId, generation) }
         }
+    }
+
+    private fun awaitPhoneIdle() {
+        if (!awaitingPhoneIdle) {
+            awaitingPhoneIdle = true
+            statusStore.save("Autoryzowane zadanie czeka na zakończenie trwającej rozmowy")
+        }
+        val generation = continuationGeneration
+        val retry = Runnable {
+            if (campaignRequested && continuationGeneration == generation) {
+                startAuthorizedAttempt()
+            }
+        }
+        scheduledAttempt = retry
+        continuationHandler.postDelayed(retry, PHONE_IDLE_RECHECK_MS)
     }
 
     private fun handleAttemptStatus(status: String, grantId: String, generation: Long) {
@@ -300,6 +348,7 @@ class AppOwnedCampaignService : Service() {
 
     private fun finish(status: String) {
         campaignRequested = false
+        awaitingPhoneIdle = false
         continuationGeneration += 1
         scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
         scheduledAttempt = null
@@ -341,5 +390,6 @@ class AppOwnedCampaignService : Service() {
         private const val CHANNEL_ID = "aicall_campaign"
         private const val NOTIFICATION_ID = 3101
         private const val NOTIFICATION_TEXT_LIMIT = 120
+        private const val PHONE_IDLE_RECHECK_MS = 2_000L
     }
 }
