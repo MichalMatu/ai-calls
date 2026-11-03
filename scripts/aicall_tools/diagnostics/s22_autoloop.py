@@ -56,6 +56,8 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
     safe: dict[str, object] = {}
     stt_turns = 0
     approved_turns = 0
+    transient_stt_retries = 0
+    stt_rx_capture_abandoned = 0
     latencies: list[int] = []
     action_counts: dict[str, int] = {}
     valid_actions = {
@@ -79,6 +81,10 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
             approved_turns += int(value) > 0
         elif re.fullmatch(r"turn_\d+_eos_to_first_tx_ms", key) and value.isdecimal():
             latencies.append(int(value))
+        elif re.fullmatch(r"turn_\d+_stt_transient_no_transcript", key) and value == "true":
+            transient_stt_retries += 1
+        elif re.fullmatch(r"turn_\d+_stt_rx_abandoned", key) and value == "true":
+            stt_rx_capture_abandoned += 1
         elif re.fullmatch(r"turn_\d+_dialogue_action", key) and value in valid_actions:
             action_counts[value] = action_counts.get(value, 0) + 1
             subject_streak = subject_streak + 1 if value == "STATE_TASK_SUBJECT" else 0
@@ -89,6 +95,8 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
             safe["failure_reason_code"] = value
     safe["stt_turns"] = stt_turns
     safe["approved_turns"] = approved_turns
+    safe["stt_transient_retries"] = transient_stt_retries
+    safe["stt_rx_capture_abandoned"] = stt_rx_capture_abandoned
     if latencies:
         safe["first_eos_to_tx_ms"] = latencies[0]
         safe["max_eos_to_tx_ms"] = max(latencies)
