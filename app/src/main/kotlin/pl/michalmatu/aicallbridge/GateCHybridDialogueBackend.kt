@@ -14,6 +14,7 @@ import pl.michalmatu.aicallbridge.textagent.DialogueActionExecutor
 import pl.michalmatu.aicallbridge.textagent.DialogueActionId
 import pl.michalmatu.aicallbridge.textagent.DialogueActionPolicy
 import pl.michalmatu.aicallbridge.textagent.DialogueTaskContext
+import pl.michalmatu.aicallbridge.textagent.DialogueActionTurnMemory
 import pl.michalmatu.aicallbridge.textagent.FailoverTextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -138,6 +139,7 @@ internal object GateCHybridDialogueBackendFactory {
             ),
             observer = diagnostics,
             taskContext = actionContext(allowEffectConfirmation = effectCommitControl != null),
+            turnMemory = DialogueActionTurnMemory(),
         )
         return FailoverTextCallAgentBackend(
             primary = actionBackend.observed(
@@ -188,6 +190,9 @@ internal object GateCHybridDialogueBackendFactory {
             DialogueActionId.ASK_CLARIFY,
             DialogueActionId.ACKNOWLEDGE_NEUTRAL,
             DialogueActionId.STATE_TASK_SUBJECT,
+            DialogueActionId.EXPLAIN_SERVICE_SCOPE,
+            DialogueActionId.ASK_NEXT_SERVICE_STEP,
+            DialogueActionId.REQUEST_SERVICE_TRANSFER,
             DialogueActionId.DISCLOSE_AUTHORIZED_FACT,
         )
         if (allowEffectConfirmation) {
@@ -225,6 +230,18 @@ internal object GateCHybridDialogueBackendFactory {
 
             DialogueActionId.STATE_TASK_SUBJECT ->
                 completeLocal("Chodzi o blokadę prezentacji numeru, usługę CLIR.")
+
+            DialogueActionId.EXPLAIN_SERVICE_SCOPE ->
+                completeLocal("Chodzi o stałe ukrywanie mojego numeru przy połączeniach wychodzących. " +
+                    "Proszę o aktywację tej usługi CLIR.")
+
+            DialogueActionId.ASK_NEXT_SERVICE_STEP ->
+                completeLocal("Dziękuję. Jaki krok albo informacja są jeszcze potrzebne, " +
+                    "żeby włączyć usługę CLIR?")
+
+            DialogueActionId.REQUEST_SERVICE_TRANSFER ->
+                completeLocal("Czy może mnie Pan lub Pani połączyć z działem, " +
+                    "który zajmuje się aktywacją usługi CLIR?")
 
             DialogueActionId.DISCLOSE_AUTHORIZED_FACT -> {
                 if (decision.argument != "PHONE") {
