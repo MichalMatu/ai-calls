@@ -4,7 +4,7 @@
 
 Gemma zachowuje **ten sam natywny `Conversation`** przy kolejnych turach rozmowy. Silnik nie tworzy już nowego czatu ani nie ponawia całej instrukcji; poprzednie wypowiedzi pozostają w kontekście modelu. Po prawidłowej odpowiedzi `cancel()` nie niszczy pamięci; przerwana inferencja i STOP nadal odrzucają niebezpieczny kontekst. Syntetyczne rozgrzanie modelu jest usuwane przed prawdziwą rozmową bez ponownego ładowania wag. **Mac full QA PASS: 248 testów Python, wszystkie moduły Android i audyt tarcia PASS.**
 
-**S22 jeszcze nie zaktualizowano:** Mac Local Agent potwierdził `EXACT_S22=false` w próbie F-043. Po ponownym podłączeniu zostanie wykonana bezpieczna instalacja i dwuturowy benchmark bez połączenia telefonicznego. Prawdziwa szybkość, słyszalność i sukces zadania wymagają dalszych danych. Katalog akcji jest obecnie głównie CLIR — rejestracja wizyty lub mechanika wymaga przygotowania odpowiednich akcji i danych dla konkretnego, autoryzowanego celu.
+**S22 zaktualizowano i zweryfikowano:** po STOP AI wykonano `adb install -r`, a instrumentowany test dwóch sztucznych tur na GPU przeszedł **PASS**. Jedna natywna konwersacja: `conversation_reused=false` → `true`; generowanie **6,23 s → 4,00 s**, bez ponownej inicjalizacji silnika lub czatu. Grant, kolejka kontynuacji i rola dialera zachowane; telefon `IDLE`. **F-043 VERIFIED**, nie trzeba ponawiać tych testów bez zmian. Nie jest to jeszcze dowód słyszalności u rozmówcy ani sukcesu CLIR. Katalog akcji jest obecnie głównie CLIR — rejestracja wizyty lub mechanika wymaga osobnych dozwolonych akcji.
 
 [Checkpoint F-043](docs/checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md)
 
