@@ -64,7 +64,16 @@ class AndroidCampaignAuthorizationStoreContractTest {
         }
     }
 
-    @Test fun simultaneousReservationsCannotExceedFiveAttempts() {
+    @Test fun recordingIsOffByDefaultAndExplicitCampaignSettingIsDurable() {
+        assertTrue(store.load()!!.recordCallEvidence == false)
+        store.save(store.load()!!.copy(recordCallEvidence = true))
+        assertTrue(CampaignAuthorizationStore(context).load()!!.recordCallEvidence)
+        store.disableEvidenceRecording()
+        assertTrue(CampaignAuthorizationStore(context).load()!!.recordCallEvidence == false)
+        assertTrue(store.reserveAuthorizedAttempt(request, 2_000L).isSuccess)
+    }
+
+    @Test fun simultaneousReservationsKeepExactScopeWithoutFiveCallCeiling() {
         val barrier = CountDownLatch(1)
         val executor = Executors.newFixedThreadPool(10)
         try {
@@ -77,8 +86,8 @@ class AndroidCampaignAuthorizationStoreContractTest {
             }
             barrier.countDown()
             val successes = futures.count { it.get(10, TimeUnit.SECONDS) }
-            assertEquals(5, successes)
-            assertEquals(5, store.load()!!.attemptsUsed)
+            assertEquals(10, successes)
+            assertEquals(10, store.load()!!.attemptsUsed)
             assertTrue(store.isAuthorizedInFlight("test-grant", request, 2_001L))
         } finally {
             executor.shutdownNow()
