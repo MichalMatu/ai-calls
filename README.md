@@ -1,5 +1,12 @@
 # AI Calls
 
+## Aktualna decyzja — USB/ADB, zero sztucznych blokerów (2026-11-03)
+
+**Eksport diagnostyki jest zorganizowany przez USB/ADB i Mac Local Agenta**, bez zależności od brakującego przycisku ZIP w aplikacji. Prywatne dane z telefonu trafiają wyłącznie do `~/Documents/AI-Calls/private-exports/` na Macu; więcej: [USB — prywatna diagnostyka](docs/USB_PRIVATE_DIAGNOSTICS.md). Preflight: jeden autoryzowany S22, stan IDLE; **obecnie nie ma utworzonego folderu nagrań, więc brak plików do kopiowania**. To stan danych, a nie blokada; przy następnej zatwierdzonej sesji Mac Local Agent ponowi eksport.
+
+**Dalej realizować prawdziwy runtime kodu, bez dalszych sztucznych blokad**: lokalny START i dokładnie autoryzowana kampania → rola dialera i stan telefonu → RX/STT/AI/TTS/TX → wynik i selektywne zakończenie → automatyczne wznowienie. Mac/S22 off-call: 4/4 magazyny i 3/3 polityka START/restart (ostatni fizyczny PASS `e77b86b6`), testy build/unit/lint PASS. **Nie ma jeszcze fizycznego końcowego PASS kompletnej rozmowy.** Zasady Android, zakres grantu, prywatność rozmówców i STOP są rzeczywistymi wymaganiami, nie sztucznymi ograniczeniami. [Jedyny aktualny rejestr](BLOCKERS.md) zachowuje historię wszystkich F-xxx; niezrealizowany eksport ZIP w UI i nieaktualne historyczne akapity nie zatrzymują dalszych prac.
+
+
 ## 2026-11-03 — najnowszy status źródeł: ZERO sztucznych bramek (weryfikacja trwa)
 
 Źródło statusów: [BLOCKERS.md](BLOCKERS.md). Ochrona: pierwsze linie [AGENTS.md](AGENTS.md) oraz skaner `scripts/aicall_tools/diagnostics/audit_product_friction.py`. W źródłach usunięto `F-002` (10-minutowe uzbrajanie zapisu), `F-012` (drugi dialog pilota), `F-013` (stary pięcio-połączeniowy test), `F-014` (autostart po powrocie z dialera). Flaga diagnostyki jest opcjonalną, domyślnie wyłączoną częścią jednego zakresu kampanii; utrzymuje się przez kolejne rozmowy tylko w jego ramach. **Dla nowego HEAD brak jeszcze potwierdzonego Mac QA i instalacji S22.** `F-003`, `F-010`, `F-011` pozostają otwarte do dalszej pracy.
