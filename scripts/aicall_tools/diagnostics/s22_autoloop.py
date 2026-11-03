@@ -45,6 +45,33 @@ def authorized_devices(text: str) -> list[str]:
     ]
 
 
+def cycle_verdict(report: dict[str, object], *, call_requested: bool, probes_skipped: bool) -> str:
+    """A completed build or idle phone is never proof of live RX/TX."""
+    if report.get("final_idle") is not True:
+        return "INCOMPLETE_PHONE_NOT_IDLE"
+    probes = report.get("probes", {})
+    if not probes_skipped and (
+        not isinstance(probes, dict)
+        or any(probes.get(name) != "CALLBACK_OBSERVED" for name, *_ in PROBES)
+    ):
+        return "INCOMPLETE_OFFCALL_PROBES"
+    if not call_requested:
+        return "PASS_OFFCALL_ONLY"
+    if report.get("campaign_readiness") != "READY":
+        return "NOT_EXECUTED_NO_VALID_CAMPAIGN_AUTHORITY"
+    if report.get("start_command") != "DISPATCHED_TO_INTERNAL_SERVICE":
+        return "INCOMPLETE_CAMPAIGN_START"
+    if report.get("offhook_observed") is not True:
+        return "INCOMPLETE_OFFHOOK_NOT_OBSERVED"
+    if (report.get("owned_stop") != "DISPATCHED_TO_INTERNAL_SERVICE"
+            or report.get("after_owned_stop_idle") is not True):
+        return "INCOMPLETE_EXACT_TEARDOWN"
+    # Private WAVs, a synthetic response, or Telecom OFFHOOK alone do not establish
+    # a verified audible RX/STT/AI/TTS/TX conversation with the counterparty.
+    return "LIVE_AUDIO_ACCEPTANCE_UNVERIFIED"
+
+
+
 class LocalCycle:
     def __init__(self, adb: Path, root: Path, private_dir: Path) -> None:
         self.adb, self.root, self.private_dir = adb, root, private_dir
@@ -220,12 +247,18 @@ def main() -> int:
             cycle.report["call"] = "NOT_REQUESTED"
         cycle.export_private()
         cycle.report["final_idle"] = cycle.phone_state() == {"0"}
-        print("S22_AUTOLOOP=" + ("PASS_OFFCALL" if cycle.report["final_idle"] else "INCOMPLETE"))
+        verdict = cycle_verdict(
+            cycle.report,
+            call_requested=args.execute_authorized,
+            probes_skipped=args.skip_offcall_probes,
+        )
+        cycle.report["verdict"] = verdict
+        print("S22_AUTOLOOP=" + verdict)
         for field in ("build_install", "campaign_readiness", "call", "offhook_observed",
                       "owned_stop", "usb", "final_idle"):
             if field in cycle.report:
                 print(field.upper() + "=" + str(cycle.report[field]))
-        return 0 if cycle.report["final_idle"] else 1
+        return 0 if verdict == "PASS_OFFCALL_ONLY" else 2
     except Exception as error:
         cycle.report["error_class"] = type(error).__name__
         cycle.report["failure"] = str(error).splitlines()[0][:180]
