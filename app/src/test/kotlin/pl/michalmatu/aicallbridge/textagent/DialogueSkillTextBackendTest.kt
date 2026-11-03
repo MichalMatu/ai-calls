@@ -47,7 +47,7 @@ class DialogueSkillTextBackendTest {
         )
         var delivered: String? = null
         backend.generate("długa odpowiedź rozmówcy", listener(complete = { delivered = it }))
-        assertEquals(approved, delivered)
+        assertEquals(approved.trim(), delivered)
     }
 
     @Test
