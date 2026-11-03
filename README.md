@@ -1,5 +1,9 @@
 # AI Calls
 
+## UI — pierwszy etap uproszczenia, 2026-11-03
+
+[Checkpoint zmian UI](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md): na wierzchu status, kampanie, nadzorowany start AI i **STOP AI**; zwijane ustawienia audio, Gemma, uprawnienia i diagnostyka. W kampaniach na wierzchu pozostają autoryzacja, START, STOP i cofnięcie grantu. **Wszystkie istniejące przyciski zachowane**. Nie zmieniano silnika rozmowy ani danych uprawnień. Źródła w `main`, pełny test Mac i weryfikacja na S22 **oczekują na wyniki**.
+
 ## Stan bazowy — checkpoint organizacyjny 2026-11-03
 
 **[Aktualny checkpoint jakości i architektury](docs/checkpoints/2026-11-03-organizational-freeze-f035-pre-voice-skills.md)** · [jedyny aktualny rejestr F-xxx](BLOCKERS.md) · [handoff](docs/HANDOFF_NEXT_CHAT.md).
