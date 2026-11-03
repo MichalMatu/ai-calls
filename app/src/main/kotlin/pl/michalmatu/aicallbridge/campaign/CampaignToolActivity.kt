@@ -200,7 +200,7 @@ class CampaignToolActivity : Activity() {
         }
         val lines = runCatching {
             timeline.useLines { input ->
-                input.toList().takeLast(100).mapNotNull { line ->
+                input.mapNotNull { line ->
                     runCatching {
                         val event = JSONObject(line)
                         val type = event.optString("type")
@@ -213,13 +213,13 @@ class CampaignToolActivity : Activity() {
                                 event.optString("text")
                         }
                     }.getOrNull()
-                }
+                }.toList()
             }
         }.getOrElse {
             statusView.text = "Nie udało się odczytać prywatnego transkryptu."
             return
         }
-        val transcript = lines.joinToString("\n\n").takeLast(24_000)
+        val transcript = lines.joinToString("\n\n")
             .ifEmpty { "Brak ukończonych wypowiedzi STT/AI. Odśwież po kolejnej turze." }
         val view = TextView(this).apply {
             text = transcript

@@ -71,7 +71,8 @@ internal object ChatRelayLiveCallProbe {
     private val activeSession = AtomicReference<Run?>(null)
 
     const val REPORT_FILE = "chat-relay-live-call-report.txt"
-    const val MAX_TURNS = 10
+    /** Campaign dialogue ends on factual completion, remote disconnect or STOP, not turn #10. */
+    const val TASK_SCOPED_TURNS = Int.MAX_VALUE
     private const val RESPONSE_TIMEOUT_MS = 90_000L
     private const val MAX_NO_SPEECH_RETRIES = 3
     private const val NO_SPEECH_RETRY_DELAY_MS = 750L
@@ -94,7 +95,7 @@ internal object ChatRelayLiveCallProbe {
         callback: (String) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
-        require(maxTurns in 1..MAX_TURNS) { "invalid_relay_max_turns" }
+        require(maxTurns > 0) { "invalid_relay_max_turns" }
         require(!readOnlySupervised || (!phoneDisclosureAuthorized && !supervisorRelayEnabled)) {
             "supervised_probe_must_be_read_only_local"
         }
@@ -303,7 +304,11 @@ internal object ChatRelayLiveCallProbe {
                     context,
                     Consumer { snapshot -> onMediaSnapshot(snapshot) },
                 )
-                handler.postDelayed(timeout, maxTurns * 105_000L + 10_000L)
+                // Supervised bounded probes keep their explicit test timeout.
+                // Authorized campaign calls terminate by actual call state/STOP instead.
+                if (maxTurns != TASK_SCOPED_TURNS) {
+                    handler.postDelayed(timeout, maxTurns.toLong() * 105_000L + 10_000L)
+                }
                 val generation = mediaRuntime!!.coordinator().start(LocalSpeechFormat.SAMPLE_RATE_HZ)
                 lines += "media_generation=$generation"
             } catch (error: Throwable) {
@@ -358,7 +363,7 @@ internal object ChatRelayLiveCallProbe {
                 return
             }
             if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
-            if (turnsCompleted >= maxTurns) {
+            if (maxTurns != TASK_SCOPED_TURNS && turnsCompleted >= maxTurns) {
                 finish(true)
                 return
             }
@@ -571,7 +576,7 @@ internal object ChatRelayLiveCallProbe {
                 finish(true)
                 return
             }
-            if (turnsCompleted >= maxTurns) {
+            if (maxTurns != TASK_SCOPED_TURNS && turnsCompleted >= maxTurns) {
                 if (readOnlySupervised) finish(true)
                 else finish(false, "clir_external_success_not_observed")
             } else {

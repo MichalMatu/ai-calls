@@ -1,3 +1,14 @@
+## 2026-11-03 — eliminacja ucinania rozmów i śladów (źródło, testy w toku)
+
+- `F-004`: kampania nie ma arbitralnego stopu po dziesiątej turze; rozłączenie/STOP/autoryzacja i rzeczowe zakończenie pozostają.
+- `F-005`: usunięto nieuzasadnione ograniczenia długości nagrania, limit 24 MB, limit trzech plików sesji i cięcie tekstu; odzyskiwanie miejsca wyłącznie pod presją rzeczywistej pojemności Androida.
+- `F-008`: podgląd transkryptu pokazuje pełne wypowiedzi z pliku, a nie ostatnie 100 linii/24 tys. znaków.
+- `F-002`: zgoda na nagrywanie pozostaje wymogiem obecnego kodu; **nie twierdzić, że została usunięta**. Wymaga zgodnego z prawem rozwiązania, nie obejścia odmowy narzędzia.
+- `F-007`, `F-009`, `F-010`: niezamknięte, jawnie sklasyfikowane jako dług.
+- Zmiany źródła czekają na Mac Local Agent: compile, focused unit, lint i potwierdzenie instalacji. Nie wpisywać PASS przed receipt.
+
+Źródło prawdy: `BLOCKERS.md` + `docs/FRICTION_BLOCKER_LEDGER.md`. Zobowiązanie normatywne: pierwsze linie `AGENTS.md`.
+
 ## 2026-11-03 — zakaz reintrodukcji samowolnych bramek (najnowsze)
 
 Stare instrukcje AGENTS nakazujące osobny 10-minutowy opt-in zapisu były sprzeczne z autonomicznym, bezproblemowym produktem. Zmieniono je na historyczny opis stanu kodu, nie regułę projektu. F-002 pozostaje jawną luką UX; nie maskować statusu. Jedyna norma: **nie tworzyć samowolnych dodatkowych kliknięć, liczników, whitelist ani ręcznego relaya w ramach już zatwierdzonego zadania**. Każdy taki przypadek wpisz natychmiast do `docs/FRICTION_BLOCKER_LEDGER.md` i usuń z testem; nie usuwaj rzeczywistych uprawnień i praw rozmówców.

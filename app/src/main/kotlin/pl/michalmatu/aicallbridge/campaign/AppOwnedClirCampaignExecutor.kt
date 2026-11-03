@@ -277,7 +277,7 @@ internal object AppOwnedClirCampaignExecutor {
             val launchedAudio = ChatRelayLiveCallProbe.run(
                 context = appContext,
                 sessionId = sessionId,
-                maxTurns = ChatRelayLiveCallProbe.MAX_TURNS,
+                maxTurns = ChatRelayLiveCallProbe.TASK_SCOPED_TURNS,
                 phoneDisclosureAuthorized = phoneDisclosureAuthorized,
                 supervisorRelayEnabled = false,
                 callStillActive = {

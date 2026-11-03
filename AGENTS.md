@@ -1,3 +1,15 @@
+# ⛔ ZERO NOWYCH BLOKERÓW — NAJWYŻSZY PRIORYTET PRACY NAD AI CALLS
+
+**NIE DODAWAJ ŻADNEGO SAMOWOLNEGO, ZBĘDNEGO OGRANICZENIA.** Żadnych sztywnych limitów prób, tur dialogu, liczników, dodatkowych zatwierdzeń tego samego zlecenia, ręcznych kroków, nieuzasadnionych timeoutów, „testowych” whitelist ani ucinania diagnostyki tylko dlatego, że to łatwiejsze do implementacji. Nie ograniczaj działającej funkcji, żeby ukryć brak implementacji — napraw funkcję. Nie zmieniaj przepływu użytkownika bez sprawdzenia, czy nie powstała dodatkowa bramka.
+
+**GDY SAM DODASZ BLOKER — NATYCHMIAST ZAPISZ GO W [BLOCKERS.md](BLOCKERS.md) I [docs/FRICTION_BLOCKER_LEDGER.md](docs/FRICTION_BLOCKER_LEDGER.md).** Wpis musi zawierać ID, ścieżkę i symbol w kodzie, warunek zatrzymania, realny wpływ, przyczynę dodania, plan konkretnej poprawki, test regresyjny, status `OPEN | FIXED_IN_SOURCE | VERIFIED`, a także commit i wynik testów. Oznacz `OPEN` nawet wtedy, gdy agent sam zorientował się dopiero po commicie. Usuń naruszenie bez zwłoki w tej samej pracy; nie deklaruj usunięcia, dopóki kod/QA tego nie dowodzą.
+
+**PRZED KAŻDĄ ZMIANĄ I PRZED KOŃCEM CZATU:** przegląd obu list, wszystkich nowych warunków `return false` / `MAX_*` / dialogów / ręcznych zależności, sprawdzenie dostępnych testów antyregresyjnych i aktualizacja statusów. Lista w katalogu głównym jest pierwszym miejscem, w którym właściciel ma zobaczyć wszystkie otwarte przypadki.
+
+**REALNE GRANICE NIE SĄ BLOKERAMI DO OBEJŚCIA:** autoryzacja konkretnego zadania i zakresu danych, prawa uczestników rozmowy, Android i rzeczywisty stan telefonu, STOP oraz rozłączanie wyłącznie własnego `Call`, bezpieczeństwo danych i odmowy narzędzi. Te wymagania realizuj z minimalnym tarciem — nie usuwaj ich i nie obchodź odmowy innym narzędziem.
+
+---
+
 # Agent workflow
 
 ## REGUŁA WŁAŚCICIELA: ZERO SAMOWOLNIE DODANYCH BLOKERÓW (OBOWIĄZKOWA)

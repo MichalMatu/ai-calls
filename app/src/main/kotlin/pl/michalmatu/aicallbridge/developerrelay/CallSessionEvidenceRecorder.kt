@@ -10,7 +10,6 @@ import java.nio.ByteOrder
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 
@@ -87,7 +86,6 @@ internal object CallSessionPcmWav {
 internal class CallSessionEvidenceRecorder private constructor(val directory: File) {
     private val initialElapsedMs = SystemClock.elapsedRealtime()
     private val completed = AtomicBoolean(false)
-    private val audioBytes = AtomicLong(0L)
     private val io = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "PrivateCallEvidence").apply { isDaemon = true }
     }
@@ -100,7 +98,7 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
             .put("turn", turn)
             .put("elapsed_ms", elapsed())
             .put("speaker", if (fromAgent) "agent" else "counterparty")
-            .put("text", text.take(MAX_TEXT_CHARS))
+            .put("text", text)
         submit { appendEvent(event) }
     }
 
@@ -109,16 +107,12 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     inner class RxTurn(private val turn: Int) {
         private val data = ByteArrayOutputStream()
         private val closed = AtomicBoolean(false)
-        private var truncated = false
         private val startedAtMs = elapsed()
 
         @Synchronized
         fun append(frame: ByteArray, length: Int) {
             if (closed.get() || length <= 0) return
-            if (length > frame.size || data.size() + length > MAX_TURN_BYTES) {
-                truncated = true
-                return
-            }
+            require(length <= frame.size) { "invalid_capture_frame_size" }
             data.write(frame, 0, length)
         }
 
@@ -126,40 +120,52 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         fun finish() {
             if (!closed.compareAndSet(false, true)) return
             val copied = data.toByteArray()
-            saveWave(turn, "rx", startedAtMs, copied, truncated)
+            saveWave(turn, "rx", startedAtMs, copied)
         }
     }
 
     fun recordTransmittedAudio(turn: Int, pcm: ByteArray, sentBytes: Int, txAtMs: Long) {
         if (completed.get() || sentBytes <= 0) return
         // Record bytes actually accepted by the call TX writer, never unsent synthetic TTS.
-        val size = minOf(sentBytes, pcm.size, MAX_TURN_BYTES)
-        val aligned = size - (size % 2)
+        val aligned = minOf(sentBytes, pcm.size).let { it - it % 2 }
         val copied = pcm.copyOf(aligned)
-        saveWave(turn, "tx", txAtMs, copied, aligned < sentBytes)
+        saveWave(turn, "tx", txAtMs, copied)
     }
 
     fun elapsed(): Long = (SystemClock.elapsedRealtime() - initialElapsedMs).coerceAtLeast(0L)
 
-    private fun saveWave(turn: Int, direction: String, atMs: Long, pcm: ByteArray, truncated: Boolean) {
+    private fun saveWave(turn: Int, direction: String, atMs: Long, pcm: ByteArray) {
         if (completed.get()) return
         submit {
-            val available = MAX_SESSION_BYTES - audioBytes.get()
-            val limited = minOf(pcm.size.toLong(), available.coerceAtLeast(0L)).toInt() and -2
-            val part = if (limited == pcm.size) pcm else pcm.copyOf(limited)
             val fileName = "turn-" + turn.toString().padStart(2, '0') + "-" + direction + ".wav"
-            if (part.isNotEmpty()) {
-                CallSessionPcmWav.write(File(directory, fileName), part)
-                audioBytes.addAndGet(part.size.toLong())
-            }
+            val destination = File(directory, fileName)
+            // No arbitrary per-turn, per-session or last-N-recordings truncation.
+            // Only actual free-space pressure can stop writing, without stopping the call.
+            val saved = pcm.isNotEmpty() && ensureFreeSpace(pcm.size.toLong() + 44L) &&
+                runCatching { CallSessionPcmWav.write(destination, pcm) }.isSuccess
+            if (!saved) destination.delete()
             appendEvent(JSONObject()
                 .put("type", if (direction == "rx") "RX_PCM" else "TX_PCM")
                 .put("turn", turn)
                 .put("elapsed_ms", atMs)
-                .put("file", if (part.isNotEmpty()) fileName else JSONObject.NULL)
-                .put("pcm_bytes", part.size)
-                .put("truncated", truncated || part.size != pcm.size))
+                .put("file", if (saved) fileName else JSONObject.NULL)
+                .put("pcm_bytes", if (saved) pcm.size else 0)
+                .put("storage_error", pcm.isNotEmpty() && !saved))
         }
+    }
+
+    private fun ensureFreeSpace(requiredBytes: Long): Boolean {
+        val needed = requiredBytes + MIN_OS_FREE_BYTES
+        if (directory.usableSpace >= needed) return true
+        // Retire only older *completed* evidence under actual storage pressure.
+        // This is resource recovery, not a fixed three-session retention ceiling.
+        directory.parentFile?.listFiles()?.asSequence()
+            ?.filter { it.isDirectory && it != directory && File(it, "COMPLETE").isFile }
+            ?.sortedBy { it.name }
+            ?.forEach { old ->
+                if (directory.usableSpace < needed) old.deleteRecursively()
+            }
+        return directory.usableSpace >= needed
     }
 
     fun finish(reasonCode: String?) {
@@ -185,10 +191,8 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
 
     companion object {
         const val ROOT = "call-session-evidence"
-        private const val MAX_TEXT_CHARS = 2_000
-        private const val MAX_TURN_BYTES = 2_000_000
-        private const val MAX_SESSION_BYTES = 24_000_000L
-        private const val RETAIN_SESSIONS = 3
+        // Preserve free space needed for Android; no fixed recording count/time cap.
+        private const val MIN_OS_FREE_BYTES = 64L * 1024L * 1024L
 
         fun create(context: Context): CallSessionEvidenceRecorder? = runCatching {
             val root = File(context.filesDir, ROOT)
@@ -197,9 +201,6 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
                 UUID.randomUUID().toString().take(8)
             val session = File(root, name)
             check(session.mkdir())
-            root.listFiles()?.filter { it.isDirectory && it != session }
-                ?.sortedByDescending { it.name }?.drop(RETAIN_SESSIONS - 1)
-                ?.forEach { it.deleteRecursively() }
             val recorder = CallSessionEvidenceRecorder(session)
             recorder.submit {
                 recorder.appendEvent(JSONObject()

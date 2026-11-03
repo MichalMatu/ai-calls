@@ -1,5 +1,16 @@
 # AI Calls — current handoff
 
+## 2026-11-03 — eliminacja ucinania rozmów i śladów (źródło, testy w toku)
+
+- `F-004`: kampania nie ma arbitralnego stopu po dziesiątej turze; rozłączenie/STOP/autoryzacja i rzeczowe zakończenie pozostają.
+- `F-005`: usunięto nieuzasadnione ograniczenia długości nagrania, limit 24 MB, limit trzech plików sesji i cięcie tekstu; odzyskiwanie miejsca wyłącznie pod presją rzeczywistej pojemności Androida.
+- `F-008`: podgląd transkryptu pokazuje pełne wypowiedzi z pliku, a nie ostatnie 100 linii/24 tys. znaków.
+- `F-002`: zgoda na nagrywanie pozostaje wymogiem obecnego kodu; **nie twierdzić, że została usunięta**. Wymaga zgodnego z prawem rozwiązania, nie obejścia odmowy narzędzia.
+- `F-007`, `F-009`, `F-010`: niezamknięte, jawnie sklasyfikowane jako dług.
+- Zmiany źródła czekają na Mac Local Agent: compile, focused unit, lint i potwierdzenie instalacji. Nie wpisywać PASS przed receipt.
+
+Źródło prawdy: `BLOCKERS.md` + `docs/FRICTION_BLOCKER_LEDGER.md`. Zobowiązanie normatywne: pierwsze linie `AGENTS.md`.
+
 ## 2026-11-03 — aktualne, POTWIERDZONE S22 i niezamknięte tarcie UX
 
 Fizyczna rozmowa po wyłączeniu Wi-Fi Calling: `MODE_IN_CALL`, pełny RX→STT→Gemma→TTS→TX dla **trzech tur** potwierdzone nowym raportem. Telekom pokazuje zakończenie po stronie zdalnej (`REMOTE`), nie wygaśnięcie grantu. Wyniku aktywacji CLIR nie potwierdzono.
