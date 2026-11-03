@@ -78,6 +78,28 @@ class GateCHybridDialogueBackendTest {
     }
 
     @Test
+    fun `app-owned call recovers locally when supervisor relay is disabled`() {
+        val diagnostics = GateCHybridDiagnostics()
+        val recovery = GateCHybridDialogueBackendFactory.localRecoveryBackend(diagnostics)
+        var approvedText: String? = null
+        var error: String? = null
+
+        recovery.generate(
+            "Potrzebuję wyjaśnienia.",
+            listener(complete = { approvedText = it }, error = { error = it }),
+        )
+
+        assertTrue(approvedText!!.contains("usługi CLIR"))
+        assertEquals(null, error)
+        assertEquals(
+            listOf(GateCHybridResponseSource.LOCAL_RECOVERY),
+            diagnostics.snapshot().responseSources,
+        )
+        assertTrue(!approvedText!!.contains("potwierdzam", ignoreCase = true))
+        assertTrue(!approvedText!!.contains("numer to", ignoreCase = true))
+    }
+
+    @Test
     fun `generic action policy omits effect confirmation without explicit authority`() {
         val policy = GateCHybridDialogueBackendFactory.actionPolicy(
             allowEffectConfirmation = false,
