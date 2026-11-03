@@ -27,3 +27,9 @@ Poprzednie `campaign_authority_revoked_or_expired` mylnie opisywało naturalne l
 
 ## Zabezpieczenia
 Wspólny moduł Samsung RX/TX nie jest modyfikowany. Brak domyślnego nagrywania, automatycznego uploadu, niewidocznego podsłuchu innej rozmowy, obejścia roli dialera i ukrytego włączania audio. Zgoda na zapis jest niezależna od autoryzacji działania AI. Przed udostępnieniem plików zachowaj zgodność z prawem i prywatnością rozmówców.
+
+## On-device diagnostics UI follow-up
+
+Verified Mac Local Agent receipt `aicalls-20261103-private-duplex-after-permission-fix-v2`: focused WAV unit tests + APK + lint PASS, both APKs installed to exact IDLE S22, physical dialer-role contract PASS. Verified read-only S22 UI: all three opt-in/cancel/playback buttons rendered and default recording OFF (`aicalls-20261103-private-duplex-ui-readonly-s22-v1`).
+
+Follow-up UX adds manual on-device transcript viewer (speaker labels and turn timestamps, refreshed by button), and read-only replay of the last received RX WAV as well as already supported TX WAV. Playback remains restricted to off-call with READ_PHONE_STATE and Telecom fail-closed. Status header now continues to show an armed recording consent rather than overwriting it during refresh. No calls and no opt-in initiated by this code update.

@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.media.MediaPlayer
 import android.telecom.TelecomManager
 import java.io.File
+import org.json.JSONObject
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceConsent
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 import android.view.ViewGroup
@@ -107,7 +108,15 @@ class CampaignToolActivity : Activity() {
         }
         val playbackButton = Button(this).apply {
             text = "Odsłuchaj ostatnią odpowiedź AI (tylko poza rozmową)"
-            setOnClickListener { playLastAgentAudio() }
+            setOnClickListener { playLastRecordedAudio("tx") }
+        }
+        val playbackRxButton = Button(this).apply {
+            text = "Odsłuchaj ostatnią wypowiedź rozmówcy (tylko poza rozmową)"
+            setOnClickListener { playLastRecordedAudio("rx") }
+        }
+        val transcriptButton = Button(this).apply {
+            text = "Pokaż transkrypt obu stron (odśwież ręcznie)"
+            setOnClickListener { showLatestTranscript() }
         }
         val revokeButton = Button(this).apply {
             text = "Revoke campaign grant"
@@ -142,6 +151,8 @@ class CampaignToolActivity : Activity() {
             addView(evidenceButton)
             addView(cancelEvidenceButton)
             addView(playbackButton)
+            addView(playbackRxButton)
+            addView(transcriptButton)
             addView(revokeButton)
             addView(
                 statusView,
@@ -177,7 +188,55 @@ class CampaignToolActivity : Activity() {
         super.onDestroy()
     }
 
-    private fun playLastAgentAudio() {
+    private fun latestEvidenceDirectory(): File? =
+        File(filesDir, CallSessionEvidenceRecorder.ROOT)
+            .listFiles()?.filter { it.isDirectory }?.maxByOrNull { it.name }
+
+    private fun showLatestTranscript() {
+        val timeline = latestEvidenceDirectory()?.resolve("timeline.jsonl")
+        if (timeline?.isFile != true) {
+            statusView.text = "Nie ma jeszcze prywatnego transkryptu. Uzbrój zapis przed rozmową."
+            return
+        }
+        val lines = runCatching {
+            timeline.useLines { input ->
+                input.toList().takeLast(100).mapNotNull { line ->
+                    runCatching {
+                        val event = JSONObject(line)
+                        val type = event.optString("type")
+                        if (type != "COUNTERPART_STT" && type != "AGENT_APPROVED_TEXT") {
+                            null
+                        } else {
+                            val name = if (type == "COUNTERPART_STT") "Rozmówca" else "AI"
+                            val seconds = event.optLong("elapsed_ms") / 1_000L
+                            "[$seconds s, tura ${event.optInt("turn")}] $name: " +
+                                event.optString("text")
+                        }
+                    }.getOrNull()
+                }
+            }
+        }.getOrElse {
+            statusView.text = "Nie udało się odczytać prywatnego transkryptu."
+            return
+        }
+        val transcript = lines.joinToString("\n\n").takeLast(24_000)
+            .ifEmpty { "Brak ukończonych wypowiedzi STT/AI. Odśwież po kolejnej turze." }
+        val view = TextView(this).apply {
+            text = transcript
+            textSize = 15f
+            setTextIsSelectable(true)
+            setPadding(32, 20, 32, 20)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Prywatny transkrypt RX / AI")
+            .setView(ScrollView(this).apply { addView(view) })
+            .setPositiveButton("Odśwież") { _, _ -> showLatestTranscript() }
+            .setNegativeButton("Zamknij", null)
+            .show()
+    }
+
+    private fun playLastRecordedAudio(direction: String) {
+        require(direction == "rx" || direction == "tx")
         if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             statusView.text = "Odsłuch wymaga uprawnienia do sprawdzenia stanu telefonu."
             return
@@ -187,10 +246,8 @@ class CampaignToolActivity : Activity() {
             statusView.text = "Odsłuch tylko poza rozmową; bez ryzyka sprzężenia audio."
             return
         }
-        val root = File(filesDir, CallSessionEvidenceRecorder.ROOT)
-        val latest = root.listFiles()?.filter { it.isDirectory }?.maxByOrNull { it.name }
-        val audio = latest?.listFiles()?.filter {
-            it.name.matches(Regex("turn-[0-9]{2}-tx\\.wav"))
+        val audio = latestEvidenceDirectory()?.listFiles()?.filter {
+            it.name.matches(Regex("turn-[0-9]{2}-$direction\\.wav"))
         }?.maxByOrNull { it.name }
         if (audio == null) {
             statusView.text = "Brak zapisanego audio AI. Najpierw uzbrój prywatną diagnostykę."
@@ -207,7 +264,8 @@ class CampaignToolActivity : Activity() {
             }
             newPlayer.prepare()
             newPlayer.start()
-            statusView.text = "Odtwarzanie prywatnego pliku AI: " + audio.name
+            statusView.text = "Odtwarzanie prywatnego pliku " +
+                (if (direction == "rx") "rozmówcy" else "AI") + ": " + audio.name
         }.onFailure {
             playback?.release()
             playback = null
@@ -387,12 +445,11 @@ class CampaignToolActivity : Activity() {
                 "Campaign grant present\n" +
                     "Expires: ${Instant.ofEpochMilli(grant.expiresAtEpochMs)}"
         }
-        if (CallSessionEvidenceConsent.isArmed(this)) {
-            // Display separately, do not include content of conversations.
-            statusView.text = "Diagnostyka następnej rozmowy: uzbrojona na 10 minut."
-        }
+        val evidenceStatus = if (CallSessionEvidenceConsent.isArmed(this)) {
+            "Diagnostyka następnej rozmowy: uzbrojona (jedna sesja, maks. 10 min)."
+        } else null
         val runtimeStatus = runtimeStatusStore.load()
-        statusView.text = listOfNotNull(runtimeStatus, grantStatus).joinToString("\n\n")
+        statusView.text = listOfNotNull(evidenceStatus, runtimeStatus, grantStatus).joinToString("\n\n")
     }
 
     private enum class PendingAction {
