@@ -93,8 +93,11 @@ fi
   --no-daemon
 PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'
 
+# A key prefix must begin at a token boundary; e.g. "task-approved"
+# contains "sk-" inside a word and must not trip the secret scanner.
+production_secret_pattern='(OPENAI_API_KEY|apiKey|api_key|(^|[^A-Za-z0-9_])sk-[A-Za-z0-9_-]{8,})'
 if grep -RInE --include='*.kt' --include='*.java' --include='*.xml' \
-  '(OPENAI_API_KEY|sk-[A-Za-z0-9_-]{8,}|apiKey|api_key)' \
+  "$production_secret_pattern" \
   app/src/main realtime-client/src/main privileged-helper/src/main audio-bridge/src/main; then
   echo "production_secret_scan_failed=true" >&2
   exit 1
