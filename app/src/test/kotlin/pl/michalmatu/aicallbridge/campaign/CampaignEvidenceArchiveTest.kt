@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import java.io.File
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipInputStream
