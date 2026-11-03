@@ -162,6 +162,14 @@ class CampaignToolActivity : Activity() {
             },
         )
         refreshGrantStatus()
+        // Explicit primary-screen tap: continue directly into the same authorization,
+        // permission and Android-role checks as the existing START control.
+        // A configuration/activity recreation must never start a second attempt.
+        if (savedInstanceState == null &&
+            intent.getBooleanExtra(EXTRA_START_AUTHORIZED_CAMPAIGN, false)
+        ) {
+            ensurePermissionsThen(PendingAction.START)
+        }
     }
 
     override fun onResume() {
@@ -459,6 +467,8 @@ class CampaignToolActivity : Activity() {
     }
 
     companion object {
+        const val EXTRA_START_AUTHORIZED_CAMPAIGN =
+            "pl.michalmatu.aicallbridge.extra.START_AUTHORIZED_CAMPAIGN"
         private const val REQUEST_CAMPAIGN_PERMISSIONS = 2001
         private const val REQUEST_DIALER_ROLE = 2002
         private val REQUIRED_PERMISSIONS = listOf(
