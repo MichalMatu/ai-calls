@@ -1,5 +1,8 @@
 # AI Calls — current handoff
 
+**Najnowszy checkpoint F-033/F-034 (2026-11-03):** [fast-dialogue, prewarm, rzeczywiste S22 i nieukończona próba](checkpoints/2026-11-03-f033-f034-fast-dialogue-prewarm-handoff.md). Weryfikowany `main` przed handoffem: `eb2f505831ddca17a395f666c4e7f08529306c55` (odczytaj bieżący HEAD od nowa). Mac `aicalls-20261103-f033-f034-fast-dialogue-guard-build-s22-v1` **DONE/0**: Python/Kotlin unit/build/lint, S22 APK install i lokalny Gemma 7/7 PASS. Realny retest *tej samej* wersji: task `aicalls-20261103-f033-f034-fast-guard-physical-call-retest-v2` (Local Agent branch `agent-control`), **wynik sprawdzić przed jakąkolwiek kolejną próbą, bez duplikowania połączenia**. Wciąż brak niezależnego potwierdzenia słyszalności TX i efektu CLIR; nie deklaruj `LIVE_TASK_PASS`. Nie używaj Codex/Work/GitHub Actions. Nie eksportuj prywatnych audio/transkryptów do Git.
+
+
 **2026-11-03 latest QA correction:** Mac `aicalls-20261103-campaign-evidence-simplification-qa-v1` na starszym `556bf67` -> **FAILED, 624 testy/2 błędy**: historyczne asercje `CallSessionEvidenceConsent.consume` i `1024` zdarzeń. Poprawione w kolejnych commitach `cb133e8` i `2c84513`; nowe źródła wymagają świeżego QA. `F-015` w `BLOCKERS.md`.\n\n## 2026-11-03 — NOWY STAN: druga warstwa ochrony przed blokerami (źródła, QA niepotwierdzone)
 
 Aktualna lista wszystkich naruszeń, statusów i klasyfikacja ważnych limitów: [BLOCKERS.md](../BLOCKERS.md). Nadrzędny zakaz: pierwsze linie [AGENTS.md](../AGENTS.md). `docs/FRICTION_BLOCKER_LEDGER.md` przechowuje **historię**, nie konkurencyjne statusy.
