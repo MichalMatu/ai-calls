@@ -6,6 +6,7 @@ import java.io.PipedOutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -67,6 +68,91 @@ class ChatRelayDownlinkPumpTest {
             output.flush()
             assertTrue(done.await(1, TimeUnit.SECONDS))
         } finally {
+            pump.close()
+            output.close()
+        }
+    }
+
+    @Test
+    fun `STT no match can abandon active RX capture and listen again on same pump`() {
+        val input = PipedInputStream(4_096)
+        val output = PipedOutputStream(input)
+        val pump = ChatRelayDownlinkPump(input, frameBytes = 64)
+        val firstFrame = CountDownLatch(1)
+        val abandoned = CountDownLatch(1)
+        var firstFinished = false
+        var firstErrored = false
+        try {
+            pump.start()
+            pump.beginCapture(object : ChatRelayDownlinkPump.Capture {
+                override fun onFrame(bytes: ByteArray, length: Int): Boolean {
+                    firstFrame.countDown()
+                    return true
+                }
+
+                override fun onFinished() { firstFinished = true }
+                override fun onError(reason: String) { firstErrored = true }
+                override fun onAbandoned() { abandoned.countDown() }
+            })
+            output.write(byteArrayOf(1, 2, 3))
+            output.flush()
+            assertTrue(firstFrame.await(1, TimeUnit.SECONDS))
+            assertTrue(pump.abandonActiveCapture())
+            assertTrue(abandoned.await(1, TimeUnit.SECONDS))
+            assertFalse(pump.abandonActiveCapture())
+
+            val next = ByteArrayOutputStream()
+            val nextDone = CountDownLatch(1)
+            pump.beginCapture(captureInto(next, expectedBytes = 3, nextDone))
+            output.write(byteArrayOf(10, 11, 12))
+            output.flush()
+            assertTrue(nextDone.await(1, TimeUnit.SECONDS))
+            assertArrayEquals(byteArrayOf(10, 11, 12), next.toByteArray())
+            assertFalse(firstFinished)
+            assertFalse(firstErrored)
+        } finally {
+            pump.close()
+            output.close()
+        }
+    }
+
+    @Test
+    fun `late in-flight frame from abandoned recognizer cannot cancel next RX capture`() {
+        val input = PipedInputStream(4_096)
+        val output = PipedOutputStream(input)
+        val pump = ChatRelayDownlinkPump(input, frameBytes = 64)
+        val enteredOldFrame = CountDownLatch(1)
+        val releaseOldFrame = CountDownLatch(1)
+        val oldErrors = CountDownLatch(1)
+        try {
+            pump.start()
+            pump.beginCapture(object : ChatRelayDownlinkPump.Capture {
+                override fun onFrame(bytes: ByteArray, length: Int): Boolean {
+                    enteredOldFrame.countDown()
+                    releaseOldFrame.await(1, TimeUnit.SECONDS)
+                    // An old callback returning false must not finish a newer capture.
+                    return false
+                }
+
+                override fun onFinished() = Unit
+                override fun onError(reason: String) { oldErrors.countDown() }
+            })
+            output.write(byteArrayOf(1, 2))
+            output.flush()
+            assertTrue(enteredOldFrame.await(1, TimeUnit.SECONDS))
+            assertTrue(pump.abandonActiveCapture())
+
+            val next = ByteArrayOutputStream()
+            val nextDone = CountDownLatch(1)
+            pump.beginCapture(captureInto(next, expectedBytes = 3, nextDone))
+            releaseOldFrame.countDown()
+            output.write(byteArrayOf(30, 31, 32))
+            output.flush()
+            assertTrue(nextDone.await(1, TimeUnit.SECONDS))
+            assertArrayEquals(byteArrayOf(30, 31, 32), next.toByteArray())
+            assertFalse(oldErrors.await(50, TimeUnit.MILLISECONDS))
+        } finally {
+            releaseOldFrame.countDown()
             pump.close()
             output.close()
         }
