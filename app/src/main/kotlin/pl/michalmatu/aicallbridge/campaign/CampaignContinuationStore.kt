@@ -25,7 +25,7 @@ internal object CampaignContinuationPolicy {
 }
 
 internal class CampaignContinuationStore(context: Context) {
-    private val preferences = context.applicationContext
+    private val preferences = (context.applicationContext ?: context)
         .getSharedPreferences("campaign_continuation_v1", Context.MODE_PRIVATE)
 
     fun load(): CampaignContinuationState? = synchronized(LOCK) {
