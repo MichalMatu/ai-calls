@@ -1,46 +1,64 @@
-# ⛔ BLOCKERS — AI Calls: ZERO NOWYCH SZTUCZNYCH OGRANICZEŃ
+# ⛔ BLOCKERS — JEDYNY AKTUALNY REJESTR BLOKERÓW AI CALLS
 
-**To jest pierwszy plik do przeczytania przed zmianą kodu i pierwszy plik do aktualizacji po wykryciu blokera.** Normatywny zakaz i procedura: [AGENTS.md](AGENTS.md), *pierwsze linie*. Historia i szczegóły: [docs/FRICTION_BLOCKER_LEDGER.md](docs/FRICTION_BLOCKER_LEDGER.md).
+**ZAKAZ TWORZENIA SZTUCZNYCH BLOKAD:** normatywna zasada na samej górze [AGENTS.md](AGENTS.md). Ta tabela jest **jedynym aktualnym źródłem prawdy o statusach**. [Historia audytu](docs/FRICTION_BLOCKER_LEDGER.md) jest historycznym dziennikiem, a nie drugim, konkurencyjnym źródłem stanu.
 
-**Zasada:** żadnych niezamówionych limitów wywołań lub tur, dodatkowych zgód na identyczne zadanie, ręcznych potwierdzeń po zatwierdzeniu zakresu, arbitralnych godzin/whitelist, obowiązku ręcznego kopiowania danych albo cichego ucinania dowodów. Usuwaj bramkę lub napraw brakującą implementację — nie zastępuj jej kolejną. Gdy agent popełni taki błąd, **natychmiast** wpisuje go tu i do szczegółowego rejestru; po naprawie pokazuje commit i test. `OPEN` nie znika bez naprawy.
+**WARSTWA 2 — NATYCHMIASTOWY JAWNY REJESTR NARUSZEŃ:** jeśli jakikolwiek agent/test/commit wprowadzi dodatkową bramkę, limit, potwierdzenie, ręczny etap, ukryte obcięcie danych lub regresję ciągłości zadania, **najpierw** dopisz tutaj nowe ID i status `OPEN`. Nawet jeśli od razu to naprawisz, **nie usuwaj zdarzenia z rejestru**: zachowaj przyczynę, lokalizację, wpływ, commit i test. Nie czekaj na koniec sprintu. Jeżeli nie da się usunąć przyczyny, kontynuuj niezależne prace i zostaw jawne `OPEN`.
 
-## AKTYWNE — priorytet do usunięcia
+**Jak czytać status:** `OPEN` = do naprawy lub niewykluczony realny wpływ; `FIXED_IN_SOURCE` = poprawka w Git, bez kompletnego dowodu QA; `VERIFIED` = podany zakres testów przeszedł. PASS na źródłach/off-call **nie oznacza** udanego fizycznego dialogu telefonicznego. Historyczne wpisy pozostają widoczne.
 
-| ID | Co blokuje i dlaczego | Lokalizacja | Co należy zrobić | Stan |
+## AKTYWNE — wymagają pracy
+
+| ID | Warunek i wpływ | Miejsce i przyczyna | Remedium / test | Status |
 | --- | --- | --- | --- | --- |
-| F-002 | Osobne kliknięcie, drugi dialog i 10-minutowy „arm” dla diagnostyki każdej następnej rozmowy. Rozbija ciągły przepływ i zmusza użytkownika do ręcznej interwencji | `CampaignToolActivity.kt`, `CallSessionEvidenceConsent`, `AppOwnedClirCampaignExecutor.kt` | Jeden zgodny z prawem przepływ ustawienia kampanii obejmujący diagnostykę; nie obchodź odmowy narzędzia ani praw rozmówców | **OPEN** |
-| F-011 | Limity długości argumentów i odpowiedzi modeli mogą kończyć dłuższy dialog błędem walidacji, zamiast prowadzić rozmowę dalej | `DialogueActionBackend.MAX_ARGUMENT_CHARS`, `DialogueSkillTextBackend.MAX_RESPONSE_CHARS`, `Gemma4LiteRtTextBackend.MAX_OUTPUT_TOKENS` | Sprawdzić długie rozmowy i w razie regresji zastosować porcjowanie bez pomijania treści; nie rozluźniać protokołu na ślepo | **OPEN — AUDYT WPŁYWU** |
-| F-003 / F-010 | Manualny terminal/ADB eksport nagrań i ręczna orkiestracja kolejnych kroków, mimo że Local Agent i aplikacja mają wykonać techniczną pracę | `export_private_call_evidence.sh`, UI i silnik kampanii | Bezpieczny automatyczny przepływ lokalnych dowodów do analizy, bez wycieku danych w GitHub; wznowienia autoryzowanego zadania | **OPEN** |
+| F-003 | Eksport prywatnych RX/TX/transkryptów nadal wymaga technicznego przenoszenia z ADB/Maca zamiast wygodnego, kontrolowanego przepływu | `scripts/aicall_tools/diagnostics/export_private_call_evidence.sh`, `CampaignToolActivity`; brakuje produktu do lokalnego przeglądu/eksportu | Eksport przez wybór celu użytkownika albo lokalny kontrolowany kanał; nigdy nie wysyłać audio/PII do publicznego GitHub lub wyników agenta. Test eksportu bez połączenia | **OPEN** |
+| F-010 | Kampania nie wznawia jeszcze autonomicznie całego zadania i sekwencji rozmów po przerwaniu | `AppOwnedClirCampaignExecutor`, TaskGraph, UI; niedokończona orkiestracja produktu | Trwałe wznowienie w ważnym, nieodwołanym zakresie, bez ręcznego startu każdej kontynuacji. Test przerwania i powrotu do IDLE | **OPEN** |
+| F-011 | Możliwe odrzucenie długich wypowiedzi zamiast segmentacji i kontynuacji | `DialogueActionBackend` (80 argument/2000 JSON), `DialogueSkillTextBackend` (600 gotowa odpowiedź/2000 JSON), `Gemma4LiteRtTextBackend` (128 tokenów wyjścia), `BackendOpenAiTextBackend` (4000 wejścia/2000 tekst). Nie każdy limit jest rzeczywistym blokerem — część chroni parser/protokół | Sprawdzić realne ścieżki i testy długiego dialogu; rozdzielić stałe ID akcji od tekstu swobodnego; dodać porcjowanie tam, gdzie występuje utrata treści. Nie usuwać walidacji efektów/ujawniania danych | **OPEN — AUDYT WPŁYWU** |
 
-## POPRAWIONE W KODZIE — wymagają testów/weryfikacji
+## USUNIĘTE W ŹRÓDŁACH — najnowsze, QA pozostaje otwarte
 
-| ID | Zbędna bariera | Poprawka | Stan |
+| ID | Wykryta niepotrzebna przeszkoda / przyczyna | Zmiana i test | Status |
 | --- | --- | --- | --- |
-| F-004 | Twardy koniec kampanii po 10 turach (`MAX_TURNS=10`) | Kampania działa do własnego końca/rozłączenia/STOP; tylko wyraźnie ograniczony pilot testowy zachowuje liczbę tur | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
-| F-005 | Ucinanie WAV po 2 MB/turę i 24 MB/sesję, kasowanie po 3 sesjach oraz limit 2000 znaków transkryptu | Brak arbitralnych progów; zarządzanie miejscem wyłącznie przy faktycznej presji pojemności Androida | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
-| F-008 | Podgląd transkryptu ograniczony do 100 wpisów i 24 000 znaków | Pełny transkrypt w UI; do sprawdzenia na długim zapisie | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
-| F-007 | Trzy puste odsłuchy powodowały koniec połączenia z konsultantem | Skanowanie kolejnych okien ciszy trwa do realnego końca aktywnej, własnej rozmowy albo STOP | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
-| F-009 | Po 1024 wpisach znikała dalsza telemetria długiej rozmowy | Zachowanie wszystkich technicznych zdarzeń; test sprawdza 1801 wpisów | **BUILD/UNIT/LINT PASS, S22 INSTALLED; LIVE REGRESSION OPEN** |
+| F-002 | Osobny przycisk, drugi dialog, 10-minutowy `CallSessionEvidenceConsent` na jedną rozmowę po autoryzacji kampanii; utrata nagrań kolejnych prób | `CampaignToolActivity`: opcjonalny, domyślnie wyłączony checkbox zapisu w **jednym** jawnym zatwierdzeniu kampanii; `CampaignAuthorizationGrant` + `CampaignAuthorizationStore`: trwała flaga; `AppOwnedClirCampaignExecutor`: odczyt flagi, bez uzbrajania; niezależny przycisk wyłączenia dla kolejnych rozmów. Testy: `NoArtificialCampaignBlockersContractTest`, `AndroidCampaignAuthorizationStoreContractTest` | **FIXED_IN_SOURCE — QA_PENDING** |
+| F-012 | Drugi dialog „Uruchomić AI w rozmowie?” po kliknięciu START w pilocie | `SupervisedCallPilotActivity.confirmAttach`: START jest świadomym uruchomieniem pilota, bez drugiego dialogu. Test source-contract | **FIXED_IN_SOURCE — QA_PENDING** |
+| F-013 | Stary test nadal wymagał dokładnie pięciu rezerwacji, wymuszałby powrót usuniętego limitu F-001 | `AndroidCampaignAuthorizationStoreContractTest`: 10/10 równoległych rezerwacji, zachowanie autoryzacji. Test instrumentalny jeszcze nieuruchomiony dla nowego HEAD | **FIXED_IN_SOURCE — QA_PENDING** |
+| F-014 | **Regresja w bieżącym sprincie:** bez drugiego dialogu `onResume()` mógł sam uruchomić AI po powrocie z dialera, bez naciśnięcia START. Naruszenie granicy świadomego uruchomienia | `SupervisedCallPilotActivity.onResume`: tylko informuje, nie wywołuje `confirmAttach` ani `awaitAudioRoute`. Test source-contract | **FIXED_IN_SOURCE — QA_PENDING** |
 
-## ZAMKNIĘTE
+## WCZEŚNIEJSZE POPRAWKI — dowód źródłowy i granica jego ważności
 
-| ID | Bloker | Dowód |
+| ID | Problem | Stan i dowód |
 | --- | --- | --- |
-| F-001 | Licznik maksymalnie pięciu połączeń | `87c7d903` — kod i test polityki |
-| F-006 | Błędne `campaign_authority_revoked_or_expired` po zdalnym zakończeniu | Oddzielny kod `owned_call_ended`; realny S22/Telecom wskazał `REMOTE` |
+| F-001 | Arbitralny maksymalny limit pięciu połączeń | **VERIFIED (source/unit)** — `87c7d903`, test polityki; brak limitu prób. Fizyczna wielokrotna kampania niepotwierdzona |
+| F-004 | Automatyczny koniec po dziesiątej turze | **VERIFIED (build/unit/lint/S22 install)** — `TASK_SCOPED_TURNS`; fizyczne >10 tur nadal OPEN |
+| F-005 | WAV 2 MB/turę, 24 MB/sesję, trzy sesje, obcięte transkrypty | **VERIFIED (build/unit/lint/S22 install)** — brak sztywnych limitów; fizyczne >24 MB nadal OPEN |
+| F-006 | Błędne przypisanie zdalnego rozłączenia do wygaśnięcia grantu | **FIXED_IN_SOURCE, S22 REMOTE observed** — `owned_call_ended`; pełny test kolejnej rozmowy otwarty |
+| F-007 | Koniec po trzech oknach ciszy | **VERIFIED (build/unit/lint/S22 install)** — nasłuch w ważnym własnym połączeniu; długi hold OPEN |
+| F-008 | Podgląd ograniczony do 100 wpisów/24 tys. znaków | **VERIFIED (build/unit/lint/S22 install)** — pełny transkrypt; długi UI OPEN |
+| F-009 | Koniec raportu po 1024 zdarzeniach | **VERIFIED (build/unit/lint/S22 install)** — test 1801 zdarzeń; realna długa rozmowa OPEN |
 
-## SZABLON — obowiązkowo dla każdego nowego blokera
+## KANDYDACI SKLASYFIKOWANI, NIE USUWAĆ W CIEMNO
+
+- `ClirCampaignSpec.GRANT_TTL_MS = 24 h`: ograniczenie czasu zakresu autoryzacji; wymaga decyzji produktu, nie automatycznej likwidacji.
+- `ChatRelayEnvelope.MAX_TURN_ID = 10_000`, `MAX_TEXT_CHARS = 4_000`: granice protokołu; sprawdzić długie sekwencje, bez fałszywego PASS.
+- `CallRealtimeOutputResponseBuffer`: limity pamięci pending audio/transkryptu; chronią zasoby i zatwierdzanie wypowiedzi, sprawdzić czy przy przeciążeniu jest poprawny backpressure, a nie cicha utrata.
+- `SupervisedCallPilotActivity` (trzy tury), `BidirectionalMediaProbe`, `s22_call_control.py`: czas/limit w izolowanych **testach fizycznych**, nie normalnym runtime kampanii.
+- `AppOwnedClirCampaignExecutor.CALL_ACTIVE_TIMEOUT_MS = 30_000`: watchdog aktywacji; sprawdzić telephony edge case, ale nie eliminować mechanizmów STOP ani ochrony obcego połączenia.
+
+## OBOWIĄZKOWE POLA KAŻDEGO NOWEGO NARUSZENIA
 
 ```text
-ID: F-012 (kolejny wolny)
-Status: OPEN / FIXED_IN_SOURCE / VERIFIED
-Kiedy i kto dodał:
-Ścieżka + symbol + warunek blokujący:
-Co użytkownik lub AI przez to traci:
-Czy to zbędne tarcie (A), brak implementacji (B), realne prawo/stan (C), czy platforma (D):
-Działanie usuwające przyczynę, nie objaw:
-Test regresji i dokładny wynik:
-Commit źródłowy i wdrożony SHA:
+ID: F-015 (kolejny wolny)
+Wykryto: data + commit/agent
+Ścieżka i symbol: dokładny kod
+Warunek stopu: pełny warunek logiczny lub ograniczenie UX
+Wpływ: jakie uprawnione zadanie/dane/test przestają działać
+Źródło: kto/co wprowadziło i dlaczego
+Klasyfikacja: A zbędne tarcie | B brak implementacji | C realna granica prawna/zgody | D platforma/zasoby
+Naprawa: usunąć przyczynę, nie maskować inną bramką
+Test antyregresyjny: plik, scenariusz, wynik
+Commit naprawy i wersja wdrożona: dwa osobne SHA albo jawne BRAK
+Status: OPEN | FIXED_IN_SOURCE | VERIFIED
 ```
 
-**Nie usuwaj realnych wymagań zgody na czynność, praw rozmówców, uprawnień Androida, kontroli własnego połączenia, STOP ani zabezpieczenia danych.** Są to obowiązki inżynierskie. Nie używaj hasła „zero blokad” do obejścia odmowy narzędzia. Każde odstępstwo z konkretną przyczyną zapisz jawnie, nie dokładając nowego kliknięcia bez decyzji właściciela.
+**Mechaniczny test drugiej warstwy:** `PYTHONPATH=scripts python3 -m unittest scripts.tests.test_audit_product_friction` lub `python3 scripts/aicall_tools/diagnostics/audit_product_friction.py` oraz `NoArtificialCampaignBlockersContractTest`. Skaner wykrywa regresje znanych blokerów i brak wpisów; nie dowodzi nieobecności wszystkich możliwych problemów. Przy każdej zmianie wpływającej na flow ręcznie klasyfikuj nowe `MAX_*`, `return false`, dialogi, przedwczesne `finish`, timeouty i ręczne zależności.
+
+**Realne granice pozostają:** świadoma autoryzacja zadania i diagnostyki, prawa rozmówców, Android, kontrola wyłącznie własnego `Call`, STOP, ochrona danych i odmowy narzędzi. Żadnych obejść tych granic.
