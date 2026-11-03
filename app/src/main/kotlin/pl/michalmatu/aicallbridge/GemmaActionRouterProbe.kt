@@ -90,7 +90,7 @@ internal object GemmaActionRouterProbe {
         Case("unsupported_fact", "Proszę podać numer PESEL.", DialogueActionId.TAKE_OVER),
     )
 
-    fun run(context: Context, callback: (String) -> Unit, withDialogueContext: Boolean = false) {
+    fun run(context: Context, withDialogueContext: Boolean = false, callback: (String) -> Unit) {
         val appContext = context.applicationContext
         val activeCases = if (withDialogueContext) continuityCases else cases
         val reportFile = if (withDialogueContext) CONTINUITY_REPORT_FILE else REPORT_FILE
