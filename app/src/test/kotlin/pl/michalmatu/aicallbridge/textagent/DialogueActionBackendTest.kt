@@ -151,6 +151,57 @@ class DialogueActionBackendTest {
         assertEquals("dialogue_action_low_confidence", error)
     }
 
+    @Test
+    fun `native chat receives only current utterance while keeping policy action memory`() {
+        val classifier = object : TextCallAgentBackend, NativeConversationContextBackend {
+            val prompts = mutableListOf<String>()
+            override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                prompts += userText
+                listener.onComplete("""{"action":"STATE_TASK_SUBJECT","confidence":0.95}""")
+            }
+            override fun cancel() = Unit
+            override fun close() = Unit
+            override fun resetConversationContext() = Unit
+        }
+        val backend = DialogueActionBackend(
+            classifierBackend = classifier,
+            policy = policy(),
+            executor = DialogueActionExecutor { _, _, listener ->
+                listener.onComplete("safe-agent-response")
+            },
+            turnMemory = DialogueActionTurnMemory(),
+        )
+
+        backend.generate("Pierwsza wypowiedź.", listener())
+        backend.generate("Druga wypowiedź.", listener())
+
+        assertEquals(listOf("Pierwsza wypowiedź.", "Druga wypowiedź."), classifier.prompts)
+        backend.close()
+    }
+
+    @Test
+    fun `non-native fallback retains bounded prior-turn context`() {
+        val classifier = FakeBackend.complete(
+            """{"action":"STATE_TASK_SUBJECT","confidence":0.95}""",
+        )
+        val backend = DialogueActionBackend(
+            classifierBackend = classifier,
+            policy = policy(),
+            executor = DialogueActionExecutor { _, _, listener ->
+                listener.onComplete("safe-agent-response")
+            },
+            turnMemory = DialogueActionTurnMemory(),
+        )
+
+        backend.generate("Pierwsza wypowiedź.", listener())
+        backend.generate("Druga wypowiedź.", listener())
+
+        assertEquals("Pierwsza wypowiedź.", classifier.prompts[0])
+        assertEquals(true, "Pierwsza wypowiedź." in classifier.prompts[1])
+        assertEquals(true, "Druga wypowiedź." in classifier.prompts[1])
+        backend.close()
+    }
+
     private fun policy() = DialogueActionPolicy(
         allowedActions = setOf(
             DialogueActionId.ASK_REPEAT,
@@ -179,9 +230,11 @@ class DialogueActionBackendTest {
     ) : TextCallAgentBackend {
         var generateCalls = 0
             private set
+        val prompts = mutableListOf<String>()
 
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
             generateCalls += 1
+            prompts += userText
             listener.onComplete(checkNotNull(completeText))
         }
 
