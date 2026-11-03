@@ -45,6 +45,7 @@ import pl.michalmatu.aicallbridge.identity.CallTaskMode
 import pl.michalmatu.aicallbridge.identity.DefaultFactDisclosurePolicy
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
+import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
@@ -436,7 +437,25 @@ internal object ChatRelayLiveCallProbe {
 
                 override fun onError(reason: String) {
                     recordTurnDialogueDiagnostics(currentTurn)
-                    finish(false, reason)
+                    if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
+                        val retryTurn = currentTurn
+                        lines += "turn_${retryTurn}_stt_transient_no_transcript=true"
+                        // A no-match is not a failed task or reason to redial.
+                        // Re-open the same listening turn if exact Call/grant still
+                        // owns the media session. No arbitrary retry ceiling.
+                        handler.postDelayed({
+                            if (finished.get() || currentTurn != retryTurn) return@postDelayed
+                            if (!authorizedNow()) {
+                                finish(false, authorityFailureReason())
+                            } else if (activeMediaGeneration.get() != generation) {
+                                finish(false, "stale_media_generation")
+                            } else {
+                                beginNextTurn(generation, lease)
+                            }
+                        }, NO_SPEECH_RETRY_DELAY_MS)
+                    } else {
+                        finish(false, reason)
+                    }
                 }
             })
         }
