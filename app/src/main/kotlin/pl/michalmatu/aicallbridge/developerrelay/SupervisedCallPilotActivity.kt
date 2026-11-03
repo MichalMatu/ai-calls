@@ -151,7 +151,7 @@ class SupervisedCallPilotActivity : Activity() {
                 if (failure == null) {
                     pendingRouteProbe = null
                     SupervisedCallReadinessDiagnostics.write(this@SupervisedCallPilotActivity, snapshot)
-                    confirmAttach() // The explicit consent dialog remains mandatory.
+                    confirmAttach() // Reuse the original START tap after the OS route stabilizes.
                 } else if (SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
                         failure, SystemClock.elapsedRealtime() - start)) {
                     routeHandler.postDelayed(this, 300L)
@@ -218,19 +218,8 @@ class SupervisedCallPilotActivity : Activity() {
                 .show()
             return
         }
-        val approvedGemmaMode = gemmaMode.isChecked
-        AlertDialog.Builder(this)
-            .setTitle("Uruchomić AI w rozmowie?")
-            .setMessage(
-                "Potwierdź, że to Twoja świadomie rozpoczęta rozmowa testowa. " +
-                    "AI wyśle maksymalnie trzy krótkie odpowiedzi " +
-                    "w trybie ${if (approvedGemmaMode) "Gemma 4" else "skryptowym"}. " +
-                    "Nie wybierze numeru, nie zmieni usług i nie rozłączy połączenia. " +
-                    "STOP natychmiast wyłącza audio AI.",
-            )
-            .setPositiveButton("Uruchom test") { _, _ -> startPilot(approvedGemmaMode) }
-            .setNegativeButton("Anuluj", null)
-            .show()
+        // The user's START tap is the approval for this effect-free pilot.
+        startPilot(gemmaMode.isChecked)
     }
 
     private fun startPilot(approvedGemmaMode: Boolean) {
