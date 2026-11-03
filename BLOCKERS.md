@@ -32,7 +32,11 @@
 | F-015 | Przestarzały test `CallDiagnosticEvidenceTest.evidenceIsBoundedEvenIfAProducerMisbehaves` żądał obcinania po 1024 zdarzeniach (sprzeczny z naprawionym F-009), co blokowało nowe QA | `CallDiagnosticEvidenceTest.kt`: 1100/1100 zdarzeń, nadal ogranicza niezaufaną długość pojedynczego kodu diagnostycznego do 256 znaków. Commit `2c84513`; poprzedni QA `aicalls-20261103-campaign-evidence-simplification-qa-v1` wykazał FAIL 2/624 na `556bf67` | **VERIFIED (Mac QA v3 source/unit/build/lint; S22 runtime untested)** |
 
 
-| F-019 | Nowy test długiej odpowiedzi porównywał też końcowe spacje, choć polityka od dawna normalizuje `.trim()`; fałszywy FAIL 1/633 unit testów w QA v5 | `DialogueSkillTextBackendTest` (v5 `e057cf8`); nowy test zbyt rygorystyczny względem istniejącego kontraktu | Oczekiwana wartość `approved.trim()`; poprawka `fde032c`, nowy QA wymagany | **VERIFIED (Mac QA v6 source; fizyczny S22 OPEN)** |
+## QA sprintu — poprawiony fałszywy FAIL
+
+| ID | Objaw | Przyczyna | Naprawa / dowód | Status |
+| --- | --- | --- | --- | --- |
+| F-019 | Nowy test długiej odpowiedzi porównywał też końcowe spacje, choć polityka od dawna normalizuje `.trim()`; fałszywy FAIL 1/633 unit testów w QA v5 | `DialogueSkillTextBackendTest` (v5 `e057cf8`); nowy test zbyt rygorystyczny względem istniejącego kontraktu | Oczekiwana wartość `approved.trim()`; poprawka `fde032c`; Mac QA v6 PASS | **VERIFIED (Mac QA v6 source; fizyczny S22 OPEN)** |
 
 ## WCZEŚNIEJSZE POPRAWKI — dowód źródłowy i granica jego ważności
 
