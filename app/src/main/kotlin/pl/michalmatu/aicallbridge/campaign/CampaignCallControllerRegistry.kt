@@ -12,6 +12,8 @@ internal interface CampaignOwnedCallSession {
     val dialedTarget: String
     val phoneAccount: PhoneAccountHandle
     fun isExactCallActive(): Boolean
+    /** True only for a positively identified Wi-Fi Calling/IMS call, never inferred from audio mode. */
+    fun isWifiCalling(): Boolean = false
     fun disconnectExactCall(): Boolean
 }
 

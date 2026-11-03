@@ -99,6 +99,9 @@ internal class AndroidTelecomOwnedCallSession(
     override fun isExactCallActive(): Boolean =
         !stopRequested.get() && boundCall.get()?.state == Call.STATE_ACTIVE
 
+    override fun isWifiCalling(): Boolean =
+        boundCall.get()?.details?.hasProperty(Call.Details.PROPERTY_WIFI) == true
+
     override fun disconnectExactCall(): Boolean {
         stopRequested.set(true)
         val call = boundCall.get() ?: return true // deferred until the matched Call arrives

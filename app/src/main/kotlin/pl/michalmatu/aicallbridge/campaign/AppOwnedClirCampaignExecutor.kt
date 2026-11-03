@@ -220,6 +220,16 @@ internal object AppOwnedClirCampaignExecutor {
                 onStatus("Owned call state unavailable; cleanup=$cleanup")
                 return
             }
+            // Samsung/Telecom uses MODE_IN_COMMUNICATION for Wi-Fi Calling (IWLAN).
+            // The frozen VOICE_DOWNLINK capture is physically proven only in MODE_IN_CALL.
+            // Never bypass this device media gate or wait silently through a doomed call.
+            if (exactActive && runCatching { ownedCall.isWifiCalling() }.getOrDefault(false)) {
+                val cleanup = ownedCalls.release(ownedCall)
+                running.set(false)
+                onStatus("Wi-Fi Calling (VoWiFi) nie obsługuje aktualnego toru audio. " +
+                    "Wyłącz Połączenia przez Wi-Fi dla tej karty SIM; cleanup=$cleanup")
+                return
+            }
             if (exactActive && audioManager.mode == AudioManager.MODE_IN_CALL) {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
                 startLocalRuntime(appContext, telecomManager, grant, ownedCall, request, authorizationStore, onStatus)
