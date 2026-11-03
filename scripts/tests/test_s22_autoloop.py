@@ -6,6 +6,8 @@ from aicall_tools.diagnostics.s22_autoloop import (
     call_states,
     read_report,
     cycle_verdict,
+    classify_runtime_status,
+    diagnose_phases,
 )
 
 
@@ -53,6 +55,36 @@ class S22AutoloopParsingTests(unittest.TestCase):
         self.assertEqual(
             cycle_verdict(report, call_requested=True, probes_skipped=False),
             "INCOMPLETE_OFFHOOK_NOT_OBSERVED",
+        )
+
+    def test_in_call_media_failures_are_classified_without_personal_data(self):
+        private_number = "+48123456789"
+        xml = (
+            '<map><string name="status">Call activation timeout; '
+            'exact_active=true; audio_mode=MODE_IN_COMMUNICATION; '
+            'cleanup=targeted_disconnect; number=' + private_number +
+            '</string></map>'
+        )
+        phase = classify_runtime_status(xml)
+        self.assertEqual(phase, "ACTIVATION_TIMEOUT_MODE_IN_COMMUNICATION")
+        self.assertNotIn(private_number, phase)
+        self.assertEqual(
+            diagnose_phases(["DIAL_STARTED", phase]),
+            "CELLULAR_AUDIO_MODE_NOT_IN_CALL",
+        )
+        self.assertEqual(classify_runtime_status("not xml"), "UNAVAILABLE")
+
+    def test_runtime_started_does_not_mean_live_rx_tx_pass(self):
+        self.assertEqual(
+            classify_runtime_status(
+                '<map><string name="status">Exact owned cellular call active; '
+                'starting campaign runtime</string></map>'
+            ),
+            "LOCAL_RUNTIME_STARTED",
+        )
+        self.assertEqual(
+            diagnose_phases(["DIAL_STARTED", "LOCAL_RUNTIME_STARTED"]),
+            "LOCAL_RUNTIME_STARTED_RX_TX_NOT_PROVEN",
         )
 
     def test_no_authority_and_incomplete_probe_cannot_pass(self):
