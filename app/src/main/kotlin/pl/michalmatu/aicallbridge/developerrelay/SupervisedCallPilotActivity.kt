@@ -70,7 +70,7 @@ class SupervisedCallPilotActivity : Activity() {
             addView(TextView(this@SupervisedCallPilotActivity).apply {
                 text = "1. W zwykłym dialerze zadzwoń samodzielnie na uzgodniony numer.\n" +
                     "2. Podczas rozmowy wróć tutaj przez ostatnie aplikacje.\n" +
-                    "3. Potwierdź włączenie AI: STT → Gemma/skrypt → TTS → Shizuku.\n" +
+                    "3. Dotknij START: STT → Gemma/skrypt → TTS → Shizuku.\n" +
                     "4. STOP wyłącza wyłącznie AI, nie rozłącza telefonu.\n\n" +
                     "Bez danych osobowych, CLIR i zmian usług."
             })
@@ -105,11 +105,11 @@ class SupervisedCallPilotActivity : Activity() {
         if (returnedFromDialer && !allowed.get()) {
             returnedFromDialer = false
             when (preflight()) {
-                null -> {
-                    status.text = "Rozmowa wykryta. Potwierdź, aby uruchomić AI."
-                    confirmAttach()
-                }
-                SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY -> awaitAudioRoute()
+                null -> status.text =
+                    "Rozmowa wykryta. Dotknij «Uruchom AI w trwającej rozmowie»."
+                SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY -> status.text =
+                    "Rozmowa wykryta, lecz tor audio nie jest gotowy. " +
+                        "Dotknij START po przywróceniu toru audio."
                 else -> status.text = "Wrócono z dialera. Jeśli rozmowa trwa, " +
                     "dotknij «Uruchom AI w trwającej rozmowie»."
             }
