@@ -152,7 +152,9 @@ internal class BackendOpenAiTextBackend(
         } ?: return null
         val text = root.get("text") ?: return null
         if (!text.isJsonPrimitive || !text.asJsonPrimitive.isString) return null
-        return text.asString.trim().takeIf { it.isNotEmpty() && it.length <= MAX_OUTPUT_CHARS }
+        // The complete HTTPS response already has a bounded envelope. Do not drop
+        // otherwise valid authorized text merely because it exceeds 2,000 characters.
+        return text.asString.trim().takeIf { it.isNotEmpty() }
     }
 
     private fun claim(call: Call): Boolean = synchronized(lock) {
@@ -163,7 +165,6 @@ internal class BackendOpenAiTextBackend(
 
     private companion object {
         const val MAX_INPUT_CHARS = 4_000
-        const val MAX_OUTPUT_CHARS = 2_000
         const val MAX_RESPONSE_CHARS = 64 * 1024
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
