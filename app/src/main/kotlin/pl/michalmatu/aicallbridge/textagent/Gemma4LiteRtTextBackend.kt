@@ -264,6 +264,7 @@ internal class LiteRtGemma4Runtime(
         var conversation: Conversation? = null
         var registeredConversation = false
         var successfulSend = false
+        var callbackDelivered = false
         var reused = false
         var turnIndex = 0
         val startedNs = System.nanoTime()
@@ -338,6 +339,7 @@ internal class LiteRtGemma4Runtime(
                 if (isCurrent(requestGeneration)) listener.onError("empty_response")
             } else if (successfulSend && isCurrent(requestGeneration)) {
                 status = "complete"
+                callbackDelivered = true
                 listener.onComplete(text)
             }
         } catch (error: Throwable) {
@@ -362,7 +364,7 @@ internal class LiteRtGemma4Runtime(
                     !registeredConversation -> conversation
                     // resetConversationContext or close has already detached it.
                     activeConversation !== conversation -> null
-                    closed || !successfulSend || discardAfterSend -> {
+                    closed || !successfulSend || !callbackDelivered || discardAfterSend -> {
                         activeConversation = null
                         conversationTurnCount = 0
                         discardAfterSend = false
