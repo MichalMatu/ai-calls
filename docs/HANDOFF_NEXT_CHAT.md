@@ -1,6 +1,6 @@
 # AI Calls — current handoff
 
-## 2026-11-03 — NOWY STAN: druga warstwa ochrony przed blokerami (źródła, QA niepotwierdzone)
+**2026-11-03 latest QA correction:** Mac `aicalls-20261103-campaign-evidence-simplification-qa-v1` na starszym `556bf67` -> **FAILED, 624 testy/2 błędy**: historyczne asercje `CallSessionEvidenceConsent.consume` i `1024` zdarzeń. Poprawione w kolejnych commitach `cb133e8` i `2c84513`; nowe źródła wymagają świeżego QA. `F-015` w `BLOCKERS.md`.\n\n## 2026-11-03 — NOWY STAN: druga warstwa ochrony przed blokerami (źródła, QA niepotwierdzone)
 
 Aktualna lista wszystkich naruszeń, statusów i klasyfikacja ważnych limitów: [BLOCKERS.md](../BLOCKERS.md). Nadrzędny zakaz: pierwsze linie [AGENTS.md](../AGENTS.md). `docs/FRICTION_BLOCKER_LEDGER.md` przechowuje **historię**, nie konkurencyjne statusy.
 
