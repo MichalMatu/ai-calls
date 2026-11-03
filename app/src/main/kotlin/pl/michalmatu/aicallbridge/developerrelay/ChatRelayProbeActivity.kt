@@ -29,7 +29,7 @@ class ChatRelayProbeActivity : Activity() {
             intent.getBooleanExtra(EXTRA_PHONE_DISCLOSURE_AUTHORIZED, false)
         try {
             ChatRelayEnvelope(sessionId, 1, "probe").validate()
-            require(maxTurns in 1..ChatRelayLiveCallProbe.MAX_TURNS)
+            require(maxTurns > 0)
         } catch (_: IllegalArgumentException) {
             finishWithError("invalid_relay_config")
             return

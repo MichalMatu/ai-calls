@@ -2,6 +2,11 @@
 
 ## 2026-11-03 — eliminacja ucinania rozmów i śladów (źródło, testy w toku)
 
+### Druga korekta źródła — 2026-11-03
+
+Mac task `aicalls-20261103-no-artificial-limits-qa-s22-v1` wykrył kompilacyjny błąd: `ChatRelayProbeActivity` nadal odwoływało się do usuniętego `MAX_TURNS`. Naprawiono przez `require(maxTurns > 0)`; nie ustanawia nowego maksimum. Usunięto również sztuczne zakończenie po trzech cichych oknach RX (F-007) oraz gubienie wpisów raportu po 1024 zdarzeniach (F-009). Test `CallDiagnosticEvidenceLongSessionTest` sprawdza 1801 wpisów. **QA i instalacja drugiej korekty nie są jeszcze potwierdzone.**
+
+
 - `F-004`: kampania nie ma arbitralnego stopu po dziesiątej turze; rozłączenie/STOP/autoryzacja i rzeczowe zakończenie pozostają.
 - `F-005`: usunięto nieuzasadnione ograniczenia długości nagrania, limit 24 MB, limit trzech plików sesji i cięcie tekstu; odzyskiwanie miejsca wyłącznie pod presją rzeczywistej pojemności Androida.
 - `F-008`: podgląd transkryptu pokazuje pełne wypowiedzi z pliku, a nie ostatnie 100 linii/24 tys. znaków.

@@ -74,7 +74,6 @@ internal object ChatRelayLiveCallProbe {
     /** Campaign dialogue ends on factual completion, remote disconnect or STOP, not turn #10. */
     const val TASK_SCOPED_TURNS = Int.MAX_VALUE
     private const val RESPONSE_TIMEOUT_MS = 90_000L
-    private const val MAX_NO_SPEECH_RETRIES = 3
     private const val NO_SPEECH_RETRY_DELAY_MS = 750L
     private const val ORANGE_SUPPORT_NUMBER = "*100"
     private const val COMMIT_CLIR_ENABLE = "[[COMMIT_CLIR_ENABLE]]"
@@ -271,7 +270,7 @@ internal object ChatRelayLiveCallProbe {
         private var estimatedSpeechEndElapsedMs: Long? = null
         private var totalRxBytes = 0L
         private var totalTxBytes = 0L
-        private var noSpeechRetries = 0
+        private var silenceWindows = 0L
         private var turnDecisionBaseline = 0
         private var turnResponseSourceBaseline = 0
         private var turnLocalSkillErrorBaseline = 0
@@ -368,7 +367,7 @@ internal object ChatRelayLiveCallProbe {
                 return
             }
             currentTurn = turnsCompleted + 1
-            noSpeechRetries = 0
+            silenceWindows = 0L
             val diagnosticsBeforeTurn = hybridDiagnostics.snapshot()
             turnDecisionBaseline = diagnosticsBeforeTurn.decisions.size
             turnResponseSourceBaseline = diagnosticsBeforeTurn.responseSources.size
@@ -475,19 +474,18 @@ internal object ChatRelayLiveCallProbe {
                             lines += "turn_${turn}_estimated_eos_elapsed_ms=$estimated"
                         }
                         if (!endpoint.speechDetected) {
-                            if (noSpeechRetries < MAX_NO_SPEECH_RETRIES) {
-                                noSpeechRetries += 1
-                                lines += "turn_${turn}_no_speech_retry=$noSpeechRetries"
-                                handler.postDelayed(
-                                    { if (!finished.get() && turn == currentTurn) beginCaptureInputTurn(turn) },
-                                    NO_SPEECH_RETRY_DELAY_MS,
-                                )
-                            } else {
-                                context.mainExecutor.execute { finish(false, "turn_${turn}_no_speech") }
-                            }
+                            // Silence or waiting in the operator's IVR is not task failure.
+                            // Keep listening while the exact call and grant remain active.
+                            silenceWindows = (silenceWindows + 1L).coerceAtMost(Long.MAX_VALUE)
+                            lines += "turn_${turn}_no_speech_window=$silenceWindows"
+                            handler.postDelayed({
+                                if (finished.get() || turn != currentTurn) return@postDelayed
+                                if (!authorizedNow()) finish(false, authorityFailureReason())
+                                else beginCaptureInputTurn(turn)
+                            }, NO_SPEECH_RETRY_DELAY_MS)
                             return
                         }
-                        noSpeechRetries = 0
+                        silenceWindows = 0L
                         pipeline.finishInput()
                     }
 

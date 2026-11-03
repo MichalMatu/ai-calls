@@ -14,8 +14,9 @@ internal class CallDiagnosticEvidence(initial: List<String>) {
 
     @Synchronized
     operator fun plusAssign(line: String) {
-        // Keep receipt output bounded; no transcript/model argument belongs here.
-        if (lines.size < 1_024) lines.add(line.take(256))
+        // Preserve the complete sequence of technical events during long calls.
+        // The payload is sanitized metadata, never free-form conversation text.
+        lines.add(line.take(256))
     }
 
     @Synchronized
