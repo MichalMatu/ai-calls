@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 20):
+    for identifier in range(1, 21):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
@@ -63,8 +63,20 @@ def audit(root: Path) -> list[str]:
     require("CampaignContinuationStore.kt", continuation, "fun clear()")
     require("AppOwnedCampaignService.kt", service, "continuationStore.clear()")
     require("AppOwnedCampaignService.kt", service, "continuationGeneration != generation")
+    require("AppOwnedCampaignService.kt", service,
+            "campaignRequested || continuationStore.load() != null")
     require("AppOwnedCampaignService.kt", service, "isContinuationAuthorized(state)")
     require("AppOwnedCampaignService.kt", service, "val restoring = intent == null && continuationStore.load() != null")
+    # A long transcript must survive both the Android caller and the host broker;
+    # do not preserve the obsolete one-sided character limits.
+    broker = read("scripts/aicall_tools/text/openai_text_broker.py")
+    android_text = read(prefix + "textagent/BackendOpenAiTextBackend.kt")
+    forbid("openai_text_broker.py", broker, "MAX_INPUT_CHARS = 4_000")
+    forbid("openai_text_broker.py", broker, "MAX_OUTPUT_CHARS = 2_000")
+    forbid("openai_text_broker.py", broker, "MAX_OUTPUT_TOKENS = 160")
+    forbid("BackendOpenAiTextBackend.kt", android_text, "MAX_INPUT_CHARS = 4_000")
+    require("openai_text_broker.py", broker, "MAX_CLIENT_BODY_BYTES = 256 * 1024")
+    require("BackendOpenAiTextBackend.kt", android_text, "MAX_RESPONSE_CHARS = 1024 * 1024")
     require("campaign/CampaignToolActivity.kt", ui, "recordCallEvidence = evidenceChoice.isChecked")
     require("campaign/CampaignToolActivity.kt", ui, ".setView(evidenceChoice)")
     require("campaign/CampaignAuthorizationGrant.kt", grant, "val recordCallEvidence: Boolean = false")
