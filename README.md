@@ -1,5 +1,11 @@
 # AI Calls
 
+## S22 — wdrożenie uproszczonego UI i testy (PASS)
+
+Nowe UI jest **zainstalowane na Samsungu S22**, źródło `64ce6fba`. Testy rzeczywistego urządzenia: **5/5 PASS** (akordeony, rola dialera, lokalny model Gemma, bezpieczny start poza rozmową). Instalacja `-r` zachowała zapisane uprawnienia i stan kontynuacji; telefon pozostał `IDLE`, dialer AI Calls niezmieniony. [Pełny checkpoint](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md). Testy silnika i UI na Mac także PASS. **Nie oznacza to wykonania zadania CLIR ani potwierdzenia TX u konsultanta** — potrzebny oddzielny dopuszczony test połączenia.
+
+**Historyczne `S22 UI PENDING` poniżej odnosi się do wcześniejszego przebiegu, gdy urządzenie nie było dostępne.**
+
 ## UI — pierwszy etap uproszczenia, 2026-11-03
 
 [Checkpoint zmian UI](docs/checkpoints/2026-11-03-ui-accordion-first-pass.md): na wierzchu status, kampanie, nadzorowany start AI i **STOP AI**; zwijane ustawienia audio, Gemma, uprawnienia i diagnostyka. W kampaniach na wierzchu pozostają autoryzacja, START, STOP i cofnięcie grantu. **Wszystkie istniejące przyciski zachowane**. Nie zmieniano silnika rozmowy ani danych uprawnień. Źródła w `main`; **pełne testy Mac PASS** (`aicalls-20261103-ui-accordion-source-full-qa-v1`, 244 Python oraz wszystkie moduły Android). **S22 UI PENDING**: przy próbie bezpiecznej instalacji `EXACT_S22=false`, więc niczego nie wgrano i nie przeprowadzono testu fizycznego.
