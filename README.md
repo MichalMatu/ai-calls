@@ -2,7 +2,7 @@
 
 ## F-039 — bezpośredni START zamiast dwóch ekranów
 
-Nowa główna akcja `Rozpocznij autoryzowane zadanie AI` kieruje po jednym dotknięciu do **istniejącej** ścieżki START kampanii z tym samym grantem, kontrolą roli dialera i STOP. Zbędne `Campaign tools → START` nie jest już wymagane; dawny pilot `Jeden przycisk` pozostał pod Diagnostyką i nie powinien udawać autonomicznej kampanii. [Dowód i checkpoint](docs/checkpoints/2026-11-03-f039-primary-task-start-no-extra-click.md), [F-039](BLOCKERS.md). **Zmiana w źródłach; pełny Mac QA oczekuje na wynik, nowy APK nie jest jeszcze zainstalowany**.
+Nowa główna akcja `Rozpocznij autoryzowane zadanie AI` kieruje po jednym dotknięciu do **istniejącej** ścieżki START kampanii z tym samym grantem, kontrolą roli dialera i STOP. Zbędne `Campaign tools → START` nie jest już wymagane; dawny pilot `Jeden przycisk` pozostał pod Diagnostyką i nie powinien udawać autonomicznej kampanii. [Dowód i checkpoint](docs/checkpoints/2026-11-03-f039-primary-task-start-no-extra-click.md), [F-039](BLOCKERS.md). **F-039 VERIFIED — poprawka wdrożona na S22** (źródło `1659bdc0`); Mac pełny test PASS, **247 Python**, fizyczne **5/5 off-call testów PASS**, granty i rola dialera zachowane. Rzeczywista rozmowa/CLIR nadal wymaga oddzielnej akceptacji.
 
 
 ## S22 — wdrożenie uproszczonego UI i testy (PASS)
