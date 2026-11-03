@@ -42,7 +42,8 @@ internal class DialogueSkillPolicy(
     val allowedResponses: Map<DialogueSkillId, String> = allowedResponses.mapValues { (_, value) ->
         value.trim().also {
             require(it.isNotEmpty()) { "dialogue_skill_response_must_not_be_blank" }
-            require(it.length <= MAX_RESPONSE_CHARS) { "dialogue_skill_response_too_long" }
+            // TextToSpeech splits approved output into platform-sized utterances.
+            // Do not reject task-approved speech solely for exceeding an arbitrary 600 chars.
         }
     }.toMap()
 
@@ -58,9 +59,6 @@ internal class DialogueSkillPolicy(
         }
     }
 
-    private companion object {
-        const val MAX_RESPONSE_CHARS = 600
-    }
 }
 
 internal object DialogueSkillCatalog {
