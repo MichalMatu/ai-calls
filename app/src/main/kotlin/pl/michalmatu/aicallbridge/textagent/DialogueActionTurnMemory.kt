@@ -7,8 +7,9 @@ import java.util.Locale
  * Ephemeral, per-call context for an action classifier. Never persisted, sent to
  * diagnostic logs, or permitted to grant call/fact/effect authority.
  *
- * LiteRT creates a fresh conversation for each classification: without context
- * a model can respond STATE_TASK_SUBJECT to every subsequent consultant question.
+ * The native LiteRT call conversation now retains all accepted model turns; do not
+ * duplicate this bounded text memory into its model input. This fallback context is
+ * used only by stateless classifiers and the policy-side repetition safeguard remains.
  */
 internal class DialogueActionTurnMemory {
     private data class Turn(val incoming: String, val action: DialogueActionId)
