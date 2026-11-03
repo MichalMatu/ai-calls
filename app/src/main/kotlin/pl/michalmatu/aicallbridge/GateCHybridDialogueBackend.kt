@@ -81,6 +81,7 @@ internal object GateCHybridDialogueBackendFactory {
         effectCommitControl: String? = null,
         canConfirmEffect: () -> Boolean = { false },
         supervisorRelayEnabled: Boolean = true,
+        preparedClassifier: TextCallAgentBackend? = null,
     ): TextCallAgentBackend {
         require(
             provider == TextLlmProvider.LOCAL_PHONE_LLM || provider == TextLlmProvider.LOCAL_GEMMA_4,
@@ -140,6 +141,7 @@ internal object GateCHybridDialogueBackendFactory {
             observer = diagnostics,
             taskContext = actionContext(allowEffectConfirmation = effectCommitControl != null),
             turnMemory = DialogueActionTurnMemory(),
+            preparedClassifier = preparedClassifier,
         )
         return FailoverTextCallAgentBackend(
             primary = actionBackend.observed(
