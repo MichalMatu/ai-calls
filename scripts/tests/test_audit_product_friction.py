@@ -14,6 +14,7 @@ REQUIRED = (
     MAIN + "campaign/CampaignAuthorizationGrant.kt",
     MAIN + "campaign/CampaignAuthorizationStore.kt",
     MAIN + "campaign/CampaignContinuationStore.kt",
+    MAIN + "campaign/CampaignStartReconciliationPolicy.kt",
     MAIN + "campaign/AppOwnedCampaignService.kt",
     MAIN + "textagent/BackendOpenAiTextBackend.kt",
     "scripts/aicall_tools/text/openai_text_broker.py",
