@@ -95,6 +95,21 @@ class NoArtificialCampaignBlockersContractTest {
         assertFalse(pilot.substringBefore("val telecom =").contains("continuationStore.clear()"))
     }
 
+    @Test fun duplicateStartAndNewGrantHandoffCannotStrandAnOwnedCall() {
+        val service = source("campaign/AppOwnedCampaignService.kt")
+        val reconciliation = source("campaign/CampaignStartReconciliationPolicy.kt")
+        assertTrue(service.contains("CampaignStartReconciliationPolicy.decide("))
+        assertTrue(service.contains("CampaignStartDisposition.ALREADY_RUNNING"))
+        assertTrue(service.contains("CampaignStartDisposition.REUSE_SAVED -> Unit"))
+        assertTrue(service.contains("CampaignStartDisposition.QUEUE_REPLACEMENT"))
+        assertTrue(service.contains("awaitPhoneIdle()"))
+        assertTrue(service.contains("continuationHandler.postDelayed(retry, PHONE_IDLE_RECHECK_MS)"))
+        assertTrue(service.contains("getSystemService(TelecomManager::class.java)?.isInCall == true"))
+        assertTrue(reconciliation.contains("CampaignStartDisposition.REUSE_SAVED"))
+        assertTrue(reconciliation.contains("CampaignStartDisposition.QUEUE_REPLACEMENT"))
+        assertFalse(service.contains("if (AppOwnedClirCampaignExecutor.isRunning()) return"))
+    }
+
     @Test fun continuationRespectsExactGrantAndStopWithoutAnotherApprovalDialog() {
         val service = source("campaign/AppOwnedCampaignService.kt")
         val continuation = source("campaign/CampaignContinuationStore.kt")
