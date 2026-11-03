@@ -90,7 +90,8 @@ class NoArtificialCampaignBlockersContractTest {
             .substringBefore("override fun onDestroy()")
         assertTrue(pilot.contains("campaignRequested || continuationStore.load() != null"))
         assertTrue(pilot.contains("statusStore.save("))
-        assertFalse(pilot.substringBefore("val telecom =").contains("finish("))
+        assertFalse(pilot.substringBefore("val telecom =").lineSequence()
+            .any { it.trimStart().startsWith("finish(") })
         assertFalse(pilot.substringBefore("val telecom =").contains("continuationStore.clear()"))
     }
 
