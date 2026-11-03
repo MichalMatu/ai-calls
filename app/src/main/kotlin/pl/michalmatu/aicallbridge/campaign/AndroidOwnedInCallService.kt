@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.telecom.Call
 import android.telecom.InCallService
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -22,14 +23,29 @@ class AndroidOwnedInCallService : InCallService() {
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
         observedCalls.addIfAbsent(call)
-        val session = pendingSession.get()
-        if (session != null && session.attachIfMatching(call, SystemClock.elapsedRealtime())) {
-            // OnCallAdded may arrive after STOP. Session performs deferred targeted cleanup.
+        // Call.Details (number, SIM, direction) may be incomplete in onCallAdded.
+        // Retry exact-match binding when Telecom publishes new details/state.
+        val callback = object : Call.Callback() {
+            override fun onDetailsChanged(changed: Call, details: Call.Details) {
+                tryAttachExactSession(changed)
+            }
+            override fun onStateChanged(changed: Call, state: Int) {
+                tryAttachExactSession(changed)
+            }
         }
+        callCallbacks.put(call, callback)?.let { old -> call.unregisterCallback(old) }
+        call.registerCallback(callback)
+        tryAttachExactSession(call)
         showCallNotification()
+
+    }
+
+    private fun tryAttachExactSession(call: Call) {
+        pendingSession.get()?.attachIfMatching(call, SystemClock.elapsedRealtime())
     }
 
     override fun onCallRemoved(call: Call) {
+        callCallbacks.remove(call)?.let { call.unregisterCallback(it) }
         observedCalls.remove(call)
         val session = pendingSession.get()
         if (session != null && session.isBoundTo(call)) {
@@ -75,6 +91,7 @@ class AndroidOwnedInCallService : InCallService() {
         private const val CALL_NOTIFICATION = 3217
         private val pendingSession = AtomicReference<AndroidTelecomOwnedCallSession?>(null)
         private val observedCalls = CopyOnWriteArrayList<Call>()
+        private val callCallbacks = ConcurrentHashMap<Call, Call.Callback>()
 
         internal fun reserve(session: AndroidTelecomOwnedCallSession): Boolean {
             val old = pendingSession.get()

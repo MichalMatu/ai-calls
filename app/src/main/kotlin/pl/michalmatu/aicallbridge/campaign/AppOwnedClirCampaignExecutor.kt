@@ -228,7 +228,15 @@ internal object AppOwnedClirCampaignExecutor {
             if (System.currentTimeMillis() >= deadlineEpochMs) {
                 val cleanup = ownedCalls.release(ownedCall)
                 running.set(false)
-                onStatus("Call did not become active before timeout; cleanup=$cleanup")
+                val mode = when (audioManager.mode) {
+                    AudioManager.MODE_NORMAL -> "MODE_NORMAL"
+                    AudioManager.MODE_IN_CALL -> "MODE_IN_CALL"
+                    AudioManager.MODE_IN_COMMUNICATION -> "MODE_IN_COMMUNICATION"
+                    else -> "OTHER_${audioManager.mode}"
+                }
+                onStatus(
+                    "Call activation timeout; exact_active=$exactActive; audio_mode=$mode; cleanup=$cleanup",
+                )
                 return
             }
             if (!handler.postDelayed({ poll() }, CALL_ACTIVE_POLL_MS)) {

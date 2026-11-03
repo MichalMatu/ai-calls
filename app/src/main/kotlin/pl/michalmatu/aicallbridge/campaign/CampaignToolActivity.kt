@@ -45,11 +45,8 @@ class CampaignToolActivity : Activity() {
         val startButton = Button(this).apply {
             text = "Start authorized CLIR enable"
             setOnClickListener {
-                if (AndroidTelecomOwnedCallController.canControl(this@CampaignToolActivity)) {
-                    ensurePermissionsThen(PendingAction.START)
-                } else {
-                    requestCallRole(continueWithStart = true)
-                }
+                // Scope first: do not request OS dialer role for an expired or absent grant.
+                ensurePermissionsThen(PendingAction.START)
             }
         }
         val supervisedAudioButton = Button(this).apply {
@@ -235,7 +232,7 @@ class CampaignToolActivity : Activity() {
         }
     }
 
-    private fun showAuthorizationConfirmation() {
+    private fun showAuthorizationConfirmation(continueWithStart: Boolean = false) {
         val accountScope = CampaignAccountScope.currentVoiceSubscription(this)
         if (accountScope == null) {
             statusView.text = "Could not bind campaign to the current voice subscription"
@@ -262,6 +259,7 @@ class CampaignToolActivity : Activity() {
                 )
                 authorizationStore.save(grant)
                 refreshGrantStatus()
+                if (continueWithStart) ensurePermissionsThen(PendingAction.START)
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -289,7 +287,15 @@ class CampaignToolActivity : Activity() {
             nowEpochMs = System.currentTimeMillis(),
         )
         if (decision is CampaignAuthorizationDecision.Denied) {
-            statusView.text = "Campaign authorization denied: ${decision.reason.name.lowercase()}"
+            statusView.text = "Autoryzacja wymaga odnowienia: ${decision.reason.name.lowercase()}"
+            // The owner must explicitly accept the exact target/effect/SIM once.
+            // A revoked/expired grant is never silently revived by START or ADB.
+            showAuthorizationConfirmation(continueWithStart = true)
+            return
+        }
+        if (!AndroidTelecomOwnedCallController.canControl(this)) {
+            // Android requires an explicit OS choice before exposing an exact Call handle.
+            requestCallRole(continueWithStart = true)
             return
         }
 
