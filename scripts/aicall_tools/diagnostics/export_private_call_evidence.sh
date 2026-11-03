@@ -20,7 +20,9 @@ if ! adb -s "$SERIAL" shell run-as "$PACKAGE" pwd >/dev/null; then
   echo 'USB_EXPORT=APP_PRIVATE_ACCESS_UNAVAILABLE' >&2
   exit 4
 fi
-if ! adb -s "$SERIAL" shell run-as "$PACKAGE" sh -c 'test -d files/call-session-evidence'; then
+# Android adb shell does not preserve sh -c argument boundaries reliably here.
+# Direct run-as/ls was verified against real S22 recordings; do not falsely say NO_DATA.
+if ! adb -s "$SERIAL" shell run-as "$PACKAGE" ls -d files/call-session-evidence >/dev/null 2>&1; then
   printf 'USB_EXPORT=NO_DATA\n'
   printf 'Private export directory ready: %s\n' "$OUT"
   exit 0
@@ -32,8 +34,9 @@ TMP="$(mktemp "$OUT/.call-evidence-$STAMP.XXXXXXXX")"
 SUFFIX="${TMP##*.}"
 ARCHIVE="$OUT/call-evidence-$STAMP-$SUFFIX.tar.gz"
 trap 'rm -f "$TMP"' EXIT
-adb -s "$SERIAL" exec-out run-as "$PACKAGE" sh -c \
-  'cd files && tar -czf - call-session-evidence' > "$TMP"
+# Preserve the unmodified on-device WAV/JSONL bytes and all session directories.
+# Avoid run-as sh -c quoting bugs also on the binary export path.
+adb -s "$SERIAL" exec-out run-as "$PACKAGE" tar -czf - -C files call-session-evidence > "$TMP"
 [[ -s "$TMP" ]] || { echo 'USB_EXPORT=EMPTY_ARCHIVE_ERROR' >&2; exit 3; }
 tar -tzf "$TMP" >/dev/null
 ln "$TMP" "$ARCHIVE"
