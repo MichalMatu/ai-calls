@@ -1,0 +1,15 @@
+package pl.michalmatu.aicallbridge.localspeech
+
+/**
+ * Android SpeechRecognizer can report no recognized words or a speech-timeout for
+ * one PCM window even when an owned cellular call remains connected. Those codes
+ * should lead to listening again, not abandonment of an authorized campaign.
+ *
+ * Other failures (permission, language model, engine/pipe, service) are not
+ * silently retried; the app still surfaces them as genuine diagnostics.
+ */
+internal object LocalSpeechRecoverableFailure {
+    fun isTransientNoTranscript(reason: String): Boolean =
+        reason == "stt_recognition_error_7" || // SpeechRecognizer.ERROR_NO_MATCH
+            reason == "stt_recognition_error_6"  // SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+}
