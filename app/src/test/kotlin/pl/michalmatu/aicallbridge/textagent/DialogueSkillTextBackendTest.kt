@@ -34,6 +34,23 @@ class DialogueSkillTextBackendTest {
     }
 
     @Test
+    fun `long approved reply is delivered completely without the old 600 character ceiling`() {
+        val approved = "Potwierdzam zakres autoryzowanego zadania. ".repeat(60)
+        val classifier = FakeBackend.complete(
+            """{"skill":"ASK_CLARIFY","confidence":0.94}""",
+        )
+        val backend = DialogueSkillTextBackend(
+            classifierBackend = classifier,
+            policy = DialogueSkillPolicy(
+                allowedResponses = mapOf(DialogueSkillId.ASK_CLARIFY to approved),
+            ),
+        )
+        var delivered: String? = null
+        backend.generate("długa odpowiedź rozmówcy", listener(complete = { delivered = it }))
+        assertEquals(approved, delivered)
+    }
+
+    @Test
     fun `low confidence skill fails closed`() {
         val backend = DialogueSkillTextBackend(
             classifierBackend = FakeBackend.complete(
