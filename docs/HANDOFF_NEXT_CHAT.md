@@ -27,8 +27,8 @@
 
 - `main`: jedyna gałąź produktu. `agent-control`: zachować, bo to odrębna skrzynka projektu; brak wspólnego przodka z `main`.
 - `checkpoint/2026-11-03-f035-s22-baseline`: **USUNIĘTA** po potwierdzeniu `CHECKPOINT_UNMERGED_COMMITS=0`; Mac task `aicalls-20261104-doc-audit-branch-prune-v2` potwierdził `CHECKPOINT_DELETE=PASS` i `CHECKPOINT_REMOTE_PRESENT=false`.
-- `fix/stt-startup-errors-20261102`: **ZACHOWANA** — 4 niepołączone commity, `FIX_PATCH_EQUIVALENT_COMMITS=0` względem main (Mac v2), różnice w `OnDeviceSpeechInput.kt` i teście Android. Najpierw ocenić semantyczną przydatność; dopiero po migracji lub świadomym odrzuceniu usunąć.
-- Potwierdzony zdalny stan po usunięciu: `main`, `agent-control`, `fix/stt-startup-errors-20261102`. Docelowo `main` + `agent-control`, ale nie kasować jedynych unikalnych commitów.
+- `fix/stt-startup-errors-20261102`: **USUNIĘTA** przez Mac task `aicalls-20261104-stt-branch-content-equivalence-prune-v1` DONE/0. Mimo 4 własnych commitów, cały diff gałęzi od wspólnego przodka obejmował tylko 2 pliki (`OnDeviceSpeechInput.kt`, `AndroidLocalSpeechMvpContractTest.kt`), a oba bloby były identyczne z `main` (`PATH_CONTENT_EQUIVALENT=true` 2/2). `STT_REMOTE_DELETE=PASS`, `STT_REMOTE_STILL_PRESENT=false`; kod nie został utracony.
+- **Końcowy zdalny stan:** wyłącznie `main` + `agent-control` (GitHub list 2/2, kolejna strona pusta). Bez force-push, bez zmian aplikacji lub telefonu.
 
 ## Reaudyt dokumentacji — potwierdzone QA
 
