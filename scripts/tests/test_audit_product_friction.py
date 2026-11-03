@@ -6,7 +6,7 @@ from unittest import TestCase
 from aicall_tools.diagnostics.audit_product_friction import audit
 
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 MAIN = "app/src/main/kotlin/pl/michalmatu/aicallbridge/"
 REQUIRED = (
     "AGENTS.md", "BLOCKERS.md", "docs/FRICTION_BLOCKER_LEDGER.md",
