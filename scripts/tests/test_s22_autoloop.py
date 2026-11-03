@@ -8,6 +8,9 @@ from aicall_tools.diagnostics.s22_autoloop import (
     cycle_verdict,
     classify_runtime_status,
     diagnose_phases,
+    parse_pipeline_metrics,
+    technical_pipeline_evidence,
+    LocalCycle,
 )
 
 
@@ -41,7 +44,7 @@ class S22AutoloopParsingTests(unittest.TestCase):
             "start_command": "DISPATCHED_TO_INTERNAL_SERVICE",
             "offhook_observed": True,
             "owned_stop": "DISPATCHED_TO_INTERNAL_SERVICE",
-            "after_owned_stop_idle": True,
+            "after_autonomous_idle": True,
         }
         self.assertEqual(
             cycle_verdict(report, call_requested=True, probes_skipped=False),
@@ -86,6 +89,50 @@ class S22AutoloopParsingTests(unittest.TestCase):
             diagnose_phases(["DIAL_STARTED", "LOCAL_RUNTIME_STARTED"]),
             "LOCAL_RUNTIME_STARTED_RX_TX_NOT_PROVEN",
         )
+
+    def test_real_pipeline_counters_prove_technical_path_not_remote_success(self):
+        raw = (
+            "telephony_rx_pcm_bytes=1142400\n"
+            "telephony_tx_pcm_bytes=322986\n"
+            "gemma_action_decision_count=6\n"
+            "turns_completed=5\n"
+            "turn_1_stt_chars=31\n"
+            "turn_1_approved_chars=9\n"
+            "probe_complete=true\n"
+            "failure_reason=backend_supervisor_relay_disabled\n"
+            "session_id=private-123\n"
+            "transcript=private contents\n"
+        )
+        metrics = parse_pipeline_metrics(raw)
+        self.assertTrue(technical_pipeline_evidence(metrics))
+        self.assertEqual(metrics["stt_turns"], 1)
+        self.assertEqual(metrics["approved_turns"], 1)
+        self.assertNotIn("transcript", metrics)
+        self.assertNotIn("session_id", metrics)
+        report = {
+            "final_idle": True,
+            "probes": {},
+            "campaign_readiness": "READY",
+            "start_command": "DISPATCHED_TO_INTERNAL_SERVICE",
+            "offhook_observed": True,
+            "after_autonomous_idle": True,
+            "pipeline_metrics": metrics,
+        }
+        self.assertEqual(
+            cycle_verdict(report, call_requested=True, probes_skipped=True),
+            "LIVE_TECHNICAL_PIPELINE_VERIFIED_EXTERNAL_RESULT_OPEN",
+        )
+        report["dialogue_failure_code"] = "backend_supervisor_relay_disabled"
+        self.assertEqual(
+            cycle_verdict(report, call_requested=True, probes_skipped=True),
+            "FAIL_LOCAL_ONLY_DIALOGUE_FALLBACK",
+        )
+
+    def test_observer_window_never_forces_campaign_stop(self):
+        import inspect
+        code = inspect.getsource(LocalCycle.authorized_call)
+        self.assertNotIn('app_command("run_campaign_agent_stop")', code)
+        self.assertIn("NOT_SENT_AUTONOMOUS_CALL_LIFECYCLE", code)
 
     def test_no_authority_and_incomplete_probe_cannot_pass(self):
         report = {
