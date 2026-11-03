@@ -1,4 +1,20 @@
-# Rejestr blokerów AI Calls — wymagany przegląd przed każdym commitem
+# Historia wykrywania sztucznych blokerów AI Calls — ZAPIS ZDARZEŃ
+
+**Aktualne statusy i pełny wykaz: [BLOCKERS.md](../BLOCKERS.md) w katalogu głównym.** To jest archiwalny, niekasowany dziennik zmian i źródeł. Historyczne `OPEN` i `FIXED IN CODE` w tabeli poniżej opisują moment jej sporządzenia, nie najnowszy stan. Nie kopiować ich jako aktualnych statusów. Nadrzędny zakaz: [AGENTS.md](../AGENTS.md) (pierwsze linie).
+
+## 2026-11-03 — druga warstwa, audyt 293 plików i naprawa kolejnych przypadków
+
+- Audit Mac Local Agent `aicalls-20261103-policy-code-deep-audit-v1`: `done/0`, **293** pliki produkcyjne/skrypty, **1197** wzorców kandydujących do klasyfikacji. Skan jest heurystyczny, nie oznacza 1197 błędów.
+- `F-002`: per-call 10-minutowe `CallSessionEvidenceConsent` zniknęło ze źródeł. Nagrywanie jest opcjonalne i domyślnie wyłączone; zakres diagnostyki właściciel określa w jednym formularzu autoryzacji kampanii, można wyłączyć przyszły zapis bez cofania zadania. Commity od `6268361` do `dc85945`; status `FIXED_IN_SOURCE`, **nowy QA i instalacja niepotwierdzone**.
+- `F-012`: dodatkowy dialog uruchomienia nadzorowanego audio po przycisku START usunięty, `556bf67`, `FIXED_IN_SOURCE`.
+- `F-013`: nieaktualne Android instrumentation oczekiwało dokładnie pięciu rozmów, mimo usuniętego limitu. Zmieniono na 10 równoległych rezerwacji i dopisano przypadek flagi nagrywania: `431f69c`, `FIXED_IN_SOURCE`.
+- `F-014`: wykryto regresję spowodowaną własną edycją F-012: po zniknięciu dialogu automatyczny `onResume` mógłby uruchomić audio bez START. Poprawiono na informację i explicit START w `461b521`, `FIXED_IN_SOURCE`. Naruszenie zachowane jako osobny wpis, choć naprawione w tym samym sprincie.
+- `F-011`: poszerzono audyt kandydatów o `BackendOpenAiTextBackend` i granice protokołów. **Nie usuwać walidacji modelu/JSON/efektu/zasobów w ciemno.** Brak testu realnej długiej rozmowy.
+- `scripts/aicall_tools/diagnostics/audit_product_friction.py` + `scripts/tests/test_audit_product_friction.py`: druga warstwa testu regresyjnego. Wykrywa powrót znanych bramek, dopinanie dodatkowych potwierdzeń i brak wpisów w katalogu głównym. Nie daje fałszywej gwarancji „zero wszystkich możliwych blokerów”.
+- `F-003` i `F-010` nie zostały naprawione: produktowy eksport i wznawianie zadań są nadal otwarte.
+- Terminalny odbiór dla powyższych zmian: **PENDING**, dopóki Mac Local Agent nie opublikuje wyniku. Nie powtarzać wcześniejszego PASS jako dowodu nowego SHA.
+
+## Archiwalny obraz stanu sprzed tego sprintu (zachowany dla audytu)
 
 **Najłatwiej znaleźć listę:** [BLOCKERS.md](../BLOCKERS.md) w katalogu głównym repo. Ten plik zachowuje historię i szczegóły. Wszelkie nowe naruszenia wpisz do obu plików; bez potwierdzenia testów nie wolno zmieniać statusu na `VERIFIED`.
 
