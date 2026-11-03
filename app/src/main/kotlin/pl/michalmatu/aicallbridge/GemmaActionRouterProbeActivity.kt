@@ -16,7 +16,10 @@ class GemmaActionRouterProbeActivity : Activity() {
         }
         setContentView(statusView)
         Log.i(TAG, "gemma_action_router_probe_start=true")
-        GemmaActionRouterProbe.run(this) { result ->
+        GemmaActionRouterProbe.run(
+            this,
+            withDialogueContext = intent.getBooleanExtra("run_dialogue_continuity_probe", false),
+        ) { result ->
             runOnUiThread {
                 statusView.text = result
                 Log.i(TAG, "gemma_action_router_probe_result:\n$result")
