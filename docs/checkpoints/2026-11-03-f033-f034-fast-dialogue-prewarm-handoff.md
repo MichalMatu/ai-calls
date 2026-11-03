@@ -1,5 +1,13 @@
 # AI Calls — F-033/F-034: po przerwaniu, handoff i wyniki (2026-11-03)
 
+## Aktualizacja po wznowieniu (najbardziej aktualna sekcja)
+
+1. Fizyczny retest `aicalls-20261103-f033-f034-fast-guard-physical-call-retest-v2` — **DONE/0** na kodzie `eb2f505831ddca17a395f666c4e7f08529306c55`. Dokładny S22 z ważnym istniejącym grantem/dialerem; `OFFHOOK`, 5 tur, RX **2 161 920 B**, TX **642 090 B**; pierwsze `EOS→TX=10 567 ms`, max **12 175 ms**, maksymalny `STATE_TASK_SUBJECT` streak **1**. Prywatny raport końcowy `CURRENT_SESSION`; `CLEANUP_APP_OWNED_STOP_ACK=true`, `IDLE`; brak global hangup i prywatnych danych w task-results. Tym samym źródłowa poprawka F-033 jest fizycznie zweryfikowana w zakresie **redukcji zapętlania**, F-034 w zakresie **skrócenia czasu pierwszego TX z 47 567 ms**. Wynik usługi CLIR i niezależna słyszalność nadal **OPEN**.
+2. Nowy fizyczny defekt **F-035** (jedno `SpeechRecognizer.ERROR_NO_MATCH=7` zrywało całą lokalną sesję, zamiast kontynuować słuchanie tej samej rozmowy). Wprowadzono `LocalSpeechRecoverableFailure.kt`, zmieniono `ChatRelayLiveCallProbe.Run`: STT błędy 6/7 ponawiają *ten sam aktywny turn* po 750 ms tylko przy aktualnym `Call`/grant; inne błędy nadal są zgłaszane; STOP nie jest ignorowany; brak arbitralnego limitu powtórzeń. Regresja `LocalSpeechRecoverableFailureTest.kt`.
+3. Nowe źródło po tej naprawie: `49d50fbfb22ab0434254386adea0f2df7e84d527` (nie zakładaj, że to obecny HEAD; odczytaj go). Mac task `aicalls-20261103-f035-stt-nomatch-retry-build-install-v1` w `agent-control` otrzymał build/lint/unit/anti-friction oraz bezpieczną instalację tylko przy `IDLE`, zachowanej roli i braku aktywnej kampanii; **sprawdź jego wynik jako pierwszy przed kolejną próbą**.
+4. `BLOCKERS.md` jest jedynym rejestrem: F-033/F-034 mają status `VERIFIED` w opisanym zakresie, F-035 `OPEN` do uzyskania wyników QA/akceptacji. Po każdej zmianie uruchom audyt anti-friction i testy. Żadnych Codex/Work/GitHub Actions, numerów, nagrań ani surowych transkryptów w Git.
+
+
 ## Najważniejsze
 - Repo: `MichalMatu/ai-calls`; startuj od **aktualnego** HEAD `main`, nie od zapamiętanego SHA. HEAD przed handoffem: `eb2f505831ddca17a395f666c4e7f08529306c55`.
 - Tryb: GitHub Connector + `MichalMatu/local-agent` branch `agent-control` + Mac Local Agent (`macbook-michal`, installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`) + ADB/USB Samsung S22 `RFCT70L7E8J` / `SM-S906B`. **Nie** Codex, Work, GitHub Actions (nawet status). Nie wymagaj manualnych kliknięć/komend/plików.
