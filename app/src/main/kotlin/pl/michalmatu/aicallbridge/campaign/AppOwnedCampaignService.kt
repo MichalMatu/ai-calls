@@ -16,10 +16,17 @@ import pl.michalmatu.aicallbridge.developerrelay.ChatRelayLiveCallProbe
 import rikka.shizuku.Shizuku
 import android.content.pm.ServiceInfo
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
 
 class AppOwnedCampaignService : Service() {
     private lateinit var authorizationStore: CampaignAuthorizationStore
     private lateinit var statusStore: CampaignRuntimeStatusStore
+    private lateinit var continuationStore: CampaignContinuationStore
+    private val continuationHandler = Handler(Looper.getMainLooper())
+    private var scheduledAttempt: Runnable? = null
+    private var campaignRequested = false
+    private var attemptOutcome: Pair<Boolean, String?>? = null
     private lateinit var notificationManager: NotificationManager
     private val supervisedAudioActive = AtomicBoolean(false)
     private var supervisedAudioSession: ChatRelayLiveCallProbe.SessionControl? = null
@@ -28,6 +35,7 @@ class AppOwnedCampaignService : Service() {
         super.onCreate()
         authorizationStore = CampaignAuthorizationStore(this)
         statusStore = CampaignRuntimeStatusStore(this)
+        continuationStore = CampaignContinuationStore(this)
         notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(
             NotificationChannel(
@@ -45,6 +53,10 @@ class AppOwnedCampaignService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_STOP_SUPERVISED_AUDIO, ACTION_STOP_ALL_AI -> {
+                campaignRequested = false
+                continuationStore.clear()
+                scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
+                scheduledAttempt = null
                 supervisedAudioActive.set(false)
                 supervisedAudioSession?.stopAudio()
                 supervisedAudioSession = null
@@ -54,7 +66,11 @@ class AppOwnedCampaignService : Service() {
                 return START_NOT_STICKY
             }
         }
-        if (intent?.action != ACTION_START_CLIR_ENABLE) {
+        // A service restarted by Android may resume only a persisted, previously started
+        // exact-grant campaign. An ordinary null/unknown command never grants new authority.
+        val explicitStart = intent?.action == ACTION_START_CLIR_ENABLE
+        val restoring = intent == null && continuationStore.load() != null
+        if (!explicitStart && !restoring) {
             stopSelf(startId)
             return START_NOT_STICKY
         }
@@ -70,29 +86,109 @@ class AppOwnedCampaignService : Service() {
         )
 
         val accountScope = CampaignAccountScope.currentVoiceSubscription(this)
-        if (accountScope == null) {
-            finish("Could not bind campaign to the current voice subscription")
+        val grant = authorizationStore.load()
+        val now = System.currentTimeMillis()
+        val authorized = grant != null && accountScope != null &&
+            CampaignAuthorizationPolicy.authorize(
+                grant, ClirCampaignSpec.enableRequest(accountScope), now,
+            ) is CampaignAuthorizationDecision.Authorized
+        if (!authorized || grant == null || accountScope == null) {
+            finish("Campaign authorization or voice subscription unavailable")
             return START_NOT_STICKY
         }
 
+        val saved = continuationStore.load()
+        if (explicitStart && (!campaignRequested || saved?.grantId != grant.grantId)) {
+            continuationStore.begin(grant.grantId, accountScope, now)
+        } else if (saved == null || saved.grantId != grant.grantId ||
+            saved.accountScope != accountScope
+        ) {
+            finish("Saved campaign scope does not match the current approved grant")
+            return START_NOT_STICKY
+        }
+
+        campaignRequested = true
+        scheduleAuthorizedAttempt()
+        return START_STICKY
+    }
+
+    private fun scheduleAuthorizedAttempt() {
+        scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
+        val state = continuationStore.load()
+        if (!campaignRequested || state == null || !isContinuationAuthorized(state)) {
+            finish("Campaign no longer authorized; no further calls")
+            return
+        }
+        val delay = (state.nextAttemptAtEpochMs - System.currentTimeMillis()).coerceAtLeast(0L)
+        statusStore.save("Autoryzowana kontynuacja: następna próba za ${delay / 1_000L} s")
+        startForeground(
+            NOTIFICATION_ID,
+            notification(statusStore.load().orEmpty()),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+        )
+        val runnable = Runnable { startAuthorizedAttempt() }
+        scheduledAttempt = runnable
+        continuationHandler.postDelayed(runnable, delay)
+    }
+
+    private fun isContinuationAuthorized(state: CampaignContinuationState): Boolean {
+        val grant = authorizationStore.load() ?: return false
+        if (grant.grantId != state.grantId ||
+            CampaignAccountScope.currentVoiceSubscription(this) != state.accountScope
+        ) return false
+        return CampaignAuthorizationPolicy.authorize(
+            grant,
+            ClirCampaignSpec.enableRequest(state.accountScope),
+            System.currentTimeMillis(),
+        ) is CampaignAuthorizationDecision.Authorized
+    }
+
+    private fun startAuthorizedAttempt() {
+        scheduledAttempt = null
+        val state = continuationStore.load()
+        if (!campaignRequested || state == null || !isContinuationAuthorized(state)) {
+            finish("Campaign stopped or authorization expired")
+            return
+        }
+        if (AppOwnedClirCampaignExecutor.isRunning()) return
+        continuationStore.prepareAttempt(state.grantId, System.currentTimeMillis())
+            ?: run { finish("Continuation state unavailable"); return }
+        attemptOutcome = null
         AppOwnedClirCampaignExecutor.start(
             context = this,
             authorizationStore = authorizationStore,
-            accountScope = accountScope,
+            accountScope = state.accountScope,
+            onAttemptFinished = { success, reason ->
+                continuationHandler.post { attemptOutcome = success to reason }
+            },
         ) { status ->
-            statusStore.save(status)
-            if (AppOwnedClirCampaignExecutor.isRunning()) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification(status),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
-                )
-            } else {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+            continuationHandler.post { handleAttemptStatus(status, state.grantId) }
+        }
+    }
+
+    private fun handleAttemptStatus(status: String, grantId: String) {
+        statusStore.save(status)
+        if (!campaignRequested) return
+        if (AppOwnedClirCampaignExecutor.isRunning()) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification(status),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+            )
+            return
+        }
+        val outcome = attemptOutcome
+        attemptOutcome = null
+        // A setup/readiness failure is not a reason to blindly redial; it needs a
+        // working device. An ended, incomplete authorized conversation can resume.
+        if (outcome != null && !outcome.first) {
+            val state = continuationStore.planRetry(grantId, System.currentTimeMillis())
+            if (state != null && isContinuationAuthorized(state)) {
+                scheduleAuthorizedAttempt()
+                return
             }
         }
-        return START_NOT_STICKY
+        finish(status)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -180,11 +276,17 @@ class AppOwnedCampaignService : Service() {
         supervisedAudioActive.set(false)
         supervisedAudioSession?.stopAudio()
         supervisedAudioSession = null
+        scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
+        scheduledAttempt = null
         AppOwnedClirCampaignExecutor.stop { statusStore.save(it) }
         super.onDestroy()
     }
 
     private fun finish(status: String) {
+        campaignRequested = false
+        scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
+        scheduledAttempt = null
+        continuationStore.clear()
         statusStore.save(status)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -195,7 +297,7 @@ class AppOwnedCampaignService : Service() {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("AI Calls campaign")
             .setContentText(status.take(NOTIFICATION_TEXT_LIMIT))
-            .setOngoing(AppOwnedClirCampaignExecutor.isRunning())
+            .setOngoing(AppOwnedClirCampaignExecutor.isRunning() || campaignRequested)
             .setOnlyAlertOnce(true)
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
