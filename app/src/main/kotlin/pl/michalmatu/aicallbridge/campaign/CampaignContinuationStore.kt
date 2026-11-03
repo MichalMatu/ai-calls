@@ -24,9 +24,12 @@ internal object CampaignContinuationPolicy {
     }
 }
 
-internal class CampaignContinuationStore(context: Context) {
+internal class CampaignContinuationStore(
+    context: Context,
+    preferencesName: String = PREFERENCES_NAME,
+) {
     private val preferences = (context.applicationContext ?: context)
-        .getSharedPreferences("campaign_continuation_v1", Context.MODE_PRIVATE)
+        .getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
 
     fun load(): CampaignContinuationState? = synchronized(LOCK) {
         val grantId = preferences.getString("grant_id", null)?.takeIf { it.isNotBlank() }
@@ -87,5 +90,6 @@ internal class CampaignContinuationStore(context: Context) {
 
     private companion object {
         val LOCK = Any()
+        const val PREFERENCES_NAME = "campaign_continuation_v1"
     }
 }
