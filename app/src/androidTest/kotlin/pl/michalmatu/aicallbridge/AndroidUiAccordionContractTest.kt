@@ -21,9 +21,10 @@ class AndroidUiAccordionContractTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
+                assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
                 assertTrue(findButton(root, "Campaign tools")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
-                assertTrue(findButton(root, "Jeden przycisk:")!!.isShown)
+                assertNotNull(findButton(root, "Jeden przycisk:"))
 
                 val audioBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:audio"))
                 val gemmaBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:gemma"))
@@ -33,6 +34,7 @@ class AndroidUiAccordionContractTest {
                 assertEquals(View.GONE, gemmaBody.visibility)
                 assertEquals(View.GONE, setupBody.visibility)
                 assertEquals(View.GONE, diagnosticBody.visibility)
+                assertFalse(findButton(root, "Jeden przycisk:")!!.isShown)
                 assertNotNull(findButton(root, "Import Gemma 4 model"))
                 assertNotNull(findButton(root, "Cancel Gemma 4 download"))
                 assertNotNull(findButton(root, "Grant microphone permission"))
@@ -47,6 +49,12 @@ class AndroidUiAccordionContractTest {
                 assertTrue(toggle.contentDescription.contains("Zwiń"))
                 toggle.performClick()
                 assertEquals(View.GONE, gemmaBody.visibility)
+                val diagnosticToggle = requireNotNull(
+                    root.findViewWithTag<Button>("ui-accordion-toggle:diagnostics"),
+                )
+                diagnosticToggle.performClick()
+                assertTrue(findButton(root, "Jeden przycisk:")!!.isShown)
+                assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
             }
         }
