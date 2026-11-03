@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("BLOCKERS.md", ledger, "OPEN")
     require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
     require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 25):
+    for identifier in range(1, 26):
         if not re.search(rf"\bF-{identifier:03d}\b", ledger):
             errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
     require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
@@ -80,6 +80,17 @@ def audit(root: Path) -> list[str]:
     require("CampaignContinuationStore.kt", continuation, "fun planRetry(")
     require("CampaignContinuationStore.kt", continuation, "fun clear()")
     require("AppOwnedCampaignService.kt", service, "continuationStore.clear()")
+    reconciliation = read(prefix + "campaign/CampaignStartReconciliationPolicy.kt")
+    require("CampaignStartReconciliationPolicy.kt", reconciliation,
+            "CampaignStartDisposition.QUEUE_REPLACEMENT")
+    require("CampaignStartReconciliationPolicy.kt", reconciliation,
+            "CampaignStartDisposition.REUSE_SAVED")
+    require("AppOwnedCampaignService.kt", service, "CampaignStartReconciliationPolicy.decide(")
+    require("AppOwnedCampaignService.kt", service, "awaitPhoneIdle()")
+    require("AppOwnedCampaignService.kt", service,
+            "continuationHandler.postDelayed(retry, PHONE_IDLE_RECHECK_MS)")
+    forbid("AppOwnedCampaignService.kt", service,
+           "if (AppOwnedClirCampaignExecutor.isRunning()) return")
     require("AppOwnedCampaignService.kt", service, "continuationGeneration != generation")
     require("AppOwnedCampaignService.kt", service,
             "campaignRequested || continuationStore.load() != null")
