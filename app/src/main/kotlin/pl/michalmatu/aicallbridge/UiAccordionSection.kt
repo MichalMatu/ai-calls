@@ -26,6 +26,8 @@ internal class UiAccordionSection(
         setOnClickListener { setExpanded(!isExpanded) }
     }
 
+    val controlsContainer: LinearLayout get() = content
+
     var isExpanded: Boolean = initiallyExpanded
         private set
 
