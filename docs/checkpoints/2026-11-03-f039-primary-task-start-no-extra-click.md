@@ -21,6 +21,8 @@ The latter button `MainActivity.startOneTapSupervisedTest` checks for an **alrea
 
 ## QA
 
-F-039 listed in canonical `BLOCKERS.md` as `OPEN` then `FIXED_IN_SOURCE` before testing. Mac Local Agent job `aicalls-20261103-f039-primary-start-full-qa-v1` pinned source `1659bdc05bfa64c4bd031d29de2768b07a24a98b`. It covers F-039 source regression, `audit_product_friction.py`, and full `verify_host.sh` (Android app/test builds, tests, lint, Python). **Do not declare PASS until its task-results JSON is read.**
+F-039 listed in canonical `BLOCKERS.md` as `OPEN` then `FIXED_IN_SOURCE` before testing. Mac Local Agent job `aicalls-20261103-f039-primary-start-full-qa-v1` pinned source `1659bdc05bfa64c4bd031d29de2768b07a24a98b`. It covers F-039 source regression, `audit_product_friction.py`, and full `verify_host.sh` (Android app/test builds, tests, lint, Python). **Mac source QA PASS**: task `aicalls-20261103-f039-primary-start-full-qa-v1` returned **DONE/0** on pinned `1659bdc05bfa64c4bd031d29de2768b07a24a98b`: F-039 contract **3/3 PASS**, anti-friction **PASS**, full `verify_host.sh` **PASS**, 3 successful Gradle build phases, **247 Python tests PASS**, `host_quality_gate_green=true`, no ADB or calls. The original pre-QA warning is superseded by this exact receipt.
+
+**Physical deployment task queued:** `aicalls-20261103-f039-s22-ui-deploy-nocall-contract-v1` (Mac Local Agent). Requires exact S22/IDLE/default dialer and verified unchanged app grant and continuation hashes; only safe `adb install -r` and UI/diagnostic/model/role instrumentation. **Read the result before claiming installation or S22 PASS.**
 
 Device acceptance must be **off-call**: verify the *existence* of direct start but do not tap it in an instrumentation test with an active grant. A real in-call end-to-end test remains separately open and subject to authorized execution/tool boundaries. No repeat of prior 5/5 UI acceptance unless the changed UI or instrumentation requires it.
