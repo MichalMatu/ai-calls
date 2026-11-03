@@ -1,0 +1,32 @@
+# AI Calls — sprint pętli diagnostycznej i usuwania sztucznego tarcia
+Data: 2026-11-03
+
+## Źródło prawdy i granice
+- Normatywny zakaz dokładania sztucznych blokad: pierwsze linie `AGENTS.md`.
+- Jedyny aktualny rejestr i status: [BLOCKERS.md](../../BLOCKERS.md).
+- Nie zmieniać w ciemno praw rozmówców, zgody nagrywania, bezpieczeństwa STOP, granic własnego Android Call ani odmów narzędzi. Nie usuwać walidacji identyfikatorów akcji / parserów jako pozornego „odblokowania”.
+- GitHub Connector + Mac Local Agent; bez Codex/Work/GitHub Actions. Przed każdą kolejną zmianą odczytać aktualny HEAD.
+
+## Zrealizowane źródła
+1. **F-002/F-012/F-013/F-014/F-015**: wcześniejsze uproszczenie jednorazowego nagrywania i podwójnych zgód, testów limitorów i ochrony przed auto-start. Mac QA v3 zakończył się PASS na `338ce662`.
+2. **F-010**: `CampaignContinuationStore` zapisuje rozpoczęte, dokładnie powiązane z grantem i kartą SIM zadanie, następne podejście, historię niedokończonych prób i STOP. `AppOwnedCampaignService` planuje następną próbę bez nowego kliknięcia, z malejącą częstotliwością bez maksymalnej kwoty prób; próbuje wznowić zaakceptowany bieg usługi Android START_STICKY, lecz nigdy nie ożywia odwołanego grantu.
+3. **F-018**: spóźnione wyniki z wcześniejszego uruchomienia nie powinny nadpisywać STOP ani planować dodatkowego połączenia; zablokowane przez `continuationGeneration` oraz kontrolę grantu.
+4. **F-011 częściowo**: `LocalTtsTextChunker` + `LocalTtsSpeechOutput` porcjują długie zatwierdzone wypowiedzi zgodnie z limitem pojedynczego wywołania systemowego TTS, zachowując kolejność i pełną treść. `DialogueSkillPolicy` nie odrzuca zatwierdzonej odpowiedzi po 600 znakach, `BackendOpenAiTextBackend` nie odrzuca 2000 znaków z już ograniczonej odpowiedzi JSON.
+5. **F-003 częściowo**: `CampaignEvidenceArchive` tworzy ZIP z zakończonego folderu (timeline, WAV RX/TX, COMPLETE), nie pobiera plików obcych. Jest przetestowany jednostkowo, ale **nie jest połączony z UI**. Próba integracji wyboru celu z Android `CampaignToolActivity` została odrzucona przez narzędzie; F-017 OPEN. Nie obchodzić odmowy inną drogą.
+6. **Testy i rejestr**: `NoArtificialCampaignBlockersContractTest`, `CampaignContinuationPolicyTest`, `CampaignContinuationStoreContractTest` (kompilacja AndroidTest), `CampaignEvidenceArchiveTest`, `LocalTtsTextChunkerTest`, długościowe testy odpowiedzi i aktualny Python tripwire wymagają także numerów F-016..F-019.
+
+## Dowody QA
+- `aicalls-20261103-friction-two-layer-source-qa-v3`, SHA `338ce662`: ANTI_FRICTION/Python/Kotlin build-unit-APK-lint PASS, bez telefonu.
+- `aicalls-20261103-continuation-sprint-source-qa-v4`, SHA `a2b5ef8`: PASS source.
+- `aicalls-20261103-full-sprint-final-source-qa-v5`, SHA `e057cf8`: Python 222 PASS, Kotlin 633/1 FAIL przez niepoprawne oczekiwanie trailing whitespace; poprawione w `fde032c`, zapis F-019.
+- `aicalls-20261103-sprint-verified-source-qa-v6`, SHA `32ff901b20481c5670ce157e856cf42fc217308b`: **PASS** — Python 222/222, skaner, Kotlin units, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`, `:app:lintDebug`. `BUILD SUCCESSFUL in 1m 35s`. To źródłowe QA, nie test live-call.
+- `aicalls-20261103-s22-readonly-preflight-v7`: `AUTHORIZED_DEVICE_COUNT=0`; na Macu nie było podłączonego S22. Nie uruchamiano ADB install, zmiany roli dialera, połączeń ani nagrań.
+
+## Niedomknięte — nie wolno ogłaszać pełnego PASS
+- F-003/F-017: wygodny, prywatny eksport przez UI nie działa; moduł archiwum samodzielnie nie zapewnia UX.
+- F-011: limit 4000 znaków wejścia brokera i fizyczne długie dialogi; klasyfikator JSON/ID ma własne zasadne limity protokołu. Nie podnosić ich bez kontraktu backendu.
+- F-016: nieaktualne historyczne zdania w aktywnych dokumentach; próba usunięcia odrzucona przez narzędzie, nadrzędna jest początkowa zasada AGENTS oraz BLOCKERS.
+- S22: brak aktualnego instalacyjnego, instrumentacyjnego i długiego telefonicznego PASS; testy AndroidTest tylko zbudowane.
+
+## Bezpieczny dalszy krok
+Gdy dokładnie jeden fizyczny S22 jest widoczny w ADB i w stanie IDLE, zainstalować APK przygotowany z SHA `32ff901b`, uruchomić wyłącznie bezpołączeniowe testy `CampaignContinuationStoreContractTest` oraz `AndroidCampaignAuthorizationStoreContractTest`, potem prowadzić świadomie zainicjowane testy kampanii w już zatwierdzonym zakresie. Nie wykonywać automatycznych połączeń w zadaniu buildowym ani publikować prywatnych WAV/transkryptów w GitHub/task-results.
