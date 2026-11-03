@@ -4,7 +4,7 @@ Autonomiczny agent telefoniczny na Androida: użytkownik określa legalne zadani
 
 ## Aktualny stan — 2026-11-04
 
-- **Kod główny:** main `a834d2171a02e8a1daaceeed4b9311c4b767edd8` (sprawdzaj świeży HEAD przy każdym wznowieniu).
+- **Kod główny:** gałąź `main`. Ostatni wdrożony na S22 kod aplikacji: `bcbe0a2a84781bf79033ccbef7293ce5f29dcc47` (F-043). Odczytuj świeży HEAD; dokumentacyjne commity mogły przesunąć go bez nowej wersji APK.
 - **F-043 VERIFIED:** jeden natywny czat Gemmy na połączenie, bez powtarzania instrukcji i tworzenia nowego `Conversation` po każdej udanej turze. Na S22+ (`SM-S906B`) zainstalowano źródło `bcbe0a2a`; test dwóch syntetycznych tur GPU potwierdził `conversation_reused=false → true`. Samo `generate` trwało 6233 ms → 3998 ms; nie są to czasy odpowiedzi w rozmowie.
 - **F-042 CZĘŚCIOWO ZWERYFIKOWANE:** neutralne „Proszę chwilę zaczekać.” przygotowywane równolegle i odtwarzane wyłącznie w autoryzowanej kampanii, przez jeden tor TX bez nakładania głosów. Kod przeszedł pełne QA Mac (248 testów Python + Android + audyt) i jest na S22 w APK F-043. **Słyszalność i opóźnienie podczas rzeczywistego połączenia nadal OPEN.**
 - **Ostatni rzeczywisty pomiar przed F-042/F-043:** około 11,7–11,9 s od końca mowy do TX. Rzeczywista słyszalność u rozmówcy i efekt CLIR nie zostały niezależnie potwierdzone.
