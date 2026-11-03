@@ -47,7 +47,7 @@ def authorized_devices(text: str) -> list[str]:
 
 
 def parse_pipeline_metrics(text: str) -> dict[str, object]:
-    """The private runtime report is filtered down to numeric counters and stable codes."""
+    """Private report -> numeric counts, bounded action IDs and latency; never transcript."""
     numeric = {
         "telephony_rx_pcm_bytes", "telephony_tx_pcm_bytes",
         "turns_completed", "gemma_action_decision_count",
@@ -56,6 +56,16 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
     safe: dict[str, object] = {}
     stt_turns = 0
     approved_turns = 0
+    latencies: list[int] = []
+    action_counts: dict[str, int] = {}
+    valid_actions = {
+        "ASK_REPEAT", "ASK_CLARIFY", "ACKNOWLEDGE_NEUTRAL",
+        "STATE_TASK_SUBJECT", "EXPLAIN_SERVICE_SCOPE", "ASK_NEXT_SERVICE_STEP",
+        "REQUEST_SERVICE_TRANSFER", "DISCLOSE_AUTHORIZED_FACT",
+        "CONFIRM_AUTHORIZED_EFFECT", "TAKE_OVER",
+    }
+    subject_streak = 0
+    max_subject_streak = 0
     for line in text.splitlines():
         match = re.fullmatch(r"([a-z0-9_]+)=([A-Za-z0-9_.-]{1,100})", line.strip())
         if not match:
@@ -67,12 +77,24 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
             stt_turns += int(value) > 0
         elif re.fullmatch(r"turn_\d+_approved_chars", key) and value.isdecimal():
             approved_turns += int(value) > 0
+        elif re.fullmatch(r"turn_\d+_eos_to_first_tx_ms", key) and value.isdecimal():
+            latencies.append(int(value))
+        elif re.fullmatch(r"turn_\d+_dialogue_action", key) and value in valid_actions:
+            action_counts[value] = action_counts.get(value, 0) + 1
+            subject_streak = subject_streak + 1 if value == "STATE_TASK_SUBJECT" else 0
+            max_subject_streak = max(max_subject_streak, subject_streak)
         elif key in ("chat_relay_live_call_success", "probe_complete") and value in ("true", "false"):
             safe[key] = value == "true"
         elif key == "failure_reason" and re.fullmatch(r"[a-z0-9_]{1,90}", value):
             safe["failure_reason_code"] = value
     safe["stt_turns"] = stt_turns
     safe["approved_turns"] = approved_turns
+    if latencies:
+        safe["first_eos_to_tx_ms"] = latencies[0]
+        safe["max_eos_to_tx_ms"] = max(latencies)
+    if action_counts:
+        safe["action_counts"] = action_counts
+        safe["max_subject_streak"] = max_subject_streak
     return safe
 
 
