@@ -1,4 +1,16 @@
-# AI Calls — current roadmap\n\n**2026-11-03 test receipt:** pierwsze QA nowego F-002 (`556bf67`) FAIL 2/624 z powodu dwóch nieaktualnych testów przywracających oczekiwania F-002/F-009. Testy zaktualizowano (ostatni `2c84513`), weryfikacja nowego HEAD PENDING. Nowy wpis `F-015` w [BLOCKERS.md](../BLOCKERS.md).
+# AI Calls — current roadmap\n\n## Aktualna kolejność po freeze 2026-11-03
+
+**Źródło prawdy:** [organizacyjny checkpoint F-035](checkpoints/2026-11-03-organizational-freeze-f035-pre-voice-skills.md), [BLOCKERS.md](../BLOCKERS.md), [architektura](ARCHITECTURE.md). Poniżej zostaje pełna historyczna chronologia, nie nowa lista statusów.
+
+1. **Teraz: STOP na przebudowę funkcjonalną i checkpoint.** Nie zmieniaj produkcyjnego toru rozmowy. Sprawdź niezmieniony prewarm przed wybieraniem numeru, zachowaj aktualną wersję S22 i pełne wyniki Mac unit/build/lint, zweryfikuj dokumentację, zamknij tylko udowodnione długi dokumentacyjne. Nie uruchamiaj kolejnego połączenia.
+2. **Dopiero w kolejnym etapie: profil czasu odpowiedzi.** Oddzielnie mierzyć rozpoznanie końca mowy/STT, czas lokalnej decyzji Gemma po prewarm, TTS i TX, zamiast ponownie „przenosić ładowanie Gemmy przed telefon” — to już zostało zrobione.
+3. **Projekt umiejętności:** stabilny interfejs skilla (id, zakres, dozwolone dane/efekty, warunki, wynik, dowód), jeden model-agnostyczny dispatcher, wykonywanie deterministyczne i autoryzacja w aplikacji; migrate CLIR as one example, no new direct model side effects.
+4. **Głos lokalny:** porównać obecną kaskadę STT→Gemma→TTS z lokalnym wariantem audio-native / full-duplex, ale dopiero po sprawdzeniu wykonalności na S22, jakości polskiego i realnej latencji. Zachować fallback bez zmiany grantu.
+5. **Fizyczna akceptacja nadal otwarta:** wznowienie po błędzie STT 6/7 w nowej wersji, niezależna słyszalność TX, faktyczny wynik zadania CLIR, a następnie zadania generyczne. Ograniczeń narzędzia nie obchodzić.
+
+**Uwaga historyczna:** kolejne sekcje mają stan z chwili ich utworzenia; np. zdania o braku kontrolera połączenia, niezweryfikowanym `F-002` lub braku Mac QA są przestarzałe. Do aktualnej oceny używaj checkpointu i `BLOCKERS.md`.
+
+**2026-11-03 test receipt:** pierwsze QA nowego F-002 (`556bf67`) FAIL 2/624 z powodu dwóch nieaktualnych testów przywracających oczekiwania F-002/F-009. Testy zaktualizowano (ostatni `2c84513`), weryfikacja nowego HEAD PENDING. Nowy wpis `F-015` w [BLOCKERS.md](../BLOCKERS.md).
 
 ## 2026-11-03 — NOWY STAN: druga warstwa ochrony przed blokerami (źródła, QA niepotwierdzone)
 
