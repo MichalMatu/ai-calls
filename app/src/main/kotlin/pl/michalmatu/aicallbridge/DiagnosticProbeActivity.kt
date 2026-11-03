@@ -34,6 +34,14 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.getBooleanExtra(EXTRA_RUN_CAMPAIGN_AGENT_STOP, false)) {
+            val report = CampaignAgentControl.stopOwnedCampaign(this)
+            File(filesDir, CampaignAgentControl.REPORT_FILE_NAME).writeText(report)
+            statusView.text = report
+            Log.i(TAG, "campaign_agent_stop_status=" + report.trim())
+            finish()
+            return
+        }
         // Existing shell/DUMP-only activity can invoke an internal service without UI taps.
         // A real call is possible only after the app revalidates an existing exact grant.
         val requestCampaignStart = intent.getBooleanExtra(EXTRA_RUN_CAMPAIGN_AGENT_START, false)
@@ -357,6 +365,7 @@ class DiagnosticProbeActivity : Activity() {
         const val TAG = "AiCallBridge"
         const val EXTRA_RUN_CAMPAIGN_AGENT_PREFLIGHT = "run_campaign_agent_preflight"
         const val EXTRA_RUN_CAMPAIGN_AGENT_START = "run_campaign_agent_start"
+        const val EXTRA_RUN_CAMPAIGN_AGENT_STOP = "run_campaign_agent_stop"
         const val LIVE_SHIZUKU_DURATION_MS = 5_000
         const val EXTRA_RUN_OPENAI_TEXT_SPEECH_PIPELINE_PROBE = "run_openai_text_speech_pipeline_probe"
         const val EXTRA_RUN_LOCAL_PHONE_LLM_SPEECH_PIPELINE_PROBE = "run_local_phone_llm_speech_pipeline_probe"
