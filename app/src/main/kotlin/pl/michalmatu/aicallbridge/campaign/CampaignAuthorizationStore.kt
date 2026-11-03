@@ -29,7 +29,6 @@ internal class CampaignAuthorizationStore(context: Context) {
                     KEY_DISCLOSURE_FIELDS,
                     grant.allowedDisclosureFields.map { it.name }.toSet(),
                 )
-                .putInt(KEY_MAX_ATTEMPTS, grant.maxAttempts)
                 .putInt(KEY_ATTEMPTS_USED, grant.attemptsUsed)
                 .putString(KEY_ISSUER_EVIDENCE_REF, grant.issuerEvidenceRef)
                 .commit(),
@@ -37,6 +36,7 @@ internal class CampaignAuthorizationStore(context: Context) {
     }
 
     fun load(): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
+        // Old max_attempts preference is ignored; no user grant needs renewal for migration.
         val grantId = preferences.getString(KEY_GRANT_ID, null)?.takeIf { it.isNotBlank() }
             ?: return@synchronized null
         runCatching {
@@ -60,7 +60,6 @@ internal class CampaignAuthorizationStore(context: Context) {
                     preferences.getStringSet(KEY_DISCLOSURE_FIELDS, emptySet()).orEmpty()
                         .map(IdentityFieldId::valueOf)
                         .toSet(),
-                maxAttempts = preferences.getInt(KEY_MAX_ATTEMPTS, 0),
                 attemptsUsed = preferences.getInt(KEY_ATTEMPTS_USED, 0),
                 issuerEvidenceRef =
                     preferences.getString(KEY_ISSUER_EVIDENCE_REF, null).orEmpty(),
@@ -68,7 +67,7 @@ internal class CampaignAuthorizationStore(context: Context) {
         }.getOrNull()
     }
 
-    /** Authorize and reserve in one cross-instance transaction, including expiry/scope. */
+    /** Authorize and record each attempt without a lifetime call quota. */
     fun reserveAuthorizedAttempt(
         request: CampaignExecutionRequest,
         nowEpochMs: Long,
@@ -85,7 +84,7 @@ internal class CampaignAuthorizationStore(context: Context) {
         }
     }
 
-    /** A reserved attempt stays valid at the attempt limit but not after revoke/expiry/scope change. */
+    /** In-flight authorization requires a recorded attempt, exact scope and validity. */
     fun isAuthorizedInFlight(
         grantId: String,
         request: CampaignExecutionRequest,
@@ -98,7 +97,6 @@ internal class CampaignAuthorizationStore(context: Context) {
                 grant = grant,
                 request = request,
                 nowEpochMs = nowEpochMs,
-                attemptAlreadyReserved = true,
             ) is CampaignAuthorizationDecision.Authorized
     }
 
@@ -123,7 +121,6 @@ internal class CampaignAuthorizationStore(context: Context) {
         private const val KEY_SERVICES = "services"
         private const val KEY_EFFECT_VALUES = "effect_values"
         private const val KEY_DISCLOSURE_FIELDS = "disclosure_fields"
-        private const val KEY_MAX_ATTEMPTS = "max_attempts"
         private const val KEY_ATTEMPTS_USED = "attempts_used"
         private const val KEY_ISSUER_EVIDENCE_REF = "issuer_evidence_ref"
         private const val NOT_REVOKED = Long.MIN_VALUE

@@ -1,4 +1,12 @@
-# AI Calls — handoff: autonomiczny lokalny agent telefoniczny
+# AI Calls — current handoff
+
+## 2026-11-03 — five-call attempt ceiling removed
+
+Owner decision: eliminate the arbitrary maximum number of phone calls as a redundant blocker to repeated authorized testing. `maxAttempts` and `ATTEMPT_LIMIT_REACHED` removed from code and UI. Existing scoped grants migrate without renewal; old `max_attempts` preference is ignored, and `attemptsUsed` remains only an internal reservation marker (never a call limit).
+
+Still enforced: exact `*100` / `SET_SERVICE(CLIR=true)` scope, default SIM, disclosure policy, expiry/revocation, Android role, device readiness, one active owned call, targeted STOP and effect commitment checks. One START initiates one call, not an automatic call loop.
+
+Physical evidence: 2026-11-03 BT-off app-owned `*100` call and exact owned hangup PASS; Samsung media runtime blocked because Telecom used VoWiFi (`mUseIWLAN=true`, `MODE_IN_COMMUNICATION`). Owner has now disabled Wi-Fi Calling, but no new cellular-audio PASS has been confirmed yet. Source `fbcb53d` for early VoWiFi refusal built/unit/lint PASS and installed on S22 (Mac task `aicalls-20261103-wificalling-failfast-build-s22-v1`). Check current HEAD, IDLE, role, grant and VoWiFi on the next one-call acceptance.
 
 ## 2026-11-03 — historical dialing regression and real Telecom controller source
 

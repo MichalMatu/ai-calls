@@ -8,7 +8,6 @@ internal object ClirCampaignSpec {
     const val TARGET = "*100"
     const val ACTION = "SET_SERVICE"
     const val GRANT_VERSION = 1
-    const val MAX_ATTEMPTS = 5
     const val GRANT_TTL_MS = 24L * 60L * 60L * 1_000L
 
     fun enableRequest(accountScope: String) = CampaignExecutionRequest(
@@ -36,7 +35,6 @@ internal object ClirCampaignSpec {
         allowedServices = setOf(CallService.CLIR),
         allowedEffectValues = setOf(true),
         allowedDisclosureFields = setOf(IdentityFieldId.PHONE),
-        maxAttempts = MAX_ATTEMPTS,
         attemptsUsed = 0,
         issuerEvidenceRef = "local-ui:$grantId",
     )

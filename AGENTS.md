@@ -1,5 +1,7 @@
 # Agent workflow
 
+**2026-11-03 authorization update:** total CLIR call-attempt ceiling was a redundant blocker and has been removed. Keep exact target/effect/SIM scope, expiry/revocation, default dialer, single owned call, targeted disconnect and Android permission gates. Internal reservation marker does not limit total calls.
+
 ## 2026-11-03 — historical dialing regression and real Telecom controller source
 
 Git history proves a dial regression: before `6e732af`, `AppOwnedClirCampaignExecutor` used `ACTION_CALL` and generic `TelecomManager.endCall()`. Commit `6e732af` added a constant-false ownership check; `c48685b` introduced `CampaignCallControllerRegistry` without a provider; `a019795` separately removed ADB-script automatic dial/hangup. These were real removed paths, but the old hangup did **not** select one specific Call.

@@ -229,7 +229,6 @@ class CampaignToolActivity : Activity() {
                     "Task: enable CLIR\n" +
                     "Account: current default voice subscription\n" +
                     "Disclosure: PHONE only when policy allows\n" +
-                    "Attempts: up to ${ClirCampaignSpec.MAX_ATTEMPTS}\n" +
                     "Expiry: 24 hours\n\n" +
                     "It does not authorize other services, targets, purchases, contracts, " +
                     "premium/emergency calls or CLIR disable.",
@@ -296,7 +295,6 @@ class CampaignToolActivity : Activity() {
             grant.revokedAtEpochMs != null -> "Campaign grant revoked"
             else ->
                 "Campaign grant present\n" +
-                    "Attempts: ${grant.attemptsUsed}/${grant.maxAttempts}\n" +
                     "Expires: ${Instant.ofEpochMilli(grant.expiresAtEpochMs)}"
         }
         val runtimeStatus = runtimeStatusStore.load()

@@ -56,7 +56,7 @@ class CampaignAuthorizationPolicyTest {
     }
 
     @Test
-    fun revokedExpiredAndExhaustedGrantsFailClosed() {
+    fun revokedAndExpiredGrantsFailClosed() {
         assertDenied(
             grant = grant().copy(revokedAtEpochMs = 1_500L),
             request = request(),
@@ -67,15 +67,10 @@ class CampaignAuthorizationPolicyTest {
             request = request(),
             expected = CampaignAuthorizationDenialReason.GRANT_EXPIRED,
         )
-        assertDenied(
-            grant = grant().copy(attemptsUsed = 3),
-            request = request(),
-            expected = CampaignAuthorizationDenialReason.ATTEMPT_LIMIT_REACHED,
-        )
     }
 
     @Test
-    fun reservingAttemptIsMonotonicAndBounded() {
+    fun furtherAttemptsRemainAuthorizedInsideSameScope() {
         val initial = grant()
         val first = initial.withReservedAttempt()
         val second = first.withReservedAttempt()
@@ -84,8 +79,14 @@ class CampaignAuthorizationPolicyTest {
         assertEquals(1, first.attemptsUsed)
         assertEquals(2, second.attemptsUsed)
         assertEquals(3, third.attemptsUsed)
-        runCatching { third.withReservedAttempt() }
-            .onSuccess { throw AssertionError("expected attempt limit failure") }
+        assertEquals(4, third.withReservedAttempt().attemptsUsed)
+        assertTrue(CampaignAuthorizationPolicy.authorize(
+            grant = initial.copy(attemptsUsed = 100),
+            request = request(),
+            nowEpochMs = 2_000L,
+        ) is CampaignAuthorizationDecision.Authorized)
+        assertEquals(Int.MAX_VALUE,
+            initial.copy(attemptsUsed = Int.MAX_VALUE).withReservedAttempt().attemptsUsed)
     }
 
     private fun assertDenied(
@@ -114,7 +115,6 @@ class CampaignAuthorizationPolicyTest {
         allowedServices = setOf(CallService.CLIR),
         allowedEffectValues = setOf(true),
         allowedDisclosureFields = setOf(IdentityFieldId.PHONE),
-        maxAttempts = 3,
         attemptsUsed = 0,
         issuerEvidenceRef = "local-ui:test",
     )

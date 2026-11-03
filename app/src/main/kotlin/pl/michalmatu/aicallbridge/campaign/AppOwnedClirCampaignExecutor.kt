@@ -170,10 +170,7 @@ internal object AppOwnedClirCampaignExecutor {
         }
 
         val launched = runCatching {
-            onStatus(
-                "Authorized campaign dial started " +
-                    "(attempt ${reservedGrant.attemptsUsed}/${reservedGrant.maxAttempts})",
-            )
+            onStatus("Authorized campaign dial started")
             waitForActiveCall(
                 appContext = appContext,
                 handler = handler,

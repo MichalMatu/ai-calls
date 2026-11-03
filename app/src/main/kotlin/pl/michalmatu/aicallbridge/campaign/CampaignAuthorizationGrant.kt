@@ -15,7 +15,6 @@ internal data class CampaignAuthorizationGrant(
     val allowedServices: Set<CallService>,
     val allowedEffectValues: Set<Boolean>,
     val allowedDisclosureFields: Set<IdentityFieldId>,
-    val maxAttempts: Int,
     val attemptsUsed: Int,
     val issuerEvidenceRef: String,
 ) {
@@ -30,21 +29,19 @@ internal data class CampaignAuthorizationGrant(
         require(allowedActions.isNotEmpty() && allowedActions.none { it.isBlank() })
         require(allowedServices.isNotEmpty())
         require(allowedEffectValues.isNotEmpty())
-        require(maxAttempts > 0)
-        require(attemptsUsed in 0..maxAttempts)
+        require(attemptsUsed >= 0)
         require(issuerEvidenceRef.isNotBlank())
     }
 
-    fun withReservedAttempt(): CampaignAuthorizationGrant {
-        require(attemptsUsed < maxAttempts) { "campaign_attempt_limit_reached" }
-        return copy(attemptsUsed = attemptsUsed + 1)
-    }
+    /** Internal reservation evidence, not an authorization quota. */
+    fun withReservedAttempt(): CampaignAuthorizationGrant =
+        copy(attemptsUsed = if (attemptsUsed == Int.MAX_VALUE) Int.MAX_VALUE else attemptsUsed + 1)
 
     fun revoked(nowEpochMs: Long): CampaignAuthorizationGrant =
         copy(revokedAtEpochMs = nowEpochMs)
 
     override fun toString(): String =
-        "CampaignAuthorizationGrant(id=$grantId, scope=REDACTED, attempts=$attemptsUsed/$maxAttempts)"
+        "CampaignAuthorizationGrant(id=$grantId, scope=REDACTED, reservation_record=REDACTED)"
 }
 
 internal data class CampaignExecutionRequest(
@@ -61,7 +58,6 @@ internal enum class CampaignAuthorizationDenialReason {
     GRANT_REVOKED,
     GRANT_NOT_YET_VALID,
     GRANT_EXPIRED,
-    ATTEMPT_LIMIT_REACHED,
     ACCOUNT_SCOPE_MISMATCH,
     TARGET_NOT_ALLOWED,
     ACTION_NOT_ALLOWED,
@@ -85,7 +81,6 @@ internal object CampaignAuthorizationPolicy {
         grant: CampaignAuthorizationGrant?,
         request: CampaignExecutionRequest,
         nowEpochMs: Long,
-        attemptAlreadyReserved: Boolean = false,
     ): CampaignAuthorizationDecision {
         if (grant == null) {
             return CampaignAuthorizationDecision.Denied(
@@ -105,11 +100,6 @@ internal object CampaignAuthorizationPolicy {
         if (nowEpochMs >= grant.expiresAtEpochMs) {
             return CampaignAuthorizationDecision.Denied(
                 CampaignAuthorizationDenialReason.GRANT_EXPIRED,
-            )
-        }
-        if (grant.attemptsUsed >= grant.maxAttempts && !attemptAlreadyReserved) {
-            return CampaignAuthorizationDecision.Denied(
-                CampaignAuthorizationDenialReason.ATTEMPT_LIMIT_REACHED,
             )
         }
         if (request.accountScope != grant.accountScope) {

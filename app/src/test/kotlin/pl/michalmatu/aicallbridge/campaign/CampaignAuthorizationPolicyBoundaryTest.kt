@@ -20,18 +20,18 @@ class CampaignAuthorizationPolicyBoundaryTest {
         allowedActions = setOf("SET_SERVICE"), allowedServices = setOf(CallService.CLIR),
         allowedEffectValues = setOf(true),
         allowedDisclosureFields = setOf(IdentityFieldId.PHONE),
-        maxAttempts = 1, attemptsUsed = 1, issuerEvidenceRef = "local-ui:test",
+        attemptsUsed = 1, issuerEvidenceRef = "local-ui:test",
     )
 
-    @Test fun reservedFinalAttemptCanContinueUntilExpiryButCannotAuthorizeAnother() {
-        assertEquals(
-            CampaignAuthorizationDenialReason.ATTEMPT_LIMIT_REACHED,
-            (CampaignAuthorizationPolicy.authorize(grant, request, 2000) as
-                CampaignAuthorizationDecision.Denied).reason,
+    @Test fun previousReservationsNeverExhaustUnchangedScope() {
+        assertTrue(
+            CampaignAuthorizationPolicy.authorize(grant, request, 2000)
+                is CampaignAuthorizationDecision.Authorized,
         )
         assertTrue(
-            CampaignAuthorizationPolicy.authorize(grant, request, 2000,
-                attemptAlreadyReserved = true) is CampaignAuthorizationDecision.Authorized,
+            CampaignAuthorizationPolicy.authorize(
+                grant.copy(attemptsUsed = Int.MAX_VALUE), request, 2000,
+            ) is CampaignAuthorizationDecision.Authorized,
         )
     }
 
@@ -43,8 +43,8 @@ class CampaignAuthorizationPolicyBoundaryTest {
             Triple(grant, request, 999L),
         ).forEach { (g, req, now) ->
             assertTrue(
-                CampaignAuthorizationPolicy.authorize(g, req, now,
-                    attemptAlreadyReserved = true) is CampaignAuthorizationDecision.Denied,
+                CampaignAuthorizationPolicy.authorize(g, req, now)
+                    is CampaignAuthorizationDecision.Denied,
             )
         }
     }
