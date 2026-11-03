@@ -414,7 +414,7 @@ internal object ChatRelayLiveCallProbe {
                 override fun onSpeechInputReady() {
                     lines += "turn_${currentTurn}_stt_ready=true"
                     lines += "turn_${currentTurn}_stt_ready_elapsed_ms=${elapsedTurnMs()}"
-                    beginCaptureInputTurn(currentTurn)
+                    beginCaptureInputTurn(currentTurn, generation, lease)
                 }
 
                 override fun onUserTranscript(text: String) {
@@ -495,7 +495,11 @@ internal object ChatRelayLiveCallProbe {
             })
         }
 
-        private fun beginCaptureInputTurn(turn: Int) {
+        private fun beginCaptureInputTurn(
+            turn: Int,
+            generation: Long,
+            lease: CallMediaEndpointLease,
+        ) {
             val pump = downlinkPump ?: run {
                 finish(false, "turn_${turn}_downlink_pump_unavailable")
                 return
@@ -548,7 +552,7 @@ internal object ChatRelayLiveCallProbe {
                             handler.postDelayed({
                                 if (finished.get() || turn != currentTurn) return@postDelayed
                                 if (!authorizedNow()) finish(false, authorityFailureReason())
-                                else beginCaptureInputTurn(turn)
+                                else beginCaptureInputTurn(turn, generation, lease)
                             }, NO_SPEECH_RETRY_DELAY_MS)
                             return
                         }
