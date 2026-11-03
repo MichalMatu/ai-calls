@@ -51,6 +51,37 @@ class NoArtificialCampaignBlockersContractTest {
         val executor = source("campaign/AppOwnedClirCampaignExecutor.kt")
         assertTrue(executor.contains("authorizationStore.isAuthorizedInFlight("))
         assertTrue(executor.contains("ownedCall.isExactCallActive()"))
-        assertTrue(executor.contains("CallSessionEvidenceConsent.consume(appContext)"))
+        assertTrue(executor.contains("evidenceRecorder = if (grant.recordCallEvidence)"))
     }
+
+    @Test fun optionalEvidenceRequiresOneExplicitCampaignGrantNotPerCallArming() {
+        val ui = source("campaign/CampaignToolActivity.kt")
+        val grant = source("campaign/CampaignAuthorizationGrant.kt")
+        val store = source("campaign/CampaignAuthorizationStore.kt")
+        val executor = source("campaign/AppOwnedClirCampaignExecutor.kt")
+        val recorder = source("developerrelay/CallSessionEvidenceRecorder.kt")
+        assertTrue(ui.contains("recordCallEvidence = evidenceChoice.isChecked"))
+        assertTrue(ui.contains(".setView(evidenceChoice)"))
+        assertTrue(store.contains("preferences.getBoolean(KEY_RECORD_CALL_EVIDENCE, false)"))
+        assertTrue(store.contains("fun disableEvidenceRecording()"))
+        assertTrue(grant.contains("val recordCallEvidence: Boolean = false"))
+        assertTrue(executor.contains("evidenceRecorder = if (grant.recordCallEvidence)"))
+        assertFalse(ui.contains("CallSessionEvidenceConsent"))
+        assertFalse(executor.contains("CallSessionEvidenceConsent"))
+        assertFalse(recorder.contains("ARM_TTL_MS"))
+        assertFalse(recorder.contains("armNextCall"))
+        assertFalse(recorder.contains("consume(context"))
+    }
+
+    @Test fun supervisedPilotDoesNotAddSecondDialogOrAutoStartOnReturn() {
+        val pilot = source("developerrelay/SupervisedCallPilotActivity.kt")
+        assertTrue(pilot.contains("startPilot(gemmaMode.isChecked)"))
+        assertFalse(pilot.contains("Uruchomić AI w rozmowie?"))
+        assertFalse(pilot.contains("confirmAttach() // The explicit consent dialog remains mandatory"))
+        val resumeBlock = pilot.substringAfter("override fun onResume()")
+            .substringBefore("private fun refreshModelStatus()")
+        assertFalse("returning from dialer must not auto-start AI", resumeBlock.contains("confirmAttach()"))
+        assertFalse("returning from dialer must not retry attach automatically", resumeBlock.contains("awaitAudioRoute()"))
+    }
+
 }
