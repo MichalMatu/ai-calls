@@ -128,6 +128,28 @@ class S22AutoloopParsingTests(unittest.TestCase):
             "FAIL_LOCAL_ONLY_DIALOGUE_FALLBACK",
         )
 
+    def test_private_latency_and_repeated_subject_actions_are_machine_only(self):
+        private_text = "Moje konto 123456789, numer telefonu 500600700"
+        report = (
+            "turn_1_dialogue_action=STATE_TASK_SUBJECT\\n"
+            "turn_2_dialogue_action=STATE_TASK_SUBJECT\\n"
+            "turn_3_dialogue_action=ASK_NEXT_SERVICE_STEP\\n"
+            "turn_4_dialogue_action=STATE_TASK_SUBJECT\\n"
+            "turn_1_eos_to_first_tx_ms=47567\\n"
+            "turn_2_eos_to_first_tx_ms=1900\\n"
+            "telephony_rx_pcm_bytes=1024\\n"
+            "probe_complete=true\\n"
+            "transcript=" + private_text + "\\n"
+        )
+        metrics = parse_pipeline_metrics(report)
+        self.assertEqual(metrics["first_eos_to_tx_ms"], 47567)
+        self.assertEqual(metrics["max_eos_to_tx_ms"], 47567)
+        self.assertEqual(metrics["action_counts"]["STATE_TASK_SUBJECT"], 3)
+        self.assertEqual(metrics["action_counts"]["ASK_NEXT_SERVICE_STEP"], 1)
+        self.assertEqual(metrics["max_subject_streak"], 2)
+        self.assertNotIn(private_text, str(metrics))
+        self.assertNotIn("transcript", metrics)
+
     def test_late_private_report_replaces_stale_before_false_unverified(self):
         from unittest.mock import patch
 
