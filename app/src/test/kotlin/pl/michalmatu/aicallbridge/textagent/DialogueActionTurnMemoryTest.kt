@@ -35,6 +35,35 @@ class DialogueActionTurnMemoryTest {
     }
 
     @Test
+    fun repetitiveSubjectAfterFirstAnswerBecomesSafeNextStep() {
+        val memory = DialogueActionTurnMemory()
+        val subject = DialogueActionDecision(DialogueActionId.STATE_TASK_SUBJECT, 0.98)
+        assertEquals(subject, memory.adjustRepetitiveSubject("W jakiej sprawie?", subject))
+        memory.remember("W jakiej sprawie pan dzwoni?", DialogueActionId.STATE_TASK_SUBJECT)
+        val revised = memory.adjustRepetitiveSubject(
+            "Najpierw proszę podać informacje o usłudze i kolejnych krokach", subject,
+        )
+        assertEquals(DialogueActionId.ASK_NEXT_SERVICE_STEP, revised.actionId)
+        assertEquals("subject_already_explained", revised.reason)
+        assertEquals(0.98, revised.confidence, 0.0)
+        assertEquals(
+            DialogueActionId.STATE_TASK_SUBJECT,
+            memory.adjustRepetitiveSubject("Czego dotyczy sprawa?", subject).actionId,
+        )
+        assertEquals(
+            DialogueActionId.STATE_TASK_SUBJECT,
+            memory.adjustRepetitiveSubject("W jakiej sprawie Pan dzwoni?", subject).actionId,
+        )
+        assertEquals(
+            DialogueActionId.CONFIRM_AUTHORIZED_EFFECT,
+            memory.adjustRepetitiveSubject(
+                "Potwierdzenie",
+                DialogueActionDecision(DialogueActionId.CONFIRM_AUTHORIZED_EFFECT, 0.91),
+            ).actionId,
+        )
+    }
+
+    @Test
     fun classifierReceivesTurnContextOnlyAfterCompletedResponse() {
         val inputs = mutableListOf<String>()
         val classifier = object : TextCallAgentBackend {
