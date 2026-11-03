@@ -260,30 +260,44 @@ class LocalCycle:
             return "UNAVAILABLE"
 
     def collect_pipeline_metrics(self, started_epoch: int | None) -> None:
-        """Read only numeric app-owned telemetry, never the full private report to Git."""
+        """Wait for an asynchronously finalized report, not for a new user action."""
         file_name = "files/chat-relay-live-call-report.txt"
-        try:
-            mtime = int(
-                self.adb_run("shell", "run-as", PACKAGE, "stat", "-c", "%Y", file_name).strip()
-            )
-            if started_epoch is not None and mtime < started_epoch - 2:
-                self.report["pipeline_report"] = "STALE_PRIOR_SESSION"
+        deadline = time.monotonic() + (30 if started_epoch is not None else 0)
+        last_state = "NOT_AVAILABLE"
+        while True:
+            try:
+                mtime = int(
+                    self.adb_run("shell", "run-as", PACKAGE, "stat", "-c", "%Y", file_name).strip()
+                )
+                if started_epoch is not None and mtime < started_epoch - 2:
+                    last_state = "PENDING_CURRENT_SESSION_FLUSH"
+                else:
+                    raw = self.adb_run("shell", "run-as", PACKAGE, "cat", file_name)
+                    metrics = parse_pipeline_metrics(raw)
+                    if metrics.get("probe_complete") is True:
+                        self.report["pipeline_report"] = (
+                            "CURRENT_SESSION" if started_epoch is not None
+                            else "HISTORICAL_SESSION"
+                        )
+                        self.report["pipeline_metrics"] = metrics
+                        self.report["live_rx_tx"] = (
+                            "REAL_PIPELINE_COUNTERS_PRESENT"
+                            if technical_pipeline_evidence(metrics)
+                            else "INCOMPLETE_PIPELINE_COUNTERS"
+                        )
+                        if "failure_reason_code" in metrics:
+                            self.report["dialogue_failure_code"] = metrics["failure_reason_code"]
+                        return
+                    last_state = "PENDING_CURRENT_SESSION_FLUSH"
+            except (RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
+                if "android_permission_denial" in str(error):
+                    self.report["pipeline_report"] = "ANDROID_PERMISSION_DENIED"
+                    return
+                last_state = "NOT_AVAILABLE"
+            if time.monotonic() >= deadline:
+                self.report["pipeline_report"] = last_state
                 return
-            raw = self.adb_run("shell", "run-as", PACKAGE, "cat", file_name)
-        except (RuntimeError, ValueError, subprocess.TimeoutExpired):
-            self.report["pipeline_report"] = "NOT_AVAILABLE"
-            return
-        metrics = parse_pipeline_metrics(raw)
-        self.report["pipeline_report"] = (
-            "CURRENT_SESSION" if started_epoch is not None else "HISTORICAL_SESSION"
-        )
-        self.report["pipeline_metrics"] = metrics
-        self.report["live_rx_tx"] = (
-            "REAL_PIPELINE_COUNTERS_PRESENT" if technical_pipeline_evidence(metrics)
-            else "INCOMPLETE_PIPELINE_COUNTERS"
-        )
-        if "failure_reason_code" in metrics:
-            self.report["dialogue_failure_code"] = metrics["failure_reason_code"]
+            time.sleep(2)
 
     def phone_state(self) -> set[str]:
         return call_states(self.adb_run("shell", "dumpsys", "telephony.registry"))
