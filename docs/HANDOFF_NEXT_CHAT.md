@@ -1,5 +1,8 @@
 # AI Calls — current handoff
 
+**2026-11-03 — aktualny F-035 handoff:** [STT NO_MATCH i odpinanie RX po błędzie](checkpoints/2026-11-03-f035-stt-no-match-rx-recovery.md). Pinned source `7176f32bcb0e3f96dec99d790fd5159cc6427fa7` (ponownie sprawdź bieżący HEAD!). Mac `aicalls-20261103-f035-rx-capture-detach-source-qa-v1` **DONE/0**: Python/anti-friction i pełne Kotlin unit/build/lint PASS. Bezpieczna instalacja bez dzwonienia: task `aicalls-20261103-f035-rx-capture-detach-install-s22-offcall-v1` — **sprawdź result przed następnym działaniem**. Próba zlecenia nowego połączenia została jawnie zablokowana przez kontrolę narzędzia; **nie obchodź tej odmowy**. Fizyczna weryfikacja naprawy STT 6/7 i efektu CLIR pozostają OPEN. Bez Codex, Work, GitHub Actions; bez surowych danych prywatnych w Git.
+
+
 **Najnowszy checkpoint F-033/F-034 (2026-11-03):** [fast-dialogue, prewarm, rzeczywiste S22 i nieukończona próba](checkpoints/2026-11-03-f033-f034-fast-dialogue-prewarm-handoff.md). Weryfikowany `main` przed handoffem: `eb2f505831ddca17a395f666c4e7f08529306c55` (odczytaj bieżący HEAD od nowa). Mac `aicalls-20261103-f033-f034-fast-dialogue-guard-build-s22-v1` **DONE/0**: Python/Kotlin unit/build/lint, S22 APK install i lokalny Gemma 7/7 PASS. Realny retest *tej samej* wersji: task `aicalls-20261103-f033-f034-fast-guard-physical-call-retest-v2` (Local Agent branch `agent-control`), **wynik sprawdzić przed jakąkolwiek kolejną próbą, bez duplikowania połączenia**. Wciąż brak niezależnego potwierdzenia słyszalności TX i efektu CLIR; nie deklaruj `LIVE_TASK_PASS`. Nie używaj Codex/Work/GitHub Actions. Nie eksportuj prywatnych audio/transkryptów do Git.
 
 
