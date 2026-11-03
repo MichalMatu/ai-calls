@@ -22,9 +22,9 @@ internal object CampaignAgentControl {
                 Intent(context, AppOwnedCampaignService::class.java)
                     .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI),
             )
-            "campaign_agent_stop=DISPATCHED_TO_INTERNAL_SERVICE\\n"
+            "campaign_agent_stop=DISPATCHED_TO_INTERNAL_SERVICE\n"
         }.getOrElse {
-            "campaign_agent_stop=DISPATCH_FAILED_${it.javaClass.simpleName}\\n"
+            "campaign_agent_stop=DISPATCH_FAILED_${it.javaClass.simpleName}\n"
         }
 
     fun run(context: Context, requestStart: Boolean): String {
