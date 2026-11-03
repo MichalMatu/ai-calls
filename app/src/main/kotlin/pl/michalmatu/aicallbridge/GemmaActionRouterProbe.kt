@@ -141,7 +141,7 @@ internal object GemmaActionRouterProbe {
             handler.removeCallbacksAndMessages(null)
             try { backend.close() } catch (_: Throwable) {}
             val report = buildReport(lines, success, reason)
-            File(appContext.filesDir, REPORT_FILE).writeText(report)
+            File(appContext.filesDir, reportFile).writeText(report)
             callback(report)
         }
 
