@@ -168,6 +168,28 @@ class MainActivity : Activity() {
             }
         }
 
+        // Group the existing controls; do not alter their click handlers or runtime selection.
+        // STOP and the entry points to authorized work remain visible without expanding anything.
+        val audioSection = UiAccordionSection(this, "audio", "Tryb rozmowy i model").apply {
+            addLabel("Audio mode")
+            addControl(audioModeSpinner)
+            addLabel("LLM provider (text mode)")
+            addControl(textLlmProviderSpinner)
+        }
+        val gemmaSection = UiAccordionSection(this, "gemma", "Model Gemma 4").apply {
+            addControl(modelImportButton)
+            addControl(modelDownloadSourceView)
+            addControl(modelDownloadButton)
+            addControl(modelDownloadProgress)
+            addControl(modelDownloadCancelButton)
+        }
+        val setupSection = UiAccordionSection(this, "setup", "Uprawnienia i konfiguracja").apply {
+            addControl(requestMicButton)
+            addControl(enrollPhoneButton)
+        }
+        val diagnosticSection = UiAccordionSection(this, "diagnostics", "Diagnostyka developerska")
+        developerProbes.addControls(diagnosticSection.controlsContainer)
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 48, 32, 32)
@@ -175,28 +197,20 @@ class MainActivity : Activity() {
                 text = "AI Calls"
                 textSize = 24f
             })
-            addView(TextView(this@MainActivity).apply { text = "Audio mode" })
-            addView(audioModeSpinner)
-            addView(TextView(this@MainActivity).apply { text = "LLM provider (text mode)" })
-            addView(textLlmProviderSpinner)
-            addView(modelImportButton)
-            addView(modelDownloadSourceView)
-            addView(modelDownloadButton)
-            addView(modelDownloadProgress)
-            addView(modelDownloadCancelButton)
-            addView(requestMicButton)
-            addView(enrollPhoneButton)
-            addView(oneTapButton)
-            addView(stopAiButton)
-            addView(campaignToolsButton)
-            developerProbes.addControls(this)
             addView(
                 statusView,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { topMargin = 24 },
+                ).apply { bottomMargin = 16 },
             )
+            addView(campaignToolsButton)
+            addView(oneTapButton)
+            addView(stopAiButton)
+            addView(audioSection)
+            addView(gemmaSection)
+            addView(setupSection)
+            addView(diagnosticSection)
         }
 
         setContentView(
