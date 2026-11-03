@@ -42,9 +42,12 @@ ai-calls/
 ├── gradle.properties
 ├── gradlew
 ├── gradlew.bat
+├── BLOCKERS.md               # canonical active F-xxx registry (mandatory root file)
 ├── README.md                 # product overview and source-of-truth index
 └── AGENTS.md                 # repository execution/workflow contract
 ```
+
+The root allowlist in `scripts/verify_host.sh` **must include `BLOCKERS.md`** because the project policy in `AGENTS.md` makes it the canonical blocker ledger. A previous omission caused a false `repository_layout_failed=unexpected_top_level_entries` (F-036); `scripts/tests/test_verify_host_layout.py` now catches this and other tracked-path mismatches. This is a quality-gate fix, not a relaxation of constraints.
 
 The Android module list is authoritative in `settings.gradle.kts` and currently consists of `app`, `audio-bridge`, `privileged-helper`, and `realtime-client`.
 
