@@ -1,5 +1,17 @@
 # AI Calls
 
+## Stan bazowy — checkpoint organizacyjny 2026-11-03
+
+**[Aktualny checkpoint jakości i architektury](docs/checkpoints/2026-11-03-organizational-freeze-f035-pre-voice-skills.md)** · [jedyny aktualny rejestr F-xxx](BLOCKERS.md) · [handoff](docs/HANDOFF_NEXT_CHAT.md).
+
+- **Zweryfikowane:** autonomicznie autoryzowane połączenie S22 z realnymi RX/STT/Gemma/zaakceptowanym TTS/TX, zakończone stanem IDLE; pięć tur na wersji `eb2f5058`; opóźnienie pierwszego TX po zakończeniu mowy **10 567 ms** (wcześniej 47 567 ms). To nie jest akceptacja słyszalności po drugiej stronie.
+- **Prewarm Gemmy już działa przed wybieraniem numeru** w `CampaignGemmaPreflight` i `AppOwnedCampaignService`. Ponowne ładowanie jej „dopiero podczas połączenia” nie opisuje obecnej implementacji.
+- **F-035:** wersja `7176f32b` z kontynuacją nasłuchu po STT 6/7, odpinaniem starego RX i testami współbieżności **Mac QA PASS, instalacja S22 PASS**. Na nowej wersji nie wykonano rozmowy z takim błędem — **fizyczny retest OPEN**.
+- **Nadal OPEN:** potwierdzenie, że konsultant słyszy AI, faktyczna realizacja CLIR, szybki dialog IVR, fizyczne wznowienie STT 6/7. Ostatni raport rzeczywistej rozmowy jest **sprzed** instalacji F-035.
+- **Decyzja projektowa na następny etap:** oddzielić model AI (wybór ustrukturyzowanego skilla) od katalogu skills/kontraktów i deterministycznych wykonawców; uprawnienia, skutki zewnętrzne i ich dowody pozostają własnością aplikacji. Wymiana silnika głosowego wyłącznie po benchmarku na S22.
+
+**Dalej w tym README zachowano chronologiczne notatki ze starszych commitów; ich „obecnie”, „najnowszy”, `OPEN` lub `QA_PENDING` nie zastępują powyższego checkpointu i rejestru.**
+
 ## Aktualna decyzja — USB/ADB, zero sztucznych blokerów (2026-11-03)
 
 **Eksport diagnostyki jest zorganizowany przez USB/ADB i Mac Local Agenta**, bez zależności od brakującego przycisku ZIP w aplikacji. Prywatne dane z telefonu trafiają wyłącznie do `~/Documents/AI-Calls/private-exports/` na Macu; więcej: [USB — prywatna diagnostyka](docs/USB_PRIVATE_DIAGNOSTICS.md). Preflight: jeden autoryzowany S22, stan IDLE; **obecnie nie ma utworzonego folderu nagrań, więc brak plików do kopiowania**. To stan danych, a nie blokada; przy następnej zatwierdzonej sesji Mac Local Agent ponowi eksport.
