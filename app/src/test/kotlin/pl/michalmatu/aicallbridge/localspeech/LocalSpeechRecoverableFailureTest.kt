@@ -6,9 +6,10 @@ import org.junit.Test
 
 class LocalSpeechRecoverableFailureTest {
     @Test
-    fun androidNoMatchAndSpeechTimeoutAreNonterminalForActiveOwnedCall() {
+    fun noMatchSpeechTimeoutAndEmptyFinalTranscriptAreNonterminalForActiveOwnedCall() {
         assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript("stt_recognition_error_7"))
         assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript("stt_recognition_error_6"))
+        assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript("stt_empty_transcript"))
     }
 
     @Test
@@ -24,7 +25,8 @@ class LocalSpeechRecoverableFailureTest {
             "stt_language_model_not_installed",
             "stt_stt_pcm_write_failed",
             "tts_network_error",
-            "stt_empty_transcript",
+            "stt_empty_transcript_corrupt",
+            "stt_empty_transcript_model_unavailable",
             "owned_call_ended",
         ).forEach { reason ->
             assertFalse(reason, LocalSpeechRecoverableFailure.isTransientNoTranscript(reason))
