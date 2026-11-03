@@ -1,5 +1,11 @@
 # AI Calls
 
+## 2026-11-03 — najnowszy status źródeł: ZERO sztucznych bramek (weryfikacja trwa)
+
+Źródło statusów: [BLOCKERS.md](BLOCKERS.md). Ochrona: pierwsze linie [AGENTS.md](AGENTS.md) oraz skaner `scripts/aicall_tools/diagnostics/audit_product_friction.py`. W źródłach usunięto `F-002` (10-minutowe uzbrajanie zapisu), `F-012` (drugi dialog pilota), `F-013` (stary pięcio-połączeniowy test), `F-014` (autostart po powrocie z dialera). Flaga diagnostyki jest opcjonalną, domyślnie wyłączoną częścią jednego zakresu kampanii; utrzymuje się przez kolejne rozmowy tylko w jego ramach. **Dla nowego HEAD brak jeszcze potwierdzonego Mac QA i instalacji S22.** `F-003`, `F-010`, `F-011` pozostają otwarte do dalszej pracy.
+
+Wszystkie starsze statusy PASS poniżej dotyczą wskazanych tam historycznych commitów i testów.
+
 ## 2026-11-03 — historical dialing regression and real Telecom controller source
 
 Git history proves a dial regression: before `6e732af`, `AppOwnedClirCampaignExecutor` used `ACTION_CALL` and generic `TelecomManager.endCall()`. Commit `6e732af` added a constant-false ownership check; `c48685b` introduced `CampaignCallControllerRegistry` without a provider; `a019795` separately removed ADB-script automatic dial/hangup. These were real removed paths, but the old hangup did **not** select one specific Call.
