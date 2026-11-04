@@ -29,6 +29,9 @@ class AudioEngineSettingsActivity : Activity() {
     private lateinit var feedback: TextView
     private lateinit var active: TextView
     private lateinit var voicePicker: Spinner
+    private lateinit var inputGroup: RadioGroup
+    private lateinit var dialogueGroup: RadioGroup
+    private lateinit var outputGroup: RadioGroup
     private var tts: TextToSpeech? = null
     private var probedVoices: Set<String>? = null
     private var voiceNames: List<String> = emptyList()
@@ -68,11 +71,11 @@ class AudioEngineSettingsActivity : Activity() {
             content.addView(group)
             return group
         }
-        section("1. Wejście (RX / STT)", AudioEngineRegistry.inputs,
+        inputGroup = section("1. Wejście (RX / STT)", AudioEngineRegistry.inputs,
             current?.input?.name ?: "ANDROID_STT")
-        section("2. Model rozmowy", AudioEngineRegistry.dialogues,
+        dialogueGroup = section("2. Model rozmowy", AudioEngineRegistry.dialogues,
             current?.dialogue?.name ?: "GEMMA_4_E2B")
-        section("3. Wyjście (TX / TTS)", AudioEngineRegistry.outputs,
+        outputGroup = section("3. Wyjście (TX / TTS)", AudioEngineRegistry.outputs,
             current?.output?.name ?: "ANDROID_TTS_PL")
         content.addView(label("Głos Android TTS offline (pl-PL)"))
         voicePicker = Spinner(this)
@@ -94,7 +97,7 @@ class AudioEngineSettingsActivity : Activity() {
         content.addView(Button(this).apply {
             text = "Zapisz konfigurację"
             setOnClickListener {
-                val requested = AudioEngineProfile(voiceId = selectedVoice())
+                val requested = selectedProfile()
                 val result = AudioEngineReadinessProbe.check(
                     this@AudioEngineSettingsActivity, requested, probedVoices,
                 )
@@ -124,6 +127,20 @@ class AudioEngineSettingsActivity : Activity() {
             ))
         })
         refreshActive()
+    }
+
+    private fun selectedProfile(): AudioEngineProfile {
+        fun selected(group: RadioGroup): String =
+            (group.findViewById<RadioButton>(group.checkedRadioButtonId)?.tag as? String)
+                ?: (0 until group.childCount).mapNotNull {
+                    group.getChildAt(it) as? RadioButton
+                }.first { it.isChecked }.tag as String
+        return AudioEngineProfile(
+            input = SpeechInputId.valueOf(selected(inputGroup)),
+            dialogue = DialogueModelId.valueOf(selected(dialogueGroup)),
+            output = SpeechOutputId.valueOf(selected(outputGroup)),
+            voiceId = selectedVoice(),
+        )
     }
 
     private fun selectedVoice(): String? =
@@ -165,11 +182,11 @@ class AudioEngineSettingsActivity : Activity() {
                 setVoices(names, store.load()?.voiceId)
                 val result = AudioEngineReadinessProbe.check(
                     this@AudioEngineSettingsActivity,
-                    AudioEngineProfile(voiceId = store.load()?.voiceId),
+                    selectedProfile(),
                     probedVoices,
                 )
                 feedback.text = if (result.available) {
-                    "Wstępny test offline: Android STT dostępny, E2B obecny (rozmiar pliku), " +
+                    "Wstępny test offline: wybrane wejście wstępnie dostępne, E2B obecny (rozmiar pliku), " +
                         "lokalne głosy pl-PL: " + names.size +
                         ". Natywna inferencja wymaga osobnego testu S22."
                 } else "OPEN: " + (result.reason ?: "unknown")

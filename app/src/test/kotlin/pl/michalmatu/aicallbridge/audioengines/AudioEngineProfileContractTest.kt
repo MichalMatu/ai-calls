@@ -15,9 +15,10 @@ class AudioEngineProfileContractTest {
     }
 
     @Test fun unimplementedEnginesCannotMasqueradeAsReady() {
-        for (input in listOf(SpeechInputId.PARAKEET_PL, SpeechInputId.GEMMA_AUDIO_DIRECT)) {
+        for (input in listOf(SpeechInputId.GEMMA_AUDIO_DIRECT)) {
             assertNotNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = input)))
         }
+        assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)))
         assertNotNull(AudioEngineRegistry.incompatibility(
             AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E4B),
         ))

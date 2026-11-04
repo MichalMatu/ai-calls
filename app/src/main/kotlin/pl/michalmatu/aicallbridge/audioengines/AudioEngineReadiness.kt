@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.audioengines
 import android.content.Context
 import android.os.Build
 import android.speech.SpeechRecognizer
+import java.io.File
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessProbe
 import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
@@ -23,9 +24,20 @@ internal object AudioEngineReadinessProbe {
         AudioEngineRegistry.incompatibility(profile)?.let {
             return AudioEngineReadiness(false, it)
         }
-        if (Build.VERSION.SDK_INT < 34 ||
-            !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
-        ) return AudioEngineReadiness(false, "android_offline_stt_unavailable")
+        when (profile.input) {
+            SpeechInputId.ANDROID_STT -> {
+                if (Build.VERSION.SDK_INT < 34 ||
+                    !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+                ) return AudioEngineReadiness(false, "android_offline_stt_unavailable")
+            }
+            SpeechInputId.PARAKEET_PL -> {
+                if (!ParakeetModelFile.resolve(context).isFile ||
+                    ParakeetModelFile.resolve(context).length() < ParakeetModelFile.MIN_SIZE_BYTES
+                ) return AudioEngineReadiness(false, "parakeet_model_missing_or_incomplete")
+            }
+            SpeechInputId.GEMMA_AUDIO_DIRECT ->
+                return AudioEngineReadiness(false, "audio_direct_not_integrated")
+        }
         val model = Gemma4LiteRtTextBackendFactory.modelFile(context)
         if (Gemma4ModelReadinessProbe(checkNotNull(model.parentFile)).check().state !=
             Gemma4ModelReadinessState.READY

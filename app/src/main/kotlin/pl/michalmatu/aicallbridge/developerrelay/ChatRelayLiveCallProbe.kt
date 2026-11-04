@@ -50,6 +50,9 @@ import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
+import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
+import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
+import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
@@ -314,6 +317,11 @@ internal object ChatRelayLiveCallProbe {
             outputApprovalPolicy,
             languageTag = audioEngineProfile.languageTag,
             voiceId = audioEngineProfile.voiceId,
+            input = when (audioEngineProfile.input) {
+                SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, audioEngineProfile.languageTag)
+                SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
+                SpeechInputId.GEMMA_AUDIO_DIRECT -> error("direct_audio_input_requires_multimodal_adapter")
+            },
         )
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",

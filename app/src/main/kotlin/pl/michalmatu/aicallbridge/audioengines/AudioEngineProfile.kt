@@ -30,7 +30,7 @@ internal object AudioEngineRegistry {
     val inputs = listOf(
         AudioEngineChoice("ANDROID_STT", "Android STT", "pl-PL", "PCM16 16 kHz · offline", true),
         AudioEngineChoice("PARAKEET_PL", "Parakeet TDT 0.6B v3", "pl-PL",
-            "Instalacja, runtime i pomiary S22 jeszcze nieukończone", false),
+            "Adapter MediaPipe 1.2.0; wymagany model 615 MB i test native S22", true),
         AudioEngineChoice("GEMMA_AUDIO_DIRECT", "Gemma Audio Direct", "pl-PL",
             "Eksperymentalne · brak adaptera PCM w LiteRT", false),
     )
@@ -55,7 +55,6 @@ internal object AudioEngineRegistry {
     fun incompatibility(profile: AudioEngineProfile): String? = when {
         profile.languageTag != "pl-PL" -> "unsupported_language"
         profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> "audio_direct_not_integrated"
-        profile.input == SpeechInputId.PARAKEET_PL -> "parakeet_not_integrated"
         profile.dialogue == DialogueModelId.GEMMA_4_E4B -> "e4b_not_integrated"
         profile.output == SpeechOutputId.PIPER_PL -> "piper_not_integrated"
         profile.output == SpeechOutputId.KOKORO -> "kokoro_no_polish"
