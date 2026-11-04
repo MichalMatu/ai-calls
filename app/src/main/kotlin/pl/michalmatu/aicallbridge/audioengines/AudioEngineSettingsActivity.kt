@@ -169,8 +169,9 @@ class AudioEngineSettingsActivity : Activity() {
                     probedVoices,
                 )
                 feedback.text = if (result.available) {
-                    "PASS lokalne: Android STT / Gemma E2B / głos pl-PL (" +
-                        names.size + "). To nie jest test rozmowy."
+                    "Wstępny test offline: Android STT dostępny, E2B obecny (rozmiar pliku), " +
+                        "lokalne głosy pl-PL: " + names.size +
+                        ". Natywna inferencja wymaga osobnego testu S22."
                 } else "OPEN: " + (result.reason ?: "unknown")
             }
         }
