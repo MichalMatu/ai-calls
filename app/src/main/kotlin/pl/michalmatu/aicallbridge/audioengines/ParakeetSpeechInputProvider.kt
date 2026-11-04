@@ -5,6 +5,7 @@ import com.google.mediapipe.tasks.audio.audiotranscriber.AudioTranscriber
 import com.google.mediapipe.tasks.audio.audiotranscriber.AudioTranscriberResult
 import com.google.mediapipe.tasks.core.BaseOptions
 import java.io.File
+import java.security.MessageDigest
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -13,7 +14,31 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Official MediaPipe Parakeet stateful INT8 bundle. Never download or run in a Call by discovery. */
 internal object ParakeetModelFile {
     const val NAME = "parakeet_tdt_0.6b_v3_5s_i8_stateful.litertlm"
-    const val MIN_SIZE_BYTES = 500_000_000L
+    const val MIN_SIZE_BYTES = 614_588_752L
+    const val EXPECTED_SHA256 = "66c5a74cf6c2c1d2b990901f6cece5bb53e3214dbceafa0989900a6f0eeb3504"
+    const val HF_REVISION = "1f78e5eb6175b1b2cce35f16bcf9e2027b83e8bd"
+    const val DOWNLOAD_URL = "https://huggingface.co/litert-community/parakeet-tdt-0.6b-v3/resolve/" +
+        HF_REVISION + "/" + NAME + "?download=true"
+    private val fingerprintLock = Any()
+    private var lastVerified: Triple<String, Long, Long>? = null
+    fun validPinnedModel(file: File): Boolean {
+        if (!file.isFile || file.length() != MIN_SIZE_BYTES) return false
+        val stamp = Triple(file.absolutePath, file.length(), file.lastModified())
+        synchronized(fingerprintLock) { if (stamp == lastVerified) return true }
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().buffered().use { input ->
+            val chunk = ByteArray(1024 * 1024)
+            while (true) {
+                val n = input.read(chunk)
+                if (n < 0) break
+                digest.update(chunk, 0, n)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        if (actual != EXPECTED_SHA256) return false
+        synchronized(fingerprintLock) { lastVerified = stamp }
+        return true
+    }
     fun resolve(context: Context): File {
         val app = context.applicationContext
         val root = app.getExternalFilesDir("models") ?: File(app.filesDir, "models")
@@ -101,8 +126,12 @@ internal class ParakeetSpeechInputProvider(context: Context) : SpeechInputProvid
         var task: AudioTranscriber? = null
         try {
             val model = ParakeetModelFile.resolve(appContext)
-            if (!model.isFile || model.length() < ParakeetModelFile.MIN_SIZE_BYTES) {
+            if (!model.isFile || model.length() != ParakeetModelFile.MIN_SIZE_BYTES) {
                 if (isCurrent(run)) run.listener.onError("parakeet_model_missing_or_incomplete")
+                return
+            }
+            if (!ParakeetModelFile.validPinnedModel(model)) {
+                if (isCurrent(run)) run.listener.onError("parakeet_model_sha256_mismatch")
                 return
             }
             val options = AudioTranscriber.AudioTranscriberOptions.builder()
