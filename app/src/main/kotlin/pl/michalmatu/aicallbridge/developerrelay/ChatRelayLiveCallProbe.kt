@@ -98,6 +98,7 @@ internal object ChatRelayLiveCallProbe {
         callStillActive: () -> Boolean = { true },
         evidenceRecorder: CallSessionEvidenceRecorder? = null,
         dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
+        directSystemInstruction: String? = null,
         callback: (String) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -133,6 +134,7 @@ internal object ChatRelayLiveCallProbe {
             callStillActive,
             evidenceRecorder,
             dialogueMode,
+            directSystemInstruction,
         )
         if (!activeSession.compareAndSet(null, session)) {
             evidenceRecorder?.finish("audio_session_already_active")
@@ -156,6 +158,7 @@ internal object ChatRelayLiveCallProbe {
         private val callStillActive: () -> Boolean,
         private val evidenceRecorder: CallSessionEvidenceRecorder?,
         private val dialogueMode: CampaignDialogueMode,
+        private val directSystemInstruction: String?,
     ) : SessionControl {
         override fun stopAudio() {
             // Revoke TX synchronously, even if the main-thread cleanup is delayed.
@@ -251,7 +254,10 @@ internal object ChatRelayLiveCallProbe {
                     !readOnlySupervised && activeMediaGeneration.get() > 0L &&
                         authorizedNow() && routeVerified.get() && !commitmentConsumed.get()
                 },
-                preparedModel = CampaignGemmaDirectPreflight.takePrepared(),
+                preparedModel = CampaignGemmaDirectPreflight.takePrepared(
+                    directSystemInstruction ?: GemmaDirectTaskBrief.PROMPT,
+                ),
+                systemInstruction = directSystemInstruction ?: GemmaDirectTaskBrief.PROMPT,
                 observer = GemmaDirectObserver { action, source, elapsedMs ->
                     lines += "turn_${currentTurn}_direct_action=$action"
                     lines += "turn_${currentTurn}_direct_response_source=$source"
