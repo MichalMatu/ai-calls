@@ -29,6 +29,9 @@ and navigating the application through ADB does not require operator clicks.
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe gemma-e2b
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe gemma-audio
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe parakeet-pl
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe parakeet-quality
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe gemma-audio-pl
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe piper-pl
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe usb-panel
 
 The CLI detects the actual ADB transport, checks **SM-S906B / RFCT70L7E8J**,
@@ -36,6 +39,14 @@ and never uses an old IP/port. The app's DUMP-protected bridge writes one
 nonce-bound JSON response under its private files/usb-debug-bridge/response.json;
 only adb shell run-as can read it. The private audit file stores action/result
 codes, never transcripts, personal identifiers, grant contents, or WAV bytes.
+
+The three quality probes share `AndroidPolishAudioQualityTest`: three fixed
+synthetic Polish phrases, actual PCM input, timing, word/character edit counts
+and final callback counts. Piper output uses the actual service and Parakeet
+recognition. Only recognized numeric `audio_quality_metrics` reach the console;
+transcript and unknown fields are excluded. WER/CER describe this synthetic set,
+not a natural corpus. Synthetic-only details can be kept in private app cache;
+these tests never use real call material.
 
 ## Modules and responsibilities
 

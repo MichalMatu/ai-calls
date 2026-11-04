@@ -1,20 +1,16 @@
-# AI Calls — aktualny handoff 2026-11-04, przejęcie przez lokalny Codex
+# AI Calls — aktualny handoff 2026-11-05, audio i dwie rozmowy Orange
 
-**Najświeższy fizyczny dowód:** [USB debug S22 acceptance](checkpoints/2026-11-04-usb-debug-s22-acceptance.md). Zastępuje dawny phone-ready stan, w którym telefon był niedostępny, a Parakeet PL jeszcze nieprzetestowany. Przed kontynuacją sprawdź `main` HEAD oraz nowe receipts; nie odtwarzaj starszych planów.
+**Najświeższy dowód:** [polskie audio + Orange](checkpoints/2026-11-05-audio-quality-orange-acceptance.md). Kod i zainstalowane APK: `da09ea23618ccfb29704f0f52088b1472a28b30c`. Dokumentacja może mieć późniejszy HEAD. Parakeet i Gemma Audio: po 3 próbki syntetyczne, 0/16 błędów słów i 0/127 błędów znaków. F-056 naprawiony: instrukcja przed AudioBytes. M4 nadal nie jest pełnym backendem rozmowy audio.
 
-**Bieżący tryb pracy:** [lokalne przejęcie Codex](checkpoints/2026-11-04-local-codex-takeover.md). Lokalny `main` został fast-forwardowany do `721073f6c9b0873028c19093a7c1951f09763ebc`; instalacja S22 nadal pochodzi z `418c84e2`. Bezpośredni lokalny USB status i pre/postcheck PASS: 2× IDLE, właściwy dialer, brak kampanii/retry, grant/skills/audio unchanged. Prywatny wynik: `~/Documents/AI-Calls/local-codex/2026-11-04-takeover-status.json`. W tym przejęciu nie uruchamiano instrumentacji ani połączeń.
+**Orange live:** Parakeet → Gemma E2B → Android TTS: około 77 s, 1 pełna tura. Android STT → Gemma E2B → Android TTS: około 165 s, 5 pełnych tur i `DISCLOSE_AUTHORIZED_FACT`. Pierwsze EOS→TX: 35 046 / 22 447 ms. Końcowy `RX_INTERRUPTED` w drugiej rozmowie. F-042/F-047 nadal OPEN; brak dowodu wykonania CLIR i nowej niezależnej weryfikacji sieci. F-048 RAW nie jest zamknięty przez fakt działający w SCRIPT.
 
-**Lokalna bramka hosta PASS:** `bash scripts/verify_host.sh`, exit 0,
-`host_quality_gate_green=true`; 766 JVM + 262 Python, lint wszystkich modułów,
-build debug APK/AndroidTest APK i audyt jakości audio. Osobny anti-friction
-PASS. Produktowe źródła nie były zmieniane; wynik kwalifikuje bezpośrednie
-lokalne narzędzia, nie realny efekt rozmowy. Lokalne gałęzie: `main` +
-`agent-control`; 19 starych gałęzi zachowano przed usunięciem w prywatnym,
-zweryfikowanym Git bundle wskazanym w checkpoincie.
+**Piper:** oficjalny APK 1.1 `0295dce` i polska Gosia zainstalowane. Native TTS FAIL `tts_set_voice_failed`; default voice null mimo widocznego głosu. F-057 w zewnętrznym silniku, bez fallbacku w AI Calls. E4B nadal niezintegrowany.
 
-## Rzeczywiście ukończone
+**QA i cleanup:** 705 testów app JVM + 263 Python, build debug/AndroidTest APK, lintDebug, audio audit i anti-friction PASS. Końcowe 2× IDLE, kampania nieaktywna, retry false. Profil przywrócony do Android STT/E2B/Android TTS; audio i skills fingerprint identyczne ze startem. Magazyn grantu zmienił hash przy rzeczywistych próbach (`attempts_used=11`); nie wystawiano nowych grantów, każdy start przeszedł app-owned preflight READY. Prywatne receipts: `~/Documents/AI-Calls/local-codex/2026-11-05-audio-engines/`. Eksport USB PASS, 29 sesji (przed testami 27). Lokalne gałęzie `main` + `agent-control`.
 
-- Kod i aktualnie zainstalowany APK S22+ z `418c84e2a082930b58673a383969f7293ccd0168`. Podpisy APK zgodne ze starą instalacją; `aicalls-20261104-usb-debug-s22-install-smoke-v1` DONE/0, bez czyszczenia danych, panel test PASS, `2× IDLE` i grant/skills/audio unchanged. Mac source QA `aicalls-20261104-usb-debug-bridge-host-qa-v2` DONE/0 (Gradle unit/lint/assemble+test APK, Python, anti-friction, audio gate).
+## Historyczny baseline USB 2026-11-04
+
+- Baseline APK S22+ z `418c84e2a082930b58673a383969f7293ccd0168`, zastąpiony powyższym kodem. Podpisy APK zgodne ze starą instalacją; `aicalls-20261104-usb-debug-s22-install-smoke-v1` DONE/0, bez czyszczenia danych, panel test PASS, `2× IDLE` i grant/skills/audio unchanged. Mac source QA `aicalls-20261104-usb-debug-bridge-host-qa-v2` DONE/0 (Gradle unit/lint/assemble+test APK, Python, anti-friction, audio gate).
 - Prywatna ścieżka USB/ADB Mac → aplikacja → nonce-bound JSON → Mac PASS; gotowość profilu Android STT/E2B/TTS i Parakeet oraz zliczanie błędów PASS, `aicalls-20261104-usb-debug-s22-readiness-v1`.
 - Bez połączeń: `aicalls-20261104-usb-debug-s22-profile-mutability-v1` DONE/0 — negatywny test M4, Parakeet profil write/readback, reset stabilnego `ANDROID_STT → GEMMA_4_E2B → ANDROID_TTS_PL` i unchanged grant/skills.
 - `aicalls-20261104-usb-debug-s22-private-export-e2e-v1` DONE/0 — 419 wpisów, timeline i WAV w prywatnym archiwum na Macu, integralność i uprawnienia PASS, **bez danych w Git/result/logcat**.
@@ -27,8 +23,8 @@ zweryfikowanym Git bundle wskazanym w checkpoincie.
 
 - **Gemma E2B 4 synthetic turns:** historyczny S22 PASS na starszym kodzie bez zmiany backendu; nowy niezależny test w tym sprincie **NOT RUN**, zlecenie odrzucone przez system narzędzi. Nie obchodź odmowy przez inny transport. Jeśli będzie to potrzebne, użytkownik może sterować istniejącymi funkcjami na ekranie; wynik readiness nie zastępuje native 4-turn.
 - Parakeet: rzeczywisty polski WER/CER, final segment ordering, latencja i joint RAM/thermal przy E2B.
-- Piper: brak zewnętrznego `dev.ihorshevchuk.piper` i prawdziwego polskiego głosu offline.
-- Gemma Audio Direct: syntetyczny native wcześniejszy PASS, profil disabled; pełne audio→dialog, RAM/thermal i polish QA OPEN.
+- Piper: silnik i polska Gosia są zainstalowane; F-057 blokuje rzeczywistą syntezę przez API Android TTS.
+- Gemma Audio Direct: polskie syntetyczne ASR PASS po F-056; profil disabled, pełne audio→dialog i wspólne zasoby pozostają OPEN.
 - F-045 semantyczny RAW, F-047 końcowy RX na hangup, F-048 FactRequest/IdentityVault pozostają OPEN; brak zewnętrznego dowodu CLIR; F-049 **WYCOFANY**. `BLOCKERS.md` jest jedynym rejestrem statusów.
 
 ## Wykonanie i następny krok

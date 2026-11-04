@@ -2,17 +2,18 @@
 
 Lokalny agent Android do wykonywania **konkretnie autoryzowanych zadań telefonicznych**: własny Android Telecom `Call`, polskie STT → Gemma E2B → TTS, autoryzacja grantu/STOP, osobny dowód skutku i raport. CLIR jest scenariuszem testowym, nie ograniczeniem produktu.
 
-## Stan na 2026-11-04 — nowy USB debug sprint
+## Stan na 2026-11-05 — polskie audio i rzeczywiste Orange
 
-- **Zainstalowany na Samsung S22+ APK:** źródło `418c84e2a082930b58673a383969f7293ccd0168`. In-place install z zachowaniem danych, podpis zgodny, kontrola `2× IDLE`, dialera, kampanii i retry, grant/skills/audio unchanged. Mac host QA i S22 USB panel/UI smoke **PASS**.
+- **Zainstalowany na Samsung S22+ APK:** źródło `da09ea23618ccfb29704f0f52088b1472a28b30c`. Podpis zgodny, instalacja z zachowaniem danych. Lokalnie 705 app JVM + 263 Python, build/lint/audyty PASS.
 - **Jeden debug bridge** (wspólny moduł i ekran) + jedna konsola Mac `scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py`: odczyt stanu/błędów, readiness profilu, bezpieczny zapis/reset profilu, cofanie istniejącego grantu, wyłączenie nagrywania, prywatny eksport oraz off-call instrumentacje. Nie umożliwia nadpisywania surowych grantów lub obchodzenia STOP/zgód.
-- **S22 off-call PASS:** Android STT, Android TTS, polski syntetyczny TTS→Parakeet lexical-overlap, profile Parakeet zapisz/odczytaj/reset, log/error counters, prywatny eksport 419 wpisów WAV/transkryptów lokalnie na Macu. To nie jest WER/CER ani realny test rozmowy. **Piper APK ABSENT**.
-- **Gemma:** historyczny 4-turn syntetyczny S22 PASS sprzed aktualnego sprintu; nowe odrębne uruchomienie zostało zablokowane na poziomie zlecenia i nie zostało wykonane. Gemma Audio M4 nadal disabled; brak pełnego audio→dialogu, RAM/thermal i kwalifikacji. F-045/F-047/F-048 pozostają OPEN; zewnętrzny skutek CLIR niepotwierdzony; F-049 wycofany.
+- **Polska mowa syntetyczna:** Parakeet i Gemma Audio po naprawie F-056 — po 3 próbki, 0/16 błędów słów i 0/127 błędów znaków. To wynik małego zestawu syntetycznego, nie naturalnego korpusu. M4 nadal nie ma pełnego backendu rozmowy audio; E4B niezintegrowany.
+- **Piper:** oficjalny APK 1.1 i polska Gosia zainstalowane; native TTS odtwarza błąd wyboru głosu w zewnętrznym silniku, F-057 OPEN.
+- **Orange live:** 1 pełna tura z Parakeetem, 5 z Android STT; Gemma E2B i Android TTS. Pierwsze EOS→TX: 35,0 / 22,4 s. Powrót IDLE i prywatny eksport PASS; brak dowodu wykonania CLIR. F-045/F-047/F-048 OPEN, F-049 wycofany.
 - Użytkownik zauważył chowanie aplikacji podczas ADB; odtwarzanie wykazało PID stable i brak FATAL. W przekazanej rozmowie właściciel potwierdził otwarcie panelu USB, a ADB jego obecność; nie wymagaj ponownego ręcznego otwierania.
 
 ## Dokumentacja i przekazanie
 
-- [Handoff do kolejnego czatu](docs/HANDOFF_NEXT_CHAT.md) · [Checkpoint USB/S22](docs/checkpoints/2026-11-04-usb-debug-s22-acceptance.md)
+- [Handoff do kolejnego czatu](docs/HANDOFF_NEXT_CHAT.md) · [Najnowsze testy audio/Orange](docs/checkpoints/2026-11-05-audio-quality-orange-acceptance.md) · [Baseline USB/S22](docs/checkpoints/2026-11-04-usb-debug-s22-acceptance.md)
 - [USB/ADB diagnostic bridge](docs/USB_DEBUG_BRIDGE.md) · [ROADMAP](docs/ROADMAP.md) · [ARCHITEKTURA](docs/ARCHITECTURE.md)
 - [AGENTS](AGENTS.md) · [BLOCKERS](BLOCKERS.md) · [SECURITY_PRIVACY](docs/SECURITY_PRIVACY.md) · [Indeks dokumentacji](docs/README.md)
 

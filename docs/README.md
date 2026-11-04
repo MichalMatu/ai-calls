@@ -1,5 +1,7 @@
 # AI Calls — indeks dokumentacji
 
+
+Najnowszy wynik: [polskie audio i dwie rzeczywiste rozmowy Orange — 2026-11-05](checkpoints/2026-11-05-audio-quality-orange-acceptance.md).
 **Wejście do bieżącej pracy:** [AGENTS](../AGENTS.md) → [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) → [USB debug / S22 checkpoint](checkpoints/2026-11-04-usb-debug-s22-acceptance.md). Stary [phone-ready checkpoint](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md) pozostaje historią wcześniejszego stanu.
 
 - **Bieżąca instrukcja i kolejność:** [handoff](HANDOFF_NEXT_CHAT.md) · [roadmap](ROADMAP.md).
