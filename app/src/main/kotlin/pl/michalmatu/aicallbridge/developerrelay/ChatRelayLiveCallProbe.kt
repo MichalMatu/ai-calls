@@ -56,6 +56,7 @@ import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
 import pl.michalmatu.aicallbridge.audioengines.PiperAndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.AndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
+import pl.michalmatu.aicallbridge.audioengines.GemmaAudioDirectInputProvider
 import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
@@ -328,7 +329,7 @@ internal object ChatRelayLiveCallProbe {
             input = when (audioEngineProfile.input) {
                 SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, audioEngineProfile.languageTag)
                 SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
-                SpeechInputId.GEMMA_AUDIO_DIRECT -> error("direct_audio_input_requires_multimodal_adapter")
+                SpeechInputId.GEMMA_AUDIO_DIRECT -> GemmaAudioDirectInputProvider(context)
             },
             output = when (audioEngineProfile.output) {
                 SpeechOutputId.ANDROID_TTS_PL -> AndroidTtsOutputProvider(

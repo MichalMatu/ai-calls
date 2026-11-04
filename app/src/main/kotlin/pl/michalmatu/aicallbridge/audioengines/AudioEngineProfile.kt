@@ -32,7 +32,7 @@ internal object AudioEngineRegistry {
         AudioEngineChoice("PARAKEET_PL", "Parakeet TDT 0.6B v3", "pl-PL",
             "Adapter MediaPipe 1.2.0; wymagany model 615 MB i test native S22", true),
         AudioEngineChoice("GEMMA_AUDIO_DIRECT", "Gemma Audio Direct", "pl-PL",
-            "Eksperymentalne · brak adaptera PCM w LiteRT", false),
+            "Eksperymentalny adapter PCM→AudioBytes; brak dowodu S22 i pamięci", false),
     )
     val dialogues = listOf(
         AudioEngineChoice("GEMMA_4_E2B", "Gemma 4 E2B", "pl-PL",
@@ -54,7 +54,7 @@ internal object AudioEngineRegistry {
     /** An unsupported composition never silently falls back to another engine. */
     fun incompatibility(profile: AudioEngineProfile): String? = when {
         profile.languageTag != "pl-PL" -> "unsupported_language"
-        profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> "audio_direct_not_integrated"
+        profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> "audio_direct_s22_unqualified"
         profile.dialogue == DialogueModelId.GEMMA_4_E4B -> "e4b_not_integrated"
         profile.output == SpeechOutputId.KOKORO -> "kokoro_no_polish"
         profile.output == SpeechOutputId.POCKET_TTS -> "pocket_tts_no_polish"
