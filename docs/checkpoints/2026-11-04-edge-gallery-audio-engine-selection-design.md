@@ -1,5 +1,5 @@
 # AI Calls — wybieralne STT / bezpośrednie audio Gemma / TTS
-Stan badań: 2026-11-04. **DESIGN ONLY — kod i APK niezmienione**. Wcześniejszy zamrożony wieloturowy RAW oraz grant/STOP pozostają wymaganym baseline.
+Stan badań: 2026-11-04. **DESIGN ONLY — kod i APK niezmienione**. Wcześniejszy zamrożony wieloturowy RAW oraz grant/STOP pozostają wymaganym baseline. **Korekta właściciela:** F-049 było błędną kwalifikacją normalnego, dwuczęściowego powitania infolinii; nie rozwijać z tego osobnego zadania, nie zmieniać VAD ani neutralnego ACK z tego powodu.
 
 ## Podstawy źródłowe
 
@@ -52,7 +52,7 @@ OWNED Telecom Call → frozen Samsung/Shizuku RX (PCM16, mono, 16k)
 ```
 
 - Preferencje per-grant/profile są nieautoryzujące; konfigurację **zamrozić przed prewarm i połączeniem**. Nie przełączać STT/TTS ani modeli w połowie aktywnego Call. Błędny wybór: jawny fail-closed lub bezpieczny, jawnie zakomunikowany fallback, bez cichej zamiany modelu i bez obejścia STOP.
-- ASR/timestampy na wspólnym interfejsie `SpeechSegment(text, isFinal, startMs, endMs)`. Dodatkowo `InputTurnState` rozróżnia `IN_PROGRESS`, `PAUSE`, `IVR_CONTINUING`, `FINAL` tak, aby model nie odpowiadał na same trzy słowa powitania. To **oddzielne rozwiązanie F-049**; zmiana ASR sama nie naprawi turn-taking.
+- ASR/timestampy na wspólnym interfejsie `SpeechSegment(text, isFinal, startMs, endMs)`; istniejące mechanizmy VAD i zatwierdzania zakończonej tury zachować. **Nie** implementować postulowanego wcześniej nowego `InputTurnState.IVR_CONTINUING`, automatycznego oczekiwania na cały komunikat lub zmiany `trailingSilenceMs` na podstawie wycofanego F-049. Weryfikacja zachowania VAD to test braku regresji, a nie nowa funkcja.
 - Nie prowadzić GPU Parakeet i GPU Gemma jednocześnie bez pomiaru: model Gemma E2B ≈2.6 GB + Parakeet ≈0.615 GB + OS/audio/KV/GPU. S22 musi przejść test pamięci, termiki i latencji; implementować ograniczone kolejki PCM i monitoring RTF, żadnego blokowania pump RX.
 - Przechowywać model w app-specific storage, z hash/wersją i możliwością wycofania. Licencję każdej paczki sprawdzić osobno, zwłaszcza TTS.
 - Podgląd czatu pokazuje osobno `źródło STT/AudioDirect`, finalne i częściowe STT, model, TTS/voice oraz czasy RX_end→ASR→LLM→TTS→TX. Nigdy nie zapisywać prywatnego audio/tekstu w GitHub.
@@ -61,9 +61,9 @@ OWNED Telecom Call → frozen Samsung/Shizuku RX (PCM16, mono, 16k)
 ## Sprinty / warunki wejścia
 
 1. **Adaptery i neutralne menu**: refactor bez zmiany zachowania Android STT/TTS, unit + host full QA, exact S22 4-turn off-call, diff/weryfikacja zamrożonego audio. Żadnych nowych real-call testów od agenta.
-2. **Parakeet PL RX**: download/provider, 16k PCM conversion, streaming/interim/final timestamps, porównanie WER i real-time factor na tych samych prywatnych lokalnych nagraniach (bez publikacji), scenariusz pauzy IVR, test pamięci z Gemma i handoff do STT. Domyślna stara ścieżka pozostaje.
+2. **Parakeet PL RX**: download/provider, 16k PCM conversion, streaming/interim/final timestamps, porównanie WER i real-time factor na tych samych prywatnych lokalnych nagraniach (bez publikacji), regresja na zwykłych pauzach i dwuczęściowym powitaniu infolinii **bez zmiany dotychczasowej logiki tury**, test pamięci z Gemma i handoff do STT. Domyślna stara ścieżka pozostaje.
 3. **Piper PL TX**: porównanie czasu do pierwszego PCM, dźwięku numerów/kodów/skrótów, łącznej latencji, normalizacja do frozen TX. Kokoro/Pocket tylko dla języków wspieranych.
 4. **Gemma Audio Direct**: osobny eksperyment z istniejącym `.litertlm` i aktualnym LiteRT-LM, 16k PCM w pojedynczych segmentach do 30 s, przełączenie w menu wyłącznie po potwierdzeniu on-device na S22, zachowanie kontekstu wielu tur, analiza pamięci. Rozróżnić `audio understanding` od `ASR` i od audio-output.
-5. **Porównawcza tabela QA**: tryb (STT/LLM/TTS), język, słowa błędnie rozpoznane, zatrzymanie IVR, EOS→pierwszy PCM, EOS→TX, czasy generacji, peak RSS/GPU, brak regresji STOP. Tylko po PASS użytkownik wybiera live test w swoim dokładnym grancie.
+5. **Porównawcza tabela QA**: tryb (STT/LLM/TTS), język, słowa błędnie rozpoznane, zgodność obecnego zachowania IVR (bez wymuszania poprawy F-049), EOS→pierwszy PCM, EOS→TX, czasy generacji, peak RSS/GPU, brak regresji STOP. Tylko po PASS użytkownik wybiera live test w swoim dokładnym grancie.
 
 Status: **PLANNED, NOT IMPLEMENTED.** Brak nowego APK, testów i telefonów w ramach samego badania. Nie zmieniać checkpointu zamrożenia RAW z 06:35 i nie podawać opcji, jakby już działała.
