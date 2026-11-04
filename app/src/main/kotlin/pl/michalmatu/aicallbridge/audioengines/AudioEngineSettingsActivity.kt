@@ -181,13 +181,20 @@ class AudioEngineSettingsActivity : Activity() {
                     feedback.text = "Android TTS: nie można zainicjalizować silnika."
                     return@runOnUiThread
                 }
-                if (selectedEngine != null && engine.currentEngine != selectedEngine) {
+                if (selectedEngine != null && (
+                    engine.engines.none { it.name == selectedEngine } ||
+                    engine.voices.orEmpty().none {
+                        it.locale.language == "pl" && !it.isNetworkConnectionRequired &&
+                            "piperVoice" in it.features
+                    }
+                )) {
                     engine.shutdown()
                     feedback.text = "Wybrany Piper TTS nie jest zainstalowany."
                     return@runOnUiThread
                 }
                 val voices = engine.voices.orEmpty()
                     .filter { it.locale.language == "pl" && !it.isNetworkConnectionRequired }
+                    .filter { selectedEngine == null || "piperVoice" in it.features }
                     .sortedBy { it.name }
                 val names = voices.map { it.name }
                 tts = engine

@@ -1,3 +1,7 @@
+## F-052 — Piper explicit engine adapter compile failure (2026-11-04)
+
+**Dowód:** Mac `aicalls-20261104-audio-m3-piper-host-qa-v1`, source `865b1f3aded2068edaca18fcaef7c2474bd48fd1`, **FAILED/1**: `LocalTtsSpeechOutput.kt:16` brak zamknięcia konstruktora i `tts.currentEngine` poza publicznym Android API; błędy wtórne wielu wywołań. **Przyczyna:** ręczna zmiana sygnatury i użycie ukrytego gettera. **Naprawa:** konstruktor zamknięty; sprawdzany pakiet z `TextToSpeech.engines` oraz unikatowy znacznik offline `Voice.features=piperVoice` deklarowany w `PiperTtsService.onGetVoices` i wymagany na wybranym głosie (bez cichego fallbacku). **Weryfikacja:** nowy pinned Mac QA i native S22 off-call po host PASS. **Status: FIXED_IN_SOURCE / QA_PENDING**.
+
 # ⛔ BLOCKERS — JEDYNY AKTUALNY REJESTR BLOKERÓW AI CALLS
 
 **ZAKAZ TWORZENIA SZTUCZNYCH BLOKAD:** normatywna zasada na samej górze [AGENTS.md](AGENTS.md). Ta tabela jest **jedynym aktualnym źródłem prawdy o statusach**. [Historia audytu](docs/FRICTION_BLOCKER_LEDGER.md) jest historycznym dziennikiem, a nie drugim, konkurencyjnym źródłem stanu.

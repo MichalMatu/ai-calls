@@ -13,7 +13,7 @@ internal class LocalTtsSpeechOutput(
     private val languageTag: String = "pl-PL",
     private val voiceId: String? = null,
     private val enginePackage: String? = null,
- : AutoCloseable {
+) : AutoCloseable {
     interface Listener {
         fun onPcm16Mono16k(pcm: ByteArray)
         fun onError(reason: String)
@@ -41,7 +41,13 @@ internal class LocalTtsSpeechOutput(
                     finishWithError(generation, listener, "tts_init_failed")
                     return@execute
                 }
-                if (enginePackage != null && tts.currentEngine != enginePackage) {
+                if (enginePackage != null && (
+                    tts.engines.none { it.name == enginePackage } ||
+                    tts.voices.orEmpty().none {
+                        it.locale.language == "pl" && !it.isNetworkConnectionRequired &&
+                            "piperVoice" in it.features
+                    }
+                )) {
                     try { tts.shutdown() } catch (_: Throwable) {}
                     finishWithError(generation, listener, "explicit_tts_engine_unavailable")
                     return@execute
@@ -51,6 +57,7 @@ internal class LocalTtsSpeechOutput(
                 val localVoice = tts.voices.orEmpty()
                     .filter { it.locale.language.equals(selectedLanguage, ignoreCase = true) && !it.isNetworkConnectionRequired }
                     .filter { voiceId == null || it.name == voiceId }
+                    .filter { enginePackage == null || "piperVoice" in it.features }
                     .sortedBy { it.name }
                     .firstOrNull()
                 if (localVoice == null) {
