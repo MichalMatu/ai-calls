@@ -21,3 +21,10 @@
 1. Read full Mac receipt; fix any build/lint/test failure in source, re-run exact SHA; anti-friction check must be real.
 2. After host PASS: physically verify S22 model+ADB serial, two IDLE samples, dialer role, no app-owned campaign or retry; fingerprint existing grants/skills before and after. Only then safe off-call install, isolated store instrumentation and four native synthetic Gemma RAW turns. **No real call.**
 3. M2 Parakeet PL pinned model/MediaPipe runtime, M3 Piper PL, M4 multimodal PCM→Gemma require independent implementation and measurable S22 proof. F-048, F-047, F-045 remain separate OPEN; carrier-side CLIR result still unproven.
+
+## Closure — 2026-11-04 (new results, no calls)
+
+- Mac `aicalls-20261104-audio-m1-provider-postfix-host-qa-v5` **DONE/0 PASS**, pinned `a616795e8dc9ec46f049ea700d91f6d97abc9ac6`: full Gradle build/unit/lint/assemble + 248 Python, anti-friction. S22 `aicalls-20261104-audio-m1-s22-offcall-acceptance-v2` **DONE/0 PASS**, pinned to same source: exact `SM-S906B`, 2× IDLE, dialer and grant/retry/skills checks; both APKs installed, isolated store/UI native tests PASS and 4 synthetic Gemma RAW turns PASS, final IDLE and unchanged grant/skills/audio preferences. No outgoing call.
+- **M1: PASS for source + device off-call only.** Separate engine menu, type-safe stored default, offline voice selector, Android STT/TTS ports and E2B dialogue provider tested. No real cellular speech/far-end TX, CLIR effect or live-model switching acceptance inferred from synthetic tests.
+- F-050 and F-051 **VERIFIED for the Mac/off-call scope**, not broader physical live-call claims. Historical failed tasks remain intact.
+- M2 Parakeet PL, M3 Piper PL, M4 Gemma Audio Direct remain OPEN. F-045/F-047/F-048 and external CLIR completion remain OPEN. F-049 withdrawn.

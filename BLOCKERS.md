@@ -44,13 +44,13 @@ Następna poprawka `F-035`: po jednorazowym `SpeechRecognizer.ERROR_NO_MATCH=7` 
 
 **Warunek i wpływ:** w nowym ekranie `AudioEngineSettingsActivity.previewVoice` wywołanie `TelecomManager.isInCall` bez sprawdzenia `READ_PHONE_STATE` groziło wyjątkiem przy odebranym uprawnieniu. Pierwszy rzeczywisty Mac QA `aicalls-20261104-audio-m1-host-qa-v1` na SHA `8ee9da04fd86007e2470f224f933915ea41f72be` potwierdził oczekiwany test RED i zielone JVM unit, lecz zakończył się `failed/1` na błędzie lint `MissingPermission`. **Przyczyna:** nowy przycisk podglądu nie miał jawnego uprawnienia; nie dotyczy telefonowania, VAD ani ACK.
 
-**Zmiana:** podgląd jest fail-closed bez zgody na odczyt stanu telefonu i przy błędzie platformy, ale samo zapisanie profilu i istniejący tor rozmowy nie wymagają nowego pozwolenia. **Test:** ponowny exact HEAD `scripts/verify_host.sh` + skaner anti-friction oraz bezpołączeniowy S22 po host PASS; nie zmieniać grantu ani roli. **Status: FIXED_IN_SOURCE / QA_PENDING** (bez nowego receipt nie deklarować VERIFIED).
+**Zmiana:** podgląd jest fail-closed bez zgody na odczyt stanu telefonu i przy błędzie platformy, ale samo zapisanie profilu i istniejący tor rozmowy nie wymagają nowego pozwolenia. **Test:** ponowny exact HEAD `scripts/verify_host.sh` + skaner anti-friction oraz bezpołączeniowy S22 po host PASS; nie zmieniać grantu ani roli. **Status: VERIFIED (scope: Mac QA + S22 off-call)** — Mac v5 `DONE/0` full QA, S22 v2 `DONE/0` APK + testy natywne. Nie jest to dowód live call.
 
 ## F-051 — M1 typed dialogue adapter lost prewarm context reset type (2026-11-04)
 
 **Dowód:** Mac Host Ops `aicalls-20261104-audio-m1-provider-final-host-qa-v4` pinned `990a8dd8ad4cc8194468f28a49f2c69c7c5caf5a`, **FAILED / exit 1** o 06:56:11 UTC: Kotlin `CampaignGemmaPreflight.kt:90–91` `Cannot infer type parameter R` i `Unresolved reference resetConversationContext`. **Przyczyna:** nowy `DialogueEngineProvider.createActionClassifier` zwraca bazowy `TextCallAgentBackend`, podczas gdy istniejący prewarm potrzebuje `NativeConversationContextBackend` do skasowania syntetycznej tury.
 
-**Poprawka:** sprawdzony kontrakt `NativeConversationContextBackend` na obiekcie E2B i zachowanie dotychczasowego resetu. Brak zmian modelu, kontekstu właściwej rozmowy, VAD/ACK i autoryzacji. **Status: FIXED_IN_SOURCE / QA_PENDING**; wymagane nowy exact-SHA Mac QA + S22 off-call. Wcześniejszy błędny QA zachowany jako FAIL, a pierwszy task instalacyjny S22 wymagał PASS nieudanego QA, dlatego nie wolno uznać go za test nowego APK.
+**Poprawka:** sprawdzony kontrakt `NativeConversationContextBackend` na obiekcie E2B i zachowanie dotychczasowego resetu. Brak zmian modelu, kontekstu właściwej rozmowy, VAD/ACK i autoryzacji. **Status: VERIFIED (scope: Mac QA + S22 off-call)** — Mac v5 `DONE/0` full QA, S22 v2 `DONE/0` APK + 4 tury Gemma RAW. Wcześniejszy błędny QA zachowany jako FAIL, a pierwszy task instalacyjny S22 wymagał PASS nieudanego QA, dlatego nie wolno uznać go za test nowego APK.
 
 ## AKTYWNE — wymagają pracy
 
