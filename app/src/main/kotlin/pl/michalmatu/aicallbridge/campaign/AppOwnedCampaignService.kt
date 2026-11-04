@@ -1,6 +1,9 @@
 package pl.michalmatu.aicallbridge.campaign
 
 import android.Manifest
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.PendingIntent
@@ -26,6 +29,7 @@ class AppOwnedCampaignService : Service() {
     private lateinit var dialogueModeStore: CampaignDialogueModeStore
     private lateinit var promptSkillStore: GemmaDirectPromptSkillStore
     private var activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
+    private var activeAudioProfile = AudioEngineProfile.STABLE
     private var activeDirectSystemInstruction: String? = null
     private val continuationHandler = Handler(Looper.getMainLooper())
     private var scheduledAttempt: Runnable? = null
@@ -150,6 +154,14 @@ class AppOwnedCampaignService : Service() {
             finish("Unknown dialogue mode requested; no calls")
             return START_NOT_STICKY
         }
+        // Freeze a single profile for all prewarm/owned-call work started by this campaign.
+        // Preference changes affect only the next campaign, never a live turn or grant.
+        val profile = AudioEngineProfileStore(this).load()
+        if (profile == null || AudioEngineRegistry.incompatibility(profile) != null) {
+            finish("Stored audio engine configuration unavailable; no calls")
+            return START_NOT_STICKY
+        }
+        activeAudioProfile = profile
         activeDialogueMode = selectedMode
         if (explicitStart) dialogueModeStore.bind(grant.grantId, selectedMode)
         campaignRequested = true
@@ -286,6 +298,7 @@ class AppOwnedCampaignService : Service() {
             authorizationStore = authorizationStore,
             accountScope = state.accountScope,
             dialogueMode = activeDialogueMode,
+            audioEngineProfile = activeAudioProfile,
             directSystemInstruction = activeDirectSystemInstruction,
             onAttemptFinished = { success, reason ->
                 continuationHandler.post {
@@ -453,6 +466,7 @@ class AppOwnedCampaignService : Service() {
         continuationStore.clear()
         dialogueModeStore.clear()
         activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
+        activeAudioProfile = AudioEngineProfile.STABLE
         activeDirectSystemInstruction = null
         statusStore.save(status)
         stopForeground(STOP_FOREGROUND_REMOVE)

@@ -48,6 +48,8 @@ import pl.michalmatu.aicallbridge.identity.DefaultFactDisclosurePolicy
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
@@ -98,10 +100,14 @@ internal object ChatRelayLiveCallProbe {
         callStillActive: () -> Boolean = { true },
         evidenceRecorder: CallSessionEvidenceRecorder? = null,
         dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
+        audioEngineProfile: AudioEngineProfile = AudioEngineProfile.STABLE,
         directSystemInstruction: String? = null,
         callback: (String) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
+        require(AudioEngineRegistry.incompatibility(audioEngineProfile) == null) {
+            "audio_engine_profile_unavailable"
+        }
         require(maxTurns > 0) { "invalid_relay_max_turns" }
         require(!readOnlySupervised || (!phoneDisclosureAuthorized && !supervisorRelayEnabled)) {
             "supervised_probe_must_be_read_only_local"
@@ -135,6 +141,7 @@ internal object ChatRelayLiveCallProbe {
             evidenceRecorder,
             dialogueMode,
             directSystemInstruction,
+            audioEngineProfile,
         )
         if (!activeSession.compareAndSet(null, session)) {
             evidenceRecorder?.finish("audio_session_already_active")
@@ -159,6 +166,7 @@ internal object ChatRelayLiveCallProbe {
         private val evidenceRecorder: CallSessionEvidenceRecorder?,
         private val dialogueMode: CampaignDialogueMode,
         private val directSystemInstruction: String?,
+        private val audioEngineProfile: AudioEngineProfile,
     ) : SessionControl {
         override fun stopAudio() {
             // Revoke TX synchronously, even if the main-thread cleanup is delayed.
@@ -303,6 +311,8 @@ internal object ChatRelayLiveCallProbe {
             context,
             backend,
             outputApprovalPolicy,
+            languageTag = audioEngineProfile.languageTag,
+            voiceId = audioEngineProfile.voiceId,
         )
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",

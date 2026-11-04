@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.campaign
 
 import android.Manifest
 import android.content.Context
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
@@ -39,6 +40,7 @@ internal object AppOwnedClirCampaignExecutor {
         authorizationStore: CampaignAuthorizationStore,
         accountScope: String,
         dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
+        audioEngineProfile: AudioEngineProfile = AudioEngineProfile.STABLE,
         directSystemInstruction: String? = null,
         onAttemptFinished: (Boolean, String?) -> Unit = { _, _ -> },
         onStatus: (String) -> Unit,
@@ -185,6 +187,7 @@ internal object AppOwnedClirCampaignExecutor {
                 request = request,
                 authorizationStore = authorizationStore,
                 dialogueMode = dialogueMode,
+                audioEngineProfile = audioEngineProfile,
                 directSystemInstruction = directSystemInstruction,
                 onAttemptFinished = onAttemptFinished,
                 onStatus = onStatus,
@@ -207,6 +210,7 @@ internal object AppOwnedClirCampaignExecutor {
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         dialogueMode: CampaignDialogueMode,
+        audioEngineProfile: AudioEngineProfile,
         directSystemInstruction: String?,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
@@ -241,7 +245,7 @@ internal object AppOwnedClirCampaignExecutor {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
                 startLocalRuntime(
                     appContext, telecomManager, grant, ownedCall, request,
-                    authorizationStore, dialogueMode, directSystemInstruction,
+                    authorizationStore, dialogueMode, audioEngineProfile, directSystemInstruction,
                     onAttemptFinished, onStatus,
                 )
                 return
@@ -278,6 +282,7 @@ internal object AppOwnedClirCampaignExecutor {
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         dialogueMode: CampaignDialogueMode,
+        audioEngineProfile: AudioEngineProfile,
         directSystemInstruction: String?,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
@@ -296,6 +301,7 @@ internal object AppOwnedClirCampaignExecutor {
                 phoneDisclosureAuthorized = phoneDisclosureAuthorized,
                 supervisorRelayEnabled = false,
                 dialogueMode = dialogueMode,
+                audioEngineProfile = audioEngineProfile,
                 directSystemInstruction = directSystemInstruction,
                 callStillActive = {
                     runCatching { ownedCall.isExactCallActive() }.getOrDefault(false)
