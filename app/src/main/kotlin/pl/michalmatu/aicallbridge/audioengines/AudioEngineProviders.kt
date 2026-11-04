@@ -59,3 +59,25 @@ internal class AndroidTtsOutputProvider(
     override fun cancel() = delegate.cancel()
     override fun close() = delegate.close()
 }
+
+/** GPL-licensed native Piper implementation is external to AI Calls; only Android TTS IPC. */
+internal object PiperServiceContract {
+    const val PACKAGE = "dev.ihorshevchuk.piper"
+}
+
+internal class PiperAndroidTtsOutputProvider(
+    context: Context,
+    languageTag: String,
+    voiceId: String?,
+) : SpeechOutputProvider {
+    private val delegate = LocalTtsSpeechOutput(
+        context, languageTag, voiceId, enginePackage = PiperServiceContract.PACKAGE,
+    )
+    override fun synthesize(text: String, listener: SpeechOutputProvider.Listener) =
+        delegate.synthesize(text, object : LocalTtsSpeechOutput.Listener {
+            override fun onPcm16Mono16k(pcm: ByteArray) = listener.onPcm16Mono16k(pcm)
+            override fun onError(reason: String) = listener.onError(reason)
+        })
+    override fun cancel() = delegate.cancel()
+    override fun close() = delegate.close()
+}

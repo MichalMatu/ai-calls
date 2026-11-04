@@ -12,7 +12,8 @@ internal class LocalTtsSpeechOutput(
     context: Context,
     private val languageTag: String = "pl-PL",
     private val voiceId: String? = null,
-) : AutoCloseable {
+    private val enginePackage: String? = null,
+ : AutoCloseable {
     interface Listener {
         fun onPcm16Mono16k(pcm: ByteArray)
         fun onError(reason: String)
@@ -29,7 +30,7 @@ internal class LocalTtsSpeechOutput(
         cancel()
         val generation = gate.begin()
         val holder = arrayOfNulls<TextToSpeech>(1)
-        holder[0] = TextToSpeech(appContext) { status ->
+        val initListener = TextToSpeech.OnInitListener { status ->
             appContext.mainExecutor.execute {
                 if (!gate.isCurrent(generation)) {
                     try { holder[0]?.shutdown() } catch (_: Throwable) {}
@@ -38,6 +39,11 @@ internal class LocalTtsSpeechOutput(
                 val tts = holder[0]
                 if (status != TextToSpeech.SUCCESS || tts == null) {
                     finishWithError(generation, listener, "tts_init_failed")
+                    return@execute
+                }
+                if (enginePackage != null && tts.currentEngine != enginePackage) {
+                    try { tts.shutdown() } catch (_: Throwable) {}
+                    finishWithError(generation, listener, "explicit_tts_engine_unavailable")
                     return@execute
                 }
                 synchronized(lock) { engine = tts }
@@ -129,6 +135,9 @@ internal class LocalTtsSpeechOutput(
                 enqueueChunk()
             }
         }
+        holder[0] = if (enginePackage == null)
+            TextToSpeech(appContext, initListener)
+        else TextToSpeech(appContext, initListener, enginePackage)
     }
 
     fun cancel() {
