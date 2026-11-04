@@ -26,6 +26,7 @@ class CampaignToolActivity : Activity() {
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView
     private var pendingAction: PendingAction? = null
+    private var requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
     private var continueStartAfterRole = false
     private var playback: MediaPlayer? = null
 
@@ -53,6 +54,16 @@ class CampaignToolActivity : Activity() {
             text = "Start authorized CLIR enable"
             setOnClickListener {
                 // Scope first: do not request OS dialer role for an expired or absent grant.
+                requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
+                ensurePermissionsThen(PendingAction.START)
+            }
+        }
+        val directStartButton = Button(this).apply {
+            text = "Start authorized CLIR enable — Gemma Direct"
+            setOnClickListener {
+                // Same grant, SIM, permissions, exact owned-call and STOP gates.
+                // Only the dialogue backend differs; no new campaign authority.
+                requestedStartMode = CampaignDialogueMode.GEMMA_DIRECT
                 ensurePermissionsThen(PendingAction.START)
             }
         }
@@ -143,6 +154,7 @@ class CampaignToolActivity : Activity() {
             )
             addView(authorizeButton)
             addView(startButton)
+            addView(directStartButton)
             addView(stopSupervisedAudioButton)
             addView(revokeButton)
             addView(dialerSection)
@@ -168,6 +180,7 @@ class CampaignToolActivity : Activity() {
         if (savedInstanceState == null &&
             intent.getBooleanExtra(EXTRA_START_AUTHORIZED_CAMPAIGN, false)
         ) {
+            requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
             ensurePermissionsThen(PendingAction.START)
         }
     }
@@ -439,7 +452,8 @@ class CampaignToolActivity : Activity() {
         statusView.text = runtimeStatusStore.load()
         startForegroundService(
             Intent(this, AppOwnedCampaignService::class.java)
-                .setAction(AppOwnedCampaignService.ACTION_START_CLIR_ENABLE),
+                .setAction(AppOwnedCampaignService.ACTION_START_CLIR_ENABLE)
+                .putExtra(AppOwnedCampaignService.EXTRA_DIALOGUE_MODE, requestedStartMode.name),
         )
     }
 
