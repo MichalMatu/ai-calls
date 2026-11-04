@@ -45,7 +45,7 @@ class ParakeetPcm16DecoderTest {
 
     @Test fun oddTotalBytesRetainOneIncompleteSampleAcrossEmptyCallbacks() {
         val converter = Pcm16FloatDecoder()
-        assertArrayEquals(floatArrayOf(), converter.convert(byteArrayOf(0x7f)), 0f)
+        assertArrayEquals(floatArrayOf(), converter.convert(byteArrayOf(0xff.toByte())), 0f)
         assertArrayEquals(floatArrayOf(), converter.convert(byteArrayOf()), 0f)
         assertTrue(converter.hasIncompleteSample())
         assertArrayEquals(floatArrayOf(32767f / 32768f),

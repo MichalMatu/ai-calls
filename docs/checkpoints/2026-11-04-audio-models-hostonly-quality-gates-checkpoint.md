@@ -44,3 +44,8 @@ python3 scripts/aicall_tools/diagnostics/audit_product_friction.py
 ```
 
 Wyniki hosta tylko z dokładnych `task-results` pod `MichalMatu/local-agent:agent-control` dla Mac instalacji `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`. `host_quality_gate_green` **nie** zastępuje testu S22 ani prawdziwego efektu CLIR. F-049 wycofane, nie przywracać zmian VAD/ACK.
+
+## Host QA rozszerzenia testów PCM: RED fixture 2026-11-04
+
+- `aicalls-20261104-hostonly-audio-qualitygate-full-qa-v3` pinned `48539406bfda602016c650ba55cefc7366f64172` FAILED/1: 10/10 Python mutation PASS, audio static PASS, **703 testy JVM / 1 FAIL** na `oddTotalBytesRetainOneIncompleteSampleAcrossEmptyCallbacks`; fixture oczekiwał max PCM16 dla `0x7f7f`, który nie jest `0x7fff`. Nie wykryto błędu runtime. F-055 rejestrowany w BLOCKERS.
+- Poprawka fixture (carry `0xff` + MSB `0x7f`) w kolejnej zmianie na `main`; pełny Mac QA powtórzyć na nowym SHA. Brak kontaktu z telefonem.
