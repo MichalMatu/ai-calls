@@ -12,6 +12,7 @@ import android.telecom.TelecomManager
 import java.io.File
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
+import pl.michalmatu.aicallbridge.LiveCallChatPanel
 import pl.michalmatu.aicallbridge.UiAccordionSection
 import android.view.ViewGroup
 import android.widget.Button
@@ -224,8 +225,11 @@ class CampaignToolActivity : Activity() {
             addView(evidenceSection)
         }
 
-        setContentView(
-            ScrollView(this).apply {
+        // Same live, read-only chat on the campaign screen; all essential
+        // START and STOP controls remain available in the scrollable area.
+        setContentView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(ScrollView(this@CampaignToolActivity).apply {
                 addView(
                     content,
                     ViewGroup.LayoutParams(
@@ -233,8 +237,11 @@ class CampaignToolActivity : Activity() {
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                     ),
                 )
-            },
-        )
+            }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
+            ))
+            addView(LiveCallChatPanel(this@CampaignToolActivity))
+        })
         refreshGrantStatus()
         // Explicit primary-screen tap: continue directly into the same authorization,
         // permission and Android-role checks as the existing START control.
