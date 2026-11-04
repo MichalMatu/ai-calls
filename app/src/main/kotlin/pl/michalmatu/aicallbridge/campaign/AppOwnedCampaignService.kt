@@ -23,6 +23,8 @@ class AppOwnedCampaignService : Service() {
     private lateinit var authorizationStore: CampaignAuthorizationStore
     private lateinit var statusStore: CampaignRuntimeStatusStore
     private lateinit var continuationStore: CampaignContinuationStore
+    private lateinit var dialogueModeStore: CampaignDialogueModeStore
+    private var activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
     private val continuationHandler = Handler(Looper.getMainLooper())
     private var scheduledAttempt: Runnable? = null
     private var campaignRequested = false
@@ -39,6 +41,7 @@ class AppOwnedCampaignService : Service() {
         authorizationStore = CampaignAuthorizationStore(this)
         statusStore = CampaignRuntimeStatusStore(this)
         continuationStore = CampaignContinuationStore(this)
+        dialogueModeStore = CampaignDialogueModeStore(this)
         notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(
             NotificationChannel(
@@ -59,6 +62,8 @@ class AppOwnedCampaignService : Service() {
                 campaignRequested = false
                 continuationGeneration += 1
                 continuationStore.clear()
+                dialogueModeStore.clear()
+                CampaignGemmaDirectPreflight.discardUnused()
                 scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
                 scheduledAttempt = null
                 supervisedAudioActive.set(false)
@@ -133,6 +138,17 @@ class AppOwnedCampaignService : Service() {
                 // Reconcile from phone IDLE instead of stranding the saved task.
             }
         }
+        val selectedMode = if (explicitStart) {
+            CampaignDialogueMode.explicitStart(intent?.getStringExtra(EXTRA_DIALOGUE_MODE))
+        } else {
+            dialogueModeStore.forGrant(grant.grantId)
+        }
+        if (selectedMode == null) {
+            finish("Unknown dialogue mode requested; no calls")
+            return START_NOT_STICKY
+        }
+        activeDialogueMode = selectedMode
+        if (explicitStart) dialogueModeStore.bind(grant.grantId, selectedMode)
         campaignRequested = true
         scheduleAuthorizedAttempt()
         return START_STICKY
@@ -189,11 +205,12 @@ class AppOwnedCampaignService : Service() {
         preparingLocalModel = true
         statusStore.save("Preparing local Gemma before authorized Telecom dial")
         val generation = continuationGeneration
-        CampaignGemmaPreflight.prepare(this) { ready ->
+        val onModelPrepared: (Boolean) -> Unit = { ready ->
             continuationHandler.post {
                 preparingLocalModel = false
                 if (!campaignRequested || generation != continuationGeneration) {
                     CampaignGemmaPreflight.discardUnused()
+                    CampaignGemmaDirectPreflight.discardUnused()
                     return@post
                 }
                 if (!ready) {
@@ -213,6 +230,10 @@ class AppOwnedCampaignService : Service() {
                 }
                 launchPreparedAttempt(latest)
             }
+        }
+        when (activeDialogueMode) {
+            CampaignDialogueMode.SCRIPT_GEMMA -> CampaignGemmaPreflight.prepare(this, onModelPrepared)
+            CampaignDialogueMode.GEMMA_DIRECT -> CampaignGemmaDirectPreflight.prepare(this, onModelPrepared)
         }
     }
 
@@ -234,6 +255,7 @@ class AppOwnedCampaignService : Service() {
             context = this,
             authorizationStore = authorizationStore,
             accountScope = state.accountScope,
+            dialogueMode = activeDialogueMode,
             onAttemptFinished = { success, reason ->
                 continuationHandler.post {
                     if (campaignRequested && continuationGeneration == generation) {
@@ -377,6 +399,7 @@ class AppOwnedCampaignService : Service() {
     override fun onDestroy() {
         preparingLocalModel = false
         CampaignGemmaPreflight.discardUnused()
+        CampaignGemmaDirectPreflight.discardUnused()
         supervisedAudioActive.set(false)
         supervisedAudioSession?.stopAudio()
         supervisedAudioSession = null
@@ -390,12 +413,15 @@ class AppOwnedCampaignService : Service() {
     private fun finish(status: String) {
         preparingLocalModel = false
         CampaignGemmaPreflight.discardUnused()
+        CampaignGemmaDirectPreflight.discardUnused()
         campaignRequested = false
         awaitingPhoneIdle = false
         continuationGeneration += 1
         scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
         scheduledAttempt = null
         continuationStore.clear()
+        dialogueModeStore.clear()
+        activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
         statusStore.save(status)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -421,6 +447,8 @@ class AppOwnedCampaignService : Service() {
             .build()
 
     companion object {
+        const val EXTRA_DIALOGUE_MODE =
+            "pl.michalmatu.aicallbridge.extra.CAMPAIGN_DIALOGUE_MODE"
         const val ACTION_START_CLIR_ENABLE =
             "pl.michalmatu.aicallbridge.action.START_CLIR_ENABLE_CAMPAIGN"
         const val ACTION_START_SUPERVISED_AUDIO =
