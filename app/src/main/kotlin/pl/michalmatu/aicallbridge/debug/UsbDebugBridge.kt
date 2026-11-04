@@ -43,7 +43,7 @@ internal object UsbDebugBridge {
 
         fun reply(ok: Boolean, code: String, details: JSONObject? = null) {
             val result = JSONObject()
-                .put("protocol", 1)
+                .put("protocol", UsbDebugProtocol.VERSION)
                 .put("nonce", nonce)
                 .put("action", action)
                 .put("ok", ok)
@@ -72,6 +72,10 @@ internal object UsbDebugBridge {
         }
 
         try {
+            if (!UsbDebugProtocol.accepts(action)) {
+                reply(false, "unknown_action")
+                return
+            }
             when (action) {
                 "status", "evidence_status" -> reply(true, "ok", snapshot(activity))
                 "profile_reset", "profile_set", "grant_revoke", "evidence_disable",
