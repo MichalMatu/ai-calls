@@ -34,3 +34,11 @@ Mac Local Agent: zadanie `aicalls-20261104-f046-gemma-raw-host-qa-v1`, stan **PE
 Receipt Mac Local Agent `aicalls-20261104-f046-gemma-raw-host-qa-v1`: **DONE/0** z dokładnego commit `0d44b7d5a7e01daa118da10c2e04c458086dced9`. `scripts/verify_host.sh`: 3 × `BUILD SUCCESSFUL`, `Ran 248 tests` / `OK`, `host_quality_gate_green=true`, `ANTI_FRICTION=PASS`. ZERO połączeń i zmian telefonu w host QA. Te wyniki nadpisują wyżej zapisany wcześniejszy status `PENDING/UNVERIFIED`. **Nie są** jeszcze dowodem fizycznej generacji RAW na S22.
 
 Uruchomiono kolejną bezpieczną próbę `aicalls-20261104-f046-gemma-raw-s22-offcall-v1`: warunki `IDLE`, brak aktywnej kampanii/retry, role dialera i niezmienione fingerprinty prefów są sprawdzane **przed** instalacją, a 4 natywne tury realizowane bez połączenia; do chwili terminalnego receipt status **PENDING**. Żadnego owner-initiated live test nie wykonał agent.
+
+## S22 instrumentacja: 4 natywne tury RAW przechodzą
+
+Task aicalls-20261104-f046-gemma-raw-s22-offcall-v1 zweryfikował przed instalacją: EXACT_S22=true, STABLE_IDLE=true, DIALER_ROLE=true, NO_ACTIVE_CAMPAIGN=true, NO_PENDING_RETRY=true, FINAL_INSTALL_SAFETY=PASS. BUILD SUCCESSFUL, instalacja obu APK Success, RAW_APP_AND_TEST_APK_INSTALLED=true. Pierwszy skrypt agregujący błędnie uznał brak linii z println() w standardowym wyjściu AndroidTest za brak poprawnych tur (false negative agregatora, nie ustalony błąd modelu).
+
+Ponowna instrumentacja tego samego testu AndroidGemmaDirectOnDeviceTest#fourSyntheticGemmaDirectTurnsReturnNaturalText przez aicalls-20261104-f046-raw-s22-instrument-diagnosis-v2: DONE/0; exact S22, IDLE, brak aktywnej kampanii lub retry, INSTRUMENT_SHELL_EXIT=0, HAS_OK_1_TEST=true, HAS_INSTRUMENT_FAILURE=false. Test kodu obejmuje cztery kolejne syntetyczne kwestie i wymaga niepustej odpowiedzi bez zastrzeżonych tokenów każdej tury. **4-turn synthetic AndroidTest PASS**; fizyczny RAW live-call nadal OPEN.
+
+Niezależny końcowy read-only odczyt urządzenia i wydajności aicalls-20261104-f046-raw-s22-final-readonly-v1 — wynik należy zweryfikować oddzielnie, nie dopisywać nieotrzymanego PASS.
