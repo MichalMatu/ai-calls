@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.TextView
 import java.io.File
 import pl.michalmatu.aicallbridge.campaign.CampaignAgentControl
+import pl.michalmatu.aicallbridge.debug.UsbDebugBridge
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaOffCallSmokeProbe
 import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
@@ -34,6 +35,13 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.hasExtra(UsbDebugBridge.EXTRA_ACTION)) {
+            UsbDebugBridge.handle(this, intent) { result ->
+                statusView.text = result
+                finish()
+            }
+            return
+        }
         if (intent.getBooleanExtra(EXTRA_RUN_CAMPAIGN_AGENT_STOP, false)) {
             val report = CampaignAgentControl.stopOwnedCampaign(this)
             File(filesDir, CampaignAgentControl.REPORT_FILE_NAME).writeText(report)
