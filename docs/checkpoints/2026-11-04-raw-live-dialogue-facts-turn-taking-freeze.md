@@ -46,3 +46,10 @@ Następny etap architektoniczny: typed `FactRequest` i deklaratywny katalog iden
 - **F-045:** niezależna semantyczna walidacja naturalnych wypowiedzi RAW — OPEN.
 
 Żadnego nowego telefonu, instalacji, mutacji grantu, czyszczenia prywatnych danych ani zmiany aplikacji w sprincie dokumentacyjnego zamknięcia. Również historii checkpointów i dawnego `agent-control` nie usuwać: są audytowalnymi dowodami, a nie „szumem” aktualnego handoffu.
+
+## Dokumentacyjne domknięcie i kontrola szumu
+
+- Aktywne dokumenty zaktualizowano do tego samego stanu: `README.md`, `docs/ROADMAP.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, `docs/AUTONOMOUS_OPERATION_MODE.md`, `docs/HANDOFF_PROTOCOL.md` oraz kanoniczny `BLOCKERS.md`. Stare akapity o braku kontrolera, pierwszym niesprawdzonym Gemma Direct oraz `USB=NO_DATA` oznaczono jako historyczne lub zastąpiono stanem potwierdzonym. Stare checkpointy, dowody i polityki zachowano, **nie kasowano**.
+- Na zdalnym GitHub potwierdzono **tylko `main` i `agent-control`**; nie ma zbędnych gałęzi do usuwania. Skan znanych lokalizacji Mac w `aicalls-20261104-checkpoint-doc-audit-clean-state-v1` nie znalazł lokalnego checkoutu AI Calls, więc **nie twierdzić, że jego status jest czysty**; żadnych nieznanych plików ani prywatnych archiwów nie usuwać.
+- Lokalna bramka dokumentacyjna Mac `aicalls-20261104-checkpoint-doc-audit-clean-state-v1` **DONE/0**: 10 aktywnych dokumentów i checkpoint, **0 brakujących linków**, po jednym wpisie F-044/F-045/F-046/F-047/F-048/F-049, spójny handoff i `ANTI_FRICTION=PASS`. Źródło sprawdzenia `f29918296c1f7e01e291ba192c5e2d0745457e6d`; późniejsze drobne edycje normatywnego opisu grantu i historycznego nagłówka BLOCKERS nadal są **wyłącznie dokumentacyjne**, nie zmieniają kodu/aplikacji. Po finalnym commicie należy porównać HEAD i opcjonalnie powtórzyć samą lekką kontrolę linków, a nie stare Gradle/S22 testy.
+- To zakończenie **organizacyjne**, nie zamknięcie F-048/F-049/F-047/F-045. Nie aktualizować APK, nie rozpoczynać połączenia ani nie zmieniać grantu tylko w celu zamknięcia dokumentacji.
