@@ -3,7 +3,7 @@ package pl.michalmatu.aicallbridge.developerrelay
 import android.content.Context
 import android.os.SystemClock
 import com.google.gson.JsonParser
-import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
+import pl.michalmatu.aicallbridge.textagent.AuthorizedPhoneFactBackend
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -58,8 +58,9 @@ internal enum class GemmaDirectAction {
 internal data class GemmaDirectProposal(val action: GemmaDirectAction, val speech: String? = null)
 
 internal object GemmaDirectProposalParser {
-    fun parse(raw: String): GemmaDirectProposal? = runCatching {
+    fun parse(raw: String): GemmaDirectProposal? {
         if (raw.length > 2048) return null
+        return runCatching {
         val json = JsonParser.parseString(raw).asJsonObject
         if (json.keySet().any { it != "action" && it != "text" }) return null
         val actionName = json.get("action")?.asString ?: return null
@@ -72,7 +73,8 @@ internal object GemmaDirectProposalParser {
             if (json.has("text")) return null
             GemmaDirectProposal(action)
         }
-    }.getOrNull()
+        }.getOrNull()
+    }
 }
 
 internal fun interface GemmaDirectObserver {
@@ -116,7 +118,7 @@ internal class GemmaDirectDialogueBackend(
                     GemmaDirectAction.DISCLOSE_PHONE -> {
                         emit("DISCLOSE_PHONE", "APP_FACT_POLICY")
                         authorizedPhoneFact.generate(
-                            GateCHybridDialogueBackendFactory.DISCLOSE_PHONE_CONTROL,
+                            AuthorizedPhoneFactBackend.DISCLOSE_PHONE_CONTROL,
                             object : TextCallAgentBackend.Listener {
                                 override fun onComplete(text: String) = listener.onComplete(text)
                                 override fun onError(reason: String) {
