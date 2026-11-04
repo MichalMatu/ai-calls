@@ -125,7 +125,7 @@ internal class LiveCallChatPanel(context: Context) : LinearLayout(context) {
                 text = if (snapshot.active) {
                     "Nasłuch trwa. Rozpoznane wypowiedzi i tekst Gemmy pojawią się tutaj."
                 } else {
-                    "Otwórz rozmowę Gemma Direct. Tutaj zobaczysz STT obu stron i status wysyłki odpowiedzi."
+                    "Otwórz rozmowę. Tutaj zobaczysz STT rozmówcy, odpowiedzi AI i status TX."
                 }
                 textSize = 13f
                 setTextColor(Color.rgb(170, 185, 203))
@@ -141,13 +141,17 @@ internal class LiveCallChatPanel(context: Context) : LinearLayout(context) {
     }
 
     private fun makeMessage(line: LiveCallChatFeed.Line): View {
-        val isGemma = line.speaker == LiveCallChatFeed.Speaker.GEMMA
-        val label = if (isGemma) "GEMMA • TURA " else "BIURO OBSŁUGI / STT • TURA "
+        val isAgent = line.speaker != LiveCallChatFeed.Speaker.OFFICE
+        val label = when (line.speaker) {
+            LiveCallChatFeed.Speaker.OFFICE -> "BIURO OBSŁUGI / STT • TURA "
+            LiveCallChatFeed.Speaker.GEMMA -> "GEMMA RAW • TURA "
+            LiveCallChatFeed.Speaker.SCRIPT -> "AI SKRYPT + GEMMA • TURA "
+        }
         val bubble = LinearLayout(context).apply {
             orientation = VERTICAL
             background = GradientDrawable().apply {
                 cornerRadius = dp(13).toFloat()
-                setColor(if (isGemma) Color.rgb(29, 76, 140) else Color.rgb(40, 52, 69))
+                setColor(if (isAgent) Color.rgb(29, 76, 140) else Color.rgb(40, 52, 69))
             }
             setPadding(dp(12), dp(9), dp(12), dp(10))
             addView(TextView(context).apply {
@@ -163,7 +167,7 @@ internal class LiveCallChatPanel(context: Context) : LinearLayout(context) {
                 setTextIsSelectable(true)
                 setPadding(0, dp(4), 0, 0)
             })
-            if (isGemma) addView(TextView(context).apply {
+            if (isAgent) addView(TextView(context).apply {
                 text = line.txStatus ?: "Odpowiedź wygenerowana • TTS/TX w toku"
                 textSize = 11f
                 setTextColor(Color.rgb(191, 229, 252))
@@ -171,9 +175,9 @@ internal class LiveCallChatPanel(context: Context) : LinearLayout(context) {
             })
         }
         return LinearLayout(context).apply {
-            gravity = if (isGemma) Gravity.END else Gravity.START
-            setPadding(if (isGemma) dp(28) else 0, dp(3),
-                if (isGemma) 0 else dp(28), dp(3))
+            gravity = if (isAgent) Gravity.END else Gravity.START
+            setPadding(if (isAgent) dp(28) else 0, dp(3),
+                if (isAgent) 0 else dp(28), dp(3))
             addView(bubble, LayoutParams(
                 LayoutParams.WRAP_CONTENT,
                 LayoutParams.WRAP_CONTENT,
