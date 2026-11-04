@@ -238,10 +238,28 @@ def run_instrumentation(device: Device, test: str) -> dict:
     }
 
 
+
+def recent_error_counts(device: Device) -> dict:
+    """Return only technical counts; never print or persist logcat text."""
+    logs = device.call("logcat", "-d", "-t", "2500", "-v", "threadtime", timeout=40)
+    if logs.returncode:
+        raise DiagnosticError("logcat_unavailable")
+    lines = logs.stdout.splitlines()
+    app = [line for line in lines if "AiCallBridge" in line or "AiCalls" in line]
+    return {
+        "ok": True,
+        "code": "redacted_error_counts",
+        "app_error_lines": sum(bool(re.search(r"\sE\s", line)) for line in app),
+        "app_warning_lines": sum(bool(re.search(r"\sW\s", line)) for line in app),
+        "android_runtime_fatal_lines": sum("FATAL EXCEPTION" in line for line in lines),
+        "lines_scanned": len(lines),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=[
-        "status", "evidence-status", "evidence-export", "evidence-disable",
+        "status", "errors", "evidence-status", "evidence-export", "evidence-disable",
         "profile-check", "profile-set", "profile-reset", "grant-revoke", "probe",
     ])
     parser.add_argument("probe_name", nargs="?", choices=list(TESTS))
@@ -261,7 +279,9 @@ def main() -> int:
         if mutation or hardware_test:
             device.safe_preflight()
         before = device.preference_hashes() if mutation or hardware_test else None
-        if args.action == "evidence-export":
+        if args.action == "errors":
+            result = recent_error_counts(device)
+        elif args.action == "evidence-export":
             result = existing_export(device)
         elif args.action == "probe":
             if args.probe_name is None:
