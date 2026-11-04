@@ -104,7 +104,7 @@ class AudioEngineQualityGateTest(unittest.TestCase):
         self.check_mutation(
             AUDIO + "ParakeetSpeechInputProvider.kt",
             "import android.content.Context",
-            "import android.content.Context\\nimport rikka.shizuku.Shizuku",
+            "import android.content.Context\nimport rikka.shizuku.Shizuku",
             "Telecom-or-privileged-transport-ownership",
         )
 

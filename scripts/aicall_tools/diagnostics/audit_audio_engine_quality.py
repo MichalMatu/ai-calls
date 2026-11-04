@@ -56,7 +56,7 @@ def audit(root: Path) -> list[str]:
     def forbid(file: str, src: str, pattern: str, label: str) -> None:
         # Comments document frozen integration boundaries; they are not executable code.
         # Strip Kotlin // and /* */ comments before detecting risky dependencies.
-        executable = re.sub(r"/\\*.*?\\*/|//[^\\n]*", "", src, flags=re.S)
+        executable = re.sub(r"/\*.*?\*/|//[^\n]*", "", src, flags=re.S)
         if re.search(pattern, executable, re.I):
             errors.append(f"{file}: unsafe {label}")
 
