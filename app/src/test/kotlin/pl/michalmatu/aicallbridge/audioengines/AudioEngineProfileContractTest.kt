@@ -19,10 +19,11 @@ class AudioEngineProfileContractTest {
             assertNotNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = input)))
         }
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)))
+        assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = SpeechOutputId.PIPER_PL)))
         assertNotNull(AudioEngineRegistry.incompatibility(
             AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E4B),
         ))
-        for (output in listOf(SpeechOutputId.PIPER_PL, SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS)) {
+        for (output in listOf(SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS)) {
             assertNotNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = output)))
         }
     }

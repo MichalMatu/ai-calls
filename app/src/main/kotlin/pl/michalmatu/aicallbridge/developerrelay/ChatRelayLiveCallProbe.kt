@@ -51,6 +51,10 @@ import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
+import pl.michalmatu.aicallbridge.audioengines.SpeechOutputId
+import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
+import pl.michalmatu.aicallbridge.audioengines.PiperAndroidTtsOutputProvider
+import pl.michalmatu.aicallbridge.audioengines.AndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
 import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
@@ -187,7 +191,11 @@ internal object ChatRelayLiveCallProbe {
         private val lastQuickAckTurn = AtomicInteger(0)
         private val lastPrivateDecisionTraceTurn = AtomicInteger(0)
         private val finalAudioReadyTurn = AtomicInteger(0)
-        private val quickAckSynthesizer = LocalTtsSpeechOutput(context)
+        private val quickAckSynthesizer = LocalTtsSpeechOutput(
+            context, audioEngineProfile.languageTag, audioEngineProfile.voiceId,
+            enginePackage = if (audioEngineProfile.output == SpeechOutputId.PIPER_PL)
+                PiperServiceContract.PACKAGE else null,
+        )
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "ChatRelayLiveCall").apply { isDaemon = true }
         }
@@ -321,6 +329,16 @@ internal object ChatRelayLiveCallProbe {
                 SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, audioEngineProfile.languageTag)
                 SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
                 SpeechInputId.GEMMA_AUDIO_DIRECT -> error("direct_audio_input_requires_multimodal_adapter")
+            },
+            output = when (audioEngineProfile.output) {
+                SpeechOutputId.ANDROID_TTS_PL -> AndroidTtsOutputProvider(
+                    context, audioEngineProfile.languageTag, audioEngineProfile.voiceId,
+                )
+                SpeechOutputId.PIPER_PL -> PiperAndroidTtsOutputProvider(
+                    context, audioEngineProfile.languageTag, audioEngineProfile.voiceId,
+                )
+                SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS ->
+                    error("unavailable_polish_output_engine")
             },
         )
         private val lines = CallDiagnosticEvidence(listOf(

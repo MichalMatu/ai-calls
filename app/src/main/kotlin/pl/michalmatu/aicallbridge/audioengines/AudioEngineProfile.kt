@@ -44,7 +44,7 @@ internal object AudioEngineRegistry {
         AudioEngineChoice("ANDROID_TTS_PL", "Android TTS", "pl-PL",
             "Lokalny głos systemowy · PCM16 16 kHz", true),
         AudioEngineChoice("PIPER_PL", "Piper PL", "pl-PL",
-            "Brak zatwierdzonego modelu i adaptera Android", false),
+            "Systemowy silnik Piper: wymagane osobne APK i polski głos offline", true),
         AudioEngineChoice("KOKORO", "Kokoro 82M", "brak pl-PL",
             "Obecna paczka nie obsługuje polskiego", false),
         AudioEngineChoice("POCKET_TTS", "PocketTTS 100M", "brak pl-PL",
@@ -56,7 +56,6 @@ internal object AudioEngineRegistry {
         profile.languageTag != "pl-PL" -> "unsupported_language"
         profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> "audio_direct_not_integrated"
         profile.dialogue == DialogueModelId.GEMMA_4_E4B -> "e4b_not_integrated"
-        profile.output == SpeechOutputId.PIPER_PL -> "piper_not_integrated"
         profile.output == SpeechOutputId.KOKORO -> "kokoro_no_polish"
         profile.output == SpeechOutputId.POCKET_TTS -> "pocket_tts_no_polish"
         profile.voiceId != null &&
