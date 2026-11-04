@@ -22,3 +22,11 @@ Po zielonym QA: przy exact S22, IDLE, brak aktywnej kampanii i retry, rola diale
 `aicalls-20261104-live-chat-dock-host-qa-v1` **DONE/0**, exact source `268be1f8f13502c7202822438b501706e0fcb0e1`. `QA_EXIT=0`, 3 × `BUILD SUCCESSFUL` (1m33s / 2m28s / 43s), `Ran 248 tests` / `OK`, `host_quality_gate_green=true`, `ANTI_FRICTION=PASS`. Bez urządzenia, połączeń, prywatnych eksportów. Wcześniejsze `PENDING` jest stanem historycznym.
 
 Zlecono `aicalls-20261104-live-chat-dock-s22-offcall-install-v1`: exact S22, 2 × IDLE, rola dialera, brak aktywnej kampanii i retry, pref fingerprint przed/po; tylko przy spełnieniu warunków bezpieczna instalacja APK + 4 syntetyczne tury Gemmy w AndroidTest, bez połączenia. **Wynik tego zadania jeszcze nieodebrany na czas aktualizacji.**
+
+## Fizyczny S22 — APK i off-call regresja
+
+Receipt `aicalls-20261104-live-chat-dock-s22-offcall-install-v1`: **DONE/0**, exact `SM-S906B / RFCT70L7E8J`, `IDLE_SAMPLE_1/2=true`, `DIALER_ROLE_PRESERVED=true`, `NO_ACTIVE_CAMPAIGN=true`, `NO_RETRY=true`, `PRE_INSTALL_SAFETY=PASS`. Zbudowano źródła z przypiętego SHA `268be1f8f13502c7202822438b501706e0fcb0e1` (`BUILD SUCCESSFUL in 1m 15s`), ponownie sprawdzono stan telefonu i fingerprinty prefów (`FINAL_INSTALL_GATE=PASS`).
+
+Zainstalowano aplikację oraz APK instrumentacyjny (2 × `Success`, `LIVE_CHAT_APK_INSTALLED=true`). Test natywnego Gemma Direct z dynamicznym TaskBrief, cztery kolejne tury syntetyczne off-call: `NATIVE_4_TURN_TEST_SHELL_EXIT=0`, `NATIVE_4_TURN_TEST_PASS=true`. Po wszystkim: `POST_INSTALL_IDLE=true`, `POST_INSTALL_DIALER_ROLE=true`, `POST_INSTALL_APP_PREFS_UNCHANGED=true`, `NO_CALL_CONTROL_NO_GRANT_WRITE_NO_PRIVATE_UPLOAD=true`.
+
+**Status:** panel jest w APK fizycznego S22, QA Mac i off-call Android PASS. Sam interfejs w rzeczywistym połączeniu (dymki/scroll, kompletność STT, Gemma i TX) **nie został jeszcze przetestowany z rozmówcą**. Potrzebny osobny właścicielski test telefonu; agent nie wybiera numeru.
