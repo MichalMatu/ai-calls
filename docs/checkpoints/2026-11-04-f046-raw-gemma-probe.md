@@ -42,3 +42,14 @@ Task aicalls-20261104-f046-gemma-raw-s22-offcall-v1 zweryfikował przed instalac
 Ponowna instrumentacja tego samego testu AndroidGemmaDirectOnDeviceTest#fourSyntheticGemmaDirectTurnsReturnNaturalText przez aicalls-20261104-f046-raw-s22-instrument-diagnosis-v2: DONE/0; exact S22, IDLE, brak aktywnej kampanii lub retry, INSTRUMENT_SHELL_EXIT=0, HAS_OK_1_TEST=true, HAS_INSTRUMENT_FAILURE=false. Test kodu obejmuje cztery kolejne syntetyczne kwestie i wymaga niepustej odpowiedzi bez zastrzeżonych tokenów każdej tury. **4-turn synthetic AndroidTest PASS**; fizyczny RAW live-call nadal OPEN.
 
 Niezależny końcowy read-only odczyt urządzenia i wydajności aicalls-20261104-f046-raw-s22-final-readonly-v1 — wynik należy zweryfikować oddzielnie, nie dopisywać nieotrzymanego PASS.
+
+## Końcowa kontrola fizycznego urządzenia i rzeczywistych 4 tur GPU
+
+Local Agent aicalls-20261104-f046-raw-s22-final-readonly-v1: DONE/0. Po re-run AndroidTest na dokładnym S22:
+- POST_TEST_IDLE=true, POST_TEST_DIALER_ROLE=true, POST_TEST_CAMPAIGN_ACTIVE=false, POST_TEST_RETRY_PENDING=false; nie było połączeń i zmian grantu.
+- Osiem ukończonych generacji w dwóch kolejnych uruchomieniach instrumentacji, wszystkie GPU, status=complete.
+- Run 1: 4 tury, model generate_ms = 6202, 1722, 2181, 2276; rozmowa reused od tury 2; output_chars = 143, 86, 112, 136.
+- Run 2: 4 tury, model generate_ms = 5300, 1674, 2027, 2193; rozmowa reused od tury 2; output_chars = 143, 86, 112, 136.
+- FOUR_CONSECUTIVE_NATIVE_MODEL_TURNS=true; w raporcie nie publikowano treści syntetycznych, dźwięku ani tożsamości.
+
+**Wniosek:** brak wymuszonego JSON/parsowania rzeczywiście usuwa obserwowaną blokadę syntetycznych kolejnych tur na S22. Nie dowodzi jeszcze poprawnego STT/TTS/TX w prawdziwym połączeniu RAW. Utrzymać F-046 OPEN do nadzorowanego realnego testu (właściciel uruchamia przyciskiem; brak zdalnego dial) i F-045 OPEN dla semantycznego hardening.
