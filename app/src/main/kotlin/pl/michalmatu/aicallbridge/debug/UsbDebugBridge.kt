@@ -144,7 +144,7 @@ internal object UsbDebugBridge {
         AudioEngineProfile(input = input, dialogue = model, output = output, voiceId = voice)
     }.getOrNull()
 
-    private fun snapshot(activity: Activity): JSONObject {
+    fun snapshot(activity: Activity): JSONObject {
         val profile = AudioEngineProfileStore(activity).load()
         val grant = CampaignAuthorizationStore(activity).load()
         val evidenceDir = File(activity.filesDir, "call-session-evidence")
