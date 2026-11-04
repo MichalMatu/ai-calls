@@ -26,6 +26,13 @@ autoryzacja ≠ walidacja propozycji ≠ permit ≠ zużycie permitu
            ≠ zewnętrzny sukces ≠ ukończenie zadania
 ```
 
+## Warianty silnika dialogowego (Gemma Direct, 2026-11-04)
+
+- **Script + Gemma (domyślny):** istniejący `ClirDeterministicDialogueBackend` → `GateCHybridDialogueBackendFactory`, deterministyczne akcje i odpowiedzi. Obecna ścieżka zachowana.
+- **Gemma Direct (jawny wybór):** `GemmaDirectDialogueBackend` pomija skrypty i generuje naturalną, krótką wypowiedź na podstawie stałego kontekstu autoryzowanego zadania. Działa na osobnym modelowym `Conversation` (prewarm resetuje fikcyjną turę), nie udostępnia surowych danych IdentityVault w prompt. Ustrukturyzowane propozycje `SPEAK / ASK_CLARIFY / DISCLOSE_PHONE / CONFIRM_EFFECT` przechodzą przez kontrolę tekstu, politykę faktów, istniejący commitment i ten sam release do TTS/TX.
+- Tryb jest własnością aplikacji, zapisany per-grant dla autoryzowanej kontynuacji i nie poszerza uprawnień. Brak/nieznany tryb nie uruchamia niekontrolowanego modelu, a stary START nadal wybiera script.
+- `PROVEN_S22_OFFCALL`: 2 natywne tury Gemma Direct na GPU, druga z ponownym użyciem `Conversation` (generacja 6525 → 1598 ms); test bez połączenia, STT i TTS. Rzeczywista słyszalność i rezultat CLIR są nadal OPEN. [Dowody sprintu](checkpoints/2026-11-04-gemma-direct-independent-engine.md).
+
 ## Pamięć dialogu i przyspieszenie
 
 - `CampaignGemmaPreflight` rozgrzewa silnik Gemmy przed wybieraniem numeru. Syntetyczny kontekst jest czyszczony przed prawdziwym dialogiem, ale wagi/Engine pozostają gotowe.
