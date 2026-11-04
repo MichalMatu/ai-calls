@@ -228,8 +228,11 @@ class MainActivity : Activity() {
             addView(diagnosticSection)
         }
 
-        setContentView(
-            ScrollView(this).apply {
+        // Pinned chat dock: visible without scrolling the settings above it.
+        // Live text is only held in process memory, not in saved view state.
+        setContentView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(ScrollView(this@MainActivity).apply {
                 addView(
                     content,
                     ViewGroup.LayoutParams(
@@ -237,8 +240,11 @@ class MainActivity : Activity() {
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                     ),
                 )
-            },
-        )
+            }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
+            ))
+            addView(LiveCallChatPanel(this@MainActivity))
+        })
 
         developerProbes.attach()
 
