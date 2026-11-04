@@ -16,3 +16,9 @@ Na prośbę właściciela dodano dokowany **czat STT / Gemma / TTS-TX** na dole 
 Kod funkcji w komicie `268be1f8f13502c7202822438b501706e0fcb0e1`. Zlecone pełne Mac Local Agent QA `aicalls-20261104-live-chat-dock-host-qa-v1` na przypiętym SHA. **Na czas checkpointu wynik PENDING / QA niepotwierdzone**, nie należy mówić, że APK jest na S22, dopóki fizyczny test odbiorczy nie zostanie potwierdzony.
 
 Po zielonym QA: przy exact S22, IDLE, brak aktywnej kampanii i retry, rola dialera nadal przyznana, zrobić bezpieczną aktualizację APK, po czym sprawdzić, czy 3 panele pokazują placeholder i status bez uruchamiania połączenia. Pełna walidacja tekstu po obu stronach wymaga dopiero kolejnej **właścicielskiej** autoryzowanej rozmowy. Zmiana nie poszerza zakresu grantu i nie uruchamia żadnego połączenia.
+
+## Mac QA — terminalny odbiór
+
+`aicalls-20261104-live-chat-dock-host-qa-v1` **DONE/0**, exact source `268be1f8f13502c7202822438b501706e0fcb0e1`. `QA_EXIT=0`, 3 × `BUILD SUCCESSFUL` (1m33s / 2m28s / 43s), `Ran 248 tests` / `OK`, `host_quality_gate_green=true`, `ANTI_FRICTION=PASS`. Bez urządzenia, połączeń, prywatnych eksportów. Wcześniejsze `PENDING` jest stanem historycznym.
+
+Zlecono `aicalls-20261104-live-chat-dock-s22-offcall-install-v1`: exact S22, 2 × IDLE, rola dialera, brak aktywnej kampanii i retry, pref fingerprint przed/po; tylko przy spełnieniu warunków bezpieczna instalacja APK + 4 syntetyczne tury Gemmy w AndroidTest, bez połączenia. **Wynik tego zadania jeszcze nieodebrany na czas aktualizacji.**
