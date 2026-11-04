@@ -26,3 +26,9 @@ Google dokumentuje funkcje/tool-calling w Gemma 4, ale **model sam nie wykonuje 
 - Mac Local Agent task: `aicalls-20261104-f044-brief-skills-f047-host-qa-v1`, `scripts/verify_host.sh` + friction audit. **Wynik PENDING na czas tworzenia checkpointu; nie deklarować PASS.**
 - **APK z nowym TaskBrief nie został instalowany na fizycznym S22 i nie wykonano nowego połączenia.** Następny krok po GREEN: fizyczny synthetic/off-call 4 tury z nowym promptem, dokładny telefon, IDLE, brak aktywnej kampanii i retry, kontrola grantu/role; dopiero osobne właścicielskie live testy w ramach istniejącej autoryzacji.
 - Dodatkowy semantyczny validator wolnej mowy F-045 nadal pozostaje na sam koniec według decyzji właściciela; istniejące granice grant/STOP/output release pozostają aktywne.
+
+## Kontrola 05:48 — Mac QA i ścieżka S22
+
+- **Mac host QA PASS** dla dokładnego kodu `28c1456e753baab0be6997384c2110a3c87cd940`: `aicalls-20261104-f044-brief-skills-f047-host-qa-v1` `DONE/0`, `HOST_FULL_QA_EXIT=0`, 3 × Gradle `BUILD SUCCESSFUL`, 248 Python testów OK, `host_quality_gate_green=true` i `ANTI_FRICTION=PASS`. Wcześniejszy opis `PENDING` jest historyczny.
+- Fizyczny S22 preflight pierwszej próby `aicalls-20261104-f044-dynamic-brief-s22-offcall-4turn-v1` potwierdził: exact model/serial, 2 × IDLE, rolę dialera, brak kampanii i retry oraz fingerprinty prefów. Zadanie zatrzymało się **przed instalacją**: płytki klon Git nie miał starszego tree przypiętego SHA (`unable to read tree`); **nie jest to błąd produktu**.
+- Ponowienie `aicalls-20261104-f044-dynamic-brief-s22-offcall-4turn-v2` fetchuje jawnie przypięty SHA, dopiero potem sprawdza jeszcze raz bezpieczeństwo/rolę/grant, instaluje APK i uruchamia 4-turn synthetic AndroidTest. Wynik tej próby **PENDING** do terminalnego receipt. Nie uruchomiono połączenia.
