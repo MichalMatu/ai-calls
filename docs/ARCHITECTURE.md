@@ -38,7 +38,7 @@ autoryzacja ≠ walidacja propozycji ≠ permit ≠ zużycie permitu
 
 - `CampaignGemmaPreflight` rozgrzewa silnik Gemmy przed wybieraniem numeru. Syntetyczny kontekst jest czyszczony przed prawdziwym dialogiem, ale wagi/Engine pozostają gotowe.
 - F-043 utrzymuje jeden zdrowy natywny LiteRT-LM `Conversation` dla kolejnych wypowiedzi w tym samym połączeniu. Zakończona tura nie uruchamia `cancelProcess()`. Aktywne anulowanie, STOP i błędy odrzucają niebezpieczną sesję; backend po zakończeniu rozmowy zamyka zasoby. Warianty bez pamięci natywnej mogą nadal korzystać z aplikacyjnego kontekstu tur.
-- F-042 przygotowuje neutralną zapowiedź w osobnym lokalnym TTS; po wykryciu końca mowy może ją wysłać wyłącznie w aplikacyjnie autoryzowanej kampanii. Zapowiedź i odpowiedź główna korzystają z jednego serializowanego TX; inferencja Gemmy biegnie niezależnie. **To nie gwarantuje właściwego momentu mówienia względem IVR**: fizyczny test wykazał wczesne zakończenie 3-wyrazowego powitania po 1500 ms ciszy, uruchomienie ACK 304 ms po oknie RX i późniejsze Gemma TX. F-049 wymaga poprawy przejmowania tury na poziomie dialogu, bez dodawania globalnej sztucznej pauzy.
+- F-042 przygotowuje neutralną zapowiedź w osobnym lokalnym TTS; po wykryciu końca mowy może ją wysłać wyłącznie w aplikacyjnie autoryzowanej kampanii. Zapowiedź i odpowiedź główna korzystają z jednego serializowanego TX; inferencja Gemmy biegnie niezależnie. **Korekta właściciela (2026-11-04):** dawny F-049 dotyczył dwuczęściowego powitania infolinii, a nie usterki AI Calls; został wycofany. Nie modyfikować z tego powodu VAD, schedulerów ACK/TX ani czasu reakcji.
 - `LocalTtsSpeechOutput` obecnie tworzy instancję silnika TTS przy wywołaniu `synthesize`; ewentualny pooling/reuse wymaga pomiaru wpływu na czas, testów zamykania i braku regresji STOP.
 
 ## Kontrolowane fakty i obserwowalność (stan wdrożenia)
@@ -46,6 +46,12 @@ autoryzacja ≠ walidacja propozycji ≠ permit ≠ zużycie permitu
 - **`FactRequest` / `IdentityVault` (F-048, OPEN):** docelowy model: identyfikator żądanego pola → `FactDisclosurePolicy` z dokładnym grantem, odbiorcą i celem → tylko dozwolona wartość → autoryzowany release wypowiedzi. Obecny Gemma RAW zna cel, ale nie ma wykonawczego adaptera do danych abonenta. Sam prompt ani prompt-skill nie jest źródłem zgody i nie zawiera plaintext danych.
 - **Prywatny dock czatu:** `ChatRelayLiveCallProbe` publikuje wyłącznie w pamięci procesu `LiveCallChatFeed` (z tokenem sesji) → `LiveCallChatPanel` pod `MainActivity`, `CampaignToolActivity` i `AndroidCallControlsActivity`; pokazuje finalne STT rozmówcy, zatwierdzone odpowiedzi Gemmy i stan lokalnego zapisu TX. `Wyczyść widok` nie ingeruje w Call, grant ani prywatny osobny zapis evidence. Dane nie trafiają na GitHub/logcat.
 - **Archiwum diagnostyczne:** zatwierdzony zapis na S22 i prywatny eksport USB/ADB tylko do Mac `private-exports`; pełne WAV i transkrypcje nie są przedmiotem publicznych commitów lub wyników zadań.
+
+## Moduł wyboru silników audio — plan nowego sprintu
+
+Konfiguracja `SpeechInputProvider / DialogEngineProvider / SpeechOutputProvider` ma działać **przed** istniejącą zatwierdzoną granicą TX. Aplikacyjny `AudioEngineProfile` wybiera gotowy provider dla języka, uprawnień, stanu modelu i zasobów urządzenia **przed rozgrzaniem modelu i połączeniem**. STT to obecny Android `SpeechRecognizer` lub przyszły Parakeet; eksperymentalny `Gemma Audio Direct` dostaje segment audio do multimodalnego modelu i produkuje tekst, **nie** PCM na TX. TTS to Android pl-PL albo przyszły Piper PL; Kokoro/PocketTTS nie są wybieralne dla `pl-PL` w obecnych wariantach. Wszystkie ścieżki zachowują `FactDisclosurePolicy`, STOP, autoryzację, wysyłkę przez `AuthorizedPcmUplinkWriter` i prywatny dock. **Kod nowych providerów jeszcze nie powstał.**
+
+[Szczegółowy handoff implementacyjny](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md) i [plan modeli](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md).
 
 ## Zamrożona granica mediów
 
