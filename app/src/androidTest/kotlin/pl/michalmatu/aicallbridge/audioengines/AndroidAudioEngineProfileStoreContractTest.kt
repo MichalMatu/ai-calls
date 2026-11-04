@@ -57,10 +57,17 @@ class AndroidAudioEngineProfileStoreContractTest {
         }
     }
 
-    @Test fun persistedUnavailableEngineFailsClosed() {
+    @Test fun integratedParakeetPreferencePersistsButDoesNotClaimInstalledModel() {
+        val requested = AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)
+        assertTrue(store.save(requested))
+        assertEquals(requested, AudioEngineProfileStore(ctx, name).load())
+        // Persistence is a technical selection, not proof that 615MB of model data exists.
+    }
+
+    @Test fun persistedUnqualifiedAudioDirectFailsClosed() {
         val prefs = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
         assertTrue(store.save(AudioEngineProfile.STABLE))
-        prefs.edit().putString("input", "PARAKEET_PL").commit()
+        prefs.edit().putString("input", "GEMMA_AUDIO_DIRECT").commit()
         assertNull(store.load())
     }
 }
