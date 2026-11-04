@@ -24,7 +24,9 @@ class AppOwnedCampaignService : Service() {
     private lateinit var statusStore: CampaignRuntimeStatusStore
     private lateinit var continuationStore: CampaignContinuationStore
     private lateinit var dialogueModeStore: CampaignDialogueModeStore
+    private lateinit var promptSkillStore: GemmaDirectPromptSkillStore
     private var activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
+    private var activeDirectSystemInstruction: String? = null
     private val continuationHandler = Handler(Looper.getMainLooper())
     private var scheduledAttempt: Runnable? = null
     private var campaignRequested = false
@@ -42,6 +44,7 @@ class AppOwnedCampaignService : Service() {
         statusStore = CampaignRuntimeStatusStore(this)
         continuationStore = CampaignContinuationStore(this)
         dialogueModeStore = CampaignDialogueModeStore(this)
+        promptSkillStore = GemmaDirectPromptSkillStore(this)
         notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(
             NotificationChannel(
@@ -199,8 +202,15 @@ class AppOwnedCampaignService : Service() {
         awaitingPhoneIdle = false
         if (preparingLocalModel) return
 
+        val selectedBrief = if (activeDialogueMode == CampaignDialogueMode.GEMMA_DIRECT) {
+            buildDirectBrief(state) ?: run {
+                finish("Gemma Direct task brief unavailable or not authorized")
+                return
+            }
+        } else null
+        activeDirectSystemInstruction = selectedBrief
         // The first local LiteRT/Gemma generation can take tens of seconds on S22.
-        // Warm the exact classifier before placing an external call, not while
+        // Warm the exact authorized model context before placing an external call, not while
         // the remote IVR is waiting for the first spoken response.
         preparingLocalModel = true
         statusStore.save("Preparing local Gemma before authorized Telecom dial")
@@ -224,6 +234,12 @@ class AppOwnedCampaignService : Service() {
                     finish("Campaign scope changed while preparing local model")
                     return@post
                 }
+                if (activeDialogueMode == CampaignDialogueMode.GEMMA_DIRECT &&
+                    buildDirectBrief(latest) != selectedBrief
+                ) {
+                    finish("Gemma Direct task or prompt skills changed before dial")
+                    return@post
+                }
                 if (AppOwnedClirCampaignExecutor.isRunning() || isPhoneBusy()) {
                     awaitPhoneIdle()
                     return@post
@@ -233,8 +249,22 @@ class AppOwnedCampaignService : Service() {
         }
         when (activeDialogueMode) {
             CampaignDialogueMode.SCRIPT_GEMMA -> CampaignGemmaPreflight.prepare(this, onModelPrepared)
-            CampaignDialogueMode.GEMMA_DIRECT -> CampaignGemmaDirectPreflight.prepare(this, onModelPrepared)
+            CampaignDialogueMode.GEMMA_DIRECT -> CampaignGemmaDirectPreflight.prepare(
+                this, systemInstruction = checkNotNull(selectedBrief), onReady = onModelPrepared,
+            )
         }
+    }
+
+    private fun buildDirectBrief(state: CampaignContinuationState): String? {
+        val grant = authorizationStore.load() ?: return null
+        if (grant.grantId != state.grantId) return null
+        return runCatching {
+            GemmaDirectTaskBriefBuilder.build(
+                request = ClirCampaignSpec.enableRequest(state.accountScope),
+                grant = grant,
+                skills = promptSkillStore.selected(grant.grantId),
+            )
+        }.getOrNull()
     }
 
     private fun isPhoneBusy(): Boolean {
@@ -256,6 +286,7 @@ class AppOwnedCampaignService : Service() {
             authorizationStore = authorizationStore,
             accountScope = state.accountScope,
             dialogueMode = activeDialogueMode,
+            directSystemInstruction = activeDirectSystemInstruction,
             onAttemptFinished = { success, reason ->
                 continuationHandler.post {
                     if (campaignRequested && continuationGeneration == generation) {
@@ -422,6 +453,7 @@ class AppOwnedCampaignService : Service() {
         continuationStore.clear()
         dialogueModeStore.clear()
         activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
+        activeDirectSystemInstruction = null
         statusStore.save(status)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
