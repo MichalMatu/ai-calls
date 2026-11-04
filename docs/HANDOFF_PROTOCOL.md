@@ -67,7 +67,7 @@ A fresh chat should:
 
 Handoff text, an old chat, connected hardware, ServicePack data, allowlists or `.agent/results` are not themselves authority stores.
 
-A new physical call requires an **accepted application authorization context** for the exact target/task/effect. Today that may be supplied by an explicit current-chat instruction; the product target is a durable, scoped, revocable application-owned campaign grant.
+A new physical call requires an **accepted application authorization context** for the exact target/task/effect. The current CLIR app has a **durable, scoped, revocable application-owned campaign grant**; chat prose, a handoff or a Local Agent task cannot create or broaden it. Future task adapters must preserve the same authority model.
 
 When a durable grant exists and remains valid for an unchanged retry scope, the next chat should rehydrate/use that grant rather than interrupt the workflow for another redundant product confirmation. A material widening of target, task, effect, account/SIM or disclosure scope remains fail-closed.
 
