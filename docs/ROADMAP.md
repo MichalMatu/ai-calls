@@ -9,7 +9,7 @@ Obowiązujące dowody: [audio + Orange](checkpoints/2026-11-05-audio-quality-ora
 | M2 — Parakeet TDT 0.6B v3 PL | **3 próbki syntetyczne: 0 błędów słów/znaków; Orange: 1 pełna tura** | Naturalny korpus, final segments, pierwsze EOS→TX 35,0 s, wspólne zasoby |
 | M3 — Piper PL | **APK 1.1 + Gosia zainstalowane; native TTS FAIL** | F-057: poprawna walidacja nazw głosów w zewnętrznym silniku |
 | M4 — Gemma Audio Direct | **F-056 naprawiony; 3 próbki PL: 0 błędów słów/znaków; profil disabled** | Pełny backend rozmowy audio, współpraca modeli, RAM i STOP |
-| Alternatywny LLM | **E2B zintegrowany; E4B niezintegrowany** | Rzeczywisty provider i pomiary przed dopuszczeniem wyboru |
+| Alternatywny LLM | **E2B zintegrowany; E4B + Qwen3 1.7B/0.6B pobrane i SHA zweryfikowane w cache Maca** | Provider i pomiary S22; sprawdzić wymaganą wersję runtime, brak inferencji nowych modeli |
 | Live effects/CLIR | **Nieudowodnione zewnętrzne wykonanie** | Dokładny grant, własny Call, ścisłe ujawnienia, niezależny dowód efektu |
 
 ## Następna kolejność

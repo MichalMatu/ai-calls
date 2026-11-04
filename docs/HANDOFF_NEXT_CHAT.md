@@ -1,5 +1,7 @@
 # AI Calls — aktualny handoff 2026-11-05, audio i dwie rozmowy Orange
 
+**Modele do kolejnych testów pobrane:** [cache E4B + Qwen3 1.7B/0.6B](checkpoints/2026-11-05-model-candidate-cache.md), wszystkie rozmiary/SHA-256 zweryfikowane. Pliki i manifest w `~/Documents/AI-Calls/model-candidates/`. Nie były jeszcze uruchamiane ani kopiowane na S22. E2B nie pobierano ponownie. Qwen3 1.7B wymaga runtime 0.18.0+, aplikacja pozostaje na 0.17.1; wybrana starsza paczka Qwen3 0.6B jest opisana jako zgodna z 0.17.1. Sam cache nie dodaje providera ani działającej pozycji w menu.
+
 **Najświeższy dowód:** [polskie audio + Orange](checkpoints/2026-11-05-audio-quality-orange-acceptance.md). Kod i zainstalowane APK: `da09ea23618ccfb29704f0f52088b1472a28b30c`. Dokumentacja może mieć późniejszy HEAD. Parakeet i Gemma Audio: po 3 próbki syntetyczne, 0/16 błędów słów i 0/127 błędów znaków. F-056 naprawiony: instrukcja przed AudioBytes. M4 nadal nie jest pełnym backendem rozmowy audio.
 
 **Orange live:** Parakeet → Gemma E2B → Android TTS: około 77 s, 1 pełna tura. Android STT → Gemma E2B → Android TTS: około 165 s, 5 pełnych tur i `DISCLOSE_AUTHORIZED_FACT`. Pierwsze EOS→TX: 35 046 / 22 447 ms. Końcowy `RX_INTERRUPTED` w drugiej rozmowie. F-042/F-047 nadal OPEN; brak dowodu wykonania CLIR i nowej niezależnej weryfikacji sieci. F-048 RAW nie jest zamknięty przez fakt działający w SCRIPT.
