@@ -92,6 +92,7 @@ fi
   :app:assembleDebugAndroidTest \
   --no-daemon
 PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'
+python3 scripts/aicall_tools/diagnostics/audit_audio_engine_quality.py
 
 # A key prefix must begin at a token boundary; e.g. "task-approved"
 # contains "sk-" inside a word and must not trip the secret scanner.
