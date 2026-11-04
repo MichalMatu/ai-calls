@@ -38,6 +38,7 @@ internal object AppOwnedClirCampaignExecutor {
         context: Context,
         authorizationStore: CampaignAuthorizationStore,
         accountScope: String,
+        dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
         onAttemptFinished: (Boolean, String?) -> Unit = { _, _ -> },
         onStatus: (String) -> Unit,
     ) {
@@ -182,6 +183,7 @@ internal object AppOwnedClirCampaignExecutor {
                 ownedCall = ownedCall,
                 request = request,
                 authorizationStore = authorizationStore,
+                dialogueMode = dialogueMode,
                 onAttemptFinished = onAttemptFinished,
                 onStatus = onStatus,
             )
@@ -202,6 +204,7 @@ internal object AppOwnedClirCampaignExecutor {
         ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
+        dialogueMode: CampaignDialogueMode,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -233,7 +236,10 @@ internal object AppOwnedClirCampaignExecutor {
             }
             if (exactActive && audioManager.mode == AudioManager.MODE_IN_CALL) {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
-                startLocalRuntime(appContext, telecomManager, grant, ownedCall, request, authorizationStore, onAttemptFinished, onStatus)
+                startLocalRuntime(
+                    appContext, telecomManager, grant, ownedCall, request,
+                    authorizationStore, dialogueMode, onAttemptFinished, onStatus,
+                )
                 return
             }
             if (System.currentTimeMillis() >= deadlineEpochMs) {
@@ -267,6 +273,7 @@ internal object AppOwnedClirCampaignExecutor {
         ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
+        dialogueMode: CampaignDialogueMode,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -283,6 +290,7 @@ internal object AppOwnedClirCampaignExecutor {
                 maxTurns = ChatRelayLiveCallProbe.TASK_SCOPED_TURNS,
                 phoneDisclosureAuthorized = phoneDisclosureAuthorized,
                 supervisorRelayEnabled = false,
+                dialogueMode = dialogueMode,
                 callStillActive = {
                     runCatching { ownedCall.isExactCallActive() }.getOrDefault(false)
                 },
