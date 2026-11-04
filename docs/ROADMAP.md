@@ -1,8 +1,10 @@
 # AI Calls — roadmap (stan 2026-11-04)
 
-**Źródło statusów:** [BLOCKERS.md](../BLOCKERS.md). Dotychczasowe wyniki i pomiary są udokumentowane w [F-042](checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md) i [F-043](checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md). Poniższa kolejność jest planem, nie potwierdzeniem wykonania.
+**Źródło statusów:** [BLOCKERS.md](../BLOCKERS.md). Dotychczasowe wyniki i pomiary są udokumentowane w [F-042 pacing 04.11](checkpoints/2026-11-04-f042-ack-pacing-measurement-sprint.md), [F-042 bazowym](checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md) i [F-043](checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md). Poniższa kolejność jest planem, nie potwierdzeniem wykonania.
 
 ## 1. F-042 — rzeczywisty dialog i opóźnienie (następny punkt)
+
+**Stan 2026-11-04:** korekta czasu TX zapowiedzi, RED/GREEN/pełne QA Mac i bezpieczna instalacja S22 PASS; pomiar słyszalności oraz EOS→pierwszy dźwięk w rzeczywistym połączeniu nadal OPEN.
 
 - Warunek wejścia: sprawdzić dokładny S22+, `IDLE`, bieżącą rolę dialera, grant oraz brak aktywnego połączenia/kampanii; działać wyłącznie w granicach konkretnej autoryzacji. Nie obchodzić wcześniejszej odmowy narzędzia wykonania połączenia.
 - Zmierzyć w rzeczywistej rozmowie: wykrycie EOS, STT, pierwsze TX neutralnej zapowiedzi, decyzję Gemmy, TTS i pełny TX; rozdzielić opóźnienie modelu, reguł i syntezy. Potwierdzić słyszalność u odbiorcy oraz brak nakładania się głosów.
