@@ -1,4 +1,6 @@
-# AI Calls — checkpoint przed sprintem faktów i synchronizacji tur (2026-11-04)
+# AI Calls — historyczny checkpoint wieloturowego RAW i brakujących faktów (2026-11-04)
+
+**KOREKTA WŁAŚCICIELA 2026-11-04 — NADRZĘDNA WOBEC DALSZYCH HISTORYCZNYCH HIPOTEZ:** dwuczęściowe powitanie jest zachowaniem biura obsługi, a **nie** błędem AI Calls. Wpis **F-049 wycofany**, nie planować zmian detekcji końca tury, VAD ani ACK/TX w związku z tym zjawiskiem. Poniższa chronologia RX/TX i dawne przypuszczenia są dowodami/historycznymi interpretacjami, a **nie zadaniami nowego sprintu**. Priorytet właściciela przesunięto na implementację [modularnego wyboru silników audio](2026-11-04-edge-gallery-audio-implementation-handoff.md).
 
 ## Co zamrażamy
 
@@ -28,7 +30,7 @@ Mac Local Agent `aicalls-20261104-transcript-first-turn-overlap-private-audit-v1
 
 **Sesja 06:30, tura 1:** RX 3,080 s, STT 3 słowa powitania, ACK rozpoczyna się +5,674 s, Gemma PCM +10,748 s. Schemat wstępnego przerwania powitania powtarza się.
 
-**Wniosek F-049 (niedomknięty):** użytkownik podczas rzeczywistej rozmowy usłyszał, że pierwsza odpowiedź Gemmy weszła przed końcem wypowiedzi infolinii, która musiała ponowić informację. Pomiary potwierdzają **bardzo wczesny endpoint po samym powitaniu** i osobną zapowiedź jeszcze przed wygenerowaną odpowiedzią. WAV RX obejmuje *tylko okna nasłuchu*, więc nie pozwala bezpośrednio dowieść akustycznego nakładania po stronie operatora po oknie RX; obserwację właściciela odnotować jako sygnał empiryczny, nie mylić z pełnym dowodem duplex. Nie leczyć tego arbitralnym globalnym opóźnieniem. Następny sprint: rozsądny model zakończenia wypowiedzi / wykrycie niekompletnego powitania IVR, test przyspieszenia i wstrzymania ACK/TX przy kontynuowanym głosie, bez regresji responsywności, bez nowej sztucznej bramki ani zmian Samsung media bez uzasadnienia.
+**Historyczny wniosek F-049 — WYCOFANY przez właściciela:** początkowo zinterpretowano 3-wyrazowy fragment powitania i późniejszą powtórkę jako problem końca tury. Właściciel sprostował, że biuro obsługi używa dwuczęściowego powitania i jest to **prawidłowe zachowanie AI Calls**. Pomiary RX/ACK/TX pozostają zachowane powyżej, ale **nie dowodzą defektu**; nie rozpoczynać poprawek, testów nowych bramek ani zmiany parametrów VAD z powodu F-049.
 
 ## Problem F-048: brak dozwolonych faktów
 
@@ -42,7 +44,7 @@ Następny etap architektoniczny: typed `FactRequest` i deklaratywny katalog iden
 - **F-044:** dynamiczny CLIR TaskBrief + cztery prompt-skills **VERIFIED dla CLIR** na Macu, S22 off-call i realnym wieloturowym dialogu. Rozszerzenie na inne typy zadań otwarte.
 - **F-047:** `RX_INTERRUPTED` działa (wystąpiło w sesji 06:30); przechwycenie transkryptu po rozłączeniu nadal OPEN. Nie dopuszczać nowego TX po END.
 - **F-048:** bezpieczne dostarczanie dozwolonych faktów z IdentityVault — OPEN, kolejny sprint.
-- **F-049:** niedojrzałe turn-taking/powitanie IVR, wczesna zapowiedź — OPEN, konieczny test pomiarowy.
+- **F-049:** WYCOFANE przez właściciela jako błędna kwalifikacja dwuczęściowego powitania biura; brak dalszych prac.
 - **F-045:** niezależna semantyczna walidacja naturalnych wypowiedzi RAW — OPEN.
 
 Żadnego nowego telefonu, instalacji, mutacji grantu, czyszczenia prywatnych danych ani zmiany aplikacji w sprincie dokumentacyjnego zamknięcia. Również historii checkpointów i dawnego `agent-control` nie usuwać: są audytowalnymi dowodami, a nie „szumem” aktualnego handoffu.
@@ -52,4 +54,4 @@ Następny etap architektoniczny: typed `FactRequest` i deklaratywny katalog iden
 - Aktywne dokumenty zaktualizowano do tego samego stanu: `README.md`, `docs/ROADMAP.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY_PRIVACY.md`, `docs/AUTONOMOUS_OPERATION_MODE.md`, `docs/HANDOFF_PROTOCOL.md` oraz kanoniczny `BLOCKERS.md`. Stare akapity o braku kontrolera, pierwszym niesprawdzonym Gemma Direct oraz `USB=NO_DATA` oznaczono jako historyczne lub zastąpiono stanem potwierdzonym. Stare checkpointy, dowody i polityki zachowano, **nie kasowano**.
 - Na zdalnym GitHub potwierdzono **tylko `main` i `agent-control`**; nie ma zbędnych gałęzi do usuwania. Skan znanych lokalizacji Mac w `aicalls-20261104-checkpoint-doc-audit-clean-state-v1` nie znalazł lokalnego checkoutu AI Calls, więc **nie twierdzić, że jego status jest czysty**; żadnych nieznanych plików ani prywatnych archiwów nie usuwać.
 - Lokalna bramka dokumentacyjna Mac `aicalls-20261104-checkpoint-doc-audit-clean-state-v1` **DONE/0**: 10 aktywnych dokumentów i checkpoint, **0 brakujących linków**, po jednym wpisie F-044/F-045/F-046/F-047/F-048/F-049, spójny handoff i `ANTI_FRICTION=PASS`. Źródło sprawdzenia `f29918296c1f7e01e291ba192c5e2d0745457e6d`; późniejsze drobne edycje normatywnego opisu grantu i historycznego nagłówka BLOCKERS nadal są **wyłącznie dokumentacyjne**, nie zmieniają kodu/aplikacji. Po finalnym commicie należy porównać HEAD i opcjonalnie powtórzyć samą lekką kontrolę linków, a nie stare Gradle/S22 testy.
-- To zakończenie **organizacyjne**, nie zamknięcie F-048/F-049/F-047/F-045. Nie aktualizować APK, nie rozpoczynać połączenia ani nie zmieniać grantu tylko w celu zamknięcia dokumentacji.
+- To zakończenie **organizacyjne**, nie zamknięcie F-048/F-047/F-045. F-049 zostało następnie wycofane przez właściciela jako nie-defekt. Nie aktualizować APK, nie rozpoczynać połączenia ani nie zmieniać grantu tylko w celu zamknięcia dokumentacji.
