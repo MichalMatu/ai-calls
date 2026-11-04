@@ -38,6 +38,26 @@ class AudioEngineProfileContractTest {
         ))
     }
 
+
+    @Test fun fullEngineCombinationMatrixNeverSilentlyDowngrades() {
+        for (input in SpeechInputId.entries) {
+            for (dialogue in DialogueModelId.entries) {
+                for (output in SpeechOutputId.entries) {
+                    val profile = AudioEngineProfile(input = input, dialogue = dialogue, output = output)
+                    val shouldBeIntegrated = input != SpeechInputId.GEMMA_AUDIO_DIRECT &&
+                        dialogue == DialogueModelId.GEMMA_4_E2B &&
+                        output != SpeechOutputId.KOKORO &&
+                        output != SpeechOutputId.POCKET_TTS
+                    assertEquals(
+                        "Wrong static integration for $input/$dialogue/$output",
+                        shouldBeIntegrated,
+                        AudioEngineRegistry.incompatibility(profile) == null,
+                    )
+                }
+            }
+        }
+    }
+
     @Test fun selectedOfflineVoiceIsASeparatePreferenceNotACapability() {
         val selected = AudioEngineProfile(voiceId = "pl-pl-x-local")
         assertNull(AudioEngineRegistry.incompatibility(selected))
