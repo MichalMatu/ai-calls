@@ -8,6 +8,7 @@ import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
 import pl.michalmatu.aicallbridge.textagent.DialogueActionCatalog
 import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
+import pl.michalmatu.aicallbridge.textagent.NativeConversationContextBackend
 
 /**
  * Prepares the SAME local Gemma action-classifier engine before Telecom places a
@@ -88,7 +89,7 @@ internal object CampaignGemmaPreflight {
                         // message of the real consultant's persistent conversation.
                         // Keep the initialized Engine, discard this fake turn.
                         val clean = text.isNotBlank() && runCatching {
-                            candidate.resetConversationContext()
+                            (candidate as NativeConversationContextBackend).resetConversationContext()
                         }.isSuccess
                         complete(token, candidate, clean, SystemClock.elapsedRealtime() - startedAt)
                     }

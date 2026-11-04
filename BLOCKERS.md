@@ -46,6 +46,12 @@ Następna poprawka `F-035`: po jednorazowym `SpeechRecognizer.ERROR_NO_MATCH=7` 
 
 **Zmiana:** podgląd jest fail-closed bez zgody na odczyt stanu telefonu i przy błędzie platformy, ale samo zapisanie profilu i istniejący tor rozmowy nie wymagają nowego pozwolenia. **Test:** ponowny exact HEAD `scripts/verify_host.sh` + skaner anti-friction oraz bezpołączeniowy S22 po host PASS; nie zmieniać grantu ani roli. **Status: FIXED_IN_SOURCE / QA_PENDING** (bez nowego receipt nie deklarować VERIFIED).
 
+## F-051 — M1 typed dialogue adapter lost prewarm context reset type (2026-11-04)
+
+**Dowód:** Mac Host Ops `aicalls-20261104-audio-m1-provider-final-host-qa-v4` pinned `990a8dd8ad4cc8194468f28a49f2c69c7c5caf5a`, **FAILED / exit 1** o 06:56:11 UTC: Kotlin `CampaignGemmaPreflight.kt:90–91` `Cannot infer type parameter R` i `Unresolved reference resetConversationContext`. **Przyczyna:** nowy `DialogueEngineProvider.createActionClassifier` zwraca bazowy `TextCallAgentBackend`, podczas gdy istniejący prewarm potrzebuje `NativeConversationContextBackend` do skasowania syntetycznej tury.
+
+**Poprawka:** sprawdzony kontrakt `NativeConversationContextBackend` na obiekcie E2B i zachowanie dotychczasowego resetu. Brak zmian modelu, kontekstu właściwej rozmowy, VAD/ACK i autoryzacji. **Status: FIXED_IN_SOURCE / QA_PENDING**; wymagane nowy exact-SHA Mac QA + S22 off-call. Wcześniejszy błędny QA zachowany jako FAIL, a pierwszy task instalacyjny S22 wymagał PASS nieudanego QA, dlatego nie wolno uznać go za test nowego APK.
+
 ## AKTYWNE — wymagają pracy
 
 | ID | Warunek i wpływ | Miejsce i przyczyna | Remedium / test | Status |
