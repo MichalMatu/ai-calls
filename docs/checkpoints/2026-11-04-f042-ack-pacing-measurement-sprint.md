@@ -21,3 +21,9 @@ Example for 32,000 bytes mono PCM16/16 kHz (1 second clip): TX write 0 ms → ho
 
 ## Remaining acceptance
 Run only under the existing exact app-owned campaign grant and approved action path. In a real authorized call compare EOS→ack, EOS→full answer, STT/Gemma/TTS and whether the other party actually hears the two phrases without overlap. STOP/revoke and exact own-Call cleanup must remain verified. Keep RAW RX/TX and transcripts private on the device/Mac. F-042 stays **REAL_CALL_ACOUSTIC_PENDING** until independent live evidence exists.
+
+## Verified Mac and device-readiness receipts
+
+- Mac full GREEN `aicalls-20261104-f042-ack-pacing-green-full-v1`: **DONE/0** on the exact application source `032b6f5138a1c10f8d7f646065a5aa539e2a766a`; `ANTI_FRICTION=PASS`, `F042_GREEN_FULL_HOST_QA=PASS`, three successful Android Gradle phases, **248 Python tests PASS**, `host_quality_gate_green=true`, `F042_ACK_PACING_AND_EOS_DIAGNOSTICS=PASS`. No calls, device mutations or private exports.
+- First read-only S22 request `aicalls-20261104-f042-s22-readonly-preflight-v1` never started (`task_budget_exhausted`, exit 125). Corrected `aicalls-20261104-f042-s22-readonly-preflight-v2`: **DONE/0**, exact serial/model online (`SM-S906B`), `TELEPHONY_IDLE=true`, dialer role true, app-owned campaign service inactive, grant and continuation preference files readable. `SAFE_TO_CONSIDER_INSTALL=true`. Purely read-only; does not prove that continuation is absent or authorize a call.
+- Guarded APK deployment request `aicalls-20261104-f042-s22-safe-apk-deploy-v1` has been submitted separately; its exact result, including its additional no-continuation precheck and before/after preference fingerprints, must be verified before claiming installation. It contains **no dialing or microphone operations**.
