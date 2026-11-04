@@ -1,5 +1,15 @@
 # AI Calls — handoff operacyjny (2026-11-04)
 
+## Mapa menu S22 — potwierdzona screenshotem i kodem 2026-11-04
+
+**Ekran główny** `MainActivity` zawiera: `ROZPOCZNIJ AUTORYZOWANE ZADANIE AI`, `CAMPAIGN TOOLS`, `STOP AI`, oraz akordeony `Tryb rozmowy i model`, `Model Gemma 4`, `Uprawnienia i konfiguracja`, `Diagnostyka deweloperska`. W głównym widoku **nie ma osobnego przycisku Gemma Direct**.
+
+- `CAMPAIGN TOOLS` → `CampaignToolActivity` → `Start authorized CLIR enable — Gemma Direct`: **jawny start GEMMA_DIRECT**, obecnie eksperymentalny RAW dla zadania CLIR. W tym samym ekranie jest przycisk `Start authorized CLIR enable` dla starego `SCRIPT_GEMMA` oraz `Authorize CLIR enable campaign` i `STOP AI`.
+- `ROZPOCZNIJ AUTORYZOWANE ZADANIE AI` na głównym ekranie otwiera `CampaignToolActivity` z `EXTRA_START_AUTHORIZED_CAMPAIGN=true`, co **automatycznie wywołuje start w trybie domyślnym `SCRIPT_GEMMA`**, a nie nowy Gemma Direct. Nie używać tego przycisku w teście Direct.
+- Nie sugerować użytkownikowi wyboru Gemma Direct z akordeonu `Tryb rozmowy i model`. Obecna ścieżka Direct jest w `CAMPAIGN TOOLS`.
+- Ekran główny wyświetla `Audio mode: Local STT + TTS (S22)`, `LLM provider: Local Gemma 4 E2B (S22)`, `Gemma 4 model: READY`; to stan dostawcy/modelu, **nie potwierdzenie trybu konkretnej kampanii**.
+
+
 **Nowy priorytet właściciela (2026-11-04, 02:51 Europe/Warsaw):** kolejność została świadomie odwrócona na **realny live-call Gemma Direct z obecnym stałym promptem CLIR → dopiero po działającym flow dynamiczny TaskBrief (F-044) → na końcu dodatkowa semantyczna kontrola tekstu (F-045)**. To eksperymentalny test, nie zdjęcie obowiązujących grantów, polityk faktów/efektów, STOP lub ochrona praw rozmówcy; nie rozpoczynać połączenia przez zablokowany zewnętrzny tool. Sprawdzić gotowość S22 read-only i poprosić właściciela o naciśnięcie przycisku w aplikacji. Surowe audio/teksty tylko prywatnie na Macu.
 
 ## CHECKPOINT WZNOWIENIA — Gemma Direct przed testem live
