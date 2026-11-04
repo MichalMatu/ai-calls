@@ -149,9 +149,10 @@ internal object GemmaDirectDialogueBackendFactory {
         canConfirmEffect: () -> Boolean,
         observer: GemmaDirectObserver,
         preparedModel: TextCallAgentBackend? = null,
+        systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
     ): TextCallAgentBackend = GemmaDirectDialogueBackend(
         model = preparedModel ?: Gemma4LiteRtTextBackendFactory.createDirectDialogue(
-            context.applicationContext, GemmaDirectTaskBrief.PROMPT,
+            context.applicationContext, systemInstruction,
         ),
         authorizedPhoneFact = authorizedPhoneFact,
         canConfirmEffect = canConfirmEffect,
