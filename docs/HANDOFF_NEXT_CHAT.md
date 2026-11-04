@@ -1,12 +1,14 @@
 # AI Calls — handoff operacyjny (2026-11-04)
 
+**Nowy priorytet właściciela (2026-11-04, 02:51 Europe/Warsaw):** kolejność została świadomie odwrócona na **realny live-call Gemma Direct z obecnym stałym promptem CLIR → dopiero po działającym flow dynamiczny TaskBrief (F-044) → na końcu dodatkowa semantyczna kontrola tekstu (F-045)**. To eksperymentalny test, nie zdjęcie obowiązujących grantów, polityk faktów/efektów, STOP lub ochrona praw rozmówcy; nie rozpoczynać połączenia przez zablokowany zewnętrzny tool. Sprawdzić gotowość S22 read-only i poprosić właściciela o naciśnięcie przycisku w aplikacji. Surowe audio/teksty tylko prywatnie na Macu.
+
 ## CHECKPOINT WZNOWIENIA — Gemma Direct przed testem live
 
 **Czytaj najpierw:** [2026-11-04-gemma-direct-next-live-handoff.md](checkpoints/2026-11-04-gemma-direct-next-live-handoff.md) — pełna prawda o promptach, datach/skillsach, SHA, Mac receipts, S22 APK, RX/STT/TTS/TX, prywatności, znanych brakach i konkretnym teście.
 
 - Baseline kodu na fizycznym S22: `2424118318caaca03d6330129bddf4190715677c`. Ostatni zapamiętany kod źródłowy na `main` jest identyczny; kolejne commity dokumentacyjne nie były instalowane. **Przed wznowieniem zawsze odczytaj świeży HEAD.**
 - Mac full `aicalls-20261104-gemma-direct-full-host-qa-v1` DONE/0: Gradle unit/lint/assemble AndroidTest + 248 Python PASS. S22 off-call `aicalls-20261104-gemma-direct-s22-offcall-two-turn-v1` DONE/0, bez telefonu, AndroidTest PASS, 2 tury GPU complete, druga reuse (`generate_ms=6525 → 1598`), brak naruszenia grantu/continuation.
-- Realny Gemma Direct **NIE testowany na żywo**. Co gorsza, `GemmaDirectTaskBrief.PROMPT` jest na dziś stałym opisem **CLIR**, a nie dynamicznym `TaskBrief` z zatwierdzonego zadania i katalogu skillsów. `SPEAK` ma tylko syntaktyczny speech filter; nie potwierdza pełnej walidacji semantycznej zobowiązań. Nowe `F-044` i `F-045` w `BLOCKERS.md` są OPEN. Najbliżej: wzmocnić F-045, dobrać legalny, exact-CLIR brief; potem **właściciel** może wykonać autoryzowaną próbę przez przycisk `Gemma Direct` w aplikacji, bez obchodzenia dawnej odmowy zdalnego wywołania.
+- Realny Gemma Direct **NIE testowany na żywo**. Co gorsza, `GemmaDirectTaskBrief.PROMPT` jest na dziś stałym opisem **CLIR**, a nie dynamicznym `TaskBrief` z zatwierdzonego zadania i katalogu skillsów. `SPEAK` ma tylko syntaktyczny speech filter; nie potwierdza pełnej walidacji semantycznej zobowiązań. Nowe `F-044` i `F-045` w `BLOCKERS.md` są OPEN. Najbliżej: **eksperymentalna, użytkownik-uruchamiana próba Gemma Direct w rzeczywistym autoryzowanym CLIR**, z obecnym stałym promptem. F-044 i F-045 pozostają otwarte i są kolejnymi sprintami w tej kolejności (najpierw F-044, potem F-045). Bez obchodzenia dawnej odmowy zdalnego wywołania.
 - Oba tryby nadal muszą mieć taki sam grant/SIM/target/STOP/FactDisclosure/commitment/TTS/TX; `Script + Gemma` pozostaje domyślny. Nie ruszać Samsung/Shizuku frozen media, nie ujawniać PII, WAV ani tekstu rozmowy w repo/receiptach.
 
 ## NOWY STAN — Gemma Direct dual-mode (ostatni sprint 2026-11-04)
