@@ -1,5 +1,13 @@
 # AI Calls — handoff operacyjny (2026-11-04)
 
+## NOWY STAN — Gemma Direct dual-mode (ostatni sprint 2026-11-04)
+
+- **Zainstalowany i testowany APK na S22:** kod aplikacji z `2424118318caaca03d6330129bddf4190715677c`; świeży `main` HEAD sprawdź ponownie (kolejne commity mogą dotyczyć tylko dokumentacji). Mac `aicalls-20261104-gemma-direct-full-host-qa-v1` DONE/0: Gradle unit/lint/app+AndroidTest APK, 248 Python, anti-friction PASS.
+- **Dwa niezależne tryby:** stary `Script + Gemma` pozostaje domyślny; jawnie wybrany przycisk `Start authorized CLIR enable — Gemma Direct` uruchamia model generujący własną wypowiedź z zadaniem CLIR i pamięcią jednej rozmowy. Nie zmieniono grantu, target/SIM, STOP, ujawniania faktów, commitment gate, TTS/TX. Tryb przypisany do grantu dla kontynuacji.
+- **Fizyczny synthetic-only S22:** Mac `aicalls-20261104-gemma-direct-s22-offcall-two-turn-v1` DONE/0. Test urządzeniowy `AndroidGemmaDirectOnDeviceTest` OK (1 test), dwie kolejne natywne odpowiedzi Gemmy GPU, bez telefonu i TTS. Odczyt Perf `aicalls-20261104-gemma-direct-s22-perf-metadata-v1`: pierwsza tura engine 6198 ms + conversation 3097 ms + generate 6525 ms; druga 0 + 0 + 1598 ms, `conversation_reused=true`, oba `complete`. Po teście IDLE, dialer/grant/continuation unchanged.
+- **OPEN:** nie przeprowadzono rozmowy telefonicznej w trybie Gemma Direct, nie ma jeszcze dowodu jego naturalnych wypowiedzi słyszanych przez konsultanta, ani osiągnięcia CLIR. Istniejące prywatne RX/TX starszych sesji nie stanowią dowodu nowego Direct. Nie obchodzić żadnego narzędziowego zakazu zdalnego inicjowania rozmowy.
+- Zobacz [checkpoint Gemma Direct](checkpoints/2026-11-04-gemma-direct-independent-engine.md). **Dalsze sekcje tego handoffu zawierają historyczne wyniki starszego F-042/F-043 i należy czytać je w tym kontekście.**
+
 ## Stan źródeł i urządzenia
 
 - Repozytorium: `MichalMatu/ai-calls`, gałąź docelowa `main`. Ostatnie zainstalowane i hostowo zweryfikowane źródło aplikacji: `032b6f5138a1c10f8d7f646065a5aa539e2a766a` (F-043 + F-042 pacing). Dokumentacyjny reaudyt rozpoczęty po `a834d217`; **przed kolejnym zadaniem zawsze odczytaj świeży HEAD**, nie używaj tu zapisanego SHA jako aktualnego.
