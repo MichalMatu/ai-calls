@@ -9,7 +9,9 @@ import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectTaskBrief
+import pl.michalmatu.aicallbridge.campaign.ClirCampaignSpec
+import pl.michalmatu.aicallbridge.campaign.GemmaDirectPromptSkillCatalog
+import pl.michalmatu.aicallbridge.campaign.GemmaDirectTaskBriefBuilder
 
 /**
  * Strictly off-call native model contract. NEVER dials, captures audio, speaks,
@@ -19,8 +21,17 @@ import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectTaskBrief
 class AndroidGemmaDirectOnDeviceTest {
     @Test fun fourSyntheticGemmaDirectTurnsReturnNaturalText() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val timestamp = System.currentTimeMillis()
+        val scope = "synthetic-test-scope"
+        val grant = ClirCampaignSpec.newEnableGrant(scope, timestamp)
+        val instruction = GemmaDirectTaskBriefBuilder.build(
+            ClirCampaignSpec.enableRequest(scope),
+            grant,
+            GemmaDirectPromptSkillCatalog.defaults,
+            timestamp,
+        )
         val model = Gemma4LiteRtTextBackendFactory.createDirectDialogue(
-            context, GemmaDirectTaskBrief.PROMPT,
+            context, instruction,
         )
         try {
             val syntheticTurns = listOf(
