@@ -6,7 +6,7 @@ import android.os.SystemClock
 import android.util.Log
 import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
 import pl.michalmatu.aicallbridge.textagent.DialogueActionCatalog
-import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
+import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /**
@@ -60,7 +60,7 @@ internal object CampaignGemmaPreflight {
                 policy,
                 GateCHybridDialogueBackendFactory.actionContext(true),
             )
-            Gemma4LiteRtTextBackendFactory.createActionClassifier(
+            DialogueEngineProviders.resolve(profile).createActionClassifier(
                 context.applicationContext,
                 instruction,
                 policy.allowedActions,

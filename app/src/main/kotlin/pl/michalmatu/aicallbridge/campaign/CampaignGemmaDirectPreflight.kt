@@ -5,7 +5,7 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import android.os.SystemClock
 import android.util.Log
 import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectTaskBrief
-import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
+import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.textagent.NativeConversationContextBackend
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -56,7 +56,7 @@ internal object CampaignGemmaDirectPreflight {
             token = ++generation
         }
         val candidate = runCatching {
-            Gemma4LiteRtTextBackendFactory.createDirectDialogue(
+            DialogueEngineProviders.resolve(profile).createDirect(
                 context.applicationContext, systemInstruction,
             )
         }.getOrElse {
