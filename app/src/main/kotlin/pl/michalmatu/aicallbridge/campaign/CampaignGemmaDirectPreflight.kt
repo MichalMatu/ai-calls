@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import android.os.SystemClock
 import android.util.Log
 import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectTaskBrief
@@ -17,21 +18,26 @@ internal object CampaignGemmaDirectPreflight {
     private var prepared: TextCallAgentBackend? = null
     private var preparedInstruction: String? = null
     private var inFlightInstruction: String? = null
+    private var preparedProfile: AudioEngineProfile? = null
+    private var inFlightProfile: AudioEngineProfile? = null
     private val callbacks = mutableListOf<(Boolean) -> Unit>()
 
     fun prepare(
         context: Context,
         systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
+        profile: AudioEngineProfile = AudioEngineProfile.STABLE,
         onReady: (Boolean) -> Unit,
     ) {
         require(systemInstruction.isNotBlank())
         val token: Long
         synchronized(lock) {
-            if (prepared != null && preparedInstruction == systemInstruction) {
+            if (prepared != null && preparedInstruction == systemInstruction &&
+                preparedProfile == profile) {
                 onReady(true)
                 return
             }
-            if (preparing && inFlightInstruction != systemInstruction) {
+            if (preparing && (inFlightInstruction != systemInstruction ||
+                    inFlightProfile != profile)) {
                 // A different task/skills choice must not reuse an old engine.
                 onReady(false)
                 return
@@ -40,11 +46,13 @@ internal object CampaignGemmaDirectPreflight {
                 prepared?.close()
                 prepared = null
                 preparedInstruction = null
+                preparedProfile = null
             }
             callbacks += onReady
             if (preparing) return
             preparing = true
             inFlightInstruction = systemInstruction
+            inFlightProfile = profile
             token = ++generation
         }
         val candidate = runCatching {
@@ -93,13 +101,16 @@ internal object CampaignGemmaDirectPreflight {
                 return
             }
             val instruction = inFlightInstruction
+            val profile = inFlightProfile
             preparing = false
             pending = null
             inFlightInstruction = null
+            inFlightProfile = null
             if (ok && candidate != null) {
                 prepared?.close()
                 prepared = candidate
                 preparedInstruction = instruction
+                preparedProfile = profile
             } else {
                 candidate?.close()
             }
@@ -112,11 +123,13 @@ internal object CampaignGemmaDirectPreflight {
 
     fun takePrepared(
         systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
+        profile: AudioEngineProfile = AudioEngineProfile.STABLE,
     ): TextCallAgentBackend? = synchronized(lock) {
         val candidate = prepared
-        val matching = preparedInstruction == systemInstruction
+        val matching = preparedInstruction == systemInstruction && preparedProfile == profile
         prepared = null
         preparedInstruction = null
+        preparedProfile = null
         if (!matching) {
             candidate?.close()
             null
@@ -134,6 +147,8 @@ internal object CampaignGemmaDirectPreflight {
             prepared = null
             inFlightInstruction = null
             preparedInstruction = null
+            preparedProfile = null
+            inFlightProfile = null
             cancelled = callbacks.toList()
             callbacks.clear()
         }

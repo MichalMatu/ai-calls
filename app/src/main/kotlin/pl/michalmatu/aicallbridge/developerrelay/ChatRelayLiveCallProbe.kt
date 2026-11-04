@@ -251,7 +251,7 @@ internal object ChatRelayLiveCallProbe {
             // Only the app-owned campaign may consume its already initialized engine.
             // Supervised and developer probes keep independent model ownership.
             preparedClassifier = if (!readOnlySupervised && !supervisorRelayEnabled) {
-                CampaignGemmaPreflight.takePrepared()
+                CampaignGemmaPreflight.takePrepared(audioEngineProfile)
             } else null,
         ) }
         private val directBackend by lazy {
@@ -264,6 +264,7 @@ internal object ChatRelayLiveCallProbe {
                 },
                 preparedModel = CampaignGemmaDirectPreflight.takePrepared(
                     directSystemInstruction ?: GemmaDirectTaskBrief.PROMPT,
+                    audioEngineProfile,
                 ),
                 systemInstruction = directSystemInstruction ?: GemmaDirectTaskBrief.PROMPT,
                 observer = GemmaDirectObserver { action, source, elapsedMs ->

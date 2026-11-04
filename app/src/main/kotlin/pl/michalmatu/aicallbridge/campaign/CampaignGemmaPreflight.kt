@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import android.os.SystemClock
 import android.util.Log
 import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
@@ -21,19 +22,35 @@ internal object CampaignGemmaPreflight {
     private var preparing = false
     private var pending: TextCallAgentBackend? = null
     private var prepared: TextCallAgentBackend? = null
+    private var preparedProfile: AudioEngineProfile? = null
+    private var inFlightProfile: AudioEngineProfile? = null
     private val callbacks = mutableListOf<(Boolean) -> Unit>()
 
     /** One model prewarm is shared by concurrent requests for the same app process. */
-    fun prepare(context: Context, onReady: (Boolean) -> Unit) {
+    fun prepare(
+        context: Context,
+        onReady: (Boolean) -> Unit,
+        profile: AudioEngineProfile = AudioEngineProfile.STABLE,
+    ) {
         val token: Long
         synchronized(lock) {
-            if (prepared != null) {
+            if (prepared != null && preparedProfile == profile) {
                 onReady(true)
                 return
+            }
+            if (preparing && inFlightProfile != profile) {
+                onReady(false)
+                return
+            }
+            if (prepared != null) {
+                prepared?.close()
+                prepared = null
+                preparedProfile = null
             }
             callbacks += onReady
             if (preparing) return
             preparing = true
+            inFlightProfile = profile
             token = ++generation
         }
 
@@ -94,9 +111,12 @@ internal object CampaignGemmaPreflight {
             }
             preparing = false
             pending = null
+            val profile = inFlightProfile
+            inFlightProfile = null
             if (ok && candidate != null) {
                 prepared?.let { runCatching { it.close() } }
                 prepared = candidate
+                preparedProfile = profile
             } else {
                 candidate?.let { runCatching { it.close() } }
             }
@@ -108,9 +128,17 @@ internal object CampaignGemmaPreflight {
     }
 
     /** Transfer model ownership to the application-authorized in-call action backend. */
-    fun takePrepared(): TextCallAgentBackend? = synchronized(lock) {
-        prepared.also { prepared = null }
-    }
+    fun takePrepared(profile: AudioEngineProfile = AudioEngineProfile.STABLE): TextCallAgentBackend? =
+        synchronized(lock) {
+            val candidate = prepared
+            val matches = preparedProfile == profile
+            prepared = null
+            preparedProfile = null
+            if (!matches) {
+                candidate?.close()
+                null
+            } else candidate
+        }
 
     /** Cancels only an UNUSED model. The active call owns the model after takePrepared(). */
     fun discardUnused() {
@@ -122,6 +150,8 @@ internal object CampaignGemmaPreflight {
             leftovers = listOfNotNull(pending, prepared)
             pending = null
             prepared = null
+            preparedProfile = null
+            inFlightProfile = null
             cancelled = callbacks.toList()
             callbacks.clear()
         }

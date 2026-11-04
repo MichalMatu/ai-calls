@@ -260,9 +260,10 @@ class AppOwnedCampaignService : Service() {
             }
         }
         when (activeDialogueMode) {
-            CampaignDialogueMode.SCRIPT_GEMMA -> CampaignGemmaPreflight.prepare(this, onModelPrepared)
+            CampaignDialogueMode.SCRIPT_GEMMA -> CampaignGemmaPreflight.prepare(this, onModelPrepared, activeAudioProfile)
             CampaignDialogueMode.GEMMA_DIRECT -> CampaignGemmaDirectPreflight.prepare(
-                this, systemInstruction = checkNotNull(selectedBrief), onReady = onModelPrepared,
+                this, systemInstruction = checkNotNull(selectedBrief),
+                profile = activeAudioProfile, onReady = onModelPrepared,
             )
         }
     }
