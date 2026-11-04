@@ -533,28 +533,18 @@ internal object Gemma4LiteRtTextBackendFactory {
         )
     }
 
-    /** Independent generative conversation: model writes a proposed sentence, not a skill ID. */
+    /**
+     * F-046 research flow: free-form conversational speech; no JSON response schema.
+     * Direct mode does not grant any tool, disclosure or external-effect permission.
+     */
     fun createDirectDialogue(
         context: Context,
         systemInstruction: String,
-    ): TextCallAgentBackend {
-        val schema = """
-            {
-              "type":"object",
-              "properties":{
-                "action":{"type":"string","enum":["SPEAK","DISCLOSE_PHONE","CONFIRM_EFFECT","ASK_CLARIFY"]},
-                "text":{"type":"string","maxLength":360}
-              },
-              "required":["action"],
-              "additionalProperties":false
-            }
-        """.trimIndent()
-        return createInternal(
-            context = context,
-            systemInstruction = systemInstruction,
-            responseFormat = ResponseFormat.json(schema),
-        )
-    }
+    ): TextCallAgentBackend = createInternal(
+        context = context,
+        systemInstruction = systemInstruction,
+        responseFormat = null,
+    )
 
     fun createActionClassifier(
         context: Context,
