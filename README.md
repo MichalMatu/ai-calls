@@ -14,6 +14,6 @@ Lokalny agent Android do wykonywania **konkretnie autoryzowanych zadań telefoni
 - **Nowy czat / następna akcja:** [HANDOFF_NEXT_CHAT](docs/HANDOFF_NEXT_CHAT.md).
 - **Jednoznaczny checkpoint z dowodami i procedurą S22:** [phone-ready checkpoint](docs/checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md).
 - [ROADMAP](docs/ROADMAP.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [AGENTS](AGENTS.md) · [BLOCKERS](BLOCKERS.md) · [bezpieczeństwo](docs/SECURITY_PRIVACY.md).
-- [Indeks dokumentacji](docs/README.md) oddziela aktualne reguły od historycznych pomiarów.
+- [Diagnostyka USB/ADB i lokalny panel](docs/USB_DEBUG_BRIDGE.md) · [Indeks dokumentacji](docs/README.md) oddziela aktualne reguły od historycznych pomiarów.
 
 **Wykonanie:** GitHub Connector + dokładny Mac Local Agent, bez Codex/Work/GitHub Actions/force-push. Uprawnienia do pracy programistycznej **nie** zastępują aplikacyjnego grantu na połączenie, ujawnienie danych lub zmianę usługi.
