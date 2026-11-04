@@ -10,7 +10,7 @@ S22+ (SM-S906B), `Gemma 4 E2B RAW` z dynamicznym `TaskBrief` i 4 prompt-skills, 
 
 ## Sprint M1 — IMPLEMENTED_IN_SOURCE / QA_PENDING
 
-Commitowane zmiany `413676be` → `bc019ce`: menu `AudioEngineSettingsActivity` z osobnym wejściem / modelem / wyjściem, profil i prywatny store, katalog z wyłączonymi niezintegrowanymi modelami, test offline, wybór głosu, Android STT/TTS ports i dokładny snapshot profilu prewarm/call. Bez zmian Samsung/Shizuku, STOP, VAD, ACK, prompt-skills i autoryzacji. Pierwszy Mac RED test zakończył się oczekiwaną porażką; po przywróceniu kodu Gradle JVM unit PASS, full gate FAIL na lint `MissingPermission` w lokalnym podglądzie TTS. F-050 naprawione w źródłach, pełne QA ponowione taskiem `aicalls-20261104-audio-m1-postfix-host-qa-v2`, status wyniku oczekiwany. S22 off-call i nowy APK **OPEN**.
+Commitowane zmiany `413676be` → `bc019ce`: menu `AudioEngineSettingsActivity` z osobnym wejściem / modelem / wyjściem, profil i prywatny store, katalog z wyłączonymi niezintegrowanymi modelami, test offline, wybór głosu, Android STT/TTS ports i dokładny snapshot profilu prewarm/call. Bez zmian Samsung/Shizuku, STOP, VAD, ACK, prompt-skills i autoryzacji. Pierwszy Mac RED test zakończył się oczekiwaną porażką; po przywróceniu kodu Gradle JVM unit PASS, full gate FAIL na lint `MissingPermission` w lokalnym podglądzie TTS. F-050 naprawione w źródłach i pełny Mac QA v2/v3 **PASS**. Dodano wymienny `DialogueEngineProvider` (E2B, bez cichego fallbacku na E4B) w `990a8dd8`; jego pierwszy compile QA v4 **FAIL** (F-051, utracony typ interfejsu resetującego kontekst), poprawka w `a616795e`. Końcowe Mac v5 i S22 off-call v2 **QA_PENDING**. Pierwszy S22 v1 przerwał bez instalacji, gdy QA v4 był FAIL.
 
 ### Zakres M1 i kryteria końcowe
 
