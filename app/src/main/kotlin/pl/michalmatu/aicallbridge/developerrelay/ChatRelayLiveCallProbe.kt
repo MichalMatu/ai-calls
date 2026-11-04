@@ -335,6 +335,7 @@ internal object ChatRelayLiveCallProbe {
             val complete = AtomicBoolean(false)
         }
         private val activeRxCapture = AtomicReference<ActiveRxCapture?>(null)
+        private var liveChatToken = 0L
         private var totalRxBytes = 0L
         private var totalTxBytes = 0L
         private var silenceWindows = 0L
@@ -364,6 +365,9 @@ internal object ChatRelayLiveCallProbe {
                 finish(false, authorityFailureReason())
                 return
             }
+            // Only an already authorized, active owner-controlled session
+            // publishes private live text to the local UI memory.
+            liveChatToken = LiveCallChatFeed.begin()
             handler.postDelayed(authorityWatchdog, 500L)
             mailbox.clear()
             if (!readOnlySupervised && !supervisorRelayEnabled) {
@@ -465,10 +469,12 @@ internal object ChatRelayLiveCallProbe {
             turnStartedAtMs = SystemClock.elapsedRealtime()
             estimatedSpeechEndElapsedMs = null
             lines += "turn_${currentTurn}_started=true"
+            LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • przygotowanie STT")
             pipeline.start(object : LocalSpeechTextPipeline.Listener {
                 override fun onSpeechInputReady() {
                     lines += "turn_${currentTurn}_stt_ready=true"
                     lines += "turn_${currentTurn}_stt_ready_elapsed_ms=${elapsedTurnMs()}"
+                    LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • słucham rozmówcy…")
                     beginCaptureInputTurn(currentTurn, generation, lease)
                 }
 
@@ -476,6 +482,8 @@ internal object ChatRelayLiveCallProbe {
                     if (finished.get()) return
                     if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text)
+                    LiveCallChatFeed.heard(liveChatToken, currentTurn, text)
+                    LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • Gemma analizuje wypowiedź…")
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
                     val routeEvidence = ClirRouteEvidence.isExplicitServiceContext(text)
@@ -501,6 +509,11 @@ internal object ChatRelayLiveCallProbe {
                     if (finished.get()) return
                     if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text)
+                    LiveCallChatFeed.replied(
+                        liveChatToken, currentTurn, text,
+                        direct = !readOnlySupervised && dialogueMode == CampaignDialogueMode.GEMMA_DIRECT,
+                    )
+                    LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • synteza TTS…")
                     lines += "turn_${currentTurn}_approved_chars=${text.length}"
                     lines += "turn_${currentTurn}_approved_elapsed_ms=${elapsedTurnMs()}"
                     recordTurnDialogueDiagnostics(currentTurn)
@@ -512,6 +525,7 @@ internal object ChatRelayLiveCallProbe {
                     val outputTurn = currentTurn
                     finalAudioReadyTurn.set(outputTurn)
                     lines += "turn_${outputTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
+                    LiveCallChatFeed.stage(liveChatToken, "Tura " + outputTurn + " • wysyłanie głosu…")
                     executor.execute { writeOutputTurn(lease, pcm, outputTurn, generation) }
                 }
 
@@ -762,6 +776,7 @@ internal object ChatRelayLiveCallProbe {
                 )
                 evidenceRecorder?.recordTransmittedAudio(turn, pcm, bytesWritten, txEvidenceAtMs)
                 evidenceRecorder?.recordFullTxAttempt(turn, bytesWritten, pcm.size)
+                LiveCallChatFeed.tx(liveChatToken, turn, bytesWritten == pcm.size)
                 if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
                     activeMediaGeneration.get() != generation
                 ) {
@@ -777,6 +792,7 @@ internal object ChatRelayLiveCallProbe {
                 lines += "turn_${turn}_tx_write_wall_ms=$txWriteWallMs"
                 lines += "turn_${turn}_post_write_hold_ms=$postWriteHoldMs"
                 totalTxBytes += pcm.size.toLong()
+                LiveCallChatFeed.stage(liveChatToken, "Tura " + turn + " • odpowiedź wysłana do TX")
                 lines += "turn_${turn}_tx_pcm_bytes=${pcm.size}"
                 handler.postDelayed(
                     { completeTurnAfterPlayback(turn, generation, lease) },
@@ -960,6 +976,7 @@ internal object ChatRelayLiveCallProbe {
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
             evidenceRecorder?.finish(reason)
+            LiveCallChatFeed.finish(liveChatToken, reason)
             val report = lines.render()
             PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, report)
             context.mainExecutor.execute { callback(report) }
