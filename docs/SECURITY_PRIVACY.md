@@ -2,7 +2,7 @@
 
 ## Objective
 
-**Product goal clarification (2026-11-02):** autonomy means the local AI can place, conduct, resume and end its authorized ordinary phone calls, including legitimate user-authorized inquiries, reservations and account/service changes. A human initiating each call is a temporary test setup, not an intended permanent policy. Owner-approved engineering work may proceed without redundant confirmations; however neither this file nor that engineering mandate authorizes arbitrary external numbers, disclosures, purchases or mutations outside a concrete task. Apply the existing scoped, revocable grant and platform permissions to real effects. Prefer solving the call-controller/telephony gaps over treating indefinite manual calling as a finished feature.
+**Product goal clarification (2026-11-02):** autonomy means the local AI can place, conduct, resume and end its authorized ordinary phone calls, including legitimate user-authorized inquiries, reservations and account/service changes. A human initiating each call is a temporary test setup, not an intended permanent policy. Owner-approved engineering work may proceed without redundant confirmations; however neither this file nor that engineering mandate authorizes arbitrary external numbers, disclosures, purchases or mutations outside a concrete task. Apply the existing scoped, revocable grant and platform permissions to real effects. The formerly missing app-owned call controller is now implemented and S22 live RAW dialogue has been observed; this is not proof of carrier-side service modification or authorization to widen disclosure.
 
 The agent may dial, speak, disclose data or change external state only inside authority explicitly granted by the user and enforced by application-owned policy. Failure must narrow capability or return control to the human; it must never broaden authority.
 
@@ -71,6 +71,8 @@ If the counterparty introduces new material terms, application policy decides wh
 ## Identity and disclosure
 
 A value existing in IdentityVault is not permission to disclose it.
+
+**Status after live S22 (2026-11-04):** Gemma RAW has dynamic, grant-scoped CLIR task instructions and prompt-only skills, but it has **no implemented authorized `FactRequest` adapter** to IdentityVault. That absence explains the owner's observation that the assistant could continue dialogue but lacked information requested by the call recipient. Future retrieval must be typed and application-controlled: exact task, destination, active revocable grant and disclosure field must all match under `FactDisclosurePolicy` before plaintext resolution, and output must be approved before TTS/TX. Never insert private values into a global system prompt or unrestricted model tool arguments. See F-048 and [live checkpoint](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md).
 
 ```text
 IdentityVault
