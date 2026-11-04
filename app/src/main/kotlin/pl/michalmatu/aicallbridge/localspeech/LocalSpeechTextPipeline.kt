@@ -1,6 +1,10 @@
 package pl.michalmatu.aicallbridge.localspeech
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.audioengines.SpeechInputProvider
+import pl.michalmatu.aicallbridge.audioengines.SpeechOutputProvider
+import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
+import pl.michalmatu.aicallbridge.audioengines.AndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.TextCallFinalTurnDispatcher
 import pl.michalmatu.aicallbridge.textagent.TextCallTurnController
@@ -15,6 +19,9 @@ internal class LocalSpeechTextPipeline(
     backend: TextCallAgentBackend,
     approvalPolicy: TextOutputApprovalPolicy,
     languageTag: String = "pl-PL",
+    voiceId: String? = null,
+    private val input: SpeechInputProvider = AndroidSttInputProvider(context, languageTag),
+    private val output: SpeechOutputProvider = AndroidTtsOutputProvider(context, languageTag, voiceId),
 ) : AutoCloseable {
     interface Listener {
         fun onSpeechInputReady()
@@ -25,8 +32,6 @@ internal class LocalSpeechTextPipeline(
         fun onError(reason: String)
     }
 
-    private val input = OnDeviceSpeechInput(context, languageTag)
-    private val output = LocalTtsSpeechOutput(context, languageTag)
     private val controller = TextCallTurnController(backend, approvalPolicy)
     private val dispatcher = TextCallFinalTurnDispatcher(controller)
     private val gate = LocalSpeechGenerationGate()
@@ -37,7 +42,7 @@ internal class LocalSpeechTextPipeline(
     ) {
         cancel()
         val generation = gate.begin()
-        input.start(object : OnDeviceSpeechInput.Listener {
+        input.start(object : SpeechInputProvider.Listener {
             override fun onReady() {
                 if (gate.isCurrent(generation)) listener.onSpeechInputReady()
             }
@@ -53,7 +58,7 @@ internal class LocalSpeechTextPipeline(
                         override fun onApprovedText(text: String) {
                             if (!gate.isCurrent(generation)) return
                             listener.onApprovedText(text)
-                            output.synthesize(text, object : LocalTtsSpeechOutput.Listener {
+                            output.synthesize(text, object : SpeechOutputProvider.Listener {
                                 override fun onPcm16Mono16k(pcm: ByteArray) {
                                     if (!gate.isCurrent(generation)) return
                                     finishGeneration(generation)

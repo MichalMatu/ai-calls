@@ -11,6 +11,7 @@ import java.util.UUID
 internal class LocalTtsSpeechOutput(
     context: Context,
     private val languageTag: String = "pl-PL",
+    private val voiceId: String? = null,
 ) : AutoCloseable {
     interface Listener {
         fun onPcm16Mono16k(pcm: ByteArray)
@@ -43,6 +44,7 @@ internal class LocalTtsSpeechOutput(
                 val selectedLanguage = Locale.forLanguageTag(languageTag).language
                 val localVoice = tts.voices.orEmpty()
                     .filter { it.locale.language.equals(selectedLanguage, ignoreCase = true) && !it.isNetworkConnectionRequired }
+                    .filter { voiceId == null || it.name == voiceId }
                     .sortedBy { it.name }
                     .firstOrNull()
                 if (localVoice == null) {
