@@ -6,9 +6,13 @@
 
 **Jak czytać status:** `OPEN` = do naprawy lub niewykluczony realny wpływ; `FIXED_IN_SOURCE` = poprawka w Git, bez kompletnego dowodu QA; `VERIFIED` = podany zakres testów przeszedł. PASS na źródłach/off-call **nie oznacza** udanego fizycznego dialogu telefonicznego. Historyczne wpisy pozostają widoczne.
 
-**Weryfikacja USB po naprawie F-027:** Mac `aicalls-20261103-usb-noclobber-final-qa-v25`, pinned SHA `7a9dae192b9295980a38120823a7eea843cb1579`, terminalne `DONE/0`: Bash składnia PASS, 4/4 syntetyczne testy eksportu (NO_DATA, dwa archiwa bez nadpisania, uprawnienia 0700/0600, błędny sprzęt/run-as) PASS, skaner antyfriction PASS, 3/3 testy reguł PASS. Realny USB/ADB S22 `IDLE` → `USB_EXPORT=NO_DATA`, prywatny folder na Macu istnieje. To **potwierdza metodę USB**, lecz nie oznacza, że jakiekolwiek rzeczywiste nagranie zostało skopiowane.
+**HISTORYCZNE — weryfikacja USB po naprawie F-027 (2026-11-03; stan NO_DATA nieaktualny):** Mac `aicalls-20261103-usb-noclobber-final-qa-v25`, pinned SHA `7a9dae192b9295980a38120823a7eea843cb1579`, terminalne `DONE/0`: Bash składnia PASS, 4/4 syntetyczne testy eksportu (NO_DATA, dwa archiwa bez nadpisania, uprawnienia 0700/0600, błędny sprzęt/run-as) PASS, skaner antyfriction PASS, 3/3 testy reguł PASS. Realny USB/ADB S22 `IDLE` → `USB_EXPORT=NO_DATA`, prywatny folder na Macu istnieje. To **potwierdza metodę USB**, lecz nie oznacza, że jakiekolwiek rzeczywiste nagranie zostało skopiowane.
 
-## Fizyczny wynik autopętli 2026-11-03 — najnowszy
+## Bieżący fizyczny wynik — 2026-11-04
+
+Ostatni potwierdzony APK exact S22 ma kod `268be1f8f13502c7202822438b501706e0fcb0e1`. Mac QA `aicalls-20261104-live-chat-dock-host-qa-v1` i S22 off-call `aicalls-20261104-live-chat-dock-s22-offcall-install-v1` **DONE/0, PASS**. Rzeczywiste lokalne sesje Gemma Direct RAW 06:30:59 i 06:35:27 (Europe/Warsaw): **8/8 oraz 7/7** STT/odpowiedzi modelu/`WRITE_COMPLETE`, **0 `DIRECT_REJECTED`**. Ostatni odczyt `OFFHOOK → IDLE → IDLE`, **retry=false**; prywatny USB eksport transkryptu/WAV na Mac **PASS**, bez publikowania PII. **Wynik CLIR nadal niepotwierdzony.** Nowe rzeczywiste braki: **F-048** autoryzowane fakty (IdentityVault), **F-049** przedwczesne przejęcie tury IVR po 3-wyrazowym powitaniu; **F-047** utracony końcowy STT / `RX_INTERRUPTED` i **F-045** semantyka RAW również otwarte. Szczegóły i prywatna lokalizacja transkryptu: [checkpoint 2026-11-04](docs/checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md).
+
+## Archiwum — fizyczny wynik autopętli 2026-11-03
 
 Mac `aicalls-20261103-full-autoloop-physical-cycle-v1` DONE/0, źródło `fd219de4`: S22 `SM-S906B`, testy/build/install PASS, bezklikowy autoryzowany START, rzeczywisty OFFHOOK, selektywny STOP, końcowe IDLE. `USB=NO_DATA` jest prawidłowe: grant ma `record_call_evidence=false`. Prywatny licznik urządzenia: 5 tur, 1 142 400 B RX, 322 986 B TX, 6 decyzji Gemma; terminalny błąd `backend_supervisor_relay_disabled` (F-029).
 
@@ -16,7 +20,7 @@ Mac `aicalls-20261103-f029-local-recovery-full-s22-cycle-v3` na `ebcf814f`: Pyth
 
 Mac `aicalls-20261103-f032-private-metrics-race-final-qa-v7`, pinned `5c8dc40a`: Python unit + anti-friction PASS, fizyczny read-only `--inspect-last-call` zwrócił `TECHNICAL_COUNTS_PRESENT_HISTORICAL` i `REAL_PIPELINE_COUNTERS_PRESENT`, bez ponownego dzwonienia. Runner z nowego HEAD oczekuje na asynchroniczny zapis raportu po IDLE (F-032); fizyczna akceptacja synchronizacji świeżego raportu nadal pending. Prywatne treści pozostają na Macu/telefonie, a faktyczny rezultat CLIR pozostaje **OPEN**.
 
-## F-033/F-034 — najnowszy stan fizycznych testów
+## Archiwum — fizyczne testy F-033/F-034 z 2026-11-03
 
 Mac `aicalls-20261103-f033-contextual-gemma-build-s22-offcall-v2`: pinned `9ba7f0e`, Python QA i pełne Kotlin JVM/build/lint **PASS**; instalacja początkowo odłożona, bo S22 miał aktywny autoryzowany retry, a nie awarię USB. Mac `aicalls-20261103-f034-prewarm-source-qa-apk-cache-v1`: pinned `a93e10df`, pełne JVM/build/lint i anti-friction **PASS**, APK SHA-256 `8fa01a821221d9ce3927f1e50897183f02262d8fdd612be3c80cae2abc795b03`.
 
@@ -32,7 +36,7 @@ Następna poprawka `F-035`: po jednorazowym `SpeechRecognizer.ERROR_NO_MATCH=7` 
 
 ## AKTUALNA DECYZJA WŁAŚCICIELA — ZERO SZTUCZNYCH BLOKAD
 
-**2026-11-03:** eksport diagnostyki do analiz rozwijania kodu odbywa się przez **USB/ADB i Mac Local Agenta**, bez dodatkowego przycisku ZIP, ręcznego przenoszenia danych do czatu ani wymogu publikowania prywatnych nagrań. Mac zapisuje prywatne archiwa w `~/Documents/AI-Calls/private-exports/` zgodnie z [USB_PRIVATE_DIAGNOSTICS.md](docs/USB_PRIVATE_DIAGNOSTICS.md). Preflight Mac `aicalls-20261103-usb-private-evidence-export-v21` **DONE/0**, jeden S22 `SM-S906B`, ADB autoryzowane, `IDLE`; **folder nagrań jeszcze nie istnieje, więc 0 plików do skopiowania**. Brak plików nie jest awarią transferu. Rzeczywisty transfer archiwum pozostaje do sprawdzenia po powstaniu zatwierdzonej sesji.
+**HISTORYCZNA DECYZJA z 2026-11-03:** eksport diagnostyki do analiz rozwijania kodu odbywa się przez **USB/ADB i Mac Local Agenta**, bez dodatkowego przycisku ZIP, ręcznego przenoszenia danych do czatu ani wymogu publikowania prywatnych nagrań. Mac zapisuje prywatne archiwa w `~/Documents/AI-Calls/private-exports/` zgodnie z [USB_PRIVATE_DIAGNOSTICS.md](docs/USB_PRIVATE_DIAGNOSTICS.md). Preflight Mac `aicalls-20261103-usb-private-evidence-export-v21` **DONE/0**, jeden S22 `SM-S906B`, ADB autoryzowane, `IDLE`; **folder nagrań jeszcze nie istnieje, więc 0 plików do skopiowania**. Brak plików nie jest awarią transferu. Rzeczywisty transfer archiwum pozostaje do sprawdzenia po powstaniu zatwierdzonej sesji.
 
 **F-003/F-017 nie są już zależnościami blokującymi testy lub rozwój:** ścieżka USB jest wybrana i dostępna, a nieukończona funkcja UI to opcjonalne rozszerzenie; historycznej odmowy narzędzia nie obchodzić. **F-016 (nieaktualne historyczne akapity) jest nieblokującym długiem redakcyjnym**, nie wolno traktować ich jako nakazu dodatkowych zgód. Prawdziwa rozmowa end-to-end nadal wymaga sprawdzenia, więc nie twierdzić `LIVE_CALL_PASS` bez dowodu. Autoryzacja zadania, uprawnienia Android, prawa rozmówców i selektywne STOP obowiązują; nie są sztucznymi blokerami.
 
