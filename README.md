@@ -8,7 +8,7 @@ Lokalny agent Android do wykonywania **konkretnie autoryzowanych zadań telefoni
 - **Jeden debug bridge** (wspólny moduł i ekran) + jedna konsola Mac `scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py`: odczyt stanu/błędów, readiness profilu, bezpieczny zapis/reset profilu, cofanie istniejącego grantu, wyłączenie nagrywania, prywatny eksport oraz off-call instrumentacje. Nie umożliwia nadpisywania surowych grantów lub obchodzenia STOP/zgód.
 - **S22 off-call PASS:** Android STT, Android TTS, polski syntetyczny TTS→Parakeet lexical-overlap, profile Parakeet zapisz/odczytaj/reset, log/error counters, prywatny eksport 419 wpisów WAV/transkryptów lokalnie na Macu. To nie jest WER/CER ani realny test rozmowy. **Piper APK ABSENT**.
 - **Gemma:** historyczny 4-turn syntetyczny S22 PASS sprzed aktualnego sprintu; nowe odrębne uruchomienie zostało zablokowane na poziomie zlecenia i nie zostało wykonane. Gemma Audio M4 nadal disabled; brak pełnego audio→dialogu, RAM/thermal i kwalifikacji. F-045/F-047/F-048 pozostają OPEN; zewnętrzny skutek CLIR niepotwierdzony; F-049 wycofany.
-- Użytkownik zauważył chowanie aplikacji podczas ADB; odtwarzanie wykazało PID stable i brak FATAL. Ręczny odbiór wizualny panelu nadal do wykonania.
+- Użytkownik zauważył chowanie aplikacji podczas ADB; odtwarzanie wykazało PID stable i brak FATAL. W przekazanej rozmowie właściciel potwierdził otwarcie panelu USB, a ADB jego obecność; nie wymagaj ponownego ręcznego otwierania.
 
 ## Dokumentacja i przekazanie
 
@@ -16,4 +16,6 @@ Lokalny agent Android do wykonywania **konkretnie autoryzowanych zadań telefoni
 - [USB/ADB diagnostic bridge](docs/USB_DEBUG_BRIDGE.md) · [ROADMAP](docs/ROADMAP.md) · [ARCHITEKTURA](docs/ARCHITECTURE.md)
 - [AGENTS](AGENTS.md) · [BLOCKERS](BLOCKERS.md) · [SECURITY_PRIVACY](docs/SECURITY_PRIVACY.md) · [Indeks dokumentacji](docs/README.md)
 
-**Wykonanie:** GitHub Connector i dokładny Mac Local Agent; `main`, `[skip ci]`, bez Codex/Work/Actions/force-push. Udzielone uprawnienia deweloperskie nie są grantem na połączenia lub skutki zewnętrzne.
+**Wykonanie:** zgodnie z decyzją właściciela z 2026-11-04 rozwój i testy prowadzi lokalny Codex na Macu, bezpośrednio przez Git, Gradle i USB/ADB. Codex nie zleca pracy Local Agentowi; ten tryb jest zarezerwowany dla ChatGPT. Bez konkurencyjnych mutacji. `main`, `[skip ci]`, bez Work/Actions/force-push. Udzielone uprawnienia deweloperskie nie są grantem na połączenia lub skutki zewnętrzne.
+
+Lokalna bramka hosta: `bash scripts/verify_host.sh`. Konsola telefonu: `python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py status`; pozostałe komendy i warunki testów opisuje [USB debug bridge](docs/USB_DEBUG_BRIDGE.md).

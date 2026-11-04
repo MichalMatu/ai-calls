@@ -9,6 +9,12 @@ is shown by UsbDebugPanelActivity. There is **no second grant, audio, or evidenc
 
 From the selected Mac, run the single entry point from an exact source checkout:
 
+The current development executor is local Codex (owner decision, 2026-11-04).
+Run this console directly from the local checkout. Codex must not dispatch
+Local Agent tasks; that execution mode is reserved for ChatGPT sessions.
+Check for competing Local Agent/device work before tests or mutations. Opening
+and navigating the application through ADB does not require operator clicks.
+
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py status
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py errors
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py evidence-status

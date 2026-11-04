@@ -38,17 +38,19 @@ The development goal is that recurrent supervisor interventions are progressivel
 
 ## Executor priority
 
-Local Agent is the default executor for autonomous **development** work that touches the repository, build environment or device deployment. It is not the product call executor. The Android app owns campaign authority, dialing, dialogue runtime and cleanup for app-owned campaigns.
+**Owner decision, 2026-11-04:** Codex executes development directly in `/Users/michal/agent-workspace/repos/ai-calls/work`, including source changes, Git, Gradle, tests and USB/ADB. Codex must not queue Local Agent work or use that transport as a fallback. Local Agent execution is reserved for ChatGPT sessions. Reading daemon/task evidence to detect competing work is permitted; never run competing mutations against the same checkout or device. The Android app owns campaign authority, dialing, dialogue runtime and cleanup for app-owned campaigns.
 
-Priority order for operational work is:
+Execution channels are assigned by client:
 
 ```text
-Local Agent end-to-end when it can perform the task
- -> specialized connector/API only when it is a better fit for a narrow read-only/control-plane action
- -> operator action only when genuinely unavoidable
+Codex -> direct local tools on the designated Mac checkout and S22
+ChatGPT -> Local Agent under its current protocol and exact identity
 ```
 
-Do not fragment a workflow merely because a connector can perform one small sub-step. If Local Agent has the context and capability to inspect, edit, build, install, observe and verify a slice coherently, prefer that coherent path. External platform/tool controls still apply and must not be bypassed.
+Use specialized connectors/APIs for narrow read-only or control-plane actions
+when appropriate. Request operator action only when genuinely unavoidable.
+
+Keep a development slice coherent: inspect, edit, build, install when needed, observe and verify directly in Codex. Do not enqueue Local Agent tasks from Codex. External platform/tool controls still apply and must not be bypassed; changing development mode does not authorize retrying a denied operation through another transport.
 
 ## Anti-stall decision protocol
 
@@ -56,7 +58,7 @@ Do not ask a question merely because a value was not supplied in the latest mess
 
 ```text
 current instruction / handoff / repository state
- -> Local Agent / device / logs / files
+ -> direct local tools in Codex, or Local Agent in ChatGPT / device / logs / files
  -> safe reversible repository-consistent default
  -> repair/retry transient or mechanical failure
  -> continue independent non-blocked work
@@ -67,7 +69,7 @@ A material decision is one that changes target, task, external effect, account/S
 
 Do not ask `continue?`, `should I retry?`, `should I inspect?`, or equivalent when the active goal and scope already answer those questions.
 
-## Local Agent watchdog and recovery
+## Local Agent watchdog and recovery (ChatGPT sessions only)
 
 After queueing a Local Agent task, keep ownership of its lifecycle:
 
@@ -87,8 +89,8 @@ While the owned cellular call is `OFFHOOK`, live conversation handling has absol
 During an active authorized campaign:
 
 - do not stop merely to request a redundant confirmation when the same exact task/target/effect authorization is already valid and unchanged;
-- do not ask the operator to paste shell commands that Local Agent can execute;
-- do not ask the operator to copy logs or transcripts that Local Agent, ADB or the transient relay can read;
+- do not ask the operator to paste shell commands that local tools or Local Agent can execute;
+- do not ask the operator to copy logs or transcripts that local tools, Local Agent, ADB or the transient relay can read;
 - do not end a live call after one reprompt when a bounded next turn can continue toward the task;
 - if Gemma cannot progress, the live supervisor takes over the same call instead of treating the handoff as terminal failure;
 - do not replace a physical acceptance problem with synthetic/unit-test churn.
