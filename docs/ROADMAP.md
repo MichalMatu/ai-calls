@@ -1,5 +1,7 @@
 # AI Calls — roadmap: konfigurowalne wejście / model / wyjście (2026-11-04)
 
+**Host QA szczegóły:** v3 miał 703 Kotlin JVM testów i 1 FAIL wyłącznie nowego fixture `0x7f7f`/expected `0x7fff` (F-055), bez błędu produkcyjnego. Fix `2c2dac7`; ostateczny Mac `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4` **QA_PENDING** do terminalnego receipt. Wcześniejszy v2 pełny Mac PASS nie obejmował nowego testu. Bez telefonu.
+
 **Sprint bez telefonu / bramka jakości:** 10 testów mutacyjnych, nowa obowiązkowa host QA audio i dodatkowe Kotlin PCM chunk/WAV/macierze profili. Mac v2 PASS, v3 final po nowych testach QA_PENDING; żadnych zmian produkcyjnych względem APK S22 `0d0fdfe`. [Host-only checkpoint](checkpoints/2026-11-04-audio-models-hostonly-quality-gates-checkpoint.md).
 
 **Stan najnowszy (S22, 2026-11-04):** Fizyczne M2 Parakeet (natywny model + syntetyczny PCM) i M4 Gemma Audio Direct (natywne AudioBytes syntetyczne) **PASS off-call**; poprawiony APK `0d0fdfe` STORE 6/6, MENU i cztery syntetyczne tury Gemma **PASS**. M3 Piper system package na S22 **ABSENT**, więc native TTS OPEN. WER polskiej mowy, równoczesny Parakeet+E2B, thermal/perf i prawdziwa rozmowa OPEN. [Checkpoint](checkpoints/2026-11-04-audio-engines-m2-m4-sprint-checkpoint.md).

@@ -49,3 +49,9 @@ Wyniki hosta tylko z dokładnych `task-results` pod `MichalMatu/local-agent:agen
 
 - `aicalls-20261104-hostonly-audio-qualitygate-full-qa-v3` pinned `48539406bfda602016c650ba55cefc7366f64172` FAILED/1: 10/10 Python mutation PASS, audio static PASS, **703 testy JVM / 1 FAIL** na `oddTotalBytesRetainOneIncompleteSampleAcrossEmptyCallbacks`; fixture oczekiwał max PCM16 dla `0x7f7f`, który nie jest `0x7fff`. Nie wykryto błędu runtime. F-055 rejestrowany w BLOCKERS.
 - Poprawka fixture (carry `0xff` + MSB `0x7f`) w kolejnej zmianie na `main`; pełny Mac QA powtórzyć na nowym SHA. Brak kontaktu z telefonem.
+
+## Pinned follow-up po F-055 (najnowsze źródła i brak telefonu)
+
+- `2c2dac7f6ea51f85d1dc3fc4db4a5f3ad41c4774`: poprawiony faktyczny carry `0xff` + high byte `0x7f`, dokładnie `0x7fff` PCM16, **wyłącznie test**. F-055 `FIXED_IN_SOURCE / QA_PENDING`. Brak zmian do produkcyjnego `app/src/main` i transportu Samsung.
+- Mac `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4` zlecony na `2c2dac7...`: focused Parakeet JVM → 10 mutacji → audio gate → Gradle unit/lint/build/AndroidTest APK → 258 Python → anti-friction → `git diff --check`. **Nie ma terminalnego receipt na moment tego zapisu, więc wynik QA_PENDING.** Po powrocie hosta odczytaj wyłącznie `task-results/<id>.json`, bez ponownego odpalenia testów, jeśli są DONE/0.
+- Mac `status.json` najnowszy dostępny `2026-11-04T19:03:09Z` (stan historyczny, nie dowód bieżącego uruchomienia). Podczas sprintu nie wysyłano żadnego zadania ADB ani telefonu. Nie zakładać, że model lub APK na S22 zmienił się od poprzednich potwierdzonych stanów.
