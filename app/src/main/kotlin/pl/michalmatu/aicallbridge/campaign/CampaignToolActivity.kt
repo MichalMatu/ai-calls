@@ -34,6 +34,7 @@ class CampaignToolActivity : Activity() {
         super.onCreate(savedInstanceState)
         authorizationStore = CampaignAuthorizationStore(this)
         runtimeStatusStore = CampaignRuntimeStatusStore(this)
+        val promptSkillStore = GemmaDirectPromptSkillStore(this)
 
         statusView = TextView(this).apply {
             textSize = 15f
@@ -122,6 +123,66 @@ class CampaignToolActivity : Activity() {
         val dialerSection = UiAccordionSection(this, "dialer", "Rola dialera i ustawienia").apply {
             addControl(callRoleButton)
         }
+        // Optional prompt skills: model instructions, NOT privileged tool permissions.
+        // The exact authorized CLIR task, role and STOP remain app-owned.
+        val skillSelection = linkedMapOf<GemmaDirectPromptSkill, CheckBox>()
+        val currentGrantId = authorizationStore.load()?.grantId.orEmpty()
+        val enabledSkills = promptSkillStore.selected(currentGrantId)
+        val directSkillsSection = UiAccordionSection(
+            this, "direct-prompt-skills", "Skills i zadanie Gemma Direct",
+        ).apply {
+            addLabel("Rola (stała): dzwoniący asystent użytkownika, NIE pracownik biura obsługi.")
+            addLabel("Zadanie pochodzi z aktywnej autoryzacji (obecnie: włączenie CLIR).")
+            addLabel("Poniższe skills są instrukcjami w prompcie. Nie wykonują połączeń, nie pobierają danych i nie nadają dodatkowych uprawnień.")
+            GemmaDirectPromptSkillCatalog.available.forEach { skill ->
+                val checkbox = CheckBox(this@CampaignToolActivity).apply {
+                    text = skill.title
+                    isChecked = skill in enabledSkills
+                }
+                skillSelection[skill] = checkbox
+                addControl(checkbox)
+            }
+            addControl(Button(this@CampaignToolActivity).apply {
+                text = "Zapisz skills do następnego połączenia"
+                setOnClickListener {
+                    val grant = authorizationStore.load()
+                    if (grant == null || grant.revokedAtEpochMs != null) {
+                        statusView.text = "Najpierw autoryzuj konkretne zadanie CLIR."
+                    } else {
+                        promptSkillStore.save(
+                            grant.grantId,
+                            skillSelection.filterValues { it.isChecked }.keys.toSet(),
+                        )
+                        statusView.text = "Skills zapisane dla bieżącego grantu. Nie zmieniają aktywnej rozmowy."
+                    }
+                }
+            })
+            addControl(Button(this@CampaignToolActivity).apply {
+                text = "Podgląd instrukcji startowej Gemmy"
+                setOnClickListener {
+                    val grant = authorizationStore.load()
+                    val accountScope = CampaignAccountScope.currentVoiceSubscription(this@CampaignToolActivity)
+                    val prompt = if (grant != null && accountScope != null) {
+                        runCatching {
+                            GemmaDirectTaskBriefBuilder.build(
+                                request = ClirCampaignSpec.enableRequest(accountScope),
+                                grant = grant,
+                                skills = promptSkillStore.selected(grant.grantId),
+                            )
+                        }.getOrNull()
+                    } else null
+                    if (prompt == null) {
+                        statusView.text = "Brak ważnego grantu CLIR do przygotowania promptu."
+                    } else {
+                        AlertDialog.Builder(this@CampaignToolActivity)
+                            .setTitle("Gemma Direct — rola, zadanie i skills")
+                            .setMessage(prompt)
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+                }
+            })
+        }
         val supervisedSection = UiAccordionSection(this, "supervised", "Test AI w bieżącej rozmowie").apply {
             addControl(supervisedAudioButton)
         }
@@ -157,6 +218,7 @@ class CampaignToolActivity : Activity() {
             addView(directStartButton)
             addView(stopSupervisedAudioButton)
             addView(revokeButton)
+            addView(directSkillsSection)
             addView(dialerSection)
             addView(supervisedSection)
             addView(evidenceSection)
