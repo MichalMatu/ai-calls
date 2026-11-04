@@ -2,6 +2,8 @@ package pl.michalmatu.aicallbridge.developerrelay
 
 import pl.michalmatu.aicallbridge.campaign.ClirCarrierEvidence
 import pl.michalmatu.aicallbridge.campaign.ClirDeterministicDialogueBackend
+import pl.michalmatu.aicallbridge.campaign.CampaignDialogueMode
+import pl.michalmatu.aicallbridge.campaign.CampaignGemmaDirectPreflight
 import pl.michalmatu.aicallbridge.campaign.CampaignGemmaPreflight
 import pl.michalmatu.aicallbridge.campaign.ClirRouteEvidence
 
@@ -95,6 +97,7 @@ internal object ChatRelayLiveCallProbe {
         supervisedGemmaEnabled: Boolean = false,
         callStillActive: () -> Boolean = { true },
         evidenceRecorder: CallSessionEvidenceRecorder? = null,
+        dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
         callback: (String) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
@@ -129,6 +132,7 @@ internal object ChatRelayLiveCallProbe {
             supervisedGemmaEnabled,
             callStillActive,
             evidenceRecorder,
+            dialogueMode,
         )
         if (!activeSession.compareAndSet(null, session)) {
             evidenceRecorder?.finish("audio_session_already_active")
@@ -151,6 +155,7 @@ internal object ChatRelayLiveCallProbe {
         private val supervisedGemmaEnabled: Boolean,
         private val callStillActive: () -> Boolean,
         private val evidenceRecorder: CallSessionEvidenceRecorder?,
+        private val dialogueMode: CampaignDialogueMode,
     ) : SessionControl {
         override fun stopAudio() {
             // Revoke TX synchronously, even if the main-thread cleanup is delayed.
@@ -238,7 +243,37 @@ internal object ChatRelayLiveCallProbe {
                 CampaignGemmaPreflight.takePrepared()
             } else null,
         ) }
-        private val backend: TextCallAgentBackend = if (readOnlySupervised) {
+        private val directBackend by lazy {
+            GemmaDirectDialogueBackendFactory.create(
+                context = context,
+                authorizedPhoneFact = localPhoneFactBackend,
+                canConfirmEffect = {
+                    !readOnlySupervised && activeMediaGeneration.get() > 0L &&
+                        authorizedNow() && routeVerified.get() && !commitmentConsumed.get()
+                },
+                preparedModel = CampaignGemmaDirectPreflight.takePrepared(),
+                observer = GemmaDirectObserver { action, source, elapsedMs ->
+                    lines += "turn_${currentTurn}_direct_action=$action"
+                    lines += "turn_${currentTurn}_direct_response_source=$source"
+                    lines += "turn_${currentTurn}_direct_inference_ms=$elapsedMs"
+                    evidenceRecorder?.recordDialogueDecision(
+                        turn = currentTurn,
+                        actionId = action,
+                        responseSource = source,
+                        classifierWallMs = elapsedMs,
+                        localErrorPresent = source == "DIRECT_REJECTED" ||
+                            source == "DIRECT_MODEL_ERROR",
+                    )
+                },
+            )
+        }
+        private val backend: TextCallAgentBackend = if (!readOnlySupervised &&
+            dialogueMode == CampaignDialogueMode.GEMMA_DIRECT
+        ) {
+            // No PhraseMatrix/ClirDeterministicDialogueBackend/GateCHybrid router here.
+            // Existing app-owned fact, commitment, output-approval and TX gates remain.
+            controlAwareBackend(directBackend)
+        } else if (readOnlySupervised) {
             if (supervisedGemmaEnabled) {
                 SupervisedGemmaDialogueBackend(
                     context = context,
@@ -264,6 +299,7 @@ internal object ChatRelayLiveCallProbe {
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",
             "supervised_read_only=$readOnlySupervised",
+            "dialogue_mode=${if (dialogueMode == CampaignDialogueMode.GEMMA_DIRECT) "gemma_direct" else "script_gemma"}",
             "supervised_dialogue_mode=${if (supervisedGemmaEnabled) "gemma4" else "script"}",
             "developer_relay=$supervisorRelayEnabled",
             "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
