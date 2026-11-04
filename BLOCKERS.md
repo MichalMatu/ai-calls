@@ -40,6 +40,12 @@ Następna poprawka `F-035`: po jednorazowym `SpeechRecognizer.ERROR_NO_MATCH=7` 
 
 **F-003/F-017 nie są już zależnościami blokującymi testy lub rozwój:** ścieżka USB jest wybrana i dostępna, a nieukończona funkcja UI to opcjonalne rozszerzenie; historycznej odmowy narzędzia nie obchodzić. **F-016 (nieaktualne historyczne akapity) jest nieblokującym długiem redakcyjnym**, nie wolno traktować ich jako nakazu dodatkowych zgód. Prawdziwa rozmowa end-to-end nadal wymaga sprawdzenia, więc nie twierdzić `LIVE_CALL_PASS` bez dowodu. Autoryzacja zadania, uprawnienia Android, prawa rozmówców i selektywne STOP obowiązują; nie są sztucznymi blokerami.
 
+## F-050 — audio engine preview permission gate (2026-11-04)
+
+**Warunek i wpływ:** w nowym ekranie `AudioEngineSettingsActivity.previewVoice` wywołanie `TelecomManager.isInCall` bez sprawdzenia `READ_PHONE_STATE` groziło wyjątkiem przy odebranym uprawnieniu. Pierwszy rzeczywisty Mac QA `aicalls-20261104-audio-m1-host-qa-v1` na SHA `8ee9da04fd86007e2470f224f933915ea41f72be` potwierdził oczekiwany test RED i zielone JVM unit, lecz zakończył się `failed/1` na błędzie lint `MissingPermission`. **Przyczyna:** nowy przycisk podglądu nie miał jawnego uprawnienia; nie dotyczy telefonowania, VAD ani ACK.
+
+**Zmiana:** podgląd jest fail-closed bez zgody na odczyt stanu telefonu i przy błędzie platformy, ale samo zapisanie profilu i istniejący tor rozmowy nie wymagają nowego pozwolenia. **Test:** ponowny exact HEAD `scripts/verify_host.sh` + skaner anti-friction oraz bezpołączeniowy S22 po host PASS; nie zmieniać grantu ani roli. **Status: FIXED_IN_SOURCE / QA_PENDING** (bez nowego receipt nie deklarować VERIFIED).
+
 ## AKTYWNE — wymagają pracy
 
 | ID | Warunek i wpływ | Miejsce i przyczyna | Remedium / test | Status |

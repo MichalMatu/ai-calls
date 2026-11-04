@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.audioengines
 
 import android.app.Activity
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.content.Context
 import android.media.AudioManager
@@ -175,9 +177,20 @@ class AudioEngineSettingsActivity : Activity() {
     }
 
     private fun previewVoice() {
+        // Preview is optional. A missing runtime permission must not crash the screen
+        // or become an extra requirement to save the unchanged working configuration.
+        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            feedback.text = "Nie można bezpiecznie sprawdzić połączenia bez uprawnienia telefonu."
+            return
+        }
         val telecom = getSystemService(TelecomManager::class.java)
         val audio = getSystemService(AudioManager::class.java)
-        if (telecom?.isInCall == true || audio?.mode == AudioManager.MODE_IN_CALL) {
+        val inCall = runCatching { telecom?.isInCall ?: true }.getOrDefault(true)
+        val mediaBusy = runCatching { audio?.mode == AudioManager.MODE_IN_CALL }
+            .getOrDefault(true)
+        if (inCall || mediaBusy) {
             feedback.text = "Odsłuch wyłączony podczas połączenia."
             return
         }
