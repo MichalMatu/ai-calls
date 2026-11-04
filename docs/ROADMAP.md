@@ -1,26 +1,22 @@
-# AI Calls — aktualny plan prac (2026-11-04)
+# AI Calls — aktualna roadmapa 2026-11-04
 
-**Bieżąca kolejność wynika z [handoffu](HANDOFF_NEXT_CHAT.md) i [phone-ready checkpointu](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md).** Historyczne checkpointy dokumentują dawny stan i nie są kolejnymi zleceniami.
+Obowiązujące dowody: [USB debug / S22](checkpoints/2026-11-04-usb-debug-s22-acceptance.md), [handoff](HANDOFF_NEXT_CHAT.md), [BLOCKERS](../BLOCKERS.md). Wcześniejszy [phone-ready checkpoint](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md) jest historią sprzed instalacji nowego APK.
 
-| Etap | Status | Kryterium zamknięcia |
+| Etap | Stan | Kolejne kryterium |
 |---|---|---|
-| Debug USB/ADB — wspólny panel i moduły Mac ↔ S22 | **SOURCE IMPLEMENTED / Mac QA częściowe / S22 QA OPEN** | Odczyt i zmiana profilu po native readiness, prywatny eksport, grant revoke, testy bez połączenia; wymagany nowy build i kontrolowana instalacja |
-| M1 — rozdzielne Wejście / Model / Wyjście, profil, Android STT/E2B/Android TTS | **DONE — Mac + S22 off-call PASS** | Zakończone, nie powtarzać; live nowego wariantu pozostaje oddzielnym pomiarem |
-| M2 — Parakeet TDT 0.6B v3 PL | **Native syntetyczne S22 PASS / jakość PL OPEN** | Lokalny polski TTS→ASR, później WER/CER, final segmenty, pomiary latencji i współistnienia z E2B; brak nieautoryzowanych połączeń |
-| M3 — Piper PL | **Adapter + Mac PASS / native OPEN** | Sprawdzona zewnętrzna instalacja `dev.ihorshevchuk.piper` i offline głos PL, native PCM16/16k, brak fallbacku; dziś silnik ABSENT na S22 |
-| M4 — Gemma Audio Direct | **Native syntetyczne PASS / eksperymentalny disabled** | Jedna spójna konwersacja audio→dialog, polska jakość, RAM/termika/latencja, STOP i testy S22 przed odblokowaniem |
-| Zwykłe rozmowy i efekty | **Nie dotyczy bieżącego off-call sprintu** | Konkretny aplikacyjny grant, tylko własny `Call`, ścisłe ujawnienia i niezależny dowód efektu. Nie mylić WRITE_COMPLETE z CLIR |
+| USB debug bridge, panel, lokalne ADB, diagnostyka błędów, profile i prywatny eksport | **DONE — Mac + S22 off-call PASS** | Ręczne wizualne sprawdzenie panelu, potem osobne rozwijanie bez duplikatów |
+| M1 — Android STT → Gemma E2B → Android TTS | **S22 off-call STT/TTS PASS**; Gemma cztery tury PASS historycznie, nowy rerun NOT RUN | Nie mylić readiness i syntetycznego QA z live rozmową |
+| M2 — Parakeet TDT 0.6B v3 PL | **S22 Polish TTS→ASR lexical-overlap PASS** | Prawdziwy WER/CER, final segments, latencja, wspólne RAM/thermal z E2B |
+| M3 — Piper PL | **Adapter/Mac PASS; apk/głos S22 ABSENT** | Zweryfikować legalny pakiet i głos offline, native PCM16 |
+| M4 — Gemma Audio Direct | **Syntetyczny S22 native PASS wcześniej; profil disabled** | Audio→dialog E2E, polska jakość, RAM/termika/latencja przed odblokowaniem |
+| Live effects/CLIR | **Nieudowodnione zewnętrzne wykonanie** | Dokładny grant, własny Call, ścisłe ujawnienia, niezależny dowód efektu |
 
-## Kolejny sprint po odzyskaniu telefonu
+## Następna kolejność
 
-1. Fresh HEAD / Mac receipts / diff runtime, bez ponownego uruchamiania zatwierdzonych testów.
-2. Exact S22 `SM-S906B` + serial, 2× IDLE, dialer, brak aktywnej kampanii i retry, fingerprint grant/skills/audio before.
-3. Użyj gotowego AndroidTest APK z Maca (source `9d56cc65e5b4e2f779302c655a501fa68386c912`, SHA-256 `8c6e052548df2f9dcdaec15f2b0ea7c89d4460e905da0d99581fd5359f02302c`) po sprawdzeniu źródeł/podpisu; buduj ponownie tylko przy zmianie kodu. Przy niezmienionym `app/src/main` instaluj **tylko test APK**, bez nadpisania produkcyjnej aplikacji. Run `AndroidParakeetPolishRoundTripTest`, porównaj fingerprint/IDLE after.
-4. Zapisz PASS/FAIL; potem osobno PL ASR WER/CER, wydajność równoczesnych modeli i kwalifikacja Piper. M4 disabled do prawdziwego testu konwersacji i RAM.
-5. Odśwież checkpoint/handoff i **jedyny** [BLOCKERS](../BLOCKERS.md).
+1. **Jeden ręczny test UX** nowego panelu USB w AI Calls na S22+; przy problemie odczyt PID/crash przez Mac ADB.
+2. Gemma 4-turn z nowego zestawu jest NOT RUN z powodu blokady narzędzia; nie próbować odmowy obchodzić. Nie powtarzać starszych PASS bez nowego powodu.
+3. Zaplanować metryki WER/CER na rzeczywistych polskich próbkach i monitorowanie RAM/temperatury; S22 exact/2× IDLE, grant/skills/audio postcheck.
+4. Piper: zewnętrzny silnik i głos nadal nieobecne; nie instalować losowych APK. M4 nadal disabled.
+5. Każdy błąd techniczny oznaczyć OPEN/FIXED_IN_SOURCE/VERIFIED w [jedynym BLOCKERS](../BLOCKERS.md); F-045/F-047/F-048 OPEN, F-049 wycofany.
 
-## Równoległe znane luki
-
-**F-048** brak typowanych dozwolonych faktów z IdentityVault; **F-047** końcowy RX przerwany hangup; **F-045** semantyczna walidacja swobodnej wypowiedzi RAW. Zewnętrzny skutek CLIR nadal bez dowodu. **F-049 WYCOFANY** — dwuczęściowe powitanie infolinii jest prawidłowe, nie zmieniać VAD/ACK.
-
-Wspólny silnik docelowo obsługuje różne dozwolone zadania telefoniczne; API/model UI nie jest równoznaczny z wykonanym efektem. Zasady bezpieczeństwa: [SECURITY_PRIVACY](SECURITY_PRIVACY.md), [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md), [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md). Wykonanie tylko GitHub Connector + Mac Local Agent, `main` i `[skip ci]`, bez Codex/Work/Actions/new branches/force-push.
+Wykonanie wyłącznie GitHub Connector + dokładny Mac Local Agent; `main`, `[skip ci]`; bez Codex/Work/Actions/nowych branchy/force-push. No outgoing calls without exact app-recorded revocable authorization.
