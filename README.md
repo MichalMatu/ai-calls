@@ -11,11 +11,13 @@ Lokalny agent telefoniczny na Androida: użytkownik autoryzuje konkretny cel, ta
 
 ## Co pozostało
 
-1. **F-049 — turn-taking/IVR:** po pierwszych trzech słowach powitania i 1,5 s ciszy aplikacja kończy turę, wysyła neutralny ACK i odpowiada Gemmą; właściciel usłyszał rozpoczęcie odpowiedzi przed końcem zapowiedzi infolinii. Potrzebna walidacja końca wypowiedzi, bez arbitralnego spowalniania całej rozmowy.
+1. **Nowy sprint: menu i wybór silników audio** — wejście Android STT / Parakeet PL / eksperymentalne Gemma Audio Direct; model Gemma E2B/E4B; wyjście Android TTS PL / planowany Piper PL / Kokoro i PocketTTS dla wspieranych języków. Wybory niegotowe nie mogą udawać działających. [Szczegółowy handoff implementacyjny](docs/checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md).
 2. **F-048 — bezpieczne fakty:** Gemma zna cel CLIR, ale nie ma autoryzowanego `RequestFact` do kontrolowanego dostarczania informacji z `IdentityVault`. Nie wklejać danych osobowych do promptu; każdą decyzję o ujawnieniu podejmuje aplikacja.
 3. **F-047 / F-045:** odzyskiwanie transkryptu RX przerwanego przez koniec Call (diagnostyka już działa) oraz semantyczna kontrola swobodnego tekstu RAW. Nie potwierdzono zewnętrznego skutku CLIR.
 
-**Pełny bieżący checkpoint:** [2026-11-04 — RAW live / fakty / turn-taking](docs/checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md). **Jedyny rejestr statusów:** [BLOCKERS.md](BLOCKERS.md). **Następny sprint:** [ROADMAP](docs/ROADMAP.md) i [HANDOFF](docs/HANDOFF_NEXT_CHAT.md).
+**F-049 wycofane przez właściciela:** dwuczęściowe powitanie infolinii jest prawidłowym zachowaniem po jej stronie. Nie planować zmian VAD, ACK ani opóźnienia Gemmy z tego powodu.
+
+**Pełny bieżący checkpoint:** [2026-11-04 — RAW live / fakty / historia IVR](docs/checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md). **Jedyny rejestr statusów:** [BLOCKERS.md](BLOCKERS.md). **Następny sprint:** [ROADMAP](docs/ROADMAP.md) i [HANDOFF](docs/HANDOFF_NEXT_CHAT.md).
 
 ## Granice
 
