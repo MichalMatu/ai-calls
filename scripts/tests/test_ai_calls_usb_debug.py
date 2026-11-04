@@ -22,7 +22,7 @@ class UsbDebugProtocolTests(unittest.TestCase):
 
     def test_nonce_validation_prevents_stale_result_or_replay(self):
         args = bridge.bridge_extras("status", "0123456789abcdef", {})
-        self.assertEqual(args[:4], ["--es", "usb_debug_action", "status"])
+        self.assertEqual(args[:3], ["--es", "usb_debug_action", "status"])
         with self.assertRaises(bridge.DiagnosticError):
             bridge.bridge_extras("status", "abc", {})
         ok = {"protocol": 1, "nonce": "0123456789abcdef",
