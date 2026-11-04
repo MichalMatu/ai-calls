@@ -2,11 +2,11 @@
 
 ## Stan źródeł i urządzenia
 
-- Repozytorium: `MichalMatu/ai-calls`, gałąź docelowa `main`. Ostatnie zatwierdzone źródło aplikacji: `bcbe0a2a84781bf79033ccbef7293ce5f29dcc47`. Dokumentacyjny reaudyt rozpoczęty po `a834d217`; **przed kolejnym zadaniem zawsze odczytaj świeży HEAD**, nie używaj tu zapisanego SHA jako aktualnego.
+- Repozytorium: `MichalMatu/ai-calls`, gałąź docelowa `main`. Ostatnie zainstalowane i hostowo zweryfikowane źródło aplikacji: `032b6f5138a1c10f8d7f646065a5aa539e2a766a` (F-043 + F-042 pacing). Dokumentacyjny reaudyt rozpoczęty po `a834d217`; **przed kolejnym zadaniem zawsze odczytaj świeży HEAD**, nie używaj tu zapisanego SHA jako aktualnego.
 - **F-043 VERIFIED** na fizycznym Samsung S22+ `SM-S906B`: instalacja aplikacji i AndroidTest z podanego SHA, GPU, natywny `Conversation` użyty dwukrotnie (`false → true`); `generate_ms=6233 → 3998`, `engine_ready_ms=6709 → 0`, `conversation_create_ms=3191 → 0`. To test syntetyczny bez połączenia. [Pełny dowód](checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md).
-- **F-042:** równoległa neutralna zapowiedź + diagnostyka GPU/CPU zainstalowane w tym samym APK. Mac F-042 v4 i F-043 full QA PASS (248 Python, Android build/unit/lint, anti-friction). **OPEN:** odczuwalny czas i słyszalność zapowiedzi oraz pełnego TX podczas rzeczywistej rozmowy. [Dowód](checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md).
+- **F-042:** neutralna zapowiedź, diagnostyka GPU/CPU i korekta podwójnego oczekiwania po TX ACK. Mac 2026-11-04 RED i full GREEN (248 Python, Android build/unit/lint, anti-friction PASS); S22 z nowym APK `032b6f5`, bez połączenia. **OPEN:** rzeczywisty EOS→zapowiedź/pełny TX, słyszalność i brak nakładania po drugiej stronie. [Aktualny checkpoint](checkpoints/2026-11-04-f042-ack-pacing-measurement-sprint.md), [poprzedni](checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md).
 - F-041 eksport prywatnych nagrań przez USB/ADB VERIFIED; wcześniejsze 11,7–11,9 s EOS→TX pochodzi z prawdziwej rozmowy **sprzed** F-042/F-043. Audio pozostaje na Macu w prywatnym katalogu, nie na GitHub. [Dowód](checkpoints/2026-11-03-f041-private-rx-tx-silence-f042-latency.md).
-- Po wdrożeniu użytkownik nacisnął STOP AI: ostatni odczyt potwierdził `IDLE`, brak kontynuacji, zachowaną rolę dialera i grant. To **historyczny wynik** testu, nie dowód aktualnego stanu telefonu.
+- Po zainstalowaniu F-042 na S22 Mac Local Agent potwierdził `IDLE`, brak aktywnej kampanii, zachowaną rolę dialera, grant i odcisk danych kontynuacji. Instalację poprzedziło sprawdzenie braku aktywnego wznowienia. To **ostatni pomiar**, nie bieżący ciągły stan.
 - **Niezamknięte niezależnie od F-043:** słyszalność TX u rozmówcy, realny wynik CLIR, żywe wznowienie po STT 6/7/pustym finale, generyczne umiejętności wizyty/mechanika. Statusy F-xxx wyłącznie w [BLOCKERS.md](../BLOCKERS.md).
 
 ## Następna mierzalna praca
@@ -37,3 +37,12 @@ Mac `aicalls-20261104-doc-audit-branch-prune-v2` **DONE/0** na `main` `1c9dca9`:
 ## Nawigacja
 
 [README](../README.md) — krótki opis produktu i bieżący status; [ROADMAP](ROADMAP.md) — etapy; [ARCHITECTURE](ARCHITECTURE.md) — granice modułów; [AGENTS](../AGENTS.md) — reguły; [BLOCKERS](../BLOCKERS.md) — jedyne statusy; checkpointy — historyczne dowody, nie bieżące instrukcje.
+
+## Sprint F-042 — wynik z 2026-11-04
+
+- Źródło zmian: test RED `c6e69b7`, helper `b1546f8`, integracja `032b6f5`. Dotknięte wyłącznie `ChatRelayLiveCallProbe.kt`, `ChatRelayTurnPacing.kt` i test pacing. Nie zmieniono grantów, STOP, Gemmy ani zamrożonego Samsung RX/TX.
+- **Mac RED** `aicalls-20261104-f042-ack-pacing-red-v2`: DONE/0 (oczekiwany brak symbolu), po nieuruchomionym v1 bez SDK. **Mac GREEN** `aicalls-20261104-f042-ack-pacing-green-full-v1`: DONE/0, pin `032b6f5`, `ANTI_FRICTION=PASS`, `F042_GREEN_FULL_HOST_QA=PASS`, trzy udane fazy Android Gradle, 248 Python PASS, `host_quality_gate_green=true`.
+- **S22 odczyt** `aicalls-20261104-f042-s22-readonly-preflight-v2`: DONE/0, dokładny `SM-S906B`, `IDLE`, dialer tak, kampania nieaktywna; pierwsze zlecenie v1 przerwane *przed wykonaniem* z powodu budżetu zadania.
+- **S22 instalacja** `aicalls-20261104-f042-s22-safe-apk-deploy-v1`: DONE/0, build/install APK PASS, powtórny bezpieczny precheck, grant i stan kontynuacji bez zmian, końcowy `IDLE`, brak kampanii. **Nie wykonywano połączenia ani testów RX/TX na linii.**
+- Do pomiarów realnej rozmowy raport zawiera `turn_N_eos_to_quick_ack_tx_ms`, `turn_N_eos_to_full_tx_ms`, `turn_N_quick_ack_write_wall_ms` i `turn_N_quick_ack_post_write_hold_ms`. To czasy lokalne, nie akustyczny dowód słyszalności. [Checkpoint źródłowy i testy](checkpoints/2026-11-04-f042-ack-pacing-measurement-sprint.md).
+- **Granica:** etap source/QA/install VERIFIED; F-042 real-call acoustic oraz wynik CLIR nadal OPEN. Następny etap to jeden dozwolony, jawnie autoryzowany test realnego dialogu; nie powtarzaj syntetycznego F-043 bez nowej przesłanki.
