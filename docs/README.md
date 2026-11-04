@@ -1,11 +1,12 @@
 # AI Calls — indeks dokumentacji
 
-**W nowym czacie czytaj w tej kolejności:** [AGENTS](../AGENTS.md) → [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) → [phone-ready checkpoint](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md). Potem tylko normatywne źródła wymagane przez zakres zmiany: [ROADMAP](ROADMAP.md), [ARCHITECTURE](ARCHITECTURE.md), [BLOCKERS](../BLOCKERS.md), [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md), [SECURITY_PRIVACY](SECURITY_PRIVACY.md), [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md), [PHASE2D_FREEZE](PHASE2D_FREEZE_2026-09-18.md) przy mediach.
+**Wejście do bieżącej pracy:** [AGENTS](../AGENTS.md) → [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) → [USB debug / S22 checkpoint](checkpoints/2026-11-04-usb-debug-s22-acceptance.md). Stary [phone-ready checkpoint](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md) pozostaje historią wcześniejszego stanu.
 
-- **Bieżąca instrukcja:** `docs/HANDOFF_NEXT_CHAT.md`; **kolejność prac:** `docs/ROADMAP.md`; **jednoznaczny pomiar:** `docs/checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md`.
-- **Jedyne statusy defektów:** `BLOCKERS.md`. Nie skracać ani nie kasować historycznych F-xxx; wcześniejsze RED są dowodem procesu, a nie bieżącym zadaniem.
-- **Archiwum historyczne (nie kolejne polecenia):** pozostałe `docs/checkpoints/`, wcześniejsze `docs/*_2026-*.md`, `docs/FRICTION_BLOCKER_LEDGER.md`. Ich stare `OPEN`, `QUEUED`, `QA_PENDING` mogą być już zamknięte w nowszych receipts. Nie przypisywać im pierwszeństwa nad handoff/blocked ledger.
-- **Trwałe zasady:** AGENTS, AUTONOMOUS_OPERATION_MODE, SECURITY_PRIVACY, GENERIC_PHONE_TASK_AUTHORITY, HANDOFF_PROTOCOL oraz freeze Samsung/Shizuku.
+- **Bieżąca instrukcja i kolejność:** [handoff](HANDOFF_NEXT_CHAT.md) · [roadmap](ROADMAP.md).
+- **USB/ADB i panel diagnostyczny:** [USB diagnostic bridge](USB_DEBUG_BRIDGE.md) — jedna konsola Mac, prywatny eksport, aplikacyjny panel, istniejące magazyny stanów.
+- **Bieżące statuty defektów:** [BLOCKERS.md](../BLOCKERS.md) — jedyny rejestr OPEN/FIXED/VERIFIED, nie usuwać starszych RED.
+- **Normatywne zasady:** [ARCHITECTURE](ARCHITECTURE.md), [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md), [SECURITY_PRIVACY](SECURITY_PRIVACY.md), [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md).
+- **Media/privileged freeze:** [PHASE2D_FREEZE](PHASE2D_FREEZE_2026-09-18.md) — przeczytać przed modyfikacją Samsung/Shizuku PCM.
+- **Historia pomiarów i prób:** pozostałe dokumenty w `docs/checkpoints/` i historia Git/Local Agent; stare QA_PENDING/OPEN nie zastępują aktualnych receipts.
 
-Dokumentację aktywną skrócono przez usunięcie powtórzeń i nieaktualnych statusów; historyczne commity i receipts pozostały w Git/Local Agent. Nie usunięto normatywnych zabezpieczeń.
-\n- [USB/ADB diagnostic bridge](USB_DEBUG_BRIDGE.md) — owner-controlled Mac console, private export, one in-app panel.\n
+Dokumentacja aktywna wskazuje jedno bieżące źródło wyniku i jedno źródło statusu defektów. Prywatne WAV/transkrypty pozostają poza GitHub.
