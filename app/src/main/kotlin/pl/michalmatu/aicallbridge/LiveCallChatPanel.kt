@@ -6,6 +6,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.text.format.DateFormat
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -147,6 +148,7 @@ internal class LiveCallChatPanel(context: Context) : LinearLayout(context) {
             LiveCallChatFeed.Speaker.GEMMA -> "GEMMA RAW • TURA "
             LiveCallChatFeed.Speaker.SCRIPT -> "AI SKRYPT + GEMMA • TURA "
         }
+        val time = DateFormat.format("HH:mm:ss", line.atEpochMs).toString()
         val bubble = LinearLayout(context).apply {
             orientation = VERTICAL
             background = GradientDrawable().apply {
@@ -155,7 +157,7 @@ internal class LiveCallChatPanel(context: Context) : LinearLayout(context) {
             }
             setPadding(dp(12), dp(9), dp(12), dp(10))
             addView(TextView(context).apply {
-                text = label + line.turn
+                text = label + line.turn + " • " + time
                 textSize = 10f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.rgb(185, 207, 234))
