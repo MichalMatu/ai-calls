@@ -92,13 +92,14 @@ internal object CampaignGemmaDirectPreflight {
                 candidate?.close()
                 return
             }
+            val instruction = inFlightInstruction
             preparing = false
             pending = null
             inFlightInstruction = null
             if (ok && candidate != null) {
                 prepared?.close()
                 prepared = candidate
-                preparedInstruction = inFlightInstruction
+                preparedInstruction = instruction
             } else {
                 candidate?.close()
             }
