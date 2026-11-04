@@ -94,6 +94,37 @@ class PcmEndOfUtteranceDetectorTest {
         assertNotNull(snapshot.estimatedSpeechEndMs)
     }
 
+    @Test
+    fun interruptedRemoteCallBeforeTrailingSilenceDoesNotFinishSttInput() {
+        // Synthetic frame layout matches the diagnosed 17.08 s RX failure mode,
+        // without storing or replaying the user's private audio.
+        val detector = PcmEndOfUtteranceDetector(
+            trailingSilenceMs = 1_500, maxCaptureMs = 60_000,
+        )
+        val segments = listOf(
+            5_000 to 0, // initial IVR gap is not an end-of-speech trigger
+            3_200 to 3_000,
+            520 to 0,
+            4_600 to 3_000,
+            760 to 0,
+            2_000 to 3_000,
+            1_000 to 0, // remote Call ends, still shy of 1,500 ms VAD endpoint
+        )
+        var last = detector.acceptPcm16(ByteArray(0))
+        segments.forEach { (duration, sample) ->
+            last = detector.acceptPcm16(pcm(duration, sample))
+        }
+        assertFalse(last.shouldStop)
+        assertEquals(null, last.reason)
+        assertTrue(last.speechDetected)
+        assertEquals(17_080L, last.capturedMs)
+        assertEquals(1_000L, last.capturedMs - checkNotNull(last.estimatedSpeechEndMs))
+        // The production teardown cancels OnDeviceSpeechInput here; no STT final.
+        val finalized = detector.acceptPcm16(pcm(500, 0))
+        assertTrue(finalized.shouldStop)
+        assertEquals(PcmEndOfUtteranceDetector.EndReason.TRAILING_SILENCE, finalized.reason)
+    }
+
     private fun pcm(durationMs: Int, sample: Int): ByteArray {
         val sampleCount = LocalSpeechFormat.SAMPLE_RATE_HZ * durationMs / 1_000
         val bytes = ByteArray(sampleCount * 2)
