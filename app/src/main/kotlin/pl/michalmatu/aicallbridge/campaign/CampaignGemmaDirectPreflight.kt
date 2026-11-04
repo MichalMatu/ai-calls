@@ -15,23 +15,41 @@ internal object CampaignGemmaDirectPreflight {
     private var preparing = false
     private var pending: TextCallAgentBackend? = null
     private var prepared: TextCallAgentBackend? = null
+    private var preparedInstruction: String? = null
+    private var inFlightInstruction: String? = null
     private val callbacks = mutableListOf<(Boolean) -> Unit>()
 
-    fun prepare(context: Context, onReady: (Boolean) -> Unit) {
+    fun prepare(
+        context: Context,
+        systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
+        onReady: (Boolean) -> Unit,
+    ) {
+        require(systemInstruction.isNotBlank())
         val token: Long
         synchronized(lock) {
-            if (prepared != null) {
+            if (prepared != null && preparedInstruction == systemInstruction) {
                 onReady(true)
                 return
+            }
+            if (preparing && inFlightInstruction != systemInstruction) {
+                // A different task/skills choice must not reuse an old engine.
+                onReady(false)
+                return
+            }
+            if (prepared != null) {
+                prepared?.close()
+                prepared = null
+                preparedInstruction = null
             }
             callbacks += onReady
             if (preparing) return
             preparing = true
+            inFlightInstruction = systemInstruction
             token = ++generation
         }
         val candidate = runCatching {
             Gemma4LiteRtTextBackendFactory.createDirectDialogue(
-                context.applicationContext, GemmaDirectTaskBrief.PROMPT,
+                context.applicationContext, systemInstruction,
             )
         }.getOrElse {
             Log.w("AiCallBridge", "direct_prewarm_create_failed=${it.javaClass.simpleName}")
@@ -76,9 +94,11 @@ internal object CampaignGemmaDirectPreflight {
             }
             preparing = false
             pending = null
+            inFlightInstruction = null
             if (ok && candidate != null) {
                 prepared?.close()
                 prepared = candidate
+                preparedInstruction = inFlightInstruction
             } else {
                 candidate?.close()
             }
@@ -89,8 +109,17 @@ internal object CampaignGemmaDirectPreflight {
         notify.forEach { callback -> runCatching { callback(ok) } }
     }
 
-    fun takePrepared(): TextCallAgentBackend? = synchronized(lock) {
-        prepared.also { prepared = null }
+    fun takePrepared(
+        systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
+    ): TextCallAgentBackend? = synchronized(lock) {
+        val candidate = prepared
+        val matching = preparedInstruction == systemInstruction
+        prepared = null
+        preparedInstruction = null
+        if (!matching) {
+            candidate?.close()
+            null
+        } else candidate
     }
 
     fun discardUnused() {
@@ -102,6 +131,8 @@ internal object CampaignGemmaDirectPreflight {
             leftovers = listOfNotNull(pending, prepared)
             pending = null
             prepared = null
+            inFlightInstruction = null
+            preparedInstruction = null
             cancelled = callbacks.toList()
             callbacks.clear()
         }
