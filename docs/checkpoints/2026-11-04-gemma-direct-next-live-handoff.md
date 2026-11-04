@@ -66,21 +66,25 @@ Wyniki na S22:
 5. **Recording/obserwowalność:** pełne teksty i WAV tylko przy uprzednio uprawnionym `recordCallEvidence`; RX to okna nasłuchu STT, a nie nieprzerwany sygnał całego połączenia. Dane są na Macu lokalnie; nie ma automatycznego eksportu do chmury. Dokumentacja aktywna nadal zachowuje starszą historię F-042/F-043; bieżący status czytać z początku handoffu i niniejszego checkpointu.
 6. **Zablokowane narzędzie zdalnego startu rozmowy** z poprzedniej próby pozostaje wiążącym ograniczeniem; żadnego obejścia przez alternatywną komendę, Local Agenta lub API. Samodzielne uruchomienie w aplikacji przez właściciela jest niezależną drogą do autoryzowanej, rzeczywistej próby, bez naszego zdalnego dial.
 
-## 7. Konkretny plan kontynuacji — nie dzwonić przy samym checkpointowaniu
+## 7. ZMIANA KOLEJNOŚCI — decyzja właściciela 2026-11-04, 02:51 Europe/Warsaw
 
-**Krok A — zamknąć F-045 minimalną jakościową bramką Direct**: oddzielny obiekt/propozycja wypowiedzi, walidacja zgodności z dokładnym `CallTask`, zakaz nowych zobowiązań nawet w parafrazach, testy kontraktu i adversarial STT/JSON, fallback nie udający sukcesu. Stary `SCRIPT_GEMMA` bez zmian. Nie dodać nowej zbędnej zgody, nowych whitelist operatorów ani sztucznego limitu tur. Jeśli pierwsza próba ma być wyłącznie badawcza, odróżnić ją od akceptacji bezpiecznego produkcyjnego Direct.
- 
-**Krok B — przygotować rzeczywisty brief danych:** przy exact CLIR można zacząć od obecnego promptu, ale jawnie wykazać zgodność treści z aktualnym grantem, SIM i dozwolonym skutkiem. Dla następnych zadań zaimplementować `TaskBriefBuilder` z typowanymi faktami/skillsami i testem, że prewarm i active model dostają dokładnie ten sam brief; brak możliwości wstrzyknięcia sekretu bez zatwierdzenia polityki. F-044 zostaje OPEN do implementacji.
+**Nowy porządek: 3 → 2 → 1.** Nie należy przed rzeczywistym testem przerabiać generowania Gemma Direct ani wymieniać jego stałego promptu. Wcześniejszy plan F-045 → F-044 → live został zastąpiony tym priorytetem.
 
-**Krok C — pojedynczy realny test właściciela:** zweryfikować na S22 dokładną tożsamość urządzenia, `IDLE`, brak aktywnej kampanii/retry, rolę dialera, Shizuku/media i ważny aplikacyjny grant dla dokładnego CLIR/target/SIM. Upewnić się, że opt-in nagrywanie RX/TX i transkryptów jest dozwolone w grancie i prawa rozmówcy uwzględnione. Właściciel wybiera w aplikacji **`Kampanie i zadania AI Calls → Start authorized CLIR enable — Gemma Direct`**. Nie inicjować rozmowy zdalnie żadnym zablokowanym narzędziem.
+**Krok 1 (TERAZ): realny eksperymentalny test istniejącego Gemma Direct.**
+- Sprawdzić read-only: dokładny S22 `SM-S906B`, `IDLE`, brak aktywnej kampanii, brak zaplanowanego retry, dialer AI Calls, ważny dokładny grant CLIR/target/SIM, opt-in `recordCallEvidence`, uprawnienia audio i prawo do nagrywania. Nie modyfikować aplikacji, grantu, mediów lub danych przed pomiarem.
+- **Właściciel naciska w aplikacji** `Kampanie i zadania AI Calls → Start authorized CLIR enable — Gemma Direct`. Zewnętrzne połączenie nie może być wywołane przez wcześniej zablokowane narzędzie ani obejście przez Local Agenta. Zachować zwykły STOP i odwołanie grantu.
+- Zmierzyć `dialogue_mode=gemma_direct`, faktyczny STT konsultanta, jawne `SPEAK/ASK_CLARIFY/DISCLOSE_PHONE/CONFIRM_EFFECT` i źródła, tekst AI przyjęty do TTS, ACK i full TX, ilość danych RX/TX, EOS→ACK/full, czas Gemmy i TTS, ścieżkę error/recovery, kolejne tury jednego natywnego chat. Eksportować prywatne audio i `timeline.jsonl` na Mac; w GitHub wyłącznie anonimowe metryki. Ocena słyszalności z zewnętrznych dowodów jest oddzielna; żaden lokalny licznik bajtów nie potwierdza akustycznego odsłuchu. Osobno ocenić sukces CLIR. Jeśli wyniki nie działają, poprawiać wyłącznie zmierzoną przeszkodę i ponowić badanie, **nie przechodzić jeszcze do F-044/F-045**.
+- Badanie to **nie jest produkcyjną akceptacją**: otwarte ryzyko F-045 (niedostateczna semantyczna kontrola wolnego tekstu) pozostaje. Istniejące twarde bramki autoryzacji, uwierzytelnienia faktów/skutków, STOP i własności połączenia pozostają nienaruszone.
 
-**Krok D — metryki i acceptance:** w prywatnym raporcie sprawdzić kolejno telefon `OFFHOOK`/exact-owned → STT → `dialogue_mode=gemma_direct` → `SPEAK/ASK_CLARIFY/DISCLOSE_PHONE/CONFIRM_EFFECT` i źródła → oryginalne teksty AI po zatwierdzeniu → TTS PCM → quick ACK oraz full TX (bajty, błędy, timestamps) → kolejne tury w tym samym `Conversation` → przyczynę rozłączenia/STOP/IDLE. Policz EOS→ACK, EOS→full TX, Gemma generate i STT/TTS osobno. Odsłuchać lokalne WAV i, jeśli możliwe, niezależnie sprawdzić słyszalność po drugiej stronie. **Nie uznać CLIR za włączony bez osobnego dowodu sieciowego.**
- 
-**Krok E — porównać tryby na tym samym typie zadania i scenariuszach**, jeśli są odpowiednie autoryzacje: samodzielność wypowiedzi, powtórzenia, liczba odrzuceń, fallbacks, opóźnienie, stop/revoke/remote hangup, prawidłowość faktów. Przechować prywatny materiał na S22/Macu; do GitHub tylko anonimowe liczniki i wynik.
+**Krok 2 (po działającym live flow): F-044 dynamiczny TaskBrief.**
+- Utworzyć per-call brief z `CallTask` i dokładnym grantem, kryteriami sukcesu, polityką faktów i dozwolonymi skillsami; nie wstrzykiwać sekretnych wartości do system promptu. Dopiero po testach może zastąpić stały CLIR-only prompt. Zachować porównywalne obserwacje z pierwszego eksperymentu.
 
-## 8. Kryterium ukończenia następnego sprintu
+**Krok 3 (na samym końcu): F-045 dodatkowa semantyczna walidacja `SPEAK`.**
+- Niezależny od Gemmy validator znaczenia i zobowiązań, adversarial fixture i negatywne testy. Nie traktować wcześniejszego testu jako spełnienia F-045. Nie osłabiać istniejących mechanizmów bezpieczeństwa.
 
-- `F-045` nie daje nieautoryzowanego tekstu w negatywnych przypadkach; kod ma powiązane tests i Mac QA.
+## 8. Kryterium ukończenia najbliższego testu i dalszych sprintów
+
+- **F-045 pozostaje OPEN podczas pierwszego eksperymentu**; dodatkowe testy negatywne i validator należą do trzeciego etapu, nie do warunku rozpoczęcia eksperymentu. Obecne twarde uprawnienia nie mogą zostać zmienione.
 - Direct faktycznie generuje i wysyła **własne** zatwierdzone wypowiedzi w rozmowie, a nie tylko skrypt/ACK; co najmniej dwie realne tury z zachowanym kontekstem (kryterium testu, **nie** limit produktu).
 - Osiągnięte i zapisane wszystkie fazy STT/Gemma/TTS/TX, brak dowodu nieautoryzowanego skutku, brak wkraczania w obcy Call; STOP i grant revoke zachowują pierwszeństwo.
 - Dokładny stan końcowy S22 i brak spontanicznego retry; cel biznesowy CLIR zweryfikowany osobno.
