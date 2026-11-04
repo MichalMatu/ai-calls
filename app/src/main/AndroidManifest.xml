@@ -113,6 +113,10 @@
             android:stopWithTask="false" />
 
         <activity
+            android:name=".debug.UsbDebugPanelActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".DiagnosticProbeActivity"
             android:excludeFromRecents="true"
             android:exported="true"
