@@ -1,27 +1,22 @@
 # AI Calls
 
-Autonomiczny agent telefoniczny na Androida: użytkownik określa legalne zadanie, numer i zakres uprawnień, a aplikacja prowadzi rozmowę lokalnie (STT → reguły/stan zadania → Gemma → zatwierdzona wypowiedź → TTS/TX). Testem pilotażowym jest CLIR; umówienie wizyty, mechanika i inne skutki wymagają jeszcze osobnych, jawnie autoryzowanych akcji. Pilot ręczny nie jest produktem docelowym.
+Lokalny agent telefoniczny na Androida: użytkownik autoryzuje konkretny cel, target, konto/SIM i dozwolone skutki, a aplikacja prowadzi własne połączenie przez **STT → Gemma 4 E2B → TTS/TX** z kontrolą grantu i selektywnym STOP. CLIR jest pierwszym testowanym zadaniem; rezerwacje i inne skutki nie są jeszcze ogólnie dostępne.
 
-## Aktualny stan — 2026-11-04
+## Potwierdzony stan — 4 listopada 2026
 
-- **Kod główny:** gałąź `main`. Ostatni wdrożony na S22 kod aplikacji: `032b6f5138a1c10f8d7f646065a5aa539e2a766a` (F-043 + F-042 pacing). Odczytuj świeży HEAD; dokumentacyjne commity mogły przesunąć go bez nowej wersji APK.
-- **F-043 VERIFIED:** jeden natywny czat Gemmy na połączenie, bez powtarzania instrukcji i tworzenia nowego `Conversation` po każdej udanej turze. Na S22+ (`SM-S906B`) zainstalowano źródło `bcbe0a2a`; test dwóch syntetycznych tur GPU potwierdził `conversation_reused=false → true`. Samo `generate` trwało 6233 ms → 3998 ms; nie są to czasy odpowiedzi w rozmowie.
-- **F-042 CZĘŚCIOWO ZWERYFIKOWANE:** neutralne „Proszę chwilę zaczekać.” przygotowywane równolegle i odtwarzane wyłącznie w autoryzowanej kampanii, przez jeden tor TX bez nakładania głosów. Poprawka F-042 z 4 listopada usuwa podwójne oczekiwanie po blokującym zapisie PCM i mierzy EOS→zapowiedź oraz EOS→pełny TX. **Mac: RED/GREEN, 248 Python, Android build/unit/lint, audyt PASS; S22: aktualizacja APK PASS, grant i IDLE zachowane, bez połączenia. Słyszalność i realne opóźnienie podczas rozmowy nadal OPEN.**
-- **Ostatni rzeczywisty pomiar przed F-042/F-043:** około 11,7–11,9 s od końca mowy do TX. Rzeczywista słyszalność u rozmówcy i efekt CLIR nie zostały niezależnie potwierdzone.
-- **Po wdrożeniu F-042 na S22:** `IDLE`, kampania nieaktywna, rola dialera oraz grant i stan kontynuacji zachowane. To odczyt z zakończonego zadania wdrożeniowego, nie stały monitoring urządzenia.
+- **Realny S22+ (`SM-S906B`):** Gemma Direct RAW prowadzi wieloturowy dialog. Zakończone, prywatnie zarejestrowane sesje o 06:30 i 06:35 (Europe/Warsaw): odpowiednio **8/8 i 7/7** rozpoznanych wypowiedzi biura, własnych odpowiedzi Gemmy i pełnych lokalnych TX; 0 `DIRECT_REJECTED`. To **techniczny sukces toru rozmowy**, nie dowód wykonania CLIR lub słyszalności każdej wypowiedzi u operatora.
+- **Zamrożony punkt odniesienia RAW:** `0d44b7d5a7e01daa118da10c2e04c458086dced9`. Kod źródłowy z dynamicznym, autoryzowanym CLIR `TaskBrief`, czterema tekstowymi prompt-skills i prywatnym czatem STT/Gemma/TX ma ostatni potwierdzony APK S22 z `268be1f8f13502c7202822438b501706e0fcb0e1`. Mac host QA, instalacja exact S22 i 4 syntetyczne natywne tury PASS. Bieżący `main` HEAD należy zawsze odczytać ponownie (dokumentacja przesuwa historię).
+- **Obserwowalność:** dolny panel rozmowy w aplikacji prezentuje biuro/STT, zatwierdzony tekst Gemmy, TTS/TX i godziny. Właściciel potwierdził, że UI i dialog działają dobrze. Wewnętrzny czat jest nietrwały i nie jest archiwum danych.
+- **Ostatni odczyt po rozmowie:** S22 `IDLE`, brak oczekującego ponowienia. Transkrypt, WAV i chronologiczny raport ostatnich sesji pobrano prywatnie na Mac, nie do repozytorium.
 
-## Następny etap
+## Co pozostało
 
-Na nowej, konkretnie autoryzowanej rozmowie zmierzyć EOS→pierwsze TX zapowiedzi, EOS→pełna odpowiedź, Gemma/TTS i słyszalność po drugiej stronie; zweryfikować brak nakładania się głosów, respektowanie STOP oraz rzeczywisty wynik zadania. Nie powtarzać zakończonego testu dwóch tur F-043 bez zmiany kodu lub urządzenia.
+1. **F-049 — turn-taking/IVR:** po pierwszych trzech słowach powitania i 1,5 s ciszy aplikacja kończy turę, wysyła neutralny ACK i odpowiada Gemmą; właściciel usłyszał rozpoczęcie odpowiedzi przed końcem zapowiedzi infolinii. Potrzebna walidacja końca wypowiedzi, bez arbitralnego spowalniania całej rozmowy.
+2. **F-048 — bezpieczne fakty:** Gemma zna cel CLIR, ale nie ma autoryzowanego `RequestFact` do kontrolowanego dostarczania informacji z `IdentityVault`. Nie wklejać danych osobowych do promptu; każdą decyzję o ujawnieniu podejmuje aplikacja.
+3. **F-047 / F-045:** odzyskiwanie transkryptu RX przerwanego przez koniec Call (diagnostyka już działa) oraz semantyczna kontrola swobodnego tekstu RAW. Nie potwierdzono zewnętrznego skutku CLIR.
 
-## Źródła prawdy
+**Pełny bieżący checkpoint:** [2026-11-04 — RAW live / fakty / turn-taking](docs/checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md). **Jedyny rejestr statusów:** [BLOCKERS.md](BLOCKERS.md). **Następny sprint:** [ROADMAP](docs/ROADMAP.md) i [HANDOFF](docs/HANDOFF_NEXT_CHAT.md).
 
-- [AGENTS.md](AGENTS.md) — reguły wykonania, autoryzacja, testy i bezpieczeństwo.
-- [BLOCKERS.md](BLOCKERS.md) — jedyny rejestr F-xxx i ich statusów (historia pozostaje dla audytowalności).
-- [Handoff](docs/HANDOFF_NEXT_CHAT.md) — bieżący stan, identyfikatory Mac Local Agenta, plan wejścia do kolejnego sprintu.
-- [Roadmap](docs/ROADMAP.md) i [architektura](docs/ARCHITECTURE.md) — plan oraz granice warstw.
-- Dowody: [F-042 pacing 04.11](docs/checkpoints/2026-11-04-f042-ack-pacing-measurement-sprint.md), [F-042 początkowe](docs/checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md), [F-043](docs/checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md), [F-041](docs/checkpoints/2026-11-03-f041-private-rx-tx-silence-f042-latency.md). Starsze checkpointy są historią, nie instrukcją bieżącą.
+## Granice
 
-## Zasady
-
-Stosuj GitHub Connector + Mac Local Agent; bez Codex, Work i GitHub Actions. Nie omijaj odmów narzędzia, autoryzacji zadania, uprawnień Androida, prywatności rozmówców ani selektywnego STOP. Nagrania i transkrypcje tylko prywatnie na urządzeniu/Macu — nie w GitHub. **Test hostowy lub syntetyczny nie dowodzi zrealizowania zadania ani słyszalności rozmowy.**
+Pracuj w trybie GitHub Connector + Mac Local Agent; bez Codex, Work, GitHub Actions, nowych samowolnych połączeń i force-push. Dokładny scope grantu, Android Telecom, prywatność rozmówców, STOP i zamrożony tor Samsung/Shizuku nadal obowiązują. Dokumentacja i wyniki testów nie nadają uprawnień. Historyczne dowody są w `docs/checkpoints/`, źródła zasad w [AGENTS](AGENTS.md), [architekturze](docs/ARCHITECTURE.md) i [bezpieczeństwie](docs/SECURITY_PRIVACY.md).
