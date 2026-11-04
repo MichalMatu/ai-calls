@@ -270,9 +270,11 @@ internal object ChatRelayLiveCallProbe {
         private val backend: TextCallAgentBackend = if (!readOnlySupervised &&
             dialogueMode == CampaignDialogueMode.GEMMA_DIRECT
         ) {
-            // No PhraseMatrix/ClirDeterministicDialogueBackend/GateCHybrid router here.
-            // Existing app-owned fact, commitment, output-approval and TX gates remain.
-            controlAwareBackend(directBackend)
+            // F-046 raw speech-only experiment. No PhraseMatrix/JSON parser,
+            // no model-callable fact/disclosure/effect tools, and no commitment
+            // control-token interpreter. Existing live grant, owned-call,
+            // speech-approval, STOP and TX gates still run in the pipeline.
+            directBackend
         } else if (readOnlySupervised) {
             if (supervisedGemmaEnabled) {
                 SupervisedGemmaDialogueBackend(
