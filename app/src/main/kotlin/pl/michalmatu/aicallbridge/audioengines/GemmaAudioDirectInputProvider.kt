@@ -157,8 +157,8 @@ internal class GemmaAudioDirectInputProvider(context: Context) : SpeechInputProv
             val wave = GemmaAudioPcm16.toWave(samples)
             val answer = conversation.sendMessage(
                 Contents.of(
-                    Content.AudioBytes(wave),
                     Content.Text("Zapisz dokładnie usłyszaną wypowiedź po polsku."),
+                    Content.AudioBytes(wave),
                 ),
             ).toString().trim()
             if (!current(run)) return

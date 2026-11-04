@@ -27,6 +27,7 @@ COPY = [
         "AndroidParakeetNativeOffcallTest",
         "AndroidGemmaAudioNativeOffcallTest",
         "AndroidParakeetPolishRoundTripTest",
+        "AndroidPolishAudioQualityTest",
     )
 ]
 

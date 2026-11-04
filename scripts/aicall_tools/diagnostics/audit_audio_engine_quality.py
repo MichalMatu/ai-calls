@@ -46,6 +46,7 @@ def audit(root: Path) -> list[str]:
             "AndroidParakeetNativeOffcallTest",
             "AndroidGemmaAudioNativeOffcallTest",
             "AndroidParakeetPolishRoundTripTest",
+            "AndroidPolishAudioQualityTest",
         )
     }
 

@@ -10,6 +10,20 @@ import ai_calls_usb_debug as bridge  # noqa: E402
 
 
 class UsbDebugProtocolTests(unittest.TestCase):
+    def test_audio_quality_metrics_exclude_transcripts_and_unknown_fields(self):
+        output = "\n".join([
+            "INSTRUMENTATION_STATUS: stream=AUDIO_QA_GEMMA_CASE_1_WORD_ERRORS=2",
+            "AUDIO_QA_PARAKEET_CASE_3_INIT_MS=1490",
+            "AUDIO_QA_GEMMA_CASE_1_TRANSCRIPT=private text",
+            "AUDIO_QA_PHONE=123456789",
+            "AUDIO_QA_GEMMA_CASE_4_WORD_ERRORS=1",
+            "AUDIO_QA_GEMMA_CASE_1_REF_WORDS=invalid",
+        ])
+        self.assertEqual(bridge.parse_audio_quality_metrics(output), {
+            "GEMMA_CASE_1_WORD_ERRORS": 2,
+            "PARAKEET_CASE_3_INIT_MS": 1490,
+        })
+
     def test_actions_are_narrow_and_no_authority_bypass(self):
         for action in ("status", "profile_set", "profile_reset", "grant_revoke",
                        "evidence_status", "evidence_disable", "profile_check"):

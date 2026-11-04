@@ -61,6 +61,18 @@ TESTS = {
         "pl.michalmatu.aicallbridge.audioengines.AndroidParakeetNativeOffcallTest"
         "#statefulParakeetPrewarmsAndProcessesSyntheticPcmWithoutNativeFailure"
     ),
+    "gemma-audio-pl": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#gemmaAudioRecognizesPolishSpeech"
+    ),
+    "parakeet-quality": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#parakeetRecognizesPolishSpeech"
+    ),
+    "piper-pl": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#piperSynthesizesPolishSpeechForParakeet"
+    ),
 }
 
 
@@ -218,6 +230,23 @@ def existing_export(device: Device) -> dict:
             ("no_recorded_sessions" if no_data else "unknown_export_result")}
 
 
+def parse_audio_quality_metrics(output: str) -> dict[str, int]:
+    fields = {
+        "TTS_MS", "AUDIO_MS", "INIT_MS", "INFER_MS", "WORD_ERRORS",
+        "REF_WORDS", "CHAR_ERRORS", "REF_CHARS", "FINAL_CALLBACKS",
+    }
+    allowed = {f"{engine}_CASE_{case}_{field}"
+               for engine in ("GEMMA", "PARAKEET", "PIPER")
+               for case in range(1, 4) for field in fields}
+    metrics = {}
+    for line in output.splitlines():
+        line = line.removeprefix("INSTRUMENTATION_STATUS: stream=").strip()
+        match = re.fullmatch(r"AUDIO_QA_([A-Z0-9_]+)=([0-9]{1,12})", line)
+        if match and match[1] in allowed:
+            metrics[match[1]] = int(match[2])
+    return metrics
+
+
 def run_instrumentation(device: Device, test: str) -> dict:
     if test not in TESTS:
         raise DiagnosticError("unknown_offcall_test")
@@ -235,6 +264,7 @@ def run_instrumentation(device: Device, test: str) -> dict:
                 and "OK (1 test)" in output and "FAILURES!!!" not in output
                 else "instrumentation_failed",
         "test": test,
+        "audio_quality_metrics": parse_audio_quality_metrics(output),
     }
 
 
