@@ -278,6 +278,7 @@ internal object AppOwnedClirCampaignExecutor {
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         dialogueMode: CampaignDialogueMode,
+        directSystemInstruction: String?,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
