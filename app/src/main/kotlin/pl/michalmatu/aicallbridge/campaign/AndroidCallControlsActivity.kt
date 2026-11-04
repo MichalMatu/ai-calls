@@ -12,6 +12,8 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
+import pl.michalmatu.aicallbridge.LiveCallChatPanel
 import android.widget.TextView
 
 /** Small functional call UI required when the user consciously selects AI Calls as dialer. */
@@ -62,7 +64,20 @@ class AndroidCallControlsActivity : Activity() {
                 refresh()
             })
         }
-        setContentView(layout)
+        // The dialer UI is what the owner sees during the active cellular
+        // call. Keep the live chat pinned below the manual call controls.
+        setContentView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(ScrollView(this@AndroidCallControlsActivity).apply {
+                addView(layout, ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ))
+            }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
+            ))
+            addView(LiveCallChatPanel(this@AndroidCallControlsActivity))
+        })
         refresh()
     }
 
