@@ -1,5 +1,15 @@
 # AI Calls
 
+## Sprint S22 po ponownym podłączeniu — potwierdzony 2026-11-04
+
+- Źródło zainstalowanego nowego APK: `0d0fdfe22e9b002c8a9dc557ad5d95a882aa5976`. Mac full QA **DONE/0 PASS**, fizyczny S22 **DONE/0 PASS** dla profilu STORE 6/6, UI i czterech syntetycznych tur Gemma RAW. S22 `SM-S906B`, 2× IDLE, grant, rola, retry i odciski prefów bez zmian; żadnego połączenia.
+- **M2 Parakeet:** 614 588 752 B, exact SHA-256 zweryfikowany na S22; MediaPipe native prewarm + przetwarzanie syntetycznego 16k PCM **PASS** (`aicalls-20261104-audio-parakeet-s22-native-acceptance-v1`). Dokładność transkrypcji polskich wypowiedzi i współdzielenie pamięci z Gemma w aktywnym Call **OPEN**.
+- **M3 Piper:** adapter, Mac QA PASS; zewnętrzny pakiet `dev.ihorshevchuk.piper` **nieobecny** na S22, więc głos i rzeczywisty TTS Piper **NIEZWERYFIKOWANE** (brak cichego fallbacku).
+- **M4 Gemma Audio Direct:** natywne AudioBytes PCM synthetic **PASS** (`aicalls-20261104-audio-gemma-direct-s22-native-v1`); pełny polski dialog i pamięć przy jednoczesnym E2B nadal niepotwierdzone. Tryb pozostaje wyłączony dla aktywnego profilu.
+- F-053 został naprawiony i **VERIFIED** Mac + S22 off-call; F-045/047/048 pozostają OPEN, F-049 wycofany; brak nowego CLIR/live-call proof.
+
+[Dokładne receipts](docs/checkpoints/2026-11-04-audio-engines-m2-m4-sprint-checkpoint.md).
+
 Lokalny agent telefoniczny na Androida: użytkownik autoryzuje konkretny cel, target, konto/SIM i dozwolone skutki, a aplikacja prowadzi własne połączenie przez **STT → Gemma 4 E2B → TTS/TX** z kontrolą grantu i selektywnym STOP. CLIR jest pierwszym testowanym zadaniem; rezerwacje i inne skutki nie są jeszcze ogólnie dostępne.
 
 ## Potwierdzony stan — 4 listopada 2026

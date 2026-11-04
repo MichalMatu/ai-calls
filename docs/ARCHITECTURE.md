@@ -1,5 +1,7 @@
 # AI Calls — architektura
 
+**Nowy sprzętowy zakres (2026-11-04):** M2 Parakeet i M4 Gemma Audio Direct przeszły natywne *syntetyczne* testy PCM na S22; M2 model zweryfikowano SHA-256. APK `0d0fdfe` z testami STORE/UI/Gemma ma off-call PASS; Piper nie jest zainstalowany na S22. To nie jest dowód polskiej jakości ASR, pełnego multimodalnego dialogu, autoryzowanego Call ani CLIR. [Dowody](checkpoints/2026-11-04-audio-engines-m2-m4-sprint-checkpoint.md).
+
 ## Cel i granice
 
 Produkt wykonuje **konkretnie autoryzowane zadanie telefoniczne na urządzeniu**: interpretacja celu → wybór zatwierdzonego numeru/SIM → telefon → dialog STT/Gemma/TTS → deterministyczny skutek i dowód → selektywne zakończenie własnego połączenia → wynik użytkownikowi. CLIR jest aktualnym przypadkiem testowym; nie ogranicza silnika do operatora ani nie dowodzi implementacji ogólnych wizyt/rezerwacji.
