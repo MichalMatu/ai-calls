@@ -100,6 +100,14 @@ class AudioEngineQualityGateTest(unittest.TestCase):
             "raw-audio-or-transcript-logging",
         )
 
+    def test_audio_provider_cannot_import_privileged_helper(self):
+        self.check_mutation(
+            AUDIO + "ParakeetSpeechInputProvider.kt",
+            "import android.content.Context",
+            "import android.content.Context\\nimport rikka.shizuku.Shizuku",
+            "Telecom-or-privileged-transport-ownership",
+        )
+
     def test_piper_must_stay_engine_pinned(self):
         self.check_mutation(
             AUDIO + "AudioEngineProviders.kt",

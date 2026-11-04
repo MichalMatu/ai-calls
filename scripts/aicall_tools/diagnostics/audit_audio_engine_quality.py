@@ -54,7 +54,10 @@ def audit(root: Path) -> list[str]:
             errors.append(f"{file}: missing {label}")
 
     def forbid(file: str, src: str, pattern: str, label: str) -> None:
-        if re.search(pattern, src, re.I):
+        # Comments document frozen integration boundaries; they are not executable code.
+        # Strip Kotlin // and /* */ comments before detecting risky dependencies.
+        executable = re.sub(r"/\\*.*?\\*/|//[^\\n]*", "", src, flags=re.S)
+        if re.search(pattern, executable, re.I):
             errors.append(f"{file}: unsafe {label}")
 
     profile = files["AudioEngineProfile"]
