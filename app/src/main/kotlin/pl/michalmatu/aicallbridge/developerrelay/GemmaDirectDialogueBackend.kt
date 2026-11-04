@@ -38,7 +38,7 @@ potwierdzeń wykonania skutku lub dodatkowych działań.
 internal object GemmaDirectSpeechPolicy {
     private val sensitiveTokens = Regex("""(?i)(https?://|www\.|\[\[|\]\]|@|[0-9]|\+\d)""")
     private val forbiddenCommitments = Regex(
-        """(?i)(włączon[aoey]|aktywowan[aoey]|już aktywn|zrealizowan[aoey]|potwierdzam aktywację|zgadzam się na|akceptuję warunki|podpisuję|płacę|zapłacę|opłat[ęya]|zakup|zawarci[ea] umow|zmian[ęay] taryf|wyłącz[ey]|dezaktywacj)""",
+        """(?i)(włączon[aoey]|aktywowa(łem|łam|liśmy|ł|ła|no|na|ny)|aktywowan[aoey]|już aktywn|zrealizowan[aoey]|potwierdzam aktywację|zgadzam się na|akceptuję warunki|podpisuję|płacę|zapłacę|opłat[ęya]|zakup|zawarci[ea] umow|zmian[ęay] taryf|wyłącz[ey]|dezaktywacj)""",
     )
     fun review(candidate: String): String? {
         val text = candidate.trim().replace(Regex("""\s+"""), " ")
