@@ -91,11 +91,12 @@ internal class GemmaDirectDialogueBackend(
     private val authorizedPhoneFact: TextCallAgentBackend,
     private val canConfirmEffect: () -> Boolean,
     private val observer: GemmaDirectObserver = GemmaDirectObserver { _, _, _ -> },
+    private val elapsedRealtimeMs: () -> Long = { SystemClock.elapsedRealtime() },
 ) : TextCallAgentBackend {
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
-        val startedAt = SystemClock.elapsedRealtime()
+        val startedAt = elapsedRealtimeMs()
         fun emit(action: String, source: String) {
-            observer.onDecision(action, source, (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0))
+            observer.onDecision(action, source, (elapsedRealtimeMs() - startedAt).coerceAtLeast(0))
         }
         fun clarification(action: String, source: String) {
             emit(action, source)
