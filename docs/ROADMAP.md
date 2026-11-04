@@ -1,5 +1,7 @@
 # AI Calls — roadmap: konfigurowalne wejście / model / wyjście (2026-11-04)
 
+**Sprint bez telefonu / bramka jakości:** 10 testów mutacyjnych, nowa obowiązkowa host QA audio i dodatkowe Kotlin PCM chunk/WAV/macierze profili. Mac v2 PASS, v3 final po nowych testach QA_PENDING; żadnych zmian produkcyjnych względem APK S22 `0d0fdfe`. [Host-only checkpoint](checkpoints/2026-11-04-audio-models-hostonly-quality-gates-checkpoint.md).
+
 **Stan najnowszy (S22, 2026-11-04):** Fizyczne M2 Parakeet (natywny model + syntetyczny PCM) i M4 Gemma Audio Direct (natywne AudioBytes syntetyczne) **PASS off-call**; poprawiony APK `0d0fdfe` STORE 6/6, MENU i cztery syntetyczne tury Gemma **PASS**. M3 Piper system package na S22 **ABSENT**, więc native TTS OPEN. WER polskiej mowy, równoczesny Parakeet+E2B, thermal/perf i prawdziwa rozmowa OPEN. [Checkpoint](checkpoints/2026-11-04-audio-engines-m2-m4-sprint-checkpoint.md).
 
 **Priorytet właściciela:** M1 zamknięty Mac/S22 off-call; M2 Parakeet i M3 Piper mają implementację oraz Mac QA PASS, M4 eksperymentalny source czeka na finalny Mac QA i natywny S22. Żadna nowa konfiguracja M2–M4 nie ma dowodu rozmowy. Początkowo należało **kodować** menu i wymienne silniki audio z planu [Edge Gallery](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md), nie wykonywać kolejnego ogólnego audytu. Szczegółowa, wiążąca lista kroków znajduje się w [IMPLEMENTATION_HANDOFF](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md), a [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) wskazuje punkt startu.

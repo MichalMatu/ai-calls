@@ -1,5 +1,7 @@
 # AI Calls
 
+**Host-only bramki jakości M1–M4:** [checkpoint 2026-11-04](docs/checkpoints/2026-11-04-audio-models-hostonly-quality-gates-checkpoint.md). Produkcyjny APK S22 bez zmian; testy mutacyjne, PCM, WAV i profilów na Mac bez telefonu. Nie jest to dowód live ani dostępności Piper.
+
 ## Sprint S22 po ponownym podłączeniu — potwierdzony 2026-11-04
 
 - Źródło zainstalowanego nowego APK: `0d0fdfe22e9b002c8a9dc557ad5d95a882aa5976`. Mac full QA **DONE/0 PASS**, fizyczny S22 **DONE/0 PASS** dla profilu STORE 6/6, UI i czterech syntetycznych tur Gemma RAW. S22 `SM-S906B`, 2× IDLE, grant, rola, retry i odciski prefów bez zmian; żadnego połączenia.

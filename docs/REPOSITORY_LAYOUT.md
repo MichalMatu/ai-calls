@@ -18,6 +18,7 @@ ai-calls/
 │   ├── aicall_tools/         # importable Python tooling
 │   │   ├── benchmarks/       # benchmark runners/helpers
 │   │   ├── calls/            # call orchestration and live-call tooling
+│   │   ├── diagnostics/      # anti-friction, private evidence, audio quality static gates
 │   │   ├── device/           # device/S22 inspection and control helpers
 │   │   ├── orange/           # Orange-specific historical/evidence tooling
 │   │   ├── realtime/         # realtime API/lab tooling
