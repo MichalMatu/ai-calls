@@ -1,5 +1,14 @@
 # AI Calls — handoff operacyjny (2026-11-04)
 
+## CHECKPOINT WZNOWIENIA — Gemma Direct przed testem live
+
+**Czytaj najpierw:** [2026-11-04-gemma-direct-next-live-handoff.md](checkpoints/2026-11-04-gemma-direct-next-live-handoff.md) — pełna prawda o promptach, datach/skillsach, SHA, Mac receipts, S22 APK, RX/STT/TTS/TX, prywatności, znanych brakach i konkretnym teście.
+
+- Baseline kodu na fizycznym S22: `2424118318caaca03d6330129bddf4190715677c`. Ostatni zapamiętany kod źródłowy na `main` jest identyczny; kolejne commity dokumentacyjne nie były instalowane. **Przed wznowieniem zawsze odczytaj świeży HEAD.**
+- Mac full `aicalls-20261104-gemma-direct-full-host-qa-v1` DONE/0: Gradle unit/lint/assemble AndroidTest + 248 Python PASS. S22 off-call `aicalls-20261104-gemma-direct-s22-offcall-two-turn-v1` DONE/0, bez telefonu, AndroidTest PASS, 2 tury GPU complete, druga reuse (`generate_ms=6525 → 1598`), brak naruszenia grantu/continuation.
+- Realny Gemma Direct **NIE testowany na żywo**. Co gorsza, `GemmaDirectTaskBrief.PROMPT` jest na dziś stałym opisem **CLIR**, a nie dynamicznym `TaskBrief` z zatwierdzonego zadania i katalogu skillsów. `SPEAK` ma tylko syntaktyczny speech filter; nie potwierdza pełnej walidacji semantycznej zobowiązań. Nowe `F-044` i `F-045` w `BLOCKERS.md` są OPEN. Najbliżej: wzmocnić F-045, dobrać legalny, exact-CLIR brief; potem **właściciel** może wykonać autoryzowaną próbę przez przycisk `Gemma Direct` w aplikacji, bez obchodzenia dawnej odmowy zdalnego wywołania.
+- Oba tryby nadal muszą mieć taki sam grant/SIM/target/STOP/FactDisclosure/commitment/TTS/TX; `Script + Gemma` pozostaje domyślny. Nie ruszać Samsung/Shizuku frozen media, nie ujawniać PII, WAV ani tekstu rozmowy w repo/receiptach.
+
 ## NOWY STAN — Gemma Direct dual-mode (ostatni sprint 2026-11-04)
 
 - **Zainstalowany i testowany APK na S22:** kod aplikacji z `2424118318caaca03d6330129bddf4190715677c`; świeży `main` HEAD sprawdź ponownie (kolejne commity mogą dotyczyć tylko dokumentacji). Mac `aicalls-20261104-gemma-direct-full-host-qa-v1` DONE/0: Gradle unit/lint/app+AndroidTest APK, 248 Python, anti-friction PASS.
