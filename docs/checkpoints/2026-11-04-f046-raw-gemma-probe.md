@@ -28,3 +28,9 @@ Mac Local Agent: zadanie `aicalls-20261104-f046-gemma-raw-host-qa-v1`, stan **PE
 2. Tylko przy dokładnym S22, IDLE, braku aktywnej kampanii lub retry i zachowanym grancie: bezpieczny off-call test 4 natywnych tur (oraz APK install, jeśli warunki pozwalają), bez żądania nowego połączenia.
 3. Jeśli 4/4 raw off-call działają, właściciel świadomie uruchamia **jeden** autoryzowany nadzorowany test Gemma Direct z przycisku w aplikacji; zapisać prywatnie STT, model source `GEMMA_DIRECT_RAW`, zatwierdzony tekst, ACK/full TX, WAV i powód STOP. Monitorować skutki słowne, bez odbierania twardych bramek.
 4. F-046 zamknąć dopiero przy stabilnym wieloturowym RAW; następnie zgodnie z priorytetem użytkownika F-044 `TaskBrief`, F-045 semantyczne hardening jako ostatnie.
+
+## Aktualizacja: pełne Mac QA GREEN
+
+Receipt Mac Local Agent `aicalls-20261104-f046-gemma-raw-host-qa-v1`: **DONE/0** z dokładnego commit `0d44b7d5a7e01daa118da10c2e04c458086dced9`. `scripts/verify_host.sh`: 3 × `BUILD SUCCESSFUL`, `Ran 248 tests` / `OK`, `host_quality_gate_green=true`, `ANTI_FRICTION=PASS`. ZERO połączeń i zmian telefonu w host QA. Te wyniki nadpisują wyżej zapisany wcześniejszy status `PENDING/UNVERIFIED`. **Nie są** jeszcze dowodem fizycznej generacji RAW na S22.
+
+Uruchomiono kolejną bezpieczną próbę `aicalls-20261104-f046-gemma-raw-s22-offcall-v1`: warunki `IDLE`, brak aktywnej kampanii/retry, role dialera i niezmienione fingerprinty prefów są sprawdzane **przed** instalacją, a 4 natywne tury realizowane bez połączenia; do chwili terminalnego receipt status **PENDING**. Żadnego owner-initiated live test nie wykonał agent.
