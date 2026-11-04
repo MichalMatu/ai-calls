@@ -2,6 +2,14 @@
 
 **Źródło statusów:** [BLOCKERS.md](../BLOCKERS.md). Dotychczasowe wyniki i pomiary są udokumentowane w [F-042 pacing 04.11](checkpoints/2026-11-04-f042-ack-pacing-measurement-sprint.md), [F-042 bazowym](checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md) i [F-043](checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md). Poniższa kolejność jest planem, nie potwierdzeniem wykonania.
 
+## Priorytet przy wznowieniu: Gemma Direct — pierwszy live-call
+
+[Kompletny checkpoint i dokładny scenariusz](checkpoints/2026-11-04-gemma-direct-next-live-handoff.md). Oddzielny generatywny `GEMMA_DIRECT` i domyślny `SCRIPT_GEMMA` istnieją, a Mac full QA i S22 synthetic 2-turn GPU **PASS**; rzeczywista rozmowa Direct i skutek CLIR **OPEN**.
+
+1. **F-045:** uszczelnić semantyczną kontrolę swobodnego tekstu przed TTS; model może formułować zdania, ale tylko aplikacja autoryzuje nowe zobowiązania/efekty. Dodać testy parafraz i prompt injection. Nie osłabiać STOP, `FactDisclosurePolicy` ani mechanizmu commitment.
+2. **F-044:** w kolejnym etapie zbudować `TaskBrief` per grant/CallTask + dozwolone fakty po identyfikatorach + skills i kryteria wykonania. Obecny prompt to **stały CLIR-only brief**, wystarczający do badania dokładnie tego zadania, ale nie do deklaracji wsparcia ogólnych zadań.
+3. **Realny test tylko w autoryzowanym zakresie**: zweryfikować S22, `IDLE`, własność połączenia, grant/target/SIM, zgodę na prywatne RX/TX; właściciel uruchamia przycisk **Gemma Direct** w aplikacji. Nie używać zabronionej drogi zdalnego dzwonienia. Zebrać STT → tekst Gemmy → action/source → TTS → RX/ACK/TX WAV, latencję i w miarę możliwości niezależną słyszalność. Wynik CLIR weryfikować oddzielnie. Powrót do `IDLE`, bez przypadkowego retry.
+
 ## 1. F-042 — rzeczywisty dialog i opóźnienie (następny punkt)
 
 **Stan 2026-11-04:** korekta czasu TX zapowiedzi, RED/GREEN/pełne QA Mac i bezpieczna instalacja S22 PASS; pomiar słyszalności oraz EOS→pierwszy dźwięk w rzeczywistym połączeniu nadal OPEN.
