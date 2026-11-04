@@ -1,32 +1,43 @@
-# AI Calls — roadmap po działającym Gemma RAW (2026-11-04)
+# AI Calls — roadmap: konfigurowalne wejście / model / wyjście (2026-11-04)
 
-**Stan, nie plan:** 2 rzeczywiste sesje Gemma Direct na S22, **8/8 oraz 7/7** STT → Gemma RAW → pełny lokalny TX, bez `DIRECT_REJECTED`; dynamiczny, zgodny z grantem `TaskBrief` CLIR i menu czterech prompt-skills, dolny prywatny panel rozmowy. Mac host QA i exact S22 off-call cztery tury PASS, obecny APK z kodu `268be1f8f13502c7202822438b501706e0fcb0e1`. Obserwacja właściciela: rozmowa działa, ale Gemmie brakuje dozwolonych danych, a pierwsza odpowiedź zaczęła się przed końcem komunikatu infolinii. **Nie** potwierdzono włączenia CLIR. [Checkpoint](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md).
+**Priorytet właściciela:** kolejny czat ma **kodować** menu i wymienne silniki audio z planu [Edge Gallery](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md), nie wykonywać kolejnego ogólnego audytu. Szczegółowa, wiążąca lista kroków znajduje się w [IMPLEMENTATION_HANDOFF](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md), a [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) wskazuje punkt startu.
 
-## Nowy kierunek — wybieralne modele audio (badania 2026-11-04)
+## Potwierdzony baseline — nie rozmontowywać
 
-Na podstawie 5 zrzutów użytkownika i wydania Google AI Edge Gallery Android **1.0.22** zaplanowano niezależny wybór wejścia **Android STT / Parakeet TDT 0.6B v3 (PL) / eksperymentalne audio bezpośrednio do Gemma 4** oraz wyjścia **Android TTS PL / przyszły Piper PL / Kokoro i PocketTTS tylko dla wspieranych języków (obecnie bez PL)**. Obecny LiteRT-LM `0.17.1` w AI Calls ma `audioBackend=null`; Gemma obecnie generuje wyłącznie tekst. To na razie **DESIGN / niezaimplementowane opcje**, nie zastępuje frozen S22 RAW i nie zamyka F-048/F-049. Zobacz [pełny plan wyboru ASR/TTS](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md); rozpocząć od bezpiecznych adapterów z dotychczasowymi domyślnymi silnikami, następnie testować oddzielnie nowe modele.
+S22+ (SM-S906B), `Gemma 4 E2B RAW` z dynamicznym `TaskBrief` i 4 prompt-skills, Android STT + offline Android TTS, prywatny chat STT/Gemma/TX na 3 ekranach. Dwa realne cykle: **8/8** i **7/7** STT/model/`WRITE_COMPLETE`, bez `DIRECT_REJECTED`. Ostatni fizycznie zainstalowany APK z kodu `268be1f8f13502c7202822438b501706e0fcb0e1`; źródła dla pierwotnego RAW `0d44b7d5a7e01daa118da10c2e04c458086dced9`. `WRITE_COMPLETE` to lokalne TX, nie niezależne potwierdzenie działania CLIR. Zawsze najpierw odczytaj aktualny HEAD.
 
-## Następny sprint — bez ruszania udanego toru media/modelu
+**Korekta F-049 — zamknięte, NIE jest defektem AI Calls.** Dwuczęściowe powitanie było zachowaniem infolinii. **Nie dodawać** nowego wykrywania końca powitania, zmian VAD, dodatkowych pauz, opóźnienia ACK/TX ani osobnych sprintów naprawczych z tego powodu. Historyczny wpis zostaje w `BLOCKERS` jako wycofany.
 
-### A. F-049: poprawne przejmowanie tury IVR
+## Sprint M1 — rzeczywiste menu + modularne wybory, zachowanie starego defaultu
 
-- Zdiagnozować na prywatnym lokalnym RX/STT, dlaczego pierwsze 3 słowa powitania + 1,5 s ciszy uruchamiają ACK i pierwszą odpowiedź, mimo że automat może kontynuować komunikat. Oddzielić rzeczywisty koniec tury od pauzy IVR.
-- Dodać deterministyczny replay/test na odpowiedź **po zakończeniu zapowiedzi**, z zachowaniem szybkich odpowiedzi na krótkie rzeczywiste pytania. Nie wprowadzać sztywnej pauzy dla każdej wypowiedzi, sztucznego limitu tur, ani nowego koniecznego kliknięcia.
-- Osobno sprawdzić, czy neutralny ACK można wyemitować bez przedwczesnego zagłuszenia. Zmiany za warstwą mediów, bez naruszania zamrożonego Samsung/Shizuku RX/TX. RED → GREEN → pełna regresja.
+- Dodać odrębne, przejrzyste **Ustawienia silników audio AI** (Wejście / Model dialogu / Wyjście) z bieżącą konfiguracją, kompatybilnością `pl-PL`, stanem instalacji modelu, lokalizacją/wersją, rozmiarem, testem offline, zdolnością urządzenia i pojedynczym `Zapisz`. Nie mieszać z menu prompt-skills i grantem.
+- **Wejście:** Android STT (aktywny), Parakeet 0.6B v3 PL (pobierz/eksperymentalny), Gemma 4 Audio Direct (eksperymentalny). **Model:** Gemma 4 E2B (aktywny), E4B (po sprawdzeniu wersji/zasobów), w przyszłości inne zgodne modele. **Wyjście:** Android TTS `pl-PL` (aktywny), Piper `pl_PL` (do zaimplementowania); Kokoro 82M i PocketTTS 100M mogą być pokazane w katalogu, ale oznaczone `Brak PL` i **nieaktywne** dla obecnej kampanii. Gemma E2B nie ma udowodnionej generacji PCM jako TTS.
+- Dodać typowany `AudioEngineProfile` + rejestr `capabilities/availability/languages/backends`, oddzielne `SpeechInputProvider`, `SpeechOutputProvider`, `DialogEngineProvider` (oraz eksperymentalny `AudioDirectAdapter`). Nie dodawać fałszywie działających elementów UI. Profile nie przyznają dodatkowych uprawnień i nie zmieniają przyznanego celu/odbiorcy.
+- First-pass musi być **funkcjonalnie zgodny z istniejącym Android STT → Gemma RAW → Android TTS**: identyczny call authority, STOP, prewarm, VAD, PCM RX/TX i live chat. Konfiguracja zastygła przed prewarm/Call, nie przełączać modeli w środku rozmowy.
+- RED→GREEN focused unit, pełny Mac QA, exact S22 off-call, bez samowolnego połączenia. Oczekiwany wynik: działające menu i rzeczywiście wybieralne gotowe domyślne silniki oraz jasno opisane niegotowe opcje.
 
-### B. F-048: autoryzowany dostęp do potrzebnych faktów
+## Sprint M2 — Parakeet PL ASR
 
-- Z prywatnego transkryptu zidentyfikować **typy** danych wymagane przez infolinię, bez ujawniania wartości w kodzie, GitHub, promptach lub wynikach Local Agenta.
-- Zbudować typowany `FactRequest`, katalog bezpiecznych identyfikatorów i odpowiedź aplikacji. `FactDisclosurePolicy` weryfikuje grant, dokładny cel, odbiorcę, zakres, stan STOP; dopiero wtedy `IdentityVault` może zwrócić wymagany plaintext do kontrolowanej, jednorazowej wypowiedzi. Brak faktu → rozstrzygnięcie przez właściciela, nie halucynacja.
-- Rozbudować `TaskBrief` wyłącznie o nazwy dopuszczonych umiejętności/faktów, nigdy globalną listę wartości prywatnych; nie mylić prompt-skills z wykonywalnym tool-calling. Testy prawidłowego faktu, odmowy, niezgodnego grantu, cofnięcia, zmiany odbiorcy i prompt injection.
-- Dopiero po testach hostowych i off-call sprawdzać dalszy live dialog, jedynie w ważnym grancie i świadomie uruchomiony przez użytkownika na telefonie.
+- Zintegrować oficjalne MediaPipe AudioTranscriber + `parakeet-tdt-0.6b-v3`; licencja, deklaracja rozmiaru i wymagania wersji w rejestrze.
+- PCM 16 kHz z istniejącego RX, partial/final z timestamps, przycięcie pamięci i kolejka nieblokująca RX, prawdziwa diagnostyka offline i porównanie na tych samych prywatnych WAV. Utrzymać istniejące zamykanie tury i UX.
+- Pomiar kosztu RAM/GPU, nagrzewania i latencji na S22 z Gemma 4 E2B, bez założenia że można jednocześnie odpalić oba GPU modele.
 
-### C. F-047 / F-045 i faktyczny efekt
+## Sprint M3 — wybieralne polskie TTS
 
-- **F-047:** marker `RX_INTERRUPTED` jest obecny i zaobserwowany; odzyskanie urwanego STT po zakończeniu Call może służyć tylko prywatnej diagnostyce, nigdy Gemma/TX po STOP.
-- **F-045:** niezależna kontrola semantyczna swobodnej odpowiedzi Gemmy, nowych zobowiązań/zakupów i wypowiadanych danych. Wykonywalne skutki nadal tylko przez aplikacyjny commitment gate i niezależny dowód potwierdzenia.
-- **Zamknięcie zadania:** niezależnie potwierdzić realny skutek CLIR, jeśli możliwe; liczba tur i `WRITE_COMPLETE` nie są rezultatem u operatora.
+- `Android TTS pl-PL` nadal bezregresyjny.
+- Piper `pl_PL` dopiero po weryfikacji Android runtime/modelu/licencji/głosu; normalizacja PCM do **16 kHz mono signed PCM16**, nie dotykać zamrożonego `AuthorizedPcmUplinkWriter`.
+- Kokoro/PocketTTS tylko zgodne języki (w obecnej wersji **bez polskiego**), niepodmieniane milcząco. Test liczb, CLIR, skrótów, szybkości pierwszego dźwięku i jakości.
 
-## Status i reguły
+## Sprint M4 — Gemma 4 Audio Direct
 
-[BLOCKERS.md](../BLOCKERS.md) jest jedynym rejestrem statusów, [ARCHITECTURE](ARCHITECTURE.md) opisuje granice modułów, [HANDOFF](HANDOFF_NEXT_CHAT.md) krótką instrukcję wznowienia. Stare checkpointy, QA i wykresy opóźnień pozostają archiwum, a **nie** bieżącą listą pracy. Nie powtarzać testów na niezmienionym SHA tylko dla potwierdzenia historii. GitHub Connector + Mac Local Agent; bez Codex/Work/Actions. Żadnych rozmów lub zmian grantu podczas porządkowania dokumentacji.
+- Osobny dowód kompatybilności LiteRT-LM/modelu (obecnie `audioBackend = null` i tylko `generate(userText)`), wejście PCM 16 kHz do multimodalnego `Conversation`, zwrot tekstu dla TTS. Segment 30s jako granica możliwości modelu do weryfikacji w SDK; **nie deklarować pełnego strumieniowego speech-to-speech**.
+- Osobny perf/thermal test na S22, fallback wyłącznie jawny, bez utraty dziennika rozmowy, bez cichego wyłączenia STT w panelu.
+
+## Niezależne pozostałe zadania
+
+- **F-048**: typowane dozwolone fakty `FactRequest → FactDisclosurePolicy → IdentityVault`, brak plaintext w prompcie; to odrębny moduł rozwijany po/obok wyboru modeli, nie blokuje budowy samego menu.
+- **F-047**: po rozłączeniu możliwy `RX_INTERRUPTED` bez końcowego STT; marker istnieje, opcjonalne odzyskanie tylko do prywatnej diagnostyki, bez TX.
+- **F-045**: pełna semantyczna walidacja swobodnej mowy RAW i niedozwolonych commitments nadal otwarta.
+- **Zewnętrzny efekt CLIR:** wymaga osobnego dowodu; lokalny poprawny TX nie wystarczy.
+
+**Wykonanie:** GitHub Connector + Mac Local Agent, `main`, commity `[skip ci]`, bez Codex, Work, GitHub Actions, nowych gałęzi, force-push i nieautoryzowanych połączeń. `BLOCKERS.md` to jedyny rejestr statusów; checkpointy to dowody i dokumenty wdrożeniowe.
