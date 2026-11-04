@@ -28,6 +28,17 @@ internal object ChatRelayTurnPacing {
         sampleRateHz: Int = LocalSpeechFormat.SAMPLE_RATE_HZ,
     ): Long = pcmDurationMs(pcmBytes, sampleRateHz) + PLAYBACK_GUARD_MS
 
+    /**
+     * The quick acknowledgement shares serial TX with the full answer.
+     * A blocking PCM write has already consumed part of playback time;
+     * waiting a second full duration would postpone the real answer.
+     */
+    fun acknowledgementPostWriteHoldMs(
+        pcmBytes: Int,
+        txWriteWallMs: Long,
+        sampleRateHz: Int = LocalSpeechFormat.SAMPLE_RATE_HZ,
+    ): Long = postWriteHoldMs(pcmBytes, txWriteWallMs, sampleRateHz)
+
     fun postWriteHoldMs(
         pcmBytes: Int,
         txWriteWallMs: Long,
