@@ -8,7 +8,7 @@ package pl.michalmatu.aicallbridge.developerrelay
  * Opt-in call evidence recording is an independent feature.
  */
 internal object LiveCallChatFeed {
-    internal enum class Speaker { OFFICE, GEMMA }
+    internal enum class Speaker { OFFICE, GEMMA, SCRIPT }
 
     internal data class Line(
         val turn: Int,
@@ -51,8 +51,8 @@ internal object LiveCallChatFeed {
         add(token, turn, Speaker.OFFICE, text)
     }
 
-    fun replied(token: Long, turn: Int, text: String) {
-        add(token, turn, Speaker.GEMMA, text)
+    fun replied(token: Long, turn: Int, text: String, direct: Boolean = true) {
+        add(token, turn, if (direct) Speaker.GEMMA else Speaker.SCRIPT, text)
     }
 
     private fun add(token: Long, turn: Int, speaker: Speaker, text: String) = synchronized(lock) {
@@ -64,7 +64,7 @@ internal object LiveCallChatFeed {
 
     fun tx(token: Long, turn: Int, complete: Boolean) = synchronized(lock) {
         if (!active || token != generation) return@synchronized
-        val index = lines.indexOfLast { it.turn == turn && it.speaker == Speaker.GEMMA }
+        val index = lines.indexOfLast { it.turn == turn && it.speaker != Speaker.OFFICE }
         if (index < 0) return@synchronized
         lines[index] = lines[index].copy(
             txStatus = if (complete) "TX: wysłano lokalnie" else "TX: niepełne",
