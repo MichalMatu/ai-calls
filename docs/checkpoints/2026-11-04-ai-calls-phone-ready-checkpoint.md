@@ -31,6 +31,14 @@
 - `aicalls-20261104-audio-gemma-direct-s22-native-v1` → **DONE/0**, LiteRT AudioBytes z 1 s syntetycznego PCM PASS. Poprzednie liczby dostępnej pamięci before/after **nie są peak RSS**.
 - Historyczna żywa Gemma RAW: **8/8** i **7/7** STT→Gemma→lokalne `WRITE_COMPLETE`. Wyniki operatora, CLIR, pełny test wielojęzyczny, słyszalność i naturalne WER nadal niepotwierdzone; transkrypty/WAV tylko prywatnie na Macu/S22.
 
+## Wstępnie zbudowany test APK — telefon nadal nietknięty
+
+Mac `aicalls-20261104-doc-consolidation-prestage-androidtest-v1`, exact pinned `9d56cc65e5b4e2f779302c655a501fa68386c912` → **DONE/0 PASS**: check 6 aktywnych dokumentów i 36 lokalnych linków, produkcyjny diff do `0d0fdfe` **NONE**, Gradle `:app:assembleDebugAndroidTest` **BUILD SUCCESSFUL**, bez ADB i instalacji.
+
+- Prywatna ścieżka Mac: `~/Documents/AI-Calls/phone-ready/9d56cc65e5b4e2f779302c655a501fa68386c912/app-debug-androidTest.apk`.
+- Test APK: **1 138 349 B**, SHA-256 `8c6e052548df2f9dcdaec15f2b0ea7c89d4460e905da0d99581fd5359f02302c`. Mac ma też plik `app-debug-androidTest.apk.sha256` i `readme.txt` z pinem źródła.
+- Jest to pakiet **instrumentacyjny**, a nie produkcyjny `app-debug.apk`. Niczego nie wgrano na S22. Po powrocie zweryfikować SHA na Macu, podpis/zgodność APK i stale obowiązujące 2× IDLE/grant guard. Jeśli `app/src/main` lub testy zmienią się od `9d56cc65e5b4e2f779302c655a501fa68386c912`, zrobić nowy artefakt z nowego SHA.
+
 ## Procedura bezpiecznego wznowienia — test sprzętowy nr 1
 
 **Najpierw**, tylko gdy użytkownik wróci i telefon znów jest dostępny:
@@ -38,7 +46,7 @@
 1. Sprawdź świeży HEAD oraz `AGENTS.md`, `docs/HANDOFF_NEXT_CHAT.md`, `BLOCKERS.md`, bezpieczeństwo, aktualny `local-agent:main` AGENTS/HOST_CONTROL_PLANE/CURRENT_HANDOFF i dokładny `status.json` hosta. Nie resetuj daemona, nie uruchamiaj starych tasków ani testów, które mają już DONE/0 bez zmiany źródeł.
 2. Mac Host Ops read-only: `scripts/local_agent/device_readiness.sh` / `s22_adb_discovery.py` (żywy USB lub mDNS, bez zapisanego IP). Potwierdź **ten sam** `SM-S906B`, `RFCT70L7E8J`, `pl.michalmatu.aicallbridge`, **2 oddzielne `IDLE`**, rolę dialera, brak aktywnego `AppOwnedCampaignService`, brak `CampaignContinuationStore` pending retry oraz brak aktywnej rozmowy lub kampanii. Jeśli warunek nie zachodzi — **bez instalacji**, nigdy nie kończ obcego Call.
 3. Zapisz prywatnie fingerprint/SHA-256 niejawnych prefów: `campaign_authorization_grant_v1`, `campaign_continuation_v1`, prompt-skills, `audio_engine_profile_v1`; nie publikuj treści/grantu na GitHub. Potwierdź model Parakeet (ścieżka, dokładny SHA/rozmiar), zainstalowany produkcyjny APK/version i miejsce na test APK.
-4. Zrób `git diff` / porównanie zmian w `app/src/main` względem `0d0fdfe`. **Jeśli produkcyjny kod i manifest/sygnały build nie zmieniły się**, nie aktualizuj `app-debug.apk`: zbuduj w czystym, przypiętym SHA tylko `:app:assembleDebugAndroidTest` i wgraj **`app-debug-androidTest.apk`**. Jeżeli nie pasują wersje lub sygnatury APK — zatrzymaj i wróć do źródłowego QA, nie wymazuj danych/dialer/grantu.
+4. Zrób `git diff` / porównanie zmian w `app/src/main` względem `0d0fdfe`. **Jeśli produkcyjny kod i manifest/sygnały build nie zmieniły się**, nie aktualizuj `app-debug.apk`: wykorzystaj przygotowany na Macu `app-debug-androidTest.apk` ze sprawdzonym SHA; ponowna kompilacja `:app:assembleDebugAndroidTest` tylko po zmianie źródeł, a instalacja **wyłącznie test APK**. Jeżeli nie pasują wersje lub sygnatury APK — zatrzymaj i wróć do źródłowego QA, nie wymazuj danych/dialer/grantu.
 5. Przy ponownym `IDLE` wykonaj pojedynczą instrumentację (bez wybierania numeru):
    ```bash
    adb -s "$SERIAL" shell am instrument -w \

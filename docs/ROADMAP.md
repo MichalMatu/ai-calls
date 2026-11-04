@@ -14,7 +14,7 @@
 
 1. Fresh HEAD / Mac receipts / diff runtime, bez ponownego uruchamiania zatwierdzonych testów.
 2. Exact S22 `SM-S906B` + serial, 2× IDLE, dialer, brak aktywnej kampanii i retry, fingerprint grant/skills/audio before.
-3. Zbuduj AndroidTest APK z aktualnego źródła; przy niezmienionym `app/src/main` instaluj **tylko test APK**, bez nadpisania produkcyjnej aplikacji. Run `AndroidParakeetPolishRoundTripTest`, porównaj fingerprint/IDLE after.
+3. Użyj gotowego AndroidTest APK z Maca (source `9d56cc65e5b4e2f779302c655a501fa68386c912`, SHA-256 `8c6e052548df2f9dcdaec15f2b0ea7c89d4460e905da0d99581fd5359f02302c`) po sprawdzeniu źródeł/podpisu; buduj ponownie tylko przy zmianie kodu. Przy niezmienionym `app/src/main` instaluj **tylko test APK**, bez nadpisania produkcyjnej aplikacji. Run `AndroidParakeetPolishRoundTripTest`, porównaj fingerprint/IDLE after.
 4. Zapisz PASS/FAIL; potem osobno PL ASR WER/CER, wydajność równoczesnych modeli i kwalifikacja Piper. M4 disabled do prawdziwego testu konwersacji i RAM.
 5. Odśwież checkpoint/handoff i **jedyny** [BLOCKERS](../BLOCKERS.md).
 

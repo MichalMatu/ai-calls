@@ -15,6 +15,8 @@
 
 Względem `0d0fdfe` ostatni potwierdzony `main` `e1d9d694b93d6700934806341ec0e85c46b6030e` miał **zero zmian w produkcyjnym Androidzie**; późniejsze commity tej konsolidacji to dokumentacja. Test `AndroidParakeetPolishRoundTripTest` przeszedł Mac QA (`aicalls-20261104-audio-polish-roundtrip-host-qa-v1` DONE/0), lecz AndroidTest APK **nie** jest jeszcze na S22.
 
+**Przygotowany AndroidTest APK na Macu (bez telefonu):** task `aicalls-20261104-doc-consolidation-prestage-androidtest-v1` **DONE/0**: 6 aktywnych Markdown + 36 linków PASS; `:app:assembleDebugAndroidTest` PASS; brak produkcyjnego diff; test APK `~/Documents/AI-Calls/phone-ready/9d56cc65e5b4e2f779302c655a501fa68386c912/app-debug-androidTest.apk` (source `9d56cc65e5b4e2f779302c655a501fa68386c912`, **1 138 349 B**, SHA-256 `8c6e052548df2f9dcdaec15f2b0ea7c89d4460e905da0d99581fd5359f02302c`). Jest to **tylko APK testowy**, nie wersja produkcyjna, **nie zainstalowany na S22**. Przed instalacją porównać plik i źródło; jeśli ktoś zmieni kod/testy, zbudować ponownie.
+
 ## Wykonawca i nieprzekraczalne zasady
 
 - Repo `MichalMatu/ai-calls`; praca na `main`, commity `[skip ci]`, bez nowego brancha, force-push, Codex, Work, GitHub Actions (również bez czytania ich statusu).
@@ -26,7 +28,7 @@ Względem `0d0fdfe` ostatni potwierdzony `main` `e1d9d694b93d6700934806341ec0e85
 
 ## Następny sprint, bez zbędnych powtórek
 
-1. Odczytaj świeży `main` i terminalne receipts z checkpointu; sprawdź diff produkcyjnego `app/src/main` od `0d0fdfe`. Jeśli tylko testy/dokumentacja, wytwórz **jedynie nowy AndroidTest APK**; nie przeinstalowuj stabilnej aplikacji.
+1. Odczytaj świeży `main` i terminalne receipts z checkpointu; sprawdź diff produkcyjnego `app/src/main` od `0d0fdfe`. Jeśli tylko testy/dokumentacja, użyj już przygotowanego, zweryfikowanego test APK z Maca (sprawdź SHA-256, podpis i zgodność produkcyjnej aplikacji); buduj go ponownie tylko po zmianie źródeł. Nie przeinstalowuj stabilnej aplikacji.
 2. Po powrocie S22 wykonaj wyłącznie read-only preflight; przy nie-`IDLE`, aktywnej kampanii/retry lub innym ID przerwij instalację, bez wymazywania danych/grantów.
 3. Bez połączenia uruchom pojedynczy nowy `AndroidParakeetPolishRoundTripTest#recognizesSynthesizedPolishSpeechWithLexicalOverlap` na S22. To polski lokalny TTS→PCM16/16k→Parakeet, mierzy tylko overlap słów; **nie jest to korpusowy WER ani live test**. Zachowaj prywatnie metryki/dowód i bezpieczne PASS/FAIL.
 4. Następnie zaplanuj rzeczywisty polski WER/CER + final segmenty oraz RAM/latencję/temperaturę współistnienia Parakeet+E2B; Piper najpierw wymaga sprawdzonego zewnętrznego silnika i głosu PL; M4 zostawić disabled aż do osobnej kwalifikacji.
