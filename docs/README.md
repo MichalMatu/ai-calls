@@ -8,3 +8,4 @@
 - **Trwałe zasady:** AGENTS, AUTONOMOUS_OPERATION_MODE, SECURITY_PRIVACY, GENERIC_PHONE_TASK_AUTHORITY, HANDOFF_PROTOCOL oraz freeze Samsung/Shizuku.
 
 Dokumentację aktywną skrócono przez usunięcie powtórzeń i nieaktualnych statusów; historyczne commity i receipts pozostały w Git/Local Agent. Nie usunięto normatywnych zabezpieczeń.
+\n- [USB/ADB diagnostic bridge](USB_DEBUG_BRIDGE.md) — owner-controlled Mac console, private export, one in-app panel.\n
