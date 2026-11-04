@@ -36,7 +36,8 @@ class GemmaDirectDialogueBackendTest {
         val logs = mutableListOf<String>()
         var answer = ""
         val backend = GemmaDirectDialogueBackend(model, phone, { authorized },
-            GemmaDirectObserver { action, source, _ -> logs += "$action/$source" })
+            GemmaDirectObserver { action, source, _ -> logs += "$action/$source" },
+            elapsedRealtimeMs = { 100L })
         backend.generate("Proszę podać informacje o zadaniu", object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) { answer = text }
             override fun onError(reason: String) { answer = "ERR:$reason" }
