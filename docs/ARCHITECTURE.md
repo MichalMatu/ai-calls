@@ -47,13 +47,13 @@ autoryzacja ≠ walidacja propozycji ≠ permit ≠ zużycie permitu
 - **Prywatny dock czatu:** `ChatRelayLiveCallProbe` publikuje wyłącznie w pamięci procesu `LiveCallChatFeed` (z tokenem sesji) → `LiveCallChatPanel` pod `MainActivity`, `CampaignToolActivity` i `AndroidCallControlsActivity`; pokazuje finalne STT rozmówcy, zatwierdzone odpowiedzi Gemmy i stan lokalnego zapisu TX. `Wyczyść widok` nie ingeruje w Call, grant ani prywatny osobny zapis evidence. Dane nie trafiają na GitHub/logcat.
 - **Archiwum diagnostyczne:** zatwierdzony zapis na S22 i prywatny eksport USB/ADB tylko do Mac `private-exports`; pełne WAV i transkrypcje nie są przedmiotem publicznych commitów lub wyników zadań.
 
-## Moduł wyboru silników audio — M1 w kodzie, QA_PENDING
+## Moduł wyboru silników audio — M1 PASS off-call, M2/M3 Mac PASS, M4 eksperymentalne
 
 `audioengines/AudioEngineProfile`, `AudioEngineRegistry`, `AudioEngineProfileStore` i `AudioEngineReadinessProbe` określają lokalną preferencję, nigdy uprawnienie. Oddzielny ekran `AudioEngineSettingsActivity` prezentuje wejście / dialog / wyjście, język i faktycznie niedostępne modele, wybiera lokalny głos `pl-PL` i sprawdza offline obecny Android STT, plik E2B oraz systemowe głosy bez wykonywania połączeń.
 
 `SpeechInputProvider` i `SpeechOutputProvider` opakowują aktualne `OnDeviceSpeechInput` i `LocalTtsSpeechOutput`; `LocalSpeechTextPipeline` nadal wykonuje istniejące output approval, generation gate i PCM16/16k do `AuthorizedPcmUplinkWriter`. `AppOwnedCampaignService` utrwala jeden profil na kampanię, a oba prewarm przekazują/odbierają engine tylko z identycznym profilem (dla RAW także dokładny `TaskBrief`), więc nie ma cichej zamiany podczas tury. Nie modyfikowano `CampaignAuthorizationGrant`, prompt-skills, VAD, ACK ani Shizuku.
 
-**Zaimplementowany tylko Android STT → Gemma 4 E2B → Android TTS.** Parakeet PL, Gemma Audio Direct, E4B, Piper PL i warianty bez `pl-PL` są widoczne jako nieaktywne; samo menu nie dowodzi instalacji/model readiness. Pierwszy Mac QA wykrył F-050 (permission lint na preview TTS), naprawę zacommitowano; końcowe host QA i exact S22 off-call **OPEN**. Dodatkowy `DialogueEngineProvider` z `DialogueEngineProviders.resolve` owija istniejącą fabrykę `Gemma4LiteRtTextBackendFactory` dla SCRIPT i RAW bez zmiany silnika. Odrzuca E4B bez natywnego adaptera. `CampaignGemmaPreflight` i `CampaignGemmaDirectPreflight` wciąż kasują syntetyczny kontekst natywny. Pierwsze QA adaptera v4 wykryło F-051 w typowaniu resetu; kod po poprawce `a616795e` czeka na finalny QA v5. Nowy E4B provider dopiero po potwierdzeniu fizycznej gotowości.
+**Zaimplementowany tylko Android STT → Gemma 4 E2B → Android TTS.** Parakeet PL, Gemma Audio Direct, E4B, Piper PL i warianty bez `pl-PL` są widoczne jako nieaktywne; samo menu nie dowodzi instalacji/model readiness. Pierwszy Mac QA wykrył F-050 (permission lint na preview TTS), naprawę zacommitowano; końcowe host QA i exact S22 off-call **PASS** dla M1. Dodatkowy `DialogueEngineProvider` z `DialogueEngineProviders.resolve` owija istniejącą fabrykę `Gemma4LiteRtTextBackendFactory` dla SCRIPT i RAW bez zmiany silnika. Odrzuca E4B bez natywnego adaptera. `CampaignGemmaPreflight` i `CampaignGemmaDirectPreflight` wciąż kasują syntetyczny kontekst natywny. Pierwsze QA adaptera v4 wykryło F-051 w typowaniu resetu; kod po poprawce `a616795e` ma Mac v5 i S22 off-call v2 PASS. Nowy E4B provider dopiero po potwierdzeniu fizycznej gotowości.
 
 [Szczegółowy handoff implementacyjny](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md) i [plan modeli](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md).
 
@@ -68,3 +68,10 @@ Jeden własny aktywny Call; realne uprawnienia i stan telefonu; konkretny, trwa�
 ## Stan i dowody
 
 Architektura opisuje **kontrakt**, nie samą akceptację wdrożenia. Aktualny zakres PASS/OPEN jest w [HANDOFF](HANDOFF_NEXT_CHAT.md) i jedynym rejestrze [BLOCKERS](../BLOCKERS.md), a najnowsze fizyczne wyniki w [checkpoincie RAW live](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md). Historyczne checkpointy F-042/F-043 pozostają w archiwum; fakt wielu tur Gemmy i dobrego UX **nie** potwierdza zewnętrznego efektu CLIR.
+
+## Adaptery M2–M4 — implementacja 2026-11-04
+
+- M2 `ParakeetSpeechInputProvider`: oficjalne MediaPipe AudioTranscriber, 16-kHz PCM16→float, nieblokująca kolejka RX, natywne prewarm/segmenty/finish w osobnym wątku. Gotowość dla konkretnego urządzenia wymaga modelu i natywnego testu; Mac QA PASS, S22 OPEN.
+- M3 `PiperAndroidTtsOutputProvider`: tylko jawny pakiet usługi systemowej Piper i offline głos z cechą `piperVoice`; pełna konwersja WAV→PCM16/16k pozostaje w `LocalTtsSpeechOutput`. Sam zewnętrzny silnik i jego głosy nie są dystrybuowane w AI Calls; Mac QA PASS, S22 OPEN.
+- M4 `GemmaAudioDirectInputProvider`: odrębny eksperymentalny LiteRT `audioBackend=CPU` z danymi `Content.AudioBytes` i trasą PCM→transkrypcja; kod nie może zostać wybrany jako aktywny profil (`audio_direct_s22_unqualified`). Przed produkcją wymagany backend jednej rozmowy bez duplikacji pamięci modelu oraz realny natywny pomiar audio/tur/terminacji na S22. Test Mac/S22 QA_PENDING.
+- Żaden adapter nie daje grantu, nie zmienia VAD/ACK, routingu Shizuku, STOP ani prawa do skutków. F-045/F-047/F-048 nadal OPEN.

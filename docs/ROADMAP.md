@@ -1,6 +1,6 @@
 # AI Calls — roadmap: konfigurowalne wejście / model / wyjście (2026-11-04)
 
-**Priorytet właściciela:** sprint rozpoczęty i zaimplementowany w źródłach; kolejne kroki to rzeczywiste Mac/S22 QA i M2. Początkowo należało **kodować** menu i wymienne silniki audio z planu [Edge Gallery](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md), nie wykonywać kolejnego ogólnego audytu. Szczegółowa, wiążąca lista kroków znajduje się w [IMPLEMENTATION_HANDOFF](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md), a [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) wskazuje punkt startu.
+**Priorytet właściciela:** M1 zamknięty Mac/S22 off-call; M2 Parakeet i M3 Piper mają implementację oraz Mac QA PASS, M4 eksperymentalny source czeka na finalny Mac QA i natywny S22. Żadna nowa konfiguracja M2–M4 nie ma dowodu rozmowy. Początkowo należało **kodować** menu i wymienne silniki audio z planu [Edge Gallery](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md), nie wykonywać kolejnego ogólnego audytu. Szczegółowa, wiążąca lista kroków znajduje się w [IMPLEMENTATION_HANDOFF](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md), a [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) wskazuje punkt startu.
 
 ## Potwierdzony baseline — nie rozmontowywać
 
@@ -20,19 +20,19 @@ Commitowane zmiany `413676be` → `bc019ce`: menu `AudioEngineSettingsActivity` 
 - First-pass musi być **funkcjonalnie zgodny z istniejącym Android STT → Gemma RAW → Android TTS**: identyczny call authority, STOP, prewarm, VAD, PCM RX/TX i live chat. Konfiguracja zastygła przed prewarm/Call, nie przełączać modeli w środku rozmowy.
 - RED→GREEN focused unit, pełny Mac QA, exact S22 off-call, bez samowolnego połączenia. Oczekiwany wynik: działające menu i rzeczywiście wybieralne gotowe domyślne silniki oraz jasno opisane niegotowe opcje.
 
-## Sprint M2 — Parakeet PL ASR
+## Sprint M2 — Parakeet PL ASR (SOURCE + MAC PASS; S22 OPEN)
 
 - Zintegrować oficjalne MediaPipe AudioTranscriber + `parakeet-tdt-0.6b-v3`; licencja, deklaracja rozmiaru i wymagania wersji w rejestrze.
 - PCM 16 kHz z istniejącego RX, partial/final z timestamps, przycięcie pamięci i kolejka nieblokująca RX, prawdziwa diagnostyka offline i porównanie na tych samych prywatnych WAV. Utrzymać istniejące zamykanie tury i UX.
 - Pomiar kosztu RAM/GPU, nagrzewania i latencji na S22 z Gemma 4 E2B, bez założenia że można jednocześnie odpalić oba GPU modele.
 
-## Sprint M3 — wybieralne polskie TTS
+## Sprint M3 — wybieralne polskie TTS (SOURCE + MAC PASS; S22 OPEN)
 
 - `Android TTS pl-PL` nadal bezregresyjny.
 - Piper `pl_PL` dopiero po weryfikacji Android runtime/modelu/licencji/głosu; normalizacja PCM do **16 kHz mono signed PCM16**, nie dotykać zamrożonego `AuthorizedPcmUplinkWriter`.
 - Kokoro/PocketTTS tylko zgodne języki (w obecnej wersji **bez polskiego**), niepodmieniane milcząco. Test liczb, CLIR, skrótów, szybkości pierwszego dźwięku i jakości.
 
-## Sprint M4 — Gemma 4 Audio Direct
+## Sprint M4 — Gemma 4 Audio Direct (eksperymentalne SOURCE; QA_PENDING)
 
 - Osobny dowód kompatybilności LiteRT-LM/modelu (obecnie `audioBackend = null` i tylko `generate(userText)`), wejście PCM 16 kHz do multimodalnego `Conversation`, zwrot tekstu dla TTS. Segment 30s jako granica możliwości modelu do weryfikacji w SDK; **nie deklarować pełnego strumieniowego speech-to-speech**.
 - Osobny perf/thermal test na S22, fallback wyłącznie jawny, bez utraty dziennika rozmowy, bez cichego wyłączenia STT w panelu.
