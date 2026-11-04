@@ -34,6 +34,7 @@ class AudioEngineSettingsActivity : Activity() {
     private lateinit var dialogueGroup: RadioGroup
     private lateinit var outputGroup: RadioGroup
     private var tts: TextToSpeech? = null
+    private var parakeetDownloader: ParakeetModelDownloader? = null
     private var probedVoices: Set<String>? = null
     private var probedOutput: SpeechOutputId? = null
     private var voiceNames: List<String> = emptyList()
@@ -92,6 +93,17 @@ class AudioEngineSettingsActivity : Activity() {
         content.addView(Button(this).apply {
             text = "Sprawdź offline (bez połączenia)"
             setOnClickListener { checkOffline() }
+        })
+        content.addView(Button(this).apply {
+            text = "Pobierz model Parakeet PL (615 MB, CC BY 4.0) — na żądanie"
+            setOnClickListener { downloadParakeet() }
+        })
+        content.addView(Button(this).apply {
+            text = "Anuluj pobieranie modelu"
+            setOnClickListener {
+                parakeetDownloader?.cancel()
+                feedback.text = "Anulowanie pobierania…"
+            }
         })
         content.addView(Button(this).apply {
             text = "Odsłuch wybranego głosu (poza połączeniem)"
@@ -218,6 +230,43 @@ class AudioEngineSettingsActivity : Activity() {
         else TextToSpeech(this, initListener, selectedEngine)
     }
 
+    private fun downloadParakeet() {
+        if (selectedProfile().input != SpeechInputId.PARAKEET_PL) {
+            feedback.text = "Wybierz Parakeet w sekcji wejścia przed pobraniem."
+            return
+        }
+        if (parakeetDownloader != null) {
+            feedback.text = "Pobieranie trwa; użyj przycisku Anuluj, aby je przerwać."
+            return
+        }
+        val downloader = ParakeetModelDownloader(this)
+        parakeetDownloader = downloader
+        feedback.text = "Pobieranie 615 MB: zalecane Wi-Fi. Plik jest sprawdzany SHA-256."
+        Thread({
+            val result = downloader.download { read, total ->
+                runOnUiThread {
+                    if (!isDestroyed && parakeetDownloader === downloader) {
+                        val pct = (read * 100 / total).toInt().coerceIn(0, 100)
+                        feedback.text = "Pobieranie Parakeet: $pct% ($read / $total B)."
+                    }
+                }
+            }
+            runOnUiThread {
+                if (parakeetDownloader !== downloader) return@runOnUiThread
+                parakeetDownloader = null
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                when (result) {
+                    ParakeetModelDownloadResult.Success -> {
+                        feedback.text = "Model Parakeet pobrany i zweryfikowany SHA-256. " +
+                            "Przed użyciem w rozmowie wymagany test natywny S22."
+                    }
+                    is ParakeetModelDownloadResult.Failure ->
+                        feedback.text = "Parakeet: " + result.reason
+                }
+            }
+        }, "aicalls-parakeet-download").apply { isDaemon = true }.start()
+    }
+
     private fun previewVoice() {
         // Preview is optional. A missing runtime permission must not crash the screen
         // or become an extra requirement to save the unchanged working configuration.
@@ -263,6 +312,8 @@ class AudioEngineSettingsActivity : Activity() {
     }
 
     override fun onDestroy() {
+        parakeetDownloader?.cancel()
+        parakeetDownloader = null
         tts?.stop()
         tts?.shutdown()
         tts = null
