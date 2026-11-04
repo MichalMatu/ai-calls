@@ -1,6 +1,8 @@
 # AI Calls — roadmap: konfigurowalne wejście / model / wyjście (2026-11-04)
 
-**Host QA szczegóły:** v3 miał 703 Kotlin JVM testów i 1 FAIL wyłącznie nowego fixture `0x7f7f`/expected `0x7fff` (F-055), bez błędu produkcyjnego. Fix `2c2dac7`; ostateczny Mac `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4` **QA_PENDING** do terminalnego receipt. Wcześniejszy v2 pełny Mac PASS nie obejmował nowego testu. Bez telefonu.
+**Końcowy host-only gate (2026-11-04):** `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4` pinned `2c2dac7` **DONE/0 PASS** (focused Kotlin PCM, pełny Gradle/lint/build, 10/10 mutacje, 258 Python, anti-friction). F-054/F-055 VERIFIED Mac; realna wersja APK S22 `0d0fdfe` niezmieniona. Następny fizyczny etap: polski syntetyczny ASR, Piper instalacja/głos PL, porównanie RAM/thermal, bez niesprawdzonego live. [Checkpoint](checkpoints/2026-11-04-audio-models-hostonly-quality-gates-checkpoint.md).
+
+**HISTORYCZNY RED poprzedzający finalny PASS:** v3 miał 703 Kotlin JVM testów i 1 FAIL wyłącznie nowego fixture `0x7f7f`/expected `0x7fff` (F-055), bez błędu produkcyjnego. Fix `2c2dac7`; ostateczny Mac `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4` **QA_PENDING** do terminalnego receipt. Wcześniejszy v2 pełny Mac PASS nie obejmował nowego testu. Bez telefonu.
 
 **Sprint bez telefonu / bramka jakości:** 10 testów mutacyjnych, nowa obowiązkowa host QA audio i dodatkowe Kotlin PCM chunk/WAV/macierze profili. Mac v2 PASS, v3 final po nowych testach QA_PENDING; żadnych zmian produkcyjnych względem APK S22 `0d0fdfe`. [Host-only checkpoint](checkpoints/2026-11-04-audio-models-hostonly-quality-gates-checkpoint.md).
 

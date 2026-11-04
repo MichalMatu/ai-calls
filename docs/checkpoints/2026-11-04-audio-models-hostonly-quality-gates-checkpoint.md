@@ -55,3 +55,10 @@ Wyniki hosta tylko z dokładnych `task-results` pod `MichalMatu/local-agent:agen
 - `2c2dac7f6ea51f85d1dc3fc4db4a5f3ad41c4774`: poprawiony faktyczny carry `0xff` + high byte `0x7f`, dokładnie `0x7fff` PCM16, **wyłącznie test**. F-055 `FIXED_IN_SOURCE / QA_PENDING`. Brak zmian do produkcyjnego `app/src/main` i transportu Samsung.
 - Mac `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4` zlecony na `2c2dac7...`: focused Parakeet JVM → 10 mutacji → audio gate → Gradle unit/lint/build/AndroidTest APK → 258 Python → anti-friction → `git diff --check`. **Nie ma terminalnego receipt na moment tego zapisu, więc wynik QA_PENDING.** Po powrocie hosta odczytaj wyłącznie `task-results/<id>.json`, bez ponownego odpalenia testów, jeśli są DONE/0.
 - Mac `status.json` najnowszy dostępny `2026-11-04T19:03:09Z` (stan historyczny, nie dowód bieżącego uruchomienia). Podczas sprintu nie wysyłano żadnego zadania ADB ani telefonu. Nie zakładać, że model lub APK na S22 zmienił się od poprzednich potwierdzonych stanów.
+
+## Zakończenie sprintu — terminalny Mac GREEN
+
+- `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4`, exact pinned `2c2dac7f6ea51f85d1dc3fc4db4a5f3ad41c4774`: **DONE/0 PASS**. Parakeet focused PCM16 JVM PASS; 10/10 testów mutacyjnych, `AUDIO_ENGINE_QUALITY_GATE=PASS`, pełny `scripts/verify_host.sh` Gradle unit/lint/APK PASS, **258 Python testów PASS**, `host_quality_gate_green=true`, `ANTI_FRICTION=PASS`, `git diff --check` PASS. Brak ADB, telefonu, rozmów i operacji na modelach.
+- **F-054 VERIFIED (Mac)**, **F-055 VERIFIED (Mac)**. RED z v1/v3 to historyczne źródłowe wyniki poprzedzające poprawki, nie stan bieżący. F-052 VERIFIED dla kompilacji (native Piper nadal OPEN).
+- Pakiet produkcyjny fizycznie na S22 pozostaje z `0d0fdfe`; żaden nowy kod `app/src/main` nie był zmieniany od tej instalacji. Nowy test Polish ASR kompiluje się, ale bez fizycznego urządzenia **nie został uruchomiony**.
+- Zakres testowania z telefonem pozostaje `OPEN`: polski TTS→Parakeet i WER/CER, Piper PL, pamięć/thermal równoczesnych modeli, pełna M4 rozmowa i osobno autoryzowany live/niezależny efekt CLIR.
