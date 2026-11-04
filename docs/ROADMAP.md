@@ -1,6 +1,6 @@
 # AI Calls — roadmap po działającym Gemma RAW (2026-11-04)
 
-**Stan, nie plan:** 2 rzeczywiste sesje Gemma Direct na S22, **8/8 oraz 7/7** STT → Gemma RAW → pełny lokalny TX, bez `DIRECT_REJECTED`; dynamiczny, zgodny z grantem `TaskBrief` CLIR i menu czterech prompt-skills, dolny prywatny panel rozmowy. Mac host QA i exact S22 off-call cztery tury PASS, obecny APK z kodu `268be1f8f13502c7202822438b501706e0fcb0e1`. Obserwacja właściciela: rozmowa działa, ale Gemini brakuje dozwolonych danych, a pierwsza odpowiedź zaczęła się przed końcem komunikatu infolinii. **Nie** potwierdzono włączenia CLIR. [Checkpoint](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md).
+**Stan, nie plan:** 2 rzeczywiste sesje Gemma Direct na S22, **8/8 oraz 7/7** STT → Gemma RAW → pełny lokalny TX, bez `DIRECT_REJECTED`; dynamiczny, zgodny z grantem `TaskBrief` CLIR i menu czterech prompt-skills, dolny prywatny panel rozmowy. Mac host QA i exact S22 off-call cztery tury PASS, obecny APK z kodu `268be1f8f13502c7202822438b501706e0fcb0e1`. Obserwacja właściciela: rozmowa działa, ale Gemmie brakuje dozwolonych danych, a pierwsza odpowiedź zaczęła się przed końcem komunikatu infolinii. **Nie** potwierdzono włączenia CLIR. [Checkpoint](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md).
 
 ## Następny sprint — bez ruszania udanego toru media/modelu
 
