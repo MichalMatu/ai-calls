@@ -321,6 +321,14 @@ internal object ChatRelayLiveCallProbe {
         private var currentTurn = 0
         private var turnStartedAtMs = 0L
         private var estimatedSpeechEndElapsedMs: Long? = null
+        private class ActiveRxCapture(
+            val turn: Int,
+            initial: PcmEndOfUtteranceDetector.Snapshot,
+        ) {
+            val latest = AtomicReference(initial)
+            val complete = AtomicBoolean(false)
+        }
+        private val activeRxCapture = AtomicReference<ActiveRxCapture?>(null)
         private var totalRxBytes = 0L
         private var totalTxBytes = 0L
         private var silenceWindows = 0L
@@ -553,6 +561,8 @@ internal object ChatRelayLiveCallProbe {
             val evidenceRx = evidenceRecorder?.openRxTurn(turn)
             var total = 0
             var endpoint = detector.acceptPcm16(ByteArray(0))
+            val capture = ActiveRxCapture(turn, endpoint)
+            activeRxCapture.set(capture)
             try {
                 pump.beginCapture(object : ChatRelayDownlinkPump.Capture {
                     override fun onFrame(bytes: ByteArray, length: Int): Boolean {
@@ -563,10 +573,13 @@ internal object ChatRelayLiveCallProbe {
                         evidenceRx?.append(bytes, length)
                         total += length
                         endpoint = detector.acceptPcm16(bytes, 0, length)
+                        capture.latest.set(endpoint)
                         return !endpoint.shouldStop && !finished.get()
                     }
 
                     override fun onAbandoned() {
+                        capture.complete.set(true)
+                        activeRxCapture.compareAndSet(capture, null)
                         // STT no-match while downlink capture is still running.
                         // Abandon just that capture; the Call's RX pump stays alive.
                         evidenceRx?.finish()
@@ -574,6 +587,8 @@ internal object ChatRelayLiveCallProbe {
                     }
 
                     override fun onFinished() {
+                        capture.complete.set(true)
+                        activeRxCapture.compareAndSet(capture, null)
                         evidenceRx?.finish()
                         totalRxBytes += total.toLong()
                         lines += "turn_${turn}_rx_pcm_bytes=$total"
@@ -605,6 +620,8 @@ internal object ChatRelayLiveCallProbe {
                     }
 
                     override fun onError(reason: String) {
+                        capture.complete.set(true)
+                        activeRxCapture.compareAndSet(capture, null)
                         evidenceRx?.finish()
                         if (finished.get()) return
                         context.mainExecutor.execute {
@@ -613,6 +630,8 @@ internal object ChatRelayLiveCallProbe {
                     }
                 })
             } catch (error: Throwable) {
+                capture.complete.set(true)
+                activeRxCapture.compareAndSet(capture, null)
                 evidenceRx?.finish()
                 finish(false, "turn_${turn}_rx_${error.javaClass.simpleName}")
             }
@@ -884,6 +903,27 @@ internal object ChatRelayLiveCallProbe {
             activeMediaGeneration.set(-1L)
             handler.removeCallbacks(timeout)
             handler.removeCallbacks(authorityWatchdog)
+            // F-047: the owned Call can end before the 1500 ms VAD trailing silence.
+            // Preserve only safe metadata; NEVER attempt Gemma/TTS/TX after call teardown.
+            activeRxCapture.getAndSet(null)?.let { active ->
+                if (!active.complete.get()) {
+                    val last = active.latest.get()
+                    val trailing = last.estimatedSpeechEndMs?.let { speechEnd ->
+                        (last.capturedMs - speechEnd).coerceAtLeast(0L)
+                    }
+                    val cause = when (reason) {
+                        "owned_call_ended" -> "OWNED_CALL_ENDED"
+                        "operator_stopped" -> "OPERATOR_STOP"
+                        else -> "SESSION_END"
+                    }
+                    lines += "turn_${active.turn}_rx_interrupted=true"
+                    lines += "turn_${active.turn}_rx_interrupted_capture_ms=${last.capturedMs}"
+                    lines += "turn_${active.turn}_rx_interrupted_trailing_silence_ms=${trailing ?: -1L}"
+                    evidenceRecorder?.recordInterruptedRx(
+                        active.turn, last.capturedMs, last.speechDetected, trailing, cause,
+                    )
+                }
+            }
             try { pipeline.close() } catch (_: Throwable) {}
             try { quickAckSynthesizer.close() } catch (_: Throwable) {}
             quickAckPcm.set(null)
