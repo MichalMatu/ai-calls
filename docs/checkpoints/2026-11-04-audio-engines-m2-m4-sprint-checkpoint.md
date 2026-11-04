@@ -49,3 +49,8 @@
 7. **M4 native:** `aicalls-20261104-audio-gemma-direct-s22-native-v1` DONE/0 PASS: eksperymentalny LiteRT CPU audio backend + `Content.AudioBytes`, syntetyczny PCM16, natywny test PASS, `MemAvailable` przed 3 271 512 kB / po 3 690 168 kB (nie maksymalny RSS), IDLE i grant/skills/profile bez zmian. To **nie** potwierdza gotowego wieloturowego speech-to-speech i M4 wciąż niedostępne w registry.
 
 **Końcowy status:** M1 PASS (Mac/S22 off-call), M2 SOURCE/MAC/S22 synthetic native PASS (polski ASR quality OPEN), M3 SOURCE/MAC PASS (Piper APK i polski głos S22 absent/OPEN), M4 EXPERIMENTAL SOURCE/MAC/S22 synthetic native PASS (full dialogue/open). F-053 VERIFIED na Mac+S22 off-call; F-052 nadal native Piper QA_PENDING, F-045/047/048 i zewnętrzny efekt CLIR OPEN, F-049 wycofany. Nie uruchamiano dzwonienia, nie zmieniono grantów ani Samsung/Shizuku RX/TX, VAD/ACK.
+
+## Kontynuacja jakości polskiego ASR (najnowszy kod po natywnym S22 PASS)
+
+- Commit `7d1057f8e34a9e1ee4f80cd207983bc93132de33`: test `AndroidParakeetPolishRoundTripTest` wykorzystuje lokalny Android TTS do wygenerowania zmyślonej polskiej wypowiedzi, podaje prawdziwe PCM16 16 kHz przez `ParakeetSpeechInputProvider`, sprawdza tekst ASR i minimalną zgodność słów, zapisując tylko liczniki/opóźnienia (nie transkrypt). To test polskiej jakości ASR, a nie połączenie.
+- Mac Host Ops `aicalls-20261104-audio-polish-roundtrip-host-qa-v1`: zlecony pinned source, **QA_PENDING** do odczytu terminalnego receipt. Nie przedstawiać nowego kodu jako fizycznego PASS do czasu testu. Pomiędzy `0d0fdfe` a `7d1057f` są tylko dokumenty i nowy `androidTest`; `app/src/main` jest identyczne. Po Mac PASS wystarczy instalacja APK testowego pod pełnym S22 preflight, bez nadpisywania kodu aplikacji.
