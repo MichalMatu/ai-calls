@@ -7,13 +7,22 @@ import android.content.Context
  * No keys is a clean migration to the shipped Android STT/E2B/Android TTS path.
  * Unexpected saved identifiers are rejected, never interpreted as a new permission or engine.
  */
-internal class AudioEngineProfileStore(context: Context) {
+internal class AudioEngineProfileStore(
+    context: Context,
+    preferencesName: String = "audio_engine_profile_v1",
+) {
     private val prefs = context.applicationContext.getSharedPreferences(
-        "audio_engine_profile_v1", Context.MODE_PRIVATE,
+        preferencesName, Context.MODE_PRIVATE,
     )
 
     fun load(): AudioEngineProfile? {
-        if (!prefs.contains("version")) return AudioEngineProfile.STABLE
+        if (!prefs.contains("version")) {
+            // No previous preference means migration to the unchanged shipped baseline.
+            // A partially/corruptly populated preference must not silently downgrade.
+            return if (listOf("input", "dialogue", "output", "language", "voice")
+                .none { prefs.contains(it) }
+            ) AudioEngineProfile.STABLE else null
+        }
         if (prefs.getInt("version", -1) != 1) return null
         val input = SpeechInputId.entries.firstOrNull {
             it.name == prefs.getString("input", null)
