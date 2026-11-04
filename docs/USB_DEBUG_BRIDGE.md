@@ -10,6 +10,7 @@ is shown by UsbDebugPanelActivity. There is **no second grant, audio, or evidenc
 From the selected Mac, run the single entry point from an exact source checkout:
 
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py status
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py errors
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py evidence-status
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py profile-check --input PARAKEET_PL
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py profile-set --input PARAKEET_PL
@@ -17,7 +18,12 @@ From the selected Mac, run the single entry point from an exact source checkout:
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py grant-revoke
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py evidence-disable
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py evidence-export
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe android-stt
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe android-tts
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe gemma-e2b
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe gemma-audio
     python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe parakeet-pl
+    python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py probe usb-panel
 
 The CLI detects the actual ADB transport, checks **SM-S906B / RFCT70L7E8J**,
 and never uses an old IP/port. The app's DUMP-protected bridge writes one
@@ -29,13 +35,13 @@ codes, never transcripts, personal identifiers, grant contents, or WAV bytes.
 
 | Module | Reused source of truth | Behavior |
 |---|---|---|
-| status / evidence-status | profile store, grant store, private evidence directory | Redacted health, call state, evidence count |
+| status / evidence-status / errors | profile store, grant store, private evidence directory | Redacted health, call state, evidence count and log severity counts |
 | profile-check | AudioEngineReadinessProbe | Offline TTS voice/model probe; no save |
 | profile-set / profile-reset | AudioEngineProfileStore + existing readiness and registry | Validated, off-call profile choice for next call |
 | grant-revoke | CampaignAuthorizationStore.revoke | Revoke existing grant, never issue/widen one |
 | evidence-disable | CampaignAuthorizationStore.disableEvidenceRecording | Narrow recording authority |
 | evidence-export | Existing export_private_call_evidence.sh | Local Mac-only private archive; no new ZIP/UI implementation |
-| probe parakeet-pl / parakeet-native | Existing Android instrumented tests | One synthetic off-call test after test APK and safety preflight |
+| probe (Android STT/TTS, Gemma E2B/Audio, Parakeet, UI) | Existing Android instrumented tests | One synthetic off-call test after test APK and safety preflight |
 
 Mutations, exports and instrumentation require exact hardware, twice IDLE,
 dialer role, no AppOwnedCampaignService, no pending retry and working run-as.
