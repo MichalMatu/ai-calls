@@ -1,5 +1,14 @@
 # AI Calls — handoff operacyjny (2026-11-04)
 
+## AKTUALNY ETAP — zamrożony RAW v1, F-047, dynamiczne F-044
+
+- **FROZEN baseline:** `0d44b7d5a7e01daa118da10c2e04c458086dced9`, realna rozmowa 03:46 z 2 kolejnymi odpowiedziami Gemmy RAW i 2 poprawnymi TX. Nie zmieniaj silnika RAW, defaultu SCRIPT_GEMMA i Samsung/Shizuku media. [Punkt zamrożenia i dowód przyczyny RX](checkpoints/2026-11-04-gemma-raw-live-v1-frozen.md).
+- **F-047:** 17,08 s końcowego RX nie miało transkryptu, bo po rozpoczęciu mowy było najwyżej 1,0 s ciszy (VAD wymaga 1,5 s), a Call zakończył się przed endpointem i `pipeline.finishInput()`. `finish(owned_call_ended)` anulowało STT; WAV istnieje. Dodano beztekstowy marker `RX_INTERRUPTED` i syntetyczny regression. **Brak odzyskanego tekstu trzeciego fragmentu, F-047 nadal OPEN.**
+- **F-044 kod:** `GemmaDirectTaskBriefBuilder` buduje system prompt po `CampaignAuthorizationPolicy.authorize` z typed request, przypisuje rolę DZWONIĄCEGO, cel CLIR i ograniczenia; cztery `GemmaDirectPromptSkill` jako instrukcje (cel/IVR/procedura/wyjaśnienie). `CampaignToolActivity → Skills i zadanie Gemma Direct`: checkboxy, zapis per-grant, podgląd. Model i prewarm dostają identyczny prompt; nie ma funkcji ani uprawnień do ujawniania sekretów w RAW. Nie obsługuje jeszcze innych executorów zadania poza CLIR.
+- **QA na ten etap:** Mac Local Agent `aicalls-20261104-f044-brief-skills-f047-host-qa-v1` z kodu `28c1456e753baab0be6997384c2110a3c87cd940`. **Status sprawdzić z terminalnego task-results, nie zakładać PASS**. Nowy TaskBrief/menu nie są jeszcze fizycznie przetestowane na S22. Nie przeprowadzać nowego live-call przed QA i off-call syntetycznym testem 4 tur.
+- [Checkpoint implementacji F-044](checkpoints/2026-11-04-f044-dynamic-taskbrief-skill-menu.md). Kolejny krok: otrzymać pełne Mac QA i wykonać bezpieczny test na S22 tylko w stanie IDLE, z zachowaniem grantu/retry; potem dopiero nadzorowany realny test właściciela. F-045 (semantyczna kontrola swobodnej mowy) nadal na końcu kolejki.
+
+
 ## Mapa menu S22 — potwierdzona screenshotem i kodem 2026-11-04
 
 **Ekran główny** `MainActivity` zawiera: `ROZPOCZNIJ AUTORYZOWANE ZADANIE AI`, `CAMPAIGN TOOLS`, `STOP AI`, oraz akordeony `Tryb rozmowy i model`, `Model Gemma 4`, `Uprawnienia i konfiguracja`, `Diagnostyka deweloperska`. W głównym widoku **nie ma osobnego przycisku Gemma Direct**.
