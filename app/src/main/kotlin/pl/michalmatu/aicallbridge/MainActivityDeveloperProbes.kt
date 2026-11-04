@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge
 
 import android.app.Activity
+import android.content.Intent
+import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Button
@@ -48,6 +50,12 @@ internal class MainActivityDeveloperProbes(
     }
 
     fun addControls(content: LinearLayout) {
+        content.addView(Button(activity).apply {
+            text = "USB / ADB — diagnostyka"
+            setOnClickListener {
+                activity.startActivity(Intent(activity, UsbDebugPanelActivity::class.java))
+            }
+        })
         content.addView(Button(activity).apply {
             text = "Run device capability probe"
             setOnClickListener { runCapabilityProbe() }
