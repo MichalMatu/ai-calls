@@ -2,6 +2,10 @@
 
 **Stan, nie plan:** 2 rzeczywiste sesje Gemma Direct na S22, **8/8 oraz 7/7** STT → Gemma RAW → pełny lokalny TX, bez `DIRECT_REJECTED`; dynamiczny, zgodny z grantem `TaskBrief` CLIR i menu czterech prompt-skills, dolny prywatny panel rozmowy. Mac host QA i exact S22 off-call cztery tury PASS, obecny APK z kodu `268be1f8f13502c7202822438b501706e0fcb0e1`. Obserwacja właściciela: rozmowa działa, ale Gemmie brakuje dozwolonych danych, a pierwsza odpowiedź zaczęła się przed końcem komunikatu infolinii. **Nie** potwierdzono włączenia CLIR. [Checkpoint](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md).
 
+## Nowy kierunek — wybieralne modele audio (badania 2026-11-04)
+
+Na podstawie 5 zrzutów użytkownika i wydania Google AI Edge Gallery Android **1.0.22** zaplanowano niezależny wybór wejścia **Android STT / Parakeet TDT 0.6B v3 (PL) / eksperymentalne audio bezpośrednio do Gemma 4** oraz wyjścia **Android TTS PL / przyszły Piper PL / Kokoro i PocketTTS tylko dla wspieranych języków (obecnie bez PL)**. Obecny LiteRT-LM `0.17.1` w AI Calls ma `audioBackend=null`; Gemma obecnie generuje wyłącznie tekst. To na razie **DESIGN / niezaimplementowane opcje**, nie zastępuje frozen S22 RAW i nie zamyka F-048/F-049. Zobacz [pełny plan wyboru ASR/TTS](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md); rozpocząć od bezpiecznych adapterów z dotychczasowymi domyślnymi silnikami, następnie testować oddzielnie nowe modele.
+
 ## Następny sprint — bez ruszania udanego toru media/modelu
 
 ### A. F-049: poprawne przejmowanie tury IVR
