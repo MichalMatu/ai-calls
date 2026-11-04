@@ -166,6 +166,7 @@ internal object ChatRelayLiveCallProbe {
         private val supervisedFallbackReplies = AtomicInteger(0)
         private val quickAckPcm = AtomicReference<ByteArray?>(null)
         private val lastQuickAckTurn = AtomicInteger(0)
+        private val lastPrivateDecisionTraceTurn = AtomicInteger(0)
         private val finalAudioReadyTurn = AtomicInteger(0)
         private val quickAckSynthesizer = LocalTtsSpeechOutput(context)
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
@@ -697,6 +698,7 @@ internal object ChatRelayLiveCallProbe {
                     },
                 )
                 evidenceRecorder?.recordTransmittedAudio(turn, pcm, bytesWritten, txEvidenceAtMs)
+                evidenceRecorder?.recordFullTxAttempt(turn, bytesWritten, pcm.size)
                 if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
                     activeMediaGeneration.get() != generation
                 ) {
@@ -808,21 +810,30 @@ internal object ChatRelayLiveCallProbe {
 
         private fun recordTurnDialogueDiagnostics(turn: Int) {
             val snapshot = hybridDiagnostics.snapshot()
-            snapshot.decisions.drop(turnDecisionBaseline).lastOrNull()?.let { decision ->
-                lines += "turn_${turn}_dialogue_action=${decision.actionId.name}"
-                lines += "turn_${turn}_dialogue_confidence=${decision.confidence}"
-                if (decision.argument != null) {
+            val decision = snapshot.decisions.drop(turnDecisionBaseline).lastOrNull()
+            val source = snapshot.responseSources.drop(turnResponseSourceBaseline).lastOrNull()
+            val classifierMs = snapshot.classifierLatenciesMs.drop(turnClassifierTimingBaseline).lastOrNull()
+            val localErrorPresent = snapshot.localSkillErrors.drop(turnLocalSkillErrorBaseline).isNotEmpty()
+            decision?.let {
+                lines += "turn_${turn}_dialogue_action=${it.actionId.name}"
+                lines += "turn_${turn}_dialogue_confidence=${it.confidence}"
+                if (it.argument != null) {
                     lines += "turn_${turn}_dialogue_argument_present=true"
                 }
             }
-            snapshot.responseSources.drop(turnResponseSourceBaseline).lastOrNull()?.let { source ->
-                lines += "turn_${turn}_response_source=${source.name}"
-            }
-            snapshot.classifierLatenciesMs.drop(turnClassifierTimingBaseline).lastOrNull()?.let { millis ->
-                lines += "turn_${turn}_gemma_classifier_wall_ms=$millis"
-            }
-            snapshot.localSkillErrors.drop(turnLocalSkillErrorBaseline).lastOrNull()?.let { _ ->
-                lines += "turn_${turn}_local_error_present=true"
+            source?.let { lines += "turn_${turn}_response_source=${it.name}" }
+            classifierMs?.let { lines += "turn_${turn}_gemma_classifier_wall_ms=$it" }
+            if (localErrorPresent) lines += "turn_${turn}_local_error_present=true"
+            if ((decision != null || source != null || classifierMs != null || localErrorPresent) &&
+                lastPrivateDecisionTraceTurn.getAndSet(turn) != turn
+            ) {
+                evidenceRecorder?.recordDialogueDecision(
+                    turn = turn,
+                    actionId = decision?.actionId?.name,
+                    responseSource = source?.name,
+                    classifierWallMs = classifierMs,
+                    localErrorPresent = localErrorPresent,
+                )
             }
         }
 
