@@ -533,6 +533,29 @@ internal object Gemma4LiteRtTextBackendFactory {
         )
     }
 
+    /** Independent generative conversation: model writes a proposed sentence, not a skill ID. */
+    fun createDirectDialogue(
+        context: Context,
+        systemInstruction: String,
+    ): TextCallAgentBackend {
+        val schema = """
+            {
+              "type":"object",
+              "properties":{
+                "action":{"type":"string","enum":["SPEAK","DISCLOSE_PHONE","CONFIRM_EFFECT","ASK_CLARIFY"]},
+                "text":{"type":"string","maxLength":360}
+              },
+              "required":["action"],
+              "additionalProperties":false
+            }
+        """.trimIndent()
+        return createInternal(
+            context = context,
+            systemInstruction = systemInstruction,
+            responseFormat = ResponseFormat.json(schema),
+        )
+    }
+
     fun createActionClassifier(
         context: Context,
         systemInstruction: String,
