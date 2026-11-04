@@ -22,4 +22,14 @@ class ChatRelayTurnPacingTest {
         assertEquals(850L, ChatRelayTurnPacing.postWriteHoldMs(32_000, 400L))
         assertEquals(250L, ChatRelayTurnPacing.postWriteHoldMs(32_000, 1_200L))
     }
+
+    @Test
+    fun `quick acknowledgement never waits twice for blocking PCM writes`() {
+        // Audio frames may block while the carrier TX pipe consumes them.
+        // The serial uplink must wait for the remaining playback, not replay the full duration.
+        assertEquals(1_250L, ChatRelayTurnPacing.acknowledgementPostWriteHoldMs(32_000, 0L))
+        assertEquals(850L, ChatRelayTurnPacing.acknowledgementPostWriteHoldMs(32_000, 400L))
+        assertEquals(250L, ChatRelayTurnPacing.acknowledgementPostWriteHoldMs(32_000, 1_200L))
+    }
+
 }
