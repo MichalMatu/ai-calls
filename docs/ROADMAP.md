@@ -4,6 +4,7 @@
 
 | Etap | Status | Kryterium zamknięcia |
 |---|---|---|
+| Debug USB/ADB — wspólny panel i moduły Mac ↔ S22 | **SOURCE IMPLEMENTED / Mac QA częściowe / S22 QA OPEN** | Odczyt i zmiana profilu po native readiness, prywatny eksport, grant revoke, testy bez połączenia; wymagany nowy build i kontrolowana instalacja |
 | M1 — rozdzielne Wejście / Model / Wyjście, profil, Android STT/E2B/Android TTS | **DONE — Mac + S22 off-call PASS** | Zakończone, nie powtarzać; live nowego wariantu pozostaje oddzielnym pomiarem |
 | M2 — Parakeet TDT 0.6B v3 PL | **Native syntetyczne S22 PASS / jakość PL OPEN** | Lokalny polski TTS→ASR, później WER/CER, final segmenty, pomiary latencji i współistnienia z E2B; brak nieautoryzowanych połączeń |
 | M3 — Piper PL | **Adapter + Mac PASS / native OPEN** | Sprawdzona zewnętrzna instalacja `dev.ihorshevchuk.piper` i offline głos PL, native PCM16/16k, brak fallbacku; dziś silnik ABSENT na S22 |
