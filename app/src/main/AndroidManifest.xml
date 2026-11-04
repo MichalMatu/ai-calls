@@ -102,6 +102,10 @@
             android:name=".campaign.CampaignToolActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".audioengines.AudioEngineSettingsActivity"
+            android:exported="false" />
+
         <service
             android:name=".campaign.AppOwnedCampaignService"
             android:exported="false"

@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.campaign
 
 import android.Manifest
 import android.app.Activity
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.app.AlertDialog
 import android.app.role.RoleManager
 import android.content.Intent
@@ -219,6 +220,12 @@ class CampaignToolActivity : Activity() {
             addView(directStartButton)
             addView(stopSupervisedAudioButton)
             addView(revokeButton)
+            addView(Button(this@CampaignToolActivity).apply {
+                text = "Ustawienia silników audio AI (STT / model / TTS)"
+                setOnClickListener {
+                    startActivity(Intent(this@CampaignToolActivity, AudioEngineSettingsActivity::class.java))
+                }
+            })
             addView(directSkillsSection)
             addView(dialerSection)
             addView(supervisedSection)
