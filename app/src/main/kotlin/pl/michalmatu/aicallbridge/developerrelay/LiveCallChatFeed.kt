@@ -15,6 +15,7 @@ internal object LiveCallChatFeed {
         val speaker: Speaker,
         val text: String,
         val txStatus: String? = null,
+        val atEpochMs: Long = System.currentTimeMillis(),
     )
 
     internal data class Snapshot(
