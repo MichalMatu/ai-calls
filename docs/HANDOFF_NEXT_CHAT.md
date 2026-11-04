@@ -1,41 +1,35 @@
-# AI Calls — handoff do nowego czatu, 2026-11-04
+# AI Calls — aktualny handoff 2026-11-04 po sprincie USB
 
-**Jedyny start operacyjny:** [checkpoint gotowości S22](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md). Nie kontynuować z przestarzałych sekwencji w dawnych checkpointach, nie rozpoczynać od ogólnego audytu ani od M1 od nowa. Odczytać **świeży** `main` HEAD przed działaniem.
+**Najświeższy fizyczny dowód:** [USB debug S22 acceptance](checkpoints/2026-11-04-usb-debug-s22-acceptance.md). Zastępuje dawny phone-ready stan, w którym telefon był niedostępny, a Parakeet PL jeszcze nieprzetestowany. Przed kontynuacją sprawdź `main` HEAD oraz nowe receipts; nie odtwarzaj starszych planów.
 
-## Stan do odziedziczenia
+## Rzeczywiście ukończone
 
-| Zakres | Potwierdzone | Nadal otwarte |
-|---|---|---|
-| Aplikacja | Na S22+ zainstalowany APK ze źródła `0d0fdfe22e9b002c8a9dc557ad5d95a882aa5976`; STORE 6/6, UI i Gemma 4 tury PASS off-call | Nowego APK nie instalowano; żywa rozmowa na nowych modelach niezweryfikowana |
-| Host | `aicalls-20261104-hostonly-audio-qualitygate-final-postfix-v4` DONE/0; `2c2dac7`; Gradle unit/lint/build, 10 mutacji, 258 Python, anti-friction PASS | Nie powtarzać bez zmiany kodu / nowej przesłanki |
-| Parakeet | M2: zweryfikowany model 614 588 752 B na S22, native prewarm + cisza PCM PASS | Polski TTS→ASR `AndroidParakeetPolishRoundTripTest` **NOT RUN** na S22; realny WER/CER, kolejność final segments i RAM/thermal OPEN |
-| Piper | M3 adapter + Mac PASS; F-052 kompilacja zweryfikowana | `dev.ihorshevchuk.piper` i głos PL **ABSENT** na S22; native TTS OPEN |
-| Gemma Audio | M4 syntetyczne `Content.AudioBytes` native S22 PASS | Profil M4 disabled, brak pełnego audio→dialogu, wspólnej pamięci i termiki |
-| Autor. zadania | Istniejący model grantu/STOP i zamrożony Samsung/Shizuku bez zmian; F-054/055 VERIFIED (Mac) | F-045/F-047/F-048 OPEN; CLIR bez niezależnego dowodu; F-049 **WYCOFANY** |
+- Kod i aktualnie zainstalowany APK S22+ z `418c84e2a082930b58673a383969f7293ccd0168`. Podpisy APK zgodne ze starą instalacją; `aicalls-20261104-usb-debug-s22-install-smoke-v1` DONE/0, bez czyszczenia danych, panel test PASS, `2× IDLE` i grant/skills/audio unchanged. Mac source QA `aicalls-20261104-usb-debug-bridge-host-qa-v2` DONE/0 (Gradle unit/lint/assemble+test APK, Python, anti-friction, audio gate).
+- Prywatna ścieżka USB/ADB Mac → aplikacja → nonce-bound JSON → Mac PASS; gotowość profilu Android STT/E2B/TTS i Parakeet oraz zliczanie błędów PASS, `aicalls-20261104-usb-debug-s22-readiness-v1`.
+- Bez połączeń: `aicalls-20261104-usb-debug-s22-profile-mutability-v1` DONE/0 — negatywny test M4, Parakeet profil write/readback, reset stabilnego `ANDROID_STT → GEMMA_4_E2B → ANDROID_TTS_PL` i unchanged grant/skills.
+- `aicalls-20261104-usb-debug-s22-private-export-e2e-v1` DONE/0 — 419 wpisów, timeline i WAV w prywatnym archiwum na Macu, integralność i uprawnienia PASS, **bez danych w Git/result/logcat**.
+- `aicalls-20261104-usb-debug-s22-android-speech-probes-v1` DONE/0 — Android STT i TTS off-call PASS.
+- `aicalls-20261104-usb-debug-s22-parakeet-polish-v1` DONE/0 — po raz pierwszy polski TTS→PCM16→Parakeet lexical overlap na S22 **PASS**, nie WER/CER.
+- `aicalls-20261104-usb-piper-thermal-readonly-v1` DONE/0 — Piper APK ABSENT, MemAvailable ~2661 MiB, bateria 29,9°C. To nie jest pomiar współpracy modeli.
+- Zgłoszone znikanie aplikacji: scenariusze uruchomienia i ADB nie ujawniły crasha (`PID stable`, `0 FATAL`); aplikacja przechodziła w tło podczas diagnostyki. Nie twierdzić, że każdy wariant UI został wizualnie przyjęty.
 
-Względem `0d0fdfe` ostatni potwierdzony `main` `e1d9d694b93d6700934806341ec0e85c46b6030e` miał **zero zmian w produkcyjnym Androidzie**; późniejsze commity tej konsolidacji to dokumentacja. Test `AndroidParakeetPolishRoundTripTest` przeszedł Mac QA (`aicalls-20261104-audio-polish-roundtrip-host-qa-v1` DONE/0), lecz AndroidTest APK **nie** jest jeszcze na S22.
+## Aktualne OPEN
 
-**Przygotowany AndroidTest APK na Macu (bez telefonu):** task `aicalls-20261104-doc-consolidation-prestage-androidtest-v1` **DONE/0**: 6 aktywnych Markdown + 36 linków PASS; `:app:assembleDebugAndroidTest` PASS; brak produkcyjnego diff; test APK `~/Documents/AI-Calls/phone-ready/9d56cc65e5b4e2f779302c655a501fa68386c912/app-debug-androidTest.apk` (source `9d56cc65e5b4e2f779302c655a501fa68386c912`, **1 138 349 B**, SHA-256 `8c6e052548df2f9dcdaec15f2b0ea7c89d4460e905da0d99581fd5359f02302c`). Jest to **tylko APK testowy**, nie wersja produkcyjna, **nie zainstalowany na S22**. Przed instalacją porównać plik i źródło; jeśli ktoś zmieni kod/testy, zbudować ponownie.
+- **Gemma E2B 4 synthetic turns:** historyczny S22 PASS na starszym kodzie bez zmiany backendu; nowy niezależny test w tym sprincie **NOT RUN**, zlecenie odrzucone przez system narzędzi. Nie obchodź odmowy przez inny transport. Jeśli będzie to potrzebne, użytkownik może sterować istniejącymi funkcjami na ekranie; wynik readiness nie zastępuje native 4-turn.
+- Parakeet: rzeczywisty polski WER/CER, final segment ordering, latencja i joint RAM/thermal przy E2B.
+- Piper: brak zewnętrznego `dev.ihorshevchuk.piper` i prawdziwego polskiego głosu offline.
+- Gemma Audio Direct: syntetyczny native wcześniejszy PASS, profil disabled; pełne audio→dialog, RAM/thermal i polish QA OPEN.
+- F-045 semantyczny RAW, F-047 końcowy RX na hangup, F-048 FactRequest/IdentityVault pozostają OPEN; brak zewnętrznego dowodu CLIR; F-049 **WYCOFANY**. `BLOCKERS.md` jest jedynym rejestrem statusów.
 
-## Wykonawca i nieprzekraczalne zasady
+## Wykonanie i następny krok
 
-- Repo `MichalMatu/ai-calls`; praca na `main`, commity `[skip ci]`, bez nowego brancha, force-push, Codex, Work, GitHub Actions (również bez czytania ich statusu).
-- Dokładny host `macbook-michal`, instalacja `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, Mac Local Agent 4.20.16 ostatnio zweryfikowany. **Host Ops** na `MichalMatu/local-agent:agent-control` w `.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/{tasks,task-results}/<id>.json`. Nie mylić ze starszą kolejką `ai-calls:agent-control`. Przed zadaniem przeczytać bieżący host `main` AGENTS + HOST_CONTROL_PLANE + CURRENT_HANDOFF oraz status/rezultaty, a nie wnioskować z historycznego heartbeatu.
-- Dokładny telefon: Samsung S22+ `SM-S906B`, serial `RFCT70L7E8J`, pakiet `pl.michalmatu.aicallbridge`. ADB transport odkryć na żywo; nie korzystać ze starego portu/IP.
-- Przed **każdą** instalacją/instrumentacją: 2× `IDLE`, rola dialera, dokładne device/model/serial, brak `AppOwnedCampaignService` w trakcie pracy i pending retry, zapisane prywatnie SHA-256 grantu / skillów / profilu audio; po sprawdzić to samo. Telefon jest obecnie **niedostępny** — nie wysyłać ADB, aż będzie dostępny.
-- Żadnych outgoing calls bez konkretnie ważnego, aplikacyjnie zapisanego i odwoływalnego grantu na dokładny cel/number/SIM/efekt/ujawnienia. Nie ruszać Samsung/Shizuku PCM, VAD, ACK/TX, STOP, prompt-skills. F-049 to błędna diagnoza powitania, nie otwierać.
-- `PROVEN_HOST` ≠ `PROVEN_S22_OFFCALL` ≠ `PROVEN_LIVE` ≠ potwierdzony skutek zewnętrzny. WAV, prawdziwy transcript i identyfikatory kont zostają **prywatnie na Macu/S22**, nie na GitHub, w wynikach Host Ops ani logcat.
+- Repo `MichalMatu/ai-calls`, wyłącznie `main`, commity `[skip ci]`. GitHub Connector + exact Mac Local Agent. Bez Codex, ChatGPT Work, GitHub Actions (także czytania statusu), nowych branchy i force-push.
+- Mac host `macbook-michal`, instalacja `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, Local Agent 4.20.16. Host Ops: `MichalMatu/local-agent:agent-control`, `.agent/hosts/macbook-michal/supervisor/cfea4cc3-b54c-4b6d-b9a6-758d12733e98/{tasks,task-results}/<id>.json`. Przeczytaj host `main` AGENTS/HOST_CONTROL_PLANE/CURRENT_HANDOFF, nie myl ze starą skrzynką `ai-calls:agent-control`.
+- Dokładny S22+ `SM-S906B`, serial `RFCT70L7E8J`, pakiet `pl.michalmatu.aicallbridge`. Odkryj żywy ADB transport. Przed każdą instalacją/instrumentacją: **2× IDLE**, dialer role, nieaktywny AppOwnedCampaignService i brak retry, prywatne fingerprinty grant/skills/audio, po teście postcheck. Niczego nie kasuj.
+- Wszystkie połączenia wymagają dokładnego, ważnego, odwoływalnego aplikacyjnego grantu cel/number/SIM/efekt/disclosure. Nigdy nie modyfikować zamrożonego Samsung/Shizuku PCM, VAD/ACK/TX, STOP. Prawdziwe WAV/transkrypty/identyfikatory prywatnie tylko na Macu i S22.
+- Następny drobny krok: **manualne sprawdzenie panelu** Main → Diagnostyka developerska → USB / ADB — diagnostyka. Nie powtarzaj wykonanych STT/TTS/Parakeet/profil/eksport bez nowej przesłanki. Kontynuuj oddzielne pomiary jakości/termiki tylko po właściwym preflight.
+- Wymagane dodatkowe lektury: [AGENTS](../AGENTS.md), [ROADMAP](ROADMAP.md), [ARCHITECTURE](ARCHITECTURE.md), [SECURITY_PRIVACY](SECURITY_PRIVACY.md), [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md), [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md), [USB debug](USB_DEBUG_BRIDGE.md), [aktualny checkpoint](checkpoints/2026-11-04-usb-debug-s22-acceptance.md). Fizyczny media freeze przeczytać dopiero przed próbą jego zmiany.
 
-## Następny sprint, bez zbędnych powtórek
+## Przeniesienie
 
-1. Odczytaj świeży `main` i terminalne receipts z checkpointu; sprawdź diff produkcyjnego `app/src/main` od `0d0fdfe`. Jeśli tylko testy/dokumentacja, użyj już przygotowanego, zweryfikowanego test APK z Maca (sprawdź SHA-256, podpis i zgodność produkcyjnej aplikacji); buduj go ponownie tylko po zmianie źródeł. Nie przeinstalowuj stabilnej aplikacji.
-2. Po powrocie S22 wykonaj wyłącznie read-only preflight; przy nie-`IDLE`, aktywnej kampanii/retry lub innym ID przerwij instalację, bez wymazywania danych/grantów.
-3. Bez połączenia uruchom pojedynczy nowy `AndroidParakeetPolishRoundTripTest#recognizesSynthesizedPolishSpeechWithLexicalOverlap` na S22. To polski lokalny TTS→PCM16/16k→Parakeet, mierzy tylko overlap słów; **nie jest to korpusowy WER ani live test**. Zachowaj prywatnie metryki/dowód i bezpieczne PASS/FAIL.
-4. Następnie zaplanuj rzeczywisty polski WER/CER + final segmenty oraz RAM/latencję/temperaturę współistnienia Parakeet+E2B; Piper najpierw wymaga sprawdzonego zewnętrznego silnika i głosu PL; M4 zostawić disabled aż do osobnej kwalifikacji.
-5. Po testach zaktualizuj `BLOCKERS`, `ROADMAP`, checkpoint i handoff. Nie obiecuj produkcyjnego sukcesu rozmowy/CLIR na podstawie syntetycznej instrumentacji.
-
-Przed pracą przeczytać też `AGENTS.md`, `README.md`, `BLOCKERS.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/AUTONOMOUS_OPERATION_MODE.md`, `docs/SECURITY_PRIVACY.md`, `docs/GENERIC_PHONE_TASK_AUTHORITY.md`; `docs/PHASE2D_FREEZE_2026-09-18.md` tylko gdy potrzebna ingerencja w zamrożone media. Historia prób i numery tasków są w [checkpoincie](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md) i Git.
-
-## Tekst do wklejenia w nowym czacie
-
-> **Wznów AI Calls** z `MichalMatu/ai-calls`, świeży `main`. Zacznij od `AGENTS.md`, `docs/HANDOFF_NEXT_CHAT.md` i `docs/checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md`. Korzystaj wyłącznie z GitHub Connector i dokładnego Mac Local Agent; nie używaj Codex/Work/Actions. Przywróć S22 dopiero po powrocie użytkownika; zaczynaj od bezpiecznego read-only preflight i nowego off-call testu polskiego Parakeet, bez powtarzania zamkniętych testów. Nie ruszaj stabilnego APK, grantu, Samsung/Shizuku ani nie wykonuj rozmów bez konkretnego aktywnego grantu. F-049 wycofane. Zapisz wyniki i kontynuuj sprint.
+Wznów AI Calls z najświeższego `main`, sprawdź checkpoint USB/S22 oraz receipts, korzystaj wyłącznie z Mac Local Agent i GitHub Connector. Rozwijaj testy fizycznego S22 małymi krokami, bez ponownych testów już zakończonych. W pierwszej kolejności właściciel powinien wizualnie sprawdzić nowy panel USB, potem kolejne testy jakości bez połączeń. Nie obchodź odmowy narzędzia ani grantu/STOP.
