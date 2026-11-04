@@ -108,6 +108,27 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         submit { appendEvent(event) }
     }
 
+    /** Evidence-only: RX ended before VAD/ASR could finalize, never spoken to caller. */
+    fun recordInterruptedRx(
+        turn: Int,
+        capturedMs: Long,
+        speechDetected: Boolean,
+        trailingSilenceMs: Long?,
+        reasonCode: String,
+    ) {
+        if (completed.get()) return
+        require(reasonCode in setOf("OWNED_CALL_ENDED", "OPERATOR_STOP", "SESSION_END"))
+        val event = JSONObject()
+            .put("type", "RX_INTERRUPTED")
+            .put("turn", turn)
+            .put("elapsed_ms", elapsed())
+            .put("captured_ms", capturedMs.coerceAtLeast(0L))
+            .put("speech_detected", speechDetected)
+            .put("trailing_silence_ms", trailingSilenceMs?.coerceAtLeast(0L) ?: JSONObject.NULL)
+            .put("reason_code", reasonCode)
+        submit { appendEvent(event) }
+    }
+
     fun openRxTurn(turn: Int): RxTurn = RxTurn(turn)
 
     inner class RxTurn(private val turn: Int) {
