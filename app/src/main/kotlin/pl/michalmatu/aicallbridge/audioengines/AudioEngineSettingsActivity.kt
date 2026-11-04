@@ -9,6 +9,7 @@ import android.media.AudioManager
 import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.telecom.TelecomManager
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -34,6 +35,7 @@ class AudioEngineSettingsActivity : Activity() {
     private lateinit var outputGroup: RadioGroup
     private var tts: TextToSpeech? = null
     private var probedVoices: Set<String>? = null
+    private var probedOutput: SpeechOutputId? = null
     private var voiceNames: List<String> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +60,7 @@ class AudioEngineSettingsActivity : Activity() {
             val group = RadioGroup(this)
             for (choice in choices) {
                 val button = RadioButton(this).apply {
+                    id = View.generateViewId()
                     text = choice.title + " · " + choice.languageTag + "\n" +
                         (if (choice.integrated) "Zintegrowany — sprawdź offline" else
                             "NIEDOSTĘPNY — " + choice.detail)
@@ -99,7 +102,8 @@ class AudioEngineSettingsActivity : Activity() {
             setOnClickListener {
                 val requested = selectedProfile()
                 val result = AudioEngineReadinessProbe.check(
-                    this@AudioEngineSettingsActivity, requested, probedVoices,
+                    this@AudioEngineSettingsActivity, requested,
+                    probedVoices.takeIf { requested.output == probedOutput },
                 )
                 if (!result.available) {
                     feedback.text = "Nie zapisano: " + (result.reason ?: "not_ready")
@@ -157,11 +161,15 @@ class AudioEngineSettingsActivity : Activity() {
 
     private fun checkOffline() {
         probedVoices = null
+        probedOutput = null
+        val selectedOutput = selectedProfile().output
+        val selectedEngine = if (selectedOutput == SpeechOutputId.PIPER_PL)
+            PiperServiceContract.PACKAGE else null
         tts?.shutdown()
         tts = null
         feedback.text = "Sprawdzanie lokalnego Android TTS, STT i pliku Gemma E2B…"
         val holder = arrayOfNulls<TextToSpeech>(1)
-        holder[0] = TextToSpeech(this) { status ->
+        val initListener = TextToSpeech.OnInitListener { status ->
             runOnUiThread {
                 val engine = holder[0] ?: return@runOnUiThread
                 if (isFinishing || isDestroyed) {
@@ -173,17 +181,23 @@ class AudioEngineSettingsActivity : Activity() {
                     feedback.text = "Android TTS: nie można zainicjalizować silnika."
                     return@runOnUiThread
                 }
+                if (selectedEngine != null && engine.currentEngine != selectedEngine) {
+                    engine.shutdown()
+                    feedback.text = "Wybrany Piper TTS nie jest zainstalowany."
+                    return@runOnUiThread
+                }
                 val voices = engine.voices.orEmpty()
                     .filter { it.locale.language == "pl" && !it.isNetworkConnectionRequired }
                     .sortedBy { it.name }
                 val names = voices.map { it.name }
                 tts = engine
                 probedVoices = names.toSet()
+                probedOutput = selectedOutput
                 setVoices(names, store.load()?.voiceId)
                 val result = AudioEngineReadinessProbe.check(
                     this@AudioEngineSettingsActivity,
                     selectedProfile(),
-                    probedVoices,
+                    probedVoices.takeIf { selectedProfile().output == probedOutput },
                 )
                 feedback.text = if (result.available) {
                     "Wstępny test offline: wybrane wejście wstępnie dostępne, E2B obecny (rozmiar pliku), " +
@@ -192,6 +206,9 @@ class AudioEngineSettingsActivity : Activity() {
                 } else "OPEN: " + (result.reason ?: "unknown")
             }
         }
+        holder[0] = if (selectedEngine == null)
+            TextToSpeech(this, initListener)
+        else TextToSpeech(this, initListener, selectedEngine)
     }
 
     private fun previewVoice() {
