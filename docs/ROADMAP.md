@@ -1,40 +1,28 @@
-# AI Calls — roadmap (stan 2026-11-04)
+# AI Calls — roadmap po działającym Gemma RAW (2026-11-04)
 
-**Źródło statusów:** [BLOCKERS.md](../BLOCKERS.md). Dotychczasowe wyniki i pomiary są udokumentowane w [F-042 pacing 04.11](checkpoints/2026-11-04-f042-ack-pacing-measurement-sprint.md), [F-042 bazowym](checkpoints/2026-11-03-f042-parallel-ack-gemma-latency.md) i [F-043](checkpoints/2026-11-04-f043-gemma-one-conversation-per-call.md). Poniższa kolejność jest planem, nie potwierdzeniem wykonania.
+**Stan, nie plan:** 2 rzeczywiste sesje Gemma Direct na S22, **8/8 oraz 7/7** STT → Gemma RAW → pełny lokalny TX, bez `DIRECT_REJECTED`; dynamiczny, zgodny z grantem `TaskBrief` CLIR i menu czterech prompt-skills, dolny prywatny panel rozmowy. Mac host QA i exact S22 off-call cztery tury PASS, obecny APK z kodu `268be1f8f13502c7202822438b501706e0fcb0e1`. Obserwacja właściciela: rozmowa działa, ale Gemini brakuje dozwolonych danych, a pierwsza odpowiedź zaczęła się przed końcem komunikatu infolinii. **Nie** potwierdzono włączenia CLIR. [Checkpoint](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md).
 
-## Priorytet przy wznowieniu: Gemma Direct — pierwszy live-call
+## Następny sprint — bez ruszania udanego toru media/modelu
 
-[Kompletny checkpoint i dokładny scenariusz](checkpoints/2026-11-04-gemma-direct-next-live-handoff.md). Oddzielny generatywny `GEMMA_DIRECT` i domyślny `SCRIPT_GEMMA` istnieją, a Mac full QA i S22 synthetic 2-turn GPU **PASS**; rzeczywista rozmowa Direct i skutek CLIR **OPEN**.
+### A. F-049: poprawne przejmowanie tury IVR
 
-1. **TERAZ — jeden rzeczywisty test Gemma Direct**: bez zmian kodu, na istniejącym autoryzowanym CLIR i zaakceptowanym zakresie. Sprawdzić S22 IDLE/brak aktywnej kampanii i retry, grant/target/SIM/rolę, dozwolone prywatne RX/TX. Właściciel wybiera **Start authorized CLIR enable — Gemma Direct** w aplikacji. Bez zdalnego dial, STOP lub obejścia odmowy narzędzia. Zebrać STT → działanie/tekst Gemmy → TTS → ACK/full TX i prywatne WAV, mierzyć opóźnienia oraz osobno ocenić słyszalność/efekt CLIR. Obecne bramki uprawnień/STOP obowiązują.
-2. **DOPIERO PO DZIAŁAJĄCYM TESTOWYM FLOW — F-044**: zbudować dynamiczny `TaskBrief` z `CallTask`, dokładnego grantu, dozwolonych identyfikatorów faktów, skills, warunków zakończenia i danych zadania; dostarczyć do Gemmy przed rozmową, testować kontekst/prewarm. Bez poszerzania grantu lub podawania danych osobowych w surowym promptcie.
-3. **NA KOŃCU — F-045**: rozszerzyć niezależną semantyczną walidację własnych wypowiedzi Gemmy, z adversarial testami parafraz i prompt injection. Do tego czasu realny test to wyłącznie **eksperymentalna diagnoza**, nie produkcyjne potwierdzenie bezpiecznych dowolnych wypowiedzi. Nie osłabiać istniejących zabezpieczeń w trakcie kolejności 3 → 2 → 1.
+- Zdiagnozować na prywatnym lokalnym RX/STT, dlaczego pierwsze 3 słowa powitania + 1,5 s ciszy uruchamiają ACK i pierwszą odpowiedź, mimo że automat może kontynuować komunikat. Oddzielić rzeczywisty koniec tury od pauzy IVR.
+- Dodać deterministyczny replay/test na odpowiedź **po zakończeniu zapowiedzi**, z zachowaniem szybkich odpowiedzi na krótkie rzeczywiste pytania. Nie wprowadzać sztywnej pauzy dla każdej wypowiedzi, sztucznego limitu tur, ani nowego koniecznego kliknięcia.
+- Osobno sprawdzić, czy neutralny ACK można wyemitować bez przedwczesnego zagłuszenia. Zmiany za warstwą mediów, bez naruszania zamrożonego Samsung/Shizuku RX/TX. RED → GREEN → pełna regresja.
 
-## 1. F-042 — rzeczywisty dialog i opóźnienie (następny punkt)
+### B. F-048: autoryzowany dostęp do potrzebnych faktów
 
-**Stan 2026-11-04:** korekta czasu TX zapowiedzi, RED/GREEN/pełne QA Mac i bezpieczna instalacja S22 PASS; pomiar słyszalności oraz EOS→pierwszy dźwięk w rzeczywistym połączeniu nadal OPEN.
+- Z prywatnego transkryptu zidentyfikować **typy** danych wymagane przez infolinię, bez ujawniania wartości w kodzie, GitHub, promptach lub wynikach Local Agenta.
+- Zbudować typowany `FactRequest`, katalog bezpiecznych identyfikatorów i odpowiedź aplikacji. `FactDisclosurePolicy` weryfikuje grant, dokładny cel, odbiorcę, zakres, stan STOP; dopiero wtedy `IdentityVault` może zwrócić wymagany plaintext do kontrolowanej, jednorazowej wypowiedzi. Brak faktu → rozstrzygnięcie przez właściciela, nie halucynacja.
+- Rozbudować `TaskBrief` wyłącznie o nazwy dopuszczonych umiejętności/faktów, nigdy globalną listę wartości prywatnych; nie mylić prompt-skills z wykonywalnym tool-calling. Testy prawidłowego faktu, odmowy, niezgodnego grantu, cofnięcia, zmiany odbiorcy i prompt injection.
+- Dopiero po testach hostowych i off-call sprawdzać dalszy live dialog, jedynie w ważnym grancie i świadomie uruchomiony przez użytkownika na telefonie.
 
-- Warunek wejścia: sprawdzić dokładny S22+, `IDLE`, bieżącą rolę dialera, grant oraz brak aktywnego połączenia/kampanii; działać wyłącznie w granicach konkretnej autoryzacji. Nie obchodzić wcześniejszej odmowy narzędzia wykonania połączenia.
-- Zmierzyć w rzeczywistej rozmowie: wykrycie EOS, STT, pierwsze TX neutralnej zapowiedzi, decyzję Gemmy, TTS i pełny TX; rozdzielić opóźnienie modelu, reguł i syntezy. Potwierdzić słyszalność u odbiorcy oraz brak nakładania się głosów.
-- Sprawdzić reakcje na przerwanie mowy, STOP, utratę uprawnień, zakończenie połączenia oraz wznowienie nasłuchu po STT 6/7/pustym transkrypcie.
-- Zamknąć F-042 dopiero po danych fizycznych; źródłowe QA i instalacja są już potwierdzone, więc nie powtarzać ich bez zmian.
+### C. F-047 / F-045 i faktyczny efekt
 
-## 2. Wąskie gardła wydajności — tylko po pomiarze
+- **F-047:** marker `RX_INTERRUPTED` jest obecny i zaobserwowany; odzyskanie urwanego STT po zakończeniu Call może służyć tylko prywatnej diagnostyce, nigdy Gemma/TX po STOP.
+- **F-045:** niezależna kontrola semantyczna swobodnej odpowiedzi Gemmy, nowych zobowiązań/zakupów i wypowiadanych danych. Wykonywalne skutki nadal tylko przez aplikacyjny commitment gate i niezależny dowód potwierdzenia.
+- **Zamknięcie zadania:** niezależnie potwierdzić realny skutek CLIR, jeśli możliwe; liczba tur i `WRITE_COMPLETE` nie są rezultatem u operatora.
 
-- Porównać rzeczywiste czasy przygotowania i generacji TTS z czasem Gemmy; rozważyć ponowne użycie instancji TTS i etapowe TX, jeśli dowody wykażą korzyść.
-- Rozważyć krótszy, poprawnie walidowany kontrakt odpowiedzi i skuteczne zarządzanie kontekstem przy długim połączeniu. Trwały czat F-043 nie znosi limitu okna kontekstowego.
-- Każda zmiana z testem jednostkowym, testem anulowania/STOP i porównaniem na tym samym S22; bez arbitralnych limitów tur i dodatkowych potwierdzeń.
+## Status i reguły
 
-## 3. Generyczne skills i skutki zewnętrzne
-
-- Opracować kontrakt zadania/skilla: identyfikator, typowane wejścia, dozwolone fakty/akcje, zakres grantu, warunki wykonania, potwierdzenie wyniku i bezpieczny fallback.
-- Zachować podział: Gemma proponuje/rozumie, aplikacja autoryzuje, deterministyczny executor wykonuje, niezależny dowód potwierdza efekt. CLIR jako pierwszy przypadek; rejestracja wizyty i mechanik dopiero po implementacji ich akcji.
-- Weryfikować rezultat zewnętrzny osobno od faktu rozmowy, wypowiedzi modelu i licznika TX.
-
-## 4. Domknięcie produktu
-
-Autoryzowane zadanie → samodzielny dial → zrozumiały dialog → autoryzowany skutek → weryfikacja → selektywne zakończenie własnego Call → `IDLE` → raport. Test syntetyczny, build albo samo zakończenie połączenia nie zastępują akceptacji end-to-end.
-
-## Trwałe granice
-
-[AGENTS.md](../AGENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY_PRIVACY.md](SECURITY_PRIVACY.md), [GENERIC_PHONE_TASK_AUTHORITY.md](GENERIC_PHONE_TASK_AUTHORITY.md) i [AUTONOMOUS_OPERATION_MODE.md](AUTONOMOUS_OPERATION_MODE.md) obowiązują niezależnie od planu. Historyczne roadmapy i checkpointy nie mogą przywracać rozwiązanych blokad ani dawnego trybu ręcznego pilota.
+[BLOCKERS.md](../BLOCKERS.md) jest jedynym rejestrem statusów, [ARCHITECTURE](ARCHITECTURE.md) opisuje granice modułów, [HANDOFF](HANDOFF_NEXT_CHAT.md) krótką instrukcję wznowienia. Stare checkpointy, QA i wykresy opóźnień pozostają archiwum, a **nie** bieżącą listą pracy. Nie powtarzać testów na niezmienionym SHA tylko dla potwierdzenia historii. GitHub Connector + Mac Local Agent; bez Codex/Work/Actions. Żadnych rozmów lub zmian grantu podczas porządkowania dokumentacji.
