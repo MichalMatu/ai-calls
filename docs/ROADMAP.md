@@ -1,6 +1,6 @@
 # AI Calls — roadmap: konfigurowalne wejście / model / wyjście (2026-11-04)
 
-**Priorytet właściciela:** kolejny czat ma **kodować** menu i wymienne silniki audio z planu [Edge Gallery](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md), nie wykonywać kolejnego ogólnego audytu. Szczegółowa, wiążąca lista kroków znajduje się w [IMPLEMENTATION_HANDOFF](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md), a [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) wskazuje punkt startu.
+**Priorytet właściciela:** sprint rozpoczęty i zaimplementowany w źródłach; kolejne kroki to rzeczywiste Mac/S22 QA i M2. Początkowo należało **kodować** menu i wymienne silniki audio z planu [Edge Gallery](checkpoints/2026-11-04-edge-gallery-audio-engine-selection-design.md), nie wykonywać kolejnego ogólnego audytu. Szczegółowa, wiążąca lista kroków znajduje się w [IMPLEMENTATION_HANDOFF](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md), a [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) wskazuje punkt startu.
 
 ## Potwierdzony baseline — nie rozmontowywać
 
@@ -8,7 +8,11 @@ S22+ (SM-S906B), `Gemma 4 E2B RAW` z dynamicznym `TaskBrief` i 4 prompt-skills, 
 
 **Korekta F-049 — zamknięte, NIE jest defektem AI Calls.** Dwuczęściowe powitanie było zachowaniem infolinii. **Nie dodawać** nowego wykrywania końca powitania, zmian VAD, dodatkowych pauz, opóźnienia ACK/TX ani osobnych sprintów naprawczych z tego powodu. Historyczny wpis zostaje w `BLOCKERS` jako wycofany.
 
-## Sprint M1 — rzeczywiste menu + modularne wybory, zachowanie starego defaultu
+## Sprint M1 — IMPLEMENTED_IN_SOURCE / QA_PENDING
+
+Commitowane zmiany `413676be` → `bc019ce`: menu `AudioEngineSettingsActivity` z osobnym wejściem / modelem / wyjściem, profil i prywatny store, katalog z wyłączonymi niezintegrowanymi modelami, test offline, wybór głosu, Android STT/TTS ports i dokładny snapshot profilu prewarm/call. Bez zmian Samsung/Shizuku, STOP, VAD, ACK, prompt-skills i autoryzacji. Pierwszy Mac RED test zakończył się oczekiwaną porażką; po przywróceniu kodu Gradle JVM unit PASS, full gate FAIL na lint `MissingPermission` w lokalnym podglądzie TTS. F-050 naprawione w źródłach, pełne QA ponowione taskiem `aicalls-20261104-audio-m1-postfix-host-qa-v2`, status wyniku oczekiwany. S22 off-call i nowy APK **OPEN**.
+
+### Zakres M1 i kryteria końcowe
 
 - Dodać odrębne, przejrzyste **Ustawienia silników audio AI** (Wejście / Model dialogu / Wyjście) z bieżącą konfiguracją, kompatybilnością `pl-PL`, stanem instalacji modelu, lokalizacją/wersją, rozmiarem, testem offline, zdolnością urządzenia i pojedynczym `Zapisz`. Nie mieszać z menu prompt-skills i grantem.
 - **Wejście:** Android STT (aktywny), Parakeet 0.6B v3 PL (pobierz/eksperymentalny), Gemma 4 Audio Direct (eksperymentalny). **Model:** Gemma 4 E2B (aktywny), E4B (po sprawdzeniu wersji/zasobów), w przyszłości inne zgodne modele. **Wyjście:** Android TTS `pl-PL` (aktywny), Piper `pl_PL` (do zaimplementowania); Kokoro 82M i PocketTTS 100M mogą być pokazane w katalogu, ale oznaczone `Brak PL` i **nieaktywne** dla obecnej kampanii. Gemma E2B nie ma udowodnionej generacji PCM jako TTS.

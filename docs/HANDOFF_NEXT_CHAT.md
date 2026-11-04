@@ -1,5 +1,7 @@
 # AI Calls — NEXT CHAT: sprint kodowania menu STT / model / TTS (2026-11-04)
 
+**Aktualizacja M1 (2026-11-04):** kod osobnego menu i typed engine profile/ports/readiness/prewarm snapshot już został zacommitowany na `main` (`413676be` → `bc019ce`). Pierwszy Mac host task `aicalls-20261104-audio-m1-host-qa-v1` zakończył się FAILED: oczekiwany test RED PASS, JVM unit GREEN PASS, full lint FAIL `MissingPermission` na odsłuchu. F-050 naprawiono w źródłach `bc019ce`. Task `aicalls-20261104-audio-m1-postfix-host-qa-v2` zlecony, wynik wymaga odczytu. **M1 QA_PENDING, S22 off-call OPEN, M2–M4 NIE wdrożone.** W pierwszej kolejności pobierz nowe receipt, napraw realne błędy, potem bezpieczne exact S22 off-call; nigdy nie twierdź, że powstał już przetestowany APK. [Szczegóły M1](checkpoints/2026-11-04-audio-engines-m1-source-checkpoint.md).
+
 **NIE rozpoczynaj od ponownego audytu ogólnego.** Właściciel zaakceptował propozycję z niezależnymi ustawieniami **Wejście (STT lub audio bezpośrednio do Gemmy) / Model rozmowy / Wyjście (TTS)** i prosi o realizację w następnym czacie. Szczegółowy handoff, kontrakty kodu, QA, model readiness i skopiowany prompt na końcu:
 
 **[2026-11-04-edge-gallery-audio-implementation-handoff.md](checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md)**

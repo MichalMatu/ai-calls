@@ -1,5 +1,7 @@
 # AI Calls — HANDOFF IMPLEMENTACYJNY: wybór wejścia STT / modelu dialogu / wyjścia TTS
 
+**Status po rozpoczęciu M1 (2026-11-04):** Typowany profil/store, registry/readiness, osobne menu, porty Android STT/TTS, wybór głosu i snapshot autoryzowanej kampanii/prewarm zaimplementowano na main (`413676be`–`bc019ce`). Pierwsze Mac QA `aicalls-20261104-audio-m1-host-qa-v1`: RED expected fail PASS, przywrócony JVM unit GREEN PASS, pełny lint FAIL z rzeczywistym `MissingPermission` w podglądzie TTS (F-050). Po poprawce pełne QA i S22 off-call **jeszcze bez pozytywnego receipt**. Parakeet, E4B, Piper, Gemma Audio Direct, Kokoro i PocketTTS pozostają **niezaimplementowane**. Kontynuacja: [M1 source checkpoint](2026-11-04-audio-engines-m1-source-checkpoint.md). Historyczny tekst niżej opisuje stan SPRZED implementacji.
+
 **Data:** 2026-11-04. **Cel nowego czatu: kodować moduł od pierwszego kroku, nie powtarzać analizy.** Dokument jest wiążącą instrukcją implementacji przy zachowaniu `AGENTS.md` i bezpieczeństwa. Status przed otwarciem nowego czatu: **wyłącznie dokumentacja i projekt rozwiązania; nie napisano nowych providerów ani menu**. Nie ogłaszaj nowego APK, dopóki nie istnieje receipt z Mac QA i fizycznego S22.
 
 ## 0. Niepodlegająca reinterpretacji decyzja właściciela

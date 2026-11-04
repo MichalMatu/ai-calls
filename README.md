@@ -11,7 +11,7 @@ Lokalny agent telefoniczny na Androida: użytkownik autoryzuje konkretny cel, ta
 
 ## Co pozostało
 
-1. **Nowy sprint: menu i wybór silników audio** — wejście Android STT / Parakeet PL / eksperymentalne Gemma Audio Direct; model Gemma E2B/E4B; wyjście Android TTS PL / planowany Piper PL / Kokoro i PocketTTS dla wspieranych języków. Wybory niegotowe nie mogą udawać działających. [Szczegółowy handoff implementacyjny](docs/checkpoints/2026-11-04-edge-gallery-audio-implementation-handoff.md).
+1. **M1 zaimplementowane w źródłach (QA_PENDING):** osobne menu trzech silników, typowany `AudioEngineProfile`, niezależny zapis, rejestr i readiness, wybór lokalnego głosu Android TTS, wymienne adaptery STT/TTS, profil przypinany do prewarm i całego owned-call. Kandydaci Parakeet PL, E4B, Piper PL, Gemma Audio Direct, Kokoro/PocketTTS pozostają jawnie nieaktywni bez zweryfikowanego runtime. Pierwszy Mac QA znalazł `MissingPermission` w nowym odsłuchu i był FAIL; poprawka F-050 jest w źródłach, retest i nowy APK/S22 są nadal oczekujące. [Checkpoint M1](docs/checkpoints/2026-11-04-audio-engines-m1-source-checkpoint.md).
 2. **F-048 — bezpieczne fakty:** Gemma zna cel CLIR, ale nie ma autoryzowanego `RequestFact` do kontrolowanego dostarczania informacji z `IdentityVault`. Nie wklejać danych osobowych do promptu; każdą decyzję o ujawnieniu podejmuje aplikacja.
 3. **F-047 / F-045:** odzyskiwanie transkryptu RX przerwanego przez koniec Call (diagnostyka już działa) oraz semantyczna kontrola swobodnego tekstu RAW. Nie potwierdzono zewnętrznego skutku CLIR.
 
