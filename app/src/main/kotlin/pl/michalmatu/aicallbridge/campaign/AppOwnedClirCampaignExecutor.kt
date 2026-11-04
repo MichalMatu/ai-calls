@@ -39,6 +39,7 @@ internal object AppOwnedClirCampaignExecutor {
         authorizationStore: CampaignAuthorizationStore,
         accountScope: String,
         dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
+        directSystemInstruction: String? = null,
         onAttemptFinished: (Boolean, String?) -> Unit = { _, _ -> },
         onStatus: (String) -> Unit,
     ) {
@@ -184,6 +185,7 @@ internal object AppOwnedClirCampaignExecutor {
                 request = request,
                 authorizationStore = authorizationStore,
                 dialogueMode = dialogueMode,
+                directSystemInstruction = directSystemInstruction,
                 onAttemptFinished = onAttemptFinished,
                 onStatus = onStatus,
             )
@@ -205,6 +207,7 @@ internal object AppOwnedClirCampaignExecutor {
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         dialogueMode: CampaignDialogueMode,
+        directSystemInstruction: String?,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -238,7 +241,8 @@ internal object AppOwnedClirCampaignExecutor {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
                 startLocalRuntime(
                     appContext, telecomManager, grant, ownedCall, request,
-                    authorizationStore, dialogueMode, onAttemptFinished, onStatus,
+                    authorizationStore, dialogueMode, directSystemInstruction,
+                    onAttemptFinished, onStatus,
                 )
                 return
             }
@@ -291,6 +295,7 @@ internal object AppOwnedClirCampaignExecutor {
                 phoneDisclosureAuthorized = phoneDisclosureAuthorized,
                 supervisorRelayEnabled = false,
                 dialogueMode = dialogueMode,
+                directSystemInstruction = directSystemInstruction,
                 callStillActive = {
                     runCatching { ownedCall.isExactCallActive() }.getOrDefault(false)
                 },
