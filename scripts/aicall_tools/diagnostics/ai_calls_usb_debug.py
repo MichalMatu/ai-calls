@@ -33,6 +33,26 @@ BRIDGE_ACTIONS = frozenset({
     "profile_check", "grant_revoke", "evidence_disable",
 })
 TESTS = {
+    "android-stt": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidLocalSpeechMvpContractTest"
+        "#polishOnDeviceSttStartupResolvesWithoutSilentHang"
+    ),
+    "android-tts": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidLocalSpeechMvpContractTest"
+        "#polishLocalTtsProducesNonemptyMonoPcm16At16k"
+    ),
+    "gemma-e2b": (
+        "pl.michalmatu.aicallbridge.textagent.AndroidGemmaDirectOnDeviceTest"
+        "#fourSyntheticGemmaDirectTurnsReturnNaturalText"
+    ),
+    "gemma-audio": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidGemmaAudioNativeOffcallTest"
+        "#audioBytesNativeEngineHandlesSyntheticPcmWithoutCrash"
+    ),
+    "usb-panel": (
+        "pl.michalmatu.aicallbridge.debug.AndroidUsbDebugPanelTest"
+        "#launchesPrivateStatusPanelWithoutCallOrSettingsMutation"
+    ),
     "parakeet-pl": (
         "pl.michalmatu.aicallbridge.audioengines.AndroidParakeetPolishRoundTripTest"
         "#recognizesSynthesizedPolishSpeechWithLexicalOverlap"
