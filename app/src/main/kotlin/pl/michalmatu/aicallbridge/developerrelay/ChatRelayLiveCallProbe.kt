@@ -627,6 +627,7 @@ internal object ChatRelayLiveCallProbe {
             try {
                 val atMs = elapsedTurnMs()
                 val evidenceAtMs = evidenceRecorder?.elapsed() ?: 0L
+                val txWriteStarted = SystemClock.elapsedRealtime()
                 val sent = AuthorizedPcmUplinkWriter.write(
                     uplink = lease.uplink(),
                     pcm = pcm,
@@ -636,15 +637,26 @@ internal object ChatRelayLiveCallProbe {
                             currentTurn == turn && activeMediaGeneration.get() == generation
                     },
                 )
+                val txWriteWallMs =
+                    (SystemClock.elapsedRealtime() - txWriteStarted).coerceAtLeast(0L)
                 evidenceRecorder?.recordAcknowledgementAudio(turn, pcm, sent, evidenceAtMs)
                 totalTxBytes += sent.toLong()
                 lines += "turn_${turn}_quick_ack_tx_bytes=$sent"
                 lines += "turn_${turn}_quick_ack_tx_elapsed_ms=$atMs"
+                lines += "turn_${turn}_quick_ack_write_wall_ms=$txWriteWallMs"
+                estimatedSpeechEndElapsedMs?.let { speechEndMs ->
+                    lines += "turn_${turn}_eos_to_quick_ack_tx_ms=${(atMs - speechEndMs).coerceAtLeast(0L)}"
+                }
                 if (sent != pcm.size) return
-                // Serial TX executor: wait for the buffered filler to finish playing
-                // before the full answer is allowed onto this same uplink.
-                // This does NOT hold or delay the Gemma inference worker.
-                Thread.sleep(ChatRelayTurnPacing.postTxHoldMs(pcm.size))
+                // Writes may already have blocked while telephony consumed frames.
+                // Keep the serial TX fence only for remaining playback + guard,
+                // not a second full audio duration. Gemma inference is unaffected.
+                val postWriteHoldMs = ChatRelayTurnPacing.acknowledgementPostWriteHoldMs(
+                    pcmBytes = pcm.size,
+                    txWriteWallMs = txWriteWallMs,
+                )
+                lines += "turn_${turn}_quick_ack_post_write_hold_ms=$postWriteHoldMs"
+                Thread.sleep(postWriteHoldMs)
             } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
             } catch (error: Throwable) {
@@ -670,7 +682,9 @@ internal object ChatRelayLiveCallProbe {
                 lines += "turn_${turn}_post_tx_hold_ms=$postTxHoldMs"
                 lines += "turn_${turn}_first_tx_elapsed_ms=$firstTxElapsed"
                 estimatedSpeechEndElapsedMs?.let { speechEndMs ->
-                    lines += "turn_${turn}_eos_to_first_tx_ms=${(firstTxElapsed - speechEndMs).coerceAtLeast(0L)}"
+                    val eosToFullTxMs = (firstTxElapsed - speechEndMs).coerceAtLeast(0L)
+                    lines += "turn_${turn}_eos_to_first_tx_ms=$eosToFullTxMs"
+                    lines += "turn_${turn}_eos_to_full_tx_ms=$eosToFullTxMs"
                 }
                 val txWriteStarted = SystemClock.elapsedRealtime()
                 val txEvidenceAtMs = evidenceRecorder?.elapsed() ?: 0L
