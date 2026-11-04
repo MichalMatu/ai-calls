@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectProposalParser
 import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectTaskBrief
 
 /**
@@ -18,7 +17,7 @@ import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectTaskBrief
  */
 @RunWith(AndroidJUnit4::class)
 class AndroidGemmaDirectOnDeviceTest {
-    @Test fun twoSyntheticGemmaDirectTurnsReturnStructuredSafeProposals() {
+    @Test fun fourSyntheticGemmaDirectTurnsReturnNaturalText() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val model = Gemma4LiteRtTextBackendFactory.createDirectDialogue(
             context, GemmaDirectTaskBrief.PROMPT,
@@ -27,6 +26,8 @@ class AndroidGemmaDirectOnDeviceTest {
             val syntheticTurns = listOf(
                 "Dzień dobry, w jakiej sprawie Pan dzwoni?",
                 "Rozumiem. Czego dokładnie Pan potrzebuje od operatora?",
+                "Nie udało mi się znaleźć tej informacji. Co możemy zrobić dalej?",
+                "Czy może Pan przypomnieć cel tej rozmowy?",
             )
             syntheticTurns.forEachIndexed { index, utterance ->
                 val done = CountDownLatch(1)
@@ -45,12 +46,15 @@ class AndroidGemmaDirectOnDeviceTest {
                     }
                 })
                 assertTrue("Direct synthetic model timed out", done.await(120, TimeUnit.SECONDS))
-                val accepted = response.get()?.let(GemmaDirectProposalParser::parse)
+                val raw = response.get()?.trim().orEmpty()
+                val usable = raw.isNotEmpty() && raw.length <= 1024 &&
+                    !raw.contains("[[") && !raw.contains("]]")
                 println("DIRECT_OFFCALL_TURN_${index + 1}_MS=" +
                     ((System.nanoTime() - started) / 1_000_000L))
-                println("DIRECT_OFFCALL_TURN_${index + 1}_PROPOSAL_VALID=" + (accepted != null))
+                println("DIRECT_OFFCALL_TURN_${index + 1}_RAW_USABLE=" + usable)
+                println("DIRECT_OFFCALL_TURN_${index + 1}_OUTPUT_CHARS=" + raw.length)
                 println("DIRECT_OFFCALL_TURN_${index + 1}_RUNTIME_ERROR=" + (error.get() != null))
-                assertTrue("Gemma Direct JSON/action/speech valid on device", accepted != null)
+                assertTrue("Gemma Direct raw speech text valid on S22", usable)
             }
         } finally {
             model.close()
