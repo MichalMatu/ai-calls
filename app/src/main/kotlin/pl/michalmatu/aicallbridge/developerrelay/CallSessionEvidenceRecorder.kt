@@ -65,6 +65,49 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         submit { appendEvent(event) }
     }
 
+    /**
+     * Private, bounded diagnostic metadata. No model argument, target, phone number,
+     * unapproved text or arbitrary exception string can enter this event.
+     */
+    fun recordDialogueDecision(
+        turn: Int,
+        actionId: String?,
+        responseSource: String?,
+        classifierWallMs: Long?,
+        localErrorPresent: Boolean,
+    ) {
+        if (completed.get()) return
+        val safeCode = Regex("[A-Z][A-Z0-9_]{0,63}")
+        val action = actionId?.takeIf(safeCode::matches)
+        val source = responseSource?.takeIf(safeCode::matches)
+        if (action == null && source == null && classifierWallMs == null && !localErrorPresent) return
+        val event = JSONObject()
+            .put("type", "AGENT_DECISION")
+            .put("turn", turn)
+            .put("elapsed_ms", elapsed())
+            .put("action_id", action ?: JSONObject.NULL)
+            .put("response_source", source ?: JSONObject.NULL)
+            .put("classifier_wall_ms", classifierWallMs?.coerceAtLeast(0L) ?: JSONObject.NULL)
+            .put("local_error_present", localErrorPresent)
+        submit { appendEvent(event) }
+    }
+
+    /** Written-to-uplink evidence is not proof of remote acoustic delivery. */
+    fun recordFullTxAttempt(turn: Int, acceptedBytes: Int, requestedBytes: Int) {
+        if (completed.get()) return
+        val accepted = acceptedBytes.coerceIn(0, requestedBytes.coerceAtLeast(0))
+        val event = JSONObject()
+            .put("type", "AGENT_FULL_TX")
+            .put("turn", turn)
+            .put("elapsed_ms", elapsed())
+            .put("pcm_bytes_accepted", accepted)
+            .put("pcm_bytes_requested", requestedBytes.coerceAtLeast(0))
+            .put("transport_status", if (accepted == requestedBytes && requestedBytes > 0) {
+                "WRITE_COMPLETE"
+            } else "WRITE_PARTIAL")
+        submit { appendEvent(event) }
+    }
+
     fun openRxTurn(turn: Int): RxTurn = RxTurn(turn)
 
     inner class RxTurn(private val turn: Int) {
@@ -100,6 +143,17 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         if (completed.get() || sentBytes <= 0) return
         val aligned = minOf(sentBytes, pcm.size).let { it - it % 2 }
         saveWave(turn, "tx-ack", txAtMs, pcm.copyOf(aligned))
+        // The filler is TTS text too, but is not an AGENT_APPROVED_TEXT final answer.
+        val event = JSONObject()
+            .put("type", "AGENT_ACK_TX")
+            .put("turn", turn)
+            .put("elapsed_ms", txAtMs)
+            .put("speaker", "agent")
+            .put("text", QuickAcknowledgementPolicy.TEXT)
+            .put("pcm_bytes_accepted", aligned)
+            .put("pcm_bytes_requested", pcm.size)
+            .put("transport_status", if (aligned == pcm.size) "WRITE_COMPLETE" else "WRITE_PARTIAL")
+        submit { appendEvent(event) }
     }
 
     fun elapsed(): Long = (SystemClock.elapsedRealtime() - initialElapsedMs).coerceAtLeast(0L)
