@@ -31,6 +31,10 @@ AI odpowiada tylko raz na konkretny RINGING Call. Jeśli Telecom publikuje konto
 
 Stan jest widoczny w panelu rozmowy i przez istniejący USB debug status (`incoming_mode`, `incoming_status`), bez numerów i prywatnego kontekstu. Nie wprowadzono nowej kolejki agenta lub osobnego debug bridge.
 
+## Naturalne zakończenie rozmowy — jeszcze do wdrożenia
+
+Obecne takeOutcome sekretarki nie zgłasza zakończenia, a adapter nie rozłącza Call po pożegnaniu. Rozmówca może zakończyć bieżący dialog telefonem; sam prompt lub powiedzenie „do widzenia” nie implementuje disconnect. F-091 OPEN opisuje brakujący kontrakt. Docelowo model proponuje zakończenie po przyjęciu i potwierdzeniu wiadomości, aplikacja sprawdza własny Call i aktualną generację, odtwarza zatwierdzone pożegnanie do końca, a następnie selektywnie rozłącza tę rozmowę. Nie jest to obecnie przetestowana funkcja.
+
 ## Manual, przejęcie, ponowne uruchomienie AI i STOP
 
 - „Odbierz ręcznie” tłumi automatyczny start dla tego konkretnego Call i odbiera go użytkownikowi.

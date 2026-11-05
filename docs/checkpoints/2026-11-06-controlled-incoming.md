@@ -43,6 +43,8 @@ Prywatne receipts: `~/Documents/AI-Calls/local-codex/2026-11-06-controlled-incom
 
 Każdy scenariusz jest osobną oceną; nie wymaga powtarzania poprzedniego testu ani ograniczenia liczby tur.
 
+Do pełnego dialogu wiadomości: rozmówca prosi o przyjęcie wiadomości; na pytanie o sprawę podaje fikcyjny serwis rowerowy i gotowy kosztorys; prosi o kontakt jutro po szesnastej, następnie zmienia termin na piątek po osiemnastej; prosi o powtórzenie; potwierdza poprawne podsumowanie i mówi „To wszystko, dziękuję, do widzenia”. Odpowiedzi modelu są swobodne, a nie zapisanym skryptem. Obecny APK nie rozłącza sam po takim zakończeniu (F-091); tę ostatnią czynność trzeba dopiero zaimplementować i sprawdzić. Samo pożegnanie w transkrypcie nie dowodzi hangup.
+
 | Próba | Co mówi kontrolowany rozmówca | Co sprawdzamy |
 |---|---|---|
 | Wiadomość | „Chcę zostawić wiadomość: proszę oddzwonić jutro po szesnastej.” Następnie poprosić o powtórzenie. | Zachowanie treści i czasu w dialogu oraz archiwum; bez obietnicy wykonania telefonu lub narzędzia. |
