@@ -1,6 +1,6 @@
 # Laboratorium — konfiguracja pojedynczej próby, 2026-11-05
 
-Baza `bf6eccd`. Rozwój bezpośrednio przez lokalny Codex, Git/Gradle/USB, bez zleceń Local Agent, Work i Actions. Docelowa dystrybucja jest jednym pakietem instalacyjnym; bieżący zakres to laboratorium.
+Kod `aed6b4ab27b3bf5661ec9cabb1956008cbd321b1`, baza `bf6eccd`. Rozwój bezpośrednio przez lokalny Codex, Git/Gradle/USB, bez zleceń Local Agent, Work i Actions. Docelowa dystrybucja jest jednym pakietem instalacyjnym; bieżący zakres to laboratorium.
 
 ## Wdrożona zmiana źródeł
 
