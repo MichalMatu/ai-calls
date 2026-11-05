@@ -2,7 +2,6 @@ package pl.michalmatu.aicallbridge.developerrelay
 
 import pl.michalmatu.aicallbridge.campaign.ClirCarrierEvidence
 import pl.michalmatu.aicallbridge.campaign.ClirDeterministicDialogueBackend
-import pl.michalmatu.aicallbridge.campaign.CampaignDialogueMode
 import pl.michalmatu.aicallbridge.campaign.CampaignGemmaDirectPreflight
 import pl.michalmatu.aicallbridge.campaign.CampaignGemmaPreflight
 import pl.michalmatu.aicallbridge.campaign.ClirRouteEvidence
@@ -48,7 +47,8 @@ import pl.michalmatu.aicallbridge.identity.DefaultFactDisclosurePolicy
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
+import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.audioengines.SpeechOutputId
@@ -107,13 +107,11 @@ internal object ChatRelayLiveCallProbe {
         supervisedGemmaEnabled: Boolean = false,
         callStillActive: () -> Boolean = { true },
         evidenceRecorder: CallSessionEvidenceRecorder? = null,
-        dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
-        audioEngineProfile: AudioEngineProfile = AudioEngineProfile.STABLE,
-        directSystemInstruction: String? = null,
+        runConfiguration: ConversationRunConfiguration,
         callback: (String) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
-        require(AudioEngineRegistry.incompatibility(audioEngineProfile) == null) {
+        require(AudioEngineRegistry.incompatibility(runConfiguration.audioProfile) == null) {
             "audio_engine_profile_unavailable"
         }
         require(maxTurns > 0) { "invalid_relay_max_turns" }
@@ -147,9 +145,7 @@ internal object ChatRelayLiveCallProbe {
             supervisedGemmaEnabled,
             callStillActive,
             evidenceRecorder,
-            dialogueMode,
-            directSystemInstruction,
-            audioEngineProfile,
+            runConfiguration,
         )
         if (!activeSession.compareAndSet(null, session)) {
             evidenceRecorder?.finish("audio_session_already_active")
@@ -172,9 +168,7 @@ internal object ChatRelayLiveCallProbe {
         private val supervisedGemmaEnabled: Boolean,
         private val callStillActive: () -> Boolean,
         private val evidenceRecorder: CallSessionEvidenceRecorder?,
-        private val dialogueMode: CampaignDialogueMode,
-        private val directSystemInstruction: String?,
-        private val audioEngineProfile: AudioEngineProfile,
+        private val runConfiguration: ConversationRunConfiguration,
     ) : SessionControl {
         override fun stopAudio() {
             // Revoke TX synchronously, even if the main-thread cleanup is delayed.
@@ -193,8 +187,8 @@ internal object ChatRelayLiveCallProbe {
         private val lastPrivateDecisionTraceTurn = AtomicInteger(0)
         private val finalAudioReadyTurn = AtomicInteger(0)
         private val quickAckSynthesizer = LocalTtsSpeechOutput(
-            context, audioEngineProfile.languageTag, audioEngineProfile.voiceId,
-            enginePackage = if (audioEngineProfile.output == SpeechOutputId.PIPER_PL)
+            context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
+            enginePackage = if (runConfiguration.audioProfile.output == SpeechOutputId.PIPER_PL)
                 PiperServiceContract.PACKAGE else null,
         )
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
@@ -262,23 +256,26 @@ internal object ChatRelayLiveCallProbe {
             supervisorRelayEnabled = supervisorRelayEnabled,
             // Only the app-owned campaign may consume its already initialized engine.
             // Supervised and developer probes keep independent model ownership.
-            preparedClassifier = if (!readOnlySupervised && !supervisorRelayEnabled) {
-                CampaignGemmaPreflight.takePrepared(audioEngineProfile)
-            } else null,
+            preparedClassifier = (if (!readOnlySupervised && !supervisorRelayEnabled) {
+                CampaignGemmaPreflight.takePrepared(runConfiguration.audioProfile)
+            } else null) ?: CampaignGemmaPreflight.createClassifier(context, runConfiguration.audioProfile),
         ) }
         private val directBackend by lazy {
+            val direct = runConfiguration as ConversationRunConfiguration.ModelDirect
             GemmaDirectDialogueBackendFactory.create(
-                context = context,
+                model = direct.acquireModel(
+                    takePrepared = { profile, instruction ->
+                        CampaignGemmaDirectPreflight.takePrepared(instruction, profile)
+                    },
+                    create = { profile, instruction ->
+                        DialogueEngineProviders.resolve(profile).createDirect(context, instruction)
+                    },
+                ),
                 authorizedPhoneFact = localPhoneFactBackend,
                 canConfirmEffect = {
                     !readOnlySupervised && activeMediaGeneration.get() > 0L &&
                         authorizedNow() && routeVerified.get() && !commitmentConsumed.get()
                 },
-                preparedModel = CampaignGemmaDirectPreflight.takePrepared(
-                    directSystemInstruction ?: GemmaDirectTaskBrief.PROMPT,
-                    audioEngineProfile,
-                ),
-                systemInstruction = directSystemInstruction ?: GemmaDirectTaskBrief.PROMPT,
                 observer = GemmaDirectObserver { action, source, elapsedMs ->
                     lines += "turn_${currentTurn}_direct_action=$action"
                     lines += "turn_${currentTurn}_direct_response_source=$source"
@@ -295,7 +292,7 @@ internal object ChatRelayLiveCallProbe {
             )
         }
         private val backend: TextCallAgentBackend = if (!readOnlySupervised &&
-            dialogueMode == CampaignDialogueMode.GEMMA_DIRECT
+            runConfiguration is ConversationRunConfiguration.ModelDirect
         ) {
             // F-046 raw speech-only experiment. No PhraseMatrix/JSON parser,
             // no model-callable fact/disclosure/effect tools, and no commitment
@@ -324,19 +321,19 @@ internal object ChatRelayLiveCallProbe {
             context,
             backend,
             outputApprovalPolicy,
-            languageTag = audioEngineProfile.languageTag,
-            voiceId = audioEngineProfile.voiceId,
-            input = when (audioEngineProfile.input) {
-                SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, audioEngineProfile.languageTag)
+            languageTag = runConfiguration.audioProfile.languageTag,
+            voiceId = runConfiguration.audioProfile.voiceId,
+            input = when (runConfiguration.audioProfile.input) {
+                SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, runConfiguration.audioProfile.languageTag)
                 SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
                 SpeechInputId.GEMMA_AUDIO_DIRECT -> GemmaAudioDirectInputProvider(context)
             },
-            output = when (audioEngineProfile.output) {
+            output = when (runConfiguration.audioProfile.output) {
                 SpeechOutputId.ANDROID_TTS_PL -> AndroidTtsOutputProvider(
-                    context, audioEngineProfile.languageTag, audioEngineProfile.voiceId,
+                    context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
                 )
                 SpeechOutputId.PIPER_PL -> PiperAndroidTtsOutputProvider(
-                    context, audioEngineProfile.languageTag, audioEngineProfile.voiceId,
+                    context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
                 )
                 SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS ->
                     error("unavailable_polish_output_engine")
@@ -345,7 +342,7 @@ internal object ChatRelayLiveCallProbe {
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",
             "supervised_read_only=$readOnlySupervised",
-            "dialogue_mode=${if (dialogueMode == CampaignDialogueMode.GEMMA_DIRECT) "gemma_direct" else "script_gemma"}",
+            "dialogue_mode=${if (runConfiguration is ConversationRunConfiguration.ModelDirect) "gemma_direct" else "script_gemma"}",
             "supervised_dialogue_mode=${if (supervisedGemmaEnabled) "gemma4" else "script"}",
             "developer_relay=$supervisorRelayEnabled",
             "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
@@ -549,7 +546,7 @@ internal object ChatRelayLiveCallProbe {
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text)
                     LiveCallChatFeed.replied(
                         liveChatToken, currentTurn, text,
-                        direct = !readOnlySupervised && dialogueMode == CampaignDialogueMode.GEMMA_DIRECT,
+                        direct = !readOnlySupervised && runConfiguration is ConversationRunConfiguration.ModelDirect,
                     )
                     LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • synteza TTS…")
                     lines += "turn_${currentTurn}_approved_chars=${text.length}"

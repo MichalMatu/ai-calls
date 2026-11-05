@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.campaign
 
 import android.Manifest
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import android.app.Notification
@@ -28,9 +29,8 @@ class AppOwnedCampaignService : Service() {
     private lateinit var continuationStore: CampaignContinuationStore
     private lateinit var dialogueModeStore: CampaignDialogueModeStore
     private lateinit var promptSkillStore: GemmaDirectPromptSkillStore
-    private var activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
-    private var activeAudioProfile = AudioEngineProfile.STABLE
-    private var activeDirectSystemInstruction: String? = null
+    private var selectedDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
+    private var selectedAudioProfile = AudioEngineProfile.STABLE
     private val continuationHandler = Handler(Looper.getMainLooper())
     private var scheduledAttempt: Runnable? = null
     private var campaignRequested = false
@@ -161,8 +161,8 @@ class AppOwnedCampaignService : Service() {
             finish("Stored audio engine configuration unavailable; no calls")
             return START_NOT_STICKY
         }
-        activeAudioProfile = profile
-        activeDialogueMode = selectedMode
+        selectedAudioProfile = profile
+        selectedDialogueMode = selectedMode
         if (explicitStart) dialogueModeStore.bind(grant.grantId, selectedMode)
         campaignRequested = true
         scheduleAuthorizedAttempt()
@@ -203,7 +203,7 @@ class AppOwnedCampaignService : Service() {
         scheduledAttempt = null
         val state = continuationStore.load()
         if (!campaignRequested || state == null || !isContinuationAuthorized(state)) {
-            finish("Campaign stopped or authorization expired")
+            finish("Campaign stopped or task scope unavailable")
             return
         }
         if (AppOwnedClirCampaignExecutor.isRunning() || isPhoneBusy()) {
@@ -213,13 +213,17 @@ class AppOwnedCampaignService : Service() {
         awaitingPhoneIdle = false
         if (preparingLocalModel) return
 
-        val selectedBrief = if (activeDialogueMode == CampaignDialogueMode.GEMMA_DIRECT) {
-            buildDirectBrief(state) ?: run {
-                finish("Gemma Direct task brief unavailable or not authorized")
-                return
+        val runConfiguration = when (selectedDialogueMode) {
+            CampaignDialogueMode.SCRIPT_GEMMA ->
+                ConversationRunConfiguration.ScriptAssisted(selectedAudioProfile)
+            CampaignDialogueMode.GEMMA_DIRECT -> {
+                val instruction = buildDirectBrief(state) ?: run {
+                    finish("Direct task brief unavailable or not authorized")
+                    return
+                }
+                ConversationRunConfiguration.ModelDirect(selectedAudioProfile, instruction)
             }
-        } else null
-        activeDirectSystemInstruction = selectedBrief
+        }
         // The first local LiteRT/Gemma generation can take tens of seconds on S22.
         // Warm the exact authorized model context before placing an external call, not while
         // the remote IVR is waiting for the first spoken response.
@@ -245,24 +249,22 @@ class AppOwnedCampaignService : Service() {
                     finish("Campaign scope changed while preparing local model")
                     return@post
                 }
-                if (activeDialogueMode == CampaignDialogueMode.GEMMA_DIRECT &&
-                    buildDirectBrief(latest) != selectedBrief
-                ) {
-                    finish("Gemma Direct task or prompt skills changed before dial")
-                    return@post
-                }
+                // This attempt keeps its captured instructions. Preference edits apply
+                // to the next attempt; live scope/revocation is still checked above and in TX.
                 if (AppOwnedClirCampaignExecutor.isRunning() || isPhoneBusy()) {
                     awaitPhoneIdle()
                     return@post
                 }
-                launchPreparedAttempt(latest)
+                launchPreparedAttempt(latest, runConfiguration)
             }
         }
-        when (activeDialogueMode) {
-            CampaignDialogueMode.SCRIPT_GEMMA -> CampaignGemmaPreflight.prepare(this, onModelPrepared, activeAudioProfile)
-            CampaignDialogueMode.GEMMA_DIRECT -> CampaignGemmaDirectPreflight.prepare(
-                this, systemInstruction = checkNotNull(selectedBrief),
-                profile = activeAudioProfile, onReady = onModelPrepared,
+        when (runConfiguration) {
+            is ConversationRunConfiguration.ScriptAssisted -> CampaignGemmaPreflight.prepare(
+                this, onModelPrepared, runConfiguration.audioProfile,
+            )
+            is ConversationRunConfiguration.ModelDirect -> CampaignGemmaDirectPreflight.prepare(
+                this, systemInstruction = runConfiguration.systemInstruction,
+                profile = runConfiguration.audioProfile, onReady = onModelPrepared,
             )
         }
     }
@@ -288,7 +290,10 @@ class AppOwnedCampaignService : Service() {
         }.getOrDefault(false)
     }
 
-    private fun launchPreparedAttempt(state: CampaignContinuationState) {
+    private fun launchPreparedAttempt(
+        state: CampaignContinuationState,
+        runConfiguration: ConversationRunConfiguration,
+    ) {
         continuationStore.prepareAttempt(state.grantId, System.currentTimeMillis())
             ?: run { finish("Continuation state unavailable"); return }
         attemptOutcome = null
@@ -297,9 +302,7 @@ class AppOwnedCampaignService : Service() {
             context = this,
             authorizationStore = authorizationStore,
             accountScope = state.accountScope,
-            dialogueMode = activeDialogueMode,
-            audioEngineProfile = activeAudioProfile,
-            directSystemInstruction = activeDirectSystemInstruction,
+            runConfiguration = runConfiguration,
             onAttemptFinished = { success, reason ->
                 continuationHandler.post {
                     if (campaignRequested && continuationGeneration == generation) {
@@ -408,6 +411,7 @@ class AppOwnedCampaignService : Service() {
                 sessionId = sessionId,
                 maxTurns = 2,
                 phoneDisclosureAuthorized = false,
+                runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE),
                 supervisorRelayEnabled = false,
                 liveAuthorization = {
                     supervisedAudioActive.get() &&
@@ -465,9 +469,8 @@ class AppOwnedCampaignService : Service() {
         scheduledAttempt = null
         continuationStore.clear()
         dialogueModeStore.clear()
-        activeDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
-        activeAudioProfile = AudioEngineProfile.STABLE
-        activeDirectSystemInstruction = null
+        selectedDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
+        selectedAudioProfile = AudioEngineProfile.STABLE
         statusStore.save(status)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()

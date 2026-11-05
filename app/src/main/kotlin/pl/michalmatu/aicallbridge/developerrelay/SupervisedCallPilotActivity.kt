@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
+
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
@@ -243,6 +246,7 @@ class SupervisedCallPilotActivity : Activity() {
             session = ChatRelayLiveCallProbe.run(
                 context = this,
                 sessionId = sessionId,
+                runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE),
                 maxTurns = 3,
                 phoneDisclosureAuthorized = false,
                 supervisorRelayEnabled = false,

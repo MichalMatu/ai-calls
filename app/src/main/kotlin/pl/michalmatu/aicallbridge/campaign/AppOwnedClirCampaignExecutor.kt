@@ -2,7 +2,7 @@ package pl.michalmatu.aicallbridge.campaign
 
 import android.Manifest
 import android.content.Context
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
@@ -39,9 +39,7 @@ internal object AppOwnedClirCampaignExecutor {
         context: Context,
         authorizationStore: CampaignAuthorizationStore,
         accountScope: String,
-        dialogueMode: CampaignDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA,
-        audioEngineProfile: AudioEngineProfile = AudioEngineProfile.STABLE,
-        directSystemInstruction: String? = null,
+        runConfiguration: ConversationRunConfiguration,
         onAttemptFinished: (Boolean, String?) -> Unit = { _, _ -> },
         onStatus: (String) -> Unit,
     ) {
@@ -184,9 +182,7 @@ internal object AppOwnedClirCampaignExecutor {
                 ownedCall = ownedCall,
                 request = request,
                 authorizationStore = authorizationStore,
-                dialogueMode = dialogueMode,
-                audioEngineProfile = audioEngineProfile,
-                directSystemInstruction = directSystemInstruction,
+                runConfiguration = runConfiguration,
                 onAttemptFinished = onAttemptFinished,
                 onStatus = onStatus,
             )
@@ -207,9 +203,7 @@ internal object AppOwnedClirCampaignExecutor {
         ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
-        dialogueMode: CampaignDialogueMode,
-        audioEngineProfile: AudioEngineProfile,
-        directSystemInstruction: String?,
+        runConfiguration: ConversationRunConfiguration,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -243,7 +237,7 @@ internal object AppOwnedClirCampaignExecutor {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
                 startLocalRuntime(
                     appContext, telecomManager, grant, ownedCall, request,
-                    authorizationStore, dialogueMode, audioEngineProfile, directSystemInstruction,
+                    authorizationStore, runConfiguration,
                     onAttemptFinished, onStatus,
                 )
                 return
@@ -279,9 +273,7 @@ internal object AppOwnedClirCampaignExecutor {
         ownedCall: CampaignOwnedCallSession,
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
-        dialogueMode: CampaignDialogueMode,
-        audioEngineProfile: AudioEngineProfile,
-        directSystemInstruction: String?,
+        runConfiguration: ConversationRunConfiguration,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -298,9 +290,7 @@ internal object AppOwnedClirCampaignExecutor {
                 maxTurns = ChatRelayLiveCallProbe.TASK_SCOPED_TURNS,
                 phoneDisclosureAuthorized = phoneDisclosureAuthorized,
                 supervisorRelayEnabled = false,
-                dialogueMode = dialogueMode,
-                audioEngineProfile = audioEngineProfile,
-                directSystemInstruction = directSystemInstruction,
+                runConfiguration = runConfiguration,
                 callStillActive = {
                     runCatching { ownedCall.isExactCallActive() }.getOrDefault(false)
                 },

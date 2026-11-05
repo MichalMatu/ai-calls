@@ -1,10 +1,8 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
-import android.content.Context
 import android.os.SystemClock
 import com.google.gson.JsonParser
 import pl.michalmatu.aicallbridge.textagent.AuthorizedPhoneFactBackend
-import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /** Independent Gemma-composed dialogue. Does not import the script/PhraseMatrix router. */
@@ -144,16 +142,12 @@ internal class GemmaDirectDialogueBackend(
 
 internal object GemmaDirectDialogueBackendFactory {
     fun create(
-        context: Context,
+        model: TextCallAgentBackend,
         authorizedPhoneFact: TextCallAgentBackend,
         canConfirmEffect: () -> Boolean,
         observer: GemmaDirectObserver,
-        preparedModel: TextCallAgentBackend? = null,
-        systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
     ): TextCallAgentBackend = GemmaDirectDialogueBackend(
-        model = preparedModel ?: Gemma4LiteRtTextBackendFactory.createDirectDialogue(
-            context.applicationContext, systemInstruction,
-        ),
+        model = model,
         authorizedPhoneFact = authorizedPhoneFact,
         canConfirmEffect = canConfirmEffect,
         observer = observer,

@@ -15,7 +15,7 @@ W ekranie narzędzi kampanii istnieją dwa przyciski:
 
 Direct nadal dostaje zadanie/instrukcje i podlega aplikacyjnym zasadom wypowiedzi, danych i efektów. „Bez skryptu” nie oznacza pustego promptu. Nazwa UI „Gemma Direct” jest historyczna: `DialogueEngineProviders` korzysta z modelu wybranego w profilu, również Qwen. Docelowa etykieta laboratorium powinna mówić „Model bez skryptu”.
 
-Ustawienia silników mają niezależne wejście, model, wyjście i głos (`AudioEngineProfile`). Tryb skrypt/Direct jest dziś osobnym parametrem START i jest zapamiętywany dla zadania na czas jego kontynuacji (`CampaignDialogueModeStore`), nie stanowi pola zapisanego presetu silników. Instrukcje Direct mają własny istniejący magazyn. Nie ma jeszcze jednego kompletnego presetu eksperymentu.
+Ustawienia silników mają niezależne wejście, model, wyjście i głos (`AudioEngineProfile`). Tryb skrypt/Direct jest dziś osobnym parametrem START i jest zapamiętywany dla zadania na czas jego kontynuacji (`CampaignDialogueModeStore`), nie stanowi pola zapisanego presetu silników. Instrukcje Direct mają własny istniejący magazyn. Runtime otrzymuje teraz jeden typowany `ConversationRunConfiguration` z profilem i strategią; Direct zawiera też zamrożoną instrukcję. Konfiguracja powstaje przed prewarm i jest przekazywana przez executor do tego samego potoku. Zapisywalny preset całego eksperymentu, ogólny scenariusz i adaptery kanałów nadal wymagają integracji.
 
 ## Ocena bieżącego kodu
 
@@ -24,12 +24,12 @@ Ustawienia silników mają niezależne wejście, model, wyjście i głos (`Audio
 | STT | `SpeechInputProvider`: start, PCM, final, cancel | Wspólny kontrakt wejść z pliku i mikrofonu do powtarzalnych prób poza telefonem |
 | Model | `DialogueEngineProvider`: Direct albo klasyfikator, wspólny runtime LiteRT-LM | Neutralne nazwy trybów/raportów i jednoznaczna identyfikacja wybranego artefaktu w wyniku eksperymentu |
 | TTS | `SpeechOutputProvider`: tekst → PCM16, cancel | Ten sam test jakości dla każdego adaptera; Piper ma znany błąd zewnętrznego API, sam instalator go nie naprawi |
-| Konfiguracja | Profil silników, tryb zadania i prompt-skills są rozdzielone | Złożyć jeden niezmienny snapshot konkretnej próby, korzystając z istniejących magazynów |
+| Konfiguracja | `ConversationRunConfiguration` składa istniejące wybory w jeden niezmienny snapshot próby: ScriptAssisted albo ModelDirect | Rozwinąć zapisywalny preset eksperymentu bez kopiowania magazynów preferencji |
 | Zadanie/scenariusz | Istnieją `CallTask`, `CallResolvedTarget`, typed effects i TaskBrief | `CampaignAgentControl`, `AppOwnedCampaignService` i `AppOwnedClirCampaignExecutor` nadal wiążą start ze specyfikacją CLIR; ogólny scenariusz nie jest gotowy |
 | Orkiestracja | Wspólny tor używany przez `ChatRelayLiveCallProbe` i owned-call executor | Wydzielać scenariusz i adaptery kanału z obecnego toru, nie tworzyć obok drugiego runnera ani drugiej polityki STOP/danych/skutków |
 | Audio modelu | Eksperymentalny PCM→AudioBytes→transkrypcja | `SpeechInputProvider` oddaje tekst. Pełny dialog przyjmujący audio wymaga rzeczywistego kontraktu multimodalnego; zmiana samej etykiety/pola nie wystarczy |
 
-Modułowość silników jest już użyteczna, ale cała aplikacja nie jest jeszcze ogólnym laboratorium scenariuszy. To ocena struktury źródeł na `83baf50`, nie nowy wynik testów fizycznych. Bieżące defekty i zakresy dowodów pozostają wyłącznie w [BLOCKERS](../BLOCKERS.md), m.in. F-044 (generic tasks/executors), F-045, F-048, F-057 i F-061.
+Modułowość silników jest już użyteczna, ale cała aplikacja nie jest jeszcze ogólnym laboratorium scenariuszy. Początkowy przegląd dotyczył `83baf50`; implementacja snapshotu jest opisana w [checkpoint konfiguracji próby](checkpoints/2026-11-05-lab-run-configuration.md). Nie jest to nowy wynik rozmowy fizycznej. Bieżące defekty i zakresy dowodów pozostają wyłącznie w [BLOCKERS](../BLOCKERS.md), m.in. F-044 (generic tasks/executors), F-045, F-048, F-057 i F-061.
 
 ## Kontrakt dalszego kodowania
 
@@ -77,7 +77,13 @@ Raport próby powinien identyfikować konfigurację faktyczną, wersję APK, has
 
 LiteRT-LM udostępnia Android SDK do dołączenia przez Gradle; Gallery jest wskazane jako przykład aplikacji, nie wymagany proces serwera. Potwierdzają to [dokumentacja SDK](https://github.com/google-ai-edge/LiteRT-LM/blob/main/docs/api/kotlin/getting_started.md) oraz lokalne `app/build.gradle.kts` i `DialogueEngineProviders.kt`.
 
-Rekomendowana kolejność dystrybucji:
+**Doprecyzowanie właściciela:** docelowo jeden pakiet instalacyjny. W bieżącym laboratorium kontynuujemy moduły i testy; instalator jest odłożony do etapu dystrybucji.
+
+`PackageInstaller` to część systemu Android i Android SDK, nie osobna aplikacja ani paczka do zainstalowania. Korzystamy z API; nie kopiujemy jego implementacji do AI Calls.
+
+Shizuku składa się z klienta API/provider (już w naszym APK), serwera/brokera działającego jako shell/root oraz managera odpowiedzialnego za uruchomienie i obsługę. Docelowo można oprzeć własną dystrybucję na potrzebnych częściach API, startera, serwera i obsługi UserService/Binder oraz zastąpić UI managera własnym. Same ustawienia lub skopiowany ekran nie zastępują działającego brokera. Obecne API/provider są gotowymi bibliotekami, więc nie ma potrzeby przepisywać ich jako fragmentów. API ma [licencję MIT](https://github.com/RikkaApps/Shizuku-API/blob/master/LICENSE), serwer/manager [Apache 2.0](https://github.com/RikkaApps/Shizuku/blob/master/LICENSE); przy wykorzystaniu kodu zachowujemy odpowiednie licencje i informacje autorów. W laboratorium pozostawiamy dotychczasowy zewnętrzny Shizuku, bez zmiany fizycznie zweryfikowanego transportu.
+
+Możliwe warianty realizacji docelowego pakietu:
 
 1. **Jeden pakiet uruchamiany na Macu przez USB/ADB:** dostarcza/aktualizuje AI Calls i potrzebne APK zależności, rozpoznaje już zainstalowane wersje, zachowuje dane, uruchamia istniejące readiness. Shizuku i opcjonalny Piper pozostają oddzielnymi pakietami Androida. Wykorzystać istniejące narzędzia urządzenia i instalacji; brak potrzeby Gallery. Model wybrany w aplikacji jest pobierany/importowany przez obecny katalog, bez wrzucania wszystkich modeli do APK.
 2. **Jeden ekran „Przygotowanie” w AI Calls:** status zależności, instalacja brakującego komponentu przez Android PackageInstaller, przejście do rzeczywistej aktywacji Shizuku i wybór modelu/głosu. Odtwarzać stan po powrocie z systemowego ekranu, nie powielać własnych potwierdzeń ani już spełnionych kroków.
@@ -87,9 +93,9 @@ Android obsługuje wspólną sesję instalacji wielu pakietów (`setMultiPackage
 
 Dla Shizuku na telefonie bez roota potrzebny jest start z ADB lub parowania bezprzewodowego; oficjalna instrukcja zaznacza ponowne uruchomienie po reboocie. Wspólny pakiet może automatyzować dostępną ścieżkę na przygotowanym urządzeniu, ale sam fakt instalacji APK nie oznacza aktywnego serwera. [Instrukcja Shizuku](https://shizuku.rikka.app/guide/setup/) i [API/UserService](https://github.com/RikkaApps/Shizuku-API).
 
-W tym przeglądzie **nie zbudowano jeszcze wspólnego instalatora ani nowego ekranu przygotowania** i nie przeprowadzano nowych połączeń. Przyjęto zakres laboratorium, oceniono istniejące granice i ustalono kierunek prac. Nie ma nowej deklaracji gotowości Piper, pełnego Gemma Audio ani ogólnych skutków zewnętrznych.
+Wspólny instalator i ekran przygotowania nie są zaimplementowane. Kontynuacja laboratorium wdraża snapshot konfiguracji próby oraz usuwa podmianę modelu przy braku cache; nie przeprowadzono nowej rozmowy telefonicznej w tym zakresie. Nie ma nowej deklaracji gotowości Piper, pełnego Gemma Audio ani ogólnych skutków zewnętrznych.
 
-## Weryfikacja tego przeglądu
+## Weryfikacja pierwszego przeglądu — historyczne `bf6eccd`
 
 Zakres zmiany: wyłącznie dokumentacja i instrukcje rozwoju, na bazie `83baf50`; runtime pozostaje z `c611830`. Przejrzano deklaracje providerów i profilu, wybór trybu w UI/START/retry, związek executorów z CLIR oraz zależności Gradle. Zweryfikowano bieżące oficjalne kontrakty SDK, PackageInstaller i Shizuku.
 

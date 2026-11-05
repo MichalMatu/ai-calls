@@ -56,16 +56,7 @@ internal object CampaignGemmaPreflight {
         }
 
         val candidate = try {
-            val policy = GateCHybridDialogueBackendFactory.actionPolicy(true)
-            val instruction = DialogueActionCatalog.systemPrompt(
-                policy,
-                GateCHybridDialogueBackendFactory.actionContext(true),
-            )
-            DialogueEngineProviders.resolve(profile).createActionClassifier(
-                context.applicationContext,
-                instruction,
-                policy.allowedActions,
-            )
+            createClassifier(context, profile)
         } catch (error: Throwable) {
             Log.w(TAG, "campaign_gemma_prewarm_create_failed=${error.javaClass.simpleName}")
             complete(token, null, false, 0L)
@@ -142,6 +133,17 @@ internal object CampaignGemmaPreflight {
         }
 
     /** Cancels only an UNUSED model. The active call owns the model after takePrepared(). */
+    /** Cold construction and prewarm use the identical selected model and action contract. */
+    fun createClassifier(context: Context, profile: AudioEngineProfile): TextCallAgentBackend {
+        val policy = GateCHybridDialogueBackendFactory.actionPolicy(true)
+        val instruction = DialogueActionCatalog.systemPrompt(
+            policy, GateCHybridDialogueBackendFactory.actionContext(true),
+        )
+        return DialogueEngineProviders.resolve(profile).createActionClassifier(
+            context.applicationContext, instruction, policy.allowedActions,
+        )
+    }
+
     fun discardUnused() {
         val leftovers: List<TextCallAgentBackend>
         val cancelled: List<(Boolean) -> Unit>

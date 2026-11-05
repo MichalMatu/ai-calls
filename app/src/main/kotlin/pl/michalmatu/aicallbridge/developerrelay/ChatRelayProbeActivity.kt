@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
+
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -55,6 +58,7 @@ class ChatRelayProbeActivity : Activity() {
             sessionId,
             maxTurns,
             phoneDisclosureAuthorized,
+            runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE),
         ) { result ->
             runOnUiThread {
                 statusView.text = result
