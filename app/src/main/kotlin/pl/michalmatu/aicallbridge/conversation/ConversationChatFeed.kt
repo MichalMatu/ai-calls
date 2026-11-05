@@ -59,7 +59,7 @@ internal object ConversationChatFeed {
     }
 
     private fun add(token: Long, turn: Int, speaker: Speaker, text: String, kind: ResponseKind = ResponseKind.UNSPECIFIED) = synchronized(lock) {
-        if (!active || token != generation || turn < 1 || text.isBlank()) return@synchronized
+        if (!active || token != generation || turn < 0 || (turn == 0 && speaker != Speaker.ASSISTANT) || text.isBlank()) return@synchronized
         // Display the exact finalized text, without serializing it beyond this process.
         lines.add(Line(turn, speaker, text, responseKind = kind))
         revision += 1

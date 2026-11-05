@@ -58,17 +58,7 @@ internal class LocalSpeechTextPipeline(
                         override fun onApprovedText(text: String) {
                             if (!gate.isCurrent(generation)) return
                             listener.onApprovedText(text)
-                            output.synthesize(text, object : SpeechOutputProvider.Listener {
-                                override fun onPcm16Mono16k(pcm: ByteArray) {
-                                    if (!gate.isCurrent(generation)) return
-                                    finishGeneration(generation)
-                                    listener.onOutputPcm16Mono16k(pcm)
-                                }
-
-                                override fun onError(reason: String) {
-                                    finishError(generation, listener, "tts_$reason")
-                                }
-                            })
+                            synthesize(generation, text, listener)
                         }
 
                         override fun onDroppedText() {
@@ -94,6 +84,36 @@ internal class LocalSpeechTextPipeline(
             override fun onError(reason: String) {
                 finishError(generation, listener, "stt_$reason")
             }
+        })
+    }
+
+    /** An application-owned greeting uses the same approval, TTS and cancellation path. */
+    fun speakCandidate(text: String, listener: Listener) {
+        cancel()
+        val generation = gate.begin()
+        controller.submitCandidateText(text, object : TextCallTurnController.Listener {
+            override fun onApprovedResponse(text: String) {
+                if (!gate.isCurrent(generation)) return
+                listener.onApprovedText(text)
+                synthesize(generation, text, listener)
+            }
+            override fun onDroppedResponse() {
+                if (!gate.isCurrent(generation)) return
+                finishGeneration(generation); listener.onDroppedText()
+            }
+            override fun onError(reason: String) = finishError(generation, listener, reason)
+        })
+    }
+
+    private fun synthesize(generation: Long, text: String, listener: Listener) {
+        if (!gate.isCurrent(generation)) return
+        output.synthesize(text, object : SpeechOutputProvider.Listener {
+            override fun onPcm16Mono16k(pcm: ByteArray) {
+                if (!gate.isCurrent(generation)) return
+                finishGeneration(generation)
+                listener.onOutputPcm16Mono16k(pcm)
+            }
+            override fun onError(reason: String) = finishError(generation, listener, "tts_$reason")
         })
     }
 

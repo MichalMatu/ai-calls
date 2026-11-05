@@ -10,6 +10,7 @@ The goal is not to freeze the project forever. The goal is to make structural ch
 ai-calls/
 ├── .github/                  # GitHub Actions and repository automation
 ├── app/                      # primary Android application
+├── conversation-core/        # reusable JVM conversation control; no Android/media/model imports
 ├── audio-bridge/             # Android audio bridge module
 ├── privileged-helper/        # privileged/Shizuku boundary module
 ├── realtime-client/          # realtime client Android module
@@ -50,7 +51,7 @@ ai-calls/
 
 The root allowlist in `scripts/verify_host.sh` **must include `BLOCKERS.md`** because the project policy in `AGENTS.md` makes it the canonical blocker ledger. A previous omission caused a false `repository_layout_failed=unexpected_top_level_entries` (F-036); `scripts/tests/test_verify_host_layout.py` now catches this and other tracked-path mismatches. This is a quality-gate fix, not a relaxation of constraints.
 
-The Android module list is authoritative in `settings.gradle.kts` and currently consists of `app`, `audio-bridge`, `privileged-helper`, and `realtime-client`.
+The module list is authoritative in `settings.gradle.kts`: Android modules `app`, `audio-bridge`, `privileged-helper`, `realtime-client`, and the reusable Kotlin/JVM `conversation-core`. The latter owns direction/session control independently of Android, Samsung media and model engines, and can be reused by the future product app.
 
 ## Placement rules
 
@@ -58,6 +59,7 @@ Use these defaults before creating a new path:
 
 | Change | Preferred location |
 | --- | --- |
+| Platform-independent conversation/session control | `conversation-core/src/...` |
 | Android product code owned by the main app | `app/src/...` |
 | Reusable realtime client Android code | `realtime-client/src/...` |
 | Privileged/Shizuku boundary code | `privileged-helper/src/...` |

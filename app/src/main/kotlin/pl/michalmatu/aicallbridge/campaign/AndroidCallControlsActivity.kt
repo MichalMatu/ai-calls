@@ -8,6 +8,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.WindowManager
 import android.telecom.Call
 import android.telecom.TelecomManager
 import android.view.ViewGroup
@@ -21,9 +24,14 @@ import android.widget.TextView
 class AndroidCallControlsActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var number: EditText
+    private val refreshHandler = Handler(Looper.getMainLooper())
+    private val refreshState = object : Runnable {
+        override fun run() { refresh(); refreshHandler.postDelayed(this, 500L) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         status = TextView(this).apply { textSize = 18f }
         number = EditText(this).apply {
             hint = "Numer telefonu"
@@ -51,12 +59,38 @@ class AndroidCallControlsActivity : Activity() {
                     }.onFailure { status.text = "Nie można wybrać numeru" }
                 }
             })
-            addView(button("Odbierz") {
-                AndroidOwnedInCallService.incomingCall()?.answer(0)
+            addView(button("Odbierz ręcznie") {
+                AndroidOwnedInCallService.incomingCall()?.let { call ->
+                    AndroidOwnedInCallService.takeOverIncoming(call)
+                    runCatching { call.answer(0) }
+                }
                 refresh()
             })
+            addView(button("Przejmij rozmowę — zatrzymaj AI") {
+                AndroidOwnedInCallService.currentCall()?.let { call ->
+                    AndroidOwnedInCallService.takeOverIncoming(call)
+                    if (AppOwnedClirCampaignExecutor.takeOver(call)) {
+                        startService(Intent(this@AndroidCallControlsActivity,AppOwnedCampaignService::class.java)
+                            .setAction(AppOwnedCampaignService.ACTION_PAUSE_AFTER_TAKEOVER))
+                    }
+                }
+                refresh()
+            })
+            addView(button("Włącz AI w rozmowie przychodzącej") {
+                val call=AndroidOwnedInCallService.currentCall()
+                val started=call!=null && AndroidOwnedInCallService.resumeIncoming(call)
+                refresh()
+                if (!started) status.append("\nAI nie zostało uruchomione. Sprawdź tryb AI, kartę SIM i gotowość w ustawieniach odbierania.")
+            })
+            addView(button("Ustawienia odbierania AI / ręcznie") {
+                startActivity(Intent(this@AndroidCallControlsActivity,
+                    pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity::class.java))
+            })
             addView(button("Odrzuć") {
-                AndroidOwnedInCallService.incomingCall()?.reject(false, null)
+                AndroidOwnedInCallService.incomingCall()?.let { call ->
+                    AndroidOwnedInCallService.takeOverIncoming(call)
+                    runCatching { call.reject(false, null) }
+                }
                 refresh()
             })
             addView(button("Zakończ wyświetlaną rozmowę") {
@@ -84,12 +118,24 @@ class AndroidCallControlsActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        refresh()
+        refreshHandler.removeCallbacks(refreshState)
+        refreshHandler.post(refreshState)
+    }
+
+    override fun onPause() {
+        refreshHandler.removeCallbacks(refreshState)
+        super.onPause()
     }
 
     private fun refresh() {
         val call = AndroidOwnedInCallService.currentCall()
         status.text = if (call == null) "Brak trwającego połączenia"
-        else "Połączenie: stan ${call.state}"
+        else when(call.state) {
+            Call.STATE_RINGING -> "Połączenie przychodzące"
+            Call.STATE_ACTIVE -> "Rozmowa trwa"
+            Call.STATE_HOLDING -> "Rozmowa wstrzymana"
+            Call.STATE_DISCONNECTED -> "Rozmowa zakończona"
+            else -> "Łączenie…"
+        } + (AndroidOwnedInCallService.incomingState(call)?.let { "\nAsystent: $it" } ?: "")
     }
 }

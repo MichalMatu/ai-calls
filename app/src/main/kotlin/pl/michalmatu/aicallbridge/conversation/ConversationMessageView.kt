@@ -35,7 +35,7 @@ import android.widget.LinearLayout.LayoutParams
             }
             setPadding(dp(12), dp(9), dp(12), dp(10))
             addView(TextView(context).apply {
-                text = label + line.turn + " • " + time
+                text = (if (line.turn == 0 && isAgent) "AI / POWITANIE" else label + line.turn) + " • " + time
                 textSize = 10f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.rgb(185, 207, 234))

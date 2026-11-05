@@ -33,4 +33,19 @@ class CampaignOwnedCallLifecycleTest {
         assertEquals("disconnected", lifecycle.releaseCurrent())
         assertEquals(2, count)
     }
+    @Test fun takeoverTransfersOnlyMatchedOwnerWithoutDisconnectAndLateCleanupIsHarmless() {
+        val released=mutableListOf<String>()
+        val lifecycle=CampaignOwnedCallLifecycle<String> { released+=it; "disconnected" }
+        assertTrue(lifecycle.bind("owned"))
+        assertEquals(null,lifecycle.detachIf { it=="unrelated" })
+        assertEquals("owned",lifecycle.detachIf { it=="owned" })
+        assertEquals("already_released",lifecycle.release("owned"))
+        assertEquals("no_owned_call",lifecycle.releaseCurrent())
+        assertTrue(released.isEmpty())
+        assertTrue(lifecycle.bind("next"))
+        assertEquals("already_released",lifecycle.release("owned"))
+        assertEquals("disconnected",lifecycle.releaseCurrent())
+        assertEquals(listOf("next"),released)
+    }
+
 }

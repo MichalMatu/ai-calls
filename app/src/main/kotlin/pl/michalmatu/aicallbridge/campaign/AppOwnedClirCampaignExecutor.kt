@@ -26,6 +26,14 @@ internal object AppOwnedClirCampaignExecutor {
 
     fun isRunning(): Boolean = running.get()
 
+    /** Only the displayed exact owned Call can be transferred; late cleanup loses its owner. */
+    fun takeOver(call: android.telecom.Call): Boolean {
+        ownedCalls.detachIf { (it as? AndroidTelecomOwnedCallSession)?.isBoundTo(call) == true } ?: return false
+        running.set(false)
+        audioSession.getAndSet(null)?.stopAudio()
+        return true
+    }
+
     /** STOP revokes AI TX and cleans up only a call identified by this app's controller. */
     fun stop(onStatus: (String) -> Unit): Boolean {
         val wasRunning = running.getAndSet(false)

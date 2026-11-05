@@ -11,6 +11,7 @@ allowed_root_entries=(
   README.md
   app
   audio-bridge
+  conversation-core
   benchmarks
   build.gradle.kts
   docs
@@ -74,6 +75,7 @@ if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
 fi
 
 "$GRADLE_BIN" \
+  :conversation-core:test \
   :realtime-client:testDebugUnitTest \
   :app:testDebugUnitTest \
   :privileged-helper:testDebugUnitTest \
@@ -99,7 +101,7 @@ python3 scripts/aicall_tools/diagnostics/audit_audio_engine_quality.py
 production_secret_pattern='(OPENAI_API_KEY|apiKey|api_key|(^|[^A-Za-z0-9_])sk-[A-Za-z0-9_-]{8,})'
 if grep -RInE --include='*.kt' --include='*.java' --include='*.xml' \
   "$production_secret_pattern" \
-  app/src/main realtime-client/src/main privileged-helper/src/main audio-bridge/src/main; then
+  app/src/main conversation-core/src/main realtime-client/src/main privileged-helper/src/main audio-bridge/src/main; then
   echo "production_secret_scan_failed=true" >&2
   exit 1
 fi

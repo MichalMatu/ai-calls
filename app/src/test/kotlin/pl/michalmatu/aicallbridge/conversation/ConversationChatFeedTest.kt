@@ -36,4 +36,17 @@ class ConversationChatFeedTest {
         assertTrue(ConversationChatFeed.snapshot().lines.isEmpty())
         ConversationChatFeed.finish(id, null)
     }
+    @Test fun openingGreetingIsVisibleWithTxBeforeFirstCounterpartTurn() {
+        val token=ConversationChatFeed.begin()
+        ConversationChatFeed.replied(token,0,"Dzień dobry, tu wirtualna asystentka.",ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED)
+        ConversationChatFeed.tx(token,0,true)
+        ConversationChatFeed.heard(token,1,"Chcę zostawić wiadomość.")
+        val lines=ConversationChatFeed.snapshot().lines
+        assertEquals(2,lines.size)
+        assertEquals(0,lines.first().turn)
+        assertEquals(ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED,lines.first().responseKind)
+        assertEquals("TX: wysłano lokalnie",lines.first().txStatus)
+        ConversationChatFeed.finish(token,null)
+    }
+
 }

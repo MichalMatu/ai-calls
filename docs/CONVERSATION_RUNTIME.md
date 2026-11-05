@@ -1,6 +1,6 @@
 # Wspólny runtime rozmów — 2026-11-05
 
-[Plan dalszego składania](PRODUCT_ASSEMBLY_PLAN.md) rozdziela profil użytkownika, konkretne zadanie, rozszerzalne skillsy/instrukcje i archiwum. Opisane poniżej moduły są obecnie granicami logicznymi w aplikacji; osobne biblioteki będą wydzielane przy pionowych integracjach. Najbliższy adapter odbierania obejmie manual/AI i przejęcie bez rozłączenia.
+[Plan dalszego składania](PRODUCT_ASSEMBLY_PLAN.md) rozdziela profil użytkownika, konkretne zadanie, rozszerzalne skillsy/instrukcje i archiwum. Opisane poniżej moduły są obecnie granicami logicznymi w aplikacji; osobne biblioteki będą wydzielane przy pionowych integracjach. [Adapter odbierania](INCOMING_ASSISTANT.md) wdraża manual/AI/przejęcie ze wspólnym silnikiem i osobnym rdzeniem JVM conversation-core; fizyczna kwalifikacja pozostaje QA_PENDING.
 
 ## Granice modułów
 
@@ -56,11 +56,11 @@ Nowe sesje dostają metadane kierunku, identyfikatora profilu i rodzaju odpowied
 
 Czytnik zgłasza liczbę uszkodzonych wpisów i zachowuje poprawne zdarzenia. Historia nie ma sztywnego limitu tur ani sesji. Pozostaje prywatnym widokiem istniejących plików, z dotychczasową rzeczywistą polityką przestrzeni dyskowej nagrań. Przygotowanie jest szyfrowane i wyłączone z backupu; ekrany kontekstu/historii mają FLAG_SECURE, bez eksportowanych aktywności lub wysyłania treści na zewnątrz.
 
-## Rozmowy przychodzące — przygotowane miejsce integracji
+## Rozmowy przychodzące — adapter i wspólny rdzeń
 
-Model danych, instrukcje i archiwum obsługują INCOMING niezależnie od OUTGOING. Runtime nie wymaga nowego rozgałęzienia CLIR ani kopii silnika dla odbioru telefonu. Kolejna funkcja ma dostarczyć adapter przychodzącego, konkretnie obsługiwanego Call, aplikacyjnie przyjętą politykę odbierania i właściwy scenariusz, a po rzeczywistym ACTIVE podłączyć go do tego samego runtime.
+Model danych, instrukcje i archiwum obsługują INCOMING niezależnie od OUTGOING. Runtime nie wymaga nowego rozgałęzienia CLIR ani kopii silnika dla odbioru telefonu. AndroidIncomingAssistant dostarcza adapter konkretnego Call, przyjętą politykę odbierania i IncomingSecretaryScenario, a po rzeczywistym ACTIVE i MODE_IN_CALL podłącza go do tego samego runtime. Sterowanie odbiorem i generacjami jest w niezależnym JVM conversation-core.
 
-W tej zmianie **nie dodano automatycznego odbierania**, nie rozszerzono własności połączeń i nie aktywowano przychodzących rozmów samym profilem. Uprawnienia systemowe nadaje użytkownik. Przyjęcie przyszłego zadania/polityki nie może przerodzić się w ponowne pytanie o zgodę na każdą turę; scope, cofnięcie i STOP pozostają aplikacyjne.
+Automatyczne odbieranie ma ustawienia AI/manual dla wybranego konta i przejęcie bez rozłączenia, bez aktywowania go samym profilem danych. Kod i granice dowodów opisuje [INCOMING_ASSISTANT](INCOMING_ASSISTANT.md). Test fizycznego przychodzącego ma QA_PENDING. Uprawnienia systemowe nadaje użytkownik. Przyjęcie przyszłego zadania/polityki nie może przerodzić się w ponowne pytanie o zgodę na każdą turę; scope, cofnięcie i STOP pozostają aplikacyjne.
 
 ## Wyniki
 

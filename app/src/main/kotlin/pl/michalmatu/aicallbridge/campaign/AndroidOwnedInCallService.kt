@@ -8,6 +8,10 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import pl.michalmatu.aicallbridge.incoming.AndroidIncomingAssistant
+import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
+import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
+import android.content.Context
 import android.os.SystemClock
 import android.telecom.Call
 import android.telecom.InCallService
@@ -20,9 +24,12 @@ import java.util.concurrent.atomic.AtomicReference
  * while autonomous teardown is restricted to the matched Call instance.
  */
 class AndroidOwnedInCallService : InCallService() {
+    private val incoming by lazy { AndroidIncomingAssistant(applicationContext) { observedCalls.toList() } }
+
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
         observedCalls.addIfAbsent(call)
+        incomingAssistant = incoming
         // Call.Details (number, SIM, direction) may be incomplete in onCallAdded.
         // Retry exact-match binding when Telecom publishes new details/state.
         val callback = object : Call.Callback() {
@@ -42,11 +49,13 @@ class AndroidOwnedInCallService : InCallService() {
 
     private fun tryAttachExactSession(call: Call) {
         pendingSession.get()?.attachIfMatching(call, SystemClock.elapsedRealtime())
+        observedCalls.forEach(incoming::observe)
     }
 
     override fun onCallRemoved(call: Call) {
         callCallbacks.remove(call)?.let { call.unregisterCallback(it) }
         observedCalls.remove(call)
+        incoming.removed(call)
         val session = pendingSession.get()
         if (session != null && session.isBoundTo(call)) {
             pendingSession.compareAndSet(session, null)
@@ -55,6 +64,12 @@ class AndroidOwnedInCallService : InCallService() {
             getSystemService(NotificationManager::class.java)?.cancel(CALL_NOTIFICATION)
         } else showCallNotification()
         super.onCallRemoved(call)
+    }
+
+    override fun onDestroy() {
+        if (incomingAssistant === incoming) incomingAssistant = null
+        incoming.close()
+        super.onDestroy()
     }
 
     private fun showCallNotification() {
@@ -89,6 +104,20 @@ class AndroidOwnedInCallService : InCallService() {
     companion object {
         const val OWNED_REQUEST_ID = "pl.michalmatu.aicallbridge.OWNED_REQUEST_ID"
         private const val CALL_NOTIFICATION = 3217
+        @Volatile private var incomingAssistant: AndroidIncomingAssistant? = null
+        internal fun incomingPolicyChanged() { incomingAssistant?.policyChanged() }
+        internal fun takeOverIncoming(call: Call) { incomingAssistant?.takeOver(call) }
+        internal fun resumeIncoming(call: Call): Boolean = incomingAssistant?.resume(call) == true
+        internal fun incomingState(call: Call): String? = incomingAssistant?.snapshot(call)?.let {
+            it.state.name + (it.reason?.let { reason -> ":$reason" } ?: "")
+        }
+        internal fun incomingStatus(): String = incomingAssistant?.status ?: "MANUAL"
+        internal fun stopIncomingAi(context: Context): Boolean {
+            // Revoke the live generation before opening persistent settings.
+            incomingAssistant?.stopAll()
+            return runCatching { IncomingAssistantPolicyStore(context).disable(); true }.getOrDefault(false)
+        }
+
         private val pendingSession = AtomicReference<AndroidTelecomOwnedCallSession?>(null)
         private val observedCalls = CopyOnWriteArrayList<Call>()
         private val callCallbacks = ConcurrentHashMap<Call, Call.Callback>()

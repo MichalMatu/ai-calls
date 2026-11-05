@@ -35,6 +35,24 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun scriptedOpeningRetainsItsSourceInsideModelDirectSession() {
+        val root=Files.createTempDirectory("incoming-history").toFile()
+        try {
+            val directory=File(root,"1000-incoming").apply {mkdirs()}
+            File(directory,"timeline.jsonl").writeText("""
+                {"type":"CONVERSATION","direction":"INCOMING","profile_id":"incoming-assistant","response_kind":"MODEL_DIRECT"}
+                {"type":"AGENT_APPROVED_TEXT","turn":0,"text":"Dzień dobry.","response_kind":"SCRIPT_ASSISTED"}
+                {"type":"AGENT_FULL_TX","turn":0,"transport_status":"WRITE_COMPLETE"}
+                {"type":"COUNTERPART_STT","turn":1,"text":"Chcę zostawić wiadomość."}
+                {"type":"AGENT_APPROVED_TEXT","turn":1,"text":"Proszę mówić.","response_kind":"MODEL_DIRECT"}
+            """.trimIndent()+"\n")
+            val lines=RecordedConversationHistory(root).load(directory.name).lines
+            assertEquals(ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED,lines[0].responseKind)
+            assertEquals(ConversationChatFeed.ResponseKind.MODEL_DIRECT,lines[2].responseKind)
+            assertEquals("TX: wysłano lokalnie",lines[0].txStatus)
+        } finally {root.deleteRecursively()}
+    }
+
     private fun write(root: File, id: String, direction: String, text: String) {
         val dir = File(root, id).apply { mkdirs() }
         File(dir, "timeline.jsonl").writeText("""

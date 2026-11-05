@@ -11,11 +11,15 @@ import android.content.pm.PackageManager
 internal object CampaignAgentControl {
     const val REPORT_FILE_NAME = "campaign-agent-report.txt"
 
-    fun stopOwnedCampaign(context: Context): String = runCatching {
-        context.startService(Intent(context, AppOwnedCampaignService::class.java)
-            .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI))
-        "campaign_agent_stop=DISPATCHED_TO_INTERNAL_SERVICE\n"
-    }.getOrElse { "campaign_agent_stop=DISPATCH_FAILED_${it.javaClass.simpleName}\n" }
+    fun stopOwnedCampaign(context: Context): String {
+        val incomingStopped = AndroidOwnedInCallService.stopIncomingAi(context)
+        val incoming = "incoming_ai_policy_disabled=$incomingStopped\n"
+        return runCatching {
+            context.startService(Intent(context, AppOwnedCampaignService::class.java)
+                .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI))
+            incoming + "campaign_agent_stop=DISPATCHED_TO_INTERNAL_SERVICE\n"
+        }.getOrElse { incoming + "campaign_agent_stop=DISPATCH_FAILED_${it.javaClass.simpleName}\n" }
+    }
 
     fun run(
         context: Context,

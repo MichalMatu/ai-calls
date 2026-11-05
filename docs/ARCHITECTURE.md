@@ -6,7 +6,7 @@
 
 ## Bieżący podział runtime
 
-[CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) opisuje wdrożony podział: AndroidConversationRuntime + ConversationScenario, oddzielne przygotowanie skills/danych i live/history chat. CLIR jest adapterem aplikacyjnego scenariusza, bez reguł Orange w silniku mediów. Profile INCOMING/OUTGOING i kompilator ról są wspólne; automatyczny odbiór i jego adapter Call są kolejną funkcją. [Nowe QA](checkpoints/2026-11-05-conversation-modules.md).
+[CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) opisuje wdrożony podział: AndroidConversationRuntime + ConversationScenario, oddzielne przygotowanie skills/danych i live/history chat. CLIR jest adapterem aplikacyjnego scenariusza, bez reguł Orange w silniku mediów. Profile INCOMING/OUTGOING i kompilator ról są wspólne; [Adapter odbierania](INCOMING_ASSISTANT.md) jest zaimplementowany wraz z niezależnym rdzeniem JVM conversation-core i manual/przejęciem; fizyczne QA pozostaje pending. [Nowe QA](checkpoints/2026-11-05-conversation-modules.md).
 
 ## Granice i źródła prawdy
 

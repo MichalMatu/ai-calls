@@ -31,6 +31,7 @@ internal interface ConversationScenario {
 internal interface ConversationDialogueSession {
     val backend: TextCallAgentBackend
     val approvalPolicy: TextOutputApprovalPolicy
+    val openingText: String? get() = null
     fun start()
     fun beginTurn()
     fun onTranscript(turn: Int, text: String)

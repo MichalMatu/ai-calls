@@ -74,9 +74,14 @@ internal object AndroidConversationRuntime {
         }
         require(maxTurns > 0) { "invalid_relay_max_turns" }
         val appContext = context.applicationContext
-        scenario.readinessFailure()?.let { callback(immediateReport(it)); return null }
+        scenario.readinessFailure()?.let {
+            evidenceRecorder?.finish(it)
+            callback(immediateReport(it))
+            return null
+        }
         val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audioManager == null || audioManager.mode != AudioManager.MODE_IN_CALL) {
+            evidenceRecorder?.finish("cellular_call_not_active")
             callback(immediateReport("cellular_call_not_active"))
             return null
         }
@@ -307,7 +312,13 @@ internal object AndroidConversationRuntime {
                 finish(false, "downlink_pump_${error.javaClass.simpleName}")
                 return
             }
-            beginNextTurn(generation, lease)
+            val opening = dialogue.openingText
+            if (opening == null) beginNextTurn(generation, lease)
+            else {
+                currentTurn = 0
+                turnStartedAtMs = SystemClock.elapsedRealtime()
+                pipeline.speakCandidate(opening, turnListener(generation, lease))
+            }
         }
 
         private fun beginNextTurn(generation: Long, lease: CallMediaEndpointLease) {
@@ -328,7 +339,11 @@ internal object AndroidConversationRuntime {
             estimatedSpeechEndElapsedMs = null
             lines += "turn_${currentTurn}_started=true"
             ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • przygotowanie STT")
-            pipeline.start(object : LocalSpeechTextPipeline.Listener {
+            pipeline.start(turnListener(generation, lease))
+        }
+
+        private fun turnListener(generation: Long, lease: CallMediaEndpointLease) =
+            object : LocalSpeechTextPipeline.Listener {
                 override fun onSpeechInputReady() {
                     lines += "turn_${currentTurn}_stt_ready=true"
                     lines += "turn_${currentTurn}_stt_ready_elapsed_ms=${elapsedTurnMs()}"
@@ -339,7 +354,7 @@ internal object AndroidConversationRuntime {
                 override fun onUserTranscript(text: String) {
                     if (finished.get()) return
                     if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
-                    evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text)
+                    evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text, responseKind = ConversationChatFeed.ResponseKind.UNSPECIFIED)
                     ConversationChatFeed.heard(liveChatToken, currentTurn, text)
                     ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • model analizuje wypowiedź…")
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
@@ -352,10 +367,10 @@ internal object AndroidConversationRuntime {
                 override fun onApprovedText(text: String) {
                     if (finished.get()) return
                     if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
-                    evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text)
+                    evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text, responseKind = responseKind())
                     ConversationChatFeed.replied(
                         liveChatToken, currentTurn, text,
-                        kind = scenario.responseKind,
+                        kind = responseKind(),
                     )
                     ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • synteza TTS…")
                     lines += "turn_${currentTurn}_approved_chars=${text.length}"
@@ -405,8 +420,10 @@ internal object AndroidConversationRuntime {
                         finish(false, reason)
                     }
                 }
-            })
-        }
+            }
+
+        private fun responseKind() = if (currentTurn == 0 && dialogue.openingText != null)
+            ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED else scenario.responseKind
 
         private fun beginCaptureInputTurn(
             turn: Int,

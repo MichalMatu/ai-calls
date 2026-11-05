@@ -151,6 +151,11 @@ class MainActivity : Activity() {
             })
         }
         val setupSection = UiAccordionSection(this, "setup", "Uprawnienia i konfiguracja").apply {
+            addControl(Button(this@MainActivity).apply {
+                text = "Odbieranie: AI / ręcznie"
+                setOnClickListener { startActivity(Intent(this@MainActivity,
+                    pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity::class.java)) }
+            })
             addControl(requestMicButton)
             addControl(enrollPhoneButton)
             addControl(Button(this@MainActivity).apply {

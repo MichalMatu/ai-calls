@@ -6,9 +6,17 @@ Docelowa aplikacja wykonuje zlecone zadania telefoniczne, np. umawia wizytę u l
 
 Bieżący produkt pozostaje [laboratorium](TEST_LAB_SCOPE.md): porównujemy komponenty, a docelową aplikację składamy z wybranych, sprawdzonych modułów. Docelowo jeden APK bez wymaganych aplikacji towarzyszących; pliki modeli/głosów mogą być zarządzane jako osobne dane przez aplikację. Uprawnienia systemowe nadal nadaje użytkownik. Scalenie zależności następuje po wyborze i kwalifikacji komponentów.
 
-Stan źródła przy ustalaniu planu: `b5d60ea`, runtime `e72bb15`. Wydzielone są logiczne granice silnika, scenariuszy, przygotowania i historii. Większość tych elementów pozostaje w module Gradle `app`; nie są jeszcze zestawem niezależnych bibliotek do dołączenia do nowej aplikacji. Automatyczny odbiór, pełny zapis sesji i player całości wymagają implementacji. Ten dokument nie zmienia APK ani ustawień urządzenia. Bieżące statusy defektów tylko w [BLOCKERS](../BLOCKERS.md).
+Stan początkowy źródła przy ustalaniu planu: `b5d60ea`, runtime `e72bb15`. Wydzielone są logiczne granice silnika, scenariuszy, przygotowania i historii. Większość tych elementów pozostaje w module Gradle `app`; nie są jeszcze zestawem niezależnych bibliotek do dołączenia do nowej aplikacji. Aktualizacja wykonania: [odbieranie/manual/przejęcie i conversation-core](INCOMING_ASSISTANT.md) są w kodzie, z QA_PENDING fizycznym. Pełny zapis sesji i player całości wymagają implementacji. Ten dokument nie zmienia APK ani ustawień urządzenia. Bieżące statusy defektów tylko w [BLOCKERS](../BLOCKERS.md).
 
 ## Dane i zachowanie agenta
+
+**Zaakceptowane uzupełnienie 2026-11-05:** głównym bytem jest zadanie, które może obejmować kilka rozmów, porównanie propozycji i oddzwonienie. Rozmowa jest sesją zadania. Koordynator wybiera kolejny krok na podstawie rzeczywistego stanu i postępu: rozmowa, narzędzie, oczekiwanie, dopytanie lub zakończenie. Powtarzanie bez postępu prowadzi do rozpoznania przyczyny i zmiany strategii, bez arbitralnego limitu tur lub prób.
+
+Fakty zachowują pochodzenie i status: dane właściciela, informacja rozmówcy, propozycja modelu i potwierdzone ustalenie są odrębne. Zadanie określa zakres samodzielności i warunki, np. terminy/cenę/lokalizację, albo polecenie zebrania propozycji do późniejszej decyzji. Model nie zmienia tych warunków na podstawie słów rozmówcy.
+
+Stan zadania i wykonanych operacji ma być trwały. Po restarcie koordynator weryfikuje stan Androida oraz faktyczne skutki przed kontynuacją; nie obiecuje samoczynnego wznowienia każdego Call. Rezerwacja, wpis kalendarza i przypomnienie mają osobne wyniki, a ponowienie nie tworzy duplikatów. To rozwój istniejących modeli zadania/workflow i narzędzi, bez drugiego koordynatora autoryzacji.
+
+Naturalność rozmowy jest osobnym kryterium: opóźnienia, przekazywanie głosu, reakcja na przerwanie przez rozmówcę, hold i natychmiastowe przejęcie przez właściciela. Weryfikacja obejmuje kontrolowaną telefonię i rzeczywisty odsłuch. Osobista asystentka jest bieżącym celem produktu; wielu użytkowników, równoczesne linie i kolejki call center są późniejszym zakresem z odrębną izolacją danych i adapterem kanału. Nie wprowadzać ich jako wymogu startu obecnych funkcji.
 
 | Warstwa | Zawartość | Własność i użycie |
 |---|---|---|
@@ -70,7 +78,7 @@ Preset eksperymentu wiąże scenariusz/kanał, STT, model, strategię skrypt/Dir
 
 ## Sekretarka, manual i przejęcie
 
-Najbliższy adapter przychodzący korzysta z tego samego runtime, ustawień silników, przygotowania, czatu i archiwum. Włączenie sekretarki zapisuje odwoływalną politykę obsługi wskazanego SIM/konta, dopuszczalnych czynności i danych. Konkretna sesja wiąże się z rzeczywistym przychodzącym Call. Nie wymaga whitelisty numerów ani potwierdzenia każdego telefonu; profil instrukcji sam nie aktywuje odbierania.
+Zaimplementowany adapter przychodzący korzysta z tego samego runtime, ustawień silników, przygotowania, czatu i archiwum. Włączenie sekretarki zapisuje odwoływalną politykę obsługi wskazanego SIM/konta, dopuszczalnych czynności i danych. Konkretna sesja wiąże się z rzeczywistym przychodzącym Call. Nie wymaga whitelisty numerów ani potwierdzenia każdego telefonu; profil instrukcji sam nie aktywuje odbierania.
 
 - **Manual:** użytkownik odbiera i prowadzi rozmowę; agent nie rozpoczyna dialogu.
 - **AI:** aplikacja odbiera według przyjętej polityki, a po rzeczywistym ACTIVE rozpoczyna wspólny flow. Pierwszy scenariusz sekretarki przedstawia rolę, ustala sprawę i przyjmuje wiadomość; dalsze zobowiązania wymagają implementacji i zakresu zadania.
@@ -103,7 +111,7 @@ Nagranie nie musi być jednym wielkim plikiem na dysku: indeksowana oś czasu mo
 
 ## Kolejność i kryteria odbioru
 
-1. **Najbliższy zakres wykonawczy: odbieranie / manual / przejęcie.** Wspólny preset i kontekst INCOMING, zapis polityki, adapter własnego Call, ten sam runtime. W tym zakresie ustalić źródła i cykl życia niezależnego zapisu, żeby przejęcie nie odcinało archiwum przez konstrukcję silnika.
+1. **Odbieranie / manual / przejęcie — kod wdrożony, kwalifikacja fizyczna pending.** Wspólny preset i kontekst INCOMING, zapis polityki, adapter własnego Call, ten sam runtime. W tym zakresie ustalić źródła i cykl życia niezależnego zapisu, żeby przejęcie nie odcinało archiwum przez konstrukcję silnika.
 2. **Pełne archiwum i player jako osobny moduł.** Najpierw sprawdzić pokrycie źródeł i wspólny czas, następnie pełny zapis, odnośniki czatu i płynny odsłuch. Odsłuch dostępnych starych segmentów nie zamyka wymagania pełnego zapisu nowych sesji.
 3. **Ogólny intake zadań, rozszerzalne skillsy i moduł narzędzi.** Jeden pełny scenariusz wizyty/rezerwacji na kontrolowanym rozmówcy, z warunkami i wynikiem; następnie kolejna branża. Katalog/wykonawca narzędzi z ekranem konfiguracji i historią, pierwszy rzeczywisty adapter kalendarza: dostępność i zapis wydarzenia. Zachować wspólne polityki danych i skutków. F-044/F-045/F-048 oraz jakość dialogu pozostają w kanonicznym rejestrze.
 4. **Selekcja i składanie produktu.** Porównania korpusu i kontrolowanej telefonii, wybór zgodnych komponentów, wydzielanie bibliotek przy rzeczywistych integracjach. Następnie wbudowanie wybranych zależności i próba samodzielności jednego APK bez aplikacji towarzyszących.

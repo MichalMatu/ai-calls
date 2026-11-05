@@ -65,7 +65,7 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
             .put("response_kind", kind.name).put("started_at_ms", System.currentTimeMillis())) }
     }
 
-    fun recordTranscript(turn: Int, fromAgent: Boolean, text: String) {
+    fun recordTranscript(turn: Int, fromAgent: Boolean, text: String, responseKind: pl.michalmatu.aicallbridge.conversation.ConversationChatFeed.ResponseKind) {
         if (completed.get()) return
         val event = JSONObject()
             .put("type", if (fromAgent) "AGENT_APPROVED_TEXT" else "COUNTERPART_STT")
@@ -73,6 +73,7 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
             .put("elapsed_ms", elapsed())
             .put("speaker", if (fromAgent) "agent" else "counterparty")
             .put("text", text)
+            .put("response_kind", responseKind.name)
         submit { appendEvent(event) }
     }
 

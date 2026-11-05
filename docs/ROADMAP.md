@@ -4,7 +4,11 @@
 
 **Uzupełniony plan produktu:** [PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) określa składanie wspólnych bibliotek dla zadań telefonicznych i sekretarki, manual/AI/przejęcie, osobne dane profilu/zadania i rozszerzalne skillsy oraz pełne archiwum z jednym playerem. Istniejące pakiety są granicami logicznymi; kolejne funkcje mają utrwalać je jako moduły kompilacji. F-080 OPEN: pełny zapis i player nie są jeszcze zaimplementowane.
 
-**Ostatni zakończony zakres runtime:** [wspólny silnik, przygotowanie i historia](checkpoints/2026-11-05-conversation-modules.md), `e72bb15`: 785 JVM + 266 Python, lint/oba APK/audyty, 8/8 native oraz 7 pełnych tur OUTGOING i kontrolowany STOP PASS. Starsze [intake i A/B](checkpoints/2026-11-05-task-intake-and-dialogue-ab.md) zachowują swój zakres; pełna macierz profili nadal nieukończona. Pętla F-061 pozostaje OPEN. Samo techniczne RX/TX nie dowodzi jakości dialogu ani wykonania CLIR.
+Właściciel zaakceptował zadanie obejmujące wiele rozmów, koordynację według postępu, pamięć z pochodzeniem faktów, warunki samodzielności, naturalne przekazywanie głosu i trwały stan z oddzielnymi wynikami skutków. Rozwijać istniejący model/workflow bez duplikacji; nie uzależniać pierwszego modułu INCOMING od całej przyszłej platformy call center. Szczegóły w planie produktu.
+
+**Najnowszy host:** [INCOMING/manual/przejęcie](checkpoints/2026-11-05-incoming-assistant.md), 803 JVM + 266 Python, lint/oba APK/audyty PASS. ADB nie wykrywa S22; instalacja/native/fizyczne odbieranie i przejęcie QA_PENDING.
+
+**Poprzedni fizycznie sprawdzony zakres runtime:** [wspólny silnik, przygotowanie i historia](checkpoints/2026-11-05-conversation-modules.md), `e72bb15`: 785 JVM + 266 Python, lint/oba APK/audyty, 8/8 native oraz 7 pełnych tur OUTGOING i kontrolowany STOP PASS. Starsze [intake i A/B](checkpoints/2026-11-05-task-intake-and-dialogue-ab.md) zachowują swój zakres; pełna macierz profili nadal nieukończona. Pętla F-061 pozostaje OPEN. Samo techniczne RX/TX nie dowodzi jakości dialogu ani wykonania CLIR.
 
 Obowiązujące dowody: [audio + Orange](checkpoints/2026-11-05-audio-quality-orange-acceptance.md), [handoff](HANDOFF_NEXT_CHAT.md), [BLOCKERS](../BLOCKERS.md). Wcześniejsze checkpointy są historią pomiarów.
 
@@ -20,11 +24,11 @@ Obowiązujące dowody: [audio + Orange](checkpoints/2026-11-05-audio-quality-ora
 
 ## Nowy zakres wspólny dla obu kierunków
 
-[Runtime i warstwy danych/czatu](CONVERSATION_RUNTIME.md) są wydzielone w kodzie; [QA](checkpoints/2026-11-05-conversation-modules.md). Najbliższa funkcja odbierania ma dostarczyć adapter przychodzącego własnego Call i zaakceptowaną politykę zadania, używając tego samego runtime, przygotowania i czatu. Same profile nie odbierają telefonu.
+[Runtime i warstwy danych/czatu](CONVERSATION_RUNTIME.md) są wydzielone w kodzie; [QA](checkpoints/2026-11-05-conversation-modules.md). [Moduł odbierania](INCOMING_ASSISTANT.md) dostarcza adapter konkretnego przychodzącego Call i przyjętą politykę, używając tego samego runtime, przygotowania i czatu. Niezależny conversation-core ma rzeczywistą granicę kompilacji JVM; fizyczne QA jest pending. Same profile nie odbierają telefonu.
 
 ## Następna kolejność
 
-1. **Odbieranie, manual i przejęcie:** adapter rzeczywistego przychodzącego Call, przyjęta polityka sekretarki, wspólny preset silników/kontekstu, ten sam runtime. Przejęcie zatrzymuje agenta i późny TX, pozostawia połączenie użytkownikowi. Od początku rozdzielić cykl życia zapisu od dialogu. Nie kopiować runnera i nie wymagać zgody co połączenie.
+1. **Kwalifikacja odbierania/manual/przejęcia:** kod adaptera, ustawień i conversation-core jest wdrożony; sprawdzić S22 i kontrolowanego rozmówcę. Adapter rzeczywistego przychodzącego Call, przyjęta polityka sekretarki, wspólny preset silników/kontekstu, ten sam runtime. Przejęcie zatrzymuje agenta i późny TX, pozostawia połączenie użytkownikowi. Od początku rozdzielić cykl życia zapisu od dialogu. Nie kopiować runnera i nie wymagać zgody co połączenie.
 2. **Pełny transkrypt/audio i Play:** niezależny recorder całej sesji, wspólna oś czasu źródeł i wiadomości, pokrycie również podczas inferencji/TTS i po przejęciu, player całości i fragmentów czatu. F-080; dowód źródła głosu użytkownika i zachowania zamrożonej granicy mediów na S22. Stare segmenty nie stanowią dowodu pełnego pokrycia.
 3. **Ogólne zadania, skillsy i narzędzia:** zapisywalne presety, własne instrukcje/skillsy i kontekst konkretnego zadania; działający scenariusz wizyty/rezerwacji oraz sekretarki na tych samych kontraktach, jednoznaczne warunki i wynik. Osobny wspólny moduł narzędzi z katalogiem/wykonawcą, ekranem konfiguracji i obserwacją wywołań; pierwszy adapter kalendarza: dostępność i zapis. Rozwijać istniejący model zadania i polityki, bez drugich magazynów i gate'ów.
 4. **Powtarzalna ocena i kontrolowana telefonia:** korpus tekstu dla modeli/strategii, audio dla STT i wspólny tekst dla TTS; kontrolowany IVR/rozmówca i własna końcówka z odsłuchem drugiej strony, potem konkretnie zlecone cele. Pomiary wykonywać także przy wdrażaniu powyższych funkcji. Sukces zadania osobno od przepływu; zachować wcześniejsze RED i nie powtarzać odrzuconego probe.

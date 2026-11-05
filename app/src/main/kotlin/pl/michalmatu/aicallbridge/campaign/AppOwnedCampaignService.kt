@@ -65,7 +65,8 @@ class AppOwnedCampaignService : Service() {
                 startSupervisedAudio()
                 return START_NOT_STICKY
             }
-            ACTION_STOP_SUPERVISED_AUDIO, ACTION_STOP_ALL_AI -> {
+            ACTION_STOP_SUPERVISED_AUDIO, ACTION_STOP_ALL_AI, ACTION_PAUSE_AFTER_TAKEOVER -> {
+                val incomingStopped = intent.action == ACTION_PAUSE_AFTER_TAKEOVER || AndroidOwnedInCallService.stopIncomingAi(this)
                 campaignRequested = false
                 continuationGeneration += 1
                 continuationStore.clear()
@@ -78,7 +79,10 @@ class AppOwnedCampaignService : Service() {
                 supervisedAudioSession = null
                 var ownedStatus: String? = null
                 AppOwnedClirCampaignExecutor.stop { ownedStatus = it }
-                finish(ownedStatus ?: "STOP AI: app audio stopped; external calls remain untouched")
+                val status = if (intent.action == ACTION_PAUSE_AFTER_TAKEOVER)
+                    "Rozmowę przekazano użytkownikowi; automatyczne ponowienia wstrzymane"
+                else ownedStatus ?: "STOP AI: app audio stopped; external calls remain untouched"
+                finish(status + if (incomingStopped) "" else "; nie utrwalono wyłączenia sekretarki — błąd zapisu ustawień")
                 return START_NOT_STICKY
             }
         }
@@ -497,6 +501,7 @@ class AppOwnedCampaignService : Service() {
             .build()
 
     companion object {
+        const val ACTION_PAUSE_AFTER_TAKEOVER = "pl.michalmatu.aicallbridge.PAUSE_AFTER_TAKEOVER"
         const val EXTRA_DIALOGUE_MODE =
             "pl.michalmatu.aicallbridge.extra.CAMPAIGN_DIALOGUE_MODE"
         const val ACTION_START_CLIR_ENABLE =

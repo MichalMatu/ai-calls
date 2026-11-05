@@ -45,7 +45,7 @@ internal class RecordedConversationHistory(private val root: File) {
                         speaker = if (type == "COUNTERPART_STT") ConversationChatFeed.Speaker.COUNTERPART else ConversationChatFeed.Speaker.ASSISTANT,
                         text = event["text"].asString,
                         atEpochMs = start + (event.get("elapsed_ms")?.asLong ?: 0L),
-                        responseKind = if (type == "AGENT_APPROVED_TEXT") kind else ConversationChatFeed.ResponseKind.UNSPECIFIED,
+                        responseKind = if (type == "AGENT_APPROVED_TEXT") event.get("response_kind")?.asString?.let(ConversationChatFeed.ResponseKind::valueOf) ?: kind else ConversationChatFeed.ResponseKind.UNSPECIFIED,
                     ))
                     "AGENT_FULL_TX" -> {
                         val index = lines.indexOfLast { it.turn == event["turn"].asInt && it.speaker == ConversationChatFeed.Speaker.ASSISTANT }

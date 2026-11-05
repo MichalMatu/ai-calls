@@ -10,6 +10,12 @@ internal class CampaignOwnedCallLifecycle<T : Any>(
 
     fun bind(session: T): Boolean = active.compareAndSet(null, session)
 
+    /** Transfers ownership to the human without running disconnect cleanup. */
+    fun detachIf(matches: (T) -> Boolean): T? {
+        val current = active.get() ?: return null
+        return if (matches(current) && active.compareAndSet(current, null)) current else null
+    }
+
     fun release(session: T): String =
         if (active.compareAndSet(session, null)) cleanup(session) else "already_released"
 
