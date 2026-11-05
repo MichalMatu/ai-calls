@@ -1,6 +1,6 @@
 # Przyjmowanie zadania i obiektywne A/B dialogu — 2026-11-05
 
-Wykonanie: lokalny Codex / Git / Gradle / USB, bez Local Agent zadań, Work lub GitHub Actions. Baza `919fd64` (zmiana CI po `1ee21fb`); Samsung/Shizuku i PCM/VAD/quick ACK bez zmian.
+Wykonanie: lokalny Codex / Git / Gradle / USB, bez Local Agent zadań, Work lub GitHub Actions. Kod poprawki `c61183020b4bc025af0809434369c2b3ab307308`; baza `919fd64` (zmiana CI po `1ee21fb`); Samsung/Shizuku i PCM/VAD/quick ACK bez zmian.
 
 ## Co było przyczyną dodatkowych zgód
 
