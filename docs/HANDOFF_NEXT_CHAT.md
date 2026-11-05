@@ -1,8 +1,13 @@
 # AI Calls — aktualny handoff 2026-11-05, intake zadania i A/B dialogu
 
+**Najnowsza decyzja właściciela — modularne laboratorium:** bieżąca aplikacja służy porównywaniu komponentów; docelowy flow powstanie później ze sprawdzonych modułów. Przeczytaj [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md). Przegląd źródeł potwierdził dwa START skrypt/Direct i niezależny profil STT/model/TTS/głos. Do uporządkowania pozostają snapshot całej próby, scenariusz oddzielony od CLIR i adaptery kanałów testowych. Orange sam nie wystarcza: potrzebne korpusy, kontrolowany rozmówca oraz własna telefonia z odsłuchem drugiej strony.
+
+**Ocena dystrybucji:** LiteRT-LM i privileged-helper są już w AI Calls; Gallery nie jest wymagane. Shizuku API w APK nie zastępuje zewnętrznego serwera z prawami ADB/root. Rekomendacja: wspólny pakiet Mac/ADB, potem ekran przygotowania w AI Calls; oba wymagają implementacji. Ten przegląd zmienia dokumentację/kierunek, bez zmian runtime, instalacji lub nowych połączeń. Ostatni build/native/live wynik poniżej nie jest testem przyszłego instalatora.
+
+
 **Najnowszy zakres — polecenie użytkownika bez dodatkowych grantów:** [intake i A/B](checkpoints/2026-11-05-task-intake-and-dialogue-ab.md). F-062/F-065: usunięto osobne przyznawanie/odnawianie grantu i TTL 24 h; jawne polecenie Codexa i START w UI używają tego samego aplikacyjnego zapisu dokładnego zadania. DUMP/Android/SIM/własny Call/STOP/fakty/skutki pozostają egzekwowane. Podgląd nie przyjmuje zadania. Wewnętrzny zapis zakresu nie wymaga mobilnego potwierdzenia. QA PASS: 768 JVM + 266 Python, lint/oba APK/audyty; 5/5 natywnych testów S22, w tym jawne przyjęcie z pustego izolowanego store i podgląd bez przyjęcia. Rzeczywisty START Direct bez telefonu dał 7 pełnych tur. F-062–F-069 VERIFIED w tych zakresach; brak potwierdzenia CLIR.
 
-**Kod:** `c61183020b4bc025af0809434369c2b3ab307308` na `main`; późniejszy commit aktualizuje wyłącznie odnośniki do receipts.
+**Ostatnia zmiana runtime:** `c61183020b4bc025af0809434369c2b3ab307308`; późniejsze commity na `main` aktualizują receipts oraz zakres laboratorium i kierunek instalacji, bez zmiany APK.
 
 **Deployment:** końcowy app APK `53df52b6…`, AndroidTest `02be7730…`; pełne SHA-256 i receipts w najnowszym checkpoint. Fizyczne Direct B wykonano na `788aea37…` przed porządkowaniem komentarzy/tekstu statusu; logika intake/dialogu identyczna. Nie utożsamiać bazowego `919fd64` bez roboczych zmian z wdrożoną implementacją.
 

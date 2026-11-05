@@ -1,5 +1,8 @@
 # Autonomous operation mode
 
+**Bieżąca faza — decyzja właściciela 2026-11-05:** modułowe laboratorium porównań STT/model/strategia/instrukcje/TTS i scenariuszy; docelowy flow powstaje później ze sprawdzonych części. [Zakres i architektura laboratorium](TEST_LAB_SCOPE.md). Poniższe zasady zadania, danych, skutków i własności Call dotyczą rzeczywistego wykonania także w aplikacji testowej.
+
+
 ## Przyjęcie zadania bez dodatkowych grantów — 2026-11-05
 
 Polecenie użytkownika przekazane przez lokalny Codex jest przyjmowane przez aplikację jako konkretne zadanie. Jawny START z chronionej `android.permission.DUMP` ścieżki wykonawczej albo z UI przechodzi przez ten sam `CampaignAgentControl`: zapis dokładnego celu, efektu, SIM/konta i dozwolonych pól, następnie wykonanie. Nie ma osobnego przyznawania/odnawiania grantu, potwierdzenia na telefonie ani 24-godzinnego TTL. Podgląd/preflight nie przyjmuje zadania. Automatyczna kontynuacja korzysta z istniejącego zapisu i nie odtwarza cofnięcia; świeże polecenie użytkownika może przyjąć nowe zadanie. Wewnętrzny `CampaignAuthorizationStore` pozostaje jednym zapisem zakresu, a nie dodatkową procedurą zgody.

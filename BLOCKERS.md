@@ -1,3 +1,7 @@
+## F-070 — historyczna notatka nadal żądała decyzji o usuniętym TTL (2026-11-05)
+
+**Ścieżka/symbol:** `BLOCKERS.md`, sekcja „KANDYDACI SKLASYFIKOWANI”. **Warunek:** wykonawca czyta dolną notatkę `GRANT_TTL_MS` jako aktualny wymóg ponownej decyzji właściciela. **Wpływ:** sprzeczność z F-062/F-065 i ryzyko powrotu zbędnej zgody. **Przyczyna:** nieprzeniesiona do historii klasyfikacja po usunięciu TTL. **Plan:** zachować historyczny wpis, oznaczyć go jako rozstrzygnięty przez właściciela i odesłać do F-062; nie dodawać nowej procedury. **Test:** przegląd aktywnych instrukcji i audit_product_friction, bez ponawiania rozmów. **Commit przyczyny:** `c611830` usunął TTL bez aktualizacji dolnej klasyfikacji. **Commit poprawki:** `docs: define modular test lab and dependency setup [skip ci]` (commit zawierający ten wpis). **Status: VERIFIED (dokumentacja i statyczny audyt).** **Wynik:** notatka zachowana jako historyczna z odnośnikiem do F-062/F-065; `audit_product_friction` PASS, `git diff --check` PASS, 86 lokalnych odnośników w zmienianych dokumentach bez braków. Brak zmiany runtime/instalacji/nowych połączeń.
+
 ## F-069 — znacznik utworzenia zadania działał jak kolejne okno ważności (2026-11-05)
 
 **Ścieżka/symbol:** `CampaignAuthorizationPolicy.authorize`, `CampaignAuthorizationGrant.init`. **Warunek:** cofnięcie zegara po przyjęciu zadania powoduje GRANT_NOT_YET_VALID; anulowanie z datą wcześniejszą od createdAt jest odrzucane. **Wpływ:** niezmieniony zakres może utracić wykonanie/STOP z powodu metadanych czasu. **Przyczyna:** traktowanie createdAt jako not-before, mimo że zadanie nie ma harmonogramu ważności. **Plan/test:** czas pozostaje audytem, zakres i cofnięcie rozstrzygają upoważnienie; usunąć zbędne parametry czasu z polityki/rezerwacji/in-flight/briefa i zmigrować wywołania. RED z korektą zegara i STOP, następnie GREEN/regresje. **Commit:** `c61183020b4bc025af0809434369c2b3ab307308`. **Status: VERIFIED (zakres poniższych testów).** **Weryfikacja:** RED→GREEN dla korekty zegara i STOP; pełna bramka hosta: 768 JVM + 266 Python, lint i oba APK PASS. S22: createdAt w przyszłości, revoke(1) i odrzucenie cofniętego zakresu PASS w izolowanym teście magazynu. Receipts: `docs/checkpoints/2026-11-05-task-intake-and-dialogue-ab.md`; dane prywatne lokalnie.
@@ -226,7 +230,7 @@ Następna poprawka `F-035`: po jednorazowym `SpeechRecognizer.ERROR_NO_MATCH=7` 
 
 ## KANDYDACI SKLASYFIKOWANI, NIE USUWAĆ W CIEMNO
 
-- `ClirCampaignSpec.GRANT_TTL_MS = 24 h`: ograniczenie czasu zakresu autoryzacji; wymaga decyzji produktu, nie automatycznej likwidacji.
+- **Historyczne, rozstrzygnięte:** `ClirCampaignSpec.GRANT_TTL_MS = 24 h` usunięto decyzją właściciela 2026-11-05 (F-062/F-065). Nie wymaga kolejnej decyzji ani odnowienia; ta notatka nie jest aktywną bramką (F-070).
 - `ChatRelayEnvelope.MAX_TURN_ID = 10_000`, `MAX_TEXT_CHARS = 4_000`: granice protokołu; sprawdzić długie sekwencje, bez fałszywego PASS.
 - `CallRealtimeOutputResponseBuffer`: limity pamięci pending audio/transkryptu; chronią zasoby i zatwierdzanie wypowiedzi, sprawdzić czy przy przeciążeniu jest poprawny backpressure, a nie cicha utrata.
 - `SupervisedCallPilotActivity` (trzy tury), `BidirectionalMediaProbe`, `s22_call_control.py`: czas/limit w izolowanych **testach fizycznych**, nie normalnym runtime kampanii.

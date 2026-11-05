@@ -1,6 +1,12 @@
 # AI Calls
 
-Lokalny agent Android do wykonywania **konkretnie autoryzowanych zadań telefonicznych**: własny Android Telecom `Call`, polskie STT → Gemma E2B → TTS, autoryzacja grantu/STOP, osobny dowód skutku i raport. CLIR jest scenariuszem testowym, nie ograniczeniem produktu.
+**Modułowa aplikacja testowa Android** do porównywania STT, modeli językowych, dialogu ze skryptem i bez, instrukcji oraz TTS. Docelowy autonomiczny flow powstanie z elementów sprawdzonych w tych testach. Wspólny tor: własny Android Telecom `Call`, wymienne STT → model/strategia → TTS, zakres zadania/STOP, osobny dowód skutku i raport. Orange/CLIR jest jednym scenariuszem.
+
+## Zakres laboratorium i modułowość — decyzja 2026-11-05
+
+[Ocena kodu, szersze testy i plan wspólnej instalacji](docs/TEST_LAB_SCOPE.md). Są już dwa START: **skrypt + model** oraz **Gemma Direct (model bez skryptu)**. STT/model/TTS/głos wybiera się niezależnie. Potrzebne dalsze uporządkowanie: wspólny snapshot próby, scenariusz oddzielony od CLIR i adaptery tekstu/pliku/mikrofonu/telefonu. Nie wszystkie kombinacje są zakwalifikowane.
+
+LiteRT-LM działa wewnątrz AI Calls; **Google AI Edge Gallery nie jest wymaganą aplikacją**. Shizuku pozostaje zewnętrznym serwerem uprawnień. Wspólny instalator i ekran przygotowania są opisanym kierunkiem, jeszcze nie gotową funkcją.
 
 ## Przyjmowanie zadań bez dodatkowych pozwoleń
 

@@ -2,7 +2,7 @@
 
 ## Granice i źródła prawdy
 
-AI Calls jest aplikacyjnym, lokalnym agentem wykonującym **konkretnie autoryzowane zadania przez własny Android Telecom Call**. Modele, ServicePack, PhraseMatrix, TaskGraph, supervisor, STT i TTS **nie są źródłami zgody**. Bieżący stan QA → [phone-ready checkpoint](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md); aktualne OPEN/VERIFIED → [BLOCKERS](../BLOCKERS.md); reguły → [SECURITY_PRIVACY](SECURITY_PRIVACY.md) i [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md).
+Bieżący AI Calls jest modułowym laboratorium testowym; docelowy autonomiczny flow powstanie ze sprawdzonych komponentów. [Zakres laboratorium i przegląd granic](TEST_LAB_SCOPE.md). Rzeczywiste zadania wykonuje wspólny aplikacyjny tor przez własny Android Telecom Call. Modele, ServicePack, PhraseMatrix, TaskGraph, supervisor, STT i TTS **nie są źródłami zgody**. Bieżący stan QA → [intake i A/B](checkpoints/2026-11-05-task-intake-and-dialogue-ab.md); aktualne OPEN/VERIFIED → [BLOCKERS](../BLOCKERS.md); reguły → [SECURITY_PRIVACY](SECURITY_PRIVACY.md) i [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md).
 
 ```text
 Użytkownik → CallTask + CallResolvedTarget + ważny odwoływalny grant (cel/SIM/fakty/efekty)
@@ -32,7 +32,7 @@ Użytkownik → CallTask + CallResolvedTarget + ważny odwoływalny grant (cel/S
 - **M1:** `AndroidSttInputProvider` → `DialogueEngineProvider` E2B → `AndroidTtsOutputProvider` pozostają funkcjonalnie zgodne ze starym `OnDeviceSpeechInput` / `LocalTtsSpeechOutput`; `LocalSpeechTextPipeline` i `AuthorizedPcmUplinkWriter` są wspólną ścieżką sterowania.
 - **M2:** `ParakeetSpeechInputProvider` używa MediaPipe AudioTranscriber, modelu stateful 614 588 752 B pinned SHA, PCM16→float, bounded nonblocking queue, onReady/final/error/cancel. S22: 3 polskie próbki syntetyczne bez błędów słów/znaków i jedna pełna rzeczywista tura Orange. Naturalny korpus, final segments i wspólne zasoby pozostają OPEN.
 - **M3:** `PiperAndroidTtsOutputProvider` deleguje przez jawny `TextToSpeech` engine `dev.ihorshevchuk.piper` i wymaga offline głosu z `piperVoice`; brak fallbacku. APK 1.1 i Gosia są na S22, lecz publiczne API silnika odrzuca wybór głosu (F-057); brak PCM/live PASS.
-- **M4:** `GemmaAudioDirectInputProvider` buforuje PCM wypowiedzi → WAV → LiteRT `Content.AudioBytes`, model GPU i audio backend CPU. Instrukcja musi poprzedzać audio (F-056: usunięte echo promptu). S22: 3 polskie próbki syntetyczne bez błędów słów/znaków. To **nie** zintegrowany dialog audio/audio; `GEMMA_AUDIO_DIRECT` remains disabled. E4B/Kokoro/PocketTTS bez kwalifikacji są wyłączone. [Najnowszy pomiar](checkpoints/2026-11-05-audio-quality-orange-acceptance.md).
+- **M4:** `GemmaAudioDirectInputProvider` buforuje PCM wypowiedzi → WAV → LiteRT `Content.AudioBytes`, model GPU i audio backend CPU. Instrukcja musi poprzedzać audio (F-056: usunięte echo promptu). S22: 3 polskie próbki syntetyczne bez błędów słów/znaków. To **nie** zintegrowany dialog audio/audio; `GEMMA_AUDIO_DIRECT` remains disabled. Kokoro/PocketTTS nie są zintegrowane dla polskiego. E4B jest tekstowym modelem w aktualnym katalogu i ma native PL/JSON PASS; nie jest dodatkowym backendem wejścia audio. [Najnowszy pomiar](checkpoints/2026-11-05-audio-quality-orange-acceptance.md).
 
 ## Nienaruszalna granica fizyczna
 
@@ -53,3 +53,9 @@ Nieeksportowany `LanguageModelTransferService` serializuje import i pobranie prz
 Jawne polecenie Codexa przez istniejącą DUMP-chronioną DiagnosticProbeActivity i START w UI trafiają do tego samego `CampaignAgentControl.run`. Aplikacja przyjmuje/reużywa konkretny zakres zadania i uruchamia owned-call service. Nie ma oddzielnego grantu, dialogu ani czasowego TTL; podgląd niczego nie przyjmuje. Trwały pojedynczy zapis zakresu i mechanizmy rezygnacji pozostają w CampaignAuthorizationStore. Sama kontynuacja nie tworzy nowej zgody. Zakres nie przechodzi na inny cel/SIM/efekt/fakt.
 
 Dwa backendy dialogu mają oddzielne znaczenie: SCRIPT_GEMMA = PhraseMatrix → klasyfikacja Gemma → zatwierdzone teksty akcji/recovery; GEMMA_DIRECT = tekst modelu → wspólny aplikacyjny release/TTS. Parametr trybu jest przesyłany jawnie przez runner, a źródła/czasy obu backendów pozostają w metrykach. RAW nadal nie posiada brakującego adaptera FactRequest (F-048).
+
+## Modułowe laboratorium — bieżący kierunek
+
+`SpeechInputProvider`, `DialogueEngineProvider` i `SpeechOutputProvider` są istniejącymi granicami wymiany silników. `AudioEngineProfile` przechowuje STT/model/TTS/głos; strategia dialogu i prompt-skills mają osobne magazyny. Następna warstwa ma składać ich niezmienny snapshot dla jednej próby, bez drugiego magazynu tych samych preferencji.
+
+Start w `CampaignAgentControl`, service i executor nadal korzystają z `ClirCampaignSpec`. Wydzielanie scenariusza i kanału testu ma usunąć to sprzężenie, używając obecnego potoku i wspólnych polityk. Tekst, plik audio i mikrofon mają pozwalać ocenić komponenty bez zmiennego rozmówcy Orange; kontrolowana telefonia osobno weryfikuje RX/TX. To plan integracji, nie deklaracja gotowego uniwersalnego runnera. Szczegóły i ocena instalacji: [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md).
