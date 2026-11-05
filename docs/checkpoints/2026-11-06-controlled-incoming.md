@@ -53,3 +53,15 @@ Do pełnego dialogu wiadomości: rozmówca prosi o przyjęcie wiadomości; na py
 | Przejęcie | W trakcie dialogu właściciel używa „Przejmij rozmowę — zatrzymaj AI” na S22 i mówi sam. | To samo aktywne połączenie, głos użytkownika, brak późnego AI/TX; osobno jawny powrót AI. |
 
 To scenariusze sekretarki przyjmującej wiadomości, bez rzeczywistych zobowiązań. Po odczycie danych ocena jakości powinna połączyć słyszalność drugiej strony, transkrypt, czasy i rzeczywisty stan połączenia.
+
+## Dwie kolejne rozmowy — odczyt i ocena transkryptu
+
+Po zgłoszeniu kolejnych prób i ponownym podłączeniu S22 wyeksportowano dwie sesje nowsze od pierwszego testu, bez ponawiania rozmów i bez zmiany APK lub ustawień. Krótsza próba trwała 63 151 ms, miała 2 tury modelu oraz powitanie; model dopytywał o temat niepełnej wiadomości. Najnowsza próba trwała **143 414 ms**, miała **6 rozpoznań STT, 6 decyzji INCOMING_MODEL_DIRECT i 7 pełnych WRITE_COMPLETE** wraz z powitaniem. Wszystkie decyzje mają local_error_present=false; wszystkie główne TX mają accepted=requested. Recorder COMPLETE, bez błędów zapisu, 20 poprawnych WAV mono PCM16 16 kHz. Archiwum SHA-256 `93d8ded72cf1d1362c595ef3c486f1bcb3b2214b9f5ee149e4f6868203f68e5f`.
+
+Ocena treści najnowszej próby: zachowany temat wiadomości i prośba o kontakt, prawidłowe zastąpienie poprzedniego terminu nowym, właściwe podsumowanie i reakcja pożegnaniem po potwierdzeniu. W STT zmieniony termin jest dokładną godziną w piątek, więc model powtarza dokładną godzinę; to odczyt transkryptu, bez niezależnego potwierdzenia rozpoznania względem WAV. Do oceny stylu: powtórzone przedstawienie się, męska forma po żeńskim powitaniu i literalne Pan/Pani. Krótkie ACK to stałe teksty aplikacji, odrębne od generacji Gemmy.
+
+F-091 ma teraz także dowód fizyczny: po pożegnaniu oraz jawnym żądaniu zakończenia model potwierdza koniec, ale po pełnym TX nadal uruchamiany jest RX kolejnej tury 7. RX_INTERRUPTED następuje dopiero przy zakończeniu Call. Nie jest to skuteczne automatyczne rozłączenie. F-089 nadal dotyczy etykiety operator_stopped/OPERATOR_STOP w końcowej diagnostyce. Nie deklarować wykonania zewnętrznego zadania, narzędzia lub powiadomienia na podstawie wypowiedzi modelu.
+
+EOS→pełny TX tur 1–6: 14 258 / 6926 / 4781 / 5848 / 5321 / 3576 ms. Postcheck: 2× IDLE, kampania nieaktywna, retry false, niezmieniony Android STT/E2B/Android TTS, AI nadal włączone, 36 sesji. Przejęcia, powrotu AI, STOP ani pełnego nagrywania F-080 nie testowano w tym zakresie.
+
+Prywatne pliki: `~/Documents/AI-Calls/local-codex/2026-11-06-transcript-review/` (0700, pliki 0600): oba archiwa i timeline, czytelne transkrypty Markdown, latest-runtime-report.txt, latest-technical-summary.json oraz review-manifest.json. Treść rozmowy i audio pozostają poza Git. To odczyt istniejącego testu, bez nowej instrumentacji lub powtarzania host QA.
