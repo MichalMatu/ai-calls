@@ -1,6 +1,6 @@
 # INCOMING / manual / przejęcie — 2026-11-05
 
-Baza `19c3019`; bezpośredni lokalny Codex, Git/Gradle. Local Agent sprawdzony read-only: idle, bez aktywnego zadania; brak zleceń, Work i Actions. [Zakres modułu](../INCOMING_ASSISTANT.md).
+Kod `ef50a1b5e9fab85bfe4654169ffeec9d644ff6e9`; baza `19c3019`; bezpośredni lokalny Codex, Git/Gradle. Local Agent sprawdzony read-only: idle, bez aktywnego zadania; brak zleceń, Work i Actions. [Zakres modułu](../INCOMING_ASSISTANT.md).
 
 ## Zmiana i granice
 
