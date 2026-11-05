@@ -19,21 +19,16 @@ internal interface DialogueEngineProvider {
     ): TextCallAgentBackend
 }
 
-/** Exact pre-existing LiteRT-LM Gemma 4 E2B runtime; no new model path or native options. */
-internal object Gemma4E2BDialogueEngineProvider : DialogueEngineProvider {
-    override val id = DialogueModelId.GEMMA_4_E2B
-
+/** Every catalog model uses the same native lifecycle and application output approval. */
+internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId) : DialogueEngineProvider {
     override fun createDirect(context: Context, systemInstruction: String): TextCallAgentBackend =
-        Gemma4LiteRtTextBackendFactory.createDirectDialogue(context, systemInstruction)
+        Gemma4LiteRtTextBackendFactory.createDirectDialogue(context, systemInstruction, id)
 
     override fun createActionClassifier(
-        context: Context,
-        systemInstruction: String,
-        allowedActions: Set<DialogueActionId>,
-    ): TextCallAgentBackend =
-        Gemma4LiteRtTextBackendFactory.createActionClassifier(
-            context, systemInstruction, allowedActions,
-        )
+        context: Context, systemInstruction: String, allowedActions: Set<DialogueActionId>,
+    ): TextCallAgentBackend = Gemma4LiteRtTextBackendFactory.createActionClassifier(
+        context, systemInstruction, allowedActions, id,
+    )
 }
 
 internal object DialogueEngineProviders {
@@ -41,9 +36,6 @@ internal object DialogueEngineProviders {
         require(AudioEngineRegistry.incompatibility(profile) == null) {
             "dialogue_engine_profile_unavailable"
         }
-        return when (profile.dialogue) {
-            DialogueModelId.GEMMA_4_E2B -> Gemma4E2BDialogueEngineProvider
-            DialogueModelId.GEMMA_4_E4B -> error("e4b_dialogue_provider_not_integrated")
-        }
+        return LiteRtDialogueEngineProvider(profile.dialogue)
     }
 }

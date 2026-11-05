@@ -48,12 +48,12 @@ class AndroidAudioEngineProfileStoreContractTest {
         assertNull(store.load())
     }
 
-    @Test fun unsupportedModelCannotBecomeActivePreference() {
-        try {
-            store.save(AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E4B))
-            fail("must reject missing E4B adapter")
-        } catch (_: IllegalArgumentException) {
-            assertEquals(AudioEngineProfile.STABLE, store.load())
+    @Test fun eachCatalogModelPersistsWithoutChangingInputOutputOrVoice() {
+        for (id in DialogueModelId.entries) {
+            val expected = AudioEngineProfile(input = SpeechInputId.PARAKEET_PL,
+                dialogue = id, output = SpeechOutputId.PIPER_PL, voiceId = "pl-local-test")
+            assertTrue(store.save(expected))
+            assertEquals(expected, AudioEngineProfileStore(ctx, name).load())
         }
     }
 

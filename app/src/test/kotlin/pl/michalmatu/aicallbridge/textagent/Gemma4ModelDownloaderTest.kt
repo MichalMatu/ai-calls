@@ -100,7 +100,7 @@ class Gemma4ModelDownloaderTest {
 
     @Test
     fun `production request is anonymous immutable https get`() {
-        val source = Gemma4ModelAcquisitionCatalog.GEMMA_4_E2B_IT
+        val source = LanguageModelCatalog[pl.michalmatu.aicallbridge.audioengines.DialogueModelId.GEMMA_4_E2B].source
         val request = OkHttpGemma4ModelDownloadTransport.buildRequest(source)
 
         assertEquals("GET", request.method)

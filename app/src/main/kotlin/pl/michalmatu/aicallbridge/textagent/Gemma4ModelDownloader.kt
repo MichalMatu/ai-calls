@@ -34,7 +34,7 @@ internal data class Gemma4ModelDownloadProgress(
  * file remains installer-owned and is removed on stream failure. Retry intentionally starts over.
  */
 internal class Gemma4ModelDownloader(
-    private val source: Gemma4ModelAcquisitionSource = Gemma4ModelAcquisitionCatalog.GEMMA_4_E2B_IT,
+    private val source: Gemma4ModelAcquisitionSource = LanguageModelCatalog[pl.michalmatu.aicallbridge.audioengines.DialogueModelId.GEMMA_4_E2B].source,
     private val installer: Gemma4ModelInstaller,
     private val transport: Gemma4ModelDownloadTransport = OkHttpGemma4ModelDownloadTransport(),
 ) {

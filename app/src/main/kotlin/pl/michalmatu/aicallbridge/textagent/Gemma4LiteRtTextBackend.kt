@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.textagent
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Contents
@@ -144,6 +146,7 @@ internal class LiteRtGemma4Runtime(
     private val modelPath: String,
     private val systemInstruction: String?,
     private val responseFormat: ResponseFormat? = null,
+    private val disableQwenThinking: Boolean = false,
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "aicall-gemma4-litert").apply { isDaemon = true }
     },
@@ -297,6 +300,7 @@ internal class LiteRtGemma4Runtime(
                             seed = 0,
                         ),
                         automaticToolCalling = false,
+                        extraContext = if (disableQwenThinking) mapOf("enable_thinking" to false) else emptyMap(),
                         channels = emptyList(),
                         maxOutputToken = MAX_OUTPUT_TOKENS,
                         thinkingConfig = ThinkingConfig(enableThinking = false),
@@ -489,20 +493,26 @@ internal class LiteRtGemma4Runtime(
 }
 
 internal object Gemma4LiteRtTextBackendFactory {
-    const val MODEL_FILE_NAME = "gemma-4-E2B-it.litertlm"
+    private fun selectedModel(context: Context): DialogueModelId =
+        checkNotNull(AudioEngineProfileStore(context).load()) { "invalid_audio_engine_profile" }.dialogue
 
-    fun modelFile(context: Context): File {
+    fun modelFile(
+        context: Context,
+        modelId: DialogueModelId = selectedModel(context),
+    ): File {
         val appContext = context.applicationContext
         val directory = appContext.getExternalFilesDir("models") ?: File(appContext.filesDir, "models")
         directory.mkdirs()
-        return File(directory, MODEL_FILE_NAME)
+        return File(directory, LanguageModelCatalog[modelId].spec.fileName)
     }
 
     fun create(
         context: Context,
         systemInstruction: String? = LocalPhoneLlmBackendFactory.SYSTEM_PROMPT,
+        modelId: DialogueModelId = selectedModel(context),
     ): TextCallAgentBackend = createInternal(
         context = context,
+        modelId = modelId,
         systemInstruction = systemInstruction,
         responseFormat = null,
     )
@@ -511,6 +521,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         context: Context,
         systemInstruction: String,
         allowedSkills: Set<DialogueSkillId>,
+        modelId: DialogueModelId = selectedModel(context),
     ): TextCallAgentBackend {
         require(allowedSkills.isNotEmpty()) { "dialogue_skill_set_must_not_be_empty" }
         val allowed = allowedSkills.sortedBy { it.name }.joinToString(",") { "\"${it.name}\"" }
@@ -528,6 +539,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         """.trimIndent()
         return createInternal(
             context = context,
+            modelId = modelId,
             systemInstruction = systemInstruction,
             responseFormat = ResponseFormat.json(schema),
         )
@@ -540,8 +552,10 @@ internal object Gemma4LiteRtTextBackendFactory {
     fun createDirectDialogue(
         context: Context,
         systemInstruction: String,
+        modelId: DialogueModelId = selectedModel(context),
     ): TextCallAgentBackend = createInternal(
         context = context,
+        modelId = modelId,
         systemInstruction = systemInstruction,
         responseFormat = null,
     )
@@ -550,6 +564,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         context: Context,
         systemInstruction: String,
         allowedActions: Set<DialogueActionId>,
+        modelId: DialogueModelId = selectedModel(context),
     ): Gemma4LiteRtTextBackend {
         require(allowedActions.isNotEmpty()) { "dialogue_action_set_must_not_be_empty" }
         val allowed = allowedActions.sortedBy { it.name }.joinToString(",") { "\"${it.name}\"" }
@@ -568,6 +583,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         """.trimIndent()
         return createInternal(
             context = context,
+            modelId = modelId,
             systemInstruction = systemInstruction,
             responseFormat = ResponseFormat.json(schema),
         )
@@ -577,14 +593,16 @@ internal object Gemma4LiteRtTextBackendFactory {
         context: Context,
         systemInstruction: String?,
         responseFormat: ResponseFormat?,
+        modelId: DialogueModelId,
     ): Gemma4LiteRtTextBackend {
-        val modelPath = modelFile(context).absolutePath
+        val modelPath = modelFile(context, modelId).absolutePath
         return Gemma4LiteRtTextBackend(
             runtimeFactory = Gemma4RuntimeFactory { path, instruction ->
                 LiteRtGemma4Runtime(
                     modelPath = path,
                     systemInstruction = instruction,
                     responseFormat = responseFormat,
+                    disableQwenThinking = modelId == DialogueModelId.QWEN_3_1_7B || modelId == DialogueModelId.QWEN_3_0_6B,
                 )
             },
             modelPath = modelPath,

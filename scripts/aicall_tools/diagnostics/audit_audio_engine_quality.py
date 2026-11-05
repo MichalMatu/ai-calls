@@ -28,7 +28,7 @@ def audit(root: Path) -> list[str]:
     files = {
         name: read(AUDIO + name + ".kt")
         for name in (
-            "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness",
+            "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness", "DialogueEngineProviders",
             "AudioEngineProviders", "ParakeetSpeechInputProvider",
             "ParakeetModelDownloader", "GemmaAudioDirectInputProvider",
         )
@@ -68,8 +68,8 @@ def audit(root: Path) -> list[str]:
                 "stable baseline " + selection)
     require("AudioEngineProfile", profile, r"GEMMA_AUDIO_DIRECT\s*->\s*\"audio_direct_s22_unqualified\"",
             "experimental-audio-not-selectable")
-    require("AudioEngineProfile", profile, r"GEMMA_4_E4B\s*->\s*\"e4b_not_integrated\"",
-            "unsupported-E4B-not-selectable")
+    require("AudioEngineProfile", profile, r"LanguageModelCatalog\.entries\.map",
+            "catalog-backed-dialogue-choices")
     require("AudioEngineProfile", profile, r"\"GEMMA_AUDIO_DIRECT\"[\s\S]{0,200}\bfalse\s*\)",
             "M4-gallery-not-ready")
     require("AudioEngineProfileStore", files["AudioEngineProfileStore"],
@@ -77,6 +77,11 @@ def audit(root: Path) -> list[str]:
             "unknown-profile-no-silent-fallback")
     require("AudioEngineProfileStore", files["AudioEngineProfileStore"],
             r"getSharedPreferences\(\s*preferencesName", "separate-profile-namespace")
+
+    require("DialogueEngineProviders", files["DialogueEngineProviders"],
+            r"context, systemInstruction, allowedActions, id", "selected-model-reaches-native-classifier")
+    require("GemmaAudioDirectInputProvider", files["GemmaAudioDirectInputProvider"],
+            r"modelFile\(appContext, DialogueModelId\.GEMMA_4_E2B\)", "audio-model-independent-of-dialogue-selection")
 
     p = files["ParakeetSpeechInputProvider"]
     require("ParakeetSpeechInputProvider", p, r"const val EXPECTED_SHA256\s*=\s*\"[0-9a-f]{64}\"",

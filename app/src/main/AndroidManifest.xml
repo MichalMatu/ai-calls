@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <uses-feature
@@ -101,6 +102,9 @@
         <activity
             android:name=".campaign.CampaignToolActivity"
             android:exported="false" />
+
+        <activity android:name=".textagent.LanguageModelActivity" android:exported="false" />
+        <service android:name=".textagent.LanguageModelTransferService" android:exported="false" android:foregroundServiceType="dataSync" />
 
         <activity
             android:name=".audioengines.AudioEngineSettingsActivity"

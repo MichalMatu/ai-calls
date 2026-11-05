@@ -37,3 +37,8 @@ Piper is installed but has the measured voice API defect F-057. Gemma Audio ASR
 passed its synthetic set after F-056; the complete audio dialogue backend and
 selectable M4 profile remain unqualified. E4B and Qwen need actual providers and
 device tests before they can become functional settings choices.
+
+
+## Aktualizacja po przejściu na LiteRT-LM 0.19.0
+
+[Katalog aplikacyjny i testy S22](2026-11-05-litert-model-catalog.md) zastępują opis samego cache powyżej jako aktualny stan integracji. E4B i Qwen3 1.7B są zainstalowane i przeszły native PL/JSON. Dla Qwen3 0.6B pobrano także aktualny eksport GPU dla 0.19.0 z `f3f204cecab53892b096ebd8b3b931f8612c6bd3`: 343490560 B / SHA-256 `bf1aba9ce8d963124407353c6aa4cbf72eba78db21ae133de983eac672ce83e0`. Jest przypięty w katalogu i na S22. Mac: plik pod pierwotną nazwą to obecny eksport, starszy zachowano z sufiksem `.e6bb3e4a.litertlm`; osobny manifest `2026-11-05-qwen-06-runtime019.json`. W obu eksportach 0.6B natywna generacja działa, ale kontrolna polska odpowiedź i kompletność JSON FAIL — F-059 OPEN, wariant eksperymentalny.

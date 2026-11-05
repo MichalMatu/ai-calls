@@ -29,7 +29,7 @@ dependencies {
     implementation(project(":audio-bridge"))
     implementation(project(":privileged-helper"))
     implementation(project(":realtime-client"))
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.0")
     implementation("com.google.mediapipe:tasks-audio:1.2.0")
     implementation("com.google.code.gson:gson:2.14.0")
     implementation("com.squareup.okhttp3:okhttp:5.4.0")

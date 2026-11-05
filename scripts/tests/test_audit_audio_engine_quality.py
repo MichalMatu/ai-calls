@@ -15,7 +15,7 @@ MAIN = "app/src/main/kotlin/pl/michalmatu/aicallbridge/"
 TEST = "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/audioengines/"
 COPY = [
     AUDIO + name + ".kt" for name in (
-        "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness",
+        "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness", "DialogueEngineProviders",
         "AudioEngineProviders", "ParakeetSpeechInputProvider",
         "ParakeetModelDownloader", "GemmaAudioDirectInputProvider",
         "AudioEngineSettingsActivity",
@@ -61,12 +61,20 @@ class AudioEngineQualityGateTest(unittest.TestCase):
             "experimental-audio-not-selectable",
         )
 
-    def test_unsupported_e4b_does_not_fall_back(self):
+    def test_dialogue_choices_use_the_shared_catalog(self):
         self.check_mutation(
             AUDIO + "AudioEngineProfile.kt",
-            '"e4b_not_integrated"',
-            '"ready"',
-            "unsupported-E4B-not-selectable",
+            'LanguageModelCatalog.entries.map',
+            'emptyList<LanguageModelEntry>().map',
+            "catalog-backed-dialogue-choices",
+        )
+
+    def test_selected_model_cannot_be_dropped_at_native_factory_boundary(self):
+        self.check_mutation(
+            AUDIO + "DialogueEngineProviders.kt",
+            "context, systemInstruction, allowedActions, id",
+            "context, systemInstruction, allowedActions",
+            "selected-model-reaches-native-classifier",
         )
 
     def test_parakeet_native_hash_guard_cannot_be_removed(self):

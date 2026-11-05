@@ -20,8 +20,8 @@ class AudioEngineProfileContractTest {
         }
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)))
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = SpeechOutputId.PIPER_PL)))
-        assertNotNull(AudioEngineRegistry.incompatibility(
-            AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E4B),
+        for (model in DialogueModelId.entries) assertNull(AudioEngineRegistry.incompatibility(
+            AudioEngineProfile(dialogue = model),
         ))
         for (output in listOf(SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS)) {
             assertNotNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = output)))
@@ -45,7 +45,6 @@ class AudioEngineProfileContractTest {
                 for (output in SpeechOutputId.entries) {
                     val profile = AudioEngineProfile(input = input, dialogue = dialogue, output = output)
                     val shouldBeIntegrated = input != SpeechInputId.GEMMA_AUDIO_DIRECT &&
-                        dialogue == DialogueModelId.GEMMA_4_E2B &&
                         output != SpeechOutputId.KOKORO &&
                         output != SpeechOutputId.POCKET_TTS
                     assertEquals(

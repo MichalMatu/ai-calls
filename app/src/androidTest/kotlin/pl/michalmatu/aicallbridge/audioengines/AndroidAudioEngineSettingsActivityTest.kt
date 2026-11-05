@@ -25,8 +25,8 @@ class AndroidAudioEngineSettingsActivityTest {
                 }
                 traverse(activity.findViewById(android.R.id.content))
                 val radios = views.filterIsInstance<RadioButton>()
-                assertEquals(9, radios.size)
-                assertEquals(5, radios.count { it.isEnabled })
+                assertEquals(11, radios.size)
+                assertEquals(8, radios.count { it.isEnabled })
                 assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Android STT") })
                 assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Parakeet") })
                 assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Gemma 4 E2B") })

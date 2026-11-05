@@ -77,7 +77,7 @@ class Gemma4ModelInstallerTest {
         val spec = Gemma4ModelCatalog.GEMMA_4_E2B_IT
 
         assertEquals("Gemma 4 E2B IT", spec.modelId)
-        assertEquals(Gemma4LiteRtTextBackendFactory.MODEL_FILE_NAME, spec.fileName)
+        assertEquals(Gemma4ModelCatalog.GEMMA_4_E2B_IT.fileName, spec.fileName)
         assertEquals(
             "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c",
             spec.sha256,

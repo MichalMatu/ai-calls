@@ -4,21 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DialogueEngineProvidersTest {
-    @Test fun stableDefaultResolvesToExistingE2BBackendOnly() {
-        assertSame(Gemma4E2BDialogueEngineProvider, DialogueEngineProviders.resolve(
-            AudioEngineProfile.STABLE,
-        ))
-        assertEquals(DialogueModelId.GEMMA_4_E2B, DialogueEngineProviders.resolve(
-            AudioEngineProfile(voiceId = "pl-local-test"),
-        ).id)
-    }
-
-    @Test fun e4bCannotFallBackSilentlyToE2B() {
-        try {
-            DialogueEngineProviders.resolve(AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E4B))
-            fail("Unsupported dialogue engine must be rejected")
-        } catch (_: IllegalArgumentException) {
-            // Model installation, verified identity and runtime are required first.
+    @Test fun everyCatalogModelResolvesWithoutSilentFallback() {
+        assertEquals(4, DialogueModelId.entries.size)
+        for (model in DialogueModelId.entries) {
+            assertEquals(model, DialogueEngineProviders.resolve(
+                AudioEngineProfile(dialogue = model),
+            ).id)
+            assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(dialogue = model)))
         }
     }
 

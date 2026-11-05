@@ -2,22 +2,17 @@ package pl.michalmatu.aicallbridge
 
 import android.Manifest
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotFailure
@@ -26,13 +21,6 @@ import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.runtime.CallAudioMode
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
-import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelDownloader
-import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelImporter
-import pl.michalmatu.aicallbridge.textagent.Gemma4ModelDownloadPresentation
-import pl.michalmatu.aicallbridge.textagent.Gemma4ModelInstallResult
-import pl.michalmatu.aicallbridge.textagent.Gemma4ModelOperationGate
-import pl.michalmatu.aicallbridge.textagent.Gemma4ModelOperationState
-import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 
 class MainActivity : Activity() {
     private lateinit var statusView: TextView
@@ -40,26 +28,13 @@ class MainActivity : Activity() {
     private lateinit var selectedAudioMode: CallAudioMode
     private lateinit var selectedTextLlmProvider: TextLlmProvider
     private lateinit var textLlmProviderSpinner: Spinner
-    private lateinit var modelImporter: AndroidGemma4ModelImporter
-    private lateinit var modelDownloader: AndroidGemma4ModelDownloader
-    private val modelOperationGate = Gemma4ModelOperationGate()
-    private val modelDownloadPresentation = Gemma4ModelDownloadPresentation()
-    private lateinit var modelImportButton: Button
-    private lateinit var modelDownloadButton: Button
-    private lateinit var modelDownloadCancelButton: Button
-    private lateinit var modelDownloadProgress: ProgressBar
-    private lateinit var modelDownloadSourceView: TextView
-    private val modelImportExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "aicall-gemma4-model-io").apply { isDaemon = true }
-    }
+    private var displayedModel: pl.michalmatu.aicallbridge.audioengines.DialogueModelId? = null
     private lateinit var developerProbes: MainActivityDeveloperProbes
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         runtimePreferences = CallRuntimePreferences(this)
-        modelImporter = AndroidGemma4ModelImporter(this)
-        modelDownloader = AndroidGemma4ModelDownloader(this)
         val initialSelection = runtimePreferences.load()
         selectedAudioMode = initialSelection.audioMode
         selectedTextLlmProvider = initialSelection.textLlmProvider
@@ -109,29 +84,6 @@ class MainActivity : Activity() {
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-
-        modelImportButton = Button(this).apply {
-            text = "Import Gemma 4 model"
-            setOnClickListener { chooseGemma4Model() }
-        }
-        modelDownloadSourceView = TextView(this).apply {
-            text = modelDownloadPresentation.sourceSummary
-            textSize = 13f
-        }
-        modelDownloadButton = Button(this).apply {
-            text = modelDownloadPresentation.startButtonLabel
-            setOnClickListener { showGemma4DownloadConfirmation() }
-        }
-        modelDownloadProgress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = 100
-            progress = 0
-            visibility = View.GONE
-        }
-        modelDownloadCancelButton = Button(this).apply {
-            text = "Cancel Gemma 4 download"
-            isEnabled = false
-            setOnClickListener { cancelGemma4Download() }
         }
 
         val requestMicButton = Button(this).apply {
@@ -188,12 +140,13 @@ class MainActivity : Activity() {
             addLabel("LLM provider (text mode)")
             addControl(textLlmProviderSpinner)
         }
-        val gemmaSection = UiAccordionSection(this, "gemma", "Model Gemma 4").apply {
-            addControl(modelImportButton)
-            addControl(modelDownloadSourceView)
-            addControl(modelDownloadButton)
-            addControl(modelDownloadProgress)
-            addControl(modelDownloadCancelButton)
+        val gemmaSection = UiAccordionSection(this, "gemma", "Modele językowe").apply {
+            addControl(Button(this@MainActivity).apply {
+                text = "Modele: pobierz, importuj, wybierz"
+                setOnClickListener {
+                    startActivity(Intent(this@MainActivity, pl.michalmatu.aicallbridge.textagent.LanguageModelActivity::class.java))
+                }
+            })
         }
         val setupSection = UiAccordionSection(this, "setup", "Uprawnienia i konfiguracja").apply {
             addControl(requestMicButton)
@@ -253,9 +206,16 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val selected = pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore(this).load()?.dialogue
+        if (selected != displayedModel) {
+            displayedModel = selected
+            statusView.text = runtimeSelectionSummary()
+        }
+    }
+
     override fun onDestroy() {
-        modelDownloader.cancel()
-        modelImportExecutor.shutdownNow()
         if (::developerProbes.isInitialized) developerProbes.close()
         super.onDestroy()
     }
@@ -268,167 +228,14 @@ class MainActivity : Activity() {
             CallAudioMode.LOCAL_REALTIME_AUDIO -> append("LLM provider: local realtime audio engine; text preference preserved")
         }
         append('\n')
-        val modelReadiness = modelImporter.readiness()
-        when (modelReadiness.state) {
-            Gemma4ModelReadinessState.READY ->
-                append("Gemma 4 model: READY (").append(modelReadiness.file.length()).append(" bytes)")
-
-            Gemma4ModelReadinessState.MISSING ->
-                append("Gemma 4 model: MISSING")
-
-            Gemma4ModelReadinessState.INVALID ->
-                append("Gemma 4 model: INVALID (").append(modelReadiness.reason ?: "unknown").append(')')
+        val profile = pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore(this@MainActivity).load()
+        if (profile == null) {
+            append("Nieprawidłowa konfiguracja silników audio")
+            return@buildString
         }
-    }
-
-    private fun chooseGemma4Model() {
-        if (!modelOperationGate.tryBeginImport()) {
-            statusView.text = modelOperationBusyText()
-            return
-        }
-        refreshModelOperationControls()
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-        }
-        try {
-            startActivityForResult(intent, REQUEST_IMPORT_GEMMA4_MODEL)
-        } catch (error: Throwable) {
-            modelOperationGate.finishImport()
-            refreshModelOperationControls()
-            statusView.text = "Gemma 4 model import failed: picker_${error.javaClass.simpleName}"
-        }
-    }
-
-    private fun showGemma4DownloadConfirmation() {
-        if (modelOperationGate.state() != Gemma4ModelOperationState.IDLE) {
-            statusView.text = modelOperationBusyText()
-            return
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Download Gemma 4 model")
-            .setMessage(modelDownloadPresentation.confirmationMessage)
-            .setPositiveButton(modelDownloadPresentation.confirmButtonLabel) { _, _ ->
-                startGemma4Download()
-            }
-            .setNegativeButton(modelDownloadPresentation.cancelButtonLabel, null)
-            .show()
-    }
-
-    private fun startGemma4Download() {
-        if (!modelOperationGate.tryBeginDownload()) {
-            statusView.text = modelOperationBusyText()
-            return
-        }
-        modelDownloadProgress.progress = 0
-        modelDownloadProgress.isIndeterminate = false
-        refreshModelOperationControls()
-        statusView.text = "Starting reviewed Gemma 4 download…"
-        modelImportExecutor.execute {
-            var lastUiBytes = -MODEL_DOWNLOAD_PROGRESS_STEP_BYTES
-            val result = modelDownloader.download { progress ->
-                val expected = progress.expectedBytes
-                val shouldPublish =
-                    progress.bytesRead - lastUiBytes >= MODEL_DOWNLOAD_PROGRESS_STEP_BYTES ||
-                        (expected != null && progress.bytesRead >= expected)
-                if (shouldPublish) {
-                    lastUiBytes = progress.bytesRead
-                    runOnUiThread {
-                        if (isDestroyed) return@runOnUiThread
-                        modelDownloadProgress.isIndeterminate = expected == null
-                        if (expected != null) {
-                            modelDownloadProgress.progress = modelDownloadPresentation.progressPercent(progress)
-                        }
-                        statusView.text = modelDownloadPresentation.progressText(progress)
-                    }
-                }
-            }
-            modelOperationGate.finishDownload()
-            runOnUiThread {
-                if (isDestroyed) return@runOnUiThread
-                refreshModelOperationControls()
-                statusView.text = when (result) {
-                    is Gemma4ModelInstallResult.Success ->
-                        "Gemma 4 model ready: ${result.modelId}; ${result.bytesWritten} bytes; sha256=${result.sha256}"
-
-                    is Gemma4ModelInstallResult.Failure -> when (result.reason) {
-                        "model_download_cancelled" -> "Gemma 4 model download cancelled"
-                        else -> "Gemma 4 model download failed: ${result.reason}"
-                    }
-                }
-            }
-        }
-    }
-
-    private fun cancelGemma4Download() {
-        if (modelDownloader.cancel()) {
-            modelDownloadCancelButton.isEnabled = false
-            statusView.text = "Cancelling Gemma 4 model download…"
-        }
-    }
-
-    private fun refreshModelOperationControls() {
-        when (modelOperationGate.state()) {
-            Gemma4ModelOperationState.IDLE -> {
-                modelImportButton.isEnabled = true
-                modelDownloadButton.isEnabled = true
-                modelDownloadCancelButton.isEnabled = false
-                modelDownloadProgress.visibility = View.GONE
-            }
-
-            Gemma4ModelOperationState.IMPORTING -> {
-                modelImportButton.isEnabled = false
-                modelDownloadButton.isEnabled = false
-                modelDownloadCancelButton.isEnabled = false
-                modelDownloadProgress.visibility = View.GONE
-            }
-
-            Gemma4ModelOperationState.DOWNLOADING -> {
-                modelImportButton.isEnabled = false
-                modelDownloadButton.isEnabled = false
-                modelDownloadCancelButton.isEnabled = true
-                modelDownloadProgress.visibility = View.VISIBLE
-            }
-        }
-    }
-
-    private fun modelOperationBusyText(): String =
-        "Gemma 4 model operation already running: ${modelOperationGate.state().name.lowercase()}"
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQUEST_IMPORT_GEMMA4_MODEL) return
-        if (resultCode != RESULT_OK) {
-            modelOperationGate.finishImport()
-            refreshModelOperationControls()
-            statusView.text = "Gemma 4 model import cancelled"
-            return
-        }
-        val uri = data?.data
-        if (uri == null) {
-            modelOperationGate.finishImport()
-            refreshModelOperationControls()
-            statusView.text = "Gemma 4 model import failed: model_source_missing"
-            return
-        }
-
-        refreshModelOperationControls()
-        statusView.text = "Importing Gemma 4 model and verifying SHA-256…"
-        modelImportExecutor.execute {
-            val result = modelImporter.import(uri)
-            modelOperationGate.finishImport()
-            runOnUiThread {
-                if (isDestroyed) return@runOnUiThread
-                refreshModelOperationControls()
-                statusView.text = when (result) {
-                    is Gemma4ModelInstallResult.Success ->
-                        "Gemma 4 model ready: ${result.modelId}; ${result.bytesWritten} bytes; sha256=${result.sha256}"
-
-                    is Gemma4ModelInstallResult.Failure ->
-                        "Gemma 4 model import failed: ${result.reason}"
-                }
-            }
-        }
+        val model = pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[profile.dialogue]
+        val readiness = pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness.check(this@MainActivity, model.id)
+        append("Model: ").append(model.title).append(" · ").append(readiness.state)
     }
 
     /**
@@ -519,10 +326,8 @@ class MainActivity : Activity() {
     }
 
     private companion object {
-        const val MODEL_DOWNLOAD_PROGRESS_STEP_BYTES = 16L * 1024L * 1024L
         const val REQUEST_ONE_TAP_SUPERVISED = 1007
         const val REQUEST_RECORD_AUDIO = 1001
-        const val REQUEST_IMPORT_GEMMA4_MODEL = 1003
         const val EXTRA_RUN_CAPABILITY_PROBE = "run_probe"
     }
 }

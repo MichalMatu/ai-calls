@@ -38,6 +38,7 @@ class AudioEngineSettingsActivity : Activity() {
     private var probedVoices: Set<String>? = null
     private var probedOutput: SpeechOutputId? = null
     private var voiceNames: List<String> = emptyList()
+    private var lastStoredDialogue: DialogueModelId? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +48,7 @@ class AudioEngineSettingsActivity : Activity() {
             setPadding(28, 28, 28, 36)
         }
         val current = store.load()
+        lastStoredDialogue = current?.dialogue
         fun label(value: String, large: Boolean = false): TextView =
             TextView(this).apply {
                 text = value
@@ -79,6 +81,13 @@ class AudioEngineSettingsActivity : Activity() {
             current?.input?.name ?: "ANDROID_STT")
         dialogueGroup = section("2. Model rozmowy", AudioEngineRegistry.dialogues,
             current?.dialogue?.name ?: "GEMMA_4_E2B")
+        content.addView(Button(this).apply {
+            text = "Modele: pobierz, importuj, wybierz"
+            setOnClickListener {
+                startActivity(android.content.Intent(this@AudioEngineSettingsActivity,
+                    pl.michalmatu.aicallbridge.textagent.LanguageModelActivity::class.java))
+            }
+        })
         outputGroup = section("3. Wyjście (TX / TTS)", AudioEngineRegistry.outputs,
             current?.output?.name ?: "ANDROID_TTS_PL")
         content.addView(label("Głos Android TTS offline (pl-PL)"))
@@ -300,6 +309,19 @@ class AudioEngineSettingsActivity : Activity() {
         }
         engine.speak("To jest próbka lokalnego głosu AI Calls.", TextToSpeech.QUEUE_FLUSH, null,
             "aicalls-voice-preview")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val selected = store.load()?.dialogue
+        if (selected != null && selected != lastStoredDialogue) {
+            for (index in 0 until dialogueGroup.childCount) {
+                val radio = dialogueGroup.getChildAt(index) as RadioButton
+                if (radio.tag == selected.name) dialogueGroup.check(radio.id)
+            }
+        }
+        lastStoredDialogue = selected
+        refreshActive()
     }
 
     private fun refreshActive() {

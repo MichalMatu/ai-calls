@@ -113,7 +113,7 @@ internal class GemmaAudioDirectInputProvider(context: Context) : SpeechInputProv
         var engine: Engine? = null
         var conversation: Conversation? = null
         try {
-            val model = Gemma4LiteRtTextBackendFactory.modelFile(appContext)
+            val model = Gemma4LiteRtTextBackendFactory.modelFile(appContext, DialogueModelId.GEMMA_4_E2B)
             if (!model.isFile || model.length() == 0L) {
                 if (current(run)) run.listener.onError("gemma_audio_model_missing")
                 return

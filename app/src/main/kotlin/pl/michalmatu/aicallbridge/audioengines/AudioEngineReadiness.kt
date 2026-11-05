@@ -38,10 +38,10 @@ internal object AudioEngineReadinessProbe {
             SpeechInputId.GEMMA_AUDIO_DIRECT ->
                 return AudioEngineReadiness(false, "audio_direct_not_integrated")
         }
-        val model = Gemma4LiteRtTextBackendFactory.modelFile(context)
-        if (Gemma4ModelReadinessProbe(checkNotNull(model.parentFile)).check().state !=
+        val model = Gemma4LiteRtTextBackendFactory.modelFile(context, profile.dialogue)
+        if (Gemma4ModelReadinessProbe(checkNotNull(model.parentFile), pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[profile.dialogue].spec).check().state !=
             Gemma4ModelReadinessState.READY
-        ) return AudioEngineReadiness(false, "e2b_model_missing_or_invalid")
+        ) return AudioEngineReadiness(false, "dialogue_model_missing_or_invalid")
         val voices = probedOfflineVoiceNames
             ?: return AudioEngineReadiness(false, "tts_offline_voice_probe_required")
         if (voices.isEmpty()) return AudioEngineReadiness(false, "polish_offline_voice_missing")

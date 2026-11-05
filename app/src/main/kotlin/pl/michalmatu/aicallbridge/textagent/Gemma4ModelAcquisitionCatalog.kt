@@ -36,23 +36,3 @@ internal data class Gemma4ModelAcquisitionSource(
         val SHA256_REGEX = Regex("[0-9a-f]{64}")
     }
 }
-
-internal object Gemma4ModelAcquisitionCatalog {
-    private const val LITERT_COMMUNITY_REPOSITORY =
-        "litert-community/gemma-4-E2B-it-litert-lm"
-    private const val REVIEWED_REVISION =
-        "6e5c4f1e395deb959c494953478fa5cec4b8008f"
-
-    val GEMMA_4_E2B_IT: Gemma4ModelAcquisitionSource =
-        Gemma4ModelCatalog.GEMMA_4_E2B_IT.let { model ->
-            Gemma4ModelAcquisitionSource(
-                repositoryId = LITERT_COMMUNITY_REPOSITORY,
-                revision = REVIEWED_REVISION,
-                fileName = model.fileName,
-                expectedSha256 = model.sha256,
-                expectedBytes = model.expectedBytes,
-                declaredLicense = "apache-2.0",
-                requiresAuthentication = false,
-            )
-        }
-}

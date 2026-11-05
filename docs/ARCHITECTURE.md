@@ -39,3 +39,10 @@ Użytkownik → CallTask + CallResolvedTarget + ważny odwoływalny grant (cel/S
 Samsung/Shizuku privileged helper `CallMediaSessionCoordinator`: przesyłanie PCM przez PFD (nie Binder per frame), po utracie endpointu fail-safe, STOP/TAKE OVER, tylko własny Call. **Nie zmieniać bez osobnego powodu i akceptacji**. Normatywny fizyczny freeze: [PHASE2D_FREEZE_2026-09-18](PHASE2D_FREEZE_2026-09-18.md). Żaden licznik `WRITE_COMPLETE`, off-call test, pozytywny host QA ani samo UI nie dowodzą słyszalności u drugiej strony czy wykonania CLIR.
 
 Historia wdrożeń/fizycznych QA: [RAW live](checkpoints/2026-11-04-raw-live-dialogue-facts-turn-taking-freeze.md), [M2–M4](checkpoints/2026-11-04-audio-engines-m2-m4-sprint-checkpoint.md), [host quality](checkpoints/2026-11-04-audio-models-hostonly-quality-gates-checkpoint.md). Te checkpointy są archiwum dowodów, nie bieżącą instrukcją.
+
+
+## Katalog modeli LiteRT-LM (2026-11-05)
+
+`LanguageModelCatalog` wiąże `DialogueModelId` z przypiętym plikiem, SHA-256, rozmiarem i źródłem. `LiteRtDialogueEngineProvider` przekazuje wybrany identyfikator do wspólnego istniejącego runtime i aplikacyjnej walidacji wyjścia. `AudioEngineProfileStore` pozostaje jedynym miejscem wyboru modelu; STT/TTS/głos są niezależne, aktywna rozmowa zachowuje snapshot. Readiness dotyczy wybranego pliku, bez fallbacku do E2B. Gemma Audio wskazuje jawnie E2B, niezależnie od modelu tekstowego.
+
+Nieeksportowany `LanguageModelTransferService` serializuje import i pobranie przez istniejący installer: rozmiar + SHA-256, staging, atomic move. Serwis nie wybiera modelu i nie posiada żadnej władzy nad połączeniami. Katalog UI wywołuje ten sam serwis z ekranu głównego i ustawień audio; poprzedni równoległy downloader E2B w MainActivity został usunięty. [Dowody i ograniczenia](checkpoints/2026-11-05-litert-model-catalog.md).

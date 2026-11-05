@@ -9,7 +9,7 @@ import org.junit.Test
 class Gemma4ModelAcquisitionCatalogTest {
     @Test
     fun `reviewed source is immutable public LiteRT Community artifact bound to production identity`() {
-        val source = Gemma4ModelAcquisitionCatalog.GEMMA_4_E2B_IT
+        val source = LanguageModelCatalog[pl.michalmatu.aicallbridge.audioengines.DialogueModelId.GEMMA_4_E2B].source
         val model = Gemma4ModelCatalog.GEMMA_4_E2B_IT
 
         assertEquals("litert-community/gemma-4-E2B-it-litert-lm", source.repositoryId)
