@@ -1,5 +1,9 @@
 # AI Calls — architektura operacyjna
 
+## Docelowe składanie produktu
+
+[PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) definiuje dalszy kierunek: wspólne moduły dla agenta zadań i sekretarki, osobne dane profilu/zadania, skillsy/instrukcje i archiwum, manual/AI/przejęcie oraz ciągły zapis i odtwarzanie całej sesji z odnośnikami czatu. Wydzielone obecnie pakiety nie są jeszcze kompletem niezależnych bibliotek Gradle. Recorder pełnej sesji ma być niezależny od okien VAD i cyklu inferencji; obecne archiwum tur nie spełnia jeszcze tego wymagania (F-080). Plan nie zmienia zamrożonego transportu ani statusu fizycznego QA.
+
 ## Bieżący podział runtime
 
 [CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) opisuje wdrożony podział: AndroidConversationRuntime + ConversationScenario, oddzielne przygotowanie skills/danych i live/history chat. CLIR jest adapterem aplikacyjnego scenariusza, bez reguł Orange w silniku mediów. Profile INCOMING/OUTGOING i kompilator ról są wspólne; automatyczny odbiór i jego adapter Call są kolejną funkcją. [Nowe QA](checkpoints/2026-11-05-conversation-modules.md).

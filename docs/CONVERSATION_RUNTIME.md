@@ -1,5 +1,7 @@
 # Wspólny runtime rozmów — 2026-11-05
 
+[Plan dalszego składania](PRODUCT_ASSEMBLY_PLAN.md) rozdziela profil użytkownika, konkretne zadanie, rozszerzalne skillsy/instrukcje i archiwum. Opisane poniżej moduły są obecnie granicami logicznymi w aplikacji; osobne biblioteki będą wydzielane przy pionowych integracjach. Najbliższy adapter odbierania obejmie manual/AI i przejęcie bez rozłączenia.
+
 ## Granice modułów
 
 `conversation/AndroidConversationRuntime` jest jedynym wykonawcą potoku mowy i cyklu sesji. Przyjmuje `ConversationScenario`, nie tworzy zadania CLIR, celu Orange, danych abonenta ani zezwoleń skutków. Używa dotychczasowych adapterów STT/TTS i zamrożonego Samsung/Shizuku. Stary ChatRelayLiveCallProbe został przeniesiony, a wszyscy bieżący callerzy i audyty zmigrowani; brak drugiego runnera lub wrappera starego API. Nazwa prywatnego raportu/protokół diagnostyczny pozostają wspólne z istniejącymi narzędziami.
@@ -47,6 +49,8 @@ Odczyt konfiguracji jest lazy na ścieżce przygotowania. STOP nie wymaga otwarc
 ## Przebieg rozmowy i historia
 
 Widok live jest niezależny od danych przygotowania. Trwała historia korzysta z transkryptów zapisywanych już przez `CallSessionEvidenceRecorder`, zgodnie z istniejącym wyborem lokalnego zapisu RX/TX i transkrypcji. Brak nowego domyślnego utrwalania rozmów. Wyczyszczenie widoku live nie usuwa prywatnego archiwum.
+
+**Nowe wymaganie właściciela, jeszcze do implementacji:** każda obsługiwana sesja ma mieć pełny transkrypt/audio i jeden odsłuch całości oraz fragmentów z czatu. Obecny RX zapisuje okna STT, TX zaakceptowane bajty AI/ACK; nie zapewnia to pełnego pokrycia ani głosu użytkownika po przejęciu. Pełny recorder ma być niezależny od VAD/dialogu i powiązany ze wspólnym czasem sesji. Luki pozostają jawne. Szczegóły, kolejność i kryteria w [planie produktu](PRODUCT_ASSEMBLY_PLAN.md); bieżący status F-080 w [BLOCKERS](../BLOCKERS.md).
 
 Nowe sesje dostają metadane kierunku, identyfikatora profilu i rodzaju odpowiedzi. Starsze sesje bez metadanych są pokazywane z kierunkiem nieokreślonym, bez zgadywania. `AGENT_APPROVED_TEXT` jest tekstem zatwierdzonym do TTS, a status wysłania pochodzi z istniejącego `AGENT_FULL_TX`; brak TX po zakończeniu jest widoczny. Lokalny WRITE_COMPLETE nadal nie dowodzi słyszalności ani skutku u operatora.
 

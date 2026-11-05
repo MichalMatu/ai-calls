@@ -12,6 +12,8 @@ LiteRT-LM działa wewnątrz AI Calls; **Google AI Edge Gallery nie jest wymagan�
 
 [Warstwy runtime rozmów](docs/CONVERSATION_RUNTIME.md): wspólny silnik i osobne scenariusze, profile przygotowania wychodzące/przychodzące, szyfrowany kontekst i referencje do sejfu. Wejście „Skills i dane rozmów” nie wymaga uruchomionego zadania. „Historia” w panelu czatu odczytuje istniejące prywatne zapisy; ekran jest neutralny wobec operatora i modelu. Przygotowanie odbioru jest architektoniczne — automatyczny odbiór telefonu pozostaje następną funkcją. [QA](docs/checkpoints/2026-11-05-conversation-modules.md).
 
+[Plan składania produktu](docs/PRODUCT_ASSEMBLY_PLAN.md) obejmuje wykonywanie zadań (np. wizyty), sekretarkę z manual/AI/przejęciem, rozszerzalne skillsy i kontekst oraz pełny transkrypt/audio z jednym playerem całości i odsłuchem z czatu. Są to wymagania dalszej implementacji. Obecne WAV-y per tura nie dowodzą ciągłego zapisu połączenia; [F-080](BLOCKERS.md). Granice logiczne będą wydzielane do bibliotek przy kolejnych integracjach, tak aby laboratorium i docelowa aplikacja składały te same komponenty.
+
 ## Przyjmowanie zadań bez dodatkowych pozwoleń
 
 Polecenie testu z Codexa trafia do jednego aplikacyjnego START zadania. Usunięte są osobne nadawanie/odnawianie grantów i TTL 24 h; telefon nie wymaga dodatkowego zatwierdzenia. Aplikacja zapisuje dokładny zakres i egzekwuje Android/SIM/własny Call/STOP/fakty/skutki. Runner ma jawny `--dialogue-mode SCRIPT_GEMMA|GEMMA_DIRECT` i zbiera metryki obu trybów. [Audyt i dowody](docs/checkpoints/2026-11-05-task-intake-and-dialogue-ab.md).

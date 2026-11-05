@@ -4,6 +4,8 @@
 
 Bieżąca aplikacja jest **modułowym laboratorium testowym**. Ma porównywać wejścia audio, rozpoznawanie mowy, modele, sterowanie dialogiem, instrukcje i wyjścia mowy. Docelowy flow powstanie później z elementów, których jakość i współpracę potwierdzą testy. CLIR i Orange są jednym scenariuszem integracyjnym. Ani jeden operator, ani jedna udana rozmowa nie definiują jakości całej aplikacji.
 
+**Doprecyzowanie właściciela:** [plan składania produktu](PRODUCT_ASSEMBLY_PLAN.md) obejmuje zadania wizyt/rezerwacji i sekretarkę, manual/AI/przejęcie, osobny kontekst zadania i rozszerzalne skillsy oraz pełne audio/transkrypt i płynny player powiązany z czatem. Docelowa aplikacja dołącza wybrane biblioteki, zamiast przepisywać laboratorium. Obecny podział jest logiczny; niezależne moduły kompilacji i powyższe funkcje wymagają dalszej integracji. F-080 dotyczy pokrycia audio i playera, nie zakazu dalszych testów.
+
 Zachowujemy wspólny silnik wykonywania zadania, STOP, zakres danych/skutków i własność Call. Laboratorium ma również automatycznie wykonywać zlecone próby. Nie przenosimy rutynowej obsługi IVR, startu ani rozłączania na operatora. Skrypt jest wymienną strategią dialogu. Testy eksperymentalnych komponentów nie oznaczają ich akceptacji do docelowego flow.
 
 ## Co już można wybrać
@@ -86,6 +88,8 @@ LiteRT-LM udostępnia Android SDK do dołączenia przez Gradle; Gallery jest wsk
 Shizuku składa się z klienta API/provider (już w naszym APK), serwera/brokera działającego jako shell/root oraz managera odpowiedzialnego za uruchomienie i obsługę. Docelowo można oprzeć własną dystrybucję na potrzebnych częściach API, startera, serwera i obsługi UserService/Binder oraz zastąpić UI managera własnym. Same ustawienia lub skopiowany ekran nie zastępują działającego brokera. Obecne API/provider są gotowymi bibliotekami, więc nie ma potrzeby przepisywać ich jako fragmentów. API ma [licencję MIT](https://github.com/RikkaApps/Shizuku-API/blob/master/LICENSE), serwer/manager [Apache 2.0](https://github.com/RikkaApps/Shizuku/blob/master/LICENSE); przy wykorzystaniu kodu zachowujemy odpowiednie licencje i informacje autorów. W laboratorium pozostawiamy dotychczasowy zewnętrzny Shizuku, bez zmiany fizycznie zweryfikowanego transportu.
 
 Możliwe warianty realizacji docelowego pakietu:
+
+**Aktualizacja celu:** właściciel wybrał docelowo jeden APK bez wymaganych aplikacji towarzyszących. Warianty 1–2 poniżej mogą być wyłącznie etapami przejściowymi laboratorium; same nie spełniają tego kryterium. Osadzenie wybranych zależności jest późniejszym etapem [planu produktu](PRODUCT_ASSEMBLY_PLAN.md).
 
 1. **Jeden pakiet uruchamiany na Macu przez USB/ADB:** dostarcza/aktualizuje AI Calls i potrzebne APK zależności, rozpoznaje już zainstalowane wersje, zachowuje dane, uruchamia istniejące readiness. Shizuku i opcjonalny Piper pozostają oddzielnymi pakietami Androida. Wykorzystać istniejące narzędzia urządzenia i instalacji; brak potrzeby Gallery. Model wybrany w aplikacji jest pobierany/importowany przez obecny katalog, bez wrzucania wszystkich modeli do APK.
 2. **Jeden ekran „Przygotowanie” w AI Calls:** status zależności, instalacja brakującego komponentu przez Android PackageInstaller, przejście do rzeczywistej aktywacji Shizuku i wybór modelu/głosu. Odtwarzać stan po powrocie z systemowego ekranu, nie powielać własnych potwierdzeń ani już spełnionych kroków.
