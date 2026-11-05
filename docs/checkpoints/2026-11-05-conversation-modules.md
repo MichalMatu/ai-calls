@@ -1,6 +1,6 @@
 # Runtime, skills/dane i historia — 2026-11-05
 
-Baza `67c2382`; bezpośredni lokalny Codex/Git/Gradle/USB, bez Local Agent zadań/Work/Actions. [Architektura i zakres](../CONVERSATION_RUNTIME.md).
+Kod `e72bb15995a5637f53cfc258917488ab91b7732a`, baza `67c2382`; bezpośredni lokalny Codex/Git/Gradle/USB, bez Local Agent zadań/Work/Actions. [Architektura i zakres](../CONVERSATION_RUNTIME.md).
 
 ## Zmiana
 
@@ -27,6 +27,8 @@ Automatyczny odbiór nie został dodany; INCOMING ma miejsce w przygotowaniu, in
 F-075: konfiguracja bez grantu; F-076: wspólny model i dostęp do historii; F-077: naprawiona migracja; F-078: brak I/O konfiguracji przed STOP; F-079: rejestr i lifecycle właściciela. Aktualne statusy tylko w BLOCKERS, nie zamykać fizycznego zakresu testami hosta.
 
 ## Receipts i granice
+
+Testy urządzenia wykonano na roboczym drzewie opartym na `67c2382`, następnie zapisanym w powyższym commicie. Oryginalne receipts zachowują ten stan źródła; verified-source.json wiąże je z commitem i hashami APK. Po QA usunięto jedynie nadmiarową pustą linię na końcu ConversationMessageView.kt; bez zmiany zachowania.
 
 Prywatnie `~/Documents/AI-Calls/local-codex/2026-11-05-conversation-modules/`: task-intake-final-apk-sha256.json, task-intake-native-summary.json, native-conversation-summary.json, outgoing-regression-report.json, outgoing-regression-summary.json, outgoing-regression-private-timeline.jsonl i pełny eksport w private-exports. Folder 0700, pliki 0600. Raw WAV/transkrypty pozostają wyłącznie na S22 i lokalnym Macu. Ostatni profil: ANDROID_STT / GEMMA_4_E2B / ANDROID_TTS_PL, voice auto.
 
