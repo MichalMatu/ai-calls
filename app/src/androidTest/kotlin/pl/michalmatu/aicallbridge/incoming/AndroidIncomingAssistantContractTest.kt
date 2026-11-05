@@ -11,6 +11,11 @@ import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import org.json.JSONObject
+import org.json.JSONArray
+import pl.michalmatu.aicallbridge.developerrelay.CallSessionPcmWav
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -133,26 +138,91 @@ class AndroidIncomingAssistantContractTest {
             }
         }
     }
-    @Test fun selectedLocalModelHandlesIncomingSecretaryContextWithoutCallOrTools() {
+    @Test fun selectedModelAndVoiceRunSecretaryGreetingAndDialogWithoutTelephony() {
         val profile=checkNotNull(AudioEngineProfileStore(context).load())
-        val instruction=ConversationInstructionBuilder.build(ConversationPreparation.incoming(),IncomingSecretaryScenario.GOAL)
-        val backend=DialogueEngineProviders.resolve(profile).createDirect(context,instruction)
-        try {
-            listOf("Chciałbym zostawić wiadomość: proszę o kontakt w sprawie przeglądu samochodu.",
-                "Dziękuję. Czy zapisałaś moją sprawę?").forEach { utterance ->
-                val done=CountDownLatch(1);val result=AtomicReference<String>();val failure=AtomicReference<String>()
-                backend.generate(utterance,object:TextCallAgentBackend.Listener {
-                    override fun onComplete(text:String) {result.set(text);done.countDown()}
-                    override fun onError(reason:String) {failure.set(reason);done.countDown()}
-                })
-                assertTrue("incoming_model_timeout",done.await(120,TimeUnit.SECONDS))
-                assertNull("incoming_model_error",failure.get())
-                val text=result.get().orEmpty()
-                assertTrue("incoming_model_empty",text.isNotBlank())
-                assertFalse("incoming_model_control_token",text.contains("[["))
-                assertFalse("incoming_model_json",text.trimStart().startsWith("{"))
+        val preparation=ConversationPreparation.incoming()
+        val configuration=ConversationRunConfiguration.ModelDirect(profile,
+            ConversationInstructionBuilder.build(preparation,IncomingSecretaryScenario.GOAL),preparation)
+        val authorized=AtomicBoolean(true)
+        val turn=AtomicInteger(0)
+        val input=object:SpeechInputProvider {
+            var listener:SpeechInputProvider.Listener?=null
+            var starts=0
+            override fun start(listener:SpeechInputProvider.Listener) {starts++;this.listener=listener;listener.onReady()}
+            override fun writePcm(bytes:ByteArray,offset:Int,length:Int)=error("offcall_text_fixture_has_no_pcm_input")
+            override fun finishInput()=Unit
+            override fun cancel() {listener=null}
+            override fun close()=cancel()
+            fun emit(text:String) {checkNotNull(listener).onFinalTranscript(text)}
+        }
+        val directory=File(context.cacheDir,"incoming-synthetic-flow/${UUID.randomUUID()}").apply {check(mkdirs())}
+        val evidence=JSONArray()
+        lateinit var dialogue:ConversationDialogueSession
+        lateinit var pipeline:LocalSpeechTextPipeline
+        instrumentation.runOnMainSync {
+            dialogue=IncomingSecretaryScenario(context,configuration).open(ConversationRuntimeHooks(
+                authorized={authorized.get()},mediaGeneration={0L},turn={turn.get()},emit={},
+                decisionSink=ConversationDecisionSink {_,_,_,_,_->}))
+            dialogue.start()
+            val output=when(profile.output) {
+                SpeechOutputId.ANDROID_TTS_PL -> AndroidTtsOutputProvider(context,profile.languageTag,profile.voiceId)
+                SpeechOutputId.PIPER_PL -> PiperAndroidTtsOutputProvider(context,profile.languageTag,profile.voiceId)
+                SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS -> error("speech_output_not_integrated")
             }
-            println("INCOMING_NATIVE_MODEL_TURNS=2; external_effects=false; call=false")
-        } finally {backend.close()}
+            pipeline=LocalSpeechTextPipeline(context,dialogue.backend,dialogue.approvalPolicy,input=input,output=output)
+        }
+        fun execute(number:Int,transcript:String?,expectDrop:Boolean=false) {
+            turn.set(number)
+            val done=CountDownLatch(1)
+            val error=AtomicReference<String>()
+            val approved=AtomicReference<String>()
+            val pcm=AtomicReference<ByteArray>()
+            val heard=AtomicInteger(0)
+            val dropped=AtomicBoolean(false)
+            val started=System.nanoTime()
+            val listener=object:LocalSpeechTextPipeline.Listener {
+                override fun onSpeechInputReady()=Unit
+                override fun onUserTranscript(text:String) {heard.incrementAndGet();dialogue.onTranscript(number,text)}
+                override fun onApprovedText(text:String) {approved.set(text)}
+                override fun onOutputPcm16Mono16k(bytes:ByteArray) {pcm.set(bytes);done.countDown()}
+                override fun onDroppedText() {dropped.set(true);done.countDown()}
+                override fun onError(reason:String) {error.set(reason);done.countDown()}
+            }
+            instrumentation.runOnMainSync {
+                if(transcript==null) pipeline.speakCandidate(checkNotNull(dialogue.openingText),listener)
+                else {pipeline.start(listener);input.emit(transcript)}
+            }
+            assertTrue("incoming_speech_flow_timeout",done.await(120,TimeUnit.SECONDS))
+            assertNull("incoming_speech_flow_error",error.get())
+            if(expectDrop) {assertTrue(dropped.get());assertNull(pcm.get());return}
+            assertFalse("incoming_unexpected_drop",dropped.get())
+            assertEquals(if(transcript==null) 0 else 1,heard.get())
+            val bytes=checkNotNull(pcm.get())
+            assertTrue("incoming_pcm_empty",bytes.isNotEmpty())
+            assertEquals(0,bytes.size%2)
+            assertTrue("incoming_pcm_silent",bytes.any {it.toInt()!=0})
+            val file=File(directory,"turn-$number.wav")
+            CallSessionPcmWav.write(file,bytes)
+            evidence.put(JSONObject().put("turn",number).put("counterpart",transcript ?: JSONObject.NULL)
+                .put("approved",approved.get()).put("wav",file.name).put("pcm_bytes",bytes.size)
+                .put("elapsed_ms",(System.nanoTime()-started)/1_000_000L).put("synthetic_input",true))
+        }
+        try {
+            execute(0,null)
+            assertEquals(0,input.starts)
+            execute(1,"Chciałbym zostawić wiadomość: proszę o kontakt w sprawie przeglądu samochodu.")
+            execute(2,"Dziękuję. To cała wiadomość, do widzenia.")
+            authorized.set(false)
+            execute(3,null,expectDrop=true)
+            File(directory,"metadata.json").writeText(JSONObject().put("dialogue",profile.dialogue.name)
+                .put("output",profile.output.name).put("voice",profile.voiceId ?: "auto")
+                .put("call",false).put("real_stt",false).put("real_model",true).put("real_tts",true)
+                .put("revocation_dropped",true).put("turns",evidence).toString())
+            println("INCOMING_OFFCALL_FLOW_EVIDENCE=cache/incoming-synthetic-flow/${directory.name}")
+            println("INCOMING_OFFCALL_FLOW=PASS; model_turns=2; native_tts_segments=3; call=false; stt=synthetic")
+        } finally {
+            authorized.set(false)
+            instrumentation.runOnMainSync {pipeline.close();dialogue.close()}
+        }
     }
 }

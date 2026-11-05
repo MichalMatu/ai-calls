@@ -6,7 +6,7 @@ Nowy moduł obsługuje przychodzący Call otrzymany przez istniejący AndroidOwn
 
 Pierwszy scenariusz AI przedstawia się jako wirtualna asystentka i przyjmuje wiadomość w dialogu bez skryptu, z modelem wybranym we wspólnych ustawieniach. Nie ma jeszcze narzędzi kalendarza, wysyłania powiadomień ani wykonywania zobowiązań. Instrukcja nie deklaruje tych działań. Dane sejfu nie są przekazywane do modelu. Użytkownik nadal nadaje rzeczywiste uprawnienia Androida i wybiera dialer; dotychczasowa integracja Shizuku pozostaje wymagana w laboratorium.
 
-Kod jest zaimplementowany; fizyczny odbiór, słyszalność oraz przywrócenie toru użytkownika na S22 wymagają osobnej weryfikacji. [Checkpoint i aktualne receipts](checkpoints/2026-11-05-incoming-assistant.md). Nie utożsamiać testów hosta z akceptacją połączenia.
+Kod jest zaimplementowany; pierwszy [kontrolowany dialog A8→S22](checkpoints/2026-11-06-controlled-incoming.md) ma rzeczywisty zapis INCOMING i potwierdzoną przez rozmówcę słyszalność. Przywrócenie toru użytkownika, powrót AI i STOP na S22 nadal wymagają osobnej weryfikacji. [Host i native receipts](checkpoints/2026-11-05-incoming-assistant.md). Nie utożsamiać jednego dialogu z akceptacją wszystkich trybów i profili.
 
 ## Moduły
 
@@ -47,4 +47,4 @@ Powitanie aplikacji przechodzi przez ten sam output approval, TTS, chroniony TX 
 
 Źródło odpowiedzi jest zapisywane per wiadomość: powitanie skryptowe, dalsze odpowiedzi wybranego modelu. Istniejące archiwa sprzed tego pola zachowują swój odczyt źródła sesji. Zapis RX/TX nadal obejmuje dostępne okna/fragmenty obecnego recordera. Zatrzymanie runtime przy przejęciu kończy ten segment archiwum; pełny zapis części manualnej, wspólna ciągła oś audio i player całości pozostają F-080. Nie nazywać tego pełnym nagraniem połączenia.
 
-Transport Samsung/Shizuku, atrybucja, PFD, format PCM, parametry VAD i pacing TX nie były zmieniane. Adapter korzysta z istniejącego przekazania audio i mechanizmu takeover. Jego poprawność na faktycznym przychodzącym połączeniu nadal wymaga celowanego dowodu urządzenia.
+Transport Samsung/Shizuku, atrybucja, PFD, format PCM, parametry VAD i pacing TX nie były zmieniane. Adapter korzysta z istniejącego przekazania audio i mechanizmu takeover. Pierwszy fizyczny dialog jest zapisany w powyższym checkpoint; mechanizm przejęcia wymaga oddzielnego dowodu urządzenia.
