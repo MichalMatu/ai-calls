@@ -2,13 +2,14 @@ package pl.michalmatu.aicallbridge.audioengines
 
 import org.junit.Assert.*
 import org.junit.Test
+import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 class ConversationRunConfigurationTest {
     @Test fun cacheMissCreatesExactlyTheSelectedModelWithTheCapturedInstruction() {
         for (model in DialogueModelId.entries) {
             val profile = AudioEngineProfile(input = SpeechInputId.PARAKEET_PL, dialogue = model)
-            val config = ConversationRunConfiguration.ModelDirect(profile, "instrukcja próby")
+            val config = ConversationRunConfiguration.ModelDirect(profile, "instrukcja próby", ConversationPreparation.outgoing())
             val loaded = FakeBackend()
             var calls = 0
             assertSame(loaded, config.acquireModel(
@@ -29,7 +30,7 @@ class ConversationRunConfigurationTest {
     }
 
     @Test fun preparedModelIsReusedWithoutLoadingASecondEngine() {
-        val config = ConversationRunConfiguration.ModelDirect(AudioEngineProfile.STABLE, "pierwsza")
+        val config = ConversationRunConfiguration.ModelDirect(AudioEngineProfile.STABLE, "pierwsza", ConversationPreparation.outgoing())
         val warm = FakeBackend()
         assertSame(warm, config.acquireModel({ _, _ -> warm }, { _, _ -> error("second_engine_created") }))
     }
@@ -37,10 +38,10 @@ class ConversationRunConfigurationTest {
     @Test fun laterPreferenceChangesDoNotMixTheModelOrPromptOfAPreparedAttempt() {
         var selected = AudioEngineProfile(dialogue = DialogueModelId.QWEN_3_1_7B)
         var instructions = "instrukcja pierwszej próby"
-        val pending = ConversationRunConfiguration.ModelDirect(selected, instructions)
+        val pending = ConversationRunConfiguration.ModelDirect(selected, instructions, ConversationPreparation.outgoing())
         selected = selected.copy(dialogue = DialogueModelId.GEMMA_4_E4B, output = SpeechOutputId.PIPER_PL)
         instructions = "instrukcja kolejnej próby"
-        val next = ConversationRunConfiguration.ModelDirect(selected, instructions)
+        val next = ConversationRunConfiguration.ModelDirect(selected, instructions, ConversationPreparation.outgoing())
         pending.acquireModel({ _, _ -> null }, { profile, prompt ->
             assertEquals(DialogueModelId.QWEN_3_1_7B, profile.dialogue)
             assertEquals(SpeechOutputId.ANDROID_TTS_PL, profile.output)
@@ -53,8 +54,7 @@ class ConversationRunConfigurationTest {
 
     @Test fun selectedModelFailureIsPropagatedWithoutTryingADefaultModel() {
         val config = ConversationRunConfiguration.ModelDirect(
-            AudioEngineProfile(dialogue = DialogueModelId.QWEN_3_1_7B), "cel",
-        )
+            AudioEngineProfile(dialogue = DialogueModelId.QWEN_3_1_7B), "cel", ConversationPreparation.outgoing())
         var creates = 0
         val failure = IllegalStateException("selected_model_unavailable")
         val actual = runCatching { config.acquireModel({ _, _ -> null }, { profile, _ ->
@@ -67,7 +67,7 @@ class ConversationRunConfigurationTest {
     }
 
     @Test fun configurationDescriptionDoesNotExposeInstructions() {
-        val config = ConversationRunConfiguration.ModelDirect(AudioEngineProfile.STABLE, "private-prompt-content")
+        val config = ConversationRunConfiguration.ModelDirect(AudioEngineProfile.STABLE, "private-prompt-content", ConversationPreparation.outgoing())
         assertFalse(config.toString().contains("private-prompt-content"))
     }
 

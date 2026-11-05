@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.campaign.ClirCampaignSpec
-import pl.michalmatu.aicallbridge.campaign.GemmaDirectPromptSkillCatalog
+import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
 import pl.michalmatu.aicallbridge.campaign.GemmaDirectTaskBriefBuilder
 
 /**
@@ -27,7 +27,7 @@ class AndroidGemmaDirectOnDeviceTest {
         val instruction = GemmaDirectTaskBriefBuilder.build(
             ClirCampaignSpec.enableRequest(scope),
             grant,
-            GemmaDirectPromptSkillCatalog.defaults,
+            ConversationPreparation.outgoing(),
         )
         val model = Gemma4LiteRtTextBackendFactory.createDirectDialogue(
             context, instruction,

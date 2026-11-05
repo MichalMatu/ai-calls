@@ -111,7 +111,8 @@ fi
 
 if grep -nE 'identity-phone-bootstrap|AICALL_SERVICE_NUMBER|stage_phone_bootstrap|normalize_service_number|automatic_orange_supervisor_response|clir_external_success_text' \
   app/src/main/kotlin/pl/michalmatu/aicallbridge/developerrelay/ChatRelayProbeActivity.kt \
-  app/src/main/kotlin/pl/michalmatu/aicallbridge/developerrelay/ChatRelayLiveCallProbe.kt \
+  app/src/main/kotlin/pl/michalmatu/aicallbridge/conversation/AndroidConversationRuntime.kt \
+  app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/ClirConversationScenario.kt \
   scripts/aicall_tools/calls/chatgpt_relay_live_call.py; then
   echo "identity_plaintext_transport_guard_failed=true" >&2
   exit 1

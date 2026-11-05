@@ -1,54 +1,23 @@
-package pl.michalmatu.aicallbridge.developerrelay
+package pl.michalmatu.aicallbridge.conversation
 
-import pl.michalmatu.aicallbridge.campaign.ClirCarrierEvidence
-import pl.michalmatu.aicallbridge.campaign.ClirDeterministicDialogueBackend
-import pl.michalmatu.aicallbridge.campaign.CampaignGemmaDirectPreflight
-import pl.michalmatu.aicallbridge.campaign.CampaignGemmaPreflight
-import pl.michalmatu.aicallbridge.campaign.ClirRouteEvidence
 
 import android.content.Context
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import java.io.File
 import java.time.Instant
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
-import pl.michalmatu.aicallbridge.GateCHybridDiagnostics
-import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness
-import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
-import pl.michalmatu.aicallbridge.GateCHybridDialogueBackendFactory
-import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
-import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
-import pl.michalmatu.aicallbridge.agent.CallExternalEffect
-import pl.michalmatu.aicallbridge.agent.CallExternalEffectCompletionTracker
-import pl.michalmatu.aicallbridge.agent.CallExternalEffectSuccessEvidence
-import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidation
-import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidator
-import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
-import pl.michalmatu.aicallbridge.agent.CallConstraints
-import pl.michalmatu.aicallbridge.agent.CallOutcome
-import pl.michalmatu.aicallbridge.agent.CallOutcomeStatus
-import pl.michalmatu.aicallbridge.agent.CallPreferences
-import pl.michalmatu.aicallbridge.agent.CallResolvedTarget
-import pl.michalmatu.aicallbridge.agent.CallService
-import pl.michalmatu.aicallbridge.agent.CallTask
-import pl.michalmatu.aicallbridge.agent.CallWorkflow
-import pl.michalmatu.aicallbridge.identity.AndroidIdentityVault
-import pl.michalmatu.aicallbridge.identity.CallTaskMode
-import pl.michalmatu.aicallbridge.identity.DefaultFactDisclosurePolicy
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
-import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.audioengines.SpeechOutputId
@@ -60,17 +29,11 @@ import pl.michalmatu.aicallbridge.audioengines.GemmaAudioDirectInputProvider
 import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
-import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
 import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
 import pl.michalmatu.aicallbridge.session.CallMediaSessionState
-import pl.michalmatu.aicallbridge.taskgraph.TaskGraphStateId
-import pl.michalmatu.aicallbridge.textagent.AuthorizedPhoneFactBackend
-import pl.michalmatu.aicallbridge.textagent.AuthorizedPhoneFactScope
-import pl.michalmatu.aicallbridge.textagent.CallTextAgentOutputApprovalPolicy
 import pl.michalmatu.aicallbridge.textagent.TextOutputDecision
-import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /**
  * Developer-only bounded multi-turn proof:
@@ -78,33 +41,28 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
  *
  * It intentionally reuses production speech/backend/approval boundaries and owns no model runtime.
  */
-internal object ChatRelayLiveCallProbe {
+import pl.michalmatu.aicallbridge.developerrelay.*
+
+
+internal object AndroidConversationRuntime {
     /** Stops *only* the application audio/media session, never the cellular call. */
     internal fun interface SessionControl {
         fun stopAudio()
     }
 
-    private val activeSession = AtomicReference<Run?>(null)
+    private val sessions = ConversationSessionRegistry<Run>()
 
     const val REPORT_FILE = "chat-relay-live-call-report.txt"
     /** Campaign dialogue ends on factual completion, remote disconnect or STOP, not turn #10. */
     const val TASK_SCOPED_TURNS = Int.MAX_VALUE
     private const val RESPONSE_TIMEOUT_MS = 90_000L
     private const val NO_SPEECH_RETRY_DELAY_MS = 750L
-    private const val ORANGE_SUPPORT_NUMBER = "*100"
-    private const val COMMIT_CLIR_ENABLE = "[[COMMIT_CLIR_ENABLE]]"
-    private const val REVIEWED_CLIR_COMMIT_SPEECH =
-        "Potwierdzam. Proszę włączyć blokadę prezentacji numeru, usługę CLIR."
-
     fun run(
         context: Context,
         sessionId: String,
         maxTurns: Int,
-        phoneDisclosureAuthorized: Boolean,
-        supervisorRelayEnabled: Boolean = true,
+        scenario: ConversationScenario,
         liveAuthorization: () -> Boolean = { true },
-        readOnlySupervised: Boolean = false,
-        supervisedGemmaEnabled: Boolean = false,
         callStillActive: () -> Boolean = { true },
         evidenceRecorder: CallSessionEvidenceRecorder? = null,
         runConfiguration: ConversationRunConfiguration,
@@ -115,39 +73,24 @@ internal object ChatRelayLiveCallProbe {
             "audio_engine_profile_unavailable"
         }
         require(maxTurns > 0) { "invalid_relay_max_turns" }
-        require(!readOnlySupervised || (!phoneDisclosureAuthorized && !supervisorRelayEnabled)) {
-            "supervised_probe_must_be_read_only_local"
-        }
         val appContext = context.applicationContext
-        if (supervisedGemmaEnabled &&
-            AndroidGemma4ModelReadiness.check(appContext).state != Gemma4ModelReadinessState.READY
-        ) {
-            callback(immediateReport("gemma_model_not_ready"))
-            return null
-        }
+        scenario.readinessFailure()?.let { callback(immediateReport(it)); return null }
         val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audioManager == null || audioManager.mode != AudioManager.MODE_IN_CALL) {
             callback(immediateReport("cellular_call_not_active"))
             return null
         }
-        require(!supervisedGemmaEnabled || readOnlySupervised) {
-            "gemma_supervised_requires_read_only_session"
-        }
-        val session = Run(
+        val session = sessions.tryCreate { Run(
             appContext,
             sessionId,
             maxTurns,
-            phoneDisclosureAuthorized,
+            scenario,
             callback,
-            supervisorRelayEnabled,
             liveAuthorization,
-            readOnlySupervised,
-            supervisedGemmaEnabled,
             callStillActive,
             evidenceRecorder,
             runConfiguration,
-        )
-        if (!activeSession.compareAndSet(null, session)) {
+        ) } ?: run {
             evidenceRecorder?.finish("audio_session_already_active")
             callback(immediateReport("audio_session_already_active"))
             return null
@@ -160,12 +103,9 @@ internal object ChatRelayLiveCallProbe {
         private val context: Context,
         private val sessionId: String,
         private val maxTurns: Int,
-        private val phoneDisclosureAuthorized: Boolean,
+        private val scenario: ConversationScenario,
         private val callback: (String) -> Unit,
-        private val supervisorRelayEnabled: Boolean,
         private val liveAuthorization: () -> Boolean,
-        private val readOnlySupervised: Boolean,
-        private val supervisedGemmaEnabled: Boolean,
         private val callStillActive: () -> Boolean,
         private val evidenceRecorder: CallSessionEvidenceRecorder?,
         private val runConfiguration: ConversationRunConfiguration,
@@ -177,14 +117,9 @@ internal object ChatRelayLiveCallProbe {
         }
 
         private val handler = Handler(Looper.getMainLooper())
-        private val finished = AtomicBoolean(false)
-        private val stopRequested = AtomicBoolean(false)
         private val mediaTurnStarted = AtomicBoolean(false)
-        private val supervisedGemmaReplies = AtomicInteger(0)
-        private val supervisedFallbackReplies = AtomicInteger(0)
         private val quickAckPcm = AtomicReference<ByteArray?>(null)
         private val lastQuickAckTurn = AtomicInteger(0)
-        private val lastPrivateDecisionTraceTurn = AtomicInteger(0)
         private val finalAudioReadyTurn = AtomicInteger(0)
         private val quickAckSynthesizer = LocalTtsSpeechOutput(
             context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
@@ -194,133 +129,41 @@ internal object ChatRelayLiveCallProbe {
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "ChatRelayLiveCall").apply { isDaemon = true }
         }
-        private val mailbox = ChatRelayMailbox(File(context.filesDir, ChatRelayMailbox.DIRECTORY_NAME))
-        private val target = if (readOnlySupervised) {
-            CallResolvedTarget("User-controlled existing call", "manual-call")
-        } else {
-            CallResolvedTarget("Orange support", ORANGE_SUPPORT_NUMBER)
-        }
-        private val task = if (readOnlySupervised) {
-            CallTask(
-                "Supervised sound test", "READ_ONLY_AUDIO_TEST", "audio",
-                CallConstraints.unconstrained(), CallPreferences.none(), emptyMap(),
-            )
-        } else {
-            CallTask(
-                "Orange CLIR enable", "SET_SERVICE", "CLIR",
-                CallConstraints.unconstrained(), CallPreferences.none(),
-                mapOf(CallExternalEffectValidator.SERVICE_ENABLED_FACT to "true"),
-            )
-        }
-        private val effect by lazy {
-            CallExternalEffect.SetService(target, CallService.CLIR, true)
-        }
-        private val workflow = activeWorkflow(task, target)
-        private val commitmentGate = CallCommitmentGate { "clir-live-${UUID.randomUUID()}" }
-        private val hybridDiagnostics = GateCHybridDiagnostics()
-        private val routeVerified = AtomicBoolean(false)
-        private val commitmentConsumed = AtomicBoolean(false)
+        private val readOnlySupervised = scenario.mode == ConversationRuntimeMode.SUPERVISED_ATTACH
+        private val supervisorRelayEnabled = scenario.mode == ConversationRuntimeMode.DEVELOPER_RELAY
         private val activeMediaGeneration = AtomicLong(-1L)
-        private val identityVault by lazy { AndroidIdentityVault.create(context) }
-        private val factDisclosurePolicy = DefaultFactDisclosurePolicy()
-        private val phoneDisclosureState = TaskGraphStateId("clir-service-number-request")
-        private val localPhoneFactBackend by lazy { AuthorizedPhoneFactBackend(
-            vault = identityVault,
-            policy = factDisclosurePolicy,
-            scopeProvider = {
-                AuthorizedPhoneFactScope(
-                    task = task,
-                    target = target,
-                    state = phoneDisclosureState,
-                    generation = activeMediaGeneration.get(),
-                    mode = CallTaskMode.GENUINE,
-                    authorized = phoneDisclosureAuthorized && routeVerified.get() &&
-                        activeMediaGeneration.get() > 0L && authorizedNow(),
-                )
+        private val lines = CallDiagnosticEvidence(listOf(
+            "probe=chat_relay_live_call",
+            "supervised_read_only=$readOnlySupervised",
+            "dialogue_mode=${if (runConfiguration is ConversationRunConfiguration.ModelDirect) "gemma_direct" else "script_gemma"}",
+            "conversation_scenario=${scenario.id}",
+            "conversation_direction=${scenario.direction.name}",
+            "developer_relay=$supervisorRelayEnabled",
+            "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
+            "call_required=true",
+            "session_id=$sessionId",
+            "max_turns=$maxTurns",
+            "approval_policy=application_owned",
+            "endpointing=trailing_silence",
+            "timestamp_utc=${Instant.now()}",
+            "private_audio_recording=${evidenceRecorder != null}",
+        ))
+        private val finished = AtomicBoolean(false)
+        private val stopRequested = AtomicBoolean(false)
+        private var currentTurn = 0
+        private val dialogue = scenario.open(ConversationRuntimeHooks(
+            authorized = ::authorizedNow,
+            mediaGeneration = { activeMediaGeneration.get() },
+            turn = { currentTurn },
+            emit = { lines += it },
+            decisionSink = ConversationDecisionSink { turn, action, response, elapsed, error ->
+                evidenceRecorder?.recordDialogueDecision(turn, action, response, elapsed, error)
             },
-            onDisclosure = { lines += "identity_phone_disclosure_local=true" },
-        ) }
-        @Volatile private var completionTracker: CallExternalEffectCompletionTracker? = null
-        private val pendingExternalSuccessEvidence = AtomicBoolean(false)
-        private val hybridBackend by lazy { GateCHybridDialogueBackendFactory.create(
-            context = context,
-            provider = TextLlmProvider.LOCAL_GEMMA_4,
-            relaySessionId = sessionId,
-            diagnostics = hybridDiagnostics,
-            authorizedFactBackend = localPhoneFactBackend,
-            effectCommitControl = COMMIT_CLIR_ENABLE,
-            canConfirmEffect = {
-                !readOnlySupervised && activeMediaGeneration.get() > 0L && authorizedNow() &&
-                    routeVerified.get() && !commitmentConsumed.get()
-            },
-            supervisorRelayEnabled = supervisorRelayEnabled,
-            // Only the app-owned campaign may consume its already initialized engine.
-            // Supervised and developer probes keep independent model ownership.
-            preparedClassifier = (if (!readOnlySupervised && !supervisorRelayEnabled) {
-                CampaignGemmaPreflight.takePrepared(runConfiguration.audioProfile)
-            } else null) ?: CampaignGemmaPreflight.createClassifier(context, runConfiguration.audioProfile),
-        ) }
-        private val directBackend by lazy {
-            val direct = runConfiguration as ConversationRunConfiguration.ModelDirect
-            GemmaDirectDialogueBackendFactory.create(
-                model = direct.acquireModel(
-                    takePrepared = { profile, instruction ->
-                        CampaignGemmaDirectPreflight.takePrepared(instruction, profile)
-                    },
-                    create = { profile, instruction ->
-                        DialogueEngineProviders.resolve(profile).createDirect(context, instruction)
-                    },
-                ),
-                authorizedPhoneFact = localPhoneFactBackend,
-                canConfirmEffect = {
-                    !readOnlySupervised && activeMediaGeneration.get() > 0L &&
-                        authorizedNow() && routeVerified.get() && !commitmentConsumed.get()
-                },
-                observer = GemmaDirectObserver { action, source, elapsedMs ->
-                    lines += "turn_${currentTurn}_direct_action=$action"
-                    lines += "turn_${currentTurn}_direct_response_source=$source"
-                    lines += "turn_${currentTurn}_direct_inference_ms=$elapsedMs"
-                    evidenceRecorder?.recordDialogueDecision(
-                        turn = currentTurn,
-                        actionId = action,
-                        responseSource = source,
-                        classifierWallMs = elapsedMs,
-                        localErrorPresent = source == "DIRECT_REJECTED" ||
-                            source == "DIRECT_MODEL_ERROR",
-                    )
-                },
-            )
-        }
-        private val backend: TextCallAgentBackend = if (!readOnlySupervised &&
-            runConfiguration is ConversationRunConfiguration.ModelDirect
-        ) {
-            // F-046 raw speech-only experiment. No PhraseMatrix/JSON parser,
-            // no model-callable fact/disclosure/effect tools, and no commitment
-            // control-token interpreter. Existing live grant, owned-call,
-            // speech-approval, STOP and TX gates still run in the pipeline.
-            directBackend
-        } else if (readOnlySupervised) {
-            if (supervisedGemmaEnabled) {
-                SupervisedGemmaDialogueBackend(
-                    context = context,
-                    onModelReply = { supervisedGemmaReplies.incrementAndGet() },
-                    onFallbackReply = { supervisedFallbackReplies.incrementAndGet() },
-                )
-            } else {
-                SupervisedReadOnlyDialogueBackend()
-            }
-        } else {
-            controlAwareBackend(
-                ClirDeterministicDialogueBackend(hybridBackend) { ruleId ->
-                    lines += "clir_phrase_matrix_rule=$ruleId"
-                },
-            )
-        }
-        private val outputApprovalPolicy = CallTextAgentOutputApprovalPolicy(workflow, commitmentGate)
+        ))
         private val pipeline = LocalSpeechTextPipeline(
             context,
-            backend,
-            outputApprovalPolicy,
+            dialogue.backend,
+            dialogue.approvalPolicy,
             languageTag = runConfiguration.audioProfile.languageTag,
             voiceId = runConfiguration.audioProfile.voiceId,
             input = when (runConfiguration.audioProfile.input) {
@@ -339,27 +182,10 @@ internal object ChatRelayLiveCallProbe {
                     error("unavailable_polish_output_engine")
             },
         )
-        private val lines = CallDiagnosticEvidence(listOf(
-            "probe=chat_relay_live_call",
-            "supervised_read_only=$readOnlySupervised",
-            "dialogue_mode=${if (runConfiguration is ConversationRunConfiguration.ModelDirect) "gemma_direct" else "script_gemma"}",
-            "supervised_dialogue_mode=${if (supervisedGemmaEnabled) "gemma4" else "script"}",
-            "developer_relay=$supervisorRelayEnabled",
-            "hybrid_dialogue=${if (supervisorRelayEnabled) "gemma_then_chatgpt" else "gemma_local_only"}",
-            "clir_commit_control=$COMMIT_CLIR_ENABLE",
-            "call_required=true",
-            "session_id=$sessionId",
-            "max_turns=$maxTurns",
-            "approval_policy=application_owned",
-            "phone_disclosure_authorized=$phoneDisclosureAuthorized",
-            "endpointing=trailing_silence",
-            "timestamp_utc=${Instant.now()}",
-            "private_audio_recording=${evidenceRecorder != null}",
-        ))
+
         private var mediaRuntime: CallMediaSessionRuntime? = null
         private var downlinkPump: ChatRelayDownlinkPump? = null
         private var turnsCompleted = 0
-        private var currentTurn = 0
         private var turnStartedAtMs = 0L
         private var estimatedSpeechEndElapsedMs: Long? = null
         private class ActiveRxCapture(
@@ -374,10 +200,6 @@ internal object ChatRelayLiveCallProbe {
         private var totalRxBytes = 0L
         private var totalTxBytes = 0L
         private var silenceWindows = 0L
-        private var turnDecisionBaseline = 0
-        private var turnResponseSourceBaseline = 0
-        private var turnLocalSkillErrorBaseline = 0
-        private var turnClassifierTimingBaseline = 0
 
         private val timeout = Runnable { finish(false, "probe_timeout") }
         private val authorityWatchdog = object : Runnable {
@@ -402,9 +224,14 @@ internal object ChatRelayLiveCallProbe {
             }
             // Only an already authorized, active owner-controlled session
             // publishes private live text to the local UI memory.
-            liveChatToken = LiveCallChatFeed.begin()
+            liveChatToken = ConversationChatFeed.begin()
+            evidenceRecorder?.recordConversation(scenario.direction, scenario.preparationId, scenario.responseKind)
+            try { dialogue.start() } catch (failure: Exception) {
+                finish(false, "scenario_start_${failure.javaClass.simpleName}")
+                return
+            }
             handler.postDelayed(authorityWatchdog, 500L)
-            mailbox.clear()
+
             if (!readOnlySupervised && !supervisorRelayEnabled) {
                 // Preparation is only for the authorized app-owned campaign, not any dev relay.
                 // Preparation is optional: a TTS constructor/service failure cannot abort the call.
@@ -496,20 +323,16 @@ internal object ChatRelayLiveCallProbe {
             }
             currentTurn = turnsCompleted + 1
             silenceWindows = 0L
-            val diagnosticsBeforeTurn = hybridDiagnostics.snapshot()
-            turnDecisionBaseline = diagnosticsBeforeTurn.decisions.size
-            turnResponseSourceBaseline = diagnosticsBeforeTurn.responseSources.size
-            turnLocalSkillErrorBaseline = diagnosticsBeforeTurn.localSkillErrors.size
-            turnClassifierTimingBaseline = diagnosticsBeforeTurn.classifierLatenciesMs.size
+            dialogue.beginTurn()
             turnStartedAtMs = SystemClock.elapsedRealtime()
             estimatedSpeechEndElapsedMs = null
             lines += "turn_${currentTurn}_started=true"
-            LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • przygotowanie STT")
+            ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • przygotowanie STT")
             pipeline.start(object : LocalSpeechTextPipeline.Listener {
                 override fun onSpeechInputReady() {
                     lines += "turn_${currentTurn}_stt_ready=true"
                     lines += "turn_${currentTurn}_stt_ready_elapsed_ms=${elapsedTurnMs()}"
-                    LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • słucham rozmówcy…")
+                    ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • słucham rozmówcy…")
                     beginCaptureInputTurn(currentTurn, generation, lease)
                 }
 
@@ -517,41 +340,27 @@ internal object ChatRelayLiveCallProbe {
                     if (finished.get()) return
                     if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text)
-                    LiveCallChatFeed.heard(liveChatToken, currentTurn, text)
-                    LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • Gemma analizuje wypowiedź…")
+                    ConversationChatFeed.heard(liveChatToken, currentTurn, text)
+                    ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • model analizuje wypowiedź…")
                     lines += "turn_${currentTurn}_stt_chars=${text.length}"
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
-                    val routeEvidence = ClirRouteEvidence.isExplicitServiceContext(text)
-                    if (routeEvidence) {
-                        lines += "turn_${currentTurn}_clir_route_evidence=true"
-                        if (routeVerified.compareAndSet(false, true)) {
-                            lines += "clir_route_verified=true"
-                        }
-                    }
-                    if (commitmentConsumed.get() && ClirCarrierEvidence.isConfirmedCarrierStatement(text)) {
-                        pendingExternalSuccessEvidence.set(true)
-                        lines += "clir_success_evidence_detected=true"
-                        // Carrier evidence does not depend on completing another local TTS turn.
-                        handler.post {
-                            if (!finished.get() && pendingExternalSuccessEvidence.compareAndSet(true, false)) {
-                                if (finalizeExternalSuccess()) finish(true)
-                            }
-                        }
-                    }
+                    dialogue.onTranscript(currentTurn, text)
+                    // Scenario outcome evaluation stays on the same main-thread boundary.
+                    handler.post { if (!finished.get()) dialogue.takeOutcome()?.let(::applyOutcome) }
                 }
 
                 override fun onApprovedText(text: String) {
                     if (finished.get()) return
                     if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text)
-                    LiveCallChatFeed.replied(
+                    ConversationChatFeed.replied(
                         liveChatToken, currentTurn, text,
-                        direct = !readOnlySupervised && runConfiguration is ConversationRunConfiguration.ModelDirect,
+                        kind = scenario.responseKind,
                     )
-                    LiveCallChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • synteza TTS…")
+                    ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • synteza TTS…")
                     lines += "turn_${currentTurn}_approved_chars=${text.length}"
                     lines += "turn_${currentTurn}_approved_elapsed_ms=${elapsedTurnMs()}"
-                    recordTurnDialogueDiagnostics(currentTurn)
+                    dialogue.recordTurnDiagnostics(currentTurn)
                 }
 
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
@@ -560,17 +369,17 @@ internal object ChatRelayLiveCallProbe {
                     val outputTurn = currentTurn
                     finalAudioReadyTurn.set(outputTurn)
                     lines += "turn_${outputTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
-                    LiveCallChatFeed.stage(liveChatToken, "Tura " + outputTurn + " • wysyłanie głosu…")
+                    ConversationChatFeed.stage(liveChatToken, "Tura " + outputTurn + " • wysyłanie głosu…")
                     executor.execute { writeOutputTurn(lease, pcm, outputTurn, generation) }
                 }
 
                 override fun onDroppedText() {
-                    recordTurnDialogueDiagnostics(currentTurn)
+                    dialogue.recordTurnDiagnostics(currentTurn)
                     finish(false, "output_dropped")
                 }
 
                 override fun onError(reason: String) {
-                    recordTurnDialogueDiagnostics(currentTurn)
+                    dialogue.recordTurnDiagnostics(currentTurn)
                     if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
                         val retryTurn = currentTurn
                         lines += "turn_${retryTurn}_stt_transient_no_transcript=true"
@@ -704,7 +513,7 @@ internal object ChatRelayLiveCallProbe {
                         authorized = !finished.get() && authorizedNow() &&
                             runCatching { callStillActive() }.getOrDefault(false) &&
                             currentTurn == turn && activeMediaGeneration.get() == generation &&
-                            outputApprovalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) ==
+                            dialogue.approvalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) ==
                                 TextOutputDecision.RELEASE,
                         readOnlySupervised = readOnlySupervised,
                         speechDetected = true,
@@ -734,7 +543,7 @@ internal object ChatRelayLiveCallProbe {
                 !runCatching { callStillActive() }.getOrDefault(false) ||
                 currentTurn != turn || activeMediaGeneration.get() != generation ||
                 finalAudioReadyTurn.get() == turn ||
-                outputApprovalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) !=
+                dialogue.approvalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) !=
                     TextOutputDecision.RELEASE
             ) return
             try {
@@ -811,7 +620,7 @@ internal object ChatRelayLiveCallProbe {
                 )
                 evidenceRecorder?.recordTransmittedAudio(turn, pcm, bytesWritten, txEvidenceAtMs)
                 evidenceRecorder?.recordFullTxAttempt(turn, bytesWritten, pcm.size)
-                LiveCallChatFeed.tx(liveChatToken, turn, bytesWritten == pcm.size)
+                ConversationChatFeed.tx(liveChatToken, turn, bytesWritten == pcm.size)
                 if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
                     activeMediaGeneration.get() != generation
                 ) {
@@ -827,7 +636,7 @@ internal object ChatRelayLiveCallProbe {
                 lines += "turn_${turn}_tx_write_wall_ms=$txWriteWallMs"
                 lines += "turn_${turn}_post_write_hold_ms=$postWriteHoldMs"
                 totalTxBytes += pcm.size.toLong()
-                LiveCallChatFeed.stage(liveChatToken, "Tura " + turn + " • odpowiedź wysłana do TX")
+                ConversationChatFeed.stage(liveChatToken, "Tura " + turn + " • odpowiedź wysłana do TX")
                 lines += "turn_${turn}_tx_pcm_bytes=${pcm.size}"
                 handler.postDelayed(
                     { completeTurnAfterPlayback(turn, generation, lease) },
@@ -849,106 +658,17 @@ internal object ChatRelayLiveCallProbe {
             turnsCompleted = turn
             lines += "turn_${turn}_complete_elapsed_ms=${elapsedTurnMs()}"
             if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
-            if (pendingExternalSuccessEvidence.compareAndSet(true, false)) {
-                if (!finalizeExternalSuccess()) return
-                finish(true)
-                return
-            }
+            dialogue.takeOutcome()?.let { applyOutcome(it); return }
             if (maxTurns != TASK_SCOPED_TURNS && turnsCompleted >= maxTurns) {
-                if (readOnlySupervised) finish(true)
-                else finish(false, "clir_external_success_not_observed")
+                applyOutcome(dialogue.turnBudgetOutcome())
             } else {
                 beginNextTurn(generation, lease)
             }
         }
 
-        private fun controlAwareBackend(delegate: TextCallAgentBackend): TextCallAgentBackend =
-            object : TextCallAgentBackend {
-                override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
-                    delegate.generate(userText, object : TextCallAgentBackend.Listener {
-                        override fun onComplete(text: String) {
-                            try {
-                                when (text.trim()) {
-                                    COMMIT_CLIR_ENABLE -> listener.onComplete(commitClirEnable())
-                                    else -> listener.onComplete(text)
-                                }
-                            } catch (error: Throwable) {
-                                listener.onError("clir_control_${error.javaClass.simpleName}")
-                            }
-                        }
-
-                        override fun onError(reason: String) = listener.onError(reason)
-                    })
-                }
-
-                override fun cancel() = delegate.cancel()
-                override fun close() = delegate.close()
-            }
-
-        private fun commitClirEnable(): String {
-            require(!readOnlySupervised) { "supervised_external_effect_blocked" }
-            require(authorizedNow()) { "campaign_authority_revoked_or_expired" }
-            require(activeMediaGeneration.get() > 0L) { "media_generation_unbound" }
-            require(routeVerified.get()) { "clir_route_not_verified" }
-            require(!commitmentConsumed.get()) { "clir_commitment_already_consumed" }
-            val validation = CallExternalEffectValidator.validateSetService(task, target, effect)
-            require(validation is CallExternalEffectValidation.Accepted) { "clir_effect_validation_rejected" }
-            val authorization = commitmentGate.authorize(validation.effect)
-            lines += "clir_effect_permit_issued=true"
-            val consumed = commitmentGate.consumeEffect(authorization.value).getOrThrow()
-            require(consumed == effect && !commitmentGate.hasAuthorization()) {
-                "clir_effect_consumption_mismatch"
-            }
-            completionTracker = CallExternalEffectCompletionTracker.fromConsumption(
-                CallCommitmentConsumptionEvidence(consumed),
-            )
-            commitmentConsumed.set(true)
-            lines += "clir_effect_permit_consumed=true"
-            return REVIEWED_CLIR_COMMIT_SPEECH
-        }
-
-        /** Carrier claim is provisional; network status verification is a separate acceptance gate. */
-        private fun finalizeExternalSuccess(): Boolean {
-            if (!authorizedNow()) {
-                finish(false, authorityFailureReason())
-                return false
-            }
-            if (completionTracker == null) {
-                finish(false, "clir_completion_tracker_missing")
-                return false
-            }
-            lines += "clir_carrier_reported_success=true"
-            lines += "clir_network_verification=pending"
-            return true
-        }
-
-        private fun recordTurnDialogueDiagnostics(turn: Int) {
-            val snapshot = hybridDiagnostics.snapshot()
-            val decision = snapshot.decisions.drop(turnDecisionBaseline).lastOrNull()
-            val source = snapshot.responseSources.drop(turnResponseSourceBaseline).lastOrNull()
-            val classifierMs = snapshot.classifierLatenciesMs.drop(turnClassifierTimingBaseline).lastOrNull()
-            val localErrorPresent = snapshot.localSkillErrors.drop(turnLocalSkillErrorBaseline).isNotEmpty()
-            decision?.let {
-                lines += "turn_${turn}_dialogue_action=${it.actionId.name}"
-                lines += "turn_${turn}_dialogue_confidence=${it.confidence}"
-                if (it.argument != null) {
-                    lines += "turn_${turn}_dialogue_argument_present=true"
-                }
-            }
-            source?.let { lines += "turn_${turn}_response_source=${it.name}" }
-            classifierMs?.let { lines += "turn_${turn}_gemma_classifier_wall_ms=$it" }
-            if (localErrorPresent) lines += "turn_${turn}_local_error_present=true"
-            if ((decision != null || source != null || classifierMs != null || localErrorPresent) &&
-                lastPrivateDecisionTraceTurn.getAndSet(turn) != turn
-            ) {
-                evidenceRecorder?.recordDialogueDecision(
-                    turn = turn,
-                    actionId = decision?.actionId?.name,
-                    responseSource = source?.name,
-                    classifierWallMs = classifierMs,
-                    localErrorPresent = localErrorPresent,
-                )
-            }
+        private fun applyOutcome(outcome: ConversationOutcome) = when (outcome) {
+            ConversationOutcome.Completed -> finish(true)
+            is ConversationOutcome.Failed -> finish(false, outcome.code)
         }
 
         private fun elapsedTurnMs(): Long =
@@ -956,7 +676,6 @@ internal object ChatRelayLiveCallProbe {
 
         private fun finish(success: Boolean, reason: String? = null) {
             if (!finished.compareAndSet(false, true)) return
-            activeSession.compareAndSet(this, null)
             activeMediaGeneration.set(-1L)
             handler.removeCallbacks(timeout)
             handler.removeCallbacks(authorityWatchdog)
@@ -984,7 +703,7 @@ internal object ChatRelayLiveCallProbe {
             try { pipeline.close() } catch (_: Throwable) {}
             try { quickAckSynthesizer.close() } catch (_: Throwable) {}
             quickAckPcm.set(null)
-            try { mailbox.clear() } catch (_: Throwable) {}
+            try { dialogue.close() } catch (_: Throwable) {}
             downlinkPump?.let { pump ->
                 lines += "downlink_discarded_pcm_bytes=${pump.discardedBytes()}"
                 try { pump.close() } catch (_: Throwable) {}
@@ -994,16 +713,7 @@ internal object ChatRelayLiveCallProbe {
             try { mediaRuntime?.close() } catch (_: Throwable) {}
             mediaRuntime = null
             executor.shutdownNow()
-            val hybridSnapshot = hybridDiagnostics.snapshot()
-            lines += "gemma_action_decision_count=${hybridSnapshot.decisions.size}"
-            lines += "gemma_skill_decision_count=${hybridSnapshot.decisions.size}"
-            lines += "host_action_count=${hybridSnapshot.responseSources.count { it.name == "HOST_ACTION" }}"
-            lines += "chatgpt_fallback_count=${hybridSnapshot.responseSources.count { it.name == "CHAT_RELAY" }}"
-            lines += "clir_route_verified=${routeVerified.get()}"
-            lines += "clir_commitment_consumed=${commitmentConsumed.get()}"
-            lines += "clir_external_success=false" // never independently verified here
-            lines += "supervised_gemma_replies=${supervisedGemmaReplies.get()}"
-            lines += "supervised_script_fallback_replies=${supervisedFallbackReplies.get()}"
+            dialogue.finalDiagnostics().forEach { lines += it }
             lines += "turns_completed=$turnsCompleted"
             lines += "telephony_rx_pcm_bytes=$totalRxBytes"
             lines += "telephony_tx_pcm_bytes=$totalTxBytes"
@@ -1011,19 +721,12 @@ internal object ChatRelayLiveCallProbe {
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
             evidenceRecorder?.finish(reason)
-            LiveCallChatFeed.finish(liveChatToken, reason)
+            ConversationChatFeed.finish(liveChatToken, reason)
+            sessions.release(this)
             val report = lines.render()
             PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, report)
             context.mainExecutor.execute { callback(report) }
         }
-    }
-
-    private fun activeWorkflow(task: CallTask, target: CallResolvedTarget): CallWorkflow {
-        val workflow = CallWorkflow(task, CallConfirmationPolicy()) { }
-        workflow.resolveTarget(target)
-        workflow.markDialing()
-        workflow.markCallActive()
-        return workflow
     }
 
     private fun immediateReport(reason: String): String =

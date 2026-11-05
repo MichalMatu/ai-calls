@@ -13,7 +13,7 @@ import android.telecom.TelecomManager
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
-import pl.michalmatu.aicallbridge.developerrelay.ChatRelayLiveCallProbe
+import pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 
@@ -22,7 +22,7 @@ internal object AppOwnedClirCampaignExecutor {
     private const val CALL_ACTIVE_POLL_MS = 250L
     private val running = AtomicBoolean(false)
     private val ownedCalls = CampaignOwnedCallLifecycle<CampaignOwnedCallSession> { cleanupOwnedCall(it) }
-    private val audioSession = AtomicReference<ChatRelayLiveCallProbe.SessionControl?>(null)
+    private val audioSession = AtomicReference<AndroidConversationRuntime.SessionControl?>(null)
 
     fun isRunning(): Boolean = running.get()
 
@@ -281,15 +281,14 @@ internal object AppOwnedClirCampaignExecutor {
         val sessionId = "app-clir-" +
             grant.grantId.filter(Char::isLetterOrDigit).take(20).ifBlank { "campaign" }
         val phoneDisclosureAuthorized =
-            IdentityFieldId.PHONE in grant.allowedDisclosureFields
+            IdentityFieldId.PHONE in runConfiguration.preparation.scopedDataFields(grant.allowedDisclosureFields)
 
         val launched = runCatching {
-            val launchedAudio = ChatRelayLiveCallProbe.run(
+            val launchedAudio = AndroidConversationRuntime.run(
                 context = appContext,
                 sessionId = sessionId,
-                maxTurns = ChatRelayLiveCallProbe.TASK_SCOPED_TURNS,
-                phoneDisclosureAuthorized = phoneDisclosureAuthorized,
-                supervisorRelayEnabled = false,
+                maxTurns = AndroidConversationRuntime.TASK_SCOPED_TURNS,
+                scenario = ClirConversationScenario(appContext, sessionId, runConfiguration, phoneDisclosureAuthorized),
                 runConfiguration = runConfiguration,
                 callStillActive = {
                     runCatching { ownedCall.isExactCallActive() }.getOrDefault(false)

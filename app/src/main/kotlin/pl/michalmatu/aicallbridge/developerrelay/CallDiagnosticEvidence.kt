@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime
+
 import android.util.AtomicFile
 import java.io.File
 import java.io.FileOutputStream
@@ -35,7 +37,7 @@ internal class CallDiagnosticEvidence(initial: List<String>) {
 internal object PrivateDiagnosticReportStore {
     fun write(directory: File, name: String, report: String): Boolean {
         require(name == SupervisedCallReadinessDiagnostics.REPORT_FILE ||
-            name == ChatRelayLiveCallProbe.REPORT_FILE) { "invalid_diagnostic_report_name" }
+            name == AndroidConversationRuntime.REPORT_FILE) { "invalid_diagnostic_report_name" }
         val file = AtomicFile(File(directory, name))
         var stream: FileOutputStream? = null
         return try {

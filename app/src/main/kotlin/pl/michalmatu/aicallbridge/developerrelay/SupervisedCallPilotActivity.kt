@@ -1,5 +1,11 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
+
+import pl.michalmatu.aicallbridge.conversation.SupervisedConversationScenario
+
+import pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime
+
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 
@@ -35,7 +41,7 @@ class SupervisedCallPilotActivity : Activity() {
     private lateinit var modelStatus: TextView
     private var returnedFromDialer = false
     private val allowed = AtomicBoolean(false)
-    private var session: ChatRelayLiveCallProbe.SessionControl? = null
+    private var session: AndroidConversationRuntime.SessionControl? = null
     private val routeHandler = Handler(Looper.getMainLooper())
     private var pendingRouteProbe: Runnable? = null
 
@@ -243,15 +249,12 @@ class SupervisedCallPilotActivity : Activity() {
             "AI odpowiada na usłyszaną wypowiedź. STOP wyłącza tylko AI."
         val sessionId = "pilot-" + UUID.randomUUID().toString()
         try {
-            session = ChatRelayLiveCallProbe.run(
+            session = AndroidConversationRuntime.run(
                 context = this,
                 sessionId = sessionId,
-                runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE),
+                runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE, ConversationPreparation.supervised()),
                 maxTurns = 3,
-                phoneDisclosureAuthorized = false,
-                supervisorRelayEnabled = false,
-                readOnlySupervised = true,
-                supervisedGemmaEnabled = approvedGemmaMode,
+                scenario = SupervisedConversationScenario(this, approvedGemmaMode),
                 liveAuthorization = {
                     allowed.get() && preflight() == null
                 },

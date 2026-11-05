@@ -28,7 +28,7 @@ def audit(root: Path) -> list[str]:
     store = read(prefix + "campaign/CampaignAuthorizationStore.kt")
     executor = read(prefix + "campaign/AppOwnedClirCampaignExecutor.kt")
     recorder = read(prefix + "developerrelay/CallSessionEvidenceRecorder.kt")
-    probe = read(prefix + "developerrelay/ChatRelayLiveCallProbe.kt")
+    probe = read(prefix + "conversation/AndroidConversationRuntime.kt")
     android_test = read(
         "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/campaign/"
         "AndroidCampaignAuthorizationStoreContractTest.kt"
@@ -136,7 +136,7 @@ def audit(root: Path) -> list[str]:
         forbid("SupervisedCallPilotActivity.onResume", resume_body, "awaitAudioRoute()")
     for text, token in ((probe, "const val MAX_TURNS = 10"),
                         (probe, "const val MAX_NO_SPEECH_RETRIES = 3")):
-        forbid("ChatRelayLiveCallProbe.kt", text, token)
+        forbid("AndroidConversationRuntime.kt", text, token)
     event_test = read("app/src/test/kotlin/pl/michalmatu/aicallbridge/developerrelay/CallDiagnosticEvidenceTest.kt")
     require("CallDiagnosticEvidenceTest.kt", event_test, "assertEquals(1100, log.render().lineSequence().count")
     forbid("CallDiagnosticEvidenceTest.kt", event_test, "assertEquals(1024, log.render()")

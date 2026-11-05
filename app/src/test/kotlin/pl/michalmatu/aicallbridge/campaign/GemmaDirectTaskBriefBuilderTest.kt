@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.conversation.*
+
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -15,7 +17,7 @@ class GemmaDirectTaskBriefBuilderTest {
 
     @Test fun roleIsCallerNotCustomerSupportAndGoalIsTypedClir() {
         val brief = GemmaDirectTaskBriefBuilder.build(
-            request, grant, GemmaDirectPromptSkillCatalog.defaults,
+            request, grant, ConversationPreparation.outgoing(),
         )
         assertTrue(brief.contains("asystentem DZWONIĄCYM"))
         assertTrue(brief.contains("Nie jesteś konsultantem"))
@@ -32,15 +34,15 @@ class GemmaDirectTaskBriefBuilderTest {
 
     @Test fun togglingPromptSkillsChangesOnlyInstructionsAndNotTheTaskOrGrant() {
         val all = GemmaDirectTaskBriefBuilder.build(request, grant,
-            GemmaDirectPromptSkillCatalog.defaults)
+            ConversationPreparation.outgoing())
         val onlyGoal = GemmaDirectTaskBriefBuilder.build(request, grant,
-            setOf(GemmaDirectPromptSkill.EXPLAIN_GOAL))
+            ConversationPreparation.outgoing().withSettings("", setOf(ConversationSkill.EXPLAIN_GOAL), emptySet()))
         assertNotEquals(all, onlyGoal)
         assertTrue(onlyGoal.contains("CLIR"))
         assertTrue(onlyGoal.contains("asystentem DZWONIĄCYM"))
         assertFalse(onlyGoal.contains("Rozmowa z automatem (IVR)"))
         assertTrue(onlyGoal.contains("Jasne przedstawienie celu"))
-        val noSkills = GemmaDirectTaskBriefBuilder.build(request, grant, emptySet())
+        val noSkills = GemmaDirectTaskBriefBuilder.build(request, grant, ConversationPreparation.outgoing().withSettings("", emptySet(), emptySet()))
         assertTrue(noSkills.contains("Brak dodatkowych instrukcji dialogowych"))
         assertTrue(noSkills.contains("CLIR"))
     }
@@ -56,12 +58,12 @@ class GemmaDirectTaskBriefBuilderTest {
         for (candidate in mismatched.dropLast(1)) {
             val failed = runCatching {
                 GemmaDirectTaskBriefBuilder.build(candidate, grant,
-                    GemmaDirectPromptSkillCatalog.defaults)
+                    ConversationPreparation.outgoing())
             }.isFailure
             assertTrue("Unexpected widened scope", failed)
         }
         val noDisclosure = GemmaDirectTaskBriefBuilder.build(
-            mismatched.last(), grant, GemmaDirectPromptSkillCatalog.defaults,
+            mismatched.last(), grant, ConversationPreparation.outgoing(),
         )
         assertTrue(noDisclosure.contains("Nie otrzymujesz numeru telefonu"))
     }
@@ -69,12 +71,12 @@ class GemmaDirectTaskBriefBuilderTest {
     @Test fun acceptedTaskPersistsAndRevocationFailsClosed() {
         val continued = runCatching {
             GemmaDirectTaskBriefBuilder.build(request, grant,
-                GemmaDirectPromptSkillCatalog.defaults)
+                ConversationPreparation.outgoing())
         }
         val revoked = runCatching {
             GemmaDirectTaskBriefBuilder.build(request,
                 grant.copy(revokedAtEpochMs = now + 10),
-                GemmaDirectPromptSkillCatalog.defaults)
+                ConversationPreparation.outgoing())
         }
         assertTrue(continued.isSuccess)
         assertTrue(revoked.isFailure)

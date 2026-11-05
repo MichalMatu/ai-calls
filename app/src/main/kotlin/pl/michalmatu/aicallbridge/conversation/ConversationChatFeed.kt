@@ -1,4 +1,4 @@
-package pl.michalmatu.aicallbridge.developerrelay
+package pl.michalmatu.aicallbridge.conversation
 
 /**
  * Private, process-local live view of ONE call. Never persisted or exposed through
@@ -7,14 +7,16 @@ package pl.michalmatu.aicallbridge.developerrelay
  * The feed is read-only: observers cannot issue commands to the call engine.
  * Opt-in call evidence recording is an independent feature.
  */
-internal object LiveCallChatFeed {
-    internal enum class Speaker { OFFICE, GEMMA, SCRIPT }
+internal object ConversationChatFeed {
+    internal enum class Speaker { COUNTERPART, ASSISTANT }
+    enum class ResponseKind { MODEL_DIRECT, SCRIPT_ASSISTED, UNSPECIFIED }
 
     internal data class Line(
         val turn: Int,
         val speaker: Speaker,
         val text: String,
         val txStatus: String? = null,
+        val responseKind: ResponseKind = ResponseKind.UNSPECIFIED,
         val atEpochMs: Long = System.currentTimeMillis(),
     )
 
@@ -49,23 +51,23 @@ internal object LiveCallChatFeed {
     }
 
     fun heard(token: Long, turn: Int, text: String) {
-        add(token, turn, Speaker.OFFICE, text)
+        add(token, turn, Speaker.COUNTERPART, text)
     }
 
-    fun replied(token: Long, turn: Int, text: String, direct: Boolean = true) {
-        add(token, turn, if (direct) Speaker.GEMMA else Speaker.SCRIPT, text)
+    fun replied(token: Long, turn: Int, text: String, kind: ResponseKind = ResponseKind.MODEL_DIRECT) {
+        add(token, turn, Speaker.ASSISTANT, text, kind)
     }
 
-    private fun add(token: Long, turn: Int, speaker: Speaker, text: String) = synchronized(lock) {
+    private fun add(token: Long, turn: Int, speaker: Speaker, text: String, kind: ResponseKind = ResponseKind.UNSPECIFIED) = synchronized(lock) {
         if (!active || token != generation || turn < 1 || text.isBlank()) return@synchronized
         // Display the exact finalized text, without serializing it beyond this process.
-        lines.add(Line(turn, speaker, text))
+        lines.add(Line(turn, speaker, text, responseKind = kind))
         revision += 1
     }
 
     fun tx(token: Long, turn: Int, complete: Boolean) = synchronized(lock) {
         if (!active || token != generation) return@synchronized
-        val index = lines.indexOfLast { it.turn == turn && it.speaker != Speaker.OFFICE }
+        val index = lines.indexOfLast { it.turn == turn && it.speaker != Speaker.COUNTERPART }
         if (index < 0) return@synchronized
         lines[index] = lines[index].copy(
             txStatus = if (complete) "TX: wysłano lokalnie" else "TX: niepełne",

@@ -21,7 +21,7 @@ REQUIRED = (
     MAIN + "campaign/AppOwnedClirCampaignExecutor.kt",
     MAIN + "developerrelay/CallSessionEvidenceRecorder.kt",
     MAIN + "developerrelay/SupervisedCallPilotActivity.kt",
-    MAIN + "developerrelay/ChatRelayLiveCallProbe.kt",
+    MAIN + "conversation/AndroidConversationRuntime.kt",
     "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/campaign/"
     "AndroidCampaignAuthorizationStoreContractTest.kt",
     "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/campaign/CampaignContinuationStoreContractTest.kt",

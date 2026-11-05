@@ -1,5 +1,9 @@
 # AI Calls — architektura operacyjna
 
+## Bieżący podział runtime
+
+[CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) opisuje wdrożony podział: AndroidConversationRuntime + ConversationScenario, oddzielne przygotowanie skills/danych i live/history chat. CLIR jest adapterem aplikacyjnego scenariusza, bez reguł Orange w silniku mediów. Profile INCOMING/OUTGOING i kompilator ról są wspólne; automatyczny odbiór i jego adapter Call są kolejną funkcją. [Nowe QA](checkpoints/2026-11-05-conversation-modules.md).
+
 ## Granice i źródła prawdy
 
 Bieżący AI Calls jest modułowym laboratorium testowym; docelowy autonomiczny flow powstanie ze sprawdzonych komponentów. [Zakres laboratorium i przegląd granic](TEST_LAB_SCOPE.md). Rzeczywiste zadania wykonuje wspólny aplikacyjny tor przez własny Android Telecom Call. Modele, ServicePack, PhraseMatrix, TaskGraph, supervisor, STT i TTS **nie są źródłami zgody**. Bieżący stan QA → [intake i A/B](checkpoints/2026-11-05-task-intake-and-dialogue-ab.md); aktualne OPEN/VERIFIED → [BLOCKERS](../BLOCKERS.md); reguły → [SECURITY_PRIVACY](SECURITY_PRIVACY.md) i [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md).
@@ -22,7 +26,7 @@ Użytkownik → CallTask + CallResolvedTarget + ważny odwoływalny grant (cel/S
 
 - Stabilne `ClirDeterministicDialogueBackend` / `GateCHybridDialogueBackendFactory` oraz jawny `GemmaDirectDialogueBackend` RAW. RAW wysyła swobodny tekst przez aplikacyjny release gate, bez parsera akcji JSON. Nadal brakuje pełnej walidacji znaczenia swobodnego tekstu **F-045 OPEN** — brak automatycznego prawa do ujawniania lub obietnic modelu.
 - `CampaignGemmaPreflight` / `CampaignGemmaDirectPreflight`: prewarm przed wybieraniem, reset syntetycznego kontekstu; dla RAW dokładnie ten sam autoryzowany `TaskBrief` i prompt-skills co live. F-043: utrzymuj zdrową jedną natywną `Conversation` przez kolejne tury **jednego** `Call`, zamykaj przy STOP/błędzie/teardown. Model nie może zmienić profilu ani celu w trakcie Call.
-- Lokalny `LiveCallChatFeed` przechowuje nietrwały prywatny STT/tekst zatwierdzony/TX dla trzech ekranów; nie publikuje transkryptów do GitHub/logcat. Prawdziwe audio/transkrypty diagnostyczne tylko na urządzeniu i prywatnym Macu.
+- Lokalny `ConversationChatFeed` przechowuje nietrwały prywatny STT/tekst zatwierdzony/TX dla ekranów, a RecordedConversationHistory czyta istniejące archiwa timeline; nie publikuje transkryptów do GitHub/logcat. Prawdziwe audio/transkrypty diagnostyczne tylko na urządzeniu i prywatnym Macu.
 - **F-048 OPEN:** typowany `FactRequest` → `FactDisclosurePolicy` → `IdentityVault` → kontrolowany release wypowiedzi. Nie wklejać danych abonenta do promptów ani wyników agenta. **F-047 OPEN:** niepełna końcowa tura RX przy hangup; diagnostyka bez dodatkowego TX. **F-049 WYCOFANY:** dwuczęściowe powitanie infolinii nie jest defektem VAD/ACK.
 
 ## Profil audio M1–M4
@@ -56,8 +60,8 @@ Dwa backendy dialogu mają oddzielne znaczenie: SCRIPT_GEMMA = PhraseMatrix → 
 
 ## Modułowe laboratorium — bieżący kierunek
 
-`SpeechInputProvider`, `DialogueEngineProvider` i `SpeechOutputProvider` są istniejącymi granicami wymiany silników. `AudioEngineProfile` przechowuje STT/model/TTS/głos; strategia dialogu i prompt-skills mają osobne magazyny. Istniejące wybory składa teraz `ConversationRunConfiguration`: ScriptAssisted albo ModelDirect z wymaganą instrukcją. Ten sam obiekt trafia do prewarm, owned-call executora i potoku. Nie dodano drugiego magazynu preferencji. Instrukcje są zamrożone na próbę; edycja nie przerywa prewarm, a zakres/cofnięcie/STOP pozostają sprawdzane na żywo.
+`SpeechInputProvider`, `DialogueEngineProvider` i `SpeechOutputProvider` są istniejącymi granicami wymiany silników. `AudioEngineProfile` przechowuje STT/model/TTS/głos; strategia dialogu zachowuje swój magazyn, a skills/notatki/referencje danych są wspólnym przygotowaniem rozmowy. Istniejące wybory składa teraz `ConversationRunConfiguration`: ScriptAssisted albo ModelDirect z wymaganą instrukcją. Ten sam obiekt trafia do prewarm, owned-call executora i potoku. Nie dodano drugiego magazynu preferencji. Instrukcje są zamrożone na próbę; edycja nie przerywa prewarm, a zakres/cofnięcie/STOP pozostają sprawdzane na żywo.
 
-Start w `CampaignAgentControl`, service i executor nadal korzystają z `ClirCampaignSpec`. Wydzielanie scenariusza i kanału testu ma usunąć to sprzężenie, używając obecnego potoku i wspólnych polityk. Tekst, plik audio i mikrofon mają pozwalać ocenić komponenty bez zmiennego rozmówcy Orange; kontrolowana telefonia osobno weryfikuje RX/TX. To plan integracji, nie deklaracja gotowego uniwersalnego runnera. Szczegóły i ocena instalacji: [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md).
+Start w `CampaignAgentControl`, service i executor nadal korzystają z `ClirCampaignSpec`. Wspólny runtime otrzymuje już odrębny scenariusz CLIR lub nadzorowany. Ogólny intake innych zadań i adapter odbierania pozostają następnym zakresem; korzystają z tego samego potoku i wspólnych polityk. Tekst, plik audio i mikrofon mają pozwalać ocenić komponenty bez zmiennego rozmówcy Orange; kontrolowana telefonia osobno weryfikuje RX/TX. To plan integracji, nie deklaracja gotowego uniwersalnego runnera. Szczegóły i ocena instalacji: [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md).
 
 `GemmaDirectDialogueBackendFactory` jest teraz adapterem wymagającym jawnego backendu modelu, bez własnego Context, domyślnego E2B i domyślnego promptu. Snapshot Direct kieruje cache i tworzenie do tej samej pary profil/instrukcja. SCRIPT korzysta ze wspólnego `CampaignGemmaPreflight.createClassifier` dla prewarm i braku cache, również z wybranym profilem. Brak gotowej instancji nie podmienia wybranego modelu. [Receipts i granice QA](checkpoints/2026-11-05-lab-run-configuration.md).

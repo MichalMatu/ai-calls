@@ -4,9 +4,13 @@
 
 ## Zakres laboratorium i modułowość — decyzja 2026-11-05
 
-[Ocena kodu, szersze testy i plan wspólnej instalacji](docs/TEST_LAB_SCOPE.md). Są już dwa START: **skrypt + model** oraz **Gemma Direct (model bez skryptu)**. STT/model/TTS/głos wybiera się niezależnie. Runtime ma teraz wspólny typowany snapshot próby (profil, strategia i instrukcje Direct), przekazywany od prewarm do rozmowy. Dalsze prace: zapisywalny preset eksperymentu, scenariusz oddzielony od CLIR i adaptery tekstu/pliku/mikrofonu/telefonu. Nie wszystkie kombinacje są zakwalifikowane.
+[Ocena kodu, szersze testy i plan wspólnej instalacji](docs/TEST_LAB_SCOPE.md). Są już dwa START: **skrypt + model** oraz **Gemma Direct (model bez skryptu)**. STT/model/TTS/głos wybiera się niezależnie. Runtime ma teraz wspólny typowany snapshot próby (profil, strategia i instrukcje Direct), przekazywany od prewarm do rozmowy. Scenariusz CLIR jest wydzielony ze wspólnego runtime. Dalsze prace: zapisywalny preset całego eksperymentu, adapter odbierania oraz kanały tekstu/pliku/mikrofonu. Nie wszystkie kombinacje są zakwalifikowane.
 
 LiteRT-LM działa wewnątrz AI Calls; **Google AI Edge Gallery nie jest wymaganą aplikacją**. Shizuku pozostaje zewnętrznym serwerem uprawnień. Docelowo jeden pakiet instalacyjny; teraz rozwijamy laboratorium. PackageInstaller jest API systemu, nie dodatkowym APK. [Zmiana runtime i QA](docs/checkpoints/2026-11-05-lab-run-configuration.md).
+
+## Wspólny runtime, skills/dane i historia
+
+[Warstwy runtime rozmów](docs/CONVERSATION_RUNTIME.md): wspólny silnik i osobne scenariusze, profile przygotowania wychodzące/przychodzące, szyfrowany kontekst i referencje do sejfu. Wejście „Skills i dane rozmów” nie wymaga uruchomionego zadania. „Historia” w panelu czatu odczytuje istniejące prywatne zapisy; ekran jest neutralny wobec operatora i modelu. Przygotowanie odbioru jest architektoniczne — automatyczny odbiór telefonu pozostaje następną funkcją. [QA](docs/checkpoints/2026-11-05-conversation-modules.md).
 
 ## Przyjmowanie zadań bez dodatkowych pozwoleń
 

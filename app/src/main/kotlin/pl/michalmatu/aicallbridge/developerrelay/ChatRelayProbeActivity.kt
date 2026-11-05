@@ -1,5 +1,11 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
+
+import pl.michalmatu.aicallbridge.campaign.ClirConversationScenario
+
+import pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime
+
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 
@@ -53,12 +59,14 @@ class ChatRelayProbeActivity : Activity() {
 
         statusView.text = "Running interactive ChatGPT relay…"
         Log.i(TAG, "chat_relay_probe_start=true,turns=$maxTurns")
-        ChatRelayLiveCallProbe.run(
+        AndroidConversationRuntime.run(
             this,
             sessionId,
             maxTurns,
-            phoneDisclosureAuthorized,
-            runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE),
+            scenario = ClirConversationScenario(this, sessionId,
+                ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE, ConversationPreparation.outgoing()),
+                phoneDisclosureAuthorized, supervisorRelayEnabled = true),
+            runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE, ConversationPreparation.outgoing()),
         ) { result ->
             runOnUiThread {
                 statusView.text = result

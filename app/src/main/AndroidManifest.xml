@@ -147,6 +147,8 @@
             android:exported="true"
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
+        <activity android:name=".conversation.ConversationPreparationActivity" android:exported="false" />
+        <activity android:name=".conversation.ConversationHistoryActivity" android:exported="false" />
     </application>
 
 </manifest>

@@ -16,7 +16,8 @@ import android.media.AudioManager
 import android.telecom.TelecomManager
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
-import pl.michalmatu.aicallbridge.developerrelay.ChatRelayLiveCallProbe
+import pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime
+import pl.michalmatu.aicallbridge.conversation.*
 import rikka.shizuku.Shizuku
 import android.content.pm.ServiceInfo
 import android.os.IBinder
@@ -28,7 +29,7 @@ class AppOwnedCampaignService : Service() {
     private lateinit var statusStore: CampaignRuntimeStatusStore
     private lateinit var continuationStore: CampaignContinuationStore
     private lateinit var dialogueModeStore: CampaignDialogueModeStore
-    private lateinit var promptSkillStore: GemmaDirectPromptSkillStore
+    private val preparationStore by lazy { AndroidConversationPreparationStore(this) }
     private var selectedDialogueMode = CampaignDialogueMode.SCRIPT_GEMMA
     private var selectedAudioProfile = AudioEngineProfile.STABLE
     private val continuationHandler = Handler(Looper.getMainLooper())
@@ -40,7 +41,7 @@ class AppOwnedCampaignService : Service() {
     private var continuationGeneration = 0L
     private lateinit var notificationManager: NotificationManager
     private val supervisedAudioActive = AtomicBoolean(false)
-    private var supervisedAudioSession: ChatRelayLiveCallProbe.SessionControl? = null
+    private var supervisedAudioSession: AndroidConversationRuntime.SessionControl? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -48,7 +49,6 @@ class AppOwnedCampaignService : Service() {
         statusStore = CampaignRuntimeStatusStore(this)
         continuationStore = CampaignContinuationStore(this)
         dialogueModeStore = CampaignDialogueModeStore(this)
-        promptSkillStore = GemmaDirectPromptSkillStore(this)
         notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(
             NotificationChannel(
@@ -213,15 +213,19 @@ class AppOwnedCampaignService : Service() {
         awaitingPhoneIdle = false
         if (preparingLocalModel) return
 
+        val preparation = runCatching { preparationStore.load(ConversationPreparation.OUTGOING_ID) }.getOrElse {
+            finish("Conversation preparation unavailable")
+            return
+        }
         val runConfiguration = when (selectedDialogueMode) {
             CampaignDialogueMode.SCRIPT_GEMMA ->
-                ConversationRunConfiguration.ScriptAssisted(selectedAudioProfile)
+                ConversationRunConfiguration.ScriptAssisted(selectedAudioProfile, preparation)
             CampaignDialogueMode.GEMMA_DIRECT -> {
-                val instruction = buildDirectBrief(state) ?: run {
+                val instruction = buildDirectBrief(state, preparation) ?: run {
                     finish("Direct task brief unavailable or not authorized")
                     return
                 }
-                ConversationRunConfiguration.ModelDirect(selectedAudioProfile, instruction)
+                ConversationRunConfiguration.ModelDirect(selectedAudioProfile, instruction, preparation)
             }
         }
         // The first local LiteRT/Gemma generation can take tens of seconds on S22.
@@ -269,14 +273,14 @@ class AppOwnedCampaignService : Service() {
         }
     }
 
-    private fun buildDirectBrief(state: CampaignContinuationState): String? {
+    private fun buildDirectBrief(state: CampaignContinuationState, preparation: ConversationPreparation): String? {
         val grant = authorizationStore.load() ?: return null
         if (grant.grantId != state.grantId) return null
         return runCatching {
             GemmaDirectTaskBriefBuilder.build(
                 request = ClirCampaignSpec.enableRequest(state.accountScope),
                 grant = grant,
-                skills = promptSkillStore.selected(grant.grantId),
+                preparation = preparation,
             )
         }.getOrNull()
     }
@@ -406,13 +410,12 @@ class AppOwnedCampaignService : Service() {
         val sessionId = "supervised-" + UUID.randomUUID().toString().take(18)
         statusStore.save("Read-only audio pilot attached; no dial, hangup, account change or PHONE disclosure")
         val result = runCatching {
-            ChatRelayLiveCallProbe.run(
+            AndroidConversationRuntime.run(
                 context = this,
                 sessionId = sessionId,
                 maxTurns = 2,
-                phoneDisclosureAuthorized = false,
-                runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE),
-                supervisorRelayEnabled = false,
+                scenario = SupervisedConversationScenario(this, modelEnabled = true),
+                runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE, ConversationPreparation.supervised()),
                 liveAuthorization = {
                     supervisedAudioActive.get() &&
                         runCatching {
@@ -420,8 +423,6 @@ class AppOwnedCampaignService : Service() {
                                 audio?.mode == AudioManager.MODE_IN_CALL
                         }.getOrDefault(false)
                 },
-                readOnlySupervised = true,
-                supervisedGemmaEnabled = true,
             ) { report ->
                 supervisedAudioActive.set(false)
                 supervisedAudioSession = null

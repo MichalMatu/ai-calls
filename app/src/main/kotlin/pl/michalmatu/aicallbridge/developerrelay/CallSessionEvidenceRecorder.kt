@@ -54,6 +54,17 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     }
     private val timeline = File(directory, "timeline.jsonl")
 
+    fun recordConversation(
+        direction: pl.michalmatu.aicallbridge.conversation.ConversationDirection,
+        profileId: String,
+        kind: pl.michalmatu.aicallbridge.conversation.ConversationChatFeed.ResponseKind,
+    ) {
+        if (completed.get()) return
+        submit { appendEvent(JSONObject().put("type", "CONVERSATION")
+            .put("direction", direction.name).put("profile_id", profileId)
+            .put("response_kind", kind.name).put("started_at_ms", System.currentTimeMillis())) }
+    }
+
     fun recordTranscript(turn: Int, fromAgent: Boolean, text: String) {
         if (completed.get()) return
         val event = JSONObject()

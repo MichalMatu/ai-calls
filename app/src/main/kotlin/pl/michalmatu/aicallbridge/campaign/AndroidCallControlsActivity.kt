@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
+
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
@@ -13,7 +15,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import pl.michalmatu.aicallbridge.LiveCallChatPanel
 import android.widget.TextView
 
 /** Small functional call UI required when the user consciously selects AI Calls as dialer. */
@@ -76,7 +77,7 @@ class AndroidCallControlsActivity : Activity() {
             }, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             ))
-            addView(LiveCallChatPanel(this@AndroidCallControlsActivity))
+            addView(ConversationChatPanel(this@AndroidCallControlsActivity))
         })
         refresh()
     }

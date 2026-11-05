@@ -25,11 +25,13 @@ Ustawienia silników mają niezależne wejście, model, wyjście i głos (`Audio
 | Model | `DialogueEngineProvider`: Direct albo klasyfikator, wspólny runtime LiteRT-LM | Neutralne nazwy trybów/raportów i jednoznaczna identyfikacja wybranego artefaktu w wyniku eksperymentu |
 | TTS | `SpeechOutputProvider`: tekst → PCM16, cancel | Ten sam test jakości dla każdego adaptera; Piper ma znany błąd zewnętrznego API, sam instalator go nie naprawi |
 | Konfiguracja | `ConversationRunConfiguration` składa istniejące wybory w jeden niezmienny snapshot próby: ScriptAssisted albo ModelDirect | Rozwinąć zapisywalny preset eksperymentu bez kopiowania magazynów preferencji |
-| Zadanie/scenariusz | Istnieją `CallTask`, `CallResolvedTarget`, typed effects i TaskBrief | `CampaignAgentControl`, `AppOwnedCampaignService` i `AppOwnedClirCampaignExecutor` nadal wiążą start ze specyfikacją CLIR; ogólny scenariusz nie jest gotowy |
-| Orkiestracja | Wspólny tor używany przez `ChatRelayLiveCallProbe` i owned-call executor | Wydzielać scenariusz i adaptery kanału z obecnego toru, nie tworzyć obok drugiego runnera ani drugiej polityki STOP/danych/skutków |
+| Zadanie/scenariusz | Istnieją `CallTask`, `CallResolvedTarget`, typed effects i TaskBrief | `CampaignAgentControl`, `AppOwnedCampaignService` i `AppOwnedClirCampaignExecutor` nadal wiążą start ze specyfikacją CLIR; ogólny intake zadań nie jest gotowy; wspólny runtime otrzymuje już osobny scenariusz |
+| Orkiestracja | Wspólny tor używany przez `AndroidConversationRuntime` i owned-call executor | Scenariusz CLIR i tryb nadzorowany wydzielone; dalej adapter przychodzącego Call i kanały korpusu, bez drugiego runnera lub drugiej polityki STOP/danych/skutków |
 | Audio modelu | Eksperymentalny PCM→AudioBytes→transkrypcja | `SpeechInputProvider` oddaje tekst. Pełny dialog przyjmujący audio wymaga rzeczywistego kontraktu multimodalnego; zmiana samej etykiety/pola nie wystarczy |
 
 Modułowość silników jest już użyteczna, ale cała aplikacja nie jest jeszcze ogólnym laboratorium scenariuszy. Początkowy przegląd dotyczył `83baf50`; implementacja snapshotu jest opisana w [checkpoint konfiguracji próby](checkpoints/2026-11-05-lab-run-configuration.md). Nie jest to nowy wynik rozmowy fizycznej. Bieżące defekty i zakresy dowodów pozostają wyłącznie w [BLOCKERS](../BLOCKERS.md), m.in. F-044 (generic tasks/executors), F-045, F-048, F-057 i F-061.
+
+Szczegóły aktualnego podziału, przygotowania obu kierunków i historii: [CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md).
 
 ## Kontrakt dalszego kodowania
 

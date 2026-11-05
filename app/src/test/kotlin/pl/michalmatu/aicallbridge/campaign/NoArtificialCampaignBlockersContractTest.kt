@@ -23,12 +23,12 @@ class NoArtificialCampaignBlockersContractTest {
     }
 
     @Test fun authorizedCampaignDoesNotStopAtTenDialogueTurns() {
-        val probe = source("developerrelay/ChatRelayLiveCallProbe.kt")
+        val probe = source("conversation/AndroidConversationRuntime.kt")
         val executor = source("campaign/AppOwnedClirCampaignExecutor.kt")
         assertFalse(probe.contains("const val MAX_TURNS = 10"))
         assertFalse(probe.contains("maxTurns in 1..MAX_TURNS"))
         assertTrue(probe.contains("const val TASK_SCOPED_TURNS = Int.MAX_VALUE"))
-        assertTrue(executor.contains("maxTurns = ChatRelayLiveCallProbe.TASK_SCOPED_TURNS"))
+        assertTrue(executor.contains("maxTurns = AndroidConversationRuntime.TASK_SCOPED_TURNS"))
         assertTrue(probe.contains("maxTurns != TASK_SCOPED_TURNS && turnsCompleted >= maxTurns"))
         assertTrue(probe.contains("callStillActive()"))
         assertTrue(executor.contains("ownedCall.isExactCallActive()"))

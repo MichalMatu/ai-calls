@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
+
 import android.Manifest
 import android.app.Activity
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
@@ -13,7 +15,6 @@ import android.telecom.TelecomManager
 import java.io.File
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
-import pl.michalmatu.aicallbridge.LiveCallChatPanel
 import pl.michalmatu.aicallbridge.UiAccordionSection
 import android.view.ViewGroup
 import android.widget.Button
@@ -36,7 +37,7 @@ class CampaignToolActivity : Activity() {
         super.onCreate(savedInstanceState)
         authorizationStore = CampaignAuthorizationStore(this)
         runtimeStatusStore = CampaignRuntimeStatusStore(this)
-        val promptSkillStore = GemmaDirectPromptSkillStore(this)
+
 
         statusView = TextView(this).apply {
             textSize = 15f
@@ -132,62 +133,12 @@ class CampaignToolActivity : Activity() {
         }
         // Optional prompt skills: model instructions, NOT privileged tool permissions.
         // The exact authorized CLIR task, role and STOP remain app-owned.
-        val skillSelection = linkedMapOf<GemmaDirectPromptSkill, CheckBox>()
-        val currentGrantId = authorizationStore.load()?.grantId.orEmpty()
-        val enabledSkills = promptSkillStore.selected(currentGrantId)
-        val directSkillsSection = UiAccordionSection(
-            this, "direct-prompt-skills", "Skills i zadanie Gemma Direct",
-        ).apply {
-            addLabel("Rola (stała): dzwoniący asystent użytkownika, NIE pracownik biura obsługi.")
-            addLabel("Zadanie pochodzi z aktywnej autoryzacji (obecnie: włączenie CLIR).")
-            addLabel("Poniższe skills są instrukcjami w prompcie. Nie wykonują połączeń, nie pobierają danych i nie nadają dodatkowych uprawnień.")
-            GemmaDirectPromptSkillCatalog.available.forEach { skill ->
-                val checkbox = CheckBox(this@CampaignToolActivity).apply {
-                    text = skill.title
-                    isChecked = skill in enabledSkills
-                }
-                skillSelection[skill] = checkbox
-                addControl(checkbox)
-            }
+        val directSkillsSection = UiAccordionSection(this, "direct-prompt-skills", "Skills i dane rozmowy").apply {
+            addLabel("Profile przygotowania są niezależne od zadania i jego uprawnień. Zmiany obowiązują w kolejnej próbie.")
             addControl(Button(this@CampaignToolActivity).apply {
-                text = "Zapisz skills do następnego połączenia"
-                setOnClickListener {
-                    val grant = authorizationStore.load()
-                    if (grant == null || grant.revokedAtEpochMs != null) {
-                        statusView.text = "Najpierw autoryzuj konkretne zadanie CLIR."
-                    } else {
-                        promptSkillStore.save(
-                            grant.grantId,
-                            skillSelection.filterValues { it.isChecked }.keys.toSet(),
-                        )
-                        statusView.text = "Skills zapisane dla bieżącego grantu. Nie zmieniają aktywnej rozmowy."
-                    }
-                }
-            })
-            addControl(Button(this@CampaignToolActivity).apply {
-                text = "Podgląd instrukcji startowej Gemmy"
-                setOnClickListener {
-                    val grant = authorizationStore.load()
-                    val accountScope = CampaignAccountScope.currentVoiceSubscription(this@CampaignToolActivity)
-                    val prompt = if (grant != null && accountScope != null) {
-                        runCatching {
-                            GemmaDirectTaskBriefBuilder.build(
-                                request = ClirCampaignSpec.enableRequest(accountScope),
-                                grant = grant,
-                                skills = promptSkillStore.selected(grant.grantId),
-                            )
-                        }.getOrNull()
-                    } else null
-                    if (prompt == null) {
-                        statusView.text = "Brak ważnego grantu CLIR do przygotowania promptu."
-                    } else {
-                        AlertDialog.Builder(this@CampaignToolActivity)
-                            .setTitle("Gemma Direct — rola, zadanie i skills")
-                            .setMessage(prompt)
-                            .setPositiveButton("OK", null)
-                            .show()
-                    }
-                }
+                text = "Skills i dane — wychodzące / przychodzące"
+                setOnClickListener { startActivity(Intent(this@CampaignToolActivity,
+                    pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java)) }
             })
         }
         val supervisedSection = UiAccordionSection(this, "supervised", "Test AI w bieżącej rozmowie").apply {
@@ -257,7 +208,7 @@ class CampaignToolActivity : Activity() {
             }, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             ))
-            addView(LiveCallChatPanel(this@CampaignToolActivity))
+            addView(ConversationChatPanel(this@CampaignToolActivity))
         })
         refreshTaskStatus()
         // Explicit primary-screen tap accepts the displayed task through the same scope,
