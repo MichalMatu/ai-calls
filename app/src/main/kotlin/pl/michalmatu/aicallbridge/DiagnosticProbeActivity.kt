@@ -51,12 +51,16 @@ class DiagnosticProbeActivity : Activity() {
             return
         }
         // Existing shell/DUMP-only activity can invoke an internal service without UI taps.
-        // A real call is possible only after the app revalidates an existing exact grant.
+        // An explicit owner task is accepted on device; runtime keeps exact scope and Call checks.
         val requestCampaignStart = intent.getBooleanExtra(EXTRA_RUN_CAMPAIGN_AGENT_START, false)
         if (requestCampaignStart ||
             intent.getBooleanExtra(EXTRA_RUN_CAMPAIGN_AGENT_PREFLIGHT, false)
         ) {
-            val report = CampaignAgentControl.run(this, requestCampaignStart)
+            val report = CampaignAgentControl.run(this, requestCampaignStart,
+                pl.michalmatu.aicallbridge.campaign.CampaignDialogueMode.explicitStart(
+                    intent.getStringExtra(pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService.EXTRA_DIALOGUE_MODE),
+                ), recordCallEvidence = if (intent.hasExtra("record_call_evidence"))
+                    intent.getBooleanExtra("record_call_evidence", false) else null)
             File(filesDir, CampaignAgentControl.REPORT_FILE_NAME).writeText(report)
             statusView.text = report
             Log.i(TAG, "campaign_agent_report:\n" + report)

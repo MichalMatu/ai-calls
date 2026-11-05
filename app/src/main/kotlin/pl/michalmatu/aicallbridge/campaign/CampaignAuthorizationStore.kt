@@ -18,7 +18,6 @@ internal class CampaignAuthorizationStore(
                 .putString(KEY_GRANT_ID, grant.grantId)
                 .putInt(KEY_VERSION, grant.version)
                 .putLong(KEY_CREATED_AT, grant.createdAtEpochMs)
-                .putLong(KEY_EXPIRES_AT, grant.expiresAtEpochMs)
                 .putLong(KEY_REVOKED_AT, grant.revokedAtEpochMs ?: NOT_REVOKED)
                 .putString(KEY_ACCOUNT_SCOPE, grant.accountScope)
                 .putStringSet(KEY_TARGETS, grant.allowedTargets)
@@ -40,7 +39,6 @@ internal class CampaignAuthorizationStore(
     }
 
     fun load(): CampaignAuthorizationGrant? = synchronized(STORE_LOCK) {
-        // Old max_attempts preference is ignored; no user grant needs renewal for migration.
         val grantId = preferences.getString(KEY_GRANT_ID, null)?.takeIf { it.isNotBlank() }
             ?: return@synchronized null
         runCatching {
@@ -48,7 +46,6 @@ internal class CampaignAuthorizationStore(
                 grantId = grantId,
                 version = preferences.getInt(KEY_VERSION, 0),
                 createdAtEpochMs = preferences.getLong(KEY_CREATED_AT, -1L),
-                expiresAtEpochMs = preferences.getLong(KEY_EXPIRES_AT, -1L),
                 revokedAtEpochMs = preferences.getLong(KEY_REVOKED_AT, NOT_REVOKED)
                     .takeUnless { it == NOT_REVOKED },
                 accountScope = preferences.getString(KEY_ACCOUNT_SCOPE, null).orEmpty(),
@@ -76,11 +73,10 @@ internal class CampaignAuthorizationStore(
     /** Authorize and record each attempt without a lifetime call quota. */
     fun reserveAuthorizedAttempt(
         request: CampaignExecutionRequest,
-        nowEpochMs: Long,
     ): Result<CampaignAuthorizationGrant> = runCatching {
         synchronized(STORE_LOCK) {
             val current = load()
-            val decision = CampaignAuthorizationPolicy.authorize(current, request, nowEpochMs)
+            val decision = CampaignAuthorizationPolicy.authorize(current, request)
             require(decision is CampaignAuthorizationDecision.Authorized) {
                 "campaign_authorization_denied"
             }
@@ -94,7 +90,6 @@ internal class CampaignAuthorizationStore(
     fun isAuthorizedInFlight(
         grantId: String,
         request: CampaignExecutionRequest,
-        nowEpochMs: Long,
     ): Boolean = synchronized(STORE_LOCK) {
         val grant = load() ?: return@synchronized false
         grant.grantId == grantId &&
@@ -102,7 +97,6 @@ internal class CampaignAuthorizationStore(
             CampaignAuthorizationPolicy.authorize(
                 grant = grant,
                 request = request,
-                nowEpochMs = nowEpochMs,
             ) is CampaignAuthorizationDecision.Authorized
     }
 
@@ -127,7 +121,6 @@ internal class CampaignAuthorizationStore(
         private const val KEY_GRANT_ID = "grant_id"
         private const val KEY_VERSION = "version"
         private const val KEY_CREATED_AT = "created_at"
-        private const val KEY_EXPIRES_AT = "expires_at"
         private const val KEY_REVOKED_AT = "revoked_at"
         private const val KEY_ACCOUNT_SCOPE = "account_scope"
         private const val KEY_TARGETS = "targets"

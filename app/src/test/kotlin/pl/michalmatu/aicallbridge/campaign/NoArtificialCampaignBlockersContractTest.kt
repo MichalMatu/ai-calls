@@ -54,14 +54,29 @@ class NoArtificialCampaignBlockersContractTest {
         assertTrue(executor.contains("evidenceRecorder = if (grant.recordCallEvidence)"))
     }
 
-    @Test fun optionalEvidenceRequiresOneExplicitCampaignGrantNotPerCallArming() {
+    @Test fun explicitTaskIntakeHasNoSeparateGrantOrRenewalStep() {
+        val ui = source("campaign/CampaignToolActivity.kt")
+        val control = source("campaign/CampaignAgentControl.kt")
+        val grant = source("campaign/CampaignAuthorizationGrant.kt")
+        assertFalse(ui.contains("showAuthorizationConfirmation"))
+        assertFalse(ui.contains("Authorize CLIR enable campaign"))
+        assertFalse(grant.contains("expiresAtEpochMs"))
+        assertFalse(control.contains("NO_VALID_EXACT_GRANT"))
+        assertTrue(ui.contains("CampaignAgentControl.run("))
+        assertTrue(source("DiagnosticProbeActivity.kt").contains("CampaignAgentControl.run("))
+        assertTrue(control.contains("!requestStart -> \"NOT_REQUESTED\""))
+        assertTrue(control.contains("store.save(ClirCampaignSpec.acceptEnableTask("))
+        assertTrue(control.contains("AndroidTelecomOwnedCallController.canControl(context)"))
+    }
+
+    @Test fun optionalEvidenceBelongsToTheAcceptedTaskNotPerCallArming() {
         val ui = source("campaign/CampaignToolActivity.kt")
         val grant = source("campaign/CampaignAuthorizationGrant.kt")
         val store = source("campaign/CampaignAuthorizationStore.kt")
         val executor = source("campaign/AppOwnedClirCampaignExecutor.kt")
         val recorder = source("developerrelay/CallSessionEvidenceRecorder.kt")
-        assertTrue(ui.contains("recordCallEvidence = evidenceChoice.isChecked"))
-        assertTrue(ui.contains(".setView(evidenceChoice)"))
+        assertTrue(ui.contains("recordCallEvidence = recordEvidenceChoice.isChecked"))
+        assertTrue(ui.contains("addView(recordEvidenceChoice)"))
         assertTrue(store.contains("preferences.getBoolean(KEY_RECORD_CALL_EVIDENCE, false)"))
         assertTrue(store.contains("fun disableEvidenceRecording()"))
         assertTrue(grant.contains("val recordCallEvidence: Boolean = false"))

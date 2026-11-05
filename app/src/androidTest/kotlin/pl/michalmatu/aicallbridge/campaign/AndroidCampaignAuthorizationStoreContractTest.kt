@@ -15,7 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Uses the instrumentation APK's private preferences, never the target application's grant.
+ * Uses isolated target-app preferences, never the real task authorization.
  * No dialing or operator effect occurs.
  */
 @RunWith(AndroidJUnit4::class)
@@ -30,12 +30,30 @@ class AndroidCampaignAuthorizationStoreContractTest {
         context.getSharedPreferences(testPreferencesName, Context.MODE_PRIVATE)
             .edit().clear().commit()
         store = CampaignAuthorizationStore(context, testPreferencesName)
-        store.save(ClirCampaignSpec.newEnableGrant("test-voice", 1_000L, "test-grant"))
+        store.save(ClirCampaignSpec.acceptEnableTask("test-voice", 1_000L, "test-grant"))
     }
 
     @After fun tearDown() {
         context.getSharedPreferences(testPreferencesName, Context.MODE_PRIVATE)
             .edit().clear().commit()
+    }
+
+    @Test fun acceptedTaskHasNoExpiryAndCanonicalSaveRemovesObsoleteExpiryData() {
+        assertTrue(store.reserveAuthorizedAttempt(request).isSuccess)
+        val prefs = context.getSharedPreferences(testPreferencesName, Context.MODE_PRIVATE)
+        prefs.edit().putLong("expires_at", 2_000L).commit()
+        val accepted = store.load()!!
+        assertTrue(store.isAuthorizedInFlight(accepted.grantId, request))
+        store.save(accepted)
+        assertTrue(!prefs.contains("expires_at"))
+        assertTrue(CampaignAuthorizationStore(context, testPreferencesName)
+            .isAuthorizedInFlight(accepted.grantId, request))
+        assertTrue(!store.isAuthorizedInFlight(accepted.grantId,
+            request.copy(accountScope = "other-sim")))
+        store.save(accepted.copy(createdAtEpochMs = Long.MAX_VALUE))
+        assertTrue(store.isAuthorizedInFlight(accepted.grantId, request))
+        store.revoke(1L)
+        assertTrue(!store.isAuthorizedInFlight(accepted.grantId, request))
     }
 
     @Test fun revokedGrantCannotBeResurrectedByConcurrentAttemptReservation() {
@@ -45,7 +63,7 @@ class AndroidCampaignAuthorizationStoreContractTest {
         try {
             val reserve = executor.submit<Boolean> {
                 barrier.await()
-                store.reserveAuthorizedAttempt(request, 2_000L).isSuccess
+                store.reserveAuthorizedAttempt(request).isSuccess
             }
             val revoke = executor.submit {
                 barrier.await()
@@ -58,8 +76,8 @@ class AndroidCampaignAuthorizationStoreContractTest {
             assertNotNull(finalGrant)
             assertNotNull(finalGrant!!.revokedAtEpochMs)
             assertTrue(finalGrant.attemptsUsed in 0..1)
-            assertTrue(store.reserveAuthorizedAttempt(request, 2_001L).isFailure)
-            assertTrue(!store.isAuthorizedInFlight("test-grant", request, 2_001L))
+            assertTrue(store.reserveAuthorizedAttempt(request).isFailure)
+            assertTrue(!store.isAuthorizedInFlight("test-grant", request))
         } finally {
             executor.shutdownNow()
         }
@@ -71,7 +89,7 @@ class AndroidCampaignAuthorizationStoreContractTest {
         assertTrue(CampaignAuthorizationStore(context, testPreferencesName).load()!!.recordCallEvidence)
         store.disableEvidenceRecording()
         assertTrue(CampaignAuthorizationStore(context, testPreferencesName).load()!!.recordCallEvidence == false)
-        assertTrue(store.reserveAuthorizedAttempt(request, 2_000L).isSuccess)
+        assertTrue(store.reserveAuthorizedAttempt(request).isSuccess)
     }
 
     @Test fun simultaneousReservationsKeepExactScopeWithoutFiveCallCeiling() {
@@ -82,14 +100,14 @@ class AndroidCampaignAuthorizationStoreContractTest {
                 val independentStore = CampaignAuthorizationStore(context, testPreferencesName)
                 executor.submit<Boolean> {
                     barrier.await()
-                    independentStore.reserveAuthorizedAttempt(request, 2_000L).isSuccess
+                    independentStore.reserveAuthorizedAttempt(request).isSuccess
                 }
             }
             barrier.countDown()
             val successes = futures.count { it.get(10, TimeUnit.SECONDS) }
             assertEquals(10, successes)
             assertEquals(10, store.load()!!.attemptsUsed)
-            assertTrue(store.isAuthorizedInFlight("test-grant", request, 2_001L))
+            assertTrue(store.isAuthorizedInFlight("test-grant", request))
         } finally {
             executor.shutdownNow()
         }

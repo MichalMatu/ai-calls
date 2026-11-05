@@ -114,7 +114,6 @@ internal object AppOwnedClirCampaignExecutor {
 
         val reservedGrant = authorizationStore.reserveAuthorizedAttempt(
             request = request,
-            nowEpochMs = System.currentTimeMillis(),
         ).getOrElse {
             running.set(false)
             onStatus("Campaign attempt could not be reserved")
@@ -140,11 +139,10 @@ internal object AppOwnedClirCampaignExecutor {
         if (!authorizationStore.isAuthorizedInFlight(
                 grantId = reservedGrant.grantId,
                 request = request,
-                nowEpochMs = System.currentTimeMillis(),
             )
         ) {
             running.set(false)
-            onStatus("Grant revoked or expired before dialing")
+            onStatus("Task cancelled or scope changed before dialing")
             return
         }
         val ownedCall = runCatching {
@@ -316,7 +314,6 @@ internal object AppOwnedClirCampaignExecutor {
                         authorizationStore.isAuthorizedInFlight(
                             grantId = grant.grantId,
                             request = request,
-                            nowEpochMs = System.currentTimeMillis(),
                         )
                 },
             ) { report ->

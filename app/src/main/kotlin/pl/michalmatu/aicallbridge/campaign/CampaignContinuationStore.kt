@@ -16,7 +16,7 @@ internal object CampaignContinuationPolicy {
 
     /**
      * Retry pacing, not a maximum attempt quota. Do not rapidly redial a carrier IVR
-     * after a short, interrupted call. The grant expiry, revocation or STOP ends the run.
+     * after a short, interrupted call. Task revocation or STOP ends the run.
      */
     fun retryDelayMs(incompleteAttempts: Int): Long {
         val shift = (incompleteAttempts - 1).coerceIn(0, 4)

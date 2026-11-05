@@ -1,5 +1,12 @@
 # Autonomous operation mode
 
+## Przyjęcie zadania bez dodatkowych grantów — 2026-11-05
+
+Polecenie użytkownika przekazane przez lokalny Codex jest przyjmowane przez aplikację jako konkretne zadanie. Jawny START z chronionej `android.permission.DUMP` ścieżki wykonawczej albo z UI przechodzi przez ten sam `CampaignAgentControl`: zapis dokładnego celu, efektu, SIM/konta i dozwolonych pól, następnie wykonanie. Nie ma osobnego przyznawania/odnawiania grantu, potwierdzenia na telefonie ani 24-godzinnego TTL. Podgląd/preflight nie przyjmuje zadania. Automatyczna kontynuacja korzysta z istniejącego zapisu i nie odtwarza cofnięcia; świeże polecenie użytkownika może przyjąć nowe zadanie. Wewnętrzny `CampaignAuthorizationStore` pozostaje jednym zapisem zakresu, a nie dodatkową procedurą zgody.
+
+Zachowane są rzeczywiste granice: uprawnienia Androida/Shizuku, wyłącznie własny Call, STOP/anulowanie, dokładny zakres, `FactDisclosurePolicy`, aplikacyjny release i pojedynczy `CallCommitmentGate`. Model i supervisor nie otrzymują prawa tworzenia zadań. Nagrania są osobną opcją diagnostyczną, przekazywaną w poleceniu lub UI, i nie warunkują rozmowy. Bieżący rejestr: [BLOCKERS](../BLOCKERS.md), F-062/F-065/F-066/F-067.
+
+
 ## Product mission and owner's operating preference (2026-11-02)
 
 **AI Calls must ultimately carry out delegated telephone tasks end-to-end through local on-device AI.** The operator states a task once; a locally running agent chooses a destination from the task's approved targets, autonomously places an ordinary call, navigates IVR and dialogue, uses authorized facts, optionally performs authorized service/data changes, obtains factual completion evidence, disconnects the intended session and reports the result. A supervised Google Phone call is a diagnostic bridge, not the desired user experience. The system must be generic across services and user-selected ordinary lawful numbers, not a CLIR/`*100`-only bot.
@@ -117,14 +124,14 @@ A campaign grant must bind at least:
 - allowed task/effect set;
 - account/SIM scope when relevant;
 - issue time and revocation state;
-- optional retry/expiry bounds;
+- trwały zakres zadania i jawne anulowanie; bez sztucznego TTL lub limitu prób;
 - disclosure scope.
 
 When such a grant is valid and the requested action remains inside its exact scope, the product must not prompt the operator again for every retry/call. A material target/task/effect/account widening remains fail-closed.
 
 For the current Orange CLIR development campaign the intended grant scope is the same test SIM/account, Orange CLIR management, repeated physical enable/disable iterations required for acceptance, read-only CLIR state interrogation, and the Orange service route used by that campaign. This does not widen to unrelated services, numbers, purchases, payments, contracts, premium/emergency targets or another account.
 
-The current CLIR-enable implementation creates/revokes this grant in the non-exported `Campaign tools` UI, persists only typed scope metadata, binds to the current default voice subscription, and executes the authorized dial locally. ChatGPT/Local Agent/ADB are not in this runtime path.
+The current CLIR-enable intake records/reuses the exact task from an explicit owner START through UI or protected Codex command. It persists typed scope metadata, binds to the current default voice subscription and executes the owned dial locally; no operator grant dialog is involved.
 
 ## Commitment and success remain application-owned
 

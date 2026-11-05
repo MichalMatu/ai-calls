@@ -2,6 +2,10 @@
 
 Lokalny agent Android do wykonywania **konkretnie autoryzowanych zadań telefonicznych**: własny Android Telecom `Call`, polskie STT → Gemma E2B → TTS, autoryzacja grantu/STOP, osobny dowód skutku i raport. CLIR jest scenariuszem testowym, nie ograniczeniem produktu.
 
+## Przyjmowanie zadań bez dodatkowych pozwoleń
+
+Polecenie testu z Codexa trafia do jednego aplikacyjnego START zadania. Usunięte są osobne nadawanie/odnawianie grantów i TTL 24 h; telefon nie wymaga dodatkowego zatwierdzenia. Aplikacja zapisuje dokładny zakres i egzekwuje Android/SIM/własny Call/STOP/fakty/skutki. Runner ma jawny `--dialogue-mode SCRIPT_GEMMA|GEMMA_DIRECT` i zbiera metryki obu trybów. [Audyt i dowody](docs/checkpoints/2026-11-05-task-intake-and-dialogue-ab.md).
+
 ## Stan na 2026-11-05 — LiteRT-LM i modele
 
 - **LiteRT-LM 0.19.0** i [katalog modeli w aplikacji](docs/checkpoints/2026-11-05-litert-model-catalog.md): Gemma 4 E2B/E4B oraz Qwen3 1.7B/0.6B. Pobieranie z postępem/anulowaniem, import pliku, weryfikacja SHA-256 i wybór na następną rozmowę, bez zmiany STT/TTS/głosu. Wejście: „Modele językowe” na ekranie głównym lub przycisk katalogu w ustawieniach silników audio.

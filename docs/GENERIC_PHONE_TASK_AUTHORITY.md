@@ -1,5 +1,12 @@
 # Generic phone task authority
 
+## Przyjęcie zadania bez dodatkowych grantów — 2026-11-05
+
+Polecenie użytkownika przekazane przez lokalny Codex jest przyjmowane przez aplikację jako konkretne zadanie. Jawny START z chronionej `android.permission.DUMP` ścieżki wykonawczej albo z UI przechodzi przez ten sam `CampaignAgentControl`: zapis dokładnego celu, efektu, SIM/konta i dozwolonych pól, następnie wykonanie. Nie ma osobnego przyznawania/odnawiania grantu, potwierdzenia na telefonie ani 24-godzinnego TTL. Podgląd/preflight nie przyjmuje zadania. Automatyczna kontynuacja korzysta z istniejącego zapisu i nie odtwarza cofnięcia; świeże polecenie użytkownika może przyjąć nowe zadanie. Wewnętrzny `CampaignAuthorizationStore` pozostaje jednym zapisem zakresu, a nie dodatkową procedurą zgody.
+
+Zachowane są rzeczywiste granice: uprawnienia Androida/Shizuku, wyłącznie własny Call, STOP/anulowanie, dokładny zakres, `FactDisclosurePolicy`, aplikacyjny release i pojedynczy `CallCommitmentGate`. Model i supervisor nie otrzymują prawa tworzenia zadań. Nagrania są osobną opcją diagnostyczną, przekazywaną w poleceniu lub UI, i nie warunkują rozmowy. Bieżący rejestr: [BLOCKERS](../BLOCKERS.md), F-062/F-065/F-066/F-067.
+
+
 ## Product invariant
 
 **Owner's desired delegation model (2026-11-02):** AI Calls is a local autonomous caller, not a permanent human-supervised call attachment. A person issues a task with a destination or criteria and permitted scope; local AI executes telephone dialogue, can resume bounded attempts, act on user-authorized data and service tasks, terminate its own session and return factual results. The system should support the user's normal lawful destinations and must not be restricted by a product-wide Orange number allowlist.
@@ -38,7 +45,7 @@ task authorization
 
 The authority model must not depend on repeatedly asking the operator the same question for every retry.
 
-The target product supports a durable, scoped, revocable campaign grant owned by application policy. A grant binds at least target(s), task/effect set, account/SIM scope when relevant, revocation state, optional retry/expiry bounds and disclosure scope.
+The target product supports a durable, scoped, revocable campaign grant owned by application policy. A grant binds at least target(s), task/effect set, account/SIM scope when relevant, revocation state, explicit cancellation without an artificial task expiry or attempt quota and disclosure scope.
 
 A retry that remains inside a valid unchanged grant does not need another redundant product confirmation. A material widening of target, task, effect, account/SIM or disclosure scope remains fail-closed.
 

@@ -106,7 +106,7 @@ class AppOwnedCampaignService : Service() {
         val now = System.currentTimeMillis()
         val authorized = grant != null && accountScope != null &&
             CampaignAuthorizationPolicy.authorize(
-                grant, ClirCampaignSpec.enableRequest(accountScope), now,
+                grant, ClirCampaignSpec.enableRequest(accountScope),
             ) is CampaignAuthorizationDecision.Authorized
         if (!authorized || grant == null || accountScope == null) {
             finish("Campaign authorization or voice subscription unavailable")
@@ -196,7 +196,6 @@ class AppOwnedCampaignService : Service() {
         return CampaignAuthorizationPolicy.authorize(
             grant,
             ClirCampaignSpec.enableRequest(state.accountScope),
-            System.currentTimeMillis(),
         ) is CampaignAuthorizationDecision.Authorized
     }
 

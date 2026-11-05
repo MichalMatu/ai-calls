@@ -7,7 +7,6 @@ internal data class CampaignAuthorizationGrant(
     val grantId: String,
     val version: Int,
     val createdAtEpochMs: Long,
-    val expiresAtEpochMs: Long,
     val revokedAtEpochMs: Long?,
     val accountScope: String,
     val allowedTargets: Set<String>,
@@ -23,8 +22,7 @@ internal data class CampaignAuthorizationGrant(
         require(grantId.isNotBlank())
         require(version > 0)
         require(createdAtEpochMs >= 0L)
-        require(expiresAtEpochMs > createdAtEpochMs)
-        require(revokedAtEpochMs == null || revokedAtEpochMs >= createdAtEpochMs)
+        require(revokedAtEpochMs == null || revokedAtEpochMs >= 0L)
         require(accountScope.isNotBlank())
         require(allowedTargets.isNotEmpty() && allowedTargets.none { it.isBlank() })
         require(allowedActions.isNotEmpty() && allowedActions.none { it.isBlank() })
@@ -57,8 +55,6 @@ internal data class CampaignExecutionRequest(
 internal enum class CampaignAuthorizationDenialReason {
     GRANT_MISSING,
     GRANT_REVOKED,
-    GRANT_NOT_YET_VALID,
-    GRANT_EXPIRED,
     ACCOUNT_SCOPE_MISMATCH,
     TARGET_NOT_ALLOWED,
     ACTION_NOT_ALLOWED,
@@ -78,10 +74,16 @@ internal sealed interface CampaignAuthorizationDecision {
 }
 
 internal object CampaignAuthorizationPolicy {
+    fun matchesExactTask(
+        grant: CampaignAuthorizationGrant?, request: CampaignExecutionRequest,
+    ): Boolean = grant != null && authorize(grant, request) is CampaignAuthorizationDecision.Authorized &&
+        grant.allowedTargets == setOf(request.target) && grant.allowedActions == setOf(request.action) &&
+        grant.allowedServices == setOf(request.service) && grant.allowedEffectValues == setOf(request.enabled) &&
+        grant.allowedDisclosureFields == request.disclosureFields
+
     fun authorize(
         grant: CampaignAuthorizationGrant?,
         request: CampaignExecutionRequest,
-        nowEpochMs: Long,
     ): CampaignAuthorizationDecision {
         if (grant == null) {
             return CampaignAuthorizationDecision.Denied(
@@ -91,16 +93,6 @@ internal object CampaignAuthorizationPolicy {
         if (grant.revokedAtEpochMs != null) {
             return CampaignAuthorizationDecision.Denied(
                 CampaignAuthorizationDenialReason.GRANT_REVOKED,
-            )
-        }
-        if (nowEpochMs < grant.createdAtEpochMs) {
-            return CampaignAuthorizationDecision.Denied(
-                CampaignAuthorizationDenialReason.GRANT_NOT_YET_VALID,
-            )
-        }
-        if (nowEpochMs >= grant.expiresAtEpochMs) {
-            return CampaignAuthorizationDecision.Denied(
-                CampaignAuthorizationDenialReason.GRANT_EXPIRED,
             )
         }
         if (request.accountScope != grant.accountScope) {

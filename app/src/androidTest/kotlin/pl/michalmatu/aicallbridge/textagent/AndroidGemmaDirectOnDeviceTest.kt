@@ -23,12 +23,11 @@ class AndroidGemmaDirectOnDeviceTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val timestamp = System.currentTimeMillis()
         val scope = "synthetic-test-scope"
-        val grant = ClirCampaignSpec.newEnableGrant(scope, timestamp)
+        val grant = ClirCampaignSpec.acceptEnableTask(scope, timestamp)
         val instruction = GemmaDirectTaskBriefBuilder.build(
             ClirCampaignSpec.enableRequest(scope),
             grant,
             GemmaDirectPromptSkillCatalog.defaults,
-            timestamp,
         )
         val model = Gemma4LiteRtTextBackendFactory.createDirectDialogue(
             context, instruction,

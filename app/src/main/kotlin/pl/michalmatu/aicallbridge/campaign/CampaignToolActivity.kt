@@ -21,12 +21,12 @@ import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import java.time.Instant
 
 class CampaignToolActivity : Activity() {
     private lateinit var authorizationStore: CampaignAuthorizationStore
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView
+    private lateinit var recordEvidenceChoice: CheckBox
     private var pendingAction: PendingAction? = null
     private var requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
     private var continueStartAfterRole = false
@@ -43,26 +43,30 @@ class CampaignToolActivity : Activity() {
             setTextIsSelectable(true)
         }
 
-        val authorizeButton = Button(this).apply {
-            text = "Authorize CLIR enable campaign"
-            setOnClickListener {
-                ensurePermissionsThen(PendingAction.AUTHORIZE)
-            }
+        val accountScope = if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED) CampaignAccountScope.currentVoiceSubscription(this) else null
+        val existing = authorizationStore.load()
+        val accepted = if (accountScope != null && CampaignAuthorizationPolicy.matchesExactTask(
+            existing, ClirCampaignSpec.enableRequest(accountScope),
+        )) existing else null
+        recordEvidenceChoice = CheckBox(this).apply {
+            text = "Zapisuj RX/TX i transkrypcje tego zadania (lokalnie)"
+            isChecked = accepted?.recordCallEvidence == true
         }
         val callRoleButton = Button(this).apply {
             text = "Włącz autonomiczne połączenia (rola dialera Android)"
             setOnClickListener { requestCallRole() }
         }
         val startButton = Button(this).apply {
-            text = "Start authorized CLIR enable"
+            text = "Rozpocznij zadanie: włącz CLIR — skrypt + model"
             setOnClickListener {
-                // Scope first: do not request OS dialer role for an expired or absent grant.
+                // START accepts this exact task after the Android readiness checks.
                 requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
                 ensurePermissionsThen(PendingAction.START)
             }
         }
         val directStartButton = Button(this).apply {
-            text = "Start authorized CLIR enable — Gemma Direct"
+            text = "Rozpocznij zadanie: włącz CLIR — Gemma Direct"
             setOnClickListener {
                 // Same grant, SIM, permissions, exact owned-call and STOP gates.
                 // Only the dialogue backend differs; no new campaign authority.
@@ -109,13 +113,14 @@ class CampaignToolActivity : Activity() {
             setOnClickListener { showLatestTranscript() }
         }
         val revokeButton = Button(this).apply {
-            text = "Revoke campaign grant"
+            text = "Anuluj zadanie"
             setOnClickListener {
                 val revoked = authorizationStore.revoke(System.currentTimeMillis())
+                CampaignAgentControl.stopOwnedCampaign(this@CampaignToolActivity)
                 statusView.text = if (revoked == null) {
-                    "No campaign grant to revoke"
+                    "Brak przyjętego zadania"
                 } else {
-                    "Campaign grant revoked"
+                    "Zadanie anulowane"
                 }
             }
         }
@@ -215,7 +220,12 @@ class CampaignToolActivity : Activity() {
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply { bottomMargin = 16 },
             )
-            addView(authorizeButton)
+            addView(TextView(this@CampaignToolActivity).apply {
+                text = "Zadanie: włącz CLIR. Cel: ${ClirCampaignSpec.TARGET}. " +
+                    "Konto: bieżąca SIM rozmów. Dane: PHONE wyłącznie przez politykę ujawniania. " +
+                    "START przyjmuje zadanie; działa do ukończenia lub anulowania."
+            })
+            addView(recordEvidenceChoice)
             addView(startButton)
             addView(directStartButton)
             addView(stopSupervisedAudioButton)
@@ -249,8 +259,8 @@ class CampaignToolActivity : Activity() {
             ))
             addView(LiveCallChatPanel(this@CampaignToolActivity))
         })
-        refreshGrantStatus()
-        // Explicit primary-screen tap: continue directly into the same authorization,
+        refreshTaskStatus()
+        // Explicit primary-screen tap accepts the displayed task through the same scope,
         // permission and Android-role checks as the existing START control.
         // A configuration/activity recreation must never start a second attempt.
         if (savedInstanceState == null &&
@@ -263,7 +273,7 @@ class CampaignToolActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        refreshGrantStatus()
+        refreshTaskStatus()
     }
 
     override fun onDestroy() {
@@ -375,7 +385,6 @@ class CampaignToolActivity : Activity() {
             return
         }
         when (action) {
-            PendingAction.AUTHORIZE -> showAuthorizationConfirmation()
             PendingAction.START -> startAuthorizedCampaign()
             PendingAction.SUPERVISED_AUDIO -> startSupervisedAudio()
             null -> Unit
@@ -383,9 +392,8 @@ class CampaignToolActivity : Activity() {
     }
 
     private fun ensurePermissionsThen(action: PendingAction) {
-        // Grant creation only needs SIM identity. Speech/dial permissions belong to execution.
+        // Task acceptance and execution share the same real Android permission checks.
         val required = when (action) {
-            PendingAction.AUTHORIZE -> listOf(Manifest.permission.READ_PHONE_STATE)
             PendingAction.START -> REQUIRED_PERMISSIONS
             PendingAction.SUPERVISED_AUDIO -> listOf(
                 Manifest.permission.RECORD_AUDIO,
@@ -397,8 +405,7 @@ class CampaignToolActivity : Activity() {
         }
         if (missing.isEmpty()) {
             when (action) {
-                PendingAction.AUTHORIZE -> showAuthorizationConfirmation()
-                PendingAction.START -> startAuthorizedCampaign()
+                    PendingAction.START -> startAuthorizedCampaign()
                 PendingAction.SUPERVISED_AUDIO -> startSupervisedAudio()
             }
             return
@@ -446,50 +453,6 @@ class CampaignToolActivity : Activity() {
         }
     }
 
-    private fun showAuthorizationConfirmation(continueWithStart: Boolean = false) {
-        val accountScope = CampaignAccountScope.currentVoiceSubscription(this)
-        if (accountScope == null) {
-            statusView.text = "Could not bind campaign to the current voice subscription"
-            return
-        }
-
-        // One campaign approval includes an explicit, optional diagnostic scope.
-        // No per-call prompt, expiry timer or second approval during the same grant.
-        val evidenceChoice = CheckBox(this).apply {
-            text = "Zapisuj RX/TX i transkrypcje rozmów tej kampanii (lokalnie)"
-            isChecked = false
-            setPadding(24, 12, 24, 12)
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Authorize bounded CLIR campaign")
-            .setMessage(
-                "This local grant authorizes only:\n\n" +
-                    "Target: ${ClirCampaignSpec.TARGET}\n" +
-                    "Task: enable CLIR\n" +
-                    "Account: current default voice subscription\n" +
-                    "Disclosure: PHONE only when policy allows\n" +
-                    "Expiry: 24 hours\n\n" +
-                    "Opcjonalny zapis RX/TX i transkryptu na telefonie może zawierać dane osobowe. " +
-                    "Wybierz zapis poniżej tylko po spełnieniu obowiązków wobec rozmówcy. " +
-                    "Pliki nie są automatycznie wysyłane do chmury ani GitHub.\n\n" +
-                    "It does not authorize other services, targets, purchases, contracts, " +
-                    "premium/emergency calls or CLIR disable.",
-            )
-            .setView(evidenceChoice)
-            .setPositiveButton("Authorize locally") { _, _ ->
-                val grant = ClirCampaignSpec.newEnableGrant(
-                    accountScope = accountScope,
-                    nowEpochMs = System.currentTimeMillis(),
-                    recordCallEvidence = evidenceChoice.isChecked,
-                )
-                authorizationStore.save(grant)
-                refreshGrantStatus()
-                if (continueWithStart) ensurePermissionsThen(PendingAction.START)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
     private fun startSupervisedAudio() {
         statusView.text = "Attaching read-only audio test to existing user-controlled call"
         startForegroundService(
@@ -505,53 +468,39 @@ class CampaignToolActivity : Activity() {
             return
         }
 
-        val request = ClirCampaignSpec.enableRequest(accountScope)
-        val decision = CampaignAuthorizationPolicy.authorize(
-            grant = authorizationStore.load(),
-            request = request,
-            nowEpochMs = System.currentTimeMillis(),
-        )
-        if (decision is CampaignAuthorizationDecision.Denied) {
-            statusView.text = "Autoryzacja wymaga odnowienia: ${decision.reason.name.lowercase()}"
-            // The owner must explicitly accept the exact target/effect/SIM once.
-            // A revoked/expired grant is never silently revived by START or ADB.
-            showAuthorizationConfirmation(continueWithStart = true)
-            return
-        }
         if (!AndroidTelecomOwnedCallController.canControl(this)) {
             // Android requires an explicit OS choice before exposing an exact Call handle.
             requestCallRole(continueWithStart = true)
             return
         }
 
-        runtimeStatusStore.save("Starting app-owned campaign…")
-        statusView.text = runtimeStatusStore.load()
-        startForegroundService(
-            Intent(this, AppOwnedCampaignService::class.java)
-                .setAction(AppOwnedCampaignService.ACTION_START_CLIR_ENABLE)
-                .putExtra(AppOwnedCampaignService.EXTRA_DIALOGUE_MODE, requestedStartMode.name),
+        val report = CampaignAgentControl.run(
+            this, requestStart = true, dialogueMode = requestedStartMode,
+            recordCallEvidence = recordEvidenceChoice.isChecked,
         )
+        statusView.text = if (report.contains("campaign_agent_start=DISPATCHED_TO_INTERNAL_SERVICE")) {
+            "Uruchamiam zadanie: włączenie CLIR. Tryb: " +
+                if (requestedStartMode == CampaignDialogueMode.GEMMA_DIRECT) "Gemma Direct" else "skrypt + model"
+        } else "Nie udało się uruchomić zadania. Szczegóły są w diagnostyce."
+
     }
 
-    private fun refreshGrantStatus() {
+    private fun refreshTaskStatus() {
         val grant = authorizationStore.load()
-        val grantStatus = when {
-            grant == null -> "No local campaign grant"
-            grant.revokedAtEpochMs != null -> "Campaign grant revoked"
-            else ->
-                "Campaign grant present\n" +
-                    "Expires: ${Instant.ofEpochMilli(grant.expiresAtEpochMs)}"
+        val taskStatus = when {
+            grant == null -> "Brak przyjętego zadania — wybierz START."
+            grant.revokedAtEpochMs != null -> "Zadanie anulowane."
+            else -> "Zadanie przyjęte: włączenie CLIR. Działa do ukończenia lub anulowania."
         }
         val evidenceStatus = if (grant?.recordCallEvidence == true &&
             grant.revokedAtEpochMs == null) {
             "Zapis RX/TX + transkrypt: w zakresie zatwierdzonej kampanii."
         } else "Zapis RX/TX + transkrypt: wyłączony."
         val runtimeStatus = runtimeStatusStore.load()
-        statusView.text = listOfNotNull(evidenceStatus, runtimeStatus, grantStatus).joinToString("\n\n")
+        statusView.text = listOfNotNull(evidenceStatus, runtimeStatus, taskStatus).joinToString("\n\n")
     }
 
     private enum class PendingAction {
-        AUTHORIZE,
         START,
         SUPERVISED_AUDIO,
     }

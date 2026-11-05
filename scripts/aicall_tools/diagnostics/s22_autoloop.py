@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Repeatable Mac Local Agent -> authorized S22 diagnostic/build/deploy cycle.
+"""Direct local Codex -> app-owned S22 task/diagnostic/build/deploy cycle.
 
-Never creates a campaign grant, changes the dialer role, globally hangs up a call,
-or publishes raw logs, numbers, audio and transcripts to Git task results.
+Explicit START conveys the delegated user task to application-owned intake.
+Preview is read-only. Android role, exact scope/Call and STOP remain enforced;
+raw logs, numbers, audio and transcripts stay in local private evidence.
 Source repair remains the calling engineering agent's responsibility; a failed
 cycle returns a concrete failure for the next fix/build/install/retest iteration.
 """
@@ -59,6 +60,8 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
     transient_stt_retries = 0
     stt_rx_capture_abandoned = 0
     latencies: list[int] = []
+    direct_latencies: list[int] = []
+    direct_sources: dict[str, int] = {}
     action_counts: dict[str, int] = {}
     valid_actions = {
         "ASK_REPEAT", "ASK_CLARIFY", "ACKNOWLEDGE_NEUTRAL",
@@ -79,6 +82,12 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
             stt_turns += int(value) > 0
         elif re.fullmatch(r"turn_\d+_approved_chars", key) and value.isdecimal():
             approved_turns += int(value) > 0
+        elif re.fullmatch(r"turn_\d+_direct_inference_ms", key) and value.isdecimal():
+            direct_latencies.append(int(value))
+        elif re.fullmatch(r"turn_\d+_direct_response_source", key) and value in {
+            "GEMMA_DIRECT_RAW", "DIRECT_RAW_UNUSABLE", "DIRECT_MODEL_ERROR",
+        }:
+            direct_sources[value] = direct_sources.get(value, 0) + 1
         elif re.fullmatch(r"turn_\d+_eos_to_first_tx_ms", key) and value.isdecimal():
             latencies.append(int(value))
         elif re.fullmatch(r"turn_\d+_stt_transient_no_transcript", key) and value == "true":
@@ -97,7 +106,13 @@ def parse_pipeline_metrics(text: str) -> dict[str, object]:
     safe["approved_turns"] = approved_turns
     safe["stt_transient_retries"] = transient_stt_retries
     safe["stt_rx_capture_abandoned"] = stt_rx_capture_abandoned
+    if direct_latencies:
+        safe["direct_inference_ms"] = direct_latencies
+    if direct_sources:
+        safe["direct_response_sources"] = direct_sources
+        safe["direct_model_turns"] = direct_sources.get("GEMMA_DIRECT_RAW", 0)
     if latencies:
+        safe["eos_to_tx_ms"] = latencies
         safe["first_eos_to_tx_ms"] = latencies[0]
         safe["max_eos_to_tx_ms"] = max(latencies)
     if action_counts:
@@ -113,7 +128,8 @@ def technical_pipeline_evidence(metrics: dict[str, object]) -> bool:
         and int(metrics.get("telephony_tx_pcm_bytes", 0)) > 0
         and int(metrics.get("stt_turns", 0)) > 0
         and int(metrics.get("approved_turns", 0)) > 0
-        and int(metrics.get("gemma_action_decision_count", 0)) > 0
+        and (int(metrics.get("gemma_action_decision_count", 0)) > 0
+             or int(metrics.get("direct_model_turns", 0)) > 0)
     )
 
 
@@ -179,7 +195,7 @@ def cycle_verdict(report: dict[str, object], *, call_requested: bool, probes_ski
     if not call_requested:
         return "PASS_OFFCALL_ONLY"
     if report.get("campaign_readiness") != "READY":
-        return "NOT_EXECUTED_NO_VALID_CAMPAIGN_AUTHORITY"
+        return "NOT_EXECUTED_TASK_NOT_READY"
     if report.get("start_command") != "DISPATCHED_TO_INTERNAL_SERVICE":
         return "INCOMPLETE_CAMPAIGN_START"
     if report.get("offhook_observed") is not True:
@@ -252,12 +268,15 @@ class LocalCycle:
         self.adb_run("install", "-r", str(apk), timeout=240)
         self.report["build_install"] = "PASS"
 
-    def app_command(self, extra: str) -> dict[str, str]:
+    def app_command(self, extra: str, dialogue_mode: str | None = None, record_evidence: bool | None = None) -> dict[str, str]:
         self.adb_run("shell", "run-as", PACKAGE, "rm", "-f", "files/campaign-agent-report.txt")
-        self.adb_run(
-            "shell", "am", "start", "-n", f"{PACKAGE}/.DiagnosticProbeActivity",
-            "--ez", extra, "true",
-        )
+        arguments = ["shell", "am", "start", "-n", f"{PACKAGE}/.DiagnosticProbeActivity",
+                     "--ez", extra, "true"]
+        if dialogue_mode is not None:
+            arguments += ["--es", "pl.michalmatu.aicallbridge.extra.CAMPAIGN_DIALOGUE_MODE", dialogue_mode]
+        if record_evidence is not None:
+            arguments += ["--ez", "record_call_evidence", str(record_evidence).lower()]
+        self.adb_run(*arguments)
         time.sleep(1.5)
         raw = self.adb_run("shell", "run-as", PACKAGE, "cat", "files/campaign-agent-report.txt")
         return read_report(raw)
@@ -332,15 +351,16 @@ class LocalCycle:
     def phone_state(self) -> set[str]:
         return call_states(self.adb_run("shell", "dumpsys", "telephony.registry"))
 
-    def authorized_call(self, observe_seconds: int) -> None:
+    def authorized_call(self, observe_seconds: int, dialogue_mode: str = "SCRIPT_GEMMA", record_evidence: bool | None = None) -> None:
         preflight = self.app_command("run_campaign_agent_preflight")
         self.report["campaign_readiness"] = preflight.get("campaign_agent_readiness", "UNKNOWN")
         if preflight.get("campaign_agent_readiness") != "READY":
-            self.report["call"] = "NOT_STARTED_NO_VALID_EXACT_GRANT_OR_ROLE"
+            self.report["call"] = "NOT_STARTED_TASK_NOT_READY"
             return
         self.assert_device()
         call_started_epoch = int(time.time())
-        started = self.app_command("run_campaign_agent_start")
+        started = self.app_command("run_campaign_agent_start", dialogue_mode, record_evidence)
+        self.report["requested_dialogue_mode"] = dialogue_mode
         status = started.get("campaign_agent_start", "UNKNOWN")
         self.report["start_command"] = status
         if status != "DISPATCHED_TO_INTERNAL_SERVICE":
@@ -408,7 +428,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adb", type=Path, default=Path.home() / "Library/Android/sdk/platform-tools/adb")
     parser.add_argument("--reuse-installed", action="store_true", help="Skip rebuild/reinstall of unchanged source")
-    parser.add_argument("--execute-authorized", action="store_true", help="Use only a currently valid app-owned grant")
+    parser.add_argument("--execute-authorized", action="store_true", help="Execute the exact delegated user task; the app accepts scope on START")
+    parser.add_argument("--record-evidence", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--dialogue-mode", choices=["SCRIPT_GEMMA", "GEMMA_DIRECT"], default="SCRIPT_GEMMA")
     parser.add_argument("--observe-seconds", type=int, default=190)
     parser.add_argument("--skip-offcall-probes", action="store_true", help="Reuse prior matching hardware receipts")
     parser.add_argument("--inspect-last-call", action="store_true", help="Read existing private numeric counters without new dial or install")
@@ -435,7 +457,7 @@ def main() -> int:
         if not args.skip_offcall_probes:
             cycle.offcall_probes()
         if args.execute_authorized:
-            cycle.authorized_call(args.observe_seconds)
+            cycle.authorized_call(args.observe_seconds, args.dialogue_mode, args.record_evidence)
         else:
             preflight = cycle.app_command("run_campaign_agent_preflight")
             cycle.report["campaign_readiness"] = preflight.get("campaign_agent_readiness", "UNKNOWN")

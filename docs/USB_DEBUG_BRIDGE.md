@@ -69,8 +69,9 @@ Before/after fingerprint comparisons verify no unexpected grant/skills/audio edi
 ADB cannot create or widen grants, edit authorized targets/effects, disable
 STOP, bypass the app's output/fact policies, unlock disabled M4, or place calls.
 That would turn a diagnostic channel into a bypass of application-owned
-authorization. Owners can edit a real grant through the existing application
-authorization flow; the USB console supports immediate revocation, not forgery.
+authorization. The explicit owner task START uses the separate protected
+application intake described below; this diagnostic console supports immediate
+revocation and does not create tasks.
 
 ## Privacy and execution boundaries
 
@@ -82,7 +83,16 @@ authorization flow; the USB console supports immediate revocation, not forgery.
 - The bridge is intended for the existing debuggable application with
   DUMP-only exported diagnostic activity and owner-controlled ADB; never
   add a general externally exported mutable provider or arbitrary shell API.
-- For live call testing the exact, revocable, app-stored grant and Android
-  Telecom ownership checks remain independently required.
+- For live call testing an explicit delegated user task is accepted by the protected
+  task START endpoint; exact scope, cancellation and Android Telecom ownership remain enforced.
 - Pin the source SHA and verify APK signing lineage before phone installation.
   Preserve stable app data and private grant fingerprint.
+
+
+## Wykonanie zadania z Codexa
+
+`ai_calls_usb_debug.py` pozostaje modułem diagnostyki bez dzwonienia. Istniejący `s22_autoloop.py` przekazuje jawne polecenie zadania do wspólnego aplikacyjnego intake, bez wcześniejszego nadawania grantu w telefonie:
+
+    python3 scripts/aicall_tools/diagnostics/s22_autoloop.py --adb /opt/homebrew/bin/adb --reuse-installed --skip-offcall-probes --execute-authorized --dialogue-mode GEMMA_DIRECT
+
+`--execute-authorized` oznacza otrzymane konkretne polecenie użytkownika; wykonawca nie pyta operatora o wpisywanie flag. Bez tej flagi jest tylko podgląd. Opcjonalne `--record-evidence`/`--no-record-evidence` przekazuje wybór diagnostyki; bez flagi zachowany jest wybór tego samego przyjętego zadania albo zapis pozostaje wyłączony. `--observe-seconds` ogranicza wyłącznie okno obserwacji Maca, nie kończy zdrowej rozmowy. Source/metryki Direct są rozdzielone od klasyfikatora JSON. [Audyt](checkpoints/2026-11-05-task-intake-and-dialogue-ab.md).

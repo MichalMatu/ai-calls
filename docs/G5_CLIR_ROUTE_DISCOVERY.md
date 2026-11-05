@@ -5,7 +5,7 @@ Read `docs/AUTONOMOUS_OPERATION_MODE.md` before continuing.
 ## Current state
 
 
-**Safety hold (2026-11-01):** app-owned dialing intentionally refuses to start until exact-call identity and targeted termination are implemented and physically proven. Do not resume the old `*100` loop or use global `TelecomManager.endCall()`. Historical 2026-10-08 network state and Shizuku binder failure have not been re-measured today. Details in `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+**Historyczny hold 2026-11-01 jest zastąpiony obecną implementacją własnego Call i selektywnego STOP na S22.** START przyjmuje dokładnie zlecone zadanie przez chronioną komendę Codexa albo UI, bez osobnego grantu/TTL. Readiness/IDLE, zakres/SIM, ujawnienia, STOP i osobny zewnętrzny dowód sukcesu nadal obowiązują. Nie uruchamiać historycznego globalnego `TelecomManager.endCall()`.
 
 ```text
 Orange campaign route = *100

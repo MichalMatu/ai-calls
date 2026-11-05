@@ -69,9 +69,8 @@ internal object GemmaDirectTaskBriefBuilder {
         request: CampaignExecutionRequest,
         grant: CampaignAuthorizationGrant,
         skills: Set<GemmaDirectPromptSkill>,
-        nowEpochMs: Long = System.currentTimeMillis(),
     ): String {
-        require(CampaignAuthorizationPolicy.authorize(grant, request, nowEpochMs) is
+        require(CampaignAuthorizationPolicy.authorize(grant, request) is
             CampaignAuthorizationDecision.Authorized) {
             "gemma_task_brief_scope_not_authorized"
         }

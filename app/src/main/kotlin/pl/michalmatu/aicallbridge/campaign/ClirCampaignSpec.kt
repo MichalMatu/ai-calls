@@ -8,7 +8,6 @@ internal object ClirCampaignSpec {
     const val TARGET = "*100"
     const val ACTION = "SET_SERVICE"
     const val GRANT_VERSION = 1
-    const val GRANT_TTL_MS = 24L * 60L * 60L * 1_000L
 
     fun enableRequest(accountScope: String) = CampaignExecutionRequest(
         target = TARGET,
@@ -19,25 +18,30 @@ internal object ClirCampaignSpec {
         disclosureFields = setOf(IdentityFieldId.PHONE),
     )
 
-    fun newEnableGrant(
+    fun acceptEnableTask(
         accountScope: String,
         nowEpochMs: Long,
         grantId: String = UUID.randomUUID().toString(),
         recordCallEvidence: Boolean = false,
-    ) = CampaignAuthorizationGrant(
-        grantId = grantId,
-        version = GRANT_VERSION,
-        createdAtEpochMs = nowEpochMs,
-        expiresAtEpochMs = nowEpochMs + GRANT_TTL_MS,
-        revokedAtEpochMs = null,
-        accountScope = accountScope,
-        allowedTargets = setOf(TARGET),
-        allowedActions = setOf(ACTION),
-        allowedServices = setOf(CallService.CLIR),
-        allowedEffectValues = setOf(true),
-        allowedDisclosureFields = setOf(IdentityFieldId.PHONE),
-        attemptsUsed = 0,
-        recordCallEvidence = recordCallEvidence,
-        issuerEvidenceRef = "local-ui:$grantId",
-    )
+        existing: CampaignAuthorizationGrant? = null,
+    ): CampaignAuthorizationGrant {
+        if (existing != null && existing.recordCallEvidence == recordCallEvidence &&
+            CampaignAuthorizationPolicy.matchesExactTask(existing, enableRequest(accountScope))
+        ) return existing
+        return CampaignAuthorizationGrant(
+            grantId = grantId,
+            version = GRANT_VERSION,
+            createdAtEpochMs = nowEpochMs,
+            revokedAtEpochMs = null,
+            accountScope = accountScope,
+            allowedTargets = setOf(TARGET),
+            allowedActions = setOf(ACTION),
+            allowedServices = setOf(CallService.CLIR),
+            allowedEffectValues = setOf(true),
+            allowedDisclosureFields = setOf(IdentityFieldId.PHONE),
+            attemptsUsed = 0,
+            recordCallEvidence = recordCallEvidence,
+            issuerEvidenceRef = "local-task-start:$grantId",
+        )
+    }
 }

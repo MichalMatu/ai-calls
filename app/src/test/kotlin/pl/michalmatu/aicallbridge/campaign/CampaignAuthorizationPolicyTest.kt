@@ -8,11 +8,28 @@ import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 
 class CampaignAuthorizationPolicyTest {
     @Test
+    fun acceptedTaskAndCancellationDoNotDependOnWallClockOrdering() {
+        val accepted = grant().copy(createdAtEpochMs = Long.MAX_VALUE)
+        assertTrue(CampaignAuthorizationPolicy.authorize(accepted, request())
+            is CampaignAuthorizationDecision.Authorized)
+        val stopped = accepted.revoked(2_000L)
+        assertTrue(CampaignAuthorizationPolicy.authorize(stopped, request())
+            is CampaignAuthorizationDecision.Denied)
+    }
+
+    @Test
+    fun acceptedTaskContinuesAfterTwentyFourHoursWithoutAnotherApproval() {
+        val task = ClirCampaignSpec.acceptEnableTask("test-sim", 1_000L)
+        val decision = CampaignAuthorizationPolicy.authorize(task,
+            ClirCampaignSpec.enableRequest("test-sim"))
+        assertTrue(decision is CampaignAuthorizationDecision.Authorized)
+    }
+
+    @Test
     fun exactScopedRequestIsAuthorized() {
         val decision = CampaignAuthorizationPolicy.authorize(
             grant = grant(),
             request = request(),
-            nowEpochMs = 2_000L,
         )
 
         assertTrue(decision is CampaignAuthorizationDecision.Authorized)
@@ -56,16 +73,11 @@ class CampaignAuthorizationPolicyTest {
     }
 
     @Test
-    fun revokedAndExpiredGrantsFailClosed() {
+    fun revokedTasksFailClosed() {
         assertDenied(
             grant = grant().copy(revokedAtEpochMs = 1_500L),
             request = request(),
             expected = CampaignAuthorizationDenialReason.GRANT_REVOKED,
-        )
-        assertDenied(
-            grant = grant().copy(expiresAtEpochMs = 1_999L),
-            request = request(),
-            expected = CampaignAuthorizationDenialReason.GRANT_EXPIRED,
         )
     }
 
@@ -83,10 +95,24 @@ class CampaignAuthorizationPolicyTest {
         assertTrue(CampaignAuthorizationPolicy.authorize(
             grant = initial.copy(attemptsUsed = 100),
             request = request(),
-            nowEpochMs = 2_000L,
         ) is CampaignAuthorizationDecision.Authorized)
         assertEquals(Int.MAX_VALUE,
             initial.copy(attemptsUsed = Int.MAX_VALUE).withReservedAttempt().attemptsUsed)
+    }
+
+    @Test
+    fun startReusesTheSameAcceptedTaskButNeverWidensScopeOrRevivesByRetry() {
+        val accepted = ClirCampaignSpec.acceptEnableTask("test-sim", 1_000L)
+        val later = 1_000L + 7L * 24 * 60 * 60 * 1_000
+        assertTrue(accepted === ClirCampaignSpec.acceptEnableTask("test-sim", later, existing = accepted))
+        val cancelled = accepted.revoked(2_000L)
+        assertTrue(CampaignAuthorizationPolicy.authorize(cancelled,
+            ClirCampaignSpec.enableRequest("test-sim")) is CampaignAuthorizationDecision.Denied)
+        val otherAccount = ClirCampaignSpec.acceptEnableTask("other-sim", later, existing = accepted)
+        assertTrue(otherAccount.grantId != accepted.grantId)
+        assertEquals("other-sim", otherAccount.accountScope)
+        assertTrue(CampaignAuthorizationPolicy.authorize(accepted,
+            ClirCampaignSpec.enableRequest("other-sim")) is CampaignAuthorizationDecision.Denied)
     }
 
     private fun assertDenied(
@@ -97,7 +123,6 @@ class CampaignAuthorizationPolicyTest {
         val decision = CampaignAuthorizationPolicy.authorize(
             grant = grant,
             request = request,
-            nowEpochMs = 2_000L,
         )
         assertTrue(decision is CampaignAuthorizationDecision.Denied)
         assertEquals(expected, (decision as CampaignAuthorizationDecision.Denied).reason)
@@ -107,7 +132,6 @@ class CampaignAuthorizationPolicyTest {
         grantId = "grant-1",
         version = 1,
         createdAtEpochMs = 1_000L,
-        expiresAtEpochMs = 10_000L,
         revokedAtEpochMs = null,
         accountScope = "voice-subscription:1",
         allowedTargets = setOf("*100"),

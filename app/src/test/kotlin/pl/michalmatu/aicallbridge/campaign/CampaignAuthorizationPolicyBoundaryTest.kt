@@ -15,7 +15,7 @@ class CampaignAuthorizationPolicyBoundaryTest {
 
     private val grant = CampaignAuthorizationGrant(
         grantId = "grant", version = 1, createdAtEpochMs = 1000,
-        expiresAtEpochMs = 3000, revokedAtEpochMs = null,
+        revokedAtEpochMs = null,
         accountScope = "test-account", allowedTargets = setOf("*100"),
         allowedActions = setOf("SET_SERVICE"), allowedServices = setOf(CallService.CLIR),
         allowedEffectValues = setOf(true),
@@ -25,25 +25,23 @@ class CampaignAuthorizationPolicyBoundaryTest {
 
     @Test fun previousReservationsNeverExhaustUnchangedScope() {
         assertTrue(
-            CampaignAuthorizationPolicy.authorize(grant, request, 2000)
+            CampaignAuthorizationPolicy.authorize(grant, request)
                 is CampaignAuthorizationDecision.Authorized,
         )
         assertTrue(
             CampaignAuthorizationPolicy.authorize(
-                grant.copy(attemptsUsed = Int.MAX_VALUE), request, 2000,
+                grant.copy(attemptsUsed = Int.MAX_VALUE), request,
             ) is CampaignAuthorizationDecision.Authorized,
         )
     }
 
-    @Test fun inFlightReservationStillFailsOnRevocationExpiryOrWrongAccount() {
+    @Test fun inFlightReservationStillFailsOnRevocationOrWrongAccount() {
         listOf(
             Triple(grant.copy(revokedAtEpochMs = 1900L), request, 2000L),
-            Triple(grant, request, 3000L),
             Triple(grant, request.copy(accountScope = "another"), 2000L),
-            Triple(grant, request, 999L),
         ).forEach { (g, req, now) ->
             assertTrue(
-                CampaignAuthorizationPolicy.authorize(g, req, now)
+                CampaignAuthorizationPolicy.authorize(g, req)
                     is CampaignAuthorizationDecision.Denied,
             )
         }

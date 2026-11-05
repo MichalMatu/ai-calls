@@ -46,3 +46,10 @@ Historia wdrożeń/fizycznych QA: [RAW live](checkpoints/2026-11-04-raw-live-dia
 `LanguageModelCatalog` wiąże `DialogueModelId` z przypiętym plikiem, SHA-256, rozmiarem i źródłem. `LiteRtDialogueEngineProvider` przekazuje wybrany identyfikator do wspólnego istniejącego runtime i aplikacyjnej walidacji wyjścia. `AudioEngineProfileStore` pozostaje jedynym miejscem wyboru modelu; STT/TTS/głos są niezależne, aktywna rozmowa zachowuje snapshot. Readiness dotyczy wybranego pliku, bez fallbacku do E2B. Gemma Audio wskazuje jawnie E2B, niezależnie od modelu tekstowego.
 
 Nieeksportowany `LanguageModelTransferService` serializuje import i pobranie przez istniejący installer: rozmiar + SHA-256, staging, atomic move. Serwis nie wybiera modelu i nie posiada żadnej władzy nad połączeniami. Katalog UI wywołuje ten sam serwis z ekranu głównego i ustawień audio; poprzedni równoległy downloader E2B w MainActivity został usunięty. [Dowody i ograniczenia](checkpoints/2026-11-05-litert-model-catalog.md).
+
+
+## Przyjmowanie polecenia właściciela (F-062/F-065)
+
+Jawne polecenie Codexa przez istniejącą DUMP-chronioną DiagnosticProbeActivity i START w UI trafiają do tego samego `CampaignAgentControl.run`. Aplikacja przyjmuje/reużywa konkretny zakres zadania i uruchamia owned-call service. Nie ma oddzielnego grantu, dialogu ani czasowego TTL; podgląd niczego nie przyjmuje. Trwały pojedynczy zapis zakresu i mechanizmy rezygnacji pozostają w CampaignAuthorizationStore. Sama kontynuacja nie tworzy nowej zgody. Zakres nie przechodzi na inny cel/SIM/efekt/fakt.
+
+Dwa backendy dialogu mają oddzielne znaczenie: SCRIPT_GEMMA = PhraseMatrix → klasyfikacja Gemma → zatwierdzone teksty akcji/recovery; GEMMA_DIRECT = tekst modelu → wspólny aplikacyjny release/TTS. Parametr trybu jest przesyłany jawnie przez runner, a źródła/czasy obu backendów pozostają w metrykach. RAW nadal nie posiada brakującego adaptera FactRequest (F-048).

@@ -1,5 +1,12 @@
 # Security and privacy
 
+## Przyjęcie zadania bez dodatkowych grantów — 2026-11-05
+
+Polecenie użytkownika przekazane przez lokalny Codex jest przyjmowane przez aplikację jako konkretne zadanie. Jawny START z chronionej `android.permission.DUMP` ścieżki wykonawczej albo z UI przechodzi przez ten sam `CampaignAgentControl`: zapis dokładnego celu, efektu, SIM/konta i dozwolonych pól, następnie wykonanie. Nie ma osobnego przyznawania/odnawiania grantu, potwierdzenia na telefonie ani 24-godzinnego TTL. Podgląd/preflight nie przyjmuje zadania. Automatyczna kontynuacja korzysta z istniejącego zapisu i nie odtwarza cofnięcia; świeże polecenie użytkownika może przyjąć nowe zadanie. Wewnętrzny `CampaignAuthorizationStore` pozostaje jednym zapisem zakresu, a nie dodatkową procedurą zgody.
+
+Zachowane są rzeczywiste granice: uprawnienia Androida/Shizuku, wyłącznie własny Call, STOP/anulowanie, dokładny zakres, `FactDisclosurePolicy`, aplikacyjny release i pojedynczy `CallCommitmentGate`. Model i supervisor nie otrzymują prawa tworzenia zadań. Nagrania są osobną opcją diagnostyczną, przekazywaną w poleceniu lub UI, i nie warunkują rozmowy. Bieżący rejestr: [BLOCKERS](../BLOCKERS.md), F-062/F-065/F-066/F-067.
+
+
 ## Objective
 
 **Product goal clarification (2026-11-02):** autonomy means the local AI can place, conduct, resume and end its authorized ordinary phone calls, including legitimate user-authorized inquiries, reservations and account/service changes. A human initiating each call is a temporary test setup, not an intended permanent policy. Owner-approved engineering work may proceed without redundant confirmations; however neither this file nor that engineering mandate authorizes arbitrary external numbers, disclosures, purchases or mutations outside a concrete task. Apply the existing scoped, revocable grant and platform permissions to real effects. The formerly missing app-owned call controller is now implemented and S22 live RAW dialogue has been observed; this is not proof of carrier-side service modification or authorization to widen disclosure.
@@ -45,7 +52,7 @@ Do not create per-service commitment gates such as `ClirCommitmentGate`.
 
 ## Durable campaign grant
 
-The autonomous product mode implements an explicit durable, scoped, revocable campaign grant owned by application policy. The grant is created/revoked locally, persisted privately, bound to the current default voice subscription, and checked again immediately before an app-owned dial.
+The autonomous product mode implements an explicit durable, scoped, revocable campaign grant owned by application policy. The grant is created/revoked locally, persisted privately, bound to the current default voice subscription, and checked again immediately before an app-owned dial. Task acceptance comes directly from the owner START; no separate grant UI is required.
 
 A grant must bind at least:
 
@@ -53,7 +60,7 @@ A grant must bind at least:
 - allowed task/effect set;
 - account/SIM scope when relevant;
 - issue/revocation state;
-- optional retry/expiry bounds;
+- trwały zakres zadania i jawne anulowanie; bez sztucznego TTL lub limitu prób;
 - disclosure scope.
 
 When a valid grant already covers an unchanged retry, the product should not ask for another redundant confirmation. A material widening of target, task, effect, account or disclosure scope remains fail-closed.
@@ -104,7 +111,7 @@ Supervisor fallback is permitted only when an explicit developer path enables it
 ## Live-call policy
 
 
-**Ownership and result-evidence hold (2026-11-01):** `TelecomManager.isInCall()` / `AudioManager.MODE_IN_CALL` do not prove ownership, and `TelecomManager.endCall()` can terminate unrelated calls. Therefore app-owned CLIR dialing now fails closed before any call until an exact-call owner with targeted hangup exists. Carrier speech may create only a provisional claim; only independent network verification can close verified success. Fresh in-flight grant scope/expiry/revocation checks run during the dialogue and before commitment/disclosure/speech. See `docs/CORRECTION_CAMPAIGN_2026-11-01.md`.
+**Historia 2026-11-01:** brak identyfikacji własnego Call blokował wówczas autonomiczny start. Własny Call i selektywny teardown są teraz zaimplementowane i obserwowane na S22; stary hold nie jest aktywną przeszkodą. Niezależna weryfikacja skutku CLIR pozostaje wymagana przed stwierdzeniem sukcesu.
 
 A call must fail closed before dialing unless the exact task/target is covered by an accepted application authorization context and required readiness gates pass.
 

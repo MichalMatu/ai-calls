@@ -21,6 +21,7 @@ class PrimaryTaskEntryContractTest(unittest.TestCase):
         cls.campaign = (
             BASE / "campaign/CampaignToolActivity.kt"
         ).read_text(encoding="utf-8")
+        cls.control = (BASE / "campaign/CampaignAgentControl.kt").read_text(encoding="utf-8")
         cls.service = (
             BASE / "campaign/AppOwnedCampaignService.kt"
         ).read_text(encoding="utf-8")
@@ -39,19 +40,21 @@ class PrimaryTaskEntryContractTest(unittest.TestCase):
         )
         self.assertIn("addView(startAuthorizedTaskButton)", self.main)
 
-    def test_existing_permission_and_grant_checks_are_not_bypassed(self):
+    def test_start_accepts_exact_task_without_a_second_grant_dialog(self):
         self.assertIn("savedInstanceState == null", self.campaign)
         self.assertIn(
             "intent.getBooleanExtra(EXTRA_START_AUTHORIZED_CAMPAIGN, false)",
             self.campaign,
         )
         self.assertIn("ensurePermissionsThen(PendingAction.START)", self.campaign)
-        self.assertIn("CampaignAuthorizationPolicy.authorize(", self.campaign)
-        self.assertIn("showAuthorizationConfirmation(continueWithStart = true)", self.campaign)
+        self.assertIn("CampaignAuthorizationPolicy.matchesExactTask(", self.campaign)
+        self.assertNotIn("showAuthorizationConfirmation", self.campaign)
+        self.assertIn("ClirCampaignSpec.acceptEnableTask(", self.control)
+        self.assertIn("store.save(ClirCampaignSpec.acceptEnableTask(", self.control)
         self.assertIn("requestCallRole(continueWithStart = true)", self.campaign)
         self.assertIn(
             ".setAction(AppOwnedCampaignService.ACTION_START_CLIR_ENABLE)",
-            self.campaign,
+            self.control,
         )
         self.assertIn("continuationStore.load()", self.service)
         self.assertIn("ACTION_STOP_ALL_AI", self.service)

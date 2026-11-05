@@ -195,6 +195,35 @@ transcript=private-account-123
         self.assertEqual(cycle.report["live_rx_tx"], "REAL_PIPELINE_COUNTERS_PRESENT")
         self.assertEqual(cycle.report["pipeline_metrics"]["stt_turns"], 1)
 
+    def test_direct_model_counters_are_preserved_and_count_as_technical_pipeline(self):
+        raw = ("telephony_rx_pcm_bytes=1000\ntelephony_tx_pcm_bytes=500\n"
+               "turn_1_stt_chars=20\nturn_1_approved_chars=40\n"
+               "turn_1_direct_action=SPEAK\nturn_1_direct_response_source=GEMMA_DIRECT_RAW\n"
+               "turn_1_direct_inference_ms=1234\nturn_1_eos_to_first_tx_ms=1800\n"
+               "gemma_action_decision_count=0\nprobe_complete=true\n")
+        metrics = parse_pipeline_metrics(raw)
+        self.assertEqual(metrics["direct_model_turns"], 1)
+        self.assertEqual(metrics["direct_inference_ms"], [1234])
+        self.assertEqual(metrics["eos_to_tx_ms"], [1800])
+        self.assertTrue(technical_pipeline_evidence(metrics))
+        self.assertNotIn("transcript", metrics)
+
+    def test_explicit_dialogue_and_recording_choice_reach_the_app_command(self):
+        from unittest.mock import patch
+        cycle = LocalCycle.__new__(LocalCycle)
+        commands = []
+        def adb(*args, **kwargs):
+            commands.append(args)
+            return "campaign_agent_start=DISPATCHED_TO_INTERNAL_SERVICE\n"
+        cycle.adb_run = adb
+        with patch("aicall_tools.diagnostics.s22_autoloop.time.sleep", return_value=None):
+            cycle.app_command("run_campaign_agent_start", "GEMMA_DIRECT", True)
+        dispatched = commands[1]
+        self.assertIn("pl.michalmatu.aicallbridge.extra.CAMPAIGN_DIALOGUE_MODE", dispatched)
+        self.assertIn("GEMMA_DIRECT", dispatched)
+        self.assertIn("record_call_evidence", dispatched)
+        self.assertEqual(dispatched[-1], "true")
+
     def test_observer_window_never_forces_campaign_stop(self):
         import inspect
         code = inspect.getsource(LocalCycle.authorized_call)
@@ -204,12 +233,12 @@ transcript=private-account-123
     def test_no_authority_and_incomplete_probe_cannot_pass(self):
         report = {
             "final_idle": True,
-            "campaign_readiness": "NO_VALID_EXACT_GRANT",
+            "campaign_readiness": "NO_VOICE_SUBSCRIPTION",
             "probes": {"speech": "CALLBACK_OBSERVED"},
         }
         self.assertEqual(
             cycle_verdict(report, call_requested=True, probes_skipped=True),
-            "NOT_EXECUTED_NO_VALID_CAMPAIGN_AUTHORITY",
+            "NOT_EXECUTED_TASK_NOT_READY",
         )
         self.assertEqual(
             cycle_verdict(report, call_requested=False, probes_skipped=False),
@@ -222,14 +251,14 @@ transcript=private-account-123
             "campaign_agent_start=NOT_REQUESTED\n"
             "target=+48123123123\n"
             "transcript=Hello world\n"
-            "campaign_agent_scope=EXISTING_GRANT_ONLY\n"
+            "campaign_agent_scope=OWNER_TASK_ON_START\n"
         )
         self.assertEqual(
             read_report(report),
             {
                 "campaign_agent_readiness": "READY",
                 "campaign_agent_start": "NOT_REQUESTED",
-                "campaign_agent_scope": "EXISTING_GRANT_ONLY",
+                "campaign_agent_scope": "OWNER_TASK_ON_START",
             },
         )
 

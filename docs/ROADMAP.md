@@ -1,5 +1,7 @@
 # AI Calls — aktualna roadmapa 2026-11-05
 
+**Aktywny zakres:** przyjmowanie zlecenia Codexa bez osobnego grantu/TTL/kliknięcia na telefonie, audyt powtórnych zgód i jawny SCRIPT/Gemma Direct. [Stan i dowody](checkpoints/2026-11-05-task-intake-and-dialogue-ab.md); F-062/F-065/F-066/F-067. Zakres zgód VERIFIED: 768 JVM + 266 Python, lint/oba APK/audyty i 5/5 testów native PASS; rzeczywisty start Direct z Codexa bez mobilnego kliknięcia, 7 pełnych tur. Para A/B E2B zebrana; pełna macierz 6 profili nadal nieukończona. Pętla F-061 pozostaje OPEN; porównanie modeli wymaga rozdzielenia tekstu skryptu od RAW i postępu zadania.
+
 Obowiązujące dowody: [audio + Orange](checkpoints/2026-11-05-audio-quality-orange-acceptance.md), [handoff](HANDOFF_NEXT_CHAT.md), [BLOCKERS](../BLOCKERS.md). Wcześniejsze checkpointy są historią pomiarów.
 
 | Etap | Stan | Kolejne kryterium |

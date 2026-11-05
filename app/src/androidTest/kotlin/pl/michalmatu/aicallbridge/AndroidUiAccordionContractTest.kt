@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
@@ -64,10 +65,10 @@ class AndroidUiAccordionContractTest {
         ActivityScenario.launch(CampaignToolActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                assertTrue(findButton(root, "Authorize CLIR enable campaign")!!.isShown)
-                assertTrue(findButton(root, "Start authorized CLIR enable")!!.isShown)
+                assertNull(findButton(root, "Authorize CLIR enable campaign"))
+                assertTrue(findButton(root, "Rozpocznij zadanie: włącz CLIR — skrypt + model")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
-                assertTrue(findButton(root, "Revoke campaign grant")!!.isShown)
+                assertTrue(findButton(root, "Anuluj zadanie")!!.isShown)
 
                 val dialerBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:dialer"))
                 val supervisedBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:supervised"))
