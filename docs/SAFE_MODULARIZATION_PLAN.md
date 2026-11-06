@@ -15,6 +15,8 @@ Funkcjonalny baseline: dwie rzeczywiste rozmowy A8→S22 potwierdziły end_call 
 - Zawsze zachować dokładne powody zakończenia, jednorazowy dispatch narzędzia, odpowiednią diagnostykę, prywatne transkrypty/audio tylko na urządzeniu/Macu.
 - Każda zmiana ma własny zakres, test i commit main [skip ci]. Jeden etap = jedna odpowiedzialność. Nie łączyć refaktoryzacji z nowymi funkcjami.
 
+**Stan etapu 0:** zakończony — [mapa zależności i green baseline](checkpoints/2026-11-06-mod-stage0-baseline.md). Kod produkcyjny pozostaje bez zmian.
+
 ## Etap 0 — kontrakt zerowy i mapa zależności (bez zmiany produkcyjnego flow)
 
 **Zmiana:** wskazać wejścia i zależności głównych adapterów; utrwalić istniejące testy z nazwami przypadków i wynikami. Nie powielać już wykonanych fizycznych rozmów. W razie brakującego testu dodać tylko deterministyczne kontrakty dla: end_call po playback, 30+15 s, mowa podczas grace, STT no-match, nowa generacja, STOP/takeover i cofnięcie autoryzacji. Odróżniać już istniejące pokrycie od luki. Dodać niewielki statyczny test granic importów jedynie tam, gdzie zapobiega realnej regresji.
