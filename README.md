@@ -1,5 +1,7 @@
 # AI Calls
 
+**Aktualny stan 2026-11-06:** end_call na S22 zweryfikowano w dwóch połączeniach; 30+15 s ciszy ma host/native PASS i fizyczne potwierdzenie operatora, 40 sesji, IDLE, 0 błędów. Szczegółowy timeline ostatniej próby jeszcze nieodczytany. Aktualne źródło: [reaudyt](docs/checkpoints/2026-11-06-quality-modularity-reaudit.md) i [handoff](docs/HANDOFF_NEXT_CHAT.md).
+
 **Modułowa aplikacja testowa Android** do porównywania STT, modeli językowych, dialogu ze skryptem i bez, instrukcji oraz TTS. Docelowy autonomiczny flow powstanie z elementów sprawdzonych w tych testach. Wspólny tor: własny Android Telecom `Call`, wymienne STT → model/strategia → TTS, zakres zadania/STOP, osobny dowód skutku i raport. Orange/CLIR jest jednym scenariuszem.
 
 ## Zakres laboratorium i modułowość — decyzja 2026-11-05
@@ -23,9 +25,9 @@ Polecenie testu z Codexa trafia do jednego aplikacyjnego START zadania. Usunięt
 - **LiteRT-LM 0.19.0** i [katalog modeli w aplikacji](docs/checkpoints/2026-11-05-litert-model-catalog.md): Gemma 4 E2B/E4B oraz Qwen3 1.7B/0.6B. Pobieranie z postępem/anulowaniem, import pliku, weryfikacja SHA-256 i wybór na następną rozmowę, bez zmiany STT/TTS/głosu. Wejście: „Modele językowe” na ekranie głównym lub przycisk katalogu w ustawieniach silników audio.
 - **S22 native:** E2B, E4B i Qwen3 1.7B — polska odpowiedź i schemat JSON PASS. Qwen3 0.6B zainstalowany; błędna odpowiedź kontrolna po polsku, model eksperymentalny (F-059), bez cichego fallbacku.
 
-## Wcześniejszy dowód audio i Orange
+## Historyczne QA audio/Orange (nie aktualny APK)
 
-- **Zainstalowany na Samsung S22+ APK:** źródło `da09ea23618ccfb29704f0f52088b1472a28b30c`. Podpis zgodny, instalacja z zachowaniem danych. Lokalnie 705 app JVM + 263 Python, build/lint/audyty PASS.
+- **Historyczny, wcześniejszy APK testowany na S22+:** źródło `da09ea23618ccfb29704f0f52088b1472a28b30c`. Podpis zgodny, instalacja z zachowaniem danych. Lokalnie 705 app JVM + 263 Python, build/lint/audyty PASS.
 - **Jeden debug bridge** (wspólny moduł i ekran) + jedna konsola Mac `scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py`: odczyt stanu/błędów, readiness profilu, bezpieczny zapis/reset profilu, cofanie istniejącego grantu, wyłączenie nagrywania, prywatny eksport oraz off-call instrumentacje. Nie umożliwia nadpisywania surowych grantów lub obchodzenia STOP/zgód.
 - **Polska mowa syntetyczna:** Parakeet i Gemma Audio po naprawie F-056 — po 3 próbki, 0/16 błędów słów i 0/127 błędów znaków. To wynik małego zestawu syntetycznego, nie naturalnego korpusu. M4 nadal nie ma pełnego backendu rozmowy audio.
 - **Piper:** oficjalny APK 1.1 i polska Gosia zainstalowane; native TTS odtwarza błąd wyboru głosu w zewnętrznym silniku, F-057 OPEN.
@@ -38,6 +40,4 @@ Polecenie testu z Codexa trafia do jednego aplikacyjnego START zadania. Usunięt
 - [USB/ADB diagnostic bridge](docs/USB_DEBUG_BRIDGE.md) · [ROADMAP](docs/ROADMAP.md) · [ARCHITEKTURA](docs/ARCHITECTURE.md)
 - [AGENTS](AGENTS.md) · [BLOCKERS](BLOCKERS.md) · [SECURITY_PRIVACY](docs/SECURITY_PRIVACY.md) · [Indeks dokumentacji](docs/README.md)
 
-**Wykonanie:** zgodnie z decyzją właściciela z 2026-11-04 rozwój i testy prowadzi lokalny Codex na Macu, bezpośrednio przez Git, Gradle i USB/ADB. Codex nie zleca pracy Local Agentowi; ten tryb jest zarezerwowany dla ChatGPT. Bez konkurencyjnych mutacji. `main`, `[skip ci]`, bez Work/Actions/force-push. Udzielone uprawnienia deweloperskie nie są grantem na połączenia lub skutki zewnętrzne.
-
-Lokalna bramka hosta: `bash scripts/verify_host.sh`. Konsola telefonu: `python3 scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py status`; pozostałe komendy i warunki testów opisuje [USB debug bridge](docs/USB_DEBUG_BRIDGE.md).
+**Wykonanie ChatGPT w tym zakresie:** GitHub Connector + Mac Local Agent, bez Codex/Work/GitHub Actions. Odróżniaj historyczne dowody od aktualnego stanu i zawsze odśwież HEAD oraz status S22.

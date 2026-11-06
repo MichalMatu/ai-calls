@@ -6,7 +6,13 @@
 
 ## Bieżący podział runtime
 
-[CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) opisuje wdrożony podział: AndroidConversationRuntime + ConversationScenario, oddzielne przygotowanie skills/danych i live/history chat. CLIR jest adapterem aplikacyjnego scenariusza, bez reguł Orange w silniku mediów. Profile INCOMING/OUTGOING i kompilator ról są wspólne; [Adapter odbierania](INCOMING_ASSISTANT.md) jest zaimplementowany wraz z niezależnym rdzeniem JVM conversation-core i manual/przejęciem; fizyczne QA pozostaje pending. [Nowe QA](checkpoints/2026-11-05-conversation-modules.md).
+[CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) opisuje wdrożony podział: AndroidConversationRuntime + ConversationScenario, oddzielne przygotowanie skills/danych i live/history chat. CLIR jest adapterem aplikacyjnego scenariusza, bez reguł Orange w silniku mediów. Profile INCOMING/OUTGOING i kompilator ról są wspólne; [Adapter odbierania](INCOMING_ASSISTANT.md) jest zaimplementowany wraz z niezależnym rdzeniem JVM conversation-core i manual/przejęciem; fizyczne end_call i podstawowy INCOMING zweryfikowane, manual/przejęcie/STOP jeszcze QA_PENDING. [Nowe QA](checkpoints/2026-11-05-conversation-modules.md).
+
+## Granice modułowe — aktualizacja 2026-11-06
+
+Sześć modułów Gradle: app, audio-bridge, privileged-helper, realtime-client, conversation-core (czysty JVM) i conversation-tools (czysty JVM). Z 220 plików produkcyjnych Kotlin 197 nadal jest w app. AndroidConversationRuntime ma 815 linii i 7 użyć produkcyjnych; CallRealtimeSessionOrchestrator 758 linii i 4 użycia. To aktywne komponenty, nie potwierdzony zbędny kod. Przenosić neutralne reguły i polityki do istniejących bibliotek krok po kroku, z migracją konsumentów i regresją, bez zmian zamrożonego toru Samsung/Shizuku.
+
+[Metryki i backlog](checkpoints/2026-11-06-quality-modularity-reaudit.md). Incoming 30 s ostrzeżenia + 15 s czasu reakcji przechodzi przez ten sam approval/TTS, a finalny end_call przez istniejący executor po pełnym TX.
 
 ## Granice i źródła prawdy
 
