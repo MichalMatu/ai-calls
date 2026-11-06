@@ -63,3 +63,7 @@ Fizyczne S22 QA: **7/7 testów UI PASS**, w tym osiem ekranów i krótki syntety
 ## Korekta menu po fizycznych zrzutach S22
 
 `2f58adf` i `312db7a` naprawiają F-102 na ekranie głównym. Host 272 Python/lint/APK PASS, fizyczny S22 8/8 PASS (kontrast, insets, sekcje, czat, historia, niezmienione ustawienia). [Checkpoint](checkpoints/2026-11-06-menu-visual-s22-ux-acceptance.md). Nadal potrzebne: ręczna ocena wyglądu, spójne podstrony oraz docelowe zakładki; nie łączyć z F-080.
+
+## i18n + spójne podstrony — rozpoczęty sprint
+
+Fundament: `UiDesign`, PL/EN string resources, jasny panel rozmowy i testy kluczy/kontrastu. Host 275 Python PASS; fizyczny S22 QA_PENDING ze względu na ADB. Następne: przełącznik języka Auto/PL/EN, Android 10-12 fallback + Android 13 per-app locale, następnie migracja podstron partiami (bez zmiany runtime). [Receipt](checkpoints/2026-11-07-i18n-dock-foundation-host.md). F-103 OPEN.

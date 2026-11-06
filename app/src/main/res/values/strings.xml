@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live_chat_title">Rozmowa na żywo</string>
+    <string name="live_chat_inactive">Brak aktywnej rozmowy</string>
+    <string name="live_chat_clear">Wyczyść widok</string>
+    <string name="live_chat_history">Historia</string>
+    <string name="live_chat_expand">Rozwiń czat</string>
+    <string name="live_chat_collapse">Zwiń czat</string>
+    <string name="live_chat_private_preview">Prywatny podgląd rozmowy na żywo</string>
+    <string name="live_chat_clear_description">Wyczyść lokalny widok czatu bez przerywania rozmowy</string>
+    <string name="live_chat_listening">Nasłuch trwa. Rozpoznane wypowiedzi i tekst modelu pojawią się tutaj.</string>
+    <string name="live_chat_hint">Otwórz rozmowę. Tutaj zobaczysz STT rozmówcy, odpowiedzi AI i status TX.</string>
+    <string name="ui_language_label">Język aplikacji</string>
+    <string name="ui_language_auto">Automatyczny (systemowy)</string>
+    <string name="ui_language_polish">Polski</string>
+    <string name="ui_language_english">English</string>
+    <string name="ui_language_hint">Język interfejsu nie zmienia języka rozmowy AI ani STT/TTS.</string>
+    <string name="ui_language_title">Język i wygląd</string>
+    <string name="ui_back">Wróć</string>
+    <string name="ui_settings">Ustawienia</string>
+    <string name="ui_basic">Podstawowe</string>
+    <string name="ui_secretary">Sekretarka</string>
+    <string name="ui_skills">Skills i presety</string>
+    <string name="ui_laboratory">Laboratorium</string>
+    <string name="ui_advanced">Zaawansowane</string>
+    <string name="ui_conversations">Rozmowy i nagrania</string>
+    <string name="ui_lab_short">Laboratorium offline</string>
+    <string name="ui_campaigns">Kampanie</string>
+    <string name="ui_stop_ai">STOP AI</string>
+    <string name="ui_start_authorized">Rozpocznij autoryzowane zadanie AI</string>
+    <string name="ui_go_to">Przejdź do</string>
+    <string name="ui_audio_mode">Tryb rozmowy</string>
+    <string name="ui_text_model">Model tekstowy (dla trybu STT / TTS)</string>
+    <string name="ui_engines">Silniki STT / model / TTS</string>
+    <string name="ui_models">Modele: pobierz, importuj, wybierz</string>
+    <string name="ui_microphone">Dostęp do mikrofonu</string>
+    <string name="ui_identity">Numer telefonu i dane</string>
+    <string name="ui_subtitle">Asystent połączeń</string>
+</resources>

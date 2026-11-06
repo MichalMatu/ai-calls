@@ -67,3 +67,7 @@ Na trzech osobnych, zielonych etapach opublikowano: `b448ace` (pięć sekcji ust
 ## S22 menu readability — F-102
 
 Po dwóch zrzutach właściciela skorygowano kontrast i hierarchię startowego ekranu, zwijanie sekcji/czatu i bezpieczne Android insets. `2f58adf`, `312db7a`; pełny Mac gate PASS 272 Python i natywna matryca na S22 8/8 PASS bez połączeń, zachowany podpis APK i dane. F-102 VERIFIED tylko dla zakresu menu głównego. Nie powtarzać zaakceptowanych testów bez nowych zmian; następna praca UX: podstrony, nawigacja i ręczna ocena wyglądu. [Checkpoint](checkpoints/2026-11-06-menu-visual-s22-ux-acceptance.md). F-080 pozostaje OPEN. Bieżący HEAD zawsze odczytać z main.
+
+## I18n PL/EN — foundation, S22 unavailable (2026-11-07)
+
+Przygotowany jest wspólny `UiDesign`, zasoby PL/EN i jasny kompaktowy panel czatu; Mac gate (275 Python, AndroidTest, lint/APK, anti-friction) PASS. [Receipt](checkpoints/2026-11-07-i18n-dock-foundation-host.md). Task `aicalls-20261107-i18n-dock-s22-acceptance-v1` FAILED na preflight `exact_s22_adb_transport_unavailable` — brak instalacji i QA fizycznego. Nie powtarzać do odzyskania S22. Brak jeszcze przełącznika języka i migracji podstron, F-103 OPEN. Wznowić z faktycznego main HEAD; nie zmieniać STT/TTS, Call ani prywatnych nagrań.

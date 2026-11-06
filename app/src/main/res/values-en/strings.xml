@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live_chat_title">Live conversation</string>
+    <string name="live_chat_inactive">No active conversation</string>
+    <string name="live_chat_clear">Clear view</string>
+    <string name="live_chat_history">History</string>
+    <string name="live_chat_expand">Expand chat</string>
+    <string name="live_chat_collapse">Collapse chat</string>
+    <string name="live_chat_private_preview">Private live conversation preview</string>
+    <string name="live_chat_clear_description">Clear local chat view without interrupting the call</string>
+    <string name="live_chat_listening">Listening. Speech recognition and model replies appear here.</string>
+    <string name="live_chat_hint">Start a conversation to view recognized speech, AI replies, and TX status.</string>
+    <string name="ui_language_label">App language</string>
+    <string name="ui_language_auto">Automatic (system)</string>
+    <string name="ui_language_polish">Polski</string>
+    <string name="ui_language_english">English</string>
+    <string name="ui_language_hint">The interface language does not change the AI conversation or STT/TTS languages.</string>
+    <string name="ui_language_title">Language and appearance</string>
+    <string name="ui_back">Back</string>
+    <string name="ui_settings">Settings</string>
+    <string name="ui_basic">Basic</string>
+    <string name="ui_secretary">Secretary</string>
+    <string name="ui_skills">Skills and presets</string>
+    <string name="ui_laboratory">Laboratory</string>
+    <string name="ui_advanced">Advanced</string>
+    <string name="ui_conversations">Conversations and recordings</string>
+    <string name="ui_lab_short">Offline laboratory</string>
+    <string name="ui_campaigns">Campaigns</string>
+    <string name="ui_stop_ai">STOP AI</string>
+    <string name="ui_start_authorized">Start authorized AI task</string>
+    <string name="ui_go_to">Go to</string>
+    <string name="ui_audio_mode">Call mode</string>
+    <string name="ui_text_model">Text model (STT / TTS mode)</string>
+    <string name="ui_engines">STT / model / TTS engines</string>
+    <string name="ui_models">Models: download, import, select</string>
+    <string name="ui_microphone">Microphone access</string>
+    <string name="ui_identity">Phone number and identity</string>
+    <string name="ui_subtitle">Call assistant</string>
+</resources>

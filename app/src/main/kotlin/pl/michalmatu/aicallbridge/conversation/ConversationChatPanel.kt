@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.os.Handler
 import android.os.Looper
 import android.text.format.DateFormat
@@ -27,9 +29,9 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
     private var expanded = initiallyExpanded
 
     private val statusLabel = TextView(context).apply {
-        text = "Brak aktywnej rozmowy"
+        text = context.getString(R.string.live_chat_inactive)
         textSize = 12f
-        setTextColor(Color.rgb(196, 205, 221))
+        setTextColor(UiDesign.secondary)
         setPadding(dp(14), 0, dp(14), dp(9))
     }
 
@@ -50,29 +52,35 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
     }
 
     private val clearButton = Button(context).apply {
-        text = "Wyczyść widok"
+        text = context.getString(R.string.live_chat_clear)
         textSize = 11f
         isAllCaps = false
         visibility = if (expanded) View.VISIBLE else View.GONE
         setOnClickListener { ConversationChatFeed.clearVisibleHistory() }
-        contentDescription = "Wyczyść lokalny widok czatu bez przerywania rozmowy"
+        contentDescription = context.getString(R.string.live_chat_clear_description)
     }
 
     private val toggle = Button(context).apply {
         tag = "live-chat-toggle"
-        contentDescription = if (expanded) "Zwiń czat" else "Rozwiń czat"
-        text = if (expanded) "▾" else "▸"
-        textSize = 16f
+        contentDescription = context.getString(if (expanded) R.string.live_chat_collapse else R.string.live_chat_expand)
+        text = if (expanded) "⌃" else "⌄"
+        textSize = 22f
         isAllCaps = false
-        minWidth = 0
-        minimumWidth = 0
+        minWidth = dp(48)
+        minimumWidth = dp(48)
+        minHeight = dp(48)
+        minimumHeight = dp(48)
+        gravity = Gravity.CENTER
+        setTextColor(UiDesign.ink)
+        background = UiDesign.surfaceDrawable(context, UiDesign.softAccent, 10)
+        setPadding(0, 0, 0, 0)
         setOnClickListener {
             expanded = !expanded
             messageScroll.visibility = if (expanded) View.VISIBLE else View.GONE
             clearButton.visibility = if (expanded) View.VISIBLE else View.GONE
             statusLabel.visibility = if (expanded || ConversationChatFeed.snapshot().active) View.VISIBLE else View.GONE
-            text = if (expanded) "▾" else "▸"
-            contentDescription = if (expanded) "Zwiń czat" else "Rozwiń czat"
+            text = if (expanded) "⌃" else "⌄"
+            contentDescription = context.getString(if (expanded) R.string.live_chat_collapse else R.string.live_chat_expand)
         }
     }
 
@@ -86,28 +94,38 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
 
     init {
         orientation = VERTICAL
-        setBackgroundColor(Color.rgb(14, 23, 39))
+        tag = "live-chat-dock"
+        background = UiDesign.surfaceDrawable(context, UiDesign.surface, 16)
         elevation = dp(4).toFloat()
-        contentDescription = "Prywatny podgląd rozmowy na żywo"
+        contentDescription = context.getString(R.string.live_chat_private_preview)
 
         val heading = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), dp(4), dp(6), 0)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
             addView(TextView(context).apply {
-                text = "ROZMOWA NA ŻYWO"
+                text = context.getString(R.string.live_chat_title)
                 textSize = 14f
                 setTypeface(null, Typeface.BOLD)
-                setTextColor(Color.WHITE)
+                setTextColor(UiDesign.ink)
             }, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-            addView(clearButton)
             addView(Button(context).apply {
-                text = "Historia"; textSize = 11f; isAllCaps = false
+                text = context.getString(R.string.live_chat_history)
+                textSize = 12f
+                isAllCaps = false
+                setTextColor(UiDesign.ink)
+                background = UiDesign.surfaceDrawable(context, UiDesign.softAccent, 10)
                 setOnClickListener { context.startActivity(android.content.Intent(context, ConversationHistoryActivity::class.java)) }
-            })
-            addView(toggle)
+            }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(44)).apply { rightMargin = dp(8) })
+            addView(toggle, LayoutParams(dp(48), dp(48)))
         }
         addView(heading, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        addView(LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.END
+            setPadding(dp(16), 0, dp(16), 0)
+            addView(clearButton)
+        })
         addView(statusLabel)
         statusLabel.visibility = if (expanded) View.VISIBLE else View.GONE
         addView(messageScroll)
@@ -139,12 +157,12 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
         if (snapshot.lines.isEmpty()) {
             messages.addView(TextView(context).apply {
                 text = if (snapshot.active) {
-                    "Nasłuch trwa. Rozpoznane wypowiedzi i tekst modelu pojawią się tutaj."
+                    context.getString(R.string.live_chat_listening)
                 } else {
-                    "Otwórz rozmowę. Tutaj zobaczysz STT rozmówcy, odpowiedzi AI i status TX."
+                    context.getString(R.string.live_chat_hint)
                 }
                 textSize = 13f
-                setTextColor(Color.rgb(170, 185, 203))
+                setTextColor(UiDesign.secondary)
                 setPadding(dp(5), dp(12), dp(5), dp(10))
             })
         } else {

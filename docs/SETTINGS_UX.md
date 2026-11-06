@@ -44,3 +44,9 @@ Prawdziwy wspólny pasek zakładek i spójne karty Material dla ekranów podrzę
 Poprawiono kontrast, tła pól STT/LLM, złożone sekcje i czat, system bars (API 29+), hierarchię start/Kampanie/STOP i skróty Rozmowy/Laboratorium, polskie etykiety home. Kod `2f58adf` + `312db7a`. **Mac host PASS (272 Python), S22 fizyczne 8/8 UI PASS**, bez kasowania danych i połączeń. [Dane testów i ograniczenia](checkpoints/2026-11-06-menu-visual-s22-ux-acceptance.md).
 
 Ekrany podrzędne i wspólny docelowy pasek nawigacji to następny zakres UX. Pełny recorder/player F-080 nadal OPEN.
+
+## Fundament i18n PL/EN i jasnego panelu czatu (2026-11-07)
+
+`values/strings.xml` i `values-en/strings.xml` mają parytet kluczy; `UiDesign` jest wspólną warstwą prezentacji, a dok czatu ma jasną kartę i przycisk rozwijania 48 dp. **Mac host PASS: 275 Python, AndroidTest compile, lint/APK i anti-friction. S22 QA_PENDING:** brak transportu ADB, bez instalacji. [Receipt](checkpoints/2026-11-07-i18n-dock-foundation-host.md).
+
+To dopiero fundament: użytkownik nie ma jeszcze przełącznika Auto/PL/EN, pozostałe podstrony wymagają migracji. Nigdy nie wiązać języka UI z STT/TTS lub językiem wypowiedzi AI.
