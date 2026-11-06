@@ -38,7 +38,7 @@ flowchart TD
 | `ConversationChatFeed` / `ConversationChatPanel` | Prywatny widok aktywnej rozmowy, neutralne role rozmówcy/modelu/skryptu i token chroniący przed spóźnionymi callbackami |
 | `RecordedConversationHistory` / `ConversationHistoryActivity` | Czytnik istniejących prywatnych timeline; bez kopiowania transkryptów do drugiej bazy i bez limitu liczby sesji/wypowiedzi |
 
-`ConversationOutcome.Completed` opisuje zakończenie scenariusza; nie zastępuje osobnego dowodu skutku zewnętrznego ani zakończenia workflow. Model nie otrzymuje interfejsu tworzenia tego wyniku lub upoważnienia.
+`ConversationOutcome.Completed` opisuje zakończenie scenariusza; nie zastępuje osobnego dowodu skutku zewnętrznego ani zakończenia workflow. Model nie otrzymuje interfejsu tworzenia tego wyniku lub upoważnienia. Etap 2 modularizacji zamknięto jako NO_CHANGE: outcome i granica transcript/playback pozostają przy aplikacyjnym scenariuszu, a typowane zakończenie w JVM core. [Dowód](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md).
 
 ## Przygotowanie i dane a uprawnienia
 

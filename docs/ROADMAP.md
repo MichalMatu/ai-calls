@@ -8,11 +8,9 @@
 - Etap 1: przeniesienie czystego IncomingIdleTimeout do conversation-core, rozdzielenie testów JVM i playback oraz dwa nowe kontrakty czasowe — PASS; [dowód](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md).
 - Produkcyjna sekretarka, własny Call i dwie fizyczne sekwencje end_call — potwierdzone. Timeout 30+15 s potwierdzony przez właściciela; pełny timeline tej sesji jeszcze QA_PENDING.
 
-## Najbliższy etap: 2 — typowane wyniki rozmowy
+## Etap 2 — ukończony: NO_CHANGE / PASS
 
-1. Sprawdzić konsumentów ConversationOutcome i ConversationOutcomeBoundary (po pięć plików produkcyjnych), ConversationRunResult (trzy) i istniejącego ConversationTermination w core; nie zakładać, że trzeba przenosić wszystko.
-2. Wybrać **jeden** niezależny od Androida kontrakt do przeniesienia do conversation-core albo udokumentować powód odroczenia. Bez zmiany semantyki końca rozmowy, STOP, callbacków czy narzędzi.
-3. Celowane JVM → pełny host gate/lint/APK → odpowiedni native compile; commit na main [skip ci] i własny checkpoint. Bez wdrażania na S22 i połączeń fizycznych dla zwykłej migracji typu.
+Pełna mapa wyników rozmowy 5/5/3 i `ConversationTermination` wykazała brak uzasadnionego nowego wydzielenia. Kod pozostał nietknięty. Celowane JVM, AndroidTest compile, pełna bramka hosta (266 Python), product friction i clean Git PASS. [Dowód](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md).
 
 ## Potem, w oddzielnych małych sprintach
 

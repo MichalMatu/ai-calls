@@ -1,6 +1,6 @@
 # AI Calls — handoff do nowego czatu (2026-11-06)
 
-**Stan źródła przed checkpointem:** main 0fb9c52d20df93a86744ae341fe5fda4d6c78498, zgodny z origin i czysty; końcowy commit dokumentacji może go przesunąć. W nowym czacie pobierz **świeży HEAD**, nie zakładaj SHA. [Kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md) · [Gotowy prompt](NEXT_CHAT_PROMPT.md).
+**Zweryfikowany bazowy HEAD etapu 2:** main 06fdd75c7db8949aa64e5a5fb17f124853f7403b = origin/main, clean przed dokumentacją; jeden nowy commit dokumentacyjny etapu 2 przesunie HEAD. W nowym czacie pobierz **świeży HEAD**, nie zakładaj SHA. [Kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md) · [Gotowy prompt](NEXT_CHAT_PROMPT.md).
 
 ## Zamknięte
 
@@ -9,16 +9,18 @@
 - Fizyczny INCOMING/end_call: dwie wcześniejsze rozmowy A8→S22 potwierdziły REQUESTED→VALIDATED→DISPATCHED→CONFIRMED i END/COMPLETE. Właściciel potwierdził też samorozłączenie po ciszy 30+15 s. Ostatni bezpieczny odczyt: 40 sesji, IDLE, zero błędów, kampania/retry nieaktywne. Szczegółowy timeline tej ostatniej rozmowy **nieodczytany**.
 - **S22 nadal używa wcześniejszego sprawdzonego APK** (przed etapem 1). Nowego APK po przeniesieniu klasy nie instalowano ani nie wykonywano kolejnej rozmowy.
 
-## Kolejny i jedyny punkt rozwojowy
+## Etap 2 — DONE / PASS / NO_CHANGE
 
-**Etap 2: typowane wyniki rozmowy.** Na początek sprawdź referencje ConversationOutcome i ConversationOutcomeBoundary (po 5 plików produkcyjnych), ConversationRunResult (3) i ConversationTermination w core. Po potwierdzeniu opłacalności przenieś **najwyżej jeden** czysty typ/kontrakt do conversation-core; zmigruj wszystkich konsumentów, testy i importy, bez zmiany zachowania. Jeśli brak korzyści, zapisz NO_CHANGE z uzasadnieniem. [Plan i gates](SAFE_MODULARIZATION_PLAN.md).
+Na świeżym bazowym HEAD zmapowano `ConversationOutcome` (5 produkcyjnych plików), `ConversationOutcomeBoundary` (5), `ConversationRunResult` (3) i istniejący JVM `ConversationTermination`. Żaden kolejny przenoszony typ nie zmniejsza dziś sprzężenia: wynik scenariusza jest wyłącznie w app, boundary zależy od playback, a run result obejmuje raport/evidence/chat token. Nie zmieniono produkcyjnego kodu ani testów. Celowany JVM, kompilacja AndroidTest, pełny host (266 Python), product friction i clean Git **PASS**. [Checkpoint z mapą i receipts](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md).
+
+**Dalsza praca:** etap 3 jest następnym osobnym zakresem; nie uruchomiono go w tej sesji. Nowy czat musi odczytać świeży HEAD i claims.
 
 ## Granice wykonania i dowodów
 
 - Repo: MichalMatu/ai-calls; branch main; commity [skip ci]. Mac checkout: /Users/michal/agent-workspace/repos/ai-calls/work.
 - Pracuj w trybie **GitHub Connector + Mac Local Agent**, bez Codex/ChatGPT Work/GitHub Actions, force-push i nowych gałęzi. Przed taskiem sprawdź aktualny protokół Local Agent, claims i clean HEAD; nie wykonywać konkurencyjnych mutacji.
 - Nie dotykać Samsung/Shizuku/PCM/PFD, modelu ani TTS, end_call po TX, polityk zakresu, STOP, takeover, starych prywatnych dowodów. Nie powtarzać fizycznych testów lub ukończonej bramki bez nowej przesłanki; nowa zmiana wymaga własnego GREEN.
-- Etap 2: celowane JVM + scripts/verify_host.sh i audit_product_friction, w razie zmiany Android importów kompilacja AndroidTest; dokumentacja i czysty commit. Rozróżniaj host QA od fizycznego PROVEN_S22.
+- Etap 2 zamknięty jako NO_CHANGE; celowane JVM, pełny host, product friction i kompilacja AndroidTest PASS. W nowym etapie stosować te same bramki do nowej zmiany. Rozróżniaj host QA od fizycznego PROVEN_S22.
 - Wciąż osobno QA_PENDING: manual/TAKE OVER/powrót AI/STOP, głos po ostrzeżeniu i szczegółowy timeline timeoutu. F-080 i F-044/F-045/F-048 to backlog funkcjonalny; statusy defektów tylko w [BLOCKERS](../BLOCKERS.md).
 
 ## Przeczytać

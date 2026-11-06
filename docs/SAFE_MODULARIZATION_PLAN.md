@@ -14,11 +14,13 @@
 - Jeden runtime, jeden mechanizm narzędzi, jeden tor polityk i jedna baza dowodów. Nie kopiować runnerów, magazynów ani wrapperów kompatybilnościowych bez potrzeby.
 - Nie modyfikować wielu odpowiedzialności naraz. Jeden mały zakres i jeden commit na main. Nie zmieniać zachowania podczas refaktoryzacji struktur.
 
-## Etap 2 — następny, wyłącznie typowane wyniki
+## Etap 2 — DONE / NO_CHANGE: typowane wyniki
 
 Zidentyfikować użycia ConversationOutcome/ConversationOutcomeBoundary w pięciu plikach produkcyjnych app, ConversationRunResult w trzech i ConversationTermination w istniejącym core. Wydzielić najwyżej jeden kontrakt czystej logiki do conversation-core **tylko jeśli** zmniejsza sprzężenie. Zostawić Android runtime, recorder i callbacki platformowe w app. Zmienić wszystkie bezpośrednie importy oraz dopasować testy bez dodatkowych aliasów.
 
 **Akceptacja:** zachowanie COMPLETED/FAILED/STOP/CALL_ENDED/HUMAN_TAKEOVER/POLICY_REVOKED/OWNERSHIP_CHANGED, brak spóźnionego TX i podwójnego finish; testy JVM i pełny scripts/verify_host.sh, audit_product_friction, kompilacja AndroidTest w razie zmiany importów. Jeżeli bilans zależności jest niekorzystny, zakończyć etap dokumentowanym NO_CHANGE zamiast sztucznego refaktoru.
+
+**Wynik 2026-11-06:** NO_CHANGE po dokładnej mapie 5/5/3. Żaden z typów Outcome/Boundary/RunResult nie ma konsumenta core, a RunResult jest związany z raportem/evidence/chat token. ConversationTermination już jest w core. Celowane JVM, AndroidTest compile, pełny host i friction PASS (266 Python); bez zmian kodu i bez S22. [Checkpoint](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md).
 
 ## Etap 3 — AndroidConversationRuntime
 
