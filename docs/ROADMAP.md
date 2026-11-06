@@ -26,6 +26,8 @@ Obowiązujące dowody: [audio + Orange](checkpoints/2026-11-05-audio-quality-ora
 
 [Runtime i warstwy danych/czatu](CONVERSATION_RUNTIME.md) są wydzielone w kodzie; [QA](checkpoints/2026-11-05-conversation-modules.md). [Moduł odbierania](INCOMING_ASSISTANT.md) dostarcza adapter konkretnego przychodzącego Call i przyjętą politykę, używając tego samego runtime, przygotowania i czatu. Niezależne conversation-core i conversation-tools mają granice kompilacji JVM; podstawowy INCOMING i end_call fizycznie zaakceptowane, ale manual/przejęcie/STOP wymagają odrębnego testu. Same profile nie odbierają telefonu.
 
+**Refaktoryzacja bez zmiany zachowania:** [SAFE_MODULARIZATION_PLAN](SAFE_MODULARIZATION_PLAN.md): etap 0 mapa i kontrakty, etap 1 przeniesienie czystego IncomingIdleTimeout do conversation-core, później małe migracje wyników i odpowiedzialności, każda z testami/rollback. Bez zmian zamrożonego Samsung/Shizuku.
+
 ## Następna kolejność
 
 1. **Domknięcie manual/przejęcia/STOP:** podstawowy INCOMING i automatyczne end_call działają; osobno sprawdzić przekazanie Call człowiekowi, powrót AI, STOP i wznowienie dialogu po ostrzeżeniu zamiast rozłączenia. Nie ponawiać bazowego dialogu bez nowej przesłanki.
