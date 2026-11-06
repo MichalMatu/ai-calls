@@ -32,7 +32,7 @@ Ostatni prywatny zbiór F-091 zawiera 8 `SPEAK` i 0 `END_CALL` w czterech plikac
 
 ## F-091 — poprawa decyzji o zamknięciu (source/host PASS)
 
-Przed zmianą native off-call rzeczywistego modelu na wcześniej zainstalowanym APK: PASS, 41 s. Nowy kontekstowy kontrakt end_call i negatywna historia „kolejna sprawa” przeszły RED→GREEN JVM, AndroidTest compile, full host i friction. Zmiana nie dotyka wykonawcy połączeń. **Fizyczna jakość modelu na nowym APK nadal QA_PENDING; bez instalacji i bez dzwonienia.** [Checkpoint](checkpoints/2026-11-06-f091-semantic-closure-source.md).
+Przed zmianą native off-call rzeczywistego modelu na wcześniej zainstalowanym APK: PASS, 41 s. Nowy kontekstowy kontrakt end_call i negatywna historia „kolejna sprawa” przeszły RED→GREEN JVM, AndroidTest compile, full host i friction. Zmiana nie dotyka wykonawcy połączeń. **Historycznie przed instalacją nowego APK fizyczny pomiar był QA_PENDING; następnie na S22 zainstalowano `e8db8db` i uzyskano native off-call PASS. Live-call nadal QA_PENDING.** [Checkpoint](checkpoints/2026-11-06-f091-semantic-closure-source.md).
 
 ## Równoległy backlog funkcjonalny — nie mieszać z refaktorem
 
@@ -44,8 +44,12 @@ Przed zmianą native off-call rzeczywistego modelu na wcześniej zainstalowanym 
 
 ## Gemma skills/presets/lab MVP — 2026-11-06
 
-Zaimplementowano wersjonowane instrukcje, fabryczne i własne presety, edycję w APK oraz lokalny, wieloturowy test bez telefonu. Source/host PASS pod warunkiem zielonego checkpointu, fizyczny S22 QA_PENDING. [Opis](SKILLS_AND_LAB.md).
+Zaimplementowano wersjonowane instrukcje, fabryczne i własne presety, edycję w APK oraz lokalny, wieloturowy test bez telefonu. Source/host PASS, fizyczny S22 native off-call 3/3 PASS; manualna naturalność i live-call nadal QA_PENDING. [Opis](SKILLS_AND_LAB.md).
 
 ## Skills Gemmy — matryca S22 off-call 2026-11-06
 
 Trzy presety i izolowany zapis/rollback przetestowane native, bez realnego połączenia. [Metryki](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md). Manualna naturalność i live-call osobno.
+
+## Pełny checkpoint jakości — 2026-11-06
+
+[Audyt kodu, dokumentacji i testów](checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md): bazowy HEAD `1d260d8`, host JVM/lint/APK/AndroidTest PASS, 266 Python, audyty PASS, 90/90 linków. Następny etap to ręczne QA edytora i naturalności bez połączeń.
