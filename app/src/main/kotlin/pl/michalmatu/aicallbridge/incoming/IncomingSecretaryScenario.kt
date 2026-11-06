@@ -20,6 +20,12 @@ internal class IncomingSecretaryScenario(
     override val direction = ConversationDirection.INCOMING
     override val mode = ConversationRuntimeMode.OWNED_TASK
     override val responseKind = ConversationChatFeed.ResponseKind.MODEL_DIRECT
+    override val idlePolicy = ConversationIdlePolicy(
+        silenceMs = 30_000L,
+        graceMs = 15_000L,
+        warningText = "Czy chcą Państwo kontynuować rozmowę? Jeśli nie usłyszę odpowiedzi, zakończę połączenie.",
+        farewellText = "Nie słyszę odpowiedzi. Kończę połączenie. Do widzenia.",
+    )
     override fun readinessFailure(): String? = null
     override fun open(hooks: ConversationRuntimeHooks): ConversationDialogueSession {
         val task = CallTask("Przyjmij wiadomość", "TAKE_MESSAGE", "incoming",
@@ -40,6 +46,7 @@ internal class IncomingSecretaryScenario(
             "Dzień dobry, tu wirtualna asystentka właściciela telefonu. W jakiej sprawie Państwo dzwonią?",
         )
         return object : ConversationDialogueSession by session {
+            override fun armIdleClosure(): Boolean = session.armIdleClosure()
             override fun finalDiagnostics() = session.finalDiagnostics() + "incoming_secretary_external_effects=false"
         }
     }

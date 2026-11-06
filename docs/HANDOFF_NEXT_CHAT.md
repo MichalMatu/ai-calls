@@ -1,4 +1,11 @@
-# AI Calls — aktualny handoff 2026-11-06, kontrolowany INCOMING i testy native
+# AI Calls — handoff 2026-11-06: 30 s ciszy i kontrolowane end_call
+
+**Stan bieżący:** kod bazowy main e993b78cd509428d44f99baf6c1297d5b86fa020 przed nowym commitem; ukończono 30 s aktywnego nasłuchu bez głosu, następnie ostrzeżenie TTS oraz 15 s na odpowiedź i pożegnanie zakończone istniejącym, autoryzowanym end_call po pełnym TX. Mechanizm dotyczy wyłącznie INCOMING, nie liczy czasu modelu, TTS ani odtwarzania. Wykrycie głosu resetuje licznik, retry STT bez mowy zachowuje deadline. Test RED→GREEN, pełny host PASS, S22 native rzeczywisty Android TTS i regresja end_call 2/2 PASS; APK podpisany zgodnie i zainstalowany bez usuwania danych, postcheck IDLE/profil/grant niezmienione. Fizyczna próba 30+15 s podczas rozmowy pozostaje QA_PENDING. [Nowy checkpoint](checkpoints/2026-11-06-incoming-idle30.md).
+
+**Dwie poprzednie rzeczywiste próby A8→S22:** obie potwierdziły end_call etapami REQUESTED/VALIDATED/DISPATCHED/CONFIRMED i END/COMPLETE, z końcem własnego Call. F-091/F-098 VERIFIED w tym zakresie. F-099 obejmuje nowy fallback, nie jest jeszcze fizycznie przyjęty. Rozmów manualnych/STOP nie uznawać za przetestowane. Prywatne transkrypty i WAV wyłącznie na S22/Macu.
+
+## Poprzedni handoff — dane historyczne
+
 
 **Najnowsza ocena transkryptu:** po ponownym podłączeniu odczytano dwie kolejne rozmowy. Ostatnia 143,4 s / 6 tur modelu / 7 pełnych TX, bez błędu modelu i zapisu, COMPLETE; zachowana wiadomość, poprawna korekta terminu i podsumowanie. F-091 potwierdzone fizycznie: model rozpoznaje zakończenie, lecz po ostatniej odpowiedzi rusza RX tury 7, zamiast disconnect. Status OPEN, bez poprawki kodu. [Szczegóły i receipts](checkpoints/2026-11-06-controlled-incoming.md). Postcheck IDLE/kampania nieaktywna/retry false, profil Android STT/E2B/TTS i AI zachowane, 36 sesji. Prywatne transkrypty/audio w katalogu transcript-review, poza Git. Następny zakres implementacji: naturalne zakończenie F-091 razem z przyczynami cyklu życia F-089; nie zmieniać tego w regułę dopasowania samych słów.
 

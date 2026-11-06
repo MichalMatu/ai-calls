@@ -1,5 +1,9 @@
 # Odbieranie AI, manual i przejęcie
 
+## Aktualizacja: end_call i ostrzeżenie przy bezczynności (2026-11-06)
+
+Dwa rzeczywiste połączenia A8→S22 potwierdziły skuteczne end_call (REQUESTED, VALIDATED, DISPATCHED, CONFIRMED) po odtworzeniu pożegnania oraz kompletny prywatny recorder. Po jawnej decyzji właściciela przychodząca sekretarka otrzymała dodatkową politykę 30 s ciszy w aktywnym RX, następnie komunikat „Czy chcą Państwo kontynuować rozmowę? Jeśli nie usłyszę odpowiedzi, zakończę połączenie.”. Brak głosu przez dalsze 15 s rzeczywistego nasłuchu uruchamia zatwierdzone pożegnanie TTS i ten sam end_call po pełnym TX. Nie liczy czasu generacji modelu ani odtwarzania, reaguje na głos, zachowuje upoważnienie/STOP/przejęcie, nie dotyka zamrożonego toru PCM/Samsung. Testy host i S22 native TTS PASS; rzeczywisty timeout na połączeniu QA_PENDING. [Checkpoint](checkpoints/2026-11-06-incoming-idle30.md).
+
 ## Zakres wdrożenia
 
 Nowy moduł obsługuje przychodzący Call otrzymany przez istniejący AndroidOwnedInCallService. Użytkownik wybiera manual albo AI dla konkretnego konta telefonicznego/SIM. Tryb domyślny jest manualny. Zapisanie trybu AI przyjmuje odwoływalną politykę sekretarki dla wybranego konta; nie wymaga kolejnego potwierdzenia każdego telefonu ani whitelisty numerów.

@@ -2,6 +2,10 @@
 
 [Plan dalszego składania](PRODUCT_ASSEMBLY_PLAN.md) rozdziela profil użytkownika, konkretne zadanie, rozszerzalne skillsy/instrukcje i archiwum. Opisane poniżej moduły są obecnie granicami logicznymi w aplikacji; osobne biblioteki będą wydzielane przy pionowych integracjach. [Adapter odbierania](INCOMING_ASSISTANT.md) wdraża manual/AI/przejęcie ze wspólnym silnikiem i osobnym rdzeniem JVM conversation-core; fizyczna kwalifikacja pozostaje QA_PENDING.
 
+## Opcjonalna polityka ciszy dla INCOMING — 2026-11-06
+
+ConversationScenario udostępnia wyłącznie dla sekretarki przychodzącej politykę czasową 30 s aktywnego nasłuchu + ostrzeżenie + 15 s czasu na odpowiedź. IncomingIdleTimeout liczy tylko monotoniczny czas otwartego RX, nie model/TTS, i nie resetuje się przy bezmownym retry STT. Oba komunikaty przechodzą ten sam output approval i TTS/TX; dopiero po finalnym TX aplikacja proponuje end_call przez dotychczasowego wykonawcę w aktualnym Call/grancie. [Checkpoint](checkpoints/2026-11-06-incoming-idle30.md). Fizyczna cisza/hangup nadal QA_PENDING.
+
 ## Granice modułów
 
 `conversation/AndroidConversationRuntime` jest jedynym wykonawcą potoku mowy i cyklu sesji. Przyjmuje `ConversationScenario`, nie tworzy zadania CLIR, celu Orange, danych abonenta ani zezwoleń skutków. Używa dotychczasowych adapterów STT/TTS i zamrożonego Samsung/Shizuku. Stary ChatRelayLiveCallProbe został przeniesiony, a wszyscy bieżący callerzy i audyty zmigrowani; brak drugiego runnera lub wrappera starego API. Nazwa prywatnego raportu/protokół diagnostyczny pozostają wspólne z istniejącymi narzędziami.

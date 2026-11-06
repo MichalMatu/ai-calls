@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolExecutor
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
@@ -21,6 +22,7 @@ internal class ToolCallingConversationSession(
     // The text controller cancels its model backend after approval, before TX.
     // Save the approved proposal here; never dispatch until playback completion.
     private val approvedTool = AtomicReference<ConversationToolId?>(null)
+    private val appIdleClosureArmed = AtomicBoolean(false)
     override val awaitToolCompletion get() = awaitingTool
     override val backend = ConversationReplyBackend(model) { reply, elapsed, error ->
         hooks.decisionSink.record(hooks.turn(), reply?.tool?.name ?: if (error) null else "SPEAK", responseSource, elapsed, error)
@@ -29,11 +31,22 @@ internal class ToolCallingConversationSession(
     override val approvalPolicy = TextOutputApprovalPolicy { speech ->
         val decision = releasePolicy.evaluate(speech)
         val proposed = backend.takeTool()
-        approvedTool.set(if (decision == TextOutputDecision.RELEASE) proposed else null)
+        val appIdleClose = appIdleClosureArmed.getAndSet(false)
+        approvedTool.set(if (decision == TextOutputDecision.RELEASE) {
+            if (appIdleClose) ConversationToolId.END_CALL else proposed
+        } else null)
         decision
     }
     override fun start() = Unit
-    override fun beginTurn() { approvedTool.set(null) }
+    override fun beginTurn() {
+        approvedTool.set(null)
+        appIdleClosureArmed.set(false)
+    }
+    override fun armIdleClosure(): Boolean {
+        if (!hooks.authorized() || awaitingTool) return false
+        appIdleClosureArmed.set(true)
+        return true
+    }
     override fun onTranscript(turn: Int, text: String) = Unit
     override fun takeOutcome(boundary: ConversationOutcomeBoundary): ConversationOutcome? {
         if (boundary != ConversationOutcomeBoundary.PLAYBACK_COMPLETE) return null
@@ -53,5 +66,8 @@ internal class ToolCallingConversationSession(
     override fun recordTurnDiagnostics(turn: Int) = Unit
     override fun finalDiagnostics() = listOf("conversation_tool_completion_pending_at_runtime_end=$awaitingTool",
         "conversation_tool_diagnostic_delivery_failed=${tools.diagnosticDeliveryFailed}")
-    override fun close() { approvedTool.set(null) }
+    override fun close() {
+        approvedTool.set(null)
+        appIdleClosureArmed.set(false)
+    }
 }

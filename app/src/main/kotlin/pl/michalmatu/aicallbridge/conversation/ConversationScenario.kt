@@ -29,12 +29,20 @@ internal data class ConversationRuntimeHooks(
     val toolEventSink: (ConversationToolEvent) -> Unit,
 )
 /** Call direction and preparation belong to a scenario; media and Telecom do not. */
+internal data class ConversationIdlePolicy(
+    val silenceMs: Long,
+    val graceMs: Long,
+    val warningText: String,
+    val farewellText: String,
+)
+
 internal interface ConversationScenario {
     val id: String
     val preparationId: String
     val direction: ConversationDirection
     val mode: ConversationRuntimeMode
     val responseKind: ConversationChatFeed.ResponseKind
+    val idlePolicy: ConversationIdlePolicy? get() = null
     fun readinessFailure(): String?
     fun open(hooks: ConversationRuntimeHooks): ConversationDialogueSession
 }
@@ -48,6 +56,8 @@ internal interface ConversationDialogueSession {
     fun beginTurn()
     fun onTranscript(turn: Int, text: String)
     fun takeOutcome(boundary: ConversationOutcomeBoundary): ConversationOutcome?
+    /** Only authorized app-owned idle-closure speech may arm a future playback-bound tool. */
+    fun armIdleClosure(): Boolean = false
     fun turnBudgetOutcome(): ConversationOutcome
     fun recordTurnDiagnostics(turn: Int)
     fun finalDiagnostics(): List<String>

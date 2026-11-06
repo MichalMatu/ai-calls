@@ -157,6 +157,9 @@ internal object AndroidConversationRuntime {
             "timestamp_utc=${Instant.now()}",
             "private_audio_recording=${evidenceRecorder != null}",
         ))
+        private val idlePolicy = scenario.idlePolicy
+        private val idleTimeout = idlePolicy?.let { IncomingIdleTimeout(it.silenceMs, it.graceMs) }
+        private var idlePromptTurn = -1
         private val finished = AtomicBoolean(false)
         private val stopRequested = AtomicReference<ConversationStopReason?>(null)
         private var currentTurn = 0
@@ -209,6 +212,7 @@ internal object AndroidConversationRuntime {
         ) {
             val latest = AtomicReference(initial)
             val complete = AtomicBoolean(false)
+            val voiceNoticed = AtomicBoolean(false)
         }
         private val activeRxCapture = AtomicReference<ActiveRxCapture?>(null)
         private var liveChatToken = 0L
@@ -344,6 +348,7 @@ internal object AndroidConversationRuntime {
                 return
             }
             currentTurn = turnsCompleted + 1
+            idlePromptTurn = -1
             silenceWindows = 0L
             dialogue.beginTurn()
             turnStartedAtMs = SystemClock.elapsedRealtime()
@@ -433,7 +438,8 @@ internal object AndroidConversationRuntime {
                 }
             }
 
-        private fun responseKind() = if (currentTurn == 0 && dialogue.openingText != null)
+        private fun responseKind() = if (currentTurn == idlePromptTurn ||
+            (currentTurn == 0 && dialogue.openingText != null))
             ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED else scenario.responseKind
 
         private fun beginCaptureInputTurn(
@@ -466,6 +472,11 @@ internal object AndroidConversationRuntime {
                         total += length
                         endpoint = detector.acceptPcm16(bytes, 0, length)
                         capture.latest.set(endpoint)
+                        // First detected voice (one non-silent 20 ms frame) cancels the idle limit.
+                        // Do not wait for an entire recognized transcript to preserve the call.
+                        if (endpoint.estimatedSpeechEndMs != null && capture.voiceNoticed.compareAndSet(false, true)) {
+                            idleTimeout?.heardVoice()
+                        }
                         return !endpoint.shouldStop && !finished.get()
                     }
 
@@ -521,6 +532,40 @@ internal object AndroidConversationRuntime {
                         }
                     }
                 })
+                val guard = idleTimeout
+                val policy = idlePolicy
+                if (guard != null && policy != null) {
+                    val remaining = guard.remainingMs(SystemClock.elapsedRealtime())
+                    handler.postDelayed({
+                        if (finished.get() || currentTurn != turn || activeMediaGeneration.get() != generation ||
+                            activeRxCapture.get() !== capture || capture.complete.get()) return@postDelayed
+                        if (capture.latest.get().estimatedSpeechEndMs != null) {
+                            guard.heardVoice()
+                            return@postDelayed
+                        }
+                        if (!authorizedNow()) {
+                            finish(authorityTermination())
+                            return@postDelayed
+                        }
+                        val due = guard.expire(SystemClock.elapsedRealtime()) ?: return@postDelayed
+                        if (!pump.abandonActiveCapture()) return@postDelayed
+                        idlePromptTurn = currentTurn
+                        when (due) {
+                            IncomingIdleTimeout.Action.WARN -> {
+                                lines += "incoming_idle_warning_triggered=true"
+                                pipeline.speakCandidate(policy.warningText, turnListener(generation, lease))
+                            }
+                            IncomingIdleTimeout.Action.CLOSE -> {
+                                lines += "incoming_idle_closure_triggered=true"
+                                if (!dialogue.armIdleClosure()) {
+                                    fail("incoming_idle_closure_not_authorized")
+                                    return@postDelayed
+                                }
+                                pipeline.speakCandidate(policy.farewellText, turnListener(generation, lease))
+                            }
+                        }
+                    }, remaining)
+                }
             } catch (error: Throwable) {
                 capture.complete.set(true)
                 activeRxCapture.compareAndSet(capture, null)
