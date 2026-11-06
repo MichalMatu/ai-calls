@@ -23,5 +23,17 @@ Nie wykonujemy połączeń, nie uruchamiamy STT/TTS i nie wykonujemy żadnego na
 Skill to instrukcja, a nie upoważnienie. Android Telecom, STOP, grant, FactDisclosurePolicy i aplikacyjny executor pozostają właścicielami efektów.
 Zamrożone Samsung/Shizuku/PFD audio nie zostało zmienione.
 GREEN źródła wymaga celowanych JVM, kompilacji AndroidTest, pełnego verify_host, audytu product friction i czystego commita.
-Instalacja nowego APK i rzeczywista jakość Gemmy na S22 pozostają QA_PENDING.
+APK z commita e8db8db jest zainstalowane na S22, a F-091 off-call i natywna matryca trzech presetów PASS. Ocena naturalności i faktyczne rozmowy nadal QA_PENDING.
 F-080/F-048/F-045/F-047 oraz fizyczny F-091 nie są w tym sprincie zamknięte.
+
+## Matryca S22 — 2026-11-06
+
+Model GEMMA_4_E2B; 4 historie / 12 tur na preset.
+
+| Preset | END_CALL poprawny | Za wcześnie | Brak końca | Pytania: heur. | Generacja średnia | Inicjalizacja |
+|---|---:|---:|---:|---:|---:|---:|
+| natural | 12/12 | 0 | 0 | 3 | 7029 ms | 8 ms |
+| formal | 12/12 | 0 | 0 | 3 | 11012 ms | 8 ms |
+| message | 12/12 | 0 | 0 | 3 | 12361 ms | 18 ms |
+
+[Wynik i ograniczenia](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md).

@@ -45,3 +45,7 @@ Przed zmianą native off-call rzeczywistego modelu na wcześniej zainstalowanym 
 ## Gemma skills/presets/lab MVP — 2026-11-06
 
 Zaimplementowano wersjonowane instrukcje, fabryczne i własne presety, edycję w APK oraz lokalny, wieloturowy test bez telefonu. Source/host PASS pod warunkiem zielonego checkpointu, fizyczny S22 QA_PENDING. [Opis](SKILLS_AND_LAB.md).
+
+## Skills Gemmy — matryca S22 off-call 2026-11-06
+
+Trzy presety i izolowany zapis/rollback przetestowane native, bez realnego połączenia. [Metryki](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md). Manualna naturalność i live-call osobno.

@@ -13,3 +13,5 @@
 Pozostałe pliki w checkpoints to historia pomiarów, nie nowe polecenia pracy. Prywatne WAV, numery i transkrypty nie należą do Git.
 
 - [Skills i presety Gemmy — Laboratorium](SKILLS_AND_LAB.md): instrukcje, wersje, testy off-call.
+
+- [S22: trzy presety skillsów, native off-call](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md) — metryki i zakres potwierdzonych testów.
