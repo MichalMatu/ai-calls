@@ -60,7 +60,7 @@ Receipts:
 
 ## 4. Dokumentacja / rozbieżności do synchronizacji
 
-Aktualne źródła prawdy: [AGENTS](../../AGENTS.md), [BLOCKERS](../../BLOCKERS.md), [architektura](../ARCHITECTURE.md), [Roadmapa](../ROADMAP.md), [Handoff](../HANDOFF_NEXT_CHAT.md), [kontrakt Skills](../SKILLS_AND_LAB.md). Starsze fragmenty `README.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md`, `docs/NEXT_CHAT_PROMPT.md` wciąż opisują stan sprzed instalacji `e8db8db` i część wcześniejszych TODO jako bieżące. Należy ujednolicić je z tym checkpointem, nie usuwać historycznych dowodów. `BLOCKERS.md` jest jedynym kanonicznym rejestrem defektów. Stan source PASS nie jest automatycznie real-call PASS.
+Aktualne źródła prawdy: [AGENTS](../../AGENTS.md), [BLOCKERS](../../BLOCKERS.md), [architektura](../ARCHITECTURE.md), [Roadmapa](../ROADMAP.md), [Handoff](../HANDOFF_NEXT_CHAT.md), [kontrakt Skills](../SKILLS_AND_LAB.md). Starsze fragmenty `README.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md`, `docs/NEXT_CHAT_PROMPT.md` zostały po publikacji tego checkpointu zsynchronizowane ze stanem APK `e8db8db` oraz wynikami S22. Historyczne wyniki i wcześniejsze zadania pozostają zachowane; datowane opisy nie są aktualnym zaleceniem powtórzenia testów. `BLOCKERS.md` jest jedynym kanonicznym rejestrem defektów. Stan source PASS nie jest automatycznie real-call PASS.
 
 ## 5. Otwarte / QA_PENDING
 
