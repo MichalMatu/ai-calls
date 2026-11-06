@@ -720,11 +720,7 @@ internal object AndroidConversationRuntime {
                     val trailing = last.estimatedSpeechEndMs?.let { speechEnd ->
                         (last.capturedMs - speechEnd).coerceAtLeast(0L)
                     }
-                    val cause = when (result) {
-                        ConversationTermination.Completed -> "DIALOGUE_COMPLETED"
-                        is ConversationTermination.Stopped -> result.reason.name
-                        is ConversationTermination.Failed -> "SESSION_ERROR"
-                    }
+                    val cause = result.rxInterruptionCode()
                     lines += "turn_${active.turn}_rx_interrupted=true"
                     lines += "turn_${active.turn}_rx_interrupted_capture_ms=${last.capturedMs}"
                     lines += "turn_${active.turn}_rx_interrupted_trailing_silence_ms=${trailing ?: -1L}"
