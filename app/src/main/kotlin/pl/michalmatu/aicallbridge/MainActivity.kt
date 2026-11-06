@@ -169,6 +169,11 @@ class MainActivity : Activity() {
                     pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java)) }
             })
         }
+        setupSection.addControl(Button(this).apply {
+            text = "Skills i presety Gemmy"
+            setOnClickListener { startActivity(Intent(this@MainActivity,
+                pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity::class.java)) }
+        })
         val diagnosticSection = UiAccordionSection(this, "diagnostics", "Diagnostyka developerska")
         // The supervised pilot is a diagnostic of an already active cellular call,
         // not the autonomous task START; keep it available without mislabelling it.

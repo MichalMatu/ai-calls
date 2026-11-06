@@ -22,6 +22,7 @@ internal object ConversationInstructionBuilder {
         val skills = preparation.skills.sortedBy { it.name }
             .joinToString("\n") { "- ${it.title}: ${it.guidance(preparation.direction)}" }
             .ifBlank { "- Brak dodatkowych instrukcji dialogowych; podstawowa rola pozostaje aktywna." }
+        val extensions = preparation.skillSnapshot?.instructions().orEmpty().ifBlank { "- Brak dodatkowych modułów." }
         val fields = preparation.dataFields.sortedBy { it.name }.joinToString { it.name }.ifBlank { "brak" }
         return """
             ROLA: $role
@@ -42,6 +43,9 @@ internal object ConversationInstructionBuilder {
 
             AKTYWNE SKILLS ROZMOWY (są instrukcjami, nie narzędziami):
             $skills
+
+            WERSJONOWANE SKILLS WYBRANEGO PRESETU (wyłącznie wskazówki językowe):
+            $extensions
 
             KONTEKST PRZYGOTOWANY PRZEZ UŻYTKOWNIKA:
             ${preparation.notes.ifBlank { "Brak dodatkowych informacji ogólnych." }}

@@ -41,3 +41,7 @@ Przed zmianą native off-call rzeczywistego modelu na wcześniej zainstalowanym 
 - F-044/F-045/F-048: ogólne zadania, zakres faktów, walidacja wypowiedzi i niezależne dowody skutków; porównawcze korpusy STT/model/TTS i późniejsza integracja w jednym APK.
 
 [Plan produktu](PRODUCT_ASSEMBLY_PLAN.md) · [Kwalifikacja laboratorium](TEST_LAB_SCOPE.md) · [Rejestr blockerów](../BLOCKERS.md) · [Handoff](HANDOFF_NEXT_CHAT.md). Historyczne pomiary modeli i Orange pozostają w checkpointach, nie w tym aktywnym harmonogramie.
+
+## Gemma skills/presets/lab MVP — 2026-11-06
+
+Zaimplementowano wersjonowane instrukcje, fabryczne i własne presety, edycję w APK oraz lokalny, wieloturowy test bez telefonu. Source/host PASS pod warunkiem zielonego checkpointu, fizyczny S22 QA_PENDING. [Opis](SKILLS_AND_LAB.md).

@@ -24,3 +24,7 @@ Modułowe laboratorium Android do porównywania STT, modeli językowych, strateg
 ## Testowanie
 
 Pełna bramka: **bash scripts/verify_host.sh**. Audyt ograniczeń: **python3 scripts/aicall_tools/diagnostics/audit_product_friction.py**. Testy fizyczne i ich prywatne dowody są osobne od host PASS; nie ponawiać zakończonych połączeń bez nowej przesłanki. W bieżącym trybie wykonania: GitHub Connector + Mac Local Agent, main, commity [skip ci], bez Codex/Work/GitHub Actions.
+
+## Skills i Laboratorium
+
+Edytowalne, wersjonowane instrukcje Gemmy, presety i laboratoryjne scenariusze off-call: [kontrakt](docs/SKILLS_AND_LAB.md).

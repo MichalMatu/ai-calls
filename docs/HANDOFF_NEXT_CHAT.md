@@ -46,3 +46,7 @@ Na HEAD 73702c6 preflight Mac DONE/0; pre-existing native model off-call na S22 
 ## Przeczytać
 
 [AGENTS](../AGENTS.md), [Architektura](ARCHITECTURE.md), [Runtime](CONVERSATION_RUNTIME.md), [Bezpieczeństwo](SECURITY_PRIVACY.md), [Freeze Samsung](PHASE2D_FREEZE_2026-09-18.md), [Roadmapa](ROADMAP.md), [Plan modularizacji](SAFE_MODULARIZATION_PLAN.md), [Checkpoint zamknięcia](checkpoints/2026-11-06-modularization-handoff-final.md). Checkpointy wcześniejsze są historią, nie poleceniami ponowienia.
+
+## Nowy sprint: wersjonowane skillsy i Laboratorium
+
+Na bazie 7a121657: sekcje MessageCapture, Clarification, NaturalClosure i ConversationStyle, fabryczne presety, kopie i historia wersji, per-call snapshot, modelowe off-call Laboratorium wieloturowe w menu. Source/host PASS tylko po zielonej bramce. S22 APK nadal stare; post-change native i fizyczny F-091 QA_PENDING. [Kontrakt](SKILLS_AND_LAB.md), [checkpoint](checkpoints/2026-11-06-gemma-skills-presets-lab-mvp.md). Aktualny HEAD zawsze sprawdzić; nie uruchamiać rozmów ani instalacji bez właściwego zakresu.

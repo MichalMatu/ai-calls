@@ -11,3 +11,5 @@
 **Błędy:** [BLOCKERS](../BLOCKERS.md) — jedyny rejestr statusów. **Dowody:** [etap 0](checkpoints/2026-11-06-mod-stage0-baseline.md) · [etap 1](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md) · [fizyczny timeout](checkpoints/2026-11-06-incoming-idle30.md) · [reaudyt](checkpoints/2026-11-06-quality-modularity-reaudit.md).
 
 Pozostałe pliki w checkpoints to historia pomiarów, nie nowe polecenia pracy. Prywatne WAV, numery i transkrypty nie należą do Git.
+
+- [Skills i presety Gemmy — Laboratorium](SKILLS_AND_LAB.md): instrukcje, wersje, testy off-call.

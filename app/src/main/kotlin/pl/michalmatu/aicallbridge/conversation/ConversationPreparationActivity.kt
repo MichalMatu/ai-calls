@@ -44,6 +44,11 @@ class ConversationPreparationActivity : Activity() {
                 setOnClickListener { profileId = id; showProfile() } })
         }
         content.addView(selector)
+        content.addView(Button(this).apply {
+            text = "Skills i presety Gemmy"
+            setOnClickListener { startActivity(Intent(this@ConversationPreparationActivity,
+                ConversationSkillsActivity::class.java)) }
+        })
         val profile = try { store.load(profileId) } catch (failure: Exception) {
             status.text = "Nie udało się odczytać profilu: ${failure.javaClass.simpleName}"; content.addView(status); return
         }

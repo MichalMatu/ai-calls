@@ -23,6 +23,8 @@ internal class AndroidConversationPreparationStore(
     }
     private val aead = AndroidKeystoreIdentityVaultAead(keyAlias)
     private val repository = ConversationPreparationRepository(::readRecord, ::writeRecord)
+    private val skillsRepository = ConversationSkillLibraryRepository(
+        { readRecord("skills-library-v1") }, { writeRecord("skills-library-v1", it) })
 
     init { synchronized(LOCK) {
         // One-shot data migration. The old mutable API/store is removed; configuration needs no grant.
@@ -37,8 +39,15 @@ internal class AndroidConversationPreparationStore(
         }
     } }
 
-    fun load(id: String) = synchronized(LOCK) { repository.load(id) }
+    fun load(id: String) = synchronized(LOCK) {
+        val stored = repository.load(id)
+        if (stored.direction == ConversationDirection.INCOMING)
+            stored.withSkillSnapshot(skillsRepository.load().snapshot())
+        else stored
+    }
     fun save(value: ConversationPreparation) = synchronized(LOCK) { repository.save(value) }
+    fun loadSkillLibrary() = synchronized(LOCK) { skillsRepository.load() }
+    fun saveSkillLibrary(value: ConversationSkillLibrary) = synchronized(LOCK) { skillsRepository.save(value) }
 
     private fun file(id: String): AtomicFile {
         val name = MessageDigest.getInstance("SHA-256").digest(id.toByteArray())

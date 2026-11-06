@@ -26,6 +26,7 @@ internal class ConversationPreparation(
     val notes: String,
     skills: Set<ConversationSkill>,
     dataFields: Set<IdentityFieldId>,
+    val skillSnapshot: ConversationSkillSnapshot? = null,
 ) {
     val skills = skills.toSet()
     val dataFields = dataFields.toSet()
@@ -33,7 +34,10 @@ internal class ConversationPreparation(
     fun scopedDataFields(allowed: Set<IdentityFieldId>) = dataFields.intersect(allowed)
 
     fun withSettings(notes: String, skills: Set<ConversationSkill>, fields: Set<IdentityFieldId>) =
-        ConversationPreparation(id, title, direction, notes, skills, fields)
+        ConversationPreparation(id, title, direction, notes, skills, fields, skillSnapshot)
+
+    fun withSkillSnapshot(snapshot: ConversationSkillSnapshot) =
+        ConversationPreparation(id, title, direction, notes, skills, dataFields, snapshot)
 
     override fun toString() = "ConversationPreparation(id=$id, direction=$direction, content=REDACTED)"
 
