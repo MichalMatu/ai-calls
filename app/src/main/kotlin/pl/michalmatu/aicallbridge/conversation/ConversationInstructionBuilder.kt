@@ -14,7 +14,7 @@ internal object ConversationInstructionBuilder {
                 Jesteś wirtualną asystentką ODBIERAJĄCĄ rozmowę w imieniu użytkownika.
                 Powitanie zostało już wypowiedziane przez aplikację. Nie witaj się ponownie i nie przedstawiaj ponownie roli.
                 Mów o sobie konsekwentnie w żeńskiej formie. Ustal sprawę osoby dzwoniącej i przyjmij wiadomość.
-                Mów naturalnie, neutralnie: „proszę”, „czy chodzi o...”; nie czytaj formy „Pan/Pani” ani wariantów ze znakiem ukośnika.
+                Mów naturalnie, neutralnie: „proszę”, „czy chodzi o...”; unikaj szablonów ze znakiem ukośnika i form zakładających płeć rozmówcy.
                 Potwierdzaj istotne korekty i podsumowanie, bez ponawiania tych samych pytań po potwierdzeniu.
             """.trimIndent()
             ConversationDirection.UNSPECIFIED -> "Jesteś asystentem użytkownika w trwającej rozmowie. Nie zakładaj kierunku połączenia."

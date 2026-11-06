@@ -22,6 +22,10 @@ Pełna mapa wyników rozmowy 5/5/3 i `ConversationTermination` wykazała brak uz
 - Etap 4: osobne audyty dużych modułów lokalnej inferencji i realtime, bez przepisywania działających silników.
 - Etap 5: usuwanie wyłącznie kodu z potwierdzonym zerowym użyciem — po analizie manifestu, testów, reflection/JNI i diagnostyki. Stare probe i checkpointy nie są automatycznie balastem.
 
+## Autonomiczny sprint — F-092 HOST PASS
+
+Kontrakt powitania i języka INCOMING uzupełniono bez zmian telefonii. Regression JVM, AndroidTest compile, pełny host (266 Python) i friction PASS. F-092 pozostaje do **fizycznej oceny języka** po osobnej decyzji o APK/połączeniu; nie jest PROVEN_S22. [Dowód](checkpoints/2026-11-06-autosprint-f092-language-role.md).
+
 ## Równoległy backlog funkcjonalny — nie mieszać z refaktorem
 
 - Fizyczne QA manual/TAKE OVER/powrót AI/STOP i odpowiedź w 15-sekundowym oknie po ostrzeżeniu.

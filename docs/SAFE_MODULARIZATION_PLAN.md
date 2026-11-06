@@ -1,6 +1,6 @@
 # AI Calls — bezpieczna modularizacja
 
-**Cel:** poprawić granice zależności, nie zmieniając działania połączeń. 197 plików Kotlin w app było liczbą **przed etapem 1**; obecnie jest 196. Są rozdzielone na pakiety, ale wiele niezależnych reguł nadal kompiluje się razem z Androidem. Nie optymalizować pod sztuczny limit liczby plików.
+**Cel:** poprawić granice zależności, nie zmieniając działania połączeń. 197 plików Kotlin w app było liczbą **przed etapem 1**; po etapie 3 kroku 1 jest 195. Są rozdzielone na pakiety, ale wiele niezależnych reguł nadal kompiluje się razem z Androidem. Nie optymalizować pod sztuczny limit liczby plików.
 
 ## Zrealizowane
 

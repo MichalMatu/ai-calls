@@ -10,6 +10,8 @@ class ConversationReplyProtocolTest {
         val preparation = ConversationPreparation.incoming().withSettings("", setOf(ConversationSkill.EXPLAIN_GOAL), emptySet())
         val prompt = ConversationInstructionBuilder.build(preparation, "Przyjmij wiadomość", ConversationResponseFormat.TOOL_REPLY)
         assertFalse(prompt.contains("Przedstaw rolę asystenta odbierającego"))
+        assertTrue(prompt.contains("Powitanie aplikacji przedstawiło już rolę asystentki"))
+        assertFalse(prompt.contains("Przy pierwszej odpowiedzi jasno przedstaw konkretny cel dzwoniącego"))
     }
 
     @Test fun decodesSpeechSeparatelyFromTypedToolProposal() {
@@ -76,7 +78,9 @@ class ConversationReplyProtocolTest {
         val prompt = ConversationInstructionBuilder.build(ConversationPreparation.incoming(), "Przyjmij wiadomość", ConversationResponseFormat.TOOL_REPLY)
         assertTrue(prompt.contains("asystentką"))
         assertTrue(prompt.contains("Powitanie zostało już"))
-        assertTrue(prompt.contains("Pan/Pani"))
+        assertFalse(prompt.contains("Pan/Pani"))
+        assertTrue(prompt.contains("Nie witaj się ponownie"))
+        assertTrue(prompt.contains("żeńskiej formie"))
         assertTrue(prompt.contains("end_call"))
         assertFalse(prompt.contains("Bez JSON"))
         val raw = ConversationInstructionBuilder.build(ConversationPreparation.outgoing(), "Cel", ConversationResponseFormat.SPOKEN_TEXT)
