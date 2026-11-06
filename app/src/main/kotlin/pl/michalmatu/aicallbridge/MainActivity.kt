@@ -134,51 +134,82 @@ class MainActivity : Activity() {
             }
         }
 
-        // Group the existing controls; do not alter their click handlers or runtime selection.
-        // STOP and the entry points to authorized work remain visible without expanding anything.
-        val audioSection = UiAccordionSection(this, "audio", "Tryb rozmowy i model").apply {
-            addLabel("Audio mode")
+        // UX-only grouping: the original controls and their callbacks are unchanged.
+        // STOP and authorized-task actions remain immediately visible.
+        val basicSection = UiAccordionSection(
+            this, "basic", "Podstawowe",
+            description = "Tryb rozmowy, model, silniki i uprawnienia.",
+            initiallyExpanded = true,
+        ).apply {
+            addLabel("Tryb rozmowy")
             addControl(audioModeSpinner)
-            addLabel("LLM provider (text mode)")
+            addLabel("Model tekstowy (dla trybu STT / TTS)")
             addControl(textLlmProviderSpinner)
-        }
-        val gemmaSection = UiAccordionSection(this, "gemma", "Modele językowe").apply {
             addControl(Button(this@MainActivity).apply {
                 text = "Modele: pobierz, importuj, wybierz"
                 setOnClickListener {
-                    startActivity(Intent(this@MainActivity, pl.michalmatu.aicallbridge.textagent.LanguageModelActivity::class.java))
+                    startActivity(Intent(this@MainActivity,
+                        pl.michalmatu.aicallbridge.textagent.LanguageModelActivity::class.java))
                 }
             })
+            addControl(Button(this@MainActivity).apply {
+                text = "Silniki: STT / model / TTS"
+                setOnClickListener {
+                    startActivity(Intent(this@MainActivity,
+                        pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity::class.java))
+                }
+            })
+            addControl(requestMicButton)
+            addControl(enrollPhoneButton)
         }
-        val setupSection = UiAccordionSection(this, "setup", "Uprawnienia i konfiguracja").apply {
+        val secretarySection = UiAccordionSection(
+            this, "secretary", "Sekretarka",
+            description = "Odbieranie połączeń i dane przygotowania rozmowy.",
+        ).apply {
             addControl(Button(this@MainActivity).apply {
                 text = "Odbieranie: AI / ręcznie"
                 setOnClickListener { startActivity(Intent(this@MainActivity,
                     pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity::class.java)) }
             })
-            addControl(requestMicButton)
-            addControl(Button(this@MainActivity).apply {
-                text = "Narzędzia AI"
-                setOnClickListener { startActivity(Intent(this@MainActivity,
-                    pl.michalmatu.aicallbridge.tools.ConversationToolsActivity::class.java)) }
-            })
-            addControl(enrollPhoneButton)
             addControl(Button(this@MainActivity).apply {
                 text = "Skills i dane rozmów"
                 setOnClickListener { startActivity(Intent(this@MainActivity,
                     pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java)) }
             })
         }
-        setupSection.addControl(Button(this).apply {
-            text = "Skills i presety Gemmy"
-            setOnClickListener { startActivity(Intent(this@MainActivity,
-                pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity::class.java)) }
-        })
-        val diagnosticSection = UiAccordionSection(this, "diagnostics", "Diagnostyka developerska")
-        // The supervised pilot is a diagnostic of an already active cellular call,
-        // not the autonomous task START; keep it available without mislabelling it.
-        diagnosticSection.addControl(oneTapButton)
-        developerProbes.addControls(diagnosticSection.controlsContainer)
+        val skillsSection = UiAccordionSection(
+            this, "skills", "Skills i presety",
+            description = "Wybór, kopie i wersjonowanie instrukcji Gemmy.",
+        ).apply {
+            addControl(Button(this@MainActivity).apply {
+                text = "Skills i presety Gemmy"
+                setOnClickListener { startActivity(Intent(this@MainActivity,
+                    pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity::class.java)) }
+            })
+        }
+        val laboratorySection = UiAccordionSection(
+            this, "laboratory", "Laboratorium",
+            description = "Testy wieloturowe offline bez połączenia telefonicznego.",
+        ).apply {
+            addControl(Button(this@MainActivity).apply {
+                text = "Laboratorium skillsów — testy Gemmy offline"
+                setOnClickListener { startActivity(Intent(this@MainActivity,
+                    pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity::class.java)) }
+            })
+        }
+        val advancedSection = UiAccordionSection(
+            this, "advanced", "Zaawansowane",
+            description = "Narzędzia AI, diagnostyka i testy nadzorowane.",
+        ).apply {
+            addControl(Button(this@MainActivity).apply {
+                text = "Narzędzia AI"
+                setOnClickListener { startActivity(Intent(this@MainActivity,
+                    pl.michalmatu.aicallbridge.tools.ConversationToolsActivity::class.java)) }
+            })
+            addLabel("Test nadzorowany aktywnej rozmowy — nie rozpoczyna połączenia")
+            addControl(oneTapButton)
+        }
+        developerProbes.addControls(advancedSection.controlsContainer)
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -197,10 +228,18 @@ class MainActivity : Activity() {
             addView(startAuthorizedTaskButton)
             addView(campaignToolsButton)
             addView(stopAiButton)
-            addView(audioSection)
-            addView(gemmaSection)
-            addView(setupSection)
-            addView(diagnosticSection)
+            addView(TextView(this@MainActivity).apply {
+                text = "Ustawienia aplikacji"
+                textSize = 20f
+                setPadding(0, 18, 0, 12)
+            })
+            listOf(basicSection, secretarySection, skillsSection, laboratorySection, advancedSection)
+                .forEach { section ->
+                    addView(section, LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply { bottomMargin = 16 })
+                }
         }
 
         // Pinned chat dock: visible without scrolling the settings above it.

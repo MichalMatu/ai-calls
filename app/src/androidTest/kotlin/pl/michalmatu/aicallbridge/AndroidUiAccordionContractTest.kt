@@ -13,49 +13,65 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
+import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
 
 /** Read-only UI checks. Neither case clicks authorization, dial, STOP, or permissions. */
 @RunWith(AndroidJUnit4::class)
 class AndroidUiAccordionContractTest {
     @Test
-    fun homeKeepsEssentialActionsVisibleAndPreservesEveryFoldedControl() {
+    fun homeGroupsSettingsByPurposeWithoutMutatingRuntimeOrSkillVersions() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
+                val runtimeBefore = CallRuntimePreferences(activity).load()
+                val skillsBefore = AndroidConversationPreparationStore(activity).loadSkillLibrary()
+
                 assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
                 assertTrue(findButton(root, "Campaign tools")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
-                assertNotNull(findButton(root, "Jeden przycisk:"))
 
-                val audioBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:audio"))
-                val gemmaBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:gemma"))
-                val setupBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:setup"))
-                val diagnosticBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:diagnostics"))
-                assertEquals(View.GONE, audioBody.visibility)
-                assertEquals(View.GONE, gemmaBody.visibility)
-                assertEquals(View.GONE, setupBody.visibility)
-                assertEquals(View.GONE, diagnosticBody.visibility)
-                assertFalse(findButton(root, "Jeden przycisk:")!!.isShown)
-                assertNotNull(findButton(root, "Modele: pobierz, importuj, wybierz"))
-                assertNotNull(findButton(root, "Grant microphone permission"))
-                assertNotNull(findButton(root, "Enroll phone number"))
-                assertNotNull(findButton(root, "Run device capability probe"))
+                val ids = listOf("basic", "secretary", "skills", "laboratory", "advanced")
+                val bodies = ids.associateWith { id ->
+                    requireNotNull(root.findViewWithTag<View>("ui-accordion-content:$id"))
+                }
+                assertEquals(View.VISIBLE, bodies.getValue("basic").visibility)
+                ids.drop(1).forEach { assertEquals(View.GONE, bodies.getValue(it).visibility) }
 
-                val toggle = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:gemma"))
-                assertTrue(toggle.contentDescription.contains("Rozwiń"))
-                toggle.performClick()
-                assertEquals(View.VISIBLE, gemmaBody.visibility)
                 assertTrue(findButton(root, "Modele: pobierz, importuj, wybierz")!!.isShown)
-                assertTrue(toggle.contentDescription.contains("Zwiń"))
-                toggle.performClick()
-                assertEquals(View.GONE, gemmaBody.visibility)
-                val diagnosticToggle = requireNotNull(
-                    root.findViewWithTag<Button>("ui-accordion-toggle:diagnostics"),
-                )
-                diagnosticToggle.performClick()
+                assertTrue(findButton(root, "Silniki: STT / model / TTS")!!.isShown)
+                assertTrue(findButton(root, "Grant microphone permission")!!.isShown)
+                assertTrue(findButton(root, "Enroll phone number")!!.isShown)
+                assertNotNull(findButton(root, "Odbieranie: AI / ręcznie"))
+                assertNotNull(findButton(root, "Skills i dane rozmów"))
+                assertNotNull(findButton(root, "Skills i presety Gemmy"))
+                assertNotNull(findButton(root, "Laboratorium skillsów"))
+                assertNotNull(findButton(root, "Narzędzia AI"))
+                assertNotNull(findButton(root, "Run device capability probe"))
+                assertFalse(findButton(root, "Jeden przycisk:")!!.isShown)
+
+                ids.drop(1).forEach { id ->
+                    val toggle = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:$id"))
+                    assertTrue(toggle.contentDescription.contains("Rozwiń"))
+                    toggle.performClick()
+                    assertEquals(View.VISIBLE, bodies.getValue(id).visibility)
+                    assertTrue(toggle.contentDescription.contains("Zwiń"))
+                    toggle.performClick()
+                    assertEquals(View.GONE, bodies.getValue(id).visibility)
+                }
+
+                val advanced = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:advanced"))
+                advanced.performClick()
                 assertTrue(findButton(root, "Jeden przycisk:")!!.isShown)
-                assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
+
+                val runtimeAfter = CallRuntimePreferences(activity).load()
+                val skillsAfter = AndroidConversationPreparationStore(activity).loadSkillLibrary()
+                assertEquals(runtimeBefore.audioMode, runtimeAfter.audioMode)
+                assertEquals(runtimeBefore.textLlmProvider, runtimeAfter.textLlmProvider)
+                assertEquals(skillsBefore.activePresetId, skillsAfter.activePresetId)
+                assertEquals(skillsBefore.presets, skillsAfter.presets)
+                assertEquals(skillsBefore.skills, skillsAfter.skills)
             }
         }
     }

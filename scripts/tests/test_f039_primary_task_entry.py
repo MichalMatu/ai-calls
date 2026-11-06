@@ -60,7 +60,10 @@ class PrimaryTaskEntryContractTest(unittest.TestCase):
         self.assertIn("ACTION_STOP_ALL_AI", self.service)
 
     def test_supervised_pilot_remains_reachable_but_not_primary_start(self):
-        self.assertIn("diagnosticSection.addControl(oneTapButton)", self.main)
+        advanced = self.main.split("val advancedSection = UiAccordionSection(", 1)[1].split(
+            "developerProbes.addControls(advancedSection.controlsContainer)", 1
+        )[0]
+        self.assertIn("addControl(oneTapButton)", advanced)
         self.assertIn("addView(stopAiButton)", self.main)
         self.assertNotIn("addView(oneTapButton)", self.main)
 
