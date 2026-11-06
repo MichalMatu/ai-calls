@@ -8,7 +8,7 @@ ConversationScenario udostępnia wyłącznie dla sekretarki przychodzącej polit
 
 ## Granice modułów
 
-`conversation/AndroidConversationRuntime` jest jedynym wykonawcą potoku mowy i cyklu sesji. Przyjmuje `ConversationScenario`, nie tworzy zadania CLIR, celu Orange, danych abonenta ani zezwoleń skutków. Używa dotychczasowych adapterów STT/TTS i zamrożonego Samsung/Shizuku. Stary ChatRelayLiveCallProbe został przeniesiony, a wszyscy bieżący callerzy i audyty zmigrowani; brak drugiego runnera lub wrappera starego API. Nazwa prywatnego raportu/protokół diagnostyczny pozostają wspólne z istniejącymi narzędziami.
+`conversation/AndroidConversationRuntime` jest jedynym wykonawcą potoku mowy i cyklu sesji. Przyjmuje `ConversationScenario`, nie tworzy zadania CLIR, celu Orange, danych abonenta ani zezwoleń skutków. Używa dotychczasowych adapterów STT/TTS i zamrożonego Samsung/Shizuku. Scenariusze korzystają ze wspólnego wykonawcy; nie ma drugiego runnera rozmowy. Nazwa prywatnego raportu/protokół diagnostyczny pozostają wspólne z istniejącymi narzędziami.
 
 ```mermaid
 flowchart TD
