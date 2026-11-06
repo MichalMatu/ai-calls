@@ -26,6 +26,10 @@ Pełna mapa wyników rozmowy 5/5/3 i `ConversationTermination` wykazała brak uz
 
 Kontrakt powitania i języka INCOMING uzupełniono bez zmian telefonii. Regression JVM, AndroidTest compile, pełny host (266 Python) i friction PASS. F-092 pozostaje do **fizycznej oceny języka** po osobnej decyzji o APK/połączeniu; nie jest PROVEN_S22. [Dowód](checkpoints/2026-11-06-autosprint-f092-language-role.md).
 
+## Read-only analiza naturalnego zakończenia
+
+Ostatni prywatny zbiór F-091 zawiera 8 `SPEAK` i 0 `END_CALL` w czterech plikach strukturalnych: brak pewności typowanej propozycji końca, bez podstaw do ingerencji w executor lub automatycznego disconnectu po samym słowie. F-089: typowane przyczyny poprawione w source, fizyczne potwierdzenie bieżącej wersji pending. [Dowód](checkpoints/2026-11-06-autosprint-f091-readonly-diagnostics.md).
+
 ## Równoległy backlog funkcjonalny — nie mieszać z refaktorem
 
 - Fizyczne QA manual/TAKE OVER/powrót AI/STOP i odpowiedź w 15-sekundowym oknie po ostrzeżeniu.

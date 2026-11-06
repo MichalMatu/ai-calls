@@ -13,7 +13,7 @@
 
 Na świeżym bazowym HEAD zmapowano `ConversationOutcome` (5 produkcyjnych plików), `ConversationOutcomeBoundary` (5), `ConversationRunResult` (3) i istniejący JVM `ConversationTermination`. Żaden kolejny przenoszony typ nie zmniejsza dziś sprzężenia: wynik scenariusza jest wyłącznie w app, boundary zależy od playback, a run result obejmuje raport/evidence/chat token. Nie zmieniono produkcyjnego kodu ani testów. Celowany JVM, kompilacja AndroidTest, pełny host (266 Python), product friction i clean Git **PASS**. [Checkpoint z mapą i receipts](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md).
 
-**Dalsza praca:** etap 3 jest następnym osobnym zakresem; nie uruchomiono go w tej sesji. Nowy czat musi odczytać świeży HEAD i claims.
+**Dalsza praca:** etap 3 ma już zamknięty krok 1; następna neutralna reguła wymaga nowego audytu i odrębnego gate. Nowy czat musi odczytać świeży HEAD i claims.
 
 ## Etap 3 — krok 1 DONE / PASS
 
@@ -26,6 +26,10 @@ Na świeżym bazowym HEAD zmapowano `ConversationOutcome` (5 produkcyjnych plik�
 Zamknięto wąski defekt kontraktu promptu: rola żeńskiej asystentki bez drugiego powitania i bez dosłownego wzorca zwrotu z ukośnikiem. `ConversationInstructionBuilder` + `ConversationReplyProtocolTest`, dwa pliki produkcja/test. Mac zadania `aicalls-20261106-autosprint-f092-preflight-v1` oraz `aicalls-20261106-autosprint-f092-prompt-regression-v1` oba DONE/0; 217,568 s testów, celowane JVM, AndroidTest compile, pełny host (266 Python) i product friction PASS. [Checkpoint](checkpoints/2026-11-06-autosprint-f092-language-role.md). F-092 ma status FIXED_IN_SOURCE, fizyczna jakość mowy pozostaje QA_PENDING.
 
 **Nie zamknięto automatycznie** F-080/F-048/F-045/F-047 ani fizycznego F-091/F-099. Następna jedna bezpieczna czynność: read-only, bez-PII audyt przyczyny niewysłania typed end_call w zachowanym ostatnim wyniku F-091; żadnych połączeń bez konkretnego zakresu.
+
+## F-091 i F-089 — read-only korekta stanu
+
+Mac taski `aicalls-20261106-autosprint-f091-evidence-readonly-v1`, `aicalls-20261106-autosprint-f091-typed-metadata-v1` i `aicalls-20261106-autosprint-f091-action-audit-v1`: DONE/0 bez treści rozmów. W prywatnych czterech plikach 8 akcji SPEAK, brak END_CALL; naturalne zakończenie F-091 pozostaje OPEN i wymaga kontrolowanej regresji off-call. F-089 jest FIXED_IN_SOURCE (typed reason CALL_ENDED), lecz bieżące fizyczne QA obecnego APK niepotwierdzone. [Checkpoint](checkpoints/2026-11-06-autosprint-f091-readonly-diagnostics.md). F-101 zamyka stare zdanie handoffu, które błędnie kazało rozpoczynać etap 3 od nowa.
 
 ## Granice wykonania i dowodów
 

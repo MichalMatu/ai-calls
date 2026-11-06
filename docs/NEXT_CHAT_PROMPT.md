@@ -10,4 +10,4 @@ Kontynuuj `MichalMatu/ai-calls` na świeżym `main` **tylko GitHub Connector + M
 
 **QA_PENDING osobno:** szczegółowy timeline ostatniego timeoutu, manual/TAKE OVER/powrót AI/STOP, głos podczas 15 s grace. S22 ma wcześniejsze APK sprzed etapu 1. Nie utożsamiać HOST_GREEN z PROVEN_S22, nie publikować WAV, transkryptów ani PII; blokery tylko w BLOCKERS.
 
-**Nowy checkpoint F-092:** [regresja instrukcji i host gate](checkpoints/2026-11-06-autosprint-f092-language-role.md), source PASS; fizyczna ocena języka QA_PENDING. Najbliższa bezpieczna diagnoza: wyłącznie odczyt bez PII ostatniego F-091 typed end_call, bez dzwonienia. Pozostałe F-080/F-048/F-045/F-047 nie są zamknięte.
+**Nowy checkpoint F-092:** [regresja instrukcji i host gate](checkpoints/2026-11-06-autosprint-f092-language-role.md), source PASS; fizyczna ocena języka QA_PENDING. Odczyt F-091 bez PII zakończony, [checkpoint](checkpoints/2026-11-06-autosprint-f091-readonly-diagnostics.md): 8 SPEAK i zero END_CALL w zachowanych plikach; następny krok: off-call syntetyczna ocena action protocol (jawna prośba końca vs cytat/korekta), bez fizycznego dzwonienia. Pozostałe F-080/F-048/F-045/F-047 nie są zamknięte.
