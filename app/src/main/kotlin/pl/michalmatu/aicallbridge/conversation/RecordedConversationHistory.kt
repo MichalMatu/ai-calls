@@ -14,7 +14,14 @@ internal data class RecordedConversation(
     val complete: Boolean,
     val lines: List<ConversationChatFeed.Line>,
     val invalidRecords: Int,
-)
+    val audioFiles: Map<Pair<Int, String>, String> = emptyMap(),
+) {
+    fun audioFor(line: ConversationChatFeed.Line): String? = when (line.speaker) {
+        ConversationChatFeed.Speaker.COUNTERPART -> audioFiles[line.turn to "rx"]
+        ConversationChatFeed.Speaker.ASSISTANT -> audioFiles[line.turn to "tx"]
+        ConversationChatFeed.Speaker.TOOL -> null
+    }
+}
 
 /** Read model over existing private timeline files. No duplicate transcript store or retention quota. */
 internal class RecordedConversationHistory(private val root: File) {
@@ -22,10 +29,19 @@ internal class RecordedConversationHistory(private val root: File) {
         it.isDirectory && File(it, "timeline.jsonl").isFile
     }.sortedByDescending { it.name }.map { load(it.name) }
 
+    /** Resolve only preexisting, private per-turn WAVs, never external paths. */
+    fun resolveAudioFile(id: String, fileName: String): File? = runCatching {
+        if (!fileName.matches(Regex("turn-[0-9]+-(rx|tx|tx-ack)[.]wav"))) return@runCatching null
+        val directory = File(root, id).canonicalFile
+        if (directory.parentFile != root.canonicalFile || !directory.isDirectory) return@runCatching null
+        File(directory, fileName).canonicalFile.takeIf { it.parentFile == directory && it.isFile }
+    }.getOrNull()
+
     fun load(id: String): RecordedConversation {
         val directory = File(root, id).canonicalFile
         require(directory.parentFile == root.canonicalFile && directory.isDirectory) { "invalid_conversation_history_id" }
         val lines = mutableListOf<ConversationChatFeed.Line>()
+        val audioFiles = linkedMapOf<Pair<Int, String>, String>()
         var direction = ConversationDirection.UNSPECIFIED
         var profile: String? = null
         var start = id.substringBefore('-').toLongOrNull() ?: 0L
@@ -58,6 +74,20 @@ internal class RecordedConversationHistory(private val root: File) {
                         lines.add(ConversationChatFeed.Line(tool.turn, ConversationChatFeed.Speaker.TOOL,
                             ConversationToolUi.text(tool), atEpochMs = start + event["elapsed_ms"].asLong))
                     }
+                    "RX_PCM", "TX_PCM", "TX_ACK_PCM" -> {
+                        val turn = event["turn"].asInt
+                        val channel = when (type) {
+                            "RX_PCM" -> "rx"
+                            "TX_PCM" -> "tx"
+                            else -> "tx-ack"
+                        }
+                        val name = event.get("file")?.takeUnless { it.isJsonNull }?.asString
+                        val expected = "turn-" + turn.toString().padStart(2, '0') + "-" + channel + ".wav"
+                        if (turn >= 0 && name == expected) {
+                            val wave = File(directory, expected).canonicalFile
+                            if (wave.parentFile == directory && wave.isFile) audioFiles[turn to channel] = expected
+                        }
+                    }
                     "AGENT_FULL_TX" -> {
                         val index = lines.indexOfLast { it.turn == event["turn"].asInt && it.speaker == ConversationChatFeed.Speaker.ASSISTANT }
                         if (index >= 0) lines[index] = lines[index].copy(txStatus =
@@ -67,6 +97,6 @@ internal class RecordedConversationHistory(private val root: File) {
                 }
             } catch (_: RuntimeException) { invalid++ }
         } }
-        return RecordedConversation(id, direction, profile, start, complete, lines.toList(), invalid)
+        return RecordedConversation(id, direction, profile, start, complete, lines.toList(), invalid, audioFiles.toMap())
     }
 }
