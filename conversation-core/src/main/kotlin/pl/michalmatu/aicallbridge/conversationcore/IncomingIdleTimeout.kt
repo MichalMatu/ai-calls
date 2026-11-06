@@ -1,11 +1,11 @@
-package pl.michalmatu.aicallbridge.conversation
+package pl.michalmatu.aicallbridge.conversationcore
 
 /**
  * Measures only active listening intervals, not inference or TTS playback.
  * Failed/no-match STT retries preserve the same deadline; actual voice resets it.
  * All times are monotonic elapsedRealtime values supplied by the caller.
  */
-internal class IncomingIdleTimeout(
+class IncomingIdleTimeout(
     private val silenceMs: Long,
     private val graceMs: Long,
 ) {

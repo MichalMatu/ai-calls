@@ -10,6 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.audioengines.*
 import pl.michalmatu.aicallbridge.conversation.*
+import pl.michalmatu.aicallbridge.conversationcore.IncomingIdleTimeout
 import pl.michalmatu.aicallbridge.conversationtools.*
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 

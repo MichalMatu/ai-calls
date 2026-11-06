@@ -23,7 +23,7 @@ Funkcjonalny baseline: dwie rzeczywiste rozmowy A8→S22 potwierdziły end_call 
 
 **Gate:** odpowiednie testy JVM i aktualne scripts/verify_host.sh, git diff --check, audit_product_friction; zero zmiany APK/telefonu przy samych testach/dokumentacji. **Wyjście:** mapa odpowiedzialności, bazowe wyniki, lista realnych luk testowych.
 
-## Etap 1 — pierwszy niski-risk move: IncomingIdleTimeout do conversation-core
+**Stan etapu 1:** kod, focused JVM, native test compilation i pełny host quality gate PASS; opublikowane [dowody](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md). S22 APK bez zmian.\n\n## Etap 1 — pierwszy niski-risk move: IncomingIdleTimeout do conversation-core
 
 **Zakres tylko jednej klasy:** przenieść niezależny od Androida licznik z app/conversation/IncomingIdleTimeout.kt do istniejącego conversation-core; zachować dokładny algorytm i nazwy akcji WARN/CLOSE. Przenieść do core testy czystej logiki; zostawić teksty komunikatów i adaptację do Handler/SystemClock/Audio w app. Dostosować minimalną liczbę importów; bez nowych adapterów ani generowania innego kodu.
 

@@ -7,31 +7,7 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolExecutor
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolPort
 import pl.michalmatu.aicallbridge.textagent.*
 
-class IncomingIdleTimeoutTest {
-    @Test fun warnsAfterThirtySecondsOfActualListeningNotDuringTtsAndClosesAfterFifteenMore() {
-        val guard = IncomingIdleTimeout(30_000L, 15_000L)
-        assertEquals(30_000L, guard.remainingMs(1_000L))
-        assertNull(guard.expire(30_999L))
-        assertEquals(1L, guard.remainingMs(30_999L))
-        assertEquals(IncomingIdleTimeout.Action.WARN, guard.expire(31_000L))
-        // Simulated 12 seconds spent synthesizing and playing the warning do not count.
-        assertEquals(15_000L, guard.remainingMs(43_000L))
-        assertNull(guard.expire(57_999L))
-        assertEquals(IncomingIdleTimeout.Action.CLOSE, guard.expire(58_000L))
-    }
-
-    @Test fun callerVoiceResetsWarningAndGraceButNoSpeechRetriesDoNotResetCountdown() {
-        val guard = IncomingIdleTimeout(30_000L, 15_000L)
-        assertEquals(30_000L, guard.remainingMs(100L))
-        assertEquals(18_000L, guard.remainingMs(12_100L))
-        assertEquals(IncomingIdleTimeout.Action.WARN, guard.expire(30_100L))
-        assertEquals(15_000L, guard.remainingMs(33_000L))
-        guard.heardVoice()
-        assertEquals(30_000L, guard.remainingMs(44_000L))
-        assertNull(guard.expire(58_999L))
-        assertEquals(IncomingIdleTimeout.Action.WARN, guard.expire(74_000L))
-    }
-
+class IncomingIdlePlaybackTest {
     @Test fun syntheticFarewellIsDispatchedOnceAfterApprovedPlayback() {
         var requests = 0
         val tools = ConversationToolExecutor(object : ConversationToolPort {

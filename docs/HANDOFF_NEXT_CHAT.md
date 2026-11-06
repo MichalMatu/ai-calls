@@ -14,7 +14,7 @@ AI Calls jest modułowym laboratorium Android do porównań STT/model/strategia/
 
 Na 5cf3a11: bash scripts/verify_host.sh PASS, host_quality_gate_green=true; Gradle build/JVM/lint/APK i audyty PASS, 266 testów Python PASS, audit_product_friction PASS, 90 plików dokumentacyjnych i 0 niedziałających lokalnych linków, Git clean. Jest 6 modułów Gradle; 220 produkcyjnych plików Kotlin, 197 w app. Największy AndroidConversationRuntime ma 815 linii, CallRealtimeSessionOrchestrator 758. Są aktywnie używane. Nie usuwać prób, wyników ani zamrożonego transportu tylko dlatego, że nazwy są historyczne.
 
-**Bezpieczna modularizacja:** [plan krokowy z bramkami jakości](SAFE_MODULARIZATION_PLAN.md). Plan nie zmienia produkcyjnego flow i ma pierwszeństwo przy refaktoryzacji struktury, nie przy STOP/bezpieczeństwie.
+**Modularizacja etapy 0–1:** bazowe testy i mapa PASS, IncomingIdleTimeout przeniesiony do conversation-core z identycznym algorytmem, app/native compile/full host PASS. [Nowy checkpoint](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md). Telefon S22 nadal z poprzednim działającym APK (brak nowej instalacji).\n\n**Bezpieczna modularizacja:** [plan krokowy z bramkami jakości](SAFE_MODULARIZATION_PLAN.md). Plan nie zmienia produkcyjnego flow i ma pierwszeństwo przy refaktoryzacji struktury, nie przy STOP/bezpieczeństwie.
 
 ## Kolejność dalszej pracy
 
