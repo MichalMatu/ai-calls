@@ -15,3 +15,5 @@ Pozostałe pliki w checkpoints to historia pomiarów, nie nowe polecenia pracy. 
 - [Skills i presety Gemmy — Laboratorium](SKILLS_AND_LAB.md): instrukcje, wersje, testy off-call.
 
 - [S22: trzy presety skillsów, native off-call](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md) — metryki i zakres potwierdzonych testów.
+
+- [AI Calls: kompletny checkpoint kodu, dokumentacji, jakości i testów](checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md) — pełne receipts, wynik S22 i zakres QA.
