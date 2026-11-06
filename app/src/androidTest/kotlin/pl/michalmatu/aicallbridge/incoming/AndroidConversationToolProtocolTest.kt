@@ -49,6 +49,7 @@ class AndroidConversationToolProtocolTest {
                     ConversationRuntimeHooks({ true }, { 1L }, { turn }, {}, ConversationDecisionSink { _,_,_,_,_ -> }, events::add))
                 session.start()
             }
+            val controller = TextCallTurnController(session.backend, session.approvalPolicy)
             try {
                 story.forEachIndexed { index, input ->
                     turn = index + 1
@@ -57,8 +58,9 @@ class AndroidConversationToolProtocolTest {
                     val done = CountDownLatch(1)
                     instrumentation.runOnMainSync {
                         session.beginTurn()
-                        session.backend.generate(input, object : TextCallAgentBackend.Listener {
-                            override fun onComplete(text: String) { output.set(text); done.countDown() }
+                        controller.submitUserText(input, object : TextCallTurnController.Listener {
+                            override fun onApprovedResponse(text: String) { output.set(text); done.countDown() }
+                            override fun onDroppedResponse() { error.set("model_output_dropped"); done.countDown() }
                             override fun onError(reason: String) { error.set(reason); done.countDown() }
                         })
                     }
@@ -68,7 +70,7 @@ class AndroidConversationToolProtocolTest {
                     assertTrue(speech.isNotBlank())
                     assertFalse(speech.trimStart().startsWith("{"))
                     instrumentation.runOnMainSync {
-                        assertEquals(TextOutputDecision.RELEASE, session.approvalPolicy.evaluate(speech))
+                        // Controller already approved the speech and cancelled its backend.
                         assertNull(session.takeOutcome(ConversationOutcomeBoundary.TRANSCRIPT))
                         assertEquals(0, requests)
                         val outcome = session.takeOutcome(ConversationOutcomeBoundary.PLAYBACK_COMPLETE)
@@ -80,7 +82,7 @@ class AndroidConversationToolProtocolTest {
                     evidence.put(JSONObject().put("story_size", story.size).put("turn", turn)
                         .put("input", input).put("reply", speech).put("end_requested", requests == 1))
                 }
-            } finally { instrumentation.runOnMainSync { session.backend.close(); session.close() } }
+            } finally { instrumentation.runOnMainSync { controller.close(); session.close() } }
             assertEquals(ConversationToolStage.DISPATCHED, events.last().stage)
             assertFalse(events.any { it.stage == ConversationToolStage.CONFIRMED })
         }

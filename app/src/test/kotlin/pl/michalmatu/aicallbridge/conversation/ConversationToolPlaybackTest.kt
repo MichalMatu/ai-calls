@@ -25,10 +25,30 @@ class ConversationToolPlaybackTest {
             ConversationRuntimeHooks({ authorized }, { 7L }, { 1 }, {}, ConversationDecisionSink { _,_,_,_,_ -> }, events::add),
             "TEST_MODEL", null)
         fun generate() = session.backend.generate("synthetic", object : TextCallAgentBackend.Listener {
-            override fun onComplete(text: String) { assertEquals("Dziękuję, do widzenia.", text) }
+            override fun onComplete(text: String) {
+                assertEquals("Dziękuję, do widzenia.", text)
+                assertEquals(TextOutputDecision.RELEASE, session.approvalPolicy.evaluate(text))
+            }
             override fun onError(reason: String) = error(reason)
         })
     }
+    @Test fun approvedSpeechThroughActualTextControllerPreservesToolUntilPlayback() {
+        val f = Fixture()
+        val controller = TextCallTurnController(f.session.backend, f.session.approvalPolicy)
+        var released: String? = null
+        controller.submitUserText("synthetic caller farewell", object : TextCallTurnController.Listener {
+            override fun onApprovedResponse(text: String) { released = text }
+            override fun onDroppedResponse() = error("unexpected_drop")
+            override fun onError(reason: String) = error(reason)
+        })
+        assertEquals("Dziękuję, do widzenia.", released)
+        assertEquals(0, f.requests)
+        assertNull(f.session.takeOutcome(ConversationOutcomeBoundary.TRANSCRIPT))
+        assertEquals(ConversationOutcome.Completed, f.session.takeOutcome(ConversationOutcomeBoundary.PLAYBACK_COMPLETE))
+        assertEquals(1, f.requests)
+        controller.close()
+    }
+
     @Test fun evenSynchronousModelCannotDispatchAtTranscriptOrTtsStage() {
         val f = Fixture(); f.generate()
         assertNull(f.session.takeOutcome(ConversationOutcomeBoundary.TRANSCRIPT))
