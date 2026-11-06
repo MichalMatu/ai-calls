@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.conversationtools.ConversationToolEvent
+
 import android.content.Context
 import android.os.SystemClock
 import java.io.ByteArrayOutputStream
@@ -101,6 +103,13 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
             .put("response_source", source ?: JSONObject.NULL)
             .put("classifier_wall_ms", classifierWallMs?.coerceAtLeast(0L) ?: JSONObject.NULL)
             .put("local_error_present", localErrorPresent)
+        submit { appendEvent(event) }
+    }
+
+    fun recordToolEvent(value: ConversationToolEvent) {
+        val event = JSONObject().put("type", "TOOL_EVENT").put("elapsed_ms", elapsed())
+            .put("turn", value.turn).put("tool", value.tool.name).put("stage", value.stage.name)
+            .put("result", value.result?.name ?: JSONObject.NULL)
         submit { appendEvent(event) }
     }
 

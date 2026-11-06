@@ -59,6 +59,7 @@ class IncomingAssistantSettingsActivity : Activity() {
         })
         content.addView(Button(this).apply { text="Silniki: STT / model / TTS";setOnClickListener {startActivity(Intent(this@IncomingAssistantSettingsActivity,AudioEngineSettingsActivity::class.java))} })
         content.addView(Button(this).apply { text="Skills i dane rozmów";setOnClickListener {startActivity(Intent(this@IncomingAssistantSettingsActivity,ConversationPreparationActivity::class.java))} })
+        content.addView(Button(this).apply { text="Narzędzia AI";setOnClickListener {startActivity(Intent(this@IncomingAssistantSettingsActivity,pl.michalmatu.aicallbridge.tools.ConversationToolsActivity::class.java))} })
         content.addView(feedback)
         setContentView(ScrollView(this).apply {addView(content)})
     }

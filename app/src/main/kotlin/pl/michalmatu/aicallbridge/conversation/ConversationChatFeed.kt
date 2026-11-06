@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.conversationtools.ConversationToolEvent
+import pl.michalmatu.aicallbridge.tools.ConversationToolUi
+
 /**
  * Private, process-local live view of ONE call. Never persisted or exposed through
  * broadcasts, intents, notifications, logs, GitHub or Android savedInstanceState.
@@ -8,7 +11,7 @@ package pl.michalmatu.aicallbridge.conversation
  * Opt-in call evidence recording is an independent feature.
  */
 internal object ConversationChatFeed {
-    internal enum class Speaker { COUNTERPART, ASSISTANT }
+    internal enum class Speaker { COUNTERPART, ASSISTANT, TOOL }
     enum class ResponseKind { MODEL_DIRECT, SCRIPT_ASSISTED, UNSPECIFIED }
 
     internal data class Line(
@@ -58,6 +61,13 @@ internal object ConversationChatFeed {
         add(token, turn, Speaker.ASSISTANT, text, kind)
     }
 
+    fun tool(token: Long, event: ConversationToolEvent) = synchronized(lock) {
+        // Android confirmation may follow audio teardown, but cannot attach to a newer session.
+        if (token != generation || event.turn <= 0) return@synchronized
+        lines.add(Line(event.turn, Speaker.TOOL, ConversationToolUi.text(event)))
+        revision += 1
+    }
+
     private fun add(token: Long, turn: Int, speaker: Speaker, text: String, kind: ResponseKind = ResponseKind.UNSPECIFIED) = synchronized(lock) {
         if (!active || token != generation || turn < 0 || (turn == 0 && speaker != Speaker.ASSISTANT) || text.isBlank()) return@synchronized
         // Display the exact finalized text, without serializing it beyond this process.
@@ -67,7 +77,7 @@ internal object ConversationChatFeed {
 
     fun tx(token: Long, turn: Int, complete: Boolean) = synchronized(lock) {
         if (!active || token != generation) return@synchronized
-        val index = lines.indexOfLast { it.turn == turn && it.speaker != Speaker.COUNTERPART }
+        val index = lines.indexOfLast { it.turn == turn && it.speaker == Speaker.ASSISTANT }
         if (index < 0) return@synchronized
         lines[index] = lines[index].copy(
             txStatus = if (complete) "TX: wysłano lokalnie" else "TX: niepełne",
@@ -81,6 +91,8 @@ internal object ConversationChatFeed {
         status = when (code) {
             "owned_call_ended" -> "Rozmowa zakończona"
             "operator_stopped" -> "STOP AI — zakończono"
+            "conversation_completed" -> "Dialog zakończony"
+            "human_takeover" -> "Rozmowa przekazana użytkownikowi"
             null -> "Sesja zakończona"
             else -> "Sesja zakończona / przerwana"
         }

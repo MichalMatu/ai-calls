@@ -7,8 +7,8 @@ import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 class ConversationPreparationTest {
     @Test fun incomingInstructionsDescribeAnsweringRatherThanCallingOrange() {
         val profile = ConversationPreparation.incoming()
-        val prompt = ConversationInstructionBuilder.build(profile, "Przyjmij temat rozmowy")
-        assertTrue(prompt.contains("ODBIERAJĄCYM"))
+        val prompt = ConversationInstructionBuilder.build(profile, "Przyjmij temat rozmowy", ConversationResponseFormat.SPOKEN_TEXT)
+        assertTrue(prompt.contains("ODBIERAJĄCĄ"))
         assertFalse(prompt.contains("DZWONIĄCYM"))
         assertFalse(prompt.contains("CLIR"))
         assertTrue(prompt.contains("Przyjmij temat rozmowy"))
@@ -37,7 +37,7 @@ class ConversationPreparationTest {
     @Test fun contextsAndPromptsDoNotExposeNotesInDiagnosticDescriptions() {
         val profile = ConversationPreparation.incoming().withSettings("private-context-fixture", emptySet(), emptySet())
         assertFalse(profile.toString().contains("private-context-fixture"))
-        assertTrue(ConversationInstructionBuilder.build(profile, "Cel").contains("private-context-fixture"))
+        assertTrue(ConversationInstructionBuilder.build(profile, "Cel", ConversationResponseFormat.SPOKEN_TEXT).contains("private-context-fixture"))
     }
 
     @Test fun selectingDataReferencesCannotWidenTaskDisclosureAuthority() {

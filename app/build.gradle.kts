@@ -27,6 +27,7 @@ android {
 
 dependencies {
     implementation(project(":conversation-core"))
+    implementation(project(":conversation-tools"))
     implementation(project(":audio-bridge"))
     implementation(project(":privileged-helper"))
     implementation(project(":realtime-client"))

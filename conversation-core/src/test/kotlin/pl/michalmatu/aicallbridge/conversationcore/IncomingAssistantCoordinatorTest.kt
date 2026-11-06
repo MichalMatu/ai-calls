@@ -16,7 +16,8 @@ class IncomingAssistantCoordinatorTest {
         override fun readinessFailure(call: Call): String? { check(!readinessThrows); return failure }
         override fun answer(call: Call) { answered += call; reentrantAnswer?.invoke() }
         override fun startAudio(call: Call, policy: IncomingAssistantPolicy, generation: Long) { started += call to generation }
-        override fun stopAudio(call: Call, generation: Long) { stopped += call to generation }
+        override fun stopAudio(call: Call, generation: Long, reason: ConversationStopReason) { stopped += call to generation }
+        override fun disconnect(call: Call) = Unit
         override fun changed(call: Call, state: IncomingAssistantState, reason: String?) = Unit
     }
     private class Fixture {
@@ -83,7 +84,7 @@ class IncomingAssistantCoordinatorTest {
             val f=Fixture(); f.observe(IncomingCallPhase.RINGING,policy); f.observe(IncomingCallPhase.ACTIVE,policy)
             val generation=f.port.started.single().second
             when(kind) {
-                0 -> f.core.policyChanged(policy.copy(mode=AnsweringMode.MANUAL))
+                0 -> f.core.policyChanged(policy.copy(mode=AnsweringMode.MANUAL), ConversationStopReason.POLICY_REVOKED)
                 1 -> f.observe(IncomingCallPhase.HELD,policy)
                 2 -> f.observe(IncomingCallPhase.ENDED,policy)
             }

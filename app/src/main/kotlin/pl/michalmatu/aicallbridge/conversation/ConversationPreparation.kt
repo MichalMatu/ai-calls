@@ -14,7 +14,7 @@ internal enum class ConversationSkill(val title: String, val guidance: String) {
 
     fun guidance(direction: ConversationDirection): String =
         if (this == EXPLAIN_GOAL && direction == ConversationDirection.INCOMING)
-            "Przedstaw rolę asystenta odbierającego i ustal konkretny cel osoby dzwoniącej."
+            "Powitanie aplikacji przedstawiło już rolę asystentki. Ustal konkretną sprawę osoby dzwoniącej bez ponownego przedstawiania się."
         else guidance
 }
 

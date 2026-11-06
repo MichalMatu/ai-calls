@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.conversationtools.*
+import pl.michalmatu.aicallbridge.tools.ConversationToolUi
+
 import com.google.gson.JsonParser
 import java.io.File
 
@@ -47,6 +50,14 @@ internal class RecordedConversationHistory(private val root: File) {
                         atEpochMs = start + (event.get("elapsed_ms")?.asLong ?: 0L),
                         responseKind = if (type == "AGENT_APPROVED_TEXT") event.get("response_kind")?.asString?.let(ConversationChatFeed.ResponseKind::valueOf) ?: kind else ConversationChatFeed.ResponseKind.UNSPECIFIED,
                     ))
+                    "TOOL_EVENT" -> {
+                        val tool = ConversationToolEvent(event["turn"].asInt,
+                            ConversationToolId.valueOf(event["tool"].asString),
+                            ConversationToolStage.valueOf(event["stage"].asString),
+                            event.get("result")?.takeUnless { it.isJsonNull }?.asString?.let(ConversationToolResult::valueOf))
+                        lines.add(ConversationChatFeed.Line(tool.turn, ConversationChatFeed.Speaker.TOOL,
+                            ConversationToolUi.text(tool), atEpochMs = start + event["elapsed_ms"].asLong))
+                    }
                     "AGENT_FULL_TX" -> {
                         val index = lines.indexOfLast { it.turn == event["turn"].asInt && it.speaker == ConversationChatFeed.Speaker.ASSISTANT }
                         if (index >= 0) lines[index] = lines[index].copy(txStatus =

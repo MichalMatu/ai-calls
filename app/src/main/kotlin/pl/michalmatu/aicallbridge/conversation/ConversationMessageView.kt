@@ -21,7 +21,8 @@ import android.widget.LinearLayout.LayoutParams
     internal fun conversationMessageView(context: Context, line: ConversationChatFeed.Line, ongoing: Boolean = true): View {
         fun dp(value: Int) = (value * context.resources.displayMetrics.density + 0.5f).toInt()
         val isAgent = line.speaker == ConversationChatFeed.Speaker.ASSISTANT
-        val label = if (!isAgent) "ROZMÓWCA / STT • TURA " else when (line.responseKind) {
+        val label = if (line.speaker == ConversationChatFeed.Speaker.TOOL) "NARZĘDZIE • TURA "
+        else if (!isAgent) "ROZMÓWCA / STT • TURA " else when (line.responseKind) {
             ConversationChatFeed.ResponseKind.MODEL_DIRECT -> "AI / MODEL • TURA "
             ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED -> "AI / SKRYPT • TURA "
             ConversationChatFeed.ResponseKind.UNSPECIFIED -> "AI • TURA "

@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.conversation.ConversationOutcomeBoundary
+
 import pl.michalmatu.aicallbridge.campaign.ClirCarrierEvidence
 import pl.michalmatu.aicallbridge.campaign.ClirDeterministicDialogueBackend
 import pl.michalmatu.aicallbridge.campaign.CampaignGemmaDirectPreflight
@@ -174,7 +176,7 @@ internal class ClirConversationScenario(
                 hooks.emit("clir_success_evidence_detected=true")
             }
         }
-        override fun takeOutcome(): ConversationOutcome? {
+        override fun takeOutcome(boundary: ConversationOutcomeBoundary): ConversationOutcome? {
             if (!pendingExternalSuccessEvidence.compareAndSet(true, false)) return null
             if (!hooks.authorized()) return ConversationOutcome.Failed("campaign_authority_revoked_or_expired")
             if (completionTracker == null) return ConversationOutcome.Failed("clir_completion_tracker_missing")

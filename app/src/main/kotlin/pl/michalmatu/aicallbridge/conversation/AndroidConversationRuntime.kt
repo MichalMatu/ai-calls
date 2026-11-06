@@ -1,5 +1,9 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.conversationcore.ConversationStopReason
+import pl.michalmatu.aicallbridge.conversationcore.ConversationTermination
+import pl.michalmatu.aicallbridge.tools.ConversationToolUi
+
 
 import android.content.Context
 import android.media.AudioManager
@@ -47,7 +51,7 @@ import pl.michalmatu.aicallbridge.developerrelay.*
 internal object AndroidConversationRuntime {
     /** Stops *only* the application audio/media session, never the cellular call. */
     internal fun interface SessionControl {
-        fun stopAudio()
+        fun stopAudio(reason: ConversationStopReason)
     }
 
     private val sessions = ConversationSessionRegistry<Run>()
@@ -66,7 +70,7 @@ internal object AndroidConversationRuntime {
         callStillActive: () -> Boolean = { true },
         evidenceRecorder: CallSessionEvidenceRecorder? = null,
         runConfiguration: ConversationRunConfiguration,
-        callback: (String) -> Unit,
+        callback: (ConversationRunResult) -> Unit,
     ): SessionControl? {
         ChatRelayEnvelope(sessionId, 1, "probe").validate()
         require(AudioEngineRegistry.incompatibility(runConfiguration.audioProfile) == null) {
@@ -109,16 +113,16 @@ internal object AndroidConversationRuntime {
         private val sessionId: String,
         private val maxTurns: Int,
         private val scenario: ConversationScenario,
-        private val callback: (String) -> Unit,
+        private val callback: (ConversationRunResult) -> Unit,
         private val liveAuthorization: () -> Boolean,
         private val callStillActive: () -> Boolean,
         private val evidenceRecorder: CallSessionEvidenceRecorder?,
         private val runConfiguration: ConversationRunConfiguration,
     ) : SessionControl {
-        override fun stopAudio() {
+        override fun stopAudio(reason: ConversationStopReason) {
             // Revoke TX synchronously, even if the main-thread cleanup is delayed.
-            stopRequested.set(true)
-            handler.post { finish(false, "operator_stopped") }
+            stopRequested.compareAndSet(null, reason)
+            handler.post { finish(ConversationTermination.Stopped(checkNotNull(stopRequested.get()))) }
         }
 
         private val handler = Handler(Looper.getMainLooper())
@@ -154,7 +158,7 @@ internal object AndroidConversationRuntime {
             "private_audio_recording=${evidenceRecorder != null}",
         ))
         private val finished = AtomicBoolean(false)
-        private val stopRequested = AtomicBoolean(false)
+        private val stopRequested = AtomicReference<ConversationStopReason?>(null)
         private var currentTurn = 0
         private val dialogue = scenario.open(ConversationRuntimeHooks(
             authorized = ::authorizedNow,
@@ -163,6 +167,12 @@ internal object AndroidConversationRuntime {
             emit = { lines += it },
             decisionSink = ConversationDecisionSink { turn, action, response, elapsed, error ->
                 evidenceRecorder?.recordDialogueDecision(turn, action, response, elapsed, error)
+            },
+            toolEventSink = { event ->
+                evidenceRecorder?.recordToolEvent(event)
+                ConversationChatFeed.tool(liveChatToken, event)
+                ConversationToolUi.record(event)
+                lines += "turn_${event.turn}_tool_${event.tool.wireName}_${event.stage.name.lowercase()}=${event.result?.name ?: "pending"}"
             },
         ))
         private val pipeline = LocalSpeechTextPipeline(
@@ -206,25 +216,26 @@ internal object AndroidConversationRuntime {
         private var totalTxBytes = 0L
         private var silenceWindows = 0L
 
-        private val timeout = Runnable { finish(false, "probe_timeout") }
+        private val timeout = Runnable { fail("probe_timeout") }
         private val authorityWatchdog = object : Runnable {
             override fun run() {
                 if (finished.get()) return
-                if (!authorizedNow()) finish(false, authorityFailureReason())
+                if (!authorizedNow()) finish(authorityTermination())
                 else handler.postDelayed(this, 500L)
             }
         }
 
         private fun authorizedNow(): Boolean =
-            !stopRequested.get() && runCatching { liveAuthorization() }.getOrDefault(false)
+            stopRequested.get() == null && runCatching { liveAuthorization() }.getOrDefault(false)
 
-        private fun authorityFailureReason(): String =
-            if (!runCatching { callStillActive() }.getOrDefault(false)) "owned_call_ended"
-            else "campaign_authority_revoked_or_expired"
+        private fun authorityTermination(): ConversationTermination = ConversationTermination.Stopped(
+            stopRequested.get() ?: if (!runCatching { callStillActive() }.getOrDefault(false))
+                ConversationStopReason.CALL_ENDED else ConversationStopReason.POLICY_REVOKED,
+        )
 
         fun start() {
             if (!authorizedNow()) {
-                finish(false, authorityFailureReason())
+                finish(authorityTermination())
                 return
             }
             // Only an already authorized, active owner-controlled session
@@ -232,7 +243,7 @@ internal object AndroidConversationRuntime {
             liveChatToken = ConversationChatFeed.begin()
             evidenceRecorder?.recordConversation(scenario.direction, scenario.preparationId, scenario.responseKind)
             try { dialogue.start() } catch (failure: Exception) {
-                finish(false, "scenario_start_${failure.javaClass.simpleName}")
+                fail("scenario_start_${failure.javaClass.simpleName}")
                 return
             }
             handler.postDelayed(authorityWatchdog, 500L)
@@ -271,7 +282,7 @@ internal object AndroidConversationRuntime {
                 val generation = mediaRuntime!!.coordinator().start(LocalSpeechFormat.SAMPLE_RATE_HZ)
                 lines += "media_generation=$generation"
             } catch (error: Throwable) {
-                finish(false, "media_launch_${error.javaClass.simpleName}")
+                fail("media_launch_${error.javaClass.simpleName}")
             }
         }
 
@@ -286,7 +297,7 @@ internal object AndroidConversationRuntime {
                 }
                 CallMediaSessionState.FAILED -> context.mainExecutor.execute {
                     activeMediaGeneration.set(-1L)
-                    finish(false, "media_${snapshot.failure.name.lowercase()}")
+                    fail("media_${snapshot.failure.name.lowercase()}")
                 }
                 else -> Unit
             }
@@ -298,7 +309,7 @@ internal object AndroidConversationRuntime {
                 mediaRuntime?.coordinator()?.activeEndpointLease(generation)
                     ?: throw IllegalStateException("media_runtime_unavailable")
             } catch (error: Throwable) {
-                finish(false, "endpoint_${error.javaClass.simpleName}")
+                fail("endpoint_${error.javaClass.simpleName}")
                 return
             }
             lines += "endpoint_lease_acquired=true"
@@ -309,7 +320,7 @@ internal object AndroidConversationRuntime {
                 ).also { it.start() }
                 lines += "downlink_pump_started=true"
             } catch (error: Throwable) {
-                finish(false, "downlink_pump_${error.javaClass.simpleName}")
+                fail("downlink_pump_${error.javaClass.simpleName}")
                 return
             }
             val opening = dialogue.openingText
@@ -324,12 +335,12 @@ internal object AndroidConversationRuntime {
         private fun beginNextTurn(generation: Long, lease: CallMediaEndpointLease) {
             if (finished.get()) return
             if (activeMediaGeneration.get() != generation) {
-                finish(false, "stale_media_generation")
+                fail("stale_media_generation")
                 return
             }
-            if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
+            if (!authorizedNow()) { finish(authorityTermination()); return }
             if (maxTurns != TASK_SCOPED_TURNS && turnsCompleted >= maxTurns) {
-                finish(true)
+                finish(ConversationTermination.Completed)
                 return
             }
             currentTurn = turnsCompleted + 1
@@ -353,7 +364,7 @@ internal object AndroidConversationRuntime {
 
                 override fun onUserTranscript(text: String) {
                     if (finished.get()) return
-                    if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
+                    if (!authorizedNow()) { finish(authorityTermination()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text, responseKind = ConversationChatFeed.ResponseKind.UNSPECIFIED)
                     ConversationChatFeed.heard(liveChatToken, currentTurn, text)
                     ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • model analizuje wypowiedź…")
@@ -361,12 +372,12 @@ internal object AndroidConversationRuntime {
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
                     dialogue.onTranscript(currentTurn, text)
                     // Scenario outcome evaluation stays on the same main-thread boundary.
-                    handler.post { if (!finished.get()) dialogue.takeOutcome()?.let(::applyOutcome) }
+                    handler.post { if (!finished.get()) dialogue.takeOutcome(ConversationOutcomeBoundary.TRANSCRIPT)?.let(::applyOutcome) }
                 }
 
                 override fun onApprovedText(text: String) {
                     if (finished.get()) return
-                    if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
+                    if (!authorizedNow()) { finish(authorityTermination()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text, responseKind = responseKind())
                     ConversationChatFeed.replied(
                         liveChatToken, currentTurn, text,
@@ -379,8 +390,8 @@ internal object AndroidConversationRuntime {
                 }
 
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
-                    if (finished.get() || !authorizedNow()) { finish(false, authorityFailureReason()); return }
-                    if (activeMediaGeneration.get() != generation) { finish(false, "stale_media_generation"); return }
+                    if (finished.get() || !authorizedNow()) { finish(authorityTermination()); return }
+                    if (activeMediaGeneration.get() != generation) { fail("stale_media_generation"); return }
                     val outputTurn = currentTurn
                     finalAudioReadyTurn.set(outputTurn)
                     lines += "turn_${outputTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
@@ -390,7 +401,7 @@ internal object AndroidConversationRuntime {
 
                 override fun onDroppedText() {
                     dialogue.recordTurnDiagnostics(currentTurn)
-                    finish(false, "output_dropped")
+                    fail("output_dropped")
                 }
 
                 override fun onError(reason: String) {
@@ -409,15 +420,15 @@ internal object AndroidConversationRuntime {
                         handler.postDelayed({
                             if (finished.get() || currentTurn != retryTurn) return@postDelayed
                             if (!authorizedNow()) {
-                                finish(false, authorityFailureReason())
+                                finish(authorityTermination())
                             } else if (activeMediaGeneration.get() != generation) {
-                                finish(false, "stale_media_generation")
+                                fail("stale_media_generation")
                             } else {
                                 beginNextTurn(generation, lease)
                             }
                         }, NO_SPEECH_RETRY_DELAY_MS)
                     } else {
-                        finish(false, reason)
+                        fail(reason)
                     }
                 }
             }
@@ -431,7 +442,7 @@ internal object AndroidConversationRuntime {
             lease: CallMediaEndpointLease,
         ) {
             val pump = downlinkPump ?: run {
-                finish(false, "turn_${turn}_downlink_pump_unavailable")
+                fail("turn_${turn}_downlink_pump_unavailable")
                 return
             }
             val detector = PcmEndOfUtteranceDetector(
@@ -488,7 +499,7 @@ internal object AndroidConversationRuntime {
                             lines += "turn_${turn}_no_speech_window=$silenceWindows"
                             handler.postDelayed({
                                 if (finished.get() || turn != currentTurn) return@postDelayed
-                                if (!authorizedNow()) finish(false, authorityFailureReason())
+                                if (!authorizedNow()) finish(authorityTermination())
                                 else beginCaptureInputTurn(turn, generation, lease)
                             }, NO_SPEECH_RETRY_DELAY_MS)
                             return
@@ -506,7 +517,7 @@ internal object AndroidConversationRuntime {
                         evidenceRx?.finish()
                         if (finished.get()) return
                         context.mainExecutor.execute {
-                            finish(false, "turn_${turn}_rx_${sanitize(reason)}")
+                            fail("turn_${turn}_rx_${sanitize(reason)}")
                         }
                     }
                 })
@@ -514,7 +525,7 @@ internal object AndroidConversationRuntime {
                 capture.complete.set(true)
                 activeRxCapture.compareAndSet(capture, null)
                 evidenceRx?.finish()
-                finish(false, "turn_${turn}_rx_${error.javaClass.simpleName}")
+                fail("turn_${turn}_rx_${error.javaClass.simpleName}")
             }
         }
 
@@ -641,7 +652,7 @@ internal object AndroidConversationRuntime {
                 if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
                     activeMediaGeneration.get() != generation
                 ) {
-                    context.mainExecutor.execute { finish(false, "tx_authority_revoked") }
+                    context.mainExecutor.execute { fail("tx_authority_revoked") }
                     return
                 }
                 val txWriteWallMs =
@@ -661,7 +672,7 @@ internal object AndroidConversationRuntime {
                 )
             } catch (error: Throwable) {
                 context.mainExecutor.execute {
-                    finish(false, "turn_${turn}_tx_${error.javaClass.simpleName}")
+                    fail("turn_${turn}_tx_${error.javaClass.simpleName}")
                 }
             }
         }
@@ -672,10 +683,11 @@ internal object AndroidConversationRuntime {
             lease: CallMediaEndpointLease,
         ) {
             if (finished.get() || turn != currentTurn) return
+            if (activeMediaGeneration.get() != generation) { fail("stale_media_generation"); return }
             turnsCompleted = turn
             lines += "turn_${turn}_complete_elapsed_ms=${elapsedTurnMs()}"
-            if (!authorizedNow()) { finish(false, authorityFailureReason()); return }
-            dialogue.takeOutcome()?.let { applyOutcome(it); return }
+            if (!authorizedNow()) { finish(authorityTermination()); return }
+            dialogue.takeOutcome(ConversationOutcomeBoundary.PLAYBACK_COMPLETE)?.let { applyOutcome(it); return }
             if (maxTurns != TASK_SCOPED_TURNS && turnsCompleted >= maxTurns) {
                 applyOutcome(dialogue.turnBudgetOutcome())
             } else {
@@ -684,15 +696,19 @@ internal object AndroidConversationRuntime {
         }
 
         private fun applyOutcome(outcome: ConversationOutcome) = when (outcome) {
-            ConversationOutcome.Completed -> finish(true)
-            is ConversationOutcome.Failed -> finish(false, outcome.code)
+            ConversationOutcome.Completed -> finish(ConversationTermination.Completed)
+            is ConversationOutcome.Failed -> fail(outcome.code)
         }
 
         private fun elapsedTurnMs(): Long =
             (SystemClock.elapsedRealtime() - turnStartedAtMs).coerceAtLeast(0L)
 
-        private fun finish(success: Boolean, reason: String? = null) {
+        private fun fail(code: String) = finish(if (stopRequested.get() != null || !runCatching { callStillActive() }.getOrDefault(false)) authorityTermination() else ConversationTermination.Failed(code))
+
+        private fun finish(termination: ConversationTermination) {
             if (!finished.compareAndSet(false, true)) return
+            val result = stopRequested.get()?.let { ConversationTermination.Stopped(it) } ?: termination
+            val reason = result.code
             activeMediaGeneration.set(-1L)
             handler.removeCallbacks(timeout)
             handler.removeCallbacks(authorityWatchdog)
@@ -704,10 +720,10 @@ internal object AndroidConversationRuntime {
                     val trailing = last.estimatedSpeechEndMs?.let { speechEnd ->
                         (last.capturedMs - speechEnd).coerceAtLeast(0L)
                     }
-                    val cause = when (reason) {
-                        "owned_call_ended" -> "OWNED_CALL_ENDED"
-                        "operator_stopped" -> "OPERATOR_STOP"
-                        else -> "SESSION_END"
+                    val cause = when (result) {
+                        ConversationTermination.Completed -> "DIALOGUE_COMPLETED"
+                        is ConversationTermination.Stopped -> result.reason.name
+                        is ConversationTermination.Failed -> "SESSION_ERROR"
                     }
                     lines += "turn_${active.turn}_rx_interrupted=true"
                     lines += "turn_${active.turn}_rx_interrupted_capture_ms=${last.capturedMs}"
@@ -734,23 +750,24 @@ internal object AndroidConversationRuntime {
             lines += "turns_completed=$turnsCompleted"
             lines += "telephony_rx_pcm_bytes=$totalRxBytes"
             lines += "telephony_tx_pcm_bytes=$totalTxBytes"
-            lines += "chat_relay_live_call_success=$success"
-            if (reason != null) lines += "failure_reason=${sanitize(reason)}"
+            lines += "chat_relay_live_call_success=${result == ConversationTermination.Completed}"
+            lines += "conversation_end_reason=${sanitize(reason)}"
+            if (result is ConversationTermination.Failed) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
-            evidenceRecorder?.finish(reason)
+            if (!dialogue.awaitToolCompletion) evidenceRecorder?.finish(reason)
             ConversationChatFeed.finish(liveChatToken, reason)
             sessions.release(this)
             val report = lines.render()
             PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, report)
-            context.mainExecutor.execute { callback(report) }
+            context.mainExecutor.execute { callback(ConversationRunResult(result, report, dialogue.awaitToolCompletion, liveChatToken)) }
         }
     }
 
-    private fun immediateReport(reason: String): String =
+    private fun immediateReport(reason: String): ConversationRunResult = ConversationRunResult(ConversationTermination.Failed(reason),
         "probe=chat_relay_live_call\n" +
             "chat_relay_live_call_success=false\n" +
             "failure_reason=$reason\n" +
-            "probe_complete=true\n"
+            "probe_complete=true\n", false, 0L)
 
     private fun sanitize(value: String): String =
         CallDiagnosticEvidence.safeCode(value)

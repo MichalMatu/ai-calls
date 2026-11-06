@@ -74,7 +74,7 @@ class ConversationPreparationActivity : Activity() {
         } })
         content.addView(Button(this).apply { text = "Podgląd roli, skillsów i kontekstu"; setOnClickListener {
             AlertDialog.Builder(this@ConversationPreparationActivity).setTitle("Przygotowanie modelu")
-                .setMessage(ConversationInstructionBuilder.build(selection(), "Cel pochodzi z konkretnego zlecenia rozmowy."))
+                .setMessage(ConversationInstructionBuilder.build(selection(), "Cel pochodzi z konkretnego zlecenia rozmowy.", if (selection().direction == ConversationDirection.INCOMING) ConversationResponseFormat.TOOL_REPLY else ConversationResponseFormat.SPOKEN_TEXT))
                 .setPositiveButton("OK", null).show()
         } })
         content.addView(status)

@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.conversationcore.ConversationStopReason
+import pl.michalmatu.aicallbridge.conversationcore.ConversationTermination
+
 import android.Manifest
 import android.content.Context
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
@@ -30,14 +33,14 @@ internal object AppOwnedClirCampaignExecutor {
     fun takeOver(call: android.telecom.Call): Boolean {
         ownedCalls.detachIf { (it as? AndroidTelecomOwnedCallSession)?.isBoundTo(call) == true } ?: return false
         running.set(false)
-        audioSession.getAndSet(null)?.stopAudio()
+        audioSession.getAndSet(null)?.stopAudio(ConversationStopReason.HUMAN_TAKEOVER)
         return true
     }
 
     /** STOP revokes AI TX and cleans up only a call identified by this app's controller. */
-    fun stop(onStatus: (String) -> Unit): Boolean {
+    fun stop(reason: ConversationStopReason, onStatus: (String) -> Unit): Boolean {
         val wasRunning = running.getAndSet(false)
-        audioSession.getAndSet(null)?.stopAudio()
+        audioSession.getAndSet(null)?.stopAudio(reason)
         val cleanup = ownedCalls.releaseCurrent()
         if (wasRunning) onStatus("AI stopped; owned-call cleanup=$cleanup")
         return wasRunning
@@ -313,10 +316,11 @@ internal object AppOwnedClirCampaignExecutor {
                             request = request,
                         )
                 },
-            ) { report ->
-                val probeSuccess = reportValue(report, "chat_relay_live_call_success") == "true"
+            ) { result ->
+                val report = result.report
+                val probeSuccess = result.termination == ConversationTermination.Completed
                 val carrierReportedSuccess = reportValue(report, "clir_carrier_reported_success") == "true"
-                val failureReason = reportValue(report, "failure_reason")
+                val failureReason = if (result.termination == ConversationTermination.Completed) null else result.termination.code
                 audioSession.set(null)
                 val cleanup = ownedCalls.release(ownedCall)
                 val wasRunning = running.getAndSet(false)
@@ -340,9 +344,9 @@ internal object AppOwnedClirCampaignExecutor {
             }
             if (running.get()) {
                 audioSession.set(launchedAudio)
-                if (!running.get()) audioSession.getAndSet(null)?.stopAudio()
+                if (!running.get()) audioSession.getAndSet(null)?.stopAudio(ConversationStopReason.SESSION_CANCELLED)
             } else {
-                launchedAudio?.stopAudio()
+                launchedAudio?.stopAudio(ConversationStopReason.SESSION_CANCELLED)
             }
         }
         if (launched.isFailure) {

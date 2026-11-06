@@ -157,6 +157,11 @@ class MainActivity : Activity() {
                     pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity::class.java)) }
             })
             addControl(requestMicButton)
+            addControl(Button(this@MainActivity).apply {
+                text = "Narzędzia AI"
+                setOnClickListener { startActivity(Intent(this@MainActivity,
+                    pl.michalmatu.aicallbridge.tools.ConversationToolsActivity::class.java)) }
+            })
             addControl(enrollPhoneButton)
             addControl(Button(this@MainActivity).apply {
                 text = "Skills i dane rozmów"

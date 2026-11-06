@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.conversationcore.ConversationStopReason
+
 import android.Manifest
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
@@ -75,10 +77,10 @@ class AppOwnedCampaignService : Service() {
                 scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
                 scheduledAttempt = null
                 supervisedAudioActive.set(false)
-                supervisedAudioSession?.stopAudio()
+                supervisedAudioSession?.stopAudio(ConversationStopReason.OPERATOR_STOP)
                 supervisedAudioSession = null
                 var ownedStatus: String? = null
-                AppOwnedClirCampaignExecutor.stop { ownedStatus = it }
+                AppOwnedClirCampaignExecutor.stop(ConversationStopReason.OPERATOR_STOP) { ownedStatus = it }
                 val status = if (intent.action == ACTION_PAUSE_AFTER_TAKEOVER)
                     "Rozmowę przekazano użytkownikowi; automatyczne ponowienia wstrzymane"
                 else ownedStatus ?: "STOP AI: app audio stopped; external calls remain untouched"
@@ -427,7 +429,8 @@ class AppOwnedCampaignService : Service() {
                                 audio?.mode == AudioManager.MODE_IN_CALL
                         }.getOrDefault(false)
                 },
-            ) { report ->
+            ) { result ->
+                val report = result.report
                 supervisedAudioActive.set(false)
                 supervisedAudioSession = null
                 val reason = report.lineSequence()
@@ -454,12 +457,12 @@ class AppOwnedCampaignService : Service() {
         CampaignGemmaPreflight.discardUnused()
         CampaignGemmaDirectPreflight.discardUnused()
         supervisedAudioActive.set(false)
-        supervisedAudioSession?.stopAudio()
+        supervisedAudioSession?.stopAudio(ConversationStopReason.SERVICE_DESTROYED)
         supervisedAudioSession = null
         scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
         scheduledAttempt = null
         continuationGeneration += 1
-        AppOwnedClirCampaignExecutor.stop { statusStore.save(it) }
+        AppOwnedClirCampaignExecutor.stop(ConversationStopReason.SERVICE_DESTROYED) { statusStore.save(it) }
         super.onDestroy()
     }
 

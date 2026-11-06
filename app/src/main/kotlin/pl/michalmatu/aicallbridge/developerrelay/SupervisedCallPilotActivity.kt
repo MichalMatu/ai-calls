@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.conversationcore.ConversationStopReason
+
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
 
 import pl.michalmatu.aicallbridge.conversation.SupervisedConversationScenario
@@ -59,7 +61,7 @@ class SupervisedCallPilotActivity : Activity() {
         stopButton = Button(this).apply {
             text = "STOP AI — wróć do rozmowy ręcznej"
             isEnabled = false
-            setOnClickListener { stopAudio() }
+            setOnClickListener { stopAudio(ConversationStopReason.OPERATOR_STOP) }
         }
 
         gemmaMode = CheckBox(this).apply {
@@ -258,7 +260,8 @@ class SupervisedCallPilotActivity : Activity() {
                 liveAuthorization = {
                     allowed.get() && preflight() == null
                 },
-            ) { report ->
+            ) { result ->
+                val report = result.report
                 allowed.set(false)
                 session = null
                 startButton.isEnabled = true
@@ -285,9 +288,9 @@ class SupervisedCallPilotActivity : Activity() {
         }
     }
 
-    private fun stopAudio() {
+    private fun stopAudio(reason: ConversationStopReason) {
         allowed.set(false)
-        session?.stopAudio()
+        session?.stopAudio(reason)
         stopButton.isEnabled = false
         status.text = "Zatrzymuję audio AI. Połączenie telefoniczne pozostaje aktywne."
     }
@@ -295,13 +298,13 @@ class SupervisedCallPilotActivity : Activity() {
     override fun onStop() {
         cancelRouteProbe()
         // A foreground UI is our operator supervision; no unattended audio on Home/dialer.
-        if (allowed.get()) stopAudio()
+        if (allowed.get()) stopAudio(ConversationStopReason.SESSION_CANCELLED)
         super.onStop()
     }
 
     override fun onDestroy() {
         cancelRouteProbe()
-        if (allowed.get() || session != null) stopAudio()
+        if (allowed.get() || session != null) stopAudio(ConversationStopReason.SERVICE_DESTROYED)
         super.onDestroy()
     }
 

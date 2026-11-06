@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.textagent
 
+import pl.michalmatu.aicallbridge.conversation.ConversationReplyProtocol
+import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
+
 import android.content.Context
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
@@ -493,6 +496,16 @@ internal class LiteRtGemma4Runtime(
 }
 
 internal object Gemma4LiteRtTextBackendFactory {
+    fun createConversationReply(
+        context: Context,
+        systemInstruction: String,
+        modelId: DialogueModelId,
+        tools: Set<ConversationToolId>,
+    ): TextCallAgentBackend = createInternal(
+        context = context, modelId = modelId, systemInstruction = systemInstruction,
+        responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(tools)),
+    )
+
     private fun selectedModel(context: Context): DialogueModelId =
         checkNotNull(AudioEngineProfileStore(context).load()) { "invalid_audio_engine_profile" }.dialogue
 

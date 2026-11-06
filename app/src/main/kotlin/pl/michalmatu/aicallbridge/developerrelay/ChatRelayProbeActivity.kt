@@ -69,7 +69,7 @@ class ChatRelayProbeActivity : Activity() {
             runConfiguration = ConversationRunConfiguration.ScriptAssisted(AudioEngineProfile.STABLE, ConversationPreparation.outgoing()),
         ) { result ->
             runOnUiThread {
-                statusView.text = result
+                statusView.text = result.report
                 Log.i(TAG, "chat_relay_probe_complete=true")
                 finish()
             }

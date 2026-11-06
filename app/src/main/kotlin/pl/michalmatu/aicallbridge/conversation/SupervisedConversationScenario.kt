@@ -30,7 +30,7 @@ internal class SupervisedConversationScenario(private val context: Context, priv
         override fun start() = Unit
         override fun beginTurn() = Unit
         override fun onTranscript(turn: Int, text: String) = Unit
-        override fun takeOutcome(): ConversationOutcome? = null
+        override fun takeOutcome(boundary: pl.michalmatu.aicallbridge.conversation.ConversationOutcomeBoundary): ConversationOutcome? = null
         override fun turnBudgetOutcome() = ConversationOutcome.Completed
         override fun recordTurnDiagnostics(turn: Int) = Unit
         override fun finalDiagnostics() = listOf("supervised_gemma_replies=${replies.get()}", "supervised_script_fallback_replies=${fallbacks.get()}")

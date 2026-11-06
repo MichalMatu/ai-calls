@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.conversation.ConversationResponseFormat
+
 import pl.michalmatu.aicallbridge.agent.CallService
 import pl.michalmatu.aicallbridge.conversation.*
 
@@ -20,6 +22,6 @@ internal object GemmaDirectTaskBriefBuilder {
         }
         val scoped = ConversationPreparation(preparation.id, preparation.title, ConversationDirection.OUTGOING,
             preparation.notes, preparation.skills, preparation.scopedDataFields(grant.allowedDisclosureFields))
-        return ConversationInstructionBuilder.build(scoped, goal)
+        return ConversationInstructionBuilder.build(scoped, goal, ConversationResponseFormat.SPOKEN_TEXT)
     }
 }

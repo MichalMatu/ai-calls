@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.incoming
 
+import pl.michalmatu.aicallbridge.conversationtools.*
+
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -30,6 +32,11 @@ import pl.michalmatu.aicallbridge.textagent.*
 class AndroidIncomingAssistantContractTest {
     private val instrumentation=InstrumentationRegistry.getInstrumentation()
     private val context=instrumentation.targetContext
+    private fun offcallTools()=ConversationToolExecutor(object:ConversationToolPort {
+        override fun enabled(tool:ConversationToolId)=true
+        override fun authorized(tool:ConversationToolId)=true
+        override fun requestEndCall(turn:Int)=true // Synthetic port: never touches Telecom.
+    })
 
     @Test fun acceptedReceivingPolicyPersistsSeparatelyAndCanBeRevokedWithoutOutgoingChanges() {
         val name="incoming-test-${UUID.randomUUID()}"
@@ -64,13 +71,13 @@ class AndroidIncomingAssistantContractTest {
         try {
             val recorder=checkNotNull(CallSessionEvidenceRecorder.create(isolated))
             val configuration=ConversationRunConfiguration.ModelDirect(AudioEngineProfile.STABLE,
-                ConversationInstructionBuilder.build(ConversationPreparation.incoming(),IncomingSecretaryScenario.GOAL),ConversationPreparation.incoming())
+                ConversationInstructionBuilder.build(ConversationPreparation.incoming(),IncomingSecretaryScenario.GOAL,ConversationResponseFormat.TOOL_REPLY),ConversationPreparation.incoming())
             instrumentation.runOnMainSync {
                 assertNotEquals(AudioManager.MODE_IN_CALL,context.getSystemService(AudioManager::class.java).mode)
                 val result=AndroidConversationRuntime.run(context,"incoming-preflight",AndroidConversationRuntime.TASK_SCOPED_TURNS,
-                    IncomingSecretaryScenario(context,configuration),liveAuthorization={false},callStillActive={false},
+                    IncomingSecretaryScenario(context,configuration,offcallTools(),setOf(ConversationToolId.END_CALL)),liveAuthorization={false},callStillActive={false},
                     evidenceRecorder=recorder,runConfiguration=configuration) { report ->
-                    assertTrue(report.contains("failure_reason=cellular_call_not_active"))
+                    assertTrue(report.report.contains("failure_reason=cellular_call_not_active"))
                 }
                 assertNull(result)
             }
@@ -142,7 +149,7 @@ class AndroidIncomingAssistantContractTest {
         val profile=checkNotNull(AudioEngineProfileStore(context).load())
         val preparation=ConversationPreparation.incoming()
         val configuration=ConversationRunConfiguration.ModelDirect(profile,
-            ConversationInstructionBuilder.build(preparation,IncomingSecretaryScenario.GOAL),preparation)
+            ConversationInstructionBuilder.build(preparation,IncomingSecretaryScenario.GOAL,ConversationResponseFormat.TOOL_REPLY),preparation)
         val authorized=AtomicBoolean(true)
         val turn=AtomicInteger(0)
         val input=object:SpeechInputProvider {
@@ -160,9 +167,9 @@ class AndroidIncomingAssistantContractTest {
         lateinit var dialogue:ConversationDialogueSession
         lateinit var pipeline:LocalSpeechTextPipeline
         instrumentation.runOnMainSync {
-            dialogue=IncomingSecretaryScenario(context,configuration).open(ConversationRuntimeHooks(
+            dialogue=IncomingSecretaryScenario(context,configuration,offcallTools(),setOf(ConversationToolId.END_CALL)).open(ConversationRuntimeHooks(
                 authorized={authorized.get()},mediaGeneration={0L},turn={turn.get()},emit={},
-                decisionSink=ConversationDecisionSink {_,_,_,_,_->}))
+                decisionSink=ConversationDecisionSink {_,_,_,_,_->},toolEventSink={}))
             dialogue.start()
             val output=when(profile.output) {
                 SpeechOutputId.ANDROID_TTS_PL -> AndroidTtsOutputProvider(context,profile.languageTag,profile.voiceId)

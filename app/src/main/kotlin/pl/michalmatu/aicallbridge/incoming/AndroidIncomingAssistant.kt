@@ -17,10 +17,11 @@ import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
 import pl.michalmatu.aicallbridge.audioengines.*
 import pl.michalmatu.aicallbridge.conversation.*
 import pl.michalmatu.aicallbridge.conversationcore.*
+import pl.michalmatu.aicallbridge.conversationtools.*
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
-import pl.michalmatu.aicallbridge.textagent.*
+import pl.michalmatu.aicallbridge.tools.*
 
-/** Adapts exact incoming Call objects to the shared runtime. Never disconnects a Call. */
+/** Owns exact incoming Call objects; end_call can close only their current authorized AI generation. */
 internal class AndroidIncomingAssistant(
     private val context: Context,
     private val calls: () -> List<Call>,
@@ -28,128 +29,184 @@ internal class AndroidIncomingAssistant(
     private val handler = Handler(Looper.getMainLooper())
     private val closed = AtomicBoolean(false)
     private val suspended = AtomicBoolean(false)
-    private val preparations = IdentityHashMap<Call, ConversationRunConfiguration.ModelDirect>()
+    private data class Prepared(val run: ConversationRunConfiguration.ModelDirect, val tools: Set<ConversationToolId>)
+    private val preparations = IdentityHashMap<Call, Prepared>()
     private val store by lazy { IncomingAssistantPolicyStore(context) }
+    private val toolSettings by lazy { ConversationToolSettingsStore(context) }
     private class AudioSlot(val call: Call, val generation: Long) {
-        val cancelled=AtomicBoolean(false)
-        val audio=AtomicReference<AndroidConversationRuntime.SessionControl?>(null)
+        val cancelled = AtomicBoolean(false)
+        val audio = AtomicReference<AndroidConversationRuntime.SessionControl?>(null)
+        var recorder: CallSessionEvidenceRecorder? = null
+        var endToolTurn: Int? = null
+        val toolFinalized = AtomicBoolean(false)
+        var chatToken = 0L
+        val pendingChatTools = mutableListOf<ConversationToolEvent>()
     }
-    private val slots=ConcurrentHashMap<Long, AudioSlot>()
+    private val slots = ConcurrentHashMap<Long, AudioSlot>()
     @Volatile var status: String = "MANUAL"
         private set
-    private val coordinator=IncomingAssistantCoordinator(object : IncomingAssistantPort<Call> {
+    private val coordinator = IncomingAssistantCoordinator(object : IncomingAssistantPort<Call> {
         override fun readinessFailure(call: Call): String? = this@AndroidIncomingAssistant.readinessFailure(call)
         override fun answer(call: Call) { call.answer(0) }
-        override fun startAudio(call: Call, policy: IncomingAssistantPolicy, generation: Long) = prepare(call,policy,generation)
-        override fun stopAudio(call: Call, generation: Long) {
+        override fun startAudio(call: Call, policy: IncomingAssistantPolicy, generation: Long) = prepare(call, policy, generation)
+        override fun stopAudio(call: Call, generation: Long, reason: ConversationStopReason) {
             slots[generation]?.takeIf { it.call === call }?.let { slot ->
                 slot.cancelled.set(true)
-                slot.audio.getAndSet(null)?.stopAudio()
-                slots.remove(generation,slot)
+                slot.audio.getAndSet(null)?.stopAudio(reason)
+                if (slot.endToolTurn == null) slots.remove(generation, slot)
             }
         }
+        override fun disconnect(call: Call) {
+            val policy = loadPolicy()
+            check(!closed.get() && calls().any { it === call } && call.state == Call.STATE_ACTIVE && exclusive(call))
+            check(policy.mode == AnsweringMode.AI && policy.accountKey == call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey))
+            call.disconnect()
+        }
         override fun changed(call: Call, state: IncomingAssistantState, reason: String?) {
-            status=state.name + (reason?.let { ":$it" } ?: "")
+            status = state.name + (reason?.let { ":$it" } ?: "")
         }
     })
 
     fun observe(call: Call) {
-        val state=call.state
-        val incoming=state==Call.STATE_RINGING || call.details?.callDirection==Call.Details.DIRECTION_INCOMING || coordinator.snapshot(call)!=null
+        val state = call.state
+        val incoming = state == Call.STATE_RINGING || call.details?.callDirection == Call.Details.DIRECTION_INCOMING || coordinator.snapshot(call) != null
         if (!incoming) return
-        val phase=when(state) {
+        val phase = when (state) {
             Call.STATE_RINGING -> IncomingCallPhase.RINGING
             Call.STATE_ACTIVE -> IncomingCallPhase.ACTIVE
             Call.STATE_HOLDING -> IncomingCallPhase.HELD
-            Call.STATE_DISCONNECTED,Call.STATE_DISCONNECTING -> IncomingCallPhase.ENDED
+            Call.STATE_DISCONNECTED, Call.STATE_DISCONNECTING -> IncomingCallPhase.ENDED
             else -> return
         }
-        coordinator.observe(call,phase,call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey),
-            true,exclusive(call),loadPolicy())
+        coordinator.observe(call, phase, call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey), true, exclusive(call), loadPolicy())
+        if (state == Call.STATE_DISCONNECTED) resolveEndedCall(call)
     }
-    fun removed(call: Call) { preparations.remove(call); coordinator.forget(call) }
+    private fun resolveEndedCall(call: Call) {
+        slots.values.filter { it.call === call && it.endToolTurn != null }.forEach {
+            finalizeToolEvidence(it, ConversationToolStage.CONFIRMED)
+            slots.remove(it.generation, it)
+        }
+    }
+    fun removed(call: Call) { resolveEndedCall(call); preparations.remove(call); coordinator.forget(call) }
     fun takeOver(call: Call) = coordinator.takeOver(call)
-    fun resume(call: Call): Boolean = coordinator.resume(call,loadPolicy())
+    fun resume(call: Call): Boolean = coordinator.resume(call, loadPolicy())
     fun snapshot(call: Call) = coordinator.snapshot(call)
-    fun policyChanged() { suspended.set(false); coordinator.policyChanged(loadPolicy()) }
+    fun policyChanged() { suspended.set(false); coordinator.policyChanged(loadPolicy(), ConversationStopReason.POLICY_REVOKED) }
     fun stopAll() {
         suspended.set(true)
-        coordinator.policyChanged(IncomingAssistantPolicy("stopped",AnsweringMode.MANUAL,null,false))
+        coordinator.policyChanged(IncomingAssistantPolicy("stopped", AnsweringMode.MANUAL, null, false), ConversationStopReason.OPERATOR_STOP)
     }
-
     private fun loadPolicy(): IncomingAssistantPolicy = try {
-        if (suspended.get()) IncomingAssistantPolicy("stopped",AnsweringMode.MANUAL,null,false) else store.load()
+        if (suspended.get()) IncomingAssistantPolicy("stopped", AnsweringMode.MANUAL, null, false) else store.load()
     } catch (_: Exception) {
-        status="MANUAL:incoming_policy_unavailable"
-        IncomingAssistantPolicy("unavailable",AnsweringMode.MANUAL,null,false)
+        status = "MANUAL:incoming_policy_unavailable"
+        IncomingAssistantPolicy("unavailable", AnsweringMode.MANUAL, null, false)
     }
     private fun exclusive(call: Call): Boolean = calls().none { other ->
-        other !== call && other.state in setOf(Call.STATE_ACTIVE,Call.STATE_HOLDING,Call.STATE_DIALING,Call.STATE_CONNECTING)
+        other !== call && other.state in setOf(Call.STATE_ACTIVE, Call.STATE_HOLDING, Call.STATE_DIALING, Call.STATE_CONNECTING)
     }
     private fun authorized(slot: AudioSlot): Boolean = !closed.get() && !slot.cancelled.get() &&
-        slot.call.state==Call.STATE_ACTIVE && exclusive(slot.call) &&
-        coordinator.isAuthorized(slot.call,slot.generation) &&
-        loadPolicy().let { it.mode==AnsweringMode.AI && it.accountKey==slot.call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey) }
+        slot.call.state == Call.STATE_ACTIVE && exclusive(slot.call) && coordinator.isAuthorized(slot.call, slot.generation) &&
+        loadPolicy().let { it.mode == AnsweringMode.AI && it.accountKey == slot.call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey) }
 
     private fun readinessFailure(call: Call): String? {
-        if (context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage!=context.packageName) return "dialer_role_missing"
-        if (listOf(Manifest.permission.RECORD_AUDIO,Manifest.permission.READ_PHONE_STATE).any {
-                context.checkSelfPermission(it)!=PackageManager.PERMISSION_GRANTED }) return "incoming_android_permission_missing"
-        val readiness=AndroidLiveCallReadiness.evaluate(context)
+        if (context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage != context.packageName) return "dialer_role_missing"
+        if (listOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_PHONE_STATE).any {
+                context.checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }) return "incoming_android_permission_missing"
+        val readiness = AndroidLiveCallReadiness.evaluate(context)
         if (!readiness.ready) return readiness.failure?.reportValue ?: "incoming_media_not_ready"
-        val profile=AudioEngineProfileStore(context).load() ?: return "audio_profile_invalid"
+        val profile = AudioEngineProfileStore(context).load() ?: return "audio_profile_invalid"
         AudioEngineRegistry.incompatibility(profile)?.let { return it }
         AudioEngineReadinessProbe.inputAndModelFailure(context, profile)?.let { return it }
-        val preparation=AndroidConversationPreparationStore(context).load(ConversationPreparation.INCOMING_ID)
-        preparations[call]=ConversationRunConfiguration.ModelDirect(profile,
-            ConversationInstructionBuilder.build(preparation,IncomingSecretaryScenario.GOAL),preparation)
+        val preparation = AndroidConversationPreparationStore(context).load(ConversationPreparation.INCOMING_ID)
+        preparations[call] = Prepared(ConversationRunConfiguration.ModelDirect(profile,
+            ConversationInstructionBuilder.build(preparation, IncomingSecretaryScenario.GOAL, ConversationResponseFormat.TOOL_REPLY), preparation), toolSettings.enabled())
         return null
     }
-
     private fun prepare(call: Call, policy: IncomingAssistantPolicy, generation: Long) {
-        val configuration=checkNotNull(preparations.remove(call)) { "incoming_preparation_missing" }
-        val slot=AudioSlot(call,generation)
-        slots[generation]=slot
-        handler.post { waitForMedia(slot,policy,configuration) }
+        val prepared = checkNotNull(preparations.remove(call)) { "incoming_preparation_missing" }
+        val slot = AudioSlot(call, generation)
+        slots[generation] = slot
+        handler.post { waitForMedia(slot, policy, prepared) }
     }
-
-    private fun waitForMedia(slot: AudioSlot, policy: IncomingAssistantPolicy, configuration: ConversationRunConfiguration.ModelDirect) {
-        if (!authorized(slot)) { finish(slot,"incoming_authority_or_call_ended"); return }
-        val mode=context.getSystemService(AudioManager::class.java)?.mode
-        if (mode==AudioManager.MODE_IN_COMMUNICATION) { finish(slot,"wifi_calling_media_unsupported"); return }
-        if (mode!=AudioManager.MODE_IN_CALL) {
-            // Telecom ACTIVE and audio-mode callbacks can arrive in either order.
-            // Wait only while the same actual Call and accepted policy remain active.
-            handler.postDelayed({ waitForMedia(slot,policy,configuration) },250L)
+    private fun waitForMedia(slot: AudioSlot, policy: IncomingAssistantPolicy, prepared: Prepared) {
+        if (!authorized(slot)) {
+            abandon(slot, if (slot.call.state != Call.STATE_ACTIVE) ConversationStopReason.CALL_ENDED else ConversationStopReason.POLICY_REVOKED)
             return
         }
-        val recorder=if(policy.recordEvidence) CallSessionEvidenceRecorder.create(context) else null
-        try {
-            val audio=AndroidConversationRuntime.run(context,
-                "incoming-${UUID.randomUUID()}",AndroidConversationRuntime.TASK_SCOPED_TURNS,
-                IncomingSecretaryScenario(context,configuration),liveAuthorization={authorized(slot)},
-                callStillActive={slot.call.state==Call.STATE_ACTIVE},evidenceRecorder=recorder,
-                runConfiguration=configuration) { report ->
-                val reason=report.lineSequence().firstOrNull { it.startsWith("failure_reason=") }?.substringAfter('=')
-                finish(slot,reason)
-            }
-            slot.audio.set(audio)
-            if (!authorized(slot)) slot.audio.getAndSet(null)?.stopAudio()
-            else if (audio!=null) coordinator.audioStarted(slot.call,slot.generation)
-        } catch (failure: Exception) {
-            recorder?.finish("incoming_runtime_${failure.javaClass.simpleName}")
-            finish(slot,"incoming_runtime_${failure.javaClass.simpleName}")
+        val mode = context.getSystemService(AudioManager::class.java)?.mode
+        if (mode == AudioManager.MODE_IN_COMMUNICATION) { failBeforeRuntime(slot, "wifi_calling_media_unsupported"); return }
+        if (mode != AudioManager.MODE_IN_CALL) {
+            handler.postDelayed({ waitForMedia(slot, policy, prepared) }, 250L)
+            return
         }
+        slot.recorder = if (policy.recordEvidence) CallSessionEvidenceRecorder.create(context) else null
+        val tools = ConversationToolExecutor(object : ConversationToolPort {
+            override fun enabled(tool: ConversationToolId) = tool in toolSettings.enabled()
+            override fun authorized(tool: ConversationToolId) = this@AndroidIncomingAssistant.authorized(slot)
+            override fun requestEndCall(turn: Int): Boolean {
+                slot.endToolTurn = turn
+                val accepted = coordinator.completeConversation(slot.call, slot.generation, loadPolicy())
+                if (!accepted) slot.endToolTurn = null
+                return accepted
+            }
+        })
+        try {
+            val audio = AndroidConversationRuntime.run(context, "incoming-${UUID.randomUUID()}", AndroidConversationRuntime.TASK_SCOPED_TURNS,
+                IncomingSecretaryScenario(context, prepared.run, tools, prepared.tools), liveAuthorization = { authorized(slot) },
+                callStillActive = { slot.call.state == Call.STATE_ACTIVE }, evidenceRecorder = slot.recorder,
+                runConfiguration = prepared.run) { result -> finished(slot, result) }
+            slot.audio.set(audio)
+            if (!authorized(slot)) slot.audio.getAndSet(null)?.stopAudio(
+                if (slot.call.state != Call.STATE_ACTIVE) ConversationStopReason.CALL_ENDED else ConversationStopReason.POLICY_REVOKED)
+            else if (audio != null) coordinator.audioStarted(slot.call, slot.generation)
+        } catch (failure: Exception) { failBeforeRuntime(slot, "incoming_runtime_${failure.javaClass.simpleName}") }
     }
-    private fun finish(slot: AudioSlot, reason: String?) {
+    private fun finished(slot: AudioSlot, result: ConversationRunResult) {
         slot.cancelled.set(true)
-        slot.audio.getAndSet(null)?.stopAudio()
-        slots.remove(slot.generation,slot)
-        coordinator.audioFinished(slot.call,slot.generation,reason)
+        slot.audio.set(null)
+        slot.chatToken = result.chatToken
+        slot.pendingChatTools.forEach { ConversationChatFeed.tool(slot.chatToken, it) }
+        slot.pendingChatTools.clear()
+        if (result.evidenceAwaitingTool && slot.endToolTurn != null) {
+            if (slot.call.state == Call.STATE_DISCONNECTED) {
+                finalizeToolEvidence(slot, ConversationToolStage.CONFIRMED)
+                slots.remove(slot.generation, slot)
+            }
+        } else {
+            slot.recorder?.finish(result.termination.code)
+            slots.remove(slot.generation, slot)
+        }
+        coordinator.audioFinished(slot.call, slot.generation, result.termination.code)
+    }
+    private fun finalizeToolEvidence(slot: AudioSlot, stage: ConversationToolStage) {
+        val turn = slot.endToolTurn ?: return
+        if (!slot.toolFinalized.compareAndSet(false, true)) return
+        val event = ConversationToolEvent(turn, ConversationToolId.END_CALL, stage, null)
+        slot.recorder?.recordToolEvent(event)
+        ConversationToolUi.record(event)
+        if (slot.chatToken != 0L) ConversationChatFeed.tool(slot.chatToken, event) else slot.pendingChatTools += event
+        slot.recorder?.finish(if (stage == ConversationToolStage.CONFIRMED) "owned_call_ended" else "tool_result_unknown")
+    }
+    private fun abandon(slot: AudioSlot, reason: ConversationStopReason) {
+        slot.cancelled.set(true)
+        slot.audio.getAndSet(null)?.stopAudio(reason)
+        coordinator.audioFinished(slot.call, slot.generation, reason.code)
+        slots.remove(slot.generation, slot)
+    }
+    private fun failBeforeRuntime(slot: AudioSlot, code: String) {
+        slot.cancelled.set(true)
+        slot.audio.getAndSet(null)?.stopAudio(ConversationStopReason.SESSION_CANCELLED)
+        slot.recorder?.finish(code)
+        coordinator.audioFinished(slot.call, slot.generation, code)
+        slots.remove(slot.generation, slot)
+        status = "MANUAL:$code"
     }
     override fun close() {
         closed.set(true)
         coordinator.close()
+        slots.values.forEach { finalizeToolEvidence(it, ConversationToolStage.UNKNOWN) }
+        slots.clear()
         handler.removeCallbacksAndMessages(null)
         preparations.clear()
     }
