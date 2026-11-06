@@ -33,8 +33,8 @@ Odtwarzanie wymaga dostępnego prawidłowego pliku w katalogu prywatnej sesji i 
 - Etap 1 (`b448ace`): AndroidTest compile, 266 Python, pełny host, anti-friction — PASS.
 - Etap 2 (`2fca5f9`): AndroidTest compile, 268 Python, pełny host, anti-friction — PASS.
 - Etap 3 (`d59b459`): celowany JVM test mapowania audio, AndroidTest compile, 270 Python, pełny host, anti-friction — PASS.
-- Fizyczny test nowego UI: **QA_PENDING**. S22 ADB niedostępne w bezpiecznym preflight; bez instalacji, połączenia i modyfikacji danych.
+- Fizyczne S22 QA: **PASS 7/7** instrumentacyjnie (sekcje, nawigacja do historii, 8 ekranów, odczytowe zachowanie preferencji, syntetyczny cichy WAV w playerze); podpis APK zgodny, dane zachowane, brak połączeń. [Receipt](checkpoints/2026-11-06-settings-ux-s22-physical-acceptance.md).
 
 ## Następny UX etap
 
-Prawdziwy wspólny pasek zakładek i spójne karty Material dla ekranów podrzędnych; urządzeniowe testy klikania, nawigacji i zapisu preferencji po odzyskaniu S22; pełny recorder i player F-080 jako osobna zmiana granicy mediów, bez naruszania zamrożonego toru Samsung.
+Prawdziwy wspólny pasek zakładek i spójne karty Material dla ekranów podrzędnych; ręczna ocena wyglądu i osobna matryca edycji/zapisu każdej kontrolki. Pełny recorder i odtwarzacz całej sesji F-080 pozostają osobną zmianą granicy mediów, bez naruszania zamrożonego toru Samsung.
