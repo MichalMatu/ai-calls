@@ -1,10 +1,10 @@
-# Wspólny runtime rozmów — 2026-11-05
+# AI Calls — wspólny runtime rozmów (stan 2026-11-06)
 
-[Plan dalszego składania](PRODUCT_ASSEMBLY_PLAN.md) rozdziela profil użytkownika, konkretne zadanie, rozszerzalne skillsy/instrukcje i archiwum. Opisane poniżej moduły są obecnie granicami logicznymi w aplikacji; osobne biblioteki będą wydzielane przy pionowych integracjach. [Adapter odbierania](INCOMING_ASSISTANT.md) wdraża manual/AI/przejęcie ze wspólnym silnikiem i osobnym rdzeniem JVM conversation-core; fizyczna kwalifikacja pozostaje QA_PENDING.
+[Plan dalszego składania](PRODUCT_ASSEMBLY_PLAN.md) rozdziela profil użytkownika, konkretne zadanie, rozszerzalne skillsy/instrukcje i archiwum. Opisane poniżej moduły są obecnie granicami logicznymi w aplikacji; osobne biblioteki będą wydzielane przy pionowych integracjach. [Adapter odbierania](INCOMING_ASSISTANT.md) wdraża manual/AI/przejęcie ze wspólnym silnikiem i osobnym rdzeniem JVM conversation-core; podstawowy INCOMING/end_call został sprawdzony fizycznie, a manual/przejęcie/STOP pozostają QA_PENDING.
 
 ## Opcjonalna polityka ciszy dla INCOMING — 2026-11-06
 
-ConversationScenario udostępnia wyłącznie dla sekretarki przychodzącej politykę czasową 30 s aktywnego nasłuchu + ostrzeżenie + 15 s czasu na odpowiedź. IncomingIdleTimeout liczy tylko monotoniczny czas otwartego RX, nie model/TTS, i nie resetuje się przy bezmownym retry STT. Oba komunikaty przechodzą ten sam output approval i TTS/TX; dopiero po finalnym TX aplikacja proponuje end_call przez dotychczasowego wykonawcę w aktualnym Call/grancie. [Checkpoint](checkpoints/2026-11-06-incoming-idle30.md). Fizyczna cisza/hangup nadal QA_PENDING.
+ConversationScenario udostępnia wyłącznie dla sekretarki przychodzącej politykę czasową 30 s aktywnego nasłuchu + ostrzeżenie + 15 s czasu na odpowiedź. IncomingIdleTimeout (obecnie JVM conversation-core) liczy tylko monotoniczny czas otwartego RX, nie model/TTS, i nie resetuje się przy bezmownym retry STT. Oba komunikaty przechodzą ten sam output approval i TTS/TX; dopiero po finalnym TX aplikacja proponuje end_call przez dotychczasowego wykonawcę w aktualnym Call/grancie. [Checkpoint](checkpoints/2026-11-06-incoming-idle30.md). Właściciel potwierdził rozłączenie po ciszy; szczegółowa sekwencja zdarzeń ostatniego połączenia nadal QA_PENDING. Nowe APK po etapie 1 modularizacji nie było instalowane.
 
 ## Granice modułów
 
@@ -64,8 +64,8 @@ Czytnik zgłasza liczbę uszkodzonych wpisów i zachowuje poprawne zdarzenia. Hi
 
 Model danych, instrukcje i archiwum obsługują INCOMING niezależnie od OUTGOING. Runtime nie wymaga nowego rozgałęzienia CLIR ani kopii silnika dla odbioru telefonu. AndroidIncomingAssistant dostarcza adapter konkretnego Call, przyjętą politykę odbierania i IncomingSecretaryScenario, a po rzeczywistym ACTIVE i MODE_IN_CALL podłącza go do tego samego runtime. Sterowanie odbiorem i generacjami jest w niezależnym JVM conversation-core.
 
-Automatyczne odbieranie ma ustawienia AI/manual dla wybranego konta i przejęcie bez rozłączenia, bez aktywowania go samym profilem danych. Kod i granice dowodów opisuje [INCOMING_ASSISTANT](INCOMING_ASSISTANT.md). Test fizycznego przychodzącego ma QA_PENDING. Uprawnienia systemowe nadaje użytkownik. Przyjęcie przyszłego zadania/polityki nie może przerodzić się w ponowne pytanie o zgodę na każdą turę; scope, cofnięcie i STOP pozostają aplikacyjne.
+Automatyczne odbieranie ma ustawienia AI/manual dla wybranego konta i przejęcie bez rozłączenia, bez aktywowania go samym profilem danych. Kod i granice dowodów opisuje [INCOMING_ASSISTANT](INCOMING_ASSISTANT.md). Bazowy fizyczny INCOMING/end_call jest potwierdzony; manual/przejęcie/STOP oraz odpowiedź po ostrzeżeniu mają osobne QA_PENDING. Uprawnienia systemowe nadaje użytkownik. Przyjęcie przyszłego zadania/polityki nie może przerodzić się w ponowne pytanie o zgodę na każdą turę; scope, cofnięcie i STOP pozostają aplikacyjne.
 
-## Wyniki
+## Aktualne dowody
 
-Baza `67c2382`. Nowy host green: pełna bramka `scripts/verify_host.sh`, audyty i oba APK. 785 JVM, 266 Python, 8 kontraktów S22 i 7 pełnych tur OUTGOING z kontrolowanym STOP PASS. Hashe i zakresy są zapisane w [checkpoint](checkpoints/2026-11-05-conversation-modules.md). Defekty i zakresy akceptacji wyłącznie w [BLOCKERS](../BLOCKERS.md), F-075–F-079 oraz wcześniejsze F-044/F-045/F-048/F-061. Nie utożsamiać testów struktury/przechowywania z gotowym automatycznym odbieraniem lub wykonaniem CLIR.
+Etapy 0–1 modularizacji: [kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md), [testy etapu 1](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md). Dalsze etapy: [plan](SAFE_MODULARIZATION_PLAN.md). Wcześniejsze QA i pełne szczegóły modeli/Orange pozostają w historycznych checkpointach. Bieżące OPEN/VERIFIED wyłącznie w [BLOCKERS](../BLOCKERS.md).

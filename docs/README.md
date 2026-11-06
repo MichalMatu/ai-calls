@@ -1,17 +1,13 @@
 # AI Calls — indeks dokumentacji
 
+**Nowy czat:** [Gotowy prompt](NEXT_CHAT_PROMPT.md) · [Handoff](HANDOFF_NEXT_CHAT.md) · [Pełny checkpoint etapów 0–1](checkpoints/2026-11-06-modularization-handoff-final.md).
 
-Bieżący zakres: [modułowe laboratorium i instalacja](TEST_LAB_SCOPE.md). Najnowszy zakres: [sekretarka](INCOMING_ASSISTANT.md), [30+15 s timeout](checkpoints/2026-11-06-incoming-idle30.md), [reaudyt jakości/modułów](checkpoints/2026-11-06-quality-modularity-reaudit.md). Podstawowy INCOMING i end_call fizycznie potwierdzone, manual/przejęcie/STOP QA_PENDING. Poprzedni wynik urządzenia: [wspólny silnik, przygotowanie i historia — 2026-11-05](checkpoints/2026-11-05-conversation-modules.md). Dalszy plan: [składanie produktu, sekretarka i pełne audio](PRODUCT_ASSEMBLY_PLAN.md).
-**Wejście do bieżącej pracy:** [AGENTS](../AGENTS.md) → [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) → [USB debug / S22 checkpoint](checkpoints/2026-11-04-usb-debug-s22-acceptance.md). Stary [phone-ready checkpoint](checkpoints/2026-11-04-ai-calls-phone-ready-checkpoint.md) pozostaje historią wcześniejszego stanu.
+**Rozwój:** [Plan modularizacji](SAFE_MODULARIZATION_PLAN.md) · [Roadmapa](ROADMAP.md) · [Architektura](ARCHITECTURE.md) · [Runtime](CONVERSATION_RUNTIME.md) · [Sekretarka INCOMING](INCOMING_ASSISTANT.md).
 
-- **Runtime obu kierunków / skills / dane / historia:** [CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) · [QA](checkpoints/2026-11-05-conversation-modules.md).
-- **Plan produktu:** [moduły, zadania i sekretarka, preprompt/skills, pełne audio i player](PRODUCT_ASSEMBLY_PLAN.md).
-- **Zakres aplikacji testowej:** [laboratorium / moduły / korpusy / wspólny instalator](TEST_LAB_SCOPE.md).
-- **Bieżąca instrukcja i kolejność:** [handoff](HANDOFF_NEXT_CHAT.md) · [roadmap](ROADMAP.md).
-- **USB/ADB i panel diagnostyczny:** [USB diagnostic bridge](USB_DEBUG_BRIDGE.md) — jedna konsola Mac, prywatny eksport, aplikacyjny panel, istniejące magazyny stanów.
-- **Bieżące statuty defektów:** [BLOCKERS.md](../BLOCKERS.md) — jedyny rejestr OPEN/FIXED/VERIFIED, nie usuwać starszych RED.
-- **Normatywne zasady:** [ARCHITECTURE](ARCHITECTURE.md), [AUTONOMOUS_OPERATION_MODE](AUTONOMOUS_OPERATION_MODE.md), [SECURITY_PRIVACY](SECURITY_PRIVACY.md), [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md).
-- **Media/privileged freeze:** [PHASE2D_FREEZE](PHASE2D_FREEZE_2026-09-18.md) — przeczytać przed modyfikacją Samsung/Shizuku PCM.
-- **Historia pomiarów i prób:** pozostałe dokumenty w `docs/checkpoints/` i historia Git/Local Agent; stare QA_PENDING/OPEN nie zastępują aktualnych receipts.
+**Produkt i laboratorium:** [Plan produktu](PRODUCT_ASSEMBLY_PLAN.md) · [Zakres eksperymentów](TEST_LAB_SCOPE.md) · [USB/ADB](USB_DEBUG_BRIDGE.md).
 
-Dokumentacja aktywna wskazuje jedno bieżące źródło wyniku i jedno źródło statusu defektów. Prywatne WAV/transkrypty pozostają poza GitHub.
+**Normy:** [AGENTS](../AGENTS.md) · [Bezpieczeństwo](SECURITY_PRIVACY.md) · [Autonomia](AUTONOMOUS_OPERATION_MODE.md) · [Skutki i autoryzacja](GENERIC_PHONE_TASK_AUTHORITY.md) · [Freeze PCM](PHASE2D_FREEZE_2026-09-18.md).
+
+**Błędy:** [BLOCKERS](../BLOCKERS.md) — jedyny rejestr statusów. **Dowody:** [etap 0](checkpoints/2026-11-06-mod-stage0-baseline.md) · [etap 1](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md) · [fizyczny timeout](checkpoints/2026-11-06-incoming-idle30.md) · [reaudyt](checkpoints/2026-11-06-quality-modularity-reaudit.md).
+
+Pozostałe pliki w checkpoints to historia pomiarów, nie nowe polecenia pracy. Prywatne WAV, numery i transkrypty nie należą do Git.
