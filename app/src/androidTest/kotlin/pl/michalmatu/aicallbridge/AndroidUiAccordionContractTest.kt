@@ -30,6 +30,8 @@ class AndroidUiAccordionContractTest {
                 assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
                 assertTrue(findButton(root, "Campaign tools")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
+                assertTrue(findButton(root, "Rozmowy i nagrania")!!.isShown)
+                assertTrue(findButton(root, "Laboratorium offline")!!.isShown)
 
                 val ids = listOf("basic", "secretary", "skills", "laboratory", "advanced")
                 val bodies = ids.associateWith { id ->

@@ -134,6 +134,19 @@ class MainActivity : Activity() {
             }
         }
 
+        // Primary navigation: conversation archive and offline lab are not settings.
+        // These open read-only/history or off-call screens; no call authorization changes.
+        val conversationHistoryButton = Button(this).apply {
+            text = "Rozmowy i nagrania"
+            setOnClickListener { startActivity(Intent(this@MainActivity,
+                pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity::class.java)) }
+        }
+        val labShortcutButton = Button(this).apply {
+            text = "Laboratorium offline"
+            setOnClickListener { startActivity(Intent(this@MainActivity,
+                pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity::class.java)) }
+        }
+
         // UX-only grouping: the original controls and their callbacks are unchanged.
         // STOP and authorized-task actions remain immediately visible.
         val basicSection = UiAccordionSection(
@@ -228,6 +241,8 @@ class MainActivity : Activity() {
             addView(startAuthorizedTaskButton)
             addView(campaignToolsButton)
             addView(stopAiButton)
+            addView(conversationHistoryButton)
+            addView(labShortcutButton)
             addView(TextView(this@MainActivity).apply {
                 text = "Ustawienia aplikacji"
                 textSize = 20f
