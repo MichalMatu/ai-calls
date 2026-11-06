@@ -12,6 +12,10 @@
 
 Pełna mapa wyników rozmowy 5/5/3 i `ConversationTermination` wykazała brak uzasadnionego nowego wydzielenia. Kod pozostał nietknięty. Celowane JVM, AndroidTest compile, pełna bramka hosta (266 Python), product friction i clean Git PASS. [Dowód](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md).
 
+## Etap 3 — pierwszy mały krok ukończony / PASS
+
+`ConversationSessionRegistry` przeniesiono z Android app do czystego JVM `conversation-core` (body identyczne, 4 testy core). Pełna bramka hosta, native compile i friction PASS, 266 Python. [Dowód](checkpoints/2026-11-06-mod-stage3-session-registry-core.md). Następny pojedynczy krok: audyt neutralnego stanu tury, bez domyślnego refaktoru.
+
 ## Potem, w oddzielnych małych sprintach
 
 - Etap 3: pojedyncze, czyste odpowiedzialności wydzielane z 815-liniowego AndroidConversationRuntime, bez rozdzielania mediów i cyklu własności Call.

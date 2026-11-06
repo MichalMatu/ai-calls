@@ -1,4 +1,4 @@
-package pl.michalmatu.aicallbridge.conversation
+package pl.michalmatu.aicallbridge.conversationcore
 
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors

@@ -30,7 +30,7 @@ flowchart TD
 | `ConversationScenario` / `ConversationDialogueSession` | Kierunek, profil przygotowania, backend, polityka zatwierdzania wypowiedzi, zdarzenia i wynik scenariusza |
 | `campaign/ClirConversationScenario` | Obecne zadanie wychodzące: Orange/CLIR, rozpoznanie kontekstu usługi, typed effect, jeden CallCommitmentGate, autoryzowany fakt PHONE i prowizoryczne twierdzenie operatora |
 | `SupervisedConversationScenario` | Diagnostyczne dołączenie do istniejącej rozmowy bez wybierania, rozłączania i skutków |
-| `ConversationSessionRegistry` | Własność sesji; odrzucony drugi start nie konstruuje modelu ani nie czyści mailbox. Stary callback nie zwalnia nowego właściciela; release po teardown |
+| `ConversationSessionRegistry` (JVM `conversation-core`) | Własność sesji; odrzucony drugi start nie konstruuje modelu ani nie czyści mailbox. Stary callback nie zwalnia nowego właściciela; release po teardown |
 | `ConversationRunConfiguration` | Snapshot silników, strategii, instrukcji Direct i przygotowania rozmowy na jedną próbę |
 | `ConversationPreparation` / `ConversationSkill` | Skills, informacje ogólne i referencje do wymaganych danych; profil wychodzący albo przychodzący |
 | `ConversationInstructionBuilder` | Składanie instrukcji z właściwą rolą dzwoniącego lub odbierającego; brak odczytu wartości IdentityVault |
@@ -68,4 +68,4 @@ Automatyczne odbieranie ma ustawienia AI/manual dla wybranego konta i przejęcie
 
 ## Aktualne dowody
 
-Etapy 0–1 modularizacji: [kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md), [testy etapu 1](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md). Dalsze etapy: [plan](SAFE_MODULARIZATION_PLAN.md). Wcześniejsze QA i pełne szczegóły modeli/Orange pozostają w historycznych checkpointach. Bieżące OPEN/VERIFIED wyłącznie w [BLOCKERS](../BLOCKERS.md).
+Etapy 0–1 modularizacji: [kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md), [testy etapu 1](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md). Etap 2 [NO_CHANGE](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md), etap 3 krok 1 [PASS: session registry JVM](checkpoints/2026-11-06-mod-stage3-session-registry-core.md). Dalsze etapy: [plan](SAFE_MODULARIZATION_PLAN.md). Wcześniejsze QA i pełne szczegóły modeli/Orange pozostają w historycznych checkpointach. Bieżące OPEN/VERIFIED wyłącznie w [BLOCKERS](../BLOCKERS.md).

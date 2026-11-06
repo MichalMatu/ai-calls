@@ -10,9 +10,9 @@
 
 ## Granice modułowe — aktualizacja 2026-11-06
 
-Sześć modułów Gradle: app, audio-bridge, privileged-helper, realtime-client, conversation-core (czysty JVM) i conversation-tools (czysty JVM). Po etapie 1 z 220 produkcyjnych plików Kotlin 196 jest w app, a IncomingIdleTimeout w JVM conversation-core. AndroidConversationRuntime ma 815 linii i 7 użyć produkcyjnych; CallRealtimeSessionOrchestrator 758 linii i 4 użycia. To aktywne komponenty, nie potwierdzony zbędny kod. Przenosić neutralne reguły i polityki do istniejących bibliotek krok po kroku, z migracją konsumentów i regresją, bez zmian zamrożonego toru Samsung/Shizuku.
+Sześć modułów Gradle: app, audio-bridge, privileged-helper, realtime-client, conversation-core (czysty JVM) i conversation-tools (czysty JVM). Po kroku 1 etapu 3 z 220 produkcyjnych plików Kotlin 195 jest w app; IncomingIdleTimeout i ConversationSessionRegistry są w JVM conversation-core. Rejestr chroni jedną sesję bez zależności Androida. AndroidConversationRuntime ma 815 linii i 7 użyć produkcyjnych; CallRealtimeSessionOrchestrator 758 linii i 4 użycia. To aktywne komponenty, nie potwierdzony zbędny kod. Przenosić neutralne reguły i polityki do istniejących bibliotek krok po kroku, z migracją konsumentów i regresją, bez zmian zamrożonego toru Samsung/Shizuku.
 
-[Zamknięcie etapów 0–1](checkpoints/2026-11-06-modularization-handoff-final.md) i [etap 2 NO_CHANGE](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md) oraz [metryki sprzed etapu 1](checkpoints/2026-11-06-quality-modularity-reaudit.md). Incoming 30 s ostrzeżenia + 15 s czasu reakcji przechodzi przez ten sam approval/TTS, a finalny end_call przez istniejący executor po pełnym TX.
+[Zamknięcie etapów 0–1](checkpoints/2026-11-06-modularization-handoff-final.md) i [etap 2 NO_CHANGE](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md) i [etap 3, krok 1 PASS](checkpoints/2026-11-06-mod-stage3-session-registry-core.md) oraz [metryki sprzed etapu 1](checkpoints/2026-11-06-quality-modularity-reaudit.md). Incoming 30 s ostrzeżenia + 15 s czasu reakcji przechodzi przez ten sam approval/TTS, a finalny end_call przez istniejący executor po pełnym TX.
 
 ## Granice i źródła prawdy
 

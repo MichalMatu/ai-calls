@@ -26,6 +26,8 @@ Zidentyfikować użycia ConversationOutcome/ConversationOutcomeBoundary w pięci
 
 815 linii, aktywny wspólny wykonawca INCOMING/OUTGOING. Wyjmować pojedyncze neutralne reguły stanu tury lub kodów zdarzeń; nie przenosić audio, Telecom, lifecycle ani obsługi jedynego aktywnego Call. Każdy krok osobno chroniony testem stale callback/generation/STOP/timeout/playback i pełną bramką.
 
+**Krok 1 (2026-11-06) DONE/PASS:** neutralny `ConversationSessionRegistry` przeniesiony do JVM conversation-core, 4 testy z app do core; body bez zmian, tylko import w runtime. JVM, AndroidTest compile, pełny host (266 Python), friction PASS. Pozostałe ewentualne neutralne reguły oceniać osobno, bez wymuszania wydzieleń. [Checkpoint](checkpoints/2026-11-06-mod-stage3-session-registry-core.md).
+
 ## Etap 4 — inne duże pliki
 
 Oddzielne przeglądy CallRealtimeSessionOrchestrator (758 linii), LocalTextCallGateDProductIntegration (718) i Gemma4LiteRtTextBackend (625). Wydzielać wyłącznie sprawdzone czyste odpowiedzialności, bez mieszania lokalnego modelu z realtime transportem. Nie przywracać dawnych runnerów.

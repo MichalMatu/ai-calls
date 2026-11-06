@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import pl.michalmatu.aicallbridge.conversationcore.IncomingIdleTimeout
+import pl.michalmatu.aicallbridge.conversationcore.ConversationSessionRegistry
 import pl.michalmatu.aicallbridge.conversationcore.ConversationStopReason
 import pl.michalmatu.aicallbridge.conversationcore.ConversationTermination
 import pl.michalmatu.aicallbridge.tools.ConversationToolUi

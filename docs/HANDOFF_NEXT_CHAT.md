@@ -1,6 +1,6 @@
 # AI Calls — handoff do nowego czatu (2026-11-06)
 
-**Zweryfikowany bazowy HEAD etapu 2:** main 06fdd75c7db8949aa64e5a5fb17f124853f7403b = origin/main, clean przed dokumentacją; jeden nowy commit dokumentacyjny etapu 2 przesunie HEAD. W nowym czacie pobierz **świeży HEAD**, nie zakładaj SHA. [Kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md) · [Gotowy prompt](NEXT_CHAT_PROMPT.md).
+**Bazowy HEAD etapu 3, krok 1:** main b7818fb00d138b7e50a1fabe86def02738ddf434 = origin/main, clean przed zmianą. Końcowy commit tego kroku przesuwa HEAD; nowy czat musi go odczytać świeżo. W nowym czacie pobierz **świeży HEAD**, nie zakładaj SHA. [Kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md) · [Gotowy prompt](NEXT_CHAT_PROMPT.md).
 
 ## Zamknięte
 
@@ -14,6 +14,12 @@
 Na świeżym bazowym HEAD zmapowano `ConversationOutcome` (5 produkcyjnych plików), `ConversationOutcomeBoundary` (5), `ConversationRunResult` (3) i istniejący JVM `ConversationTermination`. Żaden kolejny przenoszony typ nie zmniejsza dziś sprzężenia: wynik scenariusza jest wyłącznie w app, boundary zależy od playback, a run result obejmuje raport/evidence/chat token. Nie zmieniono produkcyjnego kodu ani testów. Celowany JVM, kompilacja AndroidTest, pełny host (266 Python), product friction i clean Git **PASS**. [Checkpoint z mapą i receipts](checkpoints/2026-11-06-mod-stage2-outcomes-nochange.md).
 
 **Dalsza praca:** etap 3 jest następnym osobnym zakresem; nie uruchomiono go w tej sesji. Nowy czat musi odczytać świeży HEAD i claims.
+
+## Etap 3 — krok 1 DONE / PASS
+
+`ConversationSessionRegistry` przeniesiono z app do czystego `conversation-core`: identyczny algorytm tryCreate/release, tylko package + widoczność i jeden import runtime. Cztery testy JVM przeniesione do core. Mac `aicalls-20261106-mod-stage3-preflight-v1` DONE/0 i `aicalls-20261106-mod-stage3-registry-move-gate-v1` DONE/0: core JVM, celowane app JVM, AndroidTest compile, pełny host `host_quality_gate_green=true` (266 Python) i friction PASS. Brak APK/deploy na S22. [Nowy checkpoint](checkpoints/2026-11-06-mod-stage3-session-registry-core.md).
+
+**Następny wyłącznie osobny krok:** ponowna mapa jednej neutralnej reguły stanu tury z `AndroidConversationRuntime`, ewentualnie NO_CHANGE; nie rozpoczynać etapów 4–5 bez osobnego zakresu.
 
 ## Granice wykonania i dowodów
 
