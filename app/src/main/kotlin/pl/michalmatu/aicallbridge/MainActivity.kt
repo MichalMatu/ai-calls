@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge
 
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
+import pl.michalmatu.aicallbridge.ui.AppNavigation
+import pl.michalmatu.aicallbridge.ui.AppTab
 
 import android.Manifest
 import android.app.Activity
@@ -345,6 +347,7 @@ class MainActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             ))
             addView(ConversationChatPanel(this@MainActivity, initiallyExpanded = false))
+            addView(AppNavigation.bar(this@MainActivity, AppTab.HOME))
         }
         window.statusBarColor = Color.rgb(247, 249, 253)
         window.navigationBarColor = Color.rgb(14, 23, 39)

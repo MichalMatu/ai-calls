@@ -58,6 +58,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.SettingsHubActivity" android:exported="false" />
+
         <!-- The OS permits exact Call objects only to the user's chosen default dialer. -->
         <service
             android:name=".campaign.AndroidOwnedInCallService"
