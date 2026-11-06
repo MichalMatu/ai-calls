@@ -8,6 +8,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.graphics.Color
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -49,18 +51,20 @@ class MainActivity : Activity() {
         developerProbes = MainActivityDeveloperProbes(this, statusView)
 
         val audioModeSpinner = Spinner(this).apply {
+            tag = "settings-audio-mode-spinner"
             adapter = ArrayAdapter(
                 this@MainActivity,
-                android.R.layout.simple_spinner_dropdown_item,
+                android.R.layout.simple_spinner_item,
                 CallAudioMode.entries.map { it.displayName },
             )
             setSelection(CallAudioMode.entries.indexOf(selectedAudioMode))
         }
 
         textLlmProviderSpinner = Spinner(this).apply {
+            tag = "settings-provider-spinner"
             adapter = ArrayAdapter(
                 this@MainActivity,
-                android.R.layout.simple_spinner_dropdown_item,
+                android.R.layout.simple_spinner_item,
                 TextLlmProvider.entries.map { it.displayName },
             )
             setSelection(TextLlmProvider.entries.indexOf(selectedTextLlmProvider))
@@ -152,7 +156,7 @@ class MainActivity : Activity() {
         val basicSection = UiAccordionSection(
             this, "basic", "Podstawowe",
             description = "Tryb rozmowy, model, silniki i uprawnienia.",
-            initiallyExpanded = true,
+            initiallyExpanded = false,
         ).apply {
             addLabel("Tryb rozmowy")
             addControl(audioModeSpinner)
@@ -223,6 +227,7 @@ class MainActivity : Activity() {
             addControl(oneTapButton)
         }
         developerProbes.addControls(advancedSection.controlsContainer)
+        advancedSection.styleExistingControls()
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -259,7 +264,18 @@ class MainActivity : Activity() {
 
         // Pinned chat dock: visible without scrolling the settings above it.
         // Live text is only held in process memory, not in saved view state.
-        setContentView(LinearLayout(this).apply {
+        val root = LinearLayout(this).apply {
+            tag = "main-screen-root"
+            setBackgroundColor(Color.rgb(247, 249, 253))
+            setOnApplyWindowInsetsListener { view, insets ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                    view.setPadding(0, bars.top, 0, bars.bottom)
+                } else {
+                    view.setPadding(0, insets.systemWindowInsetTop, 0, insets.systemWindowInsetBottom)
+                }
+                insets
+            }
             orientation = LinearLayout.VERTICAL
             addView(ScrollView(this@MainActivity).apply {
                 addView(
@@ -272,8 +288,9 @@ class MainActivity : Activity() {
             }, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             ))
-            addView(ConversationChatPanel(this@MainActivity))
-        })
+            addView(ConversationChatPanel(this@MainActivity, initiallyExpanded = false))
+        }
+        setContentView(root)
 
         developerProbes.attach()
 

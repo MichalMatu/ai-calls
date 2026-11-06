@@ -1,13 +1,13 @@
 package pl.michalmatu.aicallbridge
 
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.TextView
 
 /**
@@ -22,8 +22,8 @@ internal class UiAccordionSection(
     initiallyExpanded: Boolean = false,
 ) : LinearLayout(context) {
     private val density = resources.displayMetrics.density
-    private val dark = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-        Configuration.UI_MODE_NIGHT_YES
+    private val ink = Color.rgb(27, 42, 64)
+    private val secondary = Color.rgb(76, 92, 110)
     private fun dp(value: Int) = (value * density).toInt()
 
     private val content = LinearLayout(context).apply {
@@ -37,13 +37,15 @@ internal class UiAccordionSection(
         textSize = 17f
         gravity = Gravity.START or Gravity.CENTER_VERTICAL
         minHeight = dp(52)
-        setTextColor(if (dark) Color.WHITE else Color.rgb(29, 43, 62))
+        setTextColor(ink)
+        setPadding(dp(16), dp(8), dp(16), dp(6))
+        background = GradientDrawable().apply { setColor(Color.TRANSPARENT) }
         setOnClickListener { setExpanded(!isExpanded) }
     }
     private val summary = TextView(context).apply {
         text = description
         textSize = 13f
-        setTextColor(if (dark) Color.rgb(189, 199, 212) else Color.rgb(78, 92, 108))
+        setTextColor(secondary)
         setPadding(dp(16), 0, dp(16), dp(12))
         visibility = if (description.isBlank()) GONE else VISIBLE
     }
@@ -56,10 +58,10 @@ internal class UiAccordionSection(
     init {
         orientation = VERTICAL
         background = GradientDrawable().apply {
-            setColor(if (dark) Color.rgb(36, 43, 53) else Color.rgb(247, 249, 252))
+            setColor(Color.WHITE)
             cornerRadius = dp(16).toFloat()
             setStroke(dp(1).coerceAtLeast(1),
-                if (dark) Color.rgb(78, 91, 108) else Color.rgb(210, 218, 229))
+                Color.rgb(210, 218, 229))
         }
         addView(toggle)
         addView(summary)
@@ -67,15 +69,39 @@ internal class UiAccordionSection(
         setExpanded(initiallyExpanded)
     }
 
+    private fun styleControl(view: View) {
+        if (view is Button || view is Spinner) {
+            view.background = GradientDrawable().apply {
+                setColor(Color.rgb(245, 248, 252))
+                cornerRadius = dp(10).toFloat()
+                setStroke(dp(1).coerceAtLeast(1), Color.rgb(210, 218, 229))
+            }
+            view.minimumHeight = dp(46)
+            view.setPadding(dp(10), dp(8), dp(10), dp(8))
+        }
+        if (view is Button) {
+            view.isAllCaps = false
+            view.textSize = 14f
+            view.setTextColor(ink)
+        }
+    }
+
     fun addControl(view: View) {
-        content.addView(view)
+        styleControl(view)
+        content.addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(7)
+        })
+    }
+
+    fun styleExistingControls() {
+        for (index in 0 until content.childCount) styleControl(content.getChildAt(index))
     }
 
     fun addLabel(text: String) {
         content.addView(TextView(context).apply {
             this.text = text
             textSize = 14f
-            setTextColor(if (dark) Color.rgb(189, 199, 212) else Color.rgb(78, 92, 108))
+            setTextColor(secondary)
             setPadding(dp(4), dp(10), dp(4), dp(4))
         })
     }

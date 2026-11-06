@@ -21,10 +21,10 @@ import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
  * All live text stays in app-process memory; the UI polls only while attached.
  * Never starts, ends or modifies a call, a grant or evidence recording.
  */
-internal class ConversationChatPanel(context: Context) : LinearLayout(context) {
+internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolean = true) : LinearLayout(context) {
     private val refreshHandler = Handler(Looper.getMainLooper())
     private var renderedRevision = -1L
-    private var expanded = true
+    private var expanded = initiallyExpanded
 
     private val statusLabel = TextView(context).apply {
         text = "Brak aktywnej rozmowy"
@@ -39,6 +39,8 @@ internal class ConversationChatPanel(context: Context) : LinearLayout(context) {
     }
 
     private val messageScroll = ScrollView(context).apply {
+        tag = "live-chat-scroll"
+        visibility = if (expanded) View.VISIBLE else View.GONE
         isFillViewport = true
         addView(messages, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -48,7 +50,7 @@ internal class ConversationChatPanel(context: Context) : LinearLayout(context) {
     }
 
     private val toggle = Button(context).apply {
-        text = "▾"
+        text = if (expanded) "▾" else "▸"
         textSize = 16f
         isAllCaps = false
         minWidth = 0
@@ -56,6 +58,7 @@ internal class ConversationChatPanel(context: Context) : LinearLayout(context) {
         setOnClickListener {
             expanded = !expanded
             messageScroll.visibility = if (expanded) View.VISIBLE else View.GONE
+            statusLabel.visibility = if (expanded || ConversationChatFeed.snapshot().active) View.VISIBLE else View.GONE
             text = if (expanded) "▾" else "▸"
             contentDescription = if (expanded) "Zwiń czat" else "Rozwiń czat"
         }
@@ -100,6 +103,7 @@ internal class ConversationChatPanel(context: Context) : LinearLayout(context) {
         }
         addView(heading, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         addView(statusLabel)
+        statusLabel.visibility = if (expanded) View.VISIBLE else View.GONE
         addView(messageScroll)
         render(ConversationChatFeed.snapshot())
     }
@@ -119,6 +123,7 @@ internal class ConversationChatPanel(context: Context) : LinearLayout(context) {
         if (snapshot.revision == renderedRevision) return
         renderedRevision = snapshot.revision
         statusLabel.text = (if (snapshot.active) "● " else "○ ") + snapshot.status
+        statusLabel.visibility = if (expanded || snapshot.active) View.VISIBLE else View.GONE
 
         val previousY = messageScroll.scrollY
         val atBottom = messages.height <= messageScroll.height ||

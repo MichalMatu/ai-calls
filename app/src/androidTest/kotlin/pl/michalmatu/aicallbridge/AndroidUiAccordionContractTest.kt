@@ -37,8 +37,9 @@ class AndroidUiAccordionContractTest {
                 val bodies = ids.associateWith { id ->
                     requireNotNull(root.findViewWithTag<View>("ui-accordion-content:$id"))
                 }
+                ids.forEach { assertEquals(View.GONE, bodies.getValue(it).visibility) }
+                root.findViewWithTag<Button>("ui-accordion-toggle:basic").performClick()
                 assertEquals(View.VISIBLE, bodies.getValue("basic").visibility)
-                ids.drop(1).forEach { assertEquals(View.GONE, bodies.getValue(it).visibility) }
 
                 assertTrue(findButton(root, "Modele: pobierz, importuj, wybierz")!!.isShown)
                 assertTrue(findButton(root, "Silniki: STT / model / TTS")!!.isShown)
