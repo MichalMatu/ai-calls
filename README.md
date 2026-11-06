@@ -4,14 +4,14 @@ Modułowe laboratorium Android do porównywania STT, modeli językowych, strateg
 
 ## Architektura
 
-- Sześć modułów Gradle: **app**, **conversation-core**, **conversation-tools**, **audio-bridge**, **realtime-client** i **privileged-helper**. Aktualnie 195 z 220 produkcyjnych plików Kotlin pozostaje w app; pakiety są podzielone logicznie.
+- Sześć modułów Gradle: **app**, **conversation-core**, **conversation-tools**, **audio-bridge**, **realtime-client** i **privileged-helper**. Na zweryfikowanej bazie `1d260d8` 199 z 224 produkcyjnych plików Kotlin znajduje się w `app`; pakiety są podzielone logicznie.
 - Wspólny AndroidConversationRuntime obsługuje INCOMING i OUTGOING. Scenariusze oraz silniki STT/model/TTS są wymienne. Snapshot konfiguracji pojedynczej próby nie zmienia się podczas rozmowy.
 - Aplikacja decyduje o upoważnieniu, własności Android Call, STOP, ujawnianiu danych i skutkach. Model nie przyznaje sobie uprawnień. Samsung/Shizuku RX/TX przez PCM/PFD pozostaje zamrożoną, sprawdzoną granicą.
 
 ## Aktualna kwalifikacja
 
 - Sekretarka INCOMING: dialog i naturalne end_call potwierdzone kontrolowanymi połączeniami A8→S22. Fallback po 30 s aktywnej ciszy, ostrzeżeniu i kolejnych 15 s ma testy host/native PASS oraz fizyczne potwierdzenie użytkownika. Szczegółowy timeline ostatniej próby pozostaje nieodczytany.
-- Modularizacja: etapy 0–2 ukończone (etap 2 = NO_CHANGE), pierwszy krok etapu 3 PASS. IncomingIdleTimeout i ConversationSessionRegistry przeniesiono bez zmiany algorytmów do conversation-core. Pełna bramka hosta i kompilacja testów Androida PASS. **Nowego APK po tym refaktorze nie instalowano**; działająca wersja na S22 jest wcześniejsza.
+- Modularizacja: etapy 0–2 ukończone (etap 2 = NO_CHANGE), pierwszy krok etapu 3 PASS. IncomingIdleTimeout i ConversationSessionRegistry przeniesiono bez zmiany algorytmów do conversation-core. Pełna bramka hosta i kompilacja testów Androida PASS. **Po tym etapie zainstalowano APK `e8db8db` na S22**; natywne testy off-call i trzy presety PASS. Test pełnej rozmowy na tym APK nadal QA_PENDING.
 - OPEN / QA_PENDING: fizyczne przejęcie i oddanie rozmowy, STOP/manual, odpowiedź po ostrzeżeniu; pełne ciągłe audio i odtwarzacz (F-080), ogólne zadania, fakty i skutki (F-044/F-045/F-048). Nie traktować archiwum WAV per tura jako pełnego nagrania.
 - Silniki eksperymentalne i scenariusze Orange/CLIR są nadal częścią laboratorium, nie dowodem gotowości każdej kombinacji ani wykonania zewnętrznego skutku.
 
@@ -28,3 +28,5 @@ Pełna bramka: **bash scripts/verify_host.sh**. Audyt ograniczeń: **python3 scr
 ## Skills i Laboratorium
 
 Edytowalne, wersjonowane instrukcje Gemmy, presety i laboratoryjne scenariusze off-call: [kontrakt](docs/SKILLS_AND_LAB.md).
+
+Kompletny audyt jakości: [checkpoint kodu, dokumentacji, testów i S22](docs/checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md).
