@@ -59,3 +59,7 @@ Trzy presety i izolowany zapis/rollback przetestowane native, bez realnego poł�
 Wdrożone i testowane etapowo: pięć kategorii ustawień (`b448ace`), skróty Rozmowy/Laboratorium (`2fca5f9`) oraz lokalny odsłuch istniejących segmentów RX/TX/ACK w archiwalnym czacie (`d59b459`). Pełny host i friction po każdym etapie PASS, końcowo 270 testów Python. [Mapa](SETTINGS_UX.md) · [Checkpoint](checkpoints/2026-11-06-settings-ux-autosprint.md).
 
 Fizyczne S22 QA: **7/7 testów UI PASS**, w tym osiem ekranów i krótki syntetyczny WAV odtworzony z archiwum; dane, profile i presety zachowane. [Nowy checkpoint](checkpoints/2026-11-06-settings-ux-s22-physical-acceptance.md). Oczekuje: wizualnie spójne ekrany, osobna matryca edycji kontrolek, wspólne zakładki, pełny recorder/player F-080. Zero zmian w telefonii, modelu, bezpieczeństwie i uprawnieniach.
+
+## Korekta menu po fizycznych zrzutach S22
+
+`2f58adf` i `312db7a` naprawiają F-102 na ekranie głównym. Host 272 Python/lint/APK PASS, fizyczny S22 8/8 PASS (kontrast, insets, sekcje, czat, historia, niezmienione ustawienia). [Checkpoint](checkpoints/2026-11-06-menu-visual-s22-ux-acceptance.md). Nadal potrzebne: ręczna ocena wyglądu, spójne podstrony oraz docelowe zakładki; nie łączyć z F-080.

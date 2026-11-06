@@ -38,3 +38,9 @@ Odtwarzanie wymaga dostępnego prawidłowego pliku w katalogu prywatnej sesji i 
 ## Następny UX etap
 
 Prawdziwy wspólny pasek zakładek i spójne karty Material dla ekranów podrzędnych; ręczna ocena wyglądu i osobna matryca edycji/zapisu każdej kontrolki. Pełny recorder i odtwarzacz całej sesji F-080 pozostają osobną zmianą granicy mediów, bez naruszania zamrożonego toru Samsung.
+
+## Audyt wizualny na S22 — po zrzutach z 2026-11-06
+
+Poprawiono kontrast, tła pól STT/LLM, złożone sekcje i czat, system bars (API 29+), hierarchię start/Kampanie/STOP i skróty Rozmowy/Laboratorium, polskie etykiety home. Kod `2f58adf` + `312db7a`. **Mac host PASS (272 Python), S22 fizyczne 8/8 UI PASS**, bez kasowania danych i połączeń. [Dane testów i ograniczenia](checkpoints/2026-11-06-menu-visual-s22-ux-acceptance.md).
+
+Ekrany podrzędne i wspólny docelowy pasek nawigacji to następny zakres UX. Pełny recorder/player F-080 nadal OPEN.
