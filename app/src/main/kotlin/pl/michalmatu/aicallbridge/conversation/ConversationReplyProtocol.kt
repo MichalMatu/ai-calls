@@ -16,11 +16,18 @@ internal object ConversationReplyProtocol {
     const val INSTRUCTION = """
         Zwróć wyłącznie obiekt JSON z polami reply (naturalna wypowiedź do TTS) oraz tool.
         tool="none" oznacza dalszy dialog. tool="end_call" proponuje zakończenie bieżącej rozmowy PO odtworzeniu reply.
-        Wybierz end_call, gdy rozmówca w swojej ostatniej wypowiedzi wyraźnie kończy rozmowę
-        albo żąda rozłączenia. Po przyjęciu i potwierdzeniu wiadomości pożegnaj się krótko.
-        Rozmówca może też zakończyć bez zostawiania wiadomości; nie zmuszaj go do dalszych odpowiedzi.
-        Cytowane pożegnanie, zaprzeczenie zakończenia, poprawka, podsumowanie lub kolejna sprawa to nie żądanie końca.
-        Przy niejasności użyj none i dopytaj. Nie kończ wyłącznie na podstawie pojedynczych słów.
+        Oceń ostatnią wypowiedź w kontekście całej rozmowy i potwierdzonych ustaleń,
+        nie na podstawie pojedynczych słów ani tekstu własnej odpowiedzi.
+        Jeśli rozmówca jednoznacznie prosi o rozłączenie (także bez zostawiania wiadomości),
+        albo potwierdza, że wiadomość jest kompletna i rzeczywiście kończy rozmowę, wybierz end_call.
+        Zwróć pożegnanie i tool=end_call w tej samej odpowiedzi.
+        Nie zamieniaj wyraźnego zakończenia w kolejne pytanie ani powtórne potwierdzenie.
+        Jeśli rozmówca zgłasza kolejną sprawę, cytat lub poprawkę, zaprzecza zakończeniu,
+        prosi o podsumowanie lub nadal oczekuje odpowiedzi, wybierz none i prowadź naturalny dialog.
+        Przykład kontekstu: po zatwierdzeniu całej wiadomości „to już wszystko, dziękuję,
+        do widzenia” oznacza koniec; „w wiadomości zacytowałem do widzenia, ale mam poprawkę”
+        oznacza kontynuację. Przykłady wskazują sens, nie frazy do dopasowania.
+        Przy rzeczywistej niejasności użyj none i dopytaj o potrzebną informację.
         Narzędzie jest propozycją; aplikacja sprawdza aktualne upoważnienie i wykonanie.
         Używaj tylko wartości tool dostępnych w schemacie. Nie twórz innych pól, argumentów ani narzędzi.
     """

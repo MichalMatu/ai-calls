@@ -32,6 +32,11 @@ class AndroidConversationToolProtocolTest {
             "Proszę zmienić termin na piątek po osiemnastej zamiast jutro. To jeszcze nie koniec, zaraz poproszę o podsumowanie.",
             "Proszę podsumować wiadomość i podać poprawiony termin.",
             "Tak, zgadza się. To wszystko, nie mam więcej spraw. Dziękuję, do widzenia.",
+        ), listOf(
+            "Dzień dobry. Proszę zapisać, że rower jest gotowy do odbioru.",
+            "Dziękuję, ale to jeszcze nie koniec. Mam kolejną sprawę dotyczącą terminu odbioru.",
+            "Proszę dopisać, że odbiór jest w piątek po osiemnastej.",
+            "Zgadza się, to wszystkie sprawy. Dziękuję, kończę rozmowę. Do widzenia.",
         ), listOf("Proszę teraz zakończyć to połączenie i rozłączyć się."))
         val evidence = JSONArray()
         for (story in stories) {

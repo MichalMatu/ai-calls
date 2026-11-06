@@ -30,6 +30,10 @@ Kontrakt powitania i języka INCOMING uzupełniono bez zmian telefonii. Regressi
 
 Ostatni prywatny zbiór F-091 zawiera 8 `SPEAK` i 0 `END_CALL` w czterech plikach strukturalnych: brak pewności typowanej propozycji końca, bez podstaw do ingerencji w executor lub automatycznego disconnectu po samym słowie. F-089: typowane przyczyny poprawione w source, fizyczne potwierdzenie bieżącej wersji pending. [Dowód](checkpoints/2026-11-06-autosprint-f091-readonly-diagnostics.md).
 
+## F-091 — poprawa decyzji o zamknięciu (source/host PASS)
+
+Przed zmianą native off-call rzeczywistego modelu na wcześniej zainstalowanym APK: PASS, 41 s. Nowy kontekstowy kontrakt end_call i negatywna historia „kolejna sprawa” przeszły RED→GREEN JVM, AndroidTest compile, full host i friction. Zmiana nie dotyka wykonawcy połączeń. **Fizyczna jakość modelu na nowym APK nadal QA_PENDING; bez instalacji i bez dzwonienia.** [Checkpoint](checkpoints/2026-11-06-f091-semantic-closure-source.md).
+
 ## Równoległy backlog funkcjonalny — nie mieszać z refaktorem
 
 - Fizyczne QA manual/TAKE OVER/powrót AI/STOP i odpowiedź w 15-sekundowym oknie po ostrzeżeniu.

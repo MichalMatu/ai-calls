@@ -31,6 +31,10 @@ Zamknięto wąski defekt kontraktu promptu: rola żeńskiej asystentki bez drugi
 
 Mac taski `aicalls-20261106-autosprint-f091-evidence-readonly-v1`, `aicalls-20261106-autosprint-f091-typed-metadata-v1` i `aicalls-20261106-autosprint-f091-action-audit-v1`: DONE/0 bez treści rozmów. W prywatnych czterech plikach 8 akcji SPEAK, brak END_CALL; naturalne zakończenie F-091 pozostaje OPEN i wymaga kontrolowanej regresji off-call. F-089 jest FIXED_IN_SOURCE (typed reason CALL_ENDED), lecz bieżące fizyczne QA obecnego APK niepotwierdzone. [Checkpoint](checkpoints/2026-11-06-autosprint-f091-readonly-diagnostics.md). F-101 zamyka stare zdanie handoffu, które błędnie kazało rozpoczynać etap 3 od nowa.
 
+## F-091 — kontekstowy wybór end_call (nowy source sprint)
+
+Na HEAD 73702c6 preflight Mac DONE/0; pre-existing native model off-call na S22 PASS w 41 s, bez połączenia/instalacji, ale zgodność z nowym źródłem APK niepotwierdzona. Nowa instrukcja wybiera typed end_call wraz z pożegnaniem po jednoznacznym zakończeniu, a none dla cytatów, korekt i następnej sprawy. RED→GREEN, AndroidTest compile, full host i friction PASS. F-091 pozostaje **fizycznie QA_PENDING po zmianie**; nie powtarzać wcześniejszego live disconnect ani nie instalować APK bez osobnego zakresu. [Checkpoint](checkpoints/2026-11-06-f091-semantic-closure-source.md).
+
 ## Granice wykonania i dowodów
 
 - Repo: MichalMatu/ai-calls; branch main; commity [skip ci]. Mac checkout: /Users/michal/agent-workspace/repos/ai-calls/work.

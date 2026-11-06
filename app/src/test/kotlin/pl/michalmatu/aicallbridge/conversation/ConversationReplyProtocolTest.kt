@@ -87,6 +87,19 @@ class ConversationReplyProtocolTest {
         assertTrue(raw.contains("Bez JSON"))
     }
 
+    @Test fun semanticClosureInstructionPreservesNaturalFinalityAndNewBusiness() {
+        val prompt = ConversationInstructionBuilder.build(
+            ConversationPreparation.incoming(), "Przyjmij wiadomość", ConversationResponseFormat.TOOL_REPLY)
+        assertTrue(prompt.contains("Oceń ostatnią wypowiedź w kontekście całej rozmowy"))
+        assertTrue(prompt.contains("Zwróć pożegnanie i tool=end_call w tej samej odpowiedzi"))
+        assertTrue(prompt.contains("Nie zamieniaj wyraźnego zakończenia w kolejne pytanie"))
+        assertTrue(prompt.contains("kolejną sprawę"))
+        assertTrue(prompt.contains("cytat lub poprawkę"))
+        val plain = ConversationInstructionBuilder.build(
+            ConversationPreparation.incoming(), "Przyjmij wiadomość", ConversationResponseFormat.SPOKEN_TEXT)
+        assertFalse(plain.contains("Zwróć pożegnanie i tool=end_call"))
+    }
+
     private class FakeModel : TextCallAgentBackend {
         var listener: TextCallAgentBackend.Listener? = null
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) { this.listener = listener }
