@@ -53,3 +53,9 @@ Trzy presety i izolowany zapis/rollback przetestowane native, bez realnego poł�
 ## Pełny checkpoint jakości — 2026-11-06
 
 [Audyt kodu, dokumentacji i testów](checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md): bazowy HEAD `1d260d8`, host JVM/lint/APK/AndroidTest PASS, 266 Python, audyty PASS, 90/90 linków. Następny etap to ręczne QA edytora i naturalności bez połączeń.
+
+## Sprint UX ustawień, historii i audio — 2026-11-06
+
+Wdrożone i testowane etapowo: pięć kategorii ustawień (`b448ace`), skróty Rozmowy/Laboratorium (`2fca5f9`) oraz lokalny odsłuch istniejących segmentów RX/TX/ACK w archiwalnym czacie (`d59b459`). Pełny host i friction po każdym etapie PASS, końcowo 270 testów Python. [Mapa](SETTINGS_UX.md) · [Checkpoint](checkpoints/2026-11-06-settings-ux-autosprint.md).
+
+Oczekuje: fizyczne UI S22 (ADB niedostępne), wspólna nawigacja i spójne ekrany podrzędne, pełny recorder/player F-080. Zero zmian w telefonii, modelu, bezpieczeństwie i uprawnieniach.

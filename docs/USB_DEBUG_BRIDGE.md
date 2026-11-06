@@ -2,7 +2,7 @@
 
 ## One path, no duplicate state
 
-The owner-facing screen is **Main → Diagnostyka developerska → USB / ADB — diagnostyka**.
+The owner-facing screen is **Main → Zaawansowane → USB / ADB — diagnostyka**.
 The app's existing DiagnosticProbeActivity (shell-only android.permission.DUMP)
 dispatches usb_debug_action to debug/UsbDebugBridge. The same sanitized snapshot
 is shown by UsbDebugPanelActivity. There is **no second grant, audio, or evidence store**.

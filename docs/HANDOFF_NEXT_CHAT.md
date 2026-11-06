@@ -58,3 +58,8 @@ Native 3/3 PASS; GEMMA_4_E2B, trzy presety, wspólny korpus 4 historie / 12 tur;
 ## Stan po pełnym audycie 2026-11-06
 
 [Kompletny checkpoint kodu, quality gates i S22](checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md): bazowy HEAD `1d260d8`, full host PASS, 266 Python, 90/90 linków, S22 3/3 native off-call i 36 tur Gemmy 4 E2B. Naturalność, pełne UI i real-call pozostają osobno QA_PENDING. Nie uruchamiać ponownie ukończonych testów bez nowej przesłanki.
+
+## UX ustawień i historia rozmów — autonomiczny sprint
+Na trzech osobnych, zielonych etapach opublikowano: `b448ace` (pięć sekcji ustawień, 266 Python), `2fca5f9` (wejście Historia/Laboratorium, 268 Python), `d59b459` (odtwarzanie zapisanych segmentów z dymków, 270 Python i celowany JVM). Wszystkie etapy: AndroidTest compile, full host i anti-friction PASS. [Mapa funkcji](SETTINGS_UX.md) · [Checkpoint z receipts](checkpoints/2026-11-06-settings-ux-autosprint.md).
+
+**F-080 OPEN:** dostępny odsłuch pojedynczych WAV nie oznacza ciągłego nagrywania sesji. S22 preflight ADB FAILED `exact_s22_adb_transport_unavailable`: brak instalacji i fizycznej walidacji UI, `QA_PENDING`. Po odzyskaniu telefonu wykonać 2× IDLE/preflight i celowane testy interfejsu; nie powtarzać host gates bez nowej zmiany. Bieżący HEAD czytać z `main`; wcześniejszy `1d260d8` w sekcjach powyżej jest historycznym punktem jakości.
