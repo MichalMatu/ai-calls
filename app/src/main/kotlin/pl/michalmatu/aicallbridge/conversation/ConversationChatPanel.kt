@@ -49,7 +49,18 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(184))
     }
 
+    private val clearButton = Button(context).apply {
+        text = "Wyczyść widok"
+        textSize = 11f
+        isAllCaps = false
+        visibility = if (expanded) View.VISIBLE else View.GONE
+        setOnClickListener { ConversationChatFeed.clearVisibleHistory() }
+        contentDescription = "Wyczyść lokalny widok czatu bez przerywania rozmowy"
+    }
+
     private val toggle = Button(context).apply {
+        tag = "live-chat-toggle"
+        contentDescription = if (expanded) "Zwiń czat" else "Rozwiń czat"
         text = if (expanded) "▾" else "▸"
         textSize = 16f
         isAllCaps = false
@@ -58,6 +69,7 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
         setOnClickListener {
             expanded = !expanded
             messageScroll.visibility = if (expanded) View.VISIBLE else View.GONE
+            clearButton.visibility = if (expanded) View.VISIBLE else View.GONE
             statusLabel.visibility = if (expanded || ConversationChatFeed.snapshot().active) View.VISIBLE else View.GONE
             text = if (expanded) "▾" else "▸"
             contentDescription = if (expanded) "Zwiń czat" else "Rozwiń czat"
@@ -88,13 +100,7 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.WHITE)
             }, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-            addView(Button(context).apply {
-                text = "Wyczyść widok"
-                textSize = 11f
-                isAllCaps = false
-                setOnClickListener { ConversationChatFeed.clearVisibleHistory() }
-                contentDescription = "Wyczyść lokalny widok czatu bez przerywania rozmowy"
-            })
+            addView(clearButton)
             addView(Button(context).apply {
                 text = "Historia"; textSize = 11f; isAllCaps = false
                 setOnClickListener { context.startActivity(android.content.Intent(context, ConversationHistoryActivity::class.java)) }

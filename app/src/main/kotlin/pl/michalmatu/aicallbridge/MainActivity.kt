@@ -10,6 +10,8 @@ import android.os.Bundle
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -45,7 +47,10 @@ class MainActivity : Activity() {
 
         statusView = TextView(this).apply {
             text = runtimeSelectionSummary()
-            textSize = 15f
+            textSize = 13f
+            setTextColor(Color.rgb(39, 58, 83))
+            background = roundedSurface(Color.rgb(234, 243, 253))
+            setPadding(dp(14), dp(12), dp(14), dp(12))
             setTextIsSelectable(true)
         }
         developerProbes = MainActivityDeveloperProbes(this, statusView)
@@ -93,12 +98,12 @@ class MainActivity : Activity() {
         }
 
         val requestMicButton = Button(this).apply {
-            text = "Grant microphone permission"
+            text = "Dostęp do mikrofonu"
             setOnClickListener { requestMicrophonePermissionIfNeeded() }
         }
 
         val enrollPhoneButton = Button(this).apply {
-            text = "Enroll phone number"
+            text = "Numer telefonu i dane"
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, PhoneEnrollmentActivity::class.java))
             }
@@ -132,7 +137,7 @@ class MainActivity : Activity() {
         }
 
         val campaignToolsButton = Button(this).apply {
-            text = "Campaign tools"
+            text = "Kampanie"
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, CampaignToolActivity::class.java))
             }
@@ -229,36 +234,87 @@ class MainActivity : Activity() {
         developerProbes.addControls(advancedSection.controlsContainer)
         advancedSection.styleExistingControls()
 
+        // A short action area, two navigation shortcuts, and collapsed settings cards.
+        fun styleAction(button: Button, color: Int, ink: Int) {
+            button.isAllCaps = false
+            button.textSize = 14f
+            button.minHeight = dp(48)
+            button.setPadding(dp(10), dp(10), dp(10), dp(10))
+            button.setTextColor(ink)
+            button.background = roundedSurface(color)
+        }
+        styleAction(startAuthorizedTaskButton, Color.rgb(26, 72, 137), Color.WHITE)
+        styleAction(stopAiButton, Color.rgb(255, 232, 236), Color.rgb(151, 31, 51))
+        styleAction(campaignToolsButton, Color.rgb(229, 237, 249), Color.rgb(27, 47, 75))
+        styleAction(conversationHistoryButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
+        styleAction(labShortcutButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 48, 32, 32)
+            setPadding(dp(18), dp(14), dp(18), dp(28))
             addView(TextView(this@MainActivity).apply {
                 text = "AI Calls"
-                textSize = 24f
+                textSize = 25f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.rgb(23, 39, 62))
             })
-            addView(
-                statusView,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { bottomMargin = 16 },
-            )
-            addView(startAuthorizedTaskButton)
-            addView(campaignToolsButton)
-            addView(stopAiButton)
-            addView(conversationHistoryButton)
-            addView(labShortcutButton)
             addView(TextView(this@MainActivity).apply {
-                text = "Ustawienia aplikacji"
-                textSize = 20f
-                setPadding(0, 18, 0, 12)
+                text = "Asystent połączeń"
+                textSize = 13f
+                setTextColor(Color.rgb(86, 100, 117))
+                setPadding(0, 0, 0, dp(12))
+            })
+            addView(statusView, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(14) })
+            addView(startAuthorizedTaskButton)
+            val actions = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                campaignToolsButton.layoutParams = LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                ).apply { rightMargin = dp(8) }
+                stopAiButton.layoutParams = LinearLayout.LayoutParams(
+                    dp(108), ViewGroup.LayoutParams.WRAP_CONTENT,
+                )
+                addView(campaignToolsButton)
+                addView(stopAiButton)
+            }
+            addView(actions, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(8) })
+            addView(TextView(this@MainActivity).apply {
+                text = "Przejdź do"
+                textSize = 16f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.rgb(30, 47, 68))
+                setPadding(0, dp(18), 0, dp(8))
+            })
+            val shortcuts = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                conversationHistoryButton.layoutParams = LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                ).apply { rightMargin = dp(8) }
+                labShortcutButton.layoutParams = LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                )
+                addView(conversationHistoryButton)
+                addView(labShortcutButton)
+            }
+            addView(shortcuts)
+            addView(TextView(this@MainActivity).apply {
+                text = "Ustawienia"
+                textSize = 18f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.rgb(30, 47, 68))
+                setPadding(0, dp(18), 0, dp(10))
             })
             listOf(basicSection, secretarySection, skillsSection, laboratorySection, advancedSection)
                 .forEach { section ->
+                    section.tag = "ui-settings-section:" + section.sectionId
                     addView(section, LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ).apply { bottomMargin = 16 })
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply { bottomMargin = dp(10) })
                 }
         }
 
@@ -290,6 +346,9 @@ class MainActivity : Activity() {
             ))
             addView(ConversationChatPanel(this@MainActivity, initiallyExpanded = false))
         }
+        window.statusBarColor = Color.rgb(247, 249, 253)
+        window.navigationBarColor = Color.rgb(14, 23, 39)
+        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
         setContentView(root)
 
         developerProbes.attach()
@@ -297,6 +356,13 @@ class MainActivity : Activity() {
         if (intent.getBooleanExtra(EXTRA_RUN_CAPABILITY_PROBE, false)) {
             developerProbes.runCapabilityProbe()
         }
+    }
+
+    private fun dp(value: Int) = (value * resources.displayMetrics.density + 0.5f).toInt()
+
+    private fun roundedSurface(color: Int) = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = dp(12).toFloat()
     }
 
     override fun onResume() {
@@ -314,11 +380,11 @@ class MainActivity : Activity() {
     }
 
     private fun runtimeSelectionSummary(): String = buildString {
-        append("Audio mode: ").append(selectedAudioMode.displayName).append('\n')
+        append("Tryb: ").append(selectedAudioMode.displayName).append('\n')
         when (selectedAudioMode) {
-            CallAudioMode.LOCAL_STT_TTS -> append("LLM provider: ").append(selectedTextLlmProvider.displayName)
-            CallAudioMode.OPENAI_REALTIME_AUDIO -> append("LLM provider: OpenAI Realtime audio; text preference preserved")
-            CallAudioMode.LOCAL_REALTIME_AUDIO -> append("LLM provider: local realtime audio engine; text preference preserved")
+            CallAudioMode.LOCAL_STT_TTS -> append("Model tekstowy: ").append(selectedTextLlmProvider.displayName)
+            CallAudioMode.OPENAI_REALTIME_AUDIO -> append("OpenAI Realtime audio · wybór tekstowy zachowany")
+            CallAudioMode.LOCAL_REALTIME_AUDIO -> append("Lokalny silnik realtime · wybór tekstowy zachowany")
         }
         append('\n')
         val profile = pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore(this@MainActivity).load()

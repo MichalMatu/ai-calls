@@ -28,7 +28,7 @@ class AndroidUiAccordionContractTest {
                 val skillsBefore = AndroidConversationPreparationStore(activity).loadSkillLibrary()
 
                 assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
-                assertTrue(findButton(root, "Campaign tools")!!.isShown)
+                assertTrue(findButton(root, "Kampanie")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
                 assertTrue(findButton(root, "Rozmowy i nagrania")!!.isShown)
                 assertTrue(findButton(root, "Laboratorium offline")!!.isShown)
@@ -43,8 +43,8 @@ class AndroidUiAccordionContractTest {
 
                 assertTrue(findButton(root, "Modele: pobierz, importuj, wybierz")!!.isShown)
                 assertTrue(findButton(root, "Silniki: STT / model / TTS")!!.isShown)
-                assertTrue(findButton(root, "Grant microphone permission")!!.isShown)
-                assertTrue(findButton(root, "Enroll phone number")!!.isShown)
+                assertTrue(findButton(root, "Dostęp do mikrofonu")!!.isShown)
+                assertTrue(findButton(root, "Numer telefonu i dane")!!.isShown)
                 assertNotNull(findButton(root, "Odbieranie: AI / ręcznie"))
                 assertNotNull(findButton(root, "Skills i dane rozmów"))
                 assertNotNull(findButton(root, "Skills i presety Gemmy"))
