@@ -67,3 +67,7 @@ Fizyczne S22 QA: **7/7 testów UI PASS**, w tym osiem ekranów i krótki syntety
 ## i18n + spójne podstrony — rozpoczęty sprint
 
 Fundament: `UiDesign`, PL/EN string resources, jasny panel rozmowy i testy kluczy/kontrastu. Host 275 Python PASS; fizyczny S22 QA_PENDING ze względu na ADB. Następne: przełącznik języka Auto/PL/EN, Android 10-12 fallback + Android 13 per-app locale, następnie migracja podstron partiami (bez zmiany runtime). [Receipt](checkpoints/2026-11-07-i18n-dock-foundation-host.md). F-103 OPEN.
+
+## i18n physical acceptance — 2026-11-07
+
+Light dock + PL/EN resource foundation **S22 10/10 PASS**, no calls/data loss. [Receipt](checkpoints/2026-11-07-i18n-dock-s22-acceptance.md). Still TODO: locale chooser Auto/PL/EN, all subcreen translations/theme migration, persistence/accessibility tests. F-103 OPEN.

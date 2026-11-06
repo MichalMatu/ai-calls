@@ -50,3 +50,7 @@ Ekrany podrzędne i wspólny docelowy pasek nawigacji to następny zakres UX. Pe
 `values/strings.xml` i `values-en/strings.xml` mają parytet kluczy; `UiDesign` jest wspólną warstwą prezentacji, a dok czatu ma jasną kartę i przycisk rozwijania 48 dp. **Mac host PASS: 275 Python, AndroidTest compile, lint/APK i anti-friction. S22 QA_PENDING:** brak transportu ADB, bez instalacji. [Receipt](checkpoints/2026-11-07-i18n-dock-foundation-host.md).
 
 To dopiero fundament: użytkownik nie ma jeszcze przełącznika Auto/PL/EN, pozostałe podstrony wymagają migracji. Nigdy nie wiązać języka UI z STT/TTS lub językiem wypowiedzi AI.
+
+## S22 acceptance: i18n dock 10/10 PASS
+
+After reconnecting exact S22 and verifying 2× IDLE, no campaign/retry and APK signing lineage, the localized light dock and existing UX matrix passed **10/10 Android instrumented tests**. App data preserved, no calls. [Checkpoint](checkpoints/2026-11-07-i18n-dock-s22-acceptance.md). This only validates the resource catalog and chat dock, not a complete EN app; F-103 remains OPEN.

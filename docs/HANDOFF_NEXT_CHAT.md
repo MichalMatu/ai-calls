@@ -71,3 +71,7 @@ Po dwóch zrzutach właściciela skorygowano kontrast i hierarchię startowego e
 ## I18n PL/EN — foundation, S22 unavailable (2026-11-07)
 
 Przygotowany jest wspólny `UiDesign`, zasoby PL/EN i jasny kompaktowy panel czatu; Mac gate (275 Python, AndroidTest, lint/APK, anti-friction) PASS. [Receipt](checkpoints/2026-11-07-i18n-dock-foundation-host.md). Task `aicalls-20261107-i18n-dock-s22-acceptance-v1` FAILED na preflight `exact_s22_adb_transport_unavailable` — brak instalacji i QA fizycznego. Nie powtarzać do odzyskania S22. Brak jeszcze przełącznika języka i migracji podstron, F-103 OPEN. Wznowić z faktycznego main HEAD; nie zmieniać STT/TTS, Call ani prywatnych nagrań.
+
+## S22 i18n dock accepted — 2026-11-07
+
+The earlier ADB failure was transient. Reconnected exact S22: read-only preflight PASS; signed APK installed without data deletion; localized dock 2/2 and prior UI matrix 8/8 — **10/10 PASS**. [Checkpoint](checkpoints/2026-11-07-i18n-dock-s22-acceptance.md). No calls, S22 IDLE after test. Do not rerun these accepted tests without changes. F-103 remains OPEN: implement user-selectable Auto/PL/EN locale independently of STT/TTS and migrate remaining screens.
