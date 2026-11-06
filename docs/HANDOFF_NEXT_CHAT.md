@@ -1,13 +1,13 @@
 # AI Calls — handoff do nowego czatu (2026-11-06)
 
-**Zweryfikowany bazowy HEAD aktualnego sprintu:** main 614b0fadbd5df806127008cb0b01891f4a0bdc26 = origin/main, clean przed F-092. Commit tej poprawki przesuwa HEAD; zawsze pobierz świeży main/origin. W nowym czacie pobierz **świeży HEAD**, nie zakładaj SHA. [Kompletny checkpoint](checkpoints/2026-11-06-modularization-handoff-final.md) · [Gotowy prompt](NEXT_CHAT_PROMPT.md).
+**Referencyjny HEAD pełnej kontroli:** `1d260d8424e152b8e3d072842e7bf92405b80e6e` (przed dokumentacyjnymi commitami, full host PASS). Zawsze odczytaj świeży `main`; `614b0fad` jest historycznym HEAD sprzed F-092. [Kompletny checkpoint](checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md) · [Gotowy prompt](NEXT_CHAT_PROMPT.md).
 
 ## Zamknięte
 
 - Etap 0: zależności i ochrona flow — PASS, commit 5a63f8b, [dowód](checkpoints/2026-11-06-mod-stage0-baseline.md).
 - Etap 1: IncomingIdleTimeout z app przeniesiony do conversation-core, dokładnie ten sam algorytm 30+15 s — PASS, commit 0fb9c52, [dowód](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md). Czyste testy JVM w core, testy playback w app; full host PASS i kompilacja AndroidTest PASS. Pierwszy źle skonstruowany test i poprawka zachowane w prywatnych receipts.
 - Fizyczny INCOMING/end_call: dwie wcześniejsze rozmowy A8→S22 potwierdziły REQUESTED→VALIDATED→DISPATCHED→CONFIRMED i END/COMPLETE. Właściciel potwierdził też samorozłączenie po ciszy 30+15 s. Ostatni bezpieczny odczyt: 40 sesji, IDLE, zero błędów, kampania/retry nieaktywne. Szczegółowy timeline tej ostatniej rozmowy **nieodczytany**.
-- **S22 nadal używa wcześniejszego sprawdzonego APK** (przed etapem 1). Nowego APK po przeniesieniu klasy nie instalowano ani nie wykonywano kolejnej rozmowy.
+- **Historyczny stan etapu 1:** wtedy S22 używał wcześniejszego APK. Następnie zainstalowano `e8db8db`, a native F-091 off-call i trzy presety PASS. Nowa rzeczywista rozmowa na tym APK nadal QA_PENDING.
 
 ## Etap 2 — DONE / PASS / NO_CHANGE
 
@@ -25,7 +25,7 @@ Na świeżym bazowym HEAD zmapowano `ConversationOutcome` (5 produkcyjnych plik�
 
 Zamknięto wąski defekt kontraktu promptu: rola żeńskiej asystentki bez drugiego powitania i bez dosłownego wzorca zwrotu z ukośnikiem. `ConversationInstructionBuilder` + `ConversationReplyProtocolTest`, dwa pliki produkcja/test. Mac zadania `aicalls-20261106-autosprint-f092-preflight-v1` oraz `aicalls-20261106-autosprint-f092-prompt-regression-v1` oba DONE/0; 217,568 s testów, celowane JVM, AndroidTest compile, pełny host (266 Python) i product friction PASS. [Checkpoint](checkpoints/2026-11-06-autosprint-f092-language-role.md). F-092 ma status FIXED_IN_SOURCE, fizyczna jakość mowy pozostaje QA_PENDING.
 
-**Nie zamknięto automatycznie** F-080/F-048/F-045/F-047 ani fizycznego F-091/F-099. Następna jedna bezpieczna czynność: read-only, bez-PII audyt przyczyny niewysłania typed end_call w zachowanym ostatnim wyniku F-091; żadnych połączeń bez konkretnego zakresu.
+**Nie zamknięto automatycznie** F-080/F-048/F-045/F-047 ani fizycznego F-091/F-099. Ten historyczny następny krok (read-only audyt F-091) już wykonano; później zaliczono fizyczną matrycę off-call. Obecny następny krok to ręczne QA edytora i naturalności bez połączeń.
 
 ## F-091 i F-089 — read-only korekta stanu
 
@@ -33,7 +33,7 @@ Mac taski `aicalls-20261106-autosprint-f091-evidence-readonly-v1`, `aicalls-2026
 
 ## F-091 — kontekstowy wybór end_call (nowy source sprint)
 
-Na HEAD 73702c6 preflight Mac DONE/0; pre-existing native model off-call na S22 PASS w 41 s, bez połączenia/instalacji, ale zgodność z nowym źródłem APK niepotwierdzona. Nowa instrukcja wybiera typed end_call wraz z pożegnaniem po jednoznacznym zakończeniu, a none dla cytatów, korekt i następnej sprawy. RED→GREEN, AndroidTest compile, full host i friction PASS. F-091 pozostaje **fizycznie QA_PENDING po zmianie**; nie powtarzać wcześniejszego live disconnect ani nie instalować APK bez osobnego zakresu. [Checkpoint](checkpoints/2026-11-06-f091-semantic-closure-source.md).
+Na HEAD 73702c6 preflight Mac DONE/0; pre-existing native model off-call na S22 PASS w 41 s, bez połączenia/instalacji, ale zgodność z nowym źródłem APK niepotwierdzona. Nowa instrukcja wybiera typed end_call wraz z pożegnaniem po jednoznacznym zakończeniu, a none dla cytatów, korekt i następnej sprawy. RED→GREEN, AndroidTest compile, full host i friction PASS. W chwili tego sprintu F-091 pozostawał fizycznie QA_PENDING. Później na `e8db8db` native off-call PASS; real-call po tej zmianie pozostaje QA_PENDING. [Checkpoint](checkpoints/2026-11-06-f091-semantic-closure-source.md).
 
 ## Granice wykonania i dowodów
 
@@ -54,3 +54,7 @@ Na bazie 7a121657: sekcje MessageCapture, Clarification, NaturalClosure i Conver
 ## Skills/presety: fizyczne testy S22 OFFCALL (2026-11-06)
 
 Native 3/3 PASS; GEMMA_4_E2B, trzy presety, wspólny korpus 4 historie / 12 tur; izolowany zapis/rollback oraz ekran menu PASS. Naturalność nieoceniona, żadnych połączeń. [Checkpoint](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md).
+
+## Stan po pełnym audycie 2026-11-06
+
+[Kompletny checkpoint kodu, quality gates i S22](checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md): bazowy HEAD `1d260d8`, full host PASS, 266 Python, 90/90 linków, S22 3/3 native off-call i 36 tur Gemmy 4 E2B. Naturalność, pełne UI i real-call pozostają osobno QA_PENDING. Nie uruchamiać ponownie ukończonych testów bez nowej przesłanki.
