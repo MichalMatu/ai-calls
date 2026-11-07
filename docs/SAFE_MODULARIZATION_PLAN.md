@@ -48,7 +48,7 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 
 ## Oddzielenie UX od logiki — nowa, niezależna sekwencja (po Sprint 6)
 
-**UX-01 jest DONE / SOURCE_PASS; UX-02 i dalsze kroki są osobnym przyszłym zakresem.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
+**UX-01 i UX-02 są DONE / SOURCE_PASS; UX-03 i dalsze kroki pozostają osobnymi przyszłymi zakresami.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
 
 ### Mapa faktycznego sprzężenia
 
@@ -71,9 +71,9 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 - Testy RED→GREEN: mapowanie unknown, żądanie bez potwierdzenia, stan bez zapisu, PL/EN i surowa diagnostyka. Mały source sprint z pełną odpowiednią bramką.
 - Nie refaktoryzować równocześnie `CampaignAgentControl`, `CampaignAuthorizationStore`, executora, STOP ani callbacków.
 
-### UX-02 — historia i bezpieczne kasowanie
+### UX-02 — historia i bezpieczne kasowanie (DONE / SOURCE_PASS)
 
-- Controller posiada asynchroniczną kolejkę IO, read-only list/load, `deleteCompleted`, `deleteAllCompleted`; model wyników `Loading/Ready/Error/Deleted` i `deleted/skipped/failed`. View tylko renderuje i wyświetla potwierdzenie.
+- Zrealizowano: controller posiada kolejkę serializowanego IO, read-only `showList/showSession`, `deleteCompletedConfirmed` i `deleteAllCompletedConfirmed`; model `Loading/ListReady/DetailReady/Failed/Deleted` i `deleted/skipped/failed`. Activity renderuje, zarządza Android Back i dialogami. [Checkpoint i receipts](checkpoints/2026-11-07-ux02-conversation-history-controller-closeout.md): 7 JVM, 325 host Python, friction, APK/AndroidTest compile PASS, S22 NOT_RUN.
 - **Ta sama** `RecordedConversationHistory` jako jedyne źródło plików. Dwa niezależne miejsca do usuwania byłyby regresją. Nigdy nie kasuj realnych danych w Android testach; testuj na unikalnych syntetycznych folderach i anuluj dialog.
 - Zachować ochronę COMPLETE + END, symlink, path traversal, listy aktywnych sesji i stan telefonu przy audio. MediaPlayer jest Android-only, bez prób przenoszenia go do JVM core.
 - Przetestować Back/destroy, spóźnioną odpowiedź IO, dwu-klik Delete, szybko następujące play/stop i nieobecny WAV; dopiero potem manualny UX.

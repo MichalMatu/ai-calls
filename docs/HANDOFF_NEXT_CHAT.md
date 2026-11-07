@@ -1,4 +1,4 @@
-# AI Calls — HANDOFF: Sprint 6 CLOSED, UX-01 SOURCE_PASS (2026-11-07)
+# AI Calls — HANDOFF: Sprint 6 CLOSED, UX-01 i UX-02 SOURCE_PASS (2026-11-07)
 
 **Status końcowy:** `UX_ITERATION_CLOSED / SOURCE_PASS / S22_PASS / REAL_GEMMA_PASS`. Właściciel uznał UX za wystarczająco dobry i kończy tę iterację. **Nie rozpoczynać kolejnych mikro-poprawek wizualnych ani nie powtarzać zaliczonych testów.**
 
@@ -6,7 +6,7 @@
 
 ## Dokładny stan repo i środowiska
 
-- Repo `MichalMatu/ai-calls`, gałąź `main`, **Sprint 6 funkcjonalny `1b359146d89260e7cffd6d4c851d4c475cee20ac`**, a osobny **UX-01 source/tested HEAD `82d86e3faa256ee5b6d5ec8ab812ea104733bd29`**. Commity dokumentacji mogą podnieść HEAD; zawsze odczytaj aktualny commit i clean worktree. Bez nowych gałęzi, force-push, GitHub Actions, Codex ani Work; commity `[skip ci]`.
+- Repo `MichalMatu/ai-calls`, gałąź `main`, **Sprint 6 funkcjonalny `1b359146d89260e7cffd6d4c851d4c475cee20ac`**, osobny **UX-01 tested HEAD `82d86e3faa256ee5b6d5ec8ab812ea104733bd29`**, **UX-02 tested HEAD `109c446779257fdfb7806716c6f05e97eeff48e2`**. Commity dokumentacji mogą podnieść HEAD; zawsze odczytaj aktualny commit i clean worktree. Bez nowych gałęzi, force-push, GitHub Actions, Codex ani Work; commity `[skip ci]`.
 - GitHub Connector + **Mac Local Agent**: `macbook-michal`, installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, repo na Macu `/Users/michal/agent-workspace/repos/ai-calls/work`. Testy hosta wykonywać tam, nie zgadywać stanów sprzętu.
 - Fizyczny S22 `SM-S906B` / serial `RFCT70L7E8J`; instalacja `app-debug.apk` i AndroidTest APK przez `adb install -r -t`, signer zgodny, **dane zachowane**. `IDLE`, brak aktywnej kampanii i faktycznych połączeń podczas testów.
 
@@ -28,7 +28,9 @@
 
 **UX-01 SOURCE_PASS**: read-only `CampaignExecutionStatusPresenter` z typowanym znaczeniem/tonem i PL/EN; jedynie render historycznego stanu w `CampaignToolActivity`, surowa diagnostyka bez zmian. [Checkpoint i dokładne receipts](checkpoints/2026-11-07-ux01-campaign-status-presenter-closeout.md): RED rzeczywiste przy skonfigurowanym SDK, następnie JVM 6/6, 325 host Python, AndroidTest compile, APK i friction PASS. **S22 UX-01 nie instalowano ani nie testowano**, brak realnego Call. Nie mylić SOURCE_PASS z fizycznym odbiorem nowego APK.
 
-**Następny osobny zakres:** **UX-02 — `ConversationHistoryController`** (IO, lista, ukończone-only kasowanie, stale callbacks). Potem osobno UX-03 Lab runner, UX-04 ustawienia/model i UX-05 F-103. Nie wykonywać wszystkiego w jednej iteracji i nie wznawiać kosmetyki Sprintu 6.
+**UX-02 SOURCE_PASS (zamknięty źródłowo):** [checkpoint](checkpoints/2026-11-07-ux02-conversation-history-controller-closeout.md). Kontroler z immutable stanem historii, serializowanym IO, ochroną stale callbacks i wyłącznym kasowaniem przez istniejący `RecordedConversationHistory`. Kod przetestowany na `main@109c4467`: RED → 7 JVM GREEN, 325 Python, friction, APK i AndroidTest compile PASS, clean Mac. **S22 UX-02 NOT_RUN**, żadne prywatne archiwa nie były dotykane. Nie otwierać ponownie zaliczonego zakresu.
+
+**Następny osobny zakres:** **UX-03 — `SkillLabRunner` i `SkillLabUiState`** (anulowanie, timeout, ochrona stale callbacks). Później osobno UX-04 ustawienia/model i UX-05 F-103. Nie łączyć sprintów ani nie wznawiać kosmetyki Sprintu 6.
 
 **Inne niezależne, nienaruszane sprawy:** F-080 pełny ciągły recorder/player sesji; fizyczne autoryzowane call flows, przejęcie i odstawienie AI, rzetelna ocena semantyki i naturalności Gemmy. `END_CALL 2/2` to wynik decyzji końca, nie merytorycznej jakości.
 
