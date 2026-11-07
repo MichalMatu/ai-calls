@@ -14,7 +14,12 @@ abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity
     fun navigateBack() {
         if (!consumeChromeBack()) finish()
     }
-    override fun setContentView(view: View) {
+    override fun setContentView(view: View?) {
+        // AndroidX ComponentActivity exposes a nullable Java View signature.
+        if (view == null) {
+            super.setContentView(view)
+            return
+        }
         spaceActionRows(view)
         super.setContentView(AppNavigation.shell(this, view, activeTab))
     }
