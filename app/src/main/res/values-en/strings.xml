@@ -258,7 +258,7 @@
     <string name="camp_ui_engines">AI engine settings</string>
     <string name="camp_ui_no_task">No accepted task. Select START.</string>
     <string name="camp_ui_cancelled">Task cancelled.</string>
-    <string name="camp_ui_accepted">Task accepted: enable CLIR. Valid until completed or cancelled.</string>
+    <string name="camp_ui_accepted">CLIR task authorized. START runs an attempt; its result appears in diagnostics.</string>
     <string name="camp_ui_evidence_on">RX/TX and transcript recording is within the approved campaign scope.</string>
     <string name="camp_ui_evidence_off">RX/TX and transcript recording is off.</string>
     <string name="camp_ui_no_campaign">No campaign</string>
@@ -350,4 +350,10 @@
     <string name="incoming_ui_mode_label">Answering mode</string>
     <string name="incoming_ui_sim_label">SIM card</string>
     <string name="lab_ui_turn_short">Turn %1$d</string>
+
+    <string name="home_ui_task_heading">AI task authorization</string>
+    <string name="home_ui_task_none">No authorized task</string>
+    <string name="home_ui_task_revoked">Authorization cancelled</string>
+    <string name="home_ui_task_authorized">Task authorized; this does not mean a call is active</string>
+    <string name="home_ui_task_hint">Check execution progress in Campaigns.</string>
 </resources>
