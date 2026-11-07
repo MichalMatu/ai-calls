@@ -349,4 +349,5 @@
 
     <string name="incoming_ui_mode_label">Tryb odbierania</string>
     <string name="incoming_ui_sim_label">Karta SIM</string>
+    <string name="lab_ui_turn_short">Tura %1$d</string>
 </resources>
