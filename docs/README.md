@@ -1,8 +1,8 @@
 # AI Calls — indeks aktualnej dokumentacji
 
-**Zacznij tutaj:** [Handoff — bieżący stan](HANDOFF_NEXT_CHAT.md) · [Prompt kolejnego czatu](NEXT_CHAT_PROMPT.md) · [Sprint 6 — checkpoint kodu/QA/S22 i plan UX](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md).
+**Zacznij tutaj:** [Aktualny handoff](HANDOFF_NEXT_CHAT.md) · [Prompt nowego chatu](NEXT_CHAT_PROMPT.md) · [Finalny checkpoint Sprint 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md).
 
-**Stan na 2026-11-07:** Sprint 6 `SOURCE_GREEN` (325 testów hosta PASS); **S22 QA_PENDING_ADB**, realna Gemma Sprint 6 **NOT_RUN**. Ostatni fizyczny baseline to [Sprint 5: S22 27 UI / 23 wizualne / 43 JPG / Gemma 2 tury + STOP](checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md). Nie łącz tych wyników.
+**Stan 2026-11-07:** iteracja UX **CLOSED / PASS**. Finalny kod `1b359146`: 325 host PASS; fizyczny S22: **28+24** testy UI/wizualne, hotfix **4/4** targeted, realna Gemma **2 tury + STOP PASS**; 46 prywatnych JPEG. Poprzednie checkpointy zostają jako historia, nie aktualne blokady.
 
 ## Gdzie szukać
 
