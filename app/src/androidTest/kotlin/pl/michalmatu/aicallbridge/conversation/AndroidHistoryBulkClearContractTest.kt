@@ -54,7 +54,23 @@ class AndroidHistoryBulkClearContractTest {
                     ).text.toString()
                     assertTrue("confirmation_must_mention_audio",
                         description.contains("audio", ignoreCase = true) ||
-                        description.contains("nagrania", ignoreCase = true))
+                        description.contains("nagrania", ignoreCase = true) ||
+                        description.contains("recording", ignoreCase = true))
+                }
+                // Screenshot only; no destructive positive dialog action is ever pressed.
+                val dir = context.getExternalFilesDir("ui-audit-20261107-sprint6")
+                assertTrue(requireNotNull(dir).isDirectory || requireNotNull(dir).mkdirs())
+                val bitmap = requireNotNull(InstrumentationRegistry.getInstrumentation()
+                    .uiAutomation.takeScreenshot())
+                try {
+                    val target = File(dir, "history-bulk-confirmation-synthetic.jpg")
+                    target.outputStream().use { output ->
+                        assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, output))
+                    }
+                    assertTrue(target.length() > 2000)
+                } finally { bitmap.recycle() }
+                scenario.onActivity { activity ->
+                    val dialog = requireNotNull(activity.pendingBulkDeleteConfirmation)
                     dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
                     assertTrue("cancel_must_preserve_synthetic_session", folder.exists())
                 }
