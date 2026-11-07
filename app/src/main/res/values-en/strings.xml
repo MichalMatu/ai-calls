@@ -271,12 +271,12 @@
     <string name="skills_ui_factory">factory</string>
     <string name="skills_ui_custom">custom</string>
     <string name="skills_ui_activate">Activate selected preset</string>
-    <string name="skills_ui_copy">Create an editable copy of the active preset</string>
+    <string name="skills_ui_copy">Create copy</string>
     <string name="skills_ui_new">New preset</string>
     <string name="skills_ui_create">Create</string>
     <string name="skills_ui_cancel">Cancel</string>
-    <string name="skills_ui_lab">Skills laboratory — offline Gemma tests</string>
-    <string name="skills_ui_preview">Preview receptionist instructions</string>
+    <string name="skills_ui_lab">Open Skills Lab</string>
+    <string name="skills_ui_preview">Preview instructions</string>
     <string name="skills_ui_not_saved">Not saved</string>
     <string name="skills_ui_revision">Save revision</string>
     <string name="eng_ui_title">AI audio engine settings</string>
@@ -398,4 +398,5 @@
 
 
     <string name="campaign_ui_disconnect_requested">Requested AI stop and cleanup of the owned call. Check diagnostics for confirmation.</string>
+    <string name="skills_ui_current_preset">Active preset</string>
 </resources>
