@@ -90,7 +90,8 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
         }.apply { tag = "skills-activate" }
         fun refreshActivation(position: Int) {
-            val needsActivation = options.getOrNull(position)?.id != library.activePresetId
+            val selected = options.getOrNull(position)
+            val needsActivation = selected != null && selected.id != library.activePresetId
             activate.isEnabled = needsActivation
             activate.text = getString(if (needsActivation) R.string.skills_ui_activate
                 else R.string.skills_ui_current_preset)
