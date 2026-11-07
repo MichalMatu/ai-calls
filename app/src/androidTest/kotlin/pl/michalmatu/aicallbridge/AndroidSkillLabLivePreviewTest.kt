@@ -52,7 +52,7 @@ class AndroidSkillLabLivePreviewTest {
                     "lab-decision:0:1")).text.contains("END_CALL"))
                 assertTrue(requireNotNull(activity.window.decorView.findViewWithTag<CheckBox>(
                     "lab-follow")).isChecked)
-                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint5"))
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
             }
             instrumentation.waitForIdleSync()
@@ -84,7 +84,7 @@ class AndroidSkillLabLivePreviewTest {
                 val status = requireNotNull(activity.window.decorView
                     .findViewWithTag<TextView>("lab-status"))
                 assertTrue(status.text.contains("model_response_timeout"))
-                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint5"))
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
             }
             instrumentation.waitForIdleSync()
@@ -97,6 +97,54 @@ class AndroidSkillLabLivePreviewTest {
                 assertTrue(file.length() > 2000)
             } finally { shot.recycle() }
             println("S22_LAB_TIMEOUT_PRESENTATION=PASS_SYNTHETIC")
+        }
+    }
+
+    @Test fun stopNoticeAndLatestTurnRemainVisibleWhenAutoFollowEnabled() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
+            var folder: File? = null
+            scenario.onActivity { activity ->
+                val clazz = activity.javaClass
+                val pending = clazz.declaredMethods.first { it.name == "showTurnPending" }
+                    .apply { isAccessible = true }
+                val complete = clazz.declaredMethods.first { it.name == "showTurnCompleted" }
+                    .apply { isAccessible = true }
+                val notice = clazz.declaredMethods.first { it.name == "showStopNotice" }
+                    .apply { isAccessible = true }
+                val ctor = complete.parameterTypes[1].declaredConstructors
+                    .first { it.parameterTypes.size == 7 }.apply { isAccessible = true }
+                repeat(2) { index ->
+                    val turn = index + 1
+                    pending.invoke(activity, 0, "Offline", turn,
+                        "Syntetyczna wiadomość o długości opisowej $turn.", index)
+                    val reply = ctor.newInstance("Offline", turn, false, false,
+                        "Przykładowa, wyłącznie lokalna odpowiedź nr $turn.", 150L, false)
+                    complete.invoke(activity, 0, reply, turn)
+                }
+                notice.invoke(activity)
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
+                assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
+            }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                val banner = requireNotNull(activity.window.decorView.findViewWithTag<TextView>(
+                    "lab-stopped-banner"))
+                assertTrue(banner.text.contains("2") && banner.text.isNotBlank())
+                assertTrue(banner.isShown)
+                val last = requireNotNull(activity.window.decorView.findViewWithTag<View>(
+                    "lab-turn:0:2"))
+                assertTrue(last.isShown)
+            }
+            val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+            try {
+                val file = File(requireNotNull(folder), "lab-follow-stop-synthetic.jpg")
+                file.outputStream().use {
+                    assertTrue(screenshot.compress(Bitmap.CompressFormat.JPEG, 82, it))
+                }
+                assertTrue(file.length() > 2000)
+            } finally { screenshot.recycle() }
+            println("S22_LAB_SYNTHETIC_STOP_FOLLOW=PASS")
         }
     }
 }
