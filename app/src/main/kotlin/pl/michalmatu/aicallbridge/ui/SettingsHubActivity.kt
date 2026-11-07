@@ -53,6 +53,7 @@ class SettingsHubActivity : Activity() {
                 minimumHeight = UiDesign.dp(this@SettingsHubActivity, 78)
                 isClickable = true
                 isFocusable = true
+                tag = "settings-destination:" + target.simpleName
                 contentDescription = getString(title)
                 background = UiDesign.surfaceDrawable(this@SettingsHubActivity)
                 setPadding(UiDesign.dp(this@SettingsHubActivity, 16),
@@ -84,6 +85,7 @@ class SettingsHubActivity : Activity() {
             ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 9) })
         }
         section(R.string.ui_settings_hub_group_ai)
+        destination(R.string.ui_settings_hub_general, R.string.ui_settings_hub_general_detail, GeneralSettingsActivity::class.java)
         destination(R.string.ui_settings_hub_engines, R.string.ui_settings_hub_engines_detail, AudioEngineSettingsActivity::class.java)
         destination(R.string.ui_settings_hub_models, R.string.ui_settings_hub_models_detail, LanguageModelActivity::class.java)
         section(R.string.ui_settings_hub_group_calls)
@@ -92,6 +94,7 @@ class SettingsHubActivity : Activity() {
         destination(R.string.ui_settings_hub_skills, R.string.ui_settings_hub_skills_detail, ConversationSkillsActivity::class.java)
         destination(R.string.ui_settings_hub_identity, R.string.ui_settings_hub_identity_detail, PhoneEnrollmentActivity::class.java)
         section(R.string.ui_settings_hub_group_advanced)
+        destination(R.string.ui_settings_hub_developer, R.string.ui_settings_hub_developer_detail, DeveloperToolsActivity::class.java)
         destination(R.string.ui_settings_hub_tools, R.string.ui_settings_hub_tools_detail, ConversationToolsActivity::class.java)
         destination(R.string.ui_settings_hub_usb, R.string.ui_settings_hub_usb_detail, UsbDebugPanelActivity::class.java)
         AppNavigation.install(this, ScrollView(this).apply {

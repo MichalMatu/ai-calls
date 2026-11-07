@@ -30,6 +30,8 @@ class AndroidAppNavigationContractTest {
                 assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
                 assertNull(root.findViewWithTag<View>("ui-accordion-toggle:basic"))
+                assertTrue(requireNotNull(root.findViewWithTag<View>("settings-destination:GeneralSettingsActivity")).isClickable)
+                assertTrue(requireNotNull(root.findViewWithTag<View>("settings-destination:DeveloperToolsActivity")).isClickable)
             }
         }
     }

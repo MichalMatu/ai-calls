@@ -13,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
 
 @RunWith(AndroidJUnit4::class)
 class AndroidMenuVisualContractTest {
@@ -28,49 +29,41 @@ class AndroidMenuVisualContractTest {
         }
         return null
     }
-
-    @Test fun categoriesAreCollapsedAndContrastingWhileSafetyActionsRemainReachable() {
+    @Test fun directNavigationHasFourVisibleTabsAndSafetyActions() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                for (name in listOf("basic", "secretary", "skills", "laboratory", "advanced")) {
-                    val section = requireNotNull(root.findViewWithTag<UiAccordionSection>("ui-settings-section:$name"))
-                    val toggle = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:$name"))
-                    val body = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:$name"))
-                    assertEquals("category_is_expanded:$name", View.GONE, body.visibility)
-                    val fill = requireNotNull((section.background as GradientDrawable).color).defaultColor
-                    assertTrue("category_contrast:$name", ratio(toggle.currentTextColor, fill) >= 4.5)
+                for (name in listOf("home", "history", "lab", "settings")) {
+                    val tab = requireNotNull(root.findViewWithTag<View>("app-tab:$name"))
+                    assertTrue("tab_visible:$name", tab.isShown)
+                    assertTrue("tab_clickable:$name", tab.isClickable)
                 }
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("live-chat-scroll")).visibility)
                 assertTrue(requireNotNull(findButton(root, "Rozpocznij autoryzowane zadanie AI")).isShown)
                 assertTrue(requireNotNull(findButton(root, "STOP AI")).isShown)
-                assertTrue(requireNotNull(findButton(root, "Kampanie")).isShown)
-                assertTrue(requireNotNull(findButton(root, "Rozmowy i nagrania")).isShown)
-                assertTrue(requireNotNull(findButton(root, "Laboratorium offline")).isShown)
+                assertNull(root.findViewWithTag<View>("ui-accordion-toggle:basic"))
             }
         }
     }
-
-    @Test fun bothSpinnerValuesRemainReadableWhenBasicSettingsAreOpened() {
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+    @Test fun basicSelectorsStayReadableInTheirDedicatedScreen() {
+        ActivityScenario.launch(GeneralSettingsActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:basic")).performClick()
                 for (name in listOf("settings-audio-mode-spinner", "settings-provider-spinner")) {
                     val spinner = requireNotNull(root.findViewWithTag<Spinner>(name))
                     val text = spinner.adapter.getView(spinner.selectedItemPosition, null, spinner) as TextView
                     val fill = requireNotNull((spinner.background as GradientDrawable).color).defaultColor
                     assertTrue("value_contrast:$name", ratio(text.currentTextColor, fill) >= 4.5)
                 }
-                val container = requireNotNull(root.findViewWithTag<View>("main-screen-root"))
+                assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    val top = container.rootWindowInsets?.getInsets(WindowInsets.Type.statusBars())?.top
-                    if (top != null && top > 0) assertTrue(container.paddingTop >= top)
+                    val shell = requireNotNull(root.findViewWithTag<View>("app-screen-shell"))
+                    val top = shell.rootWindowInsets?.getInsets(WindowInsets.Type.statusBars())?.top
+                    if (top != null && top > 0) assertTrue(shell.paddingTop >= top)
                 }
             }
         }
     }
-
     @Test fun compactChatCanBeExpandedAndCollapsedWithoutCalling() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->

@@ -20,58 +20,24 @@ import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationSto
 @RunWith(AndroidJUnit4::class)
 class AndroidUiAccordionContractTest {
     @Test
-    fun homeGroupsSettingsByPurposeWithoutMutatingRuntimeOrSkillVersions() {
+    fun homePreservesSafeActionsWithRealNavigationInsteadOfEmptyAccordions() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                val runtimeBefore = CallRuntimePreferences(activity).load()
+                val before = CallRuntimePreferences(activity).load()
                 val skillsBefore = AndroidConversationPreparationStore(activity).loadSkillLibrary()
-
                 assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
                 assertTrue(findButton(root, "Kampanie")!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
                 assertTrue(findButton(root, "Rozmowy i nagrania")!!.isShown)
                 assertTrue(findButton(root, "Laboratorium offline")!!.isShown)
-
-                val ids = listOf("basic", "secretary", "skills", "laboratory", "advanced")
-                val bodies = ids.associateWith { id ->
-                    requireNotNull(root.findViewWithTag<View>("ui-accordion-content:$id"))
-                }
-                ids.forEach { assertEquals(View.GONE, bodies.getValue(it).visibility) }
-                root.findViewWithTag<Button>("ui-accordion-toggle:basic").performClick()
-                assertEquals(View.VISIBLE, bodies.getValue("basic").visibility)
-
-                assertTrue(findButton(root, "Modele: pobierz, importuj, wybierz")!!.isShown)
-                assertTrue(findButton(root, "Silniki: STT / model / TTS")!!.isShown)
-                assertTrue(findButton(root, "Dostęp do mikrofonu")!!.isShown)
-                assertTrue(findButton(root, "Numer telefonu i dane")!!.isShown)
-                assertNotNull(findButton(root, "Odbieranie: AI / ręcznie"))
-                assertNotNull(findButton(root, "Skills i dane rozmów"))
-                assertNotNull(findButton(root, "Skills i presety Gemmy"))
-                assertNotNull(findButton(root, "Laboratorium skillsów"))
-                assertNotNull(findButton(root, "Narzędzia AI"))
-                assertNotNull(findButton(root, "Run device capability probe"))
-                assertFalse(findButton(root, "Jeden przycisk:")!!.isShown)
-
-                ids.drop(1).forEach { id ->
-                    val toggle = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:$id"))
-                    assertTrue(toggle.contentDescription.contains("Rozwiń"))
-                    toggle.performClick()
-                    assertEquals(View.VISIBLE, bodies.getValue(id).visibility)
-                    assertTrue(toggle.contentDescription.contains("Zwiń"))
-                    toggle.performClick()
-                    assertEquals(View.GONE, bodies.getValue(id).visibility)
-                }
-
-                val advanced = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:advanced"))
-                advanced.performClick()
                 assertTrue(findButton(root, "Jeden przycisk:")!!.isShown)
-                assertTrue(findButton(root, "STOP AI")!!.isShown)
-
-                val runtimeAfter = CallRuntimePreferences(activity).load()
+                assertNotNull(root.findViewWithTag<View>("app-tab:settings"))
+                assertNull(root.findViewWithTag<View>("ui-accordion-content:basic"))
+                assertNull(root.findViewWithTag<View>("ui-accordion-content:advanced"))
+                val after = CallRuntimePreferences(activity).load()
                 val skillsAfter = AndroidConversationPreparationStore(activity).loadSkillLibrary()
-                assertEquals(runtimeBefore.audioMode, runtimeAfter.audioMode)
-                assertEquals(runtimeBefore.textLlmProvider, runtimeAfter.textLlmProvider)
+                assertEquals(before, after)
                 assertEquals(skillsBefore.activePresetId, skillsAfter.activePresetId)
                 assertEquals(skillsBefore.presets, skillsAfter.presets)
                 assertEquals(skillsBefore.skills, skillsAfter.skills)

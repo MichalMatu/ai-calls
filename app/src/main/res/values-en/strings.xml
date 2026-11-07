@@ -61,4 +61,11 @@
     <string name="ui_settings_hub_group_ai">Models and voice</string>
     <string name="ui_settings_hub_group_calls">Calls</string>
     <string name="ui_settings_hub_group_advanced">Advanced</string>
+    <string name="ui_settings_hub_general">Basic AI settings</string>
+    <string name="ui_settings_hub_general_detail">Call mode, LLM provider and microphone</string>
+    <string name="ui_settings_hub_developer">Developer probes</string>
+    <string name="ui_settings_hub_developer_detail">Hardware and Shizuku diagnostics</string>
+    <string name="ui_supervised_section">Supervised active-call test</string>
+    <string name="ui_general_description">Settings apply to the next call. Changing them never starts a call.</string>
+    <string name="ui_developer_description">Advanced diagnostics. Run probes deliberately.</string>
 </resources>

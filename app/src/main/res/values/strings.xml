@@ -61,4 +61,11 @@
     <string name="ui_settings_hub_group_ai">Modele i głos</string>
     <string name="ui_settings_hub_group_calls">Połączenia</string>
     <string name="ui_settings_hub_group_advanced">Zaawansowane</string>
+    <string name="ui_settings_hub_general">Podstawowe ustawienia AI</string>
+    <string name="ui_settings_hub_general_detail">Tryb rozmowy, dostawca LLM i mikrofon</string>
+    <string name="ui_settings_hub_developer">Sondy i narzędzia programistyczne</string>
+    <string name="ui_settings_hub_developer_detail">Diagnostyka sprzętu i Shizuku</string>
+    <string name="ui_supervised_section">Test nadzorowany aktywnej rozmowy</string>
+    <string name="ui_general_description">Wybory zapisują się dla kolejnej rozmowy. Nie rozpoczynają połączeń.</string>
+    <string name="ui_developer_description">Zaawansowana diagnostyka. Uruchamiaj sondy świadomie.</string>
 </resources>

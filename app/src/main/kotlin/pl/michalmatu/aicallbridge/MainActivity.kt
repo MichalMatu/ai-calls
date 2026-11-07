@@ -35,7 +35,6 @@ class MainActivity : Activity() {
     private lateinit var runtimePreferences: CallRuntimePreferences
     private lateinit var selectedAudioMode: CallAudioMode
     private lateinit var selectedTextLlmProvider: TextLlmProvider
-    private lateinit var textLlmProviderSpinner: Spinner
     private var displayedModel: pl.michalmatu.aicallbridge.audioengines.DialogueModelId? = null
     private lateinit var developerProbes: MainActivityDeveloperProbes
 
@@ -56,60 +55,6 @@ class MainActivity : Activity() {
             setTextIsSelectable(true)
         }
         developerProbes = MainActivityDeveloperProbes(this, statusView)
-
-        val audioModeSpinner = Spinner(this).apply {
-            tag = "settings-audio-mode-spinner"
-            adapter = ArrayAdapter(
-                this@MainActivity,
-                android.R.layout.simple_spinner_item,
-                CallAudioMode.entries.map { it.displayName },
-            )
-            setSelection(CallAudioMode.entries.indexOf(selectedAudioMode))
-        }
-
-        textLlmProviderSpinner = Spinner(this).apply {
-            tag = "settings-provider-spinner"
-            adapter = ArrayAdapter(
-                this@MainActivity,
-                android.R.layout.simple_spinner_item,
-                TextLlmProvider.entries.map { it.displayName },
-            )
-            setSelection(TextLlmProvider.entries.indexOf(selectedTextLlmProvider))
-            isEnabled = selectedAudioMode.usesTextLlm
-        }
-
-        audioModeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                selectedAudioMode = CallAudioMode.entries[position]
-                runtimePreferences.saveAudioMode(selectedAudioMode)
-                textLlmProviderSpinner.isEnabled = selectedAudioMode.usesTextLlm
-                statusView.text = runtimeSelectionSummary()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-
-        textLlmProviderSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                selectedTextLlmProvider = TextLlmProvider.entries[position]
-                runtimePreferences.saveTextLlmProvider(selectedTextLlmProvider)
-                statusView.text = runtimeSelectionSummary()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-
-        val requestMicButton = Button(this).apply {
-            text = "Dostęp do mikrofonu"
-            setOnClickListener { requestMicrophonePermissionIfNeeded() }
-        }
-
-        val enrollPhoneButton = Button(this).apply {
-            text = "Numer telefonu i dane"
-            setOnClickListener {
-                startActivity(Intent(this@MainActivity, PhoneEnrollmentActivity::class.java))
-            }
-        }
 
         val oneTapButton = Button(this).apply {
             text = "Jeden przycisk: uruchom AI w trwającej rozmowie"
@@ -158,83 +103,7 @@ class MainActivity : Activity() {
                 pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity::class.java)) }
         }
 
-        // UX-only grouping: the original controls and their callbacks are unchanged.
-        // STOP and authorized-task actions remain immediately visible.
-        val basicSection = UiAccordionSection(
-            this, "basic", "Podstawowe",
-            description = "Tryb rozmowy, model, silniki i uprawnienia.",
-            initiallyExpanded = false,
-        ).apply {
-            addLabel("Tryb rozmowy")
-            addControl(audioModeSpinner)
-            addLabel("Model tekstowy (dla trybu STT / TTS)")
-            addControl(textLlmProviderSpinner)
-            addControl(Button(this@MainActivity).apply {
-                text = "Modele: pobierz, importuj, wybierz"
-                setOnClickListener {
-                    startActivity(Intent(this@MainActivity,
-                        pl.michalmatu.aicallbridge.textagent.LanguageModelActivity::class.java))
-                }
-            })
-            addControl(Button(this@MainActivity).apply {
-                text = "Silniki: STT / model / TTS"
-                setOnClickListener {
-                    startActivity(Intent(this@MainActivity,
-                        pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity::class.java))
-                }
-            })
-            addControl(requestMicButton)
-            addControl(enrollPhoneButton)
-        }
-        val secretarySection = UiAccordionSection(
-            this, "secretary", "Sekretarka",
-            description = "Odbieranie połączeń i dane przygotowania rozmowy.",
-        ).apply {
-            addControl(Button(this@MainActivity).apply {
-                text = "Odbieranie: AI / ręcznie"
-                setOnClickListener { startActivity(Intent(this@MainActivity,
-                    pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity::class.java)) }
-            })
-            addControl(Button(this@MainActivity).apply {
-                text = "Skills i dane rozmów"
-                setOnClickListener { startActivity(Intent(this@MainActivity,
-                    pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java)) }
-            })
-        }
-        val skillsSection = UiAccordionSection(
-            this, "skills", "Skills i presety",
-            description = "Wybór, kopie i wersjonowanie instrukcji Gemmy.",
-        ).apply {
-            addControl(Button(this@MainActivity).apply {
-                text = "Skills i presety Gemmy"
-                setOnClickListener { startActivity(Intent(this@MainActivity,
-                    pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity::class.java)) }
-            })
-        }
-        val laboratorySection = UiAccordionSection(
-            this, "laboratory", "Laboratorium",
-            description = "Testy wieloturowe offline bez połączenia telefonicznego.",
-        ).apply {
-            addControl(Button(this@MainActivity).apply {
-                text = "Laboratorium skillsów — testy Gemmy offline"
-                setOnClickListener { startActivity(Intent(this@MainActivity,
-                    pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity::class.java)) }
-            })
-        }
-        val advancedSection = UiAccordionSection(
-            this, "advanced", "Zaawansowane",
-            description = "Narzędzia AI, diagnostyka i testy nadzorowane.",
-        ).apply {
-            addControl(Button(this@MainActivity).apply {
-                text = "Narzędzia AI"
-                setOnClickListener { startActivity(Intent(this@MainActivity,
-                    pl.michalmatu.aicallbridge.tools.ConversationToolsActivity::class.java)) }
-            })
-            addLabel("Test nadzorowany aktywnej rozmowy — nie rozpoczyna połączenia")
-            addControl(oneTapButton)
-        }
-        developerProbes.addControls(advancedSection.controlsContainer)
-        advancedSection.styleExistingControls()
+        // Primary actions remain on Home. Navigation and configuration live in dedicated screens.
 
         // A short action area, two navigation shortcuts, and collapsed settings cards.
         fun styleAction(button: Button, color: Int, ink: Int) {
@@ -250,6 +119,7 @@ class MainActivity : Activity() {
         styleAction(campaignToolsButton, Color.rgb(229, 237, 249), Color.rgb(27, 47, 75))
         styleAction(conversationHistoryButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
         styleAction(labShortcutButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
+        styleAction(oneTapButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -305,19 +175,22 @@ class MainActivity : Activity() {
             }
             addView(shortcuts)
             addView(TextView(this@MainActivity).apply {
-                text = "Ustawienia"
+                text = getString(R.string.ui_settings)
                 textSize = 18f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.rgb(30, 47, 68))
                 setPadding(0, dp(18), 0, dp(10))
             })
-            listOf(basicSection, secretarySection, skillsSection, laboratorySection, advancedSection)
-                .forEach { section ->
-                    section.tag = "ui-settings-section:" + section.sectionId
-                    addView(section, LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ).apply { bottomMargin = dp(10) })
-                }
+            addView(pl.michalmatu.aicallbridge.ui.UiDesign.button(
+                this@MainActivity, getString(R.string.ui_settings_hub_title)
+            ) { AppNavigation.open(this@MainActivity, AppTab.SETTINGS) })
+            addView(TextView(this@MainActivity).apply {
+                text = getString(R.string.ui_supervised_section)
+                textSize = 15f
+                setTextColor(Color.rgb(80, 96, 116))
+                setPadding(0, dp(18), 0, dp(8))
+            })
+            addView(oneTapButton)
         }
 
         // Pinned chat dock: visible without scrolling the settings above it.
@@ -370,9 +243,14 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        val current = runtimePreferences.load()
         val selected = pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore(this).load()?.dialogue
-        if (selected != displayedModel) {
+        if (selected != displayedModel ||
+            current.audioMode != selectedAudioMode ||
+            current.textLlmProvider != selectedTextLlmProvider) {
             displayedModel = selected
+            selectedAudioMode = current.audioMode
+            selectedTextLlmProvider = current.textLlmProvider
             statusView.text = runtimeSelectionSummary()
         }
     }
