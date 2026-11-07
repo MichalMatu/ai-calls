@@ -71,4 +71,32 @@ class AndroidSkillLabLivePreviewTest {
             }
         }
     }
+
+    @Test fun modelTimeoutAppearsAsReadableErrorWithoutRunningModel() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
+            var folder: File? = null
+            scenario.onActivity { activity ->
+                val failure = activity.javaClass.declaredMethods.first {
+                    it.name == "renderFailure"
+                }.apply { isAccessible = true }
+                failure.invoke(activity, "model_response_timeout")
+                val status = requireNotNull(activity.window.decorView
+                    .findViewWithTag<TextView>("lab-status"))
+                assertTrue(status.text.contains("model_response_timeout"))
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint5"))
+                assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
+            }
+            instrumentation.waitForIdleSync()
+            val shot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+            try {
+                val file = File(requireNotNull(folder), "lab-timeout-synthetic.jpg")
+                file.outputStream().use {
+                    assertTrue(shot.compress(Bitmap.CompressFormat.JPEG, 82, it))
+                }
+                assertTrue(file.length() > 2000)
+            } finally { shot.recycle() }
+            println("S22_LAB_TIMEOUT_PRESENTATION=PASS_SYNTHETIC")
+        }
+    }
 }
