@@ -349,4 +349,5 @@
 
     <string name="incoming_ui_mode_label">Answering mode</string>
     <string name="incoming_ui_sim_label">SIM card</string>
+    <string name="lab_ui_turn_short">Turn %1$d</string>
 </resources>
