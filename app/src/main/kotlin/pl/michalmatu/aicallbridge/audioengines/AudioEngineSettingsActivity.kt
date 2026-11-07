@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.audioengines
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 import android.app.Activity
 import android.Manifest
 import android.content.pm.PackageManager
@@ -33,6 +34,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var feedback: TextView
     private lateinit var active: TextView
     private lateinit var voicePicker: Spinner
+    private lateinit var cancelDownloadButton: Button
     private lateinit var inputGroup: RadioGroup
     private lateinit var dialogueGroup: RadioGroup
     private lateinit var outputGroup: RadioGroup
@@ -48,36 +50,63 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         store = AudioEngineProfileStore(this)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@AudioEngineSettingsActivity, 28), UiDesign.dp(this@AudioEngineSettingsActivity, 28), UiDesign.dp(this@AudioEngineSettingsActivity, 28), UiDesign.dp(this@AudioEngineSettingsActivity, 36))
+            setPadding(UiDesign.dp(this@AudioEngineSettingsActivity, 20), UiDesign.dp(this@AudioEngineSettingsActivity, 20), UiDesign.dp(this@AudioEngineSettingsActivity, 20), UiDesign.dp(this@AudioEngineSettingsActivity, 28))
         }
         val current = store.load()
         lastStoredDialogue = current?.dialogue
         fun label(value: String, large: Boolean = false): TextView =
             TextView(this).apply {
                 text = value
-                textSize = if (large) 20f else 15f
-                setPadding(0, UiDesign.dp(this@AudioEngineSettingsActivity, 10), 0, UiDesign.dp(this@AudioEngineSettingsActivity, 10))
+                textSize = if (large) 19f else 14f
+                setTextColor(if (large) UiDesign.ink else UiDesign.secondary)
+                setPadding(0, UiDesign.dp(this@AudioEngineSettingsActivity, 10),
+                    0, UiDesign.dp(this@AudioEngineSettingsActivity, 10))
             }
-        content.addView(label("Ustawienia silników audio AI", true))
-        content.addView(label("Preferencja urządzenia, nie autoryzacja rozmowy. " +
-            "Zmiana nie przełącza trwającego połączenia."))
+        content.addView(UiDesign.heading(this, "Ustawienia silników audio AI").apply {
+            textSize = 23f
+        }, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this,
+            "Zmiany dotyczą kolejnych rozmów; nie uruchamiają ani nie przełączają bieżącej."
+        ), UiDesign.spaceAfter(this, 12))
+        active = UiDesign.caption(this, "")
+        content.addView(active, UiDesign.spaceAfter(this, 16))
         fun section(title: String, choices: List<AudioEngineChoice>, selected: String): RadioGroup {
-            content.addView(label(title, true))
+            val card = UiDesign.card(this)
+            card.addView(UiDesign.heading(this, title).apply {
+                textSize = 17f
+            }, UiDesign.spaceAfter(this, 8))
             val group = RadioGroup(this)
+            val unavailable = mutableListOf<RadioButton>()
             for (choice in choices) {
                 val button = RadioButton(this).apply {
                     id = View.generateViewId()
-                    text = choice.title + " · " + choice.languageTag + "\n" +
-                        (if (choice.integrated) "Zintegrowany — sprawdź offline" else
-                            "NIEDOSTĘPNY — " + choice.detail)
+                    text = choice.title + " · " + choice.languageTag +
+                        if (choice.integrated) "" else "\nNiedostępny: " + choice.detail
                     isEnabled = choice.integrated
                     tag = choice.id
                     isChecked = choice.id == selected
-                    setPadding(UiDesign.dp(this@AudioEngineSettingsActivity, 8), UiDesign.dp(this@AudioEngineSettingsActivity, 6), UiDesign.dp(this@AudioEngineSettingsActivity, 8), UiDesign.dp(this@AudioEngineSettingsActivity, 8))
+                    minimumHeight = UiDesign.dp(this@AudioEngineSettingsActivity, 48)
+                    setPadding(UiDesign.dp(this@AudioEngineSettingsActivity, 8),
+                        UiDesign.dp(this@AudioEngineSettingsActivity, 8),
+                        UiDesign.dp(this@AudioEngineSettingsActivity, 8),
+                        UiDesign.dp(this@AudioEngineSettingsActivity, 8))
+                    if (!choice.integrated && choice.id != selected) visibility = View.GONE
                 }
+                if (!choice.integrated) unavailable.add(button)
                 group.addView(button)
             }
-            content.addView(group)
+            card.addView(group)
+            if (unavailable.isNotEmpty()) {
+                val toggle = UiDesign.action(this,
+                    "Niedostępne silniki (${unavailable.size})") {
+                    val expanded = unavailable.any { it.visibility == View.GONE }
+                    unavailable.forEach {
+                        it.visibility = if (expanded) View.VISIBLE else View.GONE
+                    }
+                }.apply { tag = "engine-unavailable:" + title }
+                card.addView(toggle, UiDesign.spaceAfter(this, 8))
+            }
+            content.addView(card, UiDesign.spaceAfter(this, 16))
             return group
         }
         inputGroup = section("1. Wejście (RX / STT)", AudioEngineRegistry.inputs,
@@ -95,35 +124,25 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             current?.output?.name ?: "ANDROID_TTS_PL")
         content.addView(label("Głos Android TTS offline (pl-PL)"))
         voicePicker = Spinner(this)
-        content.addView(voicePicker)
+        content.addView(voicePicker, UiDesign.spaceAfter(this, 12))
         setVoices(emptyList(), current?.voiceId)
-        content.addView(label("Inne silniki i głosy nie są aktywowane samym wyborem z katalogu."))
         feedback = label("Gotowość: niezweryfikowana. Naciśnij „Sprawdź offline”.")
-        active = label("")
-        content.addView(active)
-        content.addView(feedback)
-        content.addView(Button(this).apply {
-            text = "Sprawdź offline (bez połączenia)"
-            setOnClickListener { checkOffline() }
-        })
-        content.addView(Button(this).apply {
-            text = "Pobierz model Parakeet PL (615 MB, CC BY 4.0) — na żądanie"
-            setOnClickListener { downloadParakeet() }
-        })
-        content.addView(Button(this).apply {
-            text = "Anuluj pobieranie modelu"
-            setOnClickListener {
-                parakeetDownloader?.cancel()
-                feedback.text = "Anulowanie pobierania…"
-            }
-        })
-        content.addView(Button(this).apply {
-            text = "Odsłuch wybranego głosu (poza połączeniem)"
-            setOnClickListener { previewVoice() }
-        })
-        content.addView(Button(this).apply {
-            text = "Zapisz konfigurację"
-            setOnClickListener {
+        content.addView(feedback, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, "Sprawdź offline") {
+            checkOffline()
+        }, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, "Pobierz Parakeet PL · 615 MB") {
+            downloadParakeet()
+        }, UiDesign.spaceAfter(this, 12))
+        cancelDownloadButton = UiDesign.action(this, "Anuluj pobieranie", UiActionTone.DANGER) {
+            parakeetDownloader?.cancel()
+            feedback.text = "Anulowanie pobierania…"
+        }.apply { tag = "engine-cancel-download"; visibility = View.GONE }
+        content.addView(cancelDownloadButton, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, "Odsłuchaj głos") {
+            previewVoice()
+        }, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, "Zapisz konfigurację", UiActionTone.PRIMARY) {
                 val requested = selectedProfile()
                 val result = AudioEngineReadinessProbe.check(
                     this@AudioEngineSettingsActivity, requested,
@@ -139,9 +158,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
             }
         })
-        content.addView(Button(this).apply {
-            text = "Przywróć stabilny wariant Android STT → Gemma E2B → Android TTS"
-            setOnClickListener {
+        content.addView(UiDesign.action(this, "Przywróć stabilny wariant") {
                 if (store.save(AudioEngineProfile.STABLE)) {
                     feedback.text = "Przywrócono stabilny wariant dla następnej rozmowy."
                 } else feedback.text = "Błąd zapisu preferencji."
@@ -251,6 +268,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         val downloader = ParakeetModelDownloader(this)
         parakeetDownloader = downloader
+        cancelDownloadButton.visibility = View.VISIBLE
         feedback.text = "Pobieranie 615 MB: zalecane Wi-Fi. Plik jest sprawdzany SHA-256."
         Thread({
             val result = downloader.download { read, total ->
@@ -265,6 +283,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 if (parakeetDownloader !== downloader) return@runOnUiThread
                 parakeetDownloader = null
                 if (isFinishing || isDestroyed) return@runOnUiThread
+                cancelDownloadButton.visibility = View.GONE
                 when (result) {
                     ParakeetModelDownloadResult.Success -> {
                         feedback.text = "Model Parakeet pobrany i zweryfikowany SHA-256. " +
