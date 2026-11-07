@@ -62,7 +62,7 @@ class MainActivity : AppBaseActivity() {
             setOnClickListener { startOneTapSupervisedTest() }
         }
         val stopAiButton = Button(this).apply {
-            text = "STOP AI"
+            text = getString(R.string.ui_stop_ai)
             setOnClickListener {
                 startService(
                     Intent(this@MainActivity, AppOwnedCampaignService::class.java)
@@ -220,9 +220,9 @@ class MainActivity : AppBaseActivity() {
     }
 
     private fun runtimeSelectionSummary(): String = buildString {
-        append(getString(R.string.home_ui_mode_label)).append(selectedAudioMode.displayName).append('\n')
+        append(getString(R.string.home_ui_mode_label).trim()).append(' ').append(selectedAudioMode.displayName).append('\n')
         when (selectedAudioMode) {
-            CallAudioMode.LOCAL_STT_TTS -> append(getString(R.string.home_ui_model_label)).append(selectedTextLlmProvider.displayName)
+            CallAudioMode.LOCAL_STT_TTS -> append(getString(R.string.home_ui_model_label).trim()).append(' ').append(selectedTextLlmProvider.displayName)
             CallAudioMode.OPENAI_REALTIME_AUDIO -> append(getString(R.string.home_ui_openai_realtime))
             CallAudioMode.LOCAL_REALTIME_AUDIO -> append(getString(R.string.home_ui_local_realtime))
         }
@@ -234,7 +234,7 @@ class MainActivity : AppBaseActivity() {
         }
         val model = pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[profile.dialogue]
         val readiness = pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness.check(this@MainActivity, model.id)
-        append(getString(R.string.home_ui_model_status)).append(model.title).append(" · ")
+        append(getString(R.string.home_ui_model_status).trim()).append(' ').append(model.title).append(" · ")
         append(getString(if (readiness.state.toString() == "READY") R.string.home_ui_ready else R.string.home_ui_needs_check))
     }
 
