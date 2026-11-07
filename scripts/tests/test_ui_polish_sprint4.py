@@ -19,6 +19,7 @@ class Sprint4UxContract(unittest.TestCase):
             'tag = "lab-current-turn"', 'tag = "lab-follow"',
             'tag = "lab-rating-group"', "followCardIfEnabled",
             "progress.progress = completed", "record.reply.trim()",
+            "runButton.visibility = View.GONE", "runButton.visibility = View.VISIBLE",
             "UiDesign.card(this, 12)"
         ):
             self.assertIn(token, lab)
