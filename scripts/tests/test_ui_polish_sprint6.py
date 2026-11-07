@@ -75,13 +75,29 @@ class Sprint6UXContract(unittest.TestCase):
         self.assertIn("screen.summary", s)
         self.assertIn("campaign_ui_last_history", s)
         self.assertIn("diagnosticStatus.text = listOfNotNull", s)
-        self.assertIn("evidenceStatus, runtimeStatus", s)
+        self.assertIn("getString(R.string.camp_ux06_diagnostic_recording, evidenceStatus)", s)
+        self.assertIn("runtimeStatus?.let { getString(R.string.camp_ux06_diagnostic_event, it) }", s)
+        self.assertIn('tag = "campaign-attempt-details"', s)
+        self.assertIn('tag = "campaign-action-feedback"', s)
+        self.assertNotIn('"ui-accordion-content:campaign-attempt"', s)
         self.assertIn('DISCONNECT_REQUESTED = "targeted_disconnect_requested"', presenter)
         self.assertIn("CampaignExecutionMeaning.REQUESTED", presenter)
         self.assertIn("CampaignExecutionMeaning.CONFIRMED", presenter)
         self.assertIn("CampaignExecutionMeaning.UNVERIFIED", presenter)
         self.assertNotIn('raw.contains("targeted_disconnect_requested")', s)
         self.assertNotIn("lastExecutionStatus.text = raw", s)
+
+    def test_campaign_cancel_is_scoped_to_outgoing(self):
+        screen = self.read("campaign/CampaignToolActivity.kt")
+        service = self.read("campaign/AppOwnedCampaignService.kt")
+        self.assertIn("ACTION_CANCEL_OUTGOING_TASK", screen)
+        self.assertNotIn("CampaignAgentControl.stopOwnedCampaign(this@CampaignToolActivity)", screen)
+        cancel_branch = service.split("ACTION_CANCEL_OUTGOING_TASK -> {", 1)[1].split(
+            "ACTION_STOP_SUPERVISED_AUDIO", 1)[0]
+        self.assertIn("authorizationStore.revoke", cancel_branch)
+        self.assertIn("AppOwnedClirCampaignExecutor.stop", cancel_branch)
+        self.assertNotIn("stopIncomingAi(", cancel_branch)
+        self.assertNotIn("supervisedAudioSession?.stopAudio", cancel_branch)
 
     def test_resource_parity_and_format_specifiers(self):
         dictionaries = []
