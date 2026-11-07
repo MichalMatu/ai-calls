@@ -49,15 +49,8 @@ internal class IncomingAssistantSettingsController(context: Context) {
 
 /** Redact account labels in the visible UI only; leave stable account IDs unchanged. */
 internal fun maskPhoneAccountLabel(label: String): String =
-    Regex("""\+?\d(?:[\d\s().-]*\d)?""").replace(label) { match ->
-        val digits = match.value.count { it.isDigit() }
-        if (digits < 7) match.value else {
-            var seen = 0
-            match.value.map { ch ->
-                if (ch.isDigit()) {
-                    seen++
-                    if (seen <= digits - 4) '•' else ch
-                } else ch
-            }.joinToString("")
-        }
+    Regex("""\+?\d(?:[\d\s.-]*\d)?""").replace(label) { match ->
+        val digits = match.value.filter { it.isDigit() }
+        if (digits.length < 7) match.value else
+            "•".repeat(digits.length - 4) + digits.takeLast(4)
     }
