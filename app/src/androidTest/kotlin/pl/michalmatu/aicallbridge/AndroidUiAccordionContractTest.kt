@@ -35,6 +35,7 @@ class AndroidUiAccordionContractTest {
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:lab")).isShown)
                 assertTrue(findButton(root, activity.getString(R.string.home_ui_one_tap))!!.isShown)
                 assertNotNull(root.findViewWithTag<View>("app-tab:settings"))
+                assertTrue(requireNotNull(root.findViewWithTag<View>("home-action-feedback")).isShown)
                 assertNull(root.findViewWithTag<View>("ui-accordion-content:basic"))
                 assertNull(root.findViewWithTag<View>("ui-accordion-content:advanced"))
                 val after = CallRuntimePreferences(activity).load()

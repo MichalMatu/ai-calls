@@ -178,7 +178,7 @@
     <string name="ui_general_autosave">Zmiany zapisują się automatycznie. Nie trzeba naciskać Zapisz.</string>
     <string name="ui_general_mic_granted">Mikrofon: dostęp przyznany</string>
     <string name="ui_general_mic_missing">Mikrofon: wymagana zgoda Androida</string>
-    <string name="home_ui_one_tap">Jeden przycisk: uruchom AI w trwającej rozmowie</string>
+    <string name="home_ui_one_tap">Dołącz AI do trwającej rozmowy</string>
     <string name="home_ui_start">Rozpocznij autoryzowane zadanie AI</string>
     <string name="home_ui_stop_sent">Wysłano STOP AI; wynik zapisze serwis.</string>
     <string name="home_ui_mode_label">Tryb: </string>
@@ -578,4 +578,7 @@
     <string name="camp_ux06_diagnostic_recording">Zgoda na zapis kolejnych prób kampanii: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Ostatni komunikat serwisu (historyczny, nie na żywo):\n%1$s</string>
     <string name="camp_ux06_cancel_dispatch_failed">Autoryzacja cofnięta, ale nie udało się przekazać polecenia zakończenia bieżącej próby. W razie potrzeby użyj STOP AI.</string>
+    <string name="home_ux06_no_action">Ostatnie działanie: brak. Tutaj pojawi się komunikat po wykonaniu akcji.</string>
+    <string name="home_ux06_sim_unavailable">Zadanie zapisane, ale nie można sprawdzić bieżącej SIM głosowej. Zweryfikuj uprawnienia telefonu i kartę przed START.</string>
+    <string name="home_ux06_sim_mismatch">Zapisana autoryzacja nie odpowiada bieżącej SIM głosowej lub dokładnemu zadaniu. START wymaga pasującej autoryzacji.</string>
 </resources>

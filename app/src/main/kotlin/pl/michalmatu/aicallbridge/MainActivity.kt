@@ -25,6 +25,9 @@ import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
 import pl.michalmatu.aicallbridge.campaign.CampaignAuthorizationStore
+import pl.michalmatu.aicallbridge.campaign.CampaignAccountScope
+import pl.michalmatu.aicallbridge.campaign.ClirCampaignSpec
+import pl.michalmatu.aicallbridge.campaign.CampaignAuthorizationPolicy
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotFailure
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallReadinessDiagnostics
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
@@ -35,6 +38,7 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 class MainActivity : AppBaseActivity() {
     private lateinit var statusView: TextView
     private lateinit var taskStatusView: TextView
+    private lateinit var homeActionFeedback: TextView
     private lateinit var runtimePreferences: CallRuntimePreferences
     private lateinit var selectedAudioMode: CallAudioMode
     private lateinit var selectedTextLlmProvider: TextLlmProvider
@@ -66,7 +70,17 @@ class MainActivity : AppBaseActivity() {
             background = roundedSurface(Color.WHITE)
             setPadding(dp(14), dp(12), dp(14), dp(12))
         }
-        developerProbes = MainActivityDeveloperProbes(this, statusView)
+        homeActionFeedback = TextView(this).apply {
+            tag = "home-action-feedback"
+            text = getString(R.string.home_ux06_no_action)
+            accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
+            textSize = 13f
+            setTextColor(Color.rgb(39, 58, 83))
+            background = roundedSurface(Color.WHITE)
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            setTextIsSelectable(true)
+        }
+        developerProbes = MainActivityDeveloperProbes(this, homeActionFeedback)
 
         val oneTapButton = Button(this).apply {
             text = getString(R.string.home_ui_one_tap)
@@ -79,7 +93,7 @@ class MainActivity : AppBaseActivity() {
                     Intent(this@MainActivity, AppOwnedCampaignService::class.java)
                         .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI),
                 )
-                statusView.text = getString(R.string.home_ui_stop_sent)
+                homeActionFeedback.text = getString(R.string.home_ui_stop_sent)
             }
         }
 
@@ -146,6 +160,10 @@ class MainActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = dp(14) })
             addView(taskStatusView, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(12) })
+            addView(homeActionFeedback, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = dp(12) })
@@ -237,9 +255,16 @@ class MainActivity : AppBaseActivity() {
 
     private fun taskAuthorizationSummary(): String {
         val grant = runCatching { CampaignAuthorizationStore(this).load() }.getOrNull()
+        val currentScope = if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED) CampaignAccountScope.currentVoiceSubscription(this)
+        else null
         val state = when {
             grant == null -> getString(R.string.home_ui_task_none)
             grant.revokedAtEpochMs != null -> getString(R.string.home_ui_task_revoked)
+            currentScope == null -> getString(R.string.home_ux06_sim_unavailable)
+            !CampaignAuthorizationPolicy.matchesExactTask(
+                grant, ClirCampaignSpec.enableRequest(currentScope)
+            ) -> getString(R.string.home_ux06_sim_mismatch)
             else -> getString(R.string.home_ui_task_authorized)
         }
         return getString(R.string.home_ui_task_heading) + "\n" + state + "\n" +
@@ -287,7 +312,7 @@ class MainActivity : AppBaseActivity() {
             checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
-            statusView.text = getString(R.string.home_one_tap_permission)
+            homeActionFeedback.text = getString(R.string.home_one_tap_permission)
             requestPermissions(missing.toTypedArray(), REQUEST_ONE_TAP_SUPERVISED)
             return
         }
@@ -296,30 +321,30 @@ class MainActivity : AppBaseActivity() {
         val reportInfo = getString(if (reportSaved) R.string.home_one_tap_report_saved else R.string.home_one_tap_report_failed)
         when (snapshot.failure) {
             null -> {
-                statusView.text = getString(R.string.home_one_tap_starting)
+                homeActionFeedback.text = getString(R.string.home_one_tap_starting)
                 runCatching {
                     startForegroundService(
                         Intent(this, AppOwnedCampaignService::class.java)
                             .setAction(AppOwnedCampaignService.ACTION_START_SUPERVISED_AUDIO),
                     )
                 }.onFailure {
-                    statusView.text = getString(R.string.home_one_tap_service_failed, it.javaClass.simpleName)
+                    homeActionFeedback.text = getString(R.string.home_one_tap_service_failed, it.javaClass.simpleName)
                 }
             }
             SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL ->
-                statusView.text = getString(R.string.home_one_tap_no_call, reportInfo)
+                homeActionFeedback.text = getString(R.string.home_one_tap_no_call, reportInfo)
             SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY ->
-                statusView.text = getString(R.string.home_one_tap_route, snapshot.audioModeLabel, reportInfo)
+                homeActionFeedback.text = getString(R.string.home_one_tap_route, snapshot.audioModeLabel, reportInfo)
             SupervisedCallPilotFailure.SHIZUKU_NOT_READY ->
-                statusView.text = getString(R.string.home_one_tap_shizuku, reportInfo)
+                homeActionFeedback.text = getString(R.string.home_one_tap_shizuku, reportInfo)
             SupervisedCallPilotFailure.PERMISSION_REQUIRED ->
-                statusView.text = getString(R.string.home_one_tap_permissions, reportInfo)
+                homeActionFeedback.text = getString(R.string.home_one_tap_permissions, reportInfo)
         }
     }
 
     private fun requestMicrophonePermissionIfNeeded() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            statusView.text = getString(R.string.home_mic_already)
+            homeActionFeedback.text = getString(R.string.home_mic_already)
             return
         }
 
@@ -340,7 +365,7 @@ class MainActivity : AppBaseActivity() {
             ) {
                 startOneTapSupervisedTest()
             } else {
-                statusView.text = getString(R.string.home_one_tap_denied)
+                homeActionFeedback.text = getString(R.string.home_one_tap_denied)
             }
             return
         }
