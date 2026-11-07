@@ -512,16 +512,13 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
 
     private fun updateLastExecutionStatus() {
         val raw = runtimeStatusStore.load()
-        // The record is historical, not proof of a live call or a confirmed disconnect.
-        val friendly = when {
-            raw == null -> getString(R.string.camp_ui_runtime_empty)
-            raw.contains("targeted_disconnect_requested") ->
-                getString(R.string.campaign_ui_disconnect_requested)
-            else -> raw
-        }
+        // Pure, localizable interpretation; raw diagnostics stay in the existing accordion.
+        val screen = CampaignExecutionStatusPresenter.present(
+            raw, resources.configuration.locales[0],
+        )
         lastExecutionStatus.text = getString(R.string.camp_ui_runtime_heading) +
             "\n" + getString(R.string.campaign_ui_last_history) +
-            "\n" + friendly
+            "\n" + screen.summary
         // Raw codes remain available in the existing diagnostic accordion.
     }
 
