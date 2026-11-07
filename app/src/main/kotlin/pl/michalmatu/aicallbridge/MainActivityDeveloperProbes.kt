@@ -53,20 +53,18 @@ internal class MainActivityDeveloperProbes(
 
     fun addControls(content: LinearLayout) {
         content.addView(UiDesign.heading(activity, activity.getString(R.string.dev_ui_title)).apply { textSize = 17f }, UiDesign.spaceAfter(activity, 12))
-        content.addView(Button(activity).apply {
-            text = activity.getString(R.string.dev_ui_usb)
-            setOnClickListener {
-                activity.startActivity(Intent(activity, UsbDebugPanelActivity::class.java))
-            }
-        })
-        content.addView(Button(activity).apply {
-            text = activity.getString(R.string.dev_ui_capability)
-            setOnClickListener { runCapabilityProbe() }
-        })
-        content.addView(Button(activity).apply {
-            text = activity.getString(R.string.dev_ui_shizuku)
-            setOnClickListener { runShizukuProbe(false) }
-        })
+        content.addView(UiDesign.action(activity,
+            activity.getString(R.string.dev_ui_usb)) {
+            activity.startActivity(Intent(activity, UsbDebugPanelActivity::class.java))
+        }, UiDesign.spaceAfter(activity, 8))
+        content.addView(UiDesign.action(activity,
+            activity.getString(R.string.dev_ui_capability)) {
+            runCapabilityProbe()
+        }, UiDesign.spaceAfter(activity, 8))
+        content.addView(UiDesign.action(activity,
+            activity.getString(R.string.dev_ui_shizuku)) {
+            runShizukuProbe(false)
+        }, UiDesign.spaceAfter(activity, 16))
         // These legacy buttons only published status text and never controlled audio.
         // Present the truth as diagnostic information, not as misleading action buttons.
         content.addView(UiDesign.heading(activity, activity.getString(R.string.dev_ui_audio)).apply { textSize = 17f },
