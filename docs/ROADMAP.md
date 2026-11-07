@@ -1,3 +1,13 @@
+## UX-06 — poprawa ergonomii i rzetelności stanów (ACTIVE / QA_PENDING, 2026-11-07)
+
+**Nowe zadanie właściciela:** ekran Start i Kampanie, opis ról/przycisków, pięć rozwijanych sekcji (zachować tylko bogatą sekcję nagrań), czytelne szczegóły bez rozwijania, wiarygodne live/status/history. To nowe zgłoszenie po zamkniętym UX-05, bez unieważniania poprzednich PASS.
+
+**Źródłowy etap 1:** `3418a3e` — czytelny status roli dialera, wyjaśnienie skutków, bezpośrednie karty Skills/supervised/dialer, widoczne szczegóły, odrębny feedback, synchronizacja wyboru zapisu, zachowanie edycji przy rekreacji i PL/EN; nowy Android UI contract. **Etap 2:** `afbafbfa` — anulowanie OUTGOING bez globalnego STOP INCOMING; `2afdbea` — typowany wynik anulowania w historycznym presenterze i JVM test. **Mac Local Agent:** `aicalls-ux06-campaign-status-host-gate-20261107-v1` zlecony, brak wyniku => **QA_PENDING**. Zakaz ogłaszania HOST_PASS/S22_PASS bez receipts.
+
+**Otwarte:** F-122 zatrzymanie nagrywania aktywnej sesji, F-123 live-state/attempt/result, F-124 wybór właściwego archiwum i wąskie regex WAV; szczegółowy plan i scenariusze w [UX06 plan](UX06_USABILITY_AND_SCENARIO_PLAN.md). Jedna zatwierdzona operacja CLIR pozostaje rzeczywistą ścieżką zewnętrzną; przykładowych presetów wizyt nie przedstawiać jako produkcyjnych rozmów.
+
+---
+
 # AI Calls — roadmapa (Sprint 6 i UX-01–05 zamknięte, 2026-11-07)
 
 **Stan:** `UX_ITERATION_CLOSED / UX05_VERIFIED`. Najnowszy kod UX `main@1b359146`, **325 testów hosta PASS**, S22 **28/28 native + 24/24 visual**, hotfix targeted **1/1 + 3/3 PASS**, realna Gemma **2 tury + STOP PASS**, finalny ZIP **46 screenshotów**. [Dokładne receipts](checkpoints/2026-11-07-ux-sprint6-final-handoff.md). Nowa lokalizacja UX-05 zamknięta; nie wracać do mikro-poprawek UX bez nowego zgłoszenia lub regresji.
