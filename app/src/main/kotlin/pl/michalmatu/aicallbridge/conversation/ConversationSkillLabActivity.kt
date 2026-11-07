@@ -35,6 +35,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var timeline: LinearLayout
     private lateinit var scroll: ScrollView
     private lateinit var follow: CheckBox
+    private lateinit var modePicker: Spinner
+    private var currentTurnTotal = 2
     private lateinit var runButton: Button
     private lateinit var stopButton: Button
     private lateinit var ratingGroup: LinearLayout
@@ -73,10 +75,20 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(UiDesign.caption(this, getString(R.string.lab_ui_preset)),
             UiDesign.spaceAfter(this, 6))
         content.addView(picker, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.caption(this, getString(R.string.lab_ui_mode_label)),
+            UiDesign.spaceAfter(this, 6))
+        modePicker = Spinner(this).apply {
+            tag = "lab-scope-picker"
+            UiSelect.setOptions(this, listOf(
+                getString(R.string.lab_ui_mode_quick),
+                getString(R.string.lab_ui_mode_full)))
+            setSelection(0)
+        }
+        content.addView(modePicker, UiDesign.spaceAfter(this, 12))
 
         runButton = UiDesign.action(this, getString(R.string.lab_ui_run), UiActionTone.PRIMARY) {
             val selected = presets.getOrNull(picker.selectedItemPosition) ?: return@action
-            runLab(selected.id)
+            runLab(selected.id, quick = modePicker.selectedItemPosition == 0)
         }.apply { tag = "lab-start" }
         content.addView(runButton, UiDesign.spaceAfter(this, 8))
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
@@ -99,10 +111,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }
         liveCard.addView(status, UiDesign.spaceAfter(this, 8))
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = allTurns
+            max = currentTurnTotal
             progress = 0
             tag = "lab-live-progress"
-            contentDescription = getString(R.string.lab_ui_progress, 0, allTurns)
+            contentDescription = getString(R.string.lab_ui_progress, 0, currentTurnTotal)
         }
         liveCard.addView(progress, UiDesign.spaceAfter(this, 10))
         currentTurn = UiDesign.caption(this, getString(R.string.lab_ui_empty)).apply {
@@ -168,7 +180,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         setContentView(scroll)
     }
 
-    private fun runLab(presetId: String) {
+    private fun runLab(presetId: String, quick: Boolean) {
         if (worker?.isAlive == true) return
         cancelled.set(false)
         lastObservations = emptyList()
@@ -179,8 +191,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         runButton.isEnabled = false
         runButton.visibility = View.GONE
         stopButton.visibility = android.view.View.VISIBLE
+        currentTurnTotal = if (quick) 2 else allTurns
+        progress.max = currentTurnTotal
         progress.progress = 0
-        progress.contentDescription = getString(R.string.lab_ui_progress, 0, allTurns)
+        progress.contentDescription = getString(R.string.lab_ui_progress, 0, currentTurnTotal)
         status.text = getString(R.string.lab_ui_starting)
         currentTurn.text = getString(R.string.lab_ui_waiting_initial)
 
@@ -197,13 +211,14 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 val instruction = ConversationInstructionBuilder.build(
                     preparation, IncomingSecretaryScenario.GOAL, ConversationResponseFormat.TOOL_REPLY)
                 val provider = DialogueEngineProviders.resolve(profile)
-                for ((storyIndex, story) in SkillLabCorpus.stories.withIndex()) {
+                for ((storyIndex, story) in
+                    (if (quick) SkillLabCorpus.stories.take(1) else SkillLabCorpus.stories).withIndex()) {
                     if (cancelled.get()) break
                     val active = provider.createConversationReply(
                         context, instruction, setOf(ConversationToolId.END_CALL))
                     model = active
                     try {
-                        for ((turnIndex, turn) in story.turns.withIndex()) {
+                        for ((turnIndex, turn) in (if (quick) story.turns.take(2) else story.turns).withIndex()) {
                             if (cancelled.get()) break
                             val completedBefore = observed.size
                             runOnUiThread {
@@ -256,7 +271,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                         ratingGroup.visibility = View.VISIBLE
                         status.text = getString(R.string.lab_ui_complete)
                         currentTurn.text = getString(R.string.lab_ui_progress,
-                            observed.size, allTurns)
+                            observed.size, currentTurnTotal)
                     }
                 }
             } catch (error: Exception) {
@@ -281,7 +296,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
 
     private fun showTurnPending(storyIndex: Int, story: String, index: Int,
                                 utterance: String, completedBefore: Int) {
-        status.text = getString(R.string.lab_ui_waiting, completedBefore + 1, allTurns)
+        status.text = getString(R.string.lab_ui_waiting, completedBefore + 1, currentTurnTotal)
         currentTurn.text = getString(R.string.lab_ui_working_on, story, index)
         if (index == 1) {
             timeline.addView(UiDesign.heading(this, story).apply {
@@ -335,8 +350,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             tag = "lab-decision:" + storyIndex + ":" + record.index
         })
         progress.progress = completed
-        progress.contentDescription = getString(R.string.lab_ui_progress, completed, allTurns)
-        status.text = getString(R.string.lab_ui_progress, completed, allTurns)
+        progress.contentDescription = getString(R.string.lab_ui_progress, completed, currentTurnTotal)
+        status.text = getString(R.string.lab_ui_progress, completed, currentTurnTotal)
         currentTurn.text = getString(R.string.lab_ui_last_result,
             record.story, record.index, record.elapsedMs)
         followCardIfEnabled(card)
