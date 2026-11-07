@@ -1,6 +1,6 @@
 # AI Calls — UX i ustawienia (stan implementacji: Sprint 6, 2026-11-07)
 
-**Źródło prawdy o odbiorze:** [Sprint 6: source PASS, S22 ADB pending](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md). Funkcjonalne `main@0dface1`. To opis **zaimplementowanego** UI, a nie potwierdzenie jego odbioru na S22. Ostatnie fizyczne PASS pochodzą ze Sprintu 5. [F-103 pełne PL/EN](../BLOCKERS.md) pozostaje OPEN.
+**Źródło prawdy:** [Zamknięcie Sprintu 6 — host i pełny S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md). Funkcjonalne `main@1b359146`; 325 host, 28/28 native UX, 24/24 visual, 4/4 targeted i realna Gemma 2 tury + STOP PASS. UX został zaakceptowany do zakończenia iteracji. [F-103 pełne PL/EN](../BLOCKERS.md) pozostaje OPEN.
 
 ## Nawigacja i semantyka
 
@@ -29,10 +29,10 @@ Szybki test 2 tur lub pełny korpus historii offline dla wybranego presetu — n
 | Obszar | Stan |
 |---|---|
 | Sprint 6 Kotlin/JVM/host | **325 PASS**, source green |
-| Sprint 6 S22 instalacja i UI | **QA_PENDING_ADB**: brak urządzenia w `adb devices` |
-| Sprint 6 real Gemma, auto-follow, STOP | **NOT_RUN**: brak prerequisite ZIP |
+| Sprint 6 S22 instalacja i UI | **PASS**: dokładny S22, 28/28 native, 24/24 visual, app+test APK, bez utraty danych |
+| Sprint 6 hotfix + real Gemma | **PASS**: 4/4 targeted, realne 2 tury + STOP, 46 prywatnych JPEG |
 | Sprint 5 real Gemma 2 tury i STOP | **PASS historyczny** |
-| Ręczny przegląd nowych screenshotów Sprint 6 | **QA_PENDING**, plik jeszcze nie istnieje |
+| Ręczny przegląd screenshotów Sprint 6 | **DONE**: właściciel zaakceptował obecny poziom UX; dodatkowy polishing odłożony |
 
 ## Granice odpowiedzialności
 
