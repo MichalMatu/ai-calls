@@ -2,7 +2,14 @@
 
 Modułowe laboratorium Android do porównywania STT, modeli językowych, strategii dialogu, instrukcji i TTS. Docelowo wspólne, zweryfikowane komponenty obsłużą sekretarkę i konkretnie autoryzowane zadania telefoniczne.
 
-## Aktualny stan (Sprint 6 CLOSED, UX-01–05 done — 2026-11-07)
+## Stan bieżący — UX-06 i general audit (2026-11-07)
+
+- **Kod `bbb2ceb9`:** poprawiono zbędne rewizje własnych scenariuszy przy zmianie wyłącznie białych znaków. Test regresyjny RED potwierdzony na Macu; pełne GREEN QA Mac [w odbiorze](docs/checkpoints/2026-11-07-general-repository-audit-sprint.md). Nie utożsamiać izolowanego testu Sandbox z pełnym host PASS.
+- **Ostatni w pełni potwierdzony runtime `25a41a0`:** UX-06, Mac 341 testów Python + JVM/lint/APK PASS; S22 SM-S906B 10/10 syntetycznych UI PASS (instalacja bez wipe, IDLE przed/po). Bez realnego CALL, ręcznego TalkBack i dowodu zewnętrznych skutków.
+- **Scenariusze:** 10 fabrycznych wzorców i prywatne, szyfrowane szkice/kopie z historią. Poza CLIR są **DRAFT_ONLY**, nie gotowym wykonywaniem rezerwacji.
+- **Otwarte:** F-122 nagrywanie aktywnej sesji, F-123 korelacja Call/attemptId, F-124 wybór archiwum, F-080 pełny recorder/player i autoryzowane próby real-call. Patrz [roadmapa](docs/ROADMAP.md), [checkpoint audytu](docs/checkpoints/2026-11-07-general-repository-audit-sprint.md) i [handoff](docs/HANDOFF_NEXT_CHAT.md).
+
+## Historia — Sprint 6 i UX-01–05 (potwierdzone wcześniej)
 
 - **`main@1b359146` — UX ITERATION CLOSED.** 325 testów hosta, Kotlin/JVM/AndroidTest/APK/friction **PASS**. Wdrożono bezpieczne kasowanie wszystkich zakończonych rozmów, WAV tap-to-play/stop z dymków, poprawione przewijanie i STOP w Laboratorium, czytelne Skills/Silniki/Kampanie.
 - **Fizyczny S22 PASS:** instalacja aplikacji/test APK bez utraty danych, **28/28 native UI + 24/24 visual**, po poprawce Android regex dodatkowo **4/4 targeted**, **2 rzeczywiste tury lokalnej Gemmy + STOP PASS**, 46 prywatnych screenshotów. Bez prawdziwych połączeń, END_CALL i usuwania danych właściciela.
@@ -17,7 +24,7 @@ Modułowe laboratorium Android do porównywania STT, modeli językowych, strateg
 - Sześć modułów Gradle: `app`, `conversation-core`, `conversation-tools`, `audio-bridge`, `realtime-client`, `privileged-helper`. Istniejące czyste komponenty `IncomingIdleTimeout` i `ConversationSessionRegistry` są w JVM `conversation-core`.
 - Jeden `AndroidConversationRuntime` obsługuje INCOMING/OUTGOING. Silniki STT/model/TTS i scenariusze są wymienne; snapshot konfiguracji nie zmienia się podczas rozmowy.
 - Uprawnienia, konkretne zgody, własny Android Call, STOP, ujawnianie faktów i skutki kontroluje aplikacja, nie model. Tor Samsung/Shizuku PCM/PFD pozostaje oddzielną chronioną granicą.
-- **UX-01–04 zaliczone źródłowo; UX-05 lokalizacja i automatyczna dostępność zweryfikowane na S22**, bez refaktoru Telecom. Następny niezależny zakres F-080. [Plan modularizacji](docs/SAFE_MODULARIZATION_PLAN.md).
+- **UX-01–04 zaliczone źródłowo; UX-05 lokalizacja i automatyczna dostępność zweryfikowane na S22**, bez refaktoru Telecom. Dalsze zakresy F-122/F-123/F-124/F-080 są niezależne i OPEN. [Plan modularizacji](docs/SAFE_MODULARIZATION_PLAN.md).
 
 ## Wejście do pracy
 
