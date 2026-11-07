@@ -17,6 +17,12 @@ internal class ArchivedConversationPlayer(
     enum class StartResult { NEEDS_PERMISSION, PHONE_BUSY, MISSING_FILE, PLAYING, FAILED }
 
     private var current: MediaPlayer? = null
+    private var playingKey: Pair<String, String>? = null
+
+    /** Enables a second tap on the same archived bubble to stop, not restart, audio. */
+    fun isPlaying(id: String, fileName: String): Boolean =
+        playingKey == (id to fileName) &&
+            runCatching { current?.isPlaying == true }.getOrDefault(false)
 
     fun play(id: String, fileName: String, onCompleted: () -> Unit): StartResult {
         if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
@@ -36,6 +42,7 @@ internal class ArchivedConversationPlayer(
             player.setOnCompletionListener {
                 if (current === it) {
                     current = null
+                    playingKey = null
                     it.release()
                     onCompleted()
                 } else {
@@ -44,6 +51,7 @@ internal class ArchivedConversationPlayer(
             }
             player.prepare()
             player.start()
+            playingKey = id to fileName
             StartResult.PLAYING
         }.getOrElse {
             stop()
@@ -54,5 +62,6 @@ internal class ArchivedConversationPlayer(
     fun stop() {
         runCatching { current?.release() }
         current = null
+        playingKey = null
     }
 }
