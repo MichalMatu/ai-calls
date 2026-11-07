@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge
 
 import android.app.Activity
 import android.graphics.Bitmap
+import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Spinner
@@ -40,11 +41,21 @@ class AndroidVisualPolishAuditTest {
             instrument.waitForIdleSync()
             var folder: File? = null
             scenario.onActivity { activity ->
-                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint2"))
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint3"))
                 requireNotNull(folder).mkdirs()
                 expand(activity)
             }
             instrument.waitForIdleSync()
+            if (label == "campaigns-evidence-expanded") {
+                scenario.onActivity { activity ->
+                    val expanded = requireNotNull(activity.window.decorView.findViewWithTag<View>(
+                        "ui-accordion-content:evidence"))
+                    assertEquals("campaign_section_not_expanded", View.VISIBLE, expanded.visibility)
+                    expanded.requestRectangleOnScreen(Rect(0, 0,
+                        expanded.width.coerceAtLeast(1), expanded.height.coerceAtLeast(1)), true)
+                }
+                instrument.waitForIdleSync()
+            }
             Thread.sleep(350)
             val image = instrument.uiAutomation.takeScreenshot()
             assertNotNull("audit_capture_missing:" + label, image)

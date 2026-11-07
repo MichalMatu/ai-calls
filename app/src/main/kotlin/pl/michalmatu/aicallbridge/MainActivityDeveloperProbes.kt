@@ -3,6 +3,8 @@ package pl.michalmatu.aicallbridge
 import android.app.Activity
 import android.content.Intent
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Button
@@ -50,6 +52,7 @@ internal class MainActivityDeveloperProbes(
     }
 
     fun addControls(content: LinearLayout) {
+        content.addView(UiDesign.heading(activity, "Diagnostyka urządzenia").apply { textSize = 17f }, UiDesign.spaceAfter(activity, 12))
         content.addView(Button(activity).apply {
             text = "USB / ADB — diagnostyka"
             setOnClickListener {
@@ -64,25 +67,16 @@ internal class MainActivityDeveloperProbes(
             text = "Run Shizuku UserService probe"
             setOnClickListener { runShizukuProbe(false) }
         })
-        content.addView(Button(activity).apply {
-            text = "Probe call downlink capture"
-            setOnClickListener {
-                publishStatus("Downlink backend is under Phase 2 validation.")
-            }
-        })
-        content.addView(Button(activity).apply {
-            text = "Probe call uplink injection"
-            setOnClickListener {
-                publishStatus("Uplink backend is under Phase 2 validation.")
-            }
-        })
-        content.addView(Button(activity).apply {
-            text = "TAKE OVER / STOP AI AUDIO"
-            isAllCaps = true
-            setOnClickListener {
-                publishStatus("Takeover requested. Active transport cleanup is handled fail-safe.")
-            }
-        })
+        // These legacy buttons only published status text and never controlled audio.
+        // Present the truth as diagnostic information, not as misleading action buttons.
+        content.addView(UiDesign.heading(activity, "Audio RX / TX — status").apply { textSize = 17f },
+            UiDesign.spaceAfter(activity, 8))
+        content.addView(UiDesign.caption(activity,
+            "Sondy downlink/uplink wymagają testów fazy 2. Ten panel nie włącza przejęcia ani STOP audio."),
+            UiDesign.spaceAfter(activity, 12))
+        content.addView(UiDesign.caption(activity,
+            "Do zatrzymania AI użyj STOP AI w Kampaniach lub na ekranie Start."),
+            UiDesign.spaceAfter(activity, 12))
     }
 
     fun attach() {

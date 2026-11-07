@@ -24,6 +24,10 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
+import android.widget.Spinner
+import pl.michalmatu.aicallbridge.ui.UiSelect
+import pl.michalmatu.aicallbridge.R
+import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 
@@ -31,6 +35,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var authorizationStore: CampaignAuthorizationStore
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView
+    private lateinit var diagnosticStatus: TextView
     private lateinit var recordEvidenceChoice: CheckBox
     private var pendingAction: PendingAction? = null
     private var requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
@@ -44,8 +49,21 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
 
 
         statusView = TextView(this).apply {
-            textSize = 15f
+            textSize = 16f
+            setTextColor(UiDesign.ink)
             setTextIsSelectable(true)
+            tag = "campaign-task-status"
+        }
+        diagnosticStatus = UiDesign.caption(this, "").apply {
+            tag = "campaign-attempt-status"
+            setTextIsSelectable(true)
+        }
+        val dialoguePicker = Spinner(this).apply {
+            tag = "campaign-dialogue-picker"
+            UiSelect.setOptions(this, listOf(
+                getString(R.string.campaign_ui_script_model),
+                getString(R.string.campaign_ui_gemma_direct)))
+            setSelection(if (requestedStartMode == CampaignDialogueMode.GEMMA_DIRECT) 1 else 0)
         }
 
         val accountScope = if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
@@ -63,19 +81,11 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             setOnClickListener { requestCallRole() }
         }
         val startButton = Button(this).apply {
-            text = "Rozpocznij zadanie: włącz CLIR — skrypt + model"
+            text = getString(R.string.campaign_ui_start)
             setOnClickListener {
-                // START accepts this exact task after the Android readiness checks.
-                requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
-                ensurePermissionsThen(PendingAction.START)
-            }
-        }
-        val directStartButton = Button(this).apply {
-            text = "Rozpocznij zadanie: włącz CLIR — Gemma Direct"
-            setOnClickListener {
-                // Same grant, SIM, permissions, exact owned-call and STOP gates.
-                // Only the dialogue backend differs; no new campaign authority.
-                requestedStartMode = CampaignDialogueMode.GEMMA_DIRECT
+                // Only dialogue strategy differs; grant, SIM, permissions and STOP stay identical.
+                requestedStartMode = if (dialoguePicker.selectedItemPosition == 1)
+                    CampaignDialogueMode.GEMMA_DIRECT else CampaignDialogueMode.SCRIPT_GEMMA
                 ensurePermissionsThen(PendingAction.START)
             }
         }
@@ -94,7 +104,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                     Intent(this@CampaignToolActivity, AppOwnedCampaignService::class.java)
                         .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI),
                 )
-                statusView.text = "Stopping AI; only an app-owned call may be disconnected"
+                statusView.text = getString(R.string.campaign_ui_stopping)
             }
         }
         val disableEvidenceButton = Button(this).apply {
@@ -132,9 +142,8 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
 
         // Give START, STOP and task revocation distinct visual hierarchy.
         UiDesign.styleAction(startButton, UiActionTone.PRIMARY)
-        UiDesign.styleAction(directStartButton, UiActionTone.SECONDARY)
         UiDesign.styleAction(stopSupervisedAudioButton, UiActionTone.DANGER)
-        UiDesign.styleAction(revokeButton, UiActionTone.SECONDARY)
+        UiDesign.styleAction(revokeButton, UiActionTone.REVOCATION)
 
         // Keep campaign scope, start, STOP and revocation on the primary surface.
         // All previously available setup and diagnostic actions remain one expansion away.
@@ -171,6 +180,9 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addView(UiDesign.caption(this@CampaignToolActivity,
                 "Zadanie wymaga autoryzacji na telefonie. STOP jest dostępny niezależnie."
             ), UiDesign.spaceAfter(this@CampaignToolActivity, 16))
+            addView(UiDesign.heading(this@CampaignToolActivity,
+                getString(R.string.campaign_ui_task_status)).apply { textSize = 17f },
+                UiDesign.spaceAfter(this@CampaignToolActivity, 8))
             addView(
                 statusView,
                 LinearLayout.LayoutParams(
@@ -186,9 +198,12 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 addView(UiDesign.caption(this@CampaignToolActivity,
                     "Cel: ${ClirCampaignSpec.TARGET} · bieżąca SIM"
                 ), UiDesign.spaceAfter(this@CampaignToolActivity, 12))
+                addView(UiDesign.caption(this@CampaignToolActivity,
+                    getString(R.string.campaign_ui_dialogue_mode)),
+                    UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(dialoguePicker, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(recordEvidenceChoice, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(startButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
-                addView(directStartButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(stopSupervisedAudioButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(revokeButton)
             }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
@@ -200,6 +215,10 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addView(dialerSection)
             addView(supervisedSection)
             addView(evidenceSection)
+            addView(UiAccordionSection(this@CampaignToolActivity, "campaign-attempt",
+                getString(R.string.campaign_ui_attempt_details)).apply {
+                addControl(diagnosticStatus)
+            })
         }
 
         // Same live, read-only chat on the campaign screen; all essential
@@ -457,7 +476,9 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             "Zapis RX/TX + transkrypt: w zakresie zatwierdzonej kampanii."
         } else "Zapis RX/TX + transkrypt: wyłączony."
         val runtimeStatus = runtimeStatusStore.load()
-        statusView.text = listOfNotNull(evidenceStatus, runtimeStatus, taskStatus).joinToString("\n\n")
+        statusView.text = taskStatus
+        diagnosticStatus.text = listOfNotNull(evidenceStatus, runtimeStatus)
+            .joinToString("\n\n")
     }
 
     private enum class PendingAction {

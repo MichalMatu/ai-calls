@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.*
+import pl.michalmatu.aicallbridge.R
 
 /** Edits prompt-only skills and revision-pinned presets. Never starts a call or changes a grant. */
 class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -108,27 +109,46 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
         })
         if (message.isNotBlank()) content.addView(label(message))
-        if (library.active.isFactory) content.addView(label(
-            "Aby zmienić instrukcję lub listę skillsów, najpierw utwórz własną kopię presetu."
-        ))
+        if (library.active.isFactory) content.addView(UiDesign.heading(this,
+            getString(R.string.skills_ui_factory_readonly)).apply { textSize = 16f })
         for (section in SkillSection.entries) {
             content.addView(label(section.title, 19f))
             for (skill in library.skills.filter { it.section == section }) {
                 val activeVersion = library.active.versions[skill.id]
                 val on = activeVersion != null
-                val choice = CheckBox(this).apply {
-                    text = skill.name + " · " + skill.id +
-                        (if (on) " · v" + activeVersion else " · wyłączony")
-                    isChecked = on
-                    isEnabled = !library.active.isFactory
-                    setOnClickListener {
-                        applyChange(library.bindVersion(skill.id,
-                            if (isChecked) skill.revisions.maxOf { it.version } else null),
-                            "Zmieniono aktywne skillsy.")
+                if (library.active.isFactory) {
+                    content.addView(TextView(this).apply {
+                        text = skill.name + " · " + getString(if (on)
+                            R.string.skills_ui_enabled else R.string.skills_ui_disabled) +
+                            (if (on) " · v" + activeVersion else "")
+                        textSize = 16f
+                        setTextColor(UiDesign.ink)
+                        minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
+                        tag = "skills-factory-state:" + skill.id
+                    })
+                } else {
+                    val choice = CheckBox(this).apply {
+                        text = skill.name + " · " + skill.id +
+                            (if (on) " · v" + activeVersion else " · wyłączony")
+                        isChecked = on
+                        minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
+                        setOnClickListener {
+                            applyChange(library.bindVersion(skill.id,
+                                if (isChecked) skill.revisions.maxOf { it.version } else null),
+                                "Zmieniono aktywne skillsy.")
+                        }
                     }
+                    content.addView(choice)
                 }
-                content.addView(choice)
-                content.addView(label(skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions))
+                content.addView(TextView(this).apply {
+                    text = skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions
+                    textSize = 14f
+                    setTextColor(UiDesign.ink)
+                    setPadding(UiDesign.dp(this@ConversationSkillsActivity, 8),
+                        UiDesign.dp(this@ConversationSkillsActivity, 6),
+                        UiDesign.dp(this@ConversationSkillsActivity, 8),
+                        UiDesign.dp(this@ConversationSkillsActivity, 16))
+                })
                 if (!library.active.isFactory) {
                     content.addView(Button(this).apply {
                         text = "Edytuj " + skill.name + " — nowa wersja"
