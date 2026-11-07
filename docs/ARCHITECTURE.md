@@ -75,3 +75,23 @@ Dwa backendy dialogu mają oddzielne znaczenie: SCRIPT_GEMMA = PhraseMatrix → 
 Start w `CampaignAgentControl`, service i executor nadal korzystają z `ClirCampaignSpec`. Wspólny runtime otrzymuje już odrębny scenariusz CLIR lub nadzorowany. Ogólny intake innych zadań nadal wymaga integracji. Adapter odbierania już działa i korzysta z tego samego potoku i wspólnych polityk. Tekst, plik audio i mikrofon mają pozwalać ocenić komponenty bez zmiennego rozmówcy Orange; kontrolowana telefonia osobno weryfikuje RX/TX. To plan integracji, nie deklaracja gotowego uniwersalnego runnera. Szczegóły i ocena instalacji: [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md).
 
 `GemmaDirectDialogueBackendFactory` jest teraz adapterem wymagającym jawnego backendu modelu, bez własnego Context, domyślnego E2B i domyślnego promptu. Snapshot Direct kieruje cache i tworzenie do tej samej pary profil/instrukcja. SCRIPT korzysta ze wspólnego `CampaignGemmaPreflight.createClassifier` dla prewarm i braku cache, również z wybranym profilem. Brak gotowej instancji nie podmienia wybranego modelu. [Receipts i granice QA](checkpoints/2026-11-05-lab-run-configuration.md).
+
+## UX / application boundaries — plan po Sprincie 6 (2026-11-07)
+
+**Stan:** `SOURCE_GREEN` dla Sprintu 6, fizyczny odbiór zmian `QA_PENDING_ADB`. [Checkpoint](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md). Poniższa separacja jest **planem**, a nie wdrożonym architektonicznym refaktorem.
+
+```text
+Android Activity (widok, nawigacja, potwierdzenie, lifecycle)
+     ↓ zdarzenia użytkownika                ↑ immutable ScreenState / zdarzenia UI
+Presenter / Controller / Runner (jedna odpowiedzialność, testy stanów)
+     ↓ istniejące repo/provider                ↑ typowany wynik
+RecordedConversationHistory / AudioEngineProfileStore / SkillLabScoring / RuntimeStatusStore
+     ↓ wyłącznie istniejące autoryzowane efekty w aplikacji
+CampaignAgentControl → polityka/grant → własny Telecom Call → STT / Dialog / TTS / TX
+```
+
+- **Odczyt i prezentacja nie są upoważnieniem:** stan `targeted_disconnect_requested` to żądanie, nie potwierdzone zakończenie. Presenter Kampanii nie może wykonywać STOP, grantów, call effects ani czytać prywatnych danych.
+- **Historia:** `ConversationHistoryActivity` obecnie posiada UI i wywołuje asynchronicznie `RecordedConversationHistory`. Docelowo Controller przejmie kolejkę IO, serializację kasowania, typowane wyniki i ochronę przed stale callbacks. `ArchivedConversationPlayer` zostaje kontrolowaną off-call warstwą Android. Nie tworzyć kopii archiwum.
+- **Laboratorium:** `ConversationSkillLabActivity` obecnie łączy renderowanie, `TextCallAgentBackend`, `Thread`, `cancel`, `120s` timeout i obserwacje. Docelowo `SkillLabRunner` emituje stan niezmienny; `SkillLabScoring` pozostaje czystym obliczeniem; UI nie wykonuje `END_CALL`.
+- **Istniejące rozdzielenie:** nie duplikować `IncomingAssistantSettingsController`, `GeneralSettingsController`, `ConversationToolsSettingsController` ani transferu modeli.
+- **Kierunek:** małe, niezależne kroki UX-01 prezentacja kampanii → UX-02 historia → UX-03 Laboratorium → ustawienia/i18n; [plan bramek](SAFE_MODULARIZATION_PLAN.md). Inwarianty Telecom/STOP/PCM/PFD/TX, oszczędne testy i granice bezpieczeństwa pozostają bez zmian.
