@@ -131,13 +131,13 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
         root.addView(UiDesign.action(this, getString(R.string.scenario_ui_save), UiActionTone.PRIMARY) {
             val next = draft()
             val missing = next.missingRequiredFields(definition)
-            if (missing.isNotEmpty()) {
-                feedback.text = getString(R.string.scenario_ui_missing, missing.joinToString {
+            val saved = runCatching { store.saveScenarioDraft(next) }.isSuccess
+            feedback.text = when {
+                !saved -> getString(R.string.scenario_ui_save_failed)
+                missing.isEmpty() -> getString(R.string.scenario_ui_saved)
+                else -> getString(R.string.scenario_ui_saved_incomplete, missing.joinToString {
                     id -> definition.fields.first { it.id == id }.title(language)
                 })
-            } else {
-                feedback.text = if (runCatching { store.saveScenarioDraft(next) }.isSuccess)
-                    getString(R.string.scenario_ui_saved) else getString(R.string.scenario_ui_save_failed)
             }
         }, UiDesign.spaceAfter(this, 12))
         root.addView(UiDesign.action(this, getString(R.string.scenario_ui_preview)) {

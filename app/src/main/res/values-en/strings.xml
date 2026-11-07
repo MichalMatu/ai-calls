@@ -597,4 +597,5 @@
     <string name="scenario_ui_draft_only">Draft only — calling for this scenario is not yet implemented.</string>
     <string name="scenario_ui_clir_note">CLIR has a separate working campaign. This form does not start it or change its authorization.</string>
     <string name="scenario_ui_preview_note">Preview only. This text does not create a booking or confirm any external effect.</string>
+    <string name="scenario_ui_saved_incomplete">Form saved. You can finish the missing fields later: %1$s</string>
 </resources>
