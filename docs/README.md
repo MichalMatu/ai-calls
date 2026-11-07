@@ -1,19 +1,25 @@
-# AI Calls — indeks dokumentacji
+# AI Calls — indeks aktualnej dokumentacji
 
-**Nowy czat:** [Gotowy prompt](NEXT_CHAT_PROMPT.md) · [Handoff](HANDOFF_NEXT_CHAT.md) · [Pełny checkpoint etapów 0–1](checkpoints/2026-11-06-modularization-handoff-final.md).
+**Zacznij tutaj:** [Handoff — bieżący stan](HANDOFF_NEXT_CHAT.md) · [Prompt kolejnego czatu](NEXT_CHAT_PROMPT.md) · [Sprint 6 — checkpoint kodu/QA/S22 i plan UX](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md).
 
-**Rozwój:** [Plan modularizacji](SAFE_MODULARIZATION_PLAN.md) · [Roadmapa](ROADMAP.md) · [Architektura](ARCHITECTURE.md) · [Runtime](CONVERSATION_RUNTIME.md) · [Sekretarka INCOMING](INCOMING_ASSISTANT.md).
+**Stan na 2026-11-07:** Sprint 6 `SOURCE_GREEN` (325 testów hosta PASS); **S22 QA_PENDING_ADB**, realna Gemma Sprint 6 **NOT_RUN**. Ostatni fizyczny baseline to [Sprint 5: S22 27 UI / 23 wizualne / 43 JPG / Gemma 2 tury + STOP](checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md). Nie łącz tych wyników.
 
-**Produkt i laboratorium:** [Plan produktu](PRODUCT_ASSEMBLY_PLAN.md) · [Zakres eksperymentów](TEST_LAB_SCOPE.md) · [USB/ADB](USB_DEBUG_BRIDGE.md).
+## Gdzie szukać
 
-**Normy:** [AGENTS](../AGENTS.md) · [Bezpieczeństwo](SECURITY_PRIVACY.md) · [Autonomia](AUTONOMOUS_OPERATION_MODE.md) · [Skutki i autoryzacja](GENERIC_PHONE_TASK_AUTHORITY.md) · [Freeze PCM](PHASE2D_FREEZE_2026-09-18.md).
+| Temat | Dokument źródłowy |
+|---|---|
+| Priorytety, co zrobić teraz i co już zamknięte | [ROADMAP](ROADMAP.md) |
+| Separacja widoków, modelu stanu i efektów | [SAFE_MODULARIZATION_PLAN](SAFE_MODULARIZATION_PLAN.md) |
+| Mapa modułów i warunki bezpieczeństwa | [ARCHITECTURE](ARCHITECTURE.md) · [CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) |
+| Aktualne ekrany, bulk delete i audio z dymków | [SETTINGS_UX](SETTINGS_UX.md) |
+| Presety Gemmy i znaczenie wyników Laboratorium | [SKILLS_AND_LAB](SKILLS_AND_LAB.md) |
+| Wymagania produktu i zakres testów | [PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) · [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md) |
+| Błędy i realne blokady | [BLOCKERS](../BLOCKERS.md) — jedyny rejestr |
+| Zasady pracy, autoryzacja i prywatność | [AGENTS](../AGENTS.md) · [SECURITY_PRIVACY](SECURITY_PRIVACY.md) · [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md) |
+| Mac/Samsung, USB i testy fizyczne | [USB_DEBUG_BRIDGE](USB_DEBUG_BRIDGE.md) · [LOCAL_AGENT_HOST_FLOW](LOCAL_AGENT_HOST_FLOW_2026-11-01.md) |
 
-**Błędy:** [BLOCKERS](../BLOCKERS.md) — jedyny rejestr statusów. **Dowody:** [etap 0](checkpoints/2026-11-06-mod-stage0-baseline.md) · [etap 1](checkpoints/2026-11-06-mod-stage1-incoming-idle-core.md) · [fizyczny timeout](checkpoints/2026-11-06-incoming-idle30.md) · [reaudyt](checkpoints/2026-11-06-quality-modularity-reaudit.md).
+## Historia, nie aktywne polecenia
 
-Pozostałe pliki w checkpoints to historia pomiarów, nie nowe polecenia pracy. Prywatne WAV, numery i transkrypty nie należą do Git.
+Starsze pliki w [`checkpoints/`](checkpoints/) są dowodami konkretnego HEAD / daty, a nie zbiorem równoległych planów. Przykłady: [zamknięcie modularizacji](checkpoints/2026-11-06-modularization-handoff-final.md), [mod Stage3](checkpoints/2026-11-06-mod-stage3-session-registry-core.md), [S22 Skills 12 tur](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md). Powtórzenia usunięte z aktywnego handoffu/roadmapy pozostają w historii Git; nie kasować historycznych RED ani checkpointów.
 
-- [Skills i presety Gemmy — Laboratorium](SKILLS_AND_LAB.md): instrukcje, wersje, testy off-call.
-
-- [S22: trzy presety skillsów, native off-call](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md) — metryki i zakres potwierdzonych testów.
-
-- [AI Calls: kompletny checkpoint kodu, dokumentacji, jakości i testów](checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md) — pełne receipts, wynik S22 i zakres QA.
+Prywatne JPG, WAV, numery i transkrypty przechowuje wyłącznie urządzenie/Mac właściciela; **nie** są częścią repozytorium.
