@@ -31,12 +31,11 @@ class ScenarioPersonalLibraryTest {
         assertEquals(2, both.items.size)
     }
 
-
     @Test fun unchangedMetadataWithSurroundingWhitespaceDoesNotCreateExtraRevision() {
         val library = ScenarioPersonalLibrary().create(
             template, initial, "a", "Serwis", "Zapytaj o termin")
         val unchanged = library.revise(
-            "a", "  Serwis  ", "\\tZapytaj o termin\\n", initial)
+            "a", "  Serwis  ", "\tZapytaj o termin\n", initial)
         assertEquals(1, unchanged.items.single().current.number)
         assertEquals(1, unchanged.items.single().versions.size)
         assertEquals("Serwis", unchanged.items.single().current.title)
