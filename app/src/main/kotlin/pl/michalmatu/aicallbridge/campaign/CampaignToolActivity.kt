@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.campaign
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
 
 import android.Manifest
@@ -155,7 +156,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 48, 32, 32)
+            setPadding(UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 48), UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 32))
             addView(TextView(this@CampaignToolActivity).apply {
                 text = "Kampanie i zadania AI Calls"
                 textSize = 22f
@@ -272,7 +273,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             text = transcript
             textSize = 15f
             setTextIsSelectable(true)
-            setPadding(32, 20, 32, 20)
+            setPadding(UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 20))
         }
         AlertDialog.Builder(this)
             .setTitle("Prywatny transkrypt RX / AI")

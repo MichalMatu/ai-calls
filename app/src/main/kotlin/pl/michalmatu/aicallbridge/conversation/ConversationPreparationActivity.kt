@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -36,7 +37,7 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.SETTINGS) {
         super.onSaveInstanceState(outState)
     }
     private fun showProfile() {
-        content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 32, 24, 32) }
+        content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationPreparationActivity, 24), UiDesign.dp(this@ConversationPreparationActivity, 32), UiDesign.dp(this@ConversationPreparationActivity, 24), UiDesign.dp(this@ConversationPreparationActivity, 32)) }
         setContentView(ScrollView(this).apply { addView(content) })
         status = TextView(this)
         content.addView(TextView(this).apply { text = "Przygotowanie rozmowy"; textSize = 22f })

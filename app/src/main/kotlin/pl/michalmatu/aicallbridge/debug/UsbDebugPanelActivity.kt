@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.debug
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -21,13 +22,13 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         super.onCreate(savedInstanceState)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 36, 32, 36)
+            setPadding(UiDesign.dp(this@UsbDebugPanelActivity, 32), UiDesign.dp(this@UsbDebugPanelActivity, 36), UiDesign.dp(this@UsbDebugPanelActivity, 32), UiDesign.dp(this@UsbDebugPanelActivity, 36))
         }
         fun label(value: String, size: Float = 15f) {
             content.addView(TextView(this).apply {
                 text = value
                 textSize = size
-                setPadding(0, 8, 0, 12)
+                setPadding(0, UiDesign.dp(this@UsbDebugPanelActivity, 8), 0, UiDesign.dp(this@UsbDebugPanelActivity, 12))
             })
         }
         fun button(value: String, action: () -> Unit) {

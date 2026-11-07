@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.os.Bundle
 import android.view.WindowManager
@@ -36,7 +37,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(28, 28, 28, 36)
+            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 36))
         }
         content.addView(TextView(this).apply { text = "Laboratorium skillsów"; textSize = 23f })
         content.addView(TextView(this).apply {

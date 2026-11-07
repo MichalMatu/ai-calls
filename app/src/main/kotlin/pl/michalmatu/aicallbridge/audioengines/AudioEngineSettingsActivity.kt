@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.audioengines
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.Manifest
 import android.content.pm.PackageManager
@@ -47,7 +48,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         store = AudioEngineProfileStore(this)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(28, 28, 28, 36)
+            setPadding(UiDesign.dp(this@AudioEngineSettingsActivity, 28), UiDesign.dp(this@AudioEngineSettingsActivity, 28), UiDesign.dp(this@AudioEngineSettingsActivity, 28), UiDesign.dp(this@AudioEngineSettingsActivity, 36))
         }
         val current = store.load()
         lastStoredDialogue = current?.dialogue
@@ -55,7 +56,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             TextView(this).apply {
                 text = value
                 textSize = if (large) 20f else 15f
-                setPadding(0, 10, 0, 10)
+                setPadding(0, UiDesign.dp(this@AudioEngineSettingsActivity, 10), 0, UiDesign.dp(this@AudioEngineSettingsActivity, 10))
             }
         content.addView(label("Ustawienia silników audio AI", true))
         content.addView(label("Preferencja urządzenia, nie autoryzacja rozmowy. " +
@@ -72,7 +73,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     isEnabled = choice.integrated
                     tag = choice.id
                     isChecked = choice.id == selected
-                    setPadding(8, 6, 8, 8)
+                    setPadding(UiDesign.dp(this@AudioEngineSettingsActivity, 8), UiDesign.dp(this@AudioEngineSettingsActivity, 6), UiDesign.dp(this@AudioEngineSettingsActivity, 8), UiDesign.dp(this@AudioEngineSettingsActivity, 8))
                 }
                 group.addView(button)
             }

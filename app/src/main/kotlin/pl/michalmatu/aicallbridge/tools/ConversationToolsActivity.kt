@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.tools
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.os.Bundle
 import android.os.Handler
@@ -21,7 +22,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         val store = ConversationToolSettingsStore(this)
         val enabled = store.enabled()
-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(28,36,28,28) }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationToolsActivity, 28), UiDesign.dp(this@ConversationToolsActivity, 36), UiDesign.dp(this@ConversationToolsActivity, 28), UiDesign.dp(this@ConversationToolsActivity, 28)) }
         content.addView(TextView(this).apply { text = "Narzędzia AI"; textSize = 22f })
         content.addView(TextView(this).apply { text = "Narzędzia są wspólne dla modeli. Włączenie możliwości nie zmienia zakresu zadania ani kontroli połączenia. Wyłączenie zatrzymuje nowe wykonania także podczas rozmowy." })
         val choices = ConversationToolId.entries.associateWith { tool ->

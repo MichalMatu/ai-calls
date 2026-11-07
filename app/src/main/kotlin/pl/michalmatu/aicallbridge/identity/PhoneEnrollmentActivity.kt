@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.identity
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.os.Bundle
 import android.text.InputType
@@ -52,7 +53,7 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
         setContentView(
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(32, 48, 32, 32)
+                setPadding(UiDesign.dp(this@PhoneEnrollmentActivity, 32), UiDesign.dp(this@PhoneEnrollmentActivity, 48), UiDesign.dp(this@PhoneEnrollmentActivity, 32), UiDesign.dp(this@PhoneEnrollmentActivity, 32))
                 addView(TextView(this@PhoneEnrollmentActivity).apply {
                     text = "Phone / service number"
                     textSize = 24f

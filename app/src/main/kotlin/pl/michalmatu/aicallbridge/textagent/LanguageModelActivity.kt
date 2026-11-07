@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.textagent
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -34,8 +35,8 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         pendingImport = savedInstanceState?.getString("pending_import")?.let { name ->
             DialogueModelId.entries.firstOrNull { it.name == name }
         }
-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(28, 28, 28, 36) }
-        fun label(value: String) = TextView(this).apply { text = value; textSize = 16f; setPadding(0, 16, 0, 12) }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@LanguageModelActivity, 28), UiDesign.dp(this@LanguageModelActivity, 28), UiDesign.dp(this@LanguageModelActivity, 28), UiDesign.dp(this@LanguageModelActivity, 36)) }
+        fun label(value: String) = TextView(this).apply { text = value; textSize = 16f; setPadding(0, UiDesign.dp(this@LanguageModelActivity, 16), 0, UiDesign.dp(this@LanguageModelActivity, 12)) }
         content.addView(label("Modele językowe · LiteRT-LM ${LanguageModelCatalog.RUNTIME_VERSION}"))
         content.addView(label("Pobierz model lub importuj plik .litertlm. Instalacja sprawdza rozmiar i SHA-256. " +
             "Wybór obowiązuje od następnej rozmowy; wejście STT i wyjście TTS zachowują swoje ustawienia."))

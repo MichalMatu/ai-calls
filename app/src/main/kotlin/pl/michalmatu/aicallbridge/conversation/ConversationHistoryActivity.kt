@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
@@ -26,7 +27,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         history = RecordedConversationHistory(File(filesDir, CallSessionEvidenceRecorder.ROOT))
-        content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 32, 24, 32) }
+        content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32), UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32)) }
         setContentView(ScrollView(this).apply { addView(content) })
         showList()
     }

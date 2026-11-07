@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -27,7 +28,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun label(text: String, size: Float = 16f) =
-        TextView(this).apply { this.text = text; textSize = size; setPadding(0, 10, 0, 8) }
+        TextView(this).apply { this.text = text; textSize = size; setPadding(0, UiDesign.dp(this@ConversationSkillsActivity, 10), 0, UiDesign.dp(this@ConversationSkillsActivity, 8)) }
 
     private fun applyChange(newLibrary: ConversationSkillLibrary, message: String) {
         try {
@@ -44,7 +45,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private fun show(message: String = "") {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(28, 28, 28, 36)
+            setPadding(UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 36))
         }
         content.addView(label("Skills i presety Gemmy", 23f))
         content.addView(label(

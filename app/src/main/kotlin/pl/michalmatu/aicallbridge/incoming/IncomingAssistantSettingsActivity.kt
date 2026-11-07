@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.incoming
 
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
@@ -20,7 +21,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        val content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(28,36,28,28) }
+        val content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(UiDesign.dp(this@IncomingAssistantSettingsActivity, 28), UiDesign.dp(this@IncomingAssistantSettingsActivity, 36), UiDesign.dp(this@IncomingAssistantSettingsActivity, 28), UiDesign.dp(this@IncomingAssistantSettingsActivity, 28)) }
         val feedback=TextView(this)
         val store=IncomingAssistantPolicyStore(this)
         val policy=runCatching { store.load() }.getOrElse {
