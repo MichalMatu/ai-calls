@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.conversation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 import android.app.AlertDialog
 import android.view.View
 import android.view.ViewGroup
@@ -138,18 +139,6 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         }, LinearLayout.LayoutParams(UiDesign.dp(this, 20), UiDesign.dp(this, 20)))
                         row.addView(open, LinearLayout.LayoutParams(0,
                             ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-                        if (history.canDelete(session.id)) {
-                            row.addView(UiDesign.iconButton(
-                                this, R.drawable.ic_aicalls_trash, getString(R.string.history_delete),
-                                UiDesign.secondary
-                            ).apply {
-                                tag = "history-delete:" + session.id
-                                setOnClickListener { confirmDelete(session.id) }
-                            }, LinearLayout.LayoutParams(UiDesign.dp(this, 48),
-                                UiDesign.dp(this, 48)).apply {
-                                    marginStart = UiDesign.dp(this@ConversationHistoryActivity, 4)
-                                })
-                        }
                         content.addView(row, LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
                         ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 6) })
@@ -237,6 +226,15 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                             ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 10) })
                         }
                         content.addView(extraClips)
+                    }
+                    if (history.canDelete(session.id)) {
+                        content.addView(UiDesign.action(this, getString(R.string.history_delete),
+                            UiActionTone.REVOCATION) {
+                            confirmDelete(session.id)
+                        }.apply {
+                            tag = "history-delete:" + session.id
+                            contentDescription = getString(R.string.history_delete)
+                        }, UiDesign.spaceAfter(this, 12))
                     }
                 }.onFailure { failure -> content.addView(TextView(this).apply { text = getString(R.string.history_detail_error, failure.javaClass.simpleName) }) }
             }
