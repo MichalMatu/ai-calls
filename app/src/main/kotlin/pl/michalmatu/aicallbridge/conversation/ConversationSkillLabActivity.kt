@@ -177,7 +177,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         scoreView.visibility = View.GONE
         ratingGroup.visibility = View.GONE
         runButton.isEnabled = false
-        stopButton.visibility = View.VISIBLE
+        stopButton.visibility = android.view.View.VISIBLE
         progress.progress = 0
         progress.contentDescription = getString(R.string.lab_ui_progress, 0, allTurns)
         status.text = getString(R.string.lab_ui_starting)
