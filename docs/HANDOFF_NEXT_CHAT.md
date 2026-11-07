@@ -1,4 +1,15 @@
-# AI Calls — HANDOFF: Sprint 6 CLOSED, UX-01/02/03/04 SOURCE_PASS (2026-11-07)
+# AI Calls — HANDOFF (2026-11-07): Sprint 6 CLOSED, UX-01–04 SOURCE_PASS, UX-05 VERIFIED
+
+**Bieżący stan:** `UX_ITERATION_CLOSED / UX05_SOURCE_HOST_PASS / UX05_S22_AUTOMATED_PASS / UX05_PL_EN_SCREENSHOT_PASS`. Poprzednie P0/UX-01–04 nie zostały ponownie otwarte. [Dokładny checkpoint UX-05](checkpoints/2026-11-07-ux05-pl-en-accessibility-closeout.md).
+
+**Aktualny zakres ukończony:** 553 spójne zasoby PL/EN, tłumaczenia Home/Models/Engine/Skills/Campaign/Pilot/dialer/live-chat, nagłówki i statusy czytnika. `main@9da1468b4aa4336822a5ffd6390817848830a9f8` to ostatni testowany SHA przed dokumentacją; produkcyjny kod UX-05 skończył się na `1464c795`, ostatni full host source gate `c9d48b0`, późniejsze testy tylko w test files. `aicalls-ux05-final-host-gate-20261107-v1` DONE/0: **337 Python + 10 PL/EN + friction/JVM/AndroidTest/APK PASS**; corrected parity `aicalls-ux05-corrected-parity-gate-20261107-v1` DONE/0. S22 `aicalls-ux05-s22-targeted-ui-acceptance-20261107-v1` DONE/0: **2/2 native**, signer zgodny i dane zachowane; `aicalls-ux05-s22-private-screenshot-instrumentation-20261107-v2` DONE/0: **4/4 PNG PL/EN**, `pl` przywrócony, bez rozmów/archiwów. Prywatny ZIP wyłącznie Mac: `~/Library/Application Support/AI-Calls/UI-audit/2026-11-07-ux05/AI-Calls-UX05-S22-PL-EN-private.zip`. Manualnego TalkBack nie zaliczono/nie wykonywano.
+
+**Kolejny niezależny krok:** F-080 — ciągłe nagranie całej sesji i odtwarzacz osi czasu. Autoryzowane call flows, przejęcie/oddanie AI oraz semantyka Gemmy to osobny zakres. Żadnego ponownego UX polishing, żadnych ponownych zamkniętych testów. Działać wyłącznie GitHub Connector + exact Mac Local Agent, `main`, bez Codex/Work/GitHub Actions/gałęzi/force push. Commity `[skip ci]`; weryfikować bieżący HEAD i clean Mac przed zmianą. Nie ruszać zamrożonego Samsung/Shizuku/PCM/PFD ani Call ownership/grants/STOP/full TX/archiwów bez odrębnego uzasadnienia i zgody na skutki.
+
+---
+
+## Historyczny handoff Sprint 6 / UX-01–04 (zachowany)
+
 
 **Status końcowy:** `UX_ITERATION_CLOSED / SOURCE_PASS / S22_PASS / REAL_GEMMA_PASS`. Właściciel uznał UX za wystarczająco dobry i kończy tę iterację. **Nie rozpoczynać kolejnych mikro-poprawek wizualnych ani nie powtarzać zaliczonych testów.**
 

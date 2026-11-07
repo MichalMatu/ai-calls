@@ -4,6 +4,10 @@
 
 [PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) definiuje dalszy kierunek: wspólne moduły dla agenta zadań i sekretarki, osobne dane profilu/zadania, skillsy/instrukcje i archiwum, manual/AI/przejęcie oraz ciągły zapis i odtwarzanie całej sesji z odnośnikami czatu. Wydzielone obecnie pakiety nie są jeszcze kompletem niezależnych bibliotek Gradle. Recorder pełnej sesji ma być niezależny od okien VAD i cyklu inferencji; obecne archiwum tur nie spełnia jeszcze tego wymagania (F-080). Plan nie zmienia zamrożonego transportu ani statusu fizycznego QA.
 
+## UX-05 — warstwa lokalizacji i dostępności (2026-11-07)
+
+UX-05 tylko prezentacja: 553 parzyste zasoby PL/EN, widoczne opisy katalogów i factory skill labels mapowane przy renderowaniu, bez zmiany zapisanych promptów, nazw technicznych i model selection. `UiDesign.heading` oznacza nagłówki dostępności, statusy Home/Kampanii/Pilota są politem live region; istniejący przycisk, nawigacja, zasady screenshotów i wykonawcze ścieżki zachowane. [Źródło/host/S22 2/2 i 4/4 PL/EN](checkpoints/2026-11-07-ux05-pl-en-accessibility-closeout.md). Nie przedstawiać automatycznej instrumentacji jako manualnego TalkBack.
+
 ## Odczytowe granice UX (2026-11-07)
 
 Po UX-01–04 bieżąca aplikacja rozdziela presenter statusu Kampanii, kontroler historii, `SkillLabRunner` oraz typowane prezentery stanów modeli i zapisanego profilu audio. Nie są to nowe serwisy Androida ani drugi store: `AudioEngineProfileStore`, `AudioEngineReadinessProbe`, `AndroidGemma4ModelReadiness`, `LanguageModelTransferService` i `TextToSpeech` zachowują właścicielstwo danych i efektów. [UX-04 SOURCE_PASS](checkpoints/2026-11-07-ux04-model-and-audio-presentation-closeout.md) obejmuje 13 JVM, 332 host Python i kompilację AndroidTest/APK, nie fizyczny S22 nowego SHA.

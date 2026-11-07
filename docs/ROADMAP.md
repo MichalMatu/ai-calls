@@ -1,6 +1,6 @@
-# AI Calls — roadmapa (po zamknięciu Sprintu 6, 2026-11-07)
+# AI Calls — roadmapa (Sprint 6 i UX-01–05 zamknięte, 2026-11-07)
 
-**Stan:** `UX_ITERATION_CLOSED`. Najnowszy kod UX `main@1b359146`, **325 testów hosta PASS**, S22 **28/28 native + 24/24 visual**, hotfix targeted **1/1 + 3/3 PASS**, realna Gemma **2 tury + STOP PASS**, finalny ZIP **46 screenshotów**. [Dokładne receipts](checkpoints/2026-11-07-ux-sprint6-final-handoff.md). Nie wracać do mikro-poprawek UX bez nowego zgłoszenia lub regresji.
+**Stan:** `UX_ITERATION_CLOSED / UX05_VERIFIED`. Najnowszy kod UX `main@1b359146`, **325 testów hosta PASS**, S22 **28/28 native + 24/24 visual**, hotfix targeted **1/1 + 3/3 PASS**, realna Gemma **2 tury + STOP PASS**, finalny ZIP **46 screenshotów**. [Dokładne receipts](checkpoints/2026-11-07-ux-sprint6-final-handoff.md). Nowa lokalizacja UX-05 zamknięta; nie wracać do mikro-poprawek UX bez nowego zgłoszenia lub regresji.
 
 ## P0 — zamknięte, nie ponawiać
 
@@ -18,16 +18,16 @@
 2. **UX-02: DONE / SOURCE_PASS.** `ConversationHistoryController` (typowany `HistoryScreenState` i wyniki kasowania), jeden serializowany executor, lista/detail z generacją odrzucającą przestarzałe callbacki oraz ukończone-only single/bulk delete po potwierdzeniu. `RecordedConversationHistory` pozostaje wyłącznym właścicielem plików, `ArchivedConversationPlayer` Android off-call. **7 JVM, 325 Python, APK/AndroidTest compile i friction PASS**, Mac clean. **S22 nowego kodu NOT_RUN.** [Checkpoint](checkpoints/2026-11-07-ux02-conversation-history-controller-closeout.md). Nie powtarzać.
 3. **UX-03: DONE / SOURCE_PASS.** `SkillLabRunner` przejął worker/model, 120 s timeout, STOP, late callbacks i score; `SkillLabUiState` immutable, Activity tylko renderuje. `END_CALL` jest wyłącznie obserwacją, nie semantyczną oceną ani efektem Telecom. **9 JVM, 328 Python, friction, host, AndroidTest compile i oba APK PASS**, Mac clean na `b53cb820`; **S22 nowego kodu NOT_RUN**. [Checkpoint i receipts](checkpoints/2026-11-07-ux03-skill-lab-runner-closeout.md). Nie powtarzać.
 4. **UX-04: DONE / SOURCE_PASS.** `LanguageModelStatusPresenter` (model installed/ready/active, transfer busy/postęp/feedback) i `AudioEngineActiveProfilePresenter` (zapisany profil → odczytowe podsumowanie) są czyste, typowane; istniejące store, probes, usługi pobierania i TTS pozostają jedynymi właścicielami efektów. **13 JVM, 332 Python, friction, host, AndroidTest compile/APK PASS**, Mac clean na `7df2c33`; **S22 nowego kodu NOT_RUN**. [Checkpoint](checkpoints/2026-11-07-ux04-model-and-audio-presentation-closeout.md).
-5. **UX-05: F-103 pełne PL/EN.** Przejść po aktualnych ekranach, usunąć widoczne hardcoded PL w Kotlinie, test parytetu kluczy i Android locale screenshots. Po rozdzieleniu model/widok jest to prostsze.
+5. **UX-05 / F-103: DONE / VERIFIED (automated UI).** PL/EN 553 wspólne klucze; Home, Campaign, Skills, Engine, modele, dialer, pilot i chat przetłumaczone. 337 Python, 10 focused, APK/AndroidTest/host/friction PASS, **S22 2/2 natywne + 4/4 prywatne zrzuty PL/EN PASS**, przywrócony język `pl`. [Checkpoint](checkpoints/2026-11-07-ux05-pl-en-accessibility-closeout.md). Osobny manual TalkBack nie był wykonywany.
 
-**Nie robić wszystkiego w jednym sprincie.** Uzasadnienie i architektura: [SAFE_MODULARIZATION_PLAN](SAFE_MODULARIZATION_PLAN.md) oraz [ARCHITECTURE](ARCHITECTURE.md).
+**UX-01–04 są zachowane jako odrębne sprawdzone zakresy, UX-05 zamknięto jednym kolejnym sprintem.** Uzasadnienie i architektura: [SAFE_MODULARIZATION_PLAN](SAFE_MODULARIZATION_PLAN.md) oraz [ARCHITECTURE](ARCHITECTURE.md).
 
 ## P2 — funkcjonalność produktu i niezależne bramki
 
 - **F-080:** rzeczywisty *ciągły* recorder i pełny player sesji z osią czasu. Obecne dymki odtwarzają tylko istniejące WAV RX/TX z tur, nie nagranie całego Call.
 - **F-091 i rozmowy:** osobna realna kontrola end_call / naturalnego zakończenia / przejęcia / powrotu AI / STOP / timeoutu, **wyłącznie** z ważną autoryzacją i kontrolą S22.
 - **Jakość Gemmy:** oddzielna walidacja semantyki, poprawności pytań, kompletności wiadomości i naturalności; licznik `END_CALL 2/2` nie jest jakością odpowiedzi.
-- **F-103:** kompletna lokalizacja i dostępność na fizycznym telefonie (w zakresie UI).
+- **F-103:** **CLOSED / VERIFIED** dla PL/EN i automatycznej dostępności UI z fizycznym odbiorem S22; manualny TalkBack osobną opcjonalną kontrolą, nie dowodem już wykonanym.
 - Pozostałe nieskończone obszary: [jedyny rejestr BLOCKERS](../BLOCKERS.md), [plan produktu](PRODUCT_ASSEMBLY_PLAN.md); nie wznawiać zamkniętych historycznych testów bez regresji.
 
 ## Zamknięte — nie rozpoczynać od nowa
