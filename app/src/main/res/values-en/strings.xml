@@ -341,7 +341,7 @@
     <string name="lab_ui_last_result">%1$s · turn %2$d · answered in %3$d ms</string>
     <string name="lab_ui_score_title">Test summary</string>
     <string name="lab_ui_score_decisions">Correct END_CALL decisions: %1$d/%2$d</string>
-    <string name="lab_ui_score_errors">Premature ends: %1$d · missing ends: %2$d · unnecessary questions (heuristic): %3$d</string>
+    <string name="lab_ui_score_errors">Premature ends: %1$d · missing ends: %2$d · questions to review (heuristic): %3$d</string>
     <string name="lab_ui_score_latency">Average answer time: %1$d ms</string>
     <string name="lab_ui_naturalness_score">Manual naturalness rating: %1$d/5</string>
     <string name="lab_ui_naturalness_unrated">Naturalness: unrated (human review required)</string>
