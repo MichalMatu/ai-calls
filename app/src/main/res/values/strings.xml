@@ -610,4 +610,7 @@
     <string name="scenario_ui_restore">Przywróć wybraną wersję</string>
     <string name="scenario_ui_delete">Usuń mój scenariusz</string>
     <string name="scenario_ui_delete_message">Usunąć ten scenariusz i jego zapisane wersje? Gotowe presety pozostaną bez zmian.</string>
+
+    <string name="camp_ux06_timestamp_unknown">nieznany (starszy zapis)</string>
+    <string name="camp_ux06_timestamp_label">Zapisano: %1$s</string>
 </resources>

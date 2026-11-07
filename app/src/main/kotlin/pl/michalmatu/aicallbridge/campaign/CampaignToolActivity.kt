@@ -619,13 +619,21 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     }
 
     private fun updateLastExecutionStatus() {
-        val raw = runtimeStatusStore.load()
-        // Pure, localizable interpretation; raw diagnostics stay in the existing accordion.
+        val record = runtimeStatusStore.loadRecord()
+        val raw = record?.message
+        // Pure, localizable interpretation; raw diagnostics stay on the same screen.
         val screen = CampaignExecutionStatusPresenter.present(
             raw, resources.configuration.locales[0],
         )
+        val whenRecorded = record?.recordedAtEpochMs?.let {
+            java.text.DateFormat.getDateTimeInstance(
+                java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT,
+                resources.configuration.locales[0],
+            ).format(java.util.Date(it))
+        } ?: getString(R.string.camp_ux06_timestamp_unknown)
         lastExecutionStatus.text = getString(R.string.camp_ui_runtime_heading) +
             "\n" + getString(R.string.campaign_ui_last_history) +
+            "\n" + getString(R.string.camp_ux06_timestamp_label, whenRecorded) +
             "\n" + screen.summary
         // Raw codes remain available in the existing diagnostic accordion.
     }
