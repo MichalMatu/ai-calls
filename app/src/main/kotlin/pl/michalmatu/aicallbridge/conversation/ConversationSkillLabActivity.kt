@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.os.Bundle
+import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -96,6 +97,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             status.text = getString(R.string.lab_ui_cancelled)
             currentTurn.text = getString(R.string.lab_ui_stopped_partial)
             stopButton.visibility = View.GONE
+            showStopNotice()
         }.apply { visibility = View.GONE; tag = "lab-stop" }
         content.addView(stopButton, UiDesign.spaceAfter(this, 12))
 
@@ -272,6 +274,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                         status.text = getString(R.string.lab_ui_complete)
                         currentTurn.text = getString(R.string.lab_ui_progress,
                             observed.size, currentTurnTotal)
+                        followLatestCardIfEnabled()
                     }
                 }
             } catch (error: Exception) {
@@ -296,6 +299,28 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private fun renderFailure(reason: String) {
         status.text = getString(R.string.lab_ui_failed, reason)
         currentTurn.text = getString(R.string.lab_ui_stopped_partial)
+        followLatestCardIfEnabled()
+    }
+
+    private fun showStopNotice() {
+        val note = UiDesign.caption(this, getString(R.string.lab_ui_stop_banner,
+            progress.progress, currentTurnTotal)).apply {
+            tag = "lab-stopped-banner"
+            textSize = 15f
+            setTextColor(UiDesign.ink)
+            background = UiDesign.surfaceDrawable(this@ConversationSkillLabActivity)
+            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 12),
+                UiDesign.dp(this@ConversationSkillLabActivity, 12),
+                UiDesign.dp(this@ConversationSkillLabActivity, 12),
+                UiDesign.dp(this@ConversationSkillLabActivity, 12))
+        }
+        timeline.addView(note, UiDesign.spaceAfter(this, 10))
+        followCardIfEnabled(note)
+    }
+
+    private fun followLatestCardIfEnabled() {
+        val last = timeline.getChildAt(timeline.childCount - 1) ?: return
+        followCardIfEnabled(last)
     }
 
     private fun showTurnPending(storyIndex: Int, story: String, index: Int,
@@ -362,10 +387,16 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     }
 
     private fun followCardIfEnabled(card: View) {
-        if (follow.isChecked) scroll.post {
-            if (!isDestroyed && follow.isChecked) {
-                scroll.smoothScrollTo(0, card.bottom + timeline.top)
-            }
+        if (!follow.isChecked) return
+        // Calculate the descendant's actual position after layout. Simple card.bottom +
+        // timeline.top fails when the score/rating panels above the timeline reflow.
+        scroll.post {
+            if (isDestroyed || !follow.isChecked || !card.isAttachedToWindow) return@post
+            val rect = Rect()
+            card.getDrawingRect(rect)
+            scroll.offsetDescendantRectToMyCoords(card, rect)
+            val delta = rect.bottom - scroll.height + UiDesign.dp(this, 16)
+            if (delta > 0) scroll.scrollBy(0, delta)
         }
     }
 
@@ -381,7 +412,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             getString(R.string.lab_ui_score_errors,
                 metrics.prematureEnds, metrics.missingEnds, metrics.unexpectedQuestions) + "\n" +
             getString(R.string.lab_ui_score_latency, metrics.meanLatencyMs) + "\n" +
-            naturalnessScore
+            naturalnessScore + "\n\n" + getString(R.string.lab_ui_quality_not_scored)
         scoreView.visibility = View.VISIBLE
     }
 
