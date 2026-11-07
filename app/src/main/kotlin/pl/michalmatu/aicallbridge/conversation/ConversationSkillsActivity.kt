@@ -4,6 +4,8 @@ import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiSelect
+import pl.michalmatu.aicallbridge.ui.UiActionTone
+import android.graphics.Typeface
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -30,7 +32,14 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun label(text: String, size: Float = 16f) =
-        TextView(this).apply { this.text = text; textSize = size; setPadding(0, UiDesign.dp(this@ConversationSkillsActivity, 10), 0, UiDesign.dp(this@ConversationSkillsActivity, 8)) }
+        TextView(this).apply {
+            this.text = text
+            textSize = size
+            setTextColor(if (size < 16f) UiDesign.secondary else UiDesign.ink)
+            setLineSpacing(UiDesign.dp(this@ConversationSkillsActivity, 3).toFloat(), 1f)
+            setPadding(0, UiDesign.dp(this@ConversationSkillsActivity, 7),
+                0, UiDesign.dp(this@ConversationSkillsActivity, 7))
+        }
 
     private fun applyChange(newLibrary: ConversationSkillLibrary, message: String) {
         try {
@@ -47,15 +56,20 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private fun show(message: String = "") {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 36))
+            setPadding(UiDesign.dp(this@ConversationSkillsActivity, 20), UiDesign.dp(this@ConversationSkillsActivity, 16), UiDesign.dp(this@ConversationSkillsActivity, 20), UiDesign.dp(this@ConversationSkillsActivity, 28))
         }
-        content.addView(label(getString(R.string.skills_ui_title), 23f))
-        content.addView(label(
-            getString(R.string.skills_ui_intro) +
-                getString(R.string.skills_ui_intro2)
-        ))
-        content.addView(label(getString(R.string.skills_ui_active) + library.active.name + " · " +
-            if (library.active.isFactory) getString(R.string.skills_ui_factory) else getString(R.string.skills_ui_custom), 18f))
+        content.addView(UiDesign.heading(this, getString(R.string.skills_ui_title)).apply {
+            textSize = 23f
+        }, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this,
+            getString(R.string.skills_ui_intro) + getString(R.string.skills_ui_intro2)),
+            UiDesign.spaceAfter(this, 14))
+        val activeCard = UiDesign.card(this, 12)
+        activeCard.addView(UiDesign.caption(this, getString(R.string.skills_ui_active).trim()))
+        activeCard.addView(UiDesign.heading(this, library.active.name + " · " +
+            if (library.active.isFactory) getString(R.string.skills_ui_factory)
+            else getString(R.string.skills_ui_custom)).apply { textSize = 16f })
+        content.addView(activeCard, UiDesign.spaceAfter(this, 12))
         val options = library.presets
         val picker = Spinner(this).apply {
             tag = "skills-preset-picker"
@@ -64,16 +78,18 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             })
             setSelection(options.indexOfFirst { it.id == library.activePresetId })
         }
-        content.addView(picker)
+        content.addView(picker, UiDesign.spaceAfter(this, 8))
         content.addView(Button(this).apply {
             text = getString(R.string.skills_ui_activate)
+            UiDesign.styleAction(this, UiActionTone.PRIMARY)
             setOnClickListener {
                 applyChange(library.select(options[picker.selectedItemPosition].id),
                     "Zmieniono preset dla następnych rozmów.")
             }
-        })
+        }, UiDesign.spaceAfter(this, 8))
         content.addView(Button(this).apply {
             text = getString(R.string.skills_ui_copy)
+            UiDesign.styleAction(this, UiActionTone.SECONDARY)
             setOnClickListener {
                 val name = EditText(this@ConversationSkillsActivity).apply {
                     setSingleLine(true)
@@ -89,15 +105,17 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                             .onFailure { showError(it) }
                     }.show()
             }
-        })
+        }, UiDesign.spaceAfter(this, 8))
         content.addView(Button(this).apply {
             text = getString(R.string.skills_ui_lab)
+            UiDesign.styleAction(this, UiActionTone.SECONDARY)
             setOnClickListener {
                 startActivity(Intent(this@ConversationSkillsActivity, ConversationSkillLabActivity::class.java))
             }
-        })
+        }, UiDesign.spaceAfter(this, 8))
         content.addView(Button(this).apply {
             text = getString(R.string.skills_ui_preview)
+            UiDesign.styleAction(this, UiActionTone.SECONDARY)
             setOnClickListener {
                 val profile = store.load(ConversationPreparation.INCOMING_ID)
                     .withSkillSnapshot(library.snapshot())
@@ -107,21 +125,25 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                         ConversationResponseFormat.TOOL_REPLY))
                     .setPositiveButton("OK", null).show()
             }
-        })
-        if (message.isNotBlank()) content.addView(label(message))
+        }, UiDesign.spaceAfter(this, 16))
+        if (message.isNotBlank()) content.addView(UiDesign.caption(this, message),
+            UiDesign.spaceAfter(this, 8))
         if (library.active.isFactory) content.addView(UiDesign.heading(this,
             getString(R.string.skills_ui_factory_readonly)).apply { textSize = 16f })
         for (section in SkillSection.entries) {
-            content.addView(label(section.title, 19f))
+            content.addView(UiDesign.heading(this, section.title).apply { textSize = 18f },
+                UiDesign.spaceAfter(this, 8))
             for (skill in library.skills.filter { it.section == section }) {
+                val skillCard = UiDesign.card(this, 12)
                 val activeVersion = library.active.versions[skill.id]
                 val on = activeVersion != null
                 if (library.active.isFactory) {
-                    content.addView(TextView(this).apply {
+                    skillCard.addView(TextView(this).apply {
                         text = skill.name + " · " + getString(if (on)
                             R.string.skills_ui_enabled else R.string.skills_ui_disabled) +
                             (if (on) " · v" + activeVersion else "")
                         textSize = 16f
+                        setTypeface(null, Typeface.BOLD)
                         setTextColor(UiDesign.ink)
                         minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
                         tag = "skills-factory-state:" + skill.id
@@ -138,19 +160,21 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                                 "Zmieniono aktywne skillsy.")
                         }
                     }
-                    content.addView(choice)
+                    skillCard.addView(choice)
                 }
-                content.addView(TextView(this).apply {
+                skillCard.addView(TextView(this).apply {
                     text = skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions
                     textSize = 14f
-                    setTextColor(UiDesign.ink)
+                    setTextColor(UiDesign.secondary)
+                    setLineSpacing(UiDesign.dp(this@ConversationSkillsActivity, 3).toFloat(), 1f)
                     setPadding(UiDesign.dp(this@ConversationSkillsActivity, 8),
                         UiDesign.dp(this@ConversationSkillsActivity, 6),
                         UiDesign.dp(this@ConversationSkillsActivity, 8),
                         UiDesign.dp(this@ConversationSkillsActivity, 16))
                 })
                 if (!library.active.isFactory) {
-                    content.addView(Button(this).apply {
+                    skillCard.addView(Button(this).apply {
+                        UiDesign.styleAction(this, UiActionTone.SECONDARY)
                         text = "Edytuj " + skill.name + " — nowa wersja"
                         setOnClickListener {
                             val input = EditText(this@ConversationSkillsActivity).apply {
@@ -173,8 +197,9 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                         UiSelect.setOptions(this, versions.map { "Wersja " + it.version })
                         setSelection(versions.indexOfFirst { it.version == activeVersion }.coerceAtLeast(0))
                     }
-                    content.addView(revisionPicker)
-                    content.addView(Button(this).apply {
+                    skillCard.addView(revisionPicker)
+                    skillCard.addView(Button(this).apply {
+                        UiDesign.styleAction(this, UiActionTone.SECONDARY)
                         text = "Wybierz / przywróć wersję " + skill.name
                         setOnClickListener {
                             applyChange(library.bindVersion(skill.id, versions[revisionPicker.selectedItemPosition].version),
@@ -182,9 +207,11 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                         }
                     })
                 }
+                content.addView(skillCard, UiDesign.spaceAfter(this, 10))
             }
         }
-        content.addView(label("Ważne: skillsy nie nadają prawa do narzędzi, danych, efektów ani rozłączania. " +
+        content.addView(UiDesign.caption(this,
+            "Ważne: skillsy nie nadają prawa do narzędzi ani rozłączania. " +
             "Decyzje modelu nadal sprawdza aplikacja."))
         setContentView(ScrollView(this).apply { addView(content) })
     }
