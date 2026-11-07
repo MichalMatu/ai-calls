@@ -78,7 +78,7 @@ Start w `CampaignAgentControl`, service i executor nadal korzystają z `ClirCamp
 
 ## UX / application boundaries — plan po Sprincie 6 (2026-11-07)
 
-**Stan:** `SOURCE_GREEN` dla Sprintu 6, fizyczny odbiór zmian `QA_PENDING_ADB`. [Checkpoint](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md). Poniższa separacja jest **planem**, a nie wdrożonym architektonicznym refaktorem.
+**Stan:** Sprint 6 UX **CLOSED / HOST + S22 + REAL_GEMMA PASS**, kod `1b359146`. [Finalny checkpoint](checkpoints/2026-11-07-ux-sprint6-final-handoff.md). Poniższa separacja jest **planem przyszłej iteracji**, nie wdrożonym refaktorem.
 
 ```text
 Android Activity (widok, nawigacja, potwierdzenie, lifecycle)
