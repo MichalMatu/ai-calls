@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import pl.michalmatu.aicallbridge.conversationcore.ScenarioCatalog
 import pl.michalmatu.aicallbridge.conversationcore.ScenarioDraft
+import pl.michalmatu.aicallbridge.conversationcore.ScenarioPersonalLibrary
 import com.google.gson.JsonParser
 import java.io.File
 import java.security.MessageDigest
@@ -66,6 +67,20 @@ internal class AndroidConversationPreparationStore(
         }
         val permitted = definition.fields.map { it.id }.toSet()
         ScenarioDraft(id, record.values.filterKeys { it in permitted })
+    }
+
+    /** Personal versions stay in the same Keystore-AEAD / AtomicFile namespace as Skills. */
+    fun loadPersonalScenarios(): ScenarioPersonalLibrary = synchronized(LOCK) {
+        val raw = readRecord("scenario-personal-library-v1")
+            ?: return@synchronized ScenarioPersonalLibrary()
+        requireNotNull(Gson().fromJson(raw, ScenarioPersonalLibrary::class.java)) {
+            "scenario_personal_library_unreadable"
+        }.validated()
+    }
+
+    fun savePersonalScenarios(library: ScenarioPersonalLibrary) = synchronized(LOCK) {
+        val valid = library.validated()
+        writeRecord("scenario-personal-library-v1", Gson().toJson(valid))
     }
 
     fun saveScenarioDraft(draft: ScenarioDraft) = synchronized(LOCK) {
