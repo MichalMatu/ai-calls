@@ -346,4 +346,7 @@
     <string name="lab_ui_naturalness_score">Manual naturalness rating: %1$d/5</string>
     <string name="lab_ui_naturalness_unrated">Naturalness: unrated (human review required)</string>
     <string name="lab_ui_failed">Test stopped with error: %1$s</string>
+
+    <string name="incoming_ui_mode_label">Answering mode</string>
+    <string name="incoming_ui_sim_label">SIM card</string>
 </resources>
