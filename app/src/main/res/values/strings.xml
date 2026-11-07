@@ -549,4 +549,26 @@
     <string name="skills_ux05_version_restore">Wybierz / przywróć wersję %1$s</string>
     <string name="skills_ux05_version_restored">Wybrano zachowaną wersję.</string>
     <string name="skills_ux05_warning">Ważne: skillsy nie nadają prawa do narzędzi ani rozłączania. Decyzje modelu nadal sprawdza aplikacja.</string>
+
+    <!-- UX-05 model metadata and factory-skill UI labels -->
+    <string name="models_ux05_detail_e2b">Dotychczasowy model · polski dialog</string>
+    <string name="models_ux05_detail_e4b">Większy model · większe zużycie pamięci</string>
+    <string name="models_ux05_detail_qwen17">Lekki model tekstowy · INT4</string>
+    <string name="models_ux05_detail_qwen06">Najmniejszy model · eksperymentalny · INT4</string>
+    <string name="models_ux05_channel">Pobieranie modeli</string>
+    <string name="models_ux05_prepare">Przygotowanie modelu…</string>
+    <string name="models_ux05_verify">%1$s: weryfikacja SHA-256 przy instalacji</string>
+    <string name="models_ux05_installed">%1$s: zainstalowany, SHA-256 zgodny. Możesz go wybrać.</string>
+    <string name="models_ux05_cancelled">Anulowano. Poprzedni model pozostał na miejscu.</string>
+    <string name="models_ux05_notification">Modele językowe AI Calls</string>
+    <string name="skills_ux05_section_style">Prowadzenie rozmowy</string>
+    <string name="skills_ux05_section_message">Obsługa wiadomości</string>
+    <string name="skills_ux05_section_closure">Zakończenie rozmowy</string>
+    <string name="skills_ux05_default_natural">Sekretarka naturalna</string>
+    <string name="skills_ux05_default_formal">Sekretarka formalna</string>
+    <string name="skills_ux05_default_message">Zbieranie wiadomości</string>
+    <string name="skills_ux05_name_style">Styl wypowiedzi</string>
+    <string name="skills_ux05_name_capture">Przyjmowanie wiadomości</string>
+    <string name="skills_ux05_name_clarify">Dopytywanie</string>
+    <string name="skills_ux05_name_closure">Naturalne zakończenie</string>
 </resources>

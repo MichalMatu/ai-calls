@@ -26,6 +26,15 @@ import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
  * actions which are currently meaningful. Original transfer and selection gates stay intact.
  */
 internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
+    /** Read-only localization of stable model catalog descriptions. */
+    private fun localizedModelDetail(model: LanguageModelEntry): String = getString(when (model.id.name) {
+        "GEMMA_4_E2B" -> R.string.models_ux05_detail_e2b
+        "GEMMA_4_E4B" -> R.string.models_ux05_detail_e4b
+        "QWEN_3_1_7B" -> R.string.models_ux05_detail_qwen17
+        "QWEN_3_0_6B" -> R.string.models_ux05_detail_qwen06
+        else -> return model.detail
+    })
+
     private val handler = Handler(Looper.getMainLooper())
     private var pendingImport: DialogueModelId? = null
     private lateinit var feedback: TextView
@@ -136,7 +145,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             card.addView(actions, UiDesign.spaceAfter(this, 8))
             card.addView(select, UiDesign.spaceAfter(this, 8))
             val detail = UiDesign.caption(this,
-                model.detail + "\n\n" +
+                localizedModelDetail(model) + "\n\n" +
                     getString(R.string.models_ui_detail_size,
                         checkNotNull(model.spec.expectedBytes) / 1_000_000) + "\n" +
                     getString(R.string.models_ui_detail_runtime,

@@ -549,4 +549,26 @@
     <string name="skills_ux05_version_restore">Select / restore version %1$s</string>
     <string name="skills_ux05_version_restored">Saved version selected.</string>
     <string name="skills_ux05_warning">Important: skills do not authorize tools or hangups. The app still validates model decisions.</string>
+
+    <!-- UX-05 model metadata and factory-skill UI labels -->
+    <string name="models_ux05_detail_e2b">Established model · Polish dialogue</string>
+    <string name="models_ux05_detail_e4b">Larger model · higher memory usage</string>
+    <string name="models_ux05_detail_qwen17">Lightweight text model · INT4</string>
+    <string name="models_ux05_detail_qwen06">Smallest model · experimental · INT4</string>
+    <string name="models_ux05_channel">Model downloads</string>
+    <string name="models_ux05_prepare">Preparing model…</string>
+    <string name="models_ux05_verify">%1$s: checking SHA-256 during installation</string>
+    <string name="models_ux05_installed">%1$s: installed and SHA-256 verified. Ready to select.</string>
+    <string name="models_ux05_cancelled">Cancelled. The previous model was preserved.</string>
+    <string name="models_ux05_notification">AI Calls language models</string>
+    <string name="skills_ux05_section_style">Conversation style</string>
+    <string name="skills_ux05_section_message">Message handling</string>
+    <string name="skills_ux05_section_closure">Conversation closure</string>
+    <string name="skills_ux05_default_natural">Natural receptionist</string>
+    <string name="skills_ux05_default_formal">Formal receptionist</string>
+    <string name="skills_ux05_default_message">Message capture</string>
+    <string name="skills_ux05_name_style">Speaking style</string>
+    <string name="skills_ux05_name_capture">Taking messages</string>
+    <string name="skills_ux05_name_clarify">Clarifying questions</string>
+    <string name="skills_ux05_name_closure">Natural closure</string>
 </resources>

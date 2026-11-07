@@ -80,7 +80,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             val unavailable = mutableListOf<View>()
             for (choice in choices) {
                 if (!choice.integrated && choice.id != selected) {
-                    val info = UiDesign.caption(this, choice.title + " · " + choice.languageTag +
+                    val info = UiDesign.caption(this, choice.title + " · " + localizedLanguageTag(choice.languageTag) +
                         " — " + localizedDetail(choice)).apply {
                         setTextColor(UiDesign.secondary)
                         visibility = View.GONE
@@ -92,7 +92,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
                 val button = RadioButton(this).apply {
                     id = View.generateViewId()
-                    text = choice.title + " · " + choice.languageTag +
+                    text = choice.title + " · " + localizedLanguageTag(choice.languageTag) +
                         if (choice.integrated) "" else "\n" + getString(R.string.eng_ui_unavailable_detail, localizedDetail(choice))
                     isEnabled = choice.integrated
                     tag = choice.id
@@ -197,6 +197,9 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         refreshActive()
     }
 
+    private fun localizedLanguageTag(tag: String): String =
+        if (tag == "brak pl-PL") getString(R.string.eng_ui_registry_missing_pl) else tag
+
     /** UI-only labels: engine registry remains the single owner of technical capabilities. */
     private fun localizedDetail(choice: AudioEngineChoice): String = when (choice.id) {
         "ANDROID_STT" -> getString(R.string.eng_ui_registry_android_stt)
@@ -204,6 +207,10 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         "GEMMA_AUDIO_DIRECT" -> getString(R.string.eng_ui_registry_direct)
         "ANDROID_TTS_PL" -> getString(R.string.eng_ui_registry_android_tts)
         "PIPER_PL" -> getString(R.string.eng_ui_registry_piper)
+        "GEMMA_4_E2B" -> getString(R.string.models_ux05_detail_e2b)
+        "GEMMA_4_E4B" -> getString(R.string.models_ux05_detail_e4b)
+        "QWEN_3_1_7B" -> getString(R.string.models_ux05_detail_qwen17)
+        "QWEN_3_0_6B" -> getString(R.string.models_ux05_detail_qwen06)
         "KOKORO", "POCKET_TTS" -> getString(R.string.eng_ui_registry_no_polish)
         else -> choice.detail
     }

@@ -12,6 +12,7 @@ import java.io.FilterInputStream
 import java.io.InterruptedIOException
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
+import pl.michalmatu.aicallbridge.R
 
 /** One app-owned transfer survives activity recreation. Never selects a model or starts a call. */
 internal class LanguageModelTransferService : Service() {
@@ -23,7 +24,7 @@ internal class LanguageModelTransferService : Service() {
     override fun onCreate() {
         super.onCreate()
         getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL, "Pobieranie modeli", NotificationManager.IMPORTANCE_LOW),
+            NotificationChannel(CHANNEL, getString(R.string.models_ux05_channel), NotificationManager.IMPORTANCE_LOW),
         )
     }
 
@@ -33,7 +34,7 @@ internal class LanguageModelTransferService : Service() {
             downloader?.cancel()
             return START_NOT_STICKY
         }
-        startForeground(NOTIFICATION, notification("Przygotowanie modelu…"))
+        startForeground(NOTIFICATION, notification(getString(R.string.models_ux05_prepare)))
         if (operationGate.state() != Gemma4ModelOperationState.IDLE) return START_NOT_STICKY
         val id = DialogueModelId.entries.firstOrNull { it.name == intent?.getStringExtra(MODEL) }
         if (id == null) {
@@ -45,7 +46,7 @@ internal class LanguageModelTransferService : Service() {
         val uri = intent?.getStringExtra(URI)?.let(Uri::parse)
         if (uri == null) operationGate.tryBeginDownload() else operationGate.tryBeginImport()
         cancelled = false
-        status = TransferStatus(id, true, 0, "${model.title}: weryfikacja SHA-256 przy instalacji")
+        status = TransferStatus(id, true, 0, getString(R.string.models_ux05_verify, model.title))
         executor.execute {
             val result = try {
                 if (uri == null) {
@@ -76,8 +77,8 @@ internal class LanguageModelTransferService : Service() {
             }
             downloader = null
             val message = when {
-                result is Gemma4ModelInstallResult.Success -> "${model.title}: zainstalowany, SHA-256 zgodny. Możesz go wybrać."
-                cancelled -> "Anulowano. Poprzedni model pozostał na miejscu."
+                result is Gemma4ModelInstallResult.Success -> getString(R.string.models_ux05_installed, model.title)
+                cancelled -> getString(R.string.models_ux05_cancelled)
                 result is Gemma4ModelInstallResult.Failure -> "${model.title}: ${result.reason}"
                 else -> error("unknown_install_result")
             }
@@ -99,7 +100,7 @@ internal class LanguageModelTransferService : Service() {
 
     private fun notification(message: String): Notification = Notification.Builder(this, CHANNEL)
         .setSmallIcon(android.R.drawable.stat_sys_download)
-        .setContentTitle("Modele językowe AI Calls").setContentText(message)
+        .setContentTitle(getString(R.string.models_ux05_notification)).setContentText(message)
         .setContentIntent(PendingIntent.getActivity(this, 0, Intent(this, LanguageModelActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
         .setOngoing(true).build()
