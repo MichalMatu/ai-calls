@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.conversation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiSelect
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -56,10 +57,9 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             if (library.active.isFactory) "fabryczny" else "własny", 18f))
         val options = library.presets
         val picker = Spinner(this).apply {
-            adapter = ArrayAdapter(this@ConversationSkillsActivity,
-                android.R.layout.simple_spinner_dropdown_item, options.map {
-                    it.name + if (it.isFactory) " (fabryczny)" else " (własny)"
-                })
+            UiSelect.setOptions(this, options.map {
+                it.name + if (it.isFactory) " (fabryczny)" else " (własny)"
+            })
             setSelection(options.indexOfFirst { it.id == library.activePresetId })
         }
         content.addView(picker)
@@ -149,9 +149,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     })
                     val versions = skill.revisions.sortedByDescending { it.version }
                     val revisionPicker = Spinner(this).apply {
-                        adapter = ArrayAdapter(this@ConversationSkillsActivity,
-                            android.R.layout.simple_spinner_dropdown_item,
-                            versions.map { "Wersja " + it.version })
+                        UiSelect.setOptions(this, versions.map { "Wersja " + it.version })
                         setSelection(versions.indexOfFirst { it.version == activeVersion }.coerceAtLeast(0))
                     }
                     content.addView(revisionPicker)

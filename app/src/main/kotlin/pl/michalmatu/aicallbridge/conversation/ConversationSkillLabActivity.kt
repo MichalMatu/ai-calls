@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.conversation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.ui.UiSelect
 import android.app.Activity
 import android.os.Bundle
@@ -30,6 +31,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var status: TextView
     private lateinit var output: TextView
     private lateinit var runButton: Button
+    private lateinit var stopButton: Button
+    private lateinit var ratingGroup: LinearLayout
     private lateinit var naturalness: Spinner
     private var lastObservations: List<SkillLabObservation> = emptyList()
 
@@ -38,14 +41,14 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 36))
+            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 20), UiDesign.dp(this@ConversationSkillLabActivity, 20), UiDesign.dp(this@ConversationSkillLabActivity, 20), UiDesign.dp(this@ConversationSkillLabActivity, 28))
         }
-        content.addView(TextView(this).apply { text = "Laboratorium skillsów"; textSize = 23f })
-        content.addView(TextView(this).apply {
-            text = "Wieloturowe scenariusze syntetyczne na wybranym lokalnym modelu. " +
-                "Brak połączeń telefonicznych, STT, TTS i wykonania END_CALL. " +
-                "Porównuj te same scenariusze między presetami. Wyniki są tylko w pamięci tego ekranu."
-        })
+        content.addView(UiDesign.heading(this, "Laboratorium skillsów").apply {
+            textSize = 23f
+        }, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this,
+            "Wieloturowy test lokalnego modelu. Bez połączeń i wykonywania narzędzi AI."
+        ), UiDesign.spaceAfter(this, 20))
         val library = try { AndroidConversationPreparationStore(this).loadSkillLibrary() }
         catch (error: Exception) {
             setContentView(TextView(this).apply { text = "Błąd biblioteki: " + error.javaClass.simpleName })
@@ -56,30 +59,44 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             UiSelect.setOptions(this, presets.map { it.name })
             setSelection(presets.indexOfFirst { it.id == library.activePresetId })
         }
-        content.addView(picker)
-        runButton = Button(this).apply {
-            text = "Uruchom testy wieloturowe bez połączenia"
-            setOnClickListener { runLab(presets[picker.selectedItemPosition].id) }
+        content.addView(UiDesign.caption(this, "Preset"), UiDesign.spaceAfter(this, 8))
+        content.addView(picker, UiDesign.spaceAfter(this, 16))
+        runButton = UiDesign.action(this, "Uruchom test offline", UiActionTone.PRIMARY) {
+            runLab(presets[picker.selectedItemPosition].id)
         }
-        content.addView(runButton)
-        content.addView(Button(this).apply {
-            text = "Zatrzymaj test"
-            setOnClickListener { stopLab(); status.text = "Anulowano test. Nie uruchomiono telefonu." }
-        })
-        status = TextView(this).apply { text = "Gotowe. Model wybierany jest w ustawieniach silników." }
-        output = TextView(this)
-        content.addView(status)
-        content.addView(TextView(this).apply {
-            text = "Ocena naturalności — ręczna (1: nienaturalna, 5: bardzo naturalna)."
-        })
+        content.addView(runButton, UiDesign.spaceAfter(this, 12))
+        stopButton = UiDesign.action(this, "Zatrzymaj test", UiActionTone.DANGER) {
+            stopLab()
+            status.text = "Anulowano test. Nie uruchomiono telefonu."
+            stopButton.visibility = android.view.View.GONE
+        }.apply { visibility = android.view.View.GONE; tag = "lab-stop" }
+        content.addView(stopButton, UiDesign.spaceAfter(this, 12))
+        status = UiDesign.caption(this, "Gotowe. Model wybrano w ustawieniach silników.").apply {
+            tag = "lab-status"
+        }
+        content.addView(status, UiDesign.spaceAfter(this, 16))
+        output = TextView(this).apply {
+            setTextColor(UiDesign.ink)
+            textSize = 14f
+        }
+        ratingGroup = UiDesign.card(this).apply {
+            tag = "lab-rating-group"
+            visibility = android.view.View.GONE
+            addView(UiDesign.heading(this@ConversationSkillLabActivity, "Ocena naturalności").apply {
+                textSize = 17f
+            }, UiDesign.spaceAfter(this@ConversationSkillLabActivity, 8))
+            addView(UiDesign.caption(this@ConversationSkillLabActivity,
+                "Ręczna ocena: 1 — nienaturalna, 5 — bardzo naturalna."
+            ), UiDesign.spaceAfter(this@ConversationSkillLabActivity, 8))
+        }
         naturalness = Spinner(this).apply {
             UiSelect.setOptions(this, listOf("Bez oceny", "1", "2", "3", "4", "5"))
         }
-        content.addView(naturalness)
-        content.addView(Button(this).apply {
-            text = "Zastosuj ocenę naturalności"
-            setOnClickListener { if (lastObservations.isNotEmpty()) showMetrics() }
+        ratingGroup.addView(naturalness, UiDesign.spaceAfter(this, 12))
+        ratingGroup.addView(UiDesign.action(this, "Zastosuj ocenę") {
+            if (lastObservations.isNotEmpty()) showMetrics()
         })
+        content.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
         content.addView(output)
         setContentView(ScrollView(this).apply { addView(content) })
     }
@@ -91,6 +108,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         naturalness.setSelection(0)
         output.text = ""
         runButton.isEnabled = false
+        stopButton.visibility = android.view.View.VISIBLE
+        ratingGroup.visibility = android.view.View.GONE
         status.text = "Uruchamianie modelu offline…"
         worker = Thread({
             val observed = mutableListOf<SkillLabObservation>()
@@ -139,6 +158,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                     if (!isDestroyed && !cancelled.get()) {
                         lastObservations = observed.toList()
                         showMetrics()
+                        ratingGroup.visibility = android.view.View.VISIBLE
                         status.text = "Test zakończony. Żadnego END_CALL nie wykonano."
                     }
                 }
@@ -148,7 +168,12 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                         status.text = "Test przerwany: " + (error.message ?: error.javaClass.simpleName)
                 }
             } finally {
-                runOnUiThread { if (!isDestroyed) runButton.isEnabled = true }
+                runOnUiThread {
+                    if (!isDestroyed) {
+                        runButton.isEnabled = true
+                        stopButton.visibility = android.view.View.GONE
+                    }
+                }
             }
         }, "aicalls-skills-lab").apply { start() }
     }
