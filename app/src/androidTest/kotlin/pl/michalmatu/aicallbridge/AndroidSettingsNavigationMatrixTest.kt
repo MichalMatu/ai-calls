@@ -16,6 +16,8 @@ import org.junit.runner.RunWith
 import org.junit.Test
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
+import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
+import pl.michalmatu.aicallbridge.ui.DeveloperToolsActivity
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
@@ -93,6 +95,8 @@ class AndroidSettingsNavigationMatrixTest {
         val beforeIncoming = IncomingAssistantPolicyStore(context).preferences.all.toMap()
         val beforeSkills = AndroidConversationPreparationStore(context).loadSkillLibrary()
 
+        assertScreen(GeneralSettingsActivity::class.java, "Podstawowe")
+        assertScreen(DeveloperToolsActivity::class.java, "Sondy")
         assertScreen(AudioEngineSettingsActivity::class.java, "Ustawienia silników audio AI")
         assertScreen(LanguageModelActivity::class.java, "Modele językowe")
         assertScreen(IncomingAssistantSettingsActivity::class.java, "Odbieranie połączeń")
