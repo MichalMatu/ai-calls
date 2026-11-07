@@ -70,10 +70,18 @@ class Sprint6UXContract(unittest.TestCase):
 
     def test_campaign_hides_targeted_disconnect_code_but_preserves_diagnostics(self):
         s = self.read("campaign/CampaignToolActivity.kt")
-        self.assertIn('raw.contains("targeted_disconnect_requested")', s)
-        self.assertIn("campaign_ui_disconnect_requested", s)
+        presenter = self.read("campaign/CampaignExecutionStatusPresenter.kt")
+        self.assertIn("CampaignExecutionStatusPresenter.present(", s)
+        self.assertIn("screen.summary", s)
         self.assertIn("campaign_ui_last_history", s)
         self.assertIn("diagnosticStatus.text = listOfNotNull", s)
+        self.assertIn("evidenceStatus, runtimeStatus", s)
+        self.assertIn('DISCONNECT_REQUESTED = "targeted_disconnect_requested"', presenter)
+        self.assertIn("CampaignExecutionMeaning.REQUESTED", presenter)
+        self.assertIn("CampaignExecutionMeaning.CONFIRMED", presenter)
+        self.assertIn("CampaignExecutionMeaning.UNVERIFIED", presenter)
+        self.assertNotIn('raw.contains("targeted_disconnect_requested")', s)
+        self.assertNotIn("lastExecutionStatus.text = raw", s)
 
     def test_resource_parity_and_format_specifiers(self):
         dictionaries = []
