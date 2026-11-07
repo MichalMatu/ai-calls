@@ -24,6 +24,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
+import pl.michalmatu.aicallbridge.campaign.CampaignAuthorizationStore
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotFailure
 import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallReadinessDiagnostics
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
@@ -33,6 +34,7 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
 class MainActivity : AppBaseActivity() {
     private lateinit var statusView: TextView
+    private lateinit var taskStatusView: TextView
     private lateinit var runtimePreferences: CallRuntimePreferences
     private lateinit var selectedAudioMode: CallAudioMode
     private lateinit var selectedTextLlmProvider: TextLlmProvider
@@ -54,6 +56,14 @@ class MainActivity : AppBaseActivity() {
             background = roundedSurface(Color.rgb(234, 243, 253))
             setPadding(dp(14), dp(12), dp(14), dp(12))
             setTextIsSelectable(true)
+        }
+        taskStatusView = TextView(this).apply {
+            tag = "home-task-authorization"
+            text = taskAuthorizationSummary()
+            textSize = 13f
+            setTextColor(Color.rgb(39, 58, 83))
+            background = roundedSurface(Color.WHITE)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
         }
         developerProbes = MainActivityDeveloperProbes(this, statusView)
 
@@ -134,6 +144,10 @@ class MainActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = dp(14) })
+            addView(taskStatusView, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(12) })
             addView(startAuthorizedTaskButton)
             val actions = LinearLayout(this@MainActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -204,6 +218,7 @@ class MainActivity : AppBaseActivity() {
         super.onResume()
         val current = runtimePreferences.load()
         val selected = pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore(this).load()?.dialogue
+        taskStatusView.text = taskAuthorizationSummary()
         if (selected != displayedModel ||
             current.audioMode != selectedAudioMode ||
             current.textLlmProvider != selectedTextLlmProvider) {
@@ -217,6 +232,17 @@ class MainActivity : AppBaseActivity() {
     override fun onDestroy() {
         if (::developerProbes.isInitialized) developerProbes.close()
         super.onDestroy()
+    }
+
+    private fun taskAuthorizationSummary(): String {
+        val grant = runCatching { CampaignAuthorizationStore(this).load() }.getOrNull()
+        val state = when {
+            grant == null -> getString(R.string.home_ui_task_none)
+            grant.revokedAtEpochMs != null -> getString(R.string.home_ui_task_revoked)
+            else -> getString(R.string.home_ui_task_authorized)
+        }
+        return getString(R.string.home_ui_task_heading) + "\n" + state + "\n" +
+            getString(R.string.home_ui_task_hint)
     }
 
     private fun runtimeSelectionSummary(): String = buildString {
