@@ -1,7 +1,6 @@
 package pl.michalmatu.aicallbridge
 
 import android.app.Activity
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.view.View
 import android.view.ViewGroup
@@ -56,7 +55,7 @@ class AndroidUx05ScreenshotMatrixTest {
 
     @Test fun captureCurrentLocaleWithoutChangingPreferences() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val locale = instrumentation.arguments.getString("ux05Locale")
+        val locale = InstrumentationRegistry.getArguments().getString("ux05Locale")
         assertTrue("locale_argument_required", locale == "pl" || locale == "en")
         val target = instrumentation.targetContext
         val directory = requireNotNull(target.getExternalFilesDir("ui-audit-ux05"))
