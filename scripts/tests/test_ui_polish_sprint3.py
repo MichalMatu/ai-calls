@@ -42,7 +42,7 @@ class UxSprint3Contract(unittest.TestCase):
         screen = (ROOT/"app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/AndroidVisualPolishAuditTest.kt").read_text()
         self.assertIn("save.isEnabled = false", tools)
         self.assertIn("getGlobalVisibleRect", screen)
-        self.assertIn("ui-audit-20261107-sprint5", screen)
+        self.assertIn("ui-audit-20261107-sprint6", screen)
         self.assertIn("campaign_section_not_expanded", screen)
 
     def test_primary_ui_resource_names_match_pl_and_en(self):
