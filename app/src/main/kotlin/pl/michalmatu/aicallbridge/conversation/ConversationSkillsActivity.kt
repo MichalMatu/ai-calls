@@ -12,6 +12,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.*
+import android.view.View
 import pl.michalmatu.aicallbridge.R
 
 /** Edits prompt-only skills and revision-pinned presets. Never starts a call or changes a grant. */
@@ -62,7 +63,8 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             textSize = 23f
         }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.caption(this,
-            getString(R.string.skills_ui_intro) + getString(R.string.skills_ui_intro2)),
+            getString(R.string.skills_ui_intro).trim() + "\n\n" +
+                getString(R.string.skills_ui_intro2).trim()),
             UiDesign.spaceAfter(this, 14))
         val activeCard = UiDesign.card(this, 12)
         activeCard.addView(UiDesign.caption(this, getString(R.string.skills_ui_active).trim()))
@@ -74,20 +76,33 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val picker = Spinner(this).apply {
             tag = "skills-preset-picker"
             UiSelect.setOptions(this, options.map {
-                it.name + if (it.isFactory) " (fabryczny)" else " (własny)"
+                it.name + " (" + getString(if (it.isFactory) R.string.skills_ui_factory else R.string.skills_ui_custom) + ")"
             })
             setSelection(options.indexOfFirst { it.id == library.activePresetId })
         }
         content.addView(picker, UiDesign.spaceAfter(this, 8))
-        content.addView(Button(this).apply {
-            text = getString(R.string.skills_ui_activate)
-            UiDesign.styleAction(this, UiActionTone.PRIMARY)
-            setOnClickListener {
-                applyChange(library.select(options[picker.selectedItemPosition].id),
-                    "Zmieniono preset dla następnych rozmów.")
+        val activate = UiDesign.action(this, getString(R.string.skills_ui_activate),
+            UiActionTone.PRIMARY) {
+            val selected = options.getOrNull(picker.selectedItemPosition) ?: return@action
+            if (selected.id != library.activePresetId) {
+                applyChange(library.select(selected.id),
+                    getString(R.string.skills_ui_activated_feedback))
             }
-        }, UiDesign.spaceAfter(this, 8))
-        content.addView(Button(this).apply {
+        }.apply {
+            tag = "skills-activate"
+            isEnabled = options.getOrNull(picker.selectedItemPosition)?.id != library.activePresetId
+        }
+        picker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                activate.isEnabled = options.getOrNull(position)?.id != library.activePresetId
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) { activate.isEnabled = false }
+        }
+        content.addView(activate, UiDesign.spaceAfter(this, 8))
+        val secondaryActions = UiDesign.card(this, 12).apply {
+            tag = "skills-secondary-actions"
+        }
+        secondaryActions.addView(Button(this).apply {
             text = getString(R.string.skills_ui_copy)
             UiDesign.styleAction(this, UiActionTone.SECONDARY)
             setOnClickListener {
@@ -106,14 +121,14 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     }.show()
             }
         }, UiDesign.spaceAfter(this, 8))
-        content.addView(Button(this).apply {
+        secondaryActions.addView(Button(this).apply {
             text = getString(R.string.skills_ui_lab)
             UiDesign.styleAction(this, UiActionTone.SECONDARY)
             setOnClickListener {
                 startActivity(Intent(this@ConversationSkillsActivity, ConversationSkillLabActivity::class.java))
             }
         }, UiDesign.spaceAfter(this, 8))
-        content.addView(Button(this).apply {
+        secondaryActions.addView(Button(this).apply {
             text = getString(R.string.skills_ui_preview)
             UiDesign.styleAction(this, UiActionTone.SECONDARY)
             setOnClickListener {
@@ -125,7 +140,8 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                         ConversationResponseFormat.TOOL_REPLY))
                     .setPositiveButton("OK", null).show()
             }
-        }, UiDesign.spaceAfter(this, 16))
+        })
+        content.addView(secondaryActions, UiDesign.spaceAfter(this, 14))
         if (message.isNotBlank()) content.addView(UiDesign.caption(this, message),
             UiDesign.spaceAfter(this, 8))
         if (library.active.isFactory) content.addView(UiDesign.heading(this,
