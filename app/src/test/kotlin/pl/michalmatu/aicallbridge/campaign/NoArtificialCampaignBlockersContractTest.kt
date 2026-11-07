@@ -76,7 +76,7 @@ class NoArtificialCampaignBlockersContractTest {
         val executor = source("campaign/AppOwnedClirCampaignExecutor.kt")
         val recorder = source("developerrelay/CallSessionEvidenceRecorder.kt")
         assertTrue(ui.contains("recordCallEvidence = recordEvidenceChoice.isChecked"))
-        assertTrue(Regex("""addView\\s*\\(\\s*recordEvidenceChoice\\s*[,)]""").containsMatchIn(ui))
+        assertTrue(Regex("""addView\s*\(\s*recordEvidenceChoice\s*[,)]""").containsMatchIn(ui))
         assertTrue(ui.contains("campaign-primary-actions"))
         assertTrue(store.contains("preferences.getBoolean(KEY_RECORD_CALL_EVIDENCE, false)"))
         assertTrue(store.contains("fun disableEvidenceRecording()"))
