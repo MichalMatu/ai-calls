@@ -281,9 +281,15 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                                 utterance: String, completedBefore: Int) {
         status.text = getString(R.string.lab_ui_waiting, completedBefore + 1, allTurns)
         currentTurn.text = getString(R.string.lab_ui_working_on, story, index)
+        if (index == 1) {
+            timeline.addView(UiDesign.heading(this, story).apply {
+                textSize = 17f
+                tag = "lab-story:" + storyIndex
+            }, UiDesign.spaceAfter(this, 8))
+        }
         val card = UiDesign.card(this, 12).apply { tag = "lab-turn:" + storyIndex + ":" + index }
-        card.addView(UiDesign.heading(this, getString(R.string.lab_ui_turn_header,
-            story, index)).apply { textSize = 15f }, UiDesign.spaceAfter(this, 8))
+        card.addView(UiDesign.heading(this, getString(R.string.lab_ui_turn_short,
+            index)).apply { textSize = 15f }, UiDesign.spaceAfter(this, 8))
         card.addView(UiDesign.caption(this, getString(R.string.lab_ui_input)),
             UiDesign.spaceAfter(this, 4))
         card.addView(TextView(this).apply {
