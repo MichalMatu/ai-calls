@@ -1,3 +1,11 @@
+# GENERAL REPOSITORY AUDIT — source fix i bieżąca bramka (2026-11-07)
+
+**Wejście po ostatnim general audit:** baseline `main@1517bda`, źródłowy fix `bbb2ceb9` (`ScenarioPersonalLibrary.revised`: normalizuj tytuł/cel przed no-op compare). RED Mac `aicalls-general-audit-scenario-revision-red-20261107-v1`: 5 testów, 1 przewidywany FAIL; izolowany Linux Sandbox 5/5 GREEN. Zadania pełnego host QA `aicalls-general-audit-scenario-green-full-host-20261107-v1` i analizy pełnego drzewa `aicalls-general-audit-source-matrix-20261107-v1` były zlecone; **ich wyniki należy sprawdzić w task-results i oznaczyć QA_PENDING, dopóki nie ma dokładnego receipt**.
+
+[Checkpoint general audit](checkpoints/2026-11-07-general-repository-audit-sprint.md) · [bieżący NEXT_CHAT](NEXT_CHAT_PROMPT.md). Dokumentacja README / indeks / next prompt uaktualniona. Do sprawdzenia: aktualny `main` HEAD, clean Mac po dokumentacyjnych commitach, finalny wynik pełnego `verify_host.sh` i friction. **Nie deklarować nowego S22 PASS ani rzeczywistego CLIR**. Ostatni sprzętowy UX-06 pozostaje `25a41a0` / 10/10 syntetycznych UI. F-122, F-123, F-124 i F-080 nadal OPEN. Nie powtarzać poprzednich zielonych UX iteracji.
+
+---
+
 # UX-06 — obowiązujący checkpoint i tryb USER_DIRECTED (2026-11-07)
 
 **Stan:** sprawdzony source `25a41a0` HOST_PASS (341/341 Python i pełny Gradle/JVM/lint/APK); S22 `SM-S906B` zainstalowany bez wipe, syntetyczne UI/prywatny zapis 10/10 PASS, IDLE przed/po. **Nie wykonywano rzeczywistych połączeń ani ręcznej oceny TalkBack.** [Kompletny checkpoint](checkpoints/2026-11-07-ux06-complete-checkpoint-user-directed-next-chat.md) oraz [gotowy prompt](UX06_NEXT_CHAT_PROMPT.md).
