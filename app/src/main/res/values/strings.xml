@@ -246,12 +246,12 @@
     <string name="camp_ui_enable">Włącz CLIR</string>
     <string name="camp_ui_cancel_task">Anuluj zadanie</string>
     <string name="camp_ui_stop">STOP AI</string>
-    <string name="camp_ui_dialer">Rola dialera i ustawienia</string>
+    <string name="camp_ui_dialer">Autonomiczne połączenia telefoniczne</string>
     <string name="camp_ui_role_button">Włącz autonomiczne połączenia (rola dialera Android)</string>
     <string name="camp_ui_skills">Skills i dane rozmowy</string>
-    <string name="camp_ui_supervised">Test AI w bieżącej rozmowie</string>
+    <string name="camp_ui_supervised">AI w trwającej rozmowie</string>
     <string name="camp_ui_evidence">Prywatna diagnostyka rozmowy</string>
-    <string name="camp_ui_disable_record">Wyłącz nagrywanie w zatwierdzonej kampanii</string>
+    <string name="camp_ui_disable_record">Wyłącz zapis kolejnych prób</string>
     <string name="camp_ui_play_ai">Odsłuchaj ostatnią odpowiedź AI (tylko poza rozmową)</string>
     <string name="camp_ui_play_rx">Odsłuchaj ostatnią wypowiedź rozmówcy (tylko poza rozmową)</string>
     <string name="camp_ui_transcript">Pokaż transkrypt obu stron (odśwież ręcznie)</string>
@@ -504,8 +504,8 @@
     <string name="pilot_ui_stopping">Zatrzymuję audio AI. Połączenie telefoniczne pozostaje aktywne.</string>
 
     <!-- UX-05 localized campaign presentation -->
-    <string name="camp_ux05_record_local">Zapisuj RX/TX i transkrypcje tego zadania (lokalnie)</string>
-    <string name="camp_ux05_attach_ai">Uruchom AI w trwającej rozmowie</string>
+    <string name="camp_ux05_record_local">Zapisz audio RX/TX i transkrypt następnej próby (lokalnie)</string>
+    <string name="camp_ux05_attach_ai">Dołącz AI do trwającej rozmowy</string>
     <string name="camp_ux05_record_disabled">Nagrywanie wyłączone dla kolejnych rozmów. Zadanie pozostaje autoryzowane.</string>
     <string name="camp_ux05_prep_caption">Profile przygotowania są niezależne od zadania i jego uprawnień. Zmiany obowiązują w kolejnej próbie.</string>
     <string name="camp_ux05_prep_link">Skills i dane — wychodzące / przychodzące</string>
@@ -571,4 +571,10 @@
     <string name="skills_ux05_name_capture">Przyjmowanie wiadomości</string>
     <string name="skills_ux05_name_clarify">Dopytywanie</string>
     <string name="skills_ux05_name_closure">Naturalne zakończenie</string>
+    <string name="camp_ux06_dialer_explanation">Rola domyślnej aplikacji telefonicznej pozwala AI Calls wykonywać i obsługiwać własne autoryzowane połączenia. Jej nadanie zastępuje dotychczasowy dialer, ale samo nie uruchamia rozmowy. W dowolnym momencie możesz przywrócić poprzedni dialer w ustawieniach Androida.</string>
+    <string name="camp_ux06_role_inactive">Nieaktywna — AI Calls nie jest domyślnym dialerem. Autoryzowane połączenia wychodzące wymagają tej roli.</string>
+    <string name="camp_ux06_supervised_explanation">Dołącz AI do już trwającej rozmowy komórkowej w ograniczonym teście audio. Funkcja nie wybiera numeru ani nie rozłącza rozmowy. STOP kończy działanie AI.</string>
+    <string name="camp_ux06_recording_scope">Dotyczy następnej próby kampanii wychodzącej. Wyłączenie przyszłego nagrywania nie zatrzymuje rejestratora już trwającej rozmowy. Do zatrzymania sesji AI służy STOP.</string>
+    <string name="camp_ux06_diagnostic_recording">Zgoda na zapis kolejnych prób kampanii: %1$s</string>
+    <string name="camp_ux06_diagnostic_event">Ostatni komunikat serwisu (historyczny, nie na żywo):\n%1$s</string>
 </resources>

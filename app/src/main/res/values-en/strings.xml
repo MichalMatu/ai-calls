@@ -246,12 +246,12 @@
     <string name="camp_ui_enable">Enable CLIR</string>
     <string name="camp_ui_cancel_task">Cancel task</string>
     <string name="camp_ui_stop">STOP AI</string>
-    <string name="camp_ui_dialer">Dialer role and settings</string>
+    <string name="camp_ui_dialer">Autonomous phone calls</string>
     <string name="camp_ui_role_button">Enable autonomous calling (Android dialer role)</string>
     <string name="camp_ui_skills">Skills and conversation data</string>
-    <string name="camp_ui_supervised">AI test during a current call</string>
+    <string name="camp_ui_supervised">AI in an existing call</string>
     <string name="camp_ui_evidence">Private call diagnostics</string>
-    <string name="camp_ui_disable_record">Disable recording for approved campaign</string>
+    <string name="camp_ui_disable_record">Disable recording for future attempts</string>
     <string name="camp_ui_play_ai">Play latest AI response (off-call only)</string>
     <string name="camp_ui_play_rx">Play latest caller audio (off-call only)</string>
     <string name="camp_ui_transcript">Show both sides of transcript (refresh manually)</string>
@@ -504,8 +504,8 @@
     <string name="pilot_ui_stopping">Stopping AI audio. The phone call remains active.</string>
 
     <!-- UX-05 localized campaign presentation -->
-    <string name="camp_ux05_record_local">Save RX/TX and transcripts for this task (locally)</string>
-    <string name="camp_ux05_attach_ai">Attach AI to an active call</string>
+    <string name="camp_ux05_record_local">Record RX/TX and transcripts of the next attempt (locally)</string>
+    <string name="camp_ux05_attach_ai">Attach AI to the ongoing call</string>
     <string name="camp_ux05_record_disabled">Recording disabled for future calls. Task remains authorized.</string>
     <string name="camp_ux05_prep_caption">Preparation profiles are separate from task permissions. Changes apply to the next attempt.</string>
     <string name="camp_ux05_prep_link">Skills and data — outgoing / incoming</string>
@@ -571,4 +571,10 @@
     <string name="skills_ux05_name_capture">Taking messages</string>
     <string name="skills_ux05_name_clarify">Clarifying questions</string>
     <string name="skills_ux05_name_closure">Natural closure</string>
+    <string name="camp_ux06_dialer_explanation">The Android default dialer role lets AI Calls place and manage its own authorized phone calls. Granting the role replaces the current default phone app; it never starts a call by itself. Restore your previous dialer in Android settings at any time.</string>
+    <string name="camp_ux06_role_inactive">Inactive — AI Calls is not the default dialer. Authorized outgoing calls require the role.</string>
+    <string name="camp_ux06_supervised_explanation">Attach AI to an already active cellular call for a limited supervised audio test. This does not dial or disconnect the call. STOP ends AI audio.</string>
+    <string name="camp_ux06_recording_scope">Applies to the next outgoing campaign attempt. Turning off future recording does not stop a recorder already active in a call. Use STOP to stop the AI session.</string>
+    <string name="camp_ux06_diagnostic_recording">Recording permission for future campaign attempts: %1$s</string>
+    <string name="camp_ux06_diagnostic_event">Latest service message (historical, not live):\n%1$s</string>
 </resources>

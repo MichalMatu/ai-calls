@@ -39,11 +39,16 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var statusView: TextView
     private lateinit var diagnosticStatus: TextView
     private lateinit var lastExecutionStatus: TextView
+    private lateinit var actionFeedback: TextView
+    private lateinit var dialerRoleStatus: TextView
+    private lateinit var disableEvidenceButton: Button
+    private var evidenceSelectionTouched = false
+    private var evidenceProgrammaticChange = false
     private val statusHandler = Handler(Looper.getMainLooper())
     private val lastExecutionRefresh = object : Runnable {
         override fun run() {
             if (::lastExecutionStatus.isInitialized && ::runtimeStatusStore.isInitialized) {
-                updateLastExecutionStatus()
+                refreshTaskStatus()
             }
             statusHandler.postDelayed(this, 1_000L)
         }
@@ -58,7 +63,13 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         super.onCreate(savedInstanceState)
         authorizationStore = CampaignAuthorizationStore(this)
         runtimeStatusStore = CampaignRuntimeStatusStore(this)
-
+        requestedStartMode = savedInstanceState?.getString("start_mode")
+            ?.let(CampaignDialogueMode::fromWire) ?: CampaignDialogueMode.SCRIPT_GEMMA
+        pendingAction = savedInstanceState?.getString("pending_action")?.let {
+            runCatching { PendingAction.valueOf(it) }.getOrNull()
+        }
+        continueStartAfterRole = savedInstanceState?.getBoolean("continue_start_after_role") ?: false
+        evidenceSelectionTouched = savedInstanceState?.getBoolean("recording_edited") ?: false
 
         statusView = TextView(this).apply {
             textSize = 16f
@@ -66,6 +77,15 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             setTextIsSelectable(true)
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             tag = "campaign-task-status"
+        }
+        actionFeedback = UiDesign.caption(this, "").apply {
+            tag = "campaign-action-feedback"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            setTextIsSelectable(true)
+        }
+        dialerRoleStatus = UiDesign.caption(this, "").apply {
+            tag = "campaign-dialer-role-status"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         diagnosticStatus = UiDesign.caption(this, "").apply {
             tag = "campaign-attempt-status"
@@ -98,7 +118,12 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         )) existing else null
         recordEvidenceChoice = CheckBox(this).apply {
             text = getString(R.string.camp_ux05_record_local)
-            isChecked = accepted?.recordCallEvidence == true
+            isChecked = if (evidenceSelectionTouched)
+                savedInstanceState?.getBoolean("recording_checked") ?: false
+            else accepted?.recordCallEvidence == true
+            setOnCheckedChangeListener { _, _ ->
+                if (!evidenceProgrammaticChange) evidenceSelectionTouched = true
+            }
         }
         val callRoleButton = Button(this).apply {
             text = getString(R.string.camp_ui_role_button)
@@ -128,15 +153,17 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                     Intent(this@CampaignToolActivity, AppOwnedCampaignService::class.java)
                         .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI),
                 )
-                statusView.text = getString(R.string.campaign_ui_stopping)
+                actionFeedback.text = getString(R.string.campaign_ui_stopping)
             }
         }
-        val disableEvidenceButton = Button(this).apply {
+        disableEvidenceButton = Button(this).apply {
             text = getString(R.string.camp_ui_disable_record)
             setOnClickListener {
                 val grant = authorizationStore.disableEvidenceRecording()
-                statusView.text = if (grant == null) getString(R.string.camp_ui_no_campaign) else
+                actionFeedback.text = if (grant == null) getString(R.string.camp_ui_no_campaign) else
                     getString(R.string.camp_ux05_record_disabled)
+                if (grant != null) evidenceSelectionTouched = false
+                refreshTaskStatus()
             }
         }
         val playbackButton = Button(this).apply {
@@ -156,7 +183,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             setOnClickListener {
                 val revoked = authorizationStore.revoke(System.currentTimeMillis())
                 CampaignAgentControl.stopOwnedCampaign(this@CampaignToolActivity)
-                statusView.text = if (revoked == null) {
+                actionFeedback.text = if (revoked == null) {
                     getString(R.string.camp_ui_no_accepted)
                 } else {
                     getString(R.string.camp_ui_revoked)
@@ -169,23 +196,35 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         UiDesign.styleAction(stopSupervisedAudioButton, UiActionTone.DANGER)
         UiDesign.styleAction(revokeButton, UiActionTone.REVOCATION)
 
-        // Keep campaign scope, start, STOP and revocation on the primary surface.
-        // All previously available setup and diagnostic actions remain one expansion away.
-        val dialerSection = UiAccordionSection(this, "dialer", getString(R.string.camp_ui_dialer)).apply {
-            addControl(callRoleButton)
+        // Configuration and supervised attach are direct, described actions rather than
+        // collapsed single-button categories. Keep the multi-action evidence accordion.
+        val dialerSection = UiDesign.card(this).apply {
+            tag = "campaign-dialer-card"
+            addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_dialer)),
+                UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+            addView(UiDesign.caption(this@CampaignToolActivity, getString(R.string.camp_ux06_dialer_explanation)),
+                UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+            addView(dialerRoleStatus, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+            addView(callRoleButton)
         }
-        // Optional prompt skills: model instructions, NOT privileged tool permissions.
-        // The exact authorized CLIR task, role and STOP remain app-owned.
-        val directSkillsSection = UiAccordionSection(this, "direct-prompt-skills", getString(R.string.camp_ui_skills)).apply {
-            addLabel(getString(R.string.camp_ux05_prep_caption))
-            addControl(Button(this@CampaignToolActivity).apply {
-                text = getString(R.string.camp_ux05_prep_link)
-                setOnClickListener { startActivity(Intent(this@CampaignToolActivity,
-                    pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java)) }
+        val directSkillsSection = UiDesign.card(this).apply {
+            tag = "campaign-skills-card"
+            addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_skills)),
+                UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+            addView(UiDesign.caption(this@CampaignToolActivity, getString(R.string.camp_ux05_prep_caption)),
+                UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+            addView(UiDesign.action(this@CampaignToolActivity, getString(R.string.camp_ux05_prep_link)) {
+                startActivity(Intent(this@CampaignToolActivity,
+                    pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java))
             })
         }
-        val supervisedSection = UiAccordionSection(this, "supervised", getString(R.string.camp_ui_supervised)).apply {
-            addControl(supervisedAudioButton)
+        val supervisedSection = UiDesign.card(this).apply {
+            tag = "campaign-supervised-card"
+            addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_supervised)),
+                UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+            addView(UiDesign.caption(this@CampaignToolActivity, getString(R.string.camp_ux06_supervised_explanation)),
+                UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+            addView(supervisedAudioButton)
         }
         val evidenceSection = UiAccordionSection(this, "evidence", getString(R.string.camp_ui_evidence)).apply {
             addControl(disableEvidenceButton)
@@ -209,6 +248,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 getString(R.string.campaign_ui_task_status)).apply { textSize = 17f },
                 UiDesign.spaceAfter(this@CampaignToolActivity, 8))
             addView(statusView, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+            addView(actionFeedback, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
             addView(lastExecutionStatus, UiDesign.spaceAfter(this@CampaignToolActivity, 14))
             addView(UiDesign.card(this@CampaignToolActivity).apply {
                 tag = "campaign-primary-actions"
@@ -222,7 +262,9 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                     getString(R.string.campaign_ui_dialogue_mode)),
                     UiDesign.spaceAfter(this@CampaignToolActivity, 8))
                 addView(dialoguePicker, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
-                addView(recordEvidenceChoice, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
+                addView(recordEvidenceChoice, UiDesign.spaceAfter(this@CampaignToolActivity, 4))
+                addView(UiDesign.caption(this@CampaignToolActivity, getString(R.string.camp_ux06_recording_scope)),
+                    UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(startButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(stopSupervisedAudioButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(revokeButton, UiDesign.spaceAfter(this@CampaignToolActivity, 8))
@@ -237,9 +279,15 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addView(dialerSection)
             addView(supervisedSection)
             addView(evidenceSection)
-            addView(UiAccordionSection(this@CampaignToolActivity, "campaign-attempt",
-                getString(R.string.campaign_ui_attempt_details)).apply {
-                addControl(diagnosticStatus)
+            addView(UiDesign.card(this@CampaignToolActivity).apply {
+                tag = "campaign-attempt-details"
+                addView(UiDesign.heading(this@CampaignToolActivity,
+                    getString(R.string.campaign_ui_attempt_details)),
+                    UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(UiDesign.caption(this@CampaignToolActivity,
+                    getString(R.string.campaign_ui_last_history)),
+                    UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(diagnosticStatus)
             })
         }
 
@@ -272,6 +320,15 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("start_mode", requestedStartMode.name)
+        pendingAction?.let { outState.putString("pending_action", it.name) }
+        outState.putBoolean("continue_start_after_role", continueStartAfterRole)
+        outState.putBoolean("recording_edited", evidenceSelectionTouched)
+        outState.putBoolean("recording_checked", recordEvidenceChoice.isChecked)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onResume() {
         super.onResume()
         refreshTaskStatus()
@@ -297,7 +354,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun showLatestTranscript() {
         val timeline = latestEvidenceDirectory()?.resolve("timeline.jsonl")
         if (timeline?.isFile != true) {
-            statusView.text = getString(R.string.camp_ux05_transcript_absent)
+            actionFeedback.text = getString(R.string.camp_ux05_transcript_absent)
             return
         }
         val lines = runCatching {
@@ -317,7 +374,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 }.toList()
             }
         }.getOrElse {
-            statusView.text = getString(R.string.camp_ux05_transcript_read_failed)
+            actionFeedback.text = getString(R.string.camp_ux05_transcript_read_failed)
             return
         }
         val transcript = lines.joinToString("\n\n")
@@ -339,19 +396,19 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun playLastRecordedAudio(direction: String) {
         require(direction == "rx" || direction == "tx")
         if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            statusView.text = getString(R.string.camp_ux05_play_permission)
+            actionFeedback.text = getString(R.string.camp_ux05_play_permission)
             return
         }
         val telecom = getSystemService(TelecomManager::class.java)
         if (runCatching { telecom == null || telecom.isInCall }.getOrDefault(true)) {
-            statusView.text = getString(R.string.camp_ux05_play_off_call)
+            actionFeedback.text = getString(R.string.camp_ux05_play_off_call)
             return
         }
         val audio = latestEvidenceDirectory()?.listFiles()?.filter {
             it.name.matches(Regex("turn-[0-9]{2}-$direction\\.wav"))
         }?.maxByOrNull { it.name }
         if (audio == null) {
-            statusView.text = getString(R.string.camp_ux05_audio_absent)
+            actionFeedback.text = getString(R.string.camp_ux05_audio_absent)
             return
         }
         runCatching {
@@ -365,12 +422,12 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }
             newPlayer.prepare()
             newPlayer.start()
-            statusView.text = getString(R.string.camp_ux05_audio_file,
+            actionFeedback.text = getString(R.string.camp_ux05_audio_file,
                 if (direction == "rx") getString(R.string.camp_ux05_counterpart_audio) else "AI", audio.name)
         }.onFailure {
             playback?.release()
             playback = null
-            statusView.text = getString(R.string.camp_ux05_play_failed)
+            actionFeedback.text = getString(R.string.camp_ux05_play_failed)
         }
     }
 
@@ -388,7 +445,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         val action = pendingAction
         pendingAction = null
         if (!allGranted) {
-            statusView.text = getString(R.string.camp_ux05_permission_denied)
+            actionFeedback.text = getString(R.string.camp_ux05_permission_denied)
             return
         }
         when (action) {
@@ -431,11 +488,11 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun requestPlatformCallRole() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager == null || !manager.isRoleAvailable(RoleManager.ROLE_DIALER)) {
-            statusView.text = getString(R.string.camp_ux05_role_unavailable)
+            actionFeedback.text = getString(R.string.camp_ux05_role_unavailable)
             return
         }
         if (manager.isRoleHeld(RoleManager.ROLE_DIALER)) {
-            statusView.text = getString(R.string.camp_ux05_role_already)
+            actionFeedback.text = getString(R.string.camp_ux05_role_already)
             if (continueStartAfterRole) {
                 continueStartAfterRole = false
                 ensurePermissionsThen(PendingAction.START)
@@ -443,7 +500,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             return
         }
         // Android alone grants/revokes this role. Never change Google Phone silently.
-        statusView.text = getString(R.string.camp_ux05_role_request)
+        actionFeedback.text = getString(R.string.camp_ux05_role_request)
         startActivityForResult(manager.createRequestRoleIntent(RoleManager.ROLE_DIALER), REQUEST_DIALER_ROLE)
     }
 
@@ -451,7 +508,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_DIALER_ROLE) {
             val roleActive = AndroidTelecomOwnedCallController.canControl(this)
-            statusView.text = if (roleActive) {
+            actionFeedback.text = if (roleActive) {
                 getString(R.string.camp_ux05_role_active)
             } else getString(R.string.camp_ux05_role_denied)
             val shouldStart = continueStartAfterRole
@@ -461,7 +518,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     }
 
     private fun startSupervisedAudio() {
-        statusView.text = getString(R.string.camp_ux05_supervised_start)
+        actionFeedback.text = getString(R.string.camp_ux05_supervised_start)
         startForegroundService(
             Intent(this, AppOwnedCampaignService::class.java)
                 .setAction(AppOwnedCampaignService.ACTION_START_SUPERVISED_AUDIO),
@@ -471,7 +528,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun startAuthorizedCampaign() {
         val accountScope = CampaignAccountScope.currentVoiceSubscription(this)
         if (accountScope == null) {
-            statusView.text = getString(R.string.camp_ux05_sim_bind_failed)
+            actionFeedback.text = getString(R.string.camp_ux05_sim_bind_failed)
             return
         }
 
@@ -485,7 +542,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             this, requestStart = true, dialogueMode = requestedStartMode,
             recordCallEvidence = recordEvidenceChoice.isChecked,
         )
-        statusView.text = if (report.contains("campaign_agent_start=DISPATCHED_TO_INTERNAL_SERVICE")) {
+        actionFeedback.text = if (report.contains("campaign_agent_start=DISPATCHED_TO_INTERNAL_SERVICE")) {
             getString(R.string.camp_ux05_campaign_start,
                 if (requestedStartMode == CampaignDialogueMode.GEMMA_DIRECT) "Gemma Direct" else getString(R.string.camp_ux05_script_model))
         } else getString(R.string.camp_ux05_campaign_failed)
@@ -505,9 +562,39 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         } else getString(R.string.camp_ui_evidence_off)
         val runtimeStatus = runtimeStatusStore.load()
         statusView.text = taskStatus
-        diagnosticStatus.text = listOfNotNull(evidenceStatus, runtimeStatus)
-            .joinToString("\n\n")
+        diagnosticStatus.text = listOfNotNull(
+            getString(R.string.camp_ux06_diagnostic_recording, evidenceStatus),
+            runtimeStatus?.let { getString(R.string.camp_ux06_diagnostic_event, it) },
+        ).joinToString("\n\n")
+        refreshEvidenceControls(grant)
+        refreshDialerStatus()
         updateLastExecutionStatus()
+    }
+
+    private fun refreshEvidenceControls(grant: CampaignAuthorizationGrant?) {
+        val scope = if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED) CampaignAccountScope.currentVoiceSubscription(this)
+        else null
+        val matched = scope != null && CampaignAuthorizationPolicy.matchesExactTask(
+            grant, ClirCampaignSpec.enableRequest(scope))
+        val recorded = matched && grant?.recordCallEvidence == true
+        disableEvidenceButton.isEnabled = recorded
+        if (!evidenceSelectionTouched) {
+            evidenceProgrammaticChange = true
+            try { recordEvidenceChoice.isChecked = recorded }
+            finally { evidenceProgrammaticChange = false }
+        }
+    }
+
+    private fun refreshDialerStatus() {
+        val manager = getSystemService(RoleManager::class.java)
+        dialerRoleStatus.text = getString(when {
+            manager == null || !manager.isRoleAvailable(RoleManager.ROLE_DIALER) ->
+                R.string.camp_ux05_role_unavailable
+            AndroidTelecomOwnedCallController.canControl(this) ->
+                R.string.camp_ux05_role_active
+            else -> R.string.camp_ux06_role_inactive
+        })
     }
 
     private fun updateLastExecutionStatus() {
