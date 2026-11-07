@@ -177,38 +177,40 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun update() {
         val transfer = LanguageModelTransferService.status
-        if (transfer != lastTransfer && transfer.message.isNotEmpty()) {
-            feedback.text = transfer.message
+        val selected = AudioEngineProfileStore(this).load()?.dialogue
+        val readyIds = rows.asSequence().filter { row ->
+            AndroidGemma4ModelReadiness.check(this, row.model.id).state ==
+                Gemma4ModelReadinessState.READY
+        }.map { it.model.id }.toSet()
+        val screen = LanguageModelStatusPresenter.present(
+            LanguageModelCatalog.entries, selected, readyIds, transfer, lastTransfer)
+        screen.newMessage?.let {
+            feedback.text = it
             feedback.visibility = View.VISIBLE
         }
         lastTransfer = transfer
-        cancelTransfer.visibility = if (transfer.busy) View.VISIBLE else View.GONE
-        val selected = AudioEngineProfileStore(this).load()?.dialogue
+        cancelTransfer.visibility = if (screen.showCancel) View.VISIBLE else View.GONE
+        val stateById = screen.rows.associateBy { it.id }
         for (row in rows) {
-            val ready = AndroidGemma4ModelReadiness.check(this, row.model.id).state ==
-                Gemma4ModelReadinessState.READY
-            val isActive = ready && selected == row.model.id
-            row.state.text = getString(when {
-                isActive -> R.string.models_ui_active
-                ready -> R.string.models_ui_ready
-                else -> R.string.models_ui_not_installed
+            val modelState = checkNotNull(stateById[row.model.id])
+            val isActive = modelState.active
+            row.state.text = getString(when (modelState.meaning) {
+                LanguageModelMeaning.ACTIVE -> R.string.models_ui_active
+                LanguageModelMeaning.READY -> R.string.models_ui_ready
+                LanguageModelMeaning.NOT_INSTALLED -> R.string.models_ui_not_installed
             })
             row.state.setTextColor(if (isActive) UiDesign.primary else UiDesign.secondary)
             row.state.setTypeface(null, if (isActive) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
             row.card.background = UiDesign.surfaceDrawable(this, if (isActive) UiDesign.softAccent else UiDesign.surface, 16)
             row.card.isActivated = isActive
-            row.download.visibility = if (ready) View.GONE else View.VISIBLE
-            row.import.visibility = if (ready) View.GONE else View.VISIBLE
-            row.download.isEnabled = !transfer.busy
-            row.import.isEnabled = !transfer.busy
-            row.select.visibility = if (ready && selected != row.model.id)
-                View.VISIBLE else View.GONE
-            row.select.isEnabled = !transfer.busy
-            val active = transfer.busy && transfer.id == row.model.id
-            row.progress.visibility = if (active) View.VISIBLE else View.GONE
-            row.progress.progress = if (transfer.id == row.model.id)
-                (transfer.bytes * 100 / checkNotNull(row.model.spec.expectedBytes))
-                    .toInt().coerceIn(0, 100) else 0
+            row.download.visibility = if (modelState.showDownload) View.VISIBLE else View.GONE
+            row.import.visibility = if (modelState.showImport) View.VISIBLE else View.GONE
+            row.download.isEnabled = modelState.actionsEnabled
+            row.import.isEnabled = modelState.actionsEnabled
+            row.select.visibility = if (modelState.showSelect) View.VISIBLE else View.GONE
+            row.select.isEnabled = modelState.actionsEnabled
+            row.progress.visibility = if (modelState.showProgress) View.VISIBLE else View.GONE
+            row.progress.progress = modelState.progressPercent
         }
     }
 
