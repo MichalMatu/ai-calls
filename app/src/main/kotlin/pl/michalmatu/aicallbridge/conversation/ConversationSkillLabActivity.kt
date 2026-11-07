@@ -177,6 +177,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         scoreView.visibility = View.GONE
         ratingGroup.visibility = View.GONE
         runButton.isEnabled = false
+        runButton.visibility = View.GONE
         stopButton.visibility = android.view.View.VISIBLE
         progress.progress = 0
         progress.contentDescription = getString(R.string.lab_ui_progress, 0, allTurns)
@@ -270,6 +271,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 runOnUiThread {
                     if (!isDestroyed) {
                         runButton.isEnabled = true
+                        runButton.visibility = View.VISIBLE
                         stopButton.visibility = View.GONE
                     }
                 }
