@@ -34,6 +34,9 @@ class AndroidAppNavigationContractTest {
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:history")).isSelected)
                 assertTrue((activity.window.attributes.flags and
                     WindowManager.LayoutParams.FLAG_SECURE) != 0)
+                val back = requireNotNull(root.findViewWithTag<View>("app-child-back"))
+                assertTrue(back.isShown)
+                assertTrue(back.isClickable)
             }
         }
         ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->

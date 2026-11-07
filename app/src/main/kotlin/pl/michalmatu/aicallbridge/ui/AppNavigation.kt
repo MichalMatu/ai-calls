@@ -89,6 +89,41 @@ internal object AppNavigation {
         }
     }
 
+
+    /** Back navigation and current section are shared by existing child screens. */
+    private fun childToolbar(activity: Activity, active: AppTab) = LinearLayout(activity).apply {
+        tag = "app-child-toolbar"
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        minimumHeight = UiDesign.dp(activity, 56)
+        setPadding(UiDesign.dp(activity, 12), UiDesign.dp(activity, 3),
+            UiDesign.dp(activity, 16), UiDesign.dp(activity, 3))
+        setBackgroundColor(UiDesign.surface)
+        val back = TextView(activity).apply {
+            tag = "app-child-back"
+            text = "‹"
+            textSize = 29f
+            gravity = Gravity.CENTER
+            setTextColor(UiDesign.ink)
+            minimumWidth = UiDesign.dp(activity, 48)
+            minimumHeight = UiDesign.dp(activity, 48)
+            isClickable = true
+            isFocusable = true
+            contentDescription = activity.getString(R.string.ui_back)
+            setOnClickListener { activity.finish() }
+        }
+        addView(back, LinearLayout.LayoutParams(
+            UiDesign.dp(activity, 48), UiDesign.dp(activity, 48)))
+        addView(TextView(activity).apply {
+            text = activity.getString(active.title)
+            textSize = 15f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(UiDesign.ink)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(UiDesign.dp(activity, 8), 0, 0, 0)
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+    }
+
     fun shell(activity: Activity, body: View, active: AppTab): View {
         val root = LinearLayout(activity).apply {
             tag = "app-screen-shell"
@@ -103,6 +138,7 @@ internal object AppNavigation {
                 }
                 insets
             }
+            if (activity is UiChromeActivity) addView(childToolbar(activity, active))
             addView(body, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             addView(bar(activity, active))
