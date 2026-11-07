@@ -40,7 +40,7 @@ class Sprint4UxContract(unittest.TestCase):
         self.assertIn("showTurnPending", preview)
         self.assertIn("showTurnCompleted", preview)
         self.assertIn("lab-live-synthetic.jpg", preview)
-        self.assertIn("ui-audit-20261107-sprint4", preview)
+        self.assertIn("ui-audit-20261107-sprint5", preview)
         self.assertNotIn("runLab(", preview)
         self.assertNotIn("generate(", preview)
 
