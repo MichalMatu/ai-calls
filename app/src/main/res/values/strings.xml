@@ -581,4 +581,20 @@
     <string name="home_ux06_no_action">Ostatnie działanie: brak. Tutaj pojawi się komunikat po wykonaniu akcji.</string>
     <string name="home_ux06_sim_unavailable">Zadanie zapisane, ale nie można sprawdzić bieżącej SIM głosowej. Zweryfikuj uprawnienia telefonu i kartę przed START.</string>
     <string name="home_ux06_sim_mismatch">Zapisana autoryzacja nie odpowiada bieżącej SIM głosowej lub dokładnemu zadaniu. START wymaga pasującej autoryzacji.</string>
+    <string name="scenario_ui_title">Scenariusze rozmów</string>
+    <string name="scenario_ui_campaign_hint">Wybierz gotowy scenariusz codziennej sprawy i uzupełnij formularz. Tylko CLIR ma obecnie adapter połączeń; pozostałe to na razie wersje robocze.</string>
+    <string name="scenario_ui_open">Otwórz bibliotekę scenariuszy</string>
+    <string name="scenario_ui_intro">Wybierz preset jednym kliknięciem. Możesz bezpiecznie zapisać szczegóły na później. Edycja nie autoryzuje ani nie uruchamia połączenia.</string>
+    <string name="scenario_ui_edit">Edytuj scenariusz</string>
+    <string name="scenario_ui_preview">Podgląd instrukcji</string>
+    <string name="scenario_ui_save">Zapisz formularz</string>
+    <string name="scenario_ui_saved">Formularz zapisany prywatnie na tym urządzeniu.</string>
+    <string name="scenario_ui_save_failed">Nie udało się zapisać formularza.</string>
+    <string name="scenario_ui_read_failed">Nie udało się odczytać zapisu. Wyświetlono domyślne wartości przykładu.</string>
+    <string name="scenario_ui_back">Wróć do scenariuszy</string>
+    <string name="scenario_ui_required">Pole wymagane</string>
+    <string name="scenario_ui_missing">Brak wymaganych informacji: %1$s</string>
+    <string name="scenario_ui_draft_only">Wersja robocza — wykonywanie rozmowy dla tego scenariusza nie jest jeszcze wdrożone.</string>
+    <string name="scenario_ui_clir_note">CLIR ma osobną, działającą kampanię. Ten formularz jej nie uruchamia ani nie zmienia jej autoryzacji.</string>
+    <string name="scenario_ui_preview_note">To wyłącznie podgląd. Tekst nie tworzy rezerwacji ani nie potwierdza żadnego skutku u rozmówcy.</string>
 </resources>

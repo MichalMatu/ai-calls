@@ -581,4 +581,20 @@
     <string name="home_ux06_no_action">Last action: none. Status messages appear here after an operation.</string>
     <string name="home_ux06_sim_unavailable">Task saved; current voice SIM cannot be verified. Check phone permission and SIM before starting.</string>
     <string name="home_ux06_sim_mismatch">Saved authorization does not match the current voice SIM or exact task. Starting requires a matching authorization.</string>
+    <string name="scenario_ui_title">Conversation scenarios</string>
+    <string name="scenario_ui_campaign_hint">Choose an everyday task template and edit its form. Only CLIR has an existing phone-call adapter; other templates are drafts for now.</string>
+    <string name="scenario_ui_open">Open scenario library</string>
+    <string name="scenario_ui_intro">Choose a template in one tap. You can save details securely for later. Editing a draft does not authorize or place a call.</string>
+    <string name="scenario_ui_edit">Edit scenario</string>
+    <string name="scenario_ui_preview">Preview instructions</string>
+    <string name="scenario_ui_save">Save form</string>
+    <string name="scenario_ui_saved">Form saved privately on this device.</string>
+    <string name="scenario_ui_save_failed">Could not save the form.</string>
+    <string name="scenario_ui_read_failed">Could not read the saved form. Default example is shown.</string>
+    <string name="scenario_ui_back">Back to templates</string>
+    <string name="scenario_ui_required">Required field</string>
+    <string name="scenario_ui_missing">Missing required information: %1$s</string>
+    <string name="scenario_ui_draft_only">Draft only — calling for this scenario is not yet implemented.</string>
+    <string name="scenario_ui_clir_note">CLIR has a separate working campaign. This form does not start it or change its authorization.</string>
+    <string name="scenario_ui_preview_note">Preview only. This text does not create a booking or confirm any external effect.</string>
 </resources>

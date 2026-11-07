@@ -5,6 +5,7 @@ import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
+import pl.michalmatu.aicallbridge.conversation.ScenarioLibraryActivity
 
 import android.Manifest
 import android.app.Activity
@@ -280,6 +281,20 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addView(UiDesign.action(this@CampaignToolActivity,
                 getString(R.string.camp_ui_engines)) {
                 startActivity(Intent(this@CampaignToolActivity, AudioEngineSettingsActivity::class.java))
+            }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
+            addView(UiDesign.card(this@CampaignToolActivity).apply {
+                tag = "campaign-scenario-library-card"
+                addView(UiDesign.heading(this@CampaignToolActivity,
+                    getString(R.string.scenario_ui_title)),
+                    UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(UiDesign.caption(this@CampaignToolActivity,
+                    getString(R.string.scenario_ui_campaign_hint)),
+                    UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+                addView(UiDesign.action(this@CampaignToolActivity,
+                    getString(R.string.scenario_ui_open)) {
+                    startActivity(Intent(this@CampaignToolActivity,
+                        ScenarioLibraryActivity::class.java))
+                })
             }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(directSkillsSection)
             addView(dialerSection)

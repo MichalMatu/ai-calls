@@ -2,7 +2,10 @@ package pl.michalmatu.aicallbridge.conversation
 
 import android.content.Context
 import android.util.AtomicFile
+import com.google.gson.Gson
 import com.google.gson.JsonObject
+import pl.michalmatu.aicallbridge.conversationcore.ScenarioCatalog
+import pl.michalmatu.aicallbridge.conversationcore.ScenarioDraft
 import com.google.gson.JsonParser
 import java.io.File
 import java.security.MessageDigest
@@ -48,6 +51,32 @@ internal class AndroidConversationPreparationStore(
     fun save(value: ConversationPreparation) = synchronized(LOCK) { repository.save(value) }
     fun loadSkillLibrary() = synchronized(LOCK) { skillsRepository.load() }
     fun saveSkillLibrary(value: ConversationSkillLibrary) = synchronized(LOCK) { skillsRepository.save(value) }
+
+    private data class ScenarioDraftRecord(
+        val version: Int, val scenarioId: String, val values: Map<String, String>,
+    )
+
+    /** Same encrypted, no-backup store as conversation preparation: no second preference silo. */
+    fun loadScenarioDraft(id: String): ScenarioDraft? = synchronized(LOCK) {
+        val definition = ScenarioCatalog.byId(id) ?: return@synchronized null
+        val raw = readRecord("scenario-draft-$id") ?: return@synchronized null
+        val record = Gson().fromJson(raw, ScenarioDraftRecord::class.java)
+        require(record.version == 1 && record.scenarioId == id) {
+            "scenario_draft_version_or_id_mismatch"
+        }
+        val permitted = definition.fields.map { it.id }.toSet()
+        ScenarioDraft(id, record.values.filterKeys { it in permitted })
+    }
+
+    fun saveScenarioDraft(draft: ScenarioDraft) = synchronized(LOCK) {
+        val definition = requireNotNull(ScenarioCatalog.byId(draft.scenarioId)) {
+            "scenario_definition_missing"
+        }
+        val permitted = definition.fields.map { it.id }.toSet()
+        require(draft.values.keys.all { it in permitted }) { "unknown_scenario_form_field" }
+        writeRecord("scenario-draft-${draft.scenarioId}",
+            Gson().toJson(ScenarioDraftRecord(1, draft.scenarioId, draft.values.toMap())))
+    }
 
     private fun file(id: String): AtomicFile {
         val name = MessageDigest.getInstance("SHA-256").digest(id.toByteArray())
