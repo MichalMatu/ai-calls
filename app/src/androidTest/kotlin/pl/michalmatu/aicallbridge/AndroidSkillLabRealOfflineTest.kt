@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge
 
 import android.graphics.Bitmap
+import android.graphics.Rect
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
@@ -52,7 +53,7 @@ class AndroidSkillLabRealOfflineTest {
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
             var folder: File? = null
             scenario.onActivity { activity ->
-                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint5"))
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
                 val scope = requireNotNull(activity.window.decorView
                     .findViewWithTag<Spinner>("lab-scope-picker"))
@@ -92,6 +93,14 @@ class AndroidSkillLabRealOfflineTest {
             assertFalse("real_lab_failed", seenFailure)
             assertTrue("real_lab_first_turn_not_seen", recordedFirst)
             assertTrue("real_lab_two_turns_not_completed", finished)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                val latest = requireNotNull(activity.window.decorView.findViewWithTag<View>(
+                    "lab-turn:0:2"))
+                val visible = Rect()
+                assertTrue("real_lab_latest_turn_not_visible", latest.getGlobalVisibleRect(visible))
+                assertTrue("real_lab_latest_turn_too_clipped", visible.height() > 24)
+            }
             snapshot(requireNotNull(folder), "lab-real-two-turns")
 
             // A second run is cancelled while preparing, without a call or
@@ -111,6 +120,9 @@ class AndroidSkillLabRealOfflineTest {
                     .findViewWithTag<TextView>("lab-status"))
                 assertEquals("real_lab_stop_status", activity.getString(R.string.lab_ui_cancelled),
                     status.text.toString())
+                val banner = requireNotNull(activity.window.decorView.findViewWithTag<TextView>(
+                    "lab-stopped-banner"))
+                assertTrue("real_lab_stop_banner_missing", banner.text.isNotBlank())
             }
             snapshot(requireNotNull(folder), "lab-real-stopped")
             println("S22_REAL_LAB_TWO_TURNS=PASS")
