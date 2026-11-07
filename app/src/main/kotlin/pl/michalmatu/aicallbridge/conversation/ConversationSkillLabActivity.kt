@@ -277,9 +277,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             } catch (error: Exception) {
                 runOnUiThread {
                     if (!isDestroyed && !cancelled.get()) {
-                        status.text = getString(R.string.lab_ui_failed,
-                            error.message ?: error.javaClass.simpleName)
-                        currentTurn.text = getString(R.string.lab_ui_stopped_partial)
+                        renderFailure(error.message ?: error.javaClass.simpleName)
                     }
                 }
             } finally {
@@ -292,6 +290,12 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 }
             }
         }, "aicalls-skills-lab").apply { start() }
+    }
+
+    /** Explicitly distinct error state, shared by model/timeout failures and UI tests. */
+    private fun renderFailure(reason: String) {
+        status.text = getString(R.string.lab_ui_failed, reason)
+        currentTurn.text = getString(R.string.lab_ui_stopped_partial)
     }
 
     private fun showTurnPending(storyIndex: Int, story: String, index: Int,
