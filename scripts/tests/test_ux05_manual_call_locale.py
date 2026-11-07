@@ -21,7 +21,7 @@ class ManualCallLocaleContract(unittest.TestCase):
             for directory in tables:
                 with self.subTest(key=key, locale=directory):
                     self.assertTrue(tables[directory][key].strip())
-            fmt = lambda s: re.findall(r"%(?:\\d+\\$)?[sd]", s)
+            fmt = lambda s: re.findall(r"%(?:\d+\$)?[sd]", s)
             self.assertEqual(fmt(tables["values"][key]), fmt(tables["values-en"][key]))
 
     def test_text_only_migration_keeps_existing_call_controls(self):
