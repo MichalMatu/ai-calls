@@ -1,32 +1,25 @@
 # AI Calls
 
-Modułowe laboratorium Android do porównywania STT, modeli językowych, strategii dialogu, instrukcji i TTS. Docelowo wspólne sprawdzone komponenty obsłużą sekretarkę i autonomiczne, konkretnie autoryzowane zadania telefoniczne.
+Modułowe laboratorium Android do porównywania STT, modeli językowych, strategii dialogu, instrukcji i TTS. Docelowo wspólne, zweryfikowane komponenty obsłużą sekretarkę i konkretnie autoryzowane zadania telefoniczne.
+
+## Aktualny stan (2026-11-07)
+
+- **Sprint 6, kod `main@0dface1`:** `SOURCE_GREEN` — 325 testów hosta PASS, kompilacja Kotlin/JVM/AndroidTest/APK i anti-friction PASS. Nowe funkcje: bezpieczne zbiorcze usuwanie zakończonych rozmów, audio WAV odtwarzane/zatrzymywane z dymków, poprawki Laboratorium (auto-follow, STOP, czytelniejsza ocena END_CALL) i statusów Kampanii.
+- **Fizyczny S22 Sprint 6: QA_PENDING_ADB.** Mac nie zobaczył `SM-S906B / RFCT70L7E8J` w `adb devices -l`; nie zainstalowano tej wersji ani nie wykonano najnowszej matrycy 28 UX / 24 visual. Dwuturowy test realnej Gemmy Sprintu 6 nie uruchomił się przez brak wymaganych screenshotów. **Nie jest to FAIL modelu**.
+- **Ostatnia potwierdzona fizyczna baza — Sprint 5:** Samsung S22 27/27 UX, 23/23 wizualne, 43 prywatne screenshoty, rzeczywista lokalna Gemma 2 tury + STOP PASS. To wyniki starszego kodu `0bd17da`, nie Sprintu 6.
+- **Otwarte:** F-103 pełne PL/EN, F-080 ciągły recorder/player całego połączenia, odrębne testy realnych rozmów i semantyki Gemmy. Dymki historii obsługują tylko istniejące prywatne segmenty WAV.
+
+[Pełny checkpoint Sprintu 6](docs/checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md) · [Ostatni fizyczny baseline — Sprint 5](docs/checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md)
 
 ## Architektura
 
-- Sześć modułów Gradle: **app**, **conversation-core**, **conversation-tools**, **audio-bridge**, **realtime-client** i **privileged-helper**. Na zweryfikowanej bazie `1d260d8` 199 z 224 produkcyjnych plików Kotlin znajduje się w `app`; pakiety są podzielone logicznie.
-- Wspólny AndroidConversationRuntime obsługuje INCOMING i OUTGOING. Scenariusze oraz silniki STT/model/TTS są wymienne. Snapshot konfiguracji pojedynczej próby nie zmienia się podczas rozmowy.
-- Aplikacja decyduje o upoważnieniu, własności Android Call, STOP, ujawnianiu danych i skutkach. Model nie przyznaje sobie uprawnień. Samsung/Shizuku RX/TX przez PCM/PFD pozostaje zamrożoną, sprawdzoną granicą.
+- Sześć modułów Gradle: `app`, `conversation-core`, `conversation-tools`, `audio-bridge`, `realtime-client`, `privileged-helper`. Istniejące czyste komponenty `IncomingIdleTimeout` i `ConversationSessionRegistry` są w JVM `conversation-core`.
+- Jeden `AndroidConversationRuntime` obsługuje INCOMING/OUTGOING. Silniki STT/model/TTS i scenariusze są wymienne; snapshot konfiguracji nie zmienia się podczas rozmowy.
+- Uprawnienia, konkretne zgody, własny Android Call, STOP, ujawnianie faktów i skutki kontroluje aplikacja, nie model. Tor Samsung/Shizuku PCM/PFD pozostaje oddzielną chronioną granicą.
+- **Proponowany następny sprint:** odsprzęgnięcie UX od logiki przez małe testowalne kroki: read-only prezenter statusu Kampanii → kontroler Historii → runner Laboratorium, nie ogólny refaktor Telecom. [Plan modularizacji](docs/SAFE_MODULARIZATION_PLAN.md).
 
-## Aktualna kwalifikacja
+## Wejście do pracy
 
-- Sekretarka INCOMING: dialog i naturalne end_call potwierdzone kontrolowanymi połączeniami A8→S22. Fallback po 30 s aktywnej ciszy, ostrzeżeniu i kolejnych 15 s ma testy host/native PASS oraz fizyczne potwierdzenie użytkownika. Szczegółowy timeline ostatniej próby pozostaje nieodczytany.
-- Modularizacja: etapy 0–2 ukończone (etap 2 = NO_CHANGE), pierwszy krok etapu 3 PASS. IncomingIdleTimeout i ConversationSessionRegistry przeniesiono bez zmiany algorytmów do conversation-core. Pełna bramka hosta i kompilacja testów Androida PASS. **Po tym etapie zainstalowano APK `e8db8db` na S22**; natywne testy off-call i trzy presety PASS. Test pełnej rozmowy na tym APK nadal QA_PENDING.
-- OPEN / QA_PENDING: fizyczne przejęcie i oddanie rozmowy, STOP/manual, odpowiedź po ostrzeżeniu; pełne ciągłe audio i odtwarzacz (F-080), ogólne zadania, fakty i skutki (F-044/F-045/F-048). Nie traktować archiwum WAV per tura jako pełnego nagrania.
-- Silniki eksperymentalne i scenariusze Orange/CLIR są nadal częścią laboratorium, nie dowodem gotowości każdej kombinacji ani wykonania zewnętrznego skutku.
+[Aktualny handoff](docs/HANDOFF_NEXT_CHAT.md) · [Nowy czat](docs/NEXT_CHAT_PROMPT.md) · [Roadmapa](docs/ROADMAP.md) · [Architektura](docs/ARCHITECTURE.md) · [Indeks dokumentacji](docs/README.md) · [Rejestr BLOCKERS](BLOCKERS.md) · [AGENTS](AGENTS.md).
 
-## Wejście do projektu
-
-[Bieżący handoff](docs/HANDOFF_NEXT_CHAT.md) · [Prompt do nowego czatu](docs/NEXT_CHAT_PROMPT.md) · [Plan małej modularizacji](docs/SAFE_MODULARIZATION_PLAN.md) · [Checkpoint etapu 3 / krok 1](docs/checkpoints/2026-11-06-mod-stage3-session-registry-core.md)
-
-[Architektura](docs/ARCHITECTURE.md) · [Roadmapa](docs/ROADMAP.md) · [Zasady pracy](AGENTS.md) · [BLOCKERS — jedyny rejestr defektów](BLOCKERS.md) · [Indeks dokumentów](docs/README.md)
-
-## Testowanie
-
-Pełna bramka: **bash scripts/verify_host.sh**. Audyt ograniczeń: **python3 scripts/aicall_tools/diagnostics/audit_product_friction.py**. Testy fizyczne i ich prywatne dowody są osobne od host PASS; nie ponawiać zakończonych połączeń bez nowej przesłanki. W bieżącym trybie wykonania: GitHub Connector + Mac Local Agent, main, commity [skip ci], bez Codex/Work/GitHub Actions.
-
-## Skills i Laboratorium
-
-Edytowalne, wersjonowane instrukcje Gemmy, presety i laboratoryjne scenariusze off-call: [kontrakt](docs/SKILLS_AND_LAB.md).
-
-Kompletny audyt jakości: [checkpoint kodu, dokumentacji, testów i S22](docs/checkpoints/2026-11-06-ai-calls-complete-code-doc-qa-handoff.md).
+Testowanie: `bash scripts/verify_host.sh`, `python3 scripts/aicall_tools/diagnostics/audit_product_friction.py`; przy zmianach Androida odpowiednie testy instrumentacyjne z realnym **IDLE** na S22. Tryb: GitHub Connector + Mac Local Agent, `main`, commity `[skip ci]`; bez Codex, Work, GitHub Actions, wymuszonego push ani publikacji prywatnych plików.
