@@ -32,6 +32,8 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private var playbackStatus: TextView? = null
     private var displayedSessionId: String? = null
     private var gestureBack: OnBackInvokedCallback? = null
+    internal var pendingDeleteConfirmation: AlertDialog? = null
+        private set
 
     /** The details view is a screen within Calls, not a separate Home destination. */
     override fun consumeChromeBack(): Boolean {
@@ -118,7 +120,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     }
 
     private fun confirmDelete(id: String) {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.history_delete_title)
             .setMessage(R.string.history_delete_warning)
             .setNegativeButton(android.R.string.cancel, null)
@@ -132,7 +134,10 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                     }
                 }
             }
-            .show()
+            .create()
+        pendingDeleteConfirmation = dialog
+        dialog.setOnDismissListener { if (pendingDeleteConfirmation === dialog) pendingDeleteConfirmation = null }
+        dialog.show()
     }
     private fun showSession(id: String) {
         setDisplayedSession(id)
@@ -224,6 +229,8 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
             gestureBack?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
             gestureBack = null
         }
+        pendingDeleteConfirmation?.dismiss()
+        pendingDeleteConfirmation = null
         stopPlayback()
         io.shutdown()
         super.onDestroy()

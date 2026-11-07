@@ -1,3 +1,15 @@
+## F-105 — systemowy i ekranowy Back zamyka Calls zamiast wracać do listy (2026-11-07)
+
+**Ścieżki:** ConversationHistoryActivity, UiChromeActivity, AppNavigation.childToolbar. **Warunek:** po otwarciu konkretnej rozmowy Wstecz zamykał całe Activity i prowadził do Home. **Wpływ:** zła hierarchia nawigacji i utrata kontekstu listy. **Przyczyna:** brak stanu wewnętrznej strony i delegacji Back. **Naprawa:** stan szczegółów w Calls, callback Android 13+ OnBackInvokedDispatcher, kompatybilny Back sprzed API 33 i wspólny toolbar delegujący stronę. **Test:** instrumentacja syntetycznej sesji i 2× Back, host. **Status: FIXED_IN_SOURCE / QA_PENDING_S22**.
+
+## F-106 — brak usuwania pojedynczej rozmowy z Calls (2026-11-07)
+
+**Ścieżki:** RecordedConversationHistory, ConversationHistoryActivity. **Warunek:** użytkownik mógł tylko przeglądać i odtwarzać archiwum, bez kasowania. **Wpływ:** brak zarządzania lokalnymi rozmowami i WAV. **Naprawa:** Delete jednej zakończonej sesji z potwierdzeniem, kontrolą COMPLETE+END, kanonicznej ścieżki oraz walkFileTree bez podążania za symlinkami, w tle; bez ingerencji w aktywne sesje. **Test:** JVM complete/incomplete/traversal/symlink plus fizyczna syntetyczna sesja, nigdy nie kasuj prawdziwych danych w testach. **Status: FIXED_IN_SOURCE / QA_PENDING_S22**.
+
+## F-107 — stykające się przyciski na ekranach (2026-11-07)
+
+**Ścieżki:** UiChromeActivity, MainActivity, UiDesign. **Warunek:** przyciski bez przerw w wieloletnich imperatywnych layoutach. **Wpływ:** zlewające się akcje, nietrafienia dotykowe. **Naprawa:** standardowe >=10dp odstępy między przyciskami w pionie, 8dp Home, min. 48dp touch target, bez zmiany action callbacks i radiobuttonów. **Test:** statyczny kontrakt + screenshoty ergonomii na S22. **Status: FIXED_IN_SOURCE / QA_PENDING_S22**.
+
 ## F-104 — niedozwolona blokada zrzutów ekranu (2026-11-07)
 
 **Ścieżki/symbole:** osiem `*Activity.kt` używających `window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)`, stare testy żądające tej flagi. **Warunek:** właściciel nie mógł wykonywać screenshotów rozmów, ustawień, skillsów ani ekranów z danymi. **Wpływ:** nieuzasadniony bloker UX, diagnostyki i akceptacji. **Przyczyna:** blanket `FLAG_SECURE` nakładany na UI zamiast kontroli poufnego przechowywania i eksportu. **Plan:** usunąć wszystkie flagi, dodać trwały zakaz w AGENTS.md i source-wide kontrakt; nie zmieniać prywatnego zapisu, ograniczeń uprawnień i maskowania logów. **Test:** pełny audit źródeł, AndroidTest kompilacja/host gate, fizyczna próba screenshotów na S22 (bez przesyłania prywatnych ujęć). **Commit:** bieżący sprint usuwania flag. **Status: FIXED_IN_SOURCE / QA_PENDING_S22**.
