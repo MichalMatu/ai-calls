@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge
 
 import android.graphics.Bitmap
+import android.graphics.Rect
+import pl.michalmatu.aicallbridge.conversation.SkillLabScoring
 import android.view.View
 import android.widget.CheckBox
 import android.widget.ProgressBar
@@ -22,6 +24,8 @@ import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 class AndroidSkillLabLivePreviewTest {
     @Test fun finishedSyntheticTurnIsParsedIntoReadableLiveCard() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        assertTrue("android_safe_question_heuristic",
+            SkillLabScoring.mayNeedQuestionReview("Proszę podać numer telefonu."))
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
             var folder: File? = null
             scenario.onActivity { activity ->
@@ -131,10 +135,16 @@ class AndroidSkillLabLivePreviewTest {
                 val banner = requireNotNull(activity.window.decorView.findViewWithTag<TextView>(
                     "lab-stopped-banner"))
                 assertTrue(banner.text.contains("2") && banner.text.isNotBlank())
-                assertTrue(banner.isShown)
+                val bannerVisible = Rect()
+                assertTrue("stop_banner_not_in_viewport",
+                    banner.getGlobalVisibleRect(bannerVisible))
+                assertTrue("stop_banner_too_clipped", bannerVisible.height() > 24)
                 val last = requireNotNull(activity.window.decorView.findViewWithTag<View>(
                     "lab-turn:0:2"))
-                assertTrue(last.isShown)
+                val lastVisible = Rect()
+                assertTrue("last_turn_not_in_viewport",
+                    last.getGlobalVisibleRect(lastVisible))
+                assertTrue("last_turn_too_clipped", lastVisible.height() > 24)
             }
             val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
             try {
