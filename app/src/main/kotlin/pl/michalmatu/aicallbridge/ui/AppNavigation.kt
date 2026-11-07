@@ -110,7 +110,10 @@ internal object AppNavigation {
             isClickable = true
             isFocusable = true
             contentDescription = activity.getString(R.string.ui_back)
-            setOnClickListener { activity.finish() }
+            setOnClickListener {
+                if (activity is UiChromeActivity) activity.navigateBack()
+                else activity.finish()
+            }
         }
         addView(back, LinearLayout.LayoutParams(
             UiDesign.dp(activity, 48), UiDesign.dp(activity, 48)))

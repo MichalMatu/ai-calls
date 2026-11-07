@@ -5,6 +5,13 @@ import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
+import android.os.Build
+import android.view.View
+import android.view.ViewGroup
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
+import pl.michalmatu.aicallbridge.R
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.telecom.TelecomManager
@@ -23,6 +30,34 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private lateinit var history: RecordedConversationHistory
     private var playback: MediaPlayer? = null
     private var playbackStatus: TextView? = null
+    private var displayedSessionId: String? = null
+    private var gestureBack: OnBackInvokedCallback? = null
+
+    /** The details view is a screen within Calls, not a separate Home destination. */
+    override fun consumeChromeBack(): Boolean {
+        if (displayedSessionId == null) return false
+        showList()
+        return true
+    }
+
+    @Deprecated("Pre-33 fallback; modern back uses OnBackInvokedDispatcher.")
+    override fun onBackPressed() {
+        if (!consumeChromeBack()) super.onBackPressed()
+    }
+
+    private fun setDisplayedSession(id: String?) {
+        displayedSessionId = id
+        if (Build.VERSION.SDK_INT >= 33) {
+            gestureBack?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
+            gestureBack = null
+            if (id != null) {
+                val callback = OnBackInvokedCallback { showList() }
+                onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+                gestureBack = callback
+            }
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -31,36 +66,86 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         setContentView(ScrollView(this).apply { addView(content) })
         showList()
     }
-    private fun showList() {
+    private fun showList(message: String? = null) {
+        setDisplayedSession(null)
         stopPlayback()
         playbackStatus = null
         content.removeAllViews()
-        content.addView(TextView(this).apply { text = "Historia rozmów"; textSize = 22f })
-        content.addView(TextView(this).apply { text = "Sesje z włączonym lokalnym zapisem rozmowy. Wyczyszczenie widoku czatu na żywo nie usuwa archiwum." })
+        content.addView(TextView(this).apply { text = getString(R.string.history_title); textSize = 22f })
+        content.addView(TextView(this).apply { text = getString(R.string.history_subtitle) })
+        if (message != null) content.addView(TextView(this).apply { text = message })
         io.execute {
             val result = runCatching { history.list() }
             runOnUiThread {
-                if (isDestroyed) return@runOnUiThread
+                if (isDestroyed || displayedSessionId != null) return@runOnUiThread
                 result.onSuccess { sessions ->
-                    if (sessions.isEmpty()) content.addView(TextView(this).apply { text = "Brak zapisanych rozmów" })
-                    sessions.forEach { session -> content.addView(Button(this).apply {
-                        val direction = when (session.direction) {
-                            ConversationDirection.OUTGOING -> "Wychodząca"; ConversationDirection.INCOMING -> "Przychodząca"; ConversationDirection.UNSPECIFIED -> "Rozmowa"
+                    if (sessions.isEmpty()) content.addView(TextView(this).apply {
+                        text = getString(R.string.history_empty)
+                    })
+                    sessions.forEach { session ->
+                        val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                        row.addView(Button(this).apply {
+                            tag = "history-open:" + session.id
+                            val direction = when (session.direction) {
+                                ConversationDirection.OUTGOING -> getString(R.string.history_outgoing)
+                                ConversationDirection.INCOMING -> getString(R.string.history_incoming)
+                                ConversationDirection.UNSPECIFIED -> getString(R.string.history_unknown)
+                            }
+                            text = direction + " • " +
+                                DateFormat.getDateTimeInstance().format(Date(session.startedAtEpochMs)) +
+                                " • " + session.lines.size + " " + getString(R.string.history_lines)
+                            setOnClickListener { showSession(session.id) }
+                        })
+                        if (history.canDelete(session.id)) {
+                            row.addView(Button(this).apply {
+                                tag = "history-delete:" + session.id
+                                text = getString(R.string.history_delete)
+                                setOnClickListener { confirmDelete(session.id) }
+                            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                                    topMargin = UiDesign.dp(this@ConversationHistoryActivity, 8)
+                                })
                         }
-                        text = "$direction • ${DateFormat.getDateTimeInstance().format(Date(session.startedAtEpochMs))} • ${session.lines.size} wypowiedzi"
-                        setOnClickListener { showSession(session.id) }
-                    }) }
-                }.onFailure { failure -> content.addView(TextView(this).apply { text = "Błąd odczytu historii: ${failure.javaClass.simpleName}" }) }
+                        content.addView(row, LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                        ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 14) })
+                    }
+                }.onFailure { failure -> content.addView(TextView(this).apply {
+                    text = getString(R.string.history_read_error) + ": " + failure.javaClass.simpleName
+                }) }
             }
         }
     }
+
+    private fun confirmDelete(id: String) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.history_delete_title)
+            .setMessage(R.string.history_delete_warning)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.history_delete) { _, _ ->
+                stopPlayback()
+                io.execute {
+                    val deleted = runCatching { history.deleteCompleted(id) }.getOrDefault(false)
+                    runOnUiThread {
+                        if (!isDestroyed) showList(getString(
+                            if (deleted) R.string.history_deleted else R.string.history_delete_failed))
+                    }
+                }
+            }
+            .show()
+    }
     private fun showSession(id: String) {
+        setDisplayedSession(id)
         io.execute {
             val result = runCatching { history.load(id) }
             runOnUiThread {
-                if (isDestroyed) return@runOnUiThread
+                if (isDestroyed || displayedSessionId != id) return@runOnUiThread
                 content.removeAllViews()
-                content.addView(Button(this).apply { text = "Wszystkie rozmowy"; setOnClickListener { showList() } })
+                content.addView(Button(this).apply {
+                    tag = "history-back-to-list"
+                    text = getString(R.string.history_back_to_list)
+                    setOnClickListener { showList() }
+                })
                 result.onSuccess { session ->
                     if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = "Niepełne dane archiwum: ${session.invalidRecords} uszkodzonych wpisów" })
                     playbackStatus = TextView(this).apply {
@@ -134,5 +219,13 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         playback = null
     }
     override fun onPause() { stopPlayback(); super.onPause() }
-    override fun onDestroy() { stopPlayback(); io.shutdown(); super.onDestroy() }
+    override fun onDestroy() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            gestureBack?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
+            gestureBack = null
+        }
+        stopPlayback()
+        io.shutdown()
+        super.onDestroy()
+    }
 }

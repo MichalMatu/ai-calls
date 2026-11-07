@@ -68,4 +68,18 @@
     <string name="ui_supervised_section">Test nadzorowany aktywnej rozmowy</string>
     <string name="ui_general_description">Wybory zapisują się dla kolejnej rozmowy. Nie rozpoczynają połączeń.</string>
     <string name="ui_developer_description">Zaawansowana diagnostyka. Uruchamiaj sondy świadomie.</string>
+    <string name="history_title">Historia rozmów</string>
+    <string name="history_subtitle">Sesje zapisane lokalnie. Wyczyszczenie czatu na żywo nie usuwa archiwum.</string>
+    <string name="history_empty">Brak zapisanych rozmów</string>
+    <string name="history_outgoing">Wychodząca</string>
+    <string name="history_incoming">Przychodząca</string>
+    <string name="history_unknown">Rozmowa</string>
+    <string name="history_lines">wypowiedzi</string>
+    <string name="history_delete">Usuń rozmowę</string>
+    <string name="history_delete_title">Usunąć tę rozmowę?</string>
+    <string name="history_delete_warning">Zostaną trwale usunięte lokalny transkrypt i wszystkie fragmenty audio tej zakończonej rozmowy.</string>
+    <string name="history_deleted">Rozmowa została usunięta.</string>
+    <string name="history_delete_failed">Nie udało się usunąć rozmowy. Aktywne lub niekompletne sesje są chronione.</string>
+    <string name="history_read_error">Błąd odczytu historii</string>
+    <string name="history_back_to_list">Wszystkie rozmowy</string>
 </resources>

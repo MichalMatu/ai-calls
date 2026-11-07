@@ -29,6 +29,40 @@ internal class RecordedConversationHistory(private val root: File) {
         it.isDirectory && File(it, "timeline.jsonl").isFile
     }.sortedByDescending { it.name }.map { load(it.name) }
 
+    /** Remove only a completed private archive, never a session still being recorded. */
+    fun canDelete(id: String): Boolean = runCatching {
+        val base = root.canonicalFile
+        val candidate = File(root, id)
+        val directory = candidate.canonicalFile
+        !java.nio.file.Files.isSymbolicLink(candidate.toPath()) &&
+            directory.parentFile == base && directory.isDirectory &&
+            File(directory, "COMPLETE").isFile &&
+            File(directory, "timeline.jsonl").isFile
+    }.getOrDefault(false)
+
+    fun deleteCompleted(id: String): Boolean {
+        if (!canDelete(id)) return false
+        val base = root.canonicalFile
+        val directory = File(root, id).canonicalFile
+        if (directory.parentFile != base || !load(id).complete) return false
+        // walkFileTree does not follow symlinks; deleting a link cannot delete its target.
+        java.nio.file.Files.walkFileTree(directory.toPath(), object :
+            java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+            override fun visitFile(file: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes):
+                java.nio.file.FileVisitResult {
+                java.nio.file.Files.delete(file)
+                return java.nio.file.FileVisitResult.CONTINUE
+            }
+            override fun postVisitDirectory(dir: java.nio.file.Path, error: java.io.IOException?):
+                java.nio.file.FileVisitResult {
+                if (error != null) throw error
+                java.nio.file.Files.delete(dir)
+                return java.nio.file.FileVisitResult.CONTINUE
+            }
+        })
+        return !directory.exists()
+    }
+
     /** Resolve only preexisting, private per-turn WAVs, never external paths. */
     fun resolveAudioFile(id: String, fileName: String): File? = runCatching {
         if (!fileName.matches(Regex("turn-[0-9]+-(rx|tx|tx-ack)[.]wav"))) return@runCatching null

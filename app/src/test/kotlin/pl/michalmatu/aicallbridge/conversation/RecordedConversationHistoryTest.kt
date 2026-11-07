@@ -53,6 +53,39 @@ class RecordedConversationHistoryTest {
         } finally {root.deleteRecursively()}
     }
 
+    @Test fun deletesOnlyCompletedSessionAndItsAudioWithoutTouchingOthers() {
+        val root = Files.createTempDirectory("conversation-delete").toFile()
+        try {
+            write(root, "1000-first", "OUTGOING", "Remove me")
+            write(root, "2000-second", "INCOMING", "Preserve me")
+            val first = File(root, "1000-first")
+            File(first, "turn-01-rx.wav").writeBytes(byteArrayOf(1, 2, 3, 4))
+            File(first, "COMPLETE").writeText("local_complete\n")
+            val history = RecordedConversationHistory(root)
+            assertTrue(history.canDelete("1000-first"))
+            assertTrue(history.deleteCompleted("1000-first"))
+            assertFalse(first.exists())
+            assertEquals("Preserve me", history.load("2000-second").lines.first().text)
+            assertFalse(history.deleteCompleted("2000-second"))
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun refusesTraversalAndSymlinkEscapes() {
+        val root = Files.createTempDirectory("conversation-delete-safe").toFile()
+        val other = Files.createTempDirectory("conversation-external").toFile()
+        try {
+            write(root, "1000-safe", "INCOMING", "Safe")
+            File(root, "1000-safe/COMPLETE").writeText("local_complete\n")
+            val history = RecordedConversationHistory(root)
+            assertFalse(history.deleteCompleted("../" + other.name))
+            val outside = File(other, "untouched.txt").apply { writeText("preserve") }
+            val link = File(root, "1000-safe/outside-link")
+            Files.createSymbolicLink(link.toPath(), outside.toPath())
+            assertTrue(history.deleteCompleted("1000-safe"))
+            assertEquals("preserve", outside.readText())
+        } finally { root.deleteRecursively(); other.deleteRecursively() }
+    }
+
     private fun write(root: File, id: String, direction: String, text: String) {
         val dir = File(root, id).apply { mkdirs() }
         File(dir, "timeline.jsonl").writeText("""
