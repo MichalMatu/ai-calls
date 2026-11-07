@@ -15,9 +15,11 @@ class MenuVisualSourceContract(unittest.TestCase):
 
     def test_safe_home_routes(self):
         for x in ("addView(startAuthorizedTaskButton)", "addView(stopAiButton)",
-                  "addView(conversationHistoryButton)", "addView(labShortcutButton)",
                   "addView(oneTapButton)", "AppNavigation.bar(this@MainActivity, AppTab.HOME)"):
             self.assertIn(x, self.main)
+        for duplicate in ("addView(conversationHistoryButton)", "addView(labShortcutButton)",
+                          "AppNavigation.open(this@MainActivity, AppTab.SETTINGS)"):
+            self.assertNotIn(duplicate, self.main)
         self.assertNotIn("UiAccordionSection(", self.main)
         self.assertIn("MainActivityDeveloperProbes", self.main)
 

@@ -7,9 +7,10 @@ class HistoryNavDeletionContract(unittest.TestCase):
         history=(ROOT/"conversation/ConversationHistoryActivity.kt").read_text()
         chrome=(ROOT/"ui/UiChromeActivity.kt").read_text()
         for key in ("override fun consumeChromeBack()", "OnBackPressedCallback", "onBackPressedDispatcher.addCallback(this, detailBack)",
-                    "history-back-to-list", "history-delete:", "AlertDialog.Builder(this)",
+                    "history-detail", "history-open:", "history-delete:", "AlertDialog.Builder(this)",
                     "history.deleteCompleted(id)"):
             self.assertIn(key,history)
+        self.assertNotIn('tag = "history-back-to-list"',history)
         self.assertIn("fun navigateBack()",chrome)
         self.assertIn("if (!consumeChromeBack()) finish()",chrome)
     def test_store_never_deletes_active_or_external_data(self):

@@ -26,7 +26,8 @@ class ArchivedChatAudioUiContractTest(unittest.TestCase):
 
     def test_no_call_or_grant_operations_in_history(self):
         self.assertIn("ConversationChatFeed.clearVisibleHistory()", self.live)
-        self.assertIn("ConversationHistoryActivity::class.java", self.live)
+        self.assertNotIn("ConversationHistoryActivity::class.java", self.live)
+        self.assertIn('tag = "live-chat-dock"', self.live)
         self.assertNotIn("CALL_PHONE", self.history)
         self.assertNotIn("Intent.ACTION_SEND", self.history)
         self.assertNotIn("startForegroundService", self.history)
