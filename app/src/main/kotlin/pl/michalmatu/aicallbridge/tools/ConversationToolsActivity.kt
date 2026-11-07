@@ -33,28 +33,30 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val enabled = storedSelection
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@ConversationToolsActivity, 24),
-                UiDesign.dp(this@ConversationToolsActivity, 28),
-                UiDesign.dp(this@ConversationToolsActivity, 24),
+            setPadding(UiDesign.dp(this@ConversationToolsActivity, 20),
+                UiDesign.dp(this@ConversationToolsActivity, 16),
+                UiDesign.dp(this@ConversationToolsActivity, 20),
                 UiDesign.dp(this@ConversationToolsActivity, 28))
         }
-        content.addView(UiDesign.heading(this, getString(R.string.tools_ui_title)))
-        content.addView(TextView(this).apply {
-            text = getString(R.string.tools_ui_description)
-            setPadding(0, UiDesign.dp(this@ConversationToolsActivity, 8),
-                0, UiDesign.dp(this@ConversationToolsActivity, 14))
-        })
+        content.addView(UiDesign.heading(this, getString(R.string.tools_ui_title)),
+            UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this, getString(R.string.tools_ui_description)),
+            UiDesign.spaceAfter(this, 16))
         val choices = ConversationToolId.entries.associateWith { tool ->
-            CheckBox(this).apply {
+            val card = UiDesign.card(this, 12)
+            val choice = CheckBox(this).apply {
                 text = when (tool) {
-                    ConversationToolId.END_CALL ->
-                        getString(R.string.tools_ui_end_call_title) + "\n" +
-                        getString(R.string.tools_ui_end_call_detail)
+                    ConversationToolId.END_CALL -> getString(R.string.tools_ui_end_call_title)
                 }
                 isChecked = tool in enabled
                 minimumHeight = UiDesign.dp(this@ConversationToolsActivity, 48)
-                content.addView(this)
             }
+            card.addView(choice, UiDesign.spaceAfter(this, 4))
+            card.addView(UiDesign.caption(this, when (tool) {
+                ConversationToolId.END_CALL -> getString(R.string.tools_ui_end_call_detail)
+            }))
+            content.addView(card, UiDesign.spaceAfter(this, 12))
+            choice
         }
         val feedback = UiDesign.caption(this, "")
         val save = UiDesign.action(this, getString(R.string.tools_ui_save), UiActionTone.PRIMARY) {
