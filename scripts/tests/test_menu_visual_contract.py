@@ -10,6 +10,7 @@ class MenuVisualSourceContract(unittest.TestCase):
         cls.nav = (ROOT / "ui/AppNavigation.kt").read_text()
         cls.hub = (ROOT / "ui/SettingsHubActivity.kt").read_text()
         cls.general = (ROOT / "ui/GeneralSettingsActivity.kt").read_text()
+        cls.controller = (ROOT / "ui/GeneralSettingsController.kt").read_text()
         cls.chat = (ROOT / "conversation/ConversationChatPanel.kt").read_text()
 
     def test_safe_home_routes(self):
@@ -28,8 +29,11 @@ class MenuVisualSourceContract(unittest.TestCase):
                   "AudioEngineSettingsActivity", "IncomingAssistantSettingsActivity"):
             self.assertIn(x, self.hub)
         for x in ("settings-audio-mode-spinner", "settings-provider-spinner",
-                  "CallRuntimePreferences", "saveAudioMode", "saveTextLlmProvider"):
+                  "controller.selectMode(selected)", "controller.selectTextModel(selected)"):
             self.assertIn(x, self.general)
+        for x in ("CallRuntimePreferences", "saveAudioMode", "saveTextLlmProvider"):
+            self.assertIn(x, self.controller)
+        self.assertNotIn("CallRuntimePreferences(", self.general)
 
     def test_safe_areas_and_chat(self):
         self.assertIn("WindowInsets.Type.systemBars()", self.main)
