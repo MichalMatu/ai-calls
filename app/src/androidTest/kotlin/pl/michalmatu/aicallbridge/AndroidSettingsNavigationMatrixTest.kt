@@ -74,7 +74,7 @@ class AndroidSettingsNavigationMatrixTest {
                     instrumentation.runOnMainSync {
                         val destination = checkNotNull(history)
                         assertTrue("history_title_absent",
-                            labels(destination.window.decorView).any { it.contains("Historia rozmów") })
+                            labels(destination.window.decorView).any { it.contains(destination.getString(R.string.history_title)) })
                         assertTrue("history_screenshot_blocked",
                             (destination.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) == 0)
                     }
@@ -125,10 +125,12 @@ class AndroidSettingsNavigationMatrixTest {
             repeat(24) {
                 screen.onActivity { activity ->
                     val texts = labels(activity.window.decorView)
-                    val title = texts.any { it.contains("Historia rozmów") }
+                    val title = texts.any { it.contains(activity.getString(R.string.history_title)) }
                     val hasState = texts.any {
-                        it.contains("Brak zapisanych rozmów") || it.startsWith("Przychodząca") ||
-                            it.startsWith("Wychodząca") || it.startsWith("Rozmowa •") ||
+                        it.contains(activity.getString(R.string.history_empty)) ||
+                            it.startsWith(activity.getString(R.string.history_incoming)) ||
+                            it.startsWith(activity.getString(R.string.history_outgoing)) ||
+                            it.startsWith(activity.getString(R.string.history_unknown) + " •") ||
                             it.startsWith("Błąd odczytu historii")
                     }
                     ready = title && hasState

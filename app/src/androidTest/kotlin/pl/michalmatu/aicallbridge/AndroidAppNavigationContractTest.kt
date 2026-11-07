@@ -10,6 +10,9 @@ import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.view.WindowManager
+import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
+import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
+import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 
 @RunWith(AndroidJUnit4::class)
 class AndroidAppNavigationContractTest {
@@ -43,6 +46,22 @@ class AndroidAppNavigationContractTest {
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
+            }
+        }
+    }
+    @Test fun screenshotsAreNotBlockedOnPrivateScreens() {
+        val types = listOf(
+            ConversationHistoryActivity::class.java,
+            ConversationPreparationActivity::class.java,
+            ConversationSkillsActivity::class.java,
+            PhoneEnrollmentActivity::class.java,
+        )
+        for (type in types) {
+            ActivityScenario.launch(type).use { scenario ->
+                scenario.onActivity { activity ->
+                    assertEquals("screenshot_flag:" + type.simpleName, 0,
+                        activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE)
+                }
             }
         }
     }

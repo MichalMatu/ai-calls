@@ -63,7 +63,7 @@ class AndroidArchivedChatAudioPlaybackTest {
                 for (attempt in 0 until 50) {
                     scenario.onActivity { activity ->
                         val link = findButton(activity.window.decorView) {
-                            it.startsWith("Przychodząca") && it.contains("2286")
+                            it.contains("2286")
                         }
                         if (link != null) {
                             link.performClick()
