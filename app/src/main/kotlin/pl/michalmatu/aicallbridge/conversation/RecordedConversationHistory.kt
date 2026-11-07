@@ -63,6 +63,44 @@ internal class RecordedConversationHistory(private val root: File) {
         return !directory.exists()
     }
 
+    data class ClearCompletedResult(
+        val deleted: Int,
+        val skipped: Int,
+        val failed: Int,
+    )
+
+    /** UI may clear only verified COMPLETE archives, never an in-flight recorder. */
+    fun countDeletableCompleted(): Int = root.listFiles().orEmpty().count { candidate ->
+        candidate.isDirectory && canDelete(candidate.name) &&
+            runCatching { load(candidate.name).complete }.getOrDefault(false)
+    }
+
+    /**
+     * Delete only existing, verified completed archives. Do not recursively clear
+     * the root, unknown directories or sessions still being recorded.
+     * Each session passes the same symlink/path/COMPLETE checks as single delete.
+     */
+    fun deleteAllCompleted(): ClearCompletedResult {
+        var deleted = 0
+        var skipped = 0
+        var failed = 0
+        root.listFiles().orEmpty().forEach { candidate ->
+            if (!candidate.isDirectory ||
+                !File(candidate, "timeline.jsonl").isFile) return@forEach
+            if (!canDelete(candidate.name) ||
+                !runCatching { load(candidate.name).complete }.getOrDefault(false)) {
+                skipped++
+                return@forEach
+            }
+            if (runCatching { deleteCompleted(candidate.name) }.getOrDefault(false)) {
+                deleted++
+            } else {
+                failed++
+            }
+        }
+        return ClearCompletedResult(deleted, skipped, failed)
+    }
+
     /** Resolve only preexisting, private per-turn WAVs, never external paths. */
     fun resolveAudioFile(id: String, fileName: String): File? = runCatching {
         if (!fileName.matches(Regex("turn-[0-9]+-(rx|tx|tx-ack)[.]wav"))) return@runCatching null
