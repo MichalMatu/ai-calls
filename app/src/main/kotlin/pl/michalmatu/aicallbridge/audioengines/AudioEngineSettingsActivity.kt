@@ -366,15 +366,11 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun refreshActive() {
-        val profile = store.load()
-        active.text = if (profile == null) {
-            getString(R.string.eng_ui_invalid)
-        } else {
-            val inputName = AudioEngineRegistry.inputs.firstOrNull { it.id == profile.input.name }?.title ?: profile.input.name
-            val modelName = AudioEngineRegistry.dialogues.firstOrNull { it.id == profile.dialogue.name }?.title ?: profile.dialogue.name
-            val outputName = AudioEngineRegistry.outputs.firstOrNull { it.id == profile.output.name }?.title ?: profile.output.name
-            getString(R.string.eng_ui_summary, inputName, modelName, outputName,
-                profile.voiceId ?: getString(R.string.eng_ui_auto))
+        active.text = when (val snapshot = AudioEngineActiveProfilePresenter.present(store.load())) {
+            AudioEngineActiveState.Invalid -> getString(R.string.eng_ui_invalid)
+            is AudioEngineActiveState.Configured -> getString(R.string.eng_ui_summary,
+                snapshot.inputTitle, snapshot.dialogueTitle, snapshot.outputTitle,
+                snapshot.voiceId ?: getString(R.string.eng_ui_auto))
         }
     }
 
