@@ -24,7 +24,7 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         store = try { AndroidConversationPreparationStore(this) } catch (failure: Exception) {
             setContentView(TextView(this).apply { text = "Nie udało się otworzyć przygotowania rozmów: ${failure.javaClass.simpleName}" })
             return

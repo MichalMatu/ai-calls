@@ -15,7 +15,7 @@ class SettingsUxShortcutsContractTest(unittest.TestCase):
         self.assertIn('text = "Rozmowy i nagrania"', self.main)
         self.assertIn("ConversationHistoryActivity::class.java", self.main)
         self.assertIn("addView(conversationHistoryButton)", self.main)
-        self.assertIn("WindowManager.LayoutParams.FLAG_SECURE", self.history)
+        self.assertNotIn("FLAG_SECURE", self.history)
 
     def test_offline_lab_and_stop_are_separate(self):
         self.assertIn('text = "Laboratorium offline"', self.main)

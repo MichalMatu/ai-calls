@@ -17,7 +17,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         try {
             store = AndroidConversationPreparationStore(this)
             library = store.loadSkillLibrary()

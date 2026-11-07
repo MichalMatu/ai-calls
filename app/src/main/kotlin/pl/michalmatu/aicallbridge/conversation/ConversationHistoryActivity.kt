@@ -25,7 +25,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private var playbackStatus: TextView? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         history = RecordedConversationHistory(File(filesDir, CallSessionEvidenceRecorder.ROOT))
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32), UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32)) }
         setContentView(ScrollView(this).apply { addView(content) })

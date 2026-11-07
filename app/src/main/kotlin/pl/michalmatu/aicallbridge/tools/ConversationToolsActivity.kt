@@ -19,7 +19,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         val store = ConversationToolSettingsStore(this)
         val enabled = store.enabled()
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationToolsActivity, 28), UiDesign.dp(this@ConversationToolsActivity, 36), UiDesign.dp(this@ConversationToolsActivity, 28), UiDesign.dp(this@ConversationToolsActivity, 28)) }

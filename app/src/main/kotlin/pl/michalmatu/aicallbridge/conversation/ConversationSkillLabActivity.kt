@@ -34,7 +34,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 28), UiDesign.dp(this@ConversationSkillLabActivity, 36))

@@ -20,7 +20,7 @@ import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         val content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(UiDesign.dp(this@IncomingAssistantSettingsActivity, 28), UiDesign.dp(this@IncomingAssistantSettingsActivity, 36), UiDesign.dp(this@IncomingAssistantSettingsActivity, 28), UiDesign.dp(this@IncomingAssistantSettingsActivity, 28)) }
         val feedback=TextView(this)
         val store=IncomingAssistantPolicyStore(this)

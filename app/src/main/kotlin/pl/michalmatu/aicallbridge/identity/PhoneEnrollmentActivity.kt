@@ -20,7 +20,7 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var statusView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         super.onCreate(savedInstanceState)
 
         phoneInput = EditText(this).apply {

@@ -15,7 +15,7 @@ class ArchivedChatAudioUiContractTest(unittest.TestCase):
     def test_fragment_player_requires_phone_idle_and_safe_private_path(self):
         for expected in (
             "READ_PHONE_STATE", "telecom.isInCall", "history.resolveAudioFile",
-            "setDataSource(file.absolutePath)", "onPause()", "FLAG_SECURE",
+            "setDataSource(file.absolutePath)", "onPause()",
             "session.audioFor(line)",
         ):
             self.assertIn(expected, self.history)

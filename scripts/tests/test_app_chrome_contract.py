@@ -16,12 +16,12 @@ class ChromeSourceContract(unittest.TestCase):
         self.assertIn("app-bottom-navigation", nav)
         self.assertIn("WindowInsets.Type.systemBars()", nav)
 
-    def test_privacy_flags_remain(self):
+    def test_screenshots_remain_allowed(self):
         for path in ("conversation/ConversationHistoryActivity.kt",
                      "conversation/ConversationSkillsActivity.kt",
                      "conversation/ConversationPreparationActivity.kt",
                      "incoming/IncomingAssistantSettingsActivity.kt"):
-            self.assertIn("WindowManager.LayoutParams.FLAG_SECURE", (ROOT / path).read_text())
+            self.assertNotIn("FLAG_SECURE", (ROOT / path).read_text())
 
 if __name__ == "__main__":
     unittest.main()

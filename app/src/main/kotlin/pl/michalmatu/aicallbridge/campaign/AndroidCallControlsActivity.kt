@@ -31,7 +31,7 @@ class AndroidCallControlsActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         status = TextView(this).apply { textSize = 18f }
         number = EditText(this).apply {
             hint = "Numer telefonu"

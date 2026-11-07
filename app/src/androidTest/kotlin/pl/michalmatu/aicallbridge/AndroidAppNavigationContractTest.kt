@@ -32,8 +32,7 @@ class AndroidAppNavigationContractTest {
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:history")).isSelected)
-                assertTrue((activity.window.attributes.flags and
-                    WindowManager.LayoutParams.FLAG_SECURE) != 0)
+                assertEquals(0, activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE)
                 val back = requireNotNull(root.findViewWithTag<View>("app-child-back"))
                 assertTrue(back.isShown)
                 assertTrue(back.isClickable)

@@ -75,8 +75,8 @@ class AndroidSettingsNavigationMatrixTest {
                         val destination = checkNotNull(history)
                         assertTrue("history_title_absent",
                             labels(destination.window.decorView).any { it.contains("Historia rozmów") })
-                        assertTrue("history_window_not_secure",
-                            (destination.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0)
+                        assertTrue("history_screenshot_blocked",
+                            (destination.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) == 0)
                     }
                 } finally {
                     if (history != null) instrumentation.runOnMainSync { history.finish() }
@@ -132,8 +132,8 @@ class AndroidSettingsNavigationMatrixTest {
                             it.startsWith("Błąd odczytu historii")
                     }
                     ready = title && hasState
-                    assertTrue("history_window_not_secure",
-                        (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0)
+                    assertTrue("history_screenshot_blocked",
+                        (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) == 0)
                 }
                 if (ready) return@repeat
                 Thread.sleep(200)

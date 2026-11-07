@@ -4,6 +4,9 @@
 
 **Druga obowiązkowa warstwa:** każde wykryte naruszenie natychmiast wpisz z nowym numerem do [BLOCKERS.md](BLOCKERS.md), nawet jeśli zostanie naprawione w tym samym sprincie. Podaj ścieżkę/symbol, warunek, wpływ, przyczynę, plan, test, commit i status `OPEN | FIXED_IN_SOURCE | VERIFIED`. Historycznych naruszeń nie usuwaj; [docs/FRICTION_BLOCKER_LEDGER.md](docs/FRICTION_BLOCKER_LEDGER.md) służy jako archiwum, nie drugi rejestr aktualnych statusów. Nie zamykaj bez wyników testu.
 
+
+**Bez blokowania screenshotów (decyzja właściciela 2026-11-07):** absolutnie nie ustawiaj `WindowManager.LayoutParams.FLAG_SECURE`, `android:windowSecure` ani podobnych sztucznych blokad zrzutów/udostępniania ekranu na żadnym ekranie AI Calls, w tym rozmowach, sejfie, ustawieniach i laboratorium. Screenshoty pozostają dozwolone; chronione dane nadal są zapisywane prywatnie, nie wolno ich eksportować ani logować automatycznie. Regresję blokady odnotuj jako nowy bloker w BLOCKERS.md. Weryfikuj zakaz testem source-wide oraz fizycznym screenshotem na S22.
+
 ## Produkt i źródła prawdy
 
 **Decyzja właściciela 2026-11-05:** bieżąca aplikacja jest **modułowym laboratorium testowym**. Ma porównywać wejścia/STT, modele, strategie dialogu ze skryptem lub bez, instrukcje, TTS i scenariusze. Docelowy flow powstanie później z elementów, których jakość i współpracę potwierdzono. Docelowa dystrybucja ma być jednym pakietem instalacyjnym; teraz rozwijamy laboratorium, bez prac nad instalatorem. Użytkownik nadaje rzeczywiste uprawnienia systemowe Androida. Obowiązuje [zakres laboratorium, plan porównań i instalacji](docs/TEST_LAB_SCOPE.md). Orange/CLIR to jeden scenariusz; wymagane są również powtarzalny korpus tekstu/audio, kontrolowany rozmówca i kontrolowana telefonia. Rozwijaj istniejące interfejsy i wspólny potok, wydzielając konfigurację próby/scenariusz/kanał bez kopiowania runnera i polityk. Nie traktuj wszystkich opcji w UI jako fizycznie zaakceptowanych.
