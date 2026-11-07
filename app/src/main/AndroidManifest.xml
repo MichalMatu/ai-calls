@@ -35,6 +35,7 @@
         android:allowBackup="false"
         android:label="AI Calls"
         android:supportsRtl="true"
+        android:localeConfig="@xml/locale_config"
         android:theme="@style/Theme.AiCalls">
 
         <!-- LiteRT-LM GPU backend probes vendor OpenCL through these optional native libraries. -->

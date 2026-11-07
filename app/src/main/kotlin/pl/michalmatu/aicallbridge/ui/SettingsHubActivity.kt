@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.RadioGroup
+import android.widget.RadioButton
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
@@ -19,7 +21,7 @@ import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 
 /** Direct navigation hub: categories are labels, not one-button accordions. */
-class SettingsHubActivity : Activity() {
+class SettingsHubActivity : AppBaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val content = LinearLayout(this).apply {
@@ -84,6 +86,30 @@ class SettingsHubActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 9) })
         }
+        section(R.string.ui_language_title)
+        content.addView(TextView(this).apply {
+            text = getString(R.string.ui_language_hint)
+            textSize = 13f
+            setTextColor(UiDesign.secondary)
+            setPadding(0, 0, 0, UiDesign.dp(this@SettingsHubActivity, 10))
+        })
+        content.addView(RadioGroup(this).apply {
+            tag = "ui-language-group"
+            val current = AppLanguage.selected(this@SettingsHubActivity)
+            listOf(
+                "auto" to R.string.ui_language_auto,
+                "pl" to R.string.ui_language_polish,
+                "en" to R.string.ui_language_english,
+            ).forEach { (code, label) ->
+                addView(RadioButton(this@SettingsHubActivity).apply {
+                    tag = "ui-language:" + code
+                    text = getString(label)
+                    isChecked = current == code
+                    minimumHeight = UiDesign.dp(this@SettingsHubActivity, 48)
+                    setOnClickListener { AppLanguage.select(this@SettingsHubActivity, code) }
+                })
+            }
+        })
         section(R.string.ui_settings_hub_group_ai)
         destination(R.string.ui_settings_hub_general, R.string.ui_settings_hub_general_detail, GeneralSettingsActivity::class.java)
         destination(R.string.ui_settings_hub_engines, R.string.ui_settings_hub_engines_detail, AudioEngineSettingsActivity::class.java)

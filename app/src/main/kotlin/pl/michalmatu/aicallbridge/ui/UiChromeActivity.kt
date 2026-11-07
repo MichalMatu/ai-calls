@@ -8,7 +8,7 @@ import android.view.View
  * The original Activity owns its state, callbacks, privacy flags, and content tree.
  * This wrapper adds navigation only, without touching grants, audio or persistence.
  */
-abstract class UiChromeActivity(private val activeTab: AppTab) : Activity() {
+abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity() {
     /** Child pages with internal navigation may consume Back before closing their Activity. */
     protected open fun consumeChromeBack(): Boolean = false
     fun navigateBack() {

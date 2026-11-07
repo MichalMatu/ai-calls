@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
 import pl.michalmatu.aicallbridge.ui.AppNavigation
 import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.AppBaseActivity
 
 import android.Manifest
 import android.app.Activity
@@ -30,7 +31,7 @@ import pl.michalmatu.aicallbridge.runtime.CallAudioMode
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
-class MainActivity : Activity() {
+class MainActivity : AppBaseActivity() {
     private lateinit var statusView: TextView
     private lateinit var runtimePreferences: CallRuntimePreferences
     private lateinit var selectedAudioMode: CallAudioMode
