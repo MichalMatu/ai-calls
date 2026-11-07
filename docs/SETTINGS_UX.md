@@ -1,13 +1,13 @@
 # AI Calls — architektura UX ustawień i historii
 
-**Stan kodu:** `d59b459a9a50d2f9c8f037f2116d802a9b288617` (2026-11-06). To mapa stanu aplikacji i następnych kroków, nie makieta ukończonego całego produktu.
+**Aktualny stan:** `6a3aad0` — minimalistyczne Home, kompaktowa lista Calls, Tabler, spójny wybór i rozwijany język; 300 host + 22/22 S22 PASS. Starsze checkpointy poniżej są historyczne. [Bieżący checkpoint](checkpoints/2026-11-07-minimal-ui-tabler-s22-22of22.md).
 
 ## Nawigacja
 
 - **Start:** status silników i modelu, rozpoczęcie autoryzowanego zadania, kampanie, STOP AI. START/STOP pozostają poza zwijanymi sekcjami.
-- **Rozmowy i nagrania:** osobny przycisk na głównym ekranie prowadzi do `ConversationHistoryActivity`. Pinned `ConversationChatPanel` pokazuje czat na żywo i ma dodatkowe wejście do historii.
-- **Laboratorium offline:** bezpośrednie wejście na głównym ekranie, bez inicjowania rozmowy telefonicznej.
-- **Ustawienia aplikacji:** pięć czytelnych sekcji `UiAccordionSection`, bez nowego magazynu konfiguracji.
+- **Rozmowy / Laboratorium / Ustawienia:** jedynie cztery stale widoczne dolne zakładki Home/Calls/Lab/Settings; nie ma zduplikowanych skrótów Home i czatu.
+- **Rozmowy:** pojedynczy wiersz z ikoną kierunku, datą/liczbą wiadomości oraz osobnym koszem dla zakończonej sesji; potwierdzenie kasowania nadal wymagane.
+- **Ustawienia aplikacji:** bezpośrednie ekrany kategorii, wspólne listy wyboru `UiSelect`, język/wygląd jako zwijany wiersz; brak fikcyjnych sekcji. Poprzednie akordeony są historyczne.
 
 ## Inwentaryzacja istniejących kontrolek
 
@@ -24,7 +24,7 @@
 
 `ConversationChatFeed` jest prywatnym podglądem bieżącej sesji, nie archiwum. `RecordedConversationHistory` czyta oryginalny `timeline.jsonl` bez kopiowania transkryptu. Historia wyświetla dymki rozmówcy/AI/narzędzi, stan TX oraz **przycisk odsłuchu istniejącego segmentu WAV RX lub TX przy odpowiadającej wypowiedzi**. Osobno dostępne są dodatkowe segmenty, m.in. TX-ACK.
 
-Odtwarzanie wymaga dostępnego prawidłowego pliku w katalogu prywatnej sesji i potwierdzenia, że nie trwa rozmowa; player zwalnia zasoby po opuszczeniu ekranu. `FLAG_SECURE` pozostaje włączone. Nie eksportuje się treści, WAV ani identyfikatorów rozmów do GitHub.
+Odtwarzanie wymaga dostępnego prawidłowego pliku w katalogu prywatnej sesji i potwierdzenia, że nie trwa rozmowa; player zwalnia zasoby po opuszczeniu ekranu. `FLAG_SECURE` został usunięty zgodnie z decyzją właściciela; screenshoty są możliwe, bez automatycznego eksportu prywatnych danych. Nie eksportuje się treści, WAV ani identyfikatorów rozmów do GitHub.
 
 **F-080 pozostaje OPEN:** obecny recorder obejmuje okna RX/STT i zapisany lokalny TX, nie pełną, nieprzerwaną sesję, IVR/hold czy głos użytkownika po przejęciu. Nie ma jeszcze osi pokrycia, odtwarzacza całości ani płynnego seek po rozmowie. Brakujące audio nie jest oznaczane jako cisza.
 
@@ -70,3 +70,7 @@ IncomingAssistantSettingsController owns existing policy store, SIM enumeration,
 ## S22 accepted UX build — 21/21 native tests (2026-11-07)
 
 At `035af45`, Home/Calls/Lab/Settings shell, incoming assistant, tool settings, screenshot, safe synthetic Calls Back/Delete/WAV and navigation matrix passed 21/21 physical checks with 0 live calls. The app/test APKs were installed without wiping user data. [Physical receipt](checkpoints/2026-11-07-s22-ux-latest-21-21-acceptance.md). Final human visual review and remaining legacy PL/EN labels are still pending.
+
+## Minimalistyczny interfejs zaakceptowany na S22 — 2026-11-07
+
+Home bez dubli, Calls w jednym wierszu z Tabler kierunkiem i koszem, Tabler MIT VectorDrawable, płaskie przyciski bez dziedziczonego cienia, `UiSelect` w General/Engines/Lab oraz zwijany język Auto/PL/EN. Mac host **300 PASS**, S22 **22/22 PASS** bez połączeń i bez czyszczenia danych. [Dokładny checkpoint](checkpoints/2026-11-07-minimal-ui-tabler-s22-22of22.md). Ręczna estetyka i pełny PL/EN nadal osobno.

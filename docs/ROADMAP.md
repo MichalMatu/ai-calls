@@ -87,3 +87,7 @@ Screenshot unblocker F-104, Calls Back/Delete F-105/106, action spacing F-107, a
 ## Physical acceptance of current UX/controller build — 2026-11-07
 
 `035af45`: **Host 297 Python, AndroidTest/Gradle/lint/APK/friction PASS; exact S22 21/21 native UI PASS**. Same APK signer, `-r` preserving data; Calls Back/deletion tested only with synthetic archive; screenshot actually captured in memory without export; no live call. F-104/F-105/F-106/F-108 VERIFIED; F-107 manual visual audit and F-103 full PL/EN still OPEN. Controller boundaries for archived media, incoming answering and tools accepted, but Campaign/Engine/Preparation/Skills UI still coupled. [Receipt](checkpoints/2026-11-07-s22-ux-latest-21-21-acceptance.md).
+
+## Minimalizm UI i Tabler — 2026-11-07
+
+`6a3aad0`: usunięte powtórzenia w Home i live chat, historia Calls jako jeden wiersz z kierunkiem i bezpiecznym koszem, 11 spójnych wektorów Tabler/MIT, płaskie akcje, `UiSelect` + zwijany język/wygląd. **Mac full gate 300 Python / AndroidTest / lint / APK / anti-friction PASS, Samsung S22 22/22 instrumented PASS**, app/test APK zainstalowane `-r` i dane zachowane. Wszelkie realne rozmowy i AI effects poza zakresem. [Odbiór](checkpoints/2026-11-07-minimal-ui-tabler-s22-22of22.md). Dalsze UX: ręczny audyt wizualny F-107, komplet PL/EN F-103 i separacja pozostałych Activities.
