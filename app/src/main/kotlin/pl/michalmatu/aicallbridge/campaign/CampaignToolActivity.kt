@@ -522,12 +522,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         lastExecutionStatus.text = getString(R.string.camp_ui_runtime_heading) +
             "\n" + getString(R.string.campaign_ui_last_history) +
             "\n" + friendly
-        // Keep unchanged diagnostic codes in the expanded technical section.
-        diagnosticStatus.text = listOfNotNull(
-            if (recordEvidenceChoice.isChecked) getString(R.string.camp_ui_evidence_on)
-                else getString(R.string.camp_ui_evidence_off),
-            raw,
-        ).joinToString("\n\n")
+        // Raw codes remain available in the existing diagnostic accordion.
     }
 
     private enum class PendingAction {
