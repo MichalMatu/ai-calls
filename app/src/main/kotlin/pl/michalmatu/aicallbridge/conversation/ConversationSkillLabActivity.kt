@@ -1,7 +1,6 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.os.Bundle
-import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -388,15 +387,16 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
 
     private fun followCardIfEnabled(card: View) {
         if (!follow.isChecked) return
-        // Calculate the descendant's actual position after layout. Simple card.bottom +
-        // timeline.top fails when the score/rating panels above the timeline reflow.
+        // The timeline is the last content section. Scroll to its newest card after
+        // its response/STOP changes have reflowed the parent layout.
         scroll.post {
             if (isDestroyed || !follow.isChecked || !card.isAttachedToWindow) return@post
-            val rect = Rect()
-            card.getDrawingRect(rect)
-            scroll.offsetDescendantRectToMyCoords(card, rect)
-            val delta = rect.bottom - scroll.height + UiDesign.dp(this, 16)
-            if (delta > 0) scroll.scrollBy(0, delta)
+            scroll.post {
+                if (isDestroyed || !follow.isChecked || !card.isAttachedToWindow) return@post
+                val content = scroll.getChildAt(0) ?: return@post
+                val bottom = (content.height - scroll.height).coerceAtLeast(0)
+                scroll.scrollTo(0, bottom)
+            }
         }
     }
 
