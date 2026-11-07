@@ -271,12 +271,12 @@
     <string name="skills_ui_factory">fabryczny</string>
     <string name="skills_ui_custom">własny</string>
     <string name="skills_ui_activate">Aktywuj wybrany preset</string>
-    <string name="skills_ui_copy">Utwórz własną kopię aktywnego presetu</string>
+    <string name="skills_ui_copy">Utwórz kopię</string>
     <string name="skills_ui_new">Nowy preset</string>
     <string name="skills_ui_create">Utwórz</string>
     <string name="skills_ui_cancel">Anuluj</string>
-    <string name="skills_ui_lab">Laboratorium skillsów — testy Gemmy offline</string>
-    <string name="skills_ui_preview">Podgląd instrukcji dla sekretarki</string>
+    <string name="skills_ui_lab">Otwórz Laboratorium</string>
+    <string name="skills_ui_preview">Podgląd instrukcji</string>
     <string name="skills_ui_not_saved">Nie zapisano</string>
     <string name="skills_ui_revision">Zapisz wersję</string>
     <string name="eng_ui_title">Ustawienia silników audio AI</string>
@@ -398,4 +398,5 @@
 
 
     <string name="campaign_ui_disconnect_requested">Wysłano polecenie zatrzymania AI i zakończenia własnego połączenia. Potwierdzenie sprawdź w diagnostyce.</string>
+    <string name="skills_ui_current_preset">Aktywny preset</string>
 </resources>
