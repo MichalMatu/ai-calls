@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Platform Views, shared typography and surfaces; no AppCompat/Compose dependency. -->
+    <style name="Theme.AiCalls" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F7F9FD</item>
+        <item name="android:colorAccent">#3568C1</item>
+        <item name="android:textColorPrimary">#1B2A40</item>
+        <item name="android:textColorSecondary">#506074</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:buttonStyle">@style/Widget.AiCalls.Button</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+    <style name="Widget.AiCalls.Button" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/bg_aicalls_button</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">#1B2A40</item>
+    </style>
+</resources>

@@ -35,7 +35,7 @@
         android:allowBackup="false"
         android:label="AI Calls"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.AiCalls">
 
         <!-- LiteRT-LM GPU backend probes vendor OpenCL through these optional native libraries. -->
         <uses-native-library android:name="libvndksupport.so" android:required="false" />
