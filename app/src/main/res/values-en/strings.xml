@@ -380,4 +380,20 @@
     <string name="lab_ui_mode_quick">Quick test — 2 turns (offline)</string>
     <string name="lab_ui_mode_full">Full test — all scenarios</string>
     <string name="lab_ui_stop_verification">Stopped at user request.</string>
+
+    <string name="history_clear_all">Delete all completed conversations (%1$d)</string>
+    <string name="history_clear_all_title">Delete %1$d completed conversations?</string>
+    <string name="history_clear_all_warning">Permanently removes local transcripts and recordings of these conversations. Active and unfinished sessions are kept.</string>
+    <string name="history_clear_all_confirm">Delete completed</string>
+    <string name="history_clear_all_result">Deleted: %1$d. Unfinished skipped: %2$d. Errors: %3$d.</string>
+    <string name="history_audio_play_hint">▶ Tap bubble to play audio</string>
+    <string name="history_audio_stop_hint">■ Tap again to stop</string>
+    <string name="history_playback_stopped">Playback stopped.</string>
+    <string name="lab_ui_quality_not_scored">END_CALL accuracy does not score answer quality. Extra questions are estimated only; review the text and rate manually.</string>
+    <string name="lab_ui_stop_banner">Test stopped — completed turns: %1$d/%2$d. No tool decisions were executed.</string>
+    <string name="lab_ui_quality_warning">Response quality requires a manual rating.</string>
+    <string name="campaign_ui_last_history">Last recorded event, not the current call state</string>
+    <string name="campaign_ui_stopped_friendly">AI stopped — execution record was retained.</string>
+    <string name="campaign_ui_runtime_details">Technical details are available below.</string>
+
 </resources>
