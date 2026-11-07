@@ -13,6 +13,20 @@ class ConversationSkillLabTest {
         assertTrue(all.any { "drugą sprawę" in it.utterance })
     }
 
+    @Test fun noQuestionMarkRequestStillRequiresHumanReview() {
+        val actual = listOf(
+            SkillLabObservation("rower", 1, false, false,
+                "Proszę podać numer telefonu i adres.", 125L, false),
+            SkillLabObservation("rower", 2, false, false,
+                "Zapisano wiadomość.", 175L, false),
+            SkillLabObservation("inne", 1, false, false,
+                "Podaj dodatkowe dane", 200L, null),
+        )
+        assertTrue(SkillLabScoring.mayNeedQuestionReview(actual[0].reply))
+        assertEquals(1, SkillLabScoring.score(actual).unexpectedQuestions)
+        assertEquals(3, SkillLabScoring.score(actual).turns)
+    }
+
     @Test fun scoringSeparatesFalseEndsMissingEndsLatencyAndHumanRating() {
         val observations = listOf(
             SkillLabObservation("test", 1, false, false, "Rozumiem.", 100, false),
