@@ -41,7 +41,7 @@ class AndroidVisualPolishAuditTest {
             instrument.waitForIdleSync()
             var folder: File? = null
             scenario.onActivity { activity ->
-                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint4"))
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint5"))
                 requireNotNull(folder).mkdirs()
                 expand(activity)
             }
