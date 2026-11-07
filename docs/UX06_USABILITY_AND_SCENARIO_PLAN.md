@@ -44,3 +44,7 @@ Nie uznawać „biblioteka scenariuszy wdrożona” przed faktycznym dodaniem mo
 ## Implementacja etapowa po zatwierdzeniu planu
 
 Aktualny source: `a03e98b`. Biblioteka 10 presetów ma neutralny katalog JVM, formularz podglądu/edycji, przykładowe wartości Mechanik, prywatny szyfrowany zapis szkicu i AndroidTest nawigacji. **Nie posiada jeszcze** własnych scenariuszy użytkownika, wersjonowania formularzy, potwierdzenia wyboru przed START ani kwalifikowanego silnika nowych branż. Do momentu integracji wyświetla jawne DRAFT_ONLY. Szczegóły: [checkpoint](checkpoints/2026-11-07-ux06-campaign-and-scenario-source-checkpoint.md).
+
+## Etap 2 — wersjonowanie i historia (2026-11-07)
+
+Wdrożono kopie osobiste gotowych presetów, własny tytuł i cel, wersje i powrót do poprzedniej wersji, usuwanie z potwierdzeniem, szyfrowany store Keystore/AtomicFile, ochronę niezatwierdzonych zmian; datę/czas zapisu historycznego zdarzenia Kampanii. Bez telefonii dla nowych szablonów, bez statusu live. QA: v4 DONE/0, v5 oczekuje. [Checkpoint](checkpoints/2026-11-07-ux06-personal-scenarios-and-history-receipt.md).

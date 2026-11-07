@@ -1,3 +1,9 @@
+## UX-06 — etap 2: wersjonowane scenariusze i historia (w toku)
+
+**Kod:** `704e697` partial draft; `8508d2e` pure personal library; `cf42216` encrypted persistence; `b2a2fc5` copy/rename/goal/revise/restore/delete UI; `a62e9da` izolowany AndroidTest i Python; `b74284b` znacznik czasu historycznych zdarzeń; `3c7a8b5` zabezpieczenie niezapisanych zmian. **HOST:** v3 `a03e98b` DONE/0; v4 `b2a2fc5` DONE/0 (338 Python, JVM/AndroidTest compile/APK/friction PASS); v5 `3c7a8b5` QA_PENDING. **S22:** NOT_RUN dla aktualnego kodu. [Nowy checkpoint](checkpoints/2026-11-07-ux06-personal-scenarios-and-history-receipt.md). **OPEN:** F-122, F-123, F-124, F-080 oraz kwalifikowane połączenia poza CLIR.
+
+---
+
 ## UX-06 — poprawa ergonomii i rzetelności stanów (ACTIVE / QA_PENDING, 2026-11-07)
 
 **Nowe zadanie właściciela:** ekran Start i Kampanie, opis ról/przycisków, pięć rozwijanych sekcji (zachować tylko bogatą sekcję nagrań), czytelne szczegóły bez rozwijania, wiarygodne live/status/history. To nowe zgłoszenie po zamkniętym UX-05, bez unieważniania poprzednich PASS.

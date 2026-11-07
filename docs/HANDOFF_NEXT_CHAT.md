@@ -1,3 +1,9 @@
+# UX-06 aktualizacja — osobiste scenariusze, historyczne statusy (2026-11-07)
+
+Bieżący etap wdrażania: [nowy checkpoint](checkpoints/2026-11-07-ux06-personal-scenarios-and-history-receipt.md). `main@3c7a8b5` kod: 10 factory presetów, szyfrowane szkice, kopie osobiste i rewizje, UI PL/EN, rzeczywista data historii kampanii. **Host v4 na b2a2fc5 DONE/0**: pełny build + 338 Python, JVM, AndroidTest compile, friction PASS. **Host v5 do 3c7a8b5 QUEUED, wynik QA_PENDING.** S22 w tym etapie nie instalowano ani nie testowano. Następny kierunek: typowany live-state i bezpieczna próba Android UI bez faktycznego CALL. Niewdrożone presety pozostają draft-only; nie ogłaszać gotowych rezerwacji ani sukcesu sieciowego.
+
+---
+
 # NOWY zakres UX-06 w toku — 2026-11-07
 
 Po wyraźnym poleceniu właściciela „rozpocznij wdrażanie poprawek” rozpoczęto source-only UX-06 na aktualnym `main`. **Stan:** `SOURCE_PARTIAL / HOST_PASS_THROUGH_ec3a280 / SCENARIO_QA_PENDING / S22_NOT_RUN`. Wdrożono Start/Kampanie stany, widoczny dialer, uproszczenie accordion, odrębne anulowanie zadania OUTGOING oraz pierwszy katalog 10 scenariuszy z szyfrowanym formularzem. **Nie pomyl szkiców scenariuszy z gotowymi połączeniami i nie uruchamiaj nieautoryzowanego call**. Następne kroki i dokładne receipts: [UX-06 checkpoint](checkpoints/2026-11-07-ux06-campaign-and-scenario-source-checkpoint.md), [plan](UX06_USABILITY_AND_SCENARIO_PLAN.md), [roadmap](ROADMAP.md), [BLOCKERS](../BLOCKERS.md). Test `aicalls-ux06-host-regression-fix-20261107-v2` DONE/0 na `ec3a280`, v3 nowego kodu scenariuszy QA_PENDING, bez S22. Nie uruchamiać równoległych host tasków dla tego checkout podczas v3.
