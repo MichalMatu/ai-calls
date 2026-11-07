@@ -51,7 +51,7 @@ class AndroidArchivedChatAudioPlaybackTest {
         val directory = File(root, "9999999999999-qa-" + UUID.randomUUID().toString())
         assertTrue("synthetic_archive_create_failed", directory.mkdirs())
         try {
-            CallSessionPcmWav.write(File(directory, "turn-01-rx.wav"), ByteArray(3200))
+            CallSessionPcmWav.write(File(directory, "turn-01-rx.wav"), ByteArray(128000))
             File(directory, "timeline.jsonl").writeText(listOf(
                 """{"type":"CONVERSATION","direction":"INCOMING","profile_id":"qa-synthetic","started_at_ms":9999999999999}""",
                 """{"type":"COUNTERPART_STT","turn":1,"text":"SYNTHETIC_SILENCE_TEST","elapsed_ms":20}""",
@@ -79,18 +79,23 @@ class AndroidArchivedChatAudioPlaybackTest {
                 var clicked = false
                 for (attempt in 0 until 50) {
                     scenario.onActivity { activity ->
-                        val play = findButton(activity.window.decorView) {
-                            it.contains(activity.getString(R.string.history_play_fragment))
-                        }
-                        if (play != null) {
-                            play.performClick()
+                        val bubble = activity.window.decorView.findViewWithTag<View>(
+                            "history-audio-bubble:0"
+                        )
+                        if (bubble != null) {
+                            assertTrue("bubble_is_not_clickable", bubble.isClickable)
+                            assertTrue("large_play_buttons_should_be_removed",
+                                findButton(activity.window.decorView) {
+                                    it.contains(activity.getString(R.string.history_play_fragment))
+                                } == null)
+                            bubble.performClick()
                             clicked = true
                         }
                     }
                     if (clicked) break
                     Thread.sleep(100)
                 }
-                assertTrue("synthetic_chat_audio_button_not_found", clicked)
+                assertTrue("synthetic_chat_audio_bubble_not_found", clicked)
 
                 var succeeded = false
                 for (attempt in 0 until 40) {
@@ -104,6 +109,17 @@ class AndroidArchivedChatAudioPlaybackTest {
                     Thread.sleep(100)
                 }
                 assertTrue("synthetic_wav_player_failed", succeeded)
+                scenario.onActivity { activity ->
+                    val bubble = requireNotNull(activity.window.decorView.findViewWithTag<View>(
+                        "history-audio-bubble:0"))
+                    val hint = requireNotNull(activity.window.decorView.findViewWithTag<TextView>(
+                        "history-audio-bubble:0:hint"))
+                    assertTrue("bubble_did_not_switch_to_stop",
+                        hint.text.contains(activity.getString(R.string.history_audio_stop_hint)))
+                    bubble.performClick()
+                    assertTrue("bubble_second_tap_did_not_stop", hint.text.contains(
+                        activity.getString(R.string.history_audio_play_hint)))
+                }
             }
             println("S22_SYNTHETIC_OFFCALL_WAV_PLAYER=PASS")
         } finally {
