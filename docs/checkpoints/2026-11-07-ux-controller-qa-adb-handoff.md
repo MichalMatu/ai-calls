@@ -35,3 +35,7 @@ Only when exact SM-S906B hardware serial RFCT70L7E8J is visible again: confirm 2
 
 ## Evidence integrity
 No GitHub Actions, Codex, Work, new branches, force-push, credential leaks, private audio/text export, real call or blanket permission changes. Failed historical task receipts remain immutable; no source gate equals hardware QA.
+
+## Subsequent acceptance supersedes earlier ADB blocker
+
+After the historical ADB failure recorded above, the exact S22 reconnected via USB and the new build `035af45` was installed preserving app data. Mac host 297 Python/AndroidTest/APK/lint/friction PASS; physical S22 **21/21 native UI tests PASS** across exact immutable task receipts. The screenshot itself passed; the wrapper's false negative resulted from `OK (1 test)` vs `OK (1 tests)`. See [latest S22 acceptance](2026-11-07-s22-ux-latest-21-21-acceptance.md). The earlier failure above remains historical, not current status. Further complete i18n (F-103) and subjective visual acceptance of button spacing (F-107) remain OPEN.

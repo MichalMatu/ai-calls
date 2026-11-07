@@ -65,4 +65,8 @@ All eight legacy `FLAG_SECURE` windows cleared by explicit owner request; screen
 
 ## Incoming secretary and AI tools UI/controller split (2026-11-07)
 
-IncomingAssistantSettingsController owns existing policy store, SIM enumeration, explicit save and notification; its Activity only renders controls. ConversationToolsSettingsController owns existing enabled-tool preference writes and typed diagnostic status; the Activity only renders translated labels. PL/EN resources added for both screens. This does not extend call or tool authorization. Complete PL/EN and physical S22 acceptance are still open; see [checkpoint](checkpoints/2026-11-07-ux-controller-qa-adb-handoff.md).
+IncomingAssistantSettingsController owns existing policy store, SIM enumeration, explicit save and notification; its Activity only renders controls. ConversationToolsSettingsController owns existing enabled-tool preference writes and typed diagnostic status; the Activity only renders translated labels. PL/EN resources added for both screens. This does not extend call or tool authorization. Complete PL/EN remains open; physical S22 controller/navigation acceptance later passed 21/21;  see [checkpoint](checkpoints/2026-11-07-ux-controller-qa-adb-handoff.md).
+
+## S22 accepted UX build — 21/21 native tests (2026-11-07)
+
+At `035af45`, Home/Calls/Lab/Settings shell, incoming assistant, tool settings, screenshot, safe synthetic Calls Back/Delete/WAV and navigation matrix passed 21/21 physical checks with 0 live calls. The app/test APKs were installed without wiping user data. [Physical receipt](checkpoints/2026-11-07-s22-ux-latest-21-21-acceptance.md). Final human visual review and remaining legacy PL/EN labels are still pending.

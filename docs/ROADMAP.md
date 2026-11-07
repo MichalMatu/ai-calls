@@ -82,4 +82,8 @@ Owner banned screenshot-blocking UI flags globally (F-104). Calls details now re
 
 ## UX finishing phase — current 2026-11-07
 
-Screenshot unblocker F-104, Calls Back/Delete F-105/106, action spacing F-107, and first UI-only Auto/PL/EN locale selector are source-implemented. General, archived playback, incoming policy and AI Tools settings now have view-independent controllers. S22 hardware ADB unavailable (F-108; 0 USB/0 wireless), therefore latest source is NOT physically accepted; prior 15/15 is historical. Translate the remaining legacy screens (F-103) and separate engine/campaign UI from policy in small behavior-preserving gates. [Current checkpoint](checkpoints/2026-11-07-ux-controller-qa-adb-handoff.md).
+Screenshot unblocker F-104, Calls Back/Delete F-105/106, action spacing F-107, and first UI-only Auto/PL/EN locale selector are source-implemented. General, archived playback, incoming policy and AI Tools settings now have view-independent controllers. The initial S22 ADB loss (F-108) was later resolved by USB; the latest code has 21/21 physical off-call UI PASS (see 2026-11-07 acceptance below). Translate the remaining legacy screens (F-103) and separate engine/campaign UI from policy in small behavior-preserving gates. [Current checkpoint](checkpoints/2026-11-07-ux-controller-qa-adb-handoff.md).
+
+## Physical acceptance of current UX/controller build — 2026-11-07
+
+`035af45`: **Host 297 Python, AndroidTest/Gradle/lint/APK/friction PASS; exact S22 21/21 native UI PASS**. Same APK signer, `-r` preserving data; Calls Back/deletion tested only with synthetic archive; screenshot actually captured in memory without export; no live call. F-104/F-105/F-106/F-108 VERIFIED; F-107 manual visual audit and F-103 full PL/EN still OPEN. Controller boundaries for archived media, incoming answering and tools accepted, but Campaign/Engine/Preparation/Skills UI still coupled. [Receipt](checkpoints/2026-11-07-s22-ux-latest-21-21-acceptance.md).
