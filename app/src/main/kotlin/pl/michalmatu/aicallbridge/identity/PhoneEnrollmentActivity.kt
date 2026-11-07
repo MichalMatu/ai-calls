@@ -3,6 +3,8 @@ package pl.michalmatu.aicallbridge.identity
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
+import pl.michalmatu.aicallbridge.R
 import android.app.Activity
 import android.os.Bundle
 import android.text.InputType
@@ -24,7 +26,11 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
         super.onCreate(savedInstanceState)
 
         phoneInput = EditText(this).apply {
-            hint = "Phone number"
+            hint = getString(R.string.phone_ui_hint)
+            contentDescription = getString(R.string.phone_ui_field)
+            background = UiDesign.surfaceDrawable(this@PhoneEnrollmentActivity)
+            minimumHeight = UiDesign.dp(this@PhoneEnrollmentActivity, 52)
+            setPadding(UiDesign.dp(this@PhoneEnrollmentActivity, 14), UiDesign.dp(this@PhoneEnrollmentActivity, 12), UiDesign.dp(this@PhoneEnrollmentActivity, 14), UiDesign.dp(this@PhoneEnrollmentActivity, 12))
             inputType = InputType.TYPE_CLASS_PHONE
             importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
             isSaveEnabled = false
@@ -34,30 +40,28 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
 
         statusView = TextView(this).apply {
-            textSize = 15f
+            textSize = 14f
+            setTextColor(UiDesign.secondary)
+            setPadding(0, UiDesign.dp(this@PhoneEnrollmentActivity, 12), 0, 0)
         }
 
-        val saveButton = Button(this).apply {
-            text = "Save locally"
-            setOnClickListener { savePhone() }
-        }
-
-        val cancelButton = Button(this).apply {
-            text = "Cancel"
-            setOnClickListener {
-                clearInput()
-                finish()
-            }
+        val saveButton = UiDesign.action(this, getString(R.string.phone_ui_save), UiActionTone.PRIMARY) { savePhone() }
+        val cancelButton = UiDesign.action(this, getString(R.string.phone_ui_cancel)) {
+            clearInput()
+            finish()
         }
 
         setContentView(
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(UiDesign.dp(this@PhoneEnrollmentActivity, 32), UiDesign.dp(this@PhoneEnrollmentActivity, 48), UiDesign.dp(this@PhoneEnrollmentActivity, 32), UiDesign.dp(this@PhoneEnrollmentActivity, 32))
+                setPadding(UiDesign.dp(this@PhoneEnrollmentActivity, 20), UiDesign.dp(this@PhoneEnrollmentActivity, 24), UiDesign.dp(this@PhoneEnrollmentActivity, 20), UiDesign.dp(this@PhoneEnrollmentActivity, 24))
                 addView(TextView(this@PhoneEnrollmentActivity).apply {
-                    text = "Phone / service number"
-                    textSize = 24f
+                    text = getString(R.string.phone_ui_title)
+                    textSize = 22f
+                    setTextColor(UiDesign.ink)
                 })
+                addView(UiDesign.caption(this@PhoneEnrollmentActivity, getString(R.string.phone_ui_description)), UiDesign.spaceAfter(this@PhoneEnrollmentActivity, 16))
+                addView(UiDesign.heading(this@PhoneEnrollmentActivity, getString(R.string.phone_ui_field)).apply { textSize = 15f }, UiDesign.spaceAfter(this@PhoneEnrollmentActivity, 8))
                 addView(
                     phoneInput,
                     ViewGroup.LayoutParams(
@@ -65,8 +69,9 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                     ),
                 )
-                addView(saveButton)
-                addView(cancelButton)
+                addView(UiDesign.caption(this@PhoneEnrollmentActivity, getString(R.string.phone_ui_example)), UiDesign.spaceAfter(this@PhoneEnrollmentActivity, 20))
+                addView(saveButton, UiDesign.spaceAfter(this@PhoneEnrollmentActivity, 12))
+                addView(cancelButton, UiDesign.spaceAfter(this@PhoneEnrollmentActivity, 12))
                 addView(statusView)
             },
         )
@@ -76,7 +81,7 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
         val normalized = PhoneEnrollmentInputNormalizer.normalize(phoneInput.text)
         if (normalized == null) {
             clearInput()
-            statusView.text = STATUS_INVALID
+            statusView.text = getString(R.string.phone_ui_invalid)
             return
         }
 
@@ -90,7 +95,7 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
         }.isSuccess
 
         clearInput()
-        statusView.text = if (stored) STATUS_SAVED else STATUS_STORAGE_FAILED
+        statusView.text = getString(if (stored) R.string.phone_ui_saved else R.string.phone_ui_storage_failed)
     }
 
     override fun onPause() {
@@ -110,9 +115,4 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
     }
 
-    private companion object {
-        const val STATUS_SAVED = "Phone number saved locally"
-        const val STATUS_INVALID = "Invalid phone number format"
-        const val STATUS_STORAGE_FAILED = "Phone number save failed"
-    }
 }

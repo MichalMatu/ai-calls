@@ -19,6 +19,8 @@ import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiSelect
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 
 /** Displays incoming-call preferences; all store/Telecom effects live in the controller. */
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -48,10 +50,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(description(R.string.incoming_ui_intro))
         val mode = Spinner(this).apply {
             tag = "incoming-mode-spinner"
-            adapter = ArrayAdapter(this@IncomingAssistantSettingsActivity,
-                android.R.layout.simple_spinner_dropdown_item, listOf(
-                    getString(R.string.incoming_ui_mode_manual),
-                    getString(R.string.incoming_ui_mode_ai)))
+            UiSelect.setOptions(this, listOf(
+                getString(R.string.incoming_ui_mode_manual),
+                getString(R.string.incoming_ui_mode_ai)))
             setSelection(if (policy.mode == AnsweringMode.AI) 1 else 0)
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
@@ -59,11 +60,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val accounts = controller.availableAccounts()
         val account = Spinner(this).apply {
             tag = "incoming-sim-spinner"
-            adapter = ArrayAdapter(this@IncomingAssistantSettingsActivity,
-                android.R.layout.simple_spinner_dropdown_item,
-                accounts.mapIndexed { i, handle ->
-                    controller.displayAccount(handle) ?: getString(R.string.incoming_ui_sim_fallback, i + 1)
-                }.ifEmpty { listOf(getString(R.string.incoming_ui_no_sim)) })
+            UiSelect.setOptions(this, accounts.mapIndexed { i, handle ->
+                controller.displayAccount(handle) ?: getString(R.string.incoming_ui_sim_fallback, i + 1)
+            }.ifEmpty { listOf(getString(R.string.incoming_ui_no_sim)) })
             setSelection(controller.selectedAccountIndex(accounts, policy.accountKey))
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
@@ -75,7 +74,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         content.addView(recording)
         content.addView(description(R.string.incoming_ui_engines_hint))
-        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_save)) {
+        content.addView(UiDesign.action(this, getString(R.string.incoming_ui_save), UiActionTone.PRIMARY) {
             val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL
             val chosen = accounts.getOrNull(account.selectedItemPosition)
             feedback.text = getString(when (controller.save(selected, chosen, recording.isChecked)) {
@@ -85,6 +84,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 IncomingAssistantSettingsController.SaveResult.FAILED -> R.string.incoming_ui_save_failed
             })
         }.apply { tag = "incoming-save-mode" })
+        content.addView(UiDesign.heading(this, getString(R.string.incoming_ui_more_settings)).apply { textSize = 17f }, UiDesign.spaceAfter(this, 10))
         content.addView(UiDesign.button(this, getString(R.string.incoming_ui_engines_link)) {
             startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
         })

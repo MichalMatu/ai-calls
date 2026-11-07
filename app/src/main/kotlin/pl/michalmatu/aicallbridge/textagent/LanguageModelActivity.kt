@@ -4,6 +4,7 @@ import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
+import pl.michalmatu.aicallbridge.R
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -36,6 +37,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
     private data class Row(
         val model: LanguageModelEntry,
+        val card: LinearLayout,
         val state: TextView,
         val progress: ProgressBar,
         val download: Button,
@@ -145,7 +147,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             card.addView(toggle, UiDesign.spaceAfter(this, 8))
             card.addView(detail)
             content.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
-            rows += Row(model, stateLabel, progress, download, import, select)
+            rows += Row(model, card, stateLabel, progress, download, import, select)
         }
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
@@ -174,11 +176,16 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         for (row in rows) {
             val ready = AndroidGemma4ModelReadiness.check(this, row.model.id).state ==
                 Gemma4ModelReadinessState.READY
-            row.state.text = when {
-                ready && selected == row.model.id -> "Zainstalowany · wybrany"
-                ready -> "Zainstalowany · gotowy do wyboru"
-                else -> "Niezainstalowany"
-            }
+            val isActive = ready && selected == row.model.id
+            row.state.text = getString(when {
+                isActive -> R.string.models_ui_active
+                ready -> R.string.models_ui_ready
+                else -> R.string.models_ui_not_installed
+            })
+            row.state.setTextColor(if (isActive) UiDesign.primary else UiDesign.secondary)
+            row.state.setTypeface(null, if (isActive) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+            row.card.background = UiDesign.surfaceDrawable(this, if (isActive) UiDesign.softAccent else UiDesign.surface, 16)
+            row.card.isActivated = isActive
             row.download.visibility = if (ready) View.GONE else View.VISIBLE
             row.import.visibility = if (ready) View.GONE else View.VISIBLE
             row.download.isEnabled = !transfer.busy

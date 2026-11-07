@@ -31,6 +31,7 @@ internal class IncomingAssistantSettingsController(context: Context) {
 
     fun displayAccount(account: PhoneAccountHandle): String? = runCatching {
         app.getSystemService(TelecomManager::class.java)?.getPhoneAccount(account)?.label?.toString()
+            ?.let(::maskPhoneAccountLabel)
     }.getOrNull()
 
     fun selectedAccountIndex(accounts: List<PhoneAccountHandle>, accountKey: String?): Int =
@@ -45,3 +46,18 @@ internal class IncomingAssistantSettingsController(context: Context) {
         }.getOrDefault(SaveResult.FAILED)
     }
 }
+
+/** Redact account labels in the visible UI only; leave stable account IDs unchanged. */
+internal fun maskPhoneAccountLabel(label: String): String =
+    Regex("""\+?\d(?:[\d\s().-]*\d)?""").replace(label) { match ->
+        val digits = match.value.count { it.isDigit() }
+        if (digits < 7) match.value else {
+            var seen = 0
+            match.value.map { ch ->
+                if (ch.isDigit()) {
+                    seen++
+                    if (seen <= digits - 4) '•' else ch
+                } else ch
+            }.joinToString("")
+        }
+    }

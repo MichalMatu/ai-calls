@@ -14,7 +14,7 @@ import android.widget.LinearLayout
 import android.view.ViewGroup
 
 /** Presentation-only styles; never owns an AI action, a grant, or audio state. */
-internal enum class UiActionTone { PRIMARY, SECONDARY, DANGER }
+internal enum class UiActionTone { PRIMARY, SECONDARY, DANGER, REVOCATION }
 
 internal object UiDesign {
     val background = Color.rgb(247, 249, 253)
@@ -66,12 +66,14 @@ internal object UiDesign {
                 dp(context, 14), dp(context, 10))
             val fill = when (tone) {
                 UiActionTone.PRIMARY -> primary
-                UiActionTone.DANGER -> dangerSurface
+                UiActionTone.DANGER -> danger
+                UiActionTone.REVOCATION -> dangerSurface
                 UiActionTone.SECONDARY -> softAccent
             }
             val foreground = when (tone) {
                 UiActionTone.PRIMARY -> Color.WHITE
-                UiActionTone.DANGER -> danger
+                UiActionTone.DANGER -> Color.WHITE
+                UiActionTone.REVOCATION -> danger
                 UiActionTone.SECONDARY -> ink
             }
             setTextColor(foreground)
