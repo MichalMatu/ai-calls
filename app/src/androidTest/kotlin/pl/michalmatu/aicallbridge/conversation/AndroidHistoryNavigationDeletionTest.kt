@@ -43,6 +43,18 @@ class AndroidHistoryNavigationDeletionTest {
             ActivityScenario.launch(ConversationHistoryActivity::class.java).use { scenario ->
                 assertTrue("synthetic_session_missing", waitFor(scenario, "history-open:" + id))
                 scenario.onActivity { activity ->
+                    val open = requireNotNull(activity.window.decorView.findViewWithTag<View>("history-open:" + id))
+                    val delete = requireNotNull(activity.window.decorView.findViewWithTag<View>("history-delete:" + id))
+                    val row = requireNotNull(activity.window.decorView.findViewWithTag<View>("history-row:" + id))
+                    assertTrue(open.isClickable)
+                    assertTrue(delete.isClickable)
+                    assertTrue(delete.contentDescription == activity.getString(pl.michalmatu.aicallbridge.R.string.history_delete))
+                    assertTrue("compact_actions_share_row", row is android.widget.LinearLayout &&
+                        row.orientation == android.widget.LinearLayout.HORIZONTAL)
+                    assertTrue("delete_target_too_small", delete.layoutParams.width >=
+                        (48 * activity.resources.displayMetrics.density).toInt())
+                }
+                scenario.onActivity { activity ->
                     activity.window.decorView.findViewWithTag<View>("history-open:" + id).performClick()
                 }
                 assertTrue("synthetic_details_missing", waitFor(scenario, "history-detail"))

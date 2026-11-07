@@ -14,7 +14,7 @@ import android.speech.tts.TextToSpeech
 import android.telecom.TelecomManager
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
+import pl.michalmatu.aicallbridge.ui.UiSelect
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -177,9 +177,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private fun setVoices(values: List<String>, selected: String?) {
         voiceNames = values
         val labels = listOf("Automatyczny lokalny głos pl-PL") + values
-        voicePicker.adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item, labels,
-        )
+        UiSelect.setOptions(voicePicker, labels)
         voicePicker.setSelection((values.indexOf(selected) + 1).coerceAtLeast(0))
     }
 

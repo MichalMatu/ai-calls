@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.conversation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiSelect
 import android.app.Activity
 import android.os.Bundle
 import android.view.WindowManager
@@ -52,8 +53,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }
         val presets = library.presets
         val picker = Spinner(this).apply {
-            adapter = ArrayAdapter(this@ConversationSkillLabActivity,
-                android.R.layout.simple_spinner_dropdown_item, presets.map { it.name })
+            UiSelect.setOptions(this, presets.map { it.name })
             setSelection(presets.indexOfFirst { it.id == library.activePresetId })
         }
         content.addView(picker)
@@ -73,9 +73,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             text = "Ocena naturalności — ręczna (1: nienaturalna, 5: bardzo naturalna)."
         })
         naturalness = Spinner(this).apply {
-            adapter = ArrayAdapter(this@ConversationSkillLabActivity,
-                android.R.layout.simple_spinner_dropdown_item,
-                listOf("Bez oceny", "1", "2", "3", "4", "5"))
+            UiSelect.setOptions(this, listOf("Bez oceny", "1", "2", "3", "4", "5"))
         }
         content.addView(naturalness)
         content.addView(Button(this).apply {

@@ -67,6 +67,23 @@ class AndroidMenuVisualContractTest {
             }
         }
     }
+    @Test fun languageSectionIsCollapsedAndOpensMatchingNativeDropdown() {
+        ActivityScenario.launch(pl.michalmatu.aicallbridge.ui.SettingsHubActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                val heading = requireNotNull(root.findViewWithTag<View>("ui-language-toggle"))
+                val body = requireNotNull(root.findViewWithTag<View>("ui-language-group"))
+                val picker = requireNotNull(root.findViewWithTag<Spinner>("ui-language-picker"))
+                assertEquals(View.GONE, body.visibility)
+                assertEquals(3, picker.adapter.count)
+                heading.performClick()
+                assertEquals(View.VISIBLE, body.visibility)
+                assertTrue(picker.background is GradientDrawable)
+                heading.performClick()
+                assertEquals(View.GONE, body.visibility)
+            }
+        }
+    }
     @Test fun compactChatCanBeExpandedAndCollapsedWithoutCalling() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->

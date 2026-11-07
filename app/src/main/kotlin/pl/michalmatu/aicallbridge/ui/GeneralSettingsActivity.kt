@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -49,24 +48,16 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(label(getString(R.string.ui_audio_mode)))
         modePicker = Spinner(this).apply {
             tag = "settings-audio-mode-spinner"
-            adapter = ArrayAdapter(this@GeneralSettingsActivity,
-                android.R.layout.simple_spinner_dropdown_item,
-                CallAudioMode.entries.map { it.displayName })
+            UiSelect.setOptions(this, CallAudioMode.entries.map { it.displayName })
             setSelection(CallAudioMode.entries.indexOf(initial.audioMode))
-            background = UiDesign.surfaceDrawable(this@GeneralSettingsActivity, UiDesign.surface, 10)
-            minimumHeight = UiDesign.dp(this@GeneralSettingsActivity, 52)
         }
         content.addView(modePicker)
         content.addView(label(getString(R.string.ui_text_model)))
         llmPicker = Spinner(this).apply {
             tag = "settings-provider-spinner"
-            adapter = ArrayAdapter(this@GeneralSettingsActivity,
-                android.R.layout.simple_spinner_dropdown_item,
-                TextLlmProvider.entries.map { it.displayName })
+            UiSelect.setOptions(this, TextLlmProvider.entries.map { it.displayName })
             setSelection(TextLlmProvider.entries.indexOf(initial.textLlmProvider))
             isEnabled = initial.audioMode.usesTextLlm
-            background = UiDesign.surfaceDrawable(this@GeneralSettingsActivity, UiDesign.surface, 10)
-            minimumHeight = UiDesign.dp(this@GeneralSettingsActivity, 52)
         }
         content.addView(llmPicker)
         feedback = TextView(this).apply {

@@ -6,8 +6,10 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.RadioGroup
-import android.widget.RadioButton
+import android.widget.Spinner
+import android.widget.AdapterView
+import android.widget.ImageView
+import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
@@ -86,30 +88,83 @@ class SettingsHubActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 9) })
         }
-        section(R.string.ui_language_title)
-        content.addView(TextView(this).apply {
-            text = getString(R.string.ui_language_hint)
-            textSize = 13f
-            setTextColor(UiDesign.secondary)
-            setPadding(0, 0, 0, UiDesign.dp(this@SettingsHubActivity, 10))
-        })
-        content.addView(RadioGroup(this).apply {
+        val languageCodes = listOf("auto", "pl", "en")
+        val languageLabels = listOf(
+            getString(R.string.ui_language_auto),
+            getString(R.string.ui_language_polish),
+            getString(R.string.ui_language_english),
+        )
+        val selectedLanguage = AppLanguage.selected(this)
+        val languageDetails = LinearLayout(this).apply {
             tag = "ui-language-group"
-            val current = AppLanguage.selected(this@SettingsHubActivity)
-            listOf(
-                "auto" to R.string.ui_language_auto,
-                "pl" to R.string.ui_language_polish,
-                "en" to R.string.ui_language_english,
-            ).forEach { (code, label) ->
-                addView(RadioButton(this@SettingsHubActivity).apply {
-                    tag = "ui-language:" + code
-                    text = getString(label)
-                    isChecked = current == code
-                    minimumHeight = UiDesign.dp(this@SettingsHubActivity, 48)
-                    setOnClickListener { AppLanguage.select(this@SettingsHubActivity, code) }
-                })
-            }
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            setPadding(0, UiDesign.dp(this@SettingsHubActivity, 8),
+                0, UiDesign.dp(this@SettingsHubActivity, 4))
+        }
+        val languagePicker = Spinner(this).apply {
+            tag = "ui-language-picker"
+            UiSelect.setOptions(this, languageLabels)
+            setSelection(languageCodes.indexOf(selectedLanguage).coerceAtLeast(0))
+        }
+        languageDetails.addView(languagePicker)
+        languageDetails.addView(TextView(this).apply {
+            text = getString(R.string.ui_language_hint)
+            textSize = 12f
+            setTextColor(UiDesign.secondary)
+            setPadding(0, UiDesign.dp(this@SettingsHubActivity, 8),
+                0, UiDesign.dp(this@SettingsHubActivity, 8))
         })
+        languagePicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val requested = languageCodes[position]
+                if (requested != AppLanguage.selected(this@SettingsHubActivity)) {
+                    AppLanguage.select(this@SettingsHubActivity, requested)
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        val languageHeading = LinearLayout(this).apply {
+            tag = "ui-language-toggle"
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            minimumHeight = UiDesign.dp(this@SettingsHubActivity, 54)
+            background = UiDesign.touchSurface(this@SettingsHubActivity)
+            setPadding(UiDesign.dp(this@SettingsHubActivity, 14), 0,
+                UiDesign.dp(this@SettingsHubActivity, 14), 0)
+        }
+        languageHeading.addView(TextView(this).apply {
+            text = getString(R.string.ui_language_title)
+            textSize = 16f
+            setTextColor(UiDesign.ink)
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        languageHeading.addView(TextView(this).apply {
+            tag = "ui-language-current"
+            text = languageLabels[languageCodes.indexOf(selectedLanguage).coerceAtLeast(0)]
+            textSize = 12f
+            setTextColor(UiDesign.secondary)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = UiDesign.dp(this@SettingsHubActivity, 8) })
+        val languageChevron = ImageView(this).apply {
+            setImageResource(R.drawable.ic_aicalls_chevron_down)
+            setColorFilter(UiDesign.secondary)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        languageHeading.addView(languageChevron, LinearLayout.LayoutParams(
+            UiDesign.dp(this, 20), UiDesign.dp(this, 20)))
+        languageHeading.contentDescription = getString(R.string.ui_language_title)
+        languageHeading.setOnClickListener {
+            val expanded = languageDetails.visibility != View.VISIBLE
+            languageDetails.visibility = if (expanded) View.VISIBLE else View.GONE
+            languageChevron.setImageResource(
+                if (expanded) R.drawable.ic_aicalls_chevron_up else R.drawable.ic_aicalls_chevron_down)
+        }
+        content.addView(languageHeading)
+        content.addView(languageDetails)
         section(R.string.ui_settings_hub_group_ai)
         destination(R.string.ui_settings_hub_general, R.string.ui_settings_hub_general_detail, GeneralSettingsActivity::class.java)
         destination(R.string.ui_settings_hub_engines, R.string.ui_settings_hub_engines_detail, AudioEngineSettingsActivity::class.java)
