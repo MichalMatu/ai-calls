@@ -33,12 +33,12 @@ class AndroidHistoryBulkClearContractTest {
             File(folder, "COMPLETE").writeText("local_complete\n")
             ActivityScenario.launch(ConversationHistoryActivity::class.java).use { scenario ->
                 var found = false
-                repeat(70) {
+                for (attempt in 0 until 70) {
                     scenario.onActivity { activity ->
                         found = activity.window.decorView
                             .findViewWithTag<View>("history-delete-all")?.isShown == true
                     }
-                    if (found) return@repeat
+                    if (found) break
                     Thread.sleep(100)
                 }
                 assertTrue("bulk_clear_button_missing", found)
@@ -49,11 +49,12 @@ class AndroidHistoryBulkClearContractTest {
                     button.performClick()
                     val dialog = requireNotNull(activity.pendingBulkDeleteConfirmation)
                     assertTrue("bulk_confirmation_not_shown", dialog.isShowing)
+                    val description = requireNotNull(
+                        dialog.findViewById<android.widget.TextView>(android.R.id.message)
+                    ).text.toString()
                     assertTrue("confirmation_must_mention_audio",
-                        dialog.findViewById<android.widget.TextView>(android.R.id.message)
-                            .text.toString().contains("audio", ignoreCase = true) ||
-                        dialog.findViewById<android.widget.TextView>(android.R.id.message)
-                            .text.toString().contains("nagrania", ignoreCase = true))
+                        description.contains("audio", ignoreCase = true) ||
+                        description.contains("nagrania", ignoreCase = true))
                     dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
                     assertTrue("cancel_must_preserve_synthetic_session", folder.exists())
                 }
