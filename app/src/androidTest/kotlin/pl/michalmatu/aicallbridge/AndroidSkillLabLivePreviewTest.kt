@@ -52,7 +52,7 @@ class AndroidSkillLabLivePreviewTest {
                     "lab-decision:0:1")).text.contains("END_CALL"))
                 assertTrue(requireNotNull(activity.window.decorView.findViewWithTag<CheckBox>(
                     "lab-follow")).isChecked)
-                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint4"))
+                folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint5"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
             }
             instrumentation.waitForIdleSync()
