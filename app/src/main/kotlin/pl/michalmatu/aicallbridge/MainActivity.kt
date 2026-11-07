@@ -168,6 +168,12 @@ class MainActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = dp(12) })
             addView(startAuthorizedTaskButton)
+            addView(TextView(this@MainActivity).apply {
+                text = getString(R.string.home_ux06_direct_clir_scope)
+                textSize = 12f
+                setTextColor(Color.rgb(86, 100, 117))
+                setPadding(0, dp(5), 0, dp(8))
+            })
             val actions = LinearLayout(this@MainActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 campaignToolsButton.layoutParams = LinearLayout.LayoutParams(

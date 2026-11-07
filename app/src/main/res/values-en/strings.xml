@@ -179,7 +179,7 @@
     <string name="ui_general_mic_granted">Microphone: access granted</string>
     <string name="ui_general_mic_missing">Microphone: Android permission required</string>
     <string name="home_ui_one_tap">Attach AI to an ongoing call</string>
-    <string name="home_ui_start">Start authorized AI task</string>
+    <string name="home_ui_start">Start CLIR task (script + AI)</string>
     <string name="home_ui_stop_sent">STOP AI requested; the service will record the result.</string>
     <string name="home_ui_mode_label">Mode: </string>
     <string name="home_ui_model_label">Text model: </string>
@@ -615,4 +615,5 @@
     <string name="scenario_ui_unsaved_title">Unsaved scenario changes</string>
     <string name="scenario_ui_unsaved_message">Leave the form without saving your changes?</string>
     <string name="scenario_ui_discard">Leave without saving</string>
+    <string name="home_ux06_direct_clir_scope">Starts only the CLIR enable attempt for the current voice SIM, using the script mode. Prepare other scenarios via Campaigns → Conversation scenarios.</string>
 </resources>
