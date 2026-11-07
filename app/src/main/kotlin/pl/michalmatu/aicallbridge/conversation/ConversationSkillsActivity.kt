@@ -57,6 +57,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             if (library.active.isFactory) "fabryczny" else "własny", 18f))
         val options = library.presets
         val picker = Spinner(this).apply {
+            tag = "skills-preset-picker"
             UiSelect.setOptions(this, options.map {
                 it.name + if (it.isFactory) " (fabryczny)" else " (własny)"
             })
