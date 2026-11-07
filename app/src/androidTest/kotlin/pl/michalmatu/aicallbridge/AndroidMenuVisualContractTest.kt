@@ -39,7 +39,7 @@ class AndroidMenuVisualContractTest {
                     assertTrue("tab_clickable:$name", tab.isClickable)
                 }
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("live-chat-scroll")).visibility)
-                assertTrue(requireNotNull(findButton(root, "Rozpocznij autoryzowane zadanie AI")).isShown)
+                assertTrue(requireNotNull(findButton(root, activity.getString(R.string.home_ui_start))).isShown)
                 assertTrue(requireNotNull(findButton(root, "STOP AI")).isShown)
                 assertNull(root.findViewWithTag<View>("ui-accordion-toggle:basic"))
                 for (duplicate in listOf("Rozmowy i nagrania", "Laboratorium offline", "Ustawienia AI Calls")) {

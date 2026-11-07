@@ -26,14 +26,14 @@ class AndroidUiAccordionContractTest {
                 val root = activity.window.decorView
                 val before = CallRuntimePreferences(activity).load()
                 val skillsBefore = AndroidConversationPreparationStore(activity).loadSkillLibrary()
-                assertTrue(findButton(root, "Rozpocznij autoryzowane zadanie AI")!!.isShown)
-                assertTrue(findButton(root, "Kampanie")!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.home_ui_start))!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.ui_campaigns))!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
                 assertNull(findButton(root, "Rozmowy i nagrania"))
                 assertNull(findButton(root, "Laboratorium offline"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:history")).isShown)
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:lab")).isShown)
-                assertTrue(findButton(root, "Jeden przycisk:")!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.home_ui_one_tap))!!.isShown)
                 assertNotNull(root.findViewWithTag<View>("app-tab:settings"))
                 assertNull(root.findViewWithTag<View>("ui-accordion-content:basic"))
                 assertNull(root.findViewWithTag<View>("ui-accordion-content:advanced"))
@@ -53,9 +53,9 @@ class AndroidUiAccordionContractTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNull(findButton(root, "Authorize CLIR enable campaign"))
-                assertTrue(findButton(root, "Rozpocznij zadanie: włącz CLIR — skrypt + model")!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.campaign_ui_start))!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
-                assertTrue(findButton(root, "Anuluj zadanie")!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.camp_ui_cancel_task))!!.isShown)
 
                 val dialerBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:dialer"))
                 val supervisedBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:supervised"))
@@ -63,15 +63,15 @@ class AndroidUiAccordionContractTest {
                 assertEquals(View.GONE, dialerBody.visibility)
                 assertEquals(View.GONE, supervisedBody.visibility)
                 assertEquals(View.GONE, evidenceBody.visibility)
-                assertNotNull(findButton(root, "Włącz autonomiczne połączenia"))
+                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_role_button)))
                 assertNotNull(findButton(root, "Uruchom AI w trwającej rozmowie"))
-                assertNotNull(findButton(root, "Wyłącz nagrywanie"))
-                assertNotNull(findButton(root, "Pokaż transkrypt"))
+                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_disable_record)))
+                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_transcript)))
 
                 val toggle = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:evidence"))
                 toggle.performClick()
                 assertEquals(View.VISIBLE, evidenceBody.visibility)
-                assertTrue(findButton(root, "Pokaż transkrypt")!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.camp_ui_transcript))!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
             }
         }
