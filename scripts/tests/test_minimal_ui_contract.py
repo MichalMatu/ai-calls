@@ -26,10 +26,13 @@ class MinimalUiContract(unittest.TestCase):
         self.assertIn("UiDesign.touchSurface", history)
         for token in ("history-row:","history-open:","history-delete:",
                       "R.drawable.ic_aicalls_phone_incoming","R.drawable.ic_aicalls_phone_outgoing",
-                      "R.drawable.ic_aicalls_trash","contentDescription = direction",
+                      "contentDescription = direction",
                       "history.canDelete(session.id)","confirmDelete(session.id)"):
             self.assertIn(token,history)
         self.assertNotIn('tag = "history-back-to-list"',history)
+        self.assertGreater(history.index('tag = "history-delete:"'),
+                           history.index("private fun showSession"))
+        self.assertIn("UiActionTone.REVOCATION", history)
         self.assertIn("minimumWidth = dp(context, 48)",design)
 
     def test_one_consistent_dropdown_and_direct_language(self):
