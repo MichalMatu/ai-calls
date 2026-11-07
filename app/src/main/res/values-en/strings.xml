@@ -112,4 +112,12 @@
     <string name="incoming_ui_preparation_link">Skills and conversation data</string>
     <string name="incoming_ui_skills_link">Gemma skills and presets</string>
     <string name="incoming_ui_tools_link">AI tools</string>
+    <string name="tools_ui_title">AI tools</string>
+    <string name="tools_ui_description">Tools are shared by all models. Enabling a capability does not expand the task scope or call authority. Disabling a tool prevents new execution, including during a call.</string>
+    <string name="tools_ui_end_call_title">End the current AI-managed call</string>
+    <string name="tools_ui_end_call_detail">After saying goodbye, end only the active call still managed by AI.</string>
+    <string name="tools_ui_save">Save tool settings</string>
+    <string name="tools_ui_saved">Tool settings saved.</string>
+    <string name="tools_ui_failed">Could not save tool settings.</string>
+    <string name="tools_ui_end_hint">An end-call request is carried out after the goodbye, only if AI still owns that call. You can review its outcome and stages in chat and private call history.</string>
 </resources>

@@ -112,4 +112,12 @@
     <string name="incoming_ui_preparation_link">Skills i dane rozmów</string>
     <string name="incoming_ui_skills_link">Skills i presety Gemmy</string>
     <string name="incoming_ui_tools_link">Narzędzia AI</string>
+    <string name="tools_ui_title">Narzędzia AI</string>
+    <string name="tools_ui_description">Narzędzia są wspólne dla modeli. Włączenie możliwości nie zmienia zakresu zadania ani kontroli połączenia. Wyłączenie zatrzymuje nowe wykonania także podczas rozmowy.</string>
+    <string name="tools_ui_end_call_title">Zakończ obsługiwaną rozmowę</string>
+    <string name="tools_ui_end_call_detail">Po pożegnaniu zakończ bieżące połączenie obsługiwane przez AI.</string>
+    <string name="tools_ui_save">Zapisz ustawienia narzędzi</string>
+    <string name="tools_ui_saved">Zapisano ustawienia narzędzi.</string>
+    <string name="tools_ui_failed">Nie zapisano ustawień narzędzi.</string>
+    <string name="tools_ui_end_hint">Żądanie zakończenia jest wykonywane po odtworzeniu pożegnania, wyłącznie dla rozmowy nadal obsługiwanej przez AI. Wynik i etapy znajdziesz w czacie oraz prywatnej historii rozmowy.</string>
 </resources>
