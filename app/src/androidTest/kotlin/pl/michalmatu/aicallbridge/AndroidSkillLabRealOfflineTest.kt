@@ -107,8 +107,10 @@ class AndroidSkillLabRealOfflineTest {
                 assertEquals(View.VISIBLE, stop.visibility)
                 stop.performClick()
                 assertTrue("real_lab_stop_not_hidden", stop.visibility == View.GONE)
-                assertTrue("real_lab_start_not_restored_later", !start.isEnabled ||
-                    start.visibility == View.VISIBLE || start.visibility == View.GONE)
+                val status = requireNotNull(activity.window.decorView
+                    .findViewWithTag<TextView>("lab-status"))
+                assertEquals("real_lab_stop_status", activity.getString(R.string.lab_ui_cancelled),
+                    status.text.toString())
             }
             snapshot(requireNotNull(folder), "lab-real-stopped")
             println("S22_REAL_LAB_TWO_TURNS=PASS")
