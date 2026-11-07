@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.R
+
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
 
 import android.Manifest
@@ -34,7 +36,7 @@ class AndroidCallControlsActivity : Activity() {
 
         status = TextView(this).apply { textSize = 18f }
         number = EditText(this).apply {
-            hint = "Numer telefonu"
+            hint = getString(R.string.phone_ui_field)
             inputType = android.text.InputType.TYPE_CLASS_PHONE
             setText(intent?.data?.schemeSpecificPart.orEmpty())
         }
@@ -45,10 +47,10 @@ class AndroidCallControlsActivity : Activity() {
             setPadding(32, 48, 32, 32)
             addView(status)
             addView(number)
-            addView(button("Zadzwoń (ręcznie)") {
+            addView(button(getString(R.string.dialer_ui_dial)) {
                 val destination = number.text.toString().trim()
                 if (destination.isEmpty()) {
-                    status.text = "Wpisz numer"
+                    status.text = getString(R.string.dialer_ui_number_required)
                 } else if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
                     requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 1)
                 } else {
@@ -56,17 +58,17 @@ class AndroidCallControlsActivity : Activity() {
                         getSystemService(TelecomManager::class.java)?.placeCall(
                             Uri.fromParts("tel", destination, null), Bundle()
                         )
-                    }.onFailure { status.text = "Nie można wybrać numeru" }
+                    }.onFailure { status.text = getString(R.string.dialer_ui_dial_error) }
                 }
             })
-            addView(button("Odbierz ręcznie") {
+            addView(button(getString(R.string.dialer_ui_answer)) {
                 AndroidOwnedInCallService.incomingCall()?.let { call ->
                     AndroidOwnedInCallService.takeOverIncoming(call)
                     runCatching { call.answer(0) }
                 }
                 refresh()
             })
-            addView(button("Przejmij rozmowę — zatrzymaj AI") {
+            addView(button(getString(R.string.dialer_ui_take_over)) {
                 AndroidOwnedInCallService.currentCall()?.let { call ->
                     AndroidOwnedInCallService.takeOverIncoming(call)
                     if (AppOwnedClirCampaignExecutor.takeOver(call)) {
@@ -76,24 +78,24 @@ class AndroidCallControlsActivity : Activity() {
                 }
                 refresh()
             })
-            addView(button("Włącz AI w rozmowie przychodzącej") {
+            addView(button(getString(R.string.dialer_ui_resume_ai)) {
                 val call=AndroidOwnedInCallService.currentCall()
                 val started=call!=null && AndroidOwnedInCallService.resumeIncoming(call)
                 refresh()
-                if (!started) status.append("\nAI nie zostało uruchomione. Sprawdź tryb AI, kartę SIM i gotowość w ustawieniach odbierania.")
+                if (!started) status.append("\n" + getString(R.string.dialer_ui_resume_failed))
             })
-            addView(button("Ustawienia odbierania AI / ręcznie") {
+            addView(button(getString(R.string.dialer_ui_answer_settings)) {
                 startActivity(Intent(this@AndroidCallControlsActivity,
                     pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity::class.java))
             })
-            addView(button("Odrzuć") {
+            addView(button(getString(R.string.dialer_ui_reject)) {
                 AndroidOwnedInCallService.incomingCall()?.let { call ->
                     AndroidOwnedInCallService.takeOverIncoming(call)
                     runCatching { call.reject(false, null) }
                 }
                 refresh()
             })
-            addView(button("Zakończ wyświetlaną rozmowę") {
+            addView(button(getString(R.string.dialer_ui_end_displayed)) {
                 // Only an explicit human UI action; autonomous calls use exact owned session.
                 AndroidOwnedInCallService.currentCall()?.disconnect()
                 refresh()
@@ -129,13 +131,13 @@ class AndroidCallControlsActivity : Activity() {
 
     private fun refresh() {
         val call = AndroidOwnedInCallService.currentCall()
-        status.text = if (call == null) "Brak trwającego połączenia"
+        status.text = if (call == null) getString(R.string.dialer_ui_no_call)
         else when(call.state) {
-            Call.STATE_RINGING -> "Połączenie przychodzące"
-            Call.STATE_ACTIVE -> "Rozmowa trwa"
-            Call.STATE_HOLDING -> "Rozmowa wstrzymana"
-            Call.STATE_DISCONNECTED -> "Rozmowa zakończona"
-            else -> "Łączenie…"
-        } + (AndroidOwnedInCallService.incomingState(call)?.let { "\nAsystent: $it" } ?: "")
+            Call.STATE_RINGING -> getString(R.string.dialer_ui_ringing)
+            Call.STATE_ACTIVE -> getString(R.string.dialer_ui_active)
+            Call.STATE_HOLDING -> getString(R.string.dialer_ui_holding)
+            Call.STATE_DISCONNECTED -> getString(R.string.dialer_ui_disconnected)
+            else -> getString(R.string.dialer_ui_connecting)
+        } + (AndroidOwnedInCallService.incomingState(call)?.let { "\n" + getString(R.string.dialer_ui_assistant_status, it) } ?: "")
     }
 }

@@ -399,4 +399,23 @@
 
     <string name="campaign_ui_disconnect_requested">Requested AI stop and cleanup of the owned call. Check diagnostics for confirmation.</string>
     <string name="skills_ui_current_preset">Active preset</string>
+
+    <!-- UX-05: localized manual call controls; actions and ownership unchanged. -->
+    <string name="dialer_ui_dial">Call (manual)</string>
+    <string name="dialer_ui_number_required">Enter a phone number</string>
+    <string name="dialer_ui_dial_error">Could not place the call</string>
+    <string name="dialer_ui_answer">Answer manually</string>
+    <string name="dialer_ui_take_over">Take over call — stop AI</string>
+    <string name="dialer_ui_resume_ai">Resume AI in incoming call</string>
+    <string name="dialer_ui_resume_failed">AI did not start. Check AI mode, SIM and readiness in answering settings.</string>
+    <string name="dialer_ui_answer_settings">AI / manual answering settings</string>
+    <string name="dialer_ui_reject">Reject</string>
+    <string name="dialer_ui_end_displayed">End displayed call</string>
+    <string name="dialer_ui_no_call">No active call</string>
+    <string name="dialer_ui_ringing">Incoming call</string>
+    <string name="dialer_ui_active">Call in progress</string>
+    <string name="dialer_ui_holding">Call on hold</string>
+    <string name="dialer_ui_disconnected">Call ended</string>
+    <string name="dialer_ui_connecting">Connecting…</string>
+    <string name="dialer_ui_assistant_status">Assistant: %1$s</string>
 </resources>
