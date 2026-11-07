@@ -18,7 +18,14 @@ import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
 
 import android.widget.LinearLayout.LayoutParams
 
-    internal fun conversationMessageView(context: Context, line: ConversationChatFeed.Line, ongoing: Boolean = true): View {
+    internal fun conversationMessageView(
+        context: Context,
+        line: ConversationChatFeed.Line,
+        ongoing: Boolean = true,
+        onAudioTap: (() -> Unit)? = null,
+        audioTag: String? = null,
+        audioHint: String? = null,
+    ): View {
         fun dp(value: Int) = (value * context.resources.displayMetrics.density + 0.5f).toInt()
         val isAgent = line.speaker == ConversationChatFeed.Speaker.ASSISTANT
         val label = if (line.speaker == ConversationChatFeed.Speaker.TOOL) "NARZĘDZIE • TURA "
@@ -30,6 +37,13 @@ import android.widget.LinearLayout.LayoutParams
         val time = DateFormat.format("HH:mm:ss", line.atEpochMs).toString()
         val bubble = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            if (onAudioTap != null) {
+                tag = audioTag
+                isClickable = true
+                isFocusable = true
+                contentDescription = line.text + ". " + audioHint.orEmpty()
+                setOnClickListener { onAudioTap() }
+            }
             background = GradientDrawable().apply {
                 cornerRadius = dp(13).toFloat()
                 setColor(if (isAgent) Color.rgb(29, 76, 140) else Color.rgb(40, 52, 69))
@@ -45,7 +59,7 @@ import android.widget.LinearLayout.LayoutParams
                 text = line.text
                 textSize = 14f
                 setTextColor(Color.WHITE)
-                setTextIsSelectable(true)
+                setTextIsSelectable(onAudioTap == null)
                 setPadding(0, dp(4), 0, 0)
             })
             if (isAgent) addView(TextView(context).apply {
@@ -53,6 +67,14 @@ import android.widget.LinearLayout.LayoutParams
                 textSize = 11f
                 setTextColor(Color.rgb(191, 229, 252))
                 setPadding(0, dp(5), 0, 0)
+            })
+            if (onAudioTap != null) addView(TextView(context).apply {
+                tag = audioTag?.let { it + ":hint" }
+                text = audioHint.orEmpty()
+                textSize = 12f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.rgb(206, 233, 255))
+                setPadding(0, dp(8), 0, dp(1))
             })
         }
         return LinearLayout(context).apply {
