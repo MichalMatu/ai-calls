@@ -48,7 +48,7 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 
 ## Oddzielenie UX od logiki — nowa, niezależna sekwencja (po Sprint 6)
 
-**UX-01 i UX-02 są DONE / SOURCE_PASS; UX-03 i dalsze kroki pozostają osobnymi przyszłymi zakresami.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
+**UX-01, UX-02 i UX-03 są DONE / SOURCE_PASS; UX-04 i dalsze kroki pozostają osobnymi przyszłymi zakresami.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
 
 ### Mapa faktycznego sprzężenia
 
@@ -78,12 +78,12 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 - Zachować ochronę COMPLETE + END, symlink, path traversal, listy aktywnych sesji i stan telefonu przy audio. MediaPlayer jest Android-only, bez prób przenoszenia go do JVM core.
 - Przetestować Back/destroy, spóźnioną odpowiedź IO, dwu-klik Delete, szybko następujące play/stop i nieobecny WAV; dopiero potem manualny UX.
 
-### UX-03 — Laboratorium i stan modelu
+### UX-03 — Laboratorium i stan modelu (DONE / SOURCE_PASS)
 
-- Worker i lifecycle dostają jeden właścicielski `SkillLabRunner`; przenosi cancel, timeout, callback i stop. `SkillLabUiState` jest immutable, UI nie tworzy modelu ani nie oblicza score. `SkillLabScoring` pozostaje czystą logiką.
-- Testy kontraktu: ostatnia tura widoczna, poprawny STOP, brak spóźnionych callbacków po anulowaniu/nowym run, brak Telephony effects, timeout, score END_CALL **nie** jako ocena semantyczna.
-- Mac host najpierw, fizyczny test modelu tylko po dostępności exact S22. Nie zmieniać toru TX, PCM/PFD ani istniejących callbacków rozmowy telefonicznej.
+- `SkillLabRunner` jest jedynym właścicielem worker/model/cancel/120 s/STOP/callbacków i score, a `SkillLabUiState` jest immutable. Android-only `AndroidSkillLabSessionFactory` reużywa oryginalnego profilowania i `TOOL_REPLY`; Activity tylko renderuje snapshot i zachowuje testowe view tags. `SkillLabScoring` pozostaje czystą logiką; `END_CALL` jest obserwacją, nie skutkiem i nie jakością semantyczną.
+- [Checkpoint](checkpoints/2026-11-07-ux03-skill-lab-runner-closeout.md): Mac RED→GREEN, 9 Kotlin JVM, 328 Python, full host/friction/AndroidTest/APK PASS, tested `b53cb820`, clean Mac. S22 nowego APK **NOT_RUN**; nie przenoszono toru TX, PCM/PFD ani callbacków telefonii.
+- Zmiany testów Sprintu 4/5 aktualizują statyczne lokalizacje odpowiedzialności, nie przywracają jej w Activity. Wcześniejsze FAIL oraz historyczne dowody Sprintu 6 pozostają zapisane.
 
 ### Reguła kadencji
 
-Najpierw `UX-01`, osobne checkpoint/QA; potem `UX-02`, `UX-03` i pozostałe ustawienia, **nigdy** jeden duży refaktor. Jeśli nowy podział zwiększa zależności lub wymaga zmiany telefonii, zakończ `NO_CHANGE` zamiast symulować postęp. Szczegóły kolejności: [ROADMAP](ROADMAP.md).
+UX-01/UX-02/UX-03 zamknięto osobnymi checkpointami i QA; dalej UX-04 oraz UX-05 osobno, **nigdy** jeden duży refaktor. Jeśli nowy podział zwiększa zależności lub wymaga zmiany telefonii, zakończ `NO_CHANGE` zamiast symulować postęp. Szczegóły kolejności: [ROADMAP](ROADMAP.md).
