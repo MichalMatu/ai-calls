@@ -1,18 +1,16 @@
-# AI Calls — roadmapa i kolejność prac (aktualizacja 2026-11-07)
+# AI Calls — roadmapa (po zamknięciu Sprintu 6, 2026-11-07)
 
-**Bieżący stan:** Sprint 6 `SOURCE_GREEN`, **S22_QA_PENDING_ADB**. Baza funkcjonalna `main@0dface1`. Każdy nowy sprint rozpoczyna od świeżego HEAD; status potwierdza [Sprint 6](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md). Nie myl zatwierdzonego Sprintu 5 z jeszcze nieodebranym Sprintem 6.
+**Stan:** `UX_ITERATION_CLOSED`. Najnowszy kod UX `main@1b359146`, **325 testów hosta PASS**, S22 **28/28 native + 24/24 visual**, hotfix targeted **1/1 + 3/3 PASS**, realna Gemma **2 tury + STOP PASS**, finalny ZIP **46 screenshotów**. [Dokładne receipts](checkpoints/2026-11-07-ux-sprint6-final-handoff.md). Nie wracać do mikro-poprawek UX bez nowego zgłoszenia lub regresji.
 
-## P0 — domknąć fizyczny odbiór Sprintu 6
+## P0 — zamknięte, nie ponawiać
 
-| Bramka | Stan | Warunek zamknięcia |
-|---|---|---|
-| Host source/QA (325 testów) | **DONE / PASS** | Nie powtarzać bez zmiany źródeł |
-| Exact S22 ADB | **BLOCKED / EXTERNAL** | `adb devices -l` widzi `RFCT70L7E8J` jako `device` |
-| Native UX + screenshots | **QA_PENDING** | 28/28 testów UX, 24/24 wizualne, ≥42 prywatne JPG, instalacja `-r`, dane zachowane, IDLE, zero live calls |
-| Real Skills Lab + STOP | **QA_PENDING** | 2 tury lokalnego modelu, ostatnia tura rzeczywiście widoczna, STOP, 4 JPG więcej |
-| Odbiór wizualny właściciela | **QA_PENDING** | Właściciel przesyła ZIP, naprawia się tylko potwierdzone defekty |
-
-Bez ADB zatrzymaj się na bezpiecznym preflight, nie odpalaj prawdziwych połączeń ani kolejnych hipotetycznych mikroaudytów.
+| Zakres | Stan |
+|---|---|
+| Sprint 6 źródła/325 testów i Android APK | **DONE / PASS** |
+| Pełny odbiór S22/UI (28+24) | **DONE / PASS**, data preserved |
+| Hotfix Android scoring, STOP/scroll, dialog | **DONE / PASS**, 4/4 celowane na S22 |
+| Realna lokalna Gemma 2 tury i STOP | **DONE / PASS**, 46 prywatnych screenshotów |
+| Ręczny przegląd bazowych 42 screenshotów | **DONE**, decyzja właściciela: UX wystarczająco dobry |
 
 ## P1 — odsprzęgnąć UX od efektów (osobne, małe zmiany)
 
@@ -40,7 +38,7 @@ Bez ADB zatrzymaj się na bezpiecznym preflight, nie odpalaj prawdziwych połąc
 | Etap 2 | NO_CHANGE / PASS: typowane wyniki mają uzasadnioną własność w app |
 | Etap 3 krok 1 | PASS: `ConversationSessionRegistry` + testy w `conversation-core` |
 | Sprint 5 | S22 27/27 native, 23/23 wizualne, 43 JPG, realna Gemma 2 tury + STOP PASS |
-| Sprint 6 | Źródła PASS: 325 host + AndroidTest/JVM/APK/friction; S22 odłożony, nie PASS |
+| Sprint 6 | **CLOSED / PASS**: 325 host, 28 native, 24 visual, 4 targeted, real Gemma 2 tury + STOP, 46 prywatnych JPG |
 
 Historyczne szczegóły są zachowane w [checkpointach](checkpoints/), a nie rozwijane jako kolejne instrukcje w tej roadmapie.
 
