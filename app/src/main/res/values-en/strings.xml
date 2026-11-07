@@ -120,4 +120,15 @@
     <string name="tools_ui_saved">Tool settings saved.</string>
     <string name="tools_ui_failed">Could not save tool settings.</string>
     <string name="tools_ui_end_hint">An end-call request is carried out after the goodbye, only if AI still owns that call. You can review its outcome and stages in chat and private call history.</string>
+    <string name="tools_ui_no_recent">No recent tool request. Tool history remains in saved conversations.</string>
+    <string name="tools_ui_recent_event">Latest request: %1$s • %2$s</string>
+    <string name="tools_ui_stage_requested">model requested an action</string>
+    <string name="tools_ui_stage_validated">scope validated</string>
+    <string name="tools_ui_stage_dispatched">request sent to Android; waiting for call to end</string>
+    <string name="tools_ui_stage_confirmed">Android confirmed the call ended</string>
+    <string name="tools_ui_stage_unknown">outcome not confirmed</string>
+    <string name="tools_ui_stage_reused">reused a previous request result</string>
+    <string name="tools_ui_stage_failed">execution failed</string>
+    <string name="tools_ui_stage_disabled">tool disabled</string>
+    <string name="tools_ui_stage_unauthorized">not currently authorized</string>
 </resources>

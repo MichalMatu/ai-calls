@@ -20,6 +20,7 @@ internal class ConversationToolSettingsStore(context: Context) {
 internal object ConversationToolUi {
     private val latest = AtomicReference<ConversationToolEvent?>(null)
     fun record(event: ConversationToolEvent) { latest.set(event) }
+    fun latestEvent(): ConversationToolEvent? = latest.get()
     fun latestText(): String = latest.get()?.let { "Ostatnie wywołanie: " + text(it) } ?: "Brak bieżącego wywołania. Historia narzędzi jest dostępna w zapisanych rozmowach."
     fun text(event: ConversationToolEvent): String = event.tool.title + " • " + when (event.stage) {
         ConversationToolStage.REQUESTED -> "model zgłosił żądanie"

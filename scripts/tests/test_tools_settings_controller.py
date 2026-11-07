@@ -14,7 +14,8 @@ class ToolsUiControllerContract(unittest.TestCase):
         self.assertNotIn("ConversationToolSettingsStore(",activity)
         self.assertNotIn("ConversationToolUi.latestText()",activity)
         self.assertIn("ConversationToolSettingsStore(context.applicationContext)",controller)
-        self.assertIn("ConversationToolUi.latestText()",controller)
+        self.assertIn("ConversationToolUi.latestEvent()",controller)
+        self.assertIn("uiContext.getString(",controller)
     def test_labels_available_both_languages(self):
         for locale in ("values","values-en"):
             resources=ET.parse(ROOT/"res"/locale/"strings.xml").getroot()

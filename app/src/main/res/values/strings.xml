@@ -120,4 +120,15 @@
     <string name="tools_ui_saved">Zapisano ustawienia narzędzi.</string>
     <string name="tools_ui_failed">Nie zapisano ustawień narzędzi.</string>
     <string name="tools_ui_end_hint">Żądanie zakończenia jest wykonywane po odtworzeniu pożegnania, wyłącznie dla rozmowy nadal obsługiwanej przez AI. Wynik i etapy znajdziesz w czacie oraz prywatnej historii rozmowy.</string>
+    <string name="tools_ui_no_recent">Brak bieżącego wywołania. Historia narzędzi jest dostępna w zapisanych rozmowach.</string>
+    <string name="tools_ui_recent_event">Ostatnie wywołanie: %1$s • %2$s</string>
+    <string name="tools_ui_stage_requested">model zgłosił żądanie</string>
+    <string name="tools_ui_stage_validated">sprawdzono zakres</string>
+    <string name="tools_ui_stage_dispatched">żądanie przekazano do Androida; oczekiwanie na koniec połączenia</string>
+    <string name="tools_ui_stage_confirmed">Android potwierdził koniec połączenia</string>
+    <string name="tools_ui_stage_unknown">wynik pozostaje niepotwierdzony</string>
+    <string name="tools_ui_stage_reused">odczytano wynik wcześniejszego żądania</string>
+    <string name="tools_ui_stage_failed">błąd wykonania</string>
+    <string name="tools_ui_stage_disabled">narzędzie jest wyłączone</string>
+    <string name="tools_ui_stage_unauthorized">brak aktualnego upoważnienia do wykonania</string>
 </resources>
