@@ -5,7 +5,6 @@ import android.app.Instrumentation
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -38,13 +37,11 @@ class AndroidSettingsNavigationMatrixTest {
         if (view is ViewGroup) repeat(view.childCount) { addAll(labels(view.getChildAt(it))) }
     }
 
-    private fun findButton(view: View, text: String): Button? {
-        if (view is Button && view.text.contains(text)) return view
-        if (view is ViewGroup) repeat(view.childCount) {
-            findButton(view.getChildAt(it), text)?.let { found -> return found }
-        }
-        return null
-    }
+    private fun hasHistoryRow(view: View): Boolean =
+        (view.tag as? String)?.startsWith("history-open:") == true ||
+            (view is ViewGroup && (0 until view.childCount).any {
+                hasHistoryRow(view.getChildAt(it))
+            })
 
     private fun <T : Activity> assertScreen(type: Class<T>, expectedTitle: String? = null,
                                             expectedResource: Int = 0) {
@@ -61,7 +58,7 @@ class AndroidSettingsNavigationMatrixTest {
     }
 
     @Test
-    fun homeHistoryShortcutNavigatesToProtectedHistoryScreen() {
+    fun homeHistoryTabNavigatesToProtectedHistoryScreen() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val monitor: Instrumentation.ActivityMonitor = instrumentation.addMonitor(
             ConversationHistoryActivity::class.java.name, null, false
@@ -69,9 +66,9 @@ class AndroidSettingsNavigationMatrixTest {
         try {
             ActivityScenario.launch(MainActivity::class.java).use { home ->
                 home.onActivity { activity ->
-                    val button = findButton(activity.window.decorView, "Rozmowy i nagrania")
-                    assertNotNull("history_shortcut_absent", button)
-                    checkNotNull(button).performClick()
+                    val tab = activity.window.decorView.findViewWithTag<View>("app-tab:history")
+                    assertNotNull("history_tab_absent", tab)
+                    checkNotNull(tab).performClick()
                 }
                 val history = instrumentation.waitForMonitorWithTimeout(monitor, 12000)
                 assertNotNull("history_not_launched_by_shortcut", history)
@@ -133,11 +130,8 @@ class AndroidSettingsNavigationMatrixTest {
                     val title = texts.any { it.contains(activity.getString(R.string.history_title)) }
                     val hasState = texts.any {
                         it.contains(activity.getString(R.string.history_empty)) ||
-                            it.startsWith(activity.getString(R.string.history_incoming)) ||
-                            it.startsWith(activity.getString(R.string.history_outgoing)) ||
-                            it.startsWith(activity.getString(R.string.history_unknown) + " •") ||
                             it.startsWith(activity.getString(R.string.history_read_error))
-                    }
+                    } || hasHistoryRow(activity.window.decorView)
                     ready = title && hasState
                     assertTrue("history_screenshot_blocked",
                         (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) == 0)

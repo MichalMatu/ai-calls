@@ -63,9 +63,9 @@ class AndroidArchivedChatAudioPlaybackTest {
                 var opened = false
                 for (attempt in 0 until 50) {
                     scenario.onActivity { activity ->
-                        val link = findButton(activity.window.decorView) {
-                            it.contains("2286")
-                        }
+                        val link = activity.window.decorView.findViewWithTag<View>(
+                            "history-open:" + directory.name
+                        )
                         if (link != null) {
                             link.performClick()
                             opened = true

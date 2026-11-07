@@ -2,7 +2,6 @@ package pl.michalmatu.aicallbridge.conversation
 
 import android.app.AlertDialog
 import android.view.View
-import android.widget.Button
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -44,9 +43,9 @@ class AndroidHistoryNavigationDeletionTest {
             ActivityScenario.launch(ConversationHistoryActivity::class.java).use { scenario ->
                 assertTrue("synthetic_session_missing", waitFor(scenario, "history-open:" + id))
                 scenario.onActivity { activity ->
-                    activity.window.decorView.findViewWithTag<Button>("history-open:" + id).performClick()
+                    activity.window.decorView.findViewWithTag<View>("history-open:" + id).performClick()
                 }
-                assertTrue("synthetic_details_missing", waitFor(scenario, "history-back-to-list"))
+                assertTrue("synthetic_details_missing", waitFor(scenario, "history-detail"))
                 scenario.onActivity { activity ->
                     val back = activity.window.decorView.findViewWithTag<View>("app-child-back")
                     assertNotNull(back)
@@ -55,9 +54,9 @@ class AndroidHistoryNavigationDeletionTest {
                 }
                 assertTrue("back_did_not_restore_calls", waitFor(scenario, "history-open:" + id))
                 scenario.onActivity { activity ->
-                    activity.window.decorView.findViewWithTag<Button>("history-open:" + id).performClick()
+                    activity.window.decorView.findViewWithTag<View>("history-open:" + id).performClick()
                 }
-                assertTrue("details_did_not_reopen", waitFor(scenario, "history-back-to-list"))
+                assertTrue("details_did_not_reopen", waitFor(scenario, "history-detail"))
                 scenario.onActivity { activity ->
                     // Exercise the actual AndroidX system dispatcher, not only chrome Back.
                     activity.onBackPressedDispatcher.onBackPressed()
@@ -65,12 +64,12 @@ class AndroidHistoryNavigationDeletionTest {
                 }
                 assertTrue("system_back_did_not_restore_calls", waitFor(scenario, "history-open:" + id))
                 scenario.onActivity { activity ->
-                    activity.window.decorView.findViewWithTag<Button>("history-delete:" + id).performClick()
+                    activity.window.decorView.findViewWithTag<View>("history-delete:" + id).performClick()
                     val dialog = requireNotNull(activity.pendingDeleteConfirmation)
                     assertTrue(dialog.isShowing)
                     dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
                     assertTrue("cancel_must_not_delete", directory.exists())
-                    activity.window.decorView.findViewWithTag<Button>("history-delete:" + id).performClick()
+                    activity.window.decorView.findViewWithTag<View>("history-delete:" + id).performClick()
                     val confirm = requireNotNull(activity.pendingDeleteConfirmation)
                     assertTrue(confirm.isShowing)
                     confirm.getButton(AlertDialog.BUTTON_POSITIVE).performClick()

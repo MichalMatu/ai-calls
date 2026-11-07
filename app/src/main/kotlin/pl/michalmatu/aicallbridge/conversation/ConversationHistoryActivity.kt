@@ -52,6 +52,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     }
     private fun showList(message: String? = null) {
         setDisplayedSession(null)
+        content.tag = "history-list"
         stopPlayback()
         playbackStatus = null
         content.removeAllViews()
@@ -67,32 +68,83 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         text = getString(R.string.history_empty)
                     })
                     sessions.forEach { session ->
-                        val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                        row.addView(Button(this).apply {
+                        val direction = when (session.direction) {
+                            ConversationDirection.OUTGOING -> getString(R.string.history_outgoing)
+                            ConversationDirection.INCOMING -> getString(R.string.history_incoming)
+                            ConversationDirection.UNSPECIFIED -> getString(R.string.history_unknown)
+                        }
+                        val icon = when (session.direction) {
+                            ConversationDirection.OUTGOING -> R.drawable.ic_aicalls_phone_outgoing
+                            ConversationDirection.INCOMING -> R.drawable.ic_aicalls_phone_incoming
+                            ConversationDirection.UNSPECIFIED -> R.drawable.ic_aicalls_phone
+                        }
+                        val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                            .format(Date(session.startedAtEpochMs))
+                        val count = session.lines.size.toString() + " " + getString(R.string.history_lines)
+                        val row = LinearLayout(this).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = android.view.Gravity.CENTER_VERTICAL
+                            tag = "history-row:" + session.id
+                        }
+                        val open = LinearLayout(this).apply {
                             tag = "history-open:" + session.id
-                            val direction = when (session.direction) {
-                                ConversationDirection.OUTGOING -> getString(R.string.history_outgoing)
-                                ConversationDirection.INCOMING -> getString(R.string.history_incoming)
-                                ConversationDirection.UNSPECIFIED -> getString(R.string.history_unknown)
-                            }
-                            text = direction + " • " +
-                                DateFormat.getDateTimeInstance().format(Date(session.startedAtEpochMs)) +
-                                " • " + session.lines.size + " " + getString(R.string.history_lines)
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = android.view.Gravity.CENTER_VERTICAL
+                            minimumHeight = UiDesign.dp(this@ConversationHistoryActivity, 56)
+                            isClickable = true
+                            isFocusable = true
+                            contentDescription = direction + " • " + date + " • " + count
+                            background = UiDesign.touchSurface(this@ConversationHistoryActivity)
+                            setPadding(UiDesign.dp(this@ConversationHistoryActivity, 12),
+                                UiDesign.dp(this@ConversationHistoryActivity, 8),
+                                UiDesign.dp(this@ConversationHistoryActivity, 10),
+                                UiDesign.dp(this@ConversationHistoryActivity, 8))
                             setOnClickListener { showSession(session.id) }
+                        }
+                        open.addView(ImageView(this).apply {
+                            setImageResource(icon)
+                            setColorFilter(UiDesign.secondary)
+                            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                        }, LinearLayout.LayoutParams(UiDesign.dp(this, 24), UiDesign.dp(this, 24)).apply {
+                            marginEnd = UiDesign.dp(this@ConversationHistoryActivity, 12)
                         })
+                        open.addView(LinearLayout(this).apply {
+                            orientation = LinearLayout.VERTICAL
+                            addView(TextView(this@ConversationHistoryActivity).apply {
+                                text = date
+                                textSize = 15f
+                                setTextColor(UiDesign.ink)
+                                isSingleLine = true
+                                ellipsize = android.text.TextUtils.TruncateAt.END
+                            })
+                            addView(TextView(this@ConversationHistoryActivity).apply {
+                                text = count
+                                textSize = 12f
+                                setTextColor(UiDesign.secondary)
+                            })
+                        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                        open.addView(ImageView(this).apply {
+                            setImageResource(R.drawable.ic_aicalls_chevron_right)
+                            setColorFilter(UiDesign.secondary)
+                            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                        }, LinearLayout.LayoutParams(UiDesign.dp(this, 20), UiDesign.dp(this, 20)))
+                        row.addView(open, LinearLayout.LayoutParams(0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                         if (history.canDelete(session.id)) {
-                            row.addView(Button(this).apply {
+                            row.addView(UiDesign.iconButton(
+                                this, R.drawable.ic_aicalls_trash, getString(R.string.history_delete),
+                                android.graphics.Color.rgb(173, 37, 56)
+                            ).apply {
                                 tag = "history-delete:" + session.id
-                                text = getString(R.string.history_delete)
                                 setOnClickListener { confirmDelete(session.id) }
-                            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                                    topMargin = UiDesign.dp(this@ConversationHistoryActivity, 8)
+                            }, LinearLayout.LayoutParams(UiDesign.dp(this, 52),
+                                UiDesign.dp(this, 52)).apply {
+                                    marginStart = UiDesign.dp(this@ConversationHistoryActivity, 8)
                                 })
                         }
                         content.addView(row, LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                        ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 14) })
+                        ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 10) })
                     }
                 }.onFailure { failure -> content.addView(TextView(this).apply {
                     text = getString(R.string.history_read_error) + ": " + failure.javaClass.simpleName
@@ -123,16 +175,12 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     }
     private fun showSession(id: String) {
         setDisplayedSession(id)
+        content.tag = "history-detail"
         io.execute {
             val result = runCatching { history.load(id) }
             runOnUiThread {
                 if (isDestroyed || displayedSessionId != id) return@runOnUiThread
                 content.removeAllViews()
-                content.addView(Button(this).apply {
-                    tag = "history-back-to-list"
-                    text = getString(R.string.history_back_to_list)
-                    setOnClickListener { showList() }
-                })
                 result.onSuccess { session ->
                     if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = getString(R.string.history_incomplete, session.invalidRecords) })
                     playbackStatus = TextView(this).apply {
