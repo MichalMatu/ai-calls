@@ -50,6 +50,7 @@ class MainActivity : AppBaseActivity() {
         selectedTextLlmProvider = initialSelection.textLlmProvider
 
         statusView = TextView(this).apply {
+            accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
             text = runtimeSelectionSummary()
             textSize = 13f
             setTextColor(Color.rgb(39, 58, 83))
@@ -286,44 +287,39 @@ class MainActivity : AppBaseActivity() {
             checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
-            statusView.text = "Android wymaga zgody na mikrofon i stan telefonu."
+            statusView.text = getString(R.string.home_one_tap_permission)
             requestPermissions(missing.toTypedArray(), REQUEST_ONE_TAP_SUPERVISED)
             return
         }
         val snapshot = SupervisedCallReadinessDiagnostics.capture(this)
         val reportSaved = SupervisedCallReadinessDiagnostics.write(this, snapshot)
-        val reportInfo = if (reportSaved) "Raport zapisany." else "Nie udało się zapisać raportu."
+        val reportInfo = getString(if (reportSaved) R.string.home_one_tap_report_saved else R.string.home_one_tap_report_failed)
         when (snapshot.failure) {
             null -> {
-                statusView.text = "Zgoda na test udzielona przyciskiem. Uruchamiam lokalny " +
-                    "STT → Gemma/skrypt → TTS → Shizuku (maksymalnie 2 odpowiedzi)."
+                statusView.text = getString(R.string.home_one_tap_starting)
                 runCatching {
                     startForegroundService(
                         Intent(this, AppOwnedCampaignService::class.java)
                             .setAction(AppOwnedCampaignService.ACTION_START_SUPERVISED_AUDIO),
                     )
                 }.onFailure {
-                    statusView.text = "Nie można uruchomić serwisu testowego: " +
-                        it.javaClass.simpleName
+                    statusView.text = getString(R.string.home_one_tap_service_failed, it.javaClass.simpleName)
                 }
             }
             SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL ->
-                statusView.text = "Brak aktywnej rozmowy komórkowej. " +
-                    "Rozpocznij ją w Google Phone i naciśnij ten sam przycisk. $reportInfo"
+                statusView.text = getString(R.string.home_one_tap_no_call, reportInfo)
             SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY ->
-                statusView.text = "Rozmowa wykryta, ale Android zgłosił " +
-                    "${snapshot.audioModeLabel}. AI nie zostało podłączone. $reportInfo"
+                statusView.text = getString(R.string.home_one_tap_route, snapshot.audioModeLabel, reportInfo)
             SupervisedCallPilotFailure.SHIZUKU_NOT_READY ->
-                statusView.text = "Shizuku niedostępne — uruchom je i naciśnij ten sam przycisk. " +
-                    reportInfo
+                statusView.text = getString(R.string.home_one_tap_shizuku, reportInfo)
             SupervisedCallPilotFailure.PERMISSION_REQUIRED ->
-                statusView.text = "Brakuje zgód Androida. $reportInfo"
+                statusView.text = getString(R.string.home_one_tap_permissions, reportInfo)
         }
     }
 
     private fun requestMicrophonePermissionIfNeeded() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            statusView.text = "Microphone permission already granted"
+            statusView.text = getString(R.string.home_mic_already)
             return
         }
 
@@ -344,7 +340,7 @@ class MainActivity : AppBaseActivity() {
             ) {
                 startOneTapSupervisedTest()
             } else {
-                statusView.text = "Android odmówił uprawnień. Nie uruchomiono audio AI."
+                statusView.text = getString(R.string.home_one_tap_denied)
             }
             return
         }
@@ -352,9 +348,9 @@ class MainActivity : AppBaseActivity() {
         if (requestCode == REQUEST_RECORD_AUDIO) {
             val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
             statusView.text = if (granted) {
-                "Microphone permission granted"
+                getString(R.string.home_mic_granted)
             } else {
-                "Microphone permission denied"
+                getString(R.string.home_mic_denied)
             }
         }
     }

@@ -76,6 +76,7 @@ internal object AppNavigation {
                 UiDesign.dp(activity, 24), UiDesign.dp(activity, 24)))
             item.addView(TextView(activity).apply {
                 text = activity.getString(tab.title)
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 textSize = 11f
                 setTextColor(labelColor)
                 gravity = Gravity.CENTER
@@ -119,6 +120,7 @@ internal object AppNavigation {
             UiDesign.dp(activity, 48), UiDesign.dp(activity, 48)))
         addView(TextView(activity).apply {
             text = activity.getString(active.title)
+            if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true
             textSize = 15f
             setTypeface(null, Typeface.BOLD)
             setTextColor(UiDesign.ink)

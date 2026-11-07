@@ -81,7 +81,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             for (choice in choices) {
                 if (!choice.integrated && choice.id != selected) {
                     val info = UiDesign.caption(this, choice.title + " · " + choice.languageTag +
-                        " — " + choice.detail).apply {
+                        " — " + localizedDetail(choice)).apply {
                         setTextColor(UiDesign.secondary)
                         visibility = View.GONE
                         minimumHeight = UiDesign.dp(this@AudioEngineSettingsActivity, 48)
@@ -93,7 +93,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 val button = RadioButton(this).apply {
                     id = View.generateViewId()
                     text = choice.title + " · " + choice.languageTag +
-                        if (choice.integrated) "" else "\nNiedostępny: " + choice.detail
+                        if (choice.integrated) "" else "\n" + getString(R.string.eng_ui_unavailable_detail, localizedDetail(choice))
                     isEnabled = choice.integrated
                     tag = choice.id
                     isChecked = choice.id == selected
@@ -110,7 +110,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             card.addView(group)
             if (unavailable.isNotEmpty()) {
                 val toggle = UiDesign.action(this,
-                    "Niedostępne silniki (${unavailable.size})") {
+                    getString(R.string.eng_ui_unavailable_count, unavailable.size)) {
                     val expanded = unavailable.any { it.visibility == View.GONE }
                     unavailable.forEach {
                         it.visibility = if (expanded) View.VISIBLE else View.GONE
@@ -139,7 +139,9 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         voicePicker = Spinner(this)
         content.addView(voicePicker, UiDesign.spaceAfter(this, 12))
         setVoices(emptyList(), current?.voiceId)
-        feedback = label(getString(R.string.eng_ui_not_ready))
+        feedback = label(getString(R.string.eng_ui_not_ready)).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
         content.addView(UiDesign.heading(this, getString(R.string.eng_ui_primary_heading)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
@@ -152,7 +154,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     probedVoices.takeIf { requested.output == probedOutput },
                 )
                 if (!result.available) {
-                    feedback.text = "Nie zapisano: " + (result.reason ?: "not_ready")
+                    feedback.text = getString(R.string.eng_ui_could_not_save, result.reason ?: "not_ready")
                 } else {
                     feedback.text = if (store.save(requested)) {
                         getString(R.string.eng_ui_save_done)
@@ -163,7 +165,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_reset)) {
                 if (store.save(AudioEngineProfile.STABLE)) {
                     feedback.text = getString(R.string.eng_ui_restore_done)
-                } else feedback.text = "Błąd zapisu preferencji."
+                } else feedback.text = getString(R.string.eng_ui_save_error)
                 refreshActive()
         }, UiDesign.spaceAfter(this, 12))
 
@@ -180,7 +182,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }, UiDesign.spaceAfter(this, 12))
         cancelDownloadButton = UiDesign.action(this, getString(R.string.eng_ui_cancel), UiActionTone.DANGER) {
             parakeetDownloader?.cancel()
-            feedback.text = "Anulowanie pobierania…"
+            feedback.text = getString(R.string.eng_ui_cancel_progress)
         }.apply { tag = "engine-cancel-download"; visibility = View.GONE }
         content.addView(cancelDownloadButton, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_preview)) {
@@ -193,6 +195,17 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             ))
         })
         refreshActive()
+    }
+
+    /** UI-only labels: engine registry remains the single owner of technical capabilities. */
+    private fun localizedDetail(choice: AudioEngineChoice): String = when (choice.id) {
+        "ANDROID_STT" -> getString(R.string.eng_ui_registry_android_stt)
+        "PARAKEET_PL" -> getString(R.string.eng_ui_registry_parakeet)
+        "GEMMA_AUDIO_DIRECT" -> getString(R.string.eng_ui_registry_direct)
+        "ANDROID_TTS_PL" -> getString(R.string.eng_ui_registry_android_tts)
+        "PIPER_PL" -> getString(R.string.eng_ui_registry_piper)
+        "KOKORO", "POCKET_TTS" -> getString(R.string.eng_ui_registry_no_polish)
+        else -> choice.detail
     }
 
     private fun selectedProfile(): AudioEngineProfile {
@@ -227,7 +240,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             PiperServiceContract.PACKAGE else null
         tts?.shutdown()
         tts = null
-        feedback.text = "Sprawdzanie lokalnego Android TTS, STT i pliku Gemma E2B…"
+        feedback.text = getString(R.string.eng_ui_checking)
         val holder = arrayOfNulls<TextToSpeech>(1)
         val initListener = TextToSpeech.OnInitListener { status ->
             runOnUiThread {
@@ -238,7 +251,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
                 if (status != TextToSpeech.SUCCESS) {
                     engine.shutdown()
-                    feedback.text = "Android TTS: nie można zainicjalizować silnika."
+                    feedback.text = getString(R.string.eng_ui_tts_init_failed)
                     return@runOnUiThread
                 }
                 if (selectedEngine != null && (
@@ -249,7 +262,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     }
                 )) {
                     engine.shutdown()
-                    feedback.text = "Wybrany Piper TTS nie jest zainstalowany."
+                    feedback.text = getString(R.string.eng_ui_piper_missing)
                     return@runOnUiThread
                 }
                 val voices = engine.voices.orEmpty()
@@ -267,9 +280,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     probedVoices.takeIf { selectedProfile().output == probedOutput },
                 )
                 feedback.text = if (result.available) {
-                    "Wstępny test offline: wybrane wejście wstępnie dostępne, E2B obecny (rozmiar pliku), " +
-                        "lokalne głosy pl-PL: " + names.size +
-                        ". Natywna inferencja wymaga osobnego testu S22."
+                    getString(R.string.eng_ui_check_available, names.size)
                 } else "OPEN: " + (result.reason ?: "unknown")
             }
         }
@@ -280,23 +291,23 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun downloadParakeet() {
         if (selectedProfile().input != SpeechInputId.PARAKEET_PL) {
-            feedback.text = "Wybierz Parakeet w sekcji wejścia przed pobraniem."
+            feedback.text = getString(R.string.eng_ui_choose_parakeet)
             return
         }
         if (parakeetDownloader != null) {
-            feedback.text = "Pobieranie trwa; użyj przycisku Anuluj, aby je przerwać."
+            feedback.text = getString(R.string.eng_ui_download_busy)
             return
         }
         val downloader = ParakeetModelDownloader(this)
         parakeetDownloader = downloader
         cancelDownloadButton.visibility = View.VISIBLE
-        feedback.text = "Pobieranie 615 MB: zalecane Wi-Fi. Plik jest sprawdzany SHA-256."
+        feedback.text = getString(R.string.eng_ui_download_hint)
         Thread({
             val result = downloader.download { read, total ->
                 runOnUiThread {
                     if (!isDestroyed && parakeetDownloader === downloader) {
                         val pct = (read * 100 / total).toInt().coerceIn(0, 100)
-                        feedback.text = "Pobieranie Parakeet: $pct% ($read / $total B)."
+                        feedback.text = getString(R.string.eng_ui_download_progress, pct, read, total)
                     }
                 }
             }
@@ -307,11 +318,10 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 cancelDownloadButton.visibility = View.GONE
                 when (result) {
                     ParakeetModelDownloadResult.Success -> {
-                        feedback.text = "Model Parakeet pobrany i zweryfikowany SHA-256. " +
-                            "Przed użyciem w rozmowie wymagany test natywny S22."
+                        feedback.text = getString(R.string.eng_ui_download_verified)
                     }
                     is ParakeetModelDownloadResult.Failure ->
-                        feedback.text = "Parakeet: " + result.reason
+                        feedback.text = getString(R.string.eng_ui_parakeet_error, result.reason)
                 }
             }
         }, "aicalls-parakeet-download").apply { isDaemon = true }.start()
@@ -323,7 +333,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
             PackageManager.PERMISSION_GRANTED
         ) {
-            feedback.text = "Nie można bezpiecznie sprawdzić połączenia bez uprawnienia telefonu."
+            feedback.text = getString(R.string.eng_ui_phone_permission)
             return
         }
         val telecom = getSystemService(TelecomManager::class.java)
@@ -345,7 +355,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }.sortedBy { it.name }
         val voice = if (name == null) local.firstOrNull() else local.firstOrNull { it.name == name }
         if (voice == null || engine.setVoice(voice) != TextToSpeech.SUCCESS) {
-            feedback.text = "Wybrany głos offline nie jest dostępny."
+            feedback.text = getString(R.string.eng_ui_voice_unavailable)
             return
         }
         engine.speak("To jest próbka lokalnego głosu AI Calls.", TextToSpeech.QUEUE_FLUSH, null,

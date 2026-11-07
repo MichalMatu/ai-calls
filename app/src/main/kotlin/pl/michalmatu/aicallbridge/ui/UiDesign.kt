@@ -114,6 +114,7 @@ internal object UiDesign {
         setOnClickListener { action() }
     }
     fun heading(context: Context, value: String) = TextView(context).apply {
+        if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true
         text = value
         textSize = 20f
         setTextColor(ink)

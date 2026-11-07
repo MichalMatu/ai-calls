@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.R
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
@@ -28,11 +29,11 @@ import android.widget.LinearLayout.LayoutParams
     ): View {
         fun dp(value: Int) = (value * context.resources.displayMetrics.density + 0.5f).toInt()
         val isAgent = line.speaker == ConversationChatFeed.Speaker.ASSISTANT
-        val label = if (line.speaker == ConversationChatFeed.Speaker.TOOL) "NARZĘDZIE • TURA "
-        else if (!isAgent) "ROZMÓWCA / STT • TURA " else when (line.responseKind) {
-            ConversationChatFeed.ResponseKind.MODEL_DIRECT -> "AI / MODEL • TURA "
-            ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED -> "AI / SKRYPT • TURA "
-            ConversationChatFeed.ResponseKind.UNSPECIFIED -> "AI • TURA "
+        val label = if (line.speaker == ConversationChatFeed.Speaker.TOOL) R.string.chat_turn_tool
+        else if (!isAgent) R.string.chat_turn_counterpart else when (line.responseKind) {
+            ConversationChatFeed.ResponseKind.MODEL_DIRECT -> R.string.chat_turn_model
+            ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED -> R.string.chat_turn_script
+            ConversationChatFeed.ResponseKind.UNSPECIFIED -> R.string.chat_turn_assistant
         }
         val time = DateFormat.format("HH:mm:ss", line.atEpochMs).toString()
         val bubble = LinearLayout(context).apply {
@@ -50,7 +51,8 @@ import android.widget.LinearLayout.LayoutParams
             }
             setPadding(dp(12), dp(9), dp(12), dp(10))
             addView(TextView(context).apply {
-                text = (if (line.turn == 0 && isAgent) "AI / POWITANIE" else label + line.turn) + " • " + time
+                text = (if (line.turn == 0 && isAgent) context.getString(R.string.chat_turn_welcome)
+                    else context.getString(label, line.turn)) + " • " + time
                 textSize = 10f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.rgb(185, 207, 234))
@@ -63,7 +65,7 @@ import android.widget.LinearLayout.LayoutParams
                 setPadding(0, dp(4), 0, 0)
             })
             if (isAgent) addView(TextView(context).apply {
-                text = line.txStatus ?: if (ongoing) "Odpowiedź wygenerowana • TTS/TX w toku" else "Brak potwierdzenia wysłania"
+                text = line.txStatus ?: context.getString(if (ongoing) R.string.chat_tx_pending else R.string.chat_tx_unconfirmed)
                 textSize = 11f
                 setTextColor(Color.rgb(191, 229, 252))
                 setPadding(0, dp(5), 0, 0)
