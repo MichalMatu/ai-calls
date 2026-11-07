@@ -48,7 +48,7 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 
 ## Oddzielenie UX od logiki — nowa, niezależna sekwencja (po Sprint 6)
 
-**Nie jest jeszcze wykonana — to osobny przyszły zakres.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
+**UX-01 jest DONE / SOURCE_PASS; UX-02 i dalsze kroki są osobnym przyszłym zakresem.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
 
 ### Mapa faktycznego sprzężenia
 
@@ -62,7 +62,9 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 
 **Istniejące prawidłowe granice:** `GeneralSettingsController`, `IncomingAssistantSettingsController`, `ConversationToolsSettingsController`, `ConversationRunConfiguration`, `AudioEngineProfileStore`, `RecordedConversationHistory`, `ArchivedConversationPlayer`. Reużywaj je, nie dokładaj adapterów o tej samej roli.
 
-### UX-01 — wyłącznie prezentacja Kampanii
+### UX-01 — wyłącznie prezentacja Kampanii (DONE / SOURCE_PASS)
+
+[Wynik, dokładne QA i granice fizyczne](checkpoints/2026-11-07-ux01-campaign-status-presenter-closeout.md): Mac RED→GREEN, JVM 6, host Python 325, friction i AndroidTest/APK PASS, S22 NOT_RUN.
 
 - Wejście: zapis historycznego statusu, locale; wyjście: typowana etykieta/ton/znaczenie `requested vs confirmed vs unknown`. **Brak** `Context`, `Service`, I/O, mutacji grantu, odczytu SIM, `TelecomManager` w parserze/presenterze.
 - UI renderuje tylko zwrócony stan. Surowy status pozostaje w zwijanym panelu diagnostycznym; nie wolno sugerować sukcesu po `targeted_disconnect_requested`.

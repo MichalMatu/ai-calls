@@ -1,4 +1,4 @@
-# AI Calls — HANDOFF po zamknięciu iteracji UX Sprint 6 (2026-11-07)
+# AI Calls — HANDOFF: Sprint 6 CLOSED, UX-01 SOURCE_PASS (2026-11-07)
 
 **Status końcowy:** `UX_ITERATION_CLOSED / SOURCE_PASS / S22_PASS / REAL_GEMMA_PASS`. Właściciel uznał UX za wystarczająco dobry i kończy tę iterację. **Nie rozpoczynać kolejnych mikro-poprawek wizualnych ani nie powtarzać zaliczonych testów.**
 
@@ -6,7 +6,7 @@
 
 ## Dokładny stan repo i środowiska
 
-- Repo `MichalMatu/ai-calls`, gałąź `main`, **ostatni HEAD funkcjonalny `1b359146d89260e7cffd6d4c851d4c475cee20ac`**. Późniejsze commity dokumentacji mogą mieć inne SHA, dlatego sprawdź aktualny HEAD i clean worktree. Bez nowych gałęzi, force-push, GitHub Actions, Codex ani Work; commity `[skip ci]`.
+- Repo `MichalMatu/ai-calls`, gałąź `main`, **Sprint 6 funkcjonalny `1b359146d89260e7cffd6d4c851d4c475cee20ac`**, a osobny **UX-01 source/tested HEAD `82d86e3faa256ee5b6d5ec8ab812ea104733bd29`**. Commity dokumentacji mogą podnieść HEAD; zawsze odczytaj aktualny commit i clean worktree. Bez nowych gałęzi, force-push, GitHub Actions, Codex ani Work; commity `[skip ci]`.
 - GitHub Connector + **Mac Local Agent**: `macbook-michal`, installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, repo na Macu `/Users/michal/agent-workspace/repos/ai-calls/work`. Testy hosta wykonywać tam, nie zgadywać stanów sprzętu.
 - Fizyczny S22 `SM-S906B` / serial `RFCT70L7E8J`; instalacja `app-debug.apk` i AndroidTest APK przez `adb install -r -t`, signer zgodny, **dane zachowane**. `IDLE`, brak aktywnej kampanii i faktycznych połączeń podczas testów.
 
@@ -24,9 +24,11 @@
 - **Prywatny finalny ZIP:** `~/Library/Application Support/AI-Calls/UI-audit/2026-11-07-ux-sprint6/AI-Calls-S22-UX-sprint6-private.zip` (Mac). Nie commitować JPEG/WAV/transkryptów/numerów.
 - Wcześniejsze błędy ADB oraz FAIL z `PatternSyntaxException` są **historycznymi RED z późniejszym GREEN** — nie usuwać ich dowodów, ale nie klasyfikować jako dzisiejsze blockers.
 
-## Następny chat — dopiero nowy zakres, bez kontynuacji UX polishing
+## Nowy zakres UX-01 — zamknięty źródłowo, niezależny od Sprintu 6
 
-**Rekomendowany start:** przejrzeć aktualne zależności i wykonać **UX-01 — read-only `CampaignExecutionStatusPresenter`** (historyczny runtime code → typowany, lokalizowalny status prezentacji; bez polityk, I/O, grantów i akcji na Call). Następnie osobno: **UX-02** controller historii/IO/bulk delete, **UX-03** runner Laboratorium/cancel/timeout, **UX-04** ustawienia/model, **UX-05** F-103 języki. Nie budować wszystkiego jednocześnie.
+**UX-01 SOURCE_PASS**: read-only `CampaignExecutionStatusPresenter` z typowanym znaczeniem/tonem i PL/EN; jedynie render historycznego stanu w `CampaignToolActivity`, surowa diagnostyka bez zmian. [Checkpoint i dokładne receipts](checkpoints/2026-11-07-ux01-campaign-status-presenter-closeout.md): RED rzeczywiste przy skonfigurowanym SDK, następnie JVM 6/6, 325 host Python, AndroidTest compile, APK i friction PASS. **S22 UX-01 nie instalowano ani nie testowano**, brak realnego Call. Nie mylić SOURCE_PASS z fizycznym odbiorem nowego APK.
+
+**Następny osobny zakres:** **UX-02 — `ConversationHistoryController`** (IO, lista, ukończone-only kasowanie, stale callbacks). Potem osobno UX-03 Lab runner, UX-04 ustawienia/model i UX-05 F-103. Nie wykonywać wszystkiego w jednej iteracji i nie wznawiać kosmetyki Sprintu 6.
 
 **Inne niezależne, nienaruszane sprawy:** F-080 pełny ciągły recorder/player sesji; fizyczne autoryzowane call flows, przejęcie i odstawienie AI, rzetelna ocena semantyki i naturalności Gemmy. `END_CALL 2/2` to wynik decyzji końca, nie merytorycznej jakości.
 
@@ -34,4 +36,4 @@
 
 Nie ruszać zamrożonego Samsung/Shizuku/PCM/PFD RX/TX, ownership jedynego Android Call, grant/revoke, STOP, polityk ujawniania faktów i sekwencji `zatwierdzenie → pełny TX → end_call`. Bez realnych połączeń ani ingerencji w prawdziwe archiwa bez wyraźnej autoryzacji. Testować nową odpowiedzialność w izolacji, `scripts/verify_host.sh`, friction audit, AndroidTest kiedy odpowiedni, checkpoint ze źródłowym i fizycznym QA osobno.
 
-**Drobny krok operacyjny przy wznowieniu:** finalna dokumentacja jest na zdalnym `main`, lecz synchronizacja lokalnej kopii Mac po commitach dokumentów nie została potwierdzona (task budget exhausted / invalid task file). Przed nową pracą wykonać `git fetch --no-tags origin main`, `git merge --ff-only origin/main`, `git status --porcelain`; bez ponawiania Sprintu 6.
+**Synchronizacja Mac:** poprzednią lukę Sprintu 6 naprawiono i potwierdzono osobnym `aicalls-ux01-mac-main-preflight-20261107-v1` DONE/0. Ostatni test źródeł UX-01 na Macu: `82d86e3`, worktree clean (`...green-host-friction-20261107-v3` DONE/0). Po kolejnych commitach dokumentacji sprawdź świeże `git fetch --no-tags origin main`, `git merge --ff-only origin/main`, `git status --porcelain`; dokumentacyjne SHA nie są instalacją na S22.
