@@ -22,10 +22,17 @@ data class PersonalScenario(
         val template = requireNotNull(ScenarioCatalog.byId(templateId)) { "unknown_scenario_template" }
         require(draft.scenarioId == templateId) { "scenario_draft_mismatch" }
         validateValues(template, draft.values)
-        require(title.isNotBlank() && goal.isNotBlank()) { "missing_personal_scenario_name_or_goal" }
-        if (current.title == title && current.goal == goal && current.values == draft.values) return this
+        val normalizedTitle = title.trim()
+        val normalizedGoal = goal.trim()
+        require(normalizedTitle.isNotEmpty() && normalizedGoal.isNotEmpty()) {
+            "missing_personal_scenario_name_or_goal"
+        }
+        if (current.title == normalizedTitle &&
+            current.goal == normalizedGoal &&
+            current.values == draft.values
+        ) return this
         return copy(versions = versions + PersonalScenarioVersion(
-            current.number + 1, title.trim(), goal.trim(), draft.values.toMap()))
+            current.number + 1, normalizedTitle, normalizedGoal, draft.values.toMap()))
     }
 
     fun restored(number: Int): PersonalScenario {
