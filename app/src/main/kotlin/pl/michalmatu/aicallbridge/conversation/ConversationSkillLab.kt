@@ -11,7 +11,7 @@ internal data class SkillLabStory(val title: String, val turns: List<SkillLabTur
 internal object SkillLabCorpus {
     val stories: List<SkillLabStory> = listOf(
         SkillLabStory("Cytat, korekta, podsumowanie, koniec", listOf(
-            SkillLabTurn("Chcę zostawić wiadomość, że rower jest gotowy do odbioru.", false),
+            SkillLabTurn("Chcę zostawić wiadomość, że rower jest gotowy do odbioru.", false, false),
             SkillLabTurn("W wiadomości padło słowo do widzenia, ale mam poprawkę.", false),
             SkillLabTurn("Zamiast wtorku proszę zapisać czwartek po szesnastej.", false),
             SkillLabTurn("Proszę teraz podsumować poprawioną wiadomość.", false, false),
@@ -60,6 +60,13 @@ internal data class SkillLabMetrics(
     }
 }
 internal object SkillLabScoring {
+    // A question-like phrase asks for human review, not a semantic quality verdict.
+    private val questionLike = Regex(
+        "(?iu)\\b(?:czy|kiedy|gdzie|jaki|jaka|jakie|który|która|podaj|podajcie|proszę\\s+(?:podać|o)|potrzebuję\\s+(?:numeru|adresu))\\b"
+    )
+    fun mayNeedQuestionReview(reply: String): Boolean =
+        '?' in reply || questionLike.containsMatchIn(reply)
+
     fun score(entries: List<SkillLabObservation>): SkillLabMetrics {
         return SkillLabMetrics(
             turns = entries.size,
@@ -67,7 +74,7 @@ internal object SkillLabScoring {
             prematureEnds = entries.count { !it.expectedEnd && it.actualEnd },
             missingEnds = entries.count { it.expectedEnd && !it.actualEnd },
             unexpectedQuestions = entries.count {
-                it.expectedQuestion == false && "?" in it.reply
+                it.expectedQuestion == false && mayNeedQuestionReview(it.reply)
             },
             meanLatencyMs = if (entries.isEmpty()) 0L else entries.sumOf { it.elapsedMs } / entries.size,
         )
