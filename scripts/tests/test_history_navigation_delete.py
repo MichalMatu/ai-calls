@@ -6,7 +6,7 @@ class HistoryNavDeletionContract(unittest.TestCase):
     def test_activity_back_and_confirmation(self):
         history=(ROOT/"conversation/ConversationHistoryActivity.kt").read_text()
         chrome=(ROOT/"ui/UiChromeActivity.kt").read_text()
-        for key in ("override fun consumeChromeBack()", "OnBackInvokedDispatcher.PRIORITY_DEFAULT",
+        for key in ("override fun consumeChromeBack()", "OnBackPressedCallback", "onBackPressedDispatcher.addCallback(this, detailBack)",
                     "history-back-to-list", "history-delete:", "AlertDialog.Builder(this)",
                     "history.deleteCompleted(id)"):
             self.assertIn(key,history)

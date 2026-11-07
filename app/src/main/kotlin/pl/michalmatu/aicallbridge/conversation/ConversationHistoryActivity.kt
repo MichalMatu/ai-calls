@@ -6,11 +6,9 @@ import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.os.Build
 import android.view.View
 import android.view.ViewGroup
-import android.window.OnBackInvokedCallback
-import android.window.OnBackInvokedDispatcher
+import androidx.activity.OnBackPressedCallback
 import pl.michalmatu.aicallbridge.R
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
@@ -31,7 +29,9 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private var playback: MediaPlayer? = null
     private var playbackStatus: TextView? = null
     private var displayedSessionId: String? = null
-    private var gestureBack: OnBackInvokedCallback? = null
+    private val detailBack = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() { showList() }
+    }
     internal var pendingDeleteConfirmation: AlertDialog? = null
         private set
 
@@ -42,27 +42,14 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         return true
     }
 
-    @Deprecated("Pre-33 fallback; modern back uses OnBackInvokedDispatcher.")
-    override fun onBackPressed() {
-        if (!consumeChromeBack()) super.onBackPressed()
-    }
-
     private fun setDisplayedSession(id: String?) {
         displayedSessionId = id
-        if (Build.VERSION.SDK_INT >= 33) {
-            gestureBack?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
-            gestureBack = null
-            if (id != null) {
-                val callback = OnBackInvokedCallback { showList() }
-                onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
-                gestureBack = callback
-            }
-        }
+        detailBack.isEnabled = id != null
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        // One lifecycle-aware handler for both gesture and hardware Back, Android 10+.
+        onBackPressedDispatcher.addCallback(this, detailBack)
         history = RecordedConversationHistory(File(filesDir, CallSessionEvidenceRecorder.ROOT))
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32), UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32)) }
         setContentView(ScrollView(this).apply { addView(content) })
@@ -225,10 +212,6 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     }
     override fun onPause() { stopPlayback(); super.onPause() }
     override fun onDestroy() {
-        if (Build.VERSION.SDK_INT >= 33) {
-            gestureBack?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
-            gestureBack = null
-        }
         pendingDeleteConfirmation?.dismiss()
         pendingDeleteConfirmation = null
         stopPlayback()

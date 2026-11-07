@@ -1,6 +1,6 @@
 ## F-105 — systemowy i ekranowy Back zamyka Calls zamiast wracać do listy (2026-11-07)
 
-**Ścieżki:** ConversationHistoryActivity, UiChromeActivity, AppNavigation.childToolbar. **Warunek:** po otwarciu konkretnej rozmowy Wstecz zamykał całe Activity i prowadził do Home. **Wpływ:** zła hierarchia nawigacji i utrata kontekstu listy. **Przyczyna:** brak stanu wewnętrznej strony i delegacji Back. **Naprawa:** stan szczegółów w Calls, callback Android 13+ OnBackInvokedDispatcher, kompatybilny Back sprzed API 33 i wspólny toolbar delegujący stronę. **Test:** instrumentacja syntetycznej sesji i 2× Back, host. **Status: FIXED_IN_SOURCE / QA_PENDING_S22**.
+**Ścieżki:** ConversationHistoryActivity, UiChromeActivity, AppNavigation.childToolbar. **Warunek:** po otwarciu konkretnej rozmowy Wstecz zamykał całe Activity i prowadził do Home. **Wpływ:** zła hierarchia nawigacji i utrata kontekstu listy. **Przyczyna:** brak stanu wewnętrznej strony i delegacji Back. **Naprawa:** stan szczegółów w Calls, lifecycle-aware AndroidX OnBackPressedDispatcher (gest i klawisz Back na API 29+) i wspólny toolbar delegujący stronę. **Test:** instrumentacja syntetycznej sesji i 2× Back, host. **Status: FIXED_IN_SOURCE / QA_PENDING_S22**.
 
 ## F-106 — brak usuwania pojedynczej rozmowy z Calls (2026-11-07)
 

@@ -34,6 +34,8 @@ dependencies {
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.0")
     implementation("com.google.mediapipe:tasks-audio:1.2.0")
     implementation("com.google.code.gson:gson:2.14.0")
+    // Existing cached Activity artifact supplies lifecycle-aware predictive Back handling.
+    implementation("androidx.activity:activity:1.10.1")
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
