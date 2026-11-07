@@ -1,6 +1,6 @@
 # UX-06 — plan wdrożenia ergonomii, stanów i biblioteki scenariuszy
 
-Data: 2026-11-07. Stan: wdrożenie etapowe, niezatwierdzony wynik hosta/S22.
+Data: 2026-11-07. **Aktualny odczyt:** etapy wdrożone do source `25a41a0`: full HOST_PASS + S22 synthetic 10/10 PASS; dalsza integracja nadal OPEN. Starsze opisy QA_PENDING poniżej są historycznymi zapisami etapów, nie aktualnym wynikiem. [Kompletny checkpoint / user-directed](checkpoints/2026-11-07-ux06-complete-checkpoint-user-directed-next-chat.md).
 
 ## Zakres zatwierdzony przez właściciela
 

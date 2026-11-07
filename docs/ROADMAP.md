@@ -1,3 +1,9 @@
+## UX-06 — checkpoint pełny i kolejne zgłoszenia właściciela (2026-11-07)
+
+**Baza potwierdzona:** source `25a41a0`, Mac full PASS (341 Python, JVM/lint/APK), S22 synthetic 10/10 PASS; real calls nie testowano. Dokumentacja po testach nie zmieniała runtime. [Kompletny checkpoint](checkpoints/2026-11-07-ux06-complete-checkpoint-user-directed-next-chat.md) · [prompt do nowego czatu](UX06_NEXT_CHAT_PROMPT.md). Kontynuacja odbywa się **wyłącznie według kolejno wskazywanych przez użytkownika miejsc**. Otwarte F-122, F-123 (częściowo), F-124, F-080 i pozostałe integracje scenariuszy nie uruchamiają się samoczynnie.
+
+---
+
 ## UX-06 — aktualny stan po syntetycznym S22 (2026-11-07)
 
 **SOURCE_PASS na `25a41a0`:** 341/341 Python, Gradle JVM/lint/APK/AndroidTest compile i friction PASS. **S22 SYNTHETIC_PASS:** 10/10 Android UI, `SM-S906B`, IDLE przed/po, APK wgrane bez wipe. Nowy ekran 10 presetów, wersjonowane własne kopie i formularze w szyfrowanym store, read-only bieżące fazy AI odróżnione od historii z czasem, lepsze opisy Start/Kampanie. **NIEUDOWODNIONE:** manual UX/TalkBack, realne taski poza CLIR, F-122/F-123/F-124/F-080. [Receipt i granice](checkpoints/2026-11-07-ux06-source-s22-synthetic-acceptance.md).

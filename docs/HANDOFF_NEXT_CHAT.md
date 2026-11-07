@@ -1,3 +1,11 @@
+# UX-06 — obowiązujący checkpoint i tryb USER_DIRECTED (2026-11-07)
+
+**Stan:** sprawdzony source `25a41a0` HOST_PASS (341/341 Python i pełny Gradle/JVM/lint/APK); S22 `SM-S906B` zainstalowany bez wipe, syntetyczne UI/prywatny zapis 10/10 PASS, IDLE przed/po. **Nie wykonywano rzeczywistych połączeń ani ręcznej oceny TalkBack.** [Kompletny checkpoint](checkpoints/2026-11-07-ux06-complete-checkpoint-user-directed-next-chat.md) oraz [gotowy prompt](UX06_NEXT_CHAT_PROMPT.md).
+
+**Kluczowe:** właściciel będzie po kolei wskazywać konkretne obszary do analizy/poprawy. Następny chat rozpoczyna od read-only preflightu i **czeka na jego wskazanie**; nie uruchamia automatycznie F-122/123/124/080. Dla `sprawdź` nie edytuje; dla `popraw/wdróż` realizuje tylko wskazany zakres, adekwatnie testuje i dokumentuje. Granice STOP/grant/Call i prywatność bez zmian. Historyczne sekcje poniżej pozostają dowodami wcześniejszych etapów; nie są bieżącymi poleceniami.
+
+---
+
 # UX-06 — źródła i S22 syntetycznie PASS (2026-11-07)
 
 **Bieżący, sprawdzony kod:** `main@25a41a081be032cf717c6a0f7e78f6a704488611`. **Mac HOST_PASS** 341/341 Python + JVM/lint/APK/AndroidTest compile/friction; **S22 10/10 syntetycznych Android UI PASS**, APK zainstalowane z zachowaniem danych, `IDLE` przed i po; brak realnych rozmów. [Dokładny checkpoint](checkpoints/2026-11-07-ux06-source-s22-synthetic-acceptance.md). Starsze v1 AndroidTest wrapper failed mimo `OK (10 tests)` (brak `INSTRUMENTATION_CODE: -1`); skorygowane v2 DONE/0. Nie przedstawiać nowej biblioteki Mechanik/Przychodnia jako działającej telefonii; to prywatne formularze DRAFT_ONLY. **OPEN:** F-122, F-123 (tylko bieżąca obserwacja procesu częściowo wdrożona), F-124, F-080, integracja dalszych scenariuszy i ręczny UI/TalkBack. `AGENTS.md`, zakres grantu, S22 frozen audio, brak Codex/Work/Actions nadal obowiązują.
