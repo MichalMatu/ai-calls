@@ -110,7 +110,7 @@ def audit(root: Path) -> list[str]:
     require("campaign/CampaignToolActivity.kt", ui, "recordCallEvidence = recordEvidenceChoice.isChecked")
     # Both direct and padded card addView forms must keep the evidence preference
     # visible in the task-intake UI. Rendering layout may change without changing consent.
-    if not re.search(r"\\baddView\\s*\\(\\s*recordEvidenceChoice\\s*[,)]", ui):
+    if not re.search(r"\baddView\s*\(\s*recordEvidenceChoice\s*[,)]", ui):
         errors.append(
             "campaign/CampaignToolActivity.kt: missing expected anti-friction wiring: "
             "recordEvidenceChoice in visible action group"
