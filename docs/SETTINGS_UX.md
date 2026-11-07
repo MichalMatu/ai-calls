@@ -74,3 +74,7 @@ At `035af45`, Home/Calls/Lab/Settings shell, incoming assistant, tool settings, 
 ## Minimalistyczny interfejs zaakceptowany na S22 — 2026-11-07
 
 Home bez dubli, Calls w jednym wierszu z Tabler kierunkiem i koszem, Tabler MIT VectorDrawable, płaskie przyciski bez dziedziczonego cienia, `UiSelect` w General/Engines/Lab oraz zwijany język Auto/PL/EN. Mac host **300 PASS**, S22 **22/22 PASS** bez połączeń i bez czyszczenia danych. [Dokładny checkpoint](checkpoints/2026-11-07-minimal-ui-tabler-s22-22of22.md). Ręczna estetyka i pełny PL/EN nadal osobno.
+
+## Sprint 5 — bieżąca hierarchia i realny test Skills Lab (2026-11-07)
+
+Ekran Start oddziela dostawcę tekstowego LLM, model dialogowy i gotowość pliku; autoryzacja nie jest utożsamiana z aktywnym połączeniem. Kampanie pokazują ostatni zapis wykonania (nie gwarantuje bieżącej aktywności) oraz krótkie wyjaśnienie START / STOP / Anuluj. Skills rozdziela opisy i blokuje ponowne aktywowanie bieżącego presetu. Silniki mają Zapis przed sekcją opcjonalnych testów; Modele używają wtórnych CTA i czytelnych metadanych. Historia pozostaje zwarta; kasowanie wymaga wejścia w szczegóły i potwierdzenia. Skills Lab: szybkie 2 tury / pełny korpus, odpowiedź i heurystyki na bieżąco, bez wykonania END_CALL. **Realny dwuturowy lokalny model + STOP PASS na S22**, niezależnie od 2/2 syntetycznych prezentacji. 27/27 native UI + 21/21 base/expanded screens, 43 zdjęcia prywatnie. [Dowód](checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md).
