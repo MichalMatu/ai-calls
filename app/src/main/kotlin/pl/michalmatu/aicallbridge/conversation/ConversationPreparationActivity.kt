@@ -3,16 +3,24 @@ package pl.michalmatu.aicallbridge.conversation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
-import android.app.Activity
+import pl.michalmatu.aicallbridge.ui.UiActionTone
+import pl.michalmatu.aicallbridge.ui.UiSelect
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
-import android.view.WindowManager
-import android.widget.*
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.TextView
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 
-/** Preparation is editable without a call, campaign or authorization ceremony. */
+/** Editing one preparation profile never authorizes or starts a phone call. */
 class ConversationPreparationActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var store: AndroidConversationPreparationStore
     private var profileId = ConversationPreparation.OUTGOING_ID
@@ -24,67 +32,165 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         store = try { AndroidConversationPreparationStore(this) } catch (failure: Exception) {
-            setContentView(TextView(this).apply { text = "Nie udało się otworzyć przygotowania rozmów: ${failure.javaClass.simpleName}" })
+            setContentView(TextView(this).apply {
+                text = "Nie udało się otworzyć przygotowania rozmów: ${failure.javaClass.simpleName}"
+            })
             return
         }
         profileId = savedInstanceState?.getString("profile_id") ?: ConversationPreparation.OUTGOING_ID
         showProfile()
     }
+
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("profile_id", profileId)
         super.onSaveInstanceState(outState)
     }
+
     private fun showProfile() {
-        content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationPreparationActivity, 24), UiDesign.dp(this@ConversationPreparationActivity, 32), UiDesign.dp(this@ConversationPreparationActivity, 24), UiDesign.dp(this@ConversationPreparationActivity, 32)) }
-        setContentView(ScrollView(this).apply { addView(content) })
-        status = TextView(this)
-        content.addView(TextView(this).apply { text = "Przygotowanie rozmowy"; textSize = 22f })
-        val selector = RadioGroup(this)
-        listOf(ConversationPreparation.OUTGOING_ID to "Wychodzące", ConversationPreparation.INCOMING_ID to "Przychodzące").forEachIndexed { index, (id, title) ->
-            selector.addView(RadioButton(this).apply { this.id = 100 + index; text = title; isChecked = profileId == id
-                setOnClickListener { profileId = id; showProfile() } })
+        val pad = UiDesign.dp(this, UiDesign.CONTENT_INSET)
+        content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, pad)
         }
-        content.addView(selector)
-        content.addView(Button(this).apply {
-            text = "Skills i presety Gemmy"
-            setOnClickListener { startActivity(Intent(this@ConversationPreparationActivity,
-                ConversationSkillsActivity::class.java)) }
+        setContentView(ScrollView(this).apply {
+            addView(content, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         })
+        status = UiDesign.caption(this, "").apply { tag = "preparation-status" }
+
+        content.addView(UiDesign.heading(this, "Przygotowanie rozmowy").apply {
+            textSize = 23f
+        }, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this, "Kontekst dla następnych rozmów. Edycja nie uruchamia AI."),
+            UiDesign.spaceAfter(this, 20))
+        content.addView(UiDesign.caption(this, "Profil rozmowy"), UiDesign.spaceAfter(this, 8))
+        val options = listOf(ConversationPreparation.OUTGOING_ID, ConversationPreparation.INCOMING_ID)
+        val selector = Spinner(this).apply {
+            tag = "preparation-direction-picker"
+            UiSelect.setOptions(this, listOf("Wychodzące", "Przychodzące"))
+            setSelection(options.indexOf(profileId).coerceAtLeast(0))
+            contentDescription = "Profil rozmowy"
+        }
+        selector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val chosen = options[position]
+                if (chosen != profileId) {
+                    profileId = chosen
+                    showProfile()
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        content.addView(selector, UiDesign.spaceAfter(this, 20))
+
         val profile = try { store.load(profileId) } catch (failure: Exception) {
-            status.text = "Nie udało się odczytać profilu: ${failure.javaClass.simpleName}"; content.addView(status); return
+            status.text = "Nie udało się odczytać profilu: ${failure.javaClass.simpleName}"
+            content.addView(status)
+            return
         }
-        content.addView(TextView(this).apply { text = if (profile.direction == ConversationDirection.INCOMING)
-            "Kontekst asystenta odbierającego. Edycja profilu nie uruchamia automatycznego odbierania."
-            else "Kontekst asystenta dzwoniącego. Cel i dozwolone działania określa zlecone zadanie." })
-        notes = EditText(this).apply { hint = "Informacje ogólne potrzebne w rozmowie"; minLines = 4; setText(profile.notes) }
-        content.addView(notes)
-        content.addView(TextView(this).apply { text = "Dane abonenta pozostają w sejfie. Tutaj wybierasz potrzebne pola, a aplikacja osobno sprawdza możliwość ujawnienia." })
-        skills.clear(); fields.clear()
+        val contextCard = UiDesign.card(this)
+        contextCard.addView(UiDesign.heading(this, "Informacje ogólne").apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
+        contextCard.addView(UiDesign.caption(this,
+            if (profile.direction == ConversationDirection.INCOMING)
+                "Kontekst asystenta odbierającego; nie włącza automatycznego odbierania."
+            else "Kontekst asystenta dzwoniącego; cel określa autoryzowane zadanie."
+        ), UiDesign.spaceAfter(this, 12))
+        notes = EditText(this).apply {
+            hint = "Wpisz informacje pomocne w rozmowie"
+            minLines = 4
+            maxLines = 8
+            setText(profile.notes)
+            textSize = 15f
+            setTextColor(UiDesign.ink)
+            background = UiDesign.surfaceDrawable(this@ConversationPreparationActivity,
+                UiDesign.softAccent, 12)
+            setPadding(UiDesign.dp(this@ConversationPreparationActivity, 12),
+                UiDesign.dp(this@ConversationPreparationActivity, 12),
+                UiDesign.dp(this@ConversationPreparationActivity, 12),
+                UiDesign.dp(this@ConversationPreparationActivity, 12))
+        }
+        contextCard.addView(notes)
+        content.addView(contextCard, UiDesign.spaceAfter(this, 20))
+
+        skills.clear()
+        fields.clear()
+        val skillsCard = UiDesign.card(this).apply { tag = "preparation-skills" }
+        skillsCard.addView(UiDesign.heading(this, "Skills").apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
         ConversationSkill.entries.forEach { skill ->
-            val choice = CheckBox(this).apply { text = skill.title; isChecked = skill in profile.skills }
-            skills[skill] = choice; content.addView(choice)
+            val choice = CheckBox(this).apply {
+                text = skill.title
+                isChecked = skill in profile.skills
+                minimumHeight = UiDesign.dp(this@ConversationPreparationActivity, 48)
+            }
+            skills[skill] = choice
+            skillsCard.addView(choice)
         }
-        content.addView(TextView(this).apply { text = "Referencje do danych z sejfu"; textSize = 17f })
+        content.addView(skillsCard, UiDesign.spaceAfter(this, 20))
+
+        val fieldsCard = UiDesign.card(this).apply { tag = "preparation-vault-fields" }
+        fieldsCard.addView(UiDesign.heading(this, "Dane z sejfu").apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
+        fieldsCard.addView(UiDesign.caption(this,
+            "Wybierz referencje. Ujawnienie danych podlega oddzielnym uprawnieniom."
+        ), UiDesign.spaceAfter(this, 8))
         IdentityFieldId.entries.forEach { field ->
-            val choice = CheckBox(this).apply { text = when (field) {
-                IdentityFieldId.PHONE -> "Telefon"; IdentityFieldId.FIRST_NAME -> "Imię"; IdentityFieldId.LAST_NAME -> "Nazwisko"
-                IdentityFieldId.EMAIL -> "E-mail"; IdentityFieldId.ADDRESS -> "Adres"; IdentityFieldId.DATE_OF_BIRTH -> "Data urodzenia"; IdentityFieldId.PESEL -> "PESEL"
-            }; isChecked = field in profile.dataFields }
-            fields[field] = choice; content.addView(choice)
+            val choice = CheckBox(this).apply {
+                text = when (field) {
+                    IdentityFieldId.PHONE -> "Telefon"
+                    IdentityFieldId.FIRST_NAME -> "Imię"
+                    IdentityFieldId.LAST_NAME -> "Nazwisko"
+                    IdentityFieldId.EMAIL -> "E-mail"
+                    IdentityFieldId.ADDRESS -> "Adres"
+                    IdentityFieldId.DATE_OF_BIRTH -> "Data urodzenia"
+                    IdentityFieldId.PESEL -> "PESEL"
+                }
+                isChecked = field in profile.dataFields
+                minimumHeight = UiDesign.dp(this@ConversationPreparationActivity, 48)
+            }
+            fields[field] = choice
+            fieldsCard.addView(choice)
         }
-        content.addView(Button(this).apply { text = "Edytuj telefon w sejfie"; setOnClickListener { startActivity(Intent(this@ConversationPreparationActivity, PhoneEnrollmentActivity::class.java)) } })
-        fun selection() = profile.withSettings(notes.text.toString(), skills.filterValues { it.isChecked }.keys, fields.filterValues { it.isChecked }.keys)
-        content.addView(Button(this).apply { text = "Zapisz przygotowanie rozmowy"; setOnClickListener {
-            try { store.save(selection()); status.text = "Zapisano. Aktywna rozmowa zachowuje swoją konfigurację." }
-            catch (failure: Exception) { status.text = "Błąd zapisu: ${failure.javaClass.simpleName}" }
-        } })
-        content.addView(Button(this).apply { text = "Podgląd roli, skillsów i kontekstu"; setOnClickListener {
-            AlertDialog.Builder(this@ConversationPreparationActivity).setTitle("Przygotowanie modelu")
-                .setMessage(ConversationInstructionBuilder.build(selection(), "Cel pochodzi z konkretnego zlecenia rozmowy.", if (selection().direction == ConversationDirection.INCOMING) ConversationResponseFormat.TOOL_REPLY else ConversationResponseFormat.SPOKEN_TEXT))
+        content.addView(fieldsCard, UiDesign.spaceAfter(this, 20))
+
+        fun selection() = profile.withSettings(
+            notes.text.toString(),
+            skills.filterValues { it.isChecked }.keys,
+            fields.filterValues { it.isChecked }.keys,
+        )
+        val actions = UiDesign.card(this).apply { tag = "preparation-actions" }
+        actions.addView(UiDesign.action(this, "Zapisz przygotowanie", UiActionTone.PRIMARY) {
+            try {
+                store.save(selection())
+                status.text = "Zapisano. Aktywna rozmowa zachowuje swoją konfigurację."
+            } catch (failure: Exception) {
+                status.text = "Błąd zapisu: ${failure.javaClass.simpleName}"
+            }
+        }, UiDesign.spaceAfter(this, 12))
+        actions.addView(UiDesign.action(this, "Podgląd roli i kontekstu") {
+            val selected = selection()
+            AlertDialog.Builder(this@ConversationPreparationActivity)
+                .setTitle("Przygotowanie modelu")
+                .setMessage(ConversationInstructionBuilder.build(
+                    selected, "Cel pochodzi z konkretnego zlecenia rozmowy.",
+                    if (selected.direction == ConversationDirection.INCOMING)
+                        ConversationResponseFormat.TOOL_REPLY else ConversationResponseFormat.SPOKEN_TEXT))
                 .setPositiveButton("OK", null).show()
-        } })
+        }, UiDesign.spaceAfter(this, 12))
+        actions.addView(UiDesign.action(this, "Edytuj telefon w sejfie") {
+            startActivity(Intent(this@ConversationPreparationActivity,
+                PhoneEnrollmentActivity::class.java))
+        }, UiDesign.spaceAfter(this, 12))
+        actions.addView(UiDesign.action(this, "Skills i presety") {
+            startActivity(Intent(this@ConversationPreparationActivity,
+                ConversationSkillsActivity::class.java))
+        })
+        content.addView(actions, UiDesign.spaceAfter(this, 12))
         content.addView(status)
     }
 }
