@@ -464,4 +464,42 @@
     <string name="chat_turn_welcome">AI / POWITANIE</string>
     <string name="chat_tx_pending">Odpowiedź wygenerowana • TTS/TX w toku</string>
     <string name="chat_tx_unconfirmed">Brak potwierdzenia wysłania</string>
+
+    <!-- UX-05 supervised pilot: UI-only translations -->
+    <string name="pilot_ui_ready">Gotowy. Rozmowę rozpoczynasz i kończysz samodzielnie.</string>
+    <string name="pilot_ui_start">Uruchom AI w trwającej rozmowie</string>
+    <string name="pilot_ui_stop">STOP AI — wróć do rozmowy ręcznej</string>
+    <string name="pilot_ui_gemma_mode">Rozmowa z Gemmą 4 (lokalnie)</string>
+    <string name="pilot_ui_title">Pierwsze połączenie — nadzorowane</string>
+    <string name="pilot_ui_instructions">1. W zwykłym dialerze zadzwoń samodzielnie na uzgodniony numer.\n2. Podczas rozmowy wróć tutaj przez ostatnie aplikacje.\n3. Dotknij START: STT → Gemma/skrypt → TTS → Shizuku.\n4. STOP wyłącza wyłącznie AI, nie rozłącza telefonu.\n\nBez danych osobowych, CLIR i zmian usług.</string>
+    <string name="pilot_ui_open_dialer">Otwórz zwykły dialer (bez wybierania numeru)</string>
+    <string name="pilot_ui_dialer_failed">Nie można otworzyć dialera.</string>
+    <string name="pilot_ui_gemma_download">Pobierz lub importuj Gemmę na ekranie głównym</string>
+    <string name="pilot_ui_dialer_return_ready">Rozmowa wykryta. Dotknij «Uruchom AI w trwającej rozmowie».</string>
+    <string name="pilot_ui_dialer_return_route">Rozmowa wykryta, lecz tor audio nie jest gotowy. Dotknij START po przywróceniu toru audio.</string>
+    <string name="pilot_ui_dialer_return_unknown">Wrócono z dialera. Jeśli rozmowa trwa, dotknij «Uruchom AI w trwającej rozmowie».</string>
+    <string name="pilot_ui_model_ready">Gemma 4: gotowa do lokalnego dialogu.</string>
+    <string name="pilot_ui_model_missing">Gemma 4: niepobrana (2,59 GB). Pobierz ją na ekranie głównym albo odznacz tryb Gemma.</string>
+    <string name="pilot_ui_model_invalid">Gemma 4: nieprawidłowa (%1$s). Pobierz lub zaimportuj ponownie.</string>
+    <string name="pilot_ui_checking_route">Rozmowa wykryta. Sprawdzam tor audio Androida (do 3 s)…</string>
+    <string name="pilot_ui_route_failed">Połączenie wykryte, lecz tryb audio to %1$s, nie MODE_IN_CALL. Bezpiecznie nie uruchomiono AI. %2$s</string>
+    <string name="pilot_ui_diagnostic_saved">Zapisano diagnostykę dla Local Agenta.</string>
+    <string name="pilot_ui_diagnostic_failed">Nie udało się zapisać diagnostyki.</string>
+    <string name="pilot_ui_already_running">Sesja AI już działa.</string>
+    <string name="pilot_ui_permission_required">Potrzebne uprawnienia mikrofonu i stanu telefonu.</string>
+    <string name="pilot_ui_shizuku_missing">Shizuku niedostępne. Uruchom Shizuku i sprawdź uprawnienia AI Calls.</string>
+    <string name="pilot_ui_call_missing">Najpierw rozpocznij rozmowę w zwykłym dialerze.</string>
+    <string name="pilot_ui_model_dialog_title">Brakuje modelu Gemma 4</string>
+    <string name="pilot_ui_model_dialog_help">Aby rozmawiać z modelem, pobierz 2,59 GB na ekranie głównym. Możesz też przetestować samo audio w trybie skryptowym.</string>
+    <string name="pilot_ui_model_dialog_download">Pobierz Gemmę</string>
+    <string name="pilot_ui_model_dialog_script">Użyj skryptu</string>
+    <string name="pilot_ui_model_not_ready">Model Gemma 4 nie jest już gotowy. Nie uruchomiono audio.</string>
+    <string name="pilot_ui_conditions_changed">Warunki rozmowy zmieniły się. Test nie został uruchomiony.</string>
+    <string name="pilot_ui_script_label">skrypt</string>
+    <string name="pilot_ui_listening">Nasłuch STT → %1$s → TTS. AI odpowiada na usłyszaną wypowiedź. STOP wyłącza tylko AI.</string>
+    <string name="pilot_ui_test_finished">Test audio zakończony. Połączenie pozostaje pod Twoją kontrolą.</string>
+    <string name="pilot_ui_test_stopped">AI zatrzymane: %1$s. Połączenie możesz kontynuować ręcznie.</string>
+    <string name="pilot_ui_report_hint">sprawdź raport</string>
+    <string name="pilot_ui_start_failed">Nie udało się uruchomić audio AI: %1$s</string>
+    <string name="pilot_ui_stopping">Zatrzymuję audio AI. Połączenie telefoniczne pozostaje aktywne.</string>
 </resources>

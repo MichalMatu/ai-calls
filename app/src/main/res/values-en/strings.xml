@@ -464,4 +464,42 @@
     <string name="chat_turn_welcome">AI / GREETING</string>
     <string name="chat_tx_pending">Response generated • TTS/TX in progress</string>
     <string name="chat_tx_unconfirmed">Sending not confirmed</string>
+
+    <!-- UX-05 supervised pilot: UI-only translations -->
+    <string name="pilot_ui_ready">Ready. You start and end the call yourself.</string>
+    <string name="pilot_ui_start">Start AI in active call</string>
+    <string name="pilot_ui_stop">STOP AI — return to manual call</string>
+    <string name="pilot_ui_gemma_mode">Call with Gemma 4 (offline)</string>
+    <string name="pilot_ui_title">First call — supervised</string>
+    <string name="pilot_ui_instructions">1. In your regular dialer, call the agreed number manually.\n2. While connected, return here via recent apps.\n3. Tap START: STT → Gemma/script → TTS → Shizuku.\n4. STOP disables AI only; it does not hang up the phone.\n\nNo personal data, CLIR or service changes.</string>
+    <string name="pilot_ui_open_dialer">Open regular dialer (without dialing)</string>
+    <string name="pilot_ui_dialer_failed">Could not open the dialer.</string>
+    <string name="pilot_ui_gemma_download">Download or import Gemma on Home</string>
+    <string name="pilot_ui_dialer_return_ready">Call detected. Tap Start AI in active call.</string>
+    <string name="pilot_ui_dialer_return_route">Call detected, but the audio route is not ready. Tap START when it is restored.</string>
+    <string name="pilot_ui_dialer_return_unknown">Returned from dialer. If the call is active, tap Start AI in active call.</string>
+    <string name="pilot_ui_model_ready">Gemma 4: ready for offline dialogue.</string>
+    <string name="pilot_ui_model_missing">Gemma 4: not downloaded (2.59 GB). Download it on Home or turn off Gemma mode.</string>
+    <string name="pilot_ui_model_invalid">Gemma 4: invalid (%1$s). Download or import again.</string>
+    <string name="pilot_ui_checking_route">Call detected. Checking Android audio route (up to 3 s)…</string>
+    <string name="pilot_ui_route_failed">Call detected, but audio mode is %1$s, not MODE_IN_CALL. AI was not started. %2$s</string>
+    <string name="pilot_ui_diagnostic_saved">Diagnostics saved for Local Agent.</string>
+    <string name="pilot_ui_diagnostic_failed">Could not save diagnostics.</string>
+    <string name="pilot_ui_already_running">AI session is already running.</string>
+    <string name="pilot_ui_permission_required">Microphone and phone-state permissions required.</string>
+    <string name="pilot_ui_shizuku_missing">Shizuku unavailable. Start Shizuku and check AI Calls permissions.</string>
+    <string name="pilot_ui_call_missing">Start a call in your regular dialer first.</string>
+    <string name="pilot_ui_model_dialog_title">Gemma 4 model missing</string>
+    <string name="pilot_ui_model_dialog_help">To talk with the model, download 2.59 GB on Home. You can also test audio in script mode.</string>
+    <string name="pilot_ui_model_dialog_download">Download Gemma</string>
+    <string name="pilot_ui_model_dialog_script">Use script</string>
+    <string name="pilot_ui_model_not_ready">Gemma 4 model is no longer ready. Audio was not started.</string>
+    <string name="pilot_ui_conditions_changed">Call conditions changed. Test was not started.</string>
+    <string name="pilot_ui_script_label">script</string>
+    <string name="pilot_ui_listening">Listening STT → %1$s → TTS. AI responds to recognized speech. STOP disables AI only.</string>
+    <string name="pilot_ui_test_finished">Audio test finished. The call remains under your control.</string>
+    <string name="pilot_ui_test_stopped">AI stopped: %1$s. You can continue the call manually.</string>
+    <string name="pilot_ui_report_hint">check report</string>
+    <string name="pilot_ui_start_failed">Could not start AI audio: %1$s</string>
+    <string name="pilot_ui_stopping">Stopping AI audio. The phone call remains active.</string>
 </resources>

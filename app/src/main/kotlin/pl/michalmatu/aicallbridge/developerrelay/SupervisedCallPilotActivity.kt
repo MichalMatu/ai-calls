@@ -19,6 +19,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.view.View
+import pl.michalmatu.aicallbridge.R
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
@@ -52,20 +54,21 @@ class SupervisedCallPilotActivity : Activity() {
         status = TextView(this).apply {
             textSize = 16f
             setTextIsSelectable(true)
-            text = "Gotowy. Rozmowę rozpoczynasz i kończysz samodzielnie."
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            text = getString(R.string.pilot_ui_ready)
         }
         startButton = Button(this).apply {
-            text = "Uruchom AI w trwającej rozmowie"
+            text = getString(R.string.pilot_ui_start)
             setOnClickListener { confirmAttach() }
         }
         stopButton = Button(this).apply {
-            text = "STOP AI — wróć do rozmowy ręcznej"
+            text = getString(R.string.pilot_ui_stop)
             isEnabled = false
             setOnClickListener { stopAudio(ConversationStopReason.OPERATOR_STOP) }
         }
 
         gemmaMode = CheckBox(this).apply {
-            text = "Rozmowa z Gemmą 4 (lokalnie)"
+            text = getString(R.string.pilot_ui_gemma_mode)
             // The audio script works without the 2.59 GB model; prefer it until ready.
             isChecked = AndroidGemma4ModelReadiness.check(this@SupervisedCallPilotActivity).state ==
                 Gemma4ModelReadinessState.READY
@@ -75,31 +78,27 @@ class SupervisedCallPilotActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 32, 32, 32)
             addView(TextView(this@SupervisedCallPilotActivity).apply {
-                text = "Pierwsze połączenie — nadzorowane"
+                text = getString(R.string.pilot_ui_title)
                 textSize = 22f
             })
             addView(TextView(this@SupervisedCallPilotActivity).apply {
-                text = "1. W zwykłym dialerze zadzwoń samodzielnie na uzgodniony numer.\n" +
-                    "2. Podczas rozmowy wróć tutaj przez ostatnie aplikacje.\n" +
-                    "3. Dotknij START: STT → Gemma/skrypt → TTS → Shizuku.\n" +
-                    "4. STOP wyłącza wyłącznie AI, nie rozłącza telefonu.\n\n" +
-                    "Bez danych osobowych, CLIR i zmian usług."
+                text = getString(R.string.pilot_ui_instructions)
             })
             addView(Button(this@SupervisedCallPilotActivity).apply {
-                text = "Otwórz zwykły dialer (bez wybierania numeru)"
+                text = getString(R.string.pilot_ui_open_dialer)
                 setOnClickListener {
                     returnedFromDialer = true
                     runCatching { startActivity(Intent(Intent.ACTION_DIAL)) }
                         .onFailure {
                             returnedFromDialer = false
-                            status.text = "Nie można otworzyć dialera."
+                            status.text = getString(R.string.pilot_ui_dialer_failed)
                         }
                 }
             })
             addView(gemmaMode)
             addView(modelStatus)
             addView(Button(this@SupervisedCallPilotActivity).apply {
-                text = "Pobierz lub importuj Gemmę na ekranie głównym"
+                text = getString(R.string.pilot_ui_gemma_download)
                 setOnClickListener { finish() }
             })
             addView(startButton)
@@ -117,12 +116,10 @@ class SupervisedCallPilotActivity : Activity() {
             returnedFromDialer = false
             when (preflight()) {
                 null -> status.text =
-                    "Rozmowa wykryta. Dotknij «Uruchom AI w trwającej rozmowie»."
+                    getString(R.string.pilot_ui_dialer_return_ready)
                 SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY -> status.text =
-                    "Rozmowa wykryta, lecz tor audio nie jest gotowy. " +
-                        "Dotknij START po przywróceniu toru audio."
-                else -> status.text = "Wrócono z dialera. Jeśli rozmowa trwa, " +
-                    "dotknij «Uruchom AI w trwającej rozmowie»."
+                    getString(R.string.pilot_ui_dialer_return_route)
+                else -> status.text = getString(R.string.pilot_ui_dialer_return_unknown)
             }
         }
     }
@@ -130,11 +127,11 @@ class SupervisedCallPilotActivity : Activity() {
     private fun refreshModelStatus() {
         val readiness = AndroidGemma4ModelReadiness.check(this)
         modelStatus.text = when (readiness.state) {
-            Gemma4ModelReadinessState.READY -> "Gemma 4: gotowa do lokalnego dialogu."
+            Gemma4ModelReadinessState.READY -> getString(R.string.pilot_ui_model_ready)
             Gemma4ModelReadinessState.MISSING ->
-                "Gemma 4: niepobrana (2,59 GB). Pobierz ją na ekranie głównym albo odznacz tryb Gemma."
+                getString(R.string.pilot_ui_model_missing)
             Gemma4ModelReadinessState.INVALID ->
-                "Gemma 4: nieprawidłowa (${readiness.reason}). Pobierz lub zaimportuj ponownie."
+                getString(R.string.pilot_ui_model_invalid, readiness.reason ?: "unknown")
         }
     }
 
@@ -149,7 +146,7 @@ class SupervisedCallPilotActivity : Activity() {
     /** Retry an Android routing transition only; never override the frozen media gate. */
     private fun awaitAudioRoute() {
         if (pendingRouteProbe != null) return
-        status.text = "Rozmowa wykryta. Sprawdzam tor audio Androida (do 3 s)…"
+        status.text = getString(R.string.pilot_ui_checking_route)
         val start = SystemClock.elapsedRealtime()
         val probe = object : Runnable {
             override fun run() {
@@ -171,10 +168,8 @@ class SupervisedCallPilotActivity : Activity() {
                     val saved = SupervisedCallReadinessDiagnostics.write(
                         this@SupervisedCallPilotActivity, snapshot)
                     if (failure == SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY) {
-                        status.text = "Połączenie wykryte, lecz tryb audio to ${snapshot.audioModeLabel}, " +
-                            "nie MODE_IN_CALL. Bezpiecznie nie uruchomiono AI. " +
-                            if (saved) "Zapisano diagnostykę dla Local Agenta."
-                            else "Nie udało się zapisać diagnostyki."
+                        status.text = getString(R.string.pilot_ui_route_failed, snapshot.audioModeLabel,
+                            getString(if (saved) R.string.pilot_ui_diagnostic_saved else R.string.pilot_ui_diagnostic_failed))
                     } else {
                         confirmAttach() // Displays the current permission/call error without a dial.
                     }
@@ -187,12 +182,12 @@ class SupervisedCallPilotActivity : Activity() {
 
     private fun confirmAttach() {
         if (allowed.get()) {
-            status.text = "Sesja AI już działa."
+            status.text = getString(R.string.pilot_ui_already_running)
             return
         }
         when (preflight()) {
             SupervisedCallPilotFailure.PERMISSION_REQUIRED -> {
-                status.text = "Potrzebne uprawnienia mikrofonu i stanu telefonu."
+                status.text = getString(R.string.pilot_ui_permission_required)
                 requestPermissions(
                     arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_PHONE_STATE),
                     REQUEST_PERMISSIONS,
@@ -200,11 +195,11 @@ class SupervisedCallPilotActivity : Activity() {
                 return
             }
             SupervisedCallPilotFailure.SHIZUKU_NOT_READY -> {
-                status.text = "Shizuku niedostępne. Uruchom Shizuku i sprawdź uprawnienia AI Calls."
+                status.text = getString(R.string.pilot_ui_shizuku_missing)
                 return
             }
             SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL -> {
-                status.text = "Najpierw rozpocznij rozmowę w zwykłym dialerze."
+                status.text = getString(R.string.pilot_ui_call_missing)
                 return
             }
             SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY -> {
@@ -217,15 +212,14 @@ class SupervisedCallPilotActivity : Activity() {
             AndroidGemma4ModelReadiness.check(this).state != Gemma4ModelReadinessState.READY
         ) {
             AlertDialog.Builder(this)
-                .setTitle("Brakuje modelu Gemma 4")
-                .setMessage("Aby rozmawiać z modelem, pobierz 2,59 GB na ekranie głównym. " +
-                    "Możesz też przetestować samo audio w trybie skryptowym.")
-                .setPositiveButton("Pobierz Gemmę") { _, _ -> finish() }
-                .setNeutralButton("Użyj skryptu") { _, _ ->
+                .setTitle(R.string.pilot_ui_model_dialog_title)
+                .setMessage(R.string.pilot_ui_model_dialog_help)
+                .setPositiveButton(R.string.pilot_ui_model_dialog_download) { _, _ -> finish() }
+                .setNeutralButton(R.string.pilot_ui_model_dialog_script) { _, _ ->
                     gemmaMode.isChecked = false
                     confirmAttach()
                 }
-                .setNegativeButton("Anuluj", null)
+                .setNegativeButton(R.string.skills_ui_cancel, null)
                 .show()
             return
         }
@@ -238,17 +232,17 @@ class SupervisedCallPilotActivity : Activity() {
         if (approvedGemmaMode &&
             AndroidGemma4ModelReadiness.check(this).state != Gemma4ModelReadinessState.READY
         ) {
-            status.text = "Model Gemma 4 nie jest już gotowy. Nie uruchomiono audio."
+            status.text = getString(R.string.pilot_ui_model_not_ready)
             return
         }
         if (preflight() != null || !allowed.compareAndSet(false, true)) {
-            status.text = "Warunki rozmowy zmieniły się. Test nie został uruchomiony."
+            status.text = getString(R.string.pilot_ui_conditions_changed)
             return
         }
         startButton.isEnabled = false
         stopButton.isEnabled = true
-        status.text = "Nasłuch STT → ${if (approvedGemmaMode) "Gemma 4" else "skrypt"} → TTS. " +
-            "AI odpowiada na usłyszaną wypowiedź. STOP wyłącza tylko AI."
+        status.text = getString(R.string.pilot_ui_listening,
+            if (approvedGemmaMode) "Gemma 4" else getString(R.string.pilot_ui_script_label))
         val sessionId = "pilot-" + UUID.randomUUID().toString()
         try {
             session = AndroidConversationRuntime.run(
@@ -273,10 +267,9 @@ class SupervisedCallPilotActivity : Activity() {
                     .firstOrNull { it.startsWith("failure_reason=") }
                     ?.substringAfter('=')
                 status.text = if (success) {
-                    "Test audio zakończony. Połączenie pozostaje pod Twoją kontrolą."
+                    getString(R.string.pilot_ui_test_finished)
                 } else {
-                    "AI zatrzymane: ${reason ?: "sprawdź raport"}. " +
-                        "Połączenie możesz kontynuować ręcznie."
+                    getString(R.string.pilot_ui_test_stopped, reason ?: getString(R.string.pilot_ui_report_hint))
                 }
             }
         } catch (error: Throwable) {
@@ -284,7 +277,7 @@ class SupervisedCallPilotActivity : Activity() {
             session = null
             startButton.isEnabled = true
             stopButton.isEnabled = false
-            status.text = "Nie udało się uruchomić audio AI: ${error.javaClass.simpleName}"
+            status.text = getString(R.string.pilot_ui_start_failed, error.javaClass.simpleName)
         }
     }
 
@@ -292,7 +285,7 @@ class SupervisedCallPilotActivity : Activity() {
         allowed.set(false)
         session?.stopAudio(reason)
         stopButton.isEnabled = false
-        status.text = "Zatrzymuję audio AI. Połączenie telefoniczne pozostaje aktywne."
+        status.text = getString(R.string.pilot_ui_stopping)
     }
 
     override fun onStop() {
