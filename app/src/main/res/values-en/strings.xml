@@ -396,4 +396,6 @@
     <string name="campaign_ui_stopped_friendly">AI stopped — execution record was retained.</string>
     <string name="campaign_ui_runtime_details">Technical details are available below.</string>
 
+
+    <string name="campaign_ui_disconnect_requested">Requested AI stop and cleanup of the owned call. Check diagnostics for confirmation.</string>
 </resources>
