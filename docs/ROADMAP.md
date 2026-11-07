@@ -1,3 +1,11 @@
+## General repository audit — bieżąca poprawka i pozostałe bramki (2026-11-07)
+
+**Kod `bbb2ceb9`:** poprawiony no-op przy whitespace w nazwie/celu własnego scenariusza; test regresyjny RED potwierdzony na Macu, Linux Sandbox focused 5/5 GREEN, pełny Mac host gate **QA_PENDING do receipt**. Wcześniejszy UX-06 `25a41a0`: 341 Python / host PASS, S22 10/10 syntetycznych UI PASS (nie dowodzi nowego kodu ani real-call). Zaktualizowano przestarzałe README, indeks i prompt. [Checkpoint](checkpoints/2026-11-07-general-repository-audit-sprint.md) · [aktualny HANDOFF](HANDOFF_NEXT_CHAT.md).
+
+**Kolejny niezależny zakres, nieautomatyczny:** F-122 prywatność i zatrzymanie aktywnego rejestratora; dalej F-123 korelacja rzeczywistego Call/attemptId, F-124 poprawny wybór archiwum, F-080 pełna oś czasu audio. Nie uruchamiać nowych real-call bez grantu; nie otwierać zaliczonych UX-01–06.
+
+---
+
 ## UX-06 — checkpoint pełny i kolejne zgłoszenia właściciela (2026-11-07)
 
 **Baza potwierdzona:** source `25a41a0`, Mac full PASS (341 Python, JVM/lint/APK), S22 synthetic 10/10 PASS; real calls nie testowano. Dokumentacja po testach nie zmieniała runtime. [Kompletny checkpoint](checkpoints/2026-11-07-ux06-complete-checkpoint-user-directed-next-chat.md) · [prompt do nowego czatu](UX06_NEXT_CHAT_PROMPT.md). Kontynuacja odbywa się **wyłącznie według kolejno wskazywanych przez użytkownika miejsc**. Otwarte F-122, F-123 (częściowo), F-124, F-080 i pozostałe integracje scenariuszy nie uruchamiają się samoczynnie.
