@@ -24,19 +24,19 @@ Started from verified `main@92229e5a524da6c955a67af3c18b88854a77e1e5` after exis
 - `aicalls-20261107-ui-shared-chrome-host-gate-v1` DONE/0 — 278 Python, AndroidTest compile/APK/lint, anti-friction PASS.
 - `aicalls-20261107-ui-theme-host-gate-v1` DONE/0 — 280 Python, AndroidTest compile/APK/lint, anti-friction PASS.
 - `aicalls-20261107-ui-polish-child-chrome-host-gate-v1` DONE/0 — 282 Python, AndroidTest compile/APK/lint, anti-friction PASS.
-- `aicalls-20261107-ui-chrome-controller-host-gate-v1` FAILED — old static test still expected direct preferences in Activity after intentional controller extraction. Full AndroidTest compile/APK PASS. Fixed in `0afea79`; exact followup `aicalls-20261107-ui-controller-contract-repair-final-gate-v1` **PENDING** until receipt read.
-- **Physical S22 QA for new navigation/theme: PENDING.** Historical S22 10/10 applies to prior version only. Do not claim PROVEN_S22 without exact device result.
+- `aicalls-20261107-ui-chrome-controller-host-gate-v1` FAILED — obsolete source test still expected direct preferences in Activity after intentional controller extraction; AndroidTest compile/APK PASS. Fixed in `0afea79`; exact `aicalls-20261107-ui-controller-contract-repair-final-gate-v1` DONE/0 — **284 Python**, focused tests, AndroidTest compile/APK/lint and anti-friction PASS.
+- **Physical S22 new navigation/theme: PASS 15/15**, exact task `aicalls-20261107-ui-full-navigation-s22-acceptance-v1` DONE/0. S22 SM-S906B two consecutive IDLE probes, no campaign/pending retry, same signer, install -r of app + test APK without clearing data; six Android test classes 3+2+3+2+3+2 PASS, phone still IDLE after, no real calls. Previous 10/10 applies to the older UI revision only.
 
 ## Architecture
 Navigation, theme and presentation chrome belong to `app/ui`; UI navigation only starts existing screen Activities, never dials, grants, stops or changes a live call. General Settings presenter delegates write operations to a thin existing-store Controller; the phone runtime, Samsung/Shizuku PCM, speech and model engines, identity vault, audio clips and profile storage remain untouched.
 
 **Remaining UI/business coupling is not fully removed:** AudioEngineSettingsActivity still owns TTS readiness/downloader+widgets; ConversationHistoryActivity owns playback+widgets; CampaignToolActivity and IncomingAssistantSettingsActivity own platform operations as well as rendering. These require their own behavior-preserving controller extraction and tests, not an unverified broad rewrite.
 
-## Acceptance pending
-On the exact Samsung S22 check twice IDLE, no active campaign or pending retry, identical signer and `adb install -r` without clearing data. Run new AndroidAppBottomNavigationFlowTest and previous AndroidAppNavigationContractTest, AndroidMenuVisualContractTest, AndroidUiAccordionContractTest, AndroidSettingsNavigationMatrixTest and AndroidLiveChatDockContractTest. Verify settings/skills/profile persistence unchanged; no call, grant or recording started. Inspect usability manually for visual finishing. Handle any failure as FAILED/QA_PENDING with immutable task evidence.
+## Physical acceptance outcome
+The exact Samsung S22 passed the preflight and all **15/15** instrumented UI tests. Test classes: AndroidAppNavigationContractTest (3), AndroidAppBottomNavigationFlowTest (2), AndroidMenuVisualContractTest (3), AndroidUiAccordionContractTest (2), AndroidSettingsNavigationMatrixTest (3), AndroidLiveChatDockContractTest (2). This covers new tab routing, back header, 10 settings screens, secure history, preserved preferences/skills, contrast, live chat and no hidden START/STOP. Same APK signing lineage, installation with -r, no app data wipe, no calls. **Owner's subjective visual/ergonomic review remains OPEN**; test PASS is not aesthetic sign-off.
 
 ## Not included in this UI sprint
 F-103 (complete PL/EN screen localization and Auto/PL/EN choice) stays OPEN, despite foundation resources and localized chrome. F-080 (continuous complete recording/player) remains OPEN. Full MVVM/presenter extraction for all existing screens not claimed. No physical call or model inference performed.
 
 ## Next
-Read the exact final host gate result, perform S22 gated UI acceptance and revise checkpoint status. After that, one dedicated i18n/visual UX finishing sprint, plus separate safe presentation/controller extractions if needed. No claims of finished product aesthetics without owner review on physical display.
+Next: manual visual and ergonomic inspection of the installed S22 build, full Auto/PL/EN UI localization (F-103), and dedicated presentation/controller extractions for remaining mixed Activities. Preserve all accepted receipts; no need to repeat 15/15 without a new code change or issue.
