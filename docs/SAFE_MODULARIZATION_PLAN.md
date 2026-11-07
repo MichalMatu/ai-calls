@@ -1,6 +1,6 @@
 # AI Calls — bezpieczna modularizacja
 
-**Cel:** poprawić granice zależności, nie zmieniając działania połączeń. 197 plików Kotlin w app było liczbą **przed etapem 1**; po etapie 3 kroku 1 jest 195. Są rozdzielone na pakiety, ale wiele niezależnych reguł nadal kompiluje się razem z Androidem. Nie optymalizować pod sztuczny limit liczby plików.
+**Cel:** poprawić granice zależności bez zmiany działania połączeń. Liczby plików z checkpointów modularizacji 2026-11-06 są pomiarami historycznymi, nie celem bieżącej pracy. Nie optymalizować pod sztuczny limit plików.
 
 ## Zrealizowane
 
@@ -45,3 +45,43 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 5. Commit [skip ci], push, czysty HEAD, checkpoint PASS vs QA_PENDING. Brak ponawiania ukończonych testów.
 
 [Bieżący handoff](HANDOFF_NEXT_CHAT.md) · [Pełne zamknięcie etapów 0–1](checkpoints/2026-11-06-modularization-handoff-final.md).
+
+## Oddzielenie UX od logiki — nowa, niezależna sekwencja (po Sprint 6)
+
+**Nie jest jeszcze wykonana.** [Checkpoint Sprint 6](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md) = kod UX `SOURCE_GREEN`, odbiór S22 `QA_PENDING_ADB`. Przed refaktorem sprawdź świeży HEAD i nie myl źródeł z fizycznym testem.
+
+### Mapa faktycznego sprzężenia
+
+| Android Activity | Obecna odpowiedzialność mieszana | Pożądana granica |
+|---|---|---|
+| `CampaignToolActivity` (~25 KB) | render statusu oraz historycznej diagnostyki, role, grantu, START/STOP | Najpierw **tylko** `CampaignExecutionStatusPresenter`: czysta funkcja record → model UI; grant/akcje bez zmian |
+| `ConversationHistoryActivity` (~19 KB) | lista, IO, obsługa Back, delete single/bulk, dotyk dymku i MediaPlayer | `ConversationHistoryController` + typowany `HistoryScreenState` i wynik operacji; Android player oraz UI pozostają w app |
+| `ConversationSkillLabActivity` (~21 KB) | UI, Thread, `TextCallAgentBackend`, cancel, timeout, score i scroll | `SkillLabRunner` + model zdarzeń, bez `View`; Activity wyłącznie subskrybuje stan/renderuje |
+| `AudioEngineSettingsActivity` (~19 KB) | UI, profile, readiness, download i preview | Stopniowo używać istniejących providerów/store/probe, bez nowego duplikatu |
+| `LanguageModelActivity` (~12 KB) | UI statusu transferu i wybór modelu | read-only prezentacja stanu transferu, nie przenosić `LanguageModelTransferService` |
+
+**Istniejące prawidłowe granice:** `GeneralSettingsController`, `IncomingAssistantSettingsController`, `ConversationToolsSettingsController`, `ConversationRunConfiguration`, `AudioEngineProfileStore`, `RecordedConversationHistory`, `ArchivedConversationPlayer`. Reużywaj je, nie dokładaj adapterów o tej samej roli.
+
+### UX-01 — wyłącznie prezentacja Kampanii
+
+- Wejście: zapis historycznego statusu, locale; wyjście: typowana etykieta/ton/znaczenie `requested vs confirmed vs unknown`. **Brak** `Context`, `Service`, I/O, mutacji grantu, odczytu SIM, `TelecomManager` w parserze/presenterze.
+- UI renderuje tylko zwrócony stan. Surowy status pozostaje w zwijanym panelu diagnostycznym; nie wolno sugerować sukcesu po `targeted_disconnect_requested`.
+- Testy RED→GREEN: mapowanie unknown, żądanie bez potwierdzenia, stan bez zapisu, PL/EN i surowa diagnostyka. Mały source sprint z pełną odpowiednią bramką.
+- Nie refaktoryzować równocześnie `CampaignAgentControl`, `CampaignAuthorizationStore`, executora, STOP ani callbacków.
+
+### UX-02 — historia i bezpieczne kasowanie
+
+- Controller posiada asynchroniczną kolejkę IO, read-only list/load, `deleteCompleted`, `deleteAllCompleted`; model wyników `Loading/Ready/Error/Deleted` i `deleted/skipped/failed`. View tylko renderuje i wyświetla potwierdzenie.
+- **Ta sama** `RecordedConversationHistory` jako jedyne źródło plików. Dwa niezależne miejsca do usuwania byłyby regresją. Nigdy nie kasuj realnych danych w Android testach; testuj na unikalnych syntetycznych folderach i anuluj dialog.
+- Zachować ochronę COMPLETE + END, symlink, path traversal, listy aktywnych sesji i stan telefonu przy audio. MediaPlayer jest Android-only, bez prób przenoszenia go do JVM core.
+- Przetestować Back/destroy, spóźnioną odpowiedź IO, dwu-klik Delete, szybko następujące play/stop i nieobecny WAV; dopiero potem manualny UX.
+
+### UX-03 — Laboratorium i stan modelu
+
+- Worker i lifecycle dostają jeden właścicielski `SkillLabRunner`; przenosi cancel, timeout, callback i stop. `SkillLabUiState` jest immutable, UI nie tworzy modelu ani nie oblicza score. `SkillLabScoring` pozostaje czystą logiką.
+- Testy kontraktu: ostatnia tura widoczna, poprawny STOP, brak spóźnionych callbacków po anulowaniu/nowym run, brak Telephony effects, timeout, score END_CALL **nie** jako ocena semantyczna.
+- Mac host najpierw, fizyczny test modelu tylko po dostępności exact S22. Nie zmieniać toru TX, PCM/PFD ani istniejących callbacków rozmowy telefonicznej.
+
+### Reguła kadencji
+
+Najpierw `UX-01`, osobne checkpoint/QA; potem `UX-02`, `UX-03` i pozostałe ustawienia, **nigdy** jeden duży refaktor. Jeśli nowy podział zwiększa zależności lub wymaga zmiany telefonii, zakończ `NO_CHANGE` zamiast symulować postęp. Szczegóły kolejności: [ROADMAP](ROADMAP.md).
