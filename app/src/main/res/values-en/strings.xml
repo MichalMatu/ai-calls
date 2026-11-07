@@ -178,7 +178,7 @@
     <string name="ui_general_autosave">Changes are saved automatically. No separate Save is needed.</string>
     <string name="ui_general_mic_granted">Microphone: access granted</string>
     <string name="ui_general_mic_missing">Microphone: Android permission required</string>
-    <string name="home_ui_one_tap">Uruchom AI w trwającej rozmowie</string>
+    <string name="home_ui_one_tap">Attach AI to a current call</string>
     <string name="home_ui_start">Start authorized AI task</string>
     <string name="home_ui_stop_sent">STOP AI requested; the service will record the result.</string>
     <string name="home_ui_mode_label">Mode: </string>
