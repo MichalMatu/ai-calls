@@ -103,7 +103,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC)
         }
     }
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_MIC) feedback.text = if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
             getString(R.string.ui_microphone) + ": OK" else getString(R.string.ui_microphone) + ": denied"
