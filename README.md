@@ -2,14 +2,13 @@
 
 Modułowe laboratorium Android do porównywania STT, modeli językowych, strategii dialogu, instrukcji i TTS. Docelowo wspólne, zweryfikowane komponenty obsłużą sekretarkę i konkretnie autoryzowane zadania telefoniczne.
 
-## Aktualny stan (2026-11-07)
+## Aktualny stan (Sprint 6 UX zakończony — 2026-11-07)
 
-- **Sprint 6, kod `main@0dface1`:** `SOURCE_GREEN` — 325 testów hosta PASS, kompilacja Kotlin/JVM/AndroidTest/APK i anti-friction PASS. Nowe funkcje: bezpieczne zbiorcze usuwanie zakończonych rozmów, audio WAV odtwarzane/zatrzymywane z dymków, poprawki Laboratorium (auto-follow, STOP, czytelniejsza ocena END_CALL) i statusów Kampanii.
-- **Fizyczny S22 Sprint 6: QA_PENDING_ADB.** Mac nie zobaczył `SM-S906B / RFCT70L7E8J` w `adb devices -l`; nie zainstalowano tej wersji ani nie wykonano najnowszej matrycy 28 UX / 24 visual. Dwuturowy test realnej Gemmy Sprintu 6 nie uruchomił się przez brak wymaganych screenshotów. **Nie jest to FAIL modelu**.
-- **Ostatnia potwierdzona fizyczna baza — Sprint 5:** Samsung S22 27/27 UX, 23/23 wizualne, 43 prywatne screenshoty, rzeczywista lokalna Gemma 2 tury + STOP PASS. To wyniki starszego kodu `0bd17da`, nie Sprintu 6.
-- **Otwarte:** F-103 pełne PL/EN, F-080 ciągły recorder/player całego połączenia, odrębne testy realnych rozmów i semantyki Gemmy. Dymki historii obsługują tylko istniejące prywatne segmenty WAV.
+- **`main@1b359146` — UX ITERATION CLOSED.** 325 testów hosta, Kotlin/JVM/AndroidTest/APK/friction **PASS**. Wdrożono bezpieczne kasowanie wszystkich zakończonych rozmów, WAV tap-to-play/stop z dymków, poprawione przewijanie i STOP w Laboratorium, czytelne Skills/Silniki/Kampanie.
+- **Fizyczny S22 PASS:** instalacja aplikacji/test APK bez utraty danych, **28/28 native UI + 24/24 visual**, po poprawce Android regex dodatkowo **4/4 targeted**, **2 rzeczywiste tury lokalnej Gemmy + STOP PASS**, 46 prywatnych screenshotów. Bez prawdziwych połączeń, END_CALL i usuwania danych właściciela.
+- **Granice niezależne od UX:** F-080 (pełny ciągły recorder/player), F-103 (pełne PL/EN), oddzielna weryfikacja real-call i semantyki. Kolejny sprint — jeśli użytkownik wybierze — **stopniowe oddzielenie logiki od Activity**, bez nowego polishingu UX.
 
-[Pełny checkpoint Sprintu 6](docs/checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md) · [Ostatni fizyczny baseline — Sprint 5](docs/checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md)
+[Końcowy checkpoint Sprint 6](docs/checkpoints/2026-11-07-ux-sprint6-final-handoff.md) · [Bieżący handoff](docs/HANDOFF_NEXT_CHAT.md).
 
 ## Architektura
 
