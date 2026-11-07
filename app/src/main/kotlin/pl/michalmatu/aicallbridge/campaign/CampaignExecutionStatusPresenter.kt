@@ -9,6 +9,7 @@ import java.util.Locale
 internal enum class CampaignExecutionMeaning {
     NO_RECORD,
     REQUESTED,
+    CANCELLED,
     CONFIRMED,
     FAILED,
     UNVERIFIED,
@@ -27,6 +28,7 @@ internal data class CampaignExecutionScreenState(
 )
 
 internal object CampaignExecutionStatusPresenter {
+    private const val CANCELLED_TASK = "outgoing_task_cancelled"
     private const val DISCONNECT_REQUESTED = "targeted_disconnect_requested"
     private const val DISCONNECT_CONFIRMED = "targeted_disconnect_confirmed"
     private const val DISCONNECT_FAILED = "targeted_disconnect_failed"
@@ -42,6 +44,7 @@ internal object CampaignExecutionStatusPresenter {
             raw.isEmpty() -> CampaignExecutionMeaning.NO_RECORD
             DISCONNECT_FAILED in codes || DISCONNECT_EXCEPTION in codes ->
                 CampaignExecutionMeaning.FAILED
+            CANCELLED_TASK in codes -> CampaignExecutionMeaning.CANCELLED
             DISCONNECT_CONFIRMED in codes -> CampaignExecutionMeaning.CONFIRMED
             DISCONNECT_REQUESTED in codes -> CampaignExecutionMeaning.REQUESTED
             else -> CampaignExecutionMeaning.UNVERIFIED
@@ -50,14 +53,18 @@ internal object CampaignExecutionStatusPresenter {
             CampaignExecutionMeaning.CONFIRMED -> CampaignExecutionTone.SUCCESS
             CampaignExecutionMeaning.REQUESTED, CampaignExecutionMeaning.FAILED ->
                 CampaignExecutionTone.CAUTION
-            CampaignExecutionMeaning.NO_RECORD, CampaignExecutionMeaning.UNVERIFIED ->
-                CampaignExecutionTone.NEUTRAL
+            CampaignExecutionMeaning.NO_RECORD, CampaignExecutionMeaning.CANCELLED,
+            CampaignExecutionMeaning.UNVERIFIED -> CampaignExecutionTone.NEUTRAL
         }
         val english = locale.language.equals("en", ignoreCase = true)
         val summary = when (meaning) {
             CampaignExecutionMeaning.NO_RECORD -> if (english)
                 "No execution record. Authorization alone does not place a call."
             else "Brak zapisu uruchomienia. Sama autoryzacja nie rozpoczyna połączenia."
+
+            CampaignExecutionMeaning.CANCELLED -> if (english)
+                "Outgoing task authorization cancelled. Incoming assistant is unchanged. Call cleanup is not independently confirmed."
+            else "Anulowano upoważnienie zadania wychodzącego. Ustawienia sekretarki pozostają bez zmian. Zakończenie połączenia nie jest niezależnie potwierdzone."
 
             CampaignExecutionMeaning.REQUESTED -> if (english)
                 "Requested AI stop and cleanup of the owned call. Check diagnostics for confirmation."

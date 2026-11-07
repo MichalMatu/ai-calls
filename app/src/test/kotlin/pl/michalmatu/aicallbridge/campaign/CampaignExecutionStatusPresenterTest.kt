@@ -18,6 +18,21 @@ class CampaignExecutionStatusPresenterTest {
         assertEquals(state, CampaignExecutionStatusPresenter.present("  ", pl))
     }
 
+    @Test fun cancelledOutgoingNeverClaimsTaskSuccessOrIncomingStop() {
+        for (locale in listOf(pl, en)) {
+            val state = CampaignExecutionStatusPresenter.present(
+                "outgoing_task_cancelled; incoming assistant unchanged; " +
+                    "AI stopped; owned-call cleanup=targeted_disconnect_requested", locale)
+            assertEquals(CampaignExecutionMeaning.CANCELLED, state.meaning)
+            assertEquals(CampaignExecutionTone.NEUTRAL, state.tone)
+            assertTrue(state.summary.contains(if (locale == pl) "sekretarki" else "Incoming"))
+            assertFalse(state.summary.contains(if (locale == pl) "sukces" else "success"))
+        }
+        assertEquals(CampaignExecutionMeaning.FAILED,
+            CampaignExecutionStatusPresenter.present(
+                "outgoing_task_cancelled; cleanup=targeted_disconnect_failed", pl).meaning)
+    }
+
     @Test fun aRequestedDisconnectIsNotConfirmed() {
         val state = CampaignExecutionStatusPresenter.present(
             "Campaign call ended without accepted success; cleanup=targeted_disconnect_requested", pl)

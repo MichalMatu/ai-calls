@@ -85,7 +85,7 @@ class AppOwnedCampaignService : Service() {
                 AppOwnedClirCampaignExecutor.stop(ConversationStopReason.OPERATOR_STOP) {
                     cleanup = it
                 }
-                val status = "Outgoing task cancelled; incoming assistant unchanged" +
+                val status = "outgoing_task_cancelled; incoming assistant unchanged" +
                     (cleanup?.let { "; $it" } ?: "")
                 if (supervisedAudioActive.get()) {
                     // The same service may currently host an unrelated manual pilot.
