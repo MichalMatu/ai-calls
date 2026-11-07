@@ -396,4 +396,6 @@
     <string name="campaign_ui_stopped_friendly">Zatrzymano AI — zapis wykonania został zachowany.</string>
     <string name="campaign_ui_runtime_details">Szczegóły techniczne dostępne niżej.</string>
 
+
+    <string name="campaign_ui_disconnect_requested">Wysłano polecenie zatrzymania AI i zakończenia własnego połączenia. Potwierdzenie sprawdź w diagnostyce.</string>
 </resources>
