@@ -59,6 +59,7 @@ class AppOwnedCampaignService : Service() {
                 NotificationManager.IMPORTANCE_LOW,
             ),
         )
+        currentService = this
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -489,6 +490,7 @@ class AppOwnedCampaignService : Service() {
         scheduledAttempt = null
         continuationGeneration += 1
         AppOwnedClirCampaignExecutor.stop(ConversationStopReason.SERVICE_DESTROYED) { statusStore.save(it) }
+        if (currentService === this) currentService = null
         super.onDestroy()
     }
 
@@ -530,6 +532,20 @@ class AppOwnedCampaignService : Service() {
             .build()
 
     companion object {
+        @Volatile private var currentService: AppOwnedCampaignService? = null
+
+        /** Read-only, process-local view. Never inspect persistent history for a live claim. */
+        internal fun liveUiPhase(): CampaignLivePhase {
+            val active = currentService
+            return CampaignLiveStateResolver.resolve(
+                supervised = active?.supervisedAudioActive?.get() == true,
+                waitingForPhone = active?.awaitingPhoneIdle == true,
+                preparingModel = active?.preparingLocalModel == true,
+                campaignRequested = active?.campaignRequested == true,
+                ownedAttemptRunning = AppOwnedClirCampaignExecutor.isRunning(),
+            )
+        }
+
         const val ACTION_PAUSE_AFTER_TAKEOVER = "pl.michalmatu.aicallbridge.PAUSE_AFTER_TAKEOVER"
         const val EXTRA_DIALOGUE_MODE =
             "pl.michalmatu.aicallbridge.extra.CAMPAIGN_DIALOGUE_MODE"

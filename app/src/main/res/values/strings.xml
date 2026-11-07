@@ -617,4 +617,9 @@
     <string name="scenario_ui_unsaved_message">Wrócić do listy bez zapisywania zmian?</string>
     <string name="scenario_ui_discard">Wróć bez zapisywania</string>
     <string name="home_ux06_direct_clir_scope">Uruchamia wyłącznie próbę włączenia CLIR na bieżącej SIM, w trybie skryptowym. Inne scenariusze przygotujesz w Kampaniach → Scenariusze rozmów.</string>
+    <string name="camp_ux06_live_inactive">AI w aplikacji: brak aktywnej próby (nie potwierdza to stanu telefonu).</string>
+    <string name="camp_ux06_live_preparing">AI w aplikacji: zadanie przygotowywane lub oczekuje na próbę. Rozmowa nie jest potwierdzona.</string>
+    <string name="camp_ux06_live_waiting">AI w aplikacji: zadanie czeka na zwolnienie telefonu. Nie wykonuje nowego połączenia.</string>
+    <string name="camp_ux06_live_attempt">AI w aplikacji: próba realizowana; może trwać wybieranie lub rozmowa. Wynik niepotwierdzony.</string>
+    <string name="camp_ux06_live_supervised">AI w aplikacji: nadzorowany test audio uruchamiany lub aktywny; brak nowego wybierania numeru.</string>
 </resources>

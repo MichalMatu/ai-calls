@@ -616,4 +616,9 @@
     <string name="scenario_ui_unsaved_message">Leave the form without saving your changes?</string>
     <string name="scenario_ui_discard">Leave without saving</string>
     <string name="home_ux06_direct_clir_scope">Starts only the CLIR enable attempt for the current voice SIM, using the script mode. Prepare other scenarios via Campaigns → Conversation scenarios.</string>
+    <string name="camp_ux06_live_inactive">AI in app: no active attempt (this does not verify phone idle).</string>
+    <string name="camp_ux06_live_preparing">AI in app: task preparing or queued. A connected call is not confirmed.</string>
+    <string name="camp_ux06_live_waiting">AI in app: task waiting for phone idle. No new call is being placed.</string>
+    <string name="camp_ux06_live_attempt">AI in app: attempt in progress; may be dialing or talking. Outcome unverified.</string>
+    <string name="camp_ux06_live_supervised">AI in app: supervised audio test starting or active; no new number is dialed.</string>
 </resources>

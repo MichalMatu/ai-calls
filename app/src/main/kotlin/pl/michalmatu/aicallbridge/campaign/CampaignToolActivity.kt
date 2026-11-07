@@ -38,6 +38,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var authorizationStore: CampaignAuthorizationStore
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView
+    private lateinit var liveStatusView: TextView
     private lateinit var diagnosticStatus: TextView
     private lateinit var lastExecutionStatus: TextView
     private lateinit var actionFeedback: TextView
@@ -78,6 +79,10 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             setTextIsSelectable(true)
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             tag = "campaign-task-status"
+        }
+        liveStatusView = UiDesign.caption(this, "").apply {
+            tag = "campaign-live-runtime"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         actionFeedback = UiDesign.caption(this, "").apply {
             tag = "campaign-action-feedback"
@@ -255,6 +260,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 getString(R.string.campaign_ui_task_status)).apply { textSize = 17f },
                 UiDesign.spaceAfter(this@CampaignToolActivity, 8))
             addView(statusView, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+            addView(liveStatusView, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
             addView(actionFeedback, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
             addView(lastExecutionStatus, UiDesign.spaceAfter(this@CampaignToolActivity, 14))
             addView(UiDesign.card(this@CampaignToolActivity).apply {
@@ -583,6 +589,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         } else getString(R.string.camp_ui_evidence_off)
         val runtimeStatus = runtimeStatusStore.load()
         statusView.text = taskStatus
+        liveStatusView.text = getString(CampaignLiveUiLabels.title(AppOwnedCampaignService.liveUiPhase()))
         diagnosticStatus.text = listOfNotNull(
             getString(R.string.camp_ux06_diagnostic_recording, evidenceStatus),
             runtimeStatus?.let { getString(R.string.camp_ux06_diagnostic_event, it) },

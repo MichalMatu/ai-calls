@@ -10,6 +10,9 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import pl.michalmatu.aicallbridge.campaign.CampaignLiveUiLabels
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.graphics.Color
@@ -38,7 +41,18 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 class MainActivity : AppBaseActivity() {
     private lateinit var statusView: TextView
     private lateinit var taskStatusView: TextView
+    private lateinit var homeLiveStatusView: TextView
     private lateinit var homeActionFeedback: TextView
+    private val liveStateHandler = Handler(Looper.getMainLooper())
+    private val liveStateRefresh = object : Runnable {
+        override fun run() {
+            if (::homeLiveStatusView.isInitialized) {
+                homeLiveStatusView.text = getString(
+                    CampaignLiveUiLabels.title(AppOwnedCampaignService.liveUiPhase()))
+            }
+            liveStateHandler.postDelayed(this, 1_000L)
+        }
+    }
     private lateinit var runtimePreferences: CallRuntimePreferences
     private lateinit var selectedAudioMode: CallAudioMode
     private lateinit var selectedTextLlmProvider: TextLlmProvider
@@ -69,6 +83,13 @@ class MainActivity : AppBaseActivity() {
             setTextColor(Color.rgb(39, 58, 83))
             background = roundedSurface(Color.WHITE)
             setPadding(dp(14), dp(12), dp(14), dp(12))
+        }
+        homeLiveStatusView = TextView(this).apply {
+            tag = "home-live-runtime"
+            textSize = 13f
+            setTextColor(Color.rgb(39, 58, 83))
+            accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
+            text = getString(CampaignLiveUiLabels.title(AppOwnedCampaignService.liveUiPhase()))
         }
         homeActionFeedback = TextView(this).apply {
             tag = "home-action-feedback"
@@ -163,6 +184,10 @@ class MainActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = dp(12) })
+            addView(homeLiveStatusView, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(12) })
             addView(homeActionFeedback, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -241,6 +266,8 @@ class MainActivity : AppBaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        liveStateHandler.removeCallbacks(liveStateRefresh)
+        liveStateHandler.post(liveStateRefresh)
         val current = runtimePreferences.load()
         val selected = pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore(this).load()?.dialogue
         taskStatusView.text = taskAuthorizationSummary()
@@ -252,6 +279,11 @@ class MainActivity : AppBaseActivity() {
             selectedTextLlmProvider = current.textLlmProvider
             statusView.text = runtimeSelectionSummary()
         }
+    }
+
+    override fun onPause() {
+        liveStateHandler.removeCallbacks(liveStateRefresh)
+        super.onPause()
     }
 
     override fun onDestroy() {
