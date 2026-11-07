@@ -577,4 +577,5 @@
     <string name="camp_ux06_recording_scope">Dotyczy następnej próby kampanii wychodzącej. Wyłączenie przyszłego nagrywania nie zatrzymuje rejestratora już trwającej rozmowy. Do zatrzymania sesji AI służy STOP.</string>
     <string name="camp_ux06_diagnostic_recording">Zgoda na zapis kolejnych prób kampanii: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Ostatni komunikat serwisu (historyczny, nie na żywo):\n%1$s</string>
+    <string name="camp_ux06_cancel_dispatch_failed">Autoryzacja cofnięta, ale nie udało się przekazać polecenia zakończenia bieżącej próby. W razie potrzeby użyj STOP AI.</string>
 </resources>

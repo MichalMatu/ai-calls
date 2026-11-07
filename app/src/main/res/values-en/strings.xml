@@ -577,4 +577,5 @@
     <string name="camp_ux06_recording_scope">Applies to the next outgoing campaign attempt. Turning off future recording does not stop a recorder already active in a call. Use STOP to stop the AI session.</string>
     <string name="camp_ux06_diagnostic_recording">Recording permission for future campaign attempts: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Latest service message (historical, not live):\n%1$s</string>
+    <string name="camp_ux06_cancel_dispatch_failed">Authorization revoked, but the current attempt stop request could not be sent. Use STOP AI if needed.</string>
 </resources>

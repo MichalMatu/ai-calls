@@ -67,6 +67,32 @@ class AppOwnedCampaignService : Service() {
                 startSupervisedAudio()
                 return START_NOT_STICKY
             }
+            ACTION_CANCEL_OUTGOING_TASK -> {
+                // Cancel only the outgoing task; never disable an incoming secretary
+                // or interrupt an unrelated supervised audio session.
+                authorizationStore.revoke(System.currentTimeMillis())
+                campaignRequested = false
+                continuationGeneration += 1
+                continuationStore.clear()
+                dialogueModeStore.clear()
+                scheduledAttempt?.let { continuationHandler.removeCallbacks(it) }
+                scheduledAttempt = null
+                preparingLocalModel = false
+                awaitingPhoneIdle = false
+                CampaignGemmaPreflight.discardUnused()
+                CampaignGemmaDirectPreflight.discardUnused()
+                var cleanup: String? = null
+                AppOwnedClirCampaignExecutor.stop(ConversationStopReason.OPERATOR_STOP) {
+                    cleanup = it
+                }
+                val status = "Outgoing task cancelled; incoming assistant unchanged" +
+                    (cleanup?.let { "; $it" } ?: "")
+                if (supervisedAudioActive.get()) {
+                    // The same service may currently host an unrelated manual pilot.
+                    statusStore.save(status)
+                } else finish(status)
+                return START_NOT_STICKY
+            }
             ACTION_STOP_SUPERVISED_AUDIO, ACTION_STOP_ALL_AI, ACTION_PAUSE_AFTER_TAKEOVER -> {
                 val incomingStopped = intent.action == ACTION_PAUSE_AFTER_TAKEOVER || AndroidOwnedInCallService.stopIncomingAi(this)
                 campaignRequested = false
@@ -515,6 +541,8 @@ class AppOwnedCampaignService : Service() {
             "pl.michalmatu.aicallbridge.action.STOP_SUPERVISED_AUDIO"
         const val ACTION_STOP_ALL_AI =
             "pl.michalmatu.aicallbridge.action.STOP_ALL_AI"
+        const val ACTION_CANCEL_OUTGOING_TASK =
+            "pl.michalmatu.aicallbridge.action.CANCEL_OUTGOING_TASK"
 
         private const val CHANNEL_ID = "aicall_campaign"
         private const val NOTIFICATION_ID = 3101

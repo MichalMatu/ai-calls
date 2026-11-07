@@ -182,12 +182,18 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             text = getString(R.string.camp_ui_cancel_task)
             setOnClickListener {
                 val revoked = authorizationStore.revoke(System.currentTimeMillis())
-                CampaignAgentControl.stopOwnedCampaign(this@CampaignToolActivity)
                 actionFeedback.text = if (revoked == null) {
                     getString(R.string.camp_ui_no_accepted)
                 } else {
-                    getString(R.string.camp_ui_revoked)
+                    val requested = runCatching {
+                        startService(Intent(this@CampaignToolActivity,
+                            AppOwnedCampaignService::class.java)
+                            .setAction(AppOwnedCampaignService.ACTION_CANCEL_OUTGOING_TASK))
+                    }.isSuccess
+                    getString(if (requested) R.string.camp_ui_revoked
+                        else R.string.camp_ux06_cancel_dispatch_failed)
                 }
+                refreshTaskStatus()
             }
         }
 
