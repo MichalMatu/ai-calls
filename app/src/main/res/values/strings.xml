@@ -73,7 +73,7 @@
     <string name="history_empty">Brak zapisanych rozmów</string>
     <string name="history_outgoing">Wychodząca</string>
     <string name="history_incoming">Przychodząca</string>
-    <string name="history_unknown">Rozmowa</string>
+    <string name="history_unknown">Archiwalna rozmowa</string>
     <string name="history_lines">wypowiedzi</string>
     <string name="history_delete">Usuń rozmowę</string>
     <string name="history_delete_title">Usunąć tę rozmowę?</string>
@@ -380,4 +380,20 @@
     <string name="lab_ui_mode_quick">Szybki test — 2 tury (offline)</string>
     <string name="lab_ui_mode_full">Pełny test — wszystkie scenariusze</string>
     <string name="lab_ui_stop_verification">Zatrzymano na żądanie użytkownika.</string>
+
+    <string name="history_clear_all">Usuń wszystkie zakończone rozmowy (%1$d)</string>
+    <string name="history_clear_all_title">Usunąć %1$d zakończonych rozmów?</string>
+    <string name="history_clear_all_warning">Nieodwracalnie usunie lokalne transkrypty i nagrania tych rozmów. Trwające oraz nieukończone sesje pozostaną nietknięte.</string>
+    <string name="history_clear_all_confirm">Usuń zakończone</string>
+    <string name="history_clear_all_result">Usunięto: %1$d. Pominięto nieukończone: %2$d. Błędy: %3$d.</string>
+    <string name="history_audio_play_hint">▶ Dotknij dymku, aby odtworzyć audio</string>
+    <string name="history_audio_stop_hint">■ Dotknij ponownie, aby zatrzymać</string>
+    <string name="history_playback_stopped">Odtwarzanie zatrzymane.</string>
+    <string name="lab_ui_quality_not_scored">Ocena decyzji END_CALL nie jest oceną jakości wypowiedzi. Zbędne pytania to tylko szacowanie; sprawdź treść i oceń ręcznie.</string>
+    <string name="lab_ui_stop_banner">Zatrzymano test — ukończone tury: %1$d/%2$d. Żadna decyzja narzędzia nie została wykonana.</string>
+    <string name="lab_ui_quality_warning">Jakość treści wymaga ręcznej oceny.</string>
+    <string name="campaign_ui_last_history">Ostatnie zdarzenie, nie bieżący stan połączenia</string>
+    <string name="campaign_ui_stopped_friendly">Zatrzymano AI — zapis wykonania został zachowany.</string>
+    <string name="campaign_ui_runtime_details">Szczegóły techniczne dostępne niżej.</string>
+
 </resources>
