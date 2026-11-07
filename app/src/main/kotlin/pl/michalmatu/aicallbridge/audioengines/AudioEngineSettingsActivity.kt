@@ -126,6 +126,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         dialogueGroup = section(getString(R.string.eng_ui_dialogue), AudioEngineRegistry.dialogues,
             current?.dialogue?.name ?: "GEMMA_4_E2B")
         content.addView(Button(this).apply {
+            UiDesign.styleAction(this, UiActionTone.SECONDARY)
             text = getString(R.string.eng_ui_models)
             setOnClickListener {
                 startActivity(android.content.Intent(this@AudioEngineSettingsActivity,
@@ -139,21 +140,9 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(voicePicker, UiDesign.spaceAfter(this, 12))
         setVoices(emptyList(), current?.voiceId)
         feedback = label(getString(R.string.eng_ui_not_ready))
-        content.addView(feedback, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, getString(R.string.eng_ui_check)) {
-            checkOffline()
-        }, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, getString(R.string.eng_ui_download)) {
-            downloadParakeet()
-        }, UiDesign.spaceAfter(this, 12))
-        cancelDownloadButton = UiDesign.action(this, getString(R.string.eng_ui_cancel), UiActionTone.DANGER) {
-            parakeetDownloader?.cancel()
-            feedback.text = "Anulowanie pobierania…"
-        }.apply { tag = "engine-cancel-download"; visibility = View.GONE }
-        content.addView(cancelDownloadButton, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, getString(R.string.eng_ui_preview)) {
-            previewVoice()
-        }, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.heading(this, getString(R.string.eng_ui_primary_heading)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_save), UiActionTone.PRIMARY) {
                 val requested = selectedProfile()
                 val result = AudioEngineReadinessProbe.check(
@@ -174,6 +163,26 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     feedback.text = getString(R.string.eng_ui_restore_done)
                 } else feedback.text = "Błąd zapisu preferencji."
                 refreshActive()
+        }, UiDesign.spaceAfter(this, 12))
+        content.addView(feedback, UiDesign.spaceAfter(this, 14))
+        content.addView(UiDesign.heading(this, getString(R.string.eng_ui_diagnostics_heading)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this, getString(R.string.eng_ui_diagnostics_caption)),
+            UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_check)) {
+            checkOffline()
+        }, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_download)) {
+            downloadParakeet()
+        }, UiDesign.spaceAfter(this, 12))
+        cancelDownloadButton = UiDesign.action(this, getString(R.string.eng_ui_cancel), UiActionTone.DANGER) {
+            parakeetDownloader?.cancel()
+            feedback.text = "Anulowanie pobierania…"
+        }.apply { tag = "engine-cancel-download"; visibility = View.GONE }
+        content.addView(cancelDownloadButton, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_preview)) {
+            previewVoice()
         }, UiDesign.spaceAfter(this, 12))
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
