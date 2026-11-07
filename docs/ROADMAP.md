@@ -75,3 +75,7 @@ Light dock + PL/EN resource foundation **S22 10/10 PASS**, no calls/data loss. [
 ## Unified UI shell (2026-11-07)
 
 Four-tab navigation, direct SettingsHub, 11 shared child-screen wrappers, common native theme and 48dp touch controls, density-aware paddings, Back header and separated basic preferences controller are on main through `0afea79`. Historical host gates: 275/276/278/280/282 Python PASS; the final controller gate is **284 Python PASS**; **S22 new UI 15/15 PASS**, signer preserved, no calls. Manual aesthetic acceptance remains OPEN; preserve F-103 PL/EN completion as separate work. [Checkpoint](checkpoints/2026-11-07-ui-unified-navigation-checkpoint.md).
+
+## Calls UX, screenshots and locales (2026-11-07)
+
+Owner banned screenshot-blocking UI flags globally (F-104). Calls details now return to Calls list; per-session completed archive deletion was added with explicit confirmation and path-safe private cleanup (F-105/F-106). Button spacing (F-107) and Auto/PL/EN UI-only selector are in source; full translation of older Activities is still F-103 OPEN. [Source checkpoint](checkpoints/2026-11-07-calls-screenshots-ui-phase.md). This work requires fresh host + S22 acceptance before VERIFIED.

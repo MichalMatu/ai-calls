@@ -175,3 +175,7 @@ stop accepting/releasing unsafe AI output
 ## Evidence rule
 
 `HOST_GREEN` is not `PROVEN_S22`. A connected phone is not authorization. Permit consumption is not external success. The CLIR task is not complete until exact factual external-success evidence has been accepted by application-owned completion logic and, when available, independent network-state verification confirms the expected state.
+
+## Screen capture policy (owner decision 2026-11-07)
+
+**Do not block device-owner screenshots** using FLAG_SECURE or similar flags on any AI Calls screen, including phone enrollment, conversations, skills and private vault UI. This is an explicit product requirement, logged as F-104 in BLOCKERS.md. Existing private-file storage, consent, disclosure restrictions and authorization boundaries remain enforced. The application must not automatically export screenshots, phone numbers, identity values, transcripts, audio or private data to external logs or services. Users should treat screenshots with personal data as sensitive when sharing them.
