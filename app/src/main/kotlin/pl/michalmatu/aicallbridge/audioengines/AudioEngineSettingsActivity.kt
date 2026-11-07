@@ -143,6 +143,8 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(UiDesign.heading(this, getString(R.string.eng_ui_primary_heading)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
+        // Show readiness before Save, not underneath the action the user just tapped.
+        content.addView(feedback, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_save), UiActionTone.PRIMARY) {
                 val requested = selectedProfile()
                 val result = AudioEngineReadinessProbe.check(
@@ -164,7 +166,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 } else feedback.text = "Błąd zapisu preferencji."
                 refreshActive()
         }, UiDesign.spaceAfter(this, 12))
-        content.addView(feedback, UiDesign.spaceAfter(this, 14))
+
         content.addView(UiDesign.heading(this, getString(R.string.eng_ui_diagnostics_heading)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
