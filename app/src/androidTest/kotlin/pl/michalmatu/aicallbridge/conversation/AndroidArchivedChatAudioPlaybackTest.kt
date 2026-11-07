@@ -51,7 +51,7 @@ class AndroidArchivedChatAudioPlaybackTest {
         val directory = File(root, "9999999999999-qa-" + UUID.randomUUID().toString())
         assertTrue("synthetic_archive_create_failed", directory.mkdirs())
         try {
-            CallSessionPcmWav.write(File(directory, "turn-01-rx.wav"), ByteArray(128000))
+            CallSessionPcmWav.write(File(directory, "turn-01-rx.wav"), ByteArray(256000))
             File(directory, "timeline.jsonl").writeText(listOf(
                 """{"type":"CONVERSATION","direction":"INCOMING","profile_id":"qa-synthetic","started_at_ms":9999999999999}""",
                 """{"type":"COUNTERPART_STT","turn":1,"text":"SYNTHETIC_SILENCE_TEST","elapsed_ms":20}""",
@@ -109,6 +109,23 @@ class AndroidArchivedChatAudioPlaybackTest {
                     Thread.sleep(100)
                 }
                 assertTrue("synthetic_wav_player_failed", succeeded)
+                // Private UX evidence: capture the chat-bubble playback state.
+                var privateDir: File? = null
+                scenario.onActivity { activity ->
+                    privateDir = requireNotNull(activity.getExternalFilesDir(
+                        "ui-audit-20261107-sprint6"))
+                    assertTrue(requireNotNull(privateDir).isDirectory ||
+                        requireNotNull(privateDir).mkdirs())
+                }
+                val image = requireNotNull(InstrumentationRegistry.getInstrumentation()
+                    .uiAutomation.takeScreenshot())
+                try {
+                    val target = File(requireNotNull(privateDir), "history-audio-bubble-synthetic.jpg")
+                    target.outputStream().use { stream ->
+                        assertTrue(image.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, stream))
+                    }
+                    assertTrue(target.length() > 2000)
+                } finally { image.recycle() }
                 scenario.onActivity { activity ->
                     val bubble = requireNotNull(activity.window.decorView.findViewWithTag<View>(
                         "history-audio-bubble:0"))
