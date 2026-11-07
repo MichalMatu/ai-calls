@@ -86,6 +86,9 @@
     <string name="history_audio_count">Audio fragments: %1$d. This is not a recording of the full call.</string>
     <string name="history_play_fragment">▶ Play fragment</string>
     <string name="history_more_segments">Other segments, including short AI acknowledgements:</string>
+    <string name="history_more_segments_collapsed">Other clips (%1$d) ▾</string>
+    <string name="history_more_segments_expanded">Other clips (%1$d) ▴</string>
+    <string name="history_play_extra_numbered">▶ Clip %1$d</string>
     <string name="history_play_extra">▶ Play additional fragment</string>
     <string name="history_detail_error">Could not read conversation: %1$s</string>
     <string name="history_permission_required">Phone-state permission is required to play audio.</string>

@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.ui
 
 import android.app.Activity
 import android.view.View
+import android.view.ViewTreeObserver
 
 /**
  * Shared chrome for existing imperative Android screens.
@@ -9,6 +10,9 @@ import android.view.View
  * This wrapper adds navigation only, without touching grants, audio or persistence.
  */
 abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity() {
+    private var spacingTarget: View? = null
+    private var spacingListener: ViewTreeObserver.OnGlobalLayoutListener? = null
+
     /** Child pages with internal navigation may consume Back before closing their Activity. */
     protected open fun consumeChromeBack(): Boolean = false
     fun navigateBack() {
@@ -21,7 +25,27 @@ abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity
             return
         }
         spaceActionRows(view)
+        spacingTarget?.viewTreeObserver?.takeIf { it.isAlive }?.let { observer ->
+            spacingListener?.let(observer::removeOnGlobalLayoutListener)
+        }
         super.setContentView(AppNavigation.shell(this, view, activeTab))
+        // Some screens populate their action rows asynchronously after setContentView.
+        // Apply gaps to newly attached controls, but only mutate params when needed.
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            if (!isFinishing && !isDestroyed) spaceActionRows(view)
+        }
+        view.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        spacingTarget = view
+        spacingListener = listener
+    }
+
+    override fun onDestroy() {
+        spacingTarget?.viewTreeObserver?.takeIf { it.isAlive }?.let { observer ->
+            spacingListener?.let(observer::removeOnGlobalLayoutListener)
+        }
+        spacingListener = null
+        spacingTarget = null
+        super.onDestroy()
     }
 
     /** Presentation-only: buttons keep their existing listeners, IDs and stores. */
@@ -34,12 +58,15 @@ abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity
                 val params = child.layoutParams as? android.widget.LinearLayout.LayoutParams
                 if (params != null) {
                     val gap = UiDesign.dp(this, 10)
-                    if (root.orientation == android.widget.LinearLayout.VERTICAL) {
+                    if (root.orientation == android.widget.LinearLayout.VERTICAL &&
+                        params.bottomMargin < gap) {
                         params.bottomMargin = maxOf(params.bottomMargin, gap)
-                    } else if (index < root.childCount - 1) {
+                        child.layoutParams = params
+                    } else if (root.orientation == android.widget.LinearLayout.HORIZONTAL &&
+                        index < root.childCount - 1 && params.marginEnd < gap) {
                         params.marginEnd = maxOf(params.marginEnd, gap)
+                        child.layoutParams = params
                     }
-                    child.layoutParams = params
                 }
             }
             spaceActionRows(child)

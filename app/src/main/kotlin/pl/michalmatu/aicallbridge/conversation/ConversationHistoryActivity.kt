@@ -199,15 +199,36 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                     val linked = session.lines.mapNotNull(session::audioFor).toSet()
                     val unlinked = session.audioFiles.values.filterNot { it in linked }
                     if (unlinked.isNotEmpty()) {
-                        content.addView(TextView(this).apply {
-                            text = getString(R.string.history_more_segments)
-                        })
-                        unlinked.forEach { name ->
-                            content.addView(Button(this).apply {
-                                text = getString(R.string.history_play_extra)
-                                setOnClickListener { playFragment(session.id, name) }
-                            })
+                        val extraClips = LinearLayout(this).apply {
+                            orientation = LinearLayout.VERTICAL
+                            visibility = View.GONE
+                            tag = "history-extra-clips"
                         }
+                        val toggle = UiDesign.button(this,
+                            getString(R.string.history_more_segments_collapsed, unlinked.size)) {
+                            val expanded = extraClips.visibility != View.VISIBLE
+                            extraClips.visibility = if (expanded) View.VISIBLE else View.GONE
+                        }.apply { tag = "history-extra-toggle" }
+                        // The header changes with visibility; no duplicate rows in the collapsed state.
+                        toggle.setOnClickListener {
+                            val expanded = extraClips.visibility != View.VISIBLE
+                            extraClips.visibility = if (expanded) View.VISIBLE else View.GONE
+                            toggle.text = getString(
+                                if (expanded) R.string.history_more_segments_expanded
+                                else R.string.history_more_segments_collapsed, unlinked.size)
+                        }
+                        content.addView(toggle)
+                        unlinked.forEachIndexed { index, name ->
+                            extraClips.addView(Button(this).apply {
+                                tag = "history-extra-play:" + index
+                                text = getString(R.string.history_play_extra_numbered, index + 1)
+                                setOnClickListener { playFragment(session.id, name) }
+                            }, LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT
+                            ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 10) })
+                        }
+                        content.addView(extraClips)
                     }
                 }.onFailure { failure -> content.addView(TextView(this).apply { text = getString(R.string.history_detail_error, failure.javaClass.simpleName) }) }
             }

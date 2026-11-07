@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.AdapterView
-import android.widget.ImageView
 import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
@@ -88,33 +87,27 @@ class SettingsHubActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 9) })
         }
+        // One visible native dropdown; selecting a language takes only one tap to open.
         val languageCodes = listOf("auto", "pl", "en")
         val languageLabels = listOf(
             getString(R.string.ui_language_auto),
             getString(R.string.ui_language_polish),
             getString(R.string.ui_language_english),
         )
-        val selectedLanguage = AppLanguage.selected(this)
-        val languageDetails = LinearLayout(this).apply {
-            tag = "ui-language-group"
-            orientation = LinearLayout.VERTICAL
-            visibility = View.GONE
-            setPadding(0, UiDesign.dp(this@SettingsHubActivity, 8),
-                0, UiDesign.dp(this@SettingsHubActivity, 4))
-        }
-        val languagePicker = Spinner(this).apply {
-            tag = "ui-language-picker"
-            UiSelect.setOptions(this, languageLabels)
-            setSelection(languageCodes.indexOf(selectedLanguage).coerceAtLeast(0))
-        }
-        languageDetails.addView(languagePicker)
-        languageDetails.addView(TextView(this).apply {
-            text = getString(R.string.ui_language_hint)
-            textSize = 12f
-            setTextColor(UiDesign.secondary)
+        content.addView(TextView(this).apply {
+            text = getString(R.string.ui_language_label)
+            textSize = 16f
+            setTextColor(UiDesign.ink)
             setPadding(0, UiDesign.dp(this@SettingsHubActivity, 8),
                 0, UiDesign.dp(this@SettingsHubActivity, 8))
         })
+        val languagePicker = Spinner(this).apply {
+            tag = "ui-language-picker"
+            contentDescription = getString(R.string.ui_language_label)
+            UiSelect.setOptions(this, languageLabels)
+            setSelection(languageCodes.indexOf(AppLanguage.selected(this@SettingsHubActivity))
+                .coerceAtLeast(0))
+        }
         languagePicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val requested = languageCodes[position]
@@ -124,47 +117,9 @@ class SettingsHubActivity : AppBaseActivity() {
             }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        val languageHeading = LinearLayout(this).apply {
-            tag = "ui-language-toggle"
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            isClickable = true
-            isFocusable = true
-            minimumHeight = UiDesign.dp(this@SettingsHubActivity, 54)
-            background = UiDesign.touchSurface(this@SettingsHubActivity)
-            setPadding(UiDesign.dp(this@SettingsHubActivity, 14), 0,
-                UiDesign.dp(this@SettingsHubActivity, 14), 0)
-        }
-        languageHeading.addView(TextView(this).apply {
-            text = getString(R.string.ui_language_title)
-            textSize = 16f
-            setTextColor(UiDesign.ink)
-        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        languageHeading.addView(TextView(this).apply {
-            tag = "ui-language-current"
-            text = languageLabels[languageCodes.indexOf(selectedLanguage).coerceAtLeast(0)]
-            textSize = 12f
-            setTextColor(UiDesign.secondary)
-            maxLines = 1
-            ellipsize = android.text.TextUtils.TruncateAt.END
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = UiDesign.dp(this@SettingsHubActivity, 8) })
-        val languageChevron = ImageView(this).apply {
-            setImageResource(R.drawable.ic_aicalls_chevron_down)
-            setColorFilter(UiDesign.secondary)
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
-        languageHeading.addView(languageChevron, LinearLayout.LayoutParams(
-            UiDesign.dp(this, 20), UiDesign.dp(this, 20)))
-        languageHeading.contentDescription = getString(R.string.ui_language_title)
-        languageHeading.setOnClickListener {
-            val expanded = languageDetails.visibility != View.VISIBLE
-            languageDetails.visibility = if (expanded) View.VISIBLE else View.GONE
-            languageChevron.setImageResource(
-                if (expanded) R.drawable.ic_aicalls_chevron_up else R.drawable.ic_aicalls_chevron_down)
-        }
-        content.addView(languageHeading)
-        content.addView(languageDetails)
+        content.addView(languagePicker, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, UiDesign.dp(this, 52)
+        ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 8) })
         section(R.string.ui_settings_hub_group_ai)
         destination(R.string.ui_settings_hub_general, R.string.ui_settings_hub_general_detail, GeneralSettingsActivity::class.java)
         destination(R.string.ui_settings_hub_engines, R.string.ui_settings_hub_engines_detail, AudioEngineSettingsActivity::class.java)

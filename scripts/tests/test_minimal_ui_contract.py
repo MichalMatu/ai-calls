@@ -32,14 +32,15 @@ class MinimalUiContract(unittest.TestCase):
         self.assertNotIn('tag = "history-back-to-list"',history)
         self.assertIn("minimumWidth = dp(context, 48)",design)
 
-    def test_one_consistent_dropdown_and_collapsible_language(self):
+    def test_one_consistent_dropdown_and_direct_language(self):
         selector=(K/"ui/UiSelect.kt").read_text()
         hub=(K/"ui/SettingsHubActivity.kt").read_text()
         self.assertIn("override fun getDropDownView",selector)
         self.assertIn("UiDesign.surfaceDrawable",selector)
-        self.assertIn('tag = "ui-language-toggle"',hub)
         self.assertIn('tag = "ui-language-picker"',hub)
-        self.assertIn("visibility = View.GONE",hub)
+        self.assertNotIn('tag = "ui-language-toggle"',hub)
+        self.assertNotIn('tag = "ui-language-group"',hub)
+        self.assertIn("UiSelect.setOptions(this, languageLabels)",hub)
         self.assertNotIn("RadioGroup(this)",hub)
         for file in ("ui/GeneralSettingsActivity.kt",
                      "audioengines/AudioEngineSettingsActivity.kt",

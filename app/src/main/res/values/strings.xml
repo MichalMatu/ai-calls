@@ -86,6 +86,9 @@
     <string name="history_audio_count">Fragmenty audio: %1$d. To nie jest nagranie całej rozmowy.</string>
     <string name="history_play_fragment">▶ Odtwórz fragment</string>
     <string name="history_more_segments">Inne segmenty, w tym krótkie potwierdzenia AI:</string>
+    <string name="history_more_segments_collapsed">Pozostałe fragmenty (%1$d) ▾</string>
+    <string name="history_more_segments_expanded">Pozostałe fragmenty (%1$d) ▴</string>
+    <string name="history_play_extra_numbered">▶ Fragment %1$d</string>
     <string name="history_play_extra">▶ Odtwórz dodatkowy segment</string>
     <string name="history_detail_error">Błąd odczytu: %1$s</string>
     <string name="history_permission_required">Do odsłuchu wymagane jest uprawnienie odczytu stanu telefonu.</string>

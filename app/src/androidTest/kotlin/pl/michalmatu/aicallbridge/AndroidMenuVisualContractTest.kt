@@ -67,20 +67,17 @@ class AndroidMenuVisualContractTest {
             }
         }
     }
-    @Test fun languageSectionIsCollapsedAndOpensMatchingNativeDropdown() {
+    @Test fun languageIsOneDirectlyVisibleDropdownWithThreeChoices() {
         ActivityScenario.launch(pl.michalmatu.aicallbridge.ui.SettingsHubActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                val heading = requireNotNull(root.findViewWithTag<View>("ui-language-toggle"))
-                val body = requireNotNull(root.findViewWithTag<View>("ui-language-group"))
                 val picker = requireNotNull(root.findViewWithTag<Spinner>("ui-language-picker"))
-                assertEquals(View.GONE, body.visibility)
+                assertNull(root.findViewWithTag<View>("ui-language-toggle"))
+                assertNull(root.findViewWithTag<View>("ui-language-group"))
+                assertTrue("direct_language_dropdown_not_visible", picker.isShown)
                 assertEquals(3, picker.adapter.count)
-                heading.performClick()
-                assertEquals(View.VISIBLE, body.visibility)
                 assertTrue(picker.background is GradientDrawable)
-                heading.performClick()
-                assertEquals(View.GONE, body.visibility)
+                assertEquals(activity.getString(R.string.ui_language_label), picker.contentDescription)
             }
         }
     }
