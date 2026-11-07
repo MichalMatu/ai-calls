@@ -13,19 +13,18 @@ import android.widget.Spinner
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.runtime.CallAudioMode
-import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
 /** Config-only screen. UI selections delegate to the existing preference contract. */
 class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
-    private lateinit var preferences: CallRuntimePreferences
+    private lateinit var controller: GeneralSettingsController
     private lateinit var modePicker: Spinner
     private lateinit var llmPicker: Spinner
     private lateinit var feedback: TextView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        preferences = CallRuntimePreferences(this)
-        val initial = preferences.load()
+        controller = GeneralSettingsController(this)
+        val initial = controller.current()
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@GeneralSettingsActivity, 20),
@@ -80,7 +79,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         modePicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
                 val selected = CallAudioMode.entries[position]
-                if (preferences.load().audioMode != selected) preferences.saveAudioMode(selected)
+                controller.selectMode(selected)
                 llmPicker.isEnabled = selected.usesTextLlm
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
@@ -88,7 +87,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         llmPicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
                 val selected = TextLlmProvider.entries[position]
-                if (preferences.load().textLlmProvider != selected) preferences.saveTextLlmProvider(selected)
+                controller.selectTextModel(selected)
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
         }
