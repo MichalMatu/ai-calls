@@ -18,7 +18,7 @@ class SkillLabRunnerTest {
             this.listener = listener
             generated.countDown()
             if (immediate) {
-                listener.onComplete("Przyjęto wiadomość.")
+                listener.onComplete("""{"reply":"Przyjęto wiadomość.","tool":"none"}""")
                 listener.onError("duplicate_error_must_be_ignored")
             }
         }
