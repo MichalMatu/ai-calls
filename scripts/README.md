@@ -10,6 +10,21 @@ The developer tooling is grouped by responsibility instead of keeping implementa
 - `tests/test_audit_audio_engine_quality.py` — mutation regressions proving that dangerous changes fail the audio quality gate.
 - `verify_host.sh` — canonical host quality gate. It validates repository layout, Android build/unit/lint, Python tests and the audio gate; no ADB or real calls.
 
+## Iteration test profiles
+
+Use `bash scripts/bin/test-profile.sh quick` for the two JVM modules,
+`bash scripts/bin/test-profile.sh changed app` (or another named module) for
+focused unit tests, and `bash scripts/bin/test-profile.sh full` for the
+unchanged complete host gate. The changed profile accepts an explicit module
+rather than guessing from Git history. Neither quick nor changed is release
+acceptance; run the full gate after production source changes.
+
+`org.gradle.caching=true` enables Gradle's local task-output cache in addition
+to existing parallel execution and configuration cache. Compare cold and warm
+builds on the same Mac before claiming a speedup. Samsung S22 verification
+remains a distinct authorized hardware gate; none of these profiles runs ADB
+or places calls.
+
 Python-only verification:
 
 ```bash
