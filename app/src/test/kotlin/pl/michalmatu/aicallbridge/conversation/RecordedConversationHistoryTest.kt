@@ -70,6 +70,52 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun bulkClearDeletesOnlyCompletedTranscriptsAndAudio() {
+        val root = Files.createTempDirectory("conversation-clear-all").toFile()
+        try {
+            write(root, "1000-finished", "INCOMING", "remove")
+            write(root, "2000-finished", "OUTGOING", "remove")
+            write(root, "3000-active", "INCOMING", "keep")
+            File(root, "1000-finished/COMPLETE").writeText("local_complete\\n")
+            File(root, "2000-finished/COMPLETE").writeText("local_complete\\n")
+            File(root, "1000-finished/turn-01-rx.wav").writeBytes(byteArrayOf(0, 1, 2))
+            val unknown = File(root, "other-private-data").apply { mkdirs() }
+            File(unknown, "keep.txt").writeText("untouched")
+            val archive = RecordedConversationHistory(root)
+            assertEquals(2, archive.countDeletableCompleted())
+            val result = archive.deleteAllCompleted()
+            assertEquals(2, result.deleted)
+            assertEquals(1, result.skipped)
+            assertEquals(0, result.failed)
+            assertEquals(0, archive.countDeletableCompleted())
+            assertTrue(File(root, "3000-active/timeline.jsonl").exists())
+            assertEquals("untouched", File(unknown, "keep.txt").readText())
+            assertFalse(File(root, "1000-finished").exists())
+            assertFalse(File(root, "2000-finished").exists())
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun bulkClearDoesNotFollowRootSymlinksOrIncompleteMarker() {
+        val root = Files.createTempDirectory("conversation-bulk-safe").toFile()
+        val external = Files.createTempDirectory("conversation-bulk-external").toFile()
+        try {
+            write(root, "1000-valid", "INCOMING", "remove")
+            File(root, "1000-valid/COMPLETE").writeText("done\\n")
+            write(root, "2000-unfinished", "INCOMING", "keep")
+            val link = File(root, "9000-link")
+            Files.createSymbolicLink(link.toPath(), external.toPath())
+            val keep = File(external, "timeline.jsonl")
+            keep.writeText("PRIVATE_OUTSIDE")
+            File(external, "COMPLETE").writeText("done\\n")
+            val result = RecordedConversationHistory(root).deleteAllCompleted()
+            assertEquals(1, result.deleted)
+            assertTrue(result.skipped >= 1)
+            assertEquals("PRIVATE_OUTSIDE", keep.readText())
+            assertTrue(link.exists())
+            assertTrue(File(root, "2000-unfinished").exists())
+        } finally { root.deleteRecursively(); external.deleteRecursively() }
+    }
+
     @Test fun refusesTraversalAndSymlinkEscapes() {
         val root = Files.createTempDirectory("conversation-delete-safe").toFile()
         val other = Files.createTempDirectory("conversation-external").toFile()
