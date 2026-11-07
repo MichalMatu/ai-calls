@@ -535,4 +535,18 @@
     <string name="camp_ux05_campaign_start">Starting task: enable CLIR. Mode: %1$s</string>
     <string name="camp_ux05_script_model">script + model</string>
     <string name="camp_ux05_campaign_failed">Could not start task. Details are in diagnostics.</string>
+
+    <!-- UX-05 Skills edit presentation -->
+    <string name="skills_ux05_read_failed">Could not read skills: %1$s</string>
+    <string name="skills_ux05_save_failed">Could not save changes: %1$s</string>
+    <string name="skills_ux05_preset_created">Custom preset created.</string>
+    <string name="skills_ux05_disabled">disabled</string>
+    <string name="skills_ux05_skills_changed">Active skills updated.</string>
+    <string name="skills_ux05_edit_new_version">Edit %1$s — new version</string>
+    <string name="skills_ux05_version_title">New version: %1$s</string>
+    <string name="skills_ux05_version_saved">New version of %1$s saved.</string>
+    <string name="skills_ux05_version_label">Version %1$d</string>
+    <string name="skills_ux05_version_restore">Select / restore version %1$s</string>
+    <string name="skills_ux05_version_restored">Saved version selected.</string>
+    <string name="skills_ux05_warning">Important: skills do not authorize tools or hangups. The app still validates model decisions.</string>
 </resources>

@@ -28,7 +28,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             library = store.loadSkillLibrary()
             show()
         } catch (error: Exception) {
-            setContentView(TextView(this).apply { text = "Nie można odczytać skillsów: " + error.javaClass.simpleName })
+            setContentView(TextView(this).apply { text = getString(R.string.skills_ux05_read_failed, error.javaClass.simpleName) })
         }
     }
 
@@ -49,7 +49,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             show(message)
         } catch (error: Exception) {
             AlertDialog.Builder(this).setTitle(getString(R.string.skills_ui_not_saved))
-                .setMessage("Nie udało się zapisać zmian: " + error.javaClass.simpleName)
+                .setMessage(getString(R.string.skills_ux05_save_failed, error.javaClass.simpleName))
                 .setPositiveButton("OK", null).show()
         }
     }
@@ -125,7 +125,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     .setNegativeButton(getString(R.string.skills_ui_cancel), null)
                     .setPositiveButton(getString(R.string.skills_ui_create)) { _, _ ->
                         runCatching { library.copyActive(name.text.toString()) }
-                            .onSuccess { applyChange(it, "Utworzono własny preset.") }
+                            .onSuccess { applyChange(it, getString(R.string.skills_ux05_preset_created)) }
                             .onFailure { showError(it) }
                     }.show()
             }
@@ -176,13 +176,13 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 } else {
                     val choice = CheckBox(this).apply {
                         text = skill.name + " · " + skill.id +
-                            (if (on) " · v" + activeVersion else " · wyłączony")
+                            (if (on) " · v" + activeVersion else " · " + getString(R.string.skills_ux05_disabled))
                         isChecked = on
                         minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
                         setOnClickListener {
                             applyChange(library.bindVersion(skill.id,
                                 if (isChecked) skill.revisions.maxOf { it.version } else null),
-                                "Zmieniono aktywne skillsy.")
+                                getString(R.string.skills_ux05_skills_changed))
                         }
                     }
                     skillCard.addView(choice)
@@ -200,35 +200,35 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 if (!library.active.isFactory) {
                     skillCard.addView(Button(this).apply {
                         UiDesign.styleAction(this, UiActionTone.SECONDARY)
-                        text = "Edytuj " + skill.name + " — nowa wersja"
+                        text = getString(R.string.skills_ux05_edit_new_version, skill.name)
                         setOnClickListener {
                             val input = EditText(this@ConversationSkillsActivity).apply {
                                 setText(skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions)
                                 minLines = 4
                                 maxLines = 12
                             }
-                            AlertDialog.Builder(this@ConversationSkillsActivity).setTitle("Nowa wersja: " + skill.name)
+                            AlertDialog.Builder(this@ConversationSkillsActivity).setTitle(getString(R.string.skills_ux05_version_title, skill.name))
                                 .setView(input)
                                 .setNegativeButton(getString(R.string.skills_ui_cancel), null)
                                 .setPositiveButton(getString(R.string.skills_ui_revision)) { _, _ ->
                                     runCatching { library.reviseSkill(skill.id, input.text.toString()) }
-                                        .onSuccess { applyChange(it, "Zapisano nową wersję " + skill.name + ".") }
+                                        .onSuccess { applyChange(it, getString(R.string.skills_ux05_version_saved, skill.name)) }
                                         .onFailure { showError(it) }
                                 }.show()
                         }
                     })
                     val versions = skill.revisions.sortedByDescending { it.version }
                     val revisionPicker = Spinner(this).apply {
-                        UiSelect.setOptions(this, versions.map { "Wersja " + it.version })
+                        UiSelect.setOptions(this, versions.map { getString(R.string.skills_ux05_version_label, it.version) })
                         setSelection(versions.indexOfFirst { it.version == activeVersion }.coerceAtLeast(0))
                     }
                     skillCard.addView(revisionPicker)
                     skillCard.addView(Button(this).apply {
                         UiDesign.styleAction(this, UiActionTone.SECONDARY)
-                        text = "Wybierz / przywróć wersję " + skill.name
+                        text = getString(R.string.skills_ux05_version_restore, skill.name)
                         setOnClickListener {
                             applyChange(library.bindVersion(skill.id, versions[revisionPicker.selectedItemPosition].version),
-                                "Wybrano zachowaną wersję.")
+                                getString(R.string.skills_ux05_version_restored))
                         }
                     })
                 }
@@ -236,8 +236,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
         }
         content.addView(UiDesign.caption(this,
-            "Ważne: skillsy nie nadają prawa do narzędzi ani rozłączania. " +
-            "Decyzje modelu nadal sprawdza aplikacja."))
+            getString(R.string.skills_ux05_warning)))
         setContentView(ScrollView(this).apply { addView(content) })
     }
 

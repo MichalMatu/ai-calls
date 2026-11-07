@@ -535,4 +535,18 @@
     <string name="camp_ux05_campaign_start">Uruchamiam zadanie: włączenie CLIR. Tryb: %1$s</string>
     <string name="camp_ux05_script_model">skrypt + model</string>
     <string name="camp_ux05_campaign_failed">Nie udało się uruchomić zadania. Szczegóły są w diagnostyce.</string>
+
+    <!-- UX-05 Skills edit presentation -->
+    <string name="skills_ux05_read_failed">Nie można odczytać skillsów: %1$s</string>
+    <string name="skills_ux05_save_failed">Nie udało się zapisać zmian: %1$s</string>
+    <string name="skills_ux05_preset_created">Utworzono własny preset.</string>
+    <string name="skills_ux05_disabled">wyłączony</string>
+    <string name="skills_ux05_skills_changed">Zmieniono aktywne skillsy.</string>
+    <string name="skills_ux05_edit_new_version">Edytuj %1$s — nowa wersja</string>
+    <string name="skills_ux05_version_title">Nowa wersja: %1$s</string>
+    <string name="skills_ux05_version_saved">Zapisano nową wersję %1$s.</string>
+    <string name="skills_ux05_version_label">Wersja %1$d</string>
+    <string name="skills_ux05_version_restore">Wybierz / przywróć wersję %1$s</string>
+    <string name="skills_ux05_version_restored">Wybrano zachowaną wersję.</string>
+    <string name="skills_ux05_warning">Ważne: skillsy nie nadają prawa do narzędzi ani rozłączania. Decyzje modelu nadal sprawdza aplikacja.</string>
 </resources>
