@@ -88,15 +88,23 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 applyChange(library.select(selected.id),
                     getString(R.string.skills_ui_activated_feedback))
             }
-        }.apply {
-            tag = "skills-activate"
-            isEnabled = options.getOrNull(picker.selectedItemPosition)?.id != library.activePresetId
+        }.apply { tag = "skills-activate" }
+        fun refreshActivation(position: Int) {
+            val needsActivation = options.getOrNull(position)?.id != library.activePresetId
+            activate.isEnabled = needsActivation
+            activate.text = getString(if (needsActivation) R.string.skills_ui_activate
+                else R.string.skills_ui_current_preset)
+            UiDesign.styleAction(activate, if (needsActivation) UiActionTone.PRIMARY
+                else UiActionTone.SECONDARY)
         }
+        refreshActivation(picker.selectedItemPosition)
         picker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                activate.isEnabled = options.getOrNull(position)?.id != library.activePresetId
+                refreshActivation(position)
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) { activate.isEnabled = false }
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                refreshActivation(-1)
+            }
         }
         content.addView(activate, UiDesign.spaceAfter(this, 8))
         val secondaryActions = UiDesign.card(this, 12).apply {
