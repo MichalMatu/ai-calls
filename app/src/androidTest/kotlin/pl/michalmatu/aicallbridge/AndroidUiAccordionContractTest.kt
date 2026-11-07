@@ -66,12 +66,12 @@ class AndroidUiAccordionContractTest {
                 assertNotNull(findButton(root, activity.getString(R.string.camp_ui_role_button)))
                 assertNotNull(findButton(root, "Uruchom AI w trwającej rozmowie"))
                 assertNotNull(findButton(root, activity.getString(R.string.camp_ui_disable_record)))
-                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_transcript)))
+                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_transcript_short)))
 
                 val toggle = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:evidence"))
                 toggle.performClick()
                 assertEquals(View.VISIBLE, evidenceBody.visibility)
-                assertTrue(findButton(root, activity.getString(R.string.camp_ui_transcript))!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.camp_ui_transcript_short))!!.isShown)
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
             }
         }
