@@ -33,3 +33,5 @@
 ## Stałe granice bezpieczeństwa
 
 Nie ruszać zamrożonego Samsung/Shizuku/PCM/PFD RX/TX, ownership jedynego Android Call, grant/revoke, STOP, polityk ujawniania faktów i sekwencji `zatwierdzenie → pełny TX → end_call`. Bez realnych połączeń ani ingerencji w prawdziwe archiwa bez wyraźnej autoryzacji. Testować nową odpowiedzialność w izolacji, `scripts/verify_host.sh`, friction audit, AndroidTest kiedy odpowiedni, checkpoint ze źródłowym i fizycznym QA osobno.
+
+**Drobny krok operacyjny przy wznowieniu:** finalna dokumentacja jest na zdalnym `main`, lecz synchronizacja lokalnej kopii Mac po commitach dokumentów nie została potwierdzona (task budget exhausted / invalid task file). Przed nową pracą wykonać `git fetch --no-tags origin main`, `git merge --ff-only origin/main`, `git status --porcelain`; bez ponawiania Sprintu 6.
