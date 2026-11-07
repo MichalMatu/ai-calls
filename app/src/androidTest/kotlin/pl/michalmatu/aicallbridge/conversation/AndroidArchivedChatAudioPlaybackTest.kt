@@ -80,7 +80,7 @@ class AndroidArchivedChatAudioPlaybackTest {
                 for (attempt in 0 until 50) {
                     scenario.onActivity { activity ->
                         val play = findButton(activity.window.decorView) {
-                            it.contains(context.getString(R.string.history_play_fragment))
+                            it.contains(activity.getString(R.string.history_play_fragment))
                         }
                         if (play != null) {
                             play.performClick()
@@ -96,8 +96,8 @@ class AndroidArchivedChatAudioPlaybackTest {
                 for (attempt in 0 until 40) {
                     scenario.onActivity { activity ->
                         succeeded = hasStatus(activity.window.decorView) {
-                            it.contains(context.getString(R.string.history_playing)) ||
-                                it.contains(context.getString(R.string.history_playback_finished))
+                            it.contains(activity.getString(R.string.history_playing)) ||
+                                it.contains(activity.getString(R.string.history_playback_finished))
                         }
                     }
                     if (succeeded) break

@@ -46,11 +46,16 @@ class AndroidSettingsNavigationMatrixTest {
         return null
     }
 
-    private fun <T : Activity> assertScreen(type: Class<T>, expectedTitle: String) {
+    private fun <T : Activity> assertScreen(type: Class<T>, expectedTitle: String? = null,
+                                            expectedResource: Int = 0) {
         ActivityScenario.launch(type).use { screen ->
             screen.onActivity { activity ->
+                // Compare with the Activity locale, not the instrumentation/system locale.
+                val localizedTitle = if (expectedResource != 0) {
+                    activity.getString(expectedResource)
+                } else requireNotNull(expectedTitle)
                 assertTrue("screen_title_absent:" + type.simpleName,
-                    labels(activity.window.decorView).any { it.contains(expectedTitle) })
+                    labels(activity.window.decorView).any { it.contains(localizedTitle) })
             }
         }
     }
@@ -95,15 +100,15 @@ class AndroidSettingsNavigationMatrixTest {
         val beforeIncoming = IncomingAssistantPolicyStore(context).preferences.all.toMap()
         val beforeSkills = AndroidConversationPreparationStore(context).loadSkillLibrary()
 
-        assertScreen(GeneralSettingsActivity::class.java, context.getString(R.string.ui_basic))
-        assertScreen(DeveloperToolsActivity::class.java, context.getString(R.string.ui_settings_hub_developer))
+        assertScreen(GeneralSettingsActivity::class.java, expectedResource = R.string.ui_basic)
+        assertScreen(DeveloperToolsActivity::class.java, expectedResource = R.string.ui_settings_hub_developer)
         assertScreen(AudioEngineSettingsActivity::class.java, "Ustawienia silników audio AI")
         assertScreen(LanguageModelActivity::class.java, "Modele językowe")
-        assertScreen(IncomingAssistantSettingsActivity::class.java, "Odbieranie połączeń")
+        assertScreen(IncomingAssistantSettingsActivity::class.java, expectedResource = R.string.incoming_ui_title)
         assertScreen(ConversationPreparationActivity::class.java, "Przygotowanie rozmowy")
         assertScreen(ConversationSkillsActivity::class.java, "Skills i presety Gemmy")
         assertScreen(ConversationSkillLabActivity::class.java, "Laboratorium skillsów")
-        assertScreen(ConversationToolsActivity::class.java, "Narzędzia AI")
+        assertScreen(ConversationToolsActivity::class.java, expectedResource = R.string.tools_ui_title)
         assertScreen(UsbDebugPanelActivity::class.java, "USB / ADB diagnostyka")
 
         val afterRuntime = CallRuntimePreferences(context).load()
@@ -131,7 +136,7 @@ class AndroidSettingsNavigationMatrixTest {
                             it.startsWith(activity.getString(R.string.history_incoming)) ||
                             it.startsWith(activity.getString(R.string.history_outgoing)) ||
                             it.startsWith(activity.getString(R.string.history_unknown) + " •") ||
-                            it.startsWith("Błąd odczytu historii")
+                            it.startsWith(activity.getString(R.string.history_read_error))
                     }
                     ready = title && hasState
                     assertTrue("history_screenshot_blocked",
@@ -143,7 +148,7 @@ class AndroidSettingsNavigationMatrixTest {
             assertTrue("history_list_never_resolved", ready)
             screen.onActivity { activity ->
                 assertTrue("history_archive_read_failed", labels(activity.window.decorView).none {
-                    it.startsWith("Błąd odczytu historii")
+                    it.startsWith(activity.getString(R.string.history_read_error))
                 })
             }
         }
