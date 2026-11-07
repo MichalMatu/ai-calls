@@ -28,3 +28,8 @@
 - Najbliższy sensowny osobny sprint po zakończeniu QA: najpierw poprawność aktywnego zapisu / prywatność (F-122) w warstwie izolowanej, później korelacja `attemptId` (F-123), archiwum (F-124) i ciągłe audio (F-080). Bez samowolnych rzeczywistych połączeń, bez podważania STOP i własności `Call`.
 
 **Stan tego dokumentu:** kod `bbb2ceb` opublikowany; checkpoint dokumentacyjny. Dowody Mac source-matrix i pełnego GREEN wpisuj dopiero po rzeczywistych receipts. Czystość Mac po nowych commitach dokumentacji musi zostać ponownie potwierdzona.
+
+## Kontrola dokumentacji po synchronizacji
+- GitHub Connector, stan `main@aeaba5cbb22894a1ffd95dd8189846c76b2e7ac3`: w sześciu zmodyfikowanych dokumentach zidentyfikowano **83 wewnętrzne odsyłacze względne, wszystkie 83 rozwiązują się do plików/katalogów repozytorium**; 0 błędnych. Kontrola statyczna Git tree, bez publikowania prywatnych plików.
+- Zmiany w `README.md`, `docs/README.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/HANDOFF_NEXT_CHAT.md`, `docs/ROADMAP.md` i niniejszym checkpointcie są dokumentacyjne; nie zmieniają bajtów runtime ani wcześniej zaakceptowanych testów UX-06.
+- **Nie wykonano** odrębnej walidacji wszystkich zewnętrznych URL, ręcznego audytu każdego ekranu ani skanu podatności zależności. Pełne potwierdzenie hosta po aktualizacji dokumentacji pozostaje OPEN, dopóki brak nowego exact receipt.
