@@ -93,7 +93,7 @@ class MainActivity : AppBaseActivity() {
 
         // Bottom tabs are the only routes to History, Lab and Settings.
 
-        // A short action area, two navigation shortcuts, and collapsed settings cards.
+        // Home contains only unique task, campaign, STOP and off-call assistant actions.
         fun styleAction(button: Button, color: Int, ink: Int) {
             button.isAllCaps = false
             button.textSize = 14f
