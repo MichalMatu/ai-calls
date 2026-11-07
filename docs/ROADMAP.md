@@ -1,3 +1,9 @@
+## UX-06 — aktualny stan po syntetycznym S22 (2026-11-07)
+
+**SOURCE_PASS na `25a41a0`:** 341/341 Python, Gradle JVM/lint/APK/AndroidTest compile i friction PASS. **S22 SYNTHETIC_PASS:** 10/10 Android UI, `SM-S906B`, IDLE przed/po, APK wgrane bez wipe. Nowy ekran 10 presetów, wersjonowane własne kopie i formularze w szyfrowanym store, read-only bieżące fazy AI odróżnione od historii z czasem, lepsze opisy Start/Kampanie. **NIEUDOWODNIONE:** manual UX/TalkBack, realne taski poza CLIR, F-122/F-123/F-124/F-080. [Receipt i granice](checkpoints/2026-11-07-ux06-source-s22-synthetic-acceptance.md).
+
+---
+
 **UX-06 drobna poprawka zakresu START:** `d38408ba` nazwa i opis odtąd jawnie wskazują wyłącznie CLIR/skrypt zamiast sugerować wykonywanie dowolnego presetu. Kwalifikowany wybór innych scenariuszy przed START nadal OPEN; nie uruchamiać przykładowych presetów telefonicznie.
 
 ## UX-06 — etap 2: wersjonowane scenariusze i historia (w toku)

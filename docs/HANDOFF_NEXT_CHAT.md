@@ -1,3 +1,9 @@
+# UX-06 — źródła i S22 syntetycznie PASS (2026-11-07)
+
+**Bieżący, sprawdzony kod:** `main@25a41a081be032cf717c6a0f7e78f6a704488611`. **Mac HOST_PASS** 341/341 Python + JVM/lint/APK/AndroidTest compile/friction; **S22 10/10 syntetycznych Android UI PASS**, APK zainstalowane z zachowaniem danych, `IDLE` przed i po; brak realnych rozmów. [Dokładny checkpoint](checkpoints/2026-11-07-ux06-source-s22-synthetic-acceptance.md). Starsze v1 AndroidTest wrapper failed mimo `OK (10 tests)` (brak `INSTRUMENTATION_CODE: -1`); skorygowane v2 DONE/0. Nie przedstawiać nowej biblioteki Mechanik/Przychodnia jako działającej telefonii; to prywatne formularze DRAFT_ONLY. **OPEN:** F-122, F-123 (tylko bieżąca obserwacja procesu częściowo wdrożona), F-124, F-080, integracja dalszych scenariuszy i ręczny UI/TalkBack. `AGENTS.md`, zakres grantu, S22 frozen audio, brak Codex/Work/Actions nadal obowiązują.
+
+---
+
 **Ważne: `d38408ba` naprawia mylące hasło START z Home:** przycisk nadal realnie uruchamia tylko autoryzowane CLIR w strategii skryptowej; zwykłe scenariusze to wyłącznie formularze. F-127 FIXED_IN_SOURCE / QA_PENDING.
 
 # UX-06 aktualizacja — osobiste scenariusze, historyczne statusy (2026-11-07)

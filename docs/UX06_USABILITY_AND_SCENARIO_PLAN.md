@@ -48,3 +48,7 @@ Aktualny source: `a03e98b`. Biblioteka 10 presetów ma neutralny katalog JVM, fo
 ## Etap 2 — wersjonowanie i historia (2026-11-07)
 
 Wdrożono kopie osobiste gotowych presetów, własny tytuł i cel, wersje i powrót do poprzedniej wersji, usuwanie z potwierdzeniem, szyfrowany store Keystore/AtomicFile, ochronę niezatwierdzonych zmian; datę/czas zapisu historycznego zdarzenia Kampanii. Bez telefonii dla nowych szablonów, bez statusu live. QA: v4 DONE/0, v5 oczekuje. [Checkpoint](checkpoints/2026-11-07-ux06-personal-scenarios-and-history-receipt.md).
+
+## Odbiór UX-06 etapu obecnego — 2026-11-07
+
+Zainstalowano APK na S22 z zachowaniem danych. Source `25a41a0`: 341 Python + host Gradle/JVM/lint/friction PASS. Native synthetic S22: **10/10 PASS**, telefon IDLE przed/po, bez połączeń. Bieżące fazy procesu AI nie są potwierdzeniem stanu Android Call ani skutku u operatora. Pełny edytor skryptów/pytania-warunki, realny wybór scenariusza przed START oraz kwalifikowane rozmowy Mechanik/Przychodnia pozostają do dalszej implementacji. [Checkpoint](checkpoints/2026-11-07-ux06-source-s22-synthetic-acceptance.md).
