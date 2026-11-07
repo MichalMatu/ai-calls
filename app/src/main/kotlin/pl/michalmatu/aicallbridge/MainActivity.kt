@@ -372,7 +372,7 @@ class MainActivity : AppBaseActivity() {
 
         if (requestCode == REQUEST_RECORD_AUDIO) {
             val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
-            statusView.text = if (granted) {
+            homeActionFeedback.text = if (granted) {
                 getString(R.string.home_mic_granted)
             } else {
                 getString(R.string.home_mic_denied)
