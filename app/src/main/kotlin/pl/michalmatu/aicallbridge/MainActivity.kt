@@ -120,6 +120,12 @@ class MainActivity : Activity() {
         styleAction(conversationHistoryButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
         styleAction(labShortcutButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
         styleAction(oneTapButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
+        startAuthorizedTaskButton.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = dp(12) }
+        oneTapButton.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(8) }
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

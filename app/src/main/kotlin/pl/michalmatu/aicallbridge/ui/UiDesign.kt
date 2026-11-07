@@ -27,6 +27,7 @@ internal object UiDesign {
         textSize = 13f
         isAllCaps = false
         minHeight = dp(context, 48)
+        minimumHeight = dp(context, 48)
         setTextColor(ink)
         background = surfaceDrawable(context, softAccent, 10)
         setPadding(dp(context, 10), dp(context, 6), dp(context, 10), dp(context, 6))
