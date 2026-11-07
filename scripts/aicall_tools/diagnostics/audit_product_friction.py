@@ -108,7 +108,14 @@ def audit(root: Path) -> list[str]:
     require("openai_text_broker.py", broker, "MAX_CLIENT_BODY_BYTES = 256 * 1024")
     require("BackendOpenAiTextBackend.kt", android_text, "MAX_RESPONSE_CHARS = 1024 * 1024")
     require("campaign/CampaignToolActivity.kt", ui, "recordCallEvidence = recordEvidenceChoice.isChecked")
-    require("campaign/CampaignToolActivity.kt", ui, "addView(recordEvidenceChoice)")
+    # Both direct and padded card addView forms must keep the evidence preference
+    # visible in the task-intake UI. Rendering layout may change without changing consent.
+    if not re.search(r"\\baddView\\s*\\(\\s*recordEvidenceChoice\\s*[,)]", ui):
+        errors.append(
+            "campaign/CampaignToolActivity.kt: missing expected anti-friction wiring: "
+            "recordEvidenceChoice in visible action group"
+        )
+    require("campaign/CampaignToolActivity.kt", ui, 'tag = "campaign-primary-actions"')
     task_intake = read(prefix + "campaign/CampaignAgentControl.kt")
     forbid("CampaignAgentControl.kt", task_intake, "NO_VALID_EXACT_GRANT")
     require("CampaignAgentControl.kt", task_intake, "store.save(ClirCampaignSpec.acceptEnableTask(")
