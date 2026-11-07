@@ -1,39 +1,40 @@
-# Skills i Laboratorium Gemmy — AI Calls MVP
+# AI Calls — Skills i Laboratorium Gemmy (2026-11-07)
 
-## Menu i konfiguracja
+**Implementacja:** [Sprint 6](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md) `SOURCE_GREEN`, **S22 QA_PENDING_ADB**. Nowsze dane modelu nie zostały fizycznie zmierzone w Sprint 6. [Sprint 5](checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md) ma osobne, zakończone dowody 2 tur i STOP.
 
-Osobne menu Skills i presety Gemmy z głównego ekranu, ustawień odbierania i przygotowania rozmowy.
-Skills MessageCapture, Clarification, NaturalClosure oraz ConversationStyle są podzielone na trzy sekcje.
-Fabryczne presety: Sekretarka naturalna, Sekretarka formalna, Zbieranie wiadomości.
-Fabrycznych presetów nie zmienia się w miejscu: utwórz własną kopię, aby edytować instrukcję.
-Każda edycja tworzy numerowaną wersję. Preset przypina konkretną wersję skilla, umożliwia jej przywrócenie i wyłączenie skilla.
-Wszystkie ustawienia są szyfrowane w istniejącym magazynie ConversationPreparation no-backup.
-Nowa instrukcja jest zamrażana jako snapshot przy starcie następnej rozmowy przychodzącej.
+## Presety i instrukcje
 
-## Laboratorium
+- Fabryczne: Naturalna sekretarka, Formalna sekretarka, Zbieranie wiadomości. Skills: `MessageCapture`, `Clarification`, `NaturalClosure`, `ConversationStyle`.
+- Edycja fabrycznego presetu wymaga własnej kopii. Każda zmiana tworzy wersję, którą można wybrać lub przywrócić. Włączenie skilla i jego wersja to instrukcja, **nie grant skutków**.
+- Aktywacja tego samego presetu jest wyłączona; etykieta wskazuje, że już jest aktywny. Wybór w Laboratorium nie aktywuje presetu produkcyjnego.
+- Konfiguracja pozostaje w istniejącym szyfrowanym `ConversationPreparation` no-backup; nowa rozmowa dostaje zamrożony snapshot. Edycja nie zmienia w locie działającej inferencji.
 
-Laboratorium pozwala wybrać preset do testu bez zmiany aktywnego presetu.
-Wybrany lokalny model wykonuje syntetyczne wieloturowe rozmowy. Każdy przypadek zaczyna od świeżego kontekstu, zachowując historię między turami.
-Mierzymy trafność propozycji END_CALL, przedwczesne i brakujące zakończenia, latencję i heurystyczną liczbę zbędnych pytań (znak zapytania).
-Naturalność ma wyłącznie ręczną ocenę 1–5; nie udajemy automatycznej oceny semantycznej.
-Nie wykonujemy połączeń, nie uruchamiamy STT/TTS i nie wykonujemy żadnego narzędzia. Wyniki i syntetyczne dialogi pozostają w pamięci Activity.
+## Laboratorium: dokładne znaczenie danych
 
-## Granice i QA
+- Tryb **szybki**: pierwsza syntetyczna historia, **2 tury**. Tryb **pełny**: wszystkie cztery historie (łącznie 12 tur). Każda historia zaczyna od własnego kontekstu, tury jednej historii dzielą go.
+- Wybrany lokalny provider/model otrzymuje przygotowaną instrukcję i tekst symulowanego rozmówcy. UI pokazuje turę w toku, rozkodowany tekst odpowiedzi, propozycję END_CALL, oczekiwanie i latencję. Przy aktywnym auto-follow ma pokazywać ostatni dymek po zmianie wysokości ekranu.
+- Test offline **nie** wywołuje Telecom, STT/TTS, grantu, executora, rozłączenia ani innych narzędzi. Model może *zaproponować* END_CALL; Lab tylko to ocenia.
+- **Wynik 2/2 czy 12/12 oznacza wyłącznie zgodność decyzji END_CALL**, nie jakość informacji, prawdziwość, naturalność czy brak zbędnych pytań. Wykrywacz `?` i wybranych polskich zwrotów żądających danych jest **heurystyczną flagą do ręcznej weryfikacji**, nie oceną semantyczną. Ocena naturalności 1–5 jest ręczna.
+- STOP ma zatrzymać model/wątek i pozostawić widoczny status ukończonych tur; stare callbacki i nowy run nie mogą modyfikować poprzedniego stanu. Rzeczywiste sprawdzenie auto-follow/STOP w Sprint 6 jest **NOT_RUN**, ponieważ S22 nie był dostępny; syntetyczny kod i test hosta są gotowe.
 
-Skill to instrukcja, a nie upoważnienie. Android Telecom, STOP, grant, FactDisclosurePolicy i aplikacyjny executor pozostają właścicielami efektów.
-Zamrożone Samsung/Shizuku/PFD audio nie zostało zmienione.
-GREEN źródła wymaga celowanych JVM, kompilacji AndroidTest, pełnego verify_host, audytu product friction i czystego commita.
-APK z commita e8db8db jest zainstalowane na S22, a F-091 off-call i natywna matryca trzech presetów PASS. Ocena naturalności i faktyczne rozmowy nadal QA_PENDING.
-F-080/F-048/F-045/F-047 oraz fizyczny F-091 nie są w tym sprincie zamknięte.
+## Dowody
 
-## Matryca S22 — 2026-11-06
+| Etap | Model / zakres | Wynik |
+|---|---|---|
+| 2026-11-06 presety | GEMMA_4_E2B; 4 historie / 12 tur na preset | Native off-call, historyczny PASS |
+| 2026-11-07 Sprint 5 | wybrany lokalny LiteRT, 2 tury, STOP | Fizyczny S22 PASS, 4 zdjęcia w zestawie 43 |
+| 2026-11-07 Sprint 6 | 2 tury, auto-follow końcowej karty i STOP | Source/host PASS, S22 **QA_PENDING_ADB** |
 
-Model GEMMA_4_E2B; 4 historie / 12 tur na preset.
+Historyczna matryca 2026-11-06 (jest wyłącznie porównaniem decyzji END_CALL):
 
-| Preset | END_CALL poprawny | Za wcześnie | Brak końca | Pytania: heur. | Generacja średnia | Inicjalizacja |
-|---|---:|---:|---:|---:|---:|---:|
-| natural | 12/12 | 0 | 0 | 3 | 7029 ms | 8 ms |
-| formal | 12/12 | 0 | 0 | 3 | 11012 ms | 8 ms |
-| message | 12/12 | 0 | 0 | 3 | 12361 ms | 18 ms |
+| Preset | END_CALL | Za wcześnie | Brak końca | Pytania — dawna heurystyka | Śr. generacja |
+|---|---:|---:|---:|---:|---:|
+| natural | 12/12 | 0 | 0 | 3 | 7029 ms |
+| formal | 12/12 | 0 | 0 | 3 | 11012 ms |
+| message | 12/12 | 0 | 0 | 3 | 12361 ms |
 
-[Wynik i ograniczenia](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md).
+[Pełny dowód matrycy](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md). Bez nowego pomiaru nie porównywać tych czasów z bieżącym modelem.
+
+## Dalszy rozwój
+
+`SkillLabScoring` pozostaje czystą logiką. Planowany `SkillLabRunner` ma przejąć model/generation/cancellation/timeout, a Activity wyłącznie rysować immutable `SkillLabUiState`. Pierwszy krok dopiero po osobnej analizie zależności, z testami spóźnionych callbacków, STOP, restartu i 120-sekundowego błędu. [Plan](SAFE_MODULARIZATION_PLAN.md). Nie mieszać ze zmianami telefonii ani recorder F-080.
