@@ -1,3 +1,9 @@
+# NOWY zakres UX-06 w toku — 2026-11-07
+
+Po wyraźnym poleceniu właściciela „rozpocznij wdrażanie poprawek” rozpoczęto source-only UX-06 na aktualnym `main`. **Stan:** `SOURCE_PARTIAL / HOST_PASS_THROUGH_ec3a280 / SCENARIO_QA_PENDING / S22_NOT_RUN`. Wdrożono Start/Kampanie stany, widoczny dialer, uproszczenie accordion, odrębne anulowanie zadania OUTGOING oraz pierwszy katalog 10 scenariuszy z szyfrowanym formularzem. **Nie pomyl szkiców scenariuszy z gotowymi połączeniami i nie uruchamiaj nieautoryzowanego call**. Następne kroki i dokładne receipts: [UX-06 checkpoint](checkpoints/2026-11-07-ux06-campaign-and-scenario-source-checkpoint.md), [plan](UX06_USABILITY_AND_SCENARIO_PLAN.md), [roadmap](ROADMAP.md), [BLOCKERS](../BLOCKERS.md). Test `aicalls-ux06-host-regression-fix-20261107-v2` DONE/0 na `ec3a280`, v3 nowego kodu scenariuszy QA_PENDING, bez S22. Nie uruchamiać równoległych host tasków dla tego checkout podczas v3.
+
+---
+
 # AI Calls — HANDOFF (2026-11-07): Sprint 6 CLOSED, UX-01–04 SOURCE_PASS, UX-05 VERIFIED
 
 **Bieżący stan:** `UX_ITERATION_CLOSED / UX05_SOURCE_HOST_PASS / UX05_S22_AUTOMATED_PASS / UX05_PL_EN_SCREENSHOT_PASS`. Poprzednie P0/UX-01–04 nie zostały ponownie otwarte. [Dokładny checkpoint UX-05](checkpoints/2026-11-07-ux05-pl-en-accessibility-closeout.md).

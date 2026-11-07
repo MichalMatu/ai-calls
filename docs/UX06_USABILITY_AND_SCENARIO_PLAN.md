@@ -40,3 +40,7 @@ Data: 2026-11-07. Stan: wdrożenie etapowe, niezatwierdzony wynik hosta/S22.
 
 Nie uznawać „biblioteka scenariuszy wdrożona” przed faktycznym dodaniem modeli, edytora, testów i integracji; ten dokument nie jest kodem.
 
+
+## Implementacja etapowa po zatwierdzeniu planu
+
+Aktualny source: `a03e98b`. Biblioteka 10 presetów ma neutralny katalog JVM, formularz podglądu/edycji, przykładowe wartości Mechanik, prywatny szyfrowany zapis szkicu i AndroidTest nawigacji. **Nie posiada jeszcze** własnych scenariuszy użytkownika, wersjonowania formularzy, potwierdzenia wyboru przed START ani kwalifikowanego silnika nowych branż. Do momentu integracji wyświetla jawne DRAFT_ONLY. Szczegóły: [checkpoint](checkpoints/2026-11-07-ux06-campaign-and-scenario-source-checkpoint.md).
