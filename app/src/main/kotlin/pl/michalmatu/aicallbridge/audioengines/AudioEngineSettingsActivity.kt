@@ -156,15 +156,13 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     } else "Nie udało się zapisać profilu."
                     refreshActive()
                 }
-            }
-        })
+        }, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, "Przywróć stabilny wariant") {
                 if (store.save(AudioEngineProfile.STABLE)) {
                     feedback.text = "Przywrócono stabilny wariant dla następnej rozmowy."
                 } else feedback.text = "Błąd zapisu preferencji."
                 refreshActive()
-            }
-        })
+        }, UiDesign.spaceAfter(this, 12))
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
