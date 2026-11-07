@@ -95,8 +95,8 @@ class AndroidSettingsNavigationMatrixTest {
         val beforeIncoming = IncomingAssistantPolicyStore(context).preferences.all.toMap()
         val beforeSkills = AndroidConversationPreparationStore(context).loadSkillLibrary()
 
-        assertScreen(GeneralSettingsActivity::class.java, "Podstawowe")
-        assertScreen(DeveloperToolsActivity::class.java, "Sondy")
+        assertScreen(GeneralSettingsActivity::class.java, context.getString(R.string.ui_basic))
+        assertScreen(DeveloperToolsActivity::class.java, context.getString(R.string.ui_settings_hub_developer))
         assertScreen(AudioEngineSettingsActivity::class.java, "Ustawienia silników audio AI")
         assertScreen(LanguageModelActivity::class.java, "Modele językowe")
         assertScreen(IncomingAssistantSettingsActivity::class.java, "Odbieranie połączeń")
