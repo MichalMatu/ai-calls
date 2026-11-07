@@ -57,6 +57,14 @@ class AndroidHistoryBulkClearContractTest {
                         description.contains("nagrania", ignoreCase = true) ||
                         description.contains("recording", ignoreCase = true))
                 }
+                // Wait for a real drawn dialog frame, not merely isShowing=true.
+                InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+                Thread.sleep(350)
+                scenario.onActivity { activity ->
+                    val dialog = requireNotNull(activity.pendingBulkDeleteConfirmation)
+                    assertTrue("bulk_dialog_window_not_visible",
+                        requireNotNull(dialog.window).decorView.isShown)
+                }
                 // Screenshot only; no destructive positive dialog action is ever pressed.
                 val dir = context.getExternalFilesDir("ui-audit-20261107-sprint6")
                 assertTrue(requireNotNull(dir).isDirectory || requireNotNull(dir).mkdirs())
