@@ -16,6 +16,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionPcmWav
 
@@ -79,7 +80,7 @@ class AndroidArchivedChatAudioPlaybackTest {
                 for (attempt in 0 until 50) {
                     scenario.onActivity { activity ->
                         val play = findButton(activity.window.decorView) {
-                            it.contains("Odtwórz fragment")
+                            it.contains(context.getString(R.string.history_play_fragment))
                         }
                         if (play != null) {
                             play.performClick()
@@ -95,8 +96,8 @@ class AndroidArchivedChatAudioPlaybackTest {
                 for (attempt in 0 until 40) {
                     scenario.onActivity { activity ->
                         succeeded = hasStatus(activity.window.decorView) {
-                            it.contains("Odtwarzanie zapisanego fragmentu audio.") ||
-                                it.contains("Odsłuch fragmentu zakończony.")
+                            it.contains(context.getString(R.string.history_playing)) ||
+                                it.contains(context.getString(R.string.history_playback_finished))
                         }
                     }
                     if (succeeded) break
