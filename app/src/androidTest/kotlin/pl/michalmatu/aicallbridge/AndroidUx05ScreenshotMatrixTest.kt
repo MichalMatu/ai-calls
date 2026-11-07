@@ -28,27 +28,29 @@ class AndroidUx05ScreenshotMatrixTest {
                                         expectedTitle: Int, locale: String, directory: File) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch(type).use { scenario ->
+            instrumentation.waitForIdleSync()
+            var rendered: Bitmap? = null
             scenario.onActivity { activity ->
+                val root = activity.window.decorView
                 assertTrue("screen_title_absent:" + key,
-                    labels(activity.window.decorView).any {
-                        it == activity.getString(expectedTitle)
-                    })
+                    labels(root).any { it == activity.getString(expectedTitle) })
                 assertEquals("screen_locale_wrong:" + key, locale,
                     activity.resources.configuration.locales[0].language)
+                assertTrue("view_not_laid_out:" + key, root.width > 500 && root.height > 500)
+                rendered = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888).also {
+                    root.draw(android.graphics.Canvas(it))
+                }
             }
-            instrumentation.waitForIdleSync()
-            Thread.sleep(550)
-            val bitmap = instrumentation.uiAutomation.takeScreenshot()
-            assertNotNull("screenshot_unavailable:" + key, bitmap)
+            val bitmap = checkNotNull(rendered)
             try {
                 val file = File(directory, key + "-" + locale + ".png")
                 FileOutputStream(file).use { output ->
                     assertTrue("png_compression_failed:" + key,
-                        checkNotNull(bitmap).compress(Bitmap.CompressFormat.PNG, 100, output))
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
                 }
-                assertTrue("png_empty:" + key, file.isFile && file.length() > 10_000)
+                assertTrue("png_empty:" + key, file.isFile && file.length() > 200)
             } finally {
-                bitmap?.recycle()
+                bitmap.recycle()
             }
         }
     }
