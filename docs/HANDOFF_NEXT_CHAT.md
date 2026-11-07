@@ -1,3 +1,5 @@
+**Ważne: `d38408ba` naprawia mylące hasło START z Home:** przycisk nadal realnie uruchamia tylko autoryzowane CLIR w strategii skryptowej; zwykłe scenariusze to wyłącznie formularze. F-127 FIXED_IN_SOURCE / QA_PENDING.
+
 # UX-06 aktualizacja — osobiste scenariusze, historyczne statusy (2026-11-07)
 
 Bieżący etap wdrażania: [nowy checkpoint](checkpoints/2026-11-07-ux06-personal-scenarios-and-history-receipt.md). `main@3c7a8b5` kod: 10 factory presetów, szyfrowane szkice, kopie osobiste i rewizje, UI PL/EN, rzeczywista data historii kampanii. **Host v4 na b2a2fc5 DONE/0**: pełny build + 338 Python, JVM, AndroidTest compile, friction PASS. **Host v5 do 3c7a8b5 QUEUED, wynik QA_PENDING.** S22 w tym etapie nie instalowano ani nie testowano. Następny kierunek: typowany live-state i bezpieczna próba Android UI bez faktycznego CALL. Niewdrożone presety pozostają draft-only; nie ogłaszać gotowych rezerwacji ani sukcesu sieciowego.

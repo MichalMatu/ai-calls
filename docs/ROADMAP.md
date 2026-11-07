@@ -1,3 +1,5 @@
+**UX-06 drobna poprawka zakresu START:** `d38408ba` nazwa i opis odtąd jawnie wskazują wyłącznie CLIR/skrypt zamiast sugerować wykonywanie dowolnego presetu. Kwalifikowany wybór innych scenariuszy przed START nadal OPEN; nie uruchamiać przykładowych presetów telefonicznie.
+
 ## UX-06 — etap 2: wersjonowane scenariusze i historia (w toku)
 
 **Kod:** `704e697` partial draft; `8508d2e` pure personal library; `cf42216` encrypted persistence; `b2a2fc5` copy/rename/goal/revise/restore/delete UI; `a62e9da` izolowany AndroidTest i Python; `b74284b` znacznik czasu historycznych zdarzeń; `3c7a8b5` zabezpieczenie niezapisanych zmian. **HOST:** v3 `a03e98b` DONE/0; v4 `b2a2fc5` DONE/0 (338 Python, JVM/AndroidTest compile/APK/friction PASS); v5 `3c7a8b5` QA_PENDING. **S22:** NOT_RUN dla aktualnego kodu. [Nowy checkpoint](checkpoints/2026-11-07-ux06-personal-scenarios-and-history-receipt.md). **OPEN:** F-122, F-123, F-124, F-080 oraz kwalifikowane połączenia poza CLIR.
