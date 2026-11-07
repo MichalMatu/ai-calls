@@ -21,8 +21,13 @@ class UiPolishSprintContract(unittest.TestCase):
         lab=(ROOT/"conversation/ConversationSkillLabActivity.kt").read_text()
         camp=(ROOT/"campaign/CampaignToolActivity.kt").read_text()
         for token in ('tag = "lab-stop"', 'tag = "lab-rating-group"',
-                      'runButton.isEnabled = false', "stopButton.visibility = android.view.View.VISIBLE"):
+                      "runButton.isEnabled = next.canStart",
+                      "stopButton.visibility = if (!next.canStart",
+                      "runner.stop()"):
             self.assertIn(token,lab)
+        runner=(ROOT/"conversation/SkillLabRunner.kt").read_text()
+        self.assertIn("canStart = false", runner)
+        self.assertIn("SkillLabPhase.STOPPED", runner)
         for token in ("UiActionTone.PRIMARY", "UiActionTone.DANGER",
                       'tag = "campaign-primary-actions"', "initiallyExpanded = false",
                       "ensurePermissionsThen(PendingAction.START)"):
