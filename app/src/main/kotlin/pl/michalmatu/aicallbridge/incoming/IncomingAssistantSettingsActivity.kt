@@ -1,71 +1,104 @@
 package pl.michalmatu.aicallbridge.incoming
 
+import android.content.Intent
+import android.os.Bundle
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.TextView
+import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
+import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
+import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
+import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
+import pl.michalmatu.aicallbridge.conversationcore.IncomingAssistantPolicy
+import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
-import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Bundle
-import android.telecom.PhoneAccountHandle
-import android.telecom.TelecomManager
-import android.view.WindowManager
-import android.widget.*
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService
-import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
-import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 
+/** Displays incoming-call preferences; all store/Telecom effects live in the controller. */
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(UiDesign.dp(this@IncomingAssistantSettingsActivity, 28), UiDesign.dp(this@IncomingAssistantSettingsActivity, 36), UiDesign.dp(this@IncomingAssistantSettingsActivity, 28), UiDesign.dp(this@IncomingAssistantSettingsActivity, 28)) }
-        val feedback=TextView(this)
-        val store=IncomingAssistantPolicyStore(this)
-        val policy=runCatching { store.load() }.getOrElse {
-            feedback.text="Nie można odczytać polityki odbierania. Zapisz wybrany tryb ponownie."
-            pl.michalmatu.aicallbridge.conversationcore.IncomingAssistantPolicy("unavailable",AnsweringMode.MANUAL,null,true)
+        val controller = IncomingAssistantSettingsController(this)
+        val feedback = TextView(this)
+        val policy = controller.current().getOrElse {
+            feedback.text = getString(R.string.incoming_ui_read_error)
+            IncomingAssistantPolicy("unavailable", AnsweringMode.MANUAL, null, true)
         }
-        fun text(value:String)=TextView(this).apply { text=value;textSize=16f }
-        content.addView(text("Odbieranie połączeń — wirtualna asystentka"))
-        content.addView(text("AI przyjmuje wiadomość. Przejmij rozmowę zatrzymuje AI i zostawia połączenie Tobie. Zapis polityki obowiązuje dla kolejnych połączeń na wybranej karcie SIM."))
-        val mode=Spinner(this).apply {
-            adapter=ArrayAdapter(this@IncomingAssistantSettingsActivity,android.R.layout.simple_spinner_dropdown_item,
-                listOf("Ręcznie — samodzielnie odbieram","AI — odbieraj i przyjmuj wiadomości"))
-            setSelection(if(policy.mode==AnsweringMode.AI) 1 else 0)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(UiDesign.dp(this@IncomingAssistantSettingsActivity, 24),
+                UiDesign.dp(this@IncomingAssistantSettingsActivity, 28),
+                UiDesign.dp(this@IncomingAssistantSettingsActivity, 24),
+                UiDesign.dp(this@IncomingAssistantSettingsActivity, 28))
+        }
+        fun description(value: Int) = TextView(this).apply {
+            text = getString(value)
+            textSize = 15f
+            setTextColor(UiDesign.ink)
+            setPadding(0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 7),
+                0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 12))
+        }
+        content.addView(UiDesign.heading(this, getString(R.string.incoming_ui_title)))
+        content.addView(description(R.string.incoming_ui_intro))
+        val mode = Spinner(this).apply {
+            tag = "incoming-mode-spinner"
+            adapter = ArrayAdapter(this@IncomingAssistantSettingsActivity,
+                android.R.layout.simple_spinner_dropdown_item, listOf(
+                    getString(R.string.incoming_ui_mode_manual),
+                    getString(R.string.incoming_ui_mode_ai)))
+            setSelection(if (policy.mode == AnsweringMode.AI) 1 else 0)
+            minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
         content.addView(mode)
-        val telecom=getSystemService(TelecomManager::class.java)
-        val accounts:List<PhoneAccountHandle> = if(checkSelfPermission(Manifest.permission.READ_PHONE_STATE)==PackageManager.PERMISSION_GRANTED)
-            runCatching { telecom.callCapablePhoneAccounts }.getOrDefault(emptyList()) else emptyList()
-        val account=Spinner(this).apply {
-            adapter=ArrayAdapter(this@IncomingAssistantSettingsActivity,android.R.layout.simple_spinner_dropdown_item,
-                accounts.mapIndexed { index,handle -> telecom.getPhoneAccount(handle)?.label?.toString() ?: "SIM ${index+1}" }.ifEmpty { listOf("Brak dostępnej karty SIM — sprawdź uprawnienia Androida") })
-            setSelection(accounts.indexOfFirst { IncomingAssistantPolicyStore.accountKey(it)==policy.accountKey }.coerceAtLeast(0))
+        val accounts = controller.availableAccounts()
+        val account = Spinner(this).apply {
+            tag = "incoming-sim-spinner"
+            adapter = ArrayAdapter(this@IncomingAssistantSettingsActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                accounts.mapIndexed { i, handle ->
+                    controller.displayAccount(handle) ?: getString(R.string.incoming_ui_sim_fallback, i + 1)
+                }.ifEmpty { listOf(getString(R.string.incoming_ui_no_sim)) })
+            setSelection(controller.selectedAccountIndex(accounts, policy.accountKey))
+            minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
         content.addView(account)
-        val recording=CheckBox(this).apply { text="Zapisuj transkrypt i dostępne fragmenty audio";isChecked=policy.recordEvidence }
+        val recording = CheckBox(this).apply {
+            text = getString(R.string.incoming_ui_record)
+            isChecked = policy.recordEvidence
+            minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
+        }
         content.addView(recording)
-        content.addView(text("Dialog: model bez skryptu. STT, model i TTS pochodzą ze wspólnych ustawień silników; instrukcje z profilu przychodzącego."))
-        content.addView(Button(this).apply {
-            text="Zapisz tryb odbierania"
-            setOnClickListener {
-                val selected=if(mode.selectedItemPosition==1) AnsweringMode.AI else AnsweringMode.MANUAL
-                val key=accounts.getOrNull(account.selectedItemPosition)?.let(IncomingAssistantPolicyStore::accountKey)
-                if(selected==AnsweringMode.AI && key==null) { feedback.text="Wybierz kartę SIM po nadaniu uprawnień Androida.";return@setOnClickListener }
-                runCatching { store.save(selected,key,recording.isChecked); AndroidOwnedInCallService.incomingPolicyChanged() }
-                    .onSuccess { feedback.text=if(selected==AnsweringMode.AI) "Zapisano: AI odbiera kolejne połączenia na wybranej karcie SIM, gdy telefon i silniki są gotowe." else "Zapisano tryb ręczny; AI oddaje aktywną rozmowę użytkownikowi." }
-                    .onFailure { feedback.text="Nie zapisano polityki odbierania." }
-            }
+        content.addView(description(R.string.incoming_ui_engines_hint))
+        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_save)) {
+            val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL
+            val chosen = accounts.getOrNull(account.selectedItemPosition)
+            feedback.text = getString(when (controller.save(selected, chosen, recording.isChecked)) {
+                IncomingAssistantSettingsController.SaveResult.NEED_SIM -> R.string.incoming_ui_choose_sim
+                IncomingAssistantSettingsController.SaveResult.SAVED_AI -> R.string.incoming_ui_saved_ai
+                IncomingAssistantSettingsController.SaveResult.SAVED_MANUAL -> R.string.incoming_ui_saved_manual
+                IncomingAssistantSettingsController.SaveResult.FAILED -> R.string.incoming_ui_save_failed
+            })
+        }.apply { tag = "incoming-save-mode" })
+        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_engines_link)) {
+            startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
         })
-        content.addView(Button(this).apply { text="Silniki: STT / model / TTS";setOnClickListener {startActivity(Intent(this@IncomingAssistantSettingsActivity,AudioEngineSettingsActivity::class.java))} })
-        content.addView(Button(this).apply { text="Skills i dane rozmów";setOnClickListener {startActivity(Intent(this@IncomingAssistantSettingsActivity,ConversationPreparationActivity::class.java))} })
-        content.addView(Button(this).apply { text="Skills i presety Gemmy";setOnClickListener {startActivity(Intent(this@IncomingAssistantSettingsActivity,
-            pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity::class.java))} })
-        content.addView(Button(this).apply { text="Narzędzia AI";setOnClickListener {startActivity(Intent(this@IncomingAssistantSettingsActivity,pl.michalmatu.aicallbridge.tools.ConversationToolsActivity::class.java))} })
+        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_preparation_link)) {
+            startActivity(Intent(this, ConversationPreparationActivity::class.java))
+        })
+        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_skills_link)) {
+            startActivity(Intent(this, ConversationSkillsActivity::class.java))
+        })
+        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_tools_link)) {
+            startActivity(Intent(this, ConversationToolsActivity::class.java))
+        })
+        feedback.setPadding(0, UiDesign.dp(this, 10), 0, 0)
         content.addView(feedback)
-        setContentView(ScrollView(this).apply {addView(content)})
+        setContentView(ScrollView(this).apply { addView(content) })
     }
 }

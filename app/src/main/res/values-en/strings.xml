@@ -94,4 +94,22 @@
     <string name="history_playback_finished">Audio fragment finished.</string>
     <string name="history_playing">Playing saved audio fragment.</string>
     <string name="history_playback_error">Could not play audio fragment.</string>
+    <string name="incoming_ui_title">Incoming calls — virtual assistant</string>
+    <string name="incoming_ui_intro">AI takes a message. Take over stops AI and leaves the call with you. Your selection applies to future calls on the chosen SIM.</string>
+    <string name="incoming_ui_read_error">Could not read the answering policy. Save your preferred mode again.</string>
+    <string name="incoming_ui_mode_manual">Manual — I answer calls myself</string>
+    <string name="incoming_ui_mode_ai">AI — answer and take messages</string>
+    <string name="incoming_ui_sim_fallback">SIM %1$d</string>
+    <string name="incoming_ui_no_sim">No available SIM — check Android permissions</string>
+    <string name="incoming_ui_record">Save transcript and available audio fragments</string>
+    <string name="incoming_ui_engines_hint">Dialog uses a model without a fixed script. STT, model and TTS follow shared engine settings; instructions come from the incoming profile.</string>
+    <string name="incoming_ui_save">Save answering mode</string>
+    <string name="incoming_ui_choose_sim">Select a SIM after granting Android permissions.</string>
+    <string name="incoming_ui_saved_ai">Saved: AI answers future calls on the chosen SIM when the phone and engines are ready.</string>
+    <string name="incoming_ui_saved_manual">Manual mode saved; AI hands active conversations back to you.</string>
+    <string name="incoming_ui_save_failed">Answering policy could not be saved.</string>
+    <string name="incoming_ui_engines_link">Engines: STT / model / TTS</string>
+    <string name="incoming_ui_preparation_link">Skills and conversation data</string>
+    <string name="incoming_ui_skills_link">Gemma skills and presets</string>
+    <string name="incoming_ui_tools_link">AI tools</string>
 </resources>
