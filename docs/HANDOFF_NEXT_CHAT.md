@@ -1,39 +1,35 @@
-# AI Calls — aktualny handoff (2026-11-07, Sprint 6)
+# AI Calls — HANDOFF po zamknięciu iteracji UX Sprint 6 (2026-11-07)
 
-> **Jedyny bieżący handoff.** Po otwarciu nowego czatu sprawdź świeży `main` i wyniki Local Agenta. Historyczne handoffy i testy są w Git oraz [checkpoints](checkpoints/); nie stanowią nowych zadań.
+**Status końcowy:** `UX_ITERATION_CLOSED / SOURCE_PASS / S22_PASS / REAL_GEMMA_PASS`. Właściciel uznał UX za wystarczająco dobry i kończy tę iterację. **Nie rozpoczynać kolejnych mikro-poprawek wizualnych ani nie powtarzać zaliczonych testów.**
 
-## Punkt startowy
+**Źródło prawdy:** [Finalny checkpoint Sprintu 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) · [roadmapa](ROADMAP.md) · [rejestr BLOCKERS](../BLOCKERS.md). Historyczny [checkpoint sprzed odbioru](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md) zachowany jako dowód przebiegu, nie jako bieżący stan.
 
-- Repo: `MichalMatu/ai-calls`, `main`, bez nowych gałęzi, force-push, Codex, Work ani GitHub Actions. Środowisko: GitHub Connector + **Mac Local Agent**, `macbook-michal`, installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`; checkout `/Users/michal/agent-workspace/repos/ai-calls/work`. Commity `[skip ci]`.
-- **HEAD funkcjonalny Sprint 6:** `0dface1e86e6bf9bab65090c3af293ff12f9dc7c`. Nowsze commity dokumentacyjne są możliwe; przed pracą sprawdź dokładny HEAD i clean worktree.
-- **Checkpoint nadrzędny:** [Sprint 6 — kod, QA, S22 i dalsze granice UX](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md).
-- **Bieżący rezultat:** `SOURCE_GREEN`. Mac `aicalls-20261107-ux-sprint6-source-host-qa-v3` DONE / exit 0: **325 host PASS**, 33 celowane Python, AndroidTest compile, JVM/APK i friction PASS. Kod nowych ekranów jest w `main`.
-- **Sprzęt Sprint 6:** `S22_QA_PENDING_ADB`. `...s22-install-28ui-24visual-42screens-v2` FAILED preflight: `adb devices -l` puste, exact S22 niedostępny. Nie instalowano tej rewizji, nie otrzymano ZIP. `...s22-real-gemma-follow-stop-v1` FAILED prerequisites: 602 s oczekiwania na ZIP, model nie ruszył. Żadna z tych porażek nie dowodzi błędu Gemmy.
-- **Ostatni fizyczny baseline:** Sprint 5 `0bd17da` — 27/27 natywne UX, 23/23 wizualne, 43 prywatne zdjęcia, realne offline 2 tury + STOP PASS. Nie przypisuj tego wyniku Sprintowi 6. [Dowód](checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md).
+## Dokładny stan repo i środowiska
 
-## Co jest gotowe w Sprint 6
+- Repo `MichalMatu/ai-calls`, gałąź `main`, **ostatni HEAD funkcjonalny `1b359146d89260e7cffd6d4c851d4c475cee20ac`**. Późniejsze commity dokumentacji mogą mieć inne SHA, dlatego sprawdź aktualny HEAD i clean worktree. Bez nowych gałęzi, force-push, GitHub Actions, Codex ani Work; commity `[skip ci]`.
+- GitHub Connector + **Mac Local Agent**: `macbook-michal`, installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, repo na Macu `/Users/michal/agent-workspace/repos/ai-calls/work`. Testy hosta wykonywać tam, nie zgadywać stanów sprzętu.
+- Fizyczny S22 `SM-S906B` / serial `RFCT70L7E8J`; instalacja `app-debug.apk` i AndroidTest APK przez `adb install -r -t`, signer zgodny, **dane zachowane**. `IDLE`, brak aktywnej kampanii i faktycznych połączeń podczas testów.
 
-1. Historia rozmów: **„Usuń wszystkie zakończone rozmowy”** na dole listy z potwierdzeniem. Usuwane są tylko sprawdzone COMPLETE/END prywatne archiwa i ich audio, **nie** sesje aktywne/nieukończone; testy hosta na izolowanych danych. Na S22 test kasowania ma **jedynie anulować** dialog, nie zatwierdzać usuwania prawdziwych rozmów.
-2. Chat historyczny: dotknięcie dymku z WAV odtwarza, ponowne zatrzymuje, bez przycisku pod dymkiem; niepowiązane klipy pozostają w zwijanej sekcji. Player nie działa w czasie rozmowy.
-3. Lab: poprawione przewijanie do ostatniej tury, wyraźny STOP, rozdzielone wyniki END_CALL od semantyki i ostrożna heurystyka pytań bez `?`.
-4. Kampanie/Skills/Silniki: czytelny historyczny status, krótsze CTA, zapis i gotowość we właściwej hierarchii; bez zmian autorizacji i telekomunikacji.
+## Zakończone PASS — nie otwierać ponownie
 
-## Co wykonać tylko raz, po spełnieniu warunków
+| Obszar | Receipt | Wynik |
+|---|---|---|
+| Kod finalny, lokalne testy, APK i friction | `aicalls-20261107-ux-sprint6-visual-review-hotfix-source-qa-v1` | **DONE/0**, 325 host tests PASS, 33 celowane Python, AndroidTest/JVM/APK PASS; HEAD `1b359146` |
+| Pełna instalacja Sprint 6, UI i screenshots | `aicalls-20261107-ux-sprint6-s22-install-28ui-24visual-42screens-v3` | **DONE/0**: **28/28 native UX, 24/24 visual**, 42 prywatne JPG |
+| Hotfix heurystyki Android, auto-follow i screenshot dialogu | `aicalls-20261107-ux-sprint6-visual-review-hotfix-s22-targeted-v2` | **DONE/0**: 1/1 bezpieczny dialog, 3/3 syntetyczne stany Lab; 44 JPG; finalny hotfix APK wgrany |
+| Realna Gemma po hotfixie | `aicalls-20261107-ux-sprint6-hotfix-real-gemma-final-v1` | **DONE/0**: **2 realne tury LiteRT + STOP**, stan IDLE po teście, **46 prywatnych JPEG** |
+| Android regex bug F-118 | [BLOCKERS](../BLOCKERS.md) | **VERIFIED**, nie przywracać `(?iuU)` w Android Regex |
 
-1. Odzyskaj i sprawdź **dokładny** S22 `SM-S906B / RFCT70L7E8J` w ADB jako `device`, stan IDLE, brak aktywnej kampanii/retry, rola dialera i zgodność certyfikatu.
-2. Ponów **tylko** niezakończoną bramkę Sprint 6: 28 natywne UI, 24 wizualne, min. 42 prywatne zrzuty, `adb install -r -t` bez utraty danych i zero realnych rozmów. Zapisz nowy receipt i ZIP na lokalnym Macu; niczego prywatnego nie commituj.
-3. Dopiero po 42 screenshotach: realna lokalna Gemma **2 tury + widoczny ostatni dymek + STOP**, docelowo 46 screenshotów. Jeżeli ADB nadal nie ma, zaznacz `QA_PENDING_ADB`; nie wykonuj pętli niekończących się retry.
-4. Właściciel przekazuje prywatny ZIP do ręcznej oceny. Dopiero wtedy merytoryczne mikro-UX i decyzja o nowym sprintcie.
+- **Funkcje UX:** bulk-delete tylko zakończonych rozmów z potwierdzeniem, dymek WAV tap→play/tap→stop, czytelny STOP i auto-follow w Lab, Skills/Engine/Campaign hierarchia, status wykonania historyczny a nie live.
+- **Prywatny finalny ZIP:** `~/Library/Application Support/AI-Calls/UI-audit/2026-11-07-ux-sprint6/AI-Calls-S22-UX-sprint6-private.zip` (Mac). Nie commitować JPEG/WAV/transkryptów/numerów.
+- Wcześniejsze błędy ADB oraz FAIL z `PatternSyntaxException` są **historycznymi RED z późniejszym GREEN** — nie usuwać ich dowodów, ale nie klasyfikować jako dzisiejsze blockers.
 
-## Następna praca architektoniczna — oddzielona od sprzętu
+## Następny chat — dopiero nowy zakres, bez kontynuacji UX polishing
 
-**Rekomendacja:** stopniowe rozdzielenie UX od logiki, nie masowe przeniesienie klas. Najpierw read-only `CampaignExecutionStatusPresenter` (samo mapowanie kodów wykonania), potem `ConversationHistoryController`/stan, później `SkillLabRunner`/stan. Działające `GeneralSettingsController`, `IncomingAssistantSettingsController` i `ConversationToolsSettingsController` pozostają. Każdy krok: mapa wywołań → testy → jedna zmiana → właściwy host gate; nie dotykać Samsung/Shizuku/Telecom.
+**Rekomendowany start:** przejrzeć aktualne zależności i wykonać **UX-01 — read-only `CampaignExecutionStatusPresenter`** (historyczny runtime code → typowany, lokalizowalny status prezentacji; bez polityk, I/O, grantów i akcji na Call). Następnie osobno: **UX-02** controller historii/IO/bulk delete, **UX-03** runner Laboratorium/cancel/timeout, **UX-04** ustawienia/model, **UX-05** F-103 języki. Nie budować wszystkiego jednocześnie.
 
-**Otwarte:** F-103 (pełne PL/EN), F-080 (ciągłe nagranie całej rozmowy), osobne live-call QA i naturalność Gemmy. Statusy wyłącznie w [BLOCKERS](../BLOCKERS.md), decyzje architektoniczne w [SAFE_MODULARIZATION_PLAN](SAFE_MODULARIZATION_PLAN.md) i [ARCHITECTURE](ARCHITECTURE.md).
+**Inne niezależne, nienaruszane sprawy:** F-080 pełny ciągły recorder/player sesji; fizyczne autoryzowane call flows, przejęcie i odstawienie AI, rzetelna ocena semantyki i naturalności Gemmy. `END_CALL 2/2` to wynik decyzji końca, nie merytorycznej jakości.
 
-## Niezmienniki
+## Stałe granice bezpieczeństwa
 
-- Ważny, odwoływalny grant konkretny cel/SIM/efekt/fakty, ownership jednego Call, brak efektu po samym modelu; STOP i revoke mają pierwszeństwo.
-- `END_CALL` dopiero po zatwierdzeniu i pełnym TX; INCOMING cisza 30 + 15 s; nie zmieniać zamrożonego PCM/PFD, Shizuku, RX/TX, recorder i takeover w sprincie UX.
-- S22 testy tylko na `IDLE` i bez prawdziwych połączeń bez nowej wyraźnej autoryzacji. Żadnych prywatnych WAV, numerów czy rozmów w GitHub.
-- Weryfikacja kodu `scripts/verify_host.sh`, testy właściwego zakresu, audit_product_friction, clean `main`; bez niepotrzebnego powtarzania PASS.
+Nie ruszać zamrożonego Samsung/Shizuku/PCM/PFD RX/TX, ownership jedynego Android Call, grant/revoke, STOP, polityk ujawniania faktów i sekwencji `zatwierdzenie → pełny TX → end_call`. Bez realnych połączeń ani ingerencji w prawdziwe archiwa bez wyraźnej autoryzacji. Testować nową odpowiedzialność w izolacji, `scripts/verify_host.sh`, friction audit, AndroidTest kiedy odpowiedni, checkpoint ze źródłowym i fizycznym QA osobno.
