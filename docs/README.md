@@ -1,8 +1,8 @@
 # AI Calls — indeks aktualnej dokumentacji
 
-**Zacznij tutaj:** [Aktualny handoff](HANDOFF_NEXT_CHAT.md) · [Prompt nowego chatu](NEXT_CHAT_PROMPT.md) · [UX-04 SOURCE_PASS](checkpoints/2026-11-07-ux04-model-and-audio-presentation-closeout.md) · [UX-03 SOURCE_PASS](checkpoints/2026-11-07-ux03-skill-lab-runner-closeout.md) · [UX-02 SOURCE_PASS](checkpoints/2026-11-07-ux02-conversation-history-controller-closeout.md) · [UX-01 SOURCE_PASS](checkpoints/2026-11-07-ux01-campaign-status-presenter-closeout.md) · [Finalny Sprint 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md).
+**Stan 2026-11-07:** najnowszy source `bbb2ceb9` naprawia zbędne rewizje scenariuszy, a [checkpoint general audit](checkpoints/2026-11-07-general-repository-audit-sprint.md) rozdziela RED, izolowany GREEN i oczekiwane receipts Mac. Ostatni pełny potwierdzony odbiór UX-06: `25a41a0`, Mac 341 Python/JVM/lint/APK PASS i S22 10/10 **syntetyczne UI** PASS. Nowy kod **nie ma** z tego automatycznie fizycznego PASS. UX-01–05 i Sprint 6 to wcześniejsze zamknięte zakresy.
 
-**Stan 2026-11-07:** iteracja UX **CLOSED / PASS**. Finalny kod `1b359146`: 325 host PASS; fizyczny S22: **28+24** testy UI/wizualne, hotfix **4/4** targeted, realna Gemma **2 tury + STOP PASS**; 46 prywatnych JPEG. Poprzednie checkpointy zostają jako historia, nie aktualne blokady.
+**Rozpocznij od:** [README](../README.md) · [AGENTS](../AGENTS.md) · [aktualny HANDOFF](HANDOFF_NEXT_CHAT.md) · [NEXT_CHAT_PROMPT](NEXT_CHAT_PROMPT.md) · [ROADMAP](ROADMAP.md) · [checkpoint audytu](checkpoints/2026-11-07-general-repository-audit-sprint.md) · [UX-06 źródła i S22](checkpoints/2026-11-07-ux06-source-s22-synthetic-acceptance.md) · [UX-06 handoff](checkpoints/2026-11-07-ux06-complete-checkpoint-user-directed-next-chat.md).
 
 ## Gdzie szukać
 
