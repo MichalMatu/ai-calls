@@ -83,3 +83,7 @@ Start from fresh `main` (at this checkpoint `0afea79`, re-read before work). Hom
 ## Screenshots and Calls UX sprint (2026-11-07)
 
 New source after `f764fec`: removed 8 `FLAG_SECURE` screen restrictions, recorded permanent no-screenshot-block owner rule in AGENTS.md and F-104; added Calls detail-back-to-list, single completed session deletion with confirmation and symlink/path safety (F-105/106), action spacing (F-107), UI-only Auto/PL/EN selector with locale config. **F-103 full legacy page translation remains OPEN; F-080 unrelated.** See [checkpoint](checkpoints/2026-11-07-calls-screenshots-ui-phase.md). Host and new S22 acceptance are not proven by previous S22 15/15; re-read exact receipt. No real call/delete in tests; only synthetic archive.
+
+## UX/controllers & S22 hardware handoff — 2026-11-07
+
+Current source advances from `f764fec` through `b33bdaa` (re-read latest main). No screenshot flags remain; Calls nested Back/delete + typed archived playback controller; full Calls and Incoming/AI Tools settings PL/EN; UI locale Auto/PL/EN. Host gates 286/292/293/295 Python PASS; Tools final gate needs exact receipt. Physical S22 acceptance of newest source **NOT DONE** because Mac ADB sees zero devices and no exact S22 mDNS announcement (F-108). Never claim installed. Read [checkpoint](checkpoints/2026-11-07-ux-controller-qa-adb-handoff.md). F-103 full UI translation and full controller separation still OPEN; continue only after current host QA and exact S22 identity recovery.

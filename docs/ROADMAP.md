@@ -79,3 +79,7 @@ Four-tab navigation, direct SettingsHub, 11 shared child-screen wrappers, common
 ## Calls UX, screenshots and locales (2026-11-07)
 
 Owner banned screenshot-blocking UI flags globally (F-104). Calls details now return to Calls list; per-session completed archive deletion was added with explicit confirmation and path-safe private cleanup (F-105/F-106). Button spacing (F-107) and Auto/PL/EN UI-only selector are in source; full translation of older Activities is still F-103 OPEN. [Source checkpoint](checkpoints/2026-11-07-calls-screenshots-ui-phase.md). This work requires fresh host + S22 acceptance before VERIFIED.
+
+## UX finishing phase — current 2026-11-07
+
+Screenshot unblocker F-104, Calls Back/Delete F-105/106, action spacing F-107, and first UI-only Auto/PL/EN locale selector are source-implemented. General, archived playback, incoming policy and AI Tools settings now have view-independent controllers. S22 hardware ADB unavailable (F-108; 0 USB/0 wireless), therefore latest source is NOT physically accepted; prior 15/15 is historical. Translate the remaining legacy screens (F-103) and separate engine/campaign UI from policy in small behavior-preserving gates. [Current checkpoint](checkpoints/2026-11-07-ux-controller-qa-adb-handoff.md).

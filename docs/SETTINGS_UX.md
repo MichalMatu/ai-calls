@@ -62,3 +62,7 @@ After reconnecting exact S22 and verifying 2× IDLE, no campaign/retry and APK s
 ## Screenshots / Calls / language finishing (2026-11-07)
 
 All eight legacy `FLAG_SECURE` windows cleared by explicit owner request; screenshots must remain usable on every screen. Calls detail Back stays within Calls; completed conversations have individual Delete with confirmation, including local WAV/transcript removal. Common chrome spaces action buttons. SettingsHub gains Auto/PL/EN chooser backed by system app locale on Android 13+ and local compatibility on older platforms. Older Activities contain some hardcoded Polish text: full i18n remains OPEN F-103. See [checkpoint](checkpoints/2026-11-07-calls-screenshots-ui-phase.md).
+
+## Incoming secretary and AI tools UI/controller split (2026-11-07)
+
+IncomingAssistantSettingsController owns existing policy store, SIM enumeration, explicit save and notification; its Activity only renders controls. ConversationToolsSettingsController owns existing enabled-tool preference writes and typed diagnostic status; the Activity only renders translated labels. PL/EN resources added for both screens. This does not extend call or tool authorization. Complete PL/EN and physical S22 acceptance are still open; see [checkpoint](checkpoints/2026-11-07-ux-controller-qa-adb-handoff.md).
