@@ -107,7 +107,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     feedback.visibility = View.VISIBLE
                 }
             }.apply { tag = "model-import:" + model.id.name }
-            val select = UiDesign.action(this, getString(R.string.models_ui_select), UiActionTone.PRIMARY) {
+            val select = UiDesign.action(this, getString(R.string.models_ui_select), UiActionTone.SECONDARY) {
                 val store = AudioEngineProfileStore(this@LanguageModelActivity)
                 val current = store.load()
                 if (current == null) {
@@ -136,10 +136,21 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             card.addView(actions, UiDesign.spaceAfter(this, 8))
             card.addView(select, UiDesign.spaceAfter(this, 8))
             val detail = UiDesign.caption(this,
-                "${model.detail}\n${checkNotNull(model.spec.expectedBytes) / 1_000_000} MB · " +
-                    "LiteRT-LM ${LanguageModelCatalog.RUNTIME_VERSION} · " +
-                    "${model.source.repositoryId} · Apache 2.0"
-            ).apply { visibility = View.GONE; tag = "model-details:" + model.id.name }
+                model.detail + "\n\n" +
+                    getString(R.string.models_ui_detail_size,
+                        checkNotNull(model.spec.expectedBytes) / 1_000_000) + "\n" +
+                    getString(R.string.models_ui_detail_runtime,
+                        "LiteRT-LM " + LanguageModelCatalog.RUNTIME_VERSION) + "\n" +
+                    getString(R.string.models_ui_detail_source) + ":\n" +
+                    model.source.repositoryId.replace("/", "/\n") + "\n" +
+                    getString(R.string.models_ui_detail_license)
+            ).apply {
+                visibility = View.GONE
+                tag = "model-details:" + model.id.name
+                textSize = 13f
+                setLineSpacing(UiDesign.dp(this@LanguageModelActivity, 3).toFloat(), 1f)
+                setTextIsSelectable(true)
+            }
             val toggle = UiDesign.action(this, getString(R.string.models_ui_details)) {
                 val expanded = detail.visibility != View.VISIBLE
                 detail.visibility = if (expanded) View.VISIBLE else View.GONE
