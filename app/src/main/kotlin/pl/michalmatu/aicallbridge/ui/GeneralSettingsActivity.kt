@@ -17,7 +17,7 @@ import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
 /** Config-only screen. UI selections delegate to the existing preference contract. */
-class GeneralSettingsActivity : Activity() {
+class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var preferences: CallRuntimePreferences
     private lateinit var modePicker: Spinner
     private lateinit var llmPicker: Spinner
@@ -95,7 +95,7 @@ class GeneralSettingsActivity : Activity() {
         val permission = UiDesign.button(this, getString(R.string.ui_microphone)) { requestMicrophone() }
         content.addView(permission, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = UiDesign.dp(this@GeneralSettingsActivity, 18) })
-        AppNavigation.install(this, ScrollView(this).apply { addView(content) }, AppTab.SETTINGS)
+        setContentView(ScrollView(this).apply { addView(content) })
     }
     private fun requestMicrophone() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {

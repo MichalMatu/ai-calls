@@ -9,7 +9,7 @@ import pl.michalmatu.aicallbridge.MainActivityDeveloperProbes
 import pl.michalmatu.aicallbridge.R
 
 /** Existing diagnostic actions, relocated without changing their callbacks. */
-class DeveloperToolsActivity : Activity() {
+class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var probes: MainActivityDeveloperProbes
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,7 +30,7 @@ class DeveloperToolsActivity : Activity() {
         probes = MainActivityDeveloperProbes(this, status)
         probes.addControls(body)
         body.addView(status)
-        AppNavigation.install(this, ScrollView(this).apply { addView(body) }, AppTab.SETTINGS)
+        setContentView(ScrollView(this).apply { addView(body) })
         probes.attach()
     }
     override fun onDestroy() {
