@@ -82,4 +82,16 @@
     <string name="history_delete_failed">Nie udało się usunąć rozmowy. Aktywne lub niekompletne sesje są chronione.</string>
     <string name="history_read_error">Błąd odczytu historii</string>
     <string name="history_back_to_list">Wszystkie rozmowy</string>
+    <string name="history_incomplete">Niepełne archiwum: %1$d uszkodzonych wpisów</string>
+    <string name="history_audio_count">Fragmenty audio: %1$d. To nie jest nagranie całej rozmowy.</string>
+    <string name="history_play_fragment">▶ Odtwórz fragment</string>
+    <string name="history_more_segments">Inne segmenty, w tym krótkie potwierdzenia AI:</string>
+    <string name="history_play_extra">▶ Odtwórz dodatkowy segment</string>
+    <string name="history_detail_error">Błąd odczytu: %1$s</string>
+    <string name="history_permission_required">Do odsłuchu wymagane jest uprawnienie odczytu stanu telefonu.</string>
+    <string name="history_off_call_only">Odsłuch możliwy tylko poza połączeniem telefonicznym.</string>
+    <string name="history_clip_not_found">Nie znaleziono bezpiecznego lokalnego pliku WAV.</string>
+    <string name="history_playback_finished">Odsłuch fragmentu zakończony.</string>
+    <string name="history_playing">Odtwarzanie zapisanego fragmentu audio.</string>
+    <string name="history_playback_error">Nie można odtworzyć fragmentu audio.</string>
 </resources>

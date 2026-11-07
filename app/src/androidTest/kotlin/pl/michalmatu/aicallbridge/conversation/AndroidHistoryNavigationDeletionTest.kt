@@ -55,11 +55,25 @@ class AndroidHistoryNavigationDeletionTest {
                 }
                 assertTrue("back_did_not_restore_calls", waitFor(scenario, "history-open:" + id))
                 scenario.onActivity { activity ->
+                    activity.window.decorView.findViewWithTag<Button>("history-open:" + id).performClick()
+                }
+                assertTrue("details_did_not_reopen", waitFor(scenario, "history-back-to-list"))
+                scenario.onActivity { activity ->
+                    // Exercise the actual AndroidX system dispatcher, not only chrome Back.
+                    activity.onBackPressedDispatcher.onBackPressed()
+                    assertFalse("system_back_left_calls", activity.isFinishing)
+                }
+                assertTrue("system_back_did_not_restore_calls", waitFor(scenario, "history-open:" + id))
+                scenario.onActivity { activity ->
                     activity.window.decorView.findViewWithTag<Button>("history-delete:" + id).performClick()
                     val dialog = requireNotNull(activity.pendingDeleteConfirmation)
                     assertTrue(dialog.isShowing)
-                    assertTrue("confirmation_must_not_delete", directory.exists())
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+                    assertTrue("cancel_must_not_delete", directory.exists())
+                    activity.window.decorView.findViewWithTag<Button>("history-delete:" + id).performClick()
+                    val confirm = requireNotNull(activity.pendingDeleteConfirmation)
+                    assertTrue(confirm.isShowing)
+                    confirm.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
                 }
                 repeat(60) {
                     if (!directory.exists()) return@repeat

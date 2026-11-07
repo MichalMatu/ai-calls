@@ -139,17 +139,16 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                     setOnClickListener { showList() }
                 })
                 result.onSuccess { session ->
-                    if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = "Niepełne dane archiwum: ${session.invalidRecords} uszkodzonych wpisów" })
+                    if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = getString(R.string.history_incomplete, session.invalidRecords) })
                     playbackStatus = TextView(this).apply {
-                        text = "Dostępne fragmenty audio: " + session.audioFiles.size +
-                            ". Nie jest to nagranie całej sesji."
+                        text = getString(R.string.history_audio_count, session.audioFiles.size)
                     }
                     content.addView(playbackStatus)
                     session.lines.forEach { line ->
                         content.addView(conversationMessageView(this, line, ongoing = !session.complete))
                         session.audioFor(line)?.let { name ->
                             content.addView(Button(this).apply {
-                                text = "▶ Odtwórz fragment"
+                                text = getString(R.string.history_play_fragment)
                                 setOnClickListener { playFragment(session.id, name) }
                             })
                         }
@@ -158,32 +157,32 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                     val unlinked = session.audioFiles.values.filterNot { it in linked }
                     if (unlinked.isNotEmpty()) {
                         content.addView(TextView(this).apply {
-                            text = "Inne dostępne segmenty, w tym krótkie potwierdzenia AI:"
+                            text = getString(R.string.history_more_segments)
                         })
                         unlinked.forEach { name ->
                             content.addView(Button(this).apply {
-                                text = "▶ Odtwórz dodatkowy segment"
+                                text = getString(R.string.history_play_extra)
                                 setOnClickListener { playFragment(session.id, name) }
                             })
                         }
                     }
-                }.onFailure { failure -> content.addView(TextView(this).apply { text = "Błąd odczytu: ${failure.javaClass.simpleName}" }) }
+                }.onFailure { failure -> content.addView(TextView(this).apply { text = getString(R.string.history_detail_error, failure.javaClass.simpleName) }) }
             }
         }
     }
     private fun playFragment(id: String, fileName: String) {
         if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            playbackStatus?.text = "Do odsłuchu potrzebna jest zgoda Androida na odczyt stanu telefonu."
+            playbackStatus?.text = getString(R.string.history_permission_required)
             return
         }
         val telecom = getSystemService(TelecomManager::class.java)
         if (runCatching { telecom == null || telecom.isInCall }.getOrDefault(true)) {
-            playbackStatus?.text = "Odsłuch możliwy tylko poza połączeniem telefonicznym."
+            playbackStatus?.text = getString(R.string.history_off_call_only)
             return
         }
         val file = history.resolveAudioFile(id, fileName)
         if (file == null) {
-            playbackStatus?.text = "Nie znaleziono bezpiecznego lokalnego fragmentu WAV."
+            playbackStatus?.text = getString(R.string.history_clip_not_found)
             return
         }
         runCatching {
@@ -195,15 +194,15 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                 it.release()
                 if (playback === it) {
                     playback = null
-                    playbackStatus?.text = "Odsłuch fragmentu zakończony."
+                    playbackStatus?.text = getString(R.string.history_playback_finished)
                 }
             }
             player.prepare()
             player.start()
-            playbackStatus?.text = "Odtwarzanie zapisanego fragmentu audio."
+            playbackStatus?.text = getString(R.string.history_playing)
         }.onFailure {
             stopPlayback()
-            playbackStatus?.text = "Nie można odtworzyć fragmentu audio."
+            playbackStatus?.text = getString(R.string.history_playback_error)
         }
     }
     private fun stopPlayback() {

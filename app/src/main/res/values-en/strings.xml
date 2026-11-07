@@ -82,4 +82,16 @@
     <string name="history_delete_failed">Could not delete conversation. Active or incomplete sessions are protected.</string>
     <string name="history_read_error">History read error</string>
     <string name="history_back_to_list">All conversations</string>
+    <string name="history_incomplete">Incomplete archive: %1$d damaged records</string>
+    <string name="history_audio_count">Audio fragments: %1$d. This is not a recording of the full call.</string>
+    <string name="history_play_fragment">▶ Play fragment</string>
+    <string name="history_more_segments">Other segments, including short AI acknowledgements:</string>
+    <string name="history_play_extra">▶ Play additional fragment</string>
+    <string name="history_detail_error">Could not read conversation: %1$s</string>
+    <string name="history_permission_required">Phone-state permission is required to play audio.</string>
+    <string name="history_off_call_only">Audio playback is available only outside a phone call.</string>
+    <string name="history_clip_not_found">The local WAV fragment was not found.</string>
+    <string name="history_playback_finished">Audio fragment finished.</string>
+    <string name="history_playing">Playing saved audio fragment.</string>
+    <string name="history_playback_error">Could not play audio fragment.</string>
 </resources>
