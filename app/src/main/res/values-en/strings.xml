@@ -612,4 +612,7 @@
     <string name="scenario_ui_delete_message">Delete this scenario and all its saved versions? Built-in templates remain unchanged.</string>
     <string name="camp_ux06_timestamp_unknown">unknown (record predates this feature)</string>
     <string name="camp_ux06_timestamp_label">Recorded: %1$s</string>
+    <string name="scenario_ui_unsaved_title">Unsaved scenario changes</string>
+    <string name="scenario_ui_unsaved_message">Leave the form without saving your changes?</string>
+    <string name="scenario_ui_discard">Leave without saving</string>
 </resources>

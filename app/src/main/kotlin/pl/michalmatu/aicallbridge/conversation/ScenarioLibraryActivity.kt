@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.app.AlertDialog
+import androidx.activity.OnBackPressedCallback
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.EditText
@@ -28,6 +29,9 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
     private var restoredInputs: Bundle? = null
     private var personalTitle: EditText? = null
     private var personalGoal: EditText? = null
+    private var savedValues: Map<String, String> = emptyMap()
+    private var savedTitle: String? = null
+    private var savedGoal: String? = null
     private val inputs = linkedMapOf<String, EditText>()
     private val language: String get() = resources.configuration.locales[0].language
 
@@ -37,6 +41,14 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
             setContentView(TextView(this).apply { text = getString(R.string.scenario_ui_read_failed) })
             return
         }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (selectedId != null) leaveEditor() else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
         selectedId = savedInstanceState?.getString("scenario_id")
         selectedPersonalId = savedInstanceState?.getString("personal_id")
         restoredInputs = savedInstanceState
@@ -62,8 +74,25 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
 
     override fun consumeChromeBack(): Boolean {
         if (selectedId == null) return false
-        showCatalog()
+        leaveEditor()
         return true
+    }
+
+    private fun leaveEditor() {
+        val changed = inputs.any { (id, edit) ->
+            edit.text.toString() != savedValues[id].orEmpty()
+        } || (personalTitle?.text?.toString()?.let { it != savedTitle } == true) ||
+            (personalGoal?.text?.toString()?.let { it != savedGoal } == true)
+        if (!changed) {
+            showCatalog()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.scenario_ui_unsaved_title)
+            .setMessage(R.string.scenario_ui_unsaved_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.scenario_ui_discard) { _, _ -> showCatalog() }
+            .show()
     }
 
     private fun body(): LinearLayout = LinearLayout(this).apply {
@@ -86,6 +115,9 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
         personalTitle = null
         personalGoal = null
         inputs.clear()
+        savedValues = emptyMap()
+        savedTitle = null
+        savedGoal = null
         val root = body()
         root.addView(UiDesign.heading(this, getString(R.string.scenario_ui_title)),
             UiDesign.spaceAfter(this, 12))
@@ -143,6 +175,9 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
             readFailed = true
             null
         } ?: definition.draft()
+        savedValues = stored.values.toMap()
+        savedTitle = personal?.current?.title
+        savedGoal = personal?.current?.goal
         val root = body()
         root.addView(UiDesign.heading(this, personal?.current?.title ?: definition.title(language)),
             UiDesign.spaceAfter(this, 10))
@@ -225,8 +260,10 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
             R.string.scenario_ui_save else R.string.scenario_ui_save_version), UiActionTone.PRIMARY) {
             val next = draft()
             if (personal == null) {
-                feedback.text = if (runCatching { store.saveScenarioDraft(next) }.isSuccess)
-                    missingMessage(next) else getString(R.string.scenario_ui_save_failed)
+                feedback.text = if (runCatching { store.saveScenarioDraft(next) }.isSuccess) {
+                    savedValues = next.values.toMap()
+                    missingMessage(next)
+                } else getString(R.string.scenario_ui_save_failed)
             } else {
                 val title = personalTitle?.text?.toString().orEmpty()
                 val goal = personalGoal?.text?.toString().orEmpty()
@@ -330,7 +367,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
             }, UiDesign.spaceAfter(this, 12))
         }
         root.addView(UiDesign.action(this, getString(R.string.scenario_ui_back)) {
-            showCatalog()
+            leaveEditor()
         }, UiDesign.spaceAfter(this, 12))
         root.addView(feedback)
         install(root)

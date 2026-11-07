@@ -613,4 +613,7 @@
 
     <string name="camp_ux06_timestamp_unknown">nieznany (starszy zapis)</string>
     <string name="camp_ux06_timestamp_label">Zapisano: %1$s</string>
+    <string name="scenario_ui_unsaved_title">Niezapisane zmiany scenariusza</string>
+    <string name="scenario_ui_unsaved_message">Wrócić do listy bez zapisywania zmian?</string>
+    <string name="scenario_ui_discard">Wróć bez zapisywania</string>
 </resources>
