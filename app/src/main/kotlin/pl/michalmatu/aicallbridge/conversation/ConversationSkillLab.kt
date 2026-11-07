@@ -62,7 +62,7 @@ internal data class SkillLabMetrics(
 internal object SkillLabScoring {
     // A question-like phrase asks for human review, not a semantic quality verdict.
     private val questionLike = Regex(
-        "(?iu)\\b(?:czy|kiedy|gdzie|jaki|jaka|jakie|który|która|podaj|podajcie|proszę\\s+(?:podać|o)|potrzebuję\\s+(?:numeru|adresu))\\b"
+        "(?iuU)\\b(?:czy|kiedy|gdzie|jaki|jaka|jakie|który|która|podaj|podajcie|proszę\\s+(?:podać|o)|potrzebuję\\s+(?:numeru|adresu))\\b"
     )
     fun mayNeedQuestionReview(reply: String): Boolean =
         '?' in reply || questionLike.containsMatchIn(reply)
