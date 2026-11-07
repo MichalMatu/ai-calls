@@ -11,14 +11,16 @@ class ArchivedChatAudioUiContractTest(unittest.TestCase):
         cls.history = (BASE / "conversation/ConversationHistoryActivity.kt").read_text()
         cls.reader = (BASE / "conversation/RecordedConversationHistory.kt").read_text()
         cls.live = (BASE / "conversation/ConversationChatPanel.kt").read_text()
+        cls.player = (BASE / "conversation/ArchivedConversationPlayer.kt").read_text()
 
     def test_fragment_player_requires_phone_idle_and_safe_private_path(self):
-        for expected in (
-            "READ_PHONE_STATE", "telecom.isInCall", "history.resolveAudioFile",
-            "setDataSource(file.absolutePath)", "onPause()",
-            "session.audioFor(line)",
-        ):
+        for expected in ("onPause()", "session.audioFor(line)", "audioPlayer.play(id, fileName)"):
             self.assertIn(expected, self.history)
+        for expected in ("READ_PHONE_STATE", "telecom.isInCall",
+                         "archive.resolveAudioFile", "setDataSource(file.absolutePath)"):
+            self.assertIn(expected, self.player)
+        self.assertNotIn("MediaPlayer()", self.history)
+        self.assertNotIn("setDataSource(", self.history)
         self.assertIn("canonicalFile", self.reader)
         self.assertIn('Regex("turn-[0-9]+-(rx|tx|tx-ack)[.]wav")', self.reader)
 

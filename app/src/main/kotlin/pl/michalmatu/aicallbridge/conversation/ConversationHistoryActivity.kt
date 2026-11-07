@@ -3,18 +3,12 @@ package pl.michalmatu.aicallbridge.conversation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
-import android.Manifest
-import android.app.Activity
 import android.app.AlertDialog
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import pl.michalmatu.aicallbridge.R
-import android.content.pm.PackageManager
-import android.media.MediaPlayer
-import android.telecom.TelecomManager
 import android.os.Bundle
-import android.view.WindowManager
 import android.widget.*
 import java.io.File
 import java.text.DateFormat
@@ -26,7 +20,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private val io = Executors.newSingleThreadExecutor()
     private lateinit var content: LinearLayout
     private lateinit var history: RecordedConversationHistory
-    private var playback: MediaPlayer? = null
+    private lateinit var audioPlayer: ArchivedConversationPlayer
     private var playbackStatus: TextView? = null
     private var displayedSessionId: String? = null
     private val detailBack = object : OnBackPressedCallback(false) {
@@ -51,6 +45,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         // One lifecycle-aware handler for both gesture and hardware Back, Android 10+.
         onBackPressedDispatcher.addCallback(this, detailBack)
         history = RecordedConversationHistory(File(filesDir, CallSessionEvidenceRecorder.ROOT))
+        audioPlayer = ArchivedConversationPlayer(this, history)
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32), UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32)) }
         setContentView(ScrollView(this).apply { addView(content) })
         showList()
@@ -171,43 +166,20 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         }
     }
     private fun playFragment(id: String, fileName: String) {
-        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            playbackStatus?.text = getString(R.string.history_permission_required)
-            return
+        val state = audioPlayer.play(id, fileName) {
+            if (!isDestroyed) playbackStatus?.text = getString(R.string.history_playback_finished)
         }
-        val telecom = getSystemService(TelecomManager::class.java)
-        if (runCatching { telecom == null || telecom.isInCall }.getOrDefault(true)) {
-            playbackStatus?.text = getString(R.string.history_off_call_only)
-            return
+        val textId = when (state) {
+            ArchivedConversationPlayer.StartResult.NEEDS_PERMISSION -> R.string.history_permission_required
+            ArchivedConversationPlayer.StartResult.PHONE_BUSY -> R.string.history_off_call_only
+            ArchivedConversationPlayer.StartResult.MISSING_FILE -> R.string.history_clip_not_found
+            ArchivedConversationPlayer.StartResult.PLAYING -> R.string.history_playing
+            ArchivedConversationPlayer.StartResult.FAILED -> R.string.history_playback_error
         }
-        val file = history.resolveAudioFile(id, fileName)
-        if (file == null) {
-            playbackStatus?.text = getString(R.string.history_clip_not_found)
-            return
-        }
-        runCatching {
-            stopPlayback()
-            val player = MediaPlayer()
-            playback = player
-            player.setDataSource(file.absolutePath)
-            player.setOnCompletionListener {
-                it.release()
-                if (playback === it) {
-                    playback = null
-                    playbackStatus?.text = getString(R.string.history_playback_finished)
-                }
-            }
-            player.prepare()
-            player.start()
-            playbackStatus?.text = getString(R.string.history_playing)
-        }.onFailure {
-            stopPlayback()
-            playbackStatus?.text = getString(R.string.history_playback_error)
-        }
+        playbackStatus?.text = getString(textId)
     }
     private fun stopPlayback() {
-        runCatching { playback?.release() }
-        playback = null
+        if (::audioPlayer.isInitialized) audioPlayer.stop()
     }
     override fun onPause() { stopPlayback(); super.onPause() }
     override fun onDestroy() {
