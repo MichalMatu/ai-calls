@@ -58,13 +58,15 @@ class Sprint6UXContract(unittest.TestCase):
     def test_lab_status_and_score_are_honest(self):
         lab = self.read("conversation/ConversationSkillLabActivity.kt")
         for token in ("showStopNotice()", 'tag = "lab-stopped-banner"',
-                      "followLatestCardIfEnabled()", "offsetDescendantRectToMyCoords",
+                      "followLatestCardIfEnabled()", "scroll.scrollTo(0, bottom)",
                       "lab_ui_quality_not_scored"):
             self.assertIn(token, lab)
         core = self.read("conversation/ConversationSkillLab.kt")
         self.assertIn("mayNeedQuestionReview", core)
         self.assertIn("it.expectedQuestion == false", core)
         self.assertNotIn('it.expectedQuestion == false && "?" in it.reply', core)
+        self.assertNotIn("(?iuU)", core)
+        self.assertIn("char.isLetterOrDigit()", core)
 
     def test_campaign_hides_targeted_disconnect_code_but_preserves_diagnostics(self):
         s = self.read("campaign/CampaignToolActivity.kt")
