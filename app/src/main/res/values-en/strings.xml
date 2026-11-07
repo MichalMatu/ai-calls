@@ -316,4 +316,34 @@
     <string name="dev_ui_shizuku_request">Requesting Shizuku permission…</string>
     <string name="acc_ui_expand">Expand: </string>
     <string name="acc_ui_collapse">Collapse: </string>
+
+    <string name="lab_ui_library_error">Could not load skill library: %1$s</string>
+    <string name="lab_ui_live_title">Live test progress</string>
+    <string name="lab_ui_progress">Completed %1$d of %2$d turns</string>
+    <string name="lab_ui_follow">Automatically follow the latest turn</string>
+    <string name="lab_ui_waiting_initial">Preparing the first turn…</string>
+    <string name="lab_ui_missing_profile">Choose a model profile in engine settings first</string>
+    <string name="lab_ui_waiting">Turn %1$d of %2$d · waiting for model…</string>
+    <string name="lab_ui_working_on">%1$s · turn %2$d: generating the answer</string>
+    <string name="lab_ui_stopped_partial">Test stopped. Completed turns remain below.</string>
+    <string name="lab_ui_timeline_title">Scenarios and answers</string>
+    <string name="lab_ui_timeline_hint">Each turn appears while the test runs. Tool decisions are never executed.</string>
+    <string name="lab_ui_turn_header">%1$s · turn %2$d</string>
+    <string name="lab_ui_input">Test message</string>
+    <string name="lab_ui_waiting_response">Model is preparing its answer…</string>
+    <string name="lab_ui_output">Model answer</string>
+    <string name="lab_ui_empty_reply">No answer text</string>
+    <string name="lab_ui_end_yes">YES</string>
+    <string name="lab_ui_end_no">NO</string>
+    <string name="lab_ui_decision">END_CALL: expected %1$s · model %2$s · %3$d ms</string>
+    <string name="lab_ui_match">matching decision</string>
+    <string name="lab_ui_mismatch">mismatch</string>
+    <string name="lab_ui_last_result">%1$s · turn %2$d · answered in %3$d ms</string>
+    <string name="lab_ui_score_title">Test summary</string>
+    <string name="lab_ui_score_decisions">Correct END_CALL decisions: %1$d/%2$d</string>
+    <string name="lab_ui_score_errors">Premature ends: %1$d · missing ends: %2$d · unnecessary questions (heuristic): %3$d</string>
+    <string name="lab_ui_score_latency">Average answer time: %1$d ms</string>
+    <string name="lab_ui_naturalness_score">Manual naturalness rating: %1$d/5</string>
+    <string name="lab_ui_naturalness_unrated">Naturalness: unrated (human review required)</string>
+    <string name="lab_ui_failed">Test stopped with error: %1$s</string>
 </resources>
