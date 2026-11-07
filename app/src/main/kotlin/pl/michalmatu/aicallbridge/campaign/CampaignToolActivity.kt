@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.campaign
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
 
 import android.Manifest
@@ -129,6 +130,12 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }
         }
 
+        // Give START, STOP and task revocation distinct visual hierarchy.
+        UiDesign.styleAction(startButton, UiActionTone.PRIMARY)
+        UiDesign.styleAction(directStartButton, UiActionTone.SECONDARY)
+        UiDesign.styleAction(stopSupervisedAudioButton, UiActionTone.DANGER)
+        UiDesign.styleAction(revokeButton, UiActionTone.SECONDARY)
+
         // Keep campaign scope, start, STOP and revocation on the primary surface.
         // All previously available setup and diagnostic actions remain one expansion away.
         val dialerSection = UiAccordionSection(this, "dialer", "Rola dialera i ustawienia").apply {
@@ -156,17 +163,14 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 48), UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 32))
+            setPadding(UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 28))
             addView(TextView(this@CampaignToolActivity).apply {
                 text = "Kampanie i zadania AI Calls"
                 textSize = 22f
             })
-            addView(TextView(this@CampaignToolActivity).apply {
-                text =
-                    "Autoryzacja i wykonanie połączeń odbywają się na telefonie. " +
-                    "Diagnostyka nie zastępuje zgody ani weryfikacji efektu."
-                textSize = 14f
-            })
+            addView(UiDesign.caption(this@CampaignToolActivity,
+                "Zadanie wymaga autoryzacji na telefonie. STOP jest dostępny niezależnie."
+            ), UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(
                 statusView,
                 LinearLayout.LayoutParams(
@@ -174,22 +178,24 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply { bottomMargin = 16 },
             )
-            addView(TextView(this@CampaignToolActivity).apply {
-                text = "Zadanie: włącz CLIR. Cel: ${ClirCampaignSpec.TARGET}. " +
-                    "Konto: bieżąca SIM rozmów. Dane: PHONE wyłącznie przez politykę ujawniania. " +
-                    "START przyjmuje zadanie; działa do ukończenia lub anulowania."
-            })
-            addView(recordEvidenceChoice)
-            addView(startButton)
-            addView(directStartButton)
-            addView(stopSupervisedAudioButton)
-            addView(revokeButton)
-            addView(Button(this@CampaignToolActivity).apply {
-                text = "Ustawienia silników audio AI (STT / model / TTS)"
-                setOnClickListener {
-                    startActivity(Intent(this@CampaignToolActivity, AudioEngineSettingsActivity::class.java))
-                }
-            })
+            addView(UiDesign.card(this@CampaignToolActivity).apply {
+                tag = "campaign-primary-actions"
+                addView(UiDesign.heading(this@CampaignToolActivity, "Włącz CLIR").apply {
+                    textSize = 18f
+                }, UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(UiDesign.caption(this@CampaignToolActivity,
+                    "Cel: ${ClirCampaignSpec.TARGET} · bieżąca SIM"
+                ), UiDesign.spaceAfter(this@CampaignToolActivity, 12))
+                addView(recordEvidenceChoice, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
+                addView(startButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
+                addView(directStartButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
+                addView(stopSupervisedAudioButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
+                addView(revokeButton)
+            }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
+            addView(UiDesign.action(this@CampaignToolActivity,
+                "Ustawienia silników AI") {
+                startActivity(Intent(this@CampaignToolActivity, AudioEngineSettingsActivity::class.java))
+            }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(directSkillsSection)
             addView(dialerSection)
             addView(supervisedSection)
@@ -211,7 +217,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             ))
-            addView(ConversationChatPanel(this@CampaignToolActivity))
+            addView(ConversationChatPanel(this@CampaignToolActivity, initiallyExpanded = false))
         })
         refreshTaskStatus()
         // Explicit primary-screen tap accepts the displayed task through the same scope,

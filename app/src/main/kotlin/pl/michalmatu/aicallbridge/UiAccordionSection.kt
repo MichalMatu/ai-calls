@@ -2,7 +2,8 @@ package pl.michalmatu.aicallbridge
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
+import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -21,10 +22,7 @@ internal class UiAccordionSection(
     private val description: String = "",
     initiallyExpanded: Boolean = false,
 ) : LinearLayout(context) {
-    private val density = resources.displayMetrics.density
-    private val ink = Color.rgb(27, 42, 64)
-    private val secondary = Color.rgb(76, 92, 110)
-    private fun dp(value: Int) = (value * density).toInt()
+    private fun dp(value: Int) = UiDesign.dp(context, value)
 
     private val content = LinearLayout(context).apply {
         orientation = VERTICAL
@@ -37,15 +35,17 @@ internal class UiAccordionSection(
         textSize = 17f
         gravity = Gravity.START or Gravity.CENTER_VERTICAL
         minHeight = dp(52)
-        setTextColor(ink)
+        setTextColor(UiDesign.ink)
         setPadding(dp(16), dp(8), dp(16), dp(6))
-        background = GradientDrawable().apply { setColor(Color.TRANSPARENT) }
+        background = UiDesign.touchSurface(context, UiDesign.surface, 14)
+        stateListAnimator = null
+        elevation = 0f
         setOnClickListener { setExpanded(!isExpanded) }
     }
     private val summary = TextView(context).apply {
         text = description
         textSize = 13f
-        setTextColor(secondary)
+        setTextColor(UiDesign.secondary)
         setPadding(dp(16), 0, dp(16), dp(12))
         visibility = if (description.isBlank()) GONE else VISIBLE
     }
@@ -57,11 +57,9 @@ internal class UiAccordionSection(
 
     init {
         orientation = VERTICAL
-        background = GradientDrawable().apply {
-            setColor(Color.WHITE)
-            cornerRadius = dp(16).toFloat()
-            setStroke(dp(1).coerceAtLeast(1),
-                Color.rgb(210, 218, 229))
+        background = UiDesign.surfaceDrawable(context, UiDesign.surface, 16)
+        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(UiDesign.GAP_ACTION)
         }
         addView(toggle)
         addView(summary)
@@ -70,26 +68,17 @@ internal class UiAccordionSection(
     }
 
     private fun styleControl(view: View) {
-        if (view is Button || view is Spinner) {
-            view.background = GradientDrawable().apply {
-                setColor(Color.rgb(245, 248, 252))
-                cornerRadius = dp(10).toFloat()
-                setStroke(dp(1).coerceAtLeast(1), Color.rgb(210, 218, 229))
-            }
-            view.minimumHeight = dp(46)
-            view.setPadding(dp(10), dp(8), dp(10), dp(8))
-        }
-        if (view is Button) {
-            view.isAllCaps = false
-            view.textSize = 14f
-            view.setTextColor(ink)
+        if (view is Button) UiDesign.styleAction(view)
+        if (view is Spinner) {
+            view.minimumHeight = dp(48)
+            view.background = UiDesign.surfaceDrawable(context, UiDesign.surface, 12)
         }
     }
 
     fun addControl(view: View) {
         styleControl(view)
         content.addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(7)
+            bottomMargin = dp(UiDesign.GAP_ACTION)
         })
     }
 
@@ -101,7 +90,7 @@ internal class UiAccordionSection(
         content.addView(TextView(context).apply {
             this.text = text
             textSize = 14f
-            setTextColor(secondary)
+            setTextColor(UiDesign.secondary)
             setPadding(dp(4), dp(10), dp(4), dp(4))
         })
     }
@@ -109,7 +98,13 @@ internal class UiAccordionSection(
     fun setExpanded(expanded: Boolean) {
         isExpanded = expanded
         content.visibility = if (expanded) View.VISIBLE else View.GONE
-        toggle.text = (if (expanded) "▾ " else "▸ ") + heading
+        toggle.text = heading
+        val arrow = context.getDrawable(
+            if (expanded) R.drawable.ic_aicalls_chevron_up else R.drawable.ic_aicalls_chevron_down
+        )?.mutate()
+        arrow?.setTint(UiDesign.secondary)
+        toggle.setCompoundDrawablesWithIntrinsicBounds(null, null, arrow, null)
+        toggle.compoundDrawablePadding = dp(8)
         toggle.contentDescription =
             (if (expanded) "Zwiń: " else "Rozwiń: ") + heading
     }
