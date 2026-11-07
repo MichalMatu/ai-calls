@@ -341,7 +341,7 @@
     <string name="lab_ui_last_result">%1$s · tura %2$d · odpowiedź po %3$d ms</string>
     <string name="lab_ui_score_title">Podsumowanie testu</string>
     <string name="lab_ui_score_decisions">Zgodne decyzje END_CALL: %1$d/%2$d</string>
-    <string name="lab_ui_score_errors">Przedwczesne zakończenia: %1$d · brak zakończenia: %2$d · zbędne pytania (heurystyka): %3$d</string>
+    <string name="lab_ui_score_errors">Przedwczesne zakończenia: %1$d · brak zakończenia: %2$d · pytania do przeglądu (heurystyka): %3$d</string>
     <string name="lab_ui_score_latency">Średni czas odpowiedzi: %1$d ms</string>
     <string name="lab_ui_naturalness_score">Ręczna ocena naturalności: %1$d/5</string>
     <string name="lab_ui_naturalness_unrated">Naturalność: bez oceny (wymaga oceny człowieka)</string>
