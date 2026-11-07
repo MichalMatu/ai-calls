@@ -4,16 +4,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.R
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
-import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
-import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
-import pl.michalmatu.aicallbridge.incoming.IncomingSecretaryScenario
-import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
@@ -25,9 +16,11 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
  * never executed; no Telecom calls, audio, permission changes or tool dispatch.
  */
 class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
-    private val cancelled = AtomicBoolean(false)
-    @Volatile private var model: TextCallAgentBackend? = null
-    private var worker: Thread? = null
+    private lateinit var runner: SkillLabRunner
+    private var lastState = SkillLabUiState()
+    private var renderedTurnCount = 0
+    private val visiblePending = mutableSetOf<Pair<Int, Int>>()
+    private var stopBannerShown = false
     private lateinit var status: TextView
     private lateinit var currentTurn: TextView
     private lateinit var scoreView: TextView
@@ -41,8 +34,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var stopButton: Button
     private lateinit var ratingGroup: LinearLayout
     private lateinit var naturalness: Spinner
-    private var lastObservations: List<SkillLabObservation> = emptyList()
-    private val allTurns = SkillLabCorpus.stories.sumOf { it.turns.size }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,10 +84,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(runButton, UiDesign.spaceAfter(this, 8))
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
             stopLab()
-            status.text = getString(R.string.lab_ui_cancelled)
-            currentTurn.text = getString(R.string.lab_ui_stopped_partial)
-            stopButton.visibility = View.GONE
-            showStopNotice()
         }.apply { visibility = View.GONE; tag = "lab-stop" }
         content.addView(stopButton, UiDesign.spaceAfter(this, 12))
 
@@ -163,7 +150,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }
         ratingGroup.addView(naturalness, UiDesign.spaceAfter(this, 10))
         ratingGroup.addView(UiDesign.action(this, getString(R.string.lab_ui_apply_rating)) {
-            if (lastObservations.isNotEmpty()) showMetrics()
+            lastState.metrics?.let(::showMetrics)
         })
         content.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
 
@@ -179,119 +166,95 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(timeline)
         scroll = ScrollView(this).apply { addView(content) }
         setContentView(scroll)
+        runner = SkillLabRunner(AndroidSkillLabSessionFactory(applicationContext),
+            dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
+        renderState(runner.state)
     }
 
     private fun runLab(presetId: String, quick: Boolean) {
-        if (worker?.isAlive == true) return
-        cancelled.set(false)
-        lastObservations = emptyList()
-        naturalness.setSelection(0)
-        timeline.removeAllViews()
-        scoreView.visibility = View.GONE
-        ratingGroup.visibility = View.GONE
-        runButton.isEnabled = false
-        runButton.visibility = View.GONE
-        stopButton.visibility = android.view.View.VISIBLE
-        currentTurnTotal = if (quick) 2 else allTurns
-        progress.max = currentTurnTotal
-        progress.progress = 0
-        progress.contentDescription = getString(R.string.lab_ui_progress, 0, currentTurnTotal)
-        status.text = getString(R.string.lab_ui_starting)
-        currentTurn.text = getString(R.string.lab_ui_waiting_initial)
+        if (::runner.isInitialized) runner.start(presetId, quick)
+    }
 
-        worker = Thread({
-            val observed = mutableListOf<SkillLabObservation>()
-            try {
-                val context = applicationContext
-                val profile = AudioEngineProfileStore(context).load()
-                    ?: error(getString(R.string.lab_ui_missing_profile))
-                val store = AndroidConversationPreparationStore(context)
-                val library = store.loadSkillLibrary()
-                val preparation = store.load(ConversationPreparation.INCOMING_ID)
-                    .withSkillSnapshot(library.snapshot(presetId))
-                val instruction = ConversationInstructionBuilder.build(
-                    preparation, IncomingSecretaryScenario.GOAL, ConversationResponseFormat.TOOL_REPLY)
-                val provider = DialogueEngineProviders.resolve(profile)
-                for ((storyIndex, story) in
-                    (if (quick) SkillLabCorpus.stories.take(1) else SkillLabCorpus.stories).withIndex()) {
-                    if (cancelled.get()) break
-                    val active = provider.createConversationReply(
-                        context, instruction, setOf(ConversationToolId.END_CALL))
-                    model = active
-                    try {
-                        for ((turnIndex, turn) in (if (quick) story.turns.take(2) else story.turns).withIndex()) {
-                            if (cancelled.get()) break
-                            val completedBefore = observed.size
-                            runOnUiThread {
-                                if (!cancelled.get() && !isDestroyed) {
-                                    showTurnPending(storyIndex, story.title, turnIndex + 1,
-                                        turn.utterance, completedBefore)
-                                }
-                            }
-                            val started = System.nanoTime()
-                            val latch = CountDownLatch(1)
-                            val response = AtomicReference<String>()
-                            val failure = AtomicReference<String>()
-                            active.generate(turn.utterance, object : TextCallAgentBackend.Listener {
-                                override fun onComplete(text: String) {
-                                    response.set(text)
-                                    latch.countDown()
-                                }
-                                override fun onError(reason: String) {
-                                    failure.set(reason)
-                                    latch.countDown()
-                                }
-                            })
-                            if (!latch.await(120, TimeUnit.SECONDS)) error("model_response_timeout")
-                            if (cancelled.get()) break
-                            failure.get()?.let { error("model_error_" + it) }
-                            // Decoding is protocol-aware; the UI shows model text and
-                            // END_CALL as separate data, never a raw JSON/TOOL_REPLY dump.
-                            val reply = ConversationReplyProtocol.decode(checkNotNull(response.get()))
-                            val record = SkillLabObservation(story.title, turnIndex + 1,
-                                turn.shouldEnd, reply.tool == ConversationToolId.END_CALL,
-                                reply.text, (System.nanoTime() - started) / 1_000_000L,
-                                turn.expectQuestion)
-                            observed.add(record)
-                            val completedNow = observed.size
-                            runOnUiThread {
-                                if (!cancelled.get() && !isDestroyed) {
-                                    showTurnCompleted(storyIndex, record, completedNow)
-                                }
-                            }
-                        }
-                    } finally {
-                        model = null
-                        active.close()
-                    }
-                }
-                runOnUiThread {
-                    if (!isDestroyed && !cancelled.get()) {
-                        lastObservations = observed.toList()
-                        showMetrics()
-                        ratingGroup.visibility = View.VISIBLE
-                        status.text = getString(R.string.lab_ui_complete)
-                        currentTurn.text = getString(R.string.lab_ui_progress,
-                            observed.size, currentTurnTotal)
-                        followLatestCardIfEnabled()
-                    }
-                }
-            } catch (error: Exception) {
-                runOnUiThread {
-                    if (!isDestroyed && !cancelled.get()) {
-                        renderFailure(error.message ?: error.javaClass.simpleName)
-                    }
-                }
-            } finally {
-                runOnUiThread {
-                    if (!isDestroyed) {
-                        runButton.isEnabled = true
-                        runButton.visibility = View.VISIBLE
-                        stopButton.visibility = View.GONE
-                    }
+    private fun renderState(next: SkillLabUiState) {
+        if (isDestroyed) return
+        lastState = next
+        currentTurnTotal = next.totalTurns
+        if (next.phase == SkillLabPhase.STARTING) {
+            renderedTurnCount = 0
+            visiblePending.clear()
+            stopBannerShown = false
+            timeline.removeAllViews()
+            naturalness.setSelection(0)
+            scoreView.visibility = View.GONE
+            ratingGroup.visibility = View.GONE
+        }
+
+        // Snapshots contain both the input and output: skipped UI posts can be
+        // reconstructed without losing the last turn or showing a stale response.
+        next.completed.drop(renderedTurnCount).forEach { item ->
+            val pending = item.pending
+            val key = pending.storyIndex to pending.turnIndex
+            if (visiblePending.add(key)) showTurnPending(
+                pending.storyIndex, pending.storyTitle, pending.turnIndex,
+                pending.utterance, renderedTurnCount)
+            showTurnCompleted(pending.storyIndex, item.observation, renderedTurnCount + 1)
+            renderedTurnCount++
+        }
+        next.pending?.let { pending ->
+            val key = pending.storyIndex to pending.turnIndex
+            if (visiblePending.add(key)) showTurnPending(
+                pending.storyIndex, pending.storyTitle, pending.turnIndex,
+                pending.utterance, next.completed.size)
+        }
+        progress.max = next.totalTurns
+        progress.progress = next.completed.size
+        progress.contentDescription = getString(R.string.lab_ui_progress,
+            next.completed.size, next.totalTurns)
+        runButton.isEnabled = next.canStart
+        runButton.visibility = if (next.canStart) View.VISIBLE else View.GONE
+        stopButton.visibility = if (!next.canStart && next.phase in
+            setOf(SkillLabPhase.STARTING, SkillLabPhase.WAITING,
+                SkillLabPhase.TURN_COMPLETED)) View.VISIBLE else View.GONE
+
+        when (next.phase) {
+            SkillLabPhase.READY -> {
+                status.text = getString(R.string.lab_ui_ready)
+                currentTurn.text = getString(R.string.lab_ui_empty)
+            }
+            SkillLabPhase.STARTING -> {
+                status.text = getString(R.string.lab_ui_starting)
+                currentTurn.text = getString(R.string.lab_ui_waiting_initial)
+            }
+            SkillLabPhase.WAITING -> next.pending?.let { pending ->
+                status.text = getString(R.string.lab_ui_waiting,
+                    next.completed.size + 1, next.totalTurns)
+                currentTurn.text = getString(R.string.lab_ui_working_on,
+                    pending.storyTitle, pending.turnIndex)
+            }
+            SkillLabPhase.TURN_COMPLETED -> next.completed.lastOrNull()?.let { item ->
+                status.text = getString(R.string.lab_ui_progress,
+                    next.completed.size, next.totalTurns)
+                currentTurn.text = getString(R.string.lab_ui_last_result,
+                    item.observation.story, item.observation.index, item.observation.elapsedMs)
+            }
+            SkillLabPhase.COMPLETED -> {
+                next.metrics?.let(::showMetrics)
+                ratingGroup.visibility = View.VISIBLE
+                status.text = getString(R.string.lab_ui_complete)
+                currentTurn.text = getString(R.string.lab_ui_progress,
+                    next.completed.size, next.totalTurns)
+                followLatestCardIfEnabled()
+            }
+            SkillLabPhase.STOPPED -> {
+                status.text = getString(R.string.lab_ui_cancelled)
+                currentTurn.text = getString(R.string.lab_ui_stopped_partial)
+                if (!stopBannerShown) {
+                    showStopNotice()
+                    stopBannerShown = true
                 }
             }
-        }, "aicalls-skills-lab").apply { start() }
+            SkillLabPhase.FAILED -> renderFailure(next.error ?: "unknown_failure")
+        }
     }
 
     /** Explicitly distinct error state, shared by model/timeout failures and UI tests. */
@@ -400,9 +363,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }
     }
 
-    private fun showMetrics() {
-        val results = lastObservations
-        val metrics = SkillLabScoring.score(results)
+    private fun showMetrics(metrics: SkillLabMetrics) {
         val naturalnessScore = naturalness.selectedItemPosition.takeIf { it > 0 }
             ?.let { getString(R.string.lab_ui_naturalness_score, it) }
             ?: getString(R.string.lab_ui_naturalness_unrated)
@@ -417,13 +378,16 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     }
 
     private fun stopLab() {
-        cancelled.set(true)
-        worker?.interrupt()
-        model?.cancel()
+        if (::runner.isInitialized) runner.stop()
     }
 
     override fun onStop() {
         stopLab()
         super.onStop()
+    }
+
+    override fun onDestroy() {
+        if (::runner.isInitialized) runner.close()
+        super.onDestroy()
     }
 }
