@@ -67,6 +67,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 0, UiDesign.dp(this@GeneralSettingsActivity, 10))
         }
         content.addView(feedback)
+        content.addView(UiDesign.caption(this, getString(R.string.ui_general_autosave)), UiDesign.spaceAfter(this, 12))
         modePicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
                 val selected = CallAudioMode.entries[position]
@@ -85,6 +86,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val permission = UiDesign.button(this, getString(R.string.ui_microphone)) { requestMicrophone() }
         content.addView(permission, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = UiDesign.dp(this@GeneralSettingsActivity, 18) })
+        feedback.text = getString(if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) R.string.ui_general_mic_granted else R.string.ui_general_mic_missing)
         setContentView(ScrollView(this).apply { addView(content) })
     }
     private fun requestMicrophone() {

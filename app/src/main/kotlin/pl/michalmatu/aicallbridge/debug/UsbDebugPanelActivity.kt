@@ -3,6 +3,10 @@ package pl.michalmatu.aicallbridge.debug
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.UiAccordionSection
+import pl.michalmatu.aicallbridge.R
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -17,6 +21,7 @@ import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 /** Visible owner-facing entry for the same module used from Mac ADB. No second state store. */
 class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var state: TextView
+    private lateinit var overview: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,31 +37,44 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
             })
         }
         fun button(value: String, action: () -> Unit) {
-            content.addView(Button(this).apply {
-                text = value
-                setOnClickListener { action() }
-            })
+            content.addView(UiDesign.button(this, value, action), UiDesign.spaceAfter(this, 12))
         }
 
-        label("AI Calls — USB / ADB diagnostyka", 22f)
-        label("Lokalny panel odczytu. Mac Local Agent używa istniejącej sondy DUMP " +
-            "oraz prywatnego eksportera; dane rozmów nie trafiają do GitHub ani logcat.")
+        label(getString(R.string.usb_ui_title), 22f)
+        label(getString(R.string.usb_ui_description))
+        overview = TextView(this).apply {
+            textSize = 15f
+            setTextColor(UiDesign.ink)
+            setPadding(UiDesign.dp(this@UsbDebugPanelActivity, 14),
+                UiDesign.dp(this@UsbDebugPanelActivity, 14),
+                UiDesign.dp(this@UsbDebugPanelActivity, 14),
+                UiDesign.dp(this@UsbDebugPanelActivity, 14))
+            background = UiDesign.surfaceDrawable(this@UsbDebugPanelActivity)
+            tag = "usb-status-summary"
+        }
+        content.addView(overview, UiDesign.spaceAfter(this, 16))
+        button(getString(R.string.usb_ui_refresh)) { refresh() }
         state = TextView(this).apply {
-            textSize = 14f
+            textSize = 13f
+            setTextColor(UiDesign.secondary)
             setTextIsSelectable(true)
         }
-        content.addView(state)
-        button("Odśwież diagnostykę") { refresh() }
-        button("Ustawienia silników (wspólne z aplikacją)") {
+        content.addView(UiAccordionSection(this, "usb-raw",
+            getString(R.string.usb_ui_raw_details)).apply {
+            addControl(state)
+            addControl(UiDesign.button(this@UsbDebugPanelActivity,
+                getString(R.string.usb_ui_copy_json)) {
+                getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
+                    ClipData.newPlainText("AI Calls USB status", state.text))
+            })
+        })
+        button(getString(R.string.usb_ui_engines)) {
             startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
         }
-        button("Granty, STOP i prywatne transkrypty") {
+        button(getString(R.string.usb_ui_campaign)) {
             startActivity(Intent(this, CampaignToolActivity::class.java))
         }
-        label("Mac: ai_calls_usb_debug.py status | profile-set | profile-reset | " +
-            "grant-revoke | evidence-export | probe parakeet-pl.\n" +
-            "Eksport pełnych nagrań i transkryptów odbywa się wyłącznie na Macu. " +
-            "Z poziomu USB nie można tworzyć grantów, wymuszać telefonowania ani omijać STOP.")
+        label(getString(R.string.usb_ui_cli_hint))
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -71,8 +89,22 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun refresh() {
-        state.text = runCatching {
-            UsbDebugBridge.snapshot(this).toString(2)
-        }.getOrDefault("Nie udało się odczytać bieżącego stanu.")
+        runCatching {
+            val data = UsbDebugBridge.snapshot(this)
+            state.text = data.toString(2)
+            val phone = if (data.optBoolean("call_idle")) getString(R.string.usb_ui_idle)
+                else getString(R.string.usb_ui_not_confirmed_idle)
+            val campaign = if (data.optBoolean("campaign_service_inactive"))
+                getString(R.string.usb_ui_inactive) else getString(R.string.usb_ui_running_or_unknown)
+            val recording = if (data.optBoolean("recording_enabled"))
+                getString(R.string.usb_ui_enabled) else getString(R.string.usb_ui_disabled)
+            overview.text = getString(R.string.usb_ui_summary, phone, campaign,
+                data.optString("input", "UNKNOWN"), data.optString("dialogue", "UNKNOWN"),
+                data.optString("output", "UNKNOWN"), recording,
+                data.optString("incoming_mode", "UNAVAILABLE"))
+        }.onFailure {
+            state.text = getString(R.string.usb_ui_read_failed)
+            overview.text = getString(R.string.usb_ui_read_failed)
+        }
     }
 }

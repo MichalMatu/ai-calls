@@ -12,6 +12,7 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 
 /** Presentation and user interactions only; capability checks remain in app-owned policy. */
 class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -28,7 +29,8 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         controller = ConversationToolsSettingsController(this)
-        val enabled = controller.enabled()
+        var storedSelection = controller.enabled().toSet()
+        val enabled = storedSelection
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@ConversationToolsActivity, 24),
@@ -54,17 +56,26 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 content.addView(this)
             }
         }
-        val feedback = TextView(this)
-        content.addView(UiDesign.button(this, getString(R.string.tools_ui_save)) {
-            feedback.text = getString(
-                if (controller.save(choices.filterValues { it.isChecked }.keys)) {
-                    R.string.tools_ui_saved
-                } else R.string.tools_ui_failed)
-        }.apply { tag = "tools-save-settings" })
-        content.addView(feedback)
-        status = TextView(this).apply { textSize = 16f }
-        content.addView(status)
-        content.addView(TextView(this).apply { text = getString(R.string.tools_ui_end_hint) })
+        val feedback = UiDesign.caption(this, "")
+        val save = UiDesign.action(this, getString(R.string.tools_ui_save), UiActionTone.PRIMARY) {
+            val selected = choices.filterValues { it.isChecked }.keys
+            val success = controller.save(selected)
+            feedback.text = getString(if (success) R.string.tools_ui_saved else R.string.tools_ui_failed)
+            if (success) storedSelection = selected.toSet()
+        }.apply { tag = "tools-save-settings"; isEnabled = false }
+        choices.values.forEach { choice ->
+            choice.setOnCheckedChangeListener { _, _ ->
+                save.isEnabled = choices.filterValues { it.isChecked }.keys != storedSelection
+            }
+        }
+        content.addView(save, UiDesign.spaceAfter(this, 10))
+        content.addView(feedback, UiDesign.spaceAfter(this, 16))
+        content.addView(UiDesign.heading(this, getString(R.string.tools_ui_latest_status)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
+        status = UiDesign.caption(this, "").apply { tag = "tools-latest-status" }
+        content.addView(status, UiDesign.spaceAfter(this, 10))
+        content.addView(UiDesign.caption(this, getString(R.string.tools_ui_end_hint)))
         setContentView(ScrollView(this).apply { addView(content) })
     }
 

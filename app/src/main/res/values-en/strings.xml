@@ -158,4 +158,24 @@
     <string name="skills_ui_enabled">Enabled</string>
     <string name="skills_ui_disabled">Disabled</string>
     <string name="skills_ui_factory_readonly">Factory preset · read-only. Create a copy to edit.</string>
+    <string name="usb_ui_title">AI Calls — USB / ADB diagnostics</string>
+    <string name="usb_ui_description">Local status view. Private data is not automatically published or sent to logcat.</string>
+    <string name="usb_ui_refresh">Refresh diagnostics</string>
+    <string name="usb_ui_raw_details">Technical details · JSON</string>
+    <string name="usb_ui_copy_json">Copy JSON to clipboard</string>
+    <string name="usb_ui_engines">AI engine settings</string>
+    <string name="usb_ui_campaign">Campaigns, STOP and private transcripts</string>
+    <string name="usb_ui_cli_hint">Mac CLI: ai_calls_usb_debug.py. Recordings are exported locally to the Mac. This screen does not authorize calls.</string>
+    <string name="usb_ui_idle">Idle</string>
+    <string name="usb_ui_not_confirmed_idle">Unverified or busy</string>
+    <string name="usb_ui_inactive">Inactive</string>
+    <string name="usb_ui_running_or_unknown">Active or unknown</string>
+    <string name="usb_ui_enabled">Enabled</string>
+    <string name="usb_ui_disabled">Disabled</string>
+    <string name="usb_ui_summary">Phone: %1$s\nCampaign: %2$s\nInput: %3$s\nModel: %4$s\nVoice: %5$s\nRecording: %6$s\nAnswering: %7$s</string>
+    <string name="usb_ui_read_failed">Could not read the current status.</string>
+    <string name="tools_ui_latest_status">Latest tool activity</string>
+    <string name="ui_general_autosave">Changes are saved automatically. No separate Save is needed.</string>
+    <string name="ui_general_mic_granted">Microphone: access granted</string>
+    <string name="ui_general_mic_missing">Microphone: Android permission required</string>
 </resources>

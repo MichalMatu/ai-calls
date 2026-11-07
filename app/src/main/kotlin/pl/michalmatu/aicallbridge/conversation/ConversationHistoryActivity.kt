@@ -67,7 +67,13 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                     if (sessions.isEmpty()) content.addView(TextView(this).apply {
                         text = getString(R.string.history_empty)
                     })
+                    var lastDay: String? = null
                     sessions.forEach { session ->
+                        val day = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(session.startedAtEpochMs))
+                        if (day != lastDay) {
+                            content.addView(UiDesign.heading(this, day).apply { textSize = 16f }, UiDesign.spaceAfter(this, 8))
+                            lastDay = day
+                        }
                         val direction = when (session.direction) {
                             ConversationDirection.OUTGOING -> getString(R.string.history_outgoing)
                             ConversationDirection.INCOMING -> getString(R.string.history_incoming)
@@ -111,7 +117,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         open.addView(LinearLayout(this).apply {
                             orientation = LinearLayout.VERTICAL
                             addView(TextView(this@ConversationHistoryActivity).apply {
-                                text = date
+                                text = direction + " · " + date
                                 textSize = 15f
                                 setTextColor(UiDesign.ink)
                                 isSingleLine = true
@@ -133,7 +139,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         if (history.canDelete(session.id)) {
                             row.addView(UiDesign.iconButton(
                                 this, R.drawable.ic_aicalls_trash, getString(R.string.history_delete),
-                                android.graphics.Color.rgb(173, 37, 56)
+                                UiDesign.danger
                             ).apply {
                                 tag = "history-delete:" + session.id
                                 setOnClickListener { confirmDelete(session.id) }

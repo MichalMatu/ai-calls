@@ -158,4 +158,24 @@
     <string name="skills_ui_enabled">Włączony</string>
     <string name="skills_ui_disabled">Wyłączony</string>
     <string name="skills_ui_factory_readonly">Preset fabryczny · tylko do odczytu. Aby edytować, utwórz własną kopię.</string>
+    <string name="usb_ui_title">AI Calls — diagnostyka USB / ADB</string>
+    <string name="usb_ui_description">Lokalny odczyt stanu. Prywatne dane nie są automatycznie publikowane ani wysyłane do logcat.</string>
+    <string name="usb_ui_refresh">Odśwież diagnostykę</string>
+    <string name="usb_ui_raw_details">Szczegóły techniczne · JSON</string>
+    <string name="usb_ui_copy_json">Kopiuj JSON do schowka</string>
+    <string name="usb_ui_engines">Ustawienia silników AI</string>
+    <string name="usb_ui_campaign">Kampanie, STOP i prywatne transkrypty</string>
+    <string name="usb_ui_cli_hint">Mac CLI: ai_calls_usb_debug.py. Eksport nagrań odbywa się lokalnie na Macu. Ten ekran nie przyznaje uprawnień do rozmów.</string>
+    <string name="usb_ui_idle">Wolny</string>
+    <string name="usb_ui_not_confirmed_idle">Niepotwierdzony lub zajęty</string>
+    <string name="usb_ui_inactive">Nieaktywna</string>
+    <string name="usb_ui_running_or_unknown">Aktywna lub stan nieznany</string>
+    <string name="usb_ui_enabled">Włączone</string>
+    <string name="usb_ui_disabled">Wyłączone</string>
+    <string name="usb_ui_summary">Telefon: %1$s\nKampania: %2$s\nWejście: %3$s\nModel: %4$s\nGłos: %5$s\nNagrywanie: %6$s\nOdbieranie: %7$s</string>
+    <string name="usb_ui_read_failed">Nie udało się odczytać bieżącego stanu.</string>
+    <string name="tools_ui_latest_status">Ostatnia aktywność narzędzi</string>
+    <string name="ui_general_autosave">Zmiany zapisują się automatycznie. Nie trzeba naciskać Zapisz.</string>
+    <string name="ui_general_mic_granted">Mikrofon: dostęp przyznany</string>
+    <string name="ui_general_mic_missing">Mikrofon: wymagana zgoda Androida</string>
 </resources>
