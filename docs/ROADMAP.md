@@ -91,3 +91,7 @@ Screenshot unblocker F-104, Calls Back/Delete F-105/106, action spacing F-107, a
 ## Minimalizm UI i Tabler — 2026-11-07
 
 `6a3aad0`: usunięte powtórzenia w Home i live chat, historia Calls jako jeden wiersz z kierunkiem i bezpiecznym koszem, 11 spójnych wektorów Tabler/MIT, płaskie akcje, `UiSelect` + zwijany język/wygląd. **Mac full gate 300 Python / AndroidTest / lint / APK / anti-friction PASS, Samsung S22 22/22 instrumented PASS**, app/test APK zainstalowane `-r` i dane zachowane. Wszelkie realne rozmowy i AI effects poza zakresem. [Odbiór](checkpoints/2026-11-07-minimal-ui-tabler-s22-22of22.md). Dalsze UX: ręczny audyt wizualny F-107, komplet PL/EN F-103 i separacja pozostałych Activities.
+
+## Sprint UI polish 2 — rzeczywisty odbiór Samsung S22 (2026-11-07)
+
+Źródło `b4370ac`, Mac host `304 Python + JVM + AndroidTest + APK/lint/friction PASS`. Dokładny fizyczny Samsung S22: aplikacja + test APK wgrane bez czyszczenia danych; `27/27` natywne testy UX, `15/15` ekranów i `6/6` rozszerzonych stanów — razem `48/48` PASS, **37 prywatnych JPEG** na Macu w `~/Library/Application Support/AI-Calls/UI-audit/2026-11-07-polish-sprint2`. Nowe komponenty kart, akcji, dropdownów, poprawki Laboratorium, Modeli, Silników, Przygotowania, Kampanii i Skills. Brak rzeczywistej rozmowy, danych usuniętych i screenshotów wysłanych do repo. Ręczna analiza wizualna ZIP-a i F-103/F-107/F-080 pozostają otwarte. [Checkpoint](checkpoints/2026-11-07-s22-ux-polish-sprint2-48-pass-37-screenshots.md).
