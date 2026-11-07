@@ -1,0 +1,81 @@
+"""Sprint4 UX contracts: live offline Skill Lab and source-only display safety."""
+from pathlib import Path
+import unittest
+import xml.etree.ElementTree as ET
+
+ROOT = Path(__file__).resolve().parents[2]
+SRC = ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge"
+TEST = ROOT / "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge"
+
+class Sprint4UxContract(unittest.TestCase):
+    def read(self, path):
+        return (SRC / path).read_text(encoding="utf-8")
+
+    def test_lab_renders_pending_and_parsed_completion_per_turn(self):
+        lab = self.read("conversation/ConversationSkillLabActivity.kt")
+        for token in (
+            "showTurnPending(", "showTurnCompleted(", "ConversationReplyProtocol.decode",
+            'tag = "lab-turn-timeline"', 'tag = "lab-live-progress"',
+            'tag = "lab-current-turn"', 'tag = "lab-follow"',
+            'tag = "lab-rating-group"', "followCardIfEnabled",
+            "progress.progress = completed", "record.reply.trim()",
+            "UiDesign.card(this, 12)"
+        ):
+            self.assertIn(token, lab)
+        self.assertNotIn('results.joinToString("\\n\\n")', lab)
+        self.assertNotIn('output.text =', lab)
+
+    def test_lab_no_external_effects_and_cancel_kept(self):
+        lab = self.read("conversation/ConversationSkillLabActivity.kt")
+        for token in ("cancelled.set(true)", "worker?.interrupt()", "model?.cancel()",
+                      "if (cancelled.get()) break", "override fun onStop()"):
+            self.assertIn(token, lab)
+        for forbidden in ("startActivityForResult(", "startService(", "startForegroundService(",
+                          "placeCall(", "executeTool(", "dispatchTool("):
+            self.assertNotIn(forbidden, lab)
+
+    def test_synthetic_device_preview_never_starts_model(self):
+        preview = (TEST / "AndroidSkillLabLivePreviewTest.kt").read_text()
+        self.assertIn("showTurnPending", preview)
+        self.assertIn("showTurnCompleted", preview)
+        self.assertIn("lab-live-synthetic.jpg", preview)
+        self.assertIn("ui-audit-20261107-sprint4", preview)
+        self.assertNotIn("runLab(", preview)
+        self.assertNotIn("generate(", preview)
+
+    def test_bilingual_labels_match_and_format_arguments(self):
+        files = [ROOT / "app/src/main/res" / path for path in
+                 ("values/strings.xml", "values-en/strings.xml")]
+        sets = [{e.attrib["name"]: (e.text or "") for e in ET.parse(path).getroot()
+                 if e.tag == "string"} for path in files]
+        self.assertEqual(set(sets[0]), set(sets[1]))
+        for key in ("lab_ui_progress", "lab_ui_decision", "lab_ui_score_decisions",
+                    "lab_ui_score_errors", "home_ui_task_heading", "incoming_ui_mode_label"):
+            self.assertIn(key, sets[0])
+        for name in sets[0]:
+            if name.startswith(("lab_ui_", "home_ui_task_", "incoming_ui_mode_label",
+                                "incoming_ui_sim_label")):
+                import re
+                p0 = sorted(re.findall(r"%\d+\$[ds]", sets[0][name]))
+                p1 = sorted(re.findall(r"%\d+\$[ds]", sets[1][name]))
+                self.assertEqual(p0, p1, name)
+
+    def test_history_compact_and_skills_visual_hierarchy(self):
+        history = self.read("conversation/ConversationHistoryActivity.kt")
+        skills = self.read("conversation/ConversationSkillsActivity.kt")
+        incoming = self.read("incoming/IncomingAssistantSettingsActivity.kt")
+        home = self.read("MainActivity.kt")
+        self.assertIn("DateFormat.getTimeInstance", history)
+        self.assertIn('text = direction + " · " + time', history)
+        self.assertIn('tag = "history-delete:"', history)
+        self.assertIn("UiDesign.secondary", history)
+        self.assertIn("UiDesign.card(this, 12)", skills)
+        self.assertIn("UiActionTone.PRIMARY", skills)
+        self.assertIn('tag = "skills-factory-state:"', skills)
+        self.assertIn("content.addView(feedback)", incoming)
+        self.assertIn('tag = "home-task-authorization"', home)
+        self.assertIn("taskAuthorizationSummary()", home)
+        self.assertIn('home_ui_model_label).trim()).append(', home)
+
+if __name__ == "__main__":
+    unittest.main()
