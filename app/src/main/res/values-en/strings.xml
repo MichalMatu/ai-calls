@@ -502,4 +502,37 @@
     <string name="pilot_ui_report_hint">check report</string>
     <string name="pilot_ui_start_failed">Could not start AI audio: %1$s</string>
     <string name="pilot_ui_stopping">Stopping AI audio. The phone call remains active.</string>
+
+    <!-- UX-05 localized campaign presentation -->
+    <string name="camp_ux05_record_local">Save RX/TX and transcripts for this task (locally)</string>
+    <string name="camp_ux05_attach_ai">Attach AI to an active call</string>
+    <string name="camp_ux05_record_disabled">Recording disabled for future calls. Task remains authorized.</string>
+    <string name="camp_ux05_prep_caption">Preparation profiles are separate from task permissions. Changes apply to the next attempt.</string>
+    <string name="camp_ux05_prep_link">Skills and data — outgoing / incoming</string>
+    <string name="camp_ux05_target">Target: %1$s · current SIM</string>
+    <string name="camp_ux05_transcript_absent">No private transcript yet. Enable recording before the call.</string>
+    <string name="camp_ux05_counterpart">Caller</string>
+    <string name="camp_ux05_transcript_line">[%1$d s, turn %2$d] %3$s: %4$s</string>
+    <string name="camp_ux05_transcript_read_failed">Could not read the private transcript.</string>
+    <string name="camp_ux05_transcript_no_turns">No completed STT/AI utterances. Refresh after next turn.</string>
+    <string name="camp_ux05_transcript_title">Private RX / AI transcript</string>
+    <string name="camp_ux05_refresh">Refresh</string>
+    <string name="camp_ux05_close">Close</string>
+    <string name="camp_ux05_play_permission">Playback requires phone-state permission.</string>
+    <string name="camp_ux05_play_off_call">Playback only outside calls, to avoid audio feedback.</string>
+    <string name="camp_ux05_audio_absent">No saved AI audio. Enable private diagnostics first.</string>
+    <string name="camp_ux05_audio_file">Playing private %1$s file: %2$s</string>
+    <string name="camp_ux05_counterpart_audio">caller</string>
+    <string name="camp_ux05_play_failed">Could not play the latest WAV file.</string>
+    <string name="camp_ux05_permission_denied">Android permissions denied.</string>
+    <string name="camp_ux05_role_unavailable">Default dialer role is unavailable</string>
+    <string name="camp_ux05_role_already">AI Calls already holds the dialer role</string>
+    <string name="camp_ux05_role_request">Android will ask you to choose: AI Calls replaces Google Phone as the default dialer.</string>
+    <string name="camp_ux05_role_active">Android call controller active — authorized task can run</string>
+    <string name="camp_ux05_role_denied">Dialer role not granted; Google Phone remains active</string>
+    <string name="camp_ux05_supervised_start">Attaching supervised audio test to existing call.</string>
+    <string name="camp_ux05_sim_bind_failed">Cannot bind task to the current SIM.</string>
+    <string name="camp_ux05_campaign_start">Starting task: enable CLIR. Mode: %1$s</string>
+    <string name="camp_ux05_script_model">script + model</string>
+    <string name="camp_ux05_campaign_failed">Could not start task. Details are in diagnostics.</string>
 </resources>

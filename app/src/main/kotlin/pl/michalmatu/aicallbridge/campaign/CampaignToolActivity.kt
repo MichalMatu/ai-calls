@@ -64,6 +64,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             textSize = 16f
             setTextColor(UiDesign.ink)
             setTextIsSelectable(true)
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             tag = "campaign-task-status"
         }
         diagnosticStatus = UiDesign.caption(this, "").apply {
@@ -96,7 +97,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             existing, ClirCampaignSpec.enableRequest(accountScope),
         )) existing else null
         recordEvidenceChoice = CheckBox(this).apply {
-            text = "Zapisuj RX/TX i transkrypcje tego zadania (lokalnie)"
+            text = getString(R.string.camp_ux05_record_local)
             isChecked = accepted?.recordCallEvidence == true
         }
         val callRoleButton = Button(this).apply {
@@ -113,7 +114,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }
         }
         val supervisedAudioButton = Button(this).apply {
-            text = "Uruchom AI w trwającej rozmowie"
+            text = getString(R.string.camp_ux05_attach_ai)
             // The tap is the explicit request. Android permissions and actual
             // live-call/media gates are checked by the service; no redundant dialog.
             setOnClickListener {
@@ -135,7 +136,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             setOnClickListener {
                 val grant = authorizationStore.disableEvidenceRecording()
                 statusView.text = if (grant == null) getString(R.string.camp_ui_no_campaign) else
-                    "Nagrywanie wyłączone dla kolejnych rozmów. Zadanie pozostaje autoryzowane."
+                    getString(R.string.camp_ux05_record_disabled)
             }
         }
         val playbackButton = Button(this).apply {
@@ -176,9 +177,9 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         // Optional prompt skills: model instructions, NOT privileged tool permissions.
         // The exact authorized CLIR task, role and STOP remain app-owned.
         val directSkillsSection = UiAccordionSection(this, "direct-prompt-skills", getString(R.string.camp_ui_skills)).apply {
-            addLabel("Profile przygotowania są niezależne od zadania i jego uprawnień. Zmiany obowiązują w kolejnej próbie.")
+            addLabel(getString(R.string.camp_ux05_prep_caption))
             addControl(Button(this@CampaignToolActivity).apply {
-                text = "Skills i dane — wychodzące / przychodzące"
+                text = getString(R.string.camp_ux05_prep_link)
                 setOnClickListener { startActivity(Intent(this@CampaignToolActivity,
                     pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java)) }
             })
@@ -215,7 +216,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                     textSize = 18f
                 }, UiDesign.spaceAfter(this@CampaignToolActivity, 8))
                 addView(UiDesign.caption(this@CampaignToolActivity,
-                    "Cel: ${ClirCampaignSpec.TARGET} · bieżąca SIM"
+                    getString(R.string.camp_ux05_target, ClirCampaignSpec.TARGET)
                 ), UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(UiDesign.caption(this@CampaignToolActivity,
                     getString(R.string.campaign_ui_dialogue_mode)),
@@ -296,7 +297,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun showLatestTranscript() {
         val timeline = latestEvidenceDirectory()?.resolve("timeline.jsonl")
         if (timeline?.isFile != true) {
-            statusView.text = "Nie ma jeszcze prywatnego transkryptu. Uzbrój zapis przed rozmową."
+            statusView.text = getString(R.string.camp_ux05_transcript_absent)
             return
         }
         val lines = runCatching {
@@ -308,20 +309,19 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                         if (type != "COUNTERPART_STT" && type != "AGENT_APPROVED_TEXT") {
                             null
                         } else {
-                            val name = if (type == "COUNTERPART_STT") "Rozmówca" else "AI"
+                            val name = if (type == "COUNTERPART_STT") getString(R.string.camp_ux05_counterpart) else "AI"
                             val seconds = event.optLong("elapsed_ms") / 1_000L
-                            "[$seconds s, tura ${event.optInt("turn")}] $name: " +
-                                event.optString("text")
+                            getString(R.string.camp_ux05_transcript_line, seconds, event.optInt("turn"), name, event.optString("text"))
                         }
                     }.getOrNull()
                 }.toList()
             }
         }.getOrElse {
-            statusView.text = "Nie udało się odczytać prywatnego transkryptu."
+            statusView.text = getString(R.string.camp_ux05_transcript_read_failed)
             return
         }
         val transcript = lines.joinToString("\n\n")
-            .ifEmpty { "Brak ukończonych wypowiedzi STT/AI. Odśwież po kolejnej turze." }
+            .ifEmpty { getString(R.string.camp_ux05_transcript_no_turns) }
         val view = TextView(this).apply {
             text = transcript
             textSize = 15f
@@ -329,29 +329,29 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             setPadding(UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 32), UiDesign.dp(this@CampaignToolActivity, 20))
         }
         AlertDialog.Builder(this)
-            .setTitle("Prywatny transkrypt RX / AI")
+            .setTitle(R.string.camp_ux05_transcript_title)
             .setView(ScrollView(this).apply { addView(view) })
-            .setPositiveButton("Odśwież") { _, _ -> showLatestTranscript() }
-            .setNegativeButton("Zamknij", null)
+            .setPositiveButton(R.string.camp_ux05_refresh) { _, _ -> showLatestTranscript() }
+            .setNegativeButton(R.string.camp_ux05_close, null)
             .show()
     }
 
     private fun playLastRecordedAudio(direction: String) {
         require(direction == "rx" || direction == "tx")
         if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            statusView.text = "Odsłuch wymaga uprawnienia do sprawdzenia stanu telefonu."
+            statusView.text = getString(R.string.camp_ux05_play_permission)
             return
         }
         val telecom = getSystemService(TelecomManager::class.java)
         if (runCatching { telecom == null || telecom.isInCall }.getOrDefault(true)) {
-            statusView.text = "Odsłuch tylko poza rozmową; bez ryzyka sprzężenia audio."
+            statusView.text = getString(R.string.camp_ux05_play_off_call)
             return
         }
         val audio = latestEvidenceDirectory()?.listFiles()?.filter {
             it.name.matches(Regex("turn-[0-9]{2}-$direction\\.wav"))
         }?.maxByOrNull { it.name }
         if (audio == null) {
-            statusView.text = "Brak zapisanego audio AI. Najpierw uzbrój prywatną diagnostykę."
+            statusView.text = getString(R.string.camp_ux05_audio_absent)
             return
         }
         runCatching {
@@ -365,12 +365,12 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }
             newPlayer.prepare()
             newPlayer.start()
-            statusView.text = "Odtwarzanie prywatnego pliku " +
-                (if (direction == "rx") "rozmówcy" else "AI") + ": " + audio.name
+            statusView.text = getString(R.string.camp_ux05_audio_file,
+                if (direction == "rx") getString(R.string.camp_ux05_counterpart_audio) else "AI", audio.name)
         }.onFailure {
             playback?.release()
             playback = null
-            statusView.text = "Nie udało się odtworzyć ostatniego pliku WAV."
+            statusView.text = getString(R.string.camp_ux05_play_failed)
         }
     }
 
@@ -388,7 +388,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         val action = pendingAction
         pendingAction = null
         if (!allGranted) {
-            statusView.text = "Campaign permissions denied"
+            statusView.text = getString(R.string.camp_ux05_permission_denied)
             return
         }
         when (action) {
@@ -431,11 +431,11 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun requestPlatformCallRole() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager == null || !manager.isRoleAvailable(RoleManager.ROLE_DIALER)) {
-            statusView.text = "System nie udostępnia roli domyślnego dialera"
+            statusView.text = getString(R.string.camp_ux05_role_unavailable)
             return
         }
         if (manager.isRoleHeld(RoleManager.ROLE_DIALER)) {
-            statusView.text = "AI Calls ma już rolę dialera"
+            statusView.text = getString(R.string.camp_ux05_role_already)
             if (continueStartAfterRole) {
                 continueStartAfterRole = false
                 ensurePermissionsThen(PendingAction.START)
@@ -443,7 +443,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             return
         }
         // Android alone grants/revokes this role. Never change Google Phone silently.
-        statusView.text = "Android poprosi o świadomy wybór: AI Calls zastąpi Google Phone jako domyślny dialer."
+        statusView.text = getString(R.string.camp_ux05_role_request)
         startActivityForResult(manager.createRequestRoleIntent(RoleManager.ROLE_DIALER), REQUEST_DIALER_ROLE)
     }
 
@@ -452,8 +452,8 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         if (requestCode == REQUEST_DIALER_ROLE) {
             val roleActive = AndroidTelecomOwnedCallController.canControl(this)
             statusView.text = if (roleActive) {
-                "Kontroler połączeń Android aktywny — można wykonać autoryzowane zadanie"
-            } else "Rola dialera nie została przyznana; Google Phone pozostaje aktywny"
+                getString(R.string.camp_ux05_role_active)
+            } else getString(R.string.camp_ux05_role_denied)
             val shouldStart = continueStartAfterRole
             continueStartAfterRole = false
             if (roleActive && shouldStart) ensurePermissionsThen(PendingAction.START)
@@ -461,7 +461,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     }
 
     private fun startSupervisedAudio() {
-        statusView.text = "Attaching read-only audio test to existing user-controlled call"
+        statusView.text = getString(R.string.camp_ux05_supervised_start)
         startForegroundService(
             Intent(this, AppOwnedCampaignService::class.java)
                 .setAction(AppOwnedCampaignService.ACTION_START_SUPERVISED_AUDIO),
@@ -471,7 +471,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun startAuthorizedCampaign() {
         val accountScope = CampaignAccountScope.currentVoiceSubscription(this)
         if (accountScope == null) {
-            statusView.text = "Could not bind execution to the current voice subscription"
+            statusView.text = getString(R.string.camp_ux05_sim_bind_failed)
             return
         }
 
@@ -486,9 +486,9 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             recordCallEvidence = recordEvidenceChoice.isChecked,
         )
         statusView.text = if (report.contains("campaign_agent_start=DISPATCHED_TO_INTERNAL_SERVICE")) {
-            "Uruchamiam zadanie: włączenie CLIR. Tryb: " +
-                if (requestedStartMode == CampaignDialogueMode.GEMMA_DIRECT) "Gemma Direct" else "skrypt + model"
-        } else "Nie udało się uruchomić zadania. Szczegóły są w diagnostyce."
+            getString(R.string.camp_ux05_campaign_start,
+                if (requestedStartMode == CampaignDialogueMode.GEMMA_DIRECT) "Gemma Direct" else getString(R.string.camp_ux05_script_model))
+        } else getString(R.string.camp_ux05_campaign_failed)
 
     }
 

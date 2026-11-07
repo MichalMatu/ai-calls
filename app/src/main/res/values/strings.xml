@@ -502,4 +502,37 @@
     <string name="pilot_ui_report_hint">sprawdź raport</string>
     <string name="pilot_ui_start_failed">Nie udało się uruchomić audio AI: %1$s</string>
     <string name="pilot_ui_stopping">Zatrzymuję audio AI. Połączenie telefoniczne pozostaje aktywne.</string>
+
+    <!-- UX-05 localized campaign presentation -->
+    <string name="camp_ux05_record_local">Zapisuj RX/TX i transkrypcje tego zadania (lokalnie)</string>
+    <string name="camp_ux05_attach_ai">Uruchom AI w trwającej rozmowie</string>
+    <string name="camp_ux05_record_disabled">Nagrywanie wyłączone dla kolejnych rozmów. Zadanie pozostaje autoryzowane.</string>
+    <string name="camp_ux05_prep_caption">Profile przygotowania są niezależne od zadania i jego uprawnień. Zmiany obowiązują w kolejnej próbie.</string>
+    <string name="camp_ux05_prep_link">Skills i dane — wychodzące / przychodzące</string>
+    <string name="camp_ux05_target">Cel: %1$s · bieżąca SIM</string>
+    <string name="camp_ux05_transcript_absent">Nie ma jeszcze prywatnego transkryptu. Uzbrój zapis przed rozmową.</string>
+    <string name="camp_ux05_counterpart">Rozmówca</string>
+    <string name="camp_ux05_transcript_line">[%1$d s, tura %2$d] %3$s: %4$s</string>
+    <string name="camp_ux05_transcript_read_failed">Nie udało się odczytać prywatnego transkryptu.</string>
+    <string name="camp_ux05_transcript_no_turns">Brak ukończonych wypowiedzi STT/AI. Odśwież po kolejnej turze.</string>
+    <string name="camp_ux05_transcript_title">Prywatny transkrypt RX / AI</string>
+    <string name="camp_ux05_refresh">Odśwież</string>
+    <string name="camp_ux05_close">Zamknij</string>
+    <string name="camp_ux05_play_permission">Odsłuch wymaga uprawnienia do sprawdzenia stanu telefonu.</string>
+    <string name="camp_ux05_play_off_call">Odsłuch tylko poza rozmową; bez ryzyka sprzężenia audio.</string>
+    <string name="camp_ux05_audio_absent">Brak zapisanego audio AI. Najpierw uzbrój prywatną diagnostykę.</string>
+    <string name="camp_ux05_audio_file">Odtwarzanie prywatnego pliku %1$s: %2$s</string>
+    <string name="camp_ux05_counterpart_audio">rozmówcy</string>
+    <string name="camp_ux05_play_failed">Nie udało się odtworzyć ostatniego pliku WAV.</string>
+    <string name="camp_ux05_permission_denied">Android odmówił uprawnień.</string>
+    <string name="camp_ux05_role_unavailable">System nie udostępnia roli domyślnego dialera</string>
+    <string name="camp_ux05_role_already">AI Calls ma już rolę dialera</string>
+    <string name="camp_ux05_role_request">Android poprosi o świadomy wybór: AI Calls zastąpi Google Phone jako domyślny dialer.</string>
+    <string name="camp_ux05_role_active">Kontroler połączeń Android aktywny — można wykonać autoryzowane zadanie</string>
+    <string name="camp_ux05_role_denied">Rola dialera nie została przyznana; Google Phone pozostaje aktywny</string>
+    <string name="camp_ux05_supervised_start">Podłączam nadzorowany test audio do istniejącej rozmowy.</string>
+    <string name="camp_ux05_sim_bind_failed">Nie można przypisać zadania do bieżącej karty SIM.</string>
+    <string name="camp_ux05_campaign_start">Uruchamiam zadanie: włączenie CLIR. Tryb: %1$s</string>
+    <string name="camp_ux05_script_model">skrypt + model</string>
+    <string name="camp_ux05_campaign_failed">Nie udało się uruchomić zadania. Szczegóły są w diagnostyce.</string>
 </resources>
