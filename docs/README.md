@@ -1,6 +1,6 @@
 # AI Calls — indeks aktualnej dokumentacji
 
-**Zacznij tutaj:** [Aktualny handoff](HANDOFF_NEXT_CHAT.md) · [Prompt nowego chatu](NEXT_CHAT_PROMPT.md) · [UX-03 SOURCE_PASS](checkpoints/2026-11-07-ux03-skill-lab-runner-closeout.md) · [UX-02 SOURCE_PASS](checkpoints/2026-11-07-ux02-conversation-history-controller-closeout.md) · [UX-01 SOURCE_PASS](checkpoints/2026-11-07-ux01-campaign-status-presenter-closeout.md) · [Finalny Sprint 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md).
+**Zacznij tutaj:** [Aktualny handoff](HANDOFF_NEXT_CHAT.md) · [Prompt nowego chatu](NEXT_CHAT_PROMPT.md) · [UX-04 SOURCE_PASS](checkpoints/2026-11-07-ux04-model-and-audio-presentation-closeout.md) · [UX-03 SOURCE_PASS](checkpoints/2026-11-07-ux03-skill-lab-runner-closeout.md) · [UX-02 SOURCE_PASS](checkpoints/2026-11-07-ux02-conversation-history-controller-closeout.md) · [UX-01 SOURCE_PASS](checkpoints/2026-11-07-ux01-campaign-status-presenter-closeout.md) · [Finalny Sprint 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md).
 
 **Stan 2026-11-07:** iteracja UX **CLOSED / PASS**. Finalny kod `1b359146`: 325 host PASS; fizyczny S22: **28+24** testy UI/wizualne, hotfix **4/4** targeted, realna Gemma **2 tury + STOP PASS**; 46 prywatnych JPEG. Poprzednie checkpointy zostają jako historia, nie aktualne blokady.
 

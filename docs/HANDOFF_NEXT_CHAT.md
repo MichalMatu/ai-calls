@@ -1,4 +1,4 @@
-# AI Calls — HANDOFF: Sprint 6 CLOSED, UX-01/02/03 SOURCE_PASS (2026-11-07)
+# AI Calls — HANDOFF: Sprint 6 CLOSED, UX-01/02/03/04 SOURCE_PASS (2026-11-07)
 
 **Status końcowy:** `UX_ITERATION_CLOSED / SOURCE_PASS / S22_PASS / REAL_GEMMA_PASS`. Właściciel uznał UX za wystarczająco dobry i kończy tę iterację. **Nie rozpoczynać kolejnych mikro-poprawek wizualnych ani nie powtarzać zaliczonych testów.**
 
@@ -6,7 +6,7 @@
 
 ## Dokładny stan repo i środowiska
 
-- Repo `MichalMatu/ai-calls`, gałąź `main`, **Sprint 6 funkcjonalny `1b359146d89260e7cffd6d4c851d4c475cee20ac`**, osobny **UX-01 tested HEAD `82d86e3faa256ee5b6d5ec8ab812ea104733bd29`**, **UX-02 tested HEAD `109c446779257fdfb7806716c6f05e97eeff48e2`**, **UX-03 tested HEAD `b53cb820cb4d1f8eb36c38bca67e77cdc33f1e7a`**. Commity dokumentacji mogą podnieść HEAD; zawsze odczytaj aktualny commit i clean worktree. Bez nowych gałęzi, force-push, GitHub Actions, Codex ani Work; commity `[skip ci]`.
+- Repo `MichalMatu/ai-calls`, gałąź `main`, **Sprint 6 funkcjonalny `1b359146d89260e7cffd6d4c851d4c475cee20ac`**, osobny **UX-01 tested HEAD `82d86e3faa256ee5b6d5ec8ab812ea104733bd29`**, **UX-02 tested HEAD `109c446779257fdfb7806716c6f05e97eeff48e2`**, **UX-03 tested HEAD `b53cb820cb4d1f8eb36c38bca67e77cdc33f1e7a`**, **UX-04 tested HEAD `7df2c33b282da868d06d5308c9e57d1dd0317435`**. Commity dokumentacji mogą podnieść HEAD; zawsze odczytaj aktualny commit i clean worktree. Bez nowych gałęzi, force-push, GitHub Actions, Codex ani Work; commity `[skip ci]`.
 - GitHub Connector + **Mac Local Agent**: `macbook-michal`, installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, repo na Macu `/Users/michal/agent-workspace/repos/ai-calls/work`. Testy hosta wykonywać tam, nie zgadywać stanów sprzętu.
 - Fizyczny S22 `SM-S906B` / serial `RFCT70L7E8J`; instalacja `app-debug.apk` i AndroidTest APK przez `adb install -r -t`, signer zgodny, **dane zachowane**. `IDLE`, brak aktywnej kampanii i faktycznych połączeń podczas testów.
 
@@ -32,7 +32,9 @@
 
 **UX-03 SOURCE_PASS / HOST_PASS (zamknięty źródłowo):** [checkpoint i receipts](checkpoints/2026-11-07-ux03-skill-lab-runner-closeout.md). `SkillLabRunner` przejął model, worker, STOP, 120 s i callbacki; immutable `SkillLabUiState`; Activity renderuje tylko stan. RED→GREEN 9 JVM, 328 Python, friction, `scripts/verify_host.sh`, AndroidTest Kotlin i dwa APK PASS, clean Mac na `b53cb820`. **S22 nowego UX-03 NOT_RUN**; bez rzeczywistych połączeń i ingerencji w prywatne dane. Historyczne RED i 4 nieaktualne źródłowe asercje testów poprawione, dowody zachowane.
 
-**Następny osobny zakres:** **UX-04 — modele i ustawienia audio** (jedna granica odczytu/prezentacji, istniejące store/providers/transfer service); później UX-05 F-103. Nie łączyć sprintów ani nie wznawiać kosmetyki Sprintu 6.
+**UX-04 SOURCE_PASS / HOST_PASS (zamknięty źródłowo):** [checkpoint i receipts](checkpoints/2026-11-07-ux04-model-and-audio-presentation-closeout.md). Dwa osobne read-only presentery: `LanguageModelStatusPresenter` (installed/ready/active, busy, postęp, feedback) i `AudioEngineActiveProfilePresenter` (prawdziwy zapisany profil → podsumowanie). RED→GREEN **13 JVM**, **332 Python**, friction, `verify_host.sh`, AndroidTest Kotlin i oba APK PASS, Mac clean na `7df2c33`. **S22 nowego UX-04 NOT_RUN**. Transfer, wybór modelu, zapis konfiguracji, readiness i Android TTS zachowały dotychczasowych właścicieli.
+
+**Następny osobny zakres:** **UX-05 / F-103 — pełne PL/EN i dostępność UI**, nie refaktor serwisów modeli. Nie łączyć sprintów ani nie wznawiać kosmetyki Sprintu 6.
 
 **Inne niezależne, nienaruszane sprawy:** F-080 pełny ciągły recorder/player sesji; fizyczne autoryzowane call flows, przejęcie i odstawienie AI, rzetelna ocena semantyki i naturalności Gemmy. `END_CALL 2/2` to wynik decyzji końca, nie merytorycznej jakości.
 
@@ -40,4 +42,4 @@
 
 Nie ruszać zamrożonego Samsung/Shizuku/PCM/PFD RX/TX, ownership jedynego Android Call, grant/revoke, STOP, polityk ujawniania faktów i sekwencji `zatwierdzenie → pełny TX → end_call`. Bez realnych połączeń ani ingerencji w prawdziwe archiwa bez wyraźnej autoryzacji. Testować nową odpowiedzialność w izolacji, `scripts/verify_host.sh`, friction audit, AndroidTest kiedy odpowiedni, checkpoint ze źródłowym i fizycznym QA osobno.
 
-**Synchronizacja Mac:** testowany UX-03 `b53cb820` był czysty i zgodny z `origin/main` w `aicalls-ux03-runner-final-green-host-20261107-v2` DONE/0. Dokumentacyjne commity po źródłowym QA wymagają oddzielnego `git fetch --no-tags origin main`, `git merge --ff-only origin/main`, `git status --porcelain`; dokumentacyjne SHA nie są instalacją na S22.
+**Synchronizacja Mac:** źródłowy UX-04 `7df2c33` był czysty i zgodny z `origin/main` w `aicalls-ux04-final-source-green-host-20261107-v1` DONE/0. Po commitach wyłącznie dokumentacyjnych zrób `git fetch --no-tags origin main`, `git merge --ff-only origin/main` i `git status --porcelain`; dokumentacyjne SHA nie są instalacją na S22.

@@ -48,7 +48,7 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 
 ## Oddzielenie UX od logiki — nowa, niezależna sekwencja (po Sprint 6)
 
-**UX-01, UX-02 i UX-03 są DONE / SOURCE_PASS; UX-04 i dalsze kroki pozostają osobnymi przyszłymi zakresami.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
+**UX-01, UX-02, UX-03 i UX-04 są DONE / SOURCE_PASS; następny osobny zakres UX-05 / F-103.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
 
 ### Mapa faktycznego sprzężenia
 
@@ -84,6 +84,12 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 - [Checkpoint](checkpoints/2026-11-07-ux03-skill-lab-runner-closeout.md): Mac RED→GREEN, 9 Kotlin JVM, 328 Python, full host/friction/AndroidTest/APK PASS, tested `b53cb820`, clean Mac. S22 nowego APK **NOT_RUN**; nie przenoszono toru TX, PCM/PFD ani callbacków telefonii.
 - Zmiany testów Sprintu 4/5 aktualizują statyczne lokalizacje odpowiedzialności, nie przywracają jej w Activity. Wcześniejsze FAIL oraz historyczne dowody Sprintu 6 pozostają zapisane.
 
+### UX-04 — modele i aktywny profil audio (DONE / SOURCE_PASS)
+
+- `LanguageModelStatusPresenter` jest odczytową, typowaną projekcją wyników istniejącego `LanguageModelTransferService.status`, zapisanej selekcji `AudioEngineProfileStore` i wyników `AndroidGemma4ModelReadiness`. Bez nowych serwisów, pobierania, zapisów lub udawania READY bez sondy.
+- `AudioEngineActiveProfilePresenter` tylko prezentuje aktualny zapisany profil; nie wywołuje `AudioEngineReadinessProbe` ani nie zastępuje `TextToSpeech`. `Invalid` nie zmienia się w domyślny profil.
+- [Checkpoint](checkpoints/2026-11-07-ux04-model-and-audio-presentation-closeout.md): dwukrotny rzeczywisty JVM RED, **13 Kotlin JVM, 332 host Python, friction, pełny host, AndroidTest i APK PASS** na `7df2c33`; **S22 NOT_RUN**.
+
 ### Reguła kadencji
 
-UX-01/UX-02/UX-03 zamknięto osobnymi checkpointami i QA; dalej UX-04 oraz UX-05 osobno, **nigdy** jeden duży refaktor. Jeśli nowy podział zwiększa zależności lub wymaga zmiany telefonii, zakończ `NO_CHANGE` zamiast symulować postęp. Szczegóły kolejności: [ROADMAP](ROADMAP.md).
+UX-01/02/03/04 zamknięto osobnymi checkpointami i QA; następny UX-05 / F-103, **nigdy** jeden duży refaktor. Jeśli nowy podział zwiększa zależności lub wymaga zmiany telefonii, zakończ `NO_CHANGE` zamiast symulować postęp. Szczegóły kolejności: [ROADMAP](ROADMAP.md).
