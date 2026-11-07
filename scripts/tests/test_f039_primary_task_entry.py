@@ -60,12 +60,16 @@ class PrimaryTaskEntryContractTest(unittest.TestCase):
         self.assertIn("ACTION_STOP_ALL_AI", self.service)
 
     def test_supervised_pilot_remains_reachable_but_not_primary_start(self):
-        advanced = self.main.split("val advancedSection = UiAccordionSection(", 1)[1].split(
-            "developerProbes.addControls(advancedSection.controlsContainer)", 1
-        )[0]
-        self.assertIn("addControl(oneTapButton)", advanced)
+        self.assertIn("val oneTapButton = Button(this).apply", self.main)
+        self.assertIn("addView(oneTapButton)", self.main)
         self.assertIn("addView(stopAiButton)", self.main)
-        self.assertNotIn("addView(oneTapButton)", self.main)
+        # The explicit supervised test is below the primary task action,
+        # never a replacement for the authorized START route.
+        self.assertLess(
+            self.main.index("addView(startAuthorizedTaskButton)"),
+            self.main.index("addView(oneTapButton)"),
+        )
+        self.assertIn("AppNavigation.bar(this@MainActivity, AppTab.HOME)", self.main)
 
 
 if __name__ == "__main__":
