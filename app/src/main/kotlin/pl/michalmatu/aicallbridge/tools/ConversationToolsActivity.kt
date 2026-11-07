@@ -58,11 +58,17 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         val feedback = UiDesign.caption(this, "")
         val save = UiDesign.action(this, getString(R.string.tools_ui_save), UiActionTone.PRIMARY) {
+            // Listener below owns the latest selected state.
+        }.apply { tag = "tools-save-settings"; isEnabled = false }
+        save.setOnClickListener {
             val selected = choices.filterValues { it.isChecked }.keys
             val success = controller.save(selected)
             feedback.text = getString(if (success) R.string.tools_ui_saved else R.string.tools_ui_failed)
-            if (success) storedSelection = selected.toSet()
-        }.apply { tag = "tools-save-settings"; isEnabled = false }
+            if (success) {
+                storedSelection = selected.toSet()
+                save.isEnabled = false
+            }
+        }
         choices.values.forEach { choice ->
             choice.setOnCheckedChangeListener { _, _ ->
                 save.isEnabled = choices.filterValues { it.isChecked }.keys != storedSelection

@@ -46,36 +46,36 @@ internal class MainActivityDeveloperProbes(
         } else {
             pendingShizukuProbe = false
             pendingShizukuLiveProbe = false
-            publishStatus("Shizuku permission denied")
+            publishStatus(activity.getString(R.string.dev_ui_shizuku_denied))
             Log.i(TAG, "shizuku_probe_permission=denied")
         }
     }
 
     fun addControls(content: LinearLayout) {
-        content.addView(UiDesign.heading(activity, "Diagnostyka urządzenia").apply { textSize = 17f }, UiDesign.spaceAfter(activity, 12))
+        content.addView(UiDesign.heading(activity, activity.getString(R.string.dev_ui_title)).apply { textSize = 17f }, UiDesign.spaceAfter(activity, 12))
         content.addView(Button(activity).apply {
-            text = "USB / ADB — diagnostyka"
+            text = activity.getString(R.string.dev_ui_usb)
             setOnClickListener {
                 activity.startActivity(Intent(activity, UsbDebugPanelActivity::class.java))
             }
         })
         content.addView(Button(activity).apply {
-            text = "Run device capability probe"
+            text = activity.getString(R.string.dev_ui_capability)
             setOnClickListener { runCapabilityProbe() }
         })
         content.addView(Button(activity).apply {
-            text = "Run Shizuku UserService probe"
+            text = activity.getString(R.string.dev_ui_shizuku)
             setOnClickListener { runShizukuProbe(false) }
         })
         // These legacy buttons only published status text and never controlled audio.
         // Present the truth as diagnostic information, not as misleading action buttons.
-        content.addView(UiDesign.heading(activity, "Audio RX / TX — status").apply { textSize = 17f },
+        content.addView(UiDesign.heading(activity, activity.getString(R.string.dev_ui_audio)).apply { textSize = 17f },
             UiDesign.spaceAfter(activity, 8))
         content.addView(UiDesign.caption(activity,
-            "Sondy downlink/uplink wymagają testów fazy 2. Ten panel nie włącza przejęcia ani STOP audio."),
+            activity.getString(R.string.dev_ui_status_note)),
             UiDesign.spaceAfter(activity, 12))
         content.addView(UiDesign.caption(activity,
-            "Do zatrzymania AI użyj STOP AI w Kampaniach lub na ekranie Start."),
+            activity.getString(R.string.dev_ui_stop_note)),
             UiDesign.spaceAfter(activity, 12))
     }
 
@@ -101,7 +101,7 @@ internal class MainActivityDeveloperProbes(
         pendingShizukuLiveProbe = live
 
         if (!Shizuku.pingBinder()) {
-            publishStatus("Shizuku binder unavailable; start Shizuku first")
+            publishStatus(activity.getString(R.string.dev_ui_shizuku_missing))
             Log.i(TAG, "shizuku_probe_binder=unavailable")
             return
         }
@@ -109,7 +109,7 @@ internal class MainActivityDeveloperProbes(
         if (Shizuku.isPreV11()) {
             pendingShizukuProbe = false
             pendingShizukuLiveProbe = false
-            publishStatus("Shizuku pre-v11 is unsupported")
+            publishStatus(activity.getString(R.string.dev_ui_shizuku_unsupported))
             Log.i(TAG, "shizuku_probe_version=unsupported_pre_v11")
             return
         }
@@ -118,11 +118,11 @@ internal class MainActivityDeveloperProbes(
             if (Shizuku.shouldShowRequestPermissionRationale()) {
                 pendingShizukuProbe = false
                 pendingShizukuLiveProbe = false
-                publishStatus("Shizuku permission denied; enable it in Shizuku")
+                publishStatus(activity.getString(R.string.dev_ui_shizuku_permission))
                 Log.i(TAG, "shizuku_probe_permission=rationale_required")
                 return
             }
-            publishStatus("Requesting Shizuku permission…")
+            publishStatus(activity.getString(R.string.dev_ui_shizuku_request))
             Log.i(TAG, "shizuku_probe_permission=requested")
             Shizuku.requestPermission(REQUEST_SHIZUKU)
             return

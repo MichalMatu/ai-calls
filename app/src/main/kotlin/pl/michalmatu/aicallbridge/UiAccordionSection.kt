@@ -106,6 +106,6 @@ internal class UiAccordionSection(
         toggle.setCompoundDrawablesWithIntrinsicBounds(null, null, arrow, null)
         toggle.compoundDrawablePadding = dp(8)
         toggle.contentDescription =
-            (if (expanded) "Zwiń: " else "Rozwiń: ") + heading
+            (if (expanded) context.getString(R.string.acc_ui_collapse) else context.getString(R.string.acc_ui_expand)) + heading
     }
 }

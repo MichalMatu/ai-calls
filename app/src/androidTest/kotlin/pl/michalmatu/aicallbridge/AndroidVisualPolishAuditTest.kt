@@ -55,6 +55,13 @@ class AndroidVisualPolishAuditTest {
                         expanded.width.coerceAtLeast(1), expanded.height.coerceAtLeast(1)), true)
                 }
                 instrument.waitForIdleSync()
+                scenario.onActivity { activity ->
+                    val expanded = requireNotNull(activity.window.decorView.findViewWithTag<View>(
+                        "ui-accordion-content:evidence"))
+                    val visible = Rect()
+                    assertTrue("campaign_expansion_outside_viewport", expanded.getGlobalVisibleRect(visible))
+                    assertTrue("campaign_expansion_too_small", visible.height() >= 16)
+                }
             }
             Thread.sleep(350)
             val image = instrument.uiAutomation.takeScreenshot()

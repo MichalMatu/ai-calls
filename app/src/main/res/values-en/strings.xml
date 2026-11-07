@@ -302,4 +302,18 @@
     <string name="eng_ui_preview_disabled">Voice preview is disabled during a call.</string>
     <string name="eng_ui_summary">Saved: %1$s → %2$s → %3$s\nVoice: %4$s</string>
     <string name="eng_ui_auto">automatic</string>
+    <string name="dev_ui_title">Device diagnostics</string>
+    <string name="dev_ui_usb">USB / ADB diagnostics</string>
+    <string name="dev_ui_capability">Check device capabilities</string>
+    <string name="dev_ui_shizuku">Check Shizuku UserService</string>
+    <string name="dev_ui_audio">Audio RX / TX — status</string>
+    <string name="dev_ui_status_note">Downlink/uplink probes need phase 2 validation. This panel does not take over or stop audio.</string>
+    <string name="dev_ui_stop_note">To stop AI use STOP AI in Campaigns or on Home.</string>
+    <string name="dev_ui_shizuku_denied">Shizuku permission denied</string>
+    <string name="dev_ui_shizuku_missing">Shizuku unavailable; start it first</string>
+    <string name="dev_ui_shizuku_unsupported">Shizuku before v11 is not supported</string>
+    <string name="dev_ui_shizuku_permission">Shizuku permission denied; enable it in Shizuku</string>
+    <string name="dev_ui_shizuku_request">Requesting Shizuku permission…</string>
+    <string name="acc_ui_expand">Expand: </string>
+    <string name="acc_ui_collapse">Collapse: </string>
 </resources>

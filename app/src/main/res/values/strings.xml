@@ -302,4 +302,18 @@
     <string name="eng_ui_preview_disabled">Odsłuch wyłączony podczas połączenia.</string>
     <string name="eng_ui_summary">Zapisano: %1$s → %2$s → %3$s\nGłos: %4$s</string>
     <string name="eng_ui_auto">automatyczny</string>
+    <string name="dev_ui_title">Diagnostyka urządzenia</string>
+    <string name="dev_ui_usb">USB / ADB — diagnostyka</string>
+    <string name="dev_ui_capability">Run device capability probe</string>
+    <string name="dev_ui_shizuku">Run Shizuku UserService probe</string>
+    <string name="dev_ui_audio">Audio RX / TX — status</string>
+    <string name="dev_ui_status_note">Sondy downlink/uplink wymagają testów fazy 2. Ten panel nie włącza przejęcia ani STOP audio.</string>
+    <string name="dev_ui_stop_note">Do zatrzymania AI użyj STOP AI w Kampaniach lub na ekranie Start.</string>
+    <string name="dev_ui_shizuku_denied">Shizuku permission denied</string>
+    <string name="dev_ui_shizuku_missing">Shizuku binder unavailable; start Shizuku first</string>
+    <string name="dev_ui_shizuku_unsupported">Shizuku pre-v11 is unsupported</string>
+    <string name="dev_ui_shizuku_permission">Shizuku permission denied; enable it in Shizuku</string>
+    <string name="dev_ui_shizuku_request">Requesting Shizuku permission…</string>
+    <string name="acc_ui_expand">Rozwiń: </string>
+    <string name="acc_ui_collapse">Zwiń: </string>
 </resources>

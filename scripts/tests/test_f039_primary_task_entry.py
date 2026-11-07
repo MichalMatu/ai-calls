@@ -27,7 +27,7 @@ class PrimaryTaskEntryContractTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
     def test_single_primary_start_uses_existing_campaign_screen_flow(self):
-        self.assertIn('text = "Rozpocznij autoryzowane zadanie AI"', self.main)
+        self.assertIn('text = getString(R.string.home_ui_start)', self.main)
         self.assertTrue(
             re.search(
                 r"startAuthorizedTaskButton = Button\(this\).*?"
