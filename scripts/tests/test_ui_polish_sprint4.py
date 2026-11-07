@@ -76,7 +76,8 @@ class Sprint4UxContract(unittest.TestCase):
         self.assertIn("content.addView(feedback)", incoming)
         self.assertIn('tag = "home-task-authorization"', home)
         self.assertIn("taskAuthorizationSummary()", home)
-        self.assertIn('home_ui_model_label).trim()).append(', home)
+        self.assertIn('home_ui_dialogue_model_label', home)
+        self.assertIn('home_ui_provider_label', home)
 
 if __name__ == "__main__":
     unittest.main()
