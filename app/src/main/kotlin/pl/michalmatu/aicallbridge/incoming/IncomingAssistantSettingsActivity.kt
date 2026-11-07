@@ -34,17 +34,15 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@IncomingAssistantSettingsActivity, 24),
-                UiDesign.dp(this@IncomingAssistantSettingsActivity, 28),
-                UiDesign.dp(this@IncomingAssistantSettingsActivity, 24),
+            setPadding(UiDesign.dp(this@IncomingAssistantSettingsActivity, 20),
+                UiDesign.dp(this@IncomingAssistantSettingsActivity, 16),
+                UiDesign.dp(this@IncomingAssistantSettingsActivity, 20),
                 UiDesign.dp(this@IncomingAssistantSettingsActivity, 28))
         }
-        fun description(value: Int) = TextView(this).apply {
-            text = getString(value)
-            textSize = 15f
-            setTextColor(UiDesign.ink)
+        fun description(value: Int) = UiDesign.caption(this, getString(value)).apply {
+            textSize = 14f
             setPadding(0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 7),
-                0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 12))
+                0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 10))
         }
         content.addView(UiDesign.heading(this, getString(R.string.incoming_ui_title)))
         content.addView(description(R.string.incoming_ui_intro))
@@ -56,7 +54,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             setSelection(if (policy.mode == AnsweringMode.AI) 1 else 0)
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
-        content.addView(mode)
+        content.addView(UiDesign.caption(this, getString(R.string.incoming_ui_mode_label)),
+            UiDesign.spaceAfter(this, 6))
+        content.addView(mode, UiDesign.spaceAfter(this, 10))
         val accounts = controller.availableAccounts()
         val account = Spinner(this).apply {
             tag = "incoming-sim-spinner"
@@ -66,13 +66,15 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             setSelection(controller.selectedAccountIndex(accounts, policy.accountKey))
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
-        content.addView(account)
+        content.addView(UiDesign.caption(this, getString(R.string.incoming_ui_sim_label)),
+            UiDesign.spaceAfter(this, 6))
+        content.addView(account, UiDesign.spaceAfter(this, 10))
         val recording = CheckBox(this).apply {
             text = getString(R.string.incoming_ui_record)
             isChecked = policy.recordEvidence
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
-        content.addView(recording)
+        content.addView(recording, UiDesign.spaceAfter(this, 8))
         content.addView(description(R.string.incoming_ui_engines_hint))
         content.addView(UiDesign.action(this, getString(R.string.incoming_ui_save), UiActionTone.PRIMARY) {
             val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL
@@ -83,22 +85,23 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 IncomingAssistantSettingsController.SaveResult.SAVED_MANUAL -> R.string.incoming_ui_saved_manual
                 IncomingAssistantSettingsController.SaveResult.FAILED -> R.string.incoming_ui_save_failed
             })
-        }.apply { tag = "incoming-save-mode" })
+        }.apply { tag = "incoming-save-mode" }, UiDesign.spaceAfter(this, 8))
+        feedback.setTextColor(UiDesign.secondary)
+        feedback.setPadding(0, UiDesign.dp(this, 4), 0, UiDesign.dp(this, 12))
+        content.addView(feedback)
         content.addView(UiDesign.heading(this, getString(R.string.incoming_ui_more_settings)).apply { textSize = 17f }, UiDesign.spaceAfter(this, 10))
         content.addView(UiDesign.button(this, getString(R.string.incoming_ui_engines_link)) {
             startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
-        })
+        }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.button(this, getString(R.string.incoming_ui_preparation_link)) {
             startActivity(Intent(this, ConversationPreparationActivity::class.java))
-        })
+        }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.button(this, getString(R.string.incoming_ui_skills_link)) {
             startActivity(Intent(this, ConversationSkillsActivity::class.java))
-        })
+        }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.button(this, getString(R.string.incoming_ui_tools_link)) {
             startActivity(Intent(this, ConversationToolsActivity::class.java))
         })
-        feedback.setPadding(0, UiDesign.dp(this, 10), 0, 0)
-        content.addView(feedback)
         setContentView(ScrollView(this).apply { addView(content) })
     }
 }
