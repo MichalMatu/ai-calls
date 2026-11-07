@@ -258,7 +258,7 @@
     <string name="camp_ui_engines">Ustawienia silników AI</string>
     <string name="camp_ui_no_task">Brak przyjętego zadania — wybierz START.</string>
     <string name="camp_ui_cancelled">Zadanie anulowane.</string>
-    <string name="camp_ui_accepted">Zadanie przyjęte: włączenie CLIR. Działa do ukończenia lub anulowania.</string>
+    <string name="camp_ui_accepted">Autoryzowano zadanie włączenia CLIR. START uruchamia próbę; wynik wykonania jest w diagnostyce.</string>
     <string name="camp_ui_evidence_on">Zapis RX/TX + transkrypt: w zakresie zatwierdzonej kampanii.</string>
     <string name="camp_ui_evidence_off">Zapis RX/TX + transkrypt: wyłączony.</string>
     <string name="camp_ui_no_campaign">Brak kampanii</string>
@@ -350,4 +350,10 @@
     <string name="incoming_ui_mode_label">Tryb odbierania</string>
     <string name="incoming_ui_sim_label">Karta SIM</string>
     <string name="lab_ui_turn_short">Tura %1$d</string>
+
+    <string name="home_ui_task_heading">Autoryzacja zadania AI</string>
+    <string name="home_ui_task_none">Brak autoryzowanego zadania</string>
+    <string name="home_ui_task_revoked">Autoryzacja anulowana</string>
+    <string name="home_ui_task_authorized">Zadanie autoryzowane; nie oznacza to aktywnego połączenia</string>
+    <string name="home_ui_task_hint">Postęp wykonania sprawdzisz w Kampaniach.</string>
 </resources>
