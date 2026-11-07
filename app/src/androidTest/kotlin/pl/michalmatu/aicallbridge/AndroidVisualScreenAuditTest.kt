@@ -96,7 +96,7 @@ class AndroidVisualScreenAuditTest {
             var privateDir: File? = null
             var density = 1f
             scenario.onActivity { activity ->
-                val folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint3"))
+                val folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint4"))
                 assertTrue("audit_dir_unavailable:" + label, folder.isDirectory || folder.mkdirs())
                 privateDir = folder
                 density = activity.resources.displayMetrics.density
