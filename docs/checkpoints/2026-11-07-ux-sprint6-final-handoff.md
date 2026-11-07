@@ -45,3 +45,7 @@
 ## Operacje repo i bezpieczeństwo
 
 Tryb wyłącznie **GitHub Connector + Mac Local Agent**, `main`, commity `[skip ci]`; bez Codex/Work/GitHub Actions, nowych gałęzi, force-push, nieuprawnionych połączeń i czyszczenia realnych rozmów. Repo Mac `/Users/michal/agent-workspace/repos/ai-calls/work`, host `macbook-michal`, installation `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`. Wymagane: dokładny HEAD, czysta baza, użycie istniejących store/providerów, `scripts/verify_host.sh` i audit product friction tylko dla nowego kodu. Zachować archiwalne checkpointy, czerwone testy i `BLOCKERS.md`; usunąć **powielone bieżące statusy**, nie unikalne dowody.
+
+### Techniczna synchronizacja lokalnej kopii Mac — nieblokująca
+
+Zaktualizowane dokumenty i checkpoint są zatwierdzone na **zdalnym `main`**. Osobne zadanie synchronizacji Mac (`aicalls-20261107-ux-sprint6-final-handoff-doc-sync-v1`) nie wystartowało: `task_budget_exhausted` / exit 125; skrócony wariant `...doc-sync-short-v2` odrzucony jako `invalid_task_file`. **Nie ma potwierdzenia finalnego HEAD/clean worktree lokalnego Maca po commitach dokumentacyjnych.** Nie wpływa to na zaliczony kod/QA/S22. Przy kolejnym wznowieniu wykonać zwykły `git fetch` + `git merge --ff-only origin/main` i `git status --porcelain` w istniejącym repo (bez testów i bez ingerencji w urządzenie). Nie tworzyć nowych prób w bieżącej iteracji.
