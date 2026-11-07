@@ -54,3 +54,7 @@ To dopiero fundament: użytkownik nie ma jeszcze przełącznika Auto/PL/EN, pozo
 ## S22 acceptance: i18n dock 10/10 PASS
 
 After reconnecting exact S22 and verifying 2× IDLE, no campaign/retry and APK signing lineage, the localized light dock and existing UX matrix passed **10/10 Android instrumented tests**. App data preserved, no calls. [Checkpoint](checkpoints/2026-11-07-i18n-dock-s22-acceptance.md). This only validates the resource catalog and chat dock, not a complete EN app; F-103 remains OPEN.
+
+## Direct menu and shared chrome (2026-11-07)
+
+**The original five Home accordion sections above are historical.** The current code introduces Home/Conversations/Lab/Settings tabs, a direct settings hub with dedicated Basic and Diagnostics screens, and `UiChromeActivity` wrapping child pages. Shared platform theme, button states, Back affordance and density-aware margins are used without switching the Android codebase to Compose. Preference writes for Basic settings are now in `GeneralSettingsController`, delegating to original storage. Current source `0afea79` needs exact final host and new physical S22 acceptance before PROVEN_S22; earlier 10/10 applies only to previous i18n/chat dock revision. Detailed [checkpoint](checkpoints/2026-11-07-ui-unified-navigation-checkpoint.md). F-103 full PL/EN and remaining imperative Activity-controller coupling remain open.

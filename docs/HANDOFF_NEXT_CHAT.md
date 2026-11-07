@@ -75,3 +75,7 @@ Przygotowany jest wspólny `UiDesign`, zasoby PL/EN i jasny kompaktowy panel cza
 ## S22 i18n dock accepted — 2026-11-07
 
 The earlier ADB failure was transient. Reconnected exact S22: read-only preflight PASS; signed APK installed without data deletion; localized dock 2/2 and prior UI matrix 8/8 — **10/10 PASS**. [Checkpoint](checkpoints/2026-11-07-i18n-dock-s22-acceptance.md). No calls, S22 IDLE after test. Do not rerun these accepted tests without changes. F-103 remains OPEN: implement user-selectable Auto/PL/EN locale independently of STT/TTS and migrate remaining screens.
+
+## Unified UI sprint — current handoff (2026-11-07)
+
+Start from fresh `main` (at this checkpoint `0afea79`, re-read before work). Home no longer uses 5 fake accordions; `AppNavigation` has four tabs and `SettingsHubActivity` direct destinations. `UiChromeActivity` now wraps 11 prior screens and the two new subsettings screens, all without touching phone/AI/Call runtime. Native theme, Back header, 48dp buttons, density-aware spacing and `GeneralSettingsController` are present. Prior gates 275, 276, 278, 280, 282 Python PASS; the exact final controller receipt and new physical S22 QA are not yet confirmed. Read [UI checkpoint](checkpoints/2026-11-07-ui-unified-navigation-checkpoint.md). Do not repeat previously accepted host/S22 evidence without source change. F-103 remains OPEN; F-080 unaffected.

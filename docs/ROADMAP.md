@@ -71,3 +71,7 @@ Fundament: `UiDesign`, PL/EN string resources, jasny panel rozmowy i testy klucz
 ## i18n physical acceptance — 2026-11-07
 
 Light dock + PL/EN resource foundation **S22 10/10 PASS**, no calls/data loss. [Receipt](checkpoints/2026-11-07-i18n-dock-s22-acceptance.md). Still TODO: locale chooser Auto/PL/EN, all subcreen translations/theme migration, persistence/accessibility tests. F-103 OPEN.
+
+## Unified UI shell (2026-11-07)
+
+Four-tab navigation, direct SettingsHub, 11 shared child-screen wrappers, common native theme and 48dp touch controls, density-aware paddings, Back header and separated basic preferences controller are on main through `0afea79`. Historical host gates: 275/276/278/280/282 Python PASS; the final controller static contract fix is pending exact host receipt. **New S22 UI acceptance remains QA_PENDING**; preserve F-103 PL/EN completion as separate work. [Checkpoint](checkpoints/2026-11-07-ui-unified-navigation-checkpoint.md).
