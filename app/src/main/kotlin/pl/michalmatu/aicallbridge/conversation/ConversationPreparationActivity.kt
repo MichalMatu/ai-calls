@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -10,7 +12,7 @@ import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 
 /** Preparation is editable without a call, campaign or authorization ceremony. */
-class ConversationPreparationActivity : Activity() {
+class ConversationPreparationActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var store: AndroidConversationPreparationStore
     private var profileId = ConversationPreparation.OUTGOING_ID
     private lateinit var notes: EditText

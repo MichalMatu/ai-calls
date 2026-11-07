@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
 
 import android.Manifest
@@ -23,7 +25,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 
-class CampaignToolActivity : Activity() {
+class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var authorizationStore: CampaignAuthorizationStore
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView

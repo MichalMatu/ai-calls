@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.audioengines
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.Manifest
 import android.content.pm.PackageManager
@@ -25,7 +27,7 @@ import java.util.Locale
  * Separate configuration-only surface. Never grants a campaign, starts audio capture or places calls.
  * Other engines stay visible but disabled until real adapters and on-device evidence exist.
  */
-class AudioEngineSettingsActivity : Activity() {
+class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var store: AudioEngineProfileStore
     private lateinit var feedback: TextView
     private lateinit var active: TextView

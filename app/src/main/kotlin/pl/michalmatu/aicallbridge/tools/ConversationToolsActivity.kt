@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.tools
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.os.Bundle
 import android.os.Handler
@@ -8,7 +10,7 @@ import android.view.WindowManager
 import android.widget.*
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
-class ConversationToolsActivity : Activity() {
+class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var status: TextView
     private val refresh = object : Runnable {

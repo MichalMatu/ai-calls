@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
@@ -14,7 +16,7 @@ import java.util.Date
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 
-class ConversationHistoryActivity : Activity() {
+class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private val io = Executors.newSingleThreadExecutor()
     private lateinit var content: LinearLayout
     private lateinit var history: RecordedConversationHistory

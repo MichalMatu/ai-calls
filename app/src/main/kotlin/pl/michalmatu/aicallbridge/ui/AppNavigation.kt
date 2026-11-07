@@ -18,7 +18,7 @@ import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 
 /** One stable navigation contract. Presentation never starts a call or changes authorization. */
-internal enum class AppTab(val title: Int, val image: Int) {
+enum class AppTab(val title: Int, val image: Int) {
     HOME(R.string.ui_tab_home, R.drawable.ic_aicalls_home),
     HISTORY(R.string.ui_tab_history, R.drawable.ic_aicalls_history),
     LAB(R.string.ui_tab_lab, R.drawable.ic_aicalls_lab),
@@ -89,7 +89,7 @@ internal object AppNavigation {
         }
     }
 
-    fun install(activity: Activity, body: View, active: AppTab) {
+    fun shell(activity: Activity, body: View, active: AppTab): View {
         val root = LinearLayout(activity).apply {
             tag = "app-screen-shell"
             orientation = LinearLayout.VERTICAL
@@ -111,6 +111,10 @@ internal object AppNavigation {
         activity.window.navigationBarColor = UiDesign.surface
         activity.window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
             View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        activity.setContentView(root)
+        return root
+    }
+
+    fun install(activity: Activity, body: View, active: AppTab) {
+        activity.setContentView(shell(activity, body, active))
     }
 }

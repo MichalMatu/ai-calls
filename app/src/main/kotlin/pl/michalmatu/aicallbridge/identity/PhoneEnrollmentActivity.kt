@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.identity
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.os.Bundle
 import android.text.InputType
@@ -12,7 +14,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 
-class PhoneEnrollmentActivity : Activity() {
+class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var phoneInput: EditText
     private lateinit var statusView: TextView
 

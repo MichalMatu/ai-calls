@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.os.Bundle
 import android.view.WindowManager
@@ -19,7 +21,7 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
  * This activity never owns a Telecom Call, captures audio, speaks, or executes tools.
  * A model tool value is only observed, never dispatched.
  */
-class ConversationSkillLabActivity : Activity() {
+class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private val cancelled = AtomicBoolean(false)
     @Volatile private var model: TextCallAgentBackend? = null
     private var worker: Thread? = null

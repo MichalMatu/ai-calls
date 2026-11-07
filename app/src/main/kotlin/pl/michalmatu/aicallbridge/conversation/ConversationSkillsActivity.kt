@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -8,7 +10,7 @@ import android.view.WindowManager
 import android.widget.*
 
 /** Edits prompt-only skills and revision-pinned presets. Never starts a call or changes a grant. */
-class ConversationSkillsActivity : Activity() {
+class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var store: AndroidConversationPreparationStore
     private lateinit var library: ConversationSkillLibrary
 

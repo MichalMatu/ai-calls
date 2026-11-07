@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.incoming
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
@@ -14,7 +16,7 @@ import pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 
-class IncomingAssistantSettingsActivity : Activity() {
+class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)

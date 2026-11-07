@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.textagent
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -15,7 +17,7 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 
 /** Catalog, verified acquisition and next-call selection share one screen and one profile store. */
-internal class LanguageModelActivity : Activity() {
+internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private val handler = Handler(Looper.getMainLooper())
     private var pendingImport: DialogueModelId? = null
     private lateinit var feedback: TextView

@@ -7,6 +7,9 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
+import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
+import android.view.WindowManager
 
 @RunWith(AndroidJUnit4::class)
 class AndroidAppNavigationContractTest {
@@ -20,6 +23,24 @@ class AndroidAppNavigationContractTest {
                     assertTrue(tab.isShown)
                     assertTrue(tab.isClickable)
                 }
+            }
+        }
+    }
+    @Test fun existingChildScreensShareNavigationAndRetainPrivacy() {
+        ActivityScenario.launch(ConversationHistoryActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
+                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:history")).isSelected)
+                assertTrue((activity.window.attributes.flags and
+                    WindowManager.LayoutParams.FLAG_SECURE) != 0)
+            }
+        }
+        ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
+                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
             }
         }
     }

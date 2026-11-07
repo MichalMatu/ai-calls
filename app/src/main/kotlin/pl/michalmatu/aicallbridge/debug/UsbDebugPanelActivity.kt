@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.debug
 
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -12,7 +14,7 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 
 /** Visible owner-facing entry for the same module used from Mac ADB. No second state store. */
-class UsbDebugPanelActivity : Activity() {
+class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var state: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
