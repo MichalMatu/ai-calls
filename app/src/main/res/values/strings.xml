@@ -346,4 +346,7 @@
     <string name="lab_ui_naturalness_score">Ręczna ocena naturalności: %1$d/5</string>
     <string name="lab_ui_naturalness_unrated">Naturalność: bez oceny (wymaga oceny człowieka)</string>
     <string name="lab_ui_failed">Test przerwany: %1$s</string>
+
+    <string name="incoming_ui_mode_label">Tryb odbierania</string>
+    <string name="incoming_ui_sim_label">Karta SIM</string>
 </resources>
