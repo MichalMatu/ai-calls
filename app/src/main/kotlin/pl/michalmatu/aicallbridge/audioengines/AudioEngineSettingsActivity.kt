@@ -4,6 +4,7 @@ import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
+import pl.michalmatu.aicallbridge.R
 import android.app.Activity
 import android.Manifest
 import android.content.pm.PackageManager
@@ -62,11 +63,11 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 setPadding(0, UiDesign.dp(this@AudioEngineSettingsActivity, 10),
                     0, UiDesign.dp(this@AudioEngineSettingsActivity, 10))
             }
-        content.addView(UiDesign.heading(this, "Ustawienia silników audio AI").apply {
+        content.addView(UiDesign.heading(this, getString(R.string.eng_ui_title)).apply {
             textSize = 23f
         }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.caption(this,
-            "Zmiany dotyczą kolejnych rozmów; nie uruchamiają ani nie przełączają bieżącej."
+            getString(R.string.eng_ui_intro)
         ), UiDesign.spaceAfter(this, 12))
         active = UiDesign.caption(this, "")
         content.addView(active, UiDesign.spaceAfter(this, 16))
@@ -76,8 +77,19 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 textSize = 17f
             }, UiDesign.spaceAfter(this, 8))
             val group = RadioGroup(this)
-            val unavailable = mutableListOf<RadioButton>()
+            val unavailable = mutableListOf<View>()
             for (choice in choices) {
+                if (!choice.integrated && choice.id != selected) {
+                    val info = UiDesign.caption(this, choice.title + " · " + choice.languageTag +
+                        " — " + choice.detail).apply {
+                        setTextColor(UiDesign.secondary)
+                        visibility = View.GONE
+                        minimumHeight = UiDesign.dp(this@AudioEngineSettingsActivity, 48)
+                    }
+                    unavailable.add(info)
+                    group.addView(info)
+                    continue
+                }
                 val button = RadioButton(this).apply {
                     id = View.generateViewId()
                     text = choice.title + " · " + choice.languageTag +
@@ -109,40 +121,40 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             content.addView(card, UiDesign.spaceAfter(this, 16))
             return group
         }
-        inputGroup = section("1. Wejście (RX / STT)", AudioEngineRegistry.inputs,
+        inputGroup = section(getString(R.string.eng_ui_input), AudioEngineRegistry.inputs,
             current?.input?.name ?: "ANDROID_STT")
-        dialogueGroup = section("2. Model rozmowy", AudioEngineRegistry.dialogues,
+        dialogueGroup = section(getString(R.string.eng_ui_dialogue), AudioEngineRegistry.dialogues,
             current?.dialogue?.name ?: "GEMMA_4_E2B")
         content.addView(Button(this).apply {
-            text = "Modele: pobierz, importuj, wybierz"
+            text = getString(R.string.eng_ui_models)
             setOnClickListener {
                 startActivity(android.content.Intent(this@AudioEngineSettingsActivity,
                     pl.michalmatu.aicallbridge.textagent.LanguageModelActivity::class.java))
             }
         })
-        outputGroup = section("3. Wyjście (TX / TTS)", AudioEngineRegistry.outputs,
+        outputGroup = section(getString(R.string.eng_ui_output), AudioEngineRegistry.outputs,
             current?.output?.name ?: "ANDROID_TTS_PL")
-        content.addView(label("Głos Android TTS offline (pl-PL)"))
+        content.addView(label(getString(R.string.eng_ui_voice)))
         voicePicker = Spinner(this)
         content.addView(voicePicker, UiDesign.spaceAfter(this, 12))
         setVoices(emptyList(), current?.voiceId)
-        feedback = label("Gotowość: niezweryfikowana. Naciśnij „Sprawdź offline”.")
+        feedback = label(getString(R.string.eng_ui_not_ready))
         content.addView(feedback, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, "Sprawdź offline") {
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_check)) {
             checkOffline()
         }, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, "Pobierz Parakeet PL · 615 MB") {
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_download)) {
             downloadParakeet()
         }, UiDesign.spaceAfter(this, 12))
-        cancelDownloadButton = UiDesign.action(this, "Anuluj pobieranie", UiActionTone.DANGER) {
+        cancelDownloadButton = UiDesign.action(this, getString(R.string.eng_ui_cancel), UiActionTone.DANGER) {
             parakeetDownloader?.cancel()
             feedback.text = "Anulowanie pobierania…"
         }.apply { tag = "engine-cancel-download"; visibility = View.GONE }
         content.addView(cancelDownloadButton, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, "Odsłuchaj głos") {
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_preview)) {
             previewVoice()
         }, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, "Zapisz konfigurację", UiActionTone.PRIMARY) {
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_save), UiActionTone.PRIMARY) {
                 val requested = selectedProfile()
                 val result = AudioEngineReadinessProbe.check(
                     this@AudioEngineSettingsActivity, requested,
@@ -152,14 +164,14 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     feedback.text = "Nie zapisano: " + (result.reason ?: "not_ready")
                 } else {
                     feedback.text = if (store.save(requested)) {
-                        "Zapisano na następną autoryzowaną rozmowę. Nie zmieniono aktywnej tury."
-                    } else "Nie udało się zapisać profilu."
+                        getString(R.string.eng_ui_save_done)
+                    } else getString(R.string.eng_ui_save_error)
                     refreshActive()
                 }
         }, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, "Przywróć stabilny wariant") {
+        content.addView(UiDesign.action(this, getString(R.string.eng_ui_reset)) {
                 if (store.save(AudioEngineProfile.STABLE)) {
-                    feedback.text = "Przywrócono stabilny wariant dla następnej rozmowy."
+                    feedback.text = getString(R.string.eng_ui_restore_done)
                 } else feedback.text = "Błąd zapisu preferencji."
                 refreshActive()
         }, UiDesign.spaceAfter(this, 12))
@@ -191,7 +203,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun setVoices(values: List<String>, selected: String?) {
         voiceNames = values
-        val labels = listOf("Automatyczny lokalny głos pl-PL") + values
+        val labels = listOf(getString(R.string.eng_ui_voice_auto)) + values
         UiSelect.setOptions(voicePicker, labels)
         voicePicker.setSelection((values.indexOf(selected) + 1).coerceAtLeast(0))
     }
@@ -309,11 +321,11 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val mediaBusy = runCatching { audio?.mode == AudioManager.MODE_IN_CALL }
             .getOrDefault(true)
         if (inCall || mediaBusy) {
-            feedback.text = "Odsłuch wyłączony podczas połączenia."
+            feedback.text = getString(R.string.eng_ui_preview_disabled)
             return
         }
         val engine = tts ?: run {
-            feedback.text = "Najpierw sprawdź głosy offline."
+            feedback.text = getString(R.string.eng_ui_voice_before)
             return
         }
         val name = selectedVoice()
@@ -334,7 +346,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val selected = store.load()?.dialogue
         if (selected != null && selected != lastStoredDialogue) {
             for (index in 0 until dialogueGroup.childCount) {
-                val radio = dialogueGroup.getChildAt(index) as RadioButton
+                val radio = dialogueGroup.getChildAt(index) as? RadioButton ?: continue
                 if (radio.tag == selected.name) dialogueGroup.check(radio.id)
             }
         }
@@ -345,10 +357,14 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private fun refreshActive() {
         val profile = store.load()
         active.text = if (profile == null) {
-            "Zapisany profil jest nieznany lub niezgodny — użyj resetu."
-        } else "Zapisana konfiguracja: " + profile.input.name + " → " +
-            profile.dialogue.name + " → " + profile.output.name +
-            " · głos: " + (profile.voiceId ?: "automatyczny")
+            getString(R.string.eng_ui_invalid)
+        } else {
+            val inputName = AudioEngineRegistry.inputs.firstOrNull { it.id == profile.input.name }?.title ?: profile.input.name
+            val modelName = AudioEngineRegistry.dialogues.firstOrNull { it.id == profile.dialogue.name }?.title ?: profile.dialogue.name
+            val outputName = AudioEngineRegistry.outputs.firstOrNull { it.id == profile.output.name }?.title ?: profile.output.name
+            getString(R.string.eng_ui_summary, inputName, modelName, outputName,
+                profile.voiceId ?: getString(R.string.eng_ui_auto))
+        }
     }
 
     override fun onDestroy() {

@@ -38,7 +38,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             library = newLibrary
             show(message)
         } catch (error: Exception) {
-            AlertDialog.Builder(this).setTitle("Nie zapisano")
+            AlertDialog.Builder(this).setTitle(getString(R.string.skills_ui_not_saved))
                 .setMessage("Nie udało się zapisać zmian: " + error.javaClass.simpleName)
                 .setPositiveButton("OK", null).show()
         }
@@ -49,13 +49,13 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 28), UiDesign.dp(this@ConversationSkillsActivity, 36))
         }
-        content.addView(label("Skills i presety Gemmy", 23f))
+        content.addView(label(getString(R.string.skills_ui_title), 23f))
         content.addView(label(
-            "Instrukcje można edytować bez ponownej kompilacji aplikacji. " +
-                "Presety fabryczne są tylko do odczytu. Zmiany obowiązują od następnej rozmowy."
+            getString(R.string.skills_ui_intro) +
+                getString(R.string.skills_ui_intro2)
         ))
-        content.addView(label("Aktywny preset: " + library.active.name + " · " +
-            if (library.active.isFactory) "fabryczny" else "własny", 18f))
+        content.addView(label(getString(R.string.skills_ui_active) + library.active.name + " · " +
+            if (library.active.isFactory) getString(R.string.skills_ui_factory) else getString(R.string.skills_ui_custom), 18f))
         val options = library.presets
         val picker = Spinner(this).apply {
             tag = "skills-preset-picker"
@@ -66,24 +66,24 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         content.addView(picker)
         content.addView(Button(this).apply {
-            text = "Aktywuj wybrany preset"
+            text = getString(R.string.skills_ui_activate)
             setOnClickListener {
                 applyChange(library.select(options[picker.selectedItemPosition].id),
                     "Zmieniono preset dla następnych rozmów.")
             }
         })
         content.addView(Button(this).apply {
-            text = "Utwórz własną kopię aktywnego presetu"
+            text = getString(R.string.skills_ui_copy)
             setOnClickListener {
                 val name = EditText(this@ConversationSkillsActivity).apply {
                     setSingleLine(true)
                     setText(library.active.name + " — własny")
                 }
                 AlertDialog.Builder(this@ConversationSkillsActivity)
-                    .setTitle("Nowy preset")
+                    .setTitle(getString(R.string.skills_ui_new))
                     .setView(name)
-                    .setNegativeButton("Anuluj", null)
-                    .setPositiveButton("Utwórz") { _, _ ->
+                    .setNegativeButton(getString(R.string.skills_ui_cancel), null)
+                    .setPositiveButton(getString(R.string.skills_ui_create)) { _, _ ->
                         runCatching { library.copyActive(name.text.toString()) }
                             .onSuccess { applyChange(it, "Utworzono własny preset.") }
                             .onFailure { showError(it) }
@@ -91,13 +91,13 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
         })
         content.addView(Button(this).apply {
-            text = "Laboratorium skillsów — testy Gemmy offline"
+            text = getString(R.string.skills_ui_lab)
             setOnClickListener {
                 startActivity(Intent(this@ConversationSkillsActivity, ConversationSkillLabActivity::class.java))
             }
         })
         content.addView(Button(this).apply {
-            text = "Podgląd instrukcji dla sekretarki"
+            text = getString(R.string.skills_ui_preview)
             setOnClickListener {
                 val profile = store.load(ConversationPreparation.INCOMING_ID)
                     .withSkillSnapshot(library.snapshot())
@@ -160,8 +160,8 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
                             }
                             AlertDialog.Builder(this@ConversationSkillsActivity).setTitle("Nowa wersja: " + skill.name)
                                 .setView(input)
-                                .setNegativeButton("Anuluj", null)
-                                .setPositiveButton("Zapisz wersję") { _, _ ->
+                                .setNegativeButton(getString(R.string.skills_ui_cancel), null)
+                                .setPositiveButton(getString(R.string.skills_ui_revision)) { _, _ ->
                                     runCatching { library.reviseSkill(skill.id, input.text.toString()) }
                                         .onSuccess { applyChange(it, "Zapisano nową wersję " + skill.name + ".") }
                                         .onFailure { showError(it) }
@@ -190,7 +190,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun showError(error: Throwable) {
-        AlertDialog.Builder(this).setTitle("Nie zapisano")
+        AlertDialog.Builder(this).setTitle(getString(R.string.skills_ui_not_saved))
             .setMessage(error.message ?: error.javaClass.simpleName)
             .setPositiveButton("OK", null).show()
     }

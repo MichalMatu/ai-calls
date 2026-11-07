@@ -77,7 +77,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             isChecked = accepted?.recordCallEvidence == true
         }
         val callRoleButton = Button(this).apply {
-            text = "Włącz autonomiczne połączenia (rola dialera Android)"
+            text = getString(R.string.camp_ui_role_button)
             setOnClickListener { requestCallRole() }
         }
         val startButton = Button(this).apply {
@@ -98,7 +98,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }
         }
         val stopSupervisedAudioButton = Button(this).apply {
-            text = "STOP AI"
+            text = getString(R.string.camp_ui_stop)
             setOnClickListener {
                 startService(
                     Intent(this@CampaignToolActivity, AppOwnedCampaignService::class.java)
@@ -108,34 +108,34 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }
         }
         val disableEvidenceButton = Button(this).apply {
-            text = "Wyłącz nagrywanie w zatwierdzonej kampanii"
+            text = getString(R.string.camp_ui_disable_record)
             setOnClickListener {
                 val grant = authorizationStore.disableEvidenceRecording()
-                statusView.text = if (grant == null) "Brak kampanii" else
+                statusView.text = if (grant == null) getString(R.string.camp_ui_no_campaign) else
                     "Nagrywanie wyłączone dla kolejnych rozmów. Zadanie pozostaje autoryzowane."
             }
         }
         val playbackButton = Button(this).apply {
-            text = "Odsłuchaj ostatnią odpowiedź AI (tylko poza rozmową)"
+            text = getString(R.string.camp_ui_play_ai)
             setOnClickListener { playLastRecordedAudio("tx") }
         }
         val playbackRxButton = Button(this).apply {
-            text = "Odsłuchaj ostatnią wypowiedź rozmówcy (tylko poza rozmową)"
+            text = getString(R.string.camp_ui_play_rx)
             setOnClickListener { playLastRecordedAudio("rx") }
         }
         val transcriptButton = Button(this).apply {
-            text = "Pokaż transkrypt obu stron (odśwież ręcznie)"
+            text = getString(R.string.camp_ui_transcript)
             setOnClickListener { showLatestTranscript() }
         }
         val revokeButton = Button(this).apply {
-            text = "Anuluj zadanie"
+            text = getString(R.string.camp_ui_cancel_task)
             setOnClickListener {
                 val revoked = authorizationStore.revoke(System.currentTimeMillis())
                 CampaignAgentControl.stopOwnedCampaign(this@CampaignToolActivity)
                 statusView.text = if (revoked == null) {
-                    "Brak przyjętego zadania"
+                    getString(R.string.camp_ui_no_accepted)
                 } else {
-                    "Zadanie anulowane"
+                    getString(R.string.camp_ui_revoked)
                 }
             }
         }
@@ -147,12 +147,12 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
 
         // Keep campaign scope, start, STOP and revocation on the primary surface.
         // All previously available setup and diagnostic actions remain one expansion away.
-        val dialerSection = UiAccordionSection(this, "dialer", "Rola dialera i ustawienia").apply {
+        val dialerSection = UiAccordionSection(this, "dialer", getString(R.string.camp_ui_dialer)).apply {
             addControl(callRoleButton)
         }
         // Optional prompt skills: model instructions, NOT privileged tool permissions.
         // The exact authorized CLIR task, role and STOP remain app-owned.
-        val directSkillsSection = UiAccordionSection(this, "direct-prompt-skills", "Skills i dane rozmowy").apply {
+        val directSkillsSection = UiAccordionSection(this, "direct-prompt-skills", getString(R.string.camp_ui_skills)).apply {
             addLabel("Profile przygotowania są niezależne od zadania i jego uprawnień. Zmiany obowiązują w kolejnej próbie.")
             addControl(Button(this@CampaignToolActivity).apply {
                 text = "Skills i dane — wychodzące / przychodzące"
@@ -160,10 +160,10 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                     pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java)) }
             })
         }
-        val supervisedSection = UiAccordionSection(this, "supervised", "Test AI w bieżącej rozmowie").apply {
+        val supervisedSection = UiAccordionSection(this, "supervised", getString(R.string.camp_ui_supervised)).apply {
             addControl(supervisedAudioButton)
         }
-        val evidenceSection = UiAccordionSection(this, "evidence", "Prywatna diagnostyka rozmowy").apply {
+        val evidenceSection = UiAccordionSection(this, "evidence", getString(R.string.camp_ui_evidence)).apply {
             addControl(disableEvidenceButton)
             addControl(playbackButton)
             addControl(playbackRxButton)
@@ -174,11 +174,11 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 28))
             addView(TextView(this@CampaignToolActivity).apply {
-                text = "Kampanie i zadania AI Calls"
+                text = getString(R.string.camp_ui_title)
                 textSize = 22f
             })
             addView(UiDesign.caption(this@CampaignToolActivity,
-                "Zadanie wymaga autoryzacji na telefonie. STOP jest dostępny niezależnie."
+                getString(R.string.camp_ui_intro)
             ), UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(UiDesign.heading(this@CampaignToolActivity,
                 getString(R.string.campaign_ui_task_status)).apply { textSize = 17f },
@@ -192,7 +192,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             )
             addView(UiDesign.card(this@CampaignToolActivity).apply {
                 tag = "campaign-primary-actions"
-                addView(UiDesign.heading(this@CampaignToolActivity, "Włącz CLIR").apply {
+                addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_enable)).apply {
                     textSize = 18f
                 }, UiDesign.spaceAfter(this@CampaignToolActivity, 8))
                 addView(UiDesign.caption(this@CampaignToolActivity,
@@ -208,7 +208,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 addView(revokeButton)
             }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(UiDesign.action(this@CampaignToolActivity,
-                "Ustawienia silników AI") {
+                getString(R.string.camp_ui_engines)) {
                 startActivity(Intent(this@CampaignToolActivity, AudioEngineSettingsActivity::class.java))
             }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(directSkillsSection)
@@ -467,14 +467,14 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private fun refreshTaskStatus() {
         val grant = authorizationStore.load()
         val taskStatus = when {
-            grant == null -> "Brak przyjętego zadania — wybierz START."
-            grant.revokedAtEpochMs != null -> "Zadanie anulowane."
-            else -> "Zadanie przyjęte: włączenie CLIR. Działa do ukończenia lub anulowania."
+            grant == null -> getString(R.string.camp_ui_no_task)
+            grant.revokedAtEpochMs != null -> getString(R.string.camp_ui_cancelled)
+            else -> getString(R.string.camp_ui_accepted)
         }
         val evidenceStatus = if (grant?.recordCallEvidence == true &&
             grant.revokedAtEpochMs == null) {
-            "Zapis RX/TX + transkrypt: w zakresie zatwierdzonej kampanii."
-        } else "Zapis RX/TX + transkrypt: wyłączony."
+            getString(R.string.camp_ui_evidence_on)
+        } else getString(R.string.camp_ui_evidence_off)
         val runtimeStatus = runtimeStatusStore.load()
         statusView.text = taskStatus
         diagnosticStatus.text = listOfNotNull(evidenceStatus, runtimeStatus)
