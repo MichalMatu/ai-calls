@@ -20,26 +20,26 @@
 | Przegląd 42 prywatnych zdjęć | `AI-Calls-S22-UX-sprint6-private.zip` dostarczony przez właściciela | **REVIEWED**: interfejs akceptowalny do zakończenia iteracji. Zrzut `history-bulk-confirmation-synthetic.jpg` nie pokazywał modalnego potwierdzenia; `lab-follow-stop-synthetic.jpg` nie pokazywał ostatniej tury/STOP w widocznym obszarze. To braki dowodów wizualnych, mimo PASS testów bazujących na `View.isShown` |
 | Source hotfix po audycie wizualnym | `main@1b359146`, `aicalls-20261107-ux-sprint6-visual-review-hotfix-source-qa-v1` | **DONE/0**: 33 celowane Python, 325 Python host, JVM, AndroidTest compile, APK, anti-friction PASS |
 | Pierwszy targeted S22 hotfix | `aicalls-20261107-ux-sprint6-visual-review-hotfix-s22-targeted-v1` | **FAILED preflight**: wadliwy guard porównywał zmodyfikowany kod do poprzedniej rewizji, choć nowy HEAD był poprawny; zakończenie przed ADB i instalacją |
-| Poprawiony targeted S22 hotfix | `aicalls-20261107-ux-sprint6-visual-review-hotfix-s22-targeted-v2` | **QA_PENDING_RECEIPT** w chwili tworzenia checkpointu; sprawdzić status przed przejściem do pracy rozwojowej |
+| Poprawiony targeted S22 hotfix | `aicalls-20261107-ux-sprint6-visual-review-hotfix-s22-targeted-v2` | **DONE/0 / PASS**: exact S22 ADB/IDLE/rola/signature, APP + TEST APK zainstalowane bez utraty danych; **1/1** bezpieczne okno zbiorczego kasowania, **3/3** syntetyczne stany Laboratorium; 44 prywatne JPEG i ZIP. Zero realnych rozmów/kasowania właściciela |
 
-**Granica stanu telefonu:** pewna instalacja bazowego Sprintu 6 `0dface1` na fizycznym S22. **Nie ma jeszcze dowodu**, że hotfix `1b359146` jest zainstalowany lub że realna lokalna Gemma uruchomiła się poprawnie po naprawie. Nie powtarzać 28+24 ukończonych testów bez nowej przesłanki; ewentualne sprawdzenie tylko dotkniętych obszarów.
+**Granica stanu telefonu:** hotfix źródłowy **`1b359146` jest już zainstalowany** na fizycznym S22 z potwierdzonym zachowaniem danych. Nie ma jeszcze dowodu, że realna lokalna Gemma wykonała po naprawie 2 tury + STOP. Nie powtarzać 28+24 ukończonych testów bez nowej przesłanki; ewentualne sprawdzenie tylko dotkniętych obszarów.
 
 **Prywatne dowody z S22** (nie umieszczać w GitHub): `~/Library/Application Support/AI-Calls/UI-audit/2026-11-07-ux-sprint6/AI-Calls-S22-UX-sprint6-private.zip`. Lokalna kopia pliku wysłana w czacie była oceniona. Po targeted hotfix może powstać nowszy ZIP zawierający poprawione screenshoty. Ani WAV, ani prawdziwe transkrypty, numery i dane osobiste nie trafiają do publicznego logu/repo.
 
 ## Stan jakości i znane granice
 
 - **PASS:** trwała historia i lokalne segmenty, podstawowe bezpieczne bulk delete, bubble play/stop, UI/menu na S22, host build i testy z najnowszego kodu.
-- **QA_PENDING:** specyficzny hotfix na S22 (Android scoring, widoczny auto-follow/STOP, modal dialog) oraz krótki **realny dwuturowy model offline** po hotfixie. Realny wynik Sprintu 5 jest historyczny i nie zastępuje tej próby.
+- **QA_PENDING:** wyłącznie krótki **realny dwuturowy model offline** po hotfixie. Syntetyczne testy scoring/auto-follow/modal dialog na S22 są PASS. Realny wynik Sprintu 5 jest historyczny i nie zastępuje tej próby.
 - **Nieblokujące UX (odłożone zgodnie z decyzją właściciela):** dalsze szlifowanie proporcji, gęstości ustawień, paneli technicznych i pojedynczych zrzutów; nie otwierać kolejnego sprintu estetyki.
 - **Inne niezależne produktowe OPEN:** `F-103` kompletne PL/EN, `F-080` ciągły zapis i odtwarzanie pełnej sesji (obecne dymki mają tylko segmenty), ręczne przejęcie/oddanie AI i osobne wymagające autoryzacji testy rzeczywistego call, pełna ocena semantyki/naturalności Gemmy. `END_CALL 2/2` nie mierzy tych cech.
 
 ## Definicja zamknięcia i kolejny projektowy krok
 
-**UX Sprint 6 kończymy teraz jako iterację funkcjonalną.** Nie czekać z handoffem na kolejne ozdobne poprawki. Jeżeli targeted S22 v2 przyjdzie z PASS, dopisać osobny mały aneks `HOTFIX_S22_PASS` wraz z dokładnym SHA i liczbą testów. W przeciwnym razie pozostawić `QA_PENDING`; nie nadpisywać historycznych dowodów.
+**UX Sprint 6 kończymy teraz jako iterację funkcjonalną.** Nie czekać z handoffem na kolejne ozdobne poprawki. Targeted S22 v2 jest **PASS**; udokumentowano dokładny SHA i zakres 1/1 + 3/3. Nie zmieniać historycznych dowodów. Ostatnia otwarta bramka to tylko rzeczywista Gemma po naprawie.
 
 **Następna iteracja (oddzielny chat, dopiero po decyzji): decoupling UX od logiki.** Rozpocząć od `UX-01 CampaignExecutionStatusPresenter` — read-only mapowanie historycznych statusów na typowany `ScreenState` bez `Context`, I/O lub prawa do efektów. Następnie oddzielne małe sprinty: `UX-02 ConversationHistoryController` (IO, kasowanie, stale callbacks), `UX-03 SkillLabRunner` (model/cancel/timeout), `UX-04` modele/ustawienia, `UX-05` F-103 lokalizacja. **Nie przepisywać całości i nie robić jednego wielkiego refaktoru.** Działające kontrolery ogólnych, incoming i tools settings pozostają.
 
-**Najbliższy start nowego chatu:** sprawdzić świeży `main`, Local Agent `task-results`, status dokładnie `...hotfix-s22-targeted-v2`; jeśli PASS, sprawdzić czy rzeczywista Gemma po hotfixie została przetestowana; jeśli nie, zrobić **jedną** celowaną próbę off-call po IDLE, bez wykonywania END_CALL. Potem UX-01, bez powtarzania Sprint 5/Sprint 6 baseline, bez zmiany Telecom/STOP/Shizuku.
+**Najbliższy start nowego chatu:** sprawdzić świeży `main`, Local Agent `task-results`, zwłaszcza `aicalls-20261107-ux-sprint6-hotfix-real-gemma-final-v1` (zadanie zlecone, wynik w chwili aktualizacji oczekiwany). Jeśli nadal brak wyniku, wykonać **jedną** celowaną próbę off-call po IDLE, bez wykonywania END_CALL. Potem UX-01, bez powtarzania Sprint 5/Sprint 6 baseline, bez zmiany Telecom/STOP/Shizuku.
 
 ## Operacje repo i bezpieczeństwo
 
