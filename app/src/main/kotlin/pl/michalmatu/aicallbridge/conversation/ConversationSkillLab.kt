@@ -4,7 +4,7 @@ package pl.michalmatu.aicallbridge.conversation
 internal data class SkillLabTurn(
     val utterance: String,
     val shouldEnd: Boolean,
-    /** null means no judgement; false/true is a question-mark heuristic, not semantic scoring. */
+    /** null means no judgement; false/true enables a conservative review heuristic, not semantic scoring. */
     val expectQuestion: Boolean? = null,
 )
 internal data class SkillLabStory(val title: String, val turns: List<SkillLabTurn>)
@@ -55,17 +55,35 @@ internal data class SkillLabMetrics(
         return "Decyzje END_CALL: " + accurateEndDecisions + "/" + turns +
             "; przedwczesne zakończenia: " + prematureEnds +
             "; brak zakończenia: " + missingEnds +
-            "; zbędne pytania (heurystyka '?'): " + unexpectedQuestions +
+            "; pytania do przeglądu (heurystyka): " + unexpectedQuestions +
             "; średni czas odpowiedzi: " + meanLatencyMs + " ms.\n" + naturalness
     }
 }
 internal object SkillLabScoring {
-    // A question-like phrase asks for human review, not a semantic quality verdict.
-    private val questionLike = Regex(
-        "(?iuU)\\b(?:czy|kiedy|gdzie|jaki|jaka|jakie|który|która|podaj|podajcie|proszę\\s+(?:podać|o)|potrzebuję\\s+(?:numeru|adresu))\\b"
-    )
-    fun mayNeedQuestionReview(reply: String): Boolean =
-        '?' in reply || questionLike.containsMatchIn(reply)
+    // Portable across Android/host Java regex implementations: no inline flag modes.
+    // Only marks a candidate for human review, never a semantic correctness judgement.
+    private val questionWords = setOf("czy", "kiedy", "gdzie", "jaki", "jaka",
+        "jakie", "który", "która", "podaj", "podajcie")
+
+    fun mayNeedQuestionReview(reply: String): Boolean {
+        if ('?' in reply) return true
+        val words = mutableListOf<String>()
+        val token = StringBuilder()
+        for (char in reply.lowercase(java.util.Locale.ROOT)) {
+            if (char.isLetterOrDigit()) {
+                token.append(char)
+            } else if (token.isNotEmpty()) {
+                words.add(token.toString())
+                token.setLength(0)
+            }
+        }
+        if (token.isNotEmpty()) words.add(token.toString())
+        if (words.any { it in questionWords }) return true
+        return words.windowed(2).any { pair ->
+            (pair[0] == "proszę" && pair[1] in setOf("podać", "o")) ||
+                (pair[0] == "potrzebuję" && pair[1] in setOf("numeru", "adresu"))
+        }
+    }
 
     fun score(entries: List<SkillLabObservation>): SkillLabMetrics {
         return SkillLabMetrics(
