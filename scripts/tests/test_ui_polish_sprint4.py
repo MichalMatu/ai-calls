@@ -14,26 +14,35 @@ class Sprint4UxContract(unittest.TestCase):
     def test_lab_renders_pending_and_parsed_completion_per_turn(self):
         lab = self.read("conversation/ConversationSkillLabActivity.kt")
         for token in (
-            "showTurnPending(", "showTurnCompleted(", "ConversationReplyProtocol.decode",
+            "showTurnPending(", "showTurnCompleted(", "SkillLabRunner(",
             'tag = "lab-turn-timeline"', 'tag = "lab-live-progress"',
             'tag = "lab-current-turn"', 'tag = "lab-follow"',
             'tag = "lab-rating-group"', "followCardIfEnabled",
             "progress.progress = completed", "record.reply.trim()",
-            "runButton.visibility = View.GONE", "runButton.visibility = View.VISIBLE",
-            "UiDesign.card(this, 12)"
+            "runButton.visibility = if (next.canStart)", "UiDesign.card(this, 12)"
         ):
             self.assertIn(token, lab)
+        runner = self.read("conversation/SkillLabRunner.kt")
+        self.assertIn("ConversationReplyProtocol.decode(raw)", runner)
+        self.assertIn("SkillLabPhase.TURN_COMPLETED", runner)
+        self.assertIn("SkillLabUiState(", runner)
         self.assertNotIn('results.joinToString("\\n\\n")', lab)
         self.assertNotIn('output.text =', lab)
 
     def test_lab_no_external_effects_and_cancel_kept(self):
         lab = self.read("conversation/ConversationSkillLabActivity.kt")
-        for token in ("cancelled.set(true)", "worker?.interrupt()", "model?.cancel()",
-                      "if (cancelled.get()) break", "override fun onStop()"):
+        runner = self.read("conversation/SkillLabRunner.kt")
+        factory = self.read("conversation/AndroidSkillLabSessionFactory.kt")
+        for token in ("runner.stop()", "override fun onStop()", "override fun onDestroy()"):
             self.assertIn(token, lab)
+        for token in ("job.stopped.set(true)", "thread.interrupt()", "backend?.cancel()",
+                      "if (!active(job)) break", "TimeUnit.SECONDS.toMillis(120)",
+                      "generation++", "revision == version", "backend.close()"):
+            self.assertIn(token, runner)
         for forbidden in ("startActivityForResult(", "startService(", "startForegroundService(",
                           "placeCall(", "executeTool(", "dispatchTool("):
-            self.assertNotIn(forbidden, lab)
+            for source in (lab, runner, factory):
+                self.assertNotIn(forbidden, source)
 
     def test_synthetic_device_preview_never_starts_model(self):
         preview = (TEST / "AndroidSkillLabLivePreviewTest.kt").read_text()
