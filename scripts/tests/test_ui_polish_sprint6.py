@@ -25,7 +25,7 @@ class Sprint6UXContract(unittest.TestCase):
         self.assertIn('tag = "history-delete-all"', screen)
         self.assertIn("confirmDeleteAll(deletable)", screen)
         self.assertIn("history_clear_all_warning", screen)
-        self.assertIn("bulkDeletionRunning", screen)
+        self.assertIn("controller.isDeletionRunning", screen)
         self.assertLess(screen.index('tag = "history-delete-all"'),
                         screen.index("private fun confirmDeleteAll("))
         self.assertNotIn("history.deleteAllCompleted()\n", screen.split("private fun confirmDeleteAll(")[0])

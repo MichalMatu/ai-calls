@@ -14,17 +14,15 @@ import android.widget.*
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
-import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 
 class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
-    private val io = Executors.newSingleThreadExecutor()
+    private lateinit var controller: ConversationHistoryController
     private lateinit var content: LinearLayout
     private lateinit var history: RecordedConversationHistory
     private lateinit var audioPlayer: ArchivedConversationPlayer
     private var playbackStatus: TextView? = null
     private var activeAudioBubbleTag: String? = null
-    private var bulkDeletionRunning = false
     internal var pendingBulkDeleteConfirmation: AlertDialog? = null
         private set
     private var displayedSessionId: String? = null
@@ -51,6 +49,9 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         onBackPressedDispatcher.addCallback(this, detailBack)
         history = RecordedConversationHistory(File(filesDir, CallSessionEvidenceRecorder.ROOT))
         audioPlayer = ArchivedConversationPlayer(this, history)
+        controller = ConversationHistoryController(history, dispatchToUi = { action ->
+            runOnUiThread { action() }
+        })
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32), UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32)) }
         setContentView(ScrollView(this).apply { addView(content) })
         showList()
@@ -64,11 +65,11 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         content.addView(TextView(this).apply { text = getString(R.string.history_title); textSize = 22f })
         content.addView(TextView(this).apply { text = getString(R.string.history_subtitle) })
         if (message != null) content.addView(TextView(this).apply { text = message })
-        io.execute {
-            val result = runCatching { history.list() }
-            runOnUiThread {
-                if (isDestroyed || displayedSessionId != null) return@runOnUiThread
-                result.onSuccess { sessions ->
+        controller.showList { state ->
+            if (isDestroyed || displayedSessionId != null) return@showList
+            when (state) {
+                is HistoryScreenState.ListReady -> {
+                    val sessions = state.items.map { it.session }
                     if (sessions.isEmpty()) content.addView(TextView(this).apply {
                         text = getString(R.string.history_empty)
                     })
@@ -147,7 +148,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
                         ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 6) })
                     }
-                    val deletable = sessions.count { it.complete && history.canDelete(it.id) }
+                    val deletable = state.deletableCount
                     if (deletable > 0) {
                         content.addView(UiDesign.action(this,
                             getString(R.string.history_clear_all, deletable),
@@ -155,44 +156,39 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                             confirmDeleteAll(deletable)
                         }.apply {
                             tag = "history-delete-all"
-                            isEnabled = !bulkDeletionRunning
+                            isEnabled = !controller.isDeletionRunning
                         }, UiDesign.spaceAfter(this, 12))
                         content.addView(UiDesign.caption(this,
                             getString(R.string.history_clear_all_warning)),
                             UiDesign.spaceAfter(this, 12))
                     }
-                }.onFailure { failure -> content.addView(TextView(this).apply {
-                    text = getString(R.string.history_read_error) + ": " + failure.javaClass.simpleName
-                }) }
+                }
+                is HistoryScreenState.Failed -> content.addView(TextView(this).apply {
+                    text = getString(R.string.history_read_error) + ": " + state.reason
+                })
+                else -> Unit
             }
         }
     }
 
     private fun confirmDeleteAll(visibleCount: Int) {
-        if (bulkDeletionRunning || visibleCount <= 0) return
+        if (controller.isDeletionRunning || visibleCount <= 0) return
         val dialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.history_clear_all_title, visibleCount))
             .setMessage(R.string.history_clear_all_warning)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.history_clear_all_confirm) { _, _ ->
-                if (bulkDeletionRunning) return@setPositiveButton
-                bulkDeletionRunning = true
+                if (controller.isDeletionRunning) return@setPositiveButton
                 stopPlayback()
-                io.execute {
-                    val result = runCatching { history.deleteAllCompleted() }
-                    runOnUiThread {
-                        bulkDeletionRunning = false
-                        if (!isDestroyed) {
-                            val message = result.fold(
-                                onSuccess = {
-                                    getString(R.string.history_clear_all_result,
-                                        it.deleted, it.skipped, it.failed)
-                                },
-                                onFailure = { getString(R.string.history_delete_failed) },
-                            )
-                            showList(message)
-                        }
-                    }
+                controller.deleteAllCompletedConfirmed { state ->
+                    if (isDestroyed) return@deleteAllCompletedConfirmed
+                    val outcome = (state as? HistoryScreenState.Deleted)
+                        ?.result as? HistoryDeleteResult.Bulk
+                    val message = if (outcome != null)
+                        getString(R.string.history_clear_all_result,
+                            outcome.deleted, outcome.skipped, outcome.failed)
+                    else getString(R.string.history_delete_failed)
+                    showList(message)
                 }
             }
             .create()
@@ -209,13 +205,14 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
             .setMessage(R.string.history_delete_warning)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.history_delete) { _, _ ->
+                if (controller.isDeletionRunning) return@setPositiveButton
                 stopPlayback()
-                io.execute {
-                    val deleted = runCatching { history.deleteCompleted(id) }.getOrDefault(false)
-                    runOnUiThread {
-                        if (!isDestroyed) showList(getString(
-                            if (deleted) R.string.history_deleted else R.string.history_delete_failed))
-                    }
+                controller.deleteCompletedConfirmed(id) { state ->
+                    if (isDestroyed) return@deleteCompletedConfirmed
+                    val deleted = ((state as? HistoryScreenState.Deleted)
+                        ?.result as? HistoryDeleteResult.Single)?.deleted == true
+                    showList(getString(
+                        if (deleted) R.string.history_deleted else R.string.history_delete_failed))
                 }
             }
             .create()
@@ -226,12 +223,13 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private fun showSession(id: String) {
         setDisplayedSession(id)
         content.tag = "history-detail"
-        io.execute {
-            val result = runCatching { history.load(id) }
-            runOnUiThread {
-                if (isDestroyed || displayedSessionId != id) return@runOnUiThread
-                content.removeAllViews()
-                result.onSuccess { session ->
+        controller.showSession(id) { state ->
+            if (isDestroyed || displayedSessionId != id) return@showSession
+            if (state === HistoryScreenState.Loading) return@showSession
+            content.removeAllViews()
+            when (state) {
+                is HistoryScreenState.DetailReady -> {
+                    val session = state.session
                     if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = getString(R.string.history_incomplete, session.invalidRecords) })
                     playbackStatus = TextView(this).apply {
                         text = getString(R.string.history_audio_count, session.audioFiles.size)
@@ -284,7 +282,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         }
                         content.addView(extraClips)
                     }
-                    if (history.canDelete(session.id)) {
+                    if (state.canDelete) {
                         content.addView(UiDesign.action(this, getString(R.string.history_delete),
                             UiActionTone.REVOCATION) {
                             confirmDelete(session.id)
@@ -293,7 +291,11 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                             contentDescription = getString(R.string.history_delete)
                         }, UiDesign.spaceAfter(this, 12))
                     }
-                }.onFailure { failure -> content.addView(TextView(this).apply { text = getString(R.string.history_detail_error, failure.javaClass.simpleName) }) }
+                }
+                is HistoryScreenState.Failed -> content.addView(TextView(this).apply {
+                    text = getString(R.string.history_detail_error, state.reason)
+                })
+                else -> Unit
             }
         }
     }
@@ -343,7 +345,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         pendingDeleteConfirmation?.dismiss()
         pendingDeleteConfirmation = null
         stopPlayback()
-        io.shutdown()
+        controller.close()
         super.onDestroy()
     }
 }
