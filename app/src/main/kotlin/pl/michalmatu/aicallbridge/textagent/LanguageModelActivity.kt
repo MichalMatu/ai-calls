@@ -55,11 +55,11 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
         }
-        content.addView(UiDesign.heading(this, "Modele językowe").apply {
+        content.addView(UiDesign.heading(this, getString(R.string.models_ui_title)).apply {
             textSize = 23f
         }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.caption(this,
-            "Pobierz lub zaimportuj model, a następnie wybierz go do kolejnych rozmów."
+            getString(R.string.models_ui_intro)
         ), UiDesign.spaceAfter(this, 16))
 
         feedback = UiDesign.caption(this, "").apply {
@@ -67,7 +67,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             visibility = View.GONE
         }
         content.addView(feedback, UiDesign.spaceAfter(this, 8))
-        cancelTransfer = UiDesign.action(this, "Anuluj transfer", UiActionTone.DANGER) {
+        cancelTransfer = UiDesign.action(this, getString(R.string.models_ui_cancel), UiActionTone.DANGER) {
             if (LanguageModelTransferService.status.busy) startService(
                 Intent(this@LanguageModelActivity, LanguageModelTransferService::class.java)
                     .setAction(LanguageModelTransferService.CANCEL))
@@ -91,10 +91,10 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 visibility = View.GONE
             }
             card.addView(progress, UiDesign.spaceAfter(this, 8))
-            val download = UiDesign.action(this, "Pobierz", UiActionTone.PRIMARY) {
+            val download = UiDesign.action(this, getString(R.string.models_ui_download), UiActionTone.PRIMARY) {
                 begin(model, null)
             }.apply { tag = "model-download:" + model.id.name }
-            val import = UiDesign.action(this, "Importuj") {
+            val import = UiDesign.action(this, getString(R.string.models_ui_import)) {
                 pendingImport = model.id
                 try {
                     startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -103,22 +103,22 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     }, IMPORT)
                 } catch (_: android.content.ActivityNotFoundException) {
                     pendingImport = null
-                    feedback.text = "Brak aplikacji do wyboru pliku."
+                    feedback.text = getString(R.string.models_ui_file_unavailable)
                     feedback.visibility = View.VISIBLE
                 }
             }.apply { tag = "model-import:" + model.id.name }
-            val select = UiDesign.action(this, "Użyj modelu", UiActionTone.PRIMARY) {
+            val select = UiDesign.action(this, getString(R.string.models_ui_select), UiActionTone.PRIMARY) {
                 val store = AudioEngineProfileStore(this@LanguageModelActivity)
                 val current = store.load()
                 if (current == null) {
-                    feedback.text = "Napraw konfigurację silników audio przed wyborem modelu."
+                    feedback.text = getString(R.string.models_ui_fix_engines)
                 } else if (AndroidGemma4ModelReadiness.check(this@LanguageModelActivity, model.id)
                         .state != Gemma4ModelReadinessState.READY) {
-                    feedback.text = "Najpierw zainstaluj model."
+                    feedback.text = getString(R.string.models_ui_install_first)
                 } else {
                     feedback.text = if (store.save(current.copy(dialogue = model.id)))
-                        "Wybrano ${model.title} na następną rozmowę." else
-                        "Błąd zapisu wyboru modelu."
+                        getString(R.string.models_ui_selected, model.title) else
+                        getString(R.string.models_ui_save_failed)
                 }
                 feedback.visibility = View.VISIBLE
                 update()
@@ -140,7 +140,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     "LiteRT-LM ${LanguageModelCatalog.RUNTIME_VERSION} · " +
                     "${model.source.repositoryId} · Apache 2.0"
             ).apply { visibility = View.GONE; tag = "model-details:" + model.id.name }
-            val toggle = UiDesign.action(this, "Szczegóły techniczne") {
+            val toggle = UiDesign.action(this, getString(R.string.models_ui_details)) {
                 val expanded = detail.visibility != View.VISIBLE
                 detail.visibility = if (expanded) View.VISIBLE else View.GONE
             }.apply { tag = "model-details-toggle:" + model.id.name }

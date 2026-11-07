@@ -58,7 +58,7 @@ class MainActivity : AppBaseActivity() {
         developerProbes = MainActivityDeveloperProbes(this, statusView)
 
         val oneTapButton = Button(this).apply {
-            text = "Jeden przycisk: uruchom AI w trwającej rozmowie"
+            text = getString(R.string.home_ui_one_tap)
             setOnClickListener { startOneTapSupervisedTest() }
         }
         val stopAiButton = Button(this).apply {
@@ -68,12 +68,12 @@ class MainActivity : AppBaseActivity() {
                     Intent(this@MainActivity, AppOwnedCampaignService::class.java)
                         .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI),
                 )
-                statusView.text = "Wysłano STOP AI; wynik zapisze serwis."
+                statusView.text = getString(R.string.home_ui_stop_sent)
             }
         }
 
         val startAuthorizedTaskButton = Button(this).apply {
-            text = "Rozpocznij autoryzowane zadanie AI"
+            text = getString(R.string.home_ui_start)
             setOnClickListener {
                 // This tap enters the same existing app-owned START flow, without
                 // requiring a second click in the campaign settings screen.
@@ -85,7 +85,7 @@ class MainActivity : AppBaseActivity() {
         }
 
         val campaignToolsButton = Button(this).apply {
-            text = "Kampanie"
+            text = getString(R.string.ui_campaigns)
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, CampaignToolActivity::class.java))
             }
@@ -125,7 +125,7 @@ class MainActivity : AppBaseActivity() {
                 setTextColor(Color.rgb(23, 39, 62))
             })
             addView(TextView(this@MainActivity).apply {
-                text = "Asystent połączeń"
+                text = getString(R.string.ui_subtitle)
                 textSize = 13f
                 setTextColor(Color.rgb(86, 100, 117))
                 setPadding(0, 0, 0, dp(12))
@@ -220,21 +220,22 @@ class MainActivity : AppBaseActivity() {
     }
 
     private fun runtimeSelectionSummary(): String = buildString {
-        append("Tryb: ").append(selectedAudioMode.displayName).append('\n')
+        append(getString(R.string.home_ui_mode_label)).append(selectedAudioMode.displayName).append('\n')
         when (selectedAudioMode) {
-            CallAudioMode.LOCAL_STT_TTS -> append("Model tekstowy: ").append(selectedTextLlmProvider.displayName)
-            CallAudioMode.OPENAI_REALTIME_AUDIO -> append("OpenAI Realtime audio · wybór tekstowy zachowany")
-            CallAudioMode.LOCAL_REALTIME_AUDIO -> append("Lokalny silnik realtime · wybór tekstowy zachowany")
+            CallAudioMode.LOCAL_STT_TTS -> append(getString(R.string.home_ui_model_label)).append(selectedTextLlmProvider.displayName)
+            CallAudioMode.OPENAI_REALTIME_AUDIO -> append(getString(R.string.home_ui_openai_realtime))
+            CallAudioMode.LOCAL_REALTIME_AUDIO -> append(getString(R.string.home_ui_local_realtime))
         }
         append('\n')
         val profile = pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore(this@MainActivity).load()
         if (profile == null) {
-            append("Nieprawidłowa konfiguracja silników audio")
+            append(getString(R.string.home_ui_invalid_engines))
             return@buildString
         }
         val model = pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[profile.dialogue]
         val readiness = pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness.check(this@MainActivity, model.id)
-        append("Model: ").append(model.title).append(" · ").append(readiness.state)
+        append(getString(R.string.home_ui_model_status)).append(model.title).append(" · ")
+        append(getString(if (readiness.state.toString() == "READY") R.string.home_ui_ready else R.string.home_ui_needs_check))
     }
 
     /**
