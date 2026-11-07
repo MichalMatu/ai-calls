@@ -316,4 +316,34 @@
     <string name="dev_ui_shizuku_request">Requesting Shizuku permission…</string>
     <string name="acc_ui_expand">Rozwiń: </string>
     <string name="acc_ui_collapse">Zwiń: </string>
+
+    <string name="lab_ui_library_error">Nie udało się odczytać biblioteki: %1$s</string>
+    <string name="lab_ui_live_title">Przebieg testu na żywo</string>
+    <string name="lab_ui_progress">Ukończono %1$d z %2$d tur</string>
+    <string name="lab_ui_follow">Automatycznie pokazuj ostatnią turę</string>
+    <string name="lab_ui_waiting_initial">Przygotowywanie pierwszej tury…</string>
+    <string name="lab_ui_missing_profile">Brak wybranego profilu modelu w ustawieniach silników</string>
+    <string name="lab_ui_waiting">Tura %1$d z %2$d · czekam na model…</string>
+    <string name="lab_ui_working_on">%1$s · tura %2$d: trwa generowanie odpowiedzi</string>
+    <string name="lab_ui_stopped_partial">Zatrzymano test. Ukończone tury pozostają poniżej.</string>
+    <string name="lab_ui_timeline_title">Scenariusze i odpowiedzi</string>
+    <string name="lab_ui_timeline_hint">Każda tura pojawia się podczas testu. Decyzje narzędzi nie są wykonywane.</string>
+    <string name="lab_ui_turn_header">%1$s · tura %2$d</string>
+    <string name="lab_ui_input">Wiadomość testowa</string>
+    <string name="lab_ui_waiting_response">Model przygotowuje odpowiedź…</string>
+    <string name="lab_ui_output">Odpowiedź modelu</string>
+    <string name="lab_ui_empty_reply">Brak tekstu odpowiedzi</string>
+    <string name="lab_ui_end_yes">TAK</string>
+    <string name="lab_ui_end_no">NIE</string>
+    <string name="lab_ui_decision">END_CALL: oczekiwano %1$s · model %2$s · %3$d ms</string>
+    <string name="lab_ui_match">zgodna decyzja</string>
+    <string name="lab_ui_mismatch">rozbieżność</string>
+    <string name="lab_ui_last_result">%1$s · tura %2$d · odpowiedź po %3$d ms</string>
+    <string name="lab_ui_score_title">Podsumowanie testu</string>
+    <string name="lab_ui_score_decisions">Zgodne decyzje END_CALL: %1$d/%2$d</string>
+    <string name="lab_ui_score_errors">Przedwczesne zakończenia: %1$d · brak zakończenia: %2$d · zbędne pytania (heurystyka): %3$d</string>
+    <string name="lab_ui_score_latency">Średni czas odpowiedzi: %1$d ms</string>
+    <string name="lab_ui_naturalness_score">Ręczna ocena naturalności: %1$d/5</string>
+    <string name="lab_ui_naturalness_unrated">Naturalność: bez oceny (wymaga oceny człowieka)</string>
+    <string name="lab_ui_failed">Test przerwany: %1$s</string>
 </resources>
