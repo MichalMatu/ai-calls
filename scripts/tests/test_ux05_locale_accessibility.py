@@ -36,7 +36,7 @@ class Ux05LocaleAccessibility(unittest.TestCase):
         pl, en = values(PL), values(EN)
         self.assertEqual(set(pl), set(en))
         self.assertGreaterEqual(len(pl), 490)
-        pattern = re.compile(r"%(?:\\d+\\$)?(?:[sd])")
+        pattern = re.compile(r"%(?:\d+\$)?[sd]")
         for name in pl:
             if not name.startswith(PREFIXES):
                 continue
@@ -46,7 +46,7 @@ class Ux05LocaleAccessibility(unittest.TestCase):
                 self.assertEqual(pattern.findall(pl[name]), pattern.findall(en[name]))
 
     def test_targeted_screen_literals_are_resources_not_inline_polish(self):
-        diacritics = re.compile(r'"[^"\\n]*[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ][^"\\n]*"')
+        diacritics = re.compile(r'"[^"]*[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ][^"]*"')
         for relative in SCREENS:
             source = (KOTLIN / relative).read_text()
             self.assertIn("R.string.", source)
