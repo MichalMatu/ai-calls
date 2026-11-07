@@ -48,7 +48,7 @@ Potwierdzić brak produkcyjnych i testowych referencji, użyć przez manifest, r
 
 ## Oddzielenie UX od logiki — nowa, niezależna sekwencja (po Sprint 6)
 
-**Nie jest jeszcze wykonana.** [Checkpoint Sprint 6](checkpoints/2026-11-07-ux-sprint6-source-green-s22-adb-pending-doc-freeze.md) = kod UX `SOURCE_GREEN`, odbiór S22 `QA_PENDING_ADB`. Przed refaktorem sprawdź świeży HEAD i nie myl źródeł z fizycznym testem.
+**Nie jest jeszcze wykonana — to osobny przyszły zakres.** Iteracja UX Sprint 6 jest **zamknięta**: [finalny checkpoint, host i S22 PASS](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) na funkcjonalnym `1b359146`. Nie mylić gotowego UX z niewykonanym rozdzieleniem Activity i kontrolerów.
 
 ### Mapa faktycznego sprzężenia
 
