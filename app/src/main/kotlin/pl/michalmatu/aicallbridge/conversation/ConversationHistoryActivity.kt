@@ -23,6 +23,10 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private lateinit var history: RecordedConversationHistory
     private lateinit var audioPlayer: ArchivedConversationPlayer
     private var playbackStatus: TextView? = null
+    private var activeAudioBubbleTag: String? = null
+    private var bulkDeletionRunning = false
+    internal var pendingBulkDeleteConfirmation: AlertDialog? = null
+        private set
     private var displayedSessionId: String? = null
     private val detailBack = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() { showList() }
@@ -143,11 +147,60 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
                         ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 6) })
                     }
+                    val deletable = sessions.count { it.complete && history.canDelete(it.id) }
+                    if (deletable > 0) {
+                        content.addView(UiDesign.action(this,
+                            getString(R.string.history_clear_all, deletable),
+                            UiActionTone.REVOCATION) {
+                            confirmDeleteAll(deletable)
+                        }.apply {
+                            tag = "history-delete-all"
+                            isEnabled = !bulkDeletionRunning
+                        }, UiDesign.spaceAfter(this, 12))
+                        content.addView(UiDesign.caption(this,
+                            getString(R.string.history_clear_all_warning)),
+                            UiDesign.spaceAfter(this, 12))
+                    }
                 }.onFailure { failure -> content.addView(TextView(this).apply {
                     text = getString(R.string.history_read_error) + ": " + failure.javaClass.simpleName
                 }) }
             }
         }
+    }
+
+    private fun confirmDeleteAll(visibleCount: Int) {
+        if (bulkDeletionRunning || visibleCount <= 0) return
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.history_clear_all_title, visibleCount))
+            .setMessage(R.string.history_clear_all_warning)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.history_clear_all_confirm) { _, _ ->
+                if (bulkDeletionRunning) return@setPositiveButton
+                bulkDeletionRunning = true
+                stopPlayback()
+                io.execute {
+                    val result = runCatching { history.deleteAllCompleted() }
+                    runOnUiThread {
+                        bulkDeletionRunning = false
+                        if (!isDestroyed) {
+                            val message = result.fold(
+                                onSuccess = {
+                                    getString(R.string.history_clear_all_result,
+                                        it.deleted, it.skipped, it.failed)
+                                },
+                                onFailure = { getString(R.string.history_delete_failed) },
+                            )
+                            showList(message)
+                        }
+                    }
+                }
+            }
+            .create()
+        pendingBulkDeleteConfirmation = dialog
+        dialog.setOnDismissListener {
+            if (pendingBulkDeleteConfirmation === dialog) pendingBulkDeleteConfirmation = null
+        }
+        dialog.show()
     }
 
     private fun confirmDelete(id: String) {
@@ -184,14 +237,18 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         text = getString(R.string.history_audio_count, session.audioFiles.size)
                     }
                     content.addView(playbackStatus)
-                    session.lines.forEach { line ->
-                        content.addView(conversationMessageView(this, line, ongoing = !session.complete))
-                        session.audioFor(line)?.let { name ->
-                            content.addView(Button(this).apply {
-                                text = getString(R.string.history_play_fragment)
-                                setOnClickListener { playFragment(session.id, name) }
-                            })
+                    session.lines.forEachIndexed { index, line ->
+                        val audio = session.audioFor(line)
+                        val bubbleTag = audio?.let { "history-audio-bubble:" + index }
+                        val tap: (() -> Unit)? = audio?.let { name ->
+                            { playFragment(session.id, name, bubbleTag) }
                         }
+                        content.addView(conversationMessageView(this, line,
+                            ongoing = !session.complete,
+                            onAudioTap = tap,
+                            audioTag = bubbleTag,
+                            audioHint = if (audio == null) null
+                                else getString(R.string.history_audio_play_hint)))
                     }
                     val linked = session.lines.mapNotNull(session::audioFor).toSet()
                     val unlinked = session.audioFiles.values.filterNot { it in linked }
@@ -240,9 +297,30 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
             }
         }
     }
-    private fun playFragment(id: String, fileName: String) {
+    private fun updateAudioHint(tag: String?, playing: Boolean) {
+        if (tag == null) return
+        val text = content.findViewWithTag<TextView>(tag + ":hint") ?: return
+        text.text = getString(if (playing) R.string.history_audio_stop_hint
+            else R.string.history_audio_play_hint)
+    }
+
+    private fun playFragment(id: String, fileName: String, bubbleTag: String? = null) {
+        if (audioPlayer.isPlaying(id, fileName)) {
+            stopPlayback()
+            playbackStatus?.text = getString(R.string.history_playback_stopped)
+            return
+        }
+        stopPlayback()
         val state = audioPlayer.play(id, fileName) {
-            if (!isDestroyed) playbackStatus?.text = getString(R.string.history_playback_finished)
+            if (!isDestroyed) {
+                updateAudioHint(activeAudioBubbleTag, false)
+                activeAudioBubbleTag = null
+                playbackStatus?.text = getString(R.string.history_playback_finished)
+            }
+        }
+        if (state == ArchivedConversationPlayer.StartResult.PLAYING) {
+            activeAudioBubbleTag = bubbleTag
+            updateAudioHint(bubbleTag, true)
         }
         val textId = when (state) {
             ArchivedConversationPlayer.StartResult.NEEDS_PERMISSION -> R.string.history_permission_required
@@ -255,9 +333,13 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     }
     private fun stopPlayback() {
         if (::audioPlayer.isInitialized) audioPlayer.stop()
+        updateAudioHint(activeAudioBubbleTag, false)
+        activeAudioBubbleTag = null
     }
     override fun onPause() { stopPlayback(); super.onPause() }
     override fun onDestroy() {
+        pendingBulkDeleteConfirmation?.dismiss()
+        pendingBulkDeleteConfirmation = null
         pendingDeleteConfirmation?.dismiss()
         pendingDeleteConfirmation = null
         stopPlayback()
