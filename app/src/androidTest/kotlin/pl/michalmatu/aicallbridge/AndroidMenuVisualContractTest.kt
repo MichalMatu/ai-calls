@@ -42,6 +42,9 @@ class AndroidMenuVisualContractTest {
                 assertTrue(requireNotNull(findButton(root, "Rozpocznij autoryzowane zadanie AI")).isShown)
                 assertTrue(requireNotNull(findButton(root, "STOP AI")).isShown)
                 assertNull(root.findViewWithTag<View>("ui-accordion-toggle:basic"))
+                for (duplicate in listOf("Rozmowy i nagrania", "Laboratorium offline", "Ustawienia AI Calls")) {
+                    assertNull("home_duplicate_action:" + duplicate, findButton(root, duplicate))
+                }
             }
         }
     }
@@ -68,7 +71,7 @@ class AndroidMenuVisualContractTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                val toggle = requireNotNull(root.findViewWithTag<Button>("live-chat-toggle"))
+                val toggle = requireNotNull(root.findViewWithTag<View>("live-chat-toggle"))
                 val scroll = requireNotNull(root.findViewWithTag<View>("live-chat-scroll"))
                 assertEquals(View.GONE, scroll.visibility)
                 toggle.performClick()

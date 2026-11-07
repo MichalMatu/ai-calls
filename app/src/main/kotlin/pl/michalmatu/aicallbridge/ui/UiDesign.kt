@@ -2,6 +2,10 @@ package pl.michalmatu.aicallbridge.ui
 
 import android.content.Context
 import android.graphics.Color
+import android.content.res.ColorStateList
+import android.graphics.drawable.RippleDrawable
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.widget.Button
@@ -22,6 +26,24 @@ internal object UiDesign {
             cornerRadius = dp(context, radiusDp).toFloat()
             setStroke(dp(context, 1).coerceAtLeast(1), border)
         }
+    fun touchSurface(context: Context, fill: Int = surface, radiusDp: Int = 14): RippleDrawable =
+        RippleDrawable(ColorStateList.valueOf(Color.rgb(225, 233, 246)),
+            surfaceDrawable(context, fill, radiusDp), null)
+
+    fun iconButton(context: Context, icon: Int, description: String, iconColor: Int = ink) =
+        ImageButton(context).apply {
+            setImageResource(icon)
+            imageTintList = ColorStateList.valueOf(iconColor)
+            contentDescription = description
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            minimumWidth = dp(context, 48)
+            minimumHeight = dp(context, 48)
+            setPadding(dp(context, 12), dp(context, 12), dp(context, 12), dp(context, 12))
+            background = touchSurface(context, softAccent, 10)
+            stateListAnimator = null
+            elevation = 0f
+        }
+
     fun button(context: Context, value: String, action: () -> Unit) = Button(context).apply {
         text = value
         textSize = 13f
@@ -29,7 +51,9 @@ internal object UiDesign {
         minHeight = dp(context, 48)
         minimumHeight = dp(context, 48)
         setTextColor(ink)
-        background = surfaceDrawable(context, softAccent, 10)
+        background = touchSurface(context, softAccent, 10)
+        stateListAnimator = null
+        elevation = 0f
         setPadding(dp(context, 10), dp(context, 6), dp(context, 10), dp(context, 6))
         setOnClickListener { action() }
     }

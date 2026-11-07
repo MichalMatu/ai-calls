@@ -91,20 +91,7 @@ class MainActivity : AppBaseActivity() {
             }
         }
 
-        // Primary navigation: conversation archive and offline lab are not settings.
-        // These open read-only/history or off-call screens; no call authorization changes.
-        val conversationHistoryButton = Button(this).apply {
-            text = "Rozmowy i nagrania"
-            setOnClickListener { startActivity(Intent(this@MainActivity,
-                pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity::class.java)) }
-        }
-        val labShortcutButton = Button(this).apply {
-            text = "Laboratorium offline"
-            setOnClickListener { startActivity(Intent(this@MainActivity,
-                pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity::class.java)) }
-        }
-
-        // Primary actions remain on Home. Navigation and configuration live in dedicated screens.
+        // Bottom tabs are the only routes to History, Lab and Settings.
 
         // A short action area, two navigation shortcuts, and collapsed settings cards.
         fun styleAction(button: Button, color: Int, ink: Int) {
@@ -114,12 +101,12 @@ class MainActivity : AppBaseActivity() {
             button.setPadding(dp(10), dp(10), dp(10), dp(10))
             button.setTextColor(ink)
             button.background = roundedSurface(color)
+            button.stateListAnimator = null
+            button.elevation = 0f
         }
         styleAction(startAuthorizedTaskButton, Color.rgb(26, 72, 137), Color.WHITE)
         styleAction(stopAiButton, Color.rgb(255, 232, 236), Color.rgb(151, 31, 51))
         styleAction(campaignToolsButton, Color.rgb(229, 237, 249), Color.rgb(27, 47, 75))
-        styleAction(conversationHistoryButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
-        styleAction(labShortcutButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
         styleAction(oneTapButton, Color.rgb(237, 243, 251), Color.rgb(27, 47, 75))
         startAuthorizedTaskButton.layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -162,41 +149,6 @@ class MainActivity : AppBaseActivity() {
             addView(actions, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(8) })
-            addView(TextView(this@MainActivity).apply {
-                text = "Przejdź do"
-                textSize = 16f
-                setTypeface(null, Typeface.BOLD)
-                setTextColor(Color.rgb(30, 47, 68))
-                setPadding(0, dp(18), 0, dp(8))
-            })
-            val shortcuts = LinearLayout(this@MainActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                conversationHistoryButton.layoutParams = LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
-                ).apply { rightMargin = dp(8) }
-                labShortcutButton.layoutParams = LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
-                )
-                addView(conversationHistoryButton)
-                addView(labShortcutButton)
-            }
-            addView(shortcuts)
-            addView(TextView(this@MainActivity).apply {
-                text = getString(R.string.ui_settings)
-                textSize = 18f
-                setTypeface(null, Typeface.BOLD)
-                setTextColor(Color.rgb(30, 47, 68))
-                setPadding(0, dp(18), 0, dp(10))
-            })
-            addView(pl.michalmatu.aicallbridge.ui.UiDesign.button(
-                this@MainActivity, getString(R.string.ui_settings_hub_title)
-            ) { AppNavigation.open(this@MainActivity, AppTab.SETTINGS) })
-            addView(TextView(this@MainActivity).apply {
-                text = getString(R.string.ui_supervised_section)
-                textSize = 15f
-                setTextColor(Color.rgb(80, 96, 116))
-                setPadding(0, dp(18), 0, dp(8))
-            })
             addView(oneTapButton)
         }
 

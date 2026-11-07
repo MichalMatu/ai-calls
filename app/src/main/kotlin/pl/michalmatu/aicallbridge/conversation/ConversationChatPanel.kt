@@ -13,6 +13,9 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.content.res.ColorStateList
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -60,26 +63,24 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
         contentDescription = context.getString(R.string.live_chat_clear_description)
     }
 
-    private val toggle = Button(context).apply {
+    private val toggle = ImageButton(context).apply {
         tag = "live-chat-toggle"
         contentDescription = context.getString(if (expanded) R.string.live_chat_collapse else R.string.live_chat_expand)
-        text = if (expanded) "⌃" else "⌄"
-        textSize = 22f
-        isAllCaps = false
-        minWidth = dp(48)
+        setImageResource(if (expanded) R.drawable.ic_aicalls_chevron_up else R.drawable.ic_aicalls_chevron_down)
+        imageTintList = ColorStateList.valueOf(UiDesign.ink)
+        scaleType = ImageView.ScaleType.CENTER_INSIDE
         minimumWidth = dp(48)
-        minHeight = dp(48)
         minimumHeight = dp(48)
-        gravity = Gravity.CENTER
-        setTextColor(UiDesign.ink)
-        background = UiDesign.surfaceDrawable(context, UiDesign.softAccent, 10)
-        setPadding(0, 0, 0, 0)
+        setPadding(dp(12), dp(12), dp(12), dp(12))
+        stateListAnimator = null
+        elevation = 0f
+        background = UiDesign.touchSurface(context, UiDesign.softAccent, 10)
         setOnClickListener {
             expanded = !expanded
             messageScroll.visibility = if (expanded) View.VISIBLE else View.GONE
             clearButton.visibility = if (expanded) View.VISIBLE else View.GONE
             statusLabel.visibility = if (expanded || ConversationChatFeed.snapshot().active) View.VISIBLE else View.GONE
-            text = if (expanded) "⌃" else "⌄"
+            setImageResource(if (expanded) R.drawable.ic_aicalls_chevron_up else R.drawable.ic_aicalls_chevron_down)
             contentDescription = context.getString(if (expanded) R.string.live_chat_collapse else R.string.live_chat_expand)
         }
     }
@@ -96,7 +97,7 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
         orientation = VERTICAL
         tag = "live-chat-dock"
         background = UiDesign.surfaceDrawable(context, UiDesign.surface, 16)
-        elevation = dp(4).toFloat()
+        elevation = 0f
         contentDescription = context.getString(R.string.live_chat_private_preview)
 
         val heading = LinearLayout(context).apply {
@@ -109,14 +110,6 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(UiDesign.ink)
             }, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-            addView(Button(context).apply {
-                text = context.getString(R.string.live_chat_history)
-                textSize = 12f
-                isAllCaps = false
-                setTextColor(UiDesign.ink)
-                background = UiDesign.surfaceDrawable(context, UiDesign.softAccent, 10)
-                setOnClickListener { context.startActivity(android.content.Intent(context, ConversationHistoryActivity::class.java)) }
-            }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(44)).apply { rightMargin = dp(8) })
             addView(toggle, LayoutParams(dp(48), dp(48)))
         }
         addView(heading, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))

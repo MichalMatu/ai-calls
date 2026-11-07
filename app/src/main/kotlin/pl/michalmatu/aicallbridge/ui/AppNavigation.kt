@@ -44,7 +44,7 @@ internal object AppNavigation {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER
         setBackgroundColor(UiDesign.surface)
-        elevation = UiDesign.dp(activity, 4).toFloat()
+        elevation = 0f
         val density = activity.resources.displayMetrics.density
         setPadding(UiDesign.dp(activity, 6), UiDesign.dp(activity, 4),
             UiDesign.dp(activity, 6), UiDesign.dp(activity, 4))

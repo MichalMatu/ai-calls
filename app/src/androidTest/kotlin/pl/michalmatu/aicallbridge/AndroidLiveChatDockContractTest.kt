@@ -5,7 +5,8 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
-import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
@@ -20,12 +21,12 @@ class AndroidLiveChatDockContractTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 val dock = requireNotNull(root.findViewWithTag<View>("live-chat-dock"))
-                val toggle = requireNotNull(root.findViewWithTag<Button>("live-chat-toggle"))
+                val toggle = requireNotNull(root.findViewWithTag<ImageButton>("live-chat-toggle"))
                 val fill = requireNotNull((dock.background as GradientDrawable).color).defaultColor
                 assertEquals(Color.WHITE, fill)
                 assertTrue(toggle.width / activity.resources.displayMetrics.density >= 47f)
                 assertTrue(toggle.height / activity.resources.displayMetrics.density >= 47f)
-                assertEquals(Gravity.CENTER, toggle.gravity)
+                assertEquals(ImageView.ScaleType.CENTER_INSIDE, toggle.scaleType)
                 val scroll = requireNotNull(root.findViewWithTag<View>("live-chat-scroll"))
                 assertEquals(View.GONE, scroll.visibility)
                 toggle.performClick()
