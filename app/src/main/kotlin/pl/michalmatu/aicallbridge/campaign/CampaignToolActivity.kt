@@ -28,6 +28,8 @@ import android.widget.Spinner
 import pl.michalmatu.aicallbridge.ui.UiSelect
 import pl.michalmatu.aicallbridge.R
 import android.view.View
+import android.os.Handler
+import android.os.Looper
 import android.widget.ScrollView
 import android.widget.TextView
 
@@ -36,6 +38,16 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView
     private lateinit var diagnosticStatus: TextView
+    private lateinit var lastExecutionStatus: TextView
+    private val statusHandler = Handler(Looper.getMainLooper())
+    private val lastExecutionRefresh = object : Runnable {
+        override fun run() {
+            if (::lastExecutionStatus.isInitialized && ::runtimeStatusStore.isInitialized) {
+                updateLastExecutionStatus()
+            }
+            statusHandler.postDelayed(this, 1_000L)
+        }
+    }
     private lateinit var recordEvidenceChoice: CheckBox
     private var pendingAction: PendingAction? = null
     private var requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA
@@ -57,6 +69,17 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         diagnosticStatus = UiDesign.caption(this, "").apply {
             tag = "campaign-attempt-status"
             setTextIsSelectable(true)
+        }
+        lastExecutionStatus = UiDesign.caption(this, "").apply {
+            tag = "campaign-execution-summary"
+            textSize = 14f
+            setTextColor(UiDesign.ink)
+            setTextIsSelectable(true)
+            setPadding(UiDesign.dp(this@CampaignToolActivity, 12),
+                UiDesign.dp(this@CampaignToolActivity, 10),
+                UiDesign.dp(this@CampaignToolActivity, 12),
+                UiDesign.dp(this@CampaignToolActivity, 10))
+            background = UiDesign.surfaceDrawable(this@CampaignToolActivity)
         }
         val dialoguePicker = Spinner(this).apply {
             tag = "campaign-dialogue-picker"
@@ -116,15 +139,15 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             }
         }
         val playbackButton = Button(this).apply {
-            text = getString(R.string.camp_ui_play_ai)
+            text = getString(R.string.camp_ui_play_ai_short)
             setOnClickListener { playLastRecordedAudio("tx") }
         }
         val playbackRxButton = Button(this).apply {
-            text = getString(R.string.camp_ui_play_rx)
+            text = getString(R.string.camp_ui_play_rx_short)
             setOnClickListener { playLastRecordedAudio("rx") }
         }
         val transcriptButton = Button(this).apply {
-            text = getString(R.string.camp_ui_transcript)
+            text = getString(R.string.camp_ui_transcript_short)
             setOnClickListener { showLatestTranscript() }
         }
         val revokeButton = Button(this).apply {
@@ -168,6 +191,7 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addControl(playbackButton)
             addControl(playbackRxButton)
             addControl(transcriptButton)
+            addLabel(getString(R.string.camp_ui_play_offcall))
         }
 
         val content = LinearLayout(this).apply {
@@ -183,13 +207,8 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addView(UiDesign.heading(this@CampaignToolActivity,
                 getString(R.string.campaign_ui_task_status)).apply { textSize = 17f },
                 UiDesign.spaceAfter(this@CampaignToolActivity, 8))
-            addView(
-                statusView,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { bottomMargin = 16 },
-            )
+            addView(statusView, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
+            addView(lastExecutionStatus, UiDesign.spaceAfter(this@CampaignToolActivity, 14))
             addView(UiDesign.card(this@CampaignToolActivity).apply {
                 tag = "campaign-primary-actions"
                 addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_enable)).apply {
@@ -205,7 +224,9 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 addView(recordEvidenceChoice, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(startButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
                 addView(stopSupervisedAudioButton, UiDesign.spaceAfter(this@CampaignToolActivity, 12))
-                addView(revokeButton)
+                addView(revokeButton, UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(UiDesign.caption(this@CampaignToolActivity,
+                    getString(R.string.camp_ui_actions_help)))
             }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(UiDesign.action(this@CampaignToolActivity,
                 getString(R.string.camp_ui_engines)) {
@@ -253,6 +274,13 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     override fun onResume() {
         super.onResume()
         refreshTaskStatus()
+        statusHandler.removeCallbacks(lastExecutionRefresh)
+        statusHandler.post(lastExecutionRefresh)
+    }
+
+    override fun onPause() {
+        statusHandler.removeCallbacks(lastExecutionRefresh)
+        super.onPause()
     }
 
     override fun onDestroy() {
@@ -479,6 +507,14 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         statusView.text = taskStatus
         diagnosticStatus.text = listOfNotNull(evidenceStatus, runtimeStatus)
             .joinToString("\n\n")
+        updateLastExecutionStatus()
+    }
+
+    private fun updateLastExecutionStatus() {
+        val latest = runtimeStatusStore.load()
+            ?: getString(R.string.camp_ui_runtime_empty)
+        lastExecutionStatus.text = getString(R.string.camp_ui_runtime_heading) +
+            "\n" + latest
     }
 
     private enum class PendingAction {
