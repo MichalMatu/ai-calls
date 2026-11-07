@@ -44,15 +44,12 @@ class AndroidHistoryNavigationDeletionTest {
                 assertTrue("synthetic_session_missing", waitFor(scenario, "history-open:" + id))
                 scenario.onActivity { activity ->
                     val open = requireNotNull(activity.window.decorView.findViewWithTag<View>("history-open:" + id))
-                    val delete = requireNotNull(activity.window.decorView.findViewWithTag<View>("history-delete:" + id))
                     val row = requireNotNull(activity.window.decorView.findViewWithTag<View>("history-row:" + id))
                     assertTrue(open.isClickable)
-                    assertTrue(delete.isClickable)
-                    assertTrue(delete.contentDescription == activity.getString(pl.michalmatu.aicallbridge.R.string.history_delete))
-                    assertTrue("compact_actions_share_row", row is android.widget.LinearLayout &&
+                    assertTrue("compact_history_open_row", row is android.widget.LinearLayout &&
                         row.orientation == android.widget.LinearLayout.HORIZONTAL)
-                    assertTrue("delete_target_too_small", delete.layoutParams.width >=
-                        (48 * activity.resources.displayMetrics.density).toInt())
+                    assertNull("delete_should_be_in_details_only",
+                        activity.window.decorView.findViewWithTag<View>("history-delete:" + id))
                 }
                 scenario.onActivity { activity ->
                     activity.window.decorView.findViewWithTag<View>("history-open:" + id).performClick()
@@ -75,6 +72,11 @@ class AndroidHistoryNavigationDeletionTest {
                     assertFalse("system_back_left_calls", activity.isFinishing)
                 }
                 assertTrue("system_back_did_not_restore_calls", waitFor(scenario, "history-open:" + id))
+                // Delete remains accessible in details with explicit confirmation.
+                scenario.onActivity { activity ->
+                    activity.window.decorView.findViewWithTag<View>("history-open:" + id).performClick()
+                }
+                assertTrue("details_delete_not_available", waitFor(scenario, "history-delete:" + id))
                 scenario.onActivity { activity ->
                     activity.window.decorView.findViewWithTag<View>("history-delete:" + id).performClick()
                     val dialog = requireNotNull(activity.pendingDeleteConfirmation)
