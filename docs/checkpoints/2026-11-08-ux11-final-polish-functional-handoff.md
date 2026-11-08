@@ -9,5 +9,13 @@
 
 ## Test / przekazanie
 - Nowy `scripts/tests/test_ux11_final_polish.py`, rozszerzony `AndroidUx10OverlayVaultLabTest`, nowy `AndroidUx11FloatingSyntheticTest`.
-- Mac Local Agent: compile app + AndroidTest, pełny `verify_host.sh`, friction, git clean. S22: tylko gdy Mac quality PASS; preflight SM-S906B, IDLE, wolna kampania/Call, instalacja `-r`, testy syntetyczne, prywatne screenshoty. **Status QA_PENDING do dokładnego receipt.**
+- Mac Local Agent: compile app + AndroidTest, pełny `verify_host.sh`, friction, git clean. S22: tylko gdy Mac quality PASS; preflight SM-S906B, IDLE, wolna kampania/Call, instalacja `-r`, testy syntetyczne, prywatne screenshoty. **Status końcowy: MAC_PASS / S22_SYNTHETIC_PASS; dokładne receipts niżej.**
 - UX po zamknięciu QA: traktować jako frozen do chwili wykrycia funkcjonalnego P0/P1. Następny etap: funkcjonalna macierz STT → model → Skills → TTS → kontrolowany test offline → właściwości start/stop/rollback i po autoryzacji realna telefonia na celu znanym użytkownikowi. **Nie deklarować sukcesu połączenia, archiwizacji audio ani skutku zewnętrznego bez osobnych dowodów.** Nie wprowadzać nowych permission, grant, audio/Telecom, autoryzacji, modeli lub migracji sejfu w UX-11.
+
+## Final QA — wykonane
+- Mac `aicalls-ux11-final-mac-gate-20261108-v2`: **356/356 Python i pełny host gate PASS**, app+AndroidTest build.
+- Mac test-only fix `aicalls-ux11-synthetic-layout-mac-20261108-v1`: compile AndroidTest PASS na `main@3029034`.
+- S22 `aicalls-ux11-final-s22-guarded-synthetic-20261108-v2`: 28/28 UI PASS, pierwsza kontrola geometrii zbyt wcześnie na klatce Androida. `main@3029034` poprawia tylko test oczekiwania na layout; final `aicalls-ux11-s22-synthetic-layout-and-private-archive-20261108-v1` **2/2 synthetic PASS**, **18/18 screenshotów PASS** (17 ekranów + 1 rozwinięty chat), bez danych w repo. S22 `SM-S906B` IDLE przed i po.
+- Model offline `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1` **PASS** (2 tury i STOP). Polski TTS→Parakeet `aicalls-functional-polish-tts-parakeet-offcall-s22-20261108-v1` **PASS**. [Dowody i zakres](2026-11-08-functional-real-offline-acceptance.md).
+
+**UX-11 CLOSED.** Nie wznawiać kosmetycznych iteracji. Nie ogłaszać fizycznej rozmowy ani prawdziwego skutku zadania: **real CALL NOT_RUN**.

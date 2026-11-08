@@ -2,12 +2,13 @@
 
 Modułowe laboratorium Android do porównywania STT, modeli językowych, strategii dialogu, instrukcji i TTS. Docelowo wspólne, zweryfikowane komponenty obsłużą sekretarkę i konkretnie autoryzowane zadania telefoniczne.
 
-## Stan bieżący — UX-06 i general audit (2026-11-07)
+## Stan bieżący — UX-11 CLOSED, odbiór funkcjonalny offline PASS (2026-11-08)
 
-- **Kod `bbb2ceb9`:** poprawiono zbędne rewizje własnych scenariuszy przy zmianie wyłącznie białych znaków. Test regresyjny RED potwierdzony na Macu; pełne GREEN QA Mac [w odbiorze](docs/checkpoints/2026-11-07-general-repository-audit-sprint.md). Nie utożsamiać izolowanego testu Sandbox z pełnym host PASS.
-- **Ostatni w pełni potwierdzony runtime `25a41a0`:** UX-06, Mac 341 testów Python + JVM/lint/APK PASS; S22 SM-S906B 10/10 syntetycznych UI PASS (instalacja bez wipe, IDLE przed/po). Bez realnego CALL, ręcznego TalkBack i dowodu zewnętrznych skutków.
-- **Scenariusze:** 10 fabrycznych wzorców i prywatne, szyfrowane szkice/kopie z historią. Poza CLIR są **DRAFT_ONLY**, nie gotowym wykonywaniem rezerwacji.
-- **Otwarte:** F-122 nagrywanie aktywnej sesji, F-123 korelacja Call/attemptId, F-124 wybór archiwum, F-080 pełny recorder/player i autoryzowane próby real-call. Patrz [roadmapa](docs/ROADMAP.md), [checkpoint audytu](docs/checkpoints/2026-11-07-general-repository-audit-sprint.md) i [handoff](docs/HANDOFF_NEXT_CHAT.md).
+- **Kod `main@3029034`:** UX-11 zakończony: prosty przebieg Lab, kompaktowy Sejf z polami własnymi, sam pływający dymek czatu podczas aktywnej rozmowy; 6 zakładek i STOP zachowane.
+- **Mac:** 356/356 testów Python i pełny host quality gate **PASS**; AndroidTest aktualnej wersji również kompiluje się poprawnie.
+- **Samsung S22:** 28/28 UI plus 2/2 testy aktywnego syntetycznego czatu **PASS**; 18/18 prywatnych screenshotów (w tym aktywny panel). Bez utraty danych podczas instalacji.
+- **Funkcjonalne offline:** rzeczywiste 2 tury lokalnego modelu i STOP **PASS**; polski TTS → Parakeet STT na testowej frazie **PASS**. **Rzeczywiste CALL/RX/TX i wynik zewnętrzny NOT_RUN.**
+- **Otwarte:** F-080 (pełny recorder/player), F-122/123/124 (aktywny recorder, korelacja Call, archiwum) oraz fizyczna integracja; dane custom sejfu nie są automatycznie ujawniane AI. [Handoff](docs/HANDOFF_NEXT_CHAT.md), [UX11](docs/checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md), [funkcjonalne receipts](docs/checkpoints/2026-11-08-functional-real-offline-acceptance.md).
 
 ## Historia — Sprint 6 i UX-01–05 (potwierdzone wcześniej)
 

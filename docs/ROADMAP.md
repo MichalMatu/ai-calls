@@ -1,6 +1,9 @@
-## UX-11 — końcowy polish i przejście do funkcjonalnego odbioru (2026-11-08)
+## UX-11 CLOSED → funkcjonalne odbiory offline (2026-11-08)
 
-Zakres [checkpoint UX-11](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md): prosty Lab, gęsty Sejf, fizyczna syntetyczna próba rozwinięcia floating chat. Po Mac/S22 GREEN zamrozić UX; priorytet: pomiary niezależnego STT, modelu, Skills, TTS, integracji, START/STOP, rejestracji i przejęcia rozmowy. Połączenie telefoniczne i ujawnienia danych tylko w autoryzowanym zakresie. Nie mylić syntetycznej linii czatu z realnym TX.
+[UX11 checkpoint](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md) — Mac full **356/356 PASS**, S22 UI 28/28 + synthetic floating 2/2 PASS, 18 prywatnych screenshotów. [Funkcjonalny checkpoint](checkpoints/2026-11-08-functional-real-offline-acceptance.md) — lokalny 2-turn model/STOP **PASS**, polski TTS→Parakeet STT **PASS**. **Nie wznawiać kosmetycznego UX.**
+
+**Następny zakres:** porównania model/STT/Skills/TTS na niezależnych próbkach offline, opóźnienia, STOP/recovery, następnie dokładnie autoryzowany fizyczny Call i potwierdzenie wyników (F-080/F-122/F-123/F-124 nadal OPEN). Nie utożsamiać offcall i syntetyki z realnym rozmówcą.
+
 
 ---
 

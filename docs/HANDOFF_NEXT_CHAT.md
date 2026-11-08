@@ -1,8 +1,15 @@
-# UX-11 — ostatni sprint wizualny, następnie testy funkcjonalne (2026-11-08)
+# Bieżący handoff — UX-11 zamknięty, funkcjonalne testy offline rozpoczęte (2026-11-08)
 
-**Bieżący zakres:** uproszczony nagłówek Lab, neutralny pusty stan, kompaktowy Sejf z przyciskiem custom u góry, fizyczny test floating przy **syntetycznym** feedzie. [Checkpoint UX-11](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md). Zmiany wyłącznie UI i testowe, bez mutacji rzeczywistego sejfu lub Call. Do dokładnych Mac/S22 receipt: **QA_PENDING**, potem UX zostaje zamrożony, następny sprint ma sprawdzać funkcjonalne działanie. Uruchomienie prawdziwego Call wymaga osobnego ważnego zakresu autoryzacji; do tego czasu wyłącznie offline / read-only / symulacje.
+**Aktualny źródłowy HEAD:** `main@30290340942d4cb4dc115c7fe69a589c5857a874` (przed końcowym commitem dokumentacyjnym). UX-11 **CLOSED / MAC_PASS / S22_SYNTHETIC_PASS**. Kompaktowy Sejf, krótki Lab, dynamiczny icon-only floating chat, stale widoczny STOP i zachowane uprawnienia. Żadnych zmian w Telecom/PCM/grancie/schemacie v1 sejfu. [Finalny checkpoint UX-11](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md).
 
-**UX-10 finalne receipts** `aicalls-ux10-floating-vault-lab-mac-20261108-v5` i `aicalls-ux10-s22-guarded-visuals-20261108-v3`: Mac 353/353 PASS, S22 4+5+17=26 native PASS, APK `-r`, 17 nowych screenshotów archiwizowanych prywatnie; brak real-call. Nie powtarzać zakończonych UX-10 testów poza regresją wymagającą zmienionego UI.
+**Niezmienne exact receipts:**
+- `aicalls-ux11-final-mac-gate-20261108-v2`: **356/356 Python**, JVM/AndroidTest/APK i friction **PASS** na `949a854`.
+- `aicalls-ux11-synthetic-layout-mac-20261108-v1`: targeted AndroidTest build/source PASS na `3029034`.
+- `aicalls-ux11-final-s22-guarded-synthetic-20261108-v2`: S22 instalacja APK bez wipe, **28/28 UI native PASS**; pierwsza asercja geometrii 2/2 FAIL, poprawiona wyłącznie w teście.
+- `aicalls-ux11-s22-synthetic-layout-and-private-archive-20261108-v1`: **2/2 syntetyczny floating PASS**, prywatny ZIP **17 bieżących ekranów + aktywny synthetic chat = 18/18 PASS**, IDLE przed i po; archiwum wyłącznie Mac: `~/Library/Application Support/AI-Calls/UI-audit/2026-11-08-ux11/AI-Calls-S22-UX11-top17-plus-chat-private.zip`.
+- `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1`: rzeczywisty lokalny model, **2 tury + STOP PASS**, prywatne 4 screenshoty, bez Call. `aicalls-functional-polish-tts-parakeet-offcall-s22-20261108-v1`: **polski TTS → PCM → Parakeet STT PASS** bez mikrofonu lub Call. [Checkpoint funkcjonalny](checkpoints/2026-11-08-functional-real-offline-acceptance.md).
+
+**Następny etap:** UX frozen (chyba że ujawni się P0/P1). Testy funkcjonalne: konfiguracje STT/model/Skills/TTS i niezawodność, później pełna integracja zadania i tylko jawnie autoryzowany real CALL. Wciąż **NOT_RUN**: prawdziwy RX/TX na połączeniu, słyszalność, fizyczny wyciek/retencja danych, prawdziwy cel/rezultat i kompletne archiwum audio F-080. Nie traktować syntetycznej rozmowy ani dwóch tur offline jako real-call PASS. Bez Codex/Work/GitHub Actions, tylko GitHub Connector + Mac Local Agent. Nie powtarzać zielonych UX10/UX11 bez nowej przesłanki.
 
 ---
 
