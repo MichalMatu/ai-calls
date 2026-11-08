@@ -32,7 +32,6 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 UiDesign.dp(this@GeneralSettingsActivity, 20),
                 UiDesign.dp(this@GeneralSettingsActivity, 28))
         }
-        content.addView(UiDesign.heading(this, getString(R.string.ui_basic)).apply { textSize = 25f })
         content.addView(TextView(this).apply {
             text = getString(R.string.ui_general_description)
             textSize = 14f

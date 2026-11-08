@@ -250,10 +250,6 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 20), UiDesign.dp(this@CampaignToolActivity, 28))
-            addView(TextView(this@CampaignToolActivity).apply {
-                text = getString(R.string.camp_ui_title)
-                textSize = 22f
-            })
             addView(UiDesign.caption(this@CampaignToolActivity,
                 getString(R.string.camp_ui_intro)
             ), UiDesign.spaceAfter(this@CampaignToolActivity, 16))

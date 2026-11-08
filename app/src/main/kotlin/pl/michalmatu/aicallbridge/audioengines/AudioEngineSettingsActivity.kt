@@ -60,9 +60,6 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
                 setPadding(0, UiDesign.dp(this@AudioEngineSettingsActivity, 10),
                     0, UiDesign.dp(this@AudioEngineSettingsActivity, 10))
             }
-        content.addView(UiDesign.heading(this, getString(R.string.eng_ui_title)).apply {
-            textSize = 23f
-        }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.caption(this,
             getString(R.string.eng_ui_intro)
         ), UiDesign.spaceAfter(this, 12))

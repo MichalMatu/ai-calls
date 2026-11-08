@@ -79,9 +79,6 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@ConversationSkillsActivity, 20), UiDesign.dp(this@ConversationSkillsActivity, 16), UiDesign.dp(this@ConversationSkillsActivity, 20), UiDesign.dp(this@ConversationSkillsActivity, 28))
         }
-        content.addView(UiDesign.heading(this, getString(R.string.skills_ui_title)).apply {
-            textSize = 23f
-        }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.caption(this,
             getString(R.string.skills_ui_intro).trim() + "\n\n" +
                 getString(R.string.skills_ui_intro2).trim()),

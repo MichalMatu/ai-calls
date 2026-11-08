@@ -56,11 +56,6 @@ class PhoneEnrollmentActivity : UiChromeActivity(AppTab.AGENT) {
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(UiDesign.dp(this@PhoneEnrollmentActivity, 20), UiDesign.dp(this@PhoneEnrollmentActivity, 24), UiDesign.dp(this@PhoneEnrollmentActivity, 20), UiDesign.dp(this@PhoneEnrollmentActivity, 24))
-                addView(TextView(this@PhoneEnrollmentActivity).apply {
-                    text = getString(R.string.phone_ui_title)
-                    textSize = 22f
-                    setTextColor(UiDesign.ink)
-                })
                 addView(UiDesign.caption(this@PhoneEnrollmentActivity, getString(R.string.phone_ui_description)), UiDesign.spaceAfter(this@PhoneEnrollmentActivity, 16))
                 addView(UiDesign.heading(this@PhoneEnrollmentActivity, getString(R.string.phone_ui_field)).apply { textSize = 15f }, UiDesign.spaceAfter(this@PhoneEnrollmentActivity, 8))
                 addView(

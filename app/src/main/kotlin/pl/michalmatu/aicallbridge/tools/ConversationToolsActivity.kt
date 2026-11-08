@@ -39,8 +39,6 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                 UiDesign.dp(this@ConversationToolsActivity, 20),
                 UiDesign.dp(this@ConversationToolsActivity, 28))
         }
-        content.addView(UiDesign.heading(this, getString(R.string.tools_ui_title)),
-            UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.caption(this, getString(R.string.tools_ui_description)),
             UiDesign.spaceAfter(this, 16))
         val choices = ConversationToolId.entries.associateWith { tool ->

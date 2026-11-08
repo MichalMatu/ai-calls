@@ -81,7 +81,7 @@ internal object AppNavigation {
             item.addView(TextView(activity).apply {
                 text = activity.getString(tab.compactTitle)
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                textSize = 10f
+                textSize = 11f
                 maxLines = 1
                 setTextColor(labelColor)
                 gravity = Gravity.CENTER

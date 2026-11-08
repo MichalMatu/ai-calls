@@ -15,3 +15,9 @@
 - Podglądy Agent AI: scenariusz jako lista etykiet i wartości, przygotowanie jako liczby Skills i pól + pełny skrypt w przewijalnym obszarze, Skills zwinięte do trzech wierszy i otwierane dotykiem, bez utraty pełnej treści ani rewizji.
 - Nagłówki podstron: własny tytuł (np. Kampanie, Skills, STT/TTS) zamiast nagłówka zakładki.
 - Mac gate `aicalls-ux07-six-tabs-parakeet-final-host-20261108-v1` dla `60aa75d`: Kotlin/AndroidTest compile **PASS**, Python 341: **3 stare kontrakty strukturalne RED**, bo szukały Parakeet download w dawnej Activity; zmieniony audyt sprawdza właściwą usługę foreground, wywołanie z zakładki Modele i cancel guard. Final QA na nowym HEAD wymagane. Na S22 nie uruchomiono żadnego połączenia ani pobrania modelu.
+
+## Redukcja duplikatów nagłówków
+
+Na podstronach z aktywnym wspólnym paskiem tytułu usunięto drugi identyczny tytuł z przewijanej treści (Kampanie, Skills, Silniki, numer telefonu, narzędzia, sekretarka, podstawowe, developer). Pierwotne akcje, opisy, dostępność i statusy pozostają. Etykiety sześciu zakładek 11sp zamiast 10sp. Nie usuwano żadnego edytora ani stanu.
+
+**Gate:** Source-only commit po `1bf90c0`; Mac `aicalls-ux07-datafirst-final-host-20261108-v1` zamówiony dla `1bf90c0`; nie przenosić jego ewentualnego PASS na nowszy SHA. Dla ostatniego commitu niezbędny osobny gate. S22 nadal niezweryfikowany dla UX-07.

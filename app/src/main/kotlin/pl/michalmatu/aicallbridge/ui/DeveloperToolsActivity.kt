@@ -21,7 +21,6 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 UiDesign.dp(this@DeveloperToolsActivity, 20),
                 UiDesign.dp(this@DeveloperToolsActivity, 24))
         }
-        body.addView(UiDesign.heading(this, getString(R.string.ui_settings_hub_developer)))
         body.addView(TextView(this).apply {
             text = getString(R.string.ui_developer_description)
             textSize = 14f

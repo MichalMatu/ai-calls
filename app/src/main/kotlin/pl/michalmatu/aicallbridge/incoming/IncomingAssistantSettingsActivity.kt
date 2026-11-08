@@ -45,7 +45,6 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             setPadding(0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 7),
                 0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 10))
         }
-        content.addView(UiDesign.heading(this, getString(R.string.incoming_ui_title)))
         content.addView(description(R.string.incoming_ui_intro))
         val mode = Spinner(this).apply {
             tag = "incoming-mode-spinner"
