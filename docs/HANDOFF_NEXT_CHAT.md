@@ -1,5 +1,13 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## E2B context validation — 4096 N=3 passed, 8192 guarded (2026-11-08)
+
+Physical S22 Gemma E2B Lab **4096: three independent 13-turn runs (39/39 turns) PASS technically**, without JNI failure. Sampled peak app PSS **2,348,103 kB**, lowest observed MemAvailable **1,378,220 kB**, mean response approx. 5.35–7.63 s. Heuristics across 3 sessions: **11/13, 13/13, 11/13**; **human semantic review UNASSESSED**, F-148 remains OPEN for root-cause/semantic scope.
+
+Experimental **8192 only through explicit AndroidTest flag** at code `main@faf6ee5` passed the full Mac host gate, but **physical S22 8192 NOT_RUN**: guard refused because PocketHost was foreground. No 8192 inference or install occurred. Normal Lab 4096, Call 2048 unchanged. Next: only gated S22 8192 trial when AI Calls/Launcher is foreground, then separate fact-memory ledger sprint.
+
+[Exact benchmark checkpoint](checkpoints/2026-11-08-e2b4096-n3-ram-and-8192-instrumentation.md) · [memory plan](LAB_E2B_CONTEXT_MEMORY_PLAN.md).
+
 ## LAB-SEMANTIC-02 — wynik 4096, próba 13/13 (2026-11-08)
 
 Po dwóch powtarzalnych porażkach JNI przy 2048 tokenach w turze 10 wdrożono wariant **4096 tylko w Laboratory** (`main@f38b5f4`); inne ścieżki Call nadal domyślnie 2048. Mac pełna bramka `scripts/verify_host.sh` PASS (task końcowo failed/125 w dodatkowym etapie), S22 `aicalls-semantic2-s22-context4096-20261108-v1` **DONE/0, natywna E2B 13/13 tur PASS technicznie**, 11/13 heurystyk (2 niepotwierdzone punkty dotyczące nieznanego numeru), średnio 6686 ms, 0 END_CALL, IDLE. Dodatkowe powtórki N=2/3 **nie wystartowały** (guard REFUSED). **F-148 OPEN** do N=3 i pełnej oceny semantycznej; nie twierdzić 3/3.

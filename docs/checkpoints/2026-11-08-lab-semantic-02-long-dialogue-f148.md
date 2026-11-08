@@ -32,3 +32,7 @@ Rozszerzenie LAB-SEMANTIC-01 (poprzednio **3×7 tur PASS** na prawdziwej Gemma 4
 - `aicalls-semantic2-s22-context4096-repeat-n3-20261108-v1`: **FAILED/71** na preflight przed sesją N=2 (`E2B_4096_REPEAT_2_GUARD=REFUSED`), bez dalszych prób. Nie zaliczać N=3; nie było drugiej ani trzeciej 13-turowej rozmowy.
 
 **Wniosek:** wariant 4096 usuwa obserwowaną awarię w **jednej** pełnej, trudniejszej rozmowie, co wspiera hipotezę niewystarczającego okna przy 2048, lecz nie dowodzi jej ostatecznie. Stabilność N=3, pamięć semantyczna, pomiar zapasu RAM i 8192 tokenów pozostają **OPEN**. Nie przełączać produkcyjnych ścieżek Call na 4096 bez odrębnego odbioru.
+
+## Follow-up — 4096 repeatability and 8192 preflight (same day)
+
+N=3 **technically PASS** with 4096 on physical S22; second and third runs each 13/13 with no JNI; measured peak PSS ~2.35 GB, minimum system MemAvailable ~1.38 GB. Full details in [E2B memory benchmark](2026-11-08-e2b4096-n3-ram-and-8192-instrumentation.md). Opt-in 8192 compiled and passed full Mac QA on `faf6ee5`, **but no S22 run** — PocketHost foreground safety refusal; no install. F-148 stays OPEN for unknown root-cause and semantic review; 4096 mitigation is proven for 13-turn technical scope.
