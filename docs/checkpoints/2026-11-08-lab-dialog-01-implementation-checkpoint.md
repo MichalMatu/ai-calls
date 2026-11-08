@@ -31,3 +31,17 @@ Zrealizowano funkcjonalny pionowy sprint A–E w GitHub Connector + Mac Local Ag
 **LAB-DIALOG-01 SOURCE/STATIC QA/MANUAL NATIVE OFFCALL: PASS** na `e41423e`.
 **Semantyka/adaptacja fizyczna, pełny editor UI i F2 audio: OPEN**, jawnie przekazane do dalszej funkcjonalnej macierzy zamiast udawać kompletny QA wszystkich funkcji.
 Mac checkpoint i dokumenty synchronizować z najnowszym main; dokumentacyjny commit po `e41423e` nie zmienia APK.
+
+## Dodatkowe domknięcie sprintu — adaptive i układ UI (2026-11-08)
+
+**Aktualny HEAD kodu:** `main@992280b5d1fd5d1d7bdded3d0874fe404fb7c788`. Poprzednia akceptacja tekstowej Gemmy i zaszyfrowanej przechowalni pozostaje przypięta do `e41423e`. Nie przenosić jej automatycznie na nowe zmiany UI.
+
+- `f2889a2`: nowy `AndroidLabAdaptiveNativeOfflineTest` łączy prawdziwy lokalny model z testowym przypadkiem, wybiera kolejną wypowiedź po odpowiedzi Gemmy i asercją sprawdza zgodność śladu gałęzi z rzeczywistym znakiem zapytania. Na Macu `aicalls-labdialog01-adaptive-full-mac-20261108-v1` **DONE/0, full host PASS**.
+- `992280b`: przebudowano układ `ConversationSkillLabActivity` na niezależnie przewijany panel ustawień i przewijany transcript, przy widocznym/podpiętym composerze i STOP. `AndroidLabDialogStorageAcceptanceTest` rozszerzono o warunki fizycznej wysokości transkryptu i widoczności composera.
+- `aicalls-labdialog01-layout-final-mac-20261108-v1`: **DONE/0**, aktualny dokładny HEAD `992280b`, `scripts/verify_host.sh` PASS, **365/365 Python**, JVM, lint, APK, AndroidTest APK, audio audit, clean checkout, `host_quality_gate_green=true`.
+- `aicalls-labdialog01-s22-adaptive-native-20261108-v1`: **REFUSED before installation**. Świeży S22 był `IDLE`, lecz `pl.pockethost.companion/.MainActivity` zajmował ekran. Nie przejmowano foreground.
+- `aicalls-labdialog01-s22-adaptive-layout-guarded-20261108-v2`: zadanie **DONE/0 z logicznym BLOCKED_SAFETY_GATE**, model i połączenie `IDLE` potwierdzone, **foreign_foreground=True**. Wskutek bramki testy, instalacja nowego kodu i native adaptive **NIE ZOSTAŁY WYKONANE**.
+
+**Wynik na bieżącym HEAD:** SOURCE/HOST PASS. Dotychczasowe realne manualne 2 tury/STOP/restart i 2/2 szyfrowany storage/UI PASS na poprzednim sprawdzonym kodzie. Nowa adaptacja/układ nie mają jeszcze dowodu urządzeniowego i pozostają **DEVICE_BLOCKED**. Semantyczny sędzia, naturalność, pełny klikalny edytor, A/B N=3 i F2 audio nadal **OPEN**.
+
+**Bezpieczna kontynuacja:** gdy S22 będzie dostępny z Launcherem lub AI Calls na pierwszym planie i bez Call, wykonaj *tylko* nowy scoped `AndroidLabDialogStorageAcceptanceTest` (2 testy) i `AndroidLabAdaptiveNativeOfflineTest` (1 test), pinned HEAD z nową APK/test APK i `adb install -r` bez kasowania danych. Przed i po: model, `mCallState=0`, brak AppOwnedCampaignService, kontrola foreground. Nie uruchamiać prawdziwego połączenia ani nie ingerować w PocketHost. Następnie osobny prywatny przegląd semantyki rozmowy.

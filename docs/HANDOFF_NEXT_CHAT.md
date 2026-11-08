@@ -1,6 +1,15 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
-## LAB-DIALOG-01 — aktualny wynik sprintu 2026-11-08
+## LAB-DIALOG-01 — ostatnia aktualizacja, kod `992280b`
+
+- **Mac SOURCE/HOST PASS:** `aicalls-labdialog01-layout-final-mac-20261108-v1` DONE/0: 365 Python, JVM, lint, obie APK, audio audit, czysty HEAD. Dodatkowo adaptacyjne AndroidTest skompilowane, nowy układ panelu/transkryptu i stały STOP/composer.
+- **S22 manualny tekst i magazyn PASS (na `e41423e`):** realna Gemma 2 tury, STOP, reset 1/1 oraz izolowany szyfrowany store + kontrolki UI 2/2; nie powtarzać bez potrzeby.
+- **S22 adaptive i nowy układ BLOCKED:** oba guarded receipts (`aicalls-labdialog01-s22-adaptive-native-20261108-v1`, `...-adaptive-layout-guarded-20261108-v2`) wykazały `PocketHost` jako obcy foreground przy `IDLE`. Nic nie instalowano ani nie uruchomiono na telefonie w tych próbach. Nowa APK z `992280b` **nie jest odebrana na S22**.
+- **Dalej:** po udostępnieniu foreground tylko scoped `AndroidLabDialogStorageAcceptanceTest` 2/2 + `AndroidLabAdaptiveNativeOfflineTest` 1/1, potem prywatny przegląd korekt/pamięci; semantyka/A-B N=3/audio F2 oraz klikalny UI CRUD pozostają osobnymi OPEN.
+
+[Checkpoint aktualny](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
+
+## Historia — LAB-DIALOG-01, poprzedni odbiór tekstu i magazynu
 
 Baza `main@4eae72c`, bieżący commit funkcjonalny `main@6f77401b79a4b2a27dc94a65b591645539e0298d` (pobierz świeży HEAD). A–D **SOURCE IMPLEMENTED**: manualny ciągły chat w `SkillLabRunner`, edytowalne/wersjonowane testy w szyfrowanym store, reguły adaptacyjne i reporty tur z oceną niezależną od END_CALL oraz porównaniem A/B. Model pobierany z wybranego `AudioEngineProfile`, aktywna wersja Skills z presetu, rola i cel z testu. Czterech usuniętych historii nie przywracać.
 

@@ -1,5 +1,7 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+**LAB-DIALOG-01 (2026-11-08):** kod `main@992280b` + pełna bramka Mac **PASS** (365 Python, JVM, lint, Android/APK, audio). S22 na poprzedniej sprawdzonej wersji **manual native 1/1 + isolated store/UI 2/2 PASS**. Nowy fizyczny adaptive oraz poprawiony scroll i composer **BLOCKED przez PocketHost foreground**, bez ingerowania w urządzenie. Pozostają otwarte semantyczna ocena rzeczywistego transkryptu, pełne klikanie edytora, A/B N=3 i F2 audio. [Dokładny checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
+
 **2026-11-08 | Stan:** UX-11 CLOSED; pierwsze fizyczne testy funkcjonalne offline PASS. Bieżące zadanie: [weryfikacja ekran po ekranie](FUNCTIONAL_ACCEPTANCE_MATRIX.md), **bez ponownego sprintu kosmetycznego**. [Checkpoint](checkpoints/2026-11-08-pre-functional-full-checkpoint.md).
 
 > Po UX-11 dodano ograniczony tail UX-12 (Historia + parser screenshotów). Targeted Python QA 14/14 i pełny Mac gate 365/365 PASS; dawny fizyczny zestaw JPEG 17/17 zweryfikowany nowym parserem; nowy wizualny S22 NOT_RUN z powodu zajętego foreground. Funkcjonalne statusy pozostają według macierzy.

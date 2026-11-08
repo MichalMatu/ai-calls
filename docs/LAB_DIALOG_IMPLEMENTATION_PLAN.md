@@ -1,5 +1,7 @@
 # LAB-DIALOG-01 — plan wykonawczy: prawdziwe dialogi testowe
 
+**Aktualizacja 2026-11-08:** kod `main@992280b`: manual + editor + rubric + reguły adaptive + A/B, dodatkowo test prawdziwej adaptacji Gemmy i UI z osobnym scrollem, widocznym composerem i STOP. Pełny Mac gate na tym kodzie PASS. Na S22 3/3 funkcjonalnych wcześniejszych przypadków PASS; *nowy* native adaptive/layout BLOCKED przez cudzy foreground PocketHost, bez instalacji. Semantyka, pełny klikalny UI, fizyczne A/B i audio F2 nadal OPEN. [Checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
+
 **Zatwierdzenie właściciela:** 2026-11-08. **Status:** A–D zaimplementowane i przetestowane źródłowo; E: fizyczny manualny tekst, STOP/restart i izolowany storage/UI PASS 3/3 na S22. Semantyka, fizyczny adaptive i nowa ścieżka audio pozostają OPEN. **Baza:** `main@d1bcf2a8d2ec3cf234cc1b355aef8a036ff604de`. Usunięte cztery stare sztywne historie pozostają usunięte. Ostatnia pełna bramka Mac `aicalls-lab-four-stories-removal-regression-20261108-v2`: DONE/0, 365/365 Python, Android+JVM build, audio audit, clean checkout. Nie przekładać dowodów starego Lab na nową funkcję.
 
 ## Zasada
