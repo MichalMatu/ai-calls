@@ -6,7 +6,7 @@ Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowan
 
 **Baseline kodu:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (UX-11 CLOSED; kolejne commity porządkują wyłącznie dokumentację; przy wznowieniu sprawdzić świeży HEAD).
 
-- **UX-12 (tail):** historia szczegółów z kontekstem, nowe prywatne i deterministyczne zbieranie screenshotów; targeted QA 14/14 PASS, pełny Mac gate oraz świeże screenshoty S22 są oddzielnymi bramkami. [Checkpoint](docs/checkpoints/2026-11-08-ux12-final-source-closeout.md).
+- **UX-12 (tail):** historia szczegółów z kontekstem, nowe prywatne i deterministyczne zbieranie screenshotów; targeted QA 14/14 PASS; pełny host gate 365/365 PASS, archiwalne zdjęcia S22 17/17 walidacji PASS; świeże screenshoty kodu UX12 nadal NOT_RUN. [Checkpoint](docs/checkpoints/2026-11-08-ux12-final-source-closeout.md).
 - **UX:** sześć zakładek Start / Historia / Agent AI / Laboratorium / Modele / Ustawienia; UX-11 zakończony i zamrożony poza błędami funkcjonalnymi P0/P1. Czat icon-only tylko podczas aktywnego feedu; Sejf standardowy + własne pola, czytelny Lab.
 - **Mac:** ostatni pełny gate na kodzie `949a854`: **356/356 testów Python, Gradle/JVM/AndroidTest/APK/friction PASS**. Zmiana test-only `3029034`: AndroidTest compile PASS.
 - **S22:** **28/28 UI** + **2/2 syntetyczny aktywny chat PASS**, **18 prywatnych screenshotów**; instalacja bez kasowania danych i potwierdzone IDLE przed/po.

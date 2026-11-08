@@ -9,11 +9,14 @@
 
 ## Receipts i status
 - **Mac źródło:** `aicalls-ux12-source-preflight-20261108-v1` — czysty `main@28795a6`, `origin/main` zgodny.
-- **Mac targeted:** `aicalls-ux12-targeted-build-20261108-v1`: **7/7 + 2/2 + 5/5 Python PASS**, `ANTI_FRICTION=PASS`. Po synchro kodu czysty checkout `47bdba6`; pierwsza bezpośrednia Gradle kompilacja nie miała ustawionego SDK (błąd środowiska). **Pełny host gate:** `aicalls-ux12-full-host-gate-20261108-v1` — **PENDING do odczytu końcowego wyniku**, nie PASS.
+- **Mac targeted:** `aicalls-ux12-targeted-build-20261108-v1`: **7/7 + 2/2 + 5/5 Python PASS**, `ANTI_FRICTION=PASS`. Po synchro kodu czysty checkout `47bdba6`; pierwsza bezpośrednia Gradle kompilacja nie miała ustawionego SDK (błąd środowiska). **Pełny host gate:** `aicalls-ux12-full-host-gate-20261108-v1` **DONE/0 / PASS**: **365/365 Python**, wszystkie JVM/AndroidTest compile/APK, lint, audit audio, `host_quality_gate_green=true`.
+- **Walidacja prawdziwych zdjęć:** `aicalls-ux12-archived-capture-metadata-20261108-v1` — dawny ZIP zawiera 18 JPEG (17 ekranów + synthetic chat). `aicalls-ux12-validate-prior-real-s22-jpegs-20261108-v1` DONE/0: **17/17 dawnych obrazów S22** zaakceptowanych przez nowy parser, nowy prywatny ZIP `~/Library/Application Support/AI-Calls/UI-audit/2026-11-08-ux12/AI-Calls-UX12-validated-prior-S22-captures-private.zip`. To sprawdza parser na realnych obrazach, nie najnowszy UI.
 - **Samsung S22:** `aicalls-ux12-s22-gate-readonly-20261108-v1` DONE/0: ADB `RFCT70L7E8J`, telefon `mCallState=0`; aktywny `pl.pockethost.companion/.MainActivity`. Nie uruchamiano instrumentacji i nie instalowano nowej APK, aby nie zakłócić PocketHost. UX12 fizycznie **NOT_RUN**, wcześniejsze 28/28+2/2 synthetic zachowane jako historia dla starego kodu.
 - **Zewnętrzne skutki:** żadnego Call, operacji na sejfie, modeli/transferów, dzwonienia lub modyfikacji danych właściciela. F-080/F-122/F-123/F-124 nadal OPEN.
-- **Zobowiązanie QA:** po udostępnieniu S22 przeprowadzić kontrolę F-131 w PL/EN, `AndroidUx09VisualSemanticsTest` i świeże 17 ekranów w izolowanym katalogu; prywatne screenshoty nie opuszczają Mac/telefonu.
+- **QA po zamknięciu sprintu:** po udostępnieniu S22 przeprowadzić kontrolę F-131 w PL/EN, `AndroidUx09VisualSemanticsTest` i świeże 17 ekranów w izolowanym katalogu; prywatne screenshoty nie opuszczają Mac/telefonu.
 
 ## Następny sprint: odbiór funkcjonalny
+
+**Stan końcowy:** źródło i pełny host QA PASS; parser VERIFIED na dawnych realnych zdjęciach, fizyczna kontrola UX12 oraz ręczne F-131 PL/EN OPEN (ekran zajęty). Sprint kodu UX zamknięty bez ogłaszania nieprzeprowadzonych fizycznych testów.
 
 Wznowić `docs/FUNCTIONAL_ACCEPTANCE_MATRIX.md`. `NAV-01 PARTIAL` pozostaje bez zmiany, dalej NAV-02 i Start/Kampanie bez prawdziwych połączeń, Historia, Agent AI/Sejf, Lab, Modele, Ustawienia. Statusy tylko z rzeczywistym dowodem; Call tylko w konkretnym autoryzowanym zakresie.
