@@ -76,7 +76,10 @@ class Sprint5UxContract(unittest.TestCase):
         self.assertIn('tag = "lab-scope-picker"', lab)
         runner = self.source("conversation/SkillLabRunner.kt")
         factory = self.source("conversation/AndroidSkillLabSessionFactory.kt")
-        self.assertIn("val total = if (quick) 2 else SkillLabCorpus.stories.sumOf", runner)
+        self.assertIn("val selected = if (quick) corpus.take(1) else corpus", runner)
+        self.assertIn("if (total == 0 || selected.any { it.turns.isEmpty() }) return false", runner)
+        self.assertIn("corpus: List<SkillLabStory> = SkillLabCorpus.stories", runner)
+        self.assertIn("R.string.lab_ui_cases_removed", lab)
         self.assertIn("story.turns.take(2)", runner)
         self.assertIn("ConversationReplyProtocol.decode(raw)", runner)
         self.assertIn("ConversationResponseFormat.TOOL_REPLY", factory)
@@ -89,6 +92,7 @@ class Sprint5UxContract(unittest.TestCase):
                       "lab-real-stopped", 'real_lab_two_turns_not_completed'):
             self.assertIn(token, t)
         self.assertNotIn("startForegroundService(", t)
+        self.assertIn("@Ignore(", t)  # old 2-turn scenario is intentionally retired
         synthetic = (ANDROID_TEST / "AndroidSkillLabLivePreviewTest.kt").read_text()
         self.assertIn("lab-timeout-synthetic.jpg", synthetic)
 

@@ -20,7 +20,8 @@ class Sprint4UxContract(unittest.TestCase):
             "userReadingOlderTurns",
             'tag = "lab-rating-group"', "followCardIfEnabled",
             "progress.progress = completed", "record.reply.trim()",
-            "runButton.visibility = if (next.canStart)", "UiDesign.card(this, 12)"
+            "runButton.isEnabled = next.canStart",
+            "next.phase == SkillLabPhase.READY && next.totalTurns == 0", "UiDesign.card(this, 12)"
         ):
             self.assertIn(token, lab)
         runner = self.read("conversation/SkillLabRunner.kt")
