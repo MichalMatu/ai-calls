@@ -65,7 +65,7 @@ class AndroidUx10OverlayVaultLabTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 val empty = requireNotNull(root.findViewWithTag<android.widget.TextView>("lab-empty-transcript"))
-                assertEquals(activity.getString(R.string.lab_ui_cases_removed), empty.text.toString())
+                assertEquals(activity.getString(R.string.lab_manual_empty), empty.text.toString())
                 assertEquals(View.VISIBLE, empty.visibility)
                 assertNotNull(root.findViewWithTag<View>("lab-conversation-card"))
                 assertNotNull(root.findViewWithTag<View>("lab-start"))
@@ -77,8 +77,10 @@ class AndroidUx10OverlayVaultLabTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("lab-preset-picker"))
-                assertFalse(requireNotNull(root.findViewWithTag<android.widget.Button>(
+                assertTrue(requireNotNull(root.findViewWithTag<android.widget.Button>(
                     "lab-start")).isEnabled)
+                assertNotNull(root.findViewWithTag<View>("lab-manual-composer"))
+                assertNotNull(root.findViewWithTag<View>("lab-adaptive-start"))
                 assertNotNull(root.findViewWithTag<View>("lab-conversation-card"))
                 assertNotNull(root.findViewWithTag<View>("lab-turn-timeline"))
                 assertNull(root.findViewWithTag<View>("lab-follow"))

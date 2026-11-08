@@ -54,8 +54,8 @@ class AndroidSkillLabLivePreviewTest {
                 assertFalse(reply.text.contains("TOOL_REPLY"))
                 assertTrue(requireNotNull(activity.window.decorView.findViewWithTag<TextView>(
                     "lab-decision:0:1")).text.contains("END_CALL"))
-                assertTrue(requireNotNull(activity.window.decorView.findViewWithTag<CheckBox>(
-                    "lab-follow")).isChecked)
+                assertNull(activity.window.decorView.findViewWithTag<CheckBox>(
+                    "lab-follow")) // Auto-follow is implicit unless the owner scrolls up.
                 folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
             }
