@@ -1,34 +1,25 @@
 # AI Calls
 
-Modułowe laboratorium Android do porównywania STT, modeli językowych, strategii dialogu, instrukcji i TTS. Docelowo wspólne, zweryfikowane komponenty obsłużą sekretarkę i konkretnie autoryzowane zadania telefoniczne.
+Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowanych scenariuszy telefonicznych. Obecnie służy do weryfikowania komponentów i ich integracji; nie jest jeszcze dowiedzionym, kompletnym wykonawcą dowolnych zadań ani zamkniętym archiwum audio.
 
-## Stan bieżący — UX-11 CLOSED, odbiór funkcjonalny offline PASS (2026-11-08)
+## Aktualny stan — 2026-11-08
 
-- **Kod `main@3029034`:** UX-11 zakończony: prosty przebieg Lab, kompaktowy Sejf z polami własnymi, sam pływający dymek czatu podczas aktywnej rozmowy; 6 zakładek i STOP zachowane.
-- **Mac:** 356/356 testów Python i pełny host quality gate **PASS**; AndroidTest aktualnej wersji również kompiluje się poprawnie.
-- **Samsung S22:** 28/28 UI plus 2/2 testy aktywnego syntetycznego czatu **PASS**; 18/18 prywatnych screenshotów (w tym aktywny panel). Bez utraty danych podczas instalacji.
-- **Funkcjonalne offline:** rzeczywiste 2 tury lokalnego modelu i STOP **PASS**; polski TTS → Parakeet STT na testowej frazie **PASS**. **Rzeczywiste CALL/RX/TX i wynik zewnętrzny NOT_RUN.**
-- **Otwarte:** F-080 (pełny recorder/player), F-122/123/124 (aktywny recorder, korelacja Call, archiwum) oraz fizyczna integracja; dane custom sejfu nie są automatycznie ujawniane AI. [Handoff](docs/HANDOFF_NEXT_CHAT.md), [UX11](docs/checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md), [funkcjonalne receipts](docs/checkpoints/2026-11-08-functional-real-offline-acceptance.md).
+**Baseline kodu:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (UX-11 CLOSED; kolejne commity porządkują wyłącznie dokumentację; przy wznowieniu sprawdzić świeży HEAD).
 
-## Historia — Sprint 6 i UX-01–05 (potwierdzone wcześniej)
+- **UX:** sześć zakładek Start / Historia / Agent AI / Laboratorium / Modele / Ustawienia; UX-11 zakończony i zamrożony poza błędami funkcjonalnymi P0/P1. Czat icon-only tylko podczas aktywnego feedu; Sejf standardowy + własne pola, czytelny Lab.
+- **Mac:** ostatni pełny gate na kodzie `949a854`: **356/356 testów Python, Gradle/JVM/AndroidTest/APK/friction PASS**. Zmiana test-only `3029034`: AndroidTest compile PASS.
+- **S22:** **28/28 UI** + **2/2 syntetyczny aktywny chat PASS**, **18 prywatnych screenshotów**; instalacja bez kasowania danych i potwierdzone IDLE przed/po.
+- **Funkcje offline:** prawdziwy lokalny model zakończył **2 tury i STOP (PASS)**; polski TTS → PCM → Parakeet STT **PASS** na testowym tekście.
+- **Nieudowodnione:** rzeczywisty Call/RX/TX, wynik zewnętrzny zadania, pełne audio/manual takeover, kompletna ścieżka CRUD i ujawniania danych sejfu. F-080, F-122, F-123, F-124 pozostają OPEN.
 
-- **`main@1b359146` — UX ITERATION CLOSED.** 325 testów hosta, Kotlin/JVM/AndroidTest/APK/friction **PASS**. Wdrożono bezpieczne kasowanie wszystkich zakończonych rozmów, WAV tap-to-play/stop z dymków, poprawione przewijanie i STOP w Laboratorium, czytelne Skills/Silniki/Kampanie.
-- **Fizyczny S22 PASS:** instalacja aplikacji/test APK bez utraty danych, **28/28 native UI + 24/24 visual**, po poprawce Android regex dodatkowo **4/4 targeted**, **2 rzeczywiste tury lokalnej Gemmy + STOP PASS**, 46 prywatnych screenshotów. Bez prawdziwych połączeń, END_CALL i usuwania danych właściciela.
-- **Nowy SOURCE_PASS `main@7df2c33`:** UX-01/02/03/04 wydzieliły prezentery Kampanii, kontroler Historii, runner Laboratorium i odczytowe presentery modeli/audio. Ostatni UX-04: **13 JVM, 332 Python, friction, AndroidTest/APK PASS** na Macu; **nowy APK nieinstalowany na S22**. [Checkpoint UX-04](docs/checkpoints/2026-11-07-ux04-model-and-audio-presentation-closeout.md).
-- **UX-05 / F-103 VERIFIED:** PL/EN 553 wspólne klucze, 337 host Python + 10 focused i AndroidTest/APK PASS, **fizyczny S22 2/2 native oraz 4/4 prywatne screenshoty PL/EN PASS**, zachowane dane i przywrócone `pl`. [Checkpoint UX-05](docs/checkpoints/2026-11-07-ux05-pl-en-accessibility-closeout.md). Manualnego TalkBack nie przeprowadzano.
-- **Niezależne otwarte:** F-080 (pełny ciągły recorder/player), osobne autoryzowane real-call i ocena semantyki; nie wznawiać zamkniętych iteracji UX.
+## Co dalej
 
-[Końcowy checkpoint Sprint 6](docs/checkpoints/2026-11-07-ux-sprint6-final-handoff.md) · [Bieżący handoff](docs/HANDOFF_NEXT_CHAT.md).
+**Nowy etap to testy funkcjonalne ekran po ekranie i funkcja po funkcji — nie kolejny sprint kosmetyczny.** Zanim cokolwiek oznaczysz PASS, sprawdź działanie, efekt/stan, STOP, restart i prywatność w faktycznym dopuszczonym zakresie. Aktywna macierz to [FUNCTIONAL_ACCEPTANCE_MATRIX](docs/FUNCTIONAL_ACCEPTANCE_MATRIX.md).
 
-## Architektura
+[Kompletny checkpoint](docs/checkpoints/2026-11-08-pre-functional-full-checkpoint.md) · [Bieżący handoff](docs/HANDOFF_NEXT_CHAT.md) · [Prompt do nowego czatu](docs/NEXT_CHAT_PROMPT.md) · [Roadmapa](docs/ROADMAP.md) · [Rejestr blokad](BLOCKERS.md)
 
-- Sześć modułów Gradle: `app`, `conversation-core`, `conversation-tools`, `audio-bridge`, `realtime-client`, `privileged-helper`. Istniejące czyste komponenty `IncomingIdleTimeout` i `ConversationSessionRegistry` są w JVM `conversation-core`.
-- Jeden `AndroidConversationRuntime` obsługuje INCOMING/OUTGOING. Silniki STT/model/TTS i scenariusze są wymienne; snapshot konfiguracji nie zmienia się podczas rozmowy.
-- Uprawnienia, konkretne zgody, własny Android Call, STOP, ujawnianie faktów i skutki kontroluje aplikacja, nie model. Tor Samsung/Shizuku PCM/PFD pozostaje oddzielną chronioną granicą.
-- **UX-01–04 zaliczone źródłowo; UX-05 lokalizacja i automatyczna dostępność zweryfikowane na S22**, bez refaktoru Telecom. Dalsze zakresy F-122/F-123/F-124/F-080 są niezależne i OPEN. [Plan modularizacji](docs/SAFE_MODULARIZATION_PLAN.md).
+## Architektura i tryb pracy
 
-## Wejście do pracy
+Moduły: `app`, `conversation-core`, `conversation-tools`, `audio-bridge`, `realtime-client`, `privileged-helper`. Jeden `AndroidConversationRuntime` współdzieli porty STT/model/TTS między INCOMING i OUTGOING, przy zachowaniu rzeczywistej kontroli własnego Android Call, STOP, zgód oraz zasad udostępniania danych.
 
-[Aktualny handoff](docs/HANDOFF_NEXT_CHAT.md) · [Nowy czat](docs/NEXT_CHAT_PROMPT.md) · [Roadmapa](docs/ROADMAP.md) · [Architektura](docs/ARCHITECTURE.md) · [Indeks dokumentacji](docs/README.md) · [Rejestr BLOCKERS](BLOCKERS.md) · [AGENTS](AGENTS.md).
-
-Testowanie: `bash scripts/verify_host.sh`, `python3 scripts/aicall_tools/diagnostics/audit_product_friction.py`; przy zmianach Androida odpowiednie testy instrumentacyjne z realnym **IDLE** na S22. Tryb: GitHub Connector + Mac Local Agent, `main`, commity `[skip ci]`; bez Codex, Work, GitHub Actions, wymuszonego push ani publikacji prywatnych plików.
+Pracować **GitHub Connector + Mac Local Agent**; dla izolowanych testów używać sandboxu. Bez Codex, ChatGPT Work, GitHub Actions (również odczytu statusów), tworzenia zbędnych gałęzi i force-push. Commity `[skip ci]`. Prywatne zdjęcia, WAV, numery i transkrypty zostają na urządzeniu/Macu. Źródła normatywne: [AGENTS](AGENTS.md), [Security](docs/SECURITY_PRIVACY.md), [Laboratorium](docs/TEST_LAB_SCOPE.md).

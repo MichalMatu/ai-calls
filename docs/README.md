@@ -1,25 +1,29 @@
-# AI Calls — indeks aktualnej dokumentacji
+# AI Calls — indeks bieżącej dokumentacji
 
-**Stan 2026-11-07:** najnowszy source `bbb2ceb9` naprawia zbędne rewizje scenariuszy, a [checkpoint general audit](checkpoints/2026-11-07-general-repository-audit-sprint.md) rozdziela RED, izolowany GREEN i oczekiwane receipts Mac. Ostatni pełny potwierdzony odbiór UX-06: `25a41a0`, Mac 341 Python/JVM/lint/APK PASS i S22 10/10 **syntetyczne UI** PASS. Nowy kod **nie ma** z tego automatycznie fizycznego PASS. UX-01–05 i Sprint 6 to wcześniejsze zamknięte zakresy.
+**Źródło prawdy:** GitHub `main` i rzeczywiste receipts Mac/S22. Historyczne commity i checkpointy są dowodami z określonego HEAD, nie alternatywnymi aktywnymi poleceniami.
 
-**Rozpocznij od:** [README](../README.md) · [AGENTS](../AGENTS.md) · [aktualny HANDOFF](HANDOFF_NEXT_CHAT.md) · [NEXT_CHAT_PROMPT](NEXT_CHAT_PROMPT.md) · [ROADMAP](ROADMAP.md) · [checkpoint audytu](checkpoints/2026-11-07-general-repository-audit-sprint.md) · [UX-06 źródła i S22](checkpoints/2026-11-07-ux06-source-s22-synthetic-acceptance.md) · [UX-06 handoff](checkpoints/2026-11-07-ux06-complete-checkpoint-user-directed-next-chat.md).
+## Zacznij tutaj
+1. [README](../README.md) — bieżący zakres produktu i udowodniony stan.
+2. [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) — krótki stan do przejęcia, granice, dowody.
+3. [FUNCTIONAL_ACCEPTANCE_MATRIX](FUNCTIONAL_ACCEPTANCE_MATRIX.md) — ekrany, funkcje, statusy, kolejność weryfikacji.
+4. [NEXT_CHAT_PROMPT](NEXT_CHAT_PROMPT.md) — gotowe polecenie do nowego czatu.
+5. [Kompletny checkpoint 2026-11-08](checkpoints/2026-11-08-pre-functional-full-checkpoint.md) — receipts, zamknięcia, brakujące bramki.
 
-## Gdzie szukać
-
-| Temat | Dokument źródłowy |
+## Dokumenty utrzymywane na bieżąco
+| Rola | Plik |
 |---|---|
-| Priorytety, co zrobić teraz i co już zamknięte | [ROADMAP](ROADMAP.md) |
-| Separacja widoków, modelu stanu i efektów | [SAFE_MODULARIZATION_PLAN](SAFE_MODULARIZATION_PLAN.md) |
-| Mapa modułów i warunki bezpieczeństwa | [ARCHITECTURE](ARCHITECTURE.md) · [CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) |
-| Aktualne ekrany, bulk delete i audio z dymków | [SETTINGS_UX](SETTINGS_UX.md) |
-| Presety Gemmy i znaczenie wyników Laboratorium | [SKILLS_AND_LAB](SKILLS_AND_LAB.md) |
-| Wymagania produktu i zakres testów | [PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) · [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md) |
-| Błędy i realne blokady | [BLOCKERS](../BLOCKERS.md) — jedyny rejestr |
-| Zasady pracy, autoryzacja i prywatność | [AGENTS](../AGENTS.md) · [SECURITY_PRIVACY](SECURITY_PRIVACY.md) · [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md) |
-| Mac/Samsung, USB i testy fizyczne | [USB_DEBUG_BRIDGE](USB_DEBUG_BRIDGE.md) · [LOCAL_AGENT_HOST_FLOW](LOCAL_AGENT_HOST_FLOW_2026-11-01.md) |
+| Priorytety i bramki testowe | [ROADMAP](ROADMAP.md) |
+| Architektura modułów i odpowiedzialności | [ARCHITECTURE](ARCHITECTURE.md) · [CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) |
+| Wymagania docelowe | [PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) · [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md) |
+| Settings / Skills / Lab | [SETTINGS_UX](SETTINGS_UX.md) · [SKILLS_AND_LAB](SKILLS_AND_LAB.md) |
+| Operacje na Mac/S22 i USB | [USB_DEBUG_BRIDGE](USB_DEBUG_BRIDGE.md) · [LOCAL_AGENT_HOST_FLOW](LOCAL_AGENT_HOST_FLOW_2026-11-01.md) |
+| Granice danych, Call, autoryzacja | [SECURITY_PRIVACY](SECURITY_PRIVACY.md) · [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md) |
+| Sposób współpracy i przekazywania | [AGENTS](../AGENTS.md) · [HANDOFF_PROTOCOL](HANDOFF_PROTOCOL.md) |
+| Jedyny rejestr otwartych/naprawionych problemów | [BLOCKERS](../BLOCKERS.md) |
 
-## Historia, nie aktywne polecenia
+## Historia — bez szumu w aktywnym planie
+- [UX-11](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md) i [pierwsze testy offline](checkpoints/2026-11-08-functional-real-offline-acceptance.md): dokładne potwierdzenia.
+- [UX-10](checkpoints/2026-11-08-ux10-floating-vault-lab.md), [Sprint 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) i [general audit](checkpoints/2026-11-07-general-repository-audit-sprint.md): poprzednie zakresy.
+- Pozostałe wcześniejsze checkpointy i starsze prompty z datami są **archiwalną historią**, nie poleceniem kontynuacji. Szczegóły są w plikach i historii Git; bieżący handoff ich nie dubluje.
 
-Starsze pliki w [`checkpoints/`](checkpoints/) są dowodami konkretnego HEAD / daty, a nie zbiorem równoległych planów. Przykłady: [zamknięcie modularizacji](checkpoints/2026-11-06-modularization-handoff-final.md), [mod Stage3](checkpoints/2026-11-06-mod-stage3-session-registry-core.md), [S22 Skills 12 tur](checkpoints/2026-11-06-gemma-skills-three-presets-s22-offcall.md). Powtórzenia usunięte z aktywnego handoffu/roadmapy pozostają w historii Git; nie kasować historycznych RED ani checkpointów.
-
-Prywatne JPG, WAV, numery i transkrypty przechowuje wyłącznie urządzenie/Mac właściciela; **nie** są częścią repozytorium.
+Prywatnych screenshotów, nagrań ani transkryptów nie przenosić do GitHub.
