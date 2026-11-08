@@ -17,7 +17,7 @@ internal interface DialogueEngineProvider {
     fun createConversationReply(context: Context, systemInstruction: String, tools: Set<ConversationToolId>): TextCallAgentBackend
     /** Lab-only larger native context; normal call paths keep their existing budget. */
     fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
-        tools: Set<ConversationToolId>): TextCallAgentBackend =
+        tools: Set<ConversationToolId>, contextTokenBudget: Int = 4_096): TextCallAgentBackend =
         createConversationReply(context, systemInstruction, tools)
     fun createActionClassifier(
         context: Context,
@@ -32,9 +32,9 @@ internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId) : 
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id, tools)
 
     override fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
-        tools: Set<ConversationToolId>): TextCallAgentBackend =
+        tools: Set<ConversationToolId>, contextTokenBudget: Int): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id,
-            tools, contextTokenBudget = 4_096)
+            tools, contextTokenBudget = contextTokenBudget)
 
     override fun createDirect(context: Context, systemInstruction: String): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createDirectDialogue(context, systemInstruction, id)

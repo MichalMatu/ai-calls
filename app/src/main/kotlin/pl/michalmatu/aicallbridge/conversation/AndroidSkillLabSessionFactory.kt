@@ -9,7 +9,9 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 /** Android-only model configuration. The Activity never creates or owns a backend. */
 internal class AndroidSkillLabSessionFactory(
     private val context: Context,
+    private val contextTokenBudget: Int = 4_096,
 ) : SkillLabModelSessionFactory {
+    init { require(contextTokenBudget > 0) { "lab_invalid_context_budget" } }
     @Volatile var selectedCase: LabCaseRevision? = null
     override fun open(presetId: String): SkillLabModelSession {
         val profile = AudioEngineProfileStore(context).load()
@@ -31,7 +33,8 @@ internal class AndroidSkillLabSessionFactory(
             preparation, goal, ConversationResponseFormat.TOOL_REPLY)
         val provider = DialogueEngineProviders.resolve(profile)
         return SkillLabModelSession {
-            provider.createLaboratoryConversationReply(context, instruction, setOf(ConversationToolId.END_CALL))
+            provider.createLaboratoryConversationReply(context, instruction,
+                setOf(ConversationToolId.END_CALL), contextTokenBudget)
         }
     }
 }
