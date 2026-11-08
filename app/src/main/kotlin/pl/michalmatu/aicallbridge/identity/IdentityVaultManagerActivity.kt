@@ -117,13 +117,13 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
                 ellipsize = android.text.TextUtils.TruncateAt.END
             })
         }
-        addView(labels, LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
+        addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         addView(UiDesign.iconButton(this@IdentityVaultManagerActivity,
             android.R.drawable.ic_menu_edit,
             getString(R.string.ux11_vault_edit_field, title)).apply {
             tag = rowTag + ":edit"
             setOnClickListener { onEdit() }
-        }, LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 48),
+        }, LinearLayout.LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 48),
             UiDesign.dp(this@IdentityVaultManagerActivity, 48)))
         if (saved) {
             addView(UiDesign.iconButton(this@IdentityVaultManagerActivity,
@@ -131,7 +131,7 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
                 getString(R.string.ux11_vault_remove_field, title), UiDesign.danger).apply {
                 tag = rowTag + ":remove"
                 setOnClickListener { onRemove() }
-            }, LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 48),
+            }, LinearLayout.LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 48),
                 UiDesign.dp(this@IdentityVaultManagerActivity, 48)))
         }
     }
