@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import java.util.Collections
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -17,7 +18,7 @@ internal fun interface SkillLabModelSessionFactory {
     fun open(presetId: String): SkillLabModelSession
 }
 
-internal enum class SkillLabPhase { READY, STARTING, WAITING, TURN_COMPLETED, COMPLETED, STOPPED, FAILED }
+internal enum class SkillLabPhase { READY, STARTING, INPUT_READY, WAITING, TURN_COMPLETED, COMPLETED, STOPPED, FAILED }
 
 internal data class SkillLabPendingTurn(
     val storyIndex: Int,
@@ -40,6 +41,7 @@ internal data class SkillLabUiState(
     val metrics: SkillLabMetrics? = null,
     val error: String? = null,
     val canStart: Boolean = true,
+    val manual: Boolean = false,
 )
 
 /**
@@ -58,7 +60,8 @@ internal class SkillLabRunner(
 ) : AutoCloseable {
     init { require(timeoutMillis > 0) }
 
-    private class Job {
+    private class Job(val manual: Boolean = false) {
+        val inputs = LinkedBlockingQueue<String>()
         val stopped = AtomicBoolean(false)
         @Volatile var backend: TextCallAgentBackend? = null
         lateinit var thread: Thread
@@ -106,6 +109,107 @@ internal class SkillLabRunner(
             finish(job)
         }
         return true
+    }
+
+
+    /** Starts one native conversation; its backend and chat context survive all manual turns. */
+    fun startManual(presetId: String): Boolean {
+        val job = Job(manual = true)
+        val snapshot: SkillLabUiState
+        val token: Long
+        val version: Long
+        synchronized(mutex) {
+            if (closed || current != null) return false
+            generation++
+            current = job
+            job.thread = Thread({ executeManual(job, presetId) }, "aicalls-lab-manual")
+            snapshot = SkillLabUiState(phase = SkillLabPhase.STARTING, totalTurns = 0,
+                canStart = false, manual = true)
+            state = snapshot
+            token = generation
+            version = ++revision
+        }
+        publish(token, version, snapshot)
+        try {
+            job.thread.start()
+        } catch (error: RuntimeException) {
+            change(job) { it.copy(phase = SkillLabPhase.FAILED,
+                error = error.javaClass.simpleName, pending = null) }
+            finish(job)
+        }
+        return true
+    }
+
+    /** Nonblocking submit; refuse overlapping generations and blank messages. */
+    fun submitManual(text: String): Boolean {
+        if (text.isBlank()) return false
+        val snapshot: SkillLabUiState
+        val token: Long
+        val version: Long
+        val job: Job
+        synchronized(mutex) {
+            job = current ?: return false
+            if (!job.manual || job.stopped.get() ||
+                state.phase != SkillLabPhase.INPUT_READY) return false
+            val pending = SkillLabPendingTurn(0, "Dialog", state.completed.size + 1, text.trim())
+            snapshot = state.copy(phase = SkillLabPhase.WAITING, pending = pending,
+                totalTurns = pending.turnIndex, canStart = false)
+            state = snapshot
+            token = generation
+            version = ++revision
+            job.inputs.offer(text.trim())
+        }
+        publish(token, version, snapshot)
+        return true
+    }
+
+    private fun executeManual(job: Job, presetId: String) {
+        val completed = mutableListOf<SkillLabCompletedTurn>()
+        try {
+            val session = sessions.open(presetId)
+            if (!active(job)) return
+            val backend = session.createStoryBackend()
+            val accepted = synchronized(mutex) {
+                if (!closed && current === job && !job.stopped.get()) {
+                    job.backend = backend
+                    true
+                } else false
+            }
+            try {
+                if (!accepted) return
+                change(job) { it.copy(phase = SkillLabPhase.INPUT_READY) }
+                while (active(job)) {
+                    val utterance = try { job.inputs.take() }
+                        catch (_: InterruptedException) { break }
+                    if (!active(job)) break
+                    val pending = synchronized(mutex) { state.pending } ?: continue
+                    val started = System.nanoTime()
+                    val raw = awaitResponse(job, backend, utterance)
+                    if (!active(job)) break
+                    val reply = ConversationReplyProtocol.decode(raw)
+                    val observation = SkillLabObservation("Dialog", pending.turnIndex,
+                        expectedEnd = false,
+                        actualEnd = reply.tool == ConversationToolId.END_CALL,
+                        reply = reply.text,
+                        elapsedMs = (System.nanoTime() - started) / 1_000_000L)
+                    completed.add(SkillLabCompletedTurn(pending, observation))
+                    val immutable = Collections.unmodifiableList(ArrayList(completed))
+                    change(job) { it.copy(phase = SkillLabPhase.INPUT_READY,
+                        completed = immutable, pending = null,
+                        totalTurns = immutable.size) }
+                }
+            } finally {
+                synchronized(mutex) { if (job.backend === backend) job.backend = null }
+                backend.close()
+            }
+        } catch (error: Exception) {
+            if (active(job)) change(job) {
+                it.copy(phase = SkillLabPhase.FAILED, pending = null,
+                    error = error.message ?: error.javaClass.simpleName)
+            }
+        } finally {
+            finish(job)
+        }
     }
 
     /** STOP takes effect synchronously; a new model cannot start until old cleanup finishes. */
@@ -264,7 +368,7 @@ internal class SkillLabRunner(
             if (current !== job) return
             job.backend = null
             current = null
-            snapshot = state.copy(canStart = true, pending = null)
+            snapshot = state.copy(canStart = corpus.isNotEmpty(), pending = null)
             state = snapshot
             token = generation
             version = ++revision
