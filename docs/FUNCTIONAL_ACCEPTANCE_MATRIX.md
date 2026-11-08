@@ -1,5 +1,9 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## LAB-SEMANTIC-01 — fizyczna sonda dialogu N=3 (2026-11-08)
+
+**PARTIAL / PASS_DEVICE_FUNCTIONAL w wąskiej próbie:** `GEMMA_4_E2B` na realnym S22, **3 niezależne sesje, 21 tur**. Pamięć losowego kodu po zmianie tematu, korekta koloru, powrót do nowych faktów i zasygnalizowanie braku nieznanego numeru **3/3 PASS**; szczegóły i przedziały `docs/checkpoints/2026-11-08-lab-semantic-01-gemma-e2b-three-sessions.md`. Brak real Call, stopień ukończenia naturalności/halucynacji z innymi danymi **OPEN**; pełny ekranowy CRUD i ręczna ocena rubric **NOT_RUN**. Prywatne transkrypty wyłącznie na S22.
+
 **Wersja bazowa:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (stan po UX-11, przed porządkowym commitem dokumentacji), 2026-11-08. **Cel:** rzeczywisty odbiór każdej funkcji widocznej w aplikacji na Samsung S22, nie ponowny przegląd estetyki. Źródło nawigacji: `AppNavigation.AppTab` — sześć zakładek: Start, Historia, Agent AI, Laboratorium, Modele, Ustawienia. Ekrany potomne wskazano poniżej.
 
 ## Protokół jednego przypadku

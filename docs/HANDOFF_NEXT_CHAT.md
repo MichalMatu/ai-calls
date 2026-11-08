@@ -1,5 +1,11 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## LAB-SEMANTIC-01 — 2026-11-08, rzeczywista Gemma 4 E2B, N=3
+
+Na S22 `SM-S906B` przez ADB/AndroidTest przeprowadzono **trzy niezależne siedmioturowe rozmowy z lokalną `GEMMA_4_E2B`**. Wszystkie 21 tur zakończone, pamięć kodu po zmianie tematu, sprostowanie koloru, końcowa pamięć oraz przyznanie braku nieznanego numeru **PASS 3/3 w kontrolowanej próbie**; średnia odpowiedź ~4,04 s, 0 END_CALL, telefon IDLE. Source test `main@4a3c49b`, full Mac gate PASS; `aicalls-semantic-native-s22-seven-turn-20261108-v1` i `aicalls-semantic-native-s22-repeats-20261108-v2` DONE/0. Każda sesja zapisała prywatny transkrypt wyłącznie w Android `noBackupFilesDir`. Pełna semantyczna ocena człowieka i dowód ogólnego braku halucynacji nadal OPEN. Próba powtórki v1 była bezpiecznie zablokowana przez Launcher, v2 dopuszczała zweryfikowany Launcher i przeszła 2/2.
+
+[Receipts, kryteria i granice dowodu](checkpoints/2026-11-08-lab-semantic-01-gemma-e2b-three-sessions.md).
+
 ## LAB-DIALOG-01 — najnowszy odbiór S22, 2026-11-08
 
 **Funkcjonalny kod `992280b`, S22 ACCEPTED:** `aicalls-labdialog01-s22-preflight-20261108-1558-v1` DONE/0 (AI Calls i fokus foreground, Call IDLE, clean Mac); `aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1` **DONE/0**: aktualne APK i AndroidTest zainstalowane bez wipe, **2/2 isolated storage + pinned composer/scroll UI PASS**, **1/1 native Gemma adaptive answer-driven PASS**, na końcu Call `IDLE`, Mac clean. Wcześniejszy osobny native manual 2-turn/STOP/reset 1/1 też PASS. Pełny Mac source quality gate kodu `aicalls-labdialog01-layout-final-mac-20261108-v1` DONE/0 (365 Python/JVM/lint/APK/audio).
