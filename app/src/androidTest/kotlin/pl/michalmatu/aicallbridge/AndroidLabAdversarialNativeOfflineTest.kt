@@ -81,7 +81,7 @@ class AndroidLabAdversarialNativeOfflineTest {
         )
 
         // Explicit instrumentation override only. Ordinary Laboratory remains 4096.
-        val rawBudget = instrumentation.arguments.getString("lab_context_tokens")
+        val rawBudget = InstrumentationRegistry.getArguments().getString("lab_context_tokens")
         val budget = if (rawBudget == null) 4_096 else
             requireNotNull(rawBudget.toIntOrNull()) { "lab_context_budget_invalid" }
         require(budget > 0) { "lab_context_budget_invalid" }
