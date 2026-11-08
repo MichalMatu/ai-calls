@@ -1,5 +1,15 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## USB/ADB Laboratorium i telefonia — wynik bieżący (2026-11-08)
+
+**PARTIAL: SOURCE_AND_HOST_PASS / DEVICE_NOT_RUN.** Nowy `DUMP` receiver i Mac CLI są zaimplementowane; `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` DONE/0: 370 testów Python, Kotlin/JVM, lint, APK/AndroidTest build, audio. **Nowej APK nie instalowano na S22**, nie potwierdzono statusu/konfiguracji/START/SEND/STOP ani dodatniej interwencji w Call przez nową ścieżkę. [Checkpoint](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
+
+## LAB-SEMANTIC-02 — bieżący odbiór długiej sesji Gemma E2B (2026-11-08)
+
+**PARTIAL / PASS_DEVICE_TECHNICAL:** E2B 4096 na realnym S22 **3×13 = 39/39 tur bez JNI**; heurystyki 11/13, 13/13, 11/13 i **human semantic UNASSESSED**. Dwa testy 2048 zawiodły w turze 10 (`LiteRtLmJniException`, F-148 OPEN). Wariant 8192 ma Mac build PASS, ale na S22 NOT_RUN. [Dokładne PSS/latencja](checkpoints/2026-11-08-e2b4096-n3-ram-and-8192-instrumentation.md).
+
+## Historia LAB-SEMANTIC-02 — stan przed poprawą do 4096
+
 ## LAB-SEMANTIC-02 — dłuższy test rzeczywistego dialogu (2026-11-08)
 
 **PARTIAL / BLOCKED_MODEL_NATIVE:** S22, 13-turn próba, 9/13 tur z odpowiedziami, 10. `FAILED` przez `LiteRtLmJniException`. Mac gate źródła testu PASS; źródłowy częściowy zapis dowodów `68e848d` ma QA_PENDING. N=2/3 i ręczny review `NOT_RUN/UNASSESSED`. **F-148 OPEN**, a LAB-SEMANTIC-01 N=3×7 PASS nie jest dowodem stabilności dłuższych kontekstów. [Checkpoint](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).
