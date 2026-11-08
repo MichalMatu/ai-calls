@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.content.Context
+import java.util.concurrent.atomic.AtomicBoolean
+import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
@@ -13,6 +15,9 @@ internal class AndroidSkillLabSessionFactory(
 ) : SkillLabModelSessionFactory {
     init { require(contextTokenBudget > 0) { "lab_invalid_context_budget" } }
     @Volatile var selectedCase: LabCaseRevision? = null
+    companion object {
+        private val activeLabBackend = AtomicBoolean(false)
+    }
     override fun open(presetId: String): SkillLabModelSession {
         val profile = AudioEngineProfileStore(context).load()
             ?: error(context.getString(R.string.lab_ui_missing_profile))
@@ -33,8 +38,31 @@ internal class AndroidSkillLabSessionFactory(
             preparation, goal, ConversationResponseFormat.TOOL_REPLY)
         val provider = DialogueEngineProviders.resolve(profile)
         return SkillLabModelSession {
-            provider.createLaboratoryConversationReply(context, instruction,
-                setOf(ConversationToolId.END_CALL), contextTokenBudget)
+            // S22 may spend >2 GiB PSS on one native Gemma context. The USB
+            // console and on-screen Lab share a process: never start two.
+            check(activeLabBackend.compareAndSet(false, true)) {
+                "another_lab_model_session_active"
+            }
+            try {
+                val delegate = provider.createLaboratoryConversationReply(
+                    context, instruction, setOf(ConversationToolId.END_CALL),
+                    contextTokenBudget)
+                object : TextCallAgentBackend {
+                    private val closed = AtomicBoolean(false)
+                    override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                        delegate.generate(userText, listener)
+                    }
+                    override fun cancel() { delegate.cancel() }
+                    override fun close() {
+                        if (closed.compareAndSet(false, true)) {
+                            try { delegate.close() } finally { activeLabBackend.set(false) }
+                        }
+                    }
+                }
+            } catch (error: Throwable) {
+                activeLabBackend.set(false)
+                throw error
+            }
         }
     }
 }
