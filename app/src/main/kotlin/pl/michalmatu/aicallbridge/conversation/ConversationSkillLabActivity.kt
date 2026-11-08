@@ -35,6 +35,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var stopButton: Button
     private lateinit var ratingGroup: LinearLayout
     private lateinit var naturalness: Spinner
+    private lateinit var manualInput: EditText
+    private lateinit var sendButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,8 +68,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(UiDesign.caption(this, getString(R.string.lab_ui_preset)),
             UiDesign.spaceAfter(this, 6))
         content.addView(picker, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.caption(this, getString(R.string.lab_ui_mode_label)),
-            UiDesign.spaceAfter(this, 6))
+        // Scripted quick/full modes are retired; all dialogue comes from a person or a saved case.
         modePicker = Spinner(this).apply {
             tag = "lab-scope-picker"
             UiSelect.setOptions(this, listOf(
@@ -75,17 +76,38 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 getString(R.string.lab_ui_mode_full)))
             setSelection(0)
         }
-        content.addView(modePicker, UiDesign.spaceAfter(this, 12))
+        modePicker.visibility = View.GONE
 
-        runButton = UiDesign.action(this, getString(R.string.lab_ui_run), UiActionTone.PRIMARY) {
+        runButton = UiDesign.action(this, getString(R.string.lab_manual_new_session), UiActionTone.PRIMARY) {
             val selected = presets.getOrNull(picker.selectedItemPosition) ?: return@action
-            runLab(selected.id, quick = modePicker.selectedItemPosition == 0)
+            runner.startManual(selected.id)
         }.apply { tag = "lab-start" }
         content.addView(runButton, UiDesign.spaceAfter(this, 8))
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
             stopLab()
         }.apply { visibility = View.GONE; tag = "lab-stop" }
         content.addView(stopButton, UiDesign.spaceAfter(this, 12))
+        val composer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            tag = "lab-manual-composer"
+        }
+        manualInput = EditText(this).apply {
+            tag = "lab-manual-input"
+            hint = getString(R.string.lab_manual_hint)
+            setSingleLine(false)
+            minLines = 1
+            maxLines = 4
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        }
+        composer.addView(manualInput, LinearLayout.LayoutParams(0,
+            ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        sendButton = UiDesign.action(this, getString(R.string.lab_manual_send)) {
+            if (runner.submitManual(manualInput.text.toString())) manualInput.setText("")
+        }.apply { tag = "lab-manual-send" }
+        composer.addView(sendButton)
+        content.addView(composer, UiDesign.spaceAfter(this, 10))
 
         val transcriptArea = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -100,8 +122,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         transcriptCard.addView(UiDesign.heading(this, getString(R.string.ux11_lab_timeline_title)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
-        status = UiDesign.caption(this, if (SkillLabCorpus.stories.isEmpty())
-            getString(R.string.lab_ui_cases_removed) else getString(R.string.lab_ui_ready)).apply {
+        status = UiDesign.caption(this, getString(R.string.lab_manual_empty)).apply {
             tag = "lab-status"
             textSize = 14f
             setTextColor(UiDesign.ink)
@@ -154,8 +175,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         ratingGroup.addView(UiDesign.action(this, getString(R.string.lab_ui_apply_rating)) {
             lastState.metrics?.let(::showMetrics)
         })
-        emptyTranscript = UiDesign.caption(this, if (SkillLabCorpus.stories.isEmpty())
-            getString(R.string.lab_ui_cases_removed) else getString(R.string.ux11_lab_empty)).apply {
+        emptyTranscript = UiDesign.caption(this, getString(R.string.lab_manual_empty)).apply {
             tag = "lab-empty-transcript"
             textSize = 14f
             gravity = android.view.Gravity.CENTER
@@ -197,11 +217,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         runner = SkillLabRunner(AndroidSkillLabSessionFactory(applicationContext),
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
         renderState(runner.state)
-        modePicker.isEnabled = SkillLabCorpus.stories.isNotEmpty()
+        modePicker.isEnabled = false
     }
 
     private fun runLab(presetId: String, quick: Boolean) {
-        if (::runner.isInitialized) runner.start(presetId, quick)
+        if (::runner.isInitialized) runner.startManual(presetId)
     }
 
     private fun renderState(next: SkillLabUiState) {
@@ -236,33 +256,35 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 pending.storyIndex, pending.storyTitle, pending.turnIndex,
                 pending.utterance, next.completed.size)
         }
-        emptyTranscript.visibility = if (next.phase == SkillLabPhase.READY) View.VISIBLE
-            else View.GONE
-        progress.visibility = if (next.phase == SkillLabPhase.READY) View.GONE
-            else View.VISIBLE
+        emptyTranscript.visibility = if (next.completed.isEmpty() && next.pending == null)
+            View.VISIBLE else View.GONE
+        progress.visibility = View.GONE
         progress.max = next.totalTurns
         progress.progress = next.completed.size
         progress.contentDescription = getString(R.string.lab_ui_progress,
             next.completed.size, next.totalTurns)
-        runButton.isEnabled = next.canStart
-        runButton.visibility = if (next.canStart ||
-            (next.phase == SkillLabPhase.READY && next.totalTurns == 0)) View.VISIBLE else View.GONE
-        stopButton.visibility = if (!next.canStart && next.phase in
-            setOf(SkillLabPhase.STARTING, SkillLabPhase.WAITING,
-                SkillLabPhase.TURN_COMPLETED)) View.VISIBLE else View.GONE
+        runButton.isEnabled = next.manualStartAllowed
+        runButton.visibility = View.VISIBLE
+        sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY
+        manualInput.isEnabled = next.phase == SkillLabPhase.INPUT_READY
+        stopButton.visibility = if (!next.manualStartAllowed && next.phase in
+            setOf(SkillLabPhase.STARTING, SkillLabPhase.INPUT_READY,
+                SkillLabPhase.WAITING, SkillLabPhase.TURN_COMPLETED)) View.VISIBLE else View.GONE
 
         currentTurn.visibility = if (next.phase == SkillLabPhase.READY) View.GONE
             else View.VISIBLE
         when (next.phase) {
             SkillLabPhase.READY -> {
-                status.text = if (next.totalTurns == 0)
-                    getString(R.string.lab_ui_cases_removed) else getString(R.string.lab_ui_ready)
-                currentTurn.text = if (next.totalTurns == 0)
-                    getString(R.string.lab_ui_cases_removed) else getString(R.string.lab_ui_empty)
+                status.text = getString(R.string.lab_manual_empty)
+                currentTurn.text = getString(R.string.lab_manual_empty)
             }
             SkillLabPhase.STARTING -> {
                 status.text = getString(R.string.lab_ui_starting)
                 currentTurn.text = getString(R.string.lab_ui_waiting_initial)
+            }
+            SkillLabPhase.INPUT_READY -> {
+                status.text = getString(R.string.lab_manual_ready)
+                currentTurn.text = getString(R.string.lab_manual_ready)
             }
             SkillLabPhase.WAITING -> next.pending?.let { pending ->
                 status.text = getString(R.string.lab_ui_waiting,

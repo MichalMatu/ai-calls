@@ -42,6 +42,7 @@ internal data class SkillLabUiState(
     val error: String? = null,
     val canStart: Boolean = true,
     val manual: Boolean = false,
+    val manualStartAllowed: Boolean = true,
 )
 
 /**
@@ -124,7 +125,7 @@ internal class SkillLabRunner(
             current = job
             job.thread = Thread({ executeManual(job, presetId) }, "aicalls-lab-manual")
             snapshot = SkillLabUiState(phase = SkillLabPhase.STARTING, totalTurns = 0,
-                canStart = false, manual = true)
+                canStart = false, manual = true, manualStartAllowed = false)
             state = snapshot
             token = generation
             version = ++revision
@@ -368,7 +369,8 @@ internal class SkillLabRunner(
             if (current !== job) return
             job.backend = null
             current = null
-            snapshot = state.copy(canStart = corpus.isNotEmpty(), pending = null)
+            snapshot = state.copy(canStart = corpus.isNotEmpty(), pending = null,
+                manualStartAllowed = true)
             state = snapshot
             token = generation
             version = ++revision

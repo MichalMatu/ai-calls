@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_manual_new_session">Nowa rozmowa</string>
+    <string name="lab_manual_hint">Napisz wypowiedź rozmówcy…</string>
+    <string name="lab_manual_send">Wyślij</string>
+    <string name="lab_manual_empty">Rozpocznij nową rozmowę tekstową z lokalnym modelem.</string>
+    <string name="lab_manual_ready">Model gotowy. Wpisz kolejną wypowiedź.</string>
+</resources>
