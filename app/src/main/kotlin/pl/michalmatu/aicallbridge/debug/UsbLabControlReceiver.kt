@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.debug
 
+import android.Manifest
 import android.app.ActivityManager
+import android.content.pm.PackageManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -93,10 +95,11 @@ internal object UsbLabControl {
     private fun unavailableIfLive(context: Context): String? {
         val telecom = context.getSystemService(TelecomManager::class.java)
         val audio = context.getSystemService(AudioManager::class.java)
-        val callIdle = runCatching {
-            telecom != null && !telecom.isInCall &&
-                audio != null && audio.mode != AudioManager.MODE_IN_CALL
-        }.getOrDefault(false)
+        val callIdle = context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED && runCatching {
+                telecom != null && !telecom.isInCall &&
+                    audio != null && audio.mode != AudioManager.MODE_IN_CALL
+            }.getOrDefault(false)
         val campaignRunning = AppOwnedClirCampaignExecutor.isRunning() ||
             runCatching {
                 context.getSystemService(ActivityManager::class.java)
@@ -131,7 +134,11 @@ internal object UsbLabControl {
         val call = AndroidOwnedInCallService.currentCall()
         val feed = ConversationChatFeed.snapshot()
         val telecom = context.getSystemService(TelecomManager::class.java)
-        val phoneActive = runCatching { telecom?.isInCall }.getOrNull()
+        val phoneActive =
+            if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+                PackageManager.PERMISSION_GRANTED)
+                runCatching { telecom?.isInCall }.getOrNull()
+            else null
         val incoming = runCatching { IncomingAssistantPolicyStore(context).load().mode.name }
             .getOrDefault("UNKNOWN")
         return JSONObject()
