@@ -2,6 +2,15 @@
 
 **Data:** 2026-11-08. **Bazowy commit kodu:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (UX-11 CLOSED). Kolejne commity tylko dokumentacyjne nie stanowią nowego QA APK. **Przy wejściu zawsze pobierz świeży HEAD**, sprawdź Mac checkout/clean status i stan Samsung S22.
 
+## Wznowienie odbioru 2026-11-08 — bieżące potwierdzenie
+
+- Aktualny przed odbiorem `main@0e7dd43244edd6c22ce398490806c4a70508d487`, czysty Mac checkout = `origin/main`; GitHub Connector + Mac Local Agent, bez zmiany kodu/APK.
+- Read-only tasks **done/0**: `aicalls-fa-preflight-s22-20261108-1018-v1`, `aicalls-fa-models-roles-services-readonly-20261108-v1`. S22 USB/ADB `SM-S906B`, APK 0.2.0, `IDLE`, potrzebne uprawnienia granted; app dialer role, Shizuku process, kampania nieaktywna, profile `ANDROID_STT/GEMMA_4_E2B/ANDROID_TTS_PL`. Cztery modele mają oczekiwany **rozmiar**, nie nowy SHA ani inferencję.
+- **NAV-01 PARTIAL**: fizycznie potwierdzone Start → Historia → Agent AI → Laboratorium i właściwe zaznaczenia; tap w Modele nie dał jednoznacznego wyniku. `aicalls-fa-nav01-foreground-lockscreen-check-20261108-v1` wykazał `pl.pockethost.companion/.MainActivity` jako jedyny foreground UI. Modele/Ustawienia/Back/stos/restart NOT_RUN. Nie tworzyć nowego blokeru aplikacji bez izolowanej reprodukcji; nie zakłócać PocketHost.
+- Ślady prób: `aicalls-fa-nav01-device-six-tabs-20261108-1023-v1` failed assertion (nie PASS), `aicalls-fa-nav01-android-transport-ui-diagnostics-20261108-v1` done/0, `...tap-diagnosis...v1` invalid task timeout, `...v2` ADB failure, `...models-tap-repro...v1` brak AI Calls w foreground. Dowody pozostają w oryginalnych immutable receipts.
+- Brak real CALL i nowych testów offline; wcześniejsze UX11/356/30/offline STT/model/TTS pozostają w oryginalnym zakresie. Bez modyfikacji właścicielskich danych. F-080/F-122/F-123/F-124 nadal OPEN. Kontynuować brakujące NAV-01 tylko przy bezpiecznym wyłącznym foreground AI Calls, potem NAV-02 i HOME bez telefonii.
+- [Dokładny checkpoint](checkpoints/2026-11-08-functional-nav01-preflight-interrupted.md).
+
 ## Cel kolejnego czatu
 Przejść przez **każdy ekran i każdą dostępną funkcję**, potwierdzając nie tylko wizualny stan UI, lecz rzeczywiste zachowanie, zapis, STOP/recovery i konsekwencje. [Macierz 6 zakładek + ekranów podrzędnych](FUNCTIONAL_ACCEPTANCE_MATRIX.md). Pracować etapami, aktualizować macierz, bez dublowania już zaliczonych testów. Przed realną telefonią osobny preflight i dokładny autoryzowany cel.
 

@@ -11,10 +11,17 @@
 
 **Statusy:** `NOT_RUN`, `PASS_UI_SYNTHETIC`, `PASS_OFFCALL_FUNCTIONAL`, `PASS_DEVICE_FUNCTIONAL`, `PASS_REAL_CALL`, `PARTIAL`, `FAIL`, `BLOCKED`. Statusy nie są zamienne. Dla przypadków wielofunkcyjnych status obejmuje **wszystkie** wymienione podpunkty, inaczej `PARTIAL`. **Dziedziczone dowody** to podpowiedź do testów, nie zaliczenie całego ekranu.
 
+## Sesja odbioru 2026-11-08 — fizyczny preflight i NAV-01
+
+- **Źródło:** czysty Mac checkout `main@0e7dd43244edd6c22ce398490806c4a70508d487` = `origin/main`; różnice od `3029034` tylko w dokumentacji. **Urządzenie:** Samsung S22 `SM-S906B`, USB/ADB, APK `0.2.0` code 2, telefon `IDLE`.
+- **Bezpieczna gotowość:** telefon/mikrofon/Shizuku API granted, AI Calls domyślnym dialerem, proces Shizuku widoczny, usługa kampanii nieaktywna. Cztery pliki modeli E2B/E4B/Qwen3 1.7B/0.6B mają oczekiwane rozmiary — **nie** oznacza to weryfikacji SHA/inferencji. Odczyt profilu `ANDROID_STT / GEMMA_4_E2B / ANDROID_TTS_PL`. Receipts: `aicalls-fa-preflight-s22-20261108-1018-v1`, `aicalls-fa-models-roles-services-readonly-20261108-v1`.
+- **NAV-01 = PARTIAL:** przejścia i zaznaczenia pierwszych czterech zakładek fizycznie potwierdzone, reszta nierozstrzygnięta po wejściu PocketHost na pierwszy plan. Nie oznaczać całości PASS ani otwierać nowego F bez reprodukcji defektu samej aplikacji. Przy kolejnym bezpiecznym foreground AI Calls dokończyć brakujące przejścia i Back/stos Activity. Nie przerywać innych aplikacji.
+- **Bez skutków:** brak dial, pobrań, instalacji, zmian profilu, edycji sejfu i danych właściciela. Screenshoty na Macu prywatnie. [Checkpoint](checkpoints/2026-11-08-functional-nav01-preflight-interrupted.md).
+
 ## 0. Powłoka, nawigacja i dostępność
 | ID | Funkcja / kryterium | Stan i dowód |
 |---|---|---|
-| NAV-01 | Każda z 6 zakładek, selekcja, powrót, bez znikających danych i dubli Activity | NOT_RUN funkcjonalnie; istnieją testy nawigacji Android |
+| NAV-01 | Każda z 6 zakładek, selekcja, powrót, bez znikających danych i dubli Activity | **PARTIAL** — rzeczywiste ADB taps na S22: Start → Historia → Agent AI → Laboratorium; zaznaczenia tych zakładek potwierdzone. Modele/Ustawienia, Back, duplikaty Activity, trwałość, restart **NOT_RUN**. Pierwsza próba Models niejednoznaczna; dalszą diagnostykę przerwał obcy foreground `pl.pockethost.companion` (nie potwierdza błędu AI Calls). Receipts: `aicalls-fa-nav01-device-six-tabs-20261108-1023-v1`, `aicalls-fa-nav01-foreground-lockscreen-check-20261108-v1`. Wcześniejsze UI synthetic PASS bez zmian. |
 | NAV-02 | Dolna belka, toolbar potomnych ekranów, klawiatura, długie teksty/scroll, pion/poziom | NOT_RUN |
 | NAV-03 | PL/EN/Auto, ponowne wejście, zmiana języka bez utraty konfiguracji | NOT_RUN |
 | NAV-04 | TalkBack, content descriptions, fokus, 48dp dotyk, kontrast i dynamiczny font | NOT_RUN manualnie; poprzednie testy automatyczne UX-05 |
