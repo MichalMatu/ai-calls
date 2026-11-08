@@ -82,6 +82,14 @@ class AndroidLabDialogStorageAcceptanceTest {
                 assertNotNull(decor.findViewWithTag<Button>("lab-start"))
                 assertNotNull(decor.findViewWithTag<Button>("lab-adaptive-start"))
                 assertFalse(decor.findViewWithTag<Button>("lab-manual-send").isEnabled)
+                assertNotNull(decor.findViewWithTag<android.widget.ScrollView>(
+                    "lab-options-scroll"))
+                val transcript = requireNotNull(decor.findViewWithTag<android.widget.ScrollView>(
+                    "lab-transcript-scroll"))
+                val composer = requireNotNull(decor.findViewWithTag<android.view.View>(
+                    "lab-composer-holder"))
+                assertTrue("lab_transcript_has_no_height", transcript.height > 0)
+                assertTrue("lab_composer_not_visible", composer.isShown)
             }
         }
     }

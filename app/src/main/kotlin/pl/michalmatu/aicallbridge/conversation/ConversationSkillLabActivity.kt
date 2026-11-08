@@ -124,7 +124,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
             stopLab()
         }.apply { visibility = View.GONE; tag = "lab-stop" }
-        content.addView(stopButton, UiDesign.spaceAfter(this, 12))
+        // STOP remains pinned, even when the options pane scrolls.
         val composer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "lab-manual-composer"
@@ -145,7 +145,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             if (runner.submitManual(manualInput.text.toString())) manualInput.setText("")
         }.apply { tag = "lab-manual-send" }
         composer.addView(sendButton)
-        content.addView(composer, UiDesign.spaceAfter(this, 10))
+        // Composer is pinned, never hidden by tall options or transcript.
 
         val transcriptArea = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -230,6 +230,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         transcriptArea.addView(scoreView, UiDesign.spaceAfter(this, 12))
         transcriptArea.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
         scroll = ScrollView(this).apply {
+            tag = "lab-transcript-scroll"
             addView(transcriptArea)
             setOnTouchListener { _, event ->
                 if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
@@ -245,12 +246,27 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 false
             }
         }
+        val optionScroll = ScrollView(this).apply {
+            tag = "lab-options-scroll"
+            addView(content)
+        }
+        val composerHolder = LinearLayout(this).apply {
+            tag = "lab-composer-holder"
+            orientation = LinearLayout.VERTICAL
+            val horizontal = UiDesign.dp(this@ConversationSkillLabActivity, 20)
+            setPadding(horizontal, 0, horizontal, UiDesign.dp(this@ConversationSkillLabActivity, 12))
+            addView(stopButton, UiDesign.spaceAfter(this@ConversationSkillLabActivity, 8))
+            addView(composer)
+        }
         setContentView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT))
-            addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                0, 1f))
+            // Independent scroll regions preserve visible chat and a fixed composer.
+            addView(optionScroll, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.36f))
+            addView(scroll, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.64f))
+            addView(composerHolder, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         })
         sessionFactory = AndroidSkillLabSessionFactory(applicationContext)
         runner = SkillLabRunner(sessionFactory,
