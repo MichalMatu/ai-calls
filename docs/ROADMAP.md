@@ -1,5 +1,7 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+**LAB-SEMANTIC-02 (2026-11-08):** trudniejszy 13-turn real S22 **BLOCKED po turze 9** — `LiteRtLmJniException` przy 10. turze, `F-148 OPEN`; nie mylić technicznego Mac PASS wcześniejszego testu z zaakceptowanym długim dialogiem. Częściowy prywatny journaling dodany `main@68e848d`, Mac gate **QA_PENDING**, fizyczne powtórzenie **NOT_RUN**. [Checkpoint](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).
+
 **LAB-SEMANTIC-01 (2026-11-08):** realne `GEMMA_4_E2B` na S22, **3/3 niezależne sesje × 7 tur = 21/21**, kontrolowana pamięć, zmiana tematu, korekta i jawna niepewność **PASS 3/3**; średnia ~4,04 s, bez Call i bez publikowania transkryptów. Mac pełny gate PASS na `main@4a3c49b`. **Pełny human review i szeroka wiarygodność faktów nadal OPEN.** [Checkpoint](checkpoints/2026-11-08-lab-semantic-01-gemma-e2b-three-sessions.md).
 
 **LAB-DIALOG-01 (2026-11-08, finalny odbiór):** kod `main@992280b`, pełny gate Mac **PASS** (365 Python, JVM, lint, Android/APK, audio). S22 **PASS 3/3 nowych testów** (`AndroidLabDialogStorageAcceptanceTest` 2/2 i `AndroidLabAdaptiveNativeOfflineTest` 1/1) na zainstalowanej APK; osobny manualny 2-turn/STOP/restart 1/1 zachowuje PASS. Receipt: `aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1` DONE/0, Call IDLE, bez utraty danych. Pozostają otwarte semantyczna ocena rzeczywistego transkryptu, pełne klikanie edytora, A/B N=3 i F2 audio. [Dokładny checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).

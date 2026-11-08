@@ -1,5 +1,11 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## LAB-SEMANTIC-02 — dłuższy dialog: F-148 OPEN (2026-11-08)
+
+Nowy scoped AndroidTest (dwie kartoteki, wielokrotne korekty, zgadywanie numeru, skutki) przeszedł pełny Mac gate na kodzie `8768f72`, ale **pierwsza prawdziwa sesja S22 przerwała się w turze 10 z `LiteRtLmJniException`**; 9 tur wygenerowano poprawnie, sesje 2/3 nie startowały. Podejrzenie: okno natywnego kontekstu 2048 tokenów, **niepotwierdzone**. Zarejestrowano `F-148 OPEN`; w `main@68e848d` dopisano prywatny zapis częściowych dowodów, ale jego **Mac gate i S22 reacceptance są QA_PENDING/NOT_RUN**. Nie podnosić globalnie token budget ani nie zaliczać semantyki bez surowej prywatnej oceny.
+
+[Checkpoint i dowody](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).
+
 ## LAB-SEMANTIC-01 — 2026-11-08, rzeczywista Gemma 4 E2B, N=3
 
 Na S22 `SM-S906B` przez ADB/AndroidTest przeprowadzono **trzy niezależne siedmioturowe rozmowy z lokalną `GEMMA_4_E2B`**. Wszystkie 21 tur zakończone, pamięć kodu po zmianie tematu, sprostowanie koloru, końcowa pamięć oraz przyznanie braku nieznanego numeru **PASS 3/3 w kontrolowanej próbie**; średnia odpowiedź ~4,04 s, 0 END_CALL, telefon IDLE. Source test `main@4a3c49b`, full Mac gate PASS; `aicalls-semantic-native-s22-seven-turn-20261108-v1` i `aicalls-semantic-native-s22-repeats-20261108-v2` DONE/0. Każda sesja zapisała prywatny transkrypt wyłącznie w Android `noBackupFilesDir`. Pełna semantyczna ocena człowieka i dowód ogólnego braku halucynacji nadal OPEN. Próba powtórki v1 była bezpiecznie zablokowana przez Launcher, v2 dopuszczała zweryfikowany Launcher i przeszła 2/2.

@@ -1,5 +1,9 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## LAB-SEMANTIC-02 — dłuższy test rzeczywistego dialogu (2026-11-08)
+
+**PARTIAL / BLOCKED_MODEL_NATIVE:** S22, 13-turn próba, 9/13 tur z odpowiedziami, 10. `FAILED` przez `LiteRtLmJniException`. Mac gate źródła testu PASS; źródłowy częściowy zapis dowodów `68e848d` ma QA_PENDING. N=2/3 i ręczny review `NOT_RUN/UNASSESSED`. **F-148 OPEN**, a LAB-SEMANTIC-01 N=3×7 PASS nie jest dowodem stabilności dłuższych kontekstów. [Checkpoint](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).
+
 ## LAB-SEMANTIC-01 — fizyczna sonda dialogu N=3 (2026-11-08)
 
 **PARTIAL / PASS_DEVICE_FUNCTIONAL w wąskiej próbie:** `GEMMA_4_E2B` na realnym S22, **3 niezależne sesje, 21 tur**. Pamięć losowego kodu po zmianie tematu, korekta koloru, powrót do nowych faktów i zasygnalizowanie braku nieznanego numeru **3/3 PASS**; szczegóły i przedziały `docs/checkpoints/2026-11-08-lab-semantic-01-gemma-e2b-three-sessions.md`. Brak real Call, stopień ukończenia naturalności/halucynacji z innymi danymi **OPEN**; pełny ekranowy CRUD i ręczna ocena rubric **NOT_RUN**. Prywatne transkrypty wyłącznie na S22.
