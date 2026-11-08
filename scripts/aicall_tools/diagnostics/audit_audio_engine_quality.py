@@ -119,8 +119,9 @@ def audit(root: Path) -> list[str]:
             "user-triggered-Parakeet-download")
     require("ParakeetModelTransferService", parakeet_service,
             r"ParakeetModelDownloader\(this\)", "foreground-download-owner")
+    # The guarded nullable transfer is reached only on DOWNLOAD, never offline VERIFY.
     require("ParakeetModelTransferService", parakeet_service,
-            r"transfer\.download", "pinned-model-download-flow")
+            r"checkNotNull\(transfer\)\.download", "pinned-model-download-flow")
     require("ParakeetModelTransferService", parakeet_service,
             r"downloader\?\.cancel\(\)", "cancel-in-flight-transfer")
     require("ParakeetModelTransferService", parakeet_service,
