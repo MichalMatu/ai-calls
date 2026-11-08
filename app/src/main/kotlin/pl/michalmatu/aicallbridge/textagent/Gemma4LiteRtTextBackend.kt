@@ -21,6 +21,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 
+// Native engine allocation, not an artificial limit on user dialogue turns.
+private const val DEFAULT_CONTEXT_TOKENS = 2_048
+
 internal fun interface Gemma4RuntimeFactory {
     fun create(modelPath: String, systemInstruction: String?): Gemma4Runtime
 }
@@ -153,7 +156,10 @@ internal class LiteRtGemma4Runtime(
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "aicall-gemma4-litert").apply { isDaemon = true }
     },
+    private val contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
 ) : Gemma4Runtime {
+    init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
+
     private val lock = Any()
     private var generation = 0L
     private var engine: Engine? = null
@@ -361,7 +367,8 @@ internal class LiteRtGemma4Runtime(
                 ",conversation_create_ms=${((conversationReadyNs - engineReadyNs) / 1_000_000).coerceAtLeast(0)}" +
                 ",generate_ms=${((inferenceReadyNs - conversationReadyNs) / 1_000_000).coerceAtLeast(0)}" +
                 ",conversation_reused=$reused,conversation_turn=$turnIndex" +
-                ",output_chars=$outputChars,status=$status")
+                ",output_chars=$outputChars,status=$status" +
+                ",context_token_budget=$contextTokenBudget")
 
             val toClose = synchronized(lock) {
                 if (sendingGeneration == requestGeneration) sendingGeneration = null
@@ -432,7 +439,7 @@ internal class LiteRtGemma4Runtime(
                 backend = backend,
                 visionBackend = null,
                 audioBackend = null,
-                maxNumTokens = MAX_CONTEXT_TOKENS,
+                maxNumTokens = contextTokenBudget,
                 cacheDir = cacheDirectory.absolutePath,
             ),
         )
@@ -487,7 +494,6 @@ internal class LiteRtGemma4Runtime(
         Runtime.getRuntime().availableProcessors().coerceIn(MIN_CPU_THREADS, MAX_CPU_THREADS)
 
     private companion object {
-        const val MAX_CONTEXT_TOKENS = 2_048
         const val MAX_OUTPUT_TOKENS = 128
         const val MAX_ERROR_CHARS = 140
         const val MIN_CPU_THREADS = 2
@@ -501,9 +507,11 @@ internal object Gemma4LiteRtTextBackendFactory {
         systemInstruction: String,
         modelId: DialogueModelId,
         tools: Set<ConversationToolId>,
+        contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
     ): TextCallAgentBackend = createInternal(
         context = context, modelId = modelId, systemInstruction = systemInstruction,
         responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(tools)),
+        contextTokenBudget = contextTokenBudget,
     )
 
     private fun selectedModel(context: Context): DialogueModelId =
@@ -607,6 +615,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         systemInstruction: String?,
         responseFormat: ResponseFormat?,
         modelId: DialogueModelId,
+        contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
     ): Gemma4LiteRtTextBackend {
         val modelPath = modelFile(context, modelId).absolutePath
         return Gemma4LiteRtTextBackend(
@@ -616,6 +625,7 @@ internal object Gemma4LiteRtTextBackendFactory {
                     systemInstruction = instruction,
                     responseFormat = responseFormat,
                     disableQwenThinking = modelId == DialogueModelId.QWEN_3_1_7B || modelId == DialogueModelId.QWEN_3_0_6B,
+                    contextTokenBudget = contextTokenBudget,
                 )
             },
             modelPath = modelPath,

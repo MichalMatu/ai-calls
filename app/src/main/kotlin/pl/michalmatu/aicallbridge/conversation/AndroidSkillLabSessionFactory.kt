@@ -31,7 +31,7 @@ internal class AndroidSkillLabSessionFactory(
             preparation, goal, ConversationResponseFormat.TOOL_REPLY)
         val provider = DialogueEngineProviders.resolve(profile)
         return SkillLabModelSession {
-            provider.createConversationReply(context, instruction, setOf(ConversationToolId.END_CALL))
+            provider.createLaboratoryConversationReply(context, instruction, setOf(ConversationToolId.END_CALL))
         }
     }
 }
