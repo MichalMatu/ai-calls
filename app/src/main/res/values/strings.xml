@@ -104,8 +104,8 @@
     <string name="incoming_ui_mode_ai">AI — odbieraj i przyjmuj wiadomości</string>
     <string name="incoming_ui_sim_fallback">SIM %1$d</string>
     <string name="incoming_ui_no_sim">Brak dostępnej karty SIM — sprawdź uprawnienia Androida</string>
-    <string name="incoming_ui_record">Zapisuj transkrypt i dostępne fragmenty audio</string>
-    <string name="incoming_ui_engines_hint">Dialog: model bez skryptu. STT, model i TTS pochodzą ze wspólnych ustawień silników; instrukcje z profilu przychodzącego.</string>
+    <string name="incoming_ui_record">Zezwalaj na zapis w kolejnych rozmowach przychodzących</string>
+    <string name="incoming_ui_engines_hint">Zmiana trybu dotyczy kolejnych rozmów, nie aktywnej sesji.</string>
     <string name="incoming_ui_save">Zapisz tryb odbierania</string>
     <string name="incoming_ui_choose_sim">Wybierz kartę SIM po nadaniu uprawnień Androida.</string>
     <string name="incoming_ui_saved_ai">Zapisano: AI odbiera kolejne połączenia na wybranej karcie SIM, gdy telefon i silniki są gotowe.</string>
@@ -229,8 +229,8 @@
     <string name="lab_ui_starting">Uruchamianie modelu offline…</string>
     <string name="lab_ui_complete">Test zakończony. Żadnego END_CALL nie wykonano.</string>
     <string name="lab_ui_empty">Wynik testu pojawi się tutaj po uruchomieniu.</string>
-    <string name="models_ui_title">Modele językowe</string>
-    <string name="models_ui_intro">Pobierz lub zaimportuj model, a następnie wybierz go do kolejnych rozmów.</string>
+    <string name="models_ui_title">Modele i silniki</string>
+    <string name="models_ui_intro">Zarządzaj modelami AI, STT i TTS w jednym miejscu.</string>
     <string name="models_ui_cancel">Anuluj transfer</string>
     <string name="models_ui_download">Pobierz</string>
     <string name="models_ui_import">Importuj</string>

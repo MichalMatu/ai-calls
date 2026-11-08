@@ -8,15 +8,12 @@ import pl.michalmatu.aicallbridge.R
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 
 /** Visible owner-facing entry for the same module used from Mac ADB. No second state store. */
 class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -73,7 +70,8 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         item("input", R.string.ux07_usb_input)
         item("dialogue", R.string.ux07_usb_dialogue)
         item("output", R.string.ux07_usb_output)
-        item("recording", R.string.ux07_usb_recording)
+        item("recording", R.string.ux08_usb_recording_future)
+        item("recording-current", R.string.ux08_usb_recording_current)
         item("incoming", R.string.ux07_usb_incoming)
         /* Original overview used one long multi-line TextView. Kept data, not the string blob. */
         content.addView(overview, UiDesign.spaceAfter(this, 16))
@@ -94,12 +92,6 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     ClipData.newPlainText("AI Calls USB status", state.text))
             })
         })
-        button(getString(R.string.usb_ui_engines)) {
-            startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
-        }
-        button(getString(R.string.usb_ui_campaign)) {
-            startActivity(Intent(this, CampaignToolActivity::class.java))
-        }
         label(getString(R.string.usb_ui_cli_hint))
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
@@ -139,6 +131,8 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
             status("output", pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.outputs
                 .firstOrNull { it.id == output }?.title ?: output)
             status("recording", recording)
+            status("recording-current", getString(if (data.optBoolean("call_idle"))
+                R.string.ux08_usb_no_call else R.string.ux08_usb_recording_unconfirmed))
             status("incoming", when (data.optString("incoming_mode", "UNAVAILABLE")) {
                 "AI" -> getString(R.string.incoming_ui_mode_ai)
                 "MANUAL" -> getString(R.string.incoming_ui_mode_manual)

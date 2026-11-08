@@ -104,8 +104,8 @@
     <string name="incoming_ui_mode_ai">AI — answer and take messages</string>
     <string name="incoming_ui_sim_fallback">SIM %1$d</string>
     <string name="incoming_ui_no_sim">No available SIM — check Android permissions</string>
-    <string name="incoming_ui_record">Save transcript and available audio fragments</string>
-    <string name="incoming_ui_engines_hint">Dialog uses a model without a fixed script. STT, model and TTS follow shared engine settings; instructions come from the incoming profile.</string>
+    <string name="incoming_ui_record">Allow recording in future incoming calls</string>
+    <string name="incoming_ui_engines_hint">Mode changes apply to future calls, not an active call.</string>
     <string name="incoming_ui_save">Save answering mode</string>
     <string name="incoming_ui_choose_sim">Select a SIM after granting Android permissions.</string>
     <string name="incoming_ui_saved_ai">Saved: AI answers future calls on the chosen SIM when the phone and engines are ready.</string>
@@ -229,8 +229,8 @@
     <string name="lab_ui_starting">Starting offline model…</string>
     <string name="lab_ui_complete">Test finished. No END_CALL was executed.</string>
     <string name="lab_ui_empty">Test results will appear here after you run it.</string>
-    <string name="models_ui_title">Language models</string>
-    <string name="models_ui_intro">Download or import a model, then select it for future calls.</string>
+    <string name="models_ui_title">Models and engines</string>
+    <string name="models_ui_intro">Manage AI models, STT and TTS in one place.</string>
     <string name="models_ui_cancel">Cancel transfer</string>
     <string name="models_ui_download">Download</string>
     <string name="models_ui_import">Import</string>

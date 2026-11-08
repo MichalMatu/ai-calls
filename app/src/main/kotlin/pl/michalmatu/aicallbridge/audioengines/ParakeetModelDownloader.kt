@@ -41,8 +41,8 @@ internal class ParakeetModelDownloader(context: Context) {
     fun download(onProgress: (Long, Long) -> Unit = { _, _ -> }): ParakeetModelDownloadResult {
         synchronized(lock) {
             if (downloading) return ParakeetModelDownloadResult.Failure("already_downloading")
+            if (cancelled) return ParakeetModelDownloadResult.Failure("cancelled")
             downloading = true
-            cancelled = false
         }
         var staging: File? = null
         try {

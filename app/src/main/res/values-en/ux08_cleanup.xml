@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux08_incoming_model_agent_hint">Skills, scenarios, and data: AI Agent. STT, models, and voices: Models.</string>
+    <string name="ux08_campaign_model_agent_hint">Edit scenarios and Skills under AI Agent. STT, models, and voices under Models.</string>
+    <string name="ux08_campaign_diagnostic_toggle">Show historical codes and diagnostics</string>
+    <string name="ux08_usb_recording_future">Recording for future attempts</string>
+    <string name="ux08_usb_recording_current">Current call recording</string>
+    <string name="ux08_usb_no_call">No active call</string>
+    <string name="ux08_usb_recording_unconfirmed">Unconfirmed</string>
+</resources>

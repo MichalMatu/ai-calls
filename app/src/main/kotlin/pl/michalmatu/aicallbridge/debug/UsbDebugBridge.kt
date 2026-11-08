@@ -160,7 +160,8 @@ internal object UsbDebugBridge {
             .put("voice", profile?.voiceId ?: "auto")
             .put("grant_present", grant != null)
             .put("grant_revoked", grant?.revokedAtEpochMs != null)
-            .put("recording_enabled", grant?.recordCallEvidence == true)
+            .put("recording_enabled", grant?.recordCallEvidence == true &&
+                grant.revokedAtEpochMs == null)
             .put("private_evidence_sessions", sessions)
             .put("incoming_mode", runCatching { pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore(activity).load().mode.name }.getOrDefault("UNAVAILABLE"))
             .put("incoming_status", pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService.incomingStatus())

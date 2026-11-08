@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux08_parakeet_verifying">Verifying SHA-256 · no download</string>
+    <string name="ux08_parakeet_bad_integrity">File failed SHA-256 verification</string>
+    <string name="ux08_parakeet_wrong_size">File is incomplete or has an unexpected size</string>
+    <string name="ux08_parakeet_download_again">Download again · 615 MB</string>
+    <string name="ux08_parakeet_verify_only">Verify SHA-256 · offline</string>
+    <string name="ux08_parakeet_download_615">Download model · 615 MB</string>
+</resources>

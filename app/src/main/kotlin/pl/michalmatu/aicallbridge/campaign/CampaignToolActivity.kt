@@ -5,11 +5,9 @@ import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
-import pl.michalmatu.aicallbridge.conversation.ScenarioLibraryActivity
 
 import android.Manifest
 import android.app.Activity
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.app.AlertDialog
 import android.app.role.RoleManager
 import android.content.Intent
@@ -220,17 +218,6 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addView(dialerRoleStatus, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
             addView(callRoleButton)
         }
-        val directSkillsSection = UiDesign.card(this).apply {
-            tag = "campaign-skills-card"
-            addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_skills)),
-                UiDesign.spaceAfter(this@CampaignToolActivity, 8))
-            addView(UiDesign.caption(this@CampaignToolActivity, getString(R.string.camp_ux05_prep_caption)),
-                UiDesign.spaceAfter(this@CampaignToolActivity, 10))
-            addView(UiDesign.action(this@CampaignToolActivity, getString(R.string.camp_ux05_prep_link)) {
-                startActivity(Intent(this@CampaignToolActivity,
-                    pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity::class.java))
-            })
-        }
         val supervisedSection = UiDesign.card(this).apply {
             tag = "campaign-supervised-card"
             addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_supervised)),
@@ -281,25 +268,9 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 addView(UiDesign.caption(this@CampaignToolActivity,
                     getString(R.string.camp_ui_actions_help)))
             }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
-            addView(UiDesign.action(this@CampaignToolActivity,
-                getString(R.string.camp_ui_engines)) {
-                startActivity(Intent(this@CampaignToolActivity, AudioEngineSettingsActivity::class.java))
-            }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
-            addView(UiDesign.card(this@CampaignToolActivity).apply {
-                tag = "campaign-scenario-library-card"
-                addView(UiDesign.heading(this@CampaignToolActivity,
-                    getString(R.string.scenario_ui_title)),
-                    UiDesign.spaceAfter(this@CampaignToolActivity, 8))
-                addView(UiDesign.caption(this@CampaignToolActivity,
-                    getString(R.string.scenario_ui_campaign_hint)),
-                    UiDesign.spaceAfter(this@CampaignToolActivity, 10))
-                addView(UiDesign.action(this@CampaignToolActivity,
-                    getString(R.string.scenario_ui_open)) {
-                    startActivity(Intent(this@CampaignToolActivity,
-                        ScenarioLibraryActivity::class.java))
-                })
-            }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
-            addView(directSkillsSection)
+            addView(UiDesign.caption(this@CampaignToolActivity,
+                getString(R.string.ux08_campaign_model_agent_hint)),
+                UiDesign.spaceAfter(this@CampaignToolActivity, 12))
             addView(dialerSection)
             addView(supervisedSection)
             addView(evidenceSection)
@@ -311,7 +282,10 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 addView(UiDesign.caption(this@CampaignToolActivity,
                     getString(R.string.campaign_ui_last_history)),
                     UiDesign.spaceAfter(this@CampaignToolActivity, 8))
-                addView(diagnosticStatus)
+                addView(UiAccordionSection(this@CampaignToolActivity, "campaign-raw",
+                    getString(R.string.ux08_campaign_diagnostic_toggle)).apply {
+                    addControl(diagnosticStatus)
+                })
             })
         }
 

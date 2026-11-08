@@ -221,8 +221,13 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
         card.addView(parakeetStatus, UiDesign.spaceAfter(this, 10))
         parakeetDownload = UiDesign.action(this, getString(R.string.ux07_parakeet_download),
             UiActionTone.PRIMARY) {
+            val file = ParakeetModelFile.resolve(this@LanguageModelActivity)
+            val needsVerification = file.isFile && file.length() == ParakeetModelFile.MIN_SIZE_BYTES &&
+                !ParakeetModelTransferService.status.verificationFailed
+            val action = if (needsVerification) ParakeetModelTransferService.VERIFY
+                else ParakeetModelTransferService.START
             startForegroundService(Intent(this, ParakeetModelTransferService::class.java)
-                .setAction(ParakeetModelTransferService.START))
+                .setAction(action))
         }.apply { tag = "parakeet-transfer-download" }
         card.addView(parakeetDownload, UiDesign.spaceAfter(this, 8))
         parakeetCancel = UiDesign.action(this, getString(R.string.models_ui_cancel),
@@ -248,20 +253,27 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
     private fun updateParakeetUi() {
         if (!::parakeetStatus.isInitialized) return
         val state = ParakeetModelTransferService.status
-        val hasFile = ParakeetModelFile.resolve(this).let {
-            it.isFile && it.length() == ParakeetModelFile.MIN_SIZE_BYTES
-        }
+        val file = ParakeetModelFile.resolve(this)
+        val fileExists = file.isFile
+        val hasExpectedSize = fileExists && file.length() == ParakeetModelFile.MIN_SIZE_BYTES
         parakeetStatus.text = when {
+            state.busy && state.verifying -> getString(R.string.ux08_parakeet_verifying)
             state.busy -> getString(R.string.ux07_parakeet_progress,
                 (state.bytes * 100L / ParakeetModelFile.MIN_SIZE_BYTES).toInt().coerceIn(0, 100))
-            state.verified -> getString(R.string.ux07_parakeet_verified)
+            state.verified && hasExpectedSize -> getString(R.string.ux07_parakeet_verified)
+            state.verificationFailed -> getString(R.string.ux08_parakeet_bad_integrity)
             state.error.isNotEmpty() -> getString(R.string.ux07_parakeet_failure, state.error)
-            hasFile -> getString(R.string.ux07_parakeet_check_required)
+            fileExists && !hasExpectedSize -> getString(R.string.ux08_parakeet_wrong_size)
+            hasExpectedSize -> getString(R.string.ux07_parakeet_check_required)
             else -> getString(R.string.ux07_parakeet_missing)
         }
-        parakeetDownload.text = getString(if (hasFile) R.string.ux07_parakeet_check
-            else R.string.ux07_parakeet_download)
-        parakeetDownload.visibility = if (state.busy || state.verified) View.GONE else View.VISIBLE
+        parakeetDownload.text = getString(when {
+            state.verificationFailed || (fileExists && !hasExpectedSize) ->
+                R.string.ux08_parakeet_download_again
+            hasExpectedSize -> R.string.ux08_parakeet_verify_only
+            else -> R.string.ux08_parakeet_download_615
+        })
+        parakeetDownload.visibility = if (state.busy) View.GONE else View.VISIBLE
         parakeetCancel.visibility = if (state.busy) View.VISIBLE else View.GONE
     }
 

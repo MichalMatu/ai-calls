@@ -15,7 +15,8 @@ class AndroidUx07ParsedUsbStatusTest {
             screen.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("usb-status-summary"))
-                for (key in listOf("phone", "campaign", "input", "dialogue", "output", "recording", "incoming")) {
+                for (key in listOf("phone", "campaign", "input", "dialogue", "output",
+                    "recording", "recording-current", "incoming")) {
                     assertNotNull("missing_field:" + key, root.findViewWithTag<View>("usb-value:" + key))
                 }
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(

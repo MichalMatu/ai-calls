@@ -34,7 +34,7 @@ class AndroidUx07CardSpacingContractTest {
                     for (index in 0 until view.childCount) visit(view.getChildAt(index))
                 }
                 visit(activity.window.decorView)
-                assertTrue("campaign_cards_missing", cards >= 5)
+                assertTrue("campaign_cards_missing", cards >= 4)
             }
         }
     }

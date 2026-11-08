@@ -1,6 +1,5 @@
 package pl.michalmatu.aicallbridge.incoming
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -10,12 +9,8 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
-import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 import pl.michalmatu.aicallbridge.conversationcore.IncomingAssistantPolicy
-import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
@@ -89,19 +84,8 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         feedback.setTextColor(UiDesign.secondary)
         feedback.setPadding(0, UiDesign.dp(this, 4), 0, UiDesign.dp(this, 12))
         content.addView(feedback)
-        content.addView(UiDesign.heading(this, getString(R.string.incoming_ui_more_settings)).apply { textSize = 17f }, UiDesign.spaceAfter(this, 10))
-        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_engines_link)) {
-            startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
-        }, UiDesign.spaceAfter(this, 8))
-        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_preparation_link)) {
-            startActivity(Intent(this, ConversationPreparationActivity::class.java))
-        }, UiDesign.spaceAfter(this, 8))
-        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_skills_link)) {
-            startActivity(Intent(this, ConversationSkillsActivity::class.java))
-        }, UiDesign.spaceAfter(this, 8))
-        content.addView(UiDesign.button(this, getString(R.string.incoming_ui_tools_link)) {
-            startActivity(Intent(this, ConversationToolsActivity::class.java))
-        })
+        content.addView(UiDesign.caption(this, getString(R.string.ux08_incoming_model_agent_hint)),
+            UiDesign.spaceAfter(this, 8))
         setContentView(ScrollView(this).apply { addView(content) })
     }
 }

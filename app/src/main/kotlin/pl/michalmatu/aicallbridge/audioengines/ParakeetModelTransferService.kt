@@ -31,16 +31,23 @@ internal class ParakeetModelTransferService : Service() {
             downloader?.cancel()
             return START_NOT_STICKY
         }
-        if (intent?.action != START || status.busy) return START_NOT_STICKY
+        val verifying = intent?.action == VERIFY
+        if ((intent?.action != START && !verifying) || status.busy) return START_NOT_STICKY
         cancelRequested = false
-        startForeground(NOTIFICATION, notification(getString(R.string.ux07_parakeet_downloading)))
-        status = ParakeetTransferStatus(busy = true)
-        val transfer = ParakeetModelDownloader(this)
+        startForeground(NOTIFICATION, notification(getString(if (verifying)
+            R.string.ux08_parakeet_verifying else R.string.ux07_parakeet_downloading)))
+        status = ParakeetTransferStatus(busy = true, verifying = verifying)
+        val transfer = if (verifying) null else ParakeetModelDownloader(this)
         downloader = transfer
         executor.execute {
             val result = try {
                 if (cancelRequested) ParakeetModelDownloadResult.Failure("cancelled")
-                else transfer.download { read, _ ->
+                else if (verifying) {
+                    val candidate = ParakeetModelFile.resolve(this)
+                    if (ParakeetModelFile.validPinnedModel(candidate))
+                        ParakeetModelDownloadResult.Success
+                    else ParakeetModelDownloadResult.Failure("sha256_or_size_mismatch")
+                } else checkNotNull(transfer).download { read, _ ->
                     val previous = status
                     if (read - previous.bytes >= 4L * 1024 * 1024 ||
                         read == ParakeetModelFile.MIN_SIZE_BYTES) {
@@ -57,7 +64,9 @@ internal class ParakeetModelTransferService : Service() {
             status = when (result) {
                 ParakeetModelDownloadResult.Success ->
                     ParakeetTransferStatus(verified = true, bytes = ParakeetModelFile.MIN_SIZE_BYTES)
-                is ParakeetModelDownloadResult.Failure -> ParakeetTransferStatus(error = result.reason)
+                is ParakeetModelDownloadResult.Failure -> ParakeetTransferStatus(
+                    verificationFailed = verifying && result.reason == "sha256_or_size_mismatch",
+                    error = result.reason)
             }
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -82,6 +91,7 @@ internal class ParakeetModelTransferService : Service() {
 
     companion object {
         const val START = "download_parakeet_model"
+        const val VERIFY = "verify_parakeet_model"
         const val CANCEL = "cancel_parakeet_model"
         private const val CHANNEL = "parakeet_model_transfer"
         private const val NOTIFICATION = 1901
@@ -94,5 +104,7 @@ internal data class ParakeetTransferStatus(
     val busy: Boolean = false,
     val bytes: Long = 0,
     val verified: Boolean = false,
+    val verifying: Boolean = false,
+    val verificationFailed: Boolean = false,
     val error: String = "",
 )

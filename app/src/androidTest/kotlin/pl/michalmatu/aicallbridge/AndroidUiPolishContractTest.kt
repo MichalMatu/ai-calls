@@ -45,6 +45,9 @@ class AndroidUiPolishContractTest {
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("model-transfer-cancel")).visibility)
                 assertNotNull(root.findViewWithTag<View>("parakeet-transfer-card"))
                 assertNotNull(root.findViewWithTag<View>("parakeet-transfer-status"))
+                assertNotNull(root.findViewWithTag<View>("parakeet-transfer-download"))
+                assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(
+                    "parakeet-transfer-cancel")).visibility)
                 assertNotNull(root.findViewWithTag<View>("models-pipeline-summary"))
                 val cards = tagged(root, "model-card:")
                 assertTrue("catalog_is_empty", cards.isNotEmpty())
