@@ -66,6 +66,20 @@ internal class AndroidConversationPreparationStore(
         writeRecord("lab-dialog-cases-v1", Gson().toJson(library.validated()))
     }
 
+
+    /** Reports and private transcript evidence remain encrypted and excluded from backup. */
+    fun loadLabReports(): LabReportLibrary = synchronized(LOCK) {
+        val raw = readRecord("lab-dialog-reports-v1")
+            ?: return@synchronized LabReportLibrary()
+        requireNotNull(Gson().fromJson(raw, LabReportLibrary::class.java)) {
+            "lab_report_library_unreadable"
+        }
+    }
+
+    fun saveLabReports(library: LabReportLibrary) = synchronized(LOCK) {
+        writeRecord("lab-dialog-reports-v1", Gson().toJson(library))
+    }
+
     private data class ScenarioDraftRecord(
         val version: Int, val scenarioId: String, val values: Map<String, String>,
     )
