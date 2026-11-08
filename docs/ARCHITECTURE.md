@@ -1,5 +1,13 @@
 # AI Calls — architektura operacyjna
 
+## Laboratorium/telefonia przez prywatny USB/ADB — architektura 2026-11-08
+
+`UsbLabControlReceiver` jest odbiornikiem `BroadcastReceiver` chronionym `android.permission.DUMP` i flagą `FLAG_DEBUGGABLE`. Mac `ai_calls_usb_lab.py` zapisuje żądanie w katalogu aplikacji przez `adb shell run-as` i wysyła jedynie nonce przez `am broadcast`. Odpowiedź i opcjonalny transkrypt trafiają do prywatnego magazynu. Brak serwera HTTP/TCP, ogólnego RCE i publicznego eksportu danych.
+
+`UsbLabControl` deleguje sesje tekstowe do **istniejącego** `SkillLabRunner`/`AndroidSkillLabSessionFactory`; GUI i USB współdzielą procesową dzierżawę natywnego modelu (F-150). `AudioEngineProfileStore` i `IncomingAssistantSettingsController` pozostają właścicielami konfiguracji. Takeover/resume/exact-owned-stop przekazują działanie do istniejących, uprawnionych kontrolerów Call — bez globalnego rozłączania i dowolnego `place_call`. 4096 to domyślny Lab, 2048 to niezmieniony Call, 8192 wyłącznie jawny eksperyment.
+
+**Status:** pełny Mac gate 370 Python, Gradle/JVM, lint, app APK i AndroidTest build PASS; **nowy receiver/GUI-USB concurrency i interwencje Call na fizycznym S22 NOT_RUN**. [Pełny checkpoint](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md) · [instrukcja USB](USB_LAB_TELEPHONY_CHANNEL.md).
+
 ## Docelowe składanie produktu
 
 [PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) definiuje dalszy kierunek: wspólne moduły dla agenta zadań i sekretarki, osobne dane profilu/zadania, skillsy/instrukcje i archiwum, manual/AI/przejęcie oraz ciągły zapis i odtwarzanie całej sesji z odnośnikami czatu. Wydzielone obecnie pakiety nie są jeszcze kompletem niezależnych bibliotek Gradle. Recorder pełnej sesji ma być niezależny od okien VAD i cyklu inferencji; obecne archiwum tur nie spełnia jeszcze tego wymagania (F-080). Plan nie zmienia zamrożonego transportu ani statusu fizycznego QA.
