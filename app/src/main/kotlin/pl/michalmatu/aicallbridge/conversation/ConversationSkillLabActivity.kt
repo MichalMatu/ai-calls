@@ -342,7 +342,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         val existing = item?.selected()
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(20, 12, 20, 12)
+            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 20),
+                UiDesign.dp(this@ConversationSkillLabActivity, 12),
+                UiDesign.dp(this@ConversationSkillLabActivity, 20),
+                UiDesign.dp(this@ConversationSkillLabActivity, 12))
         }
         val inputs = linkedMapOf<String, EditText>()
         fun entry(key: String, label: Int, initial: String, single: Boolean = false) {
@@ -458,7 +461,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 "\n" + getString(R.string.lab_ui_output) + ": " + it.assistant
         }
         val text = TextView(this).apply {
-            setPadding(24, 24, 24, 24)
+            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 24),
+                UiDesign.dp(this@ConversationSkillLabActivity, 24),
+                UiDesign.dp(this@ConversationSkillLabActivity, 24),
+                UiDesign.dp(this@ConversationSkillLabActivity, 24))
             setTextIsSelectable(true)
             this.text = details
         }
