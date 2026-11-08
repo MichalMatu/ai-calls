@@ -1,5 +1,11 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## Aktualny checkpoint USB/ADB i Laboratorium (2026-11-08)
+
+**Kod przed dokumentacyjnym checkpointem: `main@af571f0`; aktualny HEAD sprawdź przy wznowieniu.** Nowy kanał USB do Lab i telefonii **SOURCE_PASS / MAC_QA_PASS** (370 Python, Gradle/JVM, AndroidTest build, lint, audio), ale **nowa APK na S22 NOT_INSTALLED/NOT_RUN**, a pozytywny test takeover/resume/exact STOP przez USB **NOT_RUN**. Sprzętowego zadania interwencji nie opublikowano z powodu blokady wykonania; nie używać obejścia. E2B 4096: **3×13 tur PASS technicznie**, human semantic **UNASSESSED**. E2B 8192 na S22 **NOT_RUN**. Rejestr: F-148 OPEN, F-149 VERIFIED (poprawka lint), F-150 FIXED_IN_SOURCE/HOST_PASS/DEVICE_OPEN.
+
+**Źródło prawdy:** [kompletny checkpoint](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md) · [USB Lab i telefonia](USB_LAB_TELEPHONY_CHANNEL.md) · [macierz odbioru](FUNCTIONAL_ACCEPTANCE_MATRIX.md). Starsze niżej wpisy mogą zawierać stan PENDING/NOT_RUN aktualny tylko w chwili danej próby; nie są najnowszą decyzją.
+
 **Zabezpieczenie współbieżności 2026-11-08:** `main@fdb003d` w `AndroidSkillLabSessionFactory` rezerwuje pojedynczy backend LiteRT dla GUI i USB; F-150 **HOST_PASS / DEVICE_QA_OPEN**, gate Mac `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **DONE/0** (370 Python, AndroidTest APK/lint). Odbiór S22 kanału nadal `NOT_RUN`. [Specyfikacja USB](USB_LAB_TELEPHONY_CHANNEL.md).
 
 ## USB/ADB — prywatny kanał Lab + telefonia (2026-11-08)
