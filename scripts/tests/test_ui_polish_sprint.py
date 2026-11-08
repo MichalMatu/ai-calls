@@ -40,6 +40,11 @@ class UiPolishSprintContract(unittest.TestCase):
             self.assertIn(token,prep)
         for token in ("UiDesign.card", 'tag = "engine-unavailable:"',
                       "AudioEngineReadinessProbe.check", "store.save(requested)",
-                      "cancelDownloadButton.visibility = View.GONE"):
+                      "previewVoice()"):
             self.assertIn(token,engine)
+        service=(ROOT/"audioengines/ParakeetModelTransferService.kt").read_text()
+        models=(ROOT/"textagent/LanguageModelActivity.kt").read_text()
+        self.assertIn("ParakeetModelDownloader(this)", service)
+        self.assertIn("startForegroundService(Intent(this, ParakeetModelTransferService::class.java)", models)
+        self.assertNotIn("downloadParakeet()", engine)
 if __name__=="__main__": unittest.main()

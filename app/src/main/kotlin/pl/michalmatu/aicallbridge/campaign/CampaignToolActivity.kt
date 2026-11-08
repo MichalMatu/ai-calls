@@ -35,6 +35,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 
 class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
+    override fun toolbarTitle(): String = getString(R.string.camp_ui_title)
     private lateinit var authorizationStore: CampaignAuthorizationStore
     private lateinit var runtimeStatusStore: CampaignRuntimeStatusStore
     private lateinit var statusView: TextView

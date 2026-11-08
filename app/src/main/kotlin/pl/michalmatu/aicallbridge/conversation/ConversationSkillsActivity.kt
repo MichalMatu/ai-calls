@@ -17,6 +17,7 @@ import pl.michalmatu.aicallbridge.R
 
 /** Edits prompt-only skills and revision-pinned presets. Never starts a call or changes a grant. */
 class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
+    override fun toolbarTitle(): String = getString(R.string.skills_ui_title)
     private fun visiblePresetName(preset: SkillPreset): String = if (!preset.isFactory) preset.name else when (preset.id) {
         "natural" -> getString(R.string.skills_ux05_default_natural)
         "formal" -> getString(R.string.skills_ux05_default_formal)
@@ -162,11 +163,36 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
             setOnClickListener {
                 val profile = store.load(ConversationPreparation.INCOMING_ID)
                     .withSkillSnapshot(library.snapshot())
-                AlertDialog.Builder(this@ConversationSkillsActivity).setTitle(library.active.name)
-                    .setMessage(ConversationInstructionBuilder.build(profile,
-                        "Przyjmij wiadomość dla właściciela telefonu.",
-                        ConversationResponseFormat.TOOL_REPLY))
-                    .setPositiveButton("OK", null).show()
+                val prompt = ConversationInstructionBuilder.build(profile,
+                    "Przyjmij wiadomość dla właściciela telefonu.",
+                    ConversationResponseFormat.TOOL_REPLY)
+                val preview = LinearLayout(this@ConversationSkillsActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    val inset = UiDesign.dp(this@ConversationSkillsActivity, 20)
+                    setPadding(inset, inset, inset, inset)
+                }
+                preview.addView(UiDesign.heading(this@ConversationSkillsActivity,
+                    visiblePresetName(library.active)).apply { textSize = 17f },
+                    UiDesign.spaceAfter(this@ConversationSkillsActivity, 8))
+                preview.addView(UiDesign.caption(this@ConversationSkillsActivity,
+                    getString(R.string.ux07_skills_preview_count,
+                        library.active.versions.size)).apply {
+                    textSize = 15f
+                    setTextColor(UiDesign.ink)
+                }, UiDesign.spaceAfter(this@ConversationSkillsActivity, 16))
+                preview.addView(UiDesign.heading(this@ConversationSkillsActivity,
+                    getString(R.string.ux07_skills_preview_prompt)).apply { textSize = 17f },
+                    UiDesign.spaceAfter(this@ConversationSkillsActivity, 8))
+                preview.addView(TextView(this@ConversationSkillsActivity).apply {
+                    text = prompt
+                    textSize = 14f
+                    setTextColor(UiDesign.secondary)
+                    setTextIsSelectable(true)
+                })
+                AlertDialog.Builder(this@ConversationSkillsActivity)
+                    .setTitle(getString(R.string.skills_ui_preview))
+                    .setView(ScrollView(this@ConversationSkillsActivity).apply { addView(preview) })
+                    .setPositiveButton(android.R.string.ok, null).show()
             }
         })
         content.addView(secondaryActions, UiDesign.spaceAfter(this, 14))
@@ -207,10 +233,20 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                     skillCard.addView(choice)
                 }
                 skillCard.addView(TextView(this).apply {
-                    text = skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions
+                    val complete = skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions
+                    text = complete
+                    contentDescription = complete
+                    tag = "skills-instructions:" + skill.id
                     textSize = 14f
                     setTextColor(UiDesign.secondary)
                     setLineSpacing(UiDesign.dp(this@ConversationSkillsActivity, 3).toFloat(), 1f)
+                    maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        maxLines = if (maxLines == 3) Int.MAX_VALUE else 3
+                    }
                     setPadding(UiDesign.dp(this@ConversationSkillsActivity, 8),
                         UiDesign.dp(this@ConversationSkillsActivity, 6),
                         UiDesign.dp(this@ConversationSkillsActivity, 8),

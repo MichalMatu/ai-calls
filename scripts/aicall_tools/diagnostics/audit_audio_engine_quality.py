@@ -35,6 +35,8 @@ def audit(root: Path) -> list[str]:
     }
     tts = read(BASE + "localspeech/LocalTtsSpeechOutput.kt")
     settings = read(AUDIO + "AudioEngineSettingsActivity.kt")
+    parakeet_service = read(AUDIO + "ParakeetModelTransferService.kt")
+    model_ui = read(BASE + "textagent/LanguageModelActivity.kt")
     native_tests = {
         name: read(
             "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/audioengines/"
@@ -112,8 +114,19 @@ def audit(root: Path) -> list[str]:
             "native-Piper-voice-marker")
     require("AudioEngineReadiness", files["AudioEngineReadiness"], r"tts_offline_voice_probe_required",
             "no-untested-offline-voice-readiness")
-    require("AudioEngineSettingsActivity", settings, r"ParakeetModelDownloader",
+    require("LanguageModelActivity", model_ui,
+            r"startForegroundService\(Intent\(this, ParakeetModelTransferService::class\.java\)",
             "user-triggered-Parakeet-download")
+    require("ParakeetModelTransferService", parakeet_service,
+            r"ParakeetModelDownloader\(this\)", "foreground-download-owner")
+    require("ParakeetModelTransferService", parakeet_service,
+            r"transfer\.download", "pinned-model-download-flow")
+    require("ParakeetModelTransferService", parakeet_service,
+            r"downloader\?\.cancel\(\)", "cancel-in-flight-transfer")
+    require("ParakeetModelTransferService", parakeet_service,
+            r"startForeground\(", "background-download-survival")
+    forbid("AudioEngineSettingsActivity", settings, r"ParakeetModelDownloader|downloadParakeet\(",
+           "duplicate-parakeet-controller")
 
     m4 = files["GemmaAudioDirectInputProvider"]
     require("GemmaAudioDirectInputProvider", m4, r"Content\.AudioBytes\(", "native-audio-bytes-path")

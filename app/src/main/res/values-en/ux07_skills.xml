@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux07_skills_preview_count">Active Skills: %1$d</string>
+    <string name="ux07_skills_preview_prompt">Generated AI instructions</string>
+</resources>

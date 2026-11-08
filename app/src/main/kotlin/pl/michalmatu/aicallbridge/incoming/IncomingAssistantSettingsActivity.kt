@@ -24,6 +24,7 @@ import pl.michalmatu.aicallbridge.ui.UiActionTone
 
 /** Displays incoming-call preferences; all store/Telecom effects live in the controller. */
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
+    override fun toolbarTitle(): String = getString(R.string.incoming_ui_title)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val controller = IncomingAssistantSettingsController(this)

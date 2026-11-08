@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux07_usb_phone">Telefon</string>
+    <string name="ux07_usb_campaign">Kampania</string>
+    <string name="ux07_usb_input">STT</string>
+    <string name="ux07_usb_dialogue">Model AI</string>
+    <string name="ux07_usb_output">Głos / TTS</string>
+    <string name="ux07_usb_recording">Nagrywanie</string>
+    <string name="ux07_usb_incoming">Sekretarka</string>
+</resources>

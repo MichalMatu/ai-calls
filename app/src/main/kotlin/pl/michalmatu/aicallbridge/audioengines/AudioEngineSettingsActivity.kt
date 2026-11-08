@@ -31,6 +31,7 @@ import java.util.Locale
  * Other engines stay visible but disabled until real adapters and on-device evidence exist.
  */
 class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
+    override fun toolbarTitle(): String = getString(R.string.eng_ui_title)
     private lateinit var store: AudioEngineProfileStore
     private lateinit var feedback: TextView
     private lateinit var active: TextView

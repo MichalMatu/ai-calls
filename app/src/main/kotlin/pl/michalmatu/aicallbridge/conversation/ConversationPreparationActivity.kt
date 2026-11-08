@@ -177,13 +177,36 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
         val secondaryActions = UiDesign.card(this).apply { tag = "preparation-secondary-actions" }
         secondaryActions.addView(UiDesign.action(this, getString(R.string.prep_ui_preview)) {
             val selected = selection()
+            val prompt = ConversationInstructionBuilder.build(
+                selected, "Cel pochodzi z konkretnego zlecenia rozmowy.",
+                if (selected.direction == ConversationDirection.INCOMING)
+                    ConversationResponseFormat.TOOL_REPLY else ConversationResponseFormat.SPOKEN_TEXT)
+            val panel = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val pad = UiDesign.dp(this@ConversationPreparationActivity, 20)
+                setPadding(pad, pad, pad, pad)
+            }
+            panel.addView(UiDesign.heading(this, getString(R.string.ux07_preview_scope)).apply {
+                textSize = 17f
+            }, UiDesign.spaceAfter(this, 8))
+            panel.addView(UiDesign.caption(this, getString(R.string.ux07_preview_count,
+                selected.skills.size, selected.dataFields.size)).apply {
+                textSize = 15f
+                setTextColor(UiDesign.ink)
+            }, UiDesign.spaceAfter(this, 16))
+            panel.addView(UiDesign.heading(this, getString(R.string.ux07_preview_prompt)).apply {
+                textSize = 17f
+            }, UiDesign.spaceAfter(this, 8))
+            panel.addView(TextView(this).apply {
+                text = prompt
+                textSize = 14f
+                setTextColor(UiDesign.secondary)
+                setTextIsSelectable(true)
+            })
             AlertDialog.Builder(this@ConversationPreparationActivity)
                 .setTitle(getString(R.string.prep_ui_preview_title))
-                .setMessage(ConversationInstructionBuilder.build(
-                    selected, "Cel pochodzi z konkretnego zlecenia rozmowy.",
-                    if (selected.direction == ConversationDirection.INCOMING)
-                        ConversationResponseFormat.TOOL_REPLY else ConversationResponseFormat.SPOKEN_TEXT))
-                .setPositiveButton("OK", null).show()
+                .setView(ScrollView(this).apply { addView(panel) })
+                .setPositiveButton(android.R.string.ok, null).show()
         }, UiDesign.spaceAfter(this, 12))
         secondaryActions.addView(UiDesign.action(this, getString(R.string.prep_ui_edit_phone)) {
             startActivity(Intent(this@ConversationPreparationActivity,

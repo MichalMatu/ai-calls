@@ -17,10 +17,11 @@ COPY = [
     AUDIO + name + ".kt" for name in (
         "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness", "DialogueEngineProviders",
         "AudioEngineProviders", "ParakeetSpeechInputProvider",
-        "ParakeetModelDownloader", "GemmaAudioDirectInputProvider",
-        "AudioEngineSettingsActivity",
+        "ParakeetModelDownloader", "ParakeetModelTransferService",
+        "GemmaAudioDirectInputProvider", "AudioEngineSettingsActivity",
     )
-] + [MAIN + "localspeech/LocalTtsSpeechOutput.kt"] + [
+] + [MAIN + "localspeech/LocalTtsSpeechOutput.kt",
+     MAIN + "textagent/LanguageModelActivity.kt"] + [
     TEST + name + ".kt" for name in (
         "AndroidAudioEngineProfileStoreContractTest",
         "AndroidAudioEngineSettingsActivityTest",
@@ -52,6 +53,14 @@ class AudioEngineQualityGateTest(unittest.TestCase):
                 any(expected in err for err in errors),
                 f"mutated source passed unexpectedly; errors={errors}",
             )
+
+    def test_parakeet_download_ui_must_use_foreground_service(self):
+        self.check_mutation(
+            MAIN + "textagent/LanguageModelActivity.kt",
+            "startForegroundService(Intent(this, ParakeetModelTransferService::class.java)",
+            "startService(Intent(this, ParakeetModelTransferService::class.java)",
+            "user-triggered-Parakeet-download",
+        )
 
     def test_unqualified_audio_direct_must_remain_unselectable(self):
         self.check_mutation(

@@ -16,6 +16,7 @@ import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 
 /** Config-only screen. UI selections delegate to the existing preference contract. */
 class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
+    override fun toolbarTitle(): String = getString(R.string.ui_basic)
     private lateinit var controller: GeneralSettingsController
     private lateinit var modePicker: Spinner
     private lateinit var llmPicker: Spinner

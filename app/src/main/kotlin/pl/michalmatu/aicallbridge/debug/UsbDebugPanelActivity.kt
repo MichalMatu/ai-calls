@@ -20,8 +20,9 @@ import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 
 /** Visible owner-facing entry for the same module used from Mac ADB. No second state store. */
 class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
+    override fun toolbarTitle(): String = getString(R.string.usb_ui_title)
     private lateinit var state: TextView
-    private lateinit var overview: TextView
+    private val statusValues = linkedMapOf<String, TextView>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,18 +42,43 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
 
         label(getString(R.string.usb_ui_title), 22f)
-        label(getString(R.string.usb_ui_description))
-        overview = TextView(this).apply {
-            textSize = 15f
-            setTextColor(UiDesign.ink)
-            setPadding(UiDesign.dp(this@UsbDebugPanelActivity, 14),
-                UiDesign.dp(this@UsbDebugPanelActivity, 14),
-                UiDesign.dp(this@UsbDebugPanelActivity, 14),
-                UiDesign.dp(this@UsbDebugPanelActivity, 14))
-            background = UiDesign.surfaceDrawable(this@UsbDebugPanelActivity)
+        val overview = UiDesign.card(this).apply {
             tag = "usb-status-summary"
         }
+        fun item(key: String, title: Int) {
+            val line = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, UiDesign.dp(this@UsbDebugPanelActivity, 7),
+                    0, UiDesign.dp(this@UsbDebugPanelActivity, 7))
+            }
+            line.addView(TextView(this).apply {
+                text = getString(title)
+                textSize = 14f
+                setTextColor(UiDesign.secondary)
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            val value = TextView(this).apply {
+                textSize = 15f
+                setTextColor(UiDesign.ink)
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                gravity = android.view.Gravity.END
+                tag = "usb-value:" + key
+            }
+            statusValues[key] = value
+            line.addView(value, LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            overview.addView(line)
+        }
+        item("phone", R.string.ux07_usb_phone)
+        item("campaign", R.string.ux07_usb_campaign)
+        item("input", R.string.ux07_usb_input)
+        item("dialogue", R.string.ux07_usb_dialogue)
+        item("output", R.string.ux07_usb_output)
+        item("recording", R.string.ux07_usb_recording)
+        item("incoming", R.string.ux07_usb_incoming)
+        /* Original overview used one long multi-line TextView. Kept data, not the string blob. */
         content.addView(overview, UiDesign.spaceAfter(this, 16))
+        content.addView(UiDesign.caption(this, getString(R.string.usb_ui_description)),
+            UiDesign.spaceAfter(this, 12))
         button(getString(R.string.usb_ui_refresh)) { refresh() }
         state = TextView(this).apply {
             textSize = 13f
@@ -98,13 +124,31 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 getString(R.string.usb_ui_inactive) else getString(R.string.usb_ui_running_or_unknown)
             val recording = if (data.optBoolean("recording_enabled"))
                 getString(R.string.usb_ui_enabled) else getString(R.string.usb_ui_disabled)
-            overview.text = getString(R.string.usb_ui_summary, phone, campaign,
-                data.optString("input", "UNKNOWN"), data.optString("dialogue", "UNKNOWN"),
-                data.optString("output", "UNKNOWN"), recording,
-                data.optString("incoming_mode", "UNAVAILABLE"))
+            fun status(key: String, text: String) {
+                statusValues[key]?.text = text
+            }
+            status("phone", phone)
+            status("campaign", campaign)
+            val input = data.optString("input", "UNKNOWN")
+            val dialogue = data.optString("dialogue", "UNKNOWN")
+            val output = data.optString("output", "UNKNOWN")
+            status("input", pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.inputs
+                .firstOrNull { it.id == input }?.title ?: input)
+            status("dialogue", pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.dialogues
+                .firstOrNull { it.id == dialogue }?.title ?: dialogue)
+            status("output", pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.outputs
+                .firstOrNull { it.id == output }?.title ?: output)
+            status("recording", recording)
+            status("incoming", when (data.optString("incoming_mode", "UNAVAILABLE")) {
+                "AI" -> getString(R.string.incoming_ui_mode_ai)
+                "MANUAL" -> getString(R.string.incoming_ui_mode_manual)
+                else -> getString(R.string.ux07_not_configured)
+            })
         }.onFailure {
             state.text = getString(R.string.usb_ui_read_failed)
-            overview.text = getString(R.string.usb_ui_read_failed)
+            statusValues.values.forEach {
+                it.text = getString(R.string.usb_ui_read_failed)
+            }
         }
     }
 }

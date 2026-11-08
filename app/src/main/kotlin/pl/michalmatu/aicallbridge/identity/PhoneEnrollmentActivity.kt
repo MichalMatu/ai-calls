@@ -18,6 +18,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 class PhoneEnrollmentActivity : UiChromeActivity(AppTab.AGENT) {
+    override fun toolbarTitle(): String = getString(R.string.phone_ui_title)
     private lateinit var phoneInput: EditText
     private lateinit var statusView: TextView
 

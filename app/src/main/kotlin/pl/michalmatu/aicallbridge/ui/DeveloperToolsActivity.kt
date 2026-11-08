@@ -10,6 +10,7 @@ import pl.michalmatu.aicallbridge.R
 
 /** Existing diagnostic actions, relocated without changing their callbacks. */
 class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
+    override fun toolbarTitle(): String = getString(R.string.ui_settings_hub_developer)
     private lateinit var probes: MainActivityDeveloperProbes
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -7,3 +7,11 @@
 **Dowody:** bazowy `main@5ecf44a` Mac PASS 341/341 Python. Nowy `c51333d` Mac `aicalls-ux07-six-tab-source-host-20261108-v1`: **Kotlin/AndroidTest compile PASS; full verify_host RED (8 starych oczekiwań na poprzednie cztery zakładki / ekran Settings)**, bez dowodu błędu runtime. Aktualizacje testów i dalszy pakiet kodu wymagają **kolejnego pełnego Mac QA**. Nie ogłaszać PASS przed nowym terminalnym wynikiem.
 
 **Granice:** zero CALL, STOP, rzeczywistego nagrywania lub 615 MB pobierania w czasie audytu; S22 nieinstalowany i nietestowany dla nowych commitów; dane w sejfie i ich zgody pozostają lokalne. Bez dotykania Shizuku PCM/PFD, Telecom ani autoryzacji. Wznowienie: sprawdzić świeży main, latest Mac receipt, następnie bezpiecznie zainstalować APP+TEST na S22 bez wipe i wykonać 6-tab navigation + karty + screenshot matrix (tylko jeśli telefon IDLE), potem wizualny odbiór; test download wymaga osobnej świadomej akcji. Otwarte: pełna data-first prezentacja surowej diagnostyki (F-131) i ręczny TalkBack.
+
+
+## Data-first UX refinement (2026-11-08; not yet hardware accepted)
+
+- USB: stany parsowane do 7 czytelnych pól (telefon, kampania, STT, AI, TTS, recording, incoming); raw JSON dostępny wyłącznie w rozwijanej sekcji. Bez migracji stanu czy logowania danych.
+- Podglądy Agent AI: scenariusz jako lista etykiet i wartości, przygotowanie jako liczby Skills i pól + pełny skrypt w przewijalnym obszarze, Skills zwinięte do trzech wierszy i otwierane dotykiem, bez utraty pełnej treści ani rewizji.
+- Nagłówki podstron: własny tytuł (np. Kampanie, Skills, STT/TTS) zamiast nagłówka zakładki.
+- Mac gate `aicalls-ux07-six-tabs-parakeet-final-host-20261108-v1` dla `60aa75d`: Kotlin/AndroidTest compile **PASS**, Python 341: **3 stare kontrakty strukturalne RED**, bo szukały Parakeet download w dawnej Activity; zmieniony audyt sprawdza właściwą usługę foreground, wywołanie z zakładki Modele i cancel guard. Final QA na nowym HEAD wymagane. Na S22 nie uruchomiono żadnego połączenia ani pobrania modelu.

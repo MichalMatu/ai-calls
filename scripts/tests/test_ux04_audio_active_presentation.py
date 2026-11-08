@@ -11,9 +11,13 @@ class AudioActivePresentationBoundaryTest(unittest.TestCase):
         self.assertIn("AudioEngineActiveState.Invalid", activity)
         self.assertIn("R.string.eng_ui_summary", activity)
         for owner in ("store.save(requested)", "store.save(AudioEngineProfile.STABLE)",
-                      "AudioEngineReadinessProbe.check", "ParakeetModelDownloader(this)",
-                      "TextToSpeech(this", "previewVoice()", "getSystemService(TelecomManager::class.java)"):
+                      "AudioEngineReadinessProbe.check", "TextToSpeech(this", "previewVoice()",
+                      "getSystemService(TelecomManager::class.java)"):
             self.assertIn(owner, activity)
+        service = (ROOT / "ParakeetModelTransferService.kt").read_text()
+        self.assertIn("ParakeetModelDownloader(this)", service)
+        self.assertIn("startForeground(", service)
+        self.assertNotIn("ParakeetModelDownloader(this)", activity)
 
     def test_summary_is_readonly_without_android_or_effects(self):
         presenter = (ROOT / "AudioEngineActiveProfilePresenter.kt").read_text()

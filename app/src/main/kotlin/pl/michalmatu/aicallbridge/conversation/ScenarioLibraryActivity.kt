@@ -321,12 +321,31 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
             val goal = personalGoal?.text?.toString() ?: definition.goal(language)
             val fields = definition.fields.mapNotNull { field ->
                 next.values[field.id]?.trim()?.takeIf(String::isNotBlank)
-                    ?.let { field.title(language) + ": " + it }
+                    ?.let { field.title(language) to it }
             }
+            val panel = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val pad = UiDesign.dp(this@ScenarioLibraryActivity, 20)
+                setPadding(pad, pad, pad, pad)
+            }
+            fun fieldRow(label: String, value: String) {
+                panel.addView(UiDesign.caption(this, label), UiDesign.spaceAfter(this, 5))
+                panel.addView(TextView(this).apply {
+                    text = value
+                    textSize = 16f
+                    setTextColor(UiDesign.ink)
+                    setTextIsSelectable(true)
+                }, UiDesign.spaceAfter(this, 14))
+            }
+            if (warning.isNotBlank()) panel.addView(UiDesign.caption(this, warning.trim()).apply {
+                setTextColor(UiDesign.danger)
+            }, UiDesign.spaceAfter(this, 14))
+            fieldRow(getString(R.string.scenario_ui_goal), goal)
+            fields.forEach { (name, value) -> fieldRow(name, value) }
+            panel.addView(UiDesign.caption(this, getString(R.string.scenario_ui_preview_note)))
             AlertDialog.Builder(this)
                 .setTitle(personalTitle?.text?.toString() ?: definition.title(language))
-                .setMessage(warning + (listOf(goal) + fields).joinToString("\n") + "\n\n" +
-                    getString(R.string.scenario_ui_preview_note))
+                .setView(ScrollView(this).apply { addView(panel) })
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
         }, UiDesign.spaceAfter(this, 12))

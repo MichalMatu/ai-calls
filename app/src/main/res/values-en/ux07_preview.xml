@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux07_preview_scope">Data and scope</string>
+    <string name="ux07_preview_prompt">Generated AI prompt</string>
+    <string name="ux07_preview_count">Skills: %1$d · data fields: %2$d</string>
+</resources>

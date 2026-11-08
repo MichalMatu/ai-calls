@@ -16,6 +16,7 @@ import pl.michalmatu.aicallbridge.ui.UiActionTone
 
 /** Presentation and user interactions only; capability checks remain in app-owned policy. */
 class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
+    override fun toolbarTitle(): String = getString(R.string.tools_ui_title)
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var status: TextView
     private lateinit var controller: ConversationToolsSettingsController
