@@ -41,6 +41,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var naturalness: Spinner
     private lateinit var manualInput: EditText
     private lateinit var sendButton: Button
+    private lateinit var adaptiveButton: Button
     private lateinit var sessionFactory: AndroidSkillLabSessionFactory
     private lateinit var modelLabel: TextView
     private lateinit var casePicker: Spinner
@@ -107,6 +108,20 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 manualInput.setText(test.opening)
         }.apply { tag = "lab-start" }
         content.addView(runButton, UiDesign.spaceAfter(this, 8))
+        adaptiveButton = UiDesign.action(this, getString(R.string.lab_adaptive_start)) {
+            val chosen = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)
+            if (chosen == null) {
+                showError(getString(R.string.lab_adaptive_select_case))
+            } else {
+                val preset = presets.getOrNull(picker.selectedItemPosition)
+                if (preset != null) {
+                    sessionFactory.selectedCase = chosen.selected()
+                    runCatching { runner.startAdaptive(preset.id, chosen.selected()) }
+                        .onFailure { showError(it.message.orEmpty()) }
+                }
+            }
+        }.apply { tag = "lab-adaptive-start" }
+        content.addView(adaptiveButton, UiDesign.spaceAfter(this, 8))
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
             stopLab()
         }.apply { visibility = View.GONE; tag = "lab-stop" }
@@ -426,6 +441,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         progress.contentDescription = getString(R.string.lab_ui_progress,
             next.completed.size, next.totalTurns)
         runButton.isEnabled = next.manualStartAllowed
+        adaptiveButton.isEnabled = next.manualStartAllowed
         runButton.visibility = View.VISIBLE
         sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY
         manualInput.isEnabled = next.phase == SkillLabPhase.INPUT_READY

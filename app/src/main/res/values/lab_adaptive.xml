@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="lab_adaptive_start">Uruchom rozmówcę adaptacyjnego</string>
+<string name="lab_adaptive_select_case">Najpierw wybierz zapisany przypadek testowy.</string>
+</resources>

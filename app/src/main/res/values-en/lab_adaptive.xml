@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="lab_adaptive_start">Run adaptive interlocutor</string>
+<string name="lab_adaptive_select_case">Select a saved test case first.</string>
+</resources>
