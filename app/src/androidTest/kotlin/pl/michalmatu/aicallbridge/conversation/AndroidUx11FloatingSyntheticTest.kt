@@ -45,11 +45,21 @@ class AndroidUx11FloatingSyntheticTest {
                     assertTrue(icon.performClick())
                     val panel = requireNotNull(root.findViewWithTag<View>("conversation-floating-panel"))
                     assertTrue(panel.isShown)
+                }
+                // GONE -> VISIBLE requests a fresh layout; measure after the UI frame,
+                // not in the same main-thread callback as performClick().
+                instrument.waitForIdleSync()
+                Thread.sleep(260)
+                scene.onActivity { activity ->
+                    val root = activity.window.decorView
+                    val panel = requireNotNull(root.findViewWithTag<View>("conversation-floating-panel"))
                     val host = requireNotNull(root.findViewWithTag<View>(
                         if (capture) "home-conversation-floating-overlay" else
                             "campaign-conversation-floating-overlay"))
-                    assertTrue(panel.height > host.height * 0.75)
-                    assertTrue(panel.height < host.height * 0.90)
+                    assertTrue("panel_geometry=${panel.height}/${host.height}",
+                        panel.height > host.height * 0.75)
+                    assertTrue("panel_geometry=${panel.height}/${host.height}",
+                        panel.height < host.height * 0.90)
                 }
                 ConversationChatFeed.replied(begin, 1,
                     "Synthetic local test: assistant response.")
