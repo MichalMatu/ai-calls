@@ -48,6 +48,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private var activeReportId: String? = null
     private var activeCaseId: String? = null
     private var activeCaseVersion: Int? = null
+    private var activeCaseReference: LabCaseRevision? = null
     private var activePreset: String = ""
     private var activeModel: String = ""
     private var reportSaved = false
@@ -412,6 +413,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         reportSaved = false
         activeCaseId = chosen?.id
         activeCaseVersion = test?.revision
+        activeCaseReference = test
         activePreset = presetId
         activeModel = runCatching {
             AudioEngineProfileStore(this).load()?.dialogue?.name
@@ -426,7 +428,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         val id = activeReportId ?: return
         runCatching {
             val report = LabDialogueReport.fromSnapshot(activeCaseId, activeCaseVersion,
-                activeModel, activePreset, state, id)
+                activeModel, activePreset, state, id, activeCaseReference)
             val store = caseStore()
             store.saveLabReports(store.loadLabReports().add(report))
             report

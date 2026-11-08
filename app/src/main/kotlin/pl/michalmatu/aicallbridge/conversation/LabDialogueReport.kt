@@ -33,6 +33,10 @@ internal data class LabDialogueReport(
     val branches: List<LabAdaptiveTrace>,
     val reviews: List<LabReviewEvidence>,
     val stopped: Boolean,
+    val goal: String = "",
+    val referenceFacts: String = "",
+    val expectedBehaviors: String = "",
+    val completionCriterion: String = "",
 ) {
     fun meanLatency(): Long = if (turns.isEmpty()) 0 else turns.sumOf { it.latencyMs } / turns.size
 
@@ -60,7 +64,10 @@ internal data class LabDialogueReport(
                 (result?.turn?.let { " [turn " + it + "]" } ?: "") +
                 (result?.note?.let { " " + it } ?: "")
         }
-        return base + "\nAdaptive decisions:\n" + decisions +
+        return base + "\nGoal: " + goal + "\nReference facts: " +
+            referenceFacts + "\nExpected behaviors: " + expectedBehaviors +
+            "\nCompletion criterion: " + completionCriterion +
+            "\nAdaptive decisions:\n" + decisions +
             "\nSemantic review (unassessed until evidence is entered):\n" + rubric
     }
 
@@ -68,6 +75,7 @@ internal data class LabDialogueReport(
         fun fromSnapshot(
             testId: String?, revision: Int?, modelId: String, presetId: String,
             state: SkillLabUiState, id: String = UUID.randomUUID().toString(),
+            reference: LabCaseRevision? = null,
         ): LabDialogueReport {
             val turns = state.completed.map {
                 LabReportTurn(it.pending.turnIndex, it.pending.utterance,
@@ -76,7 +84,9 @@ internal data class LabDialogueReport(
             return LabDialogueReport(id, testId, revision, modelId, presetId, turns,
                 state.adaptiveTrace.toList(), LabReviewDimension.entries.map {
                     LabReviewEvidence(it, LabReviewVerdict.UNASSESSED, null, "")
-                }, state.phase == SkillLabPhase.STOPPED)
+                }, state.phase == SkillLabPhase.STOPPED,
+                reference?.goal.orEmpty(), reference?.facts.orEmpty(),
+                reference?.expectations.orEmpty(), reference?.completion.orEmpty())
         }
     }
 }
