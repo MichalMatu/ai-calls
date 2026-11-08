@@ -1,5 +1,11 @@
 # Security and privacy
 
+## Prywatny kanał USB/ADB — granice uprawnień (2026-11-08)
+
+`UsbLabControlReceiver` jest aktywny tylko dla debugowalnego wariantu i wymaga `android.permission.DUMP`; treść wiadomości trafia przez `run-as` do prywatnego pliku, a `am broadcast` zawiera jedynie nonce. Standardowe logi i wyniki Local Agenta nie otrzymują transkryptów, danych IdentityVault ani audio. `READ_PHONE_STATE` jest sprawdzany przed odczytem stanu Telecom (F-149 VERIFIED jako poprawka kodu/lint).
+
+Interwencja nie tworzy nowej zgody ani prawa wyboru numeru: takeover, resume i exact-owned-stop używają dotychczasowych kontrolerów i własności Call. Dzierżawa jednego modelu GUI/USB ogranicza ryzyko podwójnej alokacji LiteRT (F-150 HOST_PASS, DEVICE_QA_OPEN). **Fizyczny test nowego kanału i dodatnie interwencje Call nie zostały wykonane.** [Checkpoint](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
+
 **Bieżąca faza — decyzja właściciela 2026-11-05:** modułowe laboratorium porównań STT/model/strategia/instrukcje/TTS i scenariuszy; docelowy flow powstaje później ze sprawdzonych części. [Zakres i architektura laboratorium](TEST_LAB_SCOPE.md). Poniższe zasady zadania, danych, skutków i własności Call dotyczą rzeczywistego wykonania także w aplikacji testowej.
 
 
