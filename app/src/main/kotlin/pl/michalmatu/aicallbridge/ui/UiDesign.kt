@@ -92,6 +92,7 @@ internal object UiDesign {
     fun card(context: Context, inset: Int = 16): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            setTag(pl.michalmatu.aicallbridge.R.id.ai_calls_ui_card_marker, true)
             background = surfaceDrawable(context, surface, 16)
             setPadding(dp(context, inset), dp(context, inset),
                 dp(context, inset), dp(context, inset))

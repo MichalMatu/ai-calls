@@ -17,7 +17,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 
-class PhoneEnrollmentActivity : UiChromeActivity(AppTab.SETTINGS) {
+class PhoneEnrollmentActivity : UiChromeActivity(AppTab.AGENT) {
     private lateinit var phoneInput: EditText
     private lateinit var statusView: TextView
 

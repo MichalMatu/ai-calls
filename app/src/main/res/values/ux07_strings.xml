@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_tab_agent">Agent AI</string>
+    <string name="ui_tab_models">Modele</string>
+    <string name="ui_nav_lab">Lab</string>
+    <string name="ui_nav_options">Opcje</string>
+    <string name="ux07_agent_title">Agent AI</string>
+    <string name="ux07_agent_subtitle">Charakter, zadania i dane dostępne AI</string>
+    <string name="ux07_agent_skills">Charakter i Skills</string>
+    <string name="ux07_agent_scenarios">Scenariusze i skrypty</string>
+    <string name="ux07_agent_preparation">Profile i zakres danych</string>
+    <string name="ux07_agent_vault">Sejf danych</string>
+    <string name="ux07_agent_tools">Uprawnienia narzędzi</string>
+    <string name="ux07_agent_active_preset">Aktywny: %1$s · %2$d Skills</string>
+    <string name="ux07_agent_scenario_count">%1$d szablonów · %2$d własnych</string>
+    <string name="ux07_agent_profile_count">%1$d pól danych · %2$d umiejętności</string>
+    <string name="ux07_agent_vault_status">Dane prywatne · lokalny sejf</string>
+    <string name="ux07_agent_tools_count">Włączone narzędzia: %1$d</string>
+    <string name="ux07_agent_load_error">Nie można odczytać stanu · sprawdź dane w edytorze</string>
+    <string name="ux07_models_pipeline_title">Wejście i wyjście audio</string>
+    <string name="ux07_models_pipeline_status">STT: %1$s    ·    TTS: %2$s</string>
+    <string name="ux07_models_edit_audio">Zmień STT / TTS i głos</string>
+    <string name="ux07_models_edit_runtime">Tryb rozmowy i dostawca AI</string>
+    <string name="ux07_models_selected_heading">Model językowy</string>
+    <string name="ux07_not_configured">Nie wybrano</string>
+</resources>

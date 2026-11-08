@@ -16,13 +16,16 @@ import pl.michalmatu.aicallbridge.MainActivity
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
+import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 
 /** One stable navigation contract. Presentation never starts a call or changes authorization. */
-enum class AppTab(val title: Int, val image: Int) {
+enum class AppTab(val title: Int, val image: Int, val compactTitle: Int = title) {
     HOME(R.string.ui_tab_home, R.drawable.ic_aicalls_home),
     HISTORY(R.string.ui_tab_history, R.drawable.ic_aicalls_history),
-    LAB(R.string.ui_tab_lab, R.drawable.ic_aicalls_lab),
-    SETTINGS(R.string.ui_tab_settings, R.drawable.ic_aicalls_settings),
+    AGENT(R.string.ui_tab_agent, R.drawable.ic_aicalls_agent),
+    LAB(R.string.ui_tab_lab, R.drawable.ic_aicalls_lab, R.string.ui_nav_lab),
+    MODELS(R.string.ui_tab_models, R.drawable.ic_aicalls_models),
+    SETTINGS(R.string.ui_tab_settings, R.drawable.ic_aicalls_settings, R.string.ui_nav_options),
 }
 
 internal object AppNavigation {
@@ -30,7 +33,9 @@ internal object AppNavigation {
         val destination: Class<out Activity> = when (tab) {
             AppTab.HOME -> MainActivity::class.java
             AppTab.HISTORY -> ConversationHistoryActivity::class.java
+            AppTab.AGENT -> AgentAiHubActivity::class.java
             AppTab.LAB -> ConversationSkillLabActivity::class.java
+            AppTab.MODELS -> LanguageModelActivity::class.java
             AppTab.SETTINGS -> SettingsHubActivity::class.java
         }
         if (activity.javaClass == destination) return
@@ -45,9 +50,8 @@ internal object AppNavigation {
         gravity = Gravity.CENTER
         setBackgroundColor(UiDesign.surface)
         elevation = 0f
-        val density = activity.resources.displayMetrics.density
-        setPadding(UiDesign.dp(activity, 6), UiDesign.dp(activity, 4),
-            UiDesign.dp(activity, 6), UiDesign.dp(activity, 4))
+        setPadding(UiDesign.dp(activity, 2), UiDesign.dp(activity, 4),
+            UiDesign.dp(activity, 2), UiDesign.dp(activity, 4))
         for (tab in AppTab.entries) {
             val selected = tab == active
             val labelColor = if (selected) Color.rgb(22, 83, 160) else UiDesign.secondary
@@ -75,9 +79,10 @@ internal object AppNavigation {
             item.addView(icon, LinearLayout.LayoutParams(
                 UiDesign.dp(activity, 24), UiDesign.dp(activity, 24)))
             item.addView(TextView(activity).apply {
-                text = activity.getString(tab.title)
+                text = activity.getString(tab.compactTitle)
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                textSize = 11f
+                textSize = 10f
+                maxLines = 1
                 setTextColor(labelColor)
                 gravity = Gravity.CENTER
                 setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
@@ -86,7 +91,7 @@ internal object AppNavigation {
             ).apply { topMargin = UiDesign.dp(activity, 3) })
             addView(item, LinearLayout.LayoutParams(
                 0, UiDesign.dp(activity, 62), 1f
-            ).apply { marginStart = UiDesign.dp(activity, 2); marginEnd = UiDesign.dp(activity, 2) })
+            ).apply { marginStart = UiDesign.dp(activity, 1); marginEnd = UiDesign.dp(activity, 1) })
         }
     }
 
@@ -119,7 +124,7 @@ internal object AppNavigation {
         addView(back, LinearLayout.LayoutParams(
             UiDesign.dp(activity, 48), UiDesign.dp(activity, 48)))
         addView(TextView(activity).apply {
-            text = activity.getString(active.title)
+            text = (activity as? UiChromeActivity)?.toolbarTitle() ?: activity.getString(active.title)
             if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true
             textSize = 15f
             setTypeface(null, Typeface.BOLD)
@@ -143,7 +148,7 @@ internal object AppNavigation {
                 }
                 insets
             }
-            if (activity is UiChromeActivity) addView(childToolbar(activity, active))
+            if (activity is UiChromeActivity && !activity.isPrimaryTabScreen()) addView(childToolbar(activity, active))
             addView(body, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             addView(bar(activity, active))

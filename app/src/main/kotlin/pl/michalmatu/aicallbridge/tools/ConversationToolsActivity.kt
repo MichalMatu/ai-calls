@@ -15,7 +15,7 @@ import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 
 /** Presentation and user interactions only; capability checks remain in app-owned policy. */
-class ConversationToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
+class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var status: TextView
     private lateinit var controller: ConversationToolsSettingsController

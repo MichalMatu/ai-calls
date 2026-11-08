@@ -16,7 +16,7 @@ import android.view.View
 import pl.michalmatu.aicallbridge.R
 
 /** Edits prompt-only skills and revision-pinned presets. Never starts a call or changes a grant. */
-class ConversationSkillsActivity : UiChromeActivity(AppTab.SETTINGS) {
+class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
     private fun visiblePresetName(preset: SkillPreset): String = if (!preset.isFactory) preset.name else when (preset.id) {
         "natural" -> getString(R.string.skills_ux05_default_natural)
         "formal" -> getString(R.string.skills_ux05_default_formal)

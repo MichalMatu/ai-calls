@@ -22,7 +22,7 @@ import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiSelect
 
 /** Local preparation only. Drafts do not create grants, dial, or confirm outside effects. */
-class ScenarioLibraryActivity : UiChromeActivity(AppTab.HOME) {
+class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
     private lateinit var store: AndroidConversationPreparationStore
     private var selectedId: String? = null
     private var selectedPersonalId: String? = null

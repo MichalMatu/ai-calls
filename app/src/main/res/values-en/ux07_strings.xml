@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_tab_agent">AI Agent</string>
+    <string name="ui_tab_models">Models</string>
+    <string name="ui_nav_lab">Lab</string>
+    <string name="ui_nav_options">Options</string>
+    <string name="ux07_agent_title">AI Agent</string>
+    <string name="ux07_agent_subtitle">Personality, tasks, and AI-accessible data</string>
+    <string name="ux07_agent_skills">Personality and Skills</string>
+    <string name="ux07_agent_scenarios">Scenarios and scripts</string>
+    <string name="ux07_agent_preparation">Profiles and data scope</string>
+    <string name="ux07_agent_vault">Data vault</string>
+    <string name="ux07_agent_tools">Tool permissions</string>
+    <string name="ux07_agent_active_preset">Active: %1$s · %2$d Skills</string>
+    <string name="ux07_agent_scenario_count">%1$d templates · %2$d custom</string>
+    <string name="ux07_agent_profile_count">%1$d data fields · %2$d skills</string>
+    <string name="ux07_agent_vault_status">Private data · local vault</string>
+    <string name="ux07_agent_tools_count">Enabled tools: %1$d</string>
+    <string name="ux07_agent_load_error">Status unavailable · inspect in editor</string>
+    <string name="ux07_models_pipeline_title">Speech input and output</string>
+    <string name="ux07_models_pipeline_status">STT: %1$s    ·    TTS: %2$s</string>
+    <string name="ux07_models_edit_audio">Change STT / TTS and voice</string>
+    <string name="ux07_models_edit_runtime">Call mode and AI provider</string>
+    <string name="ux07_models_selected_heading">Dialogue model</string>
+    <string name="ux07_not_configured">Not configured</string>
+</resources>

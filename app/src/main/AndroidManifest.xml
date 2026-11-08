@@ -60,6 +60,7 @@
         </activity>
 
         <activity android:name=".ui.SettingsHubActivity" android:exported="false" />
+        <activity android:name=".ui.AgentAiHubActivity" android:exported="false" />
         <activity android:name=".ui.GeneralSettingsActivity" android:exported="false" />
         <activity android:name=".ui.DeveloperToolsActivity" android:exported="false" />
 

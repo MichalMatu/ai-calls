@@ -30,21 +30,19 @@ import java.util.Locale
  * Separate configuration-only surface. Never grants a campaign, starts audio capture or places calls.
  * Other engines stay visible but disabled until real adapters and on-device evidence exist.
  */
-class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
+class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
     private lateinit var store: AudioEngineProfileStore
     private lateinit var feedback: TextView
     private lateinit var active: TextView
     private lateinit var voicePicker: Spinner
     private lateinit var cancelDownloadButton: Button
     private lateinit var inputGroup: RadioGroup
-    private lateinit var dialogueGroup: RadioGroup
     private lateinit var outputGroup: RadioGroup
     private var tts: TextToSpeech? = null
     private var parakeetDownloader: ParakeetModelDownloader? = null
     private var probedVoices: Set<String>? = null
     private var probedOutput: SpeechOutputId? = null
     private var voiceNames: List<String> = emptyList()
-    private var lastStoredDialogue: DialogueModelId? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +52,6 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             setPadding(UiDesign.dp(this@AudioEngineSettingsActivity, 20), UiDesign.dp(this@AudioEngineSettingsActivity, 20), UiDesign.dp(this@AudioEngineSettingsActivity, 20), UiDesign.dp(this@AudioEngineSettingsActivity, 28))
         }
         val current = store.load()
-        lastStoredDialogue = current?.dialogue
         fun label(value: String, large: Boolean = false): TextView =
             TextView(this).apply {
                 text = value
@@ -123,8 +120,13 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         inputGroup = section(getString(R.string.eng_ui_input), AudioEngineRegistry.inputs,
             current?.input?.name ?: "ANDROID_STT")
-        dialogueGroup = section(getString(R.string.eng_ui_dialogue), AudioEngineRegistry.dialogues,
-            current?.dialogue?.name ?: "GEMMA_4_E2B")
+        content.addView(UiDesign.heading(this, getString(R.string.ux07_models_selected_heading)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 6))
+        content.addView(UiDesign.caption(this,
+            pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[
+                current?.dialogue ?: AudioEngineProfile.STABLE.dialogue].title
+        ).apply { textSize = 15f; setTextColor(UiDesign.ink) }, UiDesign.spaceAfter(this, 8))
         content.addView(Button(this).apply {
             UiDesign.styleAction(this, UiActionTone.SECONDARY)
             text = getString(R.string.eng_ui_models)
@@ -223,7 +225,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }.first { it.isChecked }.tag as String
         return AudioEngineProfile(
             input = SpeechInputId.valueOf(selected(inputGroup)),
-            dialogue = DialogueModelId.valueOf(selected(dialogueGroup)),
+            dialogue = store.load()?.dialogue ?: AudioEngineProfile.STABLE.dialogue,
             output = SpeechOutputId.valueOf(selected(outputGroup)),
             voiceId = selectedVoice(),
         )
@@ -371,14 +373,6 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onResume() {
         super.onResume()
-        val selected = store.load()?.dialogue
-        if (selected != null && selected != lastStoredDialogue) {
-            for (index in 0 until dialogueGroup.childCount) {
-                val radio = dialogueGroup.getChildAt(index) as? RadioButton ?: continue
-                if (radio.tag == selected.name) dialogueGroup.check(radio.id)
-            }
-        }
-        lastStoredDialogue = selected
         refreshActive()
     }
 

@@ -20,12 +20,15 @@ import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
+import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
 
 /**
  * Local-only model management. Cards present the current state first and show only
  * actions which are currently meaningful. Original transfer and selection gates stay intact.
  */
-internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
+internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
+    override fun isPrimaryTabScreen() = true
     /** Read-only localization of stable model catalog descriptions. */
     private fun localizedModelDetail(model: LanguageModelEntry): String = getString(when (model.id.name) {
         "GEMMA_4_E2B" -> R.string.models_ux05_detail_e2b
@@ -83,6 +86,28 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }.apply { tag = "model-transfer-cancel"; visibility = View.GONE }
         content.addView(cancelTransfer, UiDesign.spaceAfter(this, 12))
 
+        val pipeline = UiDesign.card(this).apply {
+            tag = "models-pipeline-summary"
+            val profile = AudioEngineProfileStore(this@LanguageModelActivity).load()
+            addView(UiDesign.heading(this@LanguageModelActivity,
+                getString(R.string.ux07_models_pipeline_title)).apply { textSize = 17f },
+                UiDesign.spaceAfter(this@LanguageModelActivity, 6))
+            addView(UiDesign.caption(this@LanguageModelActivity,
+                getString(R.string.ux07_models_pipeline_status,
+                    profile?.input?.name ?: getString(R.string.ux07_not_configured),
+                    profile?.output?.name ?: getString(R.string.ux07_not_configured))
+            ).apply { textSize = 15f; setTextColor(UiDesign.ink) },
+                UiDesign.spaceAfter(this@LanguageModelActivity, 12))
+            addView(UiDesign.action(this@LanguageModelActivity,
+                getString(R.string.ux07_models_edit_audio)) {
+                startActivity(Intent(this@LanguageModelActivity, AudioEngineSettingsActivity::class.java))
+            }, UiDesign.spaceAfter(this@LanguageModelActivity, 8))
+            addView(UiDesign.action(this@LanguageModelActivity,
+                getString(R.string.ux07_models_edit_runtime)) {
+                startActivity(Intent(this@LanguageModelActivity, GeneralSettingsActivity::class.java))
+            })
+        }
+        content.addView(pipeline, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
         for (model in LanguageModelCatalog.entries) {
             val card = UiDesign.card(this).apply {
                 tag = "model-card:" + model.id.name
@@ -208,6 +233,9 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 LanguageModelMeaning.READY -> R.string.models_ui_ready
                 LanguageModelMeaning.NOT_INSTALLED -> R.string.models_ui_not_installed
             })
+            row.state.text = row.state.text.toString() + "  ·  " +
+                (checkNotNull(row.model.spec.expectedBytes) / 1_000_000L) + " MB"
+            row.state.textSize = 15f
             row.state.setTextColor(if (isActive) UiDesign.primary else UiDesign.secondary)
             row.state.setTypeface(null, if (isActive) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
             row.card.background = UiDesign.surfaceDrawable(this, if (isActive) UiDesign.softAccent else UiDesign.surface, 16)

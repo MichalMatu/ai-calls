@@ -22,7 +22,7 @@ import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 
 /** Editing one preparation profile never authorizes or starts a phone call. */
-class ConversationPreparationActivity : UiChromeActivity(AppTab.SETTINGS) {
+class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
     private lateinit var store: AndroidConversationPreparationStore
     private var profileId = ConversationPreparation.OUTGOING_ID
     private lateinit var notes: EditText

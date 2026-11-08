@@ -12,14 +12,8 @@ import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
-import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
-import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
-import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
-import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 
 /** Direct navigation hub: categories are labels, not one-button accordions. */
 class SettingsHubActivity : AppBaseActivity() {
@@ -85,7 +79,7 @@ class SettingsHubActivity : AppBaseActivity() {
             })
             content.addView(line, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 9) })
+            ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 16) })
         }
         // One visible native dropdown; selecting a language takes only one tap to open.
         val languageCodes = listOf("auto", "pl", "en")
@@ -120,18 +114,11 @@ class SettingsHubActivity : AppBaseActivity() {
         content.addView(languagePicker, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, UiDesign.dp(this, 52)
         ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 8) })
-        section(R.string.ui_settings_hub_group_ai)
-        destination(R.string.ui_settings_hub_general, R.string.ui_settings_hub_general_detail, GeneralSettingsActivity::class.java)
-        destination(R.string.ui_settings_hub_engines, R.string.ui_settings_hub_engines_detail, AudioEngineSettingsActivity::class.java)
-        destination(R.string.ui_settings_hub_models, R.string.ui_settings_hub_models_detail, LanguageModelActivity::class.java)
         section(R.string.ui_settings_hub_group_calls)
+        destination(R.string.ui_settings_hub_general, R.string.ui_settings_hub_general_detail, GeneralSettingsActivity::class.java)
         destination(R.string.ui_settings_hub_answering, R.string.ui_settings_hub_answering_detail, IncomingAssistantSettingsActivity::class.java)
-        destination(R.string.ui_settings_hub_preparation, R.string.ui_settings_hub_preparation_detail, ConversationPreparationActivity::class.java)
-        destination(R.string.ui_settings_hub_skills, R.string.ui_settings_hub_skills_detail, ConversationSkillsActivity::class.java)
-        destination(R.string.ui_settings_hub_identity, R.string.ui_settings_hub_identity_detail, PhoneEnrollmentActivity::class.java)
         section(R.string.ui_settings_hub_group_advanced)
         destination(R.string.ui_settings_hub_developer, R.string.ui_settings_hub_developer_detail, DeveloperToolsActivity::class.java)
-        destination(R.string.ui_settings_hub_tools, R.string.ui_settings_hub_tools_detail, ConversationToolsActivity::class.java)
         destination(R.string.ui_settings_hub_usb, R.string.ui_settings_hub_usb_detail, UsbDebugPanelActivity::class.java)
         AppNavigation.install(this, ScrollView(this).apply {
             isFillViewport = true
