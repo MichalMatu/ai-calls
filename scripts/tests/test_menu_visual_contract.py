@@ -40,7 +40,7 @@ class MenuVisualSourceContract(unittest.TestCase):
         for x in ("AgentAiHubActivity", "LanguageModelActivity"):
             self.assertIn(x, self.nav)
         for x in ("ConversationSkillsActivity", "ScenarioLibraryActivity",
-                  "ConversationPreparationActivity", "PhoneEnrollmentActivity",
+                  "ConversationPreparationActivity", "IdentityVaultManagerActivity",
                   "ConversationToolsActivity"):
             self.assertIn(x, self.agent)
             self.assertNotIn("settings-destination:" + x, self.hub)
