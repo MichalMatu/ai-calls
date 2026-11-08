@@ -1,5 +1,7 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+**Zabezpieczenie współbieżności 2026-11-08:** `main@fdb003d` w `AndroidSkillLabSessionFactory` rezerwuje pojedynczy backend LiteRT dla GUI i USB; F-150 `FIXED_IN_SOURCE`, gate Mac `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **QA_PENDING**. Odbiór S22 kanału nadal `NOT_RUN`. [Specyfikacja USB](USB_LAB_TELEPHONY_CHANNEL.md).
+
 ## USB/ADB — prywatny kanał Lab + telefonia (2026-11-08)
 
 Zaimplementowano odbiornik `UsbLabControlReceiver` (DUMP + debug-only, bez otwierania UI), Mac CLI `scripts/aicall_tools/diagnostics/ai_calls_usb_lab.py` i `AndroidUsbLabControlContractTest`. Status, PSS/monitoring, konfiguracja profilu i incoming, prywatna sesja E2B START/SEND/STOP/transkrypt, takeover/AI resume/exact outgoing STOP przez istniejące kontrolery. **Host PASS:** `aicalls-usb-live-config-contract-mac-qa-20261108-v3` DONE/0, 370 testów Python, Gradle/JVM/AndroidTest/lint/APK/audio PASS, checkout clean. F-149 lint **VERIFIED**. **DEVICE NOT_RUN:** próba przekazania taska sterowania S22 została odrzucona przed wykonaniem; nie było instalacji ani testu takeover. Bez pozytywnej fizycznej próby nie twierdzić PROVEN_S22. Legacy USB export działa niezależnie. [Pełna specyfikacja i komendy](USB_LAB_TELEPHONY_CHANNEL.md).

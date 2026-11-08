@@ -1,3 +1,12 @@
+## F-150 — równoległy Lab UI i USB mógł uruchomić dwa konteksty Gemmy (2026-11-08)
+
+**Ścieżka:** `AndroidSkillLabSessionFactory.open` / `SkillLabRunner` dla GUI i `UsbLabControl.lab_start` dla ADB.
+**Warunek:** dwa niezależne instancje runnera w tym samym procesie mogły jednocześnie otworzyć LiteRT, mimo że jedna sesja E2B na S22 przekraczała 2,3 GB PSS. **Wpływ:** ryzyko OOM/JNI i utraty części stanu podczas równoległej diagnostyki.
+**Przyczyna:** dotychczasowy runner zapewniał pojedynczego właściciela tylko wewnątrz jednej instancji, nie między UI i nowym kanałem USB.
+**Poprawka:** `main@fdb003d151eae00eb3dc6e7c5834b25b044c6537` — wspólny `AtomicBoolean` w `AndroidSkillLabSessionFactory`, pojedyncza dzierżawa backendu, zwalnianie w `close()`/wyjątku. Bez limitu tur, bez zmian ścieżek telefonu i bez resetowania kontekstu aktywnego modelu.
+**Test:** `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` zlecony; rezultat ostatniej bramki jeszcze niepotwierdzony. AndroidTest nowego kanału i równoległych sesji na fizycznym S22 **NOT_RUN**.
+**Status:** **FIXED_IN_SOURCE / QA_PENDING** — nie zaliczać do VERIFIED bez potwierdzonego Mac gate i fizycznej próby konkurencji GUI/USB.
+
 ## F-149 — USB Lab call-state telemetry bez jawnej kontroli READ_PHONE_STATE (2026-11-08)
 
 **Ścieżka/symbol:** `UsbLabControlReceiver.kt` / `UsbLabControl.unavailableIfLive` oraz `snapshot`.
