@@ -32,4 +32,4 @@ Previous 2048 native setup encountered `LiteRtLmJniException` at turn 10 in two 
 3. Explicitly review the raw answers behind the two repeatedly unconfirmed `missing_ticket_cautious` and `final_ticket_cautious` heuristic checks, with private evidence and human `UNASSESSED` until reviewed. Do not publish transcripts to GitHub or Local Agent results.
 4. Then implement context memory in its own sprint following [memory architecture plan](../LAB_E2B_CONTEXT_MEMORY_PLAN.md). E4B and other models only after E2B memory handling is accepted.
 
-**F-148 remains OPEN** for root cause and true natural semantic quality. The 4096 fix is *device-technically accepted at 13-turn scope only*. 
+**F-148 remains OPEN** for root cause and true natural semantic quality. The 4096 fix is *device-technically accepted at 13-turn scope only*.
