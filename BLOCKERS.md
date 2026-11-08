@@ -1,3 +1,13 @@
+## LAB-SEMANTIC-02 F-148 — długi dialog LiteRT traci kontynuację i prywatne dowody (2026-11-08)
+
+**Ścieżka:** `AndroidLabAdversarialNativeOfflineTest`, `SkillLabRunner.executeManual`, `LiteRtGemma4Runtime.runGeneration` (`MAX_CONTEXT_TOKENS = 2_048`).
+**Warunek:** na fizycznym Samsung S22 / Gemma 4 E2B pierwsza 13-turowa próba przerwała się w turze 10; poprzednie 9 odpowiedzi były technicznie poprawnie wygenerowane, w turze 10 LiteRT zgłosił `error_LiteRtLmJniException`, 0 znaków wyjścia.
+**Wpływ:** dłuższe rozmowy nie mają jeszcze potwierdzonej stabilności ani gwarantowanego zachowania materiału diagnostycznego; bez prywatnego transkryptu nie da się rzetelnie ocenić semantyki tur 1–9.
+**Przyczyna:** native JNI fail potwierdzony; przekroczenie aktualnego okna 2048 tokenów jest hipotezą do weryfikacji, nie udowodnioną przyczyną. Brak zapisu częściowego dowodu w pierwotnym AndroidTest był osobną luką obserwowalności.
+**Plan:** nie podnosić globalnego kontekstu bez dowodu na S22 i wpływu na ścieżki Call. Utrwalać prywatny worksheet po każdej turze oraz kategorię błędu, wykonać scoped ponowną próbę i określić realną przyczynę; dopiero potem oddzielnie dobrać politykę długiej sesji.
+**Test/dowody:** `aicalls-semantic2-s22-adversarial-n3-20261108-v1` FAILED na turze 10 z preflight IDLE i bez Call; `aicalls-semantic2-s22-native-failure-diagnostics-20261108-v1` DONE/0, `conversation_turn=10`, `status=error_LiteRtLmJniException`, `output_chars=0`.
+**Status:** **OPEN** — AndroidTest evidence-journaling poprawiony w źródle, ponowny Mac gate i S22 jeszcze bez końcowego potwierdzenia.
+
 ## UX-11 F-147 — Floating Chat: aktywny stan nie miał testu wizualnego (2026-11-08)
 
 **Ścieżka:** `LiveConversationOverlay`, `ConversationChatFeed`, `AndroidUx11FloatingSyntheticTest`. **Warunek:** dotąd screenshoty potwierdzały tylko ikonę ukrytą podczas IDLE, a nie dynamiczne pokazanie i rozwinięcie przy rozmowie. **Wpływ:** niepewność czy panel 84% ekranu / badge / zamknięcie zadziałają. **Przyczyna:** brak bezpiecznego syntetycznego feedu w AndroidTest. **Naprawa:** test w pamięci procesu bez Telecom/mikrofonu: brak linii → brak przycisku, linia → ikona, klik → duży panel, nowa odpowiedź → aktualizacja, zamknięcie / finish → ukrycie; screenshot wyłącznie prywatny. **Test:** `AndroidUx11FloatingSyntheticTest`, Mac source/Android compile i S22 IDLE. **Status:** VERIFIED (Mac + S22 synthetic 2/2); REAL_CALL_NOT_RUN; rzeczywisty CALL pozostaje NOT_RUN.

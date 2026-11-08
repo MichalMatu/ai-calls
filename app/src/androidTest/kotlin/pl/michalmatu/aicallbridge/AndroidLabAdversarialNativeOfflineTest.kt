@@ -82,20 +82,56 @@ class AndroidLabAdversarialNativeOfflineTest {
 
         val runner = SkillLabRunner(AndroidSkillLabSessionFactory(app),
             dispatchToUi = { it() }, onState = {})
+        val evidenceFile = File(app.noBackupFilesDir,
+            "lab_semantic_adversarial_" + UUID.randomUUID().toString() + ".json")
+
+        // Evidence is updated after every completed/failed turn. A native failure
+        // must not erase the 1..N-1 replies needed for private sentence review.
+        fun persistPartial() {
+            val state = runner.state
+            val rows = JSONArray()
+            state.completed.forEach { turn ->
+                rows.put(JSONObject()
+                    .put("turn", turn.pending.turnIndex)
+                    .put("prompt", turn.pending.utterance)
+                    .put("answer", turn.observation.reply)
+                    .put("sentences", JSONArray(turn.observation.reply
+                        .split(Regex("(?<=[.!?])\\s+|\\n+"))
+                        .filter { it.isNotBlank() }))
+                    .put("elapsedMs", turn.observation.elapsedMs)
+                    .put("semanticReview", "UNASSESSED"))
+            }
+            evidenceFile.writeText(JSONObject()
+                .put("purpose", "lab_semantic_02_partial_offcall")
+                .put("modelProfile", profile.dialogue.toString())
+                .put("codeA", codeA).put("codeB", codeB)
+                .put("phase", state.phase.name)
+                .put("error", state.error ?: JSONObject.NULL)
+                .put("turns", rows)
+                .put("humanSemanticReview", "UNASSESSED")
+                .toString())
+        }
+        persistPartial()
         try {
             assertTrue("adversarial_manual_start", runner.startManual("natural"))
             assertTrue("adversarial_init_timeout", eventually(170_000) {
                 runner.state.phase == SkillLabPhase.INPUT_READY ||
                     runner.state.phase == SkillLabPhase.FAILED
             })
+            persistPartial()
             assertEquals(SkillLabPhase.INPUT_READY, runner.state.phase)
             for ((index, prompt) in prompts.withIndex()) {
                 assertTrue("submit_" + (index + 1), runner.submitManual(prompt))
-                assertTrue("timeout_" + (index + 1), eventually(175_000) {
+                val settled = eventually(175_000) {
                     runner.state.completed.size == index + 1 ||
                         runner.state.phase == SkillLabPhase.FAILED
-                })
-                assertEquals("failed_" + (index + 1),
+                }
+                persistPartial()
+                assertTrue("timeout_" + (index + 1), settled)
+                val errorCategory = runner.state.error.orEmpty()
+                    .substringBefore(':').replace(Regex("[^A-Za-z0-9_]"), "")
+                    .take(80)
+                assertEquals("failed_" + (index + 1) + "_error=" + errorCategory,
                     SkillLabPhase.INPUT_READY, runner.state.phase)
                 assertTrue("blank_" + (index + 1),
                     runner.state.completed[index].observation.reply.isNotBlank())
@@ -140,8 +176,8 @@ class AndroidLabAdversarialNativeOfflineTest {
                 .put("turns", worksheet)
                 .put("humanSemanticReview", "UNASSESSED")
                 .put("scope", "Synthetic data; no email or external effects executed")
-            val file = "lab_semantic_adversarial_" + UUID.randomUUID().toString() + ".json"
-            File(app.noBackupFilesDir, file).writeText(evidence.toString())
+            val file = evidenceFile.name
+            evidenceFile.writeText(evidence.toString())
 
             val missing = checks.filterValues { !it }.keys
             val summary = "S22_SEMANTIC_ADVERSARIAL=COMPLETE" +
