@@ -2,6 +2,8 @@
 
 **2026-11-08 | Stan:** UX-11 CLOSED; pierwsze fizyczne testy funkcjonalne offline PASS. Bieżące zadanie: [weryfikacja ekran po ekranie](FUNCTIONAL_ACCEPTANCE_MATRIX.md), **bez ponownego sprintu kosmetycznego**. [Checkpoint](checkpoints/2026-11-08-pre-functional-full-checkpoint.md).
 
+> Po UX-11 dodano ograniczony tail UX-12 (Historia + parser screenshotów). Targeted Python QA 14/14; pełny Mac gate i nowy wizualny S22 osobno. Funkcjonalne statusy pozostają według macierzy.
+
 ## Etap F1 — odbiór interfejsu i lokalnych funkcji na S22
 **Kolejność i definicja PASS:** według macierzy `NAV → HOME/CAMP (bez Call) → HIST → Agent/Skills/Scenarios/Prep/Vault/Tools → Lab → Models/Audio → Settings/Incoming/USB`.
 

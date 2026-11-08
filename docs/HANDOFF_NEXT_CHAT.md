@@ -2,6 +2,13 @@
 
 **Data:** 2026-11-08. **Bazowy commit kodu:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (UX-11 CLOSED). Kolejne commity tylko dokumentacyjne nie stanowią nowego QA APK. **Przy wejściu zawsze pobierz świeży HEAD**, sprawdź Mac checkout/clean status i stan Samsung S22.
 
+## UX-12 — ostatni ograniczony sprint UX przed funkcjonalnym odbiorem
+
+- **Kod:** `47bdba6d403611ea0611a3fc4f50dc7e3843c278` (dwa commity: `ac6516b`, `47bdba6`). Historia: kontekst sesji w szczegółach. Audyt: niezależny walidator JPEG 1–3/ekran + prywatny ZIP i izolacja `uiAuditRunId`. Bez zmian Telecom, STT/TTS, modeli, danych sejfu, runtime.
+- **Dowód Mac:** `aicalls-ux12-targeted-build-20261108-v1`: **7/7 collector, 2/2 UX12, 5/5 UX09, friction PASS**. Pierwsze bezpośrednie Gradle bez `ANDROID_HOME` przerwane konfiguracją SDK; pełny `bash scripts/verify_host.sh` (ustawia SDK) uruchomiony jako `aicalls-ux12-full-host-gate-20261108-v1` — **PENDING w momencie checkpointu**. Nie traktuj tego jako PASS.
+- **S22:** `aicalls-ux12-s22-gate-readonly-20261108-v1` DONE/0 — `RFCT70L7E8J`, `IDLE`, foreground **PocketHost**. Nowych AndroidTest/screenshotów nie uruchomiono, aby nie zaburzyć drugiej aplikacji. Poprzednie wyniki UX11 28/28 + 2/2 zachowane, nie należą do nowego commitu.
+- **Dalszy krok:** kiedy S22 jest wolny, targeted `AndroidUx09VisualSemanticsTest` oraz bezpieczne `AndroidVisualScreenAuditTest` z jednorazowym `uiAuditRunId`, prywatny `adb pull` i `ui_screenshot_inventory.py --run-id ... --archive ...`. Fizyczne długie teksty PL/EN dla F-131 i nowe ujęcia F-136 pozostają OPEN. **Następny obszar prac to funkcjonalna macierz, nie dalsze kosmetyczne poprawki.** [Checkpoint](checkpoints/2026-11-08-ux12-final-source-closeout.md).
+
 ## Wznowienie odbioru 2026-11-08 — bieżące potwierdzenie
 
 - Aktualny przed odbiorem `main@0e7dd43244edd6c22ce398490806c4a70508d487`, czysty Mac checkout = `origin/main`; GitHub Connector + Mac Local Agent, bez zmiany kodu/APK.
