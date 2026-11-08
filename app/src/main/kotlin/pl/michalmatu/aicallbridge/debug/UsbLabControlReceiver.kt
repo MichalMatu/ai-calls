@@ -26,6 +26,8 @@ import pl.michalmatu.aicallbridge.conversation.SkillLabPhase
 import pl.michalmatu.aicallbridge.conversation.SkillLabRunner
 import pl.michalmatu.aicallbridge.conversation.SkillLabUiState
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
+import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsController
+import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 
 /**
  * Private USB/ADB mailbox. The exported receiver is DUMP-permission protected
@@ -125,6 +127,7 @@ internal object UsbLabControl {
             val ok = AndroidOwnedInCallService.stopIncomingAi(context)
             Result(ok, if (ok) "incoming_ai_disabled" else "incoming_ai_disable_failed")
         }
+        "incoming_config" -> configureIncoming(context, request)
         else -> Result(false, "unknown_action")
     }
 
@@ -139,8 +142,9 @@ internal object UsbLabControl {
                 PackageManager.PERMISSION_GRANTED)
                 runCatching { telecom?.isInCall }.getOrNull()
             else null
-        val incoming = runCatching { IncomingAssistantPolicyStore(context).load().mode.name }
-            .getOrDefault("UNKNOWN")
+        val incomingPolicy = runCatching { IncomingAssistantPolicyStore(context).load() }.getOrNull()
+        val incoming = incomingPolicy?.mode?.name ?: "UNKNOWN"
+        val accountCount = IncomingAssistantSettingsController(context).availableAccounts().size
         return JSONObject()
             .put("call_idle", phoneActive == false)
             .put("call_tracked", call != null)
@@ -152,6 +156,9 @@ internal object UsbLabControl {
             })
             .put("incoming_ai_state", call?.let(AndroidOwnedInCallService::incomingState) ?: "none")
             .put("incoming_policy", incoming)
+            .put("incoming_account_configured", incomingPolicy?.accountKey != null)
+            .put("incoming_record_evidence", incomingPolicy?.recordEvidence ?: false)
+            .put("available_voice_accounts", accountCount)
             .put("outgoing_ai_running", AppOwnedClirCampaignExecutor.isRunning())
             .put("live_chat_active", feed.active)
             .put("live_chat_revision", feed.revision)
@@ -261,6 +268,43 @@ internal object UsbLabControl {
         val stopped = lab?.stop() == true
         Result(stopped, if (stopped) "lab_stop_requested" else "lab_not_running",
             labSnapshot())
+    }
+
+    /** Existing incoming settings controller remains the sole owner of policy writes. */
+    private fun configureIncoming(context: Context, request: JSONObject): Result {
+        unavailableIfLive(context)?.let { return Result(false, it) }
+        val mode = when (request.optString("mode").uppercase()) {
+            "MANUAL" -> AnsweringMode.MANUAL
+            "AI" -> AnsweringMode.AI
+            else -> return Result(false, "invalid_incoming_mode")
+        }
+        val controller = IncomingAssistantSettingsController(context)
+        val current = controller.current().getOrNull()
+            ?: return Result(false, "incoming_policy_unavailable")
+        if (!request.has("record") || request.opt("record") !is Boolean)
+            return Result(false, "explicit_recording_choice_required")
+        val record = request.getBoolean("record")
+        val accounts = controller.availableAccounts()
+        val account = if (request.has("account_index")) {
+            val index = request.optInt("account_index", -1)
+            accounts.getOrNull(index) ?: return Result(false, "invalid_voice_account_index")
+        } else {
+            accounts.firstOrNull {
+                IncomingAssistantPolicyStore.accountKey(it) == current.accountKey
+            }
+        }
+        if (mode == AnsweringMode.AI && account == null)
+            return Result(false, "explicit_voice_account_required")
+        return when (controller.save(mode, account, record)) {
+            IncomingAssistantSettingsController.SaveResult.SAVED_AI ->
+                Result(true, "incoming_ai_configured")
+            IncomingAssistantSettingsController.SaveResult.SAVED_MANUAL ->
+                Result(true, "incoming_manual_configured")
+            IncomingAssistantSettingsController.SaveResult.NEED_SIM ->
+                Result(false, "explicit_voice_account_required")
+            IncomingAssistantSettingsController.SaveResult.FAILED ->
+                Result(false, "incoming_policy_write_failed")
+        }
     }
 
     private fun takeover(context: Context): Result {
