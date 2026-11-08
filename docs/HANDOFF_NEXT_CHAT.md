@@ -1,3 +1,13 @@
+# UX-08 — aktualny stan po krótkim sprincie (2026-11-08)
+
+Kod sprawdzony: `main@9c8229179f88e6421eab99efe58d0e5f42469d01` (następujący commit dokumentacyjny nie zmienia kodu). [Checkpoint i dokładne Mac/S22 receipts](checkpoints/2026-11-08-ux08-parakeet-recording-navigation.md).
+
+**Wdrożone:** Parakeet offline VERIFY SHA-256 osobno od jawnego 615MB DOWNLOAD; nagrywanie jako uprawnienie na następne próby oddzielone od stanu aktywnego; usunięte kopie skrótów z Incoming/Campaign/USB; diagnostyka Kampanii zwijana. Zachowane wszystkie edytory w 6-tab UI, uprawnienia, storage i STOP.
+
+**Wyniki:** `aicalls-ux08-parakeet-recording-shortcuts-mac-20261108-v2` DONE/0 = 345/345 Python, full Mac quality + friction. `aicalls-ux08-s22-safe-ui-and-fresh-screens-20261108-v2` native Android `OK (36 tests)` + install -r + IDLE przed; cały receipt FAILED przez brak parse UI_AUDIT stdout. `aicalls-ux08-s22-top16-screenshot-archive-20261108-v1` DONE/0 = 16 świeżych prywatnych zdjęć, IDLE przed/po. **Nie ogłaszać pełnego PASS autoarchiwizacji** ani testu realnego pobierania/weryfikacji modelu. F-136 operatorowy parser OPEN; zdjęcia wyłącznie Mac. Zachowana polityka user-directed.
+
+---
+
 # GENERAL REPOSITORY AUDIT — source fix i bieżąca bramka (2026-11-07)
 
 **Wejście po ostatnim general audit:** baseline `main@1517bda`, źródłowy fix `bbb2ceb9` (`ScenarioPersonalLibrary.revised`: normalizuj tytuł/cel przed no-op compare). RED Mac `aicalls-general-audit-scenario-revision-red-20261107-v1`: 5 testów, 1 przewidywany FAIL; izolowany Linux Sandbox 5/5 GREEN. Zadania pełnego host QA `aicalls-general-audit-scenario-green-full-host-20261107-v1` i analizy pełnego drzewa `aicalls-general-audit-source-matrix-20261107-v1` były zlecone; **ich wyniki należy sprawdzić w task-results i oznaczyć QA_PENDING, dopóki nie ma dokładnego receipt**.
