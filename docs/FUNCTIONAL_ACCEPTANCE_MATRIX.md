@@ -11,6 +11,14 @@
 
 **Statusy:** `NOT_RUN`, `PASS_UI_SYNTHETIC`, `PASS_OFFCALL_FUNCTIONAL`, `PASS_DEVICE_FUNCTIONAL`, `PASS_REAL_CALL`, `PARTIAL`, `FAIL`, `BLOCKED`. Statusy nie są zamienne. Dla przypadków wielofunkcyjnych status obejmuje **wszystkie** wymienione podpunkty, inaczej `PARTIAL`. **Dziedziczone dowody** to podpowiedź do testów, nie zaliczenie całego ekranu.
 
+## F1 — fizyczne testy S22 zakończone, UI do dokończenia (2026-11-08)
+
+- **S22 `SM-S906B`, ADB `RFCT70L7E8J`, Android Call IDLE:** `aicalls-f1-s22-ready-preflight-20261108-v2` DONE/0; AI Calls foreground; źródło i Mac clean `e30799e`.
+- **PASS_DEVICE_FUNCTIONAL w izolowanych magazynach (3/3):** `aicalls-f1-s22-fixture-functional-20261108-v2` DONE/0: `AndroidCustomVaultFunctionalAcceptanceTest` (4 typy, CRUD, rename, reopen, AES-GCM, validation), `AndroidPersonalScenarioStoreContractTest` (create/revise/encrypted store), `AndroidSkillPresetMatrixTest#aEncryptedEditVersionSwitchAndRollbackInIsolatedStore` (edit/version/enable/rollback). Test APK `adb install -r -t`, bez wipe i bez danych właściciela. Postcheck IDLE / clean.
+- **Gemma Audio native synthetic PASS:** `aicalls-f1-gemma-audio-s22-resource-preflight-20261108-v1` (RAM dostępne 2.94 GiB-ish kB, thermal 0), `aicalls-f1-gemma-native-direct-audio-s22-20261108-v2` DONE/0: `AndroidGemmaAudioNativeOffcallTest` 1/1 PASS, **9.328 s**, PCM **cisza syntetyczna** → natywny Engine AudioBytes → terminalna odpowiedź / dopuszczony pusty transkrypt; Android Call IDLE, thermal 0. `v1` nie uruchomił testu z powodu braku `timeout` na Macu, poprawiono portable Python runner. **Nie** potwierdzono rozpoznawania słów, jakości PL ani integracji w profilu; `GEMMA_AUDIO_DIRECT` nadal `integrated=false`.
+- **Nowy UI test Sejfu:** `AndroidCustomVaultUiAcceptanceTest` na `main@6b2d813` kompiluje się i APK AndroidTest buduje (pierwsza komenda `aicalls-f1-s22-vault-ui-acceptance-20261108-v1` PASS). Próba instalacji przerwana warunkiem foreground, **test ekranowy NOT_RUN**. `aicalls-f1-s22-foreground-after-ui-test-block-20261108-v1` DONE/0: ekran zajmuje `pl.pockethost.companion/.MainActivity`, Call IDLE. Nie przejmować PocketHost.
+- **Znaczenie:** backendowe Skills/Scenarios/Sejf mają odbiór na urządzeniu; pełne **UI→zapis→powrót→odczyt** i realne polskie audio dla Gemmy są osobnymi dalszymi próbami. `NAV-01` nie blokuje tego etapu. [Checkpoint](checkpoints/2026-11-08-f1-s22-device-functional-core-and-gemma-direct.md).
+
 ## Początek właściwego F1 — 2026-11-08, Skills / Sejf / scenariusze / Gemma Audio
 
 - **Decyzja właściciela:** nie blokować testów funkcjonalnych zaległymi screenshotami UX12 ani niedokończonym NAV-01. Priorytet: edytowanie Skills, CRUD Sejfu, własne scenariusze, działający model i wejście audio.
@@ -65,13 +73,13 @@
 | ID | Funkcja / kryterium | Stan i dowód |
 |---|---|---|
 | SKILL-01 | Presety: wybór, aktywacja, włączenie/wyłączenie Skills i wpływ na wygenerowaną wypowiedź | NOT_RUN funkcjonalnie |
-| SKILL-02 | Instrukcja: edycja, walidacja, wersje/rewizje, zapisz/przywróć, brak wpływu nieaktywnej instrukcji | NOT_RUN |
+| SKILL-02 | Instrukcja: edycja, walidacja, wersje/rewizje, zapisz/przywróć, brak wpływu nieaktywnej instrukcji | **PARTIAL / PASS_DEVICE_FUNCTIONAL backend** — isolated AndroidTest `aEncryptedEditVersionSwitchAndRollbackInIsolatedStore` 1/1 S22 PASS; pełny edytor UI, wpływ na odpowiedź i walidacja użytkownika NOT_RUN. |
 | SKILL-03 | Własne umiejętności, warunki użycia i separacja stanów pomiędzy presetami | NOT_RUN |
 | SCEN-01 | Fabryczne scenariusze: przegląd i poprawne oznaczenie DRAFT_ONLY vs wykonawcze | NOT_RUN |
-| SCEN-02 | Własny scenariusz: kopia, nazwa, cel, zapis, rewizje, przywrócenie, usunięcie fixture | NOT_RUN funkcjonalnie; istnieją testy Android/store |
+| SCEN-02 | Własny scenariusz: kopia, nazwa, cel, zapis, rewizje, przywrócenie, usunięcie fixture | **PARTIAL / PASS_DEVICE_FUNCTIONAL backend** — `AndroidPersonalScenarioStoreContractTest` 1/1 na S22 PASS create/revise i zaszyfrowany zapis; UI/przywróć/usuń NOT_RUN. |
 | PREP-01 | Profil OUTGOING/INCOMING: edycja, zapis, wznowienie, niewyciekający kontekst i zakres pól | NOT_RUN |
 | VAULT-01 | 7 pól standardowych: utwórz/zmień/usuń **fikcyjny testowy** wpis, odczyt po restarcie, błędy walidacji | NOT_RUN; widok PASS_UI_SYNTHETIC w UX-11 |
-| VAULT-02 | Własne: typ tekst/liczba/data/sekret, poziom wrażliwości, dodaj/zmień/usuń, szyfrowanie/odporność | NOT_RUN fizycznie; **nowy izolowany test** `AndroidCustomVaultFunctionalAcceptanceTest` skompilowany na Mac (`aicalls-f1-custom-vault-test-compile-20261108-v1`), wykonanie na S22 OPEN. **Custom nie jest automatycznie udostępniany AI.** |
+| VAULT-02 | Własne: typ tekst/liczba/data/sekret, poziom wrażliwości, dodaj/zmień/usuń, szyfrowanie/odporność | **PARTIAL / PASS_DEVICE_FUNCTIONAL backend** — `AndroidCustomVaultFunctionalAcceptanceTest` 1/1 na S22 PASS, 4 typy, CRUD+reopen+walidacja i ciphertext; nowy UI test kompiluje się, ale NOT_RUN z powodu PocketHost foreground. Custom nie jest automatycznie udostępniany AI. |
 | VAULT-03 | PESEL/data urodzenia: ukrycie w UI, zgody zakresowe, brak wypowiedzi/wysłania bez autoryzacji | NOT_RUN; nie używać prawdziwego PESEL |
 | TOOL-01 | Lista/stan narzędzi, zmiana ustawień, trwałość i zachowanie wyłączonych akcji | NOT_RUN |
 | TOOL-02 | Dry-run wyboru narzędzia i bezpieczne zakończenie bez prawdziwego efektu | NOT_RUN |
@@ -96,7 +104,7 @@
 | AUDIO-01 | Profile STT/model/TTS/głos i ich trwałość, niezależny wybór oraz rzeczywiste użycie | NOT_RUN |
 | AUDIO-02 | Polski TTS → syntetyczny PCM → Parakeet STT, niepusty transkrypt / zgodność leksykalna | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-polish-tts-parakeet-offcall-s22-20261108-v1` |
 | AUDIO-03 | STT na kontrolowanym nagraniu i mikrofonie, WER/CER, cisza, szum, stop i recovery | NOT_RUN |
-| AUDIO-04 | Eksperymentalne bezpośrednie PCM16 → Gemma `Content.AudioBytes` → tekst; inicjalizacja native, pamięć/latencja, STOP, brak cichego fallback | NOT_RUN fizycznie; `GemmaAudioDirectInputProvider` istnieje, lecz `AudioEngineRegistry` ma `integrated=false` i `audio_direct_s22_unqualified`. Wymaga osobnego testu `AndroidGemmaAudioNativeOffcallTest` na S22, przed włączeniem w ustawieniach. |
+| AUDIO-04 | Eksperymentalne bezpośrednie PCM16 → Gemma `Content.AudioBytes` → tekst; inicjalizacja native, pamięć/latencja, STOP, brak cichego fallback | **PARTIAL / PASS_OFFCALL_FUNCTIONAL (native synthetic)** — `AndroidGemmaAudioNativeOffcallTest` na S22 1/1 PASS, 9.328 s, cisza PCM, thermal 0; **polska mowa, jakość, STOP/rzeczywisty dialog i włączenie profilu NOT_RUN**. `GEMMA_AUDIO_DIRECT` nadal `integrated=false`; nie deklarować gotowości produkcyjnej. |
 | AUDIO-04 | TTS (system/Piper), polska wymowa, szybkość, latencja, cancel oraz audio output | NOT_RUN w pełnej macierzy |
 | AUDIO-05 | Integracja STT→model/Skills→TTS przez wspólny runtime, faktyczne RX/TX | NOT_RUN end-to-end |
 

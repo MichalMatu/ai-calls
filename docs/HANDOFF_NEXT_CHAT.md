@@ -2,6 +2,14 @@
 
 **Data:** 2026-11-08. **Bazowy commit kodu:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (UX-11 CLOSED). Kolejne commity tylko dokumentacyjne nie stanowią nowego QA APK. **Przy wejściu zawsze pobierz świeży HEAD**, sprawdź Mac checkout/clean status i stan Samsung S22.
 
+## F1 — aktualny status po realnych testach urządzenia
+
+- **`main@6b2d813` (kod testowy)**: Mac clean po ff-sync, AndroidTest build PASS.
+- S22 `aicalls-f1-s22-fixture-functional-20261108-v2`: **3/3 device PASS** — isolated Vault 4-type CRUD/encryption/reopen, Scenario personal create/revise store, Skills edit/version/bind rollback. Dane właściciela nienaruszone.
+- S22 `aicalls-f1-gemma-native-direct-audio-s22-20261108-v2`: **1/1 synthetic PCM AudioBytes native PASS** (~9.3 s), memory/thermal/Call IDLE. **Nie** jest to proof polskiej mowy ani aktywacji `GEMMA_AUDIO_DIRECT`. `v1` nie wykonało testu z powodu nieobecnego narzędzia `timeout` na Macu.
+- `AndroidCustomVaultUiAcceptanceTest` dodany i **COMPILE PASS**, urządzeniowa instalacja/test **NOT_RUN**: inna aplikacja `pl.pockethost.companion` przejęła foreground (`aicalls-f1-s22-foreground-after-ui-test-block-20261108-v1`); nie przejmować ekranu. Kolejność kolejnej sesji: ekran UI Sejfu, potem Skills UI, Scenariusze UI, następnie kontrolowane polskie PCM do Gemmy i ewaluacja transkrypcji. Nie rozpoczynać Call.
+- [Pełny checkpoint](checkpoints/2026-11-08-f1-s22-device-functional-core-and-gemma-direct.md). **NAV-01 PARTIAL**, UX12 manualne PL/EN nadal OPEN, ale nie blokują badań funkcjonalnych.
+
 ## F1 — odbiór właściwy, aktualizacja 2026-11-08
 
 Właściciel wyraźnie priorytetyzuje **Skills → Sejf → własne scenariusze → wejście PCM bezpośrednio do Gemma**, bez czekania na wizualny NAV-01/UX12. Repo `main@6a6d2a1`: nowy izolowany test AndroidTest CRUD custom vault (4 typy, szyfrowanie, reopen, walidacja, delete). Mac `aicalls-f1-custom-vault-test-compile-20261108-v1` **DONE/0, Kotlin AndroidTest COMPILE PASS**. Mac checkout zaktualizowany. Próba fizyczna `aicalls-f1-s22-isolated-skill-vault-scenario-20261108-v1`: AndroidTest APK BUILD PASS, jednak instalacja/testy NOT_RUN, bo foreground przeszedł z Launchera na ShellyLink; `aicalls-f1-s22-recheck-why-install-fenced-20261108-v1` DONE/0 (ADB, IDLE, ShellyLink). Device `aicalls-f1-corepreflight-20261108-v1` **FAILED/1**, ponieważ `RFCT70L7E8J` nie był wykryty przez ADB. Żadna nowa próba device functional PASS. Existing tests Skills i personal scenario są gotowe; nie używać rekordów właściciela. Gemma Audio Direct ma test natywny, lecz w registry `integrated=false`, brak S22 potwierdzenia i aktywacji. [Checkpoint](checkpoints/2026-11-08-f1-owner-priorities-device-unavailable.md).
