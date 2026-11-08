@@ -17,9 +17,9 @@ class LabAdaptiveInteractorTest {
         assertEquals("Continue", asks.next("Other reply", false)?.utterance)
         assertNull(asks.next("Any text", false))
         assertEquals("Correction", states.next("It's blue", false)?.utterance)
-        assertEquals(3, states.next("Blue again", false)?.ruleNumber)
-        // The exhausted contains rule cannot repeat even if the same reply repeats.
-        assertEquals("Continue", states.next("Blue again", false)?.utterance)
+        // The exhausted contains branch cannot repeat even if the same text repeats.
+        assertEquals(4, states.next("Blue again", false)?.ruleNumber)
+        assertNull(states.next("Blue again", false))
     }
     @Test fun malformedRulesFailBeforeAnyAutoplay() {
         try { LabAdaptiveInteractor(test("question do something")); fail() }

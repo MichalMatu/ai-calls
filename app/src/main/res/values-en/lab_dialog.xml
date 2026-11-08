@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="lab_manual_new_session">New conversation</string>
-    <string name="lab_manual_hint">Enter the caller's next message…</string>
+    <string name="lab_manual_hint">Enter the next caller message…</string>
     <string name="lab_manual_send">Send</string>
     <string name="lab_manual_empty">Start a new text conversation with the local model.</string>
     <string name="lab_manual_ready">Model ready. Enter the next message.</string>
