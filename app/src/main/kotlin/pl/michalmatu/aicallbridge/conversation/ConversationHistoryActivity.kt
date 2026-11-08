@@ -230,6 +230,19 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
             when (state) {
                 is HistoryScreenState.DetailReady -> {
                     val session = state.session
+                    // Keep session identity visible above long chat histories; never show call data.
+                    val direction = getString(when (session.direction) {
+                        ConversationDirection.OUTGOING -> R.string.history_outgoing
+                        ConversationDirection.INCOMING -> R.string.history_incoming
+                        ConversationDirection.UNSPECIFIED -> R.string.history_unknown
+                    })
+                    val started = DateFormat.getDateTimeInstance(
+                        DateFormat.MEDIUM, DateFormat.SHORT,
+                    ).format(Date(session.startedAtEpochMs))
+                    content.addView(UiDesign.heading(this, "$"+"{direction} · $"+"{started}").apply {
+                        tag = "history-detail-heading"
+                        textSize = 16f
+                    }, UiDesign.spaceAfter(this, 10))
                     if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = getString(R.string.history_incomplete, session.invalidRecords) })
                     playbackStatus = TextView(this).apply {
                         text = getString(R.string.history_audio_count, session.audioFiles.size)

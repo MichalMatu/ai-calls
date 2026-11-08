@@ -98,7 +98,14 @@ class AndroidVisualScreenAuditTest {
             var privateDir: File? = null
             var density = 1f
             scenario.onActivity { activity ->
-                val folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
+                // A unique explicit run ID keeps this audit separate from past captures.
+                // No ID retains the legacy path for previously published test invocations.
+                val runId = instrument.arguments.getString("uiAuditRunId")
+                require(runId == null || runId.matches(Regex("[A-Za-z0-9_-]{6,48}"))) {
+                    "invalid_ui_audit_run_id"
+                }
+                val folderName = runId?.let { "ui-audit-$"+"it" } ?: "ui-audit-20261107-sprint6"
+                val folder = requireNotNull(activity.getExternalFilesDir(folderName))
                 assertTrue("audit_dir_unavailable:" + label, folder.isDirectory || folder.mkdirs())
                 privateDir = folder
                 density = activity.resources.displayMetrics.density
