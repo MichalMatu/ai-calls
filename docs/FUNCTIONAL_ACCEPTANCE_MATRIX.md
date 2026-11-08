@@ -11,6 +11,14 @@
 
 **Statusy:** `NOT_RUN`, `PASS_UI_SYNTHETIC`, `PASS_OFFCALL_FUNCTIONAL`, `PASS_DEVICE_FUNCTIONAL`, `PASS_REAL_CALL`, `PARTIAL`, `FAIL`, `BLOCKED`. Statusy nie są zamienne. Dla przypadków wielofunkcyjnych status obejmuje **wszystkie** wymienione podpunkty, inaczej `PARTIAL`. **Dziedziczone dowody** to podpowiedź do testów, nie zaliczenie całego ekranu.
 
+## Początek właściwego F1 — 2026-11-08, Skills / Sejf / scenariusze / Gemma Audio
+
+- **Decyzja właściciela:** nie blokować testów funkcjonalnych zaległymi screenshotami UX12 ani niedokończonym NAV-01. Priorytet: edytowanie Skills, CRUD Sejfu, własne scenariusze, działający model i wejście audio.
+- **Preflight:** `main@fa21f88` = czysty Mac checkout, S22 ADB `RFCT70L7E8J` obecnie **niepodłączony** (`aicalls-f1-corepreflight-20261108-v1`, failed/1 wyłącznie na `adb get-state`). **Nie** przypisywać PASS urządzenia.
+- **Test Sejfu:** nowy `AndroidCustomVaultFunctionalAcceptanceTest` izoluje `noBackupFilesDir`, nie dotyka rekordu właściciela; obejmuje cztery typy, zakres wrażliwości, rename, walidację/duplikaty, brak plaintext w ciphertext, delete/reopen. Test AndroidTest Kotlin **COMPILE PASS** `aicalls-f1-custom-vault-test-compile-20261108-v1`; uruchomienie na S22 **NOT_RUN**.
+- **Gotowe do uruchomienia obok:** istniejące izolowane `AndroidSkillPresetMatrixTest.aEncryptedEditVersionSwitchAndRollbackInIsolatedStore` oraz `AndroidPersonalScenarioStoreContractTest.personalScenariosUseExistingEncryptedStoreAndPreserveTemplate`; te testy nie zastępują ręcznego UI CRUD. Native `AndroidGemmaAudioNativeOffcallTest` jest osobną, ryzykowniejszą próbą modelu, przed którą sprawdzić dostępność RAM i bezpieczeństwo hosta. Audio Direct **nie jest włączone w registry**.
+- [Checkpoint](checkpoints/2026-11-08-f1-owner-priorities-device-unavailable.md). F-080/F-122/F-123/F-124 bez zmian.
+
 ## Sesja odbioru 2026-11-08 — fizyczny preflight i NAV-01
 
 - **Źródło:** czysty Mac checkout `main@0e7dd43244edd6c22ce398490806c4a70508d487` = `origin/main`; różnice od `3029034` tylko w dokumentacji. **Urządzenie:** Samsung S22 `SM-S906B`, USB/ADB, APK `0.2.0` code 2, telefon `IDLE`.
@@ -62,7 +70,7 @@
 | SCEN-02 | Własny scenariusz: kopia, nazwa, cel, zapis, rewizje, przywrócenie, usunięcie fixture | NOT_RUN funkcjonalnie; istnieją testy Android/store |
 | PREP-01 | Profil OUTGOING/INCOMING: edycja, zapis, wznowienie, niewyciekający kontekst i zakres pól | NOT_RUN |
 | VAULT-01 | 7 pól standardowych: utwórz/zmień/usuń **fikcyjny testowy** wpis, odczyt po restarcie, błędy walidacji | NOT_RUN; widok PASS_UI_SYNTHETIC w UX-11 |
-| VAULT-02 | Własne: typ tekst/liczba/data/sekret, poziom wrażliwości, dodaj/zmień/usuń, szyfrowanie/odporność | NOT_RUN; **custom nie jest automatycznie udostępniany AI** |
+| VAULT-02 | Własne: typ tekst/liczba/data/sekret, poziom wrażliwości, dodaj/zmień/usuń, szyfrowanie/odporność | NOT_RUN fizycznie; **nowy izolowany test** `AndroidCustomVaultFunctionalAcceptanceTest` skompilowany na Mac (`aicalls-f1-custom-vault-test-compile-20261108-v1`), wykonanie na S22 OPEN. **Custom nie jest automatycznie udostępniany AI.** |
 | VAULT-03 | PESEL/data urodzenia: ukrycie w UI, zgody zakresowe, brak wypowiedzi/wysłania bez autoryzacji | NOT_RUN; nie używać prawdziwego PESEL |
 | TOOL-01 | Lista/stan narzędzi, zmiana ustawień, trwałość i zachowanie wyłączonych akcji | NOT_RUN |
 | TOOL-02 | Dry-run wyboru narzędzia i bezpieczne zakończenie bez prawdziwego efektu | NOT_RUN |
@@ -87,6 +95,7 @@
 | AUDIO-01 | Profile STT/model/TTS/głos i ich trwałość, niezależny wybór oraz rzeczywiste użycie | NOT_RUN |
 | AUDIO-02 | Polski TTS → syntetyczny PCM → Parakeet STT, niepusty transkrypt / zgodność leksykalna | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-polish-tts-parakeet-offcall-s22-20261108-v1` |
 | AUDIO-03 | STT na kontrolowanym nagraniu i mikrofonie, WER/CER, cisza, szum, stop i recovery | NOT_RUN |
+| AUDIO-04 | Eksperymentalne bezpośrednie PCM16 → Gemma `Content.AudioBytes` → tekst; inicjalizacja native, pamięć/latencja, STOP, brak cichego fallback | NOT_RUN fizycznie; `GemmaAudioDirectInputProvider` istnieje, lecz `AudioEngineRegistry` ma `integrated=false` i `audio_direct_s22_unqualified`. Wymaga osobnego testu `AndroidGemmaAudioNativeOffcallTest` na S22, przed włączeniem w ustawieniach. |
 | AUDIO-04 | TTS (system/Piper), polska wymowa, szybkość, latencja, cancel oraz audio output | NOT_RUN w pełnej macierzy |
 | AUDIO-05 | Integracja STT→model/Skills→TTS przez wspólny runtime, faktyczne RX/TX | NOT_RUN end-to-end |
 
