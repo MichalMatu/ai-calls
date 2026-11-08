@@ -133,6 +133,13 @@
             android:name=".debug.UsbDebugPanelActivity"
             android:exported="false" />
 
+        <!-- ADB USB only: explicit broadcast does not cover the call controls UI.
+             Shell/DUMP permission, debug-APK runtime guard and app-private mailbox. -->
+        <receiver
+            android:name=".debug.UsbLabControlReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
+
         <activity
             android:name=".DiagnosticProbeActivity"
             android:excludeFromRecents="true"
