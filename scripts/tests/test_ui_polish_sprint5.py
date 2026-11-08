@@ -73,13 +73,15 @@ class Sprint5UxContract(unittest.TestCase):
 
     def test_lab_quick_real_model_boundary_and_failure_handling(self):
         lab = self.source("conversation/ConversationSkillLabActivity.kt")
-        self.assertIn('tag = "lab-scope-picker"', lab)
+        self.assertIn('tag = "lab-manual-composer"', lab)
+        self.assertIn('tag = "lab-case-picker"', lab)
         runner = self.source("conversation/SkillLabRunner.kt")
         factory = self.source("conversation/AndroidSkillLabSessionFactory.kt")
         self.assertIn("val selected = if (quick) corpus.take(1) else corpus", runner)
         self.assertIn("if (total == 0 || selected.any { it.turns.isEmpty() }) return false", runner)
         self.assertIn("corpus: List<SkillLabStory> = SkillLabCorpus.stories", runner)
-        self.assertIn("R.string.lab_ui_cases_removed", lab)
+        self.assertIn("R.string.lab_manual_empty", lab)
+        self.assertIn("runner.startManual(", lab)
         self.assertIn("story.turns.take(2)", runner)
         self.assertIn("ConversationReplyProtocol.decode(raw)", runner)
         self.assertIn("ConversationResponseFormat.TOOL_REPLY", factory)

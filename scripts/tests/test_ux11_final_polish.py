@@ -9,11 +9,12 @@ class Ux11FinalPolish(unittest.TestCase):
         lab = (BASE / "conversation/ConversationSkillLabActivity.kt").read_text()
         self.assertIn("R.string.ux11_lab_timeline_title", lab)
         self.assertIn('"lab-empty-transcript"', lab)
-        self.assertIn('emptyTranscript.visibility = if (next.phase == SkillLabPhase.READY)', lab)
-        self.assertIn('progress.visibility = if (next.phase == SkillLabPhase.READY)', lab)
-        self.assertIn("stopButton.visibility = if (!next.canStart", lab)
+        self.assertIn('emptyTranscript.visibility = if (next.completed.isEmpty()', lab)
+        self.assertIn('progress.visibility = View.GONE', lab)
+        self.assertIn("stopButton.visibility = if (!next.manualStartAllowed", lab)
         self.assertNotIn("R.string.lab_ui_timeline_title", lab)
         self.assertNotIn("R.string.lab_ui_intro", lab)
+        self.assertIn("sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY", lab)
 
     def test_vault_rows_compact_and_custom_action_at_top(self):
         vault = (BASE / "identity/IdentityVaultManagerActivity.kt").read_text()
