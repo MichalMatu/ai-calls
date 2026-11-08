@@ -239,7 +239,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                     val started = DateFormat.getDateTimeInstance(
                         DateFormat.MEDIUM, DateFormat.SHORT,
                     ).format(Date(session.startedAtEpochMs))
-                    content.addView(UiDesign.heading(this, "$"+"{direction} · $"+"{started}").apply {
+                    content.addView(UiDesign.heading(this, direction + " · " + started).apply {
                         tag = "history-detail-heading"
                         textSize = 16f
                     }, UiDesign.spaceAfter(this, 10))

@@ -24,7 +24,7 @@ SCREENS = (
     "engines", "models", "incoming", "preparation", "skills", "tools",
     "developer", "usb-diagnostics", "phone-enrollment", "vault", "campaigns",
 )
-_CAPTURE = re.compile(r"^([a-z][a-z0-9-]*)-([0-2])\\.jpg$")
+_CAPTURE = re.compile(r"^([a-z][a-z0-9-]*)-([0-2])\.jpg$")
 
 
 def inventory(directory: Path, expected: tuple[str, ...] = SCREENS) -> dict:
@@ -46,7 +46,7 @@ def inventory(directory: Path, expected: tuple[str, ...] = SCREENS) -> dict:
             continue
         label, index = match.group(1), int(match.group(2))
         data = file.read_bytes()
-        if len(data) <= 256 or not data.startswith(b"\\xff\\xd8") or not data.endswith(b"\\xff\\xd9"):
+        if len(data) <= 256 or not data.startswith(b"\xff\xd8") or not data.endswith(b"\xff\xd9"):
             errors.append("invalid_jpeg:" + label)
             continue
         pages[label][index] = file

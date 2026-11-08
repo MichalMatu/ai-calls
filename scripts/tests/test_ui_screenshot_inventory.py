@@ -10,8 +10,8 @@ from aicall_tools.diagnostics.ui_screenshot_inventory import (
 
 
 def jpeg(path: Path, valid: bool = True) -> None:
-    path.write_bytes((b"\\xff\\xd8" if valid else b"NO") + b"x" * 400 +
-                     (b"\\xff\\xd9" if valid else b"NO"))
+    path.write_bytes((b"\xff\xd8" if valid else b"NO") + b"x" * 400 +
+                     (b"\xff\xd9" if valid else b"NO"))
 
 
 class ScreenshotReceiptTest(unittest.TestCase):

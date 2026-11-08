@@ -100,11 +100,11 @@ class AndroidVisualScreenAuditTest {
             scenario.onActivity { activity ->
                 // A unique explicit run ID keeps this audit separate from past captures.
                 // No ID retains the legacy path for previously published test invocations.
-                val runId = instrument.arguments.getString("uiAuditRunId")
+                val runId = InstrumentationRegistry.getArguments().getString("uiAuditRunId")
                 require(runId == null || runId.matches(Regex("[A-Za-z0-9_-]{6,48}"))) {
                     "invalid_ui_audit_run_id"
                 }
-                val folderName = runId?.let { "ui-audit-$"+"it" } ?: "ui-audit-20261107-sprint6"
+                val folderName = runId?.let { "ui-audit-" + it } ?: "ui-audit-20261107-sprint6"
                 val folder = requireNotNull(activity.getExternalFilesDir(folderName))
                 assertTrue("audit_dir_unavailable:" + label, folder.isDirectory || folder.mkdirs())
                 privateDir = folder
