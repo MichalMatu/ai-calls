@@ -1,6 +1,6 @@
 # LAB-DIALOG-01 — plan wykonawczy: prawdziwe dialogi testowe
 
-**Zatwierdzenie właściciela:** 2026-11-08. **Status:** plan zatwierdzony, funkcjonalność nowej generacji nie jest jeszcze wdrożona. **Baza:** `main@d1bcf2a8d2ec3cf234cc1b355aef8a036ff604de`. Usunięte cztery stare sztywne historie pozostają usunięte. Ostatnia pełna bramka Mac `aicalls-lab-four-stories-removal-regression-20261108-v2`: DONE/0, 365/365 Python, Android+JVM build, audio audit, clean checkout. Nie przekładać dowodów starego Lab na nową funkcję.
+**Zatwierdzenie właściciela:** 2026-11-08. **Status:** A–D zaimplementowane w źródłach, E (fizyczny S22) w odbiorze; kompletne zamknięcie zależy od nowych receipts. **Baza:** `main@d1bcf2a8d2ec3cf234cc1b355aef8a036ff604de`. Usunięte cztery stare sztywne historie pozostają usunięte. Ostatnia pełna bramka Mac `aicalls-lab-four-stories-removal-regression-20261108-v2`: DONE/0, 365/365 Python, Android+JVM build, audio audit, clean checkout. Nie przekładać dowodów starego Lab na nową funkcję.
 
 ## Zasada
 
@@ -52,4 +52,13 @@ Laboratorium ma **badać prawdziwe zachowanie lokalnego modelu**, a nie odtwarza
 - Brak arbitralnych limitów tur, timeoutów czy dodatkowych grantów, nie ruszać istniejących rzeczywistych zabezpieczeń Android/STOP. Zrzuty dozwolone, wrażliwe dane nie wychodzą do GitHub/logów.
 - Przed A: w nowym sprincie sprawdzić aktualny HEAD/checkout i istniejące testy. Ostatnia bramka `d1bcf2a` była PASS, nie powtarzać jej przed zmianą bez nowej przesłanki.
 
-**Pierwsza konkretna zmiana następnego kroku:** rozszerzenie kontraktu i testów `SkillLabRunner` o manualne, kolejne wejścia w jednej sesji i niezmienne snapshoty; następnie UI tekstowego dialogu. To jest A, nie jednoczesne budowanie całego silnika oceniającego.
+## Wynik kodowania sprintu 2026-11-08
+
+- **A SOURCE IMPLEMENTED:** `SkillLabRunner.startManual/submitManual`, jedna instancja natywnego backendu na wszystkie tury; immutable UI snapshots, STOP, reset nowej sesji i ochrona przed spóźnionym callbackiem. `ConversationSkillLabActivity` ma tekstowy composer.
+- **B SOURCE IMPLEMENTED:** `LabCaseLibrary`, szyfrowana trwałość poprzez `AndroidConversationPreparationStore`, kreator w Lab, copy/edit/delete/revisions, brak fabrycznych historii. Wybór presetu Skills, modelu i roli.
+- **C SOURCE IMPLEMENTED, SEMANTIC REVIEW REQUIRED:** `LabDialogueReport` zapisuje prywatne wypowiedzi, latencje, END_CALL jako obserwację, referencyjne fakty i 8 kategorii oceny. Domyślnie `UNASSESSED`; człowiek wskazuje dowód z numerem tury. A/B porównuje konfiguracje i jawnie sygnalizuje różny przypadek/rewizję. NIE MA automatycznego dowodu braku halucynacji.
+- **D SOURCE IMPLEMENTED (rule-driven):** `LabAdaptiveInteractor`: pytanie, odmowa, propozycja końca, zawartość tekstu, brak wymaganego ciągu, fallback; jednorazowe gałęzie i ślad wyborów. To nie drugi LLM ani semantyczny tester.
+- **E QA:** `SkillLabManualDialogueTest`, `LabCaseLibraryTest`, `LabAdaptiveInteractorTest`, `LabDialogueReportTest`, izolowany AndroidTest i natywny `AndroidLabManualNativeOfflineTest`. Fizyczne wykonanie zależy od wolnego S22, IDLE i gotowego modelu. Nie wykonywać Call.
+- **Ograniczenia:** transfer ludzkiej kontroli nad trwającą automatyczną gałęzią nie ma osobnego przycisku; STOP i nowa ręczna sesja są dostępne. Audio STT/TTS i polskie PCM to osobna niezakończona bramka F2, a nie dowód etapu tekstowego.
+
+[Checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).

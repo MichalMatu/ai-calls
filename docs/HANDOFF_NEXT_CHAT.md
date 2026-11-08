@@ -1,8 +1,19 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
-## LAB-DIALOG-01 — zatwierdzona kolejność wdrożenia
+## LAB-DIALOG-01 — aktualny wynik sprintu 2026-11-08
 
-Plan zatwierdzony przez właściciela 2026-11-08: [LAB_DIALOG_IMPLEMENTATION_PLAN](LAB_DIALOG_IMPLEMENTATION_PLAN.md). **A: ręczna rozmowa tekstowa z prawdziwą lokalną Gemmą w jednej sesji i STOP; B: edytor własnych testów i wersje; C: rzetelna ocena tur oraz pamięci/korekt/halucynacji; D: adaptacyjny rozmówca zależny od odpowiedzi; E: A/B i polskie audio.** Unikać ponownego zakodowania stałych historii, stworzenia kopii `SkillLabRunner`, fałszywego `0/0 PASS` oraz publikacji danych. `main@d1bcf2a` ma pełny Mac gate PASS (365/365 Python, JVM, APK, lint, audio; task `aicalls-lab-four-stories-removal-regression-20261108-v2` DONE/0) i clean checkout. To jest dokumentacja planu, **jeszcze nie implementacja nowych trybów**.
+Baza `main@4eae72c`, bieżący commit funkcjonalny `main@6f77401b79a4b2a27dc94a65b591645539e0298d` (pobierz świeży HEAD). A–D **SOURCE IMPLEMENTED**: manualny ciągły chat w `SkillLabRunner`, edytowalne/wersjonowane testy w szyfrowanym store, reguły adaptacyjne i reporty tur z oceną niezależną od END_CALL oraz porównaniem A/B. Model pobierany z wybranego `AudioEngineProfile`, aktywna wersja Skills z presetu, rola i cel z testu. Czterech usuniętych historii nie przywracać.
+
+**QA:** `aicalls-labdialog01-stage-abcd-regression-20261108-v1` DONE/0 (kompilacja, JVM unit tests, APK). Pełny Mac gate `aicalls-labdialog01-full-mac-gate-20261108-v1` i read-only S22 `aicalls-labdialog01-s22-readonly-20261108-v1` zgłoszone; końcowy receipt należy sprawdzić przed przypisaniem PASS. Natywna wieloturowa próba S22 oraz UI/encryption AndroidTest **NOT_RUN** w tym zapisie. Nie instalować ani nie przejmować ekranu przy cudzej aplikacji foreground. Nie dzwonić, nie wywoływać efektów. QA_PENDING != VERIFIED.
+
+Wymagane dalsze potwierdzenia: pełny Mac gate, izolowane nowe AndroidTest na bezpiecznym S22, realne 2+ tury z lokalną Gemmą, manualne sprawdzenie pamięci/korekt, STOP/reset, screenshoty UI, synchronizacja finalnych statusów. Ręczny semantyczny rubric jest celowo `UNASSESSED` do wpisania dowodu. STT/TTS/PCM i takeover podczas automatycznej gałęzi to osobne OPEN.
+
+[Checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
+
+
+## Historia — zatwierdzona kolejność wdrożenia (sprzed implementacji)
+
+Plan zatwierdzony przez właściciela 2026-11-08: [LAB_DIALOG_IMPLEMENTATION_PLAN](LAB_DIALOG_IMPLEMENTATION_PLAN.md). **A: ręczna rozmowa tekstowa z prawdziwą lokalną Gemmą w jednej sesji i STOP; B: edytor własnych testów i wersje; C: rzetelna ocena tur oraz pamięci/korekt/halucynacji; D: adaptacyjny rozmówca zależny od odpowiedzi; E: A/B i polskie audio.** Unikać ponownego zakodowania stałych historii, stworzenia kopii `SkillLabRunner`, fałszywego `0/0 PASS` oraz publikacji danych. `main@d1bcf2a` ma pełny Mac gate PASS (365/365 Python, JVM, APK, lint, audio; task `aicalls-lab-four-stories-removal-regression-20261108-v2` DONE/0) i clean checkout. To historyczny zapis planu przed wdrożeniem; aktualny status jest wyżej.
 
 ## Lab — decyzja o usunięciu 4 sztywnych historii (2026-11-08)
 
