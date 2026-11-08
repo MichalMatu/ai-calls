@@ -53,6 +53,19 @@ internal class AndroidConversationPreparationStore(
     fun loadSkillLibrary() = synchronized(LOCK) { skillsRepository.load() }
     fun saveSkillLibrary(value: ConversationSkillLibrary) = synchronized(LOCK) { skillsRepository.save(value) }
 
+
+    /** The laboratory has its own encrypted no-backup record, separate from call scenarios. */
+    fun loadLabCases(): LabCaseLibrary = synchronized(LOCK) {
+        val raw = readRecord("lab-dialog-cases-v1") ?: return@synchronized LabCaseLibrary()
+        requireNotNull(Gson().fromJson(raw, LabCaseLibrary::class.java)) {
+            "lab_case_library_unreadable"
+        }.validated()
+    }
+
+    fun saveLabCases(library: LabCaseLibrary) = synchronized(LOCK) {
+        writeRecord("lab-dialog-cases-v1", Gson().toJson(library.validated()))
+    }
+
     private data class ScenarioDraftRecord(
         val version: Int, val scenarioId: String, val values: Map<String, String>,
     )
