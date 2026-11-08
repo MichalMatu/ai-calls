@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="lab_reports">Dialogue reports</string>
+<string name="lab_reports_empty">No saved reports</string>
+<string name="lab_reports_turns">turns</string>
+<string name="lab_report_details">Report and evidence</string>
+<string name="lab_report_review">Review criterion</string>
+<string name="lab_report_compare">A/B comparison</string>
+<string name="lab_report_select_turn">Select evidence turn</string>
+<string name="lab_report_evidence_hint">Evidence and rationale</string>
+<string name="lab_reports_need_two">Two reports are required</string>
+<string name="lab_report_comparable">Same case and revision: A/B comparison</string>
+<string name="lab_report_not_comparable">Different case or revision: not directly comparable</string>
+</resources>

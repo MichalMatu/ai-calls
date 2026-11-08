@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import android.app.AlertDialog
 import android.content.Intent
+import java.util.UUID
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.os.Bundle
@@ -44,6 +45,12 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var adaptiveButton: Button
     private lateinit var sessionFactory: AndroidSkillLabSessionFactory
     private lateinit var modelLabel: TextView
+    private var activeReportId: String? = null
+    private var activeCaseId: String? = null
+    private var activeCaseVersion: Int? = null
+    private var activePreset: String = ""
+    private var activeModel: String = ""
+    private var reportSaved = false
     private lateinit var casePicker: Spinner
     private var caseEntries: List<LabCase> = emptyList()
 
@@ -88,6 +95,9 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(casePicker, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.action(this, getString(R.string.lab_case_manage)) {
             showCaseList()
+        }, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.action(this, getString(R.string.lab_reports)) {
+            showReports()
         }, UiDesign.spaceAfter(this, 12))
         refreshCases()
         // Scripted quick/full modes are retired; all dialogue comes from a person or a saved case.
@@ -102,24 +112,12 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
 
         runButton = UiDesign.action(this, getString(R.string.lab_manual_new_session), UiActionTone.PRIMARY) {
             val selected = presets.getOrNull(picker.selectedItemPosition) ?: return@action
-            val test = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)?.selected()
-            sessionFactory.selectedCase = test
-            if (runner.startManual(selected.id) && test != null)
-                manualInput.setText(test.opening)
+            startDialogue(selected.id, adaptive = false)
         }.apply { tag = "lab-start" }
         content.addView(runButton, UiDesign.spaceAfter(this, 8))
         adaptiveButton = UiDesign.action(this, getString(R.string.lab_adaptive_start)) {
-            val chosen = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)
-            if (chosen == null) {
-                showError(getString(R.string.lab_adaptive_select_case))
-            } else {
-                val preset = presets.getOrNull(picker.selectedItemPosition)
-                if (preset != null) {
-                    sessionFactory.selectedCase = chosen.selected()
-                    runCatching { runner.startAdaptive(preset.id, chosen.selected()) }
-                        .onFailure { showError(it.message.orEmpty()) }
-                }
-            }
+            val preset = presets.getOrNull(picker.selectedItemPosition) ?: return@action
+            startDialogue(preset.id, adaptive = true)
         }.apply { tag = "lab-adaptive-start" }
         content.addView(adaptiveButton, UiDesign.spaceAfter(this, 8))
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
@@ -397,6 +395,143 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         dialog.show()
     }
 
+
+    private fun startDialogue(presetId: String, adaptive: Boolean) {
+        val chosen = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)
+        if (adaptive && chosen == null) {
+            showError(getString(R.string.lab_adaptive_select_case)); return
+        }
+        val test = chosen?.selected()
+        sessionFactory.selectedCase = test
+        val started = runCatching {
+            if (adaptive) runner.startAdaptive(presetId, requireNotNull(test))
+            else runner.startManual(presetId)
+        }.getOrElse { showError(it.message.orEmpty()); return }
+        if (!started) return
+        activeReportId = UUID.randomUUID().toString()
+        reportSaved = false
+        activeCaseId = chosen?.id
+        activeCaseVersion = test?.revision
+        activePreset = presetId
+        activeModel = runCatching {
+            AudioEngineProfileStore(this).load()?.dialogue?.name
+        }.getOrNull().orEmpty()
+        if (!adaptive && test != null) manualInput.setText(test.opening)
+    }
+
+    private fun saveTerminalReport(state: SkillLabUiState) {
+        if (!state.manual || reportSaved || state.completed.isEmpty() ||
+            state.phase !in setOf(SkillLabPhase.STOPPED,
+                SkillLabPhase.COMPLETED, SkillLabPhase.FAILED)) return
+        val id = activeReportId ?: return
+        runCatching {
+            val report = LabDialogueReport.fromSnapshot(activeCaseId, activeCaseVersion,
+                activeModel, activePreset, state, id)
+            val store = caseStore()
+            store.saveLabReports(store.loadLabReports().add(report))
+            report
+        }.onSuccess { report ->
+            reportSaved = true
+            scoreView.text = report.evidenceText()
+            scoreView.visibility = View.VISIBLE
+        }.onFailure { statusIfReady(it.message.orEmpty()) }
+    }
+
+    private fun showReports() {
+        val saved = runCatching { caseStore().loadLabReports().reports }.getOrElse {
+            showError(it.message.orEmpty()); return
+        }
+        if (saved.isEmpty()) { showError(getString(R.string.lab_reports_empty)); return }
+        val items = saved.reversed()
+        AlertDialog.Builder(this).setTitle(R.string.lab_reports)
+            .setItems(items.map { it.modelId + " · " + it.turns.size +
+                " " + getString(R.string.lab_reports_turns) }.toTypedArray()) { _, index ->
+                showReport(items[index])
+            }.show()
+    }
+
+    private fun showReport(report: LabDialogueReport) {
+        val details = report.evidenceText() + "\n\n" + report.turns.joinToString("\n\n") {
+            "#" + it.turn + "\n" + getString(R.string.lab_ui_input) + ": " + it.caller +
+                "\n" + getString(R.string.lab_ui_output) + ": " + it.assistant
+        }
+        val text = TextView(this).apply {
+            setPadding(24, 24, 24, 24)
+            setTextIsSelectable(true)
+            this.text = details
+        }
+        AlertDialog.Builder(this).setTitle(R.string.lab_report_details)
+            .setView(ScrollView(this).apply { addView(text) })
+            .setPositiveButton(R.string.lab_report_review) { _, _ -> chooseDimension(report) }
+            .setNeutralButton(R.string.lab_report_compare) { _, _ -> chooseComparison(report) }
+            .setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun chooseDimension(report: LabDialogueReport) {
+        val dimensions = LabReviewDimension.entries
+        AlertDialog.Builder(this).setTitle(R.string.lab_report_review)
+            .setItems(dimensions.map { it.name }.toTypedArray()) { _, idx ->
+                val dimension = dimensions[idx]
+                val choices = LabReviewVerdict.entries
+                AlertDialog.Builder(this).setTitle(dimension.name)
+                    .setItems(choices.map { it.name }.toTypedArray()) { _, verdictIndex ->
+                        val verdict = choices[verdictIndex]
+                        if (verdict == LabReviewVerdict.UNASSESSED) {
+                            saveReview(report, dimension, verdict, null, "")
+                        } else {
+                            AlertDialog.Builder(this).setTitle(R.string.lab_report_select_turn)
+                                .setItems(report.turns.map { "#" + it.turn }.toTypedArray()) { _, i ->
+                                    val note = EditText(this).apply {
+                                        hint = getString(R.string.lab_report_evidence_hint)
+                                    }
+                                    AlertDialog.Builder(this)
+                                        .setTitle(R.string.lab_report_evidence_hint)
+                                        .setView(note)
+                                        .setPositiveButton(R.string.lab_case_save) { _, _ ->
+                                            saveReview(report, dimension, verdict,
+                                                report.turns[i].turn, note.text.toString())
+                                        }
+                                        .setNegativeButton(android.R.string.cancel, null).show()
+                                }.show()
+                        }
+                    }.show()
+            }.show()
+    }
+
+    private fun saveReview(report: LabDialogueReport, dimension: LabReviewDimension,
+                           verdict: LabReviewVerdict, turn: Int?, note: String) {
+        runCatching {
+            val store = caseStore()
+            store.saveLabReports(store.loadLabReports().review(
+                report.id, dimension, verdict, turn, note))
+        }.onSuccess {
+            val saved = caseStore().loadLabReports().reports.first { it.id == report.id }
+            showReport(saved)
+        }.onFailure { showError(it.message.orEmpty()) }
+    }
+
+    private fun chooseComparison(report: LabDialogueReport) {
+        val others = runCatching { caseStore().loadLabReports().reports.filter {
+            it.id != report.id
+        } }.getOrElse { showError(it.message.orEmpty()); return }
+        if (others.isEmpty()) { showError(getString(R.string.lab_reports_need_two)); return }
+        AlertDialog.Builder(this).setTitle(R.string.lab_report_compare)
+            .setItems(others.map { it.modelId + " · " + it.turns.size }.toTypedArray()) { _, idx ->
+                val b = others[idx]
+                val comparison = LabABComparison.between(report, b)
+                val summary = getString(if (comparison.comparable)
+                    R.string.lab_report_comparable else R.string.lab_report_not_comparable) +
+                    "\nA: " + comparison.aTurns + " turns, " + comparison.aLatencyMs + " ms, " +
+                    comparison.aEndProposals + " END_CALL\nB: " + comparison.bTurns + " turns, " +
+                    comparison.bLatencyMs + " ms, " + comparison.bEndProposals + " END_CALL\n" +
+                    comparison.assessments.entries.joinToString("\n") {
+                        it.key.name + ": " + it.value.first + " / " + it.value.second
+                    }
+                AlertDialog.Builder(this).setTitle(R.string.lab_report_compare)
+                    .setMessage(summary).setPositiveButton(android.R.string.ok, null).show()
+            }.show()
+    }
+
     private fun runLab(presetId: String, quick: Boolean) {
         if (::runner.isInitialized) runner.startManual(presetId)
     }
@@ -405,6 +540,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         if (isDestroyed) return
         lastState = next
         currentTurnTotal = next.totalTurns
+        saveTerminalReport(next)
         if (next.phase == SkillLabPhase.STARTING) {
             renderedTurnCount = 0
             userReadingOlderTurns = false
@@ -619,7 +755,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     }
 
     private fun stopLab() {
-        if (::runner.isInitialized) runner.stop()
+        if (::runner.isInitialized) {
+            runner.stop()
+            saveTerminalReport(runner.state)
+        }
     }
 
     override fun onStop() {

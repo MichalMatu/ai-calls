@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="lab_reports">Raporty rozmów</string>
+<string name="lab_reports_empty">Brak zapisanych raportów</string>
+<string name="lab_reports_turns">tur</string>
+<string name="lab_report_details">Raport i dowody</string>
+<string name="lab_report_review">Oceń kryterium</string>
+<string name="lab_report_compare">Porównanie A/B</string>
+<string name="lab_report_select_turn">Wskaż turę będącą dowodem</string>
+<string name="lab_report_evidence_hint">Notatka z uzasadnieniem</string>
+<string name="lab_reports_need_two">Potrzebne są dwa raporty</string>
+<string name="lab_report_comparable">Ten sam przypadek i wersja: porównanie A/B</string>
+<string name="lab_report_not_comparable">Różne przypadki lub wersje: wyniki nieporównywalne bez zastrzeżeń</string>
+</resources>
