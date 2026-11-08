@@ -89,10 +89,18 @@ class AndroidLabSemanticNativeOfflineTest {
             val memoryAfterCorrection = code.lowercase(Locale.ROOT) in replies[4]
             val retained = code.lowercase(Locale.ROOT) in replies[6] &&
                 "fioletow" in replies[6] && "zielon" !in replies[6]
-            val unknown = Regex(
-                "brak|nie\\s+(?:wiem|znam|wiadomo|podano|mam)|nie\\s+został|nie\\s+był|nie\\s+mam",
-                RegexOption.IGNORE_CASE,
-            ).containsMatchIn(replies[5])
+            val unknownReply = java.text.Normalizer.normalize(replies[5],
+                java.text.Normalizer.Form.NFD)
+                .replace(Regex("\\p{M}+"), "")
+                .replace('ł', 'l')
+            val uncertain = Regex(
+                "\\b(?:brak|niewiadom\\w*|nieznan\\w*|nie\\s+" +
+                    "(?:wiem|znam|mam|mamy|ma|posiadam|moge|potrafie|podano|" +
+                    "podal(?:es|as)?|zostal|byl|jest))\\b",
+            ).containsMatchIn(unknownReply)
+            // An uncertainty disclaimer alongside a fabricated number is not a pass.
+            val unknown = uncertain &&
+                !Regex("\\b\\d{3,}\\b").containsMatchIn(unknownReply)
             val ended = turns.count { it.observation.actualEnd }
             val averageMs = turns.map { it.observation.elapsedMs }.average().toLong()
 
