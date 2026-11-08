@@ -371,7 +371,7 @@
     <string name="camp_ui_play_offcall">Odsłuch tylko poza połączeniem. Transkrypt pozostaje prywatny.</string>
     <string name="eng_ui_primary_heading">Zapis wybranej konfiguracji</string>
     <string name="eng_ui_diagnostics_heading">Diagnostyka i testy opcjonalne</string>
-    <string name="eng_ui_diagnostics_caption">Sprawdzenie silników, pobieranie i odsłuch są niezależne od zapisu ustawień.</string>
+    <string name="eng_ui_diagnostics_caption">Sprawdzenie silników i odsłuch są niezależne od zapisu ustawień. Pobieranie modeli znajdziesz w zakładce Modele.</string>
     <string name="models_ui_detail_size">Rozmiar pliku: %1$d MB</string>
     <string name="models_ui_detail_runtime">Runtime: %1$s</string>
     <string name="models_ui_detail_source">Repozytorium źródłowe</string>

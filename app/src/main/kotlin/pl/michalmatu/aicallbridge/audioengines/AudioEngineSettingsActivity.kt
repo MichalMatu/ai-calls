@@ -35,11 +35,9 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
     private lateinit var feedback: TextView
     private lateinit var active: TextView
     private lateinit var voicePicker: Spinner
-    private lateinit var cancelDownloadButton: Button
     private lateinit var inputGroup: RadioGroup
     private lateinit var outputGroup: RadioGroup
     private var tts: TextToSpeech? = null
-    private var parakeetDownloader: ParakeetModelDownloader? = null
     private var probedVoices: Set<String>? = null
     private var probedOutput: SpeechOutputId? = null
     private var voiceNames: List<String> = emptyList()
@@ -179,14 +177,6 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_check)) {
             checkOffline()
         }, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, getString(R.string.eng_ui_download)) {
-            downloadParakeet()
-        }, UiDesign.spaceAfter(this, 12))
-        cancelDownloadButton = UiDesign.action(this, getString(R.string.eng_ui_cancel), UiActionTone.DANGER) {
-            parakeetDownloader?.cancel()
-            feedback.text = getString(R.string.eng_ui_cancel_progress)
-        }.apply { tag = "engine-cancel-download"; visibility = View.GONE }
-        content.addView(cancelDownloadButton, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_preview)) {
             previewVoice()
         }, UiDesign.spaceAfter(this, 12))
@@ -298,44 +288,6 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
         else TextToSpeech(this, initListener, selectedEngine)
     }
 
-    private fun downloadParakeet() {
-        if (selectedProfile().input != SpeechInputId.PARAKEET_PL) {
-            feedback.text = getString(R.string.eng_ui_choose_parakeet)
-            return
-        }
-        if (parakeetDownloader != null) {
-            feedback.text = getString(R.string.eng_ui_download_busy)
-            return
-        }
-        val downloader = ParakeetModelDownloader(this)
-        parakeetDownloader = downloader
-        cancelDownloadButton.visibility = View.VISIBLE
-        feedback.text = getString(R.string.eng_ui_download_hint)
-        Thread({
-            val result = downloader.download { read, total ->
-                runOnUiThread {
-                    if (!isDestroyed && parakeetDownloader === downloader) {
-                        val pct = (read * 100 / total).toInt().coerceIn(0, 100)
-                        feedback.text = getString(R.string.eng_ui_download_progress, pct, read, total)
-                    }
-                }
-            }
-            runOnUiThread {
-                if (parakeetDownloader !== downloader) return@runOnUiThread
-                parakeetDownloader = null
-                if (isFinishing || isDestroyed) return@runOnUiThread
-                cancelDownloadButton.visibility = View.GONE
-                when (result) {
-                    ParakeetModelDownloadResult.Success -> {
-                        feedback.text = getString(R.string.eng_ui_download_verified)
-                    }
-                    is ParakeetModelDownloadResult.Failure ->
-                        feedback.text = getString(R.string.eng_ui_parakeet_error, result.reason)
-                }
-            }
-        }, "aicalls-parakeet-download").apply { isDaemon = true }.start()
-    }
-
     private fun previewVoice() {
         // Preview is optional. A missing runtime permission must not crash the screen
         // or become an extra requirement to save the unchanged working configuration.
@@ -386,8 +338,6 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
     }
 
     override fun onDestroy() {
-        parakeetDownloader?.cancel()
-        parakeetDownloader = null
         tts?.stop()
         tts?.shutdown()
         tts = null

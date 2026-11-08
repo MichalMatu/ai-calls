@@ -43,6 +43,9 @@ class AndroidUiPolishContractTest {
             scenario.onActivity { a ->
                 val root = a.window.decorView
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("model-transfer-cancel")).visibility)
+                assertNotNull(root.findViewWithTag<View>("parakeet-transfer-card"))
+                assertNotNull(root.findViewWithTag<View>("parakeet-transfer-status"))
+                assertNotNull(root.findViewWithTag<View>("models-pipeline-summary"))
                 val cards = tagged(root, "model-card:")
                 assertTrue("catalog_is_empty", cards.isNotEmpty())
                 for (card in cards) {
@@ -85,9 +88,9 @@ class AndroidUiPolishContractTest {
         ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
             scenario.onActivity { a ->
                 val root = a.window.decorView
-                assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(
-                    "engine-cancel-download")).visibility)
+                assertNull(root.findViewWithTag<View>("engine-cancel-download"))
                 assertTrue(tagged(root, "engine-unavailable:").isNotEmpty())
+                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:models")).isSelected)
             }
         }
     }

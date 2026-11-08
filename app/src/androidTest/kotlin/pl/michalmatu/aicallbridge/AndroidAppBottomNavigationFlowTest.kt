@@ -13,6 +13,8 @@ import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
 import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
+import pl.michalmatu.aicallbridge.ui.AgentAiHubActivity
+import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 
 /** Navigation only: no CALL, START, STOP, download or preference save is invoked. */
 @RunWith(AndroidJUnit4::class)
@@ -43,7 +45,9 @@ class AndroidAppBottomNavigationFlowTest {
 
     @Test fun homeTabsNavigateToHistoryLabAndSettings() {
         openTab("history", ConversationHistoryActivity::class.java)
+        openTab("agent", AgentAiHubActivity::class.java)
         openTab("lab", ConversationSkillLabActivity::class.java)
+        openTab("models", LanguageModelActivity::class.java)
         openTab("settings", SettingsHubActivity::class.java)
     }
 

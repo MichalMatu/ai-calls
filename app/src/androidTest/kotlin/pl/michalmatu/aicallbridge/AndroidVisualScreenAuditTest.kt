@@ -31,6 +31,7 @@ import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.ui.DeveloperToolsActivity
 import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
 import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
+import pl.michalmatu.aicallbridge.ui.AgentAiHubActivity
 
 /**
  * Read-only physical-screen review. Opens safe pages and scrolls them.
@@ -144,6 +145,7 @@ class AndroidVisualScreenAuditTest {
     @Test fun calls() = capture(ConversationHistoryActivity::class.java, "calls")
     @Test fun lab() = capture(ConversationSkillLabActivity::class.java, "lab")
     @Test fun settings() = capture(SettingsHubActivity::class.java, "settings")
+    @Test fun agentAi() = capture(AgentAiHubActivity::class.java, "agent-ai")
     @Test fun generalSettings() = capture(GeneralSettingsActivity::class.java, "general-settings")
     @Test fun engines() = capture(AudioEngineSettingsActivity::class.java, "engines")
     @Test fun languageModels() = capture(LanguageModelActivity::class.java, "models")

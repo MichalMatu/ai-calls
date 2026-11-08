@@ -29,11 +29,11 @@ class AndroidMenuVisualContractTest {
         }
         return null
     }
-    @Test fun directNavigationHasFourVisibleTabsAndSafetyActions() {
+    @Test fun directNavigationHasSixVisibleTabsAndSafetyActions() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                for (name in listOf("home", "history", "lab", "settings")) {
+                for (name in listOf("home", "history", "agent", "lab", "models", "settings")) {
                     val tab = requireNotNull(root.findViewWithTag<View>("app-tab:$name"))
                     assertTrue("tab_visible:$name", tab.isShown)
                     assertTrue("tab_clickable:$name", tab.isClickable)

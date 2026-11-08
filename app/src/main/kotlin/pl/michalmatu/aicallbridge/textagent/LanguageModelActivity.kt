@@ -21,6 +21,8 @@ import android.widget.TextView
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
+import pl.michalmatu.aicallbridge.audioengines.ParakeetModelFile
+import pl.michalmatu.aicallbridge.audioengines.ParakeetModelTransferService
 import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
 
 /**
@@ -41,6 +43,9 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
     private val handler = Handler(Looper.getMainLooper())
     private var pendingImport: DialogueModelId? = null
     private lateinit var feedback: TextView
+    private lateinit var parakeetStatus: TextView
+    private lateinit var parakeetDownload: Button
+    private lateinit var parakeetCancel: Button
     private lateinit var cancelTransfer: Button
     private var lastTransfer: TransferStatus? = null
     private val rows = mutableListOf<Row>()
@@ -108,6 +113,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
             })
         }
         content.addView(pipeline, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
+        addParakeetCard(content)
         for (model in LanguageModelCatalog.entries) {
             val card = UiDesign.card(this).apply {
                 tag = "model-card:" + model.id.name
@@ -201,6 +207,54 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
         update()
     }
 
+    /** Canonical Parakeet acquisition lives in Models, not the engine selector. */
+    private fun addParakeetCard(content: LinearLayout) {
+        val card = UiDesign.card(this).apply { tag = "parakeet-transfer-card" }
+        card.addView(UiDesign.heading(this, getString(R.string.ux07_parakeet_title)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 6))
+        parakeetStatus = UiDesign.caption(this, "").apply {
+            textSize = 15f
+            setTextColor(UiDesign.ink)
+            tag = "parakeet-transfer-status"
+        }
+        card.addView(parakeetStatus, UiDesign.spaceAfter(this, 10))
+        parakeetDownload = UiDesign.action(this, getString(R.string.ux07_parakeet_download),
+            UiActionTone.PRIMARY) {
+            startForegroundService(Intent(this, ParakeetModelTransferService::class.java)
+                .setAction(ParakeetModelTransferService.START))
+        }.apply { tag = "parakeet-transfer-download" }
+        card.addView(parakeetDownload, UiDesign.spaceAfter(this, 8))
+        parakeetCancel = UiDesign.action(this, getString(R.string.models_ui_cancel),
+            UiActionTone.DANGER) {
+            startService(Intent(this, ParakeetModelTransferService::class.java)
+                .setAction(ParakeetModelTransferService.CANCEL))
+        }.apply { tag = "parakeet-transfer-cancel" }
+        card.addView(parakeetCancel)
+        content.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
+        updateParakeetUi()
+    }
+
+    private fun updateParakeetUi() {
+        if (!::parakeetStatus.isInitialized) return
+        val state = ParakeetModelTransferService.status
+        val hasFile = ParakeetModelFile.resolve(this).let {
+            it.isFile && it.length() == ParakeetModelFile.MIN_SIZE_BYTES
+        }
+        parakeetStatus.text = when {
+            state.busy -> getString(R.string.ux07_parakeet_progress,
+                (state.bytes * 100L / ParakeetModelFile.MIN_SIZE_BYTES).toInt().coerceIn(0, 100))
+            state.verified -> getString(R.string.ux07_parakeet_verified)
+            state.error.isNotEmpty() -> getString(R.string.ux07_parakeet_failure, state.error)
+            hasFile -> getString(R.string.ux07_parakeet_check_required)
+            else -> getString(R.string.ux07_parakeet_missing)
+        }
+        parakeetDownload.text = getString(if (hasFile) R.string.ux07_parakeet_check
+            else R.string.ux07_parakeet_download)
+        parakeetDownload.visibility = if (state.busy || state.verified) View.GONE else View.VISIBLE
+        parakeetCancel.visibility = if (state.busy) View.VISIBLE else View.GONE
+    }
+
     private fun begin(model: LanguageModelEntry, uri: android.net.Uri?) {
         if (LanguageModelTransferService.status.busy) return
         startForegroundService(Intent(this, LanguageModelTransferService::class.java)
@@ -210,6 +264,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
     }
 
     private fun update() {
+        updateParakeetUi()
         val transfer = LanguageModelTransferService.status
         val selected = AudioEngineProfileStore(this).load()?.dialogue
         val readyIds = rows.asSequence().filter { row ->

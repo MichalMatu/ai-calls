@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux07_parakeet_title">Parakeet PL · STT · 615 MB</string>
+    <string name="ux07_parakeet_download">Pobierz model</string>
+    <string name="ux07_parakeet_check">Sprawdź / pobierz</string>
+    <string name="ux07_parakeet_downloading">Pobieranie Parakeet</string>
+    <string name="ux07_parakeet_progress">Pobieranie: %1$d%%</string>
+    <string name="ux07_parakeet_verified">Plik pobrany i zweryfikowany SHA-256</string>
+    <string name="ux07_parakeet_missing">Nie zainstalowano · 615 MB</string>
+    <string name="ux07_parakeet_check_required">Plik obecny · wymaga weryfikacji SHA-256</string>
+    <string name="ux07_parakeet_failure">Nie udało się: %1$s</string>
+</resources>

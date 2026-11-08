@@ -371,7 +371,7 @@
     <string name="camp_ui_play_offcall">Playback is available only outside calls. Transcripts stay private.</string>
     <string name="eng_ui_primary_heading">Save selected configuration</string>
     <string name="eng_ui_diagnostics_heading">Optional diagnostics and tests</string>
-    <string name="eng_ui_diagnostics_caption">Checking engines, downloading and previewing voice are separate from saving settings.</string>
+    <string name="eng_ui_diagnostics_caption">Checking engines and previewing voices are separate from saving settings. Download models from the Models tab.</string>
     <string name="models_ui_detail_size">File size: %1$d MB</string>
     <string name="models_ui_detail_runtime">Runtime: %1$s</string>
     <string name="models_ui_detail_source">Source repository</string>

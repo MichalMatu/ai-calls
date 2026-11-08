@@ -7,6 +7,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
+import pl.michalmatu.aicallbridge.ui.AgentAiHubActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.view.WindowManager
@@ -16,12 +17,12 @@ import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 
 @RunWith(AndroidJUnit4::class)
 class AndroidAppNavigationContractTest {
-    @Test fun homeShowsFourReachableTabsWithoutStartingCalls() {
+    @Test fun homeShowsSixReachableTabsWithoutStartingCalls() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("app-bottom-navigation"))
-                for (route in listOf("home", "history", "lab", "settings")) {
+                for (route in listOf("home", "history", "agent", "lab", "models", "settings")) {
                     val tab = requireNotNull(root.findViewWithTag<View>("app-tab:$route"))
                     assertTrue(tab.isShown)
                     assertTrue(tab.isClickable)
@@ -45,7 +46,32 @@ class AndroidAppNavigationContractTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
-                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
+                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:models")).isSelected)
+            }
+        }
+    }
+    @Test fun agentOwnsEditorsAndSettingsHasNoDuplicateDestinations() {
+        ActivityScenario.launch(AgentAiHubActivity::class.java).use { screen ->
+            screen.onActivity { activity ->
+                val root = activity.window.decorView
+                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:agent")).isSelected)
+                for (item in listOf("ConversationSkillsActivity", "ScenarioLibraryActivity",
+                    "ConversationPreparationActivity", "PhoneEnrollmentActivity",
+                    "ConversationToolsActivity")) {
+                    assertTrue(requireNotNull(root.findViewWithTag<View>(
+                        "agent-destination:" + item)).isClickable)
+                }
+            }
+        }
+        ActivityScenario.launch(SettingsHubActivity::class.java).use { screen ->
+            screen.onActivity { activity ->
+                val root = activity.window.decorView
+                for (item in listOf("ConversationSkillsActivity", "ConversationPreparationActivity",
+                    "PhoneEnrollmentActivity", "ConversationToolsActivity",
+                    "LanguageModelActivity", "AudioEngineSettingsActivity")) {
+                    assertNull("duplicate_settings_entry:" + item, root.findViewWithTag<View>(
+                        "settings-destination:" + item))
+                }
             }
         }
     }

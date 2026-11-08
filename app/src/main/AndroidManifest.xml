@@ -113,6 +113,7 @@
 
         <activity android:name=".textagent.LanguageModelActivity" android:exported="false" />
         <service android:name=".textagent.LanguageModelTransferService" android:exported="false" android:foregroundServiceType="dataSync" />
+        <service android:name=".audioengines.ParakeetModelTransferService" android:exported="false" android:foregroundServiceType="dataSync" />
 
         <activity
             android:name=".audioengines.AudioEngineSettingsActivity"
