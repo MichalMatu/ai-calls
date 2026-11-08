@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.debug
 
+import android.Manifest
 import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.content.pm.ApplicationInfo
 import android.telecom.TelecomManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,6 +30,10 @@ class AndroidUsbLabControlContractTest {
 
     @Test fun statusWithoutPhoneCallDoesNotAuthorizeTelephony() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
+        if (app.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED) {
+            throw AssertionError("offcall_test_requires_read_phone_state")
+        }
         val telecom = app.getSystemService(TelecomManager::class.java)
         assertFalse("offcall_test_requires_idle_phone", telecom.isInCall)
         val status = UsbLabControl.execute(app, "status", JSONObject())
