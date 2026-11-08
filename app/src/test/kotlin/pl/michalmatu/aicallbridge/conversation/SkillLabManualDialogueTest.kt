@@ -29,7 +29,7 @@ class SkillLabManualDialogueTest {
             callback = listener
             entered.countDown()
             if (auto) listener.onComplete(
-                """{"reply":"""" + reply(userText) + """","tool":"none"}""")
+                "{\"reply\":\"" + reply(userText) + "\",\"tool\":\"none\"}")
         }
         override fun cancel() { cancelCount.incrementAndGet() }
         override fun close() { closeCount.incrementAndGet() }
