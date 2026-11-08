@@ -1,5 +1,7 @@
 # AI Calls — zakres laboratorium, moduły i instalacja
 
+**Stan odbioru USB Lab 2026-11-08:** Mac host PASS (370 testów Python, Gradle, lint, AndroidTest/APK), **nowy USB receiver i komendy Call na S22 NOT_RUN**. Realna Gemma E2B 4096 w dotychczasowym Lab: **3×13 tur technicznie PASS**, human review UNASSESSED. [Pełny checkpoint](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
+
 **USB/ADB Lab (2026-11-08):** dodano do źródła prywatny, chroniony kanał diagnostyczny START/SEND/STOP dla prawdziwego `SkillLabRunner`, telemetrię RAM oraz interwencje już istniejącego kontrolera Call (takeover/resume/stop własnej rozmowy) i konfigurację incoming. Mac QA PASS, fizyczny odbiór nowej ścieżki USB/Call **NOT_RUN**. [Konstrukcja i granice](USB_LAB_TELEPHONY_CHANNEL.md).
 
 ## Decyzja właściciela — 2026-11-05
