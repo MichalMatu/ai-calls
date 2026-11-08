@@ -1,5 +1,11 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## LAB-SEMANTIC-02 — wynik 4096, próba 13/13 (2026-11-08)
+
+Po dwóch powtarzalnych porażkach JNI przy 2048 tokenach w turze 10 wdrożono wariant **4096 tylko w Laboratory** (`main@f38b5f4`); inne ścieżki Call nadal domyślnie 2048. Mac pełna bramka `scripts/verify_host.sh` PASS (task końcowo failed/125 w dodatkowym etapie), S22 `aicalls-semantic2-s22-context4096-20261108-v1` **DONE/0, natywna E2B 13/13 tur PASS technicznie**, 11/13 heurystyk (2 niepotwierdzone punkty dotyczące nieznanego numeru), średnio 6686 ms, 0 END_CALL, IDLE. Dodatkowe powtórki N=2/3 **nie wystartowały** (guard REFUSED). **F-148 OPEN** do N=3 i pełnej oceny semantycznej; nie twierdzić 3/3.
+
+[Dokładny checkpoint](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).
+
 ## LAB-SEMANTIC-02 — dłuższy dialog: F-148 OPEN (2026-11-08)
 
 Nowy scoped AndroidTest (dwie kartoteki, wielokrotne korekty, zgadywanie numeru, skutki) przeszedł pełny Mac gate na kodzie `8768f72`, ale **pierwsza prawdziwa sesja S22 przerwała się w turze 10 z `LiteRtLmJniException`**; 9 tur wygenerowano poprawnie, sesje 2/3 nie startowały. Podejrzenie: okno natywnego kontekstu 2048 tokenów, **niepotwierdzone**. Zarejestrowano `F-148 OPEN`; w `main@68e848d` dopisano prywatny zapis częściowych dowodów, ale jego **Mac gate i S22 reacceptance są QA_PENDING/NOT_RUN**. Nie podnosić globalnie token budget ani nie zaliczać semantyki bez surowej prywatnej oceny.

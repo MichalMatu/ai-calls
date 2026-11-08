@@ -1,5 +1,7 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+**LAB-SEMANTIC-02, okno 4096 (2026-11-08):** realna Gemma E2B na S22 **13/13 tur PASS technicznie** na eksperymentalnym Lab `4096`, pozostałe ścieżki nadal `2048`. Heurystyki **11/13**, dwa punkty niepotwierdzone; ręczna semantyka **UNASSESSED**. Powtórki N=2/3 **nie rozpoczęły się przez urządzeniowy guard**. **F-148 OPEN**, RAM/N=3 nadal do odbioru. [Checkpoint](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).
+
 **LAB-SEMANTIC-02 (2026-11-08):** trudniejszy 13-turn real S22 **BLOCKED po turze 9** — `LiteRtLmJniException` przy 10. turze, `F-148 OPEN`; nie mylić technicznego Mac PASS wcześniejszego testu z zaakceptowanym długim dialogiem. Częściowy prywatny journaling dodany `main@68e848d`, Mac gate **QA_PENDING**, fizyczne powtórzenie **NOT_RUN**. [Checkpoint](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).
 
 **LAB-SEMANTIC-01 (2026-11-08):** realne `GEMMA_4_E2B` na S22, **3/3 niezależne sesje × 7 tur = 21/21**, kontrolowana pamięć, zmiana tematu, korekta i jawna niepewność **PASS 3/3**; średnia ~4,04 s, bez Call i bez publikowania transkryptów. Mac pełny gate PASS na `main@4a3c49b`. **Pełny human review i szeroka wiarygodność faktów nadal OPEN.** [Checkpoint](checkpoints/2026-11-08-lab-semantic-01-gemma-e2b-three-sessions.md).
