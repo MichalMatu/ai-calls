@@ -15,3 +15,11 @@ Data: 2026-11-08. Start GitHub `main@fa21f88decf481d17741ce22828037bb8ef621b2`; 
 3. `aicalls-f1-custom-vault-test-compile-20261108-v1` **DONE/0**: `:app:compileDebugAndroidTestKotlin` BUILD SUCCESSFUL, checkout clean na `6a6d2a1`. **Nie uruchamiano** tego testu na S22; kompilacja != device acceptance.
 
 **Kolejna rzeczywista sekwencja:** po odzyskaniu ADB i sprawdzeniu `IDLE` uruchomić izolowane testy `AndroidCustomVaultFunctionalAcceptanceTest`, `AndroidPersonalScenarioStoreContractTest`, `AndroidSkillPresetMatrixTest.aEncryptedEditVersionSwitchAndRollbackInIsolatedStore`; potem ręczne UI dodaj/edytuj/zapisz/odtwórz z fikcyjnymi polami/Skills, Lab model+STOP. Gemma native audio osobno po pomiarze RAM/thermal i bez utrudniania innych aplikacji. Dokładne statuty w `docs/FUNCTIONAL_ACCEPTANCE_MATRIX.md`. CALL/real effects NOT_RUN.
+
+## Druga próba fizycznego F1 — urządzenie zajęte przez ShellyLink
+
+- `aicalls-f1-sync-and-device-check-20261108-v1`: Mac repo zsynchronizowane i czyste, S22 chwilowo ADB CONNECTED, foreground launcher.
+- `aicalls-f1-s22-preflight-before-fixture-tests-20261108-v1`: `SM-S906B`, `mCallState=0`, Launcher, APK AI Calls 0.2.0 code 2, test APK wcześniej zainstalowany.
+- `aicalls-f1-s22-isolated-skill-vault-scenario-20261108-v1`: **FAILED przed instalacją**. Pierwszy etap `:app:assembleDebugAndroidTest` **PASS**; etap bezpiecznej instalacji przerwany przez fence foreground (wymagany Launcher). **Ani nowego test APK nie zainstalowano, ani żadnego z trzech testów nie uruchomiono.**
+- `aicalls-f1-s22-recheck-why-install-fenced-20261108-v1`: ADB `device`, `mCallState=0`, ale foreground `app.shellylink.mobile/.MainActivity`. To równoległa aktywna aplikacja, nie problem implementacji AI Calls; nie przerywać jej ekranów. **Status testów: NOT_RUN_DEVICE / DEVICE_BUSY**, Mac build PASS, żadnego fałszywego PASS.
+- **Dalszy krok:** uruchomić testy dopiero po odzyskaniu wolnego foreground i ponownym preflight. Priorytet nadal Sejf → Skills → Scenariusze, potem osobne Gemma Audio. Nie wracać do kosmetycznego UX.
