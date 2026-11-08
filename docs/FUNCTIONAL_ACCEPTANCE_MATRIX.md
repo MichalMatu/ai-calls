@@ -86,10 +86,18 @@
 
 ## 4. Laboratorium Skills
 
+**Nowy zakres odbioru LAB-DIALOG-01:** [kolejność i kryteria A–E](LAB_DIALOG_IMPLEMENTATION_PLAN.md). Przy obecnym kodzie wszystkie nowe funkcje są **NOT_RUN / NOT_IMPLEMENTED**; nie dziedziczą PASS z dawnego sztywnego korpusu. Kryterium główne: prawdziwa kontynuacja tematu w jednej sesji Gemmy.
+
+
 **Uwaga 2026-11-08:** właściciel odrzucił wszystkie 4 sztywne historie. Dawne PASS dotyczą wcześniejszego kodu i nie są dowodem bieżącego przebiegu Lab; przy 0 przypadków nowe testy nie startują. `LAB-DIALOG-01` — edytor i adaptacyjny rozmówca są zapisane w roadmapie.
 
 | ID | Funkcja / kryterium | Stan i dowód |
 |---|---|---|
+| LAB-DIA-A | Manualny wieloturowy chat z tym samym kontekstem modelu, STOP, odtworzenie nowej sesji, bez Call | NOT_IMPLEMENTED; plan A |
+| LAB-DIA-B | Własne przypadki CRUD, wersje, zapis/reload i ręczne wykonanie | NOT_IMPLEMENTED; plan B |
+| LAB-DIA-C | Ocena każdej tury: temat, pamięć, korekta, brak zmyślania, naturalność i uczciwe NOT_SCORED | NOT_IMPLEMENTED; plan C |
+| LAB-DIA-D | Adaptacyjny rozmówca zależny od odpowiedzi modelu, ślad gałęzi, człowiek przejmuje | NOT_IMPLEMENTED; plan D |
+| LAB-DIA-E | A/B model/Skills + prywatne STT/TTS/PCM, bez Call i efektów | NOT_IMPLEMENTED; plan E |
 | LAB-01 | Wybranie presetu, zakres quick/full, reset, właściwa liczba tur i widok w trakcie | **BLOCKED / brak aktywnego zestawu** po usunięciu wszystkich 4 odrzuconych rozmów; UI blokuje START. Plan: edytor testów i tryb manualny/adaptacyjny. |
 | LAB-02 | Prawdziwy lokalny model: 2 kolejne tury, odpowiedź i kryteria końca bez Telecom | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1` |
 | LAB-03 | STOP w trakcie, stan STOPPED, brak dalszych tur, ponowny START | PASS_OFFCALL_FUNCTIONAL — ten sam receipt, tylko izolowane dwie tury i restart/STOP |

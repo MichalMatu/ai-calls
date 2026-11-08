@@ -1,5 +1,9 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## LAB-DIALOG-01 — zatwierdzona kolejność wdrożenia
+
+Plan zatwierdzony przez właściciela 2026-11-08: [LAB_DIALOG_IMPLEMENTATION_PLAN](LAB_DIALOG_IMPLEMENTATION_PLAN.md). **A: ręczna rozmowa tekstowa z prawdziwą lokalną Gemmą w jednej sesji i STOP; B: edytor własnych testów i wersje; C: rzetelna ocena tur oraz pamięci/korekt/halucynacji; D: adaptacyjny rozmówca zależny od odpowiedzi; E: A/B i polskie audio.** Unikać ponownego zakodowania stałych historii, stworzenia kopii `SkillLabRunner`, fałszywego `0/0 PASS` oraz publikacji danych. `main@d1bcf2a` ma pełny Mac gate PASS (365/365 Python, JVM, APK, lint, audio; task `aicalls-lab-four-stories-removal-regression-20261108-v2` DONE/0) i clean checkout. To jest dokumentacja planu, **jeszcze nie implementacja nowych trybów**.
+
 ## Lab — decyzja o usunięciu 4 sztywnych historii (2026-11-08)
 
 Właściciel odrzucił **wszystkie** 4 fabryczne historie Laboratorium, wyraźnie zabronił zachowywania ich jako regresji. Kod `SkillLabCorpus.stories` ma teraz pusty zestaw; `SkillLabRunner.start()` odrzuca brak przypadków, UI pokazuje PL/EN jasny status i nieaktywny START bez fałszywego 0/0. Stary opcjonalny test `AndroidSkillLabRealOfflineTest` jest oznaczony `@Ignore`, a porównanie presetów na odrzuconym korpusie usunięte. **Testy techniczne START/STOP/timeout** używają wyłącznie nowych, neutralnych fixture w kodzie testów, nie starych rozmów. Najwyższy priorytet następnego sprintu: **edytor testów + manualny rozmówca + adaptacyjne prowadzenie rozmowy + metryki śledzenia wątku**. Patrz `docs/ROADMAP.md` / `docs/checkpoints/2026-11-08-lab-four-scripted-stories-removed.md`. Dawne wyniki Lab/END_CALL pozostają tylko historycznym zapisem starego kodu, nie bieżącą akceptacją. Real CALL bez autoryzacji nie uruchamiać. **Nowe testy urządzenia i instalacja APK z usuniętymi historiami wymagają osobnego QA i wolnego ekranu S22.**

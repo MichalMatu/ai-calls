@@ -4,6 +4,10 @@
 
 > Po UX-11 dodano ograniczony tail UX-12 (Historia + parser screenshotów). Targeted Python QA 14/14 i pełny Mac gate 365/365 PASS; dawny fizyczny zestaw JPEG 17/17 zweryfikowany nowym parserem; nowy wizualny S22 NOT_RUN z powodu zajętego foreground. Funkcjonalne statusy pozostają według macierzy.
 
+## LAB-DIALOG-01 — wdrożenie zatwierdzone, kolejność A → E
+
+**Zatwierdzono 2026-11-08.** Szczegółowy, testowalny plan: [LAB_DIALOG_IMPLEMENTATION_PLAN](LAB_DIALOG_IMPLEMENTATION_PLAN.md). Kolejność: **A manualny dialog w jednej sesji → B edytowalne przypadki → C niezależna ocena tur → D adaptacyjny rozmówca → E porównania i audio**. Pierwsza praca kodowa: rozwój kontraktu obecnego `SkillLabRunner` dla manualnych wejść, bez dublowania runnera. Stare cztery historie pozostają usunięte.
+
 ## Priorytet następnego sprintu — LAB-DIALOG-01: własne i adaptacyjne testy rozmowy
 
 **DO ZROBIENIA, niezaimplementowane (decyzja właściciela 2026-11-08).** Wszystkie 4 wcześniejsze sztywne historie zostały usunięte z aktywnego `SkillLabCorpus`, a nie zachowane jako zestaw regresyjny. Teraz `Lab` nie ma aktywnych scenariuszy i świadomie nie pozwala uruchomić pustego testu; nie wolno zaliczać 0/0 jako PASS.
