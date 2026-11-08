@@ -48,7 +48,9 @@ class AndroidLabAdaptiveNativeOfflineTest {
                 "otherwise => Czy pamiętasz, co właśnie powiedziałem?",
             completion = "Stop after applicable single-use rules",
         )
-        val runner = SkillLabRunner(AndroidSkillLabSessionFactory(context),
+        val runner = SkillLabRunner(AndroidSkillLabSessionFactory(context).apply {
+            selectedCase = testCase
+        },
             dispatchToUi = { it() }, onState = {})
         try {
             assertTrue(runner.startAdaptive("natural", testCase))
