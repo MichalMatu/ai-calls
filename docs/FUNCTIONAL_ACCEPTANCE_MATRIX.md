@@ -86,7 +86,7 @@
 
 ## 4. Laboratorium Skills
 
-**Nowy zakres odbioru LAB-DIALOG-01:** [plan A–E](LAB_DIALOG_IMPLEMENTATION_PLAN.md). Kod źródłowy A–D wdrożony, fizyczny S22 dla ręcznej rozmowy i zaszyfrowanej przechowalni **PASS 3/3**. Adaptacyjne S22 i nowe układy z `992280b` **BLOCKED_SAFETY_GATE — PocketHost foreground**; pełny klikalny UI editor i semantyka **NOT_RUN**, bez dziedziczenia PASS po dawnym korpusie.
+**Nowy zakres odbioru LAB-DIALOG-01:** [plan A–E](LAB_DIALOG_IMPLEMENTATION_PLAN.md). Kod źródłowy A–D wdrożony, fizyczny S22 dla ręcznej rozmowy i zaszyfrowanej przechowalni **PASS 3/3**. Adaptacyjne S22 i nowy układ z `992280b` **PASS_DEVICE_FUNCTIONAL** (S22 testy 2/2 UI/store i 1/1 native adaptive; receipt `aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1` DONE/0); pełny klikalny UI editor i semantyka **NOT_RUN**, bez dziedziczenia PASS po dawnym korpusie.
 
 
 **Uwaga 2026-11-08:** usunięte 4 sztywne historie nadal nie istnieją. Nowa ręczna sesja startuje bez przypadku; adaptacyjna wymaga testu utworzonego przez użytkownika. Dawne wyniki są historyczne.
@@ -96,12 +96,12 @@
 | LAB-DIA-A | Manualny wieloturowy chat z tym samym kontekstem modelu, STOP, odtworzenie nowej sesji, bez Call | **PASS_OFFCALL_FUNCTIONAL:** S22 native 2 tury/STOP/restart 1/1; Mac runner 16 tur/STOP/late callback test w pełnym gate; QA receipts v3 i device v1. Semantyczna pamięć NOT_SCORED. |
 | LAB-DIA-B | Własne przypadki CRUD, wersje, zapis/reload i ręczne wykonanie | **PASS_DEVICE_COMPONENT:** S22 izolowany Keystore CRUD/reopen/revision/report; UI controls test PASS (2/2). Pełny klikany UI CRUD NOT_RUN. |
 | LAB-DIA-C | Ocena każdej tury: temat, pamięć, korekta, brak zmyślania, naturalność i uczciwe NOT_SCORED | **SOURCE/HOST PASS:** manualny rubric per tura i zaszyfrowany raport S22 PASS; prawdziwa semantyczna ocena modelu UNASSESSED / NOT_RUN. |
-| LAB-DIA-D | Adaptacyjny rozmówca zależny od odpowiedzi modelu, ślad gałęzi, człowiek przejmuje | **PASS_JVM + AndroidTest COMPILE / DEVICE BLOCKED:** zależność gałęzi od odpowiedzi testowana fake backendem, prawdziwy S22 adaptive zablokowany przez PocketHost foreground (`...s22-adaptive-layout-guarded-20261108-v2`). Drugi LLM i takeover bez STOP niezaimplementowane. |
+| LAB-DIA-D | Adaptacyjny rozmówca zależny od odpowiedzi modelu, ślad gałęzi, człowiek przejmuje | **PASS_DEVICE_FUNCTIONAL native adaptive:** JVM i S22 realna Gemma 1/1 test wyboru gałęzi na podstawie rzeczywistej odpowiedzi (`aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1`); ślad przejścia. Drugi LLM i takeover bez STOP niezaimplementowane. |
 | LAB-DIA-E | A/B model/Skills + prywatne STT/TTS/PCM, bez Call i efektów | **PASS_HOST A/B REPORT / PARTIAL DEVICE:** wybór modelu/Skills, realny text S22 PASS. Faktyczne porównanie modeli/Skills N=3 i polskie STT/TTS/PCM NOT_RUN / F2. |
 | LAB-01 | Preset/model, nowa sesja, ręczny composer, edytor przypadków, poprawny stan podczas pracy | **PASS_UI_CONTROLS (S22 1/1) + PASS_NATIVE_OFFCALL 1/1**; fizyczny całkowity workflow ręcznego edytora przez ekran NOT_RUN. |
 | LAB-02 | Prawdziwy lokalny model: 2 kolejne tury, odpowiedź i kryteria końca bez Telecom | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1` |
 | LAB-03 | STOP w trakcie, stan STOPPED, brak dalszych tur, ponowny START | PASS_OFFCALL_FUNCTIONAL — ten sam receipt, tylko izolowane dwie tury i restart/STOP |
-| LAB-04 | Timeline podczas długiego biegu, ręczny scroll w górę, auto-follow na dole, widoczne błędy | SOURCE/HOST PASS `992280b`: niezależny scroll opcji i transcriptu, stały STOP i composer, AndroidTest skompilowany; fizyczny aktualny layout BLOCKED przez PocketHost. Pozostała pełna macierz wizualna. |
+| LAB-04 | Timeline podczas długiego biegu, ręczny scroll w górę, auto-follow na dole, widoczne błędy | SOURCE/HOST PASS `992280b` oraz **S22 AndroidTest layout 1/1 PASS** w grupie 2/2 (`aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1`): transcript zachowuje wysokość, composer jest widoczny; pełny długi wizualny scroll/auto-follow i błędy **PARTIAL/NOT_RUN**. |
 | LAB-05 | Metryki, zgodność celu, odpowiedzi błędne/puste, timeout, ocena naturalności | NOT_RUN |
 | LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | **PARTIAL:** wersjonowane własne testy i raport tur PASS_HOST; N=3, fizyczne A/B/p95 NOT_RUN. |
 

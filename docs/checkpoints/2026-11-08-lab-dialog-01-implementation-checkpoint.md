@@ -45,3 +45,14 @@ Mac checkpoint i dokumenty synchronizować z najnowszym main; dokumentacyjny com
 **Wynik na bieżącym HEAD:** SOURCE/HOST PASS. Dotychczasowe realne manualne 2 tury/STOP/restart i 2/2 szyfrowany storage/UI PASS na poprzednim sprawdzonym kodzie. Nowa adaptacja/układ nie mają jeszcze dowodu urządzeniowego i pozostają **DEVICE_BLOCKED**. Semantyczny sędzia, naturalność, pełny klikalny edytor, A/B N=3 i F2 audio nadal **OPEN**.
 
 **Bezpieczna kontynuacja:** gdy S22 będzie dostępny z Launcherem lub AI Calls na pierwszym planie i bez Call, wykonaj *tylko* nowy scoped `AndroidLabDialogStorageAcceptanceTest` (2 testy) i `AndroidLabAdaptiveNativeOfflineTest` (1 test), pinned HEAD z nową APK/test APK i `adb install -r` bez kasowania danych. Przed i po: model, `mCallState=0`, brak AppOwnedCampaignService, kontrola foreground. Nie uruchamiać prawdziwego połączenia ani nie ingerować w PocketHost. Następnie osobny prywatny przegląd semantyki rozmowy.
+
+## S22 — finalny odbiór adaptacji i układu (8 listopada 2026)
+
+**Źródło/APK:** kod `992280b5d1fd5d1d7bdded3d0874fe404fb7c788`, dokumenty na `451348887f446b90089437d9eba630b1ba21e348`. Pełny Mac gate na kodzie: `aicalls-labdialog01-layout-final-mac-20261108-v1` DONE/0 (`host_quality_gate_green=true`, 365/365 Python, JVM, lint, oba APK, audio audit).
+
+- `aicalls-labdialog01-s22-preflight-20261108-1558-v1`: **DONE/0**. S22 `SM-S906B` fizycznie w ADB, **AI Calls Activity i fokus zgodne**, `mCallState=0`, brak `AppOwnedCampaignService`; Mac fast-forward i clean PASS; build artefacts obecne.
+- `aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1`: **DONE/0, 6/6 etapów**. Exact source PASS; świeży foreground/Call preflight PASS; `adb install -r -t` **2/2 SUCCESS** bez wipe; `AndroidLabDialogStorageAcceptanceTest` **2/2 PASS** (izolowany szyfrowany store, raporty oraz widoczny transcript/composer); `AndroidLabAdaptiveNativeOfflineTest` **1/1 PASS** (rzeczywista lokalna Gemma, adaptacyjny wybór gałęzi zależny od jej odpowiedzi); postflight `IDLE` i Mac clean.
+- Stare próby `...s22-adaptive-native-20261108-v1` i `...s22-adaptive-layout-guarded-20261108-v2` pozostają zapisane historycznie jako prawidłowo zablokowane przez PocketHost; **są superseded wyłącznie dla fizycznych testów adaptacji/nowego układu** przez powyższy zielony receipt.
+- Dotychczasowy osobny `AndroidLabManualNativeOfflineTest` 1/1 PASS (2 tury, STOP i świeży START) nadal jest ważnym dowodem ręcznego dialogu, lecz nie dowodzi sam w sobie poprawnej pamięci/korekt.
+
+**Status:** A manualny tekst/STOP, B izolowany storage/UI komponentowy, D adaptacyjny native i układ Lab = **PASS na S22** w wymienionym zakresie. **OPEN** pozostaje pełny klikany CRUD na produkcyjnym ekranie, niezależna semantyczna ocena pamięci/korekt/halucynacji, specjalny takeover podczas automatycznej gałęzi, pomiar powtarzalności A/B N=3 oraz F2 STT/TTS/polski PCM. Nie ma dowodów realnego połączenia i nie podejmowano prób Call.

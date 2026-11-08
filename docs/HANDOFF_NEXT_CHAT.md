@@ -1,6 +1,14 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
-## LAB-DIALOG-01 — ostatnia aktualizacja, kod `992280b`
+## LAB-DIALOG-01 — najnowszy odbiór S22, 2026-11-08
+
+**Funkcjonalny kod `992280b`, S22 ACCEPTED:** `aicalls-labdialog01-s22-preflight-20261108-1558-v1` DONE/0 (AI Calls i fokus foreground, Call IDLE, clean Mac); `aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1` **DONE/0**: aktualne APK i AndroidTest zainstalowane bez wipe, **2/2 isolated storage + pinned composer/scroll UI PASS**, **1/1 native Gemma adaptive answer-driven PASS**, na końcu Call `IDLE`, Mac clean. Wcześniejszy osobny native manual 2-turn/STOP/reset 1/1 też PASS. Pełny Mac source quality gate kodu `aicalls-labdialog01-layout-final-mac-20261108-v1` DONE/0 (365 Python/JVM/lint/APK/audio).
+
+**Dalsze niezależne punkty:** klikalny ekranowy CRUD edytora, prawdziwa semantyczna ewaluacja pamięci/korekt/faktów, takeover w automatycznym dialogu, A/B N=3 i F2 STT/TTS/PCM — nadal OPEN. Nie wracać do czterech odrzuconych fabrycznych historii; nie wykonywać połączeń telefonicznych.
+
+[Checkpoint i receipts](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
+
+## Historia — wcześniejszy status BLOCKED przed wznowieniem odbioru
 
 - **Mac SOURCE/HOST PASS:** `aicalls-labdialog01-layout-final-mac-20261108-v1` DONE/0: 365 Python, JVM, lint, obie APK, audio audit, czysty HEAD. Dodatkowo adaptacyjne AndroidTest skompilowane, nowy układ panelu/transkryptu i stały STOP/composer.
 - **S22 manualny tekst i magazyn PASS (na `e41423e`):** realna Gemma 2 tury, STOP, reset 1/1 oraz izolowany szyfrowany store + kontrolki UI 2/2; nie powtarzać bez potrzeby.

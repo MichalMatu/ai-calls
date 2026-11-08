@@ -1,6 +1,6 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
-**LAB-DIALOG-01 (2026-11-08):** kod `main@992280b` + pełna bramka Mac **PASS** (365 Python, JVM, lint, Android/APK, audio). S22 na poprzedniej sprawdzonej wersji **manual native 1/1 + isolated store/UI 2/2 PASS**. Nowy fizyczny adaptive oraz poprawiony scroll i composer **BLOCKED przez PocketHost foreground**, bez ingerowania w urządzenie. Pozostają otwarte semantyczna ocena rzeczywistego transkryptu, pełne klikanie edytora, A/B N=3 i F2 audio. [Dokładny checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
+**LAB-DIALOG-01 (2026-11-08, finalny odbiór):** kod `main@992280b`, pełny gate Mac **PASS** (365 Python, JVM, lint, Android/APK, audio). S22 **PASS 3/3 nowych testów** (`AndroidLabDialogStorageAcceptanceTest` 2/2 i `AndroidLabAdaptiveNativeOfflineTest` 1/1) na zainstalowanej APK; osobny manualny 2-turn/STOP/restart 1/1 zachowuje PASS. Receipt: `aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1` DONE/0, Call IDLE, bez utraty danych. Pozostają otwarte semantyczna ocena rzeczywistego transkryptu, pełne klikanie edytora, A/B N=3 i F2 audio. [Dokładny checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
 
 **2026-11-08 | Stan:** UX-11 CLOSED; pierwsze fizyczne testy funkcjonalne offline PASS. Bieżące zadanie: [weryfikacja ekran po ekranie](FUNCTIONAL_ACCEPTANCE_MATRIX.md), **bez ponownego sprintu kosmetycznego**. [Checkpoint](checkpoints/2026-11-08-pre-functional-full-checkpoint.md).
 
@@ -10,9 +10,9 @@
 
 **2026-11-08:** kod A–D na `main`: ręczny wieloturowy lokalny dialog, edytor własnych przypadków i rewizji, niezależny raport ocen per tura z `UNASSESSED`, adaptacyjne gałęzie oraz A/B. Wspólny `SkillLabRunner`, szyfrowany store bez kopii fabrycznych 4 historii. [Plan i precyzyjny status](LAB_DIALOG_IMPLEMENTATION_PLAN.md).
 
-**Bramki:** końcowy `aicalls-labdialog01-final-source-gate-20261108-v3` **DONE/0, pełny Mac gate PASS**, 365/365 Python, Kotlin/JVM, lint, APK+AndroidTest, audio QA na `e41423e`. S22 `aicalls-labdialog01-s22-device-acceptance-20261108-v1` **DONE/0, 3/3 testy fizyczne PASS** (2 storage/UI + 1 native 2-turn/STOP/restart), Call IDLE. Ocena semantyczna, cały UI editor click-through, natywny adaptacyjny i nowa ścieżka STT/TTS **OPEN**. Regresji starego odrzuconego korpusu nie wykonywać.
+**Bramki:** końcowy `aicalls-labdialog01-final-source-gate-20261108-v3` **DONE/0, pełny Mac gate PASS**, 365/365 Python, Kotlin/JVM, lint, APK+AndroidTest, audio QA na `e41423e`. S22 `aicalls-labdialog01-s22-device-acceptance-20261108-v1` **DONE/0, 3/3 testy fizyczne PASS** (2 storage/UI + 1 native 2-turn/STOP/restart), Call IDLE. Ocena semantyczna, pełny UI editor click-through i nowa ścieżka STT/TTS **OPEN**; natywny adaptive **PASS na S22** (osobny receipt z 2026-11-08). Regresji starego odrzuconego korpusu nie wykonywać.
 
-**Poza odbiorem:** semantyczne osądzanie halucynacji nie jest automatycznym PASS; ręczny recenzent zapisuje turę/dowód. Osobny takeover w trakcie autonomicznej gałęzi, fizyczny adaptive A/B N=3, pełny klikany UI editor i kompletna integracja STT/TTS/PCM pozostają OPEN.
+**Poza odbiorem:** semantyczne osądzanie halucynacji nie jest automatycznym PASS; ręczny recenzent zapisuje turę/dowód. Osobny takeover w trakcie autonomicznej gałęzi, fizyczne porównania A/B N=3, pełny klikany UI editor i kompletna integracja STT/TTS/PCM pozostają OPEN.
 
 [Checkpoint sprintu](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
 
