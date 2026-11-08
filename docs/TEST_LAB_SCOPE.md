@@ -1,5 +1,7 @@
 # AI Calls — zakres laboratorium, moduły i instalacja
 
+**USB/ADB Lab (2026-11-08):** dodano do źródła prywatny, chroniony kanał diagnostyczny START/SEND/STOP dla prawdziwego `SkillLabRunner`, telemetrię RAM oraz interwencje już istniejącego kontrolera Call (takeover/resume/stop własnej rozmowy) i konfigurację incoming. Mac QA PASS, fizyczny odbiór nowej ścieżki USB/Call **NOT_RUN**. [Konstrukcja i granice](USB_LAB_TELEPHONY_CHANNEL.md).
+
 ## Decyzja właściciela — 2026-11-05
 
 Bieżąca aplikacja jest **modułowym laboratorium testowym**. Ma porównywać wejścia audio, rozpoznawanie mowy, modele, sterowanie dialogiem, instrukcje i wyjścia mowy. Docelowy flow powstanie później z elementów, których jakość i współpracę potwierdzą testy. CLIR i Orange są jednym scenariuszem integracyjnym. Ani jeden operator, ani jedna udana rozmowa nie definiują jakości całej aplikacji.

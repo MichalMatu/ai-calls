@@ -1,5 +1,9 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## USB/ADB — prywatny kanał Lab + telefonia (2026-11-08)
+
+Zaimplementowano odbiornik `UsbLabControlReceiver` (DUMP + debug-only, bez otwierania UI), Mac CLI `scripts/aicall_tools/diagnostics/ai_calls_usb_lab.py` i `AndroidUsbLabControlContractTest`. Status, PSS/monitoring, konfiguracja profilu i incoming, prywatna sesja E2B START/SEND/STOP/transkrypt, takeover/AI resume/exact outgoing STOP przez istniejące kontrolery. **Host PASS:** `aicalls-usb-live-config-contract-mac-qa-20261108-v3` DONE/0, 370 testów Python, Gradle/JVM/AndroidTest/lint/APK/audio PASS, checkout clean. F-149 lint **VERIFIED**. **DEVICE NOT_RUN:** próba przekazania taska sterowania S22 została odrzucona przed wykonaniem; nie było instalacji ani testu takeover. Bez pozytywnej fizycznej próby nie twierdzić PROVEN_S22. Legacy USB export działa niezależnie. [Pełna specyfikacja i komendy](USB_LAB_TELEPHONY_CHANNEL.md).
+
 ## E2B context validation — 4096 N=3 passed, 8192 guarded (2026-11-08)
 
 Physical S22 Gemma E2B Lab **4096: three independent 13-turn runs (39/39 turns) PASS technically**, without JNI failure. Sampled peak app PSS **2,348,103 kB**, lowest observed MemAvailable **1,378,220 kB**, mean response approx. 5.35–7.63 s. Heuristics across 3 sessions: **11/13, 13/13, 11/13**; **human semantic review UNASSESSED**, F-148 remains OPEN for root-cause/semantic scope.

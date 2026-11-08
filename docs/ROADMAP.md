@@ -1,5 +1,7 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+**USB/ADB Lab & telephony 2026-11-08:** pełny Mac gate **PASS** na nowym kodzie `114d338` (370 Python, Kotlin/JVM, lint, AndroidTest APK), chroniony receiver DUMP i prywatny Lab chat/STOP oraz in-call takeover/resume/owned-stop. **Fizyczny S22 nowego kanału NOT_RUN** (zadanie sprzętowe odrzucone przed wykonaniem), live intervention positive proof OPEN. [Specyfikacja](USB_LAB_TELEPHONY_CHANNEL.md); F-149 lint VERIFIED.
+
 **E2B 4096 2026-11-08:** S22 **N=3×13, 39/39 tur PASS technicznie**, sampled PSS peak 2,348,103 kB, min system MemAvailable 1,378,220 kB, heuristics 11/13,13/13,11/13, semantic human review OPEN. **8192 test-only** at `faf6ee5` full Mac QA PASS but **S22 BLOCKED by PocketHost foreground** before installation/inference. Standard Lab 4096 and Call 2048 unchanged. [Checkpoint](checkpoints/2026-11-08-e2b4096-n3-ram-and-8192-instrumentation.md); [memory sprint plan](LAB_E2B_CONTEXT_MEMORY_PLAN.md).
 
 **LAB-SEMANTIC-02, okno 4096 (2026-11-08):** realna Gemma E2B na S22 **13/13 tur PASS technicznie** na eksperymentalnym Lab `4096`, pozostałe ścieżki nadal `2048`. Heurystyki **11/13**, dwa punkty niepotwierdzone; ręczna semantyka **UNASSESSED**. Powtórki N=2/3 **nie rozpoczęły się przez urządzeniowy guard**. **F-148 OPEN**, RAM/N=3 nadal do odbioru. [Checkpoint](checkpoints/2026-11-08-lab-semantic-02-long-dialogue-f148.md).

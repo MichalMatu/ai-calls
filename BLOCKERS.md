@@ -1,3 +1,11 @@
+## F-149 — USB Lab call-state telemetry bez jawnej kontroli READ_PHONE_STATE (2026-11-08)
+
+**Ścieżka/symbol:** `UsbLabControlReceiver.kt` / `UsbLabControl.unavailableIfLive` oraz `snapshot`.
+**Warunek i wpływ:** pierwsza bramka `aicalls-usb-live-lab-bridge-mac-gate-20261108-v1` wykryła dwie próby odczytu `TelecomManager.isInCall` bez jawnego weryfikowania runtime `READ_PHONE_STATE`. Android lint **FAILED**, niedopuszczalny status do wdrożenia.
+**Przyczyna:** brak warunku uprawnienia we wstępnej wersji diagnostyki; nie związane z dostępem Shizuku ani grantem połączenia.
+**Poprawka i test:** `main@34ed5c5b5b79eb2102f6134296cc38c635d33ab1` dopisał kontrolę `checkSelfPermission` przed obiema ścieżkami; `aicalls-usb-lab-telephony-permission-qa-20261108-v2` **DONE/0**, pełny `scripts/verify_host.sh` PASS + AndroidTest compile + lint + 370 Python. Ponowny pełny `aicalls-usb-live-config-contract-mac-qa-20261108-v3` **DONE/0** na `main@114d338`, 370 Python, lint, APK/AndroidTest PASS.
+**Status:** **VERIFIED** dla naprawy lint/kodu; osobny sprzętowy odbiór nowego kanału USB wciąż **NOT_RUN** i nie jest dowodem pozytywnej interwencji w żywym Call.
+
 ## LAB-SEMANTIC-02 F-148 — długi dialog LiteRT traci kontynuację i prywatne dowody (2026-11-08)
 
 **Ścieżka:** `AndroidLabAdversarialNativeOfflineTest`, `SkillLabRunner.executeManual`, `LiteRtGemma4Runtime.runGeneration` (`MAX_CONTEXT_TOKENS = 2_048`).
