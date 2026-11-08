@@ -33,7 +33,7 @@ PRIVATE_LOCK = Path.home() / "Documents/AI-Calls/private-exports/.usb-lab-channe
 ACTIONS = frozenset({
     "status", "call_status", "config_get", "lab_start", "lab_send",
     "lab_status", "lab_stop", "call_takeover", "call_resume",
-    "call_stop_owned", "incoming_ai_disable",
+    "call_stop_owned", "incoming_ai_disable", "incoming_config",
 })
 INTERVENTIONS = frozenset({
     "call_takeover", "call_resume", "call_stop_owned", "incoming_ai_disable",
@@ -187,6 +187,13 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
         if not args.session_id:
             raise DiagnosticError("session_id_required")
         return device_request(device, name, session_id=args.session_id)
+    if name == "incoming_config":
+        if args.record is None:
+            raise DiagnosticError("explicit_recording_choice_required")
+        params = {"mode": args.mode, "record": args.record == "yes"}
+        if args.account_index is not None:
+            params["account_index"] = args.account_index
+        return device_request(device, name, **params)
     if name in ACTIONS:
         return device_request(device, name)
     raise DiagnosticError("unsupported_command")
@@ -205,6 +212,9 @@ def main() -> int:
     parser.add_argument("--dialogue", default="GEMMA_4_E2B")
     parser.add_argument("--output", default="ANDROID_TTS_PL")
     parser.add_argument("--voice", default="auto")
+    parser.add_argument("--mode", choices=("manual", "ai"), default="manual")
+    parser.add_argument("--account-index", type=int)
+    parser.add_argument("--record", choices=("yes", "no"))
     parser.add_argument("--interval", type=float, default=2.0)
     parser.add_argument("--adb", default=os.environ.get(
         "ADB", str(Path.home() / "Library/Android/sdk/platform-tools/adb")))
