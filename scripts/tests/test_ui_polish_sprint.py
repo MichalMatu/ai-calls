@@ -29,7 +29,7 @@ class UiPolishSprintContract(unittest.TestCase):
         self.assertIn("canStart = false", runner)
         self.assertIn("SkillLabPhase.STOPPED", runner)
         for token in ("UiActionTone.PRIMARY", "UiActionTone.DANGER",
-                      'tag = "campaign-primary-actions"', "initiallyExpanded = false",
+                      'tag = "campaign-primary-actions"', "LiveConversationOverlay(this@CampaignToolActivity",
                       "ensurePermissionsThen(PendingAction.START)"):
             self.assertIn(token,camp)
     def test_preparation_and_engine_keep_original_policy(self):
