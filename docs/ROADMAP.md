@@ -8,9 +8,9 @@
 
 **2026-11-08:** kod A–D na `main`: ręczny wieloturowy lokalny dialog, edytor własnych przypadków i rewizji, niezależny raport ocen per tura z `UNASSESSED`, adaptacyjne gałęzie oraz A/B. Wspólny `SkillLabRunner`, szyfrowany store bez kopii fabrycznych 4 historii. [Plan i precyzyjny status](LAB_DIALOG_IMPLEMENTATION_PLAN.md).
 
-**Bramki:** Kotlin/JVM i APK na `a5f521c` PASS (`aicalls-labdialog01-stage-abcd-regression-20261108-v1`). Nowe testy runnera/AndroidTest w kolejnym commicie; pełny Mac gate `aicalls-labdialog01-full-mac-gate-20261108-v1` QA_PENDING. S22 wieloturowy native, fizyczny edytor i automatyczne gałęzie **NOT_RUN** do osobnego dowodu, nie na podstawie builda. Regresji starego odrzuconego korpusu nie wykonywać.
+**Bramki:** końcowy `aicalls-labdialog01-final-source-gate-20261108-v3` **DONE/0, pełny Mac gate PASS**, 365/365 Python, Kotlin/JVM, lint, APK+AndroidTest, audio QA na `e41423e`. S22 `aicalls-labdialog01-s22-device-acceptance-20261108-v1` **DONE/0, 3/3 testy fizyczne PASS** (2 storage/UI + 1 native 2-turn/STOP/restart), Call IDLE. Ocena semantyczna, cały UI editor click-through, natywny adaptacyjny i nowa ścieżka STT/TTS **OPEN**. Regresji starego odrzuconego korpusu nie wykonywać.
 
-**Poza odbiorem:** semantyczne osądzanie halucynacji nie jest automatycznym PASS; ręczny recenzent zapisuje turę/dowód. Osobny przełącznik takeover w trakcie autonomicznej gałęzi i kompletna integracja STT/TTS/PCM pozostają OPEN.
+**Poza odbiorem:** semantyczne osądzanie halucynacji nie jest automatycznym PASS; ręczny recenzent zapisuje turę/dowód. Osobny takeover w trakcie autonomicznej gałęzi, fizyczny adaptive A/B N=3, pełny klikany UI editor i kompletna integracja STT/TTS/PCM pozostają OPEN.
 
 [Checkpoint sprintu](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
 

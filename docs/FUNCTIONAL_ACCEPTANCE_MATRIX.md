@@ -86,24 +86,24 @@
 
 ## 4. Laboratorium Skills
 
-**Nowy zakres odbioru LAB-DIALOG-01:** [plan A–E](LAB_DIALOG_IMPLEMENTATION_PLAN.md). Kod źródłowy A–D jest wdrożony, lecz fizyczne S22 **NOT_RUN**; bez dziedziczenia PASS po dawnym korpusie.
+**Nowy zakres odbioru LAB-DIALOG-01:** [plan A–E](LAB_DIALOG_IMPLEMENTATION_PLAN.md). Kod źródłowy A–D wdrożony, fizyczny S22 dla ręcznej rozmowy i zaszyfrowanej przechowalni **PASS 3/3**. Adaptacyjne S22, pełny UI editor i semantyka **NOT_RUN**; bez dziedziczenia PASS po dawnym korpusie.
 
 
 **Uwaga 2026-11-08:** usunięte 4 sztywne historie nadal nie istnieją. Nowa ręczna sesja startuje bez przypadku; adaptacyjna wymaga testu utworzonego przez użytkownika. Dawne wyniki są historyczne.
 
 | ID | Funkcja / kryterium | Stan i dowód |
 |---|---|---|
-| LAB-DIA-A | Manualny wieloturowy chat z tym samym kontekstem modelu, STOP, odtworzenie nowej sesji, bez Call | SOURCE IMPLEMENTED; Kotlin/JVM + APK PASS na a5f521c; nowy runner test QA_PENDING; S22 NATIVE NOT_RUN |
-| LAB-DIA-B | Własne przypadki CRUD, wersje, zapis/reload i ręczne wykonanie | SOURCE IMPLEMENTED; JVM PASS a5f521c; Android Keystore/UI NOT_RUN na S22 |
-| LAB-DIA-C | Ocena każdej tury: temat, pamięć, korekta, brak zmyślania, naturalność i uczciwe NOT_SCORED | SOURCE IMPLEMENTED: per-turn evidence + manual UNASSESSED/PASS/FAIL; automatyczna semantyka NIE_IMPLEMENTOWANA, QA_PENDING |
-| LAB-DIA-D | Adaptacyjny rozmówca zależny od odpowiedzi modelu, ślad gałęzi, człowiek przejmuje | PARTIAL SOURCE: reguły odpowiedzi + trace zaimplementowane, unit PASS a5f521c; osobny takeover bez STOP OPEN, S22 NOT_RUN |
-| LAB-DIA-E | A/B model/Skills + prywatne STT/TTS/PCM, bez Call i efektów | PARTIAL SOURCE: A/B + wybór modelu/Skills; fizyczne próby i polskie audio NOT_RUN / osobny F2 |
-| LAB-01 | Preset/model, nowa sesja, ręczny composer, edytor przypadków, poprawny stan podczas pracy | SOURCE IMPLEMENTED; nowa ręczna sesja dostępna bez korpusu, adaptacyjna wymaga zapisanej fixture. S22 UI NOT_RUN. |
+| LAB-DIA-A | Manualny wieloturowy chat z tym samym kontekstem modelu, STOP, odtworzenie nowej sesji, bez Call | **PASS_OFFCALL_FUNCTIONAL:** S22 native 2 tury/STOP/restart 1/1; Mac runner 16 tur/STOP/late callback test w pełnym gate; QA receipts v3 i device v1. Semantyczna pamięć NOT_SCORED. |
+| LAB-DIA-B | Własne przypadki CRUD, wersje, zapis/reload i ręczne wykonanie | **PASS_DEVICE_COMPONENT:** S22 izolowany Keystore CRUD/reopen/revision/report; UI controls test PASS (2/2). Pełny klikany UI CRUD NOT_RUN. |
+| LAB-DIA-C | Ocena każdej tury: temat, pamięć, korekta, brak zmyślania, naturalność i uczciwe NOT_SCORED | **SOURCE/HOST PASS:** manualny rubric per tura i zaszyfrowany raport S22 PASS; prawdziwa semantyczna ocena modelu UNASSESSED / NOT_RUN. |
+| LAB-DIA-D | Adaptacyjny rozmówca zależny od odpowiedzi modelu, ślad gałęzi, człowiek przejmuje | **PASS_JVM RULE-DRIVEN / DEVICE NOT_RUN:** autentyczna zależność gałęzi od odpowiedzi testowana fake backendem, ślad działa. Drugi LLM i takeover bez STOP niezaimplementowane. |
+| LAB-DIA-E | A/B model/Skills + prywatne STT/TTS/PCM, bez Call i efektów | **PASS_HOST A/B REPORT / PARTIAL DEVICE:** wybór modelu/Skills, realny text S22 PASS. Faktyczne porównanie modeli/Skills N=3 i polskie STT/TTS/PCM NOT_RUN / F2. |
+| LAB-01 | Preset/model, nowa sesja, ręczny composer, edytor przypadków, poprawny stan podczas pracy | **PASS_UI_CONTROLS (S22 1/1) + PASS_NATIVE_OFFCALL 1/1**; fizyczny całkowity workflow ręcznego edytora przez ekran NOT_RUN. |
 | LAB-02 | Prawdziwy lokalny model: 2 kolejne tury, odpowiedź i kryteria końca bez Telecom | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1` |
 | LAB-03 | STOP w trakcie, stan STOPPED, brak dalszych tur, ponowny START | PASS_OFFCALL_FUNCTIONAL — ten sam receipt, tylko izolowane dwie tury i restart/STOP |
 | LAB-04 | Timeline podczas długiego biegu, ręczny scroll w górę, auto-follow na dole, widoczne błędy | NOT_RUN pełną macierzą |
 | LAB-05 | Metryki, zgodność celu, odpowiedzi błędne/puste, timeout, ocena naturalności | NOT_RUN |
-| LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | SOURCE PARTIAL: wersjonowane własne testy i raport per tura; statystyka N=3 i fizyczne A/B NOT_RUN. |
+| LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | **PARTIAL:** wersjonowane własne testy i raport tur PASS_HOST; N=3, fizyczne A/B/p95 NOT_RUN. |
 
 ## 5. Modele i silniki audio
 | ID | Funkcja / kryterium | Stan i dowód |

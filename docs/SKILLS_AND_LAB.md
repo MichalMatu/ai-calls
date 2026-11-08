@@ -1,8 +1,8 @@
 # AI Calls — Skills i Laboratorium Gemmy (2026-11-07)
 
-## 2026-11-08: nowe Lab (SOURCE IMPLEMENTED, S22 QA_PENDING)
+## 2026-11-08: nowe Lab (SOURCE/HOST + S22 TEXT QA PASS 3/3)
 
-`SkillLabRunner` oferuje manualny chat z jedną natywną sesją i adaptacyjne user-defined reguły; `LabCaseLibrary` zapisuje prywatne wersjonowane przypadki przez Android Keystore/AtomicFile; `LabDialogueReport` zawiera niepodważalne metryki tur, manualny rubric jakości i A/B. UI obsługuje edycję, role, wybór presetu/modelu, STOP i raporty. Cztery stare historie wciąż usunięte. Semantyka domyślnie `UNASSESSED`; realne S22 wymaga osobnego dowodu. [Checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
+`SkillLabRunner` oferuje manualny chat z jedną natywną sesją i adaptacyjne user-defined reguły; `LabCaseLibrary` zapisuje prywatne wersjonowane przypadki przez Android Keystore/AtomicFile; `LabDialogueReport` zawiera niepodważalne metryki tur, manualny rubric jakości i A/B. UI obsługuje edycję, role, wybór presetu/modelu, STOP i raporty. Cztery stare historie wciąż usunięte. Semantyka domyślnie `UNASSESSED`; rzeczywista sesja natywna 2 tury/STOP/restart na S22 PASS 1/1, zaszyfrowany store i kontrolki UI 2/2 PASS. Faktyczna naturalność/pamięć, adaptive na S22 i polskie audio nadal wymagają odrębnego dowodu. [Checkpoint](checkpoints/2026-11-08-lab-dialog-01-implementation-checkpoint.md).
 
 
 **Historyczna implementacja i odbiór (stary korpus, nieaktywny):** [Finalny Sprint 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) **SOURCE PASS / S22 PASS**, rzeczywiste lokalne 2 tury i STOP **PASS** po Android hotfixie `1b359146`, 46 prywatnych screenshotów. To test działania modelu i STOP, nie automatyczna ocena jakości odpowiedzi. [Sprint 5](checkpoints/2026-11-07-ux-sprint5-live-lab-s22-acceptance.md) ma osobne, zakończone dowody 2 tur i STOP.

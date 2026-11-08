@@ -1,32 +1,33 @@
-# AI Calls — LAB-DIALOG-01: implementation checkpoint (2026-11-08)
+# AI Calls — LAB-DIALOG-01 — końcowy checkpoint kodu i odbioru S22 (2026-11-08)
 
-## Scope and baseline
+## Zakres i historia
+Start: `main@4eae72c`. Odbiór końcowego kodu: `main@e41423ed2b0016889e14b8149b478402899f8191`.
+Zrealizowano funkcjonalny pionowy sprint A–E w GitHub Connector + Mac Local Agent; bez Codex, Work, GitHub Actions, bez telefonowania i bez modyfikacji danych właściciela. Wszystkie cztery wcześniej odrzucone, zakodowane na stałe historie Laboratorium nadal są usunięte.
 
-Preflight GitHub `main@4eae72c` (plan approval), Mac Local Agent `aicalls-labdialog01-mac-preflight-20261108-v1` DONE/0 (clean main=origin/main, physical Samsung SM-S906B detected by ADB). The four rejected baked-in dialogue stories remain deleted; no real calls, external effects, GitHub Actions, Codex or Work.
+## Implementacja
+1. **A: Manualny chat — SOURCE COMPLETE.** `SkillLabRunner.startManual/submitManual`: jedna natywna sesja LiteRT, nieograniczona sztywną liczbą tur, kolejne wiadomości zachowujące kontekst silnika, START/STOP, reset, ochrona przed starym callbackiem i błędy/timeouty. UI composer/timeline. Nie ma efektów Telecom ani narzędzi.
+2. **B: Edytowalne przypadki — SOURCE COMPLETE.** `LabCaseLibrary` + ekran Laboratory: utwórz, edytuj nową rewizję, wybierz starszą, kopiuj, usuń; cel, rola, pierwsza kwestia, stan rozmówcy, fakty, oczekiwania, reguły i warunek końca. `AndroidConversationPreparationStore` przechowuje prywatne dane przez AndroidKeystore/AtomicFile, bez backupu.
+3. **C: Rzetelny raport — SOURCE COMPLETE / SEMANTIC REVIEW MANUAL.** Prywatny zapis tur, latencji, propozycji END_CALL, celu i referencyjnych oczekiwań oraz dowodów reguł. Kryteria TOPIC/MEMORY/CORRECTIONS/FACTUALITY/NATURALNESS/QUESTIONS/PROMISES/ENDING mają `UNASSESSED` aż do jawnej oceny PASS/FAIL z numerem tury. System **nie** nazywa 2/2 naturalnością ani nie uznaje propozycji END_CALL za błąd przy braku oczekiwania.
+4. **D: Adaptacja — RULE-DRIVEN SOURCE COMPLETE.** Następna kwestia zależy od **rzeczywistej** odpowiedzi badanego modelu przez `question/end/refusal/contains:/missing:/otherwise`; reguły jednokrotne, zapis śladu wyboru, wspólny runner. To kontrolowany symulator regułowy, **nie** drugi autonomiczny LLM ani pełny arbitraż semantyczny.
+5. **E: Integracja — TEXT/DEVICE ACCEPTED, AUDIO F2 OPEN.** Model z aktywnego `AudioEngineProfile`, wersje Skills przez wybrany preset, rola/goal z case; raporty i A/B dla tego samego id i rewizji. Nie wykonano nowej ścieżki STT→Gemma→TTS ani polskiego AudioBytes PCM, i nie testowano wszystkich presetów/modelek metodą N=3.
 
-## Source delivered
+## Mac i S22 — rzeczywiste receipts
+- `aicalls-labdialog01-mac-preflight-20261108-v1`: DONE/0, clean checkout i ADB Samsung SM-S906B.
+- Wczesne niezaliczone próby A (tryb Gradle --offline) i ABC (niezescapowany apostrof) naprawiono. Pierwszy pełny Mac gate v1 ujawnił 7 przestarzałych asercji źródłowych; zaktualizowano kontrakty i padding UI, nie osłabiając wymogu STOP i braku Telecom.
+- `aicalls-labdialog01-full-mac-gate-20261108-v2`: DONE/0 na `d64843d`, full `scripts/verify_host.sh`, **365/365 Python**, JVM, lint, APK, AndroidTest APK, audio QA, clean checkout.
+- **Ostateczny:** `aicalls-labdialog01-final-source-gate-20261108-v3`: DONE/0 na `e41423e`, **365/365 Python**, testy JVM, pełne kompilacje APK i AndroidTest, lint, audio audit, `host_quality_gate_green=true`, clean checkout.
+- `aicalls-labdialog01-s22-readonly-20261108-v1`: DONE/0, model SM-S906B, launcher foreground, `mCallState=0` (IDLE).
+- **`aicalls-labdialog01-s22-device-acceptance-20261108-v1`: DONE/0, 4/4 komendy**: guarded model/foreground/Call/service preflight PASS; podpisana aktualizacja APK+AndroidTest `adb install -r` PASS bez usuwania danych; `AndroidLabDialogStorageAcceptanceTest` **2/2 PASS** (UI controls, isolated encrypted CRUD/reopen/revision/report/no plaintext); `AndroidLabManualNativeOfflineTest` **1/1 PASS** (real native local 2-turn text dialogue, STOP, fresh restart, no call). Postcheck `IDLE`.
+- Nowe syntetyczne unit testy: `LabCaseLibraryTest`, `LabAdaptiveInteractorTest`, `LabDialogueReportTest`, `SkillLabManualDialogueTest` (w tym 16 manualnych tur jednej instancji backendu, późny callback, STOP i nowe sesje) — przechodzą w końcowej pełnej JVM gate.
 
-- A — `SkillLabRunner` extended (not copied): native backend reused across unrestricted manual turns, explicit START/STOP and reset, late-callback fencing, immutable snapshots; new manual input UI and offline model selection.
-- B — `LabCaseLibrary`: create/edit/revise/duplicate/select/delete; caller role, opening utterance, state, facts, expectations, completion condition; private Keystore-encrypted `AndroidConversationPreparationStore` record; PL/EN editor in Lab.
-- C — `LabDialogueReport`: private transcript evidence, latency, END_CALL proposal as observation, eight rubric dimensions with `UNASSESSED` until a user selects PASS/FAIL and cites a turn. A/B flags mismatched case revision; user test facts and goals kept out of model prompt.
-- D — `LabAdaptiveInteractor`: single-use conditional rules `question/end/refusal/contains:/missing:/otherwise`, driven by the real previous model reply, with per-turn decision trace; same runner/model session.
-- E — Android-only isolated Keystore and UI tests and opt-in real local two-turn S22 manual model/STOP/reset test. Audio STT/TTS, real polish PCM and inline human takeover during auto branch are not done.
+## Jawne luki odbioru (nie ukrywać jako PASS)
+- **SEMANTIC_QUALITY_OPEN:** natywne 2 tury/model odpowiedział, ale nie potwierdzono niezależnie, że rzeczywiście zapamiętał szczegóły, poprawnie uwzględnił korektę lub nie halucynował. Rubric celowo jest `UNASSESSED` do recenzji konkretnych tur. Brak automatycznego niezależnego sędziego LLM.
+- **FULL_UI_EDITOR_E2E_OPEN:** S22 potwierdził istnienie kontrolek i odizolowany round-trip przechowalni, ale nie zautomatyzowano całej ścieżki klikania od utworzenia po usunięcie w produkcyjnym ekranie, aby nie zmieniać rekordów właściciela.
+- **ADAPTIVE_S22_OPEN:** reguły adaptacyjne przeszły JVM, ale nie wykonano osobnego realnego dialogu adaptacyjnego na S22; brak przycisku natychmiastowego takeover bez STOP.
+- **AUDIO_F2_OPEN:** STT/TTS, polska mowa w PCM direct, WER/CER i END-to-END audio nie stanowią wyniku tego tekstowego odbioru. Utrzymują się osobne F-080/F-122/F-123/F-124; żadnego real Call.
+- **AB_SAMPLE_OPEN:** funkcjonalny raport porównania istnieje, ale nie uruchomiono N=3 powtórzeń A/B na modelach/Skills ani nie rozdzielono zimnego startu i generacji w statystykach.
 
-Source commits from `894eaa3` through `6f77401` (fresh main required). All commits `[skip ci]`.
-
-## Verification and limitations
-
-- `aicalls-labdialog01-mac-preflight-20261108-v1`: DONE/0, Mac clean and S22 ADB detected.
-- `aicalls-labdialog01-stage-a-build-20261108-v1`: FAILED due to Gradle `--offline` missing plugin artifact; not a source-code verdict.
-- `aicalls-labdialog01-stage-abc-compile-20261108-v1`: FAILED at Android resource apostrophe in English string; subsequently fixed at `a5f521c`.
-- `aicalls-labdialog01-stage-abcd-regression-20261108-v1`: DONE/0, `:app:testDebugUnitTest` and `:app:assembleDebug`, BUILD SUCCESSFUL at `a5f521c`.
-- `aicalls-labdialog01-full-mac-gate-20261108-v1`: QA_PENDING for source `f9836fd` (all modules, lint, APK+AndroidTest, Python, audio audit); later reference-fields change at `6f77401` not yet in this gate.
-- `aicalls-labdialog01-s22-readonly-20261108-v1`: READONLY_PENDING; do not install or take foreground if PocketHost/other app occupies S22.
-- New `SkillLabManualDialogueTest`, `LabCaseLibraryTest`, `LabAdaptiveInteractorTest`, `LabDialogueReportTest`, `AndroidLabDialogStorageAcceptanceTest` and `AndroidLabManualNativeOfflineTest` must be explicitly judged by current Mac/device receipts, not inherited earlier green outcomes.
-- Real semantic quality and Polish listening are **NOT_VERIFIED**. END_CALL correctness is not naturalness or factual accuracy.
-
-## Next gate
-
-1. Read new task-results, repair any actual compile/tests, refresh Mac complete quality gate for final code HEAD.
-2. If S22 foreground is safe and Call IDLE, install verified matching APK/AndroidTest with preserve-data update only and run two isolated Android UI/store tests and opt-in native manual 2+ turns/STOP/reset; capture screenshots and private model transcript, do not publish.
-3. Record PASS/FAIL/BLOCKED with exact task receipt, update matrix and this checkpoint; leave F2 audio and any unverified semantically graded A/B open.
+## Definicja zamknięcia
+**LAB-DIALOG-01 SOURCE/STATIC QA/MANUAL NATIVE OFFCALL: PASS** na `e41423e`.
+**Semantyka/adaptacja fizyczna, pełny editor UI i F2 audio: OPEN**, jawnie przekazane do dalszej funkcjonalnej macierzy zamiast udawać kompletny QA wszystkich funkcji.
+Mac checkpoint i dokumenty synchronizować z najnowszym main; dokumentacyjny commit po `e41423e` nie zmienia APK.
