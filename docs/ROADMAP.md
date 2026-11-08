@@ -1,6 +1,6 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
-**USB Lab F-150:** procesowe wykluczenie współbieżnych natywnych modeli UI/ADB dodane do `main@fdb003d`, **QA_PENDING**, odbiór urządzenia `NOT_RUN`. [Specyfikacja](USB_LAB_TELEPHONY_CHANNEL.md).
+**USB Lab F-150:** procesowe wykluczenie współbieżnych natywnych modeli UI/ADB dodane do `main@fdb003d`, **Mac gate PASS**, fizyczny odbiór konkurencji UI/USB `NOT_RUN`. [Specyfikacja](USB_LAB_TELEPHONY_CHANNEL.md).
 
 **USB/ADB Lab & telephony 2026-11-08:** pełny Mac gate **PASS** na nowym kodzie `114d338` (370 Python, Kotlin/JVM, lint, AndroidTest APK), chroniony receiver DUMP i prywatny Lab chat/STOP oraz in-call takeover/resume/owned-stop. **Fizyczny S22 nowego kanału NOT_RUN** (zadanie sprzętowe odrzucone przed wykonaniem), live intervention positive proof OPEN. [Specyfikacja](USB_LAB_TELEPHONY_CHANNEL.md); F-149 lint VERIFIED.
 

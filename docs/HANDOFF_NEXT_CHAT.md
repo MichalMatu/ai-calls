@@ -1,6 +1,6 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
-**Zabezpieczenie współbieżności 2026-11-08:** `main@fdb003d` w `AndroidSkillLabSessionFactory` rezerwuje pojedynczy backend LiteRT dla GUI i USB; F-150 `FIXED_IN_SOURCE`, gate Mac `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **QA_PENDING**. Odbiór S22 kanału nadal `NOT_RUN`. [Specyfikacja USB](USB_LAB_TELEPHONY_CHANNEL.md).
+**Zabezpieczenie współbieżności 2026-11-08:** `main@fdb003d` w `AndroidSkillLabSessionFactory` rezerwuje pojedynczy backend LiteRT dla GUI i USB; F-150 **HOST_PASS / DEVICE_QA_OPEN**, gate Mac `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **DONE/0** (370 Python, AndroidTest APK/lint). Odbiór S22 kanału nadal `NOT_RUN`. [Specyfikacja USB](USB_LAB_TELEPHONY_CHANNEL.md).
 
 ## USB/ADB — prywatny kanał Lab + telefonia (2026-11-08)
 
