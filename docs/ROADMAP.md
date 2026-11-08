@@ -1,5 +1,20 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+## Aktualny backlog i potwierdzone bramki (2026-11-08)
+
+| Priorytet | Status |
+| --- | --- |
+| Kod USB/ADB: Lab START/SEND/STOP, prywatny transkrypt, status, RAM, konfiguracja i kontrolowane interwencje Call | **MAC_QA_PASS**: 370/370 Python, Gradle/JVM, AndroidTest build, lint/audio |
+| Odbiór nowego kanału USB na S22 | **NOT_RUN** (nie instalowano nowej APK) |
+| Przejęcie/wznowienie/exact owned STOP podczas rzeczywistego, autoryzowanego Call przez USB | **NOT_RUN** |
+| E2B Lab 4096 tokenów | **S22 PASS_DEVICE_TECHNICAL**: 3×13, 39/39 tur; semantyka człowieka UNASSESSED |
+| E2B 8192 tokenów | **HOST_PASS / S22_NOT_RUN** |
+| Pamięć faktów i sprostowań, rollover; E4B i inne modele | **PLANNED / NOT_RUN** |
+
+**Kolejność:** fizyczny odbiór nowego USB bez Call → pozytywne testy interwencji w oddzielnie autoryzowanej rozmowie → porównanie 8192/4096 i semantyka → rejestr faktów/rollover → E4B. [Checkpoint zbiorczy](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md). Blokady: F-148 OPEN, F-149 VERIFIED, F-150 FIXED_IN_SOURCE/DEVICE_OPEN.
+
+## Dziennik historyczny (wcześniejsze stany PENDING/NOT_RUN nie są aktualnym wynikiem)
+
 **USB Lab F-150:** procesowe wykluczenie współbieżnych natywnych modeli UI/ADB dodane do `main@fdb003d`, **Mac gate PASS**, fizyczny odbiór konkurencji UI/USB `NOT_RUN`. [Specyfikacja](USB_LAB_TELEPHONY_CHANNEL.md).
 
 **USB/ADB Lab & telephony 2026-11-08:** pełny Mac gate **PASS** na nowym kodzie `114d338` (370 Python, Kotlin/JVM, lint, AndroidTest APK), chroniony receiver DUMP i prywatny Lab chat/STOP oraz in-call takeover/resume/owned-stop. **Fizyczny S22 nowego kanału NOT_RUN** (zadanie sprzętowe odrzucone przed wykonaniem), live intervention positive proof OPEN. [Specyfikacja](USB_LAB_TELEPHONY_CHANNEL.md); F-149 lint VERIFIED.
