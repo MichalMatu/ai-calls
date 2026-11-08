@@ -2,6 +2,8 @@
 
 ## Stan odbioru
 
+**Pełny checkpoint 2026-11-08:** [USB Lab + telefonia — kod, QA Mac, granice S22 i handoff](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md). Najnowszy Mac gate `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **DONE/0** (370 Python, kompilacja APK/AndroidTest, lint, audio). **Nowa APK USB i fizyczny takeover na S22 NOT_RUN**, choć starsza ścieżka `run-as` miała osobny pozytywny preflight. F-150 wyłączność modelu na Mac PASS, device OPEN.
+
 **SOURCE/HOST PASS**, **DEVICE QA NOT_RUN** dla nowego kanału. W repozytorium `main@114d33805b6b3e2dc550684bd6e956617445432c` znajdują się: odbiornik Android `UsbLabControlReceiver`, wspólny kontroler `UsbLabControl`, konsola Mac `ai_calls_usb_lab.py` i AndroidTest `AndroidUsbLabControlContractTest`. Mac `aicalls-usb-live-config-contract-mac-qa-20261108-v3` **DONE/0**, pełny `scripts/verify_host.sh` PASS, AndroidTest/APK/lint, 370 testów Python PASS. `aicalls-usb-lab-telephony-permission-qa-20261108-v2` **DONE/0**: wcześniej naprawiona walidacja uprawnienia `READ_PHONE_STATE`, 5 nowych testów CLI PASS.
 
 **Nowego APK nie zainstalowano na S22:** próba publikacji zadania sprzętowego z komendami interwencji została zablokowana przed wykonaniem. Nie obchodzić tej odmowy innym mechanizmem; nie twierdzić, że live takeover/STOP albo nowy USB receiver zostały fizycznie sprawdzone. Starszy odczyt ADB `aicalls-lab-usb-mailbox-preflight-20261108-v1` DONE/0 potwierdził S22 `SM-S906B`, telefon IDLE, kampanię nieaktywną, AI Calls foreground i działające `run-as`. **Nie jest to odbiór nowego kodu.**
