@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_case_select">Przypadek testowy</string>
+    <string name="lab_case_none">Bez przypadku — rozmowa ręczna</string>
+    <string name="lab_case_manage">Zarządzaj testami</string>
+    <string name="lab_case_new">Nowy test</string>
+    <string name="lab_case_edit">Edytuj / zapisz nową wersję</string>
+    <string name="lab_case_duplicate">Kopiuj test</string>
+    <string name="lab_case_versions">Wybierz wersję</string>
+    <string name="lab_case_delete">Usuń test</string>
+    <string name="lab_case_confirm_delete">Trwale usunąć test wraz z wersjami?</string>
+    <string name="lab_case_save">Zapisz</string>
+    <string name="lab_case_title">Nazwa</string>
+    <string name="lab_case_goal">Cel rozmowy</string>
+    <string name="lab_case_role">Rola modelu</string>
+    <string name="lab_case_opening">Pierwsza wypowiedź</string>
+    <string name="lab_case_state">Stan rozmówcy</string>
+    <string name="lab_case_facts">Znane fakty</string>
+    <string name="lab_case_expected">Oczekiwane zachowania</string>
+    <string name="lab_case_rules">Reguły adaptacyjne: warunek => tekst</string>
+    <string name="lab_case_finish">Warunek końca</string>
+</resources>

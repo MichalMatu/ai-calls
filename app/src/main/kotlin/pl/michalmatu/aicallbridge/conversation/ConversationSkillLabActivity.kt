@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -37,6 +38,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var naturalness: Spinner
     private lateinit var manualInput: EditText
     private lateinit var sendButton: Button
+    private lateinit var casePicker: Spinner
+    private var caseEntries: List<LabCase> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +71,14 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(UiDesign.caption(this, getString(R.string.lab_ui_preset)),
             UiDesign.spaceAfter(this, 6))
         content.addView(picker, UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.caption(this, getString(R.string.lab_case_select)),
+            UiDesign.spaceAfter(this, 6))
+        casePicker = Spinner(this).apply { tag = "lab-case-picker" }
+        content.addView(casePicker, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.action(this, getString(R.string.lab_case_manage)) {
+            showCaseList()
+        }, UiDesign.spaceAfter(this, 12))
+        refreshCases()
         // Scripted quick/full modes are retired; all dialogue comes from a person or a saved case.
         modePicker = Spinner(this).apply {
             tag = "lab-scope-picker"
@@ -218,6 +229,138 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
         renderState(runner.state)
         modePicker.isEnabled = false
+    }
+
+
+    override fun onResume() {
+        super.onResume()
+        if (::casePicker.isInitialized) refreshCases()
+    }
+
+    private fun caseStore() = AndroidConversationPreparationStore(this)
+
+    private fun refreshCases() {
+        val selectedId = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)?.id
+        caseEntries = runCatching { caseStore().loadLabCases().cases }.getOrElse {
+            statusIfReady(it.message.orEmpty())
+            emptyList()
+        }
+        UiSelect.setOptions(casePicker, listOf(getString(R.string.lab_case_none)) +
+            caseEntries.map { it.selected().title + " · v" + it.selectedRevision })
+        casePicker.setSelection(caseEntries.indexOfFirst { it.id == selectedId }
+            .let { if (it < 0) 0 else it + 1 })
+    }
+
+    private fun statusIfReady(message: String) {
+        if (::status.isInitialized) status.text = message
+    }
+
+    private fun showCaseList() {
+        val saved = runCatching { caseStore().loadLabCases().cases }.getOrElse {
+            showError(it.message.orEmpty()); return
+        }
+        val choices = listOf(getString(R.string.lab_case_new)) +
+            saved.map { it.selected().title + " · v" + it.selectedRevision }
+        AlertDialog.Builder(this).setTitle(R.string.lab_case_manage)
+            .setItems(choices.toTypedArray()) { _, position ->
+                if (position == 0) editCase(null) else showCaseOptions(saved[position - 1])
+            }.setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun showCaseOptions(item: LabCase) {
+        val actions = arrayOf(getString(R.string.lab_case_edit),
+            getString(R.string.lab_case_duplicate), getString(R.string.lab_case_versions),
+            getString(R.string.lab_case_delete))
+        AlertDialog.Builder(this).setTitle(item.selected().title)
+            .setItems(actions) { _, selected ->
+                when (selected) {
+                    0 -> editCase(item)
+                    1 -> runCaseMutation { it.duplicate(item.id) }
+                    2 -> {
+                        val choices = item.versions.map { "v" + it.revision +
+                            " · " + it.title }.toTypedArray()
+                        AlertDialog.Builder(this).setTitle(R.string.lab_case_versions)
+                            .setItems(choices) { _, index ->
+                                runCaseMutation { it.select(item.id, item.versions[index].revision) }
+                            }.show()
+                    }
+                    3 -> AlertDialog.Builder(this)
+                        .setMessage(R.string.lab_case_confirm_delete)
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.lab_case_delete) { _, _ ->
+                            runCaseMutation { it.delete(item.id) }
+                        }.show()
+                }
+            }.show()
+    }
+
+    private fun showError(message: String) {
+        AlertDialog.Builder(this).setMessage(message)
+            .setPositiveButton(android.R.string.ok, null).show()
+    }
+
+    private fun runCaseMutation(transform: (LabCaseLibrary) -> LabCaseLibrary) {
+        runCatching { caseStore().saveLabCases(transform(caseStore().loadLabCases())) }
+            .onSuccess { refreshCases() }
+            .onFailure { showError(it.message.orEmpty()) }
+    }
+
+    private fun editCase(item: LabCase?) {
+        val existing = item?.selected()
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 12, 20, 12)
+        }
+        val inputs = linkedMapOf<String, EditText>()
+        fun entry(key: String, label: Int, initial: String, single: Boolean = false) {
+            body.addView(UiDesign.caption(this, getString(label)))
+            val editor = EditText(this).apply {
+                tag = "lab-case-field:" + key
+                setText(initial)
+                setSingleLine(single)
+                if (!single) { minLines = 2; maxLines = 5 }
+            }
+            body.addView(editor, UiDesign.spaceAfter(this, 8))
+            inputs[key] = editor
+        }
+        entry("title", R.string.lab_case_title, existing?.title.orEmpty(), true)
+        entry("goal", R.string.lab_case_goal, existing?.goal.orEmpty())
+        body.addView(UiDesign.caption(this, getString(R.string.lab_case_role)))
+        val role = Spinner(this).apply {
+            tag = "lab-case-role"
+            UiSelect.setOptions(this, LabRole.entries.map { it.name })
+            setSelection(LabRole.entries.indexOf(existing?.role ?: LabRole.GENERAL))
+        }
+        body.addView(role, UiDesign.spaceAfter(this, 8))
+        entry("opening", R.string.lab_case_opening, existing?.opening.orEmpty())
+        entry("state", R.string.lab_case_state, existing?.callerState.orEmpty())
+        entry("facts", R.string.lab_case_facts, existing?.facts.orEmpty())
+        entry("expected", R.string.lab_case_expected, existing?.expectations.orEmpty())
+        entry("rules", R.string.lab_case_rules, existing?.rules.orEmpty())
+        entry("finish", R.string.lab_case_finish, existing?.completion.orEmpty())
+        val scroll = ScrollView(this).apply { addView(body) }
+        val dialog = AlertDialog.Builder(this).setTitle(if (item == null)
+            R.string.lab_case_new else R.string.lab_case_edit)
+            .setView(scroll)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.lab_case_save, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val texts = inputs.mapValues { it.value.text.toString().trim() }
+                val candidate = LabCaseRevision(1, texts.getValue("title"),
+                    texts.getValue("goal"), LabRole.entries[role.selectedItemPosition],
+                    texts.getValue("opening"), texts.getValue("state"),
+                    texts.getValue("facts"), texts.getValue("expected"),
+                    texts.getValue("rules"), texts.getValue("finish"))
+                runCatching {
+                    val current = caseStore().loadLabCases()
+                    caseStore().saveLabCases(if (item == null) current.create(candidate)
+                        else current.update(item.id, candidate))
+                }.onSuccess { dialog.dismiss(); refreshCases() }
+                    .onFailure { showError(it.message.orEmpty()) }
+            }
+        }
+        dialog.show()
     }
 
     private fun runLab(presetId: String, quick: Boolean) {

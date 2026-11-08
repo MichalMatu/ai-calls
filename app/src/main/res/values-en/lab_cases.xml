@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_case_select">Test case</string>
+    <string name="lab_case_none">No case — manual conversation</string>
+    <string name="lab_case_manage">Manage test cases</string>
+    <string name="lab_case_new">New case</string>
+    <string name="lab_case_edit">Edit / save new revision</string>
+    <string name="lab_case_duplicate">Duplicate case</string>
+    <string name="lab_case_versions">Choose revision</string>
+    <string name="lab_case_delete">Delete case</string>
+    <string name="lab_case_confirm_delete">Permanently delete this case and its revisions?</string>
+    <string name="lab_case_save">Save</string>
+    <string name="lab_case_title">Title</string>
+    <string name="lab_case_goal">Conversation goal</string>
+    <string name="lab_case_role">Model role</string>
+    <string name="lab_case_opening">Opening message</string>
+    <string name="lab_case_state">Caller state</string>
+    <string name="lab_case_facts">Known facts</string>
+    <string name="lab_case_expected">Expected behaviors</string>
+    <string name="lab_case_rules">Adaptive rules: condition => message</string>
+    <string name="lab_case_finish">Completion condition</string>
+</resources>
