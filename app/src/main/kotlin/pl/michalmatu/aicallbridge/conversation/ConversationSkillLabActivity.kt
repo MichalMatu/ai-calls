@@ -37,12 +37,13 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Keep START/STOP visible while the transcript scrolls independently below.
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 20),
-                UiDesign.dp(this@ConversationSkillLabActivity, 16),
+                UiDesign.dp(this@ConversationSkillLabActivity, 12),
                 UiDesign.dp(this@ConversationSkillLabActivity, 20),
-                UiDesign.dp(this@ConversationSkillLabActivity, 28))
+                UiDesign.dp(this@ConversationSkillLabActivity, 4))
         }
         content.addView(UiDesign.heading(this, getString(R.string.lab_ui_title)).apply {
             textSize = 23f
@@ -85,6 +86,13 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }.apply { visibility = View.GONE; tag = "lab-stop" }
         content.addView(stopButton, UiDesign.spaceAfter(this, 12))
 
+        val transcriptArea = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 20),
+                UiDesign.dp(this@ConversationSkillLabActivity, 10),
+                UiDesign.dp(this@ConversationSkillLabActivity, 20),
+                UiDesign.dp(this@ConversationSkillLabActivity, 28))
+        }
         val transcriptCard = UiDesign.card(this).apply {
             tag = "lab-conversation-card"
         }
@@ -150,11 +158,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             minimumHeight = UiDesign.dp(this@ConversationSkillLabActivity, 140)
         }
         transcriptCard.addView(timeline)
-        content.addView(transcriptCard, UiDesign.spaceAfter(this, 12))
-        content.addView(scoreView, UiDesign.spaceAfter(this, 12))
-        content.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
+        transcriptArea.addView(transcriptCard, UiDesign.spaceAfter(this, 12))
+        transcriptArea.addView(scoreView, UiDesign.spaceAfter(this, 12))
+        transcriptArea.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
         scroll = ScrollView(this).apply {
-            addView(content)
+            addView(transcriptArea)
             setOnTouchListener { _, event ->
                 if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
                     userReadingOlderTurns = true
@@ -169,7 +177,13 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 false
             }
         }
-        setContentView(scroll)
+        setContentView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                0, 1f))
+        })
         runner = SkillLabRunner(AndroidSkillLabSessionFactory(applicationContext),
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
         renderState(runner.state)
