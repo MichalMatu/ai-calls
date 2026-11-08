@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ChromeSourceContract(unittest.TestCase):
     def test_one_shell_on_product_screens(self):
-        targets = [["conversation/ConversationHistoryActivity.kt","HISTORY"],["conversation/ConversationSkillLabActivity.kt","LAB"],["conversation/ConversationSkillsActivity.kt","SETTINGS"],["conversation/ConversationPreparationActivity.kt","SETTINGS"],["audioengines/AudioEngineSettingsActivity.kt","SETTINGS"],["textagent/LanguageModelActivity.kt","SETTINGS"],["incoming/IncomingAssistantSettingsActivity.kt","SETTINGS"],["tools/ConversationToolsActivity.kt","SETTINGS"],["debug/UsbDebugPanelActivity.kt","SETTINGS"],["identity/PhoneEnrollmentActivity.kt","SETTINGS"],["campaign/CampaignToolActivity.kt","HOME"]]
+        targets = [["conversation/ScenarioLibraryActivity.kt","AGENT"],["conversation/ConversationHistoryActivity.kt","HISTORY"],["conversation/ConversationSkillLabActivity.kt","LAB"],["conversation/ConversationSkillsActivity.kt","AGENT"],["conversation/ConversationPreparationActivity.kt","AGENT"],["audioengines/AudioEngineSettingsActivity.kt","MODELS"],["textagent/LanguageModelActivity.kt","MODELS"],["incoming/IncomingAssistantSettingsActivity.kt","SETTINGS"],["tools/ConversationToolsActivity.kt","AGENT"],["debug/UsbDebugPanelActivity.kt","SETTINGS"],["identity/PhoneEnrollmentActivity.kt","AGENT"],["campaign/CampaignToolActivity.kt","HOME"]]
         for relative, tab in targets:
             with self.subTest(screen=relative):
                 code = (ROOT / relative).read_text()

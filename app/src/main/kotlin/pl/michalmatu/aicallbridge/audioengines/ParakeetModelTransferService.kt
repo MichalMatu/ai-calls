@@ -15,6 +15,7 @@ import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 internal class ParakeetModelTransferService : Service() {
     private val executor = Executors.newSingleThreadExecutor()
     @Volatile private var downloader: ParakeetModelDownloader? = null
+    @Volatile private var cancelRequested = false
 
     override fun onBind(intent: Intent?): IBinder? = null
     override fun onCreate() {
@@ -26,17 +27,20 @@ internal class ParakeetModelTransferService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == CANCEL) {
+            cancelRequested = true
             downloader?.cancel()
             return START_NOT_STICKY
         }
         if (intent?.action != START || status.busy) return START_NOT_STICKY
+        cancelRequested = false
         startForeground(NOTIFICATION, notification(getString(R.string.ux07_parakeet_downloading)))
         status = ParakeetTransferStatus(busy = true)
         val transfer = ParakeetModelDownloader(this)
         downloader = transfer
         executor.execute {
             val result = try {
-                transfer.download { read, _ ->
+                if (cancelRequested) ParakeetModelDownloadResult.Failure("cancelled")
+                else transfer.download { read, _ ->
                     val previous = status
                     if (read - previous.bytes >= 4L * 1024 * 1024 ||
                         read == ParakeetModelFile.MIN_SIZE_BYTES) {
@@ -56,7 +60,7 @@ internal class ParakeetModelTransferService : Service() {
                 is ParakeetModelDownloadResult.Failure -> ParakeetTransferStatus(error = result.reason)
             }
             stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelfResult(startId)
+            stopSelf()
         }
         return START_NOT_STICKY
     }

@@ -34,6 +34,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
     private lateinit var store: AudioEngineProfileStore
     private lateinit var feedback: TextView
     private lateinit var active: TextView
+    private lateinit var activeModelLabel: TextView
     private lateinit var voicePicker: Spinner
     private lateinit var inputGroup: RadioGroup
     private lateinit var outputGroup: RadioGroup
@@ -121,10 +122,11 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
         content.addView(UiDesign.heading(this, getString(R.string.ux07_models_selected_heading)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 6))
-        content.addView(UiDesign.caption(this,
-            pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[
-                current?.dialogue ?: AudioEngineProfile.STABLE.dialogue].title
-        ).apply { textSize = 15f; setTextColor(UiDesign.ink) }, UiDesign.spaceAfter(this, 8))
+        activeModelLabel = UiDesign.caption(this, "").apply {
+            textSize = 15f
+            setTextColor(UiDesign.ink)
+        }
+        content.addView(activeModelLabel, UiDesign.spaceAfter(this, 8))
         content.addView(Button(this).apply {
             UiDesign.styleAction(this, UiActionTone.SECONDARY)
             text = getString(R.string.eng_ui_models)
@@ -329,6 +331,8 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
     }
 
     private fun refreshActive() {
+        activeModelLabel.text = pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[
+            store.load()?.dialogue ?: AudioEngineProfile.STABLE.dialogue].title
         active.text = when (val snapshot = AudioEngineActiveProfilePresenter.present(store.load())) {
             AudioEngineActiveState.Invalid -> getString(R.string.eng_ui_invalid)
             is AudioEngineActiveState.Configured -> getString(R.string.eng_ui_summary,

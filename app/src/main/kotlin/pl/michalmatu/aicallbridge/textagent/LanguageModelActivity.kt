@@ -21,6 +21,7 @@ import android.widget.TextView
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelFile
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelTransferService
 import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
@@ -43,6 +44,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
     private val handler = Handler(Looper.getMainLooper())
     private var pendingImport: DialogueModelId? = null
     private lateinit var feedback: TextView
+    private lateinit var pipelineStatus: TextView
     private lateinit var parakeetStatus: TextView
     private lateinit var parakeetDownload: Button
     private lateinit var parakeetCancel: Button
@@ -93,16 +95,14 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
 
         val pipeline = UiDesign.card(this).apply {
             tag = "models-pipeline-summary"
-            val profile = AudioEngineProfileStore(this@LanguageModelActivity).load()
             addView(UiDesign.heading(this@LanguageModelActivity,
                 getString(R.string.ux07_models_pipeline_title)).apply { textSize = 17f },
                 UiDesign.spaceAfter(this@LanguageModelActivity, 6))
-            addView(UiDesign.caption(this@LanguageModelActivity,
-                getString(R.string.ux07_models_pipeline_status,
-                    profile?.input?.name ?: getString(R.string.ux07_not_configured),
-                    profile?.output?.name ?: getString(R.string.ux07_not_configured))
-            ).apply { textSize = 15f; setTextColor(UiDesign.ink) },
-                UiDesign.spaceAfter(this@LanguageModelActivity, 12))
+            pipelineStatus = UiDesign.caption(this@LanguageModelActivity, "").apply {
+                textSize = 15f
+                setTextColor(UiDesign.ink)
+            }
+            addView(pipelineStatus, UiDesign.spaceAfter(this@LanguageModelActivity, 12))
             addView(UiDesign.action(this@LanguageModelActivity,
                 getString(R.string.ux07_models_edit_audio)) {
                 startActivity(Intent(this@LanguageModelActivity, AudioEngineSettingsActivity::class.java))
@@ -235,6 +235,16 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
         updateParakeetUi()
     }
 
+    private fun updatePipelineStatus() {
+        if (!::pipelineStatus.isInitialized) return
+        val profile = AudioEngineProfileStore(this).load()
+        val input = AudioEngineRegistry.inputs.firstOrNull { it.id == profile?.input?.name }?.title
+            ?: getString(R.string.ux07_not_configured)
+        val output = AudioEngineRegistry.outputs.firstOrNull { it.id == profile?.output?.name }?.title
+            ?: getString(R.string.ux07_not_configured)
+        pipelineStatus.text = getString(R.string.ux07_models_pipeline_status, input, output)
+    }
+
     private fun updateParakeetUi() {
         if (!::parakeetStatus.isInitialized) return
         val state = ParakeetModelTransferService.status
@@ -264,6 +274,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
     }
 
     private fun update() {
+        updatePipelineStatus()
         updateParakeetUi()
         val transfer = LanguageModelTransferService.status
         val selected = AudioEngineProfileStore(this).load()?.dialogue

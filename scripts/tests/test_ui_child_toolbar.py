@@ -7,7 +7,7 @@ class ChildToolbarContract(unittest.TestCase):
         nav=(ROOT/"AppNavigation.kt").read_text()
         self.assertIn('tag = "app-child-toolbar"', nav)
         self.assertIn('tag = "app-child-back"', nav)
-        self.assertIn('if (activity is UiChromeActivity) addView(childToolbar(activity, active))', nav)
+        self.assertIn('if (activity is UiChromeActivity && !activity.isPrimaryTabScreen()) addView(childToolbar(activity, active))', nav)
         self.assertIn('if (activity is UiChromeActivity) activity.navigateBack()', nav)
         self.assertIn('else activity.finish()', nav)
         self.assertIn("activity.getString(R.string.ui_back)", nav)

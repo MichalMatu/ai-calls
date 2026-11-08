@@ -9,6 +9,8 @@ class MenuVisualSourceContract(unittest.TestCase):
         cls.main = (ROOT / "MainActivity.kt").read_text()
         cls.nav = (ROOT / "ui/AppNavigation.kt").read_text()
         cls.hub = (ROOT / "ui/SettingsHubActivity.kt").read_text()
+        cls.agent = (ROOT / "ui/AgentAiHubActivity.kt").read_text()
+        cls.models = (ROOT / "textagent/LanguageModelActivity.kt").read_text()
         cls.general = (ROOT / "ui/GeneralSettingsActivity.kt").read_text()
         cls.controller = (ROOT / "ui/GeneralSettingsController.kt").read_text()
         cls.chat = (ROOT / "conversation/ConversationChatPanel.kt").read_text()
@@ -24,12 +26,21 @@ class MenuVisualSourceContract(unittest.TestCase):
         self.assertIn("MainActivityDeveloperProbes", self.main)
 
     def test_normal_menu_and_settings_are_not_fake_accordions(self):
-        for x in ("AppTab.HOME", "AppTab.HISTORY", "AppTab.LAB", "AppTab.SETTINGS",
+        for x in ("AppTab.HOME", "AppTab.HISTORY", "AppTab.AGENT", "AppTab.LAB", "AppTab.MODELS", "AppTab.SETTINGS",
                   "app-bottom-navigation", "app-tab:"):
             self.assertIn(x, self.nav)
         for x in ("SettingsHubActivity", "GeneralSettingsActivity", "DeveloperToolsActivity",
-                  "AudioEngineSettingsActivity", "IncomingAssistantSettingsActivity"):
+                  "IncomingAssistantSettingsActivity"):
             self.assertIn(x, self.hub)
+        for x in ("AgentAiHubActivity", "LanguageModelActivity"):
+            self.assertIn(x, self.nav)
+        for x in ("ConversationSkillsActivity", "ScenarioLibraryActivity",
+                  "ConversationPreparationActivity", "PhoneEnrollmentActivity",
+                  "ConversationToolsActivity"):
+            self.assertIn(x, self.agent)
+            self.assertNotIn("settings-destination:" + x, self.hub)
+        for x in ("AudioEngineSettingsActivity", "GeneralSettingsActivity"):
+            self.assertIn(x, self.models)
         for x in ("settings-audio-mode-spinner", "settings-provider-spinner",
                   "controller.selectMode(selected)", "controller.selectTextModel(selected)"):
             self.assertIn(x, self.general)
