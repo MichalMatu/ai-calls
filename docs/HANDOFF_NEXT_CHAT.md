@@ -1,5 +1,9 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## Najnowszy scoped NAV-01 S22 (2026-11-08)
+
+Na podłączonym S22 (Call IDLE, kampania nieaktywna) istniejący `AndroidAppBottomNavigationFlowTest` przeszedł **2/2 PASS** (5 zakładek docelowych z Home + Settings/General/Back), receipt `aicalls-nav01-safe-device-run-20261108-v2` DONE/0. Oddzielny `AndroidAppNavigationContractTest` miał **5 testów / 1 FAIL**, ale nazwa asercji nie została uchwycona; **nie ogłaszać defektu źródła bez izolowanej reprodukcji**. Test Settings matrix nie wystartował, bo dalszy foreground przeszedł na `NotificationShade`/Dozing. **NAV-01 nadal PARTIAL.** Nie instalowano nowej APK, a zainstalowany USB receiver nadal nieobecny. [Nowy checkpoint](checkpoints/2026-11-08-nav01-existing-apk-reacceptance.md) i [macierz](FUNCTIONAL_ACCEPTANCE_MATRIX.md). Następny krok: odblokowany ekran AI Calls/Launcher, pin APK/test revision, uchwycić dokładną awarię kontraktu, potem brakujące Back/restart. Bez prawdziwego Call.
+
 ## Aktualny checkpoint USB/ADB i Laboratorium (2026-11-08)
 
 **Kod przed dokumentacyjnym checkpointem: `main@af571f0`; aktualny HEAD sprawdź przy wznowieniu.** Nowy kanał USB do Lab i telefonii **SOURCE_PASS / MAC_QA_PASS** (370 Python, Gradle/JVM, AndroidTest build, lint, audio), ale **nowa APK na S22 NOT_INSTALLED/NOT_RUN**, a pozytywny test takeover/resume/exact STOP przez USB **NOT_RUN**. Sprzętowego zadania interwencji nie opublikowano z powodu blokady wykonania; nie używać obejścia. E2B 4096: **3×13 tur PASS technicznie**, human semantic **UNASSESSED**. E2B 8192 na S22 **NOT_RUN**. Rejestr: F-148 OPEN, F-149 VERIFIED (poprawka lint), F-150 FIXED_IN_SOURCE/HOST_PASS/DEVICE_OPEN.
