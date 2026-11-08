@@ -35,9 +35,8 @@ class Ux09Contract(unittest.TestCase):
 
     def test_home_keeps_chat_and_starts_without_idle_dock(self):
         text = read("MainActivity.kt")
-        for token in ('"home-technical"', '"home-live-chat-panel"',
-                      "chat.active || chat.lines.isNotEmpty() || userOpenedIdleChat",
-                      "homeChat = ConversationChatPanel", "AppNavigation.bar"):
+        for token in ('"home-technical"', '"home-conversation-floating-overlay"',
+                      "LiveConversationOverlay(this@MainActivity", "AppNavigation.bar"):
             self.assertIn(token, text)
         self.assertIn("startAuthorizedTaskButton", text)
         self.assertIn("stopAiButton", text)

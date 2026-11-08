@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux10_chat_open">Open active conversation</string>
+    <string name="ux10_chat_close">Close conversation preview</string>
+    <string name="ux10_vault_title">Data vault</string>
+    <string name="ux10_vault_intro">Data is encrypted locally. Saving a value does not grant AI permission to disclose it. Values are hidden.</string>
+    <string name="ux10_vault_standard">Standard data</string>
+    <string name="ux10_vault_saved">Saved · value hidden</string>
+    <string name="ux10_vault_empty">Not saved</string>
+    <string name="ux10_vault_replace">Change</string>
+    <string name="ux10_vault_add">Add</string>
+    <string name="ux10_vault_remove">Remove</string>
+    <string name="ux10_vault_custom">My custom fields</string>
+    <string name="ux10_vault_custom_note">Custom fields are private. They are not automatically shared with the model or added to call authorization.</string>
+    <string name="ux10_vault_custom_summary">%1$s · %2$s</string>
+    <string name="ux10_vault_new_custom">Add custom field</string>
+    <string name="ux10_vault_value_hint">Enter new value</string>
+    <string name="ux10_vault_keep_existing">New value (leave blank to keep existing)</string>
+    <string name="ux10_vault_save">Save</string>
+    <string name="ux10_vault_custom_name">Field name</string>
+    <string name="ux10_vault_kind">Value type</string>
+    <string name="ux10_vault_sensitivity">Sensitivity</string>
+    <string name="ux10_vault_new_value">Value</string>
+    <string name="ux10_vault_text">Text</string>
+    <string name="ux10_vault_number">Number</string>
+    <string name="ux10_vault_date">Date</string>
+    <string name="ux10_vault_secret">Secret</string>
+    <string name="ux10_vault_normal">Normal</string>
+    <string name="ux10_vault_sensitive">Sensitive</string>
+    <string name="ux10_vault_high">High</string>
+    <string name="ux10_vault_remove_confirm">Delete saved field “%1$s”?</string>
+    <string name="ux10_vault_error">Data could not be saved or read. Check the entered value.</string>
+</resources>

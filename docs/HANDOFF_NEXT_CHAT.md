@@ -1,3 +1,9 @@
+# UX-10 — floating chat, Sejf, Laboratorium Skills (2026-11-08)
+
+Źródło zakresu: właściciel potwierdził pływającą ikonę wyłącznie, gdy rozmowa aktywna i dostępny tekst; zaakceptował kompletny Sejf i czystsze Lab. Kod źródłowy i checkpoint: [UX-10](checkpoints/2026-11-08-ux10-floating-vault-lab.md). **Status QA_PENDING, dopóki nie zostanie odczytany exact Mac Local Agent receipt i ewentualny bezpieczny test S22 IDLE.** Nie wykonywać prawdziwej rozmowy ani modyfikować prawdziwych wartości sejfu przy automatycznym QA. Własne pola szyfrowane i lokalne, niepodłączone do FactDisclosurePolicy (zgody osobno). Nie cofać 6 zakładek i frozen media.
+
+---
+
 # UX-09 — bieżący zakres (2026-11-08)
 
 Pięć wizualnych poprawek z screenshotów: Skills inactive, USB tytuł/ramki, Kampanie wynik, Start data-first/idle dock, Agent AI nazwy i zakresy (wyłącznie identyfikatory sejfu). Sześć zakładek i oryginalne dane pozostają bez zmian. [Checkpoint](checkpoints/2026-11-08-ux09-screenshot-cleanup.md). **Przed końcowym Mac i S22 receipt QA_PENDING; żadnych rzeczywistych CALL ani pobrań modeli w testach UX.**

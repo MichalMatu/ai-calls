@@ -27,7 +27,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var progress: ProgressBar
     private lateinit var timeline: LinearLayout
     private lateinit var scroll: ScrollView
-    private lateinit var follow: CheckBox
+    private var userReadingOlderTurns = false
     private lateinit var modePicker: Spinner
     private var currentTurnTotal = 2
     private lateinit var runButton: Button
@@ -47,8 +47,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(UiDesign.heading(this, getString(R.string.lab_ui_title)).apply {
             textSize = 23f
         }, UiDesign.spaceAfter(this, 8))
-        content.addView(UiDesign.caption(this, getString(R.string.lab_ui_intro)),
-            UiDesign.spaceAfter(this, 16))
 
         val library = try { AndroidConversationPreparationStore(this).loadSkillLibrary() }
         catch (error: Exception) {
@@ -87,39 +85,33 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }.apply { visibility = View.GONE; tag = "lab-stop" }
         content.addView(stopButton, UiDesign.spaceAfter(this, 12))
 
-        val liveCard = UiDesign.card(this)
-        liveCard.addView(UiDesign.heading(this, getString(R.string.lab_ui_live_title)).apply {
+        val transcriptCard = UiDesign.card(this).apply {
+            tag = "lab-conversation-card"
+        }
+        transcriptCard.addView(UiDesign.heading(this, getString(R.string.lab_ui_timeline_title)).apply {
             textSize = 17f
-        }, UiDesign.spaceAfter(this, 6))
+        }, UiDesign.spaceAfter(this, 8))
         status = UiDesign.caption(this, getString(R.string.lab_ui_ready)).apply {
             tag = "lab-status"
             textSize = 14f
             setTextColor(UiDesign.ink)
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
-        liveCard.addView(status, UiDesign.spaceAfter(this, 8))
+        transcriptCard.addView(status, UiDesign.spaceAfter(this, 8))
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = currentTurnTotal
             progress = 0
             tag = "lab-live-progress"
             contentDescription = getString(R.string.lab_ui_progress, 0, currentTurnTotal)
         }
-        liveCard.addView(progress, UiDesign.spaceAfter(this, 10))
+        transcriptCard.addView(progress, UiDesign.spaceAfter(this, 10))
         currentTurn = UiDesign.caption(this, getString(R.string.lab_ui_empty)).apply {
             tag = "lab-current-turn"
             textSize = 14f
             setTextColor(UiDesign.ink)
             setTextIsSelectable(true)
         }
-        liveCard.addView(currentTurn)
-        content.addView(liveCard, UiDesign.spaceAfter(this, 12))
-        follow = CheckBox(this).apply {
-            tag = "lab-follow"
-            text = getString(R.string.lab_ui_follow)
-            isChecked = true
-            minimumHeight = UiDesign.dp(this@ConversationSkillLabActivity, 48)
-        }
-        content.addView(follow, UiDesign.spaceAfter(this, 10))
+        transcriptCard.addView(currentTurn, UiDesign.spaceAfter(this, 8))
 
         scoreView = UiDesign.caption(this, "").apply {
             tag = "lab-score"
@@ -133,7 +125,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 UiDesign.dp(this@ConversationSkillLabActivity, 12))
             background = UiDesign.surfaceDrawable(this@ConversationSkillLabActivity)
         }
-        content.addView(scoreView, UiDesign.spaceAfter(this, 12))
+
 
         ratingGroup = UiDesign.card(this).apply {
             tag = "lab-rating-group"
@@ -152,19 +144,31 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         ratingGroup.addView(UiDesign.action(this, getString(R.string.lab_ui_apply_rating)) {
             lastState.metrics?.let(::showMetrics)
         })
-        content.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
-
-        content.addView(UiDesign.heading(this, getString(R.string.lab_ui_timeline_title)).apply {
-            textSize = 18f
-        }, UiDesign.spaceAfter(this, 6))
-        content.addView(UiDesign.caption(this, getString(R.string.lab_ui_timeline_hint)),
-            UiDesign.spaceAfter(this, 10))
         timeline = LinearLayout(this).apply {
             tag = "lab-turn-timeline"
             orientation = LinearLayout.VERTICAL
+            minimumHeight = UiDesign.dp(this@ConversationSkillLabActivity, 140)
         }
-        content.addView(timeline)
-        scroll = ScrollView(this).apply { addView(content) }
+        transcriptCard.addView(timeline)
+        content.addView(transcriptCard, UiDesign.spaceAfter(this, 12))
+        content.addView(scoreView, UiDesign.spaceAfter(this, 12))
+        content.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
+        scroll = ScrollView(this).apply {
+            addView(content)
+            setOnTouchListener { _, event ->
+                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                    userReadingOlderTurns = true
+                } else if (event.actionMasked == android.view.MotionEvent.ACTION_UP ||
+                    event.actionMasked == android.view.MotionEvent.ACTION_CANCEL) {
+                    postDelayed({
+                        val body = getChildAt(0)
+                        val remaining = ((body?.height ?: 0) - height - scrollY).coerceAtLeast(0)
+                        userReadingOlderTurns = remaining > UiDesign.dp(this@ConversationSkillLabActivity, 48)
+                    }, 120L)
+                }
+                false
+            }
+        }
         setContentView(scroll)
         runner = SkillLabRunner(AndroidSkillLabSessionFactory(applicationContext),
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
@@ -181,6 +185,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         currentTurnTotal = next.totalTurns
         if (next.phase == SkillLabPhase.STARTING) {
             renderedTurnCount = 0
+            userReadingOlderTurns = false
             visiblePending.clear()
             stopBannerShown = false
             timeline.removeAllViews()
@@ -216,6 +221,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             setOf(SkillLabPhase.STARTING, SkillLabPhase.WAITING,
                 SkillLabPhase.TURN_COMPLETED)) View.VISIBLE else View.GONE
 
+        currentTurn.visibility = if (next.phase == SkillLabPhase.READY) View.GONE
+            else View.VISIBLE
         when (next.phase) {
             SkillLabPhase.READY -> {
                 status.text = getString(R.string.lab_ui_ready)
@@ -349,16 +356,18 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     }
 
     private fun followCardIfEnabled(card: View) {
-        if (!follow.isChecked) return
-        // The timeline is the last content section. Scroll to its newest card after
-        // its response/STOP changes have reflowed the parent layout.
+        if (userReadingOlderTurns) return
+        // Follow latest only while the owner has not scrolled up to read older turns.
         scroll.post {
-            if (isDestroyed || !follow.isChecked || !card.isAttachedToWindow) return@post
+            if (isDestroyed || userReadingOlderTurns || !card.isAttachedToWindow) return@post
             scroll.post {
-                if (isDestroyed || !follow.isChecked || !card.isAttachedToWindow) return@post
-                val content = scroll.getChildAt(0) ?: return@post
-                val bottom = (content.height - scroll.height).coerceAtLeast(0)
-                scroll.scrollTo(0, bottom)
+                if (isDestroyed || userReadingOlderTurns || !card.isAttachedToWindow) return@post
+                val body = scroll.getChildAt(0) ?: return@post
+                val top = card.top + timeline.top + (timeline.parent as View).top
+                val target = (top + card.height - scroll.height + UiDesign.dp(this, 30))
+                    .coerceAtLeast(0)
+                val bottom = (body.height - scroll.height).coerceAtLeast(0)
+                scroll.smoothScrollTo(0, target.coerceAtMost(bottom))
             }
         }
     }

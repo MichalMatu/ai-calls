@@ -26,7 +26,8 @@ import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
  * All live text stays in app-process memory; the UI polls only while attached.
  * Never starts, ends or modifies a call, a grant or evidence recording.
  */
-internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolean = true) : LinearLayout(context) {
+internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolean = true,
+    private val fillAvailableHeight: Boolean = false, private val onClose: (() -> Unit)? = null) : LinearLayout(context) {
     private val refreshHandler = Handler(Looper.getMainLooper())
     private var renderedRevision = -1L
     private var expanded = initiallyExpanded
@@ -51,7 +52,8 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
         ))
-        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(184))
+        layoutParams = if (fillAvailableHeight) LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f)
+            else LayoutParams(LayoutParams.MATCH_PARENT, dp(184))
     }
 
     private val clearButton = Button(context).apply {
@@ -65,8 +67,10 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
 
     private val toggle = ImageButton(context).apply {
         tag = "live-chat-toggle"
-        contentDescription = context.getString(if (expanded) R.string.live_chat_collapse else R.string.live_chat_expand)
-        setImageResource(if (expanded) R.drawable.ic_aicalls_chevron_up else R.drawable.ic_aicalls_chevron_down)
+        contentDescription = if (fillAvailableHeight) context.getString(R.string.ux10_chat_close)
+            else context.getString(if (expanded) R.string.live_chat_collapse else R.string.live_chat_expand)
+        setImageResource(if (fillAvailableHeight) R.drawable.ic_aicalls_chevron_down
+            else if (expanded) R.drawable.ic_aicalls_chevron_up else R.drawable.ic_aicalls_chevron_down)
         imageTintList = ColorStateList.valueOf(UiDesign.ink)
         scaleType = ImageView.ScaleType.CENTER_INSIDE
         minimumWidth = dp(48)
@@ -76,6 +80,7 @@ internal class ConversationChatPanel(context: Context, initiallyExpanded: Boolea
         elevation = 0f
         background = UiDesign.touchSurface(context, UiDesign.softAccent, 10)
         setOnClickListener {
+            if (fillAvailableHeight) { onClose?.invoke(); return@setOnClickListener }
             expanded = !expanded
             messageScroll.visibility = if (expanded) View.VISIBLE else View.GONE
             clearButton.visibility = if (expanded) View.VISIBLE else View.GONE

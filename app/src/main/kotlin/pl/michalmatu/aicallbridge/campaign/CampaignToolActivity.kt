@@ -4,7 +4,7 @@ import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
-import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
+import pl.michalmatu.aicallbridge.conversation.LiveConversationOverlay
 
 import android.Manifest
 import android.app.Activity
@@ -312,18 +312,12 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         // START and STOP controls remain available in the scrollable area.
         setContentView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(ScrollView(this@CampaignToolActivity).apply {
-                addView(
-                    content,
-                    ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ),
-                )
-            }, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
-            ))
-            addView(ConversationChatPanel(this@CampaignToolActivity, initiallyExpanded = false))
+            addView(LiveConversationOverlay(this@CampaignToolActivity,
+                ScrollView(this@CampaignToolActivity).apply {
+                    addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT))
+                }).apply { tag = "campaign-conversation-floating-overlay" },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         })
         refreshTaskStatus()
         // Explicit primary-screen tap accepts the displayed task through the same scope,

@@ -25,6 +25,7 @@ import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
+import pl.michalmatu.aicallbridge.identity.IdentityVaultManagerActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
@@ -156,5 +157,6 @@ class AndroidVisualScreenAuditTest {
     @Test fun developer() = capture(DeveloperToolsActivity::class.java, "developer")
     @Test fun usbDiagnostics() = capture(UsbDebugPanelActivity::class.java, "usb-diagnostics")
     @Test fun phoneEnrollment() = capture(PhoneEnrollmentActivity::class.java, "phone-enrollment")
+    @Test fun vault() = capture(IdentityVaultManagerActivity::class.java, "vault")
     @Test fun campaigns() = capture(CampaignToolActivity::class.java, "campaigns")
 }

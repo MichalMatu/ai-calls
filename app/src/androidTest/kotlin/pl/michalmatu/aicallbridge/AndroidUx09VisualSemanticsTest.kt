@@ -82,7 +82,8 @@ class AndroidUx09VisualSemanticsTest {
                 assertTrue(requireNotNull(root.findViewWithTag<View>("home-task-authorization")).isShown)
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(
                     "ui-accordion-content:home-technical")).visibility)
-                assertNotNull(root.findViewWithTag<View>("home-live-chat-panel"))
+                assertNotNull(root.findViewWithTag<View>("home-conversation-floating-overlay"))
+                assertNotNull(root.findViewWithTag<View>("conversation-floating-button"))
             }
         }
     }
@@ -92,7 +93,7 @@ class AndroidUx09VisualSemanticsTest {
             test.onActivity { activity ->
                 val root = activity.window.decorView
                 for (name in listOf("ConversationSkillsActivity", "ConversationPreparationActivity",
-                    "PhoneEnrollmentActivity", "ConversationToolsActivity")) {
+                    "IdentityVaultManagerActivity", "ConversationToolsActivity")) {
                     assertTrue(requireNotNull(root.findViewWithTag<View>(
                         "agent-destination:" + name)).isClickable)
                 }

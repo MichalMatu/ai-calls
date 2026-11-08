@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux10_chat_open">Otwórz podgląd aktywnej rozmowy</string>
+    <string name="ux10_chat_close">Zamknij podgląd rozmowy</string>
+    <string name="ux10_vault_title">Sejf danych</string>
+    <string name="ux10_vault_intro">Dane przechowywane lokalnie i szyfrowane. Zapisanie wartości nie oznacza zgody na jej ujawnienie przez AI. Wartości są ukryte.</string>
+    <string name="ux10_vault_standard">Dane standardowe</string>
+    <string name="ux10_vault_saved">Zapisano · wartość ukryta</string>
+    <string name="ux10_vault_empty">Brak zapisu</string>
+    <string name="ux10_vault_replace">Zmień</string>
+    <string name="ux10_vault_add">Dodaj</string>
+    <string name="ux10_vault_remove">Usuń</string>
+    <string name="ux10_vault_custom">Moje własne pola</string>
+    <string name="ux10_vault_custom_note">Pola własne są prywatne. Nie są automatycznie udostępniane modelowi ani dodawane do autoryzacji rozmów.</string>
+    <string name="ux10_vault_custom_summary">%1$s · %2$s</string>
+    <string name="ux10_vault_new_custom">Dodaj własne pole</string>
+    <string name="ux10_vault_value_hint">Wpisz nową wartość</string>
+    <string name="ux10_vault_keep_existing">Nowa wartość (puste pole zachowa poprzednią)</string>
+    <string name="ux10_vault_save">Zapisz</string>
+    <string name="ux10_vault_custom_name">Nazwa pola</string>
+    <string name="ux10_vault_kind">Typ wartości</string>
+    <string name="ux10_vault_sensitivity">Wrażliwość</string>
+    <string name="ux10_vault_new_value">Wartość</string>
+    <string name="ux10_vault_text">Tekst</string>
+    <string name="ux10_vault_number">Liczba</string>
+    <string name="ux10_vault_date">Data</string>
+    <string name="ux10_vault_secret">Tajny wpis</string>
+    <string name="ux10_vault_normal">Zwykła</string>
+    <string name="ux10_vault_sensitive">Wrażliwa</string>
+    <string name="ux10_vault_high">Wysoka</string>
+    <string name="ux10_vault_remove_confirm">Usunąć zapisane pole „%1$s”?</string>
+    <string name="ux10_vault_error">Nie udało się zapisać lub odczytać danych. Sprawdź poprawność wartości.</string>
+</resources>

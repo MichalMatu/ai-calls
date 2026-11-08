@@ -17,7 +17,7 @@ import pl.michalmatu.aicallbridge.conversation.ScenarioLibraryActivity
 import pl.michalmatu.aicallbridge.conversationcore.ScenarioCatalog
 import pl.michalmatu.aicallbridge.identity.AndroidIdentityVault
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
-import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
+import pl.michalmatu.aicallbridge.identity.IdentityVaultManagerActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsSettingsController
 
@@ -73,7 +73,7 @@ class AgentAiHubActivity : AppBaseActivity() {
         destination("skills", R.string.ux07_agent_skills, ConversationSkillsActivity::class.java)
         destination("scenarios", R.string.ux07_agent_scenarios, ScenarioLibraryActivity::class.java)
         destination("profiles", R.string.ux07_agent_preparation, ConversationPreparationActivity::class.java)
-        destination("vault", R.string.ux07_agent_vault, PhoneEnrollmentActivity::class.java)
+        destination("vault", R.string.ux07_agent_vault, IdentityVaultManagerActivity::class.java)
         destination("tools", R.string.ux07_agent_tools, ConversationToolsActivity::class.java)
         body.addView(UiDesign.caption(this, getString(R.string.ux09_agent_scope_warning)),
             UiDesign.spaceAfter(this, 12))
