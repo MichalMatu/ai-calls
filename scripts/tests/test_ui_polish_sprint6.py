@@ -58,7 +58,8 @@ class Sprint6UXContract(unittest.TestCase):
     def test_lab_status_and_score_are_honest(self):
         lab = self.read("conversation/ConversationSkillLabActivity.kt")
         for token in ("showStopNotice()", 'tag = "lab-stopped-banner"',
-                      "followLatestCardIfEnabled()", "scroll.scrollTo(0, bottom)",
+                      "followLatestCardIfEnabled()", "scroll.smoothScrollTo(0, target.coerceAtMost(bottom))",
+                      "userReadingOlderTurns",
                       "lab_ui_quality_not_scored"):
             self.assertIn(token, lab)
         core = self.read("conversation/ConversationSkillLab.kt")

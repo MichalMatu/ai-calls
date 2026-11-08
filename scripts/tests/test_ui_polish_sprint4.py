@@ -16,7 +16,8 @@ class Sprint4UxContract(unittest.TestCase):
         for token in (
             "showTurnPending(", "showTurnCompleted(", "SkillLabRunner(",
             'tag = "lab-turn-timeline"', 'tag = "lab-live-progress"',
-            'tag = "lab-current-turn"', 'tag = "lab-follow"',
+            'tag = "lab-current-turn"', 'tag = "lab-conversation-card"',
+            "userReadingOlderTurns",
             'tag = "lab-rating-group"', "followCardIfEnabled",
             "progress.progress = completed", "record.reply.trim()",
             "runButton.visibility = if (next.canStart)", "UiDesign.card(this, 12)"
