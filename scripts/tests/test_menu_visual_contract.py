@@ -22,7 +22,12 @@ class MenuVisualSourceContract(unittest.TestCase):
         for duplicate in ("addView(conversationHistoryButton)", "addView(labShortcutButton)",
                           "AppNavigation.open(this@MainActivity, AppTab.SETTINGS)"):
             self.assertNotIn(duplicate, self.main)
-        self.assertNotIn("UiAccordionSection(", self.main)
+        # UX-09 allows only a collapsed technical-details section on Home;
+        # task authorization, emergency STOP and navigation remain directly visible.
+        self.assertEqual(self.main.count("UiAccordionSection("), 1)
+        self.assertIn('UiAccordionSection(this, "home-technical"', self.main)
+        self.assertIn("addView(startAuthorizedTaskButton)", self.main)
+        self.assertIn("addView(stopAiButton)", self.main)
         self.assertIn("MainActivityDeveloperProbes", self.main)
 
     def test_normal_menu_and_settings_are_not_fake_accordions(self):
