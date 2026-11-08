@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="lab_manual_end_observed">Propozycja END_CALL: %1$s · %2$d ms (bez automatycznej oceny)</string>
+</resources>

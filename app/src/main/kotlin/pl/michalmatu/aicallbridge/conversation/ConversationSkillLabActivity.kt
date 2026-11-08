@@ -713,14 +713,17 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             tag = "lab-reply:" + storyIndex + ":" + record.index
         }, UiDesign.spaceAfter(this, 8))
         val matched = record.expectedEnd == record.actualEnd
+        val manualDecision = getString(R.string.lab_manual_end_observed,
+            getString(if (record.actualEnd) R.string.lab_ui_end_yes else R.string.lab_ui_end_no),
+            record.elapsedMs)
         card.addView(TextView(this).apply {
-            text = getString(R.string.lab_ui_decision,
+            text = if (lastState.manual) manualDecision else getString(R.string.lab_ui_decision,
                 getString(if (record.expectedEnd) R.string.lab_ui_end_yes else R.string.lab_ui_end_no),
                 getString(if (record.actualEnd) R.string.lab_ui_end_yes else R.string.lab_ui_end_no),
                 record.elapsedMs) + " · " +
                 getString(if (matched) R.string.lab_ui_match else R.string.lab_ui_mismatch)
             textSize = 12f
-            setTextColor(if (matched) UiDesign.secondary else UiDesign.danger)
+            setTextColor(if (lastState.manual || matched) UiDesign.secondary else UiDesign.danger)
             tag = "lab-decision:" + storyIndex + ":" + record.index
         })
         progress.progress = completed
