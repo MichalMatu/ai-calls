@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux11_lab_timeline_title">Conversation timeline</string>
+    <string name="ux11_lab_empty">Run an offline test to view the conversation.</string>
+    <string name="ux11_vault_edit_field">Edit field %1$s</string>
+    <string name="ux11_vault_remove_field">Remove field %1$s</string>
+</resources>

@@ -78,43 +78,101 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
         IdentitySensitivity.HIGH -> R.string.ux10_vault_high
     })
 
+    /**
+     * One compact touch target per entry; editing never reads the stored plaintext.
+     * A separate 48dp remove affordance is shown only for fields that are present.
+     */
+    private fun fieldRow(
+        title: String,
+        subtitle: String,
+        rowTag: String,
+        saved: Boolean,
+        onEdit: () -> Unit,
+        onRemove: () -> Unit,
+    ): LinearLayout = LinearLayout(this).apply {
+        tag = rowTag
+        orientation = LinearLayout.HORIZONTAL
+        gravity = android.view.Gravity.CENTER_VERTICAL
+        minimumHeight = UiDesign.dp(this@IdentityVaultManagerActivity, 62)
+        background = UiDesign.touchSurface(this@IdentityVaultManagerActivity)
+        setPadding(UiDesign.dp(this@IdentityVaultManagerActivity, 12),
+            UiDesign.dp(this@IdentityVaultManagerActivity, 6),
+            UiDesign.dp(this@IdentityVaultManagerActivity, 5),
+            UiDesign.dp(this@IdentityVaultManagerActivity, 6))
+
+        val labels = LinearLayout(this@IdentityVaultManagerActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            isClickable = true
+            isFocusable = true
+            contentDescription = title + ", " + subtitle + ", " +
+                getString(if (saved) R.string.ux10_vault_replace else R.string.ux10_vault_add)
+            setOnClickListener { onEdit() }
+            addView(UiDesign.heading(this@IdentityVaultManagerActivity, title).apply {
+                textSize = 15f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            })
+            addView(UiDesign.caption(this@IdentityVaultManagerActivity, subtitle).apply {
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            })
+        }
+        addView(labels, LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
+        addView(UiDesign.iconButton(this@IdentityVaultManagerActivity,
+            android.R.drawable.ic_menu_edit,
+            getString(R.string.ux11_vault_edit_field, title)).apply {
+            tag = rowTag + ":edit"
+            setOnClickListener { onEdit() }
+        }, LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 48),
+            UiDesign.dp(this@IdentityVaultManagerActivity, 48)))
+        if (saved) {
+            addView(UiDesign.iconButton(this@IdentityVaultManagerActivity,
+                android.R.drawable.ic_menu_delete,
+                getString(R.string.ux11_vault_remove_field, title), UiDesign.danger).apply {
+                tag = rowTag + ":remove"
+                setOnClickListener { onRemove() }
+            }, LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 48),
+                UiDesign.dp(this@IdentityVaultManagerActivity, 48)))
+        }
+    }
+
     private fun render() {
         val savedY = scroll.scrollY
         body.removeAllViews()
         body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_title)),
             UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.caption(this, getString(R.string.ux10_vault_intro)),
-            UiDesign.spaceAfter(this, 18))
-        body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_standard)),
             UiDesign.spaceAfter(this, 10))
+        // Custom-field creation stays available without scrolling past the standard fields.
+        body.addView(UiDesign.action(this, getString(R.string.ux10_vault_new_custom),
+            UiActionTone.PRIMARY) { editCustom(null) }.apply {
+            tag = "vault-add-custom"
+        }, UiDesign.spaceAfter(this, 14))
+
+        body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_standard)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
         val ids = predefined.availableFields().getOrElse {
             showReadError()
             return
         }
         for (field in IdentityFieldId.entries) {
             val present = field in ids
-            val card = UiDesign.card(this, 12).apply { tag = "vault-standard:" + field.name }
-            card.addView(UiDesign.heading(this, labelFor(field)).apply { textSize = 16f },
-                UiDesign.spaceAfter(this, 4))
-            card.addView(UiDesign.caption(this, getString(
-                if (present) R.string.ux10_vault_saved else R.string.ux10_vault_empty)),
-                UiDesign.spaceAfter(this, 8))
-            card.addView(UiDesign.action(this, getString(
-                if (present) R.string.ux10_vault_replace else R.string.ux10_vault_add)) {
-                editStandard(field)
-            }, UiDesign.spaceAfter(this, 8))
-            if (present) card.addView(UiDesign.action(this,
-                getString(R.string.ux10_vault_remove), UiActionTone.REVOCATION) {
-                confirmRemoval(labelFor(field)) {
-                    runCatching { predefined.remove(field).getOrThrow() }
-                        .onSuccess { render() }.onFailure(::showError)
-                }
-            })
-            body.addView(card, UiDesign.spaceAfter(this, 10))
+            body.addView(fieldRow(labelFor(field), getString(if (present)
+                R.string.ux10_vault_saved else R.string.ux10_vault_empty),
+                "vault-standard:" + field.name, present,
+                onEdit = { editStandard(field) },
+                onRemove = {
+                    confirmRemoval(labelFor(field)) {
+                        runCatching { predefined.remove(field).getOrThrow() }
+                            .onSuccess { render() }.onFailure(::showError)
+                    }
+                }), UiDesign.spaceAfter(this, 6))
         }
 
-        body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_custom)),
-            UiDesign.spaceAfter(this, 8))
+        body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_custom)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.caption(this, getString(R.string.ux10_vault_custom_note)),
             UiDesign.spaceAfter(this, 10))
         val own = runCatching { custom.list() }.getOrElse {
@@ -122,26 +180,18 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
             return
         }
         for (field in own) {
-            val card = UiDesign.card(this, 12).apply { tag = "vault-custom:" + field.id }
-            card.addView(UiDesign.heading(this, field.name).apply { textSize = 16f },
-                UiDesign.spaceAfter(this, 4))
-            card.addView(UiDesign.caption(this, getString(R.string.ux10_vault_custom_summary,
-                kindName(field.kind), sensitivityName(field.sensitivity))), UiDesign.spaceAfter(this, 8))
-            card.addView(UiDesign.action(this, getString(R.string.ux10_vault_replace)) {
-                editCustom(field)
-            }, UiDesign.spaceAfter(this, 8))
-            card.addView(UiDesign.action(this, getString(R.string.ux10_vault_remove),
-                UiActionTone.REVOCATION) {
-                confirmRemoval(field.name) {
-                    runCatching { custom.remove(field.id) }
-                        .onSuccess { render() }.onFailure(::showError)
-                }
-            })
-            body.addView(card, UiDesign.spaceAfter(this, 10))
+            body.addView(fieldRow(field.name,
+                getString(R.string.ux10_vault_custom_summary,
+                    kindName(field.kind), sensitivityName(field.sensitivity)),
+                "vault-custom:" + field.id, saved = true,
+                onEdit = { editCustom(field) },
+                onRemove = {
+                    confirmRemoval(field.name) {
+                        runCatching { custom.remove(field.id) }
+                            .onSuccess { render() }.onFailure(::showError)
+                    }
+                }), UiDesign.spaceAfter(this, 6))
         }
-        body.addView(UiDesign.action(this, getString(R.string.ux10_vault_new_custom),
-            UiActionTone.PRIMARY) { editCustom(null) },
-            UiDesign.spaceAfter(this, 12))
         scroll.post { scroll.scrollTo(0, savedY) }
     }
 

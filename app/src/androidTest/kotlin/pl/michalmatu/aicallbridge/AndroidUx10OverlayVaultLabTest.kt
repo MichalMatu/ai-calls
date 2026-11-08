@@ -48,6 +48,30 @@ class AndroidUx10OverlayVaultLabTest {
             }
         }
     }
+    @Test fun vaultUsesCompactRowsAndAccessibleCustomFieldAction() {
+        ActivityScenario.launch(IdentityVaultManagerActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                val custom = requireNotNull(root.findViewWithTag<View>("vault-add-custom"))
+                assertTrue(custom.isShown)
+                val first = requireNotNull(root.findViewWithTag<View>("vault-standard:FIRST_NAME"))
+                assertTrue(first.minimumHeight <= (70f * activity.resources.displayMetrics.density).toInt())
+                assertNotNull(root.findViewWithTag<View>("vault-standard:FIRST_NAME:edit"))
+            }
+        }
+    }
+    @Test fun labHasACompactEmptyConversationState() {
+        ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                val empty = requireNotNull(root.findViewWithTag<android.widget.TextView>("lab-empty-transcript"))
+                assertEquals(activity.getString(R.string.ux11_lab_empty), empty.text.toString())
+                assertEquals(View.VISIBLE, empty.visibility)
+                assertNotNull(root.findViewWithTag<View>("lab-conversation-card"))
+                assertNotNull(root.findViewWithTag<View>("lab-start"))
+            }
+        }
+    }
     @Test fun labPutsTimelineAfterRunWithoutFollowCheckbox() {
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->

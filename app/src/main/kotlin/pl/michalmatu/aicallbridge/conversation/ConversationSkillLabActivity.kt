@@ -26,6 +26,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var scoreView: TextView
     private lateinit var progress: ProgressBar
     private lateinit var timeline: LinearLayout
+    private lateinit var emptyTranscript: TextView
     private lateinit var scroll: ScrollView
     private var userReadingOlderTurns = false
     private lateinit var modePicker: Spinner
@@ -96,7 +97,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         val transcriptCard = UiDesign.card(this).apply {
             tag = "lab-conversation-card"
         }
-        transcriptCard.addView(UiDesign.heading(this, getString(R.string.lab_ui_timeline_title)).apply {
+        transcriptCard.addView(UiDesign.heading(this, getString(R.string.ux11_lab_timeline_title)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
         status = UiDesign.caption(this, getString(R.string.lab_ui_ready)).apply {
@@ -152,10 +153,17 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         ratingGroup.addView(UiDesign.action(this, getString(R.string.lab_ui_apply_rating)) {
             lastState.metrics?.let(::showMetrics)
         })
+        emptyTranscript = UiDesign.caption(this, getString(R.string.ux11_lab_empty)).apply {
+            tag = "lab-empty-transcript"
+            textSize = 14f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, UiDesign.dp(this@ConversationSkillLabActivity, 22),
+                0, UiDesign.dp(this@ConversationSkillLabActivity, 22))
+        }
+        transcriptCard.addView(emptyTranscript)
         timeline = LinearLayout(this).apply {
             tag = "lab-turn-timeline"
             orientation = LinearLayout.VERTICAL
-            minimumHeight = UiDesign.dp(this@ConversationSkillLabActivity, 140)
         }
         transcriptCard.addView(timeline)
         transcriptArea.addView(transcriptCard, UiDesign.spaceAfter(this, 12))
@@ -225,6 +233,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
                 pending.storyIndex, pending.storyTitle, pending.turnIndex,
                 pending.utterance, next.completed.size)
         }
+        emptyTranscript.visibility = if (next.phase == SkillLabPhase.READY) View.VISIBLE
+            else View.GONE
+        progress.visibility = if (next.phase == SkillLabPhase.READY) View.GONE
+            else View.VISIBLE
         progress.max = next.totalTurns
         progress.progress = next.completed.size
         progress.contentDescription = getString(R.string.lab_ui_progress,

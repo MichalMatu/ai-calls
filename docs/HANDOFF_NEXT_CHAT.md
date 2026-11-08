@@ -1,3 +1,11 @@
+# UX-11 — ostatni sprint wizualny, następnie testy funkcjonalne (2026-11-08)
+
+**Bieżący zakres:** uproszczony nagłówek Lab, neutralny pusty stan, kompaktowy Sejf z przyciskiem custom u góry, fizyczny test floating przy **syntetycznym** feedzie. [Checkpoint UX-11](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md). Zmiany wyłącznie UI i testowe, bez mutacji rzeczywistego sejfu lub Call. Do dokładnych Mac/S22 receipt: **QA_PENDING**, potem UX zostaje zamrożony, następny sprint ma sprawdzać funkcjonalne działanie. Uruchomienie prawdziwego Call wymaga osobnego ważnego zakresu autoryzacji; do tego czasu wyłącznie offline / read-only / symulacje.
+
+**UX-10 finalne receipts** `aicalls-ux10-floating-vault-lab-mac-20261108-v5` i `aicalls-ux10-s22-guarded-visuals-20261108-v3`: Mac 353/353 PASS, S22 4+5+17=26 native PASS, APK `-r`, 17 nowych screenshotów archiwizowanych prywatnie; brak real-call. Nie powtarzać zakończonych UX-10 testów poza regresją wymagającą zmienionego UI.
+
+---
+
 # UX-10 — floating chat, Sejf, Laboratorium Skills (2026-11-08)
 
 Źródło zakresu: właściciel potwierdził pływającą ikonę wyłącznie, gdy rozmowa aktywna i dostępny tekst; zaakceptował kompletny Sejf i czystsze Lab. Kod źródłowy i checkpoint: [UX-10](checkpoints/2026-11-08-ux10-floating-vault-lab.md). **Status QA_PENDING, dopóki nie zostanie odczytany exact Mac Local Agent receipt i ewentualny bezpieczny test S22 IDLE.** Nie wykonywać prawdziwej rozmowy ani modyfikować prawdziwych wartości sejfu przy automatycznym QA. Własne pola szyfrowane i lokalne, niepodłączone do FactDisclosurePolicy (zgody osobno). Nie cofać 6 zakładek i frozen media.

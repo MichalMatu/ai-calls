@@ -1,3 +1,9 @@
+## UX-11 — końcowy polish i przejście do funkcjonalnego odbioru (2026-11-08)
+
+Zakres [checkpoint UX-11](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md): prosty Lab, gęsty Sejf, fizyczna syntetyczna próba rozwinięcia floating chat. Po Mac/S22 GREEN zamrozić UX; priorytet: pomiary niezależnego STT, modelu, Skills, TTS, integracji, START/STOP, rejestracji i przejęcia rozmowy. Połączenie telefoniczne i ujawnienia danych tylko w autoryzowanym zakresie. Nie mylić syntetycznej linii czatu z realnym TX.
+
+---
+
 ## General repository audit — bieżąca poprawka i pozostałe bramki (2026-11-07)
 
 **Kod `bbb2ceb9`:** poprawiony no-op przy whitespace w nazwie/celu własnego scenariusza; test regresyjny RED potwierdzony na Macu, Linux Sandbox focused 5/5 GREEN, pełny Mac host gate **QA_PENDING do receipt**. Wcześniejszy UX-06 `25a41a0`: 341 Python / host PASS, S22 10/10 syntetycznych UI PASS (nie dowodzi nowego kodu ani real-call). Zaktualizowano przestarzałe README, indeks i prompt. [Checkpoint](checkpoints/2026-11-07-general-repository-audit-sprint.md) · [aktualny HANDOFF](HANDOFF_NEXT_CHAT.md).

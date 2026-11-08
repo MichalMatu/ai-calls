@@ -1,3 +1,15 @@
+## UX-11 F-147 — Floating Chat: aktywny stan nie miał testu wizualnego (2026-11-08)
+
+**Ścieżka:** `LiveConversationOverlay`, `ConversationChatFeed`, `AndroidUx11FloatingSyntheticTest`. **Warunek:** dotąd screenshoty potwierdzały tylko ikonę ukrytą podczas IDLE, a nie dynamiczne pokazanie i rozwinięcie przy rozmowie. **Wpływ:** niepewność czy panel 84% ekranu / badge / zamknięcie zadziałają. **Przyczyna:** brak bezpiecznego syntetycznego feedu w AndroidTest. **Naprawa:** test w pamięci procesu bez Telecom/mikrofonu: brak linii → brak przycisku, linia → ikona, klik → duży panel, nowa odpowiedź → aktualizacja, zamknięcie / finish → ukrycie; screenshot wyłącznie prywatny. **Test:** `AndroidUx11FloatingSyntheticTest`, Mac source/Android compile i S22 IDLE. **Status:** FIXED_IN_SOURCE / QA_PENDING; rzeczywisty CALL pozostaje NOT_RUN.
+
+## UX-11 F-146 — Sejf: nadmierna wysokość kart i trudny dostęp do własnego pola (2026-11-08)
+
+**Ścieżka:** `IdentityVaultManagerActivity.render`. **Warunek:** edytor siedmiu standardowych pól prezentował jeden wysoki, wieloprzyciskowy blok na pole; dodawanie własnego było na dole. **Wpływ:** niska czytelność i ukryta podstawowa funkcja. **Przyczyna:** karty formularzowe zamiast zwartego przeglądu metadanych. **Naprawa:** 62dp wiersze z nazwą/status i dostępnymi ikonami edycji/usunięcia, 48dp targety, nazwy dostępności; przycisk własnego wpisu nad sekcjami. Wartości nadal ukryte, bez zapisu/odczytu w automatycznym teście. **Test:** `AndroidUx10OverlayVaultLabTest` i `test_ux11_final_polish.py`, screenshot S22. **Status:** FIXED_IN_SOURCE / QA_PENDING.
+
+## UX-11 F-145 — Lab: opis historyczny i pusty obszar rozmowy (2026-11-08)
+
+**Ścieżka:** `ConversationSkillLabActivity`. **Warunek:** nagłówek „Scenariusze i odpowiedzi” mimo uproszczenia UX-10 oraz duża, pusta strefa 140dp bez instrukcji. **Wpływ:** myląca etykieta i nieużyteczne miejsce. **Przyczyna:** stary zasób oraz placeholder wysokości. **Naprawa:** „Przebieg rozmowy”, neutralna wiadomość przed START, postęp dopiero po starcie; nagłówek START/STOP stale widoczny, runner niezmieniony. **Test:** `AndroidUx10OverlayVaultLabTest` i `test_ux11_final_polish.py`. **Status:** FIXED_IN_SOURCE / QA_PENDING.
+
 ## UX-10 F-144 — Laboratorium Skills: rozwlekłe duplikaty i checkbox przewijania (2026-11-08)
 
 **Ścieżka:** `ConversationSkillLabActivity`. **Warunek:** duży opis wstępny, duża karta live status, checkbox „Automatycznie pokazuj ostatnią turę”, ponownie nagłówki „Scenariusze i odpowiedzi”, ocena przed przebiegiem. **Wpływ:** przebieg testu dopiero poniżej fałszywych priorytetów. **Przyczyna:** dublowane sekcje prezentacyjne. **Naprawa:** preset → tryb → Uruchom → duża karta rozmowy ze stanem/progresem, timeline od razu, wyniki/ocena pod spodem; przewijanie automatyczne tylko gdy użytkownik nie przegląda historii. Bez zmiany runnera/STOP. **Test:** `AndroidUx10OverlayVaultLabTest` + `test_ux10_source_contract.py`; Mac/S22 visual QA. **Status:** FIXED_IN_SOURCE / QA_PENDING.
