@@ -4,14 +4,19 @@ Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowan
 
 ## Aktualny stan — 2026-11-08
 
-**Baseline kodu:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (UX-11 CLOSED; kolejne commity porządkują wyłącznie dokumentację; przy wznowieniu sprawdzić świeży HEAD).
+**Aktualny kod sprzed zbiorczego checkpointu:** `main@af571f06a7a34b05a14a8e0b54b8642f40a89e57`. Od stanu UX-11 dodano rzeczywisty Lab i nowy kanał USB; przy wznowieniu należy odczytać świeży HEAD.
 
 - **UX-12 (tail):** historia szczegółów z kontekstem, nowe prywatne i deterministyczne zbieranie screenshotów; targeted QA 14/14 PASS; pełny host gate 365/365 PASS, archiwalne zdjęcia S22 17/17 walidacji PASS; świeże screenshoty kodu UX12 nadal NOT_RUN. [Checkpoint](docs/checkpoints/2026-11-08-ux12-final-source-closeout.md).
 - **UX:** sześć zakładek Start / Historia / Agent AI / Laboratorium / Modele / Ustawienia; UX-11 zakończony i zamrożony poza błędami funkcjonalnymi P0/P1. Czat icon-only tylko podczas aktywnego feedu; Sejf standardowy + własne pola, czytelny Lab.
-- **Mac:** ostatni pełny gate na kodzie `949a854`: **356/356 testów Python, Gradle/JVM/AndroidTest/APK/friction PASS**. Zmiana test-only `3029034`: AndroidTest compile PASS.
+- **Mac:** najnowszy `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **DONE/0**, 370/370 Python, Gradle/JVM, lint, APK/AndroidTest build, audyt audio PASS. Starsze testy UX zachowane w ich checkpointach.
 - **S22:** **28/28 UI** + **2/2 syntetyczny aktywny chat PASS**, **18 prywatnych screenshotów**; instalacja bez kasowania danych i potwierdzone IDLE przed/po.
 - **Funkcje offline:** prawdziwy lokalny model zakończył **2 tury i STOP (PASS)**; polski TTS → PCM → Parakeet STT **PASS** na testowym tekście.
-- **Nieudowodnione:** rzeczywisty Call/RX/TX, wynik zewnętrzny zadania, pełne audio/manual takeover, kompletna ścieżka CRUD i ujawniania danych sejfu. F-080, F-122, F-123, F-124 pozostają OPEN.
+- **Bramki otwarte:** nowy odbiornik USB na S22, dodatnie interwencje Call nowym kanałem, pełne audio/manual takeover, rezultat zewnętrzny, pełna ocena semantyczna i F-148/F-150. Historyczne dowody audio/Call nie są odbiorem nowego kanału.
+
+## Gemma i prywatny kanał USB — 2026-11-08
+
+- **Gemma E2B 4096:** trzy realne sesje po 13 tur, **39/39 technicznie PASS** na S22; heurystyki 11/13, 13/13, 11/13; human semantic UNASSESSED. 2048 dwukrotnie zatrzymało się w turze 10, 8192 na S22 NOT_RUN.
+- **Kanał USB/ADB:** prywatne START/SEND/STOP, RAM/status, konfiguracja audio i incoming, kontrolowane przejęcie/wznowienie/STOP własnego Call. Kod i Mac QA PASS, nowa APK S22 NOT_RUN. [Kompletny checkpoint](docs/checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
 
 ## Co dalej
 
