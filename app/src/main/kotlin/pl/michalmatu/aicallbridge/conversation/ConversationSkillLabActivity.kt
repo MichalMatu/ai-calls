@@ -1,6 +1,9 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.app.AlertDialog
+import android.content.Intent
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -38,6 +41,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var naturalness: Spinner
     private lateinit var manualInput: EditText
     private lateinit var sendButton: Button
+    private lateinit var sessionFactory: AndroidSkillLabSessionFactory
+    private lateinit var modelLabel: TextView
     private lateinit var casePicker: Spinner
     private var caseEntries: List<LabCase> = emptyList()
 
@@ -71,6 +76,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(UiDesign.caption(this, getString(R.string.lab_ui_preset)),
             UiDesign.spaceAfter(this, 6))
         content.addView(picker, UiDesign.spaceAfter(this, 12))
+        modelLabel = UiDesign.caption(this, "").apply { tag = "lab-model-selected" }
+        content.addView(modelLabel, UiDesign.spaceAfter(this, 6))
+        content.addView(UiDesign.action(this, getString(R.string.lab_model_settings)) {
+            startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
+        }, UiDesign.spaceAfter(this, 10))
         content.addView(UiDesign.caption(this, getString(R.string.lab_case_select)),
             UiDesign.spaceAfter(this, 6))
         casePicker = Spinner(this).apply { tag = "lab-case-picker" }
@@ -91,7 +101,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
 
         runButton = UiDesign.action(this, getString(R.string.lab_manual_new_session), UiActionTone.PRIMARY) {
             val selected = presets.getOrNull(picker.selectedItemPosition) ?: return@action
-            runner.startManual(selected.id)
+            val test = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)?.selected()
+            sessionFactory.selectedCase = test
+            if (runner.startManual(selected.id) && test != null)
+                manualInput.setText(test.opening)
         }.apply { tag = "lab-start" }
         content.addView(runButton, UiDesign.spaceAfter(this, 8))
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
@@ -225,7 +238,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 0, 1f))
         })
-        runner = SkillLabRunner(AndroidSkillLabSessionFactory(applicationContext),
+        sessionFactory = AndroidSkillLabSessionFactory(applicationContext)
+        runner = SkillLabRunner(sessionFactory,
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
         renderState(runner.state)
         modePicker.isEnabled = false
@@ -235,6 +249,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     override fun onResume() {
         super.onResume()
         if (::casePicker.isInitialized) refreshCases()
+        if (::modelLabel.isInitialized) {
+            val profile = runCatching { AudioEngineProfileStore(this).load() }.getOrNull()
+            modelLabel.text = getString(R.string.lab_model_selected,
+                profile?.dialogue?.name ?: getString(R.string.lab_model_unavailable))
+        }
     }
 
     private fun caseStore() = AndroidConversationPreparationStore(this)
