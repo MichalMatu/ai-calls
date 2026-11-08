@@ -13,6 +13,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.Ignore
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
@@ -25,6 +26,7 @@ import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness
  * Private screenshot artifacts stay in app-specific storage.
  */
 @RunWith(AndroidJUnit4::class)
+@Ignore("Rejected hard-coded Lab corpus removed; replace with owner-editable conversation acceptance")
 class AndroidSkillLabRealOfflineTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val app get() = instrumentation.targetContext

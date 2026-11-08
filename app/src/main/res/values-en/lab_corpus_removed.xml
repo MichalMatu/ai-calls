@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_ui_cases_removed">No active conversation tests. The previous fixed scripts have been removed. Next: editable, interactive dialogue tests.</string>
+</resources>

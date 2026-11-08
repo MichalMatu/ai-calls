@@ -9,6 +9,24 @@ import org.junit.Test
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 class SkillLabRunnerTest {
+    // In-memory mechanism fixtures, not user-facing conversation scenarios.
+    private val testCorpus = listOf(
+        SkillLabStory("Unit fixture A", listOf(
+            SkillLabTurn("synthetic input A1", false),
+            SkillLabTurn("synthetic input A2", true),
+        )),
+        SkillLabStory("Unit fixture B", listOf(SkillLabTurn("synthetic input B1", false))),
+    )
+
+    private fun testRunner(
+        sessions: SkillLabModelSessionFactory,
+        dispatchToUi: (() -> Unit) -> Unit,
+        onState: (SkillLabUiState) -> Unit,
+        timeoutMillis: Long = TimeUnit.SECONDS.toMillis(120),
+    ): SkillLabRunner = SkillLabRunner(
+        sessions, dispatchToUi, onState, timeoutMillis = timeoutMillis, corpus = testCorpus,
+    )
+
     private class Backend(private val immediate: Boolean = false) : TextCallAgentBackend {
         @Volatile var listener: TextCallAgentBackend.Listener? = null
         val generated = CountDownLatch(1)
@@ -35,10 +53,21 @@ class SkillLabRunnerTest {
         assertTrue("condition_not_reached", check())
     }
 
+    @Test fun noCorpusRejectsRunsWithoutFalseZeroTurnSuccess() {
+        val runner = SkillLabRunner(factory { Backend(immediate = true) }, { it() }, {})
+        assertFalse(runner.state.canStart)
+        assertEquals(0, runner.state.totalTurns)
+        assertFalse(runner.start("natural", quick = true))
+        assertFalse(runner.start("natural", quick = false))
+        assertEquals(SkillLabPhase.READY, runner.state.phase)
+        assertNull(runner.state.metrics)
+        runner.close()
+    }
+
     @Test fun quickRunPreservesBothTurnsAndDistinguishesEndDecisionsFromQuality() {
         val models = Collections.synchronizedList(mutableListOf<Backend>())
         val states = Collections.synchronizedList(mutableListOf<SkillLabUiState>())
-        val runner = SkillLabRunner(factory { Backend(immediate = true).also(models::add) },
+        val runner = testRunner(factory { Backend(immediate = true).also(models::add) },
             { it() }, states::add)
         assertTrue(runner.start("synthetic", quick = true))
         eventually { runner.state.phase == SkillLabPhase.COMPLETED && runner.state.canStart }
@@ -56,12 +85,12 @@ class SkillLabRunnerTest {
 
     @Test fun fullCorpusOpensOneBackendPerStoryAndCompletesAllTurns() {
         val models = Collections.synchronizedList(mutableListOf<Backend>())
-        val runner = SkillLabRunner(factory { Backend(immediate = true).also(models::add) },
+        val runner = testRunner(factory { Backend(immediate = true).also(models::add) },
             { it() }, {})
         assertTrue(runner.start("synthetic", quick = false))
         eventually { runner.state.phase == SkillLabPhase.COMPLETED && runner.state.canStart }
-        assertEquals(SkillLabCorpus.stories.sumOf { it.turns.size }, runner.state.completed.size)
-        assertEquals(SkillLabCorpus.stories.size, models.size)
+        assertEquals(testCorpus.sumOf { it.turns.size }, runner.state.completed.size)
+        assertEquals(testCorpus.size, models.size)
         assertTrue(models.all { it.closed.get() == 1 })
         runner.close()
     }
@@ -69,7 +98,7 @@ class SkillLabRunnerTest {
     @Test fun stopImmediatelyWinsOverPendingAndLateModelCallback() {
         val model = Backend()
         val states = Collections.synchronizedList(mutableListOf<SkillLabUiState>())
-        val runner = SkillLabRunner(factory { model }, { it() }, states::add)
+        val runner = testRunner(factory { model }, { it() }, states::add)
         assertTrue(runner.start("synthetic", true))
         assertTrue(model.generated.await(2, TimeUnit.SECONDS))
         assertTrue(runner.stop())
@@ -95,7 +124,7 @@ class SkillLabRunnerTest {
             }
             SkillLabModelSession { model }
         }
-        val runner = SkillLabRunner(sessions, { it() }, {})
+        val runner = testRunner(sessions, { it() }, {})
         assertTrue(runner.start("synthetic", true))
         assertTrue(entered.await(2, TimeUnit.SECONDS))
         assertTrue(runner.stop())
@@ -108,7 +137,7 @@ class SkillLabRunnerTest {
 
     @Test fun timeoutCancelsBackendAndLateResponseCannotChangeFailure() {
         val model = Backend()
-        val runner = SkillLabRunner(factory { model }, { it() }, {}, timeoutMillis = 45)
+        val runner = testRunner(factory { model }, { it() }, {}, timeoutMillis = 45)
         assertTrue(runner.start("synthetic", true))
         assertTrue(model.generated.await(2, TimeUnit.SECONDS))
         eventually { runner.state.phase == SkillLabPhase.FAILED && runner.state.canStart }
@@ -122,7 +151,7 @@ class SkillLabRunnerTest {
     }
 
     @Test fun firstCallbackWinsAndDuplicatedErrorNeverReplacesSuccess() {
-        val runner = SkillLabRunner(factory { Backend(immediate = true) }, { it() }, {})
+        val runner = testRunner(factory { Backend(immediate = true) }, { it() }, {})
         assertTrue(runner.start("synthetic", true))
         eventually { runner.state.phase == SkillLabPhase.COMPLETED && runner.state.canStart }
         assertEquals(2, runner.state.completed.size)
@@ -136,7 +165,7 @@ class SkillLabRunnerTest {
         val first = Backend()
         val next = Backend(immediate = true)
         val models = AtomicInteger()
-        val runner = SkillLabRunner(factory {
+        val runner = testRunner(factory {
             if (models.incrementAndGet() == 1) first else next
         }, { ui.add(it) }, delivered::add)
         assertTrue(runner.start("synthetic", true))
@@ -157,7 +186,7 @@ class SkillLabRunnerTest {
     @Test fun closeSuppressesAllQueuedUiCallbacksAndFutureStarts() {
         val queued = mutableListOf<() -> Unit>()
         val delivered = mutableListOf<SkillLabUiState>()
-        val runner = SkillLabRunner(factory { Backend(immediate = true) },
+        val runner = testRunner(factory { Backend(immediate = true) },
             { queued.add(it) }, delivered::add)
         assertTrue(runner.start("synthetic", true))
         eventually { runner.state.canStart }
@@ -170,7 +199,7 @@ class SkillLabRunnerTest {
 
     @Test fun simultaneousStartIsRejectedWhileExistingModelIsPending() {
         val model = Backend()
-        val runner = SkillLabRunner(factory { model }, { it() }, {})
+        val runner = testRunner(factory { model }, { it() }, {})
         assertTrue(runner.start("one", true))
         assertTrue(model.generated.await(2, TimeUnit.SECONDS))
         assertFalse(runner.start("two", true))

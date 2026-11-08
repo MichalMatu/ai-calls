@@ -8,29 +8,9 @@ internal data class SkillLabTurn(
     val expectQuestion: Boolean? = null,
 )
 internal data class SkillLabStory(val title: String, val turns: List<SkillLabTurn>)
+/** No shipped dialogue scripts. Editable and adaptive test cases are the next Lab milestone. */
 internal object SkillLabCorpus {
-    val stories: List<SkillLabStory> = listOf(
-        SkillLabStory("Cytat, korekta, podsumowanie, koniec", listOf(
-            SkillLabTurn("Chcę zostawić wiadomość, że rower jest gotowy do odbioru.", false, false),
-            SkillLabTurn("W wiadomości padło słowo do widzenia, ale mam poprawkę.", false),
-            SkillLabTurn("Zamiast wtorku proszę zapisać czwartek po szesnastej.", false),
-            SkillLabTurn("Proszę teraz podsumować poprawioną wiadomość.", false, false),
-            SkillLabTurn("Tak, wszystko się zgadza. Dziękuję za pomoc, do widzenia.", true, false),
-        )),
-        SkillLabStory("Dodatkowa sprawa po podziękowaniu", listOf(
-            SkillLabTurn("Zapisz proszę, że przesyłka jest do odebrania.", false),
-            SkillLabTurn("Dziękuję, ale zanim skończymy, mam jeszcze drugą sprawę.", false),
-            SkillLabTurn("Zapisz również prośbę o kontakt w piątek.", false),
-            SkillLabTurn("To już wszystkie sprawy. Dziękuję i żegnam.", true, false),
-        )),
-        SkillLabStory("Wyraźna prośba o rozłączenie", listOf(
-            SkillLabTurn("Nie zostawiam wiadomości. Proszę zakończyć teraz połączenie.", true, false),
-        )),
-        SkillLabStory("Niejasność i dopiero potem koniec", listOf(
-            SkillLabTurn("Chcę przekazać ważną wiadomość, tylko jeszcze nie wiem, o której godzinie.", false, true),
-            SkillLabTurn("O godzinie 17. Dziękuję, to wszystko, do widzenia.", true, false),
-        )),
-    )
+    val stories: List<SkillLabStory> = emptyList()
 }
 internal data class SkillLabObservation(
     val story: String,

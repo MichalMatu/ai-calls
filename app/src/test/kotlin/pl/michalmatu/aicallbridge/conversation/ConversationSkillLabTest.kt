@@ -4,13 +4,9 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ConversationSkillLabTest {
-    @Test fun sameCorpusCoversCorrectionsAdditionalBusinessAndFinality() {
-        val all = SkillLabCorpus.stories.flatMap { it.turns }
-        assertTrue(SkillLabCorpus.stories.size >= 3)
-        assertTrue(all.count { it.shouldEnd } >= 3)
-        assertTrue(all.count { !it.shouldEnd } >= 5)
-        assertTrue(all.any { "poprawk" in it.utterance })
-        assertTrue(all.any { "drugą sprawę" in it.utterance })
+    @Test fun rejectedLegacyStoriesAreAbsentFromActiveLab() {
+        assertTrue("Rejected hard-coded dialogue scripts must not be shipped",
+            SkillLabCorpus.stories.isEmpty())
     }
 
     @Test fun noQuestionMarkRequestStillRequiresHumanReview() {

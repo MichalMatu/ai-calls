@@ -54,6 +54,7 @@ internal class SkillLabRunner(
     private val dispatchToUi: (() -> Unit) -> Unit,
     private val onState: (SkillLabUiState) -> Unit,
     private val timeoutMillis: Long = TimeUnit.SECONDS.toMillis(120),
+    private val corpus: List<SkillLabStory> = SkillLabCorpus.stories,
 ) : AutoCloseable {
     init { require(timeoutMillis > 0) }
 
@@ -69,12 +70,19 @@ internal class SkillLabRunner(
     private var current: Job? = null
     private var closed = false
 
-    @Volatile var state = SkillLabUiState()
+    @Volatile var state = SkillLabUiState(
+        totalTurns = 0,
+        canStart = corpus.isNotEmpty() && corpus.all { it.turns.isNotEmpty() },
+    )
         private set
 
     fun start(presetId: String, quick: Boolean): Boolean {
+        val selected = if (quick) corpus.take(1) else corpus
+        val total = if (quick) selected.firstOrNull()?.turns?.take(2)?.size ?: 0
+            else selected.sumOf { it.turns.size }
+        // Never claim a completed 0/0 test, and never initialize the model with no cases.
+        if (total == 0 || selected.any { it.turns.isEmpty() }) return false
         val job = Job()
-        val total = if (quick) 2 else SkillLabCorpus.stories.sumOf { it.turns.size }
         val snapshot: SkillLabUiState
         val token: Long
         val version: Long
@@ -158,7 +166,7 @@ internal class SkillLabRunner(
         val completed = mutableListOf<SkillLabCompletedTurn>()
         try {
             val session = sessions.open(presetId)
-            val stories = if (quick) SkillLabCorpus.stories.take(1) else SkillLabCorpus.stories
+            val stories = if (quick) corpus.take(1) else corpus
             for ((storyIndex, story) in stories.withIndex()) {
                 if (!active(job)) break
                 val backend = session.createStoryBackend()

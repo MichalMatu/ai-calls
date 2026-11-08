@@ -100,7 +100,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         transcriptCard.addView(UiDesign.heading(this, getString(R.string.ux11_lab_timeline_title)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
-        status = UiDesign.caption(this, getString(R.string.lab_ui_ready)).apply {
+        status = UiDesign.caption(this, if (SkillLabCorpus.stories.isEmpty())
+            getString(R.string.lab_ui_cases_removed) else getString(R.string.lab_ui_ready)).apply {
             tag = "lab-status"
             textSize = 14f
             setTextColor(UiDesign.ink)
@@ -153,7 +154,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         ratingGroup.addView(UiDesign.action(this, getString(R.string.lab_ui_apply_rating)) {
             lastState.metrics?.let(::showMetrics)
         })
-        emptyTranscript = UiDesign.caption(this, getString(R.string.ux11_lab_empty)).apply {
+        emptyTranscript = UiDesign.caption(this, if (SkillLabCorpus.stories.isEmpty())
+            getString(R.string.lab_ui_cases_removed) else getString(R.string.ux11_lab_empty)).apply {
             tag = "lab-empty-transcript"
             textSize = 14f
             gravity = android.view.Gravity.CENTER
@@ -195,6 +197,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         runner = SkillLabRunner(AndroidSkillLabSessionFactory(applicationContext),
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
         renderState(runner.state)
+        modePicker.isEnabled = SkillLabCorpus.stories.isNotEmpty()
     }
 
     private fun runLab(presetId: String, quick: Boolean) {
@@ -242,7 +245,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         progress.contentDescription = getString(R.string.lab_ui_progress,
             next.completed.size, next.totalTurns)
         runButton.isEnabled = next.canStart
-        runButton.visibility = if (next.canStart) View.VISIBLE else View.GONE
+        runButton.visibility = if (next.canStart ||
+            (next.phase == SkillLabPhase.READY && next.totalTurns == 0)) View.VISIBLE else View.GONE
         stopButton.visibility = if (!next.canStart && next.phase in
             setOf(SkillLabPhase.STARTING, SkillLabPhase.WAITING,
                 SkillLabPhase.TURN_COMPLETED)) View.VISIBLE else View.GONE
@@ -251,8 +255,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             else View.VISIBLE
         when (next.phase) {
             SkillLabPhase.READY -> {
-                status.text = getString(R.string.lab_ui_ready)
-                currentTurn.text = getString(R.string.lab_ui_empty)
+                status.text = if (next.totalTurns == 0)
+                    getString(R.string.lab_ui_cases_removed) else getString(R.string.lab_ui_ready)
+                currentTurn.text = if (next.totalTurns == 0)
+                    getString(R.string.lab_ui_cases_removed) else getString(R.string.lab_ui_empty)
             }
             SkillLabPhase.STARTING -> {
                 status.text = getString(R.string.lab_ui_starting)
