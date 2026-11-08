@@ -264,7 +264,7 @@
     <string name="camp_ui_no_campaign">Brak kampanii</string>
     <string name="camp_ui_revoked">Zadanie anulowane</string>
     <string name="camp_ui_no_accepted">Brak przyjętego zadania</string>
-    <string name="skills_ui_title">Skills i presety Gemmy</string>
+    <string name="skills_ui_title">Skills i presety AI</string>
     <string name="skills_ui_intro">Instrukcje można edytować bez ponownej kompilacji aplikacji. </string>
     <string name="skills_ui_intro2">Presety fabryczne są tylko do odczytu. Zmiany obowiązują od następnej rozmowy.</string>
     <string name="skills_ui_active">Aktywny preset: </string>

@@ -1,3 +1,23 @@
+## UX-09 F-137 — Skills: instrukcje nieaktywnych umiejętności (2026-11-08)
+
+**Ścieżka:** `ConversationSkillsActivity.show`. **Warunek i wpływ:** Nieaktywny Skill mimo wyłączenia pokazywał pełny prompt, sugerując aktywne zachowanie AI. **Przyczyna:** Instrukcje renderowano niezależnie od aktywnego presetu. **Naprawa:** Domyślne ukrycie nieaktywnej instrukcji; ręczny podgląd zachowany, także rewizje i edycja. **Test:** `AndroidUx09VisualSemanticsTest` + `test_ux09_source_contract.py`, Mac compile/host QA i syntetyczny S22. **Commit:** UX09 source. **Status:** FIXED_IN_SOURCE / QA_PENDING.
+
+## UX-09 F-138 — USB: powielony tytuł i ramki (2026-11-08)
+
+**Ścieżka:** `UsbDebugPanelActivity.onCreate`. **Warunek i wpływ:** Tytuł wewnętrzny powielał toolbar, accordion miał podwójne obramowanie. **Przyczyna:** Równoległa dekoracja chrome i widgetu. **Naprawa:** Jeden nagłówek, jedna ramka JSON, odstępy i insety zgodne ze stylem. **Test:** `AndroidUx09VisualSemanticsTest` + `test_ux09_source_contract.py`, Mac compile/host QA i syntetyczny S22. **Commit:** UX09 source. **Status:** FIXED_IN_SOURCE / QA_PENDING.
+
+## UX-09 F-139 — Kampanie: status jako długi blok (2026-11-08)
+
+**Ścieżka:** `CampaignToolActivity.updateLastExecutionStatus`. **Warunek i wpływ:** Czas, znaczenie i objaśnienie ostatniego zdarzenia zlewały się w jeden tekst. **Przyczyna:** Brak rozdziału widoku na status, datę i opis. **Naprawa:** Typowana etykieta wyniku, osobna data, opis pod rozwijanym szczegółem; surowe kody nadal dostępne. **Test:** `AndroidUx09VisualSemanticsTest` + `test_ux09_source_contract.py`, Mac compile/host QA i syntetyczny S22. **Commit:** UX09 source. **Status:** FIXED_IN_SOURCE / QA_PENDING.
+
+## UX-09 F-140 — Start: techniczne dane i dok bez rozmowy (2026-11-08)
+
+**Ścieżka:** `MainActivity.onCreate/liveStateRefresh`. **Warunek i wpływ:** Model wypierał status zadania, a pusty dock rozmowy zajmował stale obszar ekranu. **Przyczyna:** Layout diagnostyczny dominował w Start. **Naprawa:** Status zadania pierwszy, techniczne dane pod rozwinięciem, dock pokazany przy aktywnej/archiwalnej sesji lub ręcznie. **Test:** `AndroidUx09VisualSemanticsTest` + `test_ux09_source_contract.py`, Mac compile/host QA i syntetyczny S22. **Commit:** UX09 source. **Status:** FIXED_IN_SOURCE / QA_PENDING.
+
+## UX-09 F-141 — Agent AI: same liczniki zamiast nazw i zakresów (2026-11-08)
+
+**Ścieżka:** `AgentAiHubActivity.refreshReadOnly`. **Warunek i wpływ:** Nie było wiadomo, które Skills i kategorie danych są aktywne; status sejfu był ogólnikowy. **Przyczyna:** Zliczanie zamiast bezpiecznych nazw i rozróżnienia profili. **Naprawa:** Nazwy aktywnych Skills, pola outgoing/incoming, same identyfikatory obecnych pól sejfu, ostrzeżenie że to nie zgoda na ujawnienie. **Test:** `AndroidUx09VisualSemanticsTest` + `test_ux09_source_contract.py`, Mac compile/host QA i syntetyczny S22. **Commit:** UX09 source. **Status:** FIXED_IN_SOURCE / QA_PENDING.
+
 ## UX-08 F-136 — fałszywie czerwony odbiór screenshotów przy PASS testów UI (2026-11-08)
 
 **Ścieżka:** operatorowy skrypt Mac Local Agent w task `aicalls-ux08-s22-safe-ui-and-fresh-screens-20261108-v2` i odzyskiwanie zdjęć. **Warunek:** Android native runner zwrócił `OK (36 tests)`, lecz linie `UI_AUDIT=...` nie były dostępne w `adb am instrument -w`, więc parser wyliczył 0 screenshotów i błędnie nadał całemu taskowi FAILED (exit 33). Dodatkowe `adb shell stat` nie było obsługiwane w zaproponowanej komendzie (exit 47). **Wpływ:** wynik zbiorczy myli udane testy aplikacji z brakiem potwierdzenia archiwum; brak pełnego, świeżego 3-pozycyjnego zestawu. **Przyczyna:** zależność manifestu zdjęć od niegwarantowanego stdout i polecenia shell. **Naprawa operacyjna:** `adb pull` folderu, a następnie osobne archiwum z potwierdzonymi 16 świeżymi plikami `<screen>-0.jpg`; inne/stare ujęcia nie są do archiwum dołączone. **Dowód:** `aicalls-ux08-s22-top16-screenshot-archive-20261108-v1` DONE/0 (16/16, IDLE przed/po). **Dalsza poprawka:** trwały parser/zbieracz pełnych 1–3 ujęć bez stdout; można wykonać przy następnym audycie wizualnym. **Status:** OPEN (pełny parser); WORKAROUND_VERIFIED dla prywatnych 16 aktualnych zrzutów.

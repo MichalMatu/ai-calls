@@ -264,7 +264,7 @@
     <string name="camp_ui_no_campaign">No campaign</string>
     <string name="camp_ui_revoked">Task cancelled</string>
     <string name="camp_ui_no_accepted">No accepted task</string>
-    <string name="skills_ui_title">Gemma skills and presets</string>
+    <string name="skills_ui_title">AI skills and presets</string>
     <string name="skills_ui_intro">Instructions can be edited without rebuilding the app. </string>
     <string name="skills_ui_intro2">Factory presets are read-only. Changes apply to the next call.</string>
     <string name="skills_ui_active">Active preset: </string>

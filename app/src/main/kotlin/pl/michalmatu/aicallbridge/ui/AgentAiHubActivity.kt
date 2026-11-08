@@ -15,6 +15,8 @@ import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.conversation.ScenarioLibraryActivity
 import pl.michalmatu.aicallbridge.conversationcore.ScenarioCatalog
+import pl.michalmatu.aicallbridge.identity.AndroidIdentityVault
+import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsSettingsController
@@ -54,7 +56,8 @@ class AgentAiHubActivity : AppBaseActivity() {
             val summary = TextView(this).apply {
                 textSize = 15f
                 setTextColor(UiDesign.primary)
-                maxLines = 2
+                tag = "agent-summary:" + key
+                maxLines = 4
             }
             summaries[key] = summary
             labels.addView(summary)
@@ -72,6 +75,8 @@ class AgentAiHubActivity : AppBaseActivity() {
         destination("profiles", R.string.ux07_agent_preparation, ConversationPreparationActivity::class.java)
         destination("vault", R.string.ux07_agent_vault, PhoneEnrollmentActivity::class.java)
         destination("tools", R.string.ux07_agent_tools, ConversationToolsActivity::class.java)
+        body.addView(UiDesign.caption(this, getString(R.string.ux09_agent_scope_warning)),
+            UiDesign.spaceAfter(this, 12))
         AppNavigation.install(this, ScrollView(this).apply {
             isFillViewport = true
             addView(body)
@@ -82,12 +87,45 @@ class AgentAiHubActivity : AppBaseActivity() {
         super.onResume()
         if (summaries.isNotEmpty()) refreshReadOnly()
     }
+    private fun visibleSkillName(id: String, fallback: String): String = when (id) {
+        "ConversationStyle" -> getString(R.string.skills_ux05_name_style)
+        "MessageCapture" -> getString(R.string.skills_ux05_name_capture)
+        "Clarification" -> getString(R.string.skills_ux05_name_clarify)
+        "NaturalClosure" -> getString(R.string.skills_ux05_name_closure)
+        else -> fallback
+    }
+
+    private fun visibleFieldName(field: IdentityFieldId): String = getString(when (field) {
+        IdentityFieldId.PHONE -> R.string.prep_ui_phone
+        IdentityFieldId.FIRST_NAME -> R.string.prep_ui_first_name
+        IdentityFieldId.LAST_NAME -> R.string.prep_ui_last_name
+        IdentityFieldId.EMAIL -> R.string.prep_ui_email
+        IdentityFieldId.ADDRESS -> R.string.prep_ui_address
+        IdentityFieldId.DATE_OF_BIRTH -> R.string.prep_ui_birth
+        IdentityFieldId.PESEL -> R.string.ux09_agent_pesel
+    })
+
+    private fun namedScope(fields: Set<IdentityFieldId>): String =
+        if (fields.isEmpty()) getString(R.string.ux09_agent_none)
+        else fields.sortedBy { it.ordinal }.joinToString(" · ", transform = ::visibleFieldName)
+
     private fun refreshReadOnly() {
         val records = runCatching { AndroidConversationPreparationStore(this) }.getOrNull()
         summaries["skills"]?.text = records?.let { store ->
             runCatching {
                 val library = store.loadSkillLibrary()
-                getString(R.string.ux07_agent_active_preset, library.active.name, library.active.versions.size)
+                val preset = library.active
+                val title = when (preset.id) {
+                    "natural" -> getString(R.string.skills_ux05_default_natural)
+                    "formal" -> getString(R.string.skills_ux05_default_formal)
+                    "message" -> getString(R.string.skills_ux05_default_message)
+                    else -> preset.name
+                }
+                val activeNames = library.skills.filter { it.id in preset.versions.keys }
+                    .sortedBy { it.section.ordinal }
+                    .map { visibleSkillName(it.id, it.name) }
+                getString(R.string.ux09_agent_named_skills, title, activeNames.size,
+                    activeNames.joinToString(" · "))
             }.getOrNull()
         } ?: getString(R.string.ux07_agent_load_error)
         summaries["scenarios"]?.text = records?.let { store ->
@@ -96,11 +134,19 @@ class AgentAiHubActivity : AppBaseActivity() {
         } ?: getString(R.string.ux07_agent_load_error)
         summaries["profiles"]?.text = records?.let { store ->
             runCatching {
-                val profile = store.load(ConversationPreparation.OUTGOING_ID)
-                getString(R.string.ux07_agent_profile_count, profile.dataFields.size, profile.skills.size)
+                val outgoing = store.load(ConversationPreparation.OUTGOING_ID)
+                val incoming = store.load(ConversationPreparation.INCOMING_ID)
+                getString(R.string.ux09_agent_named_profiles,
+                    namedScope(outgoing.dataFields),
+                    namedScope(incoming.dataFields))
             }.getOrNull()
         } ?: getString(R.string.ux07_agent_load_error)
-        summaries["vault"]?.text = getString(R.string.ux07_agent_vault_status)
+        summaries["vault"]?.text = runCatching {
+            val fieldIds = AndroidIdentityVault.create(this).availableFields().getOrThrow()
+            if (fieldIds.isEmpty()) getString(R.string.ux09_agent_vault_empty)
+            else getString(R.string.ux09_agent_vault_fields,
+                fieldIds.size, namedScope(fieldIds))
+        }.getOrElse { getString(R.string.ux07_agent_load_error) }
         summaries["tools"]?.text = runCatching {
             getString(R.string.ux07_agent_tools_count,
                 ConversationToolsSettingsController(this).enabled().size)

@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge
 
 import pl.michalmatu.aicallbridge.conversation.ConversationChatPanel
+import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
+import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.AppNavigation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.AppBaseActivity
@@ -43,12 +45,19 @@ class MainActivity : AppBaseActivity() {
     private lateinit var taskStatusView: TextView
     private lateinit var homeLiveStatusView: TextView
     private lateinit var homeActionFeedback: TextView
+    private lateinit var homeChat: ConversationChatPanel
+    private var userOpenedIdleChat = false
     private val liveStateHandler = Handler(Looper.getMainLooper())
     private val liveStateRefresh = object : Runnable {
         override fun run() {
             if (::homeLiveStatusView.isInitialized) {
                 homeLiveStatusView.text = getString(
                     CampaignLiveUiLabels.title(AppOwnedCampaignService.liveUiPhase()))
+            }
+            if (::homeChat.isInitialized) {
+                val chat = ConversationChatFeed.snapshot()
+                homeChat.visibility = if (chat.active || chat.lines.isNotEmpty() || userOpenedIdleChat)
+                    android.view.View.VISIBLE else android.view.View.GONE
             }
             liveStateHandler.postDelayed(this, 1_000L)
         }
@@ -161,6 +170,16 @@ class MainActivity : AppBaseActivity() {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
         ).apply { topMargin = dp(8) }
 
+        val technicalDetails = UiAccordionSection(this, "home-technical",
+            getString(R.string.ux09_home_technical_title)).apply {
+            addControl(statusView)
+            addControl(UiDesign.caption(this@MainActivity, getString(R.string.home_ui_task_hint)))
+            addControl(UiDesign.action(this@MainActivity,
+                getString(R.string.ux09_home_open_chat)) {
+                userOpenedIdleChat = true
+                if (::homeChat.isInitialized) homeChat.visibility = android.view.View.VISIBLE
+            })
+        }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(14), dp(18), dp(28))
@@ -176,10 +195,6 @@ class MainActivity : AppBaseActivity() {
                 setTextColor(Color.rgb(86, 100, 117))
                 setPadding(0, 0, 0, dp(12))
             })
-            addView(statusView, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { bottomMargin = dp(14) })
             addView(taskStatusView, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -214,6 +229,10 @@ class MainActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(8) })
             addView(oneTapButton)
+            addView(technicalDetails, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(16) })
         }
 
         // Pinned chat dock: visible without scrolling the settings above it.
@@ -242,7 +261,11 @@ class MainActivity : AppBaseActivity() {
             }, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             ))
-            addView(ConversationChatPanel(this@MainActivity, initiallyExpanded = false))
+            homeChat = ConversationChatPanel(this@MainActivity, initiallyExpanded = false).apply {
+                tag = "home-live-chat-panel"
+                visibility = android.view.View.GONE
+            }
+            addView(homeChat)
             addView(AppNavigation.bar(this@MainActivity, AppTab.HOME))
         }
         window.statusBarColor = Color.rgb(247, 249, 253)
@@ -305,8 +328,7 @@ class MainActivity : AppBaseActivity() {
             ) -> getString(R.string.home_ux06_sim_mismatch)
             else -> getString(R.string.home_ui_task_authorized)
         }
-        return getString(R.string.home_ui_task_heading) + "\n" + state + "\n" +
-            getString(R.string.home_ui_task_hint)
+        return getString(R.string.home_ui_task_heading) + "\n" + state
     }
 
     private fun runtimeSelectionSummary(): String = buildString {

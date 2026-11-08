@@ -40,6 +40,8 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var liveStatusView: TextView
     private lateinit var diagnosticStatus: TextView
     private lateinit var lastExecutionStatus: TextView
+    private lateinit var lastExecutionWhen: TextView
+    private lateinit var lastExecutionExplanation: TextView
     private lateinit var actionFeedback: TextView
     private lateinit var dialerRoleStatus: TextView
     private lateinit var disableEvidenceButton: Button
@@ -98,14 +100,19 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         }
         lastExecutionStatus = UiDesign.caption(this, "").apply {
             tag = "campaign-execution-summary"
-            textSize = 14f
+            textSize = 17f
             setTextColor(UiDesign.ink)
+            setTypeface(null, android.graphics.Typeface.BOLD)
             setTextIsSelectable(true)
-            setPadding(UiDesign.dp(this@CampaignToolActivity, 12),
-                UiDesign.dp(this@CampaignToolActivity, 10),
-                UiDesign.dp(this@CampaignToolActivity, 12),
-                UiDesign.dp(this@CampaignToolActivity, 10))
-            background = UiDesign.surfaceDrawable(this@CampaignToolActivity)
+        }
+        lastExecutionWhen = UiDesign.caption(this, "").apply {
+            tag = "campaign-execution-timestamp"
+            textSize = 14f
+        }
+        lastExecutionExplanation = UiDesign.caption(this, "").apply {
+            tag = "campaign-execution-explanation"
+            textSize = 14f
+            setTextIsSelectable(true)
         }
         val dialoguePicker = Spinner(this).apply {
             tag = "campaign-dialogue-picker"
@@ -246,7 +253,19 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
             addView(statusView, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
             addView(liveStatusView, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
             addView(actionFeedback, UiDesign.spaceAfter(this@CampaignToolActivity, 10))
-            addView(lastExecutionStatus, UiDesign.spaceAfter(this@CampaignToolActivity, 14))
+            addView(UiDesign.card(this@CampaignToolActivity).apply {
+                tag = "campaign-last-result-card"
+                addView(UiDesign.heading(this@CampaignToolActivity,
+                    getString(R.string.camp_ui_runtime_heading)).apply { textSize = 17f },
+                    UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(lastExecutionStatus, UiDesign.spaceAfter(this@CampaignToolActivity, 6))
+                addView(lastExecutionWhen, UiDesign.spaceAfter(this@CampaignToolActivity, 8))
+                addView(UiAccordionSection(this@CampaignToolActivity, "campaign-result-explain",
+                    getString(R.string.ux09_campaign_why)).apply {
+                    background = null
+                    addControl(lastExecutionExplanation)
+                })
+            }, UiDesign.spaceAfter(this@CampaignToolActivity, 16))
             addView(UiDesign.card(this@CampaignToolActivity).apply {
                 tag = "campaign-primary-actions"
                 addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_ui_enable)).apply {
@@ -609,10 +628,16 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
                 resources.configuration.locales[0],
             ).format(java.util.Date(it))
         } ?: getString(R.string.camp_ux06_timestamp_unknown)
-        lastExecutionStatus.text = getString(R.string.camp_ui_runtime_heading) +
-            "\n" + getString(R.string.campaign_ui_last_history) +
-            "\n" + getString(R.string.camp_ux06_timestamp_label, whenRecorded) +
-            "\n" + screen.summary
+        lastExecutionStatus.text = getString(when (screen.meaning) {
+            CampaignExecutionMeaning.NO_RECORD -> R.string.ux09_execution_none
+            CampaignExecutionMeaning.REQUESTED -> R.string.ux09_execution_requested
+            CampaignExecutionMeaning.CANCELLED -> R.string.ux09_execution_cancelled
+            CampaignExecutionMeaning.CONFIRMED -> R.string.ux09_execution_cleanup_confirmed
+            CampaignExecutionMeaning.FAILED -> R.string.ux09_execution_not_confirmed
+            CampaignExecutionMeaning.UNVERIFIED -> R.string.ux09_execution_unverified
+        })
+        lastExecutionWhen.text = getString(R.string.camp_ux06_timestamp_label, whenRecorded)
+        lastExecutionExplanation.text = screen.summary
         // Raw codes remain available in the existing diagnostic accordion.
     }
 

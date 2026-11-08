@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux09_skill_inactive">Nieaktywny — ta instrukcja nie jest używana w bieżącym presecie.</string>
+    <string name="ux09_skill_show_inactive">Pokaż zapisaną instrukcję (nieaktywną)</string>
+    <string name="ux09_skill_hide_inactive">Ukryj nieaktywną instrukcję</string>
+    <string name="ux09_campaign_why">Co oznacza wynik?</string>
+    <string name="ux09_execution_none">Brak zapisu wykonania</string>
+    <string name="ux09_execution_requested">Wysłano polecenie zakończenia</string>
+    <string name="ux09_execution_cancelled">Upoważnienie anulowane</string>
+    <string name="ux09_execution_cleanup_confirmed">Zakończenie własnego połączenia potwierdzone</string>
+    <string name="ux09_execution_not_confirmed">Zakończenie połączenia niepotwierdzone</string>
+    <string name="ux09_execution_unverified">Wynik niezweryfikowany</string>
+    <string name="ux09_home_technical_title">Modele i szczegóły techniczne</string>
+    <string name="ux09_home_open_chat">Pokaż panel rozmowy</string>
+    <string name="ux09_agent_scope_warning">Widoczne pola i Skills są wyłącznie konfiguracją. Ich zapisanie nie upoważnia AI do ujawniania danych ani wykonywania połączeń.</string>
+    <string name="ux09_agent_named_skills">Aktywny: %1$s · %2$d Skills\n%3$s</string>
+    <string name="ux09_agent_named_profiles">Wychodzące: %1$s\nPrzychodzące: %2$s</string>
+    <string name="ux09_agent_none">Brak wskazanych pól</string>
+    <string name="ux09_agent_vault_empty">Sejf pusty — brak zapisanych pól</string>
+    <string name="ux09_agent_vault_fields">Zapisane pola (%1$d): %2$s</string>
+    <string name="ux09_agent_pesel">PESEL</string>
+</resources>

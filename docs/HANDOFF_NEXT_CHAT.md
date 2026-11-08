@@ -1,3 +1,9 @@
+# UX-09 — bieżący zakres (2026-11-08)
+
+Pięć wizualnych poprawek z screenshotów: Skills inactive, USB tytuł/ramki, Kampanie wynik, Start data-first/idle dock, Agent AI nazwy i zakresy (wyłącznie identyfikatory sejfu). Sześć zakładek i oryginalne dane pozostają bez zmian. [Checkpoint](checkpoints/2026-11-08-ux09-screenshot-cleanup.md). **Przed końcowym Mac i S22 receipt QA_PENDING; żadnych rzeczywistych CALL ani pobrań modeli w testach UX.**
+
+---
+
 # UX-08 — aktualny stan po krótkim sprincie (2026-11-08)
 
 Kod sprawdzony: `main@9c8229179f88e6421eab99efe58d0e5f42469d01` (następujący commit dokumentacyjny nie zmienia kodu). [Checkpoint i dokładne Mac/S22 receipts](checkpoints/2026-11-08-ux08-parakeet-recording-navigation.md).

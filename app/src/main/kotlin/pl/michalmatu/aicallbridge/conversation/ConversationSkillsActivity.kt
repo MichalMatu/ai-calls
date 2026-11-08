@@ -229,7 +229,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                     }
                     skillCard.addView(choice)
                 }
-                skillCard.addView(TextView(this).apply {
+                val instructions = TextView(this).apply {
                     val complete = skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions
                     text = complete
                     contentDescription = complete
@@ -239,8 +239,9 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                     setLineSpacing(UiDesign.dp(this@ConversationSkillsActivity, 3).toFloat(), 1f)
                     maxLines = 3
                     ellipsize = android.text.TextUtils.TruncateAt.END
-                    isClickable = true
-                    isFocusable = true
+                    visibility = if (on) View.VISIBLE else View.GONE
+                    isClickable = on
+                    isFocusable = on
                     setOnClickListener {
                         maxLines = if (maxLines == 3) Int.MAX_VALUE else 3
                     }
@@ -248,7 +249,30 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                         UiDesign.dp(this@ConversationSkillsActivity, 6),
                         UiDesign.dp(this@ConversationSkillsActivity, 8),
                         UiDesign.dp(this@ConversationSkillsActivity, 16))
-                })
+                }
+                if (!on) {
+                    skillCard.addView(UiDesign.caption(this,
+                        getString(R.string.ux09_skill_inactive)).apply {
+                        textSize = 14f
+                        tag = "skills-inactive-state:" + skill.id
+                    }, UiDesign.spaceAfter(this, 6))
+                    skillCard.addView(UiDesign.caption(this,
+                        getString(R.string.ux09_skill_show_inactive)).apply {
+                        tag = "skills-inactive-toggle:" + skill.id
+                        textSize = 14f
+                        setTextColor(UiDesign.primary)
+                        minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
+                        isClickable = true
+                        isFocusable = true
+                        setOnClickListener {
+                            val revealed = instructions.visibility != View.VISIBLE
+                            instructions.visibility = if (revealed) View.VISIBLE else View.GONE
+                            text = getString(if (revealed) R.string.ux09_skill_hide_inactive
+                                else R.string.ux09_skill_show_inactive)
+                        }
+                    })
+                }
+                skillCard.addView(instructions)
                 if (!library.active.isFactory) {
                     skillCard.addView(Button(this).apply {
                         UiDesign.styleAction(this, UiActionTone.SECONDARY)

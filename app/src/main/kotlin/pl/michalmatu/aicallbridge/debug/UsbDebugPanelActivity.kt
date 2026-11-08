@@ -25,7 +25,7 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         super.onCreate(savedInstanceState)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@UsbDebugPanelActivity, 32), UiDesign.dp(this@UsbDebugPanelActivity, 36), UiDesign.dp(this@UsbDebugPanelActivity, 32), UiDesign.dp(this@UsbDebugPanelActivity, 36))
+            setPadding(UiDesign.dp(this@UsbDebugPanelActivity, 20), UiDesign.dp(this@UsbDebugPanelActivity, 20), UiDesign.dp(this@UsbDebugPanelActivity, 20), UiDesign.dp(this@UsbDebugPanelActivity, 24))
         }
         fun label(value: String, size: Float = 15f) {
             content.addView(TextView(this).apply {
@@ -38,7 +38,6 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
             content.addView(UiDesign.button(this, value, action), UiDesign.spaceAfter(this, 12))
         }
 
-        label(getString(R.string.usb_ui_title), 22f)
         val overview = UiDesign.card(this).apply {
             tag = "usb-status-summary"
         }
@@ -85,13 +84,15 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         content.addView(UiAccordionSection(this, "usb-raw",
             getString(R.string.usb_ui_raw_details)).apply {
+            // A second framed container around the framed toggle caused doubled outlines.
+            background = null
             addControl(state)
             addControl(UiDesign.button(this@UsbDebugPanelActivity,
                 getString(R.string.usb_ui_copy_json)) {
                 getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
                     ClipData.newPlainText("AI Calls USB status", state.text))
             })
-        })
+        }, UiDesign.spaceAfter(this, 16))
         label(getString(R.string.usb_ui_cli_hint))
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
