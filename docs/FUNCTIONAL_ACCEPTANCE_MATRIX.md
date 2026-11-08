@@ -85,14 +85,17 @@
 | TOOL-02 | Dry-run wyboru narzędzia i bezpieczne zakończenie bez prawdziwego efektu | NOT_RUN |
 
 ## 4. Laboratorium Skills
+
+**Uwaga 2026-11-08:** właściciel odrzucił wszystkie 4 sztywne historie. Dawne PASS dotyczą wcześniejszego kodu i nie są dowodem bieżącego przebiegu Lab; przy 0 przypadków nowe testy nie startują. `LAB-DIALOG-01` — edytor i adaptacyjny rozmówca są zapisane w roadmapie.
+
 | ID | Funkcja / kryterium | Stan i dowód |
 |---|---|---|
-| LAB-01 | Wybranie presetu, zakres quick/full, reset, właściwa liczba tur i widok w trakcie | NOT_RUN pełną macierzą; UX-11 UI PASS |
+| LAB-01 | Wybranie presetu, zakres quick/full, reset, właściwa liczba tur i widok w trakcie | **BLOCKED / brak aktywnego zestawu** po usunięciu wszystkich 4 odrzuconych rozmów; UI blokuje START. Plan: edytor testów i tryb manualny/adaptacyjny. |
 | LAB-02 | Prawdziwy lokalny model: 2 kolejne tury, odpowiedź i kryteria końca bez Telecom | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1` |
 | LAB-03 | STOP w trakcie, stan STOPPED, brak dalszych tur, ponowny START | PASS_OFFCALL_FUNCTIONAL — ten sam receipt, tylko izolowane dwie tury i restart/STOP |
 | LAB-04 | Timeline podczas długiego biegu, ręczny scroll w górę, auto-follow na dole, widoczne błędy | NOT_RUN pełną macierzą |
 | LAB-05 | Metryki, zgodność celu, odpowiedzi błędne/puste, timeout, ocena naturalności | NOT_RUN |
-| LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | NOT_RUN |
+| LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | **BLOCKED / korpus odrzucony**; nowe porównania dopiero na edytowalnych testach. Historyczne wyniki 12/12 nie dowodzą naturalności rozmowy. |
 
 ## 5. Modele i silniki audio
 | ID | Funkcja / kryterium | Stan i dowód |

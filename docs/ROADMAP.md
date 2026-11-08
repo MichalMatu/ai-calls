@@ -4,6 +4,19 @@
 
 > Po UX-11 dodano ograniczony tail UX-12 (Historia + parser screenshotów). Targeted Python QA 14/14 i pełny Mac gate 365/365 PASS; dawny fizyczny zestaw JPEG 17/17 zweryfikowany nowym parserem; nowy wizualny S22 NOT_RUN z powodu zajętego foreground. Funkcjonalne statusy pozostają według macierzy.
 
+## Priorytet następnego sprintu — LAB-DIALOG-01: własne i adaptacyjne testy rozmowy
+
+**DO ZROBIENIA, niezaimplementowane (decyzja właściciela 2026-11-08).** Wszystkie 4 wcześniejsze sztywne historie zostały usunięte z aktywnego `SkillLabCorpus`, a nie zachowane jako zestaw regresyjny. Teraz `Lab` nie ma aktywnych scenariuszy i świadomie nie pozwala uruchomić pustego testu; nie wolno zaliczać 0/0 jako PASS.
+
+- **Edytor lokalny:** tworzenie/kopiowanie/edycja/usuwanie testów, definicja celu, stanu rozmówcy, wypowiedzi, oczekiwanych faktów i zachowań; wybór wersji testu oraz zapis/ponowne otwarcie.
+- **Tryb manualnego rozmówcy:** użytkownik wpisuje każdą następną wypowiedź, a model odpowiada w tej samej sesji; można zmienić temat, wrócić, sprostować lub dopytać.
+- **Tryb adaptacyjny:** rozmówca testowy z ograniczonymi regułami/gałęziami reaguje na prawdziwą odpowiedź AI zamiast odczytywać stały skrypt; późniejszy symulator LLM tylko z niezależnym sprawdzaniem wyniku.
+- **Ocena zachowania:** utrzymywanie tematu, kontekst i pamięć, poprawki, faktografia, niepotrzebne pytania, prawdziwość obietnic, właściwe dopytanie, naturalność i niezależnie decyzja END_CALL. Oceny jako dowody konkretnych tur, nie samo 2/2/12/12.
+- **Integracja:** wybór faktycznego lokalnego modelu, wersji Skills i docelowego scenariusza (np. warsztat lub inna przygotowana rola); porównanie A/B, STOP/recovery, brak wykonywania narzędzi i Call.
+- **QA:** osobne techniczne testy runnera używają niewidocznych dla użytkownika neutralnych danych wejściowych, nie odtwarzają usuniętych historii. Przyjąć dopiero po Kotlin/JVM, Mac gate i rzeczywistej próbie na S22 bez telefonu.
+
+[Checkpoint decyzji](checkpoints/2026-11-08-lab-four-scripted-stories-removed.md).
+
 ## Etap F1 — odbiór interfejsu i lokalnych funkcji na S22
 **Kolejność i definicja PASS:** według macierzy `NAV → HOME/CAMP (bez Call) → HIST → Agent/Skills/Scenarios/Prep/Vault/Tools → Lab → Models/Audio → Settings/Incoming/USB`.
 

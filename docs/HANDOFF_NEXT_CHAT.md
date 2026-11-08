@@ -1,5 +1,9 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## Lab — decyzja o usunięciu 4 sztywnych historii (2026-11-08)
+
+Właściciel odrzucił **wszystkie** 4 fabryczne historie Laboratorium, wyraźnie zabronił zachowywania ich jako regresji. Kod `SkillLabCorpus.stories` ma teraz pusty zestaw; `SkillLabRunner.start()` odrzuca brak przypadków, UI pokazuje PL/EN jasny status i nieaktywny START bez fałszywego 0/0. Stary opcjonalny test `AndroidSkillLabRealOfflineTest` jest oznaczony `@Ignore`, a porównanie presetów na odrzuconym korpusie usunięte. **Testy techniczne START/STOP/timeout** używają wyłącznie nowych, neutralnych fixture w kodzie testów, nie starych rozmów. Najwyższy priorytet następnego sprintu: **edytor testów + manualny rozmówca + adaptacyjne prowadzenie rozmowy + metryki śledzenia wątku**. Patrz `docs/ROADMAP.md` / `docs/checkpoints/2026-11-08-lab-four-scripted-stories-removed.md`. Dawne wyniki Lab/END_CALL pozostają tylko historycznym zapisem starego kodu, nie bieżącą akceptacją. Real CALL bez autoryzacji nie uruchamiać. **Nowe testy urządzenia i instalacja APK z usuniętymi historiami wymagają osobnego QA i wolnego ekranu S22.**
+
 **Data:** 2026-11-08. **Bazowy commit kodu:** `main@edf63c1ea9dc425c91d2a1571a90038631852ffd` (UX-11 CLOSED). Kolejne commity tylko dokumentacyjne nie stanowią nowego QA APK. **Przy wejściu zawsze pobierz świeży HEAD**, sprawdź Mac checkout/clean status i stan Samsung S22.
 
 ## F1 — aktualny status po realnych testach urządzenia
