@@ -5,7 +5,7 @@
 **Przyczyna:** dotychczasowy runner zapewniał pojedynczego właściciela tylko wewnątrz jednej instancji, nie między UI i nowym kanałem USB.
 **Poprawka:** `main@fdb003d151eae00eb3dc6e7c5834b25b044c6537` — wspólny `AtomicBoolean` w `AndroidSkillLabSessionFactory`, pojedyncza dzierżawa backendu, zwalnianie w `close()`/wyjątku. Bez limitu tur, bez zmian ścieżek telefonu i bez resetowania kontekstu aktywnego modelu.
 **Test:** `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **DONE/0**: full `scripts/verify_host.sh` PASS, AndroidTest APK/JVM/lint/audio i **370 Python**. AndroidTest nowego kanału i równoległych sesji na fizycznym S22 **NOT_RUN**.
-**Status:** **HOST_PASS / DEVICE_QA_OPEN** — kod i pełna regresja Mac zweryfikowane, ale dodatnia fizyczna próba współbieżności GUI/USB nadal NOT_RUN; nie twierdzić PROVEN_S22.
+**Status:** **FIXED_IN_SOURCE** — pełna regresja Mac **PASS** (370 Python, Gradle/JVM, lint, AndroidTest build), lecz fizyczna próba GUI/USB i zachowania wyłączności modelu **NOT_RUN**. Pozostawić DEVICE_QA_OPEN, bez twierdzeń PROVEN_S22. [Pełny checkpoint](docs/checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
 
 ## F-149 — USB Lab call-state telemetry bez jawnej kontroli READ_PHONE_STATE (2026-11-08)
 
@@ -17,13 +17,13 @@
 
 ## LAB-SEMANTIC-02 F-148 — długi dialog LiteRT traci kontynuację i prywatne dowody (2026-11-08)
 
-**Ścieżka:** `AndroidLabAdversarialNativeOfflineTest`, `SkillLabRunner.executeManual`, `LiteRtGemma4Runtime.runGeneration` (`MAX_CONTEXT_TOKENS = 2_048`).
+**Ścieżka:** `AndroidLabAdversarialNativeOfflineTest`, `SkillLabRunner.executeManual`, `LiteRtGemma4Runtime.runGeneration` (historyczny budżet 2048; obecny Lab 4096, pozostałe Call 2048).
 **Warunek:** na fizycznym Samsung S22 / Gemma 4 E2B pierwsza 13-turowa próba przerwała się w turze 10; poprzednie 9 odpowiedzi były technicznie poprawnie wygenerowane, w turze 10 LiteRT zgłosił `error_LiteRtLmJniException`, 0 znaków wyjścia.
-**Wpływ:** dłuższe rozmowy nie mają jeszcze potwierdzonej stabilności ani gwarantowanego zachowania materiału diagnostycznego; bez prywatnego transkryptu nie da się rzetelnie ocenić semantyki tur 1–9.
+**Wpływ:** historyczny wariant 2048 przerwał długi dialog i początkowo tracił diagnostykę; poprawiono prywatny journaling. Wariant 4096 ma późniejszy techniczny PASS N=3×13, lecz niezależna ocena pamięci/sprostowań/halucynacji nadal jest otwarta.
 **Przyczyna:** native JNI fail potwierdzony; przekroczenie aktualnego okna 2048 tokenów jest hipotezą do weryfikacji, nie udowodnioną przyczyną. Brak zapisu częściowego dowodu w pierwotnym AndroidTest był osobną luką obserwowalności.
-**Plan:** nie podnosić globalnego kontekstu bez dowodu na S22 i wpływu na ścieżki Call. Utrwalać prywatny worksheet po każdej turze oraz kategorię błędu, wykonać scoped ponowną próbę i określić realną przyczynę; dopiero potem oddzielnie dobrać politykę długiej sesji.
+**Plan:** utrzymać prywatny journaling i dotychczas zweryfikowany 4096 wyłącznie w Lab; osobno zbadać przyczynę JNI i jakość semantyczną z dowodami per tura. 8192 testować tylko kontrolowanie na S22 z pomiarem RAM; bez zmiany budżetu Call bez odrębnego odbioru. Długie rozmowy docelowo obsłużyć rejestrem faktów/korekt i jawnym rolloverem kontekstu.
 **Test/dowody:** `aicalls-semantic2-s22-adversarial-n3-20261108-v1` FAILED na turze 10 z preflight IDLE i bez Call; `aicalls-semantic2-s22-native-failure-diagnostics-20261108-v1` DONE/0, `conversation_turn=10`, `status=error_LiteRtLmJniException`, `output_chars=0`.
-**Status:** **OPEN / 4096 technical mitigation VERIFIED at 13-turn N=3, semantic/root cause OPEN** — journaling i pełny Mac gate PASS; eksperymentalny kontekst Lab 4096 pozwolił przejść 13/13 tur w jednej sesji, ale 2/13 heurystyk niepotwierdzone, brak N=3 (guard odmówił). Samo przejście 13 tur nie zamyka odbioru pamięci i halucynacji. Dowody: `aicalls-semantic2-s22-context4096-20261108-v1` DONE/0, `...context4096-repeat-n3-20261108-v1` FAILED/71 bez rozpoczęcia sesji. Produkcyjny Call nadal 2048.
+**Status:** **OPEN** — 2048: dwukrotnie `LiteRtLmJniException` w turze 10. 4096: **S22 3×13 = 39/39 tur PASS technicznie**, 0 JNI, heurystyki 11/13, 13/13, 11/13; pełny human semantic review UNASSESSED. Dodatkowe N=2 i N=3 zostały ostatecznie wykonane: `aicalls-e2b4096-n3-ram-native-20261108-v1` DONE/0 (początkowy wcześniejszy guard REFUSED jest historyczny). Próbowany 8192 na S22 NOT_RUN; przyczyna natywnego błędu 2048 i rzeczywista niezawodność semantyczna nadal niepotwierdzone. Call pozostaje przy 2048. [Aktualny checkpoint](docs/checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
 
 ## UX-11 F-147 — Floating Chat: aktywny stan nie miał testu wizualnego (2026-11-08)
 
