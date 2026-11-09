@@ -44,10 +44,11 @@ internal class AndroidSkillLabSessionFactory(
             LabRole.GENERAL -> ConversationPreparation.supervised()
         }
         // Never include owner's vault references in an offline test prompt.
-        // Routing is a session-start Lab A/B snapshot, not live Call policy.
+        // Routing is pinned per Lab session; CONTEXTUAL can refresh between turns only.
         val goal = selected?.goal ?: "Prowadź naturalny dialog testowy. Brak skutków zewnętrznych."
+        val pinnedSnapshot = library.snapshot(presetId)
         val routing = ConversationSkillRouter.route(
-            library.snapshot(presetId), modeSnapshot, initial.direction,
+            pinnedSnapshot, modeSnapshot, initial.direction,
             goal, selected?.opening.orEmpty())
         runCatching { routingObserver(routing) } // Diagnostics must never block inferencing.
         val preparation = ConversationPreparation(
@@ -66,15 +67,25 @@ internal class AndroidSkillLabSessionFactory(
                 val delegate = provider.createLaboratoryConversationReply(
                     context, instruction, setOf(ConversationToolId.END_CALL),
                     budgetSnapshot, timingSnapshot)
+                val perTurn = if (modeSnapshot == SkillLoadingMode.CONTEXTUAL) {
+                    val tracker = ConversationSkillTurnRouter(
+                        pinnedSnapshot, modeSnapshot, initial.direction,
+                        goal, selected?.opening.orEmpty())
+                    DynamicSkillLabBackend(delegate, tracker) { changed ->
+                        ConversationInstructionBuilder.build(
+                            preparation.withSkillSnapshot(changed),
+                            goal, ConversationResponseFormat.TOOL_REPLY)
+                    }
+                } else delegate
                 object : TextCallAgentBackend {
                     private val closed = AtomicBoolean(false)
                     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
-                        delegate.generate(userText, listener)
+                        perTurn.generate(userText, listener)
                     }
-                    override fun cancel() { delegate.cancel() }
+                    override fun cancel() { perTurn.cancel() }
                     override fun close() {
                         if (closed.compareAndSet(false, true)) {
-                            try { delegate.close() } finally { activeLabBackend.set(false) }
+                            try { perTurn.close() } finally { activeLabBackend.set(false) }
                         }
                     }
                 }

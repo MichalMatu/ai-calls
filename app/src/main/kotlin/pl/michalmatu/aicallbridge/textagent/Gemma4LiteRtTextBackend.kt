@@ -61,12 +61,21 @@ internal interface Gemma4Runtime : AutoCloseable {
     fun cancel()
     /** Drop only synthetic prewarm history, not the initialized model engine. */
     fun resetConversationContext() = Unit
+    /** Only between turns. Refresh creates a fresh Conversation, not a new Engine. */
+    fun replaceSystemInstruction(instruction: String) {
+        throw UnsupportedOperationException("runtime_system_instruction_refresh_not_supported")
+    }
     override fun close()
 }
 
 /** Model-native chat context persists per owned call instead of prompt-duplicating recent turns. */
 internal interface NativeConversationContextBackend {
     fun resetConversationContext()
+}
+
+/** Lab-only opt-in; never add new Skill text to untrusted STT/user utterances. */
+internal interface NativeConversationInstructionBackend {
+    fun refreshConversationInstruction(instruction: String)
 }
 
 /**
@@ -78,9 +87,11 @@ internal interface NativeConversationContextBackend {
 internal class Gemma4LiteRtTextBackend(
     private val runtimeFactory: Gemma4RuntimeFactory,
     private val modelPath: String,
-    private val systemInstruction: String? = null,
-) : TextCallAgentBackend, NativeConversationContextBackend {
+    systemInstruction: String? = null,
+) : TextCallAgentBackend, NativeConversationContextBackend,
+    NativeConversationInstructionBackend {
     private val lock = Any()
+    private var activeSystemInstruction = systemInstruction
     private var generation = 0L
     private var runtime: Gemma4Runtime? = null
     private var closed = false
@@ -96,7 +107,7 @@ internal class Gemma4LiteRtTextBackend(
             requestGeneration = generation
             val existing = runtime
             if (existing == null) {
-                activeRuntime = runtimeFactory.create(modelPath, systemInstruction)
+                activeRuntime = runtimeFactory.create(modelPath, activeSystemInstruction)
                 runtime = activeRuntime
             } else {
                 existing.cancel()
@@ -110,6 +121,16 @@ internal class Gemma4LiteRtTextBackend(
             if (isCurrent(requestGeneration)) {
                 listener.onError("gemma4_runtime_${sanitize(error.javaClass.simpleName)}")
             }
+        }
+    }
+
+    /** Only the off-call Lab dynamic wrapper opts into this operation. */
+    override fun refreshConversationInstruction(instruction: String) {
+        require(instruction.isNotBlank()) { "native_instruction_blank" }
+        synchronized(lock) {
+            check(!closed) { "gemma4_backend_closed" }
+            runtime?.replaceSystemInstruction(instruction)
+            activeSystemInstruction = instruction
         }
     }
 
@@ -178,7 +199,7 @@ internal class Gemma4LiteRtTextBackend(
 /** Direct in-process LiteRT-LM owner used by [Gemma4LiteRtTextBackend]. */
 internal class LiteRtGemma4Runtime(
     private val modelPath: String,
-    private val systemInstruction: String?,
+    systemInstruction: String?,
     private val responseFormat: ResponseFormat? = null,
     private val disableQwenThinking: Boolean = false,
     private val executionPolicy: NativeModelExecutionPolicy = NativeModelExecutionPolicy(),
@@ -191,6 +212,7 @@ internal class LiteRtGemma4Runtime(
     init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
 
     private val lock = Any()
+    private var systemInstruction: String? = systemInstruction
     private var generation = 0L
     private var engine: Engine? = null
     private var activeConversation: Conversation? = null
@@ -235,8 +257,20 @@ internal class LiteRtGemma4Runtime(
         }
     }
 
+    override fun replaceSystemInstruction(instruction: String) {
+        require(instruction.isNotBlank()) { "native_instruction_blank" }
+        synchronized(lock) {
+            check(!closed) { "runtime_closed" }
+            check(sendingGeneration == null) { "native_instruction_refresh_while_generating" }
+            systemInstruction = instruction
+        }
+        // Recreate Conversation with the new instruction while reusing the Engine.
+        // Old history is supplied as quoted, data-only context by the Lab adapter.
+        resetConversationContext()
+    }
+
     override fun resetConversationContext() {
-        // Only the synthetic prewarm turn uses this. Keep the expensive Engine alive.
+        // Synthetic reset or Lab instruction refresh. Keep the initialized Engine alive.
         val detached = synchronized(lock) {
             if (closed) return
             if (sendingGeneration != null) {
