@@ -1,3 +1,9 @@
+## F-159 — G4.3 test zmiany capability zakładał jeden zamiast dwóch aktywowanych Skills (2026-11-09)
+
+**Warunek/ścieżka:** `ConversationSkillMetadataTest#renamedSkillCanBecomeContextualWithoutIdWhitelistAndNeverChangesAuthority` po przeniesieniu `ConversationStyle` do capability `MESSAGE_CAPTURE`. Poprawny routing aktywuje wtedy **dwa** przypięte Skills o tej kompetencji (`ConversationStyle`, `MessageCapture`), a pierwotny test żądał dokładnie jednego. **Dowód RED:** Mac task `aicalls-g4p3-skills-metadata-trace-tools-mac-qa-20261109-v2`, Kotlin+AndroidTest build PASS, **30/31** testów JVM PASS, jedna asercja FAIL w linii 53; full host QA i S22 nieuruchomione po nieudanej celowanej bramce. **Przyczyna:** test mylił identyfikator z typem kompetencji i zakładał jednoznaczność, której produkt nie narzuca.
+
+**Fix źródłowy:** `main@10c28620bae7ffebcc4d187e088a4f70a9db1c84`: oczekiwanie zbioru obu poprawnie wybranych modułów; routing produkcyjny pozostaje bez zmian. **Test:** celowane JVM, pełny Mac gate, potem fizyczny S22 przy akceptacji zmian UI. **Status: FIXED_IN_SOURCE / QA_PENDING**, nie przypisywać PASS przed dokładnym receipt.
+
 ## F-158 — G4.3 obserwator routingu zmienił wiązanie końcowej lambdy testów JVM (2026-11-09)
 
 **Ścieżka:** `DynamicSkillLabBackend` constructor → starsze wywołania `DynamicSkillLabBackend(native, router) { instructionFor(snapshot) }` w `DynamicSkillLabBackendTest`. **Warunek/RED:** po dołożeniu `onRoutingDecision` jako ostatniego parametru funkcyjnego Kotlin interpretował starą końcową lambdę jako observer; brak `instructionFor` i błąd typu `SkillTurnRoutingDecision` vs `ConversationSkillSnapshot`. Dokładny Mac task `aicalls-g4p3-skills-metadata-trace-tools-mac-qa-20261109-v1`: Git pin PASS, `:app:compileDebugUnitTestKotlin` FAIL, brak pełnej QA i S22 — nie nazywać ich PASS.
