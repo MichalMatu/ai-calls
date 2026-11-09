@@ -20,9 +20,14 @@ class AudioEngineProfileContractTest {
         }
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)))
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = SpeechOutputId.PIPER_PL)))
-        for (model in DialogueModelId.entries) assertNull(AudioEngineRegistry.incompatibility(
-            AudioEngineProfile(dialogue = model),
-        ))
+        for (model in DialogueModelId.entries) {
+            val status = AudioEngineRegistry.incompatibility(AudioEngineProfile(dialogue = model))
+            if (model == DialogueModelId.QWEN_3_5_2B) {
+                assertEquals("qwen35_lab_only_unqualified", status)
+            } else {
+                assertNull(status)
+            }
+        }
         for (output in listOf(SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS)) {
             assertNotNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = output)))
         }
@@ -46,7 +51,8 @@ class AudioEngineProfileContractTest {
                     val profile = AudioEngineProfile(input = input, dialogue = dialogue, output = output)
                     val shouldBeIntegrated = input != SpeechInputId.GEMMA_AUDIO_DIRECT &&
                         output != SpeechOutputId.KOKORO &&
-                        output != SpeechOutputId.POCKET_TTS
+                        output != SpeechOutputId.POCKET_TTS &&
+                        dialogue != DialogueModelId.QWEN_3_5_2B
                     assertEquals(
                         "Wrong static integration for $input/$dialogue/$output",
                         shouldBeIntegrated,

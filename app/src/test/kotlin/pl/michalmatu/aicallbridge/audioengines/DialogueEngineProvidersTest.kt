@@ -5,12 +5,21 @@ import org.junit.Test
 
 class DialogueEngineProvidersTest {
     @Test fun everyCatalogModelResolvesWithoutSilentFallback() {
-        assertEquals(4, DialogueModelId.entries.size)
-        for (model in DialogueModelId.entries) {
+        assertEquals(5, DialogueModelId.entries.size)
+        for (model in DialogueModelId.entries.filterNot { it == DialogueModelId.QWEN_3_5_2B }) {
             assertEquals(model, DialogueEngineProviders.resolve(
                 AudioEngineProfile(dialogue = model),
             ).id)
             assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(dialogue = model)))
+        }
+    }
+
+    @Test fun labOnlyCandidateCannotBeActivatedAsTelephoneProfile() {
+        try {
+            DialogueEngineProviders.resolve(AudioEngineProfile(dialogue = DialogueModelId.QWEN_3_5_2B))
+            fail("Qwen 3.5 not accepted for Call")
+        } catch (_: IllegalArgumentException) {
+            // Explicit native Lab smoke uses the model factory, not telephone profile selection.
         }
     }
 
