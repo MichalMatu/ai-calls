@@ -21,6 +21,7 @@ case "$mode" in
     git diff --check
     git diff --cached --check
     python3 scripts/aicall_tools/diagnostics/audit_product_friction.py
+    python3 scripts/aicall_tools/diagnostics/docs_check.py
     echo DEV_PREFLIGHT_PASS=true ;;
   auto)
     [[ "$#" -le 1 ]] || exit 2

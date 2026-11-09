@@ -9,7 +9,7 @@ from aicall_tools.diagnostics.audit_product_friction import audit
 ROOT = Path(__file__).resolve().parents[2]
 MAIN = "app/src/main/kotlin/pl/michalmatu/aicallbridge/"
 REQUIRED = (
-    "AGENTS.md", "BLOCKERS.md", "docs/FRICTION_BLOCKER_LEDGER.md",
+    "AGENTS.md", "docs/PROJECT.md", "docs/architecture/SECURITY.md",
     MAIN + "campaign/CampaignToolActivity.kt",
     MAIN + "campaign/CampaignAuthorizationGrant.kt",
     MAIN + "campaign/CampaignAuthorizationStore.kt",
@@ -45,15 +45,15 @@ class AntiFrictionGateTest(TestCase):
             errors = audit(root)
             self.assertTrue(any("armNextCall" in error for error in errors), errors)
 
-    def test_missing_ledger_entry_is_caught(self):
+    def test_missing_current_gate_is_caught_without_historical_ledger(self):
         with TemporaryDirectory() as d:
             root = Path(d)
             for name in REQUIRED:
                 file = root / name
                 file.parent.mkdir(parents=True, exist_ok=True)
                 file.write_text((ROOT / name).read_text(encoding="utf-8"), encoding="utf-8")
-            ledger = root / "BLOCKERS.md"
-            text = ledger.read_text(encoding="utf-8")
-            ledger.write_text(text.replace("F-013", "F-XXX"), encoding="utf-8")
+            current = root / "docs/PROJECT.md"
+            current.write_text(current.read_text(encoding="utf-8").replace("## Otwarte", "## Legacy"))
             errors = audit(root)
-            self.assertTrue(any("F-013" in error for error in errors), errors)
+            self.assertTrue(any("docs/PROJECT.md" in error and "## Otwarte" in error
+                                for error in errors), errors)

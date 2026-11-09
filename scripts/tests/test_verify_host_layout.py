@@ -31,7 +31,7 @@ def tracked_paths() -> list[str]:
 class VerifyHostLayoutTest(unittest.TestCase):
     def test_required_canonical_policy_files_are_accepted(self):
         allowed = allowed_entries("allowed_root_entries")
-        self.assertTrue({"AGENTS.md", "BLOCKERS.md", "README.md"}.issubset(allowed))
+        self.assertTrue({"AGENTS.md", "README.md"}.issubset(allowed))
 
     def test_secret_scan_distinguishes_key_prefix_from_word_suffix(self):
         source = VERIFY_HOST.read_text(encoding="utf-8")

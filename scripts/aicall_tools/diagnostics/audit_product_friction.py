@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Static anti-friction regression gate. Never accesses a device, network or private recordings.
 
-Fail on *known* artificial blockers reintroduced into production, or on an absent
-canonical ledger. New candidate thresholds are reported for human classification,
+Fail on *known* artificial blockers reintroduced into production, or on removed
+current authorization rules. New candidate thresholds require technical classification,
 not blanket-rejected: data integrity, Android permissions and resource limits matter.
 """
 from __future__ import annotations
@@ -34,8 +34,8 @@ def audit(root: Path) -> list[str]:
         "AndroidCampaignAuthorizationStoreContractTest.kt"
     )
     agents = read("AGENTS.md")
-    ledger = read("BLOCKERS.md")
-    history = read("docs/FRICTION_BLOCKER_LEDGER.md")
+    project = read("docs/PROJECT.md")
+    security = read("docs/architecture/SECURITY.md")
 
     def require(path: str, text: str, needle: str) -> None:
         if needle not in text:
@@ -45,16 +45,17 @@ def audit(root: Path) -> list[str]:
         if needle in text:
             errors.append(f"{path}: prohibited legacy blocker resurfaced: {needle}")
 
-    if not agents.startswith("# ⛔ ZERO NOWYCH BLOKERÓW"):
-        errors.append("AGENTS.md: mandatory anti-blocker rule must remain the first heading")
-    require("AGENTS.md", agents, "BLOCKERS.md")
-    require("BLOCKERS.md", ledger, "OPEN")
-    require("BLOCKERS.md", ledger, "FIXED_IN_SOURCE")
-    require("BLOCKERS.md", ledger, "VERIFIED")
-    for identifier in range(1, 28):
-        if not re.search(rf"\bF-{identifier:03d}\b", ledger):
-            errors.append(f"BLOCKERS.md: F-{identifier:03d} must stay tracked")
-    require("docs/FRICTION_BLOCKER_LEDGER.md", history, "BLOCKERS.md")
+    # Protect current operating rules, not a fossilized historical issue ledger.
+    if not agents.startswith("# AI Calls — zasady pracy agentów"):
+        errors.append("AGENTS.md: current operating rules must remain the first heading")
+    require("AGENTS.md", agents, "Nie dodawaj sztucznych ograniczeń")
+    require("AGENTS.md", agents, "docs/README.md")
+    require("docs/PROJECT.md", project, "## Otwarte")
+    require("docs/PROJECT.md", project, "G6.1")
+    require("docs/architecture/SECURITY.md", security, "CallCommitmentGate")
+    require("docs/architecture/SECURITY.md", security, "FactDisclosurePolicy")
+    require("docs/architecture/SECURITY.md", security, "STOP")
+    require("docs/architecture/SECURITY.md", security, "FLAG_SECURE")
 
     # An automatic continuation must remain tied to the approved grant and STOP.
     continuation = read(prefix + "campaign/CampaignContinuationStore.kt")
@@ -163,7 +164,7 @@ def main() -> int:
         print(f"ANTI_FRICTION=FAIL ({len(errors)} known regressions)")
         return 1
 
-    print("ANTI_FRICTION=PASS; known blockers absent and canonical ledger linked")
+    print("ANTI_FRICTION=PASS; known regressions absent and current rules preserved")
     print("AUDIT_SCOPE=static_only; candidate model/transport timeouts need functional testing")
     return 0
 

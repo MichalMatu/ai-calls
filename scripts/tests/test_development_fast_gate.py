@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class DeveloperFastGateTests(unittest.TestCase):
     def test_docs_only_does_not_compile(self):
-        self.assertEqual(select(["docs/ROADMAP.md", "BLOCKERS.md"]), ([], [], [], []))
+        self.assertEqual(select(["docs/PROJECT.md", "docs/modules/CONVERSATION.md"]), ([], [], [], []))
 
     def test_changed_only_modules(self):
         tasks, py, shell, escalation = select(["app/src/main/X.kt", "conversation-core/src/main/Y.kt"])

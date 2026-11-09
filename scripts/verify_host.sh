@@ -7,7 +7,6 @@ allowed_root_entries=(
   .github
   .gitignore
   AGENTS.md
-  BLOCKERS.md
   README.md
   app
   audio-bridge
@@ -34,7 +33,7 @@ unexpected_root_entries="$(comm -23 \
 if [[ -n "$unexpected_root_entries" ]]; then
   echo "repository_layout_failed=unexpected_top_level_entries" >&2
   printf '%s\n' "$unexpected_root_entries" >&2
-  echo "See docs/REPOSITORY_LAYOUT.md before adding a new top-level path." >&2
+  echo "See docs/operations/DEVELOPMENT.md before adding a new top-level path." >&2
   exit 1
 fi
 
@@ -54,7 +53,7 @@ unexpected_scripts_entries="$(comm -23 \
 if [[ -n "$unexpected_scripts_entries" ]]; then
   echo "scripts_layout_failed=unexpected_top_level_entries" >&2
   printf '%s\n' "$unexpected_scripts_entries" >&2
-  echo "See docs/REPOSITORY_LAYOUT.md and scripts/README.md for placement rules." >&2
+  echo "See docs/operations/DEVELOPMENT.md for script placement rules." >&2
   exit 1
 fi
 

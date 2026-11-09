@@ -85,7 +85,9 @@ def select(paths: list[str], root: Path = Path(".")) -> tuple[list[str], list[st
         elif path.startswith("benchmarks/"):
             # Versioned benchmark fixtures require explicit scenario selection.
             escalations.append(path)
-        elif top in {"docs", "README.md", "AGENTS.md", "BLOCKERS.md", ".gitignore"}:
+        elif top in {"docs", "README.md", "AGENTS.md", ".gitignore"} or (
+            path.endswith(".md") and not (root / path).exists()
+        ):
             pass
         else:
             escalations.append(path)
