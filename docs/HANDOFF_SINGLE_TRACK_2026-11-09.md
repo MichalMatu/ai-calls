@@ -24,7 +24,7 @@ Oba dotychczasowe czaty AI Calls zostają zamknięte organizacyjnie. **Tylko jed
 | G4 Skills | routing, metadata i native E2B/S22 PASS | Nie przebudowywać routera na inny framework |
 | G5.1/G5.2/G5.3 | 18/18 trzech tur w 6 sesjach, 36 WAV, WER syntetyczne 0/150, native STOP STT/model/TTS PASS | Jest to OFF-CALL, nie G6 live |
 | Host QA | ostatnie 386 Python PASS + build/audio/anti-friction; Git clean w dokładnych task receipts | Nowy kod wymaga celowanego QA, nie ponowienia niezmienionego G3/G5 na S22 |
-| Human quality | właściciel napisał, że pozytywnie ocenia rozmowę | 0/6 indywidualnych JSON; nie fabrykować osiem wymiarów/sesję |
+| Human quality | właściciel napisał, że pozytywnie ocenia rozmowę | 0/6 indywidualnych JSON: formalne 48 wymiarów UNASSESSED; nie fabrykować osiem wymiarów/sesję |
 | Historyczne INCOMING | wcześniejsze rzeczywiste A8→S22, słyszalność, end_call i częściowy prywatny recorder | G6 jako całość nadal NOT_RUN; manual takeover/resume i komplet archiwum nadal wymagają dowodu |
 | F-166–168 | źródło i 6/6 prywatnych stron naprawione, Mac QA DONE/0 | Nie tworzyć kolejnego narzędzia recenzji jako zamiennika odsłuchu |
 
