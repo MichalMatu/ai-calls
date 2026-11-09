@@ -7,6 +7,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.SystemClock
+import android.os.Looper
+import pl.michalmatu.aicallbridge.conversationcore.OutgoingIvrDtmfGate
+import pl.michalmatu.aicallbridge.conversationcore.OutgoingIvrDtmfRequest
 import android.telecom.Call
 import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
@@ -76,6 +79,7 @@ internal class AndroidTelecomOwnedCallSession(
     val requestId: String = UUID.randomUUID().toString()
     private val boundCall = AtomicReference<Call?>(null)
     private val stopRequested = AtomicBoolean(false)
+    private val dtmfPort = AtomicReference<AndroidTelecomDtmfDigitPort?>(null)
 
     fun attachIfMatching(call: Call, nowElapsedMs: Long): Boolean {
         val details = call.details ?: return false
@@ -96,6 +100,38 @@ internal class AndroidTelecomOwnedCallSession(
         return true
     }
 
+    /**
+     * A grant-bound integration seam, NOT an autonomous IVR command path. No gate is
+     * constructed without the exact active outbound Call and an explicit authorizer.
+     * All digit requests must run on Telecom's main looper.
+     */
+    internal fun createAuthorizedDtmfGate(
+        generation: Long,
+        authorized: (OutgoingIvrDtmfRequest) -> Boolean,
+    ): OutgoingIvrDtmfGate? {
+        if (generation <= 0 || Looper.myLooper() != Looper.getMainLooper() || !isExactCallActive()) return null
+        val port = AndroidTelecomDtmfDigitPort(
+            exactCall = { boundCall.get()?.takeIf { it.state == Call.STATE_ACTIVE && !stopRequested.get() } },
+            active = { isExactCallActive() },
+            authorized = { request -> request.callGeneration == generation && authorized(request) },
+        )
+        if (!dtmfPort.compareAndSet(null, port)) { port.close(); return null }
+        if (!isExactCallActive()) { revokeDtmf(); return null }
+        return OutgoingIvrDtmfGate(
+            active = { it == generation && isExactCallActive() },
+            authorized = { request -> request.callGeneration == generation && isExactCallActive() && authorized(request) },
+            port = port,
+        )
+    }
+
+    internal fun revokeDtmf() { dtmfPort.getAndSet(null)?.close() }
+
+    internal fun onExactCallRemoved(call: Call) {
+        if (boundCall.get() !== call) return
+        stopRequested.set(true)
+        revokeDtmf()
+    }
+
     override fun isExactCallActive(): Boolean =
         !stopRequested.get() && boundCall.get()?.state == Call.STATE_ACTIVE
 
@@ -104,6 +140,7 @@ internal class AndroidTelecomOwnedCallSession(
 
     override fun disconnectExactCall(): Boolean {
         stopRequested.set(true)
+        revokeDtmf()
         val call = boundCall.get() ?: return true // deferred until the matched Call arrives
         return runCatching {
             if (call.state != Call.STATE_DISCONNECTED) call.disconnect()

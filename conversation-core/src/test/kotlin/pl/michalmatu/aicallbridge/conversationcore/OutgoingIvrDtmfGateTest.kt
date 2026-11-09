@@ -26,7 +26,7 @@ class OutgoingIvrDtmfGateTest {
     @Test fun invalidDigitGenerationOrStepNeverDispatches() {
         var sends = 0
         val gate = OutgoingIvrDtmfGate({ true }, { true }) { sends++; true }
-        for (candidate in listOf(request.copy(digit = 'x'), request.copy(callGeneration = 0),
+        for (candidate in listOf(request.copy(digit = 'x'), request.copy(digit = 'A'), request.copy(digit = 'D'), request.copy(callGeneration = 0),
                 request.copy(turn = 0), request.copy(stepIndex = -1))) {
             assertEquals(OutgoingIvrDtmfResult.INVALID_REQUEST, gate.request(candidate))
         }

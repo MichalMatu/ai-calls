@@ -31,8 +31,9 @@ internal object AppOwnedClirCampaignExecutor {
 
     /** Only the displayed exact owned Call can be transferred; late cleanup loses its owner. */
     fun takeOver(call: android.telecom.Call): Boolean {
-        ownedCalls.detachIf { (it as? AndroidTelecomOwnedCallSession)?.isBoundTo(call) == true } ?: return false
+        val detached = ownedCalls.detachIf { (it as? AndroidTelecomOwnedCallSession)?.isBoundTo(call) == true } ?: return false
         running.set(false)
+        (detached as? AndroidTelecomOwnedCallSession)?.revokeDtmf()
         audioSession.getAndSet(null)?.stopAudio(ConversationStopReason.HUMAN_TAKEOVER)
         return true
     }

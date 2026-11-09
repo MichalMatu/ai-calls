@@ -58,6 +58,7 @@ class AndroidOwnedInCallService : InCallService() {
         incoming.removed(call)
         val session = pendingSession.get()
         if (session != null && session.isBoundTo(call)) {
+            session.onExactCallRemoved(call)
             pendingSession.compareAndSet(session, null)
         }
         if (observedCalls.isEmpty()) {

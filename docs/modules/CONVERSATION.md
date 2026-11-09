@@ -8,5 +8,7 @@
 - Realtime `CallRealtimeAudioPump` ma atomową blokadę gate/queue na barge-in, tombstones i bounded audio; **lokalny Gemma pipeline nadal wymaga realnego barge-in w G6**.
 - Recovery po ciszy/hold nie może sztucznie ucinać rozmowy, ale respektuje zasoby, systemowy Call state i STOP. Przy fizycznym rozłączeniu dokończ dostępny końcowy RX/STT bez udawania brakującej mowy.
 
+**Semantic end-of-turn:** wzorzec TEN rozróżnia FINISHED / UNFINISHED / WAIT, ale obecne PCM VAD/STT nie dostarcza wiarygodnej klasyfikacji semantycznej po polsku. KEEP obecny endpointing; brak importu modelu TEN i automatycznego zatrzymywania odpowiedzi na podstawie słów. Ewentualny classifier wyłącznie po własnych pomiarach i osobnym teście granic STOP.
+
 ## Dowody i otwarte
 G3 96/96 native tur zakończone decyzją KEEP_E2B; G5.3 18/18 off-call tur i natywny STOP STT/model/TTS sprawdzone; to **nie** jest live G6. Otwarty G6.1 lokalny barge-in i timed speech-start, sprawdzenie stale PCM i manual resume. [Current](../PROJECT.md), [security](../architecture/SECURITY.md).

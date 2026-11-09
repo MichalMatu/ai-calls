@@ -14,7 +14,7 @@
 | P0 | G6.1 / CONVERSATION | Lokalny Gemma/STT/TTS: wykrycie RX podczas TX, anulowanie starego TTS i bezpieczne wznowienie na realnym Call | Test generacji+stale PCM, następnie **autoryzowany** S22 barge-in |
 | P0 | G6.1 / INCOMING | Human TAKE OVER/resume tej samej sesji bez rozłączenia; dokładna polityka stop/error/recovery | Regresja jednostkowa i jedna kontrolowana fizyczna próba |
 | P0 | AUDIO_HISTORY | Pełne nagranie zgodne z uprawnieniami/zgodą, w tym dopuszczalna część manualna oraz płynna oś czasu. Obecny playlist odtwarza **fragmenty**, nie cały Call | Pokrycie RX/TX/manual, retencja, no-leak, kontrolowany S22 playback |
-| P1 | G6.2 / OUTGOING | Dokładnie autoryzowany outbound, integracja IVR/DTMF z app-owned Telecom; istniejący gate jest tylko portem JVM | Focused port test, prawdziwy IVR wyłącznie po grancie/IDLE |
+| P1 | G6.2 / OUTGOING | Dokładnie autoryzowany outbound, integracja IVR/DTMF z app-owned Telecom; gate JVM + Android Telecom tone adapter mają osobne testy i seam, ale brak autoryzowanego wywołania IVR i testu fizycznego | Focused port test, prawdziwy IVR wyłącznie po grancie/IDLE |
 | P1 | BOOKING_EFFECTS | Typowany wynik i niezależny dowód rezerwacji/CLIR; brak realnego adaptera availability/hold/confirm | Syntetyczny adapter, idempotencja, potem osobny autoryzowany dowód usługodawcy |
 | P1 | SECURITY | Bezpieczny typowany dostęp modelu do wybranych faktów z IdentityVault (dawna luka F-048); walidacja semantyki skutków (F-045) | Denied/approved scoped tests bez danych rzeczywistych |
 | P2 | CONVERSATION | Końcowe RX/STT po rozłączeniu przed ciszą VAD (dawna F-047); jakość długich wypowiedzi | Syntetyczny końcowy fragment, później fizyczna próba |

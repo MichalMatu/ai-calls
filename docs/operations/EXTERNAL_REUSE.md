@@ -30,7 +30,7 @@
 - **P0 alternatywa VAD:** [VoxRT Silero Android](https://github.com/VoxRT/voxrt-silero-android) — Kotlin Apache-2.0, **osobna własnościowa licencja binariów**; tylko po pomiarach S22.
 - **AUDIO_HISTORY:** [CallVault](https://github.com/madkongo/CallVault) i [ShizuCallRecorder](https://github.com/kitsumed/ShizuCallRecorder) (GPL-3.0) — Shizuku, oddzielne RX/TX, lifecycle i historia; **reference-only**, bez przenoszenia rejestratora.
 - **G6.2 DTMF:** [Android Telecom Call API](https://developer.android.com/reference/android/telecom/Call) wymaga par `playDtmfTone/stopDtmfTone`; [platform-samples](https://github.com/android/platform-samples/tree/main/samples/connectivity/telecom) (Apache-2.0) symuluje VoIP, **nie realny SIM**. Adaptuj port obecnego gate, nie cały sample.
-- **Wykluczone z kopiowania:** [TEN VAD](https://github.com/TEN-framework/ten-vad) (dodatkowe ograniczenia Agora) i [TEN Turn Detection](https://github.com/TEN-framework/ten-turn-detection) (zakaz na urządzeniach końcowych). Referencje koncepcyjne, nie zależności.
+- **Wykluczone z kopiowania:** [TEN VAD](https://github.com/TEN-framework/ten-vad) (dodatkowe ograniczenia Agora) i [TEN Turn Detection](https://github.com/TEN-framework/ten-turn-detection) (zakaz na urządzeniach końcowych). TEN ma trzy semantyczne stany FINISHED/UNFINISHED/WAIT, lecz brak zweryfikowanej klasyfikacji PL; tylko wzorzec, bez deployu modelu. 
 
 **G6.1:** najpierw `AndroidConversationRuntime` + `IncomingAssistantCoordinator` i testy RX-podczas-TX, stale PCM, echo/double-talk; Pipecat/Hermes/GVP dla wzorców, Silero/sherpa wyłącznie po wykazanej luce. **Brak jeszcze benchmarku S22 uzasadniającego zamianę VAD/STT/PCM.**
 

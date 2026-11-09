@@ -48,7 +48,7 @@ class OutgoingIvrDtmfGate(
     @Synchronized
     fun request(value: OutgoingIvrDtmfRequest): OutgoingIvrDtmfResult {
         if (value.callGeneration <= 0 || value.turn <= 0 || value.stepIndex < 0 ||
-            value.digit !in "0123456789*#ABCD") return OutgoingIvrDtmfResult.INVALID_REQUEST
+            value.digit !in "0123456789*#") return OutgoingIvrDtmfResult.INVALID_REQUEST
         val key = Key(value.callGeneration, value.turn, value.stepIndex)
         dispatched[key]?.let {
             return when {

@@ -9,7 +9,7 @@ RINGING → odpowiedź tylko w AI policy i przy gotowości/account match → ACT
 Task/grant+SIM+target → exact app-owned dial, nadzorowany lifecycle z STOP → wspólny runtime → typowany outcome. Żadnego uniwersalnego ograniczenia do Orange; rzeczywista próba wymaga konkretnego upoważnienia i potwierdzenia IDLE. Zewnętrzny efekt nie jest dowodem sukcesu tylko dlatego, że rozmowa się zakończyła.
 
 ## IVR / DTMF
-`OutgoingIvrDtmfGate` w `conversation-core`: poprawny digit, generation, turn, step, dwa sprawdzenia exact Call+grant, brak ponowienia niepewnego dispatch, limit rejestru 256 kroków. Mac focused 11 testów PASS. **Port nie jest jeszcze podłączony do Android Telecom; nie wysłano żadnego tonu**. Przy integracji dodaj typed hold/transfer/menu/outcome, ale nie nowego runnera ani obejścia STOP.
+`OutgoingIvrDtmfGate` w `conversation-core`: poprawny digit, generation, turn, step, dwa sprawdzenia exact Call+grant, brak ponowienia niepewnego dispatch, limit rejestru 256 kroków. Mac focused 11 testów PASS. **Własny adapter Telecom z parą play/stop i exact Call istnieje jako grant-bound seam, bez podłączonej akcji AI/IVR; nie wysłano żadnego tonu**. `A-D` są odrzucane (API Android akceptuje tylko `0-9*#`); aktywny ton kończy się po 150 ms lub przy STOP/takeover/removal. `DISPATCHED` oznacza tylko rozpoczęcie tonu i zaplanowane stop, nie potwierdzenie przez IVR. Przy integracji dodaj typed hold/transfer/menu/outcome, ale nie nowego runnera ani obejścia STOP.
 
 ## Fizyczny zakres G6
 Oddzielny kontrolowany live INCOMING (human takeover/resume, speech cut, historia) i OUTGOING (autoryzowany IVR i wynik). Historia wcześniejszych A8→S22 nie zamyka tych testów. [Current](../PROJECT.md), [security](../architecture/SECURITY.md).
