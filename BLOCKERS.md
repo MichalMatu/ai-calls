@@ -1,3 +1,9 @@
+## F-164 — G5.3 Host Ops A/B: przekroczony dozwolony idle_timeout (2026-11-09)
+
+**RED:** Mac task `aicalls-g53-all-active-skills-voice-ab-s22-20261109-v1` został formalnie odrzucony z `invalid_task_file: ValueError idle_timeout must be 0..3600, got 6100`. `result.commands=[]` i `started_at=null`: **nie uruchomiono komend, nie instalowano na S22, nie wykonano żadnej inferencji**. Przyczyna: błędnie wygenerowana konfiguracja Host Ops; nie wada APK ani regresja modelu.
+
+**GREEN / Status: VERIFIED_SCOPED.** Niemutowalny v2 `aicalls-g53-all-active-skills-voice-ab-s22-20261109-v2` z `idle_timeout=3000` **DONE/0**: 3×3 syntetyczne tury `ALL_ACTIVE` na fizycznym S22, 18 prywatnych WAV, Call IDLE, APK bez wipe i Git clean. Wcześniejszy Mac `aicalls-g53-skills-mode-ab-mac-qa-20261109-v1` DONE/0 z pełnym host QA/375 Python. Lokalna analiza `aicalls-g53-skills-ab-local-compare-mac-20261109-v1` DONE/0 potwierdziła 18/18 tur obu trybów, WER 0/150, metryki A/B i brak transkryptów w zdalnych raportach. Nie ponawiać zaliczonych testów; RED v1 zachować. [Checkpoint](docs/checkpoints/2026-11-09-g53-skills-ab-latency-s22.md).
+
 ## F-163 — G5.3 końcowa kontrola dokumentacji: zbyt dokładna interpunkcja Markdown (2026-11-09)
 
 **RED / źródło:** niemutowalny task Mac `aicalls-g53-private-voice-final-docsync-mac-20261109-v1`. Komenda 1 zakończyła się `0`, synchronizacja `main@96cc0f8` czysta; komenda 2 potwierdziła obecność wszystkich 10 plików, ale niepowiązana asercja oczekiwała literalnego `**F-162 VERIFIED_SCOPED**`, podczas gdy prawidłowa treść checkpointu to `**F-162 VERIFIED_SCOPED.**`. To **fałszywy RED sprawdzacza**, nie usterka funkcjonalna ani brak dowodu F-162. Komenda 3 nie została uruchomiona po FAIL komendy 2.

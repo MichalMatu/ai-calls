@@ -1,5 +1,9 @@
 # AI Calls — jeden plan realizacji: od modelu do autonomicznej rozmowy
 
+## G5.3 — Skills A/B 6 sesji, native reuse i latencja: S22_TECHNICAL_PASS, HUMAN_OPEN (2026-11-09)
+
+**CONTEXTUAL vs ALL_ACTIVE** na S22: 3 sesje ×3 tury na wariant = **18/18 PASS**, 36 prywatnych WAV, STT WER 0/150 syntetycznych słów, korekta dnia pamiętana w każdym przebiegu. Mediany pełnej odpowiedzi (tury 1/2/3) **CONTEXTUAL 42,6/26,8/13,0 s**, **ALL_ACTIVE 23,0/10,0/9,0 s**; w drugiej turze −62,6%. Natywne `conversation_reused` = `false,false,true` vs `false,true,true` i mediana model + aprobata tury 2 = **17,6 vs 2,8 s**. Odpowiedzi ALL_ACTIVE w turach 2/3 są nawet dłuższe; to niewielkie porównanie dwóch strategii i różnej treści promptu, nie przyczynowy benchmark ani p95. Mac full QA/375 Python i S22 no-wipe/Call IDLE/clean PASS. Pierwszy host task preflight v1 odrzucony bez komend przez `idle_timeout>3600` (F-164 VERIFIED_SCOPED), v2 pełny PASS. **Human quality ośmiu wymiarów nadal UNASSESSED; nie zmieniać trybu produkcyjnego, G6 nieuruchomione.** Lokalny indeks: `~/Library/Application Support/ai-calls/qa/g53-private/skills-ab-index.html`. [Checkpoint](checkpoints/2026-11-09-g53-skills-ab-latency-s22.md).
+
 **English-first / przyszła komercjalizacja (research-only):** modele do sprawdzenia, w tym LFM2.5 Audio/Instruct, Granite, Phi, Qwen, Moonshine Streaming, Parakeet, Kokoro i Pocket TTS, oraz ryzyka Android/Google Play/licencje/VoIP są zapisane w [shortliście modeli i commercial readiness](ENGLISH_MARKET_MODEL_SHORTLIST_2026-11-09.md). Gemma 4 E2B pozostaje główna. Ten backlog nie zmienia bieżącej bramki G5.3 → G6 → G7, profilu, kodu ani statusów QA.
 
 Data decyzji: 2026-11-09. Właściciel zaakceptował, że **model językowy jest głównym prowadzącym rozmowę**, a Agent Skills dostarczają mu kompetencje, pamięć roboczą i typowane propozycje narzędzi. Aplikacja, nie model ani Skill, egzekwuje autoryzację, ujawnianie faktów, własność Call, STOP i skutki zewnętrzne.

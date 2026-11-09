@@ -1,5 +1,9 @@
 # Security and privacy
 
+## G5.3 — izolacja testowego porównania trybów Skills
+
+AndroidTest wybiera `ALL_ACTIVE` wyłącznie po jawnym argumencie `g53_skills_mode=ALL_ACTIVE`, domyślnie `CONTEXTUAL`. `AndroidSkillLabSessionFactory` i `LocalSpeechTextPipeline` pozostają tym samym współdzielonym runtime. W `ALL_ACTIVE` nie ma dynamicznego routera, dlatego `G53PrivateAudioEvidence` zapisuje `routing_observed=false`, nie wymyśla aktywacji/dezaktywacji; `skills_loading_mode` w prywatnym manifeście identyfikuje wariant. Bez surowego audio/transkryptu w GitHub/logcat/Local Agent. E2B nadal domyślny, bez zmian tożsamości, telefonii i grantów. Fizyczny S22 18/18 tur obu trybów, Mac QA 375 Python; 8 wymiarów human review pozostaje `UNASSESSED`. [Checkpoint](checkpoints/2026-11-09-g53-skills-ab-latency-s22.md).
+
 ## G5.3 — prywatny korpus S22 i jakość: OFFCALL_EVIDENCE_PASS, HUMAN_REVIEW_OPEN (2026-11-09)
 
 **3 niezależne sesje × 3 syntetyczne tury = 9/9 PASS; 18 prywatnych WAV**, pełne STT/approved E2B i metryki RX/TX na Mac (0700/0600), lokalny `index.html` z trzema stronami do odsłuchu i ośmioma ocenami `UNASSESSED`. **STT 0/75 błędów syntetycznych słów, WER/CER 0.000**; mediany całego STT→E2B→TTS po pozycji **42.6/26.8/13.0 s** (n=3, *nie p95*). Natywny LiteRT tworzy Engine w turze 1 i Conversation ponownie w turze 2 po zmianie Skills; dopiero tura 3 `conversation_reused=true`. Mac pełne QA i 375 Python PASS, S22 IDLE/profil/no-wipe/clean. F-162 błędne API argumentów testu RED→GREEN `VERIFIED_SCOPED`. **Human naturalness/factuality nadal UNASSESSED; G5.3 nie zamknięty i G6 NOT_RUN.** [Checkpoint](checkpoints/2026-11-09-g53-private-voice-quality-corpus-latency.md).
