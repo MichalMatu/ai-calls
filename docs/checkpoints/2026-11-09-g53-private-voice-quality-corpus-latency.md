@@ -38,6 +38,10 @@ Mediany czasu STT po pozycji: **4395 / 5898 / 5121 ms**. Od STT do zatwierdzonej
 
 **Natywne 9/9 kompletne `AiCallBridgePerf`:** w każdej sesji `conversation_reused=false,false,true`, `conversation_turn=1,1,2`. Silnik tworzy się w turze 1 (**9.0–15.6 s**), Conversation w turach 1 i 2 (**3.0–4.1 s**), a dopiero trzecia używa istniejącej Conversation bez kosztu ponownego tworzenia. Natywne `generate_ms` w poszczególnych sesjach: **[18382,13175,4617]**, **[17249,13581,3630]**, **[19861,24996,5764]**. Tura 2 odświeża Skills i Conversation, ale samo generowanie też bywa wolne: konieczny oddzielny eksperyment optymalizacyjny bez wyłączania dynamicznych Skills na ślepo. Żadnego rzetelnego p95 z n=3.
 
+## Końcowa walidacja dokumentacji — historia QA
+
+`aicalls-g53-private-voice-final-docsync-mac-20261109-v1` miał `DONE/0` tylko w kroku synchronizacji; celowany dokumentacyjny krok 2 zakończył się `FAILED` przez wyłącznie zbyt dokładny matcher interpunkcji statusu `F-162` (F-163). Żaden dodatkowy test S22/produktu nie był uruchamiany. Nowy odrębny Mac receipt ma zweryfikować dokumenty po naprawie samej asercji.
+
 ## Pozostały zakres i pojedynczy następny krok
 **Human quality = OPEN/UNASSESSED.** Na lokalnym Macu otworzyć `index.html`, odsłuchać trzy sesje i w każdej zaznaczyć osiem ocen z dowodem konkretnej tury. Nie wolno automatycznie uznać poprawności znaczenia/naturalności na podstawie WER, JSON, asercji `wtor` ani własnych odpowiedzi badanego modelu. Następnie zapisać prywatny JSON recenzji i dopiero rozstrzygnąć G5.3. Odrębna praca może skontrolować opóźnienie cold/refresh/warm; nie zaczynać G6 bez osobnego rzeczywistego grantu i odbioru. Nie kopiować korpusu z Mac/S22 do Git.
 
