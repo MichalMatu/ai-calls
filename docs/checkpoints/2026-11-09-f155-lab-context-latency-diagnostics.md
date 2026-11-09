@@ -22,6 +22,12 @@ W tej krótkiej porównywalnej próbie **różnica 2048–4096 nie tłumaczy wzr
 
 ## QA i granice
 
-Stan przy utworzeniu checkpointu: źródło `main@1a30d0aa48d6f58cab682cd265bb916988f8eb99`; **Mac gate i instalacja S22 w przygotowanym tasku `aicalls-f155-lab-model-diagnostics-mac-gate-20261109-v1` — oczekują na dokładny receipt**. F-155 **FIXED_IN_SOURCE/DEVICE_QA_PENDING**, nie nazywać zmian UI VERIFIED bez pełnego Mac i prawdziwego S22 po instalacji. Baseline 4/4 realnych tur GPU PASS, osobne dowody już zamkniętych F-150–154 pozostają ważne.
+Kod implementacji `main@1a30d0aa48d6f58cab682cd265bb916988f8eb99`, bez zmian w połączeniach i profilach. **Pełny Mac quality gate** `aicalls-f155-lab-model-diagnostics-mac-gate-20261109-v1` **DONE/0**: `scripts/verify_host.sh` PASS, Gradle/JVM/AndroidTest/lint/Python/audio PASS, audyt friction PASS, Mac clean. SHA256 APK aplikacji: `5d01b2b5a9b4fd09d890c9f0773410590a22620b4af920e25fc23664c3a41735`, AndroidTest: `927c9cace8666209f47946d26c23a93dd2d03b26dc3cb9a7074b4e2fd4943750`.
+
+**Physical S22** `aicalls-f155-lab-diagnostics-s22-physical-20261109-v1` **DONE/0**: kontrola dokładnego SM-S906B, Call IDLE i brak kampanii; instalacja obu wyżej przypiętych APK przez `adb install -r -t` **bez wipe**. `AndroidLabModelDiagnosticsNativeTest` **1/1 PASS**: w GUI wybrano 2048, uruchomiono realną E2B, widoczny model `GEMMA_4_E2B`, budżet 2048 i backend GPU; test przywrócił pierwotną preferencję. `AndroidSkillPresetMatrixTest` **2/2 PASS**, `AndroidLabManualNativeOfflineTest` **1/1 PASS**; suma **4/4 PASS**. Telefon IDLE po, brak eksportu treści, Mac clean.
+
+Nowy natywny log po instalacji potwierdził przy 2048 pierwsza tura: engine 5641 ms, conversation 1433 ms, generate 6397 ms, GPU; przy 4096 pierwsza: engine 6433 ms, conversation 1852 ms, generate 8408 ms, a kolejna przy zachowanym kontekście **3437 ms**. To kolejne potwierdzenie zimnego vs ciepłego toru, nie wystarczające N=3/p95 ani pomiar całej rozmowy z TTS.
+
+**F-155 VERIFIED / MAC+S22 PASS.** Baseline 4/4 i nowy odbiór 4/4 realnych testów są oddzielne; nie interpretować jako osiem niezależnych prób wydajności. Otwarta pozostaje niezależna ocena długiego kontekstu F-148, budżet 8192 na S22, E4B i funkcjonalne SKILL-01/02/03.
 
 Nie podnoszono domyślnego budżetu Call, nie używano 8192 i E4B w tej próbie; przy 8192 należy najpierw sprawdzić pamięć. W następnym kroku funkcjonalnym wrócić do `SKILL-01/02/03` i oceny rzeczywistego wpływu edytowanych instrukcji.
