@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.CheckBox
@@ -264,11 +265,15 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
 
             val enabledHasKeyword = enabledReply.text.contains(keyword, ignoreCase = true)
             val disabledHasKeyword = disabledReply.text.contains(keyword, ignoreCase = true)
-            println("S22_SKILLS_GEMMA_ACTIVE_MARKER_PRESENT=$enabledHasKeyword" +
-                ";INACTIVE_MARKER_PRESENT=$disabledHasKeyword" +
-                ";ACTIVE_MS=" + enabledReply.elapsedMs +
-                ";INACTIVE_MS=" + disabledReply.elapsedMs +
-                ";MODEL=E2B;CONTEXT=4096;NO_CALL=True")
+            val privacySafeMetrics = "active_marker=$enabledHasKeyword" +
+                ";inactive_marker=$disabledHasKeyword" +
+                ";active_elapsed_ms=" + enabledReply.elapsedMs +
+                ";inactive_elapsed_ms=" + disabledReply.elapsedMs +
+                ";active_output_chars=" + enabledReply.text.length +
+                ";inactive_output_chars=" + disabledReply.text.length +
+                ";model=E2B;context=4096;no_call=true"
+            Log.i("AiCallSkillsQA", privacySafeMetrics)
+            println("S22_SKILLS_GEMMA_" + privacySafeMetrics)
             assertTrue("native_model_ignored_active_skill", enabledHasKeyword)
             assertFalse("native_model_leaked_inactive_skill", disabledHasKeyword)
         }
