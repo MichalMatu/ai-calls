@@ -74,7 +74,7 @@
 | CAMP-02 | Dwa tryby: skrypt + model oraz model Direct; prawidłowa konfiguracja/wybrany model | NOT_RUN w Call |
 | CAMP-03 | Zgoda na przyszły zapis vs zatrzymanie aktywnego rejestratora, wycofanie zgody | BLOCKED dla aktywnego rejestratora: F-122 |
 | CAMP-04 | Ponowienie, odwołanie, zakończenie, zgodność attemptId / sesji z rzeczywistym Android Call | BLOCKED częściowo: F-123 |
-| CALL-01 | Ekran sterowania własną rozmową, przyjęcie/rozłączenie/przejęcie/STOP bez obcego Call | NOT_RUN fizycznie |
+| CALL-01 | Ekran sterowania własną rozmową, przyjęcie/rozłączenie/przejęcie/STOP bez obcego Call | **PARTIAL / OFFCALL_DENIAL 3/3 PASS** na S22: prawdziwy USB CLI odrzucił takeover, resume i stop-owned przy Call IDLE / brak tracked Call (`aicalls-onepass-s22-usb-call-negatives-skills-ab-20261109-v1`). Pozytywne działanie podczas oddzielnie autoryzowanego Call **NOT_RUN**. |
 | CALL-02 | Połączenia przychodzące: tryb manual/AI, powrót właściciela i polityka ciszy | NOT_RUN end-to-end; istnieją testy jednostkowe/Android |
 
 ## 2. Historia
@@ -90,9 +90,9 @@
 ## 3. Agent AI — Skills, scenariusze, przygotowanie, Sejf, Narzędzia
 | ID | Funkcja / kryterium | Stan i dowód |
 |---|---|---|
-| SKILL-01 | Presety: wybór, aktywacja, włączenie/wyłączenie Skills i wpływ na wygenerowaną wypowiedź | NOT_RUN funkcjonalnie |
-| SKILL-02 | Instrukcja: edycja, walidacja, wersje/rewizje, zapisz/przywróć, brak wpływu nieaktywnej instrukcji | **PARTIAL / PASS_DEVICE_FUNCTIONAL backend** — isolated AndroidTest `aEncryptedEditVersionSwitchAndRollbackInIsolatedStore` 1/1 S22 PASS; pełny edytor UI, wpływ na odpowiedź i walidacja użytkownika NOT_RUN. |
-| SKILL-03 | Własne umiejętności, warunki użycia i separacja stanów pomiędzy presetami | NOT_RUN |
+| SKILL-01 | Presety: wybór, aktywacja, włączenie/wyłączenie Skills i wpływ na wygenerowaną wypowiedź | **PARTIAL DEVICE_NATIVE_PASS**: trzy fabryczne presety `natural/formal/message`, prawdziwy E2B 4096, 3×2 = **6/6 tur**, 3/3 proste przypomnienie kodu, STOP i prywatny zapis. Fizyczna aktywacja/wyłączenie Skills w GUI i wykazany wpływ zmienionej instrukcji na odpowiedź **NOT_RUN**. [Checkpoint](checkpoints/2026-11-09-single-pass-ui-usb-ai-skills-acceptance.md). |
+| SKILL-02 | Instrukcja: edycja, walidacja, wersje/rewizje, zapisz/przywróć, brak wpływu nieaktywnej instrukcji | **PARTIAL / DEVICE_COMPONENT 2/2 PASS**: AndroidTest isolated encrypted version edits, rollback 1/1 oraz locale-independent Skills/Lab controls i brak mutacji presetu 1/1 (`aicalls-onepass-f154-locale-independent-skills-green-20261109-v2`), F-154 VERIFIED. Rzeczywisty UI edit/save/reopen i wpływ instrukcji na odpowiedź LLM **NOT_RUN**. |
+| SKILL-03 | Własne umiejętności, warunki użycia i separacja stanów pomiędzy presetami | **PARTIAL**: trzy fabryczne presety fizycznie 3×2 tury PASS; własne Skills, warunki użycia i przełączenie/izolacja instrukcji przy prawdziwej Gemmie **NOT_RUN**. |
 | SCEN-01 | Fabryczne scenariusze: przegląd i poprawne oznaczenie DRAFT_ONLY vs wykonawcze | NOT_RUN |
 | SCEN-02 | Własny scenariusz: kopia, nazwa, cel, zapis, rewizje, przywrócenie, usunięcie fixture | **PARTIAL / PASS_DEVICE_FUNCTIONAL backend** — `AndroidPersonalScenarioStoreContractTest` 1/1 na S22 PASS create/revise i zaszyfrowany zapis; UI/przywróć/usuń NOT_RUN. |
 | PREP-01 | Profil OUTGOING/INCOMING: edycja, zapis, wznowienie, niewyciekający kontekst i zakres pól | NOT_RUN |
@@ -115,13 +115,13 @@
 | LAB-DIA-B | Własne przypadki CRUD, wersje, zapis/reload i ręczne wykonanie | **PASS_DEVICE_COMPONENT:** S22 izolowany Keystore CRUD/reopen/revision/report; UI controls test PASS (2/2). Pełny klikany UI CRUD NOT_RUN. |
 | LAB-DIA-C | Ocena każdej tury: temat, pamięć, korekta, brak zmyślania, naturalność i uczciwe NOT_SCORED | **SOURCE/HOST PASS:** manualny rubric per tura i zaszyfrowany raport S22 PASS; prawdziwa semantyczna ocena modelu UNASSESSED / NOT_RUN. |
 | LAB-DIA-D | Adaptacyjny rozmówca zależny od odpowiedzi modelu, ślad gałęzi, człowiek przejmuje | **PASS_DEVICE_FUNCTIONAL native adaptive:** JVM i S22 realna Gemma 1/1 test wyboru gałęzi na podstawie rzeczywistej odpowiedzi (`aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1`); ślad przejścia. Drugi LLM i takeover bez STOP niezaimplementowane. |
-| LAB-DIA-E | A/B model/Skills + prywatne STT/TTS/PCM, bez Call i efektów | **PASS_HOST A/B REPORT / PARTIAL DEVICE:** wybór modelu/Skills, realny text S22 PASS. Faktyczne porównanie modeli/Skills N=3 i polskie STT/TTS/PCM NOT_RUN / F2. |
+| LAB-DIA-E | A/B model/Skills + prywatne STT/TTS/PCM, bez Call i efektów | **PARTIAL / DEVICE_PRESETS 3/3 PASS**: realna E2B 4096, 3 presety po 2 tury, prosta pamięć 3/3; bez osobnych danych właściciela. Nie wykonano porównania różnych modeli, powtórzeń N=3 na preset ani pełnego STT→Skills→TTS/PCM. |
 | LAB-01 | Preset/model, nowa sesja, ręczny composer, edytor przypadków, poprawny stan podczas pracy | **PASS_UI_CONTROLS (S22 1/1) + PASS_NATIVE_OFFCALL 1/1**; fizyczny całkowity workflow ręcznego edytora przez ekran NOT_RUN. |
 | LAB-02 | Prawdziwy lokalny model: 2 kolejne tury, odpowiedź i kryteria końca bez Telecom | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1` |
 | LAB-03 | STOP w trakcie, stan STOPPED, brak dalszych tur, ponowny START | PASS_OFFCALL_FUNCTIONAL — ten sam receipt, tylko izolowane dwie tury i restart/STOP |
 | LAB-04 | Timeline podczas długiego biegu, ręczny scroll w górę, auto-follow na dole, widoczne błędy | SOURCE/HOST PASS `992280b` oraz **S22 AndroidTest layout 1/1 PASS** w grupie 2/2 (`aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1`): transcript zachowuje wysokość, composer jest widoczny; pełny długi wizualny scroll/auto-follow i błędy **PARTIAL/NOT_RUN**. |
 | LAB-05 | Metryki, zgodność celu, odpowiedzi błędne/puste, timeout, ocena naturalności | NOT_RUN |
-| LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | **PARTIAL:** wersjonowane własne testy i raport tur PASS_HOST; N=3, fizyczne A/B/p95 NOT_RUN. |
+| LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | **PARTIAL / S22 THREE_PRESETS 3/3 PASS** (2 tury per preset, 3/3 recall heuristic; średnio natural 23151 ms, formal 17486 ms, message 16807 ms). N=3, p95, własne Skills, testy wpływu instrukcji i ocena semantyczna **NOT_RUN**. |
 
 ## 5. Modele i silniki audio
 | ID | Funkcja / kryterium | Stan i dowód |
