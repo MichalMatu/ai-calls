@@ -19,7 +19,7 @@ class DeveloperFastGateTests(unittest.TestCase):
 
     def test_single_script_runs_only_matching_test(self):
         tasks, py, shell, escalation = select(["scripts/aicall_tools/diagnostics/g53_human_review_gate.py"], ROOT)
-        self.assertEqual(py, ["tests.test_g53_human_review_gate"])
+        self.assertEqual(py, ["scripts.tests.test_g53_human_review_gate"])
         self.assertFalse(tasks or shell or escalation)
 
     def test_unmapped_script_fails_safe(self):
@@ -28,8 +28,12 @@ class DeveloperFastGateTests(unittest.TestCase):
 
     def test_test_file_runs_just_test_module(self):
         _, py, _, issues = select(["scripts/tests/test_g53_private_audio_review.py"], ROOT)
-        self.assertEqual(py, ["tests.test_g53_private_audio_review"])
+        self.assertEqual(py, ["scripts.tests.test_g53_private_audio_review"])
         self.assertFalse(issues)
+
+    def test_new_dev_gate_has_explicit_self_test(self):
+        self.assertEqual(paired_python_test("scripts/aicall_tools/diagnostics/dev_change_gate.py", ROOT),
+                         "scripts.tests.test_development_fast_gate")
 
     def test_instrumented_tests_deferred(self):
         tasks, py, shell, issues = select(["app/src/androidTest/Trial.kt"])
@@ -42,7 +46,7 @@ class DeveloperFastGateTests(unittest.TestCase):
     def test_shell_hook_and_test_script_have_small_gate(self):
         _, py, shell, issues = select(["scripts/bin/test-profile.sh"], ROOT)
         self.assertEqual(shell, ["scripts/bin/test-profile.sh"])
-        self.assertEqual(py, ["tests.test_verify_host_layout", "tests.test_development_fast_gate"])
+        self.assertEqual(py, ["scripts.tests.test_verify_host_layout", "scripts.tests.test_development_fast_gate"])
         self.assertFalse(issues)
 
     def test_packaging_only_explicit_profile(self):

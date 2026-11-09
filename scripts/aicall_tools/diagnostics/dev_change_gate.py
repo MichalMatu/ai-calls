@@ -20,7 +20,9 @@ BUILD_FILES = {"gradlew", "gradlew.bat", "gradle.properties", "build.gradle.kts"
 def paired_python_test(path: str, root: Path = Path(".")) -> str | None:
     if path.startswith("scripts/tests/") and path.endswith(".py"):
         relative = path[len("scripts/"):]
-        return relative[:-3].replace("/", ".") if Path(path).name.startswith("test_") else None
+        return "scripts." + relative[:-3].replace("/", ".") if Path(path).name.startswith("test_") else None
+    if path == "scripts/aicall_tools/diagnostics/dev_change_gate.py":
+        return "scripts.tests.test_development_fast_gate"
     if not path.startswith("scripts/aicall_tools/") or not path.endswith(".py"):
         return None
     relative = path[len("scripts/aicall_tools/"):]
@@ -30,11 +32,11 @@ def paired_python_test(path: str, root: Path = Path(".")) -> str | None:
     parts[-1] = "test_" + parts[-1]
     candidate = root / "scripts" / "tests" / Path(*parts)
     if candidate.is_file():
-        return "tests." + ".".join(parts)[:-3]
+        return "scripts.tests." + ".".join(parts)[:-3]
     if len(parts) > 1:
         fallback = root / "scripts" / "tests" / parts[-1]
         if fallback.is_file():
-            return "tests." + parts[-1][:-3]
+            return "scripts.tests." + parts[-1][:-3]
     return None
 
 
@@ -73,7 +75,7 @@ def select(paths: list[str], root: Path = Path(".")) -> tuple[list[str], list[st
                 if path not in shell:
                     shell.append(path)
                 # Tooling may affect shared execution; preserve focused contract.
-                for module in ("tests.test_verify_host_layout", "tests.test_development_fast_gate"):
+                for module in ("scripts.tests.test_verify_host_layout", "scripts.tests.test_development_fast_gate"):
                     if module not in python:
                         python.append(module)
             elif path.endswith(".md"):
