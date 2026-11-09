@@ -185,12 +185,16 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
             if heading not in source:
                 errors.append(f"docs/PROJECT.md: missing current state section: {heading}")
 
-    # Compare substantive paragraphs only. Repeated terminology is not duplication.
-    for i, (left_path, left_line, left) in enumerate(paragraphs):
-        for right_path, right_line, right in paragraphs[i + 1:]:
+    # Compare words rather than individual characters. This preserves near-duplicate
+    # detection but avoids quadratic character matching on long/repeated paragraphs.
+    tokenized = [(path, line, text, text.split()) for path, line, text in paragraphs]
+    for i, (left_path, left_line, left, left_words) in enumerate(tokenized):
+        for right_path, right_line, right, right_words in tokenized[i + 1:]:
             if abs(len(left) - len(right)) > max(len(left), len(right)) * 0.10:
                 continue
-            if left == right or SequenceMatcher(None, left, right, autojunk=False).ratio() >= NEAR_DUPLICATE_RATIO:
+            if left == right or SequenceMatcher(
+                None, left_words, right_words, autojunk=False
+            ).ratio() >= NEAR_DUPLICATE_RATIO:
                 errors.append(
                     f"{right_path}:{right_line}: duplicate prose paragraph from "
                     f"{left_path}:{left_line}; keep one canonical explanation"
