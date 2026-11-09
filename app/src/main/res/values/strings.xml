@@ -622,4 +622,9 @@
     <string name="camp_ux06_live_waiting">AI w aplikacji: zadanie czeka na zwolnienie telefonu. Nie wykonuje nowego połączenia.</string>
     <string name="camp_ux06_live_attempt">AI w aplikacji: próba realizowana; może trwać wybieranie lub rozmowa. Wynik niepotwierdzony.</string>
     <string name="camp_ux06_live_supervised">AI w aplikacji: nadzorowany test audio uruchamiany lub aktywny; brak nowego wybierania numeru.</string>
+    <string name="lab_skill_mode_label">Ładowanie Agent Skills (tylko Laboratorium)</string>
+    <string name="lab_skill_mode_all">Wszystkie aktywne Skills (bazowy prompt)</string>
+    <string name="lab_skill_mode_contextual">Wybór kontekstowy (eksperymentalny)</string>
+    <string name="lab_skill_mode_hint">Wybór raz przy starcie sesji. STOP i autoryzacja pozostają bez zmian.</string>
+    <string name="lab_skill_routing_result">Wybrane Skills: %1$d/%2$d; selektor: %3$d µs. Wybór dotyczy całej sesji.</string>
 </resources>

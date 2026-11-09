@@ -50,6 +50,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var sessionFactory: AndroidSkillLabSessionFactory
     private lateinit var modelLabel: TextView
     private lateinit var contextBudgetInput: EditText
+    private lateinit var skillModePicker: Spinner
+    private lateinit var skillRoutingView: TextView
     private lateinit var diagnosticsView: TextView
     private val timingMeasurements = mutableListOf<NativeModelTiming>()
     private var diagnosticRunId = 0L
@@ -115,6 +117,21 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(contextBudgetInput, UiDesign.spaceAfter(this, 4))
         content.addView(UiDesign.caption(this, getString(R.string.lab_context_hint)),
             UiDesign.spaceAfter(this, 10))
+        val savedSkillMode = getSharedPreferences("lab-diagnostics", MODE_PRIVATE)
+            .getString("skill_loading_mode", SkillLoadingMode.ALL_ACTIVE.name)
+        content.addView(UiDesign.caption(this, getString(R.string.lab_skill_mode_label)),
+            UiDesign.spaceAfter(this, 4))
+        skillModePicker = Spinner(this).apply {
+            tag = "lab-skill-mode"
+            UiSelect.setOptions(this, listOf(
+                getString(R.string.lab_skill_mode_all),
+                getString(R.string.lab_skill_mode_contextual)))
+            setSelection(if (savedSkillMode == SkillLoadingMode.CONTEXTUAL.name) 1 else 0)
+        }
+        content.addView(skillModePicker, UiDesign.spaceAfter(this, 4))
+        skillRoutingView = UiDesign.caption(this, getString(R.string.lab_skill_mode_hint))
+            .apply { tag = "lab-skill-routing-diagnostics" }
+        content.addView(skillRoutingView, UiDesign.spaceAfter(this, 10))
         content.addView(UiDesign.caption(this, getString(R.string.lab_case_select)),
             UiDesign.spaceAfter(this, 6))
         casePicker = Spinner(this).apply { tag = "lab-case-picker" }
@@ -461,8 +478,21 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         val test = chosen?.selected()
         sessionFactory.selectedCase = test
         sessionFactory.contextTokenBudget = budget
+        val loadingMode = if (skillModePicker.selectedItemPosition == 1)
+            SkillLoadingMode.CONTEXTUAL else SkillLoadingMode.ALL_ACTIVE
+        sessionFactory.skillLoadingMode = loadingMode
         // Snapshot one observer per session, rejecting late telemetry from a stopped run.
         val thisRun = ++diagnosticRunId
+        skillRoutingView.text = getString(R.string.lab_skill_mode_hint)
+        sessionFactory.onSkillSelection = { decision ->
+            runOnUiThread {
+                if (!isDestroyed && thisRun == diagnosticRunId) {
+                    skillRoutingView.text = getString(R.string.lab_skill_routing_result,
+                        decision.selectedIds.size, decision.availableCount,
+                        decision.selectorMicros)
+                }
+            }
+        }
         sessionFactory.onTiming = { timing ->
             runOnUiThread {
                 if (!isDestroyed && thisRun == diagnosticRunId) {
@@ -480,7 +510,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }.getOrElse { showError(it.message.orEmpty()); return }
         if (!started) return
         getSharedPreferences("lab-diagnostics", MODE_PRIVATE).edit()
-            .putInt("context_tokens", budget).apply()
+            .putInt("context_tokens", budget)
+            .putString("skill_loading_mode", loadingMode.name).apply()
         activeReportId = UUID.randomUUID().toString()
         reportSaved = false
         activeCaseId = chosen?.id

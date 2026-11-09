@@ -23,6 +23,8 @@ internal class AndroidSkillLabSessionFactory(
         }
     @Volatile var onTiming: (NativeModelTiming) -> Unit = {}
     @Volatile var selectedCase: LabCaseRevision? = null
+    @Volatile var skillLoadingMode: SkillLoadingMode = SkillLoadingMode.ALL_ACTIVE
+    @Volatile var onSkillSelection: (SkillRoutingDecision) -> Unit = {}
     companion object {
         private val activeLabBackend = AtomicBoolean(false)
     }
@@ -34,16 +36,23 @@ internal class AndroidSkillLabSessionFactory(
         val store = SkillLabIsolatedTestStore.forContext(context)
         val library = store.loadSkillLibrary()
         val selected = selectedCase
+        val modeSnapshot = skillLoadingMode
+        val routingObserver = onSkillSelection
         val initial = when (selected?.role ?: LabRole.GENERAL) {
             LabRole.INCOMING -> store.load(ConversationPreparation.INCOMING_ID)
             LabRole.OUTGOING -> store.load(ConversationPreparation.OUTGOING_ID)
             LabRole.GENERAL -> ConversationPreparation.supervised()
         }
         // Never include owner's vault references in an offline test prompt.
+        // Routing is a session-start Lab A/B snapshot, not live Call policy.
+        val goal = selected?.goal ?: "Prowadź naturalny dialog testowy. Brak skutków zewnętrznych."
+        val routing = ConversationSkillRouter.route(
+            library.snapshot(presetId), modeSnapshot, initial.direction,
+            goal, selected?.opening.orEmpty())
+        runCatching { routingObserver(routing) } // Diagnostics must never block inferencing.
         val preparation = ConversationPreparation(
             "lab-offline", "Laboratorium", initial.direction,
-            "", initial.skills, emptySet(), library.snapshot(presetId))
-        val goal = selected?.goal ?: "Prowadź naturalny dialog testowy. Brak skutków zewnętrznych."
+            "", initial.skills, emptySet(), routing.snapshot)
         val instruction = ConversationInstructionBuilder.build(
             preparation, goal, ConversationResponseFormat.TOOL_REPLY)
         val provider = DialogueEngineProviders.resolve(profile)

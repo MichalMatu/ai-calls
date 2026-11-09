@@ -621,4 +621,9 @@
     <string name="camp_ux06_live_waiting">AI in app: task waiting for phone idle. No new call is being placed.</string>
     <string name="camp_ux06_live_attempt">AI in app: attempt in progress; may be dialing or talking. Outcome unverified.</string>
     <string name="camp_ux06_live_supervised">AI in app: supervised audio test starting or active; no new number is dialed.</string>
+    <string name="lab_skill_mode_label">Agent Skills loading (Lab only)</string>
+    <string name="lab_skill_mode_all">All active Skills (baseline prompt)</string>
+    <string name="lab_skill_mode_contextual">Contextual selection (experimental)</string>
+    <string name="lab_skill_mode_hint">Selected once at session start. STOP and permissions are unchanged.</string>
+    <string name="lab_skill_routing_result">Selected Skills: %1$d/%2$d; router: %3$d µs. Selection is per session.</string>
 </resources>
