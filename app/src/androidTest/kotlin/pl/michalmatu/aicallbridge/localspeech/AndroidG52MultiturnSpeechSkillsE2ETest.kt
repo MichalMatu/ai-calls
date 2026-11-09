@@ -161,7 +161,13 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         assertNull("g52_invalid_profile", AudioEngineRegistry.incompatibility(original))
         val routing = Collections.synchronizedList(mutableListOf<SkillTurnRoutingDecision>())
         val factory = AndroidSkillLabSessionFactory(context, contextTokenBudget = 4096)
-        factory.skillLoadingMode = SkillLoadingMode.CONTEXTUAL
+        // G5.3 opt-in comparison: default remains identical to G5.2 CONTEXTUAL.
+        val mode = when (InstrumentationRegistry.getArguments().getString("g53_skills_mode")) {
+            null, "", "CONTEXTUAL" -> SkillLoadingMode.CONTEXTUAL
+            "ALL_ACTIVE" -> SkillLoadingMode.ALL_ACTIVE
+            else -> error("g53_unknown_skills_mode")
+        }
+        factory.skillLoadingMode = mode
         factory.onTurnRouting = { routing.add(it) }
         val raw = factory.open("natural").createStoryBackend()
         val effects = AtomicBoolean(false)
@@ -223,33 +229,39 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
             assertTrue("g52_memory_final_day", turns[2].approved.lowercase(
                 Locale.forLanguageTag("pl-PL")).contains("wtor"))
             val decisions = routing.toList()
-            assertEquals("g52_three_routing_events", listOf(1,2,3),
-                decisions.map { it.turn })
-            assertTrue("g52_message_skill_not_activated",
-                decisions[0].activatedIds.contains("MessageCapture"))
-            assertTrue("g52_clarification_skill_not_activated",
-                decisions[1].activatedIds.contains("Clarification"))
-            assertTrue("g52_third_turn_unexpected_refresh",
-                decisions[2].activatedIds.isEmpty() &&
-                    decisions[2].deactivatedIds.isEmpty())
+            if (mode == SkillLoadingMode.CONTEXTUAL) {
+                assertEquals("g52_three_routing_events", listOf(1,2,3),
+                    decisions.map { it.turn })
+                assertTrue("g52_message_skill_not_activated",
+                    decisions[0].activatedIds.contains("MessageCapture"))
+                assertTrue("g52_clarification_skill_not_activated",
+                    decisions[1].activatedIds.contains("Clarification"))
+                assertTrue("g52_third_turn_unexpected_refresh",
+                    decisions[2].activatedIds.isEmpty() &&
+                        decisions[2].deactivatedIds.isEmpty())
+            } else {
+                // ALL_ACTIVE does not create the contextual routing wrapper.
+                assertTrue("g53_all_active_must_not_claim_dynamic_routing",
+                    decisions.isEmpty())
+            }
             assertFalse("g52_tools_must_never_execute", effects.get())
             assertEquals(3, decodedTools.size)
             turns.forEach { assertTrue(it.approved.isNotBlank()) }
             if (evidence != null) {
                 G53PrivateAudioEvidence.save(
                     context, original.dialogue.name, original.input.name,
-                    original.output.name, evidence, decisions,
+                    original.output.name, evidence, decisions, mode,
                 )
                 // Never put even synthetic utterances, replies, WAV, or private paths in logcat.
                 Log.i("AiCallG53Evidence",
-                    "complete=true;turns=" + evidence.size +
+                    "complete=true;skills_mode=" + mode.name + ";turns=" + evidence.size +
                     ";wav_files=" + evidence.size * 2 +
                     ";on_device_private=true;no_call=true")
             }
             Log.i("AiCallG52E2E", "model=E2B;offcall=true;profile_input=" +
                 original.input.name + ";profile_output=" + original.output.name +
                 ";audio_turns=3;route_events=" + decisions.size +
-                ";skills_activated=MessageCapture,Clarification;memory_day_correct=true;" +
+                ";skills_mode=" + mode.name + ";memory_day_correct=true;" +
                 "pcm_bytes_total=" + turns.sumOf { it.pcmBytes } +
                 ";stt_ms=" + turns.joinToString(",") { it.sttMs.toString() } +
                 ";approve_ms=" + turns.joinToString(",") { it.approvalMs.toString() } +

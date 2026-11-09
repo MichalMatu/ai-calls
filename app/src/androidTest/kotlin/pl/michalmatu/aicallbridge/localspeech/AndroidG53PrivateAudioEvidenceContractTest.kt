@@ -11,6 +11,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.conversation.SkillTurnRoutingDecision
+import pl.michalmatu.aicallbridge.conversation.SkillLoadingMode
 
 /** Writer contract only: no model inference, microphone, Telecom, or personal data. */
 @RunWith(AndroidJUnit4::class)
@@ -41,6 +42,8 @@ class AndroidG53PrivateAudioEvidenceContractTest {
             val json = JSONObject(File(saved, "manifest.json").readText())
             assertEquals("g53-synthetic-audio-review-v1", json.getString("schema"))
             assertTrue(json.getBoolean("no_telecom"))
+            assertEquals("CONTEXTUAL", json.getString("skills_loading_mode"))
+            assertTrue(json.getJSONArray("turns").getJSONObject(0).getBoolean("routing_observed"))
             assertEquals(1, json.getJSONArray("turns").length())
             val first = json.getJSONArray("turns").getJSONObject(0)
             assertEquals("Fikcyjny głos", first.getString("stt_final"))
@@ -58,4 +61,26 @@ class AndroidG53PrivateAudioEvidenceContractTest {
             saved.delete()
         }
     }
+    @Test fun allActivePrivateWriterDoesNotInventContextualRouting() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val pcm = ByteArray(6400) { i -> (i % 17).toByte() }
+        val saved = G53PrivateAudioEvidence.save(
+            context, "GEMMA_4_E2B", "ANDROID_STT", "ANDROID_TTS_PL",
+            listOf(G53CapturedAudioTurn("Tylko fikcyjny test", "Tylko fikcyjny test",
+                "Odpowiedź syntetyczna", pcm, pcm, 300, 400, 600)),
+            emptyList(), SkillLoadingMode.ALL_ACTIVE,
+        )
+        try {
+            val manifest = JSONObject(File(saved, "manifest.json").readText())
+            assertEquals("ALL_ACTIVE", manifest.getString("skills_loading_mode"))
+            val first = manifest.getJSONArray("turns").getJSONObject(0)
+            assertFalse(first.getBoolean("routing_observed"))
+            assertEquals(0, first.getJSONArray("activated_skill_ids").length())
+            assertEquals(0, first.getJSONArray("deactivated_skill_ids").length())
+        } finally {
+            saved.listFiles().orEmpty().forEach { it.delete() }
+            saved.delete()
+        }
+    }
+
 }

@@ -10,6 +10,7 @@ import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.conversation.SkillTurnRoutingDecision
+import pl.michalmatu.aicallbridge.conversation.SkillLoadingMode
 
 /** A completed, synthetic off-call turn only. Never read the microphone or a real Call. */
 internal data class G53CapturedAudioTurn(
@@ -38,9 +39,11 @@ internal object G53PrivateAudioEvidence {
         ttsId: String,
         turns: List<G53CapturedAudioTurn>,
         routing: List<SkillTurnRoutingDecision>,
+        mode: SkillLoadingMode = SkillLoadingMode.CONTEXTUAL,
     ): File {
         require(turns.isNotEmpty()) { "g53_empty_corpus" }
-        require(turns.size == routing.size) { "g53_mismatched_routing" }
+        require(if (mode == SkillLoadingMode.CONTEXTUAL) turns.size == routing.size
+            else routing.isEmpty()) { "g53_mismatched_routing" }
         turns.forEach { turn ->
             require(turn.reference.isNotBlank() && turn.transcript.isNotBlank() &&
                 turn.assistant.isNotBlank()) { "g53_blank_speech_text" }
@@ -65,7 +68,7 @@ internal object G53PrivateAudioEvidence {
             val tx = String.format(Locale.US, "turn-%02d-tx.wav", number)
             writeWav(File(dir, rx), turn.sourcePcm)
             writeWav(File(dir, tx), turn.responsePcm)
-            val decision = routing[index]
+            val decision = routing.getOrNull(index)
             list.put(JSONObject()
                 .put("turn", number)
                 .put("reference_utterance", turn.reference)
@@ -76,8 +79,9 @@ internal object G53PrivateAudioEvidence {
                 .put("tts_end_ms", turn.ttsEndMs)
                 .put("rx_wav", rx)
                 .put("tx_wav", tx)
-                .put("activated_skill_ids", JSONArray(decision.activatedIds.sorted()))
-                .put("deactivated_skill_ids", JSONArray(decision.deactivatedIds.sorted())))
+                .put("routing_observed", decision != null)
+                .put("activated_skill_ids", JSONArray(decision?.activatedIds?.sorted().orEmpty()))
+                .put("deactivated_skill_ids", JSONArray(decision?.deactivatedIds?.sorted().orEmpty())))
         }
         val record = JSONObject()
             .put("schema", SCHEMA)
@@ -90,6 +94,7 @@ internal object G53PrivateAudioEvidence {
             .put("sample_rate_hz", SAMPLE_RATE)
             .put("pcm_format", "pcm_s16le_mono")
             .put("skills_preset", "natural")
+            .put("skills_loading_mode", mode.name)
             .put("turns", list)
         // Manifest is the completion marker; incomplete sessions are never review-ready.
         val partial = File(dir, "manifest.partial")
