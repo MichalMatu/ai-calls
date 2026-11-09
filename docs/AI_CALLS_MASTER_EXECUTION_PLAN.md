@@ -1,5 +1,14 @@
 # AI Calls — jeden plan realizacji: od modelu do autonomicznej rozmowy
 
+## G6 FAST FLOW — źródło i host QA po dużym sprincie (2026-11-09)
+
+**Pre-sprint main:** `851cbe01b23f7f312f19fe0646823b49bc6df975`. **Code freeze:** `2bd841130ec2ca7b48172b5e676d0e900ee943fc`. Wspólny INCOMING/OUTGOING nie został przepisany: naprawiono reentrantne takeOver/STOP/exclusive w koordynatorze, wyścig Realtime barge-in/final-TX, sekwencyjne odtwarzanie dostępnych prywatnych WAV RX/TX w porządku czasu oraz odczyt wyniku zakończenia i przerwanych RX. Dodano odseparowany, testowany kontrakt IVR/DTMF dla przyszłego **dokładnie autoryzowanego** OUTGOING; jeszcze nie podłączony do Telecom. Samsung/Shizuku, Gemma E2B, Skills, STT/TTS, grant, recorder i CallCommitmentGate bez zmian.
+
+**Mac DONE/0:** `aicalls-g6-sprint2-fast-auto-mac-20261109-v1` = `auto 851cbe0` PASS; osobne focused testy barge-in, IVR (11 testów), archive outcome PASS. **Jeden finalny full host QA** `aicalls-g6-sprint6-once-final-host-qa-20261109-v1` DONE/0: unit/lint, 398 Python, audio/security/preflight, Gradle 147 actions = 11 wykonanych + 136 UP-TO-DATE, configuration cache reused, działający daemon, Git clean. Bez `device-build`, APK, ADB i fizycznych połączeń. Nie powtarzano G3/G5.3/hardware STOP. F-171–176 w `BLOCKERS.md`.
+
+**Fizyczne G6 nadal OPEN:** lokalna E2B true barge-in przy TX, INCOMING manual takeover/resume i continuous audio (F-080), realny OUTGOING/IVR DTMF adapter i typowany wiarygodny outcome, niezależnie udowodnione rezerwacje. Wymaga oddzielnego autoryzowanego zadania i IDLE S22; nie instalowano APK. 0/6 indywidualnych human review nadal UNASSESSED. Źródła zewnętrzne wykorzystano jako wzorce, **bez kopiowania kodu**. [Checkpoint](checkpoints/2026-11-09-g6-fast-sprint-code-and-host-qa.md).
+
+
 ## Fast development — incremental tests and deployment-only APK (2026-11-09)
 
 **Default in the single-track sprint:** `bash scripts/bin/test-profile.sh auto <verified-pre-sprint-SHA>`. It runs only tests of changed code paths and static preflight, **not** Android APK packaging. Docs-only changes skip Gradle. Small code changes may compile unit-test classes; use `focus <module> '<test-class-filter>'` for a known single test, `changed <module>` for module regression. Explicit `full` once at milestone, without APK packaging; explicit `device-build` **immediately before** authorized S22 install. Preserve warm Gradle daemon/build/config caches; no forced `--no-daemon`. Optional local `hooks-enable` is cheap and never compiles; GitHub Connector bypasses it, so host QA must be requested. Unknown paths fail with scope escalation rather than full suite. Keep all previous G3/G5 receipts. [Runbook](../scripts/README.md), F-170 ledger.

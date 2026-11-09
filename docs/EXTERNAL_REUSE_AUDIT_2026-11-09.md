@@ -1,5 +1,10 @@
 # AI Calls — audyt gotowych rozwiązań do G6 (materiał do JEDNEGO planu)
 
+## G6.1/G6.2 — wykonany zakres reuse (2026-11-09)
+
+Porównano konkretne `pipecat-ai/pipecat/src/pipecat/turns/speculation_gate.py` i `user_turn_controller.py` (HOLD/DROP, anulowanie tur), `agent-next/call-use/call_use/models.py` i `tests/test_bdd_call_lifecycle.py` (typed outcomes, idempotent cancel, takeover/resume) z istniejącym Kotlin. Dodano **autorski kod**, bez przenoszenia obcych fragmentów: atomowy barge-in/response release `CallRealtimeAudioPump`, reentrantne stany `IncomingAssistantCoordinator`, `OutgoingIvrDtmfGate` i prywatną oś czasu nagrań. Pipecat BSD-2-Clause / call-use MIT: wzorce, kodu źródłowego nie kopiowano; Clinic bez potwierdzonej licencji oraz DeskRoute AGPL = wyłącznie idee; LiveKit Apache-2.0 SIP/VoIP odroczony. Zewnętrzne źródła nie są częścią APK i nie wymagają nowego runnera. [Dowód i granice](checkpoints/2026-11-09-g6-fast-sprint-code-and-host-qa.md).
+
+
 Stan źródłowy: AI Calls main@cbbfba889f14426d80579e723f55f31dc8b48546 (2026-11-09). Dokument jest **analizą/rejestrem importu**, nie alternatywną roadmapą. Jedyną kolejnością wykonawczą pozostaje [AI_CALLS_MASTER_EXECUTION_PLAN](AI_CALLS_MASTER_EXECUTION_PLAN.md). Realizacja i priorytety mogą się zmienić wyłącznie po sprawdzeniu świeżego HEAD oraz aktualnego handoffu.
 
 ## Decyzja architektoniczna
