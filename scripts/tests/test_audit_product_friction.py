@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from aicall_tools.diagnostics.audit_product_friction import audit
+from scripts.aicall_tools.diagnostics.audit_product_friction import audit
 
 
 ROOT = Path(__file__).resolve().parents[2]
