@@ -1,3 +1,11 @@
+## F-156 — prawdziwa Gemma E2B nie wykonała aktywnej instrukcji własnego Skill (2026-11-09)
+
+**Ścieżki:** `ConversationSkillsActivity` → `ConversationSkillLibrary` → `AndroidSkillLabSessionFactory.open` → `ConversationInstructionBuilder.build` → `LiteRtGemma4Runtime`. **Warunek:** aktywny syntetyczny `ConversationStyle` v3 wymagał słowa `KASZTAN` w każdej odpowiedzi; skompilowany system prompt zawierał tę instrukcję. Rzeczywista Gemma 4 E2B, Lab 4096, przy neutralnym pytaniu **nie umieściła znacznika**. Nie stosować zmyślonego PASS na podstawie samego promptu.
+**Pierwszy RED:** `aicalls-f156-skills-ui-native-ab-s22-20261109-v1` **FAILED/92** jako całość. S22 `SM-S906B` IDLE, instalacja APK + AndroidTest bez wipe: realny UI copy/edit/toggle/rollback/reopen **1/1 PASS**, regresja presetów/szyfrowania **2/2 PASS**, realna E2B A/B **0/1**, asercja `native_model_ignored_active_skill`. Oryginalne presety sprawdzone przed/po i nietknięte. Mac `aicalls-f156-skills-ui-native-ab-mac-qa-20261109-v1` **DONE/0**, pełna bramka `verify_host.sh`, Kotlin/AndroidTest, lint, Python/audio i anti-friction PASS.
+**Wpływ:** brak fizycznego potwierdzenia semantycznej skuteczności własnych Skills, mimo prawidłowego zapisu i izolacji konfiguracji; może wynikać ze słabej egzekucji instrukcji przez E2B, kompilacji promptu lub problemu testowego. **Nie ustalono jeszcze przyczyny.**
+**Plan:** celowany A/B na identycznych neutralnych tekstach i niezależnych sesjach, logować tylko sanitarny status marker-present/latencję/rozmiar wyjścia, sprawdzić dokładny prompt wstrzyknięty do backendu oraz ew. ograniczenia schematu; poprawiać dopiero po potwierdzeniu przyczyny. Nie dotykać produkcyjnych presetów ani wykonywać Call.
+**Status:** **OPEN / DEVICE_SEMANTIC_RED**, UI/store **PASS**; źródła `main@b7ce42915def3a85350e81ca72e4850935f01145`.
+
 ## F-155 — Laboratorium nie rozdzielało zimnego startu modelu od szybkości kolejnych tur (2026-11-09)
 
 **Ścieżki:** `ConversationSkillLabActivity`, `AndroidSkillLabSessionFactory`, `LiteRtGemma4Runtime.runGeneration`, `Gemma4LiteRtTextBackendFactory.createConversationReply`. **Warunek:** średnia z dwóch krótkich tur (16–23 s) sugerowała regresję względem historycznych 4–6 s, choć pierwsza tura zawiera inicjalizację natywnego modelu i konwersacji. UI nie pokazywał rozbicia, ustawienia kontekstu Lab nie były edytowalne.
