@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import java.util.Collections
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.*
 import org.junit.Test
@@ -37,6 +38,8 @@ class AndroidG4DynamicSkillsNativeE2ETest {
         assertEquals("g4_e2b_required", DialogueModelId.GEMMA_4_E2B, profile.dialogue)
         val factory = AndroidSkillLabSessionFactory(app, contextTokenBudget = 4_096)
         factory.skillLoadingMode = SkillLoadingMode.CONTEXTUAL
+        val decisions = Collections.synchronizedList(mutableListOf<SkillTurnRoutingDecision>())
+        factory.onTurnRouting = { decisions.add(it) }
         val initialSelection = mutableListOf<String>()
         val actualBackends = mutableListOf<String>()
         factory.onSkillSelection = { initialSelection.addAll(it.selectedIds) }
@@ -61,6 +64,17 @@ class AndroidG4DynamicSkillsNativeE2ETest {
 
             val done = runner.state.completed
             assertEquals(4, done.size)
+            val observed = decisions.toList()
+            assertEquals("g43_one_routing_event_per_turn", listOf(1, 2, 3, 4),
+                observed.map { it.turn })
+            assertTrue(observed[0].activatedIds.isEmpty())
+            assertEquals(listOf("MessageCapture"), observed[1].activatedIds)
+            assertEquals(listOf("Clarification"), observed[2].activatedIds)
+            assertTrue(observed[3].deactivatedIds.contains("MessageCapture"))
+            assertTrue(observed[3].deactivatedIds.contains("Clarification"))
+            assertTrue(observed.all { it.snapshot.entries.all { entry ->
+                entry.version > 0 && entry.name.isNotBlank()
+            } })
             assertTrue("g4_first_reply_missing", done[0].observation.reply.isNotBlank())
             assertTrue("g4_message_reply_missing", done[1].observation.reply.isNotBlank())
             val beforePivot = done[2].observation.reply.contains("ZX74", ignoreCase = true)
@@ -83,6 +97,7 @@ class AndroidG4DynamicSkillsNativeE2ETest {
                 "skills_refresh=3;memory_before_pivot=" + beforePivot +
                 ";memory_after_pivot=" + afterPivot +
                 ";backend_count=" + actualBackends.size +
+                ";g43_route_events=" + decisions.size +
                 ";stop=true;no_call=true;profile_preserved=true")
         } finally {
             runner.close()
