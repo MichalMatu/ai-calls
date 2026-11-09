@@ -71,6 +71,7 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         val transcript: String,
         val approved: String,
         val pcmBytes: Int,
+        val outputPcm: ByteArray,
         val sttMs: Long,
         val approvalMs: Long,
         val outputMs: Long,
@@ -151,7 +152,7 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         val output = checkNotNull(outputMs.get())
         assertTrue("g52_stt_before_approval", stt <= approval)
         assertTrue("g52_approval_before_tts", approval <= output)
-        return Turn(user, answer, pcm.size, stt, approval, output)
+        return Turn(user, answer, pcm.size, pcm, stt, approval, output)
     }
 
     @Test fun realPcmThreeTurnsApplyMessageAndClarificationSkillsAndRecallCorrection() {
@@ -198,9 +199,19 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
             "Przypomnij, w jaki dzień jest spotkanie z poprzedniej wiadomości."
         )
         val turns = mutableListOf<Turn>()
+        // Opt-in only. Normal G5.2 regression creates no persistent audio or transcript.
+        val capture = instrumentation.arguments.getString("g53_private_evidence") == "true"
+        val evidence = if (capture) mutableListOf<G53CapturedAudioTurn>() else null
         try {
             for (phrase in expected) {
-                turns.add(runAudioTurn(pipeline, synthesizeSyntheticPcm(phrase)))
+                val spoken = synthesizeSyntheticPcm(phrase)
+                val observed = runAudioTurn(pipeline, spoken)
+                turns.add(observed)
+                evidence?.add(G53CapturedAudioTurn(
+                    phrase, observed.transcript, observed.approved,
+                    spoken, observed.outputPcm, observed.sttMs, observed.approvalMs,
+                    observed.outputMs,
+                ))
             }
             assertEquals(3, turns.size)
             assertTrue("g52_first_stt_missing_message", turns[0].transcript.lowercase(
@@ -224,6 +235,17 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
             assertFalse("g52_tools_must_never_execute", effects.get())
             assertEquals(3, decodedTools.size)
             turns.forEach { assertTrue(it.approved.isNotBlank()) }
+            if (evidence != null) {
+                G53PrivateAudioEvidence.save(
+                    context, original.dialogue.name, original.input.name,
+                    original.output.name, evidence, decisions,
+                )
+                // Never put even synthetic utterances, replies, WAV, or private paths in logcat.
+                Log.i("AiCallG53Evidence",
+                    "complete=true;turns=" + evidence.size +
+                    ";wav_files=" + evidence.size * 2 +
+                    ";on_device_private=true;no_call=true")
+            }
             Log.i("AiCallG52E2E", "model=E2B;offcall=true;profile_input=" +
                 original.input.name + ";profile_output=" + original.output.name +
                 ";audio_turns=3;route_events=" + decisions.size +
