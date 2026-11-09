@@ -13,12 +13,14 @@ class IncomingAssistantCoordinatorTest {
         var failure: String? = null
         var readinessThrows = false
         var reentrantAnswer: (() -> Unit)? = null
-        override fun readinessFailure(call: Call): String? { check(!readinessThrows); return failure }
+        var reentrantReadiness: (() -> Unit)? = null
+        var reentrantChanged: ((IncomingAssistantState) -> Unit)? = null
+        override fun readinessFailure(call: Call): String? { reentrantReadiness?.invoke(); check(!readinessThrows); return failure }
         override fun answer(call: Call) { answered += call; reentrantAnswer?.invoke() }
         override fun startAudio(call: Call, policy: IncomingAssistantPolicy, generation: Long) { started += call to generation }
         override fun stopAudio(call: Call, generation: Long, reason: ConversationStopReason) { stopped += call to generation }
         override fun disconnect(call: Call) = Unit
-        override fun changed(call: Call, state: IncomingAssistantState, reason: String?) = Unit
+        override fun changed(call: Call, state: IncomingAssistantState, reason: String?) { reentrantChanged?.invoke(state) }
     }
     private class Fixture {
         val port = Port()
@@ -125,4 +127,52 @@ class IncomingAssistantCoordinatorTest {
         assertEquals("incoming_readiness_failed",f.core.snapshot(f.call)?.reason)
     }
 
+    @Test fun reentrantTakeoverDuringReadinessCannotAnswer() {
+        val f = Fixture()
+        f.port.reentrantReadiness = { f.core.takeOver(f.call) }
+        f.observe(IncomingCallPhase.RINGING, policy)
+        assertTrue(f.port.answered.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+    }
+
+    @Test fun reentrantStopOnAnswerTransitionCannotAnswer() {
+        val f = Fixture()
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.ANSWERING) f.core.takeOver(f.call)
+        }
+        f.observe(IncomingCallPhase.RINGING, policy)
+        assertTrue(f.port.answered.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+    }
+
+    @Test fun reentrantTakeoverDuringStartCannotLaunchAudio() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.STARTING) f.core.takeOver(f.call)
+        }
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        assertTrue(f.port.started.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+    }
+
+    @Test fun anotherActiveCallRevokesAudioBeforeOwnershipCanContinue() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val current = f.port.started.single().second
+        f.observe(IncomingCallPhase.ACTIVE, policy, exclusive = false)
+        assertFalse(f.core.isAuthorized(f.call, current))
+        assertEquals(listOf(f.call to current), f.port.stopped)
+        assertEquals("another_call_active", f.core.snapshot(f.call)?.reason)
+    }
+
+    @Test fun endedCallCannotBeTakenOverOrResumed() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ENDED, policy)
+        f.core.takeOver(f.call)
+        assertEquals(IncomingAssistantState.ENDED, f.core.snapshot(f.call)?.state)
+        assertFalse(f.core.resume(f.call, policy))
+    }
 }

@@ -40,6 +40,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
             IncomingAssistantState.RINGING else IncomingAssistantState.MANUAL
         var generation = 0L
         var reason: String? = null
+        var revision = 0L
     }
     private val entries = IdentityHashMap<C, Entry>()
     private var sequence = 0L
@@ -58,6 +59,9 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         }
         if (ownsAudio(entry) && entry.account != entry.policy.accountKey) {
             manual(call, entry, "incoming_account_changed", ConversationStopReason.OWNERSHIP_CHANGED); return
+        }
+        if (ownsAudio(entry) && !entry.exclusive) {
+            manual(call, entry, "another_call_active", ConversationStopReason.OWNERSHIP_CHANGED); return
         }
         if (entry.state == IncomingAssistantState.RINGING && phase == IncomingCallPhase.RINGING) {
             if (accountKey == null) return // Telecom may publish the account after onCallAdded.
@@ -80,7 +84,11 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         return claim(call, entry, policy)
     }
 
-    @Synchronized fun takeOver(call: C) { entries[call]?.let { manual(call, it, "human_takeover", ConversationStopReason.HUMAN_TAKEOVER) } }
+    @Synchronized fun takeOver(call: C) {
+        entries[call]?.takeUnless { it.state == IncomingAssistantState.ENDED }?.let {
+            manual(call, it, "human_takeover", ConversationStopReason.HUMAN_TAKEOVER)
+        }
+    }
 
     @Synchronized fun policyChanged(policy: IncomingAssistantPolicy, reason: ConversationStopReason) {
         entries.entries.toList().forEach { (call, entry) ->
@@ -123,7 +131,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
 
     @Synchronized fun isAuthorized(call: C, generation: Long): Boolean = entries[call]?.let {
         it.generation == generation && ownsAudio(it) &&
-            it.account == it.policy.accountKey && it.phase != IncomingCallPhase.HELD && it.phase != IncomingCallPhase.ENDED
+            it.exclusive && it.account == it.policy.accountKey && it.phase == IncomingCallPhase.ACTIVE
     } == true
 
     @Synchronized fun snapshot(call: C): IncomingAssistantSnapshot? = entries[call]?.let {
@@ -143,24 +151,31 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
     }
 
     private fun claim(call: C, entry: Entry, policy: IncomingAssistantPolicy): Boolean {
+        val beforeReadiness = entry.revision
         val failure = when {
             policy.mode != AnsweringMode.AI -> "incoming_manual_mode"
             entry.account != policy.accountKey -> "incoming_account_mismatch"
             !entry.exclusive || entries.any { (other, value) -> other !== call && ownsAudio(value) } -> "another_call_active"
             else -> try { port.readinessFailure(call) } catch (_: Exception) { "incoming_readiness_failed" }
         }
+        // Readiness can reenter via an Android callback (STOP, manual answer, removal).
+        // Never claim a call whose lifecycle changed while the adapter was checking it.
+        if (entry.revision != beforeReadiness || entry.phase == IncomingCallPhase.ENDED ||
+            entry.phase == IncomingCallPhase.HELD || entries[call] !== entry) return false
         if (failure != null) { manual(call, entry, failure, ConversationStopReason.SESSION_CANCELLED); return false }
         entry.policy = policy
         entry.generation = ++sequence
         if (entry.phase == IncomingCallPhase.RINGING) {
             change(call, entry, IncomingAssistantState.ANSWERING, null)
+            if (entry.state != IncomingAssistantState.ANSWERING) return false
             try { port.answer(call) } catch (_: Exception) { manual(call, entry, "incoming_answer_failed", ConversationStopReason.SESSION_CANCELLED); return false }
         } else start(call, entry)
-        return true
+        return ownsAudio(entry)
     }
 
     private fun start(call: C, entry: Entry) {
         change(call, entry, IncomingAssistantState.STARTING, null)
+        if (entry.state != IncomingAssistantState.STARTING) return
         try { port.startAudio(call, entry.policy, entry.generation) }
         catch (_: Exception) { manual(call, entry, "incoming_audio_start_failed", ConversationStopReason.SESSION_CANCELLED) }
     }
@@ -177,7 +192,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
     }
 
     private fun change(call: C, entry: Entry, state: IncomingAssistantState, reason: String?) {
-        entry.state = state; entry.reason = reason
+        entry.state = state; entry.reason = reason; entry.revision++
         port.changed(call, state, reason)
     }
 }
