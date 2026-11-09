@@ -1,5 +1,12 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+## S22 wydajność Gemmy — 2026-11-09, F-155 VERIFIED
+
+`GEMMA_4_E2B` jest rzeczywiście wybrana i generuje na **GPU**, nie E4B/CPU. Zimna pierwsza tura przy 2048/4096: ~28,6/27,2 s (silnik + konwersacja + generacja); druga na zachowanym kontekście ~3,3/3,6 s. Średnich z obu tur nie porównywać do samej rozgrzanej generacji; w tej próbie brak dowodu regresji spowodowanej 4096. Nowe **Laboratorium** ma konfigurowalny budżet kontekstu, rzeczywisty podział czasów oraz monitoring GPU/CPU i pamięci. Telefoniczna ścieżka 2048 pozostaje niezmieniona. Mac full PASS, S22 po instalacji **4/4 PASS**, F-155 VERIFIED. [Checkpoint](checkpoints/2026-11-09-f155-lab-context-latency-diagnostics.md).
+
+**Priorytet dalej:** SKILL-01/02/03, porównanie aktywnych/nieaktywnych instrukcji przez prawdziwy model oraz trwałość edycji w UI. Test 8192 i większa E4B, długi dialog oraz p95 w osobnej próbie, bez arbitralnego podnoszenia budżetu produkcyjnego Call.
+
+
 ## Priorytet od 2026-11-09: rzeczywisty UI i działanie AI Skills
 
 Zbiorczy przebieg sprzętowy na S22 zakończył się scoped PASS: współdzielona procesowa dzierżawa LiteRT GUI/USB **1/1**, natywna decyzja Gemmy w Skill **1/1**, adaptacyjny dialog **1/1**, manualny STOP/restart **1/1**, szyfrowane presety/kontrakty UI **2/2** po naprawie testu zależnego od języka (F-154 VERIFIED), realny USB CLI trzy fabryczne presety × 2 tury **6/6**, prosty recall **3/3**, zapis/STOP **3/3**, odmowy interwencji bez własnego Call **3/3**. Mac full gate PASS. [Dokładny checkpoint](checkpoints/2026-11-09-single-pass-ui-usb-ai-skills-acceptance.md).
