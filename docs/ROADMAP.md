@@ -8,9 +8,7 @@ Zbiorczy przebieg sprzętowy na S22 zakończył się scoped PASS: współdzielon
 
 Pozytywne takeover/resume/exact owned STOP podczas rzeczywistego Call nadal **NOT_RUN**, wymaga niezależnie skonkretyzowanego grantu aplikacyjnego. F-148 długi dialog/8192 i pełny audio pipeline pozostają osobnymi otwartymi pozycjami.
 
-## Backlog historyczny — stan zapisany 2026-11-08
-
-## Aktualny backlog i potwierdzone bramki (historyczny 2026-11-08)
+## Backlog historyczny i potwierdzone bramki — stan zapisany 2026-11-08
 
 | Priorytet | Status |
 | --- | --- |
