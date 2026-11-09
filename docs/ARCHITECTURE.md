@@ -1,5 +1,9 @@
 # AI Calls — architektura operacyjna
 
+## G5.3 — natywny STOP podczas aktywnego STT/E2B/TTS na S22 (techniczny PASS)
+
+`Gemma4LiteRtTextBackend/LiteRtGemma4Runtime` zachowuje istniejącą `generation` i `cancelProcess` dla aktywnego `sendMessage`; nowy `onNativeSendEntered` i `NativeModelTiming.nativeCancelRequested` są diagnostyczne, bez tekstów i uprawnień. `LocalTtsSpeechOutput.onSynthesisStarted` obserwuje `UtteranceProgressListener.onStart`, pozostawiając dotychczasowe `stop/shutdown`, gate i PCM. On-device STT korzysta z istniejącego `SpeechRecognizer` i pipe; po cancel oba systemowe komponenty restartują się. S22 native E2B 1/1, STT/TTS 2/2 PASS, Mac full QA PASS, Call IDLE, profil bez zmian. Nie dowodzi natychmiastowego wygaszenia wszystkich GPU kernels ani oceny naturalności. [Checkpoint](checkpoints/2026-11-09-g5p3-active-native-stop-stt-e2b-tts-technical-pass.md).
+
 ## G5.2 — sprawdzona sekwencja trzech generacji przez jeden pipeline
 
 Test S22 używa `LocalSpeechTextPipeline` wielokrotnie i tej samej sesji `Gemma E2B` z `CONTEXTUAL` Skills; STT i TTS pochodzą z obecnego profilu `ANDROID_STT/ANDROID_TTS_PL`. `ConversationReplyBackend` nadal dekoduje JSON do tekstu, `TextOutputApprovalPolicy` uwalnia pełną odpowiedź, `LabToolProposalPolicy` nie wykonuje skutków. `LocalSpeechGenerationGate` ogranicza callbacki do aktywnej generacji. S22 3/3 tury, 5/5 testów STOP i utrzymanie poprawionego dnia PASS. G5.2 nie włącza tego toru do realnej telefonii. [Checkpoint](checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md).

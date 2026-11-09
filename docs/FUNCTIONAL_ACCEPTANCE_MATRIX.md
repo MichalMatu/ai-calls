@@ -1,5 +1,9 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## G5.3 — native STOP: `PASS_DEVICE_OFFCALL_SCOPED`; dialog quality: `UNASSESSED`
+
+Mac full QA 2× DONE/0, 371 Python, AndroidTest compile i clean. S22 native E2B aktywny STOP/recovery 1/1 (`aicalls-g5p3-native-active-inference-stop-s22-20261109-v2`) i natywne STT/TTS STOP/restart 2/2 (`aicalls-g5p3-native-stt-tts-stop-s22-20261109-v1`), obie bramki Call IDLE bez wipe/profil zmian. Osiem `LabDialogueReport` wymiarów jakości `UNASSESSED`; real Call i p95 NOT_RUN. F-161 regex host testu VERIFIED_SCOPED. [Checkpoint](checkpoints/2026-11-09-g5p3-active-native-stop-stt-e2b-tts-technical-pass.md).
+
 ## G5.2 — audio wielu tur i STOP: `S22_PASS_OFFCALL_SCOPED`
 
 **G5.2 = S22_OFFCALL_MULTITURN_AUDIO_AND_STOP_PASS (2026-11-09).** Po Mac full QA `aicalls-g5p2-multiturn-audio-stop-mac-qa-20261109-v2` **DONE/0**, S22 `aicalls-g5p2-three-turn-audio-stop-s22-20261109-v1` **DONE/0**: 5/5 deterministycznych testów STOP/late callback (STT, model, TTS, restart i dwie kolejne generacje) i 1/1 natywna Gemma E2B + Android STT + Android TTS PL, **3/3 syntetyczne tury audio**, `MessageCapture` i `Clarification`, prawidłowa korekta dnia spotkania i pamięć, 3 decyzje routingu. TTS wygenerował **515 894 B PCM**, czasy narastające STT **4340/5723/4905 ms**, aprobata **21158/12699/7157 ms**, końcowy PCM **23042/14224/8694 ms**. Żadnych wykonanych narzędzi, prawdziwych połączeń ani zmian profilu; instalacja obu debug APK bez wipe, Call IDLE przed i po, Mac Git clean. Jest to **syntetyczny off-call Lab**, nie rzeczywista rozmowa, p95, odsłuch naturalności ani sprzętowy STOP dokładnie w trakcie natywnej inferencji (STOP sprawdzono przez kontrolowane spóźnione callbacki). [Checkpoint](checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md).
