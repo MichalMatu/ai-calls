@@ -19,6 +19,14 @@ class DocumentationContractTest(unittest.TestCase):
             issues = check(root)
             self.assertTrue(any("broken relative link" in item for item in issues), issues)
 
+    def test_new_unregistered_document_is_rejected(self):
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "docs").mkdir()
+            (root / "docs/obsolete.md").write_text("# Unregistered\n")
+            issues = check(root)
+            self.assertTrue(any("unregistered documentation" in item for item in issues), issues)
+
     def test_no_chronological_checkpoint_or_old_blockers_on_current_tree(self):
         self.assertFalse((ROOT / "BLOCKERS.md").exists())
         self.assertEqual([], list((ROOT / "docs").glob("checkpoints/*.md")))

@@ -5,12 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-REQUIRED = (
-    "README.md", "AGENTS.md", "docs/README.md", "docs/PROJECT.md",
+DOCS = (
+    "docs/README.md", "docs/PROJECT.md",
     "docs/architecture/SYSTEM.md", "docs/architecture/SECURITY.md",
+    "docs/modules/CONVERSATION.md", "docs/modules/INCOMING_OUTGOING.md",
+    "docs/modules/AUDIO_HISTORY.md", "docs/modules/SKILLS_LAB.md",
+    "docs/modules/BOOKING_EFFECTS.md", "docs/modules/UI.md",
     "docs/operations/DEVELOPMENT.md", "docs/operations/LOCAL_AGENT.md",
-    "docs/operations/DEVICE.md",
+    "docs/operations/DEVICE.md", "docs/operations/EXTERNAL_REUSE.md",
 )
+REQUIRED = ("README.md", "AGENTS.md", *DOCS)
 # Simple Markdown links; anchors and external URLs are intentionally not fetched.
 LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
@@ -20,6 +24,9 @@ def check(root: Path) -> list[str]:
     for name in REQUIRED:
         if not (root / name).is_file():
             errors.append(name + ": required current documentation missing")
+    for file in (root / "docs").rglob("*.md"):
+        if file.relative_to(root).as_posix() not in DOCS:
+            errors.append(file.relative_to(root).as_posix() + ": unregistered documentation; update the single index first")
     for file in [root / "README.md", root / "AGENTS.md", *(root / "docs").rglob("*.md")]:
         if not file.is_file():
             continue
