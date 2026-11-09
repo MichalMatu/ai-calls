@@ -48,6 +48,7 @@ internal data class NativeModelTiming(
     val turn: Int,
     val outputChars: Int,
     val status: String,
+    val nativeCancelRequested: Boolean = false,
 ) {
     val totalMs: Long get() = engineReadyMs + conversationCreateMs + generateMs
 }
@@ -207,6 +208,8 @@ internal class LiteRtGemma4Runtime(
         Thread(runnable, "aicall-gemma4-litert").apply { isDaemon = true }
     },
     private val contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
+    // Non-authoritative diagnostic signal immediately before native sendMessage.
+    private val onNativeSendEntered: () -> Unit = {},
     private val onTiming: (NativeModelTiming) -> Unit = {},
 ) : Gemma4Runtime {
     init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
@@ -218,6 +221,7 @@ internal class LiteRtGemma4Runtime(
     private var activeConversation: Conversation? = null
     /** A normal between-turn cancel invalidates a callback but must not cancel native chat. */
     private var sendingGeneration: Long? = null
+    private var nativeCancelRequestedGeneration: Long? = null
     private var discardAfterSend = false
     private var conversationTurnCount = 0
     @Volatile private var activeBackendLabel = "unknown"
@@ -246,6 +250,7 @@ internal class LiteRtGemma4Runtime(
             // TextCallTurnController calls cancel after every completed output.
             // Calling native cancelProcess on an IDLE conversation destroys its context.
             if (sendingGeneration != null) {
+                nativeCancelRequestedGeneration = sendingGeneration
                 discardAfterSend = true
                 activeConversation
             } else null
@@ -399,6 +404,8 @@ internal class LiteRtGemma4Runtime(
                 turnIndex = conversationTurnCount + 1
             }
 
+            // Testing/diagnostics only: never expose text, model state or authorization.
+            runCatching { onNativeSendEntered() }
             val message = currentConversation.sendMessage(
                 text = userText,
                 maxOutputToken = MAX_OUTPUT_TOKENS,
@@ -430,6 +437,9 @@ internal class LiteRtGemma4Runtime(
         } finally {
             // Only timing/accelerator metadata. Never print transcripts, history,
             // prompt, model reply, phone details, model file path or personal data.
+            val nativeCancelRequested = synchronized(lock) {
+                nativeCancelRequestedGeneration == requestGeneration
+            }
             val timing = NativeModelTiming(
                 backend = activeBackendLabel,
                 contextTokens = contextTokenBudget,
@@ -442,6 +452,7 @@ internal class LiteRtGemma4Runtime(
                 turn = turnIndex,
                 outputChars = outputChars,
                 status = status,
+                nativeCancelRequested = nativeCancelRequested,
             )
             Log.i("AiCallBridgePerf", "gemma4_runtime_backend=${timing.backend}" +
                 ",engine_ready_ms=${timing.engineReadyMs}" +
@@ -449,12 +460,16 @@ internal class LiteRtGemma4Runtime(
                 ",generate_ms=${timing.generateMs}" +
                 ",conversation_reused=${timing.conversationReused},conversation_turn=${timing.turn}" +
                 ",output_chars=${timing.outputChars},status=${timing.status}" +
-                ",context_token_budget=${timing.contextTokens}")
+                ",context_token_budget=${timing.contextTokens}" +
+                ",native_cancel_requested=${timing.nativeCancelRequested}")
             // Callback is strictly diagnostic: it cannot alter the native model outcome.
             runCatching { onTiming(timing) }
 
             val toClose = synchronized(lock) {
                 if (sendingGeneration == requestGeneration) sendingGeneration = null
+                if (nativeCancelRequestedGeneration == requestGeneration) {
+                    nativeCancelRequestedGeneration = null
+                }
                 when {
                     // A conversation created just before cancellation never became
                     // owned by the runtime and must be closed in this worker.
