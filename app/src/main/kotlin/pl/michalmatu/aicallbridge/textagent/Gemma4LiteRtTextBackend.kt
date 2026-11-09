@@ -24,6 +24,22 @@ import java.util.concurrent.RejectedExecutionException
 // Native engine allocation, not an artificial limit on user dialogue turns.
 private const val DEFAULT_CONTEXT_TOKENS = 2_048
 
+/** One off-call measurement; counts characters, never guesses the model tokenizer's TPS.
+ * No prompt, reply, model path, user data or telephone state can enter this record. */
+internal data class NativeModelTiming(
+    val backend: String,
+    val contextTokens: Int,
+    val engineReadyMs: Long,
+    val conversationCreateMs: Long,
+    val generateMs: Long,
+    val conversationReused: Boolean,
+    val turn: Int,
+    val outputChars: Int,
+    val status: String,
+) {
+    val totalMs: Long get() = engineReadyMs + conversationCreateMs + generateMs
+}
+
 internal fun interface Gemma4RuntimeFactory {
     fun create(modelPath: String, systemInstruction: String?): Gemma4Runtime
 }
@@ -157,6 +173,7 @@ internal class LiteRtGemma4Runtime(
         Thread(runnable, "aicall-gemma4-litert").apply { isDaemon = true }
     },
     private val contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
+    private val onTiming: (NativeModelTiming) -> Unit = {},
 ) : Gemma4Runtime {
     init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
 
@@ -362,13 +379,28 @@ internal class LiteRtGemma4Runtime(
         } finally {
             // Only timing/accelerator metadata. Never print transcripts, history,
             // prompt, model reply, phone details, model file path or personal data.
-            Log.i("AiCallBridgePerf", "gemma4_runtime_backend=$activeBackendLabel" +
-                ",engine_ready_ms=${((engineReadyNs - startedNs) / 1_000_000).coerceAtLeast(0)}" +
-                ",conversation_create_ms=${((conversationReadyNs - engineReadyNs) / 1_000_000).coerceAtLeast(0)}" +
-                ",generate_ms=${((inferenceReadyNs - conversationReadyNs) / 1_000_000).coerceAtLeast(0)}" +
-                ",conversation_reused=$reused,conversation_turn=$turnIndex" +
-                ",output_chars=$outputChars,status=$status" +
-                ",context_token_budget=$contextTokenBudget")
+            val timing = NativeModelTiming(
+                backend = activeBackendLabel,
+                contextTokens = contextTokenBudget,
+                engineReadyMs = ((engineReadyNs - startedNs) / 1_000_000).coerceAtLeast(0),
+                conversationCreateMs =
+                    ((conversationReadyNs - engineReadyNs) / 1_000_000).coerceAtLeast(0),
+                generateMs =
+                    ((inferenceReadyNs - conversationReadyNs) / 1_000_000).coerceAtLeast(0),
+                conversationReused = reused,
+                turn = turnIndex,
+                outputChars = outputChars,
+                status = status,
+            )
+            Log.i("AiCallBridgePerf", "gemma4_runtime_backend=${timing.backend}" +
+                ",engine_ready_ms=${timing.engineReadyMs}" +
+                ",conversation_create_ms=${timing.conversationCreateMs}" +
+                ",generate_ms=${timing.generateMs}" +
+                ",conversation_reused=${timing.conversationReused},conversation_turn=${timing.turn}" +
+                ",output_chars=${timing.outputChars},status=${timing.status}" +
+                ",context_token_budget=${timing.contextTokens}")
+            // Callback is strictly diagnostic: it cannot alter the native model outcome.
+            runCatching { onTiming(timing) }
 
             val toClose = synchronized(lock) {
                 if (sendingGeneration == requestGeneration) sendingGeneration = null
@@ -508,10 +540,12 @@ internal object Gemma4LiteRtTextBackendFactory {
         modelId: DialogueModelId,
         tools: Set<ConversationToolId>,
         contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
+        onTiming: (NativeModelTiming) -> Unit = {},
     ): TextCallAgentBackend = createInternal(
         context = context, modelId = modelId, systemInstruction = systemInstruction,
         responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(tools)),
         contextTokenBudget = contextTokenBudget,
+        onTiming = onTiming,
     )
 
     private fun selectedModel(context: Context): DialogueModelId =
@@ -616,6 +650,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         responseFormat: ResponseFormat?,
         modelId: DialogueModelId,
         contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
+        onTiming: (NativeModelTiming) -> Unit = {},
     ): Gemma4LiteRtTextBackend {
         val modelPath = modelFile(context, modelId).absolutePath
         return Gemma4LiteRtTextBackend(
@@ -626,6 +661,7 @@ internal object Gemma4LiteRtTextBackendFactory {
                     responseFormat = responseFormat,
                     disableQwenThinking = modelId == DialogueModelId.QWEN_3_1_7B || modelId == DialogueModelId.QWEN_3_0_6B,
                     contextTokenBudget = contextTokenBudget,
+                    onTiming = onTiming,
                 )
             },
             modelPath = modelPath,
