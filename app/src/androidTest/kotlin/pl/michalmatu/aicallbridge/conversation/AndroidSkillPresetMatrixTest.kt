@@ -2,8 +2,6 @@ package pl.michalmatu.aicallbridge.conversation
 
 import android.content.Context
 import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -68,28 +66,30 @@ class AndroidSkillPresetMatrixTest {
 
     @Test fun bSkillsAndLaboratoryScreensLaunchWithoutMutatingActivePreset() {
         val original = AndroidConversationPreparationStore(context).loadSkillLibrary().snapshot()
+        // Stable semantic view tags are locale-independent. Do not assert literal PL
+        // copy: language and UX text may change without breaking Skills navigation.
         ActivityScenario.launch(ConversationSkillsActivity::class.java).use { screen ->
             screen.onActivity { activity ->
-                val text = labels(activity.window.decorView).joinToString("|")
-                assertTrue(text.contains("Skills i presety Gemmy"))
-                assertTrue(text.contains("Utwórz własną kopię"))
-                assertTrue(text.contains("Laboratorium skillsów"))
+                val root = activity.window.decorView
+                assertTrue(requireNotNull(root.findViewWithTag<View>("skills-preset-picker")).isShown)
+                assertTrue(requireNotNull(root.findViewWithTag<View>("skills-activate")).isClickable)
+                assertNotNull(root.findViewWithTag<View>("skills-secondary-actions"))
             }
         }
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { screen ->
             screen.onActivity { activity ->
-                val text = labels(activity.window.decorView).joinToString("|")
-                assertTrue(text.contains("Laboratorium skillsów"))
-                assertTrue(text.contains("Uruchom testy wieloturowe"))
-                assertTrue(text.contains("Ocena naturalności"))
+                val root = activity.window.decorView
+                assertTrue(requireNotNull(root.findViewWithTag<View>("lab-preset-picker")).isShown)
+                assertNotNull(root.findViewWithTag<View>("lab-case-picker"))
+                assertTrue(requireNotNull(root.findViewWithTag<View>("lab-start")).isClickable)
+                assertTrue(requireNotNull(root.findViewWithTag<View>("lab-adaptive-start")).isClickable)
+                assertNotNull(root.findViewWithTag<View>("lab-manual-composer"))
+                assertNotNull(root.findViewWithTag<View>("lab-manual-send"))
+                assertNotNull(root.findViewWithTag<View>("lab-stop"))
+                assertNotNull(root.findViewWithTag<View>("lab-turn-timeline"))
             }
         }
         assertEquals(original, AndroidConversationPreparationStore(context).loadSkillLibrary().snapshot())
-        println("SKILL_QA_UI=PASS_READONLY")
-    }
-
-    private fun labels(view: View): List<String> = buildList {
-        if (view is TextView) add(view.text.toString())
-        if (view is ViewGroup) repeat(view.childCount) { addAll(labels(view.getChildAt(it))) }
+        println("SKILL_QA_UI=PASS_READONLY_LOCALE_INDEPENDENT")
     }
 }
