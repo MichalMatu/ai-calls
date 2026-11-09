@@ -5,7 +5,7 @@ import java.util.Locale
 /**
  * Lab experiment only. This chooses version-pinned prompt instructions at the
  * start of an offline session; it does not select tools or confer authority.
- * In-session, per-turn routing is intentionally NOT claimed by this contract.
+ * The per-turn tracker is a separate Lab-only contract.
  */
 internal enum class SkillLoadingMode { ALL_ACTIVE, CONTEXTUAL }
 
@@ -18,9 +18,9 @@ internal data class SkillRoutingDecision(
 )
 
 /**
- * Fast, deterministic, zero-model-call baseline. Unknown/custom skills are
- * retained rather than silently discarded until editable routing metadata is
- * introduced. Disabled revisions can never be reactivated by this selector.
+ * Fast, deterministic, zero-model-call baseline. Unknown/GENERAL skills remain pinned. Typed, versioned capability metadata
+ * selects whether a Skill follows message or clarification intent. Disabled
+ * revisions can never be reactivated by this selector.
  */
 internal object ConversationSkillRouter {
     fun route(
@@ -41,10 +41,10 @@ internal object ConversationSkillRouter {
                 .any { context.contains(it) }
         val filtered = if (mode == SkillLoadingMode.ALL_ACTIVE) snapshot.entries else
             snapshot.entries.filter { entry ->
-                when (entry.id) {
-                    "MessageCapture" -> messageRelevant
-                    "Clarification" -> clarifyRelevant
-                    else -> true // style, closing, and future user-defined skills
+                when (entry.capability) {
+                    SkillCapability.MESSAGE_CAPTURE -> messageRelevant
+                    SkillCapability.CLARIFICATION -> clarifyRelevant
+                    else -> true // General and closure stay loaded, with pinned revisions.
                 }
             }
         return SkillRoutingDecision(

@@ -7,12 +7,50 @@ import java.util.UUID
 internal enum class SkillSection(val title: String) {
     STYLE("Prowadzenie rozmowy"), MESSAGE("Obsługa wiadomości"), CLOSURE("Zakończenie rozmowy")
 }
-internal data class SkillRevision(val version: Int, val instructions: String)
+/** Metadata is versioned together with instructions; never grants execution rights. */
+internal enum class SkillCapability { GENERAL, MESSAGE_CAPTURE, CLARIFICATION, CLOSURE }
+
+internal data class SkillMetadata(
+    val name: String,
+    val description: String,
+    val capability: SkillCapability,
+) {
+    fun validated(): SkillMetadata {
+        require(name.isNotBlank()) { "skill_metadata_name_missing" }
+        require(description.isNotBlank()) { "skill_metadata_description_missing" }
+        return copy(name = name.trim(), description = description.trim())
+    }
+}
+
+/** Old encrypted records omit metadata; null preserves Gson schema=1 compatibility. */
+internal data class SkillRevision(
+    val version: Int,
+    val instructions: String,
+    val metadata: SkillMetadata? = null,
+)
 internal data class VersionedSkill(
     val id: String, val name: String, val section: SkillSection, val revisions: List<SkillRevision>,
 ) {
     fun at(version: Int): SkillRevision =
         revisions.singleOrNull { it.version == version } ?: error("skill_revision_missing")
+
+    fun metadataAt(version: Int): SkillMetadata = at(version).metadata
+        ?: SkillMetadata(
+            name = name,
+            description = when (id) {
+                "ConversationStyle" -> "Styl i sposób wypowiedzi"
+                "MessageCapture" -> "Przyjmowanie i porządkowanie wiadomości"
+                "Clarification" -> "Dopytywanie i obsługa korekt"
+                "NaturalClosure" -> "Rozpoznawanie zakończenia rozmowy"
+                else -> "Wskazówki rozmowy"
+            },
+            capability = when (id) {
+                "MessageCapture" -> SkillCapability.MESSAGE_CAPTURE
+                "Clarification" -> SkillCapability.CLARIFICATION
+                "NaturalClosure" -> SkillCapability.CLOSURE
+                else -> SkillCapability.GENERAL
+            },
+        )
 }
 internal data class SkillPreset(
     val id: String, val name: String, val versions: Map<String, Int>, val isFactory: Boolean,
@@ -20,6 +58,8 @@ internal data class SkillPreset(
 internal data class SkillSnapshotEntry(
     val id: String, val name: String, val section: SkillSection,
     val version: Int, val instructions: String,
+    val description: String = "",
+    val capability: SkillCapability = SkillCapability.GENERAL,
 )
 internal data class ConversationSkillSnapshot(
     val presetId: String, val presetName: String, val entries: List<SkillSnapshotEntry>,
@@ -43,7 +83,8 @@ internal class ConversationSkillLibrary private constructor(
         require(presets.any { it.id == activePresetId }) { "active_preset_missing" }
         require(skills.all { s ->
             s.id.isNotBlank() && s.name.isNotBlank() && s.revisions.isNotEmpty() &&
-                s.revisions.all { it.version > 0 && it.instructions.isNotBlank() } &&
+                s.revisions.all { it.version > 0 && it.instructions.isNotBlank() &&
+                    (it.metadata == null || runCatching { it.metadata.validated() }.isSuccess) } &&
                 s.revisions.map { it.version }.distinct().size == s.revisions.size
         }) { "invalid_skill" }
         require(presets.all { p ->
@@ -58,7 +99,9 @@ internal class ConversationSkillLibrary private constructor(
         val preset = presets.singleOrNull { it.id == presetId } ?: error("preset_missing")
         val items = preset.versions.map { (id, version) ->
             val skill = skills.single { it.id == id }
-            SkillSnapshotEntry(id, skill.name, skill.section, version, skill.at(version).instructions)
+            val metadata = skill.metadataAt(version)
+            SkillSnapshotEntry(id, metadata.name, skill.section, version,
+                skill.at(version).instructions, metadata.description, metadata.capability)
         }.sortedWith(compareBy({ it.section.ordinal }, { it.id }))
         return ConversationSkillSnapshot(preset.id, preset.name, items)
     }
@@ -75,17 +118,29 @@ internal class ConversationSkillLibrary private constructor(
         return of(skills, presets + copy, copy.id)
     }
 
-    fun reviseSkill(id: String, text: String): ConversationSkillLibrary {
+    fun reviseSkill(id: String, text: String,
+        metadata: SkillMetadata? = null): ConversationSkillLibrary {
         require(!active.isFactory) { "copy_factory_preset_first" }
         require(text.isNotBlank()) { "skill_instructions_missing" }
         val target = skills.singleOrNull { it.id == id } ?: error("skill_missing")
         val version = target.revisions.maxOf { it.version } + 1
+        val selectedVersion = active.versions[id]
+        val inherited = target.metadataAt(selectedVersion ?: target.revisions.maxOf { it.version })
+        val resolved = (metadata ?: inherited).validated()
         val changed = skills.map {
-            if (it.id == id) it.copy(revisions = it.revisions + SkillRevision(version, text.trim()))
+            if (it.id == id) it.copy(revisions = it.revisions +
+                SkillRevision(version, text.trim(), resolved))
             else it
         }
         val selected = active.copy(versions = active.versions + (id to version))
         return of(changed, presets.map { if (it.id == active.id) selected else it }, activePresetId)
+    }
+
+    /** Metadata revisions share the same reversible version history as instructions. */
+    fun reviseMetadata(id: String, metadata: SkillMetadata): ConversationSkillLibrary {
+        val target = skills.singleOrNull { it.id == id } ?: error("skill_missing")
+        val current = active.versions[id] ?: target.revisions.maxOf { it.version }
+        return reviseSkill(id, target.at(current).instructions, metadata.validated())
     }
 
     fun bindVersion(id: String, version: Int?): ConversationSkillLibrary {

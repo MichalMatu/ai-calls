@@ -31,8 +31,12 @@ internal class ConversationSkillTurnRouter(
     private val pinned = fullSnapshot.copy(entries = fullSnapshot.entries.toList())
     private val initial = ConversationSkillRouter.route(pinned, mode, direction, goal, opening)
     private var selected = initial.selectedIds
-    private var messageActive = "MessageCapture" in selected
-    private var clarificationActive = "Clarification" in selected
+    private var messageActive = initial.snapshot.entries.any {
+        it.capability == SkillCapability.MESSAGE_CAPTURE
+    }
+    private var clarificationActive = initial.snapshot.entries.any {
+        it.capability == SkillCapability.CLARIFICATION
+    }
     private var turn = 0
 
     val initialSnapshot: ConversationSkillSnapshot get() = initial.snapshot
@@ -66,10 +70,10 @@ internal class ConversationSkillTurnRouter(
         }
         val nextEntries = if (mode == SkillLoadingMode.ALL_ACTIVE) pinned.entries
             else pinned.entries.filter { entry ->
-                when (entry.id) {
-                    "MessageCapture" -> messageActive
-                    "Clarification" -> clarificationActive
-                    else -> true // Pin style/closure/custom skills and exact revisions.
+                when (entry.capability) {
+                    SkillCapability.MESSAGE_CAPTURE -> messageActive
+                    SkillCapability.CLARIFICATION -> clarificationActive
+                    else -> true // General/closure metadata and versions stay pinned.
                 }
             }
         val nextIds = nextEntries.map { it.id }
