@@ -1,5 +1,10 @@
 # AI Calls — architektura operacyjna
 
+## Laboratorium: konfiguracja kontekstu i natywna diagnostyka — F-155 (2026-11-09)
+
+`ConversationSkillLabActivity` ma lokalną preferencję dodatniego budżetu `context_tokens` (domyślnie 4096), snapshotowaną przez `AndroidSkillLabSessionFactory.open` na **nową sesję**. Nie zmienia domyślnego `DEFAULT_CONTEXT_TOKENS=2048` w backendzie Call. Wspólny `DialogueEngineProvider` przepuszcza opcjonalny, tylko-laboratoryjny observer `NativeModelTiming` do `LiteRtGemma4Runtime`, który mierzy oddzielnie tworzenie silnika `Engine`, konwersacji i `sendMessage`. Listener nie zmienia autoryzacji, STOP, runtime ani odpowiedzi. Bez opóźnionej rejestracji do zewnętrznego API: per-turn metryki są obsługiwane w UI, a pełny log `AiCallBridgePerf` zawiera tylko CPU/GPU, czasy, reuse, kontekst, status i liczbę znaków (nie użytkownika/tekst/numery). `Debug.MemoryInfo` pokazuje PSS procesu, `ActivityManager.MemoryInfo` wolną RAM na moment odczytu. Tokens/s nie jest liczone bez tokenizera. F-155 fizycznie **VERIFIED** (S22 4/4, full Mac PASS). [Checkpoint](checkpoints/2026-11-09-f155-lab-context-latency-diagnostics.md).
+
+
 ## Laboratorium/telefonia przez prywatny USB/ADB — architektura 2026-11-08
 
 `UsbLabControlReceiver` jest odbiornikiem `BroadcastReceiver` chronionym `android.permission.DUMP` i flagą `FLAG_DEBUGGABLE`. Mac `ai_calls_usb_lab.py` zapisuje żądanie w katalogu aplikacji przez `adb shell run-as` i wysyła jedynie nonce przez `am broadcast`. Odpowiedź i opcjonalny transkrypt trafiają do prywatnego magazynu. Brak serwera HTTP/TCP, ogólnego RCE i publicznego eksportu danych.
