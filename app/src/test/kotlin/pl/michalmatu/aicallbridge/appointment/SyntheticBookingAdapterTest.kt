@@ -61,6 +61,48 @@ class SyntheticBookingAdapterTest {
         ready = true
         assertTrue(provider.confirm(hold, "key", evidence).isSuccess)
     }
+    @Test fun differentKeysCannotDoubleBookHeldOrConfirmedSlot() {
+        val provider = SyntheticBookingAdapter()
+        val p = proposal()
+        assertTrue(provider.available(p))
+        val held = provider.hold(p, "first", 100L).getOrThrow()
+        assertFalse(provider.available(p))
+        assertTrue(provider.hold(p, "second", 100L).isFailure)
+        val receipt = provider.confirm(held, "first", consumed(p)).getOrThrow()
+        assertTrue(provider.hold(p, "second", 100L).isFailure)
+        assertFalse(provider.cancel(held, "first"))
+        assertSame(receipt, provider.readBack(receipt.bookingId))
+        // A different time remains independently available.
+        assertTrue(provider.hold(proposal(12), "other-time", 100L).isSuccess)
+    }
+
+    @Test fun expiryReleasesSlotButCannotReviveOldHold() {
+        var now = 0L
+        val provider = SyntheticBookingAdapter(clockMs = { now })
+        val p = proposal()
+        val stale = provider.hold(p, "old", 10L).getOrThrow()
+        now = 10L
+        assertTrue(provider.available(p))
+        val current = provider.hold(p, "fresh", 20L).getOrThrow()
+        assertFalse(provider.cancel(stale, "old") && current === stale)
+        assertTrue(provider.confirm(stale, "old", consumed(p)).isFailure)
+        assertTrue(provider.confirm(current, "fresh", consumed(p)).isSuccess)
+        assertTrue(provider.hold(p, "another", 20L).isFailure)
+    }
+
+    @Test fun cancellationRevokesHoldAndPermitsNewKeyWithoutReplayingOld() {
+        val provider = SyntheticBookingAdapter()
+        val p = proposal()
+        val old = provider.hold(p, "old", 100L).getOrThrow()
+        assertFalse(provider.cancel(old, "wrong"))
+        assertTrue(provider.cancel(old, "old"))
+        assertFalse(provider.cancel(old, "old"))
+        assertTrue(provider.hold(p, "old", 100L).isFailure)
+        assertTrue(provider.confirm(old, "old", consumed(p)).isFailure)
+        val fresh = provider.hold(p, "fresh", 100L).getOrThrow()
+        assertTrue(provider.confirm(fresh, "fresh", consumed(p)).isSuccess)
+    }
+
     @Test fun noAvailabilityAndInvalidTtlFailClosed() {
         val denied = SyntheticBookingAdapter(availability = { false })
         assertFalse(denied.available(proposal()))

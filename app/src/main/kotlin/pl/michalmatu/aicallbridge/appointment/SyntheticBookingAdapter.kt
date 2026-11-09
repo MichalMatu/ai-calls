@@ -26,14 +26,20 @@ class SyntheticBookingAdapter(
         val key: String,
         val proposal: CallProposal,
         var receipt: SyntheticBookingReceipt? = null,
+        var cancelled: Boolean = false,
     )
     private val byKey = mutableMapOf<String, Entry>()
+    private val byProposal = mutableMapOf<CallProposal, Entry>()
     private val byHold = mutableMapOf<String, Entry>()
     private val byReceipt = mutableMapOf<String, SyntheticBookingReceipt>()
     private var sequence = 0L
 
-    @Synchronized fun available(proposal: CallProposal): Boolean =
-        runCatching { availability(proposal) }.getOrDefault(false)
+    @Synchronized fun available(proposal: CallProposal): Boolean = runCatching {
+        val current = byProposal[proposal]
+        if (current != null && !current.cancelled &&
+            (current.receipt != null || clockMs() < current.hold.expiresAtMs)) return@runCatching false
+        availability(proposal)
+    }.getOrDefault(false)
 
     /** Same idempotency key retains original TTL; changed terms are rejected. */
     @Synchronized fun hold(
@@ -44,6 +50,7 @@ class SyntheticBookingAdapter(
         val now = clockMs()
         byKey[idempotencyKey]?.let { old ->
             check(old.proposal == proposal) { "booking key conflicts with another proposal" }
+            check(!old.cancelled) { "booking hold was cancelled" }
             check(old.receipt != null || now < old.hold.expiresAtMs) { "booking hold expired" }
             return@runCatching old.hold
         }
@@ -52,6 +59,7 @@ class SyntheticBookingAdapter(
         val hold = SyntheticBookingHold("synthetic-hold-" + (++sequence), now + ttlMs)
         val entry = Entry(hold, idempotencyKey, proposal)
         byKey[idempotencyKey] = entry
+        byProposal[proposal] = entry
         byHold[hold.id] = entry
         hold
     }
@@ -64,6 +72,7 @@ class SyntheticBookingAdapter(
     ): Result<SyntheticBookingReceipt> = runCatching {
         val entry = byHold[hold.id] ?: error("unknown hold")
         check(entry.hold === hold && entry.key == idempotencyKey) { "hold mismatch" }
+        check(!entry.cancelled && byProposal[entry.proposal] === entry) { "hold no longer active" }
         check(consumed.effect == CallExternalEffect.BookAppointment(entry.proposal)) {
             "consumed effect differs from held offer"
         }
@@ -74,6 +83,16 @@ class SyntheticBookingAdapter(
         entry.receipt = receipt
         byReceipt[receipt.bookingId] = receipt
         receipt
+    }
+
+    /** Only an exact, unconfirmed hold may be released; confirmed receipts are immutable. */
+    @Synchronized fun cancel(hold: SyntheticBookingHold, idempotencyKey: String): Boolean {
+        val entry = byHold[hold.id] ?: return false
+        if (entry.hold !== hold || entry.key != idempotencyKey ||
+            entry.cancelled || entry.receipt != null) return false
+        entry.cancelled = true
+        byProposal.remove(entry.proposal, entry)
+        return true
     }
 
     /** Read-back from provider-owned store, not from the model or commitment ledger. */
