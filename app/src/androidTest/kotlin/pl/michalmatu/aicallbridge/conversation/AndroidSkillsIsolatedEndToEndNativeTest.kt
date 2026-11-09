@@ -175,18 +175,18 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
                     val picker = requireNotNull(activity.window.decorView
                         .findViewWithTag<Spinner>("skills-preset-picker"))
                     picker.setSelection(0)
-                    activity.window.decorView.findViewWithTag<View>("skills-activate")
-                        ?.performClick()
                 }
+                instrumentation.waitForIdleSync()
+                click(scene, "skills-activate")
                 assertEquals("natural", store.loadSkillLibrary().activePresetId)
                 scene.onActivity { activity ->
                     val now = store.loadSkillLibrary()
                     val picker = requireNotNull(activity.window.decorView
                         .findViewWithTag<Spinner>("skills-preset-picker"))
                     picker.setSelection(now.presets.indexOfFirst { it.id == currentCustomId })
-                    activity.window.decorView.findViewWithTag<View>("skills-activate")
-                        ?.performClick()
                 }
+                instrumentation.waitForIdleSync()
+                click(scene, "skills-activate")
                 assertEquals(currentCustomId, store.loadSkillLibrary().activePresetId)
             }
             // Reopening the persisted encrypted library retains the custom revision.
@@ -195,7 +195,6 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
             assertEquals(3, reloaded.active.versions["ConversationStyle"])
             assertEquals(1, reloaded.snapshot("natural").entries
                 .single { it.id == "ConversationStyle" }.version)
-            val files = File(context.noBackupFilesDir, "skill-endtoend-") // skip filename logs
             assertTrue("isolated_skills_revisions_missing", reloaded.skills
                 .any { it.id == "ConversationStyle" && it.revisions.size == 3 })
             println("S22_SKILLS_UI_COPY_EDIT_TOGGLE_ROLLBACK_REOPEN=PASS_ISOLATED")
