@@ -5,6 +5,7 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 import android.content.Context
 import pl.michalmatu.aicallbridge.textagent.DialogueActionId
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
+import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 /**
@@ -17,7 +18,8 @@ internal interface DialogueEngineProvider {
     fun createConversationReply(context: Context, systemInstruction: String, tools: Set<ConversationToolId>): TextCallAgentBackend
     /** Lab-only larger native context; normal call paths keep their existing budget. */
     fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
-        tools: Set<ConversationToolId>, contextTokenBudget: Int = 4_096): TextCallAgentBackend =
+        tools: Set<ConversationToolId>, contextTokenBudget: Int = 4_096,
+        onTiming: (NativeModelTiming) -> Unit = {}): TextCallAgentBackend =
         createConversationReply(context, systemInstruction, tools)
     fun createActionClassifier(
         context: Context,
@@ -32,9 +34,10 @@ internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId) : 
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id, tools)
 
     override fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
-        tools: Set<ConversationToolId>, contextTokenBudget: Int): TextCallAgentBackend =
+        tools: Set<ConversationToolId>, contextTokenBudget: Int,
+        onTiming: (NativeModelTiming) -> Unit): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id,
-            tools, contextTokenBudget = contextTokenBudget)
+            tools, contextTokenBudget = contextTokenBudget, onTiming = onTiming)
 
     override fun createDirect(context: Context, systemInstruction: String): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createDirectDialogue(context, systemInstruction, id)
