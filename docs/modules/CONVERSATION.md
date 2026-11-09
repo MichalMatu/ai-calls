@@ -3,7 +3,7 @@
 **Runtime:** `AndroidConversationRuntime`, `LocalSpeechTextPipeline`, `LocalSpeechGenerationGate` i wspólny `conversation-core`. INCOMING i OUTGOING nie mają osobnych modeli rozmowy. Domyślnie Gemma 4 E2B/GPU, kontekstowe dynamic Skills, Android STT/TTS; Qwen i ALL_ACTIVE tylko w Lab.
 
 ## Granice tury
-- RX speech-start/stop, VAD/EOS, transkrypcja, snapshot kontekstu, autoryzacja tekstu i typowanych narzędzi, TTS, TX, archiwizacja.
+- RX speech-start/stop, VAD/EOS, transkrypcja, snapshot kontekstu, autoryzacja tekstu i typowanych narzędzi, TTS, TX, archiwizacja. Wielokrotne okna RX w tej samej turze zapisują osobne WAV z suffixem part-NNN, bez nadpisania.
 - Każda STT/model/TTS odpowiedź musi być związana z sesją, generacją i epoką tury; queued/stale PCM musi kończyć się na granicy klatki. Przerwanie lub STOP anuluje stare wyjście oraz kolejkę; nieprawidłowy/niepewny status nie może automatycznie wznowić TTS.
 - Realtime `CallRealtimeAudioPump` ma atomową blokadę gate/queue na barge-in, tombstones i bounded audio; **lokalny Gemma ma syntetyczny RX-during-TX restart z ograniczonym pre-roll; echo/double-talk i fizyczny barge-in S22 pozostają OPEN**.
 - Recovery po ciszy/hold nie może sztucznie ucinać rozmowy, ale respektuje zasoby, systemowy Call state i STOP. Przy fizycznym rozłączeniu dokończ dostępny końcowy RX/STT bez udawania brakującej mowy.

@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 import pl.michalmatu.aicallbridge.conversationtools.*
 import pl.michalmatu.aicallbridge.tools.ConversationToolUi
+import pl.michalmatu.aicallbridge.developerrelay.RecordedAudioClipName
 
 import com.google.gson.JsonParser
 import java.io.File
@@ -107,7 +108,7 @@ internal class RecordedConversationHistory(private val root: File) {
 
     /** Resolve only preexisting, private per-turn WAVs, never external paths. */
     fun resolveAudioFile(id: String, fileName: String): File? = runCatching {
-        if (!fileName.matches(Regex("turn-[0-9]+-(rx|tx|tx-ack)[.]wav"))) return@runCatching null
+        if (!RecordedAudioClipName.isSafe(fileName)) return@runCatching null
         val directory = File(root, id).canonicalFile
         if (directory.parentFile != root.canonicalFile || !directory.isDirectory) return@runCatching null
         File(directory, fileName).canonicalFile.takeIf { it.parentFile == directory && it.isFile }
@@ -164,14 +165,14 @@ internal class RecordedConversationHistory(private val root: File) {
                             else -> "tx-ack"
                         }
                         val name = event.get("file")?.takeUnless { it.isJsonNull }?.asString
-                        val expected = "turn-" + turn.toString().padStart(2, '0') + "-" + channel + ".wav"
-                        if (turn >= 0 && name == expected) {
-                            val wave = File(directory, expected).canonicalFile
+                        if (turn >= 0 && name != null && RecordedAudioClipName.matches(name, turn, channel)) {
+                            val wave = File(directory, name).canonicalFile
                             if (wave.parentFile == directory && wave.isFile) {
-                                audioFiles[turn to channel] = expected
+                                // The transcript links to the final RX window, but playback keeps all.
+                                audioFiles[turn to channel] = name
                                 val startedAt = event.get("elapsed_ms")?.asLong
                                     ?: audioTimeline.lastOrNull()?.first ?: 0L
-                                audioTimeline += Triple(startedAt, audioTimeline.size, expected)
+                                audioTimeline += Triple(startedAt, audioTimeline.size, name)
                             }
                         }
                     }

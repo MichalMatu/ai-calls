@@ -2,10 +2,50 @@ package pl.michalmatu.aicallbridge.conversation
 
 import java.io.File
 import java.nio.file.Files
+import pl.michalmatu.aicallbridge.developerrelay.RecordedAudioClipName
 import org.junit.Assert.*
 import org.junit.Test
 
 class RecordedConversationAudioHistoryTest {
+    @Test fun repeatedRxWindowsRetainDistinctClipsWithoutOverwritingFirstPart() {
+        assertEquals("turn-01-rx.wav", RecordedAudioClipName.create(1, "rx"))
+        assertEquals("turn-01-rx-part-002.wav", RecordedAudioClipName.create(1, "rx", 2))
+        assertEquals("turn-01-rx-part-003.wav", RecordedAudioClipName.create(1, "rx", 3))
+        assertFalse(RecordedAudioClipName.isSafe("turn-01-rx-part-001.wav"))
+        assertFalse(RecordedAudioClipName.isSafe("turn-01-rx-part-000.wav"))
+        assertFalse(RecordedAudioClipName.isSafe("../turn-01-rx.wav"))
+        assertFalse(RecordedAudioClipName.matches("turn-02-rx-part-002.wav", 1, "rx"))
+
+        val root = Files.createTempDirectory("aicalls-rx-parts").toFile()
+        try {
+            val session = File(root, "1000-multi-rx").apply { mkdirs() }
+            listOf(
+                "turn-01-rx.wav",
+                "turn-01-rx-part-002.wav",
+                "turn-01-rx-part-003.wav",
+                "turn-01-tx.wav",
+            ).forEach { name -> File(session, name).writeBytes(byteArrayOf(0, 0)) }
+            File(session, "timeline.jsonl").writeText(listOf(
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav","elapsed_ms":5}""",
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx-part-002.wav","elapsed_ms":10}""",
+                """{"type":"TX_PCM","turn":1,"file":"turn-01-tx.wav","elapsed_ms":30}""",
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx-part-003.wav","elapsed_ms":20}""",
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx-part-001.wav","elapsed_ms":0}""",
+                """{"type":"END","reason_code":"completed"}""",
+            ).joinToString("\n", postfix = "\n"))
+            val history = RecordedConversationHistory(root)
+            val loaded = history.load(session.name)
+            assertEquals(listOf(
+                "turn-01-rx.wav", "turn-01-rx-part-002.wav",
+                "turn-01-rx-part-003.wav", "turn-01-tx.wav",
+            ), loaded.audioTimeline)
+            assertNotNull(history.resolveAudioFile(session.name, "turn-01-rx.wav"))
+            assertNotNull(history.resolveAudioFile(session.name, "turn-01-rx-part-002.wav"))
+            assertNull(history.resolveAudioFile(session.name, "turn-01-rx-part-000.wav"))
+            assertEquals(0, loaded.invalidRecords)
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun onlyExistingAudioSegmentsAreLinkedAndPathsCannotEscapePrivateArchive() {
         val root = Files.createTempDirectory("aicalls-history-wav").toFile()
         try {

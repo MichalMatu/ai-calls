@@ -55,6 +55,8 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         Thread(runnable, "PrivateCallEvidence").apply { isDaemon = true }
     }
     private val timeline = File(directory, "timeline.jsonl")
+    /** Owned by the single evidence IO worker; per-turn RX windows remain distinct. */
+    private val rxWindowParts = mutableMapOf<Int, Int>()
 
     fun recordConversation(
         direction: pl.michalmatu.aicallbridge.conversation.ConversationDirection,
@@ -203,7 +205,12 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     private fun saveWave(turn: Int, direction: String, atMs: Long, pcm: ByteArray) {
         if (completed.get()) return
         submit {
-            val fileName = "turn-" + turn.toString().padStart(2, '0') + "-" + direction + ".wav"
+            val part = if (direction == "rx") {
+                val next = Math.addExact(rxWindowParts[turn] ?: 0, 1)
+                rxWindowParts[turn] = next
+                next
+            } else 1
+            val fileName = RecordedAudioClipName.create(turn, direction, part)
             val destination = File(directory, fileName)
             // No arbitrary per-turn, per-session or last-N-recordings truncation.
             // Only actual free-space pressure can stop writing, without stopping the call.
