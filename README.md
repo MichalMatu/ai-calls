@@ -2,7 +2,13 @@
 
 Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowanych scenariuszy telefonicznych. Obecnie służy do weryfikowania komponentów i ich integracji; nie jest jeszcze dowiedzionym, kompletnym wykonawcą dowolnych zadań ani zamkniętym archiwum audio.
 
-## Aktualny stan — 2026-11-08
+## Aktualny stan — 2026-11-09
+
+- **S22 nawigacja:** pełny Mac quality gate i fizyczna macierz **10/10 PASS** (kontrakt 5/5, tab flow 2/2, ekrany ustawień 3/3), F-151 VERIFIED. NAV-01 pozostaje PARTIAL dla długiego back-stack/restart.
+- **USB Lab:** debug APK/AndroidTest na S22 bez wipe, `AndroidUsbLabControlContractTest` **3/3 PASS** oraz prawdziwe `status/config-get/ram` **3/3 PASS**, F-152 VERIFIED. Pierwszy `lab-start` i STOP fizycznie wykonane; `lab-send` wymagał poprawki stdin (F-153 HOST_PASS), retest urządzenia BLOCKED PocketHost foreground. Nie deklarować dwuturowego USB native PASS.
+- **Bezpieczeństwo i granice:** Call IDLE; bez nowych rzeczywistych połączeń, brak pełnego live takeover/resume/exact STOP, osobne F-150/F-148 nadal otwarte. [Aktualny checkpoint](docs/checkpoints/2026-11-09-nav01-f151-usb-f152-reacceptance.md) · [Handoff](docs/HANDOFF_NEXT_CHAT.md).
+
+## Stan historyczny — 2026-11-08
 
 **Aktualny kod sprzed zbiorczego checkpointu:** `main@af571f06a7a34b05a14a8e0b54b8642f40a89e57`. Od stanu UX-11 dodano rzeczywisty Lab i nowy kanał USB; przy wznowieniu należy odczytać świeży HEAD.
 
