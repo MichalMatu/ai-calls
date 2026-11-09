@@ -1,3 +1,11 @@
+## F-151 — nieaktualny kontrakt AndroidTest zakładki Agent AI (2026-11-09)
+
+**Ścieżka:** `app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/AndroidAppNavigationContractTest.kt`, metoda `agentOwnsEditorsAndSettingsHasNoDuplicateDestinations`.
+**Warunek i wpływ:** na fizycznym S22 istniejący test kontraktowy zakończył się 4/5, `IllegalArgumentException: Required value was null`. Test oczekiwał `agent-destination:PhoneEnrollmentActivity`, podczas gdy aktualny `AgentAiHubActivity` świadomie prowadzi do `IdentityVaultManagerActivity` (F-143). Błędne oczekiwanie testu fałszywie blokowało odbiór NAV-01; nie dowodzi usterki dostępnego ekranu.
+**Przyczyna:** test nie został dostosowany do zmiany nawigacji Sejfu. **Poprawka:** `main@b501768566cad446d0866a013538fd8b612e6258` — oczekuje rzeczywistego edytora Sejfu i wprost sprawdza brak starej drogi. Nie zmieniono kodu aplikacji, telefonu ani danych.
+**Dowód RED:** `aicalls-nav01-contract-triage-20261109-v1` DONE/0 (wewnętrzny test 5 przypadków / 1 FAIL, wskazana metoda), S22 IDLE; niezależnie źródło aktywnego huba ujawnia rozbieżność. **GREEN/odbiór urządzenia:** QA_PENDING do nowej instalacji AndroidTest i celowanego uruchomienia. Nie zmieniać na PASS na podstawie samego commitu.
+**Status:** FIXED_IN_SOURCE / QA_PENDING.
+
 ## F-150 — równoległy Lab UI i USB mógł uruchomić dwa konteksty Gemmy (2026-11-08)
 
 **Ścieżka:** `AndroidSkillLabSessionFactory.open` / `SkillLabRunner` dla GUI i `UsbLabControl.lab_start` dla ADB.
