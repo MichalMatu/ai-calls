@@ -9,6 +9,8 @@ import pl.michalmatu.aicallbridge.identity.FactDisclosurePolicy
 import pl.michalmatu.aicallbridge.identity.FactDisclosureRequest
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.identity.PersistentIdentityVault
+import pl.michalmatu.aicallbridge.identity.ScopedIdentityFactRead
+import pl.michalmatu.aicallbridge.identity.ScopedIdentityFactReader
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphStateId
 
 internal data class AuthorizedPhoneFactScope(
@@ -58,27 +60,58 @@ internal class AuthorizedPhoneFactBackend(
                 snapshotGeneration = scope.generation,
             )
 
-            when (policy.decide(request, snapshot)) {
-                FactDisclosureDecision.ALLOW -> Unit
-                FactDisclosureDecision.ASK_USER -> {
-                    listener.onError(ERROR_REQUIRES_USER)
-                    return
-                }
-                FactDisclosureDecision.DENY -> {
-                    listener.onError(ERROR_DENIED)
-                    return
-                }
+            // Non-granted scopes retain the existing explicit approval response, and
+            // never read the secret. All granted reads use the shared late vault port.
+            if (!scope.authorized) {
+                listener.onError(when (policy.decide(request, snapshot)) {
+                    FactDisclosureDecision.ASK_USER -> ERROR_REQUIRES_USER
+                    else -> ERROR_DENIED
+                })
+                return
             }
 
-            val secret = vault.get(IdentityFieldId.PHONE).getOrThrow()
-                ?: throw IllegalStateException("phone_fact_unavailable")
-            val speech = secret.withPlaintext(::formatPhoneSpeech)
-            onDisclosure()
-            listener.onComplete(speech)
+            val fact = ScopedIdentityFactReader(
+                vault = vault,
+                policy = policy,
+                activeAuthority = { requested -> liveScopeMatches(scope, requested) },
+            ).read(request, snapshot)
+            when (fact) {
+                ScopedIdentityFactRead.ApprovalRequired -> listener.onError(ERROR_REQUIRES_USER)
+                ScopedIdentityFactRead.Denied -> listener.onError(ERROR_RESOLUTION_FAILED)
+                is ScopedIdentityFactRead.Authorized -> {
+                    val speech = fact.secret.withPlaintext(::formatPhoneSpeech)
+                    // Revocation can also happen during formatting or diagnostics.
+                    if (!liveScopeMatches(scope, request)) {
+                        listener.onError(ERROR_RESOLUTION_FAILED)
+                        return
+                    }
+                    onDisclosure()
+                    if (!liveScopeMatches(scope, request)) {
+                        listener.onError(ERROR_RESOLUTION_FAILED)
+                        return
+                    }
+                    listener.onComplete(speech)
+                }
+            }
         } catch (_: Throwable) {
             listener.onError(ERROR_RESOLUTION_FAILED)
         }
     }
+
+    /**
+     * The backend belongs to one owned Call; a changed policy/STOP/turn or generation
+     * must invalidate its disclosure even if the decrypted value was already fetched.
+     */
+    private fun liveScopeMatches(
+        initial: AuthorizedPhoneFactScope,
+        request: FactDisclosureRequest,
+    ): Boolean = runCatching {
+        val current = scopeProvider()
+        current == initial && current.authorized &&
+            current.task == request.task && current.target == request.target &&
+            current.state == request.currentState && current.mode == request.mode &&
+            current.generation == request.snapshotGeneration
+    }.getOrDefault(false)
 
     override fun cancel() = Unit
 

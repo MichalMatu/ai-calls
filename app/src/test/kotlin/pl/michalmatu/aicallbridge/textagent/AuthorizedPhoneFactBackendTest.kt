@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.textagent
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -80,6 +81,95 @@ class AuthorizedPhoneFactBackendTest {
     }
 
     @Test
+    fun revokeDuringVaultReadCannotDisclosePhoneDigits() {
+        val fixture = vaultWithPhone()
+        var live = true
+        var disclosureRecorded = false
+        fixture.storage.readCalls = 0
+        fixture.storage.onRead = {
+            if (fixture.storage.readCalls == 2) live = false
+        }
+        val result = generate(
+            AuthorizedPhoneFactBackend(
+                vault = fixture.vault,
+                policy = DefaultFactDisclosurePolicy(),
+                scopeProvider = { scope(authorized = live) },
+                onDisclosure = { disclosureRecorded = true },
+            ),
+            AuthorizedPhoneFactBackend.DISCLOSE_PHONE_CONTROL,
+        )
+        assertNull(result.text)
+        assertEquals(AuthorizedPhoneFactBackend.ERROR_RESOLUTION_FAILED, result.error)
+        assertFalse(disclosureRecorded)
+    }
+
+    @Test
+    fun changedCallGenerationDuringDecryptCannotReuseOldDisclosure() {
+        val fixture = vaultWithPhone()
+        var generation = 7L
+        fixture.storage.readCalls = 0
+        fixture.storage.onRead = {
+            if (fixture.storage.readCalls == 2) generation = 8L
+        }
+        val result = generate(
+            AuthorizedPhoneFactBackend(
+                vault = fixture.vault,
+                policy = DefaultFactDisclosurePolicy(),
+                scopeProvider = { scope(authorized = true).copy(generation = generation) },
+            ),
+            AuthorizedPhoneFactBackend.DISCLOSE_PHONE_CONTROL,
+        )
+        assertNull(result.text)
+        assertEquals(AuthorizedPhoneFactBackend.ERROR_RESOLUTION_FAILED, result.error)
+    }
+
+    @Test
+    fun disclosureObserverRevocationPreventsFinalSpeechCallback() {
+        val fixture = vaultWithPhone()
+        var live = true
+        var observerCalled = false
+        val result = generate(
+            AuthorizedPhoneFactBackend(
+                vault = fixture.vault,
+                policy = DefaultFactDisclosurePolicy(),
+                scopeProvider = { scope(authorized = live) },
+                onDisclosure = {
+                    observerCalled = true
+                    live = false
+                },
+            ),
+            AuthorizedPhoneFactBackend.DISCLOSE_PHONE_CONTROL,
+        )
+        assertTrue(observerCalled)
+        assertNull(result.text)
+        assertEquals(AuthorizedPhoneFactBackend.ERROR_RESOLUTION_FAILED, result.error)
+    }
+
+    @Test
+    fun changedTargetDuringScopedReadCannotReleasePreviousPhone() {
+        val fixture = vaultWithPhone()
+        var changed = false
+        fixture.storage.readCalls = 0
+        fixture.storage.onRead = {
+            if (fixture.storage.readCalls == 2) changed = true
+        }
+        val result = generate(
+            AuthorizedPhoneFactBackend(
+                vault = fixture.vault,
+                policy = DefaultFactDisclosurePolicy(),
+                scopeProvider = {
+                    scope(authorized = true).copy(
+                        target = if (changed) CallResolvedTarget("Other", "+48999999999") else target,
+                    )
+                },
+            ),
+            AuthorizedPhoneFactBackend.DISCLOSE_PHONE_CONTROL,
+        )
+        assertNull(result.text)
+        assertEquals(AuthorizedPhoneFactBackend.ERROR_RESOLUTION_FAILED, result.error)
+    }
+
+    @Test
     fun `vault failures return a stable redacted error`() {
         val secretMarker = "DO_NOT_EXPOSE_123456789"
         val fixture = vaultWithPhone()
@@ -153,9 +243,11 @@ class AuthorizedPhoneFactBackendTest {
         private var bytes: ByteArray? = null
         var readCalls: Int = 0
         var readFailure: RuntimeException? = null
+        var onRead: () -> Unit = {}
 
         override fun read(): ByteArray? {
             readCalls += 1
+            onRead()
             readFailure?.let { throw it }
             return bytes?.copyOf()
         }
