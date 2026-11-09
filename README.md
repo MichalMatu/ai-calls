@@ -5,7 +5,7 @@ Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowan
 ## Aktualny stan — 2026-11-09
 
 - **S22 nawigacja:** pełny Mac quality gate i fizyczna macierz **10/10 PASS** (kontrakt 5/5, tab flow 2/2, ekrany ustawień 3/3), F-151 VERIFIED. NAV-01 pozostaje PARTIAL dla długiego back-stack/restart.
-- **USB Lab:** debug APK/AndroidTest na S22 bez wipe, `AndroidUsbLabControlContractTest` **3/3 PASS** oraz prawdziwe `status/config-get/ram` **3/3 PASS**, F-152 VERIFIED. Pierwszy `lab-start` i STOP fizycznie wykonane; `lab-send` wymagał poprawki stdin (F-153 HOST_PASS), retest urządzenia BLOCKED PocketHost foreground. Nie deklarować dwuturowego USB native PASS.
+- **USB Lab:** debug APK/AndroidTest na S22 bez wipe, `AndroidUsbLabControlContractTest` **3/3 PASS** oraz prawdziwe `status/config-get/ram` **3/3 PASS**, F-152 VERIFIED. USB Lab działa także z inną aplikacją na pierwszym planie (ADB receiver, bez UI): `aicalls-usb-lab-background-two-turn-20261109-v3` DONE/0, E2B 4096 **2/2 tury**, prywatny zapis na Mac oraz STOP, telefon IDLE. **F-153 VERIFIED**. Bez wymagania AI Calls/Launcher foreground przy off-call USB.
 - **Bezpieczeństwo i granice:** Call IDLE; bez nowych rzeczywistych połączeń, brak pełnego live takeover/resume/exact STOP, osobne F-150/F-148 nadal otwarte. [Aktualny checkpoint](docs/checkpoints/2026-11-09-nav01-f151-usb-f152-reacceptance.md) · [Handoff](docs/HANDOFF_NEXT_CHAT.md).
 
 ## Stan historyczny — 2026-11-08
