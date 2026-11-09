@@ -56,11 +56,13 @@ class AndroidAppNavigationContractTest {
                 val root = activity.window.decorView
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:agent")).isSelected)
                 for (item in listOf("ConversationSkillsActivity", "ScenarioLibraryActivity",
-                    "ConversationPreparationActivity", "PhoneEnrollmentActivity",
+                    "ConversationPreparationActivity", "IdentityVaultManagerActivity",
                     "ConversationToolsActivity")) {
                     assertTrue(requireNotNull(root.findViewWithTag<View>(
                         "agent-destination:" + item)).isClickable)
                 }
+                assertNull("legacy_enrollment_not_agent_destination",
+                    root.findViewWithTag<View>("agent-destination:PhoneEnrollmentActivity"))
             }
         }
         ActivityScenario.launch(SettingsHubActivity::class.java).use { screen ->
