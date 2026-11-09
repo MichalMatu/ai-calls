@@ -147,6 +147,8 @@ internal object AndroidConversationRuntime {
         private val activeMediaGeneration = AtomicLong(-1L)
         /** Fences queued and in-flight PCM across local turns and STOP on the same Call. */
         private val outputEpoch = AtomicLong(0L)
+        /** A no-speech retry creates a new RX attempt without incrementing the turn. */
+        private val rxCaptureAttemptSequence = AtomicLong(0L)
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",
             "supervised_read_only=$readOnlySupervised",
@@ -495,7 +497,14 @@ internal object AndroidConversationRuntime {
             var total = 0
             var endpoint = detector.acceptPcm16(ByteArray(0))
             val capture = ActiveRxCapture(turn, endpoint)
-            val captureOwner = ConversationTurnOwner(turn, outputEpoch.get(), generation)
+            val captureOwner = ConversationRxCaptureOwner(
+                ConversationTurnOwner(turn, outputEpoch.get(), generation),
+                rxCaptureAttemptSequence.incrementAndGet(),
+            )
+            fun currentCapture(): Boolean = captureOwner.isCurrent(
+                currentTurn, outputEpoch.get(), activeMediaGeneration.get(),
+                finished.get(), rxCaptureAttemptSequence.get(),
+            )
             activeRxCapture.set(capture)
             try {
                 if (preRoll.isNotEmpty()) {
@@ -509,8 +518,7 @@ internal object AndroidConversationRuntime {
                 }
                 pump.beginCapture(object : ChatRelayDownlinkPump.Capture {
                     override fun onFrame(bytes: ByteArray, length: Int): Boolean {
-                        if (!captureOwner.isCurrent(currentTurn, outputEpoch.get(),
-                                activeMediaGeneration.get(), finished.get()) ||
+                        if (!currentCapture() ||
                             activeRxCapture.get() !== capture || capture.complete.get()) return false
                         if (!pipeline.writeInputPcm(bytes, 0, length)) {
                             throw IllegalStateException("stt_pcm_write_failed")
@@ -528,8 +536,8 @@ internal object AndroidConversationRuntime {
                     }
 
                     override fun onAbandoned() {
-                        capture.complete.set(true)
-                        activeRxCapture.compareAndSet(capture, null)
+                        if (!capture.complete.compareAndSet(false, true)) return
+                        if (!activeRxCapture.compareAndSet(capture, null)) return
                         // STT no-match while downlink capture is still running.
                         // Abandon just that capture; the Call's RX pump stays alive.
                         evidenceRx?.finish()
@@ -537,8 +545,8 @@ internal object AndroidConversationRuntime {
                     }
 
                     override fun onFinished() {
-                        capture.complete.set(true)
-                        activeRxCapture.compareAndSet(capture, null)
+                        if (!capture.complete.compareAndSet(false, true)) return
+                        if (!activeRxCapture.compareAndSet(capture, null)) return
                         evidenceRx?.finish()
                         totalRxBytes += total.toLong()
                         lines += "turn_${turn}_rx_pcm_bytes=$total"
@@ -550,16 +558,14 @@ internal object AndroidConversationRuntime {
                             estimatedSpeechEndElapsedMs = estimated
                             lines += "turn_${turn}_estimated_eos_elapsed_ms=$estimated"
                         }
-                        if (!captureOwner.isCurrent(currentTurn, outputEpoch.get(),
-                                activeMediaGeneration.get(), finished.get())) return
+                        if (!currentCapture()) return
                         if (!endpoint.speechDetected) {
                             // Silence or waiting in the operator's IVR is not task failure.
                             // Keep listening while the exact call and grant remain active.
                             silenceWindows = (silenceWindows + 1L).coerceAtMost(Long.MAX_VALUE)
                             lines += "turn_${turn}_no_speech_window=$silenceWindows"
                             handler.postDelayed({
-                                if (!captureOwner.isCurrent(currentTurn, outputEpoch.get(),
-                                        activeMediaGeneration.get(), finished.get())) return@postDelayed
+                                if (!currentCapture()) return@postDelayed
                                 if (!authorizedNow()) finish(authorityTermination())
                                 else beginCaptureInputTurn(turn, generation, lease)
                             }, NO_SPEECH_RETRY_DELAY_MS)
@@ -573,13 +579,12 @@ internal object AndroidConversationRuntime {
                     }
 
                     override fun onError(reason: String) {
-                        capture.complete.set(true)
-                        activeRxCapture.compareAndSet(capture, null)
+                        if (!capture.complete.compareAndSet(false, true)) return
+                        if (!activeRxCapture.compareAndSet(capture, null)) return
                         evidenceRx?.finish()
                         if (finished.get()) return
                         context.mainExecutor.execute {
-                            if (captureOwner.isCurrent(currentTurn, outputEpoch.get(),
-                                    activeMediaGeneration.get(), finished.get())) {
+                            if (currentCapture()) {
                                 fail("turn_${turn}_rx_${sanitize(reason)}")
                             }
                         }

@@ -25,6 +25,23 @@ class ConversationTurnOwnerTest {
         assertFalse(owner.isCurrent(2, 7L, 3L, finished = false))
     }
 
+    @Test fun nextSilenceWindowInvalidatesPreviousRxErrorWithSameTurnAndEpoch() {
+        val turn = ConversationTurnOwner(2, 6L, 3L)
+        val first = ConversationRxCaptureOwner(turn, attempt = 10L)
+        val next = ConversationRxCaptureOwner(turn, attempt = 11L)
+        assertTrue(first.isCurrent(2, 6L, 3L, finished = false, attemptNow = 10L))
+        assertFalse(first.isCurrent(2, 6L, 3L, finished = false, attemptNow = 11L))
+        assertTrue(next.isCurrent(2, 6L, 3L, finished = false, attemptNow = 11L))
+        assertFalse(next.isCurrent(2, 7L, 3L, finished = false, attemptNow = 11L))
+    }
+
+    @Test fun oldRxErrorCannotOverrideTakeoverOrResumedMediaGeneration() {
+        val old = ConversationRxCaptureOwner(ConversationTurnOwner(3, 8L, 2L), attempt = 6L)
+        assertFalse(old.isCurrent(3, 8L, 2L, finished = true, attemptNow = 6L))
+        assertFalse(old.isCurrent(3, 8L, 3L, finished = false, attemptNow = 6L))
+        assertFalse(old.isCurrent(3, 8L, 2L, finished = false, attemptNow = 7L))
+    }
+
     @Test fun stopRevokesOtherwiseMatchingDeferredCallback() {
         val owner = ConversationTurnOwner(2, 6L, 3L)
         assertFalse(owner.isCurrent(2, 6L, 3L, finished = true))
