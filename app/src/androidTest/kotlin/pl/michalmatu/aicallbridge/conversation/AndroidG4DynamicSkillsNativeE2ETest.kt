@@ -65,6 +65,10 @@ class AndroidG4DynamicSkillsNativeE2ETest {
             assertTrue("g4_message_reply_missing", done[1].observation.reply.isNotBlank())
             val beforePivot = done[2].observation.reply.contains("ZX74", ignoreCase = true)
             val afterPivot = done[3].observation.reply.contains("ZX74", ignoreCase = true)
+            Log.i("AiCallG4E2E", "f157_memory_before_pivot=" + beforePivot +
+                ";f157_memory_after_pivot=" + afterPivot +
+                ";turns_completed=" + done.size +
+                ";native_timing_count=" + actualBackends.size + ";no_call=true")
             assertTrue("g4_memory_before_topic_change", beforePivot)
             assertTrue("g4_memory_after_topic_change", afterPivot)
             assertTrue("g4_runner_stop", runner.stop())
