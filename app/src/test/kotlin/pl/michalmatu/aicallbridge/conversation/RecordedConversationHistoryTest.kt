@@ -116,6 +116,48 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively(); external.deleteRecursively() }
     }
 
+    @Test fun historyListSkipsSymlinkedExternalTimelineWithoutReadingItsText() {
+        val root = Files.createTempDirectory("conversation-history-private-list").toFile()
+        val outside = Files.createTempDirectory("conversation-history-external").toFile()
+        try {
+            write(root, "1000-valid", "INCOMING", "visible-local")
+            val external = File(outside, "outside-timeline.jsonl")
+            external.writeText("""{"type":"COUNTERPART_STT","turn":1,"text":"DO_NOT_SHOW_EXTERNAL"}""" + "\n")
+            val poisoned = File(root, "2000-poisoned").apply { mkdirs() }
+            Files.createSymbolicLink(File(poisoned, "timeline.jsonl").toPath(), external.toPath())
+            File(poisoned, "COMPLETE").writeText("untrusted-marker")
+            val escaped = File(root, "3000-external-dir")
+            Files.createSymbolicLink(escaped.toPath(), outside.toPath())
+
+            val history = RecordedConversationHistory(root)
+            val listing = history.list()
+            assertEquals(listOf("1000-valid"), listing.map { it.id })
+            assertTrue(listing.flatMap { it.lines }.none { it.text.contains("DO_NOT_SHOW_EXTERNAL") })
+            assertTrue(runCatching { history.load("2000-poisoned") }.isFailure)
+            assertFalse(history.canDelete("2000-poisoned"))
+            assertFalse(history.deleteCompleted("2000-poisoned"))
+            assertEquals(
+                """{"type":"COUNTERPART_STT","turn":1,"text":"DO_NOT_SHOW_EXTERNAL"}""" + "\n",
+                external.readText(),
+            )
+        } finally { root.deleteRecursively(); outside.deleteRecursively() }
+    }
+
+    @Test fun symlinkCompleteMarkerNeverAuthorizesDeletion() {
+        val root = Files.createTempDirectory("conversation-history-private-complete").toFile()
+        val outside = Files.createTempDirectory("conversation-history-external-marker").toFile()
+        try {
+            write(root, "1000-valid", "INCOMING", "keep-this")
+            val completed = File(outside, "COMPLETE").apply { writeText("external-only") }
+            Files.createSymbolicLink(File(root, "1000-valid/COMPLETE").toPath(), completed.toPath())
+            val history = RecordedConversationHistory(root)
+            assertFalse(history.canDelete("1000-valid"))
+            assertFalse(history.deleteCompleted("1000-valid"))
+            assertEquals("keep-this", history.load("1000-valid").lines.first().text)
+            assertEquals("external-only", completed.readText())
+        } finally { root.deleteRecursively(); outside.deleteRecursively() }
+    }
+
     @Test fun refusesTraversalAndSymlinkEscapes() {
         val root = Files.createTempDirectory("conversation-delete-safe").toFile()
         val other = Files.createTempDirectory("conversation-external").toFile()

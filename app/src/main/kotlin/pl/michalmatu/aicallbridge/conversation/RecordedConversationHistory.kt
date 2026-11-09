@@ -30,9 +30,23 @@ internal data class RecordedConversation(
 
 /** Read model over existing private timeline files. No duplicate transcript store or retention quota. */
 internal class RecordedConversationHistory(private val root: File) {
-    fun list(): List<RecordedConversation> = root.listFiles().orEmpty().filter {
-        it.isDirectory && File(it, "timeline.jsonl").isFile
-    }.sortedByDescending { it.name }.map { load(it.name) }
+    private fun privateTimeline(directory: File): File? = runCatching {
+        val candidate = File(directory, "timeline.jsonl")
+        if (java.nio.file.Files.isSymbolicLink(candidate.toPath())) return@runCatching null
+        candidate.canonicalFile.takeIf {
+            it.parentFile == directory.canonicalFile && it.isFile
+        }
+    }.getOrNull()
+
+    fun list(): List<RecordedConversation> = root.listFiles().orEmpty()
+        .asSequence()
+        .filter {
+            it.isDirectory && !java.nio.file.Files.isSymbolicLink(it.toPath()) &&
+                privateTimeline(it) != null
+        }
+        .sortedByDescending { it.name }
+        .mapNotNull { runCatching { load(it.name) }.getOrNull() }
+        .toList()
 
     /** Remove only a completed private archive, never a session still being recorded. */
     fun canDelete(id: String): Boolean = runCatching {
@@ -42,7 +56,8 @@ internal class RecordedConversationHistory(private val root: File) {
         !java.nio.file.Files.isSymbolicLink(candidate.toPath()) &&
             directory.parentFile == base && directory.isDirectory &&
             File(directory, "COMPLETE").isFile &&
-            File(directory, "timeline.jsonl").isFile
+            !java.nio.file.Files.isSymbolicLink(File(directory, "COMPLETE").toPath()) &&
+            privateTimeline(directory) != null
     }.getOrDefault(false)
 
     fun deleteCompleted(id: String): Boolean {
@@ -120,6 +135,7 @@ internal class RecordedConversationHistory(private val root: File) {
     fun load(id: String): RecordedConversation {
         val directory = File(root, id).canonicalFile
         require(directory.parentFile == root.canonicalFile && directory.isDirectory) { "invalid_conversation_history_id" }
+        val timeline = requireNotNull(privateTimeline(directory)) { "invalid_private_conversation_timeline" }
         val lines = mutableListOf<ConversationChatFeed.Line>()
         val audioFiles = linkedMapOf<Pair<Int, String>, String>()
         val audioTimeline = mutableListOf<Triple<Long, Int, String>>()
@@ -131,7 +147,7 @@ internal class RecordedConversationHistory(private val root: File) {
         var complete = false
         var invalid = 0
         var kind = ConversationChatFeed.ResponseKind.UNSPECIFIED
-        File(directory, "timeline.jsonl").useLines { events -> events.forEach { raw ->
+        timeline.useLines { events -> events.forEach { raw ->
             if (raw.isNotBlank()) try {
                 val event = JsonParser.parseString(raw).asJsonObject
                 val type = event.get("type")?.asString
