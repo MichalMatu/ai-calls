@@ -1,5 +1,14 @@
 # AI Calls — architektura operacyjna
 
+## Skills: prompt injection vs wywołania agentowe — zweryfikowany zakres 2026-11-09
+
+`ConversationSkillLibrary` zarządza wersjonowanymi snapshotami, a `ConversationInstructionBuilder` scala aktywne instrukcje w statycznym promptcie. **F-156 VERIFIED_SCOPED** po przełożeniu wersjonowanych instrukcji *za* wiążące zasady bezpieczeństwa i *przed* formatem odpowiedzi; fizyczna E2B na S22 (`active=true`, `inactive=false`) i izolowany UI edit/rollback PASS. Wspólny backend LiteRT-LM pozostaje niezmieniony.
+
+Oficjalne `Agent Skills` AI Edge Gallery to osobna **warstwa aplikacji**: `SKILL.md` z metadanymi `name/description`, selektywne włączenie pełnej instrukcji w kontekst, wykonawcze narzędzia JS lub natywne akcje. Nie jest to specjalny przełącznik w Gemmie. W AI Calls narzędzia telefoniczne nadal będą wyłącznie *propozycjami*, a granty, `CallCommitmentGate`, `FactDisclosurePolicy` i STOP pozostają nadrzędnymi warstwami autoryzacji i dowodu skutku. [Analiza i plan eksperymentu](AGENT_SKILLS_EDGE_GALLERY_REVIEW_2026-11-09.md).
+
+Porównanie S22 E2B/E4B na tych samych testach 2048: **18/18 tur syntetycznych**; oba GPU i podobna poprawność punktowa, E4B około 3× wolniejsza. To wspiera pozostawienie E2B w telefonicznej ścieżce domyślnej, bez modyfikacji profilu, oraz dalszy test osobnego selektora Skills. Nie nadawać N=1 próbce statusu benchmarku p95/realnych rozmów. [Checkpoint](checkpoints/2026-11-09-e2b-e4b-agent-skills-differential.md).
+
+
 ## Laboratorium: konfiguracja kontekstu i natywna diagnostyka — F-155 (2026-11-09)
 
 `ConversationSkillLabActivity` ma lokalną preferencję dodatniego budżetu `context_tokens` (domyślnie 4096), snapshotowaną przez `AndroidSkillLabSessionFactory.open` na **nową sesję**. Nie zmienia domyślnego `DEFAULT_CONTEXT_TOKENS=2048` w backendzie Call. Wspólny `DialogueEngineProvider` przepuszcza opcjonalny, tylko-laboratoryjny observer `NativeModelTiming` do `LiteRtGemma4Runtime`, który mierzy oddzielnie tworzenie silnika `Engine`, konwersacji i `sendMessage`. Listener nie zmienia autoryzacji, STOP, runtime ani odpowiedzi. Bez opóźnionej rejestracji do zewnętrznego API: per-turn metryki są obsługiwane w UI, a pełny log `AiCallBridgePerf` zawiera tylko CPU/GPU, czasy, reuse, kontekst, status i liczbę znaków (nie użytkownika/tekst/numery). `Debug.MemoryInfo` pokazuje PSS procesu, `ActivityManager.MemoryInfo` wolną RAM na moment odczytu. Tokens/s nie jest liczone bez tokenizera. F-155 fizycznie **VERIFIED** (S22 4/4, full Mac PASS). [Checkpoint](checkpoints/2026-11-09-f155-lab-context-latency-diagnostics.md).
