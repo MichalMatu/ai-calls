@@ -1,5 +1,10 @@
 # AI Calls — wspólny runtime rozmów (stan 2026-11-06)
 
+## 2026-11-09 — G5.1 real off-call speech loopback na S22
+
+`AndroidG51SpeechSkillsOffcallE2ETest` potwierdził fizyczny syntetyczny PCM z lokalnego TTS→wybrany STT→Gemma E2B z dynamicznymi Skills→aplikacyjna aprobatę→TTS PCM, 1/1, 23,574 s narastająco. Reużywa `LocalSpeechTextPipeline` i `TextCallTurnController` bez zmiany `AndroidConversationRuntime.run`, wymagania `MODE_IN_CALL`, toru Samsung RX/TX, własności Call lub nagrań. Nie dowodzi EOS→TX ani odtwarzania/słyszalności. [Checkpoint](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md).
+
+
 [Plan dalszego składania](PRODUCT_ASSEMBLY_PLAN.md) rozdziela profil użytkownika, konkretne zadanie, rozszerzalne skillsy/instrukcje i archiwum. Opisane poniżej moduły są obecnie granicami logicznymi w aplikacji; osobne biblioteki będą wydzielane przy pionowych integracjach. [Adapter odbierania](INCOMING_ASSISTANT.md) wdraża manual/AI/przejęcie ze wspólnym silnikiem i osobnym rdzeniem JVM conversation-core; podstawowy INCOMING/end_call został sprawdzony fizycznie, a manual/przejęcie/STOP pozostają QA_PENDING.
 
 ## Opcjonalna polityka ciszy dla INCOMING — 2026-11-06

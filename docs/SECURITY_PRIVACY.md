@@ -1,5 +1,10 @@
 # Security and privacy
 
+## G5.1 — synteza testowego audio bez połączenia ani prywatnego transkryptu (2026-11-09)
+
+AndroidTest syntetyzuje lokalny głos i przekazuje PCM wybranemu STT; wynik idzie do E2B/Skills, przez aplikacyjną politykę aprobaty i lokalny TTS. Test nie nagrywa mikrofonu, nie odtwarza TTS, nie łączy z Telecom ani nie ujawnia IdentityVault. Do standardowego logcat/GitHub trafiają wyłącznie czasy, liczniki i booleany, bez tekstu rozmowy i WAV. Typowane tool pozostaje propozycją, `executed=false`. S22 `Call IDLE` przed/po, profil zachowany, dwa APK bez wipe. [Checkpoint](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md).
+
+
 ## 2026-11-09 — G4.3 metadane i propozycje narzędzi są danymi, nie władzą
 
 `name/description/capability` jest wersjonowanym opisem wyboru prompt Skills i **nie jest grantem**. Dotychczasowy zaszyfrowany/no-backup magazyn chroni metadane i rewizje; S22 2/2 w izolowanym magazynie potwierdził brak plaintext w plikach magazynu i poprawny rollback, bez modyfikacji oryginalnego presetu. `onTurnRouting` przekazuje do UI wyłącznie ID/rewizje/metadane decyzji, a nie transkrypty; callback jest nieautorytatywny. `LabToolProposalPolicy` odrzuca niedostępne tool, `END_CALL` pozostaje typowaną propozycją bez wykonania w Lab; aplikacyjna walidacja grantu, własności Call i STOP obowiązuje oddzielnie w realnej telefonii. S22 i Mac QA PASS tylko w syntetycznej ścieżce off-call. [Checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).

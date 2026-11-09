@@ -1,5 +1,10 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## G5.1 — audio STT→E2B/Skills→TTS `S22_PASS_OFFCALL_SINGLE_TURN` (2026-11-09)
+
+Mac `aicalls-g5p1-stt-e2b-skills-tts-mac-qa-20261109-v1` DONE/0, compile AndroidTest/APK, full host 371 Python, lint/audio, friction i clean. S22 `aicalls-g5p1-speech-skills-androidstt-e2b-tts-s22-20261109-v1` DONE/0: 1/1 natywny audio test, lokalny STT final po 4622 ms, E2B odpowiedź zaakceptowana po 21680 ms, ukończone TTS PCM 236416 bajtów po 23574 ms, routing 1 tura, tool nie wykonany, STOP final cleanup, IDLE i profil bez zmian. Tylko syntetyczny głos, 1 tura; `G5.2` wieloturowe audio/interrupt, `G5.3` human review, `G6` prawdziwy Call otwarte. [Dowody](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md).
+
+
 ## G4.3 — Lab Skills metadata, per-turn trace i typed tool proposals: **S22_PASS_OFFCALL** (2026-11-09)
 
 Mac task `aicalls-g4p3-skills-metadata-trace-tools-mac-qa-20261109-v3` **DONE/0**: targeted JVM, build AndroidTest, pełny host `verify_host.sh` (371 Python, lint/audio), anti-friction, clean. S22 task `aicalls-g4p3-metadata-ui-native-trace-s22-20261109-v1` **DONE/0**: `AndroidG43SkillMetadataAcceptanceTest` **2/2** (zaszyfrowany update/rollback i odczyt UI metadata/lab tags), `AndroidG4DynamicSkillsNativeE2ETest` **1/1** (prawdziwe E2B 4 tury, 3 refresh, `g43_route_events=4`, pamięć przed/po, STOP), oba APK bez wipe, Call IDLE i profil nienaruszone. F-158, F-159 VERIFIED_SCOPED po RED. **Nie jest to PASS pełnego STT/TTS, human naturalness ani rzeczywistego Call.** [Finalny checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).

@@ -1,5 +1,10 @@
 # AI Calls — architektura operacyjna
 
+## G5.1 — off-call użycie tych samych portów mowy, modelu i aprobacji (S22 PASS)
+
+`LocalTtsSpeechOutput` wytwarza syntetyczny PCM; `LocalSpeechTextPipeline` przyjmuje 16k mono PCM przez `SpeechInputProvider`, zamienia końcowy transcript na `TextCallTurnController`, używa `ConversationReplyBackend` nad `AndroidSkillLabSessionFactory` z `CONTEXTUAL` E2B, zwalnia wyłącznie zatwierdzoną pełną odpowiedź i generuje `SpeechOutputProvider` PCM. `LabToolProposalPolicy` pozwala na klasyfikację typowanej propozycji, nie przyznaje wykonania. Wyjście PCM kończy się w teście, nie na Telecom, głośniku ani w RX/TX Samsung. Fizycznie S22 1/1 real audio E2E i Mac full PASS: transcript, approve, PCM, STOP final cleanup, profil niezmieniony, IDLE. [Checkpoint](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md). **G5.2** obejmie wiele tur, przerwania i late-callback fencing; G6 oddzielnie real Call.
+
+
 ## G4.3 — rozdział wersjonowanej wiedzy Skills, selekcji i autoryzacji (S22 PASS)
 
 `SkillRevision.metadata` z `name/description/capability` jest wersjonowany i odziedziczony dla historycznego schema=1; `ConversationSkillRouter` / `ConversationSkillTurnRouter` wybierają po `SkillCapability` z przypiętego snapshotu, a `ConversationSkillsActivity` edytuje metadane wraz z instrukcją. `AndroidSkillLabSessionFactory.onTurnRouting` dostarcza nieautorytatywną diagnostykę ID per-turn do `ConversationSkillLabActivity`; bez treści rozmów i bez możliwości zatrzymania modelu przez obserwatora. `LabToolProposalPolicy.validate` przyjmuje wyłącznie typowany `ConversationReply` po `ConversationReplyProtocol.decode`: wynik `PROPOSED_ONLY` nie jest skutkiem `ConversationToolExecutor`, `executed=false` zawsze. Produkcyjny Call i polityki grant/STOP pozostają własnością aplikacji; metadane Skill nie zwiększają uprawnień. Fizyczny S22: 2/2 metadata/UI, 1/1 native E2B, 4/4 decyzje, pamięć, STOP i IDLE PASS. [Checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).

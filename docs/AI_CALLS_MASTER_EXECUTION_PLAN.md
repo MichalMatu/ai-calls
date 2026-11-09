@@ -56,7 +56,12 @@ Jeden lokalny agent i wspólny runtime dla przychodzących i wychodzących. Siln
 - Propozycja narzędzia przez model → walidacja przez aplikację → wykonanie wyłącznie w grancie → wynik do konwersacji. Żadnych dowolnych pobranych skryptów ani rozszerzania uprawnień przez prompt.
 - Gate: testy aktywacji, dezaktywacji, zmiany intencji, pamięci, rollback wersji, bez regresji START/STOP i bez dostępu do niedozwolonych danych; fizyczne testy S22.
 
-## G5 — jeden dobry agent tekstowo-głosowy
+## G5 — jeden dobry agent tekstowo-głosowy (G5.1 SINGLE_TURN_AUDIO_S22_PASS; G5.2 OPEN)
+
+**G5.1 JEDNOTUROWE AUDIO E2E: S22_OFFCALL_PASS (2026-11-09).** Bez zmian toru telefonu i bez Call, natywny test `AndroidG51SpeechSkillsOffcallE2ETest#syntheticPolishPcmPassesSttGemmaSkillsApprovalTtsAndStop` odtworzył rzeczywisty lokalny TTS→syntetyczny PCM→wybrany STT→Gemma E2B/GPU z dynamicznymi Skills→`ConversationReplyBackend`→`TextOutputApprovalPolicy`→wybrany TTS→końcowy PCM, bez odtwarzania na głośniku. S22 `aicalls-g5p1-speech-skills-androidstt-e2b-tts-s22-20261109-v1` **DONE/0**: 1/1 AndroidTest, STT/tura routing 1/1, zatwierdzona odpowiedź, **236416 bajtów PCM16 16 kHz**, żadnego wykonanego narzędzia, STOP/close, profil nietknięty, Call IDLE przed/po, instalacja bez wipe i końcowy clean. Czasy narastające w tej pojedynczej próbie: STT **4622 ms**, zatwierdzona odpowiedź **21680 ms**, TTS PCM gotowe **23574 ms**. Mac `aicalls-g5p1-stt-e2b-skills-tts-mac-qa-20261109-v1` **DONE/0**: build AndroidTest, pełny `verify_host.sh`, 371 Python, lint/audio, anti-friction, clean Git. **Nie jest to wieloturowe audio, p95, pełna ocena naturalności, przerwanie podczas TTS ani EOS→TX/realne Call.** [Checkpoint](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md).
+
+**Kolejna jedyna nowa praca: G5.2** — audio 2+ tur z przejściami Skills, korektami i pamięcią oraz jawny STOP podczas STT/model/TTS z fencing spóźnionych callbacków; bez telefonu, bez podszywania się pod p95 i bez obchodzenia grantu.
+
 - Pełne długie rozmowy (nie tylko JSON/markery): STT → model + Skills → zatwierdzenie → TTS; przerwania, dopytanie, korekta faktów, powrót do celu, zakończenie i raport. Rozdzielić opóźnienie silnika od pełnego EOS→TX.
 - Gate: ocena rozmowy jako całości, nie tylko suma testów komponentów; blokery `F-045`, `F-048`, `F-080`, `F-148` weryfikować wg aktualnego BLOCKERS, bez ich fikcyjnego zamykania.
 
