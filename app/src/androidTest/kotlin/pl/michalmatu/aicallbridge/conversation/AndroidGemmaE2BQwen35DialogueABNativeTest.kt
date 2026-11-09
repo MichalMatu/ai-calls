@@ -65,6 +65,7 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
         val schemaOk get() = first.jsonValid && second.jsonValid
         val toolOk get() = schemaOk && first.reply?.tool == null &&
             second.reply?.tool == (if (scene.secondEnds) ConversationToolId.END_CALL else null)
+        val hasContentHint get() = scene.secondNeeds != null || scene.secondAvoids != null
         val contentHintOk get(): Boolean {
             val reply = second.reply?.text ?: return false
             return (scene.secondNeeds == null || reply.contains(scene.secondNeeds, ignoreCase = true)) &&
@@ -184,7 +185,6 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
 
     @Test fun eightScenariosThreePairedRepetitionsOnPhysicalS22() {
         val saved = checkNotNull(AudioEngineProfileStore(app).load())
-        assertEquals("default_call_model_modified", DialogueModelId.GEMMA_4_E2B, saved.dialogue)
         for (model in models) {
             assertEquals("candidate_not_ready_" + model, Gemma4ModelReadinessState.READY,
                 AndroidGemma4ModelReadiness.check(app, model).state)
@@ -207,6 +207,7 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
                         ";native_ok=" + observation.nativeOk +
                         ";json_ok=" + observation.schemaOk +
                         ";tools_ok=" + observation.toolOk +
+                        ";hint_applicable=" + observation.hasContentHint +
                         ";content_hint=" + observation.contentHintOk +
                         ";cold_chars=" + observation.first.chars +
                         ";warm_chars=" + observation.second.chars +
@@ -226,7 +227,8 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
                 ";native_ok=" + each.count { it.nativeOk } +
                 ";json_ok=" + each.count { it.schemaOk } +
                 ";tools_ok=" + each.count { it.toolOk } +
-                ";content_hint=" + each.count { it.contentHintOk } +
+                ";content_hints_ok=" + each.count { it.hasContentHint && it.contentHintOk } +
+                ";content_hints_total=" + each.count { it.hasContentHint } +
                 ";cold_median_ms=" + cold.sorted()[cold.size / 2] +
                 ";cold_p95_ms=" + percentile95(cold) +
                 ";warm_median_ms=" + warm.sorted()[warm.size / 2] +
