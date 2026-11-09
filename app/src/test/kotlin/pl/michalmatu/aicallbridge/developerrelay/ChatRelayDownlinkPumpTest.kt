@@ -196,6 +196,38 @@ class ChatRelayDownlinkPumpTest {
         }
     }
 
+    @Test fun downlinkEofRevokesCaptureAndForbidsNewListeningTurn() {
+        val input = PipedInputStream(4_096)
+        val output = PipedOutputStream(input)
+        val pump = ChatRelayDownlinkPump(input, frameBytes = 640)
+        val failed = CountDownLatch(1)
+        var reason: String? = null
+        try {
+            pump.start()
+            val monitor = RemoteBargeInMonitor(
+                onVoice = {},
+                onUnavailable = {
+                    reason = it
+                    failed.countDown()
+                },
+            )
+            pump.beginCapture(monitor)
+            output.write(ByteArray(640))
+            output.flush()
+            output.close()
+            assertTrue(failed.await(1, TimeUnit.SECONDS))
+            assertTrue(pump.isSourceTerminated())
+            assertTrue(reason == "downlink_eof")
+            assertTrue(runCatching {
+                pump.beginCapture(RemoteBargeInMonitor(onVoice = {}))
+            }.isFailure)
+            assertFalse(pump.abandonCapture(monitor))
+        } finally {
+            pump.close()
+            output.close()
+        }
+    }
+
     private fun waitUntil(predicate: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1)
         while (System.nanoTime() < deadline) {

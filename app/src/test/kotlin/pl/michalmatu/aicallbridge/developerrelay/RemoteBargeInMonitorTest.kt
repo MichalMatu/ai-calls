@@ -50,6 +50,35 @@ class RemoteBargeInMonitorTest {
         assertArrayEquals(second + third, monitor.freezeAndDrain())
     }
 
+    @Test fun errorNotifiesOnceAndDiscardsStalePreRollWithoutTriggeringVoice() {
+        var voiced = 0
+        val failures = mutableListOf<String>()
+        val monitor = RemoteBargeInMonitor(
+            onVoice = { voiced++ },
+            onUnavailable = { failures += it },
+        )
+        repeat(12) { assertTrue(monitor.onFrame(frame(1_700), 640)) }
+        monitor.onError("downlink_eof")
+        monitor.onError("late_duplicate")
+        assertEquals(listOf("downlink_eof"), failures)
+        assertFalse(monitor.onFrame(frame(1_700), 640))
+        assertEquals(0, voiced)
+        assertEquals(0, monitor.freezeAndDrain().size)
+    }
+
+    @Test fun abandonedOrTransferredMonitorNeverReportsAnObsoleteError() {
+        val failures = mutableListOf<String>()
+        val monitor = RemoteBargeInMonitor(
+            onVoice = {},
+            onUnavailable = { failures += it },
+        )
+        monitor.onFrame(frame(1_500), 640)
+        assertEquals(640, monitor.freezeAndDrain().size)
+        monitor.onError("downlink_pump_closed")
+        monitor.onFinished()
+        assertTrue(failures.isEmpty())
+    }
+
     @Test fun splitPcmSamplesStillReachVoiceThreshold() {
         var fired = 0
         val monitor = RemoteBargeInMonitor(onVoice = { fired++ }, minVoiceFrames = 2)

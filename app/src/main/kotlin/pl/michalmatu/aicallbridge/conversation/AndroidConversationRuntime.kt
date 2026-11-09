@@ -615,25 +615,38 @@ internal object AndroidConversationRuntime {
             turnEpoch: Long,
         ) {
             val pump = downlinkPump ?: return
-            val monitor = RemoteBargeInMonitor(onVoice = {
-                if (outputEpoch.compareAndSet(turnEpoch, turnEpoch + 1L)) {
-                    handler.post {
-                        if (finished.get() || !authorizedNow() ||
-                            !runCatching { callStillActive() }.getOrDefault(false) ||
-                            currentTurn != turn || activeMediaGeneration.get() != generation ||
-                            outputEpoch.get() != turnEpoch + 1L) return@post
-                        // Revoke old model/TTS callback generation; do not disconnect Call.
-                        pipeline.cancel()
-                        turnsCompleted = maxOf(turnsCompleted, turn)
-                        lines += "local_rx_during_tx_detected=true"
-                        beginNextTurn(generation, lease)
+            val monitor = RemoteBargeInMonitor(
+                onVoice = {
+                    if (outputEpoch.compareAndSet(turnEpoch, turnEpoch + 1L)) {
+                        handler.post {
+                            if (finished.get() || !authorizedNow() ||
+                                !runCatching { callStillActive() }.getOrDefault(false) ||
+                                currentTurn != turn || activeMediaGeneration.get() != generation ||
+                                outputEpoch.get() != turnEpoch + 1L) return@post
+                            // Revoke old model/TTS callback generation; do not disconnect Call.
+                            pipeline.cancel()
+                            turnsCompleted = maxOf(turnsCompleted, turn)
+                            lines += "local_rx_during_tx_detected=true"
+                            beginNextTurn(generation, lease)
+                        }
                     }
-                }
-            })
+                },
+                onUnavailable = {
+                    handler.post {
+                        if (finished.get() || currentTurn != turn ||
+                            activeMediaGeneration.get() != generation ||
+                            outputEpoch.get() != turnEpoch || bargeMonitor.get() == null) return@post
+                        // A dead RX source cannot support another listening turn.
+                        // A remote hangup remains CALL_ENDED, never a fabricated TX success.
+                        fail("tx_downlink_unavailable")
+                    }
+                },
+            )
             if (!bargeMonitor.compareAndSet(null, monitor)) return
             try { pump.beginCapture(monitor) } catch (_: IllegalStateException) {
                 bargeMonitor.compareAndSet(monitor, null)
-                lines += "barge_monitor_unavailable=true"
+                if (pump.isSourceTerminated()) fail("tx_downlink_unavailable")
+                else lines += "barge_monitor_unavailable=true"
             }
         }
 

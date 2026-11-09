@@ -29,6 +29,8 @@ internal class ChatRelayDownlinkPump(
     private val lock = Any()
     private val started = AtomicBoolean(false)
     private val closed = AtomicBoolean(false)
+    /** Pump reader ended: never accept a new STT/barge capture on a dead pipe. */
+    private val sourceTerminated = AtomicBoolean(false)
     private val discardedBytes = AtomicLong(0L)
     private val executor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "ChatRelayDownlinkPump").apply { isDaemon = true }
@@ -47,7 +49,9 @@ internal class ChatRelayDownlinkPump(
 
     fun beginCapture(capture: Capture) {
         synchronized(lock) {
-            check(started.get() && !closed.get()) { "relay_downlink_pump_not_running" }
+            check(started.get() && !closed.get() && !sourceTerminated.get()) {
+                "relay_downlink_pump_not_running"
+            }
             check(activeCapture == null) { "relay_downlink_capture_already_active" }
             activeCapture = capture
         }
@@ -78,6 +82,7 @@ internal class ChatRelayDownlinkPump(
     }
 
     fun discardedBytes(): Long = discardedBytes.get()
+    fun isSourceTerminated(): Boolean = sourceTerminated.get()
 
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
@@ -156,6 +161,7 @@ internal class ChatRelayDownlinkPump(
 
     private fun failActiveCapture(reason: String) {
         val capture = synchronized(lock) {
+            sourceTerminated.set(true)
             val current = activeCapture
             activeCapture = null
             current

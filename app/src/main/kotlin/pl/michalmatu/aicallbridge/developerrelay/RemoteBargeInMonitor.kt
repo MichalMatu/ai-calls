@@ -10,6 +10,7 @@ import kotlin.math.sqrt
  */
 internal class RemoteBargeInMonitor(
     private val onVoice: () -> Unit,
+    private val onUnavailable: (String) -> Unit = {},
     private val thresholdRms: Int = 900,
     private val minVoiceFrames: Int = 15,
     private val maxBufferedBytes: Int = 32_000,
@@ -77,7 +78,19 @@ internal class RemoteBargeInMonitor(
     }
 
     override fun onFinished() = Unit
-    override fun onError(reason: String) = Unit
+    override fun onError(reason: String) {
+        // An EOF/error before transfer is a fatal downlink failure, not remote silence.
+        // After freeze/transfer it belongs to an obsolete turn and must do nothing.
+        val notify = synchronized(lock) {
+            if (frozen) false else {
+                frozen = true
+                frames.clear()
+                retainedBytes = 0
+                true
+            }
+        }
+        if (notify) onUnavailable(reason)
+    }
 
     private fun acceptSample(raw: Int) {
         val sample = raw.toShort().toLong()
