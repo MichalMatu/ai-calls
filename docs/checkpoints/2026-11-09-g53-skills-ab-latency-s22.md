@@ -38,7 +38,7 @@ Natywne LiteRT `AiCallBridgePerf` w każdym trybie po 9 rekordów:
 
 ## Końcowy documentation QA — historia
 
-Host task `aicalls-g53-skills-ab-final-docs-qa-mac-20261109-v1` miał fast-forward `0/PASS`, lecz doc-only asercja przerwała się, ponieważ handoff używał „nieocenione” zamiast literalnego `UNASSESSED` (F-165). Nie wykonywano ponownie AndroidTest ani S22. Poprawiony handoff i odrębny v2 receipt mają potwierdzić status i Git clean.
+Host task `aicalls-g53-skills-ab-final-docs-qa-mac-20261109-v1` miał fast-forward `0/PASS`, lecz doc-only asercja przerwała się, ponieważ handoff używał „nieocenione” zamiast literalnego `UNASSESSED` (F-165). Nie wykonywano ponownie AndroidTest ani S22. Poprawiony handoff i odrębny v2 receipt `aicalls-g53-skills-ab-final-docs-qa-mac-20261109-v2` zakończył się DONE/0 (3/3 komendy, 10 dokumentów, friction i Git clean). F-165 VERIFIED_SCOPED; pierwotny v1 FAILED zachowany.
 
 ## QA / dokładne receipts
 | Zadanie | Wynik |
