@@ -44,7 +44,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
         super.onCreate(savedInstanceState)
 
         try {
-            store = AndroidConversationPreparationStore(this)
+            store = SkillLabIsolatedTestStore.forContext(this)
             library = store.loadSkillLibrary()
             show()
         } catch (error: Exception) {
@@ -129,6 +129,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
             tag = "skills-secondary-actions"
         }
         secondaryActions.addView(Button(this).apply {
+            tag = "skills-copy-active"
             text = getString(R.string.skills_ui_copy)
             UiDesign.styleAction(this, UiActionTone.SECONDARY)
             setOnClickListener {
@@ -217,6 +218,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                     })
                 } else {
                     val choice = CheckBox(this).apply {
+                        tag = "skills-enabled:" + skill.id
                         text = visibleSkillName(skill) + " · " + skill.id +
                             (if (on) " · v" + activeVersion else " · " + getString(R.string.skills_ux05_disabled))
                         isChecked = on
@@ -275,6 +277,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                 skillCard.addView(instructions)
                 if (!library.active.isFactory) {
                     skillCard.addView(Button(this).apply {
+                        tag = "skills-revise:" + skill.id
                         UiDesign.styleAction(this, UiActionTone.SECONDARY)
                         text = getString(R.string.skills_ux05_edit_new_version, visibleSkillName(skill))
                         setOnClickListener {
@@ -295,11 +298,13 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                     })
                     val versions = skill.revisions.sortedByDescending { it.version }
                     val revisionPicker = Spinner(this).apply {
+                        tag = "skills-versions:" + skill.id
                         UiSelect.setOptions(this, versions.map { getString(R.string.skills_ux05_version_label, it.version) })
                         setSelection(versions.indexOfFirst { it.version == activeVersion }.coerceAtLeast(0))
                     }
                     skillCard.addView(revisionPicker)
                     skillCard.addView(Button(this).apply {
+                        tag = "skills-restore:" + skill.id
                         UiDesign.styleAction(this, UiActionTone.SECONDARY)
                         text = getString(R.string.skills_ux05_version_restore, visibleSkillName(skill))
                         setOnClickListener {
