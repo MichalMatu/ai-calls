@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import uuid
 import wave
 
 DIMENSIONS = (
@@ -75,6 +76,10 @@ def load(corpus: Path) -> tuple[dict, list[dict]]:
 
 def render(corpus: Path) -> dict[str, object]:
     data, turns = load(corpus)
+    if (corpus / "human-review.json").exists() or (corpus / "human-review.json").is_symlink():
+        raise ValueError("completed_human_review_must_not_be_rewritten")
+    if stat.S_IMODE(corpus.stat().st_mode) != 0o700:
+        raise ValueError("private_review_directory_permissions")
     cards = []
     for item in turns:
         number = item["turn"]
@@ -164,6 +169,7 @@ function saveHumanReview() {
             'Wyniki semantyczne są UNASSESSED do chwili ręcznej oceny. '
             'Ten plik działa lokalnie, bez żądań sieciowych.</p>'
             '<p>Model: ' + escape(str(data.get("model", ""))) +
+            ' · Skills: ' + escape(str(data.get("skills_loading_mode", "CONTEXTUAL"))) +
             ' · STT: ' + escape(str(data.get("stt_provider", ""))) +
             ' · TTS: ' + escape(str(data.get("tts_provider", ""))) + '</p>'
             + "".join(cards) +
@@ -178,17 +184,55 @@ function saveHumanReview() {
             'Skrypt sprawdza SHA manifestu i osiem ocen; nie przesyła żadnych danych do sieci.</p>'
             + '<script>' + script + '</script></body></html>')
     destination = corpus / "review.html"
-    destination.write_text(html, encoding="utf-8")
-    os.chmod(destination, stat.S_IRUSR | stat.S_IWUSR)
+    if destination.is_symlink() or (destination.exists() and not destination.is_file()):
+        raise ValueError("unsafe_existing_private_review_html")
+    if destination.exists() and stat.S_IMODE(destination.stat().st_mode) != 0o600:
+        raise ValueError("private_review_html_permissions")
+    temp = corpus / (".review-" + uuid.uuid4().hex + ".tmp")
+    fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            output.write(html)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temp, destination)
+    finally:
+        temp.unlink(missing_ok=True)
     return {"turns": len(turns), "wav_files": len(turns) * 2,
             "dimensions": len(DIMENSIONS), "review_status": "UNASSESSED"}
 
 
+def render_all(root: Path) -> dict[str, int]:
+    """Safely refresh only unfinished private review forms; retain raw evidence."""
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("invalid_private_review_root")
+    if stat.S_IMODE(root.stat().st_mode) != 0o700:
+        raise ValueError("private_review_root_permissions")
+    found = rendered = skipped = 0
+    for corpus in sorted(root.iterdir()):
+        if not corpus.name.startswith("session-"):
+            continue
+        if corpus.is_symlink() or not corpus.is_dir():
+            raise ValueError("invalid_private_session_path")
+        found += 1
+        reviewed = corpus / "human-review.json"
+        if reviewed.exists() or reviewed.is_symlink():
+            skipped += 1
+            continue
+        render(corpus)
+        rendered += 1
+    if found == 0:
+        raise ValueError("no_private_review_sessions")
+    return {"sessions": found, "refreshed": rendered, "retained_reviewed": skipped}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--corpus", type=Path, required=True)
+    scope = parser.add_mutually_exclusive_group(required=True)
+    scope.add_argument("--corpus", type=Path)
+    scope.add_argument("--root", type=Path)
     args = parser.parse_args()
-    info = render(args.corpus)
+    info = render(args.corpus) if args.corpus is not None else render_all(args.root)
     for key, value in info.items():
         print("G53_" + key.upper() + "=" + str(value))
     print("G53_LOCAL_PRIVATE_REVIEW_READY=true")

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 import wave
 
-from scripts.aicall_tools.diagnostics.g53_private_audio_review import render, load
+from scripts.aicall_tools.diagnostics.g53_private_audio_review import render, load, render_all
 
 
 class G53PrivateAudioReviewTest(unittest.TestCase):
@@ -59,6 +59,55 @@ class G53PrivateAudioReviewTest(unittest.TestCase):
         self.assertIn("UNASSESSED", html)
         self.assertIn("turn-01-tx.wav", html)
         self.assertIn("connect-src &#39;none&#39;", html)
+
+    def test_regeneration_is_atomic_private_and_updates_old_html(self) -> None:
+        # Simulate HTML generated before the SHA-linked review gate existed.
+        old = self.root / "review.html"
+        old.write_text("legacy review page", encoding="utf-8")
+        old.chmod(0o600)
+        manifest_before = (self.root / "manifest.json").read_bytes()
+        wav_before = {p.name: p.read_bytes() for p in self.root.glob("*.wav")}
+        self.assertEqual("UNASSESSED", render(self.root)["review_status"])
+        html = old.read_text(encoding="utf-8")
+        self.assertIn("const MANIFEST_SHA256", html)
+        self.assertIn("reviewer-confirmed", html)
+        self.assertNotIn("legacy review page", html)
+        self.assertEqual(0o600, stat.S_IMODE(old.stat().st_mode))
+        self.assertEqual(manifest_before, (self.root / "manifest.json").read_bytes())
+        self.assertEqual(wav_before, {p.name: p.read_bytes() for p in self.root.glob("*.wav")})
+        self.assertFalse(list(self.root.glob(".review-*.tmp")))
+
+    def test_root_refresh_preserves_existing_human_review(self) -> None:
+        session = self.root / "session-test"
+        session.mkdir(mode=0o700)
+        for filename in ("turn-01-rx.wav", "turn-01-tx.wav"):
+            (session / filename).write_bytes((self.root / filename).read_bytes())
+        (session / "manifest.json").write_text(json.dumps(self.manifest), encoding="utf-8")
+        completed = self.root / "session-done"
+        completed.mkdir(mode=0o700)
+        (completed / "human-review.json").write_text("human evidence is private", encoding="utf-8")
+        result = render_all(self.root)
+        self.assertEqual({"sessions": 2, "refreshed": 1, "retained_reviewed": 1}, result)
+        self.assertIn("const MANIFEST_SHA256", (session / "review.html").read_text(encoding="utf-8"))
+        self.assertEqual("human evidence is private", (completed / "human-review.json").read_text())
+        self.assertFalse((completed / "review.html").exists())
+
+    def test_render_rejects_existing_review_symlink_and_completed_review(self) -> None:
+        target = self.root / "outside.html"
+        target.write_text("unrelated")
+        (self.root / "review.html").symlink_to(target)
+        with self.assertRaisesRegex(ValueError, "unsafe_existing_private_review_html"):
+            render(self.root)
+        self.assertEqual("unrelated", target.read_text())
+        (self.root / "review.html").unlink()
+        (self.root / "human-review.json").write_text("recorded")
+        with self.assertRaisesRegex(ValueError, "completed_human_review"):
+            render(self.root)
+
+    def test_root_refresh_rejects_symlinked_session(self) -> None:
+        (self.root / "session-symlink").symlink_to(self.root, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "invalid_private_session_path"):
+            render_all(self.root)
 
     def test_traversal_is_rejected(self) -> None:
         self.manifest["turns"][0]["tx_wav"] = "../outside.wav"
