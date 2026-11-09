@@ -1,5 +1,10 @@
 # AI Calls — SINGLE_TRACK_OWNER: jeden tor rozwoju, handoff do nowego czatu (2026-11-09)
 
+
+## Kontrola zamknięcia dwóch czatów i start jednego (2026-11-09)
+
+Handoff na podstawie bieżącego drzewa i zakończonego doc-only Mac v3 DONE/0: [checkpoint](checkpoints/2026-11-09-ai-calls-single-track-final.md). To przekazanie **nie** odłącza automatycznie ani nie archiwizuje okien rozmów w interfejsie. Od następnego zadania tylko jeden nowy czat; poprzednie chaty nie mają rozpoczynać nowych prac. Nowy chat odczytuje aktualny HEAD i nierozliczone zadania przed dotknięciem kodu.
+
 ## Decyzja właściciela
 
 Oba dotychczasowe czaty AI Calls zostają zamknięte organizacyjnie. **Tylko jeden NOWY czat jest właścicielem dalszego wykonania**: GitHub Connector + wskazany Mac Local Agent, main bez nowych gałęzi, bez force-push, bez Codex/Work/GitHub Actions. Ten zapis NIE zamyka okien rozmów automatycznie, ale przenosi cały stan do repozytorium. Nie przyjmować ani nie inicjować dwóch równoległych sprintów na tym samym kodzie.

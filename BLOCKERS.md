@@ -4,7 +4,7 @@
 
 **RED v2:** aicalls-single-track-handoff-doc-qa-mac-20261109-v2 przeszedł fast-forward main@aee8795, lecz kolejna dosłowna asercja wymagała słowa UNASSESSED w polskim opisie stanu. Kontrola źródłowa przed ponowieniem wykryła również wymaganą dosłowną etykietę Brak licencji, podczas gdy audyt mówił Brak widocznego pliku LICENSE. Obie etykiety znormalizowano bez zmiany prawnego ani funkcjonalnego znaczenia. Historyczne v1/v2 FAILED zachować.
 
-**Naprawa / QA_PENDING:** umieszczono jawny i stabilny znacznik SINGLE_TRACK_OWNER w nagłówku docs/HANDOFF_SINGLE_TRACK_2026-11-09.md, spójny z master plan i historią. Doc-only v2 powinien powtórzyć fast-forward, kontrolę planu/licencji/odnośników, anti-friction i clean, bez pełnych testów G3–G6. Historyczny FAILED zachować.
+**Naprawa / Status: VERIFIED_SCOPED:** umieszczono jawny i stabilny znacznik SINGLE_TRACK_OWNER w nagłówku docs/HANDOFF_SINGLE_TRACK_2026-11-09.md, spójny z master plan i historią. Mac aicalls-single-track-handoff-doc-qa-mac-20261109-v3 **DONE/0, 3/3 komend PASS**: fast-forward main@cecc4b2, komplet linków planu/licencji, anti-friction PASS i Git clean. Historyczne v1/v2 FAILED zachować, bez pełnych testów G3–G6, bez modyfikacji telefonu.
 
 ## F-168 — G5.3 prywatny review HTML 6/6 pozostał na starym kontrakcie (2026-11-09)
 
