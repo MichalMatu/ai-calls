@@ -145,7 +145,7 @@ class RecordedConversationHistoryTest {
                 """{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav","elapsed_ms":10}""",
                 """{"type":"TX_ACK_PCM","turn":1,"file":"turn-01-tx-ack.wav","elapsed_ms":100}""",
                 """{"type":"RX_PCM","turn":1,"file":"../escape.wav","elapsed_ms":0}""",
-            ).joinToString("\\n", postfix = "\\n").replace("\\\\n", "\\n"))
+            ).joinToString("\n", postfix = "\n"))
             val session = RecordedConversationHistory(root).load(dir.name)
             assertEquals(listOf("turn-01-rx.wav", "turn-01-tx-ack.wav", "turn-01-tx.wav"), session.audioTimeline)
             assertEquals(3, session.audioFiles.size)
@@ -159,7 +159,7 @@ class RecordedConversationHistoryTest {
             val dir = File(root, "1000-safe").apply { mkdirs() }
             val outside = File(other, "audio.wav").apply { writeBytes(byteArrayOf(0, 0)) }
             Files.createSymbolicLink(File(dir, "turn-01-rx.wav").toPath(), outside.toPath())
-            File(dir, "timeline.jsonl").writeText("""{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav","elapsed_ms":1}""" + "\\n")
+            File(dir, "timeline.jsonl").writeText("""{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav","elapsed_ms":1}""" + "\n")
             val history = RecordedConversationHistory(root)
             assertTrue(history.load(dir.name).audioTimeline.isEmpty())
             assertNull(history.resolveAudioFile(dir.name, "turn-01-rx.wav"))
