@@ -371,8 +371,11 @@ internal object AndroidConversationRuntime {
             object : LocalSpeechTextPipeline.Listener {
                 private val ownerTurn = currentTurn
                 private val ownerEpoch = outputEpoch.get()
-                private fun stale() = finished.get() || activeMediaGeneration.get() != generation ||
-                    currentTurn != ownerTurn || outputEpoch.get() != ownerEpoch
+                private val owner = ConversationTurnOwner(ownerTurn, ownerEpoch, generation)
+                private val transcriptAccepted = AtomicBoolean(false)
+                private fun stale() = !owner.isCurrent(
+                    currentTurn, outputEpoch.get(), activeMediaGeneration.get(), finished.get(),
+                )
 
                 override fun onSpeechInputReady() {
                     if (stale()) return
@@ -385,6 +388,8 @@ internal object AndroidConversationRuntime {
                 override fun onUserTranscript(text: String) {
                     if (stale()) return
                     if (!authorizedNow()) { finish(authorityTermination()); return }
+                    // A real transcript supersedes any queued STT no-match retry.
+                    transcriptAccepted.set(true)
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text, responseKind = ConversationChatFeed.ResponseKind.UNSPECIFIED)
                     ConversationChatFeed.heard(liveChatToken, currentTurn, text)
                     ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • model analizuje wypowiedź…")
@@ -392,7 +397,11 @@ internal object AndroidConversationRuntime {
                     lines += "turn_${currentTurn}_stt_elapsed_ms=${elapsedTurnMs()}"
                     dialogue.onTranscript(currentTurn, text)
                     // Scenario outcome evaluation stays on the same main-thread boundary.
-                    handler.post { if (!finished.get()) dialogue.takeOutcome(ConversationOutcomeBoundary.TRANSCRIPT)?.let(::applyOutcome) }
+                    handler.post {
+                        if (stale()) return@post
+                        if (!authorizedNow()) { finish(authorityTermination()); return@post }
+                        dialogue.takeOutcome(ConversationOutcomeBoundary.TRANSCRIPT)?.let(::applyOutcome)
+                    }
                 }
 
                 override fun onApprovedText(text: String) {
@@ -430,6 +439,7 @@ internal object AndroidConversationRuntime {
                     if (stale()) return
                     dialogue.recordTurnDiagnostics(currentTurn)
                     if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
+                        if (transcriptAccepted.get()) return
                         val retryTurn = currentTurn
                         lines += "turn_${retryTurn}_stt_transient_no_transcript=true"
                         // The SpeechRecognizer has already closed its pipe. Detach
@@ -441,7 +451,8 @@ internal object AndroidConversationRuntime {
                         // Re-open the same listening turn if exact Call/grant still
                         // owns the media session. No arbitrary retry ceiling.
                         handler.postDelayed({
-                            if (finished.get() || currentTurn != retryTurn) return@postDelayed
+                            if (stale() || transcriptAccepted.get() ||
+                                finalAudioReadyTurn.get() == retryTurn) return@postDelayed
                             if (!authorizedNow()) {
                                 finish(authorityTermination())
                             } else if (activeMediaGeneration.get() != generation) {
@@ -484,6 +495,7 @@ internal object AndroidConversationRuntime {
             var total = 0
             var endpoint = detector.acceptPcm16(ByteArray(0))
             val capture = ActiveRxCapture(turn, endpoint)
+            val captureOwner = ConversationTurnOwner(turn, outputEpoch.get(), generation)
             activeRxCapture.set(capture)
             try {
                 if (preRoll.isNotEmpty()) {
@@ -497,7 +509,9 @@ internal object AndroidConversationRuntime {
                 }
                 pump.beginCapture(object : ChatRelayDownlinkPump.Capture {
                     override fun onFrame(bytes: ByteArray, length: Int): Boolean {
-                        if (finished.get()) return false
+                        if (!captureOwner.isCurrent(currentTurn, outputEpoch.get(),
+                                activeMediaGeneration.get(), finished.get()) ||
+                            activeRxCapture.get() !== capture || capture.complete.get()) return false
                         if (!pipeline.writeInputPcm(bytes, 0, length)) {
                             throw IllegalStateException("stt_pcm_write_failed")
                         }
@@ -536,13 +550,16 @@ internal object AndroidConversationRuntime {
                             estimatedSpeechEndElapsedMs = estimated
                             lines += "turn_${turn}_estimated_eos_elapsed_ms=$estimated"
                         }
+                        if (!captureOwner.isCurrent(currentTurn, outputEpoch.get(),
+                                activeMediaGeneration.get(), finished.get())) return
                         if (!endpoint.speechDetected) {
                             // Silence or waiting in the operator's IVR is not task failure.
                             // Keep listening while the exact call and grant remain active.
                             silenceWindows = (silenceWindows + 1L).coerceAtMost(Long.MAX_VALUE)
                             lines += "turn_${turn}_no_speech_window=$silenceWindows"
                             handler.postDelayed({
-                                if (finished.get() || turn != currentTurn) return@postDelayed
+                                if (!captureOwner.isCurrent(currentTurn, outputEpoch.get(),
+                                        activeMediaGeneration.get(), finished.get())) return@postDelayed
                                 if (!authorizedNow()) finish(authorityTermination())
                                 else beginCaptureInputTurn(turn, generation, lease)
                             }, NO_SPEECH_RETRY_DELAY_MS)
@@ -561,7 +578,10 @@ internal object AndroidConversationRuntime {
                         evidenceRx?.finish()
                         if (finished.get()) return
                         context.mainExecutor.execute {
-                            fail("turn_${turn}_rx_${sanitize(reason)}")
+                            if (captureOwner.isCurrent(currentTurn, outputEpoch.get(),
+                                    activeMediaGeneration.get(), finished.get())) {
+                                fail("turn_${turn}_rx_${sanitize(reason)}")
+                            }
                         }
                     }
                 })

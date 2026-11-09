@@ -4,7 +4,7 @@
 
 ## Granice tury
 - RX speech-start/stop, VAD/EOS, transkrypcja, snapshot kontekstu, autoryzacja tekstu i typowanych narzędzi, TTS, TX, archiwizacja. Wielokrotne okna RX w tej samej turze zapisują osobne WAV z suffixem part-NNN, bez nadpisania.
-- Każda STT/model/TTS odpowiedź musi być związana z sesją, generacją i epoką tury; queued/stale PCM musi kończyć się na granicy klatki. Przerwanie lub STOP anuluje stare wyjście oraz kolejkę; nieprawidłowy/niepewny status nie może automatycznie wznowić TTS.
+- Każda STT/model/TTS odpowiedź musi być związana z sesją, generacją i epoką tury; deferred transcript outcome, stare RX capture error i no-match retry sprawdzają ConversationTurnOwner, a queued/stale PCM kończy się na granicy klatki. Przerwanie lub STOP anuluje stare wyjście oraz kolejkę; nieprawidłowy/niepewny status nie może automatycznie wznowić TTS.
 - Realtime `CallRealtimeAudioPump` ma atomową blokadę gate/queue na barge-in, tombstones i bounded audio; **lokalny Gemma ma syntetyczny RX-during-TX restart z ograniczonym pre-roll; RX-pump EOF blokuje nowe okna, a utrata RX podczas TX kończy stary output bez udawania odpowiedzi; echo/double-talk i fizyczny barge-in S22 pozostają OPEN**.
 - Recovery po ciszy/hold nie może sztucznie ucinać rozmowy, ale respektuje zasoby, systemowy Call state i STOP. Przy fizycznym rozłączeniu dokończ dostępny końcowy RX/STT bez udawania brakującej mowy.
 
