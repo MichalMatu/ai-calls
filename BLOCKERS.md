@@ -1,3 +1,11 @@
+## F-154 — test Skills zakładał polskie etykiety zamiast kontraktu kontrolek (2026-11-09)
+
+**Ścieżka:** `app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/conversation/AndroidSkillPresetMatrixTest.kt`, `bSkillsAndLaboratoryScreensLaunchWithoutMutatingActivePreset`, linia 74.
+**Warunek/wynik:** zbiorczy S22 `aicalls-onepass-s22-gui-usb-skills-instrument-20261109-v1` wykazał jedną porażkę w macierzy Skills, mimo fizycznego PASS odrębnej Gemmy/GUI-USB; izolacja `aicalls-onepass-skills-matrix-isolate-failure-20261109-v1` **DONE/0** potwierdziła `aEncryptedEditVersionSwitchAndRollbackInIsolatedStore` **1/1 PASS** i `bSkillsAndLaboratoryScreensLaunchWithoutMutatingActivePreset` **1/1 FAIL** na `AndroidSkillPresetMatrixTest.kt:74`, tj. literalnym sprawdzeniu polskiej etykiety „Skills i presety Gemmy”.
+**Wpływ:** niepoprawna zależność testu od języka interfejsu powoduje fałszywe negatywy i blokuje odbiór Skills; **nie potwierdza usterki zapisu presetów ani generowania odpowiedzi AI**. Dalsze historyczne oczekiwania tekstowe w tym teście mogą również nie odpowiadać nowemu UI.
+**Przyczyna:** test korzysta ze sztywnych tekstów PL zamiast stabilnych tagów widoków; aplikacja posiada przełączalny język i przeprojektowany Lab. **Plan:** sprawdzić obecność i stany rzeczywistych tagów `skills-*` i `lab-*`, zachować kontrolę niezmienności snapshotu, wykonać Mac build i S22 retest obu przypadków.
+**Status:** **OPEN / FIX_PENDING** — fizyczny RED zapisany; wynik GREEN wymaga nowego receipt. Nie zmieniać lokalizacji aplikacji ani jej danych tylko dla testu.
+
 ## F-153 — ADB komendy pomocnicze zużywały stdin przed USB Lab SEND (2026-11-09)
 
 **Ścieżka:** `scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py:invoke`, używany przez `Device.__init__` i `ai_calls_usb_lab.py:run_once`.
