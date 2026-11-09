@@ -89,7 +89,10 @@ class SyntheticBookingAdapter(
     @Synchronized fun cancel(hold: SyntheticBookingHold, idempotencyKey: String): Boolean {
         val entry = byHold[hold.id] ?: return false
         if (entry.hold !== hold || entry.key != idempotencyKey ||
-            entry.cancelled || entry.receipt != null) return false
+            entry.cancelled || entry.receipt != null ||
+            byProposal[entry.proposal] !== entry) return false
+        val now = runCatching { clockMs() }.getOrNull() ?: return false
+        if (now >= entry.hold.expiresAtMs) return false
         entry.cancelled = true
         byProposal.remove(entry.proposal, entry)
         return true

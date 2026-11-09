@@ -84,7 +84,8 @@ class SyntheticBookingAdapterTest {
         now = 10L
         assertTrue(provider.available(p))
         val current = provider.hold(p, "fresh", 20L).getOrThrow()
-        assertFalse(provider.cancel(stale, "old") && current === stale)
+        assertFalse(provider.cancel(stale, "old"))
+        assertFalse(provider.available(p))
         assertTrue(provider.confirm(stale, "old", consumed(p)).isFailure)
         assertTrue(provider.confirm(current, "fresh", consumed(p)).isSuccess)
         assertTrue(provider.hold(p, "another", 20L).isFailure)
