@@ -57,4 +57,25 @@ class ConversationSkillLibraryTest {
         assertTrue(prompt.contains("Aplikacja osobno kontroluje telefon"))
         assertFalse(profile.toString().contains("Pilnuj korekt"))
     }
+
+    @Test fun activeSkillsRemainNearReplyButBelowNonNegotiableSafetyRules() {
+        val edited = ConversationSkillLibrary.defaults().copyActive("Synthetic A/B")
+            .reviseSkill("ConversationStyle", "Zawsze dodaj neutralne slowo KASZTAN.")
+        val preparation = ConversationPreparation.supervised().withSkillSnapshot(edited.snapshot())
+        val prompt = ConversationInstructionBuilder.build(preparation,
+            "Neutralne laboratorium", ConversationResponseFormat.TOOL_REPLY)
+        val constraints = prompt.indexOf("OGRANICZENIA:")
+        val versioned = prompt.indexOf("WERSJONOWANE SKILLS WYBRANEGO PRESETU")
+        val replyFormat = prompt.lastIndexOf("ODPOWIEDŹ:")
+        assertTrue("constraints_before_skill", constraints in 0 until versioned)
+        assertTrue("skill_near_reply", versioned in 0 until replyFormat)
+        assertTrue("versioned_instruction_reaches_reply", prompt.contains("KASZTAN"))
+        assertTrue("skill_not_task_authority", prompt.contains("Nie przyznają"))
+        assertTrue("app_owns_external_effects", prompt.contains("Aplikacja osobno kontroluje telefon"))
+        val disabled = edited.bindVersion("ConversationStyle", null)
+        val offPrompt = ConversationInstructionBuilder.build(
+            ConversationPreparation.supervised().withSkillSnapshot(disabled.snapshot()),
+            "Neutralne laboratorium", ConversationResponseFormat.TOOL_REPLY)
+        assertFalse("disabled_skill_not_in_prompt", offPrompt.contains("KASZTAN"))
+    }
 }
