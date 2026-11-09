@@ -1,5 +1,10 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## Diagnostyka natywnego modelu i kontekst Lab — S22 VERIFIED (2026-11-09)
+
+F-155 **VERIFIED**: profil `GEMMA_4_E2B`, backend GPU, baseline 2048 i 4096 po 2 tury przy identycznych promptach: pierwsza z zimnym ładowaniem **28,57/27,23 s**, druga po utrzymaniu kontekstu **3,32/3,63 s**. Nowa konfiguracja kontekstu *wyłącznie Lab* (domyślnie 4096, można wpisać dowolną dodatnią liczbę; Call nadal 2048), widoczny live breakdown inicjalizacji/konwersacji/generowania i PSS/RAM. Mac full gate DONE/0, S22 po nowej instalacji **4/4 AndroidTest PASS**, IDLE, bez wipe. Nie traktować średniej cold+warm jako czasu samej generacji. [Checkpoint](checkpoints/2026-11-09-f155-lab-context-latency-diagnostics.md).
+
+
 ## USB/ADB Laboratorium i telefonia — wynik bieżący (2026-11-09)
 
 **PASS_DEVICE_OFFCALL / PARTIAL_LIVE_CALL.** Na fizycznym S22: `AndroidUsbLabControlContractTest` **3/3 PASS**, rzeczywiste `status/config-get/ram` **3/3 PASS** (F-152/153 VERIFIED), USB E2B 4096 **3 presety × 2 tury = 6/6** z prywatnym SAVE i STOP, bez wymogu AI Calls foreground (`aicalls-onepass-s22-usb-call-negatives-skills-ab-20261109-v1` DONE/0). **Współbieżność GUI i kontrolera USB 1/1 PASS** w `AndroidUsbGuiLabConcurrencyTest`: drugi natywny backend odrzucony, po GUI STOP USB uruchomił backend (F-150 VERIFIED dla współdzielonej dzierżawy; nie osobny simultaniczny broadcast ADB). **3/3 odmowy** takeover/resume/owned-stop przy braku Call. Brak pozytywnych testów działań podczas autoryzowanej rozmowy; brak pełnej oceny semantycznej i testów audio w tym przebiegu. [Checkpoint](checkpoints/2026-11-09-single-pass-ui-usb-ai-skills-acceptance.md).
@@ -120,7 +125,7 @@
 | LAB-02 | Prawdziwy lokalny model: 2 kolejne tury, odpowiedź i kryteria końca bez Telecom | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-real-offline-two-turn-stop-s22-20261108-v1` |
 | LAB-03 | STOP w trakcie, stan STOPPED, brak dalszych tur, ponowny START | PASS_OFFCALL_FUNCTIONAL — ten sam receipt, tylko izolowane dwie tury i restart/STOP |
 | LAB-04 | Timeline podczas długiego biegu, ręczny scroll w górę, auto-follow na dole, widoczne błędy | SOURCE/HOST PASS `992280b` oraz **S22 AndroidTest layout 1/1 PASS** w grupie 2/2 (`aicalls-labdialog01-s22-final-device-acceptance-20261108-1601-v1`): transcript zachowuje wysokość, composer jest widoczny; pełny długi wizualny scroll/auto-follow i błędy **PARTIAL/NOT_RUN**. |
-| LAB-05 | Metryki, zgodność celu, odpowiedzi błędne/puste, timeout, ocena naturalności | NOT_RUN |
+| LAB-05 | Metryki, zgodność celu, odpowiedzi błędne/puste, timeout, ocena naturalności | **PARTIAL / NATIVE_TIMINGS_DEVICE_PASS** F-155 VERIFIED: S22 1/1 realny model + kontekst 2048 i diagnostyka GPU, init/conversation/generate/total, cold/warm, PSS/available RAM; Mac pełny gate PASS. Ocena naturalności, zgodności celu i pełnego zestawu błędów nadal UNASSESSED/NOT_RUN. [Checkpoint](checkpoints/2026-11-09-f155-lab-context-latency-diagnostics.md). |
 | LAB-06 | Wszystkie presety i typy Skills, powtarzalność N=3, opóźnienia median/p95 | **PARTIAL / S22 THREE_PRESETS 3/3 PASS** (2 tury per preset, 3/3 recall heuristic; średnio natural 23151 ms, formal 17486 ms, message 16807 ms). N=3, p95, własne Skills, testy wpływu instrukcji i ocena semantyczna **NOT_RUN**. |
 
 ## 5. Modele i silniki audio
@@ -129,7 +134,7 @@
 | MODEL-01 | Katalog, szczegóły, aktualny model, lokalny stan artefaktu i READY vs niedostępny | NOT_RUN per model |
 | MODEL-02 | DOWNLOAD / Cancel / retry / VERIFY SHA-256 / niepełny plik / brak miejsca | NOT_RUN fizycznie; nie pobierać dużych plików automatycznie |
 | MODEL-03 | Wybór modelu, trwałość, presety Direct i skrypt, brak podmiany w aktywnej próbie | NOT_RUN |
-| MODEL-04 | Lokalna inferencja: gotowość, wyjście/odpowiedź, STOP i ponowienie | PARTIAL: LAB-02/03 PASS tylko dla testowanego wybranego modelu |
+| MODEL-04 | Lokalna inferencja: gotowość, wyjście/odpowiedź, STOP i ponowienie | **PARTIAL / E2B_GPU_PASS**: S22 potwierdzony profil GEMMA_4_E2B, rzeczywiste generowanie GPU 2048/4096, pierwszy zimny turn ~27–29 s vs drugi ~3–4 s w równych promptach; nowa GUI diagnostyka i STOP/restart PASS (F-155). E4B i inne modele oraz długi kontekst nadal oddzielnie NOT_RUN. |
 | AUDIO-01 | Profile STT/model/TTS/głos i ich trwałość, niezależny wybór oraz rzeczywiste użycie | NOT_RUN |
 | AUDIO-02 | Polski TTS → syntetyczny PCM → Parakeet STT, niepusty transkrypt / zgodność leksykalna | PASS_OFFCALL_FUNCTIONAL — `aicalls-functional-polish-tts-parakeet-offcall-s22-20261108-v1` |
 | AUDIO-03 | STT na kontrolowanym nagraniu i mikrofonie, WER/CER, cisza, szum, stop i recovery | NOT_RUN |
