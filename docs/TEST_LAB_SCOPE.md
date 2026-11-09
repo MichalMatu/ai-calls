@@ -1,5 +1,7 @@
 # AI Calls — zakres laboratorium, moduły i instalacja
 
+**Aktualny odbiór Skills/modeli na S22 (2026-11-09):** F-156 `VERIFIED_SCOPED` — aktywna/nieaktywna własna instrukcja działa po poprawce kompozycji promptu, fizyczny UI wersjonowania/edycji PASS. E2B i E4B w identycznym lokalnym teście 2048 na GPU **18/18 tur PASS** (sprostowania, rozróżnienie pożegnania i propozycje narzędzi), E4B około 3× wolniejsza, brak przewagi poprawności w tej próbce. Wszystkie testy syntetyczne, bez Call, bez wipe i zmiany profilu. Aktualny punkt: eksperyment ze selektywnym ładowaniem Agent Skills podobnym do Google AI Edge Gallery, przy zachowaniu typowanej kontroli efektów. [Checkpoint](checkpoints/2026-11-09-e2b-e4b-agent-skills-differential.md) · [decyzja](AGENT_SKILLS_EDGE_GALLERY_REVIEW_2026-11-09.md).
+
 **Stan odbioru USB Lab 2026-11-08:** Mac host PASS (370 testów Python, Gradle, lint, AndroidTest/APK), **nowy USB receiver i komendy Call na S22 NOT_RUN**. Realna Gemma E2B 4096 w dotychczasowym Lab: **3×13 tur technicznie PASS**, human review UNASSESSED. [Pełny checkpoint](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
 
 **USB/ADB Lab (2026-11-08):** dodano do źródła prywatny, chroniony kanał diagnostyczny START/SEND/STOP dla prawdziwego `SkillLabRunner`, telemetrię RAM oraz interwencje już istniejącego kontrolera Call (takeover/resume/stop własnej rozmowy) i konfigurację incoming. Mac QA PASS, fizyczny odbiór nowej ścieżki USB/Call **NOT_RUN**. [Konstrukcja i granice](USB_LAB_TELEPHONY_CHANNEL.md).
