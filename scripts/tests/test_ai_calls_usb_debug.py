@@ -1,5 +1,6 @@
 """Focused invariants for the single owner USB diagnostic bridge."""
 import json
+import subprocess
 from pathlib import Path
 import sys
 import unittest
@@ -10,6 +11,13 @@ import ai_calls_usb_debug as bridge  # noqa: E402
 
 
 class UsbDebugProtocolTests(unittest.TestCase):
+    def test_adb_control_does_not_consume_private_lab_send_stdin(self):
+        completed = subprocess.CompletedProcess(["adb", "devices"], 0, "", "")
+        with patch.object(bridge.subprocess, "run", return_value=completed) as fake:
+            result = bridge.invoke(["adb", "devices"])
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(fake.call_args.kwargs["stdin"], subprocess.DEVNULL)
+
     def test_audio_quality_metrics_exclude_transcripts_and_unknown_fields(self):
         output = "\n".join([
             "INSTRUMENTATION_STATUS: stream=AUDIO_QA_GEMMA_CASE_1_WORD_ERRORS=2",
