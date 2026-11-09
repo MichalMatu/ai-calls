@@ -1,5 +1,9 @@
 # Security and privacy
 
+## 2026-11-09 — G4.3 metadane i propozycje narzędzi są danymi, nie władzą
+
+`name/description/capability` jest wersjonowanym opisem wyboru prompt Skills i **nie jest grantem**. Dotychczasowy zaszyfrowany/no-backup magazyn chroni metadane i rewizje; S22 2/2 w izolowanym magazynie potwierdził brak plaintext w plikach magazynu i poprawny rollback, bez modyfikacji oryginalnego presetu. `onTurnRouting` przekazuje do UI wyłącznie ID/rewizje/metadane decyzji, a nie transkrypty; callback jest nieautorytatywny. `LabToolProposalPolicy` odrzuca niedostępne tool, `END_CALL` pozostaje typowaną propozycją bez wykonania w Lab; aplikacyjna walidacja grantu, własności Call i STOP obowiązuje oddzielnie w realnej telefonii. S22 i Mac QA PASS tylko w syntetycznej ścieżce off-call. [Checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).
+
 ## 2026-11-09 — G4.2 off-call dynamic Skills: granice danych i uprawnień
 
 W trybie Lab `CONTEXTUAL` historia skończonych tur jest utrzymywana tylko w pamięci `DynamicSkillLabBackend` i zwalniana przy `close/STOP`. Po zmianie aktywnych Skills trafia do nowej instancji natywnej `Conversation` (ten sam Engine) jako **zakodowane JSON dane, nie instrukcje, grant ani sekret z IdentityVault**. Prompt zachowuje wcześniejsze ograniczenia bezpieczeństwa, a model nie wykonuje narzędzi; wynik wciąż przechodzi przez istniejący decoder/walidatory. Zwykłe logi i Git nie zawierają treści rozmów. Fizycznie S22 4/4 syntetyczne tury, pamięć przed/po zmianie tematu i STOP PASS, brak Call, E2B profil niezmieniony. [Checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md). Dla prawdziwego Call ta ścieżka nie jest włączona i wymaga osobnej oceny granic grantu/zgód oraz audio.

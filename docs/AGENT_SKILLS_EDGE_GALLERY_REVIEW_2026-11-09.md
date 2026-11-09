@@ -1,5 +1,7 @@
 # AI Calls — Google AI Edge Gallery Agent Skills vs obecne Skills (2026-11-09)
 
+**Aktualizacja G4.3 (2026-11-09):** aktywne metadane `name/description/capability` są wersjonowane i wpływają na selekcję prompt Skills; Lab pokazuje zmiany per-turn. `LabToolProposalPolicy` waliduje tylko typowane propozycje `END_CALL`, nigdy nie wykonuje efektu. Mac i fizyczny S22 2/2 metadane/UI + 1/1 native E2B, routing 4/4, pamięć, STOP PASS. Nadal **nie** używa to ładowanych plików `SKILL.md` i nie wykonuje arbitrary JS lub dowolnych narzędzi z promptu. [Finalny checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).
+
 **Nowy fizyczny stan (2026-11-09):** po tej analizie G4.1/G4.2 rozwinęły statyczny selector do wersjonowanych propozycji per turn i Lab-only odświeżania natywnej konwersacji. E2B/GPU S22 **4/4 tur, 3 dynamiczne przełączenia, pamięć i STOP PASS**. To wciąż **prompt Skills**, nie pliki `SKILL.md`, execution JS lub pełna kontrola narzędzi; dawny opis „wyłącznie statyczny” poniżej ma charakter historyczny. [Finalny checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md).
 
 ## Co faktycznie robi obecny AI Calls

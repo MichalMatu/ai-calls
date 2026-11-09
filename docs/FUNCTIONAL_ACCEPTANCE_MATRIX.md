@@ -1,5 +1,9 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## G4.3 — Lab Skills metadata, per-turn trace i typed tool proposals: **S22_PASS_OFFCALL** (2026-11-09)
+
+Mac task `aicalls-g4p3-skills-metadata-trace-tools-mac-qa-20261109-v3` **DONE/0**: targeted JVM, build AndroidTest, pełny host `verify_host.sh` (371 Python, lint/audio), anti-friction, clean. S22 task `aicalls-g4p3-metadata-ui-native-trace-s22-20261109-v1` **DONE/0**: `AndroidG43SkillMetadataAcceptanceTest` **2/2** (zaszyfrowany update/rollback i odczyt UI metadata/lab tags), `AndroidG4DynamicSkillsNativeE2ETest` **1/1** (prawdziwe E2B 4 tury, 3 refresh, `g43_route_events=4`, pamięć przed/po, STOP), oba APK bez wipe, Call IDLE i profil nienaruszone. F-158, F-159 VERIFIED_SCOPED po RED. **Nie jest to PASS pełnego STT/TTS, human naturalness ani rzeczywistego Call.** [Finalny checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).
+
 ## G4.2 — prawdziwy dynamiczny Skills E2E, S22 `PASS_OFFCALL_FUNCTIONAL` (2026-11-09)
 
 `AndroidG4DynamicSkillsNativeE2ETest#runnerGemmaDynamicSkillsPreservesMemoryAndStops`, Mac `aicalls-f157-g4p2-e2b-memory-s22-e2e-retest-20261109-v4` **DONE/0**: E2B/GPU, kontekst 4096, 4/4 natywne tury tekstowe z pełnym `SkillLabRunner`, 3 zmiany Skills i natywne odświeżenie instrukcji/Conversation, kod `ZX74` przypomniany przed/po zmianie tematu, STOP i odmowa wysłania po STOP, brak własnego Call, profil nietknięty, instalacja bez wipe, Mac full QA (371 Python) PASS i końcowe Git clean. **Scope:** tekstowe off-call; nie oznacza `PASS_REAL_CALL`, ludzkiej oceny naturalności, UI ręcznego klikania wszystkich zmian ani pełnej integracji STT/TTS. [Finalny checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md). `F-157 VERIFIED_SCOPED` po rzeczywistym wcześniejszym RED.

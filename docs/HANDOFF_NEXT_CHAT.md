@@ -1,4 +1,10 @@
-# AI Calls — handoff po G4.2: dynamic Skills na E2B/S22, next G4.3
+# AI Calls — handoff po G4.3: Skills Lab PASS, następny G5.1 audio
+
+## Najnowszy status obowiązujący — 2026-11-09
+
+**G4.3 CLOSED — S22_OFFCALL_E2E_SCOPED_PASS (2026-11-09)**. `name/description/capability` są przypięte do `SkillRevision` z kompatybilnym odczytem starego schema=1; edytor pozwala tworzyć nową wersję i rollback, a Lab pokazuje wybór i aktywację/dezaktywację Skills dla każdej tury. Typowana propozycja `END_CALL` przechodzi jedynie walidację Lab `PROPOSED_ONLY`, bez wykonania. Mac task `aicalls-g4p3-skills-metadata-trace-tools-mac-qa-20261109-v3` **DONE/0** (celowane JVM, AndroidTest build, pełny `verify_host.sh`, 371 Python, lint/audio, anti-friction i clean Git). S22 task `aicalls-g4p3-metadata-ui-native-trace-s22-20261109-v1` **DONE/0** (4 kroki): 2/2 testy metadanych/UI, 1/1 natywny E2B przez `SkillLabRunner` (4 tury, 3 odświeżenia, 4 zdarzenia routingu, pamięć przed/po pivot, STOP); dwie instalacje debug APK `-r -t` bez wipe, `Call IDLE` przed/po, profil zachowany, Git clean. **F-158 i F-159 VERIFIED_SCOPED** po wcześniejszych RED. To tylko **syntetyczny tekstowy Lab**, nie STT/TTS, realne Call ani human semantic review. [Checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).
+
+**Pierwszy nowy krok G5.1:** odtwórz stan pełnej ścieżki `STT → E2B + dynamic Skills → TTS` **off-call**, na istniejących adapterach i jednym runtime. Sprawdź dokładne bramki audio/STOP, payloady i raporty opóźnień. Osobno human semantic review, osobno G6 prawdziwe Call. Stare bloki G4.3 NEXT poniżej są historyczne, nie zadaniem do powtórki. [Dokładny checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).
 
 ## Najnowszy status 2026-11-09 — obowiązujący
 
