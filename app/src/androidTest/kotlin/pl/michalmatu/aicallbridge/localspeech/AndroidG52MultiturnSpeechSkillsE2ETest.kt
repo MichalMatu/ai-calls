@@ -200,7 +200,7 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         )
         val turns = mutableListOf<Turn>()
         // Opt-in only. Normal G5.2 regression creates no persistent audio or transcript.
-        val capture = instrumentation.arguments.getString("g53_private_evidence") == "true"
+        val capture = InstrumentationRegistry.getArguments().getString("g53_private_evidence") == "true"
         val evidence = if (capture) mutableListOf<G53CapturedAudioTurn>() else null
         try {
             for (phrase in expected) {

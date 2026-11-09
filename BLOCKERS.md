@@ -1,3 +1,7 @@
+## F-162 — G5.3 instrumentacja AndroidTest: błędne API argumentów (2026-11-09)
+
+**RED:** `aicalls-g53-private-corpus-source-qa-20261109-v1`, komenda 2, `:app:compileDebugAndroidTestKotlin` FAILED, `AndroidG52MultiturnSpeechSkillsE2ETest.kt:203:39 Unresolved reference 'arguments'`. W opt-in G5.3 prywatnego zapisu PCM/transkryptów użyto `instrumentation.arguments` zamiast `InstrumentationRegistry.getArguments()`; błąd dotyczy tylko nowego testu, bez zmian telefonii i bez instalacji S22. **FIXED_IN_SOURCE**: zastąpiono użycie prawidłowym API AndroidX; zamknięcie wyłącznie po ponownym Mac compile/full QA i nowym S22 scoped receipt, nie nadpisywać FAILED historii. Następny etap to test prywatnego eksportu bez treści w Git/Local Agent.
+
 ## F-161 — G5.3 skrypt akceptacji S22 błędnie rozpoznawał IDLE (2026-11-09)
 
 **Ścieżka:** niemutowalny Host Ops task `aicalls-g5p3-native-active-inference-stop-s22-20261109-v1`, lokalny Python `idle()` i matcher `mCallState`; nie kod APK. **RED:** task FAILED/81 przed instalacją, `G53_CALL_IDLE_PRE=REFUSED`, ponieważ wygenerowany skrypt zawierał podwójnie escapowane `\\b` i `\\d` w surowym wyrażeniu regularnym Python, zamiast granicy słowa/cyfry. Read-only `aicalls-g5p3-idle-refusal-diagnostics-s22-20261109-v1` potwierdził podłączony SM-S906B, `get-state=device`, brak aktywnej `AppOwnedCampaignService`, ale pustą listę stanów mimo udostępnionego dumpu. To błąd testu, nie potwierdzenie aktywnej rozmowy; odrzucone zadanie nie dotknęło APK.
