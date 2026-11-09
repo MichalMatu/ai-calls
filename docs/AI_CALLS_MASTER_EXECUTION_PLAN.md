@@ -1,5 +1,9 @@
 # AI Calls — jeden plan realizacji: od modelu do autonomicznej rozmowy
 
+## Fast development — incremental tests and deployment-only APK (2026-11-09)
+
+**Default in the single-track sprint:** `bash scripts/bin/test-profile.sh auto <verified-pre-sprint-SHA>`. It runs only tests of changed code paths and static preflight, **not** Android APK packaging. Docs-only changes skip Gradle. Small code changes may compile unit-test classes; use `focus <module> '<test-class-filter>'` for a known single test, `changed <module>` for module regression. Explicit `full` once at milestone, without APK packaging; explicit `device-build` **immediately before** authorized S22 install. Preserve warm Gradle daemon/build/config caches; no forced `--no-daemon`. Optional local `hooks-enable` is cheap and never compiles; GitHub Connector bypasses it, so host QA must be requested. Unknown paths fail with scope escalation rather than full suite. Keep all previous G3/G5 receipts. [Runbook](../scripts/README.md), F-170 ledger.
+
 ## SINGLE_TRACK_OWNER — JEDEN CZAT OD 2026-11-09
 
 Decyzja właściciela: zakończyć oba stare czaty i odtąd rozwijać AI Calls z **jednego nowego czatu**. Kanoniczny punkt startowy: [HANDOFF_SINGLE_TRACK_2026-11-09](HANDOFF_SINGLE_TRACK_2026-11-09.md), jeden plan poniżej, pełna referencyjna analiza źródeł: [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). **Nie rozpoczynać dalszych równoległych sprintów**. Nowy czat zaczyna od najświeższego HEAD i nierozliczonych prac, bez resetu działającego kodu/testów.

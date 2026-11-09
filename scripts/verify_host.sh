@@ -81,20 +81,15 @@ fi
   :realtime-client:testDebugUnitTest \
   :app:testDebugUnitTest \
   :privileged-helper:testDebugUnitTest \
-  :audio-bridge:testDebugUnitTest \
-  --no-daemon
+  :audio-bridge:testDebugUnitTest
 
 "$GRADLE_BIN" \
   :app:lintDebug \
   :realtime-client:lintDebug \
   :privileged-helper:lintDebug \
-  :audio-bridge:lintDebug \
-  --no-daemon
+  :audio-bridge:lintDebug
 
-"$GRADLE_BIN" \
-  :app:assembleDebug \
-  :app:assembleDebugAndroidTest \
-  --no-daemon
+# APK packaging is a distinct explicit device-build step, never a host QA side effect.
 PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'
 python3 scripts/aicall_tools/diagnostics/audit_audio_engine_quality.py
 

@@ -1,37 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-cd "$(dirname "$0")/../.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 mode="${1:-}"
-module="${2:-}"
+if [[ "$#" -gt 0 ]]; then shift; fi
 gradle="${GRADLE_BIN:-./gradlew}"
-
 case "$mode" in
+  preflight)
+    [[ "$#" -eq 0 ]] || exit 2
+    git diff --check
+    git diff --cached --check
+    python3 scripts/aicall_tools/diagnostics/audit_product_friction.py
+    echo DEV_PREFLIGHT_PASS=true ;;
+  auto)
+    [[ "$#" -le 1 ]] || exit 2
+    python3 -m scripts.aicall_tools.diagnostics.dev_change_gate "${1:-HEAD^}" ;;
   quick)
-    "$gradle" :conversation-core:test :conversation-tools:test --no-daemon
-    ;;
+    [[ "$#" -eq 0 ]] || exit 2
+    "$gradle" :conversation-core:test :conversation-tools:test ;;
   changed)
+    [[ "$#" -eq 1 ]] || exit 2
+    module="$1"
     case "$module" in
-      conversation-core|conversation-tools)
-        task=":${module}:test"
-        ;;
-      app|audio-bridge|privileged-helper|realtime-client)
-        task=":${module}:testDebugUnitTest"
-        ;;
-      *)
-        echo "Usage: bash scripts/bin/test-profile.sh changed <module>" >&2
-        echo "Modules: app, conversation-core, conversation-tools, audio-bridge, privileged-helper, realtime-client" >&2
-        exit 2
-        ;;
+      conversation-core|conversation-tools) task=":$module:test" ;;
+      app|audio-bridge|privileged-helper|realtime-client) task=":$module:testDebugUnitTest" ;;
+      *) echo 'usage: test-profile.sh changed <module>' >&2; exit 2 ;;
     esac
-    "$gradle" "$task" --no-daemon
-    ;;
+    "$gradle" "$task" ;;
+  focus)
+    [[ "$#" -eq 2 ]] || { echo 'usage: test-profile.sh focus <module> <test-class-filter>' >&2; exit 2; }
+    module="$1"; filter="$2"
+    case "$module" in
+      conversation-core|conversation-tools) task=":$module:test" ;;
+      app|audio-bridge|privileged-helper|realtime-client) task=":$module:testDebugUnitTest" ;;
+      *) exit 2 ;;
+    esac
+    "$gradle" "$task" --tests "$filter" ;;
   full)
-    bash scripts/verify_host.sh
-    ;;
+    [[ "$#" -eq 0 ]] || exit 2
+    bash scripts/verify_host.sh ;;
+  device-build)
+    [[ "$#" -eq 0 ]] || exit 2
+    "$gradle" :app:assembleDebug :app:assembleDebugAndroidTest
+    echo DEV_APK_PACKAGED=true ;;
+  hooks-enable)
+    [[ "$#" -eq 0 ]] || exit 2
+    git config --local core.hooksPath scripts/bin/git-hooks
+    echo DEV_LOCAL_LIGHT_HOOKS_ENABLED=true ;;
   *)
-    echo "Usage: bash scripts/bin/test-profile.sh quick | changed <module> | full" >&2
-    echo "Hardware/S22 verification remains a separate, explicitly authorized gate." >&2
-    exit 2
-    ;;
+    echo 'usage: test-profile.sh preflight | auto [base-SHA] | quick | changed <module> | focus <module> <test-filter> | full | device-build | hooks-enable' >&2
+    echo 'Only device-build packages APK; no command installs or dials.' >&2
+    exit 2 ;;
 esac

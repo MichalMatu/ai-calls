@@ -10,20 +10,18 @@ The developer tooling is grouped by responsibility instead of keeping implementa
 - `tests/test_audit_audio_engine_quality.py` — mutation regressions proving that dangerous changes fail the audio quality gate.
 - `verify_host.sh` — canonical host quality gate. It validates repository layout, Android build/unit/lint, Python tests and the audio gate; no ADB or real calls.
 
-## Iteration test profiles
+## Fast iteration: selective tests, incremental caches, no APK until device
 
-Use `bash scripts/bin/test-profile.sh quick` for the two JVM modules,
-`bash scripts/bin/test-profile.sh changed app` (or another named module) for
-focused unit tests, and `bash scripts/bin/test-profile.sh full` for the
-unchanged complete host gate. The changed profile accepts an explicit module
-rather than guessing from Git history. Neither quick nor changed is release
-acceptance; run the full gate after production source changes.
+- `bash scripts/bin/test-profile.sh preflight` — static diff + anti-friction, no Gradle.
+- `bash scripts/bin/test-profile.sh auto <pre-sprint-sha>` — select **only changed module JVM unit tests** and paired Python tests; includes staged/unstaged/untracked edits. Without SHA uses `HEAD^`, but for multi-commit sprint pass exact pre-sprint SHA.
+- `bash scripts/bin/test-profile.sh changed app` — only `:app:testDebugUnitTest`; `focus app '*SpecificTest'` — single selected class, if the impact is known.
+- `bash scripts/bin/test-profile.sh full` — intentional integration gate for unit/lint/Python/static/security, **no APK assembly**.
+- `bash scripts/bin/test-profile.sh device-build` — `:app:assembleDebug` and `:app:assembleDebugAndroidTest` **only immediately before a separately authorized exact S22 installation**; this never installs or places calls.
+- `bash scripts/bin/test-profile.sh hooks-enable` — optional repository-local `core.hooksPath` to install a **static-only pre-commit** (no compilation, network, ADB). Connector commits do not invoke local Mac hooks; Local Agent must still explicitly run the fast profile.
 
-`org.gradle.caching=true` enables Gradle's local task-output cache in addition
-to existing parallel execution and configuration cache. Compare cold and warm
-builds on the same Mac before claiming a speedup. Samsung S22 verification
-remains a distinct authorized hardware gate; none of these profiles runs ADB
-or places calls.
+The `auto` router fails with `DEV_AUTO_SCOPE_ESCALATION` when Gradle config changes, a Python source has no paired test, or a path is unknown: choose an explicit target rather than pretend the change was tested. Android instrumentation is deferred until the physical device gate. `full` remains useful at integration checkpoints but is **not** a requirement for every small edit.
+
+Existing `gradle.properties` already enables **build cache**, **configuration cache** and **parallel build**. The forced `--no-daemon` was removed so the warm Gradle daemon and its caches can persist between Mac tasks. Do not delete `.gradle` / `~/.gradle` or overwrite cached artifacts. Gradle may still compile JVM/Android classes for unit tests; only APK **packaging** is postponed. Measure cold vs warm runs on the same Mac before making speed claims.
 
 Python-only verification:
 
