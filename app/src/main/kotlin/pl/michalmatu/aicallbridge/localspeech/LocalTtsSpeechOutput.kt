@@ -21,6 +21,8 @@ internal class LocalTtsSpeechOutput(
 
     private val appContext = context.applicationContext
     private val gate = LocalSpeechGenerationGate()
+    /** Diagnostic only: native TTS has started a chunk; carries no speech text or PCM. */
+    @Volatile var onSynthesisStarted: () -> Unit = {}
     private val lock = Any()
     private var engine: TextToSpeech? = null
     private var outputFile: File? = null
@@ -91,7 +93,11 @@ internal class LocalTtsSpeechOutput(
                 }
 
                 tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) = Unit
+                    override fun onStart(utteranceId: String?) {
+                        if (gate.isCurrent(generation) &&
+                            utteranceId == "local-speech-$generation-$chunkIndex"
+                        ) runCatching { onSynthesisStarted() }
+                    }
                     override fun onDone(utteranceId: String?) {
                         appContext.mainExecutor.execute {
                             if (!gate.isCurrent(generation) ||
