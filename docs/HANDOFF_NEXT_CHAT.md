@@ -1,5 +1,10 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## 2026-11-09 — F-151 VERIFIED, fizyczny NAV-01 10/10 scoped
+
+**Nowy kod testu:** `main@b501768`; F-151: starszy `AndroidAppNavigationContractTest` oczekiwał nieistniejącego już wejścia `PhoneEnrollmentActivity`, zamiast `IdentityVaultManagerActivity`. RED S22 4/5, po naprawie **Mac full gate DONE/0** (`aicalls-nav01-f151-targeted-mac-build-20261109-v1`) i **S22 DONE/0** (`aicalls-nav01-f151-s22-reacceptance-20261109-v1`): aplikacja i AndroidTest bez wipe, kontrakt **5/5**, przepływy **2/2**, ustawienia **3/3**, łącznie **10/10 PASS**, Call IDLE i Mac clean. **F-151 VERIFIED. NAV-01 PARTIAL** tylko dlatego, że pełne powtarzane przejścia/back-stack i restart są poza testem; nie duplikować 10 zaliczonych przypadków. Nowy receiver USB nie ma fizycznego dowodu funkcjonalnego; `dumpsys package` nie wykazał nazwy odbiornika, co nie jest wystarczającą weryfikacją jego rejestracji. **USB DEVICE_QA_OPEN**, bez połączeń. [Checkpoint](checkpoints/2026-11-09-nav01-f151-reacceptance.md), [macierz](FUNCTIONAL_ACCEPTANCE_MATRIX.md).
+
+
 ## Najnowszy scoped NAV-01 S22 (2026-11-08)
 
 Na podłączonym S22 (Call IDLE, kampania nieaktywna) istniejący `AndroidAppBottomNavigationFlowTest` przeszedł **2/2 PASS** (5 zakładek docelowych z Home + Settings/General/Back), receipt `aicalls-nav01-safe-device-run-20261108-v2` DONE/0. Oddzielny `AndroidAppNavigationContractTest` miał **5 testów / 1 FAIL**, ale nazwa asercji nie została uchwycona; **nie ogłaszać defektu źródła bez izolowanej reprodukcji**. Test Settings matrix nie wystartował, bo dalszy foreground przeszedł na `NotificationShade`/Dozing. **NAV-01 nadal PARTIAL.** Nie instalowano nowej APK, a zainstalowany USB receiver nadal nieobecny. [Nowy checkpoint](checkpoints/2026-11-08-nav01-existing-apk-reacceptance.md) i [macierz](FUNCTIONAL_ACCEPTANCE_MATRIX.md). Następny krok: odblokowany ekran AI Calls/Launcher, pin APK/test revision, uchwycić dokładną awarię kontraktu, potem brakujące Back/restart. Bez prawdziwego Call.
