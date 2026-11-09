@@ -1,5 +1,9 @@
 # AI Calls — architektura operacyjna
 
+## G5.3 — prywatny korpus S22 i jakość: OFFCALL_EVIDENCE_PASS, HUMAN_REVIEW_OPEN (2026-11-09)
+
+**3 niezależne sesje × 3 syntetyczne tury = 9/9 PASS; 18 prywatnych WAV**, pełne STT/approved E2B i metryki RX/TX na Mac (0700/0600), lokalny `index.html` z trzema stronami do odsłuchu i ośmioma ocenami `UNASSESSED`. **STT 0/75 błędów syntetycznych słów, WER/CER 0.000**; mediany całego STT→E2B→TTS po pozycji **42.6/26.8/13.0 s** (n=3, *nie p95*). Natywny LiteRT tworzy Engine w turze 1 i Conversation ponownie w turze 2 po zmianie Skills; dopiero tura 3 `conversation_reused=true`. Mac pełne QA i 375 Python PASS, S22 IDLE/profil/no-wipe/clean. F-162 błędne API argumentów testu RED→GREEN `VERIFIED_SCOPED`. **Human naturalness/factuality nadal UNASSESSED; G5.3 nie zamknięty i G6 NOT_RUN.** [Checkpoint](checkpoints/2026-11-09-g53-private-voice-quality-corpus-latency.md).
+
 ## G5.3 — natywny STOP podczas aktywnego STT/E2B/TTS na S22 (techniczny PASS)
 
 `Gemma4LiteRtTextBackend/LiteRtGemma4Runtime` zachowuje istniejącą `generation` i `cancelProcess` dla aktywnego `sendMessage`; nowy `onNativeSendEntered` i `NativeModelTiming.nativeCancelRequested` są diagnostyczne, bez tekstów i uprawnień. `LocalTtsSpeechOutput.onSynthesisStarted` obserwuje `UtteranceProgressListener.onStart`, pozostawiając dotychczasowe `stop/shutdown`, gate i PCM. On-device STT korzysta z istniejącego `SpeechRecognizer` i pipe; po cancel oba systemowe komponenty restartują się. S22 native E2B 1/1, STT/TTS 2/2 PASS, Mac full QA PASS, Call IDLE, profil bez zmian. Nie dowodzi natychmiastowego wygaszenia wszystkich GPU kernels ani oceny naturalności. [Checkpoint](checkpoints/2026-11-09-g5p3-active-native-stop-stt-e2b-tts-technical-pass.md).

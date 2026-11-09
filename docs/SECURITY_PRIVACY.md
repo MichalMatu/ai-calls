@@ -1,5 +1,9 @@
 # Security and privacy
 
+## G5.3 — prywatny korpus S22 i jakość: OFFCALL_EVIDENCE_PASS, HUMAN_REVIEW_OPEN (2026-11-09)
+
+**3 niezależne sesje × 3 syntetyczne tury = 9/9 PASS; 18 prywatnych WAV**, pełne STT/approved E2B i metryki RX/TX na Mac (0700/0600), lokalny `index.html` z trzema stronami do odsłuchu i ośmioma ocenami `UNASSESSED`. **STT 0/75 błędów syntetycznych słów, WER/CER 0.000**; mediany całego STT→E2B→TTS po pozycji **42.6/26.8/13.0 s** (n=3, *nie p95*). Natywny LiteRT tworzy Engine w turze 1 i Conversation ponownie w turze 2 po zmianie Skills; dopiero tura 3 `conversation_reused=true`. Mac pełne QA i 375 Python PASS, S22 IDLE/profil/no-wipe/clean. F-162 błędne API argumentów testu RED→GREEN `VERIFIED_SCOPED`. **Human naturalness/factuality nadal UNASSESSED; G5.3 nie zamknięty i G6 NOT_RUN.** [Checkpoint](checkpoints/2026-11-09-g53-private-voice-quality-corpus-latency.md).
+
 ## G5.1 — synteza testowego audio bez połączenia ani prywatnego transkryptu (2026-11-09)
 
 AndroidTest syntetyzuje lokalny głos i przekazuje PCM wybranemu STT; wynik idzie do E2B/Skills, przez aplikacyjną politykę aprobaty i lokalny TTS. Test nie nagrywa mikrofonu, nie odtwarza TTS, nie łączy z Telecom ani nie ujawnia IdentityVault. Do standardowego logcat/GitHub trafiają wyłącznie czasy, liczniki i booleany, bez tekstu rozmowy i WAV. Typowane tool pozostaje propozycją, `executed=false`. S22 `Call IDLE` przed/po, profil zachowany, dwa APK bez wipe. [Checkpoint](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md).

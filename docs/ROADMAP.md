@@ -1,5 +1,9 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+## G5.3 — prywatny korpus S22 i jakość: OFFCALL_EVIDENCE_PASS, HUMAN_REVIEW_OPEN (2026-11-09)
+
+**3 niezależne sesje × 3 syntetyczne tury = 9/9 PASS; 18 prywatnych WAV**, pełne STT/approved E2B i metryki RX/TX na Mac (0700/0600), lokalny `index.html` z trzema stronami do odsłuchu i ośmioma ocenami `UNASSESSED`. **STT 0/75 błędów syntetycznych słów, WER/CER 0.000**; mediany całego STT→E2B→TTS po pozycji **42.6/26.8/13.0 s** (n=3, *nie p95*). Natywny LiteRT tworzy Engine w turze 1 i Conversation ponownie w turze 2 po zmianie Skills; dopiero tura 3 `conversation_reused=true`. Mac pełne QA i 375 Python PASS, S22 IDLE/profil/no-wipe/clean. F-162 błędne API argumentów testu RED→GREEN `VERIFIED_SCOPED`. **Human naturalness/factuality nadal UNASSESSED; G5.3 nie zamknięty i G6 NOT_RUN.** [Checkpoint](checkpoints/2026-11-09-g53-private-voice-quality-corpus-latency.md).
+
 ## G5.3 — techniczny native STOP na S22 PASS; human quality nadal OPEN (2026-11-09)
 
 **S22_OFFCALL_NATIVE_STOP_TECHNICAL_PASS:** Mac `aicalls-g5p3-native-stop-mac-qa-20261109-v1` i `aicalls-g5p3-native-stt-tts-stop-mac-qa-20261109-v1` DONE/0, pełne host QA/371 Python; S22 `aicalls-g5p3-native-active-inference-stop-s22-20261109-v2` 1/1 PASS (E2B GPU `sendMessage` → `cancelProcess`, bez stale callback, recovery) i `aicalls-g5p3-native-stt-tts-stop-s22-20261109-v1` 2/2 PASS (rzeczywiste STT/TTS aktywny STOP, restart i brak stale PCM). Profil i Call IDLE bez zmian, APK bez wipe, zero Call. Błędny host regex v1 odmówił przed instalacją; v2 poprawiony, `F-161 VERIFIED_SCOPED`. **Human semantic/naturalness ośmiu wymiarów nadal UNASSESSED; p95 oraz prawdziwa telefonia NOT_RUN.** [Checkpoint](checkpoints/2026-11-09-g5p3-active-native-stop-stt-e2b-tts-technical-pass.md). Następny jedyny etap G5.3: prywatny przegląd kompletnych tekstów/WAV i niezależna ocena tur; nie powtarzać zaliczonych STOP.
