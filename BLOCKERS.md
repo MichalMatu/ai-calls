@@ -1,3 +1,11 @@
+## F-152 — USB Lab CLI rozbijał komendę zapisu prywatnej skrzynki ADB (2026-11-09)
+
+**Ścieżka:** `scripts/aicall_tools/diagnostics/ai_calls_usb_lab.py:device_request`.
+**Warunek/wynik:** fizyczny Samsung S22: `AndroidUsbLabControlContractTest` **3/3 PASS**, ale pierwsze `ai_calls_usb_lab.py status` kończyło się `private_request_write_failed`. Mac `aicalls-usb-mailbox-shell-quoting-diagnosis-20261109-v1`: surowy `sh -c` z `printf A; printf B` zwracał tylko `B` i błąd; cytowana wersja zwracała `AB`.
+**Przyczyna:** argument `sh -c` zawierał średniki/redirekcję jako niezabezpieczony łańcuch w `adb shell run-as ... sh -c`; Android wykonywał rozbite części polecenia poza oczekiwaną powłoką aplikacji. Transport nie tworzył poprawnego żądania.
+**Naprawa:** `main@39984125dfc0e207b83bb6da1cf2d1f06d457b40` — `shlex.quote(shell)` dla całego skryptu z zachowaniem przekazywania prywatnego JSON wyłącznie stdin. Test `scripts/tests/test_ai_calls_usb_lab.py` wymusza zachowanie jednego argumentu `sh -c` (commit `b87456e`). Bez zmian telefonii, zgód, modeli i transkryptów.
+**Status:** **FIXED_IN_SOURCE / QA_PENDING** — jeszcze bez zielonego testu fizycznego status/config przez USB po zmianie. Testy hosta i S22 wymagają osobnych receipts.
+
 ## F-151 — nieaktualny kontrakt AndroidTest zakładki Agent AI (2026-11-09)
 
 **Ścieżka:** `app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/AndroidAppNavigationContractTest.kt`, metoda `agentOwnsEditorsAndSettingsHasNoDuplicateDestinations`.
