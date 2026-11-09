@@ -1,5 +1,9 @@
 # AI Calls — jeden plan realizacji: od modelu do autonomicznej rozmowy
 
+## G5.3 — finalny techniczny sprint F-168 (2026-11-09)
+
+**F-168 VERIFIED_SCOPED / TECHNICAL_READY.** main@63abb3f. Mac kod QA aicalls-g53-f168-private-review-refresh-code-mac-qa-20261109-v1 **DONE/0** (15/15 celowanych, 386 Python, verify_host.sh, anti-friction, clean), Mac prywatne HTML aicalls-g53-f168-private-six-review-refresh-mac-20261109-v1 **DONE/0** (6/6 stron odświeżonych, 6/6 linków, manifesty/WAV SHA niezmienione, bez treści zdalnie). **HUMAN_REVIEW_OPEN: 0/6 ocen**, osiem wymiarów każdej sesji nadal UNASSESSED. Nie przenosić testowego ALL_ACTIVE do produkcji, nie rozpoczynać realnych Call ani G6 na tej podstawie. [Checkpoint](checkpoints/2026-11-09-g53-f168-private-review-html-refresh-final.md).
+
 ## G5.3 — Skills A/B 6 sesji, native reuse i latencja: S22_TECHNICAL_PASS, HUMAN_OPEN (2026-11-09)
 
 **CONTEXTUAL vs ALL_ACTIVE** na S22: 3 sesje ×3 tury na wariant = **18/18 PASS**, 36 prywatnych WAV, STT WER 0/150 syntetycznych słów, korekta dnia pamiętana w każdym przebiegu. Mediany pełnej odpowiedzi (tury 1/2/3) **CONTEXTUAL 42,6/26,8/13,0 s**, **ALL_ACTIVE 23,0/10,0/9,0 s**; w drugiej turze −62,6%. Natywne `conversation_reused` = `false,false,true` vs `false,true,true` i mediana model + aprobata tury 2 = **17,6 vs 2,8 s**. Odpowiedzi ALL_ACTIVE w turach 2/3 są nawet dłuższe; to niewielkie porównanie dwóch strategii i różnej treści promptu, nie przyczynowy benchmark ani p95. Mac full QA/375 Python i S22 no-wipe/Call IDLE/clean PASS. Pierwszy host task preflight v1 odrzucony bez komend przez `idle_timeout>3600` (F-164 VERIFIED_SCOPED), v2 pełny PASS. **Human quality ośmiu wymiarów nadal UNASSESSED; nie zmieniać trybu produkcyjnego, G6 nieuruchomione.** Lokalny indeks: `~/Library/Application Support/ai-calls/qa/g53-private/skills-ab-index.html`. [Checkpoint](checkpoints/2026-11-09-g53-skills-ab-latency-s22.md).

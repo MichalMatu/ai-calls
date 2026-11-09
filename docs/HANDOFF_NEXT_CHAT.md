@@ -1,8 +1,12 @@
+# AI Calls — handoff G5.3 technical READY, human review OPEN
+
+## G5.3 — finalny techniczny sprint F-168 (2026-11-09)
+
+**F-168 VERIFIED_SCOPED / TECHNICAL_READY.** main@63abb3f. Mac kod QA aicalls-g53-f168-private-review-refresh-code-mac-qa-20261109-v1 **DONE/0** (15/15 celowanych, 386 Python, verify_host.sh, anti-friction, clean), Mac prywatne HTML aicalls-g53-f168-private-six-review-refresh-mac-20261109-v1 **DONE/0** (6/6 stron odświeżonych, 6/6 linków, manifesty/WAV SHA niezmienione, bez treści zdalnie). **HUMAN_REVIEW_OPEN: 0/6 ocen**, osiem wymiarów każdej sesji nadal UNASSESSED. Nie przenosić testowego ALL_ACTIVE do produkcji, nie rozpoczynać realnych Call ani G6 na tej podstawie. [Checkpoint](checkpoints/2026-11-09-g53-f168-private-review-html-refresh-final.md).
+
 ## G5.3 — prywatny gate ocen: F-166/F-167 VERIFIED_SCOPED (2026-11-09)
 
 main@c30742b. Mac Local Agent final-gate-v2 DONE/0, 5/5 komend: 11/11 celowanych unittest, verify_host.sh z 382 Python PASS, build/audio/anti-friction PASS, Git clean. Prywatny skan: sessions=6, recorded=0, unassessed=6, invalid=0. F-166/F-167 technicznie zamknięte, ale G5.3 HUMAN_REVIEW_OPEN / UNASSESSED. Nie było ADB, połączeń ani ponownych tur S22. Wcześniejsze dwa v1 FAILED przez pin przestarzałego SHA, zachować historię.
-
-# AI Calls — handoff po G5.3 Skills A/B: human review OPEN
 
 ## G5.3 — Skills A/B 6 sesji, native reuse i latencja: S22_TECHNICAL_PASS, HUMAN_OPEN (2026-11-09)
 
