@@ -1,6 +1,7 @@
 """USB/ADB Lab control: private stdin, one-shot nonce and exact-action contracts."""
 import json
 import os
+import shlex
 from pathlib import Path
 import sys
 import tempfile
@@ -69,6 +70,14 @@ class UsbLabControlTests(unittest.TestCase):
             self.assertTrue(result["ok"])
             self.assertIn(secret, received["input"])
             self.assertNotIn(secret, " ".join(received["argv"]))
+            # ADB joins argv into a remote shell command. The entire script
+            # must survive as one argument to the device-side 'sh -c'.
+            self.assertEqual(received["argv"][-3:-1], ["sh", "-c"])
+            remote_tokens = shlex.split("sh -c " + received["argv"][-1])
+            self.assertEqual(remote_tokens[:2], ["sh", "-c"])
+            self.assertEqual(len(remote_tokens), 3)
+            self.assertIn("cat > files/usb-lab-control/request.json.new", remote_tokens[2])
+            self.assertIn("mv files/usb-lab-control/request.json.new", remote_tokens[2])
             self.assertNotIn(secret, " ".join(fake.broadcast_args))
             self.assertIn(nonce.hex, " ".join(fake.broadcast_args))
             self.assertEqual(os.stat(Path(folder) / ".usb-lab-channel.lock").st_mode & 0o777, 0o600)
