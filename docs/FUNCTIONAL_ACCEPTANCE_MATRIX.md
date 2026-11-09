@@ -1,8 +1,8 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
-## USB/ADB Laboratorium i telefonia — wynik bieżący (2026-11-08)
+## USB/ADB Laboratorium i telefonia — wynik bieżący (2026-11-09)
 
-**PARTIAL: SOURCE_AND_HOST_PASS / DEVICE_NOT_RUN.** Nowy `DUMP` receiver i Mac CLI są zaimplementowane; `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` DONE/0: 370 testów Python, Kotlin/JVM, lint, APK/AndroidTest build, audio. **Nowej APK nie instalowano na S22**, nie potwierdzono statusu/konfiguracji/START/SEND/STOP ani dodatniej interwencji w Call przez nową ścieżkę. [Checkpoint](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
+**PARTIAL / DEVICE_READONLY_PASS.** Najnowsza APK + AndroidTest zainstalowane bez wipe na S22. `AndroidUsbLabControlContractTest` **3/3 PASS** (w tym DUMP/debug i odmowy bez owned Call); rzeczywista konsola `status/config-get/ram` **3/3 PASS** po F-152 `VERIFIED` (naprawa cytowania `adb shell run-as sh -c`). Receipts: `aicalls-usb-device-readonly-contract-20261109-v1` (Android 3/3 PASS, pierwotnie CLI FAIL) oraz `aicalls-usb-f152-s22-cli-reacceptance-20261109-v1` DONE/0 (CLI 3/3). Mac full gate PASS. **Nadal DEVICE_NOT_RUN:** prywatne Gemma START/SEND/STOP przez USB, prawdziwe równoległe GUI+USB (F-150) oraz dodatnie takeover/resume/exact owned STOP podczas autoryzowanego Call. [Checkpoint](checkpoints/2026-11-09-nav01-f151-usb-f152-reacceptance.md).
 
 ## LAB-SEMANTIC-02 — bieżący odbiór długiej sesji Gemma E2B (2026-11-08)
 
