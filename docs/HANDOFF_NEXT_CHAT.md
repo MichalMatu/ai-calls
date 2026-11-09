@@ -1,3 +1,7 @@
+## G5.3 — prywatny gate ocen: F-166/F-167 VERIFIED_SCOPED (2026-11-09)
+
+main@c30742b. Mac Local Agent final-gate-v2 DONE/0, 5/5 komend: 11/11 celowanych unittest, verify_host.sh z 382 Python PASS, build/audio/anti-friction PASS, Git clean. Prywatny skan: sessions=6, recorded=0, unassessed=6, invalid=0. F-166/F-167 technicznie zamknięte, ale G5.3 HUMAN_REVIEW_OPEN / UNASSESSED. Nie było ADB, połączeń ani ponownych tur S22. Wcześniejsze dwa v1 FAILED przez pin przestarzałego SHA, zachować historię.
+
 # AI Calls — handoff po G5.3 Skills A/B: human review OPEN
 
 ## G5.3 — Skills A/B 6 sesji, native reuse i latencja: S22_TECHNICAL_PASS, HUMAN_OPEN (2026-11-09)
