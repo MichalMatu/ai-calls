@@ -1,5 +1,12 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## G5.2 — audio wielu tur i STOP: `S22_PASS_OFFCALL_SCOPED`
+
+**G5.2 = S22_OFFCALL_MULTITURN_AUDIO_AND_STOP_PASS (2026-11-09).** Po Mac full QA `aicalls-g5p2-multiturn-audio-stop-mac-qa-20261109-v2` **DONE/0**, S22 `aicalls-g5p2-three-turn-audio-stop-s22-20261109-v1` **DONE/0**: 5/5 deterministycznych testów STOP/late callback (STT, model, TTS, restart i dwie kolejne generacje) i 1/1 natywna Gemma E2B + Android STT + Android TTS PL, **3/3 syntetyczne tury audio**, `MessageCapture` i `Clarification`, prawidłowa korekta dnia spotkania i pamięć, 3 decyzje routingu. TTS wygenerował **515 894 B PCM**, czasy narastające STT **4340/5723/4905 ms**, aprobata **21158/12699/7157 ms**, końcowy PCM **23042/14224/8694 ms**. Żadnych wykonanych narzędzi, prawdziwych połączeń ani zmian profilu; instalacja obu debug APK bez wipe, Call IDLE przed i po, Mac Git clean. Jest to **syntetyczny off-call Lab**, nie rzeczywista rozmowa, p95, odsłuch naturalności ani sprzętowy STOP dokładnie w trakcie natywnej inferencji (STOP sprawdzono przez kontrolowane spóźnione callbacki). [Checkpoint](checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md).
+
+Pięć testów STOP jest deterministycznych, a jedna realna sekwencja E2B obejmuje 3 tury z prawdziwym STT/TTS. Hardware STOP *w środku* inferencji, realny Call, p95 i naturalność nie mają PASS.
+
+
 ## G5.1 — audio STT→E2B/Skills→TTS `S22_PASS_OFFCALL_SINGLE_TURN` (2026-11-09)
 
 Mac `aicalls-g5p1-stt-e2b-skills-tts-mac-qa-20261109-v1` DONE/0, compile AndroidTest/APK, full host 371 Python, lint/audio, friction i clean. S22 `aicalls-g5p1-speech-skills-androidstt-e2b-tts-s22-20261109-v1` DONE/0: 1/1 natywny audio test, lokalny STT final po 4622 ms, E2B odpowiedź zaakceptowana po 21680 ms, ukończone TTS PCM 236416 bajtów po 23574 ms, routing 1 tura, tool nie wykonany, STOP final cleanup, IDLE i profil bez zmian. Tylko syntetyczny głos, 1 tura; `G5.2` wieloturowe audio/interrupt, `G5.3` human review, `G6` prawdziwy Call otwarte. [Dowody](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md).

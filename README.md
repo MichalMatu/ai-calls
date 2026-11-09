@@ -1,5 +1,8 @@
 # AI Calls
 
+**G5.2 fizyczne 3 tury audio + STOP: PASS (2026-11-09).** Mac full QA/371 Python i S22 5/5 testów late callback/STOP oraz 1/1 realne 3 tury Android STT → Gemma E2B/Skills → Android TTS PL, korekta wtorku i pamięć PASS; Call IDLE i profil zachowane. `F-160 VERIFIED_SCOPED`. [Checkpoint G5.2](docs/checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md). **NEXT G5.3:** jakościowy odsłuch/semantyka oraz osobny natywny interrupt. G6 prawdziwe Call nadal niezaliczone.
+
+
 **2026-11-09 — G5.1 pierwsze pełne *audio* E2E na fizycznym S22 PASS (off-call, 1 tura).** Lokalny głos → STT → Gemma E2B i dynamiczne Skills → aplikacyjne zatwierdzenie → TTS PCM; 1/1 real instrument, 236416 B PCM16, 23,57 s do ukończenia, STOP cleanup/IDLE/profil bez zmian. Mac full QA/371 Python PASS. [Checkpoint G5.1](docs/checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md). **NEXT G5.2** wiele tur audio, pamięć i aktywne przerwania; nie ma jeszcze `REAL_CALL_PASS`, p95 ani human naturalness.
 
 **2026-11-09: G4.3 S22 OFF-CALL PASS — cały G4 w zakresie Laboratorium zamknięty.** Wersjonowane `name/description/capability`, widoczny wybór Skills w każdej turze, typowana walidacja `END_CALL` jako *propozycji, bez wykonania*. Mac full QA i S22: 2/2 testy metadanych/UI, 1/1 natywne E2B 4 tury, 3 refresh, routing 4/4, pamięć, STOP/IDLE/profil PASS. `F-158/F-159 VERIFIED_SCOPED`. [Checkpoint G4.3](docs/checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md). **NEXT: G5.1 — off-call pełny STT→E2B+Skills→TTS i testy realnego audio**, human naturalness osobno. G6 prawdziwe Call wymaga oddzielnej autoryzacji.

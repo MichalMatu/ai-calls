@@ -1,5 +1,10 @@
 # AI Calls — architektura operacyjna
 
+## G5.2 — sprawdzona sekwencja trzech generacji przez jeden pipeline
+
+Test S22 używa `LocalSpeechTextPipeline` wielokrotnie i tej samej sesji `Gemma E2B` z `CONTEXTUAL` Skills; STT i TTS pochodzą z obecnego profilu `ANDROID_STT/ANDROID_TTS_PL`. `ConversationReplyBackend` nadal dekoduje JSON do tekstu, `TextOutputApprovalPolicy` uwalnia pełną odpowiedź, `LabToolProposalPolicy` nie wykonuje skutków. `LocalSpeechGenerationGate` ogranicza callbacki do aktywnej generacji. S22 3/3 tury, 5/5 testów STOP i utrzymanie poprawionego dnia PASS. G5.2 nie włącza tego toru do realnej telefonii. [Checkpoint](checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md).
+
+
 ## G5.1 — off-call użycie tych samych portów mowy, modelu i aprobacji (S22 PASS)
 
 `LocalTtsSpeechOutput` wytwarza syntetyczny PCM; `LocalSpeechTextPipeline` przyjmuje 16k mono PCM przez `SpeechInputProvider`, zamienia końcowy transcript na `TextCallTurnController`, używa `ConversationReplyBackend` nad `AndroidSkillLabSessionFactory` z `CONTEXTUAL` E2B, zwalnia wyłącznie zatwierdzoną pełną odpowiedź i generuje `SpeechOutputProvider` PCM. `LabToolProposalPolicy` pozwala na klasyfikację typowanej propozycji, nie przyznaje wykonania. Wyjście PCM kończy się w teście, nie na Telecom, głośniku ani w RX/TX Samsung. Fizycznie S22 1/1 real audio E2E i Mac full PASS: transcript, approve, PCM, STOP final cleanup, profil niezmieniony, IDLE. [Checkpoint](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md). **G5.2** obejmie wiele tur, przerwania i late-callback fencing; G6 oddzielnie real Call.

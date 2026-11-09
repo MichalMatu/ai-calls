@@ -1,5 +1,8 @@
 # AI Calls — zakres laboratorium, moduły i instalacja
 
+**G5.2 S22_OFFCALL_MULTITURN_PASS (2026-11-09):** Android STT → E2B/Skills → Android TTS PL, trzy tury, korekta i pamięć, 515894 B PCM, osobno deterministyczne STOP/late callbacks 5/5. Full Mac QA/371 Python PASS, profil i IDLE niezmienione. Tylko syntetyczne audio off-call; hardware STOP during native inference/odsłuch/p95 wymagają G5.3. [Checkpoint](checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md).
+
+
 **G5.1 S22 REAL OFF-CALL AUDIO E2E (2026-11-09):** test syntetycznej lokalnej mowy PCM → wybranego STT → E2B/GPU z per-turn Skills → pełne zatwierdzenie → TTS PCM, bez mikrofonu/głośnika/Call. 1/1 instrument, PCM 236416 B, 23,574 s narastająco; Mac full QA/371 Python PASS, profil i IDLE zachowane. Brak potwierdzenia konkretnego ID STT/TTS w agregacie — tylko użycie zapisanego profilu; zero niejawnego fallbacku. G5.2 pamięć i STOP w wielu turach OPEN. [Checkpoint](checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md).
 
 **Aktualny fizyczny odbiór G4.3 (2026-11-09):** `CONTEXTUAL` pokazuje per-turn decyzje aktywacji/dezaktywacji Skills, wersjonowane `name/description/capability` w istniejącym edytorze, repozytorium szyfrowane i rollback, `END_CALL` typowany lecz bez wykonania. Mac full QA `v3` DONE/0; S22 `aicalls-g4p3-metadata-ui-native-trace-s22-20261109-v1` DONE/0: 2/2 metadane/UI, 1/1 real E2B natywny 4 tury, 3 zmiany, 4 zdarzenia, pamięć, STOP, IDLE, profil PASS. G4 zamknięty **tylko w syntetycznym Lab off-call**; G5 STT/TTS audio i human semantic jeszcze nie. [Checkpoint](checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md).
