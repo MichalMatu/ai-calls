@@ -120,7 +120,7 @@ class CallRealtimeAudioPump(
 
         try {
             forEachRealtimeOutputChunk(frame) { chunk ->
-                gatedEvent(partId) { it.onAudio(partId, chunk) }?.let(::handleGatedResult)
+                gatedEvent(partId) { it.onAudio(partId, chunk) }
             }
         } catch (error: Throwable) {
             signalTerminal(error)
@@ -131,7 +131,7 @@ class CallRealtimeAudioPump(
         if (!running.get()) return
         val gate = responseBuffer ?: return
         try {
-            gatedEvent(partId) { gate.onTranscriptDelta(partId, delta) }?.let(::handleGatedResult)
+            gatedEvent(partId) { gate.onTranscriptDelta(partId, delta) }
         } catch (error: Throwable) {
             signalTerminal(error)
         }
@@ -141,7 +141,7 @@ class CallRealtimeAudioPump(
         if (!running.get()) return
         val gate = responseBuffer ?: return
         try {
-            gatedEvent(partId) { gate.onTranscriptDone(partId, transcript) }?.let(::handleGatedResult)
+            gatedEvent(partId) { gate.onTranscriptDone(partId, transcript) }
         } catch (error: Throwable) {
             signalTerminal(error)
         }
@@ -151,7 +151,7 @@ class CallRealtimeAudioPump(
         if (!running.get()) return
         val gate = responseBuffer ?: return
         try {
-            gatedEvent(partId) { gate.onAudioDone(partId) }?.let(::handleGatedResult)
+            gatedEvent(partId) { gate.onAudioDone(partId) }
         } catch (error: Throwable) {
             signalTerminal(error)
         }
@@ -161,15 +161,15 @@ class CallRealtimeAudioPump(
         if (!running.get()) return
         val gate = responseBuffer ?: return
         try {
-            val results = synchronized(gateLock) {
-                if (responseId in suppressedResponseIds) {
-                    return@synchronized emptyList<CallRealtimeOutputBufferResult>()
+            synchronized(gateLock) {
+                if (responseId !in suppressedResponseIds) {
+                    val finalized = gate.onResponseDone(responseId, status)
+                    activeGatedParts.removeAll { partId -> partId.responseId == responseId }
+                    // Do not release outside this lock: barge-in could otherwise clear
+                    // pending audio and an old response would enqueue PCM afterwards.
+                    finalized.forEach(::handleGatedResult)
                 }
-                val finalized = gate.onResponseDone(responseId, status)
-                activeGatedParts.removeAll { partId -> partId.responseId == responseId }
-                finalized
             }
-            results.forEach(::handleGatedResult)
         } catch (error: Throwable) {
             signalTerminal(error)
         }
@@ -182,8 +182,12 @@ class CallRealtimeAudioPump(
      */
     override fun onRemoteSpeechStarted() {
         if (!running.get()) return
-        discardGatedResponseForBargeIn()
-        clearOutputQueues()
+        synchronized(gateLock) {
+            discardGatedResponseForBargeIn()
+            // Atomically flush the output queue with respect to all gated releases.
+            // A TX chunk already handed to the frozen bridge cannot be recalled.
+            clearOutputQueues()
+        }
         transport.cancelResponse().exceptionOrNull()?.let(::signalTerminal)
     }
 
@@ -306,21 +310,18 @@ class CallRealtimeAudioPump(
     private fun gatedEvent(
         partId: RealtimeOutputPartId,
         action: (CallRealtimeOutputResponseBuffer) -> CallRealtimeOutputBufferResult,
-    ): CallRealtimeOutputBufferResult? {
-        val gate = responseBuffer ?: return null
-        return synchronized(gateLock) {
-            if (partId.responseId in suppressedResponseIds) {
-                return@synchronized null
-            }
+    ) {
+        val gate = responseBuffer ?: return
+        synchronized(gateLock) {
+            if (partId.responseId in suppressedResponseIds) return@synchronized
             activeGatedParts += partId
             val result = action(gate)
-            if (
-                result is CallRealtimeOutputBufferResult.Released ||
-                    result is CallRealtimeOutputBufferResult.Dropped
-            ) {
+            if (result is CallRealtimeOutputBufferResult.Released ||
+                result is CallRealtimeOutputBufferResult.Dropped) {
                 activeGatedParts.remove(partId)
             }
-            result
+            // Release and interruption are linearized under one lock.
+            handleGatedResult(result)
         }
     }
 

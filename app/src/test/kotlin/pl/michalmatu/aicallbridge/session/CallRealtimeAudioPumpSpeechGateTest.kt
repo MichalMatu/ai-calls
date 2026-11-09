@@ -134,6 +134,30 @@ class CallRealtimeAudioPumpSpeechGateTest {
         fixture.close()
     }
 
+    @Test
+    fun bargeInOldResponseDoesNotBlockNewApprovedReplyAfterResume() {
+        val fixture = fixture(CallRealtimeOutputDecision.RELEASE)
+
+        fixture.transport.emitOutputAudio(partId, frame(960, 1L))
+        fixture.transport.emitRemoteSpeechStarted()
+        fixture.transport.emitTranscriptDone(partId, "ignored old transcript")
+        fixture.transport.emitOutputAudioDone(partId)
+        fixture.transport.emitResponseDone("resp_1", RealtimeResponseStatus.CANCELLED)
+
+        val resumedPart = RealtimeOutputPartId("resp_2", "item_2", 0, 0)
+        fixture.transport.emitOutputAudio(resumedPart, frame(960, 2L))
+        fixture.transport.emitTranscriptDone(resumedPart, "fresh approved answer")
+        fixture.transport.emitOutputAudioDone(resumedPart)
+        fixture.transport.emitResponseDone("resp_2", RealtimeResponseStatus.COMPLETED)
+
+        assertTrue(fixture.output.firstWrite.await(1, TimeUnit.SECONDS))
+        assertEquals(listOf("fresh approved answer"), fixture.seenTranscripts)
+        assertEquals(1, fixture.transport.cancelCalls.get())
+        assertEquals(0L, fixture.pump.snapshot().queuedOutputBytes)
+        assertNull(fixture.terminal.get())
+        fixture.close()
+    }
+
     private fun fixture(decision: CallRealtimeOutputDecision): Fixture {
         val downlink = BlockingPipe()
         val output = RecordingOutputStream()
