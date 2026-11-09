@@ -19,3 +19,15 @@ Nowa implementacja należy do istniejącego katalogu: `app`, `conversation-core`
 
 ## Diagnostyka
 `scripts/bin/aicalls` — lokalny dispatcher; `scripts/aicall_tools/diagnostics/` — eksport USB i bramki audio, no-clobber; `scripts/verify_host.sh` — host full; `scripts/local_agent/*.sh` — wrappery dla Mac, nie drugi scheduler. `scripts/aicall_tools/diagnostics/docs_check.py` wymusza jeden indeks i poprawne lokalne linki; `audit_product_friction.py` nie wymaga już historycznego rejestru. Każdy test ocenia tylko zmieniony kontrakt.
+
+## Dokumentacja — limit jakości
+
+Jedno źródło aktualnych decyzji: [PROJECT](../PROJECT.md); dokumenty modułów opisują trwałe kontrakty, bez chronologii sprintów. Zmiany Markdown przechodzą w istniejącym [docs_check.py](../../scripts/aicall_tools/diagnostics/docs_check.py) uruchamianym przez `preflight` i lokalny pre-commit hook. Brak sieci, Gradle, Node, pobierania zależności i dodatkowych pipeline'ów.
+
+- **Budżet całkowity:** ostrzeżenie po 42 KiB, twardy limit 50 KiB, łącznie z głównymi instrukcjami `README.md` i `AGENTS.md`.
+- **Pojedynczy dokument:** ostrzeżenie po 6 KiB, błąd po 8 KiB; dla `AGENTS.md` twardy limit 6 KiB.
+- **Jakość:** dokładnie jeden nagłówek H1, niepowtarzalne nagłówki sekcji, wykrywanie bliskich duplikatów długich akapitów, brak chronologicznych nagłówków i alternatywnych sekcji statusu.
+- **Nawigacja:** dokument musi należeć do zatwierdzonego modułu i być obecny w indeksie; każdy względny link do Markdown **lub kodu** musi rozwiązywać się w repozytorium. Linki zewnętrzne nie są sprawdzane sieciowo.
+- **Dopisywanie:** najpierw skracaj lub aktualizuj istniejący dokument. Jeśli nowy moduł jest faktycznie potrzebny, aktualizuj świadomie `DOCS` i indeks. Zmiana samych limitów wymaga uzasadnienia i testu; nie omijaj bramki przez kopiowanie dokumentów do innych folderów.
+
+`bash scripts/bin/test-profile.sh preflight` sprawdza to bez kompilacji; `python3 -m unittest scripts.tests.test_docs_check` uruchamia testy mutacyjne. Rozmiary są wyrażane w bajtach UTF-8 (KiB = 1024 B).

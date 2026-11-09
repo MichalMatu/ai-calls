@@ -190,7 +190,7 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
         for right_path, right_line, right in paragraphs[i + 1:]:
             if abs(len(left) - len(right)) > max(len(left), len(right)) * 0.10:
                 continue
-            if left == right or SequenceMatcher(None, left, right).ratio() >= NEAR_DUPLICATE_RATIO:
+            if left == right or SequenceMatcher(None, left, right, autojunk=False).ratio() >= NEAR_DUPLICATE_RATIO:
                 errors.append(
                     f"{right_path}:{right_line}: duplicate prose paragraph from "
                     f"{left_path}:{left_line}; keep one canonical explanation"

@@ -20,4 +20,6 @@
 - [DEVICE](operations/DEVICE.md) — S22, Shizuku, bezpieczna instalacja i fizyczne QA.
 - [EXTERNAL_REUSE](operations/EXTERNAL_REUSE.md) — licencje i granice adaptacji open source.
 
+**Bramka jakości:** [limity rozmiaru, duplikaty, nieaktualne treści i linki](operations/DEVELOPMENT.md) działają w szybkim `preflight`, bez Gradle.
+
 **Reguła:** statusy i priorytety tylko w `PROJECT.md`. Pliki modułowe zawierają **trwałe kontrakty i aktualne ograniczenia**, nie raporty z dawnych sprintów. Po zmianie kodu popraw tylko dotknięty moduł i stan; nowe pliki twórz jedynie dla rzeczywiście nowego modułu. Szczegółowe dowody historyczne pozostają w Git i oryginalnych receipts Host Control, nie w repozytorium Markdown.

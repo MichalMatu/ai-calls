@@ -15,4 +15,4 @@
 - Nie włączaj blokowania zrzutów ekranu (`FLAG_SECURE` i ekwiwalenty) — decyzja właściciela. Zrzuty nadal traktuj jako potencjalnie wrażliwe.
 
 ## Zakończenie pracy
-Pozostaw aktualne `docs/PROJECT.md`, poprawny indeks/linki, zielone odpowiednie testy i czysty `main`. Zamiast nowych archiwów, korzystaj z commitów Git i niezmiennych receipts Mac Local Agent. Jeśli coś nie zostało sprawdzone na urządzeniu, pisz `PHYSICAL_OPEN`, nie `PASS`.
+Pozostaw aktualne `docs/PROJECT.md`, poprawny indeks/linki, **budżet i quality gate dokumentacji** (`scripts/aicall_tools/diagnostics/docs_check.py`), zielone odpowiednie testy i czysty `main`. Zamiast nowych archiwów, korzystaj z commitów Git i niezmiennych receipts Mac Local Agent. Jeśli coś nie zostało sprawdzone na urządzeniu, pisz `PHYSICAL_OPEN`, nie `PASS`.
