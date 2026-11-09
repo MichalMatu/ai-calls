@@ -1,3 +1,9 @@
+## F-169 — zbyt dosłowna asercja znacznika SINGLE w walidacji nowego handoffu (2026-11-09)
+
+**RED:** Mac task aicalls-single-track-handoff-doc-qa-mac-20261109-v1 zakończył fast-forward main@5bd7473 i potwierdził czysty Git, lecz skrypt dokumentacyjny przerwał się na AssertionError: SINGLE. Treść handoffu w języku polskim opisywała prawidłowo „jeden nowy czat”, jednak nie miała literalnego, technicznego identyfikatora trybu oczekiwanego przez test. **Wpływ:** fałszywy RED spójności dokumentów; nie wykryto regresji Androida i nie wykonano żadnej komendy zmieniającej S22. **Przyczyna:** asercja na techniczną etykietę, której dokument nie musiał dotychczas zawierać.
+
+**Naprawa / QA_PENDING:** umieszczono jawny i stabilny znacznik SINGLE_TRACK_OWNER w nagłówku docs/HANDOFF_SINGLE_TRACK_2026-11-09.md, spójny z master plan i historią. Doc-only v2 powinien powtórzyć fast-forward, kontrolę planu/licencji/odnośników, anti-friction i clean, bez pełnych testów G3–G6. Historyczny FAILED zachować.
+
 ## F-168 — G5.3 prywatny review HTML 6/6 pozostał na starym kontrakcie (2026-11-09)
 
 **RED / ścieżka:** `scripts/aicall_tools/diagnostics/g53_private_audio_review.py`, prywatne `review.html` na Macu. Read-only task `aicalls-g53-private-review-staleness-audit-mac-20261109-v1` **DONE/0**: sześć sesji, `HTML_PRESENT=6`, `HTML_CURRENT=0`, `HTML_STALE=6`, lokalny indeks ma 6 odnośników. Poprawki F-166/F-167 dotyczyły generatora, **nie wygenerowanych wcześniej sześciu stron**. Stare formularze nie posiadały `MANIFEST_SHA256` i checkboxu poświadczenia odsłuchu, więc nie mogły wygenerować JSON przyjmowanego przez nowy validator. Przyczyna: brak bezpiecznego zbiorczego odświeżenia prywatnych stron po zmianie schematu.

@@ -1,4 +1,4 @@
-# AI Calls — jeden tor rozwoju, handoff do nowego czatu (2026-11-09)
+# AI Calls — SINGLE_TRACK_OWNER: jeden tor rozwoju, handoff do nowego czatu (2026-11-09)
 
 ## Decyzja właściciela
 
