@@ -83,6 +83,8 @@
     <string name="history_read_error">History read error</string>
     <string name="history_back_to_list">All conversations</string>
     <string name="history_incomplete">Incomplete archive: %1$d damaged records</string>
+    <string name="history_end_reason">Recorded ending: %1$s</string>
+    <string name="history_rx_interrupted">Interrupted RX segments: %1$d</string>
     <string name="history_audio_count">Audio fragments: %1$d. This is not a recording of the full call.</string>
     <string name="history_play_fragment">▶ Play fragment</string>
     <string name="history_more_segments">Other segments, including short AI acknowledgements:</string>

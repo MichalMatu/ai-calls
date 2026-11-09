@@ -166,6 +166,22 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively(); other.deleteRecursively() }
     }
 
+    @Test fun completionAndInterruptedRxCodesComeOnlyFromSafeRecordedTimelineFields() {
+        val root = Files.createTempDirectory("conversation-outcome").toFile()
+        try {
+            val dir = File(root, "1000-result").apply { mkdirs() }
+            File(dir, "timeline.jsonl").writeText(listOf(
+                """{"type":"RX_INTERRUPTED","turn":1,"reason_code":"human_takeover"}""",
+                """{"type":"RX_INTERRUPTED","turn":2,"reason_code":"rejected secret: 123"}""",
+                """{"type":"END","reason_code":"human_takeover"}""",
+            ).joinToString("\n", postfix = "\n"))
+            val session = RecordedConversationHistory(root).load(dir.name)
+            assertEquals("human_takeover", session.endReasonCode)
+            assertEquals(mapOf(1 to "human_takeover"), session.interruptedRxTurns)
+            assertTrue(session.complete)
+        } finally { root.deleteRecursively() }
+    }
+
     private fun write(root: File, id: String, direction: String, text: String) {
         val dir = File(root, id).apply { mkdirs() }
         File(dir, "timeline.jsonl").writeText("""

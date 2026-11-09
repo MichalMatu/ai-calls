@@ -244,6 +244,11 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         textSize = 16f
                     }, UiDesign.spaceAfter(this, 10))
                     if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = getString(R.string.history_incomplete, session.invalidRecords) })
+                    session.endReasonCode?.let { code ->
+                        content.addView(UiDesign.caption(this, getString(R.string.history_end_reason, code)))
+                    }
+                    if (session.interruptedRxTurns.isNotEmpty()) content.addView(
+                        UiDesign.caption(this, getString(R.string.history_rx_interrupted, session.interruptedRxTurns.size)))
                     playbackStatus = TextView(this).apply {
                         text = getString(R.string.history_audio_count, session.audioFiles.size)
                     }

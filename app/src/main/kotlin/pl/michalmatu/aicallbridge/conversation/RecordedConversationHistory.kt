@@ -17,6 +17,8 @@ internal data class RecordedConversation(
     val audioFiles: Map<Pair<Int, String>, String> = emptyMap(),
     /** Available clips in recorder timestamp order, not a continuous full-call recording. */
     val audioTimeline: List<String> = emptyList(),
+    val endReasonCode: String? = null,
+    val interruptedRxTurns: Map<Int, String> = emptyMap(),
 ) {
     fun audioFor(line: ConversationChatFeed.Line): String? = when (line.speaker) {
         ConversationChatFeed.Speaker.COUNTERPART -> audioFiles[line.turn to "rx"]
@@ -111,12 +113,17 @@ internal class RecordedConversationHistory(private val root: File) {
         File(directory, fileName).canonicalFile.takeIf { it.parentFile == directory && it.isFile }
     }.getOrNull()
 
+    private fun isSafeArchiveCode(value: String): Boolean =
+        value.length in 1..80 && value.all { it.isLetterOrDigit() && it.code < 128 || it in "_.-" }
+
     fun load(id: String): RecordedConversation {
         val directory = File(root, id).canonicalFile
         require(directory.parentFile == root.canonicalFile && directory.isDirectory) { "invalid_conversation_history_id" }
         val lines = mutableListOf<ConversationChatFeed.Line>()
         val audioFiles = linkedMapOf<Pair<Int, String>, String>()
         val audioTimeline = mutableListOf<Triple<Long, Int, String>>()
+        val interruptedRxTurns = linkedMapOf<Int, String>()
+        var endReasonCode: String? = null
         var direction = ConversationDirection.UNSPECIFIED
         var profile: String? = null
         var start = id.substringBefore('-').toLongOrNull() ?: 0L
@@ -173,7 +180,15 @@ internal class RecordedConversationHistory(private val root: File) {
                         if (index >= 0) lines[index] = lines[index].copy(txStatus =
                             if (event["transport_status"].asString == "WRITE_COMPLETE") "TX: wysłano lokalnie" else "TX: niepełne")
                     }
-                    "END" -> complete = true
+                    "RX_INTERRUPTED" -> {
+                        val turn = event["turn"].asInt
+                        val code = event.get("reason_code")?.asString?.takeIf(::isSafeArchiveCode)
+                        if (turn >= 0 && code != null) interruptedRxTurns[turn] = code
+                    }
+                    "END" -> {
+                        complete = true
+                        endReasonCode = event.get("reason_code")?.asString?.takeIf(::isSafeArchiveCode)
+                    }
                 }
             } catch (_: RuntimeException) { invalid++ }
         } }
@@ -181,6 +196,6 @@ internal class RecordedConversationHistory(private val root: File) {
             compareBy<Triple<Long, Int, String>> { it.first }.thenBy { it.second },
         ).map { it.third }.distinct()
         return RecordedConversation(id, direction, profile, start, complete, lines.toList(), invalid,
-            audioFiles.toMap(), playback)
+            audioFiles.toMap(), playback, endReasonCode, interruptedRxTurns.toMap())
     }
 }
