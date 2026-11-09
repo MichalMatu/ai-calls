@@ -65,10 +65,18 @@ class DocumentationContractTest(unittest.TestCase):
         with TemporaryDirectory() as d:
             root = Path(d)
             self.fixture(root)
-            for path in (root / "docs/modules").glob("*.md"):
-                path.write_text(path.read_text() + "\n" + "notice " * 350)
-            _, warnings, total = audit(root)
-            self.assertGreater(total, TOTAL_WARN_BYTES)
+            # Grow only to the warning zone, independent of the live docs baseline.
+            baseline = audit(root)[2]
+            desired = TOTAL_WARN_BYTES + 1024
+            self.assertLess(baseline, TOTAL_WARN_BYTES)
+            files = sorted((root / "docs").rglob("*.md"))
+            per_file, leftover = divmod(desired - baseline, len(files))
+            for i, path in enumerate(files):
+                count = per_file + (i < leftover)
+                path.write_bytes(path.read_bytes() + b"\n" + b"x" * (count - 1))
+            errors, warnings, total = audit(root)
+            self.assertEqual(desired, total)
+            self.assertFalse(any("budget exceeded" in item for item in errors), errors)
             self.assertLess(total, TOTAL_MAX_BYTES)
             self.assertTrue(any("documentation budget nearing limit" in w for w in warnings))
 
