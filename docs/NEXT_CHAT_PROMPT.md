@@ -1,4 +1,6 @@
-# AI Calls — handoff G5.3 po Skills A/B, 18 tur na S22
+# AI Calls — handoff: jeden plan G6 + external reuse, G5.3 tech pass
+
+**NOWY PRIORYTET 2026-11-09:** jeden master plan w docs/AI_CALLS_MASTER_EXECUTION_PLAN.md; dokładny audyt reuse pięciu repozytoriów w [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). Drugi czat: kod tylko G6, ten: tylko mapa i plan, bez konfliktu edycji/Host Ops. G5.3 S22 OFFCALL tech PASS, general owner positive, ale 0/6 prywatnych rubryk; nie powtarzać 18 tur ani 96 G3 tur. G6 w kolejności INCOMING→OUTGOING; zachować dowody wcześniejszych live A8→S22 i badać tylko braki. SIP/WhatsApp/dashboard po G6. Każdy kolejny chat sprawdza świeży HEAD i ten blok przed pracą.
 
 Repo `MichalMatu/ai-calls`: najpierw świeży `main` HEAD, Git clean, dokładne receipts. Tryb GitHub Connector + wybrany Mac Local Agent + ChatGPT Linux Sandbox. Bez Codex, Work, GitHub Actions (również status), nowych gałęzi i force-push; commity `[skip ci]`.
 

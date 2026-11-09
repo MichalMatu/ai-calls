@@ -1,4 +1,10 @@
-# AI Calls — handoff G5.3 technical READY, human review OPEN
+# AI Calls — handoff G6 integrated + external reuse, G5.3 scoped
+
+## Jeden zintegrowany plan G6 + reuse gotowych projektów (2026-11-09)
+
+**Obowiązuje JEDEN plan: ten dokument.** Audyt pięciu projektów, piny i mapa gotowych kontraktów: [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). Nie przenosić całego Pipecat/LiveKit/call-use/Clinic/DeskRoute do Androida; tylko sprawdzone brakujące kontrakty. Drugi czat kończy trwający kod G6, ten czat przygotowuje wyłącznie analizę i dokumenty; oba zaczynają od świeżego main i handoffu, bez równoległej edycji tych samych modułów. Nie ponawiać 96 G3 tur, 18 G5.3 tur, natywnego STOP ani pełnych historycznych prób S22 bez zmiany ich kontraktu. Nowe testy dotyczą tylko nowych funkcji i rzeczywistego G6 INCOMING, następnie OUTGOING; pozostałe kanały WhatsApp/SIP/VoIP i dashboard opcjonalnie po G6.
+
+**Ocena właściciela:** pozytywna ogólna ocena rozmowy została wyrażona, więc prace projektowe G6 mogą postępować. 6 prywatnych human-review JSON i 48 ocen wciąż nie ma — nie wpisywać im PASS i nie udawać odsłuchu. Realny Call G6 wymaga oddzielnej konkretnej autoryzacji i właściwego źródła dowodu. Dotychczasowe historyczne live A8→S22 INCOMING/end_call są dowodem zawężonym, nie pełnym PASS G6.
 
 ## G5.3 — finalny techniczny sprint F-168 (2026-11-09)
 

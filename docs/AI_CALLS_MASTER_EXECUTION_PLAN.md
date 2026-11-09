@@ -1,5 +1,12 @@
 # AI Calls — jeden plan realizacji: od modelu do autonomicznej rozmowy
 
+## Jeden zintegrowany plan G6 + reuse gotowych projektów (2026-11-09)
+
+**Obowiązuje JEDEN plan: ten dokument.** Audyt pięciu projektów, piny i mapa gotowych kontraktów: [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). Nie przenosić całego Pipecat/LiveKit/call-use/Clinic/DeskRoute do Androida; tylko sprawdzone brakujące kontrakty. Drugi czat kończy trwający kod G6, ten czat przygotowuje wyłącznie analizę i dokumenty; oba zaczynają od świeżego main i handoffu, bez równoległej edycji tych samych modułów. Nie ponawiać 96 G3 tur, 18 G5.3 tur, natywnego STOP ani pełnych historycznych prób S22 bez zmiany ich kontraktu. Nowe testy dotyczą tylko nowych funkcji i rzeczywistego G6 INCOMING, następnie OUTGOING; pozostałe kanały WhatsApp/SIP/VoIP i dashboard opcjonalnie po G6.
+
+**Ocena właściciela:** pozytywna ogólna ocena rozmowy została wyrażona, więc prace projektowe G6 mogą postępować. 6 prywatnych human-review JSON i 48 ocen wciąż nie ma — nie wpisywać im PASS i nie udawać odsłuchu. Realny Call G6 wymaga oddzielnej konkretnej autoryzacji i właściwego źródła dowodu. Dotychczasowe historyczne live A8→S22 INCOMING/end_call są dowodem zawężonym, nie pełnym PASS G6.
+
+
 ## G5.3 — finalny techniczny sprint F-168 (2026-11-09)
 
 **F-168 VERIFIED_SCOPED / TECHNICAL_READY.** main@63abb3f. Mac kod QA aicalls-g53-f168-private-review-refresh-code-mac-qa-20261109-v1 **DONE/0** (15/15 celowanych, 386 Python, verify_host.sh, anti-friction, clean), Mac prywatne HTML aicalls-g53-f168-private-six-review-refresh-mac-20261109-v1 **DONE/0** (6/6 stron odświeżonych, 6/6 linków, manifesty/WAV SHA niezmienione, bez treści zdalnie). **HUMAN_REVIEW_OPEN: 0/6 ocen**, osiem wymiarów każdej sesji nadal UNASSESSED. Nie przenosić testowego ALL_ACTIVE do produkcji, nie rozpoczynać realnych Call ani G6 na tej podstawie. [Checkpoint](checkpoints/2026-11-09-g53-f168-private-review-html-refresh-final.md).

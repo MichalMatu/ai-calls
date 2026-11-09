@@ -1,5 +1,12 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+## Jeden zintegrowany plan G6 + reuse gotowych projektów (2026-11-09)
+
+**Obowiązuje JEDEN plan: ten dokument.** Audyt pięciu projektów, piny i mapa gotowych kontraktów: [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). Nie przenosić całego Pipecat/LiveKit/call-use/Clinic/DeskRoute do Androida; tylko sprawdzone brakujące kontrakty. Drugi czat kończy trwający kod G6, ten czat przygotowuje wyłącznie analizę i dokumenty; oba zaczynają od świeżego main i handoffu, bez równoległej edycji tych samych modułów. Nie ponawiać 96 G3 tur, 18 G5.3 tur, natywnego STOP ani pełnych historycznych prób S22 bez zmiany ich kontraktu. Nowe testy dotyczą tylko nowych funkcji i rzeczywistego G6 INCOMING, następnie OUTGOING; pozostałe kanały WhatsApp/SIP/VoIP i dashboard opcjonalnie po G6.
+
+**Ocena właściciela:** pozytywna ogólna ocena rozmowy została wyrażona, więc prace projektowe G6 mogą postępować. 6 prywatnych human-review JSON i 48 ocen wciąż nie ma — nie wpisywać im PASS i nie udawać odsłuchu. Realny Call G6 wymaga oddzielnej konkretnej autoryzacji i właściwego źródła dowodu. Dotychczasowe historyczne live A8→S22 INCOMING/end_call są dowodem zawężonym, nie pełnym PASS G6.
+
+
 ## G5.3 — Skills A/B 6 sesji, native reuse i latencja: S22_TECHNICAL_PASS, HUMAN_OPEN (2026-11-09)
 
 **CONTEXTUAL vs ALL_ACTIVE** na S22: 3 sesje ×3 tury na wariant = **18/18 PASS**, 36 prywatnych WAV, STT WER 0/150 syntetycznych słów, korekta dnia pamiętana w każdym przebiegu. Mediany pełnej odpowiedzi (tury 1/2/3) **CONTEXTUAL 42,6/26,8/13,0 s**, **ALL_ACTIVE 23,0/10,0/9,0 s**; w drugiej turze −62,6%. Natywne `conversation_reused` = `false,false,true` vs `false,true,true` i mediana model + aprobata tury 2 = **17,6 vs 2,8 s**. Odpowiedzi ALL_ACTIVE w turach 2/3 są nawet dłuższe; to niewielkie porównanie dwóch strategii i różnej treści promptu, nie przyczynowy benchmark ani p95. Mac full QA/375 Python i S22 no-wipe/Call IDLE/clean PASS. Pierwszy host task preflight v1 odrzucony bez komend przez `idle_timeout>3600` (F-164 VERIFIED_SCOPED), v2 pełny PASS. **Human quality ośmiu wymiarów nadal UNASSESSED; nie zmieniać trybu produkcyjnego, G6 nieuruchomione.** Lokalny indeks: `~/Library/Application Support/ai-calls/qa/g53-private/skills-ab-index.html`. [Checkpoint](checkpoints/2026-11-09-g53-skills-ab-latency-s22.md).
