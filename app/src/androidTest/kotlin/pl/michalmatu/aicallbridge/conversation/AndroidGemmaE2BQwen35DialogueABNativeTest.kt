@@ -3,6 +3,9 @@ package pl.michalmatu.aicallbridge.conversation
 import android.app.ActivityManager
 import android.os.Debug
 import android.util.Log
+import java.io.File
+import java.io.FileOutputStream
+import org.json.JSONObject
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.concurrent.CopyOnWriteArrayList
@@ -168,6 +171,29 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
         }
     }
 
+    /** Synthetic dialogue only; private Android no-backup storage, never logcat/Git. */
+    private fun writePrivateTrial(out: java.io.BufferedWriter, rep: Int, trial: Trial) {
+        val record = JSONObject()
+            .put("model", trial.model.name)
+            .put("scenario", trial.scene.id)
+            .put("repetition", rep)
+            .put("goal", trial.scene.goal)
+            .put("user_turn_1", trial.scene.first)
+            .put("assistant_turn_1", trial.first.reply?.text.orEmpty())
+            .put("tool_turn_1", trial.first.reply?.tool?.wireName ?: if (trial.first.jsonValid) "none" else "invalid_json")
+            .put("user_turn_2", trial.scene.second)
+            .put("assistant_turn_2", trial.second.reply?.text.orEmpty())
+            .put("tool_turn_2", trial.second.reply?.tool?.wireName ?: if (trial.second.jsonValid) "none" else "invalid_json")
+            .put("first_ms", trial.first.elapsedMs)
+            .put("second_ms", trial.second.elapsedMs)
+            .put("native_ok", trial.nativeOk)
+            .put("json_ok", trial.schemaOk)
+            .put("tools_ok", trial.toolOk)
+        out.write(record.toString())
+        out.newLine()
+        out.flush() // preserve completed trials if a later native engine fails.
+    }
+
     private fun percentile95(values: List<Long>): Long {
         val sorted = values.sorted()
         return sorted[((sorted.size * 95 + 99) / 100 - 1).coerceIn(0, sorted.lastIndex)]
@@ -190,6 +216,11 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
                 AndroidGemma4ModelReadiness.check(app, model).state)
         }
         val results = mutableListOf<Trial>()
+        val privateDir = File(app.noBackupFilesDir, "g3-private")
+        assertTrue("g3_private_dir_unavailable", privateDir.isDirectory || privateDir.mkdirs())
+        val privateReport = File(privateDir,
+            "e2b-qwen35-ab-" + System.currentTimeMillis() + ".jsonl")
+        FileOutputStream(privateReport, false).bufferedWriter(Charsets.UTF_8).use { privateOut ->
         for (rep in 1..3) {
             for ((idx, scenario) in corpus.withIndex()) {
                 // Alternate first model to reduce thermal/order confounding.
@@ -197,6 +228,7 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
                 for (model in order) {
                     val observation = trial(model, scenario)
                     results += observation
+                    writePrivateTrial(privateOut, rep, observation)
                     Log.i(tag, "model=" + model.name +
                         ";scene=" + scenario.id + ";repeat=" + rep +
                         ";cold_ms=" + observation.first.elapsedMs +
@@ -215,6 +247,10 @@ class AndroidGemmaE2BQwen35DialogueABNativeTest {
                 }
             }
         }
+        }
+        Log.i(tag, "private_report_file=" + privateReport.name + ";rows=" + results.size +
+            ";stored_locally=true;contents_not_logged=true")
+        println("G3_PRIVATE_REPORT_FILE=" + privateReport.name)
         assertEquals("g3_trial_count", 48, results.size)
         for (model in models) {
             val each = results.filter { it.model == model }
