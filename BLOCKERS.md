@@ -1,3 +1,11 @@
+## F-153 — ADB komendy pomocnicze zużywały stdin przed USB Lab SEND (2026-11-09)
+
+**Ścieżka:** `scripts/aicall_tools/diagnostics/ai_calls_usb_debug.py:invoke`, używany przez `Device.__init__` i `ai_calls_usb_lab.py:run_once`.
+**Warunek/wynik:** po fizycznym PASS `status/config-get/ram` `aicalls-usb-lab-two-turn-native-s22-20261109-v1` uruchomił prywatną sesję E2B 4096, lecz pierwszy `lab-send` zwrócił `nonempty_text_expected_on_stdin`; sesję bezpiecznie zatrzymano, telefon pozostał IDLE, brak wykonanej tury.
+**Przyczyna i dowód:** pomocnicze `subprocess.run(adb ...)` domyślnie dziedziczyło stdin CLI. Na Macu `aicalls-usb-cli-stdin-consumption-diagnosis-20261109-v1` DONE/0 wykazał, że `adb devices` nie zużywa wejścia, ale `adb shell getprop ro.product.model` i `ro.serialno` zużywały całe syntetyczne 20 bajtów, zanim `run_once` wywołał `sys.stdin.read()`.
+**Poprawka:** `main@a2728127d7d596169a04846f9bc7015fd18bb5b3` używa `stdin=subprocess.DEVNULL` w `invoke` (tylko komendy kontrolne, nie prywatny mailbox z jawnie przekazanym `input=request`). Test `scripts/tests/test_ai_calls_usb_debug.py` zabezpiecza brak dziedziczenia stdin (`main@00078e12`).
+**Status:** **FIXED_IN_SOURCE / QA_PENDING** — Mac pełny gate i poprawione dwie realne tury Gemmy przez USB na S22 jeszcze wymagają odbioru. Bez zmian Android APK, modelu, SIM i telefonii.
+
 ## F-152 — USB Lab CLI rozbijał komendę zapisu prywatnej skrzynki ADB (2026-11-09)
 
 **Ścieżka:** `scripts/aicall_tools/diagnostics/ai_calls_usb_lab.py:device_request`.
