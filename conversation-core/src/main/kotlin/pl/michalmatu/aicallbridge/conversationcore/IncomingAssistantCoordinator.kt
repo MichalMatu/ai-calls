@@ -34,6 +34,7 @@ interface IncomingAssistantPort<C : Any> {
 class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantPort<C>) {
     private class Entry(val initialPolicy: IncomingAssistantPolicy, var phase: IncomingCallPhase) {
         var policy = initialPolicy
+        var observedPolicy = initialPolicy
         var account: String? = null
         var exclusive = true
         var state = if (phase == IncomingCallPhase.RINGING && initialPolicy.mode == AnsweringMode.AI)
@@ -51,16 +52,21 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         val entry = entries[call] ?: Entry(policy, phase).also { entries[call] = it }
         // Readiness/authorization ports may reenter observe without a state transition.
         // Treat authority changes as a new revision even while this Call remains MANUAL.
-        if (entry.phase != phase || entry.account != accountKey || entry.exclusive != exclusive) {
+        if (entry.phase != phase || entry.account != accountKey ||
+            entry.exclusive != exclusive || entry.observedPolicy != policy) {
             entry.revision++
         }
         entry.phase = phase
         entry.account = accountKey
         entry.exclusive = exclusive
+        entry.observedPolicy = policy
         when (phase) {
             IncomingCallPhase.ENDED -> { manual(call, entry, "call_ended", ConversationStopReason.CALL_ENDED, IncomingAssistantState.ENDED); return }
             IncomingCallPhase.HELD -> { manual(call, entry, "call_held", ConversationStopReason.CALL_HELD); return }
             else -> Unit
+        }
+        if (ownsAudio(entry) && policy != entry.policy) {
+            manual(call, entry, "incoming_policy_changed", ConversationStopReason.POLICY_REVOKED); return
         }
         if (ownsAudio(entry) && entry.account != entry.policy.accountKey) {
             manual(call, entry, "incoming_account_changed", ConversationStopReason.OWNERSHIP_CHANGED); return
@@ -70,7 +76,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         }
         if (entry.state == IncomingAssistantState.RINGING && phase == IncomingCallPhase.RINGING) {
             if (accountKey == null) return // Telecom may publish the account after onCallAdded.
-            if (policy.mode != AnsweringMode.AI || entry.initialPolicy.id != policy.id) {
+            if (policy.mode != AnsweringMode.AI || entry.initialPolicy != policy) {
                 manual(call, entry, "incoming_policy_changed", ConversationStopReason.POLICY_REVOKED); return
             }
             claim(call, entry, policy)
@@ -97,6 +103,10 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
 
     @Synchronized fun policyChanged(policy: IncomingAssistantPolicy, reason: ConversationStopReason) {
         entries.entries.toList().forEach { (call, entry) ->
+            if (entry.observedPolicy != policy) {
+                entry.observedPolicy = policy
+                entry.revision++
+            }
             if ((ownsAudio(entry) || entry.state == IncomingAssistantState.RINGING || entry.state == IncomingAssistantState.ENDING) &&
                 policy != entry.policy) {
                 manual(call, entry, "incoming_policy_revoked", reason)
@@ -195,7 +205,10 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         val stop = ownsAudio(entry)
         // Revoke before invoking the adapter: even a synchronous callback sees no authority.
         change(call, entry, state, reason)
-        if (stop) port.stopAudio(call, entry.generation, stopReason)
+        // Audio was already revoked; a failed adapter cleanup may not crash human
+        // TAKE OVER or block explicit resume on the same still-connected Call.
+        if (stop) try { port.stopAudio(call, entry.generation, stopReason) }
+        catch (_: Exception) { /* fail closed: no AI authority remains */ }
     }
 
     private fun change(call: C, entry: Entry, state: IncomingAssistantState, reason: String?) {

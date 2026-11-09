@@ -13,13 +13,17 @@ class IncomingAssistantCoordinatorTest {
         val disconnected = mutableListOf<Call>()
         var failure: String? = null
         var readinessThrows = false
+        var stopThrows = false
         var reentrantAnswer: (() -> Unit)? = null
         var reentrantReadiness: (() -> Unit)? = null
         var reentrantChanged: ((IncomingAssistantState) -> Unit)? = null
         override fun readinessFailure(call: Call): String? { reentrantReadiness?.invoke(); check(!readinessThrows); return failure }
         override fun answer(call: Call) { answered += call; reentrantAnswer?.invoke() }
         override fun startAudio(call: Call, policy: IncomingAssistantPolicy, generation: Long) { started += call to generation }
-        override fun stopAudio(call: Call, generation: Long, reason: ConversationStopReason) { stopped += call to generation }
+        override fun stopAudio(call: Call, generation: Long, reason: ConversationStopReason) {
+            stopped += call to generation
+            if (stopThrows) throw IllegalStateException("synthetic_audio_shutdown")
+        }
         override fun disconnect(call: Call) { disconnected += call }
         override fun changed(call: Call, state: IncomingAssistantState, reason: String?) { reentrantChanged?.invoke(state) }
     }
@@ -292,6 +296,61 @@ class IncomingAssistantCoordinatorTest {
         f.core.policyChanged(policy.copy(), ConversationStopReason.POLICY_REVOKED)
         assertTrue(f.core.isAuthorized(f.call, generation))
         assertTrue(f.port.stopped.isEmpty())
+    }
+
+    @Test fun passivePolicyReplacementRevokesLiveAiEvenWhenSettingsCallbackWasMissed() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val old = f.port.started.single().second
+        val replacement = policy.copy(id = "fresh-grant")
+        f.observe(IncomingCallPhase.ACTIVE, replacement)
+        assertEquals("incoming_policy_changed", f.core.snapshot(f.call)?.reason)
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertFalse(f.core.isAuthorized(f.call, old))
+        assertEquals(listOf(f.call to old), f.port.stopped)
+        assertTrue(f.port.disconnected.isEmpty())
+        assertTrue(f.core.resume(f.call, replacement))
+        val resumed = f.port.started.last().second
+        assertNotEquals(old, resumed)
+        assertTrue(f.core.isAuthorized(f.call, resumed))
+    }
+
+    @Test fun ringingConsentChangeWithoutPolicyCallbackNeverAutoAnswers() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy, account = null)
+        f.observe(IncomingCallPhase.RINGING, policy.copy(recordEvidence = false))
+        assertTrue(f.port.answered.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertEquals("incoming_policy_changed", f.core.snapshot(f.call)?.reason)
+    }
+
+    @Test fun reentrantReadinessPolicyDriftCannotClaimOldSession() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        f.port.reentrantReadiness = {
+            f.observe(IncomingCallPhase.ACTIVE, policy.copy(recordEvidence = false))
+        }
+        assertFalse(f.core.resume(f.call, policy))
+        assertTrue(f.port.started.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+    }
+
+    @Test fun throwingAudioCleanupDoesNotCrashHumanTakeoverOrStealResumedCall() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val old = f.port.started.single().second
+        f.port.stopThrows = true
+        f.core.takeOver(f.call)
+        assertFalse(f.core.isAuthorized(f.call, old))
+        assertEquals(listOf(f.call to old), f.port.stopped)
+        assertTrue(f.port.disconnected.isEmpty())
+        f.port.stopThrows = false
+        assertTrue(f.core.resume(f.call, policy))
+        val resumed = f.port.started.last().second
+        f.core.audioFinished(f.call, old, "late_cleanup")
+        assertTrue(f.core.isAuthorized(f.call, resumed))
     }
 
     @Test fun endedCallCannotBeTakenOverOrResumed() {
