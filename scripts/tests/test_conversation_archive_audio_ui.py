@@ -10,6 +10,7 @@ class ArchivedChatAudioUiContractTest(unittest.TestCase):
     def setUpClass(cls):
         cls.history = (BASE / "conversation/ConversationHistoryActivity.kt").read_text()
         cls.reader = (BASE / "conversation/RecordedConversationHistory.kt").read_text()
+        cls.clip_names = (BASE / "developerrelay/RecordedAudioClipName.kt").read_text()
         cls.live = (BASE / "conversation/ConversationChatPanel.kt").read_text()
         cls.player = (BASE / "conversation/ArchivedConversationPlayer.kt").read_text()
 
@@ -22,7 +23,10 @@ class ArchivedChatAudioUiContractTest(unittest.TestCase):
         self.assertNotIn("MediaPlayer()", self.history)
         self.assertNotIn("setDataSource(", self.history)
         self.assertIn("canonicalFile", self.reader)
-        self.assertIn('Regex("turn-[0-9]+-(rx|tx|tx-ack)[.]wav")', self.reader)
+        self.assertIn("RecordedAudioClipName.isSafe(fileName)", self.reader)
+        self.assertIn("RecordedAudioClipName.matches(name, turn, channel)", self.reader)
+        self.assertIn('Regex("turn-([0-9]+)-(rx|tx|tx-ack)(?:-part-([0-9]+))?[.]wav")', self.clip_names)
+        self.assertIn("create(turn, channel, part) == name", self.clip_names)
 
     def test_sequence_player_is_offcall_and_only_plays_existing_private_clips(self):
         self.assertIn("session.audioTimeline", self.history)
