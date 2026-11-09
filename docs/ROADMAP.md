@@ -1,5 +1,16 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+## Priorytet po fizycznym F-156 / E2B vs E4B (2026-11-09)
+
+**F-156 VERIFIED_SCOPED:** aktywna wersja własnego Skill przeszła rzeczywisty UI edit/activate/off/rollback/reopen i native E2B A/B po przesunięciu instrukcji bliżej końca promptu. Mac full PASS i S22 2/2; izolowana, zaszyfrowana biblioteka testowa, brak zmian profilu i brak połączeń.
+
+**Modele:** S22 ma obie lokalne Gemmy, identyczny korpus 2048, **18/18 native turns PASS** na GPU, również sprostowania, cytowane pożegnanie i prawdziwa propozycja zakończenia. E4B ~3× wolniejsza (cold i warm) bez przewagi poprawności na próbie; nie nadawać jej statusu produkcyjnie szybszej/lepszej. E2B nadal preferowana dla real-time, E4B do złożonych testów. [Dowody](checkpoints/2026-11-09-e2b-e4b-agent-skills-differential.md).
+
+**Następny nowy sprint:** implementacja/eksperyment *selektora kontekstowych Skills* na wzór Google AI Edge Gallery: krótkie metadane `name/description`, selektywne instrukcje wersjonowanych Skills, osobna rejestracja narzędzi, propozycja→kontrola grantu→skutek; nie kopiować niekontrolowanego WebView/URL execution do telefonii. Test A/B z dotychczasowym, naprawionym statycznym promptem na tym samym E2B/2048 i korpusie. [Analiza Gallery](AGENT_SKILLS_EDGE_GALLERY_REVIEW_2026-11-09.md).
+
+**Otwarte osobno:** N≥3, p95, długi kontekst/fakty F-148, ocena naturalności, MTP na rzeczywistym LiteRT/S22, fizyczny STT/TTS i autoryzowane realne Call. Bez powtórzeń PASS-ów F-150–F-156.
+
+
 ## S22 wydajność Gemmy — 2026-11-09, F-155 VERIFIED
 
 `GEMMA_4_E2B` jest rzeczywiście wybrana i generuje na **GPU**, nie E4B/CPU. Zimna pierwsza tura przy 2048/4096: ~28,6/27,2 s (silnik + konwersacja + generacja); druga na zachowanym kontekście ~3,3/3,6 s. Średnich z obu tur nie porównywać do samej rozgrzanej generacji; w tej próbie brak dowodu regresji spowodowanej 4096. Nowe **Laboratorium** ma konfigurowalny budżet kontekstu, rzeczywisty podział czasów oraz monitoring GPU/CPU i pamięci. Telefoniczna ścieżka 2048 pozostaje niezmieniona. Mac full PASS, S22 po instalacji **4/4 PASS**, F-155 VERIFIED. [Checkpoint](checkpoints/2026-11-09-f155-lab-context-latency-diagnostics.md).
