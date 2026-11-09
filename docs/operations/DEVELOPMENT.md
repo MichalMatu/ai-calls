@@ -5,7 +5,7 @@ Jeden aktualny plan [PROJECT](../PROJECT.md), jeden indeks [README](../README.md
 
 ## Iteracja kodu
 1. Pobierz faktyczny `main` HEAD i zachowaj `base-SHA` na start sprintu. Sprawdź czysty Git, brak równoległej pracy na Macu i ostatnie rzeczywiste receipts. Bez nowych gałęzi i force-push.
-2. Zmapuj zależności, zmieniaj istniejące moduły, kilka spójnych porcji, małe commity `[skip ci]`. Nie uruchamiaj automatycznie GitHub Actions (ani nie sprawdzaj statusu); nie używaj Codex/Work.
+2. Zmapuj zależności; dla braków lub potwierdzonych słabości stosuj [Existing Code First](EXTERNAL_REUSE.md) — nie kopiuj lub nie wymieniaj sprawdzonego kodu bez dowodów i legalnej licencji. Zmieniaj istniejące moduły, kilka spójnych porcji, małe commity `[skip ci]`. Nie uruchamiaj automatycznie GitHub Actions (ani nie sprawdzaj statusu); nie używaj Codex/Work.
 3. `bash scripts/bin/test-profile.sh preflight` — szybka kontrola diff, anti-friction i lokalnych linków dokumentacji, bez Gradle.
 4. `bash scripts/bin/test-profile.sh auto <base-SHA>` — tylko zmienione moduły i sparowane Python; `focus <module> '<test-class>'` lub `changed <module>` dla dokładnej regresji. Nie powtarzaj G3/G5.3 i testów sprzętu gdy kontrakt nie został zmieniony.
 5. `bash scripts/bin/test-profile.sh full` — jeden większy host unit/lint/Python/audio/security gate na stabilnym zakresie, **bez APK**. `device-build` jedynie bezpośrednio przed rzeczywiście autoryzowaną instalacją na S22. Żaden profil nie dzwoni ani nie instaluje.

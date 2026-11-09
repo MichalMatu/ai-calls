@@ -24,7 +24,7 @@
 
 ## Następny sprint
 1. Pobierz aktualny `main`, sprawdź realny stan Mac Local Agent i konflikty. Wybierz pionowy zakres G6.1 (lokalne przerwanie i takeover) z tabeli, nie kolejne audyty.
-2. Implementuj kilka powiązanych funkcji; po porcjach tylko `focus` lub `auto <base-SHA>`. Nie zmieniaj zamrożonego PCM/Call/grant bez dedykowanego testu.
+2. Dla potwierdzonej luki G6.1 wykonaj krótki **Existing Code First** według [EXTERNAL_REUSE](operations/EXTERNAL_REUSE.md): baseline własnego kodu → najwyżej 2–3 kandydatów → KEEP/IMPROVE/ADAPT/REPLACE z dowodem. Nie kopiuj ani nie przepisuj działającego kodu bez wykazanej przewagi; potem implementuj kilka powiązanych funkcji; po porcjach tylko `focus` lub `auto <base-SHA>`. Nie zmieniaj zamrożonego PCM/Call/grant bez dedykowanego testu.
 3. Jeden `full` na Macu po freeze, aktualizuj tylko `PROJECT.md` i dotknięty moduł, krótkie `[skip ci]` commity na `main`.
 4. Fizyczne S22 / APK wyłącznie z konkretnym upoważnieniem, zweryfikowanym IDLE i kontrolowanym zakresem; nie deklaruj zamknięcia G6 wcześniej.
 

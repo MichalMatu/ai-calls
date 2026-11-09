@@ -4,6 +4,7 @@
 
 ## Wykonanie
 - Najpierw aktualny `main` HEAD, czysty Git, stan Mac Local Agent i brak kolizji. GitHub Connector + Mac Local Agent + Linux Sandbox; bez Codex, Work, GitHub Actions, nowych gałęzi, force-push i bez odczytu GitHub Actions.
+- **Existing Code First:** dla konkretnej luki porównaj własny baseline z maksymalnie 2–3 kandydatami; wybierz KEEP/IMPROVE/ADAPT/REPLACE tylko na podstawie przewagi, testów i licencji. Bez niepotrzebnego rewrite. [Reguła](docs/operations/EXTERNAL_REUSE.md).
 - Modyfikuj istniejące moduły, nie przepisuj sprawdzonego runtime, STOP, Samsung/Shizuku, Gemma E2B, Skills, autoryzacji ani recordera. Szybki flow: `bash scripts/bin/test-profile.sh preflight`; `auto <pre-sprint-SHA>` albo `focus <module> '<test>'`; jedno `full` po większym freeze. APK wyłącznie `device-build` bezpośrednio przed faktycznie autoryzowaną instalacją. [Procedura](docs/operations/DEVELOPMENT.md).
 - Nie dodawaj sztucznych ograniczeń, limitów tur/prób, redundantnych potwierdzeń ani czynności manualnych bez materialnej przyczyny. Utrzymuj test regresyjny anti-friction; **nie** usuwaj granic Androida, scoped grant, STOP, Call ownership, idempotencji i prywatności.
 - Każda nowa luka: opisz w sekcji `Otwarte` jednego [PROJECT.md](docs/PROJECT.md) konkretny objaw, owner modułu, test/gate. Po naprawie i dowodzie usuń wpis, zaktualizuj aktualny status. Nie zachowuj duplikatów i dawnej chronologii.
