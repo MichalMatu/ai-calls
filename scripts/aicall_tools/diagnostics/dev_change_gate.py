@@ -48,6 +48,10 @@ def select(paths: list[str], root: Path = Path(".")) -> tuple[list[str], list[st
     escalations: list[str] = []
     for path in sorted(set(paths)):
         top = path.split("/", 1)[0]
+        # Markdown never triggers Gradle, even when it is inside an Android module
+        # or was removed as part of a documentation-only restructure.
+        if path.endswith(".md"):
+            continue
         if (path in BUILD_FILES or path.startswith(("gradle/", ".github/"))
                 or path.endswith("/build.gradle.kts")):
             escalations.append(path)
