@@ -6,6 +6,9 @@ import java.time.ZonedDateTime
 import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
 import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
+import pl.michalmatu.aicallbridge.agent.CallExternalEffect
+import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidation
+import pl.michalmatu.aicallbridge.agent.CallExternalEffectValidator
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallOutcome
 import pl.michalmatu.aicallbridge.agent.CallOutcomeStatus
@@ -270,6 +273,16 @@ class BookAppointmentSimulator(
         }
 
         fun finishBooking(proposal: CallProposal, alreadyInCommitmentState: Boolean) {
+            val validation = CallExternalEffectValidator.validateBookAppointment(
+                task = task,
+                reviewedProposal = proposal,
+                candidate = CallExternalEffect.BookAppointment(proposal),
+                userApprovedSoftDeviation = alreadyInCommitmentState,
+            )
+            if (validation !is CallExternalEffectValidation.Accepted) {
+                evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.OFFER_REJECTED)
+                return
+            }
             val idempotencyKey = "simulator-" + snapshot.generation
             val hold = bookingProvider.hold(proposal, idempotencyKey, 120_000L).getOrNull()
             if (hold == null) {
