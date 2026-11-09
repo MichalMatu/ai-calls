@@ -16,6 +16,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -68,7 +69,7 @@ def device_request(device: Device, action: str, **params: object) -> dict:
                 + PRIVATE_ROOT + "/request.json"
             )
             command = [device.adb, "-s", device.endpoint,
-                       "shell", "run-as", PACKAGE, "sh", "-c", shell]
+                       "shell", "run-as", PACKAGE, "sh", "-c", shlex.quote(shell)]
             try:
                 write = subprocess.run(command, input=request, capture_output=True,
                                        text=True, timeout=30, check=False)
