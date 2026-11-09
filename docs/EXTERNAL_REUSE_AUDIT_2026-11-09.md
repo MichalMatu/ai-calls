@@ -70,3 +70,15 @@ Piny to **punkty odniesienia**, nie automatyczne zależności. Ponowna ocena lic
 - call-use: https://github.com/agent-next/call-use ; dokumentacja https://docs.call-use.com/
 - Clinic Voice Agent: https://github.com/nikhilreddy00/clinic-voice-agent
 - DeskRoute (AGPL-3.0): https://github.com/PrabhatMattoo/DeskRoute
+
+## Źródła kodu przeznaczone do następnego sprintu — porównane 2026-11-09
+
+| Kandydat | Zewnętrzny plik | Z czym porównać w AI Calls | Strategia kopiowania |
+| --- | --- | --- | --- |
+| Pipecat interruptions/speculative turn | [speculation_gate.py](https://github.com/pipecat-ai/pipecat/blob/main/src/pipecat/turns/speculation_gate.py), [user_turn_controller.py](https://github.com/pipecat-ai/pipecat/blob/main/src/pipecat/turns/user_turn_controller.py), [user_idle_controller.py](https://github.com/pipecat-ai/pipecat/blob/main/src/pipecat/turns/user_idle_controller.py) | AndroidConversationRuntime, ConversationRxInterruptionCode, LocalSpeechGenerationGate, CallRealtimeAudioPump | G6.1: Kotlin state machine dopiero dla wykrytej luki; BSD-2-Clause notice dla istotnego kopiowania źródła |
+| call-use lifecycle/disposition | [models.py](https://github.com/agent-next/call-use/blob/main/call_use/models.py), [evidence.py](https://github.com/agent-next/call-use/blob/main/call_use/evidence.py), [test_bdd_call_lifecycle.py](https://github.com/agent-next/call-use/blob/main/tests/test_bdd_call_lifecycle.py) | OwnedCallLifecycle, CallSessionEvidenceRecorder, outcome, STOP/manual takeover | G6.1/2: dopasować typy i przypadki BDD, nie tworzyć drugiego CallTask; MIT notice gdy kopiowany chroniony kod |
+| Clinic real booking state | [scheduling_api/app/main.py](https://github.com/nikhilreddy00/clinic-voice-agent/blob/main/scheduling_api/app/main.py), [eval/test_cases.py](https://github.com/nikhilreddy00/clinic-voice-agent/blob/main/eval/test_cases.py) | GateDBookAppointment*, BookAppointmentOutcomeMatcher, CallCommitmentGate | Inspiracja zachowaniem idempotentnego booking/hold i testami structural tool trace, kodu nie kopiować bez licencji |
+| DeskRoute data isolation / UI | [ARCHITECTURE.md](https://github.com/PrabhatMattoo/DeskRoute/blob/main/ARCHITECTURE.md) | RecordedConversationHistory, archiwum, G7 panel | Własny projekt i kod; AGPL-3.0, brak kopiowania bez osobnej analizy obowiązków |
+| LiveKit SIP | [livekit/sip](https://github.com/livekit/sip), [LiveKit Agents](https://github.com/livekit/agents) | Nowy opcjonalny transport port przyszłości | Apache-2.0, osobne G7+ po SIM, bez wpinania serwera w obowiązkowy APK |
+
+**Migracja dwóch czatów:** wcześniejszy podział kod-vs-audyt zastąpiony w pełni przez [HANDOFF_SINGLE_TRACK_2026-11-09](HANDOFF_SINGLE_TRACK_2026-11-09.md); stale należy czytać świeży main, nie zakładać niezmienności pinu. W tym kroku nie skopiowano kodu third-party ani nie wykonano nowych prób S22: bezpieczne włączenie wybranych fragmentów i legalnych notice jest zadaniem pierwszego sprintu w jednym nowym czacie.

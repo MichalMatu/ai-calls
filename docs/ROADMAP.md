@@ -1,8 +1,17 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+## SINGLE_TRACK_OWNER — JEDEN CZAT OD 2026-11-09
+
+Decyzja właściciela: zakończyć oba stare czaty i odtąd rozwijać AI Calls z **jednego nowego czatu**. Kanoniczny punkt startowy: [HANDOFF_SINGLE_TRACK_2026-11-09](HANDOFF_SINGLE_TRACK_2026-11-09.md), jeden plan poniżej, pełna referencyjna analiza źródeł: [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). **Nie rozpoczynać dalszych równoległych sprintów**. Nowy czat zaczyna od najświeższego HEAD i nierozliczonych prac, bez resetu działającego kodu/testów.
+
+**Zachować:** Gemma 4 E2B/GPU, CONTEXTUAL Skills, Android SIM/Samsung/Shizuku, STT/TTS, STOP, manual takeover, grant/CallCommitmentGate/IdentityVault, prywatną historię. **Adaptować celowo:** Pipecat (G6.1 turn/interruption), call-use (G6 IVR + outcome), Clinic (G6 booking ideas, nie kod bez licencji), DeskRoute (G7 historia/UX bez kopiowania AGPL), LiveKit (późniejszy SIP transport). [Handoff i źródłowe moduły](HANDOFF_SINGLE_TRACK_2026-11-09.md). Nie przenosić Python/Go/TypeScript jako drugiego runtime Android.
+
+**Testy:** nie powtarzać G3 96 tur, G4, G5.3 18 tur/36 WAV, S22 STOP, Mac 386 Python bez powodu; powtórzyć tylko nową lub dotkniętą regresyjnie ścieżkę. Właściciel pozytywnie ocenił rozmowę, lecz 0/6 prywatnych per-session ocen — nie oznaczać fikcyjnego human PASS. G6 live INCOMING→OUTGOING wymaga konkretnej autoryzacji, G6 E2E NOT_CLOSED.
+
+
 ## Jeden zintegrowany plan G6 + reuse gotowych projektów (2026-11-09)
 
-**Obowiązuje JEDEN plan: ten dokument.** Audyt pięciu projektów, piny i mapa gotowych kontraktów: [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). Nie przenosić całego Pipecat/LiveKit/call-use/Clinic/DeskRoute do Androida; tylko sprawdzone brakujące kontrakty. Drugi czat kończy trwający kod G6, ten czat przygotowuje wyłącznie analizę i dokumenty; oba zaczynają od świeżego main i handoffu, bez równoległej edycji tych samych modułów. Nie ponawiać 96 G3 tur, 18 G5.3 tur, natywnego STOP ani pełnych historycznych prób S22 bez zmiany ich kontraktu. Nowe testy dotyczą tylko nowych funkcji i rzeczywistego G6 INCOMING, następnie OUTGOING; pozostałe kanały WhatsApp/SIP/VoIP i dashboard opcjonalnie po G6.
+**Obowiązuje JEDEN plan: ten dokument.** Audyt pięciu projektów, piny i mapa gotowych kontraktów: [EXTERNAL_REUSE_AUDIT_2026-11-09](EXTERNAL_REUSE_AUDIT_2026-11-09.md). Nie przenosić całego Pipecat/LiveKit/call-use/Clinic/DeskRoute do Androida; tylko sprawdzone brakujące kontrakty. HISTORYCZNY podział czatów zakończony: SINGLE_TRACK_OWNER, tylko nowy czat. Nie ponawiać 96 G3 tur, 18 G5.3 tur, natywnego STOP ani pełnych historycznych prób S22 bez zmiany ich kontraktu. Nowe testy dotyczą tylko nowych funkcji i rzeczywistego G6 INCOMING, następnie OUTGOING; pozostałe kanały WhatsApp/SIP/VoIP i dashboard opcjonalnie po G6.
 
 **Ocena właściciela:** pozytywna ogólna ocena rozmowy została wyrażona, więc prace projektowe G6 mogą postępować. 6 prywatnych human-review JSON i 48 ocen wciąż nie ma — nie wpisywać im PASS i nie udawać odsłuchu. Realny Call G6 wymaga oddzielnej konkretnej autoryzacji i właściwego źródła dowodu. Dotychczasowe historyczne live A8→S22 INCOMING/end_call są dowodem zawężonym, nie pełnym PASS G6.
 
