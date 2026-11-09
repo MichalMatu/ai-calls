@@ -72,8 +72,36 @@ class OutgoingIvrDtmfGateTest {
             throw IllegalStateException("lost telecom response")
         }
         assertEquals(OutgoingIvrDtmfResult.UNKNOWN, gate.request(request))
-        assertEquals(OutgoingIvrDtmfResult.REUSED, gate.request(request))
+        assertEquals(OutgoingIvrDtmfResult.UNKNOWN, gate.request(request))
         assertEquals(1, calls)
+    }
+
+    @Test fun reentrantAuthorizationCannotDispatchSameDigitTwice() {
+        var calls = 0
+        lateinit var gate: OutgoingIvrDtmfGate
+        var checked = false
+        gate = OutgoingIvrDtmfGate({ true }, {
+            if (!checked) {
+                checked = true
+                assertEquals(OutgoingIvrDtmfResult.UNKNOWN, gate.request(request))
+            }
+            true
+        }) { calls++; true }
+        assertEquals(OutgoingIvrDtmfResult.DISPATCHED, gate.request(request))
+        assertEquals(1, calls)
+    }
+
+    @Test fun finiteLedgerRefusesExcessiveDtmfRequestsWithoutEvictingIdempotency() {
+        var calls = 0
+        val gate = OutgoingIvrDtmfGate({ true }, { true }) { calls++; true }
+        repeat(256) { index ->
+            assertEquals(OutgoingIvrDtmfResult.DISPATCHED,
+                gate.request(request.copy(stepIndex = index)))
+        }
+        assertEquals(OutgoingIvrDtmfResult.LIMIT_REACHED,
+            gate.request(request.copy(stepIndex = 256)))
+        assertEquals(OutgoingIvrDtmfResult.REUSED, gate.request(request))
+        assertEquals(256, calls)
     }
 
     @Test fun independentStepAndCallGenerationCanProceed() {

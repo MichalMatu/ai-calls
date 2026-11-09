@@ -20,6 +20,7 @@ enum class OutgoingIvrDtmfResult {
     NOT_AUTHORIZED,
     CONFLICT,
     UNKNOWN,
+    LIMIT_REACHED,
 }
 
 fun interface OutgoingIvrDigitPort {
@@ -40,7 +41,9 @@ class OutgoingIvrDtmfGate(
     private val port: OutgoingIvrDigitPort,
 ) {
     private data class Key(val generation: Long, val turn: Int, val index: Int)
-    private val dispatched = linkedMapOf<Key, Char>()
+    private data class Receipt(val digit: Char, val result: OutgoingIvrDtmfResult)
+    private val dispatched = linkedMapOf<Key, Receipt>()
+    private val checking = mutableMapOf<Key, Char>()
 
     @Synchronized
     fun request(value: OutgoingIvrDtmfRequest): OutgoingIvrDtmfResult {
@@ -48,25 +51,46 @@ class OutgoingIvrDtmfGate(
             value.digit !in "0123456789*#ABCD") return OutgoingIvrDtmfResult.INVALID_REQUEST
         val key = Key(value.callGeneration, value.turn, value.stepIndex)
         dispatched[key]?.let {
-            return if (it == value.digit) OutgoingIvrDtmfResult.REUSED
+            return when {
+                it.digit != value.digit -> OutgoingIvrDtmfResult.CONFLICT
+                it.result == OutgoingIvrDtmfResult.UNKNOWN -> OutgoingIvrDtmfResult.UNKNOWN
+                else -> OutgoingIvrDtmfResult.REUSED
+            }
+        }
+        // A policy callback may reenter this synchronized gate; it must never dispatch the
+        // same step twice while an earlier authorization decision is still in progress.
+        checking[key]?.let {
+            return if (it == value.digit) OutgoingIvrDtmfResult.UNKNOWN
             else OutgoingIvrDtmfResult.CONFLICT
         }
+        if (dispatched.size >= MAX_DISPATCHED_STEPS) return OutgoingIvrDtmfResult.LIMIT_REACHED
 
-        if (!active(value.callGeneration)) return OutgoingIvrDtmfResult.NOT_ACTIVE
-        if (!authorized(value)) return OutgoingIvrDtmfResult.NOT_AUTHORIZED
+        checking[key] = value.digit
+        try {
+            if (!active(value.callGeneration)) return OutgoingIvrDtmfResult.NOT_ACTIVE
+            if (!authorized(value)) return OutgoingIvrDtmfResult.NOT_AUTHORIZED
 
-        // Both callbacks may have raced with an operator STOP, change of call owner or a
-        // revoked grant. Re-check immediately before the irreversible port boundary.
-        if (!active(value.callGeneration)) return OutgoingIvrDtmfResult.NOT_ACTIVE
-        if (!authorized(value)) return OutgoingIvrDtmfResult.NOT_AUTHORIZED
+            // Both callbacks may race with STOP, owner switch or grant revocation.
+            if (!active(value.callGeneration)) return OutgoingIvrDtmfResult.NOT_ACTIVE
+            if (!authorized(value)) return OutgoingIvrDtmfResult.NOT_AUTHORIZED
 
-        // Record before dispatch. Any uncertain side effect is never sent twice by this gate.
-        dispatched[key] = value.digit
-        return try {
-            if (port.dispatch(value)) OutgoingIvrDtmfResult.DISPATCHED
-            else OutgoingIvrDtmfResult.UNKNOWN
-        } catch (_: Exception) {
-            OutgoingIvrDtmfResult.UNKNOWN
+            // Reserve before the irreversible port call. Any uncertain effect stays UNKNOWN
+            // on duplicate requests instead of being reported as success or replayed.
+            dispatched[key] = Receipt(value.digit, OutgoingIvrDtmfResult.UNKNOWN)
+            val result = try {
+                if (port.dispatch(value)) OutgoingIvrDtmfResult.DISPATCHED
+                else OutgoingIvrDtmfResult.UNKNOWN
+            } catch (_: Exception) {
+                OutgoingIvrDtmfResult.UNKNOWN
+            }
+            dispatched[key] = Receipt(value.digit, result)
+            return result
+        } finally {
+            checking.remove(key)
         }
+    }
+
+    private companion object {
+        const val MAX_DISPATCHED_STEPS = 256
     }
 }
