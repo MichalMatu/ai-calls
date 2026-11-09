@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
+import pl.michalmatu.aicallbridge.developerrelay.RemoteBargeInMonitor
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
@@ -208,6 +209,7 @@ internal object AndroidConversationRuntime {
 
         private var mediaRuntime: CallMediaSessionRuntime? = null
         private var downlinkPump: ChatRelayDownlinkPump? = null
+        private val bargeMonitor = AtomicReference<RemoteBargeInMonitor?>(null)
         private var turnsCompleted = 0
         private var turnStartedAtMs = 0L
         private var estimatedSpeechEndElapsedMs: Long? = null
@@ -414,6 +416,7 @@ internal object AndroidConversationRuntime {
                     finalAudioReadyTurn.set(outputTurn)
                     lines += "turn_${outputTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
                     ConversationChatFeed.stage(liveChatToken, "Tura " + outputTurn + " • wysyłanie głosu…")
+                    if (!readOnlySupervised) armBargeMonitor(outputTurn, generation, lease, ownerEpoch)
                     executor.execute { writeOutputTurn(lease, pcm, outputTurn, generation, ownerEpoch) }
                 }
 
@@ -466,17 +469,32 @@ internal object AndroidConversationRuntime {
                 fail("turn_${turn}_downlink_pump_unavailable")
                 return
             }
+            // The barge monitor owns RX until STT announces readiness. Preserve its
+            // bounded in-memory speech onset instead of discarding the first syllables.
+            val previousMonitor = bargeMonitor.getAndSet(null)
+            val preRoll = previousMonitor?.freezeAndDrain() ?: ByteArray(0)
+            if (previousMonitor != null) pump.abandonCapture(previousMonitor)
             val detector = PcmEndOfUtteranceDetector(
                 trailingSilenceMs = 1_500,
                 maxCaptureMs = 60_000,
             )
-            val captureStartedElapsedMs = elapsedTurnMs()
+            val captureStartedElapsedMs = (elapsedTurnMs() -
+                ChatRelayTurnPacing.pcmDurationMs(preRoll.size)).coerceAtLeast(0L)
             val evidenceRx = evidenceRecorder?.openRxTurn(turn)
             var total = 0
             var endpoint = detector.acceptPcm16(ByteArray(0))
             val capture = ActiveRxCapture(turn, endpoint)
             activeRxCapture.set(capture)
             try {
+                if (preRoll.isNotEmpty()) {
+                    if (!pipeline.writeInputPcm(preRoll)) throw IllegalStateException("stt_barge_preroll_write_failed")
+                    evidenceRx?.append(preRoll, preRoll.size)
+                    total += preRoll.size
+                    endpoint = detector.acceptPcm16(preRoll)
+                    capture.latest.set(endpoint)
+                    if (endpoint.estimatedSpeechEndMs != null && capture.voiceNoticed.compareAndSet(false, true))
+                        idleTimeout?.heardVoice()
+                }
                 pump.beginCapture(object : ChatRelayDownlinkPump.Capture {
                     override fun onFrame(bytes: ByteArray, length: Int): Boolean {
                         if (finished.get()) return false
@@ -586,6 +604,36 @@ internal object AndroidConversationRuntime {
                 activeRxCapture.compareAndSet(capture, null)
                 evidenceRx?.finish()
                 fail("turn_${turn}_rx_${error.javaClass.simpleName}")
+            }
+        }
+
+        /** Call remains owned and active: only the old local output turn is revoked. */
+        private fun armBargeMonitor(
+            turn: Int,
+            generation: Long,
+            lease: CallMediaEndpointLease,
+            turnEpoch: Long,
+        ) {
+            val pump = downlinkPump ?: return
+            val monitor = RemoteBargeInMonitor(onVoice = {
+                if (outputEpoch.compareAndSet(turnEpoch, turnEpoch + 1L)) {
+                    handler.post {
+                        if (finished.get() || !authorizedNow() ||
+                            !runCatching { callStillActive() }.getOrDefault(false) ||
+                            currentTurn != turn || activeMediaGeneration.get() != generation ||
+                            outputEpoch.get() != turnEpoch + 1L) return@post
+                        // Revoke old model/TTS callback generation; do not disconnect Call.
+                        pipeline.cancel()
+                        turnsCompleted = maxOf(turnsCompleted, turn)
+                        lines += "local_rx_during_tx_detected=true"
+                        beginNextTurn(generation, lease)
+                    }
+                }
+            })
+            if (!bargeMonitor.compareAndSet(null, monitor)) return
+            try { pump.beginCapture(monitor) } catch (_: IllegalStateException) {
+                bargeMonitor.compareAndSet(monitor, null)
+                lines += "barge_monitor_unavailable=true"
             }
         }
 
@@ -759,6 +807,7 @@ internal object AndroidConversationRuntime {
         ) {
             if (finished.get() || turn != currentTurn || outputEpoch.get() != turnEpoch) return
             if (activeMediaGeneration.get() != generation) { fail("stale_media_generation"); return }
+            bargeMonitor.getAndSet(null)?.let { downlinkPump?.abandonCapture(it) }
             turnsCompleted = turn
             lines += "turn_${turn}_complete_elapsed_ms=${elapsedTurnMs()}"
             if (!authorizedNow()) { finish(authorityTermination()); return }
@@ -783,6 +832,7 @@ internal object AndroidConversationRuntime {
         private fun finish(termination: ConversationTermination) {
             if (!finished.compareAndSet(false, true)) return
             outputEpoch.incrementAndGet()
+            bargeMonitor.getAndSet(null)?.let { downlinkPump?.abandonCapture(it) }
             val result = stopRequested.get()?.let { ConversationTermination.Stopped(it) } ?: termination
             val reason = result.code
             activeMediaGeneration.set(-1L)

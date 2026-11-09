@@ -177,6 +177,25 @@ class ChatRelayDownlinkPumpTest {
         }
     }
 
+    @Test fun abandoningOldMonitorCannotDetachNewCapture() {
+        val input = PipedInputStream(4_096)
+        val output = PipedOutputStream(input)
+        val pump = ChatRelayDownlinkPump(input, frameBytes = 64)
+        try {
+            pump.start()
+            val old = captureInto(ByteArrayOutputStream(), 1, CountDownLatch(1))
+            val next = captureInto(ByteArrayOutputStream(), 1, CountDownLatch(1))
+            pump.beginCapture(old)
+            assertTrue(pump.abandonCapture(old))
+            pump.beginCapture(next)
+            assertFalse(pump.abandonCapture(old))
+            assertTrue(pump.abandonCapture(next))
+        } finally {
+            pump.close()
+            output.close()
+        }
+    }
+
     private fun waitUntil(predicate: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1)
         while (System.nanoTime() < deadline) {

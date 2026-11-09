@@ -5,7 +5,7 @@
 ## Granice tury
 - RX speech-start/stop, VAD/EOS, transkrypcja, snapshot kontekstu, autoryzacja tekstu i typowanych narzędzi, TTS, TX, archiwizacja.
 - Każda STT/model/TTS odpowiedź musi być związana z sesją, generacją i epoką tury; queued/stale PCM musi kończyć się na granicy klatki. Przerwanie lub STOP anuluje stare wyjście oraz kolejkę; nieprawidłowy/niepewny status nie może automatycznie wznowić TTS.
-- Realtime `CallRealtimeAudioPump` ma atomową blokadę gate/queue na barge-in, tombstones i bounded audio; **lokalny Gemma pipeline nadal wymaga realnego barge-in w G6**.
+- Realtime `CallRealtimeAudioPump` ma atomową blokadę gate/queue na barge-in, tombstones i bounded audio; **lokalny Gemma ma syntetyczny RX-during-TX restart z ograniczonym pre-roll; echo/double-talk i fizyczny barge-in S22 pozostają OPEN**.
 - Recovery po ciszy/hold nie może sztucznie ucinać rozmowy, ale respektuje zasoby, systemowy Call state i STOP. Przy fizycznym rozłączeniu dokończ dostępny końcowy RX/STT bez udawania brakującej mowy.
 
 **Semantic end-of-turn:** wzorzec TEN rozróżnia FINISHED / UNFINISHED / WAIT, ale obecne PCM VAD/STT nie dostarcza wiarygodnej klasyfikacji semantycznej po polsku. KEEP obecny endpointing; brak importu modelu TEN i automatycznego zatrzymywania odpowiedzi na podstawie słów. Ewentualny classifier wyłącznie po własnych pomiarach i osobnym teście granic STOP.

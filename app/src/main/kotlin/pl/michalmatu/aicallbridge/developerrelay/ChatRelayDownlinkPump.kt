@@ -68,6 +68,15 @@ internal class ChatRelayDownlinkPump(
         return true
     }
 
+    /** Stop only the capture still owned by the specified turn/monitor. */
+    fun abandonCapture(expected: Capture): Boolean {
+        val abandoned = synchronized(lock) {
+            if (activeCapture !== expected) null else expected.also { activeCapture = null }
+        } ?: return false
+        try { abandoned.onAbandoned() } catch (_: Throwable) {}
+        return true
+    }
+
     fun discardedBytes(): Long = discardedBytes.get()
 
     override fun close() {
