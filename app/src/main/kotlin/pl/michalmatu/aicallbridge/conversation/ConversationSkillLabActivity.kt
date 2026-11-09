@@ -1,6 +1,10 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.app.AlertDialog
+import android.app.ActivityManager
+import android.os.Debug
+import android.text.InputType
+import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
 import android.content.Intent
 import java.util.UUID
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
@@ -45,6 +49,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var adaptiveButton: Button
     private lateinit var sessionFactory: AndroidSkillLabSessionFactory
     private lateinit var modelLabel: TextView
+    private lateinit var contextBudgetInput: EditText
+    private lateinit var diagnosticsView: TextView
+    private val timingMeasurements = mutableListOf<NativeModelTiming>()
+    private var diagnosticRunId = 0L
+    private var runningContextBudget = 4_096
     private var activeReportId: String? = null
     private var activeCaseId: String? = null
     private var activeCaseVersion: Int? = null
@@ -90,6 +99,22 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         content.addView(UiDesign.action(this, getString(R.string.lab_model_settings)) {
             startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
         }, UiDesign.spaceAfter(this, 10))
+        // This is a Lab-only allocation setting. Phone-call budget remains unchanged.
+        val storedBudget = getSharedPreferences("lab-diagnostics", MODE_PRIVATE)
+            .getInt("context_tokens", 4_096).takeIf { it > 0 } ?: 4_096
+        runningContextBudget = storedBudget
+        content.addView(UiDesign.caption(this, getString(R.string.lab_context_label)),
+            UiDesign.spaceAfter(this, 4))
+        contextBudgetInput = EditText(this).apply {
+            tag = "lab-context-tokens"
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setSingleLine(true)
+            setText(storedBudget.toString())
+            contentDescription = getString(R.string.lab_context_label)
+        }
+        content.addView(contextBudgetInput, UiDesign.spaceAfter(this, 4))
+        content.addView(UiDesign.caption(this, getString(R.string.lab_context_hint)),
+            UiDesign.spaceAfter(this, 10))
         content.addView(UiDesign.caption(this, getString(R.string.lab_case_select)),
             UiDesign.spaceAfter(this, 6))
         casePicker = Spinner(this).apply { tag = "lab-case-picker" }
@@ -167,6 +192,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         transcriptCard.addView(status, UiDesign.spaceAfter(this, 8))
+        diagnosticsView = UiDesign.caption(this, getString(R.string.lab_diagnostics_waiting)).apply {
+            tag = "lab-model-diagnostics"
+            setTextIsSelectable(true)
+        }
+        transcriptCard.addView(diagnosticsView, UiDesign.spaceAfter(this, 8))
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = currentTurnTotal
             progress = 0
@@ -272,6 +302,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         runner = SkillLabRunner(sessionFactory,
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
         renderState(runner.state)
+        updateModelDiagnostics()
         modePicker.isEnabled = false
     }
 
@@ -283,6 +314,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             val profile = runCatching { AudioEngineProfileStore(this).load() }.getOrNull()
             modelLabel.text = getString(R.string.lab_model_selected,
                 profile?.dialogue?.name ?: getString(R.string.lab_model_unavailable))
+            updateModelDiagnostics()
         }
     }
 
@@ -421,13 +453,34 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         if (adaptive && chosen == null) {
             showError(getString(R.string.lab_adaptive_select_case)); return
         }
+        val budget = contextBudgetInput.text.toString().trim().toIntOrNull()
+        if (budget == null || budget <= 0) {
+            contextBudgetInput.error = getString(R.string.lab_context_invalid)
+            return
+        }
         val test = chosen?.selected()
         sessionFactory.selectedCase = test
+        sessionFactory.contextTokenBudget = budget
+        // Snapshot one observer per session, rejecting late telemetry from a stopped run.
+        val thisRun = ++diagnosticRunId
+        sessionFactory.onTiming = { timing ->
+            runOnUiThread {
+                if (!isDestroyed && thisRun == diagnosticRunId) {
+                    timingMeasurements.add(timing)
+                    updateModelDiagnostics()
+                }
+            }
+        }
+        runningContextBudget = budget
+        timingMeasurements.clear()
+        updateModelDiagnostics()
         val started = runCatching {
             if (adaptive) runner.startAdaptive(presetId, requireNotNull(test))
             else runner.startManual(presetId)
         }.getOrElse { showError(it.message.orEmpty()); return }
         if (!started) return
+        getSharedPreferences("lab-diagnostics", MODE_PRIVATE).edit()
+            .putInt("context_tokens", budget).apply()
         activeReportId = UUID.randomUUID().toString()
         reportSaved = false
         activeCaseId = chosen?.id
@@ -560,6 +613,38 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         if (::runner.isInitialized) runner.startManual(presetId)
     }
 
+    /** Live metrics are app-owned and contain no prompts, replies or user identity. */
+    private fun updateModelDiagnostics() {
+        if (!::diagnosticsView.isInitialized) return
+        val model = runCatching { AudioEngineProfileStore(this).load()?.dialogue?.name }
+            .getOrNull() ?: getString(R.string.lab_model_unavailable)
+        val last = timingMeasurements.lastOrNull()
+        val memory = Debug.MemoryInfo()
+        Debug.getMemoryInfo(memory)
+        val system = ActivityManager.MemoryInfo()
+        getSystemService(ActivityManager::class.java)?.getMemoryInfo(system)
+        val processPssMib = memory.totalPss / 1024L
+        val systemFreeMib = system.availMem / (1024L * 1024L)
+        diagnosticsView.text = if (last == null) {
+            getString(R.string.lab_diagnostics_header, model, runningContextBudget) + "\n" +
+                getString(R.string.lab_diagnostics_waiting) + "\n" +
+                getString(R.string.lab_diagnostics_memory, processPssMib, systemFreeMib)
+        } else {
+            val complete = timingMeasurements.filter { it.status == "complete" }
+            val meanGenerateMs = if (complete.isEmpty()) 0L
+                else complete.sumOf { it.generateMs } / complete.size
+            getString(R.string.lab_diagnostics_header, model, last.contextTokens) + "\n" +
+                getString(R.string.lab_diagnostics_last, last.backend, last.turn,
+                    last.engineReadyMs, last.conversationCreateMs, last.generateMs,
+                    last.totalMs) + "\n" +
+                getString(R.string.lab_diagnostics_summary, complete.size,
+                    meanGenerateMs, last.outputChars, last.status,
+                    if (last.conversationReused) getString(R.string.lab_diagnostics_warm)
+                    else getString(R.string.lab_diagnostics_cold)) + "\n" +
+                getString(R.string.lab_diagnostics_memory, processPssMib, systemFreeMib)
+        }
+    }
+
     private fun renderState(next: SkillLabUiState) {
         if (isDestroyed) return
         lastState = next
@@ -602,6 +687,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             next.completed.size, next.totalTurns)
         runButton.isEnabled = next.manualStartAllowed
         adaptiveButton.isEnabled = next.manualStartAllowed
+        // Editing context during a running native session must not mutate it.
+        contextBudgetInput.isEnabled = next.manualStartAllowed
         runButton.visibility = View.VISIBLE
         sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY
         manualInput.isEnabled = next.phase == SkillLabPhase.INPUT_READY
