@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class DynamicSkillLabBackend(
     private val delegate: TextCallAgentBackend,
     private val router: ConversationSkillTurnRouter,
-    private val instructionFor: (ConversationSkillSnapshot) -> String,
     private val onRoutingDecision: (SkillTurnRoutingDecision) -> Unit = {},
+    private val instructionFor: (ConversationSkillSnapshot) -> String,
 ) : TextCallAgentBackend {
     private val closed = AtomicBoolean(false)
     private val history = mutableListOf<Pair<String, String>>()
