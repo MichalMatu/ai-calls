@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_context_label">Laboratory model context (tokens)</string>
+    <string name="lab_context_hint">Default 4096; you can enter 2048 or 8192, for example. A change applies only to the next Lab session, not phone calls. Larger contexts use more memory.</string>
+    <string name="lab_context_invalid">Enter a positive context-token number.</string>
+    <string name="lab_diagnostics_header">Model diagnostics: %1$s · context %2$d tokens · 128-token response limit</string>
+    <string name="lab_diagnostics_waiting">Engine initialization and generation timings appear after the first response.</string>
+    <string name="lab_diagnostics_last">%1$s · turn %2$d: engine %3$d ms, conversation %4$d ms, generation %5$d ms, total %6$d ms</string>
+    <string name="lab_diagnostics_summary">Completed turns: %1$d · mean generation %2$d ms · last response characters: %3$d · status: %4$s · %5$s</string>
+    <string name="lab_diagnostics_cold">cold start</string>
+    <string name="lab_diagnostics_warm">context retained</string>
+    <string name="lab_diagnostics_memory">App PSS: %1$d MiB · free system RAM: %2$d MiB. Characters are not tokens/s.</string>
+</resources>
