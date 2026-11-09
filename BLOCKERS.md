@@ -1,3 +1,9 @@
+## F-165 — G5.3 dokumentacyjny test statusu human review zbyt dosłowny (2026-11-09)
+
+**RED:** `aicalls-g53-skills-ab-final-docs-qa-mac-20261109-v1` wykonał poprawny fast-forward i pin do `main@d1fdc15` (`exit 0`), lecz druga komenda zakończyła się `AssertionError: lost human hold docs/NEXT_CHAT_PROMPT.md`. Dokument opisywał ludzką ocenę jako otwartą/nieocenioną, lecz test szukał literalnego `UNASSESSED` lub `HUMAN_QUALITY_OPEN`. To fałszywy RED formatowania handoffu, **nie** brak wyników S22 ani problem z produktem; końcowa komenda postflight nie została wykonana.
+
+**Poprawka:** do sekcji `G5.3 HUMAN_REVIEW_OPEN` w `docs/NEXT_CHAT_PROMPT.md` dopisano jawne `UNASSESSED`. Historyczny FAILED zachować; Mac doc-only v2 porówna status i checkpoint oraz potwierdzi końcowy clean. **Status: FIXED_IN_SOURCE / QA_PENDING**, bez ponawiania 18 tur i 375 Python.
+
 ## F-164 — G5.3 Host Ops A/B: przekroczony dozwolony idle_timeout (2026-11-09)
 
 **RED:** Mac task `aicalls-g53-all-active-skills-voice-ab-s22-20261109-v1` został formalnie odrzucony z `invalid_task_file: ValueError idle_timeout must be 0..3600, got 6100`. `result.commands=[]` i `started_at=null`: **nie uruchomiono komend, nie instalowano na S22, nie wykonano żadnej inferencji**. Przyczyna: błędnie wygenerowana konfiguracja Host Ops; nie wada APK ani regresja modelu.

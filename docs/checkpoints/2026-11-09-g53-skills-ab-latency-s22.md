@@ -36,6 +36,10 @@ Natywne LiteRT `AiCallBridgePerf` w każdym trybie po 9 rekordów:
 ## Niezmienione bezpieczeństwo / prywatność
 `AndroidG52MultiturnSpeechSkillsE2ETest` nadal używa istniejącego `LocalSpeechTextPipeline` i `AndroidSkillLabSessionFactory`. Bez flagi pozostaje `CONTEXTUAL`; opt-in `g53_skills_mode=ALL_ACTIVE` nie dotyka profilu. `G53PrivateAudioEvidence` rejestruje `skills_loading_mode` w prywatnym manifeście, a `ALL_ACTIVE` ma `routing_observed=false` (brak fałszywych zdarzeń per-turn). Każda sesja zapisana bez nadpisania, pliki 0600, katalog 0700. Lokalny indeks do odsłuchu i porównania to **`~/Library/Application Support/ai-calls/qa/g53-private/skills-ab-index.html`**. Niezależny recenzent ma obejrzeć sześć sesji, wskazać konkretne tury i notatki dla każdego PASS/FAIL; żadna automatyczna heurystyka nie ustawia human PASS.
 
+## Końcowy documentation QA — historia
+
+Host task `aicalls-g53-skills-ab-final-docs-qa-mac-20261109-v1` miał fast-forward `0/PASS`, lecz doc-only asercja przerwała się, ponieważ handoff używał „nieocenione” zamiast literalnego `UNASSESSED` (F-165). Nie wykonywano ponownie AndroidTest ani S22. Poprawiony handoff i odrębny v2 receipt mają potwierdzić status i Git clean.
+
 ## QA / dokładne receipts
 | Zadanie | Wynik |
 | --- | --- |
