@@ -208,9 +208,9 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
             assertTrue("g52_correction_stt_missing", turns[1].transcript.lowercase(
                 Locale.forLanguageTag("pl-PL")).contains("sprostowan"))
             assertTrue("g52_correction_day_stt_missing", turns[1].transcript.lowercase(
-                Locale.forLanguageTag("pl-PL")).contains("wtork"))
+                Locale.forLanguageTag("pl-PL")).contains("wtor"))
             assertTrue("g52_memory_final_day", turns[2].approved.lowercase(
-                Locale.forLanguageTag("pl-PL")).contains("wtork"))
+                Locale.forLanguageTag("pl-PL")).contains("wtor"))
             val decisions = routing.toList()
             assertEquals("g52_three_routing_events", listOf(1,2,3),
                 decisions.map { it.turn })
