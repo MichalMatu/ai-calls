@@ -69,10 +69,11 @@ class AndroidSkillsNativePromptSalienceProbeTest {
             ConversationPreparation.supervised().withSkillSnapshot(custom.snapshot()),
             "Prowadz naturalny dialog testowy.", ConversationResponseFormat.TOOL_REPLY)
         assertTrue("compiled_prompt_missing_active_skill", original.contains(marker))
-        val outputSection = "\nODPOWIEDŹ:\n"
-        assertTrue("response_section_not_found", original.contains(outputSection))
-        val closeToOutput = original.replace(outputSection,
-            "\nPODSUMOWANIE WSKAZÓWEK STYLU: " + skill + "\n" + outputSection)
+        val lastResponseHeading = original.lastIndexOf("ODPOWIEDŹ:")
+        assertTrue("response_section_not_found", lastResponseHeading >= 0)
+        val closeToOutput = original.substring(0, lastResponseHeading) +
+            "PODSUMOWANIE WSKAZÓWEK STYLU: " + skill + "\n" +
+            original.substring(lastResponseHeading)
         val minimal = """
             Jesteś lokalnym asystentem testowym. Odpowiadaj po polsku.
             Każda odpowiedź MUSI zawierać dokładnie słowo $marker jako część tekstu reply.
