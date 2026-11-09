@@ -33,7 +33,7 @@ internal class AndroidIncomingAssistant(
     private val preparations = IdentityHashMap<Call, Prepared>()
     private val store by lazy { IncomingAssistantPolicyStore(context) }
     private val toolSettings by lazy { ConversationToolSettingsStore(context) }
-    private class AudioSlot(val call: Call, val generation: Long) {
+    private class AudioSlot(val call: Call, val generation: Long, val policy: IncomingAssistantPolicy) {
         val cancelled = AtomicBoolean(false)
         val audio = AtomicReference<AndroidConversationRuntime.SessionControl?>(null)
         var recorder: CallSessionEvidenceRecorder? = null
@@ -107,7 +107,8 @@ internal class AndroidIncomingAssistant(
     }
     private fun authorized(slot: AudioSlot): Boolean = !closed.get() && !slot.cancelled.get() &&
         slot.call.state == Call.STATE_ACTIVE && exclusive(slot.call) && coordinator.isAuthorized(slot.call, slot.generation) &&
-        loadPolicy().let { it.mode == AnsweringMode.AI && it.accountKey == slot.call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey) }
+        loadPolicy().let { it == slot.policy && it.mode == AnsweringMode.AI &&
+            it.accountKey == slot.call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey) }
 
     private fun readinessFailure(call: Call): String? {
         if (context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage != context.packageName) return "dialer_role_missing"
@@ -125,7 +126,7 @@ internal class AndroidIncomingAssistant(
     }
     private fun prepare(call: Call, policy: IncomingAssistantPolicy, generation: Long) {
         val prepared = checkNotNull(preparations.remove(call)) { "incoming_preparation_missing" }
-        val slot = AudioSlot(call, generation)
+        val slot = AudioSlot(call, generation, policy)
         slots[generation] = slot
         handler.post { waitForMedia(slot, policy, prepared) }
     }

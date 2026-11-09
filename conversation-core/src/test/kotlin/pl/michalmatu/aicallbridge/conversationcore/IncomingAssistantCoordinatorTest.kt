@@ -10,6 +10,7 @@ class IncomingAssistantCoordinatorTest {
         val answered = mutableListOf<Call>()
         val started = mutableListOf<Pair<Call, Long>>()
         val stopped = mutableListOf<Pair<Call, Long>>()
+        val disconnected = mutableListOf<Call>()
         var failure: String? = null
         var readinessThrows = false
         var reentrantAnswer: (() -> Unit)? = null
@@ -19,7 +20,7 @@ class IncomingAssistantCoordinatorTest {
         override fun answer(call: Call) { answered += call; reentrantAnswer?.invoke() }
         override fun startAudio(call: Call, policy: IncomingAssistantPolicy, generation: Long) { started += call to generation }
         override fun stopAudio(call: Call, generation: Long, reason: ConversationStopReason) { stopped += call to generation }
-        override fun disconnect(call: Call) = Unit
+        override fun disconnect(call: Call) { disconnected += call }
         override fun changed(call: Call, state: IncomingAssistantState, reason: String?) { reentrantChanged?.invoke(state) }
     }
     private class Fixture {
@@ -214,6 +215,83 @@ class IncomingAssistantCoordinatorTest {
         }
         assertTrue(f.core.resume(f.call, policy))
         assertEquals(1, f.port.started.size)
+    }
+
+    @Test fun sameSimPolicyReplacementRevokesCurrentAiWithoutHangingUp() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val first = f.port.started.single().second
+
+        val replacement = policy.copy(id = "new-consent")
+        f.core.policyChanged(replacement, ConversationStopReason.POLICY_REVOKED)
+        assertFalse(f.core.isAuthorized(f.call, first))
+        assertEquals(listOf(f.call to first), f.port.stopped)
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertTrue(f.port.disconnected.isEmpty())
+
+        // New approval never hijacks the ongoing call, but explicit resume is allowed.
+        f.observe(IncomingCallPhase.ACTIVE, replacement)
+        assertEquals(1, f.port.started.size)
+        assertTrue(f.core.resume(f.call, replacement))
+        val second = f.port.started.last().second
+        assertNotEquals(first, second)
+        assertTrue(f.core.isAuthorized(f.call, second))
+        f.core.audioFinished(f.call, first, "late_old_call")
+        assertTrue(f.core.isAuthorized(f.call, second))
+    }
+
+    @Test fun changingEvidenceConsentRevokesAiEvenWithSamePolicyId() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val first = f.port.started.single().second
+        f.core.policyChanged(policy.copy(recordEvidence = false), ConversationStopReason.POLICY_REVOKED)
+
+        assertFalse(f.core.isAuthorized(f.call, first))
+        assertEquals(listOf(f.call to first), f.port.stopped)
+        assertTrue(f.port.disconnected.isEmpty())
+    }
+
+    @Test fun endCallRequiresExactLivePolicyNotJustMatchingSim() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+
+        assertFalse(f.core.completeConversation(f.call, generation, policy.copy(id = "replacement")))
+        assertFalse(f.core.completeConversation(f.call, generation, policy.copy(recordEvidence = false)))
+        assertTrue(f.port.disconnected.isEmpty())
+        assertTrue(f.core.isAuthorized(f.call, generation))
+
+        assertTrue(f.core.completeConversation(f.call, generation, policy))
+        assertEquals(listOf(f.call), f.port.disconnected)
+    }
+
+    @Test fun reentrantPolicyChangeOnEndCallTransitionCannotDisconnect() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.ENDING) {
+                f.core.policyChanged(policy.copy(id = "revoked"), ConversationStopReason.POLICY_REVOKED)
+            }
+        }
+        assertFalse(f.core.completeConversation(f.call, generation, policy))
+        assertTrue(f.port.disconnected.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+    }
+
+    @Test fun refreshingUnchangedPolicyDoesNotInterruptActiveAudio() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+
+        f.core.policyChanged(policy.copy(), ConversationStopReason.POLICY_REVOKED)
+        assertTrue(f.core.isAuthorized(f.call, generation))
+        assertTrue(f.port.stopped.isEmpty())
     }
 
     @Test fun endedCallCannotBeTakenOverOrResumed() {

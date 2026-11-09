@@ -98,7 +98,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
     @Synchronized fun policyChanged(policy: IncomingAssistantPolicy, reason: ConversationStopReason) {
         entries.entries.toList().forEach { (call, entry) ->
             if ((ownsAudio(entry) || entry.state == IncomingAssistantState.RINGING || entry.state == IncomingAssistantState.ENDING) &&
-                (policy.mode != AnsweringMode.AI || policy.accountKey != entry.policy.accountKey)) {
+                policy != entry.policy) {
                 manual(call, entry, "incoming_policy_revoked", reason)
             }
         }
@@ -123,7 +123,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         val entry = entries[call] ?: return false
         fun mayClose() = entry.generation == generation && entry.phase == IncomingCallPhase.ACTIVE &&
             entry.exclusive && entry.account == entry.policy.accountKey &&
-            policy.mode == AnsweringMode.AI && policy.accountKey == entry.account
+            policy == entry.policy && policy.mode == AnsweringMode.AI
         if (!ownsAudio(entry) || !mayClose()) return false
         change(call, entry, IncomingAssistantState.ENDING, "conversation_completed")
         // A reentrant STOP/takeover or Android callback can invalidate the proposal.
