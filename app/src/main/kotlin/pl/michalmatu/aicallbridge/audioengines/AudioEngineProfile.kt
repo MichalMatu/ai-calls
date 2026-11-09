@@ -2,7 +2,7 @@ package pl.michalmatu.aicallbridge.audioengines
 
 /** Preferences, never call authority. No profile contains a target, grant or prompt. */
 internal enum class SpeechInputId { ANDROID_STT, PARAKEET_PL, GEMMA_AUDIO_DIRECT }
-internal enum class DialogueModelId { GEMMA_4_E2B, GEMMA_4_E4B, QWEN_3_1_7B, QWEN_3_0_6B }
+internal enum class DialogueModelId { GEMMA_4_E2B, GEMMA_4_E4B, QWEN_3_1_7B, QWEN_3_0_6B, QWEN_3_5_2B }
 internal enum class SpeechOutputId { ANDROID_TTS_PL, PIPER_PL, KOKORO, POCKET_TTS }
 
 internal data class AudioEngineProfile(
@@ -35,7 +35,8 @@ internal object AudioEngineRegistry {
             "Eksperymentalny adapter PCM→AudioBytes; brak dowodu S22 i pamięci", false),
     )
     val dialogues = pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog.entries.map {
-        AudioEngineChoice(it.id.name, it.title, "pl-PL", it.detail, true)
+        AudioEngineChoice(it.id.name, it.title, "pl-PL", it.detail,
+            it.id != DialogueModelId.QWEN_3_5_2B)
     }
     val outputs = listOf(
         AudioEngineChoice("ANDROID_TTS_PL", "Android TTS", "pl-PL",
@@ -50,6 +51,7 @@ internal object AudioEngineRegistry {
 
     /** An unsupported composition never silently falls back to another engine. */
     fun incompatibility(profile: AudioEngineProfile): String? = when {
+        profile.dialogue == DialogueModelId.QWEN_3_5_2B -> "qwen35_lab_only_unqualified"
         profile.languageTag != "pl-PL" -> "unsupported_language"
         profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> "audio_direct_s22_unqualified"
         profile.output == SpeechOutputId.KOKORO -> "kokoro_no_polish"

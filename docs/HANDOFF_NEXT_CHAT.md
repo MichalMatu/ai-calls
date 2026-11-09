@@ -1,5 +1,9 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## 2026-11-09 — G0/G1 decision and Qwen3.5 Lab-only code (G2 MAC_QA_PENDING)
+
+G0 physical S22 F-158 **TECHNICAL PASS** (`aicalls-g0-f158-s22-20261109-v1`, 24/24 turns, GPU, no Call); G1 Mac HF pin + S22 RAM/storage **DONE/0** (`aicalls-g1-qwen35-2b-metadata-hardware-20261109-v1`). Qwen3.5 2B text-only exact pin `f24013ba...`, SHA `c2438cb9...`, 2,119,843,840 bytes. On Exynos S22, GPU memory risk: experimental CPU-only model, fresh Engine when context resets; E2B default and Call profile untouched. G2 Kotlin code awaiting Mac QA, model file not downloaded/installed, Qwen native S22 **NOT_RUN**. Follow [single plan](AI_CALLS_MASTER_EXECUTION_PLAN.md) and [F-158 receipt](checkpoints/2026-11-09-f158-contextual-skills-sprint.md).
+
 ## 2026-11-09 — Master execution plan (owner decision)
 
 **Single source of execution order:** [AI_CALLS_MASTER_EXECUTION_PLAN.md](AI_CALLS_MASTER_EXECUTION_PLAN.md). G0 physical F-158 → G1 Qwen3.5-2B feasibility → G2 native smoke on S22 → G3 controlled E2B/Qwen A/B and model decision → G4 per-turn Skills → G5 full dialog → G6 incoming/outgoing telephone E2E → G7 UX/product. Gemma E2B remains default until G3 proves better. Mac F-158 initial QA is **DONE/0**; newer AndroidTest and S22 are **NOT_RUN**. No change to Call or user data.

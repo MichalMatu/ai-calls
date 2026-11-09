@@ -6,15 +6,15 @@ Jeden lokalny agent i wspólny runtime dla przychodzących i wychodzących. Siln
 
 **Kolejność bez przeskakiwania:** G0 F-158 fizyczny punkt odniesienia → G1 kompatybilność Qwen 3.5 2B → G2 jego natywny smoke → G3 uczciwe A/B z E2B → decyzja o domyślnym modelu → G4 Agent Skills dynamiczne → G5 pełny dialog → G6 telefonia end-to-end → G7 porządkowanie UX i odbiór. Po G0 następną *nową* pracą jest właśnie Gemma 4 E2B kontra Qwen 3.5 2B.
 
-## G0 — dokończyć F-158 (AKTYWNY)
+## G0 — F-158 (S22_TECHNICAL_PASS)
 - DONE: Mac `aicalls-f158-contextual-skills-host-qa-20261109-v1` = done/0; celowane JVM, pełny `verify_host.sh` oraz anti-friction PASS na implementacji selektora `a3b0fba`. Nowszy AndroidTest `f6f0baf` nie był częścią tej bramki.
-- OPEN: skompilować na Mac nowszy AndroidTest; na zweryfikowanym S22 przy IDLE, bez kampanii, uruchomić `AndroidContextualSkillsABNativeTest` (2 scenariusze × 2 sposoby ładowania Skills × 3 powtórzenia × 2 tury = 24 syntetyczne tury). Zachować niezmieniony profil, prywatność, zero połączeń.
+- DONE: `aicalls-g0-f158-s22-20261109-v1` — Mac AndroidTest compile PASS, S22 idle, 24/24 techniczne tury PASS, 12 rekordów + 4 podsumowania; bez połączeń i zmian profilu. Szersza semantyka nadal OPEN.
 - Gate: osobno `TECHNICAL_PASS` (kontrakt, narzędzia, liczniki) i `SEMANTIC_REVIEW` (czy Skill rzeczywiście pomaga w rozmowie). Nie awansować selektora do produkcyjnego Call na podstawie samego AndroidTest.
 
-## G1 — Qwen 3.5 2B: zgodność i ryzyko sprzętowe (NEXT)
+## G1 — Qwen 3.5 2B: zgodność i ryzyko sprzętowe (SOURCE_METADATA_PASS)
 - Wejście: potwierdzenie F-158 lub jawny blocker G0 z osobnym śledzeniem; brak powtórki już zaliczonych F-155/F-157.
 - Obecny Android używa LiteRT-LM `0.19.0`, katalog obsługuje E2B/E4B oraz starsze Qwen3 1.7B/0.6B, ale **nie** Qwen3.5 2B. Istniejący backend powinien być najpierw oceniony pod kątem architektury Qwen3.5 (hybrid GatedDeltaNet), tokenizer/chat template, stan rekurrencyjny, format odpowiedzi i Android/JNI.
-- Kandydat do weryfikacji: `litert-community/Qwen3.5-2B` / `Qwen3.5-2B_int8.litertlm`, 2,119,744,416 B; najpierw przypiąć dokładną rewizję i SHA-256, sprawdzić źródło/licencję, wolne miejsce, realne ABI i backend S22. Bez zgadywania hasha. Model card wskazuje konieczność nowego Engine na nową konwersację w wersjach runtime bez poprawki izolacji stanu; przed porównaniem musi być potwierdzona niezależność sesji.
+- Pin zweryfikowany bez pobierania: `litert-community/Qwen3.5-2B@f24013ba6844bd39be2d1f68e8d2421a77eed1f2` / `Qwen3.5-2B_int8.litertlm`, **2,119,843,840 B**, SHA-256 `c2438cb9c050220e667366b4beeca4daac56e693b226420674f53fc40f007c49`, Apache-2.0. Wymagana osobna inicjalizacja Engine dla nowej konwersacji; telefon SM-S906B s5e9925, RAM 7.44M KiB total/2.85M KiB available podczas preflight. Ze względu na Mali i ryzyko OOM: **CPU-only na G2**.
 - Gate: `FEASIBLE` albo konkretny `BLOCKED` (GPU, RAM, runtime, model, magazyn). Na S22 żadnego cichego fallbacku GPU↔CPU: mierzyć rzeczywisty backend. Nie zmieniać produkcyjnego profilu, nie pobierać niezweryfikowanych plików.
 
 ## G2 — pierwsze uruchomienie Qwen 3.5 2B (LAB_ONLY)

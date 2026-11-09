@@ -24,6 +24,18 @@ import java.util.concurrent.RejectedExecutionException
 // Native engine allocation, not an artificial limit on user dialogue turns.
 private const val DEFAULT_CONTEXT_TOKENS = 2_048
 
+/** G1 experimental model isolation: keep existing engines unchanged for accepted models. */
+internal data class NativeModelExecutionPolicy(
+    val cpuOnly: Boolean = false,
+    val newEngineAfterContextReset: Boolean = false,
+)
+
+internal fun DialogueModelId.nativeExecutionPolicy(): NativeModelExecutionPolicy = when (this) {
+    DialogueModelId.QWEN_3_5_2B -> NativeModelExecutionPolicy(
+        cpuOnly = true, newEngineAfterContextReset = true)
+    else -> NativeModelExecutionPolicy()
+}
+
 /** One off-call measurement; counts characters, never guesses the model tokenizer's TPS.
  * No prompt, reply, model path, user data or telephone state can enter this record. */
 internal data class NativeModelTiming(
@@ -169,6 +181,7 @@ internal class LiteRtGemma4Runtime(
     private val systemInstruction: String?,
     private val responseFormat: ResponseFormat? = null,
     private val disableQwenThinking: Boolean = false,
+    private val executionPolicy: NativeModelExecutionPolicy = NativeModelExecutionPolicy(),
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "aicall-gemma4-litert").apply { isDaemon = true }
     },
@@ -240,9 +253,13 @@ internal class LiteRtGemma4Runtime(
             // Queue cleanup behind any completing model callback and before a new
             // call turn's sendMessage. Never close native Conversation mid-callback.
             try {
-                executor.execute { closeConversation(detached) }
+                executor.execute {
+                    closeConversation(detached)
+                    closeIsolatedEngineWhenIdle()
+                }
             } catch (_: RejectedExecutionException) {
                 closeConversation(detached)
+                closeIsolatedEngineWhenIdle()
             }
         }
     }
@@ -420,12 +437,23 @@ internal class LiteRtGemma4Runtime(
                 }
             }
             closeConversation(toClose)
+            if (toClose != null) closeIsolatedEngineWhenIdle()
             closeEngineIfRuntimeClosed()
         }
     }
 
     private fun closeConversation(value: Conversation?) {
         try { value?.close() } catch (_: Throwable) {}
+    }
+
+    /** LiteRT-LM 0.19.0 can retain Qwen3.5 recurrent state after closing a Conversation. */
+    private fun closeIsolatedEngineWhenIdle() {
+        if (!executionPolicy.newEngineAfterContextReset) return
+        val detached = synchronized(lock) {
+            if (sendingGeneration != null || activeConversation != null) null
+            else engine.also { engine = null }
+        }
+        closeEngine(detached)
     }
 
     private fun ensureEngine(): Engine {
@@ -436,11 +464,13 @@ internal class LiteRtGemma4Runtime(
         val file = File(modelPath)
         require(file.isFile && file.length() > 0L) { "model_missing" }
 
-        val initialized = try {
+        val initialized = if (executionPolicy.cpuOnly) {
+            // Exynos S22/Mali 8 GB: avoid large GPU allocation reported for Qwen3.5 2B.
+            initializeEngine(Backend.CPU(threadCount = cpuThreadCount()))
+                .also { activeBackendLabel = "CPU" }
+        } else try {
             initializeEngine(Backend.GPU()).also { activeBackendLabel = "GPU" }
         } catch (error: Throwable) {
-            // A silent GPU→CPU fallback would otherwise look like a mysterious
-            // "slow small model". Log only the exception class (no private data).
             Log.w("AiCallBridgePerf", "gemma4_gpu_fallback_reason=${error.javaClass.simpleName}")
             initializeEngine(Backend.CPU(threadCount = cpuThreadCount()))
                 .also { activeBackendLabel = "CPU" }
@@ -659,7 +689,8 @@ internal object Gemma4LiteRtTextBackendFactory {
                     modelPath = path,
                     systemInstruction = instruction,
                     responseFormat = responseFormat,
-                    disableQwenThinking = modelId == DialogueModelId.QWEN_3_1_7B || modelId == DialogueModelId.QWEN_3_0_6B,
+                    disableQwenThinking = modelId == DialogueModelId.QWEN_3_1_7B || modelId == DialogueModelId.QWEN_3_0_6B || modelId == DialogueModelId.QWEN_3_5_2B,
+                    executionPolicy = modelId.nativeExecutionPolicy(),
                     contextTokenBudget = contextTokenBudget,
                     onTiming = onTiming,
                 )

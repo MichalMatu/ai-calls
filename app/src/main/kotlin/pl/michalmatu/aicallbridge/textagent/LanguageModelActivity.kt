@@ -322,7 +322,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
             row.import.visibility = if (modelState.showImport) View.VISIBLE else View.GONE
             row.download.isEnabled = modelState.actionsEnabled
             row.import.isEnabled = modelState.actionsEnabled
-            row.select.visibility = if (modelState.showSelect) View.VISIBLE else View.GONE
+            row.select.visibility = if (modelState.showSelect && row.model.id != DialogueModelId.QWEN_3_5_2B) View.VISIBLE else View.GONE
             row.select.isEnabled = modelState.actionsEnabled
             row.progress.visibility = if (modelState.showProgress) View.VISIBLE else View.GONE
             row.progress.progress = modelState.progressPercent

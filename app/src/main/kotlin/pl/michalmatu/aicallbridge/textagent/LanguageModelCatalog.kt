@@ -38,6 +38,12 @@ internal object LanguageModelCatalog {
             Gemma4ModelSpec("Qwen3 0.6B", "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm",
                 "bf1aba9ce8d963124407353c6aa4cbf72eba78db21ae133de983eac672ce83e0", 343490560L),
             "litert-community/Qwen3-0.6B", "f3f204cecab53892b096ebd8b3b931f8612c6bd3"),
+        // G1: laboratory CPU-only candidate; not selectable for real Calls before G3.
+        // Immutable Hugging Face repository revision and exact LFS blob verified by Mac Host Ops.
+        entry(DialogueModelId.QWEN_3_5_2B, "Qwen3.5 2B (Lab)", "CPU · kandydat eksperymentalny",
+            Gemma4ModelSpec("Qwen3.5 2B", "Qwen3.5-2B_int8.litertlm",
+                "c2438cb9c050220e667366b4beeca4daac56e693b226420674f53fc40f007c49", 2119843840L),
+            "litert-community/Qwen3.5-2B", "f24013ba6844bd39be2d1f68e8d2421a77eed1f2"),
     )
     operator fun get(id: DialogueModelId): LanguageModelEntry = entries.single { it.id == id }
 }

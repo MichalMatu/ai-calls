@@ -8,8 +8,8 @@ class LanguageModelCatalogTest {
     @Test fun everySelectableModelHasItsOwnPinnedIdentityAndImmutablePublicSource() {
         val entries = LanguageModelCatalog.entries
         assertEquals(DialogueModelId.entries.toSet(), entries.map { it.id }.toSet())
-        assertEquals(4, entries.map { it.spec.fileName }.toSet().size)
-        assertEquals(4, entries.map { it.spec.sha256 }.toSet().size)
+        assertEquals(DialogueModelId.entries.size, entries.map { it.spec.fileName }.toSet().size)
+        assertEquals(DialogueModelId.entries.size, entries.map { it.spec.sha256 }.toSet().size)
         for (entry in entries) {
             assertEquals(entry.spec.fileName, entry.source.fileName)
             assertEquals(entry.spec.sha256, entry.source.expectedSha256)
@@ -17,6 +17,24 @@ class LanguageModelCatalogTest {
             assertFalse(entry.source.requiresAuthentication)
             assertTrue(entry.source.downloadUrl.contains("/resolve/${entry.source.revision}/"))
         }
+    }
+
+    @Test fun experimentalQwen35PinnedButNotProductionSelectable() {
+        val candidate = LanguageModelCatalog[DialogueModelId.QWEN_3_5_2B]
+        assertEquals("Qwen3.5-2B_int8.litertlm", candidate.spec.fileName)
+        assertEquals("c2438cb9c050220e667366b4beeca4daac56e693b226420674f53fc40f007c49", candidate.spec.sha256)
+        assertEquals(2119843840L, candidate.spec.expectedBytes)
+        assertEquals("f24013ba6844bd39be2d1f68e8d2421a77eed1f2", candidate.source.revision)
+        assertEquals("qwen35_lab_only_unqualified",
+            pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.incompatibility(
+                pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile(
+                    dialogue = DialogueModelId.QWEN_3_5_2B)))
+        assertFalse(pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.dialogues.single {
+            it.id == DialogueModelId.QWEN_3_5_2B.name
+        }.integrated)
+        assertTrue(DialogueModelId.QWEN_3_5_2B.nativeExecutionPolicy().cpuOnly)
+        assertTrue(DialogueModelId.QWEN_3_5_2B.nativeExecutionPolicy().newEngineAfterContextReset)
+        assertFalse(DialogueModelId.GEMMA_4_E2B.nativeExecutionPolicy().cpuOnly)
     }
 
     @Test fun existingE2BInstallationRemainsValidWithoutRedownload() {
