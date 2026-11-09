@@ -19,7 +19,7 @@ class AndroidG53PrivateAudioEvidenceContractTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         // Reuse the ordinary per-turn Skill router decision contract through a real decision.
         val snapshot = pl.michalmatu.aicallbridge.conversation.ConversationSkillLibrary
-            .default().snapshot("natural")
+            .defaults().snapshot("natural")
         val router = pl.michalmatu.aicallbridge.conversation.ConversationSkillTurnRouter(
             snapshot,
             pl.michalmatu.aicallbridge.conversation.SkillLoadingMode.CONTEXTUAL,
