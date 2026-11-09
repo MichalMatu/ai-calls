@@ -5,6 +5,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.function.Consumer
 import pl.michalmatu.aicallbridge.agent.CallCommitmentGate
+import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
 import pl.michalmatu.aicallbridge.agent.CallConfirmationPolicy
 import pl.michalmatu.aicallbridge.agent.CallOutcome
 import pl.michalmatu.aicallbridge.agent.CallOutcomeStatus
@@ -196,6 +197,8 @@ enum class BookAppointmentEvidenceType {
     USER_REJECTED_PROPOSAL,
     USER_CONFIRMED_PROPOSAL,
     COMMITMENT_CONSUMED,
+    PROVIDER_CONFIRMED,
+    PROVIDER_NOT_CONFIRMED,
     DISCLOSURE_ALLOWED,
     DISCLOSURE_ASK_USER,
     DISCLOSURE_DENIED,
@@ -222,6 +225,7 @@ class BookAppointmentSimulator(
     private val authorizedFacts: AuthorizedFactSnapshot,
     private val zone: ZoneId,
     private val referenceDate: LocalDate? = null,
+    private val bookingProvider: SyntheticBookingAdapter = SyntheticBookingAdapter(),
 ) {
     private val appointmentInterpreter = AppointmentInterpreter(zone)
 
@@ -266,6 +270,12 @@ class BookAppointmentSimulator(
         }
 
         fun finishBooking(proposal: CallProposal, alreadyInCommitmentState: Boolean) {
+            val idempotencyKey = "simulator-" + snapshot.generation
+            val hold = bookingProvider.hold(proposal, idempotencyKey, 120_000L).getOrNull()
+            if (hold == null) {
+                evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.PROVIDER_NOT_CONFIRMED)
+                return
+            }
             val authorization = commitmentGate.authorize(proposal)
             if (!alreadyInCommitmentState) {
                 dispatch(BookAppointmentTaskGraph.PROCEED_TO_COMMITMENT)
@@ -273,17 +283,22 @@ class BookAppointmentSimulator(
             val consumed = commitmentGate.consume(authorization.value).getOrThrow()
             check(consumed == proposal) { "commitment permit changed concrete proposal" }
             evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.COMMITMENT_CONSUMED)
+            val confirmed = bookingProvider.confirm(
+                hold, idempotencyKey, CallCommitmentConsumptionEvidence(consumed),
+            ).getOrNull()
+            // One-shot local authorization is not independent provider success.
+            if (confirmed == null || bookingProvider.readBack(confirmed.bookingId) !== confirmed) {
+                evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.PROVIDER_NOT_CONFIRMED)
+                return
+            }
+            evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.PROVIDER_CONFIRMED)
             dispatch(BookAppointmentTaskGraph.COMMIT_SUCCEEDED)
             workflow.complete(
                 CallOutcome(
                     CallOutcomeStatus.SUCCESS,
-                    "appointment booked",
+                    "appointment booked (synthetic provider)",
                     proposal.scheduledAt(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
+                    null, null, null, null, null,
                 ),
             )
             outcome = BookAppointmentOutcome.BOOKED
