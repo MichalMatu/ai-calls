@@ -11,7 +11,7 @@
 ## Verified evidence and remaining gates
 
 - `aicalls-f158-agent-skills-preflight-20261109-v1` via the exact Mac Local Agent installation: **DONE/0**. Mac `main`, HEAD and `origin/main` matched starting SHA; working tree clean; source present.
-- `aicalls-f158-contextual-skills-host-qa-20261109-v1`: requested targeted JVM test, `verify_host.sh`, friction audit and clean-tree check on source `a3b0fba`. **RESULT PENDING at this checkpoint; DO NOT mark PASS.**
+- `aicalls-f158-contextual-skills-host-qa-20261109-v1`: requested targeted JVM test, `verify_host.sh`, friction audit and clean-tree check on source `a3b0fba`. **DONE/0 (receipt verified 2026-11-09)**: targeted `ConversationSkillRoutingTest`, full `bash scripts/verify_host.sh`, anti-friction and clean Git PASS on `a3b0fba`. The later `f6f0baf` native AndroidTest was not part of this QA task. Physical S22 A/B remains NOT_RUN.
 - The AndroidTest code in `f6f0baf` and physical E2B A/B on S22: **NOT_RUN**. No device install, model generation or telephone call was performed for this sprint at checkpoint time.
 - No new actual product friction violation established. Existing `BLOCKERS.md` authority and F-148 open areas preserved.
 

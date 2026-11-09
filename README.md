@@ -1,5 +1,7 @@
 # AI Calls
 
+**Current execution sequence:** [one master plan](docs/AI_CALLS_MASTER_EXECUTION_PLAN.md), G0 F-158 physical → G1/G2 Qwen3.5 2B feasibility/native → G3 fair Gemma E2B vs Qwen comparison → G4 contextual Skills → G5 full dialogues → G6 incoming/outgoing → G7 UX. Initial Mac F-158 QA DONE/0; S22 still NOT_RUN.
+
 ## 2026-11-09 — F-158 new sprint: session-level contextual Skills A/B (QA_PENDING)
 
 Code: `a3b0fba` (Lab selector, mode toggle, timing, six JVM tests), `f6f0baf` (24-turn E2B A/B AndroidTest, not yet executed). Existing Call flow and user presets unchanged. Mac read-only preflight DONE/0 clean from `0fd46c4`. Mac quality-gate task `aicalls-f158-contextual-skills-host-qa-20261109-v1` result pending; physical S22 A/B NOT_RUN. Continue by reading receipt, then compile AndroidTest and do idle-gated non-Call S22 test. Selector chooses at session start, not each turn. [Checkpoint](checkpoints/2026-11-09-f158-contextual-skills-sprint.md).
