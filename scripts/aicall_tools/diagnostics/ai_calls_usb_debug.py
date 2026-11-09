@@ -82,7 +82,10 @@ class DiagnosticError(RuntimeError):
 
 def invoke(argv: list[str], timeout: int = 30) -> subprocess.CompletedProcess[str]:
     try:
-        return subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
+        # ADB shell commands can drain inherited stdin. The owner console reserves
+        # it for a private lab-send message until the mailbox write itself.
+        return subprocess.run(argv, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=timeout, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise DiagnosticError("transport_or_command_unavailable") from exc
 
