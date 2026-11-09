@@ -1,5 +1,10 @@
 # AI Calls — prywatny kanał USB/ADB: Laboratorium i telefonia (2026-11-08)
 
+## Najnowsza weryfikacja 2026-11-09 — background native Lab PASS
+
+Odbiornik USB nie wymaga pierwszego planu AI Calls ani Launcher. Działa przez `adb shell run-as`, prywatną skrzynkę i broadcast `DUMP`. Operatorowy guard `foreground` był zbyt restrykcyjny, nie wynikał z systemowego ograniczenia kanału. Zostają bramki bezpieczeństwa: dokładny S22, ADB, Call IDLE, brak kampanii i konkurencyjnej sesji natywnej. `aicalls-usb-lab-background-two-turn-20261109-v3` **DONE/0**: Gemma E2B 4096, `lab-start`, **2/2 `lab-send` z odpowiedzią**, `lab-save` 2 tury prywatnie na Mac oraz `lab-stop` OK. F-153 **VERIFIED** (regresja stdin i fizyczny PASS). Wcześniejszy `REFUSED` przy PocketHost to ograniczenie skryptu testowego, nie usterka USB. F-150 GUI+USB concurrency i real Call intervention **NOT_RUN**. [Checkpoint](checkpoints/2026-11-09-usb-lab-background-two-turn-f153-verified.md).
+
+
 ## Aktualny odbiór 2026-11-09 — częściowo potwierdzony S22
 
 Debug APK oraz AndroidTest zainstalowane na S22 bez wipe. Kontrakt `AndroidUsbLabControlContractTest` **3/3 PASS** (DUMP/debug, off-call status i odmowy bez owned Call). Prawdziwe USB CLI `status`, `config-get`, `ram` **3/3 PASS** na S22 po F-152 `VERIFIED` (poprawne cytowanie `sh -c`); Mac pełny gate PASS. Właściwy `lab-start` E2B 4096 i `lab-stop` także wykonały się, lecz pierwsze SEND zwróciło brak stdin. F-153 naprawione w źródle, host PASS; fizyczny retest był bezpiecznie zablokowany przez PocketHost foreground. **Dwie tury Gemmy przez USB jeszcze NOT_RUN na poprawionej wersji CLI.** Live Call takeover/resume/owned STOP i GUI/USB concurrency również NOT_RUN. [Checkpoint 2026-11-09](checkpoints/2026-11-09-nav01-f151-usb-f152-reacceptance.md). Nie ponawiać zatwierdzonych przypadków, nie obchodzić odmowy.
