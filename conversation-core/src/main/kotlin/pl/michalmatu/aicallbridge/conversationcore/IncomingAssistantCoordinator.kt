@@ -49,6 +49,11 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
                 exclusive: Boolean, policy: IncomingAssistantPolicy) {
         if (!incoming) return
         val entry = entries[call] ?: Entry(policy, phase).also { entries[call] = it }
+        // Readiness/authorization ports may reenter observe without a state transition.
+        // Treat authority changes as a new revision even while this Call remains MANUAL.
+        if (entry.phase != phase || entry.account != accountKey || entry.exclusive != exclusive) {
+            entry.revision++
+        }
         entry.phase = phase
         entry.account = accountKey
         entry.exclusive = exclusive
@@ -161,7 +166,9 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         // Readiness can reenter via an Android callback (STOP, manual answer, removal).
         // Never claim a call whose lifecycle changed while the adapter was checking it.
         if (entry.revision != beforeReadiness || entry.phase == IncomingCallPhase.ENDED ||
-            entry.phase == IncomingCallPhase.HELD || entries[call] !== entry) return false
+            entry.phase == IncomingCallPhase.HELD || entries[call] !== entry ||
+            entry.account != policy.accountKey || !entry.exclusive ||
+            entries.any { (other, value) -> other !== call && ownsAudio(value) }) return false
         if (failure != null) { manual(call, entry, failure, ConversationStopReason.SESSION_CANCELLED); return false }
         entry.policy = policy
         entry.generation = ++sequence

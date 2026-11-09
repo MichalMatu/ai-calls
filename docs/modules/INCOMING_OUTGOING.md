@@ -3,7 +3,7 @@
 **Exact Call ownership:** `AndroidIncomingAssistant`, `IncomingAssistantCoordinator`, `AndroidOwnedInCallService`, `AndroidTelecomOwnedCallController`, `CampaignOwnedCallLifecycle`. Inne trwające połączenie unieważnia wyłączność AI; spóźnione callbacki nie mogą wybrać/odebrać/rozłączyć obcego Call.
 
 ## INCOMING
-RINGING → odpowiedź tylko w AI policy i przy gotowości/account match → ACTIVE → wspólny runtime. Manual answer lub TAKE OVER unieważnia generację AI, nie rozłącza Call. Resume wymaga tej samej aktywnej sesji i sprawdzenia polityki; ENDED nie przechodzi w MANUAL przez późny callback. W G6 source testy reentrant ownership PASS; fizyczne takeover/resume OPEN.
+RINGING → odpowiedź tylko w AI policy i przy gotowości/account match → ACTIVE → wspólny runtime. Manual answer lub TAKE OVER unieważnia generację AI, nie rozłącza Call. Resume wymaga tej samej aktywnej sesji i sprawdzenia polityki; ENDED nie przechodzi w MANUAL przez późny callback. Readiness po reentrant callbacku sprawdza ponownie SIM, exclusivity i drugi aktywny AI Call. Fizyczne takeover/resume OPEN.
 
 ## OUTGOING
 Task/grant+SIM+target → exact app-owned dial, nadzorowany lifecycle z STOP → wspólny runtime → typowany outcome. Żadnego uniwersalnego ograniczenia do Orange; rzeczywista próba wymaga konkretnego upoważnienia i potwierdzenia IDLE. Zewnętrzny efekt nie jest dowodem sukcesu tylko dlatego, że rozmowa się zakończyła.

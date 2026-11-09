@@ -167,6 +167,55 @@ class IncomingAssistantCoordinatorTest {
         assertEquals("another_call_active", f.core.snapshot(f.call)?.reason)
     }
 
+    @Test fun passiveAccountChangeDuringReadinessCannotClaimOldSim() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        f.port.reentrantReadiness = {
+            f.observe(IncomingCallPhase.ACTIVE, policy, account = "sim-b")
+        }
+        assertFalse(f.core.resume(f.call, policy))
+        assertTrue(f.port.started.isEmpty())
+        assertTrue(f.port.answered.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+    }
+
+    @Test fun passiveLossOfExclusivityDuringReadinessCannotStartAudio() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        f.port.reentrantReadiness = {
+            f.observe(IncomingCallPhase.ACTIVE, policy, exclusive = false)
+        }
+        assertFalse(f.core.resume(f.call, policy))
+        assertTrue(f.port.started.isEmpty())
+        assertFalse(f.core.isAuthorized(f.call, 1L))
+    }
+
+    @Test fun secondCallClaimDuringReadinessCannotStartConcurrentAi() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val other = Call()
+        f.port.reentrantReadiness = {
+            f.port.reentrantReadiness = null
+            f.core.observe(other, IncomingCallPhase.RINGING, "sim-a", true, true, policy)
+            f.core.observe(other, IncomingCallPhase.ACTIVE, "sim-a", true, true, policy)
+        }
+        assertFalse(f.core.resume(f.call, policy))
+        val generation = f.port.started.single().second
+        assertEquals(other, f.port.started.single().first)
+        assertTrue(f.core.isAuthorized(other, generation))
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+    }
+
+    @Test fun unchangedReadinessObservationDoesNotSpuriouslyDenyResume() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        f.port.reentrantReadiness = {
+            f.observe(IncomingCallPhase.ACTIVE, policy)
+        }
+        assertTrue(f.core.resume(f.call, policy))
+        assertEquals(1, f.port.started.size)
+    }
+
     @Test fun endedCallCannotBeTakenOverOrResumed() {
         val f = Fixture()
         f.observe(IncomingCallPhase.RINGING, policy)
