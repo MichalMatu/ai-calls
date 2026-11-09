@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_context_label">Kontekst modelu w Laboratorium (tokeny)</string>
+    <string name="lab_context_hint">Domyślnie 4096; możesz wpisać np. 2048 lub 8192. Zmiana dotyczy tylko nowej sesji Lab, nie połączeń. Większy kontekst zużywa więcej pamięci.</string>
+    <string name="lab_context_invalid">Podaj dodatnią liczbę tokenów kontekstu.</string>
+    <string name="lab_diagnostics_header">Diagnostyka modelu: %1$s · kontekst %2$d tokenów · limit odpowiedzi 128 tokenów</string>
+    <string name="lab_diagnostics_waiting">Po pierwszej odpowiedzi pojawi się podział czasu inicjalizacji i generowania.</string>
+    <string name="lab_diagnostics_last">%1$s · tura %2$d: silnik %3$d ms, konwersacja %4$d ms, generowanie %5$d ms, łącznie %6$d ms</string>
+    <string name="lab_diagnostics_summary">Zakończone tury: %1$d · średnia generowania %2$d ms · znaki ostatniej odpowiedzi: %3$d · stan: %4$s · %5$s</string>
+    <string name="lab_diagnostics_cold">zimny start</string>
+    <string name="lab_diagnostics_warm">kontekst zachowany</string>
+    <string name="lab_diagnostics_memory">PSS aplikacji: %1$d MiB · wolna pamięć systemu: %2$d MiB. Znaki nie oznaczają tokenów/s.</string>
+</resources>
