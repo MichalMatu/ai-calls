@@ -40,7 +40,7 @@ Mediany czasu STT po pozycji: **4395 / 5898 / 5121 ms**. Od STT do zatwierdzonej
 
 ## Końcowa walidacja dokumentacji — historia QA
 
-`aicalls-g53-private-voice-final-docsync-mac-20261109-v1` miał `DONE/0` tylko w kroku synchronizacji; celowany dokumentacyjny krok 2 zakończył się `FAILED` przez wyłącznie zbyt dokładny matcher interpunkcji statusu `F-162` (F-163). Żaden dodatkowy test S22/produktu nie był uruchamiany. Nowy odrębny Mac receipt ma zweryfikować dokumenty po naprawie samej asercji.
+`aicalls-g53-private-voice-final-docsync-mac-20261109-v1` miał `DONE/0` tylko w kroku synchronizacji; celowany dokumentacyjny krok 2 zakończył się `FAILED` przez wyłącznie zbyt dokładny matcher interpunkcji statusu `F-162` (F-163). Żaden dodatkowy test S22/produktu nie był uruchamiany. Nowy odrębny Mac receipt `aicalls-g53-private-voice-final-docsync-mac-20261109-v2` **DONE/0** (każda komenda exit=0), weryfikacja checkpointu, handoff i `audit_product_friction.py` PASS, Git clean. F-163 VERIFIED_SCOPED; oryginalne v1 FAILED zachowane.
 
 ## Pozostały zakres i pojedynczy następny krok
 **Human quality = OPEN/UNASSESSED.** Na lokalnym Macu otworzyć `index.html`, odsłuchać trzy sesje i w każdej zaznaczyć osiem ocen z dowodem konkretnej tury. Nie wolno automatycznie uznać poprawności znaczenia/naturalności na podstawie WER, JSON, asercji `wtor` ani własnych odpowiedzi badanego modelu. Następnie zapisać prywatny JSON recenzji i dopiero rozstrzygnąć G5.3. Odrębna praca może skontrolować opóźnienie cold/refresh/warm; nie zaczynać G6 bez osobnego rzeczywistego grantu i odbioru. Nie kopiować korpusu z Mac/S22 do Git.

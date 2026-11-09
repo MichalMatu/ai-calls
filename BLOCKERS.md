@@ -2,7 +2,7 @@
 
 **RED / źródło:** niemutowalny task Mac `aicalls-g53-private-voice-final-docsync-mac-20261109-v1`. Komenda 1 zakończyła się `0`, synchronizacja `main@96cc0f8` czysta; komenda 2 potwierdziła obecność wszystkich 10 plików, ale niepowiązana asercja oczekiwała literalnego `**F-162 VERIFIED_SCOPED**`, podczas gdy prawidłowa treść checkpointu to `**F-162 VERIFIED_SCOPED.**`. To **fałszywy RED sprawdzacza**, nie usterka funkcjonalna ani brak dowodu F-162. Komenda 3 nie została uruchomiona po FAIL komendy 2.
 
-**Naprawa:** nowy task Mac porówna tekst statusu semantycznie (`F-162 VERIFIED_SCOPED`) bez przywiązywania się do pogrubienia/interpunkcji. Nie zmieniać APK ani wcześniej zaliczonych S22/host QA; historyczne FAILED zachować. **Status: FIXED_TEST_QA_PENDING** do wyniku nowego, dokładnego Mac receipt.
+**Naprawa:** nowy task Mac porówna tekst statusu semantycznie (`F-162 VERIFIED_SCOPED`) bez przywiązywania się do pogrubienia/interpunkcji. Nie zmieniać APK ani wcześniej zaliczonych S22/host QA; historyczne FAILED zachować. **Status: VERIFIED_SCOPED.** Mac task `aicalls-g53-private-voice-final-docsync-mac-20261109-v2` zakończył się DONE/0 (Git fast-forward, 10 plików/8 receipts, F-162, friction i Git clean); wcześniejszy v1 FAILED historycznie zachowany. Bez zmian kodu produktu, APK i S22.
 
 ## F-162 — G5.3 instrumentacja AndroidTest: błędne API argumentów (2026-11-09)
 
