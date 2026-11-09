@@ -89,6 +89,28 @@ class DynamicSkillLabBackendTest {
         backend.close()
     }
 
+    @Test fun emitsOneMetadataOnlyRoutingEventPerTurnWithoutChangingEngineAuthority() {
+        val native = FakeNative()
+        val events = mutableListOf<SkillTurnRoutingDecision>()
+        val snapshot = ConversationSkillLibrary.defaults().snapshot()
+        val backend = DynamicSkillLabBackend(native,
+            ConversationSkillTurnRouter(snapshot, SkillLoadingMode.CONTEXTUAL,
+                ConversationDirection.UNSPECIFIED, "Neutralny Lab"),
+            instructionFor = { "WERSJONOWANE SKILLS WYBRANEGO PRESETU\nODPOWIEDŹ:" },
+            onRoutingDecision = events::add)
+        send(backend, "Zapisz wiadomość")
+        send(backend, "Doprecyzuj datę")
+        send(backend, "Inny temat")
+        assertEquals(listOf(1, 2, 3), events.map { it.turn })
+        assertEquals(listOf("MessageCapture"), events[0].activatedIds)
+        assertEquals(listOf("Clarification"), events[1].activatedIds)
+        assertTrue(events[2].deactivatedIds.contains("MessageCapture"))
+        assertTrue(events[2].deactivatedIds.contains("Clarification"))
+        assertEquals(3, native.instructions.size)
+        assertFalse(native.instructions.any { it.contains("Zapisz wiadomość") && it.contains("AUTORYZACJA") })
+        backend.close()
+    }
+
     @Test fun manualStopCancelsAndClosesExactlyOnce() {
         val native = FakeNative()
         val backend = create(native)

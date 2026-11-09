@@ -16,6 +16,7 @@ internal class DynamicSkillLabBackend(
     private val delegate: TextCallAgentBackend,
     private val router: ConversationSkillTurnRouter,
     private val instructionFor: (ConversationSkillSnapshot) -> String,
+    private val onRoutingDecision: (SkillTurnRoutingDecision) -> Unit = {},
 ) : TextCallAgentBackend {
     private val closed = AtomicBoolean(false)
     private val history = mutableListOf<Pair<String, String>>()
@@ -31,6 +32,8 @@ internal class DynamicSkillLabBackend(
             backend.refreshConversationInstruction(
                 withQuotedHistory(instructionFor(decision.snapshot), history))
         }
+        // Inspection cannot affect inference; never expose utterances or instructions.
+        runCatching { onRoutingDecision(decision) }
         delegate.generate(userText, object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
                 if (closed.get()) return

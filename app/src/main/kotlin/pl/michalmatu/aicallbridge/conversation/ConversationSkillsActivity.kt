@@ -24,12 +24,16 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
         "message" -> getString(R.string.skills_ux05_default_message)
         else -> preset.name
     }
-    private fun visibleSkillName(skill: VersionedSkill): String = when (skill.id) {
+    private fun visibleSkillName(skill: VersionedSkill): String {
+        val revision = library.active.versions[skill.id] ?: skill.revisions.maxOf { it.version }
+        skill.at(revision).metadata?.let { return it.name }
+        return when (skill.id) {
         "ConversationStyle" -> getString(R.string.skills_ux05_name_style)
         "MessageCapture" -> getString(R.string.skills_ux05_name_capture)
         "Clarification" -> getString(R.string.skills_ux05_name_clarify)
         "NaturalClosure" -> getString(R.string.skills_ux05_name_closure)
         else -> skill.name
+        }
     }
     private fun visibleSectionTitle(section: SkillSection): String = getString(when (section) {
         SkillSection.STYLE -> R.string.skills_ux05_section_style
@@ -275,23 +279,61 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                     })
                 }
                 skillCard.addView(instructions)
+                val displayedVersion = activeVersion ?: skill.revisions.maxOf { it.version }
+                val displayedMetadata = skill.metadataAt(displayedVersion)
+                skillCard.addView(UiDesign.caption(this,
+                    displayedMetadata.description + " · " + displayedMetadata.capability.name).apply {
+                    tag = "skills-metadata:" + skill.id
+                    textSize = 13f
+                }, UiDesign.spaceAfter(this, 6))
                 if (!library.active.isFactory) {
                     skillCard.addView(Button(this).apply {
                         tag = "skills-revise:" + skill.id
                         UiDesign.styleAction(this, UiActionTone.SECONDARY)
                         text = getString(R.string.skills_ux05_edit_new_version, visibleSkillName(skill))
                         setOnClickListener {
-                            val input = EditText(this@ConversationSkillsActivity).apply {
-                                setText(skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions)
-                                minLines = 4
-                                maxLines = 12
+                            val currentMetadata = skill.metadataAt(displayedVersion)
+                            val edit = LinearLayout(this@ConversationSkillsActivity).apply {
+                                orientation = LinearLayout.VERTICAL
+                                val inset = UiDesign.dp(this@ConversationSkillsActivity, 16)
+                                setPadding(inset, inset, inset, inset)
                             }
-                            AlertDialog.Builder(this@ConversationSkillsActivity).setTitle(getString(R.string.skills_ux05_version_title, visibleSkillName(skill)))
-                                .setView(input)
+                            fun field(title: String, value: String, fieldTag: String): EditText {
+                                edit.addView(label(title, 14f))
+                                return EditText(this@ConversationSkillsActivity).apply {
+                                    tag = fieldTag + ":" + skill.id
+                                    setText(value)
+                                    setSingleLine(fieldTag != "skills-metadata-instructions")
+                                    if (fieldTag == "skills-metadata-instructions") {
+                                        minLines = 4
+                                        maxLines = 12
+                                    }
+                                }.also { edit.addView(it) }
+                            }
+                            val name = field(getString(R.string.skills_metadata_name),
+                                currentMetadata.name, "skills-metadata-name")
+                            val description = field(getString(R.string.skills_metadata_description),
+                                currentMetadata.description, "skills-metadata-description")
+                            val options = SkillCapability.entries
+                            edit.addView(label(getString(R.string.skills_metadata_capability), 14f))
+                            val capability = Spinner(this@ConversationSkillsActivity).apply {
+                                tag = "skills-metadata-capability:" + skill.id
+                                UiSelect.setOptions(this, options.map { it.name })
+                                setSelection(options.indexOf(currentMetadata.capability))
+                            }
+                            edit.addView(capability)
+                            val input = field(getString(R.string.skills_metadata_instructions),
+                                skill.at(displayedVersion).instructions, "skills-metadata-instructions")
+                            AlertDialog.Builder(this@ConversationSkillsActivity)
+                                .setTitle(getString(R.string.skills_ux05_version_title, visibleSkillName(skill)))
+                                .setView(ScrollView(this@ConversationSkillsActivity).apply { addView(edit) })
                                 .setNegativeButton(getString(R.string.skills_ui_cancel), null)
                                 .setPositiveButton(getString(R.string.skills_ui_revision)) { _, _ ->
-                                    runCatching { library.reviseSkill(skill.id, input.text.toString()) }
-                                        .onSuccess { applyChange(it, getString(R.string.skills_ux05_version_saved, visibleSkillName(skill))) }
+                                    val metadata = SkillMetadata(name.text.toString(),
+                                        description.text.toString(), options[capability.selectedItemPosition])
+                                    runCatching { library.reviseSkill(skill.id, input.text.toString(), metadata) }
+                                        .onSuccess { applyChange(it,
+                                            getString(R.string.skills_ux05_version_saved, visibleSkillName(skill))) }
                                         .onFailure { showError(it) }
                                 }.show()
                         }

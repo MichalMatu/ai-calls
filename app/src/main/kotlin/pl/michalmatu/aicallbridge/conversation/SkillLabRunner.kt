@@ -205,9 +205,11 @@ internal class SkillLabRunner(
                     val raw = awaitResponse(job, backend, utterance)
                     if (!active(job)) break
                     val reply = ConversationReplyProtocol.decode(raw)
+                    val toolReview = LabToolProposalPolicy.validate(
+                        reply, setOf(ConversationToolId.END_CALL))
                     val observation = SkillLabObservation("Dialog", pending.turnIndex,
                         expectedEnd = false,
-                        actualEnd = reply.tool == ConversationToolId.END_CALL,
+                        actualEnd = toolReview.acceptedProposal == ConversationToolId.END_CALL,
                         reply = reply.text,
                         elapsedMs = (System.nanoTime() - started) / 1_000_000L)
                     completed.add(SkillLabCompletedTurn(pending, observation))
@@ -323,9 +325,11 @@ internal class SkillLabRunner(
                         val raw = awaitResponse(job, backend, turn.utterance)
                         if (!active(job)) break
                         val reply = ConversationReplyProtocol.decode(raw)
+                        val toolReview = LabToolProposalPolicy.validate(
+                            reply, setOf(ConversationToolId.END_CALL))
                         val observation = SkillLabObservation(
                             story.title, index + 1, turn.shouldEnd,
-                            reply.tool == ConversationToolId.END_CALL, reply.text,
+                            toolReview.acceptedProposal == ConversationToolId.END_CALL, reply.text,
                             (System.nanoTime() - started) / 1_000_000L, turn.expectQuestion)
                         completed.add(SkillLabCompletedTurn(pending, observation))
                         val immutable = Collections.unmodifiableList(ArrayList(completed))

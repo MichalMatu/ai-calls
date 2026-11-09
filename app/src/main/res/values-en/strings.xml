@@ -624,6 +624,13 @@
     <string name="lab_skill_mode_label">Agent Skills loading (Lab only)</string>
     <string name="lab_skill_mode_all">All active Skills (baseline prompt)</string>
     <string name="lab_skill_mode_contextual">Contextual selection (experimental)</string>
-    <string name="lab_skill_mode_hint">Selected once at session start. STOP and permissions are unchanged.</string>
-    <string name="lab_skill_routing_result">Selected Skills: %1$d/%2$d; router: %3$d µs. Selection is per session.</string>
+    <string name="lab_skill_mode_hint">Contextual Skills can switch between turns in Lab. STOP and permissions are unchanged.</string>
+    <string name="lab_skill_routing_result">Initial Skills: %1$d/%2$d; router: %3$d µs. Changes are listed below.</string>
+
+    <string name="skills_metadata_name">Skill name</string>
+    <string name="skills_metadata_description">When to use this Skill</string>
+    <string name="skills_metadata_capability">Routing capability</string>
+    <string name="skills_metadata_instructions">Versioned instructions</string>
+    <string name="lab_skill_turn_route">Turn %1$d · active: %2$s · added: %3$s · removed: %4$s</string>
+    <string name="lab_skill_turn_unchanged">none</string>
 </resources>

@@ -25,6 +25,7 @@ internal class AndroidSkillLabSessionFactory(
     @Volatile var selectedCase: LabCaseRevision? = null
     @Volatile var skillLoadingMode: SkillLoadingMode = SkillLoadingMode.ALL_ACTIVE
     @Volatile var onSkillSelection: (SkillRoutingDecision) -> Unit = {}
+    @Volatile var onTurnRouting: (SkillTurnRoutingDecision) -> Unit = {}
     companion object {
         private val activeLabBackend = AtomicBoolean(false)
     }
@@ -38,6 +39,7 @@ internal class AndroidSkillLabSessionFactory(
         val selected = selectedCase
         val modeSnapshot = skillLoadingMode
         val routingObserver = onSkillSelection
+        val turnRoutingObserver = onTurnRouting
         val initial = when (selected?.role ?: LabRole.GENERAL) {
             LabRole.INCOMING -> store.load(ConversationPreparation.INCOMING_ID)
             LabRole.OUTGOING -> store.load(ConversationPreparation.OUTGOING_ID)
@@ -71,11 +73,15 @@ internal class AndroidSkillLabSessionFactory(
                     val tracker = ConversationSkillTurnRouter(
                         pinnedSnapshot, modeSnapshot, initial.direction,
                         goal, selected?.opening.orEmpty())
-                    DynamicSkillLabBackend(delegate, tracker) { changed ->
-                        ConversationInstructionBuilder.build(
-                            preparation.withSkillSnapshot(changed),
-                            goal, ConversationResponseFormat.TOOL_REPLY)
-                    }
+                    DynamicSkillLabBackend(delegate, tracker,
+                        instructionFor = { changed ->
+                            ConversationInstructionBuilder.build(
+                                preparation.withSkillSnapshot(changed),
+                                goal, ConversationResponseFormat.TOOL_REPLY)
+                        }, onRoutingDecision = { decision ->
+                            // Only IDs and revision numbers travel to the UI observer.
+                            runCatching { turnRoutingObserver(decision) }
+                        })
                 } else delegate
                 object : TextCallAgentBackend {
                     private val closed = AtomicBoolean(false)

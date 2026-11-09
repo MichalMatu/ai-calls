@@ -52,6 +52,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
     private lateinit var contextBudgetInput: EditText
     private lateinit var skillModePicker: Spinner
     private lateinit var skillRoutingView: TextView
+    private val turnRoutingRows = mutableListOf<String>()
+    private var initialRoutingSummary = ""
     private lateinit var diagnosticsView: TextView
     private val timingMeasurements = mutableListOf<NativeModelTiming>()
     private var diagnosticRunId = 0L
@@ -483,13 +485,31 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         sessionFactory.skillLoadingMode = loadingMode
         // Snapshot one observer per session, rejecting late telemetry from a stopped run.
         val thisRun = ++diagnosticRunId
-        skillRoutingView.text = getString(R.string.lab_skill_mode_hint)
+        turnRoutingRows.clear()
+        initialRoutingSummary = getString(R.string.lab_skill_mode_hint)
+        skillRoutingView.text = initialRoutingSummary
         sessionFactory.onSkillSelection = { decision ->
             runOnUiThread {
                 if (!isDestroyed && thisRun == diagnosticRunId) {
-                    skillRoutingView.text = getString(R.string.lab_skill_routing_result,
+                    initialRoutingSummary = getString(R.string.lab_skill_routing_result,
                         decision.selectedIds.size, decision.availableCount,
                         decision.selectorMicros)
+                    skillRoutingView.text = (listOf(initialRoutingSummary) + turnRoutingRows)
+                        .joinToString("\n")
+                }
+            }
+        }
+        sessionFactory.onTurnRouting = { decision ->
+            runOnUiThread {
+                if (!isDestroyed && thisRun == diagnosticRunId) {
+                    val unchanged = getString(R.string.lab_skill_turn_unchanged)
+                    turnRoutingRows.add(getString(R.string.lab_skill_turn_route,
+                        decision.turn,
+                        decision.selectedIds.joinToString(", "),
+                        decision.activatedIds.joinToString(", ").ifBlank { unchanged },
+                        decision.deactivatedIds.joinToString(", ").ifBlank { unchanged }))
+                    skillRoutingView.text = (listOf(initialRoutingSummary) + turnRoutingRows)
+                        .joinToString("\n")
                 }
             }
         }
