@@ -1,10 +1,10 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
-## Aktywna bramka 2026-11-09: G3 porównanie modeli (S22 receipt pending)
+## Aktywna bramka 2026-11-09: G3 ocena semantyczna i decyzja
 
-**Kanoniczny plan:** [AI_CALLS_MASTER_EXECUTION_PLAN.md](AI_CALLS_MASTER_EXECUTION_PLAN.md). **Zamknięte:** G0 F-158 24/24 S22, G1 pin Qwen3.5 i sprzęt, G2 Qwen3.5 3/3 CPU S22 + MAC QA PASS. **Otwarta:** G3 8 scenariuszy × 3 powtórzenia × 2 modele × 2 tury = 96 tur, task `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1`, `SUBMITTED/RECEIPT_PENDING` (ostatni odczyt: 404). QA macierzy do `bf31c48` PASS, nowy prywatny journal w `2966967` nadal wymaga odbioru kompilacji. Mac log do 09:27:24 UTC nie zawiera G3, za to pokazuje zatory control Git/lease. **Nie dublować, nie deklarować S22 PASS ani jakości semantycznej.** Zob. [pełny checkpoint/handoff](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md).
+**G0 S22 24/24 PASS; G1 pin/S22 PASS; G2 Qwen3.5 CPU 3/3 PASS; G3 porównanie 96/96 tur na S22 TECH_PASS**. G3 `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1`: Mac latest AndroidTest build PASS, fizyczny `am instrument` PASS, 48/48 syntetycznych par prywatnie na Mac 0600, Call IDLE. Gemma E2B GPU: JSON/tools/native 24/24, hint 15/15, mediana cold/warm 24,20/4,73 s; Qwen3.5 CPU: 24/24, 12/15, 49,19/7,34 s. Formalne `failed` dotyczy tylko **pominiętego ostatniego clean postflight** (`task_budget_exhausted`), nie AndroidTest.
 
-**Jedyny kolejny krok:** odczytać dokładny receipt G3 i aktualny stan kolejki Mac; jeśli brak, pozyskać świeże logi/claim dla tego ID; jeśli jest, przeanalizować techniczne agregaty i prywatny raport, rozstrzygnąć KEEP_E2B / PROMOTE_QWEN / INSUFFICIENT_EVIDENCE. **G4 per-turn Skills, G5 dialog głosowy, G6 Call E2E, G7 UX** pozostają planem. Gemma E2B pozostaje domyślna.
+**Jeden następny krok:** krótki Mac read-only Git clean check oraz analiza 48 prywatnych par (per-model/scenario, bez transkryptów w GitHub) → semantyczny review → formalna decyzja `KEEP_E2B / PROMOTE_QWEN / INSUFFICIENT_EVIDENCE`. Qwen pozostaje Lab-only, E2B default. Dopiero potem G4 per-turn Skills, G5 pełna mowa, G6 autoryzowane Call i G7 UX. [Plan](AI_CALLS_MASTER_EXECUTION_PLAN.md) · [checkpoint](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md).
 
 ### Archiwum poprzednich priorytetów (zachowane dowody, nie aktualny NEXT)
 

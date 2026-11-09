@@ -2,7 +2,7 @@
 
 ## 2026-11-09 — G3 prywatne syntetyczne artefakty
 
-Test E2B/Qwen3.5 tworzy wyłącznie fikcyjne rozmowy poza Call i przechowuje pełne pary tur lokalnie w `app.noBackupFilesDir/g3-private`. Lokalny Mac odbiera je jedynie `adb exec-out run-as` do katalogu użytkownika z uprawnieniami 0600. Do repo, task JSON, standardowego logcat i zdalnych wyników trafią tylko liczniki/metryki, nie tekst. Model Qwen3.5 jest laboratoryjny i CPU-only, nie ma uprawnień telefonicznych, nie zmienia domyślnego E2B. Bieżący test G3 nie ma jeszcze potwierdzonego wyniku S22. [Checkpoint](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md).
+Test E2B/Qwen3.5 tworzy wyłącznie fikcyjne rozmowy poza Call i przechowuje pełne pary tur lokalnie w `app.noBackupFilesDir/g3-private`. Lokalny Mac odbiera je jedynie `adb exec-out run-as` do katalogu użytkownika z uprawnieniami 0600. Do repo, task JSON, standardowego logcat i zdalnych wyników trafią tylko liczniki/metryki, nie tekst. Model Qwen3.5 jest laboratoryjny i CPU-only, nie ma uprawnień telefonicznych, nie zmienia domyślnego E2B. G3 wykonał 96/96 tur i wyeksportował prywatny raport 48 par Mac 0600; końcowy clean Git pominięto z powodu budżetu tasku, a human semantic review pozostaje UNASSESSED. [Checkpoint](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md).
 
 ## Prywatny kanał USB/ADB — granice uprawnień (2026-11-08)
 

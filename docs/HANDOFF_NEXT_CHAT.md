@@ -1,10 +1,12 @@
 # AI Calls — handoff do G3: Gemma E2B kontra Qwen3.5 2B
 
-## 2026-11-09 — aktualny handoff G3 (kanoniczny)
+## 2026-11-09 — aktualny handoff: G3 S22 96/96 TECH_PASS, semantyka OPEN
 
-**G0 S22_TECHNICAL_PASS; G1 SOURCE_PASS; G2 MAC_PASS + S22_CPU_SMOKE_PASS; G3 MAC_PASS na `bf31c48`, ale finalne `main@2966967` z prywatnym journalem czeka na host build; G3 S22 `SUBMITTED / RECEIPT_PENDING`.** Dokładne zadanie: `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1` na Mac Local Agent, wynik 404 przy ostatnim odczycie. Log Mac do 09:27:24 UTC nie potwierdza startu G3; zawiera timeouty control Git/lease busy. Status hosta (`idle` z 08:23:50 UTC) jest przestarzały. Nie uruchamiać duplikatu. Gemma E2B nadal domyślna; Qwen3.5 2B eksperymentalny CPU-only, import i 3-tury S22 w G2 PASS. Bez realnych Call i bez zmiany profilu.
+**Zamknięte:** G0 F-158 S22 24/24; G1 Qwen3.5 pin/sprzęt; G2 Qwen3.5 2B CPU S22 3/3 i Mac QA. **G3 fizyczne porównanie 96/96 tur na S22 PASS technicznie**: `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1` z 48 sesjami, 2 modelowymi summary i 48 prywatnymi parami JSONL na Mac. Oba modele: 24/24 sesji native/JSON/tools. E2B GPU: hint 15/15, cold/warm mediana 24,20/4,73 s, p95 28,89/7,29 s. Qwen3.5 CPU: 12/15, mediana 49,19/7,34 s, p95 54,50/11,21 s. Różne akceleratory i syntetyczne heurystyki **nie są dowodem semantycznej wyższości**. E2B pozostaje domyślna.
 
-**Kontynuuj wyłącznie według** [jednego planu](AI_CALLS_MASTER_EXECUTION_PLAN.md) i [pełnego checkpointu G3](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). Najpierw aktualny HEAD + dokładny receipt G3 → świeższe logi hosta/claims, jeśli brak receipt → dalszy jeden krok według wyniku → prywatna ocena semantyczna i decyzja KEEP_E2B / PROMOTE_QWEN / INSUFFICIENT_EVIDENCE → dopiero G4. Dawne wpisy w tym pliku mają charakter **historyczny** i nie zastępują nowego stanu.
+**Otwarta końcówka G3:** dokładny task formalnie `failed` wyłącznie przez `task_budget_exhausted`: pierwsze **3 komendy 0/PASS**, końcowy `git status` nie wystartował (wymagał timeoutu 6460 s przy pozostałych 5460,812 s), więc `G3_MAC_SOURCE_CLEAN` **NOT_RUN**. Model/natywna instrumentacja i prywatny eksport PASS. Urządzenie IDLE, bez Call, instalacja bez wipe. Ocenę naturalności/prawdziwości, rozkład 3 brakujących hintów oraz formalną decyzję KEEP_E2B/PROMOTE_QWEN/INSUFFICIENT_EVIDENCE traktować jako **OPEN**.
+
+**Kontynuacja dokładnie w tej kolejności:** świeży HEAD i dokładny receipt → krótki odczytowy Mac clean postflight + lokalne 48-pair JSONL audit (bez tekstu poza Mac) → human semantic review i decyzja G3 → dopiero G4 per-turn Skills, G5, G6, G7. Nie powtarzać 96 tur. [Kanoniczny plan](AI_CALLS_MASTER_EXECUTION_PLAN.md) · [pełny checkpoint/handoff](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). Starsze rozdziały to historia.
 
 ## 2026-11-09 — Skills F-156 VERIFIED_SCOPED + fizyczne E2B/E4B 18 tur, Google Gallery research
 

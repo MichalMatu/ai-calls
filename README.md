@@ -1,6 +1,6 @@
 # AI Calls
 
-**Aktualny etap 2026-11-09:** [jeden plan G0→G7](docs/AI_CALLS_MASTER_EXECUTION_PLAN.md) i [kompletny checkpoint G3/handoff](docs/checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). G0 F-158 **24/24 PASS na S22**, G1 metadata/pin **PASS**, G2 Qwen3.5 2B **3/3 natywnych tur CPU S22 PASS** oraz pełny Mac gate PASS. G3 E2B vs Qwen **48 sesji / 96 tur zlecone, wynik RECEIPT_PENDING**, nie ma zweryfikowanego startu ani wyniku S22. W logu Mac do 09:27 UTC widać zatory synchronizacji Local Agent; nie zlecać duplikatu. `main@2966967` jest bazą kodu przed dokumentacyjnym checkpointem. Gemma E2B pozostaje domyślna, Qwen3.5 wyłącznie laboratoryjny, bez połączeń.
+**Stan 2026-11-09:** [jedyny plan G0–G7](docs/AI_CALLS_MASTER_EXECUTION_PLAN.md) · [G3 kompletny checkpoint/handoff](docs/checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). G0 F-158 **24/24** S22 PASS, G1 pin/metadane PASS, G2 Qwen3.5 2B CPU **3/3** S22 PASS. **G3 96/96 syntetycznych tur na S22 PASS technicznie:** Gemma E2B GPU 24/24 sesji i hint 15/15 (median cold/warm 24,20/4,73 s); Qwen3.5 CPU 24/24 sesji, 12/15 (49,19/7,34 s). Formalne `failed` = **ostatni clean Git postflight nie wystartował przez `task_budget_exhausted`**, nie awaria modelu. Prywatne 48 par zapisane na Mac; ocena naturalności oraz finalna decyzja G3 pozostają OPEN. E2B jest domyślna, Qwen3.5 Lab-only, bez Call.
 
 Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowanych scenariuszy telefonicznych. Obecnie służy do weryfikowania komponentów i ich integracji; nie jest jeszcze dowiedzionym, kompletnym wykonawcą dowolnych zadań ani zamkniętym archiwum audio.
 
@@ -34,7 +34,7 @@ Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowan
 
 ## Co dalej
 
-**Najpierw dokończyć bieżące G3: odebrać dokładny host result, zebrać agregaty S22 i prywatnie ocenić semantykę 96 tur; dopiero na tej podstawie wybrać model.** Historyczny plan ogólnej akceptacji UI pozostaje osobnym etapem G7, nie aktualnym pierwszym krokiem.
+**G3 techniczne 96/96 tur jest odebrane. Sprawdź krótki Mac clean postflight i lokalne 48 par, ocenę semantyki i zdecyduj o modelu; nie powtarzaj całej macierzy.** Historyczny plan ogólnej akceptacji UI pozostaje osobnym etapem G7, nie aktualnym pierwszym krokiem.
 
 **Zachowane zasady odbioru funkcjonalnego:** Zanim cokolwiek oznaczysz PASS, sprawdź działanie, efekt/stan, STOP, restart i prywatność w faktycznym dopuszczonym zakresie. Aktywna macierz to [FUNCTIONAL_ACCEPTANCE_MATRIX](docs/FUNCTIONAL_ACCEPTANCE_MATRIX.md).
 
