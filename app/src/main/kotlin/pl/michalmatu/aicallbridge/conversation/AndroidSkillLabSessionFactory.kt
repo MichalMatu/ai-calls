@@ -31,7 +31,7 @@ internal class AndroidSkillLabSessionFactory(
         val timingSnapshot = onTiming
         val profile = AudioEngineProfileStore(context).load()
             ?: error(context.getString(R.string.lab_ui_missing_profile))
-        val store = AndroidConversationPreparationStore(context)
+        val store = SkillLabIsolatedTestStore.forContext(context)
         val library = store.loadSkillLibrary()
         val selected = selectedCase
         val initial = when (selected?.role ?: LabRole.GENERAL) {
