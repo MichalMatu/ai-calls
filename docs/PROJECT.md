@@ -5,7 +5,7 @@
 ## Cel i fakty
 - Jeden lokalny agent i jeden wspólny runtime INCOMING/OUTGOING. Bieżący produkt jest **modułowym laboratorium**, finalnie jeden pakiet instalacyjny. Obecny wybór: Gemma 4 E2B/GPU, CONTEXTUAL Skills, Android STT/TTS i Samsung/Shizuku.
 - **G3/G4:** wybór E2B po 96/96 native tur; dynamic Skills S22 PASS w zakresie off-call. **G5.3:** 18/18 native off-call tur i 36 prywatnych WAV, rzeczywisty STOP STT/model/TTS sprawdzony. Indywidualna ocena człowieka: **0/6, UNASSESSED** (nie wpisuj human PASS).
-- **G6 source/host:** INCOMING reentrant takeover/STOP, atomowe Realtime barge-in/flush, odtwarzanie *dostępnych* prywatnych WAV, zakończenie/interrupted RX w historii, niepodłączony jeszcze IVR/DTMF gate. Ostatni pełny Mac host QA `aicalls-g6-sprint6-once-final-host-qa-20261109-v1`: PASS, 398 Python, Gradle 11 wykonanych / 136 UP-TO-DATE, config cache reused; `aicalls-g6-sprint7-docs-ff-clean-20261109-v1`: DONE/0. Bez APK i realnych Call w tym sprincie.
+- **G6 source/host:** INCOMING reentrant takeover/STOP, atomowe Realtime barge-in/flush, odtwarzanie *dostępnych* prywatnych WAV, zakończenie/interrupted RX w historii, lokalny G6.1 TX ma ogrodzenie epoką tury (stare callbacki/PCM 20 ms); wykrycie RX podczas TX nadal OPEN. Ostatni pełny Mac host QA `aicalls-g6-sprint6-once-final-host-qa-20261109-v1`: PASS, 398 Python, Gradle 11 wykonanych / 136 UP-TO-DATE, config cache reused; `aicalls-g6-sprint7-docs-ff-clean-20261109-v1`: DONE/0. Bez APK i realnych Call w tym sprincie.
 - Historyczne dwa INCOMING A8→S22 dowiodły fragmentów odbioru i zakończenia własnego połączenia, **nie** całości G6. Nie powtarzaj G3 96 tur, G5.3 18 tur ani fizycznego STOP bez zmiany kontraktu.
 
 ## Otwarte — tylko rzeczywista następna praca

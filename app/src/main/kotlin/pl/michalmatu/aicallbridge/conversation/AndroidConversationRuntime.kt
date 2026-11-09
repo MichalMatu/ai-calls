@@ -123,6 +123,7 @@ internal object AndroidConversationRuntime {
     ) : SessionControl {
         override fun stopAudio(reason: ConversationStopReason) {
             // Revoke TX synchronously, even if the main-thread cleanup is delayed.
+            outputEpoch.incrementAndGet()
             stopRequested.compareAndSet(null, reason)
             handler.post { finish(ConversationTermination.Stopped(checkNotNull(stopRequested.get()))) }
         }
@@ -143,6 +144,8 @@ internal object AndroidConversationRuntime {
         private val readOnlySupervised = scenario.mode == ConversationRuntimeMode.SUPERVISED_ATTACH
         private val supervisorRelayEnabled = scenario.mode == ConversationRuntimeMode.DEVELOPER_RELAY
         private val activeMediaGeneration = AtomicLong(-1L)
+        /** Fences queued and in-flight PCM across local turns and STOP on the same Call. */
+        private val outputEpoch = AtomicLong(0L)
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",
             "supervised_read_only=$readOnlySupervised",
@@ -333,6 +336,7 @@ internal object AndroidConversationRuntime {
             if (opening == null) beginNextTurn(generation, lease)
             else {
                 currentTurn = 0
+                outputEpoch.incrementAndGet()
                 turnStartedAtMs = SystemClock.elapsedRealtime()
                 pipeline.speakCandidate(opening, turnListener(generation, lease))
             }
@@ -349,6 +353,7 @@ internal object AndroidConversationRuntime {
                 finish(ConversationTermination.Completed)
                 return
             }
+            outputEpoch.incrementAndGet()
             currentTurn = turnsCompleted + 1
             idlePromptTurn = -1
             silenceWindows = 0L
@@ -362,7 +367,13 @@ internal object AndroidConversationRuntime {
 
         private fun turnListener(generation: Long, lease: CallMediaEndpointLease) =
             object : LocalSpeechTextPipeline.Listener {
+                private val ownerTurn = currentTurn
+                private val ownerEpoch = outputEpoch.get()
+                private fun stale() = finished.get() || activeMediaGeneration.get() != generation ||
+                    currentTurn != ownerTurn || outputEpoch.get() != ownerEpoch
+
                 override fun onSpeechInputReady() {
+                    if (stale()) return
                     lines += "turn_${currentTurn}_stt_ready=true"
                     lines += "turn_${currentTurn}_stt_ready_elapsed_ms=${elapsedTurnMs()}"
                     ConversationChatFeed.stage(liveChatToken, "Tura " + currentTurn + " • słucham rozmówcy…")
@@ -370,7 +381,7 @@ internal object AndroidConversationRuntime {
                 }
 
                 override fun onUserTranscript(text: String) {
-                    if (finished.get()) return
+                    if (stale()) return
                     if (!authorizedNow()) { finish(authorityTermination()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = false, text = text, responseKind = ConversationChatFeed.ResponseKind.UNSPECIFIED)
                     ConversationChatFeed.heard(liveChatToken, currentTurn, text)
@@ -383,7 +394,7 @@ internal object AndroidConversationRuntime {
                 }
 
                 override fun onApprovedText(text: String) {
-                    if (finished.get()) return
+                    if (stale()) return
                     if (!authorizedNow()) { finish(authorityTermination()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text, responseKind = responseKind())
                     ConversationChatFeed.replied(
@@ -397,21 +408,23 @@ internal object AndroidConversationRuntime {
                 }
 
                 override fun onOutputPcm16Mono16k(pcm: ByteArray) {
-                    if (finished.get() || !authorizedNow()) { finish(authorityTermination()); return }
-                    if (activeMediaGeneration.get() != generation) { fail("stale_media_generation"); return }
+                    if (stale()) return
+                    if (!authorizedNow()) { finish(authorityTermination()); return }
                     val outputTurn = currentTurn
                     finalAudioReadyTurn.set(outputTurn)
                     lines += "turn_${outputTurn}_output_pcm_ready_elapsed_ms=${elapsedTurnMs()}"
                     ConversationChatFeed.stage(liveChatToken, "Tura " + outputTurn + " • wysyłanie głosu…")
-                    executor.execute { writeOutputTurn(lease, pcm, outputTurn, generation) }
+                    executor.execute { writeOutputTurn(lease, pcm, outputTurn, generation, ownerEpoch) }
                 }
 
                 override fun onDroppedText() {
+                    if (stale()) return
                     dialogue.recordTurnDiagnostics(currentTurn)
                     fail("output_dropped")
                 }
 
                 override fun onError(reason: String) {
+                    if (stale()) return
                     dialogue.recordTurnDiagnostics(currentTurn)
                     if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
                         val retryTurn = currentTurn
@@ -584,6 +597,7 @@ internal object AndroidConversationRuntime {
             if (readOnlySupervised || supervisorRelayEnabled) return
             handler.postDelayed({
                 val pcm = quickAckPcm.get()
+                val turnEpoch = outputEpoch.get()
                 if (!QuickAcknowledgementPolicy.shouldPlay(
                         authorized = !finished.get() && authorizedNow() &&
                             runCatching { callStillActive() }.getOrDefault(false) &&
@@ -601,7 +615,7 @@ internal object AndroidConversationRuntime {
                 if (lastQuickAckTurn.getAndSet(turn) >= turn) return@postDelayed
                 val ready = pcm ?: return@postDelayed
                 runCatching {
-                    executor.execute { writeQuickAcknowledgement(lease, ready, turn, generation) }
+                    executor.execute { writeQuickAcknowledgement(lease, ready, turn, generation, turnEpoch) }
                 }.onFailure { error ->
                     lines += "turn_${turn}_quick_ack_queue_error=${error.javaClass.simpleName}"
                 }
@@ -613,8 +627,9 @@ internal object AndroidConversationRuntime {
             pcm: ByteArray,
             turn: Int,
             generation: Long,
+            turnEpoch: Long,
         ) {
-            if (finished.get() || !authorizedNow() ||
+            if (finished.get() || !authorizedNow() || outputEpoch.get() != turnEpoch ||
                 !runCatching { callStillActive() }.getOrDefault(false) ||
                 currentTurn != turn || activeMediaGeneration.get() != generation ||
                 finalAudioReadyTurn.get() == turn ||
@@ -631,7 +646,8 @@ internal object AndroidConversationRuntime {
                     isAuthorized = {
                         !finished.get() && authorizedNow() &&
                             runCatching { callStillActive() }.getOrDefault(false) &&
-                            currentTurn == turn && activeMediaGeneration.get() == generation
+                            currentTurn == turn && activeMediaGeneration.get() == generation &&
+                            outputEpoch.get() == turnEpoch
                     },
                 )
                 val txWriteWallMs =
@@ -667,9 +683,11 @@ internal object AndroidConversationRuntime {
             pcm: ByteArray,
             turn: Int,
             generation: Long,
+            turnEpoch: Long,
         ) {
             try {
-                if (finished.get() || !authorizedNow()) return
+                if (finished.get() || !authorizedNow() || currentTurn != turn ||
+                    outputEpoch.get() != turnEpoch) return
                 if (activeMediaGeneration.get() != generation) return
                 if (pcm.isEmpty()) throw IllegalStateException("tts_pcm_empty")
                 val firstTxElapsed = elapsedTurnMs()
@@ -690,16 +708,24 @@ internal object AndroidConversationRuntime {
                     pcm = pcm,
                     isAuthorized = {
                         !finished.get() && authorizedNow() &&
-                            activeMediaGeneration.get() == generation
+                            runCatching { callStillActive() }.getOrDefault(false) &&
+                            activeMediaGeneration.get() == generation &&
+                            currentTurn == turn && outputEpoch.get() == turnEpoch
                     },
                 )
                 evidenceRecorder?.recordTransmittedAudio(turn, pcm, bytesWritten, txEvidenceAtMs)
                 evidenceRecorder?.recordFullTxAttempt(turn, bytesWritten, pcm.size)
                 ConversationChatFeed.tx(liveChatToken, turn, bytesWritten == pcm.size)
                 if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
-                    activeMediaGeneration.get() != generation
+                    activeMediaGeneration.get() != generation || currentTurn != turn ||
+                    outputEpoch.get() != turnEpoch
                 ) {
-                    context.mainExecutor.execute { fail("tx_authority_revoked") }
+                    // A revoked old turn is not an error in its successor.
+                    if (finished.get() || currentTurn != turn || outputEpoch.get() != turnEpoch) return
+                    context.mainExecutor.execute {
+                        if (!finished.get() && currentTurn == turn && outputEpoch.get() == turnEpoch)
+                            fail("tx_authority_revoked")
+                    }
                     return
                 }
                 val txWriteWallMs =
@@ -714,12 +740,13 @@ internal object AndroidConversationRuntime {
                 ConversationChatFeed.stage(liveChatToken, "Tura " + turn + " • odpowiedź wysłana do TX")
                 lines += "turn_${turn}_tx_pcm_bytes=${pcm.size}"
                 handler.postDelayed(
-                    { completeTurnAfterPlayback(turn, generation, lease) },
+                    { completeTurnAfterPlayback(turn, generation, lease, turnEpoch) },
                     postWriteHoldMs,
                 )
             } catch (error: Throwable) {
                 context.mainExecutor.execute {
-                    fail("turn_${turn}_tx_${error.javaClass.simpleName}")
+                    if (!finished.get() && turn == currentTurn && outputEpoch.get() == turnEpoch)
+                        fail("turn_${turn}_tx_${error.javaClass.simpleName}")
                 }
             }
         }
@@ -728,8 +755,9 @@ internal object AndroidConversationRuntime {
             turn: Int,
             generation: Long,
             lease: CallMediaEndpointLease,
+            turnEpoch: Long,
         ) {
-            if (finished.get() || turn != currentTurn) return
+            if (finished.get() || turn != currentTurn || outputEpoch.get() != turnEpoch) return
             if (activeMediaGeneration.get() != generation) { fail("stale_media_generation"); return }
             turnsCompleted = turn
             lines += "turn_${turn}_complete_elapsed_ms=${elapsedTurnMs()}"
@@ -754,6 +782,7 @@ internal object AndroidConversationRuntime {
 
         private fun finish(termination: ConversationTermination) {
             if (!finished.compareAndSet(false, true)) return
+            outputEpoch.incrementAndGet()
             val result = stopRequested.get()?.let { ConversationTermination.Stopped(it) } ?: termination
             val reason = result.code
             activeMediaGeneration.set(-1L)

@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.developerrelay
 
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import java.util.concurrent.atomic.AtomicLong
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -42,6 +43,25 @@ class AuthorizedPcmUplinkWriterTest {
         )
         assertEquals(0, output.bytes.size())
         assertFalse(output.flushed)
+    }
+
+    @Test fun olderTurnEpochCannotContinueQueuedOrInflightPcm() {
+        val epoch = AtomicLong(7L)
+        val output = ObservedOutput()
+        output.onWrite = { epoch.incrementAndGet() }
+        assertEquals(640, AuthorizedPcmUplinkWriter.write(
+            output, ByteArray(2_560), isAuthorized = { epoch.get() == 7L },
+        ))
+        assertEquals(listOf(640), output.frameSizes)
+        assertFalse(output.flushed)
+        assertEquals(0, AuthorizedPcmUplinkWriter.write(
+            output, ByteArray(640), isAuthorized = { epoch.get() == 7L },
+        ))
+        val next = ObservedOutput()
+        assertEquals(640, AuthorizedPcmUplinkWriter.write(
+            next, ByteArray(640), isAuthorized = { epoch.get() == 8L },
+        ))
+        assertTrue(next.flushed)
     }
 
     @Test fun invalidAlignmentFailsClosed() {
