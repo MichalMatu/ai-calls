@@ -233,6 +233,9 @@ class BookAppointmentSimulator(
     private val appointmentInterpreter = AppointmentInterpreter(zone)
 
     fun run(steps: List<BookAppointmentSimulationStep>): BookAppointmentSimulationResult {
+        // A shared provider must not mistake a new call for an idempotent retry of
+        // a previous call with the same proposal and graph generation.
+        val runId = SYNTHETIC_RUN_SEQUENCE.incrementAndGet()
         val core = CustomTaskGraphCore(BookAppointmentTaskGraph.definition)
         val initialSnapshot = BookAppointmentTaskGraph.definition.initialSnapshot()
         var snapshot = initialSnapshot
@@ -283,7 +286,7 @@ class BookAppointmentSimulator(
                 evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.OFFER_REJECTED)
                 return
             }
-            val idempotencyKey = "simulator-" + snapshot.generation
+            val idempotencyKey = "simulator-" + runId + "-" + snapshot.generation
             val hold = bookingProvider.hold(proposal, idempotencyKey, 120_000L).getOrNull()
             if (hold == null) {
                 evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.PROVIDER_NOT_CONFIRMED)
@@ -469,6 +472,7 @@ class BookAppointmentSimulator(
         appointmentInterpreter.parseOffer(text, referenceDate)?.scheduledAt
 
     private companion object {
+        val SYNTHETIC_RUN_SEQUENCE = java.util.concurrent.atomic.AtomicLong()
         val HARD_POLICY_REASONS = setOf(
             CallPolicyReason.TIME_UNKNOWN,
             CallPolicyReason.TIME_OUTSIDE_ALLOWED,

@@ -192,6 +192,27 @@ class BookAppointmentSimulatorTest {
         assertTrue(noisy.evidence.any { it.type == BookAppointmentEvidenceType.OFFER_PARSED })
     }
 
+    @Test
+    fun sharedProviderDoesNotReturnPreviousCallReceiptAsNewBooking() {
+        val task = task()
+        val facts = AuthorizedFactSnapshot(task, target, 11L, emptySet(), emptySet())
+        val provider = SyntheticBookingAdapter()
+        val offer = listOf(BookAppointmentSimulationStep.ReceptionistOffer("2026-09-24 17:00"))
+        val first = BookAppointmentSimulator(
+            task, target, facts, zone, bookingProvider = provider,
+        ).run(offer)
+        val second = BookAppointmentSimulator(
+            task, target, facts, zone, bookingProvider = provider,
+        ).run(offer)
+
+        assertEquals(BookAppointmentOutcome.BOOKED, first.outcome)
+        assertTrue(first.evidence.any { it.type == BookAppointmentEvidenceType.PROVIDER_CONFIRMED })
+        assertEquals(BookAppointmentOutcome.INCOMPLETE, second.outcome)
+        assertTrue(second.evidence.any { it.type == BookAppointmentEvidenceType.PROVIDER_NOT_CONFIRMED })
+        assertFalse(second.evidence.any { it.type == BookAppointmentEvidenceType.COMMITMENT_CONSUMED })
+        assertTrue(first.replayVerified && second.replayVerified)
+    }
+
     private fun task(preferences: CallPreferences = CallPreferences.none()): CallTask = CallTask(
         "Example clinic",
         "book appointment",

@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.appointment
 import pl.michalmatu.aicallbridge.agent.CallCommitmentConsumptionEvidence
 import pl.michalmatu.aicallbridge.agent.CallExternalEffect
 import pl.michalmatu.aicallbridge.agent.CallProposal
+import java.time.Instant
 
 /** Synthetic-only handles: their diagnostics must not include appointment identity or terms. */
 class SyntheticBookingHold(val id: String, val expiresAtMs: Long) {
@@ -21,21 +22,28 @@ class SyntheticBookingAdapter(
     private val availability: (CallProposal) -> Boolean = { true },
     private val confirmReady: () -> Boolean = { true },
 ) {
+    private data class SlotKey(val provider: String?, val location: String?, val instant: Instant)
+    private fun slotOf(proposal: CallProposal): SlotKey? =
+        proposal.scheduledAt()?.toInstant()?.let { SlotKey(proposal.provider(), proposal.location(), it) }
+
     private class Entry(
         val hold: SyntheticBookingHold,
         val key: String,
+        val slot: SlotKey,
         val proposal: CallProposal,
         var receipt: SyntheticBookingReceipt? = null,
         var cancelled: Boolean = false,
     )
     private val byKey = mutableMapOf<String, Entry>()
-    private val byProposal = mutableMapOf<CallProposal, Entry>()
+    /** Availability belongs to the provider/time/location, not a mutable price or terms. */
+    private val bySlot = mutableMapOf<SlotKey, Entry>()
     private val byHold = mutableMapOf<String, Entry>()
     private val byReceipt = mutableMapOf<String, SyntheticBookingReceipt>()
     private var sequence = 0L
 
     @Synchronized fun available(proposal: CallProposal): Boolean = runCatching {
-        val current = byProposal[proposal]
+        val slot = slotOf(proposal) ?: return@runCatching false
+        val current = bySlot[slot]
         if (current != null && !current.cancelled &&
             (current.receipt != null || clockMs() < current.hold.expiresAtMs)) return@runCatching false
         availability(proposal)
@@ -47,6 +55,7 @@ class SyntheticBookingAdapter(
     ): Result<SyntheticBookingHold> = runCatching {
         require(idempotencyKey.isNotBlank())
         require(ttlMs > 0L)
+        val slot = slotOf(proposal) ?: error("booking time is missing")
         val now = clockMs()
         byKey[idempotencyKey]?.let { old ->
             check(old.proposal == proposal) { "booking key conflicts with another proposal" }
@@ -57,9 +66,9 @@ class SyntheticBookingAdapter(
         check(now <= Long.MAX_VALUE - ttlMs) { "booking hold overflow" }
         check(available(proposal)) { "slot unavailable" }
         val hold = SyntheticBookingHold("synthetic-hold-" + (++sequence), now + ttlMs)
-        val entry = Entry(hold, idempotencyKey, proposal)
+        val entry = Entry(hold, idempotencyKey, slot, proposal)
         byKey[idempotencyKey] = entry
-        byProposal[proposal] = entry
+        bySlot[slot] = entry
         byHold[hold.id] = entry
         hold
     }
@@ -72,7 +81,7 @@ class SyntheticBookingAdapter(
     ): Result<SyntheticBookingReceipt> = runCatching {
         val entry = byHold[hold.id] ?: error("unknown hold")
         check(entry.hold === hold && entry.key == idempotencyKey) { "hold mismatch" }
-        check(!entry.cancelled && byProposal[entry.proposal] === entry) { "hold no longer active" }
+        check(!entry.cancelled && bySlot[entry.slot] === entry) { "hold no longer active" }
         check(consumed.effect == CallExternalEffect.BookAppointment(entry.proposal)) {
             "consumed effect differs from held offer"
         }
@@ -90,11 +99,11 @@ class SyntheticBookingAdapter(
         val entry = byHold[hold.id] ?: return false
         if (entry.hold !== hold || entry.key != idempotencyKey ||
             entry.cancelled || entry.receipt != null ||
-            byProposal[entry.proposal] !== entry) return false
+            bySlot[entry.slot] !== entry) return false
         val now = runCatching { clockMs() }.getOrNull() ?: return false
         if (now >= entry.hold.expiresAtMs) return false
         entry.cancelled = true
-        byProposal.remove(entry.proposal, entry)
+        bySlot.remove(entry.slot, entry)
         return true
     }
 
