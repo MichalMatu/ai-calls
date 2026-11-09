@@ -1,6 +1,16 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
-## Aktualny backlog i potwierdzone bramki (2026-11-08)
+## Priorytet od 2026-11-09: rzeczywisty UI i działanie AI Skills
+
+Zbiorczy przebieg sprzętowy na S22 zakończył się scoped PASS: współdzielona procesowa dzierżawa LiteRT GUI/USB **1/1**, natywna decyzja Gemmy w Skill **1/1**, adaptacyjny dialog **1/1**, manualny STOP/restart **1/1**, szyfrowane presety/kontrakty UI **2/2** po naprawie testu zależnego od języka (F-154 VERIFIED), realny USB CLI trzy fabryczne presety × 2 tury **6/6**, prosty recall **3/3**, zapis/STOP **3/3**, odmowy interwencji bez własnego Call **3/3**. Mac full gate PASS. [Dokładny checkpoint](checkpoints/2026-11-09-single-pass-ui-usb-ai-skills-acceptance.md).
+
+**Następny aktywny zakres = SKILL-01/02/03:** prawdziwe operacje edycji/włączenia/wyłączenia/wersjonowania z UI, trwałość po restarcie oraz porównanie rzeczywistych odpowiedzi Gemmy przy aktywnych i nieaktywnych instrukcjach — nie samo uruchamianie fabrycznych presetów. Próbki 3×2 mierzą podstawowe działanie i latencję, nie N=3 na preset ani p95. Zachować prywatne transkrypty i oddzielić ocenę semantyczną od PASS technicznego. Nie powtarzać już zaliczonych bramek USB bez wykrytego problemu.
+
+Pozytywne takeover/resume/exact owned STOP podczas rzeczywistego Call nadal **NOT_RUN**, wymaga niezależnie skonkretyzowanego grantu aplikacyjnego. F-148 długi dialog/8192 i pełny audio pipeline pozostają osobnymi otwartymi pozycjami.
+
+## Backlog historyczny — stan zapisany 2026-11-08
+
+## Aktualny backlog i potwierdzone bramki (historyczny 2026-11-08)
 
 | Priorytet | Status |
 | --- | --- |
