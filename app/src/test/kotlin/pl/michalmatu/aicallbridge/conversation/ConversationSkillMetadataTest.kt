@@ -50,8 +50,9 @@ class ConversationSkillMetadataTest {
         assertFalse(route.selectedIds.contains("ConversationStyle"))
         val turns = ConversationSkillTurnRouter(snap, SkillLoadingMode.CONTEXTUAL,
             ConversationDirection.UNSPECIFIED, "Neutralny dialog")
-        assertEquals(listOf("ConversationStyle"),
-            turns.observeUserTurn("Zapisz wiadomość").activatedIds)
+        val first = turns.observeUserTurn("Zapisz wiadomość")
+        assertEquals(setOf("ConversationStyle", "MessageCapture"),
+            first.activatedIds.toSet())
         val activated = turns.observeUserTurn("Zapisz wiadomość")
         assertTrue(activated.selectedIds.contains("ConversationStyle"))
         assertTrue(activated.activatedIds.isEmpty())
