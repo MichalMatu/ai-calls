@@ -1,3 +1,9 @@
+## F-167 — G5.3 błędna komenda uruchomienia walidatora w prywatnym HTML (2026-11-09)
+
+**Warunek:** `g53_private_audio_review.render` wskazywał `python3 scripts/aicall_tools/diagnostics/g53_human_review_gate.py` uruchomiony bezpośrednio z repo, podczas gdy walidator importuje `scripts.aicall_tools.diagnostics.g53_private_audio_review`; standardowy `sys.path` takiego uruchomienia wskazuje na katalog skryptu, nie katalog repo, więc przy braku dodatkowego `PYTHONPATH` możliwy jest `ModuleNotFoundError: No module named 'scripts'`. **Wpływ:** właściciel nie mógłby przyjąć prywatnej recenzji z instrukcji HTML, mimo poprawnego JSON. To błąd naszej nowej ścieżki jakości, nie telefonii ani modeli.
+
+**Naprawa w źródle / QA_PENDING:** wyłącznie przykład w rendererze zmieniony na kanoniczne `python3 -m scripts.aicall_tools.diagnostics.g53_human_review_gate --corpus ... --review-input ...` z katalogu repo; import modułu i CLI używają tej samej ścieżki. Weryfikacja źródłowa w ChatGPT Linux Sandbox wykazała różnicę `sys.path` pomiędzy wywołaniem pliku i `-m`; końcowy Mac Python / `verify_host.sh` nadal wymagany. Mac Local Agent nie opublikował jeszcze wyników wcześniejszych zleceń dla F-166; nie przedstawiać ich jako PASS. Bez modyfikacji APK/S22 i bez danych prywatnych w Git.
+
 ## F-166 — G5.3 HTML human-review nie wiązał JSON z sesją (2026-11-09)
 
 **Ścieżka:** `scripts/aicall_tools/diagnostics/g53_private_audio_review.py` → eksport formularza `human-review.json`. **Warunek:** eksport zawierał `schema/source/reviews`, lecz nie miał identyfikatora ani SHA sesji; przeniesienie pobranego pliku do niewłaściwego folderu mogło niepostrzeżenie przypisać 8 werdyktów do innej sesji. JSON sugerował `source=human` bez jawnego oświadczenia o odsłuchu; narzędzie nie miało walidacji przyjęcia ocen. **Wpływ:** ryzyko fałszywej akceptacji jakości i brak wiarygodnego powiązania dowodu z korpusem. Dotyczy procesu prywatnego review, nie Android/telefonii.

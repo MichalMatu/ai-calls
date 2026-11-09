@@ -173,7 +173,7 @@ function saveHumanReview() {
             'Osobiście przeczytałem i odsłuchałem wszystkie tury tej sesji.</label></p>'
             + '<button onclick="saveHumanReview()">Zapisz pełną ocenę do prywatnego JSON</button>'
             + '<p class="muted">Pobraną ocenę zaimportuj lokalnie komendą '
-            '<code>python3 scripts/aicall_tools/diagnostics/g53_human_review_gate.py '
+            '<code>python3 -m scripts.aicall_tools.diagnostics.g53_human_review_gate '
             '--corpus &lt;folder-sesji&gt; --review-input &lt;pobrany-plik.json&gt;</code>. '
             'Skrypt sprawdza SHA manifestu i osiem ocen; nie przesyła żadnych danych do sieci.</p>'
             + '<script>' + script + '</script></body></html>')
