@@ -80,6 +80,7 @@ internal class AndroidTelecomOwnedCallSession(
     private val boundCall = AtomicReference<Call?>(null)
     private val stopRequested = AtomicBoolean(false)
     private val dtmfPort = AtomicReference<AndroidTelecomDtmfDigitPort?>(null)
+    private val dtmfRevoked = AtomicBoolean(false)
 
     fun attachIfMatching(call: Call, nowElapsedMs: Long): Boolean {
         val details = call.details ?: return false
@@ -109,22 +110,28 @@ internal class AndroidTelecomOwnedCallSession(
         generation: Long,
         authorized: (OutgoingIvrDtmfRequest) -> Boolean,
     ): OutgoingIvrDtmfGate? {
-        if (generation <= 0 || Looper.myLooper() != Looper.getMainLooper() || !isExactCallActive()) return null
+        if (generation <= 0 || dtmfRevoked.get() ||
+            Looper.myLooper() != Looper.getMainLooper() || !isExactCallActive()) return null
         val port = AndroidTelecomDtmfDigitPort(
             exactCall = { boundCall.get()?.takeIf { it.state == Call.STATE_ACTIVE && !stopRequested.get() } },
-            active = { isExactCallActive() },
-            authorized = { request -> request.callGeneration == generation && authorized(request) },
+            active = { !dtmfRevoked.get() && isExactCallActive() },
+            authorized = { request -> !dtmfRevoked.get() && request.callGeneration == generation && authorized(request) },
         )
         if (!dtmfPort.compareAndSet(null, port)) { port.close(); return null }
-        if (!isExactCallActive()) { revokeDtmf(); return null }
+        if (dtmfRevoked.get() || !isExactCallActive()) { revokeDtmf(); return null }
         return OutgoingIvrDtmfGate(
-            active = { it == generation && isExactCallActive() },
-            authorized = { request -> request.callGeneration == generation && isExactCallActive() && authorized(request) },
+            active = { !dtmfRevoked.get() && it == generation && isExactCallActive() },
+            authorized = { request -> !dtmfRevoked.get() && request.callGeneration == generation &&
+                isExactCallActive() && authorized(request) },
             port = port,
         )
     }
 
-    internal fun revokeDtmf() { dtmfPort.getAndSet(null)?.close() }
+    /** Terminal for this owned session. A manual takeover never re-arms AI tones. */
+    internal fun revokeDtmf() {
+        dtmfRevoked.set(true)
+        dtmfPort.getAndSet(null)?.close()
+    }
 
     internal fun onExactCallRemoved(call: Call) {
         if (boundCall.get() !== call) return
