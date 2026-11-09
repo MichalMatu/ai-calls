@@ -1,5 +1,9 @@
 # Security and privacy
 
+## 2026-11-09 — G4.2 off-call dynamic Skills: granice danych i uprawnień
+
+W trybie Lab `CONTEXTUAL` historia skończonych tur jest utrzymywana tylko w pamięci `DynamicSkillLabBackend` i zwalniana przy `close/STOP`. Po zmianie aktywnych Skills trafia do nowej instancji natywnej `Conversation` (ten sam Engine) jako **zakodowane JSON dane, nie instrukcje, grant ani sekret z IdentityVault**. Prompt zachowuje wcześniejsze ograniczenia bezpieczeństwa, a model nie wykonuje narzędzi; wynik wciąż przechodzi przez istniejący decoder/walidatory. Zwykłe logi i Git nie zawierają treści rozmów. Fizycznie S22 4/4 syntetyczne tury, pamięć przed/po zmianie tematu i STOP PASS, brak Call, E2B profil niezmieniony. [Checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md). Dla prawdziwego Call ta ścieżka nie jest włączona i wymaga osobnej oceny granic grantu/zgód oraz audio.
+
 ## 2026-11-09 — G3 prywatne syntetyczne artefakty
 
 Test E2B/Qwen3.5 tworzy wyłącznie fikcyjne rozmowy poza Call i przechowuje pełne pary tur lokalnie w `app.noBackupFilesDir/g3-private`. Lokalny Mac odbiera je jedynie `adb exec-out run-as` do katalogu użytkownika z uprawnieniami 0600. Do repo, task JSON, standardowego logcat i zdalnych wyników trafią tylko liczniki/metryki, nie tekst. Model Qwen3.5 jest laboratoryjny i CPU-only, nie ma uprawnień telefonicznych, nie zmienia domyślnego E2B. G3 wykonał 96/96 tur i wyeksportował prywatny raport 48 par Mac 0600; końcowy clean Git pominięto z powodu budżetu tasku, a human semantic review pozostaje UNASSESSED. [Checkpoint](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md).

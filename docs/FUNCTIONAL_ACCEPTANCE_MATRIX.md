@@ -1,5 +1,9 @@
 # AI Calls — macierz funkcjonalna ekran po ekranie
 
+## G4.2 — prawdziwy dynamiczny Skills E2E, S22 `PASS_OFFCALL_FUNCTIONAL` (2026-11-09)
+
+`AndroidG4DynamicSkillsNativeE2ETest#runnerGemmaDynamicSkillsPreservesMemoryAndStops`, Mac `aicalls-f157-g4p2-e2b-memory-s22-e2e-retest-20261109-v4` **DONE/0**: E2B/GPU, kontekst 4096, 4/4 natywne tury tekstowe z pełnym `SkillLabRunner`, 3 zmiany Skills i natywne odświeżenie instrukcji/Conversation, kod `ZX74` przypomniany przed/po zmianie tematu, STOP i odmowa wysłania po STOP, brak własnego Call, profil nietknięty, instalacja bez wipe, Mac full QA (371 Python) PASS i końcowe Git clean. **Scope:** tekstowe off-call; nie oznacza `PASS_REAL_CALL`, ludzkiej oceny naturalności, UI ręcznego klikania wszystkich zmian ani pełnej integracji STT/TTS. [Finalny checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md). `F-157 VERIFIED_SCOPED` po rzeczywistym wcześniejszym RED.
+
 ## S22 — F-156 Skills oraz Gemma E2B/E4B (2026-11-09)
 
 `F-156` **VERIFIED_SCOPED**: aktualna kompozycja promptu przenosi aktywne wersjonowane Skills po zasadach bezpieczeństwa, przed odpowiedzią; natywna E2B na S22: aktywne `true`, nieaktywne `false`, izolowany UI edit/revision/toggle/rollback PASS. Dwa modele, **18/18 tur** 2048 na GPU, identyczne zadania: marker zgodny z aktywacją, przypomnienie i sprostowanie kodu, cytowane vs rzeczywiste zakończenie, JSON i proponowane narzędzie tylko zgodne z semantyką **PASS w obu modelach**. E4B była około trzykrotnie wolniejsza; nie potwierdzono przewagi jakościowej w tym małym zestawie. MTP, p95, wielokrotne N≥3 i selektor Google Gallery-style Agent Skills **NOT_RUN**. [Checkpoint](checkpoints/2026-11-09-e2b-e4b-agent-skills-differential.md).

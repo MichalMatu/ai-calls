@@ -1,5 +1,7 @@
 # AI Calls — Google AI Edge Gallery Agent Skills vs obecne Skills (2026-11-09)
 
+**Nowy fizyczny stan (2026-11-09):** po tej analizie G4.1/G4.2 rozwinęły statyczny selector do wersjonowanych propozycji per turn i Lab-only odświeżania natywnej konwersacji. E2B/GPU S22 **4/4 tur, 3 dynamiczne przełączenia, pamięć i STOP PASS**. To wciąż **prompt Skills**, nie pliki `SKILL.md`, execution JS lub pełna kontrola narzędzi; dawny opis „wyłącznie statyczny” poniżej ma charakter historyczny. [Finalny checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md).
+
 ## Co faktycznie robi obecny AI Calls
 
 `ConversationSkillLibrary` przechowuje wersjonowane instrukcje i presety w szyfrowanym magazynie. `ConversationSkillSnapshot.instructions()` scala **wszystkie aktywowane** instrukcje wybranego presetu; `ConversationInstructionBuilder` dołącza je do jednego statycznego promptu sesji. Jest to mechanizm **prompt Skills**, a nie gotowy `Agent Skills` Google AI Edge Gallery. Wykonywanie proponowanych narzędzi pozostaje niezależne od promptu i podległe autoryzacji AI Calls.

@@ -42,7 +42,12 @@ Jeden lokalny agent i wspólny runtime dla przychodzących i wychodzących. Siln
 
 **Nie cofać wyboru modelu z powodu niezakończonej ludzkiej oceny naturalności**: ten wymóg pozostaje odrębną bramką G5, a nie otwartą decyzją E2B/Qwen. Żadnego automatycznego awansu Qwen. Pierwsza niezamknięta bramka modelowego planu to **G4.1**.
 
-## G4 — Agent Skills reagujące na rozmowę
+## G4 — Agent Skills reagujące na rozmowę (G4.1 MAC_PASS, G4.2 S22_E2E_SCOPED_PASS; G4.3 OPEN)
+
+**G4.2 fizyczny E2E na S22: PASS (2026-11-09).** `G4.1` kontrakt JVM i Mac full PASS; `G4.2` rzeczywisty `SkillLabRunner` → `AndroidSkillLabSessionFactory` → `DynamicSkillLabBackend` → E2B/GPU, **4/4 natywne tury, 3 przełączenia aktywnego zestawu Skills, fikcyjny kod zachowany przed/po zmianie tematu, STOP PASS, profil i Call IDLE bez zmian**. Ostateczny task `aicalls-f157-g4p2-e2b-memory-s22-e2e-retest-20261109-v4` **DONE/0**: Mac 371 Python, Gradle/JVM/lint/APK/AndroidTest/audio i anti-friction PASS, S22 instrument 1/1 PASS, oba debug APK bez wipe i końcowe Git clean. Poprzedni fizyczny RED pamięci `F-157` naprawiony, historyczne FAIL retained. Tylko syntetyczne **off-call tekstowe E2E** — nie pełne STT/TTS, human naturalness ani rzeczywisty Call. Gemma E2B pozostaje głównym modelem. [Kompletny checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md).
+
+**Następny pojedynczy zakres G4.3:** wersjonowane metadane/capability, widoczny per-turn dziennik wyboru Skills i typowane propozycje narzędzi z wyraźnym zatwierdzaniem przez aplikację. Bez Call effects i bez nieuwierzytelnionego wykonania skryptu; osobne targeted JVM + Mac + S22 przy realnej zmianie ścieżki modelu.
+
 - Metadata `name/description/capability` z istniejącym wersjonowaniem i edytorem; styl/zasady stałe, umiejętności wybierane na podstawie aktualnej intencji i stanu dialogu, nie wyłącznie pierwszej wypowiedzi. Najpierw protokół przejść między turami i ekonomia kontekstu LiteRT.
 - Propozycja narzędzia przez model → walidacja przez aplikację → wykonanie wyłącznie w grancie → wynik do konwersacji. Żadnych dowolnych pobranych skryptów ani rozszerzania uprawnień przez prompt.
 - Gate: testy aktywacji, dezaktywacji, zmiany intencji, pamięci, rollback wersji, bez regresji START/STOP i bez dostępu do niedozwolonych danych; fizyczne testy S22.

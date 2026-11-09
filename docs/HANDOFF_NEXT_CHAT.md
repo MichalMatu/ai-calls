@@ -1,4 +1,10 @@
-# AI Calls — handoff G4: per-turn Agent Skills po G3 KEEP_E2B
+# AI Calls — handoff po G4.2: dynamic Skills na E2B/S22, next G4.3
+
+## Najnowszy status 2026-11-09 — obowiązujący
+
+**G4.2 fizyczny E2E na S22: PASS (2026-11-09).** `G4.1` kontrakt JVM i Mac full PASS; `G4.2` rzeczywisty `SkillLabRunner` → `AndroidSkillLabSessionFactory` → `DynamicSkillLabBackend` → E2B/GPU, **4/4 natywne tury, 3 przełączenia aktywnego zestawu Skills, fikcyjny kod zachowany przed/po zmianie tematu, STOP PASS, profil i Call IDLE bez zmian**. Ostateczny task `aicalls-f157-g4p2-e2b-memory-s22-e2e-retest-20261109-v4` **DONE/0**: Mac 371 Python, Gradle/JVM/lint/APK/AndroidTest/audio i anti-friction PASS, S22 instrument 1/1 PASS, oba debug APK bez wipe i końcowe Git clean. Poprzedni fizyczny RED pamięci `F-157` naprawiony, historyczne FAIL retained. Tylko syntetyczne **off-call tekstowe E2E** — nie pełne STT/TTS, human naturalness ani rzeczywisty Call. Gemma E2B pozostaje głównym modelem. [Kompletny checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md).
+
+**Następne: G4.3** — analiza `ConversationSkillLibrary`, `ConversationSkillTurnRouter`, `ConversationSkillLabActivity` i narzędzi: metadane/zmiana intencji oraz per-turn diagnostyka. Przed zmianami sprawdź świeży HEAD, dokładny v4 receipt, `AGENTS.md`, `BLOCKERS.md` i checkpoint. **Nie powtarzaj** G3 A/B 96 tur ani G4.2 czteroturowego S22 bez nowej przesłanki. Dawny niższy akapit „G4.1 NEXT” to poprzedni snapshot.
 
 ## Aktualny stan 2026-11-09 — formalna decyzja G3 i pierwsza praca G4
 

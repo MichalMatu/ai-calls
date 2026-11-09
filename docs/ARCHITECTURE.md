@@ -1,5 +1,9 @@
 # AI Calls — architektura operacyjna
 
+## G4.2 — bezpieczne przeładowanie Skills podczas natywnej konwersacji (S22 PASS)
+
+`ConversationSkillTurnRouter` pracuje na przypiętych rewizjach i zwraca `SkillTurnRoutingDecision` przy każdej wypowiedzi. W `CONTEXTUAL` off-call `DynamicSkillLabBackend` odświeża *system instruction* przez `NativeConversationInstructionBackend` tylko przy zmianie wybranych Skills; nie dopisuje instrukcji do nieufnego tekstu użytkownika. `LiteRtGemma4Runtime.replaceSystemInstruction` wymaga stanu idle generowania, resetuje `Conversation` przy zachowaniu `Engine`; ukończone pary są przekazane do nowej konwersacji jako oznaczone rolami, JSON-escaped dane historyczne po Skills, przed `ODPOWIEDŹ`. STT/model nie dostają tą drogą władzy nad Call, IdentityVault, STOP lub tool executor. `ALL_ACTIVE` i zwykła telefonia zachowują istniejący tor. S22 E2B/GPU 4/4 tur, 3 refreshes, pamięć i STOP PASS po F-157. [Checkpoint](checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md).
+
 ## G3 — wybór modelu i ograniczenia (2026-11-09)
 
 `KEEP_E2B` **DECIDED**: w istniejącym `DialogueModelId` E2B pozostaje modelem głównym Call, Qwen3.5 2B wyłącznie Lab/CPU (bez promocji, bez zmian profilu). Mac+S22 96 tur technicznych, raport 48 par, Mac clean, 96 syntetycznych odpowiedzi poddanych lokalnej regułowej ocenie 150/150 E2B vs 141/150 Qwen. Różne GPU/CPU i brak ludzkiej oceny naturalności ograniczają wnioski. G4 przygotowuje per-turn Skills, lecz zmiana system instructions w żywym LiteRT wymaga osobnego potwierdzenia bezpieczeństwa/lifecycle przed włączeniem. [Finalny checkpoint](checkpoints/2026-11-09-g3-keep-e2b-final-decision.md).
