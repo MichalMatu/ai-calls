@@ -1,4 +1,7 @@
 # AI Calls — jeden plan realizacji: od modelu do autonomicznej rozmowy
+
+**English-first / przyszła komercjalizacja (research-only):** modele do sprawdzenia, w tym LFM2.5 Audio/Instruct, Granite, Phi, Qwen, Moonshine Streaming, Parakeet, Kokoro i Pocket TTS, oraz ryzyka Android/Google Play/licencje/VoIP są zapisane w [shortliście modeli i commercial readiness](ENGLISH_MARKET_MODEL_SHORTLIST_2026-11-09.md). Gemma 4 E2B pozostaje główna. Ten backlog nie zmienia bieżącej bramki G5.3 → G6 → G7, profilu, kodu ani statusów QA.
+
 Data decyzji: 2026-11-09. Właściciel zaakceptował, że **model językowy jest głównym prowadzącym rozmowę**, a Agent Skills dostarczają mu kompetencje, pamięć roboczą i typowane propozycje narzędzi. Aplikacja, nie model ani Skill, egzekwuje autoryzację, ujawnianie faktów, własność Call, STOP i skutki zewnętrzne.
 
 ## Zasada nadrzędna

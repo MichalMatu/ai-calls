@@ -1,5 +1,8 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+**English-first / przyszła komercjalizacja (research-only):** modele do sprawdzenia, w tym LFM2.5 Audio/Instruct, Granite, Phi, Qwen, Moonshine Streaming, Parakeet, Kokoro i Pocket TTS, oraz ryzyka Android/Google Play/licencje/VoIP są zapisane w [shortliście modeli i commercial readiness](ENGLISH_MARKET_MODEL_SHORTLIST_2026-11-09.md). Gemma 4 E2B pozostaje główna. Ten backlog nie zmienia bieżącej bramki G5.3 → G6 → G7, profilu, kodu ani statusów QA.
+
+
 ## 2026-11-09 — G5.2 zaakceptowane na S22, G5.3 następne
 
 **G5.2 = S22_OFFCALL_MULTITURN_AUDIO_AND_STOP_PASS (2026-11-09).** Po Mac full QA `aicalls-g5p2-multiturn-audio-stop-mac-qa-20261109-v2` **DONE/0**, S22 `aicalls-g5p2-three-turn-audio-stop-s22-20261109-v1` **DONE/0**: 5/5 deterministycznych testów STOP/late callback (STT, model, TTS, restart i dwie kolejne generacje) i 1/1 natywna Gemma E2B + Android STT + Android TTS PL, **3/3 syntetyczne tury audio**, `MessageCapture` i `Clarification`, prawidłowa korekta dnia spotkania i pamięć, 3 decyzje routingu. TTS wygenerował **515 894 B PCM**, czasy narastające STT **4340/5723/4905 ms**, aprobata **21158/12699/7157 ms**, końcowy PCM **23042/14224/8694 ms**. Żadnych wykonanych narzędzi, prawdziwych połączeń ani zmian profilu; instalacja obu debug APK bez wipe, Call IDLE przed i po, Mac Git clean. Jest to **syntetyczny off-call Lab**, nie rzeczywista rozmowa, p95, odsłuch naturalności ani sprzętowy STOP dokładnie w trakcie natywnej inferencji (STOP sprawdzono przez kontrolowane spóźnione callbacki). [Checkpoint](checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md).
