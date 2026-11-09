@@ -1,0 +1,12 @@
+# Rozmowa — STT → Gemma → Skills → TTS
+
+**Runtime:** `AndroidConversationRuntime`, `LocalSpeechTextPipeline`, `LocalSpeechGenerationGate` i wspólny `conversation-core`. INCOMING i OUTGOING nie mają osobnych modeli rozmowy. Domyślnie Gemma 4 E2B/GPU, kontekstowe dynamic Skills, Android STT/TTS; Qwen i ALL_ACTIVE tylko w Lab.
+
+## Granice tury
+- RX speech-start/stop, VAD/EOS, transkrypcja, snapshot kontekstu, autoryzacja tekstu i typowanych narzędzi, TTS, TX, archiwizacja.
+- Każda STT/model/TTS odpowiedź musi być związana z sesją i generacją. Przerwanie lub STOP anuluje stare wyjście oraz kolejkę; nieprawidłowy/niepewny status nie może automatycznie wznowić TTS.
+- Realtime `CallRealtimeAudioPump` ma atomową blokadę gate/queue na barge-in, tombstones i bounded audio; **lokalny Gemma pipeline nadal wymaga realnego barge-in w G6**.
+- Recovery po ciszy/hold nie może sztucznie ucinać rozmowy, ale respektuje zasoby, systemowy Call state i STOP. Przy fizycznym rozłączeniu dokończ dostępny końcowy RX/STT bez udawania brakującej mowy.
+
+## Dowody i otwarte
+G3 96/96 native tur zakończone decyzją KEEP_E2B; G5.3 18/18 off-call tur i natywny STOP STT/model/TTS sprawdzone; to **nie** jest live G6. Otwarty G6.1 lokalny barge-in i timed speech-start, sprawdzenie stale PCM i manual resume. [Current](../PROJECT.md), [security](../architecture/SECURITY.md).

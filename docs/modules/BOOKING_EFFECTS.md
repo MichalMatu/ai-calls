@@ -1,0 +1,9 @@
+# Narzędzia, wyniki i skutki zewnętrzne
+
+`CallTask`, typowany `CallOutcome`, `ConversationToolExecutor`, `FactDisclosurePolicy`, `IdentityVault` i **jeden** `CallCommitmentGate` to istniejące kontrakty. Model i Skills dostarczają propozycję, aplikacja sprawdza grant, scope i stan realnego owned Call. Sam transkrypt i `WRITE_COMPLETE` nie dowodzą sukcesu u operatora.
+
+## Rezerwacje
+Docelowo: `availability` → opcjonalny hold z TTL/idempotency key → przeczytanie terminu i warunków → potwierdzenie w istniejącym grancie → jednokrotny commit → niezależny booking ID. Przy zmianie terminu/ceny/zakresu brak cichego poszerzenia autoryzacji. Realny adapter kalendarza/rezerwacji i read-back pozostają OPEN; najpierw mock z dowodem i testami replay, expiry, failure, double commit.
+
+## Pozostałe skutki
+CLIR/inne ustawienia usługi: requested/validated/dispatched/confirmed/unknown rozdzielone, dowód niezależny od modelu. Odczyt faktów typowany, tylko dopuszczone pola dla exact target i task. [Security](../architecture/SECURITY.md), [status](../PROJECT.md).

@@ -1,58 +1,7 @@
 # AI Calls
 
-**G5.2 fizyczne 3 tury audio + STOP: PASS (2026-11-09).** Mac full QA/371 Python i S22 5/5 testów late callback/STOP oraz 1/1 realne 3 tury Android STT → Gemma E2B/Skills → Android TTS PL, korekta wtorku i pamięć PASS; Call IDLE i profil zachowane. `F-160 VERIFIED_SCOPED`. [Checkpoint G5.2](docs/checkpoints/2026-11-09-g5p2-multiturn-audio-and-stop-pass.md). **NEXT G5.3:** jakościowy odsłuch/semantyka oraz osobny natywny interrupt. G6 prawdziwe Call nadal niezaliczone.
+Modułowe laboratorium i lokalny agent rozmów telefonicznych na Samsung S22. Aktualny kod, status G6, otwarte zadania i zasady pracy mają **jeden punkt wejścia: [docs/README.md](docs/README.md)**.
 
+Technologie: Android/Samsung/Shizuku, Gemma 4 E2B, STT/TTS, dynamiczne Skills, INCOMING/OUTGOING, prywatna historia. Produkt pozostaje w fazie integracji i **nie ma jeszcze potwierdzenia pełnego G6 na rzeczywistych połączeniach**.
 
-**2026-11-09 — G5.1 pierwsze pełne *audio* E2E na fizycznym S22 PASS (off-call, 1 tura).** Lokalny głos → STT → Gemma E2B i dynamiczne Skills → aplikacyjne zatwierdzenie → TTS PCM; 1/1 real instrument, 236416 B PCM16, 23,57 s do ukończenia, STOP cleanup/IDLE/profil bez zmian. Mac full QA/371 Python PASS. [Checkpoint G5.1](docs/checkpoints/2026-11-09-g5p1-offcall-speech-skills-e2e.md). **NEXT G5.2** wiele tur audio, pamięć i aktywne przerwania; nie ma jeszcze `REAL_CALL_PASS`, p95 ani human naturalness.
-
-**2026-11-09: G4.3 S22 OFF-CALL PASS — cały G4 w zakresie Laboratorium zamknięty.** Wersjonowane `name/description/capability`, widoczny wybór Skills w każdej turze, typowana walidacja `END_CALL` jako *propozycji, bez wykonania*. Mac full QA i S22: 2/2 testy metadanych/UI, 1/1 natywne E2B 4 tury, 3 refresh, routing 4/4, pamięć, STOP/IDLE/profil PASS. `F-158/F-159 VERIFIED_SCOPED`. [Checkpoint G4.3](docs/checkpoints/2026-11-09-g4p3-metadata-trace-tools-final.md). **NEXT: G5.1 — off-call pełny STT→E2B+Skills→TTS i testy realnego audio**, human naturalness osobno. G6 prawdziwe Call wymaga oddzielnej autoryzacji.
-
-**G4.2 — prawdziwy per-turn Skills E2E na Gemma E2B/S22 PASS (2026-11-09).** Cztery tury przez `SkillLabRunner`, trzy odświeżenia Skills, pamięć fikcyjnego kodu przed/po zmianie tematu, STOP i niezmieniony profil; Mac full gate PASS, `F-157 VERIFIED_SCOPED`. [Checkpoint G4](docs/checkpoints/2026-11-09-g4-dynamic-skills-e2e-final.md) · [Jeden plan](docs/AI_CALLS_MASTER_EXECUTION_PLAN.md). **NEXT: G4.3 metadane Skills + typowane propozycje narzędzi + diagnostyka zmian**; G5 pełny głos i human review później. `KEEP_E2B` bez zmian, Qwen pozostaje Lab-only. To wyłącznie off-call Lab, nie dowód prawdziwego Call.
-
-**2026-11-09 — model główny: GEMMA_4_E2B. G3 wybór zamknięty, DECIDED_KEEP_E2B.** 96/96 natywnych tur S22, Mac postflight PASS i 96 syntetycznych odpowiedzi sprawdzonych lokalnym, ograniczonym regułowo audytem: E2B 150/150, Qwen 141/150 punktów. Człowiek nie oceniał jeszcze naturalności, pozostaje G5. [Finalny checkpoint](docs/checkpoints/2026-11-09-g3-keep-e2b-final-decision.md). **Teraz G4.1 — Skills per turn.** Qwen3.5 zostaje wyłącznie modelem Lab i nie zmienia Call.
-
-**Stan 2026-11-09:** [jedyny plan G0–G7](docs/AI_CALLS_MASTER_EXECUTION_PLAN.md) · [G3 kompletny checkpoint/handoff](docs/checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). G0 F-158 **24/24** S22 PASS, G1 pin/metadane PASS, G2 Qwen3.5 2B CPU **3/3** S22 PASS. **G3 96/96 syntetycznych tur na S22 PASS technicznie:** Gemma E2B GPU 24/24 sesji i hint 15/15 (median cold/warm 24,20/4,73 s); Qwen3.5 CPU 24/24 sesji, 12/15 (49,19/7,34 s). Formalne `failed` = **ostatni clean Git postflight nie wystartował przez `task_budget_exhausted`**, nie awaria modelu. Prywatne 48 par zapisane na Mac; ocena naturalności oraz finalna decyzja G3 pozostają OPEN. E2B jest domyślna, Qwen3.5 Lab-only, bez Call.
-
-Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowanych scenariuszy telefonicznych. Obecnie służy do weryfikowania komponentów i ich integracji; nie jest jeszcze dowiedzionym, kompletnym wykonawcą dowolnych zadań ani zamkniętym archiwum audio.
-
-## Aktualny stan — 2026-11-09
-
-- **Skills i dwa modele — F-156 VERIFIED_SCOPED, S22 18/18 tur:** po poprawie miejsca aktywnego Skill w promptcie Gemma E2B poprawnie wykonała instrukcję tylko gdy była włączona; fizyczny GUI edit/disable/revision/reopen działa w izolowanym, szyfrowanym magazynie. Na Samsungu S22 E2B i E4B (oba GPU, kontekst 2048) przeszły te same 18 syntetycznych tur i kryteria: marker on/off, pamięć i sprostowanie, cytat pożegnania vs prawdziwy `end_call`, JSON. E4B była około 3× wolniejsza cold/warm, bez wykazanej przewagi jakości. Domyślny profil E2B niezmieniony, brak połączeń. [Checkpoint](docs/checkpoints/2026-11-09-e2b-e4b-agent-skills-differential.md).
-- **Agent Skills (Google Edge Gallery):** obecnie AI Calls ma własne wersjonowane *prompt Skills*, nie pełny mechanizm `SKILL.md` z selekcją na żądanie i narzędziami. [Analiza możliwości](docs/AGENT_SKILLS_EDGE_GALLERY_REVIEW_2026-11-09.md) zaleca oddzielny eksperyment nad selekcją kontekstową z zachowaniem własnej autoryzacji, nie bezpośrednią podmianę kontrolera telefonii.
-
-- **Gemma i kontekst Laboratorium (F-155 VERIFIED):** S22 potwierdził rzeczywistą `GEMMA_4_E2B` na **GPU**. Przy identycznych krótkich promptach pierwszy cold turn 2048/4096 trwał **28,57/27,23 s**, ciepły kolejny **3,32/3,63 s**. Dlatego średnia 16–23 s z krótkich sesji nie reprezentuje rozgrzanej generacji. Dostępny jest edytowalny budżet kontekstu **tylko Lab** (domyślnie 4096) i live diagnostyka: backend, ładowanie silnika, utworzenie konwersacji, generowanie, średnia i RAM/PSS. Call nadal 2048. Mac full QA PASS, S22 nowy ekran + regresja Skills/STOP **4/4 PASS** bez wipe i bez Call. [Checkpoint](docs/checkpoints/2026-11-09-f155-lab-context-latency-diagnostics.md).
-
-- **S22 nawigacja:** pełny Mac quality gate i fizyczna macierz **10/10 PASS** (kontrakt 5/5, tab flow 2/2, ekrany ustawień 3/3), F-151 VERIFIED. NAV-01 pozostaje PARTIAL dla długiego back-stack/restart.
-- **USB Lab:** debug APK/AndroidTest na S22 bez wipe, `AndroidUsbLabControlContractTest` **3/3 PASS** oraz prawdziwe `status/config-get/ram` **3/3 PASS**, F-152 VERIFIED. USB Lab działa także z inną aplikacją na pierwszym planie (ADB receiver, bez UI): `aicalls-usb-lab-background-two-turn-20261109-v3` DONE/0, E2B 4096 **2/2 tury**, prywatny zapis na Mac oraz STOP, telefon IDLE. **F-153 VERIFIED**. Bez wymagania AI Calls/Launcher foreground przy off-call USB.
-- **Jednoprzebiegowy odbiór GUI/USB i AI Skills:** S22: **6/6 AndroidTest PASS** po naprawie starego testu tekstowego (F-154 VERIFIED), **1/1 GUI/USB shared model lease PASS** (F-150 VERIFIED dla współdzielonego kontrolera), **3 presety × 2 tury Gemmy = 6/6**, przypomnienie losowego kodu **3/3**, prywatny zapis i STOP **3/3**, odmowy takeover/resume/owned-stop przy IDLE **3/3**. To nie jest pozytywny test w prawdziwym Call ani dowód wpływu niestandardowych Skills na wypowiedzi. [Checkpoint](docs/checkpoints/2026-11-09-single-pass-ui-usb-ai-skills-acceptance.md).
-- **Następny etap:** faktyczne operacje na Skills w aplikacji — edycja, aktywacja, wyłączenie i wersjonowanie, trwałość oraz porównanie prawdziwych odpowiedzi Gemmy dla aktywnego/nieaktywnego Skill. F-148 semantyka długiego dialogu, pełne audio i pozytywne takeover/resume/owned STOP w osobno autoryzowanym Call nadal otwarte. [Handoff](docs/HANDOFF_NEXT_CHAT.md).
-
-## Stan historyczny — 2026-11-08
-
-**Aktualny kod sprzed zbiorczego checkpointu:** `main@af571f06a7a34b05a14a8e0b54b8642f40a89e57`. Od stanu UX-11 dodano rzeczywisty Lab i nowy kanał USB; przy wznowieniu należy odczytać świeży HEAD.
-
-- **UX-12 (tail):** historia szczegółów z kontekstem, nowe prywatne i deterministyczne zbieranie screenshotów; targeted QA 14/14 PASS; pełny host gate 365/365 PASS, archiwalne zdjęcia S22 17/17 walidacji PASS; świeże screenshoty kodu UX12 nadal NOT_RUN. [Checkpoint](docs/checkpoints/2026-11-08-ux12-final-source-closeout.md).
-- **UX:** sześć zakładek Start / Historia / Agent AI / Laboratorium / Modele / Ustawienia; UX-11 zakończony i zamrożony poza błędami funkcjonalnymi P0/P1. Czat icon-only tylko podczas aktywnego feedu; Sejf standardowy + własne pola, czytelny Lab.
-- **Mac:** najnowszy `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **DONE/0**, 370/370 Python, Gradle/JVM, lint, APK/AndroidTest build, audyt audio PASS. Starsze testy UX zachowane w ich checkpointach.
-- **S22:** **28/28 UI** + **2/2 syntetyczny aktywny chat PASS**, **18 prywatnych screenshotów**; instalacja bez kasowania danych i potwierdzone IDLE przed/po.
-- **Funkcje offline:** prawdziwy lokalny model zakończył **2 tury i STOP (PASS)**; polski TTS → PCM → Parakeet STT **PASS** na testowym tekście.
-- **Bramki otwarte:** nowy odbiornik USB na S22, dodatnie interwencje Call nowym kanałem, pełne audio/manual takeover, rezultat zewnętrzny, pełna ocena semantyczna i F-148/F-150. Historyczne dowody audio/Call nie są odbiorem nowego kanału.
-
-## Gemma i prywatny kanał USB — 2026-11-08
-
-- **Gemma E2B 4096:** trzy realne sesje po 13 tur, **39/39 technicznie PASS** na S22; heurystyki 11/13, 13/13, 11/13; human semantic UNASSESSED. 2048 dwukrotnie zatrzymało się w turze 10, 8192 na S22 NOT_RUN.
-- **Kanał USB/ADB:** prywatne START/SEND/STOP, RAM/status, konfiguracja audio i incoming, kontrolowane przejęcie/wznowienie/STOP własnego Call. Kod i Mac QA PASS, nowa APK S22 NOT_RUN. [Kompletny checkpoint](docs/checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md).
-
-## Co dalej
-
-**G3 techniczne 96/96 tur jest odebrane. Sprawdź krótki Mac clean postflight i lokalne 48 par, ocenę semantyki i zdecyduj o modelu; nie powtarzaj całej macierzy.** Historyczny plan ogólnej akceptacji UI pozostaje osobnym etapem G7, nie aktualnym pierwszym krokiem.
-
-**Zachowane zasady odbioru funkcjonalnego:** Zanim cokolwiek oznaczysz PASS, sprawdź działanie, efekt/stan, STOP, restart i prywatność w faktycznym dopuszczonym zakresie. Aktywna macierz to [FUNCTIONAL_ACCEPTANCE_MATRIX](docs/FUNCTIONAL_ACCEPTANCE_MATRIX.md).
-
-[Kompletny checkpoint](docs/checkpoints/2026-11-08-pre-functional-full-checkpoint.md) · [Bieżący handoff](docs/HANDOFF_NEXT_CHAT.md) · [Prompt do nowego czatu](docs/NEXT_CHAT_PROMPT.md) · [Roadmapa](docs/ROADMAP.md) · [Rejestr blokad](BLOCKERS.md)
-
-## Architektura i tryb pracy
-
-Moduły: `app`, `conversation-core`, `conversation-tools`, `audio-bridge`, `realtime-client`, `privileged-helper`. Jeden `AndroidConversationRuntime` współdzieli porty STT/model/TTS między INCOMING i OUTGOING, przy zachowaniu rzeczywistej kontroli własnego Android Call, STOP, zgód oraz zasad udostępniania danych.
-
-Pracować **GitHub Connector + Mac Local Agent**; dla izolowanych testów używać sandboxu. Bez Codex, ChatGPT Work, GitHub Actions (również odczytu statusów), tworzenia zbędnych gałęzi i force-push. Commity `[skip ci]`. Prywatne zdjęcia, WAV, numery i transkrypty zostają na urządzeniu/Macu. Źródła normatywne: [AGENTS](AGENTS.md), [Security](docs/SECURITY_PRIVACY.md), [Laboratorium](docs/TEST_LAB_SCOPE.md).
+Nie używać dawnych checkpointów jako instrukcji; źródłem aktualnego stanu jest `main`, [docs/PROJECT.md](docs/PROJECT.md), kod i najnowsze rzeczywiste wyniki testów.

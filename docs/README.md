@@ -1,29 +1,23 @@
-# AI Calls — indeks bieżącej dokumentacji
+# AI Calls — dokumentacja
 
-**Źródło prawdy:** GitHub `main` i rzeczywiste receipts Mac/S22. Historyczne commity i checkpointy są dowodami z określonego HEAD, nie alternatywnymi aktywnymi poleceniami.
+**Jedyny punkt wejścia.** Najpierw [PROJECT.md](PROJECT.md): bieżący stan, priorytety, realne blokady i bramki akceptacji. Wszystkie aktualne dokumenty techniczne są w modułowych podkatalogach; starych checkpointów/handoffów/rejestru historycznych problemów nie prowadzimy.
 
-## Zacznij tutaj
-1. [README](../README.md) — bieżący zakres produktu i udowodniony stan.
-2. [HANDOFF_NEXT_CHAT](HANDOFF_NEXT_CHAT.md) — krótki stan do przejęcia, granice, dowody.
-3. [FUNCTIONAL_ACCEPTANCE_MATRIX](FUNCTIONAL_ACCEPTANCE_MATRIX.md) — ekrany, funkcje, statusy, kolejność weryfikacji.
-4. [NEXT_CHAT_PROMPT](NEXT_CHAT_PROMPT.md) — gotowe polecenie do nowego czatu.
-5. [Kompletny checkpoint 2026-11-08](checkpoints/2026-11-08-pre-functional-full-checkpoint.md) — receipts, zamknięcia, brakujące bramki.
+## Architektura
+- [SYSTEM](architecture/SYSTEM.md) — komponenty, odpowiedzialności, granice Android/JVM.
+- [SECURITY](architecture/SECURITY.md) — autoryzacja, telefonia, bezpieczeństwo, prywatność i sprzętowy freeze.
 
-## Dokumenty utrzymywane na bieżąco
-| Rola | Plik |
-|---|---|
-| Priorytety i bramki testowe | [ROADMAP](ROADMAP.md) |
-| Architektura modułów i odpowiedzialności | [ARCHITECTURE](ARCHITECTURE.md) · [CONVERSATION_RUNTIME](CONVERSATION_RUNTIME.md) |
-| Wymagania docelowe | [PRODUCT_ASSEMBLY_PLAN](PRODUCT_ASSEMBLY_PLAN.md) · [TEST_LAB_SCOPE](TEST_LAB_SCOPE.md) |
-| Settings / Skills / Lab | [SETTINGS_UX](SETTINGS_UX.md) · [SKILLS_AND_LAB](SKILLS_AND_LAB.md) |
-| Operacje na Mac/S22 i USB | [USB_DEBUG_BRIDGE](USB_DEBUG_BRIDGE.md) · [LOCAL_AGENT_HOST_FLOW](LOCAL_AGENT_HOST_FLOW_2026-11-01.md) |
-| Granice danych, Call, autoryzacja | [SECURITY_PRIVACY](SECURITY_PRIVACY.md) · [GENERIC_PHONE_TASK_AUTHORITY](GENERIC_PHONE_TASK_AUTHORITY.md) |
-| Sposób współpracy i przekazywania | [AGENTS](../AGENTS.md) · [HANDOFF_PROTOCOL](HANDOFF_PROTOCOL.md) |
-| Jedyny rejestr otwartych/naprawionych problemów | [BLOCKERS](../BLOCKERS.md) |
+## Moduły
+- [CONVERSATION](modules/CONVERSATION.md) — runtime, STT/Gemma/TTS, przerwania i generacje.
+- [INCOMING_OUTGOING](modules/INCOMING_OUTGOING.md) — własność Call, takeover, lifecycle, IVR/DTMF.
+- [AUDIO_HISTORY](modules/AUDIO_HISTORY.md) — recorder, WAV, transkrypcje i odtwarzanie.
+- [SKILLS_LAB](modules/SKILLS_LAB.md) — modele, Skills i laboratorium.
+- [BOOKING_EFFECTS](modules/BOOKING_EFFECTS.md) — typowane skutki, rezerwacje i potwierdzenia.
+- [UI](modules/UI.md) — interfejs, nawigacja, statusy i dostępność.
 
-## Historia — bez szumu w aktywnym planie
-- [UX-11](checkpoints/2026-11-08-ux11-final-polish-functional-handoff.md) i [pierwsze testy offline](checkpoints/2026-11-08-functional-real-offline-acceptance.md): dokładne potwierdzenia.
-- [UX-10](checkpoints/2026-11-08-ux10-floating-vault-lab.md), [Sprint 6](checkpoints/2026-11-07-ux-sprint6-final-handoff.md) i [general audit](checkpoints/2026-11-07-general-repository-audit-sprint.md): poprzednie zakresy.
-- Pozostałe wcześniejsze checkpointy i starsze prompty z datami są **archiwalną historią**, nie poleceniem kontynuacji. Szczegóły są w plikach i historii Git; bieżący handoff ich nie dubluje.
+## Praca i urządzenia
+- [DEVELOPMENT](operations/DEVELOPMENT.md) — FAST FLOW, test profile, cache, zasady Git i aktualizowania dokumentacji.
+- [LOCAL_AGENT](operations/LOCAL_AGENT.md) — Mac Host Control, zadania i receipts.
+- [DEVICE](operations/DEVICE.md) — S22, Shizuku, bezpieczna instalacja i fizyczne QA.
+- [EXTERNAL_REUSE](operations/EXTERNAL_REUSE.md) — licencje i granice adaptacji open source.
 
-Prywatnych screenshotów, nagrań ani transkryptów nie przenosić do GitHub.
+**Reguła:** statusy i priorytety tylko w `PROJECT.md`. Pliki modułowe zawierają **trwałe kontrakty i aktualne ograniczenia**, nie raporty z dawnych sprintów. Po zmianie kodu popraw tylko dotknięty moduł i stan; nowe pliki twórz jedynie dla rzeczywiście nowego modułu. Szczegółowe dowody historyczne pozostają w Git i oryginalnych receipts Host Control, nie w repozytorium Markdown.
