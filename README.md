@@ -1,11 +1,6 @@
 # AI Calls
 
-**Current execution sequence:** [one master plan](docs/AI_CALLS_MASTER_EXECUTION_PLAN.md), G0 F-158 physical → G1/G2 Qwen3.5 2B feasibility/native → G3 fair Gemma E2B vs Qwen comparison → G4 contextual Skills → G5 full dialogues → G6 incoming/outgoing → G7 UX. Initial Mac F-158 QA DONE/0; S22 still NOT_RUN.
-
-## 2026-11-09 — F-158 new sprint: session-level contextual Skills A/B (QA_PENDING)
-
-Code: `a3b0fba` (Lab selector, mode toggle, timing, six JVM tests), `f6f0baf` (24-turn E2B A/B AndroidTest, not yet executed). Existing Call flow and user presets unchanged. Mac read-only preflight DONE/0 clean from `0fd46c4`. Mac quality-gate task `aicalls-f158-contextual-skills-host-qa-20261109-v1` result pending; physical S22 A/B NOT_RUN. Continue by reading receipt, then compile AndroidTest and do idle-gated non-Call S22 test. Selector chooses at session start, not each turn. [Checkpoint](checkpoints/2026-11-09-f158-contextual-skills-sprint.md).
-
+**Aktualny etap 2026-11-09:** [jeden plan G0→G7](docs/AI_CALLS_MASTER_EXECUTION_PLAN.md) i [kompletny checkpoint G3/handoff](docs/checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). G0 F-158 **24/24 PASS na S22**, G1 metadata/pin **PASS**, G2 Qwen3.5 2B **3/3 natywnych tur CPU S22 PASS** oraz pełny Mac gate PASS. G3 E2B vs Qwen **48 sesji / 96 tur zlecone, wynik RECEIPT_PENDING**, nie ma zweryfikowanego startu ani wyniku S22. W logu Mac do 09:27 UTC widać zatory synchronizacji Local Agent; nie zlecać duplikatu. `main@2966967` jest bazą kodu przed dokumentacyjnym checkpointem. Gemma E2B pozostaje domyślna, Qwen3.5 wyłącznie laboratoryjny, bez połączeń.
 
 Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowanych scenariuszy telefonicznych. Obecnie służy do weryfikowania komponentów i ich integracji; nie jest jeszcze dowiedzionym, kompletnym wykonawcą dowolnych zadań ani zamkniętym archiwum audio.
 
@@ -39,7 +34,9 @@ Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowan
 
 ## Co dalej
 
-**Nowy etap to testy funkcjonalne ekran po ekranie i funkcja po funkcji — nie kolejny sprint kosmetyczny.** Zanim cokolwiek oznaczysz PASS, sprawdź działanie, efekt/stan, STOP, restart i prywatność w faktycznym dopuszczonym zakresie. Aktywna macierz to [FUNCTIONAL_ACCEPTANCE_MATRIX](docs/FUNCTIONAL_ACCEPTANCE_MATRIX.md).
+**Najpierw dokończyć bieżące G3: odebrać dokładny host result, zebrać agregaty S22 i prywatnie ocenić semantykę 96 tur; dopiero na tej podstawie wybrać model.** Historyczny plan ogólnej akceptacji UI pozostaje osobnym etapem G7, nie aktualnym pierwszym krokiem.
+
+**Zachowane zasady odbioru funkcjonalnego:** Zanim cokolwiek oznaczysz PASS, sprawdź działanie, efekt/stan, STOP, restart i prywatność w faktycznym dopuszczonym zakresie. Aktywna macierz to [FUNCTIONAL_ACCEPTANCE_MATRIX](docs/FUNCTIONAL_ACCEPTANCE_MATRIX.md).
 
 [Kompletny checkpoint](docs/checkpoints/2026-11-08-pre-functional-full-checkpoint.md) · [Bieżący handoff](docs/HANDOFF_NEXT_CHAT.md) · [Prompt do nowego czatu](docs/NEXT_CHAT_PROMPT.md) · [Roadmapa](docs/ROADMAP.md) · [Rejestr blokad](BLOCKERS.md)
 

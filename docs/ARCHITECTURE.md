@@ -1,5 +1,11 @@
 # AI Calls — architektura operacyjna
 
+## G3 — modelowy A/B na S22, granice izolacji (2026-11-09)
+
+`DialogueModelId.QWEN_3_5_2B` jest przypiętym katalogowo **kandydatem laboratoryjnym**, a nie gotowym profilem Call. Zwykły `AudioEngineRegistry.incompatibility` go blokuje; przycisk zwykłego wyboru również. `LiteRtGemma4Runtime` wykorzystuje tę samą fabrykę i output approval, ale polityka Qwen3.5 **CPU_ONLY** (Mali/Exynos ryzyko RAM) i nowy Engine po resecie konwersacji ograniczają mieszanie rekurencyjnego stanu. Starsze modele zachowują własne dotychczasowe ścieżki. E2B pozostaje domyślnym modelem telefonu, G3 nie daje nowej władzy nad Call ani danymi.
+
+`AndroidGemmaE2BQwen35DialogueABNativeTest` wykonuje identyczne 8 scenariuszy ×3 powtórzenia ×2 modele ×2 tury przy `2048` i statycznym snapshotcie Skills. Prywatne syntetyczne dialogi zapisywane są w `no_backup/g3-private` i mogą być odebrane lokalnie poprzez debugowy `adb run-as`, bez wysyłania tekstu do logcat/GitHub. Zwykłe logi emitują tylko metryki. **Odbiór G3 S22 nadal `RECEIPT_PENDING`**, a kompilacja najnowszego journalu wymaga osobnego receipt. CPU-vs-GPU nie jest kontrolowanym porównaniem tego samego akceleratora. [Dokładny checkpoint/handoff](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md).
+
 ## Skills: prompt injection vs wywołania agentowe — zweryfikowany zakres 2026-11-09
 
 `ConversationSkillLibrary` zarządza wersjonowanymi snapshotami, a `ConversationInstructionBuilder` scala aktywne instrukcje w statycznym promptcie. **F-156 VERIFIED_SCOPED** po przełożeniu wersjonowanych instrukcji *za* wiążące zasady bezpieczeństwa i *przed* formatem odpowiedzi; fizyczna E2B na S22 (`active=true`, `inactive=false`) i izolowany UI edit/rollback PASS. Wspólny backend LiteRT-LM pozostaje niezmieniony.

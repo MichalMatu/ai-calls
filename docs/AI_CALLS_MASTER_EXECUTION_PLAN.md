@@ -11,22 +11,30 @@ Jeden lokalny agent i wspólny runtime dla przychodzących i wychodzących. Siln
 - DONE: `aicalls-g0-f158-s22-20261109-v1` — Mac AndroidTest compile PASS, S22 idle, 24/24 techniczne tury PASS, 12 rekordów + 4 podsumowania; bez połączeń i zmian profilu. Szersza semantyka nadal OPEN.
 - Gate: osobno `TECHNICAL_PASS` (kontrakt, narzędzia, liczniki) i `SEMANTIC_REVIEW` (czy Skill rzeczywiście pomaga w rozmowie). Nie awansować selektora do produkcyjnego Call na podstawie samego AndroidTest.
 
-## G1 — Qwen 3.5 2B: zgodność i ryzyko sprzętowe (SOURCE_METADATA_PASS)
+## G1 — Qwen 3.5 2B: zgodność i ryzyko sprzętowe (SOURCE_METADATA_PASS + verified pinned download)
 - Wejście: potwierdzenie F-158 lub jawny blocker G0 z osobnym śledzeniem; brak powtórki już zaliczonych F-155/F-157.
-- Obecny Android używa LiteRT-LM `0.19.0`, katalog obsługuje E2B/E4B oraz starsze Qwen3 1.7B/0.6B, ale **nie** Qwen3.5 2B. Istniejący backend powinien być najpierw oceniony pod kątem architektury Qwen3.5 (hybrid GatedDeltaNet), tokenizer/chat template, stan rekurrencyjny, format odpowiedzi i Android/JNI.
+- Obecny Android używa LiteRT-LM `0.19.0`. Przed G2 katalog zawierał E2B/E4B i Qwen3 1.7B/0.6B; teraz zawiera również przypiętego Qwen3.5 2B tylko dla Lab. Istniejący backend został oceniony pod kątem architektury Qwen3.5 (hybrid GatedDeltaNet), tokenizer/chat template, stan rekurrencyjny, format odpowiedzi i Android/JNI.
 - Pin zweryfikowany bez pobierania: `litert-community/Qwen3.5-2B@f24013ba6844bd39be2d1f68e8d2421a77eed1f2` / `Qwen3.5-2B_int8.litertlm`, **2,119,843,840 B**, SHA-256 `c2438cb9c050220e667366b4beeca4daac56e693b226420674f53fc40f007c49`, Apache-2.0. Wymagana osobna inicjalizacja Engine dla nowej konwersacji; telefon SM-S906B s5e9925, RAM 7.44M KiB total/2.85M KiB available podczas preflight. Ze względu na Mali i ryzyko OOM: **CPU-only na G2**.
 - Gate: `FEASIBLE` albo konkretny `BLOCKED` (GPU, RAM, runtime, model, magazyn). Na S22 żadnego cichego fallbacku GPU↔CPU: mierzyć rzeczywisty backend. Nie zmieniać produkcyjnego profilu, nie pobierać niezweryfikowanych plików.
 
-## G2 — pierwsze uruchomienie Qwen 3.5 2B (LAB_ONLY)
+## G2 — pierwsze uruchomienie Qwen 3.5 2B (S22_CPU_SMOKE_PASS; LAB_ONLY)
 - Włączyć przez **istniejący** `DialogueModelId` / `LanguageModelCatalog` / `DialogueEngineProvider`, bez równoległego magazynu, nowego runnera lub zmiany domyślnego E2B.
 - Jedno- i wieloturowy natywny smoke na S22, 2048 kontekstu na wspólny start, poprawność PL/JSON, fakt-korekta, neutralne zapytanie, `tool=null`, nowa konwersacja bez przecieku stanu, release zasobów, cold/warm i RAM/PSS; porażka znaczy `BLOCKED`, nie promowanie modelu.
 - Gate: rzeczywisty `S22_NATIVE_SMOKE_PASS`; brak fizycznego odbioru = `NOT_RUN`.
 
-## G3 — porównanie Gemma 4 E2B vs Qwen 3.5 2B (DECISION)
+## G3 — porównanie Gemma 4 E2B vs Qwen 3.5 2B (ACTIVE; S22 RECEIPT_PENDING)
 - Identyczne S22, instrukcje, Skills, format, kontekst, budżet odpowiedzi i korpus. Tryb Skills zamrozić po G0; **nie mieszać jednocześnie zmiany modelu i strategii Skills**.
 - Co najmniej 8 scenariuszy PL × 3 niezależne powtórzenia × 2 modele, po minimum 2 tury: intencja, pytania uzupełniające, pamięć, sprostowanie, sprzeczność, odmowa ujawnienia faktów, wybór/propozycja narzędzia, naturalne zakończenie. Zróżnicować kolejność, oddzielić cold i warm; po każdej nowej konwersacji resetować rzeczywisty stan.
 - Miary: błędy schematu/narzędzi i naruszenia ograniczeń (dyskwalifikujące); ocena semantyczna i naturalność na czytanym dialogu; skuteczność pamięci i korekt; mediany i p95 cold/warm (nie mieszać), rzeczywisty GPU/CPU, RAM/PSS, błędy procesu. Wyniki szczegółowe prywatne; w Git tylko zagregowane metryki bez treści rozmów.
 - Decyzja `KEEP_E2B` / `PROMOTE_QWEN` / `INSUFFICIENT_EVIDENCE`: Qwen ma sens tylko jeśli wyraźnie poprawi jakość bez utraty niezawodności i nieakceptowalnego opóźnienia. Brak automatycznej promocji na podstawie liczby parametrów lub jednego testu. E2B pozostaje domyślny do udokumentowanej decyzji.
+
+
+### Aktualizacja wykonania G2/G3 — 2026-11-09
+
+- **G2 ukończony:** Qwen3.5 CPU S22 3/3 syntetyczne tury, import i weryfikacja SHA PASS (`aicalls-g2-qwen35-2b-cpu-native-s22-20261109-v1`, DONE/0), 23 983 ms cold / 3 537 ms warm / 15 758 ms nowa sesja; PSS końcowe 2 897 MiB. W pełnym Mac gate G2 v2 PASS po poprawie kontraktów. Brak aktywacji modelu w Call.
+- **G3 kod:** `bf31c48` test 96 tur, Mac build + full gate PASS; `2966967` dodał prywatny journal, którego nowy build jest częścią dopiero oczekującego tasku.
+- **Jedyny task S22:** `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1`, control repo `MichalMatu/local-agent:agent-control`, `SUBMITTED / RECEIPT_PENDING`; log Mac do 09:27:24 UTC bez tego ID, zator lease/Git. Nie twierdzić, że zadanie jest aktywne lub skończone. Nie duplikować.
+- **Odbiór:** [pełny checkpoint G3](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). Najpierw dokładny receipt, potem ewentualne świeże logi/claims; dopiero analiza prywatnych tur i decyzja modelowa. `E2B` default do decyzji.
 
 ## G4 — Agent Skills reagujące na rozmowę
 - Metadata `name/description/capability` z istniejącym wersjonowaniem i edytorem; styl/zasady stałe, umiejętności wybierane na podstawie aktualnej intencji i stanu dialogu, nie wyłącznie pierwszej wypowiedzi. Najpierw protokół przejść między turami i ekonomia kontekstu LiteRT.

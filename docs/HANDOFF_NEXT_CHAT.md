@@ -1,17 +1,10 @@
-# AI Calls — handoff do funkcjonalnego odbioru na S22
+# AI Calls — handoff do G3: Gemma E2B kontra Qwen3.5 2B
 
-## 2026-11-09 — G0/G1 decision and Qwen3.5 Lab-only code (G2 MAC_QA_PENDING)
+## 2026-11-09 — aktualny handoff G3 (kanoniczny)
 
-G0 physical S22 F-158 **TECHNICAL PASS** (`aicalls-g0-f158-s22-20261109-v1`, 24/24 turns, GPU, no Call); G1 Mac HF pin + S22 RAM/storage **DONE/0** (`aicalls-g1-qwen35-2b-metadata-hardware-20261109-v1`). Qwen3.5 2B text-only exact pin `f24013ba...`, SHA `c2438cb9...`, 2,119,843,840 bytes. On Exynos S22, GPU memory risk: experimental CPU-only model, fresh Engine when context resets; E2B default and Call profile untouched. G2 source `9c87ccb` target model policy test **PASS**, full host gate **RED** at `aicalls-g2-qwen35-lab-cpu-mac-qa-20261109-v1` (818 JVM, 3 prior-contract tests assumed every catalog entry selectable: `AudioEngineProfileContractTest` ×2, `DialogueEngineProvidersTest` ×1). Correcting tests to explicitly distinguish 4 accepted telephone models vs Qwen Lab-only, keeping production restrictions. Model file not downloaded/installed, Qwen native S22 **NOT_RUN**. Follow [single plan](AI_CALLS_MASTER_EXECUTION_PLAN.md) and [F-158 receipt](checkpoints/2026-11-09-f158-contextual-skills-sprint.md).
+**G0 S22_TECHNICAL_PASS; G1 SOURCE_PASS; G2 MAC_PASS + S22_CPU_SMOKE_PASS; G3 MAC_PASS na `bf31c48`, ale finalne `main@2966967` z prywatnym journalem czeka na host build; G3 S22 `SUBMITTED / RECEIPT_PENDING`.** Dokładne zadanie: `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1` na Mac Local Agent, wynik 404 przy ostatnim odczycie. Log Mac do 09:27:24 UTC nie potwierdza startu G3; zawiera timeouty control Git/lease busy. Status hosta (`idle` z 08:23:50 UTC) jest przestarzały. Nie uruchamiać duplikatu. Gemma E2B nadal domyślna; Qwen3.5 2B eksperymentalny CPU-only, import i 3-tury S22 w G2 PASS. Bez realnych Call i bez zmiany profilu.
 
-## 2026-11-09 — Master execution plan (owner decision)
-
-**Single source of execution order:** [AI_CALLS_MASTER_EXECUTION_PLAN.md](AI_CALLS_MASTER_EXECUTION_PLAN.md). G0 physical F-158 → G1 Qwen3.5-2B feasibility → G2 native smoke on S22 → G3 controlled E2B/Qwen A/B and model decision → G4 per-turn Skills → G5 full dialog → G6 incoming/outgoing telephone E2E → G7 UX/product. Gemma E2B remains default until G3 proves better. Mac F-158 initial QA is **DONE/0**; newer AndroidTest and S22 are **NOT_RUN**. No change to Call or user data.
-
-## 2026-11-09 — F-158 new sprint: session-level contextual Skills A/B (QA_PENDING)
-
-Code: `a3b0fba` (Lab selector, mode toggle, timing, six JVM tests), `f6f0baf` (24-turn E2B A/B AndroidTest, not yet executed). Existing Call flow and user presets unchanged. Mac read-only preflight DONE/0 clean from `0fd46c4`. Mac quality-gate task `aicalls-f158-contextual-skills-host-qa-20261109-v1` result pending; physical S22 A/B NOT_RUN. Continue by reading receipt, then compile AndroidTest and do idle-gated non-Call S22 test. Selector chooses at session start, not each turn. [Checkpoint](checkpoints/2026-11-09-f158-contextual-skills-sprint.md).
-
+**Kontynuuj wyłącznie według** [jednego planu](AI_CALLS_MASTER_EXECUTION_PLAN.md) i [pełnego checkpointu G3](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md). Najpierw aktualny HEAD + dokładny receipt G3 → świeższe logi hosta/claims, jeśli brak receipt → dalszy jeden krok według wyniku → prywatna ocena semantyczna i decyzja KEEP_E2B / PROMOTE_QWEN / INSUFFICIENT_EVIDENCE → dopiero G4. Dawne wpisy w tym pliku mają charakter **historyczny** i nie zastępują nowego stanu.
 
 ## 2026-11-09 — Skills F-156 VERIFIED_SCOPED + fizyczne E2B/E4B 18 tur, Google Gallery research
 
