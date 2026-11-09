@@ -1,6 +1,12 @@
 # AI Calls — prywatny kanał USB/ADB: Laboratorium i telefonia (2026-11-08)
 
-## Najnowsza weryfikacja 2026-11-09 — background native Lab PASS
+## Jednoprzebiegowy odbiór S22 2026-11-09 — GUI/USB i AI Skills
+
+`aicalls-onepass-s22-gui-usb-skills-instrument-20261109-v1`: fizyczny `AndroidUsbGuiLabConcurrencyTest` **1/1 PASS**. Lab GUI otrzymał natywną dzierżawę modelu, konkurencyjna próba przez **wspólny kontroler USB** została odrzucona (`another_lab_model_session_active`), po GUI STOP USB odzyskał zasób. **F-150 VERIFIED dla pojedynczego backendu w procesie**; nie twierdzić, że jednocześnie wysłano zewnętrzny broadcast ADB podczas aktywnego GUI.
+
+`aicalls-onepass-s22-usb-call-negatives-skills-ab-20261109-v1` **DONE/0**: faktyczny USB CLI `natural/formal/message`, Gemma E2B 4096 **3×2=6/6 tur** z prywatnym zapisem i STOP; 3/3 proste przypomnienie losowego kodu. Trzy poprawne odmowy takeover/resume/owned STOP przy braku Call **3/3**; pozytywne interwencje w rzeczywistej rozmowie **NOT_RUN**, wymagają osobnej autoryzacji. [Pełny checkpoint](checkpoints/2026-11-09-single-pass-ui-usb-ai-skills-acceptance.md).
+
+## Weryfikacja historyczna 2026-11-09 — background native Lab PASS
 
 Odbiornik USB nie wymaga pierwszego planu AI Calls ani Launcher. Działa przez `adb shell run-as`, prywatną skrzynkę i broadcast `DUMP`. Operatorowy guard `foreground` był zbyt restrykcyjny, nie wynikał z systemowego ograniczenia kanału. Zostają bramki bezpieczeństwa: dokładny S22, ADB, Call IDLE, brak kampanii i konkurencyjnej sesji natywnej. `aicalls-usb-lab-background-two-turn-20261109-v3` **DONE/0**: Gemma E2B 4096, `lab-start`, **2/2 `lab-send` z odpowiedzią**, `lab-save` 2 tury prywatnie na Mac oraz `lab-stop` OK. F-153 **VERIFIED** (regresja stdin i fizyczny PASS). Wcześniejszy `REFUSED` przy PocketHost to ograniczenie skryptu testowego, nie usterka USB. F-150 GUI+USB concurrency i real Call intervention **NOT_RUN**. [Checkpoint](checkpoints/2026-11-09-usb-lab-background-two-turn-f153-verified.md).
 
