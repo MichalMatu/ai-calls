@@ -4,7 +4,8 @@
 **Warunek/wynik:** fizyczny Samsung S22: `AndroidUsbLabControlContractTest` **3/3 PASS**, ale pierwsze `ai_calls_usb_lab.py status` kończyło się `private_request_write_failed`. Mac `aicalls-usb-mailbox-shell-quoting-diagnosis-20261109-v1`: surowy `sh -c` z `printf A; printf B` zwracał tylko `B` i błąd; cytowana wersja zwracała `AB`.
 **Przyczyna:** argument `sh -c` zawierał średniki/redirekcję jako niezabezpieczony łańcuch w `adb shell run-as ... sh -c`; Android wykonywał rozbite części polecenia poza oczekiwaną powłoką aplikacji. Transport nie tworzył poprawnego żądania.
 **Naprawa:** `main@39984125dfc0e207b83bb6da1cf2d1f06d457b40` — `shlex.quote(shell)` dla całego skryptu z zachowaniem przekazywania prywatnego JSON wyłącznie stdin. Test `scripts/tests/test_ai_calls_usb_lab.py` wymusza zachowanie jednego argumentu `sh -c` (commit `b87456e`). Bez zmian telefonii, zgód, modeli i transkryptów.
-**Status:** **FIXED_IN_SOURCE / QA_PENDING** — jeszcze bez zielonego testu fizycznego status/config przez USB po zmianie. Testy hosta i S22 wymagają osobnych receipts.
+**Odbiór:** `aicalls-usb-f152-mac-host-qa-20261109-v1` DONE/0 — 5/5 targeted unit i pełne `verify_host.sh` PASS, checkout clean. `aicalls-usb-f152-s22-cli-reacceptance-20261109-v1` **DONE/0** — na fizycznym `SM-S906B`, Call IDLE: prawdziwe `status`, `config-get`, `ram` **3/3 PASS**, odbiornik zwraca `code=ok`, brak aktywnego czatu i zmiany stanu Call; Mac clean. Osobny `aicalls-usb-device-readonly-contract-20261109-v1` potwierdził też `AndroidUsbLabControlContractTest` **3/3 PASS** przed naprawą CLI (CLI wtedy FAIL).
+**Status:** **VERIFIED** — fizyczny kanał odczytowy USB działa. E2B START/SEND/STOP i dodatnia interwencja w rzeczywistym Call pozostają niezależnym `DEVICE_QA_OPEN`.
 
 ## F-151 — nieaktualny kontrakt AndroidTest zakładki Agent AI (2026-11-09)
 
