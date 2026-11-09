@@ -22,7 +22,7 @@ Jeden lokalny agent i wspólny runtime dla przychodzących i wychodzących. Siln
 - Jedno- i wieloturowy natywny smoke na S22, 2048 kontekstu na wspólny start, poprawność PL/JSON, fakt-korekta, neutralne zapytanie, `tool=null`, nowa konwersacja bez przecieku stanu, release zasobów, cold/warm i RAM/PSS; porażka znaczy `BLOCKED`, nie promowanie modelu.
 - Gate: rzeczywisty `S22_NATIVE_SMOKE_PASS`; brak fizycznego odbioru = `NOT_RUN`.
 
-## G3 — porównanie Gemma 4 E2B vs Qwen 3.5 2B (S22_TECHNICAL_PASS; DECISION_OPEN)
+## G3 — porównanie Gemma 4 E2B vs Qwen 3.5 2B (DECIDED_KEEP_E2B; MODEL_SELECTION_CLOSED)
 - Identyczne S22, instrukcje, Skills, format, kontekst, budżet odpowiedzi i korpus. Tryb Skills zamrozić po G0; **nie mieszać jednocześnie zmiany modelu i strategii Skills**.
 - Co najmniej 8 scenariuszy PL × 3 niezależne powtórzenia × 2 modele, po minimum 2 tury: intencja, pytania uzupełniające, pamięć, sprostowanie, sprzeczność, odmowa ujawnienia faktów, wybór/propozycja narzędzia, naturalne zakończenie. Zróżnicować kolejność, oddzielić cold i warm; po każdej nowej konwersacji resetować rzeczywisty stan.
 - Miary: błędy schematu/narzędzi i naruszenia ograniczeń (dyskwalifikujące); ocena semantyczna i naturalność na czytanym dialogu; skuteczność pamięci i korekt; mediany i p95 cold/warm (nie mieszać), rzeczywisty GPU/CPU, RAM/PSS, błędy procesu. Wyniki szczegółowe prywatne; w Git tylko zagregowane metryki bez treści rozmów.
@@ -35,6 +35,12 @@ Jeden lokalny agent i wspólny runtime dla przychodzących i wychodzących. Siln
 - **G3 S22 TECH_PASS:** `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1` komendy 1–3 PASS (latest build, 96 tur, 48 par, 2 summary, prywatny eksport na Mac); E2B/GPU 24/24 native/JSON/tools, content hints 15/15, cold/warm mediany 24,20/4,73 s; Qwen3.5/CPU 24/24, 12/15, 49,19/7,34 s. `low_memory=false` po każdej grupie. Skrót nie stanowi human semantic review ani porównania tego samego akceleratora.
 - **Formalny task `failed` = tylko postflight `task_budget_exhausted`:** po udanym 96-turn AndroidTest etap 4 `git status` nie wystartował; końcowa czystość Mac i analiza prywatnej semanty **OPEN**, nie powtarzać 96 tur.
 - **Dalsze działania:** [kompletny checkpoint](checkpoints/2026-11-09-g3-e2b-qwen35-pending-host-receipt-handoff.md) → read-only Mac postflight/JSONL 48 → human review → decyzja `KEEP_E2B`/`PROMOTE_QWEN`/`INSUFFICIENT_EVIDENCE` → **dopiero G4**. E2B default do decyzji.
+
+### Decyzja G3 — 2026-11-09
+
+**G3 CLOSED — `DECIDED_KEEP_E2B` (decyzja właściciela 2026-11-09).** Mac+S22: 96/96 natywnych tur, 48/48 prywatnych par, backend E2B GPU/Qwen CPU, 24/24 JSON/tools na model; ostateczny Mac clean postflight i integralność prywatnego pliku **DONE/0**. Lokalny przegląd **wszystkich 96 syntetycznych odpowiedzi** regułowym audytem `aicalls-g3-private-synthetic-semantic-rubric-20261109-v2` **DONE/0**: E2B **150/150**, Qwen **141/150** punktowych kontroli. Qwen: 3× brak tekstowej wzmianki o wtorku i 3× godziny 10 w drugiej turze wyjaśnienia oraz 3× identyczna odpowiedź w obu turach prywatności. Ten ostatni sygnał nie dowodzi naruszenia prywatności. Pominięta reguła z v1 (`wtork`) została naprawiona; v2 jest obowiązującym wynikiem. **Naturalność oceniona przez człowieka nadal UNASSESSED**, przeniesiona do G5. E2B pozostaje głównym modelem; Qwen lab-only, bez zmiany kodu telefonii. [Finalny checkpoint](checkpoints/2026-11-09-g3-keep-e2b-final-decision.md).
+
+**Nie cofać wyboru modelu z powodu niezakończonej ludzkiej oceny naturalności**: ten wymóg pozostaje odrębną bramką G5, a nie otwartą decyzją E2B/Qwen. Żadnego automatycznego awansu Qwen. Pierwsza niezamknięta bramka modelowego planu to **G4.1**.
 
 ## G4 — Agent Skills reagujące na rozmowę
 - Metadata `name/description/capability` z istniejącym wersjonowaniem i edytorem; styl/zasady stałe, umiejętności wybierane na podstawie aktualnej intencji i stanu dialogu, nie wyłącznie pierwszej wypowiedzi. Najpierw protokół przejść między turami i ekonomia kontekstu LiteRT.

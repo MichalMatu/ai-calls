@@ -1,4 +1,6 @@
-# AI Calls — G0–G3 pełny checkpoint i handoff (2026-11-09; G3 wynik odebrany)
+# AI Calls — historyczny checkpoint G3 (wynik odebrany)
+
+**SUPERSEDED by [G3 formal decision KEEP_E2B](2026-11-09-g3-keep-e2b-final-decision.md).** Poniżej zachowano historyczny stan sprzed lokalnej oceny semantycznej i decyzji, nie jest to bieżący handoff.
 
 **Stan referencyjny przed tym commitem dokumentacyjnym:** `main@29669674c694d722eb0fe47f482f0e06927f0848`. Dokumentacja opisuje tylko zaobserwowane dowody; jej publikacja nie zmienia kodu Android, modelu, profilu ani urządzenia. Po commicie należy odczytać świeży HEAD.
 

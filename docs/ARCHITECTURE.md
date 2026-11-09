@@ -1,5 +1,9 @@
 # AI Calls — architektura operacyjna
 
+## G3 — wybór modelu i ograniczenia (2026-11-09)
+
+`KEEP_E2B` **DECIDED**: w istniejącym `DialogueModelId` E2B pozostaje modelem głównym Call, Qwen3.5 2B wyłącznie Lab/CPU (bez promocji, bez zmian profilu). Mac+S22 96 tur technicznych, raport 48 par, Mac clean, 96 syntetycznych odpowiedzi poddanych lokalnej regułowej ocenie 150/150 E2B vs 141/150 Qwen. Różne GPU/CPU i brak ludzkiej oceny naturalności ograniczają wnioski. G4 przygotowuje per-turn Skills, lecz zmiana system instructions w żywym LiteRT wymaga osobnego potwierdzenia bezpieczeństwa/lifecycle przed włączeniem. [Finalny checkpoint](checkpoints/2026-11-09-g3-keep-e2b-final-decision.md).
+
 ## G3 — modelowy A/B na S22, granice izolacji (2026-11-09)
 
 `DialogueModelId.QWEN_3_5_2B` jest przypiętym katalogowo **kandydatem laboratoryjnym**, a nie gotowym profilem Call. Zwykły `AudioEngineRegistry.incompatibility` go blokuje; przycisk zwykłego wyboru również. `LiteRtGemma4Runtime` wykorzystuje tę samą fabrykę i output approval, ale polityka Qwen3.5 **CPU_ONLY** (Mali/Exynos ryzyko RAM) i nowy Engine po resecie konwersacji ograniczają mieszanie rekurencyjnego stanu. Starsze modele zachowują własne dotychczasowe ścieżki. E2B pozostaje domyślnym modelem telefonu, G3 nie daje nowej władzy nad Call ani danymi.

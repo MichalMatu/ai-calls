@@ -1,4 +1,10 @@
-# AI Calls — handoff do G3: Gemma E2B kontra Qwen3.5 2B
+# AI Calls — handoff G4: per-turn Agent Skills po G3 KEEP_E2B
+
+## Aktualny stan 2026-11-09 — formalna decyzja G3 i pierwsza praca G4
+
+**G3 CLOSED — `DECIDED_KEEP_E2B` (decyzja właściciela 2026-11-09).** Mac+S22: 96/96 natywnych tur, 48/48 prywatnych par, backend E2B GPU/Qwen CPU, 24/24 JSON/tools na model; ostateczny Mac clean postflight i integralność prywatnego pliku **DONE/0**. Lokalny przegląd **wszystkich 96 syntetycznych odpowiedzi** regułowym audytem `aicalls-g3-private-synthetic-semantic-rubric-20261109-v2` **DONE/0**: E2B **150/150**, Qwen **141/150** punktowych kontroli. Qwen: 3× brak tekstowej wzmianki o wtorku i 3× godziny 10 w drugiej turze wyjaśnienia oraz 3× identyczna odpowiedź w obu turach prywatności. Ten ostatni sygnał nie dowodzi naruszenia prywatności. Pominięta reguła z v1 (`wtork`) została naprawiona; v2 jest obowiązującym wynikiem. **Naturalność oceniona przez człowieka nadal UNASSESSED**, przeniesiona do G5. E2B pozostaje głównym modelem; Qwen lab-only, bez zmiany kodu telefonii. [Finalny checkpoint](checkpoints/2026-11-09-g3-keep-e2b-final-decision.md).
+
+**NEXT: G4.1 per-turn Skills routing contract i JVM tests**, bez kodu produkcyjnego Call do czasu potwierdzonego lifecycle promptu LiteRT. Stary blok „G3 semantyka OPEN” niżej jest historycznym snapshotem, nie kolejnym poleceniem. [Jeden master plan](AI_CALLS_MASTER_EXECUTION_PLAN.md) · [checklist G4](checkpoints/2026-11-09-g3-keep-e2b-final-decision.md).
 
 ## 2026-11-09 — aktualny handoff: G3 S22 96/96 TECH_PASS, semantyka OPEN
 

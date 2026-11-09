@@ -1,5 +1,11 @@
 # AI Calls — bieżąca roadmapa funkcjonalna
 
+## Aktualny priorytet: G4 po decyzji G3 KEEP_E2B (2026-11-09)
+
+**G3 CLOSED — `DECIDED_KEEP_E2B` (decyzja właściciela 2026-11-09).** Mac+S22: 96/96 natywnych tur, 48/48 prywatnych par, backend E2B GPU/Qwen CPU, 24/24 JSON/tools na model; ostateczny Mac clean postflight i integralność prywatnego pliku **DONE/0**. Lokalny przegląd **wszystkich 96 syntetycznych odpowiedzi** regułowym audytem `aicalls-g3-private-synthetic-semantic-rubric-20261109-v2` **DONE/0**: E2B **150/150**, Qwen **141/150** punktowych kontroli. Qwen: 3× brak tekstowej wzmianki o wtorku i 3× godziny 10 w drugiej turze wyjaśnienia oraz 3× identyczna odpowiedź w obu turach prywatności. Ten ostatni sygnał nie dowodzi naruszenia prywatności. Pominięta reguła z v1 (`wtork`) została naprawiona; v2 jest obowiązującym wynikiem. **Naturalność oceniona przez człowieka nadal UNASSESSED**, przeniesiona do G5. E2B pozostaje głównym modelem; Qwen lab-only, bez zmiany kodu telefonii. [Finalny checkpoint](checkpoints/2026-11-09-g3-keep-e2b-final-decision.md).
+
+**NEXT: G4.1** — kontrakt zmian Skills między turami na niemutowalnym snapshocie, celowane JVM tests i Mac QA. Prawdziwe per-turn przełączanie aktywnych instrukcji w silniku i S22 pozostają G4.2/PENDING. G5 human semantic/naturalness + pełny dialog głosowy; G6 rzeczywiste Call; G7 UX. Stare wpisy poniżej to archiwum.
+
 ## Aktywna bramka 2026-11-09: G3 ocena semantyczna i decyzja
 
 **G0 S22 24/24 PASS; G1 pin/S22 PASS; G2 Qwen3.5 CPU 3/3 PASS; G3 porównanie 96/96 tur na S22 TECH_PASS**. G3 `aicalls-g3-e2b-qwen35-96turns-s22-20261109-v1`: Mac latest AndroidTest build PASS, fizyczny `am instrument` PASS, 48/48 syntetycznych par prywatnie na Mac 0600, Call IDLE. Gemma E2B GPU: JSON/tools/native 24/24, hint 15/15, mediana cold/warm 24,20/4,73 s; Qwen3.5 CPU: 24/24, 12/15, 49,19/7,34 s. Formalne `failed` dotyczy tylko **pominiętego ostatniego clean postflight** (`task_budget_exhausted`), nie AndroidTest.
