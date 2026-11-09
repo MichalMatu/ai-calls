@@ -5,7 +5,7 @@
 These scripts are repository-owned **commands to invoke within a Mac host task** after selecting a clean, fresh AI Calls worktree. They do not schedule Local Agent work themselves and do not bypass telephony permissions.
 
 - `repo_state.sh` — repository refs and checkout inspection.
-- `host_verify.sh` — canonical Gradle tests, lint, Android builds and Python checks.
+- `host_verify.sh` — explicit **full host** unit/lint/Python/static tests, now **without APK builds**. Prefer `bash scripts/bin/test-profile.sh auto <base-SHA>` or `focus <module> '<class-filter>'` during iteration; use `device-build` only just before authorized S22 installation. The opt-in lightweight pre-commit hook was enabled on selected Mac, but GitHub Connector commits bypass it.
 - `device_readiness.sh` — paired Wireless ADB/USB discovery for exact S22, `IDLE`, Android/Shizuku no-call readiness. Optionally `AICALL_SERIAL` must still pass identity verification.
 - `clir_iteration.sh` — fails closed while a real exact-call dial/controller is missing.
 - `scripts/bin/aicalls relay-live --attach-existing-call --allow-clir-enable` — separate developer attach-only mode with explicit effect authority; never dials or hangs up.

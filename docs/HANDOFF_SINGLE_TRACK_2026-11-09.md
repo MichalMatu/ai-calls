@@ -13,6 +13,10 @@ Oba dotychczasowe czaty AI Calls zostają zamknięte organizacyjnie. **Tylko jed
 
 **Jeden główny plan:** docs/AI_CALLS_MASTER_EXECUTION_PLAN.md. Ten handoff jest instrukcją startową, docs/EXTERNAL_REUSE_AUDIT_2026-11-09.md to referencyjna mapa źródeł, checkpoints/BLOCKERS zawierają historię wyników — nie są osobnymi planami.
 
+## Szybkie testy i Gradle cache — F-170 VERIFIED_SCOPED
+
+Pierwsze zadanie nowego czatu: używaj `test-profile.sh auto <pre-sprint-SHA>` lub `focus` do sprawdzenia wyłącznie dotkniętej logiki. Tryb `full` tylko przy integracji (bez APK), `device-build` jedynie tuż przed S22 install. Cache Gradle działa: celowany `conversation-core:test` 9,73 s → 0,87 s z reused configuration cache; bez pakowania. Pre-commit na Macu aktywny, statyczny, GitHub Connector pomija local hooks. [Evidence](checkpoints/2026-11-09-f170-fast-dev-gradle-cache-mac.md).
+
 ## Co bezwzględnie zachować
 
 - Działająca droga Android SIM/Telecom + Samsung/Shizuku, tylko własny Call, niezmieniona ścieżka RX/TX/PCM, STOP, przejęcie oraz bezpieczna polityka jednego aktywnego połączenia. Zero zmian w granicach uprawnień bez uzasadnionego regresyjnego dowodu.
