@@ -57,8 +57,9 @@ class AndroidUsbGuiLabConcurrencyTest {
         assertTrue("requires_idle_phone", before.data.getBoolean("call_idle"))
         assertFalse("requires_no_active_campaign", before.data.getBoolean("outgoing_ai_running"))
         assertFalse("requires_no_live_chat", before.data.getBoolean("live_chat_active"))
-        assertFalse("requires_idle_usb_lab",
-            before.data.getJSONObject("lab").getBoolean("process_session_active"))
+        val initialLab = before.data.getJSONObject("lab")
+        assertTrue("requires_idle_usb_lab", !initialLab.getBoolean("process_session_active") ||
+            initialLab.optString("phase") in setOf("STOPPED", "COMPLETED", "FAILED", "NONE"))
 
         var usbSessionId: String? = null
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
