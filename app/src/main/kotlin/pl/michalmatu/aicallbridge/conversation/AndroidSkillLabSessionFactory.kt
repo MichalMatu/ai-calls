@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.conversation
 import android.content.Context
 import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
+import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
@@ -11,14 +12,23 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 /** Android-only model configuration. The Activity never creates or owns a backend. */
 internal class AndroidSkillLabSessionFactory(
     private val context: Context,
-    private val contextTokenBudget: Int = 4_096,
+    contextTokenBudget: Int = 4_096,
 ) : SkillLabModelSessionFactory {
     init { require(contextTokenBudget > 0) { "lab_invalid_context_budget" } }
+    /** Applied to future sessions only; existing workers retain their own snapshot. */
+    @Volatile var contextTokenBudget: Int = contextTokenBudget
+        set(value) {
+            require(value > 0) { "lab_invalid_context_budget" }
+            field = value
+        }
+    @Volatile var onTiming: (NativeModelTiming) -> Unit = {}
     @Volatile var selectedCase: LabCaseRevision? = null
     companion object {
         private val activeLabBackend = AtomicBoolean(false)
     }
     override fun open(presetId: String): SkillLabModelSession {
+        val budgetSnapshot = contextTokenBudget
+        val timingSnapshot = onTiming
         val profile = AudioEngineProfileStore(context).load()
             ?: error(context.getString(R.string.lab_ui_missing_profile))
         val store = AndroidConversationPreparationStore(context)
@@ -46,7 +56,7 @@ internal class AndroidSkillLabSessionFactory(
             try {
                 val delegate = provider.createLaboratoryConversationReply(
                     context, instruction, setOf(ConversationToolId.END_CALL),
-                    contextTokenBudget)
+                    budgetSnapshot, timingSnapshot)
                 object : TextCallAgentBackend {
                     private val closed = AtomicBoolean(false)
                     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
