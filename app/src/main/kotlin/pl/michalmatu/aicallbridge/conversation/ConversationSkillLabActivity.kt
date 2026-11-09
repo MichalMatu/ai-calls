@@ -78,7 +78,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
             textSize = 23f
         }, UiDesign.spaceAfter(this, 8))
 
-        val library = try { AndroidConversationPreparationStore(this).loadSkillLibrary() }
+        val library = try { SkillLabIsolatedTestStore.forContext(this).loadSkillLibrary() }
         catch (error: Exception) {
             setContentView(TextView(this).apply {
                 text = getString(R.string.lab_ui_library_error, error.javaClass.simpleName)
@@ -318,7 +318,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
         }
     }
 
-    private fun caseStore() = AndroidConversationPreparationStore(this)
+    private fun caseStore() = SkillLabIsolatedTestStore.forContext(this)
 
     private fun refreshCases() {
         val selectedId = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)?.id
