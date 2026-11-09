@@ -49,6 +49,15 @@ class DeveloperFastGateTests(unittest.TestCase):
         self.assertEqual(py, ["scripts.tests.test_verify_host_layout", "scripts.tests.test_development_fast_gate"])
         self.assertFalse(issues)
 
+    def test_focus_and_auto_discover_same_host_sdk_as_full_gate(self):
+        profile = (ROOT / "scripts/bin/test-profile.sh").read_text()
+        full = (ROOT / "scripts/verify_host.sh").read_text()
+        for expected in ("$HOME/Library/Android/sdk", "$HOME/Android/Sdk",
+                         'export ANDROID_HOME=', 'export ANDROID_SDK_ROOT='):
+            self.assertIn(expected, profile)
+            self.assertIn(expected, full)
+        self.assertLess(profile.index("export ANDROID_HOME="), profile.index('case "$mode" in'))
+
     def test_packaging_only_explicit_profile(self):
         profile = (ROOT / "scripts/bin/test-profile.sh").read_text()
         full = (ROOT / "scripts/verify_host.sh").read_text()

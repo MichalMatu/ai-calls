@@ -61,25 +61,24 @@ internal class ArchivedConversationPlayer(
             sequenceId = session
             completion = onCompleted
             remaining.addAll(files)
-            startNext(id)
-            StartResult.PLAYING
+            if (startNext(id)) StartResult.PLAYING else StartResult.FAILED
         }.getOrElse {
             stop()
             StartResult.FAILED
         }
     }
 
-    private fun startNext(id: String) {
-        if (phoneReady() != null) { stop(); return }
+    private fun startNext(id: String): Boolean {
+        if (phoneReady() != null) { stop(); return false }
         val name = remaining.pollFirst()
         if (name == null) {
             val done = completion
             stop()
             done?.invoke()
-            return
+            return true
         }
-        val file = archive.resolveAudioFile(id, name) ?: run { stop(); return }
-        try {
+        val file = archive.resolveAudioFile(id, name) ?: run { stop(); return false }
+        return try {
             val player = MediaPlayer()
             current = player
             player.setDataSource(file.absolutePath)
@@ -98,8 +97,10 @@ internal class ArchivedConversationPlayer(
             }
             player.prepare()
             player.start()
+            true
         } catch (_: Exception) {
             stop()
+            false
         }
     }
 

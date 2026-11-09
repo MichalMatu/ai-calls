@@ -4,6 +4,17 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 mode="${1:-}"
 if [[ "$#" -gt 0 ]]; then shift; fi
 gradle="${GRADLE_BIN:-./gradlew}"
+# The full host gate already discovers local Android SDKs; focused/auto builds need
+# the same environment, otherwise they fail before Gradle can reuse its cache.
+if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
+  if [[ -d "$HOME/Library/Android/sdk" ]]; then
+    export ANDROID_HOME="$HOME/Library/Android/sdk"
+    export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  elif [[ -d "$HOME/Android/Sdk" ]]; then
+    export ANDROID_HOME="$HOME/Android/Sdk"
+    export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  fi
+fi
 case "$mode" in
   preflight)
     [[ "$#" -eq 0 ]] || exit 2
