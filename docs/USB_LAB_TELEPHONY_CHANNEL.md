@@ -1,6 +1,10 @@
 # AI Calls — prywatny kanał USB/ADB: Laboratorium i telefonia (2026-11-08)
 
-## Stan odbioru
+## Aktualny odbiór 2026-11-09 — częściowo potwierdzony S22
+
+Debug APK oraz AndroidTest zainstalowane na S22 bez wipe. Kontrakt `AndroidUsbLabControlContractTest` **3/3 PASS** (DUMP/debug, off-call status i odmowy bez owned Call). Prawdziwe USB CLI `status`, `config-get`, `ram` **3/3 PASS** na S22 po F-152 `VERIFIED` (poprawne cytowanie `sh -c`); Mac pełny gate PASS. Właściwy `lab-start` E2B 4096 i `lab-stop` także wykonały się, lecz pierwsze SEND zwróciło brak stdin. F-153 naprawione w źródle, host PASS; fizyczny retest był bezpiecznie zablokowany przez PocketHost foreground. **Dwie tury Gemmy przez USB jeszcze NOT_RUN na poprawionej wersji CLI.** Live Call takeover/resume/owned STOP i GUI/USB concurrency również NOT_RUN. [Checkpoint 2026-11-09](checkpoints/2026-11-09-nav01-f151-usb-f152-reacceptance.md). Nie ponawiać zatwierdzonych przypadków, nie obchodzić odmowy.
+
+## Stan odbioru — historyczny 2026-11-08
 
 **Pełny checkpoint 2026-11-08:** [USB Lab + telefonia — kod, QA Mac, granice S22 i handoff](checkpoints/2026-11-08-usb-lab-telephony-full-checkpoint.md). Najnowszy Mac gate `aicalls-usb-lab-shared-native-lease-mac-qa-20261108-v4` **DONE/0** (370 Python, kompilacja APK/AndroidTest, lint, audio). **Nowa APK USB i fizyczny takeover na S22 NOT_RUN**, choć starsza ścieżka `run-as` miała osobny pozytywny preflight. F-150 wyłączność modelu na Mac PASS, device OPEN.
 
