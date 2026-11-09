@@ -1,5 +1,10 @@
 # AI Calls
 
+## 2026-11-09 — F-158 new sprint: session-level contextual Skills A/B (QA_PENDING)
+
+Code: `a3b0fba` (Lab selector, mode toggle, timing, six JVM tests), `f6f0baf` (24-turn E2B A/B AndroidTest, not yet executed). Existing Call flow and user presets unchanged. Mac read-only preflight DONE/0 clean from `0fd46c4`. Mac quality-gate task `aicalls-f158-contextual-skills-host-qa-20261109-v1` result pending; physical S22 A/B NOT_RUN. Continue by reading receipt, then compile AndroidTest and do idle-gated non-Call S22 test. Selector chooses at session start, not each turn. [Checkpoint](checkpoints/2026-11-09-f158-contextual-skills-sprint.md).
+
+
 Androidowe, modułowe laboratorium STT → model/Skills → TTS oraz kontrolowanych scenariuszy telefonicznych. Obecnie służy do weryfikowania komponentów i ich integracji; nie jest jeszcze dowiedzionym, kompletnym wykonawcą dowolnych zadań ani zamkniętym archiwum audio.
 
 ## Aktualny stan — 2026-11-09

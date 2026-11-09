@@ -1,5 +1,10 @@
 # AI Calls — handoff do funkcjonalnego odbioru na S22
 
+## 2026-11-09 — F-158 new sprint: session-level contextual Skills A/B (QA_PENDING)
+
+Code: `a3b0fba` (Lab selector, mode toggle, timing, six JVM tests), `f6f0baf` (24-turn E2B A/B AndroidTest, not yet executed). Existing Call flow and user presets unchanged. Mac read-only preflight DONE/0 clean from `0fd46c4`. Mac quality-gate task `aicalls-f158-contextual-skills-host-qa-20261109-v1` result pending; physical S22 A/B NOT_RUN. Continue by reading receipt, then compile AndroidTest and do idle-gated non-Call S22 test. Selector chooses at session start, not each turn. [Checkpoint](checkpoints/2026-11-09-f158-contextual-skills-sprint.md).
+
+
 ## 2026-11-09 — Skills F-156 VERIFIED_SCOPED + fizyczne E2B/E4B 18 tur, Google Gallery research
 
 **Ostatni zakres implementacji:** `ConversationInstructionBuilder` przenosi wersjonowane Skills po stałych ograniczeniach roli/uprawnień, tuż przed format odpowiedzi (commit `63e5b9c6483ebe4bd071e16148b588351e02de65`), bez zmiany grantów, call ownership lub STOP. `ConversationSkillLibraryTest` potwierdza kolejność ograniczenia → Skills → odpowiedź oraz pominięcie nieaktywnego Skill (commit `f55fea5`). Test AndroidTest edytuje rzeczywisty interfejs Skills przez izolowany zaszyfrowany debug-only store i przywraca wszystkie oryginalne dane. Google Gallery `Agent Skills` nie jest aktualnie zaimplementowane: to `SKILL.md`, metadata-based selection, lazy loading oraz aplikacyjne JS/native tools, **nie** „magiczny tryb” Gemmy. [Porównanie i plan](AGENT_SKILLS_EDGE_GALLERY_REVIEW_2026-11-09.md).
