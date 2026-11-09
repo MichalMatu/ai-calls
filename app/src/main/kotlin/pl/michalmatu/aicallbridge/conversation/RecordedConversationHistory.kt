@@ -15,6 +15,8 @@ internal data class RecordedConversation(
     val lines: List<ConversationChatFeed.Line>,
     val invalidRecords: Int,
     val audioFiles: Map<Pair<Int, String>, String> = emptyMap(),
+    /** Available clips in recorder timestamp order, not a continuous full-call recording. */
+    val audioTimeline: List<String> = emptyList(),
 ) {
     fun audioFor(line: ConversationChatFeed.Line): String? = when (line.speaker) {
         ConversationChatFeed.Speaker.COUNTERPART -> audioFiles[line.turn to "rx"]
@@ -114,6 +116,7 @@ internal class RecordedConversationHistory(private val root: File) {
         require(directory.parentFile == root.canonicalFile && directory.isDirectory) { "invalid_conversation_history_id" }
         val lines = mutableListOf<ConversationChatFeed.Line>()
         val audioFiles = linkedMapOf<Pair<Int, String>, String>()
+        val audioTimeline = mutableListOf<Triple<Long, Int, String>>()
         var direction = ConversationDirection.UNSPECIFIED
         var profile: String? = null
         var start = id.substringBefore('-').toLongOrNull() ?: 0L
@@ -157,7 +160,12 @@ internal class RecordedConversationHistory(private val root: File) {
                         val expected = "turn-" + turn.toString().padStart(2, '0') + "-" + channel + ".wav"
                         if (turn >= 0 && name == expected) {
                             val wave = File(directory, expected).canonicalFile
-                            if (wave.parentFile == directory && wave.isFile) audioFiles[turn to channel] = expected
+                            if (wave.parentFile == directory && wave.isFile) {
+                                audioFiles[turn to channel] = expected
+                                val startedAt = event.get("elapsed_ms")?.asLong
+                                    ?: audioTimeline.lastOrNull()?.first ?: 0L
+                                audioTimeline += Triple(startedAt, audioTimeline.size, expected)
+                            }
                         }
                     }
                     "AGENT_FULL_TX" -> {
@@ -169,6 +177,10 @@ internal class RecordedConversationHistory(private val root: File) {
                 }
             } catch (_: RuntimeException) { invalid++ }
         } }
-        return RecordedConversation(id, direction, profile, start, complete, lines.toList(), invalid, audioFiles.toMap())
+        val playback = audioTimeline.sortedWith(
+            compareBy<Triple<Long, Int, String>> { it.first }.thenBy { it.second },
+        ).map { it.third }.distinct()
+        return RecordedConversation(id, direction, profile, start, complete, lines.toList(), invalid,
+            audioFiles.toMap(), playback)
     }
 }

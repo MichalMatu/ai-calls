@@ -94,6 +94,9 @@
     <string name="history_permission_required">Phone-state permission is required to play audio.</string>
     <string name="history_off_call_only">Audio playback is available only outside a phone call.</string>
     <string name="history_clip_not_found">The local WAV fragment was not found.</string>
+    <string name="history_play_all_available">▶ Play available fragments (%1$d)</string>
+    <string name="history_playing_available">Playing available fragments; gaps and manual portions may be missing.</string>
+    <string name="history_playback_available_finished">Available fragment playback finished.</string>
     <string name="history_playback_finished">Audio fragment finished.</string>
     <string name="history_playing">Playing saved audio fragment.</string>
     <string name="history_playback_error">Could not play audio fragment.</string>

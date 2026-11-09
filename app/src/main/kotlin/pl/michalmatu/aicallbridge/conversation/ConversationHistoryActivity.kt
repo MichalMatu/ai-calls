@@ -248,6 +248,30 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         text = getString(R.string.history_audio_count, session.audioFiles.size)
                     }
                     content.addView(playbackStatus)
+                    if (session.audioTimeline.isNotEmpty()) {
+                        val allClips = UiDesign.button(this, getString(R.string.history_play_all_available,
+                            session.audioTimeline.size)) {
+                            if (audioPlayer.isPlayingSequence(session.id)) {
+                                stopPlayback()
+                                playbackStatus?.text = getString(R.string.history_playback_stopped)
+                            } else {
+                                stopPlayback()
+                                val outcome = audioPlayer.playAvailable(session.id, session.audioTimeline) {
+                                    if (!isDestroyed && displayedSessionId == session.id) {
+                                        playbackStatus?.text = getString(R.string.history_playback_available_finished)
+                                    }
+                                }
+                                playbackStatus?.text = getString(when (outcome) {
+                                    ArchivedConversationPlayer.StartResult.NEEDS_PERMISSION -> R.string.history_permission_required
+                                    ArchivedConversationPlayer.StartResult.PHONE_BUSY -> R.string.history_off_call_only
+                                    ArchivedConversationPlayer.StartResult.MISSING_FILE -> R.string.history_clip_not_found
+                                    ArchivedConversationPlayer.StartResult.PLAYING -> R.string.history_playing_available
+                                    ArchivedConversationPlayer.StartResult.FAILED -> R.string.history_playback_error
+                                })
+                            }
+                        }.apply { tag = "history-play-available" }
+                        content.addView(allClips, UiDesign.spaceAfter(this, 10))
+                    }
                     session.lines.forEachIndexed { index, line ->
                         val audio = session.audioFor(line)
                         val bubbleTag = audio?.let { "history-audio-bubble:" + index }

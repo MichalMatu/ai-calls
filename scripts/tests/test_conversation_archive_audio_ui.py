@@ -24,6 +24,16 @@ class ArchivedChatAudioUiContractTest(unittest.TestCase):
         self.assertIn("canonicalFile", self.reader)
         self.assertIn('Regex("turn-[0-9]+-(rx|tx|tx-ack)[.]wav")', self.reader)
 
+    def test_sequence_player_is_offcall_and_only_plays_existing_private_clips(self):
+        self.assertIn("session.audioTimeline", self.history)
+        self.assertIn("audioPlayer.playAvailable(session.id, session.audioTimeline)", self.history)
+        self.assertIn("fun playAvailable(", self.player)
+        self.assertIn("phoneReady()", self.player)
+        self.assertIn("archive.resolveAudioFile(id, name)", self.player)
+        self.assertIn("remaining.clear()", self.player)
+        self.assertIn("startedAt", self.reader)
+        self.assertIn("audioTimeline.sortedWith", self.reader)
+
     def test_no_call_or_grant_operations_in_history(self):
         self.assertIn("ConversationChatFeed.clearVisibleHistory()", self.live)
         self.assertNotIn("ConversationHistoryActivity::class.java", self.live)

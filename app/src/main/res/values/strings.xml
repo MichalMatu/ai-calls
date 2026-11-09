@@ -94,6 +94,9 @@
     <string name="history_permission_required">Do odsłuchu wymagane jest uprawnienie odczytu stanu telefonu.</string>
     <string name="history_off_call_only">Odsłuch możliwy tylko poza połączeniem telefonicznym.</string>
     <string name="history_clip_not_found">Nie znaleziono bezpiecznego lokalnego pliku WAV.</string>
+    <string name="history_play_all_available">▶ Odtwórz dostępne fragmenty (%1$d)</string>
+    <string name="history_playing_available">Odtwarzanie dostępnych fragmentów; przerwy i część ręczna mogą nie być zapisane.</string>
+    <string name="history_playback_available_finished">Odtwarzanie dostępnych fragmentów zakończone.</string>
     <string name="history_playback_finished">Odsłuch fragmentu zakończony.</string>
     <string name="history_playing">Odtwarzanie zapisanego fragmentu audio.</string>
     <string name="history_playback_error">Nie można odtworzyć fragmentu audio.</string>

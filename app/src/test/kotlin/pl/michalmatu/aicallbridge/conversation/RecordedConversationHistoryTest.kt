@@ -132,6 +132,40 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively(); other.deleteRecursively() }
     }
 
+    @Test fun availableAudioPlaylistUsesRecordedStartTimesNotCompletionOrAlphabeticalOrder() {
+        val root = Files.createTempDirectory("conversation-playlist").toFile()
+        try {
+            val dir = File(root, "1000-playlist").apply { mkdirs() }
+            listOf("turn-01-tx.wav", "turn-01-rx.wav", "turn-01-tx-ack.wav").forEach {
+                File(dir, it).writeBytes(byteArrayOf(0, 0))
+            }
+            File(dir, "timeline.jsonl").writeText(listOf(
+                """{"type":"CONVERSATION","direction":"INCOMING"}""",
+                """{"type":"TX_PCM","turn":1,"file":"turn-01-tx.wav","elapsed_ms":200}""",
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav","elapsed_ms":10}""",
+                """{"type":"TX_ACK_PCM","turn":1,"file":"turn-01-tx-ack.wav","elapsed_ms":100}""",
+                """{"type":"RX_PCM","turn":1,"file":"../escape.wav","elapsed_ms":0}""",
+            ).joinToString("\\n", postfix = "\\n").replace("\\\\n", "\\n"))
+            val session = RecordedConversationHistory(root).load(dir.name)
+            assertEquals(listOf("turn-01-rx.wav", "turn-01-tx-ack.wav", "turn-01-tx.wav"), session.audioTimeline)
+            assertEquals(3, session.audioFiles.size)
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun sequenceNeverListsMissingOrSymlinkEscapedWave() {
+        val root = Files.createTempDirectory("conversation-playlist-safe").toFile()
+        val other = Files.createTempDirectory("conversation-playlist-elsewhere").toFile()
+        try {
+            val dir = File(root, "1000-safe").apply { mkdirs() }
+            val outside = File(other, "audio.wav").apply { writeBytes(byteArrayOf(0, 0)) }
+            Files.createSymbolicLink(File(dir, "turn-01-rx.wav").toPath(), outside.toPath())
+            File(dir, "timeline.jsonl").writeText("""{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav","elapsed_ms":1}""" + "\\n")
+            val history = RecordedConversationHistory(root)
+            assertTrue(history.load(dir.name).audioTimeline.isEmpty())
+            assertNull(history.resolveAudioFile(dir.name, "turn-01-rx.wav"))
+        } finally { root.deleteRecursively(); other.deleteRecursively() }
+    }
+
     private fun write(root: File, id: String, direction: String, text: String) {
         val dir = File(root, id).apply { mkdirs() }
         File(dir, "timeline.jsonl").writeText("""
