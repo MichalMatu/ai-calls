@@ -7,6 +7,7 @@ never assigns automatic semantic PASS, and does not print transcript content.
 from __future__ import annotations
 
 import argparse
+import hashlib
 from html import escape
 import json
 import os
@@ -97,6 +98,7 @@ def render(corpus: Path) -> dict[str, object]:
             + str(item["rx_wav_seconds"]) + " s · TX "
             + str(item["tx_wav_seconds"]) + " s</p></section>"
         )
+    manifest_sha256 = hashlib.sha256((corpus / "manifest.json").read_bytes()).hexdigest()
     rubric = []
     for dim in DIMENSIONS:
         rubric.append(
@@ -117,11 +119,17 @@ function saveHumanReview() {
     turn: Number(el.querySelector('.turn-id').value) || null,
     note: el.querySelector('.note').value.trim()
   }));
-  if (verdicts.some(v => v.verdict !== 'UNASSESSED' && (!v.turn || !v.note))) {
-    alert('PASS/FAIL wymaga wskazania tury i uzasadnienia.');
+  if (verdicts.some(v => v.verdict === 'UNASSESSED' || !v.turn || !v.note)) {
+    alert('Wszystkie osiem ocen wymaga PASS/FAIL, numeru tury i uzasadnienia.');
     return;
   }
-  const payload = {schema:'g53-human-review-v1', source:'human', reviews:verdicts};
+  if (!document.getElementById('reviewer-confirmed').checked) {
+    alert('Potwierdź osobiste odsłuchanie wszystkich tur.');
+    return;
+  }
+  const payload = {schema:'g53-human-review-v1', source:'human',
+    manifest_sha256: MANIFEST_SHA256, reviewer_confirmed_listened: true,
+    reviews: verdicts};
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
@@ -131,6 +139,7 @@ function saveHumanReview() {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 """
+    script = "const MANIFEST_SHA256 = '" + manifest_sha256 + "';\n" + script
     html = ('<!doctype html><html lang="pl"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; '
@@ -160,9 +169,13 @@ function saveHumanReview() {
             + "".join(cards) +
             '<h2>Ocena ośmiu wymiarów — człowiek wskazuje turę i powód</h2>'
             + "".join(rubric)
-            + '<button onclick="saveHumanReview()">Zapisz ocenę do prywatnego JSON</button>'
-            + '<p class="muted">Pobraną ocenę przenieś do tego prywatnego folderu. '
-            'Nie przesyłaj tekstów i WAV do GitHub ani wyników Local Agenta.</p>'
+            + '<p><label><input type="checkbox" id="reviewer-confirmed"> '
+            'Osobiście przeczytałem i odsłuchałem wszystkie tury tej sesji.</label></p>'
+            + '<button onclick="saveHumanReview()">Zapisz pełną ocenę do prywatnego JSON</button>'
+            + '<p class="muted">Pobraną ocenę zaimportuj lokalnie komendą '
+            '<code>python3 scripts/aicall_tools/diagnostics/g53_human_review_gate.py '
+            '--corpus &lt;folder-sesji&gt; --review-input &lt;pobrany-plik.json&gt;</code>. '
+            'Skrypt sprawdza SHA manifestu i osiem ocen; nie przesyła żadnych danych do sieci.</p>'
             + '<script>' + script + '</script></body></html>')
     destination = corpus / "review.html"
     destination.write_text(html, encoding="utf-8")
