@@ -4,7 +4,8 @@
 **Warunek/wynik:** po fizycznym PASS `status/config-get/ram` `aicalls-usb-lab-two-turn-native-s22-20261109-v1` uruchomił prywatną sesję E2B 4096, lecz pierwszy `lab-send` zwrócił `nonempty_text_expected_on_stdin`; sesję bezpiecznie zatrzymano, telefon pozostał IDLE, brak wykonanej tury.
 **Przyczyna i dowód:** pomocnicze `subprocess.run(adb ...)` domyślnie dziedziczyło stdin CLI. Na Macu `aicalls-usb-cli-stdin-consumption-diagnosis-20261109-v1` DONE/0 wykazał, że `adb devices` nie zużywa wejścia, ale `adb shell getprop ro.product.model` i `ro.serialno` zużywały całe syntetyczne 20 bajtów, zanim `run_once` wywołał `sys.stdin.read()`.
 **Poprawka:** `main@a2728127d7d596169a04846f9bc7015fd18bb5b3` używa `stdin=subprocess.DEVNULL` w `invoke` (tylko komendy kontrolne, nie prywatny mailbox z jawnie przekazanym `input=request`). Test `scripts/tests/test_ai_calls_usb_debug.py` zabezpiecza brak dziedziczenia stdin (`main@00078e12`).
-**Status:** **FIXED_IN_SOURCE / QA_PENDING** — Mac pełny gate i poprawione dwie realne tury Gemmy przez USB na S22 jeszcze wymagają odbioru. Bez zmian Android APK, modelu, SIM i telefonii.
+**Odbiór:** `aicalls-usb-f153-mac-host-qa-20261109-v1` **DONE/0**, testy USB helper **6/6**, Lab **5/5** i pełny `verify_host.sh` PASS, checkout clean. Fizyczny retest `aicalls-usb-lab-two-turn-native-s22-20261109-v2` **REFUSED przed START** (Call IDLE, ale foreground nie AI Calls/Launcher). `aicalls-usb-f153-s22-foreground-check-20261109-v1` DONE/0 wskazał `pl.pockethost.companion` jako aktywny i skupiony. Nie przejmowano ekranu. Wcześniejsze v1 pozostaje FAILED po pustym stdin, z własnym START i STOP, 0 tur.
+**Status:** **FIXED_IN_SOURCE / HOST_PASS / DEVICE_QA_BLOCKED_FOREGROUND** — nie twierdzić GREEN S22 dla poprawionego SEND ani dwuturowej Gemmy. Bez zmian Android APK, modelu, SIM i telefonii.
 
 ## F-152 — USB Lab CLI rozbijał komendę zapisu prywatnej skrzynki ADB (2026-11-09)
 
