@@ -239,8 +239,45 @@ def _appointment_open_ui_fallback(device: Device) -> bool:
     return False
 
 
+def last_call_technical_summary(device: Device) -> dict:
+    """Historical, strictly allowlisted technical values. Never return raw report."""
+    r = device.call("shell", "run-as", PACKAGE, "cat",
+                    "files/chat-relay-live-call-report.txt", timeout=30)
+    if r.returncode:
+        return {"available": False}
+    numbers = {
+        "turns_completed", "telephony_rx_pcm_bytes", "telephony_tx_pcm_bytes",
+        "turn_1_stt_chars", "turn_1_rx_pcm_bytes",
+        "turn_2_rx_interrupted_capture_ms",
+        "turn_2_rx_interrupted_trailing_silence_ms",
+        "turn_2_rx_max_capture_ms",
+    }
+    flags = {"chat_relay_live_call_success", "appointment_review_required",
+             "turn_2_rx_interrupted", "probe_complete"}
+    codes = {"conversation_end_reason", "turn_1_endpoint_reason",
+             "turn_2_endpoint_reason"}
+    safe = {"available": False, "historical": True}
+    for line in r.stdout.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key in numbers and re.fullmatch(r"[0-9]{1,13}", value):
+            safe[key] = int(value)
+        elif key in flags and value in {"true", "false"}:
+            safe[key] = (value == "true")
+        elif key in codes and re.fullmatch(r"[A-Za-z0-9_-]{1,64}", value):
+            safe[key] = value
+    safe["available"] = safe.get("probe_complete") is True
+    return safe
+
+
 def run_once(device: Device, args: argparse.Namespace) -> dict:
     name = args.command.replace("-", "_")
+    if name == "call_status":
+        response = device_request(device, name)
+        if response.get("ok") is True and isinstance(response.get("data"), dict):
+            response["data"]["last_completed_call"] = last_call_technical_summary(device)
+        return response
     if name == "appointment_stage":
         device.safe_preflight()
         try:

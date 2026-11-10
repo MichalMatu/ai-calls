@@ -487,9 +487,13 @@ internal object AndroidConversationRuntime {
             val previousMonitor = bargeMonitor.getAndSet(null)
             val preRoll = previousMonitor?.freezeAndDrain() ?: ByteArray(0)
             if (previousMonitor != null) pump.abandonCapture(previousMonitor)
+            // A completed bounded segment goes to STT without disconnecting Telecom.
+            val rxWindowMs = scenario.maxRxCaptureMs
+            require(rxWindowMs in 8_000..60_000) { "invalid_rx_capture_window" }
+            lines += "turn_" + turn + "_rx_max_capture_ms=" + rxWindowMs
             val detector = PcmEndOfUtteranceDetector(
                 trailingSilenceMs = 1_500,
-                maxCaptureMs = 60_000,
+                maxCaptureMs = rxWindowMs,
             )
             val captureStartedElapsedMs = (elapsedTurnMs() -
                 ChatRelayTurnPacing.pcmDurationMs(preRoll.size)).coerceAtLeast(0L)

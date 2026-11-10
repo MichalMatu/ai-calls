@@ -42,6 +42,8 @@ internal interface ConversationScenario {
     val direction: ConversationDirection
     val mode: ConversationRuntimeMode
     val responseKind: ConversationChatFeed.ResponseKind
+    /** Hard upper bound for a far-end RX segment; never ends the owned Call. */
+    val maxRxCaptureMs: Int get() = 60_000
     val idlePolicy: ConversationIdlePolicy? get() = null
     fun readinessFailure(): String?
     fun open(hooks: ConversationRuntimeHooks): ConversationDialogueSession

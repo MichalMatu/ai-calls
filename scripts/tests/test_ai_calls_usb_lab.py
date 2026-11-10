@@ -206,6 +206,62 @@ class AppointmentOwnerConsoleTests(unittest.TestCase):
         self.assertFalse(result["call_started"])
         ui.assert_called_once()
 
+    def test_last_completed_call_filters_private_values(self):
+        from types import SimpleNamespace
+        raw = ("probe=chat_relay_live_call\n"
+               "probe_complete=true\n"
+               "conversation_end_reason=owned_call_ended\n"
+               "turns_completed=1\n"
+               "turn_1_stt_chars=43\n"
+               "telephony_rx_pcm_bytes=151040\n"
+               "telephony_tx_pcm_bytes=202622\n"
+               "turn_2_rx_interrupted=true\n"
+               "turn_2_rx_interrupted_capture_ms=55280\n"
+               "turn_2_rx_max_capture_ms=20000\n"
+               "appointment_review_required=false\n"
+               "target=PRIVATE_PHONE\n"
+               "transcript=PRIVATE_TEXT\n")
+        class Device:
+            def call(self, *args, timeout=30):
+                return subprocess.CompletedProcess(args, 0, raw, "")
+        result = channel.last_call_technical_summary(Device())
+        self.assertTrue(result["available"])
+        self.assertTrue(result["historical"])
+        self.assertEqual(result["turns_completed"], 1)
+        self.assertEqual(result["turn_2_rx_max_capture_ms"], 20000)
+        self.assertEqual(result["conversation_end_reason"], "owned_call_ended")
+        self.assertNotIn("PRIVATE_PHONE", json.dumps(result))
+        self.assertNotIn("PRIVATE_TEXT", json.dumps(result))
+        self.assertNotIn("target", result)
+        self.assertNotIn("transcript", result)
+
+    def test_call_status_joins_safe_historical_telemetry(self):
+        from types import SimpleNamespace
+        with (
+            patch.object(channel, "device_request", return_value={
+                "ok": True, "code": "ok", "data": {"call_idle": True}}),
+            patch.object(channel, "last_call_technical_summary", return_value={
+                "available": True, "turns_completed": 1,
+            }),
+        ):
+            reply = channel.run_once(FakeDevice(), SimpleNamespace(command="call-status"))
+        self.assertTrue(reply["ok"])
+        self.assertTrue(reply["data"]["call_idle"])
+        self.assertEqual(reply["data"]["last_completed_call"]["turns_completed"], 1)
+
+    def test_failed_live_status_does_not_claim_old_call_as_live(self):
+        from types import SimpleNamespace
+        with (
+            patch.object(channel, "device_request", return_value={
+                "ok": False, "code": "diagnostic_unavailable",
+            }),
+            patch.object(channel, "last_call_technical_summary") as summary,
+        ):
+            reply = channel.run_once(FakeDevice(), SimpleNamespace(command="call-status"))
+        self.assertFalse(reply["ok"])
+        self.assertNotIn("data", reply)
+        summary.assert_not_called()
+
     def test_owner_shell_dispatches_call_status_to_usb_lab(self):
         path = Path(__file__).resolve().parents[1] / "bin" / "aicalls"
         source = path.read_text(encoding="utf-8")

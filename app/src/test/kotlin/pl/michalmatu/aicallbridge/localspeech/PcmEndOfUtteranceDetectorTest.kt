@@ -125,6 +125,24 @@ class PcmEndOfUtteranceDetectorTest {
         assertEquals(PcmEndOfUtteranceDetector.EndReason.TRAILING_SILENCE, finalized.reason)
     }
 
+    @Test
+    fun continuousAppointmentSpeechIsSegmentedAtTwentySeconds() {
+        val appointment = PcmEndOfUtteranceDetector(
+            trailingSilenceMs = 1_500, maxCaptureMs = 20_000,
+        )
+        assertFalse(appointment.acceptPcm16(pcm(19_500, 3_000)).shouldStop)
+        val endpoint = appointment.acceptPcm16(pcm(700, 3_000))
+        assertTrue(endpoint.shouldStop)
+        assertTrue(endpoint.speechDetected)
+        assertEquals(PcmEndOfUtteranceDetector.EndReason.MAX_DURATION, endpoint.reason)
+        assertEquals(20_000L, endpoint.capturedMs)
+
+        val generic = PcmEndOfUtteranceDetector(
+            trailingSilenceMs = 1_500, maxCaptureMs = 60_000,
+        )
+        assertFalse(generic.acceptPcm16(pcm(20_000, 3_000)).shouldStop)
+    }
+
     private fun pcm(durationMs: Int, sample: Int): ByteArray {
         val sampleCount = LocalSpeechFormat.SAMPLE_RATE_HZ * durationMs / 1_000
         val bytes = ByteArray(sampleCount * 2)

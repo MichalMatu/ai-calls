@@ -26,6 +26,9 @@ internal class AppointmentMvpConversationScenario(
     override val direction = ConversationDirection.OUTGOING
     override val mode = ConversationRuntimeMode.OWNED_TASK
     override val responseKind = ConversationChatFeed.ResponseKind.MODEL_DIRECT
+    // First S22 call: second RX ran 55.28s and was lost when remote ended.
+    // Bound clinic/IVR segments, not the phone call; keep existing silence VAD.
+    override val maxRxCaptureMs: Int = 20_000
     override fun readinessFailure(): String? = null
 
     override fun open(hooks: ConversationRuntimeHooks): ConversationDialogueSession {
