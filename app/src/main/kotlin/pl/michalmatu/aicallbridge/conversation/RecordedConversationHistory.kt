@@ -218,7 +218,12 @@ internal class RecordedConversationHistory(private val root: File) {
                     "AGENT_FULL_TX" -> {
                         val index = lines.indexOfLast { it.turn == event["turn"].asInt && it.speaker == ConversationChatFeed.Speaker.ASSISTANT }
                         if (index >= 0) lines[index] = lines[index].copy(txStatus =
-                            if (event["transport_status"].asString == "WRITE_COMPLETE") "TX: wysłano lokalnie" else "TX: niepełne")
+                            when (event["transport_status"].asString) {
+                                "WRITE_COMPLETE" -> "TX: wysłano lokalnie"
+                                "WRITE_REVOKED" -> "TX: zgoda cofnięta"
+                                "WRITE_UNCERTAIN" -> "TX: wynik niepewny"
+                                else -> "TX: niepełne"
+                            })
                     }
                     "RX_INTERRUPTED" -> {
                         val turn = event["turn"].asInt

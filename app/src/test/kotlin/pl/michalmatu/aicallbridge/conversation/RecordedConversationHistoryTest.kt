@@ -6,6 +6,32 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RecordedConversationHistoryTest {
+    @Test fun historyDistinguishesRevokedUncertainAndPartialLocalTx() {
+        val root = Files.createTempDirectory("aicalls-tx-status").toFile()
+        try {
+            val directory = File(root, "1000-transport").apply { mkdirs() }
+            val statuses = listOf("WRITE_REVOKED", "WRITE_UNCERTAIN",
+                "WRITE_PARTIAL", "WRITE_COMPLETE", "UNKNOWN_VALUE")
+            val timeline = statuses.flatMapIndexed { index, transport ->
+                val turn = index + 1
+                listOf(
+                    """{"type":"AGENT_APPROVED_TEXT","turn":$turn,"text":"approved"}""",
+                    """{"type":"AGENT_FULL_TX","turn":$turn,"transport_status":"$transport"}""",
+                )
+            }
+            File(directory, "timeline.jsonl").writeText(timeline.joinToString("\n", postfix = "\n"))
+            val loaded = RecordedConversationHistory(root).load(directory.name)
+            assertEquals(listOf(
+                "TX: zgoda cofnięta",
+                "TX: wynik niepewny",
+                "TX: niepełne",
+                "TX: wysłano lokalnie",
+                "TX: niepełne",
+            ), loaded.lines.map { it.txStatus })
+            assertEquals(0, loaded.invalidRecords)
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun twoSessionsSurviveANewLiveConversationAndKeepDirectionAndTransmission() {
         val root = Files.createTempDirectory("conversation-history").toFile()
         try {
