@@ -183,7 +183,13 @@ sealed interface BookAppointmentSimulationStep {
     data object TakeOver : BookAppointmentSimulationStep
 }
 
+enum class BookAppointmentExecutionMode {
+    SIMULATED_COMMIT,
+    REVIEW_ONLY,
+}
+
 enum class BookAppointmentOutcome {
+    REVIEW_REQUIRED,
     BOOKED,
     NO_AVAILABILITY,
     CANCELLED,
@@ -197,6 +203,7 @@ enum class BookAppointmentEvidenceType {
     CLARIFICATION_REQUIRED,
     PROPOSAL_CREATED,
     USER_CONFIRMATION_REQUIRED,
+    USER_REVIEW_REQUIRED,
     USER_REJECTED_PROPOSAL,
     USER_CONFIRMED_PROPOSAL,
     COMMITMENT_CONSUMED,
@@ -219,6 +226,29 @@ data class BookAppointmentSimulationResult(
     val replayVerified: Boolean,
     val evidence: List<BookAppointmentEvidence>,
     val eventRecords: List<TaskGraphEventRecord>,
+) {
+    /** Read-only user review: synthetic booking success is not an external receipt. */
+    fun review(): BookAppointmentReview {
+        val slot = (finalSnapshot.context[BookAppointmentTaskGraph.APPOINTMENT_AT]
+            as? TaskGraphSlotValue.Text)?.value
+        val proposal = if (outcome == BookAppointmentOutcome.REVIEW_REQUIRED && replayVerified &&
+            finalSnapshot.state == BookAppointmentTaskGraph.CONFIRMATION) {
+            slot?.let { runCatching { ZonedDateTime.parse(it) }.getOrNull() }
+        } else null
+        return BookAppointmentReview(
+            proposedAt = proposal,
+            requiresUserReview = proposal != null,
+            externalBookingConfirmed = false,
+            syntheticOnly = true,
+        )
+    }
+}
+
+data class BookAppointmentReview(
+    val proposedAt: ZonedDateTime?,
+    val requiresUserReview: Boolean,
+    val externalBookingConfirmed: Boolean,
+    val syntheticOnly: Boolean,
 )
 
 /** Host-only deterministic receptionist simulator. It executes no telephony or Android side effects. */
@@ -229,6 +259,7 @@ class BookAppointmentSimulator(
     private val zone: ZoneId,
     private val referenceDate: LocalDate? = null,
     private val bookingProvider: SyntheticBookingAdapter = SyntheticBookingAdapter(),
+    private val executionMode: BookAppointmentExecutionMode = BookAppointmentExecutionMode.SIMULATED_COMMIT,
 ) {
     private val appointmentInterpreter = AppointmentInterpreter(zone)
 
@@ -357,6 +388,13 @@ class BookAppointmentSimulator(
 
                     val workflowDecision = workflow.evaluateProposal(proposal)
                     check(workflowDecision == preDecision) { "workflow policy decision diverged" }
+                    if (executionMode == BookAppointmentExecutionMode.REVIEW_ONLY) {
+                        // MVP-first: capture terms, but do not create a hold or consume a permit.
+                        dispatch(BookAppointmentTaskGraph.REQUIRE_CONFIRMATION)
+                        evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.USER_REVIEW_REQUIRED)
+                        outcome = BookAppointmentOutcome.REVIEW_REQUIRED
+                        break@stepLoop
+                    }
                     if (workflowDecision.action() == CallPolicyAction.NEEDS_USER_DECISION) {
                         pendingProposal = proposal
                         dispatch(BookAppointmentTaskGraph.REQUIRE_CONFIRMATION)
