@@ -21,6 +21,7 @@ import subprocess
 import sys
 import time
 import uuid
+import xml.etree.ElementTree as ET
 
 try:
     from .ai_calls_usb_debug import (
@@ -161,6 +162,83 @@ def ram_sample(device: Device) -> dict:
     }
 
 
+def appointment_editor_foreground(device: Device) -> bool:
+    """Actual top resumed Activity, never a launch command's optimistic stdout."""
+    response = device.call("shell", "dumpsys", "activity", "activities", timeout=30)
+    if response.returncode:
+        return False
+    return any(
+        "AppointmentMvpActivity" in line
+        for line in response.stdout.splitlines()
+        if "mResumedActivity" in line or "topResumedActivity" in line
+    )
+
+
+def _appointment_ui_root(device: Device) -> ET.Element | None:
+    # UI XML can contain private values. It stays in memory on the Mac and is
+    # never logged, uploaded to GitHub or copied to test receipts.
+    path = "/data/local/tmp/aicalls-editor-" + uuid.uuid4().hex + ".xml"
+    try:
+        dumped = device.call("shell", "uiautomator", "dump", path, timeout=70)
+        if dumped.returncode:
+            return None
+        raw = device.call("shell", "cat", path, timeout=25)
+        if raw.returncode:
+            return None
+        return ET.fromstring(raw.stdout.strip())
+    except ET.ParseError:
+        return None
+    finally:
+        device.call("shell", "rm", "-f", path, timeout=15)
+
+
+def _visible_button(root: ET.Element | None, caption: str) -> tuple[int, int] | None:
+    if root is None:
+        return None
+    for item in root.iter("node"):
+        if (item.attrib.get("class") != "android.widget.Button"
+                or item.attrib.get("text") != caption
+                or item.attrib.get("clickable") != "true"):
+            continue
+        match = re.fullmatch(
+            r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
+            item.attrib.get("bounds", ""),
+        )
+        if match:
+            x1, y1, x2, y2 = map(int, match.groups())
+            if x2 > x1 and y2 > y1:
+                return (x1 + x2) // 2, (y1 + y2) // 2
+    return None
+
+
+def _appointment_open_ui_fallback(device: Device) -> bool:
+    """An ordinary in-app navigation path if the DUMP bridge is backgrounded."""
+    resumed = device.call("shell", "am", "start", "-W", "-n",
+                          PACKAGE + "/.MainActivity", timeout=45)
+    if resumed.returncode or "Error:" in resumed.stdout + resumed.stderr:
+        return False
+    time.sleep(0.6)
+    campaigns = _visible_button(_appointment_ui_root(device), "Kampanie")
+    if campaigns is None:
+        return False
+    device.call("shell", "input", "tap", *map(str, campaigns), timeout=20)
+    time.sleep(0.5)
+    for _ in range(8):
+        action = _visible_button(_appointment_ui_root(device),
+                                 "Przygotuj rozmowę i autoryzację")
+        if action is not None:
+            device.call("shell", "input", "tap", *map(str, action), timeout=20)
+            for _ in range(8):
+                if appointment_editor_foreground(device):
+                    return True
+                time.sleep(0.35)
+            return False
+        device.call("shell", "input", "swipe", "510", "1700", "510",
+                    "640", "290", timeout=20)
+        time.sleep(0.2)
+    return False
+
+
 def run_once(device: Device, args: argparse.Namespace) -> dict:
     name = args.command.replace("-", "_")
     if name == "appointment_stage":
@@ -185,8 +263,15 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
         )
         if response.returncode or "Error:" in response.stdout + response.stderr:
             raise DiagnosticError("appointment_editor_launch_failed")
-        return {"ok": True, "code": "appointment_editor_open_requested",
-                "call_started": False}
+        for _ in range(8):
+            if appointment_editor_foreground(device):
+                return {"ok": True, "code": "appointment_editor_open_verified",
+                        "call_started": False}
+            time.sleep(0.35)
+        if _appointment_open_ui_fallback(device):
+            return {"ok": True, "code": "appointment_editor_open_verified_fallback",
+                    "call_started": False}
+        raise DiagnosticError("appointment_editor_not_foreground")
     if name == "lab_save":
         return save_private_transcript(device)
     if name == "ram":

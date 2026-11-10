@@ -165,14 +165,52 @@ class AppointmentOwnerConsoleTests(unittest.TestCase):
                 return None
             def call(self, *args, timeout=30):
                 self.calls.append(args)
-                return subprocess.CompletedProcess(args, 0, "Starting: Intent", "")
+                output = ("mResumedActivity: ActivityRecord{xyz " +
+                          channel.PACKAGE + "/.campaign.AppointmentMvpActivity}")
+                if args[:3] != ("shell", "dumpsys", "activity"):
+                    output = "Starting: Intent"
+                return subprocess.CompletedProcess(args, 0, output, "")
         device = Device()
         result = channel.run_once(device, SimpleNamespace(command="appointment-open"))
         self.assertTrue(result["ok"])
         self.assertFalse(result["call_started"])
-        self.assertEqual(device.calls, [("shell", "am", "start", "-n",
-            channel.ACTIVITY, "--ez", "open_appointment_editor", "true")])
+        self.assertEqual(device.calls[0], ("shell", "am", "start", "-n",
+            channel.ACTIVITY, "--ez", "open_appointment_editor", "true"))
+        self.assertEqual(result["code"], "appointment_editor_open_verified")
         self.assertNotIn("placeCall", str(device.calls))
+
+    def test_open_editor_must_not_claim_success_while_vault_remains_foreground(self):
+        from types import SimpleNamespace
+        class Device:
+            def safe_preflight(self): return None
+            def call(self, *args, timeout=30):
+                return subprocess.CompletedProcess(
+                    args, 0, "mResumedActivity: .identity.IdentityVaultManagerActivity", "")
+        with patch.object(channel.time, "sleep"), \
+             patch.object(channel, "_appointment_open_ui_fallback", return_value=False):
+            with self.assertRaises(channel.DiagnosticError) as error:
+                channel.run_once(Device(), SimpleNamespace(command="appointment-open"))
+        self.assertEqual(str(error.exception), "appointment_editor_not_foreground")
+
+    def test_open_editor_via_on_screen_fallback_is_verified_without_call(self):
+        from types import SimpleNamespace
+        class Device:
+            def safe_preflight(self): return None
+            def call(self, *args, timeout=30):
+                return subprocess.CompletedProcess(
+                    args, 0, "mResumedActivity: .identity.IdentityVaultManagerActivity", "")
+        with patch.object(channel.time, "sleep"), \
+             patch.object(channel, "_appointment_open_ui_fallback", return_value=True) as ui:
+            result = channel.run_once(Device(), SimpleNamespace(command="appointment-open"))
+        self.assertEqual(result["code"], "appointment_editor_open_verified_fallback")
+        self.assertFalse(result["call_started"])
+        ui.assert_called_once()
+
+    def test_owner_shell_dispatches_call_status_to_usb_lab(self):
+        path = Path(__file__).resolve().parents[1] / "bin" / "aicalls"
+        source = path.read_text(encoding="utf-8")
+        self.assertIn("appointment-stage|appointment-open|call-status)", source)
+        self.assertNotIn("place-call", source)
 
 if __name__ == "__main__":
     unittest.main()

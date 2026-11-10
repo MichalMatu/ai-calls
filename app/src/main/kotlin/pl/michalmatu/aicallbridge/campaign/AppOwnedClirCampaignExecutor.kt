@@ -361,8 +361,15 @@ internal object AppOwnedClirCampaignExecutor {
                     onStatus(when {
                         appointmentReviewReady ->
                             "REVIEW_REQUIRED; user must verify appointment; no booking confirmed; cleanup=$cleanup"
-                        appointmentTask != null ->
-                            "Appointment ended without confirmed review; cleanup=$cleanup"
+                        appointmentTask != null -> {
+                            // Only the allowlisted technical termination code is persisted.
+                            // Never store STT transcript, goal, recipient or IdentityVault facts.
+                            val code = failureReason?.replace(
+                                Regex("[^a-zA-Z0-9_-]"), ""
+                            )?.take(48)?.ifBlank { "unknown" } ?: "completed_no_proposal"
+                            "Appointment ended without confirmed review; " +
+                                "termination=$code; cleanup=$cleanup"
+                        }
                         probeSuccess && carrierReportedSuccess ->
                             "Carrier reports CLIR activation, independent network verification pending; " +
                                 "cleanup=$cleanup"
