@@ -7,6 +7,31 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RecordedConversationAudioHistoryTest {
+    @Test fun localAudioSymlinksCannotRelabelTxAsRxOrAliasAnotherArchive() {
+        val root = Files.createTempDirectory("aicalls-wave-alias").toFile()
+        try {
+            val session = File(root, "1000-private").apply { mkdirs() }
+            val tx = File(session, "turn-01-tx.wav").apply { writeBytes(byteArrayOf(0, 0)) }
+            Files.createSymbolicLink(File(session, "turn-01-rx.wav").toPath(), tx.toPath())
+            File(session, "timeline.jsonl").writeText(
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav"}""" + "\n" +
+                """{"type":"TX_PCM","turn":1,"file":"turn-01-tx.wav"}""" + "\n" +
+                """{"type":"END","reason_code":"completed"}""" + "\n",
+            )
+            val alias = File(root, "2000-alias")
+            Files.createSymbolicLink(alias.toPath(), session.toPath())
+            val history = RecordedConversationHistory(root)
+            val loaded = history.load(session.name)
+            assertFalse(loaded.audioFiles.containsKey(1 to "rx"))
+            assertEquals("turn-01-tx.wav", loaded.audioFiles[1 to "tx"])
+            assertEquals(listOf("turn-01-tx.wav"), loaded.audioTimeline)
+            assertNull(history.resolveAudioFile(session.name, "turn-01-rx.wav"))
+            assertNotNull(history.resolveAudioFile(session.name, "turn-01-tx.wav"))
+            assertNull(history.resolveAudioFile(alias.name, "turn-01-tx.wav"))
+            assertTrue(runCatching { history.load(alias.name) }.isFailure)
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun repeatedRxWindowsRetainDistinctClipsWithoutOverwritingFirstPart() {
         assertEquals("turn-01-rx.wav", RecordedAudioClipName.create(1, "rx"))
         assertEquals("turn-01-rx-part-002.wav", RecordedAudioClipName.create(1, "rx", 2))

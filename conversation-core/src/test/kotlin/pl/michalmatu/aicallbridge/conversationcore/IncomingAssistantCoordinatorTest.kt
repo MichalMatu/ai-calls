@@ -66,6 +66,44 @@ class IncomingAssistantCoordinatorTest {
             assertTrue(f.port.answered.isEmpty()); assertTrue(f.port.started.isEmpty())
         }
     }
+    @Test fun endingCallReservesMediaUntilObservedEnded() {
+        val port = Port()
+        val core = IncomingAssistantCoordinator(port)
+        val first = Call()
+        val second = Call()
+        core.observe(first, IncomingCallPhase.RINGING, "sim-a", true, true, policy)
+        core.observe(first, IncomingCallPhase.ACTIVE, "sim-a", true, true, policy)
+        val old = port.started.single().second
+        assertTrue(core.completeConversation(first, old, policy))
+        assertEquals(IncomingAssistantState.ENDING, core.snapshot(first)?.state)
+        core.observe(second, IncomingCallPhase.ACTIVE, "sim-a", true, true, policy)
+        assertFalse(core.resume(second, policy))
+        assertEquals(1, port.started.size)
+        core.observe(first, IncomingCallPhase.ENDED, "sim-a", true, true, policy)
+        assertTrue(core.resume(second, policy))
+        assertEquals(2, port.started.size)
+        assertFalse(core.isAuthorized(first, old))
+    }
+
+    @Test fun endingCallPreventsAnotherRingingAutoAnswer() {
+        val port = Port()
+        val core = IncomingAssistantCoordinator(port)
+        val first = Call()
+        val second = Call()
+        core.observe(first, IncomingCallPhase.RINGING, "sim-a", true, true, policy)
+        core.observe(first, IncomingCallPhase.ACTIVE, "sim-a", true, true, policy)
+        val generation = port.started.single().second
+        assertTrue(core.completeConversation(first, generation, policy))
+        val answeredBefore = port.answered.size
+        core.observe(second, IncomingCallPhase.RINGING, "sim-a", true, true, policy)
+        assertEquals(answeredBefore, port.answered.size)
+        assertEquals(IncomingAssistantState.MANUAL, core.snapshot(second)?.state)
+        core.observe(first, IncomingCallPhase.ENDED, "sim-a", true, true, policy)
+        core.observe(second, IncomingCallPhase.RINGING, "sim-a", true, true, policy)
+        assertEquals(answeredBefore, port.answered.size)
+        assertEquals(IncomingAssistantState.MANUAL, core.snapshot(second)?.state)
+    }
+
     @Test fun userAnswersBeforeAutoDecisionAndFutureCallbacksCannotStartAi() {
         val f=Fixture()
         f.observe(IncomingCallPhase.RINGING,policy,account=null)

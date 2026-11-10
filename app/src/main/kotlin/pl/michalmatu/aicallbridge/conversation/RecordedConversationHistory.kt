@@ -139,16 +139,22 @@ internal class RecordedConversationHistory(private val root: File) {
     /** Resolve only preexisting, private per-turn WAVs, never external paths. */
     fun resolveAudioFile(id: String, fileName: String): File? = runCatching {
         if (!RecordedAudioClipName.isSafe(fileName)) return@runCatching null
-        val directory = File(root, id).canonicalFile
+        val selected = File(root, id)
+        if (java.nio.file.Files.isSymbolicLink(selected.toPath())) return@runCatching null
+        val directory = selected.canonicalFile
         if (directory.parentFile != root.canonicalFile || !directory.isDirectory) return@runCatching null
-        File(directory, fileName).canonicalFile.takeIf { it.parentFile == directory && it.isFile }
+        val candidate = File(directory, fileName)
+        if (java.nio.file.Files.isSymbolicLink(candidate.toPath())) return@runCatching null
+        candidate.canonicalFile.takeIf { it.parentFile == directory && it.isFile }
     }.getOrNull()
 
     private fun isSafeArchiveCode(value: String): Boolean =
         value.length in 1..80 && value.all { it.isLetterOrDigit() && it.code < 128 || it in "_.-" }
 
     fun load(id: String): RecordedConversation {
-        val directory = File(root, id).canonicalFile
+        val selected = File(root, id)
+        require(!java.nio.file.Files.isSymbolicLink(selected.toPath())) { "invalid_conversation_history_id" }
+        val directory = selected.canonicalFile
         require(directory.parentFile == root.canonicalFile && directory.isDirectory) { "invalid_conversation_history_id" }
         val timeline = requireNotNull(privateTimeline(directory)) { "invalid_private_conversation_timeline" }
         val lines = mutableListOf<ConversationChatFeed.Line>()
@@ -197,8 +203,10 @@ internal class RecordedConversationHistory(private val root: File) {
                         }
                         val name = event.get("file")?.takeUnless { it.isJsonNull }?.asString
                         if (turn >= 0 && name != null && RecordedAudioClipName.matches(name, turn, channel)) {
-                            val wave = File(directory, name).canonicalFile
-                            if (wave.parentFile == directory && wave.isFile) {
+                            val candidate = File(directory, name)
+                            val wave = candidate.canonicalFile
+                            if (!java.nio.file.Files.isSymbolicLink(candidate.toPath()) &&
+                                wave.parentFile == directory && wave.isFile) {
                                 // The transcript links to the final RX window, but playback keeps all.
                                 audioFiles[turn to channel] = name
                                 val startedAt = event.get("elapsed_ms")?.asLong

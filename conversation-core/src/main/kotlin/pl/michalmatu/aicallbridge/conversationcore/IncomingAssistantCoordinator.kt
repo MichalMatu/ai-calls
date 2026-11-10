@@ -173,16 +173,22 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         val failure = when {
             policy.mode != AnsweringMode.AI -> "incoming_manual_mode"
             entry.account != policy.accountKey -> "incoming_account_mismatch"
-            !entry.exclusive || entries.any { (other, value) -> other !== call && ownsAudio(value) } -> "another_call_active"
+            !entry.exclusive || entries.any { (other, value) -> other !== call && ownsAssistantResources(value) } -> "another_call_active"
             else -> try { port.readinessFailure(call) } catch (_: Exception) { "incoming_readiness_failed" }
         }
         // Readiness can reenter via an Android callback (STOP, manual answer, removal).
         // Never claim a call whose lifecycle changed while the adapter was checking it.
         if (entry.revision != beforeReadiness || entry.phase == IncomingCallPhase.ENDED ||
             entry.phase == IncomingCallPhase.HELD || entries[call] !== entry ||
-            entry.observedPolicy != policy ||
-            entry.account != policy.accountKey || !entry.exclusive ||
-            entries.any { (other, value) -> other !== call && ownsAudio(value) }) return false
+            entry.observedPolicy != policy || entry.account != policy.accountKey) return false
+        if (!entry.exclusive || entries.any { (other, value) ->
+                other !== call && ownsAssistantResources(value)
+            }) {
+            // A rejected RINGING contender must become MANUAL, not remain
+            // eligible for a surprise auto-answer when the old Call ends.
+            manual(call, entry, "another_call_active", ConversationStopReason.OWNERSHIP_CHANGED)
+            return false
+        }
         if (failure != null) { manual(call, entry, failure, ConversationStopReason.SESSION_CANCELLED); return false }
         entry.policy = policy
         entry.generation = ++sequence
