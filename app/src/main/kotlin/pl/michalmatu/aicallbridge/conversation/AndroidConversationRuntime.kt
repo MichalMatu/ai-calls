@@ -930,10 +930,11 @@ internal object AndroidConversationRuntime {
             lines += "conversation_end_reason=${sanitize(reason)}"
             if (result is ConversationTermination.Failed) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
+            val report = lines.render()
+            evidenceRecorder?.recordDiagnosticReport(report)
             if (!dialogue.awaitToolCompletion) evidenceRecorder?.finish(reason)
             ConversationChatFeed.finish(liveChatToken, reason)
             sessions.release(this)
-            val report = lines.render()
             PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, report)
             context.mainExecutor.execute { callback(ConversationRunResult(result, report, dialogue.awaitToolCompletion, liveChatToken)) }
         }
