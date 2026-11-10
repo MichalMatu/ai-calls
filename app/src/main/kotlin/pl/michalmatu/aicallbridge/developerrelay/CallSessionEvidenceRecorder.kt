@@ -49,7 +49,10 @@ internal object CallSessionPcmWav {
  * The WAVs are intentionally NOT merged: timestamped entries allow accurate later alignment
  * without faking speech/silence or losing which stream was actually sent/received.
  */
-internal class CallSessionEvidenceRecorder private constructor(val directory: File) {
+internal class CallSessionEvidenceRecorder private constructor(
+    val directory: File,
+    val recordsAudio: Boolean,
+) {
     private val initialElapsedMs = SystemClock.elapsedRealtime()
     private val completed = AtomicBoolean(false)
     private val io = Executors.newSingleThreadExecutor { runnable ->
@@ -167,27 +170,27 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         private val data = ByteArrayOutputStream()
         private val closed = AtomicBoolean(false)
         private val startedAtMs = elapsed()
-        private val drain = rxDrain.open {
+        private val drain = if (recordsAudio) rxDrain.open {
             // append() and the snapshot are serialized on the same RxTurn monitor.
             synchronized(this) {
                 if (closed.compareAndSet(false, true)) {
                     saveWave(turn, "rx", startedAtMs, data.toByteArray())
                 }
             }
-        }
+        } else null
 
         @Synchronized
         fun append(frame: ByteArray, length: Int) {
-            if (closed.get() || length <= 0) return
+            if (!recordsAudio || closed.get() || length <= 0) return
             require(length <= frame.size) { "invalid_capture_frame_size" }
             data.write(frame, 0, length)
         }
 
-        fun finish() { drain.finish() }
+        fun finish() { drain?.finish() }
     }
 
     fun recordTransmittedAudio(turn: Int, pcm: ByteArray, sentBytes: Int, txAtMs: Long) {
-        if (completed.get() || sentBytes <= 0) return
+        if (!recordsAudio || completed.get() || sentBytes <= 0) return
         // Record bytes actually accepted by the call TX writer, never unsent synthetic TTS.
         val aligned = minOf(sentBytes, pcm.size).let { it - it % 2 }
         val copied = pcm.copyOf(aligned)
@@ -201,7 +204,7 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     ) {
         if (completed.get() || sentBytes <= 0) return
         val aligned = minOf(sentBytes, pcm.size).let { it - it % 2 }
-        saveWave(turn, "tx-ack", txAtMs, pcm.copyOf(aligned))
+        if (recordsAudio) saveWave(turn, "tx-ack", txAtMs, pcm.copyOf(aligned))
         // The filler is TTS text too, but is not an AGENT_APPROVED_TEXT final answer.
         val event = JSONObject()
             .put("type", "AGENT_ACK_TX")
@@ -224,7 +227,7 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     fun elapsed(): Long = (SystemClock.elapsedRealtime() - initialElapsedMs).coerceAtLeast(0L)
 
     private fun saveWave(turn: Int, direction: String, atMs: Long, pcm: ByteArray) {
-        if (completed.get()) return
+        if (!recordsAudio || completed.get()) return
         submit {
             val part = if (direction == "rx") {
                 val next = Math.addExact(rxWindowParts[turn] ?: 0, 1)
@@ -295,18 +298,21 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         // Preserve free space needed for Android; no fixed recording count/time cap.
         private const val MIN_OS_FREE_BYTES = 64L * 1024L * 1024L
 
-        fun create(context: Context): CallSessionEvidenceRecorder? = runCatching {
+        /** Private transcript/technical events are automatic; PCM/WAV remains opt-in. */
+        fun create(context: Context, recordAudio: Boolean = true): CallSessionEvidenceRecorder? = runCatching {
             val root = File(context.filesDir, ROOT)
             check(root.isDirectory || root.mkdirs())
             val name = System.currentTimeMillis().toString() + "-" +
                 UUID.randomUUID().toString().take(8)
             val session = File(root, name)
             check(session.mkdir())
-            val recorder = CallSessionEvidenceRecorder(session)
+            val recorder = CallSessionEvidenceRecorder(session, recordsAudio = recordAudio)
             recorder.submit {
                 recorder.appendEvent(JSONObject()
                     .put("type", "START")
                     .put("format", 1)
+                    .put("audio_recorded", recordAudio)
+                    .put("transcript_capture", "automatic_private")
                     .put("pcm_rate_hz", LocalSpeechFormat.SAMPLE_RATE_HZ)
                     .put("pcm_channels", 1)
                     .put("rx_source", "stt_capture_windows")
