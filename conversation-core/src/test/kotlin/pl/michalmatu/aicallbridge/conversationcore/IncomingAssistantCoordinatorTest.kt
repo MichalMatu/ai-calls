@@ -353,6 +353,62 @@ class IncomingAssistantCoordinatorTest {
         assertTrue(f.core.isAuthorized(f.call, resumed))
     }
 
+    @Test fun delayedResumeCannotRestoreRevokedAiAfterPolicyChange() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val old = f.port.started.single().second
+        val replacement = policy.copy(id = "replacement")
+        f.core.policyChanged(replacement, ConversationStopReason.POLICY_REVOKED)
+        assertFalse(f.core.resume(f.call, policy))
+        assertFalse(f.core.isAuthorized(f.call, old))
+        assertEquals(1, f.port.started.size)
+        assertTrue(f.port.disconnected.isEmpty())
+        assertTrue(f.core.resume(f.call, replacement))
+        assertEquals(2, f.port.started.size)
+        assertTrue(f.core.isAuthorized(f.call, f.port.started.last().second))
+    }
+
+    @Test fun manualCallCannotUseStaleConsentWhenNoAiWasEverStarted() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val revised = policy.copy(recordEvidence = false)
+        f.core.policyChanged(revised, ConversationStopReason.POLICY_REVOKED)
+        assertFalse(f.core.resume(f.call, policy))
+        assertTrue(f.port.started.isEmpty())
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertTrue(f.core.resume(f.call, revised))
+        assertEquals(1, f.port.started.size)
+    }
+
+    @Test fun manualPolicyDisablesLateAiResumeUntilExplicitNewAiGrant() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val manual = policy.copy(id = "disabled", mode = AnsweringMode.MANUAL)
+        f.core.policyChanged(manual, ConversationStopReason.POLICY_REVOKED)
+        assertFalse(f.core.resume(f.call, policy))
+        assertFalse(f.core.resume(f.call, manual))
+        assertTrue(f.port.started.isEmpty())
+        val newGrant = policy.copy(id = "fresh-ai")
+        f.core.policyChanged(newGrant, ConversationStopReason.POLICY_REVOKED)
+        assertFalse(f.core.resume(f.call, policy))
+        assertTrue(f.core.resume(f.call, newGrant))
+    }
+
+    @Test fun policyChangeDuringReadinessBlocksOldResumeEvenWithoutPhaseChange() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val changed = policy.copy(id = "new-grant")
+        f.port.reentrantReadiness = {
+            f.port.reentrantReadiness = null
+            f.core.policyChanged(changed, ConversationStopReason.POLICY_REVOKED)
+        }
+        assertFalse(f.core.resume(f.call, policy))
+        assertTrue(f.port.started.isEmpty())
+        assertTrue(f.core.resume(f.call, changed))
+        assertEquals(1, f.port.started.size)
+    }
+
     @Test fun endedCallCannotBeTakenOverOrResumed() {
         val f = Fixture()
         f.observe(IncomingCallPhase.RINGING, policy)

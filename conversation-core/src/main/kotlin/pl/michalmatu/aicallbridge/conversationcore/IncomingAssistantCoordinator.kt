@@ -166,6 +166,9 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
     }
 
     private fun claim(call: C, entry: Entry, policy: IncomingAssistantPolicy): Boolean {
+        // An old UI/Telecom resume request may arrive after policyChanged() revoked
+        // its permission. Do not restore previous consent on the same SIM.
+        if (entry.observedPolicy != policy) return false
         val beforeReadiness = entry.revision
         val failure = when {
             policy.mode != AnsweringMode.AI -> "incoming_manual_mode"
@@ -177,6 +180,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         // Never claim a call whose lifecycle changed while the adapter was checking it.
         if (entry.revision != beforeReadiness || entry.phase == IncomingCallPhase.ENDED ||
             entry.phase == IncomingCallPhase.HELD || entries[call] !== entry ||
+            entry.observedPolicy != policy ||
             entry.account != policy.accountKey || !entry.exclusive ||
             entries.any { (other, value) -> other !== call && ownsAudio(value) }) return false
         if (failure != null) { manual(call, entry, failure, ConversationStopReason.SESSION_CANCELLED); return false }
