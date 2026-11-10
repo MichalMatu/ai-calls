@@ -8,7 +8,7 @@
     <string name="ux07_agent_subtitle">Personality, tasks, and AI-accessible data</string>
     <string name="ux07_agent_skills">Receptionist behavior</string>
     <string name="ux07_agent_scenarios">Scenarios and scripts</string>
-    <string name="ux07_agent_preparation">Profiles and data scope</string>
+    <string name="ux07_agent_preparation">AI context and data</string>
     <string name="ux07_agent_vault">Data vault</string>
     <string name="ux07_agent_tools">Tool permissions</string>
     <string name="ux07_agent_active_preset">Active: %1$s · %2$d Skills</string>

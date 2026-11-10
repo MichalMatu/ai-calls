@@ -58,8 +58,10 @@ class AndroidConversationModulesTest {
         val audio = AudioEngineProfileStore(context).load()
         ActivityScenario.launch(ConversationPreparationActivity::class.java).use { screen ->
             screen.onActivity { activity ->
-                assertTrue(labels(activity.window.decorView).any { it == "Przygotowanie rozmowy" })
-                assertTrue(labels(activity.window.decorView).any { it == "Przychodzące" })
+                assertTrue(labels(activity.window.decorView).any { it ==
+                    activity.getString(pl.michalmatu.aicallbridge.R.string.prep_ui_title) })
+                assertTrue(labels(activity.window.decorView).any { it ==
+                    activity.getString(pl.michalmatu.aicallbridge.R.string.prep_ui_incoming) })
             }
         }
         ActivityScenario.launch(ConversationHistoryActivity::class.java).use { screen ->

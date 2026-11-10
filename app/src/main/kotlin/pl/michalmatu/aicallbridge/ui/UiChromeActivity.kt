@@ -15,6 +15,8 @@ abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity
     private var spacingTarget: View? = null
     private var spacingListener: ViewTreeObserver.OnGlobalLayoutListener? = null
 
+    /** Child pages may prevent navigation while unsaved edits need confirmation. */
+    open fun onTabNavigationRequested(action: () -> Unit) = action()
     /** Child pages with internal navigation may consume Back before closing their Activity. */
     protected open fun consumeChromeBack(): Boolean = false
     fun navigateBack() {

@@ -8,7 +8,7 @@
     <string name="ux07_agent_subtitle">Charakter, zadania i dane dostępne AI</string>
     <string name="ux07_agent_skills">Zachowanie sekretarki</string>
     <string name="ux07_agent_scenarios">Scenariusze i skrypty</string>
-    <string name="ux07_agent_preparation">Profile i zakres danych</string>
+    <string name="ux07_agent_preparation">Kontekst i dane AI</string>
     <string name="ux07_agent_vault">Sejf danych</string>
     <string name="ux07_agent_tools">Uprawnienia narzędzi</string>
     <string name="ux07_agent_active_preset">Aktywny: %1$s · %2$d Skills</string>

@@ -33,9 +33,13 @@ internal object AppNavigation {
             AppTab.SETTINGS -> SettingsHubActivity::class.java
         }
         if (activity.javaClass == destination) return
-        activity.startActivity(Intent(activity, destination).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        })
+        val navigate = {
+            activity.startActivity(Intent(activity, destination).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            })
+        }
+        if (activity is UiChromeActivity) activity.onTabNavigationRequested(navigate)
+        else navigate()
     }
 
     fun bar(activity: Activity, active: AppTab) = LinearLayout(activity).apply {

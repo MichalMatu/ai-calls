@@ -1,109 +1,221 @@
 package pl.michalmatu.aicallbridge.conversation
 
-import pl.michalmatu.aicallbridge.ui.AppTab
-import pl.michalmatu.aicallbridge.ui.UiChromeActivity
-import pl.michalmatu.aicallbridge.ui.UiDesign
-import pl.michalmatu.aicallbridge.ui.UiActionTone
-import pl.michalmatu.aicallbridge.ui.UiSelect
-import pl.michalmatu.aicallbridge.R
 import android.app.AlertDialog
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
-import android.widget.Spinner
 import android.widget.TextView
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
-import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
+import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiActionTone
+import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.UiDesign
 
-/** Editing one preparation profile never authorizes or starts a phone call. */
+/**
+ * Transient configuration-change cache. Intentionally never persists raw drafts
+ * into the Android activity Bundle; saved profiles use the encrypted store only.
+ */
+internal class PreparationDraftViewModel : ViewModel() {
+    var profileId: String? = null
+    var notes: String? = null
+    var fields: Set<IdentityFieldId>? = null
+}
+
+/**
+ * Owner-only context and reference scope. This screen never authorizes a
+ * disclosure, starts a call, or changes the active task's captured prompt.
+ */
 class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
+    override fun toolbarTitle(): String = getString(R.string.prep_ui_title)
+
     private lateinit var store: AndroidConversationPreparationStore
-    private var profileId = ConversationPreparation.OUTGOING_ID
+    private lateinit var drafts: PreparationDraftViewModel
+    private var profileId = ConversationPreparation.INCOMING_ID
+    private lateinit var savedProfile: ConversationPreparation
     private lateinit var notes: EditText
     private lateinit var status: TextView
-    private lateinit var content: LinearLayout
-    private val skills = linkedMapOf<ConversationSkill, CheckBox>()
     private val fields = linkedMapOf<IdentityFieldId, CheckBox>()
+    private var restoredNotes: String? = null
+    private var restoredFields: Set<IdentityFieldId>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        store = try { AndroidConversationPreparationStore(this) } catch (failure: Exception) {
+        store = try {
+            AndroidConversationPreparationStore(this)
+        } catch (failure: Exception) {
             setContentView(TextView(this).apply {
                 text = getString(R.string.prep_ui_open_error, failure.javaClass.simpleName)
             })
             return
         }
-        profileId = savedInstanceState?.getString("profile_id") ?: ConversationPreparation.OUTGOING_ID
+        drafts = ViewModelProvider(this)[PreparationDraftViewModel::class.java]
+        profileId = drafts.profileId ?: savedInstanceState?.getString("profile_id")
+            ?: ConversationPreparation.INCOMING_ID
+        restoredNotes = drafts.notes
+        restoredFields = drafts.fields
+        drafts.notes = null
+        drafts.fields = null
         showProfile()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("profile_id", profileId)
+        if (::drafts.isInitialized && ::notes.isInitialized && ::savedProfile.isInitialized) {
+            drafts.profileId = profileId
+            drafts.notes = notes.text.toString()
+            drafts.fields = chosenFields()
+        }
         super.onSaveInstanceState(outState)
     }
 
-    private fun showProfile() {
-        val pad = UiDesign.dp(this, UiDesign.CONTENT_INSET)
-        content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
-        }
-        setContentView(ScrollView(this).apply {
-            addView(content, ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        })
-        status = UiDesign.caption(this, "").apply { tag = "preparation-status" }
+    private fun chosenFields(): Set<IdentityFieldId> =
+        fields.filterValues { it.isChecked }.keys.toSet()
 
-        content.addView(UiDesign.heading(this, getString(R.string.prep_ui_title)).apply {
-            textSize = 23f
-        }, UiDesign.spaceAfter(this, 8))
-        content.addView(UiDesign.caption(this, getString(R.string.prep_ui_intro)),
-            UiDesign.spaceAfter(this, 20))
-        content.addView(UiDesign.caption(this, getString(R.string.prep_ui_profile)), UiDesign.spaceAfter(this, 8))
-        val options = listOf(ConversationPreparation.OUTGOING_ID, ConversationPreparation.INCOMING_ID)
-        val selector = Spinner(this).apply {
-            tag = "preparation-direction-picker"
-            UiSelect.setOptions(this, listOf(getString(R.string.prep_ui_outgoing), getString(R.string.prep_ui_incoming)))
-            setSelection(options.indexOf(profileId).coerceAtLeast(0))
-            contentDescription = getString(R.string.prep_ui_profile)
-        }
-        selector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val chosen = options[position]
-                if (chosen != profileId) {
-                    profileId = chosen
-                    showProfile()
-                }
+    private fun isDirty(): Boolean =
+        ::savedProfile.isInitialized && ::notes.isInitialized &&
+            (notes.text.toString() != savedProfile.notes ||
+                chosenFields() != savedProfile.dataFields)
+
+    private fun resetDiscardedDraft() {
+        if (::savedProfile.isInitialized && ::notes.isInitialized) {
+            notes.setText(savedProfile.notes)
+            for ((field, checkbox) in fields) {
+                checkbox.isChecked = field in savedProfile.dataFields
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        content.addView(selector, UiDesign.spaceAfter(this, 20))
+        restoredNotes = null
+        restoredFields = null
+        if (::drafts.isInitialized) {
+            drafts.notes = null
+            drafts.fields = null
+        }
+    }
 
-        val profile = try { store.load(profileId) } catch (failure: Exception) {
-            status.text = getString(R.string.prep_ui_read_error, failure.javaClass.simpleName)
-            content.addView(status)
+    private fun confirmDiscard(action: () -> Unit, onStay: () -> Unit = {}) {
+        if (!isDirty()) {
+            action()
             return
         }
-        val contextCard = UiDesign.card(this)
-        contextCard.addView(UiDesign.heading(this, getString(R.string.prep_ui_general)).apply {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.prep_ui_unsaved_title)
+            .setMessage(R.string.prep_ui_unsaved_message)
+            .setNegativeButton(R.string.prep_ui_stay) { _, _ -> onStay() }
+            .setPositiveButton(R.string.prep_ui_discard) { _, _ ->
+                resetDiscardedDraft()
+                action()
+            }
+            .setOnCancelListener { onStay() }
+            .show()
+    }
+
+    override fun consumeChromeBack(): Boolean {
+        if (!isDirty()) return false
+        confirmDiscard({ finish() })
+        return true
+    }
+
+    override fun onBackPressed() {
+        if (isDirty()) confirmDiscard({ finish() }) else super.onBackPressed()
+    }
+
+    override fun onTabNavigationRequested(action: () -> Unit) {
+        confirmDiscard(action)
+    }
+
+    private fun fieldName(field: IdentityFieldId): String = getString(when (field) {
+        IdentityFieldId.PHONE -> R.string.prep_ui_phone
+        IdentityFieldId.FIRST_NAME -> R.string.prep_ui_first_name
+        IdentityFieldId.LAST_NAME -> R.string.prep_ui_last_name
+        IdentityFieldId.EMAIL -> R.string.prep_ui_email
+        IdentityFieldId.ADDRESS -> R.string.prep_ui_address
+        IdentityFieldId.DATE_OF_BIRTH -> R.string.prep_ui_birth
+        IdentityFieldId.PESEL -> R.string.ux09_agent_pesel
+    })
+
+    private fun showProfile() {
+        val profile = try {
+            store.load(profileId)
+        } catch (failure: Exception) {
+            setContentView(UiDesign.caption(this,
+                getString(R.string.prep_ui_read_error, failure.javaClass.simpleName)))
+            return
+        }
+        savedProfile = profile
+        val currentDraft = restoredNotes ?: profile.notes
+        val currentFields = restoredFields ?: profile.dataFields
+        restoredNotes = null
+        restoredFields = null
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = UiDesign.dp(this@ConversationPreparationActivity, UiDesign.CONTENT_INSET)
+            setPadding(pad, pad, pad, pad)
+        }
+        status = UiDesign.caption(this, "").apply { tag = "preparation-status" }
+        content.addView(UiDesign.caption(this, getString(R.string.prep_ui_intro)),
+            UiDesign.spaceAfter(this, 20))
+
+        content.addView(UiDesign.heading(this, getString(R.string.prep_ui_profile)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 10))
+        val options = listOf(ConversationPreparation.INCOMING_ID, ConversationPreparation.OUTGOING_ID)
+        val group = RadioGroup(this).apply {
+            tag = "preparation-direction-options"
+            orientation = RadioGroup.VERTICAL
+        }
+        val buttons = options.mapIndexed { index, id ->
+            RadioButton(this).apply {
+                this.id = View.generateViewId()
+                tag = "preparation-direction:" + (if (index == 0) "incoming" else "outgoing")
+                text = getString(if (index == 0)
+                    R.string.prep_ui_incoming else R.string.prep_ui_outgoing)
+                textSize = 16f
+                minimumHeight = UiDesign.dp(this@ConversationPreparationActivity, 48)
+                isChecked = id == profileId
+            }.also(group::addView)
+        }
+        var suppress = false
+        group.setOnCheckedChangeListener { _, checkedId ->
+            if (suppress || checkedId == View.NO_ID) return@setOnCheckedChangeListener
+            val chosen = options[buttons.indexOfFirst { it.id == checkedId }.coerceAtLeast(0)]
+            if (chosen == profileId) return@setOnCheckedChangeListener
+            confirmDiscard({
+                profileId = chosen
+                showProfile()
+            }, {
+                suppress = true
+                group.check(buttons[options.indexOf(profileId)].id)
+                suppress = false
+            })
+        }
+        content.addView(group, UiDesign.spaceAfter(this, 20))
+
+        val context = UiDesign.card(this).apply { tag = "preparation-context-card" }
+        context.addView(UiDesign.heading(this, getString(R.string.prep_ui_general)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
-        contextCard.addView(UiDesign.caption(this,
+        context.addView(UiDesign.caption(this, getString(
             if (profile.direction == ConversationDirection.INCOMING)
-                getString(R.string.prep_ui_incoming_help)
-            else getString(R.string.prep_ui_outgoing_help)
-        ), UiDesign.spaceAfter(this, 12))
+                R.string.prep_ui_incoming_help else R.string.prep_ui_outgoing_help)),
+            UiDesign.spaceAfter(this, 10))
         notes = EditText(this).apply {
+            tag = "preparation-context-notes"
+            id = View.generateViewId()
+            isSaveEnabled = false
+            isSaveFromParentEnabled = false
             hint = getString(R.string.prep_ui_notes_hint)
             minLines = 4
             maxLines = 8
-            setText(profile.notes)
+            setText(currentDraft)
             textSize = 15f
             setTextColor(UiDesign.ink)
             background = UiDesign.surfaceDrawable(this@ConversationPreparationActivity,
@@ -113,110 +225,80 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
                 UiDesign.dp(this@ConversationPreparationActivity, 12),
                 UiDesign.dp(this@ConversationPreparationActivity, 12))
         }
-        contextCard.addView(notes)
-        content.addView(contextCard, UiDesign.spaceAfter(this, 20))
+        context.addView(notes, UiDesign.spaceAfter(this, 10))
+        context.addView(UiDesign.caption(this, getString(R.string.prep_ui_sensitive_warning)))
+        content.addView(context, UiDesign.spaceAfter(this, 16))
 
-        skills.clear()
         fields.clear()
-        val skillsCard = UiDesign.card(this).apply { tag = "preparation-skills" }
-        skillsCard.addView(UiDesign.heading(this, "Skills").apply {
+        val dataCard = UiDesign.card(this).apply { tag = "preparation-vault-fields" }
+        dataCard.addView(UiDesign.heading(this, getString(R.string.prep_ui_vault)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 8))
-        ConversationSkill.entries.forEach { skill ->
-            val choice = CheckBox(this).apply {
-                text = skill.title
-                isChecked = skill in profile.skills
+        dataCard.addView(UiDesign.caption(this, getString(R.string.prep_ui_vault_intro)),
+            UiDesign.spaceAfter(this, 12))
+        for (field in IdentityFieldId.entries) {
+            val checkbox = CheckBox(this).apply {
+                tag = "preparation-field:" + field.name
+                text = fieldName(field)
+                isChecked = field in currentFields
                 minimumHeight = UiDesign.dp(this@ConversationPreparationActivity, 48)
             }
-            skills[skill] = choice
-            skillsCard.addView(choice)
+            fields[field] = checkbox
+            dataCard.addView(checkbox)
         }
-        content.addView(skillsCard, UiDesign.spaceAfter(this, 20))
+        dataCard.addView(UiDesign.caption(this, getString(R.string.prep_ui_reference_only)),
+            UiDesign.spaceAfter(this, 3))
+        content.addView(dataCard, UiDesign.spaceAfter(this, 16))
 
-        val fieldsCard = UiDesign.card(this).apply { tag = "preparation-vault-fields" }
-        fieldsCard.addView(UiDesign.heading(this, getString(R.string.prep_ui_vault)).apply {
-            textSize = 17f
-        }, UiDesign.spaceAfter(this, 8))
-        fieldsCard.addView(UiDesign.caption(this,
-            getString(R.string.prep_ui_vault_intro)
-        ), UiDesign.spaceAfter(this, 8))
-        IdentityFieldId.entries.forEach { field ->
-            val choice = CheckBox(this).apply {
-                text = when (field) {
-                    IdentityFieldId.PHONE -> getString(R.string.prep_ui_phone)
-                    IdentityFieldId.FIRST_NAME -> getString(R.string.prep_ui_first_name)
-                    IdentityFieldId.LAST_NAME -> getString(R.string.prep_ui_last_name)
-                    IdentityFieldId.EMAIL -> getString(R.string.prep_ui_email)
-                    IdentityFieldId.ADDRESS -> getString(R.string.prep_ui_address)
-                    IdentityFieldId.DATE_OF_BIRTH -> getString(R.string.prep_ui_birth)
-                    IdentityFieldId.PESEL -> "PESEL"
-                }
-                isChecked = field in profile.dataFields
-                minimumHeight = UiDesign.dp(this@ConversationPreparationActivity, 48)
-            }
-            fields[field] = choice
-            fieldsCard.addView(choice)
-        }
-        content.addView(fieldsCard, UiDesign.spaceAfter(this, 20))
-
-        fun selection() = profile.withSettings(
-            notes.text.toString(),
-            skills.filterValues { it.isChecked }.keys,
-            fields.filterValues { it.isChecked }.keys,
-        )
         val actions = UiDesign.card(this).apply { tag = "preparation-actions" }
-        actions.addView(UiDesign.action(this, getString(R.string.prep_ui_save), UiActionTone.PRIMARY) {
+        actions.addView(UiDesign.action(this, getString(R.string.prep_ui_save),
+            UiActionTone.PRIMARY) {
+            val selected = profile.withSettings(
+                notes.text.toString(), profile.skills, chosenFields())
             try {
-                store.save(selection())
+                store.save(selected)
+                savedProfile = selected
                 status.text = getString(R.string.prep_ui_saved)
             } catch (failure: Exception) {
                 status.text = getString(R.string.prep_ui_save_error, failure.javaClass.simpleName)
             }
-        }, UiDesign.spaceAfter(this, 12))
-        content.addView(actions, UiDesign.spaceAfter(this, 12))
-        val secondaryActions = UiDesign.card(this).apply { tag = "preparation-secondary-actions" }
-        secondaryActions.addView(UiDesign.action(this, getString(R.string.prep_ui_preview)) {
-            val selected = selection()
-            val prompt = ConversationInstructionBuilder.build(
-                selected, "Cel pochodzi z konkretnego zlecenia rozmowy.",
-                if (selected.direction == ConversationDirection.INCOMING)
-                    ConversationResponseFormat.TOOL_REPLY else ConversationResponseFormat.SPOKEN_TEXT)
-            val panel = LinearLayout(this).apply {
+        }.apply { tag = "preparation-save" }, UiDesign.spaceAfter(this, 10))
+        actions.addView(UiDesign.action(this, getString(R.string.prep_ui_preview)) {
+            val selectedFields = chosenFields().sortedBy { it.ordinal }
+                .joinToString(" · ", transform = ::fieldName)
+                .ifBlank { getString(R.string.ux09_agent_none) }
+            val box = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 val pad = UiDesign.dp(this@ConversationPreparationActivity, 20)
                 setPadding(pad, pad, pad, pad)
+                addView(UiDesign.caption(this@ConversationPreparationActivity,
+                    getString(R.string.prep_ui_preview_notice)),
+                    UiDesign.spaceAfter(this@ConversationPreparationActivity, 12))
+                addView(UiDesign.heading(this@ConversationPreparationActivity,
+                    getString(R.string.prep_ui_general)).apply { textSize = 16f },
+                    UiDesign.spaceAfter(this@ConversationPreparationActivity, 8))
+                addView(TextView(this@ConversationPreparationActivity).apply {
+                    text = notes.text.toString().ifBlank {
+                        getString(R.string.prep_ui_preview_empty)
+                    }
+                    setTextIsSelectable(true)
+                }, UiDesign.spaceAfter(this@ConversationPreparationActivity, 14))
+                addView(UiDesign.heading(this@ConversationPreparationActivity,
+                    getString(R.string.prep_ui_vault)).apply { textSize = 16f },
+                    UiDesign.spaceAfter(this@ConversationPreparationActivity, 8))
+                addView(UiDesign.caption(this@ConversationPreparationActivity, selectedFields))
             }
-            panel.addView(UiDesign.heading(this, getString(R.string.ux07_preview_scope)).apply {
-                textSize = 17f
-            }, UiDesign.spaceAfter(this, 8))
-            panel.addView(UiDesign.caption(this, getString(R.string.ux07_preview_count,
-                selected.skills.size, selected.dataFields.size)).apply {
-                textSize = 15f
-                setTextColor(UiDesign.ink)
-            }, UiDesign.spaceAfter(this, 16))
-            panel.addView(UiDesign.heading(this, getString(R.string.ux07_preview_prompt)).apply {
-                textSize = 17f
-            }, UiDesign.spaceAfter(this, 8))
-            panel.addView(TextView(this).apply {
-                text = prompt
-                textSize = 14f
-                setTextColor(UiDesign.secondary)
-                setTextIsSelectable(true)
-            })
             AlertDialog.Builder(this@ConversationPreparationActivity)
-                .setTitle(getString(R.string.prep_ui_preview_title))
-                .setView(ScrollView(this).apply { addView(panel) })
+                .setTitle(R.string.prep_ui_preview_title)
+                .setView(ScrollView(this).apply { addView(box) })
                 .setPositiveButton(android.R.string.ok, null).show()
-        }, UiDesign.spaceAfter(this, 12))
-        secondaryActions.addView(UiDesign.action(this, getString(R.string.prep_ui_edit_phone)) {
-            startActivity(Intent(this@ConversationPreparationActivity,
-                PhoneEnrollmentActivity::class.java))
-        }, UiDesign.spaceAfter(this, 12))
-        secondaryActions.addView(UiDesign.action(this, getString(R.string.prep_ui_presets)) {
-            startActivity(Intent(this@ConversationPreparationActivity,
-                ConversationSkillsActivity::class.java))
-        })
-        content.addView(secondaryActions, UiDesign.spaceAfter(this, 12))
+        }.apply { tag = "preparation-preview" })
+        content.addView(actions, UiDesign.spaceAfter(this, 12))
         content.addView(status)
+        setContentView(ScrollView(this).apply {
+            isFillViewport = true
+            addView(content, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        })
     }
 }

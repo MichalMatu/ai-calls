@@ -36,8 +36,8 @@ class UiPolishSprintContract(unittest.TestCase):
     def test_preparation_and_engine_keep_original_policy(self):
         prep=(ROOT/"conversation/ConversationPreparationActivity.kt").read_text()
         engine=(ROOT/"audioengines/AudioEngineSettingsActivity.kt").read_text()
-        for token in ("UiSelect.setOptions", "store.save(selection())",
-                      "ConversationInstructionBuilder.build", 'tag = "preparation-actions"'):
+        for token in ("RadioGroup(this)", "store.save(selected)",
+                      "confirmDiscard(", 'tag = "preparation-actions"'):
             self.assertIn(token,prep)
         for token in ("UiDesign.card", 'tag = "engine-unavailable:"',
                       "AudioEngineReadinessProbe.check", "store.save(requested)",

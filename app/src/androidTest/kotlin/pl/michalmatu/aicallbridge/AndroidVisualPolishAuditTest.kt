@@ -85,10 +85,12 @@ class AndroidVisualPolishAuditTest {
                 "ui-language-picker")).performClick()
         }
 
-    @Test fun preparationDirectionDropdownOpen() =
-        snapshot(ConversationPreparationActivity::class.java, "preparation-direction-dropdown") { activity ->
-            requireNotNull(activity.window.decorView.findViewWithTag<Spinner>(
-                "preparation-direction-picker")).performClick()
+    @Test fun preparationDirectionChoicesVisible() =
+        snapshot(ConversationPreparationActivity::class.java,
+            "preparation-direction-choices") { activity ->
+            val group = requireNotNull(activity.window.decorView.findViewWithTag<
+                android.widget.RadioGroup>("preparation-direction-options"))
+            assert(group.childCount == 2)
         }
 
     @Test fun modelTechnicalDetailsExpanded() =

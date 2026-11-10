@@ -87,7 +87,8 @@ internal class AppointmentMvpConversationScenario(
             private fun discloseRequestedField(
                 field: IdentityFieldId, listener: TextCallAgentBackend.Listener,
             ) {
-                if (field !in task.disclosureFields) {
+                if (field !in task.disclosureFields ||
+                    field !in configuration.preparation.dataFields) {
                     listener.onComplete("Nie mam zgody na przekazanie tej informacji. " +
                         "Proszę o możliwość kontynuowania bez tych danych.")
                     return

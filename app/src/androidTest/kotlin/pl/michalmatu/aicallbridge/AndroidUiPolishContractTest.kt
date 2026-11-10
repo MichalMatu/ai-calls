@@ -5,7 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
-import android.widget.Spinner
+import android.widget.RadioGroup
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
@@ -65,11 +65,14 @@ class AndroidUiPolishContractTest {
         ActivityScenario.launch(ConversationPreparationActivity::class.java).use { scenario ->
             scenario.onActivity { a ->
                 val root = a.window.decorView
-                val selector = requireNotNull(root.findViewWithTag<Spinner>("preparation-direction-picker"))
-                assertEquals(2, selector.adapter.count)
-                assertNotNull(root.findViewWithTag<View>("preparation-skills"))
+                val selector = requireNotNull(root.findViewWithTag<RadioGroup>(
+                    "preparation-direction-options"))
+                assertEquals(2, selector.childCount)
+                assertNull(root.findViewWithTag<View>("preparation-skills"))
+                assertNotNull(root.findViewWithTag<View>("preparation-context-notes"))
                 assertNotNull(root.findViewWithTag<View>("preparation-vault-fields"))
-                assertNotNull(root.findViewWithTag<View>("preparation-actions"))
+                assertNotNull(root.findViewWithTag<View>("preparation-save"))
+                assertNotNull(root.findViewWithTag<View>("preparation-preview"))
                 val notes = tagged(root, "no-such-tag") // no mutation, keep caller state unchanged
                 assertTrue(notes.isEmpty())
             }

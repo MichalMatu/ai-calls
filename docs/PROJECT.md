@@ -50,6 +50,5 @@ Przed live-call: osobna zgoda na numer, SIM, uczestnika i zakres; zweryfikuj pon
 ## Odbiór MVP
 MVP można ogłosić gotowym dopiero po udanych, kontrolowanych próbach fizycznych INCOMING, OUTGOING, dwukierunkowego audio, STOP/TAKE OVER i scenariusza wizyty. Do tego czasu: **MVP BLOCKED / PHYSICAL_OPEN**. Zasady: [Local Agent](operations/LOCAL_AGENT.md), [Device](operations/DEVICE.md), [Security](architecture/SECURITY.md), [Development](operations/DEVELOPMENT.md).
 
-- **Scenariusze UX:** otwieranie całych kart, bez dolnego przycisku powrotu i powtarzanych przycisków „Edytuj”. Rozróżniony zapis szkicu i własnej kopii. Wersje własnych scenariuszy i ochrona niezapisanych danych pozostają bez zmian.
-
-- **Scenariusze outbound:** katalog szablonów otwiera prywatny ekran zgody: ręcznie wpisany numer E.164, wybór SIM, gotowy model, jedna autoryzowana rozmowa informacyjna (INQUIRY), brak automatycznego ponowienia i brak skutku zewnętrznego. Zapis zadania szyfrowany Keystore/no-backup; transcript pozostaje w prywatnej historii. Bez zgody aplikacja nie dzwoni.
+## Agent — aktualny UX
+Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje pojedyncze, autoryzowane rozmowy informacyjne bez skutków zewnętrznych. Kontekst i dane AI: osobne profile incoming/outgoing, bez powielonych Skills i linków; podgląd jedynie kontekstu. Zakres danych jest górnym limitem, nie zgodą na ujawnienie. Wizyta wymaga przecięcia profilu z grantem, a scenariusze korzystają z notatek outgoing bez ujawniania danych. Niezapisane zmiany chronione przy nawigacji; fizyczny UX S22: **PHYSICAL_OPEN**.

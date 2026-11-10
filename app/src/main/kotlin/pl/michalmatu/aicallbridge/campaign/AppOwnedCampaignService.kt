@@ -239,11 +239,16 @@ class AppOwnedCampaignService : Service() {
             finish("Wybrany Gemma/STT/TTS jest niedostępny")
             return
         }
+        val userContext = runCatching {
+            preparationStore.load(ConversationPreparation.OUTGOING_ID)
+        }.getOrElse {
+            finish("Saved outgoing context unavailable; no call started")
+            return
+        }
         val preparation = ConversationPreparation(
             "outgoing-appointment", "Umawianie wizyty", ConversationDirection.OUTGOING,
-            "", setOf(ConversationSkill.EXPLAIN_GOAL, ConversationSkill.CLARIFY,
-                ConversationSkill.ASK_PROCEDURE),
-            task.disclosureFields,
+            userContext.notes, userContext.skills,
+            userContext.scopedDataFields(task.disclosureFields),
         )
         val goal = "Cel użytkownika: " + task.goal +
             ". Dozwolony przedział wizyty: " + task.notBefore.toString() + " do " +
@@ -338,11 +343,17 @@ class AppOwnedCampaignService : Service() {
             finish("Selected on-device speech/model stack is unavailable; no dial")
             return
         }
+        val userContext = runCatching {
+            preparationStore.load(ConversationPreparation.OUTGOING_ID)
+        }.getOrElse {
+            finish("Saved outgoing context unavailable; no scenario call started")
+            return
+        }
         val preparation = ConversationPreparation(
             "outgoing-scenario-" + task.scenarioId,
             task.title, ConversationDirection.OUTGOING,
-            "", setOf(ConversationSkill.EXPLAIN_GOAL, ConversationSkill.CLARIFY,
-                ConversationSkill.ASK_PROCEDURE), emptySet(),
+            userContext.notes, userContext.skills,
+            userContext.scopedDataFields(grant.allowedDisclosureFields),
         )
         val scopedGoal = "Cel rozmowy: " + task.goal + ". Szczegóły podane przez użytkownika: " +
             task.brief + ". Rozmowa jest tylko zapytaniem informacyjnym. " +
