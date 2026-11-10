@@ -1,11 +1,11 @@
 # AI Calls — aktualny stan i kolejka rozwoju
 
-**Stan źródłowy:** G6.1 source freeze po Mac QA 2026-11-10; aktualny commit ustalaj z origin/main.
+**Stan źródłowy:** G6.3 fast-flow — aktualny HEAD zawsze z origin/main; S22 PHYSICAL_OPEN.
 
 ## Cel i fakty
 - Jeden lokalny agent i jeden wspólny runtime INCOMING/OUTGOING. Bieżący produkt jest **modułowym laboratorium**, finalnie jeden pakiet instalacyjny. Obecny wybór: Gemma 4 E2B/GPU, CONTEXTUAL Skills, Android STT/TTS i Samsung/Shizuku.
 - **G3/G4:** wybór E2B po 96/96 native tur; dynamic Skills S22 PASS w zakresie off-call. **G5.3:** 18/18 native off-call tur i 36 prywatnych WAV, rzeczywisty STOP STT/model/TTS sprawdzony. Indywidualna ocena człowieka: **0/6, UNASSESSED** (nie wpisuj human PASS).
-- **G6 source/host:** INCOMING exact Call/policy/generation, STOP/TAKE OVER, END_CALL receipt po drenażu RX; TX wymaga flush/live grant i ma typowany wynik. IVR DTMF stop fail-closed. RX/STT/TX: tura/epoka/generacja, pre-roll barge-in; prywatne WAV to tylko fragmenty, nie pełny zapis. S22/echo/double-talk, manual resume, pełne nagranie, realny IVR/booking PHYSICAL_OPEN. QA aicalls-g61-disconnecting-owner-fence-docbudget-full-20261110-v1: Gradle/lint, Python i audio PASS; bez APK/Call.
+- **G6 source/host:** Exact Call/consent, STOP/TAKE OVER, END_CALL dopiero po RX drain; ENDING zatrzymuje zasoby i blokuje drugi Call. TX: flush i typowany status, historia odróżnia błędy i odrzuca symlinki WAV. Downlink zero-read ma backoff. Lokalny barge-in nadal wymaga testu fizycznego. QA: pełny host/lint/409 Python/audio PASS dla 30abf89; nowe 6d4031a..fbc5c16 — testy celowane i auto od 45e69a6 PASS. Pełny manual audio, S22, realny IVR/booking PHYSICAL_OPEN. Bez APK i realnych Call.
 - Historyczne A8→S22 potwierdziły tylko fragment RX i własne rozłączenie, nie całe G6. Nie powtarzaj G3/G5.3 off-call.
 
 ## Otwarte — tylko rzeczywista następna praca
@@ -23,7 +23,7 @@
 **Nie otwierać ponownie naprawionych problemów tylko dlatego, że kiedyś miały numer.** Nowa luka trafia w odpowiedni istniejący wiersz lub zastępuje zamkniętą; brak nowej historii/chronologii. Testów nie nazywaj PASS bez faktycznego wykonania.
 
 ## Następny sprint
-1. Pobierz aktualny `main`, sprawdź realny stan Mac Local Agent i konflikty. Wybierz pionowy zakres G6.1 (lokalne przerwanie i takeover) z tabeli, nie kolejne audyty.
+1. Sprawdź bieżący main oraz otwarte P0; po sprawdzonych poprawkach archiwum i ENDING przejdź do funkcjonalnego barge-in/testu w uprawnionym zakresie. Nie powtarzaj G3/G5.
 2. **Existing Code First** ([reguła](operations/EXTERNAL_REUSE.md)): własny baseline → do 3 kandydatów → KEEP/IMPROVE/ADAPT/REPLACE z testem. Bez rewrite; chroń PCM/Call/grant i stosuj celowane focus lub auto <base-SHA>.
 3. Jeden `full` na Macu po freeze, aktualizuj tylko `PROJECT.md` i dotknięty moduł, krótkie `[skip ci]` commity na `main`.
 4. Fizyczne S22 / APK wyłącznie z konkretnym upoważnieniem, zweryfikowanym IDLE i kontrolowanym zakresem; nie deklaruj zamknięcia G6 wcześniej.
