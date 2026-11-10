@@ -501,7 +501,7 @@
     <string name="camp_ux06_diagnostic_recording">Recording permission for future campaign attempts: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Latest service message (historical, not live):\n%1$s</string>
     <string name="scenario_ui_title">Conversation scenarios</string>
-    <string name="scenario_ui_campaign_hint">Choose an everyday task template and edit its form. Only CLIR has an existing phone-call adapter; other templates are drafts for now.</string>
+    <string name="scenario_ui_campaign_hint">Every scenario can prepare an AI information-gathering call after you approve the number and SIM. Contracts, purchases and bookings require your separate decision.</string>
     <string name="scenario_ui_open">Open scenario library</string>
     <string name="scenario_ui_intro">Choose a scenario and enter the details. Saving does not place a call.</string>
     <string name="scenario_ui_edit">Edit scenario</string>
@@ -512,8 +512,8 @@
     <string name="scenario_ui_read_failed">Could not read the saved form. Default example is shown.</string>
     <string name="scenario_ui_required">Required field</string>
     <string name="scenario_ui_missing">Missing required information: %1$s</string>
-    <string name="scenario_ui_draft_only">Draft only — calling for this scenario is not yet implemented.</string>
-    <string name="scenario_ui_clir_note">CLIR has a separate working campaign. This form does not start it or change its authorization.</string>
+    <string name="scenario_ui_draft_only">An information-gathering call is available after authorizing the number and SIM. AI can collect offers but does not confirm bookings or purchases.</string>
+    <string name="scenario_ui_clir_note">CLIR has a separate activation campaign. This form is for information-only enquiries about CLIR.</string>
     <string name="scenario_ui_preview_note">Preview of scenario details. Does not place a call or confirm a booking.</string>
     <string name="scenario_ui_saved_incomplete">Form saved. You can finish the missing fields later: %1$s</string>
     <string name="scenario_ui_mine">My scenarios</string>

@@ -31,7 +31,7 @@ data class ScenarioDefinition(
     val goalPl: String,
     val goalEn: String,
     val fields: List<ScenarioFieldDefinition>,
-    /** Null means this template currently has no qualified telephone execution adapter. */
+    /** Null means no qualified domain-specific external-effect adapter; enquiry calls still work. */
     val callAdapterId: String? = null,
 ) {
     init {
@@ -70,9 +70,9 @@ data class ScenarioDraft(val scenarioId: String, val values: Map<String, String>
 }
 
 /**
- * Everyday templates. CLIR is the only existing app-owned outgoing adapter.
- * All other entries remain preview/lab-only until a separately qualified
- * task executor, exact target grant, and outcome evidence are implemented.
+ * Everyday templates: all may start an explicitly authorized information-only call.
+ * CLIR retains its separate service-effect path. Generic enquiry never commits
+ * purchases, contract changes, paid services or bookings.
  */
 object ScenarioCatalog {
     val templates: List<ScenarioDefinition> = listOf(

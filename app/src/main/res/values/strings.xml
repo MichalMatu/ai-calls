@@ -501,7 +501,7 @@
     <string name="camp_ux06_diagnostic_recording">Zgoda na zapis kolejnych prób kampanii: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Ostatni komunikat serwisu (historyczny, nie na żywo):\n%1$s</string>
     <string name="scenario_ui_title">Scenariusze rozmów</string>
-    <string name="scenario_ui_campaign_hint">Wybierz gotowy scenariusz codziennej sprawy i uzupełnij formularz. Tylko CLIR ma obecnie adapter połączeń; pozostałe to na razie wersje robocze.</string>
+    <string name="scenario_ui_campaign_hint">Każdy scenariusz może przygotować rozmowę informacyjną przez AI po potwierdzeniu numeru i SIM. Zawarcie umowy, zakupu lub rezerwacji wymaga osobnej decyzji użytkownika.</string>
     <string name="scenario_ui_open">Otwórz bibliotekę scenariuszy</string>
     <string name="scenario_ui_intro">Wybierz scenariusz i uzupełnij szczegóły. Zapis nie uruchamia połączenia.</string>
     <string name="scenario_ui_edit">Edytuj scenariusz</string>
@@ -512,8 +512,8 @@
     <string name="scenario_ui_read_failed">Nie udało się odczytać zapisu. Wyświetlono domyślne wartości przykładu.</string>
     <string name="scenario_ui_required">Pole wymagane</string>
     <string name="scenario_ui_missing">Brak wymaganych informacji: %1$s</string>
-    <string name="scenario_ui_draft_only">Wersja robocza — wykonywanie rozmowy dla tego scenariusza nie jest jeszcze wdrożone.</string>
-    <string name="scenario_ui_clir_note">CLIR ma osobną, działającą kampanię. Ten formularz jej nie uruchamia ani nie zmienia jej autoryzacji.</string>
+    <string name="scenario_ui_draft_only">Rozmowa informacyjna jest dostępna po autoryzacji numeru i SIM. AI może zebrać propozycje, ale nie potwierdza rezerwacji ani zakupów.</string>
+    <string name="scenario_ui_clir_note">CLIR ma odrębną kampanię aktywacji. Ten formularz służy wyłącznie rozmowie informacyjnej o CLIR.</string>
     <string name="scenario_ui_preview_note">Podgląd danych scenariusza. Nie uruchamia połączenia ani nie potwierdza rezerwacji.</string>
     <string name="scenario_ui_saved_incomplete">Zapisano formularz. Brakujące pola możesz uzupełnić później: %1$s</string>
     <string name="scenario_ui_mine">Moje scenariusze</string>

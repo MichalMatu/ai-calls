@@ -13,6 +13,7 @@
 - Zwykła praca inżynierska i testy bez skutków mogą postępować autonomicznie; to **nie jest** grant na nieokreślone realne połączenia, zakup, rezerwację, ujawnienie danych ani modyfikację konta.
 - Fizyczny Call / instalacja / prawdziwa operacja: dokładny zakres upoważnienia, zweryfikowany S22 i stan IDLE, własność konkretnego `Call`, uprawnienia systemowe, prawdziwy wynik. Nigdy nie obchodź odmowy narzędzia. `TAKE OVER` i STOP najpierw unieważniają AI, potem porządkują zasoby. [Reguły](docs/architecture/SECURITY.md).
 - `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault`, uprawnienia i wynik zewnętrzny pozostają po stronie aplikacji. Nie wymyślaj potwierdzeń skutków; nie ujawniaj prywatnych WAV/transkryptów/tokenów w Git, logach lub wynikach zadań.
+- Na prywatnym S22 z danymi użytkownika nie uruchamiaj connectedDebugAndroidTest ani adb uninstall. Standardowy runner może odinstalować główny APK, skasować dane i zresetować rolę dialera. Testy instrumentacyjne wykonuj na odizolowanym emulatorze; na S22 tylko nieinwazyjne kontrole i aktualizacje adb install -r po sprawdzeniu urządzenia i stanu IDLE, bez testowych połączeń.
 - Nie włączaj blokowania zrzutów ekranu (`FLAG_SECURE` i ekwiwalenty) — decyzja właściciela. Zrzuty nadal traktuj jako potencjalnie wrażliwe.
 
 ## Zakończenie pracy
