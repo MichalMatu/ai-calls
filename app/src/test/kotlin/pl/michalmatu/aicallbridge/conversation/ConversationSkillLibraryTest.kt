@@ -8,7 +8,7 @@ class ConversationSkillLibraryTest {
         val library = ConversationSkillLibrary.defaults()
         assertEquals(4, library.snapshot().entries.size)
         assertEquals(2, library.snapshot("formal").entries.single { it.id == "ConversationStyle" }.version)
-        assertFalse(library.snapshot("message").entries.any { it.id == "ConversationStyle" })
+        assertEquals(listOf("natural", "formal"), library.presets.map { it.id })
     }
 
     @Test fun editsVersionSkillsAndLeaveFactoryAndSnapshotsAlone() {

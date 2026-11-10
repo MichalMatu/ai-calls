@@ -75,7 +75,7 @@ class Sprint4UxContract(unittest.TestCase):
 
     def test_history_compact_and_skills_visual_hierarchy(self):
         history = self.read("conversation/ConversationHistoryActivity.kt")
-        skills = self.read("conversation/ConversationSkillsAdvancedActivity.kt")
+        skills = self.read("conversation/ConversationSkillsActivity.kt")
         incoming = self.read("incoming/IncomingAssistantSettingsActivity.kt")
         home = self.read("MainActivity.kt")
         self.assertIn("DateFormat.getTimeInstance", history)
@@ -83,8 +83,8 @@ class Sprint4UxContract(unittest.TestCase):
         self.assertIn('tag = "history-delete:"', history)
         self.assertIn("UiDesign.secondary", history)
         self.assertIn("UiDesign.card(this)", skills)
-        self.assertIn("UiActionTone.PRIMARY", skills)
-        self.assertIn('tag = "skills-factory-state:"', skills)
+        self.assertIn("UiActionTone.SECONDARY", skills)
+        self.assertIn('tag = "receptionist-tone-options"', skills)
         self.assertIn("content.addView(feedback)", incoming)
         self.assertIn('tag = "home-task-authorization"', home)
         self.assertIn("taskAuthorizationSummary()", home)

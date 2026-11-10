@@ -21,6 +21,10 @@ internal class AndroidConversationPreparationStore(
     keyAlias: String = "pl.michalmatu.aicallbridge.conversation.preparation.v1",
     legacyPreferencesName: String = "campaign_gemma_direct_prompt_skills_v1",
 ) {
+    // Synthetic test stores keep full versioned history for Lab A/B regression coverage.
+    // The user's actual receptionist store holds only the current tone and guidance.
+    private val cleanUserPresets = directoryName == "conversation-preparation"
+
     private val root = File(context.noBackupFilesDir, directoryName).apply {
         require(directoryName.isNotBlank() && directoryName != "." && directoryName != ".." && directoryName == File(directoryName).name) { "invalid_preparation_directory" }
         check(isDirectory || mkdirs())
@@ -46,12 +50,18 @@ internal class AndroidConversationPreparationStore(
     fun load(id: String) = synchronized(LOCK) {
         val stored = repository.load(id)
         if (stored.direction == ConversationDirection.INCOMING)
-            stored.withSkillSnapshot(skillsRepository.load().snapshot())
+            stored.withSkillSnapshot(loadSkillLibrary().snapshot())
         else stored
     }
     fun save(value: ConversationPreparation) = synchronized(LOCK) { repository.save(value) }
-    fun loadSkillLibrary() = synchronized(LOCK) { skillsRepository.load() }
-    fun saveSkillLibrary(value: ConversationSkillLibrary) = synchronized(LOCK) { skillsRepository.save(value) }
+    fun loadSkillLibrary(): ConversationSkillLibrary = synchronized(LOCK) {
+        val previous = skillsRepository.load()
+        if (!cleanUserPresets || previous.isCleanForReceptionist()) previous
+        else previous.cleanedForReceptionist().also(skillsRepository::save)
+    }
+    fun saveSkillLibrary(value: ConversationSkillLibrary) = synchronized(LOCK) {
+        skillsRepository.save(if (cleanUserPresets) value.cleanedForReceptionist() else value)
+    }
 
 
     /** The laboratory has its own encrypted no-backup record, separate from call scenarios. */

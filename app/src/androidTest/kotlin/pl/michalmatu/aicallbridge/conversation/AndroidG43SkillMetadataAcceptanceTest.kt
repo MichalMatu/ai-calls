@@ -59,13 +59,12 @@ class AndroidG43SkillMetadataAcceptanceTest {
 
     @Test fun skillsAndLabExposeMetadataAndRoutingWithoutChangingOwnerState() {
         val original = AndroidConversationPreparationStore(context).loadSkillLibrary().snapshot()
-        ActivityScenario.launch(ConversationSkillsAdvancedActivity::class.java).use { screen ->
+        ActivityScenario.launch(ConversationSkillsActivity::class.java).use { screen ->
             screen.onActivity { activity ->
                 val root = activity.window.decorView
-                val metadata = root.findViewWithTag<View>("skills-metadata:MessageCapture")
-                assertNotNull("g43_skill_metadata_caption_missing", metadata)
-                assertTrue("g43_metadata_not_visible", requireNotNull(metadata).isShown)
-                assertTrue("g43_missing_description", (metadata as TextView).text.isNotBlank())
+                assertNotNull(root.findViewWithTag<View>("receptionist-tone-options"))
+                assertNotNull(root.findViewWithTag<View>("receptionist-personal-edit"))
+                assertNull(root.findViewWithTag<View>("skills-history-toggle:ConversationStyle"))
             }
         }
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { screen ->
@@ -78,6 +77,6 @@ class AndroidG43SkillMetadataAcceptanceTest {
         }
         assertEquals(original,
             AndroidConversationPreparationStore(context).loadSkillLibrary().snapshot())
-        println("G43_UI_READONLY_METADATA_TRACE_TAGS_PASS")
+        println("G43_UI_READONLY_RECEPTIONIST_LAB_TRACE_PASS")
     }
 }

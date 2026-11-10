@@ -35,7 +35,7 @@ class AndroidSkillPresetMatrixTest {
         try {
             fun store() = AndroidConversationPreparationStore(context, dir, key, legacy)
             val factory = store().loadSkillLibrary()
-            assertEquals(3, factory.presets.size)
+            assertEquals(2, factory.presets.size)
             val custom = factory.copyActive("Synthetic QA")
                 .reviseSkill("Clarification", "Synthetic-only QA instruction.")
             store().saveSkillLibrary(custom)
@@ -77,13 +77,6 @@ class AndroidSkillPresetMatrixTest {
                 assertNotNull(root.findViewWithTag<View>("receptionist-personal-edit"))
                 assertNull(root.findViewWithTag<View>("skills-behavior-card"))
                 assertNull(root.findViewWithTag<View>("skills-preset-picker"))
-            }
-        }
-        ActivityScenario.launch(ConversationSkillsAdvancedActivity::class.java).use { screen ->
-            screen.onActivity { activity ->
-                val root = activity.window.decorView
-                assertNotNull(root.findViewWithTag<View>("skills-preset-picker"))
-                assertNotNull(root.findViewWithTag<View>("skills-behavior-card"))
             }
         }
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { screen ->

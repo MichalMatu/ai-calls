@@ -36,7 +36,6 @@ class Sprint5UxContract(unittest.TestCase):
 
     def test_receptionist_has_two_tones_and_no_preset_naming(self):
         basic = self.source("conversation/ConversationSkillsActivity.kt")
-        advanced = self.source("conversation/ConversationSkillsAdvancedActivity.kt")
         library = self.source("conversation/ConversationSkillLibrary.kt")
         self.assertIn('tag = "receptionist-tone-options"', basic)
         self.assertIn('tag = "receptionist-personal-edit"', basic)
@@ -45,8 +44,8 @@ class Sprint5UxContract(unittest.TestCase):
         self.assertNotIn("copyActive(", basic)
         self.assertNotIn("skills-behavior-card", basic)
         self.assertNotIn("skills-preset-picker", basic)
-        self.assertIn('tag = "skills-preset-picker"', advanced)
-        self.assertIn('tag = "skills-history-toggle:"', advanced)
+        self.assertNotIn("skills-preset-picker", basic)
+        self.assertNotIn("skills-history-toggle", basic)
         self.assertIn("PERSONAL_INSTRUCTIONS_ID", library)
 
     def test_home_models_engines_campaigns_have_clear_hierarchy(self):

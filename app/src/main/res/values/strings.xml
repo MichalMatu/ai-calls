@@ -581,9 +581,6 @@
     <string name="skills_personal_too_long">Maksymalnie 1600 znaków.</string>
     <string name="skills_personal_save_error">Nie można zapisać instrukcji.</string>
     <string name="skills_personal_auto_preset">Własne ustawienia sekretarki</string>
-    <string name="skills_incoming_scope_footer">Dotyczy wyłącznie kolejnych rozmów przychodzących. Historia i stare presety pozostają w ustawieniach zaawansowanych.</string>
-    <string name="skills_advanced_title">Presety i historia (zaawansowane)</string>
-    <string name="skills_advanced_detail">Starsze tryby, wersje instrukcji i przywracanie ustawień</string>
     <string name="skills_hub_summary">%1$s · %2$s</string>
     <string name="skills_hub_custom_on">własne instrukcje</string>
     <string name="skills_hub_custom_off">bez własnych instrukcji</string>

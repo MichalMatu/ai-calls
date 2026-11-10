@@ -159,6 +159,36 @@ internal class ConversationSkillLibrary private constructor(
             source.activePresetId)
     }
 
+    /**
+     * Canonical incoming-receptionist configuration. Drops obsolete preset entries,
+     * historical revisions and unused instructions while retaining the currently
+     * selected tone and the currently active user's personal guidance.
+     * Idempotent, deterministic and safe for repeated encrypted-store loads.
+     */
+    fun cleanedForReceptionist(): ConversationSkillLibrary {
+        val tone = if (receptionistToneVersion() == 2) 2 else 1
+        val core = defaults().withReceptionistTone(tone)
+        val personal = personalInstructions().trim()
+        if (personal.isEmpty()) return core
+        val privateSkill = VersionedSkill(PERSONAL_INSTRUCTIONS_ID,
+            "Własne instrukcje", SkillSection.STYLE,
+            listOf(SkillRevision(1, personal, SkillMetadata(
+                "Własne instrukcje",
+                "Dodatkowe wskazówki dla sekretarki odbierającej",
+                SkillCapability.GENERAL))))
+        val personalPreset = SkillPreset(
+            "receptionist-personal", "Własne ustawienia sekretarki",
+            core.active.versions + (PERSONAL_INSTRUCTIONS_ID to 1), false)
+        return of(core.skills + privateSkill, core.presets + personalPreset,
+            personalPreset.id)
+    }
+
+    fun isCleanForReceptionist(): Boolean {
+        val canonical = cleanedForReceptionist()
+        return skills == canonical.skills && presets == canonical.presets &&
+            activePresetId == canonical.activePresetId
+    }
+
     fun select(id: String): ConversationSkillLibrary {
         require(presets.any { it.id == id }) { "preset_missing" }
         return of(skills, presets, id)
@@ -234,7 +264,6 @@ internal class ConversationSkillLibrary private constructor(
             return of(skills, listOf(
                 SkillPreset("natural", "Sekretarka naturalna", natural, true),
                 SkillPreset("formal", "Sekretarka formalna", natural + ("ConversationStyle" to 2), true),
-                SkillPreset("message", "Zbieranie wiadomości", natural - "ConversationStyle", true),
             ), "natural")
         }
     }

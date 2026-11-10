@@ -5,8 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
-import android.widget.CheckBox
-import android.widget.Spinner
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -102,7 +100,7 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
         instrumentation.waitForIdleSync()
     }
 
-    private fun click(scene: ActivityScenario<ConversationSkillsAdvancedActivity>, tag: String) {
+    private fun click(scene: ActivityScenario<ConversationSkillsActivity>, tag: String) {
         scene.onActivity { activity ->
             val view = requireNotNull(activity.window.decorView.findViewWithTag<View>(tag)) {
                 "control_missing_$tag"
@@ -114,92 +112,32 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
         instrumentation.waitForIdleSync()
     }
 
-    @Test fun realUiCopyReviseDisableRestoreAndReopenUseOnlyIsolatedEncryptedStore() {
+    @Test fun receptionistToneAndInstructionsPersistWithoutRenamingOrMutatingUserStore() {
         withIsolatedStore { store ->
-            val original = store.loadSkillLibrary()
-            val customName = "Synthetic isolated UI test"
-            val instruction = "W kazdej odpowiedzi dodaj na koncu slowo KASZTAN."
-            ActivityScenario.launch(ConversationSkillsAdvancedActivity::class.java).use { scene ->
-                click(scene, "skills-copy-active")
-                dialogSetTextAndConfirm(customName, context.getString(R.string.skills_ui_create))
-                val custom = store.loadSkillLibrary()
-                assertFalse(custom.active.isFactory)
-                assertEquals(customName, custom.active.name)
-                assertEquals(original.presets.size + 1, custom.presets.size)
-
-                click(scene, "skills-revise:ConversationStyle")
-                dialogSetTextAndConfirm(instruction, context.getString(R.string.skills_ui_revision))
-                val afterEdit = store.loadSkillLibrary()
-                val newest = afterEdit.skills.single { it.id == "ConversationStyle" }
-                    .revisions.maxOf { it.version }
-                assertEquals(3, newest)
-                assertEquals(newest, afterEdit.active.versions["ConversationStyle"])
-                assertEquals(instruction, afterEdit.snapshot().entries
-                    .single { it.id == "ConversationStyle" }.instructions)
-
-                click(scene, "skills-enabled:ConversationStyle")
-                assertFalse(store.loadSkillLibrary().snapshot().entries
-                    .any { it.id == "ConversationStyle" })
+            val instructions = "Pytaj tylko o przyczyne kontaktu i telefon zwrotny."
+            ActivityScenario.launch(ConversationSkillsActivity::class.java).use { scene ->
+                click(scene, "receptionist-tone-choice:2")
+                assertEquals(2, store.loadSkillLibrary().receptionistToneVersion())
+                click(scene, "receptionist-personal-edit")
+                dialogSetTextAndConfirm(instructions,
+                    context.getString(R.string.skills_personal_save))
+                assertEquals(instructions, store.loadSkillLibrary().personalInstructions())
                 scene.recreate()
                 scene.onActivity { activity ->
-                    val toggle = requireNotNull(activity.window.decorView
-                        .findViewWithTag<CheckBox>("skills-enabled:ConversationStyle"))
-                    assertFalse("disabled_skill_not_persistent_after_activity_recreate",
-                        toggle.isChecked)
+                    val formal = requireNotNull(activity.window.decorView
+                        .findViewWithTag<android.widget.RadioButton>(
+                            "receptionist-tone-choice:2"))
+                    assertTrue("formal_tone_not_checked", formal.isChecked)
                 }
-                click(scene, "skills-enabled:ConversationStyle")
-                assertEquals(newest, store.loadSkillLibrary().active.versions["ConversationStyle"])
-
-                click(scene, "skills-history-toggle:ConversationStyle")
-                scene.onActivity { activity ->
-                    val picker = requireNotNull(activity.window.decorView
-                        .findViewWithTag<Spinner>("skills-versions:ConversationStyle"))
-                    // Versions are descending; choose the oldest factory revision.
-                    picker.setSelection(picker.count - 1)
-                    requireNotNull(activity.window.decorView
-                        .findViewWithTag<View>("skills-restore:ConversationStyle"))
-                        .performClick()
-                }
-                assertEquals(1, store.loadSkillLibrary().active.versions["ConversationStyle"])
-                // Re-open history, because a successful version change resets expanded details.
-                click(scene, "skills-history-toggle:ConversationStyle")
-                // Re-activate the edited version using the real editor selection.
-                scene.onActivity { activity ->
-                    val picker = requireNotNull(activity.window.decorView
-                        .findViewWithTag<Spinner>("skills-versions:ConversationStyle"))
-                    picker.setSelection(0)
-                    requireNotNull(activity.window.decorView
-                        .findViewWithTag<View>("skills-restore:ConversationStyle"))
-                        .performClick()
-                }
-                assertEquals(newest, store.loadSkillLibrary().active.versions["ConversationStyle"])
-
-                val currentCustomId = store.loadSkillLibrary().activePresetId
-                scene.onActivity { activity ->
-                    val picker = requireNotNull(activity.window.decorView
-                        .findViewWithTag<Spinner>("skills-preset-picker"))
-                    picker.setSelection(0)
-                }
-                instrumentation.waitForIdleSync()
-                assertEquals("natural", store.loadSkillLibrary().activePresetId)
-                scene.onActivity { activity ->
-                    val now = store.loadSkillLibrary()
-                    val picker = requireNotNull(activity.window.decorView
-                        .findViewWithTag<Spinner>("skills-preset-picker"))
-                    picker.setSelection(now.presets.indexOfFirst { it.id == currentCustomId })
-                }
-                instrumentation.waitForIdleSync()
-                assertEquals(currentCustomId, store.loadSkillLibrary().activePresetId)
+                click(scene, "receptionist-tone-choice:1")
+                assertEquals(1, store.loadSkillLibrary().receptionistToneVersion())
+                assertEquals(instructions, store.loadSkillLibrary().personalInstructions())
+                click(scene, "receptionist-personal-edit")
+                dialogSetTextAndConfirm("", context.getString(R.string.skills_personal_save))
+                assertEquals("", store.loadSkillLibrary().personalInstructions())
             }
-            // Reopening the persisted encrypted library retains the custom revision.
-            val reloaded = store.loadSkillLibrary()
-            assertEquals(customName, reloaded.active.name)
-            assertEquals(3, reloaded.active.versions["ConversationStyle"])
-            assertEquals(1, reloaded.snapshot("natural").entries
-                .single { it.id == "ConversationStyle" }.version)
-            assertTrue("isolated_skills_revisions_missing", reloaded.skills
-                .any { it.id == "ConversationStyle" && it.revisions.size == 3 })
-            println("S22_SKILLS_UI_COPY_EDIT_TOGGLE_ROLLBACK_REOPEN=PASS_ISOLATED")
+            assertEquals(1, store.loadSkillLibrary().receptionistToneVersion())
+            println("S22_RECEPTIONIST_UI_TONE_GUIDANCE_ISOLATED=PASS")
         }
     }
 

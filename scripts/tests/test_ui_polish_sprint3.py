@@ -30,12 +30,12 @@ class UxSprint3Contract(unittest.TestCase):
 
     def test_active_model_and_readonly_factory_skills(self):
         models = self.read("textagent/LanguageModelActivity.kt")
-        skills = self.read("conversation/ConversationSkillsAdvancedActivity.kt")
+        skills = self.read("conversation/ConversationSkillsActivity.kt")
         self.assertIn("row.card.isActivated = isActive", models)
         self.assertIn("row.select.visibility", models)
-        self.assertIn('tag = "skills-factory-state:"', skills)
-        self.assertIn("library.active.isFactory", skills)
-        self.assertIn("library.bindVersion", skills)
+        self.assertIn('tag = "receptionist-tone-options"', skills)
+        self.assertIn("library.withReceptionistTone", skills)
+        self.assertIn("library.withPersonalInstructions", skills)
 
     def test_controls_and_visual_capture_are_stateful(self):
         tools = self.read("tools/ConversationToolsActivity.kt")

@@ -19,7 +19,7 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
 
 /**
  * User-facing settings for the incoming receptionist only.
- * Presets and revision controls remain in the Advanced settings screen.
+ * Legacy presets are compacted into the current tone and personal guidance.
  * Never starts a call, changes a phone grant, or edits an outgoing task.
  */
 class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
@@ -44,7 +44,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
         if (next === library) return
         try {
             store.saveSkillLibrary(next)
-            library = next
+            library = store.loadSkillLibrary()
             render(getString(R.string.skills_consumer_changes_next_call))
         } catch (failure: Exception) {
             AlertDialog.Builder(this).setTitle(R.string.skills_ui_not_saved)
@@ -104,7 +104,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                     false
                 }
                 if (saved) {
-                    library = updated
+                    library = store.loadSkillLibrary()
                     dialog.dismiss()
                     render(getString(R.string.skills_consumer_changes_next_call))
                 }
@@ -180,8 +180,6 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
                 accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             }, UiDesign.spaceAfter(this, 10))
         }
-        content.addView(UiDesign.caption(this,
-            getString(R.string.skills_incoming_scope_footer)))
         setContentView(ScrollView(this).apply {
             isFillViewport = true
             addView(content)

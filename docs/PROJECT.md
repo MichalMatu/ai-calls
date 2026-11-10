@@ -13,7 +13,7 @@
 - W formularzu wizyty uprawnienia Androida i wybór dialera mogą kontynuować **ten sam wyraźnie rozpoczęty przez użytkownika** zamiar, bez ponownego naciskania Start. Odmowa nie rozpoczyna połączenia.
 - Host: anti-friction i fokus NoArtificialCampaignBlockersContractTest PASS, kompilacja compileDebugAndroidTestKotlin PASS. Brak instalacji nowego UI na S22+ i brak nowego połączenia; fizyczna akceptacja **PHYSICAL_OPEN**.
 
-- **Sekretarka (UX):** dwa tony naturalny/formalny i własne instrukcje bez nazywania profilu. Ustawienia dotyczą tylko incoming; zapis i historia starszych presetów są zachowane w zaszyfrowanej bibliotece, edytor wersji jest dostępny w Ustawieniach > Zaawansowane. Wymagana fizyczna kontrola UI S22+ po instalacji.
+- **Sekretarka (UX):** dwa tony naturalny/formalny i własne instrukcje bez nazywania profilu. Ustawienia dotyczą tylko incoming; stare presety i historia wersji są usuwane podczas migracji szyfrowanego zapisu; aktywne własne instrukcje i ton sekretarki są zachowywane. Wymagana fizyczna kontrola UI S22+ po instalacji.
 
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |

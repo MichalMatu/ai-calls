@@ -10,13 +10,12 @@ def read(path):
 class Ux09Contract(unittest.TestCase):
     def test_receptionist_hides_raw_presets_and_advanced_keeps_history(self):
         basic = read("conversation/ConversationSkillsActivity.kt")
-        advanced = read("conversation/ConversationSkillsAdvancedActivity.kt")
         for token in ("receptionist-tone-options", "receptionist-personal-edit",
-                      "withPersonalInstructions", "skills_incoming_scope_footer"):
+                      "withPersonalInstructions"):
             self.assertIn(token, basic)
         self.assertNotIn("skills-inactive-toggle:", basic)
-        self.assertIn("library.bindVersion", advanced)
-        self.assertIn("skills-history-toggle:", advanced)
+        self.assertNotIn("skills-history-toggle:", basic)
+        self.assertNotIn("skills_incoming_scope_footer", basic)
 
     def test_usb_has_single_header_and_no_double_frame(self):
         text = read("debug/UsbDebugPanelActivity.kt")

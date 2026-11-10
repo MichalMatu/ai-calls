@@ -13,7 +13,7 @@ class ReceptionistToneAndInstructionsTest {
         assertEquals(2, formal.receptionistToneVersion())
         assertEquals(1, source.receptionistToneVersion())
         assertEquals("natural", formal.withReceptionistTone(1).activePresetId)
-        assertEquals(3, formal.presets.size)
+        assertEquals(2, formal.presets.size)
     }
 
     @Test fun firstPersonalInstructionsSaveCreatesNamedInternallyButDoesNotEditFactory() {
@@ -62,7 +62,11 @@ class ReceptionistToneAndInstructionsTest {
     }
 
     @Test fun legacyMessagePresetAndCustomStyleRemainUntilUserChangesTone() {
-        val legacy = fresh().select("message")
+        val original = fresh()
+        val legacy = ConversationSkillLibrary.of(
+            original.skills, original.presets + SkillPreset("message",
+                "Zbieranie wiadomości", original.active.versions - "ConversationStyle", true),
+            "message")
         assertEquals(0, legacy.receptionistToneVersion())
         val migrated = legacy.withReceptionistTone(1)
         assertEquals("natural", migrated.activePresetId)
@@ -71,6 +75,45 @@ class ReceptionistToneAndInstructionsTest {
         assertEquals(3, custom.receptionistToneVersion())
         assertEquals(2, custom.withReceptionistTone(2).receptionistToneVersion())
         assertEquals(3, custom.receptionistToneVersion())
+    }
+
+    @Test fun obsoletePresetsAndRevisionsAreRemovedButCurrentUserInstructionsSurvive() {
+        val legacy = fresh().copyActive("Stary preset")
+            .reviseSkill("ConversationStyle", "Stary własny styl.")
+            .withPersonalInstructions("Odpowiadaj zwięźle.", "auto")
+            .withReceptionistTone(2)
+            .withPersonalInstructions("Nie zadawaj zbędnych pytań.", "auto")
+        assertTrue(legacy.presets.size > 2)
+        assertTrue(legacy.skills.single {
+            it.id == ConversationSkillLibrary.PERSONAL_INSTRUCTIONS_ID
+        }.revisions.size > 1)
+
+        val clean = legacy.cleanedForReceptionist()
+        assertEquals(2, clean.receptionistToneVersion())
+        assertEquals("Nie zadawaj zbędnych pytań.", clean.personalInstructions())
+        assertEquals(listOf("natural", "formal", "receptionist-personal"),
+            clean.presets.map { it.id })
+        assertEquals(1, clean.skills.single {
+            it.id == ConversationSkillLibrary.PERSONAL_INSTRUCTIONS_ID
+        }.revisions.size)
+        assertEquals(4, clean.snapshot("natural").entries.size)
+        assertTrue(clean.isCleanForReceptionist())
+        assertEquals(clean.activePresetId, clean.cleanedForReceptionist().activePresetId)
+        assertEquals(clean.presets, clean.cleanedForReceptionist().presets)
+        assertEquals(clean.skills, clean.cleanedForReceptionist().skills)
+    }
+
+    @Test fun oldMessageOnlyPresetMigratesToNaturalWithoutRetainingObsoletePreset() {
+        val original = fresh()
+        val old = ConversationSkillLibrary.of(original.skills,
+            original.presets + SkillPreset("message", "Zbieranie wiadomości",
+                original.active.versions - "ConversationStyle", true), "message")
+        val clean = old.cleanedForReceptionist()
+        assertEquals("natural", clean.activePresetId)
+        assertEquals(1, clean.receptionistToneVersion())
+        assertEquals(listOf("natural", "formal"), clean.presets.map { it.id })
+        assertEquals("", clean.personalInstructions())
+        assertTrue(clean.isCleanForReceptionist())
     }
 
     @Test fun incomingPromptUsesSelectedToneButDoesNotGrantAuthority() {

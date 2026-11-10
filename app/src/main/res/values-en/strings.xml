@@ -580,9 +580,6 @@
     <string name="skills_personal_too_long">Maximum 1600 characters.</string>
     <string name="skills_personal_save_error">Could not save these instructions.</string>
     <string name="skills_personal_auto_preset">My receptionist settings</string>
-    <string name="skills_incoming_scope_footer">Applies only to future incoming calls. Older presets and version history remain in Advanced settings.</string>
-    <string name="skills_advanced_title">Presets and history (advanced)</string>
-    <string name="skills_advanced_detail">Older modes, saved versions and restoring settings</string>
     <string name="skills_hub_summary">%1$s · %2$s</string>
     <string name="skills_hub_custom_on">custom instructions</string>
     <string name="skills_hub_custom_off">no custom instructions</string>
