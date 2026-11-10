@@ -106,6 +106,59 @@ internal class ConversationSkillLibrary private constructor(
         return ConversationSkillSnapshot(preset.id, preset.name, items)
     }
 
+    /** The consumer selector reflects only the incoming receptionist's speaking tone. */
+    fun receptionistToneVersion(): Int =
+        active.versions["ConversationStyle"] ?: 0
+
+    fun withReceptionistTone(version: Int): ConversationSkillLibrary {
+        require(version == 1 || version == 2) { "unknown_receptionist_tone" }
+        return if (active.isFactory) {
+            val desired = if (version == 2) "formal" else "natural"
+            if (activePresetId == desired) this else select(desired)
+        } else {
+            if (active.versions["ConversationStyle"] == version) this
+            else bindVersion("ConversationStyle", version)
+        }
+    }
+
+    fun personalInstructions(): String {
+        val revision = active.versions[PERSONAL_INSTRUCTIONS_ID] ?: return ""
+        return skills.singleOrNull { it.id == PERSONAL_INSTRUCTIONS_ID }
+            ?.at(revision)?.instructions.orEmpty()
+    }
+
+    /**
+     * No user-facing preset naming step. An edited factory configuration is copied
+     * only on Save; all other presets and versions remain intact.
+     */
+    fun withPersonalInstructions(text: String, automaticName: String): ConversationSkillLibrary {
+        val normalized = text.trim()
+        require(normalized.length <= MAX_PERSONAL_INSTRUCTIONS_LENGTH) {
+            "personal_instructions_too_long"
+        }
+        if (normalized == personalInstructions()) return this
+        if (normalized.isEmpty()) {
+            return if (active.isFactory || PERSONAL_INSTRUCTIONS_ID !in active.versions) this
+                else bindVersion(PERSONAL_INSTRUCTIONS_ID, null)
+        }
+        val source = if (active.isFactory) copyActive(automaticName) else this
+        if (source.skills.any { it.id == PERSONAL_INSTRUCTIONS_ID }) {
+            return source.reviseSkill(PERSONAL_INSTRUCTIONS_ID, normalized)
+        }
+        val skill = VersionedSkill(
+            PERSONAL_INSTRUCTIONS_ID, "Własne instrukcje", SkillSection.STYLE,
+            listOf(SkillRevision(1, normalized,
+                SkillMetadata("Własne instrukcje",
+                    "Dodatkowe wskazówki dla sekretarki odbierającej",
+                    SkillCapability.GENERAL))),
+        )
+        val updated = source.active.copy(
+            versions = source.active.versions + (PERSONAL_INSTRUCTIONS_ID to 1))
+        return of(source.skills + skill,
+            source.presets.map { if (it.id == source.activePresetId) updated else it },
+            source.activePresetId)
+    }
+
     fun select(id: String): ConversationSkillLibrary {
         require(presets.any { it.id == id }) { "preset_missing" }
         return of(skills, presets, id)
@@ -154,6 +207,8 @@ internal class ConversationSkillLibrary private constructor(
     }
 
     companion object {
+        const val PERSONAL_INSTRUCTIONS_ID = "PersonalInstructions"
+        const val MAX_PERSONAL_INSTRUCTIONS_LENGTH = 1600
         fun of(skills: List<VersionedSkill>, presets: List<SkillPreset>, activePresetId: String) =
             ConversationSkillLibrary(
                 skills.map { it.copy(revisions = it.revisions.toList()) },

@@ -170,6 +170,7 @@
             android:permission="android.permission.DUMP" />
         <activity android:name=".conversation.ScenarioLibraryActivity" android:exported="false" />
         <activity android:name=".conversation.ConversationSkillsActivity" android:exported="false" />
+        <activity android:name=".conversation.ConversationSkillsAdvancedActivity" android:exported="false" />
         <activity android:name=".conversation.ConversationSkillLabActivity" android:exported="false" />
         <activity android:name=".conversation.ConversationPreparationActivity" android:exported="false" />
         <activity android:name=".conversation.ConversationHistoryActivity" android:exported="false" />

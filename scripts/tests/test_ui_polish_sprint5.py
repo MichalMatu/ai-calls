@@ -34,17 +34,20 @@ class Sprint5UxContract(unittest.TestCase):
         self.assertNotIn("Run device", strings[0]["dev_ui_capability"])
         self.assertNotIn("Run Shizuku", strings[0]["dev_ui_shizuku"])
 
-    def test_skills_one_picker_and_edit_only_after_user_action(self):
-        s = self.source("conversation/ConversationSkillsActivity.kt")
-        self.assertIn('tag = "skills-preset-picker"', s)
-        self.assertIn("selection.id == library.activePresetId", s)
-        self.assertIn("library.select(selection.id)", s)
-        self.assertIn('tag = "skills-behavior-card"', s)
-        self.assertIn('"skills-copy-active" else "skills-customize"', s)
-        self.assertIn("editing && !library.active.isFactory", s)
-        self.assertNotIn('tag = "skills-secondary-actions"', s)
-        self.assertNotIn('tag = "skills-activate"', s)
-        self.assertNotIn("ConversationSkillLabActivity::class.java", s)
+    def test_receptionist_has_two_tones_and_no_preset_naming(self):
+        basic = self.source("conversation/ConversationSkillsActivity.kt")
+        advanced = self.source("conversation/ConversationSkillsAdvancedActivity.kt")
+        library = self.source("conversation/ConversationSkillLibrary.kt")
+        self.assertIn('tag = "receptionist-tone-options"', basic)
+        self.assertIn('tag = "receptionist-personal-edit"', basic)
+        self.assertIn("library.withPersonalInstructions", basic)
+        self.assertIn("library.withReceptionistTone", basic)
+        self.assertNotIn("copyActive(", basic)
+        self.assertNotIn("skills-behavior-card", basic)
+        self.assertNotIn("skills-preset-picker", basic)
+        self.assertIn('tag = "skills-preset-picker"', advanced)
+        self.assertIn('tag = "skills-history-toggle:"', advanced)
+        self.assertIn("PERSONAL_INSTRUCTIONS_ID", library)
 
     def test_home_models_engines_campaigns_have_clear_hierarchy(self):
         home = self.source("MainActivity.kt")

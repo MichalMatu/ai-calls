@@ -87,14 +87,6 @@ class AgentAiHubActivity : AppBaseActivity() {
         super.onResume()
         if (summaries.isNotEmpty()) refreshReadOnly()
     }
-    private fun visibleSkillName(id: String, fallback: String): String = when (id) {
-        "ConversationStyle" -> getString(R.string.skills_ux05_name_style)
-        "MessageCapture" -> getString(R.string.skills_ux05_name_capture)
-        "Clarification" -> getString(R.string.skills_ux05_name_clarify)
-        "NaturalClosure" -> getString(R.string.skills_ux05_name_closure)
-        else -> fallback
-    }
-
     private fun visibleFieldName(field: IdentityFieldId): String = getString(when (field) {
         IdentityFieldId.PHONE -> R.string.prep_ui_phone
         IdentityFieldId.FIRST_NAME -> R.string.prep_ui_first_name
@@ -113,19 +105,15 @@ class AgentAiHubActivity : AppBaseActivity() {
         val records = runCatching { AndroidConversationPreparationStore(this) }.getOrNull()
         summaries["skills"]?.text = records?.let { store ->
             runCatching {
-                val library = store.loadSkillLibrary()
-                val preset = library.active
-                val title = when (preset.id) {
-                    "natural" -> getString(R.string.skills_ux05_default_natural)
-                    "formal" -> getString(R.string.skills_ux05_default_formal)
-                    "message" -> getString(R.string.skills_ux05_default_message)
-                    else -> preset.name
+                val skillLibrary = store.loadSkillLibrary()
+                val tone = when (skillLibrary.receptionistToneVersion()) {
+                    1 -> getString(R.string.skills_tone_natural)
+                    2 -> getString(R.string.skills_tone_formal)
+                    else -> getString(R.string.skills_hub_legacy_style)
                 }
-                val activeNames = library.skills.filter { it.id in preset.versions.keys }
-                    .sortedBy { it.section.ordinal }
-                    .map { visibleSkillName(it.id, it.name) }
-                getString(R.string.ux09_agent_named_skills, title, activeNames.size,
-                    activeNames.joinToString(" · "))
+                val personal = getString(if (skillLibrary.personalInstructions().isBlank())
+                    R.string.skills_hub_custom_off else R.string.skills_hub_custom_on)
+                getString(R.string.skills_hub_summary, tone, personal)
             }.getOrNull()
         } ?: getString(R.string.ux07_agent_load_error)
         summaries["scenarios"]?.text = records?.let { store ->

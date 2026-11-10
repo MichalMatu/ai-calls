@@ -22,6 +22,7 @@ import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
+import pl.michalmatu.aicallbridge.conversation.ConversationSkillsAdvancedActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
@@ -104,6 +105,7 @@ class AndroidSettingsNavigationMatrixTest {
         assertScreen(IncomingAssistantSettingsActivity::class.java, expectedResource = R.string.incoming_ui_title)
         assertScreen(ConversationPreparationActivity::class.java, expectedResource = R.string.prep_ui_title)
         assertScreen(ConversationSkillsActivity::class.java, expectedResource = R.string.skills_ui_title)
+        assertScreen(ConversationSkillsAdvancedActivity::class.java, expectedResource = R.string.skills_advanced_title)
         assertScreen(ConversationSkillLabActivity::class.java, expectedResource = R.string.lab_ui_title)
         assertScreen(ConversationToolsActivity::class.java, expectedResource = R.string.tools_ui_title)
         assertScreen(UsbDebugPanelActivity::class.java, expectedResource = R.string.usb_ui_title)

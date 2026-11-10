@@ -107,9 +107,10 @@ class AndroidVisualPolishAuditTest {
             requireNotNull(findPrefix(activity.window.decorView, "engine-unavailable:")).performClick()
         }
 
-    @Test fun skillsPresetDropdownOpen() =
-        snapshot(ConversationSkillsActivity::class.java, "skills-preset-dropdown") { activity ->
-            requireNotNull(activity.window.decorView.findViewWithTag<Spinner>(
-                "skills-preset-picker")).performClick()
+    @Test fun receptionistToneChoicesVisible() =
+        snapshot(ConversationSkillsActivity::class.java, "receptionist-tone-choices") { activity ->
+            val choices = requireNotNull(activity.window.decorView
+                .findViewWithTag<android.widget.RadioGroup>("receptionist-tone-options"))
+            assert(choices.childCount == 2)
         }
 }

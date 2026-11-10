@@ -23,18 +23,17 @@ class AndroidUx09VisualSemanticsTest {
         }
     }
 
-    @Test fun factorySkillsShowOnlyFourReadableStatusesWithoutRawInstructions() {
+    @Test fun receptionistShowsTwoTonesAndPersonalGuidanceWithoutTechnicalToggles() {
         ActivityScenario.launch(ConversationSkillsActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                assertNotNull(root.findViewWithTag<View>("skills-mode-card"))
-                assertNotNull(root.findViewWithTag<View>("skills-behavior-card"))
-                for (id in listOf("ConversationStyle", "MessageCapture",
-                    "Clarification", "NaturalClosure")) {
-                    assertNotNull(root.findViewWithTag<View>("skills-summary:" + id))
-                    assertNull(root.findViewWithTag<View>("skills-instructions:" + id))
-                }
-                assertNull(root.findViewWithTag<View>("skills-secondary-actions"))
+                val tone = requireNotNull(root.findViewWithTag<android.widget.RadioGroup>(
+                    "receptionist-tone-options"))
+                assertEquals(2, tone.childCount)
+                assertNotNull(root.findViewWithTag<View>("receptionist-personal-card"))
+                assertNotNull(root.findViewWithTag<View>("receptionist-personal-edit"))
+                assertNull(root.findViewWithTag<View>("skills-behavior-card"))
+                assertNull(root.findViewWithTag<View>("skills-copy-active"))
             }
         }
     }

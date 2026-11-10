@@ -231,7 +231,7 @@
     <string name="models_ui_save_failed">Błąd zapisu wyboru modelu.</string>
     <string name="models_ui_details">Szczegóły techniczne</string>
     <string name="models_ui_selected">Wybrano %1$s na następną rozmowę.</string>
-    <string name="skills_ui_title">Zachowanie agenta</string>
+    <string name="skills_ui_title">Zachowanie sekretarki</string>
     <string name="skills_ui_intro">Instrukcje można edytować bez ponownej kompilacji aplikacji. </string>
     <string name="skills_ui_intro2">Presety fabryczne są tylko do odczytu. Zmiany obowiązują od następnej rozmowy.</string>
     <string name="skills_ui_active">Aktywny preset: </string>
@@ -554,7 +554,7 @@
     <string name="camp_mvp_appointment_title">Umów wizytę — AI</string>
     <string name="camp_mvp_appointment_description">Wybierz numer, SIM, cel i dopuszczone dane. AI zbiera propozycję terminu do weryfikacji.</string>
     <string name="home_ui_new_conversation">Nowa rozmowa</string>
-    <string name="skills_consumer_intro">Wybierz, jak agent ma rozmawiać. Zmiany nie uruchamiają połączeń.</string>
+    <string name="skills_consumer_intro">Ustawienia sekretarki odbierającej połączenia. Nie zmieniają rozmów wychodzących ani nie uruchamiają połączeń.</string>
     <string name="skills_consumer_mode">Tryb rozmowy</string>
     <string name="skills_consumer_behavior">Zachowanie podczas rozmowy</string>
     <string name="skills_consumer_customize">Dostosuj zachowanie</string>
@@ -564,4 +564,28 @@
     <string name="skills_consumer_history">Wersje</string>
     <string name="skills_consumer_restore_version">Przywróć tę wersję</string>
     <string name="skills_consumer_changes_next_call">Zmiany będą używane od następnej rozmowy.</string>
+    <string name="skills_tone_title">Ton sekretarki</string>
+    <string name="skills_tone_natural">Naturalny</string>
+    <string name="skills_tone_formal">Formalny</string>
+    <string name="skills_tone_natural_detail">Uprzejmy, swobodny i rzeczowy sposób rozmowy.</string>
+    <string name="skills_tone_formal_detail">Uprzejmy, oficjalny i precyzyjny sposób rozmowy.</string>
+    <string name="skills_tone_legacy_note">Zachowano wcześniejszy, własny lub starszy styl. Wybranie tonu zastąpi jego instrukcję stylu.</string>
+    <string name="skills_personal_title">Własne instrukcje</string>
+    <string name="skills_personal_hint">Np. Odpowiadaj krótko i pytaj tylko o szczegóły potrzebne do przyjęcia wiadomości.</string>
+    <string name="skills_personal_scope">Dodatkowe wskazówki tylko dla sekretarki. Nie mogą zmieniać uprawnień ani zasad ochrony danych. Puste pole usuwa te wskazówki.</string>
+    <string name="skills_personal_save">Zapisz</string>
+    <string name="skills_personal_empty">Brak dodatkowych wskazówek. Możesz je dodać bez tworzenia osobnego profilu.</string>
+    <string name="skills_personal_saved">Własne wskazówki są zapisane i będą używane w następnej rozmowie przychodzącej.</string>
+    <string name="skills_personal_add">Dodaj instrukcje</string>
+    <string name="skills_personal_edit">Edytuj instrukcje</string>
+    <string name="skills_personal_too_long">Maksymalnie 1600 znaków.</string>
+    <string name="skills_personal_save_error">Nie można zapisać instrukcji.</string>
+    <string name="skills_personal_auto_preset">Własne ustawienia sekretarki</string>
+    <string name="skills_incoming_scope_footer">Dotyczy wyłącznie kolejnych rozmów przychodzących. Historia i stare presety pozostają w ustawieniach zaawansowanych.</string>
+    <string name="skills_advanced_title">Presety i historia (zaawansowane)</string>
+    <string name="skills_advanced_detail">Starsze tryby, wersje instrukcji i przywracanie ustawień</string>
+    <string name="skills_hub_summary">%1$s · %2$s</string>
+    <string name="skills_hub_custom_on">własne instrukcje</string>
+    <string name="skills_hub_custom_off">bez własnych instrukcji</string>
+    <string name="skills_hub_legacy_style">Własny/starszy styl</string>
 </resources>

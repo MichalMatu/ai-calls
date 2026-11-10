@@ -71,15 +71,19 @@ class AndroidSkillPresetMatrixTest {
         ActivityScenario.launch(ConversationSkillsActivity::class.java).use { screen ->
             screen.onActivity { activity ->
                 val root = activity.window.decorView
-                assertTrue(requireNotNull(root.findViewWithTag<View>("skills-preset-picker")).isShown)
-                assertNotNull(root.findViewWithTag<View>("skills-mode-card"))
+                val tone = requireNotNull(root.findViewWithTag<android.widget.RadioGroup>(
+                    "receptionist-tone-options"))
+                assertEquals(2, tone.childCount)
+                assertNotNull(root.findViewWithTag<View>("receptionist-personal-edit"))
+                assertNull(root.findViewWithTag<View>("skills-behavior-card"))
+                assertNull(root.findViewWithTag<View>("skills-preset-picker"))
+            }
+        }
+        ActivityScenario.launch(ConversationSkillsAdvancedActivity::class.java).use { screen ->
+            screen.onActivity { activity ->
+                val root = activity.window.decorView
+                assertNotNull(root.findViewWithTag<View>("skills-preset-picker"))
                 assertNotNull(root.findViewWithTag<View>("skills-behavior-card"))
-                assertNull(root.findViewWithTag<View>("skills-activate"))
-                assertNull(root.findViewWithTag<View>("skills-secondary-actions"))
-                assertNull(root.findViewWithTag<View>("skills-revise:ConversationStyle"))
-                val customize = root.findViewWithTag<View>("skills-copy-active")
-                    ?: root.findViewWithTag<View>("skills-customize")
-                assertTrue(requireNotNull(customize).isClickable)
             }
         }
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { screen ->

@@ -8,13 +8,15 @@ def read(path):
     return (ROOT / path).read_text()
 
 class Ux09Contract(unittest.TestCase):
-    def test_disabled_skill_instructions_not_shown_by_default(self):
-        text = read("conversation/ConversationSkillsActivity.kt")
-        for token in ("skills-inactive-state:", "skills-inactive-toggle:",
-                      "visibility = if (on) View.VISIBLE else View.GONE",
-                      "getString(R.string.ux09_skill_inactive)"):
-            self.assertIn(token, text)
-        self.assertIn("library.bindVersion", text)
+    def test_receptionist_hides_raw_presets_and_advanced_keeps_history(self):
+        basic = read("conversation/ConversationSkillsActivity.kt")
+        advanced = read("conversation/ConversationSkillsAdvancedActivity.kt")
+        for token in ("receptionist-tone-options", "receptionist-personal-edit",
+                      "withPersonalInstructions", "skills_incoming_scope_footer"):
+            self.assertIn(token, basic)
+        self.assertNotIn("skills-inactive-toggle:", basic)
+        self.assertIn("library.bindVersion", advanced)
+        self.assertIn("skills-history-toggle:", advanced)
 
     def test_usb_has_single_header_and_no_double_frame(self):
         text = read("debug/UsbDebugPanelActivity.kt")
@@ -45,7 +47,7 @@ class Ux09Contract(unittest.TestCase):
         text = read("ui/AgentAiHubActivity.kt")
         for token in ("AndroidIdentityVault.create(this).availableFields().getOrThrow()",
                       "namedScope(outgoing.dataFields)", "namedScope(incoming.dataFields)",
-                      "ux09_agent_scope_warning", "visibleSkillName"):
+                      "ux09_agent_scope_warning", "skills_hub_summary"):
             self.assertIn(token, text)
         self.assertNotIn("withPlaintext", text)
         self.assertNotIn(".get(IdentityFieldId.", text)

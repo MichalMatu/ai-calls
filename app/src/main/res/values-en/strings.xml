@@ -231,7 +231,7 @@
     <string name="models_ui_save_failed">Could not save the selected model.</string>
     <string name="models_ui_details">Technical details</string>
     <string name="models_ui_selected">Selected %1$s for the next call.</string>
-    <string name="skills_ui_title">Agent behavior</string>
+    <string name="skills_ui_title">Receptionist behavior</string>
     <string name="skills_ui_intro">Instructions can be edited without rebuilding the app. </string>
     <string name="skills_ui_intro2">Factory presets are read-only. Changes apply to the next call.</string>
     <string name="skills_ui_active">Active preset: </string>
@@ -553,7 +553,7 @@
     <string name="camp_mvp_appointment_title">Book an appointment — AI</string>
     <string name="camp_mvp_appointment_description">Choose a number, SIM, goal and permitted data. AI collects a proposed time for your review.</string>
     <string name="home_ui_new_conversation">New call</string>
-    <string name="skills_consumer_intro">Choose how your agent talks. Changing this does not start a call.</string>
+    <string name="skills_consumer_intro">Settings for the incoming receptionist only. They do not change outgoing calls or start a call.</string>
     <string name="skills_consumer_mode">Conversation mode</string>
     <string name="skills_consumer_behavior">During the conversation</string>
     <string name="skills_consumer_customize">Customize behavior</string>
@@ -563,4 +563,28 @@
     <string name="skills_consumer_history">Versions</string>
     <string name="skills_consumer_restore_version">Restore this version</string>
     <string name="skills_consumer_changes_next_call">Changes apply to your next conversation.</string>
+    <string name="skills_tone_title">Receptionist tone</string>
+    <string name="skills_tone_natural">Natural</string>
+    <string name="skills_tone_formal">Formal</string>
+    <string name="skills_tone_natural_detail">Friendly, conversational and concise.</string>
+    <string name="skills_tone_formal_detail">Courteous, official and precise.</string>
+    <string name="skills_tone_legacy_note">An older or custom style is retained. Selecting a tone will replace its style instruction.</string>
+    <string name="skills_personal_title">Your instructions</string>
+    <string name="skills_personal_hint">For example: keep responses brief and ask only for details needed to take a message.</string>
+    <string name="skills_personal_scope">Additional guidance for the incoming receptionist only. It cannot change permissions or privacy rules. Clear the field to remove this guidance.</string>
+    <string name="skills_personal_save">Save</string>
+    <string name="skills_personal_empty">No extra guidance. You can add it without naming a new profile.</string>
+    <string name="skills_personal_saved">Your guidance is saved and will apply to the next incoming call.</string>
+    <string name="skills_personal_add">Add instructions</string>
+    <string name="skills_personal_edit">Edit instructions</string>
+    <string name="skills_personal_too_long">Maximum 1600 characters.</string>
+    <string name="skills_personal_save_error">Could not save these instructions.</string>
+    <string name="skills_personal_auto_preset">My receptionist settings</string>
+    <string name="skills_incoming_scope_footer">Applies only to future incoming calls. Older presets and version history remain in Advanced settings.</string>
+    <string name="skills_advanced_title">Presets and history (advanced)</string>
+    <string name="skills_advanced_detail">Older modes, saved versions and restoring settings</string>
+    <string name="skills_hub_summary">%1$s · %2$s</string>
+    <string name="skills_hub_custom_on">custom instructions</string>
+    <string name="skills_hub_custom_off">no custom instructions</string>
+    <string name="skills_hub_legacy_style">Custom/legacy style</string>
 </resources>

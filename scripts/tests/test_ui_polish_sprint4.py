@@ -75,7 +75,7 @@ class Sprint4UxContract(unittest.TestCase):
 
     def test_history_compact_and_skills_visual_hierarchy(self):
         history = self.read("conversation/ConversationHistoryActivity.kt")
-        skills = self.read("conversation/ConversationSkillsActivity.kt")
+        skills = self.read("conversation/ConversationSkillsAdvancedActivity.kt")
         incoming = self.read("incoming/IncomingAssistantSettingsActivity.kt")
         home = self.read("MainActivity.kt")
         self.assertIn("DateFormat.getTimeInstance", history)

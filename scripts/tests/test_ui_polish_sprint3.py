@@ -30,7 +30,7 @@ class UxSprint3Contract(unittest.TestCase):
 
     def test_active_model_and_readonly_factory_skills(self):
         models = self.read("textagent/LanguageModelActivity.kt")
-        skills = self.read("conversation/ConversationSkillsActivity.kt")
+        skills = self.read("conversation/ConversationSkillsAdvancedActivity.kt")
         self.assertIn("row.card.isActivated = isActive", models)
         self.assertIn("row.select.visibility", models)
         self.assertIn('tag = "skills-factory-state:"', skills)

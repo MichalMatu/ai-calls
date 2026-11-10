@@ -102,7 +102,7 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
         instrumentation.waitForIdleSync()
     }
 
-    private fun click(scene: ActivityScenario<ConversationSkillsActivity>, tag: String) {
+    private fun click(scene: ActivityScenario<ConversationSkillsAdvancedActivity>, tag: String) {
         scene.onActivity { activity ->
             val view = requireNotNull(activity.window.decorView.findViewWithTag<View>(tag)) {
                 "control_missing_$tag"
@@ -119,7 +119,7 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
             val original = store.loadSkillLibrary()
             val customName = "Synthetic isolated UI test"
             val instruction = "W kazdej odpowiedzi dodaj na koncu slowo KASZTAN."
-            ActivityScenario.launch(ConversationSkillsActivity::class.java).use { scene ->
+            ActivityScenario.launch(ConversationSkillsAdvancedActivity::class.java).use { scene ->
                 click(scene, "skills-copy-active")
                 dialogSetTextAndConfirm(customName, context.getString(R.string.skills_ui_create))
                 val custom = store.loadSkillLibrary()

@@ -59,7 +59,7 @@ class AndroidG43SkillMetadataAcceptanceTest {
 
     @Test fun skillsAndLabExposeMetadataAndRoutingWithoutChangingOwnerState() {
         val original = AndroidConversationPreparationStore(context).loadSkillLibrary().snapshot()
-        ActivityScenario.launch(ConversationSkillsActivity::class.java).use { screen ->
+        ActivityScenario.launch(ConversationSkillsAdvancedActivity::class.java).use { screen ->
             screen.onActivity { activity ->
                 val root = activity.window.decorView
                 val metadata = root.findViewWithTag<View>("skills-metadata:MessageCapture")
