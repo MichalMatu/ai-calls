@@ -11,7 +11,7 @@
     <string name="ux10_vault_add">Dodaj</string>
     <string name="ux10_vault_remove">Usuń</string>
     <string name="ux10_vault_custom">Moje własne pola</string>
-    <string name="ux10_vault_custom_note">Pola własne są prywatne. Nie są automatycznie udostępniane modelowi ani dodawane do autoryzacji rozmów.</string>
+    <string name="ux10_vault_custom_note">Własne pola są szyfrowane i prywatne. Dodanie pola nie udostępnia jego wartości AI ani nie zezwala na użycie podczas połączenia.</string>
     <string name="ux10_vault_custom_summary">%1$s · %2$s</string>
     <string name="ux10_vault_new_custom">Dodaj własne pole</string>
     <string name="ux10_vault_value_hint">Wpisz nową wartość</string>
@@ -31,4 +31,10 @@
     <string name="ux10_vault_high">Wysoka</string>
     <string name="ux10_vault_remove_confirm">Usunąć zapisane pole „%1$s”?</string>
     <string name="ux10_vault_error">Nie udało się zapisać lub odczytać danych. Sprawdź poprawność wartości.</string>
+    <string name="ux12_vault_standard_count">Dane standardowe · zapisano %1$d z %2$d</string>
+    <string name="ux12_vault_custom_count">Moje własne pola · %1$d</string>
+    <string name="ux12_vault_invalid_value">Sprawdź wartość i jej format.</string>
+    <string name="ux12_vault_required_value">Wpisz wartość pola.</string>
+    <string name="ux12_vault_invalid_name">Wpisz nazwę pola (maksymalnie 64 znaki).</string>
+    <string name="ux12_vault_duplicate_name">Pole o tej nazwie już istnieje.</string>
 </resources>

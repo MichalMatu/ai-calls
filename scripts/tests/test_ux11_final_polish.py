@@ -16,15 +16,29 @@ class Ux11FinalPolish(unittest.TestCase):
         self.assertNotIn("R.string.lab_ui_intro", lab)
         self.assertIn("sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY", lab)
 
-    def test_vault_rows_compact_and_custom_action_at_top(self):
+    def test_vault_rows_compact_and_custom_action_at_bottom(self):
         vault = (BASE / "identity/IdentityVaultManagerActivity.kt").read_text()
         self.assertIn('tag = "vault-add-custom"', vault)
         self.assertIn("minimumHeight = UiDesign.dp(this@IdentityVaultManagerActivity, 62)", vault)
-        self.assertIn("getString(R.string.ux11_vault_edit_field", vault)
         self.assertIn("getString(R.string.ux11_vault_remove_field", vault)
-        self.assertLess(vault.index('tag = "vault-add-custom"'), vault.index("for (field in IdentityFieldId.entries)"))
+        self.assertIn("setOnClickListener { onEdit() }", vault)
+        self.assertNotIn('tag = rowTag + ":edit"', vault)
+        self.assertLess(vault.index("for (field in IdentityFieldId.entries)"),
+                        vault.index("for (field in own)"))
+        self.assertLess(vault.index("for (field in own)"),
+                        vault.index('tag = "vault-add-custom"'))
         self.assertIn("predefined.availableFields()", vault)
         self.assertIn("custom.list()", vault)
+        self.assertNotIn("withPlaintext", vault)
+
+    def test_vault_failed_save_keeps_form_open_and_marks_invalid_inputs(self):
+        vault = (BASE / "identity/IdentityVaultManagerActivity.kt").read_text()
+        self.assertEqual(2, vault.count("dialog.setOnShowListener"))
+        self.assertEqual(2, vault.count("dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener"))
+        self.assertIn("value.error = getString(R.string.ux12_vault_invalid_value)", vault)
+        self.assertIn("name.error = getString(R.string.ux12_vault_duplicate_name)", vault)
+        self.assertEqual(2, vault.count("dialog.dismiss()"))
+        self.assertIn("value.text.clear()", vault)
         self.assertNotIn("withPlaintext", vault)
 
     def test_active_chat_uses_only_synthetic_feed(self):

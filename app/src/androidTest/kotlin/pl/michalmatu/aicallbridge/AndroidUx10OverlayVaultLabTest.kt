@@ -56,7 +56,11 @@ class AndroidUx10OverlayVaultLabTest {
                 assertTrue(custom.isShown)
                 val first = requireNotNull(root.findViewWithTag<View>("vault-standard:FIRST_NAME"))
                 assertTrue(first.minimumHeight <= (70f * activity.resources.displayMetrics.density).toInt())
-                assertNotNull(root.findViewWithTag<View>("vault-standard:FIRST_NAME:edit"))
+                assertTrue(first.isClickable)
+                assertNull(root.findViewWithTag<View>("vault-standard:FIRST_NAME:edit"))
+                val container = requireNotNull(custom.parent as? android.view.ViewGroup)
+                assertSame("add custom should be the last action",
+                    custom, container.getChildAt(container.childCount - 1))
             }
         }
     }

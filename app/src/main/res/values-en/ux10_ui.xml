@@ -11,7 +11,7 @@
     <string name="ux10_vault_add">Add</string>
     <string name="ux10_vault_remove">Remove</string>
     <string name="ux10_vault_custom">My custom fields</string>
-    <string name="ux10_vault_custom_note">Custom fields are private. They are not automatically shared with the model or added to call authorization.</string>
+    <string name="ux10_vault_custom_note">Custom fields are encrypted and private. Adding one does not disclose its value to AI or authorize its use in a call.</string>
     <string name="ux10_vault_custom_summary">%1$s · %2$s</string>
     <string name="ux10_vault_new_custom">Add custom field</string>
     <string name="ux10_vault_value_hint">Enter new value</string>
@@ -31,4 +31,10 @@
     <string name="ux10_vault_high">High</string>
     <string name="ux10_vault_remove_confirm">Delete saved field “%1$s”?</string>
     <string name="ux10_vault_error">Data could not be saved or read. Check the entered value.</string>
+    <string name="ux12_vault_standard_count">Standard data · %1$d of %2$d saved</string>
+    <string name="ux12_vault_custom_count">My custom fields · %1$d</string>
+    <string name="ux12_vault_invalid_value">Check the value and its format.</string>
+    <string name="ux12_vault_required_value">Enter a value for this field.</string>
+    <string name="ux12_vault_invalid_name">Enter a field name (up to 64 characters).</string>
+    <string name="ux12_vault_duplicate_name">A field with that name already exists.</string>
 </resources>

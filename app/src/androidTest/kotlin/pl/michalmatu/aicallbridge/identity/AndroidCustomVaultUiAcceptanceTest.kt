@@ -62,7 +62,7 @@ class AndroidCustomVaultUiAcceptanceTest {
         ActivityScenario.launch(IdentityVaultManagerActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 requireNotNull(activity.window.decorView.findViewWithTag<View>(
-                    "vault-standard:FIRST_NAME:edit")).performClick()
+                    "vault-standard:FIRST_NAME")).performClick()
             }
             instrument.waitForIdleSync()
             val nodes = mutableListOf<AccessibilityNodeInfo>()
@@ -126,6 +126,10 @@ class AndroidCustomVaultUiAcceptanceTest {
                         .performClick()
                 }
 
+                // Invalid empty input must never dismiss the editor or write to the vault.
+                confirmDialog(saveText)
+                assertEquals(2, dialogEdits().size)
+                assertTrue(vault.list().isEmpty())
                 setDialogField(0, marker)
                 setDialogField(1, secret)
                 confirmDialog(saveText)
@@ -135,7 +139,7 @@ class AndroidCustomVaultUiAcceptanceTest {
                     assertNotNull(activity.window.decorView.findViewWithTag<View>(
                         "vault-custom:" + created.id))
                     requireNotNull(activity.window.decorView.findViewWithTag<View>(
-                        "vault-custom:" + created.id + ":edit")).performClick()
+                        "vault-custom:" + created.id)).performClick()
                 }
                 setDialogField(0, marker + " edited")
                 // The blank replacement field must preserve the existing encrypted value.

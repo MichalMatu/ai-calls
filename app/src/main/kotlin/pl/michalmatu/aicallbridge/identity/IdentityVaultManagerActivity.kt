@@ -98,6 +98,11 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
         gravity = android.view.Gravity.CENTER_VERTICAL
         minimumHeight = UiDesign.dp(this@IdentityVaultManagerActivity, 62)
         background = UiDesign.touchSurface(this@IdentityVaultManagerActivity)
+        isClickable = true
+        isFocusable = true
+        contentDescription = title + ", " + subtitle + ", " +
+            getString(if (saved) R.string.ux10_vault_replace else R.string.ux10_vault_add)
+        setOnClickListener { onEdit() }
         setPadding(UiDesign.dp(this@IdentityVaultManagerActivity, 12),
             UiDesign.dp(this@IdentityVaultManagerActivity, 6),
             UiDesign.dp(this@IdentityVaultManagerActivity, 5),
@@ -105,11 +110,6 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
 
         val labels = LinearLayout(this@IdentityVaultManagerActivity).apply {
             orientation = LinearLayout.VERTICAL
-            isClickable = true
-            isFocusable = true
-            contentDescription = title + ", " + subtitle + ", " +
-                getString(if (saved) R.string.ux10_vault_replace else R.string.ux10_vault_add)
-            setOnClickListener { onEdit() }
             addView(UiDesign.heading(this@IdentityVaultManagerActivity, title).apply {
                 textSize = 15f
                 maxLines = 1
@@ -121,13 +121,13 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
             })
         }
         addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        addView(UiDesign.iconButton(this@IdentityVaultManagerActivity,
-            android.R.drawable.ic_menu_edit,
-            getString(R.string.ux11_vault_edit_field, title)).apply {
-            tag = rowTag + ":edit"
-            setOnClickListener { onEdit() }
-        }, LinearLayout.LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 48),
-            UiDesign.dp(this@IdentityVaultManagerActivity, 48)))
+        addView(TextView(this@IdentityVaultManagerActivity).apply {
+            text = "›"
+            textSize = 23f
+            setTextColor(UiDesign.secondary)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, LinearLayout.LayoutParams(UiDesign.dp(this@IdentityVaultManagerActivity, 24),
+            ViewGroup.LayoutParams.WRAP_CONTENT))
         if (saved) {
             addView(UiDesign.iconButton(this@IdentityVaultManagerActivity,
                 android.R.drawable.ic_menu_delete,
@@ -142,23 +142,16 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
     private fun render() {
         val savedY = scroll.scrollY
         body.removeAllViews()
-        body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_title)),
-            UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.caption(this, getString(R.string.ux10_vault_intro)),
-            UiDesign.spaceAfter(this, 10))
-        // Custom-field creation stays available without scrolling past the standard fields.
-        body.addView(UiDesign.action(this, getString(R.string.ux10_vault_new_custom),
-            UiActionTone.PRIMARY) { editCustom(null) }.apply {
-            tag = "vault-add-custom"
-        }, UiDesign.spaceAfter(this, 14))
-
-        body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_standard)).apply {
-            textSize = 17f
-        }, UiDesign.spaceAfter(this, 8))
+            UiDesign.spaceAfter(this, 16))
         val ids = predefined.availableFields().getOrElse {
             showReadError()
             return
         }
+        body.addView(UiDesign.heading(this, getString(R.string.ux12_vault_standard_count,
+            ids.size, IdentityFieldId.entries.size)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
         for (field in IdentityFieldId.entries) {
             val present = field in ids
             body.addView(fieldRow(labelFor(field), getString(if (present)
@@ -173,15 +166,16 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
                 }), UiDesign.spaceAfter(this, 6))
         }
 
-        body.addView(UiDesign.heading(this, getString(R.string.ux10_vault_custom)).apply {
-            textSize = 17f
-        }, UiDesign.spaceAfter(this, 8))
-        body.addView(UiDesign.caption(this, getString(R.string.ux10_vault_custom_note)),
-            UiDesign.spaceAfter(this, 10))
         val own = runCatching { custom.list() }.getOrElse {
             showReadError()
             return
         }
+        body.addView(UiDesign.heading(this, getString(R.string.ux12_vault_custom_count,
+            own.size)).apply {
+            textSize = 17f
+        }, UiDesign.spaceAfter(this, 8))
+        body.addView(UiDesign.caption(this, getString(R.string.ux10_vault_custom_note)),
+            UiDesign.spaceAfter(this, 10))
         for (field in own) {
             body.addView(fieldRow(field.name,
                 getString(R.string.ux10_vault_custom_summary,
@@ -195,6 +189,11 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
                     }
                 }), UiDesign.spaceAfter(this, 6))
         }
+        // Last action, after the complete user-created fields list.
+        body.addView(UiDesign.action(this, getString(R.string.ux10_vault_new_custom),
+            UiActionTone.PRIMARY) { editCustom(null) }.apply {
+            tag = "vault-add-custom"
+        }, UiDesign.spaceAfter(this, 14))
         scroll.post { scroll.scrollTo(0, savedY) }
     }
 
@@ -234,30 +233,39 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
             addView(value)
             addView(visibilityToggle(value))
         }
-        AlertDialog.Builder(this).setTitle(labelFor(field)).setView(wrap)
+        val dialog = AlertDialog.Builder(this).setTitle(labelFor(field)).setView(wrap)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.ux10_vault_save) { _, _ ->
+            .setPositiveButton(R.string.ux10_vault_save, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val raw = value.text.toString().trim()
-                runCatching {
-                    val prepared = when (field) {
+                val prepared = runCatching {
+                    val normalized = when (field) {
                         IdentityFieldId.PHONE ->
                             PhoneEnrollmentInputNormalizer.normalize(raw)
                                 ?: throw IllegalArgumentException("invalid_phone")
-                        IdentityFieldId.DATE_OF_BIRTH -> {
-                            java.time.LocalDate.parse(raw).toString()
-                        }
+                        IdentityFieldId.DATE_OF_BIRTH -> java.time.LocalDate.parse(raw).toString()
                         IdentityFieldId.PESEL -> {
                             require(raw.matches(Regex("\\d{11}"))) { "invalid_pesel" }
                             raw
                         }
                         else -> raw
                     }
-                    predefined.put(field, IdentitySecretValue.of(prepared)).getOrThrow()
-                }.onSuccess { render() }.onFailure(::showError)
-            }.create().apply {
-                setOnDismissListener { value.text.clear() }
-                show()
+                    IdentitySecretValue.of(normalized)
+                }.getOrElse {
+                    value.error = getString(R.string.ux12_vault_invalid_value)
+                    return@setOnClickListener
+                }
+                runCatching { predefined.put(field, prepared).getOrThrow() }
+                    .onSuccess {
+                        dialog.dismiss()
+                        render()
+                    }
+                    .onFailure(::showError)
             }
+        }
+        dialog.setOnDismissListener { value.text.clear() }
+        dialog.show()
     }
 
     private fun editCustom(field: CustomVaultField?) {
@@ -266,7 +274,9 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
             setSingleLine(true)
             setText(field?.name.orEmpty())
             isSaveEnabled = false
+            isSaveFromParentEnabled = false
             importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+            imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
         }
         val kinds = CustomVaultKind.entries.toList()
         val sensitivity = IdentitySensitivity.entries.toList()
@@ -294,31 +304,70 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
         val value = privateInput(getString(if (field == null) R.string.ux10_vault_value_hint
             else R.string.ux10_vault_keep_existing))
         val wrap = dialogBody().apply {
-            addView(UiDesign.caption(this@IdentityVaultManagerActivity, getString(R.string.ux10_vault_custom_name)))
+            addView(UiDesign.caption(this@IdentityVaultManagerActivity,
+                getString(R.string.ux10_vault_custom_name)))
             addView(name)
-            addView(UiDesign.caption(this@IdentityVaultManagerActivity, getString(R.string.ux10_vault_kind)))
+            addView(UiDesign.caption(this@IdentityVaultManagerActivity,
+                getString(R.string.ux10_vault_kind)))
             addView(kindPicker)
-            addView(UiDesign.caption(this@IdentityVaultManagerActivity, getString(R.string.ux10_vault_sensitivity)))
+            addView(UiDesign.caption(this@IdentityVaultManagerActivity,
+                getString(R.string.ux10_vault_sensitivity)))
             addView(sensitivityPicker)
-            addView(UiDesign.caption(this@IdentityVaultManagerActivity, getString(R.string.ux10_vault_new_value)))
+            addView(UiDesign.caption(this@IdentityVaultManagerActivity,
+                getString(R.string.ux10_vault_new_value)))
             addView(value)
             addView(visibilityToggle(value))
         }
-        AlertDialog.Builder(this).setTitle(getString(if (field == null)
+        val dialog = AlertDialog.Builder(this).setTitle(getString(if (field == null)
             R.string.ux10_vault_new_custom else R.string.ux10_vault_replace))
             .setView(ScrollView(this).apply { addView(wrap) })
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.ux10_vault_save) { _, _ ->
+            .setPositiveButton(R.string.ux10_vault_save, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val label = name.text.toString().trim()
+                if (label.isBlank() || label.length > 64 ||
+                    label.any { java.lang.Character.isISOControl(it) }) {
+                    name.error = getString(R.string.ux12_vault_invalid_name)
+                    return@setOnClickListener
+                }
+                val entered = value.text.toString().trim().takeIf { it.isNotBlank() }
+                if (field == null && entered == null) {
+                    value.error = getString(R.string.ux12_vault_required_value)
+                    return@setOnClickListener
+                }
+                val kind = kinds[kindPicker.selectedItemPosition]
+                if (entered != null && (kind == CustomVaultKind.NUMBER &&
+                    entered.toBigDecimalOrNull() == null ||
+                    kind == CustomVaultKind.DATE && runCatching {
+                        java.time.LocalDate.parse(entered)
+                    }.isFailure)) {
+                    value.error = getString(R.string.ux12_vault_invalid_value)
+                    return@setOnClickListener
+                }
                 runCatching {
-                    custom.upsert(field?.id, name.text.toString(),
-                        kinds[kindPicker.selectedItemPosition],
-                        sensitivity[sensitivityPicker.selectedItemPosition],
-                        value.text.toString().takeIf { it.isNotBlank() })
-                }.onSuccess { render() }.onFailure(::showError)
-            }.create().apply {
-                setOnDismissListener { name.text.clear(); value.text.clear() }
-                show()
+                    custom.upsert(field?.id, label, kind,
+                        sensitivity[sensitivityPicker.selectedItemPosition], entered)
+                }.onSuccess {
+                    dialog.dismiss()
+                    render()
+                }.onFailure { failure ->
+                    // Only map known internal validation tokens; never show private values.
+                    when (failure.message) {
+                        "duplicate_custom_name" ->
+                            name.error = getString(R.string.ux12_vault_duplicate_name)
+                        "custom_vault_full", "custom_label_invalid" ->
+                            name.error = getString(R.string.ux12_vault_invalid_name)
+                        "missing_custom_value", "custom_secret_too_long",
+                        "invalid_custom_number", "invalid_custom_date" ->
+                            value.error = getString(R.string.ux12_vault_invalid_value)
+                        else -> showError(failure)
+                    }
+                }
             }
+        }
+        dialog.setOnDismissListener { name.text.clear(); value.text.clear() }
+        dialog.show()
     }
 
     private fun dialogBody(): LinearLayout = LinearLayout(this).apply {
