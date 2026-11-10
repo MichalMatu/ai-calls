@@ -52,8 +52,18 @@ internal class AndroidIncomingAssistant(
         override fun stopAudio(call: Call, generation: Long, reason: ConversationStopReason) {
             slots[generation]?.takeIf { it.call === call }?.let { slot ->
                 slot.cancelled.set(true)
-                slot.audio.getAndSet(null)?.stopAudio(reason)
-                if (slot.endToolTurn == null) slots.remove(generation, slot)
+                val audio = slot.audio.getAndSet(null)
+                if (audio == null) {
+                    // If the runtime never started, there is no completion callback.
+                    // Preserve a pending end_call on CALL_ENDED for resolveEndedCall().
+                    if (slot.endToolTurn != null && reason == ConversationStopReason.CALL_ENDED) return@let
+                    if (slot.endToolTurn != null) finalizeToolEvidence(slot, ConversationToolStage.UNKNOWN)
+                    else slot.recorder?.finish(reason.code)
+                    slots.remove(generation, slot)
+                } else {
+                    audio.stopAudio(reason)
+                    if (slot.endToolTurn == null) slots.remove(generation, slot)
+                }
             }
         }
         override fun disconnect(call: Call) {
@@ -93,16 +103,28 @@ internal class AndroidIncomingAssistant(
             Call.STATE_DISCONNECTED, Call.STATE_DISCONNECTING -> IncomingCallPhase.ENDED
             else -> return
         }
+        // Capture the owner before observe(ENDED) revokes it. A disconnected Call
+        // after human takeover is NOT proof that AI's earlier end_call succeeded.
+        val endingAtDisconnect = coordinator.snapshot(call)?.state == IncomingAssistantState.ENDING
         coordinator.observe(call, phase, call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey), true, exclusive(call), loadPolicy())
-        if (state == Call.STATE_DISCONNECTED) resolveEndedCall(call)
+        if (state == Call.STATE_DISCONNECTED) resolveEndedCall(call, endingAtDisconnect)
     }
-    private fun resolveEndedCall(call: Call) {
-        slots.values.filter { it.call === call && it.endToolTurn != null }.forEach {
-            finalizeToolEvidence(it, ConversationToolStage.CONFIRMED)
-            slots.remove(it.generation, it)
+    private fun resolveEndedCall(call: Call, endingAtDisconnect: Boolean) {
+        slots.values.filter { it.call === call && it.endToolTurn != null }.forEach { slot ->
+            val outcome = IncomingEndToolEvidencePolicy.decide(
+                call.state == Call.STATE_DISCONNECTED, endingAtDisconnect,
+            )
+            finalizeToolEvidence(slot, if (outcome == IncomingEndToolOutcome.CONFIRMED)
+                ConversationToolStage.CONFIRMED else ConversationToolStage.UNKNOWN)
+            slots.remove(slot.generation, slot)
         }
     }
-    fun removed(call: Call) { resolveEndedCall(call); preparations.remove(call); coordinator.forget(call) }
+    fun removed(call: Call) {
+        val ending = coordinator.snapshot(call)?.state == IncomingAssistantState.ENDING
+        resolveEndedCall(call, ending)
+        preparations.remove(call)
+        coordinator.forget(call)
+    }
     fun takeOver(call: Call) = coordinator.takeOver(call)
     fun resume(call: Call): Boolean = coordinator.resume(call, loadPolicy())
     fun snapshot(call: Call): IncomingAssistantSnapshot? = coordinator.snapshot(call)
@@ -185,9 +207,19 @@ internal class AndroidIncomingAssistant(
         slot.pendingChatTools.forEach { ConversationChatFeed.tool(slot.chatToken, it) }
         slot.pendingChatTools.clear()
         if (result.evidenceAwaitingTool && slot.endToolTurn != null) {
-            if (slot.call.state == Call.STATE_DISCONNECTED) {
-                finalizeToolEvidence(slot, ConversationToolStage.CONFIRMED)
-                slots.remove(slot.generation, slot)
+            val ownerStillEnding = coordinator.snapshot(slot.call)?.state == IncomingAssistantState.ENDING
+            when (IncomingEndToolEvidencePolicy.decide(
+                slot.call.state == Call.STATE_DISCONNECTED, ownerStillEnding,
+            )) {
+                IncomingEndToolOutcome.CONFIRMED -> {
+                    finalizeToolEvidence(slot, ConversationToolStage.CONFIRMED)
+                    slots.remove(slot.generation, slot)
+                }
+                IncomingEndToolOutcome.UNKNOWN -> {
+                    finalizeToolEvidence(slot, ConversationToolStage.UNKNOWN)
+                    slots.remove(slot.generation, slot)
+                }
+                IncomingEndToolOutcome.PENDING -> Unit // Await exact Telecom lifecycle.
             }
         } else {
             slot.recorder?.finish(result.termination.code)
