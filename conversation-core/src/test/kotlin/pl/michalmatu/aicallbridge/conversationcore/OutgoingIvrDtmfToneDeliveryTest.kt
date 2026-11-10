@@ -91,6 +91,49 @@ class OutgoingIvrDtmfToneDeliveryTest {
         assertTrue(timer.tasks.isEmpty())
     }
 
+    @Test fun failedHardwareStopBlocksNextToneAndCloseRetriesExactStop() {
+        val events = mutableListOf<String>()
+        var failures = 1
+        val hardware = object : OutgoingIvrToneHardware {
+            override fun play(digit: Char) { events += "play:$digit" }
+            override fun stop() {
+                events += "stop"
+                if (failures-- > 0) throw IllegalStateException("synthetic_stop_failure")
+            }
+        }
+        val timer = Timer()
+        val port = OutgoingIvrDtmfToneDelivery({ true }, { true }, hardware, timer)
+        val gate = OutgoingIvrDtmfGate({ true }, { true }, port)
+        assertEquals(OutgoingIvrDtmfResult.DISPATCHED, gate.request(digit))
+        timer.fire() // stop throws: never mark hardware as available for the next digit
+        val next = digit.copy(stepIndex = 2, digit = '#')
+        assertEquals(OutgoingIvrDtmfResult.NOT_READY, gate.request(next))
+        assertEquals(listOf("play:5", "stop"), events)
+        port.close() // safe best-effort stop retry on the same original hardware/Call
+        assertEquals(listOf("play:5", "stop", "stop"), events)
+        assertEquals(OutgoingIvrDtmfResult.NOT_READY, gate.request(next))
+        assertEquals(listOf("play:5", "stop", "stop"), events)
+    }
+
+    @Test fun repeatedStopFailureIsFailClosedAndNeverReplaysDigit() {
+        var plays = 0
+        var stops = 0
+        val hardware = object : OutgoingIvrToneHardware {
+            override fun play(digit: Char) { plays++ }
+            override fun stop() { stops++; error("still_uncertain") }
+        }
+        val timer = Timer()
+        val port = OutgoingIvrDtmfToneDelivery({ true }, { true }, hardware, timer)
+        assertEquals(OutgoingIvrDigitAttempt.STARTED, port.dispatchAttempt(digit))
+        timer.fire()
+        port.close()
+        port.close()
+        assertEquals(1, plays)
+        assertEquals(3, stops)
+        assertEquals(OutgoingIvrDigitAttempt.NOT_STARTED,
+            port.dispatchAttempt(digit.copy(stepIndex = 2)))
+    }
+
     @Test fun timerFailureIsUnknownAndStopsImmediately() {
         val hardware = Hardware()
         val timer = Timer().also { it.accepts = false }

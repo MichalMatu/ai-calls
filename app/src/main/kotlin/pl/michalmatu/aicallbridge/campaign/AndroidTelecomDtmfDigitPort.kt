@@ -34,9 +34,10 @@ internal class AndroidTelecomDtmfDigitPort(
             }
 
             override fun stop() {
-                val call = toneCall
+                val call = toneCall ?: return
+                // Keep exact Call on stop failure; close() can retry safely.
+                call.stopDtmfTone()
                 toneCall = null
-                call?.stopDtmfTone()
             }
         },
         scheduler = OutgoingIvrToneStopScheduler { delayMs, stop ->

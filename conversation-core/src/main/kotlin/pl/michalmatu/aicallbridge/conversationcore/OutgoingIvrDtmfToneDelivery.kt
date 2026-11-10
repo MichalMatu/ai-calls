@@ -30,6 +30,8 @@ class OutgoingIvrDtmfToneDelivery(
 ) : OutgoingIvrDigitPort, AutoCloseable {
     private var closed = false
     private var playing = false
+    // A failed stop is an uncertain hardware effect, never permission to start another tone.
+    private var stopUncertain = false
     private var serial = 0L
 
     init { require(toneDurationMs > 0L) }
@@ -38,7 +40,7 @@ class OutgoingIvrDtmfToneDelivery(
         dispatchAttempt(request) == OutgoingIvrDigitAttempt.STARTED
 
     @Synchronized override fun dispatchAttempt(request: OutgoingIvrDtmfRequest): OutgoingIvrDigitAttempt {
-        if (closed || playing || request.digit !in "0123456789*#") {
+        if (closed || playing || stopUncertain || request.digit !in "0123456789*#") {
             return OutgoingIvrDigitAttempt.NOT_STARTED
         }
         // Check again at the actual hardware boundary, after the gate's two checks.
@@ -70,9 +72,16 @@ class OutgoingIvrDtmfToneDelivery(
     }
 
     @Synchronized private fun stopCurrent(token: Long) {
-        if (!playing || token != serial) return
-        playing = false // Exactly one stop attempt, even with late timer / duplicate close.
-        runCatching { hardware.stop() }
+        if (token != serial || (!playing && !stopUncertain)) return
+        playing = false
+        if (runCatching { hardware.stop() }.isFailure) {
+            // The tone may still sound. Permanently fence starts; a later close()
+            // may safely retry stop for this exact Call, never play another digit.
+            stopUncertain = true
+            closed = true
+        } else {
+            stopUncertain = false
+        }
     }
 
     @Synchronized override fun close() {

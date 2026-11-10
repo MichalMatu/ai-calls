@@ -206,7 +206,9 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
     )
 
     private fun manual(call: C, entry: Entry, reason: String, stopReason: ConversationStopReason, state: IncomingAssistantState = IncomingAssistantState.MANUAL) {
-        val stop = ownsAudio(entry)
+        val stop = ownsAudio(entry) || entry.state == IncomingAssistantState.ENDING
+        // ENDING has no AI authority, but can still own runtime resources until
+        // Telecom disconnect completes. Human STOP/takeover must stop those too.
         // Revoke before invoking the adapter: even a synchronous callback sees no authority.
         change(call, entry, state, reason)
         // Audio was already revoked; a failed adapter cleanup may not crash human

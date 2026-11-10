@@ -272,6 +272,38 @@ class IncomingAssistantCoordinatorTest {
         assertEquals(listOf(f.call), f.port.disconnected)
     }
 
+    @Test fun humanTakeoverDuringEndingStopsResidualAudioBeforeDisconnect() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.ENDING) f.core.takeOver(f.call)
+        }
+        assertFalse(f.core.completeConversation(f.call, generation, policy))
+        assertEquals(listOf(f.call to generation), f.port.stopped)
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertTrue(f.port.disconnected.isEmpty())
+        f.core.takeOver(f.call)
+        assertEquals(1, f.port.stopped.size) // no duplicate cleanup
+    }
+
+    @Test fun policyRevocationDuringEndingStopsAudioEvenIfCleanupThrows() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+        f.port.stopThrows = true
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.ENDING) f.core.policyChanged(
+                policy.copy(id = "rotated"), ConversationStopReason.POLICY_REVOKED)
+        }
+        assertFalse(f.core.completeConversation(f.call, generation, policy))
+        assertEquals(listOf(f.call to generation), f.port.stopped)
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertTrue(f.port.disconnected.isEmpty())
+    }
+
     @Test fun reentrantPolicyChangeOnEndCallTransitionCannotDisconnect() {
         val f = Fixture()
         f.observe(IncomingCallPhase.RINGING, policy)
