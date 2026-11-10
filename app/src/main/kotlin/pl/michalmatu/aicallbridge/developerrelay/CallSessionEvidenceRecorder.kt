@@ -5,6 +5,7 @@ import pl.michalmatu.aicallbridge.conversation.RecordedConversationHistory
 
 import android.content.Context
 import android.os.SystemClock
+import android.util.AtomicFile
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -224,6 +225,24 @@ internal class CallSessionEvidenceRecorder private constructor(
         submit { appendEvent(event) }
     }
 
+    /** Save the sanitized technical report with its own session, not only latest-overwrite. */
+    fun recordDiagnosticReport(report: String) {
+        if (completed.get()) return
+        submit {
+            val file = AtomicFile(File(directory, "diagnostics.txt"))
+            var stream: FileOutputStream? = null
+            try {
+                val opened = file.startWrite()
+                stream = opened
+                opened.write(report.toByteArray(Charsets.UTF_8))
+                file.finishWrite(opened)
+            } catch (error: Exception) {
+                stream?.let { runCatching { file.failWrite(it) } }
+                throw error
+            }
+        }
+    }
+
     fun elapsed(): Long = (SystemClock.elapsedRealtime() - initialElapsedMs).coerceAtLeast(0L)
 
     private fun saveWave(turn: Int, direction: String, atMs: Long, pcm: ByteArray) {
@@ -307,8 +326,8 @@ internal class CallSessionEvidenceRecorder private constructor(
             val session = File(root, name)
             check(session.mkdir())
             val recorder = CallSessionEvidenceRecorder(session, recordsAudio = recordAudio)
-            recorder.submit {
-                recorder.appendEvent(JSONObject()
+            // Confirm a writable private timeline before promising transcript capture.
+            recorder.appendEvent(JSONObject()
                     .put("type", "START")
                     .put("format", 1)
                     .put("audio_recorded", recordAudio)
@@ -317,7 +336,6 @@ internal class CallSessionEvidenceRecorder private constructor(
                     .put("pcm_channels", 1)
                     .put("rx_source", "stt_capture_windows")
                     .put("tx_source", "written_call_uplink"))
-            }
             recorder
         }.getOrNull()
     }
