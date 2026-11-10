@@ -1,6 +1,9 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.util.concurrent.CountDownLatch
@@ -11,6 +14,36 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChatRelayDownlinkPumpTest {
+    @Test fun zeroByteReadUsesBoundedBackoffAndRecoversWithoutLosingPcm() {
+        val released = AtomicBoolean(false)
+        val closed = AtomicBoolean(false)
+        val reads = AtomicInteger(0)
+        val input = object : InputStream() {
+            override fun read(): Int = if (closed.get()) -1 else 0
+            override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                reads.incrementAndGet()
+                if (closed.get()) return -1
+                if (!released.getAndSet(false)) return 0
+                buffer[offset] = 77
+                return 1
+            }
+            override fun close() { closed.set(true) }
+        }
+        val pump = ChatRelayDownlinkPump(input, frameBytes = 64)
+        val accepted = ByteArrayOutputStream()
+        val finished = CountDownLatch(1)
+        try {
+            pump.start()
+            pump.beginCapture(captureInto(accepted, expectedBytes = 1, finished))
+            Thread.sleep(60)
+            assertTrue("nonblocking zero read must not busy-spin", reads.get() < 200)
+            released.set(true)
+            assertTrue(finished.await(1, TimeUnit.SECONDS))
+            assertArrayEquals(byteArrayOf(77), accepted.toByteArray())
+        } finally { pump.close() }
+    }
+
+
     @Test
     fun `continuously drains inactive audio and capture receives only fresh bytes`() {
         val input = PipedInputStream(4_096)

@@ -112,7 +112,16 @@ internal class ChatRelayDownlinkPump(
                     failActiveCapture("downlink_eof")
                     return
                 }
-                if (read == 0) continue
+                if (read == 0) {
+                    // A nonblocking PCM adapter may return zero with a nonempty buffer.
+                    // Back off instead of starving STT/TTS and STOP with a hot loop.
+                    try { Thread.sleep(2L) } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        if (!closed.get()) failActiveCapture("downlink_interrupted")
+                        return
+                    }
+                    continue
+                }
 
                 val capture = synchronized(lock) { activeCapture }
                 if (capture == null) {
