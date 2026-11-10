@@ -135,6 +135,21 @@ class AuthorizedPcmUplinkWriterTest {
         assertTrue(output.flushed)
     }
 
+    @Test fun evidenceKeepsIoUncertaintyDistinctFromAuthorityRevocationAndPartialWrite() {
+        assertEquals("WRITE_UNCERTAIN", PcmUplinkEvidenceStatus.of(
+            PcmUplinkWriteStatus.IO_UNCERTAIN, 640, 1920))
+        assertEquals("WRITE_UNCERTAIN", PcmUplinkEvidenceStatus.of(
+            PcmUplinkWriteStatus.IO_UNCERTAIN, 1920, 1920))
+        assertEquals("WRITE_REVOKED", PcmUplinkEvidenceStatus.of(
+            PcmUplinkWriteStatus.REVOKED, 640, 1920))
+        assertEquals("WRITE_REVOKED", PcmUplinkEvidenceStatus.of(
+            PcmUplinkWriteStatus.REVOKED, 1920, 1920))
+        assertEquals("WRITE_PARTIAL", PcmUplinkEvidenceStatus.of(
+            PcmUplinkWriteStatus.COMPLETE, 640, 1920))
+        assertEquals("WRITE_COMPLETE", PcmUplinkEvidenceStatus.of(
+            PcmUplinkWriteStatus.COMPLETE, 1920, 1920))
+    }
+
     @Test fun invalidAlignmentFailsClosed() {
         val output = ObservedOutput()
         assertThrows(IllegalArgumentException::class.java) {

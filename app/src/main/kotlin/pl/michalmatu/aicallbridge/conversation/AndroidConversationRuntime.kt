@@ -741,6 +741,7 @@ internal object AndroidConversationRuntime {
                 val sent = attempt.acceptedBytes
                 evidenceRecorder?.recordAcknowledgementAudio(
                     turn, pcm, sent, evidenceAtMs, writeCompleted = attempt.complete,
+                    writeStatus = attempt.status,
                 )
                 totalTxBytes += sent.toLong()
                 lines += "turn_${turn}_quick_ack_tx_bytes=$sent"
@@ -806,6 +807,7 @@ internal object AndroidConversationRuntime {
                 evidenceRecorder?.recordTransmittedAudio(turn, pcm, bytesWritten, txEvidenceAtMs)
                 evidenceRecorder?.recordFullTxAttempt(
                     turn, bytesWritten, pcm.size, writeCompleted = attempt.complete,
+                    writeStatus = attempt.status,
                 )
                 totalTxBytes += bytesWritten.toLong()
                 ConversationChatFeed.tx(liveChatToken, turn, attempt.complete && bytesWritten == pcm.size)

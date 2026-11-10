@@ -23,6 +23,17 @@ internal data class PcmUplinkWriteResult(
     val complete: Boolean get() = status == PcmUplinkWriteStatus.COMPLETE
 }
 
+/** Only WRITE_COMPLETE certifies an authorized, flushed local TX write. */
+internal object PcmUplinkEvidenceStatus {
+    fun of(status: PcmUplinkWriteStatus, acceptedBytes: Int, requestedBytes: Int): String = when {
+        status == PcmUplinkWriteStatus.IO_UNCERTAIN -> "WRITE_UNCERTAIN"
+        status == PcmUplinkWriteStatus.REVOKED -> "WRITE_REVOKED"
+        status == PcmUplinkWriteStatus.COMPLETE &&
+            requestedBytes > 0 && acceptedBytes == requestedBytes -> "WRITE_COMPLETE"
+        else -> "WRITE_PARTIAL"
+    }
+}
+
 internal object AuthorizedPcmUplinkWriter {
     /**
      * Legacy byte-count interface for existing probes. A byte count is NOT proof
