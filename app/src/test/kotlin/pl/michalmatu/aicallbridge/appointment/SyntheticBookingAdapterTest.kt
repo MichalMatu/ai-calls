@@ -19,6 +19,25 @@ class SyntheticBookingAdapterTest {
         return gate.consumeBookingEvidence(token.value).getOrThrow()
     }
 
+    @Test fun reentrantAvailabilityCannotOverwriteAnAlreadyAcquiredSlot() {
+        val offered = proposal()
+        lateinit var provider: SyntheticBookingAdapter
+        var nestedStarted = false
+        var nested: SyntheticBookingHold? = null
+        provider = SyntheticBookingAdapter(availability = {
+            if (!nestedStarted) {
+                nestedStarted = true
+                nested = provider.hold(offered, "nested", 1_000L).getOrThrow()
+            }
+            true
+        })
+        assertTrue(provider.hold(offered, "outer", 1_000L).isFailure)
+        assertNotNull(nested)
+        assertFalse(provider.available(offered))
+        val receipt = provider.confirm(checkNotNull(nested), "nested", consumed(offered)).getOrThrow()
+        assertSame(receipt, provider.readBack(receipt.bookingId))
+    }
+
     @Test fun idempotentHoldKeepsOriginalTtlAndRejectsChangedTerms() {
         val provider = SyntheticBookingAdapter()
         val first = provider.hold(proposal(), "key", 1_000L).getOrThrow()

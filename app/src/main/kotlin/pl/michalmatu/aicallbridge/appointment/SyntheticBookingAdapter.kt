@@ -41,11 +41,15 @@ class SyntheticBookingAdapter(
     private val byReceipt = mutableMapOf<String, SyntheticBookingReceipt>()
     private var sequence = 0L
 
+    private fun occupied(slot: SlotKey, atMs: Long): Boolean {
+        val current = bySlot[slot] ?: return false
+        return !current.cancelled &&
+            (current.receipt != null || atMs < current.hold.expiresAtMs)
+    }
+
     @Synchronized fun available(proposal: CallProposal): Boolean = runCatching {
         val slot = slotOf(proposal) ?: return@runCatching false
-        val current = bySlot[slot]
-        if (current != null && !current.cancelled &&
-            (current.receipt != null || clockMs() < current.hold.expiresAtMs)) return@runCatching false
+        if (occupied(slot, clockMs())) return@runCatching false
         availability(proposal)
     }.getOrDefault(false)
 
@@ -65,6 +69,9 @@ class SyntheticBookingAdapter(
         }
         check(now <= Long.MAX_VALUE - ttlMs) { "booking hold overflow" }
         check(available(proposal)) { "slot unavailable" }
+        // An availability callback may reenter this synchronized adapter and
+        // acquire the same slot under a different key. Never overwrite that hold.
+        check(!occupied(slot, clockMs())) { "slot acquired during availability callback" }
         val hold = SyntheticBookingHold("synthetic-hold-" + (++sequence), now + ttlMs)
         val entry = Entry(hold, idempotencyKey, slot, proposal)
         byKey[idempotencyKey] = entry
