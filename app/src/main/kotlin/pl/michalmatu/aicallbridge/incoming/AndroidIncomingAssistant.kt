@@ -45,7 +45,7 @@ internal class AndroidIncomingAssistant(
     private val slots = ConcurrentHashMap<Long, AudioSlot>()
     @Volatile var status: String = "MANUAL"
         private set
-    private val coordinator = IncomingAssistantCoordinator(object : IncomingAssistantPort<Call> {
+    private val coordinator: IncomingAssistantCoordinator<Call> = IncomingAssistantCoordinator(object : IncomingAssistantPort<Call> {
         override fun readinessFailure(call: Call): String? = this@AndroidIncomingAssistant.readinessFailure(call)
         override fun answer(call: Call) { call.answer(0) }
         override fun startAudio(call: Call, policy: IncomingAssistantPolicy, generation: Long) = prepare(call, policy, generation)
@@ -58,8 +58,23 @@ internal class AndroidIncomingAssistant(
         }
         override fun disconnect(call: Call) {
             val policy = loadPolicy()
-            check(!closed.get() && calls().any { it === call } && call.state == Call.STATE_ACTIVE && exclusive(call))
-            check(policy.mode == AnsweringMode.AI && policy.accountKey == call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey))
+            val snapshot: IncomingAssistantSnapshot? = this@AndroidIncomingAssistant.snapshot(call)
+            val slot = snapshot?.let { slots[it.generation] }
+            check(!closed.get() && calls().any { it === call } &&
+                call.state == Call.STATE_ACTIVE && exclusive(call))
+            check(slot != null && IncomingEndCallAuthority.permits(
+                state = snapshot.state,
+                endingGeneration = snapshot.generation,
+                slotGeneration = slot.generation,
+                slotStillOwned = slot.call === call,
+                slotCancelled = slot.cancelled.get(),
+                endToolRequested = slot.endToolTurn != null,
+                slotPolicy = slot.policy,
+                currentPolicy = policy,
+            ))
+            check(policy.accountKey == call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey))
+            // Revalidate against preferences immediately before irreversible Telecom action.
+            check(loadPolicy() == slot.policy)
             call.disconnect()
         }
         override fun changed(call: Call, state: IncomingAssistantState, reason: String?) {
@@ -90,7 +105,7 @@ internal class AndroidIncomingAssistant(
     fun removed(call: Call) { resolveEndedCall(call); preparations.remove(call); coordinator.forget(call) }
     fun takeOver(call: Call) = coordinator.takeOver(call)
     fun resume(call: Call): Boolean = coordinator.resume(call, loadPolicy())
-    fun snapshot(call: Call) = coordinator.snapshot(call)
+    fun snapshot(call: Call): IncomingAssistantSnapshot? = coordinator.snapshot(call)
     fun policyChanged() { suspended.set(false); coordinator.policyChanged(loadPolicy(), ConversationStopReason.POLICY_REVOKED) }
     fun stopAll() {
         suspended.set(true)
@@ -191,7 +206,14 @@ internal class AndroidIncomingAssistant(
     }
     private fun abandon(slot: AudioSlot, reason: ConversationStopReason) {
         slot.cancelled.set(true)
-        slot.audio.getAndSet(null)?.stopAudio(reason)
+        val audio = slot.audio.getAndSet(null)
+        if (audio == null) {
+            // TAKE OVER while waiting for MODE_IN_CALL can leave a private recorder
+            // allocated, but no Run will ever call finish() for that recorder.
+            slot.recorder?.finish(reason.code)
+        } else {
+            audio.stopAudio(reason)
+        }
         coordinator.audioFinished(slot.call, slot.generation, reason.code)
         slots.remove(slot.generation, slot)
     }
