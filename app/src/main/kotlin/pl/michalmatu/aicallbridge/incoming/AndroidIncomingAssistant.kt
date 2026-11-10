@@ -282,8 +282,21 @@ internal class AndroidIncomingAssistant(
     override fun close() {
         closed.set(true)
         coordinator.close()
-        slots.values.forEach { finalizeToolEvidence(it, ConversationToolStage.UNKNOWN) }
-        slots.clear()
+        // Service teardown is not proof that END_CALL succeeded. Do not write
+        // archive END/COMPLETE until the runtime has drained the last RX window.
+        slots.values.toList().forEach { slot ->
+            if (slot.endToolTurn != null) {
+                slot.archiveGate.onTelecomEnd(IncomingEndToolOutcome.UNKNOWN)?.let { outcome ->
+                    finalizeToolEvidence(slot, if (outcome == IncomingEndToolOutcome.CONFIRMED)
+                        ConversationToolStage.CONFIRMED else ConversationToolStage.UNKNOWN)
+                    slots.remove(slot.generation, slot)
+                }
+            } else if (!slot.archiveGate.runtimePending()) {
+                slot.recorder?.finish(ConversationStopReason.SERVICE_DESTROYED.code)
+                slots.remove(slot.generation, slot)
+            }
+            // Otherwise finished(slot) still owns the pending recorder and callback.
+        }
         handler.removeCallbacksAndMessages(null)
         preparations.clear()
     }

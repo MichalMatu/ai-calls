@@ -33,6 +33,23 @@ class IncomingEndToolEvidencePolicyTest {
             gate.onTelecomEnd(IncomingEndToolOutcome.CONFIRMED))
     }
 
+    @Test fun serviceTeardownCannotFinalizeArchiveBeforeRuntimeDrains() {
+        val gate = IncomingEndToolArchiveGate()
+        gate.onRuntimeStart()
+        assertEquals(null, gate.onTelecomEnd(IncomingEndToolOutcome.UNKNOWN))
+        assertEquals(true, gate.runtimePending())
+        assertEquals(IncomingEndToolOutcome.UNKNOWN, gate.onRuntimeFinished())
+        assertEquals(false, gate.runtimePending())
+    }
+
+    @Test fun alreadyObservedCallEndIsNotOverwrittenByServiceTeardown() {
+        val gate = IncomingEndToolArchiveGate()
+        gate.onRuntimeStart()
+        assertEquals(null, gate.onTelecomEnd(IncomingEndToolOutcome.CONFIRMED))
+        assertEquals(null, gate.onTelecomEnd(IncomingEndToolOutcome.UNKNOWN))
+        assertEquals(IncomingEndToolOutcome.CONFIRMED, gate.onRuntimeFinished())
+    }
+
     @Test fun noRuntimeAllowsImmediateExactTerminalEvidence() {
         val gate = IncomingEndToolArchiveGate()
         assertEquals(IncomingEndToolOutcome.CONFIRMED,
