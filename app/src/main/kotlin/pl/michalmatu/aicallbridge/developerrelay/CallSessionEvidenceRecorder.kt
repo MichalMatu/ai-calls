@@ -57,6 +57,7 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     private val timeline = File(directory, "timeline.jsonl")
     /** Owned by the single evidence IO worker; per-turn RX windows remain distinct. */
     private val rxWindowParts = mutableMapOf<Int, Int>()
+    private val rxDrain = RxCaptureDrainRegistry()
 
     fun recordConversation(
         direction: pl.michalmatu.aicallbridge.conversation.ConversationDirection,
@@ -158,6 +159,14 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
         private val data = ByteArrayOutputStream()
         private val closed = AtomicBoolean(false)
         private val startedAtMs = elapsed()
+        private val drain = rxDrain.open {
+            // append() and the snapshot are serialized on the same RxTurn monitor.
+            synchronized(this) {
+                if (closed.compareAndSet(false, true)) {
+                    saveWave(turn, "rx", startedAtMs, data.toByteArray())
+                }
+            }
+        }
 
         @Synchronized
         fun append(frame: ByteArray, length: Int) {
@@ -166,12 +175,7 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
             data.write(frame, 0, length)
         }
 
-        @Synchronized
-        fun finish() {
-            if (!closed.compareAndSet(false, true)) return
-            val copied = data.toByteArray()
-            saveWave(turn, "rx", startedAtMs, copied)
-        }
+        fun finish() { drain.finish() }
     }
 
     fun recordTransmittedAudio(turn: Int, pcm: ByteArray, sentBytes: Int, txAtMs: Long) {
@@ -246,6 +250,9 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     }
 
     fun finish(reasonCode: String?) {
+        // The last RX window may be cut short by CALL_ENDED/STOP before VAD silence.
+        // Drain it before completed=true and queue END after every committed WAV event.
+        rxDrain.finishAll()
         if (!completed.compareAndSet(false, true)) return
         io.execute {
             appendEvent(JSONObject()
