@@ -166,19 +166,19 @@ internal object GenericPhoneTaskAcceptanceProbe {
             }
             lines += "effect_permit_issued=true"
 
-            val consumed = commitmentGate.consumeEffect(authorization.value)
+            val consumed = commitmentGate.consumeEvidence(authorization.value)
             if (consumed.isFailure) {
                 finish(false, "effect_consume_failed")
                 return
             }
-            val consumedEffect = consumed.getOrThrow()
+            val consumptionEvidence = consumed.getOrThrow()
+            val consumedEffect = consumptionEvidence.effect
             if (consumedEffect != candidate || commitmentGate.hasAuthorization()) {
                 finish(false, "effect_consumption_mismatch")
                 return
             }
             lines += "effect_permit_consumed=true"
 
-            val consumptionEvidence = CallCommitmentConsumptionEvidence(consumedEffect)
             val completion = CallExternalEffectCompletionTracker.fromConsumption(consumptionEvidence)
             val completed = completion.complete(CallExternalEffectSuccessEvidence(candidate))
             if (completed.isFailure || completed.getOrThrow() != candidate || !completion.isCompleted()) {

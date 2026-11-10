@@ -89,6 +89,18 @@ class CallCommitmentGate(
         }
     }
 
+    /** Typed evidence is minted only through a successful one-shot gate consume. */
+    fun consumeEvidence(token: String): Result<CallCommitmentConsumptionEvidence> =
+        consumeEffect(token).map { CallCommitmentConsumptionEvidence.issuedAfterGateConsumption(it) }
+
+    /** Legacy BOOK_APPOINTMENT scope cannot consume a different typed effect. */
+    fun consumeBookingEvidence(token: String): Result<CallCommitmentConsumptionEvidence> =
+        consume(token).map {
+            CallCommitmentConsumptionEvidence.issuedAfterGateConsumption(
+                CallExternalEffect.BookAppointment(it),
+            )
+        }
+
     /** Revokes only the exact authorization supplied by its owner; a newer/foreign permit survives. */
     fun revoke(authorization: CallCommitmentAuthorization): Boolean = synchronized(lock) {
         val entry = current ?: return@synchronized false

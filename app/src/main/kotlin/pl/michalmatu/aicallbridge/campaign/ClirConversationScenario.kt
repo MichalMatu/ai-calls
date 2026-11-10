@@ -233,13 +233,12 @@ internal class ClirConversationScenario(
             require(validation is CallExternalEffectValidation.Accepted) { "clir_effect_validation_rejected" }
             val authorization = commitmentGate.authorize(validation.effect)
             hooks.emit("clir_effect_permit_issued=true")
-            val consumed = commitmentGate.consumeEffect(authorization.value).getOrThrow()
+            val evidence = commitmentGate.consumeEvidence(authorization.value).getOrThrow()
+            val consumed = evidence.effect
             require(consumed == effect && !commitmentGate.hasAuthorization()) {
                 "clir_effect_consumption_mismatch"
             }
-            completionTracker = CallExternalEffectCompletionTracker.fromConsumption(
-                CallCommitmentConsumptionEvidence(consumed),
-            )
+            completionTracker = CallExternalEffectCompletionTracker.fromConsumption(evidence)
             commitmentConsumed.set(true)
             hooks.emit("clir_effect_permit_consumed=true")
             return REVIEWED_CLIR_COMMIT_SPEECH

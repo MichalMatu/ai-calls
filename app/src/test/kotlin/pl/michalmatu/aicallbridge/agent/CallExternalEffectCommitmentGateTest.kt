@@ -44,8 +44,12 @@ class CallExternalEffectCommitmentGateTest {
         val proposal = proposal("Clinic A", "150.00")
         val effect = CallExternalEffect.BookAppointment(proposal)
 
-        val typedEvidence = CallCommitmentConsumptionEvidence(effect)
-        val legacyEvidence = CallCommitmentConsumptionEvidence(proposal)
+        val typedGate = CallCommitmentGate { "typed-evidence" }
+        val typedEvidence = typedGate.consumeEvidence(typedGate.authorize(effect).value).getOrThrow()
+        val bookingGate = CallCommitmentGate { "booking-evidence" }
+        val legacyEvidence = bookingGate.consumeBookingEvidence(
+            bookingGate.authorize(proposal).value,
+        ).getOrThrow()
 
         assertEquals(effect, typedEvidence.effect)
         assertEquals(proposal, typedEvidence.proposal)

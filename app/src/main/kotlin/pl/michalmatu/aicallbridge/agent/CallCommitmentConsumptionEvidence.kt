@@ -6,11 +6,15 @@ package pl.michalmatu.aicallbridge.agent
  * Consumption is not business success and grants no completion authority. The permit itself is
  * intentionally absent so this evidence cannot be replayed as commitment authorization.
  */
-class CallCommitmentConsumptionEvidence(
+class CallCommitmentConsumptionEvidence private constructor(
     val effect: CallExternalEffect,
 ) {
-    /** BOOK_APPOINTMENT compatibility adapter for existing reviewed product wiring. */
-    constructor(proposal: CallProposal) : this(CallExternalEffect.BookAppointment(proposal))
+    // A model, public caller or unconsumed proposal cannot construct this receipt.
+    // Trusted application code obtains it from CallCommitmentGate.consumeEvidence.
+    internal companion object {
+        fun issuedAfterGateConsumption(effect: CallExternalEffect): CallCommitmentConsumptionEvidence =
+            CallCommitmentConsumptionEvidence(effect)
+    }
 
     /**
      * BOOK_APPOINTMENT compatibility view.

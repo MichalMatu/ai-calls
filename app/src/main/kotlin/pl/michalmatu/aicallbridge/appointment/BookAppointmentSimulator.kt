@@ -296,11 +296,11 @@ class BookAppointmentSimulator(
             if (!alreadyInCommitmentState) {
                 dispatch(BookAppointmentTaskGraph.PROCEED_TO_COMMITMENT)
             }
-            val consumed = commitmentGate.consume(authorization.value).getOrThrow()
-            check(consumed == proposal) { "commitment permit changed concrete proposal" }
+            val consumptionEvidence = commitmentGate.consumeBookingEvidence(authorization.value).getOrThrow()
+            check(consumptionEvidence.proposal == proposal) { "commitment permit changed concrete proposal" }
             evidence += BookAppointmentEvidence(BookAppointmentEvidenceType.COMMITMENT_CONSUMED)
             val confirmed = bookingProvider.confirm(
-                hold, idempotencyKey, CallCommitmentConsumptionEvidence(consumed),
+                hold, idempotencyKey, consumptionEvidence,
             ).getOrNull()
             // One-shot local authorization is not independent provider success.
             if (confirmed == null || bookingProvider.readBack(confirmed.bookingId) !== confirmed) {

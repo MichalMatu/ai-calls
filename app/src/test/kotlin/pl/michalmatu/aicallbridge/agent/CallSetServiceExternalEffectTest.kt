@@ -26,11 +26,9 @@ class CallSetServiceExternalEffectTest {
         assertTrue(gate.consume(authorization.value).isFailure)
         assertTrue(gate.hasAuthorization())
 
-        val consumedEffect = gate.consumeEffect(authorization.value).getOrThrow()
-        assertEquals(effect, consumedEffect)
+        val consumption = gate.consumeEvidence(authorization.value).getOrThrow()
+        assertEquals(effect, consumption.effect)
         assertFalse(gate.hasAuthorization())
-
-        val consumption = CallCommitmentConsumptionEvidence(consumedEffect)
         assertFails<IllegalStateException> { consumption.proposal }
         val completion = CallExternalEffectCompletionTracker.fromConsumption(consumption)
 

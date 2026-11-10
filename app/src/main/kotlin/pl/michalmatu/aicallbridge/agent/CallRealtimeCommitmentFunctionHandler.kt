@@ -37,8 +37,8 @@ class CallRealtimeCommitmentFunctionHandler @JvmOverloads constructor(
         }
 
         val authorization = parseAuthorization(call.argumentsJson)
-        val consumedProposal = commitmentGate.consume(authorization).getOrThrow()
-        consumptionListener.onConsumed(CallCommitmentConsumptionEvidence(consumedProposal))
+        val evidence = commitmentGate.consumeBookingEvidence(authorization).getOrThrow()
+        consumptionListener.onConsumed(evidence)
         responder.submit(AUTHORIZED_OUTPUT, RealtimeFunctionFollowup.NoTools).getOrThrow()
     }
 

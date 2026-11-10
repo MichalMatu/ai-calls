@@ -16,7 +16,7 @@ class SyntheticBookingAdapterTest {
     private fun consumed(p: CallProposal): CallCommitmentConsumptionEvidence {
         val gate = CallCommitmentGate { "synthetic-permit" }
         val token = gate.authorize(p)
-        return CallCommitmentConsumptionEvidence(gate.consume(token.value).getOrThrow())
+        return gate.consumeBookingEvidence(token.value).getOrThrow()
     }
 
     @Test fun idempotentHoldKeepsOriginalTtlAndRejectsChangedTerms() {

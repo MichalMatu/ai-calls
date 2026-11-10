@@ -30,6 +30,22 @@ class CallCommitmentGateTest {
     }
 
     @Test
+    fun consumedEvidenceIsExactAndCannotBeMintedByAReplayedOrWrongScopePermit() {
+        val gate = CallCommitmentGate { "proof-once" }
+        val proposal = proposal("Clinic A", "150.00")
+        val token = gate.authorize(proposal)
+        assertTrue(gate.consumeBookingEvidence("wrong").isFailure)
+        assertTrue(gate.hasAuthorization())
+        val evidence = gate.consumeBookingEvidence(token.value).getOrThrow()
+        assertEquals(CallExternalEffect.BookAppointment(proposal), evidence.effect)
+        assertEquals(proposal, evidence.proposal)
+        assertFalse(gate.hasAuthorization())
+        assertTrue(gate.consumeEvidence(token.value).isFailure)
+        assertTrue(gate.consumeBookingEvidence(token.value).isFailure)
+        assertFalse(evidence.toString().contains("Clinic A"))
+    }
+
+    @Test
     fun newerAuthorizationInvalidatesOlderProposalAuthorization() {
         val tokens = ArrayDeque(listOf("permit-old", "permit-new"))
         val gate = CallCommitmentGate { tokens.removeFirst() }

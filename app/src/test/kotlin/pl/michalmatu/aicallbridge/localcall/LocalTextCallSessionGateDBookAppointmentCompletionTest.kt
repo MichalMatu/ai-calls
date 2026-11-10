@@ -196,11 +196,11 @@ class LocalTextCallSessionGateDBookAppointmentCompletionTest {
 
         val authorization = fixture.session.authorizeBookAppointmentCommitment()
             as GateDBookAppointmentCommitmentAuthorizationResult.Authorized
-        val effect = fixture.commitmentGate.consumeEffect(authorization.authorization.value).getOrThrow()
-        assertEquals(CallExternalEffect.BookAppointment(proposal), effect)
-        fixture.session.bookAppointmentCommitmentConsumptionListener().onConsumed(
-            CallCommitmentConsumptionEvidence(effect),
-        )
+        val evidence = fixture.commitmentGate.consumeEvidence(
+            authorization.authorization.value,
+        ).getOrThrow()
+        assertEquals(CallExternalEffect.BookAppointment(proposal), evidence.effect)
+        fixture.session.bookAppointmentCommitmentConsumptionListener().onConsumed(evidence)
 
         val wrongPrice = CallOutcome(
             CallOutcomeStatus.SUCCESS,
