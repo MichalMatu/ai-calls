@@ -12,18 +12,20 @@
 | --- | --- | --- |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | HOST_TESTED | Native off-call i produkcyjny runtime są; słyszalne RX/TX i barge-in na żywo **BLOCKED** |
-| Outgoing po autoryzacji | HOST_TESTED | Existing grant + Telecom na ścieżce CLIR; generic BOOK_APPOINTMENT target nie jest podłączony do startu kampanii, realny dial **BLOCKED** |
-| Wybór danych IdentityVault | HOST_TESTED | Scoped reader, podwójne sprawdzenie live authority, PHONE w CLIR; wizyty i inne pola bez app-owned live binding **BLOCKED** |
-| Wizyta, warunki i wynik do oceny | HOST_TESTED | CallPlan/TaskGraph + synthetic booking; REVIEW_ONLY bez hold/commit i odczyt pending proposal z LocalTextCallSession PASS. Nadal brak live kampanii, UI oceny i prawdziwego providera: **BLOCKED** |
-| Natychmiastowy STOP / TAKE OVER i resume | DEVICE_VERIFIED | Tylko off-call STOP/stale PCM na zainstalowanym APK; przejęcie/resume bez rozłączenia realnego Call **BLOCKED** |
+| Outgoing po autoryzacji | HOST_TESTED | BOOK_APPOINTMENT: exact E.164, wybrana SIM, scoped grant, prewarm Gemma i istniejący owner Android Telecom; realny dial S22 **PHYSICAL_OPEN** |
+| Wybór danych IdentityVault | HOST_TESTED | UI pozwala wybrać FIRST_NAME/LAST_NAME/PHONE/EMAIL, scoped reader sprawdza task/target/generation i zgodę; mówione wartości na S22 **PHYSICAL_OPEN** |
+| Wizyta, warunki i wynik do oceny | HOST_TESTED | CallTask, parser terminu, scena Gemma/STT/TTS, UI zakresu/warunków i REVIEW_REQUIRED; syntetyczne E2E PASS; brak realnego providera i próby live **PHYSICAL_OPEN** |
+| Natychmiastowy STOP / TAKE OVER i resume | HOST_TESTED / DEVICE_VERIFIED off-call | Symulowany STOP i TAKE OVER PASS; na wcześniejszym APK fizyczne off-call STOP/stale PCM PASS; przejęcie rozmowy live **PHYSICAL_OPEN** |
 
 Status DEVICE_VERIFIED w ostatnim wierszu dotyczy wyłącznie wymienionego testu off-call. Żadna cała funkcja nie ma jeszcze ukończonego odbioru fizycznego. BOOKED u dostawcy syntetycznego nigdy nie stanowi dowodu prawdziwej rezerwacji.
 
+## Zamrożony host MVP
+- main@044427b01150ef542852f2ec42a19463f89e1feb: pełny test-profile.sh full **PASS** (Gradle/JVM, lint, 409 Python, audio/secret gates), :app:assembleDebug **PASS**, czysty Git.
+- APK wyłącznie na Macu: ~/agent-workspace/artifacts/ai-calls/ai-calls-mvp-first-044427b01150.apk, 234 MB, SHA-256 437e35f0a445dfe1cf4f48eaf6a3f0cf5a663e9d4998db03be7275edd0c0d232; **nie zainstalowano**. Kompilacja to nie odbiór urządzenia.
+
 ## Następny sprint — MVP FIRST (kod, nie audyt)
-1. **Existing Code First:** zintegruj generic użytkownikowy BOOK_APPOINTMENT: wybrany cel/SIM, exact grant, prewarm Gemma/STT/TTS, owned Telecom, CallTask/CallPlan/LocalTextCallSession, IdentityVault i typed outcome. Nie zastępuj sprawdzonego CLIR ani transportu Samsung/Shizuku.
-2. W aplikacji pokaż pending appointment/warunki do weryfikacji. Nigdy nie wykonuj realnego confirm na podstawie samego transkryptu lub synthetic receipt.
-3. Syntetyczne E2E: świadome przyjęcie zadania, zgodność target/SIM, mock ACTIVE Call, odpowiedź, oferta, walidacja, ograniczone fakty, REVIEW_REQUIRED, STOP/TAKE OVER i odmowy przy niezgodności. Po kodzie tylko testy celowane i zmieniony zakres; pełny host QA po funkcjonalnym freeze.
-4. Nie rozpoczynaj G6.5, G7 ani dalszych optymalizacji przed działającym MVP.
+1. Fizyczny odbiór z osobną zgodą na exact APK, instalację, testowe numery/SIM i zakres połączeń. Wszystkie live-call funkcje pozostają **PHYSICAL_OPEN**.
+2. Po próbach poprawić wyłącznie usterki blokujące MVP. Nie uruchamiać G6.5/G7, niepotrzebnych refaktorów ani audytu.
 
 ## Próby S22+ — dokładny zakres PHYSICAL_OPEN
 Dopiero po osobnej, konkretnej zgodzie na zakres, numer testowy, SIM, uczestników i instalację nowego APK; zweryfikuj exact S22, Shizuku, rolę dialera, uprawnienia i IDLE:
