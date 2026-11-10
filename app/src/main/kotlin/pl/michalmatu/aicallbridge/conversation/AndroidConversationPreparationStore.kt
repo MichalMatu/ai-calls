@@ -90,6 +90,29 @@ internal class AndroidConversationPreparationStore(
         writeRecord("lab-dialog-reports-v1", Gson().toJson(library))
     }
 
+    /** Private Keystore-encrypted task payload. No phone number in Intent extras. */
+    private data class ScenarioOutgoingRecord(
+        val schema: Int, val task: pl.michalmatu.aicallbridge.campaign.ScenarioOutgoingTask,
+    )
+
+    fun loadOutgoingScenarioTask(): pl.michalmatu.aicallbridge.campaign.ScenarioOutgoingTask? =
+        synchronized(LOCK) {
+            runCatching {
+                val raw = readRecord("outgoing-scenario-task-v1")
+                    ?: return@synchronized null
+                val record = Gson().fromJson(raw, ScenarioOutgoingRecord::class.java)
+                require(record.schema == 1) { "outgoing_scenario_schema_unknown" }
+                record.task.validated()
+            }.getOrNull()
+        }
+
+    fun saveOutgoingScenarioTask(
+        task: pl.michalmatu.aicallbridge.campaign.ScenarioOutgoingTask,
+    ) = synchronized(LOCK) {
+        writeRecord("outgoing-scenario-task-v1",
+            Gson().toJson(ScenarioOutgoingRecord(1, task.validated())))
+    }
+
     private data class ScenarioDraftRecord(
         val version: Int, val scenarioId: String, val values: Map<String, String>,
     )

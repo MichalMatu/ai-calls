@@ -72,6 +72,10 @@ class AppOwnedCampaignService : Service() {
                 startApprovedAppointment()
                 return START_NOT_STICKY // Never resurrect a dial from an Android service restart.
             }
+            ACTION_START_SCENARIO_INQUIRY -> {
+                startApprovedScenarioInquiry()
+                return START_NOT_STICKY // Never auto-resume an enquiry after restart.
+            }
             ACTION_CANCEL_OUTGOING_TASK -> {
                 // Cancel only the outgoing task; never disable an incoming secretary
                 // or interrupt an unrelated supervised audio session.
@@ -291,6 +295,106 @@ class AppOwnedCampaignService : Service() {
                         accountScope = task.accountScope,
                         runConfiguration = configuration,
                         appointmentTask = task,
+                        onAttemptFinished = { _, _ -> },
+                    ) { status ->
+                        continuationHandler.post {
+                            if (!campaignRequested || continuationGeneration != generation)
+                                return@post
+                            statusStore.save(status)
+                            if (!AppOwnedClirCampaignExecutor.isRunning()) finish(status)
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    /**
+     * One human-authorized scenario inquiry. This path has no external effect
+     * commitment or automatic redial, and never reuses CLIR's authorization.
+     */
+    private fun startApprovedScenarioInquiry() {
+        if (campaignRequested || supervisedAudioActive.get() ||
+            AppOwnedClirCampaignExecutor.isRunning() || continuationStore.load() != null
+        ) {
+            statusStore.save("An outgoing task is already active; no scenario call started")
+            return
+        }
+        val task = preparationStore.loadOutgoingScenarioTask() ?: run {
+            finish("No approved scenario enquiry was saved")
+            return
+        }
+        val grant = authorizationStore.load()
+        if (grant == null || grant.attemptsUsed != 0 ||
+            grant.grantId != task.grantId ||
+            !CampaignAuthorizationPolicy.matchesExactTask(grant, task.request()) ||
+            CampaignAccountScope.forSubscription(this, task.subscriptionId) != task.accountScope
+        ) {
+            finish("Scenario number/SIM/goal authorization mismatch; dial blocked")
+            return
+        }
+        val profile = AudioEngineProfileStore(this).load()
+        if (profile == null || AudioEngineRegistry.incompatibility(profile) != null) {
+            finish("Selected on-device speech/model stack is unavailable; no dial")
+            return
+        }
+        val preparation = ConversationPreparation(
+            "outgoing-scenario-" + task.scenarioId,
+            task.title, ConversationDirection.OUTGOING,
+            "", setOf(ConversationSkill.EXPLAIN_GOAL, ConversationSkill.CLARIFY,
+                ConversationSkill.ASK_PROCEDURE), emptySet(),
+        )
+        val scopedGoal = "Cel rozmowy: " + task.goal + ". Szczegóły podane przez użytkownika: " +
+            task.brief + ". Rozmowa jest tylko zapytaniem informacyjnym. " +
+            "Zbierz możliwe terminy, ceny i warunki oraz zapowiedz, że użytkownik je rozważy. " +
+            "Nie potwierdzaj rezerwacji, nie zamawiaj usługi, nie zgadzaj się na opłaty, " +
+            "nie zatwierdzaj napraw, zakupów ani zmian umów. " +
+            "Nie deklaruj osiągnięcia celu bez niezależnej weryfikacji; odpowiedź rozmówcy " +
+            "ma zostać do sprawdzenia w prywatnej historii rozmowy."
+        val instruction = ConversationInstructionBuilder.build(
+            preparation, scopedGoal, ConversationResponseFormat.SPOKEN_TEXT,
+        )
+        val configuration = ConversationRunConfiguration.ModelDirect(
+            profile, instruction, preparation,
+        )
+        campaignRequested = true
+        val generation = ++continuationGeneration
+        preparingLocalModel = true
+        statusStore.save("Preparing on-device model for the approved scenario enquiry")
+        startForeground(
+            NOTIFICATION_ID, notification("Preparing authorized scenario call"),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+        )
+        CampaignGemmaDirectPreflight.prepare(
+            this, systemInstruction = instruction, profile = profile,
+            onReady = { ready ->
+                continuationHandler.post {
+                    preparingLocalModel = false
+                    if (!campaignRequested || continuationGeneration != generation) {
+                        CampaignGemmaDirectPreflight.discardUnused()
+                        return@post
+                    }
+                    val live = authorizationStore.load()
+                    if (!ready || live == null || live.attemptsUsed != 0 ||
+                        live.grantId != task.grantId ||
+                        preparationStore.loadOutgoingScenarioTask() != task ||
+                        !CampaignAuthorizationPolicy.matchesExactTask(live, task.request()) ||
+                        CampaignAccountScope.forSubscription(
+                            this, task.subscriptionId) != task.accountScope
+                    ) {
+                        finish("Scenario model/task authorization changed before dialing")
+                        return@post
+                    }
+                    if (isPhoneBusy()) {
+                        finish("Another phone call is active. No automatic scenario retry")
+                        return@post
+                    }
+                    AppOwnedClirCampaignExecutor.start(
+                        context = this,
+                        authorizationStore = authorizationStore,
+                        accountScope = task.accountScope,
+                        runConfiguration = configuration,
+                        scenarioTask = task,
                         onAttemptFinished = { _, _ -> },
                     ) { status ->
                         continuationHandler.post {
@@ -656,6 +760,8 @@ class AppOwnedCampaignService : Service() {
             "pl.michalmatu.aicallbridge.action.START_CLIR_ENABLE_CAMPAIGN"
         const val ACTION_START_BOOK_APPOINTMENT =
             "pl.michalmatu.aicallbridge.action.START_BOOK_APPOINTMENT"
+        const val ACTION_START_SCENARIO_INQUIRY =
+            "pl.michalmatu.aicallbridge.action.START_SCENARIO_INQUIRY"
         const val ACTION_START_SUPERVISED_AUDIO =
             "pl.michalmatu.aicallbridge.action.START_SUPERVISED_AUDIO"
         const val ACTION_STOP_SUPERVISED_AUDIO =

@@ -115,6 +115,10 @@
             android:name=".campaign.AppointmentMvpActivity"
             android:windowSoftInputMode="adjustResize"
             android:exported="false" />
+        <activity
+            android:name=".campaign.ScenarioOutgoingCallActivity"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
 
         <activity android:name=".textagent.LanguageModelActivity" android:exported="false" />
         <service android:name=".textagent.LanguageModelTransferService" android:exported="false" android:foregroundServiceType="dataSync" />

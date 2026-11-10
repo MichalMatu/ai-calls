@@ -4,6 +4,7 @@ package pl.michalmatu.aicallbridge.agent
 enum class CallService {
     CLIR,
     APPOINTMENT,
+    INQUIRY,
 }
 
 /**

@@ -584,4 +584,27 @@
     <string name="skills_hub_custom_off">no custom instructions</string>
     <string name="skills_hub_legacy_style">Custom/legacy style</string>
     <string name="scenario_ui_open_item">Open scenario: %1$s</string>
+    <string name="scenario_ui_prepare_call">Prepare AI call</string>
+    <string name="scenario_call_title">Scenario call</string>
+    <string name="scenario_call_missing">No valid scenario was prepared. Return to the list and select a scenario.</string>
+    <string name="scenario_call_scope">AI will make one information-gathering call only after your approval. It can ask about times, prices and terms but cannot commit to bookings, purchases or contract changes. Review the result in your private call history.</string>
+    <string name="scenario_call_summary">What AI should ask</string>
+    <string name="scenario_call_number">Recipient phone number (+country code)</string>
+    <string name="scenario_call_sim">SIM for outgoing call</string>
+    <string name="scenario_call_sim_permission">Grant phone state permission</string>
+    <string name="scenario_call_sim_missing">Choose an available SIM</string>
+    <string name="scenario_call_sim_option">SIM %1$d — %2$s</string>
+    <string name="scenario_call_authorize">Approve and place one call</string>
+    <string name="scenario_call_stop">STOP — cancel outgoing task</string>
+    <string name="scenario_call_stop_sent">Outgoing task cancellation requested.</string>
+    <string name="scenario_call_permissions">Grant Android permissions, then press Approve again.</string>
+    <string name="scenario_call_role">Grant the dialer role, then press Approve again.</string>
+    <string name="scenario_call_role_missing">Android dialer role is unavailable.</string>
+    <string name="scenario_call_busy">Another call or AI task is in progress.</string>
+    <string name="scenario_call_engine_missing">Configure a ready Gemma, STT and TTS stack.</string>
+    <string name="scenario_call_invalid">Check phone number, goal and instruction length.</string>
+    <string name="scenario_call_save_failed">Could not securely save the approved task.</string>
+    <string name="scenario_call_preparing">Model preparation requested. The call is restricted to the exact approved number and SIM.</string>
+    <string name="scenario_call_start_failed">Task startup failed. Authorization was revoked.</string>
+    <string name="scenario_call_confirm_again">Review the number and SIM, then press Approve again.</string>
 </resources>

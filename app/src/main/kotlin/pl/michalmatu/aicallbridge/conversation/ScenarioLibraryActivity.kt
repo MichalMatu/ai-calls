@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.app.AlertDialog
+import android.content.Intent
+import pl.michalmatu.aicallbridge.campaign.ScenarioOutgoingCallActivity
 import androidx.activity.OnBackPressedCallback
 import android.os.Bundle
 import android.view.ViewGroup
@@ -342,6 +344,33 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                         .onFailure { feedback.text = getString(R.string.scenario_ui_save_failed) }
                 }.show()
         }, UiDesign.spaceAfter(this, 12))
+
+        // This only opens a private confirmation form; it never dials.
+        root.addView(UiDesign.action(this, getString(R.string.scenario_ui_prepare_call)) {
+            val next = draft()
+            val missing = next.missingRequiredFields(definition)
+            if (missing.isNotEmpty()) {
+                feedback.text = getString(R.string.scenario_ui_missing,
+                    missing.joinToString { id ->
+                        definition.fields.first { it.id == id }.title(language)
+                    })
+            } else {
+                val title = (personalTitle?.text?.toString() ?: definition.title(language)).trim()
+                val goal = (personalGoal?.text?.toString() ?: definition.goal(language)).trim()
+                val summary = next.summary(definition, language)
+                if (title.length !in 2..140 || goal.length !in 5..300 ||
+                    summary.length !in 5..3500
+                ) {
+                    feedback.text = getString(R.string.scenario_call_invalid)
+                } else {
+                    startActivity(Intent(this, ScenarioOutgoingCallActivity::class.java)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_ID, definition.id)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_TITLE, title)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_GOAL, goal)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_BRIEF, summary))
+                }
+            }
+        }.apply { tag = "scenario-prepare-outgoing" }, UiDesign.spaceAfter(this, 12))
 
         root.addView(UiDesign.action(this, getString(R.string.scenario_ui_preview)) {
             val next = draft()

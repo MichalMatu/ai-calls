@@ -585,4 +585,27 @@
     <string name="skills_hub_custom_off">bez własnych instrukcji</string>
     <string name="skills_hub_legacy_style">Własny/starszy styl</string>
     <string name="scenario_ui_open_item">Otwórz scenariusz: %1$s</string>
+    <string name="scenario_ui_prepare_call">Przygotuj połączenie AI</string>
+    <string name="scenario_call_title">Połączenie ze scenariusza</string>
+    <string name="scenario_call_missing">Brak poprawnie przygotowanego scenariusza. Wróć do listy i wybierz scenariusz ponownie.</string>
+    <string name="scenario_call_scope">AI wykona jedno połączenie informacyjne po Twojej zgodzie. Może zapytać o terminy, ceny i warunki. Nie potwierdza rezerwacji, zakupów ani zmian umów. Wynik sprawdzisz w prywatnej historii rozmów.</string>
+    <string name="scenario_call_summary">Co AI ma ustalić</string>
+    <string name="scenario_call_number">Numer odbiorcy (+48...)</string>
+    <string name="scenario_call_sim">Karta SIM do połączenia</string>
+    <string name="scenario_call_sim_permission">Nadaj uprawnienie odczytu stanu telefonu</string>
+    <string name="scenario_call_sim_missing">Wybierz dostępną kartę SIM</string>
+    <string name="scenario_call_sim_option">SIM %1$d — %2$s</string>
+    <string name="scenario_call_authorize">Autoryzuj i zadzwoń jeden raz</string>
+    <string name="scenario_call_stop">STOP — anuluj zadanie wychodzące</string>
+    <string name="scenario_call_stop_sent">Zlecono anulowanie zadania wychodzącego.</string>
+    <string name="scenario_call_permissions">Nadaj uprawnienia Androida i naciśnij przycisk ponownie.</string>
+    <string name="scenario_call_role">Przyznaj rolę dialera i naciśnij przycisk ponownie.</string>
+    <string name="scenario_call_role_missing">Nie można uzyskać roli dialera Androida.</string>
+    <string name="scenario_call_busy">Inna rozmowa lub zadanie AI jest w toku.</string>
+    <string name="scenario_call_engine_missing">Skonfiguruj działające silniki Gemma, STT i TTS.</string>
+    <string name="scenario_call_invalid">Sprawdź format numeru, cel i długość instrukcji.</string>
+    <string name="scenario_call_save_failed">Nie udało się bezpiecznie zapisać zatwierdzonego zadania.</string>
+    <string name="scenario_call_preparing">Zlecono przygotowanie modelu. Połączenie zostanie wykonane tylko dla zatwierdzonego numeru i SIM.</string>
+    <string name="scenario_call_start_failed">Błąd uruchomienia zadania. Zgoda została unieważniona.</string>
+    <string name="scenario_call_confirm_again">Sprawdź numer i SIM, a następnie naciśnij przycisk autoryzacji ponownie.</string>
 </resources>
