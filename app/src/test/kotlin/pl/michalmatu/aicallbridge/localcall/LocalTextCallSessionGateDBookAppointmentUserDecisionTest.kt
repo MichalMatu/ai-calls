@@ -126,7 +126,27 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
         fixture.session.close()
     }
 
-    private fun fixture(): Fixture {
+    @Test
+    fun mvpAuthorizedPrewarmFlowsIntoReviewAndStopWithoutBooking() {
+        val fixture = fixture(viaReadiness = true)
+        assertEquals(1, fixture.backend.generateCalls) // one bounded model warm-up
+        assertEquals(null, fixture.session.pendingBookAppointmentReview())
+        fixture.session.injectSyntheticFinalTranscript("mamy termin")
+        val review = requireNotNull(fixture.session.pendingBookAppointmentReview())
+        assertEquals(scheduledAt, review.proposedAt)
+        assertTrue(review.requiresUserReview)
+        assertFalse(review.externalBookingConfirmed)
+        assertEquals(null, fixture.workflow.snapshot().outcome())
+        // STOP must discard the pending review, not commit a reservation.
+        fixture.session.cancel()
+        assertEquals(null, fixture.session.pendingBookAppointmentReview())
+        assertEquals(null, fixture.workflow.snapshot().outcome())
+        assertEquals(0, fixture.pipeline.startCalls)
+        assertEquals(0, fixture.pipeline.writeCalls)
+        fixture.session.close()
+    }
+
+    private fun fixture(viaReadiness: Boolean = false): Fixture {
         val allowed = CallTimeWindow(
             ZonedDateTime.of(2026, 9, 24, 16, 0, 0, 0, zone),
             ZonedDateTime.of(2026, 9, 24, 18, 0, 0, 0, zone),
@@ -147,8 +167,6 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
         val proposal = CallProposal(scheduledAt, null, null, null, null)
         val workflow = CallWorkflow(task, CallConfirmationPolicy()) { }.apply {
             resolveTarget(target)
-            markDialing()
-            markCallActive()
         }
         val plan = CallPlan(
             task,
@@ -229,15 +247,45 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
             },
         )
         val pipeline = FakePipeline()
-        val backend = FakeBackend()
-        val session = LocalTextCallSession(
-            prepared = PreparedLocalTextCall(
+        val backend = FakeBackend(completeWarmup = viaReadiness)
+        val prepared = if (viaReadiness) {
+            var ready: PreparedLocalTextCall? = null
+            var failure: String? = null
+            val readiness = LocalTextCallReadinessCoordinator(
                 workflow = workflow,
-                backend = backend,
+                targetAuthorization = DialTargetAuthorization { it == target },
+                speechPreflight = object : LocalTextCallSpeechPreflight {
+                    override fun prepare(listener: LocalTextCallSpeechPreflight.Listener) {
+                        listener.onReady() // synthetic STT/TTS startup, no device
+                    }
+                    override fun cancel() = Unit
+                },
+                backendFactory = { backend },
+                timeoutScheduler = object : LocalTextCallTimeoutScheduler {
+                    override fun schedule(delayMs: Long, action: () -> Unit) = AutoCloseable {}
+                },
                 callPlan = plan,
                 taskGraph = BookAppointmentTaskGraph.definition,
                 authorizedFacts = facts,
-            ),
+            )
+            readiness.prepare(object : LocalTextCallReadinessCoordinator.Listener {
+                override fun onReady(prepared: PreparedLocalTextCall) { ready = prepared }
+                override fun onFailure(reason: String) { failure = reason }
+            })
+            assertEquals(null, failure)
+            assertEquals(LocalTextCallReadinessState.READY_TO_DIAL, readiness.snapshot().state)
+            requireNotNull(ready)
+        } else PreparedLocalTextCall(
+            workflow = workflow,
+            backend = backend,
+            callPlan = plan,
+            taskGraph = BookAppointmentTaskGraph.definition,
+            authorizedFacts = facts,
+        )
+        workflow.markDialing()
+        workflow.markCallActive()
+        val session = LocalTextCallSession(
+            prepared = prepared,
             pipelineFactory = LocalTextCallSession.PipelineFactory { pipeline },
             gateDProductBinding = binding,
         )
@@ -254,10 +302,11 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
         fun acceptedStates() = acceptedResults.map { it.snapshot.state }
     }
 
-    private class FakeBackend : TextCallAgentBackend {
+    private class FakeBackend(private val completeWarmup: Boolean = false) : TextCallAgentBackend {
         var generateCalls = 0
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
             generateCalls += 1
+            if (completeWarmup) listener.onComplete("gotowe")
         }
         override fun cancel() = Unit
         override fun close() = Unit
