@@ -82,7 +82,7 @@ class Sprint4UxContract(unittest.TestCase):
         self.assertIn('text = direction + " · " + time', history)
         self.assertIn('tag = "history-delete:"', history)
         self.assertIn("UiDesign.secondary", history)
-        self.assertIn("UiDesign.card(this, 12)", skills)
+        self.assertIn("UiDesign.card(this)", skills)
         self.assertIn("UiActionTone.PRIMARY", skills)
         self.assertIn('tag = "skills-factory-state:"', skills)
         self.assertIn("content.addView(feedback)", incoming)

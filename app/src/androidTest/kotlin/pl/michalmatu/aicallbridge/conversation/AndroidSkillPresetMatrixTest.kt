@@ -72,8 +72,14 @@ class AndroidSkillPresetMatrixTest {
             screen.onActivity { activity ->
                 val root = activity.window.decorView
                 assertTrue(requireNotNull(root.findViewWithTag<View>("skills-preset-picker")).isShown)
-                assertTrue(requireNotNull(root.findViewWithTag<View>("skills-activate")).isClickable)
-                assertNotNull(root.findViewWithTag<View>("skills-secondary-actions"))
+                assertNotNull(root.findViewWithTag<View>("skills-mode-card"))
+                assertNotNull(root.findViewWithTag<View>("skills-behavior-card"))
+                assertNull(root.findViewWithTag<View>("skills-activate"))
+                assertNull(root.findViewWithTag<View>("skills-secondary-actions"))
+                assertNull(root.findViewWithTag<View>("skills-revise:ConversationStyle"))
+                val customize = root.findViewWithTag<View>("skills-copy-active")
+                    ?: root.findViewWithTag<View>("skills-customize")
+                assertTrue(requireNotNull(customize).isClickable)
             }
         }
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { screen ->

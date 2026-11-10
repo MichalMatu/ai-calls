@@ -150,6 +150,7 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
                 click(scene, "skills-enabled:ConversationStyle")
                 assertEquals(newest, store.loadSkillLibrary().active.versions["ConversationStyle"])
 
+                click(scene, "skills-history-toggle:ConversationStyle")
                 scene.onActivity { activity ->
                     val picker = requireNotNull(activity.window.decorView
                         .findViewWithTag<Spinner>("skills-versions:ConversationStyle"))
@@ -160,6 +161,8 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
                         .performClick()
                 }
                 assertEquals(1, store.loadSkillLibrary().active.versions["ConversationStyle"])
+                // Re-open history, because a successful version change resets expanded details.
+                click(scene, "skills-history-toggle:ConversationStyle")
                 // Re-activate the edited version using the real editor selection.
                 scene.onActivity { activity ->
                     val picker = requireNotNull(activity.window.decorView
@@ -178,7 +181,6 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
                     picker.setSelection(0)
                 }
                 instrumentation.waitForIdleSync()
-                click(scene, "skills-activate")
                 assertEquals("natural", store.loadSkillLibrary().activePresetId)
                 scene.onActivity { activity ->
                     val now = store.loadSkillLibrary()
@@ -187,7 +189,6 @@ class AndroidSkillsIsolatedEndToEndNativeTest {
                     picker.setSelection(now.presets.indexOfFirst { it.id == currentCustomId })
                 }
                 instrumentation.waitForIdleSync()
-                click(scene, "skills-activate")
                 assertEquals(currentCustomId, store.loadSkillLibrary().activePresetId)
             }
             // Reopening the persisted encrypted library retains the custom revision.

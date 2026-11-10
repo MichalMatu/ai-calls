@@ -6,7 +6,7 @@
     <string name="ui_nav_options">Opcje</string>
     <string name="ux07_agent_title">Agent AI</string>
     <string name="ux07_agent_subtitle">Charakter, zadania i dane dostępne AI</string>
-    <string name="ux07_agent_skills">Charakter i Skills</string>
+    <string name="ux07_agent_skills">Zachowanie agenta</string>
     <string name="ux07_agent_scenarios">Scenariusze i skrypty</string>
     <string name="ux07_agent_preparation">Profile i zakres danych</string>
     <string name="ux07_agent_vault">Sejf danych</string>

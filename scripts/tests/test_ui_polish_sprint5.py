@@ -34,13 +34,17 @@ class Sprint5UxContract(unittest.TestCase):
         self.assertNotIn("Run device", strings[0]["dev_ui_capability"])
         self.assertNotIn("Run Shizuku", strings[0]["dev_ui_shizuku"])
 
-    def test_skills_no_concatenation_and_active_preset_noop(self):
+    def test_skills_one_picker_and_edit_only_after_user_action(self):
         s = self.source("conversation/ConversationSkillsActivity.kt")
-        self.assertIn('getString(R.string.skills_ui_intro).trim() + "\\n\\n"', s)
-        self.assertIn('tag = "skills-activate"', s)
-        self.assertIn("picker.onItemSelectedListener", s)
-        self.assertIn("selected.id != library.activePresetId", s)
-        self.assertIn('tag = "skills-secondary-actions"', s)
+        self.assertIn('tag = "skills-preset-picker"', s)
+        self.assertIn("selection.id == library.activePresetId", s)
+        self.assertIn("library.select(selection.id)", s)
+        self.assertIn('tag = "skills-behavior-card"', s)
+        self.assertIn('"skills-copy-active" else "skills-customize"', s)
+        self.assertIn("editing && !library.active.isFactory", s)
+        self.assertNotIn('tag = "skills-secondary-actions"', s)
+        self.assertNotIn('tag = "skills-activate"', s)
+        self.assertNotIn("ConversationSkillLabActivity::class.java", s)
 
     def test_home_models_engines_campaigns_have_clear_hierarchy(self):
         home = self.source("MainActivity.kt")

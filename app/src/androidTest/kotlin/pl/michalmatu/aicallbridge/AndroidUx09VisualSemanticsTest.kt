@@ -23,19 +23,18 @@ class AndroidUx09VisualSemanticsTest {
         }
     }
 
-    @Test fun disabledSkillKeepsInstructionsRetrievableButHiddenByDefault() {
-        ActivityScenario.launch(ConversationSkillsActivity::class.java).use { test ->
-            test.onActivity { activity ->
+    @Test fun factorySkillsShowOnlyFourReadableStatusesWithoutRawInstructions() {
+        ActivityScenario.launch(ConversationSkillsActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                val values = mutableListOf<View>()
-                walk(root, values)
-                val inactive = values.filter { (it.tag as? String)?.startsWith("skills-inactive-state:") == true }
-                for (label in inactive) {
-                    val id = (label.tag as String).substringAfter("skills-inactive-state:")
-                    val instructions = requireNotNull(root.findViewWithTag<View>("skills-instructions:" + id))
-                    assertEquals("disabled_skill_instruction_visible:" + id, View.GONE, instructions.visibility)
-                    assertNotNull(root.findViewWithTag<View>("skills-inactive-toggle:" + id))
+                assertNotNull(root.findViewWithTag<View>("skills-mode-card"))
+                assertNotNull(root.findViewWithTag<View>("skills-behavior-card"))
+                for (id in listOf("ConversationStyle", "MessageCapture",
+                    "Clarification", "NaturalClosure")) {
+                    assertNotNull(root.findViewWithTag<View>("skills-summary:" + id))
+                    assertNull(root.findViewWithTag<View>("skills-instructions:" + id))
                 }
+                assertNull(root.findViewWithTag<View>("skills-secondary-actions"))
             }
         }
     }

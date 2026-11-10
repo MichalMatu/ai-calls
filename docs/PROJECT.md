@@ -13,6 +13,8 @@
 - W formularzu wizyty uprawnienia Androida i wybór dialera mogą kontynuować **ten sam wyraźnie rozpoczęty przez użytkownika** zamiar, bez ponownego naciskania Start. Odmowa nie rozpoczyna połączenia.
 - Host: anti-friction i fokus NoArtificialCampaignBlockersContractTest PASS, kompilacja compileDebugAndroidTestKotlin PASS. Brak instalacji nowego UI na S22+ i brak nowego połączenia; fizyczna akceptacja **PHYSICAL_OPEN**.
 
+- **Zachowanie agenta (Skills):** jeden wybór trybu zapisujący zmianę na następne rozmowy, cztery krótkie statusy umiejętności i jeden przycisk dostosowania. Presety fabryczne tylko do odczytu; po utworzeniu własnego wariantu zachowane są szyfrowany zapis, włączanie umiejętności, edycja instrukcji i przywracanie wersji. Usunięte duplikaty, podgląd techniczny i przejście do labu. Testy fizycznego UI na S22+ otwarte.
+
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |

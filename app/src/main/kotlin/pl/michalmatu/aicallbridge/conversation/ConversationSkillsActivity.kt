@@ -1,379 +1,312 @@
 package pl.michalmatu.aicallbridge.conversation
 
+import android.app.AlertDialog
+import android.os.Bundle
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.TextView
+import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.ui.AppTab
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiSelect
-import pl.michalmatu.aicallbridge.ui.UiActionTone
-import android.graphics.Typeface
-import android.app.Activity
-import android.app.AlertDialog
-import android.content.Intent
-import android.os.Bundle
-import android.view.WindowManager
-import android.widget.*
-import android.view.View
-import pl.michalmatu.aicallbridge.R
 
-/** Edits prompt-only skills and revision-pinned presets. Never starts a call or changes a grant. */
+/**
+ * Consumer-first editor for version-pinned skills. No call, runtime grant or external tool action.
+ * Factory presets stay immutable; every change to a custom preset persists in the existing store.
+ */
 class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
     override fun toolbarTitle(): String = getString(R.string.skills_ui_title)
-    private fun visiblePresetName(preset: SkillPreset): String = if (!preset.isFactory) preset.name else when (preset.id) {
-        "natural" -> getString(R.string.skills_ux05_default_natural)
-        "formal" -> getString(R.string.skills_ux05_default_formal)
-        "message" -> getString(R.string.skills_ux05_default_message)
-        else -> preset.name
-    }
-    private fun visibleSkillName(skill: VersionedSkill): String {
-        val revision = library.active.versions[skill.id] ?: skill.revisions.maxOf { it.version }
-        skill.at(revision).metadata?.let { return it.name }
-        return when (skill.id) {
-        "ConversationStyle" -> getString(R.string.skills_ux05_name_style)
-        "MessageCapture" -> getString(R.string.skills_ux05_name_capture)
-        "Clarification" -> getString(R.string.skills_ux05_name_clarify)
-        "NaturalClosure" -> getString(R.string.skills_ux05_name_closure)
-        else -> skill.name
-        }
-    }
-    private fun visibleSectionTitle(section: SkillSection): String = getString(when (section) {
-        SkillSection.STYLE -> R.string.skills_ux05_section_style
-        SkillSection.MESSAGE -> R.string.skills_ux05_section_message
-        SkillSection.CLOSURE -> R.string.skills_ux05_section_closure
-    })
 
     private lateinit var store: AndroidConversationPreparationStore
     private lateinit var library: ConversationSkillLibrary
+    private var editing = false
+    private val expandedHistory = mutableSetOf<String>()
+
+    private fun presetName(preset: SkillPreset) = if (!preset.isFactory) preset.name else getString(
+        when (preset.id) {
+            "natural" -> R.string.skills_ux05_default_natural
+            "formal" -> R.string.skills_ux05_default_formal
+            "message" -> R.string.skills_ux05_default_message
+            else -> R.string.skills_ui_custom
+        })
+
+    private fun skillName(skill: VersionedSkill): String {
+        val selected = library.active.versions[skill.id] ?: skill.revisions.maxOf { it.version }
+        skill.at(selected).metadata?.name?.takeIf { it.isNotBlank() }?.let { return it }
+        return when (skill.id) {
+            "ConversationStyle" -> getString(R.string.skills_ux05_name_style)
+            "MessageCapture" -> getString(R.string.skills_ux05_name_capture)
+            "Clarification" -> getString(R.string.skills_ux05_name_clarify)
+            "NaturalClosure" -> getString(R.string.skills_ux05_name_closure)
+            else -> skill.name
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        editing = savedInstanceState?.getBoolean("skills_editing") == true
+        savedInstanceState?.getStringArrayList("skills_expanded")?.let(expandedHistory::addAll)
         try {
             store = SkillLabIsolatedTestStore.forContext(this)
             library = store.loadSkillLibrary()
-            show()
+            if (library.active.isFactory) editing = false
+            render()
         } catch (error: Exception) {
-            setContentView(TextView(this).apply { text = getString(R.string.skills_ux05_read_failed, error.javaClass.simpleName) })
+            setContentView(UiDesign.caption(this,
+                getString(R.string.skills_ux05_read_failed, error.javaClass.simpleName)))
         }
     }
 
-    private fun label(text: String, size: Float = 16f) =
-        TextView(this).apply {
-            this.text = text
-            textSize = size
-            setTextColor(if (size < 16f) UiDesign.secondary else UiDesign.ink)
-            setLineSpacing(UiDesign.dp(this@ConversationSkillsActivity, 3).toFloat(), 1f)
-            setPadding(0, UiDesign.dp(this@ConversationSkillsActivity, 7),
-                0, UiDesign.dp(this@ConversationSkillsActivity, 7))
-        }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("skills_editing", editing)
+        outState.putStringArrayList("skills_expanded", ArrayList(expandedHistory))
+        super.onSaveInstanceState(outState)
+    }
 
-    private fun applyChange(newLibrary: ConversationSkillLibrary, message: String) {
+    private fun change(next: ConversationSkillLibrary, feedback: String) {
         try {
-            store.saveSkillLibrary(newLibrary)
-            library = newLibrary
-            show(message)
+            store.saveSkillLibrary(next)
+            library = next
+            expandedHistory.clear()
+            render(feedback)
         } catch (error: Exception) {
-            AlertDialog.Builder(this).setTitle(getString(R.string.skills_ui_not_saved))
+            AlertDialog.Builder(this).setTitle(R.string.skills_ui_not_saved)
                 .setMessage(getString(R.string.skills_ux05_save_failed, error.javaClass.simpleName))
-                .setPositiveButton("OK", null).show()
+                .setPositiveButton(android.R.string.ok, null).show()
         }
     }
 
-    private fun show(message: String = "") {
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@ConversationSkillsActivity, 20), UiDesign.dp(this@ConversationSkillsActivity, 16), UiDesign.dp(this@ConversationSkillsActivity, 20), UiDesign.dp(this@ConversationSkillsActivity, 28))
+    private fun copyForEditing() {
+        val name = EditText(this).apply {
+            setSingleLine(true)
+            hint = getString(R.string.skills_consumer_custom_name)
+            setText(presetName(library.active) + " — " + getString(R.string.skills_ui_custom))
+            setSelectAllOnFocus(true)
         }
-        content.addView(UiDesign.caption(this,
-            getString(R.string.skills_ui_intro).trim() + "\n\n" +
-                getString(R.string.skills_ui_intro2).trim()),
-            UiDesign.spaceAfter(this, 14))
-        val activeCard = UiDesign.card(this, 12)
-        activeCard.addView(UiDesign.caption(this, getString(R.string.skills_ui_active).trim()))
-        activeCard.addView(UiDesign.heading(this, visiblePresetName(library.active) + " · " +
-            if (library.active.isFactory) getString(R.string.skills_ui_factory)
-            else getString(R.string.skills_ui_custom)).apply { textSize = 16f })
-        content.addView(activeCard, UiDesign.spaceAfter(this, 12))
-        val options = library.presets
+        AlertDialog.Builder(this)
+            .setTitle(R.string.skills_consumer_customize)
+            .setView(name)
+            .setNegativeButton(R.string.skills_ui_cancel, null)
+            .setPositiveButton(R.string.skills_ui_create) { _, _ ->
+                runCatching { library.copyActive(name.text.toString()) }
+                    .onSuccess {
+                        editing = true
+                        change(it, getString(R.string.skills_ux05_preset_created))
+                    }.onFailure(::showError)
+            }.show()
+    }
+
+    private fun editInstructions(skill: VersionedSkill, revision: Int) {
+        val instructions = EditText(this).apply {
+            tag = "skills-metadata-instructions:" + skill.id
+            setText(skill.at(revision).instructions)
+            minLines = 4
+            maxLines = 9
+            gravity = Gravity.TOP
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+        val inset = UiDesign.dp(this, 20)
+        val holder = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(inset, inset / 2, inset, inset / 2)
+            addView(UiDesign.caption(this@ConversationSkillsActivity,
+                getString(R.string.skills_consumer_changes_next_call)),
+                UiDesign.spaceAfter(this@ConversationSkillsActivity, 10))
+            addView(instructions)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.skills_ux05_version_title, skillName(skill)))
+            .setView(ScrollView(this).apply { addView(holder) })
+            .setNegativeButton(R.string.skills_ui_cancel, null)
+            .setPositiveButton(R.string.skills_ui_revision) { _, _ ->
+                runCatching { library.reviseSkill(skill.id, instructions.text.toString()) }
+                    .onSuccess { change(it, getString(R.string.skills_ux05_version_saved, skillName(skill))) }
+                    .onFailure(::showError)
+            }.show()
+    }
+
+    private fun appendSkillRow(card: LinearLayout, skill: VersionedSkill) {
+        val selected = library.active.versions[skill.id]
+        val isOn = selected != null
+        val title = skillName(skill)
+        val editMode = editing && !library.active.isFactory
+        if (editMode) {
+            val check = CheckBox(this).apply {
+                tag = "skills-enabled:" + skill.id
+                text = title
+                isChecked = isOn
+                textSize = 15f
+                minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
+                setOnClickListener {
+                    val nextVersion = if (isChecked) selected
+                        ?: skill.revisions.maxOf { it.version } else null
+                    runCatching { library.bindVersion(skill.id, nextVersion) }
+                        .onSuccess { change(it, getString(R.string.skills_ux05_skills_changed)) }
+                        .onFailure(::showError)
+                }
+            }
+            card.addView(check, UiDesign.spaceAfter(this, 4))
+            val commands = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            commands.addView(UiDesign.action(this,
+                getString(R.string.skills_consumer_edit_instructions)) {
+                editInstructions(skill, selected ?: skill.revisions.maxOf { it.version })
+            }.apply { tag = "skills-revise:" + skill.id },
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            commands.addView(UiDesign.action(this,
+                getString(R.string.skills_consumer_history)) {
+                if (!expandedHistory.add(skill.id)) expandedHistory.remove(skill.id)
+                render()
+            }.apply { tag = "skills-history-toggle:" + skill.id },
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginStart = UiDesign.dp(this@ConversationSkillsActivity, 8)
+                })
+            card.addView(commands, UiDesign.spaceAfter(this, 7))
+            if (skill.id in expandedHistory) {
+                val versions = skill.revisions.sortedByDescending { it.version }
+                val picker = Spinner(this).apply {
+                    tag = "skills-versions:" + skill.id
+                    UiSelect.setOptions(this, versions.map {
+                        getString(R.string.skills_ux05_version_label, it.version)
+                    })
+                    setSelection(versions.indexOfFirst { it.version == selected }.coerceAtLeast(0))
+                }
+                card.addView(picker, UiDesign.spaceAfter(this, 6))
+                card.addView(UiDesign.action(this,
+                    getString(R.string.skills_consumer_restore_version)) {
+                    val version = versions.getOrNull(picker.selectedItemPosition)?.version
+                        ?: return@action
+                    runCatching { library.bindVersion(skill.id, version) }
+                        .onSuccess { change(it, getString(R.string.skills_ux05_version_restored)) }
+                        .onFailure(::showError)
+                }.apply { tag = "skills-restore:" + skill.id },
+                    UiDesign.spaceAfter(this, 10))
+            }
+        } else {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 49)
+                contentDescription = "$title, " + getString(
+                    if (isOn) R.string.skills_ui_enabled else R.string.skills_ui_disabled)
+                tag = "skills-summary:" + skill.id
+            }
+            row.addView(TextView(this).apply {
+                text = title
+                textSize = 15f
+                setTextColor(UiDesign.ink)
+                maxLines = 2
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(UiDesign.caption(this, getString(
+                if (isOn) R.string.skills_ui_enabled else R.string.skills_ui_disabled)).apply {
+                tag = "skills-factory-state:" + skill.id
+                textSize = 13f
+                setTextColor(if (isOn) UiDesign.primary else UiDesign.secondary)
+            })
+            card.addView(row)
+        }
+        // One compact dividing line instead of a full card and raw instruction per skill.
+        if (skill !== library.skills.last()) card.addView(View(this).apply {
+            setBackgroundColor(UiDesign.border)
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, UiDesign.dp(this, 1)).apply {
+            topMargin = UiDesign.dp(this@ConversationSkillsActivity, 4)
+            bottomMargin = UiDesign.dp(this@ConversationSkillsActivity, 4)
+        })
+    }
+
+    private fun render(feedback: String = "") {
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(UiDesign.dp(this@ConversationSkillsActivity, 20),
+                UiDesign.dp(this@ConversationSkillsActivity, 16),
+                UiDesign.dp(this@ConversationSkillsActivity, 20),
+                UiDesign.dp(this@ConversationSkillsActivity, 24))
+        }
+        body.addView(UiDesign.caption(this, getString(R.string.skills_consumer_intro)),
+            UiDesign.spaceAfter(this, 16))
+        val modes = UiDesign.card(this).apply { tag = "skills-mode-card" }
+        modes.addView(UiDesign.heading(this, getString(R.string.skills_consumer_mode)).apply {
+            textSize = 18f
+        }, UiDesign.spaceAfter(this, 8))
+        val presets = library.presets
         val picker = Spinner(this).apply {
             tag = "skills-preset-picker"
-            UiSelect.setOptions(this, options.map {
-                visiblePresetName(it) + " (" + getString(if (it.isFactory) R.string.skills_ui_factory else R.string.skills_ui_custom) + ")"
-            })
-            setSelection(options.indexOfFirst { it.id == library.activePresetId })
-        }
-        content.addView(picker, UiDesign.spaceAfter(this, 8))
-        val activate = UiDesign.action(this, getString(R.string.skills_ui_activate),
-            UiActionTone.PRIMARY) {
-            val selected = options.getOrNull(picker.selectedItemPosition) ?: return@action
-            if (selected.id != library.activePresetId) {
-                applyChange(library.select(selected.id),
-                    getString(R.string.skills_ui_activated_feedback))
-            }
-        }.apply { tag = "skills-activate" }
-        fun refreshActivation(position: Int) {
-            val selected = options.getOrNull(position)
-            val needsActivation = selected != null && selected.id != library.activePresetId
-            activate.isEnabled = needsActivation
-            activate.text = getString(if (needsActivation) R.string.skills_ui_activate
-                else R.string.skills_ui_current_preset)
-            UiDesign.styleAction(activate, if (needsActivation) UiActionTone.PRIMARY
-                else UiActionTone.SECONDARY)
-        }
-        refreshActivation(picker.selectedItemPosition)
-        picker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                refreshActivation(position)
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                refreshActivation(-1)
-            }
-        }
-        content.addView(activate, UiDesign.spaceAfter(this, 8))
-        val secondaryActions = UiDesign.card(this, 12).apply {
-            tag = "skills-secondary-actions"
-        }
-        secondaryActions.addView(Button(this).apply {
-            tag = "skills-copy-active"
-            text = getString(R.string.skills_ui_copy)
-            UiDesign.styleAction(this, UiActionTone.SECONDARY)
-            setOnClickListener {
-                val name = EditText(this@ConversationSkillsActivity).apply {
-                    setSingleLine(true)
-                    setText(library.active.name + " — własny")
+            contentDescription = getString(R.string.skills_consumer_mode)
+            UiSelect.setOptions(this, presets.map(::presetName))
+            setSelection(presets.indexOfFirst { it.id == library.activePresetId }.coerceAtLeast(0))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?,
+                    position: Int, id: Long) {
+                    val selection = presets.getOrNull(position) ?: return
+                    if (selection.id == library.activePresetId) return
+                    editing = false
+                    expandedHistory.clear()
+                    change(library.select(selection.id),
+                        getString(R.string.skills_ui_activated_feedback))
                 }
-                AlertDialog.Builder(this@ConversationSkillsActivity)
-                    .setTitle(getString(R.string.skills_ui_new))
-                    .setView(name)
-                    .setNegativeButton(getString(R.string.skills_ui_cancel), null)
-                    .setPositiveButton(getString(R.string.skills_ui_create)) { _, _ ->
-                        runCatching { library.copyActive(name.text.toString()) }
-                            .onSuccess { applyChange(it, getString(R.string.skills_ux05_preset_created)) }
-                            .onFailure { showError(it) }
-                    }.show()
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
             }
+        }
+        modes.addView(picker, UiDesign.spaceAfter(this, 5))
+        body.addView(modes, UiDesign.spaceAfter(this, 16))
+        val summary = UiDesign.card(this).apply { tag = "skills-behavior-card" }
+        summary.addView(UiDesign.heading(this, getString(R.string.skills_consumer_behavior)).apply {
+            textSize = 18f
+        }, UiDesign.spaceAfter(this, 10))
+        library.skills.forEach { appendSkillRow(summary, it) }
+        body.addView(summary, UiDesign.spaceAfter(this, 16))
+
+        val customizing = !library.active.isFactory && editing
+        body.addView(UiDesign.action(this, getString(
+            if (customizing) R.string.skills_consumer_done else R.string.skills_consumer_customize),
+            if (customizing) UiActionTone.SECONDARY else UiActionTone.PRIMARY) {
+            if (library.active.isFactory) copyForEditing()
+            else {
+                editing = !editing
+                expandedHistory.clear()
+                render()
+            }
+        }.apply {
+            tag = if (library.active.isFactory) "skills-copy-active" else "skills-customize"
+        }, UiDesign.spaceAfter(this, 12))
+        if (feedback.isNotBlank()) body.addView(UiDesign.caption(this, feedback).apply {
+            tag = "skills-change-feedback"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }, UiDesign.spaceAfter(this, 8))
-        secondaryActions.addView(Button(this).apply {
-            text = getString(R.string.skills_ui_lab)
-            UiDesign.styleAction(this, UiActionTone.SECONDARY)
-            setOnClickListener {
-                startActivity(Intent(this@ConversationSkillsActivity, ConversationSkillLabActivity::class.java))
-            }
-        }, UiDesign.spaceAfter(this, 8))
-        secondaryActions.addView(Button(this).apply {
-            text = getString(R.string.skills_ui_preview)
-            UiDesign.styleAction(this, UiActionTone.SECONDARY)
-            setOnClickListener {
-                val profile = store.load(ConversationPreparation.INCOMING_ID)
-                    .withSkillSnapshot(library.snapshot())
-                val prompt = ConversationInstructionBuilder.build(profile,
-                    "Przyjmij wiadomość dla właściciela telefonu.",
-                    ConversationResponseFormat.TOOL_REPLY)
-                val preview = LinearLayout(this@ConversationSkillsActivity).apply {
-                    orientation = LinearLayout.VERTICAL
-                    val inset = UiDesign.dp(this@ConversationSkillsActivity, 20)
-                    setPadding(inset, inset, inset, inset)
-                }
-                preview.addView(UiDesign.heading(this@ConversationSkillsActivity,
-                    visiblePresetName(library.active)).apply { textSize = 17f },
-                    UiDesign.spaceAfter(this@ConversationSkillsActivity, 8))
-                preview.addView(UiDesign.caption(this@ConversationSkillsActivity,
-                    getString(R.string.ux07_skills_preview_count,
-                        library.active.versions.size)).apply {
-                    textSize = 15f
-                    setTextColor(UiDesign.ink)
-                }, UiDesign.spaceAfter(this@ConversationSkillsActivity, 16))
-                preview.addView(UiDesign.heading(this@ConversationSkillsActivity,
-                    getString(R.string.ux07_skills_preview_prompt)).apply { textSize = 17f },
-                    UiDesign.spaceAfter(this@ConversationSkillsActivity, 8))
-                preview.addView(TextView(this@ConversationSkillsActivity).apply {
-                    text = prompt
-                    textSize = 14f
-                    setTextColor(UiDesign.secondary)
-                    setTextIsSelectable(true)
-                })
-                AlertDialog.Builder(this@ConversationSkillsActivity)
-                    .setTitle(getString(R.string.skills_ui_preview))
-                    .setView(ScrollView(this@ConversationSkillsActivity).apply { addView(preview) })
-                    .setPositiveButton(android.R.string.ok, null).show()
-            }
+        body.addView(UiDesign.caption(this,
+            getString(R.string.skills_consumer_changes_next_call)))
+        setContentView(ScrollView(this).apply {
+            isFillViewport = true
+            addView(body)
         })
-        content.addView(secondaryActions, UiDesign.spaceAfter(this, 14))
-        if (message.isNotBlank()) content.addView(UiDesign.caption(this, message),
-            UiDesign.spaceAfter(this, 8))
-        if (library.active.isFactory) content.addView(UiDesign.heading(this,
-            getString(R.string.skills_ui_factory_readonly)).apply { textSize = 16f })
-        for (section in SkillSection.entries) {
-            content.addView(UiDesign.heading(this, visibleSectionTitle(section)).apply { textSize = 18f },
-                UiDesign.spaceAfter(this, 8))
-            for (skill in library.skills.filter { it.section == section }) {
-                val skillCard = UiDesign.card(this, 12)
-                val activeVersion = library.active.versions[skill.id]
-                val on = activeVersion != null
-                if (library.active.isFactory) {
-                    skillCard.addView(TextView(this).apply {
-                        text = visibleSkillName(skill) + " · " + getString(if (on)
-                            R.string.skills_ui_enabled else R.string.skills_ui_disabled) +
-                            (if (on) " · v" + activeVersion else "")
-                        textSize = 16f
-                        setTypeface(null, Typeface.BOLD)
-                        setTextColor(UiDesign.ink)
-                        minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
-                        tag = "skills-factory-state:" + skill.id
-                    })
-                } else {
-                    val choice = CheckBox(this).apply {
-                        tag = "skills-enabled:" + skill.id
-                        text = visibleSkillName(skill) + " · " + skill.id +
-                            (if (on) " · v" + activeVersion else " · " + getString(R.string.skills_ux05_disabled))
-                        isChecked = on
-                        minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
-                        setOnClickListener {
-                            applyChange(library.bindVersion(skill.id,
-                                if (isChecked) skill.revisions.maxOf { it.version } else null),
-                                getString(R.string.skills_ux05_skills_changed))
-                        }
-                    }
-                    skillCard.addView(choice)
-                }
-                val instructions = TextView(this).apply {
-                    val complete = skill.at(activeVersion ?: skill.revisions.maxOf { it.version }).instructions
-                    text = complete
-                    contentDescription = complete
-                    tag = "skills-instructions:" + skill.id
-                    textSize = 14f
-                    setTextColor(UiDesign.secondary)
-                    setLineSpacing(UiDesign.dp(this@ConversationSkillsActivity, 3).toFloat(), 1f)
-                    maxLines = 3
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                    visibility = if (on) View.VISIBLE else View.GONE
-                    isClickable = on
-                    isFocusable = on
-                    setOnClickListener {
-                        maxLines = if (maxLines == 3) Int.MAX_VALUE else 3
-                    }
-                    setPadding(UiDesign.dp(this@ConversationSkillsActivity, 8),
-                        UiDesign.dp(this@ConversationSkillsActivity, 6),
-                        UiDesign.dp(this@ConversationSkillsActivity, 8),
-                        UiDesign.dp(this@ConversationSkillsActivity, 16))
-                }
-                if (!on) {
-                    skillCard.addView(UiDesign.caption(this,
-                        getString(R.string.ux09_skill_inactive)).apply {
-                        textSize = 14f
-                        tag = "skills-inactive-state:" + skill.id
-                    }, UiDesign.spaceAfter(this, 6))
-                    skillCard.addView(UiDesign.caption(this,
-                        getString(R.string.ux09_skill_show_inactive)).apply {
-                        tag = "skills-inactive-toggle:" + skill.id
-                        textSize = 14f
-                        setTextColor(UiDesign.primary)
-                        minimumHeight = UiDesign.dp(this@ConversationSkillsActivity, 48)
-                        isClickable = true
-                        isFocusable = true
-                        setOnClickListener {
-                            val revealed = instructions.visibility != View.VISIBLE
-                            instructions.visibility = if (revealed) View.VISIBLE else View.GONE
-                            text = getString(if (revealed) R.string.ux09_skill_hide_inactive
-                                else R.string.ux09_skill_show_inactive)
-                        }
-                    })
-                }
-                skillCard.addView(instructions)
-                val displayedVersion = activeVersion ?: skill.revisions.maxOf { it.version }
-                val displayedMetadata = skill.metadataAt(displayedVersion)
-                skillCard.addView(UiDesign.caption(this,
-                    displayedMetadata.description + " · " + displayedMetadata.capability.name).apply {
-                    tag = "skills-metadata:" + skill.id
-                    textSize = 13f
-                }, UiDesign.spaceAfter(this, 6))
-                if (!library.active.isFactory) {
-                    skillCard.addView(Button(this).apply {
-                        tag = "skills-revise:" + skill.id
-                        UiDesign.styleAction(this, UiActionTone.SECONDARY)
-                        text = getString(R.string.skills_ux05_edit_new_version, visibleSkillName(skill))
-                        setOnClickListener {
-                            val currentMetadata = skill.metadataAt(displayedVersion)
-                            val edit = LinearLayout(this@ConversationSkillsActivity).apply {
-                                orientation = LinearLayout.VERTICAL
-                                val inset = UiDesign.dp(this@ConversationSkillsActivity, 16)
-                                setPadding(inset, inset, inset, inset)
-                            }
-                            fun field(title: String, value: String, fieldTag: String): EditText {
-                                edit.addView(label(title, 14f))
-                                return EditText(this@ConversationSkillsActivity).apply {
-                                    tag = fieldTag + ":" + skill.id
-                                    setText(value)
-                                    setSingleLine(fieldTag != "skills-metadata-instructions")
-                                    if (fieldTag == "skills-metadata-instructions") {
-                                        minLines = 4
-                                        maxLines = 12
-                                    }
-                                }.also { edit.addView(it) }
-                            }
-                            val name = field(getString(R.string.skills_metadata_name),
-                                currentMetadata.name, "skills-metadata-name")
-                            val description = field(getString(R.string.skills_metadata_description),
-                                currentMetadata.description, "skills-metadata-description")
-                            val options = SkillCapability.entries
-                            edit.addView(label(getString(R.string.skills_metadata_capability), 14f))
-                            val capability = Spinner(this@ConversationSkillsActivity).apply {
-                                tag = "skills-metadata-capability:" + skill.id
-                                UiSelect.setOptions(this, options.map { it.name })
-                                setSelection(options.indexOf(currentMetadata.capability))
-                            }
-                            edit.addView(capability)
-                            val input = field(getString(R.string.skills_metadata_instructions),
-                                skill.at(displayedVersion).instructions, "skills-metadata-instructions")
-                            AlertDialog.Builder(this@ConversationSkillsActivity)
-                                .setTitle(getString(R.string.skills_ux05_version_title, visibleSkillName(skill)))
-                                .setView(ScrollView(this@ConversationSkillsActivity).apply { addView(edit) })
-                                .setNegativeButton(getString(R.string.skills_ui_cancel), null)
-                                .setPositiveButton(getString(R.string.skills_ui_revision)) { _, _ ->
-                                    val metadata = SkillMetadata(name.text.toString(),
-                                        description.text.toString(), options[capability.selectedItemPosition])
-                                    runCatching { library.reviseSkill(skill.id, input.text.toString(), metadata) }
-                                        .onSuccess { applyChange(it,
-                                            getString(R.string.skills_ux05_version_saved, visibleSkillName(skill))) }
-                                        .onFailure { showError(it) }
-                                }.show()
-                        }
-                    })
-                    val versions = skill.revisions.sortedByDescending { it.version }
-                    val revisionPicker = Spinner(this).apply {
-                        tag = "skills-versions:" + skill.id
-                        UiSelect.setOptions(this, versions.map { getString(R.string.skills_ux05_version_label, it.version) })
-                        setSelection(versions.indexOfFirst { it.version == activeVersion }.coerceAtLeast(0))
-                    }
-                    skillCard.addView(revisionPicker)
-                    skillCard.addView(Button(this).apply {
-                        tag = "skills-restore:" + skill.id
-                        UiDesign.styleAction(this, UiActionTone.SECONDARY)
-                        text = getString(R.string.skills_ux05_version_restore, visibleSkillName(skill))
-                        setOnClickListener {
-                            applyChange(library.bindVersion(skill.id, versions[revisionPicker.selectedItemPosition].version),
-                                getString(R.string.skills_ux05_version_restored))
-                        }
-                    })
-                }
-                content.addView(skillCard, UiDesign.spaceAfter(this, 10))
-            }
-        }
-        content.addView(UiDesign.caption(this,
-            getString(R.string.skills_ux05_warning)))
-        setContentView(ScrollView(this).apply { addView(content) })
     }
 
     private fun showError(error: Throwable) {
-        AlertDialog.Builder(this).setTitle(getString(R.string.skills_ui_not_saved))
+        AlertDialog.Builder(this).setTitle(R.string.skills_ui_not_saved)
             .setMessage(error.message ?: error.javaClass.simpleName)
-            .setPositiveButton("OK", null).show()
+            .setPositiveButton(android.R.string.ok, null).show()
     }
 
     override fun onResume() {
         super.onResume()
         if (::store.isInitialized && ::library.isInitialized) {
             runCatching { store.loadSkillLibrary() }.onSuccess {
-                if (it.activePresetId != library.activePresetId) { library = it; show() }
+                if (it != library && (it.activePresetId != library.activePresetId ||
+                    it.skills != library.skills || it.presets != library.presets)) {
+                    library = it
+                    if (library.active.isFactory) editing = false
+                    render()
+                }
             }
         }
     }
