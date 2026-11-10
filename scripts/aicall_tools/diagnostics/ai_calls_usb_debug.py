@@ -107,6 +107,12 @@ class Device:
             if (model.returncode == serial.returncode == 0
                     and model.stdout.strip() == MODEL and serial.stdout.strip() == SERIAL):
                 matches.append(endpoint)
+        if not endpoints:
+            if "unauthorized" in listed.stdout:
+                raise DiagnosticError("adb_authorization_required")
+            if "offline" in listed.stdout:
+                raise DiagnosticError("adb_device_offline")
+            raise DiagnosticError("adb_no_connected_device_check_usb")
         if len(matches) != 1:
             raise DiagnosticError("exact_s22_not_uniquely_available")
         self.endpoint = matches[0]

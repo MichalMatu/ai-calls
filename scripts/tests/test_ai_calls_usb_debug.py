@@ -72,5 +72,32 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "0123456789abcdef", "status"))
 
 
+
+class UsbDeviceDiscoveryFailures(unittest.TestCase):
+    def test_unplugged_and_unauthorized_are_actionable_not_guessed(self):
+        for status, expected in [
+            ("List of devices attached\n", "adb_no_connected_device_check_usb"),
+            ("List of devices attached\nusb1 unauthorized\n", "adb_authorization_required"),
+            ("List of devices attached\nusb1 offline\n", "adb_device_offline"),
+        ]:
+            fake = subprocess.CompletedProcess(["adb", "devices"], 0, status, "")
+            with patch.object(bridge, "invoke", return_value=fake):
+                with self.assertRaises(bridge.DiagnosticError) as error:
+                    bridge.Device("adb")
+            self.assertEqual(str(error.exception), expected)
+
+    def test_does_not_choose_a_random_device_when_two_match(self):
+        def execute(argv, timeout=30):
+            if argv[-2:] == ["devices", "-l"]:
+                return subprocess.CompletedProcess(argv, 0,
+                    "List of devices attached\nusb1 device\nusb2 device\n", "")
+            return subprocess.CompletedProcess(argv, 0,
+                bridge.MODEL + "\n" if argv[-1] == "ro.product.model"
+                else bridge.SERIAL + "\n", "")
+        with patch.object(bridge, "invoke", side_effect=execute):
+            with self.assertRaises(bridge.DiagnosticError) as error:
+                bridge.Device("adb")
+        self.assertEqual(str(error.exception), "exact_s22_not_uniquely_available")
+
 if __name__ == "__main__":
     unittest.main()

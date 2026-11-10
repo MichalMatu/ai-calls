@@ -120,5 +120,59 @@ class UsbLabControlTests(unittest.TestCase):
             channel.run_once(FakeDevice(), namespace)
 
 
+
+class AppointmentOwnerConsoleTests(unittest.TestCase):
+    def test_stage_draft_uses_stdin_only_and_cannot_pregrant_or_dial(self):
+        import io
+        from types import SimpleNamespace
+        draft = {"target": "+48717117400", "goal": "Zapytaj o wolny termin",
+                 "from": "2026-11-11 09:00", "until": "2026-12-31 17:00",
+                 "terms": "NFZ"}
+        device = FakeDevice()
+        device.safe_preflight = lambda: None
+        with patch.object(channel.sys, "stdin", io.StringIO(json.dumps(draft))), \
+             patch.object(channel, "device_request", return_value={
+                 "ok": True, "code": "appointment_editor_staged"}) as request:
+            result = channel.run_once(device, SimpleNamespace(command="appointment-stage"))
+        self.assertTrue(result["ok"])
+        self.assertNotIn(draft["target"], json.dumps(result))
+        self.assertEqual(request.call_args.args[1], "appointment_stage")
+        self.assertEqual(request.call_args.kwargs, draft)
+        for forbidden in ("sim", "grant", "disclosureFields", "dial"):
+            self.assertNotIn(forbidden, request.call_args.kwargs)
+
+    def test_stage_rejects_extra_authority_without_writing_mailbox(self):
+        import io
+        from types import SimpleNamespace
+        draft = {"target": "+48717117400", "goal": "Zapytaj o wolny termin",
+                 "from": "2026-11-11 09:00", "until": "2026-12-31 17:00",
+                 "terms": "NFZ", "grant": "forged"}
+        device = FakeDevice()
+        device.safe_preflight = lambda: None
+        with patch.object(channel.sys, "stdin", io.StringIO(json.dumps(draft))), \
+             patch.object(channel, "device_request") as request:
+            with self.assertRaises(channel.DiagnosticError) as error:
+                channel.run_once(device, SimpleNamespace(command="appointment-stage"))
+        self.assertEqual(str(error.exception), "appointment_draft_fields_invalid")
+        request.assert_not_called()
+
+    def test_open_editor_uses_dump_guarded_activity_and_never_dials(self):
+        from types import SimpleNamespace
+        class Device:
+            def __init__(self):
+                self.calls = []
+            def safe_preflight(self):
+                return None
+            def call(self, *args, timeout=30):
+                self.calls.append(args)
+                return subprocess.CompletedProcess(args, 0, "Starting: Intent", "")
+        device = Device()
+        result = channel.run_once(device, SimpleNamespace(command="appointment-open"))
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["call_started"])
+        self.assertEqual(device.calls, [("shell", "am", "start", "-n",
+            channel.ACTIVITY, "--ez", "open_appointment_editor", "true")])
+        self.assertNotIn("placeCall", str(device.calls))
+
 if __name__ == "__main__":
     unittest.main()

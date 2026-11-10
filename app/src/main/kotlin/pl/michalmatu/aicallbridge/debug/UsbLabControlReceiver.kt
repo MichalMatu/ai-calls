@@ -18,6 +18,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService
+import pl.michalmatu.aicallbridge.campaign.AppointmentEditorDraft
+import pl.michalmatu.aicallbridge.campaign.AppointmentEditorDraftStore
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
 import pl.michalmatu.aicallbridge.campaign.AppOwnedClirCampaignExecutor
 import pl.michalmatu.aicallbridge.conversation.AndroidSkillLabSessionFactory
@@ -116,6 +118,7 @@ internal object UsbLabControl {
 
     fun execute(context: Context, action: String, request: JSONObject): Result = when (action) {
         "status", "call_status", "config_get" -> Result(true, "ok", snapshot(context))
+        "appointment_stage" -> stageAppointment(context, request)
         "lab_start" -> start(context, request)
         "lab_send" -> send(request)
         "lab_status" -> Result(true, "ok", synchronized(lock) { labSnapshot() })
@@ -129,6 +132,22 @@ internal object UsbLabControl {
         }
         "incoming_config" -> configureIncoming(context, request)
         else -> Result(false, "unknown_action")
+    }
+
+    private fun stageAppointment(context: Context, request: JSONObject): Result {
+        unavailableIfLive(context)?.let { return Result(false, it) }
+        val allowed = setOf("protocol", "nonce", "action",
+            "target", "goal", "from", "until", "terms")
+        if (request.keys().asSequence().any { it !in allowed })
+            return Result(false, "appointment_scope_not_allowed")
+        val draft = AppointmentEditorDraft.create(
+            request.optString("target"), request.optString("goal"),
+            request.optString("from"), request.optString("until"),
+            request.optString("terms"),
+        ) ?: return Result(false, "invalid_appointment_editor_draft")
+        val staged = AppointmentEditorDraftStore(context).stage(draft)
+        return Result(staged, if (staged) "appointment_editor_staged"
+            else "appointment_editor_stage_failed")
     }
 
     /** Never return any phone number, account ID, chat text, prompt or private fact. */

@@ -52,6 +52,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val saved = store.load()
+        val draft = AppointmentEditorDraftStore(this).consume()
         val tomorrow = ZonedDateTime.now(ZoneId.of("Europe/Warsaw")).plusDays(1)
             .withHour(9).withMinute(0).withSecond(0).withNano(0)
         val body = LinearLayout(this).apply {
@@ -80,17 +81,17 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
                 "Każda propozycja zostanie pokazana do Twojej weryfikacji."),
             UiDesign.spaceAfter(this, 12))
         number = field("Numer telefonu w formacie międzynarodowym",
-            "+48...", saved?.target.orEmpty(), InputType.TYPE_CLASS_PHONE)
+            "+48...", draft?.target ?: saved?.target.orEmpty(), InputType.TYPE_CLASS_PHONE)
         body.addView(UiDesign.caption(this, "Wybierz SIM"), UiDesign.spaceAfter(this, 6))
         sim = Spinner(this).apply { tag = "appointment-sim-picker" }
         body.addView(sim, UiDesign.spaceAfter(this, 12))
-        goal = field("Cel rozmowy", "Umów wizytę kontrolną", saved?.goal.orEmpty(),
+        goal = field("Cel rozmowy", "Umów wizytę kontrolną", draft?.goal ?: saved?.goal.orEmpty(),
             InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
         from = field("Termin od (rrrr-mm-dd gg:mm)", "2027-02-10 09:00",
-            display(saved?.notBefore ?: tomorrow), InputType.TYPE_CLASS_TEXT)
+            display(draft?.from ?: saved?.notBefore ?: tomorrow), InputType.TYPE_CLASS_TEXT)
         until = field("Termin do (rrrr-mm-dd gg:mm)", "2027-02-10 17:00",
-            display(saved?.notAfter ?: tomorrow.plusHours(8)), InputType.TYPE_CLASS_TEXT)
-        terms = field("Warunki", "Bez dodatkowych opłat", saved?.conditions.orEmpty(),
+            display(draft?.until ?: saved?.notAfter ?: tomorrow.plusHours(8)), InputType.TYPE_CLASS_TEXT)
+        terms = field("Warunki", "Bez dodatkowych opłat", draft?.terms ?: saved?.conditions.orEmpty(),
             InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
         body.addView(UiDesign.heading(this, "Dane IdentityVault").apply { textSize = 17f },
             UiDesign.spaceAfter(this, 5))
@@ -107,7 +108,8 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
                     IdentityFieldId.EMAIL -> "E-mail"
                     else -> id.name
                 }
-                isChecked = id in saved?.disclosureFields.orEmpty()
+                // A diagnostic draft never reuses a prior consent.
+                isChecked = draft == null && id in saved?.disclosureFields.orEmpty()
                 tag = "appointment-disclosure:" + id.name
             }
             selectedFields[id] = choice
@@ -178,7 +180,11 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
         UiSelect.setOptions(sim, if (availableSubscriptions.isEmpty())
             listOf("Nie znaleziono aktywnej SIM")
         else availableSubscriptions.mapIndexed { index, pair ->
-            "SIM " + (index + 1) + " — slot " + pair.second.substringAfter(":slot:").substringBefore(":")
+            val label = infos.firstOrNull { it.subscriptionId == pair.first }
+                ?.displayName?.toString()?.take(45).orEmpty()
+            "SIM " + (index + 1) + " — " + label +
+                " (subId " + pair.first + ", slot " +
+                pair.second.substringAfter(":slot:").substringBefore(":") + ")"
         })
         sim.setSelection(availableSubscriptions.indexOfFirst {
             it.first == store.load()?.subscriptionId
@@ -276,6 +282,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
     }
     override fun onResume() {
         super.onResume()
+        if (::sim.isInitialized) refreshSim(false)
         handler.removeCallbacks(poll)
         handler.post(poll)
     }

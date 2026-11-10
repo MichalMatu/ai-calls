@@ -22,9 +22,14 @@ import sys
 import time
 import uuid
 
-from ai_calls_usb_debug import (
-    PACKAGE, SERIAL, Device, DiagnosticError, invoke, run_bridge,
-)
+try:
+    from .ai_calls_usb_debug import (
+        PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,
+    )
+except ImportError:  # direct execution remains supported
+    from ai_calls_usb_debug import (
+        PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,
+    )
 
 RECEIVER = PACKAGE + "/.debug.UsbLabControlReceiver"
 PRIVATE_ROOT = "files/usb-lab-control"
@@ -35,6 +40,7 @@ ACTIONS = frozenset({
     "status", "call_status", "config_get", "lab_start", "lab_send",
     "lab_status", "lab_stop", "call_takeover", "call_resume",
     "call_stop_owned", "incoming_ai_disable", "incoming_config",
+    "appointment_stage",
 })
 INTERVENTIONS = frozenset({
     "call_takeover", "call_resume", "call_stop_owned", "incoming_ai_disable",
@@ -157,6 +163,30 @@ def ram_sample(device: Device) -> dict:
 
 def run_once(device: Device, args: argparse.Namespace) -> dict:
     name = args.command.replace("-", "_")
+    if name == "appointment_stage":
+        device.safe_preflight()
+        try:
+            draft = json.load(sys.stdin)
+        except (ValueError, TypeError) as error:
+            raise DiagnosticError("appointment_draft_json_invalid") from error
+        allowed = {"target", "goal", "from", "until", "terms"}
+        if (not isinstance(draft, dict) or set(draft) != allowed or
+                not all(isinstance(v, str) for v in draft.values())):
+            raise DiagnosticError("appointment_draft_fields_invalid")
+        result = device_request(device, name, **draft)
+        # Never echo private purpose, target, date or term in a response.
+        return {"ok": result.get("ok") is True,
+                "code": result.get("code", "appointment_stage_unknown")}
+    if name == "appointment_open":
+        device.safe_preflight()
+        response = device.call(
+            "shell", "am", "start", "-n", ACTIVITY,
+            "--ez", "open_appointment_editor", "true", timeout=30,
+        )
+        if response.returncode or "Error:" in response.stdout + response.stderr:
+            raise DiagnosticError("appointment_editor_launch_failed")
+        return {"ok": True, "code": "appointment_editor_open_requested",
+                "call_started": False}
     if name == "lab_save":
         return save_private_transcript(device)
     if name == "ram":
@@ -204,7 +234,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=sorted(
         {k.replace("_", "-") for k in ACTIONS}
-        | {"lab-save", "ram", "profile-check", "profile-set", "profile-reset", "watch"}
+        | {"lab-save", "ram", "profile-check", "profile-set", "profile-reset", "watch", "appointment-open"}
     ))
     parser.add_argument("--session-id")
     parser.add_argument("--context-tokens", type=int, default=4096)

@@ -1,12 +1,15 @@
 package pl.michalmatu.aicallbridge
 
 import android.app.Activity
+import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import java.io.File
 import pl.michalmatu.aicallbridge.campaign.CampaignAgentControl
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugBridge
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
 import pl.michalmatu.aicallbridge.session.CallMediaOffCallSmokeProbe
@@ -35,6 +38,16 @@ class DiagnosticProbeActivity : Activity() {
     }
 
     private fun runRequestedProbe() {
+        if (intent.getBooleanExtra("open_appointment_editor", false)) {
+            // DUMP-only and debug build; cannot dial or bypass consent.
+            if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) {
+                finishWithError("debug_build_required")
+                return
+            }
+            startActivity(Intent(this, AppointmentMvpActivity::class.java))
+            finish()
+            return
+        }
         if (intent.hasExtra(UsbDebugBridge.EXTRA_ACTION)) {
             UsbDebugBridge.handle(this, intent) { result ->
                 statusView.text = result
