@@ -65,13 +65,13 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
             IncomingCallPhase.HELD -> { manual(call, entry, "call_held", ConversationStopReason.CALL_HELD); return }
             else -> Unit
         }
-        if (ownsAudio(entry) && policy != entry.policy) {
+        if (ownsAssistantResources(entry) && policy != entry.policy) {
             manual(call, entry, "incoming_policy_changed", ConversationStopReason.POLICY_REVOKED); return
         }
-        if (ownsAudio(entry) && entry.account != entry.policy.accountKey) {
+        if (ownsAssistantResources(entry) && entry.account != entry.policy.accountKey) {
             manual(call, entry, "incoming_account_changed", ConversationStopReason.OWNERSHIP_CHANGED); return
         }
-        if (ownsAudio(entry) && !entry.exclusive) {
+        if (ownsAssistantResources(entry) && !entry.exclusive) {
             manual(call, entry, "another_call_active", ConversationStopReason.OWNERSHIP_CHANGED); return
         }
         if (entry.state == IncomingAssistantState.RINGING && phase == IncomingCallPhase.RINGING) {
@@ -107,7 +107,7 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
                 entry.observedPolicy = policy
                 entry.revision++
             }
-            if ((ownsAudio(entry) || entry.state == IncomingAssistantState.RINGING || entry.state == IncomingAssistantState.ENDING) &&
+            if ((ownsAssistantResources(entry) || entry.state == IncomingAssistantState.RINGING) &&
                 policy != entry.policy) {
                 manual(call, entry, "incoming_policy_revoked", reason)
             }
@@ -205,8 +205,13 @@ class IncomingAssistantCoordinator<C : Any>(private val port: IncomingAssistantP
         IncomingAssistantState.ANSWERING, IncomingAssistantState.STARTING, IncomingAssistantState.AI,
     )
 
+    // ENDING has already revoked AI inference authority, but still owns media
+    // resources until exact Telecom disconnect completes.
+    private fun ownsAssistantResources(entry: Entry) =
+        ownsAudio(entry) || entry.state == IncomingAssistantState.ENDING
+
     private fun manual(call: C, entry: Entry, reason: String, stopReason: ConversationStopReason, state: IncomingAssistantState = IncomingAssistantState.MANUAL) {
-        val stop = ownsAudio(entry) || entry.state == IncomingAssistantState.ENDING
+        val stop = ownsAssistantResources(entry)
         // ENDING has no AI authority, but can still own runtime resources until
         // Telecom disconnect completes. Human STOP/takeover must stop those too.
         // Revoke before invoking the adapter: even a synchronous callback sees no authority.

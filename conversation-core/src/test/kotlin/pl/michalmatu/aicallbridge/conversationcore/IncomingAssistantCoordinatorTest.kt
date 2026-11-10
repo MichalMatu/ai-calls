@@ -304,6 +304,52 @@ class IncomingAssistantCoordinatorTest {
         assertTrue(f.port.disconnected.isEmpty())
     }
 
+    @Test fun passivePolicyReplacementDuringEndingRevokesBeforeTelecomDisconnect() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.ENDING)
+                f.observe(IncomingCallPhase.ACTIVE, policy.copy(id = "new-grant"))
+        }
+        assertFalse(f.core.completeConversation(f.call, generation, policy))
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertEquals(listOf(f.call to generation), f.port.stopped)
+        assertTrue(f.port.disconnected.isEmpty())
+        assertFalse(f.core.isAuthorized(f.call, generation))
+    }
+
+    @Test fun accountScopeChangeDuringEndingRevokesBeforeTelecomDisconnect() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.ENDING)
+                f.observe(IncomingCallPhase.ACTIVE, policy, account = "foreign-sim")
+        }
+        assertFalse(f.core.completeConversation(f.call, generation, policy))
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertEquals(listOf(f.call to generation), f.port.stopped)
+        assertTrue(f.port.disconnected.isEmpty())
+    }
+
+    @Test fun competingCallDuringEndingRevokesBeforeTelecomDisconnect() {
+        val f = Fixture()
+        f.observe(IncomingCallPhase.RINGING, policy)
+        f.observe(IncomingCallPhase.ACTIVE, policy)
+        val generation = f.port.started.single().second
+        f.port.reentrantChanged = { state ->
+            if (state == IncomingAssistantState.ENDING)
+                f.observe(IncomingCallPhase.ACTIVE, policy, exclusive = false)
+        }
+        assertFalse(f.core.completeConversation(f.call, generation, policy))
+        assertEquals(IncomingAssistantState.MANUAL, f.core.snapshot(f.call)?.state)
+        assertEquals(listOf(f.call to generation), f.port.stopped)
+        assertTrue(f.port.disconnected.isEmpty())
+    }
+
     @Test fun reentrantPolicyChangeOnEndCallTransitionCannotDisconnect() {
         val f = Fixture()
         f.observe(IncomingCallPhase.RINGING, policy)
