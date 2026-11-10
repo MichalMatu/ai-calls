@@ -639,4 +639,7 @@
     <string name="skills_metadata_instructions">Instrukcje wersjonowane</string>
     <string name="lab_skill_turn_route">Tura %1$d · aktywne: %2$s · dodano: %3$s · wyłączono: %4$s</string>
     <string name="lab_skill_turn_unchanged">brak</string>
+    <string name="camp_mvp_appointment_title">Umów wizytę — AI</string>
+    <string name="camp_mvp_appointment_description">Wybierz numer, SIM, cel i dopuszczone dane. AI zbiera propozycję terminu do weryfikacji.</string>
+    <string name="camp_mvp_appointment_action">Przygotuj rozmowę i autoryzację</string>
 </resources>

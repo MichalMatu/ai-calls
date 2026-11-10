@@ -638,4 +638,7 @@
     <string name="skills_metadata_instructions">Versioned instructions</string>
     <string name="lab_skill_turn_route">Turn %1$d · active: %2$s · added: %3$s · removed: %4$s</string>
     <string name="lab_skill_turn_unchanged">none</string>
+    <string name="camp_mvp_appointment_title">Book an appointment — AI</string>
+    <string name="camp_mvp_appointment_description">Choose a number, SIM, goal and permitted data. AI collects a proposed time for your review.</string>
+    <string name="camp_mvp_appointment_action">Prepare call and authorization</string>
 </resources>

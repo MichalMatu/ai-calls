@@ -227,13 +227,13 @@ class CampaignToolActivity : UiChromeActivity(AppTab.HOME) {
         }
         val appointmentSection = UiDesign.card(this).apply {
             tag = "campaign-appointment-mvp-card"
-            addView(UiDesign.heading(this@CampaignToolActivity, "Umów wizytę — AI").apply {
+            addView(UiDesign.heading(this@CampaignToolActivity, getString(R.string.camp_mvp_appointment_title)).apply {
                 textSize = 17f
             }, UiDesign.spaceAfter(this@CampaignToolActivity, 7))
             addView(UiDesign.caption(this@CampaignToolActivity,
-                "Wybierz numer, SIM, cel i dopuszczone dane. AI zbiera propozycję terminu do weryfikacji."),
+                getString(R.string.camp_mvp_appointment_description)),
                 UiDesign.spaceAfter(this@CampaignToolActivity, 10))
-            addView(UiDesign.action(this@CampaignToolActivity, "Przygotuj rozmowę i autoryzację",
+            addView(UiDesign.action(this@CampaignToolActivity, getString(R.string.camp_mvp_appointment_action),
                 UiActionTone.PRIMARY) {
                 startActivity(Intent(this@CampaignToolActivity, AppointmentMvpActivity::class.java))
             })
