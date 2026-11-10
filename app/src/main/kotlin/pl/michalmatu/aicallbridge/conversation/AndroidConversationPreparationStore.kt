@@ -153,6 +153,45 @@ internal class AndroidConversationPreparationStore(
             Gson().toJson(ScenarioDraftRecord(1, draft.scenarioId, draft.values.toMap())))
     }
 
+    /** One encrypted AtomicFile holding independent notebooks keyed by call session ID. */
+    private val notebookRecordId = "notebook-library-v1"
+
+    fun notebooks(): List<ConversationNotebook> = synchronized(LOCK) {
+        readNotebook().conversations.sortedByDescending {
+            it.entries.lastOrNull()?.timestampMs ?: 0L
+        }
+    }
+
+    fun appendNote(sessionId: String, direction: String, turn: Int,
+        proposal: pl.michalmatu.aicallbridge.conversationtools.ConversationNoteProposal
+    ): Boolean = synchronized(LOCK) {
+        require(ConversationNotebookPolicy.validSession(sessionId, direction, turn)) {
+            "notebook_scope_invalid"
+        }
+        val previous = readNotebook()
+        val next = ConversationNotebookPolicy.append(previous, sessionId, direction,
+            turn, proposal, System.currentTimeMillis())
+        if (next != previous) {
+            val json = Gson().toJson(next)
+            require(json.toByteArray(Charsets.UTF_8).size <= 8 * 1024 * 1024) {
+                "notebook_storage_full"
+            }
+            writeRecord(notebookRecordId, json)
+        }
+        true
+    }
+
+    private fun readNotebook(): ConversationNotebookLibrary {
+        val raw = readRecord(notebookRecordId) ?: return ConversationNotebookLibrary()
+        require(raw.toByteArray(Charsets.UTF_8).size <= 8 * 1024 * 1024) {
+            "notebook_storage_full"
+        }
+        val value = requireNotNull(Gson().fromJson(raw, ConversationNotebookLibrary::class.java)) {
+            "notebook_unreadable"
+        }
+        return ConversationNotebookPolicy.validate(value)
+    }
+
     private fun file(id: String): AtomicFile {
         val name = MessageDigest.getInstance("SHA-256").digest(id.toByteArray())
             .joinToString("") { "%02x".format(it) }

@@ -8,6 +8,7 @@ import pl.michalmatu.aicallbridge.developerrelay.GemmaDirectTaskBrief
 import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.textagent.NativeConversationContextBackend
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
+import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
 /** Independent prewarm: never borrows the script/skill classifier or its history. */
 internal object CampaignGemmaDirectPreflight {
@@ -20,24 +21,27 @@ internal object CampaignGemmaDirectPreflight {
     private var inFlightInstruction: String? = null
     private var preparedProfile: AudioEngineProfile? = null
     private var inFlightProfile: AudioEngineProfile? = null
+    private var preparedTools: Set<ConversationToolId>? = null
+    private var inFlightTools: Set<ConversationToolId>? = null
     private val callbacks = mutableListOf<(Boolean) -> Unit>()
 
     fun prepare(
         context: Context,
         systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
         profile: AudioEngineProfile = AudioEngineProfile.STABLE,
+        tools: Set<ConversationToolId>? = null,
         onReady: (Boolean) -> Unit,
     ) {
         require(systemInstruction.isNotBlank())
         val token: Long
         synchronized(lock) {
             if (prepared != null && preparedInstruction == systemInstruction &&
-                preparedProfile == profile) {
+                preparedProfile == profile && preparedTools == tools) {
                 onReady(true)
                 return
             }
             if (preparing && (inFlightInstruction != systemInstruction ||
-                    inFlightProfile != profile)) {
+                    inFlightProfile != profile || inFlightTools != tools)) {
                 // A different task/skills choice must not reuse an old engine.
                 onReady(false)
                 return
@@ -47,18 +51,20 @@ internal object CampaignGemmaDirectPreflight {
                 prepared = null
                 preparedInstruction = null
                 preparedProfile = null
+                preparedTools = null
             }
             callbacks += onReady
             if (preparing) return
             preparing = true
             inFlightInstruction = systemInstruction
             inFlightProfile = profile
+            inFlightTools = tools?.toSet()
             token = ++generation
         }
         val candidate = runCatching {
-            DialogueEngineProviders.resolve(profile).createDirect(
-                context.applicationContext, systemInstruction,
-            )
+            val provider = DialogueEngineProviders.resolve(profile)
+            if (tools == null) provider.createDirect(context.applicationContext, systemInstruction)
+            else provider.createConversationReply(context.applicationContext, systemInstruction, tools)
         }.getOrElse {
             Log.w("AiCallBridge", "direct_prewarm_create_failed=${it.javaClass.simpleName}")
             complete(token, null, false, 0L)
@@ -102,15 +108,18 @@ internal object CampaignGemmaDirectPreflight {
             }
             val instruction = inFlightInstruction
             val profile = inFlightProfile
+            val toolSet = inFlightTools
             preparing = false
             pending = null
             inFlightInstruction = null
             inFlightProfile = null
+            inFlightTools = null
             if (ok && candidate != null) {
                 prepared?.close()
                 prepared = candidate
                 preparedInstruction = instruction
                 preparedProfile = profile
+                preparedTools = toolSet
             } else {
                 candidate?.close()
             }
@@ -124,12 +133,15 @@ internal object CampaignGemmaDirectPreflight {
     fun takePrepared(
         systemInstruction: String = GemmaDirectTaskBrief.PROMPT,
         profile: AudioEngineProfile = AudioEngineProfile.STABLE,
+        tools: Set<ConversationToolId>? = null,
     ): TextCallAgentBackend? = synchronized(lock) {
         val candidate = prepared
-        val matching = preparedInstruction == systemInstruction && preparedProfile == profile
+        val matching = preparedInstruction == systemInstruction &&
+            preparedProfile == profile && preparedTools == tools
         prepared = null
         preparedInstruction = null
         preparedProfile = null
+        preparedTools = null
         if (!matching) {
             candidate?.close()
             null
@@ -149,6 +161,8 @@ internal object CampaignGemmaDirectPreflight {
             preparedInstruction = null
             preparedProfile = null
             inFlightProfile = null
+            inFlightTools = null
+            preparedTools = null
             cancelled = callbacks.toList()
             callbacks.clear()
         }

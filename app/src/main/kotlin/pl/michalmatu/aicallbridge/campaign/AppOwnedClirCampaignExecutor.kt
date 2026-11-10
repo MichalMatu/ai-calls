@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.telecom.TelecomManager
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
@@ -329,10 +330,18 @@ internal object AppOwnedClirCampaignExecutor {
             appointmentTask != null -> "app-appointment-"
             else -> "app-clir-"
         }) +
-            grant.grantId.filter(Char::isLetterOrDigit).take(20).ifBlank { "campaign" }
+            grant.grantId.filter(Char::isLetterOrDigit).take(20).ifBlank { "campaign" } +
+            "-" + UUID.randomUUID().toString().take(8)
         val phoneDisclosureAuthorized =
             IdentityFieldId.PHONE in runConfiguration.preparation.scopedDataFields(grant.allowedDisclosureFields)
 
+        // Exact in-flight owner and grant; never disconnect a human-taken-over or unrelated Call.
+        val endAuthorizedOwnedCall: () -> Boolean = {
+            running.get() && ownedCalls.isCurrent(ownedCall) &&
+                runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
+                authorizationStore.isAuthorizedInFlight(grant.grantId, request) &&
+                runCatching { ownedCall.disconnectExactCall() }.getOrDefault(false)
+        }
         val launched = runCatching {
             val launchedAudio = AndroidConversationRuntime.run(
                 context = appContext,
@@ -341,10 +350,12 @@ internal object AppOwnedClirCampaignExecutor {
                 scenario = when {
                     scenarioTask != null ->
                         ScenarioOutgoingConversationScenario(appContext, scenarioTask,
-                            runConfiguration as ConversationRunConfiguration.ModelDirect)
+                            runConfiguration as ConversationRunConfiguration.ModelDirect,
+                            requestEndCall = endAuthorizedOwnedCall)
                     appointmentTask != null ->
                         AppointmentMvpConversationScenario(appContext, appointmentTask,
-                            runConfiguration as ConversationRunConfiguration.ModelDirect)
+                            runConfiguration as ConversationRunConfiguration.ModelDirect,
+                            requestEndCall = endAuthorizedOwnedCall)
                     else ->
                         ClirConversationScenario(appContext, sessionId, runConfiguration,
                             phoneDisclosureAuthorized)

@@ -21,8 +21,9 @@ internal class ToolCallingConversationSession(
     private var awaitingTool = false
     // The text controller cancels its model backend after approval, before TX.
     // Save the approved proposal here; never dispatch until playback completion.
-    private val approvedTool = AtomicReference<ConversationToolId?>(null)
+    private val approvedTool = AtomicReference<ConversationReply?>(null)
     private val appIdleClosureArmed = AtomicBoolean(false)
+    private val approvedAppIdleClose = AtomicBoolean(false)
     override val awaitToolCompletion get() = awaitingTool
     override val backend = ConversationReplyBackend(model) { reply, elapsed, error ->
         hooks.decisionSink.record(hooks.turn(), reply?.tool?.name ?: if (error) null else "SPEAK", responseSource, elapsed, error)
@@ -30,10 +31,12 @@ internal class ToolCallingConversationSession(
     }
     override val approvalPolicy = TextOutputApprovalPolicy { speech ->
         val decision = releasePolicy.evaluate(speech)
-        val proposed = backend.takeTool()
+        val proposed = backend.takeProposal()
         val appIdleClose = appIdleClosureArmed.getAndSet(false)
+        approvedAppIdleClose.set(decision == TextOutputDecision.RELEASE && appIdleClose)
         approvedTool.set(if (decision == TextOutputDecision.RELEASE) {
-            if (appIdleClose) ConversationToolId.END_CALL else proposed
+            if (appIdleClose) ConversationReply(speech, ConversationToolId.END_CALL)
+            else proposed?.takeIf { it.tool != null }
         } else null)
         decision
     }
@@ -41,6 +44,7 @@ internal class ToolCallingConversationSession(
     override fun beginTurn() {
         approvedTool.set(null)
         appIdleClosureArmed.set(false)
+        approvedAppIdleClose.set(false)
     }
     override fun armIdleClosure(): Boolean {
         if (!hooks.authorized() || awaitingTool) return false
@@ -50,12 +54,18 @@ internal class ToolCallingConversationSession(
     override fun onTranscript(turn: Int, text: String) = Unit
     override fun takeOutcome(boundary: ConversationOutcomeBoundary): ConversationOutcome? {
         if (boundary != ConversationOutcomeBoundary.PLAYBACK_COMPLETE) return null
-        val tool = approvedTool.getAndSet(null) ?: return null
+        val proposed = approvedTool.getAndSet(null) ?: return null
+        val tool = proposed.tool ?: return null
         if (!hooks.authorized()) return ConversationOutcome.Failed("conversation_tool_not_authorized")
-        return when (tools.execute(hooks.turn(), tool, hooks.toolEventSink)) {
+        val result = if (approvedAppIdleClose.getAndSet(false))
+            tools.executeIdleClose(hooks.turn(), hooks.toolEventSink)
+        else tools.execute(hooks.turn(), tool, proposed.note, hooks.toolEventSink)
+        return when (result) {
             ConversationToolResult.REQUESTED -> {
-                awaitingTool = true
-                ConversationOutcome.Completed
+                if (tool == ConversationToolId.END_CALL) {
+                    awaitingTool = true
+                    ConversationOutcome.Completed
+                } else null // SAVE_NOTE is durable, but conversation continues naturally.
             }
             ConversationToolResult.DISABLED -> null
             ConversationToolResult.NOT_AUTHORIZED -> ConversationOutcome.Failed("conversation_tool_not_authorized")
@@ -69,5 +79,6 @@ internal class ToolCallingConversationSession(
     override fun close() {
         approvedTool.set(null)
         appIdleClosureArmed.set(false)
+        approvedAppIdleClose.set(false)
     }
 }

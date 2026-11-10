@@ -27,6 +27,7 @@ internal data class ConversationRuntimeHooks(
     val emit: (String) -> Unit,
     val decisionSink: ConversationDecisionSink,
     val toolEventSink: (ConversationToolEvent) -> Unit,
+    val sessionId: String = "",
 )
 /** Call direction and preparation belong to a scenario; media and Telecom do not. */
 internal data class ConversationIdlePolicy(

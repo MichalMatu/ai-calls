@@ -34,6 +34,7 @@ internal class AndroidIncomingAssistant(
     private val store by lazy { IncomingAssistantPolicyStore(context) }
     private val toolSettings by lazy { ConversationToolSettingsStore(context) }
     private class AudioSlot(val call: Call, val generation: Long, val policy: IncomingAssistantPolicy) {
+        val notebookSessionId = "incoming-" + UUID.randomUUID().toString()
         val cancelled = AtomicBoolean(false)
         val audio = AtomicReference<AndroidConversationRuntime.SessionControl?>(null)
         var recorder: CallSessionEvidenceRecorder? = null
@@ -202,10 +203,15 @@ internal class AndroidIncomingAssistant(
                 if (!accepted) slot.endToolTurn = null
                 return accepted
             }
+            override fun saveNote(turn: Int, proposal: ConversationNoteProposal): Boolean {
+                if (!authorized(slot)) return false
+                return AndroidConversationPreparationStore(context).appendNote(
+                    slot.notebookSessionId, "INCOMING", turn, proposal)
+            }
         })
         try {
             slot.archiveGate.onRuntimeStart()
-            val audio = AndroidConversationRuntime.run(context, "incoming-${UUID.randomUUID()}", AndroidConversationRuntime.TASK_SCOPED_TURNS,
+            val audio = AndroidConversationRuntime.run(context, slot.notebookSessionId, AndroidConversationRuntime.TASK_SCOPED_TURNS,
                 IncomingSecretaryScenario(context, prepared.run, tools, prepared.tools), liveAuthorization = { authorized(slot) },
                 callStillActive = { slot.call.state == Call.STATE_ACTIVE }, evidenceRecorder = slot.recorder,
                 runConfiguration = prepared.run) { result -> finished(slot, result) }

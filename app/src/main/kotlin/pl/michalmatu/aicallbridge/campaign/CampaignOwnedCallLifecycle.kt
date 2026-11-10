@@ -10,6 +10,9 @@ internal class CampaignOwnedCallLifecycle<T : Any>(
 
     fun bind(session: T): Boolean = active.compareAndSet(null, session)
 
+    /** Read-only exact-owner guard for model-requested end_call. */
+    fun isCurrent(session: T): Boolean = active.get() === session
+
     /** Transfers ownership to the human without running disconnect cleanup. */
     fun detachIf(matches: (T) -> Boolean): T? {
         val current = active.get() ?: return null

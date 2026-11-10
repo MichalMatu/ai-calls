@@ -8,7 +8,7 @@ import pl.michalmatu.aicallbridge.conversationtools.*
 internal class ConversationToolSettingsStore(context: Context) {
     private val prefs = context.getSharedPreferences("conversation_tools_v1", Context.MODE_PRIVATE)
     fun enabled(): Set<ConversationToolId> = ConversationToolId.entries.filterTo(mutableSetOf()) {
-        prefs.getBoolean("enabled_${it.wireName}", it == ConversationToolId.END_CALL)
+        prefs.getBoolean("enabled_${it.wireName}", it == ConversationToolId.END_CALL || it == ConversationToolId.SAVE_NOTE)
     }
     fun save(enabled: Set<ConversationToolId>) {
         val editor = prefs.edit()
@@ -22,7 +22,10 @@ internal object ConversationToolUi {
     fun record(event: ConversationToolEvent) { latest.set(event) }
     fun latestEvent(): ConversationToolEvent? = latest.get()
     fun latestText(): String = latest.get()?.let { "Ostatnie wywołanie: " + text(it) } ?: "Brak bieżącego wywołania. Historia narzędzi jest dostępna w zapisanych rozmowach."
-    fun text(event: ConversationToolEvent): String = event.tool.title + " • " + when (event.stage) {
+    fun text(event: ConversationToolEvent): String = event.tool.title + " • " +
+        if (event.tool == ConversationToolId.SAVE_NOTE &&
+            event.stage == ConversationToolStage.CONFIRMED) "zapisano w prywatnym notatniku"
+        else when (event.stage) {
         ConversationToolStage.REQUESTED -> "model zgłosił żądanie"
         ConversationToolStage.VALIDATED -> "sprawdzono zakres"
         ConversationToolStage.DISPATCHED -> "żądanie przekazano do Androida; oczekiwanie na koniec połączenia"

@@ -122,7 +122,7 @@
     <string name="tools_ui_title">AI tools</string>
     <string name="tools_ui_description">Tools are shared by all models. Enabling a capability does not expand the task scope or call authority. Disabling a tool prevents new execution, including during a call.</string>
     <string name="tools_ui_end_call_title">End the current AI-managed call</string>
-    <string name="tools_ui_end_call_detail">After saying goodbye, end only the active call still managed by AI.</string>
+    <string name="tools_ui_end_call_detail">After the farewell, end only the AI-owned call. Disabling this model tool does not disable emergency STOP or the app-controlled long-idle safety closure.</string>
     <string name="tools_ui_save">Save tool settings</string>
     <string name="tools_ui_saved">Tool settings saved.</string>
     <string name="tools_ui_failed">Could not save tool settings.</string>
@@ -615,4 +615,16 @@
     <string name="prep_ui_stay">Stay</string>
     <string name="prep_ui_preview_notice">This previews context and data identifiers, not the final AI prompt. Each call\'s goal and permissions are defined separately.</string>
     <string name="prep_ui_preview_empty">No additional context.</string>
+    <string name="tools_ui_save_note_title">Save call notes</string>
+    <string name="tools_ui_save_note_detail">AI adds private notes for each call. Scheduling, tasks and messages are proposals only; no external action occurs.</string>
+    <string name="tools_ui_note_saved">Note saved locally</string>
+    <string name="notebook_ui_title">Call notebooks</string>
+    <string name="notebook_ui_description">One encrypted notebook per call. AI entries require review and never mean an action was completed.</string>
+    <string name="notebook_ui_empty">No saved notes.</string>
+    <string name="notebook_ui_refresh">Refresh notebooks</string>
+    <string name="notebook_ui_group">%1$s · %2$d entries · %3$s</string>
+    <string name="notebook_ui_note">Note</string>
+    <string name="notebook_ui_task">Task proposal</string>
+    <string name="notebook_ui_calendar">Calendar proposal</string>
+    <string name="notebook_ui_message">Message draft</string>
 </resources>

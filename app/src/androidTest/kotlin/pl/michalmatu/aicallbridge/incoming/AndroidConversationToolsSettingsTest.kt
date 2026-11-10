@@ -28,11 +28,11 @@ class AndroidConversationToolsSettingsTest {
         }
         try {
             val store = ConversationToolSettingsStore(isolated)
-            assertEquals(setOf(ConversationToolId.END_CALL), store.enabled())
+            assertEquals(setOf(ConversationToolId.END_CALL, ConversationToolId.SAVE_NOTE), store.enabled())
             store.save(emptySet())
             assertTrue(ConversationToolSettingsStore(isolated).enabled().isEmpty())
-            store.save(setOf(ConversationToolId.END_CALL))
-            assertEquals(setOf(ConversationToolId.END_CALL), ConversationToolSettingsStore(isolated).enabled())
+            store.save(setOf(ConversationToolId.END_CALL, ConversationToolId.SAVE_NOTE))
+            assertEquals(setOf(ConversationToolId.END_CALL, ConversationToolId.SAVE_NOTE), ConversationToolSettingsStore(isolated).enabled())
             assertEquals(policy, IncomingAssistantPolicyStore(context).load())
             assertEquals(profile, AudioEngineProfileStore(context).load())
         } finally { context.deleteSharedPreferences(isolatedName) }

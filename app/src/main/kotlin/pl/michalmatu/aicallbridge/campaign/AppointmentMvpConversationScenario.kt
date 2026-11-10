@@ -11,6 +11,8 @@ import pl.michalmatu.aicallbridge.conversation.*
 import pl.michalmatu.aicallbridge.identity.*
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphStateId
 import pl.michalmatu.aicallbridge.textagent.*
+import pl.michalmatu.aicallbridge.tools.*
+import org.json.JSONObject
 
 /**
  * Live outbound speech adapter for one user-approved appointment task.
@@ -20,6 +22,7 @@ internal class AppointmentMvpConversationScenario(
     private val context: Context,
     private val task: AppointmentMvpTask,
     private val configuration: ConversationRunConfiguration.ModelDirect,
+    private val requestEndCall: () -> Boolean = { false },
 ) : ConversationScenario {
     override val id = "appointment-mvp"
     override val preparationId = configuration.preparation.id
@@ -43,16 +46,18 @@ internal class AppointmentMvpConversationScenario(
         val reviewStore = AppointmentMvpStore(context)
         val vault = AndroidIdentityVault.create(context)
         val interpreter = AppointmentInterpreter(ZoneId.of("Europe/Warsaw"))
+        val enabled = ConversationToolSettingsStore(context).enabled()
         val model = configuration.acquireModel(
             takePrepared = { profile, instruction ->
-                CampaignGemmaDirectPreflight.takePrepared(instruction, profile)
+                CampaignGemmaDirectPreflight.takePrepared(instruction, profile, enabled)
             },
             create = { profile, instruction ->
-                DialogueEngineProviders.resolve(profile).createDirect(context, instruction)
+                DialogueEngineProviders.resolve(profile)
+                    .createConversationReply(context, instruction, enabled)
             },
         )
         val approved = CallTextAgentOutputApprovalPolicy(workflow, commitmentGate)
-        return object : ConversationDialogueSession {
+        val baseSession = object : ConversationDialogueSession {
             private var reviewPending = false
             private var reviewed = false
             private var currentReview: AppointmentMvpReview? = null
@@ -69,14 +74,22 @@ internal class AppointmentMvpConversationScenario(
                         listener.onError("appointment_authority_revoked")
                         return
                     }
+                    // Existing host replies must obey the same structured reply contract as Gemma.
+                    val plainReply = object : TextCallAgentBackend.Listener {
+                        override fun onComplete(text: String) {
+                            listener.onComplete(JSONObject().put("reply", text)
+                                .put("tool", "none").toString())
+                        }
+                        override fun onError(reason: String) = listener.onError(reason)
+                    }
                     if (reviewPending) {
-                        listener.onComplete("Dziękuję. Zanotowałam proponowany termin do " +
+                        plainReply.onComplete("Dziękuję. Zanotowałam proponowany termin do " +
                             "weryfikacji przez użytkownika. Nie potwierdzam rezerwacji.")
                         return
                     }
                     val field = interpreter.parseIdentityFieldRequest(userText)?.fieldId
                     if (field != null) {
-                        discloseRequestedField(field, listener)
+                        discloseRequestedField(field, plainReply)
                         return
                     }
                     model.generate(userText, listener)
@@ -161,6 +174,32 @@ internal class AppointmentMvpConversationScenario(
             )
             override fun close() {
                 commitmentGate.clear()
+            }
+        }
+        val toolsSession = ToolCallingConversationSession(
+            model = baseSession.backend,
+            releasePolicy = baseSession.approvalPolicy,
+            tools = createOutgoingConversationTools(context, hooks, requestEndCall),
+            hooks = hooks,
+            responseSource = "OUTGOING_APPOINTMENT",
+            openingText = baseSession.openingText,
+        )
+        return object : ConversationDialogueSession by toolsSession {
+            override fun onTranscript(turn: Int, text: String) =
+                baseSession.onTranscript(turn, text)
+
+            override fun takeOutcome(boundary: ConversationOutcomeBoundary): ConversationOutcome? {
+                val toolOutcome = toolsSession.takeOutcome(boundary)
+                val reviewOutcome = baseSession.takeOutcome(boundary)
+                return toolOutcome ?: reviewOutcome
+            }
+
+            override fun turnBudgetOutcome() = baseSession.turnBudgetOutcome()
+            override fun finalDiagnostics() =
+                baseSession.finalDiagnostics() + toolsSession.finalDiagnostics()
+            override fun close() {
+                toolsSession.close()
+                baseSession.close()
             }
         }
     }

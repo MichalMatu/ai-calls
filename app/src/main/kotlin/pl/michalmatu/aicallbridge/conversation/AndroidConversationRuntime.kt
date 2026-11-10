@@ -180,6 +180,7 @@ internal object AndroidConversationRuntime {
             decisionSink = ConversationDecisionSink { turn, action, response, elapsed, error ->
                 evidenceRecorder?.recordDialogueDecision(turn, action, response, elapsed, error)
             },
+            sessionId = sessionId,
             toolEventSink = { event ->
                 evidenceRecorder?.recordToolEvent(event)
                 ConversationChatFeed.tool(liveChatToken, event)

@@ -21,7 +21,9 @@ internal class ConversationToolsSettingsController(context: Context) {
             ConversationToolStage.REQUESTED -> R.string.tools_ui_stage_requested
             ConversationToolStage.VALIDATED -> R.string.tools_ui_stage_validated
             ConversationToolStage.DISPATCHED -> R.string.tools_ui_stage_dispatched
-            ConversationToolStage.CONFIRMED -> R.string.tools_ui_stage_confirmed
+            ConversationToolStage.CONFIRMED ->
+                if (event.tool == ConversationToolId.SAVE_NOTE) R.string.tools_ui_note_saved
+                else R.string.tools_ui_stage_confirmed
             ConversationToolStage.UNKNOWN -> R.string.tools_ui_stage_unknown
             ConversationToolStage.REUSED -> R.string.tools_ui_stage_reused
             ConversationToolStage.FAILED -> R.string.tools_ui_stage_failed

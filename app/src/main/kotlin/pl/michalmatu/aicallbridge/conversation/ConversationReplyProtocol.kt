@@ -1,14 +1,21 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
+import pl.michalmatu.aicallbridge.conversationtools.ConversationNoteKind
+import pl.michalmatu.aicallbridge.conversationtools.ConversationNoteProposal
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
 internal enum class ConversationResponseFormat { SPOKEN_TEXT, TOOL_REPLY }
-internal data class ConversationReply(val text: String, val tool: ConversationToolId?) {
+internal data class ConversationReply(
+    val text: String,
+    val tool: ConversationToolId?,
+    val note: ConversationNoteProposal? = null,
+) {
     override fun toString() = "ConversationReply(text=REDACTED, tool=$tool)"
 }
 
@@ -28,33 +35,61 @@ internal object ConversationReplyProtocol {
         do widzenia” oznacza koniec; „w wiadomości zacytowałem do widzenia, ale mam poprawkę”
         oznacza kontynuację. Przykłady wskazują sens, nie frazy do dopasowania.
         Przy rzeczywistej niejasności użyj none i dopytaj o potrzebną informację.
+        Gdy poznasz istotne ustalenie, termin, kwotę, dane kontaktowe przekazane w rozmowie
+        albo poprawkę: użyj tool="save_note", w polu note wpisz zwięzłą treść ustalenia.
+        Pole kind wybierz z NOTE, TASK, CALENDAR_PROPOSAL, MESSAGE_DRAFT.
+        Dla przyszłych akcji użyj tych kategorii wyłącznie jako PROPOZYCJI do sprawdzenia.
+        Zapis notatki nie oznacza potwierdzenia prawdziwości, rezerwacji ani działania poza aplikacją.
+        Nie zapisuj haseł, PIN, PESEL ani innych sekretów. Nie zapisuj całego transkryptu w każdej turze.
+        W turze możesz zaproponować tylko jedno narzędzie; preferuj zapis ważnej informacji
+        podczas rozmowy, a end_call na końcu po pożegnaniu.
+        Nie twierdź, że notatka została zapisana, dopóki aplikacja nie potwierdzi wyniku.
         Narzędzie jest propozycją; aplikacja sprawdza aktualne upoważnienie i wykonanie.
         Używaj tylko wartości tool dostępnych w schemacie. Nie twórz innych pól, argumentów ani narzędzi.
     """
 
     fun schema(enabled: Set<ConversationToolId>): String {
-        val names = (listOf("none") + enabled.map { it.wireName }).joinToString(",") { "\"$it\"" }
-        return """{"type":"object","properties":{"reply":{"type":"string"},"tool":{"type":"string","enum":[$names]}},"required":["reply","tool"],"additionalProperties":false}"""
+        val names = (listOf("none") + enabled.map { it.wireName })
+            .joinToString(",") { JsonPrimitive(it).toString() }
+        val kinds = ConversationNoteKind.entries
+            .joinToString(",") { JsonPrimitive(it.name).toString() }
+        return """{"type":"object","properties":{"reply":{"type":"string"},"tool":{"type":"string","enum":[$names]},"note":{"type":"string"},"kind":{"type":"string","enum":[$kinds]}},"required":["reply","tool"],"additionalProperties":false}"""
     }
 
     fun decode(raw: String): ConversationReply {
         val root = JsonParser.parseString(raw)
         require(root.isJsonObject) { "conversation_reply_invalid" }
         val json = root.asJsonObject
-        require(json.keySet() == setOf("reply", "tool")) { "conversation_reply_invalid" }
+        require(json.keySet().containsAll(setOf("reply", "tool")) &&
+            json.keySet().all { it in setOf("reply", "tool", "note", "kind") }) {
+            "conversation_reply_invalid"
+        }
         fun string(key: String): String {
             val value = json.get(key)
-            require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { "conversation_reply_invalid" }
+            require(value != null && value.isJsonPrimitive && value.asJsonPrimitive.isString) {
+                "conversation_reply_invalid"
+            }
             return value.asString
         }
         val text = string("reply").trim()
-        require(text.isNotBlank()) { "conversation_reply_invalid" }
+        require(text.isNotBlank() && text.length <= 4_096) { "conversation_reply_invalid" }
         val tool = when (val name = string("tool")) {
             "none" -> null
             else -> ConversationToolId.entries.singleOrNull { it.wireName == name }
                 ?: error("conversation_tool_unknown")
         }
-        return ConversationReply(text, tool)
+        val proposedNote = json.get("note")?.let { string("note").trim() }
+        val kind = json.get("kind")?.let {
+            ConversationNoteKind.entries.singleOrNull { category -> category.name == string("kind") }
+                ?: error("conversation_note_kind_invalid")
+        } ?: ConversationNoteKind.NOTE
+        val payload = if (tool == ConversationToolId.SAVE_NOTE)
+            ConversationNoteProposal(kind, requireNotNull(proposedNote) { "conversation_note_missing" })
+        else {
+            require(proposedNote.isNullOrBlank()) { "conversation_note_unexpected" }
+            null
+        }
+        return ConversationReply(text, tool, payload)
     }
 }
 
@@ -65,13 +100,13 @@ internal class ConversationReplyBackend(
 ) : TextCallAgentBackend {
     private val generation = AtomicLong(0)
     private val closed = AtomicBoolean(false)
-    private val tool = AtomicReference<ConversationToolId?>(null)
+    private val proposal = AtomicReference<ConversationReply?>(null)
 
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         check(!closed.get())
         val request = generation.incrementAndGet()
         val started = System.nanoTime()
-        tool.set(null)
+        proposal.set(null)
         model.generate(userText, object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
                 if (closed.get() || generation.get() != request) return
@@ -79,10 +114,10 @@ internal class ConversationReplyBackend(
                     decision(null, (System.nanoTime() - started) / 1_000_000L, true)
                     listener.onError("conversation_reply_invalid"); return
                 }
-                tool.set(reply.tool)
+                proposal.set(reply)
                 decision(reply, (System.nanoTime() - started) / 1_000_000L, false)
                 if (!closed.get() && generation.get() == request) listener.onComplete(reply.text)
-                else tool.set(null)
+                else proposal.set(null)
             }
             override fun onError(reason: String) {
                 if (!closed.get() && generation.get() == request) {
@@ -92,9 +127,10 @@ internal class ConversationReplyBackend(
             }
         })
     }
-    fun takeTool(): ConversationToolId? = tool.getAndSet(null)
-    override fun cancel() { generation.incrementAndGet(); tool.set(null); model.cancel() }
+    fun takeProposal(): ConversationReply? = proposal.getAndSet(null)
+    fun takeTool(): ConversationToolId? = takeProposal()?.tool
+    override fun cancel() { generation.incrementAndGet(); proposal.set(null); model.cancel() }
     override fun close() {
-        if (closed.compareAndSet(false, true)) { generation.incrementAndGet(); tool.set(null); model.close() }
+        if (closed.compareAndSet(false, true)) { generation.incrementAndGet(); proposal.set(null); model.close() }
     }
 }

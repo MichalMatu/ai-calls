@@ -100,6 +100,29 @@ class ConversationReplyProtocolTest {
         assertFalse(plain.contains("Zwróć pożegnanie i tool=end_call"))
     }
 
+    @Test fun notebookToolJsonSchemaIsWellFormedAndPayloadValidated() {
+        val json = com.google.gson.JsonParser.parseString(
+            ConversationReplyProtocol.schema(setOf(ConversationToolId.END_CALL,
+                ConversationToolId.SAVE_NOTE))).asJsonObject
+        val names = json.getAsJsonObject("properties")
+            .getAsJsonObject("tool").getAsJsonArray("enum").map { it.asString }
+        assertTrue(names.containsAll(listOf("none", "end_call", "save_note")))
+        val payload = ConversationReplyProtocol.decode(
+            """{"reply":"Zanotuję.","tool":"save_note","note":"Termin do sprawdzenia","kind":"CALENDAR_PROPOSAL"}""")
+        assertEquals(ConversationToolId.SAVE_NOTE, payload.tool)
+        assertEquals(pl.michalmatu.aicallbridge.conversationtools.ConversationNoteKind.CALENDAR_PROPOSAL,
+            payload.note?.kind)
+        assertEquals("Termin do sprawdzenia", payload.note?.content)
+        assertFalse(payload.toString().contains("Termin do sprawdzenia"))
+        for (raw in listOf(
+            """{"reply":"Zapisuję","tool":"save_note"}""",
+            """{"reply":"Zapisuję","tool":"save_note","note":""}""",
+            """{"reply":"Zapisuję","tool":"save_note","note":"ok","kind":"SEND_EMAIL"}""",
+            """{"reply":"Do widzenia","tool":"end_call","note":"Nie wolno wykonać"}""",
+            """{"reply":"Do widzenia","tool":"save_note","note":"ok","number":"+48123123"}"""
+        )) assertTrue(runCatching { ConversationReplyProtocol.decode(raw) }.isFailure)
+    }
+
     private class FakeModel : TextCallAgentBackend {
         var listener: TextCallAgentBackend.Listener? = null
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) { this.listener = listener }

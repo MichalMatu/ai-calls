@@ -20,6 +20,7 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime
 import pl.michalmatu.aicallbridge.conversation.*
+import pl.michalmatu.aicallbridge.tools.ConversationToolSettingsStore
 import rikka.shizuku.Shizuku
 import android.content.pm.ServiceInfo
 import android.os.IBinder
@@ -257,7 +258,7 @@ class AppOwnedCampaignService : Service() {
             ". Zbierz tylko propozycję i nie potwierdzaj ani nie rezerwuj wizyty. " +
             "Każda propozycja musi trafić do użytkownika jako REVIEW_REQUIRED."
         val instruction = ConversationInstructionBuilder.build(
-            preparation, goal, ConversationResponseFormat.SPOKEN_TEXT,
+            preparation, goal, ConversationResponseFormat.TOOL_REPLY,
         )
         val configuration = ConversationRunConfiguration.ModelDirect(
             profile, instruction, preparation,
@@ -272,6 +273,7 @@ class AppOwnedCampaignService : Service() {
         )
         CampaignGemmaDirectPreflight.prepare(
             this, systemInstruction = instruction, profile = profile,
+            tools = ConversationToolSettingsStore(this).enabled(),
             onReady = { ready ->
                 continuationHandler.post {
                     preparingLocalModel = false
@@ -363,7 +365,7 @@ class AppOwnedCampaignService : Service() {
             "Nie deklaruj osiągnięcia celu bez niezależnej weryfikacji; odpowiedź rozmówcy " +
             "ma zostać do sprawdzenia w prywatnej historii rozmowy."
         val instruction = ConversationInstructionBuilder.build(
-            preparation, scopedGoal, ConversationResponseFormat.SPOKEN_TEXT,
+            preparation, scopedGoal, ConversationResponseFormat.TOOL_REPLY,
         )
         val configuration = ConversationRunConfiguration.ModelDirect(
             profile, instruction, preparation,
@@ -378,6 +380,7 @@ class AppOwnedCampaignService : Service() {
         )
         CampaignGemmaDirectPreflight.prepare(
             this, systemInstruction = instruction, profile = profile,
+            tools = ConversationToolSettingsStore(this).enabled(),
             onReady = { ready ->
                 continuationHandler.post {
                     preparingLocalModel = false

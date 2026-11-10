@@ -54,3 +54,5 @@ MVP można ogłosić gotowym dopiero po udanych, kontrolowanych próbach fizyczn
 Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje pojedyncze, autoryzowane rozmowy informacyjne bez skutków zewnętrznych. Kontekst i dane AI: osobne profile incoming/outgoing, bez powielonych Skills i linków; podgląd jedynie kontekstu. Zakres danych jest górnym limitem, nie zgodą na ujawnienie. Wizyta wymaga przecięcia profilu z grantem, a scenariusze korzystają z notatek outgoing bez ujawniania danych. Niezapisane zmiany chronione przy nawigacji; fizyczny UX S22: **PHYSICAL_OPEN**.
 
 - **Sejf danych UX:** akcja „Dodaj własne pole” na końcu; jeden klikalny wiersz zamiast dublowania edycji, liczba zapisanych pól, formularz nie zamyka się po błędnym wpisie. Szyfrowanie i brak grantu dla pól własnych zachowane.
+
+- **Narzędzia AI MVP:** Wspólny protokół w incoming/outgoing. SAVE_NOTE zapisuje zaszyfrowany notatnik per sesja, append z ID tury; TASK/CALENDAR_PROPOSAL/MESSAGE_DRAFT to wyłącznie propozycje. END_CALL po TTS i weryfikacji Call. Bez Google API i wysyłania wiadomości. Fizyczny test modelu/połączeń: **PHYSICAL_OPEN**.
