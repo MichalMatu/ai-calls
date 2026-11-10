@@ -51,6 +51,46 @@ class OutgoingIvrDtmfToneDeliveryTest {
         assertEquals(listOf("play:5", "stop"), hardware.events)
     }
 
+    @Test fun busyToneDoesNotConsumeDifferentStepAndCanRetryAfterStop() {
+        val hardware = Hardware()
+        val timer = Timer()
+        val delivery = OutgoingIvrDtmfToneDelivery({ true }, { true }, hardware, timer)
+        val gate = OutgoingIvrDtmfGate({ true }, { true }, delivery)
+        val first = digit
+        val second = digit.copy(stepIndex = 2, digit = '#')
+        assertEquals(OutgoingIvrDtmfResult.DISPATCHED, gate.request(first))
+        assertEquals(OutgoingIvrDtmfResult.NOT_READY, gate.request(second))
+        assertEquals(listOf("play:5"), hardware.events)
+        timer.fire()
+        assertEquals(OutgoingIvrDtmfResult.DISPATCHED, gate.request(second))
+        assertEquals(OutgoingIvrDtmfResult.REUSED, gate.request(second))
+        timer.fire()
+        assertEquals(listOf("play:5", "stop", "play:#", "stop"), hardware.events)
+    }
+
+    @Test fun deniedAtHardwareBoundaryIsNotStartedAndMayRetryAfterGrantReturns() {
+        val hardware = Hardware()
+        var permission = false
+        val delivery = OutgoingIvrDtmfToneDelivery({ true }, { permission }, hardware, Timer())
+        val gate = OutgoingIvrDtmfGate({ true }, { true }, delivery)
+        assertEquals(OutgoingIvrDtmfResult.NOT_READY, gate.request(digit))
+        assertTrue(hardware.events.isEmpty())
+        permission = true
+        assertEquals(OutgoingIvrDtmfResult.DISPATCHED, gate.request(digit))
+    }
+
+    @Test fun exceptionAfterHardwarePlayCannotBeRetriedAsNeverStarted() {
+        val hardware = Hardware()
+        val timer = Timer()
+        hardware.afterPlay = { throw IllegalStateException("synthetic_telecom_exception") }
+        val gate = OutgoingIvrDtmfGate({ true }, { true },
+            OutgoingIvrDtmfToneDelivery({ true }, { true }, hardware, timer))
+        assertEquals(OutgoingIvrDtmfResult.UNKNOWN, gate.request(digit))
+        assertEquals(OutgoingIvrDtmfResult.UNKNOWN, gate.request(digit))
+        assertEquals(listOf("play:5", "stop"), hardware.events)
+        assertTrue(timer.tasks.isEmpty())
+    }
+
     @Test fun timerFailureIsUnknownAndStopsImmediately() {
         val hardware = Hardware()
         val timer = Timer().also { it.accepts = false }

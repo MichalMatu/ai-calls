@@ -65,6 +65,23 @@ class OutgoingIvrDtmfGateTest {
         assertEquals(2, checks)
     }
 
+    @Test fun explicitNeverStartedPortDoesNotBurnStepOrCreateFalseReceipt() {
+        var attempts = 0
+        val port = object : OutgoingIvrDigitPort {
+            override fun dispatch(request: OutgoingIvrDtmfRequest) = false
+            override fun dispatchAttempt(request: OutgoingIvrDtmfRequest): OutgoingIvrDigitAttempt {
+                attempts++
+                return if (attempts == 1) OutgoingIvrDigitAttempt.NOT_STARTED
+                else OutgoingIvrDigitAttempt.STARTED
+            }
+        }
+        val gate = OutgoingIvrDtmfGate({ true }, { true }, port)
+        assertEquals(OutgoingIvrDtmfResult.NOT_READY, gate.request(request))
+        assertEquals(OutgoingIvrDtmfResult.DISPATCHED, gate.request(request))
+        assertEquals(OutgoingIvrDtmfResult.REUSED, gate.request(request))
+        assertEquals(2, attempts)
+    }
+
     @Test fun unknownDispatchOutcomeNeverReplaysHardwareEffect() {
         var calls = 0
         val gate = OutgoingIvrDtmfGate({ true }, { true }) {

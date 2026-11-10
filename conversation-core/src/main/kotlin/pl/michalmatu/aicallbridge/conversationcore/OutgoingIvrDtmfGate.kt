@@ -21,11 +21,27 @@ enum class OutgoingIvrDtmfResult {
     CONFLICT,
     UNKNOWN,
     LIMIT_REACHED,
+    NOT_READY,
+}
+
+/**
+ * NOT_STARTED proves no external tone was attempted, so a queued IVR step may
+ * retry when the previous tone stops. UNCERTAIN could already have been audible
+ * and must remain consumed to prevent duplicates.
+ */
+enum class OutgoingIvrDigitAttempt {
+    STARTED,
+    NOT_STARTED,
+    UNCERTAIN,
 }
 
 fun interface OutgoingIvrDigitPort {
     /** Return true only when the exact app-owned call accepted this request. */
     fun dispatch(request: OutgoingIvrDtmfRequest): Boolean
+
+    /** Legacy ports cannot distinguish refused-before-play from uncertain delivery. */
+    fun dispatchAttempt(request: OutgoingIvrDtmfRequest): OutgoingIvrDigitAttempt =
+        if (dispatch(request)) OutgoingIvrDigitAttempt.STARTED else OutgoingIvrDigitAttempt.UNCERTAIN
 }
 
 /**
@@ -77,12 +93,19 @@ class OutgoingIvrDtmfGate(
             // Reserve before the irreversible port call. Any uncertain effect stays UNKNOWN
             // on duplicate requests instead of being reported as success or replayed.
             dispatched[key] = Receipt(value.digit, OutgoingIvrDtmfResult.UNKNOWN)
-            val result = try {
-                if (port.dispatch(value)) OutgoingIvrDtmfResult.DISPATCHED
-                else OutgoingIvrDtmfResult.UNKNOWN
+            val attempt = try {
+                port.dispatchAttempt(value)
             } catch (_: Exception) {
-                OutgoingIvrDtmfResult.UNKNOWN
+                OutgoingIvrDigitAttempt.UNCERTAIN
             }
+            if (attempt == OutgoingIvrDigitAttempt.NOT_STARTED) {
+                // No irreversible hardware action occurred. Preserve exact-key
+                // idempotency only after a tone may actually have started.
+                dispatched.remove(key)
+                return OutgoingIvrDtmfResult.NOT_READY
+            }
+            val result = if (attempt == OutgoingIvrDigitAttempt.STARTED)
+                OutgoingIvrDtmfResult.DISPATCHED else OutgoingIvrDtmfResult.UNKNOWN
             dispatched[key] = Receipt(value.digit, result)
             return result
         } finally {

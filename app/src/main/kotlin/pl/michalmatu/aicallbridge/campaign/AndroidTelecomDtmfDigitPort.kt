@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.telecom.Call
 import pl.michalmatu.aicallbridge.conversationcore.OutgoingIvrDigitPort
+import pl.michalmatu.aicallbridge.conversationcore.OutgoingIvrDigitAttempt
 import pl.michalmatu.aicallbridge.conversationcore.OutgoingIvrDtmfRequest
 import pl.michalmatu.aicallbridge.conversationcore.OutgoingIvrDtmfToneDelivery
 import pl.michalmatu.aicallbridge.conversationcore.OutgoingIvrToneHardware
@@ -44,7 +45,11 @@ internal class AndroidTelecomDtmfDigitPort(
     )
 
     override fun dispatch(request: OutgoingIvrDtmfRequest): Boolean =
-        Looper.myLooper() == Looper.getMainLooper() && delivery.dispatch(request)
+        dispatchAttempt(request) == OutgoingIvrDigitAttempt.STARTED
+
+    override fun dispatchAttempt(request: OutgoingIvrDtmfRequest): OutgoingIvrDigitAttempt =
+        if (Looper.myLooper() == Looper.getMainLooper()) delivery.dispatchAttempt(request)
+        else OutgoingIvrDigitAttempt.NOT_STARTED // No Telecom call on wrong thread.
 
     override fun close() {
         if (Looper.myLooper() == Looper.getMainLooper()) delivery.close()

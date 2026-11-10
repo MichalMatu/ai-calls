@@ -34,28 +34,38 @@ class OutgoingIvrDtmfToneDelivery(
 
     init { require(toneDurationMs > 0L) }
 
-    @Synchronized override fun dispatch(request: OutgoingIvrDtmfRequest): Boolean {
-        if (closed || playing || request.digit !in "0123456789*#") return false
+    @Synchronized override fun dispatch(request: OutgoingIvrDtmfRequest): Boolean =
+        dispatchAttempt(request) == OutgoingIvrDigitAttempt.STARTED
+
+    @Synchronized override fun dispatchAttempt(request: OutgoingIvrDtmfRequest): OutgoingIvrDigitAttempt {
+        if (closed || playing || request.digit !in "0123456789*#") {
+            return OutgoingIvrDigitAttempt.NOT_STARTED
+        }
         // Check again at the actual hardware boundary, after the gate's two checks.
-        if (!runCatching { active() && authorized(request) }.getOrDefault(false)) return false
+        if (!runCatching { active() && authorized(request) }.getOrDefault(false)) {
+            return OutgoingIvrDigitAttempt.NOT_STARTED
+        }
         val token = ++serial
         playing = true // Reserve BEFORE calling an external, possibly reentrant hardware adapter.
         return try {
             hardware.play(request.digit)
-            // STOP, takeover or a revoked grant may happen during play().
+            // STOP, takeover or a revoked grant may happen during play(): the
+            // tone might have started, so the outcome must never be retried.
             if (closed || !playing ||
                 !runCatching { active() && authorized(request) }.getOrDefault(false)) {
                 stopCurrent(token)
-                false
+                OutgoingIvrDigitAttempt.UNCERTAIN
             } else if (!scheduler.schedule(toneDurationMs) { stopCurrent(token) }) {
                 stopCurrent(token)
-                false
+                OutgoingIvrDigitAttempt.UNCERTAIN
+            } else if (playing && !closed) {
+                OutgoingIvrDigitAttempt.STARTED
             } else {
-                playing && !closed // synchronous scheduler callbacks cannot report success.
+                OutgoingIvrDigitAttempt.UNCERTAIN // synchronous timer or close callback
             }
         } catch (_: Exception) {
-            stopCurrent(token) // play() can fail after starting the physical tone.
-            false
+            stopCurrent(token) // play() may have started the physical tone.
+            OutgoingIvrDigitAttempt.UNCERTAIN
         }
     }
 
