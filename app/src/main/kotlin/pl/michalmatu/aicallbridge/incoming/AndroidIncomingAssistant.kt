@@ -39,6 +39,7 @@ internal class AndroidIncomingAssistant(
         var recorder: CallSessionEvidenceRecorder? = null
         var endToolTurn: Int? = null
         val toolFinalized = AtomicBoolean(false)
+        val archiveGate = IncomingEndToolArchiveGate()
         var chatToken = 0L
         val pendingChatTools = mutableListOf<ConversationToolEvent>()
     }
@@ -54,6 +55,9 @@ internal class AndroidIncomingAssistant(
                 slot.cancelled.set(true)
                 val audio = slot.audio.getAndSet(null)
                 if (audio == null) {
+                    // A runtime may have started before publishing SessionControl.
+                    // Its completion callback owns final RX drain and archive END.
+                    if (slot.archiveGate.runtimePending()) return@let
                     // If the runtime never started, there is no completion callback.
                     // Preserve a pending end_call on CALL_ENDED for resolveEndedCall().
                     if (slot.endToolTurn != null && reason == ConversationStopReason.CALL_ENDED) return@let
@@ -114,9 +118,12 @@ internal class AndroidIncomingAssistant(
             val outcome = IncomingEndToolEvidencePolicy.decide(
                 call.state == Call.STATE_DISCONNECTED, endingAtDisconnect,
             )
-            finalizeToolEvidence(slot, if (outcome == IncomingEndToolOutcome.CONFIRMED)
-                ConversationToolStage.CONFIRMED else ConversationToolStage.UNKNOWN)
-            slots.remove(slot.generation, slot)
+            // Do not finalize recorder while a live Run is still draining RX WAV.
+            slot.archiveGate.onTelecomEnd(outcome)?.let { settled ->
+                finalizeToolEvidence(slot, if (settled == IncomingEndToolOutcome.CONFIRMED)
+                    ConversationToolStage.CONFIRMED else ConversationToolStage.UNKNOWN)
+                slots.remove(slot.generation, slot)
+            }
         }
     }
     fun removed(call: Call) {
@@ -190,6 +197,7 @@ internal class AndroidIncomingAssistant(
             }
         })
         try {
+            slot.archiveGate.onRuntimeStart()
             val audio = AndroidConversationRuntime.run(context, "incoming-${UUID.randomUUID()}", AndroidConversationRuntime.TASK_SCOPED_TURNS,
                 IncomingSecretaryScenario(context, prepared.run, tools, prepared.tools), liveAuthorization = { authorized(slot) },
                 callStillActive = { slot.call.state == Call.STATE_ACTIVE }, evidenceRecorder = slot.recorder,
@@ -206,7 +214,12 @@ internal class AndroidIncomingAssistant(
         slot.chatToken = result.chatToken
         slot.pendingChatTools.forEach { ConversationChatFeed.tool(slot.chatToken, it) }
         slot.pendingChatTools.clear()
-        if (result.evidenceAwaitingTool && slot.endToolTurn != null) {
+        val terminalAfterDrain = slot.archiveGate.onRuntimeFinished()
+        if (terminalAfterDrain != null && slot.endToolTurn != null) {
+            finalizeToolEvidence(slot, if (terminalAfterDrain == IncomingEndToolOutcome.CONFIRMED)
+                ConversationToolStage.CONFIRMED else ConversationToolStage.UNKNOWN)
+            slots.remove(slot.generation, slot)
+        } else if (result.evidenceAwaitingTool && slot.endToolTurn != null) {
             val ownerStillEnding = coordinator.snapshot(slot.call)?.state == IncomingAssistantState.ENDING
             when (IncomingEndToolEvidencePolicy.decide(
                 slot.call.state == Call.STATE_DISCONNECTED, ownerStillEnding,
