@@ -71,11 +71,14 @@ class SyntheticBookingAdapter(
             return@runCatching old.hold
         }
         check(now <= Long.MAX_VALUE - ttlMs) { "booking hold overflow" }
+        val expiresAtMs = now + ttlMs
         check(available(proposal)) { "slot unavailable" }
-        // An availability callback may reenter this synchronized adapter and
-        // acquire the same slot under a different key. Never overwrite that hold.
-        check(!occupied(slot, clockMs())) { "slot acquired during availability callback" }
-        val hold = SyntheticBookingHold("synthetic-hold-" + (++sequence), now + ttlMs)
+        // An availability callback may advance the clock or reenter hold().
+        // Never publish a hold that is expired on arrival or overwrite a peer.
+        val afterAvailabilityMs = clockMs()
+        check(afterAvailabilityMs < expiresAtMs) { "hold expired during availability check" }
+        check(!occupied(slot, afterAvailabilityMs)) { "slot acquired during availability callback" }
+        val hold = SyntheticBookingHold("synthetic-hold-" + (++sequence), expiresAtMs)
         val entry = Entry(hold, idempotencyKey, slot, proposal)
         byKey[idempotencyKey] = entry
         bySlot[slot] = entry

@@ -19,6 +19,19 @@ class SyntheticBookingAdapterTest {
         return gate.consumeBookingEvidence(token.value).getOrThrow()
     }
 
+    @Test fun availabilityCallbackCannotPublishAlreadyExpiredHold() {
+        var now = 0L
+        val provider = SyntheticBookingAdapter(
+            clockMs = { now },
+            availability = { now = 50L; true },
+        )
+        assertTrue(provider.hold(proposal(), "first", 10L).isFailure)
+        assertTrue(provider.available(proposal()))
+        // No phantom reservation was stored under the failed key.
+        val next = SyntheticBookingAdapter(clockMs = { now })
+        assertTrue(next.hold(proposal(), "fresh", 10L).isSuccess)
+    }
+
     @Test fun reentrantAvailabilityCannotOverwriteAnAlreadyAcquiredSlot() {
         val offered = proposal()
         lateinit var provider: SyntheticBookingAdapter
