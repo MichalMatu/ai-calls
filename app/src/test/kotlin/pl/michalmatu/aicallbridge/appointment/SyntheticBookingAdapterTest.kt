@@ -38,6 +38,57 @@ class SyntheticBookingAdapterTest {
         assertSame(receipt, provider.readBack(receipt.bookingId))
     }
 
+    @Test fun reentrantCancelDuringProviderConfirmationCannotCreateReceipt() {
+        val offered = proposal()
+        lateinit var provider: SyntheticBookingAdapter
+        lateinit var held: SyntheticBookingHold
+        var cancelled = false
+        provider = SyntheticBookingAdapter(confirmReady = {
+            if (!cancelled) {
+                cancelled = true
+                check(provider.cancel(held, "key"))
+            }
+            true
+        })
+        held = provider.hold(offered, "key", 1_000L).getOrThrow()
+        assertTrue(provider.confirm(held, "key", consumed(offered)).isFailure)
+        assertNull(provider.readBack("synthetic-booking-" + held.id))
+    }
+
+    @Test fun reentrantSuccessfulConfirmReturnsSameReceiptWithoutDuplicateEffect() {
+        val offered = proposal()
+        lateinit var provider: SyntheticBookingAdapter
+        lateinit var held: SyntheticBookingHold
+        lateinit var evidence: CallCommitmentConsumptionEvidence
+        var nestedStarted = false
+        var nested: SyntheticBookingReceipt? = null
+        provider = SyntheticBookingAdapter(confirmReady = {
+            if (!nestedStarted) {
+                nestedStarted = true
+                nested = provider.confirm(held, "key", evidence).getOrThrow()
+            }
+            true
+        })
+        held = provider.hold(offered, "key", 1_000L).getOrThrow()
+        evidence = consumed(offered)
+        val receipt = provider.confirm(held, "key", evidence).getOrThrow()
+        assertSame(nested, receipt)
+        assertSame(receipt, provider.readBack(receipt.bookingId))
+    }
+
+    @Test fun expiryDuringProviderConfirmationCannotCreatePhantomReceipt() {
+        var now = 0L
+        val offered = proposal()
+        val provider = SyntheticBookingAdapter(
+            clockMs = { now },
+            confirmReady = { now = 20L; true },
+        )
+        val held = provider.hold(offered, "key", 10L).getOrThrow()
+        assertTrue(provider.confirm(held, "key", consumed(offered)).isFailure)
+        assertNull(provider.readBack("synthetic-booking-" + held.id))
+        assertTrue(provider.available(offered))
+    }
+
     @Test fun idempotentHoldKeepsOriginalTtlAndRejectsChangedTerms() {
         val provider = SyntheticBookingAdapter()
         val first = provider.hold(proposal(), "key", 1_000L).getOrThrow()

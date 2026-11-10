@@ -95,6 +95,11 @@ class SyntheticBookingAdapter(
         entry.receipt?.let { return@runCatching it }
         check(clockMs() < entry.hold.expiresAtMs) { "hold expired" }
         check(runCatching { confirmReady() }.getOrDefault(false)) { "provider confirmation unavailable" }
+        // External readiness can reenter confirm(), cancel(), or advance the clock.
+        // Preserve an already-confirmed receipt; never commit a revoked/expired hold.
+        entry.receipt?.let { return@runCatching it }
+        check(!entry.cancelled && bySlot[entry.slot] === entry &&
+            clockMs() < entry.hold.expiresAtMs) { "hold invalidated during confirmation" }
         val receipt = SyntheticBookingReceipt("synthetic-booking-" + entry.hold.id, entry.hold.id)
         entry.receipt = receipt
         byReceipt[receipt.bookingId] = receipt
