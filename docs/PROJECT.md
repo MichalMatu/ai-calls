@@ -5,28 +5,28 @@
 ## Zamknięcie QA G6.4
 - Mac host full: Gradle/JVM/lint, 409 Python, audio quality i preflight PASS dla 04a72f2; receipt: aicalls-g64-freeze-fullqa-20261110-v1.
 - S22+ exact device, Android IDLE, rola dialera, APK aplikacji i testów PASS. Na **wcześniej zainstalowanym** APK 4/4 instrumented off-call PASS: takeover i stale PCM, RX archive, syntetyczny WAV playback, STOP; receipt: aicalls-g64-s22-installed-instrumentation-physical-offcall-20261110-v1.
-- Odbiór G6.4 był off-call. Nowe MVP zainstalowano i sprawdzono off-call; prawdziwe rozmowy, barge-in, przejęcie live i rezerwacja nadal **PHYSICAL_OPEN**.
+- G6.4 off-call PASS. Jeden autoryzowany realny OUTGOING S22 uruchomiony; bez propozycji wizyty. Live barge-in, takeover i rezerwacja nadal **PHYSICAL_OPEN**.
 
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
-| Gemma + STT/TTS podczas rozmowy | HOST_TESTED / DEVICE_VERIFIED off-call | Na nowym APK STT/TTS/Gemma E2B 3/3 PASS; dwukierunkowe RX/TX i barge-in live **PHYSICAL_OPEN** |
+| Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
 | Outgoing po autoryzacji | DEVICE_VERIFIED: real dial | Na S22+ po jednym autoryzowanym START Telecom potwierdził aktywne połączenie; odbiór i jakość audio nadal **PHYSICAL_OPEN** |
 | Wybór danych IdentityVault | HOST_TESTED | UI pozwala wybrać FIRST_NAME/LAST_NAME/PHONE/EMAIL, scoped reader sprawdza task/target/generation i zgodę; mówione wartości na S22 **PHYSICAL_OPEN** |
-| Wizyta, warunki i wynik do oceny | HOST_TESTED + 1 LIVE bez wyniku | Realna próba zakończona bez REVIEW_REQUIRED; brak rezerwacji. Scena Gemma/STT/TTS i provider **PHYSICAL_OPEN** |
+| Wizyta, warunki i wynik do oceny | 1 LIVE, REVIEW brak | Druga tura RX przerwana po 55280 ms (owned_call_ended) bez transkryptu; 20s RX segmentacja wdrożona, ponowna weryfikacja live **PHYSICAL_OPEN** |
 | Natychmiastowy STOP / TAKE OVER i resume | HOST_TESTED / DEVICE_VERIFIED off-call | Symulowany STOP i TAKE OVER PASS; na wcześniejszym APK fizyczne off-call STOP/stale PCM PASS; przejęcie rozmowy live **PHYSICAL_OPEN** |
 
-DEVICE_VERIFIED dotyczy tylko off-call. Żadna cała funkcja telefoniczna nie przeszła live QA. Symulacja nie potwierdza rzeczywistej rezerwacji.
+Pierwszy OUTGOING potwierdza częściowy RX/TX i jeden turn, nie potwierdza zrozumiałości u rozmówcy ani końcowej rezerwacji. Pełne live QA nadal otwarte.
 
 ## Zamrożony host MVP
 - main@044427b01150ef542852f2ec42a19463f89e1feb: pełny test-profile.sh full **PASS** (Gradle/JVM, lint, 409 Python, audio/secret gates), :app:assembleDebug **PASS**, czysty Git.
 - APK na Macu: ~/agent-workspace/artifacts/ai-calls/ai-calls-mvp-first-044427b01150.apk; SHA-256 437e35f0a445dfe1cf4f48eaf6a3f0cf5a663e9d4998db03be7275edd0c0d232. Exact bytes zainstalowane na S22+ przez adb install -r bez wipe; podpis, wersja, dialer i dane zgodne. Off-call STT/TTS/Gemma 3/3 PASS, status bridge PASS, hashe ustawień bez zmian.
 
-- S22+ main@615f6eca: APK 624ecb6c; instalacja bez wipe, sejf i UI PASS; call-status i appointment-open PASS.
+- S22+ main@a2b4a32c: APK SHA-256 da06dcc; install-r bez wipe, sejf/ustawienia/podpis PASS; call-status pokazuje bezpieczne metryki zakończonej sesji.
 
 ## Następny sprint — MVP FIRST (kod, nie audyt)
-1. Jeden OUTGOING fizycznie ruszył, zakończył się bez propozycji wizyty; diagnostyka poprawiona i wdrożona. Audio, rejestracja i STOP/TAKE OVER **PHYSICAL_OPEN**.
+1. Pierwszy OUTGOING: owned_call_ended, 1 tura STT/TTS, druga RX 55s bez końca; 20s limit segmentu wizyty wdrożony i przetestowany syntetycznie. Potrzebna nowa jawna zgoda na próbę live.
 2. Po próbach poprawić wyłącznie usterki blokujące MVP. Nie uruchamiać G6.5/G7, niepotrzebnych refaktorów ani audytu.
 
 ## Próby S22+ — dokładny zakres PHYSICAL_OPEN
