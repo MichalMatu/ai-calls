@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.agent
 /** Service identifiers currently supported by typed external-effect authority. */
 enum class CallService {
     CLIR,
+    APPOINTMENT,
 }
 
 /**

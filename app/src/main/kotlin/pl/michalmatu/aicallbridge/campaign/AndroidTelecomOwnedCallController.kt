@@ -37,8 +37,16 @@ internal class AndroidTelecomOwnedCallController private constructor(
             "call_phone_permission_required"
         }
         check(!telecom.isInCall) { "another_call_already_active" }
-        val resolvedAccount = telecom.getDefaultOutgoingPhoneAccount("tel")
-        check(resolvedAccount == account) { "voice_account_changed" }
+        // An explicitly selected active voice SIM is a valid target too. The caller
+        // must already hold a grant for the exact subscription; this port validates
+        // the phone account again at the irreversible Telecom edge.
+        check(account in telecom.callCapablePhoneAccounts) { "voice_account_unavailable" }
+        val tel = app.getSystemService(android.telephony.TelephonyManager::class.java)
+            ?: error("telephony_unavailable")
+        val subscriptionId = tel.createForPhoneAccountHandle(account)?.subscriptionId
+            ?: error("voice_subscription_unavailable")
+        check(CampaignPhoneAccountResolver.resolveSelectedVoiceAccount(
+            app, telecom, subscriptionId) == account) { "voice_account_changed" }
 
         val session = AndroidTelecomOwnedCallSession(target, account, SystemClock.elapsedRealtime())
         check(AndroidOwnedInCallService.reserve(session)) { "owned_call_pending" }

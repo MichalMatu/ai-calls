@@ -99,7 +99,16 @@ class AppointmentInterpreter(private val zone: ZoneId) {
     }
 
     fun parseTime(text: String): AppointmentTimeCandidate? {
-        TIME.find(text)?.let { match ->
+        // A Polish date (10.02.2027) contains an HH.MM-shaped prefix (10.02).
+        // Ignore clock-looking matches inside date spans, otherwise the user sees
+        // an invented 10:02 appointment instead of the offered time.
+        val dateRanges = listOf(ISO_DATE, POLISH_DATE).flatMap { pattern ->
+            pattern.findAll(text).map { it.range }.toList()
+        }
+        TIME.findAll(text).firstOrNull { match ->
+            dateRanges.none { date -> match.range.first >= date.first &&
+                match.range.last <= date.last }
+        }?.let { match ->
             return localTimeOrNull(match.groupValues[1], match.groupValues[2])
                 ?.let(::AppointmentTimeCandidate)
         }

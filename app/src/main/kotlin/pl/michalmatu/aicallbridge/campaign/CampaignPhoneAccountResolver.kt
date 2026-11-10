@@ -41,6 +41,21 @@ internal object CampaignPhoneAccountResolver {
         }.getOrNull()
     }
 
+    fun resolveSelectedVoiceAccount(context: Context, telecomManager: TelecomManager,
+        subscriptionId: Int): PhoneAccountHandle? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+            context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+                PackageManager.PERMISSION_GRANTED) return null
+        if (CampaignAccountScope.forSubscription(context, subscriptionId) == null) return null
+        return runCatching {
+            val telephony = context.getSystemService(TelephonyManager::class.java)
+                ?: return@runCatching null
+            telecomManager.callCapablePhoneAccounts.firstOrNull { handle ->
+                telephony.createForPhoneAccountHandle(handle)?.subscriptionId == subscriptionId
+            }
+        }.getOrNull()
+    }
+
     fun accountMatchesDefault(
         candidateSubscriptionId: Int,
         defaultVoiceSubscriptionId: Int,

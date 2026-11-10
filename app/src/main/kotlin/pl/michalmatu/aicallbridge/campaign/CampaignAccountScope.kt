@@ -6,6 +6,17 @@ import android.content.pm.PackageManager
 import android.telephony.SubscriptionManager
 
 internal object CampaignAccountScope {
+    fun forSubscription(context: Context, subscriptionId: Int): String? {
+        if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED) return null
+        if (subscriptionId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return null
+        val manager = context.getSystemService(SubscriptionManager::class.java) ?: return null
+        val info = runCatching { manager.getActiveSubscriptionInfo(subscriptionId) }.getOrNull()
+            ?: return null
+        return "voice-subscription:" + subscriptionId + ":slot:" + info.simSlotIndex +
+            ":carrier:" + info.carrierId
+    }
+
     fun currentVoiceSubscription(context: Context): String? {
         if (
             context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
