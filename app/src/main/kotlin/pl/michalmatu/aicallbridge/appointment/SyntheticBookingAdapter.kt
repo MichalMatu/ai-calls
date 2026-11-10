@@ -53,7 +53,10 @@ class SyntheticBookingAdapter(
     @Synchronized fun available(proposal: CallProposal): Boolean = runCatching {
         val slot = slotOf(proposal) ?: return@runCatching false
         if (occupied(slot, clockMs())) return@runCatching false
-        availability(proposal)
+        if (!availability(proposal)) return@runCatching false
+        // Provider callbacks may synchronously acquire this slot. A read-only
+        // availability query cannot return stale success after that side effect.
+        !occupied(slot, clockMs())
     }.getOrDefault(false)
 
     /** Same idempotency key retains original TTL; changed terms are rejected. */

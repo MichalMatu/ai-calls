@@ -19,6 +19,21 @@ class SyntheticBookingAdapterTest {
         return gate.consumeBookingEvidence(token.value).getOrThrow()
     }
 
+    @Test fun availabilityReadbackRejectsReentrantlyOccupiedSlot() {
+        val offered = proposal()
+        lateinit var provider: SyntheticBookingAdapter
+        var nested = false
+        provider = SyntheticBookingAdapter(availability = {
+            if (!nested) {
+                nested = true
+                check(provider.hold(offered, "nested", 1_000L).isSuccess)
+            }
+            true
+        })
+        assertFalse(provider.available(offered))
+        assertFalse(provider.hold(offered, "outer", 1_000L).isSuccess)
+    }
+
     @Test fun availabilityCallbackCannotPublishAlreadyExpiredHold() {
         var now = 0L
         val provider = SyntheticBookingAdapter(
