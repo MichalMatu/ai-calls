@@ -23,6 +23,7 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
 
 /** Local preparation only. Drafts do not create grants, dial, or confirm outside effects. */
 class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
+    override fun toolbarTitle(): String = getString(R.string.scenario_ui_title)
     private lateinit var store: AndroidConversationPreparationStore
     private var selectedId: String? = null
     private var selectedPersonalId: String? = null
@@ -119,8 +120,6 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
         savedTitle = null
         savedGoal = null
         val root = body()
-        root.addView(UiDesign.heading(this, getString(R.string.scenario_ui_title)),
-            UiDesign.spaceAfter(this, 12))
         root.addView(UiDesign.caption(this, getString(R.string.scenario_ui_intro)),
             UiDesign.spaceAfter(this, 16))
         if (message.isNotBlank()) root.addView(UiDesign.caption(this, message),
@@ -135,29 +134,60 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 UiDesign.spaceAfter(this, 10))
             mine.forEach { personal ->
                 val template = ScenarioCatalog.byId(personal.templateId) ?: return@forEach
-                val card = UiDesign.card(this).apply { tag = "scenario-personal:${personal.id}" }
-                card.addView(UiDesign.heading(this, personal.current.title).apply { textSize = 17f },
-                    UiDesign.spaceAfter(this, 6))
+                val card = UiDesign.card(this).apply {
+                    tag = "scenario-personal:" + personal.id
+                    isClickable = true
+                    isFocusable = true
+                    contentDescription = getString(R.string.scenario_ui_open_item, personal.current.title)
+                    background = UiDesign.touchSurface(this@ScenarioLibraryActivity)
+                    setOnClickListener { showEditor(template, personal) }
+                }
+                val header = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                }
+                header.addView(UiDesign.heading(this, personal.current.title).apply {
+                    textSize = 17f
+                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                header.addView(TextView(this).apply {
+                    text = "›"
+                    textSize = 24f
+                    setTextColor(UiDesign.secondary)
+                    importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                })
+                card.addView(header, UiDesign.spaceAfter(this, 5))
                 card.addView(UiDesign.caption(this,
                     getString(R.string.scenario_ui_based_on, template.title(language),
-                        personal.current.number)), UiDesign.spaceAfter(this, 10))
-                card.addView(UiDesign.action(this, getString(R.string.scenario_ui_edit)) {
-                    showEditor(template, personal)
-                })
+                        personal.current.number)))
                 root.addView(card, UiDesign.spaceAfter(this, 12))
             }
         }
         root.addView(UiDesign.heading(this, getString(R.string.scenario_ui_factory)),
             UiDesign.spaceAfter(this, 10))
         ScenarioCatalog.templates.forEach { definition ->
-            val card = UiDesign.card(this).apply { tag = "scenario-preset:${definition.id}" }
-            card.addView(UiDesign.heading(this, definition.title(language)).apply { textSize = 17f },
-                UiDesign.spaceAfter(this, 6))
-            card.addView(UiDesign.caption(this, definition.goal(language)),
-                UiDesign.spaceAfter(this, 10))
-            card.addView(UiDesign.action(this, getString(R.string.scenario_ui_edit)) {
-                showEditor(definition)
+            val card = UiDesign.card(this).apply {
+                tag = "scenario-preset:" + definition.id
+                isClickable = true
+                isFocusable = true
+                contentDescription = getString(R.string.scenario_ui_open_item, definition.title(language))
+                background = UiDesign.touchSurface(this@ScenarioLibraryActivity)
+                setOnClickListener { showEditor(definition) }
+            }
+            val header = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+            header.addView(UiDesign.heading(this, definition.title(language)).apply {
+                textSize = 17f
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            header.addView(TextView(this).apply {
+                text = "›"
+                textSize = 24f
+                setTextColor(UiDesign.secondary)
+                importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
             })
+            card.addView(header, UiDesign.spaceAfter(this, 5))
+            card.addView(UiDesign.caption(this, definition.goal(language)))
             root.addView(card, UiDesign.spaceAfter(this, 12))
         }
         install(root)
@@ -385,9 +415,6 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                     }.show()
             }, UiDesign.spaceAfter(this, 12))
         }
-        root.addView(UiDesign.action(this, getString(R.string.scenario_ui_back)) {
-            leaveEditor()
-        }, UiDesign.spaceAfter(this, 12))
         root.addView(feedback)
         install(root)
         restoredInputs = null

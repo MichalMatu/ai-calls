@@ -49,3 +49,5 @@ Przed live-call: osobna zgoda na numer, SIM, uczestnika i zakres; zweryfikuj pon
 
 ## Odbiór MVP
 MVP można ogłosić gotowym dopiero po udanych, kontrolowanych próbach fizycznych INCOMING, OUTGOING, dwukierunkowego audio, STOP/TAKE OVER i scenariusza wizyty. Do tego czasu: **MVP BLOCKED / PHYSICAL_OPEN**. Zasady: [Local Agent](operations/LOCAL_AGENT.md), [Device](operations/DEVICE.md), [Security](architecture/SECURITY.md), [Development](operations/DEVELOPMENT.md).
+
+- **Scenariusze UX:** otwieranie całych kart, bez dolnego przycisku powrotu i powtarzanych przycisków „Edytuj”. Rozróżniony zapis szkicu i własnej kopii. Wersje własnych scenariuszy i ochrona niezapisanych danych pozostają bez zmian.

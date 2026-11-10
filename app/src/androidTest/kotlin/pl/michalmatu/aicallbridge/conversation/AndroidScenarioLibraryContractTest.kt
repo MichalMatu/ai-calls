@@ -15,26 +15,20 @@ class AndroidScenarioLibraryContractTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("scenario-preset:mechanic"))
-                val edit = requireNotNull(root.findViewWithTag<View>("scenario-preset:mechanic"))
-                val button = findButton(edit)
-                assertNotNull(button)
-                button!!.performClick()
+                val card = requireNotNull(root.findViewWithTag<View>("scenario-preset:mechanic"))
+                assertTrue("scenario_card_not_clickable", card.isClickable)
+                card.performClick()
                 val current = activity.window.decorView
                 assertNotNull(current.findViewWithTag<View>("scenario-form"))
                 for (id in listOf("visit_reason", "preferred_time", "budget", "additional_instructions"))
                     assertNotNull(current.findViewWithTag<View>("scenario-input:$id"))
                 assertNotNull(current.findViewWithTag<View>("scenario-form-status"))
+                val back = requireNotNull(current.findViewWithTag<View>("app-child-back"))
+                back.performClick()
+                assertNotNull(activity.window.decorView.findViewWithTag<View>(
+                    "scenario-preset:mechanic"))
             }
         }
     }
 
-    private fun findButton(view: View): android.widget.Button? {
-        if (view is android.widget.Button) return view
-        if (view is android.view.ViewGroup) {
-            for (index in 0 until view.childCount) {
-                findButton(view.getChildAt(index))?.let { return it }
-            }
-        }
-        return null
-    }
 }
