@@ -6,6 +6,34 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RecordedConversationHistoryTest {
+    @Test fun automaticTranscriptOnlyArchiveSurvivesCallEndWithoutAnyWav() {
+        val root = Files.createTempDirectory("aicalls-transcript-only").toFile()
+        try {
+            val directory = File(root, "1000-transcript-only").apply { mkdirs() }
+            File(directory, "timeline.jsonl").writeText(
+                listOf(
+                    """{"type":"START","format":1,"audio_recorded":false,"transcript_capture":"automatic_private"}""",
+                    """{"type":"CONVERSATION","direction":"OUTGOING","response_kind":"MODEL_DIRECT","started_at_ms":1000}""",
+                    """{"type":"AGENT_APPROVED_TEXT","turn":0,"text":"Powitanie","response_kind":"MODEL_DIRECT"}""",
+                    """{"type":"COUNTERPART_STT","turn":1,"text":"Pytanie rozmówcy"}""",
+                    """{"type":"AGENT_APPROVED_TEXT","turn":1,"text":"Odpowiedź AI","response_kind":"MODEL_DIRECT"}""",
+                    """{"type":"AGENT_FULL_TX","turn":1,"transport_status":"WRITE_COMPLETE"}""",
+                    """{"type":"END","reason_code":"owned_call_ended"}""",
+                ).joinToString("\\n", postfix = "\\n").replace("\\\\n", "\\n"),
+            )
+            File(directory, "COMPLETE").writeText("local_complete\\n")
+            val archived = RecordedConversationHistory(root).list().single()
+            assertTrue(archived.complete)
+            assertEquals(ConversationDirection.OUTGOING, archived.direction)
+            assertEquals(listOf("Powitanie", "Pytanie rozmówcy", "Odpowiedź AI"),
+                archived.lines.map { it.text })
+            assertEquals("TX: wysłano lokalnie", archived.lines.last().txStatus)
+            assertTrue(archived.audioFiles.isEmpty())
+            assertTrue(archived.audioTimeline.isEmpty())
+            assertEquals(0, archived.invalidRecords)
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun historyDistinguishesRevokedUncertainAndPartialLocalTx() {
         val root = Files.createTempDirectory("aicalls-tx-status").toFile()
         try {
