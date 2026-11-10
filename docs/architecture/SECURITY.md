@@ -11,7 +11,7 @@
 - Prawdziwe dial/IVR/instalacja/przejęcie tylko przy odpowiednim dokładnym upoważnieniu, rozpoznanym urządzeniu, uprawnieniach Androida i stanie IDLE. Jeżeli odczyt stanu telefonu niepewny, fizycznej operacji **nie wykonuj**.
 
 ## Prywatność
-- Zapis audio jest opcjonalny, zależny od rzeczywistej zgody/ustawień i przepisów. Prywatne WAV/transkrypcje pozostają w katalogu app; eksport właściciela przez kontrolowany kanał USB i bez nadpisywania. Nie umieszczaj PII, numerów, sekretów, nagrań i prywatnych transkryptów w GitHub, logcat, taskach Local Agenta ani telemetrycznych wynikach.
+- Zapis audio jest opcjonalny, zależny od rzeczywistej zgody/ustawień i przepisów. Tekst zatwierdzonych wypowiedzi i STT jest automatyczną, prywatną historią autoryzowanej sesji, niezależną od zgody na WAV; należy stosować właściwe wymogi dotyczące informowania rozmówców i ochrony danych. Prywatne WAV/transkrypcje pozostają w katalogu app; eksport właściciela przez kontrolowany kanał USB i bez nadpisywania. Nie umieszczaj PII, numerów, sekretów, nagrań i prywatnych transkryptów w GitHub, logcat, taskach Local Agenta ani telemetrycznych wynikach.
 - Nie twórz globalnego promptu zawierającego dane IdentityVault; tylko późne, typowane, dozwolone odczyty. Odsłuch prywatnego archiwum tylko poza połączeniem, po bezpiecznym rozwiązaniu ścieżki i z Android `READ_PHONE_STATE`.
 - Nie używaj `FLAG_SECURE`/`windowSecure` do blokowania własnych screenshotów użytkownika; nie dodawaj automatycznego przesyłania screenshotów.
 
