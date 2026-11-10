@@ -52,6 +52,7 @@ internal object AppOwnedClirCampaignExecutor {
         authorizationStore: CampaignAuthorizationStore,
         accountScope: String,
         runConfiguration: ConversationRunConfiguration,
+        appointmentTask: AppointmentMvpTask? = null,
         onAttemptFinished: (Boolean, String?) -> Unit = { _, _ -> },
         onStatus: (String) -> Unit,
     ) {
@@ -62,7 +63,14 @@ internal object AppOwnedClirCampaignExecutor {
 
         val appContext = context.applicationContext
         val handler = Handler(Looper.getMainLooper())
-        val request = ClirCampaignSpec.enableRequest(accountScope)
+        val request = appointmentTask?.request() ?: ClirCampaignSpec.enableRequest(accountScope)
+        if (appointmentTask != null && (appointmentTask.accountScope != accountScope ||
+            request.accountScope != accountScope ||
+            authorizationStore.load()?.grantId != appointmentTask.grantId)) {
+            running.set(false)
+            onStatus("Appointment authorization mismatch")
+            return
+        }
         // Android does not expose an app-owned cellular Call handle via ACTION_CALL.
         // Resolve an actual call controller, not a synthetic proof with constant booleans.
         val callController = CampaignCallControllerRegistry.available(appContext)
@@ -110,13 +118,15 @@ internal object AppOwnedClirCampaignExecutor {
             return
         }
 
-        val voiceAccount = CampaignPhoneAccountResolver.resolveDefaultVoiceAccount(
-            appContext,
-            telecomManager,
+        val voiceAccount = if (appointmentTask == null) {
+            CampaignPhoneAccountResolver.resolveDefaultVoiceAccount(appContext, telecomManager)
+        } else CampaignPhoneAccountResolver.resolveSelectedVoiceAccount(
+            appContext, telecomManager, appointmentTask.subscriptionId,
         )
-        if (voiceAccount == null ||
-            CampaignAccountScope.currentVoiceSubscription(appContext) != request.accountScope
-        ) {
+        val liveScope = if (appointmentTask == null)
+            CampaignAccountScope.currentVoiceSubscription(appContext)
+        else CampaignAccountScope.forSubscription(appContext, appointmentTask.subscriptionId)
+        if (voiceAccount == null || liveScope != request.accountScope) {
             running.set(false)
             onStatus("Dial blocked: exact default voice SIM/account not established")
             return
@@ -195,6 +205,7 @@ internal object AppOwnedClirCampaignExecutor {
                 request = request,
                 authorizationStore = authorizationStore,
                 runConfiguration = runConfiguration,
+                appointmentTask = appointmentTask,
                 onAttemptFinished = onAttemptFinished,
                 onStatus = onStatus,
             )
@@ -216,6 +227,7 @@ internal object AppOwnedClirCampaignExecutor {
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         runConfiguration: ConversationRunConfiguration,
+        appointmentTask: AppointmentMvpTask?,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -249,7 +261,7 @@ internal object AppOwnedClirCampaignExecutor {
                 onStatus("Exact owned cellular call active; starting campaign runtime")
                 startLocalRuntime(
                     appContext, telecomManager, grant, ownedCall, request,
-                    authorizationStore, runConfiguration,
+                    authorizationStore, runConfiguration, appointmentTask,
                     onAttemptFinished, onStatus,
                 )
                 return
@@ -286,11 +298,12 @@ internal object AppOwnedClirCampaignExecutor {
         request: CampaignExecutionRequest,
         authorizationStore: CampaignAuthorizationStore,
         runConfiguration: ConversationRunConfiguration,
+        appointmentTask: AppointmentMvpTask?,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
         if (!running.get()) return
-        val sessionId = "app-clir-" +
+        val sessionId = (if (appointmentTask == null) "app-clir-" else "app-appointment-") +
             grant.grantId.filter(Char::isLetterOrDigit).take(20).ifBlank { "campaign" }
         val phoneDisclosureAuthorized =
             IdentityFieldId.PHONE in runConfiguration.preparation.scopedDataFields(grant.allowedDisclosureFields)
@@ -300,7 +313,12 @@ internal object AppOwnedClirCampaignExecutor {
                 context = appContext,
                 sessionId = sessionId,
                 maxTurns = AndroidConversationRuntime.TASK_SCOPED_TURNS,
-                scenario = ClirConversationScenario(appContext, sessionId, runConfiguration, phoneDisclosureAuthorized),
+                scenario = if (appointmentTask == null) {
+                    ClirConversationScenario(appContext, sessionId, runConfiguration, phoneDisclosureAuthorized)
+                } else {
+                    AppointmentMvpConversationScenario(appContext, appointmentTask,
+                        runConfiguration as ConversationRunConfiguration.ModelDirect)
+                },
                 runConfiguration = runConfiguration,
                 callStillActive = {
                     runCatching { ownedCall.isExactCallActive() }.getOrDefault(false)
@@ -311,7 +329,10 @@ internal object AppOwnedClirCampaignExecutor {
                 liveAuthorization = {
                     running.get() &&
                         runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
-                        CampaignAccountScope.currentVoiceSubscription(appContext) == request.accountScope &&
+                        (if (appointmentTask == null)
+                            CampaignAccountScope.currentVoiceSubscription(appContext)
+                        else CampaignAccountScope.forSubscription(
+                            appContext, appointmentTask.subscriptionId)) == request.accountScope &&
                         authorizationStore.isAuthorizedInFlight(
                             grantId = grant.grantId,
                             request = request,
@@ -321,14 +342,27 @@ internal object AppOwnedClirCampaignExecutor {
                 val report = result.report
                 val probeSuccess = result.termination == ConversationTermination.Completed
                 val carrierReportedSuccess = reportValue(report, "clir_carrier_reported_success") == "true"
+                val appointmentReview = appointmentTask?.let {
+                    AppointmentMvpStore(appContext).review(it.grantId)
+                }
+                val appointmentReviewReady = appointmentReview != null &&
+                    probeSuccess && reportValue(report, "appointment_review_required") == "true"
                 val failureReason = if (result.termination == ConversationTermination.Completed) null else result.termination.code
                 audioSession.set(null)
                 val cleanup = ownedCalls.release(ownedCall)
                 val wasRunning = running.getAndSet(false)
 
                 if (wasRunning) {
-                    onAttemptFinished(probeSuccess && carrierReportedSuccess, failureReason)
+                    if (appointmentTask == null) {
+                        onAttemptFinished(probeSuccess && carrierReportedSuccess, failureReason)
+                    } else {
+                        onAttemptFinished(appointmentReviewReady, failureReason)
+                    }
                     onStatus(when {
+                        appointmentReviewReady ->
+                            "REVIEW_REQUIRED; user must verify appointment; no booking confirmed; cleanup=$cleanup"
+                        appointmentTask != null ->
+                            "Appointment ended without confirmed review; cleanup=$cleanup"
                         probeSuccess && carrierReportedSuccess ->
                             "Carrier reports CLIR activation, independent network verification pending; " +
                                 "cleanup=$cleanup"
