@@ -22,7 +22,7 @@ def audit(root: Path) -> list[str]:
         return file.read_text(encoding="utf-8")
 
     prefix = "app/src/main/kotlin/pl/michalmatu/aicallbridge/"
-    ui = read(prefix + "campaign/CampaignToolActivity.kt")
+    ui = read(prefix + "campaign/AppointmentMvpActivity.kt")
     pilot = read(prefix + "developerrelay/SupervisedCallPilotActivity.kt")
     grant = read(prefix + "campaign/CampaignAuthorizationGrant.kt")
     store = read(prefix + "campaign/CampaignAuthorizationStore.kt")
@@ -108,21 +108,10 @@ def audit(root: Path) -> list[str]:
     forbid("BackendOpenAiTextBackend.kt", android_text, "MAX_INPUT_CHARS = 4_000")
     require("openai_text_broker.py", broker, "MAX_CLIENT_BODY_BYTES = 256 * 1024")
     require("BackendOpenAiTextBackend.kt", android_text, "MAX_RESPONSE_CHARS = 1024 * 1024")
-    require("campaign/CampaignToolActivity.kt", ui, "recordCallEvidence = recordEvidenceChoice.isChecked")
-    # Both direct and padded card addView forms must keep the evidence preference
-    # visible in the task-intake UI. Rendering layout may change without changing consent.
-    if not re.search(r"\baddView\s*\(\s*recordEvidenceChoice\s*[,)]", ui):
-        errors.append(
-            "campaign/CampaignToolActivity.kt: missing expected anti-friction wiring: "
-            "recordEvidenceChoice in visible action group"
-        )
-    require("campaign/CampaignToolActivity.kt", ui, 'tag = "campaign-primary-actions"')
-    task_intake = read(prefix + "campaign/CampaignAgentControl.kt")
-    forbid("CampaignAgentControl.kt", task_intake, "NO_VALID_EXACT_GRANT")
-    require("CampaignAgentControl.kt", task_intake, "store.save(ClirCampaignSpec.acceptEnableTask(")
-    require("CampaignToolActivity.kt", ui, "CampaignAgentControl.run(")
-    forbid("campaign/CampaignToolActivity.kt", ui, "showAuthorizationConfirmation")
-    forbid("campaign/CampaignToolActivity.kt", ui, "Authorize CLIR enable campaign")
+    require("campaign/AppointmentMvpActivity.kt", ui, "grants.save(task.grant(")
+    require("campaign/AppointmentMvpActivity.kt", ui, "ACTION_START_BOOK_APPOINTMENT")
+    require("campaign/AppointmentMvpActivity.kt", ui, "selectedFields.filterValues { it.isChecked }")
+    require("campaign/AppointmentMvpActivity.kt", ui, "pendingAuthorize = true")
     forbid("campaign/CampaignAuthorizationGrant.kt", grant, "expiresAtEpochMs")
     require("campaign/CampaignAuthorizationGrant.kt", grant, "val recordCallEvidence: Boolean = false")
     require("campaign/CampaignAuthorizationStore.kt", store, "getBoolean(KEY_RECORD_CALL_EVIDENCE, false)")
@@ -132,7 +121,6 @@ def audit(root: Path) -> list[str]:
     for path, data in (("ui", ui), ("executor", executor), ("recorder", recorder)):
         for token in ("CallSessionEvidenceConsent", "armNextCall", "ARM_TTL_MS"):
             forbid(path, data, token)
-    forbid("campaign/CampaignToolActivity.kt", ui, "Zapisz następną rozmowę")
     forbid("developerrelay/SupervisedCallPilotActivity.kt", pilot, "Uruchomić AI w rozmowie?")
     require("developerrelay/SupervisedCallPilotActivity.kt", pilot, "startPilot(gemmaMode.isChecked)")
     resume = pilot.split("override fun onResume()", 1)

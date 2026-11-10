@@ -8,7 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.ui.AgentAiHubActivity
@@ -58,18 +58,14 @@ class AndroidUx09VisualSemanticsTest {
         }
     }
 
-    @Test fun campaignShowsDataFieldsWithExplanationsFolded() {
-        ActivityScenario.launch(CampaignToolActivity::class.java).use { test ->
-            test.onActivity { activity ->
+    @Test fun appointmentUsesExplicitConsentAndVisibleReview() {
+        ActivityScenario.launch(AppointmentMvpActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                assertNotNull(root.findViewWithTag<View>("campaign-last-result-card"))
-                val status = requireNotNull(root.findViewWithTag<TextView>("campaign-execution-summary"))
-                assertTrue(status.text.isNotBlank())
-                assertFalse(status.text.contains("\n"))
-                assertNotNull(root.findViewWithTag<View>("campaign-execution-timestamp"))
-                assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(
-                    "ui-accordion-content:campaign-result-explain")).visibility)
-                assertNotNull(root.findViewWithTag<View>("campaign-primary-actions"))
+                assertNotNull(root.findViewWithTag<View>("appointment-authorize-call"))
+                assertNotNull(root.findViewWithTag<View>("appointment-review-result"))
+                assertNotNull(root.findViewWithTag<View>("appointment-sim-picker"))
+                assertNull(root.findViewWithTag<View>("campaign-primary-actions"))
             }
         }
     }

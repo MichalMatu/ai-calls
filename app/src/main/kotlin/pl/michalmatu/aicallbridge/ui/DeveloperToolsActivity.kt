@@ -1,12 +1,14 @@
 package pl.michalmatu.aicallbridge.ui
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.MainActivityDeveloperProbes
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 
 /** Existing diagnostic actions, relocated without changing their callbacks. */
 class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -29,6 +31,9 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val status = TextView(this).apply { setTextColor(UiDesign.ink); textSize = 13f }
         probes = MainActivityDeveloperProbes(this, status)
         probes.addControls(body)
+        body.addView(UiDesign.button(this, getString(R.string.ui_lab_short)) {
+            startActivity(Intent(this, ConversationSkillLabActivity::class.java))
+        })
         body.addView(status)
         setContentView(ScrollView(this).apply { addView(body) })
         probes.attach()

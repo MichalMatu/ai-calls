@@ -7,6 +7,12 @@
 - S22+ exact device, Android IDLE, rola dialera, APK aplikacji i testów PASS. Na **wcześniej zainstalowanym** APK 4/4 instrumented off-call PASS: takeover i stale PCM, RX archive, syntetyczny WAV playback, STOP; receipt: aicalls-g64-s22-installed-instrumentation-physical-offcall-20261110-v1.
 - G6.4 off-call PASS. Jeden autoryzowany realny OUTGOING S22 uruchomiony; bez propozycji wizyty. Live barge-in, takeover i rezerwacja nadal **PHYSICAL_OPEN**.
 
+## Interfejs użytkownika — uproszczenie
+- **Start / Rozmowy / Agent AI / Ustawienia** — cztery zakładki. Start zawiera bezpośredni dostęp do istniejącej rozmowy **w sprawie wizyty**, bieżący status, STOP i prywatny podgląd rozmowy; nie sugeruje ogólnego scenariusza, którego nie wdrożono.
+- Usunięto dawny ekran Kampanie i martwe napisy zasobów; CLIR/start skryptu, nadzorowany test audio oraz diagnostyczne karty nie mają już konsumenckich przycisków. Modele i silniki są pod Ustawieniami, laboratorium wyłącznie w narzędziach developerskich. Wewnętrzne mechanizmy grantów, dokładnego Call, STOP, STT i archiwum zachowane.
+- W formularzu wizyty uprawnienia Androida i wybór dialera mogą kontynuować **ten sam wyraźnie rozpoczęty przez użytkownika** zamiar, bez ponownego naciskania Start. Odmowa nie rozpoczyna połączenia.
+- Host: anti-friction i fokus NoArtificialCampaignBlockersContractTest PASS, kompilacja compileDebugAndroidTestKotlin PASS. Brak instalacji nowego UI na S22+ i brak nowego połączenia; fizyczna akceptacja **PHYSICAL_OPEN**.
+
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |

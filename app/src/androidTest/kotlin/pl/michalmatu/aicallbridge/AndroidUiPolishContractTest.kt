@@ -12,7 +12,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
@@ -76,13 +76,13 @@ class AndroidUiPolishContractTest {
         }
     }
 
-    @Test fun campaignPreservesSafetyActionsAndCollapsesIdleChat() {
-        ActivityScenario.launch(CampaignToolActivity::class.java).use { scenario ->
-            scenario.onActivity { a ->
-                val root = a.window.decorView
-                assertNotNull(root.findViewWithTag<View>("campaign-primary-actions"))
-                assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("live-chat-scroll")).visibility)
-                assertTrue(tagged(root, "ui-accordion-toggle:").isNotEmpty())
+    @Test fun appointmentHasOneStartAndReviewInsteadOfCampaignDashboard() {
+        ActivityScenario.launch(AppointmentMvpActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                assertNotNull(root.findViewWithTag<View>("appointment-authorize-call"))
+                assertNotNull(root.findViewWithTag<View>("appointment-review-result"))
+                assertNull(root.findViewWithTag<View>("campaign-primary-actions"))
             }
         }
     }
@@ -93,7 +93,7 @@ class AndroidUiPolishContractTest {
                 val root = a.window.decorView
                 assertNull(root.findViewWithTag<View>("engine-cancel-download"))
                 assertTrue(tagged(root, "engine-unavailable:").isNotEmpty())
-                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:models")).isSelected)
+                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
             }
         }
     }

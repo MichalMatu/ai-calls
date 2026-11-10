@@ -29,17 +29,20 @@ class AndroidMenuVisualContractTest {
         }
         return null
     }
-    @Test fun directNavigationHasSixVisibleTabsAndSafetyActions() {
+    @Test fun directNavigationHasFourVisibleTabsAndSafetyActions() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                for (name in listOf("home", "history", "agent", "lab", "models", "settings")) {
+                for (name in listOf("home", "history", "agent", "settings")) {
                     val tab = requireNotNull(root.findViewWithTag<View>("app-tab:$name"))
                     assertTrue("tab_visible:$name", tab.isShown)
                     assertTrue("tab_clickable:$name", tab.isClickable)
                 }
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("live-chat-scroll")).visibility)
-                assertTrue(requireNotNull(findButton(root, activity.getString(R.string.home_ui_start))).isShown)
+                assertNull(root.findViewWithTag<View>("app-tab:lab"))
+                assertNull(root.findViewWithTag<View>("app-tab:models"))
+                assertNull(findButton(root, activity.getString(R.string.ui_campaigns)))
+                assertTrue(requireNotNull(findButton(root, activity.getString(R.string.camp_mvp_appointment_title))).isShown)
                 assertTrue(requireNotNull(findButton(root, "STOP AI")).isShown)
                 assertNull(root.findViewWithTag<View>("ui-accordion-toggle:basic"))
                 for (duplicate in listOf("Rozmowy i nagrania", "Laboratorium offline", "Ustawienia AI Calls")) {

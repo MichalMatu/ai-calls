@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.runtime.CallRuntimePreferences
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
 
@@ -26,14 +26,14 @@ class AndroidUiAccordionContractTest {
                 val root = activity.window.decorView
                 val before = CallRuntimePreferences(activity).load()
                 val skillsBefore = AndroidConversationPreparationStore(activity).loadSkillLibrary()
-                assertTrue(findButton(root, activity.getString(R.string.home_ui_start))!!.isShown)
-                assertTrue(findButton(root, activity.getString(R.string.ui_campaigns))!!.isShown)
+                assertTrue(findButton(root, activity.getString(R.string.camp_mvp_appointment_title))!!.isShown)
+                assertNull(findButton(root, activity.getString(R.string.ui_campaigns)))
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
                 assertNull(findButton(root, "Rozmowy i nagrania"))
                 assertNull(findButton(root, "Laboratorium offline"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:history")).isShown)
-                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:lab")).isShown)
-                assertTrue(findButton(root, activity.getString(R.string.home_ui_one_tap))!!.isShown)
+                assertNull(root.findViewWithTag<View>("app-tab:lab"))
+                assertNull(findButton(root, activity.getString(R.string.home_ui_one_tap)))
                 assertNotNull(root.findViewWithTag<View>("app-tab:settings"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("home-action-feedback")).isShown)
                 assertTrue(requireNotNull(root.findViewWithTag<View>("home-live-runtime")).isShown)
@@ -49,37 +49,17 @@ class AndroidUiAccordionContractTest {
         }
     }
 
-    @Test
-    fun campaignKeepsAuthorityStopAndRevocationVisibleButDiagnosticsFolded() {
-        ActivityScenario.launch(CampaignToolActivity::class.java).use { scenario ->
+    @Test fun appointmentOffersOneScopedStartAndSafeCancellationWithoutCampaignControls() {
+        ActivityScenario.launch(AppointmentMvpActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                assertNull(findButton(root, "Authorize CLIR enable campaign"))
-                assertTrue(findButton(root, activity.getString(R.string.campaign_ui_start))!!.isShown)
+                assertNotNull(root.findViewWithTag<View>("appointment-authorize-call"))
+                assertNotNull(root.findViewWithTag<View>("appointment-sim-picker"))
+                assertNotNull(root.findViewWithTag<View>("appointment-review-result"))
                 assertTrue(findButton(root, "STOP AI")!!.isShown)
-                assertTrue(findButton(root, activity.getString(R.string.camp_ui_cancel_task))!!.isShown)
-
-                assertNull(root.findViewWithTag<View>("ui-accordion-content:dialer"))
-                assertNull(root.findViewWithTag<View>("ui-accordion-content:supervised"))
-                assertNull(root.findViewWithTag<View>("ui-accordion-content:campaign-attempt"))
-                assertTrue(requireNotNull(root.findViewWithTag<View>("campaign-dialer-card")).isShown)
-                assertTrue(requireNotNull(root.findViewWithTag<View>("campaign-supervised-card")).isShown)
-                assertTrue(requireNotNull(root.findViewWithTag<View>("campaign-attempt-details")).isShown)
-                assertNotNull(root.findViewWithTag<View>("campaign-action-feedback"))
-                assertNotNull(root.findViewWithTag<View>("campaign-live-runtime"))
-                assertNotNull(root.findViewWithTag<View>("campaign-dialer-role-status"))
-                val evidenceBody = requireNotNull(root.findViewWithTag<View>("ui-accordion-content:evidence"))
-                assertEquals(View.GONE, evidenceBody.visibility)
-                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_role_button)))
-                assertNotNull(findButton(root, activity.getString(R.string.camp_ux05_attach_ai)))
-                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_disable_record)))
-                assertNotNull(findButton(root, activity.getString(R.string.camp_ui_transcript_short)))
-
-                val toggle = requireNotNull(root.findViewWithTag<Button>("ui-accordion-toggle:evidence"))
-                toggle.performClick()
-                assertEquals(View.VISIBLE, evidenceBody.visibility)
-                assertTrue(findButton(root, activity.getString(R.string.camp_ui_transcript_short))!!.isShown)
-                assertTrue(findButton(root, "STOP AI")!!.isShown)
+                assertNull(findButton(root, activity.getString(R.string.ui_campaigns)))
+                assertNull(findButton(root, activity.getString(R.string.camp_ux05_attach_ai)))
+                assertNull(root.findViewWithTag<View>("campaign-primary-actions"))
             }
         }
     }

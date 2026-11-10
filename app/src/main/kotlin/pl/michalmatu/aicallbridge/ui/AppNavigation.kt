@@ -15,16 +15,12 @@ import android.widget.TextView
 import pl.michalmatu.aicallbridge.MainActivity
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
-import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
-import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 
 /** One stable navigation contract. Presentation never starts a call or changes authorization. */
 enum class AppTab(val title: Int, val image: Int, val compactTitle: Int = title) {
     HOME(R.string.ui_tab_home, R.drawable.ic_aicalls_home),
     HISTORY(R.string.ui_tab_history, R.drawable.ic_aicalls_history),
     AGENT(R.string.ui_tab_agent, R.drawable.ic_aicalls_agent),
-    LAB(R.string.ui_tab_lab, R.drawable.ic_aicalls_lab, R.string.ui_nav_lab),
-    MODELS(R.string.ui_tab_models, R.drawable.ic_aicalls_models),
     SETTINGS(R.string.ui_tab_settings, R.drawable.ic_aicalls_settings, R.string.ui_nav_options),
 }
 
@@ -34,8 +30,6 @@ internal object AppNavigation {
             AppTab.HOME -> MainActivity::class.java
             AppTab.HISTORY -> ConversationHistoryActivity::class.java
             AppTab.AGENT -> AgentAiHubActivity::class.java
-            AppTab.LAB -> ConversationSkillLabActivity::class.java
-            AppTab.MODELS -> LanguageModelActivity::class.java
             AppTab.SETTINGS -> SettingsHubActivity::class.java
         }
         if (activity.javaClass == destination) return

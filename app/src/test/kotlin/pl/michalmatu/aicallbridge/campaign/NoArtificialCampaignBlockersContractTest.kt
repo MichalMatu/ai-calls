@@ -36,7 +36,7 @@ class NoArtificialCampaignBlockersContractTest {
 
     @Test fun duplexWavAndTranscriptAreNotArbitrarilyClipped() {
         val evidence = source("developerrelay/CallSessionEvidenceRecorder.kt")
-        val ui = source("campaign/CampaignToolActivity.kt")
+        val ui = source("campaign/AppointmentMvpActivity.kt")
         for (removed in listOf("MAX_TURN_BYTES", "MAX_SESSION_BYTES", "RETAIN_SESSIONS",
             "MAX_TEXT_CHARS", "text.take(MAX_TEXT_CHARS)", "drop(RETAIN_SESSIONS - 1)")) {
             assertFalse("Arbitrary capture ceiling reappeared: $removed", evidence.contains(removed))
@@ -55,14 +55,15 @@ class NoArtificialCampaignBlockersContractTest {
     }
 
     @Test fun explicitTaskIntakeHasNoSeparateGrantOrRenewalStep() {
-        val ui = source("campaign/CampaignToolActivity.kt")
+        val ui = source("campaign/AppointmentMvpActivity.kt")
         val control = source("campaign/CampaignAgentControl.kt")
         val grant = source("campaign/CampaignAuthorizationGrant.kt")
         assertFalse(ui.contains("showAuthorizationConfirmation"))
         assertFalse(ui.contains("Authorize CLIR enable campaign"))
         assertFalse(grant.contains("expiresAtEpochMs"))
         assertFalse(control.contains("NO_VALID_EXACT_GRANT"))
-        assertTrue(ui.contains("CampaignAgentControl.run("))
+        assertTrue(ui.contains("grants.save(task.grant("))
+        assertTrue(ui.contains("ACTION_START_BOOK_APPOINTMENT"))
         assertTrue(source("DiagnosticProbeActivity.kt").contains("CampaignAgentControl.run("))
         assertTrue(control.contains("!requestStart -> \"NOT_REQUESTED\""))
         assertTrue(control.contains("store.save(ClirCampaignSpec.acceptEnableTask("))
@@ -70,14 +71,13 @@ class NoArtificialCampaignBlockersContractTest {
     }
 
     @Test fun optionalEvidenceBelongsToTheAcceptedTaskNotPerCallArming() {
-        val ui = source("campaign/CampaignToolActivity.kt")
+        val ui = source("campaign/AppointmentMvpActivity.kt")
         val grant = source("campaign/CampaignAuthorizationGrant.kt")
         val store = source("campaign/CampaignAuthorizationStore.kt")
         val executor = source("campaign/AppOwnedClirCampaignExecutor.kt")
         val recorder = source("developerrelay/CallSessionEvidenceRecorder.kt")
-        assertTrue(ui.contains("recordCallEvidence = recordEvidenceChoice.isChecked"))
-        assertTrue(Regex("""addView\s*\(\s*recordEvidenceChoice\s*[,)]""").containsMatchIn(ui))
-        assertTrue(ui.contains("campaign-primary-actions"))
+        assertTrue(ui.contains("grants.save(task.grant("))
+        assertTrue(ui.contains("selectedFields.filterValues { it.isChecked }"))
         assertTrue(store.contains("preferences.getBoolean(KEY_RECORD_CALL_EVIDENCE, false)"))
         assertTrue(store.contains("fun disableEvidenceRecording()"))
         assertTrue(grant.contains("val recordCallEvidence: Boolean = false"))

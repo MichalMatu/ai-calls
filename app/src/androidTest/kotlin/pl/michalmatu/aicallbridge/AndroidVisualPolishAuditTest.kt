@@ -14,7 +14,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
@@ -96,10 +96,10 @@ class AndroidVisualPolishAuditTest {
             requireNotNull(findPrefix(activity.window.decorView, "model-details-toggle:")).performClick()
         }
 
-    @Test fun campaignEvidenceExpanded() =
-        snapshot(CampaignToolActivity::class.java, "campaigns-evidence-expanded") { activity ->
+    @Test fun appointmentReviewSnapshot() =
+        snapshot(AppointmentMvpActivity::class.java, "appointment-review") { activity ->
             requireNotNull(activity.window.decorView.findViewWithTag<View>(
-                "ui-accordion-toggle:evidence")).performClick()
+                "appointment-review-result"))
         }
 
     @Test fun engineUnavailableCatalogExpanded() =

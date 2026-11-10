@@ -41,6 +41,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var terms: EditText
     private lateinit var sim: Spinner
     private lateinit var feedback: TextView
+    private var pendingAuthorize = false
     private lateinit var review: TextView
     private val selectedFields = linkedMapOf<IdentityFieldId, CheckBox>()
     private val availableSubscriptions = mutableListOf<Pair<Int, String>>()
@@ -120,13 +121,6 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
             setTextIsSelectable(true)
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
-        body.addView(UiDesign.action(this, "Odśwież SIM") { refreshSim(true) })
-        body.addView(UiDesign.action(this, "Włącz rolę domyślnego dialera") {
-            val role = getSystemService(RoleManager::class.java)
-            if (role?.isRoleAvailable(RoleManager.ROLE_DIALER) == true)
-                startActivityForResult(role.createRequestRoleIntent(RoleManager.ROLE_DIALER), 903)
-            else feedback.text = "Rola dialera niedostępna."
-        })
         body.addView(UiDesign.action(this, "Autoryzuj i rozpocznij jedną rozmowę",
             UiActionTone.PRIMARY) { authorizeAndStart() }.apply {
             tag = "appointment-authorize-call"
@@ -197,12 +191,18 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
             checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
+            pendingAuthorize = true
             requestPermissions(missing.toTypedArray(), 902)
-            feedback.text = "Zatwierdź uprawnienia i ponownie naciśnij Autoryzuj."
+            feedback.text = "Zatwierdź uprawnienia Androida. Przygotowanie rozmowy będzie kontynuowane."
             return
         }
         if (!AndroidTelecomOwnedCallController.canControl(this)) {
-            feedback.text = "Najpierw ustaw AI Calls jako domyślny dialer."
+            val role = getSystemService(RoleManager::class.java)
+            if (role?.isRoleAvailable(RoleManager.ROLE_DIALER) == true) {
+                pendingAuthorize = true
+                feedback.text = "Zatwierdź rolę dialera w Androidzie, aby kontynuować."
+                startActivityForResult(role.createRequestRoleIntent(RoleManager.ROLE_DIALER), 903)
+            } else feedback.text = "Rola dialera niedostępna."
             return
         }
         val telecom = getSystemService(TelecomManager::class.java)
@@ -294,6 +294,21 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
         super.onRequestPermissionsResult(code, names, results)
         if (code == 901 && results.all { it == PackageManager.PERMISSION_GRANTED })
             refreshSim(false)
+        if (code == 902 && pendingAuthorize) {
+            pendingAuthorize = false
+            if (results.isNotEmpty() && results.all { it == PackageManager.PERMISSION_GRANTED }) {
+                refreshSim(false)
+                authorizeAndStart()
+            } else feedback.text = "Bez wymaganych uprawnień nie rozpoczęto rozmowy."
+        }
+    }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 903 && pendingAuthorize) {
+            pendingAuthorize = false
+            if (AndroidTelecomOwnedCallController.canControl(this)) authorizeAndStart()
+            else feedback.text = "AI Calls nie otrzymało roli dialera. Nie rozpoczęto rozmowy."
+        }
     }
     private companion object {
         val format = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm")

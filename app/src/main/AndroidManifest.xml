@@ -112,9 +112,6 @@
             android:permission="android.permission.DUMP" />
 
         <activity
-            android:name=".campaign.CampaignToolActivity"
-            android:exported="false" />
-        <activity
             android:name=".campaign.AppointmentMvpActivity"
             android:windowSoftInputMode="adjustResize"
             android:exported="false" />

@@ -13,7 +13,6 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
@@ -61,7 +60,6 @@ class AndroidUx05LocaleAccessibilityTest {
             AudioEngineSettingsActivity::class.java to R.string.eng_ui_title,
             LanguageModelActivity::class.java to R.string.models_ui_title,
             ConversationSkillsActivity::class.java to R.string.skills_ui_title,
-            CampaignToolActivity::class.java to R.string.camp_ui_title,
         )
         for ((type, titleId) in screens) {
             ActivityScenario.launch(type).use { scenario ->
@@ -70,7 +68,7 @@ class AndroidUx05LocaleAccessibilityTest {
                     val title = activity.getString(titleId)
                     assertTrue("missing_title:" + type.simpleName, labels(root).any { it == title })
                     assertEquals(0, activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE)
-                    if (Build.VERSION.SDK_INT >= 28 && type != CampaignToolActivity::class.java) {
+                    if (Build.VERSION.SDK_INT >= 28) {
                         // Shared UiDesign headings become TalkBack navigation headings.
                         var found = false
                         fun visit(v: View) {

@@ -18,7 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
@@ -165,5 +165,5 @@ class AndroidVisualScreenAuditTest {
     @Test fun usbDiagnostics() = capture(UsbDebugPanelActivity::class.java, "usb-diagnostics")
     @Test fun phoneEnrollment() = capture(PhoneEnrollmentActivity::class.java, "phone-enrollment")
     @Test fun vault() = capture(IdentityVaultManagerActivity::class.java, "vault")
-    @Test fun campaigns() = capture(CampaignToolActivity::class.java, "campaigns")
+    @Test fun appointment() = capture(AppointmentMvpActivity::class.java, "appointment")
 }

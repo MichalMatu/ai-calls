@@ -30,7 +30,7 @@ import java.util.Locale
  * Separate configuration-only surface. Never grants a campaign, starts audio capture or places calls.
  * Other engines stay visible but disabled until real adapters and on-device evidence exist.
  */
-class AudioEngineSettingsActivity : UiChromeActivity(AppTab.MODELS) {
+class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun toolbarTitle(): String = getString(R.string.eng_ui_title)
     private lateinit var store: AudioEngineProfileStore
     private lateinit var feedback: TextView

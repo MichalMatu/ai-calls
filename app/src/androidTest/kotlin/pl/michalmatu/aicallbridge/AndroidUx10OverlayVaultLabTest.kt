@@ -6,7 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.identity.IdentityVaultManagerActivity
 
@@ -27,13 +27,13 @@ class AndroidUx10OverlayVaultLabTest {
             }
         }
     }
-    @Test fun campaignUsesTheSameReadOnlyOverlayAndKeepsStop() {
-        ActivityScenario.launch(CampaignToolActivity::class.java).use { scenario ->
+    @Test fun appointmentProvidesSafeReviewAndCancellationWithoutDuplicateOverlay() {
+        ActivityScenario.launch(AppointmentMvpActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                assertNotNull(root.findViewWithTag<View>("campaign-conversation-floating-overlay"))
-                assertNotNull(root.findViewWithTag<View>("conversation-floating-button"))
-                assertNotNull(root.findViewWithTag<View>("campaign-primary-actions"))
+                assertNotNull(root.findViewWithTag<View>("appointment-authorize-call"))
+                assertNotNull(root.findViewWithTag<View>("appointment-review-result"))
+                assertNull(root.findViewWithTag<View>("campaign-conversation-floating-overlay"))
             }
         }
     }

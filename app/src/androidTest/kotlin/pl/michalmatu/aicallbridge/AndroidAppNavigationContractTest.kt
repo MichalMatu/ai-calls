@@ -17,12 +17,12 @@ import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 
 @RunWith(AndroidJUnit4::class)
 class AndroidAppNavigationContractTest {
-    @Test fun homeShowsSixReachableTabsWithoutStartingCalls() {
+    @Test fun homeShowsFourReachableTabsWithoutStartingCalls() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("app-bottom-navigation"))
-                for (route in listOf("home", "history", "agent", "lab", "models", "settings")) {
+                for (route in listOf("home", "history", "agent", "settings")) {
                     val tab = requireNotNull(root.findViewWithTag<View>("app-tab:$route"))
                     assertTrue(tab.isShown)
                     assertTrue(tab.isClickable)
@@ -46,7 +46,7 @@ class AndroidAppNavigationContractTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
-                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:models")).isSelected)
+                assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
             }
         }
     }
@@ -68,9 +68,12 @@ class AndroidAppNavigationContractTest {
         ActivityScenario.launch(SettingsHubActivity::class.java).use { screen ->
             screen.onActivity { activity ->
                 val root = activity.window.decorView
+                for (item in listOf("LanguageModelActivity", "AudioEngineSettingsActivity")) {
+                    assertTrue(requireNotNull(root.findViewWithTag<View>(
+                        "settings-destination:" + item)).isClickable)
+                }
                 for (item in listOf("ConversationSkillsActivity", "ConversationPreparationActivity",
-                    "PhoneEnrollmentActivity", "ConversationToolsActivity",
-                    "LanguageModelActivity", "AudioEngineSettingsActivity")) {
+                    "PhoneEnrollmentActivity", "ConversationToolsActivity")) {
                     assertNull("duplicate_settings_entry:" + item, root.findViewWithTag<View>(
                         "settings-destination:" + item))
                 }

@@ -24,7 +24,7 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
  * Synthetic offline test only. Model tool decisions are observed and scored,
  * never executed; no Telecom calls, audio, permission changes or tool dispatch.
  */
-class ConversationSkillLabActivity : UiChromeActivity(AppTab.LAB) {
+class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var runner: SkillLabRunner
     private var lastState = SkillLabUiState()
     private var renderedTurnCount = 0

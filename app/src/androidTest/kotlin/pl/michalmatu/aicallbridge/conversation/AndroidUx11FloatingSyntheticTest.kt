@@ -9,7 +9,6 @@ import org.junit.Assume.assumeFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.MainActivity
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
 import java.io.File
 
 /**
@@ -108,6 +107,4 @@ class AndroidUx11FloatingSyntheticTest {
     @Test fun homeFloatingChatOpensAndDisappearsWithSyntheticMessages() =
         checkOverlay(MainActivity::class.java, capture = true)
 
-    @Test fun campaignFloatingChatUsesTheSameLiveComponent() =
-        checkOverlay(CampaignToolActivity::class.java, capture = false)
 }

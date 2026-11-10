@@ -7,7 +7,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
-import pl.michalmatu.aicallbridge.campaign.CampaignToolActivity
+import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 
@@ -24,16 +24,14 @@ class AndroidUx08NavigationCleanupTest {
         }
     }
 
-    @Test fun campaignKeepsEssentialCallsAndEvidenceButNoDuplicateConfigurationCards() {
-        ActivityScenario.launch(CampaignToolActivity::class.java).use { scenario ->
-            scenario.onActivity { a ->
-                val root = a.window.decorView
-                assertNotNull(root.findViewWithTag<View>("campaign-primary-actions"))
-                assertNotNull(root.findViewWithTag<View>("campaign-dialer-card"))
-                assertNotNull(root.findViewWithTag<View>("campaign-supervised-card"))
-                assertNull(root.findViewWithTag<View>("campaign-skills-card"))
-                assertNull(root.findViewWithTag<View>("campaign-scenario-library-card"))
-                assertNotNull(root.findViewWithTag<View>("ui-accordion-toggle:campaign-raw"))
+    @Test fun appointmentDoesNotExposeObsoleteCampaignSetup() {
+        ActivityScenario.launch(AppointmentMvpActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                assertNotNull(root.findViewWithTag<View>("appointment-authorize-call"))
+                assertNotNull(root.findViewWithTag<View>("appointment-review-result"))
+                assertNull(root.findViewWithTag<View>("campaign-primary-actions"))
+                assertNull(root.findViewWithTag<View>("campaign-supervised-card"))
             }
         }
     }

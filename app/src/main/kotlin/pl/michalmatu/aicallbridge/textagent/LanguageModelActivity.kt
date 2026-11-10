@@ -30,7 +30,7 @@ import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
  * Local-only model management. Cards present the current state first and show only
  * actions which are currently meaningful. Original transfer and selection gates stay intact.
  */
-internal class LanguageModelActivity : UiChromeActivity(AppTab.MODELS) {
+internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun isPrimaryTabScreen() = true
     /** Read-only localization of stable model catalog descriptions. */
     private fun localizedModelDetail(model: LanguageModelEntry): String = getString(when (model.id.name) {

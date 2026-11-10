@@ -27,7 +27,6 @@
     <string name="ui_lab_short">Offline laboratory</string>
     <string name="ui_campaigns">Campaigns</string>
     <string name="ui_stop_ai">STOP AI</string>
-    <string name="ui_start_authorized">Start authorized AI task</string>
     <string name="ui_go_to">Go to</string>
     <string name="ui_audio_mode">Call mode</string>
     <string name="ui_text_model">Text model (STT / TTS mode)</string>
@@ -153,13 +152,7 @@
     <string name="models_ui_active">Active model · installed</string>
     <string name="models_ui_ready">Installed · ready to select</string>
     <string name="models_ui_not_installed">Not installed</string>
-    <string name="campaign_ui_script_model">Script + model</string>
-    <string name="campaign_ui_gemma_direct">Gemma Direct</string>
-    <string name="campaign_ui_dialogue_mode">Dialogue strategy</string>
     <string name="campaign_ui_start">Start task</string>
-    <string name="campaign_ui_task_status">Task status</string>
-    <string name="campaign_ui_stopping">Stopping AI. Only the app-owned call may be disconnected.</string>
-    <string name="campaign_ui_attempt_details">Latest attempt · technical details</string>
     <string name="skills_ui_enabled">Enabled</string>
     <string name="skills_ui_disabled">Disabled</string>
     <string name="skills_ui_factory_readonly">Factory preset · read-only. Create a copy to edit.</string>
@@ -186,14 +179,6 @@
     <string name="home_ui_one_tap">Attach AI to an ongoing call</string>
     <string name="home_ui_start">Start CLIR task (script + AI)</string>
     <string name="home_ui_stop_sent">STOP AI requested; the service will record the result.</string>
-    <string name="home_ui_mode_label">Mode: </string>
-    <string name="home_ui_model_label">Text model: </string>
-    <string name="home_ui_invalid_engines">Invalid audio engine configuration</string>
-    <string name="home_ui_model_status">Model: </string>
-    <string name="home_ui_local_realtime">Local realtime engine · text model selection preserved</string>
-    <string name="home_ui_openai_realtime">OpenAI Realtime audio · text model selection preserved</string>
-    <string name="home_ui_ready">Ready</string>
-    <string name="home_ui_needs_check">Needs verification</string>
     <string name="prep_ui_title">Conversation preparation</string>
     <string name="prep_ui_intro">Context for future calls. Editing never starts AI.</string>
     <string name="prep_ui_profile">Conversation profile</string>
@@ -246,29 +231,6 @@
     <string name="models_ui_save_failed">Could not save the selected model.</string>
     <string name="models_ui_details">Technical details</string>
     <string name="models_ui_selected">Selected %1$s for the next call.</string>
-    <string name="camp_ui_title">AI Calls campaigns and tasks</string>
-    <string name="camp_ui_intro">Calls require device authorization. STOP remains available independently.</string>
-    <string name="camp_ui_enable">Enable CLIR</string>
-    <string name="camp_ui_cancel_task">Cancel task</string>
-    <string name="camp_ui_stop">STOP AI</string>
-    <string name="camp_ui_dialer">Autonomous phone calls</string>
-    <string name="camp_ui_role_button">Enable autonomous calling (Android dialer role)</string>
-    <string name="camp_ui_skills">Skills and conversation data</string>
-    <string name="camp_ui_supervised">AI in an existing call</string>
-    <string name="camp_ui_evidence">Private call diagnostics</string>
-    <string name="camp_ui_disable_record">Disable recording for future attempts</string>
-    <string name="camp_ui_play_ai">Play latest AI response (off-call only)</string>
-    <string name="camp_ui_play_rx">Play latest caller audio (off-call only)</string>
-    <string name="camp_ui_transcript">Show both sides of transcript (refresh manually)</string>
-    <string name="camp_ui_engines">AI engine settings</string>
-    <string name="camp_ui_no_task">No accepted task. Select START.</string>
-    <string name="camp_ui_cancelled">Task cancelled.</string>
-    <string name="camp_ui_accepted">CLIR task authorized. START runs an attempt; its result appears in diagnostics.</string>
-    <string name="camp_ui_evidence_on">RX/TX and transcript recording is within the approved campaign scope.</string>
-    <string name="camp_ui_evidence_off">RX/TX and transcript recording is off.</string>
-    <string name="camp_ui_no_campaign">No campaign</string>
-    <string name="camp_ui_revoked">Task cancelled</string>
-    <string name="camp_ui_no_accepted">No accepted task</string>
     <string name="skills_ui_title">AI skills and presets</string>
     <string name="skills_ui_intro">Instructions can be edited without rebuilding the app. </string>
     <string name="skills_ui_intro2">Factory presets are read-only. Changes apply to the next call.</string>
@@ -357,10 +319,6 @@
     <string name="lab_ui_turn_short">Turn %1$d</string>
 
     <string name="home_ui_task_heading">AI task authorization</string>
-    <string name="home_ui_task_none">No authorized task</string>
-    <string name="home_ui_task_revoked">Authorization cancelled</string>
-    <string name="home_ui_task_authorized">Task authorized; this does not mean a call is active</string>
-    <string name="home_ui_task_hint">Check execution progress in Campaigns.</string>
     <string name="skills_ui_activated_feedback">Preset activated for subsequent calls.</string>
     <string name="skills_ui_active_already">This preset is already active.</string>
     <string name="home_ui_audio_mode_label">Audio mode</string>
@@ -368,12 +326,7 @@
     <string name="home_ui_dialogue_model_label">Dialogue model</string>
     <string name="home_ui_readiness_label">Model file readiness</string>
     <string name="camp_ui_runtime_heading">Latest recorded execution state</string>
-    <string name="camp_ui_runtime_empty">No execution record. Authorization alone does not place a call.</string>
     <string name="camp_ui_actions_help">START begins the authorized attempt. STOP halts AI. Cancel revokes approval for future attempts.</string>
-    <string name="camp_ui_play_ai_short">Play AI reply</string>
-    <string name="camp_ui_play_rx_short">Play caller</string>
-    <string name="camp_ui_transcript_short">View transcript</string>
-    <string name="camp_ui_play_offcall">Playback is available only outside calls. Transcripts stay private.</string>
     <string name="eng_ui_primary_heading">Save selected configuration</string>
     <string name="eng_ui_diagnostics_heading">Optional diagnostics and tests</string>
     <string name="eng_ui_diagnostics_caption">Checking engines and previewing voices are separate from saving settings. Download models from the Models tab.</string>
@@ -398,8 +351,6 @@
     <string name="lab_ui_stop_banner">Test stopped — completed turns: %1$d/%2$d. No tool decisions were executed.</string>
     <string name="lab_ui_quality_warning">Response quality requires a manual rating.</string>
     <string name="campaign_ui_last_history">Last recorded event, not the current call state</string>
-    <string name="campaign_ui_stopped_friendly">AI stopped — execution record was retained.</string>
-    <string name="campaign_ui_runtime_details">Technical details are available below.</string>
 
 
     <string name="campaign_ui_disconnect_requested">Requested AI stop and cleanup of the owned call. Check diagnostics for confirmation.</string>
@@ -511,35 +462,6 @@
     <!-- UX-05 localized campaign presentation -->
     <string name="camp_ux05_record_local">Record RX/TX and transcripts of the next attempt (locally)</string>
     <string name="camp_ux05_attach_ai">Attach AI to the ongoing call</string>
-    <string name="camp_ux05_record_disabled">Recording disabled for future calls. Task remains authorized.</string>
-    <string name="camp_ux05_prep_caption">Preparation profiles are separate from task permissions. Changes apply to the next attempt.</string>
-    <string name="camp_ux05_prep_link">Skills and data — outgoing / incoming</string>
-    <string name="camp_ux05_target">Target: %1$s · current SIM</string>
-    <string name="camp_ux05_transcript_absent">No private transcript yet. Enable recording before the call.</string>
-    <string name="camp_ux05_counterpart">Caller</string>
-    <string name="camp_ux05_transcript_line">[%1$d s, turn %2$d] %3$s: %4$s</string>
-    <string name="camp_ux05_transcript_read_failed">Could not read the private transcript.</string>
-    <string name="camp_ux05_transcript_no_turns">No completed STT/AI utterances. Refresh after next turn.</string>
-    <string name="camp_ux05_transcript_title">Private RX / AI transcript</string>
-    <string name="camp_ux05_refresh">Refresh</string>
-    <string name="camp_ux05_close">Close</string>
-    <string name="camp_ux05_play_permission">Playback requires phone-state permission.</string>
-    <string name="camp_ux05_play_off_call">Playback only outside calls, to avoid audio feedback.</string>
-    <string name="camp_ux05_audio_absent">No saved AI audio. Enable private diagnostics first.</string>
-    <string name="camp_ux05_audio_file">Playing private %1$s file: %2$s</string>
-    <string name="camp_ux05_counterpart_audio">caller</string>
-    <string name="camp_ux05_play_failed">Could not play the latest WAV file.</string>
-    <string name="camp_ux05_permission_denied">Android permissions denied.</string>
-    <string name="camp_ux05_role_unavailable">Default dialer role is unavailable</string>
-    <string name="camp_ux05_role_already">AI Calls already holds the dialer role</string>
-    <string name="camp_ux05_role_request">Android will ask you to choose: AI Calls replaces Google Phone as the default dialer.</string>
-    <string name="camp_ux05_role_active">Android call controller active — authorized task can run</string>
-    <string name="camp_ux05_role_denied">Dialer role not granted; Google Phone remains active</string>
-    <string name="camp_ux05_supervised_start">Attaching supervised audio test to existing call.</string>
-    <string name="camp_ux05_sim_bind_failed">Cannot bind task to the current SIM.</string>
-    <string name="camp_ux05_campaign_start">Starting task: enable CLIR. Mode: %1$s</string>
-    <string name="camp_ux05_script_model">script + model</string>
-    <string name="camp_ux05_campaign_failed">Could not start task. Details are in diagnostics.</string>
 
     <!-- UX-05 Skills edit presentation -->
     <string name="skills_ux05_read_failed">Could not read skills: %1$s</string>
@@ -576,16 +498,8 @@
     <string name="skills_ux05_name_capture">Taking messages</string>
     <string name="skills_ux05_name_clarify">Clarifying questions</string>
     <string name="skills_ux05_name_closure">Natural closure</string>
-    <string name="camp_ux06_dialer_explanation">The Android default dialer role lets AI Calls place and manage its own authorized phone calls. Granting the role replaces the current default phone app; it never starts a call by itself. Restore your previous dialer in Android settings at any time.</string>
-    <string name="camp_ux06_role_inactive">Inactive — AI Calls is not the default dialer. Authorized outgoing calls require the role.</string>
-    <string name="camp_ux06_supervised_explanation">Attach AI to an already active cellular call for a limited supervised audio test. This does not dial or disconnect the call. STOP ends AI audio.</string>
-    <string name="camp_ux06_recording_scope">Applies to the next outgoing campaign attempt. Turning off future recording does not stop a recorder already active in a call. Use STOP to stop the AI session.</string>
     <string name="camp_ux06_diagnostic_recording">Recording permission for future campaign attempts: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Latest service message (historical, not live):\n%1$s</string>
-    <string name="camp_ux06_cancel_dispatch_failed">Authorization revoked, but the current attempt stop request could not be sent. Use STOP AI if needed.</string>
-    <string name="home_ux06_no_action">Last action: none. Status messages appear here after an operation.</string>
-    <string name="home_ux06_sim_unavailable">Task saved; current voice SIM cannot be verified. Check phone permission and SIM before starting.</string>
-    <string name="home_ux06_sim_mismatch">Saved authorization does not match the current voice SIM or exact task. Starting requires a matching authorization.</string>
     <string name="scenario_ui_title">Conversation scenarios</string>
     <string name="scenario_ui_campaign_hint">Choose an everyday task template and edit its form. Only CLIR has an existing phone-call adapter; other templates are drafts for now.</string>
     <string name="scenario_ui_open">Open scenario library</string>
@@ -615,8 +529,6 @@
     <string name="scenario_ui_restore">Restore selected version</string>
     <string name="scenario_ui_delete">Delete personal scenario</string>
     <string name="scenario_ui_delete_message">Delete this scenario and all its saved versions? Built-in templates remain unchanged.</string>
-    <string name="camp_ux06_timestamp_unknown">unknown (record predates this feature)</string>
-    <string name="camp_ux06_timestamp_label">Recorded: %1$s</string>
     <string name="scenario_ui_unsaved_title">Unsaved scenario changes</string>
     <string name="scenario_ui_unsaved_message">Leave the form without saving your changes?</string>
     <string name="scenario_ui_discard">Leave without saving</string>
@@ -640,5 +552,5 @@
     <string name="lab_skill_turn_unchanged">none</string>
     <string name="camp_mvp_appointment_title">Book an appointment — AI</string>
     <string name="camp_mvp_appointment_description">Choose a number, SIM, goal and permitted data. AI collects a proposed time for your review.</string>
-    <string name="camp_mvp_appointment_action">Prepare call and authorization</string>
+    <string name="home_ui_new_conversation">New call</string>
 </resources>

@@ -27,7 +27,6 @@
     <string name="ui_lab_short">Laboratorium offline</string>
     <string name="ui_campaigns">Kampanie</string>
     <string name="ui_stop_ai">STOP AI</string>
-    <string name="ui_start_authorized">Rozpocznij autoryzowane zadanie AI</string>
     <string name="ui_go_to">Przejdź do</string>
     <string name="ui_audio_mode">Tryb rozmowy</string>
     <string name="ui_text_model">Model tekstowy (dla trybu STT / TTS)</string>
@@ -153,13 +152,7 @@
     <string name="models_ui_active">Aktywny model · zainstalowany</string>
     <string name="models_ui_ready">Zainstalowany · gotowy do wyboru</string>
     <string name="models_ui_not_installed">Niezainstalowany</string>
-    <string name="campaign_ui_script_model">Skrypt + model</string>
-    <string name="campaign_ui_gemma_direct">Gemma Direct</string>
-    <string name="campaign_ui_dialogue_mode">Strategia rozmowy</string>
     <string name="campaign_ui_start">Rozpocznij zadanie</string>
-    <string name="campaign_ui_task_status">Stan zadania</string>
-    <string name="campaign_ui_stopping">Zatrzymywanie AI. Rozłączone może zostać tylko połączenie należące do aplikacji.</string>
-    <string name="campaign_ui_attempt_details">Ostatnia próba · szczegóły techniczne</string>
     <string name="skills_ui_enabled">Włączony</string>
     <string name="skills_ui_disabled">Wyłączony</string>
     <string name="skills_ui_factory_readonly">Preset fabryczny · tylko do odczytu. Aby edytować, utwórz własną kopię.</string>
@@ -186,14 +179,6 @@
     <string name="home_ui_one_tap">Dołącz AI do trwającej rozmowy</string>
     <string name="home_ui_start">Rozpocznij zadanie CLIR (skrypt + AI)</string>
     <string name="home_ui_stop_sent">Wysłano STOP AI; wynik zapisze serwis.</string>
-    <string name="home_ui_mode_label">Tryb: </string>
-    <string name="home_ui_model_label">Model tekstowy: </string>
-    <string name="home_ui_invalid_engines">Nieprawidłowa konfiguracja silników audio</string>
-    <string name="home_ui_model_status">Model: </string>
-    <string name="home_ui_local_realtime">Lokalny silnik realtime · wybór tekstowy zachowany</string>
-    <string name="home_ui_openai_realtime">OpenAI Realtime audio · wybór tekstowy zachowany</string>
-    <string name="home_ui_ready">Gotowy</string>
-    <string name="home_ui_needs_check">Wymaga weryfikacji</string>
     <string name="prep_ui_title">Przygotowanie rozmowy</string>
     <string name="prep_ui_intro">Kontekst dla następnych rozmów. Edycja nie uruchamia AI.</string>
     <string name="prep_ui_profile">Profil rozmowy</string>
@@ -246,29 +231,6 @@
     <string name="models_ui_save_failed">Błąd zapisu wyboru modelu.</string>
     <string name="models_ui_details">Szczegóły techniczne</string>
     <string name="models_ui_selected">Wybrano %1$s na następną rozmowę.</string>
-    <string name="camp_ui_title">Kampanie i zadania AI Calls</string>
-    <string name="camp_ui_intro">Zadanie wymaga autoryzacji na telefonie. STOP jest dostępny niezależnie.</string>
-    <string name="camp_ui_enable">Włącz CLIR</string>
-    <string name="camp_ui_cancel_task">Anuluj zadanie</string>
-    <string name="camp_ui_stop">STOP AI</string>
-    <string name="camp_ui_dialer">Autonomiczne połączenia telefoniczne</string>
-    <string name="camp_ui_role_button">Włącz autonomiczne połączenia (rola dialera Android)</string>
-    <string name="camp_ui_skills">Skills i dane rozmowy</string>
-    <string name="camp_ui_supervised">AI w trwającej rozmowie</string>
-    <string name="camp_ui_evidence">Prywatna diagnostyka rozmowy</string>
-    <string name="camp_ui_disable_record">Wyłącz zapis kolejnych prób</string>
-    <string name="camp_ui_play_ai">Odsłuchaj ostatnią odpowiedź AI (tylko poza rozmową)</string>
-    <string name="camp_ui_play_rx">Odsłuchaj ostatnią wypowiedź rozmówcy (tylko poza rozmową)</string>
-    <string name="camp_ui_transcript">Pokaż transkrypt obu stron (odśwież ręcznie)</string>
-    <string name="camp_ui_engines">Ustawienia silników AI</string>
-    <string name="camp_ui_no_task">Brak przyjętego zadania — wybierz START.</string>
-    <string name="camp_ui_cancelled">Zadanie anulowane.</string>
-    <string name="camp_ui_accepted">Autoryzowano zadanie włączenia CLIR. START uruchamia próbę; wynik wykonania jest w diagnostyce.</string>
-    <string name="camp_ui_evidence_on">Zapis RX/TX + transkrypt: w zakresie zatwierdzonej kampanii.</string>
-    <string name="camp_ui_evidence_off">Zapis RX/TX + transkrypt: wyłączony.</string>
-    <string name="camp_ui_no_campaign">Brak kampanii</string>
-    <string name="camp_ui_revoked">Zadanie anulowane</string>
-    <string name="camp_ui_no_accepted">Brak przyjętego zadania</string>
     <string name="skills_ui_title">Skills i presety AI</string>
     <string name="skills_ui_intro">Instrukcje można edytować bez ponownej kompilacji aplikacji. </string>
     <string name="skills_ui_intro2">Presety fabryczne są tylko do odczytu. Zmiany obowiązują od następnej rozmowy.</string>
@@ -357,10 +319,6 @@
     <string name="lab_ui_turn_short">Tura %1$d</string>
 
     <string name="home_ui_task_heading">Autoryzacja zadania AI</string>
-    <string name="home_ui_task_none">Brak autoryzowanego zadania</string>
-    <string name="home_ui_task_revoked">Autoryzacja anulowana</string>
-    <string name="home_ui_task_authorized">Zadanie autoryzowane; nie oznacza to aktywnego połączenia</string>
-    <string name="home_ui_task_hint">Postęp wykonania sprawdzisz w Kampaniach.</string>
     <string name="skills_ui_activated_feedback">Aktywowano preset dla następnych rozmów.</string>
     <string name="skills_ui_active_already">Wybrany preset jest już aktywny.</string>
     <string name="home_ui_audio_mode_label">Tryb audio</string>
@@ -368,12 +326,7 @@
     <string name="home_ui_dialogue_model_label">Model dialogu</string>
     <string name="home_ui_readiness_label">Gotowość pliku modelu</string>
     <string name="camp_ui_runtime_heading">Ostatni zapis wykonania</string>
-    <string name="camp_ui_runtime_empty">Brak zapisu uruchomienia. Sama autoryzacja nie rozpoczyna połączenia.</string>
     <string name="camp_ui_actions_help">START rozpoczyna zatwierdzoną próbę. STOP zatrzymuje AI. Anuluj odbiera uprawnienie do kolejnych prób.</string>
-    <string name="camp_ui_play_ai_short">Odsłuchaj odpowiedź AI</string>
-    <string name="camp_ui_play_rx_short">Odsłuchaj rozmówcę</string>
-    <string name="camp_ui_transcript_short">Pokaż transkrypt</string>
-    <string name="camp_ui_play_offcall">Odsłuch tylko poza połączeniem. Transkrypt pozostaje prywatny.</string>
     <string name="eng_ui_primary_heading">Zapis wybranej konfiguracji</string>
     <string name="eng_ui_diagnostics_heading">Diagnostyka i testy opcjonalne</string>
     <string name="eng_ui_diagnostics_caption">Sprawdzenie silników i odsłuch są niezależne od zapisu ustawień. Pobieranie modeli znajdziesz w zakładce Modele.</string>
@@ -398,8 +351,6 @@
     <string name="lab_ui_stop_banner">Zatrzymano test — ukończone tury: %1$d/%2$d. Żadna decyzja narzędzia nie została wykonana.</string>
     <string name="lab_ui_quality_warning">Jakość treści wymaga ręcznej oceny.</string>
     <string name="campaign_ui_last_history">Ostatnie zdarzenie, nie bieżący stan połączenia</string>
-    <string name="campaign_ui_stopped_friendly">Zatrzymano AI — zapis wykonania został zachowany.</string>
-    <string name="campaign_ui_runtime_details">Szczegóły techniczne dostępne niżej.</string>
 
 
     <string name="campaign_ui_disconnect_requested">Wysłano polecenie zatrzymania AI i zakończenia własnego połączenia. Potwierdzenie sprawdź w diagnostyce.</string>
@@ -511,35 +462,6 @@
     <!-- UX-05 localized campaign presentation -->
     <string name="camp_ux05_record_local">Zapisz audio RX/TX i transkrypt następnej próby (lokalnie)</string>
     <string name="camp_ux05_attach_ai">Dołącz AI do trwającej rozmowy</string>
-    <string name="camp_ux05_record_disabled">Nagrywanie wyłączone dla kolejnych rozmów. Zadanie pozostaje autoryzowane.</string>
-    <string name="camp_ux05_prep_caption">Profile przygotowania są niezależne od zadania i jego uprawnień. Zmiany obowiązują w kolejnej próbie.</string>
-    <string name="camp_ux05_prep_link">Skills i dane — wychodzące / przychodzące</string>
-    <string name="camp_ux05_target">Cel: %1$s · bieżąca SIM</string>
-    <string name="camp_ux05_transcript_absent">Nie ma jeszcze prywatnego transkryptu. Uzbrój zapis przed rozmową.</string>
-    <string name="camp_ux05_counterpart">Rozmówca</string>
-    <string name="camp_ux05_transcript_line">[%1$d s, tura %2$d] %3$s: %4$s</string>
-    <string name="camp_ux05_transcript_read_failed">Nie udało się odczytać prywatnego transkryptu.</string>
-    <string name="camp_ux05_transcript_no_turns">Brak ukończonych wypowiedzi STT/AI. Odśwież po kolejnej turze.</string>
-    <string name="camp_ux05_transcript_title">Prywatny transkrypt RX / AI</string>
-    <string name="camp_ux05_refresh">Odśwież</string>
-    <string name="camp_ux05_close">Zamknij</string>
-    <string name="camp_ux05_play_permission">Odsłuch wymaga uprawnienia do sprawdzenia stanu telefonu.</string>
-    <string name="camp_ux05_play_off_call">Odsłuch tylko poza rozmową; bez ryzyka sprzężenia audio.</string>
-    <string name="camp_ux05_audio_absent">Brak zapisanego audio AI. Najpierw uzbrój prywatną diagnostykę.</string>
-    <string name="camp_ux05_audio_file">Odtwarzanie prywatnego pliku %1$s: %2$s</string>
-    <string name="camp_ux05_counterpart_audio">rozmówcy</string>
-    <string name="camp_ux05_play_failed">Nie udało się odtworzyć ostatniego pliku WAV.</string>
-    <string name="camp_ux05_permission_denied">Android odmówił uprawnień.</string>
-    <string name="camp_ux05_role_unavailable">System nie udostępnia roli domyślnego dialera</string>
-    <string name="camp_ux05_role_already">AI Calls ma już rolę dialera</string>
-    <string name="camp_ux05_role_request">Android poprosi o świadomy wybór: AI Calls zastąpi Google Phone jako domyślny dialer.</string>
-    <string name="camp_ux05_role_active">Kontroler połączeń Android aktywny — można wykonać autoryzowane zadanie</string>
-    <string name="camp_ux05_role_denied">Rola dialera nie została przyznana; Google Phone pozostaje aktywny</string>
-    <string name="camp_ux05_supervised_start">Podłączam nadzorowany test audio do istniejącej rozmowy.</string>
-    <string name="camp_ux05_sim_bind_failed">Nie można przypisać zadania do bieżącej karty SIM.</string>
-    <string name="camp_ux05_campaign_start">Uruchamiam zadanie: włączenie CLIR. Tryb: %1$s</string>
-    <string name="camp_ux05_script_model">skrypt + model</string>
-    <string name="camp_ux05_campaign_failed">Nie udało się uruchomić zadania. Szczegóły są w diagnostyce.</string>
 
     <!-- UX-05 Skills edit presentation -->
     <string name="skills_ux05_read_failed">Nie można odczytać skillsów: %1$s</string>
@@ -576,16 +498,8 @@
     <string name="skills_ux05_name_capture">Przyjmowanie wiadomości</string>
     <string name="skills_ux05_name_clarify">Dopytywanie</string>
     <string name="skills_ux05_name_closure">Naturalne zakończenie</string>
-    <string name="camp_ux06_dialer_explanation">Rola domyślnej aplikacji telefonicznej pozwala AI Calls wykonywać i obsługiwać własne autoryzowane połączenia. Jej nadanie zastępuje dotychczasowy dialer, ale samo nie uruchamia rozmowy. W dowolnym momencie możesz przywrócić poprzedni dialer w ustawieniach Androida.</string>
-    <string name="camp_ux06_role_inactive">Nieaktywna — AI Calls nie jest domyślnym dialerem. Autoryzowane połączenia wychodzące wymagają tej roli.</string>
-    <string name="camp_ux06_supervised_explanation">Dołącz AI do już trwającej rozmowy komórkowej w ograniczonym teście audio. Funkcja nie wybiera numeru ani nie rozłącza rozmowy. STOP kończy działanie AI.</string>
-    <string name="camp_ux06_recording_scope">Dotyczy następnej próby kampanii wychodzącej. Wyłączenie przyszłego nagrywania nie zatrzymuje rejestratora już trwającej rozmowy. Do zatrzymania sesji AI służy STOP.</string>
     <string name="camp_ux06_diagnostic_recording">Zgoda na zapis kolejnych prób kampanii: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Ostatni komunikat serwisu (historyczny, nie na żywo):\n%1$s</string>
-    <string name="camp_ux06_cancel_dispatch_failed">Autoryzacja cofnięta, ale nie udało się przekazać polecenia zakończenia bieżącej próby. W razie potrzeby użyj STOP AI.</string>
-    <string name="home_ux06_no_action">Ostatnie działanie: brak. Tutaj pojawi się komunikat po wykonaniu akcji.</string>
-    <string name="home_ux06_sim_unavailable">Zadanie zapisane, ale nie można sprawdzić bieżącej SIM głosowej. Zweryfikuj uprawnienia telefonu i kartę przed START.</string>
-    <string name="home_ux06_sim_mismatch">Zapisana autoryzacja nie odpowiada bieżącej SIM głosowej lub dokładnemu zadaniu. START wymaga pasującej autoryzacji.</string>
     <string name="scenario_ui_title">Scenariusze rozmów</string>
     <string name="scenario_ui_campaign_hint">Wybierz gotowy scenariusz codziennej sprawy i uzupełnij formularz. Tylko CLIR ma obecnie adapter połączeń; pozostałe to na razie wersje robocze.</string>
     <string name="scenario_ui_open">Otwórz bibliotekę scenariuszy</string>
@@ -616,8 +530,6 @@
     <string name="scenario_ui_delete">Usuń mój scenariusz</string>
     <string name="scenario_ui_delete_message">Usunąć ten scenariusz i jego zapisane wersje? Gotowe presety pozostaną bez zmian.</string>
 
-    <string name="camp_ux06_timestamp_unknown">nieznany (starszy zapis)</string>
-    <string name="camp_ux06_timestamp_label">Zapisano: %1$s</string>
     <string name="scenario_ui_unsaved_title">Niezapisane zmiany scenariusza</string>
     <string name="scenario_ui_unsaved_message">Wrócić do listy bez zapisywania zmian?</string>
     <string name="scenario_ui_discard">Wróć bez zapisywania</string>
@@ -641,5 +553,5 @@
     <string name="lab_skill_turn_unchanged">brak</string>
     <string name="camp_mvp_appointment_title">Umów wizytę — AI</string>
     <string name="camp_mvp_appointment_description">Wybierz numer, SIM, cel i dopuszczone dane. AI zbiera propozycję terminu do weryfikacji.</string>
-    <string name="camp_mvp_appointment_action">Przygotuj rozmowę i autoryzację</string>
+    <string name="home_ui_new_conversation">Nowa rozmowa</string>
 </resources>

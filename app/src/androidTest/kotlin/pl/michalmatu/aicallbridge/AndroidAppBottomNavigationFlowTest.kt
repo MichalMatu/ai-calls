@@ -43,11 +43,9 @@ class AndroidAppBottomNavigationFlowTest {
         }
     }
 
-    @Test fun homeTabsNavigateToHistoryLabAndSettings() {
+    @Test fun homeTabsNavigateToHistoryAgentAndSettings() {
         openTab("history", ConversationHistoryActivity::class.java)
         openTab("agent", AgentAiHubActivity::class.java)
-        openTab("lab", ConversationSkillLabActivity::class.java)
-        openTab("models", LanguageModelActivity::class.java)
         openTab("settings", SettingsHubActivity::class.java)
     }
 

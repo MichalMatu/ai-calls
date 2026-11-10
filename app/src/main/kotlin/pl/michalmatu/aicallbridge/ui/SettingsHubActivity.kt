@@ -12,6 +12,8 @@ import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
+import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 
@@ -114,6 +116,9 @@ class SettingsHubActivity : AppBaseActivity() {
         content.addView(languagePicker, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, UiDesign.dp(this, 52)
         ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 8) })
+        section(R.string.ui_settings_hub_group_ai)
+        destination(R.string.ui_settings_hub_engines, R.string.ui_settings_hub_engines_detail, AudioEngineSettingsActivity::class.java)
+        destination(R.string.ui_settings_hub_models, R.string.ui_settings_hub_models_detail, LanguageModelActivity::class.java)
         section(R.string.ui_settings_hub_group_calls)
         destination(R.string.ui_settings_hub_general, R.string.ui_settings_hub_general_detail, GeneralSettingsActivity::class.java)
         destination(R.string.ui_settings_hub_answering, R.string.ui_settings_hub_answering_detail, IncomingAssistantSettingsActivity::class.java)
