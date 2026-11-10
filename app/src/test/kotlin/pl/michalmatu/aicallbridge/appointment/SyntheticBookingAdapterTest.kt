@@ -89,6 +89,36 @@ class SyntheticBookingAdapterTest {
         assertTrue(provider.available(offered))
     }
 
+    @Test fun consumedPermitCannotConfirmReplacementHoldAfterExpiry() {
+        var now = 0L
+        val offered = proposal()
+        val provider = SyntheticBookingAdapter(clockMs = { now }, confirmReady = { false })
+        val stale = provider.hold(offered, "first", 10L).getOrThrow()
+        val firstEvidence = consumed(offered)
+        assertTrue(provider.confirm(stale, "first", firstEvidence).isFailure)
+        now = 10L
+        val fresh = provider.hold(offered, "second", 20L).getOrThrow()
+        assertTrue(provider.confirm(fresh, "second", firstEvidence).isFailure)
+        assertNull(provider.readBack("synthetic-booking-" + fresh.id))
+    }
+
+    @Test fun consumedPermitCannotConfirmTwoDifferentSlotsWithSameOffer() {
+        val offered = proposal()
+        var ready = false
+        val provider = SyntheticBookingAdapter(confirmReady = { ready })
+        val first = provider.hold(offered, "first", 1_000L).getOrThrow()
+        val evidence = consumed(offered)
+        assertTrue(provider.confirm(first, "first", evidence).isFailure)
+        assertTrue(provider.cancel(first, "first"))
+        val second = provider.hold(offered, "second", 1_000L).getOrThrow()
+        ready = true
+        assertTrue(provider.confirm(second, "second", evidence).isFailure)
+        val freshEvidence = consumed(offered)
+        val receipt = provider.confirm(second, "second", freshEvidence).getOrThrow()
+        assertSame(receipt, provider.confirm(second, "second", freshEvidence).getOrThrow())
+        assertTrue(provider.confirm(second, "second", evidence).isFailure)
+    }
+
     @Test fun idempotentHoldKeepsOriginalTtlAndRejectsChangedTerms() {
         val provider = SyntheticBookingAdapter()
         val first = provider.hold(proposal(), "key", 1_000L).getOrThrow()

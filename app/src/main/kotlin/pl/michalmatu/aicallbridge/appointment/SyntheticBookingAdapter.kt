@@ -32,6 +32,7 @@ class SyntheticBookingAdapter(
         val slot: SlotKey,
         val proposal: CallProposal,
         var receipt: SyntheticBookingReceipt? = null,
+        var consumedEvidence: CallCommitmentConsumptionEvidence? = null,
         var cancelled: Boolean = false,
     )
     private val byKey = mutableMapOf<String, Entry>()
@@ -39,6 +40,8 @@ class SyntheticBookingAdapter(
     private val bySlot = mutableMapOf<SlotKey, Entry>()
     private val byHold = mutableMapOf<String, Entry>()
     private val byReceipt = mutableMapOf<String, SyntheticBookingReceipt>()
+    // Consumption receipts are opaque identity objects, not reusable effect descriptions.
+    private val byConsumption = java.util.IdentityHashMap<CallCommitmentConsumptionEvidence, Entry>()
     private var sequence = 0L
 
     private fun occupied(slot: SlotKey, atMs: Long): Boolean {
@@ -92,8 +95,19 @@ class SyntheticBookingAdapter(
         check(consumed.effect == CallExternalEffect.BookAppointment(entry.proposal)) {
             "consumed effect differs from held offer"
         }
+        // A consumed permit may authorize exactly one hold. Retain this binding
+        // across failed provider responses, cancellation and expiry; retries on the
+        // same hold are idempotent, never permission to confirm a replacement hold.
+        check(byConsumption[consumed]?.let { it === entry } != false) {
+            "commitment evidence already used for another hold"
+        }
+        check(entry.consumedEvidence == null || entry.consumedEvidence === consumed) {
+            "hold already bound to different commitment evidence"
+        }
         entry.receipt?.let { return@runCatching it }
         check(clockMs() < entry.hold.expiresAtMs) { "hold expired" }
+        entry.consumedEvidence = consumed
+        byConsumption[consumed] = entry
         check(runCatching { confirmReady() }.getOrDefault(false)) { "provider confirmation unavailable" }
         // External readiness can reenter confirm(), cancel(), or advance the clock.
         // Preserve an already-confirmed receipt; never commit a revoked/expired hold.
