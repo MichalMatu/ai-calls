@@ -83,6 +83,21 @@ internal class RecordedConversationHistory(private val root: File) {
         return !directory.exists()
     }
 
+    /**
+     * Reclaim only previously completed private archives, oldest first, when storage
+     * pressure is real. Never touch the active recorder, external symlinks, partial
+     * sessions or unknown folders. The caller decides when enough space is available.
+     */
+    fun reclaimCompletedForSpace(activeSessionId: String, enoughSpace: () -> Boolean): Int {
+        var deleted = 0
+        for (candidate in root.listFiles().orEmpty().sortedBy { it.name }) {
+            if (enoughSpace()) break
+            if (!candidate.isDirectory || candidate.name == activeSessionId) continue
+            if (runCatching { deleteCompleted(candidate.name) }.getOrDefault(false)) deleted++
+        }
+        return deleted
+    }
+
     data class ClearCompletedResult(
         val deleted: Int,
         val skipped: Int,

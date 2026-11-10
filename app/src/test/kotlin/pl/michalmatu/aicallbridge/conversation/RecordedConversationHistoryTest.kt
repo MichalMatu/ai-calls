@@ -95,6 +95,63 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun pressureReclamationStopsWhenSpaceIsEnoughAndPreservesActiveRecorder() {
+        val root = Files.createTempDirectory("conversation-reclaim-pressure").toFile()
+        try {
+            write(root, "1000-oldest", "OUTGOING", "remove-first")
+            write(root, "2000-next", "INCOMING", "keep")
+            write(root, "3000-active", "INCOMING", "actively-recording")
+            File(root, "1000-oldest/COMPLETE").writeText("done")
+            File(root, "2000-next/COMPLETE").writeText("done")
+            // Even a stray marker on the active session must not authorize eviction.
+            File(root, "3000-active/COMPLETE").writeText("partial")
+            val history = RecordedConversationHistory(root)
+            val deleted = history.reclaimCompletedForSpace("3000-active") {
+                !File(root, "1000-oldest").exists()
+            }
+            assertEquals(1, deleted)
+            assertFalse(File(root, "1000-oldest").exists())
+            assertTrue(File(root, "2000-next").exists())
+            assertTrue(File(root, "3000-active").exists())
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun pressureReclamationRejectsUnknownMarkersUnfinishedAndExternalLinks() {
+        val root = Files.createTempDirectory("conversation-reclaim-safe").toFile()
+        val external = Files.createTempDirectory("conversation-reclaim-outside").toFile()
+        try {
+            write(root, "1000-valid", "INCOMING", "remove")
+            File(root, "1000-valid/COMPLETE").writeText("done")
+            write(root, "2000-unfinished", "INCOMING", "preserve")
+            File(root, "2000-unfinished/COMPLETE").writeText("stray")
+            File(root, "2000-unfinished/timeline.jsonl").writeText(
+                "not-json\n",
+            )
+            val unknown = File(root, "3000-unknown").apply { mkdirs() }
+            File(unknown, "COMPLETE").writeText("stray")
+            val linkedDir = File(root, "4000-outside-link")
+            Files.createSymbolicLink(linkedDir.toPath(), external.toPath())
+            val externalData = File(external, "keep.txt").apply { writeText("outside") }
+            File(external, "COMPLETE").writeText("stray")
+            val poisoned = File(root, "5000-poisoned").apply { mkdirs() }
+            Files.createSymbolicLink(
+                File(poisoned, "timeline.jsonl").toPath(),
+                File(unknown, "nonexistent.jsonl").toPath(),
+            )
+            File(poisoned, "COMPLETE").writeText("stray")
+
+            val deleted = RecordedConversationHistory(root)
+                .reclaimCompletedForSpace("6000-active") { false }
+            assertEquals(1, deleted)
+            assertFalse(File(root, "1000-valid").exists())
+            assertTrue(File(root, "2000-unfinished").exists())
+            assertTrue(unknown.exists())
+            assertTrue(linkedDir.exists())
+            assertTrue(poisoned.exists())
+            assertEquals("outside", externalData.readText())
+        } finally { root.deleteRecursively(); external.deleteRecursively() }
+    }
+
     @Test fun bulkClearDoesNotFollowRootSymlinksOrIncompleteMarker() {
         val root = Files.createTempDirectory("conversation-bulk-safe").toFile()
         val external = Files.createTempDirectory("conversation-bulk-external").toFile()

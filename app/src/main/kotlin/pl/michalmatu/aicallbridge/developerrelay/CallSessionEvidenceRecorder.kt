@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolEvent
+import pl.michalmatu.aicallbridge.conversation.RecordedConversationHistory
 
 import android.content.Context
 import android.os.SystemClock
@@ -238,14 +239,14 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     private fun ensureFreeSpace(requiredBytes: Long): Boolean {
         val needed = requiredBytes + MIN_OS_FREE_BYTES
         if (directory.usableSpace >= needed) return true
-        // Retire only older *completed* evidence under actual storage pressure.
-        // This is resource recovery, not a fixed three-session retention ceiling.
-        directory.parentFile?.listFiles()?.asSequence()
-            ?.filter { it.isDirectory && it != directory && File(it, "COMPLETE").isFile }
-            ?.sortedBy { it.name }
-            ?.forEach { old ->
-                if (directory.usableSpace < needed) old.deleteRecursively()
+        // Use the same verified COMPLETE + private-timeline + no-symlink deletion
+        // policy as the history UI. A bare COMPLETE file never authorizes pruning.
+        // This is resource recovery, not an arbitrary session-count limit.
+        directory.parentFile?.let { root ->
+            RecordedConversationHistory(root).reclaimCompletedForSpace(directory.name) {
+                directory.usableSpace >= needed
             }
+        }
         return directory.usableSpace >= needed
     }
 
