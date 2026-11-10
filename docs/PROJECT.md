@@ -23,8 +23,10 @@ DEVICE_VERIFIED dotyczy tylko off-call. Żadna cała funkcja telefoniczna nie pr
 - main@044427b01150ef542852f2ec42a19463f89e1feb: pełny test-profile.sh full **PASS** (Gradle/JVM, lint, 409 Python, audio/secret gates), :app:assembleDebug **PASS**, czysty Git.
 - APK na Macu: ~/agent-workspace/artifacts/ai-calls/ai-calls-mvp-first-044427b01150.apk; SHA-256 437e35f0a445dfe1cf4f48eaf6a3f0cf5a663e9d4998db03be7275edd0c0d232. Exact bytes zainstalowane na S22+ przez adb install -r bez wipe; podpis, wersja, dialer i dane zgodne. Off-call STT/TTS/Gemma 3/3 PASS, status bridge PASS, hashe ustawień bez zmian.
 
+- main@93339cb: podgląd wpisu sejfu na żądanie, poprawione daty, szkic USB (15 min, bez dial). Python 16 i lint PASS; nowy APK niewdrożony.
+
 ## Następny sprint — MVP FIRST (kod, nie audyt)
-1. Instalacja i off-call zakończone. Live-call dopiero po osobnej zgodzie na numer testowy, SIM, uczestnika i zakres. **PHYSICAL_OPEN**.
+1. Instalacja wcześniejszego APK i off-call zakończone. Zmiany interfejsu i diagnostyki wymagają nowego APK, aktualizacji bez wipe i odbioru UI. Live-call nadal **PHYSICAL_OPEN**.
 2. Po próbach poprawić wyłącznie usterki blokujące MVP. Nie uruchamiać G6.5/G7, niepotrzebnych refaktorów ani audytu.
 
 ## Próby S22+ — dokładny zakres PHYSICAL_OPEN
