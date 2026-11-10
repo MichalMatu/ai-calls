@@ -43,6 +43,11 @@ internal class AndroidTelecomOwnedCallController private constructor(
         check(account in telecom.callCapablePhoneAccounts) { "voice_account_unavailable" }
         val tel = app.getSystemService(android.telephony.TelephonyManager::class.java)
             ?: error("telephony_unavailable")
+        // getSubscriptionId() is API 30+. Deny rather than guess on Android 10,
+        // preserving the exact-selected-SIM guarantee for real calls.
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) {
+            error("api_30_required_for_exact_voice_subscription")
+        }
         val subscriptionId = tel.createForPhoneAccountHandle(account)?.subscriptionId
             ?: error("voice_subscription_unavailable")
         check(CampaignPhoneAccountResolver.resolveSelectedVoiceAccount(
