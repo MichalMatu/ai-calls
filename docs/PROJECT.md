@@ -5,7 +5,7 @@
 ## Cel i fakty
 - Jeden lokalny agent i jeden wspólny runtime INCOMING/OUTGOING. Bieżący produkt jest **modułowym laboratorium**, finalnie jeden pakiet instalacyjny. Obecny wybór: Gemma 4 E2B/GPU, CONTEXTUAL Skills, Android STT/TTS i Samsung/Shizuku.
 - **G3/G4:** wybór E2B po 96/96 native tur; dynamic Skills S22 PASS w zakresie off-call. **G5.3:** 18/18 native off-call tur i 36 prywatnych WAV, rzeczywisty STOP STT/model/TTS sprawdzony. Indywidualna ocena człowieka: **0/6, UNASSESSED** (nie wpisuj human PASS).
-- **G6 source/host:** INCOMING exact Call/policy/generation, STOP/TAKE OVER, END_CALL receipt po drenażu RX; TX wymaga flush/live grant i ma typowany wynik. IVR DTMF stop fail-closed. RX/STT/TX: tura/epoka/generacja, pre-roll barge-in; prywatne WAV to tylko fragmenty, nie pełny zapis. S22/echo/double-talk, manual resume, pełne nagranie, realny IVR/booking PHYSICAL_OPEN. QA: pending final Mac freeze; bez APK/Call.
+- **G6 source/host:** INCOMING exact Call/policy/generation, STOP/TAKE OVER, END_CALL receipt po drenażu RX; TX wymaga flush/live grant i ma typowany wynik. IVR DTMF stop fail-closed. RX/STT/TX: tura/epoka/generacja, pre-roll barge-in; prywatne WAV to tylko fragmenty, nie pełny zapis. S22/echo/double-talk, manual resume, pełne nagranie, realny IVR/booking PHYSICAL_OPEN. QA aicalls-g61-disconnecting-owner-fence-docbudget-full-20261110-v1: Gradle/lint, Python i audio PASS; bez APK/Call.
 - Historyczne A8→S22 potwierdziły tylko fragment RX i własne rozłączenie, nie całe G6. Nie powtarzaj G3/G5.3 off-call.
 
 ## Otwarte — tylko rzeczywista następna praca
