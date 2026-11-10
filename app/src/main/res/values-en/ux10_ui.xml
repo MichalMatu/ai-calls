@@ -16,6 +16,7 @@
     <string name="ux10_vault_new_custom">Add custom field</string>
     <string name="ux10_vault_value_hint">Enter new value</string>
     <string name="ux10_vault_keep_existing">New value (leave blank to keep existing)</string>
+    <string name="ux10_vault_show_while_typing">Show value while typing</string>
     <string name="ux10_vault_save">Save</string>
     <string name="ux10_vault_custom_name">Field name</string>
     <string name="ux10_vault_kind">Value type</string>

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.EditText
+import android.widget.CheckBox
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -55,6 +56,44 @@ class AndroidCustomVaultUiAcceptanceTest {
         assertEquals("Dialog action missing", 1, buttons.size)
         assertTrue(buttons.single().performAction(AccessibilityNodeInfo.ACTION_CLICK))
         instrument.waitForIdleSync()
+    }
+
+    @Test fun newValueRevealToggleExistsAndStartsUnchecked() {
+        ActivityScenario.launch(IdentityVaultManagerActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                requireNotNull(activity.window.decorView.findViewWithTag<View>(
+                    "vault-standard:FIRST_NAME:edit")).performClick()
+            }
+            instrument.waitForIdleSync()
+            val nodes = mutableListOf<AccessibilityNodeInfo>()
+            allNodes(requireNotNull(instrument.uiAutomation.rootInActiveWindow), nodes)
+            val reveal = nodes.filter {
+                it.className?.toString() == CheckBox::class.java.name &&
+                    it.text?.toString() ==
+                        ApplicationProvider.getApplicationContext<Context>()
+                            .getString(R.string.ux10_vault_show_while_typing)
+            }
+            assertEquals("One opt-in visibility toggle is required", 1, reveal.size)
+            assertFalse("Masked by default", reveal.single().isChecked)
+            assertTrue(reveal.single().performAction(AccessibilityNodeInfo.ACTION_CLICK))
+            instrument.waitForIdleSync()
+            val shown = mutableListOf<AccessibilityNodeInfo>()
+            allNodes(requireNotNull(instrument.uiAutomation.rootInActiveWindow), shown)
+            val toggle = shown.single {
+                it.className?.toString() == CheckBox::class.java.name &&
+                    it.text?.toString() ==
+                        ApplicationProvider.getApplicationContext<Context>()
+                            .getString(R.string.ux10_vault_show_while_typing)
+            }
+            assertTrue("Reveal is opt-in", toggle.isChecked)
+            assertTrue(toggle.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+            instrument.waitForIdleSync()
+            val hidden = mutableListOf<AccessibilityNodeInfo>()
+            allNodes(requireNotNull(instrument.uiAutomation.rootInActiveWindow), hidden)
+            assertFalse(hidden.single {
+                it.className?.toString() == CheckBox::class.java.name
+            }.isChecked)
+        }
     }
 
     @Test fun createRenameAndDeleteThroughUiOnIsolatedCustomVault() {

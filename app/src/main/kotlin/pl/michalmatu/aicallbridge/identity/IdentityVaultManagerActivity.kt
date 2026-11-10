@@ -6,6 +6,8 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.CheckBox
+import android.text.method.PasswordTransformationMethod
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -19,7 +21,8 @@ import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiSelect
 
 /**
- * Owner-only editor. Values are never rendered or logged; editing a saved value requires replacement.
+ * Owner-only editor. Existing values are never rendered or logged. A user may explicitly
+ * reveal only a newly entered value while its dialog is open; editing requires replacement.
  * Saving a field never authorizes any AI use/disclosure or call.
  */
 class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
@@ -211,10 +214,26 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
         imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
     }
 
+    /** Default hidden; visibility is opt-in for this dialog only, with no vault read. */
+    private fun visibilityToggle(value: EditText): CheckBox = CheckBox(this).apply {
+        tag = "vault-input-visibility"
+        text = getString(R.string.ux10_vault_show_while_typing)
+        isChecked = false
+        setOnCheckedChangeListener { _, visible ->
+            val cursor = value.selectionStart.coerceIn(0, value.text.length)
+            value.transformationMethod =
+                if (visible) null else PasswordTransformationMethod.getInstance()
+            value.setSelection(cursor)
+        }
+    }
+
     private fun editStandard(field: IdentityFieldId) {
         val value = privateInput(getString(R.string.ux10_vault_value_hint),
             field == IdentityFieldId.PESEL || field == IdentityFieldId.PHONE)
-        val wrap = dialogBody().apply { addView(value) }
+        val wrap = dialogBody().apply {
+            addView(value)
+            addView(visibilityToggle(value))
+        }
         AlertDialog.Builder(this).setTitle(labelFor(field)).setView(wrap)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.ux10_vault_save) { _, _ ->
@@ -283,6 +302,7 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
             addView(sensitivityPicker)
             addView(UiDesign.caption(this@IdentityVaultManagerActivity, getString(R.string.ux10_vault_new_value)))
             addView(value)
+            addView(visibilityToggle(value))
         }
         AlertDialog.Builder(this).setTitle(getString(if (field == null)
             R.string.ux10_vault_new_custom else R.string.ux10_vault_replace))

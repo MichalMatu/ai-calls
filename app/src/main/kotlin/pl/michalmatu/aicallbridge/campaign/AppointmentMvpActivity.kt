@@ -67,6 +67,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
                 hint = placeholder
                 inputType = type
                 setSingleLine(true)
+                setSelectAllOnFocus(true)
                 setText(value)
                 tag = "appointment-input:" + title
                 body.addView(this, UiDesign.spaceAfter(this@AppointmentMvpActivity, 12))
@@ -86,9 +87,9 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
         goal = field("Cel rozmowy", "Umów wizytę kontrolną", saved?.goal.orEmpty(),
             InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
         from = field("Termin od (rrrr-mm-dd gg:mm)", "2027-02-10 09:00",
-            display(saved?.notBefore ?: tomorrow), InputType.TYPE_CLASS_DATETIME)
+            display(saved?.notBefore ?: tomorrow), InputType.TYPE_CLASS_TEXT)
         until = field("Termin do (rrrr-mm-dd gg:mm)", "2027-02-10 17:00",
-            display(saved?.notAfter ?: tomorrow.plusHours(8)), InputType.TYPE_CLASS_DATETIME)
+            display(saved?.notAfter ?: tomorrow.plusHours(8)), InputType.TYPE_CLASS_TEXT)
         terms = field("Warunki", "Bez dodatkowych opłat", saved?.conditions.orEmpty(),
             InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
         body.addView(UiDesign.heading(this, "Dane IdentityVault").apply { textSize = 17f },

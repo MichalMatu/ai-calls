@@ -116,6 +116,7 @@
             android:exported="false" />
         <activity
             android:name=".campaign.AppointmentMvpActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false" />
 
         <activity android:name=".textagent.LanguageModelActivity" android:exported="false" />

@@ -16,6 +16,7 @@
     <string name="ux10_vault_new_custom">Dodaj własne pole</string>
     <string name="ux10_vault_value_hint">Wpisz nową wartość</string>
     <string name="ux10_vault_keep_existing">Nowa wartość (puste pole zachowa poprzednią)</string>
+    <string name="ux10_vault_show_while_typing">Pokaż wpisywaną wartość</string>
     <string name="ux10_vault_save">Zapisz</string>
     <string name="ux10_vault_custom_name">Nazwa pola</string>
     <string name="ux10_vault_kind">Typ wartości</string>
