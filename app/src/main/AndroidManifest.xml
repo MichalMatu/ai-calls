@@ -114,6 +114,9 @@
         <activity
             android:name=".campaign.CampaignToolActivity"
             android:exported="false" />
+        <activity
+            android:name=".campaign.AppointmentMvpActivity"
+            android:exported="false" />
 
         <activity android:name=".textagent.LanguageModelActivity" android:exported="false" />
         <service android:name=".textagent.LanguageModelTransferService" android:exported="false" android:foregroundServiceType="dataSync" />
