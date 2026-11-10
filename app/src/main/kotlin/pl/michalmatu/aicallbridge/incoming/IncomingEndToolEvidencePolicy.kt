@@ -39,3 +39,15 @@ internal class IncomingEndToolArchiveGate {
         return terminal
     }
 }
+
+/** Retain an ENDING owner across Android DISCONNECTING -> DISCONNECTED callbacks. */
+internal class IncomingEndToolDisconnectFence {
+    private var endingAtDisconnecting = false
+
+    @Synchronized fun noteDisconnecting(endingOwner: Boolean) {
+        if (endingOwner) endingAtDisconnecting = true
+    }
+
+    @Synchronized fun ownedByEnding(endingNow: Boolean): Boolean =
+        endingNow || endingAtDisconnecting
+}

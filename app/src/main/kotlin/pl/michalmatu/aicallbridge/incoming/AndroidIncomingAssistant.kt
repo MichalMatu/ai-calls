@@ -40,6 +40,7 @@ internal class AndroidIncomingAssistant(
         var endToolTurn: Int? = null
         val toolFinalized = AtomicBoolean(false)
         val archiveGate = IncomingEndToolArchiveGate()
+        val disconnectFence = IncomingEndToolDisconnectFence()
         var chatToken = 0L
         val pendingChatTools = mutableListOf<ConversationToolEvent>()
     }
@@ -110,14 +111,20 @@ internal class AndroidIncomingAssistant(
         // Capture the owner before observe(ENDED) revokes it. A disconnected Call
         // after human takeover is NOT proof that AI's earlier end_call succeeded.
         val endingAtDisconnect = coordinator.snapshot(call)?.state == IncomingAssistantState.ENDING
+        if (state == Call.STATE_DISCONNECTING) {
+            slots.values.filter { it.call === call && it.endToolTurn != null }.forEach {
+                it.disconnectFence.noteDisconnecting(endingAtDisconnect)
+            }
+        }
         coordinator.observe(call, phase, call.details?.accountHandle?.let(IncomingAssistantPolicyStore::accountKey), true, exclusive(call), loadPolicy())
         if (state == Call.STATE_DISCONNECTED) resolveEndedCall(call, endingAtDisconnect)
     }
     private fun resolveEndedCall(call: Call, endingAtDisconnect: Boolean) {
         slots.values.filter { it.call === call && it.endToolTurn != null }.forEach { slot ->
-            val outcome = IncomingEndToolEvidencePolicy.decide(
-                call.state == Call.STATE_DISCONNECTED, endingAtDisconnect,
-            )
+            val disconnected = call.state == Call.STATE_DISCONNECTED
+            val outcome = if (disconnected) IncomingEndToolEvidencePolicy.decide(
+                true, slot.disconnectFence.ownedByEnding(endingAtDisconnect),
+            ) else IncomingEndToolOutcome.UNKNOWN // removal before definitive disconnect
             // Do not finalize recorder while a live Run is still draining RX WAV.
             slot.archiveGate.onTelecomEnd(outcome)?.let { settled ->
                 finalizeToolEvidence(slot, if (settled == IncomingEndToolOutcome.CONFIRMED)
@@ -220,7 +227,9 @@ internal class AndroidIncomingAssistant(
                 ConversationToolStage.CONFIRMED else ConversationToolStage.UNKNOWN)
             slots.remove(slot.generation, slot)
         } else if (result.evidenceAwaitingTool && slot.endToolTurn != null) {
-            val ownerStillEnding = coordinator.snapshot(slot.call)?.state == IncomingAssistantState.ENDING
+            val ownerStillEnding = slot.disconnectFence.ownedByEnding(
+                coordinator.snapshot(slot.call)?.state == IncomingAssistantState.ENDING,
+            )
             when (IncomingEndToolEvidencePolicy.decide(
                 slot.call.state == Call.STATE_DISCONNECTED, ownerStillEnding,
             )) {

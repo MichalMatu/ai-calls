@@ -40,6 +40,24 @@ class IncomingEndToolEvidencePolicyTest {
         assertEquals(IncomingEndToolOutcome.CONFIRMED, gate.onRuntimeFinished())
     }
 
+    @Test fun disconnectingRetainsExactEndingOwnerUntilDisconnected() {
+        val fence = IncomingEndToolDisconnectFence()
+        fence.noteDisconnecting(true)
+        assertEquals(true, fence.ownedByEnding(false))
+        assertEquals(IncomingEndToolOutcome.PENDING,
+            IncomingEndToolEvidencePolicy.decide(false, fence.ownedByEnding(false)))
+        assertEquals(IncomingEndToolOutcome.CONFIRMED,
+            IncomingEndToolEvidencePolicy.decide(true, fence.ownedByEnding(false)))
+    }
+
+    @Test fun manualDisconnectingCannotCreateAnAiEndCallReceipt() {
+        val fence = IncomingEndToolDisconnectFence()
+        fence.noteDisconnecting(false)
+        assertEquals(false, fence.ownedByEnding(false))
+        assertEquals(IncomingEndToolOutcome.UNKNOWN,
+            IncomingEndToolEvidencePolicy.decide(true, fence.ownedByEnding(false)))
+    }
+
     @Test fun takeoverThenManualHangupIsUnknownNotAiSuccess() {
         assertEquals(IncomingEndToolOutcome.UNKNOWN,
             IncomingEndToolEvidencePolicy.decide(true, false))
