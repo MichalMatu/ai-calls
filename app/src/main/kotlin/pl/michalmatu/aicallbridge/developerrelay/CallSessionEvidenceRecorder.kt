@@ -118,7 +118,9 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     }
 
     /** Written-to-uplink evidence is not proof of remote acoustic delivery. */
-    fun recordFullTxAttempt(turn: Int, acceptedBytes: Int, requestedBytes: Int) {
+    fun recordFullTxAttempt(
+        turn: Int, acceptedBytes: Int, requestedBytes: Int, writeCompleted: Boolean = true,
+    ) {
         if (completed.get()) return
         val accepted = acceptedBytes.coerceIn(0, requestedBytes.coerceAtLeast(0))
         val event = JSONObject()
@@ -127,9 +129,11 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
             .put("elapsed_ms", elapsed())
             .put("pcm_bytes_accepted", accepted)
             .put("pcm_bytes_requested", requestedBytes.coerceAtLeast(0))
-            .put("transport_status", if (accepted == requestedBytes && requestedBytes > 0) {
-                "WRITE_COMPLETE"
-            } else "WRITE_PARTIAL")
+            .put("transport_status", when {
+                writeCompleted && accepted == requestedBytes && requestedBytes > 0 -> "WRITE_COMPLETE"
+                !writeCompleted && accepted == requestedBytes && requestedBytes > 0 -> "WRITE_UNCERTAIN"
+                else -> "WRITE_PARTIAL"
+            })
         submit { appendEvent(event) }
     }
 
@@ -188,7 +192,9 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
     }
 
     /** Keep neutral filler in its own WAV; never overwrite the approved answer TX WAV. */
-    fun recordAcknowledgementAudio(turn: Int, pcm: ByteArray, sentBytes: Int, txAtMs: Long) {
+    fun recordAcknowledgementAudio(
+        turn: Int, pcm: ByteArray, sentBytes: Int, txAtMs: Long, writeCompleted: Boolean = true,
+    ) {
         if (completed.get() || sentBytes <= 0) return
         val aligned = minOf(sentBytes, pcm.size).let { it - it % 2 }
         saveWave(turn, "tx-ack", txAtMs, pcm.copyOf(aligned))
@@ -201,7 +207,11 @@ internal class CallSessionEvidenceRecorder private constructor(val directory: Fi
             .put("text", QuickAcknowledgementPolicy.TEXT)
             .put("pcm_bytes_accepted", aligned)
             .put("pcm_bytes_requested", pcm.size)
-            .put("transport_status", if (aligned == pcm.size) "WRITE_COMPLETE" else "WRITE_PARTIAL")
+            .put("transport_status", when {
+                writeCompleted && aligned == pcm.size -> "WRITE_COMPLETE"
+                !writeCompleted && aligned == pcm.size -> "WRITE_UNCERTAIN"
+                else -> "WRITE_PARTIAL"
+            })
         submit { appendEvent(event) }
     }
 

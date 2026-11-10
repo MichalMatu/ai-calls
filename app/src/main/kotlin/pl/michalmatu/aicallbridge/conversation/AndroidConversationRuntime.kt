@@ -726,7 +726,7 @@ internal object AndroidConversationRuntime {
                 val atMs = elapsedTurnMs()
                 val evidenceAtMs = evidenceRecorder?.elapsed() ?: 0L
                 val txWriteStarted = SystemClock.elapsedRealtime()
-                val sent = AuthorizedPcmUplinkWriter.write(
+                val attempt = AuthorizedPcmUplinkWriter.writeOutcome(
                     uplink = lease.uplink(),
                     pcm = pcm,
                     isAuthorized = {
@@ -738,7 +738,10 @@ internal object AndroidConversationRuntime {
                 )
                 val txWriteWallMs =
                     (SystemClock.elapsedRealtime() - txWriteStarted).coerceAtLeast(0L)
-                evidenceRecorder?.recordAcknowledgementAudio(turn, pcm, sent, evidenceAtMs)
+                val sent = attempt.acceptedBytes
+                evidenceRecorder?.recordAcknowledgementAudio(
+                    turn, pcm, sent, evidenceAtMs, writeCompleted = attempt.complete,
+                )
                 totalTxBytes += sent.toLong()
                 lines += "turn_${turn}_quick_ack_tx_bytes=$sent"
                 lines += "turn_${turn}_quick_ack_tx_elapsed_ms=$atMs"
@@ -746,7 +749,7 @@ internal object AndroidConversationRuntime {
                 estimatedSpeechEndElapsedMs?.let { speechEndMs ->
                     lines += "turn_${turn}_eos_to_quick_ack_tx_ms=${(atMs - speechEndMs).coerceAtLeast(0L)}"
                 }
-                if (sent != pcm.size) return
+                if (!attempt.complete || sent != pcm.size) return
                 // Writes may already have blocked while telephony consumed frames.
                 // Keep the serial TX fence only for remaining playback + guard,
                 // not a second full audio duration. Gemma inference is unaffected.
@@ -789,7 +792,7 @@ internal object AndroidConversationRuntime {
                 }
                 val txWriteStarted = SystemClock.elapsedRealtime()
                 val txEvidenceAtMs = evidenceRecorder?.elapsed() ?: 0L
-                val bytesWritten = AuthorizedPcmUplinkWriter.write(
+                val attempt = AuthorizedPcmUplinkWriter.writeOutcome(
                     uplink = lease.uplink(),
                     pcm = pcm,
                     isAuthorized = {
@@ -799,18 +802,25 @@ internal object AndroidConversationRuntime {
                             currentTurn == turn && outputEpoch.get() == turnEpoch
                     },
                 )
+                val bytesWritten = attempt.acceptedBytes
                 evidenceRecorder?.recordTransmittedAudio(turn, pcm, bytesWritten, txEvidenceAtMs)
-                evidenceRecorder?.recordFullTxAttempt(turn, bytesWritten, pcm.size)
-                ConversationChatFeed.tx(liveChatToken, turn, bytesWritten == pcm.size)
-                if (bytesWritten != pcm.size || finished.get() || !authorizedNow() ||
+                evidenceRecorder?.recordFullTxAttempt(
+                    turn, bytesWritten, pcm.size, writeCompleted = attempt.complete,
+                )
+                totalTxBytes += bytesWritten.toLong()
+                ConversationChatFeed.tx(liveChatToken, turn, attempt.complete && bytesWritten == pcm.size)
+                if (!attempt.complete || bytesWritten != pcm.size ||
+                    finished.get() || !authorizedNow() ||
                     activeMediaGeneration.get() != generation || currentTurn != turn ||
                     outputEpoch.get() != turnEpoch
                 ) {
                     // A revoked old turn is not an error in its successor.
                     if (finished.get() || currentTurn != turn || outputEpoch.get() != turnEpoch) return
                     context.mainExecutor.execute {
-                        if (!finished.get() && currentTurn == turn && outputEpoch.get() == turnEpoch)
-                            fail("tx_authority_revoked")
+                        if (!finished.get() && currentTurn == turn && outputEpoch.get() == turnEpoch) {
+                            fail(if (attempt.status == PcmUplinkWriteStatus.IO_UNCERTAIN)
+                                "tx_write_uncertain" else "tx_authority_revoked")
+                        }
                     }
                     return
                 }
@@ -822,7 +832,6 @@ internal object AndroidConversationRuntime {
                 )
                 lines += "turn_${turn}_tx_write_wall_ms=$txWriteWallMs"
                 lines += "turn_${turn}_post_write_hold_ms=$postWriteHoldMs"
-                totalTxBytes += pcm.size.toLong()
                 ConversationChatFeed.stage(liveChatToken, "Tura " + turn + " • odpowiedź wysłana do TX")
                 lines += "turn_${turn}_tx_pcm_bytes=${pcm.size}"
                 handler.postDelayed(

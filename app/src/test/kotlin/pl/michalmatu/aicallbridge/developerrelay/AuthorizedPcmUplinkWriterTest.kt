@@ -64,6 +64,77 @@ class AuthorizedPcmUplinkWriterTest {
         assertTrue(next.flushed)
     }
 
+    @Test fun lastFrameRevocationCannotBeMisreportedAsCompleteTx() {
+        val output = ObservedOutput()
+        var authorized = true
+        output.onWrite = { authorized = false }
+        val result = AuthorizedPcmUplinkWriter.writeOutcome(
+            output, ByteArray(640), isAuthorized = { authorized },
+        )
+        assertEquals(640, result.acceptedBytes)
+        assertEquals(PcmUplinkWriteStatus.REVOKED, result.status)
+        assertFalse(result.complete)
+        assertFalse(output.flushed)
+    }
+
+    @Test fun flushFailureAfterAllAcceptedPcmRemainsUncertain() {
+        val output = object : OutputStream() {
+            var accepted = 0
+            override fun write(b: Int) { accepted++ }
+            override fun write(data: ByteArray, offset: Int, length: Int) { accepted += length }
+            override fun flush() { throw java.io.IOException("simulated_flush_failure") }
+        }
+        val result = AuthorizedPcmUplinkWriter.writeOutcome(
+            output, ByteArray(1280), isAuthorized = { true },
+        )
+        assertEquals(1280, result.acceptedBytes)
+        assertEquals(1280, output.accepted)
+        assertEquals(PcmUplinkWriteStatus.IO_UNCERTAIN, result.status)
+        assertFalse(result.complete)
+    }
+
+    @Test fun ioErrorOnSecondFrameKeepsConservativeAcceptedPrefix() {
+        val output = object : OutputStream() {
+            var frames = 0
+            override fun write(b: Int) = Unit
+            override fun write(data: ByteArray, offset: Int, length: Int) {
+                frames++
+                if (frames == 2) throw java.io.IOException("synthetic_partial_write")
+            }
+        }
+        val result = AuthorizedPcmUplinkWriter.writeOutcome(
+            output, ByteArray(1920), isAuthorized = { true },
+        )
+        assertEquals(640, result.acceptedBytes)
+        assertEquals(PcmUplinkWriteStatus.IO_UNCERTAIN, result.status)
+        assertFalse(result.complete)
+    }
+
+    @Test fun authorizationRevokedInsideFlushInvalidatesFullFrameCount() {
+        var authorized = true
+        val output = object : OutputStream() {
+            override fun write(b: Int) = Unit
+            override fun flush() { authorized = false }
+        }
+        val result = AuthorizedPcmUplinkWriter.writeOutcome(
+            output, ByteArray(640), isAuthorized = { authorized },
+        )
+        assertEquals(640, result.acceptedBytes)
+        assertEquals(PcmUplinkWriteStatus.REVOKED, result.status)
+    }
+
+    @Test fun authorizedCompleteResultStillFlushesAndCountsAllFrames() {
+        val output = ObservedOutput()
+        val result = AuthorizedPcmUplinkWriter.writeOutcome(
+            output, ByteArray(1300), isAuthorized = { true },
+        )
+        assertEquals(1300, result.acceptedBytes)
+        assertEquals(PcmUplinkWriteStatus.COMPLETE, result.status)
+        assertTrue(result.complete)
+        assertEquals(listOf(640, 640, 20), output.frameSizes)
+        assertTrue(output.flushed)
+    }
+
     @Test fun invalidAlignmentFailsClosed() {
         val output = ObservedOutput()
         assertThrows(IllegalArgumentException::class.java) {
