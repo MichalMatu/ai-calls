@@ -258,6 +258,11 @@ internal class LocalTextCallSession private constructor(
     internal fun injectSyntheticFinalTranscript(finalTranscript: String): CallPlanFinalTurnSelection =
         processFinalizedTranscript(finalTranscript)
 
+    /** Read-only appointment review; null until one exact pending offer exists. */
+    internal fun pendingBookAppointmentReview():
+        pl.michalmatu.aicallbridge.appointment.BookAppointmentReview? =
+        gateDProductIntegration?.pendingBookAppointmentReview(workflow)
+
     /**
      * Explicit application-owned BOOK_APPOINTMENT confirmation/rejection entry point.
      *

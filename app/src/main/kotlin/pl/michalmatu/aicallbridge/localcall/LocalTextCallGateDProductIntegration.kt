@@ -225,6 +225,31 @@ internal class LocalTextCallGateDProductIntegration(
     }
 
     /**
+     * A non-mutating review projection for the live product owner. It exposes
+     * only the proposal's time after the exact workflow and graph agree.
+     * It cannot approve, commit, disclose facts, or claim external booking success.
+     */
+    fun pendingBookAppointmentReview(workflow: CallWorkflow):
+        pl.michalmatu.aicallbridge.appointment.BookAppointmentReview? = synchronized(lock) {
+        if (closed || cancelled || currentSnapshot.state != BookAppointmentTaskGraph.CONFIRMATION) {
+            return@synchronized null
+        }
+        val owner = runCatching { workflow.snapshot() }.getOrNull() ?: return@synchronized null
+        if (owner.state() != CallWorkflowState.NEEDS_USER_DECISION) return@synchronized null
+        val proposal = owner.pendingProposal() ?: return@synchronized null
+        val scheduledAt = proposal.scheduledAt() ?: return@synchronized null
+        val graph = currentSnapshot.context[BookAppointmentTaskGraph.APPOINTMENT_AT]
+            as? TaskGraphSlotValue.Text ?: return@synchronized null
+        if (graph.value != scheduledAt.toString()) return@synchronized null
+        pl.michalmatu.aicallbridge.appointment.BookAppointmentReview(
+            proposedAt = scheduledAt,
+            requiresUserReview = true,
+            externalBookingConfirmed = false,
+            syntheticOnly = false,
+        )
+    }
+
+    /**
      * Applies one explicit application-owned BOOK_APPOINTMENT user decision.
      *
      * The graph transition is first staged through the same apply bridge while holding the product

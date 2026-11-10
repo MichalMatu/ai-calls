@@ -41,8 +41,14 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
     fun `user confirmation consumes exact workflow pending proposal and advances graph without commitment`() {
         val fixture = fixture()
 
+        assertEquals(null, fixture.session.pendingBookAppointmentReview())
         fixture.session.injectSyntheticFinalTranscript("mamy termin")
         assertEquals(CallWorkflowState.NEEDS_USER_DECISION, fixture.workflow.snapshot().state())
+        val pending = requireNotNull(fixture.session.pendingBookAppointmentReview())
+        assertEquals(scheduledAt, pending.proposedAt)
+        assertTrue(pending.requiresUserReview)
+        assertFalse(pending.externalBookingConfirmed)
+        assertFalse(pending.syntheticOnly)
 
         val result = fixture.session.applyBookAppointmentUserDecision(
             GateDBookAppointmentUserDecision.CONFIRM,
@@ -58,6 +64,7 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
         assertEquals(CallWorkflowState.ACTIVE_NEGOTIATION, fixture.workflow.snapshot().state())
         assertEquals(null, fixture.workflow.snapshot().pendingProposal())
         assertEquals(null, fixture.workflow.snapshot().outcome())
+        assertEquals(null, fixture.session.pendingBookAppointmentReview())
         assertEquals(
             listOf(
                 BookAppointmentTaskGraph.PROPOSAL,
@@ -93,6 +100,7 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
         val final = fixture.acceptedResults.last()
         assertEquals(BookAppointmentTaskGraph.WAITING_OFFER, final.snapshot.state)
         assertFalse(final.snapshot.context.contains(BookAppointmentTaskGraph.APPOINTMENT_AT))
+        assertEquals(null, fixture.session.pendingBookAppointmentReview())
         assertEquals(null, fixture.workflow.snapshot().outcome())
         fixture.session.close()
     }
@@ -113,6 +121,7 @@ class LocalTextCallSessionGateDBookAppointmentUserDecisionTest {
             result,
         )
         assertEquals(before, fixture.workflow.snapshot())
+        assertEquals(null, fixture.session.pendingBookAppointmentReview())
         assertTrue(fixture.acceptedResults.isEmpty())
         fixture.session.close()
     }
