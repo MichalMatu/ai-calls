@@ -42,6 +42,8 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
     private lateinit var sim: Spinner
     private lateinit var feedback: TextView
     private var pendingAuthorize = false
+    private var pendingAuthorizeHadSim = false
+    private var restoredSimId: Int? = null
     private lateinit var review: TextView
     private val selectedFields = linkedMapOf<IdentityFieldId, CheckBox>()
     private val availableSubscriptions = mutableListOf<Pair<Int, String>>()
@@ -52,6 +54,10 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingAuthorize = savedInstanceState?.getBoolean("pending_authorize") == true
+        pendingAuthorizeHadSim = savedInstanceState?.getBoolean("pending_authorize_had_sim") == true
+        restoredSimId = if (savedInstanceState?.containsKey("selected_sim_sub_id") == true)
+            savedInstanceState.getInt("selected_sim_sub_id") else null
         val saved = store.load()
         val draft = AppointmentEditorDraftStore(this).consume()
         val tomorrow = ZonedDateTime.now(ZoneId.of("Europe/Warsaw")).plusDays(1)
@@ -153,17 +159,16 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
             addView(body, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT))
         })
-        refreshSim(false)
+        refreshSim()
         showReview()
     }
 
-    private fun refreshSim(requestPermission: Boolean) {
+    private fun refreshSim() {
+        val selectedBefore = availableSubscriptions.getOrNull(sim.selectedItemPosition)?.first ?: restoredSimId
         availableSubscriptions.clear()
         if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
             PackageManager.PERMISSION_GRANTED) {
             UiSelect.setOptions(sim, listOf("Brak uprawnienia READ_PHONE_STATE"))
-            if (requestPermission) requestPermissions(
-                arrayOf(Manifest.permission.READ_PHONE_STATE), 901)
             return
         }
         val manager = getSystemService(SubscriptionManager::class.java)
@@ -180,9 +185,16 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
                 " (subId " + pair.first + ", slot " +
                 pair.second.substringAfter(":slot:").substringBefore(":") + ")"
         })
-        sim.setSelection(availableSubscriptions.indexOfFirst {
-            it.first == store.load()?.subscriptionId
-        }.coerceAtLeast(0))
+        val index = AppointmentSimSelectionPolicy.index(
+            availableSubscriptions.map { it.first }, selectedBefore, store.load()?.subscriptionId)
+        if (index == null && selectedBefore != null) {
+            availableSubscriptions.clear()
+            UiSelect.setOptions(sim, listOf("Wybrana karta SIM nie jest już dostępna. Otwórz formularz ponownie."))
+            feedback.text = "Wybrana karta SIM zmieniła się; połączenie nie zostanie rozpoczęte."
+            return
+        }
+        sim.setSelection(index ?: 0)
+        if (index != null) restoredSimId = null
     }
 
     private fun authorizeAndStart() {
@@ -192,6 +204,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
         }
         if (missing.isNotEmpty()) {
             pendingAuthorize = true
+            pendingAuthorizeHadSim = availableSubscriptions.getOrNull(sim.selectedItemPosition) != null
             requestPermissions(missing.toTypedArray(), 902)
             feedback.text = "Zatwierdź uprawnienia Androida. Przygotowanie rozmowy będzie kontynuowane."
             return
@@ -209,7 +222,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
         if (runCatching { telecom == null || telecom.isInCall }.getOrDefault(true) ||
             AppOwnedClirCampaignExecutor.isRunning() ||
             CampaignContinuationStore(this).load() != null) {
-            feedback.text = "Trwa inne połączenie lub kampania."
+            feedback.text = "Trwa inne połączenie lub zadanie AI."
             return
         }
         val selected = availableSubscriptions.getOrNull(sim.selectedItemPosition)
@@ -282,7 +295,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
     }
     override fun onResume() {
         super.onResume()
-        if (::sim.isInitialized) refreshSim(false)
+        if (::sim.isInitialized) refreshSim()
         handler.removeCallbacks(poll)
         handler.post(poll)
     }
@@ -292,15 +305,24 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
     }
     override fun onRequestPermissionsResult(code: Int, names: Array<String>, results: IntArray) {
         super.onRequestPermissionsResult(code, names, results)
-        if (code == 901 && results.all { it == PackageManager.PERMISSION_GRANTED })
-            refreshSim(false)
         if (code == 902 && pendingAuthorize) {
+            val hadReviewedSim = pendingAuthorizeHadSim
             pendingAuthorize = false
+            pendingAuthorizeHadSim = false
             if (results.isNotEmpty() && results.all { it == PackageManager.PERMISSION_GRANTED }) {
-                refreshSim(false)
-                authorizeAndStart()
+                refreshSim()
+                if (hadReviewedSim) authorizeAndStart()
+                else feedback.text = "Sprawdź teraz kartę SIM i rozpocznij rozmowę."
             } else feedback.text = "Bez wymaganych uprawnień nie rozpoczęto rozmowy."
         }
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("pending_authorize", pendingAuthorize)
+        outState.putBoolean("pending_authorize_had_sim", pendingAuthorizeHadSim)
+        availableSubscriptions.getOrNull(sim.selectedItemPosition)?.first?.let {
+            outState.putInt("selected_sim_sub_id", it)
+        }
+        super.onSaveInstanceState(outState)
     }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
