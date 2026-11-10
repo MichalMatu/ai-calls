@@ -68,6 +68,10 @@ class AppOwnedCampaignService : Service() {
                 startSupervisedAudio()
                 return START_NOT_STICKY
             }
+            ACTION_START_BOOK_APPOINTMENT -> {
+                startApprovedAppointment()
+                return START_NOT_STICKY // Never resurrect a dial from an Android service restart.
+            }
             ACTION_CANCEL_OUTGOING_TASK -> {
                 // Cancel only the outgoing task; never disable an incoming secretary
                 // or interrupt an unrelated supervised audio session.
@@ -200,6 +204,105 @@ class AppOwnedCampaignService : Service() {
         campaignRequested = true
         scheduleAuthorizedAttempt()
         return START_STICKY
+    }
+
+    /**
+     * One UI-authorized appointment attempt. No fallback to CLIR, no automatic redial,
+     * no unattended reboot resume, no external booking effect.
+     */
+    private fun startApprovedAppointment() {
+        if (campaignRequested || supervisedAudioActive.get() ||
+            AppOwnedClirCampaignExecutor.isRunning() || continuationStore.load() != null
+        ) {
+            statusStore.save("Inne zadanie jest aktywne; najpierw je zakończ")
+            return
+        }
+        val task = AppointmentMvpStore(this).load() ?: run {
+            finish("Nie zapisano zadania wizyty")
+            return
+        }
+        val grant = authorizationStore.load()
+        if (grant == null || grant.attemptsUsed != 0 ||
+            grant.grantId != task.grantId ||
+            !CampaignAuthorizationPolicy.matchesExactTask(grant, task.request()) ||
+            CampaignAccountScope.forSubscription(this, task.subscriptionId) != task.accountScope
+        ) {
+            finish("Brak dokładnej autoryzacji numeru i SIM; połączenie zablokowane")
+            return
+        }
+        val profile = AudioEngineProfileStore(this).load()
+        if (profile == null || AudioEngineRegistry.incompatibility(profile) != null) {
+            finish("Wybrany Gemma/STT/TTS jest niedostępny")
+            return
+        }
+        val preparation = ConversationPreparation(
+            "outgoing-appointment", "Umawianie wizyty", ConversationDirection.OUTGOING,
+            "", setOf(ConversationSkill.EXPLAIN_GOAL, ConversationSkill.CLARIFY,
+                ConversationSkill.ASK_PROCEDURE),
+            task.disclosureFields,
+        )
+        val goal = "Cel użytkownika: " + task.goal +
+            ". Dozwolony przedział wizyty: " + task.notBefore.toString() + " do " +
+            task.notAfter.toString() + ". Warunki użytkownika: " +
+            task.conditions.ifBlank { "Brak dodatkowych warunków." } +
+            ". Zbierz tylko propozycję i nie potwierdzaj ani nie rezerwuj wizyty. " +
+            "Każda propozycja musi trafić do użytkownika jako REVIEW_REQUIRED."
+        val instruction = ConversationInstructionBuilder.build(
+            preparation, goal, ConversationResponseFormat.SPOKEN_TEXT,
+        )
+        val configuration = ConversationRunConfiguration.ModelDirect(
+            profile, instruction, preparation,
+        )
+        campaignRequested = true
+        val generation = ++continuationGeneration
+        preparingLocalModel = true
+        statusStore.save("Przygotowanie Gemma do autoryzowanej wizyty")
+        startForeground(
+            NOTIFICATION_ID, notification("Przygotowanie rozmowy BOOK_APPOINTMENT"),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+        )
+        CampaignGemmaDirectPreflight.prepare(
+            this, systemInstruction = instruction, profile = profile,
+            onReady = { ready ->
+                continuationHandler.post {
+                    preparingLocalModel = false
+                    if (!campaignRequested || continuationGeneration != generation) {
+                        CampaignGemmaDirectPreflight.discardUnused()
+                        return@post
+                    }
+                    val live = authorizationStore.load()
+                    if (!ready || live == null || live.attemptsUsed != 0 ||
+                        live.grantId != task.grantId ||
+                        AppointmentMvpStore(this).load() != task ||
+                        !CampaignAuthorizationPolicy.matchesExactTask(live, task.request()) ||
+                        CampaignAccountScope.forSubscription(
+                            this, task.subscriptionId) != task.accountScope
+                    ) {
+                        finish("Model lub autoryzacja zmieniły się przed wybraniem numeru")
+                        return@post
+                    }
+                    if (isPhoneBusy()) {
+                        finish("Trwa inna rozmowa. Bez automatycznej ponownej próby")
+                        return@post
+                    }
+                    AppOwnedClirCampaignExecutor.start(
+                        context = this,
+                        authorizationStore = authorizationStore,
+                        accountScope = task.accountScope,
+                        runConfiguration = configuration,
+                        appointmentTask = task,
+                        onAttemptFinished = { _, _ -> },
+                    ) { status ->
+                        continuationHandler.post {
+                            if (!campaignRequested || continuationGeneration != generation)
+                                return@post
+                            statusStore.save(status)
+                            if (!AppOwnedClirCampaignExecutor.isRunning()) finish(status)
+                        }
+                    }
+                }
+            },
+        )
     }
 
     private fun scheduleAuthorizedAttempt() {
@@ -551,6 +654,8 @@ class AppOwnedCampaignService : Service() {
             "pl.michalmatu.aicallbridge.extra.CAMPAIGN_DIALOGUE_MODE"
         const val ACTION_START_CLIR_ENABLE =
             "pl.michalmatu.aicallbridge.action.START_CLIR_ENABLE_CAMPAIGN"
+        const val ACTION_START_BOOK_APPOINTMENT =
+            "pl.michalmatu.aicallbridge.action.START_BOOK_APPOINTMENT"
         const val ACTION_START_SUPERVISED_AUDIO =
             "pl.michalmatu.aicallbridge.action.START_SUPERVISED_AUDIO"
         const val ACTION_STOP_SUPERVISED_AUDIO =
