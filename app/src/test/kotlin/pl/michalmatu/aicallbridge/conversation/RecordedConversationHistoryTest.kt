@@ -19,9 +19,9 @@ class RecordedConversationHistoryTest {
                     """{"type":"AGENT_APPROVED_TEXT","turn":1,"text":"Odpowiedź AI","response_kind":"MODEL_DIRECT"}""",
                     """{"type":"AGENT_FULL_TX","turn":1,"transport_status":"WRITE_COMPLETE"}""",
                     """{"type":"END","reason_code":"owned_call_ended"}""",
-                ).joinToString("\\n", postfix = "\\n").replace("\\\\n", "\\n"),
+                ).joinToString("\n", postfix = "\n"),
             )
-            File(directory, "COMPLETE").writeText("local_complete\\n")
+            File(directory, "COMPLETE").writeText("local_complete\n")
             val archived = RecordedConversationHistory(root).list().single()
             assertTrue(archived.complete)
             assertEquals(ConversationDirection.OUTGOING, archived.direction)
