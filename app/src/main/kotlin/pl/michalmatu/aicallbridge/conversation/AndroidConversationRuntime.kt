@@ -100,7 +100,7 @@ internal object AndroidConversationRuntime {
             callback,
             liveAuthorization,
             callStillActive,
-            evidenceRecorder,
+            evidenceRecorder ?: CallSessionEvidenceRecorder.create(appContext, recordAudio = false),
             runConfiguration,
         ) } ?: run {
             evidenceRecorder?.finish("audio_session_already_active")
@@ -163,7 +163,8 @@ internal object AndroidConversationRuntime {
             "approval_policy=application_owned",
             "endpointing=trailing_silence",
             "timestamp_utc=${Instant.now()}",
-            "private_audio_recording=${evidenceRecorder != null}",
+            "private_audio_recording=${evidenceRecorder?.recordsAudio == true}",
+            "private_transcript_capture=${if (evidenceRecorder != null) "enabled" else "unavailable"}",
         ))
         private val idlePolicy = scenario.idlePolicy
         private val idleTimeout = idlePolicy?.let { IncomingIdleTimeout(it.silenceMs, it.graceMs) }
