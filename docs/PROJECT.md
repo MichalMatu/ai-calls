@@ -1,11 +1,11 @@
 # AI Calls — aktualny stan i kolejka rozwoju
 
-**Stan źródłowy:** G6.3 fast-flow — aktualny HEAD zawsze z origin/main; S22 PHYSICAL_OPEN.
+**Stan źródłowy:** G6.4 freeze przed G6.5; aktualny HEAD zawsze z origin/main. Real-call S22 PHYSICAL_OPEN.
 
 ## Cel i fakty
 - Jeden lokalny agent i jeden wspólny runtime INCOMING/OUTGOING. Bieżący produkt jest **modułowym laboratorium**, finalnie jeden pakiet instalacyjny. Obecny wybór: Gemma 4 E2B/GPU, CONTEXTUAL Skills, Android STT/TTS i Samsung/Shizuku.
 - **G3/G4:** wybór E2B po 96/96 native tur; dynamic Skills S22 PASS w zakresie off-call. **G5.3:** 18/18 native off-call tur i 36 prywatnych WAV, rzeczywisty STOP STT/model/TTS sprawdzony. Indywidualna ocena człowieka: **0/6, UNASSESSED** (nie wpisuj human PASS).
-- **G6 source/host:** Exact Call/consent, STOP/TAKE OVER, END_CALL dopiero po RX drain; ENDING zatrzymuje zasoby i blokuje drugi Call. TX: flush i typowany status, historia odróżnia błędy i odrzuca symlinki WAV. Downlink zero-read ma backoff. Lokalny barge-in nadal wymaga testu fizycznego. QA: pełny host/lint/409 Python/audio PASS dla 30abf89; nowe 6d4031a..fbc5c16 — testy celowane i auto od 45e69a6 PASS. Pełny manual audio, S22, realny IVR/booking PHYSICAL_OPEN. Bez APK i realnych Call.
+- **G6 source/host:** Exact Call/consent, STOP/TAKE OVER, END_CALL po RX drain, ENDING rezerwuje zasoby; TX statusy i historia WAV z ochroną symlinków; downlink ma zero-read backoff. Jednorazowy commitment i syntetyczny provider hold/TTL/cancel/confirm/read-back są testowane, lecz nie są prawdziwą rezerwacją. Mac full QA dla 04a72f2: Gradle/JVM/lint, 409 Python, audio i preflight **PASS**. S22 exact/IDLE/dialer: PASS; na **wcześniej zainstalowanej** aplikacji 4/4 off-call instrumentation PASS (takeover/stale PCM, RX archive, syntetyczny WAV playback, STOP). Zgodność wersji z 04a72f2 NIEZWERYFIKOWANA; bez nowego APK, realnego Call i zewnętrznego efektu. G6 live INCOMING/OUTGOING, S22 barge-in, manual resume i pełne manual audio nadal **PHYSICAL_OPEN**.
 - Historyczne A8→S22 potwierdziły tylko fragment RX i własne rozłączenie, nie całe G6. Nie powtarzaj G3/G5.3 off-call.
 
 ## Otwarte — tylko rzeczywista następna praca
@@ -23,9 +23,9 @@
 **Nie otwierać ponownie naprawionych problemów tylko dlatego, że kiedyś miały numer.** Nowa luka trafia w odpowiedni istniejący wiersz lub zastępuje zamkniętą; brak nowej historii/chronologii. Testów nie nazywaj PASS bez faktycznego wykonania.
 
 ## Następny sprint
-1. Sprawdź bieżący main oraz otwarte P0; po sprawdzonych poprawkach archiwum i ENDING przejdź do funkcjonalnego barge-in/testu w uprawnionym zakresie. Nie powtarzaj G3/G5.
+1. G6.4 host + zainstalowany S22 off-call są zielone; przed G6.5 nadal wymagany konkretny grant na SIM/target/dane i realne INCOMING/OUTGOING. Bez tego nie dzwoń ani nie instaluj; PHYSICAL_OPEN pozostaje.
 2. **Existing Code First** ([reguła](operations/EXTERNAL_REUSE.md)): własny baseline → do 3 kandydatów → KEEP/IMPROVE/ADAPT/REPLACE z testem. Bez rewrite; chroń PCM/Call/grant i stosuj celowane focus lub auto <base-SHA>.
-3. Jeden `full` na Macu po freeze, aktualizuj tylko `PROJECT.md` i dotknięty moduł, krótkie `[skip ci]` commity na `main`.
+3. Full QA G6.4 odebrany (aicalls-g64-freeze-fullqa-20261110-v1), urządzenie off-call (aicalls-g64-s22-installed-instrumentation-physical-offcall-20261110-v1). Kolejne testy tylko dla zmienionego kontraktu, bez powtarzania zamrożonego QA.
 4. Fizyczne S22 / APK wyłącznie z konkretnym upoważnieniem, zweryfikowanym IDLE i kontrolowanym zakresem; nie deklaruj zamknięcia G6 wcześniej.
 
 ## Warunek zamknięcia G6
