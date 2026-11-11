@@ -8,6 +8,7 @@ import android.widget.CheckBox
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -62,6 +63,25 @@ class AndroidAgentAiHubReadOnlyTest {
             assertResolved()
             scenario.recreate()
             assertResolved()
+        }
+    }
+
+    @Test fun unsavedToolToggleDoesNotSilentlyCloseOrPersist() {
+        ActivityScenario.launch(ConversationToolsActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                val noteTool = root.findViewWithTag<CheckBox>("tools-setting:SAVE_NOTE")
+                assertNotNull("note_toggle_absent", noteTool)
+                assertNotNull("end_call_toggle_absent",
+                    root.findViewWithTag<CheckBox>("tools-setting:END_CALL"))
+                val save = root.findViewWithTag<View>("tools-save-settings")
+                assertNotNull(save)
+                assertEquals(View.GONE, save.visibility)
+                checkNotNull(noteTool).isChecked = !noteTool.isChecked
+                assertEquals(View.VISIBLE, save.visibility)
+                activity.navigateBack()
+                assertFalse("unsaved_changes_closed_without_confirmation", activity.isFinishing)
+            }
         }
     }
 
