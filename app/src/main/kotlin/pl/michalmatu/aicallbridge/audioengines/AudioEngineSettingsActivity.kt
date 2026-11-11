@@ -250,11 +250,13 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 ?: (0 until group.childCount).mapNotNull {
                     group.getChildAt(it) as? RadioButton
                 }.first { it.isChecked }.tag as String
+        val current = store.load()
         return AudioEngineProfile(
             input = SpeechInputId.valueOf(selected(inputGroup)),
-            dialogue = store.load()?.dialogue ?: AudioEngineProfile.STABLE.dialogue,
+            dialogue = current?.dialogue ?: AudioEngineProfile.STABLE.dialogue,
             output = SpeechOutputId.valueOf(selected(outputGroup)),
             voiceId = selectedVoice(),
+            customModelId = current?.customModelId,
         )
     }
 
@@ -386,8 +388,14 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun refreshActive() {
-        activeModelLabel.text = pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[
-            store.load()?.dialogue ?: AudioEngineProfile.STABLE.dialogue].title
+        val profile = store.load()
+        activeModelLabel.text = if (profile?.dialogue == DialogueModelId.USER_LITERT) {
+            pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore(this)
+                .find(profile.customModelId)?.title ?: getString(R.string.models_ui_user_missing)
+        } else {
+            pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[
+                profile?.dialogue ?: AudioEngineProfile.STABLE.dialogue].title
+        }
         active.text = when (val snapshot = AudioEngineActiveProfilePresenter.present(store.load())) {
             AudioEngineActiveState.Invalid -> getString(R.string.eng_ui_invalid)
             is AudioEngineActiveState.Configured -> getString(R.string.eng_ui_summary,
