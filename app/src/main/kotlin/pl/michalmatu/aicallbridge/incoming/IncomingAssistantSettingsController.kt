@@ -40,10 +40,7 @@ internal class IncomingAssistantSettingsController(context: Context) {
             accounts.indexOfFirst { IncomingAssistantPolicyStore.accountKey(it) == accountKey }
 
     fun save(mode: AnsweringMode, account: PhoneAccountHandle?, recordEvidence: Boolean): SaveResult {
-        if (mode == AnsweringMode.AI && (account == null ||
-            availableAccounts().none { IncomingAssistantPolicyStore.accountKey(it) ==
-                IncomingAssistantPolicyStore.accountKey(account) }
-        )) return SaveResult.NEED_SIM
+        if (mode == AnsweringMode.AI && account == null) return SaveResult.NEED_SIM
         return runCatching {
             store.save(mode, account?.let(IncomingAssistantPolicyStore::accountKey), recordEvidence)
             AndroidOwnedInCallService.incomingPolicyChanged()

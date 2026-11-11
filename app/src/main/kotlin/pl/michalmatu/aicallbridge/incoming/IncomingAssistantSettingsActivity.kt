@@ -116,7 +116,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private fun hasPhonePermission(): Boolean =
         checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
 
-    private fun reloadAccounts(selectionKey: String? = persistedAccountKey) {
+    private fun reloadAccounts() {
         simAccounts = controller.availableAccounts()
         val labels = simAccounts.mapIndexed { index, handle ->
             controller.displayAccount(handle) ?: getString(R.string.incoming_ui_sim_fallback, index + 1)
@@ -124,9 +124,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         UiSelect.setOptions(simPicker, if (labels.isEmpty())
             listOf(getString(R.string.incoming_ui_no_sim))
             else listOf(getString(R.string.incoming_ui_select_sim)) + labels)
-        val knownIndex = controller.selectedAccountIndex(simAccounts, selectionKey)
+        val knownIndex = controller.selectedAccountIndex(simAccounts, persistedAccountKey)
         simPicker.setSelection(if (knownIndex < 0) 0 else knownIndex + 1)
-        if (selectionKey != null && knownIndex < 0 && simAccounts.isNotEmpty()) {
+        if (persistedAccountKey != null && knownIndex < 0 && simAccounts.isNotEmpty()) {
             feedback.text = getString(R.string.incoming_ui_sim_removed)
         }
     }
@@ -164,13 +164,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         super.onResume()
         if (::simPicker.isInitialized) {
             simPermissionAction.visibility = if (hasPhonePermission()) View.GONE else View.VISIBLE
-            val currentKey = simAccounts.getOrNull(simPicker.selectedItemPosition - 1)
-                ?.let(IncomingAssistantPolicyStore::accountKey)
-            val refreshed = controller.availableAccounts()
-            if (refreshed.map(IncomingAssistantPolicyStore::accountKey) !=
-                simAccounts.map(IncomingAssistantPolicyStore::accountKey)) {
-                reloadAccounts(if (simAccounts.isEmpty()) persistedAccountKey else currentKey)
-            }
+            if (hasPhonePermission() && simAccounts.isEmpty()) reloadAccounts()
         }
     }
 

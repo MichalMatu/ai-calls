@@ -50,8 +50,6 @@ class AndroidIncomingAssistantContractTest {
         assertEquals(-1, controller.selectedAccountIndex(accounts, "removed-sim"))
         assertEquals(0, controller.selectedAccountIndex(
             accounts, IncomingAssistantPolicyStore.accountKey(account)))
-        assertEquals(IncomingAssistantSettingsController.SaveResult.NEED_SIM,
-            controller.save(AnsweringMode.AI, account, true))
     }
 
     @Test fun acceptedReceivingPolicyPersistsSeparatelyAndCanBeRevokedWithoutOutgoingChanges() {
