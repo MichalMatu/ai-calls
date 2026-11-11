@@ -18,6 +18,7 @@
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
+| Gest Wstecz formularza kontekstu | OPEN · app/conversation | Android 16 omija `onBackPressed`; gate: AndroidX dispatcher, zachowanie szkicu i lint |
 | Modele: pliki i wybór STT | OPEN · app/textagent + audioengines | Stała lista w dialogu czyszczenia, ukryte pliki i niejasny stan Parakeet; gate: inwentarz/usuwanie per plik, integralność, wybór i emulator |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
@@ -53,4 +54,4 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 - **Narzędzia AI MVP:** SAVE_NOTE szyfrowane per Call, migracja/deduplikacja, TASK/CALENDAR/MESSAGE tylko jako propozycje; END_CALL po TTS i kontroli Call. Notatnik: filtr, wyszukiwanie, strony, usuwanie po potwierdzeniu, AtomicFile .bak, IO poza UI. Migracja realnych danych i żywy Call pozostają bez fizycznej akceptacji.
 
 - **Opcje (11 XI):** baza `e533ad9` — 12/12 emulator PASS, Mac PASS, S22+ instalacja bez utraty danych i roli dialera; brak nowych Call. P2: walidacja SIM po zmianie karty i fizyczny odbiór.
-- **Modele i diagnostyka:** Gemma E2B jako baza, własne `.litertlm`, diagnostyka z JSON. Dotychczasowy Mac JVM i emulator 8/8 PASS; S22 `install -r` @`671c32c` bez utraty danych/dialera. Fizyczny UX i zgodność importów: **PHYSICAL_OPEN**.
+- **Modele i diagnostyka:** Gemma E2B jako baza, własne `.litertlm`, diagnostyka z JSON. Dotychczasowy Mac JVM i emulator 8/8 PASS; S22 `install -r` @`671c32c` bez utraty danych/dialera. Fizyczny UX i zgodność importów: **PHYSICAL_OPEN**. Odczyt inwentarza S22 wstrzymany: brak roli dialera; niczego nie zmieniono.
