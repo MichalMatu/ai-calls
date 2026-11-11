@@ -70,8 +70,15 @@ def audit(root: Path) -> list[str]:
                 "stable baseline " + selection)
     require("AudioEngineProfile", profile, r"GEMMA_AUDIO_DIRECT\s*->\s*\"audio_direct_s22_unqualified\"",
             "experimental-audio-not-selectable")
-    require("AudioEngineProfile", profile, r"LanguageModelCatalog\.entries\.map",
-            "catalog-backed-dialogue-choices")
+    # The consumer selector exposes the protected baseline and explicit owner imports.
+    # Retired catalog identities remain available only for inventory and Lab code.
+    choices_match = re.search(r"val dialogues\s*=\s*listOf\((.*?)\n    \)", profile, re.S)
+    choices = choices_match.group(1) if choices_match else ""
+    require("AudioEngineProfile", choices, r"DialogueModelId\.GEMMA_4_E2B\.name",
+            "baseline-dialogue-choice")
+    require("AudioEngineProfile", choices, r"DialogueModelId\.USER_LITERT\.name",
+            "owner-file-dialogue-choice")
+    forbid("AudioEngineProfile", choices, r"GEMMA_4_E4B|QWEN_", "retired-consumer-dialogue-choice")
     require("AudioEngineProfile", profile, r"\"GEMMA_AUDIO_DIRECT\"[\s\S]{0,200}\bfalse\s*\)",
             "M4-gallery-not-ready")
     require("AudioEngineProfileStore", files["AudioEngineProfileStore"],

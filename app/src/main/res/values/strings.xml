@@ -301,8 +301,8 @@
     <string name="eng_ui_save">Zapisz konfigurację</string>
     <string name="eng_ui_reset">Przywróć stabilny wariant</string>
     <string name="eng_ui_voice_auto">Automatyczny lokalny głos pl-PL</string>
-    <string name="eng_ui_not_ready">Gotowość: niezweryfikowana. Naciśnij „Sprawdź offline”.</string>
-    <string name="eng_ui_check_outdated">Wybór silnika zmienił się podczas sprawdzania. Uruchom test ponownie.</string>
+    <string name="eng_ui_not_ready">Przy zapisie sprawdzimy pliki modeli i dostępność głosu offline.</string>
+    <string name="eng_ui_check_outdated">Wybór zmienił się podczas sprawdzania. Zapisz ponownie, aby sprawdzić aktualne ustawienia.</string>
     <string name="eng_ui_check_unavailable">Silnik niedostępny: %1$s</string>
     <string name="eng_ui_restore_done">Przywrócono stabilny wariant dla następnej rozmowy.</string>
     <string name="eng_ui_save_error">Nie udało się zapisać profilu.</string>
@@ -436,10 +436,10 @@
     <string name="eng_ui_unavailable_count">Niedostępne silniki (%1$d)</string>
     <string name="eng_ui_could_not_save">Nie zapisano: %1$s</string>
     <string name="eng_ui_cancel_progress">Anulowanie pobierania…</string>
-    <string name="eng_ui_checking">Sprawdzanie lokalnego Android TTS, STT i pliku Gemma E2B…</string>
+    <string name="eng_ui_checking">Sprawdzanie wybranych silników, pliku modelu i głosów offline…</string>
     <string name="eng_ui_tts_init_failed">Android TTS: nie można zainicjalizować silnika.</string>
     <string name="eng_ui_piper_missing">Wybrany Piper TTS nie jest zainstalowany.</string>
-    <string name="eng_ui_check_available">Wstępny test offline: wybrane wejście wstępnie dostępne, E2B obecny (rozmiar pliku), lokalne głosy pl-PL: %1$d. Natywna inferencja wymaga osobnego testu S22.</string>
+    <string name="eng_ui_check_available">Pliki i usługi dostępne. Polskie głosy offline: %1$d. Jakość rozpoznawania i odpowiedzi wymaga sprawdzenia w rozmowie.</string>
     <string name="eng_ui_choose_parakeet">Wybierz Parakeet w sekcji wejścia przed pobraniem.</string>
     <string name="eng_ui_download_busy">Pobieranie trwa; użyj przycisku Anuluj, aby je przerwać.</string>
     <string name="eng_ui_download_hint">Pobieranie 615 MB: zalecane Wi-Fi. Plik jest sprawdzany SHA-256.</string>

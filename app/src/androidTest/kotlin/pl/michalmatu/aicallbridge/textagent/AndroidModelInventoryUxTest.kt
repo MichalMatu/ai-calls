@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.textagent
 
 import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.view.View
 import android.view.inspector.WindowInspector
@@ -27,7 +28,9 @@ class AndroidModelInventoryUxTest {
 
     @Before fun emulatorOnly() {
         assumeTrue("isolated_emulator_required", Build.HARDWARE in setOf("ranchu", "goldfish"))
-        instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.READ_PHONE_STATE)
+        if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.READ_PHONE_STATE)
+        }
     }
 
     private fun retired(id: DialogueModelId): File = Gemma4LiteRtTextBackendFactory.modelFile(context, id)
@@ -80,12 +83,20 @@ class AndroidModelInventoryUxTest {
                         assertTrue(message.contains(LanguageModelCatalog[DialogueModelId.GEMMA_4_E4B].title))
                         assertFalse(message.contains(LanguageModelCatalog[DialogueModelId.QWEN_3_0_6B].title))
                         dialog().findViewById<Button>(android.R.id.button2).performClick()
-                        assertTrue(chosen.exists())
-                        assertTrue(other.exists())
+                    }
+                    instrumentation.waitForIdleSync()
+                    assertTrue(chosen.exists())
+                    assertTrue(other.exists())
+                    scenario.onActivity { activity ->
+                        val root = activity.window.decorView
                         root.findViewWithTag<Button>("stored-model-delete:GEMMA_4_E4B").performClick()
                         dialog().findViewById<Button>(android.R.id.button1).performClick()
-                        assertFalse(chosen.exists())
-                        assertTrue(other.exists())
+                    }
+                    instrumentation.waitForIdleSync()
+                    assertFalse(chosen.exists())
+                    assertTrue(other.exists())
+                    scenario.onActivity { activity ->
+                        val root = activity.window.decorView
                         assertNull(root.findViewWithTag<View>("stored-model:GEMMA_4_E4B"))
                         assertNotNull(root.findViewWithTag<View>("stored-model:QWEN_3_0_6B"))
                     }
@@ -110,6 +121,10 @@ class AndroidModelInventoryUxTest {
                     assertTrue(message.contains("Parakeet"))
                     assertTrue(store.save(before.copy(input = SpeechInputId.PARAKEET_PL)))
                     dialog().findViewById<Button>(android.R.id.button1).performClick()
+                }
+                instrumentation.waitForIdleSync()
+                scenario.onActivity { activity ->
+                    val root = activity.window.decorView
                     assertTrue(file.exists())
                     assertFalse(root.findViewWithTag<Button>("parakeet-delete").isEnabled)
                     val state = root.findViewWithTag<TextView>("parakeet-transfer-status").text.toString()
@@ -136,6 +151,30 @@ class AndroidModelInventoryUxTest {
                     .contains(activity.getString(R.string.models_ui_parakeet_required)))
                 assertEquals(before, store.load())
             }
+        }
+    }
+
+    @Test fun downloadingParakeetDoesNotBlockDeletingADifferentRetiredFile() {
+        val file = retired(DialogueModelId.QWEN_3_0_6B)
+        val statusField = ParakeetModelTransferService::class.java.getDeclaredField("status")
+            .apply { isAccessible = true }
+        val previous = statusField.get(null)
+        createSynthetic(file, "synthetic unused model")
+        try {
+            // Present an in-progress transfer without starting a service or a network request.
+            statusField.set(null, ParakeetTransferStatus(busy = true))
+            ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+                scenario.onActivity { activity ->
+                    activity.window.decorView.findViewWithTag<Button>(
+                        "stored-model-delete:QWEN_3_0_6B").performClick()
+                    dialog().findViewById<Button>(android.R.id.button1).performClick()
+                }
+                instrumentation.waitForIdleSync()
+                assertFalse("an unrelated transfer must not prevent freeing storage", file.exists())
+            }
+        } finally {
+            statusField.set(null, previous)
+            file.delete()
         }
     }
 }

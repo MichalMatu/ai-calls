@@ -3,7 +3,7 @@
 **Jedno źródło prawdy:** [docs/README.md](docs/README.md) → [docs/PROJECT.md](docs/PROJECT.md). Modułowe instrukcje w `docs/architecture`, `docs/modules`, `docs/operations`. Nie twórz dodatkowych handoffów, chronologicznych checkpointów ani pliku BLOCKERS; zamknięte zadania znikają z bieżącego stanu, a historię zmian zapewnia Git.
 
 ## Wykonanie
-- Najpierw aktualny `main` HEAD, czysty Git, stan Mac Local Agent i brak kolizji. GitHub Connector + Mac Local Agent + Linux Sandbox; bez Codex, Work, GitHub Actions, nowych gałęzi, force-push i bez odczytu GitHub Actions.
+- Najpierw aktualny `main` HEAD, czysty Git i brak kolizji, także z wcześniej zleconymi zadaniami hosta. Kodowanie, testy i Git wyłącznie bezpośrednio w Codex, również przy zleceniu z ChatGPT; nie deleguj tej pracy do Mac Local Agent. Bez Work, GitHub Actions, nowych gałęzi, force-push i bez odczytu GitHub Actions.
 - **Existing Code First:** dla konkretnej luki porównaj własny baseline z maksymalnie 2–3 kandydatami; wybierz KEEP/IMPROVE/ADAPT/REPLACE tylko na podstawie przewagi, testów i licencji. Bez niepotrzebnego rewrite. [Reguła](docs/operations/EXTERNAL_REUSE.md).
 - Modyfikuj istniejące moduły, nie przepisuj sprawdzonego runtime, STOP, Samsung/Shizuku, Gemma E2B, Skills, autoryzacji ani recordera. Szybki flow: `bash scripts/bin/test-profile.sh preflight`; `auto <pre-sprint-SHA>` albo `focus <module> '<test>'`; jedno `full` po większym freeze. APK wyłącznie `device-build` bezpośrednio przed faktycznie autoryzowaną instalacją. [Procedura](docs/operations/DEVELOPMENT.md).
 - Nie dodawaj sztucznych ograniczeń, limitów tur/prób, redundantnych potwierdzeń ani czynności manualnych bez materialnej przyczyny. Utrzymuj test regresyjny anti-friction; **nie** usuwaj granic Androida, scoped grant, STOP, Call ownership, idempotencji i prywatności.
@@ -11,7 +11,7 @@
 
 ## Opcjonalna analiza zależności kodu
 
-- Przy większej zmianie na zweryfikowanym Mac Local Agent i czystym HEAD
+- Przy większej zmianie na zweryfikowanym Macu i czystym HEAD
   użyj `la-graphify status /ABS/REPO`, a przy świeżym grafie
   `la-graphify impact /ABS/REPO relative/source.kt`. Gdy nie znamy
   właściciela modułu, pomocniczo `la-openvisio skeleton /ABS/REPO "task"`.
@@ -28,4 +28,4 @@
 - Nie włączaj blokowania zrzutów ekranu (`FLAG_SECURE` i ekwiwalenty) — decyzja właściciela. Zrzuty nadal traktuj jako potencjalnie wrażliwe.
 
 ## Zakończenie pracy
-Pozostaw aktualne `docs/PROJECT.md`, poprawny indeks/linki, **budżet i quality gate dokumentacji** (`scripts/aicall_tools/diagnostics/docs_check.py`), zielone odpowiednie testy i czysty `main`. Zamiast nowych archiwów, korzystaj z commitów Git i niezmiennych receipts Mac Local Agent. Jeśli coś nie zostało sprawdzone na urządzeniu, pisz `PHYSICAL_OPEN`, nie `PASS`.
+Pozostaw aktualne `docs/PROJECT.md`, poprawny indeks/linki, **budżet i quality gate dokumentacji** (`scripts/aicall_tools/diagnostics/docs_check.py`), zielone odpowiednie testy i czysty `main`. Zamiast nowych archiwów korzystaj z commitów Git; wcześniejsze receipts Mac Local Agent pozostają niezmienne. Jeśli coś nie zostało sprawdzone na urządzeniu, pisz `PHYSICAL_OPEN`, nie `PASS`.

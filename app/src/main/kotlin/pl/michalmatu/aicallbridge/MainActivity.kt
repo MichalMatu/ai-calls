@@ -20,9 +20,11 @@ import pl.michalmatu.aicallbridge.ui.AppNavigation
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.DialerRoleCard
 
 /** Consumer home: a real task entry, one STOP, current state and the shared live chat. */
 class MainActivity : AppBaseActivity() {
+    private lateinit var dialerRole: DialerRoleCard
     private lateinit var liveStatus: TextView
     private lateinit var actionFeedback: TextView
     private var diagnosticProbes: MainActivityDeveloperProbes? = null
@@ -38,6 +40,7 @@ class MainActivity : AppBaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        dialerRole = DialerRoleCard(this, showOnlyWhenMissing = true)
         liveStatus = UiDesign.caption(this, "").apply {
             tag = "home-live-runtime"
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
@@ -71,6 +74,7 @@ class MainActivity : AppBaseActivity() {
             }, UiDesign.spaceAfter(this@MainActivity, 5))
             addView(UiDesign.caption(this@MainActivity, getString(R.string.ui_subtitle)),
                 UiDesign.spaceAfter(this@MainActivity, 18))
+            addView(dialerRole.view, UiDesign.spaceAfter(this@MainActivity, 16))
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-new-call-card"
                 addView(UiDesign.heading(this@MainActivity,
@@ -126,6 +130,7 @@ class MainActivity : AppBaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (::dialerRole.isInitialized) dialerRole.refresh()
         statusHandler.removeCallbacks(statusRefresh)
         statusHandler.post(statusRefresh)
     }

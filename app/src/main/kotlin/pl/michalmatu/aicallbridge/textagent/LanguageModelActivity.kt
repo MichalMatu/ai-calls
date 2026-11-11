@@ -301,7 +301,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             val store = AudioEngineProfileStore(this)
             val current = store.load()
             when {
-                !safeToEditModels() -> showFeedback(R.string.models_ui_not_idle)
+                !safeToEditModels(parakeetFile = true) -> showFeedback(R.string.models_ui_not_idle)
                 current == null -> showFeedback(R.string.models_ui_fix_engines)
                 ParakeetModelFile.integrity(file) != ParakeetModelIntegrity.VERIFIED ->
                     showFeedback(R.string.ux07_parakeet_check_required)
@@ -313,7 +313,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         card.addView(parakeetSelect, UiDesign.spaceAfter(this, 8))
         parakeetRemove = UiDesign.action(this, getString(R.string.models_ui_remove), UiActionTone.DANGER) {
             val file = ParakeetModelFile.resolve(this)
-            if (!safeToEditModels()) {
+            if (!safeToEditModels(parakeetFile = true)) {
                 showFeedback(R.string.models_ui_not_idle)
             } else if (AudioEngineProfileStore(this).load()?.input == SpeechInputId.PARAKEET_PL) {
                 showFeedback(R.string.models_ui_switch_stt_before_delete)
@@ -328,7 +328,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     .setPositiveButton(R.string.models_ui_remove) { _, _ ->
                         val profile = AudioEngineProfileStore(this).load()
                         when {
-                            !safeToEditModels() -> showFeedback(R.string.models_ui_not_idle)
+                            !safeToEditModels(parakeetFile = true) -> showFeedback(R.string.models_ui_not_idle)
                             profile == null -> showFeedback(R.string.models_ui_fix_engines)
                             profile.input == SpeechInputId.PARAKEET_PL ->
                                 showFeedback(R.string.models_ui_switch_stt_before_delete)
@@ -477,12 +477,13 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     /** Fails closed when Telecom/permissions cannot confirm an idle phone. */
-    private fun safeToEditModels(): Boolean = runCatching {
+    private fun safeToEditModels(parakeetFile: Boolean = false): Boolean = runCatching {
         val status = UsbDebugBridge.snapshot(this)
         status.optBoolean("call_idle", false) &&
             status.optBoolean("campaign_service_inactive", false) &&
             !status.optBoolean("pending_retry", true) &&
-            !LanguageModelTransferService.status.busy && !ParakeetModelTransferService.status.busy
+            !LanguageModelTransferService.status.busy &&
+            (!parakeetFile || !ParakeetModelTransferService.status.busy)
     }.getOrDefault(false)
 
     private fun legacyLibrary() = StoredLegacyLanguageModels(checkNotNull(

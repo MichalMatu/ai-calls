@@ -1,5 +1,7 @@
 # Mac Local Agent — host operations
 
+Kodowanie, testy i Git AI Calls odbywają się wyłącznie bezpośrednio w Codex. Poniższy protokół dotyczy tylko odrębnie zleconych operacji Local Agent i odczytu dawnych dowodów; nie jest domyślnym wykonawcą prac nad repozytorium.
+
 **Źródło protokołu:** aktualne `MichalMatu/local-agent` `main` (`AGENTS.md`, `docs/HOST_CONTROL_PLANE.md`, `docs/CURRENT_HANDOFF.md`) oraz `agent-control` i rzeczywisty wynik tasku. Te instrukcje pobierz przed Host Ops; nie traktuj dawnego statusu `idle` jako aktualnego faktu.
 
 ## Adresowanie
@@ -16,4 +18,4 @@
 5. Zapisz w `docs/PROJECT.md` tylko najnowszy istotny QA/otwarte ryzyka. Szczegółowe wyniki są w oryginalnym Host Control, bez kopii checkpointów.
 
 ## Praca fizyczna
-USB/ADB, narzędzia Android, weryfikacja Shizuku, lokalne katalogi prywatne i faktyczne testy S22 tylko przez ten host, ze sprawdzeniem autoryzacji i IDLE według [DEVICE](DEVICE.md). Nigdy nie dopisuj numerów, danych właściciela, nagrań ani transkryptów do zdalnych komend/receipts.
+USB/ADB i testy S22 wymagają zweryfikowanego Maca, autoryzacji i IDLE według [DEVICE](DEVICE.md), również przy wykonaniu bezpośrednio w Codex. Nie dopisuj numerów, danych właściciela, nagrań ani transkryptów do zdalnych komend/receipts.

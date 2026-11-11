@@ -301,8 +301,8 @@
     <string name="eng_ui_save">Save configuration</string>
     <string name="eng_ui_reset">Restore stable configuration</string>
     <string name="eng_ui_voice_auto">Automatic local pl-PL voice</string>
-    <string name="eng_ui_not_ready">Readiness unverified. Select Check offline.</string>
-    <string name="eng_ui_check_outdated">Engine selection changed during the check. Run it again.</string>
+    <string name="eng_ui_not_ready">Saving checks model files and offline voice availability.</string>
+    <string name="eng_ui_check_outdated">Your selection changed during the check. Save again to check the current settings.</string>
     <string name="eng_ui_check_unavailable">Engine unavailable: %1$s</string>
     <string name="eng_ui_restore_done">Stable configuration restored for the next call.</string>
     <string name="eng_ui_save_error">Could not save the profile.</string>
@@ -436,10 +436,10 @@
     <string name="eng_ui_unavailable_count">Unavailable engines (%1$d)</string>
     <string name="eng_ui_could_not_save">Not saved: %1$s</string>
     <string name="eng_ui_cancel_progress">Cancelling download…</string>
-    <string name="eng_ui_checking">Checking local Android TTS, STT and Gemma E2B file…</string>
+    <string name="eng_ui_checking">Checking the selected engines, model file and offline voices…</string>
     <string name="eng_ui_tts_init_failed">Android TTS: could not initialize the engine.</string>
     <string name="eng_ui_piper_missing">Selected Piper TTS is not installed.</string>
-    <string name="eng_ui_check_available">Preliminary offline check: selected input appears available, E2B file is present (size only), local pl-PL voices: %1$d. Native inference requires a separate S22 test.</string>
+    <string name="eng_ui_check_available">Files and services available. Polish offline voices: %1$d. Recognition and reply quality still need to be checked in conversation.</string>
     <string name="eng_ui_choose_parakeet">Select Parakeet as input before downloading.</string>
     <string name="eng_ui_download_busy">A download is in progress; use Cancel to stop it.</string>
     <string name="eng_ui_download_hint">Downloading 615 MB: Wi-Fi recommended. File is checked with SHA-256.</string>

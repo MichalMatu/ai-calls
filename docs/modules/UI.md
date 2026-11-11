@@ -12,5 +12,6 @@ UI pokazuje rzeczywisty stan: manual/AI, exact Call, postęp, STOP/TAKE OVER/res
 - Przełączniki narzędzi: rozróżniają lokalny zapis, propozycje i zakończenie własnego Call. Back i zmiana zakładki chronią niezapisane zmiany; po obrocie zachowywane są tylko identyfikatory przełączników, nie treść notatek ani wyszukiwania.
 - Nie dodawać dodatkowych kliknięć ani kolejnych zatwierdzeń bez zmiany materialnego zakresu grantu.
 - Modele: wybór na kolejne rozmowy i stan pliku to osobne informacje. Rozmiar zapisany pochodzi z pliku; brak pliku pokazuje rozmiar do pobrania. Usuwanie dotyczy jednego widocznego pliku, sprawdza ponownie IDLE/wybór i nie usuwa chronionej bazy.
+- Rola aplikacji Telefon ma status i jawny przycisk w Ustawieniach; Start pokazuje brak roli. Otwarcie ekranów nie żąda roli. Systemowy wybór po kliknięciu i powrót do aplikacji nie uruchamiają Call ani grantu.
 
 G7 to finalny odbiór UX po rzeczywistym G6, nie powód do zastępowania już testowanych ekranów. [Current](../PROJECT.md).

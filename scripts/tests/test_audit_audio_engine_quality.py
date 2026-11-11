@@ -70,12 +70,28 @@ class AudioEngineQualityGateTest(unittest.TestCase):
             "experimental-audio-not-selectable",
         )
 
-    def test_dialogue_choices_use_the_shared_catalog(self):
+    def test_consumer_dialogue_choices_preserve_the_protected_baseline(self):
         self.check_mutation(
             AUDIO + "AudioEngineProfile.kt",
-            'LanguageModelCatalog.entries.map',
-            'emptyList<LanguageModelEntry>().map',
-            "catalog-backed-dialogue-choices",
+            'DialogueModelId.GEMMA_4_E2B.name',
+            'DialogueModelId.GEMMA_4_E4B.name',
+            "baseline-dialogue-choice",
+        )
+
+    def test_consumer_dialogue_choices_preserve_explicit_owner_imports(self):
+        self.check_mutation(
+            AUDIO + "AudioEngineProfile.kt",
+            'DialogueModelId.USER_LITERT.name',
+            'DialogueModelId.GEMMA_4_E4B.name',
+            "owner-file-dialogue-choice",
+        )
+
+    def test_retired_catalog_entries_cannot_reappear_as_consumer_choices(self):
+        self.check_mutation(
+            AUDIO + "AudioEngineProfile.kt",
+            'val dialogues = listOf(',
+            'val dialogues = listOf(\n        AudioEngineChoice("QWEN_3_0_6B", "retired", "pl-PL", "", true),',
+            "retired-consumer-dialogue-choice",
         )
 
     def test_selected_model_cannot_be_dropped_at_native_factory_boundary(self):

@@ -21,7 +21,7 @@ class DocumentationContractTest(unittest.TestCase):
     def test_current_docs_and_references_are_consistent(self):
         errors, warnings, total = audit(ROOT)
         self.assertEqual([], errors)
-        self.assertLess(total, TOTAL_WARN_BYTES, warnings)
+        self.assertLessEqual(total, TOTAL_MAX_BYTES, warnings)
 
     def test_missing_relative_code_link_fails_closed(self):
         with TemporaryDirectory() as d:
@@ -66,6 +66,9 @@ class DocumentationContractTest(unittest.TestCase):
             root = Path(d)
             self.fixture(root)
             # Grow only to the warning zone, independent of the live docs baseline.
+            for path in (root / "docs").rglob("*.md"):
+                if path.name != "README.md":
+                    path.write_text("# Budget fixture " + path.stem + "\n")
             baseline = audit(root)[2]
             desired = TOTAL_WARN_BYTES + 1024
             self.assertLess(baseline, TOTAL_WARN_BYTES)

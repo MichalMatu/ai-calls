@@ -19,6 +19,7 @@ import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 
 /** Direct navigation hub: categories are labels, not one-button accordions. */
 class SettingsHubActivity : AppBaseActivity() {
+    private lateinit var dialerRole: DialerRoleCard
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val content = LinearLayout(this).apply {
@@ -84,6 +85,8 @@ class SettingsHubActivity : AppBaseActivity() {
             ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 16) })
         }
         // One visible native dropdown; selecting a language takes only one tap to open.
+        dialerRole = DialerRoleCard(this)
+        content.addView(dialerRole.view, UiDesign.spaceAfter(this, 16))
         val languageCodes = listOf("auto", "pl", "en")
         val languageLabels = listOf(
             getString(R.string.ui_language_auto),
@@ -129,5 +132,10 @@ class SettingsHubActivity : AppBaseActivity() {
             isFillViewport = true
             addView(content)
         }, AppTab.SETTINGS)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::dialerRole.isInitialized) dialerRole.refresh()
     }
 }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_ui_title">Default phone app</string>
+    <string name="role_ui_detail">This role lets AI Calls answer and handle calls. Confirm your choice in the Android dialog.</string>
+    <string name="role_ui_action">Set as phone app</string>
+    <string name="role_ui_ready">AI Calls is the default phone app.</string>
+    <string name="role_ui_missing">AI Calls is not the default phone app.</string>
+    <string name="role_ui_unavailable">Changing the phone app is unavailable on this device.</string>
+    <string name="role_ui_request_failed">Could not open the chooser. Check the default phone app in Android settings.</string>
+</resources>
