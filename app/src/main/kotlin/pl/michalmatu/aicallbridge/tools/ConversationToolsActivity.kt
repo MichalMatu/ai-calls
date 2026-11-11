@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import java.text.DateFormat
 import java.util.Date
 import java.util.concurrent.Executors
@@ -56,6 +57,32 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     private val expanded = mutableSetOf<String>()
     private val shownEntries = mutableMapOf<String, Int>()
     private var deletionInProgress = false
+    private lateinit var optionViews: Map<ConversationToolId, CheckBox>
+    private var storedSelection: Set<ConversationToolId> = emptySet()
+
+    private fun selectedTools(): Set<ConversationToolId> =
+        optionViews.filterValues { it.isChecked }.keys.toSet()
+
+    private fun hasUnsavedSettings(): Boolean =
+        ::optionViews.isInitialized && selectedTools() != storedSelection
+
+    private fun confirmDiscardSettings(onConfirmed: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setMessage(R.string.tools_ui_unsaved_warning)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.tools_ui_discard) { _, _ -> onConfirmed() }
+            .show()
+    }
+
+    override fun consumeChromeBack(): Boolean {
+        if (!hasUnsavedSettings()) return false
+        confirmDiscardSettings { finish() }
+        return true
+    }
+
+    override fun onTabNavigationRequested(action: () -> Unit) {
+        if (hasUnsavedSettings()) confirmDiscardSettings(action) else action()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,8 +157,8 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
         content.addView(UiDesign.heading(this, getString(R.string.notebook_ui_tools_heading)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 9))
-        var storedSelection = controller.enabled().toSet()
-        val options = ConversationToolId.entries.associateWith { tool ->
+        storedSelection = controller.enabled().toSet()
+        optionViews = ConversationToolId.entries.associateWith { tool ->
             CheckBox(this).apply {
                 tag = "tools-setting:" + tool.wireName
                 text = getString(when (tool) {
@@ -141,7 +168,13 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                 textSize = 15f
                 isChecked = tool in storedSelection
                 minimumHeight = UiDesign.dp(this@ConversationToolsActivity, 48)
-            }.also { content.addView(it, UiDesign.spaceAfter(this, 4)) }
+            }.also { option ->
+                content.addView(option, UiDesign.spaceAfter(this, 2))
+                content.addView(UiDesign.caption(this, getString(when (tool) {
+                    ConversationToolId.END_CALL -> R.string.tools_ui_end_call_detail
+                    ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_detail
+                })), UiDesign.spaceAfter(this, 8))
+            }
         }
         val feedback = UiDesign.caption(this, "").apply {
             visibility = View.GONE
@@ -153,10 +186,9 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
             tag = "tools-save-settings"
             visibility = View.GONE
         }
-        fun selected() = options.filterValues { it.isChecked }.keys.toSet()
         save.setOnClickListener {
-            if (controller.save(selected())) {
-                storedSelection = selected()
+            if (controller.save(selectedTools())) {
+                storedSelection = selectedTools()
                 save.visibility = View.GONE
                 feedback.text = getString(R.string.tools_ui_saved)
             } else {
@@ -164,14 +196,20 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
             }
             feedback.visibility = View.VISIBLE
         }
-        options.values.forEach { option ->
+        optionViews.values.forEach { option ->
             option.setOnCheckedChangeListener { _, _ ->
-                save.visibility = if (selected() != storedSelection) View.VISIBLE else View.GONE
+                save.visibility = if (hasUnsavedSettings()) View.VISIBLE else View.GONE
                 feedback.visibility = View.GONE
             }
         }
         content.addView(save, UiDesign.spaceAfter(this, 6))
         content.addView(feedback)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (hasUnsavedSettings()) confirmDiscardSettings { finish() }
+                else finish()
+            }
+        })
         setContentView(ScrollView(this).apply {
             isFillViewport = true
             addView(content)
@@ -203,7 +241,8 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     private fun renderNotebooks() {
         if (!::notebookList.isInitialized || !::notebookCounter.isInitialized) return
         notebookList.removeAllViews()
-        notebookCounter.text = getString(R.string.notebook_ui_count, books.size)
+        notebookCounter.text = if (loading || loadFailed) ""
+            else getString(R.string.notebook_ui_count, books.size)
         if (loading || loadFailed || books.isEmpty()) {
             notebookList.addView(UiDesign.caption(this, getString(when {
                 loading -> R.string.notebook_ui_loading
@@ -327,14 +366,15 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
             .setPositiveButton(R.string.notebook_ui_delete) { _, _ ->
                 if (deletionInProgress) return@setPositiveButton
                 deletionInProgress = true
-                val token = ++loadGeneration
+                // Invalidate outstanding reads; deletion must still finish after a new onResume.
+                ++loadGeneration
                 worker.execute {
                     val result = runCatching {
                         if (ConversationChatFeed.snapshot().active) false
                         else repository.deleteNotebook(book.sessionId)
                     }
                     main.post {
-                        if (token != loadGeneration || isDestroyed) return@post
+                        if (isDestroyed || isFinishing) return@post
                         deletionInProgress = false
                         if (result.getOrDefault(false)) {
                             expanded.remove(book.sessionId)
