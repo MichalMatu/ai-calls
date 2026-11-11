@@ -122,10 +122,12 @@
     <string name="tools_ui_title">AI tools</string>
     <string name="tools_ui_description">Tools are shared by all models. Enabling a capability does not expand the task scope or call authority. Disabling a tool prevents new execution, including during a call.</string>
     <string name="tools_ui_end_call_title">End the current AI-managed call</string>
-    <string name="tools_ui_end_call_detail">After the farewell, end only the AI-owned call. Disabling this model tool does not disable emergency STOP or the app-controlled long-idle safety closure.</string>
+    <string name="tools_ui_end_call_detail">After the farewell, AI may end only the call it still manages. Emergency STOP works independently.</string>
     <string name="tools_ui_save">Save changes</string>
     <string name="tools_ui_saved">Saved.</string>
     <string name="tools_ui_failed">Could not save.</string>
+    <string name="tools_ui_unsaved_warning">Tool settings have unsaved changes. Leave without saving?</string>
+    <string name="tools_ui_discard">Discard changes</string>
     <string name="tools_ui_end_hint">An end-call request is carried out after the goodbye, only if AI still owns that call. You can review its outcome and stages in chat and private call history.</string>
     <string name="tools_ui_no_recent">No recent tool request. Tool history remains in saved conversations.</string>
     <string name="tools_ui_recent_event">Latest request: %1$s • %2$s</string>
@@ -616,7 +618,7 @@
     <string name="prep_ui_preview_notice">This previews context and data identifiers, not the final AI prompt. Each call\'s goal and permissions are defined separately.</string>
     <string name="prep_ui_preview_empty">No additional context.</string>
     <string name="tools_ui_save_note_title">Save call notes</string>
-    <string name="tools_ui_save_note_detail">AI adds private notes for each call. Scheduling, tasks and messages are proposals only; no external action occurs.</string>
+    <string name="tools_ui_save_note_detail">AI adds private notes. Tasks, dates and messages remain proposals; nothing is sent or booked.</string>
     <string name="tools_ui_note_saved">Note saved locally</string>
     <string name="notebook_ui_title">Agent notebook</string>
     <string name="notebook_ui_description">One encrypted notebook per call. AI entries require review and never mean an action was completed.</string>
