@@ -29,12 +29,17 @@ class LanguageModelCatalogTest {
             pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.incompatibility(
                 pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile(
                     dialogue = DialogueModelId.QWEN_3_5_2B)))
-        assertFalse(pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.dialogues.single {
+        assertFalse(pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.dialogues.any {
             it.id == DialogueModelId.QWEN_3_5_2B.name
-        }.integrated)
+        })
         assertTrue(DialogueModelId.QWEN_3_5_2B.nativeExecutionPolicy().cpuOnly)
         assertTrue(DialogueModelId.QWEN_3_5_2B.nativeExecutionPolicy().newEngineAfterContextReset)
         assertFalse(DialogueModelId.GEMMA_4_E2B.nativeExecutionPolicy().cpuOnly)
+    }
+
+    @Test fun onlyBaseAndFileModelsAreVisibleInEngineSelection() {
+        assertEquals(setOf(DialogueModelId.GEMMA_4_E2B.name, DialogueModelId.USER_LITERT.name),
+            pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.dialogues.map { it.id }.toSet())
     }
 
     @Test fun existingE2BInstallationRemainsValidWithoutRedownload() {
