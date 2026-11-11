@@ -12,7 +12,7 @@
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Czytelność Model i głos | PHYSICAL_OPEN · app/ui | IN_PROGRESS: migający wynik zgodności i mylące nazwy TTS. Gate: kompilacja, instalacja i ocena właściciela |
+| Czytelność Model i głos | PHYSICAL_OPEN · app/ui | Wynik próby trwały, przycisk nie znika, nazwy TTS skrócone. Kompilacja/install-r PASS; ocena właściciela otwarta |
 | Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, transkrypt przed kontrolą wizyty/danych, narzędzia i STOP; testy hosta PASS. Gemma pobrana według właściciela; native PL, jakość i RAM S22 otwarte |
 | Pełny gate Python | OPEN · scripts/tests | Pełny zestaw pominięty w tej iteracji. Pozostaje dług testów dawnych ekranów; po odbiorze modali wymagane dostosowanie testów UI |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
@@ -24,7 +24,7 @@
 
 Pierwszy OUTGOING potwierdza częściowy RX/TX i jeden turn, nie potwierdza zrozumiałości u rozmówcy ani końcowej rezerwacji. Pełne live QA nadal otwarte.
 
-Automatyczne, prywatne archiwum STT/zatwierdzonych odpowiedzi/diagnostyki na każdej autoryzowanej sesji, bez UI click i bez WAV: **HOST_TESTED** (`app` focused + changed QA, anti-friction i docs PASS; Mac `2e7d931a`). Audio WAV nadal wymaga osobnego opt-in. **S22: bieżący APK `4d35a87c` zachowuje poprawkę RX i dane; live STT PHYSICAL_OPEN**. Pierwszego transkryptu EMC ten fix wstecznie nie odtwarza; STT nieukończonej tury pozostaje otwartym ryzykiem.
+Automatyczne, prywatne archiwum STT/zatwierdzonych odpowiedzi/diagnostyki na każdej autoryzowanej sesji, bez UI click i bez WAV: **HOST_TESTED** (`app` focused + changed QA, anti-friction i docs PASS; Mac `2e7d931a`). Audio WAV nadal wymaga osobnego opt-in. **S22: bieżący APK `954e8234` zachowuje poprawkę RX i dane; live STT PHYSICAL_OPEN**. Pierwszego transkryptu EMC ten fix wstecznie nie odtwarza; STT nieukończonej tury pozostaje otwartym ryzykiem.
 
 ## Następny sprint — MVP FIRST (kod, nie audyt)
 1. Pierwszy OUTGOING: owned_call_ended, 1 tura STT/TTS, druga RX 55s bez końca; 20s limit segmentu wizyty wdrożony, przetestowany syntetycznie i zainstalowany na S22. Próba live w tej wersji nadal nie została wykonana.
@@ -51,4 +51,4 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
 - **Model i głos:** trzy karty, wybory w modalach zapisywane od razu; Parakeet w grupie Dodatkowe przy wyborze rozpoznawania, silnik przy głosach, pliki osobno. Bez górnych opisów. KEEP runtime, STOP, Skills i granty. Właściciel potwierdził pobranie Gemmy; odbiór nowego układu na S22 **PHYSICAL_OPEN**.
 - **Rola Telefonu:** stan i jawny przycisk w Ustawieniach oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
-- **QA UX:** S22 nadal APK `4d35a87c`; poprawka trwałego wyniku sprawdzania i nazw dostawców głosu w przygotowaniu. Dla tej iteracji tylko kompilacja/pakowanie i instalacja. Pełne zestawy/emulator pomijane na życzenie właściciela; odbiór UI i native audio **PHYSICAL_OPEN**.
+- **QA UX:** kompilacja/pakowanie PASS; S22 APK `954e8234`, SHA-256 `4bfa642b08c1f845fcfa5334e7216cadb1dbb6f295b6078ea088459515831627`, install-r/odczyt PASS. 3 preferencje, modele, UID, uprawnienia i rola Telefonu zachowane; IDLE. Bez pełnych zestawów/emulatora na życzenie właściciela. Odbiór UI i native audio **PHYSICAL_OPEN**.
