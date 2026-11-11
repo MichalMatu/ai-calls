@@ -22,10 +22,10 @@ class AudioEngineProfileContractTest {
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = SpeechOutputId.PIPER_PL)))
         for (model in DialogueModelId.entries) {
             val status = AudioEngineRegistry.incompatibility(AudioEngineProfile(dialogue = model))
-            if (model == DialogueModelId.QWEN_3_5_2B) {
-                assertEquals("qwen35_lab_only_unqualified", status)
-            } else {
-                assertNull(status)
+            when (model) {
+                DialogueModelId.QWEN_3_5_2B -> assertEquals("qwen35_lab_only_unqualified", status)
+                DialogueModelId.USER_LITERT -> assertEquals("user_model_identity_invalid", status)
+                else -> assertNull(status)
             }
         }
         for (output in listOf(SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS)) {
@@ -52,7 +52,8 @@ class AudioEngineProfileContractTest {
                     val shouldBeIntegrated = input != SpeechInputId.GEMMA_AUDIO_DIRECT &&
                         output != SpeechOutputId.KOKORO &&
                         output != SpeechOutputId.POCKET_TTS &&
-                        dialogue != DialogueModelId.QWEN_3_5_2B
+                        dialogue != DialogueModelId.QWEN_3_5_2B &&
+                        dialogue != DialogueModelId.USER_LITERT
                     assertEquals(
                         "Wrong static integration for $input/$dialogue/$output",
                         shouldBeIntegrated,
@@ -61,6 +62,16 @@ class AudioEngineProfileContractTest {
                 }
             }
         }
+    }
+
+    @Test fun importedModelNeedsExactFileIdentity() {
+        assertEquals("user_model_identity_invalid", AudioEngineRegistry.incompatibility(
+            AudioEngineProfile(dialogue = DialogueModelId.USER_LITERT)))
+        assertEquals("user_model_identity_invalid", AudioEngineRegistry.incompatibility(
+            AudioEngineProfile(dialogue = DialogueModelId.USER_LITERT,
+                customModelId = "../outside")))
+        assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(
+            dialogue = DialogueModelId.USER_LITERT, customModelId = "user-" + "a".repeat(64))))
     }
 
     @Test fun selectedOfflineVoiceIsASeparatePreferenceNotACapability() {
