@@ -111,4 +111,19 @@ class ConversationNotebookRepositoryTest {
         assertTrue(ConversationNotebookListPolicy.filter(
             listOf(incoming, outgoing), "missing", null).isEmpty())
     }
+
+    @Test fun searchIsIndependentOfTurkishDeviceLocale() {
+        val original = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"))
+            val book = ConversationNotebook("incoming-search", "INCOMING",
+                listOf(ConversationNotebookEntry("incoming-search:1", 1, 1000L,
+                    ConversationNoteKind.NOTE, "INFORMATION FROM AGENT")))
+            assertEquals(listOf("incoming-search"),
+                ConversationNotebookListPolicy.filter(listOf(book), "information", null)
+                    .map { it.sessionId })
+        } finally {
+            java.util.Locale.setDefault(original)
+        }
+    }
 }
