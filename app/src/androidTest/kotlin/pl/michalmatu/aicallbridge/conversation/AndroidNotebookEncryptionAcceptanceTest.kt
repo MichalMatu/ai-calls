@@ -40,7 +40,17 @@ class AndroidNotebookEncryptionAcceptanceTest {
             val reopened = AndroidConversationPreparationStore(isolated, "notebook-qa", alias, prefs)
             val books = reopened.notebooks()
             assertEquals(2, books.size)
-            assertTrue(reopened.deleteNotebook("incoming-qa"))
+            // Simulate legacy AtomicFile crash state: encrypted index exists only as .bak.
+            val indexHash = java.security.MessageDigest.getInstance("SHA-256")
+                .digest("notebook-index-v2".toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+            val indexBase = File(dir, "notebook-qa/$indexHash.json")
+            val backup = File(indexBase.parentFile, indexBase.name + ".bak")
+            assertTrue(indexBase.renameTo(backup))
+            val recovered = AndroidConversationPreparationStore(isolated, "notebook-qa", alias, prefs)
+            assertEquals(2, recovered.notebooks().size)
+            assertTrue(indexBase.exists())
+            assertTrue(recovered.deleteNotebook("incoming-qa"))
             assertEquals(listOf("outgoing-qa"),
                 reopened.notebooks().map { it.sessionId })
             assertEquals(2, books.single { it.sessionId == "incoming-qa" }.entries.size)
