@@ -38,6 +38,10 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
 class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     override fun toolbarTitle(): String = getString(R.string.tools_ui_title)
 
+    private companion object {
+        const val PENDING_TOOLS_STATE = "pending-tools-selection"
+    }
+
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
     // Keystore construction and legacy migration must not happen on the UI thread.
@@ -165,6 +169,8 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 9))
         storedSelection = controller.enabled().toSet()
+        // Only tool IDs (never private notebook search or notes) survive rotation.
+        val pendingTools = savedInstanceState?.getStringArrayList(PENDING_TOOLS_STATE)?.toSet()
         optionViews = ConversationToolId.entries.associateWith { tool ->
             CheckBox(this).apply {
                 tag = "tools-setting:" + tool.wireName
@@ -173,8 +179,13 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                     ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_title
                 })
                 textSize = 15f
-                isChecked = tool in storedSelection
+                isChecked = if (pendingTools == null) tool in storedSelection
+                    else tool.wireName in pendingTools
                 minimumHeight = UiDesign.dp(this@ConversationToolsActivity, 48)
+                contentDescription = text.toString() + ". " + getString(when (tool) {
+                    ConversationToolId.END_CALL -> R.string.tools_ui_end_call_detail
+                    ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_detail
+                })
             }.also { option ->
                 content.addView(option, UiDesign.spaceAfter(this, 2))
                 content.addView(UiDesign.caption(this, getString(when (tool) {
@@ -209,6 +220,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                 feedback.visibility = View.GONE
             }
         }
+        save.visibility = if (hasUnsavedSettings()) View.VISIBLE else View.GONE
         content.addView(save, UiDesign.spaceAfter(this, 6))
         content.addView(feedback)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -398,6 +410,14 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                 }
             }
             .show()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (::optionViews.isInitialized) {
+            outState.putStringArrayList(PENDING_TOOLS_STATE,
+                ArrayList(selectedTools().map { it.wireName }))
+        }
+        super.onSaveInstanceState(outState)
     }
 
     override fun onDestroy() {
