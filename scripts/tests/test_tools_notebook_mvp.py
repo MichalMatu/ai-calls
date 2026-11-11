@@ -32,7 +32,7 @@ class NotebookMvpContract(unittest.TestCase):
         self.assertIn('tag = "tools-notebook-delete:"', screen)
         self.assertIn('tag = "tools-notebook-more"', screen)
         self.assertIn("Executors.newSingleThreadExecutor()", screen)
-        self.assertIn("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)", screen)
+        self.assertNotIn("FLAG_SECURE", screen)
         self.assertNotIn("tools-latest-status", screen)
         self.assertNotIn("postDelayed(this, 500L)", screen)
     def test_per_call_records_have_safe_legacy_migration_and_confirmed_delete(self):
