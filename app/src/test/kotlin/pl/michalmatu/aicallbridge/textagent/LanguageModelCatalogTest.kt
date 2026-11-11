@@ -7,9 +7,9 @@ import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 class LanguageModelCatalogTest {
     @Test fun everySelectableModelHasItsOwnPinnedIdentityAndImmutablePublicSource() {
         val entries = LanguageModelCatalog.entries
-        assertEquals(DialogueModelId.entries.toSet(), entries.map { it.id }.toSet())
-        assertEquals(DialogueModelId.entries.size, entries.map { it.spec.fileName }.toSet().size)
-        assertEquals(DialogueModelId.entries.size, entries.map { it.spec.sha256 }.toSet().size)
+        assertEquals(DialogueModelId.entries.filterNot { it == DialogueModelId.USER_LITERT }.toSet(), entries.map { it.id }.toSet())
+        assertEquals(entries.size, entries.map { it.spec.fileName }.toSet().size)
+        assertEquals(entries.size, entries.map { it.spec.sha256 }.toSet().size)
         for (entry in entries) {
             assertEquals(entry.spec.fileName, entry.source.fileName)
             assertEquals(entry.spec.sha256, entry.source.expectedSha256)
