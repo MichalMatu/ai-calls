@@ -390,6 +390,11 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun cleanupLegacyModels() {
         if (!safeToEditModels()) { showFeedback(R.string.models_ui_not_idle); return }
+        if (AndroidGemma4ModelReadiness.check(this, DialogueModelId.GEMMA_4_E2B).state !=
+            Gemma4ModelReadinessState.READY) {
+            showFeedback(R.string.models_ui_install_first)
+            return
+        }
         val directory = Gemma4LiteRtTextBackendFactory.modelFile(
             this, DialogueModelId.GEMMA_4_E2B).parentFile ?: return
         var removed = 0
