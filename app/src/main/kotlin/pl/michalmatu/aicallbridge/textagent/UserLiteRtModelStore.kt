@@ -93,10 +93,9 @@ internal class UserLiteRtModelStore(context: Context) {
             val sha = digest.digest().joinToString("") { "%02x".format(it) }
             val model = UserLiteRtModel("user-$sha", title, sha, written)
             val destination = file(model)
-            if (!destination.isFile || destination.length() != written) {
-                Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING)
-            }
+            // Never trust equal-length old bytes: atomically replace them with freshly hashed input.
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING)
             synchronized(lock) {
                 val existing = readManifest() ?: return UserModelImportResult.Failure("model_registry_corrupt")
                 val updated = existing.filterNot { it.id == model.id } + model
