@@ -6,6 +6,8 @@ import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.R
 import android.app.Activity
+import android.app.AlertDialog
+import pl.michalmatu.aicallbridge.debug.UsbDebugBridge
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -43,6 +45,8 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private val handler = Handler(Looper.getMainLooper())
     private var pendingImport: DialogueModelId? = null
+    private var pendingUserImport = false
+    private lateinit var userModelsContainer: LinearLayout
     private lateinit var feedback: TextView
     private lateinit var pipelineStatus: TextView
     private lateinit var parakeetStatus: TextView
@@ -71,6 +75,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingUserImport = savedInstanceState?.getBoolean("pending_user_import") ?: false
         pendingImport = savedInstanceState?.getString("pending_import")?.let { name ->
             DialogueModelId.entries.firstOrNull { it.name == name }
         }
@@ -117,7 +122,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         content.addView(pipeline, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
         addParakeetCard(content)
-        for (model in LanguageModelCatalog.entries) {
+        for (model in LanguageModelCatalog.entries.filter { it.id == DialogueModelId.GEMMA_4_E2B }) {
             val card = UiDesign.card(this).apply {
                 tag = "model-card:" + model.id.name
             }
@@ -203,6 +208,42 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             content.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
             rows += Row(model, card, stateLabel, progress, download, import, select)
         }
+        content.addView(UiDesign.heading(this, getString(R.string.models_ui_user_heading)).apply {
+            textSize = 18f
+        }, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this, getString(R.string.models_ui_user_hint)),
+            UiDesign.spaceAfter(this, 12))
+        content.addView(UiDesign.action(this, getString(R.string.models_ui_add_file),
+            UiActionTone.PRIMARY) {
+            pendingUserImport = true
+            try {
+                startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
+                }, IMPORT)
+            } catch (_: android.content.ActivityNotFoundException) {
+                pendingUserImport = false
+                feedback.text = getString(R.string.models_ui_file_unavailable)
+                feedback.visibility = View.VISIBLE
+            }
+        }.apply { tag = "model-import-user" }, UiDesign.spaceAfter(this, 12))
+        userModelsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "user-language-models"
+        }
+        content.addView(userModelsContainer, UiDesign.spaceAfter(this, 16))
+        content.addView(UiDesign.action(this, getString(R.string.models_ui_clean_legacy)) {
+            if (!safeToEditModels()) {
+                showFeedback(R.string.models_ui_not_idle)
+            } else {
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.models_ui_clean_legacy)
+                    .setMessage(R.string.models_ui_clean_warning)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.models_ui_remove) { _, _ -> cleanupLegacyModels() }
+                    .show()
+            }
+        }.apply { tag = "models-clean-legacy" }, UiDesign.spaceAfter(this, 16))
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -289,6 +330,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun update() {
+        updateUserModels()
         updatePipelineStatus()
         updateParakeetUi()
         val transfer = LanguageModelTransferService.status
@@ -332,21 +374,128 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
     }
 
+    private fun showFeedback(text: Int) {
+        feedback.text = getString(text)
+        feedback.visibility = View.VISIBLE
+    }
+
+    /** Fails closed when Telecom/permissions cannot confirm an idle phone. */
+    private fun safeToEditModels(): Boolean = runCatching {
+        val status = UsbDebugBridge.snapshot(this)
+        status.optBoolean("call_idle", false) &&
+            status.optBoolean("campaign_service_inactive", false) &&
+            !status.optBoolean("pending_retry", true) &&
+            !LanguageModelTransferService.status.busy
+    }.getOrDefault(false)
+
+    private fun cleanupLegacyModels() {
+        if (!safeToEditModels()) { showFeedback(R.string.models_ui_not_idle); return }
+        val directory = Gemma4LiteRtTextBackendFactory.modelFile(
+            this, DialogueModelId.GEMMA_4_E2B).parentFile ?: return
+        var removed = 0
+        var failures = 0
+        for (model in LanguageModelCatalog.entries) {
+            if (model.id == DialogueModelId.GEMMA_4_E2B) continue
+            val legacy = java.io.File(directory, model.spec.fileName)
+            if (legacy.exists()) {
+                if (legacy.isFile && legacy.delete()) removed++ else failures++
+            }
+        }
+        feedback.text = getString(R.string.models_ui_clean_result, removed, failures)
+        feedback.visibility = View.VISIBLE
+        update()
+    }
+
+    private fun updateUserModels() {
+        if (!::userModelsContainer.isInitialized) return
+        userModelsContainer.removeAllViews()
+        val library = UserLiteRtModelStore(this)
+        val profile = AudioEngineProfileStore(this).load()
+        val installed = library.models()
+        if (installed.isEmpty()) {
+            userModelsContainer.addView(UiDesign.caption(this, getString(R.string.models_ui_no_user_models)))
+            return
+        }
+        installed.forEach { model ->
+            val isSelected = profile?.dialogue == DialogueModelId.USER_LITERT &&
+                profile.customModelId == model.id
+            val isInstalled = library.isInstalled(model)
+            val card = UiDesign.card(this)
+            card.tag = "user-model:" + model.id
+            card.addView(UiDesign.heading(this, model.title).apply { textSize = 16f },
+                UiDesign.spaceAfter(this, 8))
+            val label = getString(when {
+                !isInstalled -> R.string.models_ui_user_missing
+                isSelected -> R.string.models_ui_active
+                else -> R.string.models_ui_user_imported
+            })
+            card.addView(UiDesign.caption(this,
+                "$label · ${model.bytes / 1_000_000L} MB"),
+                UiDesign.spaceAfter(this, 8))
+            if (!isSelected && isInstalled) {
+                card.addView(UiDesign.action(this, getString(R.string.models_ui_select)) {
+                    if (!safeToEditModels()) {
+                        showFeedback(R.string.models_ui_not_idle)
+                    } else {
+                        val current = AudioEngineProfileStore(this).load()
+                        showFeedback(if (current != null &&
+                            AudioEngineProfileStore(this).save(current.copy(
+                                dialogue = DialogueModelId.USER_LITERT, customModelId = model.id)))
+                            R.string.models_ui_user_selected else R.string.models_ui_save_failed)
+                        update()
+                    }
+                }.apply { tag = "user-model-select:" + model.id },
+                    UiDesign.spaceAfter(this, 8))
+            }
+            card.addView(UiDesign.action(this, getString(R.string.models_ui_remove),
+                UiActionTone.DANGER) {
+                if (!safeToEditModels()) {
+                    showFeedback(R.string.models_ui_not_idle)
+                } else if (isSelected) {
+                    showFeedback(R.string.models_ui_switch_before_delete)
+                } else {
+                    AlertDialog.Builder(this)
+                        .setTitle(R.string.models_ui_remove)
+                        .setMessage(getString(R.string.models_ui_remove_warning, model.title))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.models_ui_remove) { _, _ ->
+                            if (!safeToEditModels()) showFeedback(R.string.models_ui_not_idle)
+                            else showFeedback(if (library.delete(model.id,
+                                    AudioEngineProfileStore(this).load()?.customModelId))
+                                R.string.models_ui_removed else R.string.models_ui_remove_failed)
+                            update()
+                        }.show()
+                }
+            }.apply { tag = "user-model-delete:" + model.id; isEnabled = !isSelected })
+            userModelsContainer.addView(card, UiDesign.spaceAfter(this, 10))
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != IMPORT) return
         val id = pendingImport
+        val custom = pendingUserImport
+        pendingUserImport = false
         pendingImport = null
-        if (resultCode == RESULT_OK && id != null && data?.data != null) {
+        if (resultCode == RESULT_OK && (id != null || custom) && data?.data != null) {
             val uri = checkNotNull(data.data)
             if (data.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION != 0) {
                 contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            begin(LanguageModelCatalog[id], uri)
+            if (custom) {
+                startForegroundService(Intent(this, LanguageModelTransferService::class.java)
+                    .putExtra(LanguageModelTransferService.USER_IMPORT, true)
+                    .putExtra(LanguageModelTransferService.URI, uri.toString())
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+            } else if (id != null) {
+                begin(LanguageModelCatalog[id], uri)
+            }
         }
     }
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("pending_import", pendingImport?.name)
+        outState.putBoolean("pending_user_import", pendingUserImport)
         super.onSaveInstanceState(outState)
     }
     override fun onResume() { super.onResume(); handler.post(refresh) }
