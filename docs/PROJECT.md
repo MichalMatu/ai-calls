@@ -23,7 +23,7 @@
 
 Pierwszy OUTGOING potwierdza częściowy RX/TX i jeden turn, nie potwierdza zrozumiałości u rozmówcy ani końcowej rezerwacji. Pełne live QA nadal otwarte.
 
-Automatyczne, prywatne archiwum STT/zatwierdzonych odpowiedzi/diagnostyki na każdej autoryzowanej sesji, bez UI click i bez WAV: **HOST_TESTED** (`app` focused + changed QA, anti-friction i docs PASS; Mac `2e7d931a`). Audio WAV nadal wymaga osobnego opt-in. **S22: bieżący APK `eb8f77f2` zachowuje poprawkę RX i dane; live STT PHYSICAL_OPEN**. Pierwszego transkryptu EMC ten fix wstecznie nie odtwarza; STT nieukończonej tury pozostaje otwartym ryzykiem.
+Automatyczne, prywatne archiwum STT/zatwierdzonych odpowiedzi/diagnostyki na każdej autoryzowanej sesji, bez UI click i bez WAV: **HOST_TESTED** (`app` focused + changed QA, anti-friction i docs PASS; Mac `2e7d931a`). Audio WAV nadal wymaga osobnego opt-in. **S22: bieżący APK `f3ef88b4` zachowuje poprawkę RX i dane; live STT PHYSICAL_OPEN**. Pierwszego transkryptu EMC ten fix wstecznie nie odtwarza; STT nieukończonej tury pozostaje otwartym ryzykiem.
 
 ## Następny sprint — MVP FIRST (kod, nie audyt)
 1. Pierwszy OUTGOING: owned_call_ended, 1 tura STT/TTS, druga RX 55s bez końca; 20s limit segmentu wizyty wdrożony, przetestowany syntetycznie i zainstalowany na S22. Próba live w tej wersji nadal nie została wykonana.
@@ -50,4 +50,4 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
 - **Model i głos:** jeden ekran i zapis, osobna gotowość, Android STT/TTS i import LiteRT-LM z lokalną próbą zgodności; Parakeet w zaawansowanych. Bez martwych Kokoro/PocketTTS i przełączników serwerów. Wspólny silnik audio/tekst Gemmy; KEEP Call, STOP, Skills i granty. S22: Parakeet 614588752 B obecny, Gemma E2B niepobrana; zapisany profil Parakeet/E2B/Android TTS nie jest gotowy.
 - **Rola Telefonu:** stan i jawny przycisk w Ustawieniach oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
-- **QA UX:** app 999 JVM i lint PASS, źródłowy gate audio oraz anti-friction/docs PASS; emulator 31 scenariuszy PASS (końcowy zestaw PL 12/12). S22 nadal APK `eb8f77f2`, aktualizacja przygotowana; rola Telefonu potwierdzona przez właściciela. Native import/audio i live STT **PHYSICAL_OPEN**.
+- **QA UX:** app 999 JVM i lint PASS, gate audio oraz anti-friction/docs PASS; emulator 31 scenariuszy PASS, stan UI PL 12/12 i widoki bez zasłonięcia 4/4. S22 APK `f3ef88b4`, SHA-256 `6b4e8cbc62b118154d9362cb684df9d09a51b600ef6533f913f74ab15535ad53`; install-r i odczyt APK PASS, 3 preferencje semantycznie zachowane, dane/pliki/uprawnienia/rola Telefonu bez zmian, IDLE. Native import/audio i live STT **PHYSICAL_OPEN**.
