@@ -5,13 +5,21 @@ import org.junit.Test
 
 class DialogueEngineProvidersTest {
     @Test fun everyCatalogModelResolvesWithoutSilentFallback() {
-        assertEquals(5, DialogueModelId.entries.size)
-        for (model in DialogueModelId.entries.filterNot { it == DialogueModelId.QWEN_3_5_2B }) {
+        assertEquals(6, DialogueModelId.entries.size)
+        for (model in DialogueModelId.entries.filterNot {
+            it == DialogueModelId.QWEN_3_5_2B || it == DialogueModelId.USER_LITERT
+        }) {
             assertEquals(model, DialogueEngineProviders.resolve(
                 AudioEngineProfile(dialogue = model),
             ).id)
             assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(dialogue = model)))
         }
+    }
+
+    @Test fun userImportNeedsAnExplicitHashedIdentity() {
+        val profile = AudioEngineProfile(dialogue = DialogueModelId.USER_LITERT,
+            customModelId = "user-" + "b".repeat(64))
+        assertEquals(DialogueModelId.USER_LITERT, DialogueEngineProviders.resolve(profile).id)
     }
 
     @Test fun labOnlyCandidateCannotBeActivatedAsTelephoneProfile() {
