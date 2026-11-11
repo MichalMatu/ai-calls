@@ -42,6 +42,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var tts: TextToSpeech? = null
     private var probedVoices: Set<String>? = null
     private var probedOutput: SpeechOutputId? = null
+    private var probeGeneration = 0
     private var voiceNames: List<String> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -164,10 +165,11 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_reset)) {
                 if (store.save(AudioEngineProfile.STABLE)) {
+                    applyVisibleProfile(AudioEngineProfile.STABLE)
                     feedback.text = getString(R.string.eng_ui_restore_done)
                 } else feedback.text = getString(R.string.eng_ui_save_error)
                 refreshActive()
-        }, UiDesign.spaceAfter(this, 12))
+        }.apply { tag = "engine-reset-stable" }, UiDesign.spaceAfter(this, 12))
 
         content.addView(UiDesign.heading(this, getString(R.string.eng_ui_diagnostics_heading)).apply {
             textSize = 17f
@@ -207,6 +209,22 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         else -> choice.detail
     }
 
+    /** Reset updates both the persisted profile and every visible selector. */
+    private fun applyVisibleProfile(profile: AudioEngineProfile) {
+        fun select(group: RadioGroup, identifier: String) {
+            for (index in 0 until group.childCount) {
+                val option = group.getChildAt(index) as? RadioButton ?: continue
+                if (option.tag == identifier) {
+                    group.check(option.id)
+                    break
+                }
+            }
+        }
+        select(inputGroup, profile.input.name)
+        select(outputGroup, profile.output.name)
+        setVoices(voiceNames, profile.voiceId)
+    }
+
     private fun selectedProfile(): AudioEngineProfile {
         fun selected(group: RadioGroup): String =
             (group.findViewById<RadioButton>(group.checkedRadioButtonId)?.tag as? String)
@@ -232,6 +250,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun checkOffline() {
+        val generation = ++probeGeneration
         probedVoices = null
         probedOutput = null
         val selectedOutput = selectedProfile().output
@@ -244,8 +263,13 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val initListener = TextToSpeech.OnInitListener { status ->
             runOnUiThread {
                 val engine = holder[0] ?: return@runOnUiThread
-                if (isFinishing || isDestroyed) {
+                if (generation != probeGeneration || isFinishing || isDestroyed) {
                     engine.shutdown()
+                    return@runOnUiThread
+                }
+                if (selectedProfile().output != selectedOutput) {
+                    engine.shutdown()
+                    feedback.text = getString(R.string.eng_ui_check_outdated)
                     return@runOnUiThread
                 }
                 if (status != TextToSpeech.SUCCESS) {
@@ -280,7 +304,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 )
                 feedback.text = if (result.available) {
                     getString(R.string.eng_ui_check_available, names.size)
-                } else "OPEN: " + (result.reason ?: "unknown")
+                } else getString(R.string.eng_ui_check_unavailable, result.reason ?: "unknown")
             }
         }
         holder[0] = if (selectedEngine == null)
@@ -340,6 +364,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     override fun onDestroy() {
+        ++probeGeneration
         tts?.stop()
         tts?.shutdown()
         tts = null

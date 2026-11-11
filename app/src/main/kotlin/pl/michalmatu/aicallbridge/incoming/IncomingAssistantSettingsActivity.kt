@@ -1,6 +1,10 @@
 package pl.michalmatu.aicallbridge.incoming
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.telecom.PhoneAccountHandle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
@@ -19,12 +23,20 @@ import pl.michalmatu.aicallbridge.ui.UiActionTone
 
 /** Displays incoming-call preferences; all store/Telecom effects live in the controller. */
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
+    private lateinit var controller: IncomingAssistantSettingsController
+    private lateinit var feedback: TextView
+    private lateinit var simPicker: Spinner
+    private lateinit var simPermissionAction: View
+    private var simAccounts: List<PhoneAccountHandle> = emptyList()
+    private var persistedAccountKey: String? = null
+
     override fun toolbarTitle(): String = getString(R.string.incoming_ui_title)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val controller = IncomingAssistantSettingsController(this)
-        val feedback = TextView(this)
-        val policy = controller.current().getOrElse {
+        controller = IncomingAssistantSettingsController(this)
+        feedback = TextView(this)
+        val loadedPolicy = controller.current()
+        val policy = loadedPolicy.getOrElse {
             feedback.text = getString(R.string.incoming_ui_read_error)
             IncomingAssistantPolicy("unavailable", AnsweringMode.MANUAL, null, true)
         }
@@ -43,6 +55,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(description(R.string.incoming_ui_intro))
         val mode = Spinner(this).apply {
             tag = "incoming-mode-spinner"
+            contentDescription = getString(R.string.incoming_ui_mode_label)
             UiSelect.setOptions(this, listOf(
                 getString(R.string.incoming_ui_mode_manual),
                 getString(R.string.incoming_ui_mode_ai)))
@@ -52,18 +65,23 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(UiDesign.caption(this, getString(R.string.incoming_ui_mode_label)),
             UiDesign.spaceAfter(this, 6))
         content.addView(mode, UiDesign.spaceAfter(this, 10))
-        val accounts = controller.availableAccounts()
-        val account = Spinner(this).apply {
+        persistedAccountKey = policy.accountKey
+        simPicker = Spinner(this).apply {
             tag = "incoming-sim-spinner"
-            UiSelect.setOptions(this, accounts.mapIndexed { i, handle ->
-                controller.displayAccount(handle) ?: getString(R.string.incoming_ui_sim_fallback, i + 1)
-            }.ifEmpty { listOf(getString(R.string.incoming_ui_no_sim)) })
-            setSelection(controller.selectedAccountIndex(accounts, policy.accountKey))
+            contentDescription = getString(R.string.incoming_ui_sim_label)
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
+        reloadAccounts()
         content.addView(UiDesign.caption(this, getString(R.string.incoming_ui_sim_label)),
             UiDesign.spaceAfter(this, 6))
-        content.addView(account, UiDesign.spaceAfter(this, 10))
+        content.addView(simPicker, UiDesign.spaceAfter(this, 10))
+        simPermissionAction = UiDesign.action(this, getString(R.string.incoming_ui_grant_phone)) {
+            requestPermissions(arrayOf(Manifest.permission.READ_PHONE_STATE), REQUEST_PHONE_STATE)
+        }.apply {
+            tag = "incoming-grant-sim"
+            visibility = if (hasPhonePermission()) View.GONE else View.VISIBLE
+        }
+        content.addView(simPermissionAction, UiDesign.spaceAfter(this, 8))
         val recording = CheckBox(this).apply {
             text = getString(R.string.incoming_ui_record)
             isChecked = policy.recordEvidence
@@ -73,14 +91,18 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(description(R.string.incoming_ui_engines_hint))
         content.addView(UiDesign.action(this, getString(R.string.incoming_ui_save), UiActionTone.PRIMARY) {
             val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL
-            val chosen = accounts.getOrNull(account.selectedItemPosition)
+            val chosen = simAccounts.getOrNull(simPicker.selectedItemPosition)
             feedback.text = getString(when (controller.save(selected, chosen, recording.isChecked)) {
                 IncomingAssistantSettingsController.SaveResult.NEED_SIM -> R.string.incoming_ui_choose_sim
                 IncomingAssistantSettingsController.SaveResult.SAVED_AI -> R.string.incoming_ui_saved_ai
                 IncomingAssistantSettingsController.SaveResult.SAVED_MANUAL -> R.string.incoming_ui_saved_manual
                 IncomingAssistantSettingsController.SaveResult.FAILED -> R.string.incoming_ui_save_failed
             })
-        }.apply { tag = "incoming-save-mode" }, UiDesign.spaceAfter(this, 8))
+        }.apply {
+            tag = "incoming-save-mode"
+            isEnabled = loadedPolicy.isSuccess
+        }, UiDesign.spaceAfter(this, 8))
+        feedback.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         feedback.setTextColor(UiDesign.secondary)
         feedback.setPadding(0, UiDesign.dp(this, 4), 0, UiDesign.dp(this, 12))
         content.addView(feedback)
@@ -88,4 +110,33 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             UiDesign.spaceAfter(this, 8))
         setContentView(ScrollView(this).apply { addView(content) })
     }
+
+    private fun hasPhonePermission(): Boolean =
+        checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+
+    private fun reloadAccounts() {
+        simAccounts = controller.availableAccounts()
+        UiSelect.setOptions(simPicker, simAccounts.mapIndexed { index, handle ->
+            controller.displayAccount(handle) ?: getString(R.string.incoming_ui_sim_fallback, index + 1)
+        }.ifEmpty { listOf(getString(R.string.incoming_ui_no_sim)) })
+        simPicker.setSelection(controller.selectedAccountIndex(simAccounts, persistedAccountKey))
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_PHONE_STATE) {
+            if (hasPhonePermission()) {
+                reloadAccounts()
+                simPermissionAction.visibility = View.GONE
+                feedback.text = getString(if (simAccounts.isEmpty())
+                    R.string.incoming_ui_no_sim else R.string.incoming_ui_choose_sim)
+            } else {
+                feedback.text = getString(R.string.incoming_ui_permission_denied)
+            }
+        }
+    }
+
+    private companion object { const val REQUEST_PHONE_STATE = 1002 }
 }

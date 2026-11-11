@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioButton
 import android.widget.TextView
+import android.widget.RadioGroup
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
@@ -13,6 +14,29 @@ import org.junit.runner.RunWith
 /** No call, no profile write, no authorization. Checks the real native Activity hierarchy. */
 @RunWith(AndroidJUnit4::class)
 class AndroidAudioEngineSettingsActivityTest {
+    @Test fun resetRestoresVisibleRadioChoicesNotOnlyStoredValues() {
+        ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.findViewById<View>(android.R.id.content)
+                fun find(view: View, tag: String): View? {
+                    if (view.tag == tag) return view
+                    if (view is ViewGroup) for (i in 0 until view.childCount) {
+                        find(view.getChildAt(i), tag)?.let { return it }
+                    }
+                    return null
+                }
+                val parakeet = checkNotNull(find(root, "PARAKEET_PL") as? RadioButton)
+                val stable = checkNotNull(find(root, "ANDROID_STT") as? RadioButton)
+                assertTrue(parakeet.isEnabled)
+                (parakeet.parent as RadioGroup).check(parakeet.id)
+                assertTrue(parakeet.isChecked)
+                checkNotNull(find(root, "engine-reset-stable")).performClick()
+                assertTrue("reset_did_not_update_visible_radio", stable.isChecked)
+                assertEquals(AudioEngineProfile.STABLE, AudioEngineProfileStore(activity).load())
+            }
+        }
+    }
+
     @Test fun showsThreeSeparatedSectionsWithUnavailableChoicesDisabled() {
         ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->

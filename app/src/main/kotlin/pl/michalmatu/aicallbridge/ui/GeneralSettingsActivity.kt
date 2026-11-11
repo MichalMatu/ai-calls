@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.LinearLayout
@@ -48,6 +49,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(label(getString(R.string.ui_audio_mode)))
         modePicker = Spinner(this).apply {
             tag = "settings-audio-mode-spinner"
+            contentDescription = getString(R.string.ui_audio_mode)
             UiSelect.setOptions(this, CallAudioMode.entries.map { it.displayName })
             setSelection(CallAudioMode.entries.indexOf(initial.audioMode))
         }
@@ -55,12 +57,14 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(label(getString(R.string.ui_text_model)))
         llmPicker = Spinner(this).apply {
             tag = "settings-provider-spinner"
+            contentDescription = getString(R.string.ui_text_model)
             UiSelect.setOptions(this, TextLlmProvider.entries.map { it.displayName })
             setSelection(TextLlmProvider.entries.indexOf(initial.textLlmProvider))
             isEnabled = initial.audioMode.usesTextLlm
         }
         content.addView(llmPicker)
         feedback = TextView(this).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             setTextColor(UiDesign.secondary)
             textSize = 13f
             setPadding(0, UiDesign.dp(this@GeneralSettingsActivity, 12),
@@ -86,20 +90,30 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val permission = UiDesign.button(this, getString(R.string.ui_microphone)) { requestMicrophone() }
         content.addView(permission, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = UiDesign.dp(this@GeneralSettingsActivity, 18) })
-        feedback.text = getString(if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) R.string.ui_general_mic_granted else R.string.ui_general_mic_missing)
+        updateMicrophoneStatus()
         setContentView(ScrollView(this).apply { addView(content) })
+    }
+    override fun onResume() {
+        super.onResume()
+        if (::feedback.isInitialized) updateMicrophoneStatus()
+    }
+    private fun updateMicrophoneStatus() {
+        feedback.text = getString(if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED) R.string.ui_general_mic_granted
+            else R.string.ui_general_mic_missing)
     }
     private fun requestMicrophone() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            feedback.text = getString(R.string.ui_microphone) + ": OK"
+            updateMicrophoneStatus()
         } else {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC)
         }
     }
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_MIC) feedback.text = if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
-            getString(R.string.ui_microphone) + ": OK" else getString(R.string.ui_microphone) + ": denied"
+        if (requestCode == REQUEST_MIC) feedback.text = getString(
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
+                R.string.ui_general_mic_granted else R.string.ui_general_mic_denied)
     }
     private companion object { const val REQUEST_MIC = 1001 }
 }
