@@ -13,8 +13,16 @@ import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 
 /** A native probe belongs to the exact installed bytes and protocol, not a file extension. */
 internal object ModelCompatibilityStamp {
-    fun of(file: File): String? = if (file.isFile && file.canRead() && file.length() > 0)
-        "0.19.0:reply-audio-v1:${file.canonicalPath}:${file.length()}:${file.lastModified()}" else null
+    /** A native audio PASS is valid only for the exact model AND selected TTS settings. */
+    fun of(file: File, profile: AudioEngineProfile? = null, audio: Boolean = false): String? {
+        if (!file.isFile || !file.canRead() || file.length() <= 0) return null
+        val model = "0.19.0:reply-audio-v1:${file.canonicalPath}:${file.length()}:${file.lastModified()}"
+        if (!audio) return model
+        val selected = requireNotNull(profile) { "audio_profile_required" }
+        val settings = listOf(selected.languageTag, selected.effectiveTtsEnginePackage.orEmpty(),
+            selected.voiceId.orEmpty()).joinToString(":") { "${it.length}:$it" }
+        return "$model:tts-v1:$settings"
+    }
 }
 
 internal class ModelCompatibilityStore(context: Context) {
@@ -22,15 +30,19 @@ internal class ModelCompatibilityStore(context: Context) {
     private fun key(file: File, audio: Boolean): String = (if (audio) "audio-" else "text-") +
         MessageDigest.getInstance("SHA-256").digest(file.absolutePath.toByteArray())
             .joinToString("") { "%02x".format(it) }
-    fun verified(file: File, audio: Boolean): Boolean {
-        val stamp = ModelCompatibilityStamp.of(file) ?: return false
+    fun verified(file: File, audio: Boolean, profile: AudioEngineProfile? = null): Boolean {
+        val stamp = ModelCompatibilityStamp.of(file, profile, audio) ?: return false
         return prefs.getString(key(file, audio), null) == stamp
     }
-    fun confirm(file: File, audio: Boolean, stamp: String): Boolean =
-        ModelCompatibilityStamp.of(file) == stamp && prefs.edit().apply {
+    fun confirm(file: File, audio: Boolean, stamp: String, profile: AudioEngineProfile? = null): Boolean {
+        if (ModelCompatibilityStamp.of(file, profile, audio) != stamp) return false
+        val textStamp = ModelCompatibilityStamp.of(file) ?: return false
+        return prefs.edit().apply {
             putString(key(file, audio), stamp)
-            if (audio) putString(key(file, false), stamp)
+            // Audio success also qualifies the same model for text, with the TEXT stamp.
+            if (audio) putString(key(file, false), textStamp)
         }.commit()
+    }
     fun invalidate(file: File, audio: Boolean): Boolean = prefs.edit().remove(key(file, audio)).commit()
 }
 
@@ -43,7 +55,7 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
     fun check(file: File, profile: AudioEngineProfile, audio: Boolean, done: (String?) -> Unit) {
         close()
         val token = generation.incrementAndGet()
-        val stamp = ModelCompatibilityStamp.of(file)
+        val stamp = ModelCompatibilityStamp.of(file, profile, audio)
         if (stamp == null) { done("dialogue_model_missing_or_invalid"); return }
         if (!ModelCompatibilityStore(context).invalidate(file, audio)) {
             done("model_check_state_unavailable"); return
@@ -53,7 +65,7 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
         fun finish(reason: String?) {
             context.mainExecutor.execute {
                 if (!current()) return@execute
-                val result = reason ?: if (ModelCompatibilityStore(context).confirm(file, audio, stamp)) null
+                val result = reason ?: if (ModelCompatibilityStore(context).confirm(file, audio, stamp, profile)) null
                     else "model_changed_during_check"
                 close()
                 done(result)

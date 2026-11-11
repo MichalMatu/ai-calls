@@ -1,6 +1,6 @@
 # Mac Local Agent — host operations
 
-Kodowanie, testy i Git AI Calls odbywają się wyłącznie bezpośrednio w Codex. Poniższy protokół dotyczy tylko odrębnie zleconych operacji Local Agent i odczytu dawnych dowodów; nie jest domyślnym wykonawcą prac nad repozytorium.
+Kod i Git wprowadzaj przez GitHub Connector, a preflight i testy zlecaj Mac Local Agent. Host pracuje na zweryfikowanym main, bez równoległych zmian tego samego checkoutu.
 
 **Źródło protokołu:** aktualne `MichalMatu/local-agent` `main` (`AGENTS.md`, `docs/HOST_CONTROL_PLANE.md`, `docs/CURRENT_HANDOFF.md`) oraz `agent-control` i rzeczywisty wynik tasku. Te instrukcje pobierz przed Host Ops; nie traktuj dawnego statusu `idle` jako aktualnego faktu.
 

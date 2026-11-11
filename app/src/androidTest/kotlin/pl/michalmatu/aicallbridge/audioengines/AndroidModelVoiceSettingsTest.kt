@@ -1,10 +1,8 @@
 package pl.michalmatu.aicallbridge.audioengines
 
-import android.Manifest
 import android.os.Build
 import android.view.View
 import android.view.inspector.WindowInspector
-import android.widget.Button
 import android.widget.RadioButton
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
@@ -21,107 +19,101 @@ import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
 import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
 
-/** Disposable emulator only. Never loads a model, downloads bytes, captures audio or starts a Call. */
+/** Isolated emulator only. No model load, download, phone call or S22 tests. */
 @RunWith(AndroidJUnit4::class)
 class AndroidModelVoiceSettingsTest {
-    private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
-    private val context get() = instrumentation.targetContext
+    private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private lateinit var previous: AudioEngineProfile
 
     @Before fun isolatedEmulator() {
         assumeTrue(Build.HARDWARE in setOf("ranchu", "goldfish"))
-        instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.READ_PHONE_STATE)
         previous = checkNotNull(AudioEngineProfileStore(context).load())
         assertTrue(AudioEngineProfileStore(context).save(AudioEngineProfile.STABLE))
     }
+
     @After fun restorePreference() {
         if (::previous.isInitialized) assertTrue(AudioEngineProfileStore(context).save(previous))
     }
 
-    @Test fun mainEditorHasOnlySupportedInputAndKeepsParakeetInAdvanced() {
+    private fun visibleDialogWith(tag: String): View =
+        WindowInspector.getGlobalWindowViews().last { window ->
+            window.isShown && window.findViewWithTag<View>(tag) != null
+        }
+
+    @Test fun mainEditorHasThreeCardsAndNoOldSaveOrAdvancedPage() {
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertEquals(activity.getString(R.string.mv_title), activity.toolbarTitle())
-                assertEquals(View.GONE, root.findViewWithTag<View>("model-voice-advanced").visibility)
-                assertNotNull(root.findViewWithTag<View>("ANDROID_STT"))
-                assertNotNull(root.findViewWithTag<View>("GEMMA_AUDIO_DIRECT"))
-                for (tag in listOf("PARAKEET_PL", "PIPER_PL", "KOKORO", "POCKET_TTS"))
-                    assertNull(root.findViewWithTag<View>(tag))
-                assertNull(root.findViewWithTag<View>("engine-unavailable"))
-                root.findViewWithTag<Button>("model-voice-advanced-toggle").performClick()
-                assertEquals(View.VISIBLE, root.findViewWithTag<View>("model-voice-advanced").visibility)
-                assertNotNull(root.findViewWithTag<View>("parakeet-transfer-card"))
-                assertNotNull(root.findViewWithTag<View>("model-import-user"))
+                for (tag in listOf("model-voice-model", "model-voice-inputs", "model-voice-voice",
+                    "model-manage-files", "model-voice-readiness"))
+                    assertNotNull("missing $tag", root.findViewWithTag<View>(tag))
+                for (old in listOf("engine-save", "model-voice-advanced",
+                    "model-voice-advanced-toggle", "settings-provider-spinner"))
+                    assertNull("obsolete $old", root.findViewWithTag<View>(old))
             }
         }
     }
 
-    @Test fun missingGemmaDoesNotPreventSavingAChoiceOrClaimReadiness() {
-        ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                val root = activity.window.decorView
-                root.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").performClick()
-                assertEquals(AudioEngineProfile.STABLE, AudioEngineProfileStore(context).load())
-                root.findViewWithTag<Button>("engine-save").performClick()
-                assertEquals(SpeechInputId.GEMMA_AUDIO_DIRECT, AudioEngineProfileStore(context).load()?.input)
-                assertTrue(root.findViewWithTag<TextView>("engine-feedback").text.toString()
-                    .contains(activity.getString(R.string.mv_saved)))
-                assertFalse(AudioEngineReadinessProbe.check(context, AudioEngineProfileStore(context).load()!!).available)
-                assertTrue(root.findViewWithTag<TextView>("model-state:GEMMA_4_E2B").text.toString()
-                    .contains(activity.getString(R.string.models_ui_not_installed)))
-            }
-        }
-    }
-
-    @Test fun existingParakeetChoiceStaysVisibleWithoutAddingAMainOption() {
-        val requested = AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)
-        assertTrue(AudioEngineProfileStore(context).save(requested))
+    @Test fun inputModalShowsParakeetOnlyInAdditionalOptions() {
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNull(root.findViewWithTag<View>("PARAKEET_PL"))
-                assertEquals(View.VISIBLE, root.findViewWithTag<View>("model-voice-advanced-input").visibility)
-                assertEquals(View.GONE, root.findViewWithTag<View>("model-voice-advanced").visibility)
-                assertEquals(requested, AudioEngineProfileStore(context).load())
-            }
-        }
-    }
-
-    @Test fun draftAndAdvancedExpansionSurviveRotationWithoutWritingTheProfile() {
-        ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                val root = activity.window.decorView
-                root.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").performClick()
-                root.findViewWithTag<Button>("model-voice-advanced-toggle").performClick()
-            }
-            scenario.recreate()
-            scenario.onActivity { activity ->
-                val root = activity.window.decorView
-                assertTrue(root.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").isChecked)
-                assertEquals(View.VISIBLE, root.findViewWithTag<View>("model-voice-advanced").visibility)
+                root.findViewWithTag<View>("model-voice-inputs").performClick()
+                val dialog = visibleDialogWith("PARAKEET_PL")
+                assertNotNull(dialog.findViewWithTag<RadioButton>("ANDROID_STT"))
+                assertNotNull(dialog.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT"))
+                assertNotNull(dialog.findViewWithTag<RadioButton>("PARAKEET_PL"))
                 assertEquals(AudioEngineProfile.STABLE, AudioEngineProfileStore(context).load())
             }
         }
     }
 
-    @Test fun backOffersStayAndDiscardForTheSameUnsavedDraft() {
+    @Test fun selectingGemmaInputAutoSavesButDoesNotClaimReadiness() {
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                activity.window.decorView.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").performClick()
-                activity.onBackPressedDispatcher.onBackPressed()
-                val dialog = WindowInspector.getGlobalWindowViews().last { it.findViewById<View>(android.R.id.button1) != null }
-                dialog.findViewById<Button>(android.R.id.button2).performClick()
+                val root = activity.window.decorView
+                root.findViewWithTag<View>("model-voice-inputs").performClick()
+                visibleDialogWith("GEMMA_AUDIO_DIRECT")
+                    .findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").performClick()
+                val saved = checkNotNull(AudioEngineProfileStore(context).load())
+                assertEquals(SpeechInputId.GEMMA_AUDIO_DIRECT, saved.input)
+                assertEquals(activity.getString(R.string.mv_gemma_short),
+                    root.findViewWithTag<TextView>("model-voice-input-choice").text.toString())
+                assertFalse(AudioEngineReadinessProbe.check(context, saved).available)
             }
-            instrumentation.waitForIdleSync()
+        }
+    }
+
+    @Test fun savedInputSurvivesRotationAndAliasUsesSameEditor() {
+        ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                assertTrue(activity.window.decorView.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").isChecked)
-                activity.onBackPressedDispatcher.onBackPressed()
-                val dialog = WindowInspector.getGlobalWindowViews().last { it.findViewById<View>(android.R.id.button1) != null }
-                dialog.findViewById<Button>(android.R.id.button1).performClick()
+                activity.window.decorView.findViewWithTag<View>("model-voice-inputs").performClick()
+                visibleDialogWith("GEMMA_AUDIO_DIRECT")
+                    .findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").performClick()
             }
-            instrumentation.waitForIdleSync()
-            assertEquals(AudioEngineProfile.STABLE, AudioEngineProfileStore(context).load())
+            scenario.recreate()
+            scenario.onActivity { activity ->
+                assertEquals(SpeechInputId.GEMMA_AUDIO_DIRECT,
+                    AudioEngineProfileStore(context).load()?.input)
+                assertEquals(activity.getString(R.string.mv_gemma_short),
+                    activity.window.decorView.findViewWithTag<TextView>("model-voice-input-choice")
+                        .text.toString())
+            }
+        }
+    }
+
+    @Test fun preselectedParakeetRemainsAvailableInInputModal() {
+        val requested = AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)
+        assertTrue(AudioEngineProfileStore(context).save(requested))
+        ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                activity.window.decorView.findViewWithTag<View>("model-voice-inputs").performClick()
+                assertTrue(visibleDialogWith("PARAKEET_PL")
+                    .findViewWithTag<RadioButton>("PARAKEET_PL").isChecked)
+                assertEquals(requested, AudioEngineProfileStore(context).load())
+            }
         }
     }
 

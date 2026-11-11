@@ -74,7 +74,7 @@ internal object AudioEngineReadinessProbe {
         if (profile.dialogue == DialogueModelId.USER_LITERT &&
             !ModelCompatibilityStore(context).verified(file, false)) return "model_compatibility_required"
         if (profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
-            !ModelCompatibilityStore(context).verified(file, true)) return "model_audio_check_required"
+            !ModelCompatibilityStore(context).verified(file, true, profile)) return "model_audio_check_required"
         return null
     }
 

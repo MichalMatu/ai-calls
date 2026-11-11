@@ -4,7 +4,7 @@
 Jeden aktualny plan [PROJECT](../PROJECT.md), jeden indeks [README](../README.md), trwałe kontrakty modułowe. Nie twórz `BLOCKERS.md`, `checkpoints/`, kolejnych `NEXT_CHAT`, kronik i równoległych roadmaps. Przy zamknięciu zadania aktualizuj jedynie odpowiedni moduł i obecne statusy; Git commits i Host Control receipts są źródłem chronologii. Nie dopisuj historycznych PASS do bieżącej instrukcji.
 
 ## Iteracja kodu
-1. Kodowanie, testy i Git wykonuj wyłącznie bezpośrednio w Codex, także przy zleceniu z ChatGPT; bez delegowania pracy do Mac Local Agent. Pobierz faktyczny `main` HEAD i zachowaj `base-SHA`. Sprawdź czysty Git i brak kolizji z wcześniejszymi zadaniami hosta. Bez nowych gałęzi i force-push.
+1. Kod i Git przez GitHub Connector, testy i preflight przez Mac Local Agent. Pobierz faktyczny `main` HEAD i zachowaj `base-SHA`. Sprawdź czysty Git i brak kolizji z wcześniejszymi zadaniami hosta. Bez nowych gałęzi i force-push.
 2. Zmapuj zależności; dla braków stosuj [Existing Code First](EXTERNAL_REUSE.md). Zmieniaj istniejące moduły, małe commity `[skip ci]`. Bez Work i uruchamiania lub odczytu GitHub Actions.
 3. `bash scripts/bin/test-profile.sh preflight` — szybka kontrola diff, anti-friction i lokalnych linków dokumentacji, bez Gradle.
 4. `bash scripts/bin/test-profile.sh auto <base-SHA>` — tylko zmienione moduły i sparowane Python; `focus <module> '<test-class>'` lub `changed <module>` dla dokładnej regresji. Nie powtarzaj G3/G5.3 i testów sprzętu gdy kontrakt nie został zmieniony.

@@ -335,7 +335,7 @@ internal class ModelVoiceSettings(
                 val cache = ModelCompatibilityStore(activity)
                 val needsText = draft.dialogue == DialogueModelId.USER_LITERT && !cache.verified(file, false)
                 val needsAudio = draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
-                    AudioEngineRegistry.supportsAudio(draft) && !cache.verified(file, true)
+                    AudioEngineRegistry.supportsAudio(draft) && !cache.verified(file, true, draft)
                 if (needsAudio || needsText) verify(draft, needsAudio)
             }
         }
@@ -367,7 +367,7 @@ internal class ModelVoiceSettings(
             return
         }
         val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, profile) }.getOrNull() ?: return
-        val stamp = ModelCompatibilityStamp.of(file) ?: return
+        val stamp = ModelCompatibilityStamp.of(file, profile, audio) ?: return
         val attempt = "$stamp:$audio:${profile.customModelId}"
         if (!force && lastAttempt == attempt) return
         if (!canProbe()) {
