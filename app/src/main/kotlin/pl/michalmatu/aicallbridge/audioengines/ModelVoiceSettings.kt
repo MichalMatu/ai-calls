@@ -1,39 +1,42 @@
 package pl.michalmatu.aicallbridge.audioengines
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.telecom.TelecomManager
+import android.text.format.Formatter
+import android.view.Gravity
 import android.view.View
-import android.widget.AdapterView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
-import android.widget.Spinner
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
+import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
+import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
 import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
-import pl.michalmatu.aicallbridge.ui.UiSelect
 
-/** One draft and one explicit save. File readiness never masquerades as a saved preference. */
+/** Current saved choices. Pickers save immediately; readiness remains a separate native check. */
 internal class ModelVoiceSettings(
     private val activity: UiChromeActivity,
-    state: Bundle?,
     private val canProbe: () -> Boolean,
+    private val manageFiles: () -> Unit,
     private val changed: () -> Unit,
 ) : AutoCloseable {
     private val store = AudioEngineProfileStore(activity)
-    private var saved = store.load()
-    var draft = saved ?: AudioEngineProfile.STABLE
+    var draft = store.load() ?: AudioEngineProfile.STABLE
         private set
-    val dirty get() = draft != (saved ?: AudioEngineProfile.STABLE)
     private val probe = ModelCompatibilityProbe(activity)
     private var active = false
     private var checking = false
@@ -45,146 +48,185 @@ internal class ModelVoiceSettings(
     private val voiceWorker = Executors.newSingleThreadExecutor { task ->
         Thread(task, "model-voice-inventory").apply { isDaemon = true }
     }
-    private var voiceIds = emptyList<String?>()
     private var engineIds = listOf<String?>(null)
     private var engineLabels = listOf(activity.getString(R.string.mv_system_engine))
-    private var suppress = false
     private var previewWhenReady = false
+    private var pendingPreviewVoice: String? = null
+    private var voiceDialog: AlertDialog? = null
+    private var voiceOptions: LinearLayout? = null
     private val knownImports = UserLiteRtModelStore(activity).models().map { it.id }.toMutableSet()
-
-    val status = UiDesign.caption(activity, "").apply {
-        tag = "model-voice-readiness"
-        accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+    private val modelName = value("model-voice-model-choice")
+    private val inputName = value("model-voice-input-choice")
+    private val voiceName = value("model-voice-voice-choice")
+    private val modelState = UiDesign.caption(activity, "").apply { tag = "model-voice-readiness" }
+    private val inputIssue = UiDesign.caption(activity, "")
+    private val voiceIssue = UiDesign.caption(activity, "")
+    val modelView = card(R.string.models_ui_dialogue_heading, modelName, ::showModelPicker).apply { tag = "model-voice-model" }
+    val inputView = card(R.string.mv_input, inputName, ::showInputPicker).apply { tag = "model-voice-inputs" }
+    val voiceView = card(R.string.mv_voice, voiceName, ::showVoicePicker).apply { tag = "model-voice-voice" }
+    private val modelAction = UiDesign.action(activity, "") { modelAction() }
+    private val retry = UiDesign.action(activity, activity.getString(R.string.mv_retry)) {
+        lastAttempt = null; refresh()
     }
-    val feedback = UiDesign.caption(activity, "").apply { tag = "engine-feedback" }
-    val inputView = UiDesign.card(activity)
-    val voiceView = UiDesign.card(activity)
-    val advancedVoiceView = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
-    val actionsView = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
-    private val advancedInput = UiDesign.caption(activity, "").apply { tag = "model-voice-advanced-input" }
-    private val inputs = RadioGroup(activity).apply { tag = "model-voice-inputs" }
-    private val voices = Spinner(activity).apply { tag = "model-voice-picker" }
-    private val engines = Spinner(activity).apply { tag = "model-voice-engine" }
 
     init {
-        if (state?.containsKey("mv_input") == true) {
-            draft = draft.copy(
-                input = SpeechInputId.entries.firstOrNull { it.name == state.getString("mv_input") } ?: draft.input,
-                dialogue = DialogueModelId.entries.firstOrNull { it.name == state.getString("mv_model") } ?: draft.dialogue,
-                customModelId = state.getString("mv_custom"), voiceId = state.getString("mv_voice"),
-                ttsEnginePackage = state.getString("mv_engine"))
-        }
-        inputView.addView(UiDesign.heading(activity, activity.getString(R.string.mv_input)))
-        inputView.addView(advancedInput)
-        inputView.addView(inputs)
-        voiceView.addView(UiDesign.heading(activity, activity.getString(R.string.mv_voice)))
-        voiceView.addView(voices)
+        modelView.addView(modelState, UiDesign.spaceAfter(activity, 4))
+        modelView.addView(modelAction)
+        modelView.addView(retry)
+        inputView.addView(inputIssue)
+        voiceView.addView(voiceIssue)
         voiceView.addView(UiDesign.action(activity, activity.getString(R.string.eng_ui_preview)) { preview() }
-            .apply { tag = "model-voice-preview" })
-        advancedVoiceView.addView(UiDesign.heading(activity, activity.getString(R.string.mv_engine)))
-        advancedVoiceView.addView(engines)
-        actionsView.addView(feedback)
-        actionsView.addView(UiDesign.action(activity, activity.getString(R.string.eng_ui_save)) {
-            val failure = AudioEngineRegistry.incompatibility(draft)
-            feedback.text = when {
-                failure != null -> reason(activity, failure)
-                store.save(draft) -> {
-                    saved = draft
-                    activity.getString(R.string.mv_saved)
-                }
-                else -> activity.getString(R.string.eng_ui_save_error)
-            }
-            refresh(); changed()
-        }.apply { tag = "engine-save" })
-        actionsView.addView(UiDesign.action(activity, activity.getString(R.string.mv_retry)) {
-            lastAttempt = null; refresh()
-        }.apply { tag = "model-voice-retry" })
-        voices.onItemSelectedListener = selection { position ->
-            val id = voiceIds.getOrNull(position)
-            if (id != draft.voiceId) { draft = draft.copy(voiceId = id); edit() }
-        }
-        engines.onItemSelectedListener = selection { position ->
-            val id = engineIds.getOrNull(position)
-            if (id != draft.effectiveTtsEnginePackage) {
-                draft = draft.copy(output = SpeechOutputId.ANDROID_TTS_PL,
-                    ttsEnginePackage = id, voiceId = null)
-                loadVoices(); edit()
-            }
-        }
-        rebuildInputs()
-        updateEnginePicker()
-        updateVoices(emptyList())
-    }
-
-    private fun selection(selected: (Int) -> Unit) = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            if (!suppress && position >= 0 && parent?.selectedItemPosition == position) selected(position)
-        }
-        override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-    }
-
-    fun selectModel(id: DialogueModelId, custom: String? = null) {
-        draft = draft.copy(dialogue = id, customModelId = custom)
-        rebuildInputs(); edit()
-    }
-
-    fun selectInput(id: SpeechInputId) {
-        draft = draft.copy(input = id)
-        rebuildInputs(); edit()
-    }
-
-    private fun edit() {
-        probe.close(); checking = false; lastAttempt = null
-        feedback.text = activity.getString(R.string.mv_unsaved)
-        refresh(); changed()
-    }
-
-    private fun rebuildInputs() {
-        inputs.setOnCheckedChangeListener(null)
-        inputs.removeAllViews()
-        val selectedAdvanced = AudioEngineRegistry.inputs.firstOrNull { it.id == draft.input.name && it.advanced }
-        advancedInput.text = activity.getString(R.string.mv_parakeet_input)
-        advancedInput.visibility = if (selectedAdvanced != null) View.VISIBLE else View.GONE
-        val choices = AudioEngineRegistry.inputs.filter { !it.advanced }
-        for (choice in choices) inputs.addView(RadioButton(activity).apply {
-            id = View.generateViewId(); tag = choice.id
-            text = activity.getString(when (choice.id) {
-                "ANDROID_STT" -> R.string.mv_android_input
-                "GEMMA_AUDIO_DIRECT" -> R.string.mv_gemma_input
-                else -> R.string.mv_parakeet_input
+            .apply { tag = "model-voice-preview" }, UiDesign.spaceAfter(activity, 0).apply {
+                topMargin = UiDesign.dp(activity, 12)
             })
-            minimumHeight = UiDesign.dp(activity, 52)
-            isEnabled = choice.id != "GEMMA_AUDIO_DIRECT" || AudioEngineRegistry.supportsAudio(draft)
-            isChecked = choice.id == draft.input.name
-        })
-        inputs.setOnCheckedChangeListener { group, id ->
-            val choice = group.findViewById<RadioButton>(id)?.tag as? String
-            if (choice != null && choice != draft.input.name) selectInput(SpeechInputId.valueOf(choice))
+    }
+
+    private fun value(tagName: String) = TextView(activity).apply {
+        tag = tagName; textSize = 17f; setTextColor(UiDesign.ink)
+    }
+
+    private fun card(title: Int, value: TextView, open: () -> Unit): LinearLayout =
+        UiDesign.card(activity).apply {
+            val row = LinearLayout(activity).apply { gravity = Gravity.CENTER_VERTICAL }
+            val labels = LinearLayout(activity).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(UiDesign.heading(activity, activity.getString(title)).apply { textSize = 14f },
+                    UiDesign.spaceAfter(activity, 6))
+                addView(value)
+            }
+            row.addView(labels, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(TextView(activity).apply { text = "›"; textSize = 26f; setTextColor(UiDesign.secondary) })
+            addView(row, UiDesign.spaceAfter(activity, 4))
+            isClickable = true; isFocusable = true
+            setOnClickListener { open() }
+        }
+
+    private fun save(profile: AudioEngineProfile): Boolean {
+        if (profile == draft && store.load() == profile) return true
+        AudioEngineRegistry.incompatibility(profile)?.let { notifyError(it); return false }
+        if (!store.save(profile)) {
+            Toast.makeText(activity, R.string.eng_ui_save_error, Toast.LENGTH_SHORT).show(); return false
+        }
+        val engineChanged = draft.effectiveTtsEnginePackage != profile.effectiveTtsEnginePackage
+        draft = profile; tts?.stop()
+        probe.close(); checking = false; lastAttempt = null
+        if (engineChanged && active) loadVoices()
+        refresh(); changed()
+        return true
+    }
+
+    fun selectModel(id: DialogueModelId, custom: String? = null): Boolean =
+        save(draft.copy(dialogue = id, customModelId = custom))
+    fun selectInput(id: SpeechInputId): Boolean = save(draft.copy(input = id))
+
+    private fun showModelPicker() {
+        val imported = UserLiteRtModelStore(activity).models()
+        val labels = listOf("Gemma 4 E2B") + imported.map { it.title }
+        val selected = if (draft.dialogue == DialogueModelId.USER_LITERT)
+            imported.indexOfFirst { it.id == draft.customModelId } + 1 else 0
+        AlertDialog.Builder(activity).setTitle(R.string.models_ui_dialogue_heading)
+            .setSingleChoiceItems(labels.toTypedArray(), selected) { dialog, position ->
+                val saved = if (position == 0) selectModel(DialogueModelId.GEMMA_4_E2B)
+                    else selectModel(DialogueModelId.USER_LITERT, imported[position - 1].id)
+                if (saved) dialog.dismiss()
+                else (dialog as AlertDialog).listView.setItemChecked(selected, true)
+            }
+            .setNeutralButton(R.string.mv_manage_files) { _, _ -> manageFiles() }
+            .setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun inputTitle(input: SpeechInputId): String = activity.getString(when (input) {
+        SpeechInputId.ANDROID_STT -> R.string.mv_android_short
+        SpeechInputId.GEMMA_AUDIO_DIRECT -> R.string.mv_gemma_short
+        SpeechInputId.PARAKEET_PL -> R.string.mv_parakeet_short
+    })
+
+    private fun showInputPicker() {
+        val group = RadioGroup(activity).apply {
+            val horizontal = UiDesign.dp(activity, 16)
+            val vertical = UiDesign.dp(activity, 8)
+            setPadding(horizontal, vertical, horizontal, vertical)
+        }
+        val dialog = AlertDialog.Builder(activity).setTitle(R.string.mv_input)
+            .setView(group).setNegativeButton(android.R.string.cancel, null).create()
+        val choices = AudioEngineRegistry.inputs.filter { !it.advanced } +
+            AudioEngineRegistry.inputs.filter { it.advanced }
+        for (choice in choices) {
+            if (choice.advanced) group.addView(UiDesign.caption(activity, activity.getString(R.string.mv_additional)))
+            val input = SpeechInputId.valueOf(choice.id)
+            group.addView(RadioButton(activity).apply {
+                text = inputTitle(input); tag = choice.id
+                minimumHeight = UiDesign.dp(activity, 52)
+                isChecked = draft.input == input
+                isEnabled = input != SpeechInputId.GEMMA_AUDIO_DIRECT || AudioEngineRegistry.supportsAudio(draft)
+                setOnClickListener { if (selectInput(input)) dialog.dismiss() }
+            })
+        }
+        dialog.show()
+    }
+
+    private fun showVoicePicker() {
+        voiceDialog?.dismiss()
+        val options = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(UiDesign.dp(activity, 20), 0, UiDesign.dp(activity, 20), 0)
+        }
+        voiceOptions = options
+        voiceDialog = AlertDialog.Builder(activity).setTitle(R.string.mv_voice)
+            .setView(ScrollView(activity).apply { addView(options) })
+            .setNegativeButton(android.R.string.cancel, null).create()
+        val dialog = checkNotNull(voiceDialog)
+        dialog.setOnDismissListener {
+            if (voiceDialog === dialog) { voiceOptions = null; voiceDialog = null }
+        }
+        dialog.show()
+        renderVoicePicker()
+    }
+
+    private fun renderVoicePicker() {
+        val options = voiceOptions ?: return
+        options.removeAllViews()
+        val current = draft.effectiveTtsEnginePackage
+        val engineLabel = engineLabels.getOrNull(engineIds.indexOf(current)) ?: activity.getString(R.string.mv_engine_missing)
+        options.addView(UiDesign.action(activity, activity.getString(R.string.mv_engine_value, engineLabel)) {
+            voiceDialog?.dismiss(); showEnginePicker()
+        }, UiDesign.spaceAfter(activity, 12))
+        if (!voicesReady) {
+            options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_loading_voices))); return
+        }
+        val ids = listOf<String?>(null) + localVoices.map { it.name }
+        val labels = listOf(activity.getString(R.string.mv_voice_auto)) +
+            localVoices.indices.map { activity.getString(R.string.mv_local_voice, it + 1) }
+        if (localVoices.isEmpty()) options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_voice_missing)))
+        ids.forEachIndexed { index, id ->
+            val row = LinearLayout(activity).apply { gravity = Gravity.CENTER_VERTICAL }
+            row.addView(RadioButton(activity).apply {
+                text = labels[index]; isChecked = draft.voiceId == id
+                minimumHeight = UiDesign.dp(activity, 52)
+                setOnClickListener { if (save(draft.copy(voiceId = id))) voiceDialog?.dismiss() }
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(UiDesign.action(activity, "▶") { preview(id) }.apply {
+                contentDescription = activity.getString(R.string.eng_ui_preview)
+                setPadding(0, 0, 0, 0)
+            }, LinearLayout.LayoutParams(UiDesign.dp(activity, 48), UiDesign.dp(activity, 48)))
+            options.addView(row, UiDesign.spaceAfter(activity, 8))
         }
     }
 
-    private fun updateEnginePicker() {
-        val current = draft.effectiveTtsEnginePackage
+    private fun showEnginePicker() {
         val ids = engineIds.toMutableList()
         val labels = engineLabels.toMutableList()
-        if (current !in ids) { ids.add(current); labels.add(activity.getString(R.string.mv_engine_missing)) }
-        engineIds = ids; engineLabels = labels
-        suppress = true
-        UiSelect.setOptions(engines, labels)
-        engines.setSelection(ids.indexOf(current).coerceAtLeast(0))
-        suppress = false
-    }
-
-    private fun updateVoices(names: List<String>) {
-        val selected = draft.voiceId
-        voiceIds = listOf(null) + names + if (selected != null && selected !in names) listOf(selected) else emptyList()
-        val labels = listOf(activity.getString(R.string.eng_ui_voice_auto)) +
-            names.mapIndexed { index, _ -> activity.getString(R.string.mv_local_voice, index + 1) } +
-            if (selected != null && selected !in names) listOf(activity.getString(R.string.mv_saved_voice_unavailable)) else emptyList()
-        suppress = true
-        UiSelect.setOptions(voices, labels)
-        voices.setSelection(voiceIds.indexOf(selected).coerceAtLeast(0))
-        suppress = false
+        if (draft.effectiveTtsEnginePackage !in ids) {
+            ids.add(draft.effectiveTtsEnginePackage); labels.add(activity.getString(R.string.mv_engine_missing))
+        }
+        val selected = ids.indexOf(draft.effectiveTtsEnginePackage)
+        AlertDialog.Builder(activity).setTitle(R.string.mv_engine)
+            .setSingleChoiceItems(labels.toTypedArray(), selected) { dialog, position ->
+                if (save(draft.copy(output = SpeechOutputId.ANDROID_TTS_PL,
+                        ttsEnginePackage = ids[position], voiceId = null))) {
+                    dialog.dismiss(); showVoicePicker()
+                }
+            }.setNegativeButton(android.R.string.cancel) { _, _ -> showVoicePicker() }.show()
     }
 
     private fun loadVoices() {
@@ -192,7 +234,7 @@ internal class ModelVoiceSettings(
         voicesReady = false
         localVoices = emptyList()
         tts?.shutdown(); tts = null
-        updateVoices(emptyList())
+        renderVoicePicker()
         val requested = draft.effectiveTtsEnginePackage
         val holder = arrayOfNulls<TextToSpeech>(1)
         val initialized = TextToSpeech.OnInitListener { result -> activity.mainExecutor.execute {
@@ -202,8 +244,8 @@ internal class ModelVoiceSettings(
             }
             if (result != TextToSpeech.SUCCESS) {
                 engine.shutdown(); tts = null; voicesReady = true; previewWhenReady = false
-                feedback.text = activity.getString(R.string.mv_voice_missing)
-                refresh(); return@execute
+                voiceIssue.text = activity.getString(R.string.mv_voice_missing)
+                renderVoicePicker(); refresh(); return@execute
             }
             voiceWorker.execute {
                 val inventory = runCatching {
@@ -218,15 +260,14 @@ internal class ModelVoiceSettings(
                     if (generation != voiceGeneration || activity.isDestroyed || activity.isFinishing) return@ready
                     voicesReady = true
                     localVoices = inventory?.second.orEmpty()
-                    if (inventory == null) feedback.text = activity.getString(R.string.mv_voice_missing)
+                    if (inventory == null) voiceIssue.text = activity.getString(R.string.mv_voice_missing)
                     else {
                         engineIds = listOf(null) + inventory.first.map { it.name }
                         engineLabels = listOf(activity.getString(R.string.mv_system_engine)) + inventory.first.map { it.label }
-                        updateEnginePicker()
                     }
-                    updateVoices(localVoices.map { it.name })
+                    renderVoicePicker()
                     refresh()
-                    if (previewWhenReady) { previewWhenReady = false; preview() }
+                    if (previewWhenReady) { previewWhenReady = false; preview(pendingPreviewVoice) }
                 }
             }
         } }
@@ -236,30 +277,70 @@ internal class ModelVoiceSettings(
     }
 
     fun refresh() {
+        val library = UserLiteRtModelStore(activity)
+        modelName.text = if (draft.dialogue == DialogueModelId.USER_LITERT)
+            library.find(draft.customModelId)?.title ?: activity.getString(R.string.models_ui_user_missing)
+            else "Gemma 4 E2B"
+        inputName.text = inputTitle(draft.input)
+        voiceName.text = if (draft.voiceId == null) activity.getString(R.string.mv_voice_auto)
+            else localVoices.indexOfFirst { it.name == draft.voiceId }.takeIf { it >= 0 }
+                ?.let { activity.getString(R.string.mv_local_voice, it + 1) }
+                ?: activity.getString(R.string.mv_saved_voice_unavailable)
         val names = if (voicesReady) localVoices.map { it.name }.toSet() else null
         val result = AudioEngineReadinessProbe.check(activity, draft, names)
-        status.text = if (checking) activity.getString(R.string.mv_checking_model)
-            else if (result.available) activity.getString(R.string.mv_ready)
-            else reason(activity, result.reason)
+        val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, draft) }.getOrNull()
+        val transfer = LanguageModelTransferService.status
+        val downloading = transfer.busy && transfer.id == draft.dialogue && draft.dialogue == DialogueModelId.GEMMA_4_E2B
+        modelState.text = when {
+            downloading -> activity.getString(R.string.mv_download_progress,
+                (transfer.bytes * 100 / checkNotNull(LanguageModelCatalog[DialogueModelId.GEMMA_4_E2B].spec.expectedBytes)).toInt().coerceIn(0, 100))
+            checking -> activity.getString(R.string.mv_checking_model)
+            file?.isFile == true -> activity.getString(R.string.mv_downloaded_size,
+                Formatter.formatShortFileSize(activity, file.length()))
+            else -> activity.getString(R.string.mv_model_missing_short)
+        }
+        val code = result.reason
+        val voiceProblem = code in setOf("tts_offline_voice_probe_required", "polish_offline_voice_missing", "selected_voice_missing")
+        val inputProblem = code?.startsWith("parakeet_") == true || code == "android_offline_stt_unavailable"
+        voiceIssue.text = if (voiceProblem) reason(activity, code) else ""
+        inputIssue.text = if (inputProblem) reason(activity, code) else ""
+        voiceIssue.visibility = if (voiceProblem) View.VISIBLE else View.GONE
+        inputIssue.visibility = if (inputProblem) View.VISIBLE else View.GONE
+        if (code != null && !voiceProblem && !inputProblem && !checking && !downloading && file?.isFile == true)
+            modelState.text = reason(activity, code)
+        modelAction.visibility = if (downloading || file?.isFile != true) View.VISIBLE else View.GONE
+        modelAction.text = activity.getString(when {
+            downloading -> R.string.models_ui_cancel
+            draft.dialogue == DialogueModelId.USER_LITERT -> R.string.mv_manage_files
+            else -> R.string.models_ui_download
+        })
+        modelAction.isEnabled = !transfer.busy || downloading
         if (active && !checking) {
-            val imported = UserLiteRtModelStore(activity).models().firstOrNull { it.id !in knownImports }
+            val imported = library.models().firstOrNull { it.id !in knownImports }
             if (imported != null) {
                 knownImports.add(imported.id)
                 verify(draft.copy(input = SpeechInputId.ANDROID_STT,
                     dialogue = DialogueModelId.USER_LITERT, customModelId = imported.id), false)
-            } else {
-                val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, draft) }.getOrNull()
-                if (file != null && file.isFile) {
-                    val cache = ModelCompatibilityStore(activity)
-                    val needsText = draft.dialogue == DialogueModelId.USER_LITERT && !cache.verified(file, false)
-                    val needsAudio = draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
-                        AudioEngineRegistry.supportsAudio(draft) && !cache.verified(file, true)
-                    if (needsAudio || needsText) verify(draft, needsAudio)
-                }
+            } else if (file?.isFile == true) {
+                val cache = ModelCompatibilityStore(activity)
+                val needsText = draft.dialogue == DialogueModelId.USER_LITERT && !cache.verified(file, false)
+                val needsAudio = draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
+                    AudioEngineRegistry.supportsAudio(draft) && !cache.verified(file, true)
+                if (needsAudio || needsText) verify(draft, needsAudio)
             }
-            actionsView.findViewWithTag<View>("model-voice-retry").visibility =
-                if (lastAttempt != null && !checking && !result.available) View.VISIBLE else View.GONE
         }
+        retry.visibility = if (lastAttempt != null && !checking && !result.available && !inputProblem && !voiceProblem)
+            View.VISIBLE else View.GONE
+    }
+
+    private fun modelAction() {
+        if (draft.dialogue != DialogueModelId.GEMMA_4_E2B) { manageFiles(); return }
+        val intent = Intent(activity, LanguageModelTransferService::class.java)
+        if (LanguageModelTransferService.status.busy) {
+            if (LanguageModelTransferService.status.id == DialogueModelId.GEMMA_4_E2B)
+                activity.startService(intent.setAction(LanguageModelTransferService.CANCEL))
+        }
+        else activity.startForegroundService(intent.putExtra(LanguageModelTransferService.MODEL, DialogueModelId.GEMMA_4_E2B.name))
     }
 
     private fun verify(profile: AudioEngineProfile, audio: Boolean) {
@@ -269,53 +350,48 @@ internal class ModelVoiceSettings(
         val attempt = "$stamp:$audio:${profile.customModelId}"
         if (lastAttempt == attempt || !canProbe()) return
         lastAttempt = attempt; checking = true
-        status.text = activity.getString(R.string.mv_checking_model)
+        modelState.text = activity.getString(R.string.mv_checking_model)
         probe.check(file, profile, audio) { error ->
             checking = false
-            if (error != null) feedback.text = reason(activity, error)
+            if (error != null) notifyError(error)
             refresh(); changed()
         }
     }
 
-    private fun preview() {
+    private fun preview(voiceId: String? = draft.voiceId) {
         if (!active) return
         if (activity.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
             runCatching { activity.getSystemService(TelecomManager::class.java)?.isInCall != false ||
                 activity.getSystemService(AudioManager::class.java)?.mode == AudioManager.MODE_IN_CALL }.getOrDefault(true)) {
-            feedback.text = activity.getString(R.string.eng_ui_preview_disabled); return
+            Toast.makeText(activity, R.string.eng_ui_preview_disabled, Toast.LENGTH_SHORT).show(); return
         }
         val engine = tts
-        if (engine == null || !voicesReady) { previewWhenReady = true; if (engine == null) loadVoices(); return }
-        val selected = localVoices.firstOrNull { draft.voiceId == null || it.name == draft.voiceId }
+        if (engine == null || !voicesReady) {
+            previewWhenReady = true; pendingPreviewVoice = voiceId
+            if (engine == null) loadVoices()
+            return
+        }
+        val selected = localVoices.firstOrNull { voiceId == null || it.name == voiceId }
         if (selected == null || engine.setVoice(selected) != TextToSpeech.SUCCESS) {
-            feedback.text = activity.getString(R.string.mv_voice_missing); return
+            notifyError("polish_offline_voice_missing"); return
         }
         engine.speak(activity.getString(R.string.mv_voice_sample), TextToSpeech.QUEUE_FLUSH, null, "model-voice-preview")
     }
 
-    fun saveState(state: Bundle) {
-        state.putString("mv_input", draft.input.name); state.putString("mv_model", draft.dialogue.name)
-        state.putString("mv_custom", draft.customModelId); state.putString("mv_voice", draft.voiceId)
-        state.putString("mv_engine", draft.effectiveTtsEnginePackage)
-    }
+    private fun notifyError(code: String) = Toast.makeText(activity, reason(activity, code), Toast.LENGTH_LONG).show()
     fun syncSavedProfile() {
-        val current = store.load()
-        if (!dirty && current != null && current != saved) {
-            val engineChanged = draft.effectiveTtsEnginePackage != current.effectiveTtsEnginePackage
-            saved = current; draft = current; rebuildInputs()
-            updateEnginePicker(); updateVoices(localVoices.map { it.name })
+        val current = store.load() ?: return
+        if (current != draft) {
+            val engineChanged = current.effectiveTtsEnginePackage != draft.effectiveTtsEnginePackage
+            draft = current
             if (engineChanged && active) loadVoices()
         }
     }
-    fun resume() {
-        active = true
-        syncSavedProfile()
-        loadVoices(); refresh()
-    }
+    fun resume() { active = true; syncSavedProfile(); loadVoices(); refresh() }
     fun pause() {
         active = false; previewWhenReady = false
         if (checking) lastAttempt = null
-        probe.close(); checking = false; tts?.stop()
+        probe.close(); checking = false; tts?.stop(); voiceDialog?.dismiss()
     }
     override fun close() { pause(); ++voiceGeneration; tts?.shutdown(); tts = null; voiceWorker.shutdownNow() }
 

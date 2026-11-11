@@ -704,7 +704,7 @@
     <string name="models_ui_legacy_heading">Pozostałe zapisane pliki modeli</string>
     <string name="models_ui_legacy_file">Dawny model · zapisano: %1$s · nie jest używany</string>
     <string name="models_ui_system_audio_hint">Android STT i TTS korzystają z usług i głosów systemu. Ich plikami zarządzasz w ustawieniach Androida.</string>
-    <string name="models_ui_parakeet_required">Pobierz pełny model Parakeet na ekranie Modele i silniki.</string>
+    <string name="models_ui_parakeet_required">Brakuje pliku Parakeet. Pobierz go w plikach modeli.</string>
     <string name="models_ui_parakeet_invalid">Plik Parakeet nie przeszedł weryfikacji. Pobierz go ponownie w Modele i silniki.</string>
     <string name="models_ui_dialogue_required">Brakuje poprawnego pliku modelu rozmowy. Sprawdź Modele i silniki.</string>
     <string name="models_ui_android_stt_unavailable">Systemowe rozpoznawanie mowy offline jest niedostępne. Sprawdź ustawienia Androida lub wybierz pobrany Parakeet.</string>

@@ -1,6 +1,6 @@
 # Skills, modele i laboratorium
 
-Produkt ma wspólną konfigurację „Model i głos”: Gemma E2B lub zgodny import LiteRT-LM, Android STT/TTS i opcjonalny Parakeet w zaawansowanych. Laboratorium pozostaje narzędziem developerskim; E4B/Qwen nie są osobnymi ofertami normalnego UI.
+Produkt ma wspólną konfigurację „Model i głos”: Gemma E2B lub zgodny import LiteRT-LM, Android STT/TTS i opcjonalny Parakeet w grupie Dodatkowe wyboru STT. Laboratorium pozostaje narzędziem developerskim; E4B/Qwen nie są osobnymi ofertami normalnego UI.
 
 ## Skills
 Skills są wersjonowane (nazwa/opis/capability/instrukcja), aktywowane kontekstowo dla każdej tury, mogą proponować narzędzie; **nie** nabywają uprawnień. `ConversationToolExecutor` i aplikacja autoryzują efekty, `CallCommitmentGate` jest jedyną bramką skutków. Model nie dostaje całego sejfu.

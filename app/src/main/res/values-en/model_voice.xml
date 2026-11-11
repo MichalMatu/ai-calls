@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mv_title">Model and voice</string>
-    <string name="mv_intro">Choose the conversation model, speech input and assistant voice. Changes apply to future calls.</string>
+    <string name="mv_intro">Conversation model, speech recognition and assistant voice.</string>
     <string name="mv_input">Speech input</string>
     <string name="mv_voice">Assistant voice</string>
     <string name="mv_engine">Android voice engine</string>
     <string name="mv_system_engine">Android default engine</string>
     <string name="mv_engine_missing">The selected engine is unavailable</string>
     <string name="mv_local_voice">Polish voice %1$d · offline</string>
-    <string name="mv_voice_missing">The selected offline Polish voice is unavailable. Choose another voice or install it in Android settings.</string>
+    <string name="mv_voice_missing">The selected offline Polish voice is unavailable.</string>
     <string name="mv_android_input">Android · on-device recognition</string>
     <string name="mv_gemma_input">Gemma · direct audio input</string>
     <string name="mv_parakeet_input">Parakeet · advanced option</string>
@@ -18,10 +18,10 @@
     <string name="mv_checking_model">Checking model compatibility on this device…</string>
     <string name="mv_ready">Configuration is ready to use.</string>
     <string name="mv_model_missing">The conversation model file is missing. Download Gemma E2B or add a compatible model file.</string>
-    <string name="mv_compatibility_required">File stored · conversation compatibility needs verification.</string>
-    <string name="mv_audio_check_required">Gemma audio input needs a local check. Select an available offline Polish voice.</string>
-    <string name="mv_audio_unavailable">This model has no confirmed audio input support. Choose Android recognition or Parakeet in advanced settings.</string>
-    <string name="mv_loading_voices">Loading offline Polish voices…</string>
+    <string name="mv_compatibility_required">Model compatibility needs checking.</string>
+    <string name="mv_audio_check_required">The audio check needs an offline Polish voice.</string>
+    <string name="mv_audio_unavailable">This model requires Android or Parakeet speech recognition.</string>
+    <string name="mv_loading_voices">Loading voices…</string>
     <string name="mv_compatibility_failed">Model compatibility could not be verified. Check the file and available voice; you can retry the check.</string>
     <string name="mv_voice_sample">This is a sample of the AI Calls assistant voice.</string>
     <string name="mv_advanced">Advanced</string>
@@ -37,4 +37,15 @@
     <string name="mv_invalid_container">The file has an invalid format. Add a LiteRT-LM model.</string>
     <string name="mv_change_model">Change model</string>
     <string name="mv_saved_voice_unavailable">Saved voice · unavailable</string>
+    <string name="mv_manage_files">Manage model files</string>
+    <string name="mv_android_short">Android</string>
+    <string name="mv_gemma_short">Gemma · direct audio</string>
+    <string name="mv_parakeet_short">Parakeet</string>
+    <string name="mv_additional">Additional</string>
+    <string name="mv_voice_auto">Automatic Polish voice</string>
+    <string name="mv_engine_value">Engine: %1$s</string>
+    <string name="mv_download_progress">Downloading %1$d%%</string>
+    <string name="mv_downloaded_size">Downloaded · %1$s</string>
+    <string name="mv_downloaded_short">Downloaded</string>
+    <string name="mv_model_missing_short">Model file missing</string>
 </resources>

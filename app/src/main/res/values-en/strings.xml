@@ -703,7 +703,7 @@
     <string name="models_ui_legacy_heading">Other stored model files</string>
     <string name="models_ui_legacy_file">Retired model · stored: %1$s · unused</string>
     <string name="models_ui_system_audio_hint">Android STT and TTS use system services and voices. Manage their files in Android settings.</string>
-    <string name="models_ui_parakeet_required">Download the complete Parakeet model in Models and engines.</string>
+    <string name="models_ui_parakeet_required">Parakeet is missing. Download it in model files.</string>
     <string name="models_ui_parakeet_invalid">The Parakeet file failed verification. Download it again in Models and engines.</string>
     <string name="models_ui_dialogue_required">A valid conversation model file is missing. Check Models and engines.</string>
     <string name="models_ui_android_stt_unavailable">System offline speech recognition is unavailable. Check Android settings or select a downloaded Parakeet model.</string>

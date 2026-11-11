@@ -12,8 +12,9 @@
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, transkrypt przed kontrolą wizyty/danych, narzędzia i STOP; testy hosta PASS. Native PL, jakość i RAM S22 otwarte — brak pliku E2B |
-| Pełny gate Python | OPEN · scripts/tests | 433 testy: 9 failures + 14 errors odziedziczone z wcześniejszego QA; brak nowych. Gate: aktualizacja testów usuniętego UI i `CampaignToolActivity` |
+| Czytelność Model i głos | PHYSICAL_OPEN · app/ui | Trzy karty, modale i autosave przygotowane. Gate: kompilacja, instalacja i ocena właściciela |
+| Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, transkrypt przed kontrolą wizyty/danych, narzędzia i STOP; testy hosta PASS. Gemma pobrana według właściciela; native PL, jakość i RAM S22 otwarte |
+| Pełny gate Python | OPEN · scripts/tests | Pełny zestaw pominięty w tej iteracji. Pozostaje dług testów dawnych ekranów; po odbiorze modali wymagane dostosowanie testów UI |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
 | Outgoing po autoryzacji | DEVICE_VERIFIED: real dial | Na S22+ po jednym autoryzowanym START Telecom potwierdził aktywne połączenie; odbiór i jakość audio nadal **PHYSICAL_OPEN** |
@@ -48,6 +49,6 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 - **Narzędzia AI MVP:** SAVE_NOTE szyfrowane per Call, migracja/deduplikacja, TASK/CALENDAR/MESSAGE tylko jako propozycje; END_CALL po TTS i kontroli Call. Notatnik: filtr, wyszukiwanie, strony, usuwanie po potwierdzeniu, AtomicFile .bak, IO poza UI. Migracja realnych danych i żywy Call pozostają bez fizycznej akceptacji.
 
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
-- **Model i głos:** jeden ekran i zapis, osobna gotowość, Android STT/TTS i import LiteRT-LM z lokalną próbą zgodności; Parakeet w zaawansowanych. Bez martwych Kokoro/PocketTTS i przełączników serwerów. Wspólny silnik audio/tekst Gemmy; KEEP Call, STOP, Skills i granty. S22: Parakeet 614588752 B obecny, Gemma E2B niepobrana; zapisany profil Parakeet/E2B/Android TTS nie jest gotowy.
+- **Model i głos:** trzy karty, wybory w modalach zapisywane od razu; Parakeet w grupie Dodatkowe przy wyborze rozpoznawania, silnik przy głosach, pliki osobno. Bez górnych opisów. KEEP runtime, STOP, Skills i granty. Właściciel potwierdził pobranie Gemmy; odbiór nowego układu na S22 **PHYSICAL_OPEN**.
 - **Rola Telefonu:** stan i jawny przycisk w Ustawieniach oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
-- **QA UX:** app 999 JVM i lint PASS, gate audio oraz anti-friction/docs PASS; emulator 31 scenariuszy PASS, stan UI PL 12/12 i widoki bez zasłonięcia 4/4. S22 APK `f3ef88b4`, SHA-256 `6b4e8cbc62b118154d9362cb684df9d09a51b600ef6533f913f74ab15535ad53`; install-r i odczyt APK PASS, 3 preferencje semantycznie zachowane, dane/pliki/uprawnienia/rola Telefonu bez zmian, IDLE. Native import/audio i live STT **PHYSICAL_OPEN**.
+- **QA UX:** dla bieżącej zmiany wyłącznie kompilacja/pakowanie i instalacja; odbiór UI przez właściciela **PHYSICAL_OPEN**. S22 nadal APK `f3ef88b4`. Pełne zestawy i emulator pominięte na życzenie właściciela. Native import/audio i live STT **PHYSICAL_OPEN**.
