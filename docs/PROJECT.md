@@ -2,11 +2,6 @@
 
 **Priorytet:** uruchomienie pełnego asystenta telefonicznego na Samsung S22+, nie G6.5 hardening. Istniejące moduły, bezpieczeństwo Call i autoryzacja są zamrożonymi fundamentami. Błędy nieblokujące MVP odłóż.
 
-## Zamknięcie QA G6.4
-- Mac host full: Gradle/JVM/lint, 409 Python, audio quality i preflight PASS dla 04a72f2; receipt: aicalls-g64-freeze-fullqa-20261110-v1.
-- S22+ exact device, Android IDLE, rola dialera, APK aplikacji i testów PASS. Na **wcześniej zainstalowanym** APK 4/4 instrumented off-call PASS: takeover i stale PCM, RX archive, syntetyczny WAV playback, STOP; receipt: aicalls-g64-s22-installed-instrumentation-physical-offcall-20261110-v1.
-- G6.4 off-call PASS. Jeden autoryzowany realny OUTGOING S22 uruchomiony; bez propozycji wizyty. Live barge-in, takeover i rezerwacja nadal **PHYSICAL_OPEN**.
-
 ## Interfejs użytkownika — uproszczenie
 - **Start / Rozmowy / Agent AI / Ustawienia** — cztery zakładki. Start zawiera bezpośredni dostęp do istniejącej rozmowy **w sprawie wizyty**, bieżący status, STOP i prywatny podgląd rozmowy; nie sugeruje ogólnego scenariusza, którego nie wdrożono.
 - Usunięto dawny ekran Kampanie i martwe napisy zasobów; CLIR/start skryptu, nadzorowany test audio oraz diagnostyczne karty nie mają już konsumenckich przycisków. Modele i silniki są pod Ustawieniami, laboratorium wyłącznie w narzędziach developerskich. Wewnętrzne mechanizmy grantów, dokładnego Call, STOP, STT i archiwum zachowane.
@@ -18,6 +13,8 @@
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
+| Rola aplikacji Telefon | OPEN · app/ui | Brak wejścia z ustawień; gate: stan, jawny systemowy wybór i brak Call/promptu przy starcie |
+| Pełny gate Python | OPEN · scripts/tests | 430 testów: 18 failures, 15 errors; część asercji oczekuje usuniętego UI. Gate: porównanie baseline i aktualne kontrakty |
 | Gest Wstecz formularza kontekstu | OPEN · app/conversation | Android 16 omija `onBackPressed`; gate: AndroidX dispatcher, zachowanie szkicu i lint |
 | Modele: pliki i wybór STT | OPEN · app/textagent + audioengines | Stała lista w dialogu czyszczenia, ukryte pliki i niejasny stan Parakeet; gate: inwentarz/usuwanie per plik, integralność, wybór i emulator |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
