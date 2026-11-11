@@ -244,6 +244,25 @@
     <string name="lab_ui_starting">Uruchamianie modelu offline…</string>
     <string name="lab_ui_complete">Test zakończony. Żadnego END_CALL nie wykonano.</string>
     <string name="lab_ui_empty">Wynik testu pojawi się tutaj po uruchomieniu.</string>
+    <string name="models_ui_user_heading">Moje modele z pliku</string>
+    <string name="models_ui_user_hint">Gemma 4 E2B pozostaje modelem bazowym. Możesz dodać własne pliki LiteRT-LM (.litertlm). Import nie oznacza automatycznie zgodności z silnikiem ani przydatności do rozmów.</string>
+    <string name="models_ui_add_file">Dodaj model z pliku</string>
+    <string name="models_ui_clean_legacy">Usuń stare modele z pamięci</string>
+    <string name="models_ui_clean_warning">Usunąć zapisane pliki dawnych modeli Gemma E4B i Qwen? Gemma 4 E2B i modele dodane z pliku pozostaną nietknięte.</string>
+    <string name="models_ui_remove">Usuń</string>
+    <string name="models_ui_not_idle">Nie można zmieniać plików modeli podczas aktywności telefonu ani niepotwierdzonego stanu IDLE.</string>
+    <string name="models_ui_clean_result">Usunięto stare modele: %1$d. Nie udało się usunąć: %2$d.</string>
+    <string name="models_ui_no_user_models">Nie dodano jeszcze własnych modeli.</string>
+    <string name="models_ui_user_missing">Brak pliku modelu</string>
+    <string name="models_ui_user_imported">Zaimportowany · zgodność silnika niepotwierdzona</string>
+    <string name="models_ui_user_selected">Wybrano model z pliku. Zgodność i jakość odpowiedzi wymagają testu przed rozmową.</string>
+    <string name="models_ui_switch_before_delete">Najpierw wybierz Gemma 4 E2B, aby usunąć aktywny model.</string>
+    <string name="models_ui_remove_warning">Usunąć model „%1$s” i jego plik z telefonu?</string>
+    <string name="models_ui_removed">Model i jego plik zostały usunięte.</string>
+    <string name="models_ui_remove_failed">Nie udało się usunąć modelu.</string>
+    <string name="models_ui_custom_import_success">Zaimportowano „%1$s”. Przetestuj zgodność przed użyciem.</string>
+    <string name="models_ui_custom_progress">Import modelu: %1$d MB</string>
+    <string name="models_ui_baseline_status">Model bazowy AI Calls · testy i fine-tuning</string>
     <string name="models_ui_title">Modele i silniki</string>
     <string name="models_ui_intro">Zarządzaj modelami AI, STT i TTS w jednym miejscu.</string>
     <string name="models_ui_cancel">Anuluj transfer</string>
@@ -505,7 +524,7 @@
     <string name="skills_ux05_warning">Ważne: skillsy nie nadają prawa do narzędzi ani rozłączania. Decyzje modelu nadal sprawdza aplikacja.</string>
 
     <!-- UX-05 model metadata and factory-skill UI labels -->
-    <string name="models_ux05_detail_e2b">Dotychczasowy model · polski dialog</string>
+    <string name="models_ux05_detail_e2b">Model bazowy AI Calls · testy i fine-tuning</string>
     <string name="models_ux05_detail_e4b">Większy model · większe zużycie pamięci</string>
     <string name="models_ux05_detail_qwen17">Lekki model tekstowy · INT4</string>
     <string name="models_ux05_detail_qwen06">Najmniejszy model · eksperymentalny · INT4</string>
