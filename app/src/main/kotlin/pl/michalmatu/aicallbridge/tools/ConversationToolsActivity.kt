@@ -10,7 +10,6 @@ import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -60,7 +59,6 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         controller = ConversationToolsSettingsController(this)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
