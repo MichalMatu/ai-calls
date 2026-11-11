@@ -35,6 +35,9 @@ class NotebookMvpContract(unittest.TestCase):
         self.assertNotIn("FLAG_SECURE", screen)
         self.assertNotIn("tools-latest-status", screen)
         self.assertNotIn("postDelayed(this, 500L)", screen)
+        self.assertIn('notebookCounter.text = if (loading || loadFailed) ""',screen)
+        self.assertIn("if (isDestroyed || isFinishing) return@post",screen)
+        self.assertNotIn("if (token != loadGeneration || isDestroyed)",screen)
     def test_per_call_records_have_safe_legacy_migration_and_confirmed_delete(self):
         repo=(ROOT/"conversation/ConversationNotebookRepository.kt").read_text()
         store=(ROOT/"conversation/AndroidConversationPreparationStore.kt").read_text()
