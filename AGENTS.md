@@ -9,6 +9,17 @@
 - Nie dodawaj sztucznych ograniczeń, limitów tur/prób, redundantnych potwierdzeń ani czynności manualnych bez materialnej przyczyny. Utrzymuj test regresyjny anti-friction; **nie** usuwaj granic Androida, scoped grant, STOP, Call ownership, idempotencji i prywatności.
 - Każda nowa luka: opisz w sekcji `Otwarte` jednego [PROJECT.md](docs/PROJECT.md) konkretny objaw, owner modułu, test/gate. Po naprawie i dowodzie usuń wpis, zaktualizuj aktualny status. Nie zachowuj duplikatów i dawnej chronologii.
 
+## Opcjonalna analiza zależności kodu
+
+- Przy większej zmianie na zweryfikowanym Mac Local Agent i czystym HEAD
+  użyj `la-graphify status /ABS/REPO`, a przy świeżym grafie
+  `la-graphify impact /ABS/REPO relative/source.kt`. Gdy nie znamy
+  właściciela modułu, pomocniczo `la-openvisio skeleton /ABS/REPO "task"`.
+- OpenVisio MCP nie jest podłączony: bez `init`, `mcp`, `--watch`,
+  `transport` i skanowania katalogu domowego. Narzędzi nie uruchamiaj
+  obowiązkowo ani automatycznie; wyniki grafów są hipotezami do
+  sprawdzenia w kodzie. Nie zastępują testów, granic Call ani emulatora.
+
 ## Granice zewnętrznych skutków
 - Zwykła praca inżynierska i testy bez skutków mogą postępować autonomicznie; to **nie jest** grant na nieokreślone realne połączenia, zakup, rezerwację, ujawnienie danych ani modyfikację konta.
 - Fizyczny Call / instalacja / prawdziwa operacja: dokładny zakres upoważnienia, zweryfikowany S22 i stan IDLE, własność konkretnego `Call`, uprawnienia systemowe, prawdziwy wynik. Nigdy nie obchodź odmowy narzędzia. `TAKE OVER` i STOP najpierw unieważniają AI, potem porządkują zasoby. [Reguły](docs/architecture/SECURITY.md).
