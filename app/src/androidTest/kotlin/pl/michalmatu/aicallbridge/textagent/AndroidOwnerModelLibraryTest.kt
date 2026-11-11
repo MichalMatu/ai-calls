@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.textagent
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -59,7 +60,8 @@ class AndroidOwnerModelLibraryTest {
     }
 
     @Test fun modelsScreenExposesGemmaAndFileImportNotRetiredCatalogCards() {
-        ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+        ActivityScenario.launch<LanguageModelActivity>(Intent(context, LanguageModelActivity::class.java)
+            .putExtra("model_files_mode", true)).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("model-card:GEMMA_4_E2B"))

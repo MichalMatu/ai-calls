@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.audioengines
 
 import android.os.Build
+import android.view.inspector.WindowInspector
 import android.view.View
 import android.widget.RadioButton
 import android.widget.TextView
@@ -31,13 +32,18 @@ class AndroidModelSelectionNavigationTest {
             assertTrue(store.save(AudioEngineProfile.STABLE))
             ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
                 scenario.onActivity { activity ->
-                    activity.window.decorView.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").performClick()
+                    activity.window.decorView.findViewWithTag<View>("model-voice-inputs").performClick()
+                    WindowInspector.getGlobalWindowViews().last {
+                        it.isShown && it.findViewWithTag<View>("GEMMA_AUDIO_DIRECT") != null
+                    }.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").performClick()
                 }
                 scenario.recreate()
                 scenario.onActivity { activity ->
-                    assertTrue(activity.window.decorView.findViewWithTag<RadioButton>("GEMMA_AUDIO_DIRECT").isChecked)
-                    assertEquals(AudioEngineProfile.STABLE, store.load())
-                    assertNotNull(activity.window.decorView.findViewWithTag<View>("model-voice-advanced"))
+                    assertEquals(SpeechInputId.GEMMA_AUDIO_DIRECT, store.load()?.input)
+                    assertEquals(activity.getString(pl.michalmatu.aicallbridge.R.string.mv_gemma_short),
+                        activity.window.decorView.findViewWithTag<TextView>("model-voice-input-choice")
+                            .text.toString())
+                    assertNull(activity.window.decorView.findViewWithTag<View>("model-voice-advanced"))
                 }
             }
             ActivityScenario.launch(UsbDebugPanelActivity::class.java).use { scenario ->

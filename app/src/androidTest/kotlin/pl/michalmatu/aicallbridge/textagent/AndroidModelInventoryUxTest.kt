@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.textagent
 
 import android.Manifest
+import android.content.Intent
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -48,16 +49,14 @@ class AndroidModelInventoryUxTest {
     @Test fun absentLegacyFilesHaveNoDeletionActionAndMissingParakeetCannotBeUsed() {
         assertFalse(ParakeetModelFile.resolve(context).exists())
         val before = AudioEngineProfileStore(context).load()
-        ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+        ActivityScenario.launch<LanguageModelActivity>(Intent(context, LanguageModelActivity::class.java)
+                    .putExtra("model_files_mode", true)).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                    root.findViewWithTag<Button>("model-voice-advanced-toggle").let { toggle ->
-                        if (root.findViewWithTag<View>("model-voice-advanced").visibility != View.VISIBLE) toggle.performClick()
-                    }
                 assertNull(root.findViewWithTag<View>("models-clean-legacy"))
                 assertNull(root.findViewWithTag<View>("stored-model-delete:GEMMA_4_E4B"))
                 assertEquals(View.GONE, root.findViewWithTag<Button>("parakeet-delete").visibility)
-                assertEquals(View.GONE, root.findViewWithTag<Button>("parakeet-select-engine").visibility)
+                assertNull(root.findViewWithTag<View>("parakeet-select-engine"))
                 val status = root.findViewWithTag<TextView>("parakeet-transfer-status").text.toString()
                 assertTrue(status.contains(activity.getString(R.string.ux07_parakeet_missing)))
                 assertTrue(status.contains(activity.getString(R.string.models_ui_download_size, "").trim()))
@@ -75,12 +74,10 @@ class AndroidModelInventoryUxTest {
         try {
             createSynthetic(other, "synthetic retired model two")
             try {
-                ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+                ActivityScenario.launch<LanguageModelActivity>(Intent(context, LanguageModelActivity::class.java)
+                    .putExtra("model_files_mode", true)).use { scenario ->
                     scenario.onActivity { activity ->
                         val root = activity.window.decorView
-                    root.findViewWithTag<Button>("model-voice-advanced-toggle").let { toggle ->
-                        if (root.findViewWithTag<View>("model-voice-advanced").visibility != View.VISIBLE) toggle.performClick()
-                    }
                         assertNotNull(root.findViewWithTag<View>("stored-model:GEMMA_4_E4B"))
                         assertNotNull(root.findViewWithTag<View>("stored-model:QWEN_3_0_6B"))
                         assertNull(root.findViewWithTag<View>("stored-model:QWEN_3_1_7B"))
@@ -95,9 +92,6 @@ class AndroidModelInventoryUxTest {
                     assertTrue(other.exists())
                     scenario.onActivity { activity ->
                         val root = activity.window.decorView
-                    root.findViewWithTag<Button>("model-voice-advanced-toggle").let { toggle ->
-                        if (root.findViewWithTag<View>("model-voice-advanced").visibility != View.VISIBLE) toggle.performClick()
-                    }
                         root.findViewWithTag<Button>("stored-model-delete:GEMMA_4_E4B").performClick()
                         dialog().findViewById<Button>(android.R.id.button1).performClick()
                     }
@@ -106,9 +100,6 @@ class AndroidModelInventoryUxTest {
                     assertTrue(other.exists())
                     scenario.onActivity { activity ->
                         val root = activity.window.decorView
-                    root.findViewWithTag<Button>("model-voice-advanced-toggle").let { toggle ->
-                        if (root.findViewWithTag<View>("model-voice-advanced").visibility != View.VISIBLE) toggle.performClick()
-                    }
                         assertNull(root.findViewWithTag<View>("stored-model:GEMMA_4_E4B"))
                         assertNotNull(root.findViewWithTag<View>("stored-model:QWEN_3_0_6B"))
                     }
@@ -124,13 +115,11 @@ class AndroidModelInventoryUxTest {
         createSynthetic(file, "incomplete synthetic Parakeet")
         try {
             assertTrue(store.save(before.copy(input = SpeechInputId.ANDROID_STT)))
-            ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+            ActivityScenario.launch<LanguageModelActivity>(Intent(context, LanguageModelActivity::class.java)
+                    .putExtra("model_files_mode", true)).use { scenario ->
                 scenario.onActivity { activity ->
                     val root = activity.window.decorView
-                    root.findViewWithTag<Button>("model-voice-advanced-toggle").let { toggle ->
-                        if (root.findViewWithTag<View>("model-voice-advanced").visibility != View.VISIBLE) toggle.performClick()
-                    }
-                    assertFalse(root.findViewWithTag<Button>("parakeet-select-engine").isEnabled)
+                    assertNull(root.findViewWithTag<View>("parakeet-select-engine"))
                     root.findViewWithTag<Button>("parakeet-delete").performClick()
                     val message = dialog().findViewById<TextView>(android.R.id.message).text.toString()
                     assertTrue(message.contains("Parakeet"))
@@ -140,11 +129,8 @@ class AndroidModelInventoryUxTest {
                 instrumentation.waitForIdleSync()
                 scenario.onActivity { activity ->
                     val root = activity.window.decorView
-                    root.findViewWithTag<Button>("model-voice-advanced-toggle").let { toggle ->
-                        if (root.findViewWithTag<View>("model-voice-advanced").visibility != View.VISIBLE) toggle.performClick()
-                    }
                     assertTrue(file.exists())
-                    assertFalse(root.findViewWithTag<Button>("parakeet-delete").isEnabled)
+                    assertEquals(View.GONE, root.findViewWithTag<Button>("parakeet-delete").visibility)
                     val state = root.findViewWithTag<TextView>("parakeet-transfer-status").text.toString()
                     assertTrue(state.contains(activity.getString(R.string.ux08_parakeet_wrong_size)))
                     assertTrue(state.contains(activity.getString(R.string.models_ui_selected_next)))
@@ -165,7 +151,8 @@ class AndroidModelInventoryUxTest {
         try {
             // Present an in-progress transfer without starting a service or a network request.
             statusField.set(null, ParakeetTransferStatus(busy = true))
-            ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+            ActivityScenario.launch<LanguageModelActivity>(Intent(context, LanguageModelActivity::class.java)
+                    .putExtra("model_files_mode", true)).use { scenario ->
                 scenario.onActivity { activity ->
                     activity.window.decorView.findViewWithTag<Button>(
                         "stored-model-delete:QWEN_3_0_6B").performClick()
