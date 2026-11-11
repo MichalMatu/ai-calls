@@ -85,6 +85,31 @@ class AndroidAgentAiHubReadOnlyTest {
         }
     }
 
+    @Test fun unsavedToolChoiceSurvivesActivityRecreation() {
+        ActivityScenario.launch(ConversationToolsActivity::class.java).use { scenario ->
+            var pending = false
+            scenario.onActivity { activity ->
+                val toggle = checkNotNull(activity.window.decorView
+                    .findViewWithTag<CheckBox>("tools-setting:SAVE_NOTE"))
+                pending = !toggle.isChecked
+                toggle.isChecked = pending
+                val save = checkNotNull(activity.window.decorView
+                    .findViewWithTag<View>("tools-save-settings"))
+                assertEquals(View.VISIBLE, save.visibility)
+            }
+            scenario.recreate()
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                val toggle = checkNotNull(root.findViewWithTag<CheckBox>("tools-setting:SAVE_NOTE"))
+                assertEquals("unsaved_choice_lost_on_rotation", pending, toggle.isChecked)
+                assertEquals(View.VISIBLE,
+                    checkNotNull(root.findViewWithTag<View>("tools-save-settings")).visibility)
+                assertTrue("toggle_accessibility_missing_effect",
+                    toggle.contentDescription.toString().length > toggle.text.length)
+            }
+        }
+    }
+
     private companion object {
         const val ConversationSkillsActivityName = "ConversationSkillsActivity"
         const val ScenarioLibraryActivityName = "ScenarioLibraryActivity"
