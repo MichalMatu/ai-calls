@@ -55,4 +55,4 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 
 - **Sejf danych UX:** akcja „Dodaj własne pole” na końcu; jeden klikalny wiersz zamiast dublowania edycji, liczba zapisanych pól, formularz nie zamyka się po błędnym wpisie. Szyfrowanie i brak grantu dla pól własnych zachowane.
 
-- **Narzędzia AI MVP:** Wspólny protokół w incoming/outgoing. SAVE_NOTE zapisuje zaszyfrowany notatnik per sesja, append z ID tury; TASK/CALENDAR_PROPOSAL/MESSAGE_DRAFT to wyłącznie propozycje. END_CALL po TTS i weryfikacji Call. Bez Google API i wysyłania wiadomości. Fizyczny test modelu/połączeń: **PHYSICAL_OPEN**.
+- **Narzędzia AI MVP:** SAVE_NOTE: oddzielne szyfrowane rekordy per rozmowa (z migracją v1), append i bez duplikatów; widok: zwijane wpisy, wyszukiwanie, filtr, usuwanie po potwierdzeniu, IO poza UI. TASK/CALENDAR/MESSAGE to propozycje. END_CALL: po TTS i weryfikacji Call. Test rozmowy: **PHYSICAL_OPEN**.

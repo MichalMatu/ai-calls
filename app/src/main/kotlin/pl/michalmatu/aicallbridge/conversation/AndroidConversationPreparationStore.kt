@@ -153,43 +153,28 @@ internal class AndroidConversationPreparationStore(
             Gson().toJson(ScenarioDraftRecord(1, draft.scenarioId, draft.values.toMap())))
     }
 
-    /** One encrypted AtomicFile holding independent notebooks keyed by call session ID. */
-    private val notebookRecordId = "notebook-library-v1"
+    /** Scoped, encrypted per-call records with one-shot migration of the existing v1 blob. */
+    private val notebookRepository by lazy {
+        ConversationNotebookRepository(
+            read = ::readRecord,
+            write = ::writeRecord,
+            remove = { id -> file(id).delete() },
+        )
+    }
 
     fun notebooks(): List<ConversationNotebook> = synchronized(LOCK) {
-        readNotebook().conversations.sortedByDescending {
-            it.entries.lastOrNull()?.timestampMs ?: 0L
-        }
+        notebookRepository.list()
     }
 
     fun appendNote(sessionId: String, direction: String, turn: Int,
         proposal: pl.michalmatu.aicallbridge.conversationtools.ConversationNoteProposal
     ): Boolean = synchronized(LOCK) {
-        require(ConversationNotebookPolicy.validSession(sessionId, direction, turn)) {
-            "notebook_scope_invalid"
-        }
-        val previous = readNotebook()
-        val next = ConversationNotebookPolicy.append(previous, sessionId, direction,
-            turn, proposal, System.currentTimeMillis())
-        if (next != previous) {
-            val json = Gson().toJson(next)
-            require(json.toByteArray(Charsets.UTF_8).size <= 8 * 1024 * 1024) {
-                "notebook_storage_full"
-            }
-            writeRecord(notebookRecordId, json)
-        }
-        true
+        notebookRepository.append(sessionId, direction, turn, proposal)
     }
 
-    private fun readNotebook(): ConversationNotebookLibrary {
-        val raw = readRecord(notebookRecordId) ?: return ConversationNotebookLibrary()
-        require(raw.toByteArray(Charsets.UTF_8).size <= 8 * 1024 * 1024) {
-            "notebook_storage_full"
-        }
-        val value = requireNotNull(Gson().fromJson(raw, ConversationNotebookLibrary::class.java)) {
-            "notebook_unreadable"
-        }
-        return ConversationNotebookPolicy.validate(value)
+    /** Only invoke after explicit user confirmation. */
+    fun deleteNotebook(sessionId: String): Boolean = synchronized(LOCK) {
+        notebookRepository.delete(sessionId)
     }
 
     private fun file(id: String): AtomicFile {

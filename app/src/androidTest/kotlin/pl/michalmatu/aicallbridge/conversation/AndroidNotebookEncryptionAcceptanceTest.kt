@@ -40,6 +40,9 @@ class AndroidNotebookEncryptionAcceptanceTest {
             val reopened = AndroidConversationPreparationStore(isolated, "notebook-qa", alias, prefs)
             val books = reopened.notebooks()
             assertEquals(2, books.size)
+            assertTrue(reopened.deleteNotebook("incoming-qa"))
+            assertEquals(listOf("outgoing-qa"),
+                reopened.notebooks().map { it.sessionId })
             assertEquals(2, books.single { it.sessionId == "incoming-qa" }.entries.size)
             assertEquals(synthetic, books.single { it.sessionId == "incoming-qa" }.entries[0].text)
             assertEquals(1, books.single { it.sessionId == "outgoing-qa" }.entries.size)
