@@ -122,10 +122,12 @@
     <string name="tools_ui_title">Narzędzia AI</string>
     <string name="tools_ui_description">Narzędzia są wspólne dla modeli. Włączenie możliwości nie zmienia zakresu zadania ani kontroli połączenia. Wyłączenie zatrzymuje nowe wykonania także podczas rozmowy.</string>
     <string name="tools_ui_end_call_title">Zakończ obsługiwaną rozmowę</string>
-    <string name="tools_ui_end_call_detail">Po pożegnaniu zakończ własne połączenie AI. Wyłączenie narzędzia nie wyłącza awaryjnego STOP ani zakończenia po długiej bezczynności.</string>
+    <string name="tools_ui_end_call_detail">Po pożegnaniu agent może zakończyć wyłącznie rozmowę, którą nadal obsługuje. Awaryjny STOP działa niezależnie.</string>
     <string name="tools_ui_save">Zapisz zmiany</string>
     <string name="tools_ui_saved">Zapisano.</string>
     <string name="tools_ui_failed">Nie udało się zapisać.</string>
+    <string name="tools_ui_unsaved_warning">Masz niezapisane zmiany narzędzi. Opuścić ekran bez zapisywania?</string>
+    <string name="tools_ui_discard">Odrzuć zmiany</string>
     <string name="tools_ui_end_hint">Żądanie zakończenia jest wykonywane po odtworzeniu pożegnania, wyłącznie dla rozmowy nadal obsługiwanej przez AI. Wynik i etapy znajdziesz w czacie oraz prywatnej historii rozmowy.</string>
     <string name="tools_ui_no_recent">Brak bieżącego wywołania. Historia narzędzi jest dostępna w zapisanych rozmowach.</string>
     <string name="tools_ui_recent_event">Ostatnie wywołanie: %1$s • %2$s</string>
@@ -617,7 +619,7 @@
     <string name="prep_ui_preview_notice">To podgląd kontekstu i identyfikatorów danych, nie końcowy prompt AI. Cel i uprawnienia konkretnego połączenia są ustalane osobno.</string>
     <string name="prep_ui_preview_empty">Brak dodatkowego kontekstu.</string>
     <string name="tools_ui_save_note_title">Zapisuj ustalenia w notatniku</string>
-    <string name="tools_ui_save_note_detail">Agent dopisuje notatki do rozmowy. Terminy, zadania i wiadomości są jedynie propozycjami, bez działań zewnętrznych.</string>
+    <string name="tools_ui_save_note_detail">Agent dopisuje prywatne notatki. Zadania, terminy i wiadomości pozostają propozycjami — bez wysyłania i rezerwacji.</string>
     <string name="tools_ui_note_saved">Zapisano notatkę lokalnie</string>
     <string name="notebook_ui_title">Notatnik agenta</string>
     <string name="notebook_ui_description">Osobny, szyfrowany notatnik na każdą rozmowę. Wpisy AI wymagają sprawdzenia; nie oznaczają wykonania działań.</string>
