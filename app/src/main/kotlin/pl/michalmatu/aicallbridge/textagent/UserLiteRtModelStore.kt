@@ -90,6 +90,8 @@ internal class UserLiteRtModelStore(context: Context) {
                 output.fd.sync()
             }
             if (written == 0L) return UserModelImportResult.Failure("model_empty")
+            if (cancelled() || Thread.currentThread().isInterrupted)
+                return UserModelImportResult.Failure("model_import_cancelled")
             val sha = digest.digest().joinToString("") { "%02x".format(it) }
             val model = UserLiteRtModel("user-$sha", title, sha, written)
             val destination = file(model)
@@ -97,6 +99,8 @@ internal class UserLiteRtModelStore(context: Context) {
             Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE,
                 StandardCopyOption.REPLACE_EXISTING)
             synchronized(lock) {
+                if (cancelled() || Thread.currentThread().isInterrupted)
+                    return UserModelImportResult.Failure("model_import_cancelled")
                 val existing = readManifest() ?: return UserModelImportResult.Failure("model_registry_corrupt")
                 val updated = existing.filterNot { it.id == model.id } + model
                 if (!writeManifest(updated)) return UserModelImportResult.Failure("model_registry_save_failed")
