@@ -244,6 +244,25 @@
     <string name="lab_ui_starting">Starting offline model…</string>
     <string name="lab_ui_complete">Test finished. No END_CALL was executed.</string>
     <string name="lab_ui_empty">Test results will appear here after you run it.</string>
+    <string name="models_ui_user_heading">My file-based models</string>
+    <string name="models_ui_user_hint">Gemma 4 E2B remains the baseline. You can add LiteRT-LM (.litertlm) files. Import does not automatically confirm native engine compatibility or call readiness.</string>
+    <string name="models_ui_add_file">Add model from file</string>
+    <string name="models_ui_clean_legacy">Remove old model files</string>
+    <string name="models_ui_clean_warning">Delete previously installed Gemma E4B and Qwen model files? Gemma 4 E2B and models you imported will be preserved.</string>
+    <string name="models_ui_remove">Remove</string>
+    <string name="models_ui_not_idle">Cannot change model files while the phone is active or its IDLE state cannot be confirmed.</string>
+    <string name="models_ui_clean_result">Old models removed: %1$d. Failed: %2$d.</string>
+    <string name="models_ui_no_user_models">No custom models imported yet.</string>
+    <string name="models_ui_user_missing">Model file missing</string>
+    <string name="models_ui_user_imported">Imported · runtime compatibility unverified</string>
+    <string name="models_ui_user_selected">File-based model selected. Verify compatibility and response quality before calls.</string>
+    <string name="models_ui_switch_before_delete">Select Gemma 4 E2B before deleting the active model.</string>
+    <string name="models_ui_remove_warning">Delete “%1$s” and its local model file?</string>
+    <string name="models_ui_removed">Model and its file removed.</string>
+    <string name="models_ui_remove_failed">Could not remove the model.</string>
+    <string name="models_ui_custom_import_success">Imported “%1$s”. Verify compatibility before use.</string>
+    <string name="models_ui_custom_progress">Model import: %1$d MB</string>
+    <string name="models_ui_baseline_status">AI Calls baseline model · testing and fine-tuning</string>
     <string name="models_ui_title">Models and engines</string>
     <string name="models_ui_intro">Manage AI models, STT and TTS in one place.</string>
     <string name="models_ui_cancel">Cancel transfer</string>
@@ -505,7 +524,7 @@
     <string name="skills_ux05_warning">Important: skills do not authorize tools or hangups. The app still validates model decisions.</string>
 
     <!-- UX-05 model metadata and factory-skill UI labels -->
-    <string name="models_ux05_detail_e2b">Established model · Polish dialogue</string>
+    <string name="models_ux05_detail_e2b">AI Calls baseline model · testing and fine-tuning</string>
     <string name="models_ux05_detail_e4b">Larger model · higher memory usage</string>
     <string name="models_ux05_detail_qwen17">Lightweight text model · INT4</string>
     <string name="models_ux05_detail_qwen06">Smallest model · experimental · INT4</string>
