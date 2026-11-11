@@ -43,6 +43,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var probedVoices: Set<String>? = null
     private var probedOutput: SpeechOutputId? = null
     private var probeGeneration = 0
+    private var restoredDraftVoice: String? = null
     private var voiceNames: List<String> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,6 +141,16 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         voicePicker = Spinner(this)
         content.addView(voicePicker, UiDesign.spaceAfter(this, 12))
         setVoices(emptyList(), current?.voiceId)
+        savedInstanceState?.let { state ->
+            val input = SpeechInputId.entries.firstOrNull {
+                it.name == state.getString(DRAFT_INPUT)
+            } ?: current?.input ?: AudioEngineProfile.STABLE.input
+            val output = SpeechOutputId.entries.firstOrNull {
+                it.name == state.getString(DRAFT_OUTPUT)
+            } ?: current?.output ?: AudioEngineProfile.STABLE.output
+            restoredDraftVoice = state.getString(DRAFT_VOICE)
+            applyVisibleProfile(AudioEngineProfile(input = input, output = output))
+        }
         feedback = label(getString(R.string.eng_ui_not_ready)).apply {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
@@ -165,6 +176,14 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_reset)) {
                 if (store.save(AudioEngineProfile.STABLE)) {
+                    ++probeGeneration
+                    tts?.stop()
+                    tts?.shutdown()
+                    tts = null
+                    probedVoices = null
+                    probedOutput = null
+                    restoredDraftVoice = null
+                    voiceNames = emptyList()
                     applyVisibleProfile(AudioEngineProfile.STABLE)
                     feedback.text = getString(R.string.eng_ui_restore_done)
                 } else feedback.text = getString(R.string.eng_ui_save_error)
@@ -254,6 +273,8 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         probedVoices = null
         probedOutput = null
         val selectedOutput = selectedProfile().output
+        val requestedVoice = if (voiceNames.isNotEmpty()) selectedVoice()
+            else restoredDraftVoice ?: store.load()?.voiceId
         val selectedEngine = if (selectedOutput == SpeechOutputId.PIPER_PL)
             PiperServiceContract.PACKAGE else null
         tts?.shutdown()
@@ -296,7 +317,8 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 tts = engine
                 probedVoices = names.toSet()
                 probedOutput = selectedOutput
-                setVoices(names, store.load()?.voiceId)
+                setVoices(names, requestedVoice)
+                restoredDraftVoice = null
                 val result = AudioEngineReadinessProbe.check(
                     this@AudioEngineSettingsActivity,
                     selectedProfile(),
@@ -347,6 +369,17 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             "aicalls-voice-preview")
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (::inputGroup.isInitialized && ::outputGroup.isInitialized &&
+            ::voicePicker.isInitialized) {
+            val draft = selectedProfile()
+            outState.putString(DRAFT_INPUT, draft.input.name)
+            outState.putString(DRAFT_OUTPUT, draft.output.name)
+            outState.putString(DRAFT_VOICE, draft.voiceId ?: restoredDraftVoice)
+        }
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onResume() {
         super.onResume()
         refreshActive()
@@ -361,6 +394,12 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 snapshot.inputTitle, snapshot.dialogueTitle, snapshot.outputTitle,
                 snapshot.voiceId ?: getString(R.string.eng_ui_auto))
         }
+    }
+
+    private companion object {
+        const val DRAFT_INPUT = "draft_input"
+        const val DRAFT_OUTPUT = "draft_output"
+        const val DRAFT_VOICE = "draft_voice"
     }
 
     override fun onDestroy() {

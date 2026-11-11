@@ -14,6 +14,38 @@ import org.junit.runner.RunWith
 /** No call, no profile write, no authorization. Checks the real native Activity hierarchy. */
 @RunWith(AndroidJUnit4::class)
 class AndroidAudioEngineSettingsActivityTest {
+    @Test fun unsavedInputChoiceSurvivesRotationWithoutChangingStore() {
+        ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
+            lateinit var persisted: AudioEngineProfile
+            scenario.onActivity { activity ->
+                persisted = checkNotNull(AudioEngineProfileStore(activity).load())
+                val radios = mutableListOf<RadioButton>()
+                fun collect(view: View) {
+                    if (view is RadioButton) radios.add(view)
+                    if (view is ViewGroup) repeat(view.childCount) {
+                        collect(view.getChildAt(it))
+                    }
+                }
+                collect(activity.findViewById(android.R.id.content))
+                radios.single { it.tag == "PARAKEET_PL" }.performClick()
+            }
+            scenario.recreate()
+            scenario.onActivity { activity ->
+                fun selected(view: View): Boolean {
+                    if (view is RadioButton && view.tag == "PARAKEET_PL") return view.isChecked
+                    if (view is ViewGroup) repeat(view.childCount) {
+                        if (selected(view.getChildAt(it))) return true
+                    }
+                    return false
+                }
+                assertTrue("unsaved_engine_draft_lost_on_rotation",
+                    selected(activity.findViewById(android.R.id.content)))
+                assertEquals("rotation_persisted_draft_without_save",
+                    persisted, AudioEngineProfileStore(activity).load())
+            }
+        }
+    }
+
     @Test fun resetRestoresVisibleRadioChoicesNotOnlyStoredValues() {
         ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
@@ -49,21 +81,17 @@ class AndroidAudioEngineSettingsActivityTest {
                 }
                 traverse(activity.findViewById(android.R.id.content))
                 val radios = views.filterIsInstance<RadioButton>()
-                assertEquals(11, radios.size)
-                assertEquals(8, radios.count { it.isEnabled })
+                assertEquals(4, radios.size)
+                assertTrue(radios.all { it.isEnabled })
                 assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Android STT") })
                 assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Parakeet") })
-                assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Gemma 4 E2B") })
                 assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Android TTS") })
                 assertTrue(radios.any { it.isEnabled && it.text.toString().contains("Piper") })
-                assertTrue(radios.filterNot { it.isEnabled }.all {
-                    it.text.toString().contains("NIEDOSTĘPNY")
-                })
                 val text = views.filterIsInstance<TextView>().map { it.text.toString() }
-                assertTrue(text.any { it.contains("1. Wejście") })
-                assertTrue(text.any { it.contains("2. Model rozmowy") })
-                assertTrue(text.any { it.contains("3. Wyjście") })
-                assertTrue(text.any { it.contains("Przywróć stabilny wariant") })
+                assertTrue(text.contains(activity.getString(pl.michalmatu.aicallbridge.R.string.eng_ui_input)))
+                assertTrue(text.contains(activity.getString(pl.michalmatu.aicallbridge.R.string.ux07_models_selected_heading)))
+                assertTrue(text.contains(activity.getString(pl.michalmatu.aicallbridge.R.string.eng_ui_output)))
+                assertTrue(text.contains(activity.getString(pl.michalmatu.aicallbridge.R.string.eng_ui_reset)))
             }
         }
     }

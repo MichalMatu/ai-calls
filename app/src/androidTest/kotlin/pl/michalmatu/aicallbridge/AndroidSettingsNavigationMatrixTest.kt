@@ -6,9 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.TextView
+import android.widget.Spinner
+import android.widget.CheckBox
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
@@ -55,6 +58,34 @@ class AndroidSettingsNavigationMatrixTest {
                     labels(activity.window.decorView).any { it.contains(localizedTitle) })
             }
         }
+    }
+
+    @Test
+    fun incomingDraftSurvivesRotationWithoutSaving() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val before = IncomingAssistantPolicyStore(context).preferences.all.toMap()
+        ActivityScenario.launch(IncomingAssistantSettingsActivity::class.java).use { screen ->
+            var mode = 0
+            var recording = false
+            screen.onActivity { activity ->
+                val picker = requireNotNull(activity.window.decorView
+                    .findViewWithTag<Spinner>("incoming-mode-spinner"))
+                val checkbox = requireNotNull(activity.window.decorView
+                    .findViewWithTag<CheckBox>("incoming-recording"))
+                mode = 1 - picker.selectedItemPosition
+                recording = !checkbox.isChecked
+                picker.setSelection(mode)
+                checkbox.isChecked = recording
+            }
+            screen.recreate()
+            screen.onActivity { activity ->
+                assertEquals(mode, requireNotNull(activity.window.decorView
+                    .findViewWithTag<Spinner>("incoming-mode-spinner")).selectedItemPosition)
+                assertEquals(recording, requireNotNull(activity.window.decorView
+                    .findViewWithTag<CheckBox>("incoming-recording")).isChecked)
+            }
+        }
+        assertEquals(before, IncomingAssistantPolicyStore(context).preferences.all.toMap())
     }
 
     @Test

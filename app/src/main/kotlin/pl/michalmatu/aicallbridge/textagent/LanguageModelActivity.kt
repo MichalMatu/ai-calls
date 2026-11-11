@@ -31,7 +31,7 @@ import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
  * actions which are currently meaningful. Original transfer and selection gates stay intact.
  */
 internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
-    override fun isPrimaryTabScreen() = true
+    override fun toolbarTitle(): String = getString(R.string.models_ui_title)
     /** Read-only localization of stable model catalog descriptions. */
     private fun localizedModelDetail(model: LanguageModelEntry): String = getString(when (model.id.name) {
         "GEMMA_4_E2B" -> R.string.models_ux05_detail_e2b
@@ -52,7 +52,12 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var lastTransfer: TransferStatus? = null
     private val rows = mutableListOf<Row>()
     private val refresh = object : Runnable {
-        override fun run() { update(); handler.postDelayed(this, 500) }
+        override fun run() {
+            update()
+            val busy = LanguageModelTransferService.status.busy ||
+                ParakeetModelTransferService.status.busy
+            handler.postDelayed(this, if (busy) 500 else 3000)
+        }
     }
     private data class Row(
         val model: LanguageModelEntry,
@@ -74,9 +79,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
         }
-        content.addView(UiDesign.heading(this, getString(R.string.models_ui_title)).apply {
-            textSize = 23f
-        }, UiDesign.spaceAfter(this, 8))
+        // The shared child toolbar owns the only title and its Back affordance.
         content.addView(UiDesign.caption(this,
             getString(R.string.models_ui_intro)
         ), UiDesign.spaceAfter(this, 16))

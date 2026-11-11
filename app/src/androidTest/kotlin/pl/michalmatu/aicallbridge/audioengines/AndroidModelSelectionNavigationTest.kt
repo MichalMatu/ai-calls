@@ -12,6 +12,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.MainActivity
+import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 
 @RunWith(AndroidJUnit4::class)
 class AndroidModelSelectionNavigationTest {
@@ -32,7 +33,11 @@ class AndroidModelSelectionNavigationTest {
                 scenario.moveToState(Lifecycle.State.RESUMED)
                 scenario.onActivity { activity ->
                     val radios = views(activity.findViewById(android.R.id.content)).filterIsInstance<RadioButton>()
-                    assertTrue("catalog model selection must refresh", radios.single { it.tag == next.name }.isChecked)
+                    assertTrue("catalog model selection must refresh",
+                        views(activity.findViewById(android.R.id.content))
+                            .filterIsInstance<TextView>().any {
+                                it.text.toString().contains(LanguageModelCatalog[next].title)
+                            })
                     assertTrue(radios.single { it.tag == "PARAKEET_PL" }.isChecked)
                     assertTrue(radios.single { it.tag == "PIPER_PL" }.isChecked)
                 }
@@ -44,7 +49,9 @@ class AndroidModelSelectionNavigationTest {
                 scenario.moveToState(Lifecycle.State.RESUMED)
                 scenario.onActivity { activity ->
                     assertTrue("home must show selected model", views(activity.findViewById(android.R.id.content))
-                        .filterIsInstance<TextView>().any { it.text.toString().contains("Model: Qwen3 1.7B") })
+                        .filterIsInstance<TextView>().any {
+                            it.text.toString().contains(LanguageModelCatalog[next].title)
+                        })
                 }
             }
         } finally { assertTrue(store.save(before)) }

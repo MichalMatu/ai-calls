@@ -59,13 +59,14 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             UiSelect.setOptions(this, listOf(
                 getString(R.string.incoming_ui_mode_manual),
                 getString(R.string.incoming_ui_mode_ai)))
-            setSelection(if (policy.mode == AnsweringMode.AI) 1 else 0)
+            setSelection(savedInstanceState?.getInt(DRAFT_MODE)
+                ?: if (policy.mode == AnsweringMode.AI) 1 else 0)
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
         content.addView(UiDesign.caption(this, getString(R.string.incoming_ui_mode_label)),
             UiDesign.spaceAfter(this, 6))
         content.addView(mode, UiDesign.spaceAfter(this, 10))
-        persistedAccountKey = policy.accountKey
+        persistedAccountKey = savedInstanceState?.getString(DRAFT_ACCOUNT) ?: policy.accountKey
         simPicker = Spinner(this).apply {
             tag = "incoming-sim-spinner"
             contentDescription = getString(R.string.incoming_ui_sim_label)
@@ -83,8 +84,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         content.addView(simPermissionAction, UiDesign.spaceAfter(this, 8))
         val recording = CheckBox(this).apply {
+            tag = "incoming-recording"
             text = getString(R.string.incoming_ui_record)
-            isChecked = policy.recordEvidence
+            isChecked = savedInstanceState?.getBoolean(DRAFT_RECORD) ?: policy.recordEvidence
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
         content.addView(recording, UiDesign.spaceAfter(this, 8))
@@ -138,5 +140,31 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
     }
 
-    private companion object { const val REQUEST_PHONE_STATE = 1002 }
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (::simPicker.isInitialized) {
+            outState.putInt(DRAFT_MODE,
+                findViewWithTag<Spinner>("incoming-mode-spinner")?.selectedItemPosition ?: 0)
+            outState.putBoolean(DRAFT_RECORD,
+                findViewWithTag<CheckBox>("incoming-recording")?.isChecked ?: false)
+            outState.putString(DRAFT_ACCOUNT,
+                simAccounts.getOrNull(simPicker.selectedItemPosition)
+                    ?.let(IncomingAssistantPolicyStore::accountKey) ?: persistedAccountKey)
+        }
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::simPicker.isInitialized) {
+            simPermissionAction.visibility = if (hasPhonePermission()) View.GONE else View.VISIBLE
+            if (hasPhonePermission() && simAccounts.isEmpty()) reloadAccounts()
+        }
+    }
+
+    private companion object {
+        const val REQUEST_PHONE_STATE = 1002
+        const val DRAFT_MODE = "settings_draft_mode"
+        const val DRAFT_RECORD = "settings_draft_record"
+        const val DRAFT_ACCOUNT = "settings_draft_account"
+    }
 }
