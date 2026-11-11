@@ -2,7 +2,7 @@ package pl.michalmatu.aicallbridge.audioengines
 
 /** Preferences, never call authority. No profile contains a target, grant or prompt. */
 internal enum class SpeechInputId { ANDROID_STT, PARAKEET_PL, GEMMA_AUDIO_DIRECT }
-internal enum class DialogueModelId { GEMMA_4_E2B, GEMMA_4_E4B, QWEN_3_1_7B, QWEN_3_0_6B, QWEN_3_5_2B }
+internal enum class DialogueModelId { GEMMA_4_E2B, GEMMA_4_E4B, QWEN_3_1_7B, QWEN_3_0_6B, QWEN_3_5_2B, USER_LITERT }
 internal enum class SpeechOutputId { ANDROID_TTS_PL, PIPER_PL, KOKORO, POCKET_TTS }
 
 internal data class AudioEngineProfile(
@@ -11,6 +11,8 @@ internal data class AudioEngineProfile(
     val output: SpeechOutputId = SpeechOutputId.ANDROID_TTS_PL,
     val languageTag: String = "pl-PL",
     val voiceId: String? = null,
+    /** Required only for a model explicitly imported from a LiteRT-LM file. */
+    val customModelId: String? = null,
 ) {
     companion object {
         val STABLE = AudioEngineProfile()
@@ -34,10 +36,12 @@ internal object AudioEngineRegistry {
         AudioEngineChoice("GEMMA_AUDIO_DIRECT", "Gemma Audio Direct", "pl-PL",
             "Eksperymentalny adapter PCM→AudioBytes; brak dowodu S22 i pamięci", false),
     )
-    val dialogues = pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog.entries.map {
-        AudioEngineChoice(it.id.name, it.title, "pl-PL", it.detail,
-            it.id != DialogueModelId.QWEN_3_5_2B)
-    }
+    val dialogues = listOf(
+        AudioEngineChoice(DialogueModelId.GEMMA_4_E2B.name, "Gemma 4 E2B", "pl-PL",
+            "Model bazowy AI Calls", true),
+        AudioEngineChoice(DialogueModelId.USER_LITERT.name, "Model z pliku LiteRT-LM", "pl-PL",
+            "Model użytkownika; kompatybilność wymaga sprawdzenia", true),
+    )
     val outputs = listOf(
         AudioEngineChoice("ANDROID_TTS_PL", "Android TTS", "pl-PL",
             "Lokalny głos systemowy · PCM16 16 kHz", true),
@@ -51,6 +55,9 @@ internal object AudioEngineRegistry {
 
     /** An unsupported composition never silently falls back to another engine. */
     fun incompatibility(profile: AudioEngineProfile): String? = when {
+        profile.dialogue == DialogueModelId.USER_LITERT &&
+            (profile.customModelId == null || !Regex("user-[0-9a-f]{64}").matches(profile.customModelId)) ->
+            "user_model_identity_invalid"
         profile.dialogue == DialogueModelId.QWEN_3_5_2B -> "qwen35_lab_only_unqualified"
         profile.languageTag != "pl-PL" -> "unsupported_language"
         profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> "audio_direct_s22_unqualified"
