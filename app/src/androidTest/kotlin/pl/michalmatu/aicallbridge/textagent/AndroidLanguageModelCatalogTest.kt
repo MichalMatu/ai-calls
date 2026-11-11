@@ -61,9 +61,8 @@ class AndroidLanguageModelCatalogTest {
         val before = checkNotNull(store.load())
         try {
             ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
-                for (entry in LanguageModelCatalog.entries) {
-                    // Only models accepted by the telephone profile should show "Użyj".
-                    if (AudioEngineRegistry.dialogues.single { it.id == entry.id.name }.integrated.not()) continue
+                for (entry in LanguageModelCatalog.entries.filter { it.id == DialogueModelId.GEMMA_4_E2B }) {
+                    // Owner-facing picker exposes only the protected baseline.
                     if (store.load()?.dialogue == entry.id) continue
                     scenario.onActivity { activity ->
                         val use = button(activity.findViewById(android.R.id.content), "Użyj ${entry.title}")
