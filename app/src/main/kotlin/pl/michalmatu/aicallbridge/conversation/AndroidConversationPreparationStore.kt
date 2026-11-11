@@ -183,9 +183,12 @@ internal class AndroidConversationPreparationStore(
         return AtomicFile(File(root, "$name.json"))
     }
     private fun readRecord(id: String): String? {
-        val file = file(id)
-        if (!file.baseFile.exists()) return null
-        val envelope = JsonParser.parseString(file.openRead().bufferedReader().use { it.readText() }).asJsonObject
+        val record = file(id)
+        // AtomicFile.openRead() can recover a legacy .bak after interrupted writes.
+        // A baseFile.exists() shortcut would silently hide that recoverable record.
+        val input = try { record.openRead() }
+            catch (_: java.io.FileNotFoundException) { return null }
+        val envelope = JsonParser.parseString(input.bufferedReader().use { it.readText() }).asJsonObject
         val decoder = Base64.getDecoder()
         val ciphertext = IdentityVaultCiphertext(decoder.decode(envelope["nonce"].asString), decoder.decode(envelope["ciphertext"].asString))
         return aead.decrypt(ciphertext, id.toByteArray()).toString(Charsets.UTF_8)
