@@ -70,10 +70,10 @@ class AndroidAgentAiHubReadOnlyTest {
         ActivityScenario.launch(ConversationToolsActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                val noteTool = root.findViewWithTag<CheckBox>("tools-setting:SAVE_NOTE")
+                val noteTool = root.findViewWithTag<CheckBox>("tools-setting:save_note")
                 assertNotNull("note_toggle_absent", noteTool)
                 assertNotNull("end_call_toggle_absent",
-                    root.findViewWithTag<CheckBox>("tools-setting:END_CALL"))
+                    root.findViewWithTag<CheckBox>("tools-setting:end_call"))
                 val save = root.findViewWithTag<View>("tools-save-settings")
                 assertNotNull(save)
                 assertEquals(View.GONE, save.visibility)
@@ -90,7 +90,7 @@ class AndroidAgentAiHubReadOnlyTest {
             var pending = false
             scenario.onActivity { activity ->
                 val toggle = checkNotNull(activity.window.decorView
-                    .findViewWithTag<CheckBox>("tools-setting:SAVE_NOTE"))
+                    .findViewWithTag<CheckBox>("tools-setting:save_note"))
                 pending = !toggle.isChecked
                 toggle.isChecked = pending
                 val save = checkNotNull(activity.window.decorView
@@ -100,7 +100,7 @@ class AndroidAgentAiHubReadOnlyTest {
             scenario.recreate()
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                val toggle = checkNotNull(root.findViewWithTag<CheckBox>("tools-setting:SAVE_NOTE"))
+                val toggle = checkNotNull(root.findViewWithTag<CheckBox>("tools-setting:save_note"))
                 assertEquals("unsaved_choice_lost_on_rotation", pending, toggle.isChecked)
                 assertEquals(View.VISIBLE,
                     checkNotNull(root.findViewWithTag<View>("tools-save-settings")).visibility)
