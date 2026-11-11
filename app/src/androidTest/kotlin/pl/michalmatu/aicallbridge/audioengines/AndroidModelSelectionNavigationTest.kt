@@ -1,5 +1,8 @@
 package pl.michalmatu.aicallbridge.audioengines
 
+import java.io.ByteArrayInputStream
+import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
+import pl.michalmatu.aicallbridge.textagent.UserModelImportResult
 import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioButton
@@ -20,7 +23,12 @@ class AndroidModelSelectionNavigationTest {
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
         val store = AudioEngineProfileStore(ctx)
         val before = checkNotNull(store.load())
-        val next = DialogueModelId.QWEN_3_1_7B
+        val library = UserLiteRtModelStore(ctx)
+        val imported = library.import("nav-fixture.litertlm",
+            ByteArrayInputStream("native-test-fixture".toByteArray()))
+        assertTrue(imported is UserModelImportResult.Installed)
+        val userModel = (imported as UserModelImportResult.Installed).model
+        val next = DialogueModelId.USER_LITERT
         try {
             ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
                 scenario.onActivity { activity ->
@@ -29,14 +37,14 @@ class AndroidModelSelectionNavigationTest {
                     views.filterIsInstance<RadioButton>().single { it.tag == "PIPER_PL" }.performClick()
                 }
                 scenario.moveToState(Lifecycle.State.CREATED)
-                assertTrue(store.save(before.copy(dialogue = next)))
+                assertTrue(store.save(before.copy(dialogue = next, customModelId = userModel.id)))
                 scenario.moveToState(Lifecycle.State.RESUMED)
                 scenario.onActivity { activity ->
                     val radios = views(activity.findViewById(android.R.id.content)).filterIsInstance<RadioButton>()
                     assertTrue("catalog model selection must refresh",
                         views(activity.findViewById(android.R.id.content))
                             .filterIsInstance<TextView>().any {
-                                it.text.toString().contains(LanguageModelCatalog[next].title)
+                                it.text.toString().contains(userModel.title)
                             })
                     assertTrue(radios.single { it.tag == "PARAKEET_PL" }.isChecked)
                     assertTrue(radios.single { it.tag == "PIPER_PL" }.isChecked)
@@ -45,17 +53,20 @@ class AndroidModelSelectionNavigationTest {
             assertTrue(store.save(before))
             ActivityScenario.launch(UsbDebugPanelActivity::class.java).use { scenario ->
                 scenario.moveToState(Lifecycle.State.CREATED)
-                assertTrue(store.save(before.copy(dialogue = next)))
+                assertTrue(store.save(before.copy(dialogue = next, customModelId = userModel.id)))
                 scenario.moveToState(Lifecycle.State.RESUMED)
                 scenario.onActivity { activity ->
                     val liveModel = activity.window.decorView.findViewWithTag<TextView>(
                         "usb-value:dialogue")
                     assertNotNull("diagnostics_model_value_missing", liveModel)
                     assertTrue("diagnostics_must_show_fresh_selected_model",
-                        liveModel.text.toString().contains(LanguageModelCatalog[next].title))
+                        liveModel.text.toString().contains("LiteRT-LM"))
                 }
             }
-        } finally { assertTrue(store.save(before)) }
+        } finally {
+            assertTrue(store.save(before))
+            assertTrue(library.delete(userModel.id, store.load()?.customModelId))
+        }
     }
     private fun views(root: View): List<View> = buildList {
         fun visit(view: View) {
