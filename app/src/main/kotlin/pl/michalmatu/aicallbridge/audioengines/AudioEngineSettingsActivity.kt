@@ -25,6 +25,7 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import java.util.Locale
+import java.util.concurrent.Executors
 
 /**
  * Separate configuration-only surface. Never grants a campaign, starts audio capture or places calls.
@@ -45,6 +46,8 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var probeGeneration = 0
     private var restoredDraftVoice: String? = null
     private var voiceNames: List<String> = emptyList()
+    private val verificationWorker = Executors.newSingleThreadExecutor()
+    private var validationGeneration = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,6 +122,8 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         inputGroup = section(getString(R.string.eng_ui_input), AudioEngineRegistry.inputs,
             current?.input?.name ?: "ANDROID_STT")
+        content.addView(UiDesign.caption(this, getString(R.string.models_ui_system_audio_hint)),
+            UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.heading(this, getString(R.string.ux07_models_selected_heading)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 6))
@@ -152,6 +157,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             applyVisibleProfile(AudioEngineProfile(input = input, output = output))
         }
         feedback = label(getString(R.string.eng_ui_not_ready)).apply {
+            tag = "engine-feedback"
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         content.addView(UiDesign.heading(this, getString(R.string.eng_ui_primary_heading)).apply {
@@ -161,22 +167,18 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(feedback, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_save), UiActionTone.PRIMARY) {
                 val requested = selectedProfile()
-                val result = AudioEngineReadinessProbe.check(
-                    this@AudioEngineSettingsActivity, requested,
-                    probedVoices.takeIf { requested.output == probedOutput },
-                )
-                if (!result.available) {
-                    feedback.text = getString(R.string.eng_ui_could_not_save, result.reason ?: "not_ready")
-                } else {
-                    feedback.text = if (store.save(requested)) {
-                        getString(R.string.eng_ui_save_done)
-                    } else getString(R.string.eng_ui_save_error)
-                    refreshActive()
+                val failure = AudioEngineReadinessProbe.inputAndModelFailure(this, requested)
+                when {
+                    failure != null -> feedback.text = getString(R.string.eng_ui_could_not_save,
+                        readinessReason(failure))
+                    probedVoices == null || requested.output != probedOutput -> checkOffline(saveWhenReady = true)
+                    else -> checkRequestedProfile(requested) { result -> saveReadyProfile(requested, result) }
                 }
-        }, UiDesign.spaceAfter(this, 12))
+        }.apply { tag = "engine-save" }, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.eng_ui_reset)) {
                 if (store.save(AudioEngineProfile.STABLE)) {
                     ++probeGeneration
+                    ++validationGeneration
                     tts?.stop()
                     tts?.shutdown()
                     tts = null
@@ -270,11 +272,13 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         voicePicker.setSelection((values.indexOf(selected) + 1).coerceAtLeast(0))
     }
 
-    private fun checkOffline() {
+    private fun checkOffline(saveWhenReady: Boolean = false) {
         val generation = ++probeGeneration
+        ++validationGeneration
         probedVoices = null
         probedOutput = null
-        val selectedOutput = selectedProfile().output
+        val requested = selectedProfile()
+        val selectedOutput = requested.output
         val requestedVoice = if (voiceNames.isNotEmpty()) selectedVoice()
             else restoredDraftVoice ?: store.load()?.voiceId
         val selectedEngine = if (selectedOutput == SpeechOutputId.PIPER_PL)
@@ -290,7 +294,10 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     engine.shutdown()
                     return@runOnUiThread
                 }
-                if (selectedProfile().output != selectedOutput) {
+                val current = selectedProfile()
+                if (current.output != selectedOutput || (saveWhenReady &&
+                    (current.input != requested.input || current.dialogue != requested.dialogue ||
+                        current.customModelId != requested.customModelId))) {
                     engine.shutdown()
                     feedback.text = getString(R.string.eng_ui_check_outdated)
                     return@runOnUiThread
@@ -321,19 +328,76 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 probedOutput = selectedOutput
                 setVoices(names, requestedVoice)
                 restoredDraftVoice = null
-                val result = AudioEngineReadinessProbe.check(
-                    this@AudioEngineSettingsActivity,
-                    selectedProfile(),
-                    probedVoices.takeIf { selectedProfile().output == probedOutput },
-                )
-                feedback.text = if (result.available) {
-                    getString(R.string.eng_ui_check_available, names.size)
-                } else getString(R.string.eng_ui_check_unavailable, result.reason ?: "unknown")
+                val profile = selectedProfile()
+                checkRequestedProfile(profile) { result ->
+                    if (saveWhenReady) saveReadyProfile(profile, result)
+                    else feedback.text = if (result.available) {
+                        getString(R.string.eng_ui_check_available, names.size)
+                    } else getString(R.string.eng_ui_check_unavailable, readinessReason(result.reason))
+                }
             }
         }
         holder[0] = if (selectedEngine == null)
             TextToSpeech(this, initListener)
         else TextToSpeech(this, initListener, selectedEngine)
+    }
+
+    /** Save includes the local voice probe and SHA check; neither requires another user action. */
+    private fun checkRequestedProfile(profile: AudioEngineProfile, done: (AudioEngineReadiness) -> Unit) {
+        val generation = ++validationGeneration
+        val voices = probedVoices.takeIf { profile.output == probedOutput }
+        fun finish(verified: Boolean) {
+            if (isDestroyed || isFinishing || generation != validationGeneration) return
+            if (selectedProfile() != profile) {
+                feedback.text = getString(R.string.eng_ui_check_outdated)
+                return
+            }
+            done(if (verified) AudioEngineReadinessProbe.check(this, profile, voices)
+                else AudioEngineReadiness(false, "parakeet_model_sha256_mismatch"))
+            refreshInputChoices()
+        }
+        if (profile.input != SpeechInputId.PARAKEET_PL ||
+            ParakeetModelFile.integrity(ParakeetModelFile.resolve(this)) != ParakeetModelIntegrity.UNVERIFIED) {
+            finish(true)
+            return
+        }
+        feedback.text = getString(R.string.ux08_parakeet_verifying)
+        verificationWorker.execute {
+            val verified = runCatching { ParakeetModelFile.validPinnedModel(ParakeetModelFile.resolve(this)) }
+                .getOrDefault(false)
+            runOnUiThread { finish(verified) }
+        }
+    }
+
+    private fun saveReadyProfile(requested: AudioEngineProfile, result: AudioEngineReadiness) {
+        feedback.text = if (!result.available) getString(R.string.eng_ui_could_not_save,
+            readinessReason(result.reason))
+        else if (store.save(requested)) getString(R.string.eng_ui_save_done)
+        else getString(R.string.eng_ui_save_error)
+        refreshActive()
+    }
+
+    private fun readinessReason(reason: String?): String = when (reason) {
+        "parakeet_model_missing_or_incomplete" -> getString(R.string.models_ui_parakeet_required)
+        "parakeet_model_sha256_mismatch" -> getString(R.string.models_ui_parakeet_invalid)
+        "dialogue_model_missing_or_invalid", "user_model_missing" -> getString(R.string.models_ui_dialogue_required)
+        "android_offline_stt_unavailable" -> getString(R.string.models_ui_android_stt_unavailable)
+        "polish_offline_voice_missing", "selected_voice_missing" -> getString(R.string.models_ui_voice_required)
+        else -> reason ?: getString(R.string.eng_ui_not_ready)
+    }
+
+    private fun refreshInputChoices() {
+        if (!::inputGroup.isInitialized) return
+        val button = inputGroup.findViewWithTag<RadioButton>(SpeechInputId.PARAKEET_PL.name) ?: return
+        val file = ParakeetModelFile.resolve(this)
+        val label = when (ParakeetModelFile.integrity(file)) {
+            ParakeetModelIntegrity.MISSING -> R.string.ux07_parakeet_missing
+            ParakeetModelIntegrity.INCOMPLETE -> R.string.ux08_parakeet_wrong_size
+            ParakeetModelIntegrity.INVALID -> R.string.ux08_parakeet_bad_integrity
+            ParakeetModelIntegrity.UNVERIFIED -> R.string.models_ui_verify_on_save
+            ParakeetModelIntegrity.VERIFIED -> R.string.ux07_parakeet_verified
+        }
+        button.text = getString(R.string.ux07_parakeet_title) + "\n" + getString(label)
     }
 
     private fun previewVoice() {
@@ -388,6 +452,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun refreshActive() {
+        refreshInputChoices()
         val profile = store.load()
         activeModelLabel.text = if (profile?.dialogue == DialogueModelId.USER_LITERT) {
             pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore(this)
@@ -412,6 +477,8 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onDestroy() {
         ++probeGeneration
+        ++validationGeneration
+        verificationWorker.shutdownNow()
         tts?.stop()
         tts?.shutdown()
         tts = null

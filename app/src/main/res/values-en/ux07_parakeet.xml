@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ux07_parakeet_title">Parakeet PL · STT · 615 MB</string>
+    <string name="ux07_parakeet_title">Parakeet PL · speech recognition (STT)</string>
     <string name="ux07_parakeet_download">Download model</string>
     <string name="ux07_parakeet_check">Verify / download</string>
     <string name="ux07_parakeet_downloading">Downloading Parakeet</string>
     <string name="ux07_parakeet_progress">Downloading: %1$d%%</string>
-    <string name="ux07_parakeet_verified">File downloaded and SHA-256 verified</string>
-    <string name="ux07_parakeet_missing">Not installed · 615 MB</string>
+    <string name="ux07_parakeet_verified">File stored · integrity verified</string>
+    <string name="ux07_parakeet_missing">No file on this phone</string>
     <string name="ux07_parakeet_check_required">File present · SHA-256 verification required</string>
     <string name="ux07_parakeet_failure">Failed: %1$s</string>
 </resources>

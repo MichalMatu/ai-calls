@@ -20,7 +20,7 @@
     <string name="ux07_agent_loading">Odczyt ustawień…</string>
     <string name="ux07_agent_vault_count">Zapisane pola: %1$d</string>
     <string name="ux07_models_pipeline_title">Wejście i wyjście audio</string>
-    <string name="ux07_models_pipeline_status">STT: %1$s    ·    TTS: %2$s</string>
+    <string name="ux07_models_pipeline_status">STT: %1$s\nModel: %2$s\nTTS: %3$s</string>
     <string name="ux07_models_edit_audio">Zmień STT / TTS i głos</string>
     <string name="ux07_models_edit_runtime">Tryb rozmowy i dostawca AI</string>
     <string name="ux07_models_selected_heading">Model językowy</string>

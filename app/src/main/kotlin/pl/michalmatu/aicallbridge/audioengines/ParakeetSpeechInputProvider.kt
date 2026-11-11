@@ -5,11 +5,14 @@ import com.google.mediapipe.tasks.audio.audiotranscriber.AudioTranscriber
 import com.google.mediapipe.tasks.audio.audiotranscriber.AudioTranscriberResult
 import com.google.mediapipe.tasks.core.BaseOptions
 import java.io.File
+import java.io.InterruptedIOException
 import java.security.MessageDigest
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+
+internal enum class ParakeetModelIntegrity { MISSING, INCOMPLETE, UNVERIFIED, VERIFIED, INVALID }
 
 /** Official MediaPipe Parakeet stateful INT8 bundle. Never download or run in a Call by discovery. */
 internal object ParakeetModelFile {
@@ -20,24 +23,49 @@ internal object ParakeetModelFile {
     const val DOWNLOAD_URL = "https://huggingface.co/litert-community/parakeet-tdt-0.6b-v3/resolve/" +
         HF_REVISION + "/" + NAME + "?download=true"
     private val fingerprintLock = Any()
-    private var lastVerified: Triple<String, Long, Long>? = null
+    private var lastVerification: Pair<Triple<String, Long, Long>, Boolean>? = null
+
+    /** Metadata/cache only. Hashing belongs on a worker, never on a settings UI thread. */
+    fun integrity(file: File): ParakeetModelIntegrity {
+        if (!file.exists()) return ParakeetModelIntegrity.MISSING
+        if (!file.isFile || !file.canRead()) return ParakeetModelIntegrity.INVALID
+        if (file.length() != MIN_SIZE_BYTES) return ParakeetModelIntegrity.INCOMPLETE
+        val stamp = stamp(file)
+        val verified = synchronized(fingerprintLock) {
+            lastVerification?.takeIf { it.first == stamp }?.second
+        }
+        return when (verified) {
+            true -> ParakeetModelIntegrity.VERIFIED
+            false -> ParakeetModelIntegrity.INVALID
+            null -> ParakeetModelIntegrity.UNVERIFIED
+        }
+    }
+
+    private fun stamp(file: File) = Triple(file.absolutePath, file.length(), file.lastModified())
+
     fun validPinnedModel(file: File): Boolean {
-        if (!file.isFile || file.length() != MIN_SIZE_BYTES) return false
-        val stamp = Triple(file.absolutePath, file.length(), file.lastModified())
-        synchronized(fingerprintLock) { if (stamp == lastVerified) return true }
+        when (integrity(file)) {
+            ParakeetModelIntegrity.VERIFIED -> return true
+            ParakeetModelIntegrity.UNVERIFIED -> Unit
+            else -> return false
+        }
+        val before = stamp(file)
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().buffered().use { input ->
             val chunk = ByteArray(1024 * 1024)
             while (true) {
+                if (Thread.currentThread().isInterrupted)
+                    throw InterruptedIOException("parakeet_verification_cancelled")
                 val n = input.read(chunk)
                 if (n < 0) break
                 digest.update(chunk, 0, n)
             }
         }
         val actual = digest.digest().joinToString("") { "%02x".format(it) }
-        if (actual != EXPECTED_SHA256) return false
-        synchronized(fingerprintLock) { lastVerified = stamp }
-        return true
+        if (!file.isFile || stamp(file) != before) return false
+        val verified = actual == EXPECTED_SHA256
+        synchronized(fingerprintLock) { lastVerification = before to verified }
+        return verified
     }
     fun resolve(context: Context): File {
         val app = context.applicationContext

@@ -12,6 +12,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.format.Formatter
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -26,7 +27,11 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelFile
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelTransferService
+import pl.michalmatu.aicallbridge.audioengines.ParakeetModelIntegrity
+import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
+import java.io.File
+import java.util.concurrent.Executors
 
 /**
  * Local-only model management. Cards present the current state first and show only
@@ -47,11 +52,20 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var pendingImport: DialogueModelId? = null
     private var pendingUserImport = false
     private lateinit var userModelsContainer: LinearLayout
+    private lateinit var legacyModelsContainer: LinearLayout
+    private lateinit var storageStatus: TextView
     private lateinit var feedback: TextView
     private lateinit var pipelineStatus: TextView
     private lateinit var parakeetStatus: TextView
     private lateinit var parakeetDownload: Button
     private lateinit var parakeetCancel: Button
+    private lateinit var parakeetSelect: Button
+    private lateinit var parakeetRemove: Button
+    private val verificationWorker = Executors.newSingleThreadExecutor()
+    private var checkingParakeet = false
+    private var checkedParakeetStamp: Triple<String, Long, Long>? = null
+    private var renderedLegacyModels: Pair<List<StoredLegacyLanguageModel>, DialogueModelId?>? = null
+    private var renderedUserModels: List<Any?>? = null
     private lateinit var cancelTransfer: Button
     private var lastTransfer: TransferStatus? = null
     private val rows = mutableListOf<Row>()
@@ -121,7 +135,12 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             })
         }
         content.addView(pipeline, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
+        storageStatus = UiDesign.caption(this, "").apply { tag = "models-storage-summary" }
+        content.addView(storageStatus, UiDesign.spaceAfter(this, 16))
         addParakeetCard(content)
+        content.addView(UiDesign.heading(this, getString(R.string.models_ui_dialogue_heading)).apply {
+            textSize = 18f
+        }, UiDesign.spaceAfter(this, 8))
         for (model in LanguageModelCatalog.entries.filter { it.id == DialogueModelId.GEMMA_4_E2B }) {
             val card = UiDesign.card(this).apply {
                 tag = "model-card:" + model.id.name
@@ -133,6 +152,8 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 tag = "model-state:" + model.id.name
             }
             card.addView(stateLabel, UiDesign.spaceAfter(this, 12))
+            card.addView(UiDesign.caption(this, getString(R.string.models_ui_baseline_protected)),
+                UiDesign.spaceAfter(this, 8))
 
             val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
                 max = 100
@@ -232,18 +253,11 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             tag = "user-language-models"
         }
         content.addView(userModelsContainer, UiDesign.spaceAfter(this, 16))
-        content.addView(UiDesign.action(this, getString(R.string.models_ui_clean_legacy)) {
-            if (!safeToEditModels()) {
-                showFeedback(R.string.models_ui_not_idle)
-            } else {
-                AlertDialog.Builder(this)
-                    .setTitle(R.string.models_ui_clean_legacy)
-                    .setMessage(R.string.models_ui_clean_warning)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(R.string.models_ui_remove) { _, _ -> cleanupLegacyModels() }
-                    .show()
-            }
-        }.apply { tag = "models-clean-legacy" }, UiDesign.spaceAfter(this, 16))
+        legacyModelsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "stored-legacy-models"
+        }
+        content.addView(legacyModelsContainer)
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -263,11 +277,13 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             tag = "parakeet-transfer-status"
         }
         card.addView(parakeetStatus, UiDesign.spaceAfter(this, 10))
+        card.addView(UiDesign.caption(this, getString(R.string.models_ui_parakeet_hint)),
+            UiDesign.spaceAfter(this, 10))
         parakeetDownload = UiDesign.action(this, getString(R.string.ux07_parakeet_download),
             UiActionTone.PRIMARY) {
             val file = ParakeetModelFile.resolve(this@LanguageModelActivity)
             val needsVerification = file.isFile && file.length() == ParakeetModelFile.MIN_SIZE_BYTES &&
-                !ParakeetModelTransferService.status.verificationFailed
+                ParakeetModelFile.integrity(file) != ParakeetModelIntegrity.INVALID
             val action = if (needsVerification) ParakeetModelTransferService.VERIFY
                 else ParakeetModelTransferService.START
             startForegroundService(Intent(this, ParakeetModelTransferService::class.java)
@@ -280,6 +296,51 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 .setAction(ParakeetModelTransferService.CANCEL))
         }.apply { tag = "parakeet-transfer-cancel" }
         card.addView(parakeetCancel)
+        parakeetSelect = UiDesign.action(this, getString(R.string.models_ui_use_stt)) {
+            val file = ParakeetModelFile.resolve(this)
+            val store = AudioEngineProfileStore(this)
+            val current = store.load()
+            when {
+                !safeToEditModels() -> showFeedback(R.string.models_ui_not_idle)
+                current == null -> showFeedback(R.string.models_ui_fix_engines)
+                ParakeetModelFile.integrity(file) != ParakeetModelIntegrity.VERIFIED ->
+                    showFeedback(R.string.ux07_parakeet_check_required)
+                else -> showFeedback(if (store.save(current.copy(input = SpeechInputId.PARAKEET_PL)))
+                    R.string.models_ui_stt_selected else R.string.models_ui_save_failed)
+            }
+            update()
+        }.apply { tag = "parakeet-select-engine" }
+        card.addView(parakeetSelect, UiDesign.spaceAfter(this, 8))
+        parakeetRemove = UiDesign.action(this, getString(R.string.models_ui_remove), UiActionTone.DANGER) {
+            val file = ParakeetModelFile.resolve(this)
+            if (!safeToEditModels()) {
+                showFeedback(R.string.models_ui_not_idle)
+            } else if (AudioEngineProfileStore(this).load()?.input == SpeechInputId.PARAKEET_PL) {
+                showFeedback(R.string.models_ui_switch_stt_before_delete)
+            } else if (file.isFile) {
+                val bytes = file.length()
+                val modified = file.lastModified()
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.models_ui_remove)
+                    .setMessage(getString(R.string.models_ui_remove_file_warning,
+                        getString(R.string.ux07_parakeet_title), fileSize(bytes)))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.models_ui_remove) { _, _ ->
+                        val profile = AudioEngineProfileStore(this).load()
+                        when {
+                            !safeToEditModels() -> showFeedback(R.string.models_ui_not_idle)
+                            profile == null -> showFeedback(R.string.models_ui_fix_engines)
+                            profile.input == SpeechInputId.PARAKEET_PL ->
+                                showFeedback(R.string.models_ui_switch_stt_before_delete)
+                            else -> showFeedback(if (file.isFile && file.length() == bytes &&
+                                file.lastModified() == modified && file.delete())
+                                R.string.models_ui_removed else R.string.models_ui_remove_failed)
+                        }
+                        update()
+                    }.show()
+            }
+        }.apply { tag = "parakeet-delete" }
+        card.addView(parakeetRemove)
         content.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
         updateParakeetUi()
     }
@@ -291,7 +352,11 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             ?: getString(R.string.ux07_not_configured)
         val output = AudioEngineRegistry.outputs.firstOrNull { it.id == profile?.output?.name }?.title
             ?: getString(R.string.ux07_not_configured)
-        pipelineStatus.text = getString(R.string.ux07_models_pipeline_status, input, output)
+        val dialogue = if (profile?.dialogue == DialogueModelId.USER_LITERT)
+            UserLiteRtModelStore(this).find(profile.customModelId)?.title
+        else LanguageModelCatalog.entries.firstOrNull { it.id == profile?.dialogue }?.title
+        pipelineStatus.text = getString(R.string.ux07_models_pipeline_status,
+            input, dialogue ?: getString(R.string.ux07_not_configured), output)
     }
 
     private fun updateParakeetUi() {
@@ -300,25 +365,52 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         val file = ParakeetModelFile.resolve(this)
         val fileExists = file.isFile
         val hasExpectedSize = fileExists && file.length() == ParakeetModelFile.MIN_SIZE_BYTES
-        parakeetStatus.text = when {
+        val integrity = ParakeetModelFile.integrity(file)
+        val selected = AudioEngineProfileStore(this).load()?.input == SpeechInputId.PARAKEET_PL
+        val stamp = Triple(file.absolutePath, file.length(), file.lastModified())
+        if (!state.busy && integrity == ParakeetModelIntegrity.UNVERIFIED &&
+            !checkingParakeet && checkedParakeetStamp != stamp) {
+            checkedParakeetStamp = stamp
+            checkingParakeet = true
+            verificationWorker.execute {
+                runCatching { ParakeetModelFile.validPinnedModel(file) }
+                runOnUiThread {
+                    checkingParakeet = false
+                    if (!isDestroyed && !isFinishing) update()
+                }
+            }
+        }
+        val status = when {
             state.busy && state.verifying -> getString(R.string.ux08_parakeet_verifying)
             state.busy -> getString(R.string.ux07_parakeet_progress,
                 (state.bytes * 100L / ParakeetModelFile.MIN_SIZE_BYTES).toInt().coerceIn(0, 100))
-            state.verified && hasExpectedSize -> getString(R.string.ux07_parakeet_verified)
-            state.verificationFailed -> getString(R.string.ux08_parakeet_bad_integrity)
-            state.error.isNotEmpty() -> getString(R.string.ux07_parakeet_failure, state.error)
-            fileExists && !hasExpectedSize -> getString(R.string.ux08_parakeet_wrong_size)
-            hasExpectedSize -> getString(R.string.ux07_parakeet_check_required)
+            checkingParakeet -> getString(R.string.ux08_parakeet_verifying)
+            integrity == ParakeetModelIntegrity.VERIFIED -> getString(R.string.ux07_parakeet_verified)
+            integrity == ParakeetModelIntegrity.INVALID -> getString(R.string.ux08_parakeet_bad_integrity)
+            integrity == ParakeetModelIntegrity.INCOMPLETE -> getString(R.string.ux08_parakeet_wrong_size)
+            integrity == ParakeetModelIntegrity.UNVERIFIED -> getString(R.string.ux07_parakeet_check_required)
             else -> getString(R.string.ux07_parakeet_missing)
         }
+        parakeetStatus.text = status + "\n" + storageLabel(file, ParakeetModelFile.MIN_SIZE_BYTES) +
+            if (selected) "\n" + getString(R.string.models_ui_selected_next) + "\n" +
+                getString(R.string.models_ui_switch_stt_before_delete) else ""
+        if (!state.busy && state.error.isNotEmpty()) {
+            parakeetStatus.append("\n" + getString(R.string.ux07_parakeet_failure, state.error))
+        }
         parakeetDownload.text = getString(when {
-            state.verificationFailed || (fileExists && !hasExpectedSize) ->
+            integrity == ParakeetModelIntegrity.INVALID || (fileExists && !hasExpectedSize) ->
                 R.string.ux08_parakeet_download_again
             hasExpectedSize -> R.string.ux08_parakeet_verify_only
             else -> R.string.ux08_parakeet_download_615
         })
-        parakeetDownload.visibility = if (state.busy) View.GONE else View.VISIBLE
+        parakeetDownload.visibility = if (state.busy || checkingParakeet ||
+            integrity == ParakeetModelIntegrity.VERIFIED) View.GONE else View.VISIBLE
         parakeetCancel.visibility = if (state.busy) View.VISIBLE else View.GONE
+        parakeetSelect.visibility = if (fileExists && !selected) View.VISIBLE else View.GONE
+        parakeetSelect.isEnabled = integrity == ParakeetModelIntegrity.VERIFIED &&
+            !state.busy && !LanguageModelTransferService.status.busy
+        parakeetRemove.visibility = if (fileExists && !state.busy) View.VISIBLE else View.GONE
+        parakeetRemove.isEnabled = !selected && !checkingParakeet
     }
 
     private fun begin(model: LanguageModelEntry, uri: android.net.Uri?) {
@@ -331,6 +423,8 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun update() {
         updateUserModels()
+        updateStoredLegacyModels()
+        updateStorageStatus()
         updatePipelineStatus()
         updateParakeetUi()
         val transfer = LanguageModelTransferService.status
@@ -356,8 +450,11 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 LanguageModelMeaning.READY -> R.string.models_ui_ready
                 LanguageModelMeaning.NOT_INSTALLED -> R.string.models_ui_not_installed
             })
-            row.state.text = row.state.text.toString() + "  ·  " +
-                (checkNotNull(row.model.spec.expectedBytes) / 1_000_000L) + " MB"
+            val file = Gemma4LiteRtTextBackendFactory.modelFile(this, row.model.id)
+            if (file.isFile && row.model.id !in readyIds) {
+                row.state.text = getString(R.string.models_ui_invalid_file)
+            }
+            row.state.append("\n" + storageLabel(file, checkNotNull(row.model.spec.expectedBytes)))
             row.state.textSize = 15f
             row.state.setTextColor(if (isActive) UiDesign.primary else UiDesign.secondary)
             row.state.setTypeface(null, if (isActive) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
@@ -385,38 +482,82 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         status.optBoolean("call_idle", false) &&
             status.optBoolean("campaign_service_inactive", false) &&
             !status.optBoolean("pending_retry", true) &&
-            !LanguageModelTransferService.status.busy
+            !LanguageModelTransferService.status.busy && !ParakeetModelTransferService.status.busy
     }.getOrDefault(false)
 
-    private fun cleanupLegacyModels() {
-        if (!safeToEditModels()) { showFeedback(R.string.models_ui_not_idle); return }
-        if (AndroidGemma4ModelReadiness.check(this, DialogueModelId.GEMMA_4_E2B).state !=
-            Gemma4ModelReadinessState.READY) {
-            showFeedback(R.string.models_ui_install_first)
-            return
+    private fun legacyLibrary() = StoredLegacyLanguageModels(checkNotNull(
+        Gemma4LiteRtTextBackendFactory.modelFile(this, DialogueModelId.GEMMA_4_E2B).parentFile))
+
+    private fun fileSize(bytes: Long): String = Formatter.formatShortFileSize(this, bytes)
+
+    private fun storageLabel(file: File, expected: Long): String = if (file.isFile)
+        getString(R.string.models_ui_stored_size, fileSize(file.length()))
+    else getString(R.string.models_ui_download_size, fileSize(expected))
+
+    private fun updateStorageStatus() {
+        if (!::storageStatus.isInitialized) return
+        val files = mutableListOf(
+            Gemma4LiteRtTextBackendFactory.modelFile(this, DialogueModelId.GEMMA_4_E2B),
+            ParakeetModelFile.resolve(this))
+        val library = UserLiteRtModelStore(this)
+        files += library.models().map { library.file(it) }
+        val legacy = legacyLibrary().list()
+        val stored = files.filter { it.isFile }
+        storageStatus.text = getString(R.string.models_ui_storage_summary,
+            stored.size + legacy.size, fileSize(stored.sumOf { it.length() } + legacy.sumOf { it.bytes }))
+    }
+
+    private fun updateStoredLegacyModels() {
+        if (!::legacyModelsContainer.isInitialized) return
+        val library = legacyLibrary()
+        val installed = library.list()
+        val selected = AudioEngineProfileStore(this).load()?.dialogue
+        val signature = installed to selected
+        if (renderedLegacyModels == signature) return
+        renderedLegacyModels = signature
+        legacyModelsContainer.removeAllViews()
+        if (installed.isEmpty()) return
+        legacyModelsContainer.addView(UiDesign.heading(this, getString(R.string.models_ui_legacy_heading)),
+            UiDesign.spaceAfter(this, 8))
+        installed.forEach { snapshot ->
+            val model = snapshot.model
+            val card = UiDesign.card(this).apply { tag = "stored-model:" + model.id.name }
+            card.addView(UiDesign.heading(this, model.title).apply { textSize = 17f },
+                UiDesign.spaceAfter(this, 6))
+            card.addView(UiDesign.caption(this, getString(R.string.models_ui_legacy_file,
+                fileSize(snapshot.bytes))), UiDesign.spaceAfter(this, 8))
+            card.addView(UiDesign.action(this, getString(R.string.models_ui_remove), UiActionTone.DANGER) {
+                if (!safeToEditModels()) showFeedback(R.string.models_ui_not_idle)
+                else AlertDialog.Builder(this)
+                    .setTitle(R.string.models_ui_remove)
+                    .setMessage(getString(R.string.models_ui_remove_file_warning, model.title,
+                        fileSize(snapshot.bytes)))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.models_ui_remove) { _, _ ->
+                        val current = AudioEngineProfileStore(this).load()
+                        when {
+                            !safeToEditModels() -> showFeedback(R.string.models_ui_not_idle)
+                            current == null -> showFeedback(R.string.models_ui_fix_engines)
+                            else -> showFeedback(if (library.delete(snapshot, current.dialogue))
+                                R.string.models_ui_removed else R.string.models_ui_remove_failed)
+                        }
+                        update()
+                    }.show()
+            }.apply { tag = "stored-model-delete:" + model.id.name; isEnabled = model.id != selected })
+            legacyModelsContainer.addView(card, UiDesign.spaceAfter(this, 12))
         }
-        val directory = Gemma4LiteRtTextBackendFactory.modelFile(
-            this, DialogueModelId.GEMMA_4_E2B).parentFile ?: return
-        var removed = 0
-        var failures = 0
-        for (model in LanguageModelCatalog.entries) {
-            if (model.id == DialogueModelId.GEMMA_4_E2B) continue
-            val legacy = java.io.File(directory, model.spec.fileName)
-            if (legacy.exists()) {
-                if (legacy.isFile && legacy.delete()) removed++ else failures++
-            }
-        }
-        feedback.text = getString(R.string.models_ui_clean_result, removed, failures)
-        feedback.visibility = View.VISIBLE
-        update()
     }
 
     private fun updateUserModels() {
         if (!::userModelsContainer.isInitialized) return
-        userModelsContainer.removeAllViews()
         val library = UserLiteRtModelStore(this)
         val profile = AudioEngineProfileStore(this).load()
         val installed = library.models()
+        val signature = listOf(installed, profile?.dialogue, profile?.customModelId,
+            installed.map { library.file(it).let { file -> listOf(file.isFile, file.length(), file.lastModified()) } })
+        if (signature == renderedUserModels) return
+        renderedUserModels = signature
+        userModelsContainer.removeAllViews()
         if (installed.isEmpty()) {
             userModelsContainer.addView(UiDesign.caption(this, getString(R.string.models_ui_no_user_models)))
             return
@@ -430,12 +571,14 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             card.addView(UiDesign.heading(this, model.title).apply { textSize = 16f },
                 UiDesign.spaceAfter(this, 8))
             val label = getString(when {
+                !isInstalled && library.file(model).isFile -> R.string.models_ui_invalid_file
                 !isInstalled -> R.string.models_ui_user_missing
                 isSelected -> R.string.models_ui_active
                 else -> R.string.models_ui_user_imported
             })
             card.addView(UiDesign.caption(this,
-                "$label · ${model.bytes / 1_000_000L} MB"),
+                label + if (library.file(model).isFile) "\n" +
+                    storageLabel(library.file(model), model.bytes) else ""),
                 UiDesign.spaceAfter(this, 8))
             if (!isSelected && isInstalled) {
                 card.addView(UiDesign.action(this, getString(R.string.models_ui_select)) {
@@ -505,5 +648,6 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
     override fun onResume() { super.onResume(); handler.post(refresh) }
     override fun onPause() { handler.removeCallbacks(refresh); super.onPause() }
+    override fun onDestroy() { verificationWorker.shutdownNow(); super.onDestroy() }
     companion object { private const val IMPORT = 1 }
 }

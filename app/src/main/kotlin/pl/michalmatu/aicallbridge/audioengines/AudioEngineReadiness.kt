@@ -42,9 +42,13 @@ internal object AudioEngineReadinessProbe {
                 ) return "android_offline_stt_unavailable"
             }
             SpeechInputId.PARAKEET_PL -> {
-                if (!ParakeetModelFile.resolve(context).isFile ||
-                    ParakeetModelFile.resolve(context).length() < ParakeetModelFile.MIN_SIZE_BYTES
-                ) return "parakeet_model_missing_or_incomplete"
+                when (ParakeetModelFile.integrity(ParakeetModelFile.resolve(context))) {
+                    ParakeetModelIntegrity.MISSING, ParakeetModelIntegrity.INCOMPLETE ->
+                        return "parakeet_model_missing_or_incomplete"
+                    ParakeetModelIntegrity.INVALID -> return "parakeet_model_sha256_mismatch"
+                    // Native initialization verifies an uncached file on its transcription worker.
+                    ParakeetModelIntegrity.UNVERIFIED, ParakeetModelIntegrity.VERIFIED -> Unit
+                }
             }
             SpeechInputId.GEMMA_AUDIO_DIRECT ->
                 return "audio_direct_not_integrated"

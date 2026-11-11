@@ -14,7 +14,7 @@ class ModelPresentationBoundaryTest(unittest.TestCase):
         self.assertIn("AndroidGemma4ModelReadiness.check", activity)
         self.assertIn("LanguageModelTransferService.status.busy", activity)
         self.assertIn("startForegroundService(Intent(this, LanguageModelTransferService::class.java)", activity)
-        self.assertIn("store.save(current.copy(dialogue = model.id))", activity)
+        self.assertIn("store.save(current.copy(dialogue = model.id, customModelId = null))", activity)
 
     def test_presenter_is_readonly_and_separates_installed_from_selected(self):
         presenter = (BASE / "textagent/LanguageModelStatusPresenter.kt").read_text()
