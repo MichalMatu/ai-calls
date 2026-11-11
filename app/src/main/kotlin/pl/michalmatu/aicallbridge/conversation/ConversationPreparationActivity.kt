@@ -13,6 +13,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.activity.OnBackPressedCallback
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.identity.IdentityFieldId
 import pl.michalmatu.aicallbridge.ui.AppTab
@@ -49,6 +50,9 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = navigateBack()
+        })
         store = try {
             AndroidConversationPreparationStore(this)
         } catch (failure: Exception) {
@@ -121,10 +125,6 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
         if (!isDirty()) return false
         confirmDiscard({ finish() })
         return true
-    }
-
-    override fun onBackPressed() {
-        if (isDirty()) confirmDiscard({ finish() }) else super.onBackPressed()
     }
 
     override fun onTabNavigationRequested(action: () -> Unit) {

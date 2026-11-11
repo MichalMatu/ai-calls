@@ -295,9 +295,7 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                     return@runOnUiThread
                 }
                 val current = selectedProfile()
-                if (current.output != selectedOutput || (saveWhenReady &&
-                    (current.input != requested.input || current.dialogue != requested.dialogue ||
-                        current.customModelId != requested.customModelId))) {
+                if (current.output != selectedOutput || (saveWhenReady && current != requested)) {
                     engine.shutdown()
                     feedback.text = getString(R.string.eng_ui_check_outdated)
                     return@runOnUiThread
@@ -328,6 +326,11 @@ class AudioEngineSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 probedOutput = selectedOutput
                 setVoices(names, requestedVoice)
                 restoredDraftVoice = null
+                if (saveWhenReady && requestedVoice != null && requestedVoice !in names) {
+                    feedback.text = getString(R.string.eng_ui_could_not_save,
+                        readinessReason("selected_voice_missing"))
+                    return@runOnUiThread
+                }
                 val profile = selectedProfile()
                 checkRequestedProfile(profile) { result ->
                     if (saveWhenReady) saveReadyProfile(profile, result)
