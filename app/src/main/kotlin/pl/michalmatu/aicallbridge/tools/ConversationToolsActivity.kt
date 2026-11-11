@@ -70,7 +70,14 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
         AlertDialog.Builder(this)
             .setMessage(R.string.tools_ui_unsaved_warning)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.tools_ui_discard) { _, _ -> onConfirmed() }
+            .setPositiveButton(R.string.tools_ui_discard) { _, _ ->
+                // Tab navigation can leave this Activity on the back stack.
+                // Truly discard the edited controls before changing screens.
+                optionViews.forEach { (tool, option) ->
+                    option.isChecked = tool in storedSelection
+                }
+                onConfirmed()
+            }
             .show()
     }
 
