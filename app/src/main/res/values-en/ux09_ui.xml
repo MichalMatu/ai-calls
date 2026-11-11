@@ -12,7 +12,7 @@
     <string name="ux09_execution_unverified">Outcome unverified</string>
     <string name="ux09_home_technical_title">Models and technical details</string>
     <string name="ux09_home_open_chat">Show conversation panel</string>
-    <string name="ux09_agent_scope_warning">Displayed fields and Skills are configuration only. Saving them does not authorize AI to disclose private data or place calls.</string>
+    <string name="ux09_agent_scope_warning">Selecting fields and tools does not expand permissions to private data, calls, or external actions.</string>
     <string name="ux09_agent_named_skills">Active: %1$s · %2$d Skills\n%3$s</string>
     <string name="ux09_agent_named_profiles">Outgoing: %1$s\nIncoming: %2$s</string>
     <string name="ux09_agent_none">No fields selected</string>
