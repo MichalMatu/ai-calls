@@ -143,9 +143,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onSaveInstanceState(outState: Bundle) {
         if (::simPicker.isInitialized) {
             outState.putInt(DRAFT_MODE,
-                findViewWithTag<Spinner>("incoming-mode-spinner")?.selectedItemPosition ?: 0)
+                window.decorView.findViewWithTag<Spinner>("incoming-mode-spinner")?.selectedItemPosition ?: 0)
             outState.putBoolean(DRAFT_RECORD,
-                findViewWithTag<CheckBox>("incoming-recording")?.isChecked ?: false)
+                window.decorView.findViewWithTag<CheckBox>("incoming-recording")?.isChecked ?: false)
             outState.putString(DRAFT_ACCOUNT,
                 simAccounts.getOrNull(simPicker.selectedItemPosition)
                     ?.let(IncomingAssistantPolicyStore::accountKey) ?: persistedAccountKey)
