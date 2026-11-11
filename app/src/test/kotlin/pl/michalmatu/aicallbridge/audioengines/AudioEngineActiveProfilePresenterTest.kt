@@ -20,10 +20,11 @@ class AudioEngineActiveProfilePresenterTest {
     @Test fun everyIntegratedCombinationUsesExistingRegistryLabels() {
         val selections = listOf(
             AudioEngineProfile(input = SpeechInputId.PARAKEET_PL,
-                dialogue = DialogueModelId.QWEN_3_1_7B,
+                dialogue = DialogueModelId.GEMMA_4_E2B,
                 output = SpeechOutputId.PIPER_PL, voiceId = "pl-PL-local"),
-            AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E4B),
-            AudioEngineProfile(dialogue = DialogueModelId.QWEN_3_0_6B),
+            AudioEngineProfile(dialogue = DialogueModelId.USER_LITERT,
+                customModelId = "user-" + "a".repeat(64)),
+            AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E2B),
         )
         for (profile in selections) {
             val presented = AudioEngineActiveProfilePresenter.present(profile)
