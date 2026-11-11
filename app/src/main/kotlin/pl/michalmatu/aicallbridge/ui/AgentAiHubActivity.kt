@@ -39,6 +39,7 @@ class AgentAiHubActivity : AppBaseActivity() {
     private val worker = Executors.newSingleThreadExecutor()
     private val summaries = mutableMapOf<String, TextView>()
     private val destinations = mutableMapOf<String, LinearLayout>()
+    private val titles = mutableMapOf<String, String>()
     private var generation = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +75,7 @@ class AgentAiHubActivity : AppBaseActivity() {
             }
             summaries[key] = summary
             destinations[key] = card
+            titles[key] = titleText
             card.contentDescription = titleText + ". " + summary.text
             labels.addView(summary)
             row.addView(labels, LinearLayout.LayoutParams(0,
@@ -165,12 +167,7 @@ class AgentAiHubActivity : AppBaseActivity() {
                 )
                 rendered.forEach { (key, value) ->
                     summaries[key]?.text = value
-                    destinations[key]?.contentDescription =
-                        destinations[key]?.let { card ->
-                            val title = (card.getChildAt(0) as LinearLayout)
-                                .getChildAt(0) as LinearLayout
-                            (title.getChildAt(0) as TextView).text.toString() + ". " + value
-                        }
+                    destinations[key]?.contentDescription = titles[key] + ". " + value
                 }
             }
         }
