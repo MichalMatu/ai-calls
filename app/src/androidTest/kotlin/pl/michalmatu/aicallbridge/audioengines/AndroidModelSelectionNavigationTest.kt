@@ -11,7 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
-import pl.michalmatu.aicallbridge.MainActivity
+import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 
 @RunWith(AndroidJUnit4::class)
@@ -43,15 +43,16 @@ class AndroidModelSelectionNavigationTest {
                 }
             }
             assertTrue(store.save(before))
-            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            ActivityScenario.launch(UsbDebugPanelActivity::class.java).use { scenario ->
                 scenario.moveToState(Lifecycle.State.CREATED)
                 assertTrue(store.save(before.copy(dialogue = next)))
                 scenario.moveToState(Lifecycle.State.RESUMED)
                 scenario.onActivity { activity ->
-                    assertTrue("home must show selected model", views(activity.findViewById(android.R.id.content))
-                        .filterIsInstance<TextView>().any {
-                            it.text.toString().contains(LanguageModelCatalog[next].title)
-                        })
+                    val liveModel = activity.window.decorView.findViewWithTag<TextView>(
+                        "usb-value:dialogue")
+                    assertNotNull("diagnostics_model_value_missing", liveModel)
+                    assertTrue("diagnostics_must_show_fresh_selected_model",
+                        liveModel.text.toString().contains(LanguageModelCatalog[next].title))
                 }
             }
         } finally { assertTrue(store.save(before)) }
