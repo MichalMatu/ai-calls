@@ -11,7 +11,7 @@ UI pokazuje rzeczywisty stan: manual/AI, exact Call, postęp, STOP/TAKE OVER/res
 - Notatnik ma pierwszeństwo przed ustawieniami: zwijane rozmowy, wyszukiwanie, filtr, stronicowanie; szyfrowany odczyt poza UI. Usuwanie wymaga potwierdzenia i braku aktywnego AI Call; wynik usuwania jest obsługiwany mimo równoległego odświeżenia.
 - Przełączniki narzędzi: rozróżniają lokalny zapis, propozycje i zakończenie własnego Call. Back i zmiana zakładki chronią niezapisane zmiany; po obrocie zachowywane są tylko identyfikatory przełączników, nie treść notatek ani wyszukiwania.
 - Nie dodawać dodatkowych kliknięć ani kolejnych zatwierdzeń bez zmiany materialnego zakresu grantu.
-- Modele: wybór na kolejne rozmowy i stan pliku to osobne informacje. Rozmiar zapisany pochodzi z pliku; brak pliku pokazuje rozmiar do pobrania. Usuwanie dotyczy jednego widocznego pliku, sprawdza ponownie IDLE/wybór i nie usuwa chronionej bazy.
+- Model i głos: jeden szkic i zapis, chroniony Back/zmianą zakładki; dawne wejście do silników jest aliasem tego samego ekranu. Parakeet, własne pliki i silnik TTS są w zaawansowanych. Wybór i gotowość są osobne. Rozmiar zapisany pochodzi z pliku; brak pliku pokazuje rozmiar do pobrania. Usuwanie dotyczy jednego widocznego pliku, sprawdza ponownie IDLE/wybór i nie usuwa chronionej bazy.
 - Rola aplikacji Telefon ma status i jawny przycisk w Ustawieniach; Start pokazuje brak roli. Otwarcie ekranów nie żąda roli. Żądanie używa Activity Result, aby Android znał caller; wynik odświeża status. Systemowy wybór i powrót nie uruchamiają Call ani grantu.
 
 G7 to finalny odbiór UX po rzeczywistym G6, nie powód do zastępowania już testowanych ekranów. [Current](../PROJECT.md).

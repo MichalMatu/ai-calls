@@ -4,7 +4,7 @@
 
 ## Interfejs użytkownika — uproszczenie
 - **Start / Rozmowy / Agent AI / Ustawienia** — cztery zakładki. Start zawiera bezpośredni dostęp do istniejącej rozmowy **w sprawie wizyty**, bieżący status, STOP i prywatny podgląd rozmowy; nie sugeruje ogólnego scenariusza, którego nie wdrożono.
-- Usunięto dawny ekran Kampanie i martwe napisy zasobów; CLIR/start skryptu, nadzorowany test audio oraz diagnostyczne karty nie mają już konsumenckich przycisków. Modele i silniki są pod Ustawieniami, laboratorium wyłącznie w narzędziach developerskich. Wewnętrzne mechanizmy grantów, dokładnego Call, STOP, STT i archiwum zachowane.
+- Usunięto dawny ekran Kampanie i martwe napisy zasobów; CLIR/start skryptu, nadzorowany test audio oraz diagnostyczne karty nie mają już konsumenckich przycisków. Model i głos są pod Ustawieniami, laboratorium wyłącznie w narzędziach developerskich. Wewnętrzne mechanizmy grantów, dokładnego Call, STOP, STT i archiwum zachowane.
 - W formularzu wizyty uprawnienia Androida i wybór dialera mogą kontynuować **ten sam wyraźnie rozpoczęty przez użytkownika** zamiar, bez ponownego naciskania Start. Odmowa nie rozpoczyna połączenia.
 
 - **Sekretarka (UX):** dwa tony naturalny/formalny i własne instrukcje bez nazywania profilu. Ustawienia dotyczą tylko incoming; stare presety i historia wersji są usuwane podczas migracji szyfrowanego zapisu; aktywne własne instrukcje i ton sekretarki są zachowywane. Wymagana fizyczna kontrola UI S22+ po instalacji.
@@ -12,7 +12,8 @@
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Pełny gate Python | OPEN · scripts/tests | 432 testy: 14 failures + 15 errors odziedziczone z bazy `096a791a`; brak nowych. Gate: aktualizacja testów usuniętego UI i `CampaignToolActivity` |
+| Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, transkrypt przed kontrolą wizyty/danych, narzędzia i STOP; testy hosta PASS. Native PL, jakość i RAM S22 otwarte — brak pliku E2B |
+| Pełny gate Python | OPEN · scripts/tests | 433 testy: 9 failures + 14 errors odziedziczone z wcześniejszego QA; brak nowych. Gate: aktualizacja testów usuniętego UI i `CampaignToolActivity` |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
 | Outgoing po autoryzacji | DEVICE_VERIFIED: real dial | Na S22+ po jednym autoryzowanym START Telecom potwierdził aktywne połączenie; odbiór i jakość audio nadal **PHYSICAL_OPEN** |
@@ -47,6 +48,6 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 - **Narzędzia AI MVP:** SAVE_NOTE szyfrowane per Call, migracja/deduplikacja, TASK/CALENDAR/MESSAGE tylko jako propozycje; END_CALL po TTS i kontroli Call. Notatnik: filtr, wyszukiwanie, strony, usuwanie po potwierdzeniu, AtomicFile .bak, IO poza UI. Migracja realnych danych i żywy Call pozostają bez fizycznej akceptacji.
 
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
-- **Modele i silniki:** inwentarz i rozmiary z plików; usuwanie pojedynczego zapisanego modelu po ponownej kontroli IDLE/wyboru. Brak zbiorczego usuwania z listą katalogową. Gemma E2B chroniona; pobieranie Parakeet nie blokuje zwalniania miejsca przez usunięcie innego pliku. Parakeet: integralność w tle, wybór STT oddzielony od pobrania, automatyczne sprawdzenie przy zapisie. KEEP runtime/Gemma, IMPROVE własnego UI, bez nowych zależności.
+- **Model i głos:** jeden ekran i zapis, osobna gotowość, Android STT/TTS i import LiteRT-LM z lokalną próbą zgodności; Parakeet w zaawansowanych. Bez martwych Kokoro/PocketTTS i przełączników serwerów. Wspólny silnik audio/tekst Gemmy; KEEP Call, STOP, Skills i granty. S22: Parakeet 614588752 B obecny, Gemma E2B niepobrana; zapisany profil Parakeet/E2B/Android TTS nie jest gotowy.
 - **Rola Telefonu:** stan i jawny przycisk w Ustawieniach oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
-- **QA UX:** Codex: 9 JVM anti-friction, lint kodu UI i docs PASS; rola Telefonu na emulatorze 4/4 (prawdziwe okno i Anuluj na Start/Ustawienia), przegląd UX 19/19 i zrzuty. S22: `install -r` z `eb8f77f2` potwierdzony odczytem APK, SHA-256 `5c649c2b180ef12c949aad121ad6cb1f7c9267c885142796f8a6dbeca00664da`. UID/katalog danych, 2 zapisane pliki ustawień, uprawnienia i rola Telefonu bez zmian; IDLE, bez Call i testów instrumentacyjnych. Ustawienie AI Calls jako Telefonu potwierdzone przez właściciela i odczyt roli S22. Pozostały odbiór UI, importy natywne i live STT nadal **PHYSICAL_OPEN**; wcześniejsze testy polskiej mowy Parakeet nie zastępują tego odbioru.
+- **QA UX:** app 999 JVM i lint PASS, źródłowy gate audio oraz anti-friction/docs PASS; emulator 31 scenariuszy PASS (końcowy zestaw PL 12/12). S22 nadal APK `eb8f77f2`, aktualizacja przygotowana; rola Telefonu potwierdzona przez właściciela. Native import/audio i live STT **PHYSICAL_OPEN**.

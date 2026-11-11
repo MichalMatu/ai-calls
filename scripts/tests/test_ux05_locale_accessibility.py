@@ -11,7 +11,7 @@ PL = APP / "res/values/strings.xml"
 EN = APP / "res/values-en/strings.xml"
 SCREENS = (
     "MainActivity.kt",
-    "audioengines/AudioEngineSettingsActivity.kt",
+    "audioengines/ModelVoiceSettings.kt",
     "campaign/CampaignToolActivity.kt",
     "campaign/AndroidCallControlsActivity.kt",
     "conversation/ConversationSkillsActivity.kt",

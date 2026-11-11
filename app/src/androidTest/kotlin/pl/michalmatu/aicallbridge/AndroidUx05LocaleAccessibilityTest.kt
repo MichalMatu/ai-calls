@@ -57,8 +57,8 @@ class AndroidUx05LocaleAccessibilityTest {
             }
         }
         val screens = listOf(
-            AudioEngineSettingsActivity::class.java to R.string.eng_ui_title,
-            LanguageModelActivity::class.java to R.string.models_ui_title,
+            AudioEngineSettingsActivity::class.java to R.string.mv_title,
+            LanguageModelActivity::class.java to R.string.mv_title,
             ConversationSkillsActivity::class.java to R.string.skills_ui_title,
         )
         for ((type, titleId) in screens) {

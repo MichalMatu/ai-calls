@@ -18,13 +18,16 @@ COPY = [
         "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness", "DialogueEngineProviders",
         "AudioEngineProviders", "ParakeetSpeechInputProvider",
         "ParakeetModelDownloader", "ParakeetModelTransferService",
-        "GemmaAudioDirectInputProvider", "AudioEngineSettingsActivity",
+        "GemmaAudioDirectInputProvider", "AudioEngineSettingsActivity", "ModelVoiceSettings",
     )
 ] + [MAIN + "localspeech/LocalTtsSpeechOutput.kt",
-     MAIN + "textagent/LanguageModelActivity.kt"] + [
+     MAIN + "conversation/ConversationInputRoutingBackend.kt",
+     MAIN + "campaign/AppointmentMvpConversationScenario.kt",
+     MAIN + "campaign/ScenarioOutgoingConversationScenario.kt",
+     MAIN + "textagent/LanguageModelActivity.kt", MAIN + "textagent/Gemma4LiteRtTextBackend.kt"] + [
     TEST + name + ".kt" for name in (
         "AndroidAudioEngineProfileStoreContractTest",
-        "AndroidAudioEngineSettingsActivityTest",
+        "AndroidModelVoiceSettingsTest",
         "AndroidParakeetNativeOffcallTest",
         "AndroidGemmaAudioNativeOffcallTest",
         "AndroidParakeetPolishRoundTripTest",
@@ -36,6 +39,13 @@ COPY = [
 class AudioEngineQualityGateTest(unittest.TestCase):
     def test_current_source_passes_structural_audio_gate(self):
         self.assertEqual(audit(ROOT), [])
+
+    def test_outgoing_scenario_must_forward_audio_as_well_as_text(self):
+        self.check_mutation(
+            MAIN + "campaign/ScenarioOutgoingConversationScenario.kt",
+            "ConversationInputRoutingBackend(", "TextOnlyWrapper(",
+            "outgoing-audio-input-routing",
+        )
 
     def check_mutation(self, path: str, original: str, replacement: str, expected: str):
         with tempfile.TemporaryDirectory() as temp:
@@ -62,12 +72,12 @@ class AudioEngineQualityGateTest(unittest.TestCase):
             "user-triggered-Parakeet-download",
         )
 
-    def test_unqualified_audio_direct_must_remain_unselectable(self):
+    def test_audio_must_require_a_native_device_check(self):
         self.check_mutation(
-            AUDIO + "AudioEngineProfile.kt",
-            '"audio_direct_s22_unqualified"',
-            '"pretend_ready"',
-            "experimental-audio-not-selectable",
+            AUDIO + "AudioEngineReadiness.kt",
+            '!ModelCompatibilityStore(context).verified(file, true)',
+            'false',
+            "audio-requires-native-device-check",
         )
 
     def test_consumer_dialogue_choices_preserve_the_protected_baseline(self):
@@ -121,8 +131,8 @@ class AudioEngineQualityGateTest(unittest.TestCase):
     def test_audio_provider_cannot_own_cellular_calls(self):
         self.check_mutation(
             AUDIO + "GemmaAudioDirectInputProvider.kt",
-            "private val appContext = context.applicationContext",
-            "private val appContext = context.applicationContext\n    val api = TelecomManager()",
+            "private val lock = Any()",
+            "private val lock = Any()\n    val api = TelecomManager()",
             "Telecom-or-privileged-transport-ownership",
         )
 

@@ -13,45 +13,29 @@ internal data class AudioEngineProfile(
     val voiceId: String? = null,
     /** Required only for a model explicitly imported from a LiteRT-LM file. */
     val customModelId: String? = null,
+    val ttsEnginePackage: String? = null,
 ) {
+    val effectiveTtsEnginePackage: String? get() = ttsEnginePackage
+        ?: if (output == SpeechOutputId.PIPER_PL) PiperServiceContract.PACKAGE else null
     companion object {
         val STABLE = AudioEngineProfile()
     }
 }
 
-/** This is a technical feature matrix, not a claim that a model has been installed. */
-internal data class AudioEngineChoice(
-    val id: String,
-    val title: String,
-    val languageTag: String,
-    val detail: String,
-    val integrated: Boolean,
-)
+/** Available configuration choices. Installation and native readiness are checked separately. */
+internal data class AudioEngineChoice(val id: String, val title: String, val advanced: Boolean = false)
 
 internal object AudioEngineRegistry {
     val inputs = listOf(
-        AudioEngineChoice("ANDROID_STT", "Android STT", "pl-PL", "PCM16 16 kHz · offline", true),
-        AudioEngineChoice("PARAKEET_PL", "Parakeet TDT 0.6B v3", "pl-PL",
-            "Adapter MediaPipe 1.2.0; wymagany model 615 MB i test native S22", true),
-        AudioEngineChoice("GEMMA_AUDIO_DIRECT", "Gemma Audio Direct", "pl-PL",
-            "Eksperymentalny adapter PCM→AudioBytes; brak dowodu S22 i pamięci", false),
+        AudioEngineChoice("ANDROID_STT", "Android STT"),
+        AudioEngineChoice("PARAKEET_PL", "Parakeet", advanced = true),
+        AudioEngineChoice("GEMMA_AUDIO_DIRECT", "Gemma · audio"),
     )
     val dialogues = listOf(
-        AudioEngineChoice(DialogueModelId.GEMMA_4_E2B.name, "Gemma 4 E2B", "pl-PL",
-            "Model bazowy AI Calls", true),
-        AudioEngineChoice(DialogueModelId.USER_LITERT.name, "Model z pliku LiteRT-LM", "pl-PL",
-            "Model użytkownika; kompatybilność wymaga sprawdzenia", true),
+        AudioEngineChoice(DialogueModelId.GEMMA_4_E2B.name, "Gemma 4 E2B"),
+        AudioEngineChoice(DialogueModelId.USER_LITERT.name, "Model z pliku LiteRT-LM"),
     )
-    val outputs = listOf(
-        AudioEngineChoice("ANDROID_TTS_PL", "Android TTS", "pl-PL",
-            "Lokalny głos systemowy · PCM16 16 kHz", true),
-        AudioEngineChoice("PIPER_PL", "Piper PL", "pl-PL",
-            "Systemowy silnik Piper: wymagane osobne APK i polski głos offline", true),
-        AudioEngineChoice("KOKORO", "Kokoro 82M", "brak pl-PL",
-            "Obecna paczka nie obsługuje polskiego", false),
-        AudioEngineChoice("POCKET_TTS", "PocketTTS 100M", "brak pl-PL",
-            "Obecna paczka nie obsługuje polskiego", false),
-    )
+    val outputs = listOf(AudioEngineChoice("ANDROID_TTS_PL", "Android TTS"))
 
     /** An unsupported composition never silently falls back to another engine. */
     fun incompatibility(profile: AudioEngineProfile): String? = when {
@@ -60,11 +44,20 @@ internal object AudioEngineRegistry {
             "user_model_identity_invalid"
         profile.dialogue == DialogueModelId.QWEN_3_5_2B -> "qwen35_lab_only_unqualified"
         profile.languageTag != "pl-PL" -> "unsupported_language"
-        profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> "audio_direct_s22_unqualified"
+        profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT && !supportsAudio(profile) ->
+            "model_audio_input_unavailable"
         profile.output == SpeechOutputId.KOKORO -> "kokoro_no_polish"
         profile.output == SpeechOutputId.POCKET_TTS -> "pocket_tts_no_polish"
         profile.voiceId != null &&
             (profile.voiceId.isBlank() || profile.voiceId.length > 160) -> "invalid_voice_id"
+        profile.ttsEnginePackage != null &&
+            !Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+").matches(profile.ttsEnginePackage) ->
+            "invalid_tts_engine"
         else -> null
     }
+
+    fun supportsAudio(profile: AudioEngineProfile): Boolean =
+        profile.dialogue == DialogueModelId.GEMMA_4_E2B ||
+            (profile.dialogue == DialogueModelId.USER_LITERT && profile.customModelId ==
+                "user-" + pl.michalmatu.aicallbridge.textagent.Gemma4ModelCatalog.GEMMA_4_E2B_IT.sha256)
 }

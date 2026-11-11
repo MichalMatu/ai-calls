@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mv_title">Model i głos</string>
+    <string name="mv_intro">Wybierz model rozmowy, sposób rozpoznawania mowy i głos asystenta. Zmiany dotyczą kolejnych rozmów.</string>
+    <string name="mv_input">Rozpoznawanie mowy</string>
+    <string name="mv_voice">Głos asystenta</string>
+    <string name="mv_engine">Silnik głosu Androida</string>
+    <string name="mv_system_engine">Domyślny silnik Androida</string>
+    <string name="mv_engine_missing">Wybrany silnik jest niedostępny</string>
+    <string name="mv_local_voice">Polski głos %1$d · offline</string>
+    <string name="mv_voice_missing">Wybrany polski głos offline jest niedostępny. Wybierz inny głos lub zainstaluj go w ustawieniach Androida.</string>
+    <string name="mv_android_input">Android · rozpoznawanie na urządzeniu</string>
+    <string name="mv_gemma_input">Gemma · bezpośrednie wejście audio</string>
+    <string name="mv_parakeet_input">Parakeet · opcja zaawansowana</string>
+    <string name="mv_saved">Zapisano wybór do kolejnych rozmów. Gotowość pokazana powyżej zależy od plików i dostępnych usług.</string>
+    <string name="mv_unsaved">Zmiany nie są jeszcze zapisane.</string>
+    <string name="mv_retry">Sprawdź zgodność ponownie</string>
+    <string name="mv_checking_model">Sprawdzanie zgodności modelu na urządzeniu…</string>
+    <string name="mv_ready">Konfiguracja gotowa do użycia.</string>
+    <string name="mv_model_missing">Brakuje pliku modelu rozmowy. Pobierz Gemma E2B lub dodaj zgodny plik modelu.</string>
+    <string name="mv_compatibility_required">Plik zapisany · zgodność z rozmową wymaga sprawdzenia.</string>
+    <string name="mv_audio_check_required">Wejście audio Gemmy wymaga lokalnego sprawdzenia. Wybierz dostępny polski głos offline.</string>
+    <string name="mv_audio_unavailable">Ten model nie ma potwierdzonej obsługi audio. Wybierz rozpoznawanie Android lub Parakeet w zaawansowanych.</string>
+    <string name="mv_loading_voices">Wczytywanie polskich głosów offline…</string>
+    <string name="mv_compatibility_failed">Nie udało się potwierdzić zgodności modelu. Sprawdź plik i dostępny głos; możesz ponowić sprawdzenie.</string>
+    <string name="mv_voice_sample">To jest próbka głosu asystenta AI Calls.</string>
+    <string name="mv_advanced">Zaawansowane</string>
+    <string name="mv_advanced_hint">Dodatkowe rozpoznawanie Parakeet, własne modele i wybór silnika głosu.</string>
+    <string name="mv_files">Zapisane pliki modeli</string>
+    <string name="mv_discard_title">Odrzucić niezapisane zmiany?</string>
+    <string name="mv_discard">Odrzuć</string>
+    <string name="mv_stay">Zostań</string>
+    <string name="mv_permissions">Uprawnienia aplikacji</string>
+    <string name="mv_permissions_hint">Domyślna aplikacja Telefon i dostęp do mikrofonu.</string>
+    <string name="mv_compatible">Plik zapisany · zgodność z runtime potwierdzona</string>
+    <string name="mv_selected_model">Wybrany model: %1$s</string>
+    <string name="mv_invalid_container">Plik ma nieprawidłowy format. Dodaj model w formacie LiteRT-LM.</string>
+    <string name="mv_change_model">Zmień model</string>
+    <string name="mv_saved_voice_unavailable">Zapisany głos · niedostępny</string>
+</resources>

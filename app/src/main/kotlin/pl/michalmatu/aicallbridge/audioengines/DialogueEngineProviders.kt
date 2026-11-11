@@ -29,9 +29,13 @@ internal interface DialogueEngineProvider {
 }
 
 /** Every catalog model uses the same native lifecycle and application output approval. */
-internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId) : DialogueEngineProvider {
+internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId,
+    private val audioInput: Boolean = false,
+    private val profile: AudioEngineProfile? = null) : DialogueEngineProvider {
     override fun createConversationReply(context: Context, systemInstruction: String, tools: Set<ConversationToolId>): TextCallAgentBackend =
-        Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id, tools)
+        Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id, tools,
+            audioInput = audioInput,
+            selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) })
 
     override fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
         tools: Set<ConversationToolId>, contextTokenBudget: Int,
@@ -54,6 +58,6 @@ internal object DialogueEngineProviders {
         require(AudioEngineRegistry.incompatibility(profile) == null) {
             "dialogue_engine_profile_unavailable"
         }
-        return LiteRtDialogueEngineProvider(profile.dialogue)
+        return LiteRtDialogueEngineProvider(profile.dialogue, profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT, profile)
     }
 }

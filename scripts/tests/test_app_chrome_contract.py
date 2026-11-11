@@ -5,11 +5,13 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ChromeSourceContract(unittest.TestCase):
     def test_one_shell_on_product_screens(self):
-        targets = [["conversation/ScenarioLibraryActivity.kt","AGENT"],["conversation/ConversationHistoryActivity.kt","HISTORY"],["conversation/ConversationSkillLabActivity.kt","LAB"],["conversation/ConversationSkillsActivity.kt","AGENT"],["conversation/ConversationPreparationActivity.kt","AGENT"],["audioengines/AudioEngineSettingsActivity.kt","MODELS"],["textagent/LanguageModelActivity.kt","MODELS"],["incoming/IncomingAssistantSettingsActivity.kt","SETTINGS"],["tools/ConversationToolsActivity.kt","AGENT"],["debug/UsbDebugPanelActivity.kt","SETTINGS"],["identity/PhoneEnrollmentActivity.kt","AGENT"],["campaign/CampaignToolActivity.kt","HOME"]]
+        targets = [["conversation/ScenarioLibraryActivity.kt","AGENT"],["conversation/ConversationHistoryActivity.kt","HISTORY"],["conversation/ConversationSkillLabActivity.kt","SETTINGS"],["conversation/ConversationSkillsActivity.kt","AGENT"],["conversation/ConversationPreparationActivity.kt","AGENT"],["textagent/LanguageModelActivity.kt","SETTINGS"],["incoming/IncomingAssistantSettingsActivity.kt","SETTINGS"],["tools/ConversationToolsActivity.kt","AGENT"],["debug/UsbDebugPanelActivity.kt","SETTINGS"],["identity/PhoneEnrollmentActivity.kt","AGENT"],["campaign/AppointmentMvpActivity.kt","HOME"]]
         for relative, tab in targets:
             with self.subTest(screen=relative):
                 code = (ROOT / relative).read_text()
                 self.assertIn("UiChromeActivity(AppTab." + tab + ")", code)
+        self.assertIn("AudioEngineSettingsActivity : LanguageModelActivity()",
+                      (ROOT / "audioengines/AudioEngineSettingsActivity.kt").read_text())
         chrome = (ROOT / "ui/UiChromeActivity.kt").read_text()
         nav = (ROOT / "ui/AppNavigation.kt").read_text()
         self.assertIn("super.setContentView(AppNavigation.shell(this, view, activeTab))", chrome)

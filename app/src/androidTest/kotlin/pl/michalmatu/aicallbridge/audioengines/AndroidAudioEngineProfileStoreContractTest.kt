@@ -48,13 +48,26 @@ class AndroidAudioEngineProfileStoreContractTest {
         assertNull(store.load())
     }
 
-    @Test fun eachCatalogModelPersistsWithoutChangingInputOutputOrVoice() {
-        for (id in DialogueModelId.entries) {
-            val expected = AudioEngineProfile(input = SpeechInputId.PARAKEET_PL,
-                dialogue = id, output = SpeechOutputId.PIPER_PL, voiceId = "pl-local-test")
-            assertTrue(store.save(expected))
-            assertEquals(expected, AudioEngineProfileStore(ctx, name).load())
-        }
+    @Test fun legacyPiperMigrationPreservesTheExactEngineAndVoice() {
+        val prefs = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
+        prefs.edit().putInt("version", 1).putString("input", "PARAKEET_PL")
+            .putString("dialogue", "GEMMA_4_E2B").putString("output", "PIPER_PL")
+            .putString("language", "pl-PL").putString("voice", "pl-local-test").commit()
+        val expected = AudioEngineProfile(input = SpeechInputId.PARAKEET_PL,
+            voiceId = "pl-local-test", ttsEnginePackage = PiperServiceContract.PACKAGE)
+        assertEquals(expected, store.load())
+        assertEquals(2, prefs.getInt("version", -1))
+        assertEquals("ANDROID_TTS_PL", prefs.getString("output", null))
+        assertEquals(expected, AudioEngineProfileStore(ctx, name).load())
+    }
+
+    @Test fun customModelAndInstalledEnginePersistWithoutAFileReadinessClaim() {
+        val expected = AudioEngineProfile(dialogue = DialogueModelId.USER_LITERT,
+            customModelId = "user-" + "b".repeat(64), voiceId = "pl-local-test",
+            ttsEnginePackage = "example.local.tts")
+        assertTrue(store.save(expected))
+        assertEquals(expected, store.load())
+        assertFalse(AudioEngineReadinessProbe.check(ctx, expected).available)
     }
 
     @Test fun integratedParakeetPreferencePersistsButDoesNotClaimInstalledModel() {
@@ -64,10 +77,10 @@ class AndroidAudioEngineProfileStoreContractTest {
         // Persistence is a technical selection, not proof that 615MB of model data exists.
     }
 
-    @Test fun persistedUnqualifiedAudioDirectFailsClosed() {
-        val prefs = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
-        assertTrue(store.save(AudioEngineProfile.STABLE))
-        prefs.edit().putString("input", "GEMMA_AUDIO_DIRECT").commit()
-        assertNull(store.load())
+    @Test fun savedAudioChoiceDoesNotClaimNativeReadiness() {
+        val requested = AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT)
+        assertTrue(store.save(requested))
+        assertEquals(requested, store.load())
+        assertFalse(AudioEngineReadinessProbe.check(ctx, requested).available)
     }
 }

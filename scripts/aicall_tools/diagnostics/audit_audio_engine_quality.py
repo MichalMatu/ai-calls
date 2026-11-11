@@ -37,6 +37,13 @@ def audit(root: Path) -> list[str]:
     settings = read(AUDIO + "AudioEngineSettingsActivity.kt")
     parakeet_service = read(AUDIO + "ParakeetModelTransferService.kt")
     model_ui = read(BASE + "textagent/LanguageModelActivity.kt")
+    native = read(BASE + "textagent/Gemma4LiteRtTextBackend.kt")
+    editor = read(AUDIO + "ModelVoiceSettings.kt")
+    routing = read(BASE + "conversation/ConversationInputRoutingBackend.kt")
+    for scenario in ("AppointmentMvpConversationScenario", "ScenarioOutgoingConversationScenario"):
+        source = read(BASE + "campaign/" + scenario + ".kt")
+        if "ConversationInputRoutingBackend(" not in source:
+            errors.append(f"{scenario}: missing outgoing-audio-input-routing")
     native_tests = {
         name: read(
             "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/audioengines/"
@@ -44,7 +51,7 @@ def audit(root: Path) -> list[str]:
         )
         for name in (
             "AndroidAudioEngineProfileStoreContractTest",
-            "AndroidAudioEngineSettingsActivityTest",
+            "AndroidModelVoiceSettingsTest",
             "AndroidParakeetNativeOffcallTest",
             "AndroidGemmaAudioNativeOffcallTest",
             "AndroidParakeetPolishRoundTripTest",
@@ -68,8 +75,11 @@ def audit(root: Path) -> list[str]:
     for selection in ("ANDROID_STT", "GEMMA_4_E2B", "ANDROID_TTS_PL"):
         require("AudioEngineProfile", profile, r"val \w+\s*:\s*\w+\s*=\s*\w+\." + selection + r"\b",
                 "stable baseline " + selection)
-    require("AudioEngineProfile", profile, r"GEMMA_AUDIO_DIRECT\s*->\s*\"audio_direct_s22_unqualified\"",
-            "experimental-audio-not-selectable")
+    require("AudioEngineProfile", profile, r"GEMMA_AUDIO_DIRECT\s*&&\s*!supportsAudio\(profile\)",
+            "audio-requires-compatible-model")
+    require("AudioEngineReadiness", files["AudioEngineReadiness"],
+            r"!ModelCompatibilityStore\(context\)\.verified\(file, true\)",
+            "audio-requires-native-device-check")
     # The consumer selector exposes the protected baseline and explicit owner imports.
     # Retired catalog identities remain available only for inventory and Lab code.
     choices_match = re.search(r"val dialogues\s*=\s*listOf\((.*?)\n    \)", profile, re.S)
@@ -79,8 +89,6 @@ def audit(root: Path) -> list[str]:
     require("AudioEngineProfile", choices, r"DialogueModelId\.USER_LITERT\.name",
             "owner-file-dialogue-choice")
     forbid("AudioEngineProfile", choices, r"GEMMA_4_E4B|QWEN_", "retired-consumer-dialogue-choice")
-    require("AudioEngineProfile", profile, r"\"GEMMA_AUDIO_DIRECT\"[\s\S]{0,200}\bfalse\s*\)",
-            "M4-gallery-not-ready")
     require("AudioEngineProfileStore", files["AudioEngineProfileStore"],
             r"AudioEngineRegistry\.incompatibility\(it\)\s*==\s*null",
             "unknown-profile-no-silent-fallback")
@@ -89,8 +97,12 @@ def audit(root: Path) -> list[str]:
 
     require("DialogueEngineProviders", files["DialogueEngineProviders"],
             r"context, systemInstruction, allowedActions, id", "selected-model-reaches-native-classifier")
-    require("GemmaAudioDirectInputProvider", files["GemmaAudioDirectInputProvider"],
-            r"modelFile\(appContext, DialogueModelId\.GEMMA_4_E2B\)", "audio-model-independent-of-dialogue-selection")
+    forbid("GemmaAudioDirectInputProvider", files["GemmaAudioDirectInputProvider"],
+           r"\bEngine\s*\(", "second-native-model-for-audio")
+    require("ModelVoiceSettings", editor, r"inputs\.filter\s*\{\s*!it\.advanced\s*\}",
+            "Parakeet-advanced-choice")
+    forbid("AudioEngineProfile", profile[profile.index("val outputs"):profile.index("fun incompatibility")],
+           r"AudioEngineChoice\(\"(?:KOKORO|POCKET_TTS|PIPER_PL)\"", "placeholder-output-choice")
 
     p = files["ParakeetSpeechInputProvider"]
     require("ParakeetSpeechInputProvider", p, r"const val EXPECTED_SHA256\s*=\s*\"[0-9a-f]{64}\"",
@@ -137,7 +149,11 @@ def audit(root: Path) -> list[str]:
            "duplicate-parakeet-controller")
 
     m4 = files["GemmaAudioDirectInputProvider"]
-    require("GemmaAudioDirectInputProvider", m4, r"Content\.AudioBytes\(", "native-audio-bytes-path")
+    require("GemmaAudioDirectInputProvider", m4, r"callback\.onFinalAudio\(samples\)", "shared-audio-payload")
+    require("Gemma4LiteRtTextBackend", native, r"Content\.AudioBytes\(wave\)", "native-audio-bytes-path")
+    require("ConversationInputRoutingBackend", routing, r"model\.generateAudio\(pcm16",
+            "outgoing-audio-reaches-shared-model")
+    require("Gemma4LiteRtTextBackend", native, r"currentlySending\?\.cancelProcess\(\)", "native-cancel-shared-by-audio")
     require("GemmaAudioDirectInputProvider", m4, r"fun cancel\(", "cancel-port")
 
     # Scope guard: audio adapters and synthetic tests cannot own Telecom authority,

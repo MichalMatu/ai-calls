@@ -27,7 +27,7 @@ class AndroidPolishAudioQualityTest {
     )
 
     @Test fun gemmaAudioRecognizesPolishSpeech() = corpus(
-        "GEMMA", { GemmaAudioDirectInputProvider(context) },
+        "GEMMA", { SharedGemmaAudioProbeInput(context) },
     )
 
     @Test fun parakeetRecognizesPolishSpeech() = corpus(

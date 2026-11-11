@@ -21,7 +21,8 @@ class AudioEngineActiveProfilePresenterTest {
         val selections = listOf(
             AudioEngineProfile(input = SpeechInputId.PARAKEET_PL,
                 dialogue = DialogueModelId.GEMMA_4_E2B,
-                output = SpeechOutputId.PIPER_PL, voiceId = "pl-PL-local"),
+                output = SpeechOutputId.ANDROID_TTS_PL, voiceId = "pl-PL-local",
+                ttsEnginePackage = PiperServiceContract.PACKAGE),
             AudioEngineProfile(dialogue = DialogueModelId.USER_LITERT,
                 customModelId = "user-" + "a".repeat(64)),
             AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E2B),
@@ -65,7 +66,7 @@ class AudioEngineActiveProfilePresenterTest {
         val state = AudioEngineActiveProfilePresenter.present(profile)
             as AudioEngineActiveState.Configured
         assertTrue(state.inputTitle.contains("Gemma"))
-        assertTrue(state.outputTitle.contains("Kokoro"))
+        assertEquals("KOKORO", state.outputTitle)
         assertNotEquals("Android STT", state.inputTitle)
         assertNotEquals("Android TTS", state.outputTitle)
     }

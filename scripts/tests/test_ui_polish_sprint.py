@@ -35,13 +35,13 @@ class UiPolishSprintContract(unittest.TestCase):
             self.assertIn(token,camp)
     def test_preparation_and_engine_keep_original_policy(self):
         prep=(ROOT/"conversation/ConversationPreparationActivity.kt").read_text()
-        engine=(ROOT/"audioengines/AudioEngineSettingsActivity.kt").read_text()
+        engine=(ROOT/"audioengines/ModelVoiceSettings.kt").read_text()
         for token in ("RadioGroup(this)", "store.save(selected)",
                       "confirmDiscard(", 'tag = "preparation-actions"'):
             self.assertIn(token,prep)
-        for token in ("UiDesign.card", 'tag = "engine-unavailable:"',
-                      "AudioEngineReadinessProbe.check", "store.save(requested)",
-                      "previewVoice()"):
+        for token in ("UiDesign.card", 'tag = "engine-save"',
+                      "AudioEngineReadinessProbe.check", "store.save(draft)",
+                      "private fun preview()"):
             self.assertIn(token,engine)
         service=(ROOT/"audioengines/ParakeetModelTransferService.kt").read_text()
         models=(ROOT/"textagent/LanguageModelActivity.kt").read_text()

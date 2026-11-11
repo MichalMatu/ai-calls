@@ -45,14 +45,7 @@ internal class ScenarioOutgoingConversationScenario(
             ) TextOutputDecision.DROP else TextOutputDecision.RELEASE
         }
         val session = ToolCallingConversationSession(
-            model = object : TextCallAgentBackend {
-                override fun generate(input: String, listener: TextCallAgentBackend.Listener) {
-                    if (!hooks.authorized()) listener.onError("scenario_authority_revoked")
-                    else model.generate(input, listener)
-                }
-                override fun cancel() = model.cancel()
-                override fun close() = model.close()
-            },
+            model = ConversationInputRoutingBackend(model, hooks.authorized, "scenario_authority_revoked"),
             releasePolicy = approval,
             tools = createOutgoingConversationTools(context, hooks, requestEndCall),
             hooks = hooks,

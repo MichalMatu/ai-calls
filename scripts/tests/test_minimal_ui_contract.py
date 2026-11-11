@@ -53,8 +53,7 @@ class MinimalUiContract(unittest.TestCase):
         self.assertNotIn('tag = "ui-language-group"',hub)
         self.assertIn("UiSelect.setOptions(this, languageLabels)",hub)
         self.assertNotIn("RadioGroup(this)",hub)
-        for file in ("ui/GeneralSettingsActivity.kt",
-                     "audioengines/AudioEngineSettingsActivity.kt",
+        for file in ("audioengines/ModelVoiceSettings.kt",
                      "conversation/ConversationSkillLabActivity.kt"):
             self.assertIn("UiSelect.setOptions(",(K/file).read_text())
 

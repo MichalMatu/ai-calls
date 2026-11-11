@@ -1,6 +1,6 @@
 # Rozmowa — STT → Gemma → Skills → TTS
 
-**Runtime:** `AndroidConversationRuntime`, `LocalSpeechTextPipeline`, `LocalSpeechGenerationGate` i wspólny `conversation-core`. INCOMING i OUTGOING nie mają osobnych modeli rozmowy. Domyślnie Gemma 4 E2B/GPU, kontekstowe dynamic Skills, Android STT/TTS; Qwen i ALL_ACTIVE tylko w Lab.
+**Runtime:** `AndroidConversationRuntime`, `LocalSpeechTextPipeline`, `LocalSpeechGenerationGate` i wspólny `conversation-core`. INCOMING i OUTGOING nie mają osobnych modeli rozmowy. Domyślnie Gemma E2B/GPU i Android STT/TTS. Opcjonalne audio Gemmy używa tego samego silnika i anulowania; transkrypt poprzedza dotychczasową kontrolę wizyty/danych i protokół narzędzi. Zgodność audio wymaga lokalnej próby na dokładnym pliku. Qwen i ALL_ACTIVE tylko w Lab.
 
 **Narzędzia AI:** wspólny `ConversationToolExecutor` obsługuje SAVE_NOTE i END_CALL w obu kierunkach. Zapis lokalnej notatki i propozycji jest trwały, typowany i idempotentny w ramach tury; propozycje zadań, kalendarza i wiadomości nie mają skutków zewnętrznych. END_CALL wymaga dokładnie autoryzowanej własności Call i ukończonego TX pożegnania. Osobne rekordy notatników są szyfrowane przez Android Keystore i AtomicFile, z odtwarzaniem kopii .bak oraz migracją starszej biblioteki.
 

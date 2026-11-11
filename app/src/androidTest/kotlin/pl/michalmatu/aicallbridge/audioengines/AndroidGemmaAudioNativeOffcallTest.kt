@@ -22,7 +22,7 @@ class AndroidGemmaAudioNativeOffcallTest {
         val terminal = CountDownLatch(1)
         val error = AtomicReference<String?>(null)
         val gotText = AtomicReference(false)
-        val input = GemmaAudioDirectInputProvider(context)
+        val input = SharedGemmaAudioProbeInput(context)
         try {
             val started = System.nanoTime()
             input.start(object : SpeechInputProvider.Listener {

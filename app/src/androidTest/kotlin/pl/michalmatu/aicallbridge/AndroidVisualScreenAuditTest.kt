@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge
 import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.Rect
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -35,7 +36,7 @@ import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
 import pl.michalmatu.aicallbridge.ui.AgentAiHubActivity
 
 /**
- * Read-only physical-screen review. Opens safe pages and scrolls them.
+ * Read-only isolated-emulator review. Opens safe pages and scrolls them.
  * Never presses an authorization, save, record, delete, transfer, dial or STOP action.
  * Screenshots stay in local app-specific storage; pull only into owner's private Mac folder.
  * Never emit screenshot pixels, visible text, user identifiers or transcript data to logs/Git.
@@ -90,10 +91,18 @@ class AndroidVisualScreenAuditTest {
         return Geometry(actions, cramped, small)
     }
 
-    private fun <T : Activity> capture(type: Class<T>, label: String) {
+    private fun <T : Activity> capture(type: Class<T>, label: String, advanced: Boolean = false) {
+        // Connect before launch so accessibility receives the new window's focus event.
+        val automation = instrument.uiAutomation
         ActivityScenario.launch(type).use { scenario ->
             Thread.sleep(450)
             instrument.waitForIdleSync()
+            if (advanced) {
+                scenario.onActivity { activity ->
+                    activity.window.decorView.findViewWithTag<Button>("model-voice-advanced-toggle").performClick()
+                }
+                instrument.waitForIdleSync()
+            }
             var scrollRange = 0
             var privateDir: File? = null
             var density = 1f
@@ -124,13 +133,19 @@ class AndroidVisualScreenAuditTest {
                 }
                 instrument.waitForIdleSync()
                 Thread.sleep(160)
+                val expectedPackage = instrument.targetContext.packageName
+                val windowDeadline = SystemClock.uptimeMillis() + 20_000
+                while (automation.rootInActiveWindow?.packageName?.toString() != expectedPackage &&
+                    SystemClock.uptimeMillis() < windowDeadline) SystemClock.sleep(50)
+                assertTrue("system_window_obscures_capture:" + label,
+                    automation.rootInActiveWindow?.packageName?.toString() == expectedPackage)
                 scenario.onActivity { activity ->
                     val geometry = countGeometry(activity.window.decorView, density)
                     maxCramped = maxOf(maxCramped, geometry.cramped)
                     maxSmall = maxOf(maxSmall, geometry.small)
                     maxActions = maxOf(maxActions, geometry.actions)
                 }
-                val screenshot = instrument.uiAutomation.takeScreenshot()
+                val screenshot = automation.takeScreenshot()
                 assertNotNull("screenshot_blocked:" + label, screenshot)
                 val bitmap = checkNotNull(screenshot)
                 try {
@@ -157,6 +172,7 @@ class AndroidVisualScreenAuditTest {
     @Test fun generalSettings() = capture(GeneralSettingsActivity::class.java, "general-settings")
     @Test fun engines() = capture(AudioEngineSettingsActivity::class.java, "engines")
     @Test fun languageModels() = capture(LanguageModelActivity::class.java, "models")
+    @Test fun modelAndVoiceAdvanced() = capture(LanguageModelActivity::class.java, "models-advanced", true)
     @Test fun incomingAssistant() = capture(IncomingAssistantSettingsActivity::class.java, "incoming")
     @Test fun preparation() = capture(ConversationPreparationActivity::class.java, "preparation")
     @Test fun skills() = capture(ConversationSkillsActivity::class.java, "skills")

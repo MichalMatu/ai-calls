@@ -50,8 +50,7 @@ internal object AudioEngineReadinessProbe {
                     ParakeetModelIntegrity.UNVERIFIED, ParakeetModelIntegrity.VERIFIED -> Unit
                 }
             }
-            SpeechInputId.GEMMA_AUDIO_DIRECT ->
-                return "audio_direct_not_integrated"
+            SpeechInputId.GEMMA_AUDIO_DIRECT -> Unit
         }
         val spec = if (profile.dialogue == DialogueModelId.USER_LITERT) {
             val library = pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore(context)
@@ -69,6 +68,13 @@ internal object AudioEngineReadinessProbe {
         if (Gemma4ModelReadinessProbe(directory, spec).check().state !=
             Gemma4ModelReadinessState.READY
         ) return "dialogue_model_missing_or_invalid"
+        val file = Gemma4LiteRtTextBackendFactory.modelFile(context, profile)
+        if (profile.dialogue == DialogueModelId.USER_LITERT &&
+            !pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer.hasHeader(file)) return "model_container_invalid"
+        if (profile.dialogue == DialogueModelId.USER_LITERT &&
+            !ModelCompatibilityStore(context).verified(file, false)) return "model_compatibility_required"
+        if (profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
+            !ModelCompatibilityStore(context).verified(file, true)) return "model_audio_check_required"
         return null
     }
 

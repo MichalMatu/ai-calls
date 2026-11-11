@@ -12,7 +12,6 @@ import pl.michalmatu.aicallbridge.identity.*
 import pl.michalmatu.aicallbridge.taskgraph.TaskGraphStateId
 import pl.michalmatu.aicallbridge.textagent.*
 import pl.michalmatu.aicallbridge.tools.*
-import org.json.JSONObject
 
 /**
  * Live outbound speech adapter for one user-approved appointment task.
@@ -68,34 +67,18 @@ internal class AppointmentMvpConversationScenario(
                     text.contains("[[") || text.contains("]]")) TextOutputDecision.DROP
                 else approved.evaluate(text)
             }
-            override val backend: TextCallAgentBackend = object : TextCallAgentBackend {
-                override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
-                    if (!hooks.authorized()) {
-                        listener.onError("appointment_authority_revoked")
-                        return
-                    }
-                    // Existing host replies must obey the same structured reply contract as Gemma.
-                    val plainReply = object : TextCallAgentBackend.Listener {
-                        override fun onComplete(text: String) {
-                            listener.onComplete(JSONObject().put("reply", text)
-                                .put("tool", "none").toString())
-                        }
-                        override fun onError(reason: String) = listener.onError(reason)
-                    }
-                    if (reviewPending) {
-                        plainReply.onComplete("Dziękuję. Zanotowałam proponowany termin do " +
-                            "weryfikacji przez użytkownika. Nie potwierdzam rezerwacji.")
-                        return
-                    }
+            override val backend: TextCallAgentBackend = ConversationInputRoutingBackend(
+                model, hooks.authorized, "appointment_authority_revoked",
+            ) { userText, plainReply ->
+                if (reviewPending) {
+                    plainReply.onComplete("Dziękuję. Zanotowałam proponowany termin do " +
+                        "weryfikacji przez użytkownika. Nie potwierdzam rezerwacji.")
+                    true
+                } else {
                     val field = interpreter.parseIdentityFieldRequest(userText)?.fieldId
-                    if (field != null) {
-                        discloseRequestedField(field, plainReply)
-                        return
-                    }
-                    model.generate(userText, listener)
+                    if (field != null) discloseRequestedField(field, plainReply)
+                    field != null
                 }
-                override fun cancel() = model.cancel()
-                override fun close() = model.close()
             }
             private fun discloseRequestedField(
                 field: IdentityFieldId, listener: TextCallAgentBackend.Listener,

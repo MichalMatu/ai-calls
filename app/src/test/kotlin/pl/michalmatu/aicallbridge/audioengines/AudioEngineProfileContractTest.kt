@@ -15,9 +15,9 @@ class AudioEngineProfileContractTest {
     }
 
     @Test fun unimplementedEnginesCannotMasqueradeAsReady() {
-        for (input in listOf(SpeechInputId.GEMMA_AUDIO_DIRECT)) {
-            assertNotNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = input)))
-        }
+        assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT)))
+        assertEquals("model_audio_input_unavailable", AudioEngineRegistry.incompatibility(
+            AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT, dialogue = DialogueModelId.QWEN_3_1_7B)))
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = SpeechInputId.PARAKEET_PL)))
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(output = SpeechOutputId.PIPER_PL)))
         for (model in DialogueModelId.entries) {
@@ -49,7 +49,7 @@ class AudioEngineProfileContractTest {
             for (dialogue in DialogueModelId.entries) {
                 for (output in SpeechOutputId.entries) {
                     val profile = AudioEngineProfile(input = input, dialogue = dialogue, output = output)
-                    val shouldBeIntegrated = input != SpeechInputId.GEMMA_AUDIO_DIRECT &&
+                    val shouldBeIntegrated = (input != SpeechInputId.GEMMA_AUDIO_DIRECT || dialogue == DialogueModelId.GEMMA_4_E2B) &&
                         output != SpeechOutputId.KOKORO &&
                         output != SpeechOutputId.POCKET_TTS &&
                         dialogue != DialogueModelId.QWEN_3_5_2B &&

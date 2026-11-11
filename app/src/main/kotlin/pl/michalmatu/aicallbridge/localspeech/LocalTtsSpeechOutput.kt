@@ -45,10 +45,10 @@ internal class LocalTtsSpeechOutput(
                 }
                 if (enginePackage != null && (
                     tts.engines.none { it.name == enginePackage } ||
-                    tts.voices.orEmpty().none {
+                    (enginePackage == pl.michalmatu.aicallbridge.audioengines.PiperServiceContract.PACKAGE && tts.voices.orEmpty().none {
                         it.locale.language == "pl" && !it.isNetworkConnectionRequired &&
                             "piperVoice" in it.features
-                    }
+                    })
                 )) {
                     try { tts.shutdown() } catch (_: Throwable) {}
                     finishWithError(generation, listener, "explicit_tts_engine_unavailable")
@@ -59,7 +59,7 @@ internal class LocalTtsSpeechOutput(
                 val localVoice = tts.voices.orEmpty()
                     .filter { it.locale.language.equals(selectedLanguage, ignoreCase = true) && !it.isNetworkConnectionRequired }
                     .filter { voiceId == null || it.name == voiceId }
-                    .filter { enginePackage == null || "piperVoice" in it.features }
+                    .filter { enginePackage != pl.michalmatu.aicallbridge.audioengines.PiperServiceContract.PACKAGE || "piperVoice" in it.features }
                     .sortedBy { it.name }
                     .firstOrNull()
                 if (localVoice == null) {

@@ -15,6 +15,7 @@ internal class TextCallTurnController(
     private val approvalPolicy: TextOutputApprovalPolicy,
 ) : AutoCloseable {
     interface Listener {
+        fun onUserTranscript(text: String) = Unit
         fun onApprovedResponse(text: String)
         fun onDroppedResponse()
         fun onError(reason: String)
@@ -24,10 +25,22 @@ internal class TextCallTurnController(
 
     fun submitUserText(userText: String, listener: Listener) {
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }
+        submit(listener) { backend.generate(userText, it) }
+    }
+
+    fun submitUserAudio(pcm16: ByteArray, listener: Listener) {
+        require(pcm16.isNotEmpty() && pcm16.size % 2 == 0) { "invalid_pcm16" }
+        submit(listener) { backend.generateAudio(pcm16, it) }
+    }
+
+    private fun submit(listener: Listener, generate: (TextCallAgentBackend.Listener) -> Unit) {
         backend.cancel()
         val generation = gate.begin()
         try {
-            backend.generate(userText, object : TextCallAgentBackend.Listener {
+            generate(object : TextCallAgentBackend.Listener {
+                override fun onUserTranscript(text: String) {
+                    if (gate.isCurrent(generation)) listener.onUserTranscript(text)
+                }
                 override fun onComplete(text: String) {
                     if (!gate.isCurrent(generation)) return
                     if (text.isBlank()) {

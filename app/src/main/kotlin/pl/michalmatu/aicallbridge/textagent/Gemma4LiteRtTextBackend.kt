@@ -8,6 +8,7 @@ import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
@@ -59,6 +60,9 @@ internal fun interface Gemma4RuntimeFactory {
 
 internal interface Gemma4Runtime : AutoCloseable {
     fun generate(userText: String, listener: TextCallAgentBackend.Listener)
+    fun generateAudio(pcm16: ByteArray, listener: TextCallAgentBackend.Listener) {
+        listener.onError("model_audio_input_unavailable")
+    }
     fun cancel()
     /** Drop only synthetic prewarm history, not the initialized model engine. */
     fun resetConversationContext() = Unit
@@ -99,7 +103,16 @@ internal class Gemma4LiteRtTextBackend(
 
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }
+        request(listener) { runtime, guarded -> runtime.generate(userText, guarded) }
+    }
 
+    override fun generateAudio(pcm16: ByteArray, listener: TextCallAgentBackend.Listener) {
+        require(pcm16.isNotEmpty() && pcm16.size % 2 == 0) { "invalid_pcm16" }
+        request(listener) { runtime, guarded -> runtime.generateAudio(pcm16, guarded) }
+    }
+
+    private fun request(listener: TextCallAgentBackend.Listener,
+        send: (Gemma4Runtime, TextCallAgentBackend.Listener) -> Unit) {
         val activeRuntime: Gemma4Runtime
         val requestGeneration: Long
         synchronized(lock) {
@@ -117,7 +130,7 @@ internal class Gemma4LiteRtTextBackend(
         }
 
         try {
-            activeRuntime.generate(userText, guardedListener(requestGeneration, listener))
+            send(activeRuntime, guardedListener(requestGeneration, listener))
         } catch (error: Throwable) {
             if (isCurrent(requestGeneration)) {
                 listener.onError("gemma4_runtime_${sanitize(error.javaClass.simpleName)}")
@@ -174,6 +187,9 @@ internal class Gemma4LiteRtTextBackend(
         requestGeneration: Long,
         listener: TextCallAgentBackend.Listener,
     ) = object : TextCallAgentBackend.Listener {
+        override fun onUserTranscript(text: String) {
+            if (isCurrent(requestGeneration)) listener.onUserTranscript(text)
+        }
         override fun onComplete(text: String) {
             if (isCurrent(requestGeneration)) listener.onComplete(text)
         }
@@ -202,6 +218,7 @@ internal class LiteRtGemma4Runtime(
     private val modelPath: String,
     systemInstruction: String?,
     private val responseFormat: ResponseFormat? = null,
+    private val audioResponseFormat: ResponseFormat? = null,
     private val disableQwenThinking: Boolean = false,
     private val executionPolicy: NativeModelExecutionPolicy = NativeModelExecutionPolicy(),
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
@@ -229,6 +246,19 @@ internal class LiteRtGemma4Runtime(
 
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }
+        enqueue(userText, null, listener)
+    }
+
+    override fun generateAudio(pcm16: ByteArray, listener: TextCallAgentBackend.Listener) {
+        if (audioResponseFormat == null) {
+            listener.onError("model_audio_input_unavailable")
+            return
+        }
+        pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.validate(pcm16)
+        enqueue(ConversationReplyProtocol.AUDIO_INSTRUCTION, pcm16.copyOf(), listener)
+    }
+
+    private fun enqueue(userText: String, pcm16: ByteArray?, listener: TextCallAgentBackend.Listener) {
         val requestGeneration = synchronized(lock) {
             check(!closed) { "runtime_closed" }
             generation += 1
@@ -236,9 +266,10 @@ internal class LiteRtGemma4Runtime(
         }
         try {
             executor.execute {
-                runGeneration(userText, requestGeneration, listener)
+                runGeneration(userText, requestGeneration, listener, pcm16)
             }
         } catch (_: RejectedExecutionException) {
+            pcm16?.fill(0)
             if (isCurrent(requestGeneration)) listener.onError("executor_rejected")
         }
     }
@@ -343,8 +374,9 @@ internal class LiteRtGemma4Runtime(
         userText: String,
         requestGeneration: Long,
         listener: TextCallAgentBackend.Listener,
+        audioPcm: ByteArray?,
     ) {
-        if (!isCurrent(requestGeneration)) return
+        if (!isCurrent(requestGeneration)) { audioPcm?.fill(0); return }
 
         var conversation: Conversation? = null
         var registeredConversation = false
@@ -384,7 +416,7 @@ internal class LiteRtGemma4Runtime(
                         automaticToolCalling = false,
                         extraContext = if (disableQwenThinking) mapOf("enable_thinking" to false) else emptyMap(),
                         channels = emptyList(),
-                        maxOutputToken = MAX_OUTPUT_TOKENS,
+                        maxOutputToken = if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS,
                         thinkingConfig = ThinkingConfig(enableThinking = false),
                         enableResponseFormat = responseFormat != null,
                     ),
@@ -406,12 +438,22 @@ internal class LiteRtGemma4Runtime(
 
             // Testing/diagnostics only: never expose text, model state or authorization.
             runCatching { onNativeSendEntered() }
-            val message = currentConversation.sendMessage(
+            val message = if (audioPcm == null) currentConversation.sendMessage(
                 text = userText,
                 maxOutputToken = MAX_OUTPUT_TOKENS,
                 thinkingConfig = ThinkingConfig(enableThinking = false),
                 responseFormat = responseFormat,
-            )
+            ) else {
+                val wave = pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.toWave(audioPcm)
+                try {
+                    currentConversation.sendMessage(
+                        contents = Contents.of(Content.Text(userText), Content.AudioBytes(wave)),
+                        maxOutputToken = AUDIO_OUTPUT_TOKENS,
+                        thinkingConfig = ThinkingConfig(enableThinking = false),
+                        responseFormat = audioResponseFormat,
+                    )
+                } finally { wave.fill(0) }
+            }
             inferenceReadyNs = System.nanoTime()
             val text = message.toString().trim()
             outputChars = text.length
@@ -435,6 +477,7 @@ internal class LiteRtGemma4Runtime(
             successfulSend = false
             if (isCurrent(requestGeneration)) listener.onError(sanitizeRuntimeError(error))
         } finally {
+            audioPcm?.fill(0)
             // Only timing/accelerator metadata. Never print transcripts, history,
             // prompt, model reply, phone details, model file path or personal data.
             val nativeCancelRequested = synchronized(lock) {
@@ -549,7 +592,7 @@ internal class LiteRtGemma4Runtime(
                 modelPath = modelFile.absolutePath,
                 backend = backend,
                 visionBackend = null,
-                audioBackend = null,
+                audioBackend = if (audioResponseFormat != null) Backend.CPU() else null,
                 maxNumTokens = contextTokenBudget,
                 cacheDir = cacheDirectory.absolutePath,
             ),
@@ -606,6 +649,7 @@ internal class LiteRtGemma4Runtime(
 
     private companion object {
         const val MAX_OUTPUT_TOKENS = 128
+        const val AUDIO_OUTPUT_TOKENS = 512
         const val MAX_ERROR_CHARS = 140
         const val MIN_CPU_THREADS = 2
         const val MAX_CPU_THREADS = 6
@@ -613,6 +657,21 @@ internal class LiteRtGemma4Runtime(
 }
 
 internal object Gemma4LiteRtTextBackendFactory {
+    /** Uses the same native lifecycle without changing the selected profile or starting a Call. */
+    fun createCompatibilityProbe(file: File, audio: Boolean): TextCallAgentBackend =
+        Gemma4LiteRtTextBackend(Gemma4RuntimeFactory { path, instruction ->
+            LiteRtGemma4Runtime(path, instruction,
+                responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(emptySet())),
+                audioResponseFormat = if (audio) ResponseFormat.json(
+                    ConversationReplyProtocol.audioSchema(emptySet())) else null)
+        }, file.absolutePath, ConversationReplyProtocol.INSTRUCTION)
+
+    fun modelFile(context: Context, profile: pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile): File {
+        if (profile.dialogue != DialogueModelId.USER_LITERT) return modelFile(context, profile.dialogue)
+        val library = UserLiteRtModelStore(context)
+        return library.file(checkNotNull(library.find(profile.customModelId)) { "user_model_missing" })
+    }
+
     fun createConversationReply(
         context: Context,
         systemInstruction: String,
@@ -620,11 +679,15 @@ internal object Gemma4LiteRtTextBackendFactory {
         tools: Set<ConversationToolId>,
         contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
         onTiming: (NativeModelTiming) -> Unit = {},
+        audioInput: Boolean = false,
+        selectedFile: File? = null,
     ): TextCallAgentBackend = createInternal(
         context = context, modelId = modelId, systemInstruction = systemInstruction,
         responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(tools)),
         contextTokenBudget = contextTokenBudget,
         onTiming = onTiming,
+        selectedFile = selectedFile,
+        audioResponseFormat = if (audioInput) ResponseFormat.json(ConversationReplyProtocol.audioSchema(tools)) else null,
     )
 
     private fun selectedModel(context: Context): DialogueModelId =
@@ -736,17 +799,20 @@ internal object Gemma4LiteRtTextBackendFactory {
         context: Context,
         systemInstruction: String?,
         responseFormat: ResponseFormat?,
+        audioResponseFormat: ResponseFormat? = null,
+        selectedFile: File? = null,
         modelId: DialogueModelId,
         contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
         onTiming: (NativeModelTiming) -> Unit = {},
     ): Gemma4LiteRtTextBackend {
-        val modelPath = modelFile(context, modelId).absolutePath
+        val modelPath = (selectedFile ?: modelFile(context, modelId)).absolutePath
         return Gemma4LiteRtTextBackend(
             runtimeFactory = Gemma4RuntimeFactory { path, instruction ->
                 LiteRtGemma4Runtime(
                     modelPath = path,
                     systemInstruction = instruction,
                     responseFormat = responseFormat,
+                    audioResponseFormat = audioResponseFormat,
                     disableQwenThinking = modelId == DialogueModelId.QWEN_3_1_7B || modelId == DialogueModelId.QWEN_3_0_6B || modelId == DialogueModelId.QWEN_3_5_2B,
                     executionPolicy = modelId.nativeExecutionPolicy(),
                     contextTokenBudget = contextTokenBudget,

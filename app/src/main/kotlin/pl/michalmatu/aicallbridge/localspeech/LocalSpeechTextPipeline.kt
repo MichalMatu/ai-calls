@@ -81,6 +81,30 @@ internal class LocalSpeechTextPipeline(
                 }
             }
 
+            override fun onFinalAudio(pcm16: ByteArray) {
+                if (!gate.isCurrent(generation)) return
+                if (finalTurnRouteSelector != null) {
+                    finishError(generation, listener, "audio_input_requires_model_dialogue")
+                    return
+                }
+                controller.submitUserAudio(pcm16, object : TextCallTurnController.Listener {
+                    override fun onUserTranscript(text: String) {
+                        if (gate.isCurrent(generation)) listener.onUserTranscript(text)
+                    }
+                    override fun onApprovedResponse(text: String) {
+                        if (!gate.isCurrent(generation)) return
+                        listener.onApprovedText(text)
+                        synthesize(generation, text, listener)
+                    }
+                    override fun onDroppedResponse() {
+                        if (!gate.isCurrent(generation)) return
+                        finishGeneration(generation)
+                        listener.onDroppedText()
+                    }
+                    override fun onError(reason: String) = finishError(generation, listener, reason)
+                })
+            }
+
             override fun onError(reason: String) {
                 finishError(generation, listener, "stt_$reason")
             }

@@ -136,8 +136,7 @@ internal object AndroidConversationRuntime {
         private val finalAudioReadyTurn = AtomicInteger(0)
         private val quickAckSynthesizer = LocalTtsSpeechOutput(
             context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
-            enginePackage = if (runConfiguration.audioProfile.output == SpeechOutputId.PIPER_PL)
-                PiperServiceContract.PACKAGE else null,
+            enginePackage = runConfiguration.audioProfile.effectiveTtsEnginePackage,
         )
         private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "ChatRelayLiveCall").apply { isDaemon = true }
@@ -197,11 +196,12 @@ internal object AndroidConversationRuntime {
             input = when (runConfiguration.audioProfile.input) {
                 SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, runConfiguration.audioProfile.languageTag)
                 SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
-                SpeechInputId.GEMMA_AUDIO_DIRECT -> GemmaAudioDirectInputProvider(context)
+                SpeechInputId.GEMMA_AUDIO_DIRECT -> GemmaAudioDirectInputProvider()
             },
             output = when (runConfiguration.audioProfile.output) {
                 SpeechOutputId.ANDROID_TTS_PL -> AndroidTtsOutputProvider(
                     context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
+                    runConfiguration.audioProfile.effectiveTtsEnginePackage,
                 )
                 SpeechOutputId.PIPER_PL -> PiperAndroidTtsOutputProvider(
                     context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,

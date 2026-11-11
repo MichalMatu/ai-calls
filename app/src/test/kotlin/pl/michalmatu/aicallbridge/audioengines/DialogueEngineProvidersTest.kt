@@ -31,12 +31,11 @@ class DialogueEngineProvidersTest {
         }
     }
 
-    @Test fun noAlternateInputCanClaimTheExistingTextAdapter() {
-        try {
-            DialogueEngineProviders.resolve(AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT))
-            fail("Native audio adapter does not exist")
-        } catch (_: IllegalArgumentException) {
-            // Model's text backend is not a PCM STT provider.
-        }
+    @Test fun audioIsADeclaredModelCapabilityWithoutChangingTheSelectedIdentity() {
+        val profile = AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT)
+        assertEquals(DialogueModelId.GEMMA_4_E2B, DialogueEngineProviders.resolve(profile).id)
+        assertTrue(AudioEngineRegistry.supportsAudio(profile))
+        val imported = profile.copy(dialogue = DialogueModelId.USER_LITERT, customModelId = "user-" + "b".repeat(64))
+        assertEquals("model_audio_input_unavailable", AudioEngineRegistry.incompatibility(imported))
     }
 }

@@ -9,6 +9,7 @@ internal interface SpeechInputProvider : AutoCloseable {
     interface Listener {
         fun onReady()
         fun onFinalTranscript(text: String)
+        fun onFinalAudio(pcm16: ByteArray) = onError("audio_input_not_supported")
         fun onError(reason: String)
     }
     fun start(listener: Listener)
@@ -49,8 +50,9 @@ internal class AndroidTtsOutputProvider(
     context: Context,
     languageTag: String,
     voiceId: String?,
+    enginePackage: String? = null,
 ) : SpeechOutputProvider {
-    private val delegate = LocalTtsSpeechOutput(context, languageTag, voiceId)
+    private val delegate = LocalTtsSpeechOutput(context, languageTag, voiceId, enginePackage = enginePackage)
     override fun synthesize(text: String, listener: SpeechOutputProvider.Listener) =
         delegate.synthesize(text, object : LocalTtsSpeechOutput.Listener {
             override fun onPcm16Mono16k(pcm: ByteArray) = listener.onPcm16Mono16k(pcm)

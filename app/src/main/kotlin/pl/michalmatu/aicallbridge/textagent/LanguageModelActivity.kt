@@ -23,13 +23,14 @@ import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
-import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelFile
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelTransferService
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelIntegrity
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
-import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
+import pl.michalmatu.aicallbridge.audioengines.ModelVoiceSettings
+import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityStore
+import androidx.activity.OnBackPressedCallback
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -37,8 +38,8 @@ import java.util.concurrent.Executors
  * Local-only model management. Cards present the current state first and show only
  * actions which are currently meaningful. Original transfer and selection gates stay intact.
  */
-internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
-    override fun toolbarTitle(): String = getString(R.string.models_ui_title)
+open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
+    override fun toolbarTitle(): String = getString(R.string.mv_title)
     /** Read-only localization of stable model catalog descriptions. */
     private fun localizedModelDetail(model: LanguageModelEntry): String = getString(when (model.id.name) {
         "GEMMA_4_E2B" -> R.string.models_ux05_detail_e2b
@@ -56,6 +57,12 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var storageStatus: TextView
     private lateinit var feedback: TextView
     private lateinit var pipelineStatus: TextView
+    private lateinit var configuration: ModelVoiceSettings
+    private lateinit var advanced: LinearLayout
+    private lateinit var mainModels: LinearLayout
+    private lateinit var advancedModels: LinearLayout
+    private lateinit var selectedUserCard: LinearLayout
+    private lateinit var selectedUserStatus: TextView
     private lateinit var parakeetStatus: TextView
     private lateinit var parakeetDownload: Button
     private lateinit var parakeetCancel: Button
@@ -93,6 +100,12 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         pendingImport = savedInstanceState?.getString("pending_import")?.let { name ->
             DialogueModelId.entries.firstOrNull { it.name == name }
         }
+        configuration = ModelVoiceSettings(this, savedInstanceState, { safeToEditModels() }) {
+            if (::storageStatus.isInitialized) update()
+        }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = navigateBack()
+        })
         val pad = UiDesign.dp(this, UiDesign.CONTENT_INSET)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -100,7 +113,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         // The shared child toolbar owns the only title and its Back affordance.
         content.addView(UiDesign.caption(this,
-            getString(R.string.models_ui_intro)
+            getString(R.string.mv_intro)
         ), UiDesign.spaceAfter(this, 16))
 
         feedback = UiDesign.caption(this, "").apply {
@@ -115,32 +128,21 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }.apply { tag = "model-transfer-cancel"; visibility = View.GONE }
         content.addView(cancelTransfer, UiDesign.spaceAfter(this, 12))
 
-        val pipeline = UiDesign.card(this).apply {
-            tag = "models-pipeline-summary"
-            addView(UiDesign.heading(this@LanguageModelActivity,
-                getString(R.string.ux07_models_pipeline_title)).apply { textSize = 17f },
-                UiDesign.spaceAfter(this@LanguageModelActivity, 6))
-            pipelineStatus = UiDesign.caption(this@LanguageModelActivity, "").apply {
-                textSize = 15f
-                setTextColor(UiDesign.ink)
-            }
-            addView(pipelineStatus, UiDesign.spaceAfter(this@LanguageModelActivity, 12))
-            addView(UiDesign.action(this@LanguageModelActivity,
-                getString(R.string.ux07_models_edit_audio)) {
-                startActivity(Intent(this@LanguageModelActivity, AudioEngineSettingsActivity::class.java))
-            }, UiDesign.spaceAfter(this@LanguageModelActivity, 8))
-            addView(UiDesign.action(this@LanguageModelActivity,
-                getString(R.string.ux07_models_edit_runtime)) {
-                startActivity(Intent(this@LanguageModelActivity, GeneralSettingsActivity::class.java))
-            })
-        }
-        content.addView(pipeline, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
-        storageStatus = UiDesign.caption(this, "").apply { tag = "models-storage-summary" }
-        content.addView(storageStatus, UiDesign.spaceAfter(this, 16))
-        addParakeetCard(content)
+        content.addView(configuration.status, UiDesign.spaceAfter(this, 16))
+        pipelineStatus = UiDesign.caption(this, "").apply { tag = "models-pipeline-summary" }
+        content.addView(pipelineStatus, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.heading(this, getString(R.string.models_ui_dialogue_heading)).apply {
             textSize = 18f
         }, UiDesign.spaceAfter(this, 8))
+        mainModels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        selectedUserCard = UiDesign.card(this).apply { tag = "selected-custom-model" }
+        selectedUserStatus = UiDesign.caption(this, "")
+        selectedUserCard.addView(selectedUserStatus)
+        selectedUserCard.addView(UiDesign.action(this, getString(R.string.mv_change_model)) {
+            advanced.visibility = View.VISIBLE
+        })
+        mainModels.addView(selectedUserCard)
+        content.addView(mainModels)
         for (model in LanguageModelCatalog.entries.filter { it.id == DialogueModelId.GEMMA_4_E2B }) {
             val card = UiDesign.card(this).apply {
                 tag = "model-card:" + model.id.name
@@ -177,19 +179,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
             }.apply { tag = "model-import:" + model.id.name }
             val select = UiDesign.action(this, getString(R.string.models_ui_select), UiActionTone.SECONDARY) {
-                val store = AudioEngineProfileStore(this@LanguageModelActivity)
-                val current = store.load()
-                if (current == null) {
-                    feedback.text = getString(R.string.models_ui_fix_engines)
-                } else if (AndroidGemma4ModelReadiness.check(this@LanguageModelActivity, model.id)
-                        .state != Gemma4ModelReadinessState.READY) {
-                    feedback.text = getString(R.string.models_ui_install_first)
-                } else {
-                    feedback.text = if (store.save(current.copy(dialogue = model.id, customModelId = null)))
-                        getString(R.string.models_ui_selected, model.title) else
-                        getString(R.string.models_ui_save_failed)
-                }
-                feedback.visibility = View.VISIBLE
+                configuration.selectModel(model.id)
                 update()
             }.apply { tag = "model-select:" + model.id.name; visibility = View.GONE }
             val actions = LinearLayout(this).apply {
@@ -226,15 +216,34 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             }.apply { tag = "model-details-toggle:" + model.id.name }
             card.addView(toggle, UiDesign.spaceAfter(this, 8))
             card.addView(detail)
-            content.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
+            mainModels.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
             rows += Row(model, card, stateLabel, progress, download, import, select)
         }
-        content.addView(UiDesign.heading(this, getString(R.string.models_ui_user_heading)).apply {
+        content.addView(configuration.inputView, UiDesign.spaceAfter(this, 16))
+        content.addView(configuration.voiceView, UiDesign.spaceAfter(this, 16))
+        content.addView(configuration.actionsView, UiDesign.spaceAfter(this, 16))
+        advanced = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "model-voice-advanced"
+            visibility = if (savedInstanceState?.getBoolean("mv_advanced") == true) View.VISIBLE else View.GONE
+        }
+        content.addView(UiDesign.action(this, getString(R.string.mv_advanced)) {
+            advanced.visibility = if (advanced.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        }.apply { tag = "model-voice-advanced-toggle" }, UiDesign.spaceAfter(this, 8))
+        advanced.addView(UiDesign.caption(this, getString(R.string.mv_advanced_hint)), UiDesign.spaceAfter(this, 12))
+        advancedModels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        advanced.addView(advancedModels)
+        advanced.addView(configuration.advancedVoiceView, UiDesign.spaceAfter(this, 16))
+        addParakeetCard(advanced)
+        storageStatus = UiDesign.caption(this, "").apply { tag = "models-storage-summary" }
+        advanced.addView(UiDesign.heading(this, getString(R.string.mv_files)), UiDesign.spaceAfter(this, 8))
+        advanced.addView(storageStatus, UiDesign.spaceAfter(this, 12))
+        advanced.addView(UiDesign.heading(this, getString(R.string.models_ui_user_heading)).apply {
             textSize = 18f
         }, UiDesign.spaceAfter(this, 8))
-        content.addView(UiDesign.caption(this, getString(R.string.models_ui_user_hint)),
+        advanced.addView(UiDesign.caption(this, getString(R.string.models_ui_user_hint)),
             UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, getString(R.string.models_ui_add_file),
+        advanced.addView(UiDesign.action(this, getString(R.string.models_ui_add_file),
             UiActionTone.PRIMARY) {
             pendingUserImport = true
             try {
@@ -252,12 +261,13 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             orientation = LinearLayout.VERTICAL
             tag = "user-language-models"
         }
-        content.addView(userModelsContainer, UiDesign.spaceAfter(this, 16))
+        advanced.addView(userModelsContainer, UiDesign.spaceAfter(this, 16))
         legacyModelsContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             tag = "stored-legacy-models"
         }
-        content.addView(legacyModelsContainer)
+        advanced.addView(legacyModelsContainer)
+        content.addView(advanced)
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -297,17 +307,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }.apply { tag = "parakeet-transfer-cancel" }
         card.addView(parakeetCancel)
         parakeetSelect = UiDesign.action(this, getString(R.string.models_ui_use_stt)) {
-            val file = ParakeetModelFile.resolve(this)
-            val store = AudioEngineProfileStore(this)
-            val current = store.load()
-            when {
-                !safeToEditModels(parakeetFile = true) -> showFeedback(R.string.models_ui_not_idle)
-                current == null -> showFeedback(R.string.models_ui_fix_engines)
-                ParakeetModelFile.integrity(file) != ParakeetModelIntegrity.VERIFIED ->
-                    showFeedback(R.string.ux07_parakeet_check_required)
-                else -> showFeedback(if (store.save(current.copy(input = SpeechInputId.PARAKEET_PL)))
-                    R.string.models_ui_stt_selected else R.string.models_ui_save_failed)
-            }
+            configuration.selectInput(SpeechInputId.PARAKEET_PL)
             update()
         }.apply { tag = "parakeet-select-engine" }
         card.addView(parakeetSelect, UiDesign.spaceAfter(this, 8))
@@ -347,16 +347,11 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun updatePipelineStatus() {
         if (!::pipelineStatus.isInitialized) return
-        val profile = AudioEngineProfileStore(this).load()
-        val input = AudioEngineRegistry.inputs.firstOrNull { it.id == profile?.input?.name }?.title
-            ?: getString(R.string.ux07_not_configured)
-        val output = AudioEngineRegistry.outputs.firstOrNull { it.id == profile?.output?.name }?.title
-            ?: getString(R.string.ux07_not_configured)
-        val dialogue = if (profile?.dialogue == DialogueModelId.USER_LITERT)
+        val profile = configuration.draft
+        val title = if (profile.dialogue == DialogueModelId.USER_LITERT)
             UserLiteRtModelStore(this).find(profile.customModelId)?.title
-        else LanguageModelCatalog.entries.firstOrNull { it.id == profile?.dialogue }?.title
-        pipelineStatus.text = getString(R.string.ux07_models_pipeline_status,
-            input, dialogue ?: getString(R.string.ux07_not_configured), output)
+        else LanguageModelCatalog[profile.dialogue].title
+        pipelineStatus.text = getString(R.string.mv_selected_model, title ?: getString(R.string.ux07_not_configured))
     }
 
     private fun updateParakeetUi() {
@@ -366,7 +361,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         val fileExists = file.isFile
         val hasExpectedSize = fileExists && file.length() == ParakeetModelFile.MIN_SIZE_BYTES
         val integrity = ParakeetModelFile.integrity(file)
-        val selected = AudioEngineProfileStore(this).load()?.input == SpeechInputId.PARAKEET_PL
+        val selected = configuration.draft.input == SpeechInputId.PARAKEET_PL
         val stamp = Triple(file.absolutePath, file.length(), file.lastModified())
         if (!state.busy && integrity == ParakeetModelIntegrity.UNVERIFIED &&
             !checkingParakeet && checkedParakeetStamp != stamp) {
@@ -422,13 +417,28 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun update() {
+        configuration.syncSavedProfile()
+        val custom = configuration.draft.dialogue == DialogueModelId.USER_LITERT
+        selectedUserCard.visibility = if (custom) View.VISIBLE else View.GONE
+        if (custom) {
+            val library = UserLiteRtModelStore(this)
+            val model = library.find(configuration.draft.customModelId)
+            selectedUserStatus.text = if (model == null) getString(R.string.models_ui_user_missing)
+                else model.title + "\n" + storageLabel(library.file(model), model.bytes)
+        }
+        val destination = if (custom) advancedModels else mainModels
+        for (row in rows) if (row.card.parent !== destination) {
+            (row.card.parent as? ViewGroup)?.removeView(row.card)
+            destination.addView(row.card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
+        }
         updateUserModels()
         updateStoredLegacyModels()
         updateStorageStatus()
         updatePipelineStatus()
         updateParakeetUi()
+        configuration.refresh()
         val transfer = LanguageModelTransferService.status
-        val selected = AudioEngineProfileStore(this).load()?.dialogue
+        val selected = configuration.draft.dialogue
         val readyIds = rows.asSequence().filter { row ->
             AndroidGemma4ModelReadiness.check(this, row.model.id).state ==
                 Gemma4ModelReadinessState.READY
@@ -455,6 +465,8 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 row.state.text = getString(R.string.models_ui_invalid_file)
             }
             row.state.append("\n" + storageLabel(file, checkNotNull(row.model.spec.expectedBytes)))
+            if (configuration.dirty && configuration.draft.dialogue == row.model.id)
+                row.state.append("\n" + getString(R.string.mv_unsaved))
             row.state.textSize = 15f
             row.state.setTextColor(if (isActive) UiDesign.primary else UiDesign.secondary)
             row.state.setTypeface(null, if (isActive) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
@@ -464,7 +476,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             row.import.visibility = if (modelState.showImport) View.VISIBLE else View.GONE
             row.download.isEnabled = modelState.actionsEnabled
             row.import.isEnabled = modelState.actionsEnabled
-            row.select.visibility = if (modelState.showSelect && row.model.id != DialogueModelId.QWEN_3_5_2B) View.VISIBLE else View.GONE
+            row.select.visibility = if (configuration.draft.dialogue != row.model.id) View.VISIBLE else View.GONE
             row.select.isEnabled = modelState.actionsEnabled
             row.progress.visibility = if (modelState.showProgress) View.VISIBLE else View.GONE
             row.progress.progress = modelState.progressPercent
@@ -552,10 +564,10 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private fun updateUserModels() {
         if (!::userModelsContainer.isInitialized) return
         val library = UserLiteRtModelStore(this)
-        val profile = AudioEngineProfileStore(this).load()
+        val profile = configuration.draft
         val installed = library.models()
-        val signature = listOf(installed, profile?.dialogue, profile?.customModelId,
-            installed.map { library.file(it).let { file -> listOf(file.isFile, file.length(), file.lastModified()) } })
+        val signature = listOf(installed, profile.dialogue, profile.customModelId,
+            installed.map { library.file(it).let { file -> listOf(file.isFile, file.length(), file.lastModified(), ModelCompatibilityStore(this).verified(file, false)) } })
         if (signature == renderedUserModels) return
         renderedUserModels = signature
         userModelsContainer.removeAllViews()
@@ -564,7 +576,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             return
         }
         installed.forEach { model ->
-            val isSelected = profile?.dialogue == DialogueModelId.USER_LITERT &&
+            val isSelected = profile.dialogue == DialogueModelId.USER_LITERT &&
                 profile.customModelId == model.id
             val isInstalled = library.isInstalled(model)
             val card = UiDesign.card(this)
@@ -574,8 +586,10 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             val label = getString(when {
                 !isInstalled && library.file(model).isFile -> R.string.models_ui_invalid_file
                 !isInstalled -> R.string.models_ui_user_missing
+                !LiteRtModelContainer.hasHeader(library.file(model)) -> R.string.models_ui_invalid_file
+                !ModelCompatibilityStore(this).verified(library.file(model), false) -> R.string.mv_compatibility_required
                 isSelected -> R.string.models_ui_active
-                else -> R.string.models_ui_user_imported
+                else -> R.string.mv_compatible
             })
             card.addView(UiDesign.caption(this,
                 label + if (library.file(model).isFile) "\n" +
@@ -583,16 +597,8 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 UiDesign.spaceAfter(this, 8))
             if (!isSelected && isInstalled) {
                 card.addView(UiDesign.action(this, getString(R.string.models_ui_select)) {
-                    if (!safeToEditModels()) {
-                        showFeedback(R.string.models_ui_not_idle)
-                    } else {
-                        val current = AudioEngineProfileStore(this).load()
-                        showFeedback(if (current != null &&
-                            AudioEngineProfileStore(this).save(current.copy(
-                                dialogue = DialogueModelId.USER_LITERT, customModelId = model.id)))
-                            R.string.models_ui_user_selected else R.string.models_ui_save_failed)
-                        update()
-                    }
+                    configuration.selectModel(DialogueModelId.USER_LITERT, model.id)
+                    update()
                 }.apply { tag = "user-model-select:" + model.id },
                     UiDesign.spaceAfter(this, 8))
             }
@@ -615,7 +621,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                             update()
                         }.show()
                 }
-            }.apply { tag = "user-model-delete:" + model.id; isEnabled = !isSelected })
+            }.apply { tag = "user-model-delete:" + model.id; isEnabled = !isSelected && AudioEngineProfileStore(this@LanguageModelActivity).load()?.customModelId != model.id })
             userModelsContainer.addView(card, UiDesign.spaceAfter(this, 10))
         }
     }
@@ -643,12 +649,26 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
     }
     override fun onSaveInstanceState(outState: Bundle) {
+        configuration.saveState(outState)
+        outState.putBoolean("mv_advanced", advanced.visibility == View.VISIBLE)
         outState.putString("pending_import", pendingImport?.name)
         outState.putBoolean("pending_user_import", pendingUserImport)
         super.onSaveInstanceState(outState)
     }
-    override fun onResume() { super.onResume(); handler.post(refresh) }
-    override fun onPause() { handler.removeCallbacks(refresh); super.onPause() }
-    override fun onDestroy() { verificationWorker.shutdownNow(); super.onDestroy() }
+    override fun onResume() { super.onResume(); configuration.resume(); handler.post(refresh) }
+    override fun onPause() { handler.removeCallbacks(refresh); configuration.pause(); super.onPause() }
+    override fun onDestroy() { configuration.close(); verificationWorker.shutdownNow(); super.onDestroy() }
+    override fun onTabNavigationRequested(action: () -> Unit) = confirmDiscard(action)
+    override fun consumeChromeBack(): Boolean {
+        if (!configuration.dirty) return false
+        confirmDiscard { finish() }
+        return true
+    }
+    private fun confirmDiscard(action: () -> Unit) {
+        if (!configuration.dirty) { action(); return }
+        AlertDialog.Builder(this).setTitle(R.string.mv_discard_title)
+            .setNegativeButton(R.string.mv_stay, null)
+            .setPositiveButton(R.string.mv_discard) { _, _ -> action() }.show()
+    }
     companion object { private const val IMPORT = 1 }
 }
