@@ -23,6 +23,7 @@ class ToolsUiControllerContract(unittest.TestCase):
         self.assertIn("override fun onTabNavigationRequested(action: () -> Unit)", activity)
         self.assertIn("onBackPressedDispatcher.addCallback", activity)
         self.assertIn("hasUnsavedSettings()", activity)
+        self.assertIn("option.isChecked = tool in storedSelection", activity)
         self.assertIn("R.string.tools_ui_unsaved_warning", activity)
         self.assertIn("R.string.tools_ui_save_note_detail", activity)
         self.assertIn("R.string.tools_ui_end_call_detail", activity)
