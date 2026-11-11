@@ -19,7 +19,7 @@ internal class AudioEngineProfileStore(
         if (!prefs.contains("version")) {
             // No previous preference means migration to the unchanged shipped baseline.
             // A partially/corruptly populated preference must not silently downgrade.
-            return if (listOf("input", "dialogue", "output", "language", "voice")
+            return if (listOf("input", "dialogue", "output", "language", "voice", "custom_model_id")
                 .none { prefs.contains(it) }
             ) AudioEngineProfile.STABLE else null
         }
@@ -27,16 +27,23 @@ internal class AudioEngineProfileStore(
         val input = SpeechInputId.entries.firstOrNull {
             it.name == prefs.getString("input", null)
         } ?: return null
-        val dialogue = DialogueModelId.entries.firstOrNull {
+        val previouslySavedDialogue = DialogueModelId.entries.firstOrNull {
             it.name == prefs.getString("dialogue", null)
         } ?: return null
+        // Remove retired built-in choices without changing the STT/TTS/voice configuration.
+        val dialogue = if (previouslySavedDialogue != DialogueModelId.USER_LITERT)
+            DialogueModelId.GEMMA_4_E2B else previouslySavedDialogue
+        val customId = if (dialogue == DialogueModelId.USER_LITERT)
+            prefs.getString("custom_model_id", null) else null
         val output = SpeechOutputId.entries.firstOrNull {
             it.name == prefs.getString("output", null)
         } ?: return null
         val language = prefs.getString("language", null) ?: return null
         val voice = prefs.getString("voice", null)
-        return AudioEngineProfile(input, dialogue, output, language, voice)
-            .takeIf { AudioEngineRegistry.incompatibility(it) == null }
+        val profile = AudioEngineProfile(input, dialogue, output, language, voice, customId)
+            .takeIf { AudioEngineRegistry.incompatibility(it) == null } ?: return null
+        if (previouslySavedDialogue != dialogue && !save(profile)) return null
+        return profile
     }
 
     fun save(profile: AudioEngineProfile): Boolean {
@@ -50,6 +57,8 @@ internal class AudioEngineProfileStore(
             .putString("output", profile.output.name)
             .putString("language", profile.languageTag)
             .putString("voice", profile.voiceId)
+            .putString("custom_model_id", if (profile.dialogue == DialogueModelId.USER_LITERT)
+                profile.customModelId else null)
             .commit()
     }
 }
