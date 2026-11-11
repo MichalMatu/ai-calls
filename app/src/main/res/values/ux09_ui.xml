@@ -12,7 +12,7 @@
     <string name="ux09_execution_unverified">Wynik niezweryfikowany</string>
     <string name="ux09_home_technical_title">Modele i szczegóły techniczne</string>
     <string name="ux09_home_open_chat">Pokaż panel rozmowy</string>
-    <string name="ux09_agent_scope_warning">Widoczne pola i Skills są wyłącznie konfiguracją. Ich zapisanie nie upoważnia AI do ujawniania danych ani wykonywania połączeń.</string>
+    <string name="ux09_agent_scope_warning">Wybór pól i narzędzi nie rozszerza uprawnień do danych, rozmów ani działań zewnętrznych.</string>
     <string name="ux09_agent_named_skills">Aktywny: %1$s · %2$d Skills\n%3$s</string>
     <string name="ux09_agent_named_profiles">Wychodzące: %1$s\nPrzychodzące: %2$s</string>
     <string name="ux09_agent_none">Brak wskazanych pól</string>
