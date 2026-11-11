@@ -49,8 +49,20 @@ internal object AudioEngineReadinessProbe {
             SpeechInputId.GEMMA_AUDIO_DIRECT ->
                 return "audio_direct_not_integrated"
         }
-        val model = Gemma4LiteRtTextBackendFactory.modelFile(context, profile.dialogue)
-        if (Gemma4ModelReadinessProbe(checkNotNull(model.parentFile), pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[profile.dialogue].spec).check().state !=
+        val spec = if (profile.dialogue == DialogueModelId.USER_LITERT) {
+            val library = pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore(context)
+            val imported = library.find(profile.customModelId)
+                ?: return "user_model_missing"
+            pl.michalmatu.aicallbridge.textagent.Gemma4ModelSpec(
+                imported.title, imported.filename, imported.sha256, imported.bytes)
+        } else pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog[profile.dialogue].spec
+        val directory = if (profile.dialogue == DialogueModelId.USER_LITERT) {
+            val imported = pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore(context)
+                .find(profile.customModelId) ?: return "user_model_missing"
+            checkNotNull(pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore(context)
+                .file(imported).parentFile)
+        } else checkNotNull(Gemma4LiteRtTextBackendFactory.modelFile(context, profile.dialogue).parentFile)
+        if (Gemma4ModelReadinessProbe(directory, spec).check().state !=
             Gemma4ModelReadinessState.READY
         ) return "dialogue_model_missing_or_invalid"
         return null
