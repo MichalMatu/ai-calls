@@ -41,6 +41,7 @@ internal class ModelVoiceSettings(
     private var active = false
     private var checking = false
     private var lastAttempt: String? = null
+    private var checkResult: String? = null
     private var voiceGeneration = 0
     private var tts: TextToSpeech? = null
     private var voicesReady = false
@@ -66,7 +67,8 @@ internal class ModelVoiceSettings(
     val voiceView = card(R.string.mv_voice, voiceName, ::showVoicePicker).apply { tag = "model-voice-voice" }
     private val modelAction = UiDesign.action(activity, "") { modelAction() }
     private val retry = UiDesign.action(activity, activity.getString(R.string.mv_retry)) {
-        lastAttempt = null; refresh()
+        verify(draft, draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT, force = true)
+        refresh()
     }
 
     init {
@@ -109,7 +111,7 @@ internal class ModelVoiceSettings(
         }
         val engineChanged = draft.effectiveTtsEnginePackage != profile.effectiveTtsEnginePackage
         draft = profile; tts?.stop()
-        probe.close(); checking = false; lastAttempt = null
+        probe.close(); checking = false; lastAttempt = null; checkResult = null
         if (engineChanged && active) loadVoices()
         refresh(); changed()
         return true
@@ -251,10 +253,10 @@ internal class ModelVoiceSettings(
                 val inventory = runCatching {
                     val installed = engine.engines
                     require(requested == null || installed.any { it.name == requested })
-                    installed to engine.voices.orEmpty().filter {
+                    Triple(installed, engine.voices.orEmpty().filter {
                         it.locale.language == "pl" && !it.isNetworkConnectionRequired &&
                             (requested != PiperServiceContract.PACKAGE || "piperVoice" in it.features)
-                    }.sortedBy { it.name }
+                    }.sortedBy { it.name }, engine.defaultEngine)
                 }.getOrNull()
                 activity.mainExecutor.execute ready@{
                     if (generation != voiceGeneration || activity.isDestroyed || activity.isFinishing) return@ready
@@ -263,7 +265,12 @@ internal class ModelVoiceSettings(
                     if (inventory == null) voiceIssue.text = activity.getString(R.string.mv_voice_missing)
                     else {
                         engineIds = listOf(null) + inventory.first.map { it.name }
-                        engineLabels = listOf(activity.getString(R.string.mv_system_engine)) + inventory.first.map { it.label }
+                        val labels = inventory.first.map { engineTitle(it.name, it.label) }
+                        val defaultIndex = inventory.first.indexOfFirst { it.name == inventory.third }
+                        val automatic = labels.getOrNull(defaultIndex)?.let {
+                            activity.getString(R.string.mv_system_engine_named, it)
+                        } ?: activity.getString(R.string.mv_system_engine)
+                        engineLabels = listOf(automatic) + labels
                     }
                     renderVoicePicker()
                     refresh()
@@ -294,7 +301,9 @@ internal class ModelVoiceSettings(
         modelState.text = when {
             downloading -> activity.getString(R.string.mv_download_progress,
                 (transfer.bytes * 100 / checkNotNull(LanguageModelCatalog[DialogueModelId.GEMMA_4_E2B].spec.expectedBytes)).toInt().coerceIn(0, 100))
-            checking -> activity.getString(R.string.mv_checking_model)
+            checking -> activity.getString(if (draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT)
+                R.string.mv_checking_audio else R.string.mv_checking_model)
+            checkResult != null && file?.isFile == true -> checkResult
             file?.isFile == true -> activity.getString(R.string.mv_downloaded_size,
                 Formatter.formatShortFileSize(activity, file.length()))
             else -> activity.getString(R.string.mv_model_missing_short)
@@ -306,7 +315,8 @@ internal class ModelVoiceSettings(
         inputIssue.text = if (inputProblem) reason(activity, code) else ""
         voiceIssue.visibility = if (voiceProblem) View.VISIBLE else View.GONE
         inputIssue.visibility = if (inputProblem) View.VISIBLE else View.GONE
-        if (code != null && !voiceProblem && !inputProblem && !checking && !downloading && file?.isFile == true)
+        if (code != null && checkResult == null && !voiceProblem && !inputProblem &&
+            !checking && !downloading && file?.isFile == true)
             modelState.text = reason(activity, code)
         modelAction.visibility = if (downloading || file?.isFile != true) View.VISIBLE else View.GONE
         modelAction.text = activity.getString(when {
@@ -329,8 +339,15 @@ internal class ModelVoiceSettings(
                 if (needsAudio || needsText) verify(draft, needsAudio)
             }
         }
-        retry.visibility = if (lastAttempt != null && !checking && !result.available && !inputProblem && !voiceProblem)
+        retry.visibility = if (file?.isFile == true && (lastAttempt != null || checking || checkResult != null))
             View.VISIBLE else View.GONE
+        retry.isEnabled = !checking && (draft.input != SpeechInputId.GEMMA_AUDIO_DIRECT || voicesReady)
+        retry.text = activity.getString(when {
+            checking -> R.string.mv_checking_short
+            draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT && !voicesReady -> R.string.mv_loading_voices
+            draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> R.string.mv_retry_audio
+            else -> R.string.mv_retry
+        })
     }
 
     private fun modelAction() {
@@ -343,19 +360,35 @@ internal class ModelVoiceSettings(
         else activity.startForegroundService(intent.putExtra(LanguageModelTransferService.MODEL, DialogueModelId.GEMMA_4_E2B.name))
     }
 
-    private fun verify(profile: AudioEngineProfile, audio: Boolean) {
-        if (audio && !voicesReady) return
+    private fun verify(profile: AudioEngineProfile, audio: Boolean, force: Boolean = false) {
+        if (checking) return
+        if (audio && !voicesReady) {
+            if (force) checkResult = reason(activity, "tts_offline_voice_probe_required")
+            return
+        }
         val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, profile) }.getOrNull() ?: return
         val stamp = ModelCompatibilityStamp.of(file) ?: return
         val attempt = "$stamp:$audio:${profile.customModelId}"
-        if (lastAttempt == attempt || !canProbe()) return
-        lastAttempt = attempt; checking = true
-        modelState.text = activity.getString(R.string.mv_checking_model)
+        if (!force && lastAttempt == attempt) return
+        if (!canProbe()) {
+            if (force) checkResult = activity.getString(R.string.models_ui_not_idle)
+            return
+        }
+        lastAttempt = attempt; checking = true; checkResult = null
+        modelState.text = activity.getString(if (audio) R.string.mv_checking_audio else R.string.mv_checking_model)
         probe.check(file, profile, audio) { error ->
             checking = false
-            if (error != null) notifyError(error)
+            checkResult = if (error != null) reason(activity, error)
+                else activity.getString(if (audio) R.string.mv_audio_check_passed else R.string.mv_model_check_passed)
             refresh(); changed()
         }
+    }
+
+    private fun engineTitle(packageName: String, suppliedLabel: String): String = when (packageName) {
+        "com.google.android.tts" -> "Google"
+        "com.samsung.SMT" -> "Samsung"
+        PiperServiceContract.PACKAGE -> "Piper"
+        else -> suppliedLabel
     }
 
     private fun preview(voiceId: String? = draft.voiceId) {
@@ -383,6 +416,7 @@ internal class ModelVoiceSettings(
         val current = store.load() ?: return
         if (current != draft) {
             val engineChanged = current.effectiveTtsEnginePackage != draft.effectiveTtsEnginePackage
+            probe.close(); checking = false; lastAttempt = null; checkResult = null
             draft = current
             if (engineChanged && active) loadVoices()
         }
@@ -390,7 +424,10 @@ internal class ModelVoiceSettings(
     fun resume() { active = true; syncSavedProfile(); loadVoices(); refresh() }
     fun pause() {
         active = false; previewWhenReady = false
-        if (checking) lastAttempt = null
+        if (checking) {
+            lastAttempt = null
+            checkResult = activity.getString(R.string.mv_check_interrupted)
+        }
         probe.close(); checking = false; tts?.stop(); voiceDialog?.dismiss()
     }
     override fun close() { pause(); ++voiceGeneration; tts?.shutdown(); tts = null; voiceWorker.shutdownNow() }
@@ -402,6 +439,9 @@ internal class ModelVoiceSettings(
             "model_audio_check_required" -> R.string.mv_audio_check_required
             "model_audio_input_unavailable" -> R.string.mv_audio_unavailable
             "model_container_invalid" -> R.string.mv_invalid_container
+            "model_native_check_failed" -> R.string.mv_native_check_failed
+            "model_reply_incompatible" -> R.string.mv_reply_check_failed
+            "model_changed_during_check", "model_check_state_unavailable" -> R.string.mv_check_result_unsaved
             "parakeet_model_missing_or_incomplete" -> R.string.models_ui_parakeet_required
             "parakeet_model_sha256_mismatch" -> R.string.models_ui_parakeet_invalid
             "android_offline_stt_unavailable" -> R.string.models_ui_android_stt_unavailable

@@ -31,6 +31,7 @@ internal class ModelCompatibilityStore(context: Context) {
             putString(key(file, audio), stamp)
             if (audio) putString(key(file, false), stamp)
         }.commit()
+    fun invalidate(file: File, audio: Boolean): Boolean = prefs.edit().remove(key(file, audio)).commit()
 }
 
 /** Synthetic, off-call only. The same native engine handles text or audio and its cancellation. */
@@ -44,6 +45,9 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
         val token = generation.incrementAndGet()
         val stamp = ModelCompatibilityStamp.of(file)
         if (stamp == null) { done("dialogue_model_missing_or_invalid"); return }
+        if (!ModelCompatibilityStore(context).invalidate(file, audio)) {
+            done("model_check_state_unavailable"); return
+        }
         if (!LiteRtModelContainer.hasHeader(file)) { done("model_container_invalid"); return }
         fun current() = token == generation.get()
         fun finish(reason: String?) {

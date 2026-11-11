@@ -12,7 +12,7 @@
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Czytelność Model i głos | PHYSICAL_OPEN · app/ui | Trzy karty, modale i autosave; kompilacja/pakowanie i install-r PASS. Ocena właściciela pozostaje otwarta |
+| Czytelność Model i głos | PHYSICAL_OPEN · app/ui | IN_PROGRESS: migający wynik zgodności i mylące nazwy TTS. Gate: kompilacja, instalacja i ocena właściciela |
 | Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, transkrypt przed kontrolą wizyty/danych, narzędzia i STOP; testy hosta PASS. Gemma pobrana według właściciela; native PL, jakość i RAM S22 otwarte |
 | Pełny gate Python | OPEN · scripts/tests | Pełny zestaw pominięty w tej iteracji. Pozostaje dług testów dawnych ekranów; po odbiorze modali wymagane dostosowanie testów UI |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
@@ -51,4 +51,4 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
 - **Model i głos:** trzy karty, wybory w modalach zapisywane od razu; Parakeet w grupie Dodatkowe przy wyborze rozpoznawania, silnik przy głosach, pliki osobno. Bez górnych opisów. KEEP runtime, STOP, Skills i granty. Właściciel potwierdził pobranie Gemmy; odbiór nowego układu na S22 **PHYSICAL_OPEN**.
 - **Rola Telefonu:** stan i jawny przycisk w Ustawieniach oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
-- **QA UX:** kompilacja/pakowanie PASS; S22 APK `4d35a87c`, SHA-256 `690e8f62e1398e3fcc0323e5ee5e0f0a13490ef81d8fdfb92c925e75a76ba5bf`, install-r/odczyt APK PASS. 3 preferencje, pliki modeli, UID, uprawnienia i rola Telefonu zachowane; IDLE. Pełne zestawy i emulator pominięte na życzenie właściciela. Odbiór UI, native audio i live STT **PHYSICAL_OPEN**.
+- **QA UX:** S22 nadal APK `4d35a87c`; poprawka trwałego wyniku sprawdzania i nazw dostawców głosu w przygotowaniu. Dla tej iteracji tylko kompilacja/pakowanie i instalacja. Pełne zestawy/emulator pomijane na życzenie właściciela; odbiór UI i native audio **PHYSICAL_OPEN**.
