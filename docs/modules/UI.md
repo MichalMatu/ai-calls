@@ -7,6 +7,7 @@ UI pokazuje rzeczywisty stan: manual/AI, exact Call, postęp, STOP/TAKE OVER/res
 - Historia chroni prywatne dane; pełny playback jest nadal celem, obecny odtwarza tylko zarejestrowane segmenty.
 - Wersja polska/angielska, dostępność i struktura kontrolek. Screenshoty właściciela są dozwolone; nie używać `FLAG_SECURE` ani nie publikować automatycznie obrazów prywatnych ekranów.
 - Agent AI: pięć kart bez powielonego tytułu, zwięzłe podsumowania bez wartości danych, osobne komunikaty błędów, PL/EN i opis karty ze stanem dla czytnika ekranu. Odczyt Keystore/Vault poza głównym wątkiem; tylko najnowszy wynik aktualizuje widok.
+- Opcje: na podstronach modele mają Back, szkice silników i sekretarki przeżywają obrót; reset odświeża formularz i zapis. Dostęp SIM wymaga zgody Androida, a brak poprzedniej SIM nigdy nie wybiera innej automatycznie. Błędna polityka blokuje zapis; opisy MANUAL dotyczą tylko przyszłych rozmów.
 - Notatnik ma pierwszeństwo przed ustawieniami: zwijane rozmowy, wyszukiwanie, filtr, stronicowanie; szyfrowany odczyt poza UI. Usuwanie wymaga potwierdzenia i braku aktywnego AI Call; wynik usuwania jest obsługiwany mimo równoległego odświeżenia.
 - Przełączniki narzędzi: rozróżniają lokalny zapis, propozycje i zakończenie własnego Call. Back i zmiana zakładki chronią niezapisane zmiany; po obrocie zachowywane są tylko identyfikatory przełączników, nie treść notatek ani wyszukiwania.
 - Nie dodawać dodatkowych kliknięć ani kolejnych zatwierdzeń bez zmiany materialnego zakresu grantu.
