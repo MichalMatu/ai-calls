@@ -637,6 +637,15 @@ internal object Gemma4LiteRtTextBackendFactory {
         val appContext = context.applicationContext
         val directory = appContext.getExternalFilesDir("models") ?: File(appContext.filesDir, "models")
         directory.mkdirs()
+        if (modelId == DialogueModelId.USER_LITERT) {
+            val profile = checkNotNull(AudioEngineProfileStore(appContext).load()) {
+                "invalid_audio_engine_profile"
+            }
+            require(profile.dialogue == DialogueModelId.USER_LITERT) { "user_model_not_selected" }
+            val library = UserLiteRtModelStore(appContext)
+            val model = checkNotNull(library.find(profile.customModelId)) { "user_model_missing" }
+            return library.file(model)
+        }
         return File(directory, LanguageModelCatalog[modelId].spec.fileName)
     }
 
