@@ -164,7 +164,7 @@ internal class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                         .state != Gemma4ModelReadinessState.READY) {
                     feedback.text = getString(R.string.models_ui_install_first)
                 } else {
-                    feedback.text = if (store.save(current.copy(dialogue = model.id)))
+                    feedback.text = if (store.save(current.copy(dialogue = model.id, customModelId = null)))
                         getString(R.string.models_ui_selected, model.title) else
                         getString(R.string.models_ui_save_failed)
                 }
