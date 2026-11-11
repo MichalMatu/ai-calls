@@ -93,7 +93,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(description(R.string.incoming_ui_engines_hint))
         content.addView(UiDesign.action(this, getString(R.string.incoming_ui_save), UiActionTone.PRIMARY) {
             val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL
-            val chosen = simAccounts.getOrNull(simPicker.selectedItemPosition)
+            val chosen = simAccounts.getOrNull(simPicker.selectedItemPosition - 1)
             feedback.text = getString(when (controller.save(selected, chosen, recording.isChecked)) {
                 IncomingAssistantSettingsController.SaveResult.NEED_SIM -> R.string.incoming_ui_choose_sim
                 IncomingAssistantSettingsController.SaveResult.SAVED_AI -> R.string.incoming_ui_saved_ai
@@ -118,10 +118,17 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun reloadAccounts() {
         simAccounts = controller.availableAccounts()
-        UiSelect.setOptions(simPicker, simAccounts.mapIndexed { index, handle ->
+        val labels = simAccounts.mapIndexed { index, handle ->
             controller.displayAccount(handle) ?: getString(R.string.incoming_ui_sim_fallback, index + 1)
-        }.ifEmpty { listOf(getString(R.string.incoming_ui_no_sim)) })
-        simPicker.setSelection(controller.selectedAccountIndex(simAccounts, persistedAccountKey))
+        }
+        UiSelect.setOptions(simPicker, if (labels.isEmpty())
+            listOf(getString(R.string.incoming_ui_no_sim))
+            else listOf(getString(R.string.incoming_ui_select_sim)) + labels)
+        val knownIndex = controller.selectedAccountIndex(simAccounts, persistedAccountKey)
+        simPicker.setSelection(if (knownIndex < 0) 0 else knownIndex + 1)
+        if (persistedAccountKey != null && knownIndex < 0 && simAccounts.isNotEmpty()) {
+            feedback.text = getString(R.string.incoming_ui_sim_removed)
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -147,7 +154,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             outState.putBoolean(DRAFT_RECORD,
                 window.decorView.findViewWithTag<CheckBox>("incoming-recording")?.isChecked ?: false)
             outState.putString(DRAFT_ACCOUNT,
-                simAccounts.getOrNull(simPicker.selectedItemPosition)
+                simAccounts.getOrNull(simPicker.selectedItemPosition - 1)
                     ?.let(IncomingAssistantPolicyStore::accountKey) ?: persistedAccountKey)
         }
         super.onSaveInstanceState(outState)

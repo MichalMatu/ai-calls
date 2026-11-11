@@ -107,6 +107,8 @@
     <string name="incoming_ui_mode_manual">Manual — I answer calls myself</string>
     <string name="incoming_ui_mode_ai">AI — answer and take messages</string>
     <string name="incoming_ui_sim_fallback">SIM %1$d</string>
+    <string name="incoming_ui_select_sim">Select SIM card</string>
+    <string name="incoming_ui_sim_removed">The saved SIM is unavailable. Select a SIM again.</string>
     <string name="incoming_ui_no_sim">No SIM account available for calls.</string>
     <string name="incoming_ui_grant_phone">Allow access to SIM cards</string>
     <string name="incoming_ui_permission_denied">SIM access was denied.</string>

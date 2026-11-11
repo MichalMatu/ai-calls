@@ -7,6 +7,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.UUID
 import java.io.File
+import android.content.ComponentName
+import android.telecom.PhoneAccountHandle
 import android.content.ContextWrapper
 import android.media.AudioManager
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
@@ -37,6 +39,18 @@ class AndroidIncomingAssistantContractTest {
         override fun authorized(tool:ConversationToolId)=true
         override fun requestEndCall(turn:Int)=true // Synthetic port: never touches Telecom.
     })
+
+    @Test fun missingOrStaleSimNeverAutoSelectsTheFirstPhoneAccount() {
+        val controller = IncomingAssistantSettingsController(context)
+        val account = PhoneAccountHandle(ComponentName(
+            context.packageName, "pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService"
+        ), "synthetic-sim")
+        val accounts = listOf(account)
+        assertEquals(-1, controller.selectedAccountIndex(accounts, null))
+        assertEquals(-1, controller.selectedAccountIndex(accounts, "removed-sim"))
+        assertEquals(0, controller.selectedAccountIndex(
+            accounts, IncomingAssistantPolicyStore.accountKey(account)))
+    }
 
     @Test fun acceptedReceivingPolicyPersistsSeparatelyAndCanBeRevokedWithoutOutgoingChanges() {
         val name="incoming-test-${UUID.randomUUID()}"

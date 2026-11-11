@@ -34,8 +34,10 @@ internal class IncomingAssistantSettingsController(context: Context) {
             ?.let(::maskPhoneAccountLabel)
     }.getOrNull()
 
+    /** -1 means unavailable: never silently switch an AI policy to another SIM. */
     fun selectedAccountIndex(accounts: List<PhoneAccountHandle>, accountKey: String?): Int =
-        accounts.indexOfFirst { IncomingAssistantPolicyStore.accountKey(it) == accountKey }.coerceAtLeast(0)
+        if (accountKey == null) -1 else
+            accounts.indexOfFirst { IncomingAssistantPolicyStore.accountKey(it) == accountKey }
 
     fun save(mode: AnsweringMode, account: PhoneAccountHandle?, recordEvidence: Boolean): SaveResult {
         if (mode == AnsweringMode.AI && account == null) return SaveResult.NEED_SIM

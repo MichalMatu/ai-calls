@@ -107,6 +107,8 @@
     <string name="incoming_ui_mode_manual">Ręcznie — samodzielnie odbieram</string>
     <string name="incoming_ui_mode_ai">AI — odbieraj i przyjmuj wiadomości</string>
     <string name="incoming_ui_sim_fallback">SIM %1$d</string>
+    <string name="incoming_ui_select_sim">Wybierz kartę SIM</string>
+    <string name="incoming_ui_sim_removed">Zapisana karta SIM jest niedostępna. Wybierz ją ponownie.</string>
     <string name="incoming_ui_no_sim">Nie znaleziono dostępnej karty SIM do połączeń.</string>
     <string name="incoming_ui_grant_phone">Przyznaj dostęp do kart SIM</string>
     <string name="incoming_ui_permission_denied">Nie przyznano dostępu do kart SIM.</string>
