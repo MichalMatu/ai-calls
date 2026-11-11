@@ -1,14 +1,15 @@
 package pl.michalmatu.aicallbridge.ui
 
-import android.app.Activity
 import android.app.role.RoleManager
 import android.view.View
 import android.widget.LinearLayout
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import pl.michalmatu.aicallbridge.R
 
 /** Role setup only. A request is launched exclusively by the owner's button tap. */
 internal class DialerRoleCard(
-    private val activity: Activity,
+    private val activity: ComponentActivity,
     private val showOnlyWhenMissing: Boolean = false,
 ) {
     val view: LinearLayout = UiDesign.card(activity).apply { tag = "dialer-role-card" }
@@ -16,6 +17,10 @@ internal class DialerRoleCard(
         tag = "dialer-role-status"
         accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
     }
+    // A result-bearing launch identifies the requesting package to Android's role controller.
+    private val roleRequest = activity.registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { _ -> refresh() }
     private val request: android.widget.Button = UiDesign.action(activity, activity.getString(R.string.role_ui_action)) {
         val manager = activity.getSystemService(RoleManager::class.java)
         if (manager?.isRoleAvailable(RoleManager.ROLE_DIALER) != true) {
@@ -24,7 +29,7 @@ internal class DialerRoleCard(
             refresh()
         } else {
             try {
-                activity.startActivity(manager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
+                roleRequest.launch(manager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
             } catch (_: android.content.ActivityNotFoundException) {
                 status.setText(R.string.role_ui_request_failed)
             } catch (_: SecurityException) {
