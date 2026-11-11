@@ -29,12 +29,6 @@ Pierwszy OUTGOING potwierdza częściowy RX/TX i jeden turn, nie potwierdza zroz
 
 Automatyczne, prywatne archiwum STT/zatwierdzonych odpowiedzi/diagnostyki na każdej autoryzowanej sesji, bez UI click i bez WAV: **HOST_TESTED** (`app` focused + changed QA, anti-friction i docs PASS; Mac `2e7d931a`). Audio WAV nadal wymaga osobnego opt-in. **S22: APK z `f42deb9` zainstalowane bez kasowania danych, host QA i RX endpoint unit PASS; live STT PHYSICAL_OPEN**. Pierwszego transkryptu EMC ten fix wstecznie nie odtwarza; STT nieukończonej tury pozostaje otwartym ryzykiem.
 
-## Zamrożony host MVP
-- main@044427b01150ef542852f2ec42a19463f89e1feb: pełny test-profile.sh full **PASS** (Gradle/JVM, lint, 409 Python, audio/secret gates), :app:assembleDebug **PASS**, czysty Git.
-- APK na Macu: ~/agent-workspace/artifacts/ai-calls/ai-calls-mvp-first-044427b01150.apk; SHA-256 437e35f0a445dfe1cf4f48eaf6a3f0cf5a663e9d4998db03be7275edd0c0d232. Exact bytes zainstalowane na S22+ przez adb install -r bez wipe; podpis, wersja, dialer i dane zgodne. Off-call STT/TTS/Gemma 3/3 PASS, status bridge PASS, hashe ustawień bez zmian.
-
-- S22+ source@f42deb9052eab32bae3880622968f068d817eec8: APK SHA-256 `246daea571f3f731a744791c2630e6edccfc86eced2c65a9bd25557253954c18`, install-r PASS, prywatne ustawienia zachowane, read-only call-status IDLE, testy endpointingu PASS; realny RX 20s nadal PHYSICAL_OPEN.
-
 ## Następny sprint — MVP FIRST (kod, nie audyt)
 1. Pierwszy OUTGOING: owned_call_ended, 1 tura STT/TTS, druga RX 55s bez końca; 20s limit segmentu wizyty wdrożony, przetestowany syntetycznie i zainstalowany na S22. Próba live w tej wersji nadal nie została wykonana.
 2. Po próbach poprawić wyłącznie usterki blokujące MVP. Nie uruchamiać G6.5/G7, niepotrzebnych refaktorów ani audytu.
