@@ -251,6 +251,49 @@ class PhoneTaskQueueTest {
         assertNull(PhoneTaskQueue.claim(repo.load(), 100_000, id()))
     }
 
+    @Test fun `alarm permission restored re-arms only previously permission paused tasks`() {
+        val original = task(count = 1, start = 1_000, end = 20_000)
+        val permissionPaused = original.copy(state = PhoneTaskState.PAUSED,
+            issue = PhoneTaskIssue.ALARM_PERMISSION)
+        val ownerPaused = original.copy(state = PhoneTaskState.PAUSED,
+            issue = PhoneTaskIssue.TAKEOVER)
+        val unrelatedPause = original.copy(state = PhoneTaskState.PAUSED,
+            issue = PhoneTaskIssue.BACKGROUND_START)
+        val stopped = original.copy(state = PhoneTaskState.CANCELLED)
+        val restored = PhoneTaskQueue.resumeAlarmPermission(permissionPaused)
+        assertEquals(PhoneTaskState.READY, restored.state)
+        assertNull(restored.issue)
+        assertEquals(1_000L, PhoneTaskQueue.nextAt(restored))
+        assertEquals(restored, PhoneTaskQueue.resumeAlarmPermission(restored))
+        assertEquals(ownerPaused, PhoneTaskQueue.resumeAlarmPermission(ownerPaused))
+        assertEquals(unrelatedPause, PhoneTaskQueue.resumeAlarmPermission(unrelatedPause))
+        assertEquals(stopped, PhoneTaskQueue.resumeAlarmPermission(stopped))
+        assertNull(PhoneTaskQueue.claim(listOf(permissionPaused), 1_000, id()))
+        val claim = requireNotNull(PhoneTaskQueue.claim(listOf(restored), 1_000, id()))
+        assertEquals(original.recipients.single().id, claim.recipientId)
+        assertNull(PhoneTaskQueue.claim(listOf(claim.task), 1_000, id()))
+        val expired = PhoneTaskQueue.settle(restored, original.endAt)
+        assertEquals(PhoneTaskState.FINISHED, expired.state)
+        assertTrue(expired.recipients.all { it.state == PhoneRecipientState.EXPIRED })
+        assertNull(PhoneTaskQueue.claim(listOf(expired), original.endAt, id()))
+    }
+
+    @Test fun `permission restoration survives repository restart without repeating calls`() {
+        var raw: String? = null
+        var store = PhoneTaskRepository({ raw }, { raw = it })
+        val waiting = task(count = 2, start = 1_000, end = 200_000).copy(
+            state = PhoneTaskState.PAUSED, issue = PhoneTaskIssue.ALARM_PERMISSION)
+        store.update { listOf(waiting) }
+        // A different process reads the task after the permission grant.
+        store = PhoneTaskRepository({ raw }, { raw = it })
+        store.update { it.map(PhoneTaskQueue::resumeAlarmPermission) }
+        val nextProcess = PhoneTaskRepository({ raw }, { raw = it })
+        val claimed = requireNotNull(PhoneTaskQueue.claim(nextProcess.load(), 1_000, id()))
+        nextProcess.update { listOf(claimed.task) }
+        assertNull(PhoneTaskQueue.claim(PhoneTaskRepository({ raw }, { raw = it }).load(),
+            1_000, id()))
+    }
+
     @Test fun `unknown schema or corrupt storage never becomes empty queue`() {
         listOf("bad json", "{\"schema\":99,\"tasks\":[]}", "{\"schema\":1,\"tasks\":[{}]}").forEach { raw ->
             assertTrue(PhoneTaskRepository({ raw }, {}).run { runCatching { load() }.isFailure })

@@ -68,12 +68,17 @@ internal object PhoneTaskScheduler {
     fun reconcile(context: Context, deferUntil: Long = 0): Boolean {
         val alarm = requireNotNull(context.getSystemService(AlarmManager::class.java))
         val store = PhoneTaskWork.store(context)
-        val tasks = store.updatePhoneTasks { tasks -> tasks.map {
-            PhoneTaskQueue.settle(it, System.currentTimeMillis())
+        val alarmAllowed = allowed(context)
+        val now = System.currentTimeMillis()
+        val tasks = store.updatePhoneTasks { tasks -> tasks.map { task ->
+            // A grant can return while the process is dead; the broadcast is not a
+            // guaranteed single source of recovery. Persist restoration before arming.
+            PhoneTaskQueue.settle(
+                if (alarmAllowed) PhoneTaskQueue.resumeAlarmPermission(task) else task, now)
         } }
         val next = tasks.mapNotNull(PhoneTaskQueue::nextAt).minOrNull()
         if (next == null) { alarm.cancel(pending(context)); return true }
-        if (!allowed(context)) {
+        if (!alarmAllowed) {
             store.updatePhoneTasks { list -> list.map {
                 if (it.state == PhoneTaskState.READY && it.recipients.none { r ->
                     r.state == PhoneRecipientState.IN_FLIGHT })
@@ -88,6 +93,7 @@ internal object PhoneTaskScheduler {
                 maxOf(next, deferUntil, System.currentTimeMillis() + 1_000L), pending(context))
         } catch (_: SecurityException) {
             // Permission can be revoked between canScheduleExactAlarms and setExact.
+            alarm.cancel(pending(context))
             store.updatePhoneTasks { list -> list.map {
                 if (it.state == PhoneTaskState.READY) it.copy(
                     state = PhoneTaskState.PAUSED, issue = PhoneTaskIssue.ALARM_PERMISSION) else it

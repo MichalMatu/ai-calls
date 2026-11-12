@@ -173,6 +173,11 @@ internal object PhoneTaskInput {
 internal object PhoneTaskQueue {
     data class Claim(val task: PhoneTask, val recipientId: String, val attemptId: String)
 
+    /** Re-arm only tasks paused by Android's exact-alarm permission, never an owner pause. */
+    fun resumeAlarmPermission(task: PhoneTask): PhoneTask =
+        if (task.state == PhoneTaskState.PAUSED && task.issue == PhoneTaskIssue.ALARM_PERMISSION)
+            task.copy(state = PhoneTaskState.READY, issue = null) else task
+
     fun settle(task: PhoneTask, now: Long): PhoneTask {
         if (task.state != PhoneTaskState.READY) return task
         val recipients = task.recipients.map {
