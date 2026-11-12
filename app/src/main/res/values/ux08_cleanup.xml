@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ux08_incoming_model_agent_hint">Skills, scenariusze i dane: Agent AI. STT, modele i głosy: Modele.</string>
     <string name="ux08_campaign_model_agent_hint">Scenariusze i Skills edytujesz w Agent AI. STT, modele i głosy — w Modelach.</string>
     <string name="ux08_campaign_diagnostic_toggle">Pokaż historyczne kody i diagnostykę</string>
     <string name="ux08_usb_recording_future">Zapis na przyszłe próby</string>

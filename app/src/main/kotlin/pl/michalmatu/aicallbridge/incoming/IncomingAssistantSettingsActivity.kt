@@ -5,8 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.telecom.PhoneAccountHandle
 import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -38,7 +36,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val loadedPolicy = controller.current()
         val policy = loadedPolicy.getOrElse {
             feedback.text = getString(R.string.incoming_ui_read_error)
-            IncomingAssistantPolicy("unavailable", AnsweringMode.MANUAL, null, true)
+            IncomingAssistantPolicy("unavailable", AnsweringMode.MANUAL, null, false)
         }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -91,7 +89,6 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         content.addView(recording, UiDesign.spaceAfter(this, 8))
         content.addView(description(R.string.incoming_ui_record_hint))
-        content.addView(description(R.string.incoming_ui_engines_hint))
         content.addView(UiDesign.action(this, getString(R.string.incoming_ui_save), UiActionTone.PRIMARY) {
             val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL
             val chosen = simAccounts.getOrNull(simPicker.selectedItemPosition - 1)
@@ -109,8 +106,6 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         feedback.setTextColor(UiDesign.secondary)
         feedback.setPadding(0, UiDesign.dp(this, 4), 0, UiDesign.dp(this, 12))
         content.addView(feedback)
-        content.addView(UiDesign.caption(this, getString(R.string.ux08_incoming_model_agent_hint)),
-            UiDesign.spaceAfter(this, 8))
         setContentView(ScrollView(this).apply { addView(content) })
     }
 

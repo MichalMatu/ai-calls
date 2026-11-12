@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge
 
 import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
@@ -20,6 +22,19 @@ class AndroidUx08NavigationCleanupTest {
                 val root = a.window.decorView
                 assertNotNull(root.findViewWithTag<View>("incoming-save-mode"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
+                fun labels(view: View): List<String> = buildList {
+                    if (view is TextView) add(view.text.toString())
+                    if (view is ViewGroup) repeat(view.childCount) {
+                        addAll(labels(view.getChildAt(it)))
+                    }
+                }
+                val visible = labels(root)
+                assertTrue(visible.contains(a.getString(R.string.incoming_ui_record_hint)))
+                assertFalse(visible.any { it.contains("Skills,") || it.contains("scenarios, and data:") })
+                assertFalse(visible.any { it.contains("Zmiana trybu dotyczy") ||
+                    it.contains("Mode changes apply") })
+                assertFalse(visible.any { it.contains("Aktywnej rozmowy nie zmieniono") ||
+                    it.contains("Active calls are unchanged") })
             }
         }
     }

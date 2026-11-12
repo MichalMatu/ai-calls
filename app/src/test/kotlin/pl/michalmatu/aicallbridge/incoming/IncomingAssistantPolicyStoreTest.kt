@@ -33,6 +33,21 @@ class IncomingAssistantPolicyStoreTest {
             }
         } as SharedPreferences
     }
+    @Test fun newInstallDoesNotPreselectPrivateAudioRecording() {
+        val fixture = Preferences()
+        val policy = IncomingAssistantPolicyStore(fixture.port).load()
+        assertEquals(AnsweringMode.MANUAL, policy.mode)
+        assertFalse(policy.recordEvidence)
+        assertTrue(fixture.values.isEmpty())
+    }
+    @Test fun existingExplicitWavChoiceIsPreserved() {
+        val fixture = Preferences()
+        val store = IncomingAssistantPolicyStore(fixture.port)
+        store.save(AnsweringMode.AI, "sim", true)
+        assertTrue(store.load().recordEvidence)
+        store.save(AnsweringMode.MANUAL, "sim", false)
+        assertFalse(store.load().recordEvidence)
+    }
     @Test fun stopCanPersistManualEvenWhenOldPolicyCannotBeDecoded() {
         val fixture=Preferences()
         fixture.values.putAll(mapOf("id" to "old","mode" to "AI","account" to 42,"record" to true))

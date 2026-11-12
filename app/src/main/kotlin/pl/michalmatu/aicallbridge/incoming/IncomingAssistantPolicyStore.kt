@@ -12,12 +12,12 @@ import pl.michalmatu.aicallbridge.conversationcore.IncomingAssistantPolicy
 internal class IncomingAssistantPolicyStore(internal val preferences: SharedPreferences) {
     constructor(context: Context, name: String = PREFERENCES) : this(context.getSharedPreferences(name,Context.MODE_PRIVATE))
     fun load(): IncomingAssistantPolicy {
-        if (!preferences.contains("mode")) return IncomingAssistantPolicy("manual", AnsweringMode.MANUAL, null, true)
+        if (!preferences.contains("mode")) return IncomingAssistantPolicy("manual", AnsweringMode.MANUAL, null, false)
         return IncomingAssistantPolicy(
             checkNotNull(preferences.getString("id", null)),
             AnsweringMode.valueOf(checkNotNull(preferences.getString("mode", null))),
             preferences.getString("account", null),
-            preferences.getBoolean("record", true),
+            preferences.getBoolean("record", false),
         )
     }
     fun save(mode: AnsweringMode, accountKey: String?, record: Boolean): IncomingAssistantPolicy {
@@ -33,7 +33,7 @@ internal class IncomingAssistantPolicyStore(internal val preferences: SharedPref
         if (!preferences.contains("mode") ||
             runCatching { preferences.getString("mode", null) }.getOrNull() == AnsweringMode.MANUAL.name) return
         val account=runCatching { preferences.getString("account",null) }.getOrNull()
-        val record=runCatching { preferences.getBoolean("record",true) }.getOrDefault(true)
+        val record=runCatching { preferences.getBoolean("record",false) }.getOrDefault(false)
         save(AnsweringMode.MANUAL,account,record)
     }
     companion object {

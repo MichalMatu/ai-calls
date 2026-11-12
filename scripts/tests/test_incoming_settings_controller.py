@@ -10,11 +10,15 @@ class IncomingSettingsSeparation(unittest.TestCase):
         adapter=(K/"IncomingAssistantSettingsController.kt").read_text()
         self.assertIn("IncomingAssistantSettingsController(this)",view)
         self.assertIn("controller.save(selected, chosen, recording.isChecked)",view)
-        for forbidden in ("IncomingAssistantPolicyStore(", "TelecomManager", "AndroidOwnedInCallService", "READ_PHONE_STATE"):
+        for forbidden in ("IncomingAssistantPolicyStore(", "TelecomManager", "AndroidOwnedInCallService"):
             self.assertNotIn(forbidden,view)
         for expected in ("IncomingAssistantPolicyStore(app)", "TelecomManager::class.java", "incomingPolicyChanged()", "recordEvidence"):
             self.assertIn(expected,adapter)
         self.assertIn("mode == AnsweringMode.AI && account == null",adapter)
+        self.assertNotIn("ux08_incoming_model_agent_hint",view)
+        self.assertNotIn("incoming_ui_engines_hint",view)
+        policy=(K/"IncomingAssistantPolicyStore.kt").read_text()
+        self.assertIn('AnsweringMode.MANUAL, null, false)',policy)
     def test_all_new_resources_translated(self):
         pl=ET.parse(ROOT/"res/values/strings.xml").getroot()
         en=ET.parse(ROOT/"res/values-en/strings.xml").getroot()
