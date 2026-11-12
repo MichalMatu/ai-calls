@@ -51,8 +51,7 @@ internal class ScenarioOutgoingConversationScenario(
             tools = createOutgoingConversationTools(context, hooks, requestEndCall),
             hooks = hooks,
             responseSource = "OUTGOING_SCENARIO",
-            openingText = "Dzień dobry, dzwonię w imieniu użytkownika w sprawie: " +
-                task.title + ".",
+            openingText = task.openingText(),
         )
         return object : ConversationDialogueSession by session {
             override fun onTranscript(turn: Int, text: String) {

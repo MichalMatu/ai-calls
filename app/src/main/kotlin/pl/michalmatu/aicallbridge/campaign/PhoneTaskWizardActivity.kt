@@ -311,7 +311,8 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         val delay = if (draft.retry) Math.multiplyExact(draft.retryMinutes.toLong(), 60_000L).also { require(it > 0) } else null
         return PhoneTask(draft.id, draft.title, draft.scenarioId, draft.goal, brief(),
             requireNotNull(draft.subscriptionId), requireNotNull(draft.accountScope), start, end,
-            draft.zoneId, delay, now, PhoneTaskInput.recipients(draft.recipients).values).validated()
+            draft.zoneId, delay, now, PhoneTaskInput.recipients(draft.recipients).values,
+            language = if (language == "en") "en" else "pl").validated()
     }
 
     private fun approve() {

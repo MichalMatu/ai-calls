@@ -14,6 +14,7 @@ internal data class ScenarioOutgoingTask(
     val title: String,
     val goal: String,
     val brief: String,
+    val language: String = "pl",
 ) {
     init {
         require(grantId.isNotBlank())
@@ -23,8 +24,14 @@ internal data class ScenarioOutgoingTask(
         require(title.length in 2..140)
         require(goal.length in 5..300)
         require(brief.length in 5..3500) { "scenario_brief_invalid" }
+        require(language == "pl" || language == "en") { "scenario_language_invalid" }
     }
     fun validated() = copy()
+
+    fun openingText(): String = if (language == "en")
+        "Hello, I'm an AI assistant calling on behalf of the user about: " + title + "."
+    else "Dzień dobry, jestem asystentem AI i dzwonię w imieniu użytkownika w sprawie: " +
+        title + "."
 
     /** The exact action pins the chosen template as well as the phone number and SIM. */
     fun request() = CampaignExecutionRequest(

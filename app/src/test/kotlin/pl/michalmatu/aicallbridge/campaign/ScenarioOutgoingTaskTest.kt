@@ -59,6 +59,19 @@ class ScenarioOutgoingTaskTest {
         }
     }
 
+    @Test fun approvedLanguageControlsSpokenOpeningWithoutChangingCallAuthorization() {
+        val polish = task("mechanic")
+        val english = polish.copy(language = "en")
+        assertTrue(polish.openingText().startsWith("Dzień dobry"))
+        assertTrue(english.openingText().startsWith("Hello"))
+        assertTrue(english.openingText().contains("AI assistant"))
+        assertTrue(CampaignAuthorizationPolicy.matchesExactTask(
+            english.grant(1_000), english.request()))
+        assertThrows(IllegalArgumentException::class.java) {
+            polish.copy(language = "de")
+        }
+    }
+
     @Test fun taskNeverLogsSensitiveNumberOrBrief() {
         val candidate = task("mechanic")
         assertFalse(candidate.toString().contains(candidate.target))

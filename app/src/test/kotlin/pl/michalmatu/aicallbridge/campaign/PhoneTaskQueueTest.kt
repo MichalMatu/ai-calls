@@ -181,6 +181,76 @@ class PhoneTaskQueueTest {
         assertTrue(runCatching { failing.update { PhoneTaskQueue.recover(it, 2_000) } }.isFailure)
         assertEquals(PhoneRecipientState.IN_FLIGHT, repository.load().single().recipients[0].state)
     }
+    @Test fun `approved language is persisted and legacy task retains Polish safely`() {
+        var raw: String? = null
+        val store = PhoneTaskRepository({ raw }, { raw = it })
+        val approved = task(count = 1).copy(language = "en").validated()
+        store.update { listOf(approved) }
+        val restored = store.load().single()
+        assertEquals("en", restored.effectiveLanguage())
+        assertEquals("en", restored.scenarioTask(restored.recipients.single(), id()).language)
+        val english = PhoneTaskInstruction.forTask(restored)
+        assertTrue(english.contains("Speak English"))
+        assertTrue(english.contains("do not book, buy, order or accept charges"))
+        assertFalse(english.contains("Mów po polsku"))
+        val legacy = task(count = 1)
+        store.update { listOf(legacy) }
+        assertEquals("pl", store.load().single().effectiveLanguage())
+        assertTrue(PhoneTaskInstruction.forTask(store.load().single()).contains("Mów po polsku"))
+        assertTrue(runCatching { legacy.copy(language = "de").validated() }.isFailure)
+    }
+
+    @Test fun `three recipients persist sequentially through busy retry restart and unknown result`() {
+        var raw: String? = null
+        var repo = PhoneTaskRepository({ raw }, { raw = it })
+        repo.update { listOf(task(count = 3, end = 200_000, retry = 60_000)) }
+        fun claim(at: Long): PhoneTaskQueue.Claim =
+            requireNotNull(PhoneTaskQueue.claim(repo.load(), at, id())).also { next ->
+                repo.update { listOf(next.task) }
+                assertNull(PhoneTaskQueue.claim(repo.load(), at, id()))
+            }
+        val first = claim(1_000)
+        repo.update { listOf(PhoneTaskQueue.complete(
+            PhoneTaskQueue.progress(first.task, first.attemptId, PhoneAttemptStage.DIALING),
+            first.attemptId, PhoneAttemptOutcome.BUSY, 1_500)) }
+        val second = claim(2_000)
+        assertNotEquals(first.recipientId, second.recipientId)
+        repo.update { listOf(PhoneTaskQueue.complete(
+            PhoneTaskQueue.progress(second.task, second.attemptId, PhoneAttemptStage.TALKING,
+                "call-two", PhoneTaskAnswer(1, "Price from 80 USD, no appointments tomorrow.")),
+            second.attemptId, PhoneAttemptOutcome.ANSWERED, 2_500)) }
+        val third = claim(3_000)
+        assertNotEquals(second.recipientId, third.recipientId)
+        repo.update { listOf(PhoneTaskQueue.complete(
+            PhoneTaskQueue.progress(third.task, third.attemptId, PhoneAttemptStage.DIALING),
+            third.attemptId, PhoneAttemptOutcome.NO_ANSWER, 3_500)) }
+
+        // Process restart: completed evidence survives, and alarm scheduling never duplicates a claim.
+        repo = PhoneTaskRepository({ raw }, { raw = it })
+        assertEquals(61_500L, PhoneTaskQueue.nextAt(repo.load().single()))
+        assertNull(PhoneTaskQueue.claim(repo.load(), 61_499, id()))
+        val retryFirst = claim(61_500)
+        assertEquals(first.recipientId, retryFirst.recipientId)
+        repo.update { listOf(PhoneTaskQueue.complete(
+            PhoneTaskQueue.progress(retryFirst.task, retryFirst.attemptId, PhoneAttemptStage.TALKING,
+                "call-one", PhoneTaskAnswer(1, "Cena od 300 zł.")),
+            retryFirst.attemptId, PhoneAttemptOutcome.ANSWERED, 62_000)) }
+        val retryThird = claim(63_500)
+        assertEquals(third.recipientId, retryThird.recipientId)
+        repo.update { listOf(PhoneTaskQueue.complete(
+            PhoneTaskQueue.progress(retryThird.task, retryThird.attemptId, PhoneAttemptStage.DIALING),
+            retryThird.attemptId, PhoneAttemptOutcome.UNKNOWN, 64_000)) }
+        val done = repo.load().single()
+        assertEquals(PhoneTaskState.FINISHED, done.state)
+        assertEquals(listOf(2, 1, 2), done.recipients.map { it.attempts.size })
+        assertEquals(listOf(PhoneRecipientState.ANSWERED, PhoneRecipientState.ANSWERED,
+            PhoneRecipientState.UNKNOWN), done.recipients.map { it.state })
+        assertEquals("Price from 80 USD, no appointments tomorrow.",
+            done.recipients[1].attempts.single().answers.single().text)
+        assertNull(PhoneTaskQueue.nextAt(done))
+        assertNull(PhoneTaskQueue.claim(repo.load(), 100_000, id()))
+    }
+
     @Test fun `unknown schema or corrupt storage never becomes empty queue`() {
         listOf("bad json", "{\"schema\":99,\"tasks\":[]}", "{\"schema\":1,\"tasks\":[{}]}").forEach { raw ->
             assertTrue(PhoneTaskRepository({ raw }, {}).run { runCatching { load() }.isFailure })

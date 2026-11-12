@@ -21,11 +21,14 @@ internal data class PhoneTask(
     val recipients: List<PhoneTaskRecipient>,
     val state: PhoneTaskState = PhoneTaskState.READY,
     val issue: PhoneTaskIssue? = null,
+    // Nullable so campaigns approved before language pinning still load from Gson.
+    val language: String? = null,
 ) {
     fun validated(): PhoneTask = apply {
         require(UUID.fromString(id).toString() == id)
         require(startAt > 0 && endAt > startAt && approvedAt > 0)
         require(state in PhoneTaskState.entries)
+        require(language == null || language == "pl" || language == "en")
         ZoneId.of(zoneId)
         require(retryDelayMs == null || retryDelayMs > 0)
         require(recipients.isNotEmpty())
@@ -53,8 +56,11 @@ internal data class PhoneTask(
         require(recipients.count { it.state == PhoneRecipientState.IN_FLIGHT } <= 1)
     }
 
+    fun effectiveLanguage(): String = if (language == "en") "en" else "pl"
+
     fun scenarioTask(recipient: PhoneTaskRecipient, attemptId: String) = ScenarioOutgoingTask(
         attemptId, recipient.number, subscriptionId, accountScope, scenarioId, title, goal, brief,
+        language = effectiveLanguage(),
     )
 
     override fun toString() = "PhoneTask(id=$id,state=$state,scope=REDACTED)"
@@ -108,6 +114,28 @@ internal object PhoneTaskResults {
             texts.filter(time::containsMatchIn), texts.filterNot {
                 price.containsMatchIn(it) || time.containsMatchIn(it)
             })
+    }
+}
+
+/** Spoken-enquiry policy belongs to the approved task, not the current device locale. */
+internal object PhoneTaskInstruction {
+    fun forTask(task: PhoneTask): String = if (task.effectiveLanguage() == "en") {
+        "Goal: ${task.goal}\nDetails: ${task.brief}\n" +
+            "You are an AI assistant calling on behalf of the user. Speak English. " +
+            "Collect answers, exact prices with currency, service scope (parts/labour), " +
+            "availability and conditions. Ask follow-up questions when unclear. " +
+            "This call is for information only: do not book, buy, order or accept charges. " +
+            "Do not disclose private vault data or invent answers or confirmations. " +
+            "After collecting answers, thank the recipient and end the call."
+    } else {
+        "Cel: ${task.goal}\nSzczegóły: ${task.brief}\n" +
+            "Jesteś asystentem AI dzwoniącym w imieniu użytkownika. Mów po polsku. " +
+            "Zbierz odpowiedzi, dokładną cenę z walutą, zakres usługi (części/robocizna), " +
+            "dostępność i warunki. Dopytaj o niejasne informacje. " +
+            "To zapytanie informacyjne: nie rezerwuj, nie kupuj, nie zamawiaj " +
+            "i nie akceptuj opłat. Nie ujawniaj danych z sejfu. " +
+            "Nie wymyślaj odpowiedzi ani potwierdzenia wyniku. " +
+            "Po zebraniu odpowiedzi podziękuj i zakończ rozmowę."
     }
 }
 

@@ -119,12 +119,7 @@ internal class PhoneTaskExecution(
                 val preparation = ConversationPreparation("outgoing-scenario-" + task.scenarioId,
                     task.title, ConversationDirection.OUTGOING, context.notes, context.skills,
                     context.scopedDataFields(emptySet()))
-                val goal = "Cel: ${task.goal}\nSzczegóły: ${task.brief}\n" +
-                    "Jesteś asystentem AI dzwoniącym w imieniu użytkownika. Zbierz odpowiedzi, " +
-                    "dokładną cenę z walutą, zakres usługi (części/robocizna), dostępność i warunki. " +
-                    "Dopytaj o niejasne informacje. To zapytanie informacyjne: nie rezerwuj, nie kupuj, " +
-                    "nie zamawiaj i nie akceptuj opłat. Nie ujawniaj danych z sejfu. " +
-                    "Nie wymyślaj odpowiedzi ani potwierdzenia wyniku. Po zebraniu odpowiedzi podziękuj i zakończ rozmowę."
+                val goal = PhoneTaskInstruction.forTask(task)
                 val instruction = ConversationInstructionBuilder.build(preparation, goal,
                     ConversationResponseFormat.TOOL_REPLY)
                 val configuration = ConversationRunConfiguration.ModelDirect(profile, instruction, preparation)
