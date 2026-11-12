@@ -734,4 +734,13 @@
     <string name="cap_ui_yes">Yes</string>
     <string name="cap_ui_no">No</string>
     <string name="cap_ui_unknown">Unknown</string>
+    <string name="perm_status_granted">Granted</string>
+    <string name="perm_status_missing">Permission required</string>
+    <string name="perm_action_allow">Grant access</string>
+    <string name="perm_action_settings">Open Android settings</string>
+    <string name="perm_call_phone_title">Placing calls</string>
+    <string name="perm_notifications_title">Notifications (optional)</string>
+    <string name="perm_shizuku_title">Shizuku</string>
+    <string name="perm_shizuku_offline">Shizuku is not running</string>
+    <string name="perm_action_open_shizuku">Open Shizuku</string>
 </resources>

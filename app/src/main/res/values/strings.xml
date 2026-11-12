@@ -735,4 +735,13 @@
     <string name="cap_ui_yes">Tak</string>
     <string name="cap_ui_no">Nie</string>
     <string name="cap_ui_unknown">Brak danych</string>
+    <string name="perm_status_granted">Przyznano</string>
+    <string name="perm_status_missing">Wymagana zgoda</string>
+    <string name="perm_action_allow">Przyznaj dostęp</string>
+    <string name="perm_action_settings">Otwórz ustawienia Androida</string>
+    <string name="perm_call_phone_title">Wykonywanie połączeń</string>
+    <string name="perm_notifications_title">Powiadomienia (opcjonalne)</string>
+    <string name="perm_shizuku_title">Shizuku</string>
+    <string name="perm_shizuku_offline">Shizuku nie jest uruchomione</string>
+    <string name="perm_action_open_shizuku">Otwórz Shizuku</string>
 </resources>
