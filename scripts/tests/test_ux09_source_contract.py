@@ -20,8 +20,13 @@ class Ux09Contract(unittest.TestCase):
     def test_usb_has_single_header_and_no_double_frame(self):
         text = read("debug/UsbDebugPanelActivity.kt")
         self.assertNotIn('label(getString(R.string.usb_ui_title), 22f)', text)
-        self.assertIn('background = null', text)
-        self.assertIn('"usb-raw"', text)
+        self.assertIn('content.addView(UiAccordionSection(this, "usb-technical",', text)
+        self.assertIn('addControl(technicalFields)', text)
+        self.assertEqual(6, text.count('        item("'))
+        self.assertNotIn('item("campaign"', text)
+        self.assertNotIn('item("recording-current"', text)
+        self.assertNotIn('"usb-raw"', text)
+        self.assertNotIn('ClipboardManager', text)
 
     def test_campaign_result_is_not_a_multiline_blob(self):
         text = read("campaign/CampaignToolActivity.kt")
