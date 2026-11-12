@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.mediapipe.tasks.audio.audiotranscriber.AudioTranscriber
 import com.google.mediapipe.tasks.audio.audiotranscriber.AudioTranscriberResult
 import com.google.mediapipe.tasks.core.BaseOptions
+import pl.michalmatu.aicallbridge.localspeech.SpeechRecognitionSegments
 import java.io.File
 import java.io.InterruptedIOException
 import java.security.MessageDigest
@@ -172,10 +173,10 @@ internal class ParakeetSpeechInputProvider(context: Context) : SpeechInputProvid
             if (!isCurrent(run)) return
             run.listener.onReady()
             val converter = Pcm16FloatDecoder()
-            val finalParts = mutableListOf<String>()
+            val finalParts = SpeechRecognitionSegments()
             fun collect(result: AudioTranscriberResult) {
                 result.segments().filter { it.isFinal }.map { it.transcript().trim() }
-                    .filter { it.isNotEmpty() }.forEach { finalParts += it }
+                    .filter { it.isNotEmpty() }.forEach(finalParts::add)
             }
             while (isCurrent(run)) {
                 val chunk = run.queue.poll(100, TimeUnit.MILLISECONDS)
@@ -191,7 +192,7 @@ internal class ParakeetSpeechInputProvider(context: Context) : SpeechInputProvid
             }
             collect(task.finishStream())
             if (!isCurrent(run)) return
-            val finalText = finalParts.joinToString(" ").trim()
+            val finalText = finalParts.resolve("")
             if (finalText.isBlank()) run.listener.onError("parakeet_empty_transcript")
             else run.listener.onFinalTranscript(finalText)
         } catch (_: InterruptedException) {

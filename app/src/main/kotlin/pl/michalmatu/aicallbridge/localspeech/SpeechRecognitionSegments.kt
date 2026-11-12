@@ -14,12 +14,22 @@ internal class SpeechRecognitionSegments {
         val joined = parts.joinToString(" ")
         when {
             joined.isBlank() -> parts += current
-            sameWords(joined, current) || sameWords(parts.last(), current) -> Unit
+            sameWords(joined, current) || sameWords(parts.last(), current) ||
+                beginsWithWords(joined, current) || endsWithWords(joined, current) -> Unit
             beginsWithWords(current, joined) -> {
                 parts.clear()
                 parts += current
             }
-            else -> parts += current
+            else -> {
+                val previous = joined.split(Regex("\\s+"))
+                val next = current.split(Regex("\\s+"))
+                val overlap = overlapWords(previous, next)
+                if (overlap == 0) parts += current
+                else {
+                    parts.clear()
+                    parts += (previous + next.drop(overlap)).joinToString(" ")
+                }
+            }
         }
     }
 
@@ -37,14 +47,15 @@ internal class SpeechRecognitionSegments {
 
         val previous = accumulated.split(Regex("\\s+"))
         val tail = direct.split(Regex("\\s+"))
-        val maximum = minOf(previous.size, tail.size)
-        val overlap = (maximum downTo 1).firstOrNull { count ->
-            previous.takeLast(count).map(::word) == tail.take(count).map(::word)
-        } ?: 0
-        return (previous + tail.drop(overlap)).joinToString(" ")
+        return (previous + tail.drop(overlapWords(previous, tail))).joinToString(" ")
     }
 
     fun clear() = parts.clear()
+
+    private fun overlapWords(previous: List<String>, next: List<String>): Int =
+        (minOf(previous.size, next.size) downTo 1).firstOrNull { count ->
+            previous.takeLast(count).map(::word) == next.take(count).map(::word)
+        } ?: 0
 
     private fun sameWords(a: String, b: String): Boolean =
         words(a) == words(b)

@@ -39,6 +39,24 @@ class SpeechRecognitionSegmentsTest {
         assertEquals("dzień dobry chciałbym wizytę", speech.resolve("chciałbym wizytę"))
     }
 
+    @Test fun overlappingFinalFragmentsDoNotRepeatSpeech() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("proszę umówić")
+        speech.add("umówić wizytę")
+        speech.add("wizytę na piątek")
+        assertEquals("proszę umówić wizytę na piątek", speech.resolve(""))
+    }
+
+    @Test fun repeatedStreamingFinalResultsDoNotDuplicateRecognizedWords() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("dzień dobry")
+        speech.add("dzień dobry")
+        speech.add("dzień dobry chciałbym")
+        speech.add("chciałbym wizytę")
+        speech.add("dzień dobry")
+        assertEquals("dzień dobry chciałbym wizytę", speech.resolve(""))
+    }
+
     @Test fun clearDiscardsPreviousCallSegments() {
         val speech = SpeechRecognitionSegments()
         speech.add("Wrażliwy tekst")
