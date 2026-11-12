@@ -25,6 +25,7 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
  * never executed; no Telecom calls, audio, permission changes or tool dispatch.
  */
 class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
+    override fun toolbarTitle(): String = getString(R.string.lab_ui_title)
     private lateinit var runner: SkillLabRunner
     private var lastState = SkillLabUiState()
     private var renderedTurnCount = 0
@@ -78,10 +79,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 UiDesign.dp(this@ConversationSkillLabActivity, 20),
                 UiDesign.dp(this@ConversationSkillLabActivity, 4))
         }
-        content.addView(UiDesign.heading(this, getString(R.string.lab_ui_title)).apply {
-            textSize = 23f
-        }, UiDesign.spaceAfter(this, 8))
-
         val library = try { SkillLabIsolatedTestStore.forContext(this).loadSkillLibrary() }
         catch (error: Exception) {
             setContentView(TextView(this).apply {
@@ -311,9 +308,9 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             orientation = LinearLayout.VERTICAL
             // Independent scroll regions preserve visible chat and a fixed composer.
             addView(optionScroll, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.36f))
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.50f))
             addView(scroll, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.64f))
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.50f))
             addView(composerHolder, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         })
@@ -731,6 +728,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         emptyTranscript.visibility = if (next.completed.isEmpty() && next.pending == null)
             View.VISIBLE else View.GONE
+        // The empty prompt is already shown in the transcript; do not repeat it above diagnostics.
+        status.visibility = if (next.phase == SkillLabPhase.READY) View.GONE else View.VISIBLE
         progress.visibility = View.GONE
         progress.max = next.totalTurns
         progress.progress = next.completed.size
