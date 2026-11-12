@@ -10,7 +10,7 @@ Kontrakt panelu: [UI](modules/UI.md). **IMPROVE** istniejących `UiDesign` i dym
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Panel UX na S22 | HOST_TESTED / PHYSICAL_OPEN · app/ui | Konfiguracja i czat osobno; czytelna diagnostyka. Aktualizacja S22 oczekuje na połączenie ADB; odbiór właściciela otwarty |
+| Panel UX na S22 | INSTALLED / PHYSICAL_OPEN · app/ui | `015ae2d`: aktualizacja S22 przy IDLE; 7 plików preferencji, uprawnienia, język i rola Telefon zachowane. Odbiór właściciela otwarty |
 | Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | STT zachowuje kontekst; pusty finalny transkrypt wraca do nasłuchu (Mac PASS `6b93564`). Model, granty i STOP bez zmian. Jakość, native PL i RAM S22 otwarte |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
