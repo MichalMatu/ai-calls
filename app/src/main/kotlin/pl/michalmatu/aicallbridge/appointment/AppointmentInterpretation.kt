@@ -161,6 +161,10 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         text: String,
         referenceDate: LocalDate? = null,
     ): AppointmentOfferCandidate? {
+        // A spoken refusal can contain a complete date and clock time. It
+        // must never become an apparently available appointment for review.
+        // Keep negative availability distinct from "nie ma problemu" or "brak opłat".
+        if (UNAVAILABLE_OFFER.containsMatchIn(normalizeWords(text))) return null
         // A range is not a concrete offered appointment and must not silently collapse to its start.
         if (parseTimeRange(text) != null) return null
         val date = parseDate(text, referenceDate) ?: return null
@@ -216,6 +220,10 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         val TIME_RANGE = Regex(
             "\\bod\\s+([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\s+do\\s+" +
                 "([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\b",
+        )
+        val UNAVAILABLE_OFFER = Regex(
+            "\\b(?:nie ma|nie mamy|brak)\\s+(?:woln\\w*|dostepn\\w*|termin\\w*|miejsc\\w*)\\b" +
+                "|\\b(?:zajety|zajeta|zajete|niedostepny|niedostepna|niedostepne|odpada)\\b",
         )
         val WEEKDAY_ALIASES = mapOf(
             DayOfWeek.MONDAY to setOf("poniedzialek"),

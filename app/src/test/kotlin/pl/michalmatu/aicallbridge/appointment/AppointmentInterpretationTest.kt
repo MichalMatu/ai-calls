@@ -185,6 +185,30 @@ class AppointmentInterpretationTest {
     }
 
     @Test
+    fun `unavailable appointment cannot be reviewed as an offered appointment`() {
+        assertNull(interpreter.parseOffer(
+            "Niestety nie mamy wolnych terminów na 10.02.2027 o 11:30", referenceDate))
+        assertNull(interpreter.parseOffer(
+            "Termin 10.02.2027 o 11:30 jest już zajęty", referenceDate))
+        assertNull(interpreter.parseOffer(
+            "Brak miejsc 10.02.2027 o 11:30", referenceDate))
+        assertNull(interpreter.parseOffer(
+            "Termin 10.02.2027 o 11:30 odpada", referenceDate))
+    }
+
+    @Test
+    fun `non availability negation still permits a genuinely offered time`() {
+        assertEquals(
+            AppointmentOfferCandidate(
+                ZonedDateTime.of(2027, 2, 10, 11, 30, 0, 0, zone),
+                AppointmentDateKind.ABSOLUTE,
+            ),
+            interpreter.parseOffer(
+                "Nie ma problemu, wolny termin 10.02.2027 o 11:30, brak opłat", referenceDate),
+        )
+    }
+
+    @Test
     fun `response semantics classify only bounded deterministic acts`() {
         assertEquals(AppointmentResponseIntent.ACCEPT, interpreter.classifyResponse("tak, pasuje"))
         assertEquals(AppointmentResponseIntent.REJECT, interpreter.classifyResponse("nie, dziękuję"))
