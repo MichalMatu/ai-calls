@@ -59,7 +59,13 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         text: String,
         referenceDate: LocalDate? = null,
     ): AppointmentDateCandidate? {
-        ISO_DATE.find(text)?.let { match ->
+        // A caller can mention alternatives or correct a date mid-sentence.
+        // Never pick the first explicit date and invent a confirmed offer.
+        val isoMatches = ISO_DATE.findAll(text).toList()
+        val polishMatches = POLISH_DATE.findAll(text).toList()
+        if (isoMatches.size + polishMatches.size > 1) return null
+
+        isoMatches.singleOrNull()?.let { match ->
             return localDateOrNull(
                 year = match.groupValues[1].toInt(),
                 month = match.groupValues[2].toInt(),
@@ -67,7 +73,7 @@ class AppointmentInterpreter(private val zone: ZoneId) {
             )?.let { AppointmentDateCandidate(it, AppointmentDateKind.ABSOLUTE) }
         }
 
-        POLISH_DATE.find(text)?.let { match ->
+        polishMatches.singleOrNull()?.let { match ->
             return localDateOrNull(
                 year = match.groupValues[3].toInt(),
                 month = match.groupValues[2].toInt(),
@@ -106,20 +112,20 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         val dateRanges = listOf(ISO_DATE, POLISH_DATE).flatMap { pattern ->
             pattern.findAll(text).map { it.range }.toList()
         }
-        TIME.findAll(text).firstOrNull { match ->
+        val clockTimes = TIME.findAll(text).filter { match ->
             dateRanges.none { date -> match.range.first >= date.first &&
                 match.range.last <= date.last }
-        }?.let { match ->
-            return localTimeOrNull(match.groupValues[1], match.groupValues[2])
-                ?.let(::AppointmentTimeCandidate)
-        }
+        }.mapNotNull { match ->
+            localTimeOrNull(match.groupValues[1], match.groupValues[2])
+        }.distinct().toList()
+        if (clockTimes.size > 1) return null
+        clockTimes.singleOrNull()?.let { return AppointmentTimeCandidate(it) }
 
-        HOUR_WITH_MARKER.find(normalizeWords(text))?.let { match ->
+        val markedHours = HOUR_WITH_MARKER.findAll(normalizeWords(text)).mapNotNull { match ->
             val minute = match.groupValues[2].ifEmpty { "0" }
-            return localTimeOrNull(match.groupValues[1], minute)
-                ?.let(::AppointmentTimeCandidate)
-        }
-        return null
+            localTimeOrNull(match.groupValues[1], minute)
+        }.distinct().toList()
+        return markedHours.singleOrNull()?.let(::AppointmentTimeCandidate)
     }
 
     fun parseTimeRange(text: String): AppointmentTimeRangeCandidate? {

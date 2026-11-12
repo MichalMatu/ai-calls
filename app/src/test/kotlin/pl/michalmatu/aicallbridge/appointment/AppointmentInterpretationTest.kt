@@ -107,6 +107,33 @@ class AppointmentInterpretationTest {
     }
 
     @Test
+    fun `conflicting or invalid explicit dates cannot silently become another offered day`() {
+        assertNull(interpreter.parseDate("2027-02-10 lub 2027-02-11", referenceDate))
+        assertNull(interpreter.parseDate("10.02.2027 albo 11.02.2027", referenceDate))
+        assertNull(interpreter.parseDate("2027-02-31, jutro", referenceDate))
+        assertNull(interpreter.parseOffer("10.02.2027 lub 11.02.2027 o 17:00", referenceDate))
+        assertEquals(
+            AppointmentDateCandidate(LocalDate.of(2027, 2, 10), AppointmentDateKind.ABSOLUTE),
+            interpreter.parseDate("10.02.2027 o 17:00", referenceDate),
+        )
+    }
+
+    @Test
+    fun `competing clock times are not reduced to the first one`() {
+        assertNull(interpreter.parseTime("o 17:00 albo 19:00"))
+        assertNull(interpreter.parseTime("godz 17 lub godz 19"))
+        assertNull(interpreter.parseOffer("10.02.2027 o 17:00 lub 18:00", referenceDate))
+        assertEquals(
+            AppointmentTimeCandidate(LocalTime.of(17, 30)),
+            interpreter.parseTime("17:30, potwierdzam 17:30"),
+        )
+        assertEquals(
+            AppointmentTimeCandidate(LocalTime.of(17, 0)),
+            interpreter.parseTime("godz 17"),
+        )
+    }
+
+    @Test
     fun `response semantics classify only bounded deterministic acts`() {
         assertEquals(AppointmentResponseIntent.ACCEPT, interpreter.classifyResponse("tak, pasuje"))
         assertEquals(AppointmentResponseIntent.REJECT, interpreter.classifyResponse("nie, dziękuję"))
