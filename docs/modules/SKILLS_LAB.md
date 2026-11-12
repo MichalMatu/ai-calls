@@ -1,5 +1,3 @@
-# Modele, Skills i laboratorium
+# Skills i modele
 
-Normalny produkt: Gemma E2B/LiteRT-LM i wybrane STT/TTS; alternatywne modele w Lab. Wybrany model nie jest automatycznie gotowy — sprawdzaj plik, zgodność i zasoby. Off-call Lab przed promocją do realnego Call.
-
-Wersjonowane Skills są dobierane per kontekst i mogą proponować typowane akcje, lecz nie zyskują grantu ani dostępu do całego sejfu. Nie powtarzaj starych benchmarków bez zmiany kontraktu. [SECURITY](../architecture/SECURITY.md).
+Gemma E2B i STT/TTS; warianty w Lab. Walidacja pliku ≠ jakość. Skills proponują akcje, ale nie mają grantu. Test off-call przed Call.

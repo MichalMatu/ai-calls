@@ -1,8 +1,7 @@
-# AI Calls — granice bezpieczeństwa
+# Bezpieczeństwo
 
-- **Exact app-owned Call:** każda operacja dial/answer/TX/DTMF/hangup wymaga aktualnego, dokładnego Call, numeru/SIM i scoped grantu; nigdy globalne rozłączanie ani wpływ na obcą rozmowę.
-- **STOP/TAKE OVER:** odetnij STT/model/TTS i spóźnione callbacki przed cleanup; przejęcie nie rozłącza Call. Resume wyłącznie jawnie w tej samej autoryzowanej sesji.
-- **Skutki:** `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault` i polityka grantu pozostają w aplikacji. Model, prompt, transkrypt i sam TX nie są autoryzacją ani potwierdzeniem rezerwacji. Rozróżniaj requested/dispatched/confirmed/UNKNOWN; efekt zewnętrzny wymaga niezależnego dowodu.
-- **Prywatność:** numery, sekrety, prywatne WAV/STT i kontekst sejfu tylko w aplikacji. WAV na opt-in; tekstowa historia autoryzowanej rozmowy lokalna. Kontroluj zgodę/informowanie rozmówców. Żadnych prywatnych danych w Git, logcat, zadaniach hosta i telemetrycznych wynikach; eksport wyłącznie kontrolowany.
-- **S22:** nie modyfikuj zamrożonego Samsung `VOICE_DOWNLINK`/`CALL_ASSISTANT`, Shizuku, generacji PCM ani selective cleanup bez dowodu na fizycznym S22. Bazowy kontrakt sprzętowy: `59b0505`.
-- Prawdziwa operacja wymaga jawnego zakresu właściciela, zweryfikowanego urządzenia, permission i IDLE; niepewność blokuje wykonanie. Nie dodawaj sztucznego tarcia, ale nie usuwaj tych granic. Nie wymuszaj `FLAG_SECURE`.
+- Tylko exact app-owned Call i grant z numerem/SIM/scope; bez globalnego hangup.
+- STOP/TAKE OVER odcina stare STT/model/TTS/TX przed cleanup; resume jawnie.
+- `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault`: model nie autoryzuje. UNKNOWN i TX nie potwierdzają rezerwacji.
+- WAV na opt-in, STT/historia prywatne. Bez PII/audio w Git/receipts/logcat.
+- Zamrożony Samsung PCM/Shizuku wymaga fizycznego QA po zmianie. Realny Call: zgoda, IDLE, sprawdzony S22. Bez `FLAG_SECURE`.

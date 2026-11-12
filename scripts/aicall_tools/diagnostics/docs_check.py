@@ -17,11 +17,12 @@ DOCS = (
 )
 REQUIRED = ("README.md", "AGENTS.md", *DOCS)
 
-TOTAL_WARN_BYTES = 18 * 1024
-TOTAL_MAX_BYTES = 24 * 1024
-FILE_WARN_BYTES = 3 * 1024
-FILE_MAX_BYTES = 4 * 1024
-AGENTS_MAX_BYTES = 4 * 1024
+TOTAL_WARN_BYTES = 6 * 1024
+TOTAL_MAX_BYTES = 8 * 1024
+FILE_WARN_BYTES = 1 * 1024
+FILE_MAX_BYTES = 2 * 1024
+AGENTS_MAX_BYTES = 1 * 1024
+PROJECT_MAX_BYTES = 2 * 1024
 
 LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^(#{1,3})[ \t]+(.+?)[ \t]*$")
@@ -117,7 +118,8 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
     for file in files:
         rel = file.relative_to(root).as_posix()
         size = file.stat().st_size
-        cap = AGENTS_MAX_BYTES if rel == "AGENTS.md" else FILE_MAX_BYTES
+        cap = (AGENTS_MAX_BYTES if rel == "AGENTS.md" else
+               PROJECT_MAX_BYTES if rel == "docs/PROJECT.md" else FILE_MAX_BYTES)
         if size > cap:
             errors.append(f"{rel}: file budget exceeded: {size} > {cap} bytes")
         elif size > FILE_WARN_BYTES:

@@ -1,8 +1,5 @@
-# AI Calls — architektura
+# Architektura
 
-- `app/`: Android UI, exact Call, autoryzacja, STT/Gemma/TTS, historia i harmonogram.
-- `conversation-core/`: czyste kontrakty stanów, generacji i IVR/DTMF; `conversation-tools/`: typowane akcje.
-- `audio-bridge/` i `privileged-helper/`: zweryfikowany Samsung/Shizuku PCM RX/TX.
-- `realtime-client/`: opcjonalny osobny transport; `service-packs/`: scenariusze; `scripts/`: QA.
+`app`: Call, UI, scheduler, model, historia. `conversation-core`: tury/generacje, DTMF. `conversation-tools`: skutki. `audio-bridge`/`privileged-helper`: Samsung/Shizuku PCM. `realtime-client`: osobny transport.
 
-INCOMING i OUTGOING używają **jednego** `AndroidConversationRuntime`: app-owned Call + grant → RX → STT → model/Skills → zatwierdzenie tekstu/skutków → TTS → TX. Model proponuje, aplikacja decyduje. Nie dodawaj drugiego schedulera, vaultu ani toru audio. [SECURITY](SECURITY.md).
+INCOMING i OUTGOING współdzielą `AndroidConversationRuntime`. Bez drugiego toru audio/schedulera/vaultu.
