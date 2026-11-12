@@ -65,6 +65,26 @@ class SpeechRecognitionSegmentsTest {
             speech.resolve("Dzień dobry, chcę wizytę na piątek."))
     }
 
+    @Test fun sameGreetingWithDifferentEndingCannotDiscardCompletedAppointmentContext() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("Dzień dobry chciałbym umówić wizytę")
+        speech.add("na piątek")
+        assertEquals(
+            "Dzień dobry chciałbym umówić wizytę na piątek Dzień dobry, czy są wolne miejsca",
+            speech.resolve("Dzień dobry, czy są wolne miejsca"),
+        )
+    }
+
+    @Test fun correctedCompleteResultWithSharedBeginningAndEndingStillWins() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("Dzień dobry chciałbym wizytę")
+        speech.add("na piątek")
+        assertEquals(
+            "Dzień dobry, chcę wizytę na piątek.",
+            speech.resolve("Dzień dobry, chcę wizytę na piątek."),
+        )
+    }
+
     @Test fun differentOpeningIsAppendedAsSeparateFinalFragment() {
         val speech = SpeechRecognitionSegments()
         speech.add("Dzień dobry chciałbym wizytę")

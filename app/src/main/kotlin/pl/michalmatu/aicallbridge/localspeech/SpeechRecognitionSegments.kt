@@ -45,11 +45,14 @@ internal class SpeechRecognitionSegments {
             return accumulated
         }
         // onResults may revise interior words in a whole-utterance hypothesis.
-        // The same initial phrase indicates a corrected full result, not a new suffix.
+        // A shared greeting alone is not evidence of a complete replacement:
+        // the recognizer might otherwise drop a confirmed earlier appointment.
+        // Require agreement at both ends before replacing finalized segments.
         val completedWords = words(accumulated)
         val directWords = words(direct)
-        if (completedWords.size >= 3 && directWords.size >= 3 &&
-            completedWords.take(2) == directWords.take(2)) return direct
+        if (completedWords.size >= 4 && directWords.size >= 4 &&
+            completedWords.take(2) == directWords.take(2) &&
+            completedWords.takeLast(2) == directWords.takeLast(2)) return direct
 
         val previous = accumulated.split(Regex("\\s+"))
         val tail = direct.split(Regex("\\s+"))
