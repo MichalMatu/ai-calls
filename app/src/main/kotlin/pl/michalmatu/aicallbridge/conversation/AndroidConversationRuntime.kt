@@ -585,9 +585,17 @@ internal object AndroidConversationRuntime {
                     }
 
                     override fun onError(reason: String) {
-                        if (!capture.complete.compareAndSet(false, true)) return
+                        // The source can fail before the Call termination callback.
+                        // Claim RX_INTERRUPTED before dropping the active capture:
+                        // finish() must not lose this partial spoken turn.
+                        val cause = ConversationRxInterruptionGate.sourceFailureCode(
+                            stopRequested.get(),
+                            runCatching { callStillActive() }.getOrDefault(false),
+                        )
+                        if (!recordInterruptedCapture(capture, cause)) return
                         if (!activeRxCapture.compareAndSet(capture, null)) return
                         evidenceRx?.finish()
+                        totalRxBytes += total.toLong()
                         if (finished.get()) return
                         context.mainExecutor.execute {
                             if (currentCapture()) {
@@ -882,6 +890,20 @@ internal object AndroidConversationRuntime {
         private fun elapsedTurnMs(): Long =
             (SystemClock.elapsedRealtime() - turnStartedAtMs).coerceAtLeast(0L)
 
+        private fun recordInterruptedCapture(active: ActiveRxCapture, cause: String): Boolean =
+            ConversationRxInterruptionGate.claimAndRecord(active.complete) {
+                val last = active.latest.get()
+                val trailing = last.estimatedSpeechEndMs?.let { speechEnd ->
+                    (last.capturedMs - speechEnd).coerceAtLeast(0L)
+                }
+                lines += "turn_${active.turn}_rx_interrupted=true"
+                lines += "turn_${active.turn}_rx_interrupted_capture_ms=${last.capturedMs}"
+                lines += "turn_${active.turn}_rx_interrupted_trailing_silence_ms=${trailing ?: -1L}"
+                evidenceRecorder?.recordInterruptedRx(
+                    active.turn, last.capturedMs, last.speechDetected, trailing, cause,
+                )
+            }
+
         private fun fail(code: String) = finish(if (stopRequested.get() != null || !runCatching { callStillActive() }.getOrDefault(false)) authorityTermination() else ConversationTermination.Failed(code))
 
         private fun finish(termination: ConversationTermination) {
@@ -896,19 +918,7 @@ internal object AndroidConversationRuntime {
             // F-047: the owned Call can end before the 1500 ms VAD trailing silence.
             // Preserve only safe metadata; NEVER attempt Gemma/TTS/TX after call teardown.
             activeRxCapture.getAndSet(null)?.let { active ->
-                if (!active.complete.get()) {
-                    val last = active.latest.get()
-                    val trailing = last.estimatedSpeechEndMs?.let { speechEnd ->
-                        (last.capturedMs - speechEnd).coerceAtLeast(0L)
-                    }
-                    val cause = result.rxInterruptionCode()
-                    lines += "turn_${active.turn}_rx_interrupted=true"
-                    lines += "turn_${active.turn}_rx_interrupted_capture_ms=${last.capturedMs}"
-                    lines += "turn_${active.turn}_rx_interrupted_trailing_silence_ms=${trailing ?: -1L}"
-                    evidenceRecorder?.recordInterruptedRx(
-                        active.turn, last.capturedMs, last.speechDetected, trailing, cause,
-                    )
-                }
+                recordInterruptedCapture(active, result.rxInterruptionCode())
             }
             try { pipeline.close() } catch (_: Throwable) {}
             try { quickAckSynthesizer.close() } catch (_: Throwable) {}
