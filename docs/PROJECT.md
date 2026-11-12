@@ -10,7 +10,10 @@ Kontrakt panelu: [UI](modules/UI.md). **IMPROVE** istniejącego `UiDesign`, bez 
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Panel UX na S22 | INSTALLED / PHYSICAL_OPEN · app/ui | `0411609b`: instalacja `install -r` przy IDLE. Preferencje, uprawnienia i rola Telefon zachowane; odbiór właściciela otwarty |
+| Panel UX na S22 | INSTALLED / PHYSICAL_OPEN · app/ui | `0411609b`: aktualizacja przy IDLE; preferencje, uprawnienia i rola Telefon zachowane. Odbiór UX otwarty |
+| Laboratorium UX | UX_OPEN · app/conversation | Pusty czat zajmuje 50% miejsca. Gate: osobne widoki konfiguracji/sesji, metryki na żądanie, klawiatura, STOP i font 150% |
+| Wynik Shizuku UX | UX_OPEN · app/ui | Surowy raport w menu. Gate: modal, czytelny wynik off-call i błędy; szczegóły osobno. Off-call PASS nie dowodzi live audio |
+| Możliwości urządzenia UX | UX_OPEN · app/ui | Wyjątki i enumy bez zakresu procesu, pominięte kierunki urządzeń. Gate: app/Shizuku osobno, opisane stany, błędy w szczegółach |
 | Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | STT zachowuje kontekst; pusty finalny transkrypt wraca do nasłuchu (Mac PASS `6b93564`). Model, granty i STOP bez zmian. Jakość, native PL i RAM S22 otwarte |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
