@@ -81,6 +81,32 @@ class AppointmentInterpretationTest {
     }
 
     @Test
+    fun `nonexistent DST hour never silently shifts an offered Warsaw appointment`() {
+        // Warsaw jumps from 02:00 to 03:00 on the last Sunday of March.
+        assertNull(interpreter.parseOffer("2027-03-28 02:30", referenceDate))
+        assertEquals(
+            AppointmentOfferCandidate(
+                ZonedDateTime.of(2027, 3, 28, 3, 30, 0, 0, zone),
+                AppointmentDateKind.ABSOLUTE,
+            ),
+            interpreter.parseOffer("2027-03-28 03:30", referenceDate),
+        )
+    }
+
+    @Test
+    fun `ambiguous repeated DST hour requires clarification not arbitrary offset`() {
+        // 02:30 is repeated after the Warsaw autumn clock rollback.
+        assertNull(interpreter.parseOffer("31.10.2027 o 02:30", referenceDate))
+        assertEquals(
+            AppointmentOfferCandidate(
+                ZonedDateTime.of(2027, 10, 31, 3, 30, 0, 0, zone),
+                AppointmentDateKind.ABSOLUTE,
+            ),
+            interpreter.parseOffer("31.10.2027 o 03:30", referenceDate),
+        )
+    }
+
+    @Test
     fun `response semantics classify only bounded deterministic acts`() {
         assertEquals(AppointmentResponseIntent.ACCEPT, interpreter.classifyResponse("tak, pasuje"))
         assertEquals(AppointmentResponseIntent.REJECT, interpreter.classifyResponse("nie, dziękuję"))

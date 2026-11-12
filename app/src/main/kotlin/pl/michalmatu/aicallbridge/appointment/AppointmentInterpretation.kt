@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.appointment
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -143,9 +144,16 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         if (parseTimeRange(text) != null) return null
         val date = parseDate(text, referenceDate) ?: return null
         val time = parseTime(text) ?: return null
-        val scheduledAt = runCatching { ZonedDateTime.of(date.date, time.time, zone) }.getOrNull()
-            ?: return null
-        return AppointmentOfferCandidate(scheduledAt, date.kind)
+        // Zone resolution can silently shift a nonexistent clock time (DST gap)
+        // or choose an arbitrary offset when a local hour occurs twice. Neither
+        // is a unique appointment offered by the other party.
+        val local = LocalDateTime.of(date.date, time.time)
+        val validOffsets = zone.rules.getValidOffsets(local)
+        if (validOffsets.size != 1) return null
+        return AppointmentOfferCandidate(
+            ZonedDateTime.ofLocal(local, zone, validOffsets.single()),
+            date.kind,
+        )
     }
 
     fun classifyResponse(text: String): AppointmentResponseIntent? =
