@@ -9,6 +9,8 @@
 
 - **Sekretarka (UX):** dwa tony naturalny/formalny i własne instrukcje bez nazywania profilu. Ustawienia dotyczą tylko incoming; stare presety i historia wersji są usuwane podczas migracji szyfrowanego zapisu; aktywne własne instrukcje i ton sekretarki są zachowywane. Wymagana fizyczna kontrola UI S22+ po instalacji.
 
+- **Diagnostyka (UX, kod na `main`):** jedno wejście USB/ADB przez Opcje → Sondy i narzędzia programistyczne; spójny nagłówek laboratorium, czytelne nazwy modeli, mniej powielonego pustego stanu, lepsze proporcje paneli. Flagi `call_idle` i `campaign_service_inactive` opisane jednoznacznie; wyniki sond można zaznaczać. Nie zmieniono runtime połączeń ani Shizuku. **Kompilacja i fizyczny odbiór S22+: PHYSICAL_OPEN** (brak dostępu do Mac Local Agent w tej sesji).
+
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
