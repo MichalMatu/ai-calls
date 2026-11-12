@@ -202,6 +202,57 @@ class AndroidPhoneTaskFlowTest {
         assertEquals(PhoneRecipientState.UNKNOWN, store.phoneTasks().single().recipients[1].state)
     }
 
+    @Test fun restoredExactAlarmPermissionRearmsOnlyItsOwnPausedTasksWithoutDial() {
+        org.junit.Assume.assumeTrue(Build.VERSION.SDK_INT >= 31)
+        val packageName = context.packageName
+        val initiallyAllowed = PhoneTaskScheduler.allowed(context)
+        val originalGrant = CampaignAuthorizationStore(context).load()
+        val future = System.currentTimeMillis() + 600_000L
+        val waiting = task(future)
+        val takeover = task(future).copy(state = PhoneTaskState.PAUSED,
+            issue = PhoneTaskIssue.TAKEOVER)
+        val cancelled = task(future).copy(state = PhoneTaskState.CANCELLED)
+        try {
+            // Emulator only: change an app-op, never place a call or touch physical USB devices.
+            shell("appops set $packageName SCHEDULE_EXACT_ALARM ignore")
+            await { !PhoneTaskScheduler.allowed(context) }
+            PhoneTaskWork.io.submit {
+                store.updatePhoneTasks { listOf(waiting, takeover, cancelled) }
+                assertFalse(PhoneTaskScheduler.reconcile(context))
+            }.get(10, TimeUnit.SECONDS)
+            val paused = store.phoneTasks()
+            assertEquals(PhoneTaskState.PAUSED, paused[0].state)
+            assertEquals(PhoneTaskIssue.ALARM_PERMISSION, paused[0].issue)
+            assertEquals(PhoneTaskIssue.TAKEOVER, paused[1].issue)
+            assertEquals(PhoneTaskState.CANCELLED, paused[2].state)
+            assertNull(PhoneTaskQueue.nextAt(paused[0]))
+
+            shell("appops set $packageName SCHEDULE_EXACT_ALARM allow")
+            await { PhoneTaskScheduler.allowed(context) }
+            PhoneTaskWork.io.submit {
+                assertTrue(PhoneTaskScheduler.reconcile(context))
+            }.get(10, TimeUnit.SECONDS)
+            val restored = store.phoneTasks()
+            assertEquals(PhoneTaskState.READY, restored[0].state)
+            assertNull(restored[0].issue)
+            assertNotNull(PhoneTaskQueue.nextAt(restored[0]))
+            assertEquals(takeover, restored[1])
+            assertEquals(cancelled, restored[2])
+            assertTrue(restored.flatMap { it.recipients }.all { it.attempts.isEmpty() })
+            assertEquals(originalGrant, CampaignAuthorizationStore(context).load())
+
+            // Duplicate scheduling must not create a call or change any recipient.
+            PhoneTaskWork.io.submit {
+                assertTrue(PhoneTaskScheduler.reconcile(context))
+            }.get(10, TimeUnit.SECONDS)
+            assertEquals(restored, store.phoneTasks())
+            assertEquals(originalGrant, CampaignAuthorizationStore(context).load())
+        } finally {
+            shell("appops set $packageName SCHEDULE_EXACT_ALARM " +
+                if (initiallyAllowed) "allow" else "ignore")
+        }
+    }
+
     @Test fun exactAlarmWakesBackgroundDialerAndRejectsChangedSimBeforeGrantOrDial() {
         val packageName = context.packageName
         shell("cmd role add-role-holder --user 0 android.app.role.DIALER $packageName")
