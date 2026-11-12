@@ -67,9 +67,10 @@ internal class ModelVoiceSettings(
     val voiceView = card(R.string.mv_voice, voiceName, ::showVoicePicker).apply { tag = "model-voice-voice" }
     private val modelAction = UiDesign.action(activity, "") { modelAction() }
     private val retry = UiDesign.action(activity, activity.getString(R.string.mv_retry)) {
-        verify(draft, draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT, force = true)
+        verify(draft, draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
+            AudioEngineRegistry.supportsAudio(draft), force = true)
         refresh()
-    }
+    }.apply { tag = "model-voice-compatibility-check" }
 
     init {
         modelView.addView(modelState, UiDesign.spaceAfter(activity, 4))
@@ -298,14 +299,27 @@ internal class ModelVoiceSettings(
         val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, draft) }.getOrNull()
         val transfer = LanguageModelTransferService.status
         val downloading = transfer.busy && transfer.id == draft.dialogue && draft.dialogue == DialogueModelId.GEMMA_4_E2B
+        val audioMode = draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
+            AudioEngineRegistry.supportsAudio(draft)
+        val verified = file?.isFile == true && ModelCompatibilityStore(activity).verified(file, audioMode, draft)
+        val selectedAttempt = file?.takeIf { it.isFile }
+            ?.let { ModelCompatibilityStamp.of(it, draft, audioMode) }
+            ?.let { "$it:$audioMode:${draft.customModelId}" }
+        val attemptMatches = lastAttempt == selectedAttempt
         modelState.text = when {
             downloading -> activity.getString(R.string.mv_download_progress,
                 (transfer.bytes * 100 / checkNotNull(LanguageModelCatalog[DialogueModelId.GEMMA_4_E2B].spec.expectedBytes)).toInt().coerceIn(0, 100))
-            checking -> activity.getString(if (draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT)
+            checking && attemptMatches -> activity.getString(if (audioMode)
                 R.string.mv_checking_audio else R.string.mv_checking_model)
-            checkResult != null && file?.isFile == true -> checkResult
-            file?.isFile == true -> activity.getString(R.string.mv_downloaded_size,
-                Formatter.formatShortFileSize(activity, file.length()))
+            attemptMatches && checkResult != null && file?.isFile == true -> checkNotNull(checkResult)
+            file?.isFile == true -> activity.getString(when (ModelVerificationUi.status(
+                verified, draft.dialogue == DialogueModelId.USER_LITERT, audioMode)) {
+                ModelVerificationStatus.VERIFIED_TEXT -> R.string.mv_verified_text
+                ModelVerificationStatus.VERIFIED_AUDIO -> R.string.mv_verified_audio
+                ModelVerificationStatus.REQUIRED_TEXT -> R.string.mv_compatibility_required
+                ModelVerificationStatus.REQUIRED_AUDIO -> R.string.mv_audio_unverified
+                ModelVerificationStatus.DOWNLOADED_UNVERIFIED -> R.string.mv_downloaded_unverified
+            })
             else -> activity.getString(R.string.mv_model_missing_short)
         }
         val code = result.reason
@@ -339,14 +353,16 @@ internal class ModelVoiceSettings(
                 if (needsAudio || needsText) verify(draft, needsAudio)
             }
         }
-        retry.visibility = if (file?.isFile == true && (lastAttempt != null || checking || checkResult != null))
+        retry.visibility = if (ModelVerificationUi.checkVisible(file?.isFile == true, downloading))
             View.VISIBLE else View.GONE
-        retry.isEnabled = !checking && (draft.input != SpeechInputId.GEMMA_AUDIO_DIRECT || voicesReady)
+        retry.isEnabled = !checking && (!audioMode || voicesReady)
         retry.text = activity.getString(when {
             checking -> R.string.mv_checking_short
-            draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT && !voicesReady -> R.string.mv_loading_voices
-            draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT -> R.string.mv_retry_audio
-            else -> R.string.mv_retry
+            audioMode && !voicesReady -> R.string.mv_loading_voices
+            audioMode && (verified || attemptMatches) -> R.string.mv_retry_audio
+            audioMode -> R.string.mv_check_audio
+            verified || attemptMatches -> R.string.mv_retry
+            else -> R.string.mv_check_compatibility
         })
     }
 

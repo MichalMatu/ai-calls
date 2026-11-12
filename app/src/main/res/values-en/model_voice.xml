@@ -15,6 +15,12 @@
     <string name="mv_saved">Saved for future calls. Readiness above depends on model files and available services.</string>
     <string name="mv_unsaved">Changes have not been saved yet.</string>
     <string name="mv_retry">Check model again</string>
+    <string name="mv_check_compatibility">Check compatibility</string>
+    <string name="mv_check_audio">Check audio compatibility</string>
+    <string name="mv_verified_text">Model compatibility verified.</string>
+    <string name="mv_verified_audio">Audio input verified for the selected voice.</string>
+    <string name="mv_downloaded_unverified">Downloaded · compatibility unverified (optional check).</string>
+    <string name="mv_audio_unverified">Audio compatibility needs checking.</string>
     <string name="mv_checking_model">Checking model…</string>
     <string name="mv_ready">Configuration is ready to use.</string>
     <string name="mv_model_missing">The conversation model file is missing. Download Gemma E2B or add a compatible model file.</string>
@@ -31,7 +37,12 @@
     <string name="mv_discard">Discard</string>
     <string name="mv_stay">Stay</string>
     <string name="mv_permissions">App permissions</string>
-    <string name="mv_permissions_hint">Default phone app and microphone access.</string>
+    <string name="mv_permissions_hint">Status of the Phone role, microphone and phone state / SIM access.</string>
+    <string name="perm_microphone_title">Microphone</string>
+    <string name="perm_phone_state_title">SIM cards and phone state</string>
+    <string name="perm_phone_state_granted">Phone state and SIM access granted.</string>
+    <string name="perm_phone_state_missing">Phone state and SIM access not granted.</string>
+    <string name="perm_phone_state_action">Grant SIM access</string>
     <string name="mv_compatible">File stored · runtime compatibility verified</string>
     <string name="mv_selected_model">Selected model: %1$s</string>
     <string name="mv_invalid_container">The file has an invalid format. Add a LiteRT-LM model.</string>

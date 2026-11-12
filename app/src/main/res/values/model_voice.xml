@@ -15,6 +15,12 @@
     <string name="mv_saved">Zapisano wybór do kolejnych rozmów. Gotowość pokazana powyżej zależy od plików i dostępnych usług.</string>
     <string name="mv_unsaved">Zmiany nie są jeszcze zapisane.</string>
     <string name="mv_retry">Sprawdź model ponownie</string>
+    <string name="mv_check_compatibility">Sprawdź kompatybilność</string>
+    <string name="mv_check_audio">Sprawdź kompatybilność audio</string>
+    <string name="mv_verified_text">Zgodność modelu potwierdzona.</string>
+    <string name="mv_verified_audio">Zgodność audio potwierdzona dla wybranego głosu.</string>
+    <string name="mv_downloaded_unverified">Pobrany · zgodność niezweryfikowana (test opcjonalny).</string>
+    <string name="mv_audio_unverified">Zgodność audio wymaga sprawdzenia.</string>
     <string name="mv_checking_model">Sprawdzanie modelu…</string>
     <string name="mv_ready">Konfiguracja gotowa do użycia.</string>
     <string name="mv_model_missing">Brakuje pliku modelu rozmowy. Pobierz Gemma E2B lub dodaj zgodny plik modelu.</string>
@@ -31,7 +37,12 @@
     <string name="mv_discard">Odrzuć</string>
     <string name="mv_stay">Zostań</string>
     <string name="mv_permissions">Uprawnienia aplikacji</string>
-    <string name="mv_permissions_hint">Domyślna aplikacja Telefon i dostęp do mikrofonu.</string>
+    <string name="mv_permissions_hint">Status aplikacji Telefon, mikrofonu i dostępu do stanu telefonu / kart SIM.</string>
+    <string name="perm_microphone_title">Mikrofon</string>
+    <string name="perm_phone_state_title">Karty SIM i stan telefonu</string>
+    <string name="perm_phone_state_granted">Dostęp do stanu telefonu i kart SIM przyznany.</string>
+    <string name="perm_phone_state_missing">Dostęp do stanu telefonu i kart SIM nieprzyznany.</string>
+    <string name="perm_phone_state_action">Przyznaj dostęp do kart SIM</string>
     <string name="mv_compatible">Plik zapisany · zgodność z runtime potwierdzona</string>
     <string name="mv_selected_model">Wybrany model: %1$s</string>
     <string name="mv_invalid_container">Plik ma nieprawidłowy format. Dodaj model w formacie LiteRT-LM.</string>

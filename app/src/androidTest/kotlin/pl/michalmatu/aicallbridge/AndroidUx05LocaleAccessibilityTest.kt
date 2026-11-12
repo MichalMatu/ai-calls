@@ -50,7 +50,8 @@ class AndroidUx05LocaleAccessibilityTest {
                 val root = activity.window.decorView
                 assertFalse(labels(root).contains(activity.getString(R.string.ui_settings_hub_title)))
                 assertFalse(labels(root).contains(activity.getString(R.string.ui_settings_hub_caption)))
-                assertTrue(labels(root).contains(activity.getString(R.string.ui_settings_hub_group_ai)))
+                assertFalse(labels(root).contains(activity.getString(R.string.ui_settings_hub_group_ai)))
+                assertTrue(labels(root).contains(activity.getString(R.string.ui_language_hint)))
                 val nav = requireNotNull(root.findViewWithTag<View>("app-tab:settings"))
                 assertEquals(activity.getString(R.string.ui_tab_settings), nav.contentDescription.toString())
                 assertTrue(nav.isFocusable)

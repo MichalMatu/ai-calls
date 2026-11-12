@@ -90,6 +90,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             minimumHeight = UiDesign.dp(this@IncomingAssistantSettingsActivity, 48)
         }
         content.addView(recording, UiDesign.spaceAfter(this, 8))
+        content.addView(description(R.string.incoming_ui_record_hint))
         content.addView(description(R.string.incoming_ui_engines_hint))
         content.addView(UiDesign.action(this, getString(R.string.incoming_ui_save), UiActionTone.PRIMARY) {
             val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL

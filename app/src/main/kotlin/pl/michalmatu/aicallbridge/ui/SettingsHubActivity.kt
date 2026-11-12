@@ -72,6 +72,13 @@ class SettingsHubActivity : AppBaseActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 16) })
         }
+        destination(R.string.mv_title, R.string.mv_intro, LanguageModelActivity::class.java)
+        section(R.string.ui_settings_hub_group_calls)
+        destination(R.string.mv_permissions, R.string.mv_permissions_hint, GeneralSettingsActivity::class.java)
+        destination(R.string.ui_settings_hub_answering, R.string.ui_settings_hub_answering_detail, IncomingAssistantSettingsActivity::class.java)
+        section(R.string.ui_settings_hub_group_advanced)
+        destination(R.string.ui_settings_hub_developer, R.string.ui_settings_hub_developer_detail, DeveloperToolsActivity::class.java)
+        // Interface language is independent of STT/TTS and belongs after functional settings.
         // One visible native dropdown; selecting a language takes only one tap to open.
         val languageCodes = listOf("auto", "pl", "en")
         val languageLabels = listOf(
@@ -83,7 +90,7 @@ class SettingsHubActivity : AppBaseActivity() {
             text = getString(R.string.ui_language_label)
             textSize = 16f
             setTextColor(UiDesign.ink)
-            setPadding(0, UiDesign.dp(this@SettingsHubActivity, 8),
+            setPadding(0, UiDesign.dp(this@SettingsHubActivity, 24),
                 0, UiDesign.dp(this@SettingsHubActivity, 8))
         })
         val languagePicker = Spinner(this).apply {
@@ -105,13 +112,8 @@ class SettingsHubActivity : AppBaseActivity() {
         content.addView(languagePicker, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, UiDesign.dp(this, 52)
         ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 8) })
-        section(R.string.ui_settings_hub_group_ai)
-        destination(R.string.mv_title, R.string.mv_intro, LanguageModelActivity::class.java)
-        section(R.string.ui_settings_hub_group_calls)
-        destination(R.string.mv_permissions, R.string.mv_permissions_hint, GeneralSettingsActivity::class.java)
-        destination(R.string.ui_settings_hub_answering, R.string.ui_settings_hub_answering_detail, IncomingAssistantSettingsActivity::class.java)
-        section(R.string.ui_settings_hub_group_advanced)
-        destination(R.string.ui_settings_hub_developer, R.string.ui_settings_hub_developer_detail, DeveloperToolsActivity::class.java)
+        content.addView(UiDesign.caption(this, getString(R.string.ui_language_hint)),
+            UiDesign.spaceAfter(this, 8))
         AppNavigation.install(this, ScrollView(this).apply {
             isFillViewport = true
             addView(content)

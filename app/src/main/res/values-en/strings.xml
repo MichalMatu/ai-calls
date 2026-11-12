@@ -112,7 +112,8 @@
     <string name="incoming_ui_no_sim">No SIM account available for calls.</string>
     <string name="incoming_ui_grant_phone">Allow access to SIM cards</string>
     <string name="incoming_ui_permission_denied">SIM access was denied.</string>
-    <string name="incoming_ui_record">Allow recording in future incoming calls</string>
+    <string name="incoming_ui_record">Record incoming call audio segments (WAV)</string>
+    <string name="incoming_ui_record_hint">Private transcripts and diagnostics are saved without audio recording. This option also stores local WAV audio segments of the caller and assistant, not a continuous full-call recording.</string>
     <string name="incoming_ui_engines_hint">Mode changes apply to future calls, not an active call.</string>
     <string name="incoming_ui_save">Save answering mode</string>
     <string name="incoming_ui_choose_sim">Select a SIM after granting Android permissions.</string>

@@ -112,7 +112,8 @@
     <string name="incoming_ui_no_sim">Nie znaleziono dostępnej karty SIM do połączeń.</string>
     <string name="incoming_ui_grant_phone">Przyznaj dostęp do kart SIM</string>
     <string name="incoming_ui_permission_denied">Nie przyznano dostępu do kart SIM.</string>
-    <string name="incoming_ui_record">Zezwalaj na zapis w kolejnych rozmowach przychodzących</string>
+    <string name="incoming_ui_record">Nagrywaj fragmenty audio rozmów przychodzących (WAV)</string>
+    <string name="incoming_ui_record_hint">Prywatne transkrypty i diagnostyka są zapisywane także bez nagrywania dźwięku. Ta opcja dodatkowo zapisuje lokalne fragmenty audio rozmówcy i asystenta do WAV, nie ciągłe nagranie całej rozmowy.</string>
     <string name="incoming_ui_engines_hint">Zmiana trybu dotyczy kolejnych rozmów, nie aktywnej sesji.</string>
     <string name="incoming_ui_save">Zapisz tryb odbierania</string>
     <string name="incoming_ui_choose_sim">Wybierz kartę SIM po nadaniu uprawnień Androida.</string>
