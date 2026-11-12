@@ -28,7 +28,14 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
             textSize = 14f
             setTextColor(UiDesign.secondary)
         })
-        val status = TextView(this).apply { setTextColor(UiDesign.ink); textSize = 13f }
+        val status = TextView(this).apply {
+            tag = "developer-probe-result"
+            setTextColor(UiDesign.ink)
+            textSize = 12f
+            typeface = android.graphics.Typeface.MONOSPACE
+            setTextIsSelectable(true)
+            setPadding(0, UiDesign.dp(this@DeveloperToolsActivity, 8), 0, 0)
+        }
         probes = MainActivityDeveloperProbes(this, status)
         probes.addControls(body)
         body.addView(UiDesign.button(this, getString(R.string.ui_lab_short)) {
