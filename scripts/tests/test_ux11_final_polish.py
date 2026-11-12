@@ -7,10 +7,10 @@ BASE = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 class Ux11FinalPolish(unittest.TestCase):
     def test_lab_short_heading_and_empty_state_without_extra_intro(self):
         lab = (BASE / "conversation/ConversationSkillLabActivity.kt").read_text()
-        self.assertIn("R.string.ux11_lab_timeline_title", lab)
+        self.assertIn("R.string.lab_chat_title", lab)
         self.assertIn('"lab-empty-transcript"', lab)
-        self.assertIn('emptyTranscript.visibility = if (next.completed.isEmpty()', lab)
-        self.assertIn('progress.visibility = View.GONE', lab)
+        self.assertIn('emptyTranscript.visibility = if (next.phase == SkillLabPhase.STARTING', lab)
+        self.assertIn('progress.visibility = if (next.phase in setOf(SkillLabPhase.STARTING, SkillLabPhase.WAITING))', lab)
         self.assertIn("stopButton.visibility = if (!next.manualStartAllowed", lab)
         self.assertNotIn("R.string.lab_ui_timeline_title", lab)
         self.assertNotIn("R.string.lab_ui_intro", lab)

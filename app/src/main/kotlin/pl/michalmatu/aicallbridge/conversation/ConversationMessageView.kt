@@ -26,6 +26,8 @@ import android.widget.LinearLayout.LayoutParams
         onAudioTap: (() -> Unit)? = null,
         audioTag: String? = null,
         audioHint: String? = null,
+        bodyTag: String? = null,
+        headerOverride: String? = null,
     ): View {
         fun dp(value: Int) = (value * context.resources.displayMetrics.density + 0.5f).toInt()
         val isAgent = line.speaker == ConversationChatFeed.Speaker.ASSISTANT
@@ -51,13 +53,14 @@ import android.widget.LinearLayout.LayoutParams
             }
             setPadding(dp(12), dp(9), dp(12), dp(10))
             addView(TextView(context).apply {
-                text = (if (line.turn == 0 && isAgent) context.getString(R.string.chat_turn_welcome)
-                    else context.getString(label, line.turn)) + " • " + time
+                text = headerOverride ?: ((if (line.turn == 0 && isAgent) context.getString(R.string.chat_turn_welcome)
+                    else context.getString(label, line.turn)) + " • " + time)
                 textSize = 10f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.rgb(185, 207, 234))
             })
             addView(TextView(context).apply {
+                tag = bodyTag
                 text = line.text
                 textSize = 14f
                 setTextColor(Color.WHITE)

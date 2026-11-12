@@ -1,7 +1,6 @@
 package pl.michalmatu.aicallbridge.ui
 
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -11,19 +10,27 @@ import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.CapabilityProbe
 import pl.michalmatu.aicallbridge.R
 
-/** Read-only, single-card view. The legacy probe still writes its private ADB report. */
+/** App-process initialization facts, scoped separately from Shizuku and live call audio. */
 class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun toolbarTitle(): String = getString(R.string.dev_ui_capability)
     private val worker = Executors.newSingleThreadExecutor()
     private val values = linkedMapOf<String, TextView>()
     private lateinit var state: TextView
     private lateinit var routes: LinearLayout
+    private lateinit var details: android.widget.Button
+    private var technicalReport = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val content = UiDesign.content(this)
-        val card = UiDesign.card(this).apply { tag = "capabilities-card" }
+        content.addView(UiDesign.caption(this, getString(R.string.cap_scope)), UiDesign.spaceAfter(this))
+        var card = UiDesign.card(this).apply { tag = "capabilities-card" }
+        content.addView(card)
         fun group(title: Int) {
+            if (card.childCount > 0) {
+                card = UiDesign.card(this)
+                content.addView(card)
+            }
             card.addView(UiDesign.heading(this, getString(title)).apply {
                 textSize = 16f
                 setPadding(0, UiDesign.dp(this@CapabilityDiagnosticsActivity, 12),
@@ -32,8 +39,7 @@ class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         fun row(key: String, label: String) {
             val line = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
+                orientation = LinearLayout.VERTICAL
                 setPadding(0, UiDesign.dp(this@CapabilityDiagnosticsActivity, 6),
                     0, UiDesign.dp(this@CapabilityDiagnosticsActivity, 6))
             }
@@ -41,18 +47,17 @@ class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 text = label
                 textSize = 13f
                 setTextColor(UiDesign.secondary)
-            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            })
             val value = TextView(this).apply {
                 textSize = 14f
                 setTextColor(UiDesign.ink)
                 setTypeface(null, android.graphics.Typeface.BOLD)
-                gravity = Gravity.END
                 setTextIsSelectable(true)
                 tag = "capabilities-value:" + key
                 text = getString(R.string.cap_ui_unknown)
             }
             values[key] = value
-            line.addView(value, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            line.addView(value)
             card.addView(line)
         }
         group(R.string.cap_ui_device)
@@ -69,10 +74,8 @@ class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
         row("communication_device", getString(R.string.cap_ui_communication))
 
         group(R.string.cap_ui_sources)
-        for (source in listOf("MIC", "VOICE_COMMUNICATION", "VOICE_RECOGNITION",
-            "VOICE_CALL", "VOICE_DOWNLINK", "VOICE_UPLINK")) {
-            row("audio_source_" + source, source.replace('_', ' '))
-        }
+        card.addView(UiDesign.caption(this, getString(R.string.cap_source_limit)), UiDesign.spaceAfter(this, 8))
+        for ((source, label) in CapabilityLabels.sources) row("audio_source_" + source, getString(label))
 
         group(R.string.cap_ui_routes)
         routes = LinearLayout(this).apply {
@@ -85,7 +88,10 @@ class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         card.addView(state)
-        content.addView(card)
+        details = UiDesign.action(this, getString(R.string.diag_details)) {
+            DiagnosticResultDialog.showDetails(this, getString(R.string.diag_details), technicalReport)
+        }.apply { tag = "capabilities-details"; isEnabled = false }
+        content.addView(details)
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -96,8 +102,16 @@ class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 result.fold(
-                    onSuccess = { render(CapabilityReportParser.read(it)) },
-                    onFailure = { state.setText(R.string.cap_ui_failed) },
+                    onSuccess = {
+                        technicalReport = it
+                        details.isEnabled = true
+                        render(CapabilityReportParser.read(it))
+                    },
+                    onFailure = {
+                        technicalReport = it.javaClass.simpleName + ": " + it.message.orEmpty()
+                        details.isEnabled = true
+                        state.setText(R.string.cap_ui_failed)
+                    },
                 )
             }
         }
@@ -120,41 +134,46 @@ class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 .filterNot { it.isNullOrBlank() }.joinToString(" "),
             "android" to (display("android_release") + " · API " + display("sdk")),
             "permission_record_audio" to grant("permission_record_audio"),
-            "audio_mode" to display("audio_mode").substringBefore('('),
+            "audio_mode" to getString(CapabilityLabels.mode(data["audio_mode"])),
             "microphone_muted" to yesNo("microphone_muted"),
             "speakerphone_on" to yesNo("speakerphone_on"),
-            "output_sample_rate" to display("output_sample_rate") + " Hz",
+            "output_sample_rate" to data["output_sample_rate"]?.takeIf { it.toIntOrNull()?.let { rate -> rate > 0 } == true }
+                ?.let { "$it Hz" }.orEmpty(),
             "type_telephony_present" to yesNo("type_telephony_present"),
             "communication_device" to data["communication_device"]?.let {
                 if (it == "none") getString(R.string.cap_ui_unavailable)
-                else CapabilityReportParser.deviceType(it)
+                else getString(CapabilityLabels.device(CapabilityReportParser.device(it).type))
             }.orEmpty(),
         )
         for ((key, view) in values) {
             val parsed = if (key.startsWith("audio_source_")) {
-                when (val state = CapabilityReportParser.audioSource(data[key])) {
-                    "initialized" -> getString(R.string.cap_ui_initialized)
-                    "uninitialized" -> getString(R.string.cap_ui_uninitialized)
-                    "unknown" -> getString(R.string.cap_ui_unknown)
-                    else -> state
-                }
+                getString(when (CapabilityReportParser.audioSource(data[key])) {
+                    CapabilityReportParser.AudioSourceState.INITIALIZED -> R.string.cap_ui_initialized
+                    CapabilityReportParser.AudioSourceState.UNINITIALIZED -> R.string.cap_ui_uninitialized
+                    CapabilityReportParser.AudioSourceState.ERROR -> R.string.cap_source_error
+                    CapabilityReportParser.AudioSourceState.UNKNOWN -> R.string.cap_ui_unknown
+                })
             } else formatted[key].orEmpty().ifBlank { getString(R.string.cap_ui_unknown) }
             view.text = parsed
         }
         routes.removeAllViews()
         val devices = data.entries.filter { it.key.startsWith("audio_device[") }
             .sortedBy { it.key.substringAfter('[').substringBefore(']').toIntOrNull() ?: Int.MAX_VALUE }
-        for (device in devices) {
-            val line = TextView(this).apply {
-                text = CapabilityReportParser.deviceType(device.value) + " · " +
-                    CapabilityReportParser.deviceProduct(device.value)
-                textSize = 13f
-                setTextColor(UiDesign.ink)
-                setPadding(0, UiDesign.dp(this@CapabilityDiagnosticsActivity, 5), 0,
-                    UiDesign.dp(this@CapabilityDiagnosticsActivity, 5))
-                tag = "capabilities-route"
+        val parsedDevices = devices.map { CapabilityReportParser.device(it.value) }
+        val groups = listOf(R.string.cap_inputs to parsedDevices.filter { it.direction in setOf("source", "source+sink") },
+            R.string.cap_outputs to parsedDevices.filter { it.direction in setOf("sink", "source+sink") },
+            R.string.cap_other_devices to parsedDevices.filter { it.direction !in setOf("source", "sink", "source+sink") })
+        for ((title, entries) in groups) {
+            if (entries.isEmpty()) continue
+            routes.addView(UiDesign.heading(this, getString(title)).apply { textSize = 15f },
+                UiDesign.spaceAfter(this, 6))
+            entries.groupBy { it.type }.forEach { (type, matching) ->
+                val label = getString(CapabilityLabels.device(type))
+                routes.addView(UiDesign.caption(this, if (matching.size == 1) label
+                    else getString(R.string.cap_device_count, label, matching.size)).apply {
+                    tag = "capabilities-route"
+                }, UiDesign.spaceAfter(this, 8))
             }
-            routes.addView(line)
         }
         if (devices.isEmpty()) routes.addView(UiDesign.caption(this, getString(R.string.cap_ui_unavailable)))
         state.visibility = View.GONE

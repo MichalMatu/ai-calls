@@ -22,7 +22,7 @@ class Sprint4UxContract(unittest.TestCase):
             "progress.progress = completed", "record.reply.trim()",
             "runButton.isEnabled = next.manualStartAllowed",
             "sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY",
-            "next.completed.isEmpty() && next.pending == null", "UiDesign.card(this, 12)"
+            "next.phase == SkillLabPhase.STARTING && timeline.childCount == 0", "conversationMessageView(this, ConversationChatFeed.Line"
         ):
             self.assertIn(token, lab)
         runner = self.read("conversation/SkillLabRunner.kt")
@@ -49,8 +49,8 @@ class Sprint4UxContract(unittest.TestCase):
 
     def test_synthetic_device_preview_never_starts_model(self):
         preview = (TEST / "AndroidSkillLabLivePreviewTest.kt").read_text()
-        self.assertIn("showTurnPending", preview)
-        self.assertIn("showTurnCompleted", preview)
+        self.assertIn("SkillLabUiState", preview)
+        self.assertIn("SkillLabCompletedTurn", preview)
         self.assertIn("lab-live-synthetic.jpg", preview)
         self.assertIn("ui-audit-20261107-sprint6", preview)
         self.assertNotIn("runLab(", preview)

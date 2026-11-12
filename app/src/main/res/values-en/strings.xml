@@ -715,7 +715,7 @@
     <string name="cap_ui_failed">Could not inspect device capabilities.</string>
     <string name="cap_ui_device">Device</string>
     <string name="cap_ui_audio">Audio</string>
-    <string name="cap_ui_sources">Audio sources — initialization</string>
+    <string name="cap_ui_sources">Audio sources — initialization test</string>
     <string name="cap_ui_routes">Audio devices</string>
     <string name="cap_ui_model">Model</string>
     <string name="cap_ui_system">System</string>
@@ -724,11 +724,11 @@
     <string name="cap_ui_muted">Microphone muted</string>
     <string name="cap_ui_speaker">Speakerphone</string>
     <string name="cap_ui_rate">Output sample rate</string>
-    <string name="cap_ui_telephony">Telephony route</string>
+    <string name="cap_ui_telephony">System reports a telephony path</string>
     <string name="cap_ui_communication">Communication device</string>
     <string name="cap_ui_granted">Granted</string>
     <string name="cap_ui_denied">Not granted</string>
-    <string name="cap_ui_initialized">Initialized</string>
+    <string name="cap_ui_initialized">Initialization possible</string>
     <string name="cap_ui_uninitialized">Not initialized</string>
     <string name="cap_ui_unavailable">Unavailable</string>
     <string name="cap_ui_yes">Yes</string>

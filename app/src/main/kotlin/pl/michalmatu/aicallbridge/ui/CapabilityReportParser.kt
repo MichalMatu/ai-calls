@@ -9,17 +9,22 @@ internal object CapabilityReportParser {
         }
     }
 
-    fun audioSource(raw: String?): String = when {
-        raw == null -> "unknown"
-        raw.startsWith("result:initialized,") -> "initialized"
-        raw.startsWith("result:uninitialized,") -> "uninitialized"
-        raw.startsWith("error:") -> "error: " + raw.removePrefix("error:").substringBefore(':')
-        else -> "unknown"
+    enum class AudioSourceState { INITIALIZED, UNINITIALIZED, ERROR, UNKNOWN }
+
+    fun audioSource(raw: String?): AudioSourceState = when {
+        raw == null -> AudioSourceState.UNKNOWN
+        raw.startsWith("result:initialized,") -> AudioSourceState.INITIALIZED
+        raw.startsWith("result:uninitialized,") -> AudioSourceState.UNINITIALIZED
+        raw.startsWith("error:") -> AudioSourceState.ERROR
+        else -> AudioSourceState.UNKNOWN
     }
 
-    fun deviceType(raw: String): String =
-        raw.substringAfter("type=", "UNKNOWN").substringBefore('(').replace('_', ' ')
+    data class AudioDevice(val id: String, val type: String, val direction: String, val product: String)
 
-    fun deviceProduct(raw: String): String =
-        raw.substringAfter("product=", "unknown").substringBefore(",rates=")
+    fun device(raw: String): AudioDevice {
+        fun field(name: String) = Regex("(?:^|,)" + name + "=([^,]*)")
+            .find(raw)?.groupValues?.get(1).orEmpty()
+        return AudioDevice(field("id"), field("type").substringBefore('('), field("dir"),
+            raw.substringAfter("product=", "").substringBefore(",rates="))
+    }
 }

@@ -132,7 +132,7 @@ internal object AppNavigation {
             setBackgroundColor(UiDesign.background)
             setOnApplyWindowInsetsListener { view, insets ->
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                    val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
                     view.setPadding(0, bars.top, 0, bars.bottom)
                 } else {
                     view.setPadding(0, insets.systemWindowInsetTop, 0, insets.systemWindowInsetBottom)

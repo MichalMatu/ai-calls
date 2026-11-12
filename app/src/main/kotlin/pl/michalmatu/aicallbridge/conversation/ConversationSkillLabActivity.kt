@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.conversation
 import android.app.AlertDialog
 import android.app.ActivityManager
 import android.os.Debug
+import android.os.SystemClock
 import android.text.InputType
 import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
 import android.content.Intent
@@ -11,6 +12,8 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.os.Bundle
+import android.view.inputmethod.InputMethodManager
+import androidx.activity.OnBackPressedCallback
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -32,6 +35,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var renderedTurnCount = 0
     private val visiblePending = mutableSetOf<Pair<Int, Int>>()
     private var stopBannerShown = false
+    private lateinit var waitClock: Chronometer
     private lateinit var status: TextView
     private lateinit var currentTurn: TextView
     private lateinit var scoreView: TextView
@@ -40,7 +44,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var emptyTranscript: TextView
     private lateinit var scroll: ScrollView
     private var userReadingOlderTurns = false
-    private lateinit var modePicker: Spinner
     private var currentTurnTotal = 2
     private lateinit var runButton: Button
     private lateinit var stopButton: Button
@@ -69,17 +72,21 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var reportSaved = false
     private lateinit var casePicker: Spinner
     private var caseEntries: List<LabCase> = emptyList()
+    private lateinit var setupScreen: ScrollView
+    private lateinit var sessionScreen: LinearLayout
+    private lateinit var detailContent: LinearLayout
+    private lateinit var turnDecisions: LinearLayout
+    private lateinit var returnToSetup: Button
+    private lateinit var resumeChat: Button
+    private var diagnosticsDialog: AlertDialog? = null
+    private var conversationVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Keep START/STOP visible while the transcript scrolls independently below.
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 20),
-                UiDesign.dp(this@ConversationSkillLabActivity, 12),
-                UiDesign.dp(this@ConversationSkillLabActivity, 20),
-                UiDesign.dp(this@ConversationSkillLabActivity, 4))
-        }
+        val content = UiDesign.content(this)
+        content.addView(UiDesign.heading(this, getString(R.string.lab_setup_title)), UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.caption(this, getString(if (savedInstanceState?.getBoolean("lab_interrupted") == true)
+            R.string.lab_chat_interrupted else R.string.lab_setup_intro)), UiDesign.spaceAfter(this))
         val library = try { SkillLabIsolatedTestStore.forContext(this).loadSkillLibrary() }
         catch (error: Exception) {
             setContentView(TextView(this).apply {
@@ -105,7 +112,15 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         val storedBudget = getSharedPreferences("lab-diagnostics", MODE_PRIVATE)
             .getInt("context_tokens", 4_096).takeIf { it > 0 } ?: 4_096
         runningContextBudget = storedBudget
-        content.addView(UiDesign.caption(this, getString(R.string.lab_context_label)),
+        val advanced = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "lab-advanced-options"
+            visibility = View.GONE
+        }
+        content.addView(UiDesign.action(this, getString(R.string.lab_advanced)) {
+            advanced.visibility = if (advanced.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        }.apply { tag = "lab-advanced-toggle" }, UiDesign.spaceAfter(this, 8))
+        advanced.addView(UiDesign.caption(this, getString(R.string.lab_context_label)),
             UiDesign.spaceAfter(this, 4))
         contextBudgetInput = EditText(this).apply {
             tag = "lab-context-tokens"
@@ -114,12 +129,12 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             setText(storedBudget.toString())
             contentDescription = getString(R.string.lab_context_label)
         }
-        content.addView(contextBudgetInput, UiDesign.spaceAfter(this, 4))
-        content.addView(UiDesign.caption(this, getString(R.string.lab_context_hint)),
+        advanced.addView(contextBudgetInput, UiDesign.spaceAfter(this, 4))
+        advanced.addView(UiDesign.caption(this, getString(R.string.lab_context_hint)),
             UiDesign.spaceAfter(this, 10))
         val savedSkillMode = getSharedPreferences("lab-diagnostics", MODE_PRIVATE)
             .getString("skill_loading_mode", SkillLoadingMode.ALL_ACTIVE.name)
-        content.addView(UiDesign.caption(this, getString(R.string.lab_skill_mode_label)),
+        advanced.addView(UiDesign.caption(this, getString(R.string.lab_skill_mode_label)),
             UiDesign.spaceAfter(this, 4))
         skillModePicker = Spinner(this).apply {
             tag = "lab-skill-mode"
@@ -128,10 +143,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 getString(R.string.lab_skill_mode_contextual)))
             setSelection(if (savedSkillMode == SkillLoadingMode.CONTEXTUAL.name) 1 else 0)
         }
-        content.addView(skillModePicker, UiDesign.spaceAfter(this, 4))
+        advanced.addView(skillModePicker, UiDesign.spaceAfter(this, 4))
         skillRoutingView = UiDesign.caption(this, getString(R.string.lab_skill_mode_hint))
             .apply { tag = "lab-skill-routing-diagnostics" }
-        content.addView(skillRoutingView, UiDesign.spaceAfter(this, 10))
+
+        content.addView(advanced, UiDesign.spaceAfter(this))
         content.addView(UiDesign.caption(this, getString(R.string.lab_case_select)),
             UiDesign.spaceAfter(this, 6))
         casePicker = Spinner(this).apply { tag = "lab-case-picker" }
@@ -143,16 +159,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             showReports()
         }, UiDesign.spaceAfter(this, 12))
         refreshCases()
-        // Scripted quick/full modes are retired; all dialogue comes from a person or a saved case.
-        modePicker = Spinner(this).apply {
-            tag = "lab-scope-picker"
-            UiSelect.setOptions(this, listOf(
-                getString(R.string.lab_ui_mode_quick),
-                getString(R.string.lab_ui_mode_full)))
-            setSelection(0)
-        }
-        modePicker.visibility = View.GONE
-
         runButton = UiDesign.action(this, getString(R.string.lab_manual_new_session), UiActionTone.PRIMARY) {
             val selected = presets.getOrNull(picker.selectedItemPosition) ?: return@action
             startDialogue(selected.id, adaptive = false)
@@ -163,6 +169,9 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             startDialogue(preset.id, adaptive = true)
         }.apply { tag = "lab-adaptive-start" }
         content.addView(adaptiveButton, UiDesign.spaceAfter(this, 8))
+        resumeChat = UiDesign.action(this, getString(R.string.lab_resume_chat)) { showConversation() }
+            .apply { tag = "lab-resume-chat"; visibility = View.GONE }
+        content.addView(resumeChat, UiDesign.spaceAfter(this))
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
             stopLab()
         }.apply { visibility = View.GONE; tag = "lab-stop" }
@@ -196,38 +205,33 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 UiDesign.dp(this@ConversationSkillLabActivity, 20),
                 UiDesign.dp(this@ConversationSkillLabActivity, 28))
         }
-        val transcriptCard = UiDesign.card(this).apply {
+        val transcriptCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             tag = "lab-conversation-card"
         }
-        transcriptCard.addView(UiDesign.heading(this, getString(R.string.ux11_lab_timeline_title)).apply {
-            textSize = 17f
-        }, UiDesign.spaceAfter(this, 8))
-        status = UiDesign.caption(this, getString(R.string.lab_manual_empty)).apply {
+        status = UiDesign.caption(this, "").apply {
             tag = "lab-status"
-            textSize = 14f
+            textSize = 15f
             setTextColor(UiDesign.ink)
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
-        transcriptCard.addView(status, UiDesign.spaceAfter(this, 8))
+        detailContent = UiDesign.content(this)
         diagnosticsView = UiDesign.caption(this, getString(R.string.lab_diagnostics_waiting)).apply {
             tag = "lab-model-diagnostics"
             setTextIsSelectable(true)
         }
-        transcriptCard.addView(diagnosticsView, UiDesign.spaceAfter(this, 8))
+        detailContent.addView(diagnosticsView, UiDesign.spaceAfter(this))
+        detailContent.addView(skillRoutingView, UiDesign.spaceAfter(this))
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = currentTurnTotal
-            progress = 0
             tag = "lab-live-progress"
-            contentDescription = getString(R.string.lab_ui_progress, 0, currentTurnTotal)
         }
-        transcriptCard.addView(progress, UiDesign.spaceAfter(this, 10))
-        currentTurn = UiDesign.caption(this, getString(R.string.lab_ui_empty)).apply {
+        currentTurn = UiDesign.caption(this, "").apply {
             tag = "lab-current-turn"
-            textSize = 14f
-            setTextColor(UiDesign.ink)
             setTextIsSelectable(true)
         }
-        transcriptCard.addView(currentTurn, UiDesign.spaceAfter(this, 8))
+        detailContent.addView(currentTurn, UiDesign.spaceAfter(this))
+        turnDecisions = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        detailContent.addView(turnDecisions, UiDesign.spaceAfter(this))
 
         scoreView = UiDesign.caption(this, "").apply {
             tag = "lab-score"
@@ -260,7 +264,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         ratingGroup.addView(UiDesign.action(this, getString(R.string.lab_ui_apply_rating)) {
             lastState.metrics?.let(::showMetrics)
         })
-        emptyTranscript = UiDesign.caption(this, getString(R.string.lab_manual_empty)).apply {
+        emptyTranscript = UiDesign.caption(this, getString(R.string.lab_chat_empty)).apply {
             tag = "lab-empty-transcript"
             textSize = 14f
             gravity = android.view.Gravity.CENTER
@@ -274,8 +278,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         transcriptCard.addView(timeline)
         transcriptArea.addView(transcriptCard, UiDesign.spaceAfter(this, 12))
-        transcriptArea.addView(scoreView, UiDesign.spaceAfter(this, 12))
-        transcriptArea.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
+        detailContent.addView(scoreView, UiDesign.spaceAfter(this, 12))
+        detailContent.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
         scroll = ScrollView(this).apply {
             tag = "lab-transcript-scroll"
             addView(transcriptArea)
@@ -293,7 +297,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 false
             }
         }
-        val optionScroll = ScrollView(this).apply {
+        setupScreen = ScrollView(this).apply {
             tag = "lab-options-scroll"
             addView(content)
         }
@@ -305,24 +309,101 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             addView(stopButton, UiDesign.spaceAfter(this@ConversationSkillLabActivity, 8))
             addView(composer)
         }
-        setContentView(LinearLayout(this).apply {
+        val sessionHeading = UiDesign.content(this).apply {
+            setPadding(UiDesign.dp(this@ConversationSkillLabActivity, 20), 0,
+                UiDesign.dp(this@ConversationSkillLabActivity, 20), 0)
+            addView(LinearLayout(this@ConversationSkillLabActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                addView(UiDesign.heading(this@ConversationSkillLabActivity, getString(R.string.lab_chat_title)).apply {
+                    textSize = 18f
+                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                addView(UiDesign.iconButton(this@ConversationSkillLabActivity, R.drawable.ic_aicalls_lab,
+                    getString(R.string.lab_observe)).apply {
+                    tag = "lab-observe"
+                    setOnClickListener { showDiagnostics() }
+                }, LinearLayout.LayoutParams(UiDesign.dp(this@ConversationSkillLabActivity, 48),
+                    UiDesign.dp(this@ConversationSkillLabActivity, 48)))
+            })
+            waitClock = Chronometer(this@ConversationSkillLabActivity).apply {
+                tag = "lab-wait-clock"
+                textSize = 13f
+                setTextColor(UiDesign.secondary)
+                visibility = View.GONE
+            }
+            addView(LinearLayout(this@ConversationSkillLabActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                addView(status, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                addView(waitClock)
+            }, UiDesign.spaceAfter(this@ConversationSkillLabActivity, 4))
+            addView(progress, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                UiDesign.dp(this@ConversationSkillLabActivity, 4)))
+        }
+        returnToSetup = UiDesign.action(this, getString(R.string.lab_setup_return)) { showSetup() }
+            .apply { tag = "lab-return-setup" }
+        composerHolder.addView(returnToSetup, 0, UiDesign.spaceAfter(this, 8))
+        sessionScreen = LinearLayout(this).apply {
+            tag = "lab-session-screen"
             orientation = LinearLayout.VERTICAL
-            // Independent scroll regions preserve visible chat and a fixed composer.
-            addView(optionScroll, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.50f))
-            addView(scroll, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.50f))
-            addView(composerHolder, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            visibility = View.GONE
+            addView(sessionHeading)
+            addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(composerHolder)
+        }
+        setContentView(FrameLayout(this).apply {
+            addView(setupScreen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(sessionScreen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        })
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = navigateBack()
         })
         sessionFactory = AndroidSkillLabSessionFactory(applicationContext)
         runner = SkillLabRunner(sessionFactory,
             dispatchToUi = { action -> runOnUiThread(action) }, onState = ::renderState)
         renderState(runner.state)
         updateModelDiagnostics()
-        modePicker.isEnabled = false
     }
 
+
+    private fun showConversation() {
+        conversationVisible = true
+        setupScreen.visibility = View.GONE
+        sessionScreen.visibility = View.VISIBLE
+    }
+
+    private fun showSetup() {
+        stopLab()
+        currentFocus?.clearFocus()
+        getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(manualInput.windowToken, 0)
+        conversationVisible = false
+        sessionScreen.visibility = View.GONE
+        setupScreen.visibility = View.VISIBLE
+        resumeChat.visibility = View.VISIBLE
+    }
+
+    override fun consumeChromeBack(): Boolean {
+        if (!conversationVisible) return false
+        showSetup()
+        return true
+    }
+
+    private fun showDiagnostics() {
+        if (diagnosticsDialog?.isShowing == true) return
+        updateModelDiagnostics()
+        val host = ScrollView(this).apply { addView(detailContent) }
+        diagnosticsDialog = AlertDialog.Builder(this).setTitle(R.string.lab_observe)
+            .setView(host).setPositiveButton(android.R.string.ok, null).create().apply {
+                setOnDismissListener { host.removeView(detailContent); diagnosticsDialog = null }
+                show()
+            }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        // No messages or prompts in Android saved state; recreation never restarts a test.
+        outState.putBoolean("lab_interrupted", conversationVisible)
+        super.onSaveInstanceState(outState)
+    }
 
     override fun onResume() {
         super.onResume()
@@ -474,7 +555,11 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         val budget = contextBudgetInput.text.toString().trim().toIntOrNull()
         if (budget == null || budget <= 0) {
+            (contextBudgetInput.parent as View).visibility = View.VISIBLE
             contextBudgetInput.error = getString(R.string.lab_context_invalid)
+            contextBudgetInput.requestFocus()
+            contextBudgetInput.post { contextBudgetInput.requestRectangleOnScreen(
+                android.graphics.Rect(0, 0, contextBudgetInput.width, contextBudgetInput.height), true) }
             return
         }
         val test = chosen?.selected()
@@ -524,11 +609,17 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         runningContextBudget = budget
         timingMeasurements.clear()
         updateModelDiagnostics()
+        manualInput.setText(if (adaptive) "" else test?.opening.orEmpty())
+        showConversation()
         val started = runCatching {
             if (adaptive) runner.startAdaptive(presetId, requireNotNull(test))
             else runner.startManual(presetId)
-        }.getOrElse { showError(it.message.orEmpty()); return }
-        if (!started) return
+        }.getOrElse {
+            renderState(SkillLabUiState(phase = SkillLabPhase.FAILED,
+                error = it.message ?: it.javaClass.simpleName))
+            return
+        }
+        if (!started) { showSetup(); return }
         getSharedPreferences("lab-diagnostics", MODE_PRIVATE).edit()
             .putInt("context_tokens", budget)
             .putString("skill_loading_mode", loadingMode.name).apply()
@@ -541,7 +632,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         activeModel = runCatching {
             AudioEngineProfileStore(this).load()?.dialogue?.name
         }.getOrNull().orEmpty()
-        if (!adaptive && test != null) manualInput.setText(test.opening)
     }
 
     private fun saveTerminalReport(state: SkillLabUiState) {
@@ -700,7 +790,17 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun renderState(next: SkillLabUiState) {
         if (isDestroyed) return
+        val previous = lastState
         lastState = next
+        val busy = next.phase in setOf(SkillLabPhase.STARTING, SkillLabPhase.WAITING)
+        if (busy) {
+            if (previous.phase != next.phase || previous.pending != next.pending) waitClock.base = SystemClock.elapsedRealtime()
+            waitClock.visibility = View.VISIBLE
+            waitClock.start()
+        } else {
+            waitClock.stop()
+            waitClock.visibility = View.GONE
+        }
         currentTurnTotal = next.totalTurns
         saveTerminalReport(next)
         if (next.phase == SkillLabPhase.STARTING) {
@@ -709,6 +809,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             visiblePending.clear()
             stopBannerShown = false
             timeline.removeAllViews()
+            turnDecisions.removeAllViews()
             naturalness.setSelection(0)
             scoreView.visibility = View.GONE
             ratingGroup.visibility = View.GONE
@@ -731,83 +832,67 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 pending.storyIndex, pending.storyTitle, pending.turnIndex,
                 pending.utterance, next.completed.size)
         }
-        emptyTranscript.visibility = if (next.completed.isEmpty() && next.pending == null)
+        if (next.phase in setOf(SkillLabPhase.STOPPED, SkillLabPhase.FAILED)) {
+            visiblePending.forEach { (story, turn) ->
+                timeline.findViewWithTag<TextView>("lab-pending:$story:$turn")?.setText(R.string.lab_reply_interrupted)
+            }
+        }
+        emptyTranscript.visibility = if (next.phase == SkillLabPhase.STARTING && timeline.childCount == 0)
             View.VISIBLE else View.GONE
-        // The empty prompt is already shown in the transcript; do not repeat it above diagnostics.
-        status.visibility = if (next.phase == SkillLabPhase.READY) View.GONE else View.VISIBLE
-        progress.visibility = View.GONE
+        if (next.phase == SkillLabPhase.STARTING) showConversation()
+        status.visibility = View.VISIBLE
+        progress.visibility = if (next.phase in setOf(SkillLabPhase.STARTING, SkillLabPhase.WAITING))
+            View.VISIBLE else View.GONE
+        progress.isIndeterminate = progress.visibility == View.VISIBLE
         progress.max = next.totalTurns
         progress.progress = next.completed.size
-        progress.contentDescription = getString(R.string.lab_ui_progress,
-            next.completed.size, next.totalTurns)
         runButton.isEnabled = next.manualStartAllowed
         adaptiveButton.isEnabled = next.manualStartAllowed
-        // Editing context during a running native session must not mutate it.
         contextBudgetInput.isEnabled = next.manualStartAllowed
-        runButton.visibility = View.VISIBLE
-        sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY
-        manualInput.isEnabled = next.phase == SkillLabPhase.INPUT_READY
+        sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY && !next.adaptive
+        manualInput.isEnabled = sendButton.isEnabled
+        manualInput.visibility = if (next.adaptive) View.GONE else View.VISIBLE
+        sendButton.visibility = manualInput.visibility
         stopButton.visibility = if (!next.manualStartAllowed && next.phase in
             setOf(SkillLabPhase.STARTING, SkillLabPhase.INPUT_READY,
                 SkillLabPhase.WAITING, SkillLabPhase.TURN_COMPLETED)) View.VISIBLE else View.GONE
-
-        currentTurn.visibility = if (next.phase == SkillLabPhase.READY) View.GONE
-            else View.VISIBLE
+        returnToSetup.visibility = if (next.manualStartAllowed) View.VISIBLE else View.GONE
+        status.setTextColor(if (next.phase == SkillLabPhase.FAILED) UiDesign.danger else UiDesign.ink)
+        currentTurn.visibility = View.VISIBLE
         when (next.phase) {
-            SkillLabPhase.READY -> {
-                status.text = getString(R.string.lab_manual_empty)
-                currentTurn.text = getString(R.string.lab_manual_empty)
-            }
-            SkillLabPhase.STARTING -> {
-                status.text = getString(R.string.lab_ui_starting)
-                currentTurn.text = getString(R.string.lab_ui_waiting_initial)
-            }
-            SkillLabPhase.INPUT_READY -> {
-                status.text = getString(R.string.lab_manual_ready)
-                currentTurn.text = getString(R.string.lab_manual_ready)
-            }
-            SkillLabPhase.WAITING -> next.pending?.let { pending ->
-                status.text = getString(R.string.lab_ui_waiting,
-                    next.completed.size + 1, next.totalTurns)
-                currentTurn.text = getString(R.string.lab_ui_working_on,
-                    pending.storyTitle, pending.turnIndex)
-            }
-            SkillLabPhase.TURN_COMPLETED -> next.completed.lastOrNull()?.let { item ->
-                status.text = getString(R.string.lab_ui_progress,
-                    next.completed.size, next.totalTurns)
-                currentTurn.text = getString(R.string.lab_ui_last_result,
-                    item.observation.story, item.observation.index, item.observation.elapsedMs)
-            }
+            SkillLabPhase.READY -> status.setText(R.string.lab_manual_empty)
+            SkillLabPhase.STARTING -> status.setText(R.string.lab_chat_starting)
+            SkillLabPhase.INPUT_READY -> status.setText(if (next.adaptive)
+                R.string.lab_chat_adaptive_ready else R.string.lab_chat_input_ready)
+            SkillLabPhase.WAITING -> status.text = getString(R.string.lab_chat_waiting, next.completed.size + 1)
+            SkillLabPhase.TURN_COMPLETED -> status.text = getString(R.string.lab_chat_turn_done, next.completed.size)
             SkillLabPhase.COMPLETED -> {
                 next.metrics?.let(::showMetrics)
                 ratingGroup.visibility = View.VISIBLE
-                status.text = getString(R.string.lab_ui_complete)
-                currentTurn.text = getString(R.string.lab_ui_progress,
-                    next.completed.size, next.totalTurns)
+                status.text = getString(R.string.lab_chat_complete, next.completed.size)
                 followLatestCardIfEnabled()
             }
             SkillLabPhase.STOPPED -> {
-                status.text = getString(R.string.lab_ui_cancelled)
-                currentTurn.text = getString(R.string.lab_ui_stopped_partial)
-                if (!stopBannerShown) {
-                    showStopNotice()
-                    stopBannerShown = true
-                }
+                status.text = getString(R.string.lab_chat_stopped, next.completed.size)
+                if (!stopBannerShown) { showStopNotice(); stopBannerShown = true }
             }
             SkillLabPhase.FAILED -> renderFailure(next.error ?: "unknown_failure")
         }
+        if (next.phase != SkillLabPhase.FAILED) currentTurn.text = status.text
     }
 
     /** Explicitly distinct error state, shared by model/timeout failures and UI tests. */
     private fun renderFailure(reason: String) {
-        status.text = getString(R.string.lab_ui_failed, reason)
-        currentTurn.text = getString(R.string.lab_ui_stopped_partial)
+        showConversation()
+        status.text = getString(if (reason.contains("timeout", ignoreCase = true))
+            R.string.lab_chat_timeout else R.string.lab_chat_error)
+        status.setTextColor(UiDesign.danger)
+        currentTurn.text = reason
         followLatestCardIfEnabled()
     }
 
     private fun showStopNotice() {
-        val note = UiDesign.caption(this, getString(R.string.lab_ui_stop_banner,
-            progress.progress, currentTurnTotal)).apply {
+        val note = UiDesign.caption(this, getString(R.string.lab_chat_stopped, progress.progress)).apply {
             tag = "lab-stopped-banner"
             textSize = 15f
             setTextColor(UiDesign.ink)
@@ -828,67 +913,42 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun showTurnPending(storyIndex: Int, story: String, index: Int,
                                 utterance: String, completedBefore: Int) {
-        status.text = getString(R.string.lab_ui_waiting, completedBefore + 1, currentTurnTotal)
-        currentTurn.text = getString(R.string.lab_ui_working_on, story, index)
-        if (index == 1) {
-            timeline.addView(UiDesign.heading(this, story).apply {
-                textSize = 17f
-                tag = "lab-story:" + storyIndex
-            }, UiDesign.spaceAfter(this, 8))
+        showConversation()
+        emptyTranscript.visibility = View.GONE
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "lab-turn:" + storyIndex + ":" + index
         }
-        val card = UiDesign.card(this, 12).apply { tag = "lab-turn:" + storyIndex + ":" + index }
-        card.addView(UiDesign.heading(this, getString(R.string.lab_ui_turn_short,
-            index)).apply { textSize = 15f }, UiDesign.spaceAfter(this, 8))
-        card.addView(UiDesign.caption(this, getString(R.string.lab_ui_input)),
-            UiDesign.spaceAfter(this, 4))
-        card.addView(TextView(this).apply {
-            text = utterance
-            textSize = 14f
-            setTextColor(UiDesign.ink)
-            setTextIsSelectable(true)
-        }, UiDesign.spaceAfter(this, 8))
+        card.addView(conversationMessageView(this, ConversationChatFeed.Line(index,
+            ConversationChatFeed.Speaker.COUNTERPART, utterance),
+            headerOverride = getString(R.string.lab_chat_caller) + " · " + getString(R.string.lab_ui_turn_short, index)))
         card.addView(UiDesign.caption(this, getString(R.string.lab_ui_waiting_response)).apply {
             tag = "lab-pending:" + storyIndex + ":" + index
+            setPadding(0, UiDesign.dp(this@ConversationSkillLabActivity, 8), 0, 0)
         })
-        timeline.addView(card, UiDesign.spaceAfter(this, 10))
+        timeline.addView(card, UiDesign.spaceAfter(this, 12))
         followCardIfEnabled(card)
     }
 
     private fun showTurnCompleted(storyIndex: Int, record: SkillLabObservation, completed: Int) {
         val card = timeline.findViewWithTag<LinearLayout>(
             "lab-turn:" + storyIndex + ":" + record.index) ?: return
-        card.findViewWithTag<View>("lab-pending:" + storyIndex + ":" + record.index)?.let {
-            card.removeView(it)
-        }
-        card.addView(UiDesign.caption(this, getString(R.string.lab_ui_output)),
-            UiDesign.spaceAfter(this, 4))
-        card.addView(TextView(this).apply {
-            text = record.reply.trim().ifBlank { getString(R.string.lab_ui_empty_reply) }
-            textSize = 15f
-            setTextColor(UiDesign.ink)
-            setLineSpacing(UiDesign.dp(this@ConversationSkillLabActivity, 3).toFloat(), 1f)
-            setTextIsSelectable(true)
-            tag = "lab-reply:" + storyIndex + ":" + record.index
-        }, UiDesign.spaceAfter(this, 8))
-        val matched = record.expectedEnd == record.actualEnd
-        val manualDecision = getString(R.string.lab_manual_end_observed,
-            getString(if (record.actualEnd) R.string.lab_ui_end_yes else R.string.lab_ui_end_no),
-            record.elapsedMs)
-        card.addView(TextView(this).apply {
-            text = if (lastState.manual) manualDecision else getString(R.string.lab_ui_decision,
-                getString(if (record.expectedEnd) R.string.lab_ui_end_yes else R.string.lab_ui_end_no),
-                getString(if (record.actualEnd) R.string.lab_ui_end_yes else R.string.lab_ui_end_no),
-                record.elapsedMs) + " · " +
-                getString(if (matched) R.string.lab_ui_match else R.string.lab_ui_mismatch)
-            textSize = 12f
-            setTextColor(if (lastState.manual || matched) UiDesign.secondary else UiDesign.danger)
+        card.findViewWithTag<View>("lab-pending:" + storyIndex + ":" + record.index)?.let(card::removeView)
+        val footer = getString(R.string.lab_chat_latency, record.elapsedMs) +
+            if (record.actualEnd) " · " + getString(R.string.lab_chat_end_proposed) else ""
+        card.addView(conversationMessageView(this, ConversationChatFeed.Line(record.index,
+            ConversationChatFeed.Speaker.ASSISTANT,
+            record.reply.trim().ifBlank { getString(R.string.lab_ui_empty_reply) },
+            txStatus = footer, responseKind = ConversationChatFeed.ResponseKind.MODEL_DIRECT),
+            bodyTag = "lab-reply:" + storyIndex + ":" + record.index,
+            headerOverride = getString(R.string.lab_chat_assistant) + " · " + getString(R.string.lab_ui_turn_short, record.index)))
+        turnDecisions.addView(UiDesign.caption(this, getString(R.string.lab_ui_turn_short, record.index) +
+            " · " + getString(R.string.lab_manual_end_observed,
+                getString(if (record.actualEnd) R.string.lab_ui_end_yes else R.string.lab_ui_end_no), record.elapsedMs)).apply {
             tag = "lab-decision:" + storyIndex + ":" + record.index
-        })
+        }, UiDesign.spaceAfter(this, 8))
         progress.progress = completed
-        progress.contentDescription = getString(R.string.lab_ui_progress, completed, currentTurnTotal)
-        status.text = getString(R.string.lab_ui_progress, completed, currentTurnTotal)
-        currentTurn.text = getString(R.string.lab_ui_last_result,
-            record.story, record.index, record.elapsedMs)
+        currentTurn.text = getString(R.string.lab_ui_last_result, record.story, record.index, record.elapsedMs)
         followCardIfEnabled(card)
     }
 
@@ -936,6 +996,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     override fun onDestroy() {
+        diagnosticsDialog?.dismiss()
+        if (::waitClock.isInitialized) waitClock.stop()
         if (::runner.isInitialized) runner.close()
         super.onDestroy()
     }

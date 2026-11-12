@@ -25,6 +25,13 @@ class AndroidLabModelDiagnosticsNativeTest {
         return predicate()
     }
 
+    private fun diagnostics(activity: ConversationSkillLabActivity): TextView {
+        activity.javaClass.getDeclaredMethod("showDiagnostics").apply { isAccessible = true }.invoke(activity)
+        val dialog = activity.javaClass.getDeclaredField("diagnosticsDialog").apply { isAccessible = true }
+            .get(activity) as android.app.AlertDialog
+        return requireNotNull(dialog.window!!.decorView.findViewWithTag("lab-model-diagnostics"))
+    }
+
     @Test fun contextSelectionAndColdStartTimingReachRealModelOnS22() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
         val prefs = app.getSharedPreferences("lab-diagnostics", Context.MODE_PRIVATE)
@@ -35,9 +42,11 @@ class AndroidLabModelDiagnosticsNativeTest {
                 scene.onActivity { activity ->
                     val root = activity.window.decorView
                     val context = requireNotNull(root.findViewWithTag<EditText>("lab-context-tokens"))
-                    val diagnostics = requireNotNull(root.findViewWithTag<TextView>("lab-model-diagnostics"))
+                    val diagnostics = diagnostics(activity)
                     assertTrue(context.isEnabled)
                     assertTrue(diagnostics.text.contains("4096") || diagnostics.text.isNotEmpty())
+                    (activity.javaClass.getDeclaredField("diagnosticsDialog").apply { isAccessible = true }
+                        .get(activity) as android.app.AlertDialog).dismiss()
                     context.setText("2048")
                     val start = requireNotNull(root.findViewWithTag<View>("lab-start"))
                     assertTrue(start.isEnabled)
@@ -62,9 +71,7 @@ class AndroidLabModelDiagnosticsNativeTest {
                 assertTrue("native_timing_timeout", eventually(190_000) {
                     var measured = false
                     scene.onActivity { activity ->
-                        val text = activity.window.decorView
-                            .findViewWithTag<TextView>("lab-model-diagnostics")
-                            ?.text?.toString().orEmpty()
+                        val text = diagnostics(activity).text.toString()
                         measured = text.contains("2048") &&
                             (text.contains("GPU") || text.contains("CPU")) &&
                             !text.contains("NaN")
@@ -73,11 +80,12 @@ class AndroidLabModelDiagnosticsNativeTest {
                 })
                 scene.onActivity { activity ->
                     val root = activity.window.decorView
-                    val text = requireNotNull(root.findViewWithTag<TextView>(
-                        "lab-model-diagnostics")).text.toString()
+                    val text = diagnostics(activity).text.toString()
                     assertTrue("model_identity_missing", text.contains("GEMMA_4_E2B"))
                     assertTrue("selected_context_missing", text.contains("2048"))
                     assertTrue("engine_backend_missing", text.contains("GPU") || text.contains("CPU"))
+                    (activity.javaClass.getDeclaredField("diagnosticsDialog").apply { isAccessible = true }
+                        .get(activity) as android.app.AlertDialog).dismiss()
                     val stop = requireNotNull(root.findViewWithTag<View>("lab-stop"))
                     assertTrue("lab_stop_missing", stop.isShown)
                     stop.performClick()

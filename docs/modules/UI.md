@@ -11,6 +11,10 @@ UI pokazuje rzeczywisty stan: manual/AI, exact Call, postęp, STOP/TAKE OVER/res
 - Odstępy kart należą do ich układu. Chrome uzupełnia wyłącznie brakującą przerwę między sąsiednimi widocznymi przyciskami, zachowuje większy jawny odstęp i nie dodaje marginesu za ostatnią akcją.
 - Opis pozostaje przy decyzji użytkownika: skutki grantu, zakres danych, WAV, zapis szkicu lub wynik. Nie dodawaj instrukcji obsługi nawigacji ani kolejnych stopek.
 
+## Laboratorium i diagnostyka
+- Konfiguracja i czat zajmują osobne widoki; runner pozostaje jeden. STOP i wyjście kończą sesję. Wspólne dymki, etap i czas oczekiwania są widoczne; metryki i wyniki są w modalu. Odtworzenie ekranu nie uruchamia testu.
+- Wynik Shizuku jest modalny, z zakresem off-call i surowymi szczegółami na żądanie. Możliwości urządzenia dotyczą inicjalizacji w procesie aplikacji; wejścia i wyjścia są osobno. Błąd lub brak danych nie potwierdza audio.
+
 ## Reguły
 - Czytelne statusy `IDLE`, `RINGING`, `ACTIVE`, `ENDED`, `MANUAL`, `AI`, błąd/unknown, bez mylącego `success` po samym TX.
 - Historia chroni prywatne dane; pełny playback jest nadal celem, obecny odtwarza tylko zarejestrowane segmenty.

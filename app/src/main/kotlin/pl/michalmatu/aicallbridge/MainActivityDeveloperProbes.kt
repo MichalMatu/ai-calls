@@ -4,11 +4,10 @@ import android.app.Activity
 import android.content.Intent
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.ui.CapabilityDiagnosticsActivity
+import pl.michalmatu.aicallbridge.ui.DiagnosticResultDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
-import pl.michalmatu.aicallbridge.ui.UiActionTone
 import android.content.pm.PackageManager
 import android.util.Log
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
@@ -22,11 +21,15 @@ import rikka.shizuku.Shizuku
  */
 internal class MainActivityDeveloperProbes(
     private val activity: Activity,
-    private val statusView: TextView,
+    private val statusView: TextView? = null,
 ) : AutoCloseable {
     private var pendingShizukuProbe = false
     private var pendingShizukuLiveProbe = false
     private var attached = false
+    private var closed = false
+    private var running = false
+    private var probeButton: android.widget.Button? = null
+    private var resultDialog: DiagnosticResultDialog? = null
 
     private val shizukuBinderReceivedListener = Shizuku.OnBinderReceivedListener {
         if (pendingShizukuProbe) {
@@ -62,10 +65,10 @@ internal class MainActivityDeveloperProbes(
             activity.getString(R.string.dev_ui_capability)) {
             runCapabilityProbe()
         }, UiDesign.spaceAfter(activity, 8))
-        content.addView(UiDesign.action(activity,
-            activity.getString(R.string.dev_ui_shizuku)) {
-            runShizukuProbe(false)
-        }, UiDesign.spaceAfter(activity, 16))
+        probeButton = UiDesign.action(activity, activity.getString(R.string.dev_ui_shizuku)) {
+            if (!running) runShizukuProbe(false)
+        }.apply { tag = "developer-shizuku-test" }
+        content.addView(probeButton, UiDesign.spaceAfter(activity, 16))
     }
 
     fun attach() {
@@ -81,6 +84,7 @@ internal class MainActivityDeveloperProbes(
     }
 
     private fun runShizukuProbe(live: Boolean) {
+        if (closed || running || activity.isFinishing || activity.isDestroyed) return
         pendingShizukuProbe = true
         pendingShizukuLiveProbe = live
 
@@ -114,18 +118,18 @@ internal class MainActivityDeveloperProbes(
 
         pendingShizukuProbe = false
         pendingShizukuLiveProbe = false
-        publishStatus(
-            if (live) {
-                "Running Shizuku UserService live parity probe…"
-            } else {
-                "Running Shizuku UserService off-call probe…"
-            },
-        )
+        running = true
+        probeButton?.isEnabled = false
+        publishStatus(activity.getString(R.string.shizuku_running))
         Log.i(TAG, if (live) "shizuku_live_probe_start=true" else "shizuku_probe_start=true")
 
         val callback = ShizukuUserServiceProbe.Callback { result ->
             activity.runOnUiThread {
-                publishStatus(result)
+                if (closed || activity.isFinishing || activity.isDestroyed) return@runOnUiThread
+                running = false
+                probeButton?.isEnabled = true
+                val summary = resultDialog?.showResult(result)
+                statusView?.text = summary
                 Log.i(TAG, "shizuku_probe_result:\n$result")
             }
         }
@@ -137,6 +141,9 @@ internal class MainActivityDeveloperProbes(
     }
 
     override fun close() {
+        closed = true
+        resultDialog?.dismiss()
+        resultDialog = null
         if (!attached) return
         Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
         Shizuku.removeRequestPermissionResultListener(shizukuPermissionResultListener)
@@ -146,7 +153,10 @@ internal class MainActivityDeveloperProbes(
     }
 
     private fun publishStatus(text: String) {
-        statusView.text = text
+        if (closed || activity.isFinishing || activity.isDestroyed) return
+        statusView?.text = text
+        val window = resultDialog ?: DiagnosticResultDialog(activity).also { resultDialog = it }
+        window.showStatus(text)
     }
 
     private companion object {

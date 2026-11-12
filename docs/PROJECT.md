@@ -5,15 +5,12 @@
 ## Interfejs użytkownika
 Cztery zakładki: **Start / Rozmowy / Agent AI / Ustawienia**. Start otwiera formularz zapytania o wizytę i pokazuje stan zadania wychodzącego, STOP oraz prywatny podgląd. Agent: zachowanie sekretarki, scenariusze, kontekst rozmów, sejf, notatki i narzędzia. Ustawienia: model i głos, odbieranie, uprawnienia Androida, narzędzia programistyczne i język aplikacji.
 
-Kontrakt panelu: [UI](modules/UI.md). **IMPROVE** istniejącego `UiDesign`, bez nowych bibliotek. Walidacja: 1200 testów JVM, 437 Python, lint; 29 testów Androida, 20 ekranów i 9 przy czcionce 150%. Granty, Call, STOP i prywatność pozostają fundamentem.
+Kontrakt panelu: [UI](modules/UI.md). **IMPROVE** istniejących `UiDesign` i dymków czatu, bez nowych bibliotek. Walidacja: 1206 testów JVM, 437 Python, lint; 23 testy Androida EN i 5 PL przy czcionce 150%. Granty, Call, STOP i prywatność zachowane.
 
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Panel UX na S22 | INSTALLED / PHYSICAL_OPEN · app/ui | `0411609b`: aktualizacja przy IDLE; preferencje, uprawnienia i rola Telefon zachowane. Odbiór UX otwarty |
-| Laboratorium UX | UX_OPEN · app/conversation | Pusty czat zajmuje 50% miejsca. Gate: osobne widoki konfiguracji/sesji, metryki na żądanie, klawiatura, STOP i font 150% |
-| Wynik Shizuku UX | UX_OPEN · app/ui | Surowy raport w menu. Gate: modal, czytelny wynik off-call i błędy; szczegóły osobno. Off-call PASS nie dowodzi live audio |
-| Możliwości urządzenia UX | UX_OPEN · app/ui | Wyjątki i enumy bez zakresu procesu, pominięte kierunki urządzeń. Gate: app/Shizuku osobno, opisane stany, błędy w szczegółach |
+| Panel UX na S22 | HOST_TESTED / PHYSICAL_OPEN · app/ui | Konfiguracja i czat osobno; czytelna diagnostyka. Aktualizacja S22 oczekuje na połączenie ADB; odbiór właściciela otwarty |
 | Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | STT zachowuje kontekst; pusty finalny transkrypt wraca do nasłuchu (Mac PASS `6b93564`). Model, granty i STOP bez zmian. Jakość, native PL i RAM S22 otwarte |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |

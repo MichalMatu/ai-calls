@@ -88,8 +88,10 @@ class AndroidLabDialogStorageAcceptanceTest {
                     "lab-transcript-scroll"))
                 val composer = requireNotNull(decor.findViewWithTag<android.view.View>(
                     "lab-composer-holder"))
-                assertTrue("lab_transcript_has_no_height", transcript.height > 0)
-                assertTrue("lab_composer_not_visible", composer.isShown)
+                assertFalse("empty_chat_must_not_take_setup_space", transcript.isShown)
+                assertFalse("composer_is_only_for_the_session", composer.isShown)
+                assertTrue("setup_must_own_the_viewport", decor.findViewWithTag<android.view.View>(
+                    "lab-options-scroll").isShown)
             }
         }
     }

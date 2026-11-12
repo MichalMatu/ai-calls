@@ -3,7 +3,6 @@ package pl.michalmatu.aicallbridge.ui
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ScrollView
-import android.widget.TextView
 import pl.michalmatu.aicallbridge.MainActivityDeveloperProbes
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
@@ -15,20 +14,11 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val body = UiDesign.content(this)
-        val status = TextView(this).apply {
-            tag = "developer-probe-result"
-            setTextColor(UiDesign.ink)
-            textSize = 12f
-            typeface = android.graphics.Typeface.MONOSPACE
-            setTextIsSelectable(true)
-            setPadding(0, UiDesign.dp(this@DeveloperToolsActivity, 8), 0, 0)
-        }
-        probes = MainActivityDeveloperProbes(this, status)
+        probes = MainActivityDeveloperProbes(this)
         probes.addControls(body)
         body.addView(UiDesign.button(this, getString(R.string.ui_lab_short)) {
             startActivity(Intent(this, ConversationSkillLabActivity::class.java))
         })
-        body.addView(status)
         setContentView(ScrollView(this).apply { addView(body) })
         probes.attach()
     }

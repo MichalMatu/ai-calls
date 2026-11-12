@@ -716,7 +716,7 @@
     <string name="cap_ui_failed">Nie udało się sprawdzić możliwości urządzenia.</string>
     <string name="cap_ui_device">Urządzenie</string>
     <string name="cap_ui_audio">Audio</string>
-    <string name="cap_ui_sources">Źródła audio — inicjalizacja</string>
+    <string name="cap_ui_sources">Źródła audio — próba inicjalizacji</string>
     <string name="cap_ui_routes">Urządzenia audio</string>
     <string name="cap_ui_model">Model</string>
     <string name="cap_ui_system">System</string>
@@ -725,11 +725,11 @@
     <string name="cap_ui_muted">Wyciszenie mikrofonu</string>
     <string name="cap_ui_speaker">Głośnik</string>
     <string name="cap_ui_rate">Próbkowanie wyjścia</string>
-    <string name="cap_ui_telephony">Kanał telefoniczny</string>
+    <string name="cap_ui_telephony">System zgłasza tor telefoniczny</string>
     <string name="cap_ui_communication">Urządzenie rozmowy</string>
     <string name="cap_ui_granted">Przyznano</string>
     <string name="cap_ui_denied">Brak zgody</string>
-    <string name="cap_ui_initialized">Zainicjowano</string>
+    <string name="cap_ui_initialized">Inicjalizacja możliwa</string>
     <string name="cap_ui_uninitialized">Nie zainicjowano</string>
     <string name="cap_ui_unavailable">Niedostępne</string>
     <string name="cap_ui_yes">Tak</string>

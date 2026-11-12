@@ -15,6 +15,11 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
+import pl.michalmatu.aicallbridge.conversation.SkillLabUiState
+import pl.michalmatu.aicallbridge.conversation.SkillLabPhase
+import pl.michalmatu.aicallbridge.conversation.SkillLabPendingTurn
+import pl.michalmatu.aicallbridge.conversation.SkillLabCompletedTurn
+import pl.michalmatu.aicallbridge.conversation.SkillLabObservation
 
 /**
  * On-device screenshot of purely synthetic, presentation-only test progress.
@@ -22,6 +27,11 @@ import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
  */
 @RunWith(AndroidJUnit4::class)
 class AndroidSkillLabLivePreviewTest {
+    private fun render(activity: ConversationSkillLabActivity, state: SkillLabUiState) {
+        activity.javaClass.getDeclaredMethod("renderState", SkillLabUiState::class.java)
+            .apply { isAccessible = true }.invoke(activity, state)
+    }
+
     @Test fun finishedSyntheticTurnIsParsedIntoReadableLiveCard() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         assertTrue("android_safe_question_heuristic",
@@ -29,20 +39,12 @@ class AndroidSkillLabLivePreviewTest {
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
             var folder: File? = null
             scenario.onActivity { activity ->
-                val clazz = activity.javaClass
-                val pending = clazz.declaredMethods.first { it.name == "showTurnPending" }
-                    .apply { isAccessible = true }
-                val complete = clazz.declaredMethods.first { it.name == "showTurnCompleted" }
-                    .apply { isAccessible = true }
-                val recordType = complete.parameterTypes[1]
-                val record = recordType.declaredConstructors
-                    .first { it.parameterTypes.size == 7 }
-                    .apply { isAccessible = true }
-                    .newInstance("Scenariusz testowy", 1, false, false,
-                        "Dziękuję. Zapisałem przykładową wiadomość.", 239L, false)
-                pending.invoke(activity, 0, "Scenariusz testowy", 1,
-                    "Proszę zapisać przykładową wiadomość.", 0)
-                complete.invoke(activity, 0, record, 1)
+                render(activity, SkillLabUiState(phase = SkillLabPhase.STARTING, manual = true))
+                val item = SkillLabCompletedTurn(SkillLabPendingTurn(0, "Scenariusz testowy", 1,
+                    "Proszę zapisać przykładową wiadomość."), SkillLabObservation("Scenariusz testowy",
+                    1, false, false, "Dziękuję. Zapisałem przykładową wiadomość.", 239L, false))
+                render(activity, SkillLabUiState(phase = SkillLabPhase.INPUT_READY, manual = true,
+                    totalTurns = 1, completed = listOf(item)))
                 assertEquals(1, requireNotNull(activity.window.decorView.findViewWithTag<ProgressBar>(
                     "lab-live-progress")).progress)
                 val timeline = requireNotNull(activity.window.decorView.findViewWithTag<View>(
@@ -52,8 +54,13 @@ class AndroidSkillLabLivePreviewTest {
                     "lab-reply:0:1"))
                 assertTrue(reply.text.contains("przykładową wiadomość"))
                 assertFalse(reply.text.contains("TOOL_REPLY"))
-                assertTrue(requireNotNull(activity.window.decorView.findViewWithTag<TextView>(
+                activity.javaClass.getDeclaredMethod("showDiagnostics").apply { isAccessible = true }.invoke(activity)
+                val dialog = activity.javaClass.getDeclaredField("diagnosticsDialog").apply {
+                    isAccessible = true
+                }.get(activity) as android.app.AlertDialog
+                assertTrue(requireNotNull(dialog.window!!.decorView.findViewWithTag<TextView>(
                     "lab-decision:0:1")).text.contains("END_CALL"))
+                dialog.dismiss()
                 assertNull(activity.window.decorView.findViewWithTag<CheckBox>(
                     "lab-follow")) // Auto-follow is implicit unless the owner scrolls up.
                 folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
@@ -87,7 +94,7 @@ class AndroidSkillLabLivePreviewTest {
                 failure.invoke(activity, "model_response_timeout")
                 val status = requireNotNull(activity.window.decorView
                     .findViewWithTag<TextView>("lab-status"))
-                assertTrue(status.text.contains("model_response_timeout"))
+                assertEquals(activity.getString(R.string.lab_chat_timeout), status.text.toString())
                 folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
             }
@@ -109,24 +116,15 @@ class AndroidSkillLabLivePreviewTest {
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
             var folder: File? = null
             scenario.onActivity { activity ->
-                val clazz = activity.javaClass
-                val pending = clazz.declaredMethods.first { it.name == "showTurnPending" }
-                    .apply { isAccessible = true }
-                val complete = clazz.declaredMethods.first { it.name == "showTurnCompleted" }
-                    .apply { isAccessible = true }
-                val notice = clazz.declaredMethods.first { it.name == "showStopNotice" }
-                    .apply { isAccessible = true }
-                val ctor = complete.parameterTypes[1].declaredConstructors
-                    .first { it.parameterTypes.size == 7 }.apply { isAccessible = true }
-                repeat(2) { index ->
-                    val turn = index + 1
-                    pending.invoke(activity, 0, "Offline", turn,
-                        "Syntetyczna wiadomość o długości opisowej $turn.", index)
-                    val reply = ctor.newInstance("Offline", turn, false, false,
-                        "Przykładowa, wyłącznie lokalna odpowiedź nr $turn.", 150L, false)
-                    complete.invoke(activity, 0, reply, turn)
+                render(activity, SkillLabUiState(phase = SkillLabPhase.STARTING, manual = true))
+                val completed = (1..2).map { turn ->
+                    SkillLabCompletedTurn(SkillLabPendingTurn(0, "Offline", turn,
+                        "Syntetyczna wiadomość o długości opisowej $turn."),
+                        SkillLabObservation("Offline", turn, false, false,
+                            "Przykładowa, wyłącznie lokalna odpowiedź nr $turn.", 150L, false))
                 }
-                notice.invoke(activity)
+                render(activity, SkillLabUiState(phase = SkillLabPhase.STOPPED, manual = true,
+                    totalTurns = 2, completed = completed))
                 folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())
             }

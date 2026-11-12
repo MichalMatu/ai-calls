@@ -69,8 +69,8 @@ class AndroidUx10OverlayVaultLabTest {
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 val empty = requireNotNull(root.findViewWithTag<android.widget.TextView>("lab-empty-transcript"))
-                assertEquals(activity.getString(R.string.lab_manual_empty), empty.text.toString())
-                assertEquals(View.VISIBLE, empty.visibility)
+                assertEquals(activity.getString(R.string.lab_chat_empty), empty.text.toString())
+                assertFalse("empty_chat_must_not_occupy_setup", empty.isShown)
                 assertNotNull(root.findViewWithTag<View>("lab-conversation-card"))
                 assertNotNull(root.findViewWithTag<View>("lab-start"))
             }
