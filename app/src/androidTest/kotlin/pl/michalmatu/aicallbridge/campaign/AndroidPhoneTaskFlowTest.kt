@@ -249,7 +249,7 @@ class AndroidPhoneTaskFlowTest {
         assertEquals(originalGrant, CampaignAuthorizationStore(context).load())
     }
 
-    @Test fun exactAlarmWakesBackgroundDialerAndRejectsChangedSimBeforeGrantOrDial() {
+    private fun assertExactAlarmBackgroundDispatch(screenOff: Boolean) {
         val packageName = context.packageName
         shell("cmd role add-role-holder --user 0 android.app.role.DIALER $packageName")
         listOf("READ_PHONE_STATE", "CALL_PHONE", "RECORD_AUDIO", "POST_NOTIFICATIONS").forEach {
@@ -263,15 +263,33 @@ class AndroidPhoneTaskFlowTest {
         PhoneTaskWork.io.submit { store.updatePhoneTasks { listOf(task) }; PhoneTaskScheduler.reconcile(context) }
             .get(10, TimeUnit.SECONDS)
         shell("input keyevent KEYCODE_HOME")
-        shell("input keyevent KEYCODE_SLEEP")
-        await { store.phoneTasks().single().state == PhoneTaskState.PAUSED }
-        val result = store.phoneTasks().single()
-        assertEquals(PhoneTaskIssue.SIM_CHANGED, result.issue)
-        assertEquals(PhoneAttemptOutcome.BLOCKED, result.recipients[0].attempts.single().outcome)
+        if (screenOff) shell("input keyevent KEYCODE_SLEEP")
+        val deadline = System.currentTimeMillis() + if (screenOff) 45_000L else 20_000L
+        var observed = store.phoneTasks().single()
+        while (System.currentTimeMillis() < deadline && observed.state != PhoneTaskState.PAUSED) {
+            Thread.sleep(100)
+            observed = store.phoneTasks().single()
+        }
+        val alarmInfo = if (observed.state != PhoneTaskState.PAUSED)
+            shell("dumpsys alarm").lineSequence()
+                .filter { it.contains(packageName) || it.contains(PhoneTaskScheduler.ACTION_WAKE) }
+                .take(12).joinToString(" ").take(1400)
+        else ""
+        assertEquals("screenOff=$screenOff issue=${observed.issue} nextAt=${PhoneTaskQueue.nextAt(observed)} " +
+            "attempts=${observed.recipients.sumOf { it.attempts.size }} alarm=$alarmInfo",
+            PhoneTaskState.PAUSED, observed.state)
+        assertEquals(PhoneTaskIssue.SIM_CHANGED, observed.issue)
+        assertEquals(PhoneAttemptOutcome.BLOCKED, observed.recipients[0].attempts.single().outcome)
         assertEquals(before, CampaignAuthorizationStore(context).load())
-        assertEquals(1, result.recipients.sumOf { it.attempts.size })
-        assertNull(PhoneTaskQueue.nextAt(result))
+        assertEquals(1, observed.recipients.sumOf { it.attempts.size })
+        assertNull(PhoneTaskQueue.nextAt(observed))
     }
+
+    @Test fun exactAlarmDispatchesFromBackgroundWithScreenOn() =
+        assertExactAlarmBackgroundDispatch(screenOff = false)
+
+    @Test fun exactAlarmWakesBackgroundDialerAndRejectsChangedSimBeforeGrantOrDial() =
+        assertExactAlarmBackgroundDispatch(screenOff = true)
 
     @Test fun globalStopPersistsCancellationForAllScheduledTasks() {
         val tasks = listOf(task(), task())
