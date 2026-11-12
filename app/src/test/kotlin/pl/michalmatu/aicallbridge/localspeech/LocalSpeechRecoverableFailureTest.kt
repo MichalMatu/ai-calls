@@ -16,7 +16,7 @@ class LocalSpeechRecoverableFailureTest {
 
     @Test
     fun blankFinalResultsUseRecoverableNoMatchRatherThanDispatcherFailure() {
-        listOf("", " ", "\\t", "\\n").forEach { transcript ->
+        listOf("", " ", "\t", "\n").forEach { transcript ->
             val error = LocalSpeechRecoverableFailure.finalTranscriptError(transcript)
             assertEquals("stt_empty_transcript", error)
             assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript(checkNotNull(error)))
