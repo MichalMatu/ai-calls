@@ -8,6 +8,7 @@ import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
 import android.content.Intent
 import java.util.UUID
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import android.os.Bundle
 import android.view.View
@@ -328,8 +329,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         if (::casePicker.isInitialized) refreshCases()
         if (::modelLabel.isInitialized) {
             val profile = runCatching { AudioEngineProfileStore(this).load() }.getOrNull()
-            modelLabel.text = getString(R.string.lab_model_selected,
-                profile?.dialogue?.name ?: getString(R.string.lab_model_unavailable))
+            val modelId = profile?.dialogue?.name
+            val modelName = AudioEngineRegistry.dialogues.firstOrNull { it.id == modelId }?.title
+                ?: modelId ?: getString(R.string.lab_model_unavailable)
+            modelLabel.text = getString(R.string.lab_model_selected, modelName)
             updateModelDiagnostics()
         }
     }
@@ -664,8 +667,10 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     /** Live metrics are app-owned and contain no prompts, replies or user identity. */
     private fun updateModelDiagnostics() {
         if (!::diagnosticsView.isInitialized) return
-        val model = runCatching { AudioEngineProfileStore(this).load()?.dialogue?.name }
-            .getOrNull() ?: getString(R.string.lab_model_unavailable)
+        val modelId = runCatching { AudioEngineProfileStore(this).load()?.dialogue?.name }
+            .getOrNull()
+        val model = AudioEngineRegistry.dialogues.firstOrNull { it.id == modelId }?.title
+            ?: modelId ?: getString(R.string.lab_model_unavailable)
         val last = timingMeasurements.lastOrNull()
         val memory = Debug.MemoryInfo()
         Debug.getMemoryInfo(memory)
