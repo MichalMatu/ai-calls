@@ -10,6 +10,9 @@ package pl.michalmatu.aicallbridge.localspeech
  * silently retried; the app still surfaces them as genuine diagnostics.
  */
 internal object LocalSpeechRecoverableFailure {
+    fun finalTranscriptError(text: String): String? =
+        if (text.isBlank()) "stt_empty_transcript" else null
+
     fun isTransientNoTranscript(reason: String): Boolean =
         reason == "stt_recognition_error_7" || // SpeechRecognizer.ERROR_NO_MATCH
             reason == "stt_recognition_error_6" || // SpeechRecognizer.ERROR_SPEECH_TIMEOUT

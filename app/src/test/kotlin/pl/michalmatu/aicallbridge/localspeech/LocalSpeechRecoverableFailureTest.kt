@@ -15,6 +15,20 @@ class LocalSpeechRecoverableFailureTest {
     }
 
     @Test
+    fun blankFinalResultsUseRecoverableNoMatchRatherThanDispatcherFailure() {
+        listOf("", " ", "\\t", "\\n").forEach { transcript ->
+            val error = LocalSpeechRecoverableFailure.finalTranscriptError(transcript)
+            assertEquals("stt_empty_transcript", error)
+            assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript(checkNotNull(error)))
+        }
+        assertNull(LocalSpeechRecoverableFailure.finalTranscriptError("Terminy od 10 do 12"))
+        assertNull(LocalSpeechRecoverableFailure.finalTranscriptError("  Tak, pasuje  "))
+        assertFalse(LocalSpeechRecoverableFailure.isTransientNoTranscript(
+            "final_turn_route_IllegalArgumentException",
+        ))
+    }
+
+    @Test
     fun finalSegmentsSurviveRecognizerNoMatchAndSpeechTimeout() {
         val segments = SpeechRecognitionSegments()
         segments.add("chciałbym umówić wizytę")

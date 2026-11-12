@@ -49,6 +49,12 @@ internal class LocalSpeechTextPipeline(
 
             override fun onFinalTranscript(text: String) {
                 if (!gate.isCurrent(generation)) return
+                // Blank final results are a recoverable STT no-match, not an
+                // invalid dispatcher argument that fails an owned Call.
+                LocalSpeechRecoverableFailure.finalTranscriptError(text)?.let { reason ->
+                    finishError(generation, listener, reason)
+                    return
+                }
                 listener.onUserTranscript(text)
                 // The listener may close/cancel the turn after factual carrier evidence.
                 if (!gate.isCurrent(generation)) return
