@@ -144,7 +144,9 @@ class AppointmentInterpreter(private val zone: ZoneId) {
     }
 
     fun parseTimeRange(text: String): AppointmentTimeRangeCandidate? {
-        val match = TIME_RANGE.find(normalizeWordsKeepingTimeSeparators(text)) ?: return null
+        val normalized = normalizeWordsKeepingTimeSeparators(text)
+        val match = TIME_RANGE.find(normalized) ?: BETWEEN_TIME_RANGE.find(normalized)
+            ?: return null
         val start = localTimeOrNull(
             match.groupValues[1],
             match.groupValues[2].ifEmpty { "0" },
@@ -165,8 +167,12 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         // must never become an apparently available appointment for review.
         // Keep negative availability distinct from "nie ma problemu" or "brak opłat".
         if (UNAVAILABLE_OFFER.containsMatchIn(normalizeWords(text))) return null
-        // A range is not a concrete offered appointment and must not silently collapse to its start.
-        if (parseTimeRange(text) != null) return null
+        // A range is not a concrete offered appointment even when malformed,
+        // reversed or equal-ended. parseTimeRange intentionally returns null
+        // for invalid ranges, so it cannot be the only guard.
+        val normalized = normalizeWordsKeepingTimeSeparators(text)
+        if (TIME_RANGE.containsMatchIn(normalized) ||
+            BETWEEN_TIME_RANGE.containsMatchIn(normalized)) return null
         val date = parseDate(text, referenceDate) ?: return null
         val time = parseTime(text) ?: return null
         // Zone resolution can silently shift a nonexistent clock time (DST gap)
@@ -219,6 +225,10 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         val HOUR_WITH_MARKER = Regex("\\b(?:o|godzina|godz)\\.?\\s+([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\b")
         val TIME_RANGE = Regex(
             "\\bod\\s+([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\s+do\\s+" +
+                "([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\b",
+        )
+        val BETWEEN_TIME_RANGE = Regex(
+            "\\bmiedzy\\s+([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\s+a\\s+" +
                 "([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\b",
         )
         val UNAVAILABLE_OFFER = Regex(

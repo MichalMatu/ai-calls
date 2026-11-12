@@ -113,6 +113,33 @@ class AppointmentInterpretationTest {
     }
 
     @Test
+    fun `equal or reversed spoken windows cannot become a concrete appointment`() {
+        assertNull(interpreter.parseTimeRange("od 17:00 do 17:00"))
+        assertNull(interpreter.parseTimeRange("od 18:00 do 17:00"))
+        assertNull(interpreter.parseOffer("10.02.2027 od 17:00 do 17:00", referenceDate))
+        assertNull(interpreter.parseOffer("10.02.2027 od 18:00 do 17:00", referenceDate))
+        assertNull(interpreter.parseOffer("10.02.2027 od 17:00 do 18:00", referenceDate))
+    }
+
+    @Test
+    fun `between two hours is a range not a single offered slot`() {
+        assertEquals(
+            AppointmentTimeRangeCandidate(LocalTime.of(17, 0), LocalTime.of(18, 30)),
+            interpreter.parseTimeRange("między 17 a 18:30"),
+        )
+        assertNull(interpreter.parseTimeRange("między 17 a 17"))
+        assertNull(interpreter.parseOffer("10.02.2027 między 17:00 a 18", referenceDate))
+        assertNull(interpreter.parseOffer("10.02.2027 między 17 a 17", referenceDate))
+        assertEquals(
+            AppointmentOfferCandidate(
+                ZonedDateTime.of(2027, 2, 10, 17, 0, 0, 0, zone),
+                AppointmentDateKind.ABSOLUTE,
+            ),
+            interpreter.parseOffer("10.02.2027 o 17:00", referenceDate),
+        )
+    }
+
+    @Test
     fun `relative offered appointment is a candidate and ambiguous offer fails closed`() {
         assertEquals(
             AppointmentOfferCandidate(
