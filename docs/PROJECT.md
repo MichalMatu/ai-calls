@@ -1,15 +1,15 @@
 # AI Calls — MVP FIRST
 
-**Priorytet:** uruchomienie pełnego asystenta telefonicznego na Samsung S22+, nie G6.5 hardening. Istniejące moduły, bezpieczeństwo Call i autoryzacja są zamrożonymi fundamentami. Błędy nieblokujące MVP odłóż.
+**Priorytet:** działający asystent telefoniczny na S22+. Bezpieczeństwo Call, granty i STOP są zamrożonym fundamentem; odłóż nieblokujący hardening.
 
 ## Interfejs użytkownika — uproszczenie
 - **Start / Rozmowy / Agent AI / Ustawienia** — cztery zakładki. Start bez powtórzonego nagłówka aplikacji zawiera dostęp do rozmowy **w sprawie wizyty**, status, STOP i prywatny podgląd. Rozmowy bez zbędnego górnego «Wstecz» (gest i systemowy Wstecz zachowane), Agent AI bez stopki o uprawnieniach (granice grantów bez zmian), Opcje bez nagłówka/opisu i z rolą Telefon wyłącznie w Uprawnieniach aplikacji (na Start awaryjnie, gdy roli brak).
-- Usunięto dawny ekran Kampanie i martwe napisy zasobów; CLIR/start skryptu, nadzorowany test audio oraz diagnostyczne karty nie mają już konsumenckich przycisków. Model i głos są pod Ustawieniami, laboratorium wyłącznie w narzędziach developerskich. Wewnętrzne mechanizmy grantów, dokładnego Call, STOP, STT i archiwum zachowane.
+- Kampanie i diagnostyczne akcje usunięte z nawigacji konsumenckiej. Model/głos: Ustawienia; laboratorium: narzędzia developerskie. Granty, Call, STOP, STT i archiwum zachowane.
 - W formularzu wizyty uprawnienia Androida i wybór dialera mogą kontynuować **ten sam wyraźnie rozpoczęty przez użytkownika** zamiar, bez ponownego naciskania Start. Odmowa nie rozpoczyna połączenia.
 
 - **Sekretarka (UX):** dwa tony naturalny/formalny i własne instrukcje bez nazywania profilu. Ustawienia dotyczą tylko incoming; stare presety i historia wersji są usuwane podczas migracji szyfrowanego zapisu; aktywne własne instrukcje i ton sekretarki są zachowywane. Wymagana fizyczna kontrola UI S22+ po instalacji.
 
-- **Diagnostyka (UX, kod na `main`):** jedno wejście USB/ADB przez Opcje → Sondy i narzędzia programistyczne; spójny nagłówek laboratorium, czytelne nazwy modeli, mniej powielonego pustego stanu, lepsze proporcje paneli. Flagi `call_idle` i `campaign_service_inactive` opisane jednoznacznie; wyniki sond można zaznaczać. Nie zmieniono runtime połączeń ani Shizuku. **Kompilacja i fizyczny odbiór S22+: PHYSICAL_OPEN** (brak dostępu do Mac Local Agent w tej sesji).
+- **Diagnostyka UX:** jedno wejście USB/ADB przez Opcje; czytelne laboratorium, modele, flagi i zaznaczalne wyniki sond. Runtime Call/Shizuku bez zmian; odbiór S22 **PHYSICAL_OPEN**.
 
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
@@ -24,12 +24,12 @@
 | Wizyta, warunki i wynik do oceny | 1 LIVE, REVIEW brak | Druga tura RX przerwana po 55280 ms (owned_call_ended) bez transkryptu; 20s RX segmentacja wdrożona, ponowna weryfikacja live **PHYSICAL_OPEN** |
 | Natychmiastowy STOP / TAKE OVER i resume | HOST_TESTED / DEVICE_VERIFIED off-call | Symulowany STOP i TAKE OVER PASS; na wcześniejszym APK fizyczne off-call STOP/stale PCM PASS; przejęcie rozmowy live **PHYSICAL_OPEN** |
 
-Pierwszy OUTGOING potwierdza częściowy RX/TX i jeden turn, nie potwierdza zrozumiałości u rozmówcy ani końcowej rezerwacji. Pełne live QA nadal otwarte.
+Pierwszy OUTGOING potwierdza RX/TX i jedną turę, nie potwierdza jakości dźwięku ani rezerwacji.
 
-Automatyczne, prywatne archiwum STT/zatwierdzonych odpowiedzi/diagnostyki na każdej autoryzowanej sesji, bez UI click i bez WAV: **HOST_TESTED** (`app` focused + changed QA, anti-friction i docs PASS; Mac `2e7d931a`). Audio WAV nadal wymaga osobnego opt-in. **S22: bieżący APK `954e8234` zachowuje poprawkę RX i dane; live STT PHYSICAL_OPEN**. Pierwszego transkryptu EMC ten fix wstecznie nie odtwarza; STT nieukończonej tury pozostaje otwartym ryzykiem.
+Prywatne archiwum STT, zatwierdzonych odpowiedzi i diagnostyki bez WAV: **HOST_TESTED**. WAV wymaga opt-in; nieukończony STT i historia pierwszego połączenia pozostają **PHYSICAL_OPEN**.
 
 ## Następny sprint — MVP FIRST (kod, nie audyt)
-1. Pierwszy OUTGOING: owned_call_ended, 1 tura STT/TTS, druga RX 55s bez końca; 20s limit segmentu wizyty wdrożony, przetestowany syntetycznie i zainstalowany na S22. Próba live w tej wersji nadal nie została wykonana.
+1. OUTGOING: 20s segment RX wizyty wdrożony; trwa poprawa składania STT z segmentów. Po host QA konieczny kontrolowany live test drugiej tury (**PHYSICAL_OPEN**).
 2. Po próbach poprawić wyłącznie usterki blokujące MVP. Nie uruchamiać G6.5/G7, niepotrzebnych refaktorów ani audytu.
 
 ## Próby S22+ — dokładny zakres PHYSICAL_OPEN
@@ -44,13 +44,13 @@ Przed live-call: osobna zgoda na numer, SIM, uczestnika i zakres; zweryfikuj pon
 MVP można ogłosić gotowym dopiero po udanych, kontrolowanych próbach fizycznych INCOMING, OUTGOING, dwukierunkowego audio, STOP/TAKE OVER i scenariusza wizyty. Do tego czasu: **MVP BLOCKED / PHYSICAL_OPEN**. Zasady: [Local Agent](operations/LOCAL_AGENT.md), [Device](operations/DEVICE.md), [Security](architecture/SECURITY.md), [Development](operations/DEVELOPMENT.md).
 
 ## Agent — aktualny UX
-Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje pojedyncze, autoryzowane rozmowy informacyjne bez skutków zewnętrznych. Kontekst i dane AI: osobne profile incoming/outgoing, bez powielonych Skills i linków; podgląd jedynie kontekstu. Zakres danych jest górnym limitem, nie zgodą na ujawnienie. Wizyta wymaga przecięcia profilu z grantem, a scenariusze korzystają z notatek outgoing bez ujawniania danych. Niezapisane zmiany chronione przy nawigacji; fizyczny UX S22: **PHYSICAL_OPEN**.
+Scenariusze: karty, szkice i 10 szablonów rozmów bez skutków zewnętrznych. Osobne profile incoming/outgoing; dane to limit, nie zgoda. Wizyta wymaga grantu, szkice chronione przy nawigacji; UX S22 **PHYSICAL_OPEN**.
 
 - **Sejf danych UX:** akcja „Dodaj własne pole” na końcu; jeden klikalny wiersz zamiast dublowania edycji, liczba zapisanych pól, formularz nie zamyka się po błędnym wpisie. Szyfrowanie i brak grantu dla pól własnych zachowane.
 
-- **Narzędzia AI MVP:** SAVE_NOTE szyfrowane per Call, migracja/deduplikacja, TASK/CALENDAR/MESSAGE tylko jako propozycje; END_CALL po TTS i kontroli Call. Notatnik: filtr, wyszukiwanie, strony, usuwanie po potwierdzeniu, AtomicFile .bak, IO poza UI. Migracja realnych danych i żywy Call pozostają bez fizycznej akceptacji.
+- **Narzędzia AI:** szyfrowane SAVE_NOTE per Call; TASK/CALENDAR/MESSAGE tylko propozycje; END_CALL po TTS i kontroli Call. Notatnik: wyszukiwanie, strony, AtomicFile i IO poza UI. Migracja/żywy Call **PHYSICAL_OPEN**.
 
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
-- **Model i głos:** trzy karty, wybory w modalach zapisywane od razu; Parakeet w grupie Dodatkowe przy wyborze rozpoznawania, silnik przy głosach, pliki osobno. Bez górnych opisów. KEEP runtime, STOP, Skills i granty. Właściciel potwierdził pobranie Gemmy; odbiór nowego układu na S22 **PHYSICAL_OPEN**.
+- **Model i głos:** trzy karty, modale i osobne pliki; Parakeet w Dodatkowych. KEEP runtime, STOP, Skills i granty. Gemma pobrana według właściciela; UX S22 **PHYSICAL_OPEN**.
 - **Rola Telefonu:** stan i jawny przycisk w Opcje → Uprawnienia aplikacji oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
-- **QA UX:** kompilacja/pakowanie PASS; S22 APK `954e8234`, SHA-256 `4bfa642b08c1f845fcfa5334e7216cadb1dbb6f295b6078ea088459515831627`, install-r/odczyt PASS. 3 preferencje, modele, UID, uprawnienia i rola Telefonu zachowane; IDLE. Bez pełnych zestawów/emulatora na życzenie właściciela. Odbiór UI i native audio **PHYSICAL_OPEN**.
+- **QA UX:** wcześniejszy sweep UI 13/13 na emulatorze; S22 odświeżony do `313f871` bez realnych Call, zachowano preferencje i rolę dialera. Najnowszy kod STT jeszcze nieinstalowany. UI/audio S22 **PHYSICAL_OPEN**.
