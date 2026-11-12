@@ -17,6 +17,8 @@ import java.util.Date
 import pl.michalmatu.aicallbridge.developerrelay.CallSessionEvidenceRecorder
 
 class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
+    // Bottom tab and list heading already identify History; Android Back still handles details.
+    override fun isPrimaryTabScreen(): Boolean = true
     private lateinit var controller: ConversationHistoryController
     private lateinit var content: LinearLayout
     private lateinit var history: RecordedConversationHistory

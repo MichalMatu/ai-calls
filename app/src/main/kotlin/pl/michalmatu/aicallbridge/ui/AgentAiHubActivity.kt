@@ -94,8 +94,6 @@ class AgentAiHubActivity : AppBaseActivity() {
         destination("profiles", R.string.ux07_agent_preparation, ConversationPreparationActivity::class.java)
         destination("vault", R.string.ux07_agent_vault, IdentityVaultManagerActivity::class.java)
         destination("tools", R.string.ux07_agent_tools, ConversationToolsActivity::class.java)
-        body.addView(UiDesign.caption(this, getString(R.string.ux09_agent_scope_warning)),
-            UiDesign.spaceAfter(this, 12))
         AppNavigation.install(this, ScrollView(this).apply {
             isFillViewport = true
             addView(body)

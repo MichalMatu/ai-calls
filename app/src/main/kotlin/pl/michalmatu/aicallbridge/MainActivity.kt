@@ -69,11 +69,6 @@ class MainActivity : AppBaseActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@MainActivity, 20), UiDesign.dp(this@MainActivity, 20),
                 UiDesign.dp(this@MainActivity, 20), UiDesign.dp(this@MainActivity, 24))
-            addView(UiDesign.heading(this@MainActivity, "AI Calls").apply {
-                textSize = 25f
-            }, UiDesign.spaceAfter(this@MainActivity, 5))
-            addView(UiDesign.caption(this@MainActivity, getString(R.string.ui_subtitle)),
-                UiDesign.spaceAfter(this@MainActivity, 18))
             addView(dialerRole.view, UiDesign.spaceAfter(this@MainActivity, 16))
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-new-call-card"

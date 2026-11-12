@@ -19,7 +19,6 @@ import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 
 /** Direct navigation hub: categories are labels, not one-button accordions. */
 class SettingsHubActivity : AppBaseActivity() {
-    private lateinit var dialerRole: DialerRoleCard
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val content = LinearLayout(this).apply {
@@ -29,16 +28,6 @@ class SettingsHubActivity : AppBaseActivity() {
                 UiDesign.dp(this@SettingsHubActivity, 20),
                 UiDesign.dp(this@SettingsHubActivity, 28))
         }
-        content.addView(UiDesign.heading(this, getString(R.string.ui_settings_hub_title)).apply {
-            textSize = 27f
-        })
-        content.addView(TextView(this).apply {
-            text = getString(R.string.ui_settings_hub_caption)
-            textSize = 14f
-            setTextColor(UiDesign.secondary)
-            setPadding(0, UiDesign.dp(this@SettingsHubActivity, 8),
-                0, UiDesign.dp(this@SettingsHubActivity, 16))
-        })
         fun section(title: Int) {
             content.addView(UiDesign.heading(this, getString(title)).apply {
                 textSize = 17f
@@ -85,8 +74,6 @@ class SettingsHubActivity : AppBaseActivity() {
             ).apply { bottomMargin = UiDesign.dp(this@SettingsHubActivity, 16) })
         }
         // One visible native dropdown; selecting a language takes only one tap to open.
-        dialerRole = DialerRoleCard(this)
-        content.addView(dialerRole.view, UiDesign.spaceAfter(this, 16))
         val languageCodes = listOf("auto", "pl", "en")
         val languageLabels = listOf(
             getString(R.string.ui_language_auto),
@@ -133,8 +120,4 @@ class SettingsHubActivity : AppBaseActivity() {
         }, AppTab.SETTINGS)
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (::dialerRole.isInitialized) dialerRole.refresh()
-    }
 }

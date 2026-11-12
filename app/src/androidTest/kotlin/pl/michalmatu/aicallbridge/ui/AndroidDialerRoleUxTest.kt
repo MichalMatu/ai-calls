@@ -35,8 +35,8 @@ class AndroidDialerRoleUxTest {
         assumeTrue(Build.HARDWARE in setOf("ranchu", "goldfish"))
     }
 
-    @Test fun settingsButtonShowsTheRealAndroidRoleDialogAndCancellationReturnsToSettings() {
-        verifyRealRoleDialogAndCancellation(SettingsHubActivity::class.java)
+    @Test fun permissionsButtonShowsTheRealAndroidRoleDialogAndCancellationReturnsToPermissions() {
+        verifyRealRoleDialogAndCancellation(GeneralSettingsActivity::class.java)
     }
 
     @Test fun homeButtonShowsTheRealAndroidRoleDialogAndCancellationReturnsHome() {
@@ -121,6 +121,13 @@ class AndroidDialerRoleUxTest {
             ActivityScenario.launch(SettingsHubActivity::class.java).use { scenario ->
                 scenario.onActivity { activity ->
                     val root = activity.window.decorView
+                    assertNull(root.findViewWithTag<View>("dialer-role-card"))
+                    assertNotNull(root.findViewWithTag<View>("settings-destination:GeneralSettingsActivity"))
+                }
+            }
+            ActivityScenario.launch(GeneralSettingsActivity::class.java).use { scenario ->
+                scenario.onActivity { activity ->
+                    val root = activity.window.decorView
                     assertEquals(View.VISIBLE, root.findViewWithTag<View>("dialer-role-card").visibility)
                     val status = if (role.isRoleHeld(RoleManager.ROLE_DIALER))
                         R.string.role_ui_ready else R.string.role_ui_missing
@@ -144,7 +151,7 @@ class AndroidDialerRoleUxTest {
             IntentFilter(role.createRequestRoleIntent(RoleManager.ROLE_DIALER).action),
             Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null), true)
         try {
-            ActivityScenario.launch(SettingsHubActivity::class.java).use { scenario ->
+            ActivityScenario.launch(GeneralSettingsActivity::class.java).use { scenario ->
                 scenario.onActivity { activity ->
                     activity.window.decorView.findViewWithTag<Button>("dialer-role-request").performClick()
                 }

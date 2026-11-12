@@ -3,7 +3,7 @@
 **Priorytet:** uruchomienie pełnego asystenta telefonicznego na Samsung S22+, nie G6.5 hardening. Istniejące moduły, bezpieczeństwo Call i autoryzacja są zamrożonymi fundamentami. Błędy nieblokujące MVP odłóż.
 
 ## Interfejs użytkownika — uproszczenie
-- **Start / Rozmowy / Agent AI / Ustawienia** — cztery zakładki. Start zawiera bezpośredni dostęp do istniejącej rozmowy **w sprawie wizyty**, bieżący status, STOP i prywatny podgląd rozmowy; nie sugeruje ogólnego scenariusza, którego nie wdrożono.
+- **Start / Rozmowy / Agent AI / Ustawienia** — cztery zakładki. Start bez powtórzonego nagłówka aplikacji zawiera dostęp do rozmowy **w sprawie wizyty**, status, STOP i prywatny podgląd. Rozmowy bez zbędnego górnego «Wstecz» (gest i systemowy Wstecz zachowane), Agent AI bez stopki o uprawnieniach (granice grantów bez zmian), Opcje bez nagłówka/opisu i z rolą Telefon wyłącznie w Uprawnieniach aplikacji (na Start awaryjnie, gdy roli brak).
 - Usunięto dawny ekran Kampanie i martwe napisy zasobów; CLIR/start skryptu, nadzorowany test audio oraz diagnostyczne karty nie mają już konsumenckich przycisków. Model i głos są pod Ustawieniami, laboratorium wyłącznie w narzędziach developerskich. Wewnętrzne mechanizmy grantów, dokładnego Call, STOP, STT i archiwum zachowane.
 - W formularzu wizyty uprawnienia Androida i wybór dialera mogą kontynuować **ten sam wyraźnie rozpoczęty przez użytkownika** zamiar, bez ponownego naciskania Start. Odmowa nie rozpoczyna połączenia.
 
@@ -50,5 +50,5 @@ Scenariusze: klikalne karty, szkice i prywatne kopie; 10 szablonów obsługuje p
 
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
 - **Model i głos:** trzy karty, wybory w modalach zapisywane od razu; Parakeet w grupie Dodatkowe przy wyborze rozpoznawania, silnik przy głosach, pliki osobno. Bez górnych opisów. KEEP runtime, STOP, Skills i granty. Właściciel potwierdził pobranie Gemmy; odbiór nowego układu na S22 **PHYSICAL_OPEN**.
-- **Rola Telefonu:** stan i jawny przycisk w Ustawieniach oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
+- **Rola Telefonu:** stan i jawny przycisk w Opcje → Uprawnienia aplikacji oraz na Start przy braku roli. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
 - **QA UX:** kompilacja/pakowanie PASS; S22 APK `954e8234`, SHA-256 `4bfa642b08c1f845fcfa5334e7216cadb1dbb6f295b6078ea088459515831627`, install-r/odczyt PASS. 3 preferencje, modele, UID, uprawnienia i rola Telefonu zachowane; IDLE. Bez pełnych zestawów/emulatora na życzenie właściciela. Odbiór UI i native audio **PHYSICAL_OPEN**.
