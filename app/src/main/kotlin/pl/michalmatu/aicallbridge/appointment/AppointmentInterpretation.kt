@@ -83,25 +83,21 @@ class AppointmentInterpreter(private val zone: ZoneId) {
 
         val anchor = referenceDate ?: return null
         val normalized = normalizeWords(text)
-        when {
-            normalized.hasToken("pojutrze") -> return AppointmentDateCandidate(
-                anchor.plusDays(2),
-                AppointmentDateKind.RELATIVE,
-            )
-            normalized.hasToken("jutro") -> return AppointmentDateCandidate(
-                anchor.plusDays(1),
-                AppointmentDateKind.RELATIVE,
-            )
-            normalized.hasToken("dzis") || normalized.hasToken("dzisiaj") ->
-                return AppointmentDateCandidate(anchor, AppointmentDateKind.RELATIVE)
+        val relativeDates = buildList {
+            if (normalized.hasToken("pojutrze")) add(anchor.plusDays(2))
+            if (normalized.hasToken("jutro")) add(anchor.plusDays(1))
+            if (normalized.hasToken("dzis") || normalized.hasToken("dzisiaj")) add(anchor)
         }
-
-        val weekday = WEEKDAY_ALIASES.entries.firstOrNull { (_, aliases) ->
+        val weekdayDates = WEEKDAY_ALIASES.entries.filter { (_, aliases) ->
             aliases.any { alias -> normalized.hasToken(alias) }
-        }?.key ?: return null
+        }.map { (weekday, _) -> anchor.with(TemporalAdjusters.nextOrSame(weekday)) }
+        val uniqueDates = (relativeDates + weekdayDates).distinct()
+        // "Jutro, w środę" may repeat one date; contradictory choices are not an offer.
+        if (uniqueDates.size != 1) return null
         return AppointmentDateCandidate(
-            date = anchor.with(TemporalAdjusters.nextOrSame(weekday)),
-            kind = AppointmentDateKind.WEEKDAY,
+            date = uniqueDates.single(),
+            kind = if (relativeDates.isNotEmpty()) AppointmentDateKind.RELATIVE
+                else AppointmentDateKind.WEEKDAY,
         )
     }
 

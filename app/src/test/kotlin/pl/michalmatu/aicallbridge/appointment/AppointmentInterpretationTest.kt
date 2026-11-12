@@ -51,6 +51,18 @@ class AppointmentInterpretationTest {
     }
 
     @Test
+    fun `contradictory relative or weekday proposals require one clear date`() {
+        assertNull(interpreter.parseDate("jutro albo pojutrze", referenceDate))
+        assertNull(interpreter.parseDate("w środę lub w czwartek", referenceDate))
+        assertNull(interpreter.parseOffer("jutro lub pojutrze o 17:00", referenceDate))
+        assertNull(interpreter.parseDate("jutro w piątek", referenceDate))
+        assertEquals(
+            AppointmentDateCandidate(LocalDate.of(2026, 9, 23), AppointmentDateKind.RELATIVE),
+            interpreter.parseDate("jutro, w środę", referenceDate),
+        )
+    }
+
+    @Test
     fun `times and time ranges normalize into typed candidates`() {
         assertEquals(AppointmentTimeCandidate(LocalTime.of(9, 5)), interpreter.parseTime("o 9:05"))
         assertEquals(
