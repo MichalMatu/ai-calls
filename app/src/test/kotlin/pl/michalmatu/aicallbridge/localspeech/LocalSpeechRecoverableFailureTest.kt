@@ -1,6 +1,8 @@
 package pl.michalmatu.aicallbridge.localspeech
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -10,6 +12,43 @@ class LocalSpeechRecoverableFailureTest {
         assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript("stt_recognition_error_7"))
         assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript("stt_recognition_error_6"))
         assertTrue(LocalSpeechRecoverableFailure.isTransientNoTranscript("stt_empty_transcript"))
+    }
+
+    @Test
+    fun finalSegmentsSurviveRecognizerNoMatchAndSpeechTimeout() {
+        val segments = SpeechRecognitionSegments()
+        segments.add("chciałbym umówić wizytę")
+        val text = segments.resolve("")
+        assertEquals(
+            text,
+            LocalSpeechRecoverableFailure.completedSegmentsAfterRecognizerError(
+                "stt_recognition_error_7", text,
+            ),
+        )
+        assertEquals(
+            text,
+            LocalSpeechRecoverableFailure.completedSegmentsAfterRecognizerError(
+                "stt_recognition_error_6", text,
+            ),
+        )
+    }
+
+    @Test
+    fun absenceOfFinalSegmentsAndHardErrorsNeverBecomeSyntheticTranscript() {
+        listOf("stt_recognition_error_7", "stt_recognition_error_6",
+            "stt_recognition_error_5", "stt_recognition_error_9", "stt_empty_transcript",
+            "stt_record_audio_permission_missing", "owned_call_ended").forEach { reason ->
+            assertNull(
+                reason,
+                LocalSpeechRecoverableFailure.completedSegmentsAfterRecognizerError(reason, ""),
+            )
+        }
+        assertNull(LocalSpeechRecoverableFailure.completedSegmentsAfterRecognizerError(
+            "stt_recognition_error_5", "segment previously finalized",
+        ))
+        assertNull(LocalSpeechRecoverableFailure.completedSegmentsAfterRecognizerError(
+            "stt_empty_transcript", "segment previously finalized",
+        ))
     }
 
     @Test

@@ -93,7 +93,15 @@ internal class OnDeviceSpeechInput(
                 }
     
                 override fun onError(error: Int) {
-                    finishWithError(generation, listener, "recognition_error_$error")
+                    if (!gate.isCurrent(generation)) return
+                    val reason = "recognition_error_$error"
+                    val confirmed = synchronized(lock) {
+                        LocalSpeechRecoverableFailure.completedSegmentsAfterRecognizerError(
+                            "stt_$reason", segments.resolve(""),
+                        )
+                    }
+                    if (confirmed != null) completeTranscript(generation, listener, confirmed)
+                    else finishWithError(generation, listener, reason)
                 }
     
                 override fun onResults(results: Bundle?) {
