@@ -65,39 +65,60 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         val polishMatches = POLISH_DATE.findAll(text).toList()
         if (isoMatches.size + polishMatches.size > 1) return null
 
-        isoMatches.singleOrNull()?.let { match ->
-            return localDateOrNull(
+        val explicit = isoMatches.singleOrNull()?.let { match ->
+            localDateOrNull(
                 year = match.groupValues[1].toInt(),
                 month = match.groupValues[2].toInt(),
                 day = match.groupValues[3].toInt(),
-            )?.let { AppointmentDateCandidate(it, AppointmentDateKind.ABSOLUTE) }
-        }
-
-        polishMatches.singleOrNull()?.let { match ->
-            return localDateOrNull(
+            )
+        } ?: polishMatches.singleOrNull()?.let { match ->
+            localDateOrNull(
                 year = match.groupValues[3].toInt(),
                 month = match.groupValues[2].toInt(),
                 day = match.groupValues[1].toInt(),
-            )?.let { AppointmentDateCandidate(it, AppointmentDateKind.ABSOLUTE) }
+            )
+        }
+        // An invalid explicit date cannot fall back to a different, implied date.
+        if (isoMatches.isNotEmpty() || polishMatches.isNotEmpty()) {
+            if (explicit == null) return null
         }
 
-        val anchor = referenceDate ?: return null
         val normalized = normalizeWords(text)
-        val relativeDates = buildList {
-            if (normalized.hasToken("pojutrze")) add(anchor.plusDays(2))
-            if (normalized.hasToken("jutro")) add(anchor.plusDays(1))
-            if (normalized.hasToken("dzis") || normalized.hasToken("dzisiaj")) add(anchor)
-        }
-        val weekdayDates = WEEKDAY_ALIASES.entries.filter { (_, aliases) ->
+        val mentionsTomorrow = normalized.hasToken("jutro")
+        val mentionsDayAfter = normalized.hasToken("pojutrze")
+        val mentionsToday = normalized.hasToken("dzis") || normalized.hasToken("dzisiaj")
+        val mentionedWeekdays = WEEKDAY_ALIASES.entries.filter { (_, aliases) ->
             aliases.any { alias -> normalized.hasToken(alias) }
-        }.map { (weekday, _) -> anchor.with(TemporalAdjusters.nextOrSame(weekday)) }
-        val uniqueDates = (relativeDates + weekdayDates).distinct()
-        // "Jutro, w środę" may repeat one date; contradictory choices are not an offer.
+        }.map { it.key }
+
+        val anchor = referenceDate
+        if (anchor == null) {
+            // With no reference date we cannot check relative terms against
+            // an explicit offer, so do not accept a contradictory mixed phrase.
+            if (mentionsTomorrow || mentionsDayAfter || mentionsToday ||
+                mentionedWeekdays.isNotEmpty()) return null
+            return explicit?.let { AppointmentDateCandidate(it, AppointmentDateKind.ABSOLUTE) }
+        }
+
+        val relativeDates = buildList {
+            if (mentionsDayAfter) add(anchor.plusDays(2))
+            if (mentionsTomorrow) add(anchor.plusDays(1))
+            if (mentionsToday) add(anchor)
+        }
+        val weekdayDates = mentionedWeekdays.map {
+            anchor.with(TemporalAdjusters.nextOrSame(it))
+        }
+        val uniqueDates = (relativeDates + weekdayDates + listOfNotNull(explicit)).distinct()
+        // "Jutro, w środę" is fine when both resolve to the same day;
+        // "jutro, 2026-09-24" must not silently prefer one date.
         if (uniqueDates.size != 1) return null
         return AppointmentDateCandidate(
             date = uniqueDates.single(),
-            kind = if (relativeDates.isNotEmpty()) AppointmentDateKind.RELATIVE
-                else AppointmentDateKind.WEEKDAY,
+            kind = when {
+                explicit != null -> AppointmentDateKind.ABSOLUTE
+                relativeDates.isNotEmpty() -> AppointmentDateKind.RELATIVE
+                else -> AppointmentDateKind.WEEKDAY
+            },
         )
     }
 

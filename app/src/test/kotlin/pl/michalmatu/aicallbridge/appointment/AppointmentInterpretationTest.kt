@@ -63,6 +63,23 @@ class AppointmentInterpretationTest {
     }
 
     @Test
+    fun `explicit and spoken relative dates must agree before accepting an offer`() {
+        assertNull(interpreter.parseDate("jutro, 2026-09-24", referenceDate))
+        assertNull(interpreter.parseOffer("jutro, 2026-09-24 o 17:00", referenceDate))
+        assertNull(interpreter.parseDate("2026-09-23 w czwartek", referenceDate))
+        assertEquals(
+            AppointmentDateCandidate(LocalDate.of(2026, 9, 23), AppointmentDateKind.ABSOLUTE),
+            interpreter.parseDate("jutro, w środę, 2026-09-23", referenceDate),
+        )
+        assertEquals(
+            AppointmentDateCandidate(LocalDate.of(2026, 9, 23), AppointmentDateKind.ABSOLUTE),
+            interpreter.parseDate("2026-09-23"),
+        )
+        // No clock anchor means the relative part is impossible to validate.
+        assertNull(interpreter.parseDate("2026-09-23 jutro"))
+    }
+
+    @Test
     fun `times and time ranges normalize into typed candidates`() {
         assertEquals(AppointmentTimeCandidate(LocalTime.of(9, 5)), interpreter.parseTime("o 9:05"))
         assertEquals(
