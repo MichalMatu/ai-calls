@@ -55,28 +55,24 @@ abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity
     /** Presentation-only: buttons keep their existing listeners, IDs and stores. */
     private fun spaceActionRows(root: View) {
         if (root !is android.view.ViewGroup) return
-        for (index in 0 until root.childCount) {
-            val child = root.getChildAt(index)
-            if (root is android.widget.LinearLayout && root.orientation == android.widget.LinearLayout.VERTICAL &&
-                child.getTag(pl.michalmatu.aicallbridge.R.id.ai_calls_ui_card_marker) == true) {
-                val params = child.layoutParams as? android.widget.LinearLayout.LayoutParams
-                val gap = UiDesign.dp(this, 16)
-                if (params != null && params.bottomMargin < gap) {
-                    params.bottomMargin = gap
-                    child.layoutParams = params
-                }
-            }
+        val visibleChildren = (0 until root.childCount).map(root::getChildAt)
+            .filter { it.visibility != View.GONE }
+        for ((index, child) in visibleChildren.withIndex()) {
+            val next = visibleChildren.getOrNull(index + 1)
+            // Only adjacent actions need a fallback gap. Cards and form fields own
+            // their spacing; never add trailing space or count hidden actions.
             if (root is android.widget.LinearLayout && child is android.widget.Button &&
-                child !is android.widget.CompoundButton) {
+                child !is android.widget.CompoundButton && next is android.widget.Button &&
+                next !is android.widget.CompoundButton) {
                 val params = child.layoutParams as? android.widget.LinearLayout.LayoutParams
                 if (params != null) {
-                    val gap = UiDesign.dp(this, 10)
+                    val gap = UiDesign.dp(this, UiDesign.GAP_ACTION)
                     if (root.orientation == android.widget.LinearLayout.VERTICAL &&
                         params.bottomMargin < gap) {
                         params.bottomMargin = maxOf(params.bottomMargin, gap)
                         child.layoutParams = params
                     } else if (root.orientation == android.widget.LinearLayout.HORIZONTAL &&
-                        index < root.childCount - 1 && params.marginEnd < gap) {
+                        params.marginEnd < gap) {
                         params.marginEnd = maxOf(params.marginEnd, gap)
                         child.layoutParams = params
                     }

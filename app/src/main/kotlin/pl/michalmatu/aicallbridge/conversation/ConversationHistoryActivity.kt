@@ -54,7 +54,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         controller = ConversationHistoryController(history, dispatchToUi = { action ->
             runOnUiThread { action() }
         })
-        content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32), UiDesign.dp(this@ConversationHistoryActivity, 24), UiDesign.dp(this@ConversationHistoryActivity, 32)) }
+        content = UiDesign.content(this)
         setContentView(ScrollView(this).apply { addView(content) })
         showList()
     }
@@ -64,8 +64,8 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         stopPlayback()
         playbackStatus = null
         content.removeAllViews()
-        content.addView(TextView(this).apply { text = getString(R.string.history_title); textSize = 22f })
-        content.addView(TextView(this).apply { text = getString(R.string.history_subtitle) })
+        content.addView(UiDesign.heading(this, getString(R.string.history_title)),
+            UiDesign.spaceAfter(this, UiDesign.GAP_ACTION))
         if (message != null) content.addView(TextView(this).apply { text = message })
         controller.showList { state ->
             if (isDestroyed || displayedSessionId != null) return@showList

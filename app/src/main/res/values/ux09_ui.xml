@@ -16,7 +16,7 @@
     <string name="ux09_agent_named_skills">Aktywny: %1$s · %2$d Skills\n%3$s</string>
     <string name="ux09_agent_named_profiles">Wychodzące: %1$s\nPrzychodzące: %2$s</string>
     <string name="ux09_agent_none">Brak wskazanych pól</string>
-    <string name="ux09_agent_vault_empty">Sejf pusty — brak zapisanych pól</string>
+    <string name="ux09_agent_vault_empty">Brak zapisanych pól</string>
     <string name="ux09_agent_vault_fields">Zapisane pola (%1$d): %2$s</string>
     <string name="ux09_agent_pesel">PESEL</string>
 </resources>

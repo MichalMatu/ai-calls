@@ -13,13 +13,13 @@ class UiPolishSprintContract(unittest.TestCase):
     def test_model_state_drives_visibility(self):
         source=(ROOT/"textagent/LanguageModelActivity.kt").read_text()
         for token in ('tag = "model-card:"', 'tag = "model-transfer-cancel"',
-                      "row.download.visibility", "row.import.visibility", "row.select.visibility",
-                      'tag = "model-details:"', "row.progress.visibility"):
+                      "row.download.visibility", "row.import.visibility",
+                      'tag = "model-details-toggle:"', "row.progress.visibility"):
             self.assertIn(token,source)
         self.assertIn("if (LanguageModelTransferService.status.busy)",source)
     def test_lab_state_and_safe_campaign(self):
         lab=(ROOT/"conversation/ConversationSkillLabActivity.kt").read_text()
-        camp=(ROOT/"campaign/CampaignToolActivity.kt").read_text()
+        camp=(ROOT/"campaign/AppointmentMvpActivity.kt").read_text()
         for token in ('tag = "lab-stop"', 'tag = "lab-rating-group"',
                       "runButton.isEnabled = next.manualStartAllowed",
                       "sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY",
@@ -30,8 +30,8 @@ class UiPolishSprintContract(unittest.TestCase):
         self.assertIn("canStart = false", runner)
         self.assertIn("SkillLabPhase.STOPPED", runner)
         for token in ("UiActionTone.PRIMARY", "UiActionTone.DANGER",
-                      'tag = "campaign-primary-actions"', "LiveConversationOverlay(this@CampaignToolActivity",
-                      "ensurePermissionsThen(PendingAction.START)"):
+                      'tag = "appointment-authorize-call"', "grants.save(task.grant(",
+                      "ACTION_START_BOOK_APPOINTMENT"):
             self.assertIn(token,camp)
     def test_preparation_and_engine_keep_original_policy(self):
         prep=(ROOT/"conversation/ConversationPreparationActivity.kt").read_text()
@@ -39,9 +39,9 @@ class UiPolishSprintContract(unittest.TestCase):
         for token in ("RadioGroup(this)", "store.save(selected)",
                       "confirmDiscard(", 'tag = "preparation-actions"'):
             self.assertIn(token,prep)
-        for token in ("UiDesign.card", 'tag = "engine-save"',
-                      "AudioEngineReadinessProbe.check", "store.save(draft)",
-                      "private fun preview()"):
+        for token in ("UiDesign.card", 'tag = "model-voice-compatibility-check"',
+                      "AudioEngineRegistry.incompatibility(profile)", "store.save(profile)",
+                      "private fun preview(voiceId:"):
             self.assertIn(token,engine)
         service=(ROOT/"audioengines/ParakeetModelTransferService.kt").read_text()
         models=(ROOT/"textagent/LanguageModelActivity.kt").read_text()

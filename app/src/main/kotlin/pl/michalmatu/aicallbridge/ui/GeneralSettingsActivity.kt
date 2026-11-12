@@ -8,6 +8,8 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.view.Gravity
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -35,38 +37,41 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@GeneralSettingsActivity, 20),
-                UiDesign.dp(this@GeneralSettingsActivity, 24),
-                UiDesign.dp(this@GeneralSettingsActivity, 20),
-                UiDesign.dp(this@GeneralSettingsActivity, 28))
-        }
+        val body = UiDesign.content(this)
         role = DialerRoleCard(this)
         body.addView(role.view, UiDesign.spaceAfter(this, 16))
 
         val card = UiDesign.card(this).apply { tag = "permissions-grants-card" }
-        fun group(tag: String, label: String): LinearLayout {
+        fun group(tag: String, label: String): Pair<LinearLayout, LinearLayout> {
             val block = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
                 this.tag = "permissions-" + tag
             }
-            block.addView(UiDesign.heading(this, label).apply { textSize = 16f },
-                UiDesign.spaceAfter(this, 6))
-            card.addView(block, UiDesign.spaceAfter(this, 18))
-            return block
+            val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            labels.addView(UiDesign.heading(this, label).apply { textSize = 16f },
+                UiDesign.spaceAfter(this, 4))
+            block.addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            card.addView(block, UiDesign.spaceAfter(this, 16))
+            return labels to block
+        }
+        fun actionLayout() = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { marginStart = UiDesign.dp(this@GeneralSettingsActivity, UiDesign.GAP_ACTION) }
+        fun compact(button: Button) = button.apply {
+            maxWidth = UiDesign.dp(this@GeneralSettingsActivity, 120)
         }
         fun runtime(tag: String, title: Int, permission: String, actionLabel: Int, code: Int) {
-            val block = group(tag, getString(title))
+            val (labels, block) = group(tag, getString(title))
             val status = UiDesign.caption(this, "").apply {
                 this.tag = "permissions-" + tag + "-status"
                 accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             }
-            block.addView(status, UiDesign.spaceAfter(this, 7))
+            labels.addView(status)
             val button = UiDesign.action(this, getString(actionLabel)) {
                 requestOrOpenSettings(permission, code)
             }.apply { this.tag = "permissions-" + tag + "-request" }
-            block.addView(button)
+            block.addView(compact(button), actionLayout())
             grants[permission] = GrantRow(permission, status, button)
         }
 
@@ -81,16 +86,16 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 Manifest.permission.POST_NOTIFICATIONS, R.string.perm_action_allow, REQUEST_NOTIFICATIONS)
         }
 
-        val shizuku = group("shizuku", getString(R.string.perm_shizuku_title))
+        val (shizukuLabels, shizuku) = group("shizuku", getString(R.string.perm_shizuku_title))
         shizukuStatus = UiDesign.caption(this, "").apply {
             tag = "permissions-shizuku-status"
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
-        shizuku.addView(shizukuStatus, UiDesign.spaceAfter(this, 7))
+        shizukuLabels.addView(shizukuStatus)
         shizukuAction = UiDesign.action(this, getString(R.string.perm_action_allow)) {
             requestShizuku()
         }.apply { tag = "permissions-shizuku-request" }
-        shizuku.addView(shizukuAction)
+        shizuku.addView(compact(shizukuAction), actionLayout())
 
         body.addView(card)
         setContentView(ScrollView(this).apply { addView(body) })

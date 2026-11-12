@@ -11,6 +11,6 @@ class PermissionSettingsContract(unittest.TestCase):
             self.assertNotIn(old,activity)
         editor=(ROOT/"audioengines/ModelVoiceSettings.kt").read_text()
         self.assertIn("AudioEngineProfileStore(activity)",editor)
-        self.assertIn("store.save(draft)",editor)
+        self.assertIn("store.save(profile)",editor)
         self.assertNotIn("placeCall(",editor)
 if __name__=="__main__": unittest.main()

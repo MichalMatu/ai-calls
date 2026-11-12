@@ -55,9 +55,10 @@ class AndroidUx08NavigationCleanupTest {
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             scenario.onActivity { a ->
                 val root = a.window.decorView
-                val action = requireNotNull(root.findViewWithTag<View>("parakeet-transfer-download"))
+                val action = requireNotNull(root.findViewWithTag<View>("model-manage-files"))
                 assertTrue(action.isClickable)
-                assertNotNull(root.findViewWithTag<View>("parakeet-transfer-status"))
+                assertNotNull(root.findViewWithTag<View>("model-voice-compatibility-check"))
+                assertNull(root.findViewWithTag<View>("parakeet-transfer-download"))
             }
         }
     }
@@ -67,7 +68,7 @@ class AndroidUx08NavigationCleanupTest {
             scenario.onActivity { a ->
                 val root = a.window.decorView
                 assertNotNull(root.findViewWithTag<View>("usb-value:recording"))
-                assertNotNull(root.findViewWithTag<View>("usb-value:recording-current"))
+                assertNull(root.findViewWithTag<View>("usb-value:recording-current"))
             }
         }
     }

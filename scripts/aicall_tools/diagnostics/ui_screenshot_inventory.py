@@ -21,8 +21,9 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 SCREENS = (
     "home", "calls", "lab", "settings", "agent-ai", "general-settings",
-    "engines", "models", "incoming", "preparation", "skills", "tools",
-    "developer", "usb-diagnostics", "phone-enrollment", "vault", "campaigns",
+    "engines", "models", "models-advanced", "incoming", "preparation", "skills", "tools",
+    "developer", "usb-diagnostics", "phone-enrollment", "vault", "appointment",
+    "scenarios", "capabilities",
 )
 _CAPTURE = re.compile(r"^([a-z][a-z0-9-]*)-([0-2])\.jpg$")
 

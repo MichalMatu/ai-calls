@@ -1,9 +1,7 @@
 package pl.michalmatu.aicallbridge.ui
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.MainActivityDeveloperProbes
@@ -16,13 +14,7 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var probes: MainActivityDeveloperProbes
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@DeveloperToolsActivity, 20),
-                UiDesign.dp(this@DeveloperToolsActivity, 24),
-                UiDesign.dp(this@DeveloperToolsActivity, 20),
-                UiDesign.dp(this@DeveloperToolsActivity, 24))
-        }
+        val body = UiDesign.content(this)
         val status = TextView(this).apply {
             tag = "developer-probe-result"
             setTextColor(UiDesign.ink)

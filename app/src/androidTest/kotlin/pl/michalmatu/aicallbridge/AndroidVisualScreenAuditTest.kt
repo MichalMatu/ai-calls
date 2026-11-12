@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.os.SystemClock
@@ -24,6 +25,7 @@ import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
+import pl.michalmatu.aicallbridge.conversation.ScenarioLibraryActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.identity.PhoneEnrollmentActivity
 import pl.michalmatu.aicallbridge.identity.IdentityVaultManagerActivity
@@ -34,6 +36,7 @@ import pl.michalmatu.aicallbridge.ui.DeveloperToolsActivity
 import pl.michalmatu.aicallbridge.ui.GeneralSettingsActivity
 import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
 import pl.michalmatu.aicallbridge.ui.AgentAiHubActivity
+import pl.michalmatu.aicallbridge.ui.CapabilityDiagnosticsActivity
 
 /**
  * Read-only isolated-emulator review. Opens safe pages and scrolls them.
@@ -94,15 +97,12 @@ class AndroidVisualScreenAuditTest {
     private fun <T : Activity> capture(type: Class<T>, label: String, advanced: Boolean = false) {
         // Connect before launch so accessibility receives the new window's focus event.
         val automation = instrument.uiAutomation
-        ActivityScenario.launch(type).use { scenario ->
+        val intent = Intent(instrument.targetContext, type).apply {
+            if (advanced) putExtra("model_files_mode", true)
+        }
+        ActivityScenario.launch<T>(intent).use { scenario ->
             Thread.sleep(450)
             instrument.waitForIdleSync()
-            if (advanced) {
-                scenario.onActivity { activity ->
-                    activity.window.decorView.findViewWithTag<Button>("model-voice-advanced-toggle").performClick()
-                }
-                instrument.waitForIdleSync()
-            }
             var scrollRange = 0
             var privateDir: File? = null
             var density = 1f
@@ -169,6 +169,8 @@ class AndroidVisualScreenAuditTest {
     @Test fun lab() = capture(ConversationSkillLabActivity::class.java, "lab")
     @Test fun settings() = capture(SettingsHubActivity::class.java, "settings")
     @Test fun agentAi() = capture(AgentAiHubActivity::class.java, "agent-ai")
+    @Test fun scenarios() = capture(ScenarioLibraryActivity::class.java, "scenarios")
+    @Test fun capabilities() = capture(CapabilityDiagnosticsActivity::class.java, "capabilities")
     @Test fun generalSettings() = capture(GeneralSettingsActivity::class.java, "general-settings")
     @Test fun engines() = capture(AudioEngineSettingsActivity::class.java, "engines")
     @Test fun languageModels() = capture(LanguageModelActivity::class.java, "models")

@@ -70,26 +70,17 @@ class Sprint6UXContract(unittest.TestCase):
         self.assertIn("char.isLetterOrDigit()", core)
 
     def test_campaign_hides_targeted_disconnect_code_but_preserves_diagnostics(self):
-        s = self.read("campaign/CampaignToolActivity.kt")
         presenter = self.read("campaign/CampaignExecutionStatusPresenter.kt")
-        self.assertIn("CampaignExecutionStatusPresenter.present(", s)
-        self.assertIn("screen.summary", s)
-        self.assertIn("campaign_ui_last_history", s)
-        self.assertIn("diagnosticStatus.text = listOfNotNull", s)
-        self.assertIn("getString(R.string.camp_ux06_diagnostic_recording, evidenceStatus)", s)
-        self.assertIn("runtimeStatus?.let { getString(R.string.camp_ux06_diagnostic_event, it) }", s)
-        self.assertIn('tag = "campaign-attempt-details"', s)
-        self.assertIn('tag = "campaign-action-feedback"', s)
-        self.assertNotIn('"ui-accordion-content:campaign-attempt"', s)
-        self.assertIn('DISCONNECT_REQUESTED = "targeted_disconnect_requested"', presenter)
-        self.assertIn("CampaignExecutionMeaning.REQUESTED", presenter)
-        self.assertIn("CampaignExecutionMeaning.CONFIRMED", presenter)
-        self.assertIn("CampaignExecutionMeaning.UNVERIFIED", presenter)
-        self.assertNotIn('raw.contains("targeted_disconnect_requested")', s)
-        self.assertNotIn("lastExecutionStatus.text = raw", s)
+        for token in ('DISCONNECT_REQUESTED = "targeted_disconnect_requested"',
+                      "CampaignExecutionMeaning.REQUESTED", "CampaignExecutionMeaning.CONFIRMED",
+                      "CampaignExecutionMeaning.UNVERIFIED"):
+            self.assertIn(token, presenter)
+        screen = self.read("campaign/AppointmentMvpActivity.kt")
+        self.assertIn("store.review(task.grantId)", screen)
+        self.assertNotIn("review.text = raw", screen)
 
     def test_campaign_cancel_is_scoped_to_outgoing(self):
-        screen = self.read("campaign/CampaignToolActivity.kt")
+        screen = self.read("campaign/AppointmentMvpActivity.kt")
         service = self.read("campaign/AppOwnedCampaignService.kt")
         self.assertIn("ACTION_CANCEL_OUTGOING_TASK", screen)
         self.assertNotIn("CampaignAgentControl.stopOwnedCampaign(this@CampaignToolActivity)", screen)

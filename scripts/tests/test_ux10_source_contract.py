@@ -13,7 +13,7 @@ class Ux10SourceGate(unittest.TestCase):
         self.assertIn("conversation-floating-button",overlay)
         self.assertIn("conversation-floating-unread",overlay)
         self.assertIn("handler.removeCallbacks(pulse)",overlay)
-        for p in ("MainActivity.kt","campaign/CampaignToolActivity.kt"):
+        for p in ("MainActivity.kt",):
             self.assertIn("LiveConversationOverlay",source(p))
             self.assertNotIn("ConversationChatPanel(this@",source(p))
 

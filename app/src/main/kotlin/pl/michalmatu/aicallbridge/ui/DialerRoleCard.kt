@@ -39,7 +39,9 @@ internal class DialerRoleCard(
     }.apply { tag = "dialer-role-request" }
 
     init {
-        view.addView(UiDesign.heading(activity, activity.getString(R.string.role_ui_title)),
+        view.addView(UiDesign.heading(activity, activity.getString(R.string.role_ui_title)).apply {
+            textSize = 16f
+        },
             UiDesign.spaceAfter(activity, 6))
         view.addView(status, UiDesign.spaceAfter(activity, 8))
         view.addView(UiDesign.caption(activity, activity.getString(R.string.role_ui_detail)),

@@ -50,22 +50,17 @@ class Sprint5UxContract(unittest.TestCase):
 
     def test_home_models_engines_campaigns_have_clear_hierarchy(self):
         home = self.source("MainActivity.kt")
-        for name in ("home_ui_audio_mode_label", "home_ui_provider_label",
-                     "home_ui_dialogue_model_label", "home_ui_readiness_label"):
-            self.assertIn(name, home)
-        engines = self.source("audioengines/AudioEngineSettingsActivity.kt")
-        self.assertLess(engines.index('getString(R.string.eng_ui_save)'),
-                        engines.index('getString(R.string.eng_ui_check)'))
-        self.assertIn("eng_ui_diagnostics_heading", engines)
+        for legacy in ("home_ui_audio_mode_label", "home_ui_provider_label", "home_ui_dialogue_model_label"):
+            self.assertNotIn(legacy, home)
+        settings = self.source("ui/SettingsHubActivity.kt")
+        self.assertEqual(1, settings.count("LanguageModelActivity::class.java"))
         models = self.source("textagent/LanguageModelActivity.kt")
-        self.assertIn(
-            "getString(R.string.models_ui_select), UiActionTone.SECONDARY", models)
-        self.assertIn("models_ui_detail_source", models)
-        campaign = self.source("campaign/CampaignToolActivity.kt")
-        self.assertIn('tag = "campaign-execution-summary"', campaign)
-        self.assertIn("updateLastExecutionStatus()", campaign)
-        self.assertIn("camp_ui_actions_help", campaign)
-        self.assertIn("statusHandler.removeCallbacks(lastExecutionRefresh)", campaign)
+        for token in ("configuration.modelView", "configuration.inputView", "configuration.voiceView", "model-manage-files"):
+            self.assertIn(token, models)
+        campaign = self.source("campaign/AppointmentMvpActivity.kt")
+        self.assertIn('tag = "appointment-review-result"', campaign)
+        self.assertIn("grant?.grantId == task.grantId", campaign)
+        self.assertIn("handler.removeCallbacks(poll)", campaign)
 
     def test_history_delete_only_in_detail_and_tools_clear(self):
         history = self.source("conversation/ConversationHistoryActivity.kt")
@@ -74,7 +69,7 @@ class Sprint5UxContract(unittest.TestCase):
         self.assertGreater(pos, history.index("private fun showSession"))
         self.assertIn("confirmDelete(session.id)", history)
         tools = self.source("tools/ConversationToolsActivity.kt")
-        self.assertIn("card.addView(choice", tools)
+        self.assertIn("content.addView(option", tools)
         self.assertIn("tools_ui_end_call_detail", tools)
 
     def test_lab_quick_real_model_boundary_and_failure_handling(self):

@@ -11,13 +11,13 @@ class UxSprint3Contract(unittest.TestCase):
         return (K / relative).read_text()
 
     def test_campaign_uses_one_start_and_separate_diagnostics(self):
-        c = self.read("campaign/CampaignToolActivity.kt")
-        self.assertIn('tag = "campaign-dialogue-picker"', c)
-        self.assertNotIn("directStartButton", c)
-        self.assertIn("ensurePermissionsThen(PendingAction.START)", c)
-        self.assertIn('tag = "campaign-attempt-status"', c)
-        self.assertIn("UiActionTone.REVOCATION", c)
-        self.assertIn("ACTION_STOP_ALL_AI", c)
+        c = self.read("campaign/AppointmentMvpActivity.kt")
+        self.assertEqual(1, c.count('tag = "appointment-authorize-call"'))
+        self.assertIn("pendingAuthorize = true", c)
+        self.assertIn("CampaignAuthorizationPolicy.authorize(", c)
+        self.assertIn('tag = "appointment-review-result"', c)
+        self.assertIn("UiActionTone.DANGER", c)
+        self.assertIn("ACTION_CANCEL_OUTGOING_TASK", c)
 
     def test_phone_vault_and_sim_redaction_stay_distinct(self):
         phone = self.read("identity/PhoneEnrollmentActivity.kt")
@@ -32,7 +32,8 @@ class UxSprint3Contract(unittest.TestCase):
         models = self.read("textagent/LanguageModelActivity.kt")
         skills = self.read("conversation/ConversationSkillsActivity.kt")
         self.assertIn("row.card.isActivated = isActive", models)
-        self.assertIn("row.select.visibility", models)
+        self.assertIn("row.download.visibility", models)
+        self.assertIn("ModelVoiceSettings(this", models)
         self.assertIn('tag = "receptionist-tone-options"', skills)
         self.assertIn("library.withReceptionistTone", skills)
         self.assertIn("library.withPersonalInstructions", skills)
@@ -40,7 +41,7 @@ class UxSprint3Contract(unittest.TestCase):
     def test_controls_and_visual_capture_are_stateful(self):
         tools = self.read("tools/ConversationToolsActivity.kt")
         screen = (ROOT/"app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/AndroidVisualPolishAuditTest.kt").read_text()
-        self.assertIn("save.isEnabled = false", tools)
+        self.assertIn("save.visibility = View.GONE", tools)
         self.assertIn("getGlobalVisibleRect", screen)
         self.assertIn("ui-audit-20261107-sprint6", screen)
         self.assertIn("campaign_section_not_expanded", screen)

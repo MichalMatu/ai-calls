@@ -30,30 +30,24 @@ class Ux09Contract(unittest.TestCase):
         self.assertNotIn('"usb-raw"', text)
         self.assertNotIn('ClipboardManager', text)
 
-    def test_campaign_result_is_not_a_multiline_blob(self):
-        text = read("campaign/CampaignToolActivity.kt")
-        for token in ('"campaign-last-result-card"', '"campaign-execution-summary"',
-                      '"campaign-execution-timestamp"', '"campaign-result-explain"',
-                      "lastExecutionExplanation.text = screen.summary"):
-            self.assertIn(token, text)
-        self.assertNotIn('lastExecutionStatus.text = getString(R.string.camp_ui_runtime_heading) +', text)
-        for key in ("startButton", "stopSupervisedAudioButton", "revokeButton",
-                    "recordEvidenceChoice", "evidenceSection"):
-            self.assertIn(key, text)
+    def test_campaign_result_is_bound_to_the_exact_grant(self):
+        text = read("campaign/AppointmentMvpActivity.kt")
+        self.assertIn('tag = "appointment-review-result"', text)
+        self.assertIn("grant?.grantId == task.grantId", text)
+        self.assertIn("store.review(task.grantId)", text)
+        self.assertIn("ACTION_CANCEL_OUTGOING_TASK", text)
 
     def test_home_keeps_chat_and_starts_without_idle_dock(self):
         text = read("MainActivity.kt")
-        for token in ('"home-technical"', '"home-conversation-floating-overlay"',
-                      "LiveConversationOverlay(this@MainActivity", "AppNavigation.bar"):
+        for token in ('"home-conversation-floating-overlay"', "LiveConversationOverlay(this@MainActivity",
+                      "AppNavigation.install", '"home-appointment-start"', '"home-stop-ai"'):
             self.assertIn(token, text)
-        self.assertIn("startAuthorizedTaskButton", text)
-        self.assertIn("stopAiButton", text)
+        self.assertNotIn('"home-technical"', text)
 
-    def test_agent_names_visible_but_never_plaintext(self):
+    def test_agent_summaries_are_read_off_ui_thread_without_private_values(self):
         text = read("ui/AgentAiHubActivity.kt")
-        for token in ("AndroidIdentityVault.create(this).availableFields().getOrThrow()",
-                      "namedScope(outgoing.dataFields)", "namedScope(incoming.dataFields)",
-                      "ux09_agent_scope_warning", "skills_hub_summary"):
+        for token in ("AndroidIdentityVault.create(applicationContext).availableFields().getOrThrow().size",
+                      "worker.execute", "token != generation", "skills_hub_summary"):
             self.assertIn(token, text)
         self.assertNotIn("withPlaintext", text)
         self.assertNotIn(".get(IdentityFieldId.", text)

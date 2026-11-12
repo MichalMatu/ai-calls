@@ -4,7 +4,6 @@ import android.app.AlertDialog
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -114,11 +113,7 @@ class ConversationSkillsActivity : UiChromeActivity(AppTab.AGENT) {
     }
 
     private fun render(feedback: String = "") {
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val p = UiDesign.dp(this@ConversationSkillsActivity, 20)
-            setPadding(p, p, p, p)
-        }
+        val content = UiDesign.content(this)
         content.addView(UiDesign.caption(this, getString(R.string.skills_consumer_intro)),
             UiDesign.spaceAfter(this, 20))
 

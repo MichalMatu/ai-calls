@@ -14,10 +14,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
+import pl.michalmatu.aicallbridge.R
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -31,7 +31,7 @@ import pl.michalmatu.aicallbridge.ui.*
 
 /** Consent is bound to one exact target/SIM/task. Never books through the UI. */
 class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
-    override fun toolbarTitle() = "Umów wizytę — AI Calls"
+    override fun toolbarTitle() = getString(R.string.camp_mvp_appointment_title)
     private val store by lazy { AppointmentMvpStore(this) }
     private val grants by lazy { CampaignAuthorizationStore(this) }
     private lateinit var number: EditText
@@ -62,13 +62,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
         val draft = AppointmentEditorDraftStore(this).consume()
         val tomorrow = ZonedDateTime.now(ZoneId.of("Europe/Warsaw")).plusDays(1)
             .withHour(9).withMinute(0).withSecond(0).withNano(0)
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@AppointmentMvpActivity, 20),
-                UiDesign.dp(this@AppointmentMvpActivity, 20),
-                UiDesign.dp(this@AppointmentMvpActivity, 20),
-                UiDesign.dp(this@AppointmentMvpActivity, 32))
-        }
+        val body = UiDesign.content(this)
         fun field(title: String, placeholder: String, value: String, type: Int): EditText {
             body.addView(UiDesign.caption(this, title), UiDesign.spaceAfter(this, 5))
             return EditText(this).apply {
@@ -81,11 +75,7 @@ class AppointmentMvpActivity : UiChromeActivity(AppTab.HOME) {
                 body.addView(this, UiDesign.spaceAfter(this@AppointmentMvpActivity, 12))
             }
         }
-        body.addView(UiDesign.heading(this, "Zadzwoń w sprawie wizyty"),
-            UiDesign.spaceAfter(this, 8))
-        body.addView(UiDesign.caption(this,
-            "AI pyta o termin i warunki. Nie rezerwuje wizyty. " +
-                "Każda propozycja zostanie pokazana do Twojej weryfikacji."),
+        body.addView(UiDesign.caption(this, getString(R.string.camp_mvp_appointment_description)),
             UiDesign.spaceAfter(this, 12))
         number = field("Numer telefonu w formacie międzynarodowym",
             "+48...", draft?.target ?: saved?.target.orEmpty(), InputType.TYPE_CLASS_PHONE)

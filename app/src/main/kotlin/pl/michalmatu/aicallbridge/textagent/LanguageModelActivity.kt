@@ -5,7 +5,6 @@ import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.R
-import android.app.Activity
 import android.app.AlertDialog
 import pl.michalmatu.aicallbridge.debug.UsbDebugBridge
 import android.content.Intent
@@ -97,10 +96,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             if (contentReady) update()
         }
         if (!filesMode) {
-            val content = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                val pad = UiDesign.dp(this@LanguageModelActivity, UiDesign.CONTENT_INSET)
-                setPadding(pad, pad, pad, pad)
+            val content = UiDesign.content(this).apply {
                 addView(configuration.modelView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))
                 addView(configuration.inputView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))
                 addView(configuration.voiceView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))
@@ -113,11 +109,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             update()
             return
         }
-        val pad = UiDesign.dp(this, UiDesign.CONTENT_INSET)
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
-        }
+        val content = UiDesign.content(this)
         feedback = UiDesign.caption(this, "").apply {
             tag = "model-transfer-feedback"
             visibility = View.GONE

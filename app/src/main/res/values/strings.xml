@@ -45,7 +45,7 @@
     <string name="ui_settings_hub_engines_detail">Wejście audio, model, głos i profil wykonania</string>
     <string name="ui_settings_hub_models">Modele językowe</string>
     <string name="ui_settings_hub_models_detail">Pobieranie, import i wybór modelu</string>
-    <string name="ui_settings_hub_answering">Sekretarka i odbieranie</string>
+    <string name="ui_settings_hub_answering">Odbieranie połączeń</string>
     <string name="ui_settings_hub_answering_detail">Tryb ręczny lub AI, karta SIM i zapis</string>
     <string name="ui_settings_hub_preparation">Profile rozmowy</string>
     <string name="ui_settings_hub_preparation_detail">Kontekst i dane dla połączeń wychodzących oraz przychodzących</string>
@@ -62,7 +62,7 @@
     <string name="ui_settings_hub_group_advanced">Zaawansowane</string>
     <string name="ui_settings_hub_general">Podstawowe ustawienia AI</string>
     <string name="ui_settings_hub_general_detail">Tryb rozmowy, dostawca LLM i mikrofon</string>
-    <string name="ui_settings_hub_developer">Sondy i narzędzia programistyczne</string>
+    <string name="ui_settings_hub_developer">Narzędzia programistyczne</string>
     <string name="ui_settings_hub_developer_detail">USB/ADB, sprzęt, Shizuku i laboratorium offline</string>
     <string name="ui_supervised_section">Test nadzorowany aktywnej rozmowy</string>
     <string name="ui_general_description">Wybory zapisują się dla kolejnej rozmowy. Nie rozpoczynają połączeń.</string>
@@ -101,7 +101,7 @@
     <string name="history_playback_finished">Odsłuch fragmentu zakończony.</string>
     <string name="history_playing">Odtwarzanie zapisanego fragmentu audio.</string>
     <string name="history_playback_error">Nie można odtworzyć fragmentu audio.</string>
-    <string name="incoming_ui_title">Odbieranie połączeń — wirtualna asystentka</string>
+    <string name="incoming_ui_title">Odbieranie połączeń</string>
     <string name="incoming_ui_intro">Możesz przejąć rozmowę prowadzoną przez AI bez kończenia połączenia.</string>
     <string name="incoming_ui_read_error">Nie można odczytać polityki odbierania. Zapis jest zablokowany, aby nie zastąpić istniejących ustawień.</string>
     <string name="incoming_ui_mode_manual">Ręcznie</string>
@@ -123,7 +123,7 @@
     <string name="incoming_ui_preparation_link">Skills i dane rozmów</string>
     <string name="incoming_ui_skills_link">Skills i presety Gemmy</string>
     <string name="incoming_ui_tools_link">Narzędzia AI</string>
-    <string name="tools_ui_title">Narzędzia AI</string>
+    <string name="tools_ui_title">Notatki i narzędzia</string>
     <string name="tools_ui_description">Narzędzia są wspólne dla modeli. Włączenie możliwości nie zmienia zakresu zadania ani kontroli połączenia. Wyłączenie zatrzymuje nowe wykonania także podczas rozmowy.</string>
     <string name="tools_ui_end_call_title">Zakończ obsługiwaną rozmowę</string>
     <string name="tools_ui_end_call_detail">Po pożegnaniu agent może zakończyć wyłącznie rozmowę, którą nadal obsługuje. Awaryjny STOP działa niezależnie.</string>
@@ -206,7 +206,7 @@
     <string name="home_ui_one_tap">Dołącz AI do trwającej rozmowy</string>
     <string name="home_ui_start">Rozpocznij zadanie CLIR (skrypt + AI)</string>
     <string name="home_ui_stop_sent">Wysłano STOP AI; wynik zapisze serwis.</string>
-    <string name="prep_ui_title">Kontekst i dane AI</string>
+    <string name="prep_ui_title">Kontekst rozmów</string>
     <string name="prep_ui_intro">Ustawienia przyszłych rozmów. Edycja nie uruchamia połączenia i nie zmienia bieżącej rozmowy.</string>
     <string name="prep_ui_profile">Rodzaj rozmowy</string>
     <string name="prep_ui_outgoing">Asystent — wychodzące</string>
@@ -578,11 +578,11 @@
     <string name="scenario_ui_unsaved_message">Wrócić do listy bez zapisywania zmian?</string>
     <string name="scenario_ui_discard">Wróć bez zapisywania</string>
     <string name="home_ux06_direct_clir_scope">Uruchamia wyłącznie próbę włączenia CLIR na bieżącej SIM, w trybie skryptowym. Inne scenariusze przygotujesz w Kampaniach → Scenariusze rozmów.</string>
-    <string name="camp_ux06_live_inactive">AI w aplikacji: brak aktywnej próby (nie potwierdza to stanu telefonu).</string>
-    <string name="camp_ux06_live_preparing">AI w aplikacji: zadanie przygotowywane lub oczekuje na próbę. Rozmowa nie jest potwierdzona.</string>
-    <string name="camp_ux06_live_waiting">AI w aplikacji: zadanie czeka na zwolnienie telefonu. Nie wykonuje nowego połączenia.</string>
-    <string name="camp_ux06_live_attempt">AI w aplikacji: próba realizowana; może trwać wybieranie lub rozmowa. Wynik niepotwierdzony.</string>
-    <string name="camp_ux06_live_supervised">AI w aplikacji: nadzorowany test audio uruchamiany lub aktywny; brak nowego wybierania numeru.</string>
+    <string name="camp_ux06_live_inactive">Zadanie wychodzące: nieaktywne</string>
+    <string name="camp_ux06_live_preparing">Przygotowywanie zadania wychodzącego…</string>
+    <string name="camp_ux06_live_waiting">Czekanie na dostępność telefonu…</string>
+    <string name="camp_ux06_live_attempt">Realizacja zadania wychodzącego…</string>
+    <string name="camp_ux06_live_supervised">Nadzorowany test audio w toku</string>
     <string name="lab_skill_mode_label">Ładowanie Agent Skills (tylko Laboratorium)</string>
     <string name="lab_skill_mode_all">Wszystkie aktywne Skills (bazowy prompt)</string>
     <string name="lab_skill_mode_contextual">Wybór kontekstowy (eksperymentalny)</string>
@@ -595,8 +595,8 @@
     <string name="skills_metadata_instructions">Instrukcje wersjonowane</string>
     <string name="lab_skill_turn_route">Tura %1$d · aktywne: %2$s · dodano: %3$s · wyłączono: %4$s</string>
     <string name="lab_skill_turn_unchanged">brak</string>
-    <string name="camp_mvp_appointment_title">Umów wizytę — AI</string>
-    <string name="camp_mvp_appointment_description">Wybierz numer, SIM, cel i dopuszczone dane. AI zbiera propozycję terminu do weryfikacji.</string>
+    <string name="camp_mvp_appointment_title">Zapytaj o termin wizyty</string>
+    <string name="camp_mvp_appointment_description">AI zbierze terminy i warunki do Twojej oceny.</string>
     <string name="home_ui_new_conversation">Nowa rozmowa</string>
     <string name="skills_consumer_intro">Ustawienia sekretarki odbierającej połączenia. Nie zmieniają rozmów wychodzących ani nie uruchamiają połączeń.</string>
     <string name="skills_consumer_mode">Tryb rozmowy</string>
@@ -736,7 +736,7 @@
     <string name="cap_ui_no">Nie</string>
     <string name="cap_ui_unknown">Brak danych</string>
     <string name="perm_status_granted">Przyznano</string>
-    <string name="perm_status_missing">Wymagana zgoda</string>
+    <string name="perm_status_missing">Nie przyznano</string>
     <string name="perm_action_allow">Przyznaj dostęp</string>
     <string name="perm_action_settings">Otwórz ustawienia Androida</string>
     <string name="perm_call_phone_title">Wykonywanie połączeń</string>

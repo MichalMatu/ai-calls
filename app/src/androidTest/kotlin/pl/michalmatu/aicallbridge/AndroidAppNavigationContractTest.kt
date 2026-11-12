@@ -37,9 +37,7 @@ class AndroidAppNavigationContractTest {
                 assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:history")).isSelected)
                 assertEquals(0, activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE)
-                val back = requireNotNull(root.findViewWithTag<View>("app-child-back"))
-                assertTrue(back.isShown)
-                assertTrue(back.isClickable)
+                assertNull(root.findViewWithTag<View>("app-child-back"))
             }
         }
         ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
@@ -68,7 +66,7 @@ class AndroidAppNavigationContractTest {
         ActivityScenario.launch(SettingsHubActivity::class.java).use { screen ->
             screen.onActivity { activity ->
                 val root = activity.window.decorView
-                for (item in listOf("LanguageModelActivity", "AudioEngineSettingsActivity")) {
+                for (item in listOf("LanguageModelActivity", "GeneralSettingsActivity", "IncomingAssistantSettingsActivity", "DeveloperToolsActivity")) {
                     assertTrue(requireNotNull(root.findViewWithTag<View>(
                         "settings-destination:" + item)).isClickable)
                 }

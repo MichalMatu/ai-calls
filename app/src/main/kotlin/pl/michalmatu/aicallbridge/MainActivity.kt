@@ -1,14 +1,11 @@
 package pl.michalmatu.aicallbridge
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
-import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
@@ -65,20 +62,17 @@ class MainActivity : AppBaseActivity() {
             actionFeedback.visibility = View.VISIBLE
         }.apply { tag = "home-stop-ai" }
 
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@MainActivity, 20), UiDesign.dp(this@MainActivity, 20),
-                UiDesign.dp(this@MainActivity, 20), UiDesign.dp(this@MainActivity, 24))
+        val content = UiDesign.content(this).apply {
+            tag = "main-screen-root"
             addView(dialerRole.view, UiDesign.spaceAfter(this@MainActivity, 16))
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-new-call-card"
-                addView(UiDesign.heading(this@MainActivity,
-                    getString(R.string.home_ui_new_conversation)),
-                    UiDesign.spaceAfter(this@MainActivity, 8))
+                addView(start)
                 addView(UiDesign.caption(this@MainActivity,
                     getString(R.string.camp_mvp_appointment_description)),
-                    UiDesign.spaceAfter(this@MainActivity, 12))
-                addView(start)
+                    UiDesign.spaceAfter(this@MainActivity, 0).apply {
+                        topMargin = UiDesign.dp(this@MainActivity, UiDesign.GAP_SMALL)
+                    })
             }, UiDesign.spaceAfter(this@MainActivity, 16))
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-call-status-card"
@@ -91,29 +85,9 @@ class MainActivity : AppBaseActivity() {
             addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT))
         }
-        val root = LinearLayout(this).apply {
-            tag = "main-screen-root"
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(UiDesign.background)
-            setOnApplyWindowInsetsListener { view, insets ->
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    val bars = insets.getInsets(WindowInsets.Type.systemBars())
-                    view.setPadding(0, bars.top, 0, bars.bottom)
-                } else {
-                    view.setPadding(0, insets.systemWindowInsetTop, 0, insets.systemWindowInsetBottom)
-                }
-                insets
-            }
-            addView(LiveConversationOverlay(this@MainActivity, scroll).apply {
-                tag = "home-conversation-floating-overlay"
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-            addView(AppNavigation.bar(this@MainActivity, AppTab.HOME))
-        }
-        window.statusBarColor = UiDesign.background
-        window.navigationBarColor = UiDesign.surface
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
-            View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        setContentView(root)
+        AppNavigation.install(this, LiveConversationOverlay(this@MainActivity, scroll).apply {
+            tag = "home-conversation-floating-overlay"
+        }, AppTab.HOME)
         // Preserve an explicitly requested read-only diagnostic probe, never expose it as a home action.
         if (intent.getBooleanExtra("run_probe", false)) {
             diagnosticProbes = MainActivityDeveloperProbes(this, actionFeedback).also {

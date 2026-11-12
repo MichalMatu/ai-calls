@@ -98,13 +98,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         controller = ConversationToolsSettingsController(this)
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@ConversationToolsActivity, 18),
-                UiDesign.dp(this@ConversationToolsActivity, 12),
-                UiDesign.dp(this@ConversationToolsActivity, 18),
-                UiDesign.dp(this@ConversationToolsActivity, 28))
-        }
+        val content = UiDesign.content(this)
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL

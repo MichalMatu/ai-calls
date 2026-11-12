@@ -12,7 +12,7 @@ EN = APP / "res/values-en/strings.xml"
 SCREENS = (
     "MainActivity.kt",
     "audioengines/ModelVoiceSettings.kt",
-    "campaign/CampaignToolActivity.kt",
+    "campaign/ScenarioOutgoingCallActivity.kt",
     "campaign/AndroidCallControlsActivity.kt",
     "conversation/ConversationSkillsActivity.kt",
     "conversation/ConversationMessageView.kt",
@@ -62,15 +62,15 @@ class Ux05LocaleAccessibility(unittest.TestCase):
         ui = (KOTLIN / "ui/UiDesign.kt").read_text()
         nav = (KOTLIN / "ui/AppNavigation.kt").read_text()
         main = (KOTLIN / "MainActivity.kt").read_text()
-        campaign = (KOTLIN / "campaign/CampaignToolActivity.kt").read_text()
+        campaign = (KOTLIN / "campaign/AppointmentMvpActivity.kt").read_text()
         pilot = (KOTLIN / "developerrelay/SupervisedCallPilotActivity.kt").read_text()
         self.assertIn("isAccessibilityHeading = true", ui)
         self.assertIn("importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO", nav)
         self.assertIn("ACCESSIBILITY_LIVE_REGION_POLITE", main)
         self.assertIn("ACCESSIBILITY_LIVE_REGION_POLITE", campaign)
         self.assertIn("ACCESSIBILITY_LIVE_REGION_POLITE", pilot)
-        for token in ("AppOwnedCampaignService.ACTION_STOP_ALL_AI", "ensurePermissionsThen",
-                      "authorizationStore.revoke", "startAuthorizedCampaign()"):
+        for token in ("ACTION_CANCEL_OUTGOING_TASK", "authorizeAndStart()",
+                      "grants.revoke", "CampaignAuthorizationPolicy.authorize("):
             self.assertIn(token, campaign)
         self.assertIn("session?.stopAudio(reason)", pilot)
         self.assertNotIn("FLAG_SECURE", ui)

@@ -2,7 +2,6 @@ package pl.michalmatu.aicallbridge.ui
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
@@ -17,11 +16,11 @@ import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 
 /** One stable navigation contract. Presentation never starts a call or changes authorization. */
-enum class AppTab(val title: Int, val image: Int, val compactTitle: Int = title) {
+enum class AppTab(val title: Int, val image: Int) {
     HOME(R.string.ui_tab_home, R.drawable.ic_aicalls_home),
     HISTORY(R.string.ui_tab_history, R.drawable.ic_aicalls_history),
     AGENT(R.string.ui_tab_agent, R.drawable.ic_aicalls_agent),
-    SETTINGS(R.string.ui_tab_settings, R.drawable.ic_aicalls_settings, R.string.ui_nav_options),
+    SETTINGS(R.string.ui_tab_settings, R.drawable.ic_aicalls_settings),
 }
 
 internal object AppNavigation {
@@ -52,12 +51,12 @@ internal object AppNavigation {
             UiDesign.dp(activity, 2), UiDesign.dp(activity, 4))
         for (tab in AppTab.entries) {
             val selected = tab == active
-            val labelColor = if (selected) Color.rgb(22, 83, 160) else UiDesign.secondary
+            val labelColor = if (selected) UiDesign.primary else UiDesign.secondary
             val item = LinearLayout(activity).apply {
                 tag = "app-tab:" + tab.name.lowercase()
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                minimumHeight = UiDesign.dp(activity, 60)
+                minimumHeight = UiDesign.dp(activity, 62)
                 isClickable = true
                 isFocusable = true
                 isSelected = selected
@@ -77,10 +76,10 @@ internal object AppNavigation {
             item.addView(icon, LinearLayout.LayoutParams(
                 UiDesign.dp(activity, 24), UiDesign.dp(activity, 24)))
             item.addView(TextView(activity).apply {
-                text = activity.getString(tab.compactTitle)
+                text = activity.getString(tab.title)
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 textSize = 11f
-                maxLines = 1
+                maxLines = 2
                 setTextColor(labelColor)
                 gravity = Gravity.CENTER
                 setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
@@ -88,7 +87,7 @@ internal object AppNavigation {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { topMargin = UiDesign.dp(activity, 3) })
             addView(item, LinearLayout.LayoutParams(
-                0, UiDesign.dp(activity, 62), 1f
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
             ).apply { marginStart = UiDesign.dp(activity, 1); marginEnd = UiDesign.dp(activity, 1) })
         }
     }
@@ -103,17 +102,11 @@ internal object AppNavigation {
         setPadding(UiDesign.dp(activity, 12), UiDesign.dp(activity, 3),
             UiDesign.dp(activity, 16), UiDesign.dp(activity, 3))
         setBackgroundColor(UiDesign.surface)
-        val back = TextView(activity).apply {
+        val back = UiDesign.iconButton(activity, R.drawable.ic_aicalls_chevron_right,
+            activity.getString(R.string.ui_back)).apply {
             tag = "app-child-back"
-            text = "‹"
-            textSize = 29f
-            gravity = Gravity.CENTER
-            setTextColor(UiDesign.ink)
-            minimumWidth = UiDesign.dp(activity, 48)
-            minimumHeight = UiDesign.dp(activity, 48)
-            isClickable = true
-            isFocusable = true
-            contentDescription = activity.getString(R.string.ui_back)
+            scaleX = -1f
+            background = UiDesign.touchSurface(activity, UiDesign.surface, 12)
             setOnClickListener {
                 if (activity is UiChromeActivity) activity.navigateBack()
                 else activity.finish()

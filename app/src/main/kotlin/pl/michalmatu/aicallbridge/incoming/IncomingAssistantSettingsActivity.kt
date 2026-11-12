@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.telecom.PhoneAccountHandle
 import android.view.View
 import android.widget.CheckBox
-import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -38,13 +37,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             feedback.text = getString(R.string.incoming_ui_read_error)
             IncomingAssistantPolicy("unavailable", AnsweringMode.MANUAL, null, false)
         }
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@IncomingAssistantSettingsActivity, 20),
-                UiDesign.dp(this@IncomingAssistantSettingsActivity, 16),
-                UiDesign.dp(this@IncomingAssistantSettingsActivity, 20),
-                UiDesign.dp(this@IncomingAssistantSettingsActivity, 28))
-        }
+        val content = UiDesign.content(this)
         fun description(value: Int) = UiDesign.caption(this, getString(value)).apply {
             textSize = 14f
             setPadding(0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 7),

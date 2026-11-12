@@ -78,18 +78,15 @@ class Sprint4UxContract(unittest.TestCase):
         skills = self.read("conversation/ConversationSkillsActivity.kt")
         incoming = self.read("incoming/IncomingAssistantSettingsActivity.kt")
         home = self.read("MainActivity.kt")
-        self.assertIn("DateFormat.getTimeInstance", history)
-        self.assertIn('text = direction + " · " + time', history)
-        self.assertIn('tag = "history-delete:"', history)
-        self.assertIn("UiDesign.secondary", history)
-        self.assertIn("UiDesign.card(this)", skills)
-        self.assertIn("UiActionTone.SECONDARY", skills)
-        self.assertIn('tag = "receptionist-tone-options"', skills)
+        for token in ("DateFormat.getTimeInstance", 'text = direction + " · " + time',
+                      'tag = "history-delete:"', "UiDesign.secondary"):
+            self.assertIn(token, history)
+        for token in ("UiDesign.card(this)", "UiActionTone.SECONDARY", 'tag = "receptionist-tone-options"'):
+            self.assertIn(token, skills)
         self.assertIn("content.addView(feedback)", incoming)
-        self.assertIn('tag = "home-task-authorization"', home)
-        self.assertIn("taskAuthorizationSummary()", home)
-        self.assertIn('home_ui_dialogue_model_label', home)
-        self.assertIn('home_ui_provider_label', home)
+        self.assertIn('tag = "home-appointment-start"', home)
+        self.assertIn("AppointmentMvpActivity::class.java", home)
+        self.assertNotIn("grants.save(", home)
 
 if __name__ == "__main__":
     unittest.main()

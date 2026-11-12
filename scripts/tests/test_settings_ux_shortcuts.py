@@ -22,12 +22,13 @@ class SettingsUxShortcutsContractTest(unittest.TestCase):
         self.assertNotIn("FLAG_SECURE", self.history)
 
     def test_offline_lab_settings_and_stop_are_not_duplicated(self):
-        self.assertIn("AppTab.LAB -> ConversationSkillLabActivity::class.java", self.nav)
+        self.assertNotIn("AppTab.LAB", self.nav)
+        developer = (BASE / "ui/DeveloperToolsActivity.kt").read_text()
+        self.assertIn("ConversationSkillLabActivity::class.java", developer)
         self.assertIn("AppTab.SETTINGS -> SettingsHubActivity::class.java", self.nav)
-        self.assertNotIn("addView(labShortcutButton)", self.main)
-        self.assertNotIn("AppNavigation.open(this@MainActivity, AppTab.SETTINGS)", self.main)
-        self.assertIn("addView(stopAiButton)", self.main)
-        self.assertIn("addView(startAuthorizedTaskButton)", self.main)
+        for tag in ('home-appointment-start', 'home-stop-ai'):
+            self.assertEqual(1, self.main.count('tag = "' + tag + '"'))
+        self.assertNotIn("ConversationSkillLabActivity::class.java", self.main)
 
 
 if __name__ == "__main__":

@@ -45,7 +45,7 @@
     <string name="ui_settings_hub_engines_detail">Speech input, model, voice and execution profile</string>
     <string name="ui_settings_hub_models">Language models</string>
     <string name="ui_settings_hub_models_detail">Download, import and select a model</string>
-    <string name="ui_settings_hub_answering">Receptionist and answering</string>
+    <string name="ui_settings_hub_answering">Answering calls</string>
     <string name="ui_settings_hub_answering_detail">Manual or AI mode, SIM and recording</string>
     <string name="ui_settings_hub_preparation">Conversation profiles</string>
     <string name="ui_settings_hub_preparation_detail">Context and data for incoming and outgoing calls</string>
@@ -62,7 +62,7 @@
     <string name="ui_settings_hub_group_advanced">Advanced</string>
     <string name="ui_settings_hub_general">Basic AI settings</string>
     <string name="ui_settings_hub_general_detail">Call mode, LLM provider and microphone</string>
-    <string name="ui_settings_hub_developer">Developer probes</string>
+    <string name="ui_settings_hub_developer">Developer tools</string>
     <string name="ui_settings_hub_developer_detail">USB/ADB, hardware, Shizuku and offline lab</string>
     <string name="ui_supervised_section">Supervised active-call test</string>
     <string name="ui_general_description">Settings apply to the next call. Changing them never starts a call.</string>
@@ -101,7 +101,7 @@
     <string name="history_playback_finished">Audio fragment finished.</string>
     <string name="history_playing">Playing saved audio fragment.</string>
     <string name="history_playback_error">Could not play audio fragment.</string>
-    <string name="incoming_ui_title">Incoming calls — virtual assistant</string>
+    <string name="incoming_ui_title">Answering calls</string>
     <string name="incoming_ui_intro">You can take over from AI without ending the call.</string>
     <string name="incoming_ui_read_error">Could not read the answering policy. Saving is disabled to protect existing settings.</string>
     <string name="incoming_ui_mode_manual">Manual</string>
@@ -123,7 +123,7 @@
     <string name="incoming_ui_preparation_link">Skills and conversation data</string>
     <string name="incoming_ui_skills_link">Gemma skills and presets</string>
     <string name="incoming_ui_tools_link">AI tools</string>
-    <string name="tools_ui_title">AI tools</string>
+    <string name="tools_ui_title">Notes and tools</string>
     <string name="tools_ui_description">Tools are shared by all models. Enabling a capability does not expand the task scope or call authority. Disabling a tool prevents new execution, including during a call.</string>
     <string name="tools_ui_end_call_title">End the current AI-managed call</string>
     <string name="tools_ui_end_call_detail">After the farewell, AI may end only the call it still manages. Emergency STOP works independently.</string>
@@ -206,7 +206,7 @@
     <string name="home_ui_one_tap">Attach AI to an ongoing call</string>
     <string name="home_ui_start">Start CLIR task (script + AI)</string>
     <string name="home_ui_stop_sent">STOP AI requested; the service will record the result.</string>
-    <string name="prep_ui_title">AI context and data</string>
+    <string name="prep_ui_title">Conversation context</string>
     <string name="prep_ui_intro">Settings for future calls. Editing does not place a call or change a call in progress.</string>
     <string name="prep_ui_profile">Call direction</string>
     <string name="prep_ui_outgoing">Assistant — outgoing</string>
@@ -577,11 +577,11 @@
     <string name="scenario_ui_unsaved_message">Leave the form without saving your changes?</string>
     <string name="scenario_ui_discard">Leave without saving</string>
     <string name="home_ux06_direct_clir_scope">Starts only the CLIR enable attempt for the current voice SIM, using the script mode. Prepare other scenarios via Campaigns → Conversation scenarios.</string>
-    <string name="camp_ux06_live_inactive">AI in app: no active attempt (this does not verify phone idle).</string>
-    <string name="camp_ux06_live_preparing">AI in app: task preparing or queued. A connected call is not confirmed.</string>
-    <string name="camp_ux06_live_waiting">AI in app: task waiting for phone idle. No new call is being placed.</string>
-    <string name="camp_ux06_live_attempt">AI in app: attempt in progress; may be dialing or talking. Outcome unverified.</string>
-    <string name="camp_ux06_live_supervised">AI in app: supervised audio test starting or active; no new number is dialed.</string>
+    <string name="camp_ux06_live_inactive">Outgoing task: inactive</string>
+    <string name="camp_ux06_live_preparing">Preparing outgoing task…</string>
+    <string name="camp_ux06_live_waiting">Waiting for the phone to become available…</string>
+    <string name="camp_ux06_live_attempt">Outgoing task in progress…</string>
+    <string name="camp_ux06_live_supervised">Supervised audio test in progress</string>
     <string name="lab_skill_mode_label">Agent Skills loading (Lab only)</string>
     <string name="lab_skill_mode_all">All active Skills (baseline prompt)</string>
     <string name="lab_skill_mode_contextual">Contextual selection (experimental)</string>
@@ -594,8 +594,8 @@
     <string name="skills_metadata_instructions">Versioned instructions</string>
     <string name="lab_skill_turn_route">Turn %1$d · active: %2$s · added: %3$s · removed: %4$s</string>
     <string name="lab_skill_turn_unchanged">none</string>
-    <string name="camp_mvp_appointment_title">Book an appointment — AI</string>
-    <string name="camp_mvp_appointment_description">Choose a number, SIM, goal and permitted data. AI collects a proposed time for your review.</string>
+    <string name="camp_mvp_appointment_title">Ask about an appointment</string>
+    <string name="camp_mvp_appointment_description">AI collects proposed times and terms for your review.</string>
     <string name="home_ui_new_conversation">New call</string>
     <string name="skills_consumer_intro">Settings for the incoming receptionist only. They do not change outgoing calls or start a call.</string>
     <string name="skills_consumer_mode">Conversation mode</string>
@@ -735,7 +735,7 @@
     <string name="cap_ui_no">No</string>
     <string name="cap_ui_unknown">Unknown</string>
     <string name="perm_status_granted">Granted</string>
-    <string name="perm_status_missing">Permission required</string>
+    <string name="perm_status_missing">Not granted</string>
     <string name="perm_action_allow">Grant access</string>
     <string name="perm_action_settings">Open Android settings</string>
     <string name="perm_call_phone_title">Placing calls</string>

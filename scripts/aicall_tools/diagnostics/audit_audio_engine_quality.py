@@ -78,7 +78,7 @@ def audit(root: Path) -> list[str]:
     require("AudioEngineProfile", profile, r"GEMMA_AUDIO_DIRECT\s*&&\s*!supportsAudio\(profile\)",
             "audio-requires-compatible-model")
     require("AudioEngineReadiness", files["AudioEngineReadiness"],
-            r"!ModelCompatibilityStore\(context\)\.verified\(file, true\)",
+            r"!ModelCompatibilityStore\(context\)\.verified\(file, true, profile\)",
             "audio-requires-native-device-check")
     # The consumer selector exposes the protected baseline and explicit owner imports.
     # Retired catalog identities remain available only for inventory and Lab code.

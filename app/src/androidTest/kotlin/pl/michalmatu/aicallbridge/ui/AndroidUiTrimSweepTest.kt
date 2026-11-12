@@ -71,7 +71,7 @@ class AndroidUiTrimSweepTest {
                 assertNull(root.findViewWithTag<View>("dialer-role-card"))
                 assertNotNull(root.findViewWithTag<View>("settings-destination:GeneralSettingsActivity"))
                 assertNotNull(root.findViewWithTag<View>("ui-language-picker"))
-                assertTrue(labels(root).contains(activity.getString(R.string.ui_language_hint)))
+                assertFalse(labels(root).contains(activity.getString(R.string.ui_language_hint)))
                 assertFalse(labels(root).contains(activity.getString(R.string.ui_settings_hub_group_ai)))
             }
         }

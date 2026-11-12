@@ -1,5 +1,6 @@
 """Regression of UI screenshot inventory independent from instrumentation stdout."""
 import tempfile
+import re
 import unittest
 from pathlib import Path
 from zipfile import ZipFile
@@ -15,6 +16,12 @@ def jpeg(path: Path, valid: bool = True) -> None:
 
 
 class ScreenshotReceiptTest(unittest.TestCase):
+    def test_expected_screens_match_current_capture_entries(self):
+        source = (Path(__file__).resolve().parents[2] /
+                  "app/src/androidTest/kotlin/pl/michalmatu/aicallbridge/AndroidVisualScreenAuditTest.kt").read_text()
+        captured = re.findall(r'capture\(\w+::class\.java,\s*"([a-z-]+)"', source)
+        self.assertCountEqual(SCREENS, captured)
+
     def test_full_mixed_one_two_three_page_capture_and_zip(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder) / "ui-audit-ux12-20261108-a"

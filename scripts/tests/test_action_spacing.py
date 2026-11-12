@@ -18,7 +18,8 @@ class ActionSpacingContract(unittest.TestCase):
         self.assertIn("history_play_extra_numbered",history)
     def test_home_primary_action_has_a_real_margin(self):
         home=(ROOT/"MainActivity.kt").read_text()
-        self.assertIn("startAuthorizedTaskButton.layoutParams",home)
-        self.assertIn("bottomMargin = dp(12)",home)
-        self.assertIn("oneTapButton.layoutParams",home)
+        self.assertIn('tag = "home-new-call-card"', home)
+        self.assertIn('UiDesign.spaceAfter(this@MainActivity, 16)', home)
+        self.assertIn('tag = "home-appointment-start"', home)
+        self.assertNotIn('oneTapButton', home)
 if __name__=="__main__":unittest.main()

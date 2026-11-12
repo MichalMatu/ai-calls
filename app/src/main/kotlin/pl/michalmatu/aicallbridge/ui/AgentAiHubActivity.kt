@@ -5,9 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
-import android.view.View
-import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -44,50 +41,21 @@ class AgentAiHubActivity : AppBaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val pad = UiDesign.dp(this@AgentAiHubActivity, UiDesign.CONTENT_INSET)
-            setPadding(pad, UiDesign.dp(this@AgentAiHubActivity, 12),
-                pad, pad)
-        }
+        val body = UiDesign.content(this)
         fun destination(key: String, title: Int, target: Class<out Activity>) {
             val titleText = getString(title)
-            val card = UiDesign.card(this).apply {
-                tag = "agent-destination:" + target.simpleName
-                isClickable = true
-                isFocusable = true
-                background = UiDesign.touchSurface(this@AgentAiHubActivity)
-                setOnClickListener { startActivity(Intent(this@AgentAiHubActivity, target)) }
-            }
-            val row = LinearLayout(this).apply {
-                gravity = Gravity.CENTER_VERTICAL
-                orientation = LinearLayout.HORIZONTAL
-            }
-            val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            labels.addView(UiDesign.heading(this, titleText).apply {
-                textSize = 17f
-            }, UiDesign.spaceAfter(this, 5))
             val summary = UiDesign.caption(this, getString(R.string.ux07_agent_loading)).apply {
-                textSize = 15f
-                setTextColor(UiDesign.primary)
                 tag = "agent-summary:" + key
-                maxLines = 3
+            }
+            val card = UiDesign.navigationRow(this, titleText, summary) {
+                startActivity(Intent(this, target))
+            }.apply {
+                tag = "agent-destination:" + target.simpleName
             }
             summaries[key] = summary
             destinations[key] = card
             titles[key] = titleText
-            card.contentDescription = titleText + ". " + summary.text
-            labels.addView(summary)
-            row.addView(labels, LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            row.addView(TextView(this).apply {
-                text = "›"
-                textSize = 25f
-                setTextColor(UiDesign.secondary)
-                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            })
-            card.addView(row)
-            body.addView(card, UiDesign.spaceAfter(this, 12))
+            body.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_CARD))
         }
         destination("skills", R.string.ux07_agent_skills, ConversationSkillsActivity::class.java)
         destination("scenarios", R.string.ux07_agent_scenarios, ScenarioLibraryActivity::class.java)

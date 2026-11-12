@@ -37,13 +37,7 @@ class IdentityVaultManagerActivity : UiChromeActivity(AppTab.AGENT) {
         super.onCreate(savedInstanceState)
         predefined = AndroidIdentityVault.create(this)
         custom = AndroidCustomIdentityVault(this)
-        body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(UiDesign.dp(this@IdentityVaultManagerActivity, 20),
-                UiDesign.dp(this@IdentityVaultManagerActivity, 20),
-                UiDesign.dp(this@IdentityVaultManagerActivity, 20),
-                UiDesign.dp(this@IdentityVaultManagerActivity, 40))
-        }
+        body = UiDesign.content(this)
         scroll = ScrollView(this).apply {
             isFillViewport = true
             addView(body, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,

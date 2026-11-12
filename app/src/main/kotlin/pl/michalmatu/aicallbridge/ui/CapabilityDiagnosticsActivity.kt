@@ -21,11 +21,7 @@ class CapabilityDiagnosticsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val inset = UiDesign.dp(this@CapabilityDiagnosticsActivity, 20)
-            setPadding(inset, inset, inset, inset)
-        }
+        val content = UiDesign.content(this)
         val card = UiDesign.card(this).apply { tag = "capabilities-card" }
         fun group(title: Int) {
             card.addView(UiDesign.heading(this, getString(title)).apply {

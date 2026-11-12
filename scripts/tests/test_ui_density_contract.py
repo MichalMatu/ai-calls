@@ -3,13 +3,14 @@ import re
 import unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]/"app/src/main/kotlin/pl/michalmatu/aicallbridge"
-SCREENS=["conversation/ConversationHistoryActivity.kt","conversation/ConversationSkillLabActivity.kt","conversation/ConversationSkillsActivity.kt","conversation/ConversationPreparationActivity.kt","audioengines/ModelVoiceSettings.kt","textagent/LanguageModelActivity.kt","incoming/IncomingAssistantSettingsActivity.kt","tools/ConversationToolsActivity.kt","debug/UsbDebugPanelActivity.kt","identity/PhoneEnrollmentActivity.kt","campaign/CampaignToolActivity.kt"]
+SCREENS=["conversation/ConversationHistoryActivity.kt","conversation/ConversationSkillLabActivity.kt","conversation/ConversationSkillsActivity.kt","conversation/ConversationPreparationActivity.kt","audioengines/ModelVoiceSettings.kt","textagent/LanguageModelActivity.kt","incoming/IncomingAssistantSettingsActivity.kt","tools/ConversationToolsActivity.kt","debug/UsbDebugPanelActivity.kt","identity/PhoneEnrollmentActivity.kt","campaign/ScenarioOutgoingCallActivity.kt"]
 class DensityContract(unittest.TestCase):
     def test_no_unscaled_literal_padding_on_product_screens(self):
         for rel in SCREENS:
             with self.subTest(screen=rel):
                 source=(ROOT/rel).read_text()
-                self.assertIn("import pl.michalmatu.aicallbridge.ui.UiDesign",source)
-                self.assertIn("UiDesign.dp(",source)
+                self.assertTrue("import pl.michalmatu.aicallbridge.ui.UiDesign" in source or
+                                "import pl.michalmatu.aicallbridge.ui.*" in source)
+                self.assertTrue("UiDesign.dp(" in source or "UiDesign.content(" in source)
                 self.assertIsNone(re.search(r"setPadding\(\s*[1-9][0-9]*\s*,",source))
 if __name__=="__main__": unittest.main()

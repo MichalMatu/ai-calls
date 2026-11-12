@@ -11,7 +11,6 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -51,11 +50,7 @@ class ScenarioOutgoingCallActivity : UiChromeActivity(AppTab.AGENT) {
             setContentView(UiDesign.caption(this, getString(R.string.scenario_call_missing)))
             return
         }
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val pad = UiDesign.dp(this@ScenarioOutgoingCallActivity, 20)
-            setPadding(pad, pad, pad, pad)
-        }
+        val body = UiDesign.content(this)
         body.addView(UiDesign.heading(this, scenarioTitle).apply { textSize = 21f },
             UiDesign.spaceAfter(this, 10))
         body.addView(UiDesign.caption(this, getString(R.string.scenario_call_scope)),

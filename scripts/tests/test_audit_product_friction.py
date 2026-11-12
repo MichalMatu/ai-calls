@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MAIN = "app/src/main/kotlin/pl/michalmatu/aicallbridge/"
 REQUIRED = (
     "AGENTS.md", "docs/PROJECT.md", "docs/architecture/SECURITY.md",
-    MAIN + "campaign/CampaignToolActivity.kt",
+    MAIN + "campaign/AppointmentMvpActivity.kt",
     MAIN + "campaign/CampaignAuthorizationGrant.kt",
     MAIN + "campaign/CampaignAuthorizationStore.kt",
     MAIN + "campaign/CampaignContinuationStore.kt",
@@ -40,7 +40,7 @@ class AntiFrictionGateTest(TestCase):
                 file = root / name
                 file.parent.mkdir(parents=True, exist_ok=True)
                 file.write_text((ROOT / name).read_text(encoding="utf-8"), encoding="utf-8")
-            ui = root / (MAIN + "campaign/CampaignToolActivity.kt")
+            ui = root / (MAIN + "campaign/AppointmentMvpActivity.kt")
             ui.write_text(ui.read_text(encoding="utf-8") + "\n// armNextCall\n", encoding="utf-8")
             errors = audit(root)
             self.assertTrue(any("armNextCall" in error for error in errors), errors)

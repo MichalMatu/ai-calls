@@ -75,7 +75,7 @@ class AudioEngineQualityGateTest(unittest.TestCase):
     def test_audio_must_require_a_native_device_check(self):
         self.check_mutation(
             AUDIO + "AudioEngineReadiness.kt",
-            '!ModelCompatibilityStore(context).verified(file, true)',
+            '!ModelCompatibilityStore(context).verified(file, true, profile)',
             'false',
             "audio-requires-native-device-check",
         )

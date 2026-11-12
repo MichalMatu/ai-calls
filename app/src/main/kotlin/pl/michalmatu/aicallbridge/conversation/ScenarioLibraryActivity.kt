@@ -98,11 +98,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
             .show()
     }
 
-    private fun body(): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        val pad = UiDesign.dp(this@ScenarioLibraryActivity, UiDesign.CONTENT_INSET)
-        setPadding(pad, pad, pad, pad)
-    }
+    private fun body(): LinearLayout = UiDesign.content(this)
 
     private fun install(body: LinearLayout) {
         setContentView(ScrollView(this).apply {

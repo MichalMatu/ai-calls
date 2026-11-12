@@ -2,12 +2,21 @@
 
 UI pokazuje rzeczywisty stan: manual/AI, exact Call, postęp, STOP/TAKE OVER/resume, bezpieczeństwo grantu, lokalny chat, historię, laboratorium oraz ustawienia. Żaden status UI nie zastępuje potwierdzenia z Android Telecom lub usługodawcy.
 
+## Układ panelu
+- Start pokazuje stan zadania wychodzącego; ten wskaźnik nie jest odczytem stanu wszystkich połączeń Androida.
+- Jedna nazwa **Ustawienia** w pasku, menu i dokumentacji. Cztery zakładki nie prowadzą do diagnostyki ani nie wykonują działań telefonicznych.
+- `UiDesign.content` ustala marginesy stron: 20 dp poziomo, 16 dp u góry, 24 dp na dole. `navigationRow` jest jednym klikalnym wierszem z etykietą i strzałką; drugi wiersz służy bieżącemu stanowi, bez ogólnych opisów menu.
+- Agent i Ustawienia używają tych samych wierszy. Nazwa wejścia odpowiada podstronie: „Kontekst rozmów”, „Notatki i narzędzia”, „Odbieranie połączeń”. Start mówi „Zapytaj o termin wizyty”; nie obiecuje rezerwacji.
+- Jedna paleta, trzy poziomy tekstu, kontrast i kontrolki co najmniej 48 dp. Przyciski zachowują rozróżnienie głównej akcji, pomocniczej i STOP; nieaktywne mają osobny stan. Treść rośnie przy większej czcionce.
+- Odstępy kart należą do ich układu. Chrome uzupełnia wyłącznie brakującą przerwę między sąsiednimi widocznymi przyciskami, zachowuje większy jawny odstęp i nie dodaje marginesu za ostatnią akcją.
+- Opis pozostaje przy decyzji użytkownika: skutki grantu, zakres danych, WAV, zapis szkicu lub wynik. Nie dodawaj instrukcji obsługi nawigacji ani kolejnych stopek.
+
 ## Reguły
 - Czytelne statusy `IDLE`, `RINGING`, `ACTIVE`, `ENDED`, `MANUAL`, `AI`, błąd/unknown, bez mylącego `success` po samym TX.
 - Historia chroni prywatne dane; pełny playback jest nadal celem, obecny odtwarza tylko zarejestrowane segmenty.
 - Wersja polska/angielska, dostępność i struktura kontrolek. Screenshoty właściciela są dozwolone; nie używać `FLAG_SECURE` ani nie publikować automatycznie obrazów prywatnych ekranów.
-- Agent AI: pięć kart bez powielonego tytułu, zwięzłe podsumowania bez wartości danych, osobne komunikaty błędów, PL/EN i opis karty ze stanem dla czytnika ekranu. Odczyt Keystore/Vault poza głównym wątkiem; tylko najnowszy wynik aktualizuje widok.
-- Opcje: podstrony mają Back; szkic sekretarki przeżywa obrót, reset odświeża formularz i zapis. Dostęp SIM wymaga zgody Androida, a brak poprzedniej SIM nigdy nie wybiera innej automatycznie. Błędna polityka blokuje zapis; opisy MANUAL dotyczą tylko przyszłych rozmów.
+- Agent AI: pięć wierszy bez powielonego tytułu, zwięzłe podsumowania bez wartości danych, osobne komunikaty błędów, PL/EN i opis karty ze stanem dla czytnika ekranu. Odczyt Keystore/Vault poza głównym wątkiem; tylko najnowszy wynik aktualizuje widok.
+- Ustawienia: podstrony mają Back; szkic sekretarki przeżywa obrót, reset odświeża formularz i zapis. Dostęp SIM wymaga zgody Androida, a brak poprzedniej SIM nigdy nie wybiera innej automatycznie. Błędna polityka blokuje zapis; opisy MANUAL dotyczą tylko przyszłych rozmów.
 - Notatnik ma pierwszeństwo przed ustawieniami: zwijane rozmowy, wyszukiwanie, filtr, stronicowanie; szyfrowany odczyt poza UI. Usuwanie wymaga potwierdzenia i braku aktywnego AI Call; wynik usuwania jest obsługiwany mimo równoległego odświeżenia.
 - Przełączniki narzędzi: rozróżniają lokalny zapis, propozycje i zakończenie własnego Call. Back i zmiana zakładki chronią niezapisane zmiany; po obrocie zachowywane są tylko identyfikatory przełączników, nie treść notatek ani wyszukiwania.
 - Nie dodawać dodatkowych kliknięć ani kolejnych zatwierdzeń bez zmiany materialnego zakresu grantu.

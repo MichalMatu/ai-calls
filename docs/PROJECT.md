@@ -2,21 +2,16 @@
 
 **Priorytet:** działający asystent telefoniczny na S22+. Bezpieczeństwo Call, granty i STOP są zamrożonym fundamentem; odłóż nieblokujący hardening.
 
-## Interfejs użytkownika — uproszczenie
-- **Start / Rozmowy / Agent AI / Ustawienia** — cztery zakładki. Start bez powtórzonego nagłówka aplikacji zawiera dostęp do rozmowy **w sprawie wizyty**, status, STOP i prywatny podgląd. Rozmowy bez zbędnego górnego «Wstecz» (gest i systemowy Wstecz zachowane), Agent AI bez stopki o uprawnieniach (granice grantów bez zmian), Opcje bez nagłówka/opisu i z rolą Telefon wyłącznie w Uprawnieniach aplikacji (na Start awaryjnie, gdy roli brak).
-- Kampanie i diagnostyczne akcje usunięte z nawigacji konsumenckiej. Model/głos: Ustawienia; laboratorium: narzędzia developerskie. Granty, Call, STOP, STT i archiwum zachowane.
-- W formularzu wizyty uprawnienia Androida i wybór dialera mogą kontynuować **ten sam wyraźnie rozpoczęty przez użytkownika** zamiar, bez ponownego naciskania Start. Odmowa nie rozpoczyna połączenia.
+## Interfejs użytkownika
+Cztery zakładki: **Start / Rozmowy / Agent AI / Ustawienia**. Start otwiera formularz zapytania o wizytę i pokazuje stan zadania wychodzącego, STOP oraz prywatny podgląd. Agent: zachowanie sekretarki, scenariusze, kontekst rozmów, sejf, notatki i narzędzia. Ustawienia: model i głos, odbieranie, uprawnienia Androida, narzędzia programistyczne i język aplikacji.
 
-- **Sekretarka (UX):** dwa tony naturalny/formalny i własne instrukcje bez nazywania profilu. Ustawienia dotyczą tylko incoming; stare presety i historia wersji są usuwane podczas migracji szyfrowanego zapisu; aktywne własne instrukcje i ton sekretarki są zachowywane. Wymagana fizyczna kontrola UI S22+ po instalacji.
-
-- **Diagnostyka UX:** jedno wejście przez Opcje → Narzędzia programistyczne → Stan aplikacji. Jedna karta z 14 niepowtórzonymi statusami w czterech grupach, bez sekcji rozwijanej, ręcznego odświeżania i kopiowania JSON do schowka; odczyt przy otwarciu ekranu. Protokół USB/ADB i sondy bez zmian; odbiór S22 **PHYSICAL_OPEN**. Osobny ekran Możliwości urządzenia pokazuje parsowane dane w jednej karcie (wynik inicjalizacji nie oznacza skutecznego przechwycenia rozmowy); sonda poza wątkiem UI, oryginalny prywatny raport nadal zapisywany.
+Kontrakt panelu: [UI](modules/UI.md). **IMPROVE** istniejącego `UiDesign`, bez nowych bibliotek. Walidacja: 1200 testów JVM, 437 Python, lint; 29 testów Androida, 20 ekranów i 9 przy czcionce 150%. Granty, Call, STOP i prywatność pozostają fundamentem.
 
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
-| Czytelność Model i głos | PHYSICAL_OPEN · app/ui | Wynik próby trwały, przycisk nie znika, nazwy TTS skrócone. Kompilacja/install-r PASS; ocena właściciela otwarta |
+| Panel UX na S22 | PHYSICAL_OPEN · app/ui | Menu i podstrony zweryfikowane na hoście i emulatorze; odbiór właściciela na S22 pozostaje otwarty. W tej zmianie bez instalacji na S22 |
 | Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | STT zachowuje kontekst; pusty finalny transkrypt wraca do nasłuchu (Mac PASS `6b93564`). Model, granty i STOP bez zmian. Jakość, native PL i RAM S22 otwarte |
-| Pełny gate Python | OPEN · scripts/tests | Pełny zestaw pominięty w tej iteracji. Pozostaje dług testów dawnych ekranów; po odbiorze modali wymagane dostosowanie testów UI |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
 | Outgoing po autoryzacji | DEVICE_VERIFIED: real dial | Na S22+ po jednym autoryzowanym START Telecom potwierdził aktywne połączenie; odbiór i jakość audio nadal **PHYSICAL_OPEN** |
@@ -52,5 +47,6 @@ Scenariusze: karty, szkice i 10 szablonów rozmów bez skutków zewnętrznych. O
 
 - **Ustawienia rozmów:** P2: walidacja SIM po zmianie karty i fizyczny odbiór pozostają otwarte.
 - **Model i głos:** trzy karty, modale i osobne pliki; Parakeet w Dodatkowych. Status zgodności tekst/audio bazuje na potwierdzeniu dla pliku/profilu, a ręczny test jest dostępny dla pobranego modelu (S22 PHYSICAL_OPEN). KEEP runtime, STOP, Skills i granty. Gemma pobrana według właściciela; UX S22 **PHYSICAL_OPEN**.
-- **Rola Telefonu:** stan i jawny przycisk w Opcje → Uprawnienia aplikacji oraz na Start przy braku roli. Tam jedna karta statusów i jawnych próśb o grant: mikrofon, SIM, wykonywanie połączeń, powiadomienia na Androidzie 13+ oraz Shizuku. Po odmowie z blokadą zgody dostępne są ustawienia Androida; prośba o grant wyłącznie po dotknięciu. Opcje bez powtórzonego nagłówka Model i głos; język aplikacji na dole, niezależny od STT/TTS. Incoming ma zwięzłe opisy bez tekstowej stopki i nieprawdziwej informacji o aktywnej rozmowie. Checkbox dotyczy WAV, a transkrypty/diagnostyka są niezależne. WAV domyślnie wyłączony dla nowych instalacji; wcześniejsze wybory zachowane. Activity Result identyfikuje caller i odświeża status po wyniku; otwarcie aplikacji i anulowanie wyboru nie uruchamiają grantu ani Call. Gest Wstecz kontekstu obsługuje AndroidX dispatcher i chroni szkic.
-- **QA UX:** wcześniejszy sweep UI 13/13 na emulatorze; S22 odświeżony do `313f871` bez realnych Call, zachowano preferencje i rolę dialera. Najnowszy kod STT jeszcze nieinstalowany. UI/audio S22 **PHYSICAL_OPEN**.
+- **Rola Telefonu:** jawne granty w Ustawienia → Uprawnienia aplikacji; na Start tylko brak roli. Otwarcie ekranów nie żąda uprawnień. WAV opt-in; transkrypty/diagnostyka niezależne. Szczegóły: [UI](modules/UI.md).
+
+- **QA UX:** prywatne zrzuty emulatora potwierdzają układ, nawigację i większą czcionkę; nie potwierdzają zachowania podczas rzeczywistego Call. Odbiór S22 **PHYSICAL_OPEN**.

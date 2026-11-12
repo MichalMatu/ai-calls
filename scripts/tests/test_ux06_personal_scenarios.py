@@ -18,16 +18,13 @@ class PersonalScenarioUiContract(unittest.TestCase):
                           "CallCommitmentGate", "CampaignAgentControl.run("):
             self.assertNotIn(forbidden, ui)
 
-    def test_home_one_tap_never_mislabels_clir_as_generic_scenario(self):
+    def test_home_task_entry_names_the_current_appointment_flow(self):
         home = (SRC / "MainActivity.kt").read_text()
-        campaign = (SRC / "campaign/CampaignToolActivity.kt").read_text()
-        pl = (ROOT / "app/src/main/res/values/strings.xml").read_text()
-        en = (ROOT / "app/src/main/res/values-en/strings.xml").read_text()
-        self.assertIn("EXTRA_START_AUTHORIZED_CAMPAIGN", home)
-        self.assertIn("requestedStartMode = CampaignDialogueMode.SCRIPT_GEMMA", campaign)
-        self.assertIn('name="home_ui_start">Rozpocznij zadanie CLIR', pl)
-        self.assertIn('name="home_ui_start">Start CLIR task', en)
-        self.assertIn("home_ux06_direct_clir_scope", home)
+        self.assertIn("AppointmentMvpActivity::class.java", home)
+        self.assertIn("R.string.camp_mvp_appointment_title", home)
+        self.assertNotIn("EXTRA_START_AUTHORIZED_CAMPAIGN", home)
+        self.assertNotIn("CLIR", home)
+        self.assertNotIn("placeCall(", home)
 
     def test_personal_records_reuse_keystore_aead_and_atomic_write(self):
         store = (SRC / "conversation/AndroidConversationPreparationStore.kt").read_text()

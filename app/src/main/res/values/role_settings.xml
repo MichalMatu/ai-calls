@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="role_ui_title">Domyślna aplikacja Telefon</string>
-    <string name="role_ui_detail">Ta rola pozwala AI Calls odbierać i prowadzić rozmowy. Wybór zatwierdzisz w oknie Androida.</string>
+    <string name="role_ui_detail">Rola wymagana do obsługi połączeń przez AI Calls.</string>
     <string name="role_ui_action">Ustaw jako aplikację Telefon</string>
     <string name="role_ui_ready">AI Calls jest domyślną aplikacją Telefon.</string>
     <string name="role_ui_missing">AI Calls nie jest domyślną aplikacją Telefon.</string>

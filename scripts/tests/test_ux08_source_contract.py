@@ -25,25 +25,24 @@ class Ux08SourceContract(unittest.TestCase):
     def test_recording_policy_must_not_claim_active_recording(self):
         usb = self.read("debug/UsbDebugPanelActivity.kt")
         bridge = self.read("debug/UsbDebugBridge.kt")
-        self.assertIn("ux08_usb_recording_future", usb)
-        self.assertIn("ux08_usb_recording_current", usb)
-        self.assertIn("ux08_usb_recording_unconfirmed", usb)
+        self.assertIn('item("recording", R.string.ux08_usb_recording_future)', usb)
+        self.assertNotIn('item("recording-current"', usb)
         self.assertIn("grant.revokedAtEpochMs == null", bridge)
 
     def test_configuration_owners_remain_reachable_without_duplicate_links(self):
         agent = self.read("ui/AgentAiHubActivity.kt")
         incoming = self.read("incoming/IncomingAssistantSettingsActivity.kt")
-        campaign = self.read("campaign/CampaignToolActivity.kt")
-        model = self.read("textagent/LanguageModelActivity.kt")
         for entry in ("ConversationPreparationActivity", "ConversationSkillsActivity",
                       "ScenarioLibraryActivity", "ConversationToolsActivity"):
             self.assertIn(entry, agent)
             self.assertNotIn("startActivity(Intent(this, " + entry + "::class.java))", incoming)
-        self.assertIn("AudioEngineSettingsActivity", model)
-        self.assertNotIn("campaign-skills-card", campaign)
-        self.assertNotIn("campaign-scenario-library-card", campaign)
-        for action in ("startButton", "stopSupervisedAudioButton", "revokeButton",
-                       "recordEvidenceChoice", "evidenceSection"):
+        settings = self.read("ui/SettingsHubActivity.kt")
+        self.assertEqual(1, settings.count("LanguageModelActivity::class.java"))
+        self.assertNotIn("AudioEngineSettingsActivity::class.java", settings)
+        model = self.read("textagent/LanguageModelActivity.kt")
+        self.assertIn("putExtra(FILES_MODE, true)", model)
+        campaign = self.read("campaign/AppointmentMvpActivity.kt")
+        for action in ("appointment-authorize-call", "ACTION_CANCEL_OUTGOING_TASK", "takeOver(active)"):
             self.assertIn(action, campaign)
 
 

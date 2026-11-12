@@ -9,7 +9,6 @@ import android.media.AudioManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.telecom.TelecomManager
-import android.text.format.Formatter
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
@@ -17,6 +16,7 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.ImageView
 import android.widget.Toast
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.R
@@ -85,7 +85,7 @@ internal class ModelVoiceSettings(
     }
 
     private fun value(tagName: String) = TextView(activity).apply {
-        tag = tagName; textSize = 17f; setTextColor(UiDesign.ink)
+        tag = tagName; textSize = 16f; setTextColor(UiDesign.ink)
     }
 
     private fun card(title: Int, value: TextView, open: () -> Unit): LinearLayout =
@@ -98,9 +98,14 @@ internal class ModelVoiceSettings(
                 addView(value)
             }
             row.addView(labels, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            row.addView(TextView(activity).apply { text = "›"; textSize = 26f; setTextColor(UiDesign.secondary) })
+            row.addView(ImageView(activity).apply {
+                setImageResource(R.drawable.ic_aicalls_chevron_right)
+                setColorFilter(UiDesign.secondary)
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }, LinearLayout.LayoutParams(UiDesign.dp(activity, 20), UiDesign.dp(activity, 20)))
             addView(row, UiDesign.spaceAfter(activity, 4))
             isClickable = true; isFocusable = true
+            background = UiDesign.touchSurface(activity, radiusDp = 16)
             setOnClickListener { open() }
         }
 

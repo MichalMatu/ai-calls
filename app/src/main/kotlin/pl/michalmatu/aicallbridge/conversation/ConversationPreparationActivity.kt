@@ -155,11 +155,7 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
         restoredNotes = null
         restoredFields = null
 
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val pad = UiDesign.dp(this@ConversationPreparationActivity, UiDesign.CONTENT_INSET)
-            setPadding(pad, pad, pad, pad)
-        }
+        val content = UiDesign.content(this)
         status = UiDesign.caption(this, "").apply { tag = "preparation-status" }
         content.addView(UiDesign.caption(this, getString(R.string.prep_ui_intro)),
             UiDesign.spaceAfter(this, 20))
