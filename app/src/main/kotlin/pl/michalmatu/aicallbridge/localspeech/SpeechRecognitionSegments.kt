@@ -44,6 +44,12 @@ internal class SpeechRecognitionSegments {
         if (beginsWithWords(accumulated, direct) || endsWithWords(accumulated, direct)) {
             return accumulated
         }
+        // onResults may revise interior words in a whole-utterance hypothesis.
+        // The same initial phrase indicates a corrected full result, not a new suffix.
+        val completedWords = words(accumulated)
+        val directWords = words(direct)
+        if (completedWords.size >= 3 && directWords.size >= 3 &&
+            completedWords.take(2) == directWords.take(2)) return direct
 
         val previous = accumulated.split(Regex("\\s+"))
         val tail = direct.split(Regex("\\s+"))

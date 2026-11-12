@@ -57,6 +57,21 @@ class SpeechRecognitionSegmentsTest {
         assertEquals("dzień dobry chciałbym wizytę", speech.resolve(""))
     }
 
+    @Test fun correctedFinalUtteranceReplacesEarlierHypothesisWithoutDuplicatingIt() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("Dzień dobry chciałbym wizytę")
+        speech.add("na piątek")
+        assertEquals("Dzień dobry, chcę wizytę na piątek.",
+            speech.resolve("Dzień dobry, chcę wizytę na piątek."))
+    }
+
+    @Test fun differentOpeningIsAppendedAsSeparateFinalFragment() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("Dzień dobry chciałbym wizytę")
+        assertEquals("Dzień dobry chciałbym wizytę czy jest termin",
+            speech.resolve("czy jest termin"))
+    }
+
     @Test fun clearDiscardsPreviousCallSegments() {
         val speech = SpeechRecognitionSegments()
         speech.add("Wrażliwy tekst")

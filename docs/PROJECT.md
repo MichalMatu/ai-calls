@@ -15,7 +15,7 @@
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
 | Czytelność Model i głos | PHYSICAL_OPEN · app/ui | Wynik próby trwały, przycisk nie znika, nazwy TTS skrócone. Kompilacja/install-r PASS; ocena właściciela otwarta |
-| Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, transkrypt przed kontrolą wizyty/danych, narzędzia i STOP; testy hosta PASS. Gemma pobrana według właściciela; native PL, jakość i RAM S22 otwarte |
+| Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, STT z segmentów, kontrola wizyty/danych, narzędzia i STOP; testy hosta PASS. Gemma pobrana według właściciela; native PL, jakość i RAM S22 otwarte |
 | Pełny gate Python | OPEN · scripts/tests | Pełny zestaw pominięty w tej iteracji. Pozostaje dług testów dawnych ekranów; po odbiorze modali wymagane dostosowanie testów UI |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
@@ -29,7 +29,7 @@ Pierwszy OUTGOING potwierdza RX/TX i jedną turę, nie potwierdza jakości dźwi
 Prywatne archiwum STT, zatwierdzonych odpowiedzi i diagnostyki bez WAV: **HOST_TESTED**. WAV wymaga opt-in; nieukończony STT i historia pierwszego połączenia pozostają **PHYSICAL_OPEN**.
 
 ## Następny sprint — MVP FIRST (kod, nie audyt)
-1. OUTGOING: 20s segment RX wizyty wdrożony; trwa poprawa składania STT z segmentów. Po host QA konieczny kontrolowany live test drugiej tury (**PHYSICAL_OPEN**).
+1. OUTGOING: segment RX wizyty 20s; Android/Parakeet STT składa wyniki segmentowe, odzyskuje ukończone fragmenty po NO_MATCH. Celowane host QA PASS (`33b737f`); kontrolowana druga tura S22 **PHYSICAL_OPEN**.
 2. Po próbach poprawić wyłącznie usterki blokujące MVP. Nie uruchamiać G6.5/G7, niepotrzebnych refaktorów ani audytu.
 
 ## Próby S22+ — dokładny zakres PHYSICAL_OPEN
