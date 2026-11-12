@@ -102,26 +102,24 @@ class AppointmentInterpreter(private val zone: ZoneId) {
     }
 
     fun parseTime(text: String): AppointmentTimeCandidate? {
-        // A Polish date (10.02.2027) contains an HH.MM-shaped prefix (10.02).
-        // Ignore clock-looking matches inside date spans, otherwise the user sees
-        // an invented 10:02 appointment instead of the offered time.
-        val dateRanges = listOf(ISO_DATE, POLISH_DATE).flatMap { pattern ->
-            pattern.findAll(text).map { it.range }.toList()
+        // A date such as "10.02.2027" must not become either a clock time
+        // (10:02) or a bare "o 10" after text normalization.
+        val withoutDates = listOf(ISO_DATE, POLISH_DATE).fold(text) { remaining, date ->
+            date.replace(remaining, " ")
         }
-        val clockTimes = TIME.findAll(text).filter { match ->
-            dateRanges.none { date -> match.range.first >= date.first &&
-                match.range.last <= date.last }
-        }.mapNotNull { match ->
+        val clockTimes = TIME.findAll(withoutDates).mapNotNull { match ->
             localTimeOrNull(match.groupValues[1], match.groupValues[2])
-        }.distinct().toList()
-        if (clockTimes.size > 1) return null
-        clockTimes.singleOrNull()?.let { return AppointmentTimeCandidate(it) }
-
-        val markedHours = HOUR_WITH_MARKER.findAll(normalizeWords(text)).mapNotNull { match ->
+        }
+        val markedHours = HOUR_WITH_MARKER.findAll(
+            normalizeWordsKeepingTimeSeparators(withoutDates),
+        ).mapNotNull { match ->
             val minute = match.groupValues[2].ifEmpty { "0" }
             localTimeOrNull(match.groupValues[1], minute)
-        }.distinct().toList()
-        return markedHours.singleOrNull()?.let(::AppointmentTimeCandidate)
+        }
+        // Check *all* clock evidence. A parsed "17:30" cannot silently
+        // override a conflicting "o 18" later in the same utterance.
+        return (clockTimes + markedHours).distinct().toList()
+            .singleOrNull()?.let(::AppointmentTimeCandidate)
     }
 
     fun parseTimeRange(text: String): AppointmentTimeRangeCandidate? {
@@ -193,7 +191,7 @@ class AppointmentInterpreter(private val zone: ZoneId) {
         val ISO_DATE = Regex("(?<!\\d)(\\d{4})-(\\d{1,2})-(\\d{1,2})(?!\\d)")
         val POLISH_DATE = Regex("(?<!\\d)(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})(?!\\d)")
         val TIME = Regex("(?<!\\d)([01]?\\d|2[0-3])[:.]([0-5]\\d)(?!\\d)")
-        val HOUR_WITH_MARKER = Regex("\\b(?:o|godzina|godz)\\s+([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\b")
+        val HOUR_WITH_MARKER = Regex("\\b(?:o|godzina|godz)\\.?\\s+([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\b")
         val TIME_RANGE = Regex(
             "\\bod\\s+([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\s+do\\s+" +
                 "([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\b",

@@ -74,6 +74,28 @@ class AppointmentInterpretationTest {
     }
 
     @Test
+    fun `explicit date without clock cannot fabricate an appointment hour`() {
+        assertNull(interpreter.parseTime("10.02.2027"))
+        assertNull(interpreter.parseTime("wizyta o 10.02.2027"))
+        assertNull(interpreter.parseTime("wizyta dnia 2027-02-10"))
+        assertNull(interpreter.parseOffer("wizyta o 10.02.2027", referenceDate))
+        assertEquals(
+            AppointmentTimeCandidate(LocalTime.of(17, 0)),
+            interpreter.parseTime("10.02.2027, godz. 17"),
+        )
+    }
+
+    @Test
+    fun `conflicting clock and bare hour require clarification`() {
+        assertNull(interpreter.parseTime("o 17:30, ewentualnie godz. 18"))
+        assertNull(interpreter.parseOffer("10.02.2027 o 17:30 lub godz 18", referenceDate))
+        assertEquals(
+            AppointmentTimeCandidate(LocalTime.of(17, 30)),
+            interpreter.parseTime("10.02.2027 o 17:30 i godz. 17:30"),
+        )
+    }
+
+    @Test
     fun `relative offered appointment is a candidate and ambiguous offer fails closed`() {
         assertEquals(
             AppointmentOfferCandidate(
