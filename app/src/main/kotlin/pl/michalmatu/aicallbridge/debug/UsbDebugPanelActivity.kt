@@ -5,12 +5,9 @@ import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.UiAccordionSection
 import pl.michalmatu.aicallbridge.R
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.app.Activity
+import android.view.View
 import android.os.Bundle
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -21,21 +18,12 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var state: TextView
     private val statusValues = linkedMapOf<String, TextView>()
     private lateinit var technicalFields: LinearLayout
-    private lateinit var copyJson: Button
-    private var rawJson: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(UiDesign.dp(this@UsbDebugPanelActivity, 20), UiDesign.dp(this@UsbDebugPanelActivity, 20), UiDesign.dp(this@UsbDebugPanelActivity, 20), UiDesign.dp(this@UsbDebugPanelActivity, 24))
-        }
-        fun label(value: String, size: Float = 15f) {
-            content.addView(TextView(this).apply {
-                text = value
-                textSize = size
-                setPadding(0, UiDesign.dp(this@UsbDebugPanelActivity, 8), 0, UiDesign.dp(this@UsbDebugPanelActivity, 12))
-            })
         }
         fun button(value: String, action: () -> Unit) {
             content.addView(UiDesign.button(this, value, action), UiDesign.spaceAfter(this, 12))
@@ -68,12 +56,10 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
             overview.addView(line)
         }
         item("phone", R.string.ux07_usb_phone)
-        item("campaign", R.string.ux07_usb_campaign)
         item("input", R.string.ux07_usb_input)
         item("dialogue", R.string.ux07_usb_dialogue)
         item("output", R.string.ux07_usb_output)
         item("recording", R.string.ux08_usb_recording_future)
-        item("recording-current", R.string.ux08_usb_recording_current)
         item("incoming", R.string.ux07_usb_incoming)
         /* Original overview used one long multi-line TextView. Kept data, not the string blob. */
         content.addView(overview, UiDesign.spaceAfter(this, 16))
@@ -81,34 +67,19 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
             orientation = LinearLayout.VERTICAL
             tag = "usb-technical-fields"
         }
-        content.addView(UiDesign.card(this).apply {
-            addView(UiDesign.heading(this@UsbDebugPanelActivity,
-                getString(R.string.usb_ui_formatted_title)), UiDesign.spaceAfter(this@UsbDebugPanelActivity, 10))
-            addView(technicalFields)
-        }, UiDesign.spaceAfter(this, 16))
+        button(getString(R.string.usb_ui_refresh)) { refresh() }
+        content.addView(UiAccordionSection(this, "usb-technical",
+            getString(R.string.usb_ui_formatted_title)).apply {
+            addControl(technicalFields)
+        }, UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.caption(this, getString(R.string.usb_ui_description)),
             UiDesign.spaceAfter(this, 12))
-        button(getString(R.string.usb_ui_refresh)) { refresh() }
         state = TextView(this).apply {
             textSize = 13f
             setTextColor(UiDesign.secondary)
-            setTextIsSelectable(true)
+            visibility = View.GONE
         }
-        content.addView(UiAccordionSection(this, "usb-raw",
-            getString(R.string.usb_ui_raw_details)).apply {
-            // A second framed container around the framed toggle caused doubled outlines.
-            background = null
-            addControl(state)
-            copyJson = UiDesign.button(this@UsbDebugPanelActivity,
-                getString(R.string.usb_ui_copy_json)) {
-                rawJson?.let { json ->
-                    getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
-                        ClipData.newPlainText("AI Calls USB status", json))
-                }
-            }.apply { tag = "usb-copy-json"; isEnabled = false }
-            addControl(copyJson)
-        }, UiDesign.spaceAfter(this, 16))
-        label(getString(R.string.usb_ui_cli_hint))
+        content.addView(state)
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -171,27 +142,19 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
         }
         group(R.string.usb_ui_group_phone, listOf(
-            R.string.usb_ui_phone_idle_flag to "call_idle",
             R.string.usb_ui_campaign_inactive_flag to "campaign_service_inactive",
             R.string.usb_ui_pending_retry to "pending_retry",
         ))
         group(R.string.usb_ui_group_engines, listOf(
             R.string.usb_ui_profile_valid to "profile_valid",
-            R.string.ux07_usb_input to "input",
-            R.string.ux07_usb_dialogue to "dialogue",
-            R.string.ux07_usb_output to "output",
             R.string.usb_ui_voice to "voice",
         ))
         group(R.string.usb_ui_group_privacy, listOf(
             R.string.usb_ui_grant_present to "grant_present",
             R.string.usb_ui_grant_revoked to "grant_revoked",
-            R.string.usb_ui_recording_enabled to "recording_enabled",
             R.string.usb_ui_evidence_sessions to "private_evidence_sessions",
-            R.string.usb_ui_transcript_policy to "private_transcript_policy",
-            R.string.usb_ui_transcript_sessions to "private_transcript_sessions",
         ))
         group(R.string.usb_ui_group_incoming, listOf(
-            R.string.ux07_usb_incoming to "incoming_mode",
             R.string.usb_ui_incoming_status to "incoming_status",
         ))
     }
@@ -199,21 +162,17 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private fun refresh() {
         runCatching {
             val data = UsbDebugBridge.snapshot(this)
-            rawJson = data.toString(2)
-            state.text = rawJson
-            copyJson.isEnabled = true
+            state.visibility = View.GONE
+            state.text = ""
             renderTechnicalFields(data)
             val phone = if (data.optBoolean("call_idle")) getString(R.string.usb_ui_idle)
                 else getString(R.string.usb_ui_not_confirmed_idle)
-            val campaign = if (data.optBoolean("campaign_service_inactive"))
-                getString(R.string.usb_ui_inactive) else getString(R.string.usb_ui_running_or_unknown)
             val recording = if (data.optBoolean("recording_enabled"))
                 getString(R.string.usb_ui_enabled) else getString(R.string.usb_ui_disabled)
             fun status(key: String, text: String) {
                 statusValues[key]?.text = text
             }
             status("phone", phone)
-            status("campaign", campaign)
             val input = data.optString("input", "UNKNOWN")
             val dialogue = data.optString("dialogue", "UNKNOWN")
             val output = data.optString("output", "UNKNOWN")
@@ -224,18 +183,15 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
             status("output", pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.outputs
                 .firstOrNull { it.id == output }?.title ?: output)
             status("recording", recording)
-            status("recording-current", getString(if (data.optBoolean("call_idle"))
-                R.string.ux08_usb_no_call else R.string.ux08_usb_recording_unconfirmed))
             status("incoming", when (data.optString("incoming_mode", "UNAVAILABLE")) {
                 "AI" -> getString(R.string.incoming_ui_mode_ai)
                 "MANUAL" -> getString(R.string.incoming_ui_mode_manual)
                 else -> getString(R.string.ux07_not_configured)
             })
         }.onFailure {
-            rawJson = null
-            copyJson.isEnabled = false
             technicalFields.removeAllViews()
             state.text = getString(R.string.usb_ui_read_failed)
+            state.visibility = View.VISIBLE
             statusValues.values.forEach {
                 it.text = getString(R.string.usb_ui_read_failed)
             }

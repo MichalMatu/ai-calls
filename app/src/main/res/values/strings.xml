@@ -162,11 +162,11 @@
     <string name="skills_ui_enabled">Włączony</string>
     <string name="skills_ui_disabled">Wyłączony</string>
     <string name="skills_ui_factory_readonly">Preset fabryczny · tylko do odczytu. Aby edytować, utwórz własną kopię.</string>
-    <string name="usb_ui_title">Diagnostyka USB / ADB</string>
-    <string name="usb_ui_description">Lokalny odczyt stanu. Prywatne dane nie są automatycznie publikowane ani wysyłane do logcat.</string>
-    <string name="usb_ui_refresh">Odśwież diagnostykę</string>
+    <string name="usb_ui_title">Stan aplikacji</string>
+    <string name="usb_ui_description">Lokalny podgląd stanu, bez zmiany ustawień i bez udostępniania danych.</string>
+    <string name="usb_ui_refresh">Odśwież</string>
     <string name="usb_ui_raw_details">Szczegóły techniczne · JSON</string>
-    <string name="usb_ui_formatted_title">Szczegóły stanu</string>
+    <string name="usb_ui_formatted_title">Szczegóły techniczne</string>
     <string name="usb_ui_unknown">Brak danych</string>
     <string name="usb_ui_yes">Tak</string>
     <string name="usb_ui_no">Nie</string>
@@ -315,7 +315,7 @@
     <string name="eng_ui_summary">Zapisano: %1$s → %2$s → %3$s\nGłos: %4$s</string>
     <string name="eng_ui_auto">automatyczny</string>
     <string name="dev_ui_title">Diagnostyka urządzenia</string>
-    <string name="dev_ui_usb">Diagnostyka USB / ADB</string>
+    <string name="dev_ui_usb">Stan aplikacji</string>
     <string name="dev_ui_capability">Sprawdź możliwości urządzenia</string>
     <string name="dev_ui_shizuku">Sprawdź Shizuku UserService</string>
     <string name="dev_ui_audio">Audio RX / TX — status</string>
