@@ -8,7 +8,7 @@
 ## Otwarte
 | Priorytet | Obszar | Warunek zamknięcia |
 | --- | --- | --- |
-| P0 | Kampanie i harmonogram | Sprawdzenie integracyjne 3 odbiorców, kolejności, alarmu po restarcie, retry, STOP/takeover, wyniku UNKNOWN, dokładnego SIM i PL/EN; realny start w tle S22 **PHYSICAL_OPEN** |
+| P0 | Kampanie i harmonogram G6.1 | Sprawdzenie integracyjne 3 odbiorców, kolejności, alarmu po restarcie, retry, STOP/takeover, wyniku UNKNOWN, dokładnego SIM i PL/EN; realny start w tle S22 **PHYSICAL_OPEN** |
 | P0 | Rozmowa S22 | Kontrolowane INCOMING/OUTGOING, dwukierunkowe STT/Gemma/TTS, barge-in, STOP/TAKE OVER i resume na realnym Call; jakość audio i pełna historia **PHYSICAL_OPEN** |
 | P0 | Wizyta | Wynik rozmowy i propozycja terminu do zatwierdzenia; bez udawania potwierdzonej rezerwacji. Realna próba **PHYSICAL_OPEN** |
 | P1 | Wyniki kampanii | Zbiorcze porównanie ofert; obecnie cytaty STT są pokazane osobno dla odbiorców |

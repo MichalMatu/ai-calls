@@ -1,4 +1,4 @@
-# AI Calls — instrukcje pracy
+# AI Calls — zasady pracy agentów
 
 ## Źródło prawdy
 - Bieżący cel i **wyłącznie otwarte** problemy: [PROJECT](docs/PROJECT.md). Kontrakt czytaj w odpowiednim module [indeksu](docs/README.md), nie we wszystkich plikach.
@@ -9,7 +9,7 @@
 - Aktualny `main`, czysty checkout i brak kolizji z zadaniami hosta. Kod/Git: GitHub Connector; preflight i testy: Mac Local Agent według [LOCAL_AGENT](docs/operations/LOCAL_AGENT.md). Bez Codex, Work, GitHub Actions (także ich odczytu), nowych gałęzi i force-push.
 - Existing Code First: KEEP/IMPROVE/ADAPT/REPLACE na podstawie konkretnej luki, testu i licencji. Nie przepisuj bez dowodu sprawdzonego Call runtime, Samsung PCM, Shizuku, STOP, Gemma, Skills ani recordera.
 - `bash scripts/bin/test-profile.sh preflight`; dla zmienionego kodu celowane `auto <base-SHA>` lub `focus`; `full` raz po dużym freeze. Nie kompiluj APK bez planowanej autoryzowanej instalacji. Bez niepotrzebnego ponawiania testów.
-- Nie wprowadzaj sztucznych limitów, potwierdzeń ani tarcia; zachowaj scoped grant, exact Call, idempotencję, STOP i prywatność.
+- Nie dodawaj sztucznych ograniczeń, potwierdzeń ani tarcia; zachowaj scoped grant, exact Call, idempotencję, STOP i prywatność.
 
 ## Bezpieczeństwo
 - Zmiany kodu i testy off-call nie upoważniają do prawdziwego połączenia, rezerwacji, ujawniania danych ani instalacji. Realny Call wymaga dokładnego numeru, SIM, zakresu zgody, zweryfikowanego S22, uprawnień i IDLE. Wynik UNKNOWN nie jest sukcesem. [SECURITY](docs/architecture/SECURITY.md).
