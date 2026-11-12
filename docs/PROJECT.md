@@ -15,13 +15,13 @@
 | Funkcja | Status | Zweryfikowane / blokada |
 | --- | --- | --- |
 | Czytelność Model i głos | PHYSICAL_OPEN · app/ui | Wynik próby trwały, przycisk nie znika, nazwy TTS skrócone. Kompilacja/install-r PASS; ocena właściciela otwarta |
-| Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik, STT z segmentów, kontrola wizyty/danych, narzędzia i STOP; testy hosta PASS. Gemma pobrana według właściciela; native PL, jakość i RAM S22 otwarte |
+| Audio Gemmy | HOST_TESTED / PHYSICAL_OPEN · app/audioengines | Wspólny silnik; składanie STT zachowuje kontekst przy powtórzonym powitaniu (Mac PASS `55e0232`). Model, narzędzia i STOP bez zmian. Jakość, native PL i RAM S22 otwarte |
 | Pełny gate Python | OPEN · scripts/tests | Pełny zestaw pominięty w tej iteracji. Pozostaje dług testów dawnych ekranów; po odbiorze modali wymagane dostosowanie testów UI |
 | Automatyczne INCOMING zgodnie z polityką | HOST_TESTED | Exact Call, SIM, AI/MANUAL, takeover w koordynatorze; żywa rozmowa na S22 **BLOCKED** do zgody |
 | Gemma + STT/TTS podczas rozmowy | DEVICE_OBSERVED: częściowo | W pierwszym OUTGOING: STT 43 znaki, 1 tura, RX 151040 B / TX 202622 B; jakość u rozmówcy i barge-in nadal **PHYSICAL_OPEN** |
 | Outgoing po autoryzacji | DEVICE_VERIFIED: real dial | Na S22+ po jednym autoryzowanym START Telecom potwierdził aktywne połączenie; odbiór i jakość audio nadal **PHYSICAL_OPEN** |
 | Wybór danych IdentityVault | HOST_TESTED | UI pozwala wybrać FIRST_NAME/LAST_NAME/PHONE/EMAIL, scoped reader sprawdza task/target/generation i zgodę; mówione wartości na S22 **PHYSICAL_OPEN** |
-| Wizyta, warunki i wynik do oceny | HOST_TESTED / LIVE REVIEW brak | Druga tura RX przerwana po 55280 ms; 20s RX wdrożone. Parser odrzuca DST, sprzeczne/niepełne terminy, daty udające godziny oraz zajęte sloty; Mac focused PASS (`d857913`). Live **PHYSICAL_OPEN** |
+| Wizyta, warunki i wynik do oceny | HOST_TESTED / LIVE REVIEW brak | RX 20s; parser odrzuca niejednoznaczne i zajęte sloty. Review używa strefy zatwierdzonego zadania (Mac PASS `abffbb1`). Druga tura live **PHYSICAL_OPEN** |
 | Natychmiastowy STOP / TAKE OVER i resume | HOST_TESTED / DEVICE_VERIFIED off-call | Symulowany STOP i TAKE OVER PASS; na wcześniejszym APK fizyczne off-call STOP/stale PCM PASS; przejęcie rozmowy live **PHYSICAL_OPEN** |
 
 Pierwszy OUTGOING potwierdza RX/TX i jedną turę, nie potwierdza jakości dźwięku ani rezerwacji.
@@ -29,7 +29,7 @@ Pierwszy OUTGOING potwierdza RX/TX i jedną turę, nie potwierdza jakości dźwi
 Prywatne archiwum STT, zatwierdzonych odpowiedzi i diagnostyki bez WAV: **HOST_TESTED**. WAV wymaga opt-in; nieukończony STT i historia pierwszego połączenia pozostają **PHYSICAL_OPEN**.
 
 ## Następny sprint — MVP FIRST (kod, nie audyt)
-1. OUTGOING: segment RX 20s i składanie STT przeszły host QA; parser wizyt odrzuca niejednoznaczne i niedostępne terminy (Mac PASS `d857913`). Kontrolowana druga tura S22 **PHYSICAL_OPEN**.
+1. OUTGOING: RX 20s, zachowanie kontekstu segmentów STT (`55e0232`) i strefa zadania dla propozycji wizyty (`abffbb1`) przeszły host QA. Kontrolowana druga tura S22 **PHYSICAL_OPEN**.
 2. Po próbach poprawić wyłącznie usterki blokujące MVP. Nie uruchamiać G6.5/G7, niepotrzebnych refaktorów ani audytu.
 
 ## Próby S22+ — dokładny zakres PHYSICAL_OPEN
