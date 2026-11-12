@@ -45,6 +45,7 @@ class AppOwnedCampaignService : Service() {
     private lateinit var notificationManager: NotificationManager
     private val supervisedAudioActive = AtomicBoolean(false)
     private var supervisedAudioSession: AndroidConversationRuntime.SessionControl? = null
+    private var phoneTasks: PhoneTaskExecution? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -65,6 +66,51 @@ class AppOwnedCampaignService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            ACTION_RUN_PHONE_TASKS -> {
+                if (phoneTasks?.busy == true) return START_NOT_STICKY
+                if (campaignRequested || supervisedAudioActive.get() || AppOwnedClirCampaignExecutor.isRunning()) {
+                    PhoneTaskWork.io.execute {
+                        runCatching { PhoneTaskScheduler.reconcile(this, System.currentTimeMillis() + 30_000L) }
+                    }
+                    return START_NOT_STICKY
+                }
+                try {
+                    // This is the default dialer's scheduled call service. The Samsung PCM
+                    // capture remains in the existing privileged helper, not a background mic FGS.
+                    startForeground(NOTIFICATION_ID, notification(getString(pl.michalmatu.aicallbridge.R.string.task_running), taskQueue = true),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL)
+                } catch (_: RuntimeException) {
+                    PhoneTaskWork.io.execute {
+                        runCatching {
+                            PhoneTaskWork.store(this).updatePhoneTasks { list -> list.map {
+                                if (it.state == PhoneTaskState.READY) it.copy(state = PhoneTaskState.PAUSED,
+                                    issue = PhoneTaskIssue.BACKGROUND_START) else it
+                            } }
+                        }
+                        PhoneTaskScheduler.attention(this)
+                    }
+                    stopSelf(startId)
+                    return START_NOT_STICKY
+                }
+                campaignRequested = true
+                phoneTasks = PhoneTaskExecution(this) {
+                    phoneTasks?.destroyed()
+                    phoneTasks = null
+                    finish("Phone task queue idle; see private task results")
+                }.also { it.runNext() }
+                return START_NOT_STICKY
+            }
+            ACTION_CANCEL_PHONE_TASK, ACTION_PAUSE_PHONE_TASK -> {
+                val taskId = intent.getStringExtra(EXTRA_PHONE_TASK_ID) ?: return START_NOT_STICKY
+                val active = taskId == PhoneTaskWork.activeTaskId
+                PhoneTaskWork.stop(this, taskId, takeover = intent.action == ACTION_PAUSE_PHONE_TASK)
+                if (active) {
+                    authorizationStore.revoke(System.currentTimeMillis())
+                    AppOwnedClirCampaignExecutor.stop(ConversationStopReason.OPERATOR_STOP) { }
+                    finish("Phone task cancelled")
+                } else if (!campaignRequested && !supervisedAudioActive.get()) stopSelf(startId)
+                return START_NOT_STICKY
+            }
             ACTION_START_SUPERVISED_AUDIO -> {
                 startSupervisedAudio()
                 return START_NOT_STICKY
@@ -78,6 +124,7 @@ class AppOwnedCampaignService : Service() {
                 return START_NOT_STICKY // Never auto-resume an enquiry after restart.
             }
             ACTION_CANCEL_OUTGOING_TASK -> {
+                PhoneTaskWork.activeTaskId?.let { PhoneTaskWork.stop(this, it) }
                 // Cancel only the outgoing task; never disable an incoming secretary
                 // or interrupt an unrelated supervised audio session.
                 authorizationStore.revoke(System.currentTimeMillis())
@@ -104,6 +151,9 @@ class AppOwnedCampaignService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_STOP_SUPERVISED_AUDIO, ACTION_STOP_ALL_AI, ACTION_PAUSE_AFTER_TAKEOVER -> {
+                if (intent.action == ACTION_STOP_ALL_AI) PhoneTaskWork.stop(this)
+                if (intent.action == ACTION_PAUSE_AFTER_TAKEOVER)
+                    PhoneTaskWork.activeTaskId?.let { PhoneTaskWork.stop(this, it, takeover = true) }
                 val incomingStopped = intent.action == ACTION_PAUSE_AFTER_TAKEOVER || AndroidOwnedInCallService.stopIncomingAi(this)
                 campaignRequested = false
                 continuationGeneration += 1
@@ -701,6 +751,8 @@ class AppOwnedCampaignService : Service() {
     }
 
     override fun onDestroy() {
+        phoneTasks?.destroyed()
+        phoneTasks = null
         preparingLocalModel = false
         CampaignGemmaPreflight.discardUnused()
         CampaignGemmaDirectPreflight.discardUnused()
@@ -733,13 +785,21 @@ class AppOwnedCampaignService : Service() {
         stopSelf()
     }
 
-    private fun notification(status: String): Notification =
+    private fun notification(status: String, taskQueue: Boolean = false): Notification =
         Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("AI Calls campaign")
             .setContentText(status.take(NOTIFICATION_TEXT_LIMIT))
             .setOngoing(AppOwnedClirCampaignExecutor.isRunning() || campaignRequested)
             .setOnlyAlertOnce(true)
+            .apply {
+                if (taskQueue) {
+                    setContentTitle(getString(pl.michalmatu.aicallbridge.R.string.task_notifications))
+                    setContentIntent(PendingIntent.getActivity(this@AppOwnedCampaignService, 4211,
+                        Intent(this@AppOwnedCampaignService, PhoneTasksActivity::class.java),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                }
+            }
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
                 "STOP AI",
@@ -768,6 +828,10 @@ class AppOwnedCampaignService : Service() {
         }
 
         const val ACTION_PAUSE_AFTER_TAKEOVER = "pl.michalmatu.aicallbridge.PAUSE_AFTER_TAKEOVER"
+        const val ACTION_RUN_PHONE_TASKS = "pl.michalmatu.aicallbridge.RUN_PHONE_TASKS"
+        const val ACTION_CANCEL_PHONE_TASK = "pl.michalmatu.aicallbridge.CANCEL_PHONE_TASK"
+        const val ACTION_PAUSE_PHONE_TASK = "pl.michalmatu.aicallbridge.PAUSE_PHONE_TASK"
+        const val EXTRA_PHONE_TASK_ID = "phone_task_id"
         const val EXTRA_DIALOGUE_MODE =
             "pl.michalmatu.aicallbridge.extra.CAMPAIGN_DIALOGUE_MODE"
         const val ACTION_START_CLIR_ENABLE =

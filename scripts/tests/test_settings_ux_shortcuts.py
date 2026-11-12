@@ -26,7 +26,7 @@ class SettingsUxShortcutsContractTest(unittest.TestCase):
         developer = (BASE / "ui/DeveloperToolsActivity.kt").read_text()
         self.assertIn("ConversationSkillLabActivity::class.java", developer)
         self.assertIn("AppTab.SETTINGS -> SettingsHubActivity::class.java", self.nav)
-        for tag in ('home-appointment-start', 'home-stop-ai'):
+        for tag in ('home-task-start', 'home-stop-ai'):
             self.assertEqual(1, self.main.count('tag = "' + tag + '"'))
         self.assertNotIn("ConversationSkillLabActivity::class.java", self.main)
 

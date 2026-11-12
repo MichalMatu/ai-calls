@@ -94,6 +94,8 @@ internal class AndroidTelecomOwnedCallSession(
     private val stopRequested = AtomicBoolean(false)
     private val dtmfPort = AtomicReference<AndroidTelecomDtmfDigitPort?>(null)
     private val dtmfRevoked = AtomicBoolean(false)
+    private val observedSetup = AtomicBoolean(false)
+    private val observedConnection = AtomicBoolean(false)
 
     fun attachIfMatching(call: Call, nowElapsedMs: Long): Boolean {
         val details = call.details ?: return false
@@ -110,6 +112,7 @@ internal class AndroidTelecomOwnedCallSession(
             )
         ) return false
         if (!boundCall.compareAndSet(null, call)) return boundCall.get() === call
+        observeState(call, call.state)
         if (stopRequested.get()) runCatching { call.disconnect() }
         return true
     }
@@ -148,6 +151,7 @@ internal class AndroidTelecomOwnedCallSession(
 
     internal fun onExactCallRemoved(call: Call) {
         if (boundCall.get() !== call) return
+        observeState(call, call.state)
         stopRequested.set(true)
         revokeDtmf()
     }
@@ -157,6 +161,24 @@ internal class AndroidTelecomOwnedCallSession(
 
     override fun isWifiCalling(): Boolean =
         boundCall.get()?.details?.hasProperty(Call.Details.PROPERTY_WIFI) == true
+
+    override fun isExactCallConnecting(): Boolean = !stopRequested.get() &&
+        boundCall.get()?.state in setOf(Call.STATE_DIALING, Call.STATE_CONNECTING)
+
+    override fun unansweredOutcome(): PhoneAttemptOutcome? {
+        val call = boundCall.get() ?: return null
+        if (call.state != Call.STATE_DISCONNECTED) return null
+        return PhoneTaskDisconnectPolicy.outcome(call.details?.disconnectCause?.code,
+            observedSetup.get(), observedConnection.get(), call.details?.connectTimeMillis)
+    }
+
+    /** Observation only. The callback's state catches even a brief ACTIVE between poll ticks. */
+    internal fun observeState(call: Call, state: Int) {
+        if (boundCall.get() !== call) return
+        if (state == Call.STATE_DIALING || state == Call.STATE_CONNECTING) observedSetup.set(true)
+        if (state == Call.STATE_ACTIVE || state == Call.STATE_HOLDING ||
+            (call.details?.connectTimeMillis ?: 0) > 0) observedConnection.set(true)
+    }
 
     override fun disconnectExactCall(): Boolean {
         stopRequested.set(true)

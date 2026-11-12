@@ -6,9 +6,9 @@ ROOT=Path(__file__).resolve().parents[2]/"app/src/main/kotlin/pl/michalmatu/aica
 class MenuVisualSourceContract(unittest.TestCase):
     def test_home_keeps_task_and_stop_without_dialing_on_navigation(self):
         source=(ROOT/"MainActivity.kt").read_text()
-        self.assertIn('tag = "home-appointment-start"',source)
+        self.assertIn('tag = "home-task-start"',source)
         self.assertIn('tag = "home-stop-ai"',source)
-        self.assertIn("AppointmentMvpActivity::class.java",source)
+        self.assertIn("PhoneTaskWizardActivity::class.java",source)
         self.assertNotIn("placeCall(",source)
     def test_settings_offer_one_editor_and_real_permissions(self):
         source=(ROOT/"ui/SettingsHubActivity.kt").read_text()

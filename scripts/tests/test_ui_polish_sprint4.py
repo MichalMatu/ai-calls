@@ -84,8 +84,8 @@ class Sprint4UxContract(unittest.TestCase):
         for token in ("UiDesign.card(this)", "UiActionTone.SECONDARY", 'tag = "receptionist-tone-options"'):
             self.assertIn(token, skills)
         self.assertIn("content.addView(feedback)", incoming)
-        self.assertIn('tag = "home-appointment-start"', home)
-        self.assertIn("AppointmentMvpActivity::class.java", home)
+        self.assertIn('tag = "home-task-start"', home)
+        self.assertIn("PhoneTaskWizardActivity::class.java", home)
         self.assertNotIn("grants.save(", home)
 
 if __name__ == "__main__":

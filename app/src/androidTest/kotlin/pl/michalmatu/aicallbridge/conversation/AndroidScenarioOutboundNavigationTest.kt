@@ -8,7 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
-import pl.michalmatu.aicallbridge.campaign.ScenarioOutgoingCallActivity
+import pl.michalmatu.aicallbridge.campaign.PhoneTaskWizardActivity
 import pl.michalmatu.aicallbridge.campaign.CampaignAuthorizationStore
 
 /** Off-call navigation only: no user consent, no grant and no Telecom dial. */
@@ -19,7 +19,7 @@ class AndroidScenarioOutboundNavigationTest {
         val context = instrumentation.targetContext
         val before = CampaignAuthorizationStore(context).load()
         val monitor: Instrumentation.ActivityMonitor = instrumentation.addMonitor(
-            ScenarioOutgoingCallActivity::class.java.name, null, false)
+            PhoneTaskWizardActivity::class.java.name, null, false)
         try {
             ActivityScenario.launch(ScenarioLibraryActivity::class.java).use { scenario ->
                 scenario.onActivity { activity ->
@@ -32,12 +32,20 @@ class AndroidScenarioOutboundNavigationTest {
                 }
                 val next = instrumentation.waitForMonitorWithTimeout(monitor, 9000)
                 assertNotNull("confirmation_screen_not_launched", next)
+                val deadline = System.currentTimeMillis() + 9000
+                var formReady = false
+                while (!formReady && System.currentTimeMillis() < deadline) {
+                    instrumentation.runOnMainSync {
+                        formReady = next?.window?.decorView?.findViewWithTag<View>("task-goal") != null
+                    }
+                    if (!formReady) Thread.sleep(80)
+                }
                 try {
                     instrumentation.runOnMainSync {
                         val root = requireNotNull(next).window.decorView
-                        assertNotNull(root.findViewWithTag<View>("scenario-call-number"))
-                        assertNotNull(root.findViewWithTag<View>("scenario-call-sim"))
-                        assertNotNull(root.findViewWithTag<View>("scenario-call-authorize"))
+                        assertNotNull(root.findViewWithTag<View>("task-goal"))
+                        assertNotNull(root.findViewWithTag<View>("task-title"))
+                        assertNotNull(root.findViewWithTag<View>("task-next"))
                     }
                 } finally {
                     if (next != null) instrumentation.runOnMainSync { next.finish() }

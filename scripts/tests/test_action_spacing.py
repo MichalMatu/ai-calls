@@ -20,6 +20,6 @@ class ActionSpacingContract(unittest.TestCase):
         home=(ROOT/"MainActivity.kt").read_text()
         self.assertIn('tag = "home-new-call-card"', home)
         self.assertIn('UiDesign.spaceAfter(this@MainActivity, 16)', home)
-        self.assertIn('tag = "home-appointment-start"', home)
+        self.assertIn('tag = "home-task-start"', home)
         self.assertNotIn('oneTapButton', home)
 if __name__=="__main__":unittest.main()

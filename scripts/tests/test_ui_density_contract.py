@@ -3,7 +3,7 @@ import re
 import unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]/"app/src/main/kotlin/pl/michalmatu/aicallbridge"
-SCREENS=["conversation/ConversationHistoryActivity.kt","conversation/ConversationSkillLabActivity.kt","conversation/ConversationSkillsActivity.kt","conversation/ConversationPreparationActivity.kt","audioengines/ModelVoiceSettings.kt","textagent/LanguageModelActivity.kt","incoming/IncomingAssistantSettingsActivity.kt","tools/ConversationToolsActivity.kt","debug/UsbDebugPanelActivity.kt","identity/PhoneEnrollmentActivity.kt","campaign/ScenarioOutgoingCallActivity.kt"]
+SCREENS=["conversation/ConversationHistoryActivity.kt","conversation/ConversationSkillLabActivity.kt","conversation/ConversationSkillsActivity.kt","conversation/ConversationPreparationActivity.kt","audioengines/ModelVoiceSettings.kt","textagent/LanguageModelActivity.kt","incoming/IncomingAssistantSettingsActivity.kt","tools/ConversationToolsActivity.kt","debug/UsbDebugPanelActivity.kt","identity/PhoneEnrollmentActivity.kt","campaign/PhoneTaskWizardActivity.kt"]
 class DensityContract(unittest.TestCase):
     def test_no_unscaled_literal_padding_on_product_screens(self):
         for rel in SCREENS:

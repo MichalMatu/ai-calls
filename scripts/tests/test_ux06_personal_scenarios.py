@@ -18,10 +18,10 @@ class PersonalScenarioUiContract(unittest.TestCase):
                           "CallCommitmentGate", "CampaignAgentControl.run("):
             self.assertNotIn(forbidden, ui)
 
-    def test_home_task_entry_names_the_current_appointment_flow(self):
+    def test_home_task_entry_names_the_shared_task_wizard(self):
         home = (SRC / "MainActivity.kt").read_text()
-        self.assertIn("AppointmentMvpActivity::class.java", home)
-        self.assertIn("R.string.camp_mvp_appointment_title", home)
+        self.assertIn("PhoneTaskWizardActivity::class.java", home)
+        self.assertIn("R.string.task_new", home)
         self.assertNotIn("EXTRA_START_AUTHORIZED_CAMPAIGN", home)
         self.assertNotIn("CLIR", home)
         self.assertNotIn("placeCall(", home)

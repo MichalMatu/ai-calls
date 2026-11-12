@@ -55,10 +55,13 @@ internal object AppOwnedClirCampaignExecutor {
         runConfiguration: ConversationRunConfiguration,
         appointmentTask: AppointmentMvpTask? = null,
         scenarioTask: ScenarioOutgoingTask? = null,
+        taskObserver: PhoneTaskCallObserver? = null,
+        taskAuthorized: () -> Boolean = { true },
+        taskDialAuthorized: () -> Boolean = taskAuthorized,
         onAttemptFinished: (Boolean, String?) -> Unit = { _, _ -> },
         onStatus: (String) -> Unit,
     ) {
-        if (!running.compareAndSet(false, true)) {
+        if (!taskDialAuthorized() || !running.compareAndSet(false, true)) {
             onStatus("Campaign call is already running")
             return
         }
@@ -175,7 +178,7 @@ internal object AppOwnedClirCampaignExecutor {
 
         // Revalidate the reserved grant immediately before the irreversible dial edge.
         // The controller implementation must also check revocation at its own dial boundary.
-        if (!authorizationStore.isAuthorizedInFlight(
+        if (!taskDialAuthorized() || !authorizationStore.isAuthorizedInFlight(
                 grantId = reservedGrant.grantId,
                 request = request,
             )
@@ -226,6 +229,8 @@ internal object AppOwnedClirCampaignExecutor {
                 runConfiguration = runConfiguration,
                 appointmentTask = appointmentTask,
                 scenarioTask = scenarioTask,
+                taskObserver = taskObserver,
+                taskAuthorized = taskAuthorized,
                 onAttemptFinished = onAttemptFinished,
                 onStatus = onStatus,
             )
@@ -249,6 +254,8 @@ internal object AppOwnedClirCampaignExecutor {
         runConfiguration: ConversationRunConfiguration,
         appointmentTask: AppointmentMvpTask?,
         scenarioTask: ScenarioOutgoingTask?,
+        taskObserver: PhoneTaskCallObserver?,
+        taskAuthorized: () -> Boolean,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -260,14 +267,31 @@ internal object AppOwnedClirCampaignExecutor {
             return
         }
 
+        var taskAudioDeadline: Long? = null
         fun poll() {
             if (!running.get()) return
+            if (!taskAuthorized()) {
+                stop(ConversationStopReason.OPERATOR_STOP, onStatus)
+                return
+            }
+            if (taskObserver != null) {
+                val outcome = runCatching { ownedCall.unansweredOutcome() }.getOrNull()
+                if (outcome != null) {
+                    ownedCalls.release(ownedCall)
+                    running.set(false)
+                    taskObserver.unanswered(outcome)
+                    onStatus("Exact owned call ended before conversation")
+                    return
+                }
+            }
             val exactActive = runCatching { ownedCall.isExactCallActive() }.getOrElse {
                 val cleanup = ownedCalls.release(ownedCall)
                 running.set(false)
                 onStatus("Owned call state unavailable; cleanup=$cleanup")
                 return
             }
+            if (taskObserver != null && exactActive && taskAudioDeadline == null)
+                taskAudioDeadline = System.currentTimeMillis() + CALL_ACTIVE_TIMEOUT_MS
             // Samsung/Telecom uses MODE_IN_COMMUNICATION for Wi-Fi Calling (IWLAN).
             // The frozen VOICE_DOWNLINK capture is physically proven only in MODE_IN_CALL.
             // Never bypass this device media gate or wait silently through a doomed call.
@@ -283,11 +307,15 @@ internal object AppOwnedClirCampaignExecutor {
                 startLocalRuntime(
                     appContext, telecomManager, grant, ownedCall, request,
                     authorizationStore, runConfiguration, appointmentTask, scenarioTask,
+                    taskObserver, taskAuthorized,
                     onAttemptFinished, onStatus,
                 )
                 return
             }
-            if (System.currentTimeMillis() >= deadlineEpochMs) {
+            val setupTimedOut = if (taskObserver == null) System.currentTimeMillis() >= deadlineEpochMs
+                else PhoneTaskActivationPolicy.timedOut(System.currentTimeMillis(), deadlineEpochMs,
+                    taskAudioDeadline, exactActive, runCatching { ownedCall.isExactCallConnecting() }.getOrDefault(false))
+            if (setupTimedOut) {
                 val cleanup = ownedCalls.release(ownedCall)
                 running.set(false)
                 val mode = when (audioManager.mode) {
@@ -321,6 +349,8 @@ internal object AppOwnedClirCampaignExecutor {
         runConfiguration: ConversationRunConfiguration,
         appointmentTask: AppointmentMvpTask?,
         scenarioTask: ScenarioOutgoingTask?,
+        taskObserver: PhoneTaskCallObserver?,
+        taskAuthorized: () -> Boolean,
         onAttemptFinished: (Boolean, String?) -> Unit,
         onStatus: (String) -> Unit,
     ) {
@@ -337,12 +367,13 @@ internal object AppOwnedClirCampaignExecutor {
 
         // Exact in-flight owner and grant; never disconnect a human-taken-over or unrelated Call.
         val endAuthorizedOwnedCall: () -> Boolean = {
-            running.get() && ownedCalls.isCurrent(ownedCall) &&
+            running.get() && taskAuthorized() && ownedCalls.isCurrent(ownedCall) &&
                 runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
                 authorizationStore.isAuthorizedInFlight(grant.grantId, request) &&
                 runCatching { ownedCall.disconnectExactCall() }.getOrDefault(false)
         }
         val launched = runCatching {
+            taskObserver?.sessionStarted(sessionId)
             val launchedAudio = AndroidConversationRuntime.run(
                 context = appContext,
                 sessionId = sessionId,
@@ -351,7 +382,7 @@ internal object AppOwnedClirCampaignExecutor {
                     scenarioTask != null ->
                         ScenarioOutgoingConversationScenario(appContext, scenarioTask,
                             runConfiguration as ConversationRunConfiguration.ModelDirect,
-                            requestEndCall = endAuthorizedOwnedCall)
+                            requestEndCall = endAuthorizedOwnedCall, taskObserver = taskObserver)
                     appointmentTask != null ->
                         AppointmentMvpConversationScenario(appContext, appointmentTask,
                             runConfiguration as ConversationRunConfiguration.ModelDirect,
@@ -368,7 +399,7 @@ internal object AppOwnedClirCampaignExecutor {
                     CallSessionEvidenceRecorder.create(appContext)
                 } else null,
                 liveAuthorization = {
-                    running.get() &&
+                    running.get() && taskAuthorized() &&
                         runCatching { ownedCall.isExactCallActive() }.getOrDefault(false) &&
                         (if (scenarioTask != null)
                             CampaignAccountScope.forSubscription(

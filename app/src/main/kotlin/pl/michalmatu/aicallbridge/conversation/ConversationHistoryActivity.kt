@@ -56,7 +56,9 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         })
         content = UiDesign.content(this)
         setContentView(ScrollView(this).apply { addView(content) })
-        showList()
+        val sessionId = intent.getStringExtra("open_session_id")
+        if (sessionId != null && sessionId.matches(Regex("[a-zA-Z0-9_-]{1,128}"))) showSession(sessionId)
+        else showList()
     }
     private fun showList(message: String? = null) {
         setDisplayedSession(null)

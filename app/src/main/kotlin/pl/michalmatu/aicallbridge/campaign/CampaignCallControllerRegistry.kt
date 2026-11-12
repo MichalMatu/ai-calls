@@ -14,6 +14,10 @@ internal interface CampaignOwnedCallSession {
     fun isExactCallActive(): Boolean
     /** True only for a positively identified Wi-Fi Calling/IMS call, never inferred from audio mode. */
     fun isWifiCalling(): Boolean = false
+    /** Terminal outcome reported by this exact Call before the conversation starts. */
+    fun unansweredOutcome(): PhoneAttemptOutcome? = null
+    /** A positively bound outgoing Call is still in network setup/ringing. */
+    fun isExactCallConnecting(): Boolean = false
     fun disconnectExactCall(): Boolean
 }
 

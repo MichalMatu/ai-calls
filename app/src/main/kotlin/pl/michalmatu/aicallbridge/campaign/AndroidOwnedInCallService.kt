@@ -37,7 +37,7 @@ class AndroidOwnedInCallService : InCallService() {
                 tryAttachExactSession(changed)
             }
             override fun onStateChanged(changed: Call, state: Int) {
-                tryAttachExactSession(changed)
+                tryAttachExactSession(changed, state)
             }
         }
         callCallbacks.put(call, callback)?.let { old -> call.unregisterCallback(old) }
@@ -47,8 +47,9 @@ class AndroidOwnedInCallService : InCallService() {
 
     }
 
-    private fun tryAttachExactSession(call: Call) {
+    private fun tryAttachExactSession(call: Call, state: Int = call.state) {
         pendingSession.get()?.attachIfMatching(call, SystemClock.elapsedRealtime())
+        pendingSession.get()?.observeState(call, state)
         observedCalls.forEach(incoming::observe)
     }
 

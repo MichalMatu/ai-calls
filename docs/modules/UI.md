@@ -6,10 +6,15 @@ UI pokazuje rzeczywisty stan: manual/AI, exact Call, postęp, STOP/TAKE OVER/res
 - Start pokazuje stan zadania wychodzącego; ten wskaźnik nie jest odczytem stanu wszystkich połączeń Androida.
 - Jedna nazwa **Ustawienia** w pasku, menu i dokumentacji. Cztery zakładki nie prowadzą do diagnostyki ani nie wykonują działań telefonicznych.
 - `UiDesign.content` ustala marginesy stron: 20 dp poziomo, 16 dp u góry, 24 dp na dole. `navigationRow` jest jednym klikalnym wierszem z etykietą i strzałką; drugi wiersz służy bieżącemu stanowi, bez ogólnych opisów menu.
-- Agent i Ustawienia używają tych samych wierszy. Nazwa wejścia odpowiada podstronie: „Kontekst rozmów”, „Notatki i narzędzia”, „Odbieranie połączeń”. Start mówi „Zapytaj o termin wizyty”; nie obiecuje rezerwacji.
+- Agent i Ustawienia używają tych samych wierszy. Nazwa wejścia odpowiada podstronie: „Kontekst rozmów”, „Notatki i narzędzia”, „Odbieranie połączeń”. Start prowadzi przez „Nowe zadanie” do wspólnego kreatora pojedynczego telefonu i kampanii; nie obiecuje rezerwacji.
 - Jedna paleta, trzy poziomy tekstu, kontrast i kontrolki co najmniej 48 dp. Przyciski zachowują rozróżnienie głównej akcji, pomocniczej i STOP; nieaktywne mają osobny stan. Treść rośnie przy większej czcionce.
 - Odstępy kart należą do ich układu. Chrome uzupełnia wyłącznie brakującą przerwę między sąsiednimi widocznymi przyciskami, zachowuje większy jawny odstęp i nie dodaje marginesu za ostatnią akcją.
 - Opis pozostaje przy decyzji użytkownika: skutki grantu, zakres danych, WAV, zapis szkicu lub wynik. Nie dodawaj instrukcji obsługi nawigacji ani kolejnych stopek.
+
+## Zadania telefoniczne
+Kreator używa istniejących szablonów i wersji osobistych: cel → lista numerów z kodem kraju → SIM i okno czasowe → jedno zatwierdzenie zakresu. Szkic jest szyfrowany; obrót i powrót nie uruchamiają zadania. Powtarzające się numery są scalane po normalizacji, błędne wiersze blokują zatwierdzenie. Czas dotyczy początku kolejki; termin wizyty pozostaje w scenariuszu. Godziny niejednoznaczne przy zmianie czasu nie są zgadywane.
+
+Zadanie pokazuje odbiorców, próby, kolejny termin, problem i wynik. Cena/dostępność/pozostałe odpowiedzi są cytatami z STT rozmówcy, z zachowaniem „od”, zakresu, waluty i negacji; brak danych nie jest zerem. Nie ma automatycznej oceny najtańszej oferty ani potwierdzenia rezerwacji. Anulowanie dotyczy zadania; globalny STOP anuluje przyszłe zadania i wyłącza sekretarkę. TAKE OVER wstrzymuje kolejkę. Wznowienie pomija niepewną próbę, której powtórzenie wymaga jawnego wyboru odbiorcy.
 
 ## Laboratorium i diagnostyka
 - Konfiguracja i czat zajmują osobne widoki; runner pozostaje jeden. STOP i wyjście kończą sesję. Wspólne dymki, etap i czas oczekiwania są widoczne; metryki i wyniki są w modalu. Odtworzenie ekranu nie uruchamia testu.
@@ -24,7 +29,7 @@ UI pokazuje rzeczywisty stan: manual/AI, exact Call, postęp, STOP/TAKE OVER/res
 - Notatnik ma pierwszeństwo przed ustawieniami: zwijane rozmowy, wyszukiwanie, filtr, stronicowanie; szyfrowany odczyt poza UI. Usuwanie wymaga potwierdzenia i braku aktywnego AI Call; wynik usuwania jest obsługiwany mimo równoległego odświeżenia.
 - Przełączniki narzędzi: rozróżniają lokalny zapis, propozycje i zakończenie własnego Call. Back i zmiana zakładki chronią niezapisane zmiany; po obrocie zachowywane są tylko identyfikatory przełączników, nie treść notatek ani wyszukiwania.
 - Nie dodawać dodatkowych kliknięć ani kolejnych zatwierdzeń bez zmiany materialnego zakresu grantu.
-- Model i głos: trzy karty bieżących wyborów; model, rozpoznawanie i głos wybiera się w modalach z natychmiastowym zapisem. Parakeet jest w grupie Dodatkowe tego samego wyboru STT. Silnik TTS wybiera się przy głosach, pliki mają osobny widok, postęp/błędy należą do odpowiedniej karty. Alias dawnego ekranu silników zachowany. Wynik sprawdzania pozostaje w karcie, przycisk jest blokowany zamiast chowany. Dostawca głosu dotyczy tylko TTS; wariant systemowy pokazuje rozwiązaną nazwę aplikacji. Gotowość i wybór pozostają osobne; usuwanie jednego pliku ponownie sprawdza IDLE/wybór i chroni bazę.
+- Model i głos: trzy karty, modale wyboru, osobne pliki. Wybór i gotowość są oddzielne; usuwanie ponownie sprawdza IDLE/wybór i chroni bazę. Provider dotyczy tylko TTS; systemowy wybór pokazuje nazwę aplikacji. Wynik sprawdzania pozostaje w karcie, przycisk jest blokowany zamiast chowany.
 - Rola aplikacji Telefon ma status i jawny przycisk w Ustawieniach; Start pokazuje brak roli. Otwarcie ekranów nie żąda roli. Żądanie używa Activity Result, aby Android znał caller; wynik odświeża status. Systemowy wybór i powrót nie uruchamiają Call ani grantu.
 
 G7 to finalny odbiór UX po rzeczywistym G6, nie powód do zastępowania już testowanych ekranów. [Current](../PROJECT.md).

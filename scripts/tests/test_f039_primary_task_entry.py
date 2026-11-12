@@ -15,8 +15,8 @@ class PrimaryTaskEntryContractTest(unittest.TestCase):
         cls.appointment = (BASE / "campaign/AppointmentMvpActivity.kt").read_text()
 
     def test_home_opens_the_form_without_granting_or_calling(self):
-        self.assertIn("AppointmentMvpActivity::class.java", self.main)
-        self.assertEqual(1, self.main.count('tag = "home-appointment-start"'))
+        self.assertIn("PhoneTaskWizardActivity::class.java", self.main)
+        self.assertEqual(1, self.main.count('tag = "home-task-start"'))
         for forbidden in ("placeCall(", "grants.save(", "ACTION_START_BOOK_APPOINTMENT"):
             self.assertNotIn(forbidden, self.main)
 

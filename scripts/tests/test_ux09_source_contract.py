@@ -40,7 +40,7 @@ class Ux09Contract(unittest.TestCase):
     def test_home_keeps_chat_and_starts_without_idle_dock(self):
         text = read("MainActivity.kt")
         for token in ('"home-conversation-floating-overlay"', "LiveConversationOverlay(this@MainActivity",
-                      "AppNavigation.install", '"home-appointment-start"', '"home-stop-ai"'):
+                      "AppNavigation.install", '"home-task-start"', '"home-stop-ai"'):
             self.assertIn(token, text)
         self.assertNotIn('"home-technical"', text)
 

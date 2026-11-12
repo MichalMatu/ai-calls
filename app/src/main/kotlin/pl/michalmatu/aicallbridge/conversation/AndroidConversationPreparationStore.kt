@@ -113,6 +113,25 @@ internal class AndroidConversationPreparationStore(
             Gson().toJson(ScenarioOutgoingRecord(1, task.validated())))
     }
 
+    private val phoneTaskRepository by lazy {
+        pl.michalmatu.aicallbridge.campaign.PhoneTaskRepository(
+            { readRecord("phone-tasks-v1") }, { writeRecord("phone-tasks-v1", it) })
+    }
+
+    fun phoneTasks() = synchronized(LOCK) { phoneTaskRepository.load() }
+    fun updatePhoneTasks(change: (List<pl.michalmatu.aicallbridge.campaign.PhoneTask>) ->
+        List<pl.michalmatu.aicallbridge.campaign.PhoneTask>) = synchronized(LOCK) {
+        phoneTaskRepository.update(change)
+    }
+    fun phoneTaskDraft(): pl.michalmatu.aicallbridge.campaign.PhoneTaskDraft? = synchronized(LOCK) {
+        readRecord("phone-task-draft-v1")?.let {
+            Gson().fromJson(it, pl.michalmatu.aicallbridge.campaign.PhoneTaskDraft::class.java)
+        }
+    }
+    fun savePhoneTaskDraft(draft: pl.michalmatu.aicallbridge.campaign.PhoneTaskDraft) = synchronized(LOCK) {
+        writeRecord("phone-task-draft-v1", Gson().toJson(draft))
+    }
+
     private data class ScenarioDraftRecord(
         val version: Int, val scenarioId: String, val values: Map<String, String>,
     )

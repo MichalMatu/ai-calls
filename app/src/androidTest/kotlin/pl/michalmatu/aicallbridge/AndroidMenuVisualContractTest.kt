@@ -60,7 +60,7 @@ class AndroidMenuVisualContractTest {
                 assertNull(root.findViewWithTag<View>("app-tab:lab"))
                 assertNull(root.findViewWithTag<View>("app-tab:models"))
                 assertNull(findButton(root, activity.getString(R.string.ui_campaigns)))
-                assertTrue(requireNotNull(root.findViewWithTag<View>("home-appointment-start")).isShown)
+                assertTrue(requireNotNull(root.findViewWithTag<View>("home-task-start")).isShown)
                 assertTrue(requireNotNull(root.findViewWithTag<View>("home-stop-ai")).isShown)
                 assertNotNull(root.findViewWithTag<View>("app-screen-shell"))
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

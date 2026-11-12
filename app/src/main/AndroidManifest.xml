@@ -10,6 +10,10 @@
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
@@ -123,6 +127,17 @@
             android:exported="false" />
 
         <activity android:name=".textagent.LanguageModelActivity" android:exported="false" />
+        <activity android:name=".campaign.PhoneTaskWizardActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".campaign.PhoneTasksActivity" android:exported="false" />
+        <receiver android:name=".campaign.PhoneTaskAlarmReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
         <service android:name=".textagent.LanguageModelTransferService" android:exported="false" android:foregroundServiceType="dataSync" />
         <service android:name=".audioengines.ParakeetModelTransferService" android:exported="false" android:foregroundServiceType="dataSync" />
 
@@ -133,7 +148,7 @@
         <service
             android:name=".campaign.AppOwnedCampaignService"
             android:exported="false"
-            android:foregroundServiceType="microphone"
+            android:foregroundServiceType="microphone|phoneCall"
             android:stopWithTask="false" />
 
         <activity

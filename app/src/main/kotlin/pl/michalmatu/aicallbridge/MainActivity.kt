@@ -9,7 +9,12 @@ import android.view.ViewGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
-import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
+import pl.michalmatu.aicallbridge.campaign.PhoneTaskWizardActivity
+import pl.michalmatu.aicallbridge.campaign.PhoneTasksActivity
+import pl.michalmatu.aicallbridge.campaign.PhoneTaskWork
+import pl.michalmatu.aicallbridge.campaign.PhoneTaskState
+import pl.michalmatu.aicallbridge.campaign.PhoneTaskScheduler
+import pl.michalmatu.aicallbridge.campaign.PhoneTaskLabels
 import pl.michalmatu.aicallbridge.campaign.CampaignLiveUiLabels
 import pl.michalmatu.aicallbridge.conversation.LiveConversationOverlay
 import pl.michalmatu.aicallbridge.ui.AppBaseActivity
@@ -24,6 +29,9 @@ class MainActivity : AppBaseActivity() {
     private lateinit var dialerRole: DialerRoleCard
     private lateinit var liveStatus: TextView
     private lateinit var actionFeedback: TextView
+    private lateinit var taskSummary: TextView
+    private var taskReading = false
+    private var lastTaskRead = 0L
     private var diagnosticProbes: MainActivityDeveloperProbes? = null
     private val statusHandler = Handler(Looper.getMainLooper())
     private val statusRefresh = object : Runnable {
@@ -31,6 +39,7 @@ class MainActivity : AppBaseActivity() {
             if (::liveStatus.isInitialized) {
                 liveStatus.text = getString(CampaignLiveUiLabels.title(AppOwnedCampaignService.liveUiPhase()))
             }
+            refreshTasks()
             statusHandler.postDelayed(this, 1_000L)
         }
     }
@@ -49,13 +58,13 @@ class MainActivity : AppBaseActivity() {
             visibility = View.GONE
         }
 
-        val start = UiDesign.action(this, getString(R.string.camp_mvp_appointment_title),
+        taskSummary = UiDesign.caption(this, getString(R.string.task_loading))
+        val start = UiDesign.action(this, getString(R.string.task_new),
             UiActionTone.PRIMARY) {
-            // Open the existing exact-number/SIM consent form. Navigation never dials.
-            startActivity(Intent(this, AppointmentMvpActivity::class.java))
-        }.apply { tag = "home-appointment-start" }
+            startActivity(Intent(this, PhoneTaskWizardActivity::class.java))
+        }.apply { tag = "home-task-start" }
 
-        val stop = UiDesign.action(this, getString(R.string.ui_stop_ai), UiActionTone.DANGER) {
+        val stop = UiDesign.action(this, getString(R.string.task_stop_all), UiActionTone.REVOCATION) {
             startService(Intent(this, AppOwnedCampaignService::class.java)
                 .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI))
             actionFeedback.text = getString(R.string.home_ui_stop_sent)
@@ -68,12 +77,10 @@ class MainActivity : AppBaseActivity() {
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-new-call-card"
                 addView(start)
-                addView(UiDesign.caption(this@MainActivity,
-                    getString(R.string.camp_mvp_appointment_description)),
-                    UiDesign.spaceAfter(this@MainActivity, 0).apply {
-                        topMargin = UiDesign.dp(this@MainActivity, UiDesign.GAP_SMALL)
-                    })
             }, UiDesign.spaceAfter(this@MainActivity, 16))
+            addView(UiDesign.navigationRow(this@MainActivity, getString(R.string.task_list), taskSummary) {
+                startActivity(Intent(this@MainActivity, PhoneTasksActivity::class.java))
+            }.apply { tag = "home-tasks" }, UiDesign.spaceAfter(this@MainActivity, 16))
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-call-status-card"
                 addView(liveStatus, UiDesign.spaceAfter(this@MainActivity, 12))
@@ -100,6 +107,7 @@ class MainActivity : AppBaseActivity() {
     override fun onResume() {
         super.onResume()
         if (::dialerRole.isInitialized) dialerRole.refresh()
+        lastTaskRead = 0L
         statusHandler.removeCallbacks(statusRefresh)
         statusHandler.post(statusRefresh)
     }
@@ -112,5 +120,30 @@ class MainActivity : AppBaseActivity() {
     override fun onDestroy() {
         diagnosticProbes?.close()
         super.onDestroy()
+    }
+
+    private fun refreshTasks() {
+        if (taskReading || System.currentTimeMillis() - lastTaskRead < 5_000L) return
+        taskReading = true
+        lastTaskRead = System.currentTimeMillis()
+        PhoneTaskWork.io.execute {
+            val result = runCatching {
+                PhoneTaskWork.recover(this)
+                PhoneTaskWork.store(this).phoneTasks()
+            }
+            runOnUiThread {
+                taskReading = false
+                if (isDestroyed) return@runOnUiThread
+                taskSummary.text = result.fold(onSuccess = { tasks ->
+                    val pending = tasks.filter { it.state == PhoneTaskState.READY || it.state == PhoneTaskState.PAUSED }
+                    if (tasks.isEmpty()) getString(R.string.task_empty)
+                    else if (pending.isEmpty()) getString(R.string.task_results_count, tasks.size)
+                    else pending.sortedBy { it.startAt }.take(3).joinToString("\n") {
+                        it.title + " · " + getString(PhoneTaskLabels.state(it)) + "\n" +
+                            PhoneTaskLabels.time(it.startAt, it.zoneId)
+                    }
+                }, onFailure = { getString(R.string.task_storage_error) })
+            }
+        }
     }
 }

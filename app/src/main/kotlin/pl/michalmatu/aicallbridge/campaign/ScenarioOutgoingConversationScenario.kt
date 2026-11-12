@@ -14,6 +14,7 @@ internal class ScenarioOutgoingConversationScenario(
     private val task: ScenarioOutgoingTask,
     private val configuration: ConversationRunConfiguration.ModelDirect,
     private val requestEndCall: () -> Boolean = { false },
+    private val taskObserver: PhoneTaskCallObserver? = null,
 ) : ConversationScenario {
     override val id: String = "scenario-enquiry-" + task.scenarioId
     override val preparationId: String = configuration.preparation.id
@@ -54,6 +55,10 @@ internal class ScenarioOutgoingConversationScenario(
                 task.title + ".",
         )
         return object : ConversationDialogueSession by session {
+            override fun onTranscript(turn: Int, text: String) {
+                if (hooks.authorized()) taskObserver?.transcript(hooks.sessionId, turn, text)
+                session.onTranscript(turn, text)
+            }
             override fun finalDiagnostics() = session.finalDiagnostics() + listOf(
                 "scenario_template_id=" + task.scenarioId,
                 "scenario_user_review_required=true",
