@@ -60,7 +60,7 @@ internal class MainActivityDeveloperProbes(
         }, UiDesign.spaceAfter(activity, 8))
         content.addView(UiDesign.action(activity,
             activity.getString(R.string.dev_ui_capability)) {
-            activity.startActivity(Intent(activity, CapabilityDiagnosticsActivity::class.java))
+            runCapabilityProbe()
         }, UiDesign.spaceAfter(activity, 8))
         content.addView(UiDesign.action(activity,
             activity.getString(R.string.dev_ui_shizuku)) {
@@ -73,6 +73,11 @@ internal class MainActivityDeveloperProbes(
         Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
         Shizuku.addRequestPermissionResultListener(shizukuPermissionResultListener)
         attached = true
+    }
+
+    /** Old Home shortcut and developer tools now share the same destination. */
+    fun runCapabilityProbe() {
+        activity.startActivity(Intent(activity, CapabilityDiagnosticsActivity::class.java))
     }
 
     private fun runShizukuProbe(live: Boolean) {
