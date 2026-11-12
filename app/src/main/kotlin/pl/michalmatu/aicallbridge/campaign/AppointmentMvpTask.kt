@@ -1,7 +1,6 @@
 package pl.michalmatu.aicallbridge.campaign
 
 import android.content.Context
-import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.UUID
 import pl.michalmatu.aicallbridge.agent.CallConstraints
@@ -79,7 +78,7 @@ internal data class AppointmentMvpReview(
 /** Pure app-owned validation of receptionist STT, not a simulated booking provider. */
 internal class AppointmentMvpReviewReducer(private val task: AppointmentMvpTask) {
     private val callTask = task.toCallTask()
-    private val interpreter = AppointmentInterpreter(ZoneId.of("Europe/Warsaw"))
+    private val interpreter = AppointmentInterpreter(task.notBefore.zone)
     fun observe(text: String, referenceDate: java.time.LocalDate): AppointmentMvpReview? {
         val at = interpreter.parseOffer(text, referenceDate)?.scheduledAt ?: return null
         if (at.toInstant() < task.notBefore.toInstant() ||

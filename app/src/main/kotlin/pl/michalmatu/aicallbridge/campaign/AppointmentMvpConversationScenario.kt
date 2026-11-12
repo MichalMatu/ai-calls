@@ -2,7 +2,6 @@ package pl.michalmatu.aicallbridge.campaign
 
 import android.content.Context
 import java.time.LocalDate
-import java.time.ZoneId
 import pl.michalmatu.aicallbridge.agent.*
 import pl.michalmatu.aicallbridge.appointment.*
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
@@ -44,7 +43,7 @@ internal class AppointmentMvpConversationScenario(
         val reviewReducer = AppointmentMvpReviewReducer(task)
         val reviewStore = AppointmentMvpStore(context)
         val vault = AndroidIdentityVault.create(context)
-        val interpreter = AppointmentInterpreter(ZoneId.of("Europe/Warsaw"))
+        val interpreter = AppointmentInterpreter(task.notBefore.zone)
         val enabled = ConversationToolSettingsStore(context).enabled()
         val model = configuration.acquireModel(
             takePrepared = { profile, instruction ->
@@ -132,7 +131,7 @@ internal class AppointmentMvpConversationScenario(
             override fun onTranscript(turn: Int, text: String) {
                 if (reviewPending || !hooks.authorized()) return
                 val proposed = reviewReducer.observe(text,
-                    LocalDate.now(ZoneId.of("Europe/Warsaw"))) ?: return
+                    LocalDate.now(task.notBefore.zone)) ?: return
                 if (reviewStore.saveReview(task.grantId, proposed) && hooks.authorized()) {
                     reviewPending = true
                     currentReview = proposed

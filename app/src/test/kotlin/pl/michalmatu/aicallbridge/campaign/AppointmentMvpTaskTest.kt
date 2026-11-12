@@ -37,6 +37,27 @@ class AppointmentMvpTaskTest {
         assertFalse(proposal.toString().contains("11:30"))
         assertNull(r.observe("Mamy 10.02.2027 o 15:00", date))
     }
+    @Test fun proposedAppointmentUsesApprovedTaskZoneRatherThanDeviceDefaultZone() {
+        val newYork = ZoneId.of("America/New_York")
+        val localStart = ZonedDateTime.of(2027, 2, 10, 9, 0, 0, 0, newYork)
+        val localTask = task().copy(
+            notBefore = localStart,
+            notAfter = localStart.plusHours(3),
+        )
+        val reducer = AppointmentMvpReviewReducer(localTask)
+        val offered = requireNotNull(reducer.observe(
+            "Mamy 10.02.2027 o 11:30", LocalDate.of(2027, 2, 10),
+        ))
+        assertEquals(
+            ZonedDateTime.of(2027, 2, 10, 11, 30, 0, 0, newYork),
+            offered.at,
+        )
+        assertEquals(AppointmentMvpReview.REVIEW_REQUIRED, offered.status)
+        assertNull(reducer.observe(
+            "Mamy 10.02.2027 o 15:30", LocalDate.of(2027, 2, 10),
+        ))
+    }
+
     @Test fun highSensitivityAndBadTelephoneAreNotGrantable() {
         assertThrows(IllegalArgumentException::class.java) {
             task().copy(disclosureFields = setOf(IdentityFieldId.PESEL))
