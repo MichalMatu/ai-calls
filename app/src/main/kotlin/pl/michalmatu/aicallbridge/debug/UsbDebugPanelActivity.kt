@@ -131,35 +131,48 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     UiDesign.dp(this@UsbDebugPanelActivity, 6))
             })
             fields.forEach { (label, key) ->
+                val value = data.opt(key)
+                val display = when (value) {
+                    null, org.json.JSONObject.NULL -> getString(R.string.usb_ui_unknown)
+                    is Boolean -> getString(if (value) R.string.usb_ui_yes else R.string.usb_ui_no)
+                    is org.json.JSONObject -> value.toString(2)
+                    else -> value.toString()
+                }
+                val compact = display.length <= 28 && !display.contains('\n')
                 val row = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
+                    orientation = if (compact) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
                     setPadding(0, UiDesign.dp(this@UsbDebugPanelActivity, 5),
                         0, UiDesign.dp(this@UsbDebugPanelActivity, 7))
                 }
-                row.addView(TextView(this).apply {
+                val fieldLabel = TextView(this).apply {
                     text = getString(label)
                     textSize = 12f
                     setTextColor(UiDesign.secondary)
-                })
-                row.addView(TextView(this).apply {
-                    val value = data.opt(key)
-                    text = when (value) {
-                        null, org.json.JSONObject.NULL -> getString(R.string.usb_ui_unknown)
-                        is Boolean -> getString(if (value) R.string.usb_ui_yes else R.string.usb_ui_no)
-                        is org.json.JSONObject -> value.toString(2)
-                        else -> value.toString()
-                    }
+                }
+                val fieldValue = TextView(this).apply {
+                    text = display
                     setTextIsSelectable(true)
                     textSize = 14f
                     setTextColor(UiDesign.ink)
-                    setPadding(0, UiDesign.dp(this@UsbDebugPanelActivity, 3), 0, 0)
-                })
+                    gravity = if (compact) android.view.Gravity.END else android.view.Gravity.START
+                }
+                if (compact) {
+                    row.addView(fieldLabel, LinearLayout.LayoutParams(
+                        0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    row.addView(fieldValue, LinearLayout.LayoutParams(
+                        0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                } else {
+                    row.addView(fieldLabel)
+                    fieldValue.setPadding(0, UiDesign.dp(this@UsbDebugPanelActivity, 3), 0, 0)
+                    row.addView(fieldValue)
+                }
                 technicalFields.addView(row)
             }
         }
         group(R.string.usb_ui_group_phone, listOf(
-            R.string.ux07_usb_phone to "call_idle",
-            R.string.ux07_usb_campaign to "campaign_service_inactive",
+            R.string.usb_ui_phone_idle_flag to "call_idle",
+            R.string.usb_ui_campaign_inactive_flag to "campaign_service_inactive",
             R.string.usb_ui_pending_retry to "pending_retry",
         ))
         group(R.string.usb_ui_group_engines, listOf(
