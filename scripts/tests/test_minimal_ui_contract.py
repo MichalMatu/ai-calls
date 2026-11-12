@@ -53,8 +53,12 @@ class MinimalUiContract(unittest.TestCase):
         self.assertNotIn('tag = "ui-language-group"',hub)
         self.assertIn("UiSelect.setOptions(this, languageLabels)",hub)
         self.assertNotIn("RadioGroup(this)",hub)
-        for file in ("audioengines/ModelVoiceSettings.kt",
-                     "conversation/ConversationSkillLabActivity.kt"):
-            self.assertIn("UiSelect.setOptions(",(K/file).read_text())
+        # The model/voice picker is a native radio selection dialog; Lab uses
+        # the native styled spinner. Check each current control, not an obsolete one.
+        model=(K/"audioengines/ModelVoiceSettings.kt").read_text()
+        self.assertIn("RadioGroup(activity)",model)
+        self.assertIn("RadioButton(activity)",model)
+        self.assertIn("UiSelect.setOptions(",
+                      (K/"conversation/ConversationSkillLabActivity.kt").read_text())
 
 if __name__=="__main__": unittest.main()
