@@ -14,7 +14,6 @@ import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineSettingsActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
-import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 
 /** Direct navigation hub: categories are labels, not one-button accordions. */
@@ -113,7 +112,6 @@ class SettingsHubActivity : AppBaseActivity() {
         destination(R.string.ui_settings_hub_answering, R.string.ui_settings_hub_answering_detail, IncomingAssistantSettingsActivity::class.java)
         section(R.string.ui_settings_hub_group_advanced)
         destination(R.string.ui_settings_hub_developer, R.string.ui_settings_hub_developer_detail, DeveloperToolsActivity::class.java)
-        destination(R.string.ui_settings_hub_usb, R.string.ui_settings_hub_usb_detail, UsbDebugPanelActivity::class.java)
         AppNavigation.install(this, ScrollView(this).apply {
             isFillViewport = true
             addView(content)
