@@ -37,7 +37,7 @@ internal class OnDeviceSpeechInput(
     private var recognizer: SpeechRecognizer? = null
     private var readPfd: ParcelFileDescriptor? = null
     private var writer: OutputStream? = null
-    private val segments = mutableListOf<String>()
+    private val segments = SpeechRecognitionSegments()
 
     fun start(listener: Listener) {
         cancel()
@@ -84,7 +84,7 @@ internal class OnDeviceSpeechInput(
                         .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                         ?.firstOrNull()
                         .orEmpty()
-                    if (top.isNotBlank()) synchronized(lock) { segments += top }
+                    if (top.isNotBlank()) synchronized(lock) { segments.add(top) }
                 }
     
                 override fun onEndOfSegmentedSession() {
@@ -207,8 +207,7 @@ internal class OnDeviceSpeechInput(
 
     private fun completeTranscript(generation: Long, listener: Listener, direct: String) {
         if (!gate.isCurrent(generation)) return
-        val segmented = synchronized(lock) { segments.joinToString(" ") }
-        val text = direct.ifBlank { segmented }
+        val text = synchronized(lock) { segments.resolve(direct) }
         if (text.isBlank()) {
             finishWithError(generation, listener, "empty_transcript")
             return
