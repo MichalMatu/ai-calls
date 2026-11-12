@@ -93,7 +93,6 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         statusCard.addView(state)
         content.addView(statusCard, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.caption(this, getString(R.string.usb_ui_description)))
         setContentView(ScrollView(this).apply {
             addView(content, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))

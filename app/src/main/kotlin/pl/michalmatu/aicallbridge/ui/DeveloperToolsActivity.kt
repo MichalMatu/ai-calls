@@ -23,11 +23,6 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 UiDesign.dp(this@DeveloperToolsActivity, 20),
                 UiDesign.dp(this@DeveloperToolsActivity, 24))
         }
-        body.addView(TextView(this).apply {
-            text = getString(R.string.ui_developer_description)
-            textSize = 14f
-            setTextColor(UiDesign.secondary)
-        })
         val status = TextView(this).apply {
             tag = "developer-probe-result"
             setTextColor(UiDesign.ink)

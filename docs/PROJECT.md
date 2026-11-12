@@ -9,7 +9,7 @@
 
 - **Sekretarka (UX):** dwa tony naturalny/formalny i własne instrukcje bez nazywania profilu. Ustawienia dotyczą tylko incoming; stare presety i historia wersji są usuwane podczas migracji szyfrowanego zapisu; aktywne własne instrukcje i ton sekretarki są zachowywane. Wymagana fizyczna kontrola UI S22+ po instalacji.
 
-- **Diagnostyka UX:** jedno wejście przez Opcje → Narzędzia programistyczne → Stan aplikacji. Jedna karta z 14 niepowtórzonymi statusami w czterech grupach, bez sekcji rozwijanej, ręcznego odświeżania i kopiowania JSON do schowka; odczyt przy otwarciu ekranu. Protokół USB/ADB i sondy bez zmian; odbiór S22 **PHYSICAL_OPEN**.
+- **Diagnostyka UX:** jedno wejście przez Opcje → Narzędzia programistyczne → Stan aplikacji. Jedna karta z 14 niepowtórzonymi statusami w czterech grupach, bez sekcji rozwijanej, ręcznego odświeżania i kopiowania JSON do schowka; odczyt przy otwarciu ekranu. Protokół USB/ADB i sondy bez zmian; odbiór S22 **PHYSICAL_OPEN**. Osobny ekran Możliwości urządzenia pokazuje parsowane dane w jednej karcie (wynik inicjalizacji nie oznacza skutecznego przechwycenia rozmowy); sonda poza wątkiem UI, oryginalny prywatny raport nadal zapisywany.
 
 ## Otwarte — MVP FIRST (G6.1 i pozostałe P0/P1)
 | Funkcja | Status | Zweryfikowane / blokada |

@@ -316,7 +316,7 @@
     <string name="eng_ui_auto">automatic</string>
     <string name="dev_ui_title">Device diagnostics</string>
     <string name="dev_ui_usb">App status</string>
-    <string name="dev_ui_capability">Check device capabilities</string>
+    <string name="dev_ui_capability">Device capabilities</string>
     <string name="dev_ui_shizuku">Check Shizuku UserService</string>
     <string name="dev_ui_audio">Audio RX / TX — status</string>
     <string name="dev_ui_status_note">Downlink/uplink probes need phase 2 validation. This panel does not take over or stop audio.</string>
@@ -711,4 +711,27 @@
     <string name="models_ui_android_stt_unavailable">System offline speech recognition is unavailable. Check Android settings or select a downloaded Parakeet model.</string>
     <string name="models_ui_voice_required">The selected Polish offline voice is missing. Check the engine and voices in Android settings.</string>
     <string name="models_ui_verify_on_save">File stored · integrity checked when saving</string>
+    <string name="cap_ui_running">Checking device capabilities…</string>
+    <string name="cap_ui_failed">Could not inspect device capabilities.</string>
+    <string name="cap_ui_device">Device</string>
+    <string name="cap_ui_audio">Audio</string>
+    <string name="cap_ui_sources">Audio sources — initialization</string>
+    <string name="cap_ui_routes">Audio devices</string>
+    <string name="cap_ui_model">Model</string>
+    <string name="cap_ui_system">System</string>
+    <string name="cap_ui_mic">Microphone</string>
+    <string name="cap_ui_mode">Audio mode</string>
+    <string name="cap_ui_muted">Microphone muted</string>
+    <string name="cap_ui_speaker">Speakerphone</string>
+    <string name="cap_ui_rate">Output sample rate</string>
+    <string name="cap_ui_telephony">Telephony route</string>
+    <string name="cap_ui_communication">Communication device</string>
+    <string name="cap_ui_granted">Granted</string>
+    <string name="cap_ui_denied">Not granted</string>
+    <string name="cap_ui_initialized">Initialized</string>
+    <string name="cap_ui_uninitialized">Not initialized</string>
+    <string name="cap_ui_unavailable">Unavailable</string>
+    <string name="cap_ui_yes">Yes</string>
+    <string name="cap_ui_no">No</string>
+    <string name="cap_ui_unknown">Unknown</string>
 </resources>

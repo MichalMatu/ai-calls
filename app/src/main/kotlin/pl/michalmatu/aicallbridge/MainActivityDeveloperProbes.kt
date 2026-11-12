@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge
 import android.app.Activity
 import android.content.Intent
 import pl.michalmatu.aicallbridge.debug.UsbDebugPanelActivity
+import pl.michalmatu.aicallbridge.ui.CapabilityDiagnosticsActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import android.content.pm.PackageManager
@@ -59,22 +60,12 @@ internal class MainActivityDeveloperProbes(
         }, UiDesign.spaceAfter(activity, 8))
         content.addView(UiDesign.action(activity,
             activity.getString(R.string.dev_ui_capability)) {
-            runCapabilityProbe()
+            activity.startActivity(Intent(activity, CapabilityDiagnosticsActivity::class.java))
         }, UiDesign.spaceAfter(activity, 8))
         content.addView(UiDesign.action(activity,
             activity.getString(R.string.dev_ui_shizuku)) {
             runShizukuProbe(false)
         }, UiDesign.spaceAfter(activity, 16))
-        // These legacy buttons only published status text and never controlled audio.
-        // Present the truth as diagnostic information, not as misleading action buttons.
-        content.addView(UiDesign.heading(activity, activity.getString(R.string.dev_ui_audio)).apply { textSize = 17f },
-            UiDesign.spaceAfter(activity, 8))
-        content.addView(UiDesign.caption(activity,
-            activity.getString(R.string.dev_ui_status_note)),
-            UiDesign.spaceAfter(activity, 12))
-        content.addView(UiDesign.caption(activity,
-            activity.getString(R.string.dev_ui_stop_note)),
-            UiDesign.spaceAfter(activity, 12))
     }
 
     fun attach() {
@@ -82,16 +73,6 @@ internal class MainActivityDeveloperProbes(
         Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
         Shizuku.addRequestPermissionResultListener(shizukuPermissionResultListener)
         attached = true
-    }
-
-    fun runCapabilityProbe() {
-        publishStatus(
-            try {
-                CapabilityProbe(activity).run()
-            } catch (error: Throwable) {
-                "Capability probe failed: ${error.javaClass.simpleName}: ${error.message}"
-            },
-        )
     }
 
     private fun runShizukuProbe(live: Boolean) {

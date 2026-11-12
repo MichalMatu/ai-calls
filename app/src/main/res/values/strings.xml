@@ -316,7 +316,7 @@
     <string name="eng_ui_auto">automatyczny</string>
     <string name="dev_ui_title">Diagnostyka urządzenia</string>
     <string name="dev_ui_usb">Stan aplikacji</string>
-    <string name="dev_ui_capability">Sprawdź możliwości urządzenia</string>
+    <string name="dev_ui_capability">Możliwości urządzenia</string>
     <string name="dev_ui_shizuku">Sprawdź Shizuku UserService</string>
     <string name="dev_ui_audio">Audio RX / TX — status</string>
     <string name="dev_ui_status_note">Sondy downlink/uplink wymagają testów fazy 2. Ten panel nie włącza przejęcia ani STOP audio.</string>
@@ -712,4 +712,27 @@
     <string name="models_ui_android_stt_unavailable">Systemowe rozpoznawanie mowy offline jest niedostępne. Sprawdź ustawienia Androida lub wybierz pobrany Parakeet.</string>
     <string name="models_ui_voice_required">Brakuje wybranego polskiego głosu offline. Sprawdź silnik i głosy w ustawieniach Androida.</string>
     <string name="models_ui_verify_on_save">Plik zapisany · sprawdzenie integralności przy zapisie</string>
+    <string name="cap_ui_running">Sprawdzanie możliwości urządzenia…</string>
+    <string name="cap_ui_failed">Nie udało się sprawdzić możliwości urządzenia.</string>
+    <string name="cap_ui_device">Urządzenie</string>
+    <string name="cap_ui_audio">Audio</string>
+    <string name="cap_ui_sources">Źródła audio — inicjalizacja</string>
+    <string name="cap_ui_routes">Urządzenia audio</string>
+    <string name="cap_ui_model">Model</string>
+    <string name="cap_ui_system">System</string>
+    <string name="cap_ui_mic">Mikrofon</string>
+    <string name="cap_ui_mode">Tryb audio</string>
+    <string name="cap_ui_muted">Wyciszenie mikrofonu</string>
+    <string name="cap_ui_speaker">Głośnik</string>
+    <string name="cap_ui_rate">Próbkowanie wyjścia</string>
+    <string name="cap_ui_telephony">Kanał telefoniczny</string>
+    <string name="cap_ui_communication">Urządzenie rozmowy</string>
+    <string name="cap_ui_granted">Przyznano</string>
+    <string name="cap_ui_denied">Brak zgody</string>
+    <string name="cap_ui_initialized">Zainicjowano</string>
+    <string name="cap_ui_uninitialized">Nie zainicjowano</string>
+    <string name="cap_ui_unavailable">Niedostępne</string>
+    <string name="cap_ui_yes">Tak</string>
+    <string name="cap_ui_no">Nie</string>
+    <string name="cap_ui_unknown">Brak danych</string>
 </resources>
