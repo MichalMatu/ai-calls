@@ -85,6 +85,26 @@ class SpeechRecognitionSegmentsTest {
         )
     }
 
+    @Test fun clippedFinalWithSameOpeningAndEndingPreservesConfirmedConditions() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("Dzień dobry chciałbym umówić wizytę")
+        speech.add("na piątek bez dodatkowych opłat")
+        assertEquals(
+            "Dzień dobry chciałbym umówić wizytę na piątek bez dodatkowych opłat",
+            speech.resolve("Dzień dobry bez dodatkowych opłat"),
+        )
+    }
+
+    @Test fun shortCorrectionOfOneWordStillReplacesWholeUtterance() {
+        val speech = SpeechRecognitionSegments()
+        speech.add("Dzień dobry chciałbym wizytę")
+        speech.add("na piątek")
+        assertEquals(
+            "Dzień dobry wizytę na piątek",
+            speech.resolve("Dzień dobry wizytę na piątek"),
+        )
+    }
+
     @Test fun differentOpeningIsAppendedAsSeparateFinalFragment() {
         val speech = SpeechRecognitionSegments()
         speech.add("Dzień dobry chciałbym wizytę")

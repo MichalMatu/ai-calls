@@ -52,7 +52,12 @@ internal class SpeechRecognitionSegments {
         val directWords = words(direct)
         if (completedWords.size >= 4 && directWords.size >= 4 &&
             completedWords.take(2) == directWords.take(2) &&
-            completedWords.takeLast(2) == directWords.takeLast(2)) return direct
+            completedWords.takeLast(2) == directWords.takeLast(2)) {
+            // A dramatically shorter onResults value can be a clipped summary,
+            // not a corrected full utterance. Preserve finalized appointment
+            // conditions rather than silently dropping their middle words.
+            return if (directWords.size >= completedWords.size - 1) direct else accumulated
+        }
 
         val previous = accumulated.split(Regex("\\s+"))
         val tail = direct.split(Regex("\\s+"))
