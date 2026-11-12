@@ -63,7 +63,7 @@
     <string name="ui_settings_hub_general">Podstawowe ustawienia AI</string>
     <string name="ui_settings_hub_general_detail">Tryb rozmowy, dostawca LLM i mikrofon</string>
     <string name="ui_settings_hub_developer">Sondy i narzędzia programistyczne</string>
-    <string name="ui_settings_hub_developer_detail">Diagnostyka sprzętu i Shizuku</string>
+    <string name="ui_settings_hub_developer_detail">USB/ADB, sprzęt, Shizuku i laboratorium offline</string>
     <string name="ui_supervised_section">Test nadzorowany aktywnej rozmowy</string>
     <string name="ui_general_description">Wybory zapisują się dla kolejnej rozmowy. Nie rozpoczynają połączeń.</string>
     <string name="ui_developer_description">Zaawansowana diagnostyka. Uruchamiaj sondy świadomie.</string>
@@ -162,11 +162,11 @@
     <string name="skills_ui_enabled">Włączony</string>
     <string name="skills_ui_disabled">Wyłączony</string>
     <string name="skills_ui_factory_readonly">Preset fabryczny · tylko do odczytu. Aby edytować, utwórz własną kopię.</string>
-    <string name="usb_ui_title">AI Calls — diagnostyka USB / ADB</string>
+    <string name="usb_ui_title">Diagnostyka USB / ADB</string>
     <string name="usb_ui_description">Lokalny odczyt stanu. Prywatne dane nie są automatycznie publikowane ani wysyłane do logcat.</string>
     <string name="usb_ui_refresh">Odśwież diagnostykę</string>
     <string name="usb_ui_raw_details">Szczegóły techniczne · JSON</string>
-    <string name="usb_ui_formatted_title">Stan techniczny — czytelny podgląd</string>
+    <string name="usb_ui_formatted_title">Szczegóły stanu</string>
     <string name="usb_ui_unknown">Brak danych</string>
     <string name="usb_ui_yes">Tak</string>
     <string name="usb_ui_no">Nie</string>
@@ -174,6 +174,8 @@
     <string name="usb_ui_group_engines">Silniki i model</string>
     <string name="usb_ui_group_privacy">Zgody i dane prywatne</string>
     <string name="usb_ui_group_incoming">Obsługa połączeń przychodzących</string>
+    <string name="usb_ui_phone_idle_flag">Telefon wolny</string>
+    <string name="usb_ui_campaign_inactive_flag">Usługa kampanii nieaktywna</string>
     <string name="usb_ui_pending_retry">Oczekująca ponowna próba</string>
     <string name="usb_ui_profile_valid">Konfiguracja silników poprawna</string>
     <string name="usb_ui_voice">Głos</string>
@@ -313,12 +315,12 @@
     <string name="eng_ui_summary">Zapisano: %1$s → %2$s → %3$s\nGłos: %4$s</string>
     <string name="eng_ui_auto">automatyczny</string>
     <string name="dev_ui_title">Diagnostyka urządzenia</string>
-    <string name="dev_ui_usb">USB / ADB — diagnostyka</string>
+    <string name="dev_ui_usb">Diagnostyka USB / ADB</string>
     <string name="dev_ui_capability">Sprawdź możliwości urządzenia</string>
     <string name="dev_ui_shizuku">Sprawdź Shizuku UserService</string>
     <string name="dev_ui_audio">Audio RX / TX — status</string>
     <string name="dev_ui_status_note">Sondy downlink/uplink wymagają testów fazy 2. Ten panel nie włącza przejęcia ani STOP audio.</string>
-    <string name="dev_ui_stop_note">Do zatrzymania AI użyj STOP AI w Kampaniach lub na ekranie Start.</string>
+    <string name="dev_ui_stop_note">Do zatrzymania AI użyj STOP AI na ekranie Start.</string>
     <string name="dev_ui_shizuku_denied">Odmówiono uprawnienia Shizuku</string>
     <string name="dev_ui_shizuku_missing">Shizuku niedostępne — najpierw je uruchom</string>
     <string name="dev_ui_shizuku_unsupported">Shizuku przed wersją 11 nie jest obsługiwane</string>
