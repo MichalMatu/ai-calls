@@ -63,7 +63,7 @@
     <string name="ui_settings_hub_general">Basic AI settings</string>
     <string name="ui_settings_hub_general_detail">Call mode, LLM provider and microphone</string>
     <string name="ui_settings_hub_developer">Developer probes</string>
-    <string name="ui_settings_hub_developer_detail">Hardware and Shizuku diagnostics</string>
+    <string name="ui_settings_hub_developer_detail">USB/ADB, hardware, Shizuku and offline lab</string>
     <string name="ui_supervised_section">Supervised active-call test</string>
     <string name="ui_general_description">Settings apply to the next call. Changing them never starts a call.</string>
     <string name="ui_developer_description">Advanced diagnostics. Run probes deliberately.</string>
@@ -162,11 +162,11 @@
     <string name="skills_ui_enabled">Enabled</string>
     <string name="skills_ui_disabled">Disabled</string>
     <string name="skills_ui_factory_readonly">Factory preset · read-only. Create a copy to edit.</string>
-    <string name="usb_ui_title">AI Calls — USB / ADB diagnostics</string>
+    <string name="usb_ui_title">USB / ADB diagnostics</string>
     <string name="usb_ui_description">Local status view. Private data is not automatically published or sent to logcat.</string>
     <string name="usb_ui_refresh">Refresh diagnostics</string>
     <string name="usb_ui_raw_details">Technical details · JSON</string>
-    <string name="usb_ui_formatted_title">Technical status — readable view</string>
+    <string name="usb_ui_formatted_title">Status details</string>
     <string name="usb_ui_unknown">Unavailable</string>
     <string name="usb_ui_yes">Yes</string>
     <string name="usb_ui_no">No</string>
@@ -174,6 +174,8 @@
     <string name="usb_ui_group_engines">Engines and model</string>
     <string name="usb_ui_group_privacy">Permissions and private data</string>
     <string name="usb_ui_group_incoming">Incoming call handling</string>
+    <string name="usb_ui_phone_idle_flag">Phone idle</string>
+    <string name="usb_ui_campaign_inactive_flag">Campaign service inactive</string>
     <string name="usb_ui_pending_retry">Pending retry</string>
     <string name="usb_ui_profile_valid">Valid engine configuration</string>
     <string name="usb_ui_voice">Voice</string>
@@ -318,7 +320,7 @@
     <string name="dev_ui_shizuku">Check Shizuku UserService</string>
     <string name="dev_ui_audio">Audio RX / TX — status</string>
     <string name="dev_ui_status_note">Downlink/uplink probes need phase 2 validation. This panel does not take over or stop audio.</string>
-    <string name="dev_ui_stop_note">To stop AI use STOP AI in Campaigns or on Home.</string>
+    <string name="dev_ui_stop_note">To stop AI use STOP AI on Home.</string>
     <string name="dev_ui_shizuku_denied">Shizuku permission denied</string>
     <string name="dev_ui_shizuku_missing">Shizuku unavailable; start it first</string>
     <string name="dev_ui_shizuku_unsupported">Shizuku before v11 is not supported</string>
