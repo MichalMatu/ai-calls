@@ -107,6 +107,13 @@ class ConversationReplyProtocolTest {
         val names = json.getAsJsonObject("properties")
             .getAsJsonObject("tool").getAsJsonArray("enum").map { it.asString }
         assertTrue(names.containsAll(listOf("none", "end_call", "save_note")))
+        assertEquals(setOf("reply", "tool", "note", "kind"),
+            json.getAsJsonArray("required").map { it.asString }.toSet())
+        for (tool in listOf("none", "end_call")) {
+            val reply = ConversationReplyProtocol.decode(
+                """{"reply":"Rozumiem.","tool":"$tool","note":"","kind":"NOTE"}""")
+            assertNull(reply.note)
+        }
         val payload = ConversationReplyProtocol.decode(
             """{"reply":"Zanotuję.","tool":"save_note","note":"Termin do sprawdzenia","kind":"CALENDAR_PROPOSAL"}""")
         assertEquals(ConversationToolId.SAVE_NOTE, payload.tool)

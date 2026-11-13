@@ -61,6 +61,8 @@ internal data class NativeModelTiming(
     val retainedContextTurns: Int = 0,
     val replyRecoveryAttempts: Int = 0,
     val replyValidationFailure: String = "none",
+    val rejectedReplyChars: Int = 0,
+    val rejectedReplyShape: String = "none",
 ) {
     val totalMs: Long get() = engineReadyMs + conversationCreateMs + generateMs
 }
@@ -411,6 +413,8 @@ internal class LiteRtGemma4Runtime(
         var replyRecoveryAttempts = 0
         var replyValidationFailure = "none"
         var repairingReply = false
+        var rejectedReplyChars = 0
+        var rejectedReplyShape = "none"
         try {
             var readyEngine = ensureEngine()
             engineReadyNs = System.nanoTime()
@@ -466,8 +470,20 @@ internal class LiteRtGemma4Runtime(
             val message = sendWithReplyRecovery(
                 isCurrent = { isCurrent(requestGeneration) },
                 validate = { candidate ->
-                    if (validateConversationReply)
-                        ConversationReplyProtocol.validateGenerated(candidate.toString().trim(), audioPcm != null)
+                    if (validateConversationReply) {
+                        val raw = candidate.toString().trim()
+                        try {
+                            ConversationReplyProtocol.validateGenerated(raw, audioPcm != null)
+                        } catch (invalid: InvalidConversationReply) {
+                            rejectedReplyChars = raw.length
+                            rejectedReplyShape = when {
+                                raw.startsWith("{") && raw.endsWith("}") -> "closed_object"
+                                raw.startsWith("{") -> "unclosed_object"
+                                else -> "other"
+                            }
+                            throw invalid
+                        }
+                    }
                 },
                 rejected = { replyValidationFailure = it.name.lowercase() },
                 recreateForRepair = {
@@ -572,6 +588,8 @@ internal class LiteRtGemma4Runtime(
                 retainedContextTurns = conversationWindow.snapshot().size,
                 replyRecoveryAttempts = replyRecoveryAttempts,
                 replyValidationFailure = replyValidationFailure,
+                rejectedReplyChars = rejectedReplyChars,
+                rejectedReplyShape = rejectedReplyShape,
             )
             Log.i("AiCallBridgePerf", "gemma4_runtime_backend=${timing.backend}" +
                 ",engine_ready_ms=${timing.engineReadyMs}" +
@@ -586,7 +604,9 @@ internal class LiteRtGemma4Runtime(
                 ",native_context_tokens=${timing.nativeContextTokens ?: -1}" +
                 ",retained_context_turns=${timing.retainedContextTurns}" +
                 ",reply_recovery_attempts=${timing.replyRecoveryAttempts}" +
-                ",reply_validation_failure=${timing.replyValidationFailure}")
+                ",reply_validation_failure=${timing.replyValidationFailure}" +
+                ",rejected_reply_chars=${timing.rejectedReplyChars}" +
+                ",rejected_reply_shape=${timing.rejectedReplyShape}")
             // Callback is strictly diagnostic: it cannot alter the native model outcome.
             runCatching { onTiming(timing) }
 

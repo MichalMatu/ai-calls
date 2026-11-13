@@ -41,7 +41,7 @@ internal object ConversationReplyRecovery {
     const val REPAIR_INSTRUCTION = "Poprzednia próba nie spełniła schematu i nie została wypowiedziana ani wykonana. " +
         "Odpowiedz na bieżącą wypowiedź kompletnym obiektem JSON zgodnym ze schematem. " +
         "Pole reply musi zawierać krótką odpowiedź, tool jedną dozwoloną wartość. " +
-        "Dla none i end_call pomiń note oraz kind. Dla save_note dodaj niepustą note i dozwolone kind. " +
+        ConversationReplyProtocol.FIELD_INSTRUCTION + " " +
         "Nie dodawaj komentarzy ani powitania."
     const val CLARIFICATION = "Nie udało mi się poprawnie przygotować odpowiedzi. Proszę powtórzyć ostatnią informację."
 
