@@ -105,9 +105,12 @@
             android:exported="false"
             android:noHistory="true" />
 
+        <!-- Explicitly reachable only by shell/DUMP for user-authorized S22 QA.
+             Other apps cannot launch the supervised pilot or its media controls. -->
         <activity
             android:name=".developerrelay.SupervisedCallPilotActivity"
-            android:exported="false" />
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
 
         <!-- ADB/shell-only observation. Never dials, attaches media or changes call state. -->
         <activity
