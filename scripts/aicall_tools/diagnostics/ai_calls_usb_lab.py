@@ -41,7 +41,7 @@ ACTIONS = frozenset({
     "status", "call_status", "config_get", "lab_start", "lab_send",
     "lab_status", "lab_stop", "call_takeover", "call_resume",
     "call_stop_owned", "incoming_ai_disable", "incoming_config",
-    "appointment_stage",
+    "appointment_stage", "orange_smoke_start", "orange_smoke_status", "orange_smoke_stop",
 })
 INTERVENTIONS = frozenset({
     "call_takeover", "call_resume", "call_stop_owned", "incoming_ai_disable",
@@ -347,6 +347,13 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
         if args.account_index is not None:
             params["account_index"] = args.account_index
         return device_request(device, name, **params)
+    if name == "orange_smoke_start":
+        if not args.allow_one_real_call:
+            raise DiagnosticError("explicit_real_call_opt_in_required")
+        device.safe_preflight()
+        return device_request(device, name, target="510100100", approved=True)
+    if name in {"orange_smoke_status", "orange_smoke_stop"}:
+        return device_request(device, name)
     if name in ACTIONS:
         return device_request(device, name)
     raise DiagnosticError("unsupported_command")
@@ -358,6 +365,7 @@ def main() -> int:
         {k.replace("_", "-") for k in ACTIONS}
         | {"lab-save", "ram", "profile-check", "profile-set", "profile-reset", "watch", "appointment-open"}
     ))
+    parser.add_argument("--allow-one-real-call", action="store_true")
     parser.add_argument("--session-id")
     parser.add_argument("--context-tokens", type=int, default=4096)
     parser.add_argument("--preset", default="natural")

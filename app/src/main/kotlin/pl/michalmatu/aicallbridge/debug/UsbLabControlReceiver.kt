@@ -126,6 +126,13 @@ internal object UsbLabControl {
         "call_takeover" -> takeover(context)
         "call_resume" -> resume()
         "call_stop_owned" -> stopOwned(context)
+        "orange_smoke_start" -> pl.michalmatu.aicallbridge.campaign.OrangeSupportCallProbe
+            .start(context, request.optString("target"), request.optBoolean("approved", false))
+            .let { Result(it.ok, it.code, it.data) }
+        "orange_smoke_status" -> pl.michalmatu.aicallbridge.campaign.OrangeSupportCallProbe
+            .snapshot(context).let { Result(it.ok, it.code, it.data) }
+        "orange_smoke_stop" -> pl.michalmatu.aicallbridge.campaign.OrangeSupportCallProbe
+            .stop(context).let { Result(it.ok, it.code, it.data) }
         "incoming_ai_disable" -> {
             val ok = AndroidOwnedInCallService.stopIncomingAi(context)
             Result(ok, if (ok) "incoming_ai_disabled" else "incoming_ai_disable_failed")
