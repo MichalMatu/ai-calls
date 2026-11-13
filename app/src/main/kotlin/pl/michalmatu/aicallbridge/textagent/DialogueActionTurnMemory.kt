@@ -7,8 +7,9 @@ import java.util.Locale
  * Ephemeral, per-call context for an action classifier. Never persisted, sent to
  * diagnostic logs, or permitted to grant call/fact/effect authority.
  *
- * The native LiteRT call conversation now retains all accepted model turns; do not
- * duplicate this bounded text memory into its model input. This fallback context is
+ * Native LiteRT keeps accepted turns within its context window and rolls out old
+ * pairs when capacity is reached. Do not duplicate this classifier memory into
+ * native model input. This fallback context is
  * used only by stateless classifiers and the policy-side repetition safeguard remains.
  */
 internal class DialogueActionTurnMemory {
