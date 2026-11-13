@@ -74,6 +74,41 @@ class ConversationReplyProtocolTest {
         assertEquals(1, speech); assertEquals(1, errors); assertNull(backend.takeTool())
     }
 
+    @Test fun endCallReplyTruncatesAnyQuestionAfterGoodbye() {
+        val examples = listOf(
+            "Do widzenia. Dziękuję za wiadomość. Czy coś jeszcze?" to "Do widzenia.",
+            "Dziękuję za wiadomość. Do widzenia. Czy mogę pomóc?" to "Dziękuję za wiadomość. Do widzenia.",
+            "Dziękuję, do widzenia, czy są pytania?" to "Dziękuję, do widzenia.",
+            "Czy jeszcze coś? Do widzenia." to "Dziękuję za rozmowę. Do widzenia.",
+            "Czy mogę jeszcze pomóc?" to "Dziękuję za rozmowę. Do widzenia.",
+            "Do widzenia!" to "Do widzenia!",
+        )
+        for ((given, expected) in examples) {
+            val raw = com.google.gson.JsonObject().apply {
+                addProperty("reply", given)
+                addProperty("tool", "end_call")
+                addProperty("note", "")
+                addProperty("kind", "NOTE")
+            }.toString()
+            val decoded = ConversationReplyProtocol.decode(raw)
+            assertEquals(expected, decoded.text)
+            assertEquals(ConversationToolId.END_CALL, decoded.tool)
+        }
+    }
+
+    @Test fun quotedGoodbyeWithoutEndCallRemainsUntouched() {
+        val given = "W wiadomości są słowa do widzenia. Czy mam coś jeszcze zapisać?"
+        for (tool in listOf("none", "save_note")) {
+            val raw = com.google.gson.JsonObject().apply {
+                addProperty("reply", given)
+                addProperty("tool", tool)
+                addProperty("note", if (tool == "save_note") "Przykład" else "")
+                addProperty("kind", "NOTE")
+            }.toString()
+            assertEquals(given, ConversationReplyProtocol.decode(raw).text)
+        }
+    }
+
     @Test fun incomingInstructionsHaveOneVoiceAndExplicitOutputContract() {
         val prompt = ConversationInstructionBuilder.build(ConversationPreparation.incoming(), "Przyjmij wiadomość", ConversationResponseFormat.TOOL_REPLY)
         assertTrue(prompt.contains("asystentką"))

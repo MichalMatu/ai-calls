@@ -140,7 +140,23 @@ internal object ConversationReplyProtocol {
             require(proposedNote.isNullOrBlank()) { "conversation_note_unexpected" }
             null
         }
-        return ConversationReply(text, tool, payload)
+        val approvedSpeech = if (tool == ConversationToolId.END_CALL) endCallSpeech(text) else text
+        return ConversationReply(approvedSpeech, tool, payload)
+    }
+
+    /**
+     * Model may correctly propose END_CALL but append another question after saying goodbye.
+     * The app must not speak that question before the owned-call disconnect boundary.
+     * This is spoken-text hygiene, never a new authority to end a Call.
+     */
+    private fun endCallSpeech(text: String): String {
+        val farewell = Regex("""(?iu)\bdo\s+widzenia\b""").find(text)
+            ?: return if ('?' in text) "Dziękuję za rozmowę. Do widzenia." else text
+        val before = text.substring(0, farewell.range.last + 1)
+        if ('?' in before) return "Dziękuję za rozmowę. Do widzenia."
+        val after = text.substring(farewell.range.last + 1)
+        if (after.isBlank() || after.matches(Regex("""[.!?\s]*"""))) return text
+        return before.trimEnd(' ', ',', ';', ':', '!', '.', '?') + "."
     }
 
     private val editorialPlaceholder = Regex(
