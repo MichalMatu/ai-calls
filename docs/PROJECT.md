@@ -4,9 +4,9 @@
 
 ## Otwarte
 - **P0 G6.1 — kampanie:** integracja 3 odbiorców, alarm/BOOT, retry, STOP, UNKNOWN, exact SIM i PL/EN; start w tle S22 PHYSICAL_OPEN.
-- **P0 — S22:** INCOMING/OUTGOING, dwukierunkowe audio, barge-in, takeover/resume i historia PHYSICAL_OPEN.
+- **P0 — S22:** supervised OUTGOING do Orange: Call/PCM RX+TX, STT/Gemma/TTS, 2 tury modelu i STOP na realnym S22 **PASS (13.11.2026)**. Nadal otwarte INCOMING, barge-in, takeover/resume, historia i autonomiczna kampania.
 - **P0 — wizyta:** wynik/propozycja terminu; bez potwierdzonej rezerwacji.
 - **P1 — kampania:** opcjonalne zakończenie po pierwszym potwierdzonym sukcesie.
 
 ## Następny sprint
-Integracja kolejki i regresje, potem autoryzowany test S22; bez powtarzania wcześniej zaliczonych testów. **MVP BLOCKED / PHYSICAL_OPEN** do potwierdzenia Call/audio. [SECURITY](architecture/SECURITY.md).
+Zweryfikować jednokrotny autonomiczny dial z kolejki na S22 (grant/SIM/STOP/UNKNOWN), potem INCOMING i barge-in; bez powtarzania zaliczonego supervised audio. **MVP BLOCKED / PHYSICAL_OPEN** dla tych ścieżek. [SECURITY](architecture/SECURITY.md).
