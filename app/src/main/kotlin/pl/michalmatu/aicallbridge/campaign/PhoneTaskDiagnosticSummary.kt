@@ -18,7 +18,7 @@ internal object PhoneTaskDiagnosticSummary {
             }?.let { evidence["conversation_end_reason"] = it }
             evidence["probe_complete"] = values["probe_complete"] == "true"
             evidence["approved_reply_count"] = values.count { (key, value) ->
-                key.matches(Regex("turn_[0-9]+_approved_chars")) &&
+                key.matches(Regex("turn_[1-9][0-9]*_approved_chars")) &&
                     (value.toLongOrNull() ?: 0) > 0
             }
             evidence["barge_events"] = report.orEmpty().lineSequence()

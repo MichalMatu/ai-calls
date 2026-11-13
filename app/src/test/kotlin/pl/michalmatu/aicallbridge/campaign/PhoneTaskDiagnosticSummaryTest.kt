@@ -31,7 +31,7 @@ class PhoneTaskDiagnosticSummaryTest {
     @Test fun matchedReportReturnsOnlyTechnicalCountersAndSanitizedCodes() {
         val summary = PhoneTaskDiagnosticSummary.snapshot(task(), false,
             "session_id=current-session\ntelephony_tx_pcm_bytes=120\n" +
-                "turns_completed=2\nturn_1_approved_chars=20\nturn_2_approved_chars=0\n" +
+                "turns_completed=2\nturn_0_approved_chars=900\nturn_1_approved_chars=20\nturn_2_approved_chars=0\n" +
                 "conversation_end_reason=operator_stopped\nprobe_complete=true\n" +
                 "local_rx_during_tx_detected=true\nprivate_text=PRIVATE_REPORT\n")
         val evidence = summary["evidence"] as Map<*, *>
