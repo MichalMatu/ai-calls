@@ -442,7 +442,7 @@ internal class LiteRtGemma4Runtime(
                         if (sendingGeneration == requestGeneration) sendingGeneration = null
                     }
                     closeConversation(failed)
-                    closeIsolatedEngineWhenIdle()
+                    closeIsolatedEngineWhenIdle(force = true)
                     readyEngine = ensureEngine()
                     val replacement = createConversation(readyEngine)
                     conversation = replacement
@@ -500,6 +500,7 @@ internal class LiteRtGemma4Runtime(
                 listener.onComplete(text)
             }
         } catch (error: Throwable) {
+            inferenceReadyNs = System.nanoTime()
             status = "error_${error.javaClass.simpleName}_${nativeStatusCode(error)}_${nativeFailureHints(error)}"
             nativeContextTokens = runCatching { conversation?.getTokenCount() }.getOrNull()
             successfulSend = false
@@ -588,9 +589,9 @@ internal class LiteRtGemma4Runtime(
         try { value?.close() } catch (_: Throwable) {}
     }
 
-    /** LiteRT-LM 0.19.0 can retain Qwen3.5 recurrent state after closing a Conversation. */
-    private fun closeIsolatedEngineWhenIdle() {
-        if (!executionPolicy.newEngineAfterContextReset) return
+    /** Capacity failure can poison the shared native state; recurrent models also isolate resets. */
+    private fun closeIsolatedEngineWhenIdle(force: Boolean = false) {
+        if (!force && !executionPolicy.newEngineAfterContextReset) return
         val detached = synchronized(lock) {
             if (sendingGeneration != null || activeConversation != null) null
             else engine.also { engine = null }
