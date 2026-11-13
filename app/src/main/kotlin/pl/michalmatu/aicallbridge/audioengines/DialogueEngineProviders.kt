@@ -16,7 +16,7 @@ internal interface DialogueEngineProvider {
     val id: DialogueModelId
     fun createDirect(context: Context, systemInstruction: String): TextCallAgentBackend
     fun createConversationReply(context: Context, systemInstruction: String, tools: Set<ConversationToolId>): TextCallAgentBackend
-    /** Lab-only larger native context; normal call paths keep their existing budget. */
+    /** Explicit native budget for off-call measurements; no change to call permissions. */
     fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
         tools: Set<ConversationToolId>, contextTokenBudget: Int = 4_096,
         onTiming: (NativeModelTiming) -> Unit = {}): TextCallAgentBackend =

@@ -348,7 +348,7 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
         return device_request(device, name, session_id=args.session_id, text=text)
     if name == "lab_start":
         return device_request(device, name, context_tokens=args.context_tokens,
-                              preset=args.preset)
+                              preset=args.preset, role=getattr(args, "role", "GENERAL"))
     if name == "lab_stop":
         if not args.session_id:
             raise DiagnosticError("session_id_required")
@@ -383,6 +383,7 @@ def main() -> int:
     parser.add_argument("--task-id")
     parser.add_argument("--context-tokens", type=int, default=4096)
     parser.add_argument("--preset", default="natural")
+    parser.add_argument("--role", choices=("GENERAL", "INCOMING", "OUTGOING"), default="GENERAL")
     parser.add_argument("--input", default="ANDROID_STT")
     parser.add_argument("--dialogue", default="GEMMA_4_E2B")
     parser.add_argument("--output", default="ANDROID_TTS_PL")

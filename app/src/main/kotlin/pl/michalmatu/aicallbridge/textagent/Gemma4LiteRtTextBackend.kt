@@ -1,6 +1,9 @@
 package pl.michalmatu.aicallbridge.textagent
 
 import pl.michalmatu.aicallbridge.conversation.ConversationReplyProtocol
+import pl.michalmatu.aicallbridge.conversation.ConversationReplyRecovery
+import pl.michalmatu.aicallbridge.conversation.InvalidConversationReply
+import pl.michalmatu.aicallbridge.conversation.sendWithReplyRecovery
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
 import android.content.Context
@@ -56,6 +59,8 @@ internal data class NativeModelTiming(
     val contextRecoveryAttempts: Int = 0,
     val nativeContextTokens: Int? = null,
     val retainedContextTurns: Int = 0,
+    val replyRecoveryAttempts: Int = 0,
+    val replyValidationFailure: String = "none",
 ) {
     val totalMs: Long get() = engineReadyMs + conversationCreateMs + generateMs
 }
@@ -234,6 +239,7 @@ internal class LiteRtGemma4Runtime(
     // Non-authoritative diagnostic signal immediately before native sendMessage.
     private val onNativeSendEntered: () -> Unit = {},
     private val onTiming: (NativeModelTiming) -> Unit = {},
+    private val validateConversationReply: Boolean = false,
 ) : Gemma4Runtime {
     init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
 
@@ -402,6 +408,9 @@ internal class LiteRtGemma4Runtime(
         var contextRecoveries = 0
         var contextRecoveryAttempts = 0
         var nativeContextTokens: Int? = null
+        var replyRecoveryAttempts = 0
+        var replyValidationFailure = "none"
+        var repairingReply = false
         try {
             var readyEngine = ensureEngine()
             engineReadyNs = System.nanoTime()
@@ -425,61 +434,89 @@ internal class LiteRtGemma4Runtime(
                 }
             }
             conversationReadyNs = System.nanoTime()
-            val currentConversation = checkNotNull(conversation)
             synchronized(lock) {
                 if (!isCurrentLocked(requestGeneration)) return
                 sendingGeneration = requestGeneration
                 turnIndex = conversationTurnCount + 1
             }
 
-            val message = sendWithContextRecovery(
-                initial = currentConversation,
-                window = conversationWindow,
+            fun recreate(failed: Conversation): Conversation {
+                synchronized(lock) {
+                    if (!isCurrentLocked(requestGeneration))
+                        throw CancellationException("native_generation_cancelled")
+                    if (activeConversation === failed) activeConversation = null
+                    if (sendingGeneration == requestGeneration) sendingGeneration = null
+                }
+                closeConversation(failed)
+                closeIsolatedEngineWhenIdle()
+                readyEngine = ensureEngine()
+                val replacement = createConversation(readyEngine, repairingReply)
+                conversation = replacement
+                registeredConversation = false
+                synchronized(lock) {
+                    if (!isCurrentLocked(requestGeneration))
+                        throw CancellationException("native_generation_cancelled")
+                    activeConversation = replacement
+                    sendingGeneration = requestGeneration
+                    registeredConversation = true
+                }
+                reused = false
+                return replacement
+            }
+            val message = sendWithReplyRecovery(
                 isCurrent = { isCurrent(requestGeneration) },
-                replaceConversation = { failed ->
-                    contextRecoveryAttempts++
-                    synchronized(lock) {
-                        if (!isCurrentLocked(requestGeneration))
-                            throw CancellationException("native_generation_cancelled")
-                        if (activeConversation === failed) activeConversation = null
-                        if (sendingGeneration == requestGeneration) sendingGeneration = null
-                    }
-                    closeConversation(failed)
-                    closeIsolatedEngineWhenIdle()
-                    readyEngine = ensureEngine()
-                    val replacement = createConversation(readyEngine)
-                    conversation = replacement
-                    registeredConversation = false
-                    synchronized(lock) {
-                        if (!isCurrentLocked(requestGeneration))
-                            throw CancellationException("native_generation_cancelled")
-                        activeConversation = replacement
-                        sendingGeneration = requestGeneration
-                        registeredConversation = true
-                    }
-                    contextRecoveries++
-                    reused = false
-                    replacement
+                validate = { candidate ->
+                    if (validateConversationReply)
+                        ConversationReplyProtocol.validateGenerated(candidate.toString().trim(), audioPcm != null)
                 },
-                send = { candidate ->
-                    // Diagnostic callback has no authority and receives no conversation text.
-                    runCatching { onNativeSendEntered() }
-                    if (audioPcm == null) candidate.sendMessage(
-                        text = userText,
-                        maxOutputToken = MAX_OUTPUT_TOKENS,
-                        thinkingConfig = ThinkingConfig(enableThinking = false),
-                        responseFormat = responseFormat,
-                    ) else {
-                        val wave = pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.toWave(audioPcm)
-                        try {
-                            candidate.sendMessage(
-                                contents = Contents.of(Content.Text(userText), Content.AudioBytes(wave)),
-                                maxOutputToken = AUDIO_OUTPUT_TOKENS,
+                rejected = { replyValidationFailure = it.name.lowercase() },
+                recreateForRepair = {
+                    repairingReply = true
+                    replyRecoveryAttempts++
+                    var reclaimedForRepair = false
+                    recreateWithContextRecovery(
+                        window = conversationWindow,
+                        isCurrent = { isCurrent(requestGeneration) },
+                        recreate = { recreate(checkNotNull(conversation)) },
+                        onCapacityRetry = {
+                            contextRecoveryAttempts++
+                            reclaimedForRepair = true
+                        },
+                    )
+                    if (reclaimedForRepair) contextRecoveries++
+                },
+                send = {
+                    sendWithContextRecovery(
+                        initial = checkNotNull(conversation),
+                        window = conversationWindow,
+                        isCurrent = { isCurrent(requestGeneration) },
+                        replaceConversation = { failed ->
+                            contextRecoveryAttempts++
+                            val replacement = recreate(failed)
+                            contextRecoveries++
+                            replacement
+                        },
+                        send = { candidate ->
+                            // Diagnostic callback has no authority and receives no conversation text.
+                            runCatching { onNativeSendEntered() }
+                            if (audioPcm == null) candidate.sendMessage(
+                                text = userText,
+                                maxOutputToken = textOutputTokenBudget,
                                 thinkingConfig = ThinkingConfig(enableThinking = false),
-                                responseFormat = audioResponseFormat,
-                            )
-                        } finally { wave.fill(0) }
-                    }
+                                responseFormat = responseFormat,
+                            ) else {
+                                val wave = pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.toWave(audioPcm)
+                                try {
+                                    candidate.sendMessage(
+                                        contents = Contents.of(Content.Text(userText), Content.AudioBytes(wave)),
+                                        maxOutputToken = AUDIO_OUTPUT_TOKENS,
+                                        thinkingConfig = ThinkingConfig(enableThinking = false),
+                                        responseFormat = audioResponseFormat,
+                                    )
+                                } finally { wave.fill(0) }
+                            }
+                        },
+                    )
                 },
             )
             nativeContextTokens = runCatching { conversation?.getTokenCount() }.getOrNull()
@@ -507,7 +544,8 @@ internal class LiteRtGemma4Runtime(
             status = "error_${error.javaClass.simpleName}_${nativeStatusCode(error)}_${nativeFailureHints(error)}"
             nativeContextTokens = runCatching { conversation?.getTokenCount() }.getOrNull()
             successfulSend = false
-            if (isCurrent(requestGeneration)) listener.onError(sanitizeRuntimeError(error))
+            if (isCurrent(requestGeneration)) listener.onError(
+                if (error is InvalidConversationReply) "conversation_reply_invalid" else sanitizeRuntimeError(error))
         } finally {
             audioPcm?.fill(0)
             // Only timing/accelerator metadata. Never print transcripts, history,
@@ -532,6 +570,8 @@ internal class LiteRtGemma4Runtime(
                 contextRecoveryAttempts = contextRecoveryAttempts,
                 nativeContextTokens = nativeContextTokens,
                 retainedContextTurns = conversationWindow.snapshot().size,
+                replyRecoveryAttempts = replyRecoveryAttempts,
+                replyValidationFailure = replyValidationFailure,
             )
             Log.i("AiCallBridgePerf", "gemma4_runtime_backend=${timing.backend}" +
                 ",engine_ready_ms=${timing.engineReadyMs}" +
@@ -544,7 +584,9 @@ internal class LiteRtGemma4Runtime(
                 ",context_recoveries=${timing.contextRecoveries}" +
                 ",context_recovery_attempts=${timing.contextRecoveryAttempts}" +
                 ",native_context_tokens=${timing.nativeContextTokens ?: -1}" +
-                ",retained_context_turns=${timing.retainedContextTurns}")
+                ",retained_context_turns=${timing.retainedContextTurns}" +
+                ",reply_recovery_attempts=${timing.replyRecoveryAttempts}" +
+                ",reply_validation_failure=${timing.replyValidationFailure}")
             // Callback is strictly diagnostic: it cannot alter the native model outcome.
             runCatching { onTiming(timing) }
 
@@ -574,10 +616,14 @@ internal class LiteRtGemma4Runtime(
         }
     }
 
+    private val textOutputTokenBudget get() =
+        if (validateConversationReply) STRUCTURED_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS
+
     /** Role-labelled history remains untrusted conversation data, never system authority. */
-    private fun createConversation(readyEngine: Engine): Conversation =
+    private fun createConversation(readyEngine: Engine, repair: Boolean = false): Conversation =
         readyEngine.createConversation(ConversationConfig(
-            systemInstruction = systemInstruction?.let(Contents::of),
+            systemInstruction = (if (repair) systemInstruction.orEmpty() + "\n" +
+                ConversationReplyRecovery.REPAIR_INSTRUCTION else systemInstruction)?.let(Contents::of),
             initialMessages = conversationWindow.snapshot().flatMap {
                 listOf(Message.user(it.userText), Message.model(it.modelText))
             },
@@ -585,7 +631,7 @@ internal class LiteRtGemma4Runtime(
             automaticToolCalling = false,
             extraContext = if (disableQwenThinking) mapOf("enable_thinking" to false) else emptyMap(),
             channels = emptyList(),
-            maxOutputToken = if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS,
+            maxOutputToken = if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else textOutputTokenBudget,
             thinkingConfig = ThinkingConfig(enableThinking = false),
             enableResponseFormat = responseFormat != null,
         ))
@@ -705,6 +751,7 @@ internal class LiteRtGemma4Runtime(
 
     private companion object {
         const val MAX_OUTPUT_TOKENS = 128
+        const val STRUCTURED_OUTPUT_TOKENS = 512
         const val AUDIO_OUTPUT_TOKENS = 512
         const val MAX_ERROR_CHARS = 140
         const val MIN_CPU_THREADS = 2
@@ -733,7 +780,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         systemInstruction: String,
         modelId: DialogueModelId,
         tools: Set<ConversationToolId>,
-        contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
+        contextTokenBudget: Int = if (modelId == DialogueModelId.GEMMA_4_E2B) 4_096 else DEFAULT_CONTEXT_TOKENS,
         onTiming: (NativeModelTiming) -> Unit = {},
         audioInput: Boolean = false,
         selectedFile: File? = null,
@@ -742,6 +789,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(tools)),
         contextTokenBudget = contextTokenBudget,
         onTiming = onTiming,
+        validateConversationReply = true,
         selectedFile = selectedFile,
         audioResponseFormat = if (audioInput) ResponseFormat.json(ConversationReplyProtocol.audioSchema(tools)) else null,
     )
@@ -860,6 +908,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         modelId: DialogueModelId,
         contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
         onTiming: (NativeModelTiming) -> Unit = {},
+        validateConversationReply: Boolean = false,
     ): Gemma4LiteRtTextBackend {
         val modelPath = (selectedFile ?: modelFile(context, modelId)).absolutePath
         return Gemma4LiteRtTextBackend(
@@ -873,6 +922,7 @@ internal object Gemma4LiteRtTextBackendFactory {
                     executionPolicy = modelId.nativeExecutionPolicy(),
                     contextTokenBudget = contextTokenBudget,
                     onTiming = onTiming,
+                    validateConversationReply = validateConversationReply,
                 )
             },
             modelPath = modelPath,

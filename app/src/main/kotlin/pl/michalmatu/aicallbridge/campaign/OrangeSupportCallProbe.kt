@@ -33,8 +33,10 @@ internal object OrangeSupportCallProbe {
     private var lastCode = "not_started"
 
     private fun idle(context: Context): Boolean {
+        if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED)
+            return false
         val telecom = context.getSystemService(TelecomManager::class.java) ?: return false
-        return runCatching { !telecom.isInCall }.getOrDefault(false)
+        return try { !telecom.isInCall } catch (_: SecurityException) { false }
     }
 
     private fun status(context: Context): JSONObject {

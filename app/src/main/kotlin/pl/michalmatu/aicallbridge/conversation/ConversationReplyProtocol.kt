@@ -78,23 +78,43 @@ internal object ConversationReplyProtocol {
         return transcript to decode(json.toString())
     }
 
+    /** Validate before a native reply is retained as model history or reaches approval. */
+    fun validateGenerated(raw: String, audio: Boolean) {
+        try {
+            if (audio) decodeAudio(raw) else decode(raw)
+        } catch (error: Exception) {
+            val failure = when (error.message) {
+                "conversation_reply_object" -> ConversationReplyFailure.OBJECT
+                "conversation_reply_fields" -> ConversationReplyFailure.FIELDS
+                "conversation_reply_speech", "conversation_reply_type_reply" -> ConversationReplyFailure.SPEECH
+                "conversation_tool_unknown", "conversation_reply_type_tool" -> ConversationReplyFailure.TOOL
+                "conversation_note_missing", "conversation_note_unexpected", "conversation_note_kind_invalid",
+                "conversation_reply_type_note", "conversation_reply_type_kind",
+                "invalid_notebook_proposal" -> ConversationReplyFailure.NOTE
+                "audio_transcript_missing", "audio_transcript_empty" -> ConversationReplyFailure.TRANSCRIPT
+                else -> ConversationReplyFailure.JSON
+            }
+            throw InvalidConversationReply(failure)
+        }
+    }
+
     fun decode(raw: String): ConversationReply {
         val root = JsonParser.parseString(raw)
-        require(root.isJsonObject) { "conversation_reply_invalid" }
+        require(root.isJsonObject) { "conversation_reply_object" }
         val json = root.asJsonObject
         require(json.keySet().containsAll(setOf("reply", "tool")) &&
             json.keySet().all { it in setOf("reply", "tool", "note", "kind") }) {
-            "conversation_reply_invalid"
+            "conversation_reply_fields"
         }
         fun string(key: String): String {
             val value = json.get(key)
             require(value != null && value.isJsonPrimitive && value.asJsonPrimitive.isString) {
-                "conversation_reply_invalid"
+                "conversation_reply_type_$key"
             }
             return value.asString
         }
         val text = string("reply").trim()
-        require(text.isNotBlank() && text.length <= 4_096) { "conversation_reply_invalid" }
+        require(text.isNotBlank() && text.length <= 4_096) { "conversation_reply_speech" }
         val tool = when (val name = string("tool")) {
             "none" -> null
             else -> ConversationToolId.entries.singleOrNull { it.wireName == name }
@@ -171,7 +191,8 @@ internal class ConversationReplyBackend(
             override fun onError(reason: String) {
                 if (!closed.get() && generation.get() == request) {
                     decision(null, (System.nanoTime() - started) / 1_000_000L, true)
-                    listener.onError(reason)
+                    listener.onError(if (reason == "gemma4_runtime_conversation_reply_invalid")
+                        "conversation_reply_invalid" else reason)
                 }
             }
         })

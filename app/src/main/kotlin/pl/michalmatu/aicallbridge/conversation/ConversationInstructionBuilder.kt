@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 /** Compiles model-visible instructions, never reads secret values from IdentityVault. */
 internal object ConversationInstructionBuilder {
+    const val INCOMING_OPENING = "Dzień dobry, tu wirtualna asystentka właściciela telefonu. W jakiej sprawie Państwo dzwonią?"
     fun build(preparation: ConversationPreparation, goal: String, responseFormat: ConversationResponseFormat): String {
         val role = when (preparation.direction) {
             ConversationDirection.OUTGOING -> """
@@ -69,6 +70,12 @@ internal object ConversationInstructionBuilder {
                 ConversationResponseFormat.SPOKEN_TEXT -> "Zwróć WYŁĄCZNIE tekst gotowy do przeczytania przez TTS. Bez JSON, Markdown, kodu, pól action/text ani tokenów narzędzi."
                 ConversationResponseFormat.TOOL_REPLY -> ConversationReplyProtocol.INSTRUCTION.trimIndent()
             }}
+            ${if (preparation.direction == ConversationDirection.INCOMING) """
+                STAN ROZMOWY: to dalsza część już odebranego połączenia.
+                Aplikacja wypowiedziała: „$INCOMING_OPENING”. Rozmówca teraz na to odpowiada.
+                Odpowiedz na najnowszą sprawę bez drugiego powitania i bez ponownego przedstawiania się.
+                Nie potwierdzaj informacji, których rozmówca nie podał; przy niejasności zadaj jedno konkretne pytanie.
+            """.trimIndent() else ""}
         """.trimIndent()
     }
 }

@@ -27,6 +27,10 @@ import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
 import pl.michalmatu.aicallbridge.conversation.SkillLabPhase
 import pl.michalmatu.aicallbridge.conversation.SkillLabRunner
 import pl.michalmatu.aicallbridge.conversation.SkillLabUiState
+import pl.michalmatu.aicallbridge.conversation.LabCaseRevision
+import pl.michalmatu.aicallbridge.conversation.LabRole
+import pl.michalmatu.aicallbridge.conversation.ConversationInstructionBuilder
+import pl.michalmatu.aicallbridge.incoming.IncomingSecretaryScenario
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsController
 import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
@@ -93,6 +97,7 @@ internal object UsbLabControl {
     private var sessionId: String? = null
     private var budget = 4_096
     private var preset = "natural"
+    private var role = LabRole.GENERAL
     private var owner: Context? = null
     private var evidenceFile: File? = null
 
@@ -272,6 +277,7 @@ internal object UsbLabControl {
                 ?.replace(Regex("[^a-zA-Z0-9_]"), "")?.take(90) ?: JSONObject.NULL)
             .put("context_tokens", budget)
             .put("preset", preset)
+            .put("role", role.name)
             .put("private_transcript_ready", evidenceFile?.exists() == true)
     }
 
@@ -309,12 +315,24 @@ internal object UsbLabControl {
         val tokens = request.optInt("context_tokens", 4_096)
         if (tokens <= 0) return Result(false, "invalid_context_budget")
         val selectedPreset = request.optString("preset", "natural").ifBlank { "natural" }
+        val selectedRole = runCatching {
+            LabRole.valueOf(request.optString("role", "GENERAL"))
+        }.getOrNull() ?: return Result(false, "invalid_lab_role")
         // No owner vault values; AndroidSkillLabSessionFactory builds the existing Lab-only role.
         current?.close()
         val nextId = UUID.randomUUID().toString()
         val factory = AndroidSkillLabSessionFactory(context, tokens)
+        if (selectedRole != LabRole.GENERAL) factory.selectedCase = LabCaseRevision(
+            revision = 1, title = "USB — dialog bez połączenia", role = selectedRole,
+            goal = if (selectedRole == LabRole.INCOMING) IncomingSecretaryScenario.GOAL
+                else "Prowadź syntetyczny dialog testowy strony dzwoniącej. Brak skutków zewnętrznych.",
+            opening = if (selectedRole == LabRole.INCOMING) ConversationInstructionBuilder.INCOMING_OPENING
+                else "Dzwonię w fikcyjnej sprawie testowej.",
+            callerState = "", facts = "", expectations = "", rules = "", completion = "",
+        )
         budget = tokens
         preset = selectedPreset
+        role = selectedRole
         owner = context
         evidenceFile = null
         val runner = SkillLabRunner(factory,

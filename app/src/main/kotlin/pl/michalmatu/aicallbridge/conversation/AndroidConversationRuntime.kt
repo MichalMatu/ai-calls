@@ -168,6 +168,7 @@ internal object AndroidConversationRuntime {
         private val idlePolicy = scenario.idlePolicy
         private val idleTimeout = idlePolicy?.let { IncomingIdleTimeout(it.silenceMs, it.graceMs) }
         private var idlePromptTurn = -1
+        private var replyClarificationTurn = -1
         private val finished = AtomicBoolean(false)
         private val stopRequested = AtomicReference<ConversationStopReason?>(null)
         private var currentTurn = 0
@@ -364,6 +365,7 @@ internal object AndroidConversationRuntime {
             outputEpoch.incrementAndGet()
             currentTurn = turnsCompleted + 1
             idlePromptTurn = -1
+            replyClarificationTurn = -1
             silenceWindows = 0L
             dialogue.beginTurn()
             turnStartedAtMs = SystemClock.elapsedRealtime()
@@ -373,7 +375,7 @@ internal object AndroidConversationRuntime {
             pipeline.start(turnListener(generation, lease))
         }
 
-        private fun turnListener(generation: Long, lease: CallMediaEndpointLease) =
+        private fun turnListener(generation: Long, lease: CallMediaEndpointLease): LocalSpeechTextPipeline.Listener =
             object : LocalSpeechTextPipeline.Listener {
                 private val ownerTurn = currentTurn
                 private val ownerEpoch = outputEpoch.get()
@@ -444,7 +446,21 @@ internal object AndroidConversationRuntime {
                 override fun onError(reason: String) {
                     if (stale()) return
                     dialogue.recordTurnDiagnostics(currentTurn)
-                    if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
+                    if (ConversationReplyRecovery.canClarify(reason) &&
+                        runConfiguration is ConversationRunConfiguration.ModelDirect) {
+                        handler.post {
+                            if (stale()) return@post
+                            if (!authorizedNow()) { finish(authorityTermination()); return@post }
+                            // No rejected tool survives. This is app-owned clarification,
+                            // labelled SCRIPT_ASSISTED, followed by the normal listening turn.
+                            dialogue.beginTurn()
+                            replyClarificationTurn = currentTurn
+                            outputEpoch.incrementAndGet()
+                            lines += "turn_${currentTurn}_reply_format_clarification=true"
+                            pipeline.speakCandidate(ConversationReplyRecovery.CLARIFICATION,
+                                turnListener(generation, lease))
+                        }
+                    } else if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
                         if (transcriptAccepted.get()) return
                         val retryTurn = currentTurn
                         lines += "turn_${retryTurn}_stt_transient_no_transcript=true"
@@ -473,7 +489,7 @@ internal object AndroidConversationRuntime {
                 }
             }
 
-        private fun responseKind() = if (currentTurn == idlePromptTurn ||
+        private fun responseKind() = if (currentTurn == idlePromptTurn || currentTurn == replyClarificationTurn ||
             (currentTurn == 0 && dialogue.openingText != null))
             ConversationChatFeed.ResponseKind.SCRIPT_ASSISTED else scenario.responseKind
 

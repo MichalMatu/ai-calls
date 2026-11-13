@@ -158,4 +158,48 @@ class NativeConversationWindowTest {
         assertTrue(isNativeContextCapacityFailure(IllegalStateException("outer", full())))
         assertFalse(isNativeContextCapacityFailure(IllegalArgumentException("invalid context format")))
     }
+
+    @Test fun repairInstructionCanEvictOldPairsDuringConversationCreation() {
+        val window = window(3)
+        val retained = mutableListOf<Int>()
+        val result = recreateWithContextRecovery(window, { true }, {
+            val size = window.snapshot().size
+            retained += size
+            if (size > 1) throw full()
+            "recreated"
+        })
+        assertEquals("recreated", result)
+        assertEquals(listOf(3, 2, 1), retained)
+        assertEquals(listOf(NativeConversationTurn("user-2", "model-2")), window.snapshot())
+    }
+
+    @Test fun stopDuringRepairRecreationDoesNotDiscardHistoryOrTryAgain() {
+        val window = window(2)
+        var current = true
+        var attempts = 0
+        try {
+            recreateWithContextRecovery(window, { current }, {
+                attempts++; current = false; throw full()
+            })
+            fail("STOP must cancel")
+        } catch (_: CancellationException) { }
+        assertEquals(1, attempts)
+        assertEquals(2, window.snapshot().size)
+    }
+
+    @Test fun repairRecreationDoesNotRetryAllocationFailureOrTruncateTheSystemInstruction() {
+        val window = window(1)
+        val allocation = IllegalStateException("RESOURCE_EXHAUSTED: GPU allocation failed")
+        try {
+            recreateWithContextRecovery(window, { true }, { throw allocation })
+            fail("allocation failure must propagate")
+        } catch (error: IllegalStateException) { assertSame(allocation, error) }
+        assertEquals(1, window.snapshot().size)
+        var attempts = 0
+        try {
+            recreateWithContextRecovery(window(0), { true }, { attempts++; throw full() })
+            fail("unfit instruction must fail")
+        } catch (_: IllegalStateException) { }
+        assertEquals(1, attempts)
+    }
 }

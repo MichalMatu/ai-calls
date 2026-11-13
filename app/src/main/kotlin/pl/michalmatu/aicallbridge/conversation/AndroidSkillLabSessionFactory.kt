@@ -67,7 +67,9 @@ internal class AndroidSkillLabSessionFactory(
             }
             try {
                 val delegate = provider.createLaboratoryConversationReply(
-                    context, instruction, setOf(ConversationToolId.END_CALL),
+                    context, instruction, if (initial.direction == ConversationDirection.INCOMING)
+                        setOf(ConversationToolId.END_CALL, ConversationToolId.SAVE_NOTE)
+                    else setOf(ConversationToolId.END_CALL),
                     budgetSnapshot, timingSnapshot)
                 val perTurn = if (modeSnapshot == SkillLoadingMode.CONTEXTUAL) {
                     val tracker = ConversationSkillTurnRouter(

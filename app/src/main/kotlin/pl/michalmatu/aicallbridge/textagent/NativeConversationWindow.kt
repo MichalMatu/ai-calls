@@ -25,6 +25,25 @@ internal class NativeConversationWindow {
     @Synchronized fun clear() { turns.clear(); completedTurns = 0 }
 }
 
+/** A trusted repair instruction also needs room when replaying valid history. */
+internal fun <C> recreateWithContextRecovery(
+    window: NativeConversationWindow,
+    isCurrent: () -> Boolean,
+    recreate: () -> C,
+    onCapacityRetry: () -> Unit = {},
+): C {
+    while (true) {
+        if (!isCurrent()) throw CancellationException("native_generation_cancelled")
+        try {
+            return recreate()
+        } catch (error: Throwable) {
+            if (!isCurrent()) throw CancellationException("native_generation_cancelled")
+            if (!isNativeContextCapacityFailure(error) || !window.dropOldest()) throw error
+            onCapacityRetry()
+        }
+    }
+}
+
 /** Retry inference only. No speech, tool, grant, Telecom or external action is dispatched here. */
 internal fun <C, R> sendWithContextRecovery(
     initial: C,

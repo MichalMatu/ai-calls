@@ -15,9 +15,7 @@ class ScreenCaptureContract(unittest.TestCase):
         for path in (ROOT/"app/src/main/res").rglob("*.xml"):
             self.assertNotIn("windowSecure",path.read_text())
     def test_permanent_owner_rule_in_current_security_docs(self):
-        self.assertIn("Nie włączaj blokowania zrzutów ekranu",
-                      (ROOT / "AGENTS.md").read_text())
-        security = (ROOT / "docs/architecture/SECURITY.md").read_text()
-        self.assertIn("Nie używaj `FLAG_SECURE`", security)
-        self.assertIn("Zrzuty", (ROOT / "AGENTS.md").read_text())
+        for relative in ("AGENTS.md", "docs/architecture/SECURITY.md"):
+            with self.subTest(path=relative):
+                self.assertIn("Bez `FLAG_SECURE`", (ROOT / relative).read_text())
 if __name__=="__main__":unittest.main()

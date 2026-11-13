@@ -43,7 +43,7 @@ internal class IncomingSecretaryScenario(
             DialogueEngineProviders.resolve(configuration.audioProfile)
                 .createConversationReply(context, configuration.systemInstruction, enabledTools),
             approval, tools, hooks, "INCOMING_MODEL_DIRECT",
-            "Dzień dobry, tu wirtualna asystentka właściciela telefonu. W jakiej sprawie Państwo dzwonią?",
+            ConversationInstructionBuilder.INCOMING_OPENING,
         )
         return object : ConversationDialogueSession by session {
             override fun armIdleClosure(): Boolean = session.armIdleClosure()
