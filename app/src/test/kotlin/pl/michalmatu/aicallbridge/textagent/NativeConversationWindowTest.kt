@@ -64,6 +64,24 @@ class NativeConversationWindowTest {
         assertEquals(listOf(1, 0), rebuiltSizes)
     }
 
+    @Test fun nativeResourceExhaustedInputTokenVariantAlsoRecovers() {
+        val window = window(1)
+        var sends = 0
+        val result = sendWithContextRecovery(1, window, { true }, { 0 }) { retained ->
+            sends++
+            if (retained > 0) throw IllegalStateException(
+                "Failed to call nativeSendMessage: RESOURCE_EXHAUSTED: Input token count exceeds remaining context")
+            "recovered"
+        }
+        assertEquals("recovered", result)
+        assertEquals(2, sends)
+        assertEquals("RESOURCE_EXHAUSTED", nativeStatusCode(IllegalStateException(
+            "RESOURCE_EXHAUSTED: Input token count exceeds remaining context")))
+        assertEquals("UNKNOWN", nativeStatusCode(IllegalStateException("PRIVATE_TEXT")))
+        assertEquals("unclassified", nativeFailureHints(IllegalStateException("PRIVATE_TEXT +12025550101")))
+        assertEquals("context-token", nativeFailureHints(IllegalStateException("PRIVATE_TEXT token context")))
+    }
+
     @Test fun unrelatedNativeErrorsDoNotDiscardHistoryOrRetry() {
         val window = window(2)
         var resets = 0

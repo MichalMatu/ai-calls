@@ -64,9 +64,39 @@ internal fun isNativeContextCapacityFailure(error: Throwable): Boolean {
         val message = current.message.orEmpty()
         if ("Chosen prefill work group size exceeds available state entries" in message ||
             ("RESOURCE_EXHAUSTED" in message &&
-                ("context window" in message.lowercase() || "number of tokens" in message.lowercase())))
+                ("context" in message.lowercase() || "token" in message.lowercase())))
             return true
         current = current.cause
     }
     return false
+}
+
+/** Only known native status labels may enter timing/log metadata. */
+internal fun nativeStatusCode(error: Throwable): String {
+    var current: Throwable? = error
+    val seen = HashSet<Throwable>()
+    val statuses = listOf("RESOURCE_EXHAUSTED", "FAILED_PRECONDITION", "INVALID_ARGUMENT",
+        "INTERNAL", "UNAVAILABLE", "CANCELLED", "OUT_OF_RANGE")
+    while (current != null && seen.add(current)) {
+        val message = current.message.orEmpty()
+        statuses.firstOrNull { it in message }?.let { return it }
+        current = current.cause
+    }
+    return "UNKNOWN"
+}
+
+/** Fixed vocabulary only: raw native messages may contain private model input. */
+internal fun nativeFailureHints(error: Throwable): String {
+    val vocabulary = listOf("context", "token", "prefill", "decode", "length", "limit",
+        "maximum", "exceed", "long", "memory", "allocat", "json", "parse", "format",
+        "sampler", "constraint", "cancel", "initial", "role", "conversation", "state")
+    val hints = linkedSetOf<String>()
+    var current: Throwable? = error
+    val seen = HashSet<Throwable>()
+    while (current != null && seen.add(current)) {
+        val message = current.message.orEmpty().lowercase()
+        hints.addAll(vocabulary.filter { it in message })
+        current = current.cause
+    }
+    return hints.joinToString("-").ifBlank { "unclassified" }
 }

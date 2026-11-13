@@ -500,7 +500,8 @@ internal class LiteRtGemma4Runtime(
                 listener.onComplete(text)
             }
         } catch (error: Throwable) {
-            status = "error_${error.javaClass.simpleName}"
+            status = "error_${error.javaClass.simpleName}_${nativeStatusCode(error)}_${nativeFailureHints(error)}"
+            nativeContextTokens = runCatching { conversation?.getTokenCount() }.getOrNull()
             successfulSend = false
             if (isCurrent(requestGeneration)) listener.onError(sanitizeRuntimeError(error))
         } finally {
