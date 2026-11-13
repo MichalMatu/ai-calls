@@ -19,7 +19,7 @@ import org.json.JSONObject
  */
 internal object OrangeSupportCallPolicy {
     const val target = "510100100"
-    const val maxCallMs = 35_000L
+    const val maxCallMs = 55_000L
     fun allowedTarget(number: String, approved: Boolean) = approved && number == target
 }
 

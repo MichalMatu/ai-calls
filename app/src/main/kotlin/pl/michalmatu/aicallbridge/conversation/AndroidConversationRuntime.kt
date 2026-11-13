@@ -224,6 +224,8 @@ internal object AndroidConversationRuntime {
             val latest = AtomicReference(initial)
             val complete = AtomicBoolean(false)
             val voiceNoticed = AtomicBoolean(false)
+            /** Bytes passed into STT, including a turn interrupted by operator STOP. */
+            val partialBytes = AtomicLong(0L)
         }
         private val activeRxCapture = AtomicReference<ActiveRxCapture?>(null)
         private var liveChatToken = 0L
@@ -517,6 +519,7 @@ internal object AndroidConversationRuntime {
                     if (!pipeline.writeInputPcm(preRoll)) throw IllegalStateException("stt_barge_preroll_write_failed")
                     evidenceRx?.append(preRoll, preRoll.size)
                     total += preRoll.size
+                    capture.partialBytes.addAndGet(preRoll.size.toLong())
                     endpoint = detector.acceptPcm16(preRoll)
                     capture.latest.set(endpoint)
                     if (endpoint.estimatedSpeechEndMs != null && capture.voiceNoticed.compareAndSet(false, true))
@@ -531,6 +534,7 @@ internal object AndroidConversationRuntime {
                         }
                         evidenceRx?.append(bytes, length)
                         total += length
+                        capture.partialBytes.addAndGet(length.toLong())
                         endpoint = detector.acceptPcm16(bytes, 0, length)
                         capture.latest.set(endpoint)
                         // First detected voice (one non-silent 20 ms frame) cancels the idle limit.
@@ -890,9 +894,12 @@ internal object AndroidConversationRuntime {
         private fun elapsedTurnMs(): Long =
             (SystemClock.elapsedRealtime() - turnStartedAtMs).coerceAtLeast(0L)
 
+        private var interruptedRxBytes = 0L
         private fun recordInterruptedCapture(active: ActiveRxCapture, cause: String): Boolean =
             ConversationRxInterruptionGate.claimAndRecord(active.complete) {
                 val last = active.latest.get()
+                interruptedRxBytes += active.partialBytes.get()
+                lines += "turn_${active.turn}_rx_interrupted_pcm_bytes=${active.partialBytes.get()}"
                 val trailing = last.estimatedSpeechEndMs?.let { speechEnd ->
                     (last.capturedMs - speechEnd).coerceAtLeast(0L)
                 }
@@ -936,6 +943,7 @@ internal object AndroidConversationRuntime {
             dialogue.finalDiagnostics().forEach { lines += it }
             lines += "turns_completed=$turnsCompleted"
             lines += "telephony_rx_pcm_bytes=$totalRxBytes"
+            lines += "telephony_rx_partial_pcm_bytes=$interruptedRxBytes"
             lines += "telephony_tx_pcm_bytes=$totalTxBytes"
             lines += "chat_relay_live_call_success=${result == ConversationTermination.Completed}"
             lines += "conversation_end_reason=${sanitize(reason)}"

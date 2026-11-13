@@ -113,7 +113,9 @@ def flow(device: Device) -> dict:
         pilot_started = True
         print("PILOT_SCRIPT_START_TAPPED=true",flush=True)
         # A bounded live period; only technical report counters are collected.
-        for _ in range(9):
+        # Allow an actual IVR utterance to finish before expecting STT/TTS.
+        # The Android-owned watchdog independently caps this call at 55 seconds.
+        for _ in range(46):
             time.sleep(0.65)
             if snapshot(device).get("call_idle"): break
         widgets = controls(device)
@@ -121,6 +123,8 @@ def flow(device: Device) -> dict:
             tap(device, widgets[STOP])
             pilot_stopped = True
         print("PILOT_STOP_TAPPED="+str(pilot_stopped).lower(),flush=True)
+        # A prior report may exist. Do not infer a new live RX/TX session
+        # from a historical artifact if the current STOP has not persisted.
         time.sleep(1)
         report = last_call_technical_summary(device)
         print("SAFE_AUDIO_METRICS="+str({k:v for k,v in report.items()
@@ -148,7 +152,8 @@ def flow(device: Device) -> dict:
             "exact_active": exact_active, "pilot_started": pilot_started,
             "pilot_stopped": pilot_stopped, "phone_idle_after": ended_idle,
             "report_available": report.get("available") is True,
-            "rx_positive": report.get("telephony_rx_pcm_bytes", 0) > 0,
+            "rx_positive": (report.get("telephony_rx_pcm_bytes", 0) > 0 or
+                            report.get("telephony_rx_partial_pcm_bytes", 0) > 0),
             "tx_positive": report.get("telephony_tx_pcm_bytes", 0) > 0}
 
 
@@ -169,7 +174,8 @@ def main() -> int:
     print("SAFE_AUDIO_FLOW_RESULT="+str(outcome))
     return 0 if all(outcome.get(k) for k in (
         "dial_accepted", "exact_bound", "exact_active",
-        "pilot_started", "pilot_stopped", "phone_idle_after")) else 1
+        "pilot_started", "pilot_stopped", "phone_idle_after",
+        "rx_positive", "tx_positive")) else 1
 
 
 if __name__ == "__main__":

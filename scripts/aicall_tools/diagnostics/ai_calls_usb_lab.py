@@ -246,7 +246,8 @@ def last_call_technical_summary(device: Device) -> dict:
     if r.returncode:
         return {"available": False}
     numbers = {
-        "turns_completed", "telephony_rx_pcm_bytes", "telephony_tx_pcm_bytes",
+        "turns_completed", "telephony_rx_pcm_bytes", "telephony_rx_partial_pcm_bytes",
+        "turn_1_rx_interrupted_pcm_bytes", "telephony_tx_pcm_bytes",
         "turn_1_stt_chars", "turn_1_rx_pcm_bytes",
         "turn_2_rx_interrupted_capture_ms",
         "turn_2_rx_interrupted_trailing_silence_ms",
