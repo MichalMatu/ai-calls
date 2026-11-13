@@ -42,9 +42,10 @@ ACTIONS = frozenset({
     "lab_status", "lab_stop", "call_takeover", "call_resume",
     "call_stop_owned", "incoming_ai_disable", "incoming_config",
     "appointment_stage", "orange_smoke_start", "orange_smoke_status", "orange_smoke_stop",
+    "phone_tasks_status", "phone_task_stop",
 })
 INTERVENTIONS = frozenset({
-    "call_takeover", "call_resume", "call_stop_owned", "incoming_ai_disable",
+    "call_takeover", "call_resume", "call_stop_owned", "incoming_ai_disable", "phone_task_stop",
 })
 
 
@@ -280,6 +281,16 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
         if response.get("ok") is True and isinstance(response.get("data"), dict):
             response["data"]["last_completed_call"] = last_call_technical_summary(device)
         return response
+    if name in {"phone_tasks_status", "phone_task_stop"}:
+        params = {}
+        if args.task_id:
+            try:
+                params["task_id"] = str(uuid.UUID(args.task_id))
+            except ValueError as error:
+                raise DiagnosticError("invalid_phone_task_id") from error
+        if name == "phone_task_stop" and not params:
+            raise DiagnosticError("phone_task_id_required")
+        return device_request(device, name, **params)
     if name == "appointment_stage":
         device.safe_preflight()
         try:
@@ -369,6 +380,7 @@ def main() -> int:
     ))
     parser.add_argument("--allow-one-real-call", action="store_true")
     parser.add_argument("--session-id")
+    parser.add_argument("--task-id")
     parser.add_argument("--context-tokens", type=int, default=4096)
     parser.add_argument("--preset", default="natural")
     parser.add_argument("--input", default="ANDROID_STT")

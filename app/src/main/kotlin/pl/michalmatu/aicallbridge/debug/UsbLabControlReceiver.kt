@@ -119,6 +119,8 @@ internal object UsbLabControl {
     fun execute(context: Context, action: String, request: JSONObject): Result = when (action) {
         "status", "call_status", "config_get" -> Result(true, "ok", snapshot(context))
         "appointment_stage" -> stageAppointment(context, request)
+        "phone_tasks_status" -> phoneTasksStatus(context, request)
+        "phone_task_stop" -> stopPhoneTask(context, request)
         "lab_start" -> start(context, request)
         "lab_send" -> send(request)
         "lab_status" -> Result(true, "ok", synchronized(lock) { labSnapshot() })
@@ -139,6 +141,57 @@ internal object UsbLabControl {
         }
         "incoming_config" -> configureIncoming(context, request)
         else -> Result(false, "unknown_action")
+    }
+
+    /** Read the production queue without exposing goals, numbers, SIM IDs or transcripts. */
+    private fun phoneTasksStatus(context: Context, request: JSONObject): Result {
+        val requested = request.optString("task_id")
+        if (requested.isNotEmpty() && runCatching { UUID.fromString(requested) }.isFailure)
+            return Result(false, "invalid_phone_task_id")
+        val all = pl.michalmatu.aicallbridge.campaign.PhoneTaskWork.store(context).phoneTasks()
+        val selected = if (requested.isEmpty()) all else all.filter { it.id == requested }
+        if (requested.isNotEmpty() && selected.isEmpty()) return Result(false, "unknown_phone_task")
+        val report = runCatching {
+            File(context.filesDir, pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime.REPORT_FILE)
+                .takeIf { it.isFile }?.readText()
+        }.getOrNull()
+        val tasks = JSONArray()
+        selected.forEach { task ->
+            val active = pl.michalmatu.aicallbridge.campaign.PhoneTaskWork.activeTaskId == task.id
+            val summary = JSONObject(pl.michalmatu.aicallbridge.campaign.PhoneTaskDiagnosticSummary
+                .snapshot(task, active, report))
+            summary.put("sim_scope_matches", runCatching {
+                pl.michalmatu.aicallbridge.campaign.CampaignAccountScope
+                    .forSubscription(context, task.subscriptionId) == task.accountScope
+            }.getOrDefault(false))
+            tasks.put(summary)
+        }
+        return Result(true, "phone_tasks_status", JSONObject()
+            .put("task_count", all.size)
+            .put("pending_count", all.count { it.state in setOf(
+                pl.michalmatu.aicallbridge.campaign.PhoneTaskState.READY,
+                pl.michalmatu.aicallbridge.campaign.PhoneTaskState.PAUSED) })
+            .put("tasks", tasks))
+    }
+
+    /** Cancel one existing task through its owner; no global hangup or replacement grant. */
+    private fun stopPhoneTask(context: Context, request: JSONObject): Result {
+        val id = request.optString("task_id")
+        if (runCatching { UUID.fromString(id) }.isFailure)
+            return Result(false, "invalid_phone_task_id")
+        val task = pl.michalmatu.aicallbridge.campaign.PhoneTaskWork.store(context).phoneTasks()
+            .firstOrNull { it.id == id } ?: return Result(false, "unknown_phone_task")
+        if (task.state in setOf(pl.michalmatu.aicallbridge.campaign.PhoneTaskState.CANCELLED,
+                pl.michalmatu.aicallbridge.campaign.PhoneTaskState.FINISHED))
+            return Result(true, "phone_task_already_terminal")
+        val dispatched = runCatching {
+            context.startService(Intent(context, AppOwnedCampaignService::class.java)
+                .setAction(AppOwnedCampaignService.ACTION_CANCEL_PHONE_TASK)
+                .putExtra(AppOwnedCampaignService.EXTRA_PHONE_TASK_ID, id))
+            true
+        }.getOrDefault(false)
+        return Result(dispatched, if (dispatched) "phone_task_stop_dispatched"
+            else "phone_task_stop_dispatch_failed")
     }
 
     private fun stageAppointment(context: Context, request: JSONObject): Result {
