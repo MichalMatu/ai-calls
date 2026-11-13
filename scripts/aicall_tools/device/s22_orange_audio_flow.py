@@ -159,7 +159,9 @@ def flow(device: Device, *, gemma: bool = False) -> dict:
             "report_available": report.get("available") is True,
             "rx_positive": (report.get("telephony_rx_pcm_bytes", 0) > 0 or
                             report.get("telephony_rx_partial_pcm_bytes", 0) > 0),
-            "tx_positive": report.get("telephony_tx_pcm_bytes", 0) > 0}
+            "tx_positive": report.get("telephony_tx_pcm_bytes", 0) > 0,
+            "gemma_replies": report.get("supervised_gemma_replies", 0),
+            "gemma_fallback_replies": report.get("supervised_script_fallback_replies", 0)}
 
 
 def main() -> int:
@@ -178,10 +180,11 @@ def main() -> int:
         print("AUDIO_FLOW_FAILED="+type(error).__name__)
         return 1
     print("SAFE_AUDIO_FLOW_RESULT="+str(outcome))
-    return 0 if all(outcome.get(k) for k in (
+    media_ok = all(outcome.get(k) for k in (
         "dial_accepted", "exact_bound", "exact_active",
         "pilot_started", "pilot_stopped", "phone_idle_after",
-        "rx_positive", "tx_positive")) else 1
+        "rx_positive", "tx_positive"))
+    return 0 if media_ok and (not args.gemma or outcome.get("gemma_replies", 0) > 0) else 1
 
 
 if __name__ == "__main__":
