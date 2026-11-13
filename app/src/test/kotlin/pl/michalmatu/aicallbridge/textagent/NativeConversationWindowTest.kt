@@ -82,6 +82,21 @@ class NativeConversationWindowTest {
         assertEquals("context-token", nativeFailureHints(IllegalStateException("PRIVATE_TEXT token context")))
     }
 
+    @Test fun prefillLengthVersusStateCapacityVariantRecovers() {
+        val window = window(1)
+        var sends = 0
+        val result = sendWithContextRecovery(1, window, { true }, { 0 }) { retained ->
+            sends++
+            if (retained > 0) throw IllegalStateException(
+                "Failed to call nativeSendMessage: FAILED_PRECONDITION: Prefill length exceeds available state capacity")
+            "recovered"
+        }
+        assertEquals("recovered", result)
+        assertEquals(2, sends)
+        assertFalse(isNativeContextCapacityFailure(IllegalArgumentException(
+            "INVALID_ARGUMENT: prefill shape exceeds state tensor rank")))
+    }
+
     @Test fun unrelatedNativeErrorsDoNotDiscardHistoryOrRetry() {
         val window = window(2)
         var resets = 0

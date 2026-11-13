@@ -53,6 +53,7 @@ internal data class NativeModelTiming(
     val status: String,
     val nativeCancelRequested: Boolean = false,
     val contextRecoveries: Int = 0,
+    val contextRecoveryAttempts: Int = 0,
     val nativeContextTokens: Int? = null,
     val retainedContextTurns: Int = 0,
 ) {
@@ -399,6 +400,7 @@ internal class LiteRtGemma4Runtime(
         var outputChars = 0
         var status = "cancelled"
         var contextRecoveries = 0
+        var contextRecoveryAttempts = 0
         var nativeContextTokens: Int? = null
         try {
             var readyEngine = ensureEngine()
@@ -435,6 +437,7 @@ internal class LiteRtGemma4Runtime(
                 window = conversationWindow,
                 isCurrent = { isCurrent(requestGeneration) },
                 replaceConversation = { failed ->
+                    contextRecoveryAttempts++
                     synchronized(lock) {
                         if (!isCurrentLocked(requestGeneration))
                             throw CancellationException("native_generation_cancelled")
@@ -442,7 +445,7 @@ internal class LiteRtGemma4Runtime(
                         if (sendingGeneration == requestGeneration) sendingGeneration = null
                     }
                     closeConversation(failed)
-                    closeIsolatedEngineWhenIdle(force = true)
+                    closeIsolatedEngineWhenIdle()
                     readyEngine = ensureEngine()
                     val replacement = createConversation(readyEngine)
                     conversation = replacement
@@ -526,6 +529,7 @@ internal class LiteRtGemma4Runtime(
                 status = status,
                 nativeCancelRequested = nativeCancelRequested,
                 contextRecoveries = contextRecoveries,
+                contextRecoveryAttempts = contextRecoveryAttempts,
                 nativeContextTokens = nativeContextTokens,
                 retainedContextTurns = conversationWindow.snapshot().size,
             )
@@ -538,6 +542,7 @@ internal class LiteRtGemma4Runtime(
                 ",context_token_budget=${timing.contextTokens}" +
                 ",native_cancel_requested=${timing.nativeCancelRequested}" +
                 ",context_recoveries=${timing.contextRecoveries}" +
+                ",context_recovery_attempts=${timing.contextRecoveryAttempts}" +
                 ",native_context_tokens=${timing.nativeContextTokens ?: -1}" +
                 ",retained_context_turns=${timing.retainedContextTurns}")
             // Callback is strictly diagnostic: it cannot alter the native model outcome.
@@ -589,9 +594,9 @@ internal class LiteRtGemma4Runtime(
         try { value?.close() } catch (_: Throwable) {}
     }
 
-    /** Capacity failure can poison the shared native state; recurrent models also isolate resets. */
-    private fun closeIsolatedEngineWhenIdle(force: Boolean = false) {
-        if (!force && !executionPolicy.newEngineAfterContextReset) return
+    /** LiteRT-LM 0.19.0 can retain Qwen3.5 recurrent state after closing a Conversation. */
+    private fun closeIsolatedEngineWhenIdle() {
+        if (!executionPolicy.newEngineAfterContextReset) return
         val detached = synchronized(lock) {
             if (sendingGeneration != null || activeConversation != null) null
             else engine.also { engine = null }

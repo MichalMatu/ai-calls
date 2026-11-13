@@ -62,9 +62,10 @@ internal fun isNativeContextCapacityFailure(error: Throwable): Boolean {
     val seen = HashSet<Throwable>()
     while (current != null && seen.add(current)) {
         val message = current.message.orEmpty()
-        if ("Chosen prefill work group size exceeds available state entries" in message ||
-            ("RESOURCE_EXHAUSTED" in message &&
-                ("context" in message.lowercase() || "token" in message.lowercase())))
+        val lower = message.lowercase()
+        if (("prefill" in lower && "state" in lower && "exceed" in lower &&
+                "INVALID_ARGUMENT" !in message) ||
+            ("RESOURCE_EXHAUSTED" in message && ("context" in lower || "token" in lower)))
             return true
         current = current.cause
     }
