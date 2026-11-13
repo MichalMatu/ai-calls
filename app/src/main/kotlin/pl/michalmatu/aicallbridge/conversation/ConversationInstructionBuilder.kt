@@ -29,6 +29,9 @@ internal object ConversationInstructionBuilder {
         return """
             ROLA: $role
             Język: polski. Jedna krótka naturalna wypowiedź, zwykle jedno lub dwa zdania.
+            Odpowiedz wprost na ostatnie pytanie w kontekście rozmowy. Przy pytaniu o przekazane
+            ustalenia przywołaj podaną wartość, uwzględniając najnowszą poprawkę. Nie zastępuj jej
+            potwierdzeniem zapisu ani odpowiedzią na inne pytanie. Gdy brakuje informacji, dopytaj.
 
             AUTORYZOWANE ZADANIE:
             $goal

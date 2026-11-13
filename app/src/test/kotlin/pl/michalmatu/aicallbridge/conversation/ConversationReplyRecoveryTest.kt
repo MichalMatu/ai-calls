@@ -150,4 +150,21 @@ class ConversationReplyRecoveryTest {
         assertTrue(prompt.contains(ConversationInstructionBuilder.INCOMING_OPENING))
         assertTrue(prompt.contains("Rozmówca teraz na to odpowiada"))
     }
+
+    @Test fun unfinishedEditorialTemplateIsRepairedBeforeSpeechAndHistory() {
+        var attempts = 0
+        val raw = sendWithReplyRecovery(
+            { true }, {
+                attempts++
+                if (attempts == 1)
+                    """{"reply":"Godzina to [tutaj wstaw aktualną godzinę].","tool":"none","note":"","kind":"NOTE"}"""
+                else """{"reply":"Po poprawce proponowana godzina to piętnasta.","tool":"none","note":"","kind":"NOTE"}"""
+            },
+            { ConversationReplyProtocol.validateGenerated(it, false) }, {},
+        )
+        assertEquals(2, attempts)
+        assertTrue(ConversationReplyProtocol.decode(raw).text.contains("piętnasta"))
+        assertEquals("Tytuł wiadomości to [pilne].", ConversationReplyProtocol.decode(
+            """{"reply":"Tytuł wiadomości to [pilne].","tool":"none"}""").text)
+    }
 }

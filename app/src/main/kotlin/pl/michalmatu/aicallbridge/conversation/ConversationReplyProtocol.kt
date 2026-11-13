@@ -21,6 +21,7 @@ internal data class ConversationReply(
 
 internal object ConversationReplyProtocol {
     const val FIELD_INSTRUCTION = "Zawsze zwracaj wszystkie cztery pola: reply, tool, note, kind. " +
+        "reply jest gotową wypowiedzią do rozmówcy, bez niewypełnionych szablonów i instrukcji redakcyjnych. " +
         "Dla tool=none i tool=end_call wpisz note jako pusty tekst i kind=NOTE. " +
         "Dla tool=save_note wpisz niepustą, zwięzłą note i dozwolone kind. " +
         "Przykład kontynuacji: {\"reply\":\"Uwzględnię poprawkę.\",\"tool\":\"none\",\"note\":\"\",\"kind\":\"NOTE\"}."
@@ -42,8 +43,10 @@ internal object ConversationReplyProtocol {
         do widzenia” oznacza koniec; „w wiadomości zacytowałem do widzenia, ale mam poprawkę”
         oznacza kontynuację. Przykłady wskazują sens, nie frazy do dopasowania.
         Przy rzeczywistej niejasności użyj none i dopytaj o potrzebną informację.
-        Gdy poznasz istotne ustalenie, termin, kwotę, dane kontaktowe przekazane w rozmowie
+        Gdy rozmówca podaje NOWE istotne ustalenie, termin, kwotę, dane kontaktowe
         albo poprawkę: użyj tool="save_note", w polu note wpisz zwięzłą treść ustalenia.
+        Pytanie o wcześniej podane informacje nie zmienia ich i nie wymaga ponownego zapisu.
+        Najpierw odpowiedz wprost na pytanie, korzystając z ostatnich ustaleń i ich poprawek.
         Pole kind wybierz z NOTE, TASK, CALENDAR_PROPOSAL, MESSAGE_DRAFT.
         Dla przyszłych akcji użyj tych kategorii wyłącznie jako PROPOZYCJI do sprawdzenia.
         Zapis notatki nie oznacza potwierdzenia prawdziwości, rezerwacji ani działania poza aplikacją.
@@ -90,7 +93,8 @@ internal object ConversationReplyProtocol {
             val failure = when (error.message) {
                 "conversation_reply_object" -> ConversationReplyFailure.OBJECT
                 "conversation_reply_fields" -> ConversationReplyFailure.FIELDS
-                "conversation_reply_speech", "conversation_reply_type_reply" -> ConversationReplyFailure.SPEECH
+                "conversation_reply_speech", "conversation_reply_type_reply",
+                "conversation_reply_template" -> ConversationReplyFailure.SPEECH
                 "conversation_tool_unknown", "conversation_reply_type_tool" -> ConversationReplyFailure.TOOL
                 "conversation_note_missing", "conversation_note_unexpected", "conversation_note_kind_invalid",
                 "conversation_reply_type_note", "conversation_reply_type_kind",
@@ -119,6 +123,7 @@ internal object ConversationReplyProtocol {
         }
         val text = string("reply").trim()
         require(text.isNotBlank() && text.length <= 4_096) { "conversation_reply_speech" }
+        require(!editorialPlaceholder.containsMatchIn(text)) { "conversation_reply_template" }
         val tool = when (val name = string("tool")) {
             "none" -> null
             else -> ConversationToolId.entries.singleOrNull { it.wireName == name }
@@ -137,6 +142,11 @@ internal object ConversationReplyProtocol {
         }
         return ConversationReply(text, tool, payload)
     }
+
+    private val editorialPlaceholder = Regex(
+        "\\[(?:(?:tutaj|here)\\s+)?(?:wstaw|uzupełnij|insert|fill|replace)\\b[^\\]]*\\]",
+        RegexOption.IGNORE_CASE,
+    )
 }
 
 /** Only decoded speech reaches the existing approval/TTS pipeline. A proposal is not execution. */
