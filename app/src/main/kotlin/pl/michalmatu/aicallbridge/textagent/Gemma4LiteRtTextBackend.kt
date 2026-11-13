@@ -14,10 +14,12 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.ResponseFormat
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.ThinkingConfig
 import java.io.File
+import java.util.concurrent.CancellationException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
@@ -50,6 +52,9 @@ internal data class NativeModelTiming(
     val outputChars: Int,
     val status: String,
     val nativeCancelRequested: Boolean = false,
+    val contextRecoveries: Int = 0,
+    val nativeContextTokens: Int? = null,
+    val retainedContextTurns: Int = 0,
 ) {
     val totalMs: Long get() = engineReadyMs + conversationCreateMs + generateMs
 }
@@ -241,6 +246,7 @@ internal class LiteRtGemma4Runtime(
     private var nativeCancelRequestedGeneration: Long? = null
     private var discardAfterSend = false
     private var conversationTurnCount = 0
+    private val conversationWindow = NativeConversationWindow()
     @Volatile private var activeBackendLabel = "unknown"
     private var closed = false
 
@@ -309,6 +315,7 @@ internal class LiteRtGemma4Runtime(
         // Synthetic reset or Lab instruction refresh. Keep the initialized Engine alive.
         val detached = synchronized(lock) {
             if (closed) return
+            conversationWindow.clear()
             if (sendingGeneration != null) {
                 discardAfterSend = true
                 null
@@ -342,6 +349,7 @@ internal class LiteRtGemma4Runtime(
             if (closed) return
             closed = true
             generation += 1
+            conversationWindow.clear()
             if (sendingGeneration != null) {
                 discardAfterSend = true
                 inFlight = activeConversation
@@ -390,8 +398,10 @@ internal class LiteRtGemma4Runtime(
         var inferenceReadyNs = startedNs
         var outputChars = 0
         var status = "cancelled"
+        var contextRecoveries = 0
+        var nativeContextTokens: Int? = null
         try {
-            val readyEngine = ensureEngine()
+            var readyEngine = ensureEngine()
             engineReadyNs = System.nanoTime()
             if (!isCurrent(requestGeneration)) return
 
@@ -404,27 +414,11 @@ internal class LiteRtGemma4Runtime(
                 registeredConversation = true
                 reused = true
             } else {
-                conversation = readyEngine.createConversation(
-                    ConversationConfig(
-                        systemInstruction = systemInstruction?.let(Contents::of),
-                        samplerConfig = SamplerConfig(
-                            topK = 1,
-                            topP = 1.0,
-                            temperature = 0.0,
-                            seed = 0,
-                        ),
-                        automaticToolCalling = false,
-                        extraContext = if (disableQwenThinking) mapOf("enable_thinking" to false) else emptyMap(),
-                        channels = emptyList(),
-                        maxOutputToken = if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS,
-                        thinkingConfig = ThinkingConfig(enableThinking = false),
-                        enableResponseFormat = responseFormat != null,
-                    ),
-                )
+                conversation = createConversation(readyEngine)
                 synchronized(lock) {
                     if (!isCurrentLocked(requestGeneration)) return
                     activeConversation = conversation
-                    conversationTurnCount = 0
+                    conversationTurnCount = conversationWindow.completedTurns
                     registeredConversation = true
                 }
             }
@@ -436,24 +430,56 @@ internal class LiteRtGemma4Runtime(
                 turnIndex = conversationTurnCount + 1
             }
 
-            // Testing/diagnostics only: never expose text, model state or authorization.
-            runCatching { onNativeSendEntered() }
-            val message = if (audioPcm == null) currentConversation.sendMessage(
-                text = userText,
-                maxOutputToken = MAX_OUTPUT_TOKENS,
-                thinkingConfig = ThinkingConfig(enableThinking = false),
-                responseFormat = responseFormat,
-            ) else {
-                val wave = pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.toWave(audioPcm)
-                try {
-                    currentConversation.sendMessage(
-                        contents = Contents.of(Content.Text(userText), Content.AudioBytes(wave)),
-                        maxOutputToken = AUDIO_OUTPUT_TOKENS,
+            val message = sendWithContextRecovery(
+                initial = currentConversation,
+                window = conversationWindow,
+                isCurrent = { isCurrent(requestGeneration) },
+                replaceConversation = { failed ->
+                    synchronized(lock) {
+                        if (!isCurrentLocked(requestGeneration))
+                            throw CancellationException("native_generation_cancelled")
+                        if (activeConversation === failed) activeConversation = null
+                        if (sendingGeneration == requestGeneration) sendingGeneration = null
+                    }
+                    closeConversation(failed)
+                    closeIsolatedEngineWhenIdle()
+                    readyEngine = ensureEngine()
+                    val replacement = createConversation(readyEngine)
+                    conversation = replacement
+                    registeredConversation = false
+                    synchronized(lock) {
+                        if (!isCurrentLocked(requestGeneration))
+                            throw CancellationException("native_generation_cancelled")
+                        activeConversation = replacement
+                        sendingGeneration = requestGeneration
+                        registeredConversation = true
+                    }
+                    contextRecoveries++
+                    reused = false
+                    replacement
+                },
+                send = { candidate ->
+                    // Diagnostic callback has no authority and receives no conversation text.
+                    runCatching { onNativeSendEntered() }
+                    if (audioPcm == null) candidate.sendMessage(
+                        text = userText,
+                        maxOutputToken = MAX_OUTPUT_TOKENS,
                         thinkingConfig = ThinkingConfig(enableThinking = false),
-                        responseFormat = audioResponseFormat,
-                    )
-                } finally { wave.fill(0) }
-            }
+                        responseFormat = responseFormat,
+                    ) else {
+                        val wave = pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.toWave(audioPcm)
+                        try {
+                            candidate.sendMessage(
+                                contents = Contents.of(Content.Text(userText), Content.AudioBytes(wave)),
+                                maxOutputToken = AUDIO_OUTPUT_TOKENS,
+                                thinkingConfig = ThinkingConfig(enableThinking = false),
+                                responseFormat = audioResponseFormat,
+                            )
+                        } finally { wave.fill(0) }
+                    }
+                },
+            )
+            nativeContextTokens = runCatching { conversation?.getTokenCount() }.getOrNull()
             inferenceReadyNs = System.nanoTime()
             val text = message.toString().trim()
             outputChars = text.length
@@ -461,6 +487,7 @@ internal class LiteRtGemma4Runtime(
                 if (sendingGeneration == requestGeneration) sendingGeneration = null
                 if (isCurrentLocked(requestGeneration) && text.isNotBlank()) {
                     conversationTurnCount += 1
+                    if (audioPcm == null && !discardAfterSend) conversationWindow.remember(userText, text)
                     successfulSend = true
                 }
             }
@@ -496,6 +523,9 @@ internal class LiteRtGemma4Runtime(
                 outputChars = outputChars,
                 status = status,
                 nativeCancelRequested = nativeCancelRequested,
+                contextRecoveries = contextRecoveries,
+                nativeContextTokens = nativeContextTokens,
+                retainedContextTurns = conversationWindow.snapshot().size,
             )
             Log.i("AiCallBridgePerf", "gemma4_runtime_backend=${timing.backend}" +
                 ",engine_ready_ms=${timing.engineReadyMs}" +
@@ -504,7 +534,10 @@ internal class LiteRtGemma4Runtime(
                 ",conversation_reused=${timing.conversationReused},conversation_turn=${timing.turn}" +
                 ",output_chars=${timing.outputChars},status=${timing.status}" +
                 ",context_token_budget=${timing.contextTokens}" +
-                ",native_cancel_requested=${timing.nativeCancelRequested}")
+                ",native_cancel_requested=${timing.nativeCancelRequested}" +
+                ",context_recoveries=${timing.contextRecoveries}" +
+                ",native_context_tokens=${timing.nativeContextTokens ?: -1}" +
+                ",retained_context_turns=${timing.retainedContextTurns}")
             // Callback is strictly diagnostic: it cannot alter the native model outcome.
             runCatching { onTiming(timing) }
 
@@ -533,6 +566,22 @@ internal class LiteRtGemma4Runtime(
             closeEngineIfRuntimeClosed()
         }
     }
+
+    /** Role-labelled history remains untrusted conversation data, never system authority. */
+    private fun createConversation(readyEngine: Engine): Conversation =
+        readyEngine.createConversation(ConversationConfig(
+            systemInstruction = systemInstruction?.let(Contents::of),
+            initialMessages = conversationWindow.snapshot().flatMap {
+                listOf(Message.user(it.userText), Message.model(it.modelText))
+            },
+            samplerConfig = SamplerConfig(topK = 1, topP = 1.0, temperature = 0.0, seed = 0),
+            automaticToolCalling = false,
+            extraContext = if (disableQwenThinking) mapOf("enable_thinking" to false) else emptyMap(),
+            channels = emptyList(),
+            maxOutputToken = if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS,
+            thinkingConfig = ThinkingConfig(enableThinking = false),
+            enableResponseFormat = responseFormat != null,
+        ))
 
     private fun closeConversation(value: Conversation?) {
         try { value?.close() } catch (_: Throwable) {}
