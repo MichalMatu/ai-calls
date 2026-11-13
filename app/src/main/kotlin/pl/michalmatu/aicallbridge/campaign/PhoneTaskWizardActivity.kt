@@ -189,17 +189,11 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         body.addView(UiDesign.caption(this, getString(R.string.task_numbers_help)), UiDesign.spaceAfter(this, 16))
         val sim = Spinner(this).apply { tag = "task-sim"; isSaveEnabled = false }
         val allowed = checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
-        val subscriptions = if (allowed) runCatching {
-            getSystemService(SubscriptionManager::class.java)?.activeSubscriptionInfoList.orEmpty().mapNotNull { info ->
-                CampaignAccountScope.forSubscription(this, info.subscriptionId)?.let { scope ->
-                    Triple(info.subscriptionId, scope, info.displayName.toString())
-                }
-            }
-        }.getOrDefault(emptyList()) else emptyList()
-        // The blank entry is essential when the previously selected SIM disappeared.
-        UiSelect.setOptions(sim, listOf(getString(R.string.task_choose_sim)) + subscriptions.map { it.third })
-        val index = subscriptions.indexOfFirst { it.first == draft.subscriptionId && it.second == draft.accountScope }
-        sim.setSelection(if (index >= 0) index + 1 else if (draft.subscriptionId == null && subscriptions.size == 1) 1 else 0)
+        val subscriptions = PhoneTaskSimChoices.available(this)
+        // Slot labels distinguish two SIMs with the same carrier name.
+        UiSelect.setOptions(sim, listOf(getString(R.string.task_choose_sim)) + subscriptions.map { it.label(this) })
+        sim.setSelection(PhoneTaskSimChoices.selectedIndex(subscriptions,
+            draft.subscriptionId, draft.accountScope, SubscriptionManager.getDefaultVoiceSubscriptionId()))
         body.addView(UiDesign.caption(this, getString(R.string.scenario_call_sim)), UiDesign.spaceAfter(this, 6))
         body.addView(sim, UiDesign.spaceAfter(this, 12))
         if (!allowed) body.addView(UiDesign.action(this, getString(R.string.task_phone_permission)) {
@@ -208,8 +202,8 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         })
         capture = {
             val selected = subscriptions.getOrNull(sim.selectedItemPosition - 1)
-            draft.copy(recipients = recipients.text.toString(), subscriptionId = selected?.first,
-                accountScope = selected?.second)
+            draft.copy(recipients = recipients.text.toString(), subscriptionId = selected?.subscriptionId,
+                accountScope = selected?.scope)
         }
     }
 
@@ -267,9 +261,9 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         summary.addView(UiDesign.caption(this, numbers.values.joinToString("\n") {
             listOf(it.name, it.number).filter(String::isNotBlank).joinToString(" · ")
         }), UiDesign.spaceAfter(this, 16))
-        val simName = if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED)
-            runCatching { getSystemService(SubscriptionManager::class.java)
-                ?.getActiveSubscriptionInfo(draft.subscriptionId ?: -1)?.displayName?.toString() }.getOrNull() else null
+        val simName = PhoneTaskSimChoices.available(this).firstOrNull {
+            it.subscriptionId == draft.subscriptionId && it.scope == draft.accountScope
+        }?.label(this)
         summary.addView(UiDesign.caption(this, getString(R.string.scenario_call_sim) + ": " +
             (simName ?: getString(R.string.task_choose_sim))), UiDesign.spaceAfter(this, 12))
         summary.addView(UiDesign.caption(this, getString(R.string.task_schedule_summary,

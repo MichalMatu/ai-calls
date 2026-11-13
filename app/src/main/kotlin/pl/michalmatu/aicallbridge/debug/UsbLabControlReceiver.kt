@@ -166,7 +166,15 @@ internal object UsbLabControl {
             }.getOrDefault(false))
             tasks.put(summary)
         }
+        val defaultVoice = android.telephony.SubscriptionManager.getDefaultVoiceSubscriptionId()
+        val choices = JSONArray()
+        pl.michalmatu.aicallbridge.campaign.PhoneTaskSimChoices.available(context)
+            .forEachIndexed { index, choice -> choices.put(JSONObject()
+                .put("index", index + 1)
+                .put("slot_number", choice.slotNumber)
+                .put("default_voice", choice.subscriptionId == defaultVoice)) }
         return Result(true, "phone_tasks_status", JSONObject()
+            .put("sim_choices", choices)
             .put("task_count", all.size)
             .put("pending_count", all.count { it.state in setOf(
                 pl.michalmatu.aicallbridge.campaign.PhoneTaskState.READY,
