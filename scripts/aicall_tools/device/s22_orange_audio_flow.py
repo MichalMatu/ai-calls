@@ -68,7 +68,7 @@ def snapshot(device: Device) -> dict:
     return data
 
 
-def flow(device: Device) -> dict:
+def flow(device: Device, *, gemma: bool = False) -> dict:
     device.safe_preflight()
     if not snapshot(device).get("call_idle"): raise DiagnosticError("phone_not_idle")
     began = False
@@ -106,12 +106,16 @@ def flow(device: Device) -> dict:
             if START in widgets: break
             time.sleep(0.5)
         if START not in widgets: raise DiagnosticError("supervised_pilot_ui_not_visible")
-        if widgets.get(SCRIPT, (0,0,False))[2]:
-            tap(device, widgets[SCRIPT])
+        checkbox = widgets.get(SCRIPT)
+        if checkbox is None:
+            raise DiagnosticError("gemma_mode_checkbox_missing")
+        if checkbox[2] != gemma:
+            tap(device, checkbox)
             widgets = controls(device)
         tap(device, widgets[START])
         pilot_started = True
-        print("PILOT_SCRIPT_START_TAPPED=true",flush=True)
+        print("PILOT_MODE="+("GEMMA_4" if gemma else "SCRIPT"),flush=True)
+        print("PILOT_START_TAPPED=true",flush=True)
         # A bounded live period; only technical report counters are collected.
         # Allow an actual IVR utterance to finish before expecting STT/TTS.
         # The Android-owned watchdog independently caps this call at 55 seconds.
@@ -130,7 +134,8 @@ def flow(device: Device) -> dict:
         print("SAFE_AUDIO_METRICS="+str({k:v for k,v in report.items()
             if k in {"available","turns_completed","telephony_rx_pcm_bytes",
                      "telephony_tx_pcm_bytes","chat_relay_live_call_success",
-                     "conversation_end_reason","probe_complete"}}),flush=True)
+                     "conversation_end_reason","probe_complete",
+                     "supervised_gemma_replies","supervised_script_fallback_replies"}}),flush=True)
     finally:
         if began:
             try:
@@ -160,6 +165,7 @@ def flow(device: Device) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-one-real-call", action="store_true")
+    parser.add_argument("--gemma", action="store_true")
     parser.add_argument("--adb", default=os.environ.get("ADB",
         str(Path.home() / "Library/Android/sdk/platform-tools/adb")))
     args = parser.parse_args()
@@ -167,7 +173,7 @@ def main() -> int:
         print("ERROR=explicit_real_call_opt_in_required")
         return 2
     try:
-        outcome = flow(Device(args.adb))
+        outcome = flow(Device(args.adb), gemma=args.gemma)
     except (OSError, RuntimeError, ValueError, ET.ParseError) as error:
         print("AUDIO_FLOW_FAILED="+type(error).__name__)
         return 1
