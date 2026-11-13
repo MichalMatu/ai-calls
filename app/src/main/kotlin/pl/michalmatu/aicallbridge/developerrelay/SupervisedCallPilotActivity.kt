@@ -282,8 +282,10 @@ class SupervisedCallPilotActivity : Activity() {
     }
 
     private fun stopAudio(reason: ConversationStopReason) {
-        allowed.set(false)
-        session?.stopAudio(reason)
+        SupervisedCallPilotPolicy.stopBeforeRevocation(
+            stopAudio = { session?.stopAudio(reason) },
+            revoke = { allowed.set(false) },
+        )
         stopButton.isEnabled = false
         status.text = getString(R.string.pilot_ui_stopping)
     }

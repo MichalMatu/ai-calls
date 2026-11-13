@@ -12,6 +12,15 @@ internal enum class SupervisedCallPilotFailure {
 }
 
 internal object SupervisedCallPilotPolicy {
+    /**
+     * Stop/TX epoch fence must become visible before the UI revokes authorization.
+     * The reverse order can race the model worker and misclassify operator STOP
+     * as an unrelated policy revocation. Revocation is unconditional on failure.
+     */
+    fun stopBeforeRevocation(stopAudio: () -> Unit, revoke: () -> Unit) {
+        try { stopAudio() } finally { revoke() }
+    }
+
     /** Bounded retry only for an already detected call waiting for Android's audio routing. */
     fun shouldAwaitAudioRoute(failure: SupervisedCallPilotFailure?, elapsedMs: Long): Boolean =
         failure == SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY && elapsedMs in 0L until 3_000L

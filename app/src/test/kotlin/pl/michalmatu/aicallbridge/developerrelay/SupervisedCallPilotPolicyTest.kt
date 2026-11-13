@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.developerrelay
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SupervisedCallPilotPolicyTest {
@@ -9,6 +10,27 @@ class SupervisedCallPilotPolicyTest {
         mic: Boolean = true, phone: Boolean = true, shizuku: Boolean = true,
         active: Boolean = true, mode: Boolean = true,
     ) = SupervisedCallPilotPolicy.check(mic, phone, shizuku, active, mode)
+
+    @Test fun stopFencesTheMediaBeforeAuthorizationIsRevoked() {
+        val events = mutableListOf<String>()
+        SupervisedCallPilotPolicy.stopBeforeRevocation(
+            stopAudio = { events += "stop" },
+            revoke = { events += "revoke" },
+        )
+        assertEquals(listOf("stop", "revoke"), events)
+    }
+
+    @Test fun stopFailureStillRevokesAuthorization() {
+        var revoked = false
+        val error = runCatching {
+            SupervisedCallPilotPolicy.stopBeforeRevocation(
+                stopAudio = { error("probe_stop_failure") },
+                revoke = { revoked = true },
+            )
+        }
+        assertTrue(error.isFailure)
+        assertTrue(revoked)
+    }
 
     @Test fun validExistingCallCanStartSupervisedScript() {
         assertNull(check())
