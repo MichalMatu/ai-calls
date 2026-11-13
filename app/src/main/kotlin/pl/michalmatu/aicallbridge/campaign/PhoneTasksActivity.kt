@@ -165,6 +165,10 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
             AlertDialog.Builder(this).setTitle(task.title).setMessage(task.goal + "\n\n" + task.brief +
                 "\n\n" + getString(R.string.task_scope)).setPositiveButton(android.R.string.ok, null).show()
         }, UiDesign.spaceAfter(this, 16))
+        if (task.recipients.size > 1) body.addView(UiDesign.action(this,
+            getString(R.string.task_compare), UiActionTone.PRIMARY) {
+            showComparison(task)
+        }.apply { tag = "task-compare" }, UiDesign.spaceAfter(this, 16))
         task.recipients.forEach { recipient -> recipientCard(task, recipient) }
         body.addView(UiDesign.action(this, getString(R.string.task_copy)) {
             PhoneTaskWork.io.execute {
@@ -178,6 +182,36 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                     .onFailure { Toast.makeText(this, R.string.task_storage_error, Toast.LENGTH_LONG).show() } }
             }
         })
+    }
+
+    private fun showComparison(task: PhoneTask) {
+        val entries = PhoneTaskResults.byRecipient(task)
+        val container = UiDesign.content(this)
+        task.recipients.forEach { recipient ->
+            val evidence = requireNotNull(entries[recipient.id])
+            val card = UiDesign.card(this)
+            card.addView(UiDesign.heading(this, recipient.name.ifBlank { recipient.number }),
+                UiDesign.spaceAfter(this, 6))
+            card.addView(UiDesign.caption(this, getString(PhoneTaskLabels.recipient(recipient))),
+                UiDesign.spaceAfter(this, 12))
+            listOf(R.string.task_price to evidence.price,
+                R.string.task_availability to evidence.availability,
+                R.string.task_terms to evidence.terms).forEach { (label, values) ->
+                card.addView(UiDesign.caption(this, getString(label)), UiDesign.spaceAfter(this, 4))
+                card.addView(TextView(this).apply {
+                    text = if (values.isEmpty()) getString(R.string.task_no_data)
+                        else values.joinToString("\n\n")
+                    textSize = 15f
+                    setTextColor(UiDesign.ink)
+                    setTextIsSelectable(true)
+                }, UiDesign.spaceAfter(this, 12))
+            }
+            container.addView(card, UiDesign.spaceAfter(this, 12))
+        }
+        container.addView(UiDesign.caption(this, getString(R.string.task_quotes_notice)))
+        AlertDialog.Builder(this).setTitle(R.string.task_compare)
+            .setView(ScrollView(this).apply { addView(container) })
+            .setPositiveButton(android.R.string.ok, null).show()
     }
 
     private fun recipientCard(task: PhoneTask, recipient: PhoneTaskRecipient) {

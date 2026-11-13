@@ -294,6 +294,32 @@ class PhoneTaskQueueTest {
             1_000, id()))
     }
 
+    @Test fun `multi-recipient comparison keeps original order and raw quotes without ranking`() {
+        val original = task(count = 3)
+        val first = requireNotNull(PhoneTaskQueue.claim(listOf(original), 1_000, id()))
+        val priceText = "Cena od 350 do 500 zł, bez części."
+        val withPrice = PhoneTaskQueue.progress(first.task, first.attemptId, PhoneAttemptStage.TALKING,
+            "first-call", PhoneTaskAnswer(1, priceText))
+        val doneFirst = PhoneTaskQueue.complete(withPrice, first.attemptId, PhoneAttemptOutcome.ANSWERED, 2_000)
+        val second = requireNotNull(PhoneTaskQueue.claim(listOf(doneFirst), 3_000, id()))
+        val doneSecond = PhoneTaskQueue.complete(second.task, second.attemptId, PhoneAttemptOutcome.UNKNOWN, 4_000)
+        val third = requireNotNull(PhoneTaskQueue.claim(listOf(doneSecond), 5_000, id()))
+        val availabilityText = "No slots available tomorrow; deposit is required."
+        val withTime = PhoneTaskQueue.progress(third.task, third.attemptId, PhoneAttemptStage.TALKING,
+            "third-call", PhoneTaskAnswer(1, availabilityText))
+        val doneThird = PhoneTaskQueue.complete(withTime, third.attemptId, PhoneAttemptOutcome.ANSWERED, 6_000)
+        val summaries = PhoneTaskResults.byRecipient(doneThird)
+        assertEquals(original.recipients.map { it.id }, summaries.keys.toList())
+        assertEquals(listOf(priceText), summaries.getValue(original.recipients[0].id).price)
+        assertTrue(summaries.getValue(original.recipients[1].id).price.isEmpty())
+        assertTrue(summaries.getValue(original.recipients[1].id).availability.isEmpty())
+        assertEquals(listOf(availabilityText), summaries.getValue(original.recipients[2].id).availability)
+        assertTrue(summaries.getValue(original.recipients[2].id).price.isEmpty())
+        // No synthetic zeroes, exchange-rate conversion, ranking or booking claims.
+        assertTrue(summaries.values.flatMap { it.price + it.availability + it.terms }
+            .all { it == priceText || it == availabilityText })
+    }
+
     @Test fun `unknown schema or corrupt storage never becomes empty queue`() {
         listOf("bad json", "{\"schema\":99,\"tasks\":[]}", "{\"schema\":1,\"tasks\":[{}]}").forEach { raw ->
             assertTrue(PhoneTaskRepository({ raw }, {}).run { runCatching { load() }.isFailure })

@@ -819,6 +819,7 @@
     <string name="task_cancel">Anuluj zadanie</string>
     <string name="task_settings">Otwórz ustawienia</string>
     <string name="task_scope_details">Cel i zakres</string>
+    <string name="task_compare">Porównaj odpowiedzi odbiorców</string>
     <string name="task_copy">Utwórz podobne zadanie</string>
     <string name="task_next_attempt">Następna próba: %1$s</string>
     <string name="task_price">Cena i jej zakres</string>

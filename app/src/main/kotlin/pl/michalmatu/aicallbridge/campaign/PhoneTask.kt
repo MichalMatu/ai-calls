@@ -104,6 +104,12 @@ internal data class PhoneTaskComparison(
     val price: List<String>, val availability: List<String>, val terms: List<String>,
 )
 internal object PhoneTaskResults {
+    /** Ordered, source-only evidence per recipient; no inferred price or ranking. */
+    fun byRecipient(task: PhoneTask): Map<String, PhoneTaskComparison> =
+        task.recipients.associate { recipient ->
+            recipient.id to comparison(recipient.attempts.flatMap { it.answers })
+        }
+
     fun comparison(answers: List<PhoneTaskAnswer>): PhoneTaskComparison {
         val price = Regex("(?iu)(\\b(cen\\p{L}*|koszt\\p{L}*|zł\\p{L}*|pln|eur|euro|price|cost|pounds?|dollars?)\\b|[€£$])")
         val time = Regex("(?iu)\\b(termin\\p{L}*|dostępn\\p{L}*|woln\\p{L}*|jutro|dzisiaj|poniedział\\p{L}*|wtorek|wtork\\p{L}*|środ\\p{L}*|czwartek|czwart\\p{L}*|piąt\\p{L}*|piątek|sobot\\p{L}*|niedziel\\p{L}*|godzin\\p{L}*|tygod\\p{L}*|available|availability|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b")

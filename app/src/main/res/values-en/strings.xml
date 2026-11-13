@@ -818,6 +818,7 @@
     <string name="task_cancel">Cancel task</string>
     <string name="task_settings">Open settings</string>
     <string name="task_scope_details">Goal and scope</string>
+    <string name="task_compare">Compare recipient responses</string>
     <string name="task_copy">Create a similar task</string>
     <string name="task_next_attempt">Next attempt: %1$s</string>
     <string name="task_price">Price and scope</string>
