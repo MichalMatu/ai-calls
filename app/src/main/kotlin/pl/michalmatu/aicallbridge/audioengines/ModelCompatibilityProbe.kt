@@ -100,6 +100,10 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
         if (!audio) {
             backend.generate("To lokalna próba zgodności. Odpowiedz krótko w wymaganym formacie, tool=none.", listener)
         } else {
+            // Overlap TTS preparation with native Gemma startup. Both run off-call;
+            // generateAudio is serialized behind prewarm on the same native worker.
+            // No synthetic text turn is added to the model conversation.
+            backend.prewarm()
             val tts = LocalTtsSpeechOutput(context, profile.languageTag, profile.voiceId,
                 profile.effectiveTtsEnginePackage)
             voice = tts
