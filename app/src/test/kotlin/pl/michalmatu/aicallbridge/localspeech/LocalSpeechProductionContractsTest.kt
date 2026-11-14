@@ -26,5 +26,10 @@ class LocalSpeechProductionContractsTest {
 
         gate.invalidate()
         assertFalse(gate.isCurrent(second))
+        val third = gate.begin()
+        assertFalse(gate.invalidateIfCurrent(second))
+        assertTrue(gate.isCurrent(third))
+        assertTrue(gate.invalidateIfCurrent(third))
+        assertFalse(gate.invalidateIfCurrent(third))
     }
 }

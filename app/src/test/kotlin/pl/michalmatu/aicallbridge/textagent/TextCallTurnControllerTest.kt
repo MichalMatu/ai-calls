@@ -86,6 +86,55 @@ class TextCallTurnControllerTest {
     }
 
     @Test
+    fun cancelInsideApprovalCannotReleaseStaleSpeechOrToolCallback() {
+        val backend = FakeBackend()
+        lateinit var controller: TextCallTurnController
+        controller = TextCallTurnController(backend,
+            TextOutputApprovalPolicy {
+                controller.cancel()
+                TextOutputDecision.RELEASE
+            })
+        var released = 0
+        controller.submitUserText("test", object : TextCallTurnController.Listener {
+            override fun onApprovedResponse(text: String) { released++ }
+            override fun onDroppedResponse() { released++ }
+            override fun onError(reason: String) { released++ }
+        })
+        backend.complete("stale answer")
+        assertEquals(0, released)
+    }
+
+    @Test
+    fun concurrentStopDuringApprovalCannotReleaseStaleSpeech() {
+        val backend = FakeBackend()
+        val insideApproval = java.util.concurrent.CountDownLatch(1)
+        val allowApprovalToFinish = java.util.concurrent.CountDownLatch(1)
+        val controller = TextCallTurnController(backend,
+            TextOutputApprovalPolicy {
+                insideApproval.countDown()
+                check(allowApprovalToFinish.await(3, java.util.concurrent.TimeUnit.SECONDS))
+                TextOutputDecision.RELEASE
+            })
+        val published = java.util.concurrent.atomic.AtomicInteger()
+        controller.submitUserText("test", object : TextCallTurnController.Listener {
+            override fun onApprovedResponse(text: String) { published.incrementAndGet() }
+            override fun onDroppedResponse() { published.incrementAndGet() }
+            override fun onError(reason: String) { published.incrementAndGet() }
+        })
+        val worker = Thread { backend.complete("stale answer") }
+        worker.start()
+        try {
+            assertTrue(insideApproval.await(3, java.util.concurrent.TimeUnit.SECONDS))
+            controller.cancel()
+        } finally {
+            allowApprovalToFinish.countDown()
+            worker.join(3_000)
+        }
+        assertFalse(worker.isAlive)
+        assertEquals(0, published.get())
+    }
+
+    @Test
     fun applicationPolicyRequiresActiveNegotiationAndNoCommitmentPermit() {
         val inactiveWorkflow = workflow(active = false)
         val inactiveGate = CallCommitmentGate { "inactive-token" }

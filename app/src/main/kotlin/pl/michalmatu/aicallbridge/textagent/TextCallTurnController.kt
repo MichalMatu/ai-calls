@@ -82,28 +82,24 @@ internal class TextCallTurnController(
 
     private fun evaluateCandidate(generation: Long, text: String, listener: Listener) {
         if (!gate.isCurrent(generation)) return
-        when (approvalPolicy.evaluate(text)) {
-            TextOutputDecision.RELEASE -> {
-                finishGeneration(generation)
-                listener.onApprovedResponse(text)
-            }
-            TextOutputDecision.DROP -> {
-                finishGeneration(generation)
-                listener.onDroppedResponse()
-            }
+        val decision = approvalPolicy.evaluate(text)
+        // Approval may call STOP or overlap a timeout. Re-check atomically
+        // before publishing ANY output, including a dropped/error callback.
+        if (!finishGeneration(generation)) return
+        when (decision) {
+            TextOutputDecision.RELEASE -> listener.onApprovedResponse(text)
+            TextOutputDecision.DROP -> listener.onDroppedResponse()
         }
     }
 
     private fun finishError(generation: Long, listener: Listener, reason: String) {
-        if (!gate.isCurrent(generation)) return
-        finishGeneration(generation)
-        listener.onError(reason)
+        if (finishGeneration(generation)) listener.onError(reason)
     }
 
-    private fun finishGeneration(generation: Long) {
-        if (!gate.isCurrent(generation)) return
-        gate.invalidate()
+    private fun finishGeneration(generation: Long): Boolean {
+        if (!gate.invalidateIfCurrent(generation)) return false
         backend.cancel()
+        return true
     }
 
     private fun sanitize(value: String): String =
