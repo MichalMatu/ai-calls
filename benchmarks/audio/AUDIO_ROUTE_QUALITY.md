@@ -36,7 +36,7 @@ To checklista, nie drugi plan. PASS dotyczy wskazanego SHA, środowiska i receip
 
 ## Wykonanie testu syntetycznego na urządzeniu (po zatwierdzonym APK)
 
-\`bash scripts/bin/aicalls audio-route-check\` uruchamia przez chroniony USB Debug test **tylko poza rozmową**: zapisany Piper/głos PL syntetyzuje stałe polskie zdanie, natywny Parakeet je rozpoznaje. Zwraca \`passed\`, \`tts_ms\`, \`native_prewarm_ms\`, \`native_infer_ms\`, \`word_errors\` i \`reference_words\` — bez transkryptu, numeru, WAV czy zmian ustawień. Wymaga faktycznie zainstalowanej wersji APK z obsługą \`audio_route_check\`; samo przejście testów hosta nie jest odbiorem S22. Bez instalacji, AndroidTest i połączeń bez odrębnej zgody.
+`bash scripts/bin/aicalls audio-route-check` uruchamia przez chroniony USB Debug test **tylko poza rozmową**: zapisany Piper/głos PL syntetyzuje stałe polskie zdanie, natywny Parakeet je rozpoznaje. Zwraca `passed`, `tts_ms`, `native_prewarm_ms`, `native_infer_ms`, `word_errors` i `reference_words` — bez transkryptu, numeru, WAV czy zmian ustawień. Wymaga faktycznie zainstalowanej wersji APK z obsługą `audio_route_check`; samo przejście testów hosta nie jest odbiorem S22. Bez instalacji, AndroidTest i połączeń bez odrębnej zgody.
 
 ## Zapis nowego pomiaru
 
