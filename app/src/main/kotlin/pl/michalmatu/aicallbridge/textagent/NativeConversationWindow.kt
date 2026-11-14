@@ -105,6 +105,16 @@ internal fun nativeStatusCode(error: Throwable): String {
     return "UNKNOWN"
 }
 
+/** Public failure code: no exception message, model file path or caller speech.
+ * The backend class is a safe identifier and the native status has a fixed vocabulary.
+ */
+internal fun nativePublicErrorCode(error: Throwable): String {
+    val exceptionType = error.javaClass.simpleName
+        .filter { it.isLetterOrDigit() || it == '_' }
+        .take(48).ifBlank { "NativeError" }
+    return exceptionType + "_" + nativeStatusCode(error)
+}
+
 /** Fixed vocabulary only: raw native messages may contain private model input. */
 internal fun nativeFailureHints(error: Throwable): String {
     val vocabulary = listOf("context", "token", "prefill", "decode", "length", "limit",

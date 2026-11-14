@@ -844,19 +844,8 @@ internal class LiteRtGemma4Runtime(
     private fun isCurrentLocked(requestGeneration: Long): Boolean =
         !closed && generation == requestGeneration
 
-    private fun sanitizeRuntimeError(error: Throwable): String {
-        val message = error.message
-            ?.replace('\n', ' ')
-            ?.replace('\r', ' ')
-            ?.replace('=', ':')
-            ?.take(MAX_ERROR_CHARS)
-            ?.ifBlank { null }
-        return if (message == null) {
-            error.javaClass.simpleName
-        } else {
-            "${error.javaClass.simpleName}:$message"
-        }
-    }
+    private fun sanitizeRuntimeError(error: Throwable): String =
+        nativePublicErrorCode(error)
 
     private fun cpuThreadCount(): Int =
         Runtime.getRuntime().availableProcessors().coerceIn(MIN_CPU_THREADS, MAX_CPU_THREADS)
@@ -865,7 +854,6 @@ internal class LiteRtGemma4Runtime(
         const val MAX_OUTPUT_TOKENS = 128
         const val STRUCTURED_OUTPUT_TOKENS = 512
         const val AUDIO_OUTPUT_TOKENS = 512
-        const val MAX_ERROR_CHARS = 140
         const val MIN_CPU_THREADS = 2
         const val MAX_CPU_THREADS = 6
     }

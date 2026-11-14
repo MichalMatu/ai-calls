@@ -64,6 +64,18 @@ class NativeConversationWindowTest {
         assertEquals(listOf(1, 0), rebuiltSizes)
     }
 
+    @Test fun nativePublicErrorCodeNeverIncludesPrivateModelPathOrCallText() {
+        val privateMessage = "INVALID_ARGUMENT: /sdcard/PRIVATE-MODEL.litertlm " +
+            "caller said 555-0100 and PRIVATE_TEXT"
+        val safe = nativePublicErrorCode(IllegalStateException(privateMessage))
+        assertEquals("IllegalStateException_INVALID_ARGUMENT", safe)
+        assertFalse(safe.contains("PRIVATE"))
+        assertFalse(safe.contains("litertlm"))
+        assertFalse(safe.contains("555"))
+        assertEquals("IllegalArgumentException_UNKNOWN",
+            nativePublicErrorCode(IllegalArgumentException("caller PRIVATE_TEXT")))
+    }
+
     @Test fun nativeResourceExhaustedInputTokenVariantAlsoRecovers() {
         val window = window(1)
         var sends = 0
