@@ -38,24 +38,30 @@ class AndroidUiPolishContractTest {
         }
     }
 
-    @Test fun modelsAreCardsAndIdleTransferActionsAreHidden() {
-        ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+    @Test fun fileManagerShowsModelCardsAndIdleTransferActionsAreHidden() {
+        // The consumer Model and voice editor is now separate from the file manager.
+        val context = androidx.test.platform.app.InstrumentationRegistry
+            .getInstrumentation().targetContext
+        val intent = android.content.Intent(context, LanguageModelActivity::class.java)
+            .putExtra("model_files_mode", true)
+        ActivityScenario.launch<LanguageModelActivity>(intent).use { scenario ->
             scenario.onActivity { a ->
                 val root = a.window.decorView
-                assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("model-transfer-cancel")).visibility)
+                assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(
+                    "model-transfer-cancel")).visibility)
                 assertNotNull(root.findViewWithTag<View>("parakeet-transfer-card"))
                 assertNotNull(root.findViewWithTag<View>("parakeet-transfer-status"))
                 assertNotNull(root.findViewWithTag<View>("parakeet-transfer-download"))
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(
                     "parakeet-transfer-cancel")).visibility)
-                assertNotNull(root.findViewWithTag<View>("models-pipeline-summary"))
+                assertNotNull(root.findViewWithTag<View>("models-storage-summary"))
                 val cards = tagged(root, "model-card:")
                 assertTrue("catalog_is_empty", cards.isNotEmpty())
                 for (card in cards) {
                     val id = (card.tag as String).substringAfter("model-card:")
                     assertNotNull(root.findViewWithTag<View>("model-details-toggle:" + id))
-                    assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>(
-                        "model-details:" + id)).visibility)
+                    assertNull("Details open in a dialog, not inline",
+                        root.findViewWithTag<View>("model-details:" + id))
                 }
             }
         }
@@ -90,12 +96,15 @@ class AndroidUiPolishContractTest {
         }
     }
 
-    @Test fun engineCatalogHasCollapsedUnavailableOptions() {
+    @Test fun engineAliasOpensUnifiedModelAndVoiceEditor() {
         ActivityScenario.launch(AudioEngineSettingsActivity::class.java).use { scenario ->
             scenario.onActivity { a ->
                 val root = a.window.decorView
+                for (tag in listOf("model-voice-model", "model-voice-inputs",
+                    "model-voice-voice", "model-manage-files")) {
+                    assertNotNull("missing $tag", root.findViewWithTag<View>(tag))
+                }
                 assertNull(root.findViewWithTag<View>("engine-cancel-download"))
-                assertTrue(tagged(root, "engine-unavailable:").isNotEmpty())
                 assertTrue(requireNotNull(root.findViewWithTag<View>("app-tab:settings")).isSelected)
             }
         }
