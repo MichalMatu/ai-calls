@@ -14,6 +14,8 @@ class ModelCompatibilityStampScopeTest {
             voiceId = "pl-test-a", ttsEnginePackage = "com.google.android.tts")
         val audio = checkNotNull(ModelCompatibilityStamp.of(file, baseline, true))
         assertEquals(audio, ModelCompatibilityStamp.of(file, baseline, true))
+        assertTrue(audio.contains(":tts-v2-staged:"))
+        assertFalse(audio.contains(":tts-v1:"))
         assertNotEquals(audio, ModelCompatibilityStamp.of(file,
             baseline.copy(voiceId = "pl-test-b"), true))
         assertNotEquals(audio, ModelCompatibilityStamp.of(file,

@@ -31,6 +31,13 @@ class DialogueEngineProvidersTest {
         }
     }
 
+    @Test fun gemmaAudioProfileIsExplicitWhileStableProfileRemainsAndroidStt() {
+        assertEquals(SpeechInputId.ANDROID_STT, AudioEngineProfile.STABLE.input)
+        val audio = AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT)
+        assertEquals(DialogueModelId.GEMMA_4_E2B, DialogueEngineProviders.resolve(audio).id)
+        assertEquals(SpeechOutputId.ANDROID_TTS_PL, audio.output)
+    }
+
     @Test fun audioIsADeclaredModelCapabilityWithoutChangingTheSelectedIdentity() {
         val profile = AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT)
         assertEquals(DialogueModelId.GEMMA_4_E2B, DialogueEngineProviders.resolve(profile).id)

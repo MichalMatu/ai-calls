@@ -21,7 +21,8 @@ internal object ModelCompatibilityStamp {
         val selected = requireNotNull(profile) { "audio_profile_required" }
         val settings = listOf(selected.languageTag, selected.effectiveTtsEnginePackage.orEmpty(),
             selected.voiceId.orEmpty()).joinToString(":") { "${it.length}:$it" }
-        return "$model:tts-v1:$settings"
+        // Older single-pass audio proof cannot authorize a new two-stage engine.
+        return "$model:tts-v2-staged:$settings"
     }
 }
 
@@ -96,7 +97,9 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
                 done(result)
             }
         }
-        val backend = Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(file, audio)
+        val backend = if (audio)
+            Gemma4LiteRtTextBackendFactory.createStagedCompatibilityProbe(file)
+        else Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(file, false)
         model = backend
         val listener = object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
