@@ -40,6 +40,16 @@ class GemmaAudioPcm16Test {
         }
     }
 
+    @Test fun conversionDoesNotModifyOwnedPcmAndProducesDeterministicBytes() {
+        val pcm = ByteArray(32_000) { ((it * 31) and 255).toByte() }
+        val snapshot = pcm.copyOf()
+        val first = GemmaAudioPcm16.toWave(pcm)
+        val second = GemmaAudioPcm16.toWave(pcm)
+        assertArrayEquals(snapshot, pcm)
+        assertArrayEquals(first, second)
+        assertArrayEquals(snapshot, first.copyOfRange(44, first.size))
+    }
+
     @Test fun rejectsMisalignedAndOverlongAudio() {
         for (bytes in listOf(byteArrayOf(), byteArrayOf(1), ByteArray(GemmaAudioPcm16.MAX_PCM_BYTES + 2))) {
             try {

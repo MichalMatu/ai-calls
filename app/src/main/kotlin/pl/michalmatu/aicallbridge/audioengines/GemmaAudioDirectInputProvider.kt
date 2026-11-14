@@ -15,30 +15,34 @@ internal object GemmaAudioPcm16 {
 
     fun toWave(pcm: ByteArray): ByteArray {
         validate(pcm)
-        val out = ByteArrayOutputStream(pcm.size + 44)
-        fun ascii(value: String) = out.write(value.toByteArray(Charsets.US_ASCII))
-        fun u16(value: Int) {
-            out.write(value and 255)
-            out.write((value ushr 8) and 255)
+        // One exact-sized allocation instead of ByteArrayOutputStream's backing
+        // array plus toByteArray(). Preserve every PCM sample without resampling.
+        val wav = ByteArray(pcm.size + 44)
+        fun ascii(offset: Int, value: String) {
+            value.toByteArray(Charsets.US_ASCII).copyInto(wav, offset)
         }
-        fun u32(value: Int) {
-            u16(value and 65535)
-            u16((value ushr 16) and 65535)
+        fun u16(offset: Int, value: Int) {
+            wav[offset] = value.toByte()
+            wav[offset + 1] = (value ushr 8).toByte()
         }
-        ascii("RIFF")
-        u32(pcm.size + 36)
-        ascii("WAVEfmt ")
-        u32(16)
-        u16(1)
-        u16(1)
-        u32(SAMPLE_RATE)
-        u32(SAMPLE_RATE * 2)
-        u16(2)
-        u16(16)
-        ascii("data")
-        u32(pcm.size)
-        out.write(pcm)
-        return out.toByteArray()
+        fun u32(offset: Int, value: Int) {
+            u16(offset, value and 65535)
+            u16(offset + 2, value ushr 16)
+        }
+        ascii(0, "RIFF")
+        u32(4, pcm.size + 36)
+        ascii(8, "WAVEfmt ")
+        u32(16, 16)
+        u16(20, 1)
+        u16(22, 1)
+        u32(24, SAMPLE_RATE)
+        u32(28, SAMPLE_RATE * 2)
+        u16(32, 2)
+        u16(34, 16)
+        ascii(36, "data")
+        u32(40, pcm.size)
+        pcm.copyInto(wav, 44)
+        return wav
     }
 }
 

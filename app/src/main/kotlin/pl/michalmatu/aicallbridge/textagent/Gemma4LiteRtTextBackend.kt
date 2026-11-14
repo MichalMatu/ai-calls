@@ -270,19 +270,41 @@ internal class LiteRtGemma4Runtime(
     private var closed = false
 
     override fun prewarm() {
-        // Serialize warmup with real turns on the same worker; never submit a fake prompt.
+        // Use the same serialized worker as real turns. Prepare both the engine and
+        // its first Conversation during the greeting without sending a fake prompt.
         try {
             executor.execute {
                 if (synchronized(lock) { closed }) return@execute
                 val started = System.nanoTime()
-                val result = runCatching { ensureEngine() }
-                val durationMs = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                var engineReady = started
+                var conversationReady = started
+                val result = runCatching {
+                    val ready = ensureEngine()
+                    engineReady = System.nanoTime()
+                    val shouldCreate = synchronized(lock) {
+                        !closed && activeConversation == null && sendingGeneration == null
+                    }
+                    if (shouldCreate) {
+                        val created = createConversation(ready)
+                        val retained = synchronized(lock) {
+                            if (closed || activeConversation != null || sendingGeneration != null) false
+                            else {
+                                activeConversation = created
+                                conversationTurnCount = conversationWindow.completedTurns
+                                true
+                            }
+                        }
+                        if (!retained) closeConversation(created)
+                    }
+                    conversationReady = System.nanoTime()
+                }
                 Log.i("AiCallBridgePerf", "gemma4_prewarm_status=" +
                     (if (result.isSuccess) "ready" else "failed") +
-                    ",engine_ready_ms=$durationMs")
+                    ",engine_ready_ms=" + ((engineReady - started) / 1_000_000L).coerceAtLeast(0L) +
+                    ",conversation_ready_ms=" + ((conversationReady - engineReady) / 1_000_000L).coerceAtLeast(0L))
             }
         } catch (_: RejectedExecutionException) {
-            // Optional warmup must not fail an owned call.
+            // Optional prewarm must not fail an owned call.
         }
     }
 
