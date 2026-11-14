@@ -43,7 +43,7 @@ class AudioRouteQualityReportTest(unittest.TestCase):
         report = summary(rows)
         self.assertIn("3/3", report)
         self.assertIn("6.2%", report)
-        self.assertIn("9700/9700 ms", report)
+        self.assertIn("9700 / 9700 ms", report)
 
     def test_duplicate_run_is_not_replayed(self):
         add(self.ledger, self.sample)
