@@ -14,7 +14,7 @@
     <string name="mv_audio_transcript_mismatch">Gemma Audio: the Polish speech sample was not recognized correctly.</string>
     <string name="mv_audio_tool_unexpected">Gemma Audio: the model proposed an unexpected tool during the check.</string>
     <string name="mv_audio_input_invalid">Audio check: the voice engine returned empty or invalid PCM data.</string>
-    <string name="mv_audio_too_long">Audio check: the sample exceeds Gemma's 30-second input limit.</string>
+    <string name="mv_audio_too_long">Audio check: the speech sample exceeds the 30-second Gemma input limit.</string>
     <string name="mv_android_input">Android · on-device recognition</string>
     <string name="mv_gemma_input">Gemma · direct audio input</string>
     <string name="mv_parakeet_input">Parakeet · advanced option</string>
