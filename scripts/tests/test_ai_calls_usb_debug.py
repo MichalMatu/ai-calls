@@ -71,6 +71,13 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "FULL_PARAKEET_GOOGLE_CASE_2_PASSED": 1,
         })
 
+    def test_stop_probes_are_allowlisted_offcall_single_tests(self):
+        self.assertEqual(
+            {k for k in bridge.TESTS if k.startswith("stop-")},
+            {"stop-stt-native", "stop-tts-native", "stop-gemma-native",
+             "stop-idle-ui", "stop-late-model-callback"})
+        self.assertNotIn("place-call", bridge.TESTS)
+
     def test_actions_are_narrow_and_no_authority_bypass(self):
         for action in ("status", "profile_set", "profile_reset", "grant_revoke",
                        "evidence_status", "evidence_disable", "profile_check", "audio_route_check"):

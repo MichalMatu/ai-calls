@@ -90,6 +90,26 @@ TESTS = {
         "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
         "#matrixGemmaAudioGoogle"
     ),
+    "stop-stt-native": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG53NativeSpeechStopTest"
+        "#cancelNativeSttWhileRecognizerReadyThenRestart"
+    ),
+    "stop-tts-native": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG53NativeSpeechStopTest"
+        "#cancelNativeTtsAfterSynthesisStartsThenRestart"
+    ),
+    "stop-gemma-native": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG53NativeInferenceStopTest"
+        "#cancelDuringNativeSendDiscardsResultAndAllowsCleanRecovery"
+    ),
+    "stop-idle-ui": (
+        "pl.michalmatu.aicallbridge.AndroidStopAiIdempotenceContractTest"
+        "#stopTwiceOffCallDoesNotDialOrDisconnectAnotherSession"
+    ),
+    "stop-late-model-callback": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG52SpeechStopGateTest"
+        "#stopDuringGemmaInferenceDropsLateCompletionAndError"
+    ),
     "fullturn-android-google": (
         "pl.michalmatu.aicallbridge.localspeech.AndroidG52MultiturnSpeechSkillsE2ETest"
         "#matrixFullTurnAndroidGoogle"
