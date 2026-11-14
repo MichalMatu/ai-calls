@@ -49,7 +49,7 @@ class AndroidStopAiIdempotenceContractTest {
     }
 
     private fun findStop(view: View): Button? {
-        if (view is Button && view.text.toString() == "STOP AI") return view
+        if (view is Button && view.tag == "home-stop-ai") return view
         if (view is ViewGroup) {
             for (index in 0 until view.childCount) {
                 findStop(view.getChildAt(index))?.let { return it }
