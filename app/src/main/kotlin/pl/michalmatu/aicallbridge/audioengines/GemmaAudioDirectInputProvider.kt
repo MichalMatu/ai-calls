@@ -45,6 +45,15 @@ internal object GemmaAudioPcm16 {
     }
 }
 
+/** Model accepts at most 30 seconds; keep one second of slack for the last PCM frame. */
+internal object GemmaAudioCapturePolicy {
+    const val MAX_CAPTURE_MS = GemmaAudioPcm16.MAX_SECONDS * 1_000 - 1_000
+
+    fun maxCaptureMs(input: SpeechInputId, requestedMs: Int): Int =
+        if (input == SpeechInputId.GEMMA_AUDIO_DIRECT) requestedMs.coerceAtMost(MAX_CAPTURE_MS)
+        else requestedMs
+}
+
 /** One WAV allocation per inference turn, reused by LiteRT context/format retry.
  * The contents are only model input, never a persisted recording.
  * Close wipes the encoded copy; the caller owns and wipes the original PCM.

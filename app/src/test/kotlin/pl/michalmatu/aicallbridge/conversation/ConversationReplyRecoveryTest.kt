@@ -118,6 +118,15 @@ class ConversationReplyRecoveryTest {
         } catch (_: CancellationException) { }
     }
 
+    @Test fun invalidNativeAudioTranscriptRequestsClarificationButNotDisconnect() {
+        assertTrue(ConversationReplyRecovery.canClarify("backend_audio_transcript_invalid"))
+        assertTrue(ConversationReplyRecovery.canClarify("backend_conversation_reply_invalid"))
+        for (other in listOf("backend_model_audio_input_unavailable",
+            "backend_gemma4_runtime_engine_unavailable", "backend_stt_audio_model_unavailable")) {
+            assertFalse(ConversationReplyRecovery.canClarify(other))
+        }
+    }
+
     @Test fun diagnosticsContainOnlyFixedCategoriesAndUnrelatedFailuresAreNotRetried() {
         for ((raw, expected) in listOf(
             "PRIVATE_FIXTURE invalid" to ConversationReplyFailure.JSON,

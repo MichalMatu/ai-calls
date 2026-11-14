@@ -45,5 +45,6 @@ internal object ConversationReplyRecovery {
         "Nie dodawaj komentarzy ani powitania."
     const val CLARIFICATION = "Nie udało mi się poprawnie przygotować odpowiedzi. Proszę powtórzyć ostatnią informację."
 
-    fun canClarify(reason: String) = reason == "backend_conversation_reply_invalid"
+    fun canClarify(reason: String) = reason == "backend_conversation_reply_invalid" ||
+        reason == "backend_audio_transcript_invalid"
 }

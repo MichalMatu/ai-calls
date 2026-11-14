@@ -33,6 +33,7 @@ import pl.michalmatu.aicallbridge.audioengines.PiperAndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.AndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
 import pl.michalmatu.aicallbridge.audioengines.GemmaAudioDirectInputProvider
+import pl.michalmatu.aicallbridge.audioengines.GemmaAudioCapturePolicy
 import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
@@ -130,6 +131,11 @@ internal object AndroidConversationRuntime {
         }
 
         private val handler = Handler(Looper.getMainLooper())
+        private val responseWatchdog = ConversationResponseWatchdog(
+            RESPONSE_TIMEOUT_MS,
+            { runnable, delay -> handler.postDelayed(runnable, delay) },
+            { runnable -> handler.removeCallbacks(runnable) },
+        )
         private val mediaTurnStarted = AtomicBoolean(false)
         private val quickAckPcm = AtomicReference<ByteArray?>(null)
         private val lastQuickAckTurn = AtomicInteger(0)
@@ -353,6 +359,7 @@ internal object AndroidConversationRuntime {
 
         private fun beginNextTurn(generation: Long, lease: CallMediaEndpointLease) {
             if (finished.get()) return
+            responseWatchdog.cancel()
             if (activeMediaGeneration.get() != generation) {
                 fail("stale_media_generation")
                 return
@@ -414,6 +421,7 @@ internal object AndroidConversationRuntime {
 
                 override fun onApprovedText(text: String) {
                     if (stale()) return
+                    responseWatchdog.cancel()
                     if (!authorizedNow()) { finish(authorityTermination()); return }
                     evidenceRecorder?.recordTranscript(currentTurn, fromAgent = true, text = text, responseKind = responseKind())
                     ConversationChatFeed.replied(
@@ -439,12 +447,14 @@ internal object AndroidConversationRuntime {
 
                 override fun onDroppedText() {
                     if (stale()) return
+                    responseWatchdog.cancel()
                     dialogue.recordTurnDiagnostics(currentTurn)
                     fail("output_dropped")
                 }
 
                 override fun onError(reason: String) {
                     if (stale()) return
+                    responseWatchdog.cancel()
                     dialogue.recordTurnDiagnostics(currentTurn)
                     if (ConversationReplyRecovery.canClarify(reason) &&
                         runConfiguration is ConversationRunConfiguration.ModelDirect) {
@@ -508,7 +518,8 @@ internal object AndroidConversationRuntime {
             val preRoll = previousMonitor?.freezeAndDrain() ?: ByteArray(0)
             if (previousMonitor != null) pump.abandonCapture(previousMonitor)
             // A completed bounded segment goes to STT without disconnecting Telecom.
-            val rxWindowMs = scenario.maxRxCaptureMs
+            val rxWindowMs = GemmaAudioCapturePolicy.maxCaptureMs(
+                runConfiguration.audioProfile.input, scenario.maxRxCaptureMs)
             require(rxWindowMs in 8_000..60_000) { "invalid_rx_capture_window" }
             lines += "turn_" + turn + "_rx_max_capture_ms=" + rxWindowMs
             val detector = PcmEndOfUtteranceDetector(
@@ -598,8 +609,23 @@ internal object AndroidConversationRuntime {
                             return
                         }
                         silenceWindows = 0L
-                        // The listener still generates its full answer on the existing
-                        // independent Gemma/STT path. No waiting for this optional filler.
+                        // Bound only the ASR/model/reply phase; speaking and telephony
+                        // playback have their own lifecycle. The timeout never ends a Call.
+                        val responseEpoch = outputEpoch.get()
+                        responseWatchdog.arm {
+                            if (finished.get() || currentTurn != turn ||
+                                activeMediaGeneration.get() != generation ||
+                                outputEpoch.get() != responseEpoch) return@arm
+                            if (!authorizedNow()) { finish(authorityTermination()); return@arm }
+                            lines += "turn_${turn}_model_response_timeout=true"
+                            // Invalidate the old callback/tool before requesting a safe
+                            // app-owned clarification on this same authorized Call.
+                            dialogue.beginTurn()
+                            replyClarificationTurn = turn
+                            outputEpoch.incrementAndGet()
+                            pipeline.speakCandidate(ConversationReplyRecovery.CLARIFICATION,
+                                turnListener(generation, lease))
+                        }
                         pipeline.finishInput()
                         scheduleQuickAcknowledgement(turn, generation, lease)
                     }
@@ -931,6 +957,7 @@ internal object AndroidConversationRuntime {
 
         private fun finish(termination: ConversationTermination) {
             if (!finished.compareAndSet(false, true)) return
+            responseWatchdog.cancel()
             outputEpoch.incrementAndGet()
             bargeMonitor.getAndSet(null)?.let { downlinkPump?.abandonCapture(it) }
             val result = stopRequested.get()?.let { ConversationTermination.Stopped(it) } ?: termination

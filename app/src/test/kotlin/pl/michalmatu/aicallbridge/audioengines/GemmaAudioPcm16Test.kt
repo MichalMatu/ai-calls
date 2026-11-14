@@ -70,6 +70,18 @@ class GemmaAudioPcm16Test {
         }
     }
 
+    @Test fun directGemmaCaptureNeverOverflowsTheThirtySecondModelWindow() {
+        assertEquals(29_000, GemmaAudioCapturePolicy.MAX_CAPTURE_MS)
+        assertEquals(29_000, GemmaAudioCapturePolicy.maxCaptureMs(SpeechInputId.GEMMA_AUDIO_DIRECT, 60_000))
+        assertEquals(8_000, GemmaAudioCapturePolicy.maxCaptureMs(SpeechInputId.GEMMA_AUDIO_DIRECT, 8_000))
+        assertEquals(60_000, GemmaAudioCapturePolicy.maxCaptureMs(SpeechInputId.ANDROID_STT, 60_000))
+        assertEquals(60_000, GemmaAudioCapturePolicy.maxCaptureMs(SpeechInputId.PARAKEET_PL, 60_000))
+        // An entire final telephony frame still fits after a hard capture boundary.
+        val worstCase = (GemmaAudioCapturePolicy.MAX_CAPTURE_MS + 20) *
+            GemmaAudioPcm16.SAMPLE_RATE * 2 / 1_000
+        assertTrue(worstCase <= GemmaAudioPcm16.MAX_PCM_BYTES)
+    }
+
     @Test fun rejectsMisalignedAndOverlongAudio() {
         for (bytes in listOf(byteArrayOf(), byteArrayOf(1), ByteArray(GemmaAudioPcm16.MAX_PCM_BYTES + 2))) {
             try {
