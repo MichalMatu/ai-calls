@@ -866,7 +866,7 @@ internal object Gemma4LiteRtTextBackendFactory {
      * without pretending to qualify structured dialogue or changing call settings.
      */
     fun createTranscriptionProbe(file: File): TextCallAgentBackend {
-        val schema = """{"type":"object","properties":{"transcript":{"type":"string"}},"required":["transcript"],"additionalProperties":false}"""
+        val schema = ConversationReplyProtocol.transcriptionSchema()
         val instruction = "Przepisz dokładnie usłyszaną polską wypowiedź. " +
             "Wynikiem ma być wyłącznie JSON z jednym polem transcript. " +
             "Nie odpowiadaj rozmówcy, nie dodawaj komentarzy ani innych pól."

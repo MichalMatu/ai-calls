@@ -66,6 +66,25 @@ internal object ConversationReplyProtocol {
         return """{"type":"object","properties":{"reply":{"type":"string"},"tool":{"type":"string","enum":[$names]},"note":{"type":"string"},"kind":{"type":"string","enum":[$kinds]}},"required":["reply","tool","note","kind"],"additionalProperties":false}"""
     }
 
+    /** Small, separately constrained ASR-only response. It cannot propose tools. */
+    fun transcriptionSchema(): String =
+        """{"type":"object","properties":{"transcript":{"type":"string"}},"required":["transcript"],"additionalProperties":false}"""
+
+    fun decodeTranscription(raw: String): String {
+        val root = JsonParser.parseString(raw)
+        require(root.isJsonObject) { "audio_transcript_object" }
+        val json = root.asJsonObject
+        require(json.keySet() == setOf("transcript")) { "audio_transcript_fields" }
+        val field = json.get("transcript")
+        require(field != null && field.isJsonPrimitive && field.asJsonPrimitive.isString) {
+            "audio_transcript_missing"
+        }
+        return field.asString.trim().also {
+            require(it.isNotBlank()) { "audio_transcript_empty" }
+            require(it.length <= 4_096) { "audio_transcript_too_long" }
+        }
+    }
+
     fun audioSchema(enabled: Set<ConversationToolId>): String {
         val json = JsonParser.parseString(schema(enabled)).asJsonObject
         json.getAsJsonObject("properties").add("transcript",

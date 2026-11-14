@@ -1,7 +1,6 @@
 package pl.michalmatu.aicallbridge.audioengines
 
 import android.content.Context
-import com.google.gson.JsonParser
 import java.util.Locale
 import pl.michalmatu.aicallbridge.conversation.ConversationReplyProtocol
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
@@ -18,13 +17,8 @@ internal object GemmaAudioCorpus {
     private fun words(s: String) = Regex("[\\p{L}\\p{N}]+")
         .findAll(s.lowercase(Locale.forLanguageTag("pl-PL"))).map { it.value }.toList()
 
-    fun decodeTranscriptOnly(raw: String): String? = runCatching {
-        val objectValue = JsonParser.parseString(raw).asJsonObject
-        if (objectValue.keySet() != setOf("transcript")) return@runCatching null
-        val field = objectValue.get("transcript")
-        if (field == null || !field.isJsonPrimitive || !field.asJsonPrimitive.isString) null
-        else field.asString.trim().takeIf { it.isNotBlank() }
-    }.getOrNull()
+    fun decodeTranscriptOnly(raw: String): String? =
+        runCatching { ConversationReplyProtocol.decodeTranscription(raw) }.getOrNull()
 
     /** Fixed diagnostic vocabulary only; raw speech/reply cannot leave the app. */
     fun invalidReplyCode(raw: String): String {
