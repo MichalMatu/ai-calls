@@ -43,6 +43,29 @@ class StagedGemmaAudioBackendTest {
         assertNull(reply.error)
     }
 
+    @Test fun invalidTranscriptReachesRecoverableErrorWithoutToolOrSpeech() {
+        val model = FakeModel(transcription = """{"transcript":""}""")
+        val reply = pl.michalmatu.aicallbridge.conversation.ConversationReplyBackend(
+            StagedGemmaAudioBackend(model),
+        ) { _, _, _ -> }
+        val controller = TextCallTurnController(reply, TextOutputApprovalPolicy {
+            fail("Invalid ASR must not reach output approval")
+            TextOutputDecision.DROP
+        })
+        val errors = mutableListOf<String>()
+        controller.submitUserAudio(byteArrayOf(0, 0), object : TextCallTurnController.Listener {
+            override fun onApprovedResponse(text: String) = fail("No speech after failed ASR")
+            override fun onDroppedResponse() = fail("No output candidate after failed ASR")
+            override fun onError(reason: String) { errors.add(reason) }
+        })
+        assertEquals(listOf("backend_audio_transcript_invalid"), errors)
+        assertTrue(pl.michalmatu.aicallbridge.conversation.ConversationReplyRecovery
+            .canClarify(errors.single()))
+        assertNull(reply.takeTool())
+        assertTrue(model.textRequests.isEmpty())
+        controller.close()
+    }
+
     @Test fun invalidTextReplyDoesNotReachCaller() {
         val model = FakeModel(textResponse = """{"reply":"Private text"}""")
         val reply = Result()
