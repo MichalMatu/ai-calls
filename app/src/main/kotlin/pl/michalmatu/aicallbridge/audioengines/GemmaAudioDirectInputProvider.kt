@@ -152,8 +152,18 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
             samples.fill(0)
             callback.onError("invalid_pcm16")
         } else {
-            // The downstream model now owns this copy and wipes it after use.
-            callback.onFinalAudio(samples)
+            // The model owns PCM only after accepting the callback. Native submission
+            // can throw synchronously when a runtime is closing; in that case the
+            // capture layer still owns the buffer and must wipe it before reporting.
+            try {
+                callback.onFinalAudio(samples)
+            } catch (_: IllegalArgumentException) {
+                samples.fill(0)
+                callback.onError("invalid_pcm16")
+            } catch (_: IllegalStateException) {
+                samples.fill(0)
+                callback.onError("audio_model_unavailable")
+            }
         }
     }
 

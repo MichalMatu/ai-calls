@@ -165,6 +165,33 @@ class SharedGemmaAudioContractTest {
         input.close()
     }
 
+    @Test fun nativeSubmissionRejectionWipesUnownedAudioAndReportsError() {
+        for ((failure, code) in listOf(
+            IllegalArgumentException("bad native audio") to "invalid_pcm16",
+            IllegalStateException("native runtime closed") to "audio_model_unavailable",
+        )) {
+            val input = GemmaAudioDirectInputProvider()
+            val errors = mutableListOf<String>()
+            var received: ByteArray? = null
+            input.start(object : SpeechInputProvider.Listener {
+                override fun onReady() = Unit
+                override fun onFinalTranscript(text: String) = fail("unexpected transcript")
+                override fun onFinalAudio(pcm16: ByteArray) {
+                    received = pcm16
+                    throw failure
+                }
+                override fun onError(reason: String) { errors.add(reason) }
+            })
+            assertTrue(input.writePcm(ByteArray(32_000) { 0x55.toByte() }))
+            input.finishInput()
+            assertEquals(listOf(code), errors)
+            assertTrue("Rejected input PCM must be wiped", requireNotNull(received).all {
+                it == 0.toByte()
+            })
+            input.close()
+        }
+    }
+
     @Test fun boundedPcmRejectsOverflowWithoutLosingEarlierAudio() {
         val input = GemmaAudioDirectInputProvider()
         val heard = mutableListOf<ByteArray>()
