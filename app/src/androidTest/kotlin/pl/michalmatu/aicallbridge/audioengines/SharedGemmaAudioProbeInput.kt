@@ -11,11 +11,25 @@ internal class SharedGemmaAudioProbeInput(context: Context) : SpeechInputProvide
     private val input = GemmaAudioDirectInputProvider()
     private val model = Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(
         Gemma4LiteRtTextBackendFactory.modelFile(context, DialogueModelId.GEMMA_4_E2B), true)
+    @Volatile private var syntheticPreflightDone = false
+
     override fun start(listener: SpeechInputProvider.Listener) {
+        if (syntheticPreflightDone) {
+            startCapture(listener)
+            return
+        }
         model.generate("Lokalna próba, odpowiedz krótko w wymaganym formacie, tool=none.",
             object : TextCallAgentBackend.Listener {
                 override fun onComplete(text: String) {
                     (model as NativeConversationContextBackend).resetConversationContext()
+                    syntheticPreflightDone = true
+                    startCapture(listener)
+                }
+                override fun onError(reason: String) = listener.onError(reason)
+            })
+    }
+
+    private fun startCapture(listener: SpeechInputProvider.Listener) {
                     input.start(object : SpeechInputProvider.Listener {
                         override fun onReady() = listener.onReady()
                         override fun onFinalTranscript(text: String) = error("unexpected_second_ASR")
@@ -38,9 +52,6 @@ internal class SharedGemmaAudioProbeInput(context: Context) : SpeechInputProvide
                             })
                         }
                     })
-                }
-                override fun onError(reason: String) = listener.onError(reason)
-            })
     }
     override fun writePcm(bytes: ByteArray, offset: Int, length: Int) = input.writePcm(bytes, offset, length)
     override fun finishInput() = input.finishInput()
