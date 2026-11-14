@@ -35,6 +35,48 @@ class ConversationInputRoutingBackendTest {
         assertNull(reply.takeTool())
     }
 
+    @Test fun stagedGemmaAudioUsesTheExistingApprovalAndTranscriptPipeline() {
+        val model = object : TextCallAgentBackend {
+            var audioRequests = 0
+            var textRequests = 0
+            override fun generateAudio(pcm16: ByteArray, listener: TextCallAgentBackend.Listener) {
+                audioRequests++
+                listener.onComplete("""{"transcript":"Proszę powtórzyć godzinę."}""")
+            }
+            override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                textRequests++
+                assertEquals("Proszę powtórzyć godzinę.", userText)
+                listener.onComplete(
+                    """{"reply":"Powtórzę godzinę.","tool":"none","note":"","kind":"NOTE"}""")
+            }
+            override fun cancel() = Unit
+        }
+        val staged = StagedGemmaAudioBackend(model)
+        val routed = ConversationInputRoutingBackend(staged, { true }, "revoked")
+        val reply = ConversationReplyBackend(routed) { _, _, _ -> }
+        var releases = 0
+        val controller = TextCallTurnController(reply, TextOutputApprovalPolicy {
+            assertNull("Staged input may not grant a tool", reply.takeTool())
+            releases++
+            TextOutputDecision.RELEASE
+        })
+        val heard = mutableListOf<String>()
+        val spoken = mutableListOf<String>()
+        controller.submitUserAudio(byteArrayOf(0, 0), object : TextCallTurnController.Listener {
+            override fun onUserTranscript(text: String) { heard.add(text) }
+            override fun onApprovedResponse(text: String) { spoken.add(text) }
+            override fun onDroppedResponse() = fail("unexpected dropped speech")
+            override fun onError(reason: String) = fail(reason)
+        })
+        assertEquals(1, model.audioRequests)
+        assertEquals(1, model.textRequests)
+        assertEquals(listOf("Proszę powtórzyć godzinę."), heard)
+        assertEquals(listOf("Powtórzę godzinę."), spoken)
+        assertEquals(1, releases)
+        assertNull(reply.takeTool())
+        controller.close()
+    }
+
     @Test fun textUsesTheSameHostRoutingWithoutInvokingTheModel() {
         val model = Pending()
         val routed = ConversationInputRoutingBackend(model, { true }, "revoked") { input, host ->
