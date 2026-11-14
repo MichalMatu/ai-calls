@@ -46,6 +46,17 @@ internal class ModelCompatibilityStore(context: Context) {
     fun invalidate(file: File, audio: Boolean): Boolean = prefs.edit().remove(key(file, audio)).commit()
 }
 
+/** Reject bad synthetic TTS payloads before invoking the native model.
+ * This check has no authority to change the selected audio profile.
+ */
+internal object ModelAudioProbePcm {
+    fun failure(pcm: ByteArray): String? = when {
+        pcm.isEmpty() || pcm.size % 2 != 0 -> "polish_offline_voice_invalid_pcm"
+        pcm.size > GemmaAudioPcm16.MAX_PCM_BYTES -> "polish_offline_voice_audio_too_long"
+        else -> null
+    }
+}
+
 /** Synthetic, off-call only. The same native engine handles text or audio and its cancellation. */
 /** Distinguish incompatible audio schema from recognizer errors without logging any text. */
 internal object ModelAudioCompatibilityReply {
@@ -109,7 +120,21 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
             voice = tts
             tts.synthesize("Dzień dobry, proszę o pomoc.", object : LocalTtsSpeechOutput.Listener {
                 override fun onPcm16Mono16k(pcm: ByteArray) {
-                    if (current()) backend.generateAudio(pcm, listener)
+                    if (!current()) return
+                    val invalid = ModelAudioProbePcm.failure(pcm)
+                    if (invalid != null) {
+                        finish(invalid)
+                        return
+                    }
+                    // A native submission may reject its input synchronously.
+                    // Always complete the owner's off-call check; never leave it stuck.
+                    try {
+                        backend.generateAudio(pcm, listener)
+                    } catch (_: IllegalArgumentException) {
+                        finish("polish_offline_voice_invalid_pcm")
+                    } catch (_: IllegalStateException) {
+                        finish("model_native_check_failed")
+                    }
                 }
                 override fun onError(reason: String) = finish("polish_offline_voice_missing")
             })

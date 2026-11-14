@@ -13,6 +13,8 @@
     <string name="mv_audio_reply_format_failed">Gemma Audio: odpowiedź nie jest poprawnym JSON-em z transkrypcją i odpowiedzią.</string>
     <string name="mv_audio_transcript_mismatch">Gemma Audio: nie rozpoznano poprawnie polskiej próbki głosowej.</string>
     <string name="mv_audio_tool_unexpected">Gemma Audio: model zaproponował nieoczekiwane narzędzie podczas próby.</string>
+    <string name="mv_audio_input_invalid">Próba audio: silnik głosu zwrócił pusty lub uszkodzony sygnał PCM.</string>
+    <string name="mv_audio_too_long">Próba audio: próbka głosu przekracza 30-sekundowy limit wejścia Gemmy.</string>
     <string name="mv_android_input">Android · rozpoznawanie na urządzeniu</string>
     <string name="mv_gemma_input">Gemma · bezpośrednie wejście audio</string>
     <string name="mv_parakeet_input">Parakeet · opcja zaawansowana</string>

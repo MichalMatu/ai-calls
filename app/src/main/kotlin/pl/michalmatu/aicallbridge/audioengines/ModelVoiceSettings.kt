@@ -473,6 +473,8 @@ internal class ModelVoiceSettings(
             "android_offline_stt_unavailable" -> R.string.models_ui_android_stt_unavailable
             "tts_offline_voice_probe_required" -> R.string.mv_loading_voices
             "polish_offline_voice_missing", "selected_voice_missing" -> R.string.mv_voice_missing
+            "polish_offline_voice_invalid_pcm" -> R.string.mv_audio_input_invalid
+            "polish_offline_voice_audio_too_long" -> R.string.mv_audio_too_long
             else -> R.string.mv_compatibility_failed
         })
     }

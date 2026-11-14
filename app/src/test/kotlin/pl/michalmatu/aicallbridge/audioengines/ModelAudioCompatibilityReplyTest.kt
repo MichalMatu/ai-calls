@@ -4,6 +4,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ModelAudioCompatibilityReplyTest {
+    @Test fun compatibilityProbeValidatesSyntheticPcmBeforeNativeCall() {
+        assertEquals("polish_offline_voice_invalid_pcm",
+            ModelAudioProbePcm.failure(byteArrayOf()))
+        assertEquals("polish_offline_voice_invalid_pcm",
+            ModelAudioProbePcm.failure(byteArrayOf(1, 2, 3)))
+        assertEquals("polish_offline_voice_audio_too_long",
+            ModelAudioProbePcm.failure(ByteArray(GemmaAudioPcm16.MAX_PCM_BYTES + 2)))
+        assertNull(ModelAudioProbePcm.failure(byteArrayOf(0, 0)))
+        assertNull(ModelAudioProbePcm.failure(ByteArray(GemmaAudioPcm16.MAX_PCM_BYTES)))
+    }
+
     @Test fun acceptsValidPolishAudioReply() {
         val raw = """{"transcript":"Dzień dobry, proszę o pomoc.","reply":"W czym mogę pomóc?","tool":"none","note":"","kind":"NOTE"}"""
         assertNull(ModelAudioCompatibilityReply.failure(raw))
