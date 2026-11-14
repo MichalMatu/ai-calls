@@ -65,6 +65,35 @@ Oddzielnie raportuj WER, TTS, inicjalizację oraz czas ASR.
 Gemma Audio Direct mierzy rozpoznawanie audio, nie całą odpowiedź
 modelu dialogowego. STOP, barge-in i hangup nadal wymagają osobnego odbioru.
 
+## Wyniki S3 na S22 — 14.11.2026
+
+Kod testu: SHA 5990b3b1; Android Test APK SHA-256:
+2a5ac0ad2a2ccbadc9bc9b2b207646442af867256be321037679ff82aa2402ef.
+Ten sam korpus pl-audio-v1, 5 tekstów × 2 powtórzenia × 6 torów.
+Żaden test nie użył połączenia, mikrofonu, prywatnej rozmowy ani nie
+zmienił zapisanego profilu/grantów. Raporty lokalne w prywatnym katalogu
+audio-matrix na Macu. Testy 10/10 nie oznaczają WER=0 ani pełnego dialogu.
+
+| Wejście | TTS | PASS | WER | TTS p50 | ASR infer p50 / p95 | Inicj. p50 |
+|---|---|---:|---:|---:|---:|---:|
+| ANDROID_STT | Google | 10/10 | 3,85% | 1669,5 ms | 624 / 1289 ms | 41,5 ms |
+| ANDROID_STT | Piper Gosia | 10/10 | 7,69% | 3765,5 ms | 602 / 1413 ms | 36 ms |
+| PARAKEET_PL | Google | 10/10 | 5,77% | 1453 ms | 1192 / 2203 ms | 1390 ms |
+| PARAKEET_PL | Piper Gosia | 10/10 | 5,77% | 2428 ms | 1160,5 / 2677 ms | 1197,5 ms |
+| GEMMA_AUDIO_DIRECT | Google | 10/10 | 7,69% | 1542 ms | 10894,5 / 45235 ms | nieujęte |
+| GEMMA_AUDIO_DIRECT | Piper Gosia | 10/10 | 9,62% | 3438 ms | 8681,5 / 12324 ms | nieujęte |
+
+Pomiary Gemma Audio Direct korzystają z wcześniej rozgrzanego modelu;
+raportowane zero inicjalizacji nie oznacza zerowego cold start.
+Każdy tor ma 104 słowa odniesienia. Weryfikacja dat/godzin wymaga
+odrębnego testu semantycznego: błędy powtarzały się szczególnie
+w przypadku appointment. Wstępnie najszybszy i najdokładniejszy:
+ANDROID_STT + Google TTS, ale nie jest to jeszcze kwalifikacja
+pełnego dialogu, jakości odsłuchowej ani Telecom.
+Dowody: aicalls-s22-matrix-parakeet-piper-google-20261114-v2,
+aicalls-s22-matrix-android-google-piper-20261114-v1,
+aicalls-s22-matrix-gemma-google-piper-20261114-v1.
+
 ## Zapis nowego pomiaru
 
 ```sh
