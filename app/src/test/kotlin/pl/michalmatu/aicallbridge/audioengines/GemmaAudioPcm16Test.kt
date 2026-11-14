@@ -50,6 +50,26 @@ class GemmaAudioPcm16Test {
         assertArrayEquals(snapshot, first.copyOfRange(44, first.size))
     }
 
+    @Test fun encodedWaveIsReusedAcrossRetriesThenZeroed() {
+        val pcm = ByteArray(96_000) { ((it * 13) and 255).toByte() }
+        val original = pcm.copyOf()
+        val cache = GemmaAudioWaveCache(pcm)
+        val first = cache.bytes()
+        assertSame("Retry must reuse the identical encoded buffer", first, cache.bytes())
+        assertEquals(2, cache.reads)
+        assertTrue(cache.encodeMs >= 0)
+        assertEquals(pcm.size + 44, first.size)
+        cache.close()
+        cache.close()
+        assertTrue("No encoded speech may remain after completion", first.all { it == 0.toByte() })
+        assertArrayEquals("Caller retains ownership of input PCM", original, pcm)
+        try {
+            cache.bytes()
+            fail("Closed cache must not recreate a wiped audio payload")
+        } catch (_: IllegalStateException) {
+        }
+    }
+
     @Test fun rejectsMisalignedAndOverlongAudio() {
         for (bytes in listOf(byteArrayOf(), byteArrayOf(1), ByteArray(GemmaAudioPcm16.MAX_PCM_BYTES + 2))) {
             try {

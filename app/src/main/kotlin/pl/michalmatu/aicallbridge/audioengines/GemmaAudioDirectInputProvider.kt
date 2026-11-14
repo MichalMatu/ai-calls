@@ -1,6 +1,5 @@
 package pl.michalmatu.aicallbridge.audioengines
 
-import java.io.ByteArrayOutputStream
 
 /** An isolated 16-kHz mono signed PCM16 utterance, never a recording file. */
 internal object GemmaAudioPcm16 {
@@ -43,6 +42,37 @@ internal object GemmaAudioPcm16 {
         u32(40, pcm.size)
         pcm.copyInto(wav, 44)
         return wav
+    }
+}
+
+/** One WAV allocation per inference turn, reused by LiteRT context/format retry.
+ * The contents are only model input, never a persisted recording.
+ * Close wipes the encoded copy; the caller owns and wipes the original PCM.
+ */
+internal class GemmaAudioWaveCache(private val pcm16: ByteArray) : AutoCloseable {
+    private var wave: ByteArray? = null
+    private var closed = false
+    var encodeMs: Long = 0
+        private set
+    var reads: Int = 0
+        private set
+
+    fun bytes(): ByteArray {
+        check(!closed) { "audio_wave_cache_closed" }
+        wave?.let { reads++; return it }
+        val started = System.nanoTime()
+        val encoded = GemmaAudioPcm16.toWave(pcm16)
+        encodeMs = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0)
+        wave = encoded
+        reads++
+        return encoded
+    }
+
+    override fun close() {
+        if (closed) return
+        closed = true
+        wave?.fill(0)
+        wave = null
     }
 }
 

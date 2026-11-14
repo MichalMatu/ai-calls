@@ -14,6 +14,7 @@ import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
+import pl.michalmatu.aicallbridge.audioengines.GemmaAudioWaveCache
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
@@ -60,6 +61,9 @@ internal data class NativeModelTiming(
     val nativeContextTokens: Int? = null,
     val retainedContextTurns: Int = 0,
     val replyRecoveryAttempts: Int = 0,
+    val audioPcmMs: Long = 0,
+    val audioWaveEncodeMs: Long = 0,
+    val audioWaveReuseCount: Int = 0,
     val replyValidationFailure: String = "none",
     val rejectedReplyChars: Int = 0,
     val rejectedReplyShape: String = "none",
@@ -443,6 +447,7 @@ internal class LiteRtGemma4Runtime(
         audioPcm: ByteArray?,
     ) {
         if (!isCurrent(requestGeneration)) { audioPcm?.fill(0); return }
+        val audioWave = audioPcm?.let(::GemmaAudioWaveCache)
 
         var conversation: Conversation? = null
         var registeredConversation = false
@@ -570,15 +575,16 @@ internal class LiteRtGemma4Runtime(
                                 thinkingConfig = ThinkingConfig(enableThinking = false),
                                 responseFormat = responseFormat,
                             ) else {
-                                val wave = pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.toWave(audioPcm)
-                                try {
-                                    candidate.sendMessage(
-                                        contents = Contents.of(Content.Text(userText), Content.AudioBytes(wave)),
-                                        maxOutputToken = AUDIO_OUTPUT_TOKENS,
-                                        thinkingConfig = ThinkingConfig(enableThinking = false),
-                                        responseFormat = audioResponseFormat,
-                                    )
-                                } finally { wave.fill(0) }
+                                // Native context/format recovery retries the identical bounded PCM.
+                                // Reuse its one encoded WAV; wipe it after the final outcome.
+                                val wave = requireNotNull(audioWave).bytes()
+                                candidate.sendMessage(
+                                    contents = Contents.of(Content.Text(userText),
+                                        Content.AudioBytes(wave)),
+                                    maxOutputToken = AUDIO_OUTPUT_TOKENS,
+                                    thinkingConfig = ThinkingConfig(enableThinking = false),
+                                    responseFormat = audioResponseFormat,
+                                )
                             }
                         },
                     )
@@ -612,6 +618,9 @@ internal class LiteRtGemma4Runtime(
             if (isCurrent(requestGeneration)) listener.onError(
                 if (error is InvalidConversationReply) "conversation_reply_invalid" else sanitizeRuntimeError(error))
         } finally {
+            val waveEncodeMs = audioWave?.encodeMs ?: 0L
+            val waveReuseCount = (audioWave?.reads ?: 0).minus(1).coerceAtLeast(0)
+            audioWave?.close()
             audioPcm?.fill(0)
             // Only timing/accelerator metadata. Never print transcripts, history,
             // prompt, model reply, phone details, model file path or personal data.
@@ -636,6 +645,9 @@ internal class LiteRtGemma4Runtime(
                 nativeContextTokens = nativeContextTokens,
                 retainedContextTurns = conversationWindow.snapshot().size,
                 replyRecoveryAttempts = replyRecoveryAttempts,
+                audioPcmMs = audioPcm?.size?.toLong()?.times(1000L)?.div(32_000L) ?: 0L,
+                audioWaveEncodeMs = waveEncodeMs,
+                audioWaveReuseCount = waveReuseCount,
                 replyValidationFailure = replyValidationFailure,
                 rejectedReplyChars = rejectedReplyChars,
                 rejectedReplyShape = rejectedReplyShape,
@@ -653,6 +665,9 @@ internal class LiteRtGemma4Runtime(
                 ",native_context_tokens=${timing.nativeContextTokens ?: -1}" +
                 ",retained_context_turns=${timing.retainedContextTurns}" +
                 ",reply_recovery_attempts=${timing.replyRecoveryAttempts}" +
+                ",audio_pcm_ms=${timing.audioPcmMs}" +
+                ",audio_wave_encode_ms=${timing.audioWaveEncodeMs}" +
+                ",audio_wave_reuses=${timing.audioWaveReuseCount}" +
                 ",reply_validation_failure=${timing.replyValidationFailure}" +
                 ",rejected_reply_chars=${timing.rejectedReplyChars}" +
                 ",rejected_reply_shape=${timing.rejectedReplyShape}")
