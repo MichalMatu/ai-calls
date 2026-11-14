@@ -125,6 +125,46 @@ class SharedGemmaAudioContractTest {
         assertEquals(1, audio.size)
     }
 
+    @Test fun cancellingInsideReadyCallbackNeverLeavesActiveInput() {
+        val input = GemmaAudioDirectInputProvider()
+        var callbacks = 0
+        input.start(object : SpeechInputProvider.Listener {
+            override fun onReady() {
+                callbacks++
+                input.cancel()
+            }
+            override fun onFinalTranscript(text: String) = fail("unexpected text")
+            override fun onFinalAudio(pcm16: ByteArray) = fail("cancelled audio must not publish")
+            override fun onError(reason: String) = fail(reason)
+        })
+        assertEquals(1, callbacks)
+        assertFalse(input.writePcm(byteArrayOf(1, 0)))
+        input.finishInput()
+        input.close()
+    }
+
+    @Test fun invalidPcmDoesNotPoisonNextGeneration() {
+        val input = GemmaAudioDirectInputProvider()
+        val heard = mutableListOf<ByteArray>()
+        val failures = mutableListOf<String>()
+        val receiver = object : SpeechInputProvider.Listener {
+            override fun onReady() = Unit
+            override fun onFinalTranscript(text: String) = fail("unexpected text")
+            override fun onFinalAudio(pcm16: ByteArray) { heard.add(pcm16) }
+            override fun onError(reason: String) { failures.add(reason) }
+        }
+        input.start(receiver)
+        assertTrue(input.writePcm(byteArrayOf(1, 2, 3)))
+        input.finishInput()
+        assertEquals(listOf("invalid_pcm16"), failures)
+        assertTrue(heard.isEmpty())
+        input.start(receiver)
+        assertTrue(input.writePcm(byteArrayOf(4, 0, 5, 0)))
+        input.finishInput()
+        assertArrayEquals(byteArrayOf(4, 0, 5, 0), heard.single())
+        input.close()
+    }
+
     @Test fun boundedPcmRejectsOverflowWithoutLosingEarlierAudio() {
         val input = GemmaAudioDirectInputProvider()
         val heard = mutableListOf<ByteArray>()

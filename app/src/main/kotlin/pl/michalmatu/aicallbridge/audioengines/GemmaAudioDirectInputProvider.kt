@@ -85,6 +85,9 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
     private var pcm = ByteArray(0)
     private var used = 0
     private var closed = false
+    // Incremented whenever the owner starts, cancels or closes an utterance.
+    // Asynchronous delivery may only proceed for that same input generation.
+    private var generation = 0L
 
     private fun clearPcm() {
         pcm.fill(0, 0, used)
@@ -92,12 +95,17 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
     }
 
     override fun start(listener: SpeechInputProvider.Listener) {
-        synchronized(lock) {
+        val token = synchronized(lock) {
             check(!closed) { "gemma_audio_input_closed" }
             clearPcm()
             this.listener = listener
+            generation += 1
+            generation
         }
-        listener.onReady()
+        // Cancel/close/new start can supersede this turn before onReady runs.
+        if (synchronized(lock) { !closed && generation == token && this.listener === listener }) {
+            listener.onReady()
+        }
     }
 
     override fun writePcm(bytes: ByteArray, offset: Int, length: Int): Boolean {
@@ -126,19 +134,32 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
     }
 
     override fun finishInput() {
-        val (callback, samples) = synchronized(lock) {
+        val (callback, samples, token) = synchronized(lock) {
             val callback = listener ?: return
             listener = null
             val samples = pcm.copyOf(used)
             clearPcm()
-            callback to samples
+            Triple(callback, samples, generation)
         }
-        if (samples.isEmpty() || samples.size % 2 != 0) callback.onError("invalid_pcm16")
-        else callback.onFinalAudio(samples)
+        // Suppress a completed capture if its owner has already restarted or
+        // cancelled it. Do not hold the PCM lock while calling the model.
+        if (!synchronized(lock) { !closed && generation == token }) {
+            samples.fill(0)
+            return
+        }
+        if (samples.isEmpty() || samples.size % 2 != 0) {
+            // Invalid speech must not remain in the temporary sample allocation.
+            samples.fill(0)
+            callback.onError("invalid_pcm16")
+        } else {
+            // The downstream model now owns this copy and wipes it after use.
+            callback.onFinalAudio(samples)
+        }
     }
 
     override fun cancel() {
         synchronized(lock) {
+            generation += 1
             listener = null
             clearPcm()
         }
@@ -148,6 +169,7 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
         synchronized(lock) {
             if (closed) return
             closed = true
+            generation += 1
             listener = null
             clearPcm()
             pcm = ByteArray(0)
