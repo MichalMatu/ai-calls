@@ -15,6 +15,25 @@ Ten raport porównuje **wejście mowy × model dialogowy × silnik TTS**. Nie mi
 
 Pozostałe silniki Android TTS i importowane modele LiteRT można badać osobno po identyfikacji wersji modelu, pakietu silnika i głosu. Kokoro i Pocket TTS nie są kwalifikowanymi polskimi wyjściami w obecnej aplikacji. Samo przejście testów JVM/Gradle **nie oznacza jakości głosu**.
 
+## Macierz testów odbiorczych
+
+To checklista, nie drugi plan. PASS dotyczy wskazanego SHA, środowiska i receipt. Brak próby na S22 = **PHYSICAL_OPEN**, nie FAIL. Nie mieszaj prób syntetycznych i rzeczywistych.
+
+| ID | Przypadek / tor | Warunek zaliczenia | Ostatni stan |
+| --- | --- | --- | --- |
+| H1 | Preflight, 6 modułów, Python, Gemma lab, APK | Czysty Mac, exit 0 dla tego SHA | **PASS** `ce05a593`: 1311 JUnit, 438 Python, receipt `aicalls-host-final-all-tests-20261114-v4` |
+| E1 | Głos, PL UI, STOP, szyfrowanie, Lab | Emulator, 0 błędów | **PASS 29/29** `50234e95`: `aicalls-emulator-safe-instrumentation-20261114-v4` |
+| R1 | Android STT → Gemma E2B → Android TTS PL | S22: WER, ASR/model/TTS/E2E, odsłuch, echo | Bazowy tor znany; pomiar **PHYSICAL_OPEN** |
+| R2 | Gemma Audio Direct → Gemma E2B → Android TTS PL | S22: długi RX, retry P1, WER, timeout, latencje | 3/3 syntetyczne + starsza rozmowa MVP; retest **PHYSICAL_OPEN** |
+| R3 | Parakeet PL → Gemma E2B → Android TTS PL | S22: model natywny gotowy, WER, latencje | **PHYSICAL_OPEN**; brak modelu = `not_available` |
+| R4–R6 | R1–R3 z polskim Piper | S22: potwierdzony głos PL, odsłuch, latencje | **PHYSICAL_OPEN**; brak głosu = `not_available` |
+| C1 | 4–6 tur: długa mowa, szum, cisza, korekta | S22: rozpoznanie i poprawna kolejność tur | **PHYSICAL_OPEN** |
+| C2 | Barge-in, STOP podczas ASR/model/TTS/TX | S22: brak starego TX, brak obcego hangup | **PHYSICAL_OPEN** |
+| C3 | „Do widzenia” → zakończenie | S22: brak dalszego pytania, exact app-owned END_CALL | **PHYSICAL_OPEN** |
+| G6.1 | BOOT/retry, kampania, takeover/resume | Osobny fizyczny odbiór po stabilizacji I/O | **PHYSICAL_OPEN** |
+
+**Kolejność:** sprawdź SHA/artefakty i dostępność silników off-call bez zmian S22. Dopiero po jawnej zgodzie, sprawdzeniu IDLE i urządzenia, przeprowadź jeden uzgodniony Call z C1–C3. Zbieraj agregaty i identyfikatory receipts, bez PII/WAV/transkryptów w Git. Nie uruchamiaj masowego dial.
+
 ## Zapis nowego pomiaru
 
 ```sh

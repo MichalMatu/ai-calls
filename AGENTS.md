@@ -1,8 +1,9 @@
-# AI Calls — zasady pracy agentów
+# AI Calls — zasady pracy
 
-- [docs/README.md](docs/README.md) → [PROJECT](docs/PROJECT.md). Czytaj wyłącznie pliki dla zadania; kod to źródło implementacji, Git/receipts to historia. Docs: tylko blokady i nieoczywiste kontrakty.
-- Czysty `main`; kod, Git i testy bezpośrednio w Codex. Bez Mac Local Agenta, Work, Actions, branchy, force-push i kolizji zadań.
-- Existing Code First; `preflight`, potem celowane testy. APK tylko przed autoryzowaną instalacją. Nie dodawaj sztucznych ograniczeń ani zbędnych potwierdzeń.
-- Exact app-owned Call/grant/SIM, STOP i prywatność obowiązkowe. Realny Call/instalacja: jawna zgoda, IDLE, zweryfikowany S22. Bez PII/WAV w Git i logach.
-- Bez AndroidTest/`adb uninstall` na prywatnym S22; instrumentacyjne tylko na emulatorze. Bez `FLAG_SECURE`. Brak próby = PHYSICAL_OPEN.
-- Bez checkpointów/handoffów; dokumenty aktualizuj tylko po zmianie kontraktu/blokady. [SECURITY](docs/architecture/SECURITY.md).
+- [Docs](docs/README.md) → [PROJECT](docs/PROJECT.md); kod = implementacja, Git/receipts = dowody. Czytaj pliki zadania.
+- **ChatGPT (czat):** GitHub Connector + istniejący Local Agent na wybranym hoście; komendy/testy przez agenta, bez Codex. [LOCAL_AGENT](docs/operations/LOCAL_AGENT.md).
+- **Codex lokalny:** kod, Git i testy bezpośrednio na hoście, bez Local Agenta. [DEVELOPMENT](docs/operations/DEVELOPMENT.md).
+- Oba tryby: czysty `main`, Existing Code First, preflight → testy celowane; bez Work, Actions, branchy, force-push, kolizji i nowych schedulerów.
+- Exact app-owned Call/grant/SIM, STOP i prywatność. Realny Call/instalacja: zgoda, IDLE, zweryfikowany S22. Bez PII/WAV w Git/logach.
+- Bez AndroidTest/`adb uninstall` na S22; instrumentacyjne tylko na emulatorze. Bez `FLAG_SECURE`; brak próby = PHYSICAL_OPEN.
+- Docs tylko dla kontraktów/blokad, bez równoległych handoffów. [SECURITY](docs/architecture/SECURITY.md).

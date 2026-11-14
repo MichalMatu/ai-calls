@@ -1,5 +1,7 @@
 # Development
 
-Czysty `main`; kod, Git i testy bezpośrednio w Codex. `bash scripts/bin/test-profile.sh preflight`, celowane `auto <base-SHA>`/`focus`; `full` po większej zmianie, APK przed autoryzowaną instalacją. Zachowaj cache Gradle.
+**Tryby:** ChatGPT → GitHub Connector + Local Agent (komendy/testy/host), bez Codex; Codex lokalny → terminal, Git i testy bezpośrednio, bez agenta. [Protokół](LOCAL_AGENT.md).
 
-**Docs:** tylko otwarte blokady i kontrakty. Bez historii, dawnych testów i list bibliotek; nie aktualizuj przy drobnej zmianie kodu. **Budżet: ostrzeżenie 6 KiB, blokada 8 KiB; AGENTS ≤1 KiB; PROJECT ≤2 KiB.** [Gate](../../scripts/aicall_tools/diagnostics/docs_check.py).
+Czysty `main`, sprawdzony SHA i brak kolizji. `bash scripts/bin/test-profile.sh preflight`, potem `auto <base-SHA>`/`focus`; `full` po większych zmianach. `device-build` przed emulatorem lub autoryzowaną instalacją. Zachowaj cache Gradle.
+
+**Docs:** kontrakty/blokady bez historii; ostrzeżenie 6 KiB, limit 8 KiB, AGENTS ≤1 KiB, PROJECT ≤2 KiB. [Gate](../../scripts/aicall_tools/diagnostics/docs_check.py).
