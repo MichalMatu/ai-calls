@@ -23,6 +23,7 @@ import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
 import pl.michalmatu.aicallbridge.audioengines.ParakeetPiperAudioRoutePolicy
+import pl.michalmatu.aicallbridge.audioengines.ParakeetPiperFixedCorpus
 import pl.michalmatu.aicallbridge.audioengines.ParakeetPiperAudioRouteRunner
 import pl.michalmatu.aicallbridge.audioengines.ParakeetPiperAudioRouteResult
 import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
@@ -92,8 +93,11 @@ internal object UsbDebugBridge {
                     // Neither the profile nor any call/grant is modified.
                     val guard = mutationGuard(activity)
                     val saved = AudioEngineProfileStore(activity).load()
+                    val sampleId = intent.getStringExtra("audio_case_id") ?: "greeting"
+                    val sample = ParakeetPiperFixedCorpus.find(sampleId)
                     when {
                         guard != null -> reply(false, guard)
+                        sample == null -> reply(false, "unknown_audio_case")
                         saved == null -> reply(false, "invalid_profile")
                         !ParakeetPiperAudioRoutePolicy.canProbe(saved) ->
                             reply(false, "parakeet_piper_profile_required")
@@ -105,6 +109,7 @@ internal object UsbDebugBridge {
                                 },
                                 inputFactory = { ParakeetSpeechInputProvider(activity) },
                                 dispatch = { task -> activity.mainExecutor.execute(task) },
+                                phrase = sample.phrase,
                             )
                             var completed = false
                             fun complete(result: ParakeetPiperAudioRouteResult) {
@@ -114,6 +119,9 @@ internal object UsbDebugBridge {
                                 reply(result.passed, if (result.passed) "audio_route_pass"
                                     else result.code, JSONObject()
                                     .put("passed", result.passed)
+                                    .put("case_id", sample.id)
+                                    .put("corpus_id", ParakeetPiperFixedCorpus.ID)
+                                    .put("corpus_sha256", ParakeetPiperFixedCorpus.sha256)
                                     .put("tts_ms", result.ttsMs)
                                     .put("native_prewarm_ms", result.nativePrewarmMs)
                                     .put("native_infer_ms", result.nativeInferMs)
@@ -123,7 +131,7 @@ internal object UsbDebugBridge {
                             Handler(Looper.getMainLooper()).postDelayed({
                                 complete(ParakeetPiperAudioRouteResult(
                                     false, "audio_route_timeout"))
-                            }, 450_000L)
+                            }, if (intent.hasExtra("audio_case_id")) 120_000L else 450_000L)
                             try { runner.start { complete(it) } }
                             catch (_: Exception) {
                                 complete(ParakeetPiperAudioRouteResult(

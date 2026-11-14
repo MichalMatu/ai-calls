@@ -60,6 +60,15 @@ class UsbDebugProtocolTests(unittest.TestCase):
         self.assertIsNone(bridge.validated_result(json.dumps(ok),
                                                  "0123456789abcdef", "grant_revoke"))
 
+    def test_fixed_audio_case_is_offcall_only_and_not_arbitrary_text(self):
+        params = {"audio_case_id": "goodbye"}
+        args = bridge.bridge_extras("audio_route_check", "0123456789abcdef", params)
+        self.assertIn("goodbye", args)
+        for action, value in (("status", "goodbye"), ("audio_route_check", "private-text")):
+            with self.assertRaises(bridge.DiagnosticError):
+                bridge.bridge_extras(action, "0123456789abcdef",
+                                     {"audio_case_id": value})
+
     def test_extras_block_arbitrary_prefs_or_output_paths(self):
         with self.assertRaises(bridge.DiagnosticError):
             bridge.bridge_extras("profile_set", "0123456789abcdef",

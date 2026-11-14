@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.audioengines
 
+import java.security.MessageDigest
+
 /** Fixed synthetic Polish speech only: no microphone, Telecom, numbers or transcripts in receipts. */
 internal object ParakeetPiperAudioRoutePolicy {
     const val PHRASE = "Dzień dobry. Proszę o pomoc konsultanta."
@@ -22,6 +24,31 @@ internal object ParakeetPiperAudioRoutePolicy {
     }
 }
 
+/** Frozen, public, artificial Polish phrases; version and digest tie every run to exact inputs. */
+internal data class FixedAudioCase(val id: String, val phrase: String)
+
+internal object ParakeetPiperFixedCorpus {
+    const val ID = "pl-audio-v1"
+    const val REPEATS = 2
+    val cases = listOf(
+        FixedAudioCase("greeting", ParakeetPiperAudioRoutePolicy.PHRASE),
+        FixedAudioCase("appointment",
+            "Chciałbym umówić wizytę we wtorek o godzinie piętnastej trzydzieści."),
+        FixedAudioCase("correction",
+            "Nie w środę, tylko w czwartek. Proszę poprawić termin."),
+        FixedAudioCase("long",
+            "Mam pytanie dotyczące wizyty, którą próbowałem umówić w ubiegłym tygodniu. " +
+                "Chciałbym sprawdzić, czy termin nadal jest aktualny, a jeśli nie, wybrać inny dzień."),
+        FixedAudioCase("goodbye", "Dziękuję za pomoc. Do widzenia."),
+    )
+    fun find(id: String): FixedAudioCase? = cases.firstOrNull { it.id == id }
+    val sha256: String by lazy {
+        val manifest = cases.joinToString(separator = "") { it.id + "=" + it.phrase + "\n" }
+        MessageDigest.getInstance("SHA-256").digest(manifest.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    }
+}
+
 internal data class ParakeetPiperAudioRouteResult(
     val passed: Boolean,
     val code: String,
@@ -39,6 +66,7 @@ internal class ParakeetPiperAudioRouteRunner(
     private val outputFactory: () -> SpeechOutputProvider,
     private val inputFactory: () -> SpeechInputProvider,
     private val dispatch: (() -> Unit) -> Unit,
+    private val phrase: String = ParakeetPiperAudioRoutePolicy.PHRASE,
     private val clock: () -> Long = System::nanoTime,
 ) : AutoCloseable {
     private val lock = Any()
@@ -66,7 +94,7 @@ internal class ParakeetPiperAudioRouteRunner(
         catch (_: Exception) { finish("tts_unavailable"); return }
         synchronized(lock) { if (active) output = producer else { producer.close(); return } }
         try {
-            producer.synthesize(ParakeetPiperAudioRoutePolicy.PHRASE,
+            producer.synthesize(phrase,
                 object : SpeechOutputProvider.Listener {
                     override fun onPcm16Mono16k(bytes: ByteArray) {
                         dispatch {
@@ -126,7 +154,7 @@ internal class ParakeetPiperAudioRouteRunner(
                     dispatch {
                         if (!isActive()) return@dispatch
                         val (errors, words) = GemmaAudioCorpus.wordErrors(
-                            ParakeetPiperAudioRoutePolicy.PHRASE, text)
+                            phrase, text)
                         val passed = text.isNotBlank() && words > 0 && errors * 2 <= words
                         finish(if (passed) "ok" else "transcript_mismatch", errors, words)
                     }

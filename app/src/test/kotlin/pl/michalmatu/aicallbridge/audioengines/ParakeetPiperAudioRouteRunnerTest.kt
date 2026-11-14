@@ -16,6 +16,47 @@ class ParakeetPiperAudioRouteRunnerTest {
         assertFalse(ParakeetPiperAudioRoutePolicy.canProbe(selected.copy(ttsEnginePackage = null)))
     }
 
+    @Test fun fixedAudioCorpusHasVersionAndStableDigest() {
+        assertEquals("pl-audio-v1", ParakeetPiperFixedCorpus.ID)
+        assertEquals(2, ParakeetPiperFixedCorpus.REPEATS)
+        assertEquals(listOf("greeting", "appointment", "correction", "long", "goodbye"),
+            ParakeetPiperFixedCorpus.cases.map { it.id })
+        assertEquals(
+            "fe64ca3f291656a7c067fb7adac35d956b66686485078f52725d50927e68e701",
+            ParakeetPiperFixedCorpus.sha256)
+        assertNull(ParakeetPiperFixedCorpus.find("private input"))
+    }
+
+    @Test fun runnerUsesExplicitFixedSyntheticPhrase() {
+        val selected = ParakeetPiperFixedCorpus.find("goodbye")!!
+        var actual = ""
+        var outcome: ParakeetPiperAudioRouteResult? = null
+        val output = object : SpeechOutputProvider {
+            override fun synthesize(text: String, listener: SpeechOutputProvider.Listener) {
+                actual = text
+                listener.onPcm16Mono16k(ByteArray(32_000) { 5 })
+            }
+            override fun cancel() = Unit
+            override fun close() = Unit
+        }
+        val input = object : SpeechInputProvider {
+            private lateinit var callback: SpeechInputProvider.Listener
+            override fun start(listener: SpeechInputProvider.Listener) {
+                callback = listener
+                listener.onReady()
+            }
+            override fun writePcm(bytes: ByteArray, offset: Int, length: Int) = true
+            override fun finishInput() = callback.onFinalTranscript(selected.phrase)
+            override fun cancel() = Unit
+            override fun close() = Unit
+        }
+        ParakeetPiperAudioRouteRunner({ output }, { input }, { it() },
+            phrase = selected.phrase).start { outcome = it }
+        assertEquals(selected.phrase, actual)
+        assertTrue(outcome?.passed == true)
+        assertEquals(0, outcome?.wordErrors)
+    }
+
     @Test fun piperFailurePreservesOnlyAllowedTechnicalReason() {
         assertEquals("tts_set_voice_failed",
             ParakeetPiperAudioRoutePolicy.safeTtsError("tts_set_voice_failed"))

@@ -114,6 +114,54 @@ class UsbLabControlTests(unittest.TestCase):
             self.assertEqual(written[0].stat().st_mode & 0o777, 0o600)
             self.assertIn("secret output", written[0].read_text())
 
+    def test_fixed_audio_suite_runs_same_cases_twice_without_text_leaks(self):
+        from types import SimpleNamespace
+        device = FakeDevice()
+        device.safe_preflight = lambda: None
+        device.preference_hashes = lambda: {"audio": "unchanged", "grant": "unchanged"}
+        device.idle = lambda: True
+        calls = []
+        def simulated(dev, action, params=None):
+            calls.append((action, params["audio_case_id"]))
+            return {"ok": True, "code": "audio_route_pass",
+                    "data": {"case_id": params["audio_case_id"],
+                             "corpus_id": "pl-audio-v1",
+                             "corpus_sha256": "a" * 64,
+                             "passed": True, "tts_ms": 2200,
+                             "native_prewarm_ms": 150, "native_infer_ms": 800,
+                             "word_errors": 0, "reference_words": 6,
+                             "transcript": "NEVER EXPOSE THIS"}}
+        with patch.object(channel, "run_bridge", side_effect=simulated):
+            result = channel.run_once(device, SimpleNamespace(command="audio-suite"))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["data"]["cases"], 10)
+        self.assertEqual(result["data"]["passed"], 10)
+        self.assertEqual(result["data"]["wer_pct"], 0)
+        self.assertEqual([c[1] for c in calls],
+                         list(channel.AUDIO_FIXED_SUITE) * 2)
+        self.assertNotIn("transcript", json.dumps(result))
+        self.assertNotIn("NEVER EXPOSE", json.dumps(result))
+
+    def test_fixed_suite_refuses_mixed_manifest_revisions(self):
+        device = FakeDevice()
+        device.safe_preflight = lambda: None
+        device.preference_hashes = lambda: {"audio": "unchanged"}
+        device.idle = lambda: True
+        count = 0
+        def mixed(dev, action, params=None):
+            nonlocal count
+            count += 1
+            return {"ok": True, "code": "audio_route_pass",
+                    "data": {"case_id": params["audio_case_id"],
+                             "corpus_id": "pl-audio-v1",
+                             "corpus_sha256": ("a" if count == 1 else "b") * 64,
+                             "passed": True, "tts_ms": 2000,
+                             "native_prewarm_ms": 100, "native_infer_ms": 500,
+                             "word_errors": 0, "reference_words": 6}}
+        with patch.object(channel, "run_bridge", side_effect=mixed):
+            with self.assertRaises(channel.DiagnosticError):
+                channel.run_fixed_audio_suite(device)
+
     def test_audio_route_probe_uses_readonly_bridge_and_filters_private_fields(self):
         from types import SimpleNamespace
         device = FakeDevice()

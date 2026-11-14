@@ -11,6 +11,8 @@ permissions, change current voice SIM, or disconnect an unowned Call.
 from __future__ import annotations
 
 import argparse
+import math
+from statistics import median
 import fcntl
 import json
 import os
@@ -44,6 +46,10 @@ ACTIONS = frozenset({
     "appointment_stage", "orange_smoke_start", "orange_smoke_status", "orange_smoke_stop",
     "phone_tasks_status", "phone_task_stop",
 })
+AUDIO_FIXED_SUITE = ("greeting", "appointment", "correction", "long", "goodbye")
+AUDIO_FIXED_REPEATS = 2
+AUDIO_FIXED_CORPUS = "pl-audio-v1"
+
 INTERVENTIONS = frozenset({
     "call_takeover", "call_resume", "call_stop_owned", "incoming_ai_disable", "phone_task_stop",
 })
@@ -274,6 +280,77 @@ def last_call_technical_summary(device: Device) -> dict:
     return safe
 
 
+def run_fixed_audio_suite(device: Device) -> dict:
+    """Stable prompts only. Return numeric metrics and IDs, never words or PCM."""
+    original = device.preference_hashes()
+    samples = []
+    digest = None
+    for repeat in range(1, AUDIO_FIXED_REPEATS + 1):
+        for case_id in AUDIO_FIXED_SUITE:
+            device.safe_preflight()
+            response = run_bridge(device, "audio_route_check",
+                                  {"audio_case_id": case_id})
+            raw = response.get("data")
+            if not isinstance(raw, dict) or raw.get("case_id") != case_id or (
+                raw.get("corpus_id") != AUDIO_FIXED_CORPUS
+            ):
+                raise DiagnosticError("fixed_audio_suite_contract_missing")
+            sha = raw.get("corpus_sha256")
+            if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
+                raise DiagnosticError("fixed_audio_corpus_hash_missing")
+            if digest is not None and sha != digest:
+                raise DiagnosticError("fixed_audio_corpus_changed_during_run")
+            digest = sha
+            allowed = ("tts_ms", "native_prewarm_ms", "native_infer_ms",
+                       "word_errors", "reference_words")
+            values = {}
+            for key in allowed:
+                value = raw.get(key)
+                if type(value) is not int or value < (0 if key.endswith("_ms") else -1):
+                    raise DiagnosticError("fixed_audio_invalid_metric")
+                values[key] = value
+            passed = response.get("ok") is True and raw.get("passed") is True
+            code = response.get("code", "unknown")
+            if not isinstance(code, str) or not re.fullmatch(r"[a-z0-9_-]{1,64}", code):
+                raise DiagnosticError("fixed_audio_invalid_result")
+            samples.append({"case_id": case_id, "repeat": repeat, "passed": passed,
+                            "code": code, **values})
+    idle = device.idle()
+    unchanged = original == device.preference_hashes()
+    if not idle or not unchanged:
+        raise DiagnosticError("fixed_audio_postflight_invariants_failed")
+
+    good = [x for x in samples if x["reference_words"] > 0 and x["word_errors"] >= 0]
+    errors = sum(x["word_errors"] for x in good)
+    words = sum(x["reference_words"] for x in good)
+    ratio = errors / words if words else None
+    def stats(key):
+        values = sorted(x[key] for x in samples)
+        return {"p50_ms": median(values),
+                "p95_ms": values[math.ceil(len(values) * 0.95) - 1]}
+    elapsed = [dict(x, total_ms=x["tts_ms"] + x["native_prewarm_ms"] +
+                    x["native_infer_ms"]) for x in samples]
+    totals = sorted(x["total_ms"] for x in elapsed)
+    total_stats = {"p50_ms": median(totals),
+                   "p95_ms": totals[math.ceil(len(totals) * 0.95) - 1]}
+    passed_count = sum(x["passed"] for x in samples)
+    all_pass = (passed_count == len(samples) and len(good) == len(samples) and
+                ratio is not None and ratio <= 0.25)
+    return {
+        "ok": all_pass, "code": "audio_suite_pass" if all_pass else "audio_suite_failed",
+        "data": {
+            "corpus_id": AUDIO_FIXED_CORPUS, "corpus_sha256": digest,
+            "repeats": AUDIO_FIXED_REPEATS, "cases": len(samples),
+            "passed": passed_count, "word_errors": errors,
+            "reference_words": words, "wer_pct": round(ratio * 100, 2) if ratio is not None else None,
+            "tts": stats("tts_ms"), "native_prewarm": stats("native_prewarm_ms"),
+            "native_infer": stats("native_infer_ms"), "total": total_stats,
+            "samples": samples, "phone_idle_after": idle,
+            "settings_unchanged": unchanged,
+        },
+    }
+
+
 def run_once(device: Device, args: argparse.Namespace) -> dict:
     name = args.command.replace("-", "_")
     if name == "call_status":
@@ -339,6 +416,8 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
         return {"ok": result.get("ok") is True,
                 "code": result.get("code", "profile_status_unknown"),
                 "data": result.get("data", {})}
+    if name == "audio_suite":
+        return run_fixed_audio_suite(device)
     if name == "audio_route_check":
         # Existing protected bridge: native synthetic STT/TTS, no phone call or test APK.
         device.safe_preflight()
@@ -387,7 +466,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=sorted(
         {k.replace("_", "-") for k in ACTIONS}
-        | {"lab-save", "ram", "profile-check", "profile-set", "profile-reset", "watch", "appointment-open", "audio-route-check"}
+        | {"lab-save", "ram", "profile-check", "profile-set", "profile-reset", "watch", "appointment-open", "audio-route-check", "audio-suite"}
     ))
     parser.add_argument("--allow-one-real-call", action="store_true")
     parser.add_argument("--session-id")

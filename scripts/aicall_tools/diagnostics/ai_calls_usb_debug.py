@@ -183,7 +183,12 @@ def bridge_extras(action: str, nonce: str, params: dict[str, str]) -> list[str]:
         raise DiagnosticError("invalid_nonce")
     args = ["--es", "usb_debug_action", action, "--es", "usb_debug_nonce", nonce]
     for key, value in params.items():
-        if key not in {"input", "dialogue", "output", "voice"}:
+        if key == "audio_case_id":
+            if action != "audio_route_check" or value not in {
+                "greeting", "appointment", "correction", "long", "goodbye",
+            }:
+                raise DiagnosticError("invalid_fixed_audio_case")
+        elif key not in {"input", "dialogue", "output", "voice"}:
             raise DiagnosticError("unknown_bridge_parameter")
         args.extend(["--es", key, value])
     return args
@@ -210,7 +215,8 @@ def run_bridge(device: Device, action: str, params: dict[str, str] | None = None
     if launch.returncode or "Error:" in launch.stdout or "Error:" in launch.stderr:
         raise DiagnosticError("diagnostic_activity_launch_failed")
     deadline = time.monotonic() + (
-        500 if action == "audio_route_check" else
+        (155 if params and "audio_case_id" in params else 500)
+        if action == "audio_route_check" else
         390 if action in {"audio_corpus_check", "audio_transcript_corpus_check",
                           "audio_staged_corpus_check"} else
         205 if action == "audio_compat_check" else
