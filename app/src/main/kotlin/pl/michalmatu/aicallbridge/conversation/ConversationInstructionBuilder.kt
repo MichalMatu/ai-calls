@@ -2,7 +2,7 @@ package pl.michalmatu.aicallbridge.conversation
 
 /** Compiles model-visible instructions, never reads secret values from IdentityVault. */
 internal object ConversationInstructionBuilder {
-    const val INCOMING_OPENING = "Dzień dobry, tu wirtualna asystentka właściciela telefonu. W jakiej sprawie Państwo dzwonią?"
+    const val INCOMING_OPENING = "Dzień dobry, tu asystentka AI. Mogę przyjąć wiadomość. W jakiej sprawie dzwonisz?"
     fun build(preparation: ConversationPreparation, goal: String, responseFormat: ConversationResponseFormat): String {
         val role = when (preparation.direction) {
             ConversationDirection.OUTGOING -> """

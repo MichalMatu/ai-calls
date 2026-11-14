@@ -40,7 +40,7 @@ internal class ToolCallingConversationSession(
         } else null)
         decision
     }
-    override fun start() = Unit
+    override fun start() { runCatching { backend.prewarm() } }
     override fun beginTurn() {
         approvedTool.set(null)
         appIdleClosureArmed.set(false)

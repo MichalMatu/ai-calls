@@ -6,6 +6,25 @@ import org.junit.Test
 
 class Gemma4LiteRtTextBackendTest {
     @Test
+    fun prewarmInitializesModelWithoutSyntheticTurn() {
+        val runtime = RecordingRuntime()
+        var loads = 0
+        val backend = Gemma4LiteRtTextBackend(
+            runtimeFactory = Gemma4RuntimeFactory { _, _ -> loads++; runtime },
+            modelPath = "/models/gemma-4-E2B-it.litertlm",
+            systemInstruction = "incoming-secretary",
+        )
+        backend.prewarm()
+        assertEquals(1, loads)
+        assertEquals(1, runtime.prewarmCalls)
+        assertTrue(runtime.prompts.isEmpty())
+        backend.generate("incoming question", RecordingListener())
+        assertEquals(1, loads)
+        assertEquals(listOf("incoming question"), runtime.prompts)
+        backend.close()
+    }
+
+    @Test
     fun `forwards one complete bounded response from runtime`() {
         val runtime = RecordingRuntime()
         val backend = Gemma4LiteRtTextBackend(
@@ -116,6 +135,9 @@ class Gemma4LiteRtTextBackendTest {
         var cancelCalls = 0
         var contextResets = 0
         var closeCalls = 0
+        var prewarmCalls = 0
+
+        override fun prewarm() { prewarmCalls++ }
 
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
             prompts += userText

@@ -9,6 +9,9 @@ internal interface TextCallAgentBackend : AutoCloseable {
         fun onError(reason: String)
     }
 
+    /** Best-effort native initialization during the greeting, without a generated turn. */
+    fun prewarm() = Unit
+
     fun generate(userText: String, listener: Listener)
 
     fun generateAudio(pcm16: ByteArray, listener: Listener) {

@@ -174,6 +174,8 @@ internal class ConversationReplyBackend(
     private val closed = AtomicBoolean(false)
     private val proposal = AtomicReference<ConversationReply?>(null)
 
+    override fun prewarm() = model.prewarm()
+
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         generate(listener, false) { model.generate(userText, it) }
     }

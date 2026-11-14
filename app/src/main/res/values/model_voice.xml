@@ -9,6 +9,10 @@
     <string name="mv_engine_missing">Wybrany silnik jest niedostępny</string>
     <string name="mv_local_voice">Polski głos %1$d · offline</string>
     <string name="mv_voice_missing">Brakuje wybranego polskiego głosu offline.</string>
+    <string name="mv_piper_voice_missing">Piper nie udostępnia polskiego głosu offline. Otwórz aplikację Piper, pobierz polski model głosu, a następnie wróć i wybierz go tutaj.</string>
+    <string name="mv_audio_reply_format_failed">Gemma Audio: odpowiedź nie jest poprawnym JSON-em z transkrypcją i odpowiedzią.</string>
+    <string name="mv_audio_transcript_mismatch">Gemma Audio: nie rozpoznano poprawnie polskiej próbki głosowej.</string>
+    <string name="mv_audio_tool_unexpected">Gemma Audio: model zaproponował nieoczekiwane narzędzie podczas próby.</string>
     <string name="mv_android_input">Android · rozpoznawanie na urządzeniu</string>
     <string name="mv_gemma_input">Gemma · bezpośrednie wejście audio</string>
     <string name="mv_parakeet_input">Parakeet · opcja zaawansowana</string>

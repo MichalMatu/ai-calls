@@ -72,6 +72,7 @@ internal fun interface Gemma4RuntimeFactory {
 }
 
 internal interface Gemma4Runtime : AutoCloseable {
+    fun prewarm() = Unit
     fun generate(userText: String, listener: TextCallAgentBackend.Listener)
     fun generateAudio(pcm16: ByteArray, listener: TextCallAgentBackend.Listener) {
         listener.onError("model_audio_input_unavailable")
@@ -113,6 +114,15 @@ internal class Gemma4LiteRtTextBackend(
     private var generation = 0L
     private var runtime: Gemma4Runtime? = null
     private var closed = false
+
+    /** Create one model runtime and ask its worker to load the native engine early. */
+    override fun prewarm() {
+        val active = synchronized(lock) {
+            if (closed) return
+            runtime ?: runtimeFactory.create(modelPath, activeSystemInstruction).also { runtime = it }
+        }
+        active.prewarm()
+    }
 
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }
@@ -258,6 +268,23 @@ internal class LiteRtGemma4Runtime(
     private val conversationWindow = NativeConversationWindow()
     @Volatile private var activeBackendLabel = "unknown"
     private var closed = false
+
+    override fun prewarm() {
+        // Serialize warmup with real turns on the same worker; never submit a fake prompt.
+        try {
+            executor.execute {
+                if (synchronized(lock) { closed }) return@execute
+                val started = System.nanoTime()
+                val result = runCatching { ensureEngine() }
+                val durationMs = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                Log.i("AiCallBridgePerf", "gemma4_prewarm_status=" +
+                    (if (result.isSuccess) "ready" else "failed") +
+                    ",engine_ready_ms=$durationMs")
+            }
+        } catch (_: RejectedExecutionException) {
+            // Optional warmup must not fail an owned call.
+        }
+    }
 
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
         require(userText.isNotBlank()) { "user_text_must_not_be_blank" }

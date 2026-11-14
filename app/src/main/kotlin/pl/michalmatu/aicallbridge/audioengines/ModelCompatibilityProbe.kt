@@ -47,6 +47,20 @@ internal class ModelCompatibilityStore(context: Context) {
 }
 
 /** Synthetic, off-call only. The same native engine handles text or audio and its cancellation. */
+/** Distinguish incompatible audio schema from recognizer errors without logging any text. */
+internal object ModelAudioCompatibilityReply {
+    fun failure(raw: String): String? {
+        val decoded = runCatching { ConversationReplyProtocol.decodeAudio(raw) }
+            .getOrElse { return "model_audio_reply_format_failed" }
+        val normalized = Normalizer.normalize(decoded.first.lowercase(), Normalizer.Form.NFD)
+            .replace(Regex("\\p{M}"), "")
+        if (!normalized.contains("prosze") || !normalized.contains("pomoc"))
+            return "model_audio_transcript_mismatch"
+        if (decoded.second.tool != null) return "model_audio_tool_unexpected"
+        return null
+    }
+}
+
 internal class ModelCompatibilityProbe(private val context: Context) : AutoCloseable {
     private val generation = AtomicLong()
     private var model: TextCallAgentBackend? = null
@@ -76,16 +90,10 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
         val listener = object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
                 if (!current()) return
-                val valid = runCatching {
-                    if (audio) {
-                        val (transcript, reply) = ConversationReplyProtocol.decodeAudio(text)
-                        val normalized = Normalizer.normalize(transcript.lowercase(), Normalizer.Form.NFD)
-                            .replace(Regex("\\p{M}"), "")
-                        require(normalized.contains("prosze") && normalized.contains("pomoc"))
-                        require(reply.tool == null)
-                    } else require(ConversationReplyProtocol.decode(text).tool == null)
-                }.isSuccess
-                finish(if (valid) null else "model_reply_incompatible")
+                val failure = if (audio) ModelAudioCompatibilityReply.failure(text)
+                else if (runCatching { ConversationReplyProtocol.decode(text).tool == null }
+                        .getOrDefault(false)) null else "model_reply_incompatible"
+                finish(failure)
             }
             override fun onError(reason: String) = finish("model_native_check_failed")
         }

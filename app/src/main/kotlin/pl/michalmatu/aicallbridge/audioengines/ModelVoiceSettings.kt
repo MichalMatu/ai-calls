@@ -205,7 +205,9 @@ internal class ModelVoiceSettings(
         val ids = listOf<String?>(null) + localVoices.map { it.name }
         val labels = listOf(activity.getString(R.string.mv_voice_auto)) +
             localVoices.indices.map { activity.getString(R.string.mv_local_voice, it + 1) }
-        if (localVoices.isEmpty()) options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_voice_missing)))
+        if (localVoices.isEmpty()) options.addView(UiDesign.caption(activity, activity.getString(
+            if (draft.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE)
+                R.string.mv_piper_voice_missing else R.string.mv_voice_missing)))
         ids.forEachIndexed { index, id ->
             val row = LinearLayout(activity).apply { gravity = Gravity.CENTER_VERTICAL }
             row.addView(RadioButton(activity).apply {
@@ -462,6 +464,9 @@ internal class ModelVoiceSettings(
             "model_container_invalid" -> R.string.mv_invalid_container
             "model_native_check_failed" -> R.string.mv_native_check_failed
             "model_reply_incompatible" -> R.string.mv_reply_check_failed
+            "model_audio_reply_format_failed" -> R.string.mv_audio_reply_format_failed
+            "model_audio_transcript_mismatch" -> R.string.mv_audio_transcript_mismatch
+            "model_audio_tool_unexpected" -> R.string.mv_audio_tool_unexpected
             "model_changed_during_check", "model_check_state_unavailable" -> R.string.mv_check_result_unsaved
             "parakeet_model_missing_or_incomplete" -> R.string.models_ui_parakeet_required
             "parakeet_model_sha256_mismatch" -> R.string.models_ui_parakeet_invalid
