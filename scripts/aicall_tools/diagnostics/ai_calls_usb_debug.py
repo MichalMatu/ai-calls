@@ -30,7 +30,7 @@ PREFS = {
 }
 BRIDGE_ACTIONS = frozenset({
     "status", "evidence_status", "profile_set", "profile_reset",
-    "profile_check", "grant_revoke", "evidence_disable",
+    "profile_check", "audio_compat_check", "grant_revoke", "evidence_disable",
 })
 TESTS = {
     "android-stt": (
@@ -208,7 +208,9 @@ def run_bridge(device: Device, action: str, params: dict[str, str] | None = None
     launch = device.call("shell", "am", "start", "-n", ACTIVITY, *arguments, timeout=30)
     if launch.returncode or "Error:" in launch.stdout or "Error:" in launch.stderr:
         raise DiagnosticError("diagnostic_activity_launch_failed")
-    deadline = time.monotonic() + (35 if action in {"profile_set", "profile_check"} else 15)
+    deadline = time.monotonic() + (
+        205 if action == "audio_compat_check" else
+        35 if action in {"profile_set", "profile_check"} else 15)
     while time.monotonic() < deadline:
         response = device.call("shell", "run-as", PACKAGE, "cat", RESULT, timeout=15)
         if response.returncode == 0:

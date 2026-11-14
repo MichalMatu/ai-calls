@@ -16,6 +16,8 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineReadinessProbe
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
+import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityProbe
+import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
@@ -78,6 +80,46 @@ internal object UsbDebugBridge {
             }
             when (action) {
                 "status", "evidence_status" -> reply(true, "ok", snapshot(activity))
+                "audio_compat_check" -> {
+                    // Owner-approved, DUMP-only, off-call synthetic TTS -> native model.
+                    // Never select Gemma Audio Direct for actual phone calls.
+                    val guard = mutationGuard(activity)
+                    val saved = AudioEngineProfileStore(activity).load()
+                    when {
+                        guard != null -> reply(false, guard)
+                        saved == null -> reply(false, "invalid_profile")
+                        saved.dialogue != DialogueModelId.GEMMA_4_E2B ->
+                            reply(false, "audio_probe_requires_e2b")
+                        else -> {
+                            val candidate = saved.copy(input = SpeechInputId.GEMMA_AUDIO_DIRECT)
+                            val reason = AudioEngineRegistry.incompatibility(candidate)
+                            if (reason != null) {
+                                reply(false, reason)
+                            } else {
+                                val file = Gemma4LiteRtTextBackendFactory.modelFile(activity, candidate)
+                                val probe = ModelCompatibilityProbe(activity)
+                                var finished = false
+                                fun complete(code: String) {
+                                    if (finished) return
+                                    finished = true
+                                    probe.close()
+                                    reply(code == "model_audio_compatible", code)
+                                }
+                                val timeout = Handler(Looper.getMainLooper())
+                                timeout.postDelayed({
+                                    complete("model_audio_probe_timeout")
+                                }, 180_000L)
+                                try {
+                                    probe.check(file, candidate, audio = true) { failure ->
+                                        complete(failure ?: "model_audio_compatible")
+                                    }
+                                } catch (_: Exception) {
+                                    complete("model_audio_probe_failed")
+                                }
+                            }
+                        }
+                    }
+                }
                 "profile_reset", "profile_set", "grant_revoke", "evidence_disable",
                 "profile_check" -> {
                     val guard = mutationGuard(activity)
