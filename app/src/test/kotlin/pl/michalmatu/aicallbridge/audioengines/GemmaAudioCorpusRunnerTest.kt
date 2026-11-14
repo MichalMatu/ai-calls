@@ -32,6 +32,15 @@ class GemmaAudioCorpusRunnerTest {
         assertEquals(3, model.resets)
     }
 
+    @Test fun transcriptOnlyDecodingRejectsOtherFieldsAndBadTypes() {
+        assertEquals("Proszę powtórzyć ostatnią informację.",
+            GemmaAudioCorpus.decodeTranscriptOnly("""{"transcript":"Proszę powtórzyć ostatnią informację."}"""))
+        assertNull(GemmaAudioCorpus.decodeTranscriptOnly("""{"transcript":42}"""))
+        assertNull(GemmaAudioCorpus.decodeTranscriptOnly("""{"transcript":"ok","tool":"end_call"}"""))
+        assertNull(GemmaAudioCorpus.decodeTranscriptOnly("""{"transcript":""}"""))
+        assertNull(GemmaAudioCorpus.decodeTranscriptOnly("private invalid output"))
+    }
+
     @Test fun malformedAudioReplyGetsSanitizedReasonWithoutText() {
         assertEquals("transcript_missing", GemmaAudioCorpus.invalidReplyCode(
             """{"reply":"Sekret do ukrycia","tool":"none","note":"","kind":"NOTE"}"""))

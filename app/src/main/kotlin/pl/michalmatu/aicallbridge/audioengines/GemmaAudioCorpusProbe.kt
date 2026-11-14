@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.audioengines
 
 import android.content.Context
+import com.google.gson.JsonParser
 import java.util.Locale
 import pl.michalmatu.aicallbridge.conversation.ConversationReplyProtocol
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
@@ -16,6 +17,14 @@ internal object GemmaAudioCorpus {
     )
     private fun words(s: String) = Regex("[\\p{L}\\p{N}]+")
         .findAll(s.lowercase(Locale.forLanguageTag("pl-PL"))).map { it.value }.toList()
+
+    fun decodeTranscriptOnly(raw: String): String? = runCatching {
+        val objectValue = JsonParser.parseString(raw).asJsonObject
+        if (objectValue.keySet() != setOf("transcript")) return@runCatching null
+        val field = objectValue.get("transcript")
+        if (field == null || !field.isJsonPrimitive || !field.asJsonPrimitive.isString) null
+        else field.asString.trim().takeIf { it.isNotBlank() }
+    }.getOrNull()
 
     /** Fixed diagnostic vocabulary only; raw speech/reply cannot leave the app. */
     fun invalidReplyCode(raw: String): String {
@@ -66,6 +75,7 @@ internal class GemmaAudioCorpusRunner(
     private val model: TextCallAgentBackend,
     private val ttsFactory: () -> SpeechOutputProvider,
     private val dispatch: (() -> Unit) -> Unit,
+    private val transcriptOnly: Boolean = false,
     private val clock: () -> Long = System::nanoTime,
 ) : AutoCloseable {
     private val lock = Any()
@@ -131,10 +141,13 @@ internal class GemmaAudioCorpusRunner(
                                         dispatch {
                                             if (!current(token)) return@dispatch
                                             val outcome = runCatching {
-                                                val decoded = ConversationReplyProtocol.decodeAudio(text)
+                                                val transcript = if (transcriptOnly)
+                                                    GemmaAudioCorpus.decodeTranscriptOnly(text)
+                                                else ConversationReplyProtocol.decodeAudio(text).first
+                                                checkNotNull(transcript) { "transcript_missing" }
                                                 val score = GemmaAudioCorpus.wordErrors(
-                                                    GemmaAudioCorpus.phrases[number - 1], decoded.first)
-                                                Triple(score.first, score.second, decoded.second.tool == null)
+                                                    GemmaAudioCorpus.phrases[number - 1], transcript)
+                                                Triple(score.first, score.second, true)
                                             }.getOrNull()
                                             val code = when {
                                                 outcome == null -> GemmaAudioCorpus.invalidReplyCode(text)
@@ -238,9 +251,11 @@ internal class GemmaAudioCorpusRunner(
 
 /** Strictly diagnostic entrypoint: does not save an audio profile or start a Call. */
 internal object GemmaAudioCorpusProbe {
-    fun create(context: Context, profile: AudioEngineProfile): GemmaAudioCorpusRunner {
+    fun create(context: Context, profile: AudioEngineProfile,
+        transcriptOnly: Boolean = false): GemmaAudioCorpusRunner {
         val file = Gemma4LiteRtTextBackendFactory.modelFile(context, profile)
-        val backend = Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(file, audio = true)
+        val backend = if (transcriptOnly) Gemma4LiteRtTextBackendFactory.createTranscriptionProbe(file)
+            else Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(file, audio = true)
         return GemmaAudioCorpusRunner(
             model = backend,
             ttsFactory = {
@@ -248,6 +263,7 @@ internal object GemmaAudioCorpusProbe {
                     context, profile.languageTag, profile.voiceId, profile.effectiveTtsEnginePackage)
             },
             dispatch = { action -> context.mainExecutor.execute(action) },
+            transcriptOnly = transcriptOnly,
         )
     }
 }

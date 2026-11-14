@@ -264,6 +264,7 @@ internal class LiteRtGemma4Runtime(
     systemInstruction: String?,
     private val responseFormat: ResponseFormat? = null,
     private val audioResponseFormat: ResponseFormat? = null,
+    private val audioInstruction: String = ConversationReplyProtocol.AUDIO_INSTRUCTION,
     private val disableQwenThinking: Boolean = false,
     private val executionPolicy: NativeModelExecutionPolicy = NativeModelExecutionPolicy(),
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
@@ -342,7 +343,7 @@ internal class LiteRtGemma4Runtime(
             return
         }
         pl.michalmatu.aicallbridge.audioengines.GemmaAudioPcm16.validate(pcm16)
-        enqueue(ConversationReplyProtocol.AUDIO_INSTRUCTION, pcm16.copyOf(), listener)
+        enqueue(audioInstruction, pcm16.copyOf(), listener)
     }
 
     private fun enqueue(userText: String, pcm16: ByteArray?, listener: TextCallAgentBackend.Listener) {
@@ -861,6 +862,26 @@ internal class LiteRtGemma4Runtime(
 
 internal object Gemma4LiteRtTextBackendFactory {
     /** Uses the same native lifecycle without changing the selected profile or starting a Call. */
+    /** Lab-only ASR probe: narrow schema measures native Polish audio transcription,
+     * without pretending to qualify structured dialogue or changing call settings.
+     */
+    fun createTranscriptionProbe(file: File): TextCallAgentBackend {
+        val schema = """{"type":"object","properties":{"transcript":{"type":"string"}},"required":["transcript"],"additionalProperties":false}"""
+        val instruction = "Przepisz dokładnie usłyszaną polską wypowiedź. " +
+            "Wynikiem ma być wyłącznie JSON z jednym polem transcript. " +
+            "Nie odpowiadaj rozmówcy, nie dodawaj komentarzy ani innych pól."
+        return Gemma4LiteRtTextBackend(Gemma4RuntimeFactory { path, system ->
+            LiteRtGemma4Runtime(
+                modelPath = path,
+                systemInstruction = system,
+                responseFormat = ResponseFormat.json(schema),
+                audioResponseFormat = ResponseFormat.json(schema),
+                audioInstruction = "Zapisz dosłownie polskie słowa z nagrania. Zwróć tylko pole transcript.",
+                validateConversationReply = false,
+            )
+        }, file.absolutePath, instruction)
+    }
+
     fun createCompatibilityProbe(file: File, audio: Boolean): TextCallAgentBackend =
         Gemma4LiteRtTextBackend(Gemma4RuntimeFactory { path, instruction ->
             LiteRtGemma4Runtime(path, instruction,
