@@ -134,13 +134,30 @@ Nie jest to test STOP podczas rzeczywistej rozmowy.
 
 ## S6 — eksperymentalny pełny tor Gemma Audio Direct
 
-Dwie dodatkowe próby 3-tur: fullturn-gemma-google i
-fullturn-gemma-piper; ten sam scenariusz korekty daty jak w S4,
-ale bez odrębnego ASR. Korzystają bezpośrednio z produkcyjnego
-DialogueEngineProvider (staged audio→transcript→reply w jednym Engine),
-zamiast z tekstowego adaptera Test Lab. Nie oznaczać PASS przed
-instrumentacją S22. Czas audio→reply będzie dłuższy niż dla
-osobnego Parakeet/Android STT. Brak połączeń i zapisu profilu.
+Obie dodatkowe konfiguracje 3-tur zaliczone **3/3** na fizycznym
+S22, SHA bed4397cad0a3a4082744eaaa8e861fce0fe67a0,
+receipt aicalls-s22-gemma-audio-direct-fullturn-20261114-v1,
+APK testów SHA256 36bf0ade846d5ba01ffeabb7712f0ac5f1ddb7843b14854825b297bb67cb6969.
+Tak samo: wiadomość → korekta dnia → pamięć poprawionej daty;
+bez osobnego ASR, staged audio→transcript→reply w jednym Engine.
+Korzysta z produkcyjnego DialogueEngineProvider, nie z tekstowego
+adaptera Test Lab. Bez Telecom, instalacji produkcyjnego APK,
+zmian profilu, grantów, mikrofonu lub prawdziwego rozmówcy.
+
+| Tor Gemma Audio Direct → E2B → TTS | Tury | Gotowe PCM p50 / p95 | Audio→transcript p50 |
+|---|---:|---:|---:|
+| Google TTS | 3/3 | 19523 / 27590 ms | 17999 ms |
+| Piper Gosia | 3/3 | 22155 / 26713 ms | 18068 ms |
+
+**S3+S4+S6:** 60/60 prób ASR/TTS oraz 18/18 pełnych
+syntetycznych tur. **S5:** 5/5 testów STOP poza rozmową.
+Wstępny wybór wydajnościowy z 6 torów:
+Android STT → Gemma E2B → Google TTS (PCM p50 16539 ms).
+Nie jest to jeszcze rekomendacja jakości głosu ani kwalifikacja
+telefoniczna. C1–C3 (hałas/długie rozmowy, barge-in, END_CALL
+i hangup z Telecom) pozostają **PHYSICAL_OPEN**. Dodatkowo
+Test Lab z wybranym GEMMA_AUDIO_DIRECT wymaga osobnej kwalifikacji
+adaptera: obecny wynik dotyczy bezpośredniego produkcyjnego backendu.
 
 ## Zapis nowego pomiaru
 
