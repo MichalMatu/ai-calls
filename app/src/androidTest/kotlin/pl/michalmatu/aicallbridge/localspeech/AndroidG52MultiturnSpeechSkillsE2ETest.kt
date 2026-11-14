@@ -160,6 +160,8 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         runThreeTurnFlow(null)
 
     @Test fun matrixFullTurnAndroidGoogle() = runThreeTurnFlow("android-google")
+    @Test fun matrixFullTurnAndroidPiper() = runThreeTurnFlow("android-piper")
+    @Test fun matrixFullTurnParakeetGoogle() = runThreeTurnFlow("parakeet-google")
     @Test fun matrixFullTurnParakeetPiper() = runThreeTurnFlow("parakeet-piper")
 
     private fun runThreeTurnFlow(route: String?) {
@@ -167,6 +169,13 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         val selected = when (route) {
             "android-google" -> original.copy(
                 input = SpeechInputId.ANDROID_STT, output = SpeechOutputId.ANDROID_TTS_PL,
+                ttsEnginePackage = "com.google.android.tts", voiceId = null)
+            "android-piper" -> original.copy(
+                input = SpeechInputId.ANDROID_STT, output = SpeechOutputId.ANDROID_TTS_PL,
+                ttsEnginePackage = PiperServiceContract.PACKAGE,
+                voiceId = "pl_PL-gosia-medium")
+            "parakeet-google" -> original.copy(
+                input = SpeechInputId.PARAKEET_PL, output = SpeechOutputId.ANDROID_TTS_PL,
                 ttsEnginePackage = "com.google.android.tts", voiceId = null)
             "parakeet-piper" -> original.copy(
                 input = SpeechInputId.PARAKEET_PL, output = SpeechOutputId.ANDROID_TTS_PL,
@@ -277,6 +286,8 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
             // Aggregated, synthetic-only numeric timing markers for owner diagnostics.
             val metricPrefix = when (route) {
                 "android-google" -> "FULL_ANDROID_GOOGLE"
+                "android-piper" -> "FULL_ANDROID_PIPER"
+                "parakeet-google" -> "FULL_PARAKEET_GOOGLE"
                 "parakeet-piper" -> "FULL_PARAKEET_PIPER"
                 else -> "FULL_SELECTED"
             }
@@ -284,10 +295,12 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
                 val stub = "AUDIO_QA_" + metricPrefix + "_CASE_" + (index + 1) + "_"
                 InstrumentationRegistry.getInstrumentation().sendStatus(
                     2, android.os.Bundle().apply {
-                        putString("stream", stub + "STT_MS=" + turn.sttMs + "\n" +
+                        // Frame every line so instrumentation renders first/last
+                        // numeric metrics with the same prefix as middle lines.
+                        putString("stream", "\n" + stub + "STT_MS=" + turn.sttMs + "\n" +
                             stub + "APPROVAL_MS=" + turn.approvalMs + "\n" +
                             stub + "OUTPUT_MS=" + turn.outputMs + "\n" +
-                            stub + "PASSED=1")
+                            stub + "PASSED=1\n")
                     })
             }
             Log.i("AiCallG52E2E", "model=E2B;offcall=true;profile_input=" +

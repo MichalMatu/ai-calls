@@ -94,6 +94,29 @@ Dowody: aicalls-s22-matrix-parakeet-piper-google-20261114-v2,
 aicalls-s22-matrix-android-google-piper-20261114-v1,
 aicalls-s22-matrix-gemma-google-piper-20261114-v1.
 
+## S4: trzy syntetyczne tury z Gemmą E2B — fizyczny S22
+
+Dwie konfiguracje zdały 3/3 testów funkcjonalnych (wiadomość → korekta
+terminu → pamięć poprawionego dnia), prawdziwa natywna odpowiedź Gemmy
+i końcowe PCM16, ale **bez połączenia telefonicznego**.
+Kod testu SHA c9d0edade58b5ebbcf6508863df50110f89beb63,
+receipt aicalls-s22-fullturn-two-route-20261114-v1.
+
+| Tor | Tury | PCM gotowe p50 / p95 | Odpowiedź zatwierdzona p50 |
+|---|---:|---:|---:|
+| ANDROID_STT → Gemma E2B → Google | 3/3 | 16539 / 26181 ms | 14873 ms |
+| PARAKEET_PL → Gemma E2B → Piper Gosia | 3/3 | 26513 / 33441 ms | 20792 ms |
+
+Oddzielny odczyt liczników z logcat potwierdził dla Android/Google
+czas STT 4628, 5998 i 5195 ms (p50 5195 ms).
+Dla Parakeet/Gosia brak kompletu STT w zachowanym logu: nie wnioskować
+o zerowym czasie. Poprawiono format emisji metryk na przyszłość.
+Dwa pozostałe tory Android/Piper oraz Parakeet/Google wymagają
+oddzielnego uruchomienia. Gemma Audio Direct jako ASR wymaga kwalifikacji
+współdzielenia natywnego modelu z dialogowym Gemma E2B;
+nie porównywać go jako pełnego flow na podstawie samego ASR.
+Telecom, zakończenie pożegnalne, STOP i barge-in pozostają PHYSICAL_OPEN.
+
 ## Zapis nowego pomiaru
 
 ```sh
