@@ -13,6 +13,8 @@ class UsbDebugProtocolTest {
         assertTrue(UsbDebugProtocol.accepts("audio_compat_check"))
         assertTrue(UsbDebugProtocol.accepts("audio_corpus_check"))
         assertTrue(UsbDebugProtocol.accepts("audio_transcript_corpus_check"))
+        assertTrue(UsbDebugProtocol.accepts("audio_staged_corpus_check"))
+        assertFalse("audio_staged_corpus_check" in UsbDebugProtocol.mutableActions)
         assertFalse("audio_transcript_corpus_check" in UsbDebugProtocol.mutableActions)
         assertFalse("audio_corpus_check" in UsbDebugProtocol.mutableActions)
         assertTrue(UsbDebugProtocol.accepts("grant_revoke"))

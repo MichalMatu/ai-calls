@@ -6,6 +6,7 @@ internal object UsbDebugProtocol {
     val actions = setOf(
         "status", "evidence_status", "profile_check", "profile_set", "profile_reset",
         "audio_compat_check", "audio_corpus_check", "audio_transcript_corpus_check",
+        "audio_staged_corpus_check",
         "grant_revoke", "evidence_disable",
     )
     val mutableActions = setOf("profile_set", "profile_reset", "audio_compat_check",

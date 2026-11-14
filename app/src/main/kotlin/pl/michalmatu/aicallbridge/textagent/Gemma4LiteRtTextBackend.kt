@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.textagent
 import pl.michalmatu.aicallbridge.conversation.ConversationReplyProtocol
 import pl.michalmatu.aicallbridge.conversation.ConversationReplyRecovery
 import pl.michalmatu.aicallbridge.conversation.InvalidConversationReply
+import pl.michalmatu.aicallbridge.conversation.ConversationReplyFailure
 import pl.michalmatu.aicallbridge.conversation.sendWithReplyRecovery
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
@@ -265,6 +266,7 @@ internal class LiteRtGemma4Runtime(
     private val responseFormat: ResponseFormat? = null,
     private val audioResponseFormat: ResponseFormat? = null,
     private val audioInstruction: String = ConversationReplyProtocol.AUDIO_INSTRUCTION,
+    private val audioTranscriptionOnly: Boolean = false,
     private val disableQwenThinking: Boolean = false,
     private val executionPolicy: NativeModelExecutionPolicy = NativeModelExecutionPolicy(),
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
@@ -309,7 +311,8 @@ internal class LiteRtGemma4Runtime(
                         !closed && activeConversation == null && sendingGeneration == null
                     }
                     if (shouldCreate) {
-                        val created = createConversation(ready)
+                        val created = createConversation(ready,
+                            transcription = audioTranscriptionOnly)
                         val retained = synchronized(lock) {
                             if (closed || activeConversation != null || sendingGeneration != null) false
                             else {
@@ -477,6 +480,7 @@ internal class LiteRtGemma4Runtime(
     ) {
         if (!isCurrent(requestGeneration)) { audioPcm?.fill(0); return }
         val audioWave = audioPcm?.let(::GemmaAudioWaveCache)
+        val transcribing = audioPcm != null && audioTranscriptionOnly
 
         var conversation: Conversation? = null
         var registeredConversation = false
@@ -502,6 +506,18 @@ internal class LiteRtGemma4Runtime(
             var readyEngine = ensureEngine()
             engineReadyNs = System.nanoTime()
             if (!isCurrent(requestGeneration)) return
+            if (transcribing) {
+                // The ASR pass uses a short, isolated instruction and schema.
+                // Retire the previous text Conversation but keep text history in
+                // NativeConversationWindow. The same Engine remains initialized.
+                val old = synchronized(lock) {
+                    activeConversation.also {
+                        activeConversation = null
+                        conversationTurnCount = conversationWindow.completedTurns
+                    }
+                }
+                closeConversation(old)
+            }
 
             val cached = synchronized(lock) {
                 if (!isCurrentLocked(requestGeneration)) return
@@ -512,7 +528,8 @@ internal class LiteRtGemma4Runtime(
                 registeredConversation = true
                 reused = true
             } else {
-                conversation = createConversation(readyEngine)
+                conversation = createConversation(readyEngine,
+                    transcription = transcribing)
                 synchronized(lock) {
                     if (!isCurrentLocked(requestGeneration)) return
                     activeConversation = conversation
@@ -537,7 +554,8 @@ internal class LiteRtGemma4Runtime(
                 closeConversation(failed)
                 closeIsolatedEngineWhenIdle()
                 readyEngine = ensureEngine()
-                val replacement = createConversation(readyEngine, repairingReply)
+                val replacement = createConversation(readyEngine, repairingReply,
+                    transcription = transcribing)
                 conversation = replacement
                 registeredConversation = false
                 synchronized(lock) {
@@ -556,8 +574,11 @@ internal class LiteRtGemma4Runtime(
                     if (validateConversationReply) {
                         val raw = candidate.toString().trim()
                         try {
-                            ConversationReplyProtocol.validateGenerated(raw, audioPcm != null)
-                        } catch (invalid: InvalidConversationReply) {
+                            if (transcribing) ConversationReplyProtocol.decodeTranscription(raw)
+                            else ConversationReplyProtocol.validateGenerated(raw, audioPcm != null)
+                        } catch (failure: Exception) {
+                            val invalid = if (failure is InvalidConversationReply) failure
+                                else InvalidConversationReply(ConversationReplyFailure.TRANSCRIPT)
                             rejectedReplyChars = raw.length
                             rejectedReplyShape = when {
                                 raw.startsWith("{") && raw.endsWith("}") -> "closed_object"
@@ -610,7 +631,8 @@ internal class LiteRtGemma4Runtime(
                                 candidate.sendMessage(
                                     contents = Contents.of(Content.Text(userText),
                                         Content.AudioBytes(wave)),
-                                    maxOutputToken = AUDIO_OUTPUT_TOKENS,
+                                    maxOutputToken = if (transcribing) TRANSCRIPTION_OUTPUT_TOKENS
+                                        else AUDIO_OUTPUT_TOKENS,
                                     thinkingConfig = ThinkingConfig(enableThinking = false),
                                     responseFormat = audioResponseFormat,
                                 )
@@ -626,7 +648,7 @@ internal class LiteRtGemma4Runtime(
             synchronized(lock) {
                 if (sendingGeneration == requestGeneration) sendingGeneration = null
                 if (isCurrentLocked(requestGeneration) && text.isNotBlank()) {
-                    conversationTurnCount += 1
+                    if (!transcribing) conversationTurnCount += 1
                     if (audioPcm == null && !discardAfterSend) conversationWindow.remember(userText, text)
                     successfulSend = true
                 }
@@ -709,6 +731,14 @@ internal class LiteRtGemma4Runtime(
                     nativeCancelRequestedGeneration = null
                 }
                 when {
+                    transcribing -> {
+                        // Never retain audio transcription as chat history. The next
+                        // text request creates a regular Conversation on this Engine.
+                        activeConversation = null
+                        conversationTurnCount = conversationWindow.completedTurns
+                        discardAfterSend = false
+                        conversation
+                    }
                     // A conversation created just before cancellation never became
                     // owned by the runtime and must be closed in this worker.
                     !registeredConversation -> conversation
@@ -733,18 +763,26 @@ internal class LiteRtGemma4Runtime(
         if (validateConversationReply) STRUCTURED_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS
 
     /** Role-labelled history remains untrusted conversation data, never system authority. */
-    private fun createConversation(readyEngine: Engine, repair: Boolean = false): Conversation =
+    private fun createConversation(readyEngine: Engine, repair: Boolean = false,
+        transcription: Boolean = false): Conversation =
         readyEngine.createConversation(ConversationConfig(
-            systemInstruction = (if (repair) systemInstruction.orEmpty() + "\n" +
-                ConversationReplyRecovery.REPAIR_INSTRUCTION else systemInstruction)?.let(Contents::of),
-            initialMessages = conversationWindow.snapshot().flatMap {
+            systemInstruction = (if (transcription) {
+                "Przepisz dokładnie usłyszaną polską wypowiedź. " +
+                    "Wynikiem ma być wyłącznie JSON z jednym polem transcript. " +
+                    "Nie odpowiadaj rozmówcy, nie dodawaj komentarzy ani innych pól." +
+                    (if (repair) " Odpowiedź ma być kompletnym JSON." else "")
+            } else if (repair) systemInstruction.orEmpty() + "\n" +
+                ConversationReplyRecovery.REPAIR_INSTRUCTION
+            else systemInstruction)?.let(Contents::of),
+            initialMessages = (if (transcription) emptyList() else conversationWindow.snapshot()).flatMap {
                 listOf(Message.user(it.userText), Message.model(it.modelText))
             },
             samplerConfig = SamplerConfig(topK = 1, topP = 1.0, temperature = 0.0, seed = 0),
             automaticToolCalling = false,
             extraContext = if (disableQwenThinking) mapOf("enable_thinking" to false) else emptyMap(),
             channels = emptyList(),
-            maxOutputToken = if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else textOutputTokenBudget,
+            maxOutputToken = if (transcription) TRANSCRIPTION_OUTPUT_TOKENS
+                else if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else textOutputTokenBudget,
             thinkingConfig = ThinkingConfig(enableThinking = false),
             enableResponseFormat = responseFormat != null,
         ))
@@ -855,6 +893,7 @@ internal class LiteRtGemma4Runtime(
         const val MAX_OUTPUT_TOKENS = 128
         const val STRUCTURED_OUTPUT_TOKENS = 512
         const val AUDIO_OUTPUT_TOKENS = 512
+        const val TRANSCRIPTION_OUTPUT_TOKENS = 256
         const val MIN_CPU_THREADS = 2
         const val MAX_CPU_THREADS = 6
     }
@@ -880,6 +919,22 @@ internal object Gemma4LiteRtTextBackendFactory {
                 validateConversationReply = false,
             )
         }, file.absolutePath, instruction)
+    }
+
+    /** Test the complete serial audio -> transcript -> text path using one native Engine.
+     * No selected phone profile changes and no telephone operation.
+     */
+    fun createStagedCompatibilityProbe(file: File): TextCallAgentBackend {
+        val model = Gemma4LiteRtTextBackend(Gemma4RuntimeFactory { path, instruction ->
+            LiteRtGemma4Runtime(path, instruction,
+                responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(emptySet())),
+                audioResponseFormat = ResponseFormat.json(ConversationReplyProtocol.transcriptionSchema()),
+                audioInstruction = "Zapisz dosłownie polskie słowa z nagrania. Zwróć tylko pole transcript.",
+                audioTranscriptionOnly = true,
+                contextTokenBudget = 4_096,
+                validateConversationReply = true)
+        }, file.absolutePath, ConversationReplyProtocol.INSTRUCTION)
+        return StagedGemmaAudioBackend(model)
     }
 
     fun createCompatibilityProbe(file: File, audio: Boolean): TextCallAgentBackend =

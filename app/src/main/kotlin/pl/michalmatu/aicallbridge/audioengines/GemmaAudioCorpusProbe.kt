@@ -246,10 +246,14 @@ internal class GemmaAudioCorpusRunner(
 /** Strictly diagnostic entrypoint: does not save an audio profile or start a Call. */
 internal object GemmaAudioCorpusProbe {
     fun create(context: Context, profile: AudioEngineProfile,
-        transcriptOnly: Boolean = false): GemmaAudioCorpusRunner {
+        transcriptOnly: Boolean = false, staged: Boolean = false): GemmaAudioCorpusRunner {
+        require(!transcriptOnly || !staged)
         val file = Gemma4LiteRtTextBackendFactory.modelFile(context, profile)
-        val backend = if (transcriptOnly) Gemma4LiteRtTextBackendFactory.createTranscriptionProbe(file)
-            else Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(file, audio = true)
+        val backend = when {
+            transcriptOnly -> Gemma4LiteRtTextBackendFactory.createTranscriptionProbe(file)
+            staged -> Gemma4LiteRtTextBackendFactory.createStagedCompatibilityProbe(file)
+            else -> Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(file, audio = true)
+        }
         return GemmaAudioCorpusRunner(
             model = backend,
             ttsFactory = {

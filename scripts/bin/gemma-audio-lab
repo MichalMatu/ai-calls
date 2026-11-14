@@ -18,6 +18,7 @@ python3 scripts/aicall_tools/diagnostics/audit_audio_engine_quality.py
   --tests pl.michalmatu.aicallbridge.audioengines.ModelAudioCompatibilityReplyTest \
   --tests pl.michalmatu.aicallbridge.audioengines.GemmaAudioCorpusRunnerTest \
   --tests pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendTest \
+  --tests pl.michalmatu.aicallbridge.textagent.StagedGemmaAudioBackendTest \
   --tests pl.michalmatu.aicallbridge.textagent.QueuedGemmaAudioInputTest \
   --tests pl.michalmatu.aicallbridge.textagent.QueuedGemmaAudioLifecycleTest \
   --tests pl.michalmatu.aicallbridge.textagent.NativeConversationWindowTest \

@@ -82,7 +82,8 @@ internal object UsbDebugBridge {
             }
             when (action) {
                 "status", "evidence_status" -> reply(true, "ok", snapshot(activity))
-                "audio_corpus_check", "audio_transcript_corpus_check" -> {
+                "audio_corpus_check", "audio_transcript_corpus_check",
+                "audio_staged_corpus_check" -> {
                     val guard = mutationGuard(activity)
                     val saved = AudioEngineProfileStore(activity).load()
                     when {
@@ -101,7 +102,8 @@ internal object UsbDebugBridge {
                                     reply(false, "model_container_invalid")
                                 } else {
                                     val runner = GemmaAudioCorpusProbe.create(activity, candidate,
-                                        transcriptOnly = action == "audio_transcript_corpus_check")
+                                        transcriptOnly = action == "audio_transcript_corpus_check",
+                                        staged = action == "audio_staged_corpus_check")
                                     var finished = false
                                     fun complete(ok: Boolean, code: String,
                                         results: List<pl.michalmatu.aicallbridge.audioengines.GemmaAudioCorpusCase>) {
