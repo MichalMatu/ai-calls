@@ -71,6 +71,24 @@ internal data class NativeModelTiming(
     val totalMs: Long get() = engineReadyMs + conversationCreateMs + generateMs
 }
 
+/** Wipes only unstarted PCM; the native worker owns dispatched data until finally. */
+internal class QueuedGemmaAudioInput {
+    private val lock = Any()
+    private var pending: ByteArray? = null
+    fun replace(next: ByteArray?) {
+        synchronized(lock) {
+            if (pending !== next) pending?.fill(0)
+            pending = next
+        }
+    }
+    fun detachIfSame(bytes: ByteArray?) {
+        synchronized(lock) { if (pending === bytes) pending = null }
+    }
+    fun clear() {
+        synchronized(lock) { pending?.fill(0); pending = null }
+    }
+}
+
 internal fun interface Gemma4RuntimeFactory {
     fun create(modelPath: String, systemInstruction: String?): Gemma4Runtime
 }
@@ -263,6 +281,7 @@ internal class LiteRtGemma4Runtime(
     private var systemInstruction: String? = systemInstruction
     private var generation = 0L
     private var engine: Engine? = null
+    private val queuedAudio = QueuedGemmaAudioInput()
     private var activeConversation: Conversation? = null
     /** A normal between-turn cancel invalidates a callback but must not cancel native chat. */
     private var sendingGeneration: Long? = null
@@ -328,15 +347,22 @@ internal class LiteRtGemma4Runtime(
 
     private fun enqueue(userText: String, pcm16: ByteArray?, listener: TextCallAgentBackend.Listener) {
         val requestGeneration = synchronized(lock) {
-            check(!closed) { "runtime_closed" }
+            if (closed) {
+                pcm16?.fill(0)
+                throw IllegalStateException("runtime_closed")
+            }
+            // A superseded queue entry must not retain private audio until native inference ends.
+            queuedAudio.replace(pcm16)
             generation += 1
             generation
         }
         try {
             executor.execute {
+                synchronized(lock) { queuedAudio.detachIfSame(pcm16) }
                 runGeneration(userText, requestGeneration, listener, pcm16)
             }
         } catch (_: RejectedExecutionException) {
+            synchronized(lock) { queuedAudio.detachIfSame(pcm16) }
             pcm16?.fill(0)
             if (isCurrent(requestGeneration)) listener.onError("executor_rejected")
         }
@@ -346,6 +372,7 @@ internal class LiteRtGemma4Runtime(
         val currentlySending = synchronized(lock) {
             if (closed) return
             generation += 1
+            queuedAudio.clear()
             // TextCallTurnController calls cancel after every completed output.
             // Calling native cancelProcess on an IDLE conversation destroys its context.
             if (sendingGeneration != null) {
@@ -411,6 +438,7 @@ internal class LiteRtGemma4Runtime(
             if (closed) return
             closed = true
             generation += 1
+            queuedAudio.clear()
             conversationWindow.clear()
             if (sendingGeneration != null) {
                 discardAfterSend = true
