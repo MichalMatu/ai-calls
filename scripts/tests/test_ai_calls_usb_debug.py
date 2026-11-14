@@ -51,6 +51,20 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "ANDROID_GOOGLE_CASE_1_PASSED": 1,
         })
 
+    def test_fullturn_metrics_only_allow_numeric_case_durations(self):
+        self.assertIn("fullturn-android-google", bridge.TESTS)
+        self.assertIn("fullturn-parakeet-piper", bridge.TESTS)
+        values = bridge.parse_audio_quality_metrics("\n".join([
+            "AUDIO_QA_FULL_ANDROID_GOOGLE_CASE_2_STT_MS=4200",
+            "AUDIO_QA_FULL_PARAKEET_PIPER_CASE_3_OUTPUT_MS=12345",
+            "AUDIO_QA_FULL_ANDROID_GOOGLE_CASE_1_TRANSCRIPT=private",
+            "AUDIO_QA_FULL_ANDROID_GOOGLE_CASE_4_STT_MS=1",
+        ]))
+        self.assertEqual(values, {
+            "FULL_ANDROID_GOOGLE_CASE_2_STT_MS": 4200,
+            "FULL_PARAKEET_PIPER_CASE_3_OUTPUT_MS": 12345,
+        })
+
     def test_actions_are_narrow_and_no_authority_bypass(self):
         for action in ("status", "profile_set", "profile_reset", "grant_revoke",
                        "evidence_status", "evidence_disable", "profile_check", "audio_route_check"):

@@ -20,6 +20,7 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
+import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
 import pl.michalmatu.aicallbridge.audioengines.PiperAndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.audioengines.SpeechOutputId
@@ -155,10 +156,27 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         return Turn(user, answer, pcm.size, pcm, stt, approval, output)
     }
 
-    @Test fun realPcmThreeTurnsApplyMessageAndClarificationSkillsAndRecallCorrection() {
+    @Test fun realPcmThreeTurnsApplyMessageAndClarificationSkillsAndRecallCorrection() =
+        runThreeTurnFlow(null)
+
+    @Test fun matrixFullTurnAndroidGoogle() = runThreeTurnFlow("android-google")
+    @Test fun matrixFullTurnParakeetPiper() = runThreeTurnFlow("parakeet-piper")
+
+    private fun runThreeTurnFlow(route: String?) {
         val original = checkNotNull(AudioEngineProfileStore(context).load())
+        val selected = when (route) {
+            "android-google" -> original.copy(
+                input = SpeechInputId.ANDROID_STT, output = SpeechOutputId.ANDROID_TTS_PL,
+                ttsEnginePackage = "com.google.android.tts", voiceId = null)
+            "parakeet-piper" -> original.copy(
+                input = SpeechInputId.PARAKEET_PL, output = SpeechOutputId.ANDROID_TTS_PL,
+                ttsEnginePackage = PiperServiceContract.PACKAGE,
+                voiceId = "pl_PL-gosia-medium")
+            null -> original
+            else -> error("unrecognized_offcall_matrix_route")
+        }
         assertEquals("g52_gemma_e2b_required", DialogueModelId.GEMMA_4_E2B, original.dialogue)
-        assertNull("g52_invalid_profile", AudioEngineRegistry.incompatibility(original))
+        assertNull("g52_invalid_profile", AudioEngineRegistry.incompatibility(selected))
         val routing = Collections.synchronizedList(mutableListOf<SkillTurnRoutingDecision>())
         val factory = AndroidSkillLabSessionFactory(context, contextTokenBudget = 4096)
         // G5.3 opt-in comparison: default remains identical to G5.2 CONTEXTUAL.
@@ -180,25 +198,23 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
                 decodedTools.add(verdict.acceptedProposal)
             }
         }
-        val input = when (original.input) {
+        val input = when (selected.input) {
             SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, "pl-PL")
             SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
             else -> error("g52_input_unsupported")
         }
-        val output = when (original.output) {
-            SpeechOutputId.ANDROID_TTS_PL ->
-                AndroidTtsOutputProvider(context, "pl-PL", original.voiceId)
-            SpeechOutputId.PIPER_PL ->
-                PiperAndroidTtsOutputProvider(context, "pl-PL", original.voiceId)
-            else -> error("g52_output_unsupported")
-        }
+        val output = if (selected.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE)
+            PiperAndroidTtsOutputProvider(context, "pl-PL", selected.voiceId)
+        else
+            AndroidTtsOutputProvider(context, "pl-PL", selected.voiceId,
+                selected.effectiveTtsEnginePackage)
         val pipeline = LocalSpeechTextPipeline(
             context, model,
             TextOutputApprovalPolicy { candidate ->
                 if (candidate.isNotBlank()) TextOutputDecision.RELEASE else TextOutputDecision.DROP
             },
             input = input, output = output,
-            languageTag = "pl-PL", voiceId = original.voiceId)
+            languageTag = "pl-PL", voiceId = selected.voiceId)
         val expected = listOf(
             "Proszę zapisać wiadomość o spotkaniu w poniedziałek.",
             "Sprostowanie wiadomości. Spotkanie będzie we wtorek, nie w poniedziałek.",
@@ -258,8 +274,24 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
                     ";wav_files=" + evidence.size * 2 +
                     ";on_device_private=true;no_call=true")
             }
+            // Aggregated, synthetic-only numeric timing markers for owner diagnostics.
+            val metricPrefix = when (route) {
+                "android-google" -> "FULL_ANDROID_GOOGLE"
+                "parakeet-piper" -> "FULL_PARAKEET_PIPER"
+                else -> "FULL_SELECTED"
+            }
+            turns.forEachIndexed { index, turn ->
+                val stub = "AUDIO_QA_" + metricPrefix + "_CASE_" + (index + 1) + "_"
+                InstrumentationRegistry.getInstrumentation().sendStatus(
+                    2, android.os.Bundle().apply {
+                        putString("stream", stub + "STT_MS=" + turn.sttMs + "\n" +
+                            stub + "APPROVAL_MS=" + turn.approvalMs + "\n" +
+                            stub + "OUTPUT_MS=" + turn.outputMs + "\n" +
+                            stub + "PASSED=1")
+                    })
+            }
             Log.i("AiCallG52E2E", "model=E2B;offcall=true;profile_input=" +
-                original.input.name + ";profile_output=" + original.output.name +
+                selected.input.name + ";profile_output=" + selected.output.name +
                 ";audio_turns=3;route_events=" + decisions.size +
                 ";skills_mode=" + mode.name + ";memory_day_correct=true;" +
                 "pcm_bytes_total=" + turns.sumOf { it.pcmBytes } +

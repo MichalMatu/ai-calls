@@ -90,6 +90,14 @@ TESTS = {
         "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
         "#matrixGemmaAudioGoogle"
     ),
+    "fullturn-android-google": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG52MultiturnSpeechSkillsE2ETest"
+        "#matrixFullTurnAndroidGoogle"
+    ),
+    "fullturn-parakeet-piper": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG52MultiturnSpeechSkillsE2ETest"
+        "#matrixFullTurnParakeetPiper"
+    ),
     "matrix-gemma-piper": (
         "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
         "#matrixGemmaAudioPiper"
@@ -280,6 +288,7 @@ def parse_audio_quality_metrics(output: str) -> dict[str, int]:
         "TTS_MS", "AUDIO_MS", "INIT_MS", "INFER_MS", "WORD_ERRORS",
         "REF_WORDS", "CHAR_ERRORS", "REF_CHARS", "FINAL_CALLBACKS",
         "PASSED", "PREWARM_OVERLAPPED_TTS",
+        "STT_MS", "APPROVAL_MS", "OUTPUT_MS",
     }
     legacy = {f"{engine}_CASE_{case}_{field}"
               for engine in ("GEMMA", "PARAKEET", "PIPER")
@@ -289,7 +298,12 @@ def parse_audio_quality_metrics(output: str) -> dict[str, int]:
                              "PARAKEET_GOOGLE", "PARAKEET_PIPER",
                              "GEMMA_GOOGLE", "GEMMA_PIPER")
               for case in range(1, 11) for field in fields}
-    allowed = legacy | matrix
+    fullturn = {f"{engine}_CASE_{case}_{field}"
+                for engine in ("FULL_ANDROID_GOOGLE", "FULL_PARAKEET_PIPER",
+                               "FULL_SELECTED")
+                for case in range(1, 4)
+                for field in ("STT_MS", "APPROVAL_MS", "OUTPUT_MS", "PASSED")}
+    allowed = legacy | matrix | fullturn
     metrics = {}
     for line in output.splitlines():
         line = line.removeprefix("INSTRUMENTATION_STATUS: stream=").strip()
