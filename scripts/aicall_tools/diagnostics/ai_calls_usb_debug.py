@@ -349,7 +349,7 @@ def parse_audio_quality_metrics(output: str) -> dict[str, int]:
                  for phase in ("COLD", "PREWARM")
                  for case in range(1, 4)
                  for field in ("WALL_MS", "ENGINE_MS", "CONV_MS",
-                               "GEN_MS", "REUSED", "CHARS", "PASSED")}
+                               "GEN_MS", "REUSED", "CHARS", "REPAIRS", "PASSED")}
     prewarm = {"GEMMA_PREWARM_" + field
                for field in ("WALL_MS", "ENGINE_MS", "CONV_MS")}
     allowed = legacy | matrix | fullturn | cold_warm | prewarm

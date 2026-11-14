@@ -72,6 +72,7 @@ class AndroidGemmaColdWarmBenchmarkTest {
         emit(base + "GEN_MS", t.generateMs)
         emit(base + "REUSED", if (t.conversationReused) 1L else 0L)
         emit(base + "CHARS", t.outputChars.toLong())
+        emit(base + "REPAIRS", t.replyRecoveryAttempts.toLong())
         emit(base + "PASSED", 1L)
         return Sample(wall, t)
     }
@@ -102,9 +103,17 @@ class AndroidGemmaColdWarmBenchmarkTest {
                     emit("GEMMA_PREWARM_CONV_MS", p.conversationReadyMs)
                 }
                 val samples = (1..3).map { measure(backend, nativeTimings, phase, it) }
-                assertTrue("native_gemma_first_engine_must_be_fresh_or_prepared",
-                    if (phase == "COLD") !samples.first().timing.conversationReused
-                    else samples.first().timing.conversationReused)
+                // Prewarm proves the native Engine is ready, but structured
+                // reply recovery may replace the first Conversation and report
+                // conversationReused=false. Track retries instead of mistaking
+                // this for another cold Engine initialization.
+                if (phase == "COLD") {
+                    assertFalse("fresh_engine_first_conversation_not_fresh",
+                        samples.first().timing.conversationReused)
+                } else {
+                    assertTrue("prewarmed_engine_reinitialized",
+                        samples.first().timing.engineReadyMs < 500L)
+                }
                 assertTrue("native_gemma_hot_conversation_not_reused",
                     samples.drop(1).all { it.timing.conversationReused })
             } finally {

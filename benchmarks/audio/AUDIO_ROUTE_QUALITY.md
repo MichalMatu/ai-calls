@@ -166,7 +166,10 @@ wypowiedzi), potem osobny Engine załadowany przez prewarm, z
 potwierdzeniem natywnej gotowości (3 identyczne wypowiedzi).
 Stały system prompt, limit 4096 tokenów i format JSON; bez STT, TTS,
 telefonu lub zmian profilu. Osobno WALL_MS, ENGINE_MS, CONV_MS,
-GEN_MS, REUSED, CHARS oraz PREWARM_WALL_MS/ENGINE_MS/CONV_MS.
+GEN_MS, REUSED, CHARS, REPAIRS oraz PREWARM_WALL_MS/ENGINE_MS/CONV_MS.
+Pierwsza wygenerowana odpowiedź może mieć REUSED=0 nawet po
+udanym prewarm, np. gdy silnik naprawia odpowiedź i tworzy konwersację
+od nowa. Kryterium przygotowania to brak ponownej inicjalizacji Engine.
 Cold oznacza świeży Engine, nie restart telefonu ani wyczyszczony
 systemowy cache modelu. Tury 2/3 mają rosnący kontekst, co może
 wpływać na generację; porównanie inferencji uwzględnia długości

@@ -91,6 +91,7 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "AUDIO_QA_GEMMA_COLD_CASE_1_ENGINE_MS=4010",
             "AUDIO_QA_GEMMA_PREWARM_CASE_3_GEN_MS=7200",
             "AUDIO_QA_GEMMA_PREWARM_ENGINE_MS=3000",
+            "AUDIO_QA_GEMMA_PREWARM_CASE_1_REPAIRS=1",
             "AUDIO_QA_GEMMA_COLD_CASE_1_TEXT=secret",
             "AUDIO_QA_GEMMA_COLD_CASE_4_WALL_MS=11",
         ])
@@ -98,6 +99,7 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "GEMMA_COLD_CASE_1_ENGINE_MS":4010,
             "GEMMA_PREWARM_CASE_3_GEN_MS":7200,
             "GEMMA_PREWARM_ENGINE_MS":3000,
+            "GEMMA_PREWARM_CASE_1_REPAIRS":1,
         })
 
     def test_stop_probes_are_allowlisted_offcall_single_tests(self):
