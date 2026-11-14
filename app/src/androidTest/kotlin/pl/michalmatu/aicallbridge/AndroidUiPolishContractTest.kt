@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.RadioGroup
+import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
@@ -33,7 +34,11 @@ class AndroidUiPolishContractTest {
                 val root = a.window.decorView
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("lab-stop")).visibility)
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("lab-rating-group")).visibility)
-                assertNotNull(root.findViewWithTag<View>("lab-status"))
+                val labStatus = root.findViewWithTag<View>("lab-status")
+                val content = a.findViewById<ViewGroup>(android.R.id.content)
+                val fallback = (content?.getChildAt(0) as? TextView)
+                    ?.text?.toString()?.take(150) ?: "no_error_text"
+                assertNotNull("lab_initialization_unavailable:$fallback", labStatus)
             }
         }
     }
