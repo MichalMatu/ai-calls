@@ -17,6 +17,8 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineReadinessProbe
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityProbe
+import pl.michalmatu.aicallbridge.audioengines.GemmaAudioCorpusProbe
+import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
@@ -80,6 +82,62 @@ internal object UsbDebugBridge {
             }
             when (action) {
                 "status", "evidence_status" -> reply(true, "ok", snapshot(activity))
+                "audio_corpus_check" -> {
+                    val guard = mutationGuard(activity)
+                    val saved = AudioEngineProfileStore(activity).load()
+                    when {
+                        guard != null -> reply(false, guard)
+                        saved == null -> reply(false, "invalid_profile")
+                        saved.dialogue != DialogueModelId.GEMMA_4_E2B ->
+                            reply(false, "audio_probe_requires_e2b")
+                        else -> {
+                            val candidate = saved.copy(input = SpeechInputId.GEMMA_AUDIO_DIRECT)
+                            val reason = AudioEngineRegistry.incompatibility(candidate)
+                            if (reason != null) {
+                                reply(false, reason)
+                            } else {
+                                val file = Gemma4LiteRtTextBackendFactory.modelFile(activity, candidate)
+                                if (!LiteRtModelContainer.hasHeader(file)) {
+                                    reply(false, "model_container_invalid")
+                                } else {
+                                    val runner = GemmaAudioCorpusProbe.create(activity, candidate)
+                                    var finished = false
+                                    fun complete(ok: Boolean, code: String,
+                                        results: List<pl.michalmatu.aicallbridge.audioengines.GemmaAudioCorpusCase>) {
+                                        if (finished) return
+                                        finished = true
+                                        runner.close()
+                                        val cases = org.json.JSONArray()
+                                        for (case in results) {
+                                            cases.put(JSONObject()
+                                                .put("number", case.number)
+                                                .put("passed", case.passed)
+                                                .put("code", case.code)
+                                                .put("tts_ms", case.ttsMs)
+                                                .put("native_ms", case.nativeMs)
+                                                .put("word_errors", case.wordErrors)
+                                                .put("reference_words", case.referenceWords))
+                                        }
+                                        reply(ok, code, JSONObject().put("cases", cases))
+                                    }
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        complete(false, "audio_corpus_timeout", emptyList())
+                                    }, 360_000L)
+                                    try {
+                                        runner.start { results ->
+                                            complete(results.size == 3 && results.all { it.passed },
+                                                if (results.size == 3 && results.all { it.passed })
+                                                    "audio_corpus_pass" else "audio_corpus_failed",
+                                                results)
+                                        }
+                                    } catch (_: Exception) {
+                                        complete(false, "audio_corpus_start_failed", emptyList())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 "audio_compat_check" -> {
                     // Owner-approved, DUMP-only, off-call synthetic TTS -> native model.
                     // Never select Gemma Audio Direct for actual phone calls.
