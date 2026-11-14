@@ -7,4 +7,8 @@
     <string name="ux07_usb_output">Głos / TTS</string>
     <string name="ux07_usb_recording">Nagrywanie</string>
     <string name="ux07_usb_incoming">Sekretarka</string>
+    <string name="ux07_usb_tts_engine">Silnik TTS · pakiet</string>
+    <string name="ux07_usb_piper_output">Piper (Android TTS)</string>
+    <string name="ux07_usb_incoming_recording">Nagrywanie przychodzących</string>
+    <string name="ux07_usb_outgoing_recording">Nagrywanie wychodzących</string>
 </resources>

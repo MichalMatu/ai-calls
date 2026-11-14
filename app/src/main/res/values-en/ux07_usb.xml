@@ -7,4 +7,8 @@
     <string name="ux07_usb_output">Voice / TTS</string>
     <string name="ux07_usb_recording">Recording</string>
     <string name="ux07_usb_incoming">Receptionist</string>
+    <string name="ux07_usb_tts_engine">TTS engine · package</string>
+    <string name="ux07_usb_piper_output">Piper (Android TTS)</string>
+    <string name="ux07_usb_incoming_recording">Incoming recording</string>
+    <string name="ux07_usb_outgoing_recording">Outgoing recording</string>
 </resources>

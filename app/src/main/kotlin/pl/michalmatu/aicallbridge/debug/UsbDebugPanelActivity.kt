@@ -73,7 +73,8 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         item("input", R.string.ux07_usb_input)
         item("dialogue", R.string.ux07_usb_dialogue)
         item("output", R.string.ux07_usb_output)
-        item("voice", R.string.usb_ui_voice)
+        item("tts_engine_package", R.string.ux07_usb_tts_engine)
+        item("tts_voice_id", R.string.usb_ui_voice)
         item("profile_valid", R.string.usb_ui_profile_valid)
 
         group(R.string.usb_ui_group_incoming)
@@ -81,7 +82,8 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
         item("incoming_status", R.string.usb_ui_incoming_status)
 
         group(R.string.usb_ui_group_privacy)
-        item("recording", R.string.ux08_usb_recording_future)
+        item("incoming_recording_enabled", R.string.ux07_usb_incoming_recording)
+        item("outgoing_recording_enabled", R.string.ux07_usb_outgoing_recording)
         item("grant_present", R.string.usb_ui_grant_present)
         item("grant_revoked", R.string.usb_ui_grant_revoked)
         item("private_evidence_sessions", R.string.usb_ui_evidence_sessions)
@@ -117,15 +119,22 @@ class UsbDebugPanelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     .firstOrNull { it.id == input }?.title ?: input),
                 "dialogue" to (pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.dialogues
                     .firstOrNull { it.id == dialogue }?.title ?: dialogue),
-                "output" to (pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.outputs
-                    .firstOrNull { it.id == output }?.title ?: output),
+                "output" to (if (data.optString("tts_engine_package") ==
+                        pl.michalmatu.aicallbridge.audioengines.PiperServiceContract.PACKAGE)
+                    getString(R.string.ux07_usb_piper_output)
+                    else pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.outputs
+                        .firstOrNull { it.id == output }?.title ?: output),
                 "incoming" to when (data.optString("incoming_mode", "UNAVAILABLE")) {
                     "AI" -> getString(R.string.incoming_ui_mode_ai)
                     "MANUAL" -> getString(R.string.incoming_ui_mode_manual)
                     else -> getString(R.string.ux07_not_configured)
                 },
-                "recording" to getString(if (data.optBoolean("recording_enabled"))
-                    R.string.usb_ui_enabled else R.string.usb_ui_disabled)
+                "incoming_recording_enabled" to getString(
+                    if (data.optBoolean("incoming_recording_enabled"))
+                        R.string.usb_ui_enabled else R.string.usb_ui_disabled),
+                "outgoing_recording_enabled" to getString(
+                    if (data.optBoolean("outgoing_recording_enabled"))
+                        R.string.usb_ui_enabled else R.string.usb_ui_disabled)
             )
             for ((key, view) in statusValues) {
                 view.text = labels[key] ?: when (val value = data.opt(key)) {

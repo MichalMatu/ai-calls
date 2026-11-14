@@ -261,6 +261,14 @@ internal object UsbDebugBridge {
             .put("dialogue", profile?.dialogue?.name ?: "UNKNOWN")
             .put("output", profile?.output?.name ?: "UNKNOWN")
             .put("voice", profile?.voiceId ?: "auto")
+            .put("tts_engine_package", profile?.effectiveTtsEnginePackage ?: "system_default")
+            .put("tts_voice_id", profile?.voiceId ?: "auto")
+            .put("incoming_recording_enabled", runCatching {
+                pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore(activity)
+                    .load().recordEvidence
+            }.getOrDefault(false))
+            .put("outgoing_recording_enabled", grant?.recordCallEvidence == true &&
+                grant.revokedAtEpochMs == null)
             .put("grant_present", grant != null)
             .put("grant_revoked", grant?.revokedAtEpochMs != null)
             .put("recording_enabled", grant?.recordCallEvidence == true &&

@@ -21,6 +21,7 @@ import pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService
 import pl.michalmatu.aicallbridge.campaign.AppointmentEditorDraft
 import pl.michalmatu.aicallbridge.campaign.AppointmentEditorDraftStore
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
+import pl.michalmatu.aicallbridge.campaign.CampaignAuthorizationStore
 import pl.michalmatu.aicallbridge.campaign.AppOwnedClirCampaignExecutor
 import pl.michalmatu.aicallbridge.conversation.AndroidSkillLabSessionFactory
 import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
@@ -235,6 +236,7 @@ internal object UsbLabControl {
                 runCatching { telecom?.isInCall }.getOrNull()
             else null
         val incomingPolicy = runCatching { IncomingAssistantPolicyStore(context).load() }.getOrNull()
+        val outgoingGrant = CampaignAuthorizationStore(context).load()
         val incoming = incomingPolicy?.mode?.name ?: "UNKNOWN"
         val accountCount = IncomingAssistantSettingsController(context).availableAccounts().size
         return JSONObject()
@@ -250,6 +252,10 @@ internal object UsbLabControl {
             .put("incoming_policy", incoming)
             .put("incoming_account_configured", incomingPolicy?.accountKey != null)
             .put("incoming_record_evidence", incomingPolicy?.recordEvidence ?: false)
+            .put("incoming_recording_enabled", incomingPolicy?.recordEvidence ?: false)
+            .put("outgoing_recording_enabled", outgoingGrant?.recordCallEvidence == true &&
+                outgoingGrant.revokedAtEpochMs == null)
+            .put("outgoing_grant_revoked", outgoingGrant?.revokedAtEpochMs != null)
             .put("available_voice_accounts", accountCount)
             .put("outgoing_ai_running", AppOwnedClirCampaignExecutor.isRunning())
             .put("live_chat_active", feed.active)
@@ -259,6 +265,8 @@ internal object UsbLabControl {
             .put("model", profile?.dialogue?.name ?: "UNKNOWN")
             .put("input", profile?.input?.name ?: "UNKNOWN")
             .put("output", profile?.output?.name ?: "UNKNOWN")
+            .put("tts_engine_package", profile?.effectiveTtsEnginePackage ?: "system_default")
+            .put("tts_voice_id", profile?.voiceId ?: "auto")
             .put("voice", if (profile?.voiceId.isNullOrBlank()) "auto" else "configured")
             .put("lab", synchronized(lock) { labSnapshot() })
     }
