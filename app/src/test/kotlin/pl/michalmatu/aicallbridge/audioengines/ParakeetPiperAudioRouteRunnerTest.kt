@@ -16,6 +16,28 @@ class ParakeetPiperAudioRouteRunnerTest {
         assertFalse(ParakeetPiperAudioRoutePolicy.canProbe(selected.copy(ttsEnginePackage = null)))
     }
 
+    @Test fun piperFailurePreservesOnlyAllowedTechnicalReason() {
+        assertEquals("tts_set_voice_failed",
+            ParakeetPiperAudioRoutePolicy.safeTtsError("tts_set_voice_failed"))
+        assertEquals("tts_synthesis_error_-1",
+            ParakeetPiperAudioRoutePolicy.safeTtsError("tts_synthesis_error_-1"))
+        assertEquals("tts_decode_failed",
+            ParakeetPiperAudioRoutePolicy.safeTtsError("tts_decode_SecretException"))
+        assertEquals("tts_synthesis_failed",
+            ParakeetPiperAudioRoutePolicy.safeTtsError("private data 123456"))
+        var result: ParakeetPiperAudioRouteResult? = null
+        val output = object : SpeechOutputProvider {
+            override fun synthesize(text: String, listener: SpeechOutputProvider.Listener) =
+                listener.onError("tts_queue_failed")
+            override fun cancel() = Unit
+            override fun close() = Unit
+        }
+        ParakeetPiperAudioRouteRunner({ output }, { FakeInput() }, { it() })
+            .start { result = it }
+        assertFalse(result?.passed ?: true)
+        assertEquals("tts_queue_failed", result?.code)
+    }
+
     @Test fun syntheticSpeechProducesMetricsNotTranscript() {
         val output = FakeOutput()
         val input = FakeInput()

@@ -8,6 +8,18 @@ internal object ParakeetPiperAudioRoutePolicy {
         profile.input == SpeechInputId.PARAKEET_PL &&
             profile.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE &&
             profile.voiceId != null && profile.languageTag == "pl-PL"
+
+    /** Return only an allowlisted technical TTS code, never raw provider text. */
+    fun safeTtsError(reason: String): String = when {
+        reason in setOf(
+            "tts_init_failed", "explicit_tts_engine_unavailable",
+            "local_voice_missing", "tts_set_voice_failed", "tts_queue_failed",
+            "tts_empty_pcm", "tts_synthesis_error"
+        ) -> reason
+        reason.matches(Regex("tts_synthesis_error_-?[0-9]{1,4}")) -> reason
+        reason.startsWith("tts_decode_") -> "tts_decode_failed"
+        else -> "tts_synthesis_failed"
+    }
 }
 
 internal data class ParakeetPiperAudioRouteResult(
@@ -70,7 +82,8 @@ internal class ParakeetPiperAudioRouteRunner(
                         }
                     }
                     override fun onError(reason: String) {
-                        dispatch { finish("tts_synthesis_failed") }
+                        val safeCode = ParakeetPiperAudioRoutePolicy.safeTtsError(reason)
+                        dispatch { finish(safeCode) }
                     }
                 })
         } catch (_: Exception) { finish("tts_synthesis_failed") }
