@@ -33,7 +33,8 @@ class AndroidUiPolishContractTest {
             scenario.onActivity { a ->
                 val root = a.window.decorView
                 assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("lab-stop")).visibility)
-                assertEquals(View.GONE, requireNotNull(root.findViewWithTag<View>("lab-rating-group")).visibility)
+                assertNull("rating is in a detached diagnostics dialog until opened",
+                    root.findViewWithTag<View>("lab-rating-group"))
                 val labStatus = root.findViewWithTag<View>("lab-status")
                 val content = a.findViewById<ViewGroup>(android.R.id.content)
                 val fallback = (content?.getChildAt(0) as? TextView)
