@@ -428,7 +428,13 @@ internal class ModelVoiceSettings(
             return
         }
         val selected = localVoices.firstOrNull { voiceId == null || it.name == voiceId }
-        if (selected == null || engine.setVoice(selected) != TextToSpeech.SUCCESS) {
+        if (selected == null) {
+            notifyError("polish_offline_voice_missing"); return
+        }
+        val deferPiperLoad = PiperServiceContract.canDeferVoiceLoad(
+            draft.effectiveTtsEnginePackage, selected.name,
+            engine.voices.orEmpty().map { it.name })
+        if (!deferPiperLoad && engine.setVoice(selected) != TextToSpeech.SUCCESS) {
             notifyError("polish_offline_voice_missing"); return
         }
         engine.speak(activity.getString(R.string.mv_voice_sample), TextToSpeech.QUEUE_FLUSH, null, "model-voice-preview")

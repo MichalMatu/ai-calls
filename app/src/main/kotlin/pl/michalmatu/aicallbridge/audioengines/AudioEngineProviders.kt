@@ -65,6 +65,21 @@ internal class AndroidTtsOutputProvider(
 /** GPL-licensed native Piper implementation is external to AI Calls; only Android TTS IPC. */
 internal object PiperServiceContract {
     const val PACKAGE = "dev.ihorshevchuk.piper"
+
+    /**
+     * The system Piper service may fail synchronous onLoadVoice on a cold native
+     * load although it can synthesize the requested voice. Only skip that
+     * eager load when Piper reports exactly one voice and its ID matches the
+     * owner's explicit selection. The service then resolves that sole voice
+     * during synthesis. Never fall back if multiple voices are installed.
+     */
+    fun canDeferVoiceLoad(
+        enginePackage: String?,
+        requestedVoiceId: String?,
+        installedVoiceIds: Collection<String>,
+    ): Boolean =
+        enginePackage == PACKAGE && requestedVoiceId != null &&
+            installedVoiceIds.size == 1 && installedVoiceIds.single() == requestedVoiceId
 }
 
 internal class PiperAndroidTtsOutputProvider(

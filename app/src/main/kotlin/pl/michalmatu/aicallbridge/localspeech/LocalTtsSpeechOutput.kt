@@ -56,7 +56,8 @@ internal class LocalTtsSpeechOutput(
                 }
                 synchronized(lock) { engine = tts }
                 val selectedLanguage = Locale.forLanguageTag(languageTag).language
-                val localVoice = tts.voices.orEmpty()
+                val installedVoices = tts.voices.orEmpty()
+                val localVoice = installedVoices
                     .filter { it.locale.language.equals(selectedLanguage, ignoreCase = true) && !it.isNetworkConnectionRequired }
                     .filter { voiceId == null || it.name == voiceId }
                     .filter { enginePackage != pl.michalmatu.aicallbridge.audioengines.PiperServiceContract.PACKAGE || "piperVoice" in it.features }
@@ -66,7 +67,10 @@ internal class LocalTtsSpeechOutput(
                     finishWithError(generation, listener, "local_voice_missing")
                     return@execute
                 }
-                if (tts.setVoice(localVoice) != TextToSpeech.SUCCESS) {
+                val deferPiperLoad =
+                    pl.michalmatu.aicallbridge.audioengines.PiperServiceContract.canDeferVoiceLoad(
+                        enginePackage, voiceId, installedVoices.map { it.name })
+                if (!deferPiperLoad && tts.setVoice(localVoice) != TextToSpeech.SUCCESS) {
                     finishWithError(generation, listener, "tts_set_voice_failed")
                     return@execute
                 }
