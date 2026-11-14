@@ -28,6 +28,7 @@ To checklista, nie drugi plan. PASS dotyczy wskazanego SHA, środowiska i receip
 | R3 | Parakeet PL → Gemma E2B → Android TTS PL | S22: model natywny gotowy, WER, latencje | **PHYSICAL_OPEN**; brak modelu = `not_available` |
 | R4–R6 | R1–R3 z polskim Piper | S22: potwierdzony głos PL, odsłuch, latencje | **PHYSICAL_OPEN**; brak głosu = `not_available` |
 | S1 | **Piper Gosia → PCM16 → Parakeet PL (off-call)** | Dokładna Gosia, natywny Parakeet, brak rozmowy; WER i czasy | **PASS** na S22, SHA `0c79cf4`: TTS 2478 ms, prewarm 2466 ms, infer 437 ms, 0/6 błędnych słów; receipt `aicalls-s22-sole-piper-audio-retest-20261114-v1` |
+| S2 | **Stały zestaw pl-audio-v1: Piper Gosia → Parakeet PL (5 × 2, off-call)** | 10 prób, ten sam hash tekstów, wszystkie próby pozytywne, łączny WER ≤25% | **PASS** S22 na SHA `7c08d554`: 10/10, 6/104 błędnych słów (WER 5,77%), E2E p50 4473,5 ms / p95 7763 ms, TTS p50 2682 ms, Parakeet infer p50 659 ms; termin/godzina 3/9 ×2, pozostałe 0; korpus SHA256 `fe64ca3f291656a7c067fb7adac35d956b66686485078f52725d50927e68e701`; receipt `aicalls-s22-fixed-audio-suite-baseline-20261114-v1` |
 | C1 | 4–6 tur: długa mowa, szum, cisza, korekta | S22: rozpoznanie i poprawna kolejność tur | **PHYSICAL_OPEN** |
 | C2 | Barge-in, STOP podczas ASR/model/TTS/TX | S22: brak starego TX, brak obcego hangup | **PHYSICAL_OPEN** |
 | C3 | „Do widzenia” → zakończenie | S22: brak dalszego pytania, exact app-owned END_CALL | **PHYSICAL_OPEN** |
