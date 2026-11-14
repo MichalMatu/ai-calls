@@ -66,6 +66,10 @@ class AndroidPolishAudioQualityTest {
             AndroidTtsOutputProvider(context, "pl-PL", null)
         },
     ) {
+        // Keep Gemma's native runtime across samples to measure cold vs warm turns.
+        // Other recognizers keep their original per-sample lifecycle.
+        val sharedGemma = if (engine == "GEMMA") inputFactory() else null
+        try {
         phrases.forEachIndexed { index, reference ->
             val metrics = linkedMapOf<String, Long>()
             val synthStarted = System.nanoTime()
@@ -95,7 +99,8 @@ class AndroidPolishAudioQualityTest {
             val done = CountDownLatch(1)
             val transcript = AtomicReference<String?>(null)
             val callbacks = AtomicInteger()
-            inputFactory().use { input ->
+            val input = sharedGemma ?: inputFactory()
+            try {
                 val initStarted = System.nanoTime()
                 input.start(object : SpeechInputProvider.Listener {
                     override fun onReady() { ready.countDown() }
@@ -122,7 +127,18 @@ class AndroidPolishAudioQualityTest {
                 input.finishInput()
                 assertTrue("Native Polish recognition timed out", done.await(200, TimeUnit.SECONDS))
                 metrics["INFER_MS"] = elapsed(inferStarted)
+                if (error.get() != null) {
+                    val code = error.get()?.takeIf {
+                        it.matches(Regex("[A-Za-z0-9_]{1,80}"))
+                    } ?: "other_error"
+                    InstrumentationRegistry.getInstrumentation().sendStatus(2, Bundle().apply {
+                        putString("stream", "AUDIO_QA_" + engine +
+                            "_CASE_" + (index + 1) + "_NATIVE_ERROR=" + code)
+                    })
+                }
                 assertNull("Native Polish recognition error: ${error.get()}", error.get())
+            } finally {
+                if (sharedGemma == null) input.close()
             }
             val expected = words(reference)
             // Only this test's synthetic speech: never real call material or logcat.
@@ -146,6 +162,9 @@ class AndroidPolishAudioQualityTest {
             assertTrue("Polish synthetic sample ${index + 1} returned no words", actual.isNotEmpty())
             assertTrue("Polish synthetic sample ${index + 1} WER exceeds 50 percent",
                 wordErrors * 2 <= expected.size)
+        }
+        } finally {
+            sharedGemma?.close()
         }
     }
 
