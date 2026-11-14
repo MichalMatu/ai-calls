@@ -1,12 +1,15 @@
 # AI Calls — MVP
 
-**Cel:** INCOMING/OUTGOING, kampanie na S22, wspólny STT/Gemma/TTS i STOP. Kreator, kolejka, alarm, retry oraz porównanie źródłowych odpowiedzi działają w testach. Pojedyncze zadanie uruchomione z alarmu w tle S22 zaliczone.
+**Cel:** bezpieczne INCOMING/OUTGOING na S22: SIM/Call → RX PCM → rozpoznawanie → Gemma → TTS → TX PCM → STOP, z prywatnym WAV i diagnostyką.
 
-## Otwarte
-- **P0 G6.1 — kampanie:** integracja 3 odbiorców, alarm/BOOT, retry, STOP, UNKNOWN, exact SIM i PL/EN w testach; pełny fizyczny odbiór wieloodbiorcowy PHYSICAL_OPEN.
-- **P0 — S22:** supervised OUTGOING oraz pojedyncze zadanie z kreatora → alarm przy zgaszonym ekranie → exact SIM/Call → PCM RX+TX/STT/Gemma/TTS → STOP → IDLE **PASS (13.11.2026)**. INCOMING: odbiór i odzyskiwanie KV potwierdzone; błędna odpowiedź kończyła AI, występowały też drugie powitanie i niespójny dialog. Poprawki formatu, kontekstu 4096 i instrukcji wymagają odbioru. Barge-in/echo, takeover/resume i playback historii PHYSICAL_OPEN.
-- **P0 — wizyta:** wynik/propozycja terminu; bez potwierdzonej rezerwacji.
-- **P1 — kampania:** opcjonalne zakończenie po pierwszym potwierdzonym sukcesie.
+## TERAZ — sprint AUDIO I/O (P0)
+- Weryfikuj niezależnie wejścia Android STT (bazowe), Parakeet PL i Gemma Audio Direct (eksperymentalne); wyjścia Android TTS PL i Piper.
+- Ustal gotowość, prewarm, rozpoznanie, format odpowiedzi audio, czasy RX→STT→model→TTS→TX, opóźnienia pierwszej/kolejnych tur, echo, barge-in, STOP i odzyskiwanie po błędzie.
+- Mierz na syntetycznych próbkach i kontrolowanych połączeniach. S22: AI/Android STT/TTS, WAV i END_CALL potwierdzone 14.11.2026. Gemma Audio: 2/3 polskie próbki OK; 19–25 s start, 12–14 s inferencja; **NOT READY**. Piper zainstalowany, polski głos niepotwierdzony.
+- Bez strojenia promptów, powitania, stylu ani zawartości odpowiedzi. Bez zmian realnych połączeń bez zgody; nie zapisuj WAV/transkryptów w Git.
 
-## Następny sprint
-Dłuższy INCOMING: ciągłość, pojedyncze powitanie i jakość dialogu; następnie barge-in i takeover/resume. **MVP BLOCKED / PHYSICAL_OPEN** dla pozostałych ścieżek. [SECURITY](architecture/SECURITY.md).
+## PÓŹNIEJ — osobny duży sprint JAKOŚĆ DIALOGU
+Pamięć/korekty, niepowtarzanie pytań, naturalne odpowiedzi, formy grzecznościowe, godziny, przywitanie, pożegnanie oraz rozmowy wieloturowe. Oceniać dopiero na stabilnym torze I/O.
+
+## Pozostałe otwarte
+Kampania wieloodbiorcowa, alarm/BOOT/retry, takeover/resume i playback: **PHYSICAL_OPEN**. Brak potwierdzonej rezerwacji wizyt.
