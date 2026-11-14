@@ -2,7 +2,7 @@
 
 **Cel:** bezpieczne INCOMING/OUTGOING na S22: SIM/Call → RX PCM → rozpoznawanie → Gemma → TTS → TX PCM → STOP, z prywatnym WAV i diagnostyką.
 
-## TERAZ — sprint AUDIO I/O (P0)
+## Następny sprint
 - Weryfikuj niezależnie wejścia Android STT (bazowe), Parakeet PL i Gemma Audio Direct (eksperymentalne); wyjścia Android TTS PL i Piper.
 - Ustal gotowość, prewarm, rozpoznanie, format odpowiedzi audio, czasy RX→STT→model→TTS→TX, opóźnienia pierwszej/kolejnych tur, echo, barge-in, STOP i odzyskiwanie po błędzie.
 - Mierz na syntetycznych próbkach i kontrolowanych połączeniach. S22: AI/Android STT/TTS, WAV i END_CALL potwierdzone 14.11.2026. Gemma Audio: 2/3 polskie próbki OK; 19–25 s start, 12–14 s inferencja; **NOT READY**. Piper zainstalowany, polski głos niepotwierdzony.
