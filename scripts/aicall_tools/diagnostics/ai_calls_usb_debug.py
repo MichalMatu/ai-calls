@@ -42,6 +42,10 @@ TESTS = {
         "pl.michalmatu.aicallbridge.localspeech.AndroidLocalSpeechMvpContractTest"
         "#polishLocalTtsProducesNonemptyMonoPcm16At16k"
     ),
+    "gemma-cold-warm": (
+        "pl.michalmatu.aicallbridge.textagent.AndroidGemmaColdWarmBenchmarkTest"
+        "#freshVsPrewarmedGemmaE2BIdenticalPromptAndHotTurns"
+    ),
     "gemma-e2b": (
         "pl.michalmatu.aicallbridge.textagent.AndroidGemmaDirectOnDeviceTest"
         "#fourSyntheticGemmaDirectTurnsReturnNaturalText"
@@ -341,7 +345,14 @@ def parse_audio_quality_metrics(output: str) -> dict[str, int]:
                                "FULL_SELECTED")
                 for case in range(1, 4)
                 for field in ("STT_MS", "APPROVAL_MS", "OUTPUT_MS", "PASSED")}
-    allowed = legacy | matrix | fullturn
+    cold_warm = {f"GEMMA_{phase}_CASE_{case}_{field}"
+                 for phase in ("COLD", "PREWARM")
+                 for case in range(1, 4)
+                 for field in ("WALL_MS", "ENGINE_MS", "CONV_MS",
+                               "GEN_MS", "REUSED", "CHARS", "PASSED")}
+    prewarm = {"GEMMA_PREWARM_" + field
+               for field in ("WALL_MS", "ENGINE_MS", "CONV_MS")}
+    allowed = legacy | matrix | fullturn | cold_warm | prewarm
     metrics = {}
     for line in output.splitlines():
         line = line.removeprefix("INSTRUMENTATION_STATUS: stream=").strip()

@@ -85,6 +85,21 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "FULL_GEMMA_PIPER_CASE_3_OUTPUT_MS":56000,
         })
 
+    def test_gemma_cold_warm_numeric_metrics_without_private_text(self):
+        self.assertIn("gemma-cold-warm", bridge.TESTS)
+        output = "\n".join([
+            "AUDIO_QA_GEMMA_COLD_CASE_1_ENGINE_MS=4010",
+            "AUDIO_QA_GEMMA_PREWARM_CASE_3_GEN_MS=7200",
+            "AUDIO_QA_GEMMA_PREWARM_ENGINE_MS=3000",
+            "AUDIO_QA_GEMMA_COLD_CASE_1_TEXT=secret",
+            "AUDIO_QA_GEMMA_COLD_CASE_4_WALL_MS=11",
+        ])
+        self.assertEqual(bridge.parse_audio_quality_metrics(output), {
+            "GEMMA_COLD_CASE_1_ENGINE_MS":4010,
+            "GEMMA_PREWARM_CASE_3_GEN_MS":7200,
+            "GEMMA_PREWARM_ENGINE_MS":3000,
+        })
+
     def test_stop_probes_are_allowlisted_offcall_single_tests(self):
         self.assertEqual(
             {k for k in bridge.TESTS if k.startswith("stop-")},

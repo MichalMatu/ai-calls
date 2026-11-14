@@ -159,6 +159,19 @@ i hangup z Telecom) pozostają **PHYSICAL_OPEN**. Dodatkowo
 Test Lab z wybranym GEMMA_AUDIO_DIRECT wymaga osobnej kwalifikacji
 adaptera: obecny wynik dotyczy bezpośredniego produkcyjnego backendu.
 
+## S7 — cold vs hot Gemma E2B (wyizolowany test natywny)
+
+gemma-cold-warm: świeży natywny Engine bez prewarm (3 identyczne
+wypowiedzi), potem osobny Engine załadowany przez prewarm, z
+potwierdzeniem natywnej gotowości (3 identyczne wypowiedzi).
+Stały system prompt, limit 4096 tokenów i format JSON; bez STT, TTS,
+telefonu lub zmian profilu. Osobno WALL_MS, ENGINE_MS, CONV_MS,
+GEN_MS, REUSED, CHARS oraz PREWARM_WALL_MS/ENGINE_MS/CONV_MS.
+Cold oznacza świeży Engine, nie restart telefonu ani wyczyszczony
+systemowy cache modelu. Tury 2/3 mają rosnący kontekst, co może
+wpływać na generację; porównanie inferencji uwzględnia długości
+odpowiedzi. Nie oznaczaj PASS bez fizycznego odbioru na S22.
+
 ## Zapis nowego pomiaru
 
 ```sh

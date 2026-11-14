@@ -72,6 +72,13 @@ internal data class NativeModelTiming(
     val totalMs: Long get() = engineReadyMs + conversationCreateMs + generateMs
 }
 
+/** Timing from an asynchronous prewarm of a fresh native engine. No user text or model path. */
+internal data class NativePrewarmTiming(
+    val ready: Boolean,
+    val engineReadyMs: Long,
+    val conversationReadyMs: Long,
+)
+
 /** Wipes only unstarted PCM; the native worker owns dispatched data until finally. */
 internal class QueuedGemmaAudioInput {
     private val lock = Any()
@@ -276,6 +283,7 @@ internal class LiteRtGemma4Runtime(
     // Non-authoritative diagnostic signal immediately before native sendMessage.
     private val onNativeSendEntered: () -> Unit = {},
     private val onTiming: (NativeModelTiming) -> Unit = {},
+    private val onPrewarm: (NativePrewarmTiming) -> Unit = {},
     private val validateConversationReply: Boolean = false,
 ) : Gemma4Runtime {
     init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
@@ -329,6 +337,11 @@ internal class LiteRtGemma4Runtime(
                     (if (result.isSuccess) "ready" else "failed") +
                     ",engine_ready_ms=" + ((engineReady - started) / 1_000_000L).coerceAtLeast(0L) +
                     ",conversation_ready_ms=" + ((conversationReady - engineReady) / 1_000_000L).coerceAtLeast(0L))
+                runCatching { onPrewarm(NativePrewarmTiming(
+                    result.isSuccess,
+                    ((engineReady - started) / 1_000_000L).coerceAtLeast(0L),
+                    ((conversationReady - engineReady) / 1_000_000L).coerceAtLeast(0L),
+                )) }
             }
         } catch (_: RejectedExecutionException) {
             // Optional prewarm must not fail an owned call.
@@ -960,6 +973,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         tools: Set<ConversationToolId>,
         contextTokenBudget: Int = if (modelId == DialogueModelId.GEMMA_4_E2B) 4_096 else DEFAULT_CONTEXT_TOKENS,
         onTiming: (NativeModelTiming) -> Unit = {},
+        onPrewarm: (NativePrewarmTiming) -> Unit = {},
         audioInput: Boolean = false,
         selectedFile: File? = null,
     ): TextCallAgentBackend {
@@ -971,6 +985,7 @@ internal object Gemma4LiteRtTextBackendFactory {
             responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(tools)),
             contextTokenBudget = contextTokenBudget,
             onTiming = onTiming,
+            onPrewarm = onPrewarm,
             validateConversationReply = true,
             selectedFile = selectedFile,
             audioResponseFormat = if (audioInput) ResponseFormat.json(
@@ -1094,6 +1109,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         modelId: DialogueModelId,
         contextTokenBudget: Int = DEFAULT_CONTEXT_TOKENS,
         onTiming: (NativeModelTiming) -> Unit = {},
+        onPrewarm: (NativePrewarmTiming) -> Unit = {},
         validateConversationReply: Boolean = false,
         audioTranscriptionOnly: Boolean = false,
     ): Gemma4LiteRtTextBackend {
@@ -1113,6 +1129,7 @@ internal object Gemma4LiteRtTextBackendFactory {
                     executionPolicy = modelId.nativeExecutionPolicy(),
                     contextTokenBudget = contextTokenBudget,
                     onTiming = onTiming,
+                    onPrewarm = onPrewarm,
                     validateConversationReply = validateConversationReply,
                 )
             },
