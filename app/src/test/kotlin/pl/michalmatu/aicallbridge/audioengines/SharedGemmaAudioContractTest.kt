@@ -174,6 +174,37 @@ class SharedGemmaAudioContractTest {
         input.close()
     }
 
+    @Test fun cancelErasesBackingPcmInsteadOfOnlyClearingLength() {
+        val input = GemmaAudioDirectInputProvider()
+        val heard = mutableListOf<ByteArray>()
+        val listener = object : SpeechInputProvider.Listener {
+            override fun onReady() = Unit
+            override fun onFinalTranscript(text: String) = fail("unexpected transcript")
+            override fun onFinalAudio(pcm16: ByteArray) { heard.add(pcm16) }
+            override fun onError(reason: String) = fail(reason)
+        }
+        input.start(listener)
+        assertTrue(input.writePcm(ByteArray(256) { 0x55.toByte() }))
+        val field = input.javaClass.getDeclaredField("pcm").apply { isAccessible = true }
+        val beforeCancel = field.get(input) as ByteArray
+        assertTrue(beforeCancel.take(256).any { it != 0.toByte() })
+        input.cancel()
+        assertTrue("Cancelled turn must not publish audio", heard.isEmpty())
+        assertTrue("PCM backing must be zeroed", beforeCancel.all { it == 0.toByte() })
+        input.start(listener)
+        val data = ByteArray(40_000) { 0x55.toByte() }
+        input.writePcm(data)
+        val grown = field.get(input) as ByteArray
+        assertTrue("growth retains no earlier PCM in old buffer",
+            beforeCancel.all { it == 0.toByte() })
+        input.finishInput()
+        assertEquals(1, heard.size)
+        assertArrayEquals(data, heard.single())
+        assertTrue("finished PCM backing must be zeroed", grown.all { it == 0.toByte() })
+        input.close()
+        assertEquals(0, (field.get(input) as ByteArray).size)
+    }
+
     private class PendingAudio : TextCallAgentBackend {
         var pending: TextCallAgentBackend.Listener? = null
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) { fail("unexpected text inference") }
