@@ -52,6 +52,19 @@ Przy każdej próbie TTS **ponownie generuje** audio ze stałego tekstu — same
 próbki nie są gwarantowane bitowo identyczne, więc porównania dotyczą treści
 i metryk, nie hashy WAV. To nie jest test jakości Gemmy, barge-in ani rozmowy.
 
+## Macierz S3: sześć porównywalnych torów (S22, off-call)
+
+Stały korpus pl-audio-v1: 5 polskich wypowiedzi × 2 rundy = 10
+przypadków dla każdego z 6 torów; łącznie 60 prób.
+Identyfikatory: matrix-android-google, matrix-android-piper,
+matrix-parakeet-google, matrix-parakeet-piper,
+matrix-gemma-google, matrix-gemma-piper.
+Wykonywane w test APK na S22 przez ograniczone adb probe: bez Telecom,
+SIM i zapisu profilu. TTS jawnie wskazuje Google lub Piper/Gosię.
+Oddzielnie raportuj WER, TTS, inicjalizację oraz czas ASR.
+Gemma Audio Direct mierzy rozpoznawanie audio, nie całą odpowiedź
+modelu dialogowego. STOP, barge-in i hangup nadal wymagają osobnego odbioru.
+
 ## Zapis nowego pomiaru
 
 ```sh

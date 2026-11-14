@@ -26,6 +26,48 @@ class AndroidPolishAudioQualityTest {
         "Proszę powtórzyć ostatnią informację.",
     )
 
+    /** Six fixed-route comparisons, same public Polish corpus in two rounds. */
+    private val matrixPhrases = List(ParakeetPiperFixedCorpus.REPEATS) {
+        ParakeetPiperFixedCorpus.cases.map { it.phrase }
+    }.flatten()
+    private fun googleOutput() =
+        AndroidTtsOutputProvider(context, "pl-PL", null, "com.google.android.tts")
+    private fun piperOutput() =
+        PiperAndroidTtsOutputProvider(context, "pl-PL", "pl_PL-gosia-medium")
+    private fun androidInput(): SpeechInputProvider {
+        val delegate = AndroidSttInputProvider(context, "pl-PL")
+        return object : SpeechInputProvider {
+            override fun start(listener: SpeechInputProvider.Listener) {
+                InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                    delegate.start(listener)
+                }
+            }
+            override fun writePcm(bytes: ByteArray, offset: Int, length: Int) =
+                delegate.writePcm(bytes, offset, length)
+            override fun finishInput() = delegate.finishInput()
+            override fun cancel() = InstrumentationRegistry.getInstrumentation()
+                .runOnMainSync { delegate.cancel() }
+            override fun close() = InstrumentationRegistry.getInstrumentation()
+                .runOnMainSync { delegate.close() }
+        }
+    }
+    @Test fun matrixAndroidSttGoogle() = corpus(
+        "ANDROID_GOOGLE", { androidInput() }, { googleOutput() }, matrixPhrases)
+    @Test fun matrixAndroidSttPiper() = corpus(
+        "ANDROID_PIPER", { androidInput() }, { piperOutput() }, matrixPhrases)
+    @Test fun matrixParakeetGoogle() = corpus(
+        "PARAKEET_GOOGLE", { ParakeetSpeechInputProvider(context) },
+        { googleOutput() }, matrixPhrases)
+    @Test fun matrixParakeetPiper() = corpus(
+        "PARAKEET_PIPER", { ParakeetSpeechInputProvider(context) },
+        { piperOutput() }, matrixPhrases)
+    @Test fun matrixGemmaAudioGoogle() = corpus(
+        "GEMMA_GOOGLE", { SharedGemmaAudioProbeInput(context) },
+        { googleOutput() }, matrixPhrases)
+    @Test fun matrixGemmaAudioPiper() = corpus(
+        "GEMMA_PIPER", { SharedGemmaAudioProbeInput(context) },
+        { piperOutput() }, matrixPhrases)
+
     @Test fun gemmaAudioRecognizesPolishSpeech() = corpus(
         "GEMMA", { SharedGemmaAudioProbeInput(context) },
     )
@@ -65,15 +107,17 @@ class AndroidPolishAudioQualityTest {
         outputFactory: () -> SpeechOutputProvider = {
             AndroidTtsOutputProvider(context, "pl-PL", null)
         },
+        testPhrases: List<String> = phrases,
     ) {
         // Keep Gemma's native runtime across samples to measure cold vs warm turns.
         // Other recognizers keep their original per-sample lifecycle.
-        val sharedGemma = if (engine == "GEMMA") inputFactory() else null
+        val sharedGemma = if (engine.startsWith("GEMMA")) inputFactory() else null
         val failedCases = mutableListOf<Int>()
         try {
-        phrases.forEachIndexed { index, reference ->
+        testPhrases.forEachIndexed { index, reference ->
             val metrics = linkedMapOf<String, Long>()
-            metrics["PREWARM_OVERLAPPED_TTS"] = if (engine == "GEMMA" && index == 0) 1 else 0
+            metrics["PREWARM_OVERLAPPED_TTS"] =
+                if (engine.startsWith("GEMMA") && index == 0) 1 else 0
             val synthStarted = System.nanoTime()
             val synthDone = CountDownLatch(1)
             val audio = AtomicReference<ByteArray?>(null)

@@ -70,6 +70,30 @@ TESTS = {
         "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
         "#parakeetRecognizesPolishSpeech"
     ),
+    "matrix-android-google": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#matrixAndroidSttGoogle"
+    ),
+    "matrix-android-piper": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#matrixAndroidSttPiper"
+    ),
+    "matrix-parakeet-google": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#matrixParakeetGoogle"
+    ),
+    "matrix-parakeet-piper": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#matrixParakeetPiper"
+    ),
+    "matrix-gemma-google": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#matrixGemmaAudioGoogle"
+    ),
+    "matrix-gemma-piper": (
+        "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
+        "#matrixGemmaAudioPiper"
+    ),
     "piper-pl": (
         "pl.michalmatu.aicallbridge.audioengines.AndroidPolishAudioQualityTest"
         "#piperSynthesizesPolishSpeechForParakeet"
@@ -257,9 +281,15 @@ def parse_audio_quality_metrics(output: str) -> dict[str, int]:
         "REF_WORDS", "CHAR_ERRORS", "REF_CHARS", "FINAL_CALLBACKS",
         "PASSED", "PREWARM_OVERLAPPED_TTS",
     }
-    allowed = {f"{engine}_CASE_{case}_{field}"
-               for engine in ("GEMMA", "PARAKEET", "PIPER")
-               for case in range(1, 4) for field in fields}
+    legacy = {f"{engine}_CASE_{case}_{field}"
+              for engine in ("GEMMA", "PARAKEET", "PIPER")
+              for case in range(1, 4) for field in fields}
+    matrix = {f"{engine}_CASE_{case}_{field}"
+              for engine in ("ANDROID_GOOGLE", "ANDROID_PIPER",
+                             "PARAKEET_GOOGLE", "PARAKEET_PIPER",
+                             "GEMMA_GOOGLE", "GEMMA_PIPER")
+              for case in range(1, 11) for field in fields}
+    allowed = legacy | matrix
     metrics = {}
     for line in output.splitlines():
         line = line.removeprefix("INSTRUMENTATION_STATUS: stream=").strip()

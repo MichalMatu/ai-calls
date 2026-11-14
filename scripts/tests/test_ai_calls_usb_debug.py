@@ -36,6 +36,21 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "GEMMA_CASE_1_PREWARM_OVERLAPPED_TTS": 1,
         })
 
+    def test_matrix_numeric_metrics_allowlist_and_exact_route_names(self):
+        self.assertEqual(len([x for x in bridge.TESTS if x.startswith("matrix-")]), 6)
+        metrics = bridge.parse_audio_quality_metrics("\n".join([
+            "AUDIO_QA_PARAKEET_PIPER_CASE_10_WORD_ERRORS=2",
+            "AUDIO_QA_GEMMA_GOOGLE_CASE_9_INIT_MS=450",
+            "AUDIO_QA_ANDROID_PIPER_CASE_3_TRANSCRIPT=private",
+            "AUDIO_QA_ANDROID_GOOGLE_CASE_1_PASSED=1",
+            "AUDIO_QA_GEMMA_PIPER_CASE_11_PASSED=1",
+        ]))
+        self.assertEqual(metrics, {
+            "PARAKEET_PIPER_CASE_10_WORD_ERRORS": 2,
+            "GEMMA_GOOGLE_CASE_9_INIT_MS": 450,
+            "ANDROID_GOOGLE_CASE_1_PASSED": 1,
+        })
+
     def test_actions_are_narrow_and_no_authority_bypass(self):
         for action in ("status", "profile_set", "profile_reset", "grant_revoke",
                        "evidence_status", "evidence_disable", "profile_check", "audio_route_check"):
