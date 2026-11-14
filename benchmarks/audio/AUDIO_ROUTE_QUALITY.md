@@ -121,6 +121,27 @@ modelu natywnego z dialogowym Gemma E2B — S3 nie jest pełnym flow.
 Telecom, zakończenie pożegnalne i barge-in nadal PHYSICAL_OPEN;
 STOP wymaga osobnego testu poza rozmową i odbioru telefonicznego.
 
+## S5 — STOP poza rozmową, fizyczny S22
+
+Pięć niezależnych testów fizycznych PASS na SHA eb60b7e (14.11.2026):
+cancel/restart Android STT, cancel/restart TTS, anulowanie natywnej
+generacji Gemmy z odzyskaniem kontekstu, odrzucanie spóźnionych callbacków
+oraz idempotentny przycisk STOP bez dzwonienia. Receipt
+aicalls-s22-native-stop-matrix-20261114-v1, test APK SHA-256
+f8dd403ca3e6071592222330380a630d3324aadf888e89aabecca19a48cb01dd.
+Wszystkie 5/5, telefon IDLE, profil/granty bez zmian.
+Nie jest to test STOP podczas rzeczywistej rozmowy.
+
+## S6 — eksperymentalny pełny tor Gemma Audio Direct
+
+Dwie dodatkowe próby 3-tur: fullturn-gemma-google i
+fullturn-gemma-piper; ten sam scenariusz korekty daty jak w S4,
+ale bez odrębnego ASR. Korzystają bezpośrednio z produkcyjnego
+DialogueEngineProvider (staged audio→transcript→reply w jednym Engine),
+zamiast z tekstowego adaptera Test Lab. Nie oznaczać PASS przed
+instrumentacją S22. Czas audio→reply będzie dłuższy niż dla
+osobnego Parakeet/Android STT. Brak połączeń i zapisu profilu.
+
 ## Zapis nowego pomiaru
 
 ```sh

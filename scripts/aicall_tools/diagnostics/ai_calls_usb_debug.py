@@ -122,6 +122,14 @@ TESTS = {
         "pl.michalmatu.aicallbridge.localspeech.AndroidG52MultiturnSpeechSkillsE2ETest"
         "#matrixFullTurnParakeetGoogle"
     ),
+    "fullturn-gemma-google": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG52MultiturnSpeechSkillsE2ETest"
+        "#matrixFullTurnGemmaGoogle"
+    ),
+    "fullturn-gemma-piper": (
+        "pl.michalmatu.aicallbridge.localspeech.AndroidG52MultiturnSpeechSkillsE2ETest"
+        "#matrixFullTurnGemmaPiper"
+    ),
     "fullturn-parakeet-piper": (
         "pl.michalmatu.aicallbridge.localspeech.AndroidG52MultiturnSpeechSkillsE2ETest"
         "#matrixFullTurnParakeetPiper"
@@ -329,6 +337,7 @@ def parse_audio_quality_metrics(output: str) -> dict[str, int]:
     fullturn = {f"{engine}_CASE_{case}_{field}"
                 for engine in ("FULL_ANDROID_GOOGLE", "FULL_ANDROID_PIPER",
                                "FULL_PARAKEET_GOOGLE", "FULL_PARAKEET_PIPER",
+                               "FULL_GEMMA_GOOGLE", "FULL_GEMMA_PIPER",
                                "FULL_SELECTED")
                 for case in range(1, 4)
                 for field in ("STT_MS", "APPROVAL_MS", "OUTPUT_MS", "PASSED")}

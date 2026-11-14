@@ -19,6 +19,8 @@ import pl.michalmatu.aicallbridge.audioengines.AndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
+import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
+import pl.michalmatu.aicallbridge.audioengines.GemmaAudioDirectInputProvider
 import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
 import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
 import pl.michalmatu.aicallbridge.audioengines.PiperAndroidTtsOutputProvider
@@ -26,6 +28,9 @@ import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.audioengines.SpeechOutputId
 import pl.michalmatu.aicallbridge.conversation.AndroidSkillLabSessionFactory
 import pl.michalmatu.aicallbridge.conversation.ConversationReplyBackend
+import pl.michalmatu.aicallbridge.conversation.ConversationInstructionBuilder
+import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
+import pl.michalmatu.aicallbridge.conversation.ConversationResponseFormat
 import pl.michalmatu.aicallbridge.conversation.LabToolProposalPolicy
 import pl.michalmatu.aicallbridge.conversation.SkillLoadingMode
 import pl.michalmatu.aicallbridge.conversation.SkillTurnRoutingDecision
@@ -163,6 +168,8 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
     @Test fun matrixFullTurnAndroidPiper() = runThreeTurnFlow("android-piper")
     @Test fun matrixFullTurnParakeetGoogle() = runThreeTurnFlow("parakeet-google")
     @Test fun matrixFullTurnParakeetPiper() = runThreeTurnFlow("parakeet-piper")
+    @Test fun matrixFullTurnGemmaGoogle() = runThreeTurnFlow("gemma-google")
+    @Test fun matrixFullTurnGemmaPiper() = runThreeTurnFlow("gemma-piper")
 
     private fun runThreeTurnFlow(route: String?) {
         val original = checkNotNull(AudioEngineProfileStore(context).load())
@@ -181,6 +188,13 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
                 input = SpeechInputId.PARAKEET_PL, output = SpeechOutputId.ANDROID_TTS_PL,
                 ttsEnginePackage = PiperServiceContract.PACKAGE,
                 voiceId = "pl_PL-gosia-medium")
+            "gemma-google" -> original.copy(
+                input = SpeechInputId.GEMMA_AUDIO_DIRECT, output = SpeechOutputId.ANDROID_TTS_PL,
+                ttsEnginePackage = "com.google.android.tts", voiceId = null)
+            "gemma-piper" -> original.copy(
+                input = SpeechInputId.GEMMA_AUDIO_DIRECT, output = SpeechOutputId.ANDROID_TTS_PL,
+                ttsEnginePackage = PiperServiceContract.PACKAGE,
+                voiceId = "pl_PL-gosia-medium")
             null -> original
             else -> error("unrecognized_offcall_matrix_route")
         }
@@ -196,7 +210,18 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         }
         factory.skillLoadingMode = mode
         factory.onTurnRouting = { routing.add(it) }
-        val raw = factory.open("natural").createStoryBackend()
+        // For native audio, use the actual production model provider; the old
+        // text-only Lab wrapper cannot forward generateAudio. Never save selected.
+        val directAudio = selected.input == SpeechInputId.GEMMA_AUDIO_DIRECT
+        val raw = if (directAudio) DialogueEngineProviders.resolve(selected)
+            .createConversationReply(
+                context,
+                ConversationInstructionBuilder.build(
+                    ConversationPreparation.supervised(),
+                    "Prowadź rozmowę o terminie spotkania. Zapamiętaj ostatnią korektę i odpowiedz na pytanie.",
+                    ConversationResponseFormat.TOOL_REPLY),
+                setOf(ConversationToolId.END_CALL))
+        else factory.open("natural").createStoryBackend()
         val effects = AtomicBoolean(false)
         val decodedTools = Collections.synchronizedList(mutableListOf<ConversationToolId?>())
         val model = ConversationReplyBackend(raw) { reply, _, invalid ->
@@ -210,7 +235,7 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
         val input = when (selected.input) {
             SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, "pl-PL")
             SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
-            else -> error("g52_input_unsupported")
+            SpeechInputId.GEMMA_AUDIO_DIRECT -> GemmaAudioDirectInputProvider()
         }
         val output = if (selected.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE)
             PiperAndroidTtsOutputProvider(context, "pl-PL", selected.voiceId)
@@ -254,7 +279,10 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
             assertTrue("g52_memory_final_day", turns[2].approved.lowercase(
                 Locale.forLanguageTag("pl-PL")).contains("wtor"))
             val decisions = routing.toList()
-            if (mode == SkillLoadingMode.CONTEXTUAL) {
+            if (directAudio) {
+                // Native audio uses one shared staged Engine, not Lab skill routing.
+                assertTrue("g52_audio_direct_no_lab_router", decisions.isEmpty())
+            } else if (mode == SkillLoadingMode.CONTEXTUAL) {
                 assertEquals("g52_three_routing_events", listOf(1,2,3),
                     decisions.map { it.turn })
                 assertTrue("g52_message_skill_not_activated",
@@ -289,6 +317,8 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
                 "android-piper" -> "FULL_ANDROID_PIPER"
                 "parakeet-google" -> "FULL_PARAKEET_GOOGLE"
                 "parakeet-piper" -> "FULL_PARAKEET_PIPER"
+                "gemma-google" -> "FULL_GEMMA_GOOGLE"
+                "gemma-piper" -> "FULL_GEMMA_PIPER"
                 else -> "FULL_SELECTED"
             }
             turns.forEachIndexed { index, turn ->

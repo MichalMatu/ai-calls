@@ -71,6 +71,20 @@ class UsbDebugProtocolTests(unittest.TestCase):
             "FULL_PARAKEET_GOOGLE_CASE_2_PASSED": 1,
         })
 
+    def test_direct_gemma_fullturn_metrics_are_numeric_only(self):
+        self.assertIn("fullturn-gemma-google", bridge.TESTS)
+        self.assertIn("fullturn-gemma-piper", bridge.TESTS)
+        metrics = bridge.parse_audio_quality_metrics("\n".join([
+            "AUDIO_QA_FULL_GEMMA_GOOGLE_CASE_1_STT_MS=45000",
+            "AUDIO_QA_FULL_GEMMA_PIPER_CASE_3_OUTPUT_MS=56000",
+            "AUDIO_QA_FULL_GEMMA_GOOGLE_CASE_3_TRANSCRIPT=private",
+            "AUDIO_QA_FULL_GEMMA_GOOGLE_CASE_4_STT_MS=1",
+        ]))
+        self.assertEqual(metrics,{
+            "FULL_GEMMA_GOOGLE_CASE_1_STT_MS":45000,
+            "FULL_GEMMA_PIPER_CASE_3_OUTPUT_MS":56000,
+        })
+
     def test_stop_probes_are_allowlisted_offcall_single_tests(self):
         self.assertEqual(
             {k for k in bridge.TESTS if k.startswith("stop-")},
