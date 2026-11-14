@@ -17,6 +17,18 @@ internal object GemmaAudioCorpus {
     private fun words(s: String) = Regex("[\\p{L}\\p{N}]+")
         .findAll(s.lowercase(Locale.forLanguageTag("pl-PL"))).map { it.value }.toList()
 
+    /** Fixed diagnostic vocabulary only; raw speech/reply cannot leave the app. */
+    fun invalidReplyCode(raw: String): String {
+        val result = runCatching { ConversationReplyProtocol.decodeAudio(raw) }
+        val failure = result.exceptionOrNull()?.message.orEmpty()
+        return when (failure) {
+            "audio_transcript_missing", "audio_transcript_empty" -> "transcript_missing"
+            "conversation_reply_fields", "conversation_reply_type_reply",
+            "conversation_reply_type_tool" -> "reply_fields"
+            else -> "reply_format_invalid"
+        }
+    }
+
     fun wordErrors(reference: String, actual: String): Pair<Int, Int> {
         val a = words(reference)
         val b = words(actual)
@@ -125,7 +137,7 @@ internal class GemmaAudioCorpusRunner(
                                                 Triple(score.first, score.second, decoded.second.tool == null)
                                             }.getOrNull()
                                             val code = when {
-                                                outcome == null -> "invalid_reply"
+                                                outcome == null -> GemmaAudioCorpus.invalidReplyCode(text)
                                                 !outcome.third -> "unexpected_tool"
                                                 outcome.first * 2 > outcome.second -> "transcript_mismatch"
                                                 else -> "ok"
@@ -136,7 +148,11 @@ internal class GemmaAudioCorpusRunner(
                                     override fun onError(reason: String) {
                                         dispatch {
                                             if (current(token)) finishCase(
-                                                token, "native_error", nativeStarted, ttsMs, null)
+                                                token,
+                                                if (reason == "conversation_reply_invalid" ||
+                                                    reason == "gemma4_runtime_conversation_reply_invalid")
+                                                    "reply_rejected" else "native_error",
+                                                nativeStarted, ttsMs, null)
                                         }
                                     }
                                 })

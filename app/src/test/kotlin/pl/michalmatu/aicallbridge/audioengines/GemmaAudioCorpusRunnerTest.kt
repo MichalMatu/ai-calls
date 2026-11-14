@@ -32,6 +32,13 @@ class GemmaAudioCorpusRunnerTest {
         assertEquals(3, model.resets)
     }
 
+    @Test fun malformedAudioReplyGetsSanitizedReasonWithoutText() {
+        assertEquals("transcript_missing", GemmaAudioCorpus.invalidReplyCode(
+            """{"reply":"Sekret do ukrycia","tool":"none","note":"","kind":"NOTE"}"""))
+        assertEquals("reply_format_invalid", GemmaAudioCorpus.invalidReplyCode(
+            "private recording 123-456-789"))
+    }
+
     @Test fun wordErrorScoringHandlesPolishSentenceAndMismatch() {
         val phrase = GemmaAudioCorpus.phrases.first()
         assertEquals(0, GemmaAudioCorpus.wordErrors(phrase, phrase).first)

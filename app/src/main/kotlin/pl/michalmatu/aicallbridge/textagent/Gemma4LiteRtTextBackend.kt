@@ -866,7 +866,9 @@ internal object Gemma4LiteRtTextBackendFactory {
             LiteRtGemma4Runtime(path, instruction,
                 responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(emptySet())),
                 audioResponseFormat = if (audio) ResponseFormat.json(
-                    ConversationReplyProtocol.audioSchema(emptySet())) else null)
+                    ConversationReplyProtocol.audioSchema(emptySet())) else null,
+                // Match production: reject/repair malformed structured native audio replies.
+                validateConversationReply = audio)
         }, file.absolutePath, ConversationReplyProtocol.INSTRUCTION)
 
     fun modelFile(context: Context, profile: pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile): File {
