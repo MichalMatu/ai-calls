@@ -84,6 +84,7 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
     // left old speech in its backing allocation after cancellation.
     private var pcm = ByteArray(0)
     private var used = 0
+    private var closed = false
 
     private fun clearPcm() {
         pcm.fill(0, 0, used)
@@ -92,6 +93,7 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
 
     override fun start(listener: SpeechInputProvider.Listener) {
         synchronized(lock) {
+            check(!closed) { "gemma_audio_input_closed" }
             clearPcm()
             this.listener = listener
         }
@@ -102,7 +104,8 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
         require(offset >= 0 && length >= 0 && offset <= bytes.size &&
             length <= bytes.size - offset) { "invalid_pcm_range" }
         return synchronized(lock) {
-            if (listener == null || length > GemmaAudioPcm16.MAX_PCM_BYTES - used) return@synchronized false
+            if (closed || listener == null ||
+                length > GemmaAudioPcm16.MAX_PCM_BYTES - used) return@synchronized false
             if (length == 0) return@synchronized true
             val required = used + length
             if (required > pcm.size) {
@@ -143,6 +146,8 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
 
     override fun close() {
         synchronized(lock) {
+            if (closed) return
+            closed = true
             listener = null
             clearPcm()
             pcm = ByteArray(0)

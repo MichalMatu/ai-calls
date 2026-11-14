@@ -174,6 +174,32 @@ class SharedGemmaAudioContractTest {
         input.close()
     }
 
+    @Test fun closedAudioInputCannotRestartAndNoStalePcmCanBeDelivered() {
+        val input = GemmaAudioDirectInputProvider()
+        var ready = 0
+        var finalAudio = 0
+        val listener = object : SpeechInputProvider.Listener {
+            override fun onReady() { ready++ }
+            override fun onFinalTranscript(text: String) = fail("audio transcript not expected")
+            override fun onFinalAudio(pcm16: ByteArray) { finalAudio++ }
+            override fun onError(reason: String) = fail(reason)
+        }
+        input.start(listener)
+        assertTrue(input.writePcm(ByteArray(48) { 0x55.toByte() }))
+        input.close()
+        input.close()
+        input.finishInput()
+        assertFalse(input.writePcm(byteArrayOf(1, 0)))
+        assertEquals(0, finalAudio)
+        assertEquals(1, ready)
+        try {
+            input.start(listener)
+            fail("Audio input must not accept new sessions after close")
+        } catch (_: IllegalStateException) {
+        }
+        assertEquals(1, ready)
+    }
+
     @Test fun cancelErasesBackingPcmInsteadOfOnlyClearingLength() {
         val input = GemmaAudioDirectInputProvider()
         val heard = mutableListOf<ByteArray>()

@@ -6,7 +6,10 @@ import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.NativeConversationContextBackend
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
-/** Native QA adapter for the same model engine and audio reply protocol used by real dialogue. */
+/** Native QA adapter for the same model engine and audio reply protocol used by real dialogue.
+ * Each corpus sentence is independent: reset conversation history between synthetic
+ * samples while retaining the native engine, so cold/warm model timings stay comparable.
+ */
 internal class SharedGemmaAudioProbeInput(context: Context) : SpeechInputProvider {
     private val input = GemmaAudioDirectInputProvider()
     private val model = Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(
@@ -38,6 +41,9 @@ internal class SharedGemmaAudioProbeInput(context: Context) : SpeechInputProvide
                             model.generateAudio(pcm16, object : TextCallAgentBackend.Listener {
                                 override fun onComplete(text: String) {
                                     val decoded = runCatching { ConversationReplyProtocol.decodeAudio(text) }
+                                    // Do not let one independent reference sentence affect the next.
+                                    // Native reset queues teardown on the model worker; engine remains warm.
+                                    (model as NativeConversationContextBackend).resetConversationContext()
                                     decoded.fold({ listener.onFinalTranscript(it.first) },
                                         { error ->
                                             val empty = error.message == "audio_transcript_empty" && runCatching {
@@ -48,7 +54,10 @@ internal class SharedGemmaAudioProbeInput(context: Context) : SpeechInputProvide
                                             listener.onError(if (empty) "gemma_audio_empty_transcript" else "gemma_audio_invalid_reply")
                                         })
                                 }
-                                override fun onError(reason: String) = listener.onError(reason)
+                                override fun onError(reason: String) {
+                                    (model as NativeConversationContextBackend).resetConversationContext()
+                                    listener.onError(reason)
+                                }
                             })
                         }
                     })
