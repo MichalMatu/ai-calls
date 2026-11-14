@@ -1,15 +1,29 @@
 # AI Calls — MVP
 
-**Cel:** bezpieczne INCOMING/OUTGOING na S22: SIM/Call → RX PCM → rozpoznawanie → Gemma → TTS → TX PCM → STOP, z prywatnym WAV i diagnostyką.
+**Cel:** bezpieczna sekretarka S22:
+Call → PCM → STT → LLM → TTS → PCM → STOP/END_CALL.
+
+## Stan 15.11.2026 — milestone
+
+S22 off-call: **60/60** prób sześciu torów audio,
+**18/18** syntetycznych tur dialogu i **5/5** testów STOP.
+Gemma E2B: cold-first 15,74 s, po prewarm 8,12 s,
+hot mediana 1,50 s, prewarm 5,96 s (dwa przebiegi).
+Profil użytkownika bez zmian: Parakeet → Gemma E2B →
+Piper Gosia. To stabilny **rdzeń syntetyczny**,
+nie pełna kwalifikacja Telecom.
+Dowody: [macierz](../benchmarks/audio/AUDIO_ROUTE_QUALITY.md),
+[checkpoint](../benchmarks/audio/CHECKPOINT_HANDOFF_2026-11-15.md).
 
 ## Następny sprint
-- Porównaj wg [macierzy testów](../benchmarks/audio/AUDIO_ROUTE_QUALITY.md) Android STT, Parakeet PL i Gemma Audio Direct z Android TTS PL/Piper; gotowość, prewarm, WER, RX→model→TTS→TX, opóźnienia, echo, barge-in, STOP i błędy.
-- S22 14.11.2026: Android STT/TTS, WAV, END_CALL potwierdzone. Gemma Audio Direct MVP: ASR→JSON 3/3 syntetyczne próbki i jedna rozmowa. Otwarte: P1 na telefonie, długa mowa, opóźnienia, barge-in, STOP, powtarzalne END_CALL i polski głos Piper.
-- Bez strojenia dialogu i realnych rozmów bez zgody. WAV i transkrypty poza Git.
 
-## PÓŹNIEJ — JAKOŚĆ DIALOGU
-Pamięć/korekty, brak powtarzania pytań, naturalne odpowiedzi, godziny, powitanie/pożegnanie i wieloturowość. Dopiero po stabilizacji I/O.
+Prawdziwy Call 4–6 tur z powitaniem podczas prewarm,
+end-of-speech → TX, barge-in i STOP; END_CALL po
+„do widzenia” oraz odsłuch. Osobno zdiagnozować
+REPAIRS=1 pierwszej odpowiedzi i porównać Qwen.
 
 ## Otwarte
-- **G6.1 — kampanie wieloodbiorcowe**, alarm/BOOT/retry, takeover/resume i playback: **PHYSICAL_OPEN**.
-- Wizyta: brak potwierdzonej rezerwacji.
+
+C1–C3 realne połączenie/hałas/pożegnanie;
+G6.1 kampanie, boot/retry/takeover: PHYSICAL_OPEN.
+Bez schedulerów, automatycznych telefonów i WAV w Git.

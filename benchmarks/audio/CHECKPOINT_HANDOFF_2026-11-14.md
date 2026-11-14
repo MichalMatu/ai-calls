@@ -1,5 +1,9 @@
 # AI Calls — checkpoint i handoff, 14.11.2026
 
+> **Archiwum:** nowa walidacja i aktualny status są w
+> [checkpoint 15.11](CHECKPOINT_HANDOFF_2026-11-15.md).
+> Dawne PHYSICAL_OPEN dla S2–S7 są historyczne.
+
 **Repo:** `MichalMatu/ai-calls`, `main`. Kod produkcyjny sprawdzony na hostcie: `ce05a593b0d77b869a8ef21b6ef24b66f8694cf4`. Testy instrumentacyjne z poprawionymi kontraktami: `50234e953a97b91f38aed6243f3ea6cc4bcc428a`. Commit tego checkpointu zmieni HEAD bez zmiany APK. Zaczynaj nowy czat od odczytu `AGENTS.md`, `docs/README.md`, `docs/PROJECT.md` i tego pliku; sprawdź HEAD, nie odtwarzaj testów bez powodu.
 
 ## Potwierdzone automatycznie

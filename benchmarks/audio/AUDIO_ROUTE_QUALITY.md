@@ -23,10 +23,10 @@ To checklista, nie drugi plan. PASS dotyczy wskazanego SHA, środowiska i receip
 | --- | --- | --- | --- |
 | H1 | Preflight, 6 modułów, Python, Gemma lab, APK | Czysty Mac, exit 0 dla tego SHA | **PASS** `ce05a593`: 1311 JUnit, 438 Python, receipt `aicalls-host-final-all-tests-20261114-v4` |
 | E1 | Głos, PL UI, STOP, szyfrowanie, Lab | Emulator, 0 błędów | **PASS 29/29** `50234e95`: `aicalls-emulator-safe-instrumentation-20261114-v4` |
-| R1 | Android STT → Gemma E2B → Android TTS PL | S22: WER, ASR/model/TTS/E2E, odsłuch, echo | Bazowy tor znany; pomiar **PHYSICAL_OPEN** |
-| R2 | Gemma Audio Direct → Gemma E2B → Android TTS PL | S22: długi RX, retry P1, WER, timeout, latencje | 3/3 syntetyczne + starsza rozmowa MVP; retest **PHYSICAL_OPEN** |
-| R3 | Parakeet PL → Gemma E2B → Android TTS PL | S22: model natywny gotowy, WER, latencje | **PHYSICAL_OPEN**; brak modelu = `not_available` |
-| R4–R6 | R1–R3 z polskim Piper | S22: potwierdzony głos PL, odsłuch, latencje | **PHYSICAL_OPEN**; brak głosu = `not_available` |
+| R1 | Android STT → Gemma E2B → Android TTS PL | S22: WER, ASR/model/TTS/E2E, odsłuch, echo | **S3/S4 syntetycznie PASS**, odsłuch i rzeczywisty Call PHYSICAL_OPEN |
+| R2 | Gemma Audio Direct → Gemma E2B → Android TTS PL | S22: długi RX, retry P1, WER, timeout, latencje | **S3/S6 syntetycznie PASS**, długi RX i rzeczywisty Call PHYSICAL_OPEN |
+| R3 | Parakeet PL → Gemma E2B → Android TTS PL | S22: model natywny gotowy, WER, latencje | **S3/S4 syntetycznie PASS**, rzeczywisty Call PHYSICAL_OPEN |
+| R4–R6 | R1–R3 z polskim Piper | S22: potwierdzony głos PL, odsłuch, latencje | **S3/S4/S6 syntetycznie PASS**, odsłuch i rzeczywisty Call PHYSICAL_OPEN |
 | S1 | **Piper Gosia → PCM16 → Parakeet PL (off-call)** | Dokładna Gosia, natywny Parakeet, brak rozmowy; WER i czasy | **PASS** na S22, SHA `0c79cf4`: TTS 2478 ms, prewarm 2466 ms, infer 437 ms, 0/6 błędnych słów; receipt `aicalls-s22-sole-piper-audio-retest-20261114-v1` |
 | S2 | **Stały zestaw pl-audio-v1: Piper Gosia → Parakeet PL (5 × 2, off-call)** | 10 prób, ten sam hash tekstów, wszystkie próby pozytywne, łączny WER ≤25% | **PASS** S22 na SHA `7c08d554`: 10/10, 6/104 błędnych słów (WER 5,77%), E2E p50 4473,5 ms / p95 7763 ms, TTS p50 2682 ms, Parakeet infer p50 659 ms; termin/godzina 3/9 ×2, pozostałe 0; korpus SHA256 `fe64ca3f291656a7c067fb7adac35d956b66686485078f52725d50927e68e701`; receipt `aicalls-s22-fixed-audio-suite-baseline-20261114-v1` |
 | C1 | 4–6 tur: długa mowa, szum, cisza, korekta | S22: rozpoznanie i poprawna kolejność tur | **PHYSICAL_OPEN** |
@@ -173,7 +173,43 @@ od nowa. Kryterium przygotowania to brak ponownej inicjalizacji Engine.
 Cold oznacza świeży Engine, nie restart telefonu ani wyczyszczony
 systemowy cache modelu. Tury 2/3 mają rosnący kontekst, co może
 wpływać na generację; porównanie inferencji uwzględnia długości
-odpowiedzi. Nie oznaczaj PASS bez fizycznego odbioru na S22.
+odpowiedzi. **S7 — potwierdzenie na S22:** dwa przebiegi po 6 identycznych prób
+native Gemma E2B (69 znaków odpowiedzi w każdej próbie).
+Pomiary samego modelu; brak STT, TTS i połączenia.
+
+| Metryka | Przebieg 1: SHA 1c09366 | Przebieg 2: SHA e0baaf1 |
+|---|---:|---:|
+| Inicjalizacja nowego Engine | 6327 ms | 5533 ms |
+| Utworzenie Conversation | 1567 ms | 1491 ms |
+| Pierwsza odpowiedź cold | 16178 ms | 15302 ms |
+| Pełny prewarm przed pierwszą odpowiedzią | 6126 ms | 5795 ms |
+| Prewarm Engine / Conversation | 4607 / 1515 ms | 4160 / 1632 ms |
+| Pierwsza odpowiedź po prewarm | 7784 ms | 8455 ms |
+| Hot, cold-branch, tura 2 | 1439 ms | 1437 ms |
+| Hot, cold-branch, tura 3 | 1506 ms | 1471 ms |
+| Hot, prewarm-branch, tura 2 | 1491 ms | 1633 ms |
+| Hot, prewarm-branch, tura 3 | 1508 ms | 1718 ms |
+
+Średnio: cold-first **15740 ms**, prewarmed-first **8119,5 ms**,
+oszczędność **7620,5 ms = 48,4%**. Prewarm wymagał średnio
+5960,5 ms. Mediana 8 kolejnych hot-turns to **1498,5 ms**
+(zakres 1437–1718 ms). Wszystkie odpowiedzi: 69 znaków.
+W pierwszej turze obu wariantów i obu przebiegów zanotowano
+REPAIRS=1; w kolejnych REPAIRS=0. W prewarm-first
+ENGINE_MS=0 i CONV_MS=0, ale REUSED=0: jest to odtworzenie
+pierwszej konwersacji przy naprawie JSON, nie cold Engine.
+To korelacja, a nie dowód ile milisekund zajmuje sama naprawa.
+Cold oznacza nowy natywny Engine, nie restart S22 ani pusty
+OS file cache.
+
+Przebieg 1: 6 odpowiedzi zostało wygenerowanych, lecz końcowy
+asercyjny check błędnie oczekiwał REUSED=1 przy pierwszej
+odpowiedzi prewarm. Przebieg 2: **PASS 6/6**, bez zgadywania
+stanu silnika. Telefon IDLE, preferencje bez zmian.
+Receipts: aicalls-s22-gemma-cold-warm-real-native-20261115-v1
+oraz aicalls-s22-gemma-cold-hot-confirmation-20261115-v2.
+Prywatne agregaty zachowano na Macu. Samych 1,5 s nie
+traktować jako czasu end-of-speech do TX na prawdziwym Call.
 
 ## Zapis nowego pomiaru
 
