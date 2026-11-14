@@ -11,5 +11,6 @@
 ## PÓŹNIEJ — osobny duży sprint JAKOŚĆ DIALOGU
 Pamięć/korekty, niepowtarzanie pytań, naturalne odpowiedzi, formy grzecznościowe, godziny, przywitanie, pożegnanie oraz rozmowy wieloturowe. Oceniać dopiero na stabilnym torze I/O.
 
-## Pozostałe otwarte
-Kampania wieloodbiorcowa, alarm/BOOT/retry, takeover/resume i playback: **PHYSICAL_OPEN**. Brak potwierdzonej rezerwacji wizyt.
+## Otwarte
+- **G6.1 — kampanie wieloodbiorcowe**, alarm/BOOT/retry, takeover/resume i playback: **PHYSICAL_OPEN**.
+- Wizyta: brak potwierdzonej rezerwacji.
