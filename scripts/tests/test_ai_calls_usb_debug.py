@@ -38,7 +38,7 @@ class UsbDebugProtocolTests(unittest.TestCase):
 
     def test_actions_are_narrow_and_no_authority_bypass(self):
         for action in ("status", "profile_set", "profile_reset", "grant_revoke",
-                       "evidence_status", "evidence_disable", "profile_check"):
+                       "evidence_status", "evidence_disable", "profile_check", "audio_route_check"):
             self.assertIn(action, bridge.BRIDGE_ACTIONS)
         for action in ("grant_replace", "disable_stop", "override_permissions",
                        "place_call", "raw_prefs_write"):

@@ -30,7 +30,7 @@ PREFS = {
 }
 BRIDGE_ACTIONS = frozenset({
     "status", "evidence_status", "profile_set", "profile_reset",
-    "profile_check", "audio_compat_check", "audio_corpus_check",
+    "profile_check", "audio_compat_check", "audio_route_check", "audio_corpus_check",
     "audio_transcript_corpus_check", "audio_staged_corpus_check", "grant_revoke", "evidence_disable",
 })
 TESTS = {
@@ -210,6 +210,7 @@ def run_bridge(device: Device, action: str, params: dict[str, str] | None = None
     if launch.returncode or "Error:" in launch.stdout or "Error:" in launch.stderr:
         raise DiagnosticError("diagnostic_activity_launch_failed")
     deadline = time.monotonic() + (
+        500 if action == "audio_route_check" else
         390 if action in {"audio_corpus_check", "audio_transcript_corpus_check",
                           "audio_staged_corpus_check"} else
         205 if action == "audio_compat_check" else
@@ -305,7 +306,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=[
         "status", "errors", "evidence-status", "evidence-export", "evidence-disable",
-        "profile-check", "profile-set", "profile-reset", "grant-revoke", "probe",
+        "profile-check", "profile-set", "profile-reset", "grant-revoke", "audio-route-check", "probe",
     ])
     parser.add_argument("probe_name", nargs="?", choices=list(TESTS))
     parser.add_argument("--input", default="ANDROID_STT")
@@ -320,7 +321,7 @@ def main() -> int:
         mutation = args.action in {
             "profile-set", "profile-reset", "grant-revoke", "evidence-disable"
         }
-        hardware_test = args.action in {"probe", "evidence-export"}
+        hardware_test = args.action in {"probe", "evidence-export", "audio-route-check"}
         if mutation or hardware_test:
             device.safe_preflight()
         before = device.preference_hashes() if mutation or hardware_test else None

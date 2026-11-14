@@ -114,6 +114,22 @@ class UsbLabControlTests(unittest.TestCase):
             self.assertEqual(written[0].stat().st_mode & 0o777, 0o600)
             self.assertIn("secret output", written[0].read_text())
 
+    def test_audio_route_probe_uses_readonly_bridge_and_filters_private_fields(self):
+        from types import SimpleNamespace
+        device = FakeDevice()
+        device.safe_preflight = lambda: None
+        with patch.object(channel, "run_bridge", return_value={
+            "ok": True, "code": "audio_route_pass",
+            "data": {"passed": True, "word_errors": 0, "reference_words": 8,
+                     "native_infer_ms": 120, "transcript": "private words",
+                     "phone_number": "private number"}}) as bridge:
+            result = channel.run_once(device, SimpleNamespace(command="audio-route-check"))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["data"]["word_errors"], 0)
+        self.assertNotIn("transcript", result["data"])
+        self.assertNotIn("phone_number", result["data"])
+        bridge.assert_called_once_with(device, "audio_route_check")
+
     def test_chat_input_requires_explicit_session_and_stdin(self):
         namespace = type("Namespace", (), {"command": "lab-send", "session_id": None})
         with self.assertRaises(channel.DiagnosticError):

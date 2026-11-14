@@ -22,6 +22,11 @@ import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
+import pl.michalmatu.aicallbridge.audioengines.ParakeetPiperAudioRoutePolicy
+import pl.michalmatu.aicallbridge.audioengines.ParakeetPiperAudioRouteRunner
+import pl.michalmatu.aicallbridge.audioengines.ParakeetPiperAudioRouteResult
+import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
+import pl.michalmatu.aicallbridge.audioengines.PiperAndroidTtsOutputProvider
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.audioengines.SpeechOutputId
 import pl.michalmatu.aicallbridge.campaign.CampaignAuthorizationStore
@@ -82,6 +87,51 @@ internal object UsbDebugBridge {
             }
             when (action) {
                 "status", "evidence_status" -> reply(true, "ok", snapshot(activity))
+                "audio_route_check" -> {
+                    // Private DUMP-only off-call native probe, using only a fixed synthetic phrase.
+                    // Neither the profile nor any call/grant is modified.
+                    val guard = mutationGuard(activity)
+                    val saved = AudioEngineProfileStore(activity).load()
+                    when {
+                        guard != null -> reply(false, guard)
+                        saved == null -> reply(false, "invalid_profile")
+                        !ParakeetPiperAudioRoutePolicy.canProbe(saved) ->
+                            reply(false, "parakeet_piper_profile_required")
+                        else -> {
+                            val runner = ParakeetPiperAudioRouteRunner(
+                                outputFactory = {
+                                    PiperAndroidTtsOutputProvider(
+                                        activity, saved.languageTag, saved.voiceId)
+                                },
+                                inputFactory = { ParakeetSpeechInputProvider(activity) },
+                                dispatch = { task -> activity.mainExecutor.execute(task) },
+                            )
+                            var completed = false
+                            fun complete(result: ParakeetPiperAudioRouteResult) {
+                                if (completed) return
+                                completed = true
+                                runner.close()
+                                reply(result.passed, if (result.passed) "audio_route_pass"
+                                    else result.code, JSONObject()
+                                    .put("passed", result.passed)
+                                    .put("tts_ms", result.ttsMs)
+                                    .put("native_prewarm_ms", result.nativePrewarmMs)
+                                    .put("native_infer_ms", result.nativeInferMs)
+                                    .put("word_errors", result.wordErrors)
+                                    .put("reference_words", result.referenceWords))
+                            }
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                complete(ParakeetPiperAudioRouteResult(
+                                    false, "audio_route_timeout"))
+                            }, 450_000L)
+                            try { runner.start { complete(it) } }
+                            catch (_: Exception) {
+                                complete(ParakeetPiperAudioRouteResult(
+                                    false, "audio_route_start_failed"))
+                            }
+                        }
+                    }
+                }
                 "audio_corpus_check", "audio_transcript_corpus_check",
                 "audio_staged_corpus_check" -> {
                     val guard = mutationGuard(activity)

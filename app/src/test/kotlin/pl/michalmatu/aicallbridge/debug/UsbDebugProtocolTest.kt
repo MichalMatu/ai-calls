@@ -11,6 +11,8 @@ class UsbDebugProtocolTest {
         assertTrue(UsbDebugProtocol.accepts("status"))
         assertTrue(UsbDebugProtocol.accepts("profile_set"))
         assertTrue(UsbDebugProtocol.accepts("audio_compat_check"))
+        assertTrue(UsbDebugProtocol.accepts("audio_route_check"))
+        assertFalse("audio_route_check" in UsbDebugProtocol.mutableActions)
         assertTrue(UsbDebugProtocol.accepts("audio_corpus_check"))
         assertTrue(UsbDebugProtocol.accepts("audio_transcript_corpus_check"))
         assertTrue(UsbDebugProtocol.accepts("audio_staged_corpus_check"))

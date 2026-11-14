@@ -339,6 +339,17 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
         return {"ok": result.get("ok") is True,
                 "code": result.get("code", "profile_status_unknown"),
                 "data": result.get("data", {})}
+    if name == "audio_route_check":
+        # Existing protected bridge: native synthetic STT/TTS, no phone call or test APK.
+        device.safe_preflight()
+        response = run_bridge(device, "audio_route_check")
+        details = response.get("data")
+        allowed = ("passed", "tts_ms", "native_prewarm_ms", "native_infer_ms",
+                   "word_errors", "reference_words")
+        safe = {key: details[key] for key in allowed if isinstance(details, dict)
+                and key in details and type(details[key]) in (bool, int)}
+        return {"ok": response.get("ok") is True,
+                "code": response.get("code", "audio_route_unknown"), "data": safe}
     if name == "lab_send":
         if not args.session_id:
             raise DiagnosticError("session_id_required")
@@ -376,7 +387,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=sorted(
         {k.replace("_", "-") for k in ACTIONS}
-        | {"lab-save", "ram", "profile-check", "profile-set", "profile-reset", "watch", "appointment-open"}
+        | {"lab-save", "ram", "profile-check", "profile-set", "profile-reset", "watch", "appointment-open", "audio-route-check"}
     ))
     parser.add_argument("--allow-one-real-call", action="store_true")
     parser.add_argument("--session-id")
