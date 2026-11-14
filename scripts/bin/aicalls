@@ -14,6 +14,8 @@ case "$command_name" in
   realtime-network-smoke) module="aicall_tools.realtime.realtime_network_smoke" ;;
   realtime-offcall-lab) module="aicall_tools.realtime.realtime_offcall_lab" ;;
   openai-text-offcall-lab) module="aicall_tools.text.openai_text_offcall_lab" ;;
+  audio-route-check)
+    exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;
   appointment-stage|appointment-open|call-status)
     exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;
   call-capabilities) module="aicall_tools.device.s22_call_capabilities" ;;

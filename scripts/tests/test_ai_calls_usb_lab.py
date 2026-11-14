@@ -282,6 +282,7 @@ class AppointmentOwnerConsoleTests(unittest.TestCase):
         path = Path(__file__).resolve().parents[1] / "bin" / "aicalls"
         source = path.read_text(encoding="utf-8")
         self.assertIn("appointment-stage|appointment-open|call-status)", source)
+        self.assertIn("audio-route-check)", source)
         self.assertNotIn("place-call", source)
 
 if __name__ == "__main__":
