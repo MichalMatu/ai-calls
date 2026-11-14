@@ -10,6 +10,7 @@ import argparse
 import json
 import math
 import re
+from statistics import median
 from collections import defaultdict
 from pathlib import Path
 
@@ -20,7 +21,7 @@ MODES = ("synthetic_offcall", "real_call")
 OPTIONAL = {
     "voice_id", "wer_errors", "reference_words", "asr_ms", "model_ms", "tts_ms",
     "end_to_end_ms", "voice_quality_1_to_5", "stop_ok", "barge_in_ok",
-    "end_call_ok", "evidence_id",
+    "end_call_ok", "evidence_id", "model_identity", "tts_package",
 }
 REQUIRED = {
     "run_id", "source_sha", "input", "model", "tts_engine", "mode",
@@ -50,6 +51,16 @@ def validate(record: object) -> dict:
         raise ValueError("unsupported_engine_or_mode")
     if record["input"] == "GEMMA_AUDIO_DIRECT" and record["model"] != "GEMMA_4_E2B":
         raise ValueError("unsupported_gemma_audio_model")
+    if record["model"] == "USER_LITERT" and not re.fullmatch(
+        r"user-[0-9a-f]{64}", record.get("model_identity", "")
+    ):
+        raise ValueError("imported_model_identity_required")
+    if record["model"] != "USER_LITERT" and "model_identity" in record:
+        raise ValueError("unexpected_model_identity")
+    if "tts_package" in record and not re.fullmatch(
+        r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+", record["tts_package"]
+    ):
+        raise ValueError("invalid_tts_package")
     for key in ("cases", "passed"):
         if type(record[key]) is not int or record[key] < 0:
             raise ValueError("invalid_" + key)
@@ -75,7 +86,7 @@ def validate(record: object) -> dict:
             raise ValueError("invalid_" + key)
     for key in ("voice_id", "evidence_id"):
         if key in record and (not isinstance(record[key], str)
-                             or not ID.fullmatch(record[key])):
+                             or not re.fullmatch(r"[A-Za-z0-9._:#-]{1,160}", record[key])):
             raise ValueError("invalid_" + key)
     return record
 
@@ -113,48 +124,61 @@ def p95(values: list[float]) -> float:
 
 
 def summary(rows: list[dict]) -> str:
-    groups: dict[tuple[str, str, str, str], list[dict]] = defaultdict(list)
+    # Never pool different APK revisions, TTS packages/voices, imported models or test modes.
+    groups: dict[tuple[str, ...], list[dict]] = defaultdict(list)
     for row in rows:
-        groups[(row["input"], row["model"], row["tts_engine"], row["mode"])].append(row)
+        key = (
+            row["input"], row["model"], row.get("model_identity", ""),
+            row["tts_engine"], row.get("tts_package", ""),
+            row.get("voice_id", ""), row["source_sha"], row["mode"],
+        )
+        groups[key].append(row)
     lines = [
         "# AI Calls — porównanie jakości torów audio",
         "",
-        "Wyniki tylko z pomiarów. Brak danych ≠ błąd ani zaliczony test.",
+        "Wyniki tylko z pomiarów; brak danych ≠ błąd ani zaliczony test.",
         "",
-        "| Wejście | Model | TTS | Test | Próby PASS | WER | E2E p50/p95 | Głos 1–5 | STOP / przerwanie / koniec |",
-        "|---|---|---|---|---:|---:|---:|---:|---|",
+        "| Wejście | Model | TTS / głos | Wersja | Tryb | Próby PASS | WER | E2E p50 / p95 | Głos 1–5 | STOP / przerwanie / koniec |",
+        "|---|---|---|---|---|---:|---:|---:|---:|---|",
     ]
+
+    def append_row(key: tuple[str, ...], group: list[dict]) -> None:
+        inp, model, model_id, engine, package, voice, sha, mode = key
+        model_label = model if not model_id else model + ":" + model_id[:13]
+        tts_label = engine + (":" + package if package else "") + ("/" + voice if voice else "")
+        count = sum(r["cases"] for r in group)
+        passed = sum(r["passed"] for r in group)
+        wc = sum(r.get("wer_errors", 0) for r in group)
+        wr = sum(r.get("reference_words", 0) for r in group)
+        times = [r["end_to_end_ms"] for r in group if "end_to_end_ms" in r]
+        scores = [r["voice_quality_1_to_5"] for r in group if "voice_quality_1_to_5" in r]
+
+        def flag(name: str) -> str:
+            vals = [r[name] for r in group if r.get(name) is not None]
+            return "—" if not vals else f"{sum(vals)}/{len(vals)}"
+
+        lat = "—" if not times else f"{median(times):.0f} / {p95(times):.0f} ms"
+        quality = "—" if not scores else f"{sum(scores)/len(scores):.1f}"
+        wer = "—" if not wr else f"{100 * wc / wr:.1f}%"
+        passed_text = "nieprzetestowane" if not count else f"{passed}/{count}"
+        lines.append(
+            f"| {inp} | {model_label} | {tts_label} | {sha[:8] or '—'} | "
+            f"{mode} | {passed_text} | {wer} | {lat} | {quality} | "
+            f"{flag('stop_ok')} / {flag('barge_in_ok')} / {flag('end_call_ok')} |"
+        )
+
     for inp in INPUTS:
         for engine in ENGINES:
-            model = "GEMMA_4_E2B"
             for mode in MODES:
-                group = groups.get((inp, model, engine, mode), [])
-                count = sum(r["cases"] for r in group)
-                passed = sum(r["passed"] for r in group)
-                wc = sum(r.get("wer_errors", 0) for r in group)
-                wr = sum(r.get("reference_words", 0) for r in group)
-                times = [r["end_to_end_ms"] for r in group if "end_to_end_ms" in r]
-                scores = [r["voice_quality_1_to_5"] for r in group if r.get("voice_quality_1_to_5") is not None]
-                def flag(name: str) -> str:
-                    vals = [r[name] for r in group if r.get(name) is not None]
-                    return "—" if not vals else f"{sum(vals)}/{len(vals)}"
-                def fmt(value: float) -> str:
-                    return f"{value:.0f}"
-                lat = "—" if not times else f"{fmt(sorted(times)[len(times)//2])}/{fmt(p95(times))} ms"
-                quality = "—" if not scores else f"{sum(scores)/len(scores):.1f}"
-                wer = "—" if not wr else f"{100*wc/wr:.1f}%"
-                pass_rate = "nieprzetestowane" if not count else f"{passed}/{count}"
-                lines.append(
-                    f"| {inp} | {model} | {engine} | {mode} | {pass_rate} | {wer} | "
-                    f"{lat} | {quality} | {flag('stop_ok')} / {flag('barge_in_ok')} / {flag('end_call_ok')} |"
-                )
-    # Imported models remain separate from built-in Gemma, never silently pooled.
-    imported = sorted(k for k in groups if k[1] == "USER_LITERT")
-    for key in imported:
-        group = groups[key]
-        lines.append(f"| {key[0]} | USER_LITERT | {key[2]} | {key[3]} | "
-                     f"{sum(r['passed'] for r in group)}/{sum(r['cases'] for r in group)} | "
-                     "osobny model | osobny model | — | — |")
+                matching = sorted(k for k in groups if k[0] == inp and k[1] == "GEMMA_4_E2B"
+                                  and k[3] == engine and k[7] == mode)
+                if not matching:
+                    append_row((inp, "GEMMA_4_E2B", "", engine, "", "", "", mode), [])
+                else:
+                    for key in matching:
+                        append_row(key, groups[key])
+    for key in sorted(k for k in groups if k[1] == "USER_LITERT"):
+        append_row(key, groups[key])
     return "\n".join(lines) + "\n"
 
 
