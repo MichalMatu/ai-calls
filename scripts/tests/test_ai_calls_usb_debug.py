@@ -22,6 +22,8 @@ class UsbDebugProtocolTests(unittest.TestCase):
         output = "\n".join([
             "INSTRUMENTATION_STATUS: stream=AUDIO_QA_GEMMA_CASE_1_WORD_ERRORS=2",
             "AUDIO_QA_PARAKEET_CASE_3_INIT_MS=1490",
+            "AUDIO_QA_GEMMA_CASE_1_PASSED=0",
+            "AUDIO_QA_GEMMA_CASE_1_PREWARM_OVERLAPPED_TTS=1",
             "AUDIO_QA_GEMMA_CASE_1_TRANSCRIPT=private text",
             "AUDIO_QA_PHONE=123456789",
             "AUDIO_QA_GEMMA_CASE_4_WORD_ERRORS=1",
@@ -30,6 +32,8 @@ class UsbDebugProtocolTests(unittest.TestCase):
         self.assertEqual(bridge.parse_audio_quality_metrics(output), {
             "GEMMA_CASE_1_WORD_ERRORS": 2,
             "PARAKEET_CASE_3_INIT_MS": 1490,
+            "GEMMA_CASE_1_PASSED": 0,
+            "GEMMA_CASE_1_PREWARM_OVERLAPPED_TTS": 1,
         })
 
     def test_actions_are_narrow_and_no_authority_bypass(self):

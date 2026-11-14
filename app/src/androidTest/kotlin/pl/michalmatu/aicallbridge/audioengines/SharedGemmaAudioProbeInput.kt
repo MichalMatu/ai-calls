@@ -14,23 +14,12 @@ internal class SharedGemmaAudioProbeInput(context: Context) : SpeechInputProvide
     private val input = GemmaAudioDirectInputProvider()
     private val model = Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(
         Gemma4LiteRtTextBackendFactory.modelFile(context, DialogueModelId.GEMMA_4_E2B), true)
-    @Volatile private var syntheticPreflightDone = false
+    // Begin loading engine and native conversation while the corpus's first
+    // synthetic Polish TTS sample is prepared. No fake text inference distorts
+    // the first audio turn or its timing.
+    init { model.prewarm() }
 
-    override fun start(listener: SpeechInputProvider.Listener) {
-        if (syntheticPreflightDone) {
-            startCapture(listener)
-            return
-        }
-        model.generate("Lokalna próba, odpowiedz krótko w wymaganym formacie, tool=none.",
-            object : TextCallAgentBackend.Listener {
-                override fun onComplete(text: String) {
-                    (model as NativeConversationContextBackend).resetConversationContext()
-                    syntheticPreflightDone = true
-                    startCapture(listener)
-                }
-                override fun onError(reason: String) = listener.onError(reason)
-            })
-    }
+    override fun start(listener: SpeechInputProvider.Listener) = startCapture(listener)
 
     private fun startCapture(listener: SpeechInputProvider.Listener) {
                     input.start(object : SpeechInputProvider.Listener {

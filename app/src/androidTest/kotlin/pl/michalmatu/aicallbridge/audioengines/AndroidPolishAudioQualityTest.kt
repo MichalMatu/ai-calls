@@ -69,9 +69,11 @@ class AndroidPolishAudioQualityTest {
         // Keep Gemma's native runtime across samples to measure cold vs warm turns.
         // Other recognizers keep their original per-sample lifecycle.
         val sharedGemma = if (engine == "GEMMA") inputFactory() else null
+        val failedCases = mutableListOf<Int>()
         try {
         phrases.forEachIndexed { index, reference ->
             val metrics = linkedMapOf<String, Long>()
+            metrics["PREWARM_OVERLAPPED_TTS"] = if (engine == "GEMMA" && index == 0) 1 else 0
             val synthStarted = System.nanoTime()
             val synthDone = CountDownLatch(1)
             val audio = AtomicReference<ByteArray?>(null)
@@ -136,7 +138,17 @@ class AndroidPolishAudioQualityTest {
                             "_CASE_" + (index + 1) + "_NATIVE_ERROR=" + code)
                     })
                 }
-                assertNull("Native Polish recognition error: ${error.get()}", error.get())
+                if (error.get() != null) {
+                    metrics["PASSED"] = 0L
+                    InstrumentationRegistry.getInstrumentation().sendStatus(2, Bundle().apply {
+                        putString("stream", metrics.entries.joinToString("\n", prefix = "\n",
+                            postfix = "\n") {
+                            "AUDIO_QA_${engine}_CASE_${index + 1}_${it.key}=${it.value}"
+                        })
+                    })
+                    failedCases.add(index + 1)
+                    return@forEachIndexed
+                }
             } finally {
                 if (sharedGemma == null) input.close()
             }
@@ -153,19 +165,22 @@ class AndroidPolishAudioQualityTest {
             metrics["CHAR_ERRORS"] = distance(expectedChars, actual.joinToString(" ").toList()).toLong()
             metrics["REF_CHARS"] = expectedChars.size.toLong()
             metrics["FINAL_CALLBACKS"] = callbacks.get().toLong()
+            val passed = actual.isNotEmpty() && wordErrors * 2 <= expected.size &&
+                callbacks.get() == 1
+            metrics["PASSED"] = if (passed) 1L else 0L
+            if (!passed) failedCases.add(index + 1)
             val stream = metrics.entries.joinToString("\n", prefix = "\n", postfix = "\n") {
                 "AUDIO_QA_${engine}_CASE_${index + 1}_${it.key}=${it.value}"
             }
             InstrumentationRegistry.getInstrumentation().sendStatus(2, Bundle().apply {
                 putString("stream", stream)
             })
-            assertTrue("Polish synthetic sample ${index + 1} returned no words", actual.isNotEmpty())
-            assertTrue("Polish synthetic sample ${index + 1} WER exceeds 50 percent",
-                wordErrors * 2 <= expected.size)
         }
         } finally {
             sharedGemma?.close()
         }
+        assertTrue("Synthetic Polish samples failed: " + failedCases.joinToString(","),
+            failedCases.isEmpty())
     }
 
     private fun elapsed(started: Long) = (System.nanoTime() - started) / 1_000_000L

@@ -243,6 +243,7 @@ def parse_audio_quality_metrics(output: str) -> dict[str, int]:
     fields = {
         "TTS_MS", "AUDIO_MS", "INIT_MS", "INFER_MS", "WORD_ERRORS",
         "REF_WORDS", "CHAR_ERRORS", "REF_CHARS", "FINAL_CALLBACKS",
+        "PASSED", "PREWARM_OVERLAPPED_TTS",
     }
     allowed = {f"{engine}_CASE_{case}_{field}"
                for engine in ("GEMMA", "PARAKEET", "PIPER")
