@@ -50,10 +50,21 @@ internal object GemmaAudioPcm16 {
 internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
     private val lock = Any()
     private var listener: SpeechInputProvider.Listener? = null
-    private val pcm = ByteArrayOutputStream()
+    // A bounded, reusable PCM buffer. Clearing only ByteArrayOutputStream's length
+    // left old speech in its backing allocation after cancellation.
+    private var pcm = ByteArray(0)
+    private var used = 0
+
+    private fun clearPcm() {
+        pcm.fill(0, 0, used)
+        used = 0
+    }
 
     override fun start(listener: SpeechInputProvider.Listener) {
-        synchronized(lock) { pcm.reset(); this.listener = listener }
+        synchronized(lock) {
+            clearPcm()
+            this.listener = listener
+        }
         listener.onReady()
     }
 
@@ -61,8 +72,23 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
         require(offset >= 0 && length >= 0 && offset <= bytes.size &&
             length <= bytes.size - offset) { "invalid_pcm_range" }
         return synchronized(lock) {
-            if (listener == null || length > GemmaAudioPcm16.MAX_PCM_BYTES - pcm.size()) false
-            else { pcm.write(bytes, offset, length); true }
+            if (listener == null || length > GemmaAudioPcm16.MAX_PCM_BYTES - used) return@synchronized false
+            if (length == 0) return@synchronized true
+            val required = used + length
+            if (required > pcm.size) {
+                var capacity = pcm.size.coerceAtLeast(32_000)
+                while (capacity < required) {
+                    capacity = (capacity * 2).coerceAtMost(GemmaAudioPcm16.MAX_PCM_BYTES)
+                }
+                val expanded = ByteArray(capacity)
+                pcm.copyInto(expanded, endIndex = used)
+                pcm.fill(0, 0, used)
+                pcm = expanded
+            }
+            bytes.copyInto(pcm, destinationOffset = used, startIndex = offset,
+                endIndex = offset + length)
+            used += length
+            true
         }
     }
 
@@ -70,12 +96,26 @@ internal class GemmaAudioDirectInputProvider : SpeechInputProvider {
         val (callback, samples) = synchronized(lock) {
             val callback = listener ?: return
             listener = null
-            callback to pcm.toByteArray().also { pcm.reset() }
+            val samples = pcm.copyOf(used)
+            clearPcm()
+            callback to samples
         }
         if (samples.isEmpty() || samples.size % 2 != 0) callback.onError("invalid_pcm16")
         else callback.onFinalAudio(samples)
     }
 
-    override fun cancel() { synchronized(lock) { listener = null; pcm.reset() } }
-    override fun close() = cancel()
+    override fun cancel() {
+        synchronized(lock) {
+            listener = null
+            clearPcm()
+        }
+    }
+
+    override fun close() {
+        synchronized(lock) {
+            listener = null
+            clearPcm()
+            pcm = ByteArray(0)
+        }
+    }
 }

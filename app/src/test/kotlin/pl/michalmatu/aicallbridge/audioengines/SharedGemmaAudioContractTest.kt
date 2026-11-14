@@ -125,6 +125,55 @@ class SharedGemmaAudioContractTest {
         assertEquals(1, audio.size)
     }
 
+    @Test fun boundedPcmRejectsOverflowWithoutLosingEarlierAudio() {
+        val input = GemmaAudioDirectInputProvider()
+        val heard = mutableListOf<ByteArray>()
+        val listener = object : SpeechInputProvider.Listener {
+            override fun onReady() = Unit
+            override fun onFinalTranscript(text: String) = fail("unexpected transcript")
+            override fun onFinalAudio(pcm16: ByteArray) { heard.add(pcm16) }
+            override fun onError(reason: String) = fail(reason)
+        }
+        input.start(listener)
+        val limit = GemmaAudioPcm16.MAX_PCM_BYTES
+        val allowed = ByteArray(limit) { (it and 255).toByte() }
+        assertTrue(input.writePcm(allowed, 0, limit - 2))
+        assertFalse(input.writePcm(allowed, 0, 4))
+        assertTrue(input.writePcm(allowed, limit - 2, 2))
+        assertFalse(input.writePcm(allowed, 0, 2))
+        input.finishInput()
+        assertEquals(1, heard.size)
+        assertArrayEquals(allowed, heard.single())
+        assertFalse(input.writePcm(byteArrayOf(0, 0)))
+        input.close()
+    }
+
+    @Test fun cancelAndRestartNeverPublishPreviousSamples() {
+        val input = GemmaAudioDirectInputProvider()
+        val heard = mutableListOf<ByteArray>()
+        val errors = mutableListOf<String>()
+        val listener = object : SpeechInputProvider.Listener {
+            override fun onReady() = Unit
+            override fun onFinalTranscript(text: String) = fail("unexpected transcript")
+            override fun onFinalAudio(pcm16: ByteArray) { heard.add(pcm16) }
+            override fun onError(reason: String) { errors.add(reason) }
+        }
+        input.start(listener)
+        input.writePcm(ByteArray(128) { 99 })
+        input.cancel()
+        input.finishInput()
+        assertTrue(heard.isEmpty())
+        input.start(listener)
+        assertTrue(input.writePcm(byteArrayOf(1, 0, 2, 0)))
+        input.finishInput()
+        assertArrayEquals(byteArrayOf(1, 0, 2, 0), heard.single())
+        input.start(listener)
+        input.writePcm(byteArrayOf(5))
+        input.finishInput()
+        assertEquals(listOf("invalid_pcm16"), errors)
+        input.close()
+    }
+
     private class PendingAudio : TextCallAgentBackend {
         var pending: TextCallAgentBackend.Listener? = null
         override fun generate(userText: String, listener: TextCallAgentBackend.Listener) { fail("unexpected text inference") }
