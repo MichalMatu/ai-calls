@@ -6,6 +6,11 @@ package pl.michalmatu.aicallbridge.developerrelay
  */
 internal object QuickAcknowledgementPolicy {
     const val TEXT = "Proszę chwilę zaczekać."
+    const val ENGLISH_TEXT = "Please wait a moment."
+
+    fun textForLanguage(languageTag: String): String =
+        if (languageTag.substringBefore('-').substringBefore('_').equals("pl", ignoreCase = true))
+            TEXT else ENGLISH_TEXT
     // The STT/model may finish immediately: avoid talking over an already-ready answer.
     const val AFTER_SPEECH_END_DELAY_MS = 300L
 

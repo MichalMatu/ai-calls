@@ -138,6 +138,8 @@ internal object AndroidConversationRuntime {
         )
         private val mediaTurnStarted = AtomicBoolean(false)
         private val quickAckPcm = AtomicReference<ByteArray?>(null)
+        private val quickAcknowledgementText =
+            QuickAcknowledgementPolicy.textForLanguage(runConfiguration.audioProfile.languageTag)
         private val lastQuickAckTurn = AtomicInteger(0)
         private val finalAudioReadyTurn = AtomicInteger(0)
         private val quickAckSynthesizer = LocalTtsSpeechOutput(
@@ -276,7 +278,7 @@ internal object AndroidConversationRuntime {
                 // Preparation is only for the authorized app-owned campaign, not any dev relay.
                 // Preparation is optional: a TTS constructor/service failure cannot abort the call.
                 runCatching { quickAckSynthesizer.synthesize(
-                    QuickAcknowledgementPolicy.TEXT,
+                    quickAcknowledgementText,
                     object : LocalTtsSpeechOutput.Listener {
                         override fun onPcm16Mono16k(pcm: ByteArray) {
                             if (!finished.get() && pcm.isNotEmpty()) {
@@ -748,7 +750,7 @@ internal object AndroidConversationRuntime {
                         authorized = !finished.get() && authorizedNow() &&
                             runCatching { callStillActive() }.getOrDefault(false) &&
                             currentTurn == turn && activeMediaGeneration.get() == generation &&
-                            dialogue.acknowledgementPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) ==
+                            dialogue.acknowledgementPolicy.evaluate(quickAcknowledgementText) ==
                                 TextOutputDecision.RELEASE,
                         readOnlySupervised = readOnlySupervised,
                         speechDetected = true,
@@ -779,7 +781,7 @@ internal object AndroidConversationRuntime {
                 !runCatching { callStillActive() }.getOrDefault(false) ||
                 currentTurn != turn || activeMediaGeneration.get() != generation ||
                 finalAudioReadyTurn.get() == turn ||
-                dialogue.acknowledgementPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) !=
+                dialogue.acknowledgementPolicy.evaluate(quickAcknowledgementText) !=
                     TextOutputDecision.RELEASE
             ) return
             try {

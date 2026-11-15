@@ -22,6 +22,14 @@ class QuickAcknowledgementPolicyTest {
         assertTrue(QuickAcknowledgementPolicy.TEXT.contains("zaczekać"))
     }
 
+    @Test fun pacingSpeechFollowsSavedVoiceLanguageWithoutChangingProfile() {
+        assertTrue(QuickAcknowledgementPolicy.textForLanguage("pl-PL").contains("zaczekać"))
+        assertTrue(QuickAcknowledgementPolicy.textForLanguage("PL_pl").contains("zaczekać"))
+        assertTrue(QuickAcknowledgementPolicy.textForLanguage("en-US").contains("Please wait"))
+        assertTrue(QuickAcknowledgementPolicy.textForLanguage("en-GB").contains("Please wait"))
+        assertTrue(QuickAcknowledgementPolicy.textForLanguage("fr-FR").contains("Please wait"))
+    }
+
     @Test fun neverTalkOnRevokedGrantStoppedCallOrSupervisorPilot() {
         assertFalse(mayPlay(authorized = false))
         assertFalse(mayPlay(supervised = true))
