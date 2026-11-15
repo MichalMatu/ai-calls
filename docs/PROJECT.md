@@ -14,12 +14,13 @@ Piper Gosia. To stabilny **rdzeń syntetyczny**,
 nie pełna kwalifikacja Telecom.
 Dowody: [macierz](../benchmarks/audio/AUDIO_ROUTE_QUALITY.md),
 [checkpoint](../benchmarks/audio/CHECKPOINT_HANDOFF_2026-11-15.md).
+[Final quality](../benchmarks/audio/FINAL_QUALITY_CHECKPOINT_2026-11-15.md).
 
 ## Następny sprint
 
-Prawdziwy Call 4–6 tur z powitaniem podczas prewarm,
+Call 4–6 tur, powitanie z prewarm,
 end-of-speech → TX, barge-in i STOP; END_CALL po
-„do widzenia” oraz odsłuch. Osobno zdiagnozować
+„do widzenia” oraz odsłuch. Sprawdzić
 REPAIRS=1 pierwszej odpowiedzi. Kandydaci: [lista](../benchmarks/MODEL_CANDIDATES.md).
 
 ## Otwarte
