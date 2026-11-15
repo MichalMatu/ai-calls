@@ -169,10 +169,12 @@ internal object ConversationReplyProtocol {
      * This is spoken-text hygiene, never a new authority to end a Call.
      */
     private fun endCallSpeech(text: String): String {
-        val farewell = Regex("""(?iu)\bdo\s+widzenia\b""").find(text)
+        val farewell = Regex("""(?iu)\b(?:do\s+widzenia|good[\s-]?bye|bye)\b""").find(text)
             ?: return if ('?' in text) "Dziękuję za rozmowę. Do widzenia." else text
+        val safeFarewell = if (farewell.value.contains("bye", ignoreCase = true))
+            "Thank you for calling. Goodbye." else "Dziękuję za rozmowę. Do widzenia."
         val before = text.substring(0, farewell.range.last + 1)
-        if ('?' in before) return "Dziękuję za rozmowę. Do widzenia."
+        if ('?' in before) return safeFarewell
         val after = text.substring(farewell.range.last + 1)
         if (after.isBlank() || after.matches(Regex("""[.!?\s]*"""))) return text
         return before.trimEnd(' ', ',', ';', ':', '!', '.', '?') + "."

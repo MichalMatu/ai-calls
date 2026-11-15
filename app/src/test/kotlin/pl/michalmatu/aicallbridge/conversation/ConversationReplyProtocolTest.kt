@@ -96,6 +96,30 @@ class ConversationReplyProtocolTest {
         }
     }
 
+    @Test fun englishEndCallNeverSpeaksAnExtraQuestionAfterFarewell() {
+        val cases = listOf(
+            "Goodbye. Is there anything else?" to "Goodbye.",
+            "Thank you. Goodbye! Do you need anything?" to "Thank you. Goodbye.",
+            "Are you sure? Goodbye." to "Thank you for calling. Goodbye.",
+            "Goodbye!" to "Goodbye!",
+        )
+        for ((given, expected) in cases) {
+            val json = com.google.gson.JsonObject().apply {
+                addProperty("reply", given)
+                addProperty("tool", "end_call")
+                addProperty("note", "")
+                addProperty("kind", "NOTE")
+            }.toString()
+            val decoded = ConversationReplyProtocol.decode(json)
+            assertEquals(expected, decoded.text)
+            assertEquals(ConversationToolId.END_CALL, decoded.tool)
+        }
+        val plain = ConversationReplyProtocol.decode(
+            """{"reply":"The word goodbye is quoted. I have another question.","tool":"none","note":"","kind":"NOTE"}""")
+        assertNull(plain.tool)
+        assertTrue(plain.text.contains("another question"))
+    }
+
     @Test fun quotedGoodbyeWithoutEndCallRemainsUntouched() {
         val given = "W wiadomości są słowa do widzenia. Czy mam coś jeszcze zapisać?"
         for (tool in listOf("none", "save_note")) {
