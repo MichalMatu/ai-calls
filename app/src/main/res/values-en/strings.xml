@@ -832,9 +832,7 @@
     <string name="task_skip">Skip recipient</string>
     <string name="task_retry_explicit">Retry this number</string>
     <string name="task_stop_all">Stop all AI</string>
-    <string name="history_actions">Conversation options</string>
-    <string name="history_open">Open conversation</string>
-    <string name="history_unfinished_remaining">Some archives are unfinished. Long-press a conversation or use ⋮ for options. “Delete all” removes completed conversations only.</string>
+    <string name="history_unfinished_remaining">Some archives are unfinished. Long-press a conversation to delete it individually. “Delete all” removes completed conversations only.</string>
     <string name="history_incomplete_protected">This conversation has no confirmed ending. To protect active recordings, cleanup becomes available only after 10 minutes without writes while the phone is idle.</string>
     <string name="history_delete_abandoned">Delete unfinished conversation</string>
     <string name="history_delete_abandoned_title">Delete this old unfinished archive?</string>

@@ -833,9 +833,7 @@
     <string name="task_skip">Pomiń odbiorcę</string>
     <string name="task_retry_explicit">Ponów ten numer</string>
     <string name="task_stop_all">Zatrzymaj wszystkie AI</string>
-    <string name="history_actions">Opcje rozmowy</string>
-    <string name="history_open">Otwórz rozmowę</string>
-    <string name="history_unfinished_remaining">Niektóre archiwa są nieukończone. Przytrzymaj rozmowę lub użyj ⋮, aby zobaczyć opcje. „Usuń wszystkie” dotyczy wyłącznie zakończonych rozmów.</string>
+    <string name="history_unfinished_remaining">Niektóre archiwa są nieukończone. Przytrzymaj rozmowę, aby ją usunąć pojedynczo. „Usuń wszystkie” dotyczy wyłącznie zakończonych rozmów.</string>
     <string name="history_incomplete_protected">Ta rozmowa nie ma potwierdzonego zakończenia. Aby chronić aktywne nagrania, sprzątanie będzie dostępne dopiero po 10 minutach bez zapisu i przy bezczynnym telefonie.</string>
     <string name="history_delete_abandoned">Usuń nieukończoną rozmowę</string>
     <string name="history_delete_abandoned_title">Usunąć stare, nieukończone archiwum?</string>

@@ -158,23 +158,6 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         }, LinearLayout.LayoutParams(UiDesign.dp(this, 20), UiDesign.dp(this, 20)))
                         row.addView(open, LinearLayout.LayoutParams(0,
                             ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-                        row.addView(TextView(this).apply {
-                            text = "⋮"
-                            textSize = 24f
-                            gravity = android.view.Gravity.CENTER
-                            setTextColor(UiDesign.secondary)
-                            minimumWidth = UiDesign.dp(this@ConversationHistoryActivity, 48)
-                            minimumHeight = UiDesign.dp(this@ConversationHistoryActivity, 48)
-                            background = UiDesign.touchSurface(this@ConversationHistoryActivity)
-                            isClickable = true
-                            isFocusable = true
-                            tag = "history-options:" + session.id
-                            contentDescription = getString(R.string.history_actions)
-                            setOnClickListener { showSessionActions(entry) }
-                        }, LinearLayout.LayoutParams(
-                            UiDesign.dp(this, 48), ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            marginStart = UiDesign.dp(this@ConversationHistoryActivity, 4)
-                        })
                         content.addView(row, LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
                         ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 6) })
@@ -207,24 +190,18 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
         }
     }
 
+    /** A long press offers only deletion; a short tap continues to open details. */
     private fun showSessionActions(entry: HistoryListRow) {
         if (controller.isDeletionRunning) return
-        val session = entry.session
-        val cleanup = !entry.canDelete && entry.canDeleteAbandoned
-        if (!entry.canDelete && !cleanup) {
-            AlertDialog.Builder(this).setTitle(R.string.history_actions)
+        if (entry.canDelete || entry.canDeleteAbandoned) {
+            confirmDelete(entry.session.id, abandoned = !entry.canDelete)
+        } else {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.history_delete_title)
                 .setMessage(R.string.history_incomplete_protected)
-                .setPositiveButton(android.R.string.ok, null).show()
-            return
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
         }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.history_actions)
-            .setItems(arrayOf(getString(R.string.history_open),
-                getString(if (cleanup) R.string.history_delete_abandoned
-                    else R.string.history_delete))) { _, position ->
-                if (position == 0) showSession(session.id)
-                else confirmDelete(session.id, cleanup)
-            }.setNegativeButton(android.R.string.cancel, null).show()
     }
 
     private fun confirmDeleteAll(visibleCount: Int) {
