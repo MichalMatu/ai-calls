@@ -28,6 +28,7 @@ import pl.michalmatu.aicallbridge.audioengines.ParakeetModelIntegrity
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.audioengines.ModelVoiceSettings
 import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityStore
+import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityProbe
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -66,6 +67,9 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var checkedParakeetStamp: Triple<String, Long, Long>? = null
     private var renderedLegacyModels: Pair<List<StoredLegacyLanguageModel>, DialogueModelId?>? = null
     private var renderedUserModels: List<Any?>? = null
+    private val importedModelProbe by lazy { ModelCompatibilityProbe(this) }
+    private var checkingImportedModelId: String? = null
+    private val importedModelFailures = mutableMapOf<String, String>()
     private lateinit var cancelTransfer: Button
     private var lastTransfer: TransferStatus? = null
     private val rows = mutableListOf<Row>()
@@ -468,12 +472,47 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
     }
 
+    /** Verify a user-imported model without selecting it or modifying the active Call profile. */
+    private fun checkImportedModel(model: UserLiteRtModel) {
+        if (checkingImportedModelId != null) return
+        if (!safeToEditModels()) { showFeedback(R.string.models_ui_not_idle); return }
+        val library = UserLiteRtModelStore(this)
+        if (!library.isInstalled(model)) { showFeedback(R.string.models_ui_user_missing); return }
+        val file = library.file(model)
+        val candidate = configuration.draft.copy(
+            input = SpeechInputId.ANDROID_STT,
+            dialogue = DialogueModelId.USER_LITERT,
+            customModelId = model.id,
+        )
+        checkingImportedModelId = model.id
+        importedModelFailures.remove(model.id)
+        renderedUserModels = null
+        update()
+        try {
+            importedModelProbe.check(file, candidate, audio = false) { failure ->
+                checkingImportedModelId = null
+                if (failure == null) importedModelFailures.remove(model.id)
+                else importedModelFailures[model.id] = failure
+                if (!isDestroyed && !isFinishing) {
+                    renderedUserModels = null
+                    update()
+                }
+            }
+        } catch (_: Exception) {
+            checkingImportedModelId = null
+            importedModelFailures[model.id] = "model_native_check_failed"
+            renderedUserModels = null
+            update()
+        }
+    }
+
     private fun updateUserModels() {
         if (!::userModelsContainer.isInitialized) return
         val library = UserLiteRtModelStore(this)
         val profile = configuration.draft
         val installed = library.models()
         val signature = listOf(installed, profile.dialogue, profile.customModelId,
+            checkingImportedModelId, importedModelFailures.toMap(),
             installed.map { library.file(it).let { file -> listOf(file.isFile, file.length(), file.lastModified(), ModelCompatibilityStore(this).verified(file, false)) } })
         if (signature == renderedUserModels) return
         renderedUserModels = signature
@@ -486,6 +525,8 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             val isSelected = profile.dialogue == DialogueModelId.USER_LITERT &&
                 profile.customModelId == model.id
             val isInstalled = library.isInstalled(model)
+            val verified = isInstalled && LiteRtModelContainer.hasHeader(library.file(model)) &&
+                ModelCompatibilityStore(this).verified(library.file(model), false)
             val card = UiDesign.card(this)
             card.tag = "user-model:" + model.id
             card.addView(UiDesign.heading(this, model.title).apply { textSize = 16f },
@@ -498,10 +539,32 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 isSelected -> R.string.models_ui_active
                 else -> R.string.mv_compatible
             })
-            card.addView(UiDesign.caption(this,
-                label + if (library.file(model).isFile) "\n" +
-                    storageLabel(library.file(model), model.bytes) else ""),
-                UiDesign.spaceAfter(this, 8))
+            val checkFailure = importedModelFailures[model.id]
+            val details = buildString {
+                append(label)
+                if (library.file(model).isFile) {
+                    append("\n")
+                    append(storageLabel(library.file(model), model.bytes))
+                }
+                if (checkFailure != null) {
+                    append("\n")
+                    append(ModelVoiceSettings.reason(this@LanguageModelActivity, checkFailure))
+                    append(" (")
+                    append(checkFailure)
+                    append(")")
+                }
+            }
+            card.addView(UiDesign.caption(this, details), UiDesign.spaceAfter(this, 8))
+            if (isInstalled) {
+                card.addView(UiDesign.action(this, getString(when {
+                    checkingImportedModelId == model.id -> R.string.mv_checking_short
+                    verified -> R.string.mv_retry
+                    else -> R.string.mv_check_compatibility
+                })) { checkImportedModel(model) }.apply {
+                    tag = "user-model-check:" + model.id
+                    isEnabled = checkingImportedModelId == null && !LanguageModelTransferService.status.busy
+                }, UiDesign.spaceAfter(this, 8))
+            }
             card.addView(UiDesign.action(this, getString(R.string.models_ui_remove),
                 UiActionTone.DANGER) {
                 if (!safeToEditModels()) {
@@ -555,7 +618,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
     override fun onResume() { super.onResume(); configuration.resume(); handler.post(refresh) }
     override fun onPause() { handler.removeCallbacks(refresh); configuration.pause(); super.onPause() }
-    override fun onDestroy() { configuration.close(); verificationWorker.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { if (checkingImportedModelId != null) importedModelProbe.close(); configuration.close(); verificationWorker.shutdownNow(); super.onDestroy() }
     companion object {
         private const val IMPORT = 1
         private const val FILES_MODE = "model_files_mode"
