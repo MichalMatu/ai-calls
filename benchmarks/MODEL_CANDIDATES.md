@@ -1,8 +1,8 @@
 # AI Calls — future local model candidates, 2026-11-15
 
-Status: **research backlog only**. No new phone inference, import, downloads,
-runtime or profile changes. English-first market. Maintain Gemma 4 E2B as the
-qualified off-call reference; do not conflate phone-call and synthetic evidence.
+Status: **research backlog; LFM2.5 Audio Q4 assets downloaded and staged on S22,
+but no inference or runtime installed**. No profile or app changes. English-first.
+Maintain Gemma 4 E2B as off-call reference and separate real Telecom evidence.
 Real S22 end-to-end Telecom acceptance remains open (PROJECT.md).
 
 ## English-first: recommended research order
@@ -19,6 +19,32 @@ Do not assume availability as .litertlm; import only accepts .litertlm
 but extension does not establish native compatibility. Validate licenses before
 commercial deployment. Compared with Gemma, avoid estimating performance
 from published cross-device benchmarks.
+
+## LFM2.5 Audio 1.5B Q4_0 staging receipt — 2026-11-15
+
+**FILES PASS / INFERENCE NOT_RUN.** LiquidAI/LFM2.5-Audio-1.5B-GGUF,
+official Q4_0 variant; 4 files / **1,074,794,688 bytes**.
+SHA-256 each file matched Hugging Face LFS metadata on Mac and again
+after ADB transfer to authorized S22.
+
+- Mac: ~/Documents/AI-Calls/model-candidates/LFM2.5-Audio-1.5B-GGUF/
+- S22: /sdcard/Download/AI-Calls-LFM2.5-Audio-1.5B-Q4/
+- Files: LFM2.5-Audio-1.5B-Q4_0.gguf,
+  mmproj-LFM2.5-Audio-1.5B-Q4_0.gguf,
+  vocoder-LFM2.5-Audio-1.5B-Q4_0.gguf,
+  tokenizer-LFM2.5-Audio-1.5B-Q4_0.gguf
+- Private Mac manifest: S22-STAGING-MANIFEST.json; no model bytes in Git.
+- Local Agent receipts in MichalMatu/local-agent / agent-control:
+  aicalls-lfm25-s22-staging-preflight-20261115-v1 and
+  aicalls-lfm25-gguf-download-and-s22-upload-20261115-v1.
+
+Device was IDLE before and after; no Calls, APK updates, profile
+or grant changes. **These GGUF files cannot be imported as LiteRT-LM
+models into current AI Calls.** Next isolated work: qualify a native
+LFM audio GGUF runner on ARM64 (llama.cpp Liquid Audio) without touching
+production Call path, and only then evaluate ASR/TTS/speech-to-speech.
+Runner is not yet installed, so no model performance claim.
+LFM Open License v1.0 commercial terms require review.
 
 ## Polish-specific deferred research
 
