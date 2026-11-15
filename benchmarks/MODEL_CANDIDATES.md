@@ -1,8 +1,8 @@
 # AI Calls — future local model candidates, 2026-11-15
 
-Status: **English-first research backlog; LFM2.5 Q4 native audio OFFCALL SMOKE PASS
-on S22**, application debug test-picker installed. No telephone profile changes.
-Maintain Gemma E2B as reference and separate Telecom/subjective evidence.
+Status: **research backlog; LFM2.5 Audio Q4 assets downloaded and staged on S22,
+but no inference or runtime installed**. No profile or app changes. English-first.
+Maintain Gemma 4 E2B as off-call reference and separate real Telecom evidence.
 Real S22 end-to-end Telecom acceptance remains open (PROJECT.md).
 
 ## English-first: recommended research order
@@ -14,8 +14,7 @@ Real S22 end-to-end Telecom acceptance remains open (PROJECT.md).
 | P2, fast text | [IBM Granite 4.0 1B](https://huggingface.co/ibm-granite/granite-4.0-1b) | On-device English dialogue, extraction, function calling, Apache-2.0 | Possible quality ceiling vs E2B; custom tokenizer/template and LiteRT integration unverified |
 | P2, fast text | [LiquidAI LFM2.5 1.2B Instruct](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct) | Fast small model designed for on-device agentic tasks and tool use | Custom hybrid runtime/template and LFM1.0 license; native LiteRT not validated |
 
-Other candidates above have not been measured on S22. LFM2.5 has only a small
-native off-call TTS/S2S smoke, not human voice acceptance or Call qualification.
+No model above has been measured or certified on this Samsung S22.
 Do not assume availability as .litertlm; import only accepts .litertlm
 but extension does not establish native compatibility. Validate licenses before
 commercial deployment. Compared with Gemma, avoid estimating performance
@@ -40,51 +39,12 @@ after ADB transfer to authorized S22.
   aicalls-lfm25-gguf-download-and-s22-upload-20261115-v1.
 
 Device was IDLE before and after; no Calls, APK updates, profile
-or grant changes. These GGUF files cannot be imported as LiteRT-LM. A dedicated
-LFM native runner is now bundled only in the signed debug AI Calls APK.
-See the S22 smoke and model-switch checkpoint below.
+or grant changes. **These GGUF files cannot be imported as LiteRT-LM
+models into current AI Calls.** Next isolated work: qualify a native
+LFM audio GGUF runner on ARM64 (llama.cpp Liquid Audio) without touching
+production Call path, and only then evaluate ASR/TTS/speech-to-speech.
+Runner is not yet installed, so no model performance claim.
 LFM Open License v1.0 commercial terms require review.
-
-## LFM2.5 test selector on physical S22 — 2026-11-15
-
-**Delivered:** main 2e0e1b4, focused Kotlin/JVM test, debug APK PASS,
-signature-preserving in-place installation on S22. Original Call
-configuration and grants unchanged; telephone IDLE.
-Android packaged runner built from pinned official
-runners/llama-liquid-audio-android-arm64.zip (nine shared libraries +
-one PIE cli). The installed app's own executable successfully
-returned native LFM2.5 CLI help (receipt
-aicalls-lfm25-native-libdir-s22-readonly-20261115-v1).
-
-**Flow in AI Calls:** Models -> Test modeli: Gemma / LFM2.5 ->
-choose LFM2.5 Audio -> Wskaż folder (subdirectory inside Downloads)
--> select existing AI-Calls-LFM2.5-Audio-1.5B-Q4 ->
-app verifies all four fixed filenames, exact sizes and SHA-256,
-and privately copies once (SAF required by Android scoped storage)
--> Testuj LFM (records 6 seconds English voice and attempts local
-interleaved speech-to-speech). Test selection is a separate
-private preference, never the active phone Call profile. Gemma
-option opens existing conversation lab. No arbitrary .gguf
-is executable; only this pinned four-file LFM variant is accepted.
-
-**Native S22 standalone smoke:** task
-aicalls-lfm25-s22-native-tts-interleaved-smoke-20261115-v3,
-on official Q4 weights and CPU backend, PASS:
-- text -> generated WAV: 6.06 s / 351404 B;
-- synthetic WAV -> interleaved WAV: 22.28 s / 704684 B;
-- model runner exited 0 in both trials; valid RIFF files;
-- no Call, changes of audio profile, grants, or file wipe.
-
-These are isolated **cold native binary** timings; no p50/p95 or
-hot-model conclusion. No human listening, repeated multilingual
-test or actual microphone screen acceptance yet. End-to-end
-on-screen mic -> native -> playback awaits manual owner check.
-Do not claim Telecom PASS or production replacement of Gemma.
-The earlier failed first TTS trial used unsupported prompt
-"Perform TTS."; this official build requires an exact voice
-prompt such as "Perform TTS. Use the US female voice."
-The shipped interleaved model test already uses the accepted
-"Respond with interleaved text and audio." instruction.
 
 ## Polish-specific deferred research
 
