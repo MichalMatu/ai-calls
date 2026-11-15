@@ -1,30 +1,16 @@
 # AI Calls — MVP
 
-**Cel:** bezpieczna sekretarka S22:
-Call → PCM → STT → LLM → TTS → PCM → STOP/END_CALL.
+**Cel:** S22: Call → PCM → STT → LLM → TTS → PCM → STOP/END_CALL.
+**Powrót:** tag `mvp-s22-2026-11-15`, [checkpoint](../benchmarks/audio/FINAL_QUALITY_CHECKPOINT_2026-11-15.md). APK `0.2.0`; działający kod `956b078`.
 
-## Stan 15.11.2026 — milestone
+## Stan projektu
 
-S22 off-call: **60/60** prób sześciu torów audio,
-**18/18** syntetycznych tur dialogu i **5/5** testów STOP.
-Gemma E2B: cold-first 15,74 s, po prewarm 8,12 s,
-hot mediana 1,50 s, prewarm 5,96 s (dwa przebiegi).
-Profil użytkownika bez zmian: Parakeet → Gemma E2B →
-Piper Gosia. To stabilny **rdzeń syntetyczny**,
-nie pełna kwalifikacja Telecom.
-Dowody: [macierz](../benchmarks/audio/AUDIO_ROUTE_QUALITY.md),
-[checkpoint](../benchmarks/audio/CHECKPOINT_HANDOFF_2026-11-15.md).
-[Final quality](../benchmarks/audio/FINAL_QUALITY_CHECKPOINT_2026-11-15.md).
+Model Granite 4.0 H 1B i Test Lab: działa wg użytkownika (off-call). Historia: tap → szczegóły, przytrzymanie → potwierdzenie usunięcia; odbiór na S22. S2–S7: 60/60 torów, 18/18 tur, 5/5 STOP na wcześniejszych SHA. GSM PCM RX/TX nadal wymaga Shizuku; realny Call niezakwalifikowany.
 
-## Następny sprint
+## Następny sprint — S8: bez Shizuku
 
-Call 4–6 tur, powitanie z prewarm,
-end-of-speech → TX, barge-in i STOP; END_CALL po
-„do widzenia” oraz odsłuch. Sprawdzić
-REPAIRS=1 pierwszej odpowiedzi. Kandydaci: [lista](../benchmarks/MODEL_CANDIDATES.md).
+**Osobny sprint** (nie łączyć z C1–C3). Sprawdzić uprawnienia Android 16/S22: rola dialera i zwykłe granty vs. uprzywilejowane `VOICE_DOWNLINK` RX i `CALL_ASSISTANT` TX. Wydzielić backend audio, zachować fallback Shizuku. Porównać direct GSM (OEM/system) i VoIP/SIP z przekierowaniem. Wykazać RX, TX, STOP, bezpieczeństwo exact Call; brak wspieranego API = dokumentacja blokady, nie PASS.
 
 ## Otwarte
 
-C1–C3 realne połączenie/hałas/pożegnanie;
-G6.1 kampanie, boot/retry/takeover: PHYSICAL_OPEN.
-Bez schedulerów, automatycznych telefonów i WAV w Git.
+C1–C3: prawdziwe 4–6 tur, barge-in, END_CALL, odsłuch. G6.1 BOOT/retry/takeover: **PHYSICAL_OPEN**. Realny Call wyłącznie po zgodzie i IDLE. Bez nowych schedulerów, masowego dial i WAV/PII w Git.

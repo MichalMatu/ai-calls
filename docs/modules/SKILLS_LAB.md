@@ -1,3 +1,3 @@
 # Skills i modele
 
-Gemma E2B i STT/TTS; warianty w Lab. Walidacja pliku ≠ jakość. Skills proponują akcje, ale nie mają grantu. Test off-call przed Call.
+Gemma E2B, import LiteRT i STT/TTS. Import → natywna weryfikacja → wybór; PASS modelu ≠ jakość dialogu ani Telecom. Test Lab off-call. Skills proponują akcje bez grantu do ich wykonania.

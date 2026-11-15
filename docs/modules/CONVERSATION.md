@@ -1,9 +1,9 @@
 # Rozmowa
 
-Wspólny `AndroidConversationRuntime`: STT → Gemma/Skills → kontrola tekstu/narzędzi → TTS. Callback wymaga session/turn/generation; STOP/barge-in odcina stary TX.
+Jeden `AndroidConversationRuntime`: STT → LLM/Skills → kontrola narzędzi → TTS. Każdy callback musi należeć do sesji/tury/generacji. STOP/barge-in odcina stary TX.
 
-Tekstowy model przy pełnym KV odtwarza natywną sesję z ostatnimi zakończonymi parami USER/MODEL. Najstarsze pary opuszczają okno modelu; pełny prywatny zapis pozostaje. Instrukcja systemowa i bieżąca wypowiedź nie są skracane. Ponowienie dotyczy wyłącznie inferencji, wymaga aktualnej generacji i nie powtarza narzędzi ani połączenia. Nie ma limitu liczby tur rozmowy.
+Po zapełnieniu KV model odtwarza ostatnie zakończone pary USER/MODEL, nie skraca system promptu ani bieżącej wypowiedzi; pełna prywatna historia zostaje. Ponawia tylko inferencję, nigdy narzędzi/Call. Brak limitu tur.
 
-Odpowiedź JSON ma reply/tool/note/kind; bez notatki note jest puste, kind=NOTE. Walidacja poprzedza historię modelu. Błędny format odtwarza sesję z poprawną historią i ponawia wyłącznie inferencję; po nieudanej naprawie aplikacja prosi o powtórzenie, oznaczając wypowiedź SCRIPT_ASSISTED. STOP odcina obie ścieżki. Gemma E2B ma kontekst 4096; budżet 512 dotyczy całego JSON, nie samej mowy.
+JSON: reply/tool/note/kind (bez notatki: note puste, kind=NOTE). Walidacja przed historią. Błąd: naprawa inferencji z poprawną historią, potem prośba o powtórzenie jako SCRIPT_ASSISTED. STOP kończy obie ścieżki. Gemma E2B: 4096 kontekstu; 512 tokenów całego JSON.
 
-SAVE_NOTE lokalne; TASK/CALENDAR/MESSAGE to propozycje. WAV na opt-in. Odbiór wspólnego backendu INCOMING/OUTGOING po poprawkach oraz barge-in/echo i jakość S22 PHYSICAL_OPEN. Pomiar bez połączenia: USB Lab z role=INCOMING; propozycje narzędzi nie są wykonywane.
+SAVE_NOTE lokalnie; TASK/CALENDAR/MESSAGE to propozycje. USB Lab off-call bez skutków. WAV opt-in; Telecom/echo/barge-in: PHYSICAL_OPEN.

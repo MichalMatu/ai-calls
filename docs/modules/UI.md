@@ -1,5 +1,7 @@
 # UI
 
-Start / Rozmowy / Agent AI / Ustawienia. Kreator: cel → odbiorcy → SIM/okno → zgoda. Szkic szyfrowany; wejście/obrót nie uruchamia dial.
+Start / Rozmowy / Agent AI / Ustawienia. Kreator: cel → odbiorcy → SIM/okno → zgoda. Szkic szyfrowany; nawigacja nie dzwoni.
 
-Realne statusy i UNKNOWN, wyniki per odbiorca. PL/EN, dostępność, STOP i takeover bez sztucznych kliknięć.
+Historia: tap otwiera szczegóły; przytrzymanie → potwierdzenie usunięcia, bez ⋮. Zbiorcze kasowanie tylko ukończonych; stare nieukończone: 10 min bez zapisu, ponowny warunek IDLE.
+
+Modele: trwałe PASS/FAIL z przyczyną; zgodność pliku ≠ jakość rozmowy. PL/EN, dostępność, STOP/takeover i UNKNOWN.

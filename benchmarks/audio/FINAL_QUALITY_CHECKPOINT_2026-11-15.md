@@ -49,3 +49,23 @@ Stan kodu po poprawkach: `77fdc864fc97b9f95f1f518bf60b58c550edbdf2` (`main`; od 
 ### Ostatnia bramka
 **C1–C3 / END_CALL / barge-in / STOP / odsłuch: PHYSICAL_OPEN** — brak realnego połączenia oznacza brak dowodu jakości, rozłączenia oraz nagrywania. W następnym nadzorowanym oknie właściciel dzwoni na S22 z drugiego telefonu; po teście weryfikacja prywatnych, pozbawionych treści zdarzeń `END_CALL`, RX/TX i przywrócenie `MANUAL`. Nie wolno ogłaszać produkcyjnego PASS, automatycznie dzwonić, pozostawić sekretarki w trybie AI ani kopiować numerów, dialogów czy WAV do GitHub.
 
+## Checkpoint MVP — 15 listopada 2026
+
+**Oznaczenie:** tag `mvp-s22-2026-11-15` (kompletny punkt powrotu kodu i dokumentacji). **Bazowy kod na S22:** `956b0785f7c4dac5c20a91906a6716facd7e7ce0`; APK `versionName=0.2.0`, `versionCode=2`. Commit checkpointu zmienia tylko dokumentację, bez aktualizacji APK.
+
+### Ostatnie domknięcia
+
+- **Model/import/Test Lab:** `fdaccbf` — test zgodności dowolnego importowanego LiteRT z karty pliku; `d99ea26` — czytelny, trwały wynik PASS/FAIL z przyczyną i komunikatem. Mac `aicalls-model-feedback-build-20261115-v1`: kompilacja i test celowany PASS. Użytkownik sam sprawdził importowany model Granite 4.0 H 1B i Test Lab na S22: działa. To potwierdzenie użytkownika **off-call**, a nie jakość rzeczywistego połączenia.
+- **Historia:** sesja miała `timeline.jsonl`, ale brakowało `COMPLETE`, więc „Usuń wszystkie” jej nie obejmowało — metadane S22: `aicalls-s22-history-marker-readonly-20261115-v3`. `e0cb06d` wprowadził usuwanie starego nieukończonego archiwum za zgodą i z kontrolą IDLE/10 min bez zapisu; Mac `aicalls-history-single-delete-guarded-cleanup-build-20261115-v1`: kompilacja + testy celowane PASS. `956b078` uprościł listę: zwykły tap otwiera szczegóły; przytrzymanie wywołuje tylko potwierdzenie usunięcia; bez przycisku ⋮ i dodatkowego menu. Użytkownik potwierdził działanie UX na S22.
+- **Instalacja:** Mac Local Agent `aicalls-s22-longpress-delete-ux-install-20261115-v1` — **PASS** budowy i instalacji kodu `956b078`. APK SHA-256 `5671935fa58f2960b5396860a2604859f77db53f2003ad265df00a974811e7e6`, 226287719 bajtów. S22 `IDLE` przed/po, domyślny dialer i Shizuku zachowane. Bez uninstall, kasowania historii i modeli, zmiany roli, połączeń inicjowanych przez agenta. Ostatnia aktualizacja bez dodatkowych testów — potwierdzona kompilacja, instalacja i ręczny odbiór UX.
+- Wcześniejsze 60/60 prób torów off-call, 18/18 tur syntetycznych i 5/5 STOP dotyczą **wcześniejszych SHA**, a nie ponownego pełnego przebiegu na `956b078`. Nie przypisywać checkpointowi pełnego produkcyjnego PASS.
+
+### Blokady i następny etap
+
+**MVP OFF-CALL + historia: potwierdzone; REAL GSM CALL: PHYSICAL_OPEN.** Do osobnego odbioru pozostają C1–C3 (realne 4–6 tur, barge-in/STOP, END_CALL, odsłuch), G6.1 BOOT/retry/takeover i EN E2E. Działający Samsung PCM/Shizuku nie jest zmieniany w tym checkpointcie.
+
+**Następny osobny sprint S8:** działanie bez Shizuku. Zidentyfikować ograniczenia grantów zwykłej aplikacji, RX `VOICE_DOWNLINK` i TX `CALL_ASSISTANT`, odseparować backend i ocenić OEM/system oraz VoIP/SIP z przekierowaniem. Zachować Shizuku jako fallback. Brak systemowego API ≠ błąd modelu. Dokładny zakres i kryteria: `docs/PROJECT.md`.
+
+### Jak szybko wrócić
+
+`git fetch origin --tags` → `git show mvp-s22-2026-11-15:docs/PROJECT.md` (plan) lub `git diff mvp-s22-2026-11-15..main` (późniejsze zmiany). Izolowany checkout: `git worktree add --detach <ścieżka> mvp-s22-2026-11-15`. **Nie resetuj ani nie force-pushuj `main`**. Tag obejmuje Git, nie prywatne modele/dane telefonu; wymagają zachowania osobno. Bez schedulerów, automatycznych połączeń i PII/WAV w Git.
