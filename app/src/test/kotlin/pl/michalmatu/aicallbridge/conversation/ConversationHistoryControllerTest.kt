@@ -134,6 +134,33 @@ class ConversationHistoryControllerTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun abandonedArchiveDeletionRequiresFreshIdleAndUserConfirmation() {
+        val root = Files.createTempDirectory("ux02-abandoned").toFile()
+        try {
+            val id = "1763240000000-a1b2c3d4"
+            val directory = archive(root, id, complete = false)
+            val old = System.currentTimeMillis() - 11L * 60L * 1000L
+            assertTrue(File(directory, "timeline.jsonl").setLastModified(old))
+            assertTrue(RecordedConversationHistory(root).canDeleteAbandoned(id))
+            val worker = QueuedExecutor(); val ui = QueuedExecutor()
+            val idleBlocked = ConversationHistoryController(RecordedConversationHistory(root),
+                worker, { a -> ui.execute(Runnable(a)) }, phoneIsIdle = { false })
+            val seen = mutableListOf<HistoryScreenState>()
+            assertTrue(idleBlocked.deleteAbandonedConfirmed(id) { seen.add(it) })
+            worker.drain(); ui.drain()
+            assertFalse(((seen.last() as HistoryScreenState.Deleted).result as HistoryDeleteResult.Single).deleted)
+            assertTrue(directory.exists())
+            idleBlocked.close()
+            val allowed = ConversationHistoryController(RecordedConversationHistory(root),
+                worker, { a -> ui.execute(Runnable(a)) }, phoneIsIdle = { true })
+            assertTrue(allowed.deleteAbandonedConfirmed(id) { seen.add(it) })
+            worker.drain(); ui.drain()
+            assertTrue(((seen.last() as HistoryScreenState.Deleted).result as HistoryDeleteResult.Single).deleted)
+            assertFalse(directory.exists())
+            allowed.close()
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun symlinkCannotEscapeTheArchiveEvenDuringBulkDeletion() {
         val root = Files.createTempDirectory("ux02-symlink").toFile()
         val outside = Files.createTempDirectory("ux02-outside").toFile()

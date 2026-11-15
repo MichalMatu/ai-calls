@@ -60,11 +60,45 @@ internal class RecordedConversationHistory(private val root: File) {
             privateTimeline(directory) != null
     }.getOrDefault(false)
 
+    /**
+     * Last-resort cleanup for an abandoned recorder. Normal bulk deletion never uses this.
+     * The UI/controller must additionally prove phone IDLE before the confirmed deletion.
+     */
+    fun canDeleteAbandoned(id: String, nowEpochMs: Long = System.currentTimeMillis()): Boolean =
+        runCatching {
+            if (!Regex("[0-9]{13}-[0-9a-f]{8}").matches(id)) return@runCatching false
+            val candidate = File(root, id)
+            if (java.nio.file.Files.isSymbolicLink(candidate.toPath())) return@runCatching false
+            val directory = candidate.canonicalFile
+            if (directory.parentFile != root.canonicalFile || !directory.isDirectory)
+                return@runCatching false
+            if (privateTimeline(directory) == null) return@runCatching false
+            if (canDelete(id) && load(id).complete) return@runCatching false
+            val children = directory.listFiles() ?: return@runCatching false
+            if (children.isEmpty() || children.any {
+                    it.isDirectory || java.nio.file.Files.isSymbolicLink(it.toPath())
+                }) return@runCatching false
+            // Check most recently changed file, not the folder timestamp.
+            val lastWrite = children.maxOf { it.lastModified() }
+            nowEpochMs >= lastWrite && nowEpochMs - lastWrite >= ABANDONED_GRACE_MS
+        }.getOrDefault(false)
+
+    /** Never invoke from clear-all or automatic retention. Requires a fresh IDLE gate. */
+    fun deleteAbandoned(id: String): Boolean {
+        if (!canDeleteAbandoned(id)) return false
+        val directory = File(root, id).canonicalFile
+        return removeDirectoryWithoutFollowingLinks(directory)
+    }
+
     fun deleteCompleted(id: String): Boolean {
         if (!canDelete(id)) return false
         val base = root.canonicalFile
         val directory = File(root, id).canonicalFile
         if (directory.parentFile != base || !load(id).complete) return false
+        return removeDirectoryWithoutFollowingLinks(directory)
+    }
+
+    private fun removeDirectoryWithoutFollowingLinks(directory: File): Boolean {
         // walkFileTree does not follow symlinks; deleting a link cannot delete its target.
         java.nio.file.Files.walkFileTree(directory.toPath(), object :
             java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
@@ -96,6 +130,10 @@ internal class RecordedConversationHistory(private val root: File) {
             if (runCatching { deleteCompleted(candidate.name) }.getOrDefault(false)) deleted++
         }
         return deleted
+    }
+
+    private companion object {
+        const val ABANDONED_GRACE_MS = 10L * 60L * 1000L
     }
 
     data class ClearCompletedResult(

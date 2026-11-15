@@ -124,6 +124,41 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun unfinishedArchiveMustBeOldAndPrivateToPermitIndividualCleanup() {
+        val root = Files.createTempDirectory("conversation-abandoned-safe").toFile()
+        val external = Files.createTempDirectory("conversation-abandoned-external").toFile()
+        try {
+            val id = "1763240000000-aabbccdd"
+            val dir = File(root, id).apply { assertTrue(mkdirs()) }
+            val timeline = File(dir, "timeline.jsonl").apply {
+                writeText("""{"type":"CONVERSATION","direction":"INCOMING"}""" + "\n")
+            }
+            val history = RecordedConversationHistory(root)
+            assertFalse(history.canDeleteAbandoned(id))
+            assertFalse(history.deleteAbandoned(id))
+            assertTrue(timeline.setLastModified(System.currentTimeMillis() - 11L * 60L * 1000L))
+            assertTrue(history.canDeleteAbandoned(id))
+            assertFalse(history.canDeleteAbandoned("../outside"))
+            val outside = File(external, "private.txt").apply { writeText("KEEP") }
+            Files.createSymbolicLink(File(dir, "unknown-link").toPath(), outside.toPath())
+            assertFalse(history.canDeleteAbandoned(id))
+            Files.delete(File(dir, "unknown-link").toPath())
+            assertTrue(history.deleteAbandoned(id))
+            assertFalse(dir.exists())
+            assertEquals("KEEP", outside.readText())
+            val finished = "1763240000001-aabbccdd"
+            val finishedDir = File(root, finished).apply { assertTrue(mkdirs()) }
+            val finishedTimeline = File(finishedDir, "timeline.jsonl").apply {
+                writeText("""{"type":"END"}""" + "\n")
+            }
+            File(finishedDir, "COMPLETE").writeText("done")
+            val old = System.currentTimeMillis() - 11L * 60L * 1000L
+            assertTrue(finishedTimeline.setLastModified(old))
+            assertTrue(File(finishedDir, "COMPLETE").setLastModified(old))
+            assertFalse(history.canDeleteAbandoned(finished))
+        } finally { root.deleteRecursively(); external.deleteRecursively() }
+    }
+
     @Test fun bulkClearDeletesOnlyCompletedTranscriptsAndAudio() {
         val root = Files.createTempDirectory("conversation-clear-all").toFile()
         try {

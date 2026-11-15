@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicLong
 internal data class HistoryListRow(
     val session: RecordedConversation,
     val canDelete: Boolean,
+    val canDeleteAbandoned: Boolean = false,
 )
 
 internal sealed interface HistoryDeleteResult {
@@ -25,6 +26,7 @@ internal sealed interface HistoryScreenState {
     data class DetailReady(
         val session: RecordedConversation,
         val canDelete: Boolean,
+        val canDeleteAbandoned: Boolean = false,
     ) : HistoryScreenState
     data class Deleted(val result: HistoryDeleteResult) : HistoryScreenState
     data class Failed(val reason: String) : HistoryScreenState
@@ -42,6 +44,7 @@ internal class ConversationHistoryController(
     private val archive: RecordedConversationHistory,
     private val worker: Executor = Executors.newSingleThreadExecutor(),
     private val dispatchToUi: (() -> Unit) -> Unit,
+    private val phoneIsIdle: () -> Boolean = { false },
 ) {
     private val closed = AtomicBoolean(false)
     private val generation = AtomicLong(0)
@@ -54,7 +57,9 @@ internal class ConversationHistoryController(
         deliver(token, onState, HistoryScreenState.Loading)
         runRead(token, onState) {
             val rows = archive.list().map { session ->
-                HistoryListRow(session, session.complete && archive.canDelete(session.id))
+                val canDelete = session.complete && archive.canDelete(session.id)
+                HistoryListRow(session, canDelete,
+                    !canDelete && archive.canDeleteAbandoned(session.id))
             }
             HistoryScreenState.ListReady(rows)
         }
@@ -67,6 +72,7 @@ internal class ConversationHistoryController(
             val session = archive.load(id)
             HistoryScreenState.DetailReady(
                 session, session.complete && archive.canDelete(id),
+                archive.canDeleteAbandoned(id),
             )
         }
     }
@@ -75,6 +81,18 @@ internal class ConversationHistoryController(
     fun deleteCompletedConfirmed(id: String, onState: (HistoryScreenState) -> Unit): Boolean =
         runDeletion(onState) {
             HistoryScreenState.Deleted(HistoryDeleteResult.Single(archive.deleteCompleted(id)))
+        }
+
+    /**
+     * This is intentionally separate from completed-only deletion. Requires explicit
+     * confirmation, a fresh phone-IDLE check and a stale private recorder directory.
+     */
+    fun deleteAbandonedConfirmed(id: String, onState: (HistoryScreenState) -> Unit): Boolean =
+        runDeletion(onState) {
+            val deleted = runCatching {
+                phoneIsIdle() && archive.deleteAbandoned(id)
+            }.getOrDefault(false)
+            HistoryScreenState.Deleted(HistoryDeleteResult.Single(deleted))
         }
 
     /** Only call from the positive button of the existing bulk confirmation dialog. */
