@@ -173,7 +173,8 @@ internal class AndroidIncomingAssistant(
         AudioEngineReadinessProbe.inputAndModelFailure(context, profile)?.let { return it }
         val preparation = AndroidConversationPreparationStore(context).load(ConversationPreparation.INCOMING_ID)
         preparations[call] = Prepared(ConversationRunConfiguration.ModelDirect(profile,
-            ConversationInstructionBuilder.build(preparation, IncomingSecretaryScenario.GOAL, ConversationResponseFormat.TOOL_REPLY), preparation), toolSettings.enabled())
+            ConversationInstructionBuilder.build(preparation, IncomingSecretaryScenario.GOAL,
+                ConversationResponseFormat.TOOL_REPLY, profile.languageTag), preparation), toolSettings.enabled())
         return null
     }
     private fun prepare(call: Call, policy: IncomingAssistantPolicy, generation: Long) {

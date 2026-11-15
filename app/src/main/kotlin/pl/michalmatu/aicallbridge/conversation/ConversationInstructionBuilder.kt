@@ -3,7 +3,17 @@ package pl.michalmatu.aicallbridge.conversation
 /** Compiles model-visible instructions, never reads secret values from IdentityVault. */
 internal object ConversationInstructionBuilder {
     const val INCOMING_OPENING = "Dzień dobry, tu asystentka AI. Mogę przyjąć wiadomość. W jakiej sprawie dzwonisz?"
-    fun build(preparation: ConversationPreparation, goal: String, responseFormat: ConversationResponseFormat): String {
+    const val INCOMING_OPENING_EN = "Hello, this is your AI assistant. I can take a message. How may I help you?"
+    fun incomingOpening(languageTag: String): String =
+        if (languageTag == "en-US") INCOMING_OPENING_EN else INCOMING_OPENING
+
+    fun build(preparation: ConversationPreparation, goal: String,
+        responseFormat: ConversationResponseFormat, languageTag: String = "pl-PL"): String {
+        require(languageTag == "pl-PL" || languageTag == "en-US")
+        val languageLine = if (languageTag == "en-US")
+            "English (US). Speak entirely in natural English, including greetings, questions, replies and farewell. Never read Polish instructions aloud."
+        else "polski."
+        val opening = incomingOpening(languageTag)
         val role = when (preparation.direction) {
             ConversationDirection.OUTGOING -> """
                 Jesteś asystentem DZWONIĄCYM w imieniu użytkownika.
@@ -35,7 +45,7 @@ internal object ConversationInstructionBuilder {
         val fields = preparation.dataFields.sortedBy { it.name }.joinToString { it.name }.ifBlank { "brak" }
         return """
             ROLA: $role
-            Język: polski. Jedna krótka naturalna wypowiedź, zwykle jedno lub dwa zdania.
+            Język: $languageLine Jedna krótka naturalna wypowiedź, zwykle jedno lub dwa zdania.
             Odpowiedz wprost na ostatnie pytanie w kontekście rozmowy. Przy pytaniu o przekazane
             ustalenia przywołaj podaną wartość, uwzględniając najnowszą poprawkę. Nie zastępuj jej
             potwierdzeniem zapisu ani odpowiedzią na inne pytanie. Gdy brakuje informacji, dopytaj.
@@ -82,7 +92,7 @@ internal object ConversationInstructionBuilder {
             }}
             ${if (preparation.direction == ConversationDirection.INCOMING) """
                 STAN ROZMOWY: to dalsza część już odebranego połączenia.
-                Aplikacja wypowiedziała: „$INCOMING_OPENING”. Rozmówca teraz na to odpowiada.
+                Aplikacja wypowiedziała: „$opening”. Rozmówca teraz na to odpowiada.
                 Odpowiedz na najnowszą sprawę bez drugiego powitania i bez ponownego przedstawiania się.
                 Nie potwierdzaj informacji, których rozmówca nie podał; przy niejasności zadaj jedno konkretne pytanie.
             """.trimIndent() else ""}

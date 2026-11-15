@@ -44,6 +44,9 @@ internal object ConversationReplyRecovery {
         ConversationReplyProtocol.FIELD_INSTRUCTION + " " +
         "Nie dodawaj komentarzy ani powitania."
     const val CLARIFICATION = "Nie udało mi się poprawnie przygotować odpowiedzi. Proszę powtórzyć ostatnią informację."
+    const val ENGLISH_CLARIFICATION = "I could not prepare a valid answer. Please repeat your last message."
+    fun clarificationFor(languageTag: String): String =
+        if (languageTag == "en-US") ENGLISH_CLARIFICATION else CLARIFICATION
 
     fun canClarify(reason: String) = reason == "backend_conversation_reply_invalid" ||
         reason == "backend_audio_transcript_invalid"

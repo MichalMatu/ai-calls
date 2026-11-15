@@ -33,10 +33,11 @@ class AudioEngineProfileContractTest {
         }
     }
 
-    @Test fun rejectsUnknownOrNonPolishConfigurationsWithoutFallback() {
+    @Test fun rejectsUnknownOrUnqualifiedLanguagesWithoutFallback() {
         assertNull(SpeechInputId.entries.firstOrNull { it.name == "FUTURE_MODEL" })
+        assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(languageTag = "en-US")))
         assertEquals("unsupported_language", AudioEngineRegistry.incompatibility(
-            AudioEngineProfile(languageTag = "en-US"),
+            AudioEngineProfile(languageTag = "de-DE"),
         ))
         assertEquals("invalid_voice_id", AudioEngineRegistry.incompatibility(
             AudioEngineProfile(voiceId = " "),

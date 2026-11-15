@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mv_speech_language">AI conversation language</string>
+    <string name="mv_speech_language_hint">English uses Android on-device STT and an offline Android TTS voice. Polish-only engines will be detached.</string>
+    <string name="mv_speech_language_pl">Polish</string>
+    <string name="mv_speech_language_en">English (US)</string>
+    <string name="mv_voice_sample_english">Hello. This is your virtual assistant. How may I help you?</string>
+    <string name="mv_english_route_required">English requires Android STT and a local Android TTS voice.</string>
+</resources>

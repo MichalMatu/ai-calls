@@ -23,8 +23,12 @@ internal class IncomingSecretaryScenario(
     override val idlePolicy = ConversationIdlePolicy(
         silenceMs = 30_000L,
         graceMs = 15_000L,
-        warningText = "Czy chcą Państwo kontynuować rozmowę? Jeśli nie usłyszę odpowiedzi, zakończę połączenie.",
-        farewellText = "Nie słyszę odpowiedzi. Kończę połączenie. Do widzenia.",
+        warningText = if (configuration.audioProfile.languageTag == "en-US")
+            "Would you like to continue? If I do not hear from you, I will end the call."
+        else "Czy chcą Państwo kontynuować rozmowę? Jeśli nie usłyszę odpowiedzi, zakończę połączenie.",
+        farewellText = if (configuration.audioProfile.languageTag == "en-US")
+            "I cannot hear a response. I am ending the call. Goodbye."
+        else "Nie słyszę odpowiedzi. Kończę połączenie. Do widzenia.",
     )
     override fun readinessFailure(): String? = null
     override fun open(hooks: ConversationRuntimeHooks): ConversationDialogueSession {
@@ -43,7 +47,7 @@ internal class IncomingSecretaryScenario(
             DialogueEngineProviders.resolve(configuration.audioProfile)
                 .createConversationReply(context, configuration.systemInstruction, enabledTools),
             approval, tools, hooks, "INCOMING_MODEL_DIRECT",
-            ConversationInstructionBuilder.INCOMING_OPENING,
+            ConversationInstructionBuilder.incomingOpening(configuration.audioProfile.languageTag),
         )
         return object : ConversationDialogueSession by session {
             override fun armIdleClosure(): Boolean = session.armIdleClosure()

@@ -469,7 +469,8 @@ internal object AndroidConversationRuntime {
                             replyClarificationTurn = currentTurn
                             outputEpoch.incrementAndGet()
                             lines += "turn_${currentTurn}_reply_format_clarification=true"
-                            pipeline.speakCandidate(ConversationReplyRecovery.CLARIFICATION,
+                            pipeline.speakCandidate(
+                                ConversationReplyRecovery.clarificationFor(runConfiguration.audioProfile.languageTag),
                                 turnListener(generation, lease))
                         }
                     } else if (LocalSpeechRecoverableFailure.isTransientNoTranscript(reason)) {
@@ -625,7 +626,8 @@ internal object AndroidConversationRuntime {
                             dialogue.beginTurn()
                             replyClarificationTurn = turn
                             outputEpoch.incrementAndGet()
-                            pipeline.speakCandidate(ConversationReplyRecovery.CLARIFICATION,
+                            pipeline.speakCandidate(
+                                ConversationReplyRecovery.clarificationFor(runConfiguration.audioProfile.languageTag),
                                 turnListener(generation, lease))
                         }
                         pipeline.finishInput()

@@ -308,7 +308,7 @@ class AppOwnedCampaignService : Service() {
             ". Zbierz tylko propozycję i nie potwierdzaj ani nie rezerwuj wizyty. " +
             "Każda propozycja musi trafić do użytkownika jako REVIEW_REQUIRED."
         val instruction = ConversationInstructionBuilder.build(
-            preparation, goal, ConversationResponseFormat.TOOL_REPLY,
+            preparation, goal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag,
         )
         val configuration = ConversationRunConfiguration.ModelDirect(
             profile, instruction, preparation,
@@ -415,7 +415,7 @@ class AppOwnedCampaignService : Service() {
             "Nie deklaruj osiągnięcia celu bez niezależnej weryfikacji; odpowiedź rozmówcy " +
             "ma zostać do sprawdzenia w prywatnej historii rozmowy."
         val instruction = ConversationInstructionBuilder.build(
-            preparation, scopedGoal, ConversationResponseFormat.TOOL_REPLY,
+            preparation, scopedGoal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag,
         )
         val configuration = ConversationRunConfiguration.ModelDirect(
             profile, instruction, preparation,

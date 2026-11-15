@@ -43,7 +43,13 @@ internal object AudioEngineRegistry {
             (profile.customModelId == null || !Regex("user-[0-9a-f]{64}").matches(profile.customModelId)) ->
             "user_model_identity_invalid"
         profile.dialogue == DialogueModelId.QWEN_3_5_2B -> "qwen35_lab_only_unqualified"
-        profile.languageTag != "pl-PL" -> "unsupported_language"
+        profile.languageTag !in setOf("pl-PL", "en-US") -> "unsupported_language"
+        profile.languageTag == "en-US" && profile.input != SpeechInputId.ANDROID_STT ->
+            "english_android_stt_required"
+        profile.languageTag == "en-US" &&
+            (profile.output != SpeechOutputId.ANDROID_TTS_PL ||
+                profile.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE) ->
+            "english_android_tts_required"
         profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT && !supportsAudio(profile) ->
             "model_audio_input_unavailable"
         profile.output == SpeechOutputId.KOKORO -> "kokoro_no_polish"

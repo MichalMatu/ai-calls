@@ -19,11 +19,13 @@ import android.widget.TextView
 import android.widget.ImageView
 import android.widget.Toast
 import java.util.concurrent.Executors
+import java.util.Locale
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
 import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
+import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 
@@ -58,12 +60,18 @@ internal class ModelVoiceSettings(
     private val knownImports = UserLiteRtModelStore(activity).models().map { it.id }.toMutableSet()
     private val modelName = value("model-voice-model-choice")
     private val inputName = value("model-voice-input-choice")
+    private val languageName = value("model-voice-language-choice")
     private val voiceName = value("model-voice-voice-choice")
     private val modelState = UiDesign.caption(activity, "").apply { tag = "model-voice-readiness" }
     private val inputIssue = UiDesign.caption(activity, "")
     private val voiceIssue = UiDesign.caption(activity, "")
     val modelView = card(R.string.models_ui_dialogue_heading, modelName, ::showModelPicker).apply { tag = "model-voice-model" }
     val inputView = card(R.string.mv_input, inputName, ::showInputPicker).apply { tag = "model-voice-inputs" }
+    val languageView = card(R.string.mv_speech_language, languageName, ::showLanguagePicker)
+        .apply {
+            tag = "model-voice-language"
+            addView(UiDesign.caption(activity, activity.getString(R.string.mv_speech_language_hint)))
+        }
     val voiceView = card(R.string.mv_voice, voiceName, ::showVoicePicker).apply { tag = "model-voice-voice" }
     private val modelAction = UiDesign.action(activity, "") { modelAction() }
     private val retry = UiDesign.action(activity, activity.getString(R.string.mv_retry)) {
@@ -115,7 +123,8 @@ internal class ModelVoiceSettings(
         if (!store.save(profile)) {
             Toast.makeText(activity, R.string.eng_ui_save_error, Toast.LENGTH_SHORT).show(); return false
         }
-        val engineChanged = draft.effectiveTtsEnginePackage != profile.effectiveTtsEnginePackage
+        val engineChanged = draft.effectiveTtsEnginePackage != profile.effectiveTtsEnginePackage ||
+            draft.languageTag != profile.languageTag
         draft = profile; tts?.stop()
         probe.close(); checking = false; lastAttempt = null; checkResult = null
         if (engineChanged && active) loadVoices()
@@ -127,8 +136,39 @@ internal class ModelVoiceSettings(
         save(draft.copy(dialogue = id, customModelId = custom))
     fun selectInput(id: SpeechInputId): Boolean = save(draft.copy(input = id))
 
+    private fun showLanguagePicker() {
+        val values = arrayOf("pl-PL", "en-US")
+        val labels = arrayOf(activity.getString(R.string.mv_speech_language_pl),
+            activity.getString(R.string.mv_speech_language_en))
+        val selected = values.indexOf(draft.languageTag)
+        AlertDialog.Builder(activity).setTitle(R.string.mv_speech_language)
+            .setSingleChoiceItems(labels, selected) { dialog, index ->
+                val target = values[index]
+                if (target == draft.languageTag) {
+                    dialog.dismiss()
+                } else {
+                    // English Parakeet, Gemma Audio and Polish Piper are unqualified.
+                    // Language selection resets only incompatible engine choices.
+                    val next = draft.copy(languageTag = target,
+                        input = if (target == "en-US") SpeechInputId.ANDROID_STT else draft.input,
+                        output = if (target == "en-US") SpeechOutputId.ANDROID_TTS_PL else draft.output,
+                        voiceId = null,
+                        ttsEnginePackage = if (target == "en-US" &&
+                            draft.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE)
+                            null else draft.ttsEnginePackage)
+                    if (save(next)) dialog.dismiss()
+                }
+            }.setNegativeButton(android.R.string.cancel, null).show()
+    }
+
     private fun showModelPicker() {
-        val imported = UserLiteRtModelStore(activity).models()
+        val library = UserLiteRtModelStore(activity)
+        // Invalid imports remain visible in file management, never in the active picker.
+        val imported = library.models().filter { model ->
+            val file = library.file(model)
+            library.isInstalled(model) && LiteRtModelContainer.hasHeader(file) &&
+                ModelCompatibilityStore(activity).verified(file, false)
+        }
         val labels = listOf("Gemma 4 E2B") + imported.map { it.title }
         val selected = if (draft.dialogue == DialogueModelId.USER_LITERT)
             imported.indexOfFirst { it.id == draft.customModelId } + 1 else 0
@@ -166,7 +206,8 @@ internal class ModelVoiceSettings(
                 text = inputTitle(input); tag = choice.id
                 minimumHeight = UiDesign.dp(activity, 52)
                 isChecked = draft.input == input
-                isEnabled = input != SpeechInputId.GEMMA_AUDIO_DIRECT || AudioEngineRegistry.supportsAudio(draft)
+                isEnabled = (draft.languageTag != "en-US" || input == SpeechInputId.ANDROID_STT) &&
+                    (input != SpeechInputId.GEMMA_AUDIO_DIRECT || AudioEngineRegistry.supportsAudio(draft))
                 setOnClickListener { if (selectInput(input)) dialog.dismiss() }
             })
         }
@@ -224,8 +265,11 @@ internal class ModelVoiceSettings(
     }
 
     private fun showEnginePicker() {
-        val ids = engineIds.toMutableList()
-        val labels = engineLabels.toMutableList()
+        val allowed = engineIds.zip(engineLabels).filter { pair ->
+            draft.languageTag != "en-US" || pair.first != PiperServiceContract.PACKAGE
+        }
+        val ids = allowed.map { it.first }.toMutableList()
+        val labels = allowed.map { it.second }.toMutableList()
         if (draft.effectiveTtsEnginePackage !in ids) {
             ids.add(draft.effectiveTtsEnginePackage); labels.add(activity.getString(R.string.mv_engine_missing))
         }
@@ -262,7 +306,8 @@ internal class ModelVoiceSettings(
                     val installed = engine.engines
                     require(requested == null || installed.any { it.name == requested })
                     Triple(installed, engine.voices.orEmpty().filter {
-                        it.locale.language == "pl" && !it.isNetworkConnectionRequired &&
+                        it.locale.language == Locale.forLanguageTag(draft.languageTag).language &&
+                            !it.isNetworkConnectionRequired &&
                             (requested != PiperServiceContract.PACKAGE || "piperVoice" in it.features)
                     }.sortedBy { it.name }, engine.defaultEngine)
                 }.getOrNull()
@@ -297,6 +342,8 @@ internal class ModelVoiceSettings(
             library.find(draft.customModelId)?.title ?: activity.getString(R.string.models_ui_user_missing)
             else "Gemma 4 E2B"
         inputName.text = inputTitle(draft.input)
+        languageName.text = activity.getString(if (draft.languageTag == "en-US")
+            R.string.mv_speech_language_en else R.string.mv_speech_language_pl)
         voiceName.text = if (draft.voiceId == null) activity.getString(R.string.mv_voice_auto)
             else localVoices.indexOfFirst { it.name == draft.voiceId }.takeIf { it >= 0 }
                 ?.let { activity.getString(R.string.mv_local_voice, it + 1) }
@@ -437,14 +484,17 @@ internal class ModelVoiceSettings(
         if (!deferPiperLoad && engine.setVoice(selected) != TextToSpeech.SUCCESS) {
             notifyError("polish_offline_voice_missing"); return
         }
-        engine.speak(activity.getString(R.string.mv_voice_sample), TextToSpeech.QUEUE_FLUSH, null, "model-voice-preview")
+        engine.speak(activity.getString(if (draft.languageTag == "en-US")
+            R.string.mv_voice_sample_english else R.string.mv_voice_sample),
+            TextToSpeech.QUEUE_FLUSH, null, "model-voice-preview")
     }
 
     private fun notifyError(code: String) = Toast.makeText(activity, reason(activity, code), Toast.LENGTH_LONG).show()
     fun syncSavedProfile() {
         val current = store.load() ?: return
         if (current != draft) {
-            val engineChanged = current.effectiveTtsEnginePackage != draft.effectiveTtsEnginePackage
+            val engineChanged = current.effectiveTtsEnginePackage != draft.effectiveTtsEnginePackage ||
+                current.languageTag != draft.languageTag
             probe.close(); checking = false; lastAttempt = null; checkResult = null
             draft = current
             if (engineChanged && active) loadVoices()
@@ -479,6 +529,8 @@ internal class ModelVoiceSettings(
             "android_offline_stt_unavailable" -> R.string.models_ui_android_stt_unavailable
             "tts_offline_voice_probe_required" -> R.string.mv_loading_voices
             "polish_offline_voice_missing", "selected_voice_missing" -> R.string.mv_voice_missing
+            "english_android_stt_required", "english_android_tts_required", "unsupported_language" ->
+                R.string.mv_english_route_required
             "polish_offline_voice_invalid_pcm" -> R.string.mv_audio_input_invalid
             "polish_offline_voice_audio_too_long" -> R.string.mv_audio_too_long
             else -> R.string.mv_compatibility_failed

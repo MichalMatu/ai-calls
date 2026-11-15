@@ -121,7 +121,7 @@ internal class PhoneTaskExecution(
                     context.scopedDataFields(emptySet()))
                 val goal = PhoneTaskInstruction.forTask(task)
                 val instruction = ConversationInstructionBuilder.build(preparation, goal,
-                    ConversationResponseFormat.TOOL_REPLY)
+                    ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
                 val configuration = ConversationRunConfiguration.ModelDirect(profile, instruction, preparation)
                 PhoneTaskWork.main.post {
                     if (!current(next.attemptId) || completing) return@post

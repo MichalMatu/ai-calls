@@ -57,7 +57,7 @@ internal class AndroidSkillLabSessionFactory(
             "lab-offline", "Laboratorium", initial.direction,
             "", initial.skills, emptySet(), routing.snapshot)
         val instruction = ConversationInstructionBuilder.build(
-            preparation, goal, ConversationResponseFormat.TOOL_REPLY)
+            preparation, goal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
         val provider = DialogueEngineProviders.resolve(profile)
         return SkillLabModelSession {
             // S22 may spend >2 GiB PSS on one native Gemma context. The USB
@@ -79,7 +79,7 @@ internal class AndroidSkillLabSessionFactory(
                         instructionFor = { changed ->
                             ConversationInstructionBuilder.build(
                                 preparation.withSkillSnapshot(changed),
-                                goal, ConversationResponseFormat.TOOL_REPLY)
+                                goal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
                         }, onRoutingDecision = { decision ->
                             // Only IDs and revision numbers travel to the UI observer.
                             runCatching { turnRoutingObserver(decision) }

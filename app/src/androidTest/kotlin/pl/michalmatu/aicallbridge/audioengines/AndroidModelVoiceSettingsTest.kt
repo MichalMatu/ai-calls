@@ -40,12 +40,13 @@ class AndroidModelVoiceSettingsTest {
             window.isShown && window.findViewWithTag<View>(tag) != null
         }
 
-    @Test fun mainEditorHasThreeCardsAndNoOldSaveOrAdvancedPage() {
+    @Test fun mainEditorHasLanguageCardAndNoOldSaveOrAdvancedPage() {
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
                 assertEquals(activity.getString(R.string.mv_title), activity.toolbarTitle())
-                for (tag in listOf("model-voice-model", "model-voice-inputs", "model-voice-voice",
+                for (tag in listOf("model-voice-model", "model-voice-inputs", "model-voice-language",
+                    "model-voice-language-choice", "model-voice-voice",
                     "model-manage-files", "model-voice-readiness"))
                     assertNotNull("missing $tag", root.findViewWithTag<View>(tag))
                 for (old in listOf("engine-save", "model-voice-advanced",
