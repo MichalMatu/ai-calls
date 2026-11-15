@@ -52,6 +52,8 @@ internal interface ConversationScenario {
 internal interface ConversationDialogueSession {
     val backend: TextCallAgentBackend
     val approvalPolicy: TextOutputApprovalPolicy
+    /** Optional pacing must not consume a pending model tool proposal. */
+    val acknowledgementPolicy: TextOutputApprovalPolicy get() = approvalPolicy
     val openingText: String? get() = null
     /** The bound Call adapter finalizes evidence after Android confirms the dispatched end_call. */
     val awaitToolCompletion: Boolean get() = false

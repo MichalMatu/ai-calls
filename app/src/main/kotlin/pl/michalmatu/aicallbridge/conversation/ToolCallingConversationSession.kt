@@ -12,7 +12,7 @@ import pl.michalmatu.aicallbridge.textagent.TextOutputDecision
 /** Tool proposals share the speech pipeline; execution is released only at its playback boundary. */
 internal class ToolCallingConversationSession(
     model: TextCallAgentBackend,
-    releasePolicy: TextOutputApprovalPolicy,
+    private val releasePolicy: TextOutputApprovalPolicy,
     private val tools: ConversationToolExecutor,
     private val hooks: ConversationRuntimeHooks,
     private val responseSource: String,
@@ -25,6 +25,7 @@ internal class ToolCallingConversationSession(
     private val appIdleClosureArmed = AtomicBoolean(false)
     private val approvedAppIdleClose = AtomicBoolean(false)
     override val awaitToolCompletion get() = awaitingTool
+    override val acknowledgementPolicy = TextOutputApprovalPolicy { speech -> releasePolicy.evaluate(speech) }
     override val backend = ConversationReplyBackend(model) { reply, elapsed, error ->
         hooks.decisionSink.record(hooks.turn(), reply?.tool?.name ?: if (error) null else "SPEAK", responseSource, elapsed, error)
         hooks.emit("turn_${hooks.turn()}_model_reply_ms=$elapsed")

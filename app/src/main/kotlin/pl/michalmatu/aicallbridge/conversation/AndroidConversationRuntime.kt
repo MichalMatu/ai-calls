@@ -748,7 +748,7 @@ internal object AndroidConversationRuntime {
                         authorized = !finished.get() && authorizedNow() &&
                             runCatching { callStillActive() }.getOrDefault(false) &&
                             currentTurn == turn && activeMediaGeneration.get() == generation &&
-                            dialogue.approvalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) ==
+                            dialogue.acknowledgementPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) ==
                                 TextOutputDecision.RELEASE,
                         readOnlySupervised = readOnlySupervised,
                         speechDetected = true,
@@ -779,7 +779,7 @@ internal object AndroidConversationRuntime {
                 !runCatching { callStillActive() }.getOrDefault(false) ||
                 currentTurn != turn || activeMediaGeneration.get() != generation ||
                 finalAudioReadyTurn.get() == turn ||
-                dialogue.approvalPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) !=
+                dialogue.acknowledgementPolicy.evaluate(QuickAcknowledgementPolicy.TEXT) !=
                     TextOutputDecision.RELEASE
             ) return
             try {
