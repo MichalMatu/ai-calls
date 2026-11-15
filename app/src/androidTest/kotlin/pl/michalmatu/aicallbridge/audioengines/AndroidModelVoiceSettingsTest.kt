@@ -40,6 +40,43 @@ class AndroidModelVoiceSettingsTest {
             window.isShown && window.findViewWithTag<View>(tag) != null
         }
 
+    @Test fun englishSpeechPickerResetsPolishOnlyEnginesAndReturnsToPolish() {
+        val store = AudioEngineProfileStore(context)
+        assertTrue(store.save(AudioEngineProfile.STABLE.copy(
+            input = SpeechInputId.PARAKEET_PL,
+            output = SpeechOutputId.ANDROID_TTS_PL,
+            voiceId = "pl_PL-gosia-medium",
+            ttsEnginePackage = PiperServiceContract.PACKAGE,
+        )))
+        ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+            fun selectLanguage(activity: LanguageModelActivity, index: Int) {
+                activity.window.decorView.findViewWithTag<View>("model-voice-language").performClick()
+                val dialogRoot = WindowInspector.getGlobalWindowViews().last { window ->
+                    window.isShown && window.findViewById<android.widget.ListView>(android.R.id.list) != null
+                }
+                val list = requireNotNull(
+                    dialogRoot.findViewById<android.widget.ListView>(android.R.id.list))
+                val child = requireNotNull(list.getChildAt(index))
+                assertTrue(list.performItemClick(child, index, list.adapter.getItemId(index)))
+            }
+            scenario.onActivity { selectLanguage(it, 1) }
+            val english = checkNotNull(store.load())
+            assertEquals("en-US", english.languageTag)
+            assertEquals(SpeechInputId.ANDROID_STT, english.input)
+            assertEquals(SpeechOutputId.ANDROID_TTS_PL, english.output)
+            assertNull(english.ttsEnginePackage)
+            assertNull(english.voiceId)
+            scenario.recreate()
+            scenario.onActivity { activity ->
+                assertEquals(activity.getString(R.string.mv_speech_language_en),
+                    activity.window.decorView.findViewWithTag<TextView>("model-voice-language-choice")
+                        .text.toString())
+                selectLanguage(activity, 0)
+            }
+            assertEquals("pl-PL", store.load()?.languageTag)
+        }
+    }
+
     @Test fun mainEditorHasLanguageCardAndNoOldSaveOrAdvancedPage() {
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
