@@ -47,13 +47,22 @@ class AndroidModelVoiceSettingsTest {
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             fun selectLanguage(activity: LanguageModelActivity, index: Int) {
                 activity.window.decorView.findViewWithTag<View>("model-voice-language").performClick()
-                val dialogRoot = WindowInspector.getGlobalWindowViews().last { window ->
-                    window.isShown && window.findViewById<android.widget.ListView>(android.R.id.list) != null
+                // AlertDialog's list does not use android.R.id.list on every API/theme.
+                fun findList(view: View): android.widget.ListView? {
+                    if (view is android.widget.ListView) return view
+                    if (view is android.view.ViewGroup) {
+                        for (i in 0 until view.childCount) {
+                            findList(view.getChildAt(i))?.let { return it }
+                        }
+                    }
+                    return null
                 }
-                val list = requireNotNull(
-                    dialogRoot.findViewById<android.widget.ListView>(android.R.id.list))
-                val child = requireNotNull(list.getChildAt(index))
-                assertTrue(list.performItemClick(child, index, list.adapter.getItemId(index)))
+                val list = WindowInspector.getGlobalWindowViews()
+                    .filter { it.isShown }
+                    .mapNotNull(::findList)
+                    .lastOrNull() ?: error("language_picker_list_not_found")
+                assertTrue(list.performItemClick(
+                    list.getChildAt(index), index, list.adapter.getItemId(index)))
             }
             scenario.onActivity { selectLanguage(it, 1) }
             val english = checkNotNull(store.load())
