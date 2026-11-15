@@ -20,7 +20,7 @@ Dowody: [macierz](../benchmarks/audio/AUDIO_ROUTE_QUALITY.md),
 Prawdziwy Call 4–6 tur z powitaniem podczas prewarm,
 end-of-speech → TX, barge-in i STOP; END_CALL po
 „do widzenia” oraz odsłuch. Osobno zdiagnozować
-REPAIRS=1 pierwszej odpowiedzi i porównać Qwen.
+REPAIRS=1 pierwszej odpowiedzi. Kandydaci: [lista](../benchmarks/MODEL_CANDIDATES.md).
 
 ## Otwarte
 
