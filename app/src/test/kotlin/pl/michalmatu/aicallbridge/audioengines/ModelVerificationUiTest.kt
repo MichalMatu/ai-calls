@@ -4,6 +4,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ModelVerificationUiTest {
+    @Test fun importedModelStatusNeverConfusesImportWithNativeVerification() {
+        fun state(installed: Boolean = true, valid: Boolean = true,
+                  checking: Boolean = false, verified: Boolean = false,
+                  failed: Boolean = false) =
+            ModelVerificationUi.importedStatus(installed, valid, checking, verified, failed)
+        assertEquals(ImportedModelCheckStatus.MISSING, state(installed = false))
+        assertEquals(ImportedModelCheckStatus.INVALID, state(valid = false))
+        assertEquals(ImportedModelCheckStatus.REQUIRED, state())
+        assertEquals(ImportedModelCheckStatus.CHECKING, state(checking = true))
+        assertEquals(ImportedModelCheckStatus.FAILED, state(failed = true))
+        assertEquals(ImportedModelCheckStatus.VERIFIED, state(verified = true))
+        assertEquals(ImportedModelCheckStatus.CHECKING, state(checking = true, verified = true))
+        assertEquals(ImportedModelCheckStatus.FAILED, state(failed = true, verified = true))
+    }
+
     @Test fun allDownloadedModelsHaveManualCheckExceptDuringTransfer() {
         assertTrue(ModelVerificationUi.checkVisible(true, false))
         assertFalse(ModelVerificationUi.checkVisible(false, false))

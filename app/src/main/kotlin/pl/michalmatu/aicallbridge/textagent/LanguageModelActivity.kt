@@ -4,6 +4,7 @@ import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiActionTone
+import pl.michalmatu.aicallbridge.ui.UiStatusTone
 import pl.michalmatu.aicallbridge.R
 import android.app.AlertDialog
 import pl.michalmatu.aicallbridge.debug.UsbDebugBridge
@@ -20,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelFile
@@ -29,6 +31,8 @@ import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.audioengines.ModelVoiceSettings
 import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityStore
 import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityProbe
+import pl.michalmatu.aicallbridge.audioengines.ModelVerificationUi
+import pl.michalmatu.aicallbridge.audioengines.ImportedModelCheckStatus
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -117,6 +121,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         val content = UiDesign.content(this)
         feedback = UiDesign.caption(this, "").apply {
             tag = "model-transfer-feedback"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             visibility = View.GONE
         }
         content.addView(feedback, UiDesign.spaceAfter(this, 8))
@@ -496,6 +501,10 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 if (!isDestroyed && !isFinishing) {
                     renderedUserModels = null
                     update()
+                    Toast.makeText(this, getString(if (failure == null)
+                        R.string.models_ui_custom_check_pass_toast
+                        else R.string.models_ui_custom_check_fail_toast, model.title),
+                        Toast.LENGTH_LONG).show()
                 }
             }
         } catch (_: Exception) {
@@ -516,6 +525,8 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             installed.map { library.file(it).let { file -> listOf(file.isFile, file.length(), file.lastModified(), ModelCompatibilityStore(this).verified(file, false)) } })
         if (signature == renderedUserModels) return
         renderedUserModels = signature
+        val scroller = (userModelsContainer.parent as? View)?.parent as? ScrollView
+        val scrollY = scroller?.scrollY ?: 0
         userModelsContainer.removeAllViews()
         if (installed.isEmpty()) {
             userModelsContainer.addView(UiDesign.caption(this, getString(R.string.models_ui_no_user_models)))
@@ -525,40 +536,44 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             val isSelected = profile.dialogue == DialogueModelId.USER_LITERT &&
                 profile.customModelId == model.id
             val isInstalled = library.isInstalled(model)
-            val verified = isInstalled && LiteRtModelContainer.hasHeader(library.file(model)) &&
-                ModelCompatibilityStore(this).verified(library.file(model), false)
+            val file = library.file(model)
+            val validContainer = isInstalled && LiteRtModelContainer.hasHeader(file)
+            val verified = validContainer && ModelCompatibilityStore(this).verified(file, false)
+            val error = importedModelFailures[model.id]
+            val state = ModelVerificationUi.importedStatus(
+                isInstalled, validContainer, checkingImportedModelId == model.id,
+                verified, error != null)
             val card = UiDesign.card(this)
             card.tag = "user-model:" + model.id
             card.addView(UiDesign.heading(this, model.title).apply { textSize = 16f },
                 UiDesign.spaceAfter(this, 8))
-            val label = getString(when {
-                !isInstalled && library.file(model).isFile -> R.string.models_ui_invalid_file
-                !isInstalled -> R.string.models_ui_user_missing
-                !LiteRtModelContainer.hasHeader(library.file(model)) -> R.string.models_ui_invalid_file
-                !ModelCompatibilityStore(this).verified(library.file(model), false) -> R.string.mv_compatibility_required
-                isSelected -> R.string.models_ui_active
-                else -> R.string.mv_compatible
-            })
-            val checkFailure = importedModelFailures[model.id]
-            val details = buildString {
-                append(label)
-                if (library.file(model).isFile) {
-                    append("\n")
-                    append(storageLabel(library.file(model), model.bytes))
-                }
-                if (checkFailure != null) {
-                    append("\n")
-                    append(ModelVoiceSettings.reason(this@LanguageModelActivity, checkFailure))
-                    append(" (")
-                    append(checkFailure)
-                    append(")")
-                }
+            val description = if (isInstalled) storageLabel(file, model.bytes)
+                else getString(R.string.models_ui_user_missing)
+            card.addView(UiDesign.caption(this, description), UiDesign.spaceAfter(this, 8))
+            val message = when (state) {
+                ImportedModelCheckStatus.MISSING -> getString(R.string.models_ui_user_missing)
+                ImportedModelCheckStatus.INVALID -> getString(R.string.mv_invalid_container)
+                ImportedModelCheckStatus.CHECKING -> getString(R.string.models_ui_custom_check_running)
+                ImportedModelCheckStatus.FAILED -> getString(R.string.models_ui_custom_check_failed,
+                    ModelVoiceSettings.reason(this, error))
+                ImportedModelCheckStatus.VERIFIED -> getString(R.string.models_ui_custom_check_passed)
+                ImportedModelCheckStatus.REQUIRED -> getString(R.string.models_ui_custom_check_required)
             }
-            card.addView(UiDesign.caption(this, details), UiDesign.spaceAfter(this, 8))
-            if (isInstalled) {
-                card.addView(UiDesign.action(this, getString(when {
-                    checkingImportedModelId == model.id -> R.string.mv_checking_short
-                    verified -> R.string.mv_retry
+            val tone = when (state) {
+                ImportedModelCheckStatus.VERIFIED -> UiStatusTone.SUCCESS
+                ImportedModelCheckStatus.FAILED, ImportedModelCheckStatus.INVALID,
+                ImportedModelCheckStatus.MISSING -> UiStatusTone.ERROR
+                else -> UiStatusTone.INFO
+            }
+            card.addView(UiDesign.status(this, message, tone).apply {
+                tag = "user-model-status:" + model.id
+            }, UiDesign.spaceAfter(this, 8))
+            if (isSelected) card.addView(UiDesign.caption(this,
+                getString(R.string.models_ui_selected_next)), UiDesign.spaceAfter(this, 8))
+            if (isInstalled && validContainer) {
+                card.addView(UiDesign.action(this, getString(when (state) {
+                    ImportedModelCheckStatus.CHECKING -> R.string.mv_checking_short
+                    ImportedModelCheckStatus.VERIFIED -> R.string.mv_retry
                     else -> R.string.mv_check_compatibility
                 })) { checkImportedModel(model) }.apply {
                     tag = "user-model-check:" + model.id
@@ -587,6 +602,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             }.apply { tag = "user-model-delete:" + model.id; visibility = if (!isSelected && AudioEngineProfileStore(this@LanguageModelActivity).load()?.customModelId != model.id) View.VISIBLE else View.GONE })
             userModelsContainer.addView(card, UiDesign.spaceAfter(this, 10))
         }
+        scroller?.post { if (!isDestroyed && !isFinishing) scroller.scrollTo(0, scrollY) }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

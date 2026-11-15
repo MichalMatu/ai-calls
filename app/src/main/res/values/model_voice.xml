@@ -75,4 +75,10 @@
     <string name="mv_reply_check_failed">Odpowiedź modelu nie przeszła próby zgodności.</string>
     <string name="mv_check_result_unsaved">Nie zapisano wyniku próby. Sprawdź model ponownie.</string>
     <string name="mv_check_interrupted">Sprawdzanie przerwane. Możesz je ponowić.</string>
+    <string name="models_ui_custom_check_running">Sprawdzanie zgodności modelu…</string>
+    <string name="models_ui_custom_check_required">Model zapisany. Sprawdź zgodność, aby udostępnić go do wyboru.</string>
+    <string name="models_ui_custom_check_passed">PASS · Model uruchamia się i odpowiada w wymaganym formacie. Możesz go wybrać w „Model i głos” → „Model rozmowy”. To nie jest jeszcze test pełnej rozmowy.</string>
+    <string name="models_ui_custom_check_failed">Nie zaliczono sprawdzenia. %1$s Model pozostaje niedostępny do wyboru. Możesz ponowić test.</string>
+    <string name="models_ui_custom_check_pass_toast">Model %1$s: zgodność potwierdzona.</string>
+    <string name="models_ui_custom_check_fail_toast">Model %1$s: sprawdzanie nieudane. Szczegóły na karcie.</string>
 </resources>

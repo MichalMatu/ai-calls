@@ -18,6 +18,7 @@ import pl.michalmatu.aicallbridge.R
 
 /** Presentation-only styles; never owns an AI action, a grant, or audio state. */
 internal enum class UiActionTone { PRIMARY, SECONDARY, DANGER, REVOCATION }
+internal enum class UiStatusTone { INFO, SUCCESS, ERROR }
 
 internal object UiDesign {
     val background = Color.rgb(247, 249, 253)
@@ -159,6 +160,19 @@ internal object UiDesign {
         setTextColor(secondary)
         setLineSpacing(dp(context, 2).toFloat(), 1f)
     }
+
+    /** Persistent, accessible status beside its action; no color-only meaning. */
+    fun status(context: Context, value: String, tone: UiStatusTone = UiStatusTone.INFO): TextView =
+        caption(context, value).apply {
+            textSize = 14f
+            setTextColor(when (tone) {
+                UiStatusTone.INFO -> secondary
+                UiStatusTone.SUCCESS -> primary
+                UiStatusTone.ERROR -> danger
+            })
+            if (tone != UiStatusTone.INFO) setTypeface(null, Typeface.BOLD)
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
 
     fun spaceAfter(context: Context, gap: Int = GAP_ACTION) =
         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
