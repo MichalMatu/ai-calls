@@ -130,6 +130,7 @@
             android:exported="false" />
 
         <activity android:name=".textagent.LanguageModelActivity" android:exported="false" />
+        <activity android:name=".textagent.LfmAudioTestActivity" android:exported="false" />
         <activity android:name=".campaign.PhoneTaskWizardActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".campaign.PhoneTasksActivity" android:exported="false" />
         <receiver android:name=".campaign.PhoneTaskAlarmReceiver" android:exported="false">

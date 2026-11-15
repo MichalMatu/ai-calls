@@ -18,6 +18,12 @@ android {
     buildFeatures {
         aidl = true
     }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            keepDebugSymbols.add("**/libaicalls_lfm_cli.so")
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

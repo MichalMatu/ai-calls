@@ -103,6 +103,9 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 addView(UiDesign.action(this@LanguageModelActivity, getString(R.string.mv_manage_files)) {
                     openFileManager()
                 }.apply { tag = "model-manage-files" })
+                addView(UiDesign.action(this@LanguageModelActivity, "Test modeli: Gemma / LFM2.5") {
+                    startActivity(Intent(this@LanguageModelActivity, LfmAudioTestActivity::class.java))
+                }.apply { tag = "model-audio-lab" }, UiDesign.spaceAfter(this@LanguageModelActivity, 12))
             }
             setContentView(ScrollView(this).apply { addView(content) })
             contentReady = true
@@ -115,6 +118,9 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             visibility = View.GONE
         }
         content.addView(feedback, UiDesign.spaceAfter(this, 8))
+        content.addView(UiDesign.action(this, "Test modeli: Gemma / LFM2.5") {
+            startActivity(Intent(this, LfmAudioTestActivity::class.java))
+        }.apply { tag = "model-audio-lab" }, UiDesign.spaceAfter(this, 12))
         cancelTransfer = UiDesign.action(this, getString(R.string.models_ui_cancel), UiActionTone.DANGER) {
             if (LanguageModelTransferService.status.busy) startService(
                 Intent(this@LanguageModelActivity, LanguageModelTransferService::class.java)
