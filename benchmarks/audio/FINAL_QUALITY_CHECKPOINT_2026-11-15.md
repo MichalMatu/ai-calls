@@ -27,12 +27,12 @@ Zachować czysty `main`, Gemma E2B jako bazę, aktualny profil S22 i istniejący
 ## Uzupełnienie — sprint zamykający 15.11.2026 (po zgodzie użytkownika)
 
 **Wynik: HOST + S22 APK/OFF-CALL PASS; REAL_CALL_PHYSICAL_OPEN.**
-Stan kodu po poprawkach: `7fb1648ff5e6c2c9aca804802db460ff634f1c07` (`main`; ostatni commit wyłącznie androidTest).
+Stan kodu po poprawkach: `77fdc864fc97b9f95f1f518bf60b58c550edbdf2` (`main`; od `2c70e0f` zmieniały się wyłącznie testy Android i ten checkpoint).
 
 ### Kod i model
 - `4c69016`: jawny profil rozmowy `en-US` z Android on-device STT, lokalnym Android TTS, angielskim powitaniem, promptem, komunikatami ciszy i błędu; EN nie używa polskiego Parakeet/Piper. Picker pokazuje tylko zaimportowane modele z pozytywną kontrolą kontenera i zgodności. Mac: preflight, jednostkowe i assemble PASS.
 - `2c70e0f`: naprawa wypowiadania dodatkowego pytania po angielskim `Goodbye` przy propozycji `END_CALL`; test jednostkowy i APK PASS. Nie zastępuje fizycznego potwierdzenia Telecom.
-- `7fb1648`: test przełącznika języka PL→EN→PL oraz zerowania niekompatybilnych głosów, skompilowany jako `androidTest`; uruchomienie w macierzy emulatorowej jeszcze do potwierdzenia.
+- `7fb1648`, `b35552c`, `77fdc86`: instrumentacyjny test selektora rozmowy PL→EN→PL. Usunięto z testu nieobecny w emulatorze zewnętrzny silnik Piper i poprawiono identyfikowanie listy AlertDialog po typie widoku. Kompilacja PASS; celowany test po poprawkach: `OK (1 test)` i `passed=true` (`aicalls-emulator-english-picker-isolated-20261115-v4`; opakowanie zadania Local Agent zgłosiło status failed/126 mimo potwierdzonego wyniku wewnątrz).
 
 ### Fizyczny Samsung S22+ — faktyczne dowody na nowym APK
 - `aicalls-s22-safe-install-preflight-20261115-v1`: sprzęt dokładnie zweryfikowany, Android 16, `IDLE`, AI Calls **już było** domyślnym dialerem, Shizuku działa.
@@ -43,7 +43,7 @@ Stan kodu po poprawkach: `7fb1648ff5e6c2c9aca804802db460ff634f1c07` (`main`; ost
 - `aicalls-s22-test-enable-incoming-ai-20261115-v1` i `aicalls-s22-consented-incoming-call-observation-restore-20261115-v1`: krótkie przełączenie MANUAL→AI z zachowaniem SIM/nagrywania; podczas obserwacji **nie przyszło żadne połączenie z drugiego telefonu** (`incoming_calls_observed=0`). Automatyczny powrót do **MANUAL**, `IDLE`, zapis nagrywania bez zmian. Zero połączeń inicjowanych przez agenta i zero globalnych rozłączeń.
 
 ### Emulator / import
-- Izolowany `medium_phone`: pojedyncze testy renderowania modelu/głosu, importu i przełączania głównych zakładek zwróciły `OK (1 test)`; zbiorcza próba wcześniej uległa awarii lub timeoutowi instrumentacji. Oddzielna ośmiotestowa macierz `aicalls-emulator-final-targeted-ui-matrix-20261115-v1`: **wynik końcowy oczekiwany**. Test importu używa syntetycznego pliku — nie dowodzi natywnej zgodności dowolnego prawdziwego modelu.
+- Izolowany `medium_phone`: w macierzy `aicalls-emulator-final-targeted-ui-matrix-20261115-v1` **7/8 PASS** (nawigacja, ustawienia, zasoby PL/EN, historia, przejście ekranów, import/odrzucenia); test nowego selektora języka początkowo przekroczył limit. W kolejnej izolowanej próbie wykryto zły identyfikator ListView w samym teście, poprawiono i `aicalls-emulator-english-picker-isolated-20261115-v4` wykazał `passed=true` dla PL→EN→PL, bez dotykania S22. Zatem każdy z 8 przypadków ma pojedynczy instrumentacyjny sukces na docelowych wersjach kodu/testu; **nie oznacza to ponownej pełnej macierzy 8/8 w jednym uruchomieniu**. Przy pierwszej próbie zbiorczej pojawiały się też awarie/timeouty. Fake `.litertlm` sprawdza mechanikę importu i izolację bazowego modelu, nie autentyczną kompatybilność natywną.
 - Cały onboarding i każda ścieżka UI nie są jeszcze fizycznie zakwalifikowane, a angielski E2E STT→LLM→TTS wymaga uruchomienia na urządzeniu z faktycznym offline en-US głosem i rozpoznawaniem.
 
 ### Ostatnia bramka
