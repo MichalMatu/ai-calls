@@ -40,14 +40,10 @@ class AndroidModelVoiceSettingsTest {
             window.isShown && window.findViewWithTag<View>(tag) != null
         }
 
-    @Test fun englishSpeechPickerResetsPolishOnlyEnginesAndReturnsToPolish() {
+    @Test fun englishSpeechPickerSwitchesAndRestoresLanguage() {
         val store = AudioEngineProfileStore(context)
-        assertTrue(store.save(AudioEngineProfile.STABLE.copy(
-            input = SpeechInputId.PARAKEET_PL,
-            output = SpeechOutputId.ANDROID_TTS_PL,
-            voiceId = "pl_PL-gosia-medium",
-            ttsEnginePackage = PiperServiceContract.PACKAGE,
-        )))
+        // No external Piper service in the emulator: device engines are tested on S22.
+        assertTrue(store.save(AudioEngineProfile.STABLE))
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             fun selectLanguage(activity: LanguageModelActivity, index: Int) {
                 activity.window.decorView.findViewWithTag<View>("model-voice-language").performClick()
