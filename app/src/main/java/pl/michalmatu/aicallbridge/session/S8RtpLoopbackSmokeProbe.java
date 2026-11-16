@@ -75,7 +75,11 @@ public final class S8RtpLoopbackSmokeProbe {
                     receiver.cancel(true);
                 }
                 coordinator.takeOverNow(); // Closing socket also unblocks timed-out RX.
-                rxThread.join(500);
+                try {
+                    rxThread.join(500);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                }
                 boolean stop = !rxThread.isAlive()
                     && coordinator.snapshot().state() == CallMediaSessionState.IDLE
                     && !backend.heartbeat(generation)
