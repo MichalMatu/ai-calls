@@ -74,7 +74,8 @@ public final class S8SipsOptionsProtocol {
             throw new IllegalArgumentException("sips_dns_name_required");
         }
         boolean lastLabelHasLetter = false;
-        for (String label : labels) {
+        for (int index = 0; index < labels.length; index++) {
+            String label = labels[index];
             if (label.isEmpty() || label.length() > 63
                 || label.charAt(0) == '-' || label.charAt(label.length() - 1) == '-') {
                 throw new IllegalArgumentException("invalid_sips_dns_label");
@@ -84,7 +85,7 @@ public final class S8SipsOptionsProtocol {
                 if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-')) {
                     throw new IllegalArgumentException("invalid_sips_dns_label");
                 }
-                if (label == labels[labels.length - 1] && c >= 'a' && c <= 'z') {
+                if (index == labels.length - 1 && c >= 'a' && c <= 'z') {
                     lastLabelHasLetter = true;
                 }
             }
@@ -161,6 +162,12 @@ public final class S8SipsOptionsProtocol {
             || !lines[lines.length - 1].isEmpty()
             || !lines[lines.length - 2].isEmpty()) {
             throw new IOException("invalid_sip_headers");
+        }
+        // A bare LF/CR within any line is not SIP CRLF framing.
+        for (String line : lines) {
+            if (line.indexOf('\n') >= 0 || line.indexOf('\r') >= 0) {
+                throw new IOException("invalid_sip_crlf_framing");
+            }
         }
         String[] status = lines[0].split(" ", 3);
         if (status.length != 3 || !status[0].equals("SIP/2.0")
