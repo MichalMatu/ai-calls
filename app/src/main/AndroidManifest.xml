@@ -120,6 +120,14 @@
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
 
+        <!-- S8 synthetic 127.0.0.1 RTP smoke. No GSM, microphone or real VoIP call. -->
+        <activity
+            android:name=".developerrelay.S8RtpLoopbackSmokeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
         <activity
             android:name=".campaign.AppointmentMvpActivity"
             android:windowSoftInputMode="adjustResize"
