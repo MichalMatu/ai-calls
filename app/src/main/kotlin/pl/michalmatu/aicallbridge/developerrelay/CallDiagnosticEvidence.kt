@@ -37,7 +37,8 @@ internal class CallDiagnosticEvidence(initial: List<String>) {
 internal object PrivateDiagnosticReportStore {
     fun write(directory: File, name: String, report: String): Boolean {
         require(name == SupervisedCallReadinessDiagnostics.REPORT_FILE ||
-            name == AndroidConversationRuntime.REPORT_FILE) { "invalid_diagnostic_report_name" }
+            name == AndroidConversationRuntime.REPORT_FILE ||
+            name == S8RtpLoopbackSmokeActivity.REPORT_FILE) { "invalid_diagnostic_report_name" }
         val file = AtomicFile(File(directory, name))
         var stream: FileOutputStream? = null
         return try {
