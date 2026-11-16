@@ -32,7 +32,7 @@ public final class S8SipsRegisterDryRunTest {
         "Digest realm=\"sip.example.org\", nonce=\"n0nce123456789\", "
             + "algorithm=SHA-256, qop=\"auth\", charset=UTF-8";
 
-    private static final class FakeTls implements S8SipsTlsOptionsProbe.SecureChannel {
+    static final class FakeTls implements S8SipsTlsOptionsProbe.SecureChannel {
         enum Mode {
             SUCCESS, TLS_FAIL, FORGED_401, UNSUPPORTED_MD5,
             FORGED_200, WRONG_CONTACT, MISSING_CONTACT, TOO_LONG_EXPIRY,
