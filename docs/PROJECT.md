@@ -11,7 +11,7 @@
 
 S8: `feature/s8-no-shizuku`, bez merge. Debug APK `pl.michalmatu.aicallbridge.s8lab`, ARM64, obok stabilnej aplikacji. Narzędzia deweloperskie → VoIP Lab: 6 faz / 72 ramki RX/TX/STOP na localhost, syntetyczny RTP 8k → PCM 16k → Realtime 24k. Bez AI i rozmowy.
 
-Ręczny SIP/TLS REGISTER: 401 → Digest SHA-256 → 200, hasło w RAM, STOP zamyka TCP. **REGISTER zmienia Contact konta do 300 s; tylko konto testowe.** Mac: testy i APK PASS; emulator Android 16 ARM64: 3 testy instrumentacyjne PASS (RTP 72/72, START→PASS, SIP idle). S22+ nowe UI PHYSICAL_OPEN; operator niezweryfikowany. APK: szkic GitHub Release `s8-no-shizuku-lab-2026-11-16-b1`.
+Ręczny SIP/TLS REGISTER: 401 → Digest SHA-256 → 200, hasło w RAM, STOP zamyka TCP. **REGISTER zmienia Contact konta do 300 s; tylko konto testowe.** Mac: unit/APK PASS. Emulator ARM64: 3 testy PASS (RTP 72/72, START, SIP idle). S22+ UI PHYSICAL_OPEN; SIP operator bez testu. APK: szkic Release `s8-no-shizuku-lab-2026-11-16-b1`.
 
 ## Następny sprint — S8: bez Shizuku
 
