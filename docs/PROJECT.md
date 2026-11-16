@@ -9,12 +9,14 @@
 
 ## Podział pracy
 
-`feature/s8-no-shizuku`: bez merge, domyślny backend niezmieniony. Mac: testy celowane i APK PASS. S22+ Android 16: syntetyczny SDP ↔ RTP/PCMU 8 kHz ↔ PCM 16 kHz ↔ Realtime 24 kHz: RX/TX/STOP PASS; obcy adres SDP odrzucony. Tylko `127.0.0.1`, bez Shizuku; ADB wyłącznie do QA. Stabilny APK przywrócony, SHA-256 PASS. Bez rozmowy.
+`feature/s8-no-shizuku`: bez merge, domyślny backend niezmieniony. S22+: syntetyczny SDP ↔ RTP/PCMU 8 kHz ↔ PCM 16 kHz ↔ Realtime 24 kHz: RX/TX/STOP PASS, obcy SDP odrzucony. Tylko `127.0.0.1`; ADB do QA. Stabilny APK przywrócony (SHA PASS), bez rozmowy.
+
+Mac: osobny klient SIPS/TLS OPTIONS (bez REGISTER/INVITE/media), ścisła korelacja odpowiedzi, DNS SAN i zaufane CA, blokada sieci bez zgody. Testy z fałszywym kanałem TLS, preflight i APK PASS; **bez rzeczywistego połączenia TLS z operatorem**.
 
 ## Następny sprint — S8: bez Shizuku
 
-Bezpieczne zewnętrzne SIP/SDP/SRTP, potem lokalne STT/LLM/TTS. `APP_PRIVATE_LITERT` jawnie opcjonalne; model na S22+ niezweryfikowany.
+Uwierzytelnione SIP/SDP i sprawdzony SRTP, potem lokalne STT/LLM/TTS; `APP_PRIVATE_LITERT` wymaga odbioru modelu.
 
 ## Otwarte
 
-GSM PCM: blokada Android/OEM. Lokalny SDP/RTP nie ma SIP, SRTP, uwierzytelnienia ani PSTN. Test 4–6 tur tylko po zgodzie na numer, koszty i scenariusz. Bez PII/audio w Git.
+Brak SIP REGISTER/INVITE, SRTP, konta operatora i PSTN. Pełne sprawdzenie certyfikatów SIP RFC 5922 poza podzbiorem DNS SAN otwarte. GSM PCM blokuje Android/OEM. Test 4–6 tur tylko za osobną zgodą na numer/koszty/scenariusz. Bez PII/audio w Git.
