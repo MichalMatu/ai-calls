@@ -21,6 +21,9 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".s8lab"
             versionNameSuffix = "-s8lab"
+            // Only the owner's 64-bit Samsung S22+ target. Do not ship
+            // x86/x86_64/32-bit native LLM binaries in the test installer.
+            ndk { abiFilters += "arm64-v8a" }
         }
     }
 
