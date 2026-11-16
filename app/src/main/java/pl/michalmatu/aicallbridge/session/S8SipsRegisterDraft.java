@@ -46,6 +46,14 @@ public final class S8SipsRegisterDraft {
         String viaSentBy() {
             return config.contact().host() + ":" + config.contact().port();
         }
+        String expectedAor() {
+            return "<sips:" + config.user() + "@" + config.registrar().host() + ">";
+        }
+        String expectedFrom() { return expectedAor() + ";tag=" + fromTag; }
+        String expectedContact() {
+            return "<sips:" + config.user() + "@" + viaSentBy() + ";transport=tls>";
+        }
+        int requestedExpires() { return config.expiresSeconds(); }
     }
 
     private S8SipsRegisterDraft() {}
