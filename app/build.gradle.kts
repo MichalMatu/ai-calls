@@ -15,6 +15,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // S8 lab APK installs side-by-side with the stable dialer on Samsung.
+    // Never use the production package ID for an experimental debug build.
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".s8lab"
+            versionNameSuffix = "-s8lab"
+        }
+    }
+
     buildFeatures {
         aidl = true
     }
