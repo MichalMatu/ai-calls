@@ -37,10 +37,24 @@ final class S8SipsRegisterDryRun {
 
         // Validate and allocate one call-id without touching a socket.
         S8SipsRegisterDraft.Draft initial = S8SipsRegisterDraft.initial(config);
+        return exchangeOnce(initial, password, channels.open());
+    }
+
+    /**
+     * The same one-transaction state machine is exercised by offline tests and
+     * the explicitly approved SIPS/TLS adapter. It owns and always closes the
+     * channel on success, invalid response, TLS failure, or transport error.
+     */
+    static DryRunResult exchangeOnce(
+        S8SipsRegisterDraft.Draft initial, char[] password,
+        S8SipsTlsOptionsProbe.SecureChannel suppliedChannel
+    ) throws IOException {
+        Objects.requireNonNull(initial, "initial");
+        Objects.requireNonNull(password, "password");
         try (S8SipsTlsOptionsProbe.SecureChannel channel =
-                 Objects.requireNonNull(channels.open(), "missing_test_tls_channel")) {
-            // The test channel controls whether the handshake succeeds; the
-            // first REGISTER byte is sent only after explicit TLS verification.
+                 Objects.requireNonNull(suppliedChannel, "missing_tls_channel")) {
+            // The first REGISTER byte is sent only after certificate and DNS
+            // hostname verification has succeeded.
             channel.verifyPeer();
             send(channel.output(), initial.wire());
             S8SipsRegisterDraft.Draft retry = S8SipsRegisterDraft.retryAfter401Response(
