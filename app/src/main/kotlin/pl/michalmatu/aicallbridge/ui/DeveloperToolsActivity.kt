@@ -19,6 +19,9 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
         body.addView(UiDesign.button(this, getString(R.string.ui_lab_short)) {
             startActivity(Intent(this, ConversationSkillLabActivity::class.java))
         })
+        body.addView(UiDesign.button(this, getString(R.string.s8_voip_lab_title)) {
+            startActivity(Intent(this, S8VoipLabActivity::class.java))
+        }.apply { tag = "developer-s8-voip-lab" })
         setContentView(ScrollView(this).apply { addView(body) })
         probes.attach()
     }
