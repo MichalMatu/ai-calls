@@ -15,6 +15,11 @@ import pl.michalmatu.aicallbridge.session.S8RtpLoopbackSmokeProbe
 class S8RtpLoopbackSmokeActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A synchronous, PII-free marker distinguishes launch failure from blocked RTP.
+        PrivateDiagnosticReportStore.write(
+            filesDir, "s8-rtp-loopback-report.txt",
+            Report(false, false, false, "running").render()
+        )
         Thread({
             val status = try {
                 val telecom = getSystemService(TelecomManager::class.java)
