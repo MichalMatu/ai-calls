@@ -13,11 +13,12 @@ import pl.michalmatu.aicallbridge.session.S8RtpLoopbackSmokeProbe
  * Uses only 127.0.0.1, never phone audio, an operator or a SIP account.
  */
 class S8RtpLoopbackSmokeActivity : Activity() {
+    companion object { const val REPORT_FILE = "s8-rtp-loopback-report.txt" }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // A synchronous, PII-free marker distinguishes launch failure from blocked RTP.
         PrivateDiagnosticReportStore.write(
-            filesDir, "s8-rtp-loopback-report.txt",
+            filesDir, REPORT_FILE,
             Report(false, false, false, "running").render()
         )
         Thread({
@@ -42,7 +43,7 @@ class S8RtpLoopbackSmokeActivity : Activity() {
             }
             PrivateDiagnosticReportStore.write(
                 filesDir,
-                "s8-rtp-loopback-report.txt",
+                REPORT_FILE,
                 status.render()
             )
             runOnUiThread { finish() }
