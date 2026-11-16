@@ -85,11 +85,11 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             setSingleLine(true)
             isSaveEnabled = false
             importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
-            inputType = InputType.TYPE_CLASS_TEXT or if (secret) {
+            inputType = InputType.TYPE_CLASS_TEXT or (if (secret) {
                 InputType.TYPE_TEXT_VARIATION_PASSWORD
             } else {
                 InputType.TYPE_TEXT_VARIATION_URI
-            }
+            })
             if (secret) tag = "s8-sip-secret-input"
         }
 
@@ -106,12 +106,12 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             val contactEndpoint = S8SipsOptionsProtocol.parseEndpoint(contact.text.toString().trim())
             S8SipsRegisterDraft.Config(sips, user.text.toString().trim(), contactEndpoint, 300)
         } catch (_: RuntimeException) {
-            Arrays.fill(secret, '\u0000')
+            Arrays.fill(secret, Char.MIN_VALUE)
             status.text = getString(R.string.s8_sip_lab_invalid)
             return
         }
         if (secret.isEmpty()) {
-            Arrays.fill(secret, '\u0000')
+            Arrays.fill(secret, Char.MIN_VALUE)
             status.text = getString(R.string.s8_sip_lab_invalid)
             return
         }
@@ -134,7 +134,7 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             } catch (_: RuntimeException) {
                 Result.failure()
             } finally {
-                Arrays.fill(secret, '\u0000')
+                Arrays.fill(secret, Char.MIN_VALUE)
                 once.close()
             }
             runOnUiThread {
