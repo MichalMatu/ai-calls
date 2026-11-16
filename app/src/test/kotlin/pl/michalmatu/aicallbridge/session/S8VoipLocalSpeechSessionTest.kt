@@ -145,7 +145,7 @@ class S8VoipLocalSpeechSessionTest {
             val listener = checkNotNull(lastListener)
             listener.onTranscript()
             listener.onApproved()
-            val pcm16 = ByteArray(1280) { if (it % 2 == 0) 0x40 else 0x05 }
+            val pcm16 = ByteArray(1280) { (if (it % 2 == 0) 0x40 else 0x05).toByte() }
             listener.onOutputPcm16(pcm16)
         }
         override fun cancel() { events += "speech-cancel" }
