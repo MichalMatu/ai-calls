@@ -8,6 +8,7 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.*
@@ -94,6 +95,59 @@ class S8VoipLocalSpeechSessionTest {
         assertEquals(1, speech.starts.get())
     }
 
+
+    @Test fun unapprovedTtsPcmIsNeverWrittenToVoipUplink() {
+        val events = CopyOnWriteArrayList<String>()
+        val endpoint = FakeEndpoint(ByteArrayInputStream(twoUtterances()), events)
+        val owner = coordinator(endpoint)
+        val generation = owner.start(16_000)
+        val speech = FakeSpeech(events, emitApproval = false)
+        val failed = CountDownLatch(1)
+        val session = S8VoipLocalSpeechSession(
+            coordinator = owner, generation = generation, speech = speech,
+            speechExecutor = java.util.concurrent.Executor { it.run() },
+            maxTurns = 2,
+            observer = {
+                if (it.phase == S8VoipLocalSpeechSession.Phase.FAILED) failed.countDown()
+            },
+        )
+        session.start()
+        assertTrue("unapproved response must fail closed", failed.await(4, TimeUnit.SECONDS))
+        assertEquals(0, session.snapshot().approvals)
+        assertEquals(0, session.snapshot().outgoingFrames)
+        assertEquals(0, endpoint.bytesSent.size())
+        assertEquals(CallMediaSessionState.IDLE, owner.snapshot().state())
+        session.close()
+    }
+
+    @Test fun terminalCleanupExecutesOnSpeechOwnerThreadNotRtpWorker() {
+        val events = CopyOnWriteArrayList<String>()
+        val endpoint = FakeEndpoint(ByteArrayInputStream(twoUtterances()), events)
+        val owner = coordinator(endpoint)
+        val generation = owner.start(16_000)
+        val speech = FakeSpeech(events)
+        val executor = Executors.newSingleThreadExecutor { action ->
+            Thread(action, "s8-test-speech-owner").apply { isDaemon = true }
+        }
+        try {
+            val finished = CountDownLatch(1)
+            val session = S8VoipLocalSpeechSession(
+                coordinator = owner, generation = generation, speech = speech,
+                speechExecutor = executor, maxTurns = 1,
+                observer = {
+                    if (it.phase == S8VoipLocalSpeechSession.Phase.COMPLETE) finished.countDown()
+                },
+            )
+            session.start()
+            assertTrue("TTS frame completed", finished.await(4, TimeUnit.SECONDS))
+            assertTrue("cleanup ran", speech.cleanupLatch.await(2, TimeUnit.SECONDS))
+            assertEquals("s8-test-speech-owner", speech.cancelThreadName)
+            assertTrue(events.indexOf("lease-closed") < events.indexOf("speech-cancel"))
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
     private fun coordinator(endpoint: FakeEndpoint) = CallMediaSessionCoordinator(
         object : CallMediaSessionBackend {
             override fun bind(generation: Long, callback: CallMediaSessionBackend.BindCallback) {
@@ -128,10 +182,14 @@ class S8VoipLocalSpeechSessionTest {
         }
     }
 
-    private class FakeSpeech(private val events: CopyOnWriteArrayList<String>) :
-        S8VoipLocalSpeechSession.SpeechTurn {
+    private class FakeSpeech(
+        private val events: CopyOnWriteArrayList<String>,
+        private val emitApproval: Boolean = true,
+    ) : S8VoipLocalSpeechSession.SpeechTurn {
         val starts = AtomicInteger()
         val finishes = AtomicInteger()
+        val cleanupLatch = CountDownLatch(1)
+        @Volatile var cancelThreadName: String? = null
         @Volatile var lastListener: S8VoipLocalSpeechSession.SpeechTurn.Listener? = null
 
         override fun start(listener: S8VoipLocalSpeechSession.SpeechTurn.Listener) {
@@ -144,11 +202,15 @@ class S8VoipLocalSpeechSessionTest {
             finishes.incrementAndGet()
             val listener = checkNotNull(lastListener)
             listener.onTranscript()
-            listener.onApproved()
+            if (emitApproval) listener.onApproved()
             val pcm16 = ByteArray(1280) { (if (it % 2 == 0) 0x40 else 0x05).toByte() }
             listener.onOutputPcm16(pcm16)
         }
-        override fun cancel() { events += "speech-cancel" }
+        override fun cancel() {
+            cancelThreadName = Thread.currentThread().name
+            events += "speech-cancel"
+            cleanupLatch.countDown()
+        }
         override fun close() { events += "speech-close" }
     }
 
