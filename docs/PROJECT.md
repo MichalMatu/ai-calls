@@ -3,18 +3,14 @@
 **Cel:** S22+ Android 16: Call → RX → STT → LLM → TTS → TX → STOP.
 **Rollback:** `mvp-s22-2026-11-15`; [checkpoint](../benchmarks/audio/FINAL_QUALITY_CHECKPOINT_2026-11-15.md).
 
-## Stan projektu
+## Stan
 
-`main`: stabilne C1–C3/G6.1/EN E2E. S2–S7: wcześniejsze odbiory 60/60 torów, 18/18 tur i 5/5 STOP. GSM RX/TX nadal wymaga Shizuku.
+`main`: stabilne C1–C3/G6.1/EN E2E; GSM RX/TX wymaga Shizuku. `feature/s8-no-shizuku`: eksperyment bez merge; domyślny backend bez zmian.
 
-## Podział pracy
+## Odbiór S8
 
-`feature/s8-no-shizuku`: eksperyment bez merge do `main`. Mac: testy celowane i APK PASS. S22+: syntetyczny RTP/PCMU localhost 8 kHz — RX, TX i STOP PASS (bez Shizuku, ADB wymagane tylko do uruchomienia testu). Stabilny APK przywrócony, SHA-256 PASS; bez realnych połączeń.
+Mac: celowane testy i APK PASS. Samsung S22+ Android 16: syntetyczny RTP/PCMU 8 kHz ↔ aplikacyjny PCM 16 kHz ↔ istniejący most Realtime PCM 24 kHz: RX, TX i STOP **PASS**. Lokalny ruch wyłącznie `127.0.0.1`, bez Shizuku. ADB użyte tylko do QA. Oryginalny APK przywrócony, SHA-256 PASS. Bez realnego połączenia.
 
-## Następny sprint — S8: bez Shizuku
+## Dalej
 
-Wymienne backendy: Shizuku zachowany, publiczny GSM fail-closed. `AppOwnedVoipCallMediaSessionBackend` pilnuje exact-call i STOP; `AppOwnedLoopbackRtpMediaPort` realizuje fizycznie potwierdzone PCM/RTP. `APP_PRIVATE_LITERT`: lokalny LLM bez Shizuku, test jakości na S22+ otwarty.
-
-## Otwarte
-
-Publiczny GSM RX/TX zablokowany przez Android/OEM. Lokalny RTP nie jest usługą SIP: brak SIP/SDP, SRTP, uwierzytelnienia, PSTN i przekierowania. Dalej: bezpieczny zewnętrzny VoIP, STT/LLM/TTS oraz realny exact Call/STOP/4–6 tur po osobnej zgodzie. Bez PII/audio w Git.
+GSM RX/TX: blokada Android/OEM. Działający loopback to nie SIP: brak SIP/SDP, SRTP, autoryzacji i PSTN. Dla prawdziwego VoIP konieczny zabezpieczony transport, potem lokalne STT/LLM/TTS i test 4–6 tur. `APP_PRIVATE_LITERT` jest jawnie opcjonalne; odbiór modelu na S22+ otwarty. Realne połączenia tylko za osobną zgodą na numer/koszt/scenariusz; bez PII/audio w Git.
