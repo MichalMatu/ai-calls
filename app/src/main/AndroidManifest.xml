@@ -133,6 +133,15 @@
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
 
+        <!-- S8 synthetic source TTS -> actual Android STT -> approved local TTS.
+             Shell/DUMP only; no microphone PCM captured or real phone call. -->
+        <activity
+            android:name=".developerrelay.S8LocalSpeechSmokeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
         <activity
             android:name=".campaign.AppointmentMvpActivity"
             android:windowSoftInputMode="adjustResize"
