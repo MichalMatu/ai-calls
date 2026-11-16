@@ -54,6 +54,20 @@ public final class S8SipsRegisterDraft {
             return "<sips:" + config.user() + "@" + viaSentBy() + ";transport=tls>";
         }
         int requestedExpires() { return config.expiresSeconds(); }
+        boolean matchesToHeader(String value) {
+            String aor = expectedAor();
+            if (value == null) return false;
+            if (value.equals(aor)) return true;
+            String prefix = aor + ";tag=";
+            if (!value.startsWith(prefix) || value.length() <= prefix.length()
+                || value.length() > prefix.length() + 64) return false;
+            for (int i = prefix.length(); i < value.length(); i++) {
+                char c = value.charAt(i);
+                if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                    || (c >= '0' && c <= '9') || c == '-' || c == '.')) return false;
+            }
+            return true;
+        }
     }
 
     private S8SipsRegisterDraft() {}
