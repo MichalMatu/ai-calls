@@ -869,4 +869,13 @@
     <string name="s8_sip_lab_success">Serwer potwierdził REGISTER. Czas: %1$d s. Brak obsługi połączeń.</string>
     <string name="s8_sip_lab_failed">REGISTER niepotwierdzony: TLS, odpowiedź serwera albo uwierzytelnienie nie przeszły walidacji.</string>
     <string name="s8_sip_lab_stopped">STOP — kanał TLS zamknięty. Bez dalszych prób.</string>
+    <string name="s8_voip_speech_start">Test lokalnego STT i TTS</string>
+    <string name="s8_voip_speech_explanation">Próbka głosu wytworzona lokalnie przez TTS trafia do systemowego rozpoznawania mowy i zatwierdzonej syntezy odpowiedzi. Bez mikrofonu i bez rozmowy; backend tekstu jest deterministyczny, nie AI.</string>
+    <string name="s8_voip_speech_permission">Test wymaga uprawnień Stanu telefonu i Mikrofonu dla usługi rozpoznawania mowy. Nie nagrywa dźwięku z mikrofonu.</string>
+    <string name="s8_voip_speech_permission_result">Sprawdź uprawnienia i ponownie naciśnij „Test lokalnego STT i TTS”.</string>
+    <string name="s8_voip_speech_running">Test systemowego STT → lokalna odpowiedź → TTS. STOP przerywa test.</string>
+    <string name="s8_voip_speech_pass">PASS — polskie STT i lokalne TTS odpowiedzi działają.</string>
+    <string name="s8_voip_speech_fail">FAIL — lokalne STT lub TTS nie jest gotowe.</string>
+    <string name="s8_voip_speech_success_detail">Syntetyczny głos rozpoznany, odpowiedź zatwierdzona i wygenerowana w PCM16. To nie jest test LLM ani SIP.</string>
+    <string name="s8_voip_speech_failure_detail">Sprawdź zainstalowany offline pakiet rozpoznawania języka polskiego i głos TTS w ustawieniach systemu. Nie wykonano połączenia.</string>
 </resources>
