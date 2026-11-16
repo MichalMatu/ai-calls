@@ -6,4 +6,4 @@
 - Branche: `main` = C1–C3/G6.1/EN E2E, `feature/s8-no-shizuku` = S8. Czysty checkout, Existing Code First, preflight → testy celowane; bez Work, Actions, force-push, kolizji i nowych schedulerów.
 - Exact app-owned Call/grant/SIM, STOP i prywatność. Realny Call/instalacja: zgoda, IDLE, zweryfikowany S22. Bez PII/WAV w Git/logach.
 - Bez AndroidTest/`adb uninstall` na S22; instrumentacyjne tylko na emulatorze. Bez `FLAG_SECURE`; brak próby = PHYSICAL_OPEN.
-- Bez zbędnych ograniczeń i potwierdzeń. Docs: kontrakty/blokady; [SECURITY](docs/architecture/SECURITY.md).
+- Nie dodawaj sztucznych ograniczeń. [SECURITY](docs/architecture/SECURITY.md).
