@@ -5,18 +5,18 @@
 
 ## Stan projektu
 
-`main`: stabilne C1–C3/G6.1/EN E2E; GSM RX/TX zależy od Shizuku.
+`main`: C1–C3/G6.1/EN E2E; GSM PCM nadal zależy od Shizuku.
 
 ## Podział pracy
 
-`feature/s8-no-shizuku`: bez merge, domyślny backend niezmieniony. S22+: syntetyczny SDP ↔ RTP/PCMU 8 kHz ↔ PCM 16 kHz ↔ Realtime 24 kHz: RX/TX/STOP PASS, obcy SDP odrzucony. Tylko `127.0.0.1`; ADB do QA. Stabilny APK przywrócony (SHA PASS), bez rozmowy.
+`feature/s8-no-shizuku`: bez merge, backend domyślny bez zmian. S22+: syntetyczny SDP ↔ RTP 8k ↔ PCM 16k ↔ Realtime 24k, RX/TX/STOP PASS; tylko localhost, bez rozmowy. Stabilny APK przywrócony (SHA PASS).
 
-Mac: osobny klient SIPS/TLS OPTIONS (bez REGISTER/INVITE/media), ścisła korelacja odpowiedzi, DNS SAN i zaufane CA, blokada sieci bez zgody. Testy z fałszywym kanałem TLS, preflight i APK PASS; **bez rzeczywistego połączenia TLS z operatorem**.
+Mac: SIPS/TLS OPTIONS bez dial/REGISTER PASS. Offline REGISTER + SHA-256 Digest RFC 8760: 401 korelowane przez Via/Call-ID/CSeq, CSeq 1→2, bez MD5 i wielokrotnych retry. Testy/preflight/APK PASS; **bez konta, sieci i rzeczywistej rejestracji SIP**.
 
 ## Następny sprint — S8: bez Shizuku
 
-Uwierzytelnione SIP/SDP i sprawdzony SRTP, potem lokalne STT/LLM/TTS; `APP_PRIVATE_LITERT` wymaga odbioru modelu.
+Obsługa sesji TLS i bezpiecznego REGISTER z kontem, następnie SIP INVITE/SDP/SRTP oraz lokalne STT/LLM/TTS. `APP_PRIVATE_LITERT`: odbiór modelu otwarty.
 
 ## Otwarte
 
-Brak SIP REGISTER/INVITE, SRTP, konta operatora i PSTN. Pełne sprawdzenie certyfikatów SIP RFC 5922 poza podzbiorem DNS SAN otwarte. GSM PCM blokuje Android/OEM. Test 4–6 tur tylko za osobną zgodą na numer/koszty/scenariusz. Bez PII/audio w Git.
+Brak realnego REGISTER, INVITE, SRTP, operatora i PSTN. Obsługa pełnego RFC 5922 poza DNS SAN nadal otwarta; GSM PCM blokuje Android/OEM. Test 4–6 tur tylko po zgodzie na numer/koszty/scenariusz. Bez PII/audio w Git.
