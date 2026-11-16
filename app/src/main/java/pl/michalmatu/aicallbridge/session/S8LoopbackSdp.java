@@ -128,6 +128,12 @@ public final class S8LoopbackSdp {
         if (value.length() > 5 || value.isEmpty()) {
             throw new IllegalArgumentException("invalid_sdp_rtp_port");
         }
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c < '0' || c > '9') {
+                throw new IllegalArgumentException("invalid_sdp_rtp_port");
+            }
+        }
         int parsed;
         try {
             parsed = Integer.parseInt(value);
