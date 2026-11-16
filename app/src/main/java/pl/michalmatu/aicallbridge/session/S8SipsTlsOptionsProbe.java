@@ -77,11 +77,23 @@ public final class S8SipsTlsOptionsProbe {
         }
     }
 
+    /** Allows an explicitly approved caller to close TCP during DNS/connect/TLS. */
+    interface SocketClaim {
+        void accepted(Socket socket) throws IOException;
+    }
+
     static SecureChannel openPlatformChannel(
         S8SipsOptionsProtocol.Endpoint endpoint, int timeoutMs
     ) throws IOException {
+        return openPlatformChannel(endpoint, timeoutMs, unused -> {});
+    }
+
+    static SecureChannel openPlatformChannel(
+        S8SipsOptionsProtocol.Endpoint endpoint, int timeoutMs, SocketClaim claim
+    ) throws IOException {
         Socket tcp = new Socket();
         try {
+            claim.accepted(tcp);
             tcp.connect(new InetSocketAddress(endpoint.host(), endpoint.port()), timeoutMs);
             tcp.setSoTimeout(timeoutMs);
             // Never write SIP to raw TCP. The only exposed channel is SSL.
