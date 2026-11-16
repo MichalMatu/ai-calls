@@ -95,6 +95,12 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun startRegisterOnce() {
         if (attempt != null) return
+        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED) {
+            status.text = getString(R.string.s8_sip_lab_permission)
+            requestPermissions(arrayOf(Manifest.permission.READ_PHONE_STATE), 8109)
+            return
+        }
         if (!isPhoneIdle()) {
             status.text = getString(R.string.s8_sip_lab_blocked)
             return
@@ -170,6 +176,20 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         register.isEnabled = true
         stop.isEnabled = false
         status.text = getString(R.string.s8_sip_lab_stopped)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 8109 && !isFinishing && !isDestroyed) {
+            // Do not send any SIP data immediately after granting permission.
+            // An additional explicit REGISTER tap is always required.
+            status.text = getString(
+                if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
+                    R.string.s8_sip_lab_idle else R.string.s8_sip_lab_blocked
+            )
+        }
     }
 
     private fun isPhoneIdle(): Boolean {
