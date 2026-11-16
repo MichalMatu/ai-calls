@@ -142,7 +142,7 @@ public final class S8SipsRegisterDraftTest {
                     retry, response(challenge401(first)), password
                 ));
         } finally {
-            Arrays.fill(password, '\\0');
+            Arrays.fill(password, '\0');
         }
     }
 
