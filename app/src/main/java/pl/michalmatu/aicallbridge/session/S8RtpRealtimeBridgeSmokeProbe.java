@@ -25,8 +25,11 @@ public final class S8RtpRealtimeBridgeSmokeProbe {
     private static final int APP_SSRC = 0x01020304;
     private static final PcmFormat REALTIME_FORMAT = new PcmFormat(24_000, 1, 16);
 
-    public record Result(boolean rx, boolean tx, boolean stop) {
-        public boolean allPassed() { return rx && tx && stop; }
+    public record Result(boolean sdp, boolean publicEndpointRejected,
+                         boolean rx, boolean tx, boolean stop) {
+        public boolean allPassed() {
+            return sdp && publicEndpointRejected && rx && tx && stop;
+        }
     }
 
     private S8RtpRealtimeBridgeSmokeProbe() {}
@@ -36,7 +39,7 @@ public final class S8RtpRealtimeBridgeSmokeProbe {
         Object exactIdentity = new Object();
         try (DatagramSocket peer = new DatagramSocket(new InetSocketAddress(loopback, 0));
              AppOwnedLoopbackRtpMediaPort rtp = new AppOwnedLoopbackRtpMediaPort(
-                 exactIdentity, 0, peer.getLocalPort(), PEER_SSRC, APP_SSRC
+                 exactIdentity, 0, negotiatedPeerPort(peer.getLocalPort()), PEER_SSRC, APP_SSRC
              );
              RtpPcm16kAdapterMediaPort pcm = new RtpPcm16kAdapterMediaPort(rtp);
              AppOwnedVoipCallMediaSessionBackend backend =
@@ -50,7 +53,21 @@ public final class S8RtpRealtimeBridgeSmokeProbe {
             try {
                 long generation = coordinator.start(TelephonyPcmStreamFramer.SAMPLE_RATE_HZ);
                 if (coordinator.snapshot().state() != CallMediaSessionState.ACTIVE) {
-                    return new Result(false, false, false);
+                    return new Result(false, false, false, false, false);
+                }
+                // The RTP peer port is selected from a validated localhost SDP.
+                // Verify that the actual bound app-side port can likewise be advertised.
+                String localSdp = S8LoopbackSdp.offer(rtp.boundLocalPort(), 29003L);
+                boolean sdp = S8LoopbackSdp.acceptLoopbackAnswer(localSdp)
+                    .peerRtpPort() == rtp.boundLocalPort();
+                boolean publicEndpointRejected = false;
+                try {
+                    S8LoopbackSdp.acceptLoopbackAnswer(
+                        localSdp.replace("c=IN IP4 127.0.0.1",
+                            "c=IN IP4 198.51.100.1")
+                    );
+                } catch (IllegalArgumentException expected) {
+                    publicEndpointRejected = true;
                 }
                 CallMediaEndpointLease endpoints = coordinator.activeEndpointLease(generation);
                 CallRealtimePcmBridge bridge = new CallRealtimePcmBridge(endpoints);
@@ -110,10 +127,15 @@ public final class S8RtpRealtimeBridgeSmokeProbe {
                     && !backend.heartbeat(generation)
                     && rtp.boundLocalPort() == -1
                     && endpoints.downlink().read() == -1;
-                return new Result(rx, tx, stop);
+                return new Result(sdp, publicEndpointRejected, rx, tx, stop);
             } finally {
                 coordinator.takeOverNow();
             }
         }
     }
+    private static int negotiatedPeerPort(int sourcePort) {
+        String peerOffer = S8LoopbackSdp.offer(sourcePort, 29002L);
+        return S8LoopbackSdp.acceptLoopbackAnswer(peerOffer).peerRtpPort();
+    }
+
 }
