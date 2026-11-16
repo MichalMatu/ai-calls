@@ -6,6 +6,9 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * One-shot offline RTP smoke; only synthetic silence on 127.0.0.1.
@@ -54,11 +57,27 @@ public final class S8RtpLoopbackSmokeProbe {
                     incoming, incoming.length, loopback, port.boundLocalPort()
                 ));
                 byte[] read = new byte[RtpPcmuCodec.FRAME_PCM_BYTES];
-                int received = endpoint.downlink().read(read, 0, read.length);
-                boolean rx = received == read.length && Arrays.equals(silence, read);
-
-                coordinator.takeOverNow();
-                boolean stop = coordinator.snapshot().state() == CallMediaSessionState.IDLE
+                FutureTask<Integer> receiver = new FutureTask<>(
+                    () -> endpoint.downlink().read(read, 0, read.length)
+                );
+                Thread rxThread = new Thread(receiver, "s8-loopback-smoke-rx");
+                rxThread.setDaemon(true);
+                rxThread.start();
+                boolean rx = false;
+                try {
+                    int received = receiver.get(2, TimeUnit.SECONDS);
+                    rx = received == read.length && Arrays.equals(silence, read);
+                } catch (TimeoutException expired) {
+                    // The media reader normally waits for remote RTP indefinitely.
+                    // An off-call QA probe must never hold the Activity indefinitely.
+                    receiver.cancel(true);
+                } catch (Exception failed) {
+                    receiver.cancel(true);
+                }
+                coordinator.takeOverNow(); // Closing socket also unblocks timed-out RX.
+                rxThread.join(500);
+                boolean stop = !rxThread.isAlive()
+                    && coordinator.snapshot().state() == CallMediaSessionState.IDLE
                     && !backend.heartbeat(generation)
                     && port.boundLocalPort() == -1
                     && endpoint.downlink().read(read, 0, read.length) == -1;
