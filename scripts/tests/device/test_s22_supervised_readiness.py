@@ -7,7 +7,7 @@ from unittest.mock import patch
 from aicall_tools.device import s22_supervised_readiness as diagnostics
 
 
-def report(audio="MODE_IN_COMMUNICATION", failure="audio_route_not_ready"):
+def report(audio="MODE_IN_COMMUNICATION", failure="audio_route_not_ready", include_s8=True):
     values = {
         "probe": "supervised_call_readiness",
         "microphone_permission": "true",
@@ -17,9 +17,17 @@ def report(audio="MODE_IN_COMMUNICATION", failure="audio_route_not_ready"):
         "telecom_managed_call": "true",
         "audio_mode": audio,
         "failure_reason": failure,
+        "s8_dialer_role_held": "true",
+        "s8_record_audio_granted": "true",
+        "s8_read_phone_state_granted": "true",
+        "s8_capture_audio_output_granted": "false",
+        "s8_public_cellular_rx": "not_available",
+        "s8_public_cellular_tx": "not_available",
+        "s8_cellular_pcm_verified": "false",
         "report_complete": "true",
     }
-    return "\n".join(k + "=" + values[k] for k in diagnostics.FIELDS) + "\n"
+    fields = diagnostics.FIELDS if include_s8 else diagnostics.LEGACY_FIELDS
+    return "\n".join(k + "=" + values[k] for k in fields) + "\n"
 
 
 class ReadinessReportTests(unittest.TestCase):
@@ -48,6 +56,30 @@ class ReadinessReportTests(unittest.TestCase):
             "",
         ):
             with self.subTest(raw=raw[:32]), self.assertRaises(ValueError):
+                diagnostics.parse_report(raw)
+
+    def test_legacy_checkpoint_report_remains_supported(self):
+        legacy = diagnostics.parse_report(report(include_s8=False))
+        self.assertEqual("true", legacy["report_complete"])
+        self.assertNotIn("s8_cellular_pcm_verified", legacy)
+
+    def test_s8_reports_exact_allowed_fields_without_claiming_gsm_pcm(self):
+        modern = diagnostics.parse_report(report())
+        self.assertEqual("true", modern["s8_dialer_role_held"])
+        self.assertEqual("not_available", modern["s8_public_cellular_rx"])
+        self.assertEqual("not_available", modern["s8_public_cellular_tx"])
+        self.assertEqual("false", modern["s8_cellular_pcm_verified"])
+
+    def test_s8_rejects_partial_or_forged_capture_claims(self):
+        cases = (
+            report().replace("s8_record_audio_granted=true\n", ""),
+            report().replace("s8_cellular_pcm_verified=false", "s8_cellular_pcm_verified=true"),
+            report().replace("s8_public_cellular_rx=not_available", "s8_public_cellular_rx=available"),
+            report().replace("s8_dialer_role_held=true", "s8_dialer_role_held=caller_number"),
+            report().replace("s8_dialer_role_held=true", "s8_dialer_role_held=true\ns8_dialer_role_held=true"),
+        )
+        for raw in cases:
+            with self.subTest(raw=raw[:80]), self.assertRaises(ValueError):
                 diagnostics.parse_report(raw)
 
     def test_reject_unexpected_s22_target_and_timeout(self):
