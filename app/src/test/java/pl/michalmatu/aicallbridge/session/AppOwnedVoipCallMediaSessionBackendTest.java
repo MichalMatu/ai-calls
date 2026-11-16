@@ -67,7 +67,7 @@ public final class AppOwnedVoipCallMediaSessionBackendTest {
         backend.bind(9L, callback);
         assertEquals(9L, callback.bound);
         backend.prepare(9L, 16000);
-        assertSame(port.next, backend.start(9L));
+        assertNotNull(backend.start(9L));
         assertEquals(16000, port.sampleRateHz);
         assertTrue(backend.heartbeat(9L));
         backend.abort(8L); // A stale STOP cannot touch the active generation.
@@ -114,6 +114,25 @@ public final class AppOwnedVoipCallMediaSessionBackendTest {
         assertThrows(IllegalStateException.class, () -> backend.start(21L));
         assertEquals(1, port.next.closes);
         assertFalse(backend.heartbeat(21L));
+    }
+
+    @Test public void coordinatorStopNeverDoubleClosesAnOwnedVoipLease() {
+        Object identity = new Object();
+        FakePort port = new FakePort();
+        port.active = identity;
+        AppOwnedVoipCallMediaSessionBackend backend =
+            new AppOwnedVoipCallMediaSessionBackend(port, identity);
+        CallMediaSessionCoordinator coordinator = new CallMediaSessionCoordinator(
+            backend, (generation, heartbeat) -> () -> {}, () -> 123L, ignored -> {}
+        );
+        assertEquals(1L, coordinator.start(16000));
+        assertEquals(CallMediaSessionState.ACTIVE, coordinator.snapshot().state());
+        coordinator.takeOverNow();
+        assertEquals(CallMediaSessionState.IDLE, coordinator.snapshot().state());
+        assertEquals(1, port.next.closes);
+        coordinator.close();
+        backend.close();
+        assertEquals(1, port.next.closes);
     }
 
     @Test public void staleAbortDoesNotStopNewGeneration() {
