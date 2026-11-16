@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Debug-only LAN lab access. Production/release manifests remain cleartext-deny by default. -->
-    <application android:usesCleartextTraffic="true" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- S8 is a separately named, installable lab app, never the stable dialer.
+         Existing debug-only LAN setting remains isolated from release. -->
+    <application
+        android:usesCleartextTraffic="true"
+        android:label="AI Calls S8 Lab"
+        tools:replace="android:label" />
 </manifest>
