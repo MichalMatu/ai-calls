@@ -56,12 +56,15 @@ final class S8SipsRegisterDryRun {
             // The first REGISTER byte is sent only after certificate and DNS
             // hostname verification has succeeded.
             channel.verifyPeer();
+            var inbound = channel.input();
             send(channel.output(), initial.wire());
             S8SipsRegisterDraft.Draft retry = S8SipsRegisterDraft.retryAfter401Response(
-                initial, channel.input(), password
+                initial, S8SipRegisterProvisional.nextFinal(inbound, initial), password
             );
             send(channel.output(), retry.wire());
-            int expiration = S8SipsRegister200.readAcceptedExpiration(channel.input(), retry);
+            int expiration = S8SipsRegister200.readAcceptedExpiration(
+                S8SipRegisterProvisional.nextFinal(inbound, retry), retry
+            );
             return new DryRunResult(2, expiration);
         }
     }
