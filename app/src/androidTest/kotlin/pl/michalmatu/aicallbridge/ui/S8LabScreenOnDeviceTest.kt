@@ -29,10 +29,14 @@ class S8LabScreenOnDeviceTest {
         )
         ActivityScenario.launch(S8VoipLabActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                val start = activity.findViewById<android.view.View>(android.R.id.content)
-                    .findViewWithTag<Button>("s8-voip-lab-start")
+                val root = activity.findViewById<android.view.View>(android.R.id.content)
+                val start = root.findViewWithTag<Button>("s8-voip-lab-start")
+                val speech = root.findViewWithTag<Button>("s8-voip-lab-local-speech")
                 assertTrue(start.isEnabled)
+                assertTrue("manual Android speech check is never started implicitly", speech.isEnabled)
+                assertFalse(root.findViewWithTag<Button>("s8-voip-lab-stop").isEnabled)
                 start.performClick()
+                assertFalse("speech cannot start while RTP test owns media", speech.isEnabled)
             }
 
             var completed = false
@@ -47,6 +51,7 @@ class S8LabScreenOnDeviceTest {
                         val results = root.findViewWithTag<TextView>("s8-voip-lab-results")
                         assertTrue(results.text.toString().contains("72/72"))
                         assertFalse(root.findViewWithTag<Button>("s8-voip-lab-stop").isEnabled)
+                        assertTrue(root.findViewWithTag<Button>("s8-voip-lab-local-speech").isEnabled)
                     }
                 }
                 if (completed) break
