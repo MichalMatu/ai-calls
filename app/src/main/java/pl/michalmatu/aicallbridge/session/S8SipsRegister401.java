@@ -87,7 +87,8 @@ final class S8SipsRegister401 {
             || !pending.callId().equals(headers.get("call-id"))
             || !(pending.cseq() + " REGISTER").equals(headers.get("cseq"))
             || !"0".equals(headers.get("content-length"))
-            || !headers.containsKey("to") || !headers.containsKey("from")
+            || !pending.matchesToHeader(headers.get("to"))
+            || !pending.expectedFrom().equals(headers.get("from"))
             || headers.containsKey("proxy-authenticate")) {
             throw new IOException("register_401_transaction_mismatch");
         }
