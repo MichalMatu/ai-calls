@@ -77,7 +77,7 @@ public final class S8SipsTlsOptionsProbe {
         }
     }
 
-    private static SecureChannel openPlatformChannel(
+    static SecureChannel openPlatformChannel(
         S8SipsOptionsProtocol.Endpoint endpoint, int timeoutMs
     ) throws IOException {
         Socket tcp = new Socket();
