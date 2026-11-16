@@ -61,7 +61,7 @@ public final class S8SipsTlsRegisterClient {
             }
         }
 
-        private void ownSocket(Socket candidate) throws IOException {
+        void ownSocket(Socket candidate) throws IOException {
             if (stopped.get()) throw new IOException("sips_register_stopped");
             if (!socket.compareAndSet(null, candidate)) {
                 throw new IOException("sips_register_duplicate_socket");
