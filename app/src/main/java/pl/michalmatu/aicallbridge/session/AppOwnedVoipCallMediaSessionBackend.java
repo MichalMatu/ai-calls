@@ -1,6 +1,9 @@
 package pl.michalmatu.aicallbridge.session;
 
 import java.util.Objects;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * PCM bridge for one app-owned VoIP call. A SIP/RTP engine must supply the MediaPort;
@@ -69,9 +72,9 @@ public final class AppOwnedVoipCallMediaSessionBackend implements CallMediaSessi
             sampleRateHz = preparedRateHz;
         }
         // Opening may block. Never hold the STOP lock across the external media port.
-        CallMediaEndpointLease candidate =
+        CallMediaEndpointLease candidate = new CloseOnceLease(
             Objects.requireNonNull(port.open(exactIdentity, generation, sampleRateHz),
-                "voip_media_port_returned_null");
+                "voip_media_port_returned_null"));
         synchronized (lock) {
             if (!closed && boundGeneration == generation && activeLease == null
                 && port.activeIdentity() == exactIdentity) {
@@ -126,6 +129,23 @@ public final class AppOwnedVoipCallMediaSessionBackend implements CallMediaSessi
             activeLease = null;
         }
         if (lease != null) lease.close();
+    }
+
+    /** Coordinator and backend may independently close a lease during STOP. */
+    private static final class CloseOnceLease implements CallMediaEndpointLease {
+        private final CallMediaEndpointLease delegate;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        CloseOnceLease(CallMediaEndpointLease delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override public InputStream downlink() { return delegate.downlink(); }
+        @Override public OutputStream uplink() { return delegate.uplink(); }
+
+        @Override public void close() {
+            if (closed.compareAndSet(false, true)) delegate.close();
+        }
     }
 
     private void requireCurrent(long generation) {
