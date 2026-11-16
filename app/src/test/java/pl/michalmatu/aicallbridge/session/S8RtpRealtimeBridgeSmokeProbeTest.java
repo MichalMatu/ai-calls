@@ -9,6 +9,8 @@ public final class S8RtpRealtimeBridgeSmokeProbeTest {
         throws Exception {
         S8RtpRealtimeBridgeSmokeProbe.Result result =
             S8RtpRealtimeBridgeSmokeProbe.run();
+        assertTrue("SDP selected actual localhost RTP port", result.sdp());
+        assertTrue("Public media address rejected", result.publicEndpointRejected());
         assertTrue("RTP to Realtime RX", result.rx());
         assertTrue("Realtime to RTP TX", result.tx());
         assertTrue("Coordinator STOP", result.stop());
