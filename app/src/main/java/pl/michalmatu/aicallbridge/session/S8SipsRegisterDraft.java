@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.session;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Objects;
 
 /**
@@ -41,6 +43,9 @@ public final class S8SipsRegisterDraft {
         public String viaBranch() { return viaBranch; }
         public int cseq() { return cseq; }
         public String wire() { return wire; }
+        String viaSentBy() {
+            return config.contact().host() + ":" + config.contact().port();
+        }
     }
 
     private S8SipsRegisterDraft() {}
@@ -74,6 +79,19 @@ public final class S8SipsRegisterDraft {
         String branch = "z9hG4bK" + S8SipDigestSha256.newCnonce();
         return new Draft(first.config, first.callId, first.fromTag, branch, 2,
             serialize(first.config, first.callId, first.fromTag, branch, 2, auth));
+    }
+
+    /** Fail closed on forged/mismatched 401 before using any password. Offline parser only. */
+    public static Draft retryAfter401Response(
+        Draft first, InputStream response, char[] password
+    ) throws IOException {
+        Objects.requireNonNull(first, "first");
+        if (first.cseq != 1) {
+            throw new IllegalStateException("sip_register_auth_retry_exhausted");
+        }
+        S8SipDigestSha256.Challenge challenge =
+            S8SipsRegister401.readChallenge(response, first);
+        return retryAfterValidated401(first, challenge, password);
     }
 
     private static Config check(Config input) {
