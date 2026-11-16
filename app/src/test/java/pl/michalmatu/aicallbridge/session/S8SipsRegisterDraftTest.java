@@ -2,6 +2,9 @@ package pl.michalmatu.aicallbridge.session;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
@@ -105,4 +108,71 @@ public final class S8SipsRegisterDraftTest {
             Arrays.fill(password, '\0');
         }
     }
+    private static String challenge401(S8SipsRegisterDraft.Draft first) {
+        return "SIP/2.0 401 Unauthorized\r\n"
+            + "Via: SIP/2.0/TLS " + first.viaSentBy() + ";branch="
+            + first.viaBranch() + ";rport\r\n"
+            + "To: <sips:alice@voice.example.org>;tag=server\r\n"
+            + "From: <sips:alice@voice.example.org>;tag=client\r\n"
+            + "Call-ID: " + first.callId() + "\r\n"
+            + "CSeq: " + first.cseq() + " REGISTER\r\n"
+            + "WWW-Authenticate: " + CHALLENGE + "\r\n"
+            + "Content-Length: 0\r\n\r\n";
+    }
+
+    private static ByteArrayInputStream response(String value) {
+        return new ByteArrayInputStream(value.getBytes(StandardCharsets.US_ASCII));
+    }
+
+    @Test public void complete401AndDigestRetryIsMatchedToPendingRegister() throws Exception {
+        var first = S8SipsRegisterDraft.initial(CONFIG);
+        char[] password = "s3cret".toCharArray();
+        try {
+            var retry = S8SipsRegisterDraft.retryAfter401Response(
+                first, response(challenge401(first)), password
+            );
+            assertEquals(2, retry.cseq());
+            assertEquals(first.callId(), retry.callId());
+            assertNotEquals(first.viaBranch(), retry.viaBranch());
+            assertTrue(retry.wire().contains("Authorization: Digest "));
+            assertTrue(retry.wire().contains("algorithm=SHA-256, qop=auth"));
+            assertFalse(retry.wire().contains("s3cret"));
+            assertThrows(IllegalStateException.class, () ->
+                S8SipsRegisterDraft.retryAfter401Response(
+                    retry, response(challenge401(first)), password
+                ));
+        } finally {
+            Arrays.fill(password, '\\0');
+        }
+    }
+
+    @Test public void forged401CannotTriggerDigestAuthorization() {
+        var first = S8SipsRegisterDraft.initial(CONFIG);
+        String valid = challenge401(first);
+        for (String invalid : List.of(
+            valid.replace("SIP/2.0 401", "SIP/2.0 407"),
+            valid.replace("CSeq: 1 REGISTER", "CSeq: 2 REGISTER"),
+            valid.replace("CSeq: 1 REGISTER", "CSeq: 1 INVITE"),
+            valid.replace("Call-ID: " + first.callId(), "Call-ID: wrong-id"),
+            valid.replace("branch=" + first.viaBranch(), "branch=wrong-branch"),
+            valid.replace("branch=" + first.viaBranch(), "branch=" + first.viaBranch() + "BAD"),
+            valid.replace("SIP/2.0/TLS " + first.viaSentBy(),
+                "SIP/2.0/UDP " + first.viaSentBy()),
+            valid.replace("Content-Length: 0", "Content-Length: 1"),
+            valid.replace("WWW-Authenticate: " + CHALLENGE,
+                "WWW-Authenticate: " + CHALLENGE.replace("SHA-256", "MD5")),
+            valid.replace("WWW-Authenticate: " + CHALLENGE + "\r\n", ""),
+            valid.replace("Content-Length: 0\r\n",
+                "Content-Length: 0\r\nContent-Length: 0\r\n"),
+            valid.replace("\r\n", "\\n"),
+            valid.replace("CSeq: 1 REGISTER", " CSeq: 1 REGISTER"),
+            valid.substring(0, valid.length() - 4)
+        )) {
+            assertThrows(IOException.class, () ->
+                S8SipsRegisterDraft.retryAfter401Response(
+                    first, response(invalid), "no-network".toCharArray()
+                ));
+        }
+    }
+
 }
