@@ -27,7 +27,8 @@ object LocalSpeechTextPipelineProbe {
     private const val REPORT_FILE = "local-speech-text-pipeline-report.txt"
     private const val TIMEOUT_MS = 40_000L
 
-    fun run(context: Context, callback: (String) -> Unit) {
+    /** The owner must close this handle on STOP or Activity lifecycle loss. */
+    fun run(context: Context, callback: (String) -> Unit): AutoCloseable {
         val appContext = context.applicationContext
         val lines = mutableListOf<String>()
         val finished = AtomicBoolean(false)
@@ -39,11 +40,15 @@ object LocalSpeechTextPipelineProbe {
         val approval = CallTextAgentOutputApprovalPolicy(workflow, commitmentGate)
         val pipeline = LocalSpeechTextPipeline(appContext, backend, approval)
 
-        fun finish(success: Boolean, reason: String? = null) {
-            if (!finished.compareAndSet(false, true)) return
+        fun dispose() {
             handler.removeCallbacksAndMessages(null)
             try { sourceTts.close() } catch (_: Throwable) {}
             try { pipeline.close() } catch (_: Throwable) {}
+        }
+
+        fun finish(success: Boolean, reason: String? = null) {
+            if (!finished.compareAndSet(false, true)) return
+            dispose()
             lines += "text_pipeline_success=$success"
             if (reason != null) lines += "failure_reason=${sanitize(reason)}"
             lines += "probe_complete=true"
@@ -128,6 +133,9 @@ object LocalSpeechTextPipelineProbe {
                 finish(false, "source_tts_$reason")
             }
         })
+        return AutoCloseable {
+            if (finished.compareAndSet(false, true)) dispose()
+        }
     }
 
     private class DeterministicBackend(
