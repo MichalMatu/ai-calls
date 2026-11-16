@@ -65,6 +65,12 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun beginSyntheticSession() {
         if (lab != null) return
+        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED) {
+            status.text = getString(R.string.s8_voip_lab_permission)
+            requestPermissions(arrayOf(Manifest.permission.READ_PHONE_STATE), 8108)
+            return
+        }
         if (!isPhoneIdle()) {
             status.text = getString(R.string.s8_voip_lab_blocked)
             return
@@ -112,6 +118,19 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         startButton.isEnabled = true
         stopButton.isEnabled = false
         status.text = getString(R.string.s8_voip_lab_stopped)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 8108 && !isFinishing && !isDestroyed) {
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+                beginSyntheticSession()
+            } else {
+                status.text = getString(R.string.s8_voip_lab_blocked)
+            }
+        }
     }
 
     private fun isPhoneIdle(): Boolean {
