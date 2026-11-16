@@ -153,6 +153,7 @@ internal class S8VoipLocalSpeechSession(
         }
 
         override fun onOutputPcm16(pcm: ByteArray) {
+            if (!current(expectedTurn, Phase.PROCESSING)) return
             if (pcm.isEmpty() || pcm.size % 2 != 0 || pcm.size > MAX_TTS_BYTES) {
                 fail()
                 return
@@ -173,8 +174,14 @@ internal class S8VoipLocalSpeechSession(
             thread.start()
         }
 
-        override fun onDropped() { if (!closed.get()) fail() }
-        override fun onError() { if (!closed.get()) fail() }
+        override fun onDropped() {
+            if (current(expectedTurn, Phase.PROCESSING)) fail()
+        }
+        override fun onError() {
+            if (current(expectedTurn, Phase.LISTENING) ||
+                current(expectedTurn, Phase.PROCESSING) ||
+                current(expectedTurn, Phase.SPEAKING)) fail()
+        }
     }
 
     private fun capture(expectedTurn: Int) {
