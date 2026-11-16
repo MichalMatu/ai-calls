@@ -5,16 +5,16 @@
 
 ## Stan projektu
 
-`main`: stabilne C1–C3/G6.1/EN E2E; GSM RX/TX wymaga Shizuku.
+`main`: stabilne C1–C3/G6.1/EN E2E; GSM RX/TX zależy od Shizuku.
 
 ## Podział pracy
 
-`feature/s8-no-shizuku`: eksperyment bez merge i bez zmiany domyślnego backendu. Mac: testy celowane i APK PASS. S22+ Android 16: RTP/PCMU 8 kHz ↔ aplikacyjny PCM 16 kHz ↔ Realtime PCM 24 kHz — RX, TX, STOP **PASS**. Tylko syntetyczna cisza na `127.0.0.1`; bez Shizuku. ADB wyłącznie do QA. Stabilny APK przywrócony (SHA-256 PASS), bez rzeczywistych połączeń.
+`feature/s8-no-shizuku`: bez merge, domyślny backend niezmieniony. Mac: testy celowane i APK PASS. S22+ Android 16: syntetyczny SDP ↔ RTP/PCMU 8 kHz ↔ PCM 16 kHz ↔ Realtime 24 kHz: RX/TX/STOP PASS; obcy adres SDP odrzucony. Tylko `127.0.0.1`, bez Shizuku; ADB wyłącznie do QA. Stabilny APK przywrócony, SHA-256 PASS. Bez rozmowy.
 
 ## Następny sprint — S8: bez Shizuku
 
-Zaimplementować bezpieczne SIP/SDP/SRTP i lokalny tor STT/LLM/TTS z tym transportem. `APP_PRIVATE_LITERT` jawnie opcjonalne; model na S22+ czeka na odbiór.
+Bezpieczne zewnętrzne SIP/SDP/SRTP, potem lokalne STT/LLM/TTS. `APP_PRIVATE_LITERT` jawnie opcjonalne; model na S22+ niezweryfikowany.
 
 ## Otwarte
 
-GSM RX/TX: blokada Android/OEM. Loopback nie zapewnia SIP, uwierzytelnienia ani PSTN. Test rozmowy 4–6 tur wymaga osobnej zgody na numer, koszt i scenariusz. Bez PII/audio w Git.
+GSM PCM: blokada Android/OEM. Lokalny SDP/RTP nie ma SIP, SRTP, uwierzytelnienia ani PSTN. Test 4–6 tur tylko po zgodzie na numer, koszty i scenariusz. Bez PII/audio w Git.
