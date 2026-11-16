@@ -110,15 +110,15 @@ public final class S8SipsOptionsProtocol {
         // RFC 3261 mandatory Via, To, From, Call-ID, CSeq, Max-Forwards.
         // No Contact/Authorization or route set; no SDP and no media.
         String request =
-            "OPTIONS " + target + " SIP/2.0\\r\\n"
-            + "Via: SIP/2.0/TLS client.invalid;branch=" + branch + ";rport\\r\\n"
-            + "Max-Forwards: 0\\r\\n"
-            + "To: <" + target + ">\\r\\n"
-            + "From: <sips:probe@client.invalid>;tag=" + fromTag + "\\r\\n"
-            + "Call-ID: " + callId + "\\r\\n"
-            + "CSeq: 1 OPTIONS\\r\\n"
-            + "Accept: application/sdp\\r\\n"
-            + "Content-Length: 0\\r\\n\\r\\n";
+            "OPTIONS " + target + " SIP/2.0\r\n"
+            + "Via: SIP/2.0/TLS client.invalid;branch=" + branch + ";rport\r\n"
+            + "Max-Forwards: 0\r\n"
+            + "To: <" + target + ">\r\n"
+            + "From: <sips:probe@client.invalid>;tag=" + fromTag + "\r\n"
+            + "Call-ID: " + callId + "\r\n"
+            + "CSeq: 1 OPTIONS\r\n"
+            + "Accept: application/sdp\r\n"
+            + "Content-Length: 0\r\n\r\n";
         return new Transaction(checked, branch, callId, request);
     }
 
@@ -199,8 +199,9 @@ public final class S8SipsOptionsProtocol {
             throw new IOException("sip_transaction_mismatch_or_body_rejected");
         }
         String via = headers.get("via");
-        if (via == null || !via.startsWith("SIP/2.0/TLS client.invalid;branch="
-            + transaction.branch())) {
+        String expectedVia = "SIP/2.0/TLS client.invalid;branch=" + transaction.branch();
+        if (via == null || !(via.equals(expectedVia)
+            || via.startsWith(expectedVia + ";"))) {
             throw new IOException("sip_via_branch_mismatch");
         }
         // This is only the server response to a no-call OPTIONS probe.
