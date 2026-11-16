@@ -36,7 +36,8 @@ public final class S8SipsRegisterDryRunTest {
         enum Mode {
             SUCCESS, TLS_FAIL, FORGED_401, UNSUPPORTED_MD5,
             FORGED_200, WRONG_CONTACT, MISSING_CONTACT, TOO_LONG_EXPIRY,
-            REPEATED_401, DUPLICATE_CONTACT, NONZERO_BODY
+            REPEATED_401, DUPLICATE_CONTACT, NONZERO_BODY,
+            TRYING_BEFORE_401, TRYING_BEFORE_200, FORGED_TRYING, TRYING_FLOOD, TRYING_BODY
         }
         final Mode mode;
         final List<String> sent = new ArrayList<>();
@@ -97,10 +98,19 @@ public final class S8SipsRegisterDryRunTest {
             String callId = header(request, "Call-ID: ");
             String cseq = header(request, "CSeq: ");
             String contact = header(request, "Contact: ");
+            String provisional = "SIP/2.0 100 Trying\r\n"
+                + "Via: " + (mode == Mode.FORGED_TRYING
+                    ? via.replace("branch=z9hG4bK", "branch=z9hG4bKWRONG") : via) + "\r\n"
+                + "To: " + to + "\r\n"
+                + "From: " + from + "\r\n"
+                + "Call-ID: " + callId + "\r\n"
+                + "CSeq: " + cseq + "\r\n"
+                + "Content-Length: " + (mode == Mode.TRYING_BODY ? "1" : "0")
+                + "\r\n\r\n";
             if (attempt == 1) {
                 assertFalse(request.contains("Authorization: "));
                 assertEquals("1 REGISTER", cseq);
-                return "SIP/2.0 401 Unauthorized\r\n"
+                String final401 = "SIP/2.0 401 Unauthorized\r\n"
                     + "Via: " + (mode == Mode.FORGED_401
                         ? via.replace("branch=z9hG4bK", "branch=z9hG4bKWRONG")
                         : via) + "\r\n"
@@ -111,6 +121,12 @@ public final class S8SipsRegisterDryRunTest {
                     + "WWW-Authenticate: " + (mode == Mode.UNSUPPORTED_MD5
                         ? DIGEST.replace("SHA-256", "MD5") : DIGEST) + "\r\n"
                     + "Content-Length: 0\r\n\r\n";
+                if (mode == Mode.TRYING_BEFORE_401 || mode == Mode.FORGED_TRYING
+                    || mode == Mode.TRYING_FLOOD || mode == Mode.TRYING_BODY) {
+                    return (mode == Mode.TRYING_FLOOD
+                        ? provisional + provisional + provisional : provisional) + final401;
+                }
+                return final401;
             }
             assertEquals(2, attempt);
             assertTrue("digest only after correlated 401", request.contains("Authorization: Digest "));
@@ -132,7 +148,7 @@ public final class S8SipsRegisterDryRunTest {
                     + "WWW-Authenticate: " + DIGEST + "\r\n"
                     + "Content-Length: 0\r\n\r\n";
             }
-            return "SIP/2.0 200 OK\r\n"
+            String final200 = "SIP/2.0 200 OK\r\n"
                 + "Via: " + (mode == Mode.FORGED_200
                     ? via.replace("branch=z9hG4bK", "branch=z9hG4bKWRONG") : via) + "\r\n"
                 + "To: " + to + ";tag=registrar\r\n"
@@ -143,6 +159,8 @@ public final class S8SipsRegisterDryRunTest {
                 + "Expires: 180\r\n"
                 + "Content-Length: " + (mode == Mode.NONZERO_BODY ? "1" : "0")
                 + "\r\n\r\n";
+            if (mode == Mode.TRYING_BEFORE_200) return provisional + final200;
+            return final200;
         }
 
         private static String header(String message, String prefix) {
@@ -218,4 +236,39 @@ public final class S8SipsRegisterDryRunTest {
                 }));
         assertEquals(0, opened.get());
     }
+    @Test public void allowsBoundedMatched100TryingBefore401Or200() throws Exception {
+        for (FakeTls.Mode mode : List.of(
+            FakeTls.Mode.TRYING_BEFORE_401, FakeTls.Mode.TRYING_BEFORE_200
+        )) {
+            FakeTls fake = new FakeTls(mode);
+            char[] secret = "test-only".toCharArray();
+            try {
+                var result = S8SipsRegisterDryRun.execute(CONFIG, secret, true, () -> fake);
+                assertEquals(2, result.requestCount());
+                assertEquals(180, result.acceptedExpiresSeconds());
+                assertEquals(2, fake.sent.size());
+                assertTrue(fake.closed);
+            } finally {
+                Arrays.fill(secret, '\0');
+            }
+        }
+    }
+
+    @Test public void forged100OrFloodOrBodyFailsBeforeSendingCredentials() {
+        for (FakeTls.Mode mode : List.of(
+            FakeTls.Mode.FORGED_TRYING, FakeTls.Mode.TRYING_FLOOD, FakeTls.Mode.TRYING_BODY
+        )) {
+            FakeTls fake = new FakeTls(mode);
+            char[] secret = "test-only".toCharArray();
+            try {
+                assertThrows(IOException.class,
+                    () -> S8SipsRegisterDryRun.execute(CONFIG, secret, true, () -> fake));
+                assertTrue(fake.closed);
+                assertEquals(1, fake.sent.size());
+            } finally {
+                Arrays.fill(secret, '\0');
+            }
+        }
+    }
+
 }
