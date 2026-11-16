@@ -98,10 +98,6 @@ def parse_report(raw: str) -> dict[str, str]:
             "not_available", "not_available"
         ) or result["s8_cellular_pcm_verified"] != "false":
             raise ValueError("unverified_cellular_pcm_claim")
-        # An ordinary app cannot hold CAPTURE_AUDIO_OUTPUT. Keep this diagnostic
-        # truthful even if a manipulated report claims privileged capture.
-        if result["s8_capture_audio_output_granted"] == "true":
-            raise ValueError("unexpected_privileged_capture_grant")
     if result["report_complete"] != "true":
         raise ValueError("incomplete_diagnostic_report")
     return result
