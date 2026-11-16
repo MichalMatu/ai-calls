@@ -112,8 +112,8 @@ public final class S8SipsRegisterDraftTest {
         return "SIP/2.0 401 Unauthorized\r\n"
             + "Via: SIP/2.0/TLS " + first.viaSentBy() + ";branch="
             + first.viaBranch() + ";rport\r\n"
-            + "To: <sips:alice@voice.example.org>;tag=server\r\n"
-            + "From: <sips:alice@voice.example.org>;tag=client\r\n"
+            + "To: " + first.expectedAor() + ";tag=server\r\n"
+            + "From: " + first.expectedFrom() + "\r\n"
             + "Call-ID: " + first.callId() + "\r\n"
             + "CSeq: " + first.cseq() + " REGISTER\r\n"
             + "WWW-Authenticate: " + CHALLENGE + "\r\n"
@@ -154,6 +154,10 @@ public final class S8SipsRegisterDraftTest {
             valid.replace("CSeq: 1 REGISTER", "CSeq: 2 REGISTER"),
             valid.replace("CSeq: 1 REGISTER", "CSeq: 1 INVITE"),
             valid.replace("Call-ID: " + first.callId(), "Call-ID: wrong-id"),
+            valid.replace("From: " + first.expectedFrom(),
+                "From: <sips:other@voice.example.org>;tag=client"),
+            valid.replace("To: " + first.expectedAor() + ";tag=server",
+                "To: <sips:other@voice.example.org>;tag=server"),
             valid.replace("branch=" + first.viaBranch(), "branch=wrong-branch"),
             valid.replace("branch=" + first.viaBranch(), "branch=" + first.viaBranch() + "BAD"),
             valid.replace("SIP/2.0/TLS " + first.viaSentBy(),
