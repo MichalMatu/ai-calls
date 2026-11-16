@@ -7,6 +7,7 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.telecom.TelecomManager
 import pl.michalmatu.aicallbridge.session.S8RtpLoopbackSmokeProbe
+import pl.michalmatu.aicallbridge.session.S8RtpRealtimeBridgeSmokeProbe
 
 /**
  * DUMP-protected, owner-triggered synthetic RTP smoke on the device itself.
@@ -33,9 +34,13 @@ class S8RtpLoopbackSmokeActivity : Activity() {
                     Report(false, false, false, "blocked_not_idle_or_permission")
                 } else {
                     val result = S8RtpLoopbackSmokeProbe.run()
+                    val bridge = S8RtpRealtimeBridgeSmokeProbe.run()
                     Report(
                         result.tx(), result.rx(), result.stop(),
-                        if (result.allPassed()) "pass" else "failed"
+                        if (result.allPassed() && bridge.allPassed()) "pass" else "failed",
+                        bridgeTx = bridge.tx(),
+                        bridgeRx = bridge.rx(),
+                        bridgeStop = bridge.stop(),
                     )
                 }
             } catch (_: Throwable) {
@@ -55,6 +60,9 @@ class S8RtpLoopbackSmokeActivity : Activity() {
         val rx: Boolean,
         val stop: Boolean,
         val status: String,
+        val bridgeTx: Boolean = false,
+        val bridgeRx: Boolean = false,
+        val bridgeStop: Boolean = false,
     ) {
         fun render(): String = buildString {
             appendLine("probe=s8_rtp_loopback")
@@ -63,6 +71,11 @@ class S8RtpLoopbackSmokeActivity : Activity() {
             appendLine("tx=$tx")
             appendLine("rx=$rx")
             appendLine("stop=$stop")
+            appendLine("app_pcm_rate_hz=16000")
+            appendLine("realtime_pcm_rate_hz=24000")
+            appendLine("bridge_tx=$bridgeTx")
+            appendLine("bridge_rx=$bridgeRx")
+            appendLine("bridge_stop=$bridgeStop")
             appendLine("status=$status")
             appendLine("real_call=false")
             appendLine("report_complete=true")
