@@ -1,0 +1,135 @@
+package pl.michalmatu.aicallbridge.session;
+
+import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
+
+/** Offline localhost-only media tests. No SIP account, ADB, microphone or telephone call. */
+public final class AppOwnedLoopbackRtpMediaPortTest {
+    private static final int RX_SSRC = 0x12121212;
+    private static final int TX_SSRC = 0x34343434;
+    private static final InetAddress LOOP = loopback();
+
+    private static InetAddress loopback() {
+        try {
+            return InetAddress.getByAddress(new byte[]{127, 0, 0, 1});
+        } catch (Exception error) {
+            throw new AssertionError(error);
+        }
+    }
+
+    private static DatagramSocket peer() throws IOException {
+        DatagramSocket socket = new DatagramSocket(new InetSocketAddress(LOOP, 0));
+        socket.setSoTimeout(1000);
+        return socket;
+    }
+
+    private static AppOwnedLoopbackRtpMediaPort newPort(Object identity, DatagramSocket peer) {
+        return new AppOwnedLoopbackRtpMediaPort(
+            identity, 0, peer.getLocalPort(), RX_SSRC, TX_SSRC
+        );
+    }
+
+    @Test public void pcmUplinkProducesRealRtpPacketOnLocalhost() throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            assertFalse(port.mediaHealthy(identity));
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            assertTrue(port.mediaHealthy(identity));
+            assertTrue(port.boundLocalPort() >= 1024);
+            byte[] silence = new byte[320];
+            lease.uplink().write(silence);
+            DatagramPacket response = new DatagramPacket(new byte[500], 500);
+            remote.receive(response);
+            assertEquals(RtpPcmuCodec.PACKET_BYTES, response.getLength());
+            RtpPcmuCodec.Frame frame =
+                RtpPcmuCodec.parse(response.getData(), response.getLength(), TX_SSRC);
+            assertNotNull(frame);
+            assertEquals(0, frame.sequence());
+            assertEquals(0L, frame.timestamp());
+            assertArrayEquals(silence, frame.pcm16());
+            lease.close();
+            assertFalse(port.mediaHealthy(identity));
+            assertThrows(IOException.class, () -> lease.uplink().write(silence));
+        }
+    }
+
+    @Test public void downlinkRejectsWrongSsrcAndReplayedSequence() throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            int portNumber = port.boundLocalPort();
+            byte[] silence = new byte[320];
+            send(remote, portNumber, RtpPcmuCodec.packetize(silence, 0, 41, 1000, 999));
+            send(remote, portNumber, RtpPcmuCodec.packetize(silence, 0, 41, 1000, RX_SSRC));
+            byte[] actual = new byte[320];
+            assertEquals(320, lease.downlink().read(actual, 0, 320));
+            assertArrayEquals(silence, actual);
+
+            // Duplicate is dropped; the next valid RTP frame is delivered instead.
+            byte[] duplicate = new byte[320];
+            for (int i = 0; i < 160; i++) {
+                duplicate[i * 2] = 0x10;
+            }
+            send(remote, portNumber, RtpPcmuCodec.packetize(duplicate, 0, 41, 1000, RX_SSRC));
+            send(remote, portNumber, RtpPcmuCodec.packetize(silence, 0, 42, 1160, RX_SSRC));
+            assertEquals(320, lease.downlink().read(actual, 0, 320));
+            assertArrayEquals("replayed PCM was rejected", silence, actual);
+        }
+    }
+
+    @Test public void stopInterruptsBlockedReadAndDropsPartialTx() throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            lease.uplink().write(new byte[100]);
+            CountDownLatch started = new CountDownLatch(1);
+            FutureTask<Integer> reader = new FutureTask<>(() -> {
+                started.countDown();
+                return lease.downlink().read(new byte[320], 0, 320);
+            });
+            Thread thread = new Thread(reader, "s8-offcall-rtp-reader");
+            thread.setDaemon(true);
+            thread.start();
+            assertTrue(started.await(1, TimeUnit.SECONDS));
+            lease.close();
+            assertEquals(-1, (int) reader.get(2, TimeUnit.SECONDS));
+            assertEquals(-1, port.boundLocalPort());
+            assertFalse(port.mediaHealthy(identity));
+            remote.setSoTimeout(200);
+            assertThrows(SocketTimeoutException.class,
+                () -> remote.receive(new DatagramPacket(new byte[500], 500)));
+        }
+    }
+
+    @Test public void exactIdentityAndSingleUseFailClosed() throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            assertThrows(IllegalArgumentException.class,
+                () -> port.open(new Object(), 1, 8000));
+            assertThrows(IllegalArgumentException.class,
+                () -> port.open(identity, 1, 16000));
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            assertThrows(IllegalStateException.class, () -> port.open(identity, 2, 8000));
+            lease.close();
+            assertThrows(IllegalStateException.class, () -> port.open(identity, 2, 8000));
+        }
+    }
+
+    private static void send(DatagramSocket remote, int port, byte[] packet) throws IOException {
+        remote.send(new DatagramPacket(packet, packet.length, LOOP, port));
+    }
+}
