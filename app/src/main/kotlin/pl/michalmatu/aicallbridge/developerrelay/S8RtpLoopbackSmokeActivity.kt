@@ -41,6 +41,8 @@ class S8RtpLoopbackSmokeActivity : Activity() {
                         bridgeTx = bridge.tx(),
                         bridgeRx = bridge.rx(),
                         bridgeStop = bridge.stop(),
+                        bridgeSdp = bridge.sdp(),
+                        publicSdpRejected = bridge.publicEndpointRejected(),
                     )
                 }
             } catch (_: Throwable) {
@@ -63,6 +65,8 @@ class S8RtpLoopbackSmokeActivity : Activity() {
         val bridgeTx: Boolean = false,
         val bridgeRx: Boolean = false,
         val bridgeStop: Boolean = false,
+        val bridgeSdp: Boolean = false,
+        val publicSdpRejected: Boolean = false,
     ) {
         fun render(): String = buildString {
             appendLine("probe=s8_rtp_loopback")
@@ -76,6 +80,8 @@ class S8RtpLoopbackSmokeActivity : Activity() {
             appendLine("bridge_tx=$bridgeTx")
             appendLine("bridge_rx=$bridgeRx")
             appendLine("bridge_stop=$bridgeStop")
+            appendLine("bridge_sdp=$bridgeSdp")
+            appendLine("public_sdp_rejected=$publicSdpRejected")
             appendLine("status=$status")
             appendLine("real_call=false")
             appendLine("report_complete=true")
