@@ -846,6 +846,7 @@
     <string name="s8_voip_lab_start">Rozpocznij test RTP</string>
     <string name="s8_voip_lab_stop">STOP — zamknij sesję</string>
     <string name="s8_voip_lab_running">Trwa lokalny test dwukierunkowego audio…</string>
+    <string name="s8_voip_lab_permission">Zezwól na odczyt stanu telefonu, aby upewnić się, że żaden Call nie trwa. Test nie wymaga mikrofonu.</string>
     <string name="s8_voip_lab_blocked">Zablokowano. Telefon musi być bezczynny, a uprawnienie Stanu telefonu przyznane.</string>
     <string name="s8_voip_lab_pass">PASS — lokalne RTP RX/TX i STOP.</string>
     <string name="s8_voip_lab_stopped">STOP — lokalna sesja zamknięta.</string>
@@ -862,6 +863,7 @@
     <string name="s8_sip_lab_register">REGISTER — zarejestruj konto testowe</string>
     <string name="s8_sip_lab_stop">STOP — zamknij TLS</string>
     <string name="s8_sip_lab_running">Próba REGISTER przez TLS. Możesz ją przerwać.</string>
+    <string name="s8_sip_lab_permission">Zezwól na stan telefonu. Następnie ponownie wybierz REGISTER, aby jawnie zatwierdzić próbę.</string>
     <string name="s8_sip_lab_blocked">Zablokowano: telefon musi być bezczynny i mieć dostęp do Stanu telefonu.</string>
     <string name="s8_sip_lab_invalid">Błędny adres, użytkownik lub hasło; nie nawiązano połączenia.</string>
     <string name="s8_sip_lab_success">Serwer potwierdził REGISTER. Czas: %1$d s. Brak obsługi połączeń.</string>
