@@ -6,9 +6,12 @@ import android.os.SystemClock;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-/** Small production wiring owner for coordinator + Shizuku backend + heartbeat executor. */
+/**
+ * One coordinator and heartbeat owner; the media transport is replaceable.
+ * Existing callers keep SHIZUKU_LEGACY until S8 is qualified on physical hardware.
+ */
 public final class CallMediaSessionRuntime implements AutoCloseable {
-    private final ShizukuCallMediaSessionBackend backend;
+    private final CallMediaSessionBackend backend;
     private final ScheduledCallMediaHeartbeatScheduler heartbeatScheduler;
     private final CallMediaSessionCoordinator coordinator;
 
@@ -16,9 +19,24 @@ public final class CallMediaSessionRuntime implements AutoCloseable {
         Context context,
         Consumer<CallMediaSessionSnapshot> listener
     ) {
-        Objects.requireNonNull(context, "context");
+        this(context, listener, CallMediaBackendMode.SHIZUKU_LEGACY);
+    }
+
+    public CallMediaSessionRuntime(
+        Context context,
+        Consumer<CallMediaSessionSnapshot> listener,
+        CallMediaBackendMode mode
+    ) {
+        this(createBackend(context, mode), listener);
+    }
+
+    /** Backend injection allows SIP/OEM experiments without changing call lifecycle ownership. */
+    public CallMediaSessionRuntime(
+        CallMediaSessionBackend backend,
+        Consumer<CallMediaSessionSnapshot> listener
+    ) {
+        this.backend = Objects.requireNonNull(backend, "backend");
         Objects.requireNonNull(listener, "listener");
-        backend = new ShizukuCallMediaSessionBackend(context);
         heartbeatScheduler = new ScheduledCallMediaHeartbeatScheduler();
         coordinator = new CallMediaSessionCoordinator(
             backend,
@@ -26,6 +44,14 @@ public final class CallMediaSessionRuntime implements AutoCloseable {
             SystemClock::elapsedRealtime,
             listener
         );
+    }
+
+    private static CallMediaSessionBackend createBackend(Context context, CallMediaBackendMode mode) {
+        Objects.requireNonNull(context, "context");
+        return switch (Objects.requireNonNull(mode, "mode")) {
+            case SHIZUKU_LEGACY -> new ShizukuCallMediaSessionBackend(context);
+            case ANDROID_PUBLIC_API_PROBE -> new AndroidPublicCallMediaSessionBackend();
+        };
     }
 
     public CallMediaSessionCoordinator coordinator() {

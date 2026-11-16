@@ -1,7 +1,7 @@
 package pl.michalmatu.aicallbridge.session;
 
-/** Narrow backend seam keeping Shizuku/Binder details out of the lifecycle state machine. */
-public interface CallMediaSessionBackend {
+/** Transport behind a single app-owned call generation; never grants Call authority. */
+public interface CallMediaSessionBackend extends AutoCloseable {
     interface BindCallback {
         void onBound(long generation);
         void onDisconnected(long generation);
@@ -13,8 +13,11 @@ public interface CallMediaSessionBackend {
     CallMediaEndpointLease start(long generation);
     boolean heartbeat(long generation);
 
-    /** Must dispatch privileged abort without depending on model/network completion. */
+    /** Abort must not wait for model inference or network completion. */
     void abort(long generation);
-
     void unbind(long generation);
+
+    /** Allows non-privileged and fake backends without additional resources. */
+    @Override
+    default void close() {}
 }

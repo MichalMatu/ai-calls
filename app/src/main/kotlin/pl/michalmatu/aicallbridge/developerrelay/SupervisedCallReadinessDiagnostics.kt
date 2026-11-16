@@ -18,6 +18,7 @@ internal data class SupervisedCallReadinessSnapshot(
     val activeCellularCall: Boolean,
     val managedCall: Boolean,
     val audioMode: Int?,
+    val s8Capabilities: S8AndroidAudioCapabilitySnapshot? = null,
 ) {
     val failure: SupervisedCallPilotFailure?
         get() = SupervisedCallPilotPolicy.check(
@@ -48,6 +49,7 @@ internal data class SupervisedCallReadinessSnapshot(
         appendLine("telecom_managed_call=$managedCall")
         appendLine("audio_mode=$audioModeLabel")
         appendLine("failure_reason=${failure?.name?.lowercase() ?: "none"}")
+        s8Capabilities?.let { append(it.renderReport()) }
         appendLine("report_complete=true")
     }
 }
@@ -72,7 +74,10 @@ internal object SupervisedCallReadinessDiagnostics {
         } else false
         val mode = runCatching { context.getSystemService(AudioManager::class.java)?.mode }
             .getOrNull()
-        return SupervisedCallReadinessSnapshot(mic, phone, shizuku, active, managed, mode)
+        return SupervisedCallReadinessSnapshot(
+            mic, phone, shizuku, active, managed, mode,
+            S8AndroidAudioCapabilityProbe.capture(context),
+        )
     }
 
     /** Atomic replace: the collector never sees a partially written report. */

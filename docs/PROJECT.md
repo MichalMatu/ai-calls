@@ -13,6 +13,9 @@ Model Granite 4.0 H 1B i Test Lab: działa wg użytkownika (off-call). Historia:
 
 ## Następny sprint — S8: bez Shizuku
 
+[S8: implementacja i blokady](architecture/S8_NO_SHIZUKU.md).
+
+
 **Osobny sprint** (nie łączyć z C1–C3). Sprawdzić uprawnienia Android 16/S22: rola dialera i zwykłe granty vs. uprzywilejowane `VOICE_DOWNLINK` RX i `CALL_ASSISTANT` TX. Wydzielić backend audio, zachować fallback Shizuku. Porównać direct GSM (OEM/system) i VoIP/SIP z przekierowaniem. Wykazać RX, TX, STOP, bezpieczeństwo exact Call; brak wspieranego API = dokumentacja blokady, nie PASS.
 
 ## Otwarte
