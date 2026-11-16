@@ -68,6 +68,9 @@
         <activity android:name=".ui.AgentAiHubActivity" android:exported="false" />
         <activity android:name=".ui.GeneralSettingsActivity" android:exported="false" />
         <activity android:name=".ui.DeveloperToolsActivity" android:exported="false" />
+        <!-- Manual 127.0.0.1 synthetic VoIP lab, reachable from Developer tools.
+             No other app, adb, carrier or microphone can trigger media here. -->
+        <activity android:name=".ui.S8VoipLabActivity" android:exported="false" />
         <activity android:name=".ui.CapabilityDiagnosticsActivity" android:exported="false" />
 
         <!-- The OS permits exact Call objects only to the user's chosen default dialer. -->
