@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.session;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -134,4 +135,37 @@ public final class S8SipsTlsRegisterClientTest {
             }
         }
     }
+    @Test public void cancellationOwnsAndClosesRawSocketWithoutAnySipWrite() throws Exception {
+        var attempt = new S8SipsTlsRegisterClient.Attempt();
+        Socket first = new Socket();
+        assertFalse(first.isClosed());
+        attempt.ownSocket(first);
+        assertFalse(first.isClosed());
+        attempt.close();
+        assertTrue(first.isClosed());
+        assertTrue(attempt.isStopped());
+        Socket late = new Socket();
+        try {
+            assertThrows(IOException.class, () -> attempt.ownSocket(late));
+        } finally {
+            late.close();
+        }
+        assertThrows(IOException.class, () -> attempt.run(
+            CONFIG, "test".toCharArray(), 1000, true
+        ));
+    }
+
+    @Test public void registrationAttemptWithoutApprovalNeverOpensTlsOrConsumesState()
+        throws Exception {
+        var attempt = new S8SipsTlsRegisterClient.Attempt();
+        try {
+            assertThrows(SecurityException.class, () -> attempt.run(
+                CONFIG, "test".toCharArray(), 1200, false
+            ));
+            assertFalse(attempt.isStopped());
+        } finally {
+            attempt.close();
+        }
+    }
+
 }
