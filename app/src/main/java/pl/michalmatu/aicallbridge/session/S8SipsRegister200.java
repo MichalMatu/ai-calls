@@ -91,7 +91,7 @@ final class S8SipsRegister200 {
             || !(pending.cseq() + " REGISTER").equals(headers.get("cseq"))
             || !"0".equals(headers.get("content-length"))
             || !pending.expectedFrom().equals(headers.get("from"))
-            || !validTo(headers.get("to"), pending.expectedAor())
+            || !pending.matchesToHeader(headers.get("to"))
             || headers.containsKey("www-authenticate")
             || headers.containsKey("proxy-authenticate")
             || headers.containsKey("proxy-authorization")
@@ -117,20 +117,6 @@ final class S8SipsRegister200 {
             throw new IOException("register_200_expiration_conflict");
         }
         return expiry;
-    }
-
-    private static boolean validTo(String value, String expectedAor) {
-        if (value == null) return false;
-        if (value.equals(expectedAor)) return true;
-        String prefix = expectedAor + ";tag=";
-        if (!value.startsWith(prefix) || value.length() <= prefix.length()
-            || value.length() > prefix.length() + 64) return false;
-        for (int i = prefix.length(); i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-                || (c >= '0' && c <= '9') || c == '-' || c == '.')) return false;
-        }
-        return true;
     }
 
     private static int decimalSeconds(String value) throws IOException {
