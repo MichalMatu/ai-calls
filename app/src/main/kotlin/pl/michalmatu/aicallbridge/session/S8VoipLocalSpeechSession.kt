@@ -87,6 +87,7 @@ internal class S8VoipLocalSpeechSession(
     private var outgoingFrames = 0
     private var transcripts = 0
     private var approvals = 0
+    private var approvedTurn = 0
     private var receiver: Thread? = null
     private var sender: Thread? = null
 
@@ -146,7 +147,10 @@ internal class S8VoipLocalSpeechSession(
         override fun onApproved() {
             synchronized(lock) {
                 if (!closed.get() && turn == expectedTurn && phase == Phase.PROCESSING) {
-                    approvals++
+                    if (approvedTurn != expectedTurn) {
+                        approvedTurn = expectedTurn
+                        approvals++
+                    }
                 }
             }
             publish()
@@ -154,6 +158,12 @@ internal class S8VoipLocalSpeechSession(
 
         override fun onOutputPcm16(pcm: ByteArray) {
             if (!current(expectedTurn, Phase.PROCESSING)) return
+            // A callback alone is not authorization. The exact turn must
+            // previously pass the product-owned complete-text approval gate.
+            if (synchronized(lock) { approvedTurn != expectedTurn }) {
+                fail()
+                return
+            }
             if (pcm.isEmpty() || pcm.size % 2 != 0 || pcm.size > MAX_TTS_BYTES) {
                 fail()
                 return
@@ -268,8 +278,15 @@ internal class S8VoipLocalSpeechSession(
         coordinator.takeOverNow()
         receiver?.interrupt()
         sender?.interrupt()
-        try { speech.cancel() } catch (_: Throwable) {}
-        try { speech.close() } catch (_: Throwable) {}
+        // The Android STT/TTS adapters own main-thread-only platform APIs.
+        // Run their cleanup on the same executor that started the recognizer,
+        // never directly on the RTP receiver/transmitter worker.
+        try {
+            speechExecutor.execute {
+                try { speech.cancel() } catch (_: Throwable) {}
+                try { speech.close() } catch (_: Throwable) {}
+            }
+        } catch (_: RuntimeException) { /* Local media is already stopped. */ }
         publish()
     }
 
