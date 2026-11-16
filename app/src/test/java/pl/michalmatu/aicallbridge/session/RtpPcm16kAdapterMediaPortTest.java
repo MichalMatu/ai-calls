@@ -118,7 +118,7 @@ public final class RtpPcm16kAdapterMediaPortTest {
                 assertEquals(CallMediaSessionState.IDLE, coordinator.snapshot().state());
                 assertFalse(backend.heartbeat(generation));
                 assertEquals(-1, raw.boundLocalPort());
-                assertThrows(IOException.class,
+                assertThrows(IllegalStateException.class,
                     () -> coordinator.activeEndpointLease(generation));
             } finally {
                 coordinator.takeOverNow();
