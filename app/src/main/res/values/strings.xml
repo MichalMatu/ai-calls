@@ -852,4 +852,19 @@
     <string name="s8_voip_lab_failed">FAIL — lokalny tor RTP nie przeszedł testu.</string>
     <string name="s8_voip_lab_failed_details">Brak potwierdzenia RX/TX. Nie wykonano połączenia.</string>
     <string name="s8_voip_lab_counters">Fazy: %1$d/6 · RX: %2$d/72 · TX: %3$d/72 · STOP: %4$s</string>
+    <string name="s8_sip_lab_title">SIP/TLS — konto testowe</string>
+    <string name="s8_sip_lab_explanation">Ręczna rejestracja własnego konta SIP na serwerze TLS z zaufanym certyfikatem. To rzeczywiście zmienia kontakt konta u operatora (do 300 s), ale aplikacja nie odbiera jeszcze połączeń. Używaj tylko konta testowego! Bez automatycznych prób i bez zapisania hasła. Wymagany prawdziwy, osiągalny adres Contact DNS; nie używaj IP ani danych prywatnych w logach.</string>
+    <string name="s8_sip_lab_registrar">Serwer: sips:voice.example.org:5061</string>
+    <string name="s8_sip_lab_contact">Contact: sips:device.example.org:5099</string>
+    <string name="s8_sip_lab_user">Użytkownik SIP</string>
+    <string name="s8_sip_lab_password">Hasło konta testowego SIP</string>
+    <string name="s8_sip_lab_idle">Nie połączono. Żadne dane nie zostaną wysłane bez kliknięcia REGISTER.</string>
+    <string name="s8_sip_lab_register">REGISTER — zarejestruj konto testowe</string>
+    <string name="s8_sip_lab_stop">STOP — zamknij TLS</string>
+    <string name="s8_sip_lab_running">Próba REGISTER przez TLS. Możesz ją przerwać.</string>
+    <string name="s8_sip_lab_blocked">Zablokowano: telefon musi być bezczynny i mieć dostęp do Stanu telefonu.</string>
+    <string name="s8_sip_lab_invalid">Błędny adres, użytkownik lub hasło; nie nawiązano połączenia.</string>
+    <string name="s8_sip_lab_success">Serwer potwierdził REGISTER. Czas: %1$d s. Brak obsługi połączeń.</string>
+    <string name="s8_sip_lab_failed">REGISTER niepotwierdzony: TLS, odpowiedź serwera albo uwierzytelnienie nie przeszły walidacji.</string>
+    <string name="s8_sip_lab_stopped">STOP — kanał TLS zamknięty. Bez dalszych prób.</string>
 </resources>
