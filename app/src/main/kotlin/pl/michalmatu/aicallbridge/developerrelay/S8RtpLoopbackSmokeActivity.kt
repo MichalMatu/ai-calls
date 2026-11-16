@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.telecom.TelecomManager
 import pl.michalmatu.aicallbridge.session.S8RtpLoopbackSmokeProbe
 import pl.michalmatu.aicallbridge.session.S8RtpRealtimeBridgeSmokeProbe
+import pl.michalmatu.aicallbridge.session.S8VoipSixTurnLab
 
 /**
  * DUMP-protected, owner-triggered synthetic RTP smoke on the device itself.
@@ -35,14 +36,20 @@ class S8RtpLoopbackSmokeActivity : Activity() {
                 } else {
                     val result = S8RtpLoopbackSmokeProbe.run()
                     val bridge = S8RtpRealtimeBridgeSmokeProbe.run()
+                    val six = S8VoipSixTurnLab().use { it.run() }
                     Report(
                         result.tx(), result.rx(), result.stop(),
-                        if (result.allPassed() && bridge.allPassed()) "pass" else "failed",
+                        if (result.allPassed() && bridge.allPassed() && six.passed()) "pass" else "failed",
                         bridgeTx = bridge.tx(),
                         bridgeRx = bridge.rx(),
                         bridgeStop = bridge.stop(),
                         bridgeSdp = bridge.sdp(),
                         publicSdpRejected = bridge.publicEndpointRejected(),
+                        sixPhases = six.phasesCompleted(),
+                        sixRxFrames = six.rxFrames(),
+                        sixTxFrames = six.txFrames(),
+                        sixStopped = six.stopped(),
+                        sixPassed = six.passed(),
                     )
                 }
             } catch (_: Throwable) {
@@ -67,6 +74,11 @@ class S8RtpLoopbackSmokeActivity : Activity() {
         val bridgeStop: Boolean = false,
         val bridgeSdp: Boolean = false,
         val publicSdpRejected: Boolean = false,
+        val sixPhases: Int = 0,
+        val sixRxFrames: Int = 0,
+        val sixTxFrames: Int = 0,
+        val sixStopped: Boolean = false,
+        val sixPassed: Boolean = false,
     ) {
         fun render(): String = buildString {
             appendLine("probe=s8_rtp_loopback")
@@ -82,6 +94,11 @@ class S8RtpLoopbackSmokeActivity : Activity() {
             appendLine("bridge_stop=$bridgeStop")
             appendLine("bridge_sdp=$bridgeSdp")
             appendLine("public_sdp_rejected=$publicSdpRejected")
+            appendLine("six_phases=$sixPhases")
+            appendLine("six_rx_frames=$sixRxFrames")
+            appendLine("six_tx_frames=$sixTxFrames")
+            appendLine("six_stopped=$sixStopped")
+            appendLine("six_passed=$sixPassed")
             appendLine("status=$status")
             appendLine("real_call=false")
             appendLine("report_complete=true")
