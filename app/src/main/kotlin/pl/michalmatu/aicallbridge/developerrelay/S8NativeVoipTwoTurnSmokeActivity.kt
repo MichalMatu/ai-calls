@@ -63,6 +63,9 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
     private val startAtMs = SystemClock.elapsedRealtime()
     private val readyAtMs = LongArray(MAX_TURNS)
     private val replyLatencyMs = LongArray(MAX_TURNS)
+    private val processingAtMs = LongArray(MAX_TURNS)
+    private val approvedAtMs = LongArray(MAX_TURNS)
+    private val speakingAtMs = LongArray(MAX_TURNS)
     private var maxJavaHeapBytes = 0L
     private var maxNativeHeapBytes = 0L
     private var source: LocalTtsSpeechOutput? = null
@@ -296,13 +299,24 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
                             snapshot.incomingFrames, snapshot.outgoingFrames,
                         )
                         sampleMemory()
-                        if (snapshot.phase == S8VoipLocalSpeechSession.Phase.SPEAKING &&
-                            snapshot.turn in 1..turnLimit &&
-                            replyLatencyMs[snapshot.turn - 1] == 0L) {
-                            val started = readyAtMs[snapshot.turn - 1]
-                            if (started != 0L) {
-                                replyLatencyMs[snapshot.turn - 1] =
-                                    SystemClock.elapsedRealtime() - started
+                        if (snapshot.turn in 1..turnLimit) {
+                            val index = snapshot.turn - 1
+                            val now = SystemClock.elapsedRealtime()
+                            if (snapshot.phase == S8VoipLocalSpeechSession.Phase.PROCESSING &&
+                                processingAtMs[index] == 0L) {
+                                processingAtMs[index] = now
+                            }
+                            if (snapshot.approvals >= snapshot.turn &&
+                                approvedAtMs[index] == 0L) {
+                                approvedAtMs[index] = now
+                            }
+                            if (snapshot.phase == S8VoipLocalSpeechSession.Phase.SPEAKING &&
+                                speakingAtMs[index] == 0L) {
+                                speakingAtMs[index] = now
+                                val started = readyAtMs[index]
+                                if (started != 0L) {
+                                    replyLatencyMs[index] = now - started
+                                }
                             }
                         }
                         if (snapshot.phase == S8VoipLocalSpeechSession.Phase.FAILED) {
@@ -460,6 +474,9 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
             appendLine("max_native_heap_bytes=$maxNativeHeapBytes")
             appendLine("worst_turn_response_ms=${replyLatencyMs.maxOrNull() ?: 0L}")
             appendLine("measured_response_turns=${replyLatencyMs.count { it > 0L }}")
+            appendLine("max_capture_ms=${longestStage(processingAtMs, readyAtMs)}")
+            appendLine("max_stt_model_ms=${longestStage(approvedAtMs, processingAtMs)}")
+            appendLine("max_tts_ms=${longestStage(speakingAtMs, approvedAtMs)}")
             appendLine("synthetic_peer_packets_sent=${sentPackets.get() - lostPeerPackets.get()}")
             appendLine("synthetic_peer_packets_lost=${lostPeerPackets.get()}")
             appendLine("media_start_state=$mediaStartState")
@@ -480,6 +497,13 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
             appendLine("report_complete=${state != "running"}")
         })
     }
+
+    private fun longestStage(ends: LongArray, starts: LongArray): Long =
+        (0 until turnLimit).maxOfOrNull { index ->
+            if (starts[index] > 0L && ends[index] >= starts[index]) {
+                ends[index] - starts[index]
+            } else 0L
+        } ?: 0L
 
     private fun sampleMemory() {
         val runtime = Runtime.getRuntime()
