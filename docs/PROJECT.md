@@ -7,16 +7,12 @@
 
 `main`: stabilne C1–C3/G6.1; GSM PCM bez Shizuku blokuje Android/OEM.
 
-## Podział pracy
+## S8 — fizyczna kwalifikacja S22+ (2026-11-17)
 
-S8 `feature/s8-no-shizuku`, osobny ARM64 APK `pl.michalmatu.aicallbridge.s8lab`. **S22+ PHYSICAL PASS 2026-11-17:** RTP/SDP/STOP 6 faz 72 RX/72 TX; polskie STT → zatwierdzony tekst → TTS PCM. E2B 2,6 GB pobrany w sandboxie S8, natywna próba zgodności tekstu **PASS**; znacznik trwały i status „Model compatibility verified” widoczny także bez przyznanego READ_PHONE_STATE. „Check compatibility” teraz żąda uprawnienia z jasnym komunikatem i wymaga ponownego kliknięcia; nie włącza sam inferencji po zgodzie. Stabilny APK SHA bez zmian, S8 ma backup.
+Branch `feature/s8-no-shizuku`, odrębny APK `pl.michalmatu.aicallbridge.s8lab`, bez merge. **PASS:** RTP/SDP/STOP 6 faz 72 RX/72 TX; Android polskie STT i TTS; Gemma E2B 2,6 GB w sandboxie S8, natywna zgodność tekstu + trwały status VERIFIED. Check compatibility zgłasza brak READ_PHONE_STATE, wymaga ponownego kliknięcia; uprawnienie testowe przywrócone.
 
-Kod 4 tur LiteRT/STOP i prywatny raport gotowy; **cztery tury native jeszcze OPEN**. Mac unit/APK PASS; emulator UI PASS.
+**Nowe PASS:** 4/4 natywne tury tekstowe Gemma E2B na S22+ (~9 s), bez zapisu wypowiedzi. Osobny DUMP-gated test całej lokalnej ścieżki **syntetyczne audio → Android STT → prawdziwa Gemma E2B → approval → lokalne TTS PCM** (~14 s), jeden turn, bez treści w raporcie. Mac unit/preflight/APK PASS. Stabilny APK SHA bez zmian, kopie S8 do rollbacku.
 
 ## Następny sprint — S8 bez Shizuku
 
-Sprawdzić 4–6 lokalnych tur z E2B i STT→LLM→TTS; następnie SIP INVITE/SDP/SRTP.
-
-## Otwarte
-
-Brak realnego VoIP, GSM PCM i SRTP. Bez realnego Call bez zgody na numer/koszt. Bez PII/audio w Git.
+Rozbudować lokalną ścieżkę głosową do 4–6 tur, dodać wygodny ręczny flow w UI; później autoryzowany SIP INVITE/SDP/SRTP. Brak prawdziwej rozmowy VoIP/GSM i SRTP. Realny Call tylko za zgodą na numer/koszt. Bez PII/audio w Git.
