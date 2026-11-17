@@ -77,6 +77,37 @@ public final class S8SecureSipDialogGateTest {
         assertEquals(0, signaling.byes);
     }
 
+    @Test public void remoteCancelIsBoundToUnansweredInviteAndAcknowledgedOnce() {
+        var events = new ArrayList<String>();
+        var media = new Media(events);
+        var signaling = new Signaling(events);
+        var gate = new S8SecureSipDialogGate(signaling, media, ignored -> {});
+        assertTrue(gate.onVerifiedIncomingInvite(media.identity));
+        gate.onRemoteCancel(new Object());
+        assertEquals(S8SecureSipDialogGate.State.RINGING, gate.snapshot().state());
+        assertTrue(events.isEmpty());
+        gate.onRemoteCancel(media.identity);
+        gate.onRemoteCancel(media.identity);
+        assertEquals(S8SecureSipDialogGate.State.STOPPED, gate.snapshot().state());
+        assertEquals(List.of("media-close", "cancel-ack", "signaling-close"), events);
+        assertEquals(0, signaling.answers);
+        assertEquals(0, signaling.byes);
+    }
+
+    @Test public void cancelCannotReplaceByeOnceAnswerWasSent() {
+        var events = new ArrayList<String>();
+        var media = new Media(events);
+        var signaling = new Signaling(events);
+        var gate = new S8SecureSipDialogGate(signaling, media, ignored -> {});
+        assertTrue(gate.onVerifiedIncomingInvite(media.identity));
+        assertTrue(gate.accept(media.identity));
+        gate.onRemoteCancel(media.identity);
+        assertEquals(S8SecureSipDialogGate.State.NEGOTIATING, gate.snapshot().state());
+        assertEquals(List.of("answer"), events);
+        gate.takeOverNow();
+        assertEquals(List.of("answer", "media-close", "bye", "signaling-close"), events);
+    }
+
     @Test public void nativeKeyLossFailsClosedAndRevokesMediaFirst() {
         var events = new ArrayList<String>();
         var media = new Media(events);
@@ -122,6 +153,9 @@ public final class S8SecureSipDialogGateTest {
         @Override public void rejectInvite(Object ignored) { events.add("reject"); }
         @Override public void endDialog(Object ignored) { byes++; events.add("bye"); }
         @Override public void acknowledgeRemoteBye(Object ignored) { events.add("ack-bye"); }
+        @Override public void acknowledgeRemoteCancel(Object ignored) {
+            events.add("cancel-ack");
+        }
         @Override public void close() { events.add("signaling-close"); }
     }
 }
