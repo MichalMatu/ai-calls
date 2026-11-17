@@ -1,10 +1,8 @@
 # AI Calls — checkpoint i handoff, 14.11.2026
 
-> **Archiwum:** nowa walidacja i aktualny status są w
-> [checkpoint 15.11](CHECKPOINT_HANDOFF_2026-11-15.md).
-> Dawne PHYSICAL_OPEN dla S2–S7 są historyczne.
+> **ARCHIWUM — bez aktywnych zadań.** Plan: [PROJECT](../../docs/PROJECT.md). Dawne PHYSICAL_OPEN/S2–S7 nie ustalają priorytetów; nowsze wyniki: [checkpoint 15.11](CHECKPOINT_HANDOFF_2026-11-15.md).
 
-**Repo:** `MichalMatu/ai-calls`, `main`. Kod produkcyjny sprawdzony na hostcie: `ce05a593b0d77b869a8ef21b6ef24b66f8694cf4`. Testy instrumentacyjne z poprawionymi kontraktami: `50234e953a97b91f38aed6243f3ea6cc4bcc428a`. Commit tego checkpointu zmieni HEAD bez zmiany APK. Zaczynaj nowy czat od odczytu `AGENTS.md`, `docs/README.md`, `docs/PROJECT.md` i tego pliku; sprawdź HEAD, nie odtwarzaj testów bez powodu.
+**Repo:** `MichalMatu/ai-calls`, `main`. Kod produkcyjny sprawdzony na hostcie: `ce05a593b0d77b869a8ef21b6ef24b66f8694cf4`. Testy instrumentacyjne z poprawionymi kontraktami: `50234e953a97b91f38aed6243f3ea6cc4bcc428a`. Commit tego checkpointu zmieni HEAD bez zmiany APK. To archiwalny snapshot stanu kodu, a nie instrukcja wznowienia.
 
 ## Potwierdzone automatycznie
 
@@ -27,8 +25,6 @@
 - Parakeet PL: kod/testy obecne, natywna gotowość i jakość na S22 niepotwierdzona. Piper: silnik może być zainstalowany, lecz **polski głos offline niepotwierdzony**. Nie uznawaj brakujących pakietów za zaliczone testy. Kokoro/Pocket TTS niekwalifikowane dla polskiego.
 - Rejestr `benchmarks/audio/AUDIO_ROUTE_QUALITY.md`, implementacja `scripts/aicall_tools/diagnostics/audio_route_quality_report.py`. WER, latencje, naturalność, przerwania i zakończenie połączenia wymagają prawdziwych pomiarów; testów syntetycznych nie mieszaj z rozmowami.
 
-## Ostatni etap — tylko po powrocie S22 i jawnej zgodzie użytkownika
+## Historyczny brak odbioru GSM
 
-Telefon ma pozostać bez zmian do czasu zgody na instalację APK. W stanie IDLE zweryfikować build, aktualny profil i polski głos TTS, wykonać pojedynczy kontrolowany scenariusz 4–6 wymian: długa mowa/szum/silence, korekta, barge-in, STOP, naturalne „do widzenia” i faktyczne END_CALL; ocenić polską transkrypcję, opóźnienia i odsłuch. Jeśli Piper/Parakeet bez wymaganych plików, zapisać `not_available`, nie wymuszać instalacji. WAV, transkrypty i numery telefonów pozostają prywatne.
-
-**Zasady:** bez nieautoryzowanych połączeń, install/restart, Shizuku, ADB na S22, Action/Codex/Work/schedulera. Nie wymyślaj statusów. Później osobno jakość dialogu i kampanie G6.1 (PHYSICAL_OPEN).
+W dniu checkpointu nie potwierdzono pełnej rozmowy GSM (długi RX, barge-in, STOP, zakończenie i odsłuch). Ten zapis nie jest sprintem ani backlogiem. Zadania są wyłącznie w [PROJECT](../../docs/PROJECT.md).
