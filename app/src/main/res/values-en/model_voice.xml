@@ -42,7 +42,7 @@
     <string name="mv_discard_title">Discard unsaved changes?</string>
     <string name="mv_discard">Discard</string>
     <string name="mv_stay">Stay</string>
-    <string name="mv_permissions">App permissions</string>
+    <string name="mv_permissions">Permissions and default apps</string>
     <string name="mv_permissions_hint">Status of the Phone role, microphone and phone state / SIM access.</string>
     <string name="perm_microphone_title">Microphone</string>
     <string name="perm_phone_state_title">SIM cards and phone state</string>

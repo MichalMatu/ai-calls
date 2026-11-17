@@ -734,6 +734,13 @@
     <string name="cap_ui_yes">Yes</string>
     <string name="cap_ui_no">No</string>
     <string name="cap_ui_unknown">Unknown</string>
+    <string name="perm_answer_phone_title">Answering calls</string>
+    <string name="perm_default_apps_action">Android default apps</string>
+    <string name="perm_app_settings_action">AI Calls app permissions in Android</string>
+    <string name="perm_incoming_ai_action">GSM assistant — mode and SIM</string>
+    <string name="perm_incoming_mode_ai">Answering mode: AI</string>
+    <string name="perm_incoming_mode_manual">Answering mode: manual</string>
+    <string name="perm_incoming_mode_unavailable">Unable to read answering mode</string>
     <string name="perm_status_granted">Granted</string>
     <string name="perm_status_missing">Not granted</string>
     <string name="perm_action_allow">Grant access</string>

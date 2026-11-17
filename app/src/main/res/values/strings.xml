@@ -735,6 +735,13 @@
     <string name="cap_ui_yes">Tak</string>
     <string name="cap_ui_no">Nie</string>
     <string name="cap_ui_unknown">Brak danych</string>
+    <string name="perm_answer_phone_title">Odbieranie połączeń</string>
+    <string name="perm_default_apps_action">Aplikacje domyślne Androida</string>
+    <string name="perm_app_settings_action">Uprawnienia AI Calls w Androidzie</string>
+    <string name="perm_incoming_ai_action">Sekretarka GSM — tryb i karta SIM</string>
+    <string name="perm_incoming_mode_ai">Tryb odbierania: AI</string>
+    <string name="perm_incoming_mode_manual">Tryb odbierania: ręczny</string>
+    <string name="perm_incoming_mode_unavailable">Nie można odczytać trybu odbierania</string>
     <string name="perm_status_granted">Przyznano</string>
     <string name="perm_status_missing">Nie przyznano</string>
     <string name="perm_action_allow">Przyznaj dostęp</string>

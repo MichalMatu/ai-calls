@@ -42,7 +42,7 @@
     <string name="mv_discard_title">Odrzucić niezapisane zmiany?</string>
     <string name="mv_discard">Odrzuć</string>
     <string name="mv_stay">Zostań</string>
-    <string name="mv_permissions">Uprawnienia aplikacji</string>
+    <string name="mv_permissions">Uprawnienia i aplikacje domyślne</string>
     <string name="mv_permissions_hint">Status aplikacji Telefon, mikrofonu i dostępu do stanu telefonu / kart SIM.</string>
     <string name="perm_microphone_title">Mikrofon</string>
     <string name="perm_phone_state_title">Karty SIM i stan telefonu</string>
