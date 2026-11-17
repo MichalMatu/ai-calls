@@ -56,6 +56,8 @@ public final class RtpPcmuCodecTest {
         );
         assertNull(RtpPcmuCodec.parse(packet, packet.length, 100));
         assertNull(RtpPcmuCodec.parse(packet, 12, 99));
+        assertNull("shortened PCMU must not splice following frame",
+            RtpPcmuCodec.parse(packet, packet.length - 1, 99));
         assertNull(RtpPcmuCodec.parse(packet, packet.length + 1, 99));
         byte[] wrong = packet.clone();
         wrong[0] = (byte) 0xc0; // Wrong RTP version.
