@@ -170,7 +170,8 @@ object LocalSpeechTextPipelineProbe {
         }
     }
 
-    private fun activeDiagnosticWorkflow(): CallWorkflow {
+    /** Shared off-call synthetic workflow fixture; never starts Telecom or transport. */
+    internal fun activeDiagnosticWorkflow(): CallWorkflow {
         val task = CallTask(
             "diagnostic target",
             "diagnostic action",
