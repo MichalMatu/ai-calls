@@ -37,11 +37,22 @@ android {
     sourceSets {
         getByName("debug") {
             if (s8NativePrototype) {
-                java.srcDir(rootProject.file("prototypes/s8-pjsua2/src"))
-                java.srcDir(rootProject.file(
+                val pjsuaJava = rootProject.file(
                     s8NativeRoot + "/pjproject-autotools-android-arm64/pjsip-apps/src/swig/java/android/pjsua2/src/main/java"
-                ))
-                jniLibs.srcDir(rootProject.file(s8NativeRoot + "/s8-android-jniLibs"))
+                )
+                val nativeLibs = rootProject.file(s8NativeRoot + "/s8-android-jniLibs")
+                check(rootProject.file(
+                    pjsuaJava.path + "/org/pjsip/pjsua2/Endpoint.java"
+                ).isFile && rootProject.file(
+                    nativeLibs.path + "/arm64-v8a/libpjsua2.so"
+                ).isFile && rootProject.file(
+                    nativeLibs.path + "/arm64-v8a/libs8srtpaudit.so"
+                ).isFile) {
+                    "s8NativePrototype requested without pinned PJSUA2 Java and TLS/SRTP JNI libraries"
+                }
+                java.srcDir(rootProject.file("prototypes/s8-pjsua2/src"))
+                java.srcDir(pjsuaJava)
+                jniLibs.srcDir(nativeLibs)
             }
         }
     }
