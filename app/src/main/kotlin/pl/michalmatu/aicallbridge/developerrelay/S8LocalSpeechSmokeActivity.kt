@@ -38,15 +38,22 @@ class S8LocalSpeechSmokeActivity : Activity() {
             return
         }
 
-        ownedProbe = LocalSpeechTextPipelineProbe.run(this) { report ->
-            if (complete) return@run
-            val ok = report.lines().any { it == "text_pipeline_success=true" }
-            val stt = report.lines().any { it == "stt_ready=true" }
-            val approved = report.lines().any { it == "approved_output_pcm_nonempty=true" }
-            val tts = report.lines().any { it.startsWith("output_tts_pcm_bytes=") } &&
-                approved
-            complete(if (ok && stt && tts) "pass" else "failed",
-                stt, approved, tts)
+        // Device TTS providers can reject construction synchronously. Never
+        // leave a permanent "running" report or crash the owner diagnostics.
+        ownedProbe = try {
+            LocalSpeechTextPipelineProbe.run(this) { report ->
+                if (complete) return@run
+                val ok = report.lines().any { it == "text_pipeline_success=true" }
+                val stt = report.lines().any { it == "stt_ready=true" }
+                val approved = report.lines().any { it == "approved_output_pcm_nonempty=true" }
+                val tts = report.lines().any { it.startsWith("output_tts_pcm_bytes=") } &&
+                    approved
+                complete(if (ok && stt && tts) "pass" else "failed",
+                    stt, approved, tts)
+            }
+        } catch (_: Throwable) {
+            complete("failed", false, false, false)
+            null
         }
     }
 
