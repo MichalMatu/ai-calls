@@ -847,4 +847,16 @@
     <string name="s8_voip_native_pass">PASS — RTP, STT, Gemma and TTS voice test completed.</string>
     <string name="s8_voip_native_failed">The local AI test did not pass. No phone call was made.</string>
     <string name="s8_voip_native_summary">Turns: %1$d/%2$d · RX: %3$d · TX: %4$d · elapsed: %5$d ms · RTP loss: %6$d</string>
+    <string name="s8_sip_incoming_title">Incoming VoIP calls</string>
+    <string name="s8_sip_incoming_unavailable">Incoming calls unavailable: native SIP and authenticated SRTP are not yet installed. Registering an account alone cannot receive calls.</string>
+    <string name="s8_sip_incoming_waiting">Ready for authenticated incoming calls.</string>
+    <string name="s8_sip_incoming_ringing">Incoming call. Choose Answer or Reject.</string>
+    <string name="s8_sip_incoming_negotiating">Negotiating secure audio.</string>
+    <string name="s8_sip_incoming_connected">Connected with authenticated SRTP.</string>
+    <string name="s8_sip_incoming_security_failure">Secure audio could not be verified. Hang up.</string>
+    <string name="s8_sip_incoming_ended">Call ended.</string>
+    <string name="s8_sip_incoming_failed">Call failed.</string>
+    <string name="s8_sip_incoming_accept">Answer</string>
+    <string name="s8_sip_incoming_reject">Reject</string>
+    <string name="s8_sip_incoming_hangup">Hang up</string>
 </resources>
