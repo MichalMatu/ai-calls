@@ -42,7 +42,8 @@ internal object PrivateDiagnosticReportStore {
             name == S8RtpLoopbackSmokeActivity.REPORT_FILE ||
             name == S8LocalSpeechSmokeActivity.REPORT_FILE ||
             name == S8LocalModelFourTurnSmokeActivity.REPORT_FILE ||
-            name == S8NativeSpeechSmokeActivity.REPORT_FILE
+            name == S8NativeSpeechSmokeActivity.REPORT_FILE ||
+            name == S8NativeVoipTwoTurnSmokeActivity.REPORT_FILE
 
     fun write(directory: File, name: String, report: String): Boolean {
         require(isAllowedName(name)) { "invalid_diagnostic_report_name" }
