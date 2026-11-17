@@ -34,7 +34,14 @@ class S8LabScreenOnDeviceTest {
                 val speech = root.findViewWithTag<Button>("s8-voip-lab-local-speech")
                 val modelStatus = root.findViewWithTag<TextView>("s8-lab-model-readiness")
                 val modelManage = root.findViewWithTag<Button>("s8-lab-model-manage")
+                val modelFourTurn = root.findViewWithTag<Button>("s8-lab-model-four-turn-start")
                 assertTrue(modelManage.isEnabled)
+                assertTrue("four-turn model test must require explicit tap", modelFourTurn != null)
+                if (pl.michalmatu.aicallbridge.session.S8LabModelReadiness.inspect(activity) !=
+                    pl.michalmatu.aicallbridge.session.S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
+                ) {
+                    assertFalse("no model: native test cannot start", modelFourTurn.isEnabled)
+                }
                 assertTrue("model state shown without attempting inference",
                     modelStatus.text.isNotBlank())
                 assertTrue(start.isEnabled)
