@@ -15,7 +15,7 @@ Branch `feature/s8-no-shizuku`, odrębny APK `pl.michalmatu.aicallbridge.s8lab`,
 
 ## Sprint S8 — integracja lokalna i SIP/SRTP
 
-Rozbudowano tor syntetyczny RTP → systemowe STT → Gemma E2B → approval → TTS → RTP do 2–6 tur oraz ekran ręcznej próby; STOP w fazach RX/model/TX i brak starych ramek RTP są objęte testami celowanymi Mac (PASS). **Fizyczny E2E na S22+ pozostaje PHYSICAL_OPEN:** ADB zniknęło po instalacji testowego APK, rollback S8 oczekuje na weryfikację przy ponownym połączeniu; nie uznawać tego za PASS.
+Rozbudowano tor syntetyczny RTP → systemowe STT → Gemma E2B → approval → TTS → RTP do 2–6 tur oraz ekran ręcznej próby; STOP w fazach RX/model/TX i brak starych ramek RTP są objęte testami celowanymi Mac (PASS). **Fizyczny E2E 2/2 na S22+ — PASS:** rzeczywisty lokalny STT → Gemma E2B → approval → TTS na syntetycznym RTP (393 RX / 205 TX, 26,1 s łącznie; najdłuższy czas odpowiedzi 12,8 s). Po naprawie raportu i przeniesieniu otwarcia UDP poza wątek UI stan mediów ACTIVE. Rollback po poprzednich nieudanych próbach oraz stabilny APK zweryfikowane SHA PASS. **Fizyczne 4/6 tur, testy STOP i utraty pakietów na urządzeniu — nadal otwarte**; kod i testy Mac PASS.
 
 Protokół SIP ma jedynie ręczny REGISTER i testowaną bramkę stanów wymagającą TLS/SRTP; brak natywnego SIP/SDP/SRTP, a Mac nie ma NDK, SWIG ani PJSIP. Szczegóły, dowody i bramki: [S8 secure VoIP handoff](architecture/S8_SECURE_VOIP_HANDOFF.md).
 
