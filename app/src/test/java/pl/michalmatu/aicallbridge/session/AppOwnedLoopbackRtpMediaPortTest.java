@@ -89,6 +89,37 @@ public final class AppOwnedLoopbackRtpMediaPortTest {
         }
     }
 
+    @Test public void malformedLengthsCannotBeTruncatedIntoValidPcm() throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            byte[] noisy = new byte[320];
+            noisy[0] = 0x30;
+            byte[] validLength = RtpPcmuCodec.packetize(noisy, 0, 1, 160, RX_SSRC);
+            byte[] shortPacket = java.util.Arrays.copyOf(validLength, validLength.length - 1);
+            byte[] oversized = java.util.Arrays.copyOf(validLength, validLength.length + 8);
+            send(remote, port.boundLocalPort(), shortPacket);
+            send(remote, port.boundLocalPort(), oversized);
+            byte[] silence = new byte[320];
+            send(remote, port.boundLocalPort(),
+                RtpPcmuCodec.packetize(silence, 0, 1, 160, RX_SSRC));
+            byte[] actual = new byte[320];
+            assertEquals(320, lease.downlink().read(actual, 0, actual.length));
+            assertArrayEquals("only the full, valid 20ms RTP is accepted", silence, actual);
+        }
+    }
+
+    @Test public void stalledRtpReadFailsInsteadOfBlockingIndefinitely() throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            assertThrows(SocketTimeoutException.class,
+                () -> lease.downlink().read(new byte[320], 0, 320));
+        }
+    }
+
     @Test public void stopInterruptsBlockedReadAndDropsPartialTx() throws Exception {
         Object identity = new Object();
         try (DatagramSocket remote = peer();
