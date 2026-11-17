@@ -275,7 +275,7 @@ internal class S8VoipLocalSpeechSession(
         if (!closed.compareAndSet(false, true)) return
         synchronized(lock) { phase = terminal }
         // Local STOP first; never wait for STT, model, TTS or TLS to finish.
-        coordinator.takeOverNow()
+        coordinator.takeOverIfGeneration(generation)
         receiver?.interrupt()
         sender?.interrupt()
         // The Android STT/TTS adapters own main-thread-only platform APIs.
