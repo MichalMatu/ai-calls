@@ -892,4 +892,13 @@
     <string name="s8_lab_model_four_turn_timeout">STOP — limit czasu pracy modelu przekroczony.</string>
     <string name="s8_lab_model_four_turn_count">Ukończone tury: %1$d / 4. Bez zapisu odpowiedzi.</string>
     <string name="s8_lab_model_four_turn_permission">Po zgodzie na odczyt stanu telefonu ponownie naciśnij test 4 tur.</string>
+    <string name="s8_voip_native_title">S8 — lokalna rozmowa AI</string>
+    <string name="s8_voip_native_caption">Dwie do sześciu tur z prawdziwym lokalnym STT, Gemma i TTS. Głos wejściowy jest syntetyczny, a RTP działa wyłącznie przez 127.0.0.1. Nie nawiązuje połączeń ani nie zapisuje wypowiedzi. STOP zawsze przerywa test.</string>
+    <string name="s8_voip_native_running">Przygotowywanie modelu i syntezy głosu…</string>
+    <string name="s8_voip_native_progress">Tura %1$d/%2$d · RX: %3$d · TX: %4$d</string>
+    <string name="s8_voip_native_action">Rozmowa lokalna AI — %1$d tur</string>
+    <string name="s8_voip_native_permission">Potrzebne są uprawnienia Stanu telefonu i Mikrofonu dla systemowego STT. Po ich nadaniu naciśnij test ponownie.</string>
+    <string name="s8_voip_native_pass">PASS — zakończono test głosu przez RTP, STT, Gemma i TTS.</string>
+    <string name="s8_voip_native_failed">Brak PASS lokalnego testu AI. Bez połączenia telefonicznego.</string>
+    <string name="s8_voip_native_summary">Tury: %1$d/%2$d · RX: %3$d · TX: %4$d · czas: %5$d ms · strata RTP: %6$d</string>
 </resources>
