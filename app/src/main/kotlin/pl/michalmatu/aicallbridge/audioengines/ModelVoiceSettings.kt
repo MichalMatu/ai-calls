@@ -383,7 +383,7 @@ internal class ModelVoiceSettings(
         inputIssue.text = if (inputProblem) reason(activity, code) else ""
         voiceIssue.visibility = if (voiceProblem) View.VISIBLE else View.GONE
         inputIssue.visibility = if (inputProblem) View.VISIBLE else View.GONE
-        if (code != null && checkResult == null && !voiceProblem && !inputProblem &&
+        if (code != null && !verified && checkResult == null && !voiceProblem && !inputProblem &&
             !checking && !downloading && file?.isFile == true)
             modelState.text = reason(activity, code)
         modelAction.visibility = if (downloading || file?.isFile != true) View.VISIBLE else View.GONE
