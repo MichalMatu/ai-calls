@@ -15,4 +15,8 @@ Branch `feature/s8-no-shizuku`, odrębny APK `pl.michalmatu.aicallbridge.s8lab`,
 
 ## Następny sprint — S8 bez Shizuku
 
-Rozbudować lokalną ścieżkę głosową do 4–6 tur, dodać wygodny ręczny flow w UI; później autoryzowany SIP INVITE/SDP/SRTP. Brak prawdziwej rozmowy VoIP/GSM i SRTP. Realny Call tylko za zgodą na numer/koszt. Bez PII/audio w Git.
+Rozbudować lokalną ścieżkę głosową do 4–6 tur, dodać ręczny flow w UI; później SIP INVITE/SDP/SRTP.
+
+## Otwarte
+
+Brak prawdziwej rozmowy VoIP/GSM i SRTP. Realny Call tylko po zgodzie na numer/koszt. Bez PII/audio w Git.
