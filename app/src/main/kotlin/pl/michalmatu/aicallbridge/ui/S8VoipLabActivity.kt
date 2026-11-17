@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
@@ -13,6 +14,8 @@ import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.LocalSpeechTextPipelineProbe
 import pl.michalmatu.aicallbridge.session.S8VoipSixTurnLab
+import pl.michalmatu.aicallbridge.session.S8LabModelReadiness
+import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 
 /**
  * Visible, manually triggered S8 no-Shizuku demo. App-owned synthetic RTP only:
@@ -28,6 +31,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var runToken: Long = 0
     private lateinit var status: TextView
     private lateinit var details: TextView
+    private lateinit var modelStatus: TextView
     private lateinit var startButton: Button
     private lateinit var speechButton: Button
     private lateinit var stopButton: Button
@@ -66,8 +70,32 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         card.addView(startButton, UiDesign.spaceAfter(this))
         card.addView(speechButton, UiDesign.spaceAfter(this))
         card.addView(stopButton)
-        content.addView(card)
+        content.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_CARD))
+        val readiness = UiDesign.card(this)
+        modelStatus = UiDesign.caption(this, getString(R.string.s8_lab_model_not_checked)).apply {
+            tag = "s8-lab-model-readiness"
+        }
+        readiness.addView(modelStatus, UiDesign.spaceAfter(this))
+        readiness.addView(UiDesign.action(
+            this, getString(R.string.s8_lab_manage_model)
+        ) {
+            startActivity(Intent(this, LanguageModelActivity::class.java))
+        }.apply { tag = "s8-lab-model-manage" })
+        content.addView(readiness)
         setContentView(ScrollView(this).apply { addView(content) })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::modelStatus.isInitialized) {
+            modelStatus.text = getString(when (S8LabModelReadiness.inspect(this)) {
+                S8LabModelReadiness.State.PROFILE_INVALID -> R.string.s8_lab_model_invalid_profile
+                S8LabModelReadiness.State.MISSING -> R.string.s8_lab_model_missing
+                S8LabModelReadiness.State.INVALID -> R.string.s8_lab_model_invalid
+                S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE ->
+                    R.string.s8_lab_model_file_present
+            })
+        }
     }
 
     private fun beginSyntheticSession() {
