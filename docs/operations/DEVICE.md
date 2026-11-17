@@ -1,5 +1,5 @@
-# S22 — zasady testów fizycznych
+# S22 — testy fizyczne
 
-Użytkownik potwierdza działanie aplikacji z GSM. **Najpierw testuj istniejący tor Samsung/Shizuku**, nie wymieniaj go na VoIP. Sprawdź model S22+, SIM, rolę dialera, grant, RX/TX i IDLE; odróżniaj testy syntetyczne od rozmów rzeczywistych.
+Użytkownik potwierdza działający GSM. Najpierw zachowaj i sprawdź Samsung/Shizuku RX/TX: S22+, SIM, rolę dialera, grant i IDLE. Syntetyczny test nie dowodzi rozmowy GSM.
 
-Rzeczywisty Call i instalacja wyłącznie za zgodą, z weryfikacją APK oraz rollbackiem. Bez AndroidTest i `adb uninstall` na prywatnym S22, bez PII/WAV w receipts. Aktualne zadania: [PROJECT](../PROJECT.md).
+Rzeczywisty Call i instalacja po zgodzie, z SHA APK/rollbackiem. Bez AndroidTest i `adb uninstall` na prywatnym S22, bez PII/WAV w raportach. [Jedyny plan](../PROJECT.md).
