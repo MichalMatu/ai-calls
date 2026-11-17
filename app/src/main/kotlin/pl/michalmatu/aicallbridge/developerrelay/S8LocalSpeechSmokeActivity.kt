@@ -86,7 +86,7 @@ class S8LocalSpeechSmokeActivity : Activity() {
         super.onStop()
     }
 
-    private companion object {
+    companion object {
         const val REPORT_FILE = "s8-local-speech-report.txt"
     }
 }
