@@ -878,4 +878,10 @@
     <string name="s8_voip_speech_fail">FAIL — lokalne STT lub TTS nie jest gotowe.</string>
     <string name="s8_voip_speech_success_detail">Syntetyczny głos rozpoznany, odpowiedź zatwierdzona i wygenerowana w PCM16. To nie jest test LLM ani SIP.</string>
     <string name="s8_voip_speech_failure_detail">Sprawdź zainstalowany offline pakiet rozpoznawania języka polskiego i głos TTS w ustawieniach systemu. Nie wykonano połączenia.</string>
+    <string name="s8_lab_model_not_checked">Sprawdzanie modelu lokalnego S8…</string>
+    <string name="s8_lab_model_invalid_profile">Profil modelu LiteRT jest nieprawidłowy. Skonfiguruj model w S8 Lab.</string>
+    <string name="s8_lab_model_missing">Model LiteRT nie jest zainstalowany w osobnej aplikacji S8 Lab. Nie może korzystać z prywatnych plików stabilnej aplikacji.</string>
+    <string name="s8_lab_model_invalid">Plik modelu LiteRT jest niepoprawny lub nieczytelny w S8 Lab.</string>
+    <string name="s8_lab_model_file_present">Plik modelu LiteRT jest obecny. Uruchomienie i inferencja modelu nie zostały jeszcze potwierdzone.</string>
+    <string name="s8_lab_manage_model">Otwórz modele S8 Lab</string>
 </resources>
