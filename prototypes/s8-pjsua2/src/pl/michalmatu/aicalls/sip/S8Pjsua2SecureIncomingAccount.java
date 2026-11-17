@@ -10,6 +10,7 @@ import org.pjsip.pjsua2.AudioMedia;
 import org.pjsip.pjsua2.Call;
 import org.pjsip.pjsua2.CallInfo;
 import org.pjsip.pjsua2.CallOpParam;
+import org.pjsip.pjsua2.Endpoint;
 import org.pjsip.pjsua2.OnCallStateParam;
 import org.pjsip.pjsua2.OnCallMediaStateParam;
 import org.pjsip.pjsua2.OnIncomingCallParam;
@@ -17,6 +18,7 @@ import org.pjsip.pjsua2.TlsConfig;
 import org.pjsip.pjsua2.TransportConfig;
 import org.pjsip.pjsua2.pjmedia_srtp_use;
 import org.pjsip.pjsua2.pjsip_inv_state;
+import org.pjsip.pjsua2.pjsip_transport_type_e;
 import org.pjsip.pjsua2.pjsip_status_code;
 
 /**
@@ -39,13 +41,17 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
     }
 
     private final Listener listener;
+    private final S8Pjsua2TlsAudit trustedTls;
     private final Object lock = new Object();
     private final List<Incoming> rejected = new ArrayList<>();
     private final AtomicBoolean closed = new AtomicBoolean();
     private Incoming current;
 
-    public S8Pjsua2SecureIncomingAccount(Listener listener) {
+    public S8Pjsua2SecureIncomingAccount(
+        Listener listener, S8Pjsua2TlsAudit trustedTls
+    ) {
         this.listener = Objects.requireNonNull(listener, "listener");
+        this.trustedTls = Objects.requireNonNull(trustedTls, "trusted TLS registry");
     }
 
     /**
@@ -95,8 +101,19 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
     public int activeNativeCallId(Object exactIdentity) {
         synchronized (lock) {
             if (closed.get() || current == null ||
-                current.identity != exactIdentity) return -1;
+                current.identity != exactIdentity ||
+                !trustedTls.stillVerified(current.tlsTransportHandle)) return -1;
             return current.getId();
+        }
+    }
+
+    /** TLS handle is bound to the exact INVITE and revoked on disconnect. */
+    public long trustedTransportHandle(Object exactIdentity) {
+        synchronized (lock) {
+            if (closed.get() || current == null ||
+                current.identity != exactIdentity ||
+                !trustedTls.stillVerified(current.tlsTransportHandle)) return 0L;
+            return current.tlsTransportHandle;
         }
     }
 
@@ -106,7 +123,8 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
         final Incoming call;
         synchronized (lock) {
             if (closed.get() || current == null || mediaIndex < 0 ||
-                mediaIndex > 15 || current.identity != exactIdentity) {
+                mediaIndex > 15 || current.identity != exactIdentity ||
+                !trustedTls.stillVerified(current.tlsTransportHandle)) {
                 throw new SecurityException("s8_native_call_identity_required");
             }
             call = current;
@@ -126,11 +144,31 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
             throw new SecurityException("s8_sip_account_policy_downgraded");
         }
         if (closed.get()) throw new IllegalStateException("s8_sip_closed");
+        // Transport ID must actually resolve to TLS, not merely be positive.
+        final int actualType = Endpoint.instance().transportGetInfo(
+            config.getSipConfig().getTransportId()).getType();
+        if (actualType != pjsip_transport_type_e.PJSIP_TRANSPORT_TLS &&
+            actualType != pjsip_transport_type_e.PJSIP_TRANSPORT_TLS6)
+            throw new SecurityException("s8_non_tls_transport_id");
         create(config, false);
     }
 
     @Override public void onIncomingCall(OnIncomingCallParam event) {
-        final Incoming incoming = new Incoming(event.getCallId());
+        // SipRxData.pjRxData is valid ONLY inside this synchronous callback.
+        // Check it before sending Ringing or notifying the UI.
+        final long tlsHandle = trustedTls.verifiedTransportForIncoming(event.getRdata());
+        final Incoming incoming = new Incoming(event.getCallId(), tlsHandle);
+        if (tlsHandle == 0L) {
+            synchronized (lock) { rejected.add(incoming); }
+            try {
+                CallOpParam denied = new CallOpParam();
+                denied.setStatusCode(pjsip_status_code.PJSIP_SC_FORBIDDEN);
+                incoming.answer(denied);
+            } catch (java.lang.Exception error) {
+                listener.onNativeError("s8_native_untrusted_invite_reject_failed");
+            }
+            return;
+        }
         final boolean accepted;
         synchronized (lock) {
             accepted = !closed.get() && current == null;
@@ -164,7 +202,8 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
         synchronized (lock) {
             incoming = current;
             if (closed.get() || incoming == null ||
-                incoming.identity != exactIdentity || incoming.answered) return false;
+                incoming.identity != exactIdentity || incoming.answered ||
+                !trustedTls.stillVerified(incoming.tlsTransportHandle)) return false;
             incoming.answered = true;
         }
         try {
@@ -225,14 +264,19 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
 
     private final class Incoming extends Call {
         final Object identity = new Object();
+        final long tlsTransportHandle;
         boolean answered;
 
-        Incoming(int nativeCallId) { super(S8Pjsua2SecureIncomingAccount.this, nativeCallId); }
+        Incoming(int nativeCallId, long tlsTransportHandle) {
+            super(S8Pjsua2SecureIncomingAccount.this, nativeCallId);
+            this.tlsTransportHandle = tlsTransportHandle;
+        }
 
         @Override public void onCallMediaState(OnCallMediaStateParam ignored) {
             final boolean owned;
             synchronized (lock) {
-                owned = !closed.get() && current == this;
+                owned = !closed.get() && current == this &&
+                    trustedTls.stillVerified(tlsTransportHandle);
             }
             if (owned) listener.onMediaStateChanged(identity);
         }
