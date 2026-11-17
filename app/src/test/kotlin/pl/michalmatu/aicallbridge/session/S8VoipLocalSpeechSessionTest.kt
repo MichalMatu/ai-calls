@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.session
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.PipedInputStream
@@ -49,6 +50,66 @@ class S8VoipLocalSpeechSessionTest {
         assertTrue(events.indexOf("lease-closed") < events.indexOf("speech-cancel"))
         bridge.close()
         assertEquals(1, endpoint.closes.get())
+    }
+
+    @Test fun stopWhileModelResponseIsPendingRejectsLateApprovalAndPcm() {
+        val events = CopyOnWriteArrayList<String>()
+        val endpoint = FakeEndpoint(ByteArrayInputStream(twoUtterances()), events)
+        val owner = coordinator(endpoint)
+        val generation = owner.start(16_000)
+        val speech = FakeSpeech(events, holdResponse = true)
+        val processing = CountDownLatch(1)
+        val bridge = S8VoipLocalSpeechSession(
+            owner, generation, speech, java.util.concurrent.Executor { it.run() },
+            maxTurns = 2,
+            observer = {
+                if (it.phase == S8VoipLocalSpeechSession.Phase.PROCESSING) processing.countDown()
+            },
+        )
+        bridge.start()
+        assertTrue("must reach model processing", processing.await(4, TimeUnit.SECONDS))
+        val beforeStop = System.nanoTime()
+        bridge.close()
+        val stopMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beforeStop)
+        assertTrue("STOP must not wait for model", stopMs < 500)
+        speech.lastListener?.onApproved()
+        speech.lastListener?.onOutputPcm16(ByteArray(640))
+        assertEquals(S8VoipLocalSpeechSession.Phase.STOPPED, bridge.snapshot().phase)
+        assertEquals(0, bridge.snapshot().outgoingFrames)
+        assertEquals(0, endpoint.bytesSent.size())
+        assertEquals(CallMediaSessionState.IDLE, owner.snapshot().state())
+    }
+
+    @Test fun stopWhileTtsFramesAreBlockedClosesMediaWithoutWaitingForTx() {
+        val events = CopyOnWriteArrayList<String>()
+        val sendBlocked = CountDownLatch(1)
+        val allowSend = CountDownLatch(1)
+        val endpoint = FakeEndpoint(
+            ByteArrayInputStream(twoUtterances()), events,
+            txRelease = allowSend, txStarted = sendBlocked,
+        )
+        val owner = coordinator(endpoint)
+        val generation = owner.start(16_000)
+        val bridge = S8VoipLocalSpeechSession(
+            owner, generation, FakeSpeech(events),
+            java.util.concurrent.Executor { it.run() }, maxTurns = 2,
+        )
+        bridge.start()
+        try {
+            assertTrue("TX must enter a blocking write", sendBlocked.await(4, TimeUnit.SECONDS))
+            assertEquals(S8VoipLocalSpeechSession.Phase.SPEAKING, bridge.snapshot().phase)
+            val beforeStop = System.nanoTime()
+            bridge.close()
+            val stopMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beforeStop)
+            assertTrue("STOP must release media before TX", stopMs < 500)
+            assertEquals(S8VoipLocalSpeechSession.Phase.STOPPED, bridge.snapshot().phase)
+            assertEquals(0, endpoint.bytesSent.size())
+            assertEquals(CallMediaSessionState.IDLE, owner.snapshot().state())
+            assertEquals(1, endpoint.closes.get())
+        } finally {
+            allowSend.countDown()
+            bridge.close()
+        }
     }
 
     @Test fun partialFinalTtsPcmIsZeroPaddedAfterReusableFrame() {
@@ -211,14 +272,29 @@ class S8VoipLocalSpeechSessionTest {
     private class FakeEndpoint(
         private val input: InputStream,
         private val events: CopyOnWriteArrayList<String>,
+        private val txRelease: CountDownLatch? = null,
+        private val txStarted: CountDownLatch? = null,
     ) : CallMediaEndpointLease {
         val bytesSent = ByteArrayOutputStream()
         val closes = AtomicInteger()
         override fun downlink(): InputStream = input
-        override fun uplink(): OutputStream = bytesSent
+        override fun uplink(): OutputStream {
+            if (txRelease == null) return bytesSent
+            return object : OutputStream() {
+                override fun write(value: Int) = write(byteArrayOf(value.toByte()), 0, 1)
+                override fun write(src: ByteArray, offset: Int, length: Int) {
+                    txStarted?.countDown()
+                    if (!txRelease.await(3, TimeUnit.SECONDS) || closes.get() != 0) {
+                        throw IOException("test_media_closed")
+                    }
+                    bytesSent.write(src, offset, length)
+                }
+            }
+        }
         override fun close() {
             if (closes.incrementAndGet() == 1) {
                 events += "lease-closed"
+                txRelease?.countDown()
                 input.close()
             }
         }
@@ -228,6 +304,7 @@ class S8VoipLocalSpeechSessionTest {
         private val events: CopyOnWriteArrayList<String>,
         private val emitApproval: Boolean = true,
         private val pcmBytes: Int = 1280,
+        private val holdResponse: Boolean = false,
     ) : S8VoipLocalSpeechSession.SpeechTurn {
         val starts = AtomicInteger()
         val finishes = AtomicInteger()
@@ -245,6 +322,7 @@ class S8VoipLocalSpeechSessionTest {
             finishes.incrementAndGet()
             val listener = checkNotNull(lastListener)
             listener.onTranscript()
+            if (holdResponse) return
             if (emitApproval) listener.onApproved()
             val pcm16 = ByteArray(pcmBytes) { (if (it % 2 == 0) 0x40 else 0x05).toByte() }
             listener.onOutputPcm16(pcm16)
