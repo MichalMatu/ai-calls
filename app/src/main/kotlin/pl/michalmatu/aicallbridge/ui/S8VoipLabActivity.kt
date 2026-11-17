@@ -234,11 +234,10 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         } catch (_: RuntimeException) {
             nativeProbeWaiting = false
             startButton.isEnabled = true
-        refreshNativeButtons()
+            refreshNativeButtons()
             speechButton.isEnabled = true
             modelButton.isEnabled = true
             status.text = getString(R.string.s8_voip_native_failed)
-            refreshNativeButtons()
         }
     }
 
@@ -275,7 +274,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
                 lab = null
                 startButton.isEnabled = true
-        refreshNativeButtons()
+                refreshNativeButtons()
                 speechButton.isEnabled = true
                 modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                     S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
@@ -336,7 +335,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 speechProbe?.close()
                 speechProbe = null
                 startButton.isEnabled = true
-        refreshNativeButtons()
+                refreshNativeButtons()
                 speechButton.isEnabled = true
                 modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                     S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
@@ -352,7 +351,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
         } catch (_: Throwable) {
             startButton.isEnabled = true
-        refreshNativeButtons()
+            refreshNativeButtons()
             speechButton.isEnabled = true
             modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                 S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
