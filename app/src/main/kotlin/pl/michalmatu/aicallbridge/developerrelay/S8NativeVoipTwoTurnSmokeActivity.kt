@@ -10,6 +10,11 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.telecom.TelecomManager
+import android.widget.ScrollView
+import android.widget.TextView
+import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.ui.UiDesign
+import pl.michalmatu.aicallbridge.ui.UiActionTone
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -61,6 +66,7 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
     private var maxJavaHeapBytes = 0L
     private var maxNativeHeapBytes = 0L
     private var source: LocalTtsSpeechOutput? = null
+    private var progressView: TextView? = null
     private var pipeline: LocalSpeechTextPipeline? = null
     private var peer: DatagramSocket? = null
     private var port: AppOwnedLoopbackRtpMediaPort? = null
@@ -78,6 +84,7 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        buildLocalVoipUi()
         turnLimit = intent?.getIntExtra("turn_limit", 2) ?: 2
         lossEveryNPackets = intent?.getIntExtra("loss_every_n_packets", 0) ?: 0
         if (turnLimit !in 2..MAX_TURNS ||
@@ -101,6 +108,31 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         handler.postDelayed(timeout, TIMEOUT_MS)
         source = LocalTtsSpeechOutput(applicationContext)
         synthesizeInput(0)
+    }
+
+    private fun buildLocalVoipUi() {
+        val body = UiDesign.content(this)
+        body.addView(
+            UiDesign.heading(this, getString(R.string.s8_voip_native_title)),
+            UiDesign.spaceAfter(this),
+        )
+        body.addView(
+            UiDesign.caption(this, getString(R.string.s8_voip_native_caption)),
+            UiDesign.spaceAfter(this, UiDesign.GAP_CARD),
+        )
+        val card = UiDesign.card(this)
+        progressView = UiDesign.status(
+            this, getString(R.string.s8_voip_native_running),
+        ).apply { tag = "s8-native-voip-status" }
+        card.addView(progressView, UiDesign.spaceAfter(this))
+        card.addView(
+            UiDesign.action(
+                this, getString(R.string.s8_voip_lab_stop),
+                UiActionTone.REVOCATION,
+            ) { complete("stopped") }.apply { tag = "s8-native-voip-stop" },
+        )
+        body.addView(card)
+        setContentView(ScrollView(this).apply { addView(body) })
     }
 
     private fun phoneIdleAndAuthorized(): Boolean = runCatching {
@@ -197,6 +229,11 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
                     handler.post {
                         if (stopped.get()) return@post
                         finalSnapshot = snapshot
+                        progressView?.text = getString(
+                            R.string.s8_voip_native_progress,
+                            snapshot.turn, turnLimit,
+                            snapshot.incomingFrames, snapshot.outgoingFrames,
+                        )
                         sampleMemory()
                         if (snapshot.phase == S8VoipLocalSpeechSession.Phase.SPEAKING &&
                             snapshot.turn in 1..turnLimit &&
