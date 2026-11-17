@@ -36,9 +36,24 @@ public final class S8Pjsua2PcmPort extends AudioMediaPort implements AutoCloseab
     private final AtomicInteger rxDropped = new AtomicInteger();
     private final AtomicInteger txDropped = new AtomicInteger();
 
-    public S8Pjsua2PcmPort(BooleanSupplier authenticatedNow) {
+    private S8Pjsua2PcmPort(BooleanSupplier authenticatedNow) {
         this.authenticatedNow =
             Objects.requireNonNull(authenticatedNow, "authenticatedNow");
+    }
+
+    /**
+     * Binds all audio frame authorization to the exact active native Call ID.
+     * No public always-true predicate may bypass the live JNI SRTP check.
+     */
+    public static S8Pjsua2PcmPort forVerifiedNativeCall(
+        int callId, int mediaIndex, BooleanSupplier verifiedTlsNow
+    ) {
+        if (callId < 0 || mediaIndex < 0 || mediaIndex > 15)
+            throw new IllegalArgumentException("s8_invalid_native_audio_identity");
+        Objects.requireNonNull(verifiedTlsNow, "verifiedTlsNow");
+        return new S8Pjsua2PcmPort(() ->
+            S8Pjsua2SrtpAudit.isActive(callId, mediaIndex, verifiedTlsNow)
+        );
     }
 
     /** Call on native media owner thread after endpoint startup. */
