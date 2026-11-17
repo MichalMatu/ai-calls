@@ -1,7 +1,7 @@
 # Mac Local Agent — ChatGPT
 
-Host `macbook-michal`, instalacja `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, checkout `/Users/michal/agent-workspace/repos/ai-calls/work`.
+`macbook-michal`, ID `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`, checkout `/Users/michal/agent-workspace/repos/ai-calls/work`.
 
-Zadania przez GitHub Connector do `MichalMatu/local-agent`, gałąź `agent-control`, ścieżka `.agent/hosts/macbook-michal/supervisor/<installation-id>/tasks/<id>.json`; wynik w `task-results/<id>.json`.
+GitHub Connector: `MichalMatu/local-agent` / `agent-control`, `.agent/hosts/macbook-michal/supervisor/<ID>/tasks/<task>.json`; rezultaty w `task-results/`.
 
-Clean HEAD/SHA i brak kolizji; 404/idle ≠ PASS, wymagany receipt. Nie wykonuj Call/instalacji na S22 bez zgody. Jedyny [plan GSM → SIP](../PROJECT.md).
+Czysty HEAD/SHA; 404/idle ≠ PASS — wymagany receipt. S22 Call/instalacja tylko po zgodzie. [Plan GSM → SIP](../PROJECT.md).
