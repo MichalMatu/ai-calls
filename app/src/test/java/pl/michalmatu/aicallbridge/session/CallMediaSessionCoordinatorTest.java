@@ -130,6 +130,39 @@ public final class CallMediaSessionCoordinatorTest {
     }
 
     @Test
+    public void staleGenerationTakeOverDoesNotCloseNewCall() {
+        FakeBackend backend = new FakeBackend();
+        CallMediaSessionCoordinator coordinator =
+            newCoordinator(backend, new ManualHeartbeatScheduler());
+        long first = coordinator.start(16_000);
+        assertTrue(coordinator.takeOverIfGeneration(first));
+        long second = coordinator.start(16_000);
+
+        assertFalse("stale session must not take the new call",
+            coordinator.takeOverIfGeneration(first));
+        assertEquals(second, coordinator.snapshot().generation());
+        assertEquals(CallMediaSessionState.ACTIVE, coordinator.snapshot().state());
+        assertTrue(backend.endpoint.open);
+        assertEquals(1, backend.abortCalls);
+
+        assertTrue(coordinator.takeOverIfGeneration(second));
+        assertEquals(2, backend.abortCalls);
+        assertEquals(CallMediaSessionState.IDLE, coordinator.snapshot().state());
+    }
+
+    @Test
+    public void generationBoundStopIgnoresIdleAndIsIdempotent() {
+        FakeBackend backend = new FakeBackend();
+        CallMediaSessionCoordinator coordinator =
+            newCoordinator(backend, new ManualHeartbeatScheduler());
+        long generation = coordinator.start(16_000);
+        assertTrue(coordinator.takeOverIfGeneration(generation));
+        assertFalse(coordinator.takeOverIfGeneration(generation));
+        assertEquals(1, backend.abortCalls);
+        assertEquals(1, backend.unbindCalls);
+    }
+
+    @Test
     public void staleDisconnectCannotFailNewGeneration() {
         FakeBackend backend = new FakeBackend();
         ManualHeartbeatScheduler scheduler = new ManualHeartbeatScheduler();
