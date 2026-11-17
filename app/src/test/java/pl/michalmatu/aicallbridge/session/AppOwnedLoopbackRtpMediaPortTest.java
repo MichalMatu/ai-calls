@@ -144,10 +144,45 @@ public final class AppOwnedLoopbackRtpMediaPortTest {
             assertEquals(320, lease.downlink().read(actual, 0, 320));
             assertArrayEquals(silence, actual);
             assertEquals(320, lease.downlink().read(actual, 0, 320));
+            assertArrayEquals("missing frame 11 should be silence, not sped-up speech",
+                silence, actual);
+            assertEquals(320, lease.downlink().read(actual, 0, 320));
             assertFalse("frame 12 should contain live speech",
                 java.util.Arrays.equals(silence, actual));
             assertEquals(320, lease.downlink().read(actual, 0, 320));
             assertArrayEquals("late packet 11 must be ignored", silence, actual);
+        }
+    }
+
+    @Test public void upToTwoMissingFramesAreSilencedButLargeGapIsNotExpanded()
+        throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            int local = port.boundLocalPort();
+            byte[] silence = new byte[320];
+            byte[] voice = new byte[320];
+            for (int index = 0; index < 160; index++) {
+                voice[index * 2] = 0x3f;
+                voice[index * 2 + 1] = 0x11;
+            }
+            send(remote, local, RtpPcmuCodec.packetize(silence, 0, 20, 3200, RX_SSRC));
+            send(remote, local, RtpPcmuCodec.packetize(voice, 0, 23, 3680, RX_SSRC));
+            byte[] pcm = new byte[320];
+            assertEquals(320, lease.downlink().read(pcm));
+            assertArrayEquals(silence, pcm);
+            assertEquals(320, lease.downlink().read(pcm));
+            assertArrayEquals("missing 21", silence, pcm);
+            assertEquals(320, lease.downlink().read(pcm));
+            assertArrayEquals("missing 22", silence, pcm);
+            assertEquals(320, lease.downlink().read(pcm));
+            assertFalse("live frame 23", java.util.Arrays.equals(silence, pcm));
+            // Never materialize hundreds of synthetic frames after a long outage.
+            send(remote, local, RtpPcmuCodec.packetize(voice, 0, 1000, 160000, RX_SSRC));
+            assertEquals(320, lease.downlink().read(pcm));
+            assertFalse("large jump resumes with one live frame",
+                java.util.Arrays.equals(silence, pcm));
         }
     }
 
