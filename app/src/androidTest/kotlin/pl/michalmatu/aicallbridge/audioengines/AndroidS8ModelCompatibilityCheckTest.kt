@@ -19,7 +19,6 @@ import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.Gemma4ModelCatalog
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
-import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 
 /**
  * Samsung-only real private LiteRT model check. Never starts a phone call,
@@ -45,6 +44,8 @@ class AndroidS8ModelCompatibilityCheckTest {
         assumeTrue(AudioEngineProfileStore(context).load()?.dialogue ==
             DialogueModelId.GEMMA_4_E2B)
 
+        val file = Gemma4LiteRtTextBackendFactory.modelFile(context, DialogueModelId.GEMMA_4_E2B)
+        val before = ModelCompatibilityStore(context).verified(file, false)
         ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
@@ -57,9 +58,8 @@ class AndroidS8ModelCompatibilityCheckTest {
                     message.text.toString())
             }
         }
-        // No native compatibility stamp is claimed without a successful check.
-        val file = Gemma4LiteRtTextBackendFactory.modelFile(context, DialogueModelId.GEMMA_4_E2B)
-        assertFalse(ModelCompatibilityStore(context).verified(file, false))
+        // Blocking on missing permissions must never create or invalidate proof.
+        assertEquals(before, ModelCompatibilityStore(context).verified(file, false))
     }
 
     @Test fun actualLocalE2bCompatibilityPassPersistsAndAppearsInUi() {
