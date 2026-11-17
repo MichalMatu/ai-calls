@@ -28,19 +28,17 @@ public final class S8Pjsua2TlsAudit implements AutoCloseable {
         final long handle = event.getHnd();
         if (handle == 0L) return;
         verifiedHandles.remove(handle); // Includes DISCONNECTED / SHUTDOWN.
-        if (event.getState() != pjsip_transport_state.PJSIP_TP_STATE_CONNECTED ||
-            event.getLastError() != 0 || !isTlsType(event.getType())) return;
-
         final TlsInfo info = event.getTlsInfo();
-        if (info == null || !info.getEstablished() || info.getVerifyStatus() != 0L)
-            return;
-        final SslCertInfo remote = info.getRemoteCertInfo();
-        if (remote == null) return;
-        final String subject = remote.getSubjectCn();
-        if (subject == null || subject.isBlank()) {
-            // Never consider missing peer identity as a successful verification.
-            return;
-        }
+        final SslCertInfo remote = info == null ? null : info.getRemoteCertInfo();
+        final String subject = remote == null ? null : remote.getSubjectCn();
+        if (!S8Pjsua2TlsEvidencePolicy.trusted(
+            isTlsType(event.getType()),
+            event.getState() == pjsip_transport_state.PJSIP_TP_STATE_CONNECTED,
+            event.getLastError(),
+            info != null && info.getEstablished(),
+            info == null ? -1L : info.getVerifyStatus(),
+            subject != null && !subject.isBlank()
+        )) return;
         if (!closed) verifiedHandles.add(handle);
     }
 
