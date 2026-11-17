@@ -142,8 +142,8 @@ public final class S8Pjsua2NativeCallBridge {
      */
     public boolean attachAuthenticatedMedia() {
         if (!liveSrtp()) return false;
-        final S8Pjsua2PcmPort candidate;
-        final AudioMedia peer;
+        S8Pjsua2PcmPort candidate = null;
+        AudioMedia peer = null;
         try {
             candidate = S8Pjsua2PcmPort.forVerifiedNativeCall(
                 account.activeNativeCallId(identity), mediaIndex, tls, trustedHandle
@@ -152,6 +152,10 @@ public final class S8Pjsua2NativeCallBridge {
             peer = account.activeAudioMedia(identity, mediaIndex);
             candidate.connectAuthenticated(peer);
         } catch (Exception | LinkageError failed) {
+            if (candidate != null) {
+                if (peer != null) candidate.disconnect(peer);
+                else candidate.close();
+            }
             return false;
         }
         synchronized (lock) {
