@@ -9,6 +9,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CallDiagnosticEvidenceTest {
+    @Test fun onlyFixedPrivateDiagnosticNamesCanBeWritten() {
+        assertTrue(PrivateDiagnosticReportStore.isAllowedName(
+            S8RtpLoopbackSmokeActivity.REPORT_FILE
+        ))
+        assertTrue(PrivateDiagnosticReportStore.isAllowedName(
+            S8LocalSpeechSmokeActivity.REPORT_FILE
+        ))
+        assertFalse(PrivateDiagnosticReportStore.isAllowedName("../private.txt"))
+        assertFalse(PrivateDiagnosticReportStore.isAllowedName("/sdcard/report.txt"))
+        assertFalse(PrivateDiagnosticReportStore.isAllowedName("s8-audio.wav"))
+        assertFalse(PrivateDiagnosticReportStore.isAllowedName("transcript.txt"))
+    }
+
     @Test fun rawErrorOrModelProseCannotBecomeTechnicalCode() {
         assertEquals("recognition_error_10", CallDiagnosticEvidence.safeCode("recognition_error_10"))
         assertEquals("redacted", CallDiagnosticEvidence.safeCode("Numer telefonu 510 100 100"))
