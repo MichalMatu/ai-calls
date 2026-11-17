@@ -432,25 +432,56 @@ internal class ModelVoiceSettings(
 
     private fun verify(profile: AudioEngineProfile, audio: Boolean, force: Boolean = false) {
         if (checking) return
-        if (audio && !voicesReady) {
-            if (force) checkResult = reason(activity, "tts_offline_voice_probe_required")
-            return
-        }
         val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, profile) }.getOrNull() ?: return
         val stamp = ModelCompatibilityStamp.of(file, profile, audio) ?: return
         val attempt = "$stamp:$audio:${profile.customModelId}"
         if (!force && lastAttempt == attempt) return
-        if (!canProbe()) {
-            if (force) checkResult = activity.getString(R.string.models_ui_not_idle)
+        if (audio && !voicesReady) {
+            if (force) {
+                lastAttempt = attempt
+                checkResult = reason(activity, "tts_offline_voice_probe_required")
+            }
             return
         }
-        lastAttempt = attempt; checking = true; checkResult = null
+        // A manual check must NEVER silently fall back to the neutral
+        // "Downloaded / compatibility unverified" state when it was blocked.
+        // S8 Lab intentionally does not inherit the stable dialer's permissions.
+        if (activity.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED) {
+            if (force) {
+                lastAttempt = attempt
+                checkResult = activity.getString(R.string.mv_compatibility_phone_permission)
+                // Grant alone never authorizes native inference: second tap required.
+                activity.requestPermissions(
+                    arrayOf(Manifest.permission.READ_PHONE_STATE), COMPAT_PHONE_STATE_REQUEST)
+            }
+            return
+        }
+        if (!canProbe()) {
+            if (force) {
+                lastAttempt = attempt
+                checkResult = activity.getString(R.string.mv_compatibility_blocked)
+            }
+            return
+        }
+        lastAttempt = attempt
+        checking = true
+        checkResult = null
         modelState.text = activity.getString(if (audio) R.string.mv_checking_audio else R.string.mv_checking_model)
-        probe.check(file, profile, audio) { error ->
+        try {
+            probe.check(file, profile, audio) { error ->
+                checking = false
+                checkResult = if (error != null) reason(activity, error)
+                    else activity.getString(if (audio) R.string.mv_audio_check_passed else R.string.mv_model_check_passed)
+                refresh(); changed()
+            }
+        } catch (_: Throwable) {
+            // An unavailable native library / provider must not leave the
+            // check permanently running with an unverified generic label.
+            probe.close()
             checking = false
-            checkResult = if (error != null) reason(activity, error)
-                else activity.getString(if (audio) R.string.mv_audio_check_passed else R.string.mv_model_check_passed)
-            refresh(); changed()
+            checkResult = reason(activity, "model_native_check_failed")
+            refresh()
         }
     }
 
@@ -504,7 +535,8 @@ internal class ModelVoiceSettings(
     fun pause() {
         active = false; previewWhenReady = false
         if (checking) {
-            lastAttempt = null
+            // Keep the stamp of the interrupted attempt so its explanatory
+            // state stays visible after the activity resumes. No PASS stored.
             checkResult = activity.getString(R.string.mv_check_interrupted)
         }
         probe.close(); checking = false; tts?.stop(); voiceDialog?.dismiss()
@@ -512,6 +544,8 @@ internal class ModelVoiceSettings(
     override fun close() { pause(); ++voiceGeneration; tts?.shutdown(); tts = null; voiceWorker.shutdownNow() }
 
     companion object {
+        const val COMPAT_PHONE_STATE_REQUEST = 8112
+
         fun reason(context: Context, code: String?): String = context.getString(when (code) {
             "dialogue_model_missing_or_invalid", "user_model_missing" -> R.string.mv_model_missing
             "model_compatibility_required" -> R.string.mv_compatibility_required
