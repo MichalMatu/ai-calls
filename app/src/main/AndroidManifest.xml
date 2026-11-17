@@ -150,6 +150,14 @@
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
 
+        <!-- Fully offline, app-owned synthetic PCM → Android STT → E2B → approval → TTS. -->
+        <activity
+            android:name=".developerrelay.S8NativeSpeechSmokeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
         <activity
             android:name=".campaign.AppointmentMvpActivity"
             android:windowSoftInputMode="adjustResize"
