@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 public final class S8SecureSipDialogGate implements AutoCloseable {
     public enum State { IDLE, RINGING, NEGOTIATING, ACTIVE, STOPPED, FAILED }
     public enum MediaSecurity { UNVERIFIED, TLS_AND_SRTP_AUTHENTICATED }
+    private enum RemoteTermination { NONE, BYE, CANCEL }
 
     /**
      * Adapter is implemented only by an audited SIP+SRTP stack, not by a caller
@@ -34,6 +35,8 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         void rejectInvite(Object callIdentity);
         void endDialog(Object callIdentity);
         void acknowledgeRemoteBye(Object callIdentity);
+        /** Only a native SIP transaction can send 200 to CANCEL and 487 to INVITE. */
+        void acknowledgeRemoteCancel(Object callIdentity);
         @Override void close();
     }
 
@@ -143,14 +146,22 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         synchronized (lock) {
             if (identity != exactIdentity || stopped.get()) return;
         }
-        finish(State.STOPPED, true);
+        finish(State.STOPPED, RemoteTermination.BYE);
+    }
+
+    /** CANCEL only terminates an unanswered INVITE; an established call uses BYE. */
+    public void onRemoteCancel(Object exactIdentity) {
+        synchronized (lock) {
+            if (identity != exactIdentity || state != State.RINGING || stopped.get()) return;
+        }
+        finish(State.STOPPED, RemoteTermination.CANCEL);
     }
 
     private void fail() { finish(State.FAILED); }
 
-    private void finish(State terminal) { finish(terminal, false); }
+    private void finish(State terminal) { finish(terminal, RemoteTermination.NONE); }
 
-    private void finish(State terminal, boolean remoteBye) {
+    private void finish(State terminal, RemoteTermination remoteTermination) {
         if (!stopped.compareAndSet(false, true)) return;
         final Snapshot result;
         final Object owned;
@@ -166,9 +177,13 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         publish(result);
         if (owned != null) {
             try {
-                if (previous == State.RINGING) signaling.rejectInvite(owned);
-                else if (previous == State.NEGOTIATING || previous == State.ACTIVE) {
-                    if (remoteBye) signaling.acknowledgeRemoteBye(owned);
+                if (previous == State.RINGING) {
+                    if (remoteTermination == RemoteTermination.CANCEL)
+                        signaling.acknowledgeRemoteCancel(owned);
+                    else signaling.rejectInvite(owned);
+                } else if (previous == State.NEGOTIATING || previous == State.ACTIVE) {
+                    if (remoteTermination == RemoteTermination.BYE)
+                        signaling.acknowledgeRemoteBye(owned);
                     else signaling.endDialog(owned);
                 }
             } catch (RuntimeException ignored) {}
