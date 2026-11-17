@@ -51,6 +51,29 @@ class S8VoipLocalSpeechSessionTest {
         assertEquals(1, endpoint.closes.get())
     }
 
+    @Test fun partialFinalTtsPcmIsZeroPaddedAfterReusableFrame() {
+        val events = CopyOnWriteArrayList<String>()
+        val endpoint = FakeEndpoint(ByteArrayInputStream(twoUtterances()), events)
+        val owner = coordinator(endpoint)
+        val generation = owner.start(16_000)
+        val speech = FakeSpeech(events, pcmBytes = 640 + 18)
+        val finished = CountDownLatch(1)
+        val session = S8VoipLocalSpeechSession(
+            owner, generation, speech, java.util.concurrent.Executor { it.run() },
+            maxTurns = 1,
+            observer = {
+                if (it.phase == S8VoipLocalSpeechSession.Phase.COMPLETE) finished.countDown()
+            },
+        )
+        session.start()
+        assertTrue(finished.await(4, TimeUnit.SECONDS))
+        val transmitted = endpoint.bytesSent.toByteArray()
+        assertEquals(2 * 640, transmitted.size)
+        assertTrue(transmitted.take(658).any { it != 0.toByte() })
+        assertTrue(transmitted.drop(658).all { it == 0.toByte() })
+        assertEquals(CallMediaSessionState.IDLE, owner.snapshot().state())
+    }
+
     @Test fun immediateStopUnblocksBlockedRxAndClosesLeaseBeforeSpeech() {
         val events = CopyOnWriteArrayList<String>()
         val feeder = PipedOutputStream()
@@ -204,6 +227,7 @@ class S8VoipLocalSpeechSessionTest {
     private class FakeSpeech(
         private val events: CopyOnWriteArrayList<String>,
         private val emitApproval: Boolean = true,
+        private val pcmBytes: Int = 1280,
     ) : S8VoipLocalSpeechSession.SpeechTurn {
         val starts = AtomicInteger()
         val finishes = AtomicInteger()
@@ -222,7 +246,7 @@ class S8VoipLocalSpeechSessionTest {
             val listener = checkNotNull(lastListener)
             listener.onTranscript()
             if (emitApproval) listener.onApproved()
-            val pcm16 = ByteArray(1280) { (if (it % 2 == 0) 0x40 else 0x05).toByte() }
+            val pcm16 = ByteArray(pcmBytes) { (if (it % 2 == 0) 0x40 else 0x05).toByte() }
             listener.onOutputPcm16(pcm16)
         }
         override fun cancel() {
