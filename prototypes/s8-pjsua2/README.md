@@ -85,8 +85,12 @@ contains only counters, booleans and coarse error codes.
 Before installing: verify S22+ ADB, phone IDLE, stable APK SHA; back up the
 current S8 APK; after the smoke always restore it and recheck both SHAs.
 The first physical attempt was blocked by ADB disconnection **before
-installation**; no device result may be called PASS until the offline
-report and rollback both pass.
+installation**. After reconnection, the isolated offline JNI smoke **PASS**
+on S22+: both libraries loaded, zero TLS handle and invalid SRTP Call ID
+rejected, Endpoint creation/destruction PASS. Before/after S8 APK SHA
+rollback PASS and stable app SHA PASS. Receipt:
+`aicalls-s8-s22-reconnected-jni-offline-rollback-20261117-v3`.
+No network, SIP transport, registration or actual call was performed.
 
 The optional local smoke does **not** authorize publication/distribution of
 PJSIP or real SIP traffic. Licensing and end-to-end SIP/SDP/SRTP remain open.
