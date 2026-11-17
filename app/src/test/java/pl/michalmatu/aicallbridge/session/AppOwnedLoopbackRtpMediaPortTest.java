@@ -120,6 +120,37 @@ public final class AppOwnedLoopbackRtpMediaPortTest {
         }
     }
 
+    @Test public void missingAndLateRtpFramesDoNotReplayOldSpeechOrBlockRx()
+        throws Exception {
+        Object identity = new Object();
+        try (DatagramSocket remote = peer();
+             AppOwnedLoopbackRtpMediaPort port = newPort(identity, remote)) {
+            CallMediaEndpointLease lease = port.open(identity, 1, 8000);
+            int local = port.boundLocalPort();
+            byte[] silence = new byte[320];
+            byte[] speech = new byte[320];
+            for (int i = 0; i < 160; i++) {
+                short sample = 6_000;
+                speech[i * 2] = (byte) sample;
+                speech[i * 2 + 1] = (byte) (sample >>> 8);
+            }
+            send(remote, local, RtpPcmuCodec.packetize(silence, 0, 10, 1600, RX_SSRC));
+            // Packet 11 is lost. The port must still accept the next frame.
+            send(remote, local, RtpPcmuCodec.packetize(speech, 0, 12, 1920, RX_SSRC));
+            // It arrives late and must never replay stale voice.
+            send(remote, local, RtpPcmuCodec.packetize(speech, 0, 11, 1760, RX_SSRC));
+            send(remote, local, RtpPcmuCodec.packetize(silence, 0, 13, 2080, RX_SSRC));
+            byte[] actual = new byte[320];
+            assertEquals(320, lease.downlink().read(actual, 0, 320));
+            assertArrayEquals(silence, actual);
+            assertEquals(320, lease.downlink().read(actual, 0, 320));
+            assertFalse("frame 12 should contain live speech",
+                java.util.Arrays.equals(silence, actual));
+            assertEquals(320, lease.downlink().read(actual, 0, 320));
+            assertArrayEquals("late packet 11 must be ignored", silence, actual);
+        }
+    }
+
     @Test public void stopInterruptsBlockedReadAndDropsPartialTx() throws Exception {
         Object identity = new Object();
         try (DatagramSocket remote = peer();
