@@ -32,6 +32,11 @@ class S8LabScreenOnDeviceTest {
                 val root = activity.findViewById<android.view.View>(android.R.id.content)
                 val start = root.findViewWithTag<Button>("s8-voip-lab-start")
                 val speech = root.findViewWithTag<Button>("s8-voip-lab-local-speech")
+                val modelStatus = root.findViewWithTag<TextView>("s8-lab-model-readiness")
+                val modelManage = root.findViewWithTag<Button>("s8-lab-model-manage")
+                assertTrue(modelManage.isEnabled)
+                assertTrue("model state shown without attempting inference",
+                    modelStatus.text.isNotBlank())
                 assertTrue(start.isEnabled)
                 assertTrue("manual Android speech check is never started implicitly", speech.isEnabled)
                 assertFalse(root.findViewWithTag<Button>("s8-voip-lab-stop").isEnabled)
