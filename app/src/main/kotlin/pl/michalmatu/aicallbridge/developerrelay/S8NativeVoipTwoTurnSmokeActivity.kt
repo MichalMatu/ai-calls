@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
+import android.os.Debug
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -50,7 +51,15 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
     private val peerPackets = AtomicInteger()
     private val peerSpeechPackets = AtomicInteger()
     private val loop = InetAddress.getByAddress(byteArrayOf(127, 0, 0, 1))
-    private val sourcePcm = arrayOfNulls<ByteArray>(TURNS)
+    private val sourcePcm = arrayOfNulls<ByteArray>(MAX_TURNS)
+    private var turnLimit = 2
+    private var lossEveryNPackets = 0
+    private val lostPeerPackets = AtomicInteger()
+    private val startAtMs = SystemClock.elapsedRealtime()
+    private val readyAtMs = LongArray(MAX_TURNS)
+    private val replyLatencyMs = LongArray(MAX_TURNS)
+    private var maxJavaHeapBytes = 0L
+    private var maxNativeHeapBytes = 0L
     private var source: LocalTtsSpeechOutput? = null
     private var pipeline: LocalSpeechTextPipeline? = null
     private var peer: DatagramSocket? = null
@@ -61,7 +70,7 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
     private var session: S8VoipLocalSpeechSession? = null
     private var feeder: Thread? = null
     private var receiver: Thread? = null
-    private var sentPackets = 0
+    private val sentPackets = AtomicInteger()
     private var deliveredTurn = 0
     private var activePort = -1
     private var finalSnapshot: S8VoipLocalSpeechSession.Snapshot? = null
@@ -69,6 +78,14 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        turnLimit = intent?.getIntExtra("turn_limit", 2) ?: 2
+        lossEveryNPackets = intent?.getIntExtra("loss_every_n_packets", 0) ?: 0
+        if (turnLimit !in 2..MAX_TURNS ||
+            (lossEveryNPackets != 0 && lossEveryNPackets !in 20..100)) {
+            complete("invalid_test_parameters")
+            return
+        }
+        sampleMemory()
         report("running")
         if (!phoneIdleAndAuthorized()) {
             complete("blocked_not_idle_or_permission")
@@ -112,7 +129,7 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
                         return
                     }
                     sourcePcm[index] = pcm
-                    if (index + 1 < TURNS) synthesizeInput(index + 1)
+                    if (index + 1 < turnLimit) synthesizeInput(index + 1)
                     else startLocalLoop()
                 }
                 override fun onError(reason: String) = complete("source_tts_failed")
@@ -175,11 +192,21 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
             val running = S8VoipLocalSpeechSession(
                 mediaOwner, generation, S8LocalSpeechTurnAdapter(localPipeline),
                 applicationContext.mainExecutor,
-                maxTurns = TURNS,
+                maxTurns = turnLimit,
                 observer = { snapshot ->
                     handler.post {
                         if (stopped.get()) return@post
                         finalSnapshot = snapshot
+                        sampleMemory()
+                        if (snapshot.phase == S8VoipLocalSpeechSession.Phase.SPEAKING &&
+                            snapshot.turn in 1..turnLimit &&
+                            replyLatencyMs[snapshot.turn - 1] == 0L) {
+                            val started = readyAtMs[snapshot.turn - 1]
+                            if (started != 0L) {
+                                replyLatencyMs[snapshot.turn - 1] =
+                                    SystemClock.elapsedRealtime() - started
+                            }
+                        }
                         if (snapshot.phase == S8VoipLocalSpeechSession.Phase.FAILED) {
                             complete("speech_pipeline_failed")
                         } else if (snapshot.phase == S8VoipLocalSpeechSession.Phase.COMPLETE) {
@@ -189,7 +216,13 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
                     }
                 },
                 onListeningReady = { turn ->
-                    handler.post { startPeerInput(turn) }
+                    handler.post {
+                        if (turn in 1..turnLimit) {
+                            readyAtMs[turn - 1] = SystemClock.elapsedRealtime()
+                            sampleMemory()
+                        }
+                        startPeerInput(turn)
+                    }
                 },
             )
             session = running
@@ -204,7 +237,7 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
     }
 
     private fun startPeerInput(turn: Int) {
-        if (stopped.get() || turn !in 1..TURNS || turn != deliveredTurn + 1 ||
+        if (stopped.get() || turn !in 1..turnLimit || turn != deliveredTurn + 1 ||
             !phoneIdleAndAuthorized()) {
             complete("peer_input_not_authorized")
             return
@@ -228,16 +261,23 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
                 val narrow = ByteArray(320)
                 var offset = 0
                 while (offset < bytes.size && !stopped.get()) {
-                    if (session?.snapshot()?.turn != turn) return
+                    val live = session?.snapshot() ?: return
+                    if (live.turn != turn ||
+                        live.phase != S8VoipLocalSpeechSession.Phase.LISTENING) return
                     val size = minOf(640, bytes.size - offset)
                     wide.fill(0)
                     System.arraycopy(bytes, offset, wide, 0, size)
                     RtpPcm16kAdapterMediaPort.reduce16kTo8k(wide, narrow)
-                    val seq = sentPackets++
-                    val packet = RtpPcmuCodec.packetize(
-                        narrow, 0, seq and 0xffff, seq.toLong() * 160L, PEER_SSRC,
-                    )
-                    peer?.send(DatagramPacket(packet, packet.size, loop, activePort))
+                    val seq = sentPackets.getAndIncrement()
+                    if (lossEveryNPackets > 0 &&
+                        (seq + 1) % lossEveryNPackets == 0) {
+                        lostPeerPackets.incrementAndGet()
+                    } else {
+                        val packet = RtpPcmuCodec.packetize(
+                            narrow, 0, seq and 0xffff, seq.toLong() * 160L, PEER_SSRC,
+                        )
+                        peer?.send(DatagramPacket(packet, packet.size, loop, activePort))
+                    }
                     offset += size
                     Thread.sleep(20L)
                 }
@@ -286,9 +326,9 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         val snapshot = finalSnapshot ?: session?.snapshot()
         val pass = outcome == "completed" &&
             snapshot?.phase == S8VoipLocalSpeechSession.Phase.COMPLETE &&
-            snapshot.turn == TURNS && snapshot.transcripts == TURNS &&
-            snapshot.approvals == TURNS && snapshot.incomingFrames > 0 &&
-            snapshot.outgoingFrames > 0 && deliveredTurn == TURNS &&
+            snapshot.turn == turnLimit && snapshot.transcripts == turnLimit &&
+            snapshot.approvals == turnLimit && snapshot.incomingFrames > 0 &&
+            snapshot.outgoingFrames > 0 && deliveredTurn == turnLimit &&
             peerPackets.get() > 0 && peerSpeechPackets.get() > 0
         feeder?.interrupt()
         session?.close() // Revokes RTP lease before any native model cleanup.
@@ -301,6 +341,7 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         source?.close()
         if (session == null) runCatching { pipeline?.close() }
         sourcePcm.forEach { it?.fill(0) }
+        sampleMemory()
         report(if (pass) "pass" else if (outcome == "completed") "e2e_incomplete" else outcome,
             snapshot)
         finish()
@@ -310,7 +351,15 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         state: String, snapshot: S8VoipLocalSpeechSession.Snapshot? = null,
     ) {
         PrivateDiagnosticReportStore.write(filesDir, REPORT_FILE, buildString {
-            appendLine("probe=s8_native_voip_two_turn")
+            appendLine("probe=s8_native_voip_multi_turn")
+            appendLine("requested_turns=$turnLimit")
+            appendLine("observed_duration_ms=${SystemClock.elapsedRealtime() - startAtMs}")
+            appendLine("max_java_heap_used_bytes=$maxJavaHeapBytes")
+            appendLine("max_native_heap_bytes=$maxNativeHeapBytes")
+            appendLine("worst_turn_response_ms=${replyLatencyMs.maxOrNull() ?: 0L}")
+            appendLine("measured_response_turns=${replyLatencyMs.count { it > 0L }}")
+            appendLine("synthetic_peer_packets_sent=${sentPackets.get() - lostPeerPackets.get()}")
+            appendLine("synthetic_peer_packets_lost=${lostPeerPackets.get()}")
             appendLine("transport=localhost_rtp_pcmu_8k")
             appendLine("backend=on_device_gemma_e2b")
             appendLine("stt_transcripts=${snapshot?.transcripts ?: 0}")
@@ -327,6 +376,14 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         })
     }
 
+    private fun sampleMemory() {
+        val runtime = Runtime.getRuntime()
+        maxJavaHeapBytes = maxOf(maxJavaHeapBytes,
+            runtime.totalMemory() - runtime.freeMemory())
+        maxNativeHeapBytes = maxOf(maxNativeHeapBytes,
+            Debug.getNativeHeapAllocatedSize())
+    }
+
     override fun onStop() {
         if (!stopped.get()) complete("stopped")
         super.onStop()
@@ -334,14 +391,18 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
 
     companion object {
         const val REPORT_FILE = "s8-native-voip-two-turn-report.txt"
-        private const val TURNS = 2
+        private const val MAX_TURNS = 6
         private const val PEER_SSRC = 0x14630AA1
         private const val APP_SSRC = 0x15430BB2
-        private const val TIMEOUT_MS = 240_000L
+        private const val TIMEOUT_MS = 480_000L
         private const val MAX_SOURCE_BYTES = 16_000 * 2 * 8
         private val INPUTS = arrayOf(
-            "To jest test lokalnego agenta tekstowego.",
+            "To jest pierwsza tura lokalnego agenta tekstowego.",
             "To jest druga tura lokalnego agenta tekstowego.",
+            "To jest trzecia tura lokalnego agenta tekstowego.",
+            "To jest czwarta tura lokalnego agenta tekstowego.",
+            "To jest piąta tura lokalnego agenta tekstowego.",
+            "To jest szósta tura lokalnego agenta tekstowego.",
         )
     }
 }
