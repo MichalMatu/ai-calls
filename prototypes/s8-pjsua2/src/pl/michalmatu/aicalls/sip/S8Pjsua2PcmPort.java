@@ -46,13 +46,18 @@ public final class S8Pjsua2PcmPort extends AudioMediaPort implements AutoCloseab
      * No public always-true predicate may bypass the live JNI SRTP check.
      */
     public static S8Pjsua2PcmPort forVerifiedNativeCall(
-        int callId, int mediaIndex, BooleanSupplier verifiedTlsNow
+        int callId, int mediaIndex, S8Pjsua2TlsAudit tlsAudit,
+        long trustedTransportHandle
     ) {
-        if (callId < 0 || mediaIndex < 0 || mediaIndex > 15)
+        if (callId < 0 || mediaIndex < 0 || mediaIndex > 15 ||
+            trustedTransportHandle == 0L)
             throw new IllegalArgumentException("s8_invalid_native_audio_identity");
-        Objects.requireNonNull(verifiedTlsNow, "verifiedTlsNow");
+        Objects.requireNonNull(tlsAudit, "TLS audit");
+        if (!tlsAudit.stillVerified(trustedTransportHandle))
+            throw new SecurityException("s8_verified_tls_required");
         return new S8Pjsua2PcmPort(() ->
-            S8Pjsua2SrtpAudit.isActive(callId, mediaIndex, verifiedTlsNow)
+            S8Pjsua2SrtpAudit.isActive(callId, mediaIndex,
+                () -> tlsAudit.stillVerified(trustedTransportHandle))
         );
     }
 
