@@ -226,12 +226,16 @@ internal class S8VoipLocalSpeechSession(
     }
 
     private fun transmit(expectedTurn: Int, bytes: ByteArray) {
+        // A single reusable 20 ms frame avoids one allocation per RTP packet.
+        val frame = ByteArray(FRAME_16K_BYTES)
         try {
             var offset = 0
             while (offset < bytes.size && current(expectedTurn, Phase.SPEAKING)) {
-                val frame = ByteArray(FRAME_16K_BYTES)
                 val available = minOf(frame.size, bytes.size - offset)
                 System.arraycopy(bytes, offset, frame, 0, available)
+                if (available < frame.size) {
+                    java.util.Arrays.fill(frame, available, frame.size, 0.toByte())
+                }
                 lease.uplink().write(frame)
                 synchronized(lock) { outgoingFrames++ }
                 offset += available
@@ -251,6 +255,7 @@ internal class S8VoipLocalSpeechSession(
         } catch (_: Throwable) {
             if (!closed.get()) fail()
         } finally {
+            java.util.Arrays.fill(frame, 0.toByte())
             java.util.Arrays.fill(bytes, 0.toByte())
         }
     }
