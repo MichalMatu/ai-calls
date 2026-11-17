@@ -838,4 +838,13 @@
     <string name="history_delete_abandoned_title">Delete this old unfinished archive?</string>
     <string name="history_delete_abandoned_warning">This archive has no confirmed ending. Its local transcript and audio fragments will be removed. The app will verify again that the phone is idle and the files have not been written recently.</string>
     <string name="history_abandoned_delete_failed">Nothing was deleted. This archive may still be active or the phone is not idle. Try again later.</string>
+    <string name="s8_voip_native_title">S8 — local AI conversation</string>
+    <string name="s8_voip_native_caption">Two to six turns with real on-device STT, Gemma and TTS. Input speech is synthetic; RTP stays on 127.0.0.1. No external or cellular call and no transcript storage. STOP cancels the test.</string>
+    <string name="s8_voip_native_running">Preparing the on-device model and speech…</string>
+    <string name="s8_voip_native_progress">Turn %1$d/%2$d · RX: %3$d · TX: %4$d</string>
+    <string name="s8_voip_native_action">Local AI conversation — %1$d turns</string>
+    <string name="s8_voip_native_permission">Phone State and Microphone permissions are needed for system STT. Grant them, then tap the test again.</string>
+    <string name="s8_voip_native_pass">PASS — RTP, STT, Gemma and TTS voice test completed.</string>
+    <string name="s8_voip_native_failed">The local AI test did not pass. No phone call was made.</string>
+    <string name="s8_voip_native_summary">Turns: %1$d/%2$d · RX: %3$d · TX: %4$d · elapsed: %5$d ms · RTP loss: %6$d</string>
 </resources>
