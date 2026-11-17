@@ -18,6 +18,8 @@ import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.session.S8SipsOptionsProtocol
 import pl.michalmatu.aicallbridge.session.S8SipsRegisterDraft
 import pl.michalmatu.aicallbridge.session.S8SipsTlsRegisterClient
+import pl.michalmatu.aicallbridge.session.S8SecureSipDialogGate
+import pl.michalmatu.aicallbridge.session.S8IncomingVoipUiState
 
 /**
  * Manual, non-exported SIPS registrar lab.
@@ -75,6 +77,23 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         card.addView(register, UiDesign.spaceAfter(this))
         card.addView(stop)
         body.addView(card)
+        // This is an intentionally disabled, explicit incoming-call surface.
+        // Neither REGISTER nor a typed account can imply an active SIP listener.
+        val incoming = S8IncomingVoipPanel(
+            this,
+            onAccept = { status.text = getString(R.string.s8_sip_incoming_unavailable) },
+            onReject = { status.text = getString(R.string.s8_sip_incoming_unavailable) },
+            onHangUp = { status.text = getString(R.string.s8_sip_incoming_unavailable) },
+        )
+        incoming.render(
+            S8IncomingVoipUiState.from(
+                S8SecureSipDialogGate.Snapshot(
+                    S8SecureSipDialogGate.State.IDLE, 0L, false,
+                ),
+                false, // No native SIP/SRTP adapter installed in the S8 lab.
+            )
+        )
+        body.addView(incoming.view)
         setContentView(ScrollView(this).apply { addView(body) })
     }
 
