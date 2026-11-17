@@ -33,6 +33,7 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         void answerInvite(Object callIdentity);
         void rejectInvite(Object callIdentity);
         void endDialog(Object callIdentity);
+        void acknowledgeRemoteBye(Object callIdentity);
         @Override void close();
     }
 
@@ -94,7 +95,9 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
             result = snapshotLocked();
         }
         publish(result);
+        if (stopped.get()) return false;
         try {
+            // The native adapter must cancel pending writes once close() occurs.
             signaling.answerInvite(exactIdentity);
             return true;
         } catch (RuntimeException error) {
@@ -140,12 +143,14 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         synchronized (lock) {
             if (identity != exactIdentity || stopped.get()) return;
         }
-        finish(State.STOPPED);
+        finish(State.STOPPED, true);
     }
 
     private void fail() { finish(State.FAILED); }
 
-    private void finish(State terminal) {
+    private void finish(State terminal) { finish(terminal, false); }
+
+    private void finish(State terminal, boolean remoteBye) {
         if (!stopped.compareAndSet(false, true)) return;
         final Snapshot result;
         final Object owned;
@@ -162,8 +167,10 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         if (owned != null) {
             try {
                 if (previous == State.RINGING) signaling.rejectInvite(owned);
-                else if (previous == State.NEGOTIATING || previous == State.ACTIVE)
-                    signaling.endDialog(owned);
+                else if (previous == State.NEGOTIATING || previous == State.ACTIVE) {
+                    if (remoteBye) signaling.acknowledgeRemoteBye(owned);
+                    else signaling.endDialog(owned);
+                }
             } catch (RuntimeException ignored) {}
         }
         try { signaling.close(); } catch (RuntimeException ignored) {}
