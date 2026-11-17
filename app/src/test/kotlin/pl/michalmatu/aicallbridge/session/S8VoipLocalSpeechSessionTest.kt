@@ -96,6 +96,25 @@ class S8VoipLocalSpeechSessionTest {
     }
 
 
+    @Test fun closingStaleSpeechSessionPreservesNewCoordinatorGeneration() {
+        val events = CopyOnWriteArrayList<String>()
+        val endpoint = FakeEndpoint(ByteArrayInputStream(ByteArray(0)), events)
+        val owner = coordinator(endpoint)
+        val first = owner.start(16_000)
+        val stale = S8VoipLocalSpeechSession(
+            owner, first, FakeSpeech(events), java.util.concurrent.Executor { it.run() },
+            maxTurns = 2,
+        )
+        owner.takeOverNow()
+        val second = owner.start(16_000)
+        stale.close()
+        assertEquals(S8VoipLocalSpeechSession.Phase.STOPPED, stale.snapshot().phase)
+        assertEquals(second, owner.snapshot().generation())
+        assertEquals(CallMediaSessionState.ACTIVE, owner.snapshot().state())
+        assertEquals(1, endpoint.closes.get())
+        owner.takeOverNow()
+    }
+
     @Test fun unapprovedTtsPcmIsNeverWrittenToVoipUplink() {
         val events = CopyOnWriteArrayList<String>()
         val endpoint = FakeEndpoint(ByteArrayInputStream(twoUtterances()), events)
