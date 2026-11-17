@@ -43,11 +43,11 @@ public final class RtpPcmuCodec {
     }
 
     /**
-     * Reject non-PCMU packets, extensions, wrong SSRC, and oversized payloads.
+     * Reject non-PCMU packets, extensions, wrong SSRC, and non-20ms payloads.
      * Sequence/replay validation belongs to the session, not this stateless codec.
      */
     public static Frame parse(byte[] packet, int length, int expectedSsrc) {
-        if (packet == null || length < RTP_HEADER_BYTES + 1 || length > PACKET_BYTES
+        if (packet == null || length != PACKET_BYTES
             || length > packet.length || (packet[0] & 0xff) != 0x80
             || (packet[1] & 0x7f) != RTP_PAYLOAD_TYPE
             || read32(packet, 8) != Integer.toUnsignedLong(expectedSsrc)) {
