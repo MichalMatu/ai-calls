@@ -105,7 +105,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onResume() {
         super.onResume()
         if (::modelStatus.isInitialized) {
-            val readiness = S8LabModelReadiness.inspect(this)
+            val readiness = S8LabModelReadiness.inspectPinnedE2B(this)
             modelStatus.text = getString(when (readiness) {
                 S8LabModelReadiness.State.PROFILE_INVALID -> R.string.s8_lab_model_invalid_profile
                 S8LabModelReadiness.State.MISSING -> R.string.s8_lab_model_missing
@@ -151,7 +151,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 lab = null
                 startButton.isEnabled = true
                 speechButton.isEnabled = true
-                modelButton.isEnabled = S8LabModelReadiness.inspect(this) ==
+                modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                     S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
                 stopButton.isEnabled = false
                 status.text = outcome.fold(
@@ -209,7 +209,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 speechProbe = null
                 startButton.isEnabled = true
                 speechButton.isEnabled = true
-                modelButton.isEnabled = S8LabModelReadiness.inspect(this) ==
+                modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                     S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
                 stopButton.isEnabled = false
                 status.text = getString(
@@ -224,7 +224,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         } catch (_: Throwable) {
             startButton.isEnabled = true
             speechButton.isEnabled = true
-            modelButton.isEnabled = S8LabModelReadiness.inspect(this) ==
+            modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                 S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
             stopButton.isEnabled = false
             status.text = getString(R.string.s8_voip_speech_fail)
@@ -236,7 +236,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     /** Explicit local-only 4-turn native text test; no call or model download. */
     private fun beginLocalModelFourTurns() {
         if (lab != null || speechProbe != null || modelProbe != null) return
-        if (S8LabModelReadiness.inspect(this) !=
+        if (S8LabModelReadiness.inspectPinnedE2B(this) !=
             S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE) {
             status.text = getString(R.string.s8_lab_model_missing)
             return
@@ -307,7 +307,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         candidateRef = null
         startButton.isEnabled = true
         speechButton.isEnabled = true
-        modelButton.isEnabled = S8LabModelReadiness.inspect(this) ==
+        modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
             S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
         stopButton.isEnabled = false
         status.text = getString(message)
@@ -331,7 +331,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         speech?.close() // Cancels Android STT / local TTS, no background probe.
         startButton.isEnabled = true
         speechButton.isEnabled = true
-        modelButton.isEnabled = S8LabModelReadiness.inspect(this) ==
+        modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
             S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
         stopButton.isEnabled = false
         status.text = getString(R.string.s8_voip_lab_stopped)
