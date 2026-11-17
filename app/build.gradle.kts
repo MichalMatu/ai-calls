@@ -2,6 +2,12 @@ plugins {
     id("com.android.application")
 }
 
+// Only an explicit local debug build may embed the isolated GPL PJSUA2
+// prototype; default debug and release builds never include its native code.
+val s8NativePrototype = providers.gradleProperty("s8NativePrototype").orNull == "true"
+val s8NativeRoot = System.getenv("S8_NATIVE_ROOT")
+    ?: (System.getProperty("user.home") + "/agent-workspace/third-party/ai-calls-s8")
+
 android {
     namespace = "pl.michalmatu.aicallbridge"
     compileSdk = 36
@@ -13,6 +19,7 @@ android {
         versionCode = 2
         versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["s8NativeSmokeEnabled"] = s8NativePrototype.toString()
     }
 
     // S8 lab APK installs side-by-side with the stable dialer on Samsung.
@@ -24,6 +31,21 @@ android {
             // Only the owner's 64-bit Samsung S22+ target. Do not ship
             // x86/x86_64/32-bit native LLM binaries in the test installer.
             ndk { abiFilters += "arm64-v8a" }
+        }
+    }
+
+    sourceSets {
+        getByName("debug") {
+            if (s8NativePrototype) {
+                java.srcDir(rootProject.file("prototypes/s8-pjsua2/src"))
+                java.srcDir(
+                    java.io.File(
+                        s8NativeRoot,
+                        "pjproject-autotools-android-arm64/pjsip-apps/src/swig/java/android/pjsua2/src/main/java"
+                    )
+                )
+                jniLibs.srcDir(java.io.File(s8NativeRoot, "s8-android-jniLibs"))
+            }
         }
     }
 
