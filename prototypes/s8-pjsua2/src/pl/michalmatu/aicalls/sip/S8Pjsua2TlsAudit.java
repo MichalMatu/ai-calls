@@ -44,21 +44,26 @@ public final class S8Pjsua2TlsAudit implements AutoCloseable {
         if (!closed) verifiedHandles.add(handle);
     }
 
-    /** Only call with SipRxData that is still alive inside onIncomingCall(). */
-    public boolean verifiedIncomingNow(SipRxData sip) {
-        if (closed || sip == null || verifiedHandles.isEmpty()) return false;
+    /** Only call inside the live synchronous onIncomingCall() callback. */
+    public long verifiedTransportForIncoming(SipRxData sip) {
+        if (closed || sip == null || verifiedHandles.isEmpty()) return 0L;
         final long rxData = sip.getPjRxData();
-        if (rxData == 0L || !S8Pjsua2SrtpAudit.loadPrototypeVerifier()) return false;
+        if (rxData == 0L || !S8Pjsua2SrtpAudit.loadPrototypeVerifier()) return 0L;
         for (Long handle : verifiedHandles) {
-            if (closed || !verifiedHandles.contains(handle)) return false;
+            if (closed || !verifiedHandles.contains(handle)) continue;
             try {
                 if (nativeRxTransportMatchesVerifiedTls(rxData, handle) &&
-                    !closed && verifiedHandles.contains(handle)) return true;
+                    !closed && verifiedHandles.contains(handle)) return handle;
             } catch (RuntimeException | LinkageError ignored) {
-                return false;
+                return 0L;
             }
         }
-        return false;
+        return 0L;
+    }
+
+    /** Persist only this opaque transport handle, never raw SIP pointers. */
+    public boolean stillVerified(long handle) {
+        return !closed && handle != 0L && verifiedHandles.contains(handle);
     }
 
     private static boolean isTlsType(String type) {
