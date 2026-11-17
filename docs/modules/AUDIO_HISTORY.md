@@ -1,5 +1,3 @@
 # Audio i historia
 
-RX PCM → Android STT / Parakeet / Gemma Audio → LLM → Android TTS / Piper Gosia → TX PCM. Mierz czasy i błędy, nie zapisuj prywatnej treści w Git.
-
-S22: Piper Gosia/Parakeet sprawdzone off-call; WAV RX/TX opt-in. Echo, barge-in, długi Call, odsłuch i takeover: PHYSICAL_OPEN. GSM PCM działa dziś przez Shizuku; alternatywa to S8.
+S22: Piper Gosia/Parakeet sprawdzone off-call; WAV RX/TX wyłącznie opt-in. **Istniejący tor Samsung PCM/Shizuku działa według użytkownika z GSM.** Zakres prawdziwego RX/TX, echo, barge-in, długi Call i END_CALL nadal wymagają potwierdzenia w ramach [P0 GSM](../PROJECT.md), nie osobnego sprintu.

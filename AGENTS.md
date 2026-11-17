@@ -1,9 +1,7 @@
-# AI Calls — zasady pracy agentów
+# AI Calls — zasady agentów
 
-- [Docs](docs/README.md) → [PROJECT](docs/PROJECT.md); kod = implementacja, Git/receipts = dowody.
-- **ChatGPT (czat):** GitHub Connector + istniejący Local Agent na wybranym hoście; komendy/testy przez agenta, bez Codex. [LOCAL_AGENT](docs/operations/LOCAL_AGENT.md).
-- **Codex lokalny:** kod, Git i testy bezpośrednio na hoście, bez Local Agenta. [DEVELOPMENT](docs/operations/DEVELOPMENT.md).
-- Branche: `main` = C1–C3/G6.1/EN E2E, `feature/s8-no-shizuku` = S8. Czysty checkout, Existing Code First, preflight → testy celowane; bez Work, Actions, force-push, kolizji i nowych schedulerów.
-- Exact app-owned Call/grant/SIM, STOP i prywatność. Realny Call/instalacja: zgoda, IDLE, zweryfikowany S22. Bez PII/WAV w Git/logach.
-- Bez AndroidTest/`adb uninstall` na S22; instrumentacyjne tylko na emulatorze. Bez `FLAG_SECURE`; brak próby = PHYSICAL_OPEN.
-- Nie dodawaj sztucznych ograniczeń. [SECURITY](docs/architecture/SECURITY.md).
+- **Jedyny aktywny plan:** [PROJECT](docs/PROJECT.md). **P0 GSM na S22+** z istniejącym Samsung/Shizuku RX/TX i STT → Gemma → TTS; **P1 lokalny SIP dopiero po GSM**. Żaden checkpoint, benchmark ani handoff nie tworzy nowego backlogu.
+- ChatGPT: GitHub Connector + Mac Local Agent ([protokół](docs/operations/LOCAL_AGENT.md)); bez Codex, Work, Actions ani schedulerów.
+- `main` stabilny, prace na `feature/s8-no-shizuku`; sprawdź HEAD i czysty checkout. Existing Code First → mały patch → test celowany → wynik na S22. Bez zbędnych audytów.
+- Zachowaj działający tor GSM/Shizuku; nie zastępuj go VoIP. Nie deklaruj pełnego GSM PASS na podstawie syntezy.
+- Testy rzeczywistych połączeń, grantów i instalacji tylko po zgodzie, przy IDLE, z kontrolą APK/rollback. Bez globalnego hangup, uninstall, PII, WAV i transkryptów w Git. STOP odcina stare audio. [SECURITY](docs/architecture/SECURITY.md).
