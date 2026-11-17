@@ -9,6 +9,8 @@ import android.os.Handler
 import android.os.Looper
 import android.telecom.TelecomManager
 import android.view.View
+import java.io.File
+import pl.michalmatu.aicallbridge.developerrelay.S8NativeVoipTwoTurnSmokeActivity
 import android.widget.Button
 import android.widget.ScrollView
 import android.widget.TextView
@@ -38,6 +40,8 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var speechProbe: AutoCloseable? = null
     private var modelProbe: S8LocalModelFourTurnProbe? = null
     private var runToken: Long = 0
+    private var nativeProbeWaiting = false
+    private val nativeButtons = mutableListOf<Button>()
     private lateinit var status: TextView
     private lateinit var details: TextView
     private lateinit var modelStatus: TextView
@@ -48,6 +52,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        nativeProbeWaiting = savedInstanceState?.getBoolean("s8-native-probe-pending") ?: false
         val content = UiDesign.content(this)
         content.addView(UiDesign.heading(this, getString(R.string.s8_voip_lab_title)),
             UiDesign.spaceAfter(this))
@@ -99,12 +104,35 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             startActivity(Intent(this, LanguageModelActivity::class.java))
         }.apply { tag = "s8-lab-model-manage" })
         content.addView(readiness)
+        val nativeCard = UiDesign.card(this)
+        nativeCard.addView(
+            UiDesign.heading(this, getString(R.string.s8_voip_native_title)),
+            UiDesign.spaceAfter(this),
+        )
+        nativeCard.addView(
+            UiDesign.caption(this, getString(R.string.s8_voip_native_caption)),
+            UiDesign.spaceAfter(this),
+        )
+        for (turns in listOf(2, 4, 6)) {
+            val action = UiDesign.action(
+                this,
+                getString(R.string.s8_voip_native_action, turns),
+                UiActionTone.PRIMARY,
+            ) { beginNativeLocalVoipTurns(turns) }.apply {
+                tag = "s8-native-voip-$turns-turns"
+                isEnabled = false
+            }
+            nativeButtons += action
+            nativeCard.addView(action, UiDesign.spaceAfter(this))
+        }
+        content.addView(nativeCard)
         setContentView(ScrollView(this).apply { addView(content) })
     }
 
     override fun onResume() {
         super.onResume()
         if (::modelStatus.isInitialized) {
+            collectNativeResultIfReady()
             val readiness = S8LabModelReadiness.inspectPinnedE2B(this)
             modelStatus.text = getString(when (readiness) {
                 S8LabModelReadiness.State.PROFILE_INVALID -> R.string.s8_lab_model_invalid_profile
@@ -115,12 +143,108 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             })
             modelButton.isEnabled = readiness ==
                 S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE &&
-                lab == null && speechProbe == null && modelProbe == null
+                lab == null && speechProbe == null && modelProbe == null &&
+                !nativeProbeWaiting
+            refreshNativeButtons()
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("s8-native-probe-pending", nativeProbeWaiting)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun refreshNativeButtons() {
+        val allowed = !nativeProbeWaiting &&
+            lab == null && speechProbe == null && modelProbe == null &&
+            S8LabModelReadiness.inspectPinnedE2B(this) ==
+                S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
+        nativeButtons.forEach { it.isEnabled = allowed }
+    }
+
+    private fun collectNativeResultIfReady() {
+        if (!nativeProbeWaiting) return
+        val report = runCatching {
+            File(filesDir, S8NativeVoipTwoTurnSmokeActivity.REPORT_FILE).readLines()
+        }.getOrNull().orEmpty()
+        val fields = report.mapNotNull { row ->
+            val sep = row.indexOf('=')
+            if (sep < 1) null else row.substring(0, sep) to row.substring(sep + 1)
+        }.toMap()
+        // Only exact local counters are shown. No model reply or transcript.
+        nativeProbeWaiting = false
+        val success = fields["report_complete"] == "true" &&
+            fields["status"] == "pass" && fields["real_call"] == "false"
+        status.text = getString(when {
+            success -> R.string.s8_voip_native_pass
+            fields["status"] == "stopped" -> R.string.s8_voip_lab_stopped
+            else -> R.string.s8_voip_native_failed
+        })
+        fun number(key: String) = fields[key]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        details.text = getString(
+            R.string.s8_voip_native_summary,
+            number("completed_turns"), number("requested_turns"),
+            number("rtp_rx_frames"), number("rtp_tx_frames"),
+            number("observed_duration_ms"), number("synthetic_peer_packets_lost"),
+        )
+        startButton.isEnabled = true
+        refreshNativeButtons()
+        speechButton.isEnabled = true
+        stopButton.isEnabled = false
+    }
+
+    /** Normal user-accessible off-call verification; the probe has its own STOP. */
+    private fun beginNativeLocalVoipTurns(turns: Int) {
+        if (turns !in 2..6 || nativeProbeWaiting ||
+            lab != null || speechProbe != null || modelProbe != null) return
+        if (S8LabModelReadiness.inspectPinnedE2B(this) !=
+            S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE) {
+            status.text = getString(R.string.s8_lab_model_missing)
+            return
+        }
+        val missing = listOf(
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.RECORD_AUDIO,
+        ).filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) {
+            status.text = getString(R.string.s8_voip_native_permission)
+            requestPermissions(missing.toTypedArray(), 8112)
+            return
+        }
+        if (!isPhoneIdle()) {
+            status.text = getString(R.string.s8_voip_lab_blocked)
+            return
+        }
+        // The probe writes a fresh, counter-only report before returning.
+        runCatching { File(filesDir, S8NativeVoipTwoTurnSmokeActivity.REPORT_FILE).delete() }
+        nativeProbeWaiting = true
+        nativeButtons.forEach { it.isEnabled = false }
+        startButton.isEnabled = false
+        speechButton.isEnabled = false
+        modelButton.isEnabled = false
+        stopButton.isEnabled = false
+        refreshNativeButtons()
+        status.text = getString(R.string.s8_voip_native_running)
+        details.text = getString(R.string.s8_voip_lab_no_calls)
+        try {
+            startActivity(
+                Intent(this, S8NativeVoipTwoTurnSmokeActivity::class.java)
+                    .putExtra("turn_limit", turns)
+            )
+        } catch (_: RuntimeException) {
+            nativeProbeWaiting = false
+            startButton.isEnabled = true
+        refreshNativeButtons()
+            speechButton.isEnabled = true
+            modelButton.isEnabled = true
+            status.text = getString(R.string.s8_voip_native_failed)
+            refreshNativeButtons()
         }
     }
 
     private fun beginSyntheticSession() {
-        if (lab != null || speechProbe != null || modelProbe != null) return
+        if (lab != null || speechProbe != null || modelProbe != null ||
+            nativeProbeWaiting) return
         if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
             PackageManager.PERMISSION_GRANTED) {
             status.text = getString(R.string.s8_voip_lab_permission)
@@ -134,6 +258,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         val created = S8VoipSixTurnLab()
         lab = created
         val token = ++runToken
+        nativeButtons.forEach { it.isEnabled = false }
         startButton.isEnabled = false
         speechButton.isEnabled = false
         modelButton.isEnabled = false
@@ -150,6 +275,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
                 lab = null
                 startButton.isEnabled = true
+        refreshNativeButtons()
                 speechButton.isEnabled = true
                 modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                     S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
@@ -178,7 +304,8 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
      * audio is generated by TTS and piped to the recognizer, not recorded.
      */
     private fun beginLocalSpeechProbe() {
-        if (lab != null || speechProbe != null || modelProbe != null) return
+        if (lab != null || speechProbe != null || modelProbe != null ||
+            nativeProbeWaiting) return
         val missing = listOf(
             Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECORD_AUDIO
         ).filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
@@ -191,6 +318,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             status.text = getString(R.string.s8_voip_lab_blocked)
             return
         }
+        nativeButtons.forEach { it.isEnabled = false }
         startButton.isEnabled = false
         speechButton.isEnabled = false
         modelButton.isEnabled = false
@@ -208,6 +336,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 speechProbe?.close()
                 speechProbe = null
                 startButton.isEnabled = true
+        refreshNativeButtons()
                 speechButton.isEnabled = true
                 modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                     S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
@@ -223,6 +352,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
         } catch (_: Throwable) {
             startButton.isEnabled = true
+        refreshNativeButtons()
             speechButton.isEnabled = true
             modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
                 S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
@@ -235,7 +365,8 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     /** Explicit local-only 4-turn native text test; no call or model download. */
     private fun beginLocalModelFourTurns() {
-        if (lab != null || speechProbe != null || modelProbe != null) return
+        if (lab != null || speechProbe != null || modelProbe != null ||
+            nativeProbeWaiting) return
         if (S8LabModelReadiness.inspectPinnedE2B(this) !=
             S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE) {
             status.text = getString(R.string.s8_lab_model_missing)
@@ -252,6 +383,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             return
         }
         val token = ++runToken
+        nativeButtons.forEach { it.isEnabled = false }
         startButton.isEnabled = false
         speechButton.isEnabled = false
         modelButton.isEnabled = false
@@ -306,6 +438,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         modelProbe = null
         candidateRef = null
         startButton.isEnabled = true
+        refreshNativeButtons()
         speechButton.isEnabled = true
         modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
             S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
@@ -330,6 +463,7 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         active?.close() // Closes app-owned UDP and coordinator; no Telecom action.
         speech?.close() // Cancels Android STT / local TTS, no background probe.
         startButton.isEnabled = true
+        refreshNativeButtons()
         speechButton.isEnabled = true
         modelButton.isEnabled = S8LabModelReadiness.inspectPinnedE2B(this) ==
             S8LabModelReadiness.State.FILE_PRESENT_UNVERIFIED_INFERENCE
@@ -341,6 +475,10 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         requestCode: Int, permissions: Array<String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 8112 && !isFinishing && !isDestroyed) {
+            status.text = getString(R.string.s8_voip_native_permission)
+            return
+        }
         if (requestCode == 8111 && !isFinishing && !isDestroyed) {
             status.text = getString(R.string.s8_lab_model_four_turn_permission)
             return
