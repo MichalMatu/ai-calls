@@ -605,6 +605,18 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         scroller?.post { if (!isDestroyed && !isFinishing) scroller.scrollTo(0, scrollY) }
     }
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == ModelVoiceSettings.COMPAT_PHONE_STATE_REQUEST &&
+            !isDestroyed && !isFinishing) {
+            // The grant is NOT consent to start native model inference.
+            // Keep the explanatory status and require the original manual tap.
+            configuration.refresh()
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != IMPORT) return
