@@ -38,13 +38,10 @@ android {
         getByName("debug") {
             if (s8NativePrototype) {
                 java.srcDir(rootProject.file("prototypes/s8-pjsua2/src"))
-                java.srcDir(
-                    java.io.File(
-                        s8NativeRoot,
-                        "pjproject-autotools-android-arm64/pjsip-apps/src/swig/java/android/pjsua2/src/main/java"
-                    )
-                )
-                jniLibs.srcDir(java.io.File(s8NativeRoot, "s8-android-jniLibs"))
+                java.srcDir(rootProject.file(
+                    s8NativeRoot + "/pjproject-autotools-android-arm64/pjsip-apps/src/swig/java/android/pjsua2/src/main/java"
+                ))
+                jniLibs.srcDir(rootProject.file(s8NativeRoot + "/s8-android-jniLibs"))
             }
         }
     }
