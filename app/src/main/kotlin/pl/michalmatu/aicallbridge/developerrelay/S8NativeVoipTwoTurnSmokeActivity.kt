@@ -59,6 +59,10 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
     private val sourcePcm = arrayOfNulls<ByteArray>(MAX_TURNS)
     private var turnLimit = 2
     private var lossEveryNPackets = 0
+    private var stopAtPhase: S8VoipLocalSpeechSession.Phase? = null
+    private var stopObservedPhase = "NONE"
+    private var stopResponseMs = -1L
+    private var stopStartAtMs = 0L
     private val lostPeerPackets = AtomicInteger()
     private val startAtMs = SystemClock.elapsedRealtime()
     private val readyAtMs = LongArray(MAX_TURNS)
@@ -95,6 +99,14 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         buildLocalVoipUi()
         turnLimit = intent?.getIntExtra("turn_limit", 2) ?: 2
         lossEveryNPackets = intent?.getIntExtra("loss_every_n_packets", 0) ?: 0
+        val stopTarget = intent?.getStringExtra("stop_at_phase")
+        stopAtPhase = when (stopTarget) {
+            null -> null
+            "LISTENING" -> S8VoipLocalSpeechSession.Phase.LISTENING
+            "PROCESSING" -> S8VoipLocalSpeechSession.Phase.PROCESSING
+            "SPEAKING" -> S8VoipLocalSpeechSession.Phase.SPEAKING
+            else -> { complete("invalid_test_parameters"); return }
+        }
         if (turnLimit !in 2..MAX_TURNS ||
             (lossEveryNPackets != 0 && lossEveryNPackets !in 20..100)) {
             complete("invalid_test_parameters")
@@ -319,6 +331,25 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
                                 }
                             }
                         }
+                        if (stopAtPhase == snapshot.phase && stopObservedPhase == "NONE") {
+                            // Give the target stage a real opportunity to run:
+                            // PROCESSING includes native inference, SPEAKING includes RTP TX.
+                            val requestedPhase = snapshot.phase
+                            val delay = when (requestedPhase) {
+                                S8VoipLocalSpeechSession.Phase.LISTENING -> 100L
+                                S8VoipLocalSpeechSession.Phase.PROCESSING -> 400L
+                                S8VoipLocalSpeechSession.Phase.SPEAKING -> 200L
+                                else -> 0L
+                            }
+                            handler.postDelayed({
+                                if (!stopped.get() &&
+                                    session?.snapshot()?.phase == requestedPhase) {
+                                    stopObservedPhase = requestedPhase.name
+                                    stopStartAtMs = SystemClock.elapsedRealtime()
+                                    complete("stopped")
+                                }
+                            }, delay)
+                        }
                         if (snapshot.phase == S8VoipLocalSpeechSession.Phase.FAILED) {
                             complete("speech_pipeline_failed")
                         } else if (snapshot.phase == S8VoipLocalSpeechSession.Phase.COMPLETE) {
@@ -458,6 +489,9 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         if (session == null) runCatching { pipeline?.close() }
         sourcePcm.forEach { it?.fill(0) }
         sampleMemory()
+        if (stopObservedPhase != "NONE" && stopResponseMs < 0L) {
+            stopResponseMs = SystemClock.elapsedRealtime() - stopStartAtMs
+        }
         report(if (pass) "pass" else if (outcome == "completed") "e2e_incomplete" else outcome,
             snapshot)
         finish()
@@ -469,6 +503,9 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
         PrivateDiagnosticReportStore.write(filesDir, REPORT_FILE, buildString {
             appendLine("probe=s8_native_voip_multi_turn")
             appendLine("requested_turns=$turnLimit")
+            appendLine("stop_requested_phase=${stopAtPhase?.name ?: "NONE"}")
+            appendLine("stop_observed_phase=$stopObservedPhase")
+            appendLine("stop_response_ms=$stopResponseMs")
             appendLine("observed_duration_ms=${SystemClock.elapsedRealtime() - startAtMs}")
             appendLine("max_java_heap_used_bytes=$maxJavaHeapBytes")
             appendLine("max_native_heap_bytes=$maxNativeHeapBytes")
