@@ -145,8 +145,9 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         status.text = getString(R.string.s8_voip_speech_running)
         details.text = getString(R.string.s8_voip_speech_explanation)
         val token = ++runToken
-        speechProbe = LocalSpeechTextPipelineProbe.run(this) { report ->
-            runOnUiThread {
+        speechProbe = try {
+            LocalSpeechTextPipelineProbe.run(this) { report ->
+                runOnUiThread {
                 if (isDestroyed || isFinishing || runToken != token || speechProbe == null) {
                     return@runOnUiThread
                 }
@@ -163,7 +164,15 @@ class S8VoipLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 // strings from any backend on the transport demo screen.
                 details.text = if (result) getString(R.string.s8_voip_speech_success_detail)
                     else getString(R.string.s8_voip_speech_failure_detail)
+                }
             }
+        } catch (_: Throwable) {
+            startButton.isEnabled = true
+            speechButton.isEnabled = true
+            stopButton.isEnabled = false
+            status.text = getString(R.string.s8_voip_speech_fail)
+            details.text = getString(R.string.s8_voip_speech_failure_detail)
+            null
         }
     }
 
