@@ -19,6 +19,9 @@ class CallDiagnosticEvidenceTest {
         assertTrue(PrivateDiagnosticReportStore.isAllowedName(
             S8LocalModelFourTurnSmokeActivity.REPORT_FILE
         ))
+        assertTrue(PrivateDiagnosticReportStore.isAllowedName(
+            S8NativeSpeechSmokeActivity.REPORT_FILE
+        ))
         assertFalse(PrivateDiagnosticReportStore.isAllowedName("../private.txt"))
         assertFalse(PrivateDiagnosticReportStore.isAllowedName("/sdcard/report.txt"))
         assertFalse(PrivateDiagnosticReportStore.isAllowedName("s8-audio.wav"))
