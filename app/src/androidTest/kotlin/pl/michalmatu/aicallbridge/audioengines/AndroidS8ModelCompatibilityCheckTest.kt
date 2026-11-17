@@ -62,6 +62,29 @@ class AndroidS8ModelCompatibilityCheckTest {
         assertEquals(before, ModelCompatibilityStore(context).verified(file, false))
     }
 
+    @Test fun savedCompatibilityRemainsVisibleAfterPhonePermissionRestored() {
+        requireS22WithModel()
+        assumeTrue(context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED)
+        assumeTrue(AudioEngineProfileStore(context).load()?.dialogue ==
+            DialogueModelId.GEMMA_4_E2B)
+        assumeTrue(AudioEngineProfileStore(context).load()?.input !=
+            SpeechInputId.GEMMA_AUDIO_DIRECT)
+        val file = Gemma4LiteRtTextBackendFactory.modelFile(context, DialogueModelId.GEMMA_4_E2B)
+        assertTrue("saved_model_proof_missing",
+            ModelCompatibilityStore(context).verified(file, false))
+
+        ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                assertEquals(activity.getString(R.string.mv_verified_text),
+                    activity.window.decorView.findViewWithTag<TextView>(
+                        "model-voice-readiness").text.toString())
+            }
+        }
+        // Read-only: no test, permission grant or phone call.
+        assertTrue(ModelCompatibilityStore(context).verified(file, false))
+    }
+
     @Test fun actualLocalE2bCompatibilityPassPersistsAndAppearsInUi() {
         requireS22WithModel()
         assumeTrue(context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
