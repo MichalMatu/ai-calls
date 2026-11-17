@@ -64,10 +64,12 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
     /** Native SIP stack only: callback after receipt of a verified TLS INVITE. */
     public boolean onVerifiedIncomingInvite(Object exactIdentity) {
         Objects.requireNonNull(exactIdentity, "identity");
+        final boolean tlsVerified = signaling.tlsPeerVerified();
+        final Object mediaIdentity = media.exactCallIdentity();
         final Snapshot result;
         synchronized (lock) {
-            if (stopped.get() || state != State.IDLE || !signaling.tlsPeerVerified()
-                || media.exactCallIdentity() != exactIdentity) {
+            if (stopped.get() || state != State.IDLE || !tlsVerified
+                || mediaIdentity != exactIdentity) {
                 return false;
             }
             identity = exactIdentity;
@@ -81,10 +83,11 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
 
     /** Explicit user acceptance; never reports ACTIVE before authenticated SRTP. */
     public boolean accept(Object exactIdentity) {
+        final boolean tlsVerified = signaling.tlsPeerVerified();
         final Snapshot result;
         synchronized (lock) {
             if (stopped.get() || state != State.RINGING || identity != exactIdentity
-                || !signaling.tlsPeerVerified()) {
+                || !tlsVerified) {
                 return false;
             }
             state = State.NEGOTIATING;
@@ -102,12 +105,15 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
 
     /** A completed SDP exchange is insufficient: verify live SRTP keys first. */
     public boolean onAuthenticatedSrtp(Object exactIdentity) {
+        final Object ownedMedia = media.exactCallIdentity();
+        final MediaSecurity secured = media.mediaSecurity();
+        final boolean tlsVerified = signaling.tlsPeerVerified();
         final Snapshot result;
         synchronized (lock) {
             if (stopped.get() || state != State.NEGOTIATING || identity != exactIdentity
-                || media.exactCallIdentity() != exactIdentity
-                || media.mediaSecurity() != MediaSecurity.TLS_AND_SRTP_AUTHENTICATED
-                || !signaling.tlsPeerVerified()) {
+                || ownedMedia != exactIdentity
+                || secured != MediaSecurity.TLS_AND_SRTP_AUTHENTICATED
+                || !tlsVerified) {
                 return false;
             }
             state = State.ACTIVE;
@@ -115,6 +121,14 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         }
         publish(result);
         return true;
+    }
+
+    /** Authenticated media is lost: immediately revoke PCM and terminate dialog. */
+    public void onMediaSecurityLost(Object exactIdentity) {
+        synchronized (lock) {
+            if (identity != exactIdentity || stopped.get()) return;
+        }
+        fail();
     }
 
     /** Media must be revoked even when signaling is still blocked. */
@@ -135,8 +149,10 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         if (!stopped.compareAndSet(false, true)) return;
         final Snapshot result;
         final Object owned;
+        final State previous;
         synchronized (lock) {
             owned = identity;
+            previous = state;
             state = terminal;
             result = snapshotLocked();
         }
@@ -145,9 +161,9 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
         publish(result);
         if (owned != null) {
             try {
-                if (terminal == State.FAILED || result.state() == State.STOPPED) {
+                if (previous == State.RINGING) signaling.rejectInvite(owned);
+                else if (previous == State.NEGOTIATING || previous == State.ACTIVE)
                     signaling.endDialog(owned);
-                }
             } catch (RuntimeException ignored) {}
         }
         try { signaling.close(); } catch (RuntimeException ignored) {}
@@ -156,11 +172,8 @@ public final class S8SecureSipDialogGate implements AutoCloseable {
     @Override public void close() { takeOverNow(); }
 
     private Snapshot snapshotLocked() {
-        return new Snapshot(
-            state, generation,
-            state == State.ACTIVE &&
-                media.mediaSecurity() == MediaSecurity.TLS_AND_SRTP_AUTHENTICATED
-        );
+        // ACTIVE is entered only after native-authenticated SRTP evidence.
+        return new Snapshot(state, generation, state == State.ACTIVE);
     }
 
     private void publish(Snapshot result) {
