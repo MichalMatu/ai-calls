@@ -6,10 +6,12 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.pjsip.pjsua2.Account;
 import org.pjsip.pjsua2.AccountConfig;
+import org.pjsip.pjsua2.AudioMedia;
 import org.pjsip.pjsua2.Call;
 import org.pjsip.pjsua2.CallInfo;
 import org.pjsip.pjsua2.CallOpParam;
 import org.pjsip.pjsua2.OnCallStateParam;
+import org.pjsip.pjsua2.OnCallMediaStateParam;
 import org.pjsip.pjsua2.OnIncomingCallParam;
 import org.pjsip.pjsua2.TlsConfig;
 import org.pjsip.pjsua2.TransportConfig;
@@ -31,6 +33,7 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
     public interface Listener {
         // Opaque token only: no SIP URI or phone number is emitted here.
         void onIncoming(Object exactIdentity);
+        void onMediaStateChanged(Object exactIdentity);
         void onEnded(Object exactIdentity);
         void onNativeError(String safeCode);
     }
@@ -86,6 +89,29 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
         transport.setPort(0);
         transport.setTlsConfig(tls);
         return transport;
+    }
+
+    /** Exact currently owned call handle, never a telephone number or URI. */
+    public int activeNativeCallId(Object exactIdentity) {
+        synchronized (lock) {
+            if (closed.get() || current == null ||
+                current.identity != exactIdentity) return -1;
+            return current.getId();
+        }
+    }
+
+    /** Audio access only for exact active token; caller MUST separately attest SRTP. */
+    public AudioMedia activeAudioMedia(Object exactIdentity, int mediaIndex)
+        throws java.lang.Exception {
+        final Incoming call;
+        synchronized (lock) {
+            if (closed.get() || current == null || mediaIndex < 0 ||
+                mediaIndex > 15 || current.identity != exactIdentity) {
+                throw new SecurityException("s8_native_call_identity_required");
+            }
+            call = current;
+        }
+        return call.getAudioMedia(mediaIndex);
     }
 
     /** Initiate only through a separate explicit account setup/registration flow. */
@@ -202,6 +228,14 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
         boolean answered;
 
         Incoming(int nativeCallId) { super(S8Pjsua2SecureIncomingAccount.this, nativeCallId); }
+
+        @Override public void onCallMediaState(OnCallMediaStateParam ignored) {
+            final boolean owned;
+            synchronized (lock) {
+                owned = !closed.get() && current == this;
+            }
+            if (owned) listener.onMediaStateChanged(identity);
+        }
 
         @Override public void onCallState(OnCallStateParam ignored) {
             try {
