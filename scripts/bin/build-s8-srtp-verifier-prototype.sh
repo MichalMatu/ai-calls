@@ -16,9 +16,11 @@ ssl="$base/openssl-android-arm64-3.5.9"
 out="${S8_VERIFIER_BUILD_DIR:-$base/srtp-verifier-android-arm64}"
 tool="$ndk/toolchains/llvm/prebuilt/darwin-x86_64/bin"
 source_file="prototypes/s8-pjsua2/native/S8Pjsua2SrtpAudit.cpp"
+tls_source="prototypes/s8-pjsua2/native/S8Pjsua2TlsAudit.cpp"
 native="$pj/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so"
 [[ -x "$tool/clang++" && -x "$tool/llvm-readelf" &&
-   -s "$native" && -f "$source_file" && -d "$pj/pjsip/include" ]] || {
+   -s "$native" && -f "$source_file" && -f "$tls_source" &&
+   -d "$pj/pjsip/include" ]] || {
   echo "S8_SRTP_VERIFIER_HOLD=missing_native_toolchain_or_pjsua2" >&2
   exit 3
 }
@@ -37,7 +39,7 @@ mkdir -p "$out"
   -I"$pj/pjnath/include" -I"$pj/pjmedia/include" \
   -I"$pj/pjsip/include" -I"$pj/third_party/include" \
   -I"$pj/third_party/srtp/include" -I"$ssl/include" \
-  "$source_file" -L"$(dirname "$native")" -lpjsua2 \
+  "$source_file" "$tls_source" -L"$(dirname "$native")" -lpjsua2 \
   -Wl,--no-undefined -Wl,-z,relro,-z,now -Wl,-z,max-page-size=16384 \
   -o "$out/libs8srtpaudit.so"
 
@@ -52,10 +54,14 @@ mkdir -p "$out"
   grep -Fq Java_pl_michalmatu_aicalls_sip_S8Pjsua2SrtpAudit_nativeSrtpActive || {
   echo "S8_SRTP_VERIFIER_HOLD=jni_export_missing" >&2; exit 4;
 }
+"$tool/llvm-nm" -D --defined-only "$out/libs8srtpaudit.so" |
+  grep -Fq Java_pl_michalmatu_aicalls_sip_S8Pjsua2TlsAudit_nativeRxTransportMatchesVerifiedTls || {
+  echo "S8_SRTP_VERIFIER_HOLD=tls_attestation_jni_export_missing" >&2; exit 4;
+}
 "$tool/llvm-readelf" -dW "$out/libs8srtpaudit.so" | grep -Fq '[libpjsua2.so]' || {
   echo "S8_SRTP_VERIFIER_HOLD=native_pjsua2_dependency_missing" >&2; exit 4;
 }
-echo "S8_SRTP_VERIFIER_JNI_ARM64_LINK=PASS"
+echo "S8_SRTP_AND_TLS_INVITE_VERIFIER_JNI_ARM64_LINK=PASS"
 echo "S8_SRTP_VERIFIER_SHA256=$(shasum -a 256 "$out/libs8srtpaudit.so" | cut -d' ' -f1)"
 echo "S8_SRTP_VERIFIER_ON_DEVICE_QA=OPEN"
 echo "S8_PJSIP_LICENSE_GATE=OPEN"
