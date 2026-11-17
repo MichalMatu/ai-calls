@@ -5,18 +5,18 @@
 
 ## Stan projektu
 
-`main`: stabilne C1–C3/G6.1/EN E2E; GSM PCM blokuje Android/OEM bez Shizuku.
+`main`: stabilne C1–C3/G6.1; GSM PCM bez Shizuku blokuje Android/OEM.
 
 ## Podział pracy
 
-S8: `feature/s8-no-shizuku`, bez merge. `AI Calls S8 Lab` (`pl.michalmatu.aicallbridge.s8lab`, ARM64) zainstalowany obok stabilnej wersji. **S22+ PHYSICAL PASS**: 6 faz, 72 RX/72 TX, SDP, STOP i SHA stabilnej aplikacji bez zmian. Emulator ARM64: UI/RTP 3 testy PASS. Test syntetyczny bez rozmowy.
+S8: `feature/s8-no-shizuku`, bez merge. Oddzielny ARM64 APK `pl.michalmatu.aicallbridge.s8lab`; S22+ PHYSICAL PASS: localhost RTP, 6 faz, 72 RX/72 TX, SDP/STOP. Stabilna aplikacja bez zmian (SHA PASS).
 
-Nowy `S8VoipLocalSpeechSession`: 16k PCM ↔ lokalne STT→LLM→aprobata→TTS, 2 tury i natychmiastowy STOP **unit PASS**, bez modelu na S22+ (PHYSICAL_OPEN). Ręczny SIP/TLS REGISTER: 401→SHA-256→200, hasło tylko w RAM. REGISTER zmienia Contact na 300 s — wyłącznie konto testowe.
+Nowy tryb ręczny: syntetyczne TTS → rzeczywiste Android STT → zatwierdzenie odpowiedzi → TTS, bez GSM i LLM. STOP i uprawnienia na żądanie; test Mac/APK PASS, S22 PHYSICAL_OPEN: raport niekompletny, przywrócono poprzedni APK S8 (SHA PASS), później ADB niedostępne. `S8VoipLocalSpeechSession`: TTS wymaga aprobaty tej samej tury, cleanup STT/TTS na wątku właściciela (unit PASS).
 
 ## Następny sprint — S8: bez Shizuku
 
-Autoryzowany VoIP SIP INVITE/SDP/SRTP, podłączenie rzeczywistych mediów do nowego lokalnego speech owner, walidacja modelu i 4–6 tur.
+Potwierdzić STT/TTS fizycznie; model LiteRT w prywatnym sandboxie S8, potem SIP INVITE/SDP/SRTP i 4–6 prawdziwych tur VoIP.
 
 ## Otwarte
 
-Brak działającej rozmowy i SRTP; operator SIP nieprzetestowany. Model `APP_PRIVATE_LITERT` niepotwierdzony; GSM PCM bez uprawnień systemowych niedostępny. Realny call wyłącznie po odrębnej zgodzie na numer/koszt/scenariusz. Bez PII/audio w Git.
+Brak realnego SIP operatora, SRTP, LLM i rozmowy. REGISTER tylko ręczny na koncie testowym, może zmienić Contact. Realny call wyłącznie po zgodzie na numer/koszt/scenariusz. Bez PII/audio w Git.
