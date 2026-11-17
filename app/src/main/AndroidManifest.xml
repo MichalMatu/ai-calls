@@ -142,6 +142,14 @@
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
 
+        <!-- App-owned 4-turn text-only LiteRT test. No remote call or transcript. -->
+        <activity
+            android:name=".developerrelay.S8LocalModelFourTurnSmokeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
         <activity
             android:name=".campaign.AppointmentMvpActivity"
             android:windowSoftInputMode="adjustResize"
