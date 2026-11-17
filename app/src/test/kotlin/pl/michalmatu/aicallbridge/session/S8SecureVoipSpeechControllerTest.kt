@@ -33,7 +33,9 @@ class S8SecureVoipSpeechControllerTest {
         controller.close()
         assertEquals(1, native.closes)
         assertEquals(1, native.mediaCloses)
+        assertEquals(1, native.mediaOwnerCloses)
         assertEquals(1, native.byes)
+        assertEquals(listOf("native-media-close", "bye", "signaling-close"), native.events)
     }
 
     @Test fun delayedMediaOpenCannotStartAfterStopOrNewIdentity() {
@@ -51,6 +53,8 @@ class S8SecureVoipSpeechControllerTest {
         assertEquals(0, native.opens)
         assertEquals(0, speech.starts)
         assertEquals(1, native.closes)
+        assertEquals(1, native.mediaOwnerCloses)
+        assertEquals(listOf("native-media-close", "bye", "signaling-close"), native.events)
         assertFalse(controller.onAuthenticatedSrtp(native.identity))
     }
 
@@ -67,7 +71,9 @@ class S8SecureVoipSpeechControllerTest {
         controller.onMediaSecurityLost(native.identity)
         assertEquals(1, native.closes)
         assertEquals(1, native.mediaCloses)
+        assertEquals(1, native.mediaOwnerCloses)
         assertEquals(1, native.byes)
+        assertEquals(listOf("native-media-close", "bye", "signaling-close"), native.events)
         assertFalse(controller.snapshot().dialog.mediaReady())
         assertEquals(null, controller.snapshot().voice)
     }
@@ -75,7 +81,7 @@ class S8SecureVoipSpeechControllerTest {
     private fun newController(
         engine: FakeEngine, speech: FakeSpeech, mediaExecutor: Executor,
     ) = S8SecureVoipSpeechController(
-        engine.identity, engine, engine, engine, speech,
+        engine.identity, engine.nativeMedia, engine, engine.signaling, speech,
         Executor { it.run() }, mediaExecutor,
         CallMediaHeartbeatScheduler { _, _ -> AutoCloseable { } },
         CallMediaMonotonicClock { 1L }, maxTurns = 2,
@@ -92,19 +98,39 @@ class S8SecureVoipSpeechControllerTest {
         override fun close() {}
     }
 
-    private class FakeEngine :
-        S8SecureSipDialogGate.VerifiedMedia,
-        S8SecureSipDialogGate.Signaling,
-        AppOwnedVoipCallMediaSessionBackend.MediaPort {
+    private class FakeEngine : AppOwnedVoipCallMediaSessionBackend.MediaPort {
         val identity = Any()
         var secure = S8SecureSipDialogGate.MediaSecurity.UNVERIFIED
         var opens = 0
         var mediaCloses = 0
         var closes = 0
+        var mediaOwnerCloses = 0
         var byes = 0
-
-        override fun mediaSecurity() = secure
-        override fun exactCallIdentity(): Any = identity
+        val events = mutableListOf<String>()
+        val nativeMedia = object : S8SecureSipDialogGate.VerifiedMedia {
+            override fun mediaSecurity() = secure
+            override fun exactCallIdentity(): Any = identity
+            override fun close() {
+                mediaOwnerCloses++
+                events += "native-media-close"
+                secure = S8SecureSipDialogGate.MediaSecurity.UNVERIFIED
+            }
+        }
+        val signaling = object : S8SecureSipDialogGate.Signaling {
+            override fun tlsPeerVerified() = true
+            override fun answerInvite(callIdentity: Any) {}
+            override fun rejectInvite(callIdentity: Any) {}
+            override fun endDialog(callIdentity: Any) {
+                byes++
+                events += "bye"
+            }
+            override fun acknowledgeRemoteBye(callIdentity: Any) {}
+            override fun acknowledgeRemoteCancel(callIdentity: Any) {}
+            override fun close() {
+                closes++
+                events += "signaling-close"
+            }
+        }
         override fun activeIdentity(): Any? = if (closes > 0) null else identity
         override fun mediaHealthy(exactIdentity: Any?) =
             exactIdentity === identity && mediaCloses == 0 && closes == 0
@@ -122,15 +148,6 @@ class S8SecureVoipSpeechControllerTest {
             }
         }
 
-        override fun tlsPeerVerified() = true
-        override fun answerInvite(exactIdentity: Any) {}
-        override fun rejectInvite(exactIdentity: Any) {}
-        override fun endDialog(exactIdentity: Any) { byes++ }
-        override fun acknowledgeRemoteBye(exactIdentity: Any) {}
-        override fun acknowledgeRemoteCancel(exactIdentity: Any) {}
-        override fun close() {
-            closes++
-            secure = S8SecureSipDialogGate.MediaSecurity.UNVERIFIED
-        }
+        // Media and signaling have distinct lifetimes; the former must close first.
     }
 }
