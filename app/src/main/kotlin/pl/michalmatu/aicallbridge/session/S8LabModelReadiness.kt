@@ -24,6 +24,15 @@ internal object S8LabModelReadiness {
         }
     }
 
+    /** Four-turn test uses the pinned E2B model regardless of UI profile. */
+    fun inspectPinnedE2B(context: Context): State = try {
+        fromFileState(AndroidGemma4ModelReadiness.check(
+            context, pl.michalmatu.aicallbridge.audioengines.DialogueModelId.GEMMA_4_E2B
+        ).state)
+    } catch (_: Throwable) {
+        State.INVALID
+    }
+
     fun fromFileState(state: Gemma4ModelReadinessState): State = when (state) {
         Gemma4ModelReadinessState.MISSING -> State.MISSING
         Gemma4ModelReadinessState.INVALID -> State.INVALID
