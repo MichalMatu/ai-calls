@@ -90,6 +90,10 @@ public final class S8Pjsua2SecureIncomingAccount extends Account
         }
         TlsConfig tls = new TlsConfig();
         tls.setVerifyServer(true);
+        // Direct inbound TLS requires authenticated client certificates.
+        // Registrar-delivered calls use the verified outbound server channel.
+        tls.setVerifyClient(true);
+        tls.setRequireClientCert(true);
         tls.setCaListFile(trustedCaBundlePath);
         TransportConfig transport = new TransportConfig();
         transport.setPort(0);
