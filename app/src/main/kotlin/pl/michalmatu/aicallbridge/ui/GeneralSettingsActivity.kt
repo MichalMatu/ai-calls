@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -15,6 +16,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
+import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
+import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 import rikka.shizuku.Shizuku
 
 /** One place to inspect and explicitly request the app's runtime/role permissions. */
@@ -27,6 +31,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val action: Button,
     )
     private lateinit var role: DialerRoleCard
+    private lateinit var incomingModeStatus: TextView
     private val grants = linkedMapOf<String, GrantRow>()
     private lateinit var shizukuStatus: TextView
     private lateinit var shizukuAction: Button
@@ -39,7 +44,21 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         super.onCreate(savedInstanceState)
         val body = UiDesign.content(this)
         role = DialerRoleCard(this)
-        body.addView(role.view, UiDesign.spaceAfter(this, 16))
+        body.addView(role.view, UiDesign.spaceAfter(this, 8))
+
+        // All GSM setup actions belong to this existing permissions screen.
+        // Android always asks the user to approve roles and runtime permissions.
+        incomingModeStatus = UiDesign.caption(this, "")
+        body.addView(UiDesign.navigationRow(this,
+            getString(R.string.perm_incoming_ai_action), incomingModeStatus) {
+            startActivity(Intent(this, IncomingAssistantSettingsActivity::class.java))
+        }.apply { tag = "permissions-incoming-ai-settings" }, UiDesign.spaceAfter(this, 8))
+        body.addView(UiDesign.navigationRow(this, getString(R.string.perm_default_apps_action)) {
+            openDefaultAppsSettings()
+        }.apply { tag = "permissions-default-apps" }, UiDesign.spaceAfter(this, 8))
+        body.addView(UiDesign.navigationRow(this, getString(R.string.perm_app_settings_action)) {
+            openAppSettings()
+        }.apply { tag = "permissions-app-details" }, UiDesign.spaceAfter(this, 16))
 
         val card = UiDesign.card(this).apply { tag = "permissions-grants-card" }
         fun group(tag: String, label: String): Pair<LinearLayout, LinearLayout> {
@@ -79,6 +98,8 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             Manifest.permission.RECORD_AUDIO, R.string.perm_action_allow, REQUEST_MIC)
         runtime("phone-state", R.string.perm_phone_state_title,
             Manifest.permission.READ_PHONE_STATE, R.string.perm_action_allow, REQUEST_PHONE_STATE)
+        runtime("answer-phone", R.string.perm_answer_phone_title,
+            Manifest.permission.ANSWER_PHONE_CALLS, R.string.perm_action_allow, REQUEST_ANSWER_PHONE)
         runtime("call-phone", R.string.perm_call_phone_title,
             Manifest.permission.CALL_PHONE, R.string.perm_action_allow, REQUEST_CALL_PHONE)
         if (Build.VERSION.SDK_INT >= 33) {
@@ -93,7 +114,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         shizukuLabels.addView(shizukuStatus)
         shizukuAction = UiDesign.action(this, getString(R.string.perm_action_allow)) {
-            requestShizuku()
+            if (shizukuGranted()) openShizukuApp() else requestShizuku()
         }.apply { tag = "permissions-shizuku-request" }
         shizuku.addView(compact(shizukuAction), actionLayout())
 
@@ -132,8 +153,28 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun openAppSettings() {
-        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.fromParts("package", packageName, null)))
+        try {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", packageName, null)))
+        } catch (_: ActivityNotFoundException) {
+            openAndroidSettingsFallback()
+        } catch (_: SecurityException) {
+            openAndroidSettingsFallback()
+        }
+    }
+
+    private fun openDefaultAppsSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+        } catch (_: ActivityNotFoundException) {
+            openAndroidSettingsFallback()
+        } catch (_: SecurityException) {
+            openAndroidSettingsFallback()
+        }
+    }
+
+    private fun openAndroidSettingsFallback() {
+        runCatching { startActivity(Intent(Settings.ACTION_SETTINGS)) }
     }
 
     private fun shizukuAvailable(): Boolean =
@@ -160,6 +201,12 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun refresh() {
         role.refresh()
+        incomingModeStatus.setText(runCatching {
+            when (IncomingAssistantPolicyStore(this).load().mode) {
+                AnsweringMode.AI -> R.string.perm_incoming_mode_ai
+                AnsweringMode.MANUAL -> R.string.perm_incoming_mode_manual
+            }
+        }.getOrDefault(R.string.perm_incoming_mode_unavailable))
         grants.values.forEach { row ->
             val isGranted = granted(row.permission)
             row.status.setText(if (isGranted) R.string.perm_status_granted
@@ -180,9 +227,9 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         })
         val needsApp = !available ||
             runCatching { Shizuku.shouldShowRequestPermissionRationale() }.getOrDefault(false)
-        shizukuAction.setText(if (needsApp) R.string.perm_action_open_shizuku
+        shizukuAction.setText(if (granted || needsApp) R.string.perm_action_open_shizuku
             else R.string.perm_action_allow)
-        shizukuAction.visibility = if (granted || (needsApp && !installed))
+        shizukuAction.visibility = if ((granted || needsApp) && !installed)
             View.GONE else View.VISIBLE
     }
 
@@ -190,7 +237,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         requestCode: Int, permissions: Array<String>, grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode in setOf(REQUEST_MIC, REQUEST_PHONE_STATE,
+        if (requestCode in setOf(REQUEST_MIC, REQUEST_PHONE_STATE, REQUEST_ANSWER_PHONE,
                 REQUEST_CALL_PHONE, REQUEST_NOTIFICATIONS)) refresh()
     }
 
@@ -200,5 +247,6 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         const val REQUEST_CALL_PHONE = 1003
         const val REQUEST_NOTIFICATIONS = 1004
         const val REQUEST_SHIZUKU = 1005
+        const val REQUEST_ANSWER_PHONE = 1006
     }
 }
