@@ -27,6 +27,9 @@ public final class AppOwnedLoopbackRtpMediaPort
 
     private static final long RTP_FRAME_NS = 20_000_000L;
     private static final long RX_IDLE_LIMIT_NS = TimeUnit.SECONDS.toNanos(6);
+    // Fill at most 40ms of missing RTP with silence; never allocate based on
+    // an untrusted sequence leap or invent more than two replacement frames.
+    private static final int MAX_SILENCE_CONCEALMENT_FRAMES = 2;
     private final Object lock = new Object();
     private final Object exactIdentity;
     private final int localPort;
@@ -188,12 +191,25 @@ public final class AppOwnedLoopbackRtpMediaPort
                         RtpPcmuCodec.Frame frame =
                             RtpPcmuCodec.parse(receivePacket, datagram.getLength(), expectedRemoteSsrc);
                         if (frame == null) continue;
+                        int missingFrames = 0;
                         if (lastSequence != -1) {
                             int forward = (frame.sequence() - lastSequence) & 0xffff;
                             if (forward == 0 || forward >= 0x8000) continue; // Replay/late packet.
+                            // No long concealment bursts after a real peer interruption.
+                            if (forward <= MAX_SILENCE_CONCEALMENT_FRAMES + 1) {
+                                missingFrames = forward - 1;
+                            }
                         }
                         lastSequence = frame.sequence();
-                        pendingRx = frame.pcm16();
+                        byte[] voice = frame.pcm16();
+                        if (missingFrames == 0) {
+                            pendingRx = voice;
+                        } else {
+                            pendingRx = new byte[voice.length * (missingFrames + 1)];
+                            System.arraycopy(voice, 0, pendingRx,
+                                missingFrames * voice.length, voice.length);
+                            Arrays.fill(voice, (byte) 0);
+                        }
                         pendingRxOffset = 0;
                     }
                     return -1;
