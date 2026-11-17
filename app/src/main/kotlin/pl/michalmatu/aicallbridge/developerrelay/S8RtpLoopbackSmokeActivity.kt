@@ -101,7 +101,7 @@ class S8RtpLoopbackSmokeActivity : Activity() {
             appendLine("six_passed=$sixPassed")
             appendLine("status=$status")
             appendLine("real_call=false")
-            appendLine("report_complete=true")
+            appendLine("report_complete=${status != "running"}")
         }
     }
 }
