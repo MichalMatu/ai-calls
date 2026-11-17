@@ -1,5 +1,6 @@
 # AI Calls — szybki rejestr jakości kombinacji audio
 
+**Archiwum pomiarów, nie aktywny backlog.** Aktualny plan: [PROJECT](../../docs/PROJECT.md).
 Ten raport porównuje **wejście mowy × model dialogowy × silnik TTS**. Nie miesza testów syntetycznych z rozmowami telefonicznymi. Brak wyniku oznacza **nieprzetestowane**, nie „0 punktów” ani „PASS”. Kod raportujący nie steruje telefonem i nie zmienia profilu S22.
 
 ## Stan początkowy (14.11.2026; wcześniejsze potwierdzenia, nie nowy benchmark)
@@ -17,7 +18,7 @@ Pozostałe silniki Android TTS i importowane modele LiteRT można badać osobno 
 
 ## Macierz testów odbiorczych
 
-To checklista, nie drugi plan. PASS dotyczy wskazanego SHA, środowiska i receipt. Brak próby na S22 = **PHYSICAL_OPEN**, nie FAIL. Nie mieszaj prób syntetycznych i rzeczywistych.
+To historyczny rejestr wyników, nie lista do wykonania. PASS dotyczy wskazanego SHA, środowiska i receipt. Brak próby na S22 = **PHYSICAL_OPEN**, nie FAIL. Nie mieszaj prób syntetycznych i rzeczywistych.
 
 | ID | Przypadek / tor | Warunek zaliczenia | Ostatni stan |
 | --- | --- | --- | --- |
