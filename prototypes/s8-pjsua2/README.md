@@ -63,3 +63,30 @@ is still open.
 Build scripts: `scripts/bin/build-s8-pjsip-prototype.sh` and
 `scripts/bin/build-s8-srtp-verifier-prototype.sh`. Both require explicit
 one-shot opt-in flags. No scheduling or GitHub Actions.
+
+## Optional owner-local Android JNI smoke (no network)
+
+The normal S8 debug build uses `-Ps8NativePrototype=false` and has no
+PJSUA2 native binaries or active JNI smoke entry point. An **explicit**
+`-Ps8NativePrototype=true` includes the pinned generated PJSUA2 Java source
+and native `arm64-v8a` libraries from the outside-repo Mac workspace.
+Release builds do not use these debug source directories. Missing JNI input
+files fail the opt-in build during configuration.
+
+The debug-only `S8Pjsua2OfflineLoadSmokeActivity` is protected by
+`android.permission.DUMP`, is disabled without the opt-in flag, and is
+intended only for one-shot ADB/shell QA on the owner's separate
+`pl.michalmatu.aicallbridge.s8lab` package. It checks both JNI libraries,
+rejects a null TLS transport and an invalid SRTP call, then creates and
+destroys a PJSUA2 Endpoint **without** creating a transport, account,
+registration, media stream, or real call. Its report is private and
+contains only counters, booleans and coarse error codes.
+
+Before installing: verify S22+ ADB, phone IDLE, stable APK SHA; back up the
+current S8 APK; after the smoke always restore it and recheck both SHAs.
+The first physical attempt was blocked by ADB disconnection **before
+installation**; no device result may be called PASS until the offline
+report and rollback both pass.
+
+The optional local smoke does **not** authorize publication/distribution of
+PJSIP or real SIP traffic. Licensing and end-to-end SIP/SDP/SRTP remain open.
