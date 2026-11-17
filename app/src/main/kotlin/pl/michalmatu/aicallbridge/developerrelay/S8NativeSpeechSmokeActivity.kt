@@ -29,6 +29,7 @@ import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
  */
 class S8NativeSpeechSmokeActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
+    @Volatile
     private var completed = false
     private var source: LocalTtsSpeechOutput? = null
     private var pipeline: LocalSpeechTextPipeline? = null
@@ -36,6 +37,7 @@ class S8NativeSpeechSmokeActivity : Activity() {
     private var sttMatched = false
     private var textApproved = false
     private var ttsPcmReady = false
+    @Volatile
     private var inputEnded = false
     private val timeout = Runnable { complete("timeout") }
 
