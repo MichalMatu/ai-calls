@@ -901,4 +901,16 @@
     <string name="s8_voip_native_pass">PASS — zakończono test głosu przez RTP, STT, Gemma i TTS.</string>
     <string name="s8_voip_native_failed">Brak PASS lokalnego testu AI. Bez połączenia telefonicznego.</string>
     <string name="s8_voip_native_summary">Tury: %1$d/%2$d · RX: %3$d · TX: %4$d · czas: %5$d ms · strata RTP: %6$d</string>
+    <string name="s8_sip_incoming_title">Połączenia przychodzące VoIP</string>
+    <string name="s8_sip_incoming_unavailable">Odbieranie niedostępne: brak natywnego silnika SIP i uwierzytelnionego SRTP. Rejestracja konta nie umożliwia jeszcze rozmów.</string>
+    <string name="s8_sip_incoming_waiting">Gotowość do bezpiecznych połączeń przychodzących.</string>
+    <string name="s8_sip_incoming_ringing">Połączenie przychodzące. Wybierz odbierz lub odrzuć.</string>
+    <string name="s8_sip_incoming_negotiating">Uzgadnianie bezpiecznej transmisji audio.</string>
+    <string name="s8_sip_incoming_connected">Połączono przez uwierzytelniony SRTP.</string>
+    <string name="s8_sip_incoming_security_failure">Nie można potwierdzić bezpiecznego audio. Rozłącz.</string>
+    <string name="s8_sip_incoming_ended">Połączenie zakończone.</string>
+    <string name="s8_sip_incoming_failed">Połączenie nieudane.</string>
+    <string name="s8_sip_incoming_accept">Odbierz</string>
+    <string name="s8_sip_incoming_reject">Odrzuć</string>
+    <string name="s8_sip_incoming_hangup">Rozłącz</string>
 </resources>
