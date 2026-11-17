@@ -884,4 +884,12 @@
     <string name="s8_lab_model_invalid">Plik modelu LiteRT jest niepoprawny lub nieczytelny w S8 Lab.</string>
     <string name="s8_lab_model_file_present">Plik modelu LiteRT jest obecny. Uruchomienie i inferencja modelu nie zostały jeszcze potwierdzone.</string>
     <string name="s8_lab_manage_model">Otwórz modele S8 Lab</string>
+    <string name="s8_lab_model_four_turn_start">Test 4 tur lokalnego modelu</string>
+    <string name="s8_lab_model_four_turn_running">Lokalny LiteRT: test czterech tur. STOP przerywa inferencję.</string>
+    <string name="s8_lab_model_four_turn_scope">Odpowiedzi tekstowe generowane lokalnie, bez mikrofonu, numerów telefonów, narzędzi ani sieci. Treść nie jest zapisywana.</string>
+    <string name="s8_lab_model_four_turn_pass">PASS — 4 odpowiedzi lokalnego LiteRT.</string>
+    <string name="s8_lab_model_four_turn_failed">FAIL — lokalna inferencja nie powiodła się. Nie wykonano połączenia.</string>
+    <string name="s8_lab_model_four_turn_timeout">STOP — limit czasu pracy modelu przekroczony.</string>
+    <string name="s8_lab_model_four_turn_count">Ukończone tury: %1$d / 4. Bez zapisu odpowiedzi.</string>
+    <string name="s8_lab_model_four_turn_permission">Po zgodzie na odczyt stanu telefonu ponownie naciśnij test 4 tur.</string>
 </resources>
