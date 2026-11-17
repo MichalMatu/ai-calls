@@ -12,6 +12,7 @@ import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -25,6 +26,7 @@ public final class AppOwnedLoopbackRtpMediaPort
     implements AppOwnedVoipCallMediaSessionBackend.MediaPort, AutoCloseable {
 
     private static final long RTP_FRAME_NS = 20_000_000L;
+    private static final long RX_IDLE_LIMIT_NS = TimeUnit.SECONDS.toNanos(6);
     private final Object lock = new Object();
     private final Object exactIdentity;
     private final int localPort;
@@ -126,7 +128,8 @@ public final class AppOwnedLoopbackRtpMediaPort
         private final AtomicBoolean closed = new AtomicBoolean();
         private final Object rxLock = new Object();
         private final Object txLock = new Object();
-        private final byte[] receivePacket = new byte[RtpPcmuCodec.PACKET_BYTES];
+        // One extra byte makes oversized datagrams detectable instead of silently truncated.
+        private final byte[] receivePacket = new byte[RtpPcmuCodec.PACKET_BYTES + 1];
         private byte[] pendingRx = new byte[0];
         private int pendingRxOffset;
         private int lastSequence = -1;
@@ -154,6 +157,9 @@ public final class AppOwnedLoopbackRtpMediaPort
                 Objects.checkFromIndexSize(offset, length, bytes.length);
                 if (length == 0) return 0;
                 synchronized (rxLock) {
+                    // A stalled or malformed RTP peer must not leave STT blocked forever.
+                    // The deadline starts with this read, not before a long local model turn.
+                    long readStartedNs = System.nanoTime();
                     while (!closed.get()) {
                         if (pendingRxOffset < pendingRx.length) {
                             int count = Math.min(length, pendingRx.length - pendingRxOffset);
@@ -165,6 +171,9 @@ public final class AppOwnedLoopbackRtpMediaPort
                                 pendingRxOffset = 0;
                             }
                             return count;
+                        }
+                        if (System.nanoTime() - readStartedNs >= RX_IDLE_LIMIT_NS) {
+                            throw new SocketTimeoutException("voip_rtp_rx_idle");
                         }
                         DatagramPacket datagram =
                             new DatagramPacket(receivePacket, receivePacket.length);
