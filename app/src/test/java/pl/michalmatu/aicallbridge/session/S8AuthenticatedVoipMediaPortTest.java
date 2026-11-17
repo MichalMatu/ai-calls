@@ -82,7 +82,7 @@ public final class S8AuthenticatedVoipMediaPortTest {
         Engine engine = new Engine();
         S8SecureSipDialogGate gate = activeGate(engine);
         var port = new S8AuthenticatedVoipMediaPort(engine.identity, gate, engine, engine);
-        assertNull(port.activeIdentity() == new Object() ? port.activeIdentity() : null);
+        assertSame(engine.identity, port.activeIdentity());
         assertFalse(port.mediaHealthy(new Object()));
         assertThrows(SecurityException.class, () -> port.open(new Object(), 1, 16_000));
         assertThrows(SecurityException.class, () -> port.open(engine.identity, 0, 16_000));
