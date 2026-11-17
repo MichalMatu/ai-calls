@@ -13,9 +13,11 @@ Branch `feature/s8-no-shizuku`, odrębny APK `pl.michalmatu.aicallbridge.s8lab`,
 
 **Nowe PASS:** 4/4 natywne tury tekstowe Gemma E2B na S22+ (~9 s), bez zapisu wypowiedzi. Osobny DUMP-gated test całej lokalnej ścieżki **syntetyczne audio → Android STT → prawdziwa Gemma E2B → approval → lokalne TTS PCM** (~14 s), jeden turn, bez treści w raporcie. Mac unit/preflight/APK PASS. Stabilny APK SHA bez zmian, kopie S8 do rollbacku.
 
-## Następny sprint — S8 bez Shizuku
+## Sprint S8 — integracja lokalna i SIP/SRTP
 
-Rozbudować lokalną ścieżkę głosową do 4–6 tur, dodać ręczny flow w UI; później SIP INVITE/SDP/SRTP.
+Rozbudowano tor syntetyczny RTP → systemowe STT → Gemma E2B → approval → TTS → RTP do 2–6 tur oraz ekran ręcznej próby; STOP w fazach RX/model/TX i brak starych ramek RTP są objęte testami celowanymi Mac (PASS). **Fizyczny E2E na S22+ pozostaje PHYSICAL_OPEN:** ADB zniknęło po instalacji testowego APK, rollback S8 oczekuje na weryfikację przy ponownym połączeniu; nie uznawać tego za PASS.
+
+Protokół SIP ma jedynie ręczny REGISTER i testowaną bramkę stanów wymagającą TLS/SRTP; brak natywnego SIP/SDP/SRTP, a Mac nie ma NDK, SWIG ani PJSIP. Szczegóły, dowody i bramki: [S8 secure VoIP handoff](architecture/S8_SECURE_VOIP_HANDOFF.md).
 
 ## Otwarte
 
