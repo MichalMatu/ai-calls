@@ -5,7 +5,7 @@
 
 ## Stan projektu
 
-`main` stabilne, bez zmian; GSM PCM bez Shizuku niedostępne na Android/OEM.
+`main`: stabilne C1–C3/G6.1, bez zmian; GSM PCM bez Shizuku niedostępne na Android/OEM.
 
 ## Podział pracy
 
