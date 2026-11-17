@@ -55,6 +55,7 @@ internal class S8VoipLocalSpeechSession(
     private val speechExecutor: Executor,
     private val maxTurns: Int = 6,
     private val observer: (Snapshot) -> Unit = {},
+    private val onListeningReady: (Int) -> Unit = {},
 ) : AutoCloseable {
     internal interface SpeechTurn : AutoCloseable {
         interface Listener {
@@ -133,6 +134,11 @@ internal class S8VoipLocalSpeechSession(
                 receiver = thread
             }
             thread.start()
+            // The recognizer has actually opened its input, unlike a phase-only
+            // observation. A loopback peer can now deliver the next RTP utterance.
+            if (current(expectedTurn, Phase.LISTENING)) {
+                try { onListeningReady(expectedTurn) } catch (_: Throwable) { fail() }
+            }
         }
 
         override fun onTranscript() {
