@@ -80,6 +80,11 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
     private var deliveredTurn = 0
     private var activePort = -1
     private var finalSnapshot: S8VoipLocalSpeechSession.Snapshot? = null
+    private val mediaResourcesLock = Any()
+    private var mediaSetupThread: Thread? = null
+    @Volatile private var mediaStartState = "NOT_STARTED"
+    @Volatile private var mediaStartFailure = "NONE"
+    @Volatile private var mediaStartDetail = "none"
     private val timeout = Runnable { complete("timeout") }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -176,36 +181,92 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
             complete("blocked_not_idle_or_permission")
             return
         }
-        try {
-            val remote = DatagramSocket(InetSocketAddress(loop, 0)).apply { soTimeout = 200 }
-            peer = remote
-            val identity = Any()
-            val raw = AppOwnedLoopbackRtpMediaPort(
-                identity, 0, remote.localPort, PEER_SSRC, APP_SSRC,
-            )
-            port = raw
-            val resampled = RtpPcm16kAdapterMediaPort(raw)
-            adapter = resampled
-            val mediaBackend = AppOwnedVoipCallMediaSessionBackend(resampled, identity)
-            backend = mediaBackend
-            val mediaOwner = CallMediaSessionCoordinator(
-                mediaBackend,
-                CallMediaHeartbeatScheduler { _, _ -> AutoCloseable { } },
-                CallMediaMonotonicClock { SystemClock.elapsedRealtime() },
-                { },
-            )
-            owner = mediaOwner
-            val generation = mediaOwner.start(16_000)
-            if (mediaOwner.snapshot().state() != CallMediaSessionState.ACTIVE) {
-                complete("media_not_active")
-                return
+        // Android forbids socket connect on the main thread. Only socket and
+        // coordinator setup use this worker; STT, TTS and Activity stay on main.
+        mediaSetupThread = Thread({
+            var openedPeer: DatagramSocket? = null
+            var openedPort: AppOwnedLoopbackRtpMediaPort? = null
+            var openedAdapter: RtpPcm16kAdapterMediaPort? = null
+            var openedBackend: AppOwnedVoipCallMediaSessionBackend? = null
+            var openedOwner: CallMediaSessionCoordinator? = null
+            var handedOff = false
+            try {
+                val remote = DatagramSocket(InetSocketAddress(loop, 0)).apply {
+                    soTimeout = 200
+                }
+                openedPeer = remote
+                val identity = Any()
+                val raw = AppOwnedLoopbackRtpMediaPort(
+                    identity, 0, remote.localPort, PEER_SSRC, APP_SSRC,
+                )
+                openedPort = raw
+                val resampled = RtpPcm16kAdapterMediaPort(raw)
+                openedAdapter = resampled
+                val mediaBackend = AppOwnedVoipCallMediaSessionBackend(resampled, identity)
+                openedBackend = mediaBackend
+                val mediaOwner = CallMediaSessionCoordinator(
+                    mediaBackend,
+                    CallMediaHeartbeatScheduler { _, _ -> AutoCloseable { } },
+                    CallMediaMonotonicClock { SystemClock.elapsedRealtime() },
+                    { },
+                )
+                openedOwner = mediaOwner
+                val generation = mediaOwner.start(16_000)
+                val mediaSnapshot = mediaOwner.snapshot()
+                mediaStartState = mediaSnapshot.state().name
+                mediaStartFailure = mediaSnapshot.failure().name
+                mediaStartDetail = CallDiagnosticEvidence.safeCode(
+                    mediaSnapshot.failureDetail()?.substringAfter(':')?.trim() ?: "none"
+                )
+                val boundPort = raw.boundLocalPort()
+                synchronized(mediaResourcesLock) {
+                    if (!stopped.get()) {
+                        peer = remote
+                        port = raw
+                        adapter = resampled
+                        backend = mediaBackend
+                        owner = mediaOwner
+                        activePort = boundPort
+                        handedOff = true
+                    }
+                }
+                if (!handedOff) return@Thread
+                handler.post {
+                    if (stopped.get()) return@post
+                    if (mediaSnapshot.state() != CallMediaSessionState.ACTIVE) {
+                        complete("media_not_active")
+                    } else if (boundPort < 1024) {
+                        complete("media_no_local_port")
+                    } else if (!phoneIdleAndAuthorized()) {
+                        complete("blocked_not_idle_or_permission")
+                    } else {
+                        startLocalPipeline(mediaOwner, generation, remote)
+                    }
+                }
+            } catch (_: Throwable) {
+                if (!stopped.get()) complete("native_voip_setup_failed")
+            } finally {
+                if (!handedOff) {
+                    try { openedOwner?.close() } catch (_: Throwable) {}
+                    try { openedBackend?.close() } catch (_: Throwable) {}
+                    try { openedAdapter?.close() } catch (_: Throwable) {}
+                    try { openedPort?.close() } catch (_: Throwable) {}
+                    openedPeer?.close()
+                }
             }
-            activePort = raw.boundLocalPort()
-            if (activePort < 1024) {
-                complete("media_no_local_port")
-                return
-            }
+        }, "s8-voip-local-media-setup").apply {
+            isDaemon = true
+            start()
+        }
+    }
 
+    private fun startLocalPipeline(
+        mediaOwner: CallMediaSessionCoordinator,
+        generation: Long,
+        remote: DatagramSocket,
+    ) {
+        if (stopped.get()) return
+        try {
             val localBackend = Gemma4LiteRtTextBackendFactory.create(
                 applicationContext,
                 systemInstruction = "Jesteś lokalnym asystentem testowym. " +
@@ -368,13 +429,17 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
             snapshot.outgoingFrames > 0 && deliveredTurn == turnLimit &&
             peerPackets.get() > 0 && peerSpeechPackets.get() > 0
         feeder?.interrupt()
-        session?.close() // Revokes RTP lease before any native model cleanup.
-        peer?.close()
-        receiver?.interrupt()
-        owner?.close()
-        backend?.close()
-        adapter?.close()
-        port?.close()
+        mediaSetupThread?.interrupt()
+        // Fence late off-main socket setup against STOP, then close the lease.
+        synchronized(mediaResourcesLock) {
+            session?.close() // Revokes RTP lease before native model cleanup.
+            peer?.close()
+            receiver?.interrupt()
+            owner?.close()
+            backend?.close()
+            adapter?.close()
+            port?.close()
+        }
         source?.close()
         if (session == null) runCatching { pipeline?.close() }
         sourcePcm.forEach { it?.fill(0) }
@@ -397,6 +462,9 @@ class S8NativeVoipTwoTurnSmokeActivity : Activity() {
             appendLine("measured_response_turns=${replyLatencyMs.count { it > 0L }}")
             appendLine("synthetic_peer_packets_sent=${sentPackets.get() - lostPeerPackets.get()}")
             appendLine("synthetic_peer_packets_lost=${lostPeerPackets.get()}")
+            appendLine("media_start_state=$mediaStartState")
+            appendLine("media_start_failure=$mediaStartFailure")
+            appendLine("media_start_detail_code=$mediaStartDetail")
             appendLine("transport=localhost_rtp_pcmu_8k")
             appendLine("backend=on_device_gemma_e2b")
             appendLine("stt_transcripts=${snapshot?.transcripts ?: 0}")
