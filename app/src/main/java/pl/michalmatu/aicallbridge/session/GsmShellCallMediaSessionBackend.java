@@ -47,7 +47,12 @@ public final class GsmShellCallMediaSessionBackend implements CallMediaSessionBa
             }
             expectedGeneration = generation;
         }
-        connector.execute(() -> connect(generation, callback));
+        try {
+            connector.execute(() -> connect(generation, callback));
+        } catch (RuntimeException error) {
+            abort(generation);
+            callback.onBindFailed(generation, error);
+        }
     }
 
     private void connect(long generation, BindCallback callback) {
@@ -83,6 +88,7 @@ public final class GsmShellCallMediaSessionBackend implements CallMediaSessionBa
             synchronized (lock) {
                 if (expectedGeneration == generation) expectedGeneration = -1L;
                 if (pending == socket) pending = null;
+                if (connected != null && connected.socket == socket) connected = null;
             }
             callback.onBindFailed(generation, error);
         } finally {
