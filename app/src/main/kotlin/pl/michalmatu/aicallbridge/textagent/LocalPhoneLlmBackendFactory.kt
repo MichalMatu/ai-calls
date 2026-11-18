@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.textagent
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 /** Production configuration for the proven llama.cpp/Qwen endpoint on the S22 itself. */
 internal enum class LocalPhoneModelExecution {
@@ -21,15 +22,27 @@ internal object LocalPhoneLlmBackendFactory {
             "Nie składaj zamówień, nie akceptuj umów, nie ujawniaj danych wrażliwych i nie podejmuj zobowiązań bez jawnej autoryzacji aplikacji."
 
     /**
-     * Existing local Qwen remains default; APP_PRIVATE_LITERT opts into the
-     * already supported in-process model runtime, without shell/Shizuku.
-     * This is an explicit model change: never silently re-label Gemma as Qwen.
+     * Stable production Qwen stays unchanged. The isolated S8 GSM lab must
+     * use its existing app-private Gemma LiteRT backend, not start Shizuku
+     * through a nested model path. No silent Qwen/Gemma model substitution:
+     * the selected backend's own readiness checks still apply.
      */
+    internal fun defaultExecution(packageName: String): LocalPhoneModelExecution =
+        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB)
+            LocalPhoneModelExecution.APP_PRIVATE_LITERT
+        else LocalPhoneModelExecution.SHIZUKU_QWEN
+
     fun create(
         context: Context,
         systemPrompt: String = SYSTEM_PROMPT,
-        execution: LocalPhoneModelExecution = LocalPhoneModelExecution.SHIZUKU_QWEN,
-    ): TextCallAgentBackend = when (execution) {
+        execution: LocalPhoneModelExecution = defaultExecution(context.packageName),
+    ): TextCallAgentBackend {
+        require(!(CallMediaBackendMode.forPackage(context.packageName) ==
+            CallMediaBackendMode.GSM_SHELL_ADB &&
+            execution == LocalPhoneModelExecution.SHIZUKU_QWEN)) {
+            "s8_gsm_model_shizuku_forbidden"
+        }
+        return when (execution) {
         LocalPhoneModelExecution.SHIZUKU_QWEN ->
             IdentityVerifiedLocalPhoneLlmBackend(
                 baseUrl = BASE_URL,
@@ -43,5 +56,6 @@ internal object LocalPhoneLlmBackendFactory {
                 context = context.applicationContext,
                 systemInstruction = systemPrompt,
             )
+        }
     }
 }
