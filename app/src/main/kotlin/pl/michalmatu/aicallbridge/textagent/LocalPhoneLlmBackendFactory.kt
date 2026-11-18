@@ -32,14 +32,16 @@ internal object LocalPhoneLlmBackendFactory {
             LocalPhoneModelExecution.APP_PRIVATE_LITERT
         else LocalPhoneModelExecution.SHIZUKU_QWEN
 
+    internal fun permits(packageName: String, execution: LocalPhoneModelExecution): Boolean =
+        CallMediaBackendMode.forPackage(packageName) != CallMediaBackendMode.GSM_SHELL_ADB ||
+            execution != LocalPhoneModelExecution.SHIZUKU_QWEN
+
     fun create(
         context: Context,
         systemPrompt: String = SYSTEM_PROMPT,
         execution: LocalPhoneModelExecution = defaultExecution(context.packageName),
     ): TextCallAgentBackend {
-        require(!(CallMediaBackendMode.forPackage(context.packageName) ==
-            CallMediaBackendMode.GSM_SHELL_ADB &&
-            execution == LocalPhoneModelExecution.SHIZUKU_QWEN)) {
+        require(permits(context.packageName, execution)) {
             "s8_gsm_model_shizuku_forbidden"
         }
         return when (execution) {
