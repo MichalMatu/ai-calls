@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 /**
  * One coordinator and heartbeat owner; the media transport is replaceable.
- * Existing callers keep SHIZUKU_LEGACY until S8 is qualified on physical hardware.
+ * Stable production package retains SHIZUKU_LEGACY; the isolated S8 lab always uses GSM_SHELL_ADB.
  */
 public final class CallMediaSessionRuntime implements AutoCloseable {
     private final CallMediaSessionBackend backend;
@@ -19,7 +19,9 @@ public final class CallMediaSessionRuntime implements AutoCloseable {
         Context context,
         Consumer<CallMediaSessionSnapshot> listener
     ) {
-        this(context, listener, CallMediaBackendMode.SHIZUKU_LEGACY);
+        this(context, listener, CallMediaBackendMode.forPackage(
+            Objects.requireNonNull(context, "context").getPackageName()
+        ));
     }
 
     public CallMediaSessionRuntime(
@@ -30,7 +32,7 @@ public final class CallMediaSessionRuntime implements AutoCloseable {
         this(createBackend(context, mode), listener);
     }
 
-    /** Backend injection allows SIP/OEM experiments without changing call lifecycle ownership. */
+    /** Backend injection allows focused GSM transport tests without changing call lifecycle ownership. */
     public CallMediaSessionRuntime(
         CallMediaSessionBackend backend,
         Consumer<CallMediaSessionSnapshot> listener
