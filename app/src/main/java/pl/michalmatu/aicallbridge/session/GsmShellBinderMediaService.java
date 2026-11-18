@@ -56,7 +56,8 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
             throw new IllegalArgumentException("gsm_shell_invalid_prepare");
 
         synchronized (this) {
-            if (requested <= revokedThrough || generation != IDLE
+            if (!GsmBinderCancellationPolicy.mayPrepare(requested, revokedThrough)
+                || generation != IDLE
                 || operationsInFlight != 0 || cleanupInProgress
                 || contexts != null || endpoints != null || shuttingDown)
                 throw new IllegalStateException("gsm_shell_already_owned");
@@ -147,8 +148,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
         synchronized (this) {
             // STOP can race ahead of PREPARE across Binder threads. Remember
             // this wire token so a late PREPARE cannot re-open PCM afterward.
-            if (GsmShellMediaProtocol.validGeneration(requested)
-                && requested > revokedThrough) revokedThrough = requested;
+            revokedThrough = GsmBinderCancellationPolicy.afterStop(revokedThrough, requested);
             if (generation != requested) return;
             generation = STOPPING;
             cleanupInProgress = true;
