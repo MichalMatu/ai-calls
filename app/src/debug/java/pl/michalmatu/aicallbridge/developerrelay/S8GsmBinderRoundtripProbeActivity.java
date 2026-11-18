@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 
 import pl.michalmatu.aicallbridge.session.GsmShellBinderRegistryProvider;
+import pl.michalmatu.aicallbridge.session.GsmBinderSessionTokenSequence;
 import pl.michalmatu.aicallbridge.session.IGsmShellMediaService;
 
 /**
@@ -30,8 +31,9 @@ public final class S8GsmBinderRoundtripProbeActivity extends Activity {
                 IGsmShellMediaService service = GsmShellBinderRegistryProvider.availableService();
                 boolean registered = service != null;
                 boolean verified = registered && service.getShellUid() == 2000;
-                boolean unownedHeartbeatRejected = registered && !service.heartbeat(Long.MAX_VALUE);
-                if (registered) service.abortNow(Long.MAX_VALUE); // one-way, no owned PCM
+                long reservedToken = GsmBinderSessionTokenSequence.next();
+                boolean unownedHeartbeatRejected = registered && !service.heartbeat(reservedToken);
+                if (registered) service.abortNow(reservedToken); // reserved, never reused
                 boolean registeredAfterStaleStop = registered && service.getShellUid() == 2000;
                 outcome = "probe=s8_gsm_binder_roundtrip\n"
                     + "host_registered=" + registered + "\n"
