@@ -1,19 +1,22 @@
-# AI Calls — jedyny aktywny plan
+# AI Calls — jedyny aktywny cel
 
-**TYLKO GSM bez Shizuku na Samsungu S22+.** Użytkownik potwierdził, że GSM działa z Shizuku. Kodować na `feature/s8-no-shizuku`; `main` i działającego APK nie zmieniać.
+**GSM bez Shizuku na Samsungu S22+ (SM-S906B).** Rozwój tylko na `feature/s8-no-shizuku`. `main` i stabilny dialer pozostają nietknięte. SIP/PJSUA2, UX i inne prace są wstrzymane.
 
-## Stan projektu
+## Implementacja
 
-Gotowy własny tor Samsung: `SamsungVoiceDownlinkCapture` (RX), `SamsungCallAssistantTrack` (TX), `SamsungCallMediaSessionController`, PCM → STT → Gemma → TTS. Shizuku dostarcza UID `shell` (2000); samo kopiowanie kodu nie daje tego uprawnienia.
+Samsung RX `VOICE_DOWNLINK` + TX `CALL_ASSISTANT` pozostają we wspólnym `SamsungCallMediaSessionController`. Izolowany APK S8 (`.s8lab`) wybiera `GsmShellBinderCallMediaSessionBackend` bez fallbacku do Shizuku. Własny host `GsmShellBinderMediaHost` działa jako UID 2000 po **jawnej autoryzacji ADB** i rejestruje `IGsmShellMediaService` przez systemowy Binder/`ContentProvider`; manifest S8 usuwa wejścia Shizuku. PCM przenoszą dwa `ParcelFileDescriptor`, a STOP jest jednokierunkowym wywołaniem Binder. UID, generacja, śmierć hosta i STOP są sprawdzane.
 
-## Otwarte
+## Dowody z S22+, 18.11.2026
 
-Host `GsmShellMediaHost` i backend S8 działają w kodzie: kontrola UID, generacji, STOP, lokalny RX/TX PCM i ręczny ADB bootstrap. S8 nie wraca do Shizuku, także przy wyborze modelu (Gemma LiteRT); produkcja zachowuje fallback. Kompilacja i testy jednostkowe PASS; rozmowa GSM **bez Shizuku niepotwierdzona**.
+- Android 16; izolowany S8 instalowany obok stabilnego APK, bez zmiany roli dialera.
+- Systemowy Binder app↔shell, rejestracja hosta, FD, UID 2000: **PASS**.
+- APK, testy `Gsm*Test`, koordynator, diagnostyka: **PASS**.
+- Odrzucenie heartbeat nieaktywnej generacji i spóźnionego STOP bez utraty hosta: **PASS**.
+- Unix `LocalSocket` blokowany przez SELinux/`Permission denied`; **nie używać**.
+- Rzeczywiste GSM RX→STT→Gemma→TTS→TX i rozłączenie: **NIEPOTWIERDZONE**.
 
-## Następny sprint
+## Następna bramka
 
-1. Zweryfikować bootstrap hosta, przekazanie FD, STOP i brak wycieków na urządzeniu; utrzymać celowane testy.
-2. Dopiero po zgodzie: izolowany APK S8, IDLE, sprawdzenie ADB, RX → STT → Gemma → TTS → TX, 4–6 tur, barge-in, `END_CALL`, nagranie, rollback.
-3. Po dowodach fizycznych wyłączyć zależność od Shizuku; nie wcześniej.
+Po fizycznym QA i przy obecności operatora: aktywna **testowa rozmowa GSM**, `SupervisedCallPilotActivity` w S8, START/STOP, najpierw krótki test RX/TX, potem 4–6 tur; barge-in i zakończenie. Telefon i rozmowa muszą być jawnie zatwierdzone, z kontrolą IDLE przed działaniami ADB, bez automatycznego wybierania numeru.
 
-**WSTRZYMANE:** SIP/VoIP/PJSUA2, badania modeli, UX, pozostałe audyty i nowe funkcje. Nie scalać z `main` bez odbioru. Existing Code First → patch → test celowany → receipt Local Agenta. Bez Codex/Work/Actions, nowych schedulerów, nieautoryzowanych połączeń/instalacji i PII/WAV w Git.
+Nie scalać z `main` bez dowodów fizycznych. Nie włączać schedulerów, Codex/Work/Actions; nie publikować numerów, WAV ani transkryptów w Git. [Zasady](../AGENTS.md).
