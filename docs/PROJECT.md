@@ -10,7 +10,7 @@ S8 Lab korzysta z `GsmShellBinderCallMediaSessionBackend`; host ADB UID 2000 rej
 
 - GSM 6 tur: RX 2 088 320 / TX 2 325 986 B; PASS.
 - E2E 4 tury: RX 753 920 / TX 1 128 844 B, `conversation_terminal_category=completed`, `chat_relay_live_call_success=true`. Użytkownik potwierdził notatkę i rozłączenie AI; szyfrowany indeks notatek istnieje.
-- Binder/UID, build, testy i ekran: PASS. Po zmianie APK host odzyskano przez ADB bez Shizuku.
+- Binder/UID/build/UI: PASS. Po aktualizacji APK host odtworzono; po restarcie adbd USB nasłuch Mac sam wznowił host: PASS.
 
 ## Otwarte
 
