@@ -1,18 +1,19 @@
 # AI Calls — jedyny aktywny plan
 
-**CEL TERAZ: GSM na Samsung S22+ BEZ aplikacji Shizuku.** Użytkownik potwierdził, że obecny tor GSM przez Shizuku działa. Zachować `main` i działający APK; kodować tylko na `feature/s8-no-shizuku`.
+**TYLKO GSM bez Shizuku na Samsungu S22+.** Użytkownik potwierdził, że GSM działa z Shizuku. Kodować na `feature/s8-no-shizuku`; `main` i działającego APK nie zmieniać.
 
 ## Stan projektu
 
-Własny kod już zawiera `SamsungVoiceDownlinkCapture`, `SamsungCallAssistantTrack`, `SamsungCallMediaSessionController`, PCM i STT → Gemma → TTS. Shizuku daje mu proces `shell` (UID 2000), a nie brakujące algorytmy. Zwykłe uprawnienia APK **nie** zastępują tożsamości `shell`.
+Gotowy własny tor Samsung: `SamsungVoiceDownlinkCapture` (RX), `SamsungCallAssistantTrack` (TX), `SamsungCallMediaSessionController`, PCM → STT → Gemma → TTS. Shizuku dostarcza UID `shell` (2000); samo kopiowanie kodu nie daje tego uprawnienia.
 
-## Otwarte — wyłącznie GSM
+## Otwarte
 
-1. Usunąć zależność **runtime** GSM od Shizuku: własny minimalny host uruchamiany po jawnej autoryzacji ADB jako `shell`; ponownie wykorzystać istniejące klasy Samsunga, bez kopiowania toru audio.
-2. Lokalny uwierzytelniony kanał aplikacja ↔ host: sprawdzanie UID/tożsamości, exact Call/generacja, transfer RX/TX PCM, STOP, rozłączenie hosta i timeout; brak publicznego nasłuchu i otwartego interfejsu uprzywilejowanego.
-3. Podłączyć host do istniejącego `CallMediaSessionCoordinator` jako alternatywny backend; zachować stary Shizuku fallback do czasu sprawdzonych testów S22.
-4. Testy bez telefonu: bramki uprawnień, błędne UID, stare generacje, STOP, wyciek FD, zamknięcie kanału. Następnie za zgodą instalacja izolowanego APK, IDLE, prawdziwe GSM RX → STT → Gemma → TTS → TX, 4–6 tur, barge-in, END_CALL, nagranie/odsłuch i rollback.
+Własny host `app_process` uruchamiany po zgodzie ADB; lokalny kanał z kontrolą UID aplikacji i `shell`, generacji oraz RX/TX PCM. STOP lub utrata połączenia musi zamknąć oba tory. Brak publicznego serwera/komend. Zachować produkcyjny Shizuku fallback do odbioru na S22.
 
-**STOP innych prac:** SIP, VoIP, PJSUA2, modele, ogólne UX, nowe funkcje i dodatkowe audyty nie są teraz zadaniami. Istniejący kod SIP można zostawić w repo, ale bez rozbudowy i bez instalacji. Nie scalać automatycznie z `main`.
+## Następny sprint
 
-**Tryb:** Existing Code First → mały patch → test celowany → wynik Local Agenta. Bez Codex/Work/Actions, nowych schedulerów, działań na S22 bez zgody, danych rozmów w Git. Nie usuwać Shizuku z produkcji przed działającym zamiennikiem.
+1. Dokończyć backend host ↔ aplikacja, bez duplikacji Samsung audio; kompilacja i testy UID/STOP/generacji/FD.
+2. Dopiero po zgodzie: izolowany APK S8, IDLE, sprawdzenie ADB, RX → STT → Gemma → TTS → TX, 4–6 tur, barge-in, `END_CALL`, nagranie, rollback.
+3. Po dowodach fizycznych wyłączyć zależność od Shizuku; nie wcześniej.
+
+**WSTRZYMANE:** SIP/VoIP/PJSUA2, modele, UX, pozostałe audyty i nowe funkcje. Nie scalać z `main` bez odbioru. Existing Code First → patch → test celowany → receipt Local Agenta. Bez Codex/Work/Actions, nowych schedulerów, nieautoryzowanych połączeń/instalacji i PII/WAV w Git.
