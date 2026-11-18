@@ -418,6 +418,7 @@
     <string name="dialer_ui_holding">Call on hold</string>
     <string name="dialer_ui_disconnected">Call ended</string>
     <string name="dialer_ui_connecting">Connecting…</string>
+    <string name="dialer_ui_gsm_shell_recovery">AI unavailable: GSM host offline. After install or reboot, start the ADB host (no Shizuku needed).</string>
     <string name="dialer_ui_assistant_status">Assistant: %1$s</string>
 
     <!-- UX-05: localized Home, engines and live chat -->
