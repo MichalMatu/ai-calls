@@ -418,8 +418,14 @@
     <string name="dialer_ui_holding">Call on hold</string>
     <string name="dialer_ui_disconnected">Call ended</string>
     <string name="dialer_ui_connecting">Connecting…</string>
-    <string name="dialer_ui_gsm_shell_recovery">AI unavailable: GSM host offline. After install or reboot, start the ADB host (no Shizuku needed).</string>
-    <string name="dialer_ui_assistant_status">Assistant: %1$s</string>
+    <string name="dialer_ui_gsm_shell_recovery">AI unavailable. Check the connection to the authorized MacBook.</string>
+    <string name="dialer_ui_ai_waiting">AI: waiting</string>
+    <string name="dialer_ui_ai_answering">AI is answering</string>
+    <string name="dialer_ui_ai_starting">AI is preparing the conversation</string>
+    <string name="dialer_ui_ai_active">AI is handling the call</string>
+    <string name="dialer_ui_ai_ending">AI is ending the call</string>
+    <string name="dialer_ui_ai_manual">Manual answering</string>
+    <string name="dialer_ui_ai_ended">Call ended</string>
 
     <!-- UX-05: localized Home, engines and live chat -->
     <string name="home_one_tap_permission">Android needs microphone and phone-state permission.</string>
