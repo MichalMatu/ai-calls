@@ -1,24 +1,18 @@
 # AI Calls — jedyny aktywny plan
 
-**Priorytet:** GSM na S22+; SIP dopiero po działającym GSM. Gałąź `feature/s8-no-shizuku`; `main` i stabilna aplikacja bez zmian. Stare checkpointy to archiwum, nie backlog.
+**CEL TERAZ: GSM na Samsung S22+ BEZ aplikacji Shizuku.** Użytkownik potwierdził, że obecny tor GSM przez Shizuku działa. Zachować `main` i działający APK; kodować tylko na `feature/s8-no-shizuku`.
 
 ## Stan projektu
 
-Użytkownik potwierdza działanie aplikacji z GSM. Istnieje Samsung/Shizuku oraz STT → Gemma E2B → TTS; testy syntetyczne 2/4/6 tur PASS. Nie oznacza to jeszcze pełnej kwalifikacji GSM. PJSIP/JNI uruchomiono offline na S22+ z rollbackiem; SIP na żywo nieprzetestowane.
+Własny kod już zawiera `SamsungVoiceDownlinkCapture`, `SamsungCallAssistantTrack`, `SamsungCallMediaSessionController`, PCM i STT → Gemma → TTS. Shizuku daje mu proces `shell` (UID 2000), a nie brakujące algorytmy. Zwykłe uprawnienia APK **nie** zastępują tożsamości `shell`.
 
-## Otwarte
+## Otwarte — wyłącznie GSM
 
-**P0 — sekretarka GSM:** sprawdzić faktyczne RX rozmówcy → STT → Gemma → TTS → TX rozmówcy na istniejącej ścieżce Samsung/Shizuku; nie przepisywać działających modułów. Potwierdzić 4–6 wymian, powitanie, polskie godziny/daty, barge-in/STOP, zakończenie po „do widzenia”, nagrywanie i odsłuch/echo. Naprawiać błędy z runtime.
+1. Usunąć zależność **runtime** GSM od Shizuku: własny minimalny host uruchamiany po jawnej autoryzacji ADB jako `shell`; ponownie wykorzystać istniejące klasy Samsunga, bez kopiowania toru audio.
+2. Lokalny uwierzytelniony kanał aplikacja ↔ host: sprawdzanie UID/tożsamości, exact Call/generacja, transfer RX/TX PCM, STOP, rozłączenie hosta i timeout; brak publicznego nasłuchu i otwartego interfejsu uprzywilejowanego.
+3. Podłączyć host do istniejącego `CallMediaSessionCoordinator` jako alternatywny backend; zachować stary Shizuku fallback do czasu sprawdzonych testów S22.
+4. Testy bez telefonu: bramki uprawnień, błędne UID, stare generacje, STOP, wyciek FD, zamknięcie kanału. Następnie za zgodą instalacja izolowanego APK, IDLE, prawdziwe GSM RX → STT → Gemma → TTS → TX, 4–6 tur, barge-in, END_CALL, nagranie/odsłuch i rollback.
 
-**P1 — proste lokalne SIP:** dopiero po P0, odrębnie od GSM.
+**STOP innych prac:** SIP, VoIP, PJSUA2, modele, ogólne UX, nowe funkcje i dodatkowe audyty nie są teraz zadaniami. Istniejący kod SIP można zostawić w repo, ale bez rozbudowy i bez instalacji. Nie scalać automatycznie z `main`.
 
-## Następny sprint
-
-1. **GSM:** sprawdzić obecną konfigurację, granty, tor Shizuku RX/TX i beztreściowe logi. Testy celowane; kontrolowane połączenie tylko za zgodą i przy IDLE. Naprawić najkrótszą drogą brakujące ogniwo.
-2. **SIP:** uruchomić prostą lokalną centralę testową.
-3. Odebrać połączenie przez PJSIP.
-4. Połączyć PCM z istniejącym STT → Gemma → TTS.
-5. Odesłać audio rozmówcy i poprawnie się rozłączyć.
-6. Dopiero po MVP dopracować TLS/SRTP, obsługę błędów i bezpieczeństwo internetu.
-
-**Zasady:** Existing Code First → mała zmiana → test celowany → runtime. Bez schedulerów, Actions, Codex/Work, nieautoryzowanych połączeń/instalacji, dodatkowych audytów. Nieszyfrowany RTP tylko w izolowanym lokalnym laboratorium, nigdy publicznie. Zachować rollback i prywatność.
+**Tryb:** Existing Code First → mały patch → test celowany → wynik Local Agenta. Bez Codex/Work/Actions, nowych schedulerów, działań na S22 bez zgody, danych rozmów w Git. Nie usuwać Shizuku z produkcji przed działającym zamiennikiem.
