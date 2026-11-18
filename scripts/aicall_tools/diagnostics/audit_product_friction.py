@@ -48,7 +48,7 @@ def audit(root: Path) -> list[str]:
     # Protect current operating rules, not a fossilized historical issue ledger.
     if not agents.startswith("# AI Calls — zasady pracy agentów"):
         errors.append("AGENTS.md: current operating rules must remain the first heading")
-    require("AGENTS.md", agents, "Nie dodawaj sztucznych ograniczeń")
+    require("AGENTS.md", agents, "Bez zbędnych ograniczeń i potwierdzeń")
     require("AGENTS.md", agents, "docs/README.md")
     require("docs/PROJECT.md", project, "## Otwarte")
     require("docs/PROJECT.md", project, "G6.1")
