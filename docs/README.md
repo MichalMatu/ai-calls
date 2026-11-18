@@ -1,6 +1,6 @@
 # AI Calls — dokumentacja
 
-**[PROJECT](PROJECT.md) — jedyny plan: GSM → lokalny SIP.** Reszta to kontrakty/procedury/archiwum, nie backlog.
+**[PROJECT](PROJECT.md) — wyłącznie GSM bez Shizuku.** SIP/VoIP/PJSUA2 wstrzymane.
 
 - [SYSTEM](architecture/SYSTEM.md), [SECURITY](architecture/SECURITY.md)
 - [CONVERSATION](modules/CONVERSATION.md), [INCOMING_OUTGOING](modules/INCOMING_OUTGOING.md), [AUDIO_HISTORY](modules/AUDIO_HISTORY.md), [SKILLS_LAB](modules/SKILLS_LAB.md), [BOOKING_EFFECTS](modules/BOOKING_EFFECTS.md), [UI](modules/UI.md)
