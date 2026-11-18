@@ -4,6 +4,9 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Process;
+import android.os.ParcelFileDescriptor;
+
+import java.nio.charset.StandardCharsets;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -47,6 +50,17 @@ public final class S8ShellBinderProbeClient {
                 attribution, AUTHORITY, "ping", null, null);
             System.out.println("S8_SHELL_BINDER_PROVIDER_REACHABLE="
                 + (response != null && response.getBoolean("shell_uid_verified", false)));
+            Bundle fdResult = (Bundle) call.invoke(provider,
+                attribution, AUTHORITY, "fd_probe", null, null);
+            if (fdResult == null) throw new IllegalStateException("fd_probe_response_missing");
+            ParcelFileDescriptor fd = fdResult.getParcelable("read_end", ParcelFileDescriptor.class);
+            if (fd == null) throw new IllegalStateException("fd_probe_descriptor_missing");
+            try (ParcelFileDescriptor.AutoCloseInputStream input =
+                     new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
+                String value = new String(input.readAllBytes(), StandardCharsets.US_ASCII);
+                System.out.println("S8_SHELL_BINDER_FD_TRANSFER="
+                    + "S8_FD_TRANSPORT_OK".equals(value));
+            }
         } catch (Throwable error) {
             Throwable cause = error;
             while (cause.getCause() != null && cause != cause.getCause()) cause = cause.getCause();
