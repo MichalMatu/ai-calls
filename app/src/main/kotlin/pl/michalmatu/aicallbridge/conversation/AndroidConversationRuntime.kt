@@ -38,8 +38,6 @@ import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
-import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
-import pl.michalmatu.aicallbridge.session.GsmShellMediaProtocol
 import pl.michalmatu.aicallbridge.session.CallMediaSessionRuntime
 import pl.michalmatu.aicallbridge.session.CallMediaSessionSnapshot
 import pl.michalmatu.aicallbridge.session.CallMediaSessionState
@@ -298,16 +296,11 @@ internal object AndroidConversationRuntime {
                 }
             }
             try {
-                // Side-by-side S8 lab uses our own ADB shell GSM host. Production
-                // continues on the proven Shizuku path until S22 RX/TX acceptance.
-                // No silent fallback: a missing or wrong-UID host fails closed.
-                val mediaMode = if (context.packageName == GsmShellMediaProtocol.S8_PACKAGE)
-                    CallMediaBackendMode.GSM_SHELL_ADB
-                else CallMediaBackendMode.SHIZUKU_LEGACY
+                // The single package-scoped runtime selector keeps S8 on the
+                // own-ADB-shell backend, with NO fallback to Shizuku on failure.
                 mediaRuntime = CallMediaSessionRuntime(
                     context,
                     Consumer { snapshot -> onMediaSnapshot(snapshot) },
-                    mediaMode,
                 )
                 // Supervised bounded probes keep their explicit test timeout.
                 // Authorized campaign calls terminate by actual call state/STOP instead.
