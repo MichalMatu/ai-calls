@@ -1,6 +1,6 @@
 # AI Calls — agenci
 
-- **Tylko GSM bez Shizuku:** [stan i QA](docs/PROJECT.md). Działający RX→STT→Gemma→TTS→TX przez Binder host `shell` (UID 2000) z autoryzowanego ADB. SIP/PJSUA2 i eksperymenty poza zakresem.
-- ChatGPT: GitHub Connector + [Mac Local Agent](docs/operations/LOCAL_AGENT.md); bez Codex/Work/Actions i schedulerów.
-- Kod GSM po odbiorze PR #23 na `main`; nowe zmiany przez małą gałąź i testy. Deploy S8 Lab: `scripts/bin/install-s8-gsm-lab.sh --install`, tylko IDLE, z zachowaniem APK do rollback. Mac `s8_gsm_reconnect.py` uruchamia host po restarcie przez autoryzowane ADB.
-- Bezpieczeństwo: exact Call, UID, generacja, STOP, potwierdzony `END_CALL` po TTS; nigdy nie zakładać autonomii po reboocie bez Maca. Testy fizyczne za zgodą, bez PII/WAV w Git. [SECURITY](docs/architecture/SECURITY.md).
+- **Tylko GSM bez Shizuku:** [jedyny plan](docs/PROJECT.md), [handoff](docs/operations/HANDOFF_NEXT_CHAT.md). Po PR #23 kod na `main`; nowe zmiany na małej gałęzi.
+- Telefon: exact Call/SIM → `AndroidIncomingAssistant` → `AndroidConversationRuntime` → Gemma/TTS; Binder host UID 2000 przez Mac ADB. Brak samodzielności po reboocie.
+- GitHub Connector + Mac Local Agent; Existing Code First → testy → QA → merge. Bez Codex/Work/Actions, schedulerów i SIP/PJSUA2.
+- STOP/takeover, UID/generacja, END_CALL po TTS. Fizyczny Call/deploy tylko IDLE, za zgodą i z rollbackiem. Bez PII/WAV w Git. [SECURITY](docs/architecture/SECURITY.md).

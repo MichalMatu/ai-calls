@@ -1,7 +1,7 @@
-# Mac Local Agent — ChatGPT
+# Mac Local Agent — AI Calls
 
-Host `macbook-michal`, ID `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`. **S8 worktree** `/Users/michal/agent-workspace/repos/ai-calls/s8-no-shizuku-work`; nie przełączać `main`.
+Host `macbook-michal`, instalacja `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`. Repo `main`: `/Users/michal/agent-workspace/repos/ai-calls/work`; stare worktree S8/PR #23 przeznaczone do usunięcia.
 
-Kontrola: `MichalMatu/local-agent`/`agent-control` → `.agent/hosts/macbook-michal/supervisor/<ID>/tasks/<task>.json`; wyniki `task-results/`. HEAD/czystość, 404/idle ≠ PASS; tylko terminalny receipt.
+Kolejka: repo `MichalMatu/local-agent`, `agent-control`, `.agent/hosts/macbook-michal/supervisor/<ID>/tasks/<task>.json`; odpowiedzi `task-results/`. Tylko terminalny exit=0 to PASS; 404/idle ≠ PASS.
 
-[Cel: wyłącznie GSM bez Shizuku](../PROJECT.md). Bez realnego Call/instalacji na S22 bez zgody.
+Przed pracą: fetch `main`, sprawdź HEAD i czystość, czytaj [plan](../PROJECT.md). Realny Call/instalacja wymaga IDLE i zgody.

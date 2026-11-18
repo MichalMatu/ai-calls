@@ -1,7 +1,7 @@
 # Telefonia
 
-INCOMING: AI/MANUAL z exact Call/SIM; takeover nie kończy rozmowy.
+**INCOMING GSM:** AUTO/MANUAL, exact Call/SIM; takeover zatrzymuje AI bez rozłączania, resume wymaga nowego uprawnienia. `END_CALL` tylko po TTS.
 
-OUTGOING: zatwierdzony `PhoneTask` → trwała kolejka/AlarmManager → exact dial/grant. Każdy odbiorca ma osobny wynik. Retry tylko potwierdzone BUSY/NO_ANSWER w oknie; UNKNOWN po restarcie bez redial. BOOT odtwarza alarm, nie zgodę.
+**OUTGOING:** odrębny `PhoneTask`, grant/okno/SIM; retry tylko BUSY/NO_ANSWER, UNKNOWN bez redial po restarcie. Nie należy do odebranego incoming GSM MVP. IVR/DTMF: wysłany ton ≠ potwierdzenie.
 
-IVR/DTMF: grant-bound gate bez pełnego podłączenia AI. Dispatch tonu ≠ potwierdzenie.
+[Zakres i bramki](../PROJECT.md).

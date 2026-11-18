@@ -1,20 +1,20 @@
-# AI Calls — GSM MVP bez Shizuku
+# AI Calls — plan GSM MVP
 
-S22+ GSM: RX→STT→Gemma→TTS→TX; `GsmShellBinderCallMediaSessionBackend` + autoryzowany ADB host UID 2000. Binder z UID, generacją, STOP, watchdogiem; bez fallbacku Shizuku.
+**Stan 18.11.2026:** PR #23 scalony do `main`. S22+ Android 16, debug `.s8lab`. AUTO → STT → lokalna Gemma → TTS → zaszyfrowana notatka → END_CALL: fizyczny PASS; „do widzenia” potwierdzone. Ostatni Call: 3 tury, RX/TX, `conversation_terminal_category=completed`. QA: 1200 jednostkowych, 22 Python, UI 2/2 PASS. APK do rollback zachowany.
 
-## Odbiór — 18.11.2026
-
-- AUTO, lokalna Gemma, szyfrowana notatka, zakończenie przez AI: fizyczne E2E PASS.
-- Poprawka „do widzenia”: potwierdzona przez użytkownika. Ostatnia sesja 3 tury, RX/TX, `conversation_terminal_category=completed`.
-- S22+: 1200 testów jednostkowych PASS, 22 Python PASS, UI 2/2 PASS, build/debug Binder/default dialer PASS. Zachowany APK do rollback.
-- Mac automatycznie wznowił host po rzeczywistym restarcie telefonu: PASS.
+**Zależność:** host Binder UID 2000 jako `shell`; Mac z autoryzowanym ADB wznowił go po reboocie (PASS). **Bez Maca brak samodzielnego startu hosta po reboocie.**
 
 ## Otwarte
 
-- **Brak autonomicznego startu bez MacBooka.** Po reboocie host potrzebuje autoryzowanego ADB; `s8_gsm_reconnect.py` czeka na zdarzenie USB. Bez schedulera.
-- Ręczne przejęcie/wznowienie AI oraz STOP wymagają osobnego potwierdzenia fizycznego; testy stanów UI i autoryzacji PASS.
+- **P0 GSM:** przejęcie człowieka → wznowienie AI i STOP bez osobnego pełnego fizycznego receipt. Pożegnanie, notatka, audio RX/TX: PASS.
+- **P1 autonomia:** zwykła aplikacja nie uzyskuje UID 2000 ani chronionego toru audio GSM. Każda alternatywa wymaga testu na Android 16.
+- **Dług:** `app` 375 plików (~2,2 MiB kodu); `Gemma4LiteRtTextBackend` 1140 linii, `AndroidConversationRuntime` 1028. Za duże granice odpowiedzialności.
 
 ## Następny sprint
 
-- Jakość głosu/odpowiedzi: osobny sprint. **WSTRZYMANE:** SIP/PJSUA2 i zmiany poza GSM MVP.
-- Deploy: `install-s8-gsm-lab.sh --install` tylko IDLE, z rollback. Bez Codex/Work/Actions, PII/WAV w Git.
+1. **S1 odbiór GSM:** jeden Call: AUTO → manual takeover → resume AI → STOP; potwierdź exact Call/generację, brak starego TX i prywatny raport (bez PII). Nie powtarzaj zaliczonego E2E.
+2. **S2 niezależność:** porównaj publiczne Android API/rolę dialera, podpis systemowy/OEM, root/ADB. Wynik: sprawdzona architektura albo jawny HOLD; nie psuj Binder MVP.
+3. **S3 modularność:** małe ekstrakcje stanu tury/audio z `AndroidConversationRuntime`, adaptera modelu z `Gemma4LiteRtTextBackend`. Test każdej granicy; zero regresji GSM.
+4. **S4 jakość:** oddzielny sprint naturalności odpowiedzi, polskiego głosu i opóźnień.
+
+**WSTRZYMANE:** SIP/PJSUA2, nowe schedulery i refaktor podczas odbioru. Gate: fokus → preflight → build → fizyczne QA tylko przy zmianie działania.
