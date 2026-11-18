@@ -33,6 +33,24 @@ class AntiFrictionGateTest(TestCase):
     def test_current_sources_are_free_of_known_regressions(self):
         self.assertEqual([], audit(ROOT))
 
+    def test_gsm_only_plan_cannot_be_silently_replaced_with_sip(self):
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            for name in REQUIRED:
+                file = root / name
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_text((ROOT / name).read_text(encoding="utf-8"),
+                                encoding="utf-8")
+            agents = root / "AGENTS.md"
+            agents.write_text(
+                agents.read_text(encoding="utf-8").replace(
+                    "Tylko GSM bez Shizuku", "GSM i SIP"),
+                encoding="utf-8")
+            errors = audit(root)
+            self.assertTrue(any("AGENTS.md" in error and
+                                "Tylko GSM bez Shizuku" in error
+                                for error in errors), errors)
+
     def test_mutation_of_per_call_confirmation_is_caught(self):
         with TemporaryDirectory() as d:
             root = Path(d)
