@@ -8,7 +8,7 @@ Gotowy własny tor Samsung: `SamsungVoiceDownlinkCapture` (RX), `SamsungCallAssi
 
 ## Otwarte
 
-Host `GsmShellMediaHost` i backend S8 działają w kodzie: kontrola UID, generacji, STOP, lokalny RX/TX PCM i ręczny ADB bootstrap. S8 nie wraca do Shizuku; produkcja zachowuje je jako fallback. Kompilacja i testy jednostkowe PASS; rozmowa GSM **bez Shizuku niepotwierdzona**.
+Host `GsmShellMediaHost` i backend S8 działają w kodzie: kontrola UID, generacji, STOP, lokalny RX/TX PCM i ręczny ADB bootstrap. S8 nie wraca do Shizuku, także przy wyborze modelu (Gemma LiteRT); produkcja zachowuje fallback. Kompilacja i testy jednostkowe PASS; rozmowa GSM **bez Shizuku niepotwierdzona**.
 
 ## Następny sprint
 
@@ -16,4 +16,4 @@ Host `GsmShellMediaHost` i backend S8 działają w kodzie: kontrola UID, generac
 2. Dopiero po zgodzie: izolowany APK S8, IDLE, sprawdzenie ADB, RX → STT → Gemma → TTS → TX, 4–6 tur, barge-in, `END_CALL`, nagranie, rollback.
 3. Po dowodach fizycznych wyłączyć zależność od Shizuku; nie wcześniej.
 
-**WSTRZYMANE:** SIP/VoIP/PJSUA2, modele, UX, pozostałe audyty i nowe funkcje. Nie scalać z `main` bez odbioru. Existing Code First → patch → test celowany → receipt Local Agenta. Bez Codex/Work/Actions, nowych schedulerów, nieautoryzowanych połączeń/instalacji i PII/WAV w Git.
+**WSTRZYMANE:** SIP/VoIP/PJSUA2, badania modeli, UX, pozostałe audyty i nowe funkcje. Nie scalać z `main` bez odbioru. Existing Code First → patch → test celowany → receipt Local Agenta. Bez Codex/Work/Actions, nowych schedulerów, nieautoryzowanych połączeń/instalacji i PII/WAV w Git.
