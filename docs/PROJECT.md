@@ -8,11 +8,11 @@ Gotowy własny tor Samsung: `SamsungVoiceDownlinkCapture` (RX), `SamsungCallAssi
 
 ## Otwarte
 
-Własny host `app_process` uruchamiany po zgodzie ADB; lokalny kanał z kontrolą UID aplikacji i `shell`, generacji oraz RX/TX PCM. STOP lub utrata połączenia musi zamknąć oba tory. Brak publicznego serwera/komend. Zachować produkcyjny Shizuku fallback do odbioru na S22.
+Host `GsmShellMediaHost` i backend S8 działają w kodzie: kontrola UID, generacji, STOP, lokalny RX/TX PCM i ręczny ADB bootstrap. S8 nie wraca do Shizuku; produkcja zachowuje je jako fallback. Kompilacja i testy jednostkowe PASS; rozmowa GSM **bez Shizuku niepotwierdzona**.
 
 ## Następny sprint
 
-1. Dokończyć backend host ↔ aplikacja, bez duplikacji Samsung audio; kompilacja i testy UID/STOP/generacji/FD.
+1. Zweryfikować bootstrap hosta, przekazanie FD, STOP i brak wycieków na urządzeniu; utrzymać celowane testy.
 2. Dopiero po zgodzie: izolowany APK S8, IDLE, sprawdzenie ADB, RX → STT → Gemma → TTS → TX, 4–6 tur, barge-in, `END_CALL`, nagranie, rollback.
 3. Po dowodach fizycznych wyłączyć zależność od Shizuku; nie wcześniej.
 
