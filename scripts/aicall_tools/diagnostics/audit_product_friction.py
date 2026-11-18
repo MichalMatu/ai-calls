@@ -51,7 +51,7 @@ def audit(root: Path) -> list[str]:
     require("AGENTS.md", agents, "Tylko GSM bez Shizuku")
     require("AGENTS.md", agents, "docs/PROJECT.md")
     require("docs/PROJECT.md", project, "## Otwarte")
-    require("docs/PROJECT.md", project, "**STOP innych prac:**")
+    require("docs/PROJECT.md", project, "**WSTRZYMANE:**")
     require("docs/architecture/SECURITY.md", security, "CallCommitmentGate")
     require("docs/architecture/SECURITY.md", security, "FactDisclosurePolicy")
     require("docs/architecture/SECURITY.md", security, "STOP")
