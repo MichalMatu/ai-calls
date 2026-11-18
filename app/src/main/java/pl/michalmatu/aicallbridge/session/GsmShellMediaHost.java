@@ -44,18 +44,17 @@ public final class GsmShellMediaHost {
         systemMain.invoke(null);
 
         Context system = PrivilegedCallContexts.create().system();
-        int trustedAppUid = system.getPackageManager().getPackageUid(
-            GsmShellMediaProtocol.S8_PACKAGE, 0
-        );
-        if (!GsmShellMediaProtocol.mayServeApp(trustedAppUid, trustedAppUid))
-            throw new SecurityException("gsm_shell_target_app_unavailable");
-
+        // Never cache the package UID: uninstall/reinstall can invalidate the
+        // authority while this explicitly started shell process is still alive.
         try (LocalServerSocket listener =
                  new LocalServerSocket(GsmShellMediaProtocol.SOCKET_NAME)) {
             while (true) {
                 try (LocalSocket peer = listener.accept()) {
+                    int installedUid = system.getPackageManager().getPackageUid(
+                        GsmShellMediaProtocol.S8_PACKAGE, 0
+                    );
                     if (!GsmShellMediaProtocol.mayServeApp(
-                        peer.getPeerCredentials().getUid(), trustedAppUid)) {
+                        peer.getPeerCredentials().getUid(), installedUid)) {
                         continue;
                     }
                     peer.setSoTimeout(6_000);
