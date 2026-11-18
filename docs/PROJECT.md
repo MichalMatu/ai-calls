@@ -19,4 +19,4 @@ S8 Lab korzysta z `GsmShellBinderCallMediaSessionBackend`; host ADB UID 2000 rej
 
 ## Następny sprint
 
-Na Macu `s8_gsm_reconnect.py --install` włącza nasłuch `adb track-devices` bez schedulera; `--uninstall` wyłącza. Tylko zatwierdzony S22+, IDLE, sprawdzony Binder. Aktualizacja APK: `install-s8-gsm-lab.sh --install`. **WSTRZYMANE:** SIP/PJSUA2 i merge do `main` przed odbiorem. Bez Codex/Work/Actions, schedulerów i PII/WAV w Git.
+Na Macu `s8_gsm_reconnect.py --install` włącza zdarzenia `adb wait-for-device/disconnect` bez schedulera; `--uninstall` wyłącza. Tylko zatwierdzony S22+, IDLE, sprawdzony Binder. Aktualizacja APK: `install-s8-gsm-lab.sh --install`. **WSTRZYMANE:** SIP/PJSUA2 i merge do `main` przed odbiorem. Bez Codex/Work/Actions, schedulerów i PII/WAV w Git.
