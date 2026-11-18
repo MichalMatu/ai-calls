@@ -489,6 +489,7 @@
     <string name="pilot_ui_already_running">Sesja AI już działa.</string>
     <string name="pilot_ui_permission_required">Potrzebne uprawnienia mikrofonu i stanu telefonu.</string>
     <string name="pilot_ui_shizuku_missing">Shizuku niedostępne. Uruchom Shizuku i sprawdź uprawnienia AI Calls.</string>
+    <string name="pilot_ui_gsm_shell_missing">Host GSM uruchamiany przez ADB jest niedostępny. Uruchom zatwierdzony proces shell i spróbuj ponownie, bez Shizuku.</string>
     <string name="pilot_ui_call_missing">Najpierw rozpocznij rozmowę w zwykłym dialerze.</string>
     <string name="pilot_ui_model_dialog_title">Brakuje modelu Gemma 4</string>
     <string name="pilot_ui_model_dialog_help">Aby rozmawiać z modelem, pobierz 2,59 GB na ekranie głównym. Możesz też przetestować samo audio w trybie skryptowym.</string>
