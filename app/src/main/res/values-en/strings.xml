@@ -749,6 +749,9 @@
     <string name="perm_call_phone_title">Placing calls</string>
     <string name="perm_notifications_title">Notifications (optional)</string>
     <string name="perm_shizuku_title">Shizuku</string>
+    <string name="perm_gsm_shell_title">GSM — own ADB shell host</string>
+    <string name="perm_gsm_shell_ready">GSM shell host found. Shizuku permission is not required.</string>
+    <string name="perm_gsm_shell_offline">GSM shell host unavailable. Start it after authorizing ADB; Shizuku is not required.</string>
     <string name="perm_shizuku_offline">Shizuku is not running</string>
     <string name="perm_action_open_shizuku">Open Shizuku</string>
 
