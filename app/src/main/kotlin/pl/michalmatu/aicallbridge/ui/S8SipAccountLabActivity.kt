@@ -1,10 +1,6 @@
 package pl.michalmatu.aicallbridge.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.os.Bundle
-import android.telecom.TelecomManager
 import android.text.InputType
 import android.view.View
 import android.widget.Button
@@ -28,6 +24,10 @@ import pl.michalmatu.aicallbridge.session.S8IncomingVoipUiState
  * taken as mutable char[] and erased from the input immediately. The user
  * must tap REGISTER for every network attempt. Back/STOP closes the TCP socket
  * immediately. No auto-login, redirects, INVITE or audio transfer.
+ *
+ * SIP account registration is independent of Android's cellular call state:
+ * do not request READ_PHONE_STATE, dialer role or Shizuku for this network-only
+ * explicit lab operation. GSM call ownership is unchanged elsewhere.
  */
 class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun toolbarTitle(): String = getString(R.string.s8_sip_lab_title)
@@ -114,16 +114,6 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun startRegisterOnce() {
         if (attempt != null) return
-        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
-            PackageManager.PERMISSION_GRANTED) {
-            status.text = getString(R.string.s8_sip_lab_permission)
-            requestPermissions(arrayOf(Manifest.permission.READ_PHONE_STATE), 8109)
-            return
-        }
-        if (!isPhoneIdle()) {
-            status.text = getString(R.string.s8_sip_lab_blocked)
-            return
-        }
         val secret = CharArray(password.text.length) { password.text[it] }
         password.text.clear() // Immediately remove the credential from the UI.
         val config = try {
@@ -195,32 +185,6 @@ class S8SipAccountLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         register.isEnabled = true
         stop.isEnabled = false
         status.text = getString(R.string.s8_sip_lab_stopped)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 8109 && !isFinishing && !isDestroyed) {
-            // Do not send any SIP data immediately after granting permission.
-            // An additional explicit REGISTER tap is always required.
-            status.text = getString(
-                if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
-                    R.string.s8_sip_lab_idle else R.string.s8_sip_lab_blocked
-            )
-        }
-    }
-
-    private fun isPhoneIdle(): Boolean {
-        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
-            PackageManager.PERMISSION_GRANTED) return false
-        return runCatching {
-            val telecom = getSystemService(TelecomManager::class.java)
-            val audio = getSystemService(AudioManager::class.java)
-            telecom != null && !telecom.isInCall && !telecom.isInManagedCall &&
-                audio != null && audio.mode != AudioManager.MODE_IN_CALL &&
-                audio.mode != AudioManager.MODE_IN_COMMUNICATION
-        }.getOrDefault(false)
     }
 
     override fun onStop() {
