@@ -9,9 +9,12 @@ S22+ GSM: RX→STT→Gemma→TTS→TX; `GsmShellBinderCallMediaSessionBackend` +
 - S22+: 1200 testów jednostkowych PASS, 22 Python PASS, UI 2/2 PASS, build/debug Binder/default dialer PASS. Zachowany APK do rollback.
 - Mac automatycznie wznowił host po rzeczywistym restarcie telefonu: PASS.
 
-## Granice i następne QA
+## Otwarte
 
 - **Brak autonomicznego startu bez MacBooka.** Po reboocie host potrzebuje autoryzowanego ADB; `s8_gsm_reconnect.py` czeka na zdarzenie USB. Bez schedulera.
 - Ręczne przejęcie/wznowienie AI oraz STOP wymagają osobnego potwierdzenia fizycznego; testy stanów UI i autoryzacji PASS.
-- Jakość głosu/odpowiedzi: osobny sprint. SIP/PJSUA2 poza zakresem GSM MVP.
+
+## Następny sprint
+
+- Jakość głosu/odpowiedzi: osobny sprint. **WSTRZYMANE:** SIP/PJSUA2 i zmiany poza GSM MVP.
 - Deploy: `install-s8-gsm-lab.sh --install` tylko IDLE, z rollback. Bez Codex/Work/Actions, PII/WAV w Git.
