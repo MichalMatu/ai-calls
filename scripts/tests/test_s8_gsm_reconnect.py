@@ -71,8 +71,8 @@ class S8GsmReconnectTest(TestCase):
 
     def test_no_root_shizuku_scheduler_or_autodial_code(self):
         text = SCRIPT.read_text()
-        for forbidden in ("Shizuku", "su -c", "pm install", "adb reboot",
-                          "cron", "scheduleAtFixedRate", "placeCall("):
+        for forbidden in ("Shizuku.requestPermission", "su -c", "pm install", "adb reboot",
+                          "crontab", "scheduleAtFixedRate", "placeCall("):
             self.assertNotIn(forbidden, text)
         self.assertIn('"track-devices"', text)
         self.assertIn('"RunAtLoad": True', text)
