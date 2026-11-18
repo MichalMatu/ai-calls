@@ -28,13 +28,9 @@ internal class ToolCallingConversationSession(
     override val awaitToolCompletion get() = awaitingTool
     override val acknowledgementPolicy = TextOutputApprovalPolicy { speech -> releasePolicy.evaluate(speech) }
     override val backend = ConversationReplyBackend(model, normalizeReply = { callerTranscript, reply ->
-        if (callerFarewellLanguageTag != null &&
-            IncomingCallerFarewellPolicy.isUnambiguousGoodbye(callerTranscript)) {
-            // Speak a final, question-free goodbye, then dispatch the existing
-            // END_CALL tool only after complete playback and current-call authorization.
-            ConversationReply(IncomingCallerFarewellPolicy.finalSpeech(callerFarewellLanguageTag),
-                ConversationToolId.END_CALL)
-        } else reply
+        if (callerFarewellLanguageTag == null) reply else
+            IncomingCallerFarewellPolicy.normalizeProposal(
+                callerTranscript, reply, callerFarewellLanguageTag)
     }) { reply, elapsed, error ->
         hooks.decisionSink.record(hooks.turn(), reply?.tool?.name ?: if (error) null else "SPEAK", responseSource, elapsed, error)
         hooks.emit("turn_${hooks.turn()}_model_reply_ms=$elapsed")
