@@ -1,6 +1,6 @@
-# AI Calls — archiwalny final quality checkpoint, 15.11.2026
+# AI Calls — FINAL QUALITY CHECKPOINT, 15.11.2026
 
-**Archiwalny stan: HOST-TESTED / REAL_CALL_PHYSICAL_OPEN; nieaktywny plan.** Dzisiejszy backlog: [PROJECT](../../docs/PROJECT.md). To przegląd i poprawki dwóch potwierdzonych usterek, a nie pełny odbiór wszystkich ekranów ani Telecom. Repozytorium `MichalMatu/ai-calls`, `main`; punkt bazowy `6a10bca`, kod po poprawkach `d7a9aa4e8a645f8df7f0cb6f42843f5a9d8a2cd6`.
+**Status: HOST-TESTED / REAL_CALL_PHYSICAL_OPEN.** To przegląd i poprawki dwóch potwierdzonych usterek, a nie pełny odbiór wszystkich ekranów ani Telecom. Repozytorium `MichalMatu/ai-calls`, `main`; punkt bazowy `6a10bca`, kod po poprawkach `d7a9aa4e8a645f8df7f0cb6f42843f5a9d8a2cd6`.
 
 ## Usterki naprawione
 
@@ -20,11 +20,11 @@
 - Picker dialogu w `ModelVoiceSettings` pokazuje Gemma E2B oraz modele właściciela z importu, lecz `LanguageModelCatalog` nadal przechowuje statyczne metadane E4B/Qwen dla istniejących ścieżek legacy/lab. Bez dowodu bezpiecznej migracji nie usuwano wpisów ani nie rozszerzano silników. Generic import i kompatybilność wymagają pełnego flow na emulatorze i urządzeniu.
 - Nie potwierdzono wszystkich ekranów ani ścieżek wychodzących. Nie deklarować zakończonego audytu UX/Telecom ani gotowości produkcyjnej.
 
-## Historyczna ocena jakości
+## Handoff i bramka końcowa
 
-Na dzień 15.11 nie wykonano pełnego GSM E2E mimo testów off-call i emulatora. Gemma E2B i profil S22 zachowano. Ten zapis nie zastępuje późniejszego potwierdzenia użytkownika, że aplikacja działa z GSM. Plan: [PROJECT](../../docs/PROJECT.md).
+Zachować czysty `main`, Gemma E2B jako bazę, aktualny profil S22 i istniejący system UI. Dalszy odbiór: emulator PL/EN w dozwolonym zakresie, import → weryfikacja → wybór → powrót do Gemmy, onboarding/uprawnienia/historia, a po osobnej zgodzie i sprawdzeniu IDLE dokładny test przychodzącego Call C1–C3. Nie uruchamiać automatycznych połączeń, instalacji ani schedulerów. **FINAL QUALITY: PARTIAL; real-call acceptance open.**
 
-## Wyniki z 15.11.2026
+## Uzupełnienie — sprint zamykający 15.11.2026 (po zgodzie użytkownika)
 
 **Wynik: HOST + S22 APK/OFF-CALL PASS; REAL_CALL_PHYSICAL_OPEN.**
 Stan kodu po poprawkach: `77fdc864fc97b9f95f1f518bf60b58c550edbdf2` (`main`; od `2c70e0f` zmieniały się wyłącznie testy Android i ten checkpoint).
@@ -46,9 +46,8 @@ Stan kodu po poprawkach: `77fdc864fc97b9f95f1f518bf60b58c550edbdf2` (`main`; od 
 - Izolowany `medium_phone`: w macierzy `aicalls-emulator-final-targeted-ui-matrix-20261115-v1` **7/8 PASS** (nawigacja, ustawienia, zasoby PL/EN, historia, przejście ekranów, import/odrzucenia); test nowego selektora języka początkowo przekroczył limit. W kolejnej izolowanej próbie wykryto zły identyfikator ListView w samym teście, poprawiono i `aicalls-emulator-english-picker-isolated-20261115-v4` wykazał `passed=true` dla PL→EN→PL, bez dotykania S22. Zatem każdy z 8 przypadków ma pojedynczy instrumentacyjny sukces na docelowych wersjach kodu/testu; **nie oznacza to ponownej pełnej macierzy 8/8 w jednym uruchomieniu**. Przy pierwszej próbie zbiorczej pojawiały się też awarie/timeouty. Fake `.litertlm` sprawdza mechanikę importu i izolację bazowego modelu, nie autentyczną kompatybilność natywną.
 - Cały onboarding i każda ścieżka UI nie są jeszcze fizycznie zakwalifikowane, a angielski E2E STT→LLM→TTS wymaga uruchomienia na urządzeniu z faktycznym offline en-US głosem i rozpoznawaniem.
 
-### Zakres historycznych dowodów
-
-C1–C3, END_CALL, barge-in, STOP i odsłuch nie zostały wtedy zweryfikowane podczas pełnej faktycznej rozmowy. Brak nieautoryzowanych połączeń i publikacji prywatnych danych. Obecny P0 GSM: [PROJECT](../../docs/PROJECT.md).
+### Ostatnia bramka
+**C1–C3 / END_CALL / barge-in / STOP / odsłuch: PHYSICAL_OPEN** — brak realnego połączenia oznacza brak dowodu jakości, rozłączenia oraz nagrywania. W następnym nadzorowanym oknie właściciel dzwoni na S22 z drugiego telefonu; po teście weryfikacja prywatnych, pozbawionych treści zdarzeń `END_CALL`, RX/TX i przywrócenie `MANUAL`. Nie wolno ogłaszać produkcyjnego PASS, automatycznie dzwonić, pozostawić sekretarki w trybie AI ani kopiować numerów, dialogów czy WAV do GitHub.
 
 ## Checkpoint MVP — 15 listopada 2026
 
@@ -61,10 +60,12 @@ C1–C3, END_CALL, barge-in, STOP i odsłuch nie zostały wtedy zweryfikowane po
 - **Instalacja:** Mac Local Agent `aicalls-s22-longpress-delete-ux-install-20261115-v1` — **PASS** budowy i instalacji kodu `956b078`. APK SHA-256 `5671935fa58f2960b5396860a2604859f77db53f2003ad265df00a974811e7e6`, 226287719 bajtów. S22 `IDLE` przed/po, domyślny dialer i Shizuku zachowane. Bez uninstall, kasowania historii i modeli, zmiany roli, połączeń inicjowanych przez agenta. Ostatnia aktualizacja bez dodatkowych testów — potwierdzona kompilacja, instalacja i ręczny odbiór UX.
 - Wcześniejsze 60/60 prób torów off-call, 18/18 tur syntetycznych i 5/5 STOP dotyczą **wcześniejszych SHA**, a nie ponownego pełnego przebiegu na `956b078`. Nie przypisywać checkpointowi pełnego produkcyjnego PASS.
 
-### Ograniczenie checkpointu
+### Blokady i następny etap
 
-MVP off-call i historię wtedy potwierdzono, lecz pełny GSM Call nie miał zamkniętego odbioru. Ten stan nie wyznacza obecnej technologii ani priorytetu. [Aktualny plan](../../docs/PROJECT.md).
+**MVP OFF-CALL + historia: potwierdzone; REAL GSM CALL: PHYSICAL_OPEN.** Do osobnego odbioru pozostają C1–C3 (realne 4–6 tur, barge-in/STOP, END_CALL, odsłuch), G6.1 BOOT/retry/takeover i EN E2E. Działający Samsung PCM/Shizuku nie jest zmieniany w tym checkpointcie.
 
-### Archiwalny punkt powrotu Git
+**Następny osobny sprint S8:** działanie bez Shizuku. Zidentyfikować ograniczenia grantów zwykłej aplikacji, RX `VOICE_DOWNLINK` i TX `CALL_ASSISTANT`, odseparować backend i ocenić OEM/system oraz VoIP/SIP z przekierowaniem. Zachować Shizuku jako fallback. Brak systemowego API ≠ błąd modelu. Dokładny zakres i kryteria: `docs/PROJECT.md`.
 
-Tag `mvp-s22-2026-11-15` zachowuje dawne pliki i stan kodu, ale zawarty w nim plan nie jest już aktualny. Obecna kolejność w [PROJECT](../../docs/PROJECT.md). Izolowany checkout: `git worktree add --detach <ścieżka> mvp-s22-2026-11-15`. **Nie resetuj ani nie force-pushuj `main`**. Tag obejmuje Git, nie prywatne modele/dane telefonu; wymagają zachowania osobno. Bez schedulerów, automatycznych połączeń i PII/WAV w Git.
+### Jak szybko wrócić
+
+`git fetch origin --tags` → `git show mvp-s22-2026-11-15:docs/PROJECT.md` (plan) lub `git diff mvp-s22-2026-11-15..main` (późniejsze zmiany). Izolowany checkout: `git worktree add --detach <ścieżka> mvp-s22-2026-11-15`. **Nie resetuj ani nie force-pushuj `main`**. Tag obejmuje Git, nie prywatne modele/dane telefonu; wymagają zachowania osobno. Bez schedulerów, automatycznych połączeń i PII/WAV w Git.

@@ -1,9 +1,9 @@
-# AI Calls — archiwalny checkpoint S22 (15.11.2026)
+# AI Calls — checkpoint MILESTONE S22, 15.11.2026
 
 **MILESTONE: stabilny, fizycznie przetestowany rdzeń audio i dialogu
 off-call.** Repo MichalMatu/ai-calls, gałąź main.
 Nie jest to jeszcze kwalifikacja Telecom / prawdziwej długiej rozmowy.
-Źródła historycznych pomiarów: AGENTS.md, docs/PROJECT.md oraz AUDIO_ROUTE_QUALITY.md. **Nie jest to bieżąca lista zadań.** Aktualny plan: [PROJECT](../../docs/PROJECT.md).
+Źródła: AGENTS.md, docs/PROJECT.md oraz AUDIO_ROUTE_QUALITY.md.
 
 ## Potwierdzone na Samsungu S22
 
@@ -43,9 +43,17 @@ i bywało zawyżone startem.
 Opcji stałego rezydenta w RAM nie wdrażano.
 Nie zmieniano wybranego LLM ani silnika STT/TTS.
 
-## Niepotwierdzone w dniu checkpointu
+## Nadal otwarte: REAL CALL / HUMAN ACCEPTANCE
 
-Nie wykonano pełnej rozmowy przychodzącej GSM (4–6 tur, barge-in, STOP, END_CALL, odsłuch i hałas). Nowych LLM też wtedy nie sprawdzono. Wyniki off-call pozostają dowodami tylko dla wskazanych SHA, a nie obecnym backlogiem. Aktualny plan: [PROJECT](../../docs/PROJECT.md).
+1. 4–6 wymian na prawdziwym przychodzącym połączeniu:
+   powitanie podczas prewarm i faktyczny end-of-speech → TX.
+2. Barge-in, STOP w czasie RX/model/TTS/TX oraz
+   brak starego dźwięku po przerwaniu.
+3. END_CALL po „do widzenia”, rzeczywiste rozłączenie
+   bez kolejnego pytania, stabilny dialer i evidence.
+4. Odsłuch, echo, hałas, długie rozmowy i daty/godziny.
+5. Osobno porównać nowe LLM (Qwen) po tym checkpoint:
+   fresh/prewarm/hot, RAM, jakość JSON i pamięć konwersacji.
 
 ## Dowody / wznowienie
 
@@ -56,5 +64,6 @@ Prywatne liczniki S7 na Macu w katalogu
 (1c093662ed21-gemma-cold-warm.json,
 e0baaf1eaa45-gemma-cold-warm-r2.json).
 Nie kopiować transkryptów, WAV i numerów do Git.
-Archiwalny zapis, nie instrukcja dalszych prac. Bez schedulerów,
+Nowe prace: najpierw aktualny HEAD/main, potem wyłącznie
+celowane testy i udokumentowany wynik. Bez schedulerów,
 nieautoryzowanych połączeń, zmian uprawnień i masowego dial.
