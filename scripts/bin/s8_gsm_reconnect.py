@@ -45,34 +45,6 @@ def shell(adb: str, serial: str, *args: str, timeout: int = 15) -> str:
     return process.stdout.strip() if process.returncode == 0 else ""
 
 
-def parse_snapshot(lines: list[str]) -> dict[str, str]:
-    """Parse an entire adb track-devices frame (not a single changed line)."""
-    devices: dict[str, str] = {}
-    for line in lines:
-        parts = line.strip().split()
-        if len(parts) >= 2 and parts[1] in {"device", "offline", "unauthorized", "recovery"}:
-            devices[parts[0]] = parts[1]
-    return devices
-
-
-def newly_online(previous: dict[str, str], current: dict[str, str], serial: str) -> bool:
-    return current.get(serial) == "device" and previous.get(serial) != "device"
-
-
-def advance_tracking(previous: dict[str, str], line: str, serial: str) -> tuple[dict[str, str], bool]:
-    """ADB may emit one device row without a blank frame terminator (macOS).
-
-    Each row must trigger immediately. An empty listing or another device row
-    resets the target state, so a later reconnect becomes eligible again.
-    """
-    current = parse_snapshot([line])
-    if serial in current:
-        return current, newly_online(previous, current, serial)
-    if not line.strip() or current:
-        return {}, False
-    return previous, False
-
-
 def host_registered(adb: str, serial: str) -> bool:
     result = adb_cmd(adb, serial, "shell", "content", "call", "--uri", URI,
                      "--method", "status")
@@ -124,24 +96,51 @@ def recover(adb: str, serial: str, max_boot_checks: int = 90,
     return False
 
 
+_active_adb: subprocess.Popen[str] | None = None
+
+
+def stop_watcher(_signal: int, _frame: object) -> None:
+    """launchctl bootout must not leave an orphaned adb wait client."""
+    global _active_adb
+    if _active_adb is not None and _active_adb.poll() is None:
+        _active_adb.terminate()
+        try:
+            _active_adb.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            _active_adb.kill()
+            _active_adb.wait()
+    raise SystemExit(0)
+
+
+def wait_for_adb_state(adb: str, serial: str, state: str) -> bool:
+    global _active_adb
+    # ADB's own event wait primitive avoids output parsing and periodic scans.
+    # The exact already-approved serial is pinned, never any nearby device.
+    _active_adb = subprocess.Popen(
+        [adb, "-s", serial, "wait-for-" + state],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
+    try:
+        return _active_adb.wait() == 0
+    finally:
+        _active_adb = None
+
+
 def watch(adb: str, serial: str) -> None:
-    """Block on ADB device notifications. No cron, fixed-interval or scheduler."""
+    """Block on reconnect/disconnect ADB events; never start a scheduler."""
+    import signal
+    signal.signal(signal.SIGTERM, stop_watcher)
+    signal.signal(signal.SIGINT, stop_watcher)
     log("WATCHER_STARTED")
     while True:
-        try:
-            with subprocess.Popen([adb, "track-devices"], stdout=subprocess.PIPE,
-                                  stderr=subprocess.DEVNULL, text=True, bufsize=1) as process:
-                previous: dict[str, str] = {}
-                assert process.stdout is not None
-                for line in process.stdout:
-                    previous, should_restore = advance_tracking(previous, line, serial)
-                    if should_restore:
-                        log("AUTHORIZED_DEVICE_RECONNECTED")
-                        recover(adb, serial)
-        except (OSError, subprocess.SubprocessError):
-            log("ADB_EVENT_STREAM_INTERRUPTED")
-        # Restart only a broken *event stream*, not device scans.
-        time.sleep(2)
+        if not wait_for_adb_state(adb, serial, "device"):
+            log("WAIT_FOR_DEVICE_INTERRUPTED")
+            time.sleep(2)
+            continue
+        log("AUTHORIZED_DEVICE_RECONNECTED")
+        recover(adb, serial)
+        if not wait_for_adb_state(adb, serial, "disconnect"):
+            log("WAIT_FOR_DISCONNECT_INTERRUPTED")
+            time.sleep(2)
 
 
 def agent_path() -> Path:
