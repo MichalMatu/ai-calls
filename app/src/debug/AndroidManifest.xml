@@ -27,6 +27,12 @@
             android:permission="android.permission.DUMP"
             android:excludeFromRecents="true"
             android:noHistory="true" />
+        <!-- Isolated S8 app-owned registration, shell UID only; no Shizuku. -->
+        <provider
+            android:name=".session.GsmShellBinderRegistryProvider"
+            android:authorities="${applicationId}.gsmbinder"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
         <!-- DUMP-gated, UID-verified read-only Binder transport proof. -->
         <provider
             android:name=".developerrelay.S8ShellBinderProbeProvider"
