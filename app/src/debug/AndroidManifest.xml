@@ -27,6 +27,12 @@
             android:permission="android.permission.DUMP"
             android:excludeFromRecents="true"
             android:noHistory="true" />
+        <!-- DUMP-gated, UID-verified read-only Binder transport proof. -->
+        <provider
+            android:name=".developerrelay.S8ShellBinderProbeProvider"
+            android:authorities="${applicationId}.s8shellprobe"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
         <!-- Disabled unless -Ps8NativePrototype=true on an owner-local build.
              May be launched by adb shell only. No SIP account or network. -->
         <activity
