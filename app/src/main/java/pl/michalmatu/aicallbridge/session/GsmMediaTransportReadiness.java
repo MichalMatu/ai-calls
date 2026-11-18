@@ -2,11 +2,6 @@ package pl.michalmatu.aicallbridge.session;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.net.LocalSocket;
-import android.net.LocalSocketAddress;
-import android.util.Log;
-
-import java.io.IOException;
 import java.util.Objects;
 
 import rikka.shizuku.Shizuku;
@@ -18,8 +13,6 @@ import rikka.shizuku.Shizuku;
  * command. A false "ready" still fails closed in the actual bind handshake.
  */
 public final class GsmMediaTransportReadiness {
-    private static final String LOG_TAG = "AiCallsGsmShell";
-
     private GsmMediaTransportReadiness() {}
 
     public static boolean isAvailable(Context context) {
@@ -39,21 +32,9 @@ public final class GsmMediaTransportReadiness {
     }
 
     private static boolean shellAvailable() {
-        // Kernel abstract Unix socket, not TCP. Closing before handshake is
-        // safe: the host never calls prepare/start without explicit commands.
-        try (LocalSocket socket = new LocalSocket()) {
-            socket.connect(new LocalSocketAddress(
-                GsmShellMediaProtocol.SOCKET_NAME, LocalSocketAddress.Namespace.ABSTRACT));
-            int peerUid = socket.getPeerCredentials().getUid();
-            boolean trusted = GsmShellMediaProtocol.mayTrustShell(peerUid);
-            if (!trusted) Log.w(LOG_TAG, "readiness_peer_uid_rejected=" + peerUid);
-            return trusted;
-        } catch (IOException | RuntimeException unavailable) {
-            // S8-only diagnostic: class and socket error, never call/audio content.
-            Log.w(LOG_TAG, "readiness_socket_failure="
-                + unavailable.getClass().getSimpleName() + ":" + unavailable.getMessage());
-            return false;
-        }
+        // Observing the app-owned Binder registry is read-only and cannot
+        // start PCM. Actual bind verifies the shell UID through Binder.
+        return GsmShellBinderRegistryProvider.availableService() != null;
     }
 
     private static boolean legacyAvailable() {
