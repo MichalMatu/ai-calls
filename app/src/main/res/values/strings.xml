@@ -419,6 +419,7 @@
     <string name="dialer_ui_holding">Rozmowa wstrzymana</string>
     <string name="dialer_ui_disconnected">Rozmowa zakończona</string>
     <string name="dialer_ui_connecting">Łączenie…</string>
+    <string name="dialer_ui_gsm_shell_recovery">AI niedostępne: proces GSM offline. Po instalacji lub restarcie uruchom host przez ADB (bez Shizuku).</string>
     <string name="dialer_ui_assistant_status">Asystent: %1$s</string>
 
     <!-- UX-05: localized Home, engines and live chat -->
