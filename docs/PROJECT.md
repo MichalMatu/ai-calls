@@ -1,6 +1,6 @@
 # AI Calls — GSM bez Shizuku
 
-**Jedyny cel:** Samsung S22+ (SM-S906B), GSM RX→STT→Gemma→TTS→TX bez Shizuku. Kod tylko na `feature/s8-no-shizuku`; `main` i stabilny APK nietknięte.
+**Cel:** S22+ GSM RX→STT→Gemma→TTS→TX bez Shizuku. Gałąź `feature/s8-no-shizuku`; bez zmian `main`.
 
 ## Kod
 
@@ -8,15 +8,16 @@ S8 Lab (`.s8lab`) używa `GsmShellBinderCallMediaSessionBackend` bez fallbacku S
 
 ## QA S22+ — 18.11.2026
 
-- Android 16; APK S8 obok stabilnego dialera: **PASS**.
+- Android 16, S8 Lab: **PASS**; stabilny APK usunięty przez użytkownika.
 - Binder app↔shell, weryfikacja UID, transfer FD, rejestracja hosta: **PASS**.
 - Kompilacja, testy `Gsm*Test`, odrzucenie starej generacji/STOP: **PASS**.
-- GSM Binder gotowy; realny S22+ test rozmowy przychodzącej 18.11.2026: 6 tur.
+- S22+ GSM 18.11: 6 tur, RX/TX PASS; host zniknął po zmianie instalacji i został przywrócony przez ADB bez Shizuku (UID/Binder PASS).
 - Unix socket odrzucony przez SELinux (`Permission denied`) — wyłączony.
 ## Otwarte
 
-- PCM: RX 2 088 320, TX 2 325 986 B — **PASS funkcjonalny**; jakość sieci niezmierzona.
+- PCM RX 2 088 320 i TX 2 325 986 B — PASS; jakość niezmierzona.
+- Host ADB nie jest trwały po restarcie/aktualizacji. Nie jest to samodzielny tryb bez ADB. Zanik hosta bezpiecznie wyłącza AI; bez Shizuku.
 
 ## Następny sprint
 
-QA zwykłego dialera S8: ręczne odbieranie, AI takeover/resume, STOP, rozłączenie, latencja. `media_rx_tx_observed` jest niezależne od `conversation_terminal_category` i `chat_relay_live_call_success`. Przed merge sprawdzić 3 zaległe commity `main`. **WSTRZYMANE:** SIP/PJSUA2, merge do `main` przed QA. Bez schedulerów, Codex/Work/Actions ani danych rozmów w Git.
+Każdy deploy S8: `install-s8-gsm-lab.sh --install` (APK→ADB host→Binder gate); po restarcie bez instalacji: `start-s8-gsm-shell.sh --start`. QA: ponowny rzeczywisty Call, takeover/STOP, restart. **WSTRZYMANE:** SIP/PJSUA2 i merge do `main` bez odbioru. Bez schedulerów, Codex/Work/Actions i danych rozmów w Git.
