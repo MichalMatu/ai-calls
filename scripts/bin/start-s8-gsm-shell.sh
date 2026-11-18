@@ -33,9 +33,7 @@ adb -s "$ANDROID_SERIAL" shell '
 # A background app_process exit is not proof of readiness. Only the
 # authenticated S8 Binder registry may mark the host ready.
 for attempt in {1..24}; do
-  response="$(adb -s "$ANDROID_SERIAL" shell content call \\
-    --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder \\
-    --method status 2>/dev/null || true)"
+  response="$(adb -s "$ANDROID_SERIAL" shell content call --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder --method status 2>/dev/null || true)"
   if [[ "$response" == *"host_registered=true"* ]]; then
     echo 'S8_GSM_BINDER_HOST_READY=true'
     exit 0
