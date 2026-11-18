@@ -8,7 +8,7 @@ set -euo pipefail
 # Usage: ANDROID_SERIAL=<verified-s22-serial> bash scripts/bin/start-s8-gsm-shell.sh --start
 #
 # Losing the ADB shell host after reboot requires another explicit bootstrap.
-# The helper itself accepts only the installed lab app UID over LocalSocket;
+# Binder registration checks the shell UID and exact installed S8 lab app UID;
 # disconnect/STOP revokes both privileged PCM directions.
 
 [[ "${1:-}" == "--start" && "$#" == 1 ]] || {
@@ -19,6 +19,29 @@ set -euo pipefail
 command -v adb >/dev/null || { echo 'adb is unavailable' >&2; exit 2; }
 [[ "$(adb -s "$ANDROID_SERIAL" get-state)" == "device" ]] ||
   { echo 'The exact approved device is not accessible' >&2; exit 2; }
+
+[[ "$(adb -s "$ANDROID_SERIAL" shell getprop ro.product.model | tr -d '\r')" == "SM-S906B" ]] ||
+  { echo 'Only the approved S22+ is supported' >&2; exit 3; }
+
+# A host may be restored only without an active call. ADB can report an
+# unhelpful call state on Samsung; validate AudioManager mode as well.
+call_state="$(adb -s "$ANDROID_SERIAL" shell dumpsys telephony.registry |
+  sed -n 's/.*mCallState=\([0-9]\).*/\1/p' | head -n1 | tr -d '\r')"
+audio_mode="$(adb -s "$ANDROID_SERIAL" shell dumpsys audio |
+  sed -n 's/.*Actual mode = \(MODE_[A-Z_]*\).*/\1/p' | head -n1 | tr -d '\r')"
+[[ "$call_state" == 0 && "$audio_mode" == MODE_NORMAL ]] || {
+  echo 'Refusing to bootstrap GSM host during an active/unknown call' >&2
+  exit 4
+}
+# Repeated launch should not spawn a second helper.
+existing="$(adb -s "$ANDROID_SERIAL" shell content call \
+  --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder \
+  --method status 2>/dev/null || true)"
+if [[ "$existing" == *"host_registered=true"* ]]; then
+  echo 'S8_GSM_BINDER_HOST_READY=true'
+  echo 'S8_GSM_BINDER_HOST_ALREADY_REGISTERED=true'
+  exit 0
+fi
 
 # The command is kept literal for the device shell. No user-controlled
 # package, class, path or commands are interpolated into the remote program.
