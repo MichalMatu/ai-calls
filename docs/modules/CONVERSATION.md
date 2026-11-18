@@ -1,9 +1,7 @@
 # Rozmowa
 
-Jeden `AndroidConversationRuntime`: STT → LLM/Skills → kontrola narzędzi → TTS. Każdy callback musi należeć do sesji/tury/generacji. STOP/barge-in odcina stary TX.
+`AndroidConversationRuntime`: PCM → STT → Gemma/Skills → JSON `reply/tool/note/kind` → kontrola narzędzi → TTS/TX. Exact Call, turn, generacja i STOP odrzucają spóźnione callbacki; barge-in odcina stary TX.
 
-Po zapełnieniu KV model odtwarza ostatnie zakończone pary USER/MODEL, nie skraca system promptu ani bieżącej wypowiedzi; pełna prywatna historia zostaje. Ponawia tylko inferencję, nigdy narzędzi/Call. Brak limitu tur.
+`save_note`: szyfrowany lokalny zapis; `end_call`: po TTS przez bieżącego właściciela. `IncomingCallerFarewellPolicy` obsługuje jednoznaczne „do widzenia”, ale nie cytaty, pytania ani nowe ustalenia. Model nie wykonuje rezerwacji; `TASK/CALENDAR/MESSAGE` to propozycje.
 
-JSON: reply/tool/note/kind (bez notatki: note puste, kind=NOTE). Walidacja przed historią. Błąd: naprawa inferencji z poprawną historią, potem prośba o powtórzenie jako SCRIPT_ASSISTED. STOP kończy obie ścieżki. Gemma E2B: 4096 kontekstu; 512 tokenów całego JSON.
-
-SAVE_NOTE lokalnie; TASK/CALENDAR/MESSAGE to propozycje. USB Lab off-call bez skutków. WAV opt-in; Telecom/echo/barge-in: PHYSICAL_OPEN.
+KV odtwarza zakończone pary dialogu, bez naruszania bieżącej tury; po błędzie JSON ponawia tylko inferencję. LiteRT/Parakeet/Piper: test off-call ≠ PASS GSM. WAV wyłącznie opt-in.

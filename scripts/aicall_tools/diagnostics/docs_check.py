@@ -10,10 +10,9 @@ DOCS = (
     "docs/README.md", "docs/PROJECT.md",
     "docs/architecture/SYSTEM.md", "docs/architecture/SECURITY.md",
     "docs/modules/CONVERSATION.md", "docs/modules/INCOMING_OUTGOING.md",
-    "docs/modules/AUDIO_HISTORY.md", "docs/modules/SKILLS_LAB.md",
-    "docs/modules/BOOKING_EFFECTS.md", "docs/modules/UI.md",
+    "docs/modules/UI.md",
     "docs/operations/DEVELOPMENT.md", "docs/operations/LOCAL_AGENT.md",
-    "docs/operations/DEVICE.md", "docs/operations/EXTERNAL_REUSE.md",
+    "docs/operations/HANDOFF_NEXT_CHAT.md",
 )
 REQUIRED = ("README.md", "AGENTS.md", *DOCS)
 

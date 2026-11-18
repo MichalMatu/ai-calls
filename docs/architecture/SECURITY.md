@@ -1,7 +1,6 @@
 # Bezpieczeństwo
 
-- Tylko exact app-owned Call i grant z numerem/SIM/scope; bez globalnego hangup.
-- STOP/TAKE OVER odcina stare STT/model/TTS/TX przed cleanup; resume jawnie.
-- `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault`: model nie autoryzuje. UNKNOWN i TX nie potwierdzają rezerwacji.
-- WAV na opt-in, STT/historia prywatne. Bez PII/audio w Git/receipts/logcat.
-- Zamrożony Samsung PCM/Shizuku wymaga fizycznego QA po zmianie. Realny Call: zgoda, IDLE, sprawdzony S22. Bez `FLAG_SECURE`.
+- Exact `Call`/SIM/generacja; **STOP** i takeover odwołują STT, model i TX. `IncomingEndCallAuthority` potwierdza uprawnienie; `END_CALL` dopiero po TTS.
+- Binder host UID 2000: weryfikacja UID, sesji, watchdog i rozłączenia; bez fallbacku Shizuku w S8 Lab. Reboot bez Maca = brak hosta.
+- `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault`: model proponuje, nie autoryzuje. `UNKNOWN` i TX nie potwierdzają rezerwacji.
+- WAV/evidence prywatne, opt-in; bez PII/audio w Git, receipts i logcat. Bez `FLAG_SECURE`. Fizyczny Call/deploy wyłącznie za zgodą, przy IDLE i z rollbackiem.
