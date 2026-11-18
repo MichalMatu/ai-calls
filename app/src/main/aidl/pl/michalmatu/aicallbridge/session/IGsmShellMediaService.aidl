@@ -8,10 +8,10 @@ import android.os.ParcelFileDescriptor;
  */
 interface IGsmShellMediaService {
     int getShellUid() = 1;
-    void prepare(int sampleRate) = 2;
-    void startMedia() = 3;
-    ParcelFileDescriptor takeDownlinkReadEnd() = 4;
-    ParcelFileDescriptor takeUplinkWriteEnd() = 5;
-    boolean heartbeat() = 6;
-    void abortNow() = 7;
+    void prepare(long generation, int sampleRate) = 2;
+    void startMedia(long generation) = 3;
+    ParcelFileDescriptor takeDownlinkReadEnd(long generation) = 4;
+    ParcelFileDescriptor takeUplinkWriteEnd(long generation) = 5;
+    boolean heartbeat(long generation) = 6;
+    void abortNow(long generation) = 7;
 }
