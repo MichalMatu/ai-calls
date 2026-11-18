@@ -86,10 +86,11 @@ public final class GsmShellCallMediaSessionBackend implements CallMediaSessionBa
             }
             callback.onBindFailed(generation, error);
         } finally {
+            boolean retained;
             synchronized (lock) {
-                if (connected != null && connected.socket == socket) return;
+                retained = connected != null && connected.socket == socket;
             }
-            closeQuietly(socket);
+            if (!retained) closeQuietly(socket);
         }
     }
 
