@@ -27,14 +27,6 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
             body.addView(UiDesign.button(this, getString(R.string.pilot_ui_title)) {
                 startActivity(Intent(this, SupervisedCallPilotActivity::class.java))
             }.apply { tag = "developer-s8-gsm-pilot" })
-        } else {
-            // Preserve production navigation until the isolated GSM path is accepted.
-            body.addView(UiDesign.button(this, getString(R.string.s8_voip_lab_title)) {
-                startActivity(Intent(this, S8VoipLabActivity::class.java))
-            }.apply { tag = "developer-s8-voip-lab" })
-            body.addView(UiDesign.button(this, getString(R.string.s8_sip_lab_title)) {
-                startActivity(Intent(this, S8SipAccountLabActivity::class.java))
-            }.apply { tag = "developer-s8-sip-lab" })
         }
         setContentView(ScrollView(this).apply { addView(body) })
         probes.attach()

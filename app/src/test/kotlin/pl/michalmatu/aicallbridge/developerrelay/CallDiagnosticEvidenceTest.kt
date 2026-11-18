@@ -11,9 +11,6 @@ import org.junit.Test
 class CallDiagnosticEvidenceTest {
     @Test fun onlyFixedPrivateDiagnosticNamesCanBeWritten() {
         assertTrue(PrivateDiagnosticReportStore.isAllowedName(
-            S8RtpLoopbackSmokeActivity.REPORT_FILE
-        ))
-        assertTrue(PrivateDiagnosticReportStore.isAllowedName(
             S8LocalSpeechSmokeActivity.REPORT_FILE
         ))
         assertTrue(PrivateDiagnosticReportStore.isAllowedName(
@@ -21,9 +18,6 @@ class CallDiagnosticEvidenceTest {
         ))
         assertTrue(PrivateDiagnosticReportStore.isAllowedName(
             S8NativeSpeechSmokeActivity.REPORT_FILE
-        ))
-        assertTrue(PrivateDiagnosticReportStore.isAllowedName(
-            S8NativeVoipTwoTurnSmokeActivity.REPORT_FILE
         ))
         assertFalse(PrivateDiagnosticReportStore.isAllowedName("../private.txt"))
         assertFalse(PrivateDiagnosticReportStore.isAllowedName("/sdcard/report.txt"))

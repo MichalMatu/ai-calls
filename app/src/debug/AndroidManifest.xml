@@ -46,14 +46,6 @@
             android:authorities="${applicationId}.s8shellprobe"
             android:exported="true"
             android:permission="android.permission.DUMP" />
-        <!-- Disabled unless -Ps8NativePrototype=true on an owner-local build.
-             May be launched by adb shell only. No SIP account or network. -->
-        <activity
-            android:name=".developerrelay.S8Pjsua2OfflineLoadSmokeActivity"
-            android:enabled="${s8NativeSmokeEnabled}"
-            android:exported="true"
-            android:permission="android.permission.DUMP"
-            android:excludeFromRecents="true"
-            android:noHistory="true" />
+
     </application>
 </manifest>

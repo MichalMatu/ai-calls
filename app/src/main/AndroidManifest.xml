@@ -68,11 +68,6 @@
         <activity android:name=".ui.AgentAiHubActivity" android:exported="false" />
         <activity android:name=".ui.GeneralSettingsActivity" android:exported="false" />
         <activity android:name=".ui.DeveloperToolsActivity" android:exported="false" />
-        <!-- Manual 127.0.0.1 synthetic VoIP lab, reachable from Developer tools.
-             No other app, adb, carrier or microphone can trigger media here. -->
-        <activity android:name=".ui.S8VoipLabActivity" android:exported="false" />
-        <!-- One-shot manual SIP REGISTER; test-account credentials are never stored. -->
-        <activity android:name=".ui.S8SipAccountLabActivity" android:exported="false" />
         <activity android:name=".ui.CapabilityDiagnosticsActivity" android:exported="false" />
 
         <!-- The OS permits exact Call objects only to the user's chosen default dialer. -->
@@ -125,14 +120,6 @@
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
 
-        <!-- S8 synthetic 127.0.0.1 RTP smoke. No GSM, microphone or real VoIP call. -->
-        <activity
-            android:name=".developerrelay.S8RtpLoopbackSmokeActivity"
-            android:excludeFromRecents="true"
-            android:exported="true"
-            android:noHistory="true"
-            android:permission="android.permission.DUMP" />
-
         <!-- S8 synthetic source TTS -> actual Android STT -> approved local TTS.
              Shell/DUMP only; no microphone PCM captured or real phone call. -->
         <activity
@@ -157,13 +144,7 @@
             android:exported="true"
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
-        <!-- Fully offline two-turn native STT/Gemma/TTS looped through actual localhost RTP. -->
-        <activity
-            android:name=".developerrelay.S8NativeVoipTwoTurnSmokeActivity"
-            android:excludeFromRecents="true"
-            android:exported="true"
-            android:noHistory="true"
-            android:permission="android.permission.DUMP" />
+
 
         <activity
             android:name=".campaign.AppointmentMvpActivity"
