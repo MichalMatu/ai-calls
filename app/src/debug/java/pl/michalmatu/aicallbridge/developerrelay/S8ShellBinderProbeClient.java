@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.developerrelay;
 
 import android.content.Context;
+import pl.michalmatu.aicallbridge.shizuku.PrivilegedCallContexts;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
@@ -21,12 +22,10 @@ public final class S8ShellBinderProbeClient {
         Class<?> threadClass = Class.forName("android.app.ActivityThread");
         Method systemMain = threadClass.getDeclaredMethod("systemMain");
         systemMain.setAccessible(true);
-        Object thread = systemMain.invoke(null);
-        Method getSystemContext = threadClass.getDeclaredMethod("getSystemContext");
-        getSystemContext.setAccessible(true);
-        Context system = (Context) getSystemContext.invoke(thread);
+        systemMain.invoke(null);
+        Context shell = PrivilegedCallContexts.create().shell();
         Uri uri = Uri.parse("content://pl.michalmatu.aicallbridge.s8lab.s8shellprobe");
-        Bundle response = system.getContentResolver().call(uri, "ping", null, null);
+        Bundle response = shell.getContentResolver().call(uri, "ping", null, null);
         System.out.println("S8_SHELL_BINDER_PROVIDER_REACHABLE="
             + (response != null && response.getBoolean("shell_uid_verified", false)));
     }
