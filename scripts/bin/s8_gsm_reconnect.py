@@ -59,6 +59,20 @@ def newly_online(previous: dict[str, str], current: dict[str, str], serial: str)
     return current.get(serial) == "device" and previous.get(serial) != "device"
 
 
+def advance_tracking(previous: dict[str, str], line: str, serial: str) -> tuple[dict[str, str], bool]:
+    """ADB may emit one device row without a blank frame terminator (macOS).
+
+    Each row must trigger immediately. An empty listing or another device row
+    resets the target state, so a later reconnect becomes eligible again.
+    """
+    current = parse_snapshot([line])
+    if serial in current:
+        return current, newly_online(previous, current, serial)
+    if not line.strip() or current:
+        return {}, False
+    return previous, False
+
+
 def host_registered(adb: str, serial: str) -> bool:
     result = adb_cmd(adb, serial, "shell", "content", "call", "--uri", URI,
                      "--method", "status")
@@ -118,18 +132,12 @@ def watch(adb: str, serial: str) -> None:
             with subprocess.Popen([adb, "track-devices"], stdout=subprocess.PIPE,
                                   stderr=subprocess.DEVNULL, text=True, bufsize=1) as process:
                 previous: dict[str, str] = {}
-                frame: list[str] = []
                 assert process.stdout is not None
                 for line in process.stdout:
-                    if line.strip():
-                        frame.append(line)
-                        continue
-                    current = parse_snapshot(frame)
-                    frame.clear()
-                    if newly_online(previous, current, serial):
+                    previous, should_restore = advance_tracking(previous, line, serial)
+                    if should_restore:
                         log("AUTHORIZED_DEVICE_RECONNECTED")
                         recover(adb, serial)
-                    previous = current
         except (OSError, subprocess.SubprocessError):
             log("ADB_EVENT_STREAM_INTERRUPTED")
         # Restart only a broken *event stream*, not device scans.
