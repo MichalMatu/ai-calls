@@ -35,9 +35,16 @@ internal class CallDiagnosticEvidence(initial: List<String>) {
 
 /** Latest-only, crash-safe on-device evidence. Never exports to network/logcat. */
 internal object PrivateDiagnosticReportStore {
+    /** Fixed filenames only: reject arbitrary paths, identities, and filenames. */
+    fun isAllowedName(name: String): Boolean =
+        name == SupervisedCallReadinessDiagnostics.REPORT_FILE ||
+            name == AndroidConversationRuntime.REPORT_FILE ||
+            name == S8LocalSpeechSmokeActivity.REPORT_FILE ||
+            name == S8LocalModelFourTurnSmokeActivity.REPORT_FILE ||
+            name == S8NativeSpeechSmokeActivity.REPORT_FILE
+
     fun write(directory: File, name: String, report: String): Boolean {
-        require(name == SupervisedCallReadinessDiagnostics.REPORT_FILE ||
-            name == AndroidConversationRuntime.REPORT_FILE) { "invalid_diagnostic_report_name" }
+        require(isAllowedName(name)) { "invalid_diagnostic_report_name" }
         val file = AtomicFile(File(directory, name))
         var stream: FileOutputStream? = null
         return try {

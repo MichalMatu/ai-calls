@@ -15,6 +15,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // S8 lab APK installs side-by-side with the stable dialer on Samsung.
+    // Never use the production package ID for an experimental debug build.
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".s8lab"
+            versionNameSuffix = "-s8lab"
+            // Only the owner's 64-bit Samsung S22+ target. Do not ship
+            // x86/x86_64/32-bit native LLM binaries in the test installer.
+            ndk { abiFilters += "arm64-v8a" }
+        }
+    }
+
     buildFeatures {
         aidl = true
     }

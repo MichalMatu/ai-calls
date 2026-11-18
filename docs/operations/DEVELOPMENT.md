@@ -1,7 +1,7 @@
 # Development
 
-**Tryby:** ChatGPT → GitHub Connector + Local Agent (komendy/testy/host), bez Codex; Codex lokalny → terminal, Git i testy bezpośrednio, bez agenta. [Protokół](LOCAL_AGENT.md).
+**Jedyny [plan](../PROJECT.md): własny host `shell` dla GSM bez Shizuku.** Nie rozwijać SIP/VoIP/PJSUA2 ani innych funkcji. ChatGPT → [Mac Local Agent](LOCAL_AGENT.md), bez Codex/Work/Actions/schedulerów.
 
-Czysty `main`, sprawdzony SHA i brak kolizji. `bash scripts/bin/test-profile.sh preflight`, potem `auto <base-SHA>`/`focus`; `full` po większych zmianach. `device-build` przed emulatorem lub autoryzowaną instalacją. Zachowaj cache Gradle.
+Czysty S8 HEAD, Existing Code First → patch → `scripts/bin/test-profile.sh focus` → receipt. Preflight/full tylko w razie potrzeby, cache Gradle. `main` bez zmian. Fizyczny Call/instalacja po zgodzie.
 
-**Docs:** kontrakty/blokady bez historii; ostrzeżenie 6 KiB, limit 8 KiB, AGENTS ≤1 KiB, PROJECT ≤2 KiB. [Gate](../../scripts/aicall_tools/diagnostics/docs_check.py).
+[Gate](../../scripts/aicall_tools/diagnostics/docs_check.py): AGENTS ≤1 KiB, PROJECT ≤2 KiB, docs ≤8 KiB.

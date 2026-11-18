@@ -6,6 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 class SupervisedCallReadinessDiagnosticsTest {
     private fun snapshot(
@@ -22,6 +23,16 @@ class SupervisedCallReadinessDiagnosticsTest {
         managedCall = managed,
         audioMode = mode,
     )
+
+    @Test fun isolatedGsmReportUsesShellReadinessAndNoShizukuLabel() {
+        val reading = snapshot(shizuku = false).copy(
+            mediaMode = CallMediaBackendMode.GSM_SHELL_ADB
+        )
+        assertEquals(SupervisedCallPilotFailure.GSM_SHELL_NOT_READY, reading.failure)
+        val report = reading.renderReport()
+        assertTrue(report.contains("gsm_shell_ready=false"))
+        assertFalse(report.contains("shizuku_ready"))
+    }
 
     @Test fun activeCallWithoutModeInCallIsReportedAndBlocked() {
         val reading = snapshot(mode = AudioManager.MODE_IN_COMMUNICATION)

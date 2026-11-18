@@ -19,7 +19,7 @@ COMPONENT = PACKAGE + "/.developerrelay.SupervisedCallReadinessProbeActivity"
 REPORT_PATH = "files/supervised-call-readiness-report.txt"
 EXPECTED_SERIAL = "RFCT70L7E8J"
 EXPECTED_MODEL = "SM-S906B"
-FIELDS = (
+LEGACY_FIELDS = (
     "probe",
     "microphone_permission",
     "phone_state_permission",
@@ -30,6 +30,17 @@ FIELDS = (
     "failure_reason",
     "report_complete",
 )
+S8_FIELDS = (
+    "s8_dialer_role_held",
+    "s8_record_audio_granted",
+    "s8_read_phone_state_granted",
+    "s8_capture_audio_output_granted",
+    "s8_public_cellular_rx",
+    "s8_public_cellular_tx",
+    "s8_cellular_pcm_verified",
+)
+# New app reports S8 between failure_reason and terminal report_complete.
+FIELDS = LEGACY_FIELDS[:-1] + S8_FIELDS + ("report_complete",)
 BOOL_FIELDS = (
     "microphone_permission",
     "phone_state_permission",
@@ -37,6 +48,13 @@ BOOL_FIELDS = (
     "telecom_in_call",
     "telecom_managed_call",
     "report_complete",
+)
+S8_BOOL_FIELDS = (
+    "s8_dialer_role_held",
+    "s8_record_audio_granted",
+    "s8_read_phone_state_granted",
+    "s8_capture_audio_output_granted",
+    "s8_cellular_pcm_verified",
 )
 AUDIO_MODES = {
     "MODE_IN_CALL",
@@ -64,17 +82,22 @@ def parse_report(raw: str) -> dict[str, str]:
         if key not in FIELDS or key in result:
             raise ValueError("unexpected_or_duplicate_diagnostic_field")
         result[key] = value
-    if tuple(result) != FIELDS:
+    if tuple(result) not in (LEGACY_FIELDS, FIELDS):
         raise ValueError("incomplete_or_reordered_diagnostic_report")
     if result["probe"] != "supervised_call_readiness":
         raise ValueError("invalid_diagnostic_probe")
-    if any(result[k] not in ("true", "false") for k in BOOL_FIELDS):
+    if any(result[k] not in ("true", "false") for k in BOOL_FIELDS + S8_BOOL_FIELDS if k in result):
         raise ValueError("invalid_diagnostic_boolean")
     audio = result["audio_mode"]
     if audio not in AUDIO_MODES and not re.fullmatch(r"OTHER_-?[0-9]{1,9}", audio):
         raise ValueError("invalid_audio_mode")
     if result["failure_reason"] not in REASONS:
         raise ValueError("invalid_failure_reason")
+    if "s8_dialer_role_held" in result:
+        if (result["s8_public_cellular_rx"], result["s8_public_cellular_tx"]) != (
+            "not_available", "not_available"
+        ) or result["s8_cellular_pcm_verified"] != "false":
+            raise ValueError("unverified_cellular_pcm_claim")
     if result["report_complete"] != "true":
         raise ValueError("incomplete_diagnostic_report")
     return result
@@ -123,7 +146,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except (OSError, ValueError, TimeoutError, subprocess.SubprocessError) as error:
         print("DIAGNOSTIC_FAILED=" + type(error).__name__)
         return 1
-    for key in FIELDS:
+    for key in (FIELDS if "s8_dialer_role_held" in result else LEGACY_FIELDS):
         print(key + "=" + result[key])
     print("NO_DIAL_NO_HANGUP_NO_PCM=true")
     return 0

@@ -42,7 +42,7 @@
     <string name="mv_discard_title">Discard unsaved changes?</string>
     <string name="mv_discard">Discard</string>
     <string name="mv_stay">Stay</string>
-    <string name="mv_permissions">App permissions</string>
+    <string name="mv_permissions">Permissions and default apps</string>
     <string name="mv_permissions_hint">Status of the Phone role, microphone and phone state / SIM access.</string>
     <string name="perm_microphone_title">Microphone</string>
     <string name="perm_phone_state_title">SIM cards and phone state</string>
@@ -81,4 +81,6 @@
     <string name="models_ui_custom_check_failed">The check did not pass. %1$s This model cannot be selected yet. You can retry.</string>
     <string name="models_ui_custom_check_pass_toast">Model %1$s: compatibility confirmed.</string>
     <string name="models_ui_custom_check_fail_toast">Model %1$s: check failed. See the model card for details.</string>
+    <string name="mv_compatibility_phone_permission">Checking the model requires phone-state access. Grant the permission in the Android prompt, then tap “Check compatibility” again. Granting permission does not start the check.</string>
+    <string name="mv_compatibility_blocked">Check not started: the phone is not confirmed idle or an assistant task is active. Retry after the activity ends.</string>
 </resources>

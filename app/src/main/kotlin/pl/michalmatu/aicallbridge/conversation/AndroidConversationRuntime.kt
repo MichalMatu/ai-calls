@@ -158,6 +158,7 @@ internal object AndroidConversationRuntime {
         private val rxCaptureAttemptSequence = AtomicLong(0L)
         private val lines = CallDiagnosticEvidence(listOf(
             "probe=chat_relay_live_call",
+            "audio_transport=" + pl.michalmatu.aicallbridge.session.CallMediaBackendMode.forPackage(context.packageName).name.lowercase(),
             "supervised_read_only=$readOnlySupervised",
             "dialogue_mode=${if (runConfiguration is ConversationRunConfiguration.ModelDirect) "gemma_direct" else "script_gemma"}",
             "conversation_scenario=${scenario.id}",
@@ -296,6 +297,8 @@ internal object AndroidConversationRuntime {
                 }
             }
             try {
+                // The single package-scoped runtime selector keeps S8 on the
+                // own-ADB-shell backend, with NO fallback to Shizuku on failure.
                 mediaRuntime = CallMediaSessionRuntime(
                     context,
                     Consumer { snapshot -> onMediaSnapshot(snapshot) },
@@ -992,6 +995,14 @@ internal object AndroidConversationRuntime {
             lines += "telephony_rx_pcm_bytes=$totalRxBytes"
             lines += "telephony_rx_partial_pcm_bytes=$interruptedRxBytes"
             lines += "telephony_tx_pcm_bytes=$totalTxBytes"
+            // PCM flow and conversation termination are independent outcomes.
+            // Accepted byte counts do not by themselves prove carrier playback quality.
+            lines += "media_rx_tx_observed=" + (turnsCompleted > 0 && totalRxBytes > 0 && totalTxBytes > 0)
+            lines += "conversation_terminal_category=" + when (result) {
+                ConversationTermination.Completed -> "completed"
+                is ConversationTermination.Stopped -> "stopped"
+                is ConversationTermination.Failed -> "failed"
+            }
             lines += "chat_relay_live_call_success=${result == ConversationTermination.Completed}"
             lines += "conversation_end_reason=${sanitize(reason)}"
             if (result is ConversationTermination.Failed) lines += "failure_reason=${sanitize(reason)}"

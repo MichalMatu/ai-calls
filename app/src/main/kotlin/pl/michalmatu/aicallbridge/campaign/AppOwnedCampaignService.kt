@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationRuntime
 import pl.michalmatu.aicallbridge.conversation.*
 import pl.michalmatu.aicallbridge.tools.ConversationToolSettingsStore
-import rikka.shizuku.Shizuku
+import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.os.Handler
@@ -699,16 +699,15 @@ class AppOwnedCampaignService : Service() {
             notification("Read-only audio pilot on user-controlled call"),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
         )
-        val shizukuReady = runCatching {
-            Shizuku.pingBinder() && !Shizuku.isPreV11() &&
-                Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-        }.getOrDefault(false)
+        // All call paths share package-scoped media readiness. An S8 shell
+        // failure never triggers the legacy Shizuku path.
+        val mediaReady = GsmMediaTransportReadiness.isAvailable(this)
         val alreadyInCall = permissionsReady && runCatching {
             telecom?.isInCall == true && audio?.mode == AudioManager.MODE_IN_CALL
         }.getOrDefault(false)
-        if (!permissionsReady || !shizukuReady || !alreadyInCall) {
+        if (!permissionsReady || !mediaReady || !alreadyInCall) {
             supervisedAudioActive.set(false)
-            finish("Read-only pilot blocked: attach to an existing call with phone/mic/Shizuku ready")
+            finish("Read-only pilot blocked: existing call and verified GSM media transport required")
             return
         }
         val sessionId = "supervised-" + UUID.randomUUID().toString().take(18)

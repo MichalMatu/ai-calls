@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.developerrelay
 
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
+
 /**
  * The supervised pilot is deliberately separate from dialing authorization.
  * The operator starts and ends the cellular call in the default Phone app.
@@ -7,6 +9,7 @@ package pl.michalmatu.aicallbridge.developerrelay
 internal enum class SupervisedCallPilotFailure {
     PERMISSION_REQUIRED,
     SHIZUKU_NOT_READY,
+    GSM_SHELL_NOT_READY,
     NO_ACTIVE_CELLULAR_CALL,
     AUDIO_ROUTE_NOT_READY,
 }
@@ -31,9 +34,12 @@ internal object SupervisedCallPilotPolicy {
         shizukuReady: Boolean,
         hasActiveCellularCall: Boolean,
         inCallAudioMode: Boolean,
+        mediaMode: CallMediaBackendMode = CallMediaBackendMode.SHIZUKU_LEGACY,
     ): SupervisedCallPilotFailure? = when {
         !microphonePermission || !phoneStatePermission -> SupervisedCallPilotFailure.PERMISSION_REQUIRED
-        !shizukuReady -> SupervisedCallPilotFailure.SHIZUKU_NOT_READY
+        !shizukuReady -> if (mediaMode == CallMediaBackendMode.GSM_SHELL_ADB)
+            SupervisedCallPilotFailure.GSM_SHELL_NOT_READY
+        else SupervisedCallPilotFailure.SHIZUKU_NOT_READY
         !hasActiveCellularCall -> SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL
         !inCallAudioMode -> SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY
         else -> null

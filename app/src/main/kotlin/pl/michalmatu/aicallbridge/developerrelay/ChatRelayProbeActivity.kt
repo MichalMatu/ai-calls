@@ -15,6 +15,8 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import rikka.shizuku.Shizuku
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
+import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 
 /** Dedicated ADB/shell-only entry point for the interactive developer relay. */
 class ChatRelayProbeActivity : Activity() {
@@ -44,17 +46,24 @@ class ChatRelayProbeActivity : Activity() {
             return
         }
 
-        if (!Shizuku.pingBinder()) {
-            finishWithError("binder_unavailable")
-            return
-        }
-        if (Shizuku.isPreV11()) {
-            finishWithError("unsupported_pre_v11")
-            return
-        }
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            finishWithError("permission_required")
-            return
+        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
+            if (!GsmMediaTransportReadiness.isAvailable(this)) {
+                finishWithError("gsm_shell_host_unavailable")
+                return
+            }
+        } else {
+            if (!Shizuku.pingBinder()) {
+                finishWithError("binder_unavailable")
+                return
+            }
+            if (Shizuku.isPreV11()) {
+                finishWithError("unsupported_pre_v11")
+                return
+            }
+            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                finishWithError("permission_required")
+                return
+            }
         }
 
         statusView.text = "Running interactive ChatGPT relay…"

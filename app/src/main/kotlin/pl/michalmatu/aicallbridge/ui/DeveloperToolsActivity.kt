@@ -6,6 +6,8 @@ import android.widget.ScrollView
 import pl.michalmatu.aicallbridge.MainActivityDeveloperProbes
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
+import pl.michalmatu.aicallbridge.developerrelay.SupervisedCallPilotActivity
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 /** Existing diagnostic actions, relocated without changing their callbacks. */
 class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -19,6 +21,13 @@ class DeveloperToolsActivity : UiChromeActivity(AppTab.SETTINGS) {
         body.addView(UiDesign.button(this, getString(R.string.ui_lab_short)) {
             startActivity(Intent(this, ConversationSkillLabActivity::class.java))
         })
+        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
+            // Only the actual GSM test belongs in the no-Shizuku S8 workflow.
+            // The pilot itself still requires an active operator-managed call and START.
+            body.addView(UiDesign.button(this, getString(R.string.pilot_ui_title)) {
+                startActivity(Intent(this, SupervisedCallPilotActivity::class.java))
+            }.apply { tag = "developer-s8-gsm-pilot" })
+        }
         setContentView(ScrollView(this).apply { addView(body) })
         probes.attach()
     }

@@ -48,6 +48,7 @@ internal class IncomingSecretaryScenario(
                 .createConversationReply(context, configuration.systemInstruction, enabledTools),
             approval, tools, hooks, "INCOMING_MODEL_DIRECT",
             ConversationInstructionBuilder.incomingOpening(configuration.audioProfile.languageTag),
+            callerFarewellLanguageTag = configuration.audioProfile.languageTag,
         )
         return object : ConversationDialogueSession by session {
             override fun armIdleClosure(): Boolean = session.armIdleClosure()

@@ -12,6 +12,7 @@ import android.widget.ScrollView
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 /** Direct settings entries share the Agent menu's presentation. */
 class SettingsHubActivity : AppBaseActivity() {
@@ -29,7 +30,11 @@ class SettingsHubActivity : AppBaseActivity() {
         destination(R.string.mv_title, LanguageModelActivity::class.java)
         destination(R.string.incoming_ui_title, IncomingAssistantSettingsActivity::class.java)
         destination(R.string.mv_permissions, GeneralSettingsActivity::class.java)
-        destination(R.string.ui_settings_hub_developer, DeveloperToolsActivity::class.java)
+        // Keep the proven S8 GSM MVP as one product flow, without a second pilot menu.
+        // The lab diagnostics remain accessible to authorized ADB QA.
+        if (CallMediaBackendMode.forPackage(packageName) != CallMediaBackendMode.GSM_SHELL_ADB) {
+            destination(R.string.ui_settings_hub_developer, DeveloperToolsActivity::class.java)
+        }
         // Interface language is independent of STT/TTS and belongs after functional settings.
         // One visible native dropdown; selecting a language takes only one tap to open.
         val languageCodes = listOf("auto", "pl", "en")

@@ -4,12 +4,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 class SupervisedCallPilotPolicyTest {
     private fun check(
         mic: Boolean = true, phone: Boolean = true, shizuku: Boolean = true,
         active: Boolean = true, mode: Boolean = true,
     ) = SupervisedCallPilotPolicy.check(mic, phone, shizuku, active, mode)
+
+    @Test fun missingOwnGsmHostIsNotMisreportedAsShizuku() {
+        assertEquals(
+            SupervisedCallPilotFailure.GSM_SHELL_NOT_READY,
+            SupervisedCallPilotPolicy.check(
+                true, true, false, true, true,
+                CallMediaBackendMode.GSM_SHELL_ADB
+            )
+        )
+        assertNull(SupervisedCallPilotPolicy.check(
+            true, true, true, true, true,
+            CallMediaBackendMode.GSM_SHELL_ADB
+        ))
+    }
 
     @Test fun stopFencesTheMediaBeforeAuthorizationIsRevoked() {
         val events = mutableListOf<String>()

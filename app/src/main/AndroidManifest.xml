@@ -120,6 +120,32 @@
             android:noHistory="true"
             android:permission="android.permission.DUMP" />
 
+        <!-- S8 synthetic source TTS -> actual Android STT -> approved local TTS.
+             Shell/DUMP only; no microphone PCM captured or real phone call. -->
+        <activity
+            android:name=".developerrelay.S8LocalSpeechSmokeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
+        <!-- App-owned 4-turn text-only LiteRT test. No remote call or transcript. -->
+        <activity
+            android:name=".developerrelay.S8LocalModelFourTurnSmokeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
+        <!-- Fully offline, app-owned synthetic PCM → Android STT → E2B → approval → TTS. -->
+        <activity
+            android:name=".developerrelay.S8NativeSpeechSmokeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:permission="android.permission.DUMP" />
+
+
         <activity
             android:name=".campaign.AppointmentMvpActivity"
             android:windowSoftInputMode="adjustResize"

@@ -34,7 +34,7 @@ import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 /**
  * Minimum operator-supervised call product. NEVER dials, changes the default
  * dialer, changes an account, discloses identity, or disconnects a cellular call.
- * It only attaches the frozen Shizuku RX/TX path to a call the operator already
+ * It attaches the package-selected Samsung RX/TX path to a call the operator already
  * started and executes up to three reviewed, effect-free dialogue turns.
  */
 class SupervisedCallPilotActivity : Activity() {
@@ -196,6 +196,10 @@ class SupervisedCallPilotActivity : Activity() {
             }
             SupervisedCallPilotFailure.SHIZUKU_NOT_READY -> {
                 status.text = getString(R.string.pilot_ui_shizuku_missing)
+                return
+            }
+            SupervisedCallPilotFailure.GSM_SHELL_NOT_READY -> {
+                status.text = getString(R.string.pilot_ui_gsm_shell_missing)
                 return
             }
             SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL -> {

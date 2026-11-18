@@ -14,6 +14,7 @@ import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 import pl.michalmatu.aicallbridge.conversationcore.IncomingAssistantPolicy
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.DialerRoleCard
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiSelect
 import pl.michalmatu.aicallbridge.ui.UiActionTone
@@ -21,6 +22,7 @@ import pl.michalmatu.aicallbridge.ui.UiActionTone
 /** Displays incoming-call preferences; all store/Telecom effects live in the controller. */
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var controller: IncomingAssistantSettingsController
+    private lateinit var dialerRole: DialerRoleCard
     private lateinit var feedback: TextView
     private lateinit var simPicker: Spinner
     private lateinit var simPermissionAction: View
@@ -38,6 +40,10 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             IncomingAssistantPolicy("unavailable", AnsweringMode.MANUAL, null, false)
         }
         val content = UiDesign.content(this)
+        // Make the actual GSM prerequisite visible where AI answering is enabled.
+        // The role request only launches after an explicit user tap.
+        dialerRole = DialerRoleCard(this, showOnlyWhenMissing = true)
+        content.addView(dialerRole.view, UiDesign.spaceAfter(this, 12))
         fun description(value: Int) = UiDesign.caption(this, getString(value)).apply {
             textSize = 14f
             setPadding(0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 7),
@@ -151,6 +157,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onResume() {
         super.onResume()
+        if (::dialerRole.isInitialized) dialerRole.refresh()
         if (::simPicker.isInitialized) {
             simPermissionAction.visibility = if (hasPhonePermission()) View.GONE else View.VISIBLE
             if (hasPhonePermission() && simAccounts.isEmpty()) reloadAccounts()

@@ -418,7 +418,14 @@
     <string name="dialer_ui_holding">Call on hold</string>
     <string name="dialer_ui_disconnected">Call ended</string>
     <string name="dialer_ui_connecting">Connecting…</string>
-    <string name="dialer_ui_assistant_status">Assistant: %1$s</string>
+    <string name="dialer_ui_gsm_shell_recovery">AI unavailable. Check the connection to the authorized MacBook.</string>
+    <string name="dialer_ui_ai_waiting">AI: waiting</string>
+    <string name="dialer_ui_ai_answering">AI is answering</string>
+    <string name="dialer_ui_ai_starting">AI is preparing the conversation</string>
+    <string name="dialer_ui_ai_active">AI is handling the call</string>
+    <string name="dialer_ui_ai_ending">AI is ending the call</string>
+    <string name="dialer_ui_ai_manual">Manual answering</string>
+    <string name="dialer_ui_ai_ended">Call ended</string>
 
     <!-- UX-05: localized Home, engines and live chat -->
     <string name="home_one_tap_permission">Android needs microphone and phone-state permission.</string>
@@ -489,6 +496,7 @@
     <string name="pilot_ui_already_running">AI session is already running.</string>
     <string name="pilot_ui_permission_required">Microphone and phone-state permissions required.</string>
     <string name="pilot_ui_shizuku_missing">Shizuku unavailable. Start Shizuku and check AI Calls permissions.</string>
+    <string name="pilot_ui_gsm_shell_missing">ADB GSM shell host is unavailable. Start the approved shell helper, then retry without Shizuku.</string>
     <string name="pilot_ui_call_missing">Start a call in your regular dialer first.</string>
     <string name="pilot_ui_model_dialog_title">Gemma 4 model missing</string>
     <string name="pilot_ui_model_dialog_help">To talk with the model, download 2.59 GB on Home. You can also test audio in script mode.</string>
@@ -734,6 +742,13 @@
     <string name="cap_ui_yes">Yes</string>
     <string name="cap_ui_no">No</string>
     <string name="cap_ui_unknown">Unknown</string>
+    <string name="perm_answer_phone_title">Answering calls</string>
+    <string name="perm_default_apps_action">Android default apps</string>
+    <string name="perm_app_settings_action">AI Calls app permissions in Android</string>
+    <string name="perm_incoming_ai_action">GSM assistant — mode and SIM</string>
+    <string name="perm_incoming_mode_ai">Answering mode: AI</string>
+    <string name="perm_incoming_mode_manual">Answering mode: manual</string>
+    <string name="perm_incoming_mode_unavailable">Unable to read answering mode</string>
     <string name="perm_status_granted">Granted</string>
     <string name="perm_status_missing">Not granted</string>
     <string name="perm_action_allow">Grant access</string>
@@ -741,6 +756,9 @@
     <string name="perm_call_phone_title">Placing calls</string>
     <string name="perm_notifications_title">Notifications (optional)</string>
     <string name="perm_shizuku_title">Shizuku</string>
+    <string name="perm_gsm_shell_title">GSM — own ADB shell host</string>
+    <string name="perm_gsm_shell_ready">GSM shell host found. Shizuku permission is not required.</string>
+    <string name="perm_gsm_shell_offline">GSM shell host unavailable. Start it after authorizing ADB; Shizuku is not required.</string>
     <string name="perm_shizuku_offline">Shizuku is not running</string>
     <string name="perm_action_open_shizuku">Open Shizuku</string>
 
@@ -838,4 +856,25 @@
     <string name="history_delete_abandoned_title">Delete this old unfinished archive?</string>
     <string name="history_delete_abandoned_warning">This archive has no confirmed ending. Its local transcript and audio fragments will be removed. The app will verify again that the phone is idle and the files have not been written recently.</string>
     <string name="history_abandoned_delete_failed">Nothing was deleted. This archive may still be active or the phone is not idle. Try again later.</string>
+    <string name="s8_voip_native_title">S8 — local AI conversation</string>
+    <string name="s8_voip_native_caption">Two to six turns with real on-device STT, Gemma and TTS. Input speech is synthetic; RTP stays on 127.0.0.1. No external or cellular call and no transcript storage. STOP cancels the test.</string>
+    <string name="s8_voip_native_running">Preparing the on-device model and speech…</string>
+    <string name="s8_voip_native_progress">Turn %1$d/%2$d · RX: %3$d · TX: %4$d</string>
+    <string name="s8_voip_native_action">Local AI conversation — %1$d turns</string>
+    <string name="s8_voip_native_permission">Phone State and Microphone permissions are needed for system STT. Grant them, then tap the test again.</string>
+    <string name="s8_voip_native_pass">PASS — RTP, STT, Gemma and TTS voice test completed.</string>
+    <string name="s8_voip_native_failed">The local AI test did not pass. No phone call was made.</string>
+    <string name="s8_voip_native_summary">Turns: %1$d/%2$d · RX: %3$d · TX: %4$d · elapsed: %5$d ms · RTP loss: %6$d</string>
+    <string name="s8_sip_incoming_title">Incoming VoIP calls</string>
+    <string name="s8_sip_incoming_unavailable">Incoming calls unavailable: native SIP and authenticated SRTP are not yet installed. Registering an account alone cannot receive calls.</string>
+    <string name="s8_sip_incoming_waiting">Ready for authenticated incoming calls.</string>
+    <string name="s8_sip_incoming_ringing">Incoming call. Choose Answer or Reject.</string>
+    <string name="s8_sip_incoming_negotiating">Negotiating secure audio.</string>
+    <string name="s8_sip_incoming_connected">Connected with authenticated SRTP.</string>
+    <string name="s8_sip_incoming_security_failure">Secure audio could not be verified. Hang up.</string>
+    <string name="s8_sip_incoming_ended">Call ended.</string>
+    <string name="s8_sip_incoming_failed">Call failed.</string>
+    <string name="s8_sip_incoming_accept">Answer</string>
+    <string name="s8_sip_incoming_reject">Reject</string>
+    <string name="s8_sip_incoming_hangup">Hang up</string>
 </resources>

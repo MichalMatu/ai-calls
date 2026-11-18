@@ -42,7 +42,7 @@
     <string name="mv_discard_title">Odrzucić niezapisane zmiany?</string>
     <string name="mv_discard">Odrzuć</string>
     <string name="mv_stay">Zostań</string>
-    <string name="mv_permissions">Uprawnienia aplikacji</string>
+    <string name="mv_permissions">Uprawnienia i aplikacje domyślne</string>
     <string name="mv_permissions_hint">Status aplikacji Telefon, mikrofonu i dostępu do stanu telefonu / kart SIM.</string>
     <string name="perm_microphone_title">Mikrofon</string>
     <string name="perm_phone_state_title">Karty SIM i stan telefonu</string>
@@ -81,4 +81,6 @@
     <string name="models_ui_custom_check_failed">Nie zaliczono sprawdzenia. %1$s Model pozostaje niedostępny do wyboru. Możesz ponowić test.</string>
     <string name="models_ui_custom_check_pass_toast">Model %1$s: zgodność potwierdzona.</string>
     <string name="models_ui_custom_check_fail_toast">Model %1$s: sprawdzanie nieudane. Szczegóły na karcie.</string>
+    <string name="mv_compatibility_phone_permission">Do sprawdzenia modelu potrzebny jest dostęp do stanu telefonu. Przyznaj uprawnienie w oknie systemowym, a następnie ponownie naciśnij „Sprawdź kompatybilność”. Samo przyznanie uprawnienia nie uruchamia testu.</string>
+    <string name="mv_compatibility_blocked">Nie uruchomiono testu: nie można potwierdzić bezczynności telefonu lub trwa zadanie asystenta. Sprawdź po zakończeniu aktywności.</string>
 </resources>

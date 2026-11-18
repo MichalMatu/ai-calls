@@ -1,5 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Debug-only LAN lab access. Production/release manifests remain cleartext-deny by default. -->
-    <application android:usesCleartextTraffic="true" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- S8 GSM uses an owner-authorized shell host, never Shizuku.
+         Remove its Android manifest entry points in the isolated debug APK;
+         stable release continues to own the proven legacy path. -->
+    <uses-permission
+        android:name="moe.shizuku.manager.permission.API_V23"
+        tools:node="remove" />
+    <queries>
+        <package android:name="moe.shizuku.privileged.api" tools:node="remove" />
+    </queries>
+    <!-- S8 is a separately named, installable lab app, never the stable dialer.
+         Existing debug-only LAN setting remains isolated from release. -->
+    <application
+        android:usesCleartextTraffic="true"
+        android:label="AI Calls S8 Lab"
+        tools:replace="android:label">
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            tools:node="remove" />
+        <!-- No-call, shell-triggered Binder roundtrip verification. -->
+        <activity
+            android:name=".developerrelay.S8GsmBinderRoundtripProbeActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
+            android:excludeFromRecents="true"
+            android:noHistory="true" />
+        <!-- Isolated S8 app-owned registration, shell UID only; no Shizuku. -->
+        <provider
+            android:name=".session.GsmShellBinderRegistryProvider"
+            android:authorities="${applicationId}.gsmbinder"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
+
+
+    </application>
 </manifest>

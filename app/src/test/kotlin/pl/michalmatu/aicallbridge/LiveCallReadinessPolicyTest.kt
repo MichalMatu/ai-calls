@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 class LiveCallReadinessPolicyTest {
     @Test
@@ -56,6 +57,30 @@ class LiveCallReadinessPolicyTest {
                 readyInputs().copy(shizukuPermissionGranted = false),
             ).failure,
         )
+    }
+
+    @Test
+    fun s8ShellHostReplacesShizukuAndCannotFallback() {
+        val noShell = readyInputs().copy(
+            mode = CallMediaBackendMode.GSM_SHELL_ADB,
+            shizukuBinderAvailable = true,
+            shizukuSupported = true,
+            shizukuPermissionGranted = true,
+            shellHostAvailable = false,
+        )
+        val blocked = LiveCallReadinessPolicy.evaluate(noShell)
+        assertEquals(LiveCallReadinessFailure.GSM_SHELL_HOST_UNAVAILABLE, blocked.failure)
+        assertFalse(blocked.ready)
+        assertTrue(blocked.renderReport().contains("media_transport=gsm_shell_adb"))
+        assertFalse(blocked.renderReport().contains("shizuku_binder_available"))
+
+        val ready = LiveCallReadinessPolicy.evaluate(noShell.copy(
+            shizukuBinderAvailable = false,
+            shizukuSupported = false,
+            shizukuPermissionGranted = false,
+            shellHostAvailable = true,
+        ))
+        assertTrue(ready.ready)
     }
 
     private fun readyInputs() = LiveCallReadinessInputs(

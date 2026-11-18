@@ -189,6 +189,7 @@ internal object ConversationReplyProtocol {
 /** Only decoded speech reaches the existing approval/TTS pipeline. A proposal is not execution. */
 internal class ConversationReplyBackend(
     private val model: TextCallAgentBackend,
+    private val normalizeReply: (String, ConversationReply) -> ConversationReply = { _, reply -> reply },
     private val decision: (ConversationReply?, Long, Boolean) -> Unit,
 ) : TextCallAgentBackend {
     private val generation = AtomicLong(0)
@@ -198,14 +199,15 @@ internal class ConversationReplyBackend(
     override fun prewarm() = model.prewarm()
 
     override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
-        generate(listener, false) { model.generate(userText, it) }
+        generate(listener, false, userText) { model.generate(userText, it) }
     }
 
     override fun generateAudio(pcm16: ByteArray, listener: TextCallAgentBackend.Listener) {
-        generate(listener, true) { model.generateAudio(pcm16, it) }
+        generate(listener, true, null) { model.generateAudio(pcm16, it) }
     }
 
     private fun generate(listener: TextCallAgentBackend.Listener, audio: Boolean,
+        sourceTranscript: String?,
         send: (TextCallAgentBackend.Listener) -> Unit) {
         check(!closed.get())
         val request = generation.incrementAndGet()
@@ -235,7 +237,7 @@ internal class ConversationReplyBackend(
                     if (transcript.compareAndSet(null, heard)) listener.onUserTranscript(heard)
                 }
                 if (closed.get() || generation.get() != request) return
-                val reply = decoded.second
+                val reply = normalizeReply(sourceTranscript ?: decoded.first.orEmpty(), decoded.second)
                 proposal.set(reply)
                 decision(reply, (System.nanoTime() - started) / 1_000_000L, false)
                 if (!closed.get() && generation.get() == request) listener.onComplete(reply.text)

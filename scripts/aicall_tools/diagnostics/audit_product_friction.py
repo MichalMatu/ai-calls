@@ -46,12 +46,12 @@ def audit(root: Path) -> list[str]:
             errors.append(f"{path}: prohibited legacy blocker resurfaced: {needle}")
 
     # Protect current operating rules, not a fossilized historical issue ledger.
-    if not agents.startswith("# AI Calls — zasady pracy agentów"):
+    if not agents.startswith("# AI Calls — agenci"):
         errors.append("AGENTS.md: current operating rules must remain the first heading")
-    require("AGENTS.md", agents, "Bez zbędnych ograniczeń i potwierdzeń")
-    require("AGENTS.md", agents, "docs/README.md")
+    require("AGENTS.md", agents, "Tylko GSM bez Shizuku")
+    require("AGENTS.md", agents, "docs/PROJECT.md")
     require("docs/PROJECT.md", project, "## Otwarte")
-    require("docs/PROJECT.md", project, "G6.1")
+    require("docs/PROJECT.md", project, "**WSTRZYMANE:**")
     require("docs/architecture/SECURITY.md", security, "CallCommitmentGate")
     require("docs/architecture/SECURITY.md", security, "FactDisclosurePolicy")
     require("docs/architecture/SECURITY.md", security, "STOP")

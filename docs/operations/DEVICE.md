@@ -1,3 +1,5 @@
-# S22 — test fizyczny
+# S22 — GSM bez Shizuku
 
-S22+ `SM-S906B`: sprawdź urządzenie, Shizuku, SIM, dialer, grant i IDLE. Samsung PCM RX/TX zamrożony bez fizycznego QA. Bez AndroidTest/`adb uninstall` na prywatnym S22. Call/instalacja wyłącznie za zgodą; receipts bez PII/WAV.
+GSM na Shizuku działa; nie naruszać produkcji. Izolowany APK S8 korzysta z własnego hosta `shell`; ręczny [start przez ADB](../../scripts/bin/start-s8-gsm-shell.sh) wymaga zgody, konkretnego urządzenia i IDLE.
+
+Sprawdź UID, RX/TX, STOP, 4–6 tur i rollback; bez realnego Call/instalacji bez zgody, bez AndroidTest i `adb uninstall` na S22 oraz PII/WAV w raportach. [Plan GSM](../PROJECT.md).

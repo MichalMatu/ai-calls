@@ -11,6 +11,7 @@ import android.util.Log
 import android.widget.LinearLayout
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 import rikka.shizuku.Shizuku
 
 /**
@@ -23,6 +24,9 @@ internal class MainActivityDeveloperProbes(
     private val activity: Activity,
     private val statusView: TextView? = null,
 ) : AutoCloseable {
+    private val isShellLab: Boolean
+        get() = CallMediaBackendMode.forPackage(activity.packageName) ==
+            CallMediaBackendMode.GSM_SHELL_ADB
     private var pendingShizukuProbe = false
     private var pendingShizukuLiveProbe = false
     private var attached = false
@@ -65,14 +69,16 @@ internal class MainActivityDeveloperProbes(
             activity.getString(R.string.dev_ui_capability)) {
             runCapabilityProbe()
         }, UiDesign.spaceAfter(activity, 8))
-        probeButton = UiDesign.action(activity, activity.getString(R.string.dev_ui_shizuku)) {
-            if (!running) runShizukuProbe(false)
-        }.apply { tag = "developer-shizuku-test" }
-        content.addView(probeButton, UiDesign.spaceAfter(activity, 16))
+        if (!isShellLab) {
+            probeButton = UiDesign.action(activity, activity.getString(R.string.dev_ui_shizuku)) {
+                if (!running) runShizukuProbe(false)
+            }.apply { tag = "developer-shizuku-test" }
+            content.addView(probeButton, UiDesign.spaceAfter(activity, 16))
+        }
     }
 
     fun attach() {
-        if (attached) return
+        if (attached || isShellLab) return
         Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
         Shizuku.addRequestPermissionResultListener(shizukuPermissionResultListener)
         attached = true
@@ -84,7 +90,7 @@ internal class MainActivityDeveloperProbes(
     }
 
     private fun runShizukuProbe(live: Boolean) {
-        if (closed || running || activity.isFinishing || activity.isDestroyed) return
+        if (closed || isShellLab || running || activity.isFinishing || activity.isDestroyed) return
         pendingShizukuProbe = true
         pendingShizukuLiveProbe = live
 

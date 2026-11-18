@@ -130,8 +130,24 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
         }
     }
 
-    /** Immediate human takeover. Local endpoint ownership is dropped before privileged cleanup. */
+    /** Immediate human takeover of whichever generation is currently active. */
     public void takeOverNow() {
+        takeOverMatchingGeneration(0L);
+    }
+
+    /**
+     * Session-owned STOP. Never closes a newer call if an older speech worker,
+     * timeout or delayed callback finishes after a coordinator restart.
+     * The generation check and STOP transition share the same state lock.
+     */
+    public boolean takeOverIfGeneration(long expectedGeneration) {
+        if (expectedGeneration <= 0) {
+            throw new IllegalArgumentException("invalid_call_media_generation");
+        }
+        return takeOverMatchingGeneration(expectedGeneration);
+    }
+
+    private boolean takeOverMatchingGeneration(long requiredGeneration) {
         final long expectedGeneration;
         final CallMediaSessionSnapshot stoppingSnapshot;
         final CallMediaEndpointLease endpoints;
@@ -139,8 +155,10 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
         CallMediaSessionSnapshot resetSnapshot = null;
 
         synchronized (lock) {
-            if (state == CallMediaSessionState.IDLE || state == CallMediaSessionState.STOPPING) {
-                return;
+            if ((requiredGeneration != 0L && generation != requiredGeneration)
+                || state == CallMediaSessionState.IDLE
+                || state == CallMediaSessionState.STOPPING) {
+                return false;
             }
             if (state == CallMediaSessionState.FAILED) {
                 state = CallMediaSessionState.IDLE;
@@ -166,7 +184,7 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
 
         if (resetSnapshot != null) {
             publish(resetSnapshot);
-            return;
+            return true;
         }
         publish(stoppingSnapshot);
         closeQuietly(heartbeat);
@@ -185,6 +203,7 @@ public final class CallMediaSessionCoordinator implements AutoCloseable {
             }
         }
         publish(idleSnapshot);
+        return true;
     }
 
     @Override

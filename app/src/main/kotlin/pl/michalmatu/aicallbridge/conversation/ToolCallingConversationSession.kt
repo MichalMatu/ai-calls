@@ -17,6 +17,7 @@ internal class ToolCallingConversationSession(
     private val hooks: ConversationRuntimeHooks,
     private val responseSource: String,
     override val openingText: String?,
+    private val callerFarewellLanguageTag: String? = null,
 ) : ConversationDialogueSession {
     private var awaitingTool = false
     // The text controller cancels its model backend after approval, before TX.
@@ -26,7 +27,11 @@ internal class ToolCallingConversationSession(
     private val approvedAppIdleClose = AtomicBoolean(false)
     override val awaitToolCompletion get() = awaitingTool
     override val acknowledgementPolicy = TextOutputApprovalPolicy { speech -> releasePolicy.evaluate(speech) }
-    override val backend = ConversationReplyBackend(model) { reply, elapsed, error ->
+    override val backend = ConversationReplyBackend(model, normalizeReply = { callerTranscript, reply ->
+        if (callerFarewellLanguageTag == null) reply else
+            IncomingCallerFarewellPolicy.normalizeProposal(
+                callerTranscript, reply, callerFarewellLanguageTag)
+    }) { reply, elapsed, error ->
         hooks.decisionSink.record(hooks.turn(), reply?.tool?.name ?: if (error) null else "SPEAK", responseSource, elapsed, error)
         hooks.emit("turn_${hooks.turn()}_model_reply_ms=$elapsed")
     }
