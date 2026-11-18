@@ -50,6 +50,7 @@ public final class CallMediaSessionRuntime implements AutoCloseable {
         Objects.requireNonNull(context, "context");
         return switch (Objects.requireNonNull(mode, "mode")) {
             case SHIZUKU_LEGACY -> new ShizukuCallMediaSessionBackend(context);
+            case GSM_SHELL_ADB -> new GsmShellCallMediaSessionBackend();
             case ANDROID_PUBLIC_API_PROBE -> new AndroidPublicCallMediaSessionBackend();
         };
     }
