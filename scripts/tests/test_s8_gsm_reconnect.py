@@ -3,7 +3,6 @@ import importlib.util
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
-from subprocess import CompletedProcess
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts/bin/s8_gsm_reconnect.py"
@@ -14,31 +13,26 @@ spec.loader.exec_module(mod)
 
 
 class S8GsmReconnectTest(TestCase):
-    def test_pinned_serial_and_device_state_transitions(self):
-        serial = "TEST_S22_SERIAL"
-        self.assertTrue(mod.newly_online({}, {serial: "device"}, serial))
-        self.assertTrue(mod.newly_online({serial: "offline"}, {serial: "device"}, serial))
-        self.assertFalse(mod.newly_online({serial: "device"}, {serial: "device"}, serial))
-        self.assertFalse(mod.newly_online({}, {"OTHER": "device"}, serial))
-        self.assertFalse(mod.newly_online({}, {serial: "unauthorized"}, serial))
+    def test_native_adb_event_waits_pin_exact_serial(self):
+        child = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
+        child.wait.return_value = 0
+        with patch.object(mod.subprocess, "Popen", return_value=child) as factory:
+            self.assertTrue(mod.wait_for_adb_state("/usr/bin/adb", "TEST_S22", "device"))
+            self.assertTrue(mod.wait_for_adb_state("/usr/bin/adb", "TEST_S22", "disconnect"))
+            self.assertEqual(["/usr/bin/adb", "-s", "TEST_S22", "wait-for-device"],
+                             factory.call_args_list[0].args[0])
+            self.assertEqual(["/usr/bin/adb", "-s", "TEST_S22", "wait-for-disconnect"],
+                             factory.call_args_list[1].args[0])
+            self.assertIsNone(mod._active_adb)
 
-    def test_track_devices_frame_parsing(self):
-        frame = ["List of devices attached\n", "TEST_S22_SERIAL\tdevice product:test\n",
-                 "OTHER\toffline\n", "noise\n"]
-        self.assertEqual({"TEST_S22_SERIAL": "device", "OTHER": "offline"},
-                         mod.parse_snapshot(frame))
-
-    def test_tracker_triggers_without_blank_line_on_mac(self):
-        serial = "TEST_S22_SERIAL"
-        previous, event = mod.advance_tracking({}, serial + "\tdevice\n", serial)
-        self.assertTrue(event)
-        previous, event = mod.advance_tracking(previous, serial + "\tdevice\n", serial)
-        self.assertFalse(event)
-        previous, event = mod.advance_tracking(previous, "\n", serial)
-        self.assertFalse(event)
-        self.assertEqual({}, previous)
-        previous, event = mod.advance_tracking(previous, serial + "\tdevice\n", serial)
-        self.assertTrue(event)
+    def test_signal_cleanup_terminates_adb_child(self):
+        child = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
+        child.poll.return_value = None
+        with patch.object(mod, "_active_adb", child):
+            with self.assertRaises(SystemExit):
+                mod.stop_watcher(15, None)
+            child.terminate.assert_called_once()
+            child.wait.assert_called_once()
 
     def test_ready_host_does_not_restart_an_existing_privileged_process(self):
         def fake_shell(_adb, _serial, *args, **_kwargs):
@@ -86,7 +80,7 @@ class S8GsmReconnectTest(TestCase):
         for forbidden in ("Shizuku.requestPermission", "su -c", "pm install", "adb reboot",
                           "crontab", "scheduleAtFixedRate", "placeCall("):
             self.assertNotIn(forbidden, text)
-        self.assertIn('"track-devices"', text)
+        self.assertIn('"wait-for-" + state', text)
         self.assertIn('"RunAtLoad": True', text)
         self.assertIn('"KeepAlive": True', text)
         self.assertIn("BOOTSTRAP", text)
