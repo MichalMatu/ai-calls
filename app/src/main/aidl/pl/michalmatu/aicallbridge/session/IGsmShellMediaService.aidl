@@ -13,5 +13,5 @@ interface IGsmShellMediaService {
     ParcelFileDescriptor takeDownlinkReadEnd(long generation) = 4;
     ParcelFileDescriptor takeUplinkWriteEnd(long generation) = 5;
     boolean heartbeat(long generation) = 6;
-    void abortNow(long generation) = 7;
+    oneway void abortNow(long generation) = 7;
 }
