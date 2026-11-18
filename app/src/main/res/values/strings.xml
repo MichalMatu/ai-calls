@@ -402,6 +402,7 @@
     <string name="skills_ui_current_preset">Aktywny preset</string>
 
     <!-- UX-05: localized manual call controls; actions and ownership unchanged. -->
+    <string name="dialer_ui_title">Połączenie</string>
     <string name="dialer_ui_dial">Zadzwoń (ręcznie)</string>
     <string name="dialer_ui_number_required">Wpisz numer</string>
     <string name="dialer_ui_dial_error">Nie można wybrać numeru</string>
@@ -472,7 +473,7 @@
     <string name="pilot_ui_stop">STOP AI — wróć do rozmowy ręcznej</string>
     <string name="pilot_ui_gemma_mode">Rozmowa z Gemmą 4 (lokalnie)</string>
     <string name="pilot_ui_title">Pierwsze połączenie — nadzorowane</string>
-    <string name="pilot_ui_instructions">1. W zwykłym dialerze zadzwoń samodzielnie na uzgodniony numer.\n2. Podczas rozmowy wróć tutaj przez ostatnie aplikacje.\n3. Dotknij START: STT → Gemma/skrypt → TTS → Shizuku.\n4. STOP wyłącza wyłącznie AI, nie rozłącza telefonu.\n\nBez danych osobowych, CLIR i zmian usług.</string>
+    <string name="pilot_ui_instructions">1. W zwykłym dialerze zadzwoń samodzielnie na uzgodniony numer.\n2. Podczas rozmowy wróć tutaj przez ostatnie aplikacje.\n3. Dotknij START: STT → Gemma/skrypt → TTS → transport GSM.\n4. STOP wyłącza wyłącznie AI, nie rozłącza telefonu.\n\nBez danych osobowych, CLIR i zmian usług.</string>
     <string name="pilot_ui_open_dialer">Otwórz zwykły dialer (bez wybierania numeru)</string>
     <string name="pilot_ui_dialer_failed">Nie można otworzyć dialera.</string>
     <string name="pilot_ui_gemma_download">Pobierz lub importuj Gemmę na ekranie głównym</string>
