@@ -16,6 +16,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
+import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
@@ -35,6 +37,10 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private val grants = linkedMapOf<String, GrantRow>()
     private lateinit var shizukuStatus: TextView
     private lateinit var shizukuAction: Button
+    private lateinit var shellStatus: TextView
+    private val isShellLab: Boolean by lazy {
+        CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB
+    }
 
     private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { code, _ ->
         if (code == REQUEST_SHIZUKU) runOnUiThread { if (!isDestroyed) refresh() }
@@ -107,16 +113,25 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 Manifest.permission.POST_NOTIFICATIONS, R.string.perm_action_allow, REQUEST_NOTIFICATIONS)
         }
 
-        val (shizukuLabels, shizuku) = group("shizuku", getString(R.string.perm_shizuku_title))
-        shizukuStatus = UiDesign.caption(this, "").apply {
-            tag = "permissions-shizuku-status"
-            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        if (isShellLab) {
+            val (labels, _) = group("gsm-shell", getString(R.string.perm_gsm_shell_title))
+            shellStatus = UiDesign.caption(this, "").apply {
+                tag = "permissions-gsm-shell-status"
+                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            }
+            labels.addView(shellStatus)
+        } else {
+            val (shizukuLabels, shizuku) = group("shizuku", getString(R.string.perm_shizuku_title))
+            shizukuStatus = UiDesign.caption(this, "").apply {
+                tag = "permissions-shizuku-status"
+                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            }
+            shizukuLabels.addView(shizukuStatus)
+            shizukuAction = UiDesign.action(this, getString(R.string.perm_action_allow)) {
+                if (shizukuGranted()) openShizukuApp() else requestShizuku()
+            }.apply { tag = "permissions-shizuku-request" }
+            shizuku.addView(compact(shizukuAction), actionLayout())
         }
-        shizukuLabels.addView(shizukuStatus)
-        shizukuAction = UiDesign.action(this, getString(R.string.perm_action_allow)) {
-            if (shizukuGranted()) openShizukuApp() else requestShizuku()
-        }.apply { tag = "permissions-shizuku-request" }
-        shizuku.addView(compact(shizukuAction), actionLayout())
 
         body.addView(card)
         setContentView(ScrollView(this).apply { addView(body) })
@@ -125,17 +140,21 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onStart() {
         super.onStart()
-        runCatching { Shizuku.addRequestPermissionResultListener(shizukuPermissionListener) }
+        if (!isShellLab) {
+            runCatching { Shizuku.addRequestPermissionResultListener(shizukuPermissionListener) }
+        }
     }
 
     override fun onStop() {
-        runCatching { Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener) }
+        if (!isShellLab) {
+            runCatching { Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener) }
+        }
         super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
-        if (::role.isInitialized && ::shizukuStatus.isInitialized) refresh()
+        if (::role.isInitialized) refresh()
     }
 
     private fun granted(permission: String): Boolean =
@@ -216,6 +235,11 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 .getBoolean(row.permission, false)
             row.action.setText(if (asked && !shouldShowRequestPermissionRationale(row.permission))
                 R.string.perm_action_settings else R.string.perm_action_allow)
+        }
+        if (isShellLab) {
+            shellStatus.setText(if (GsmMediaTransportReadiness.isAvailable(this))
+                R.string.perm_gsm_shell_ready else R.string.perm_gsm_shell_offline)
+            return
         }
         val installed = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api") != null
         val available = shizukuAvailable()
