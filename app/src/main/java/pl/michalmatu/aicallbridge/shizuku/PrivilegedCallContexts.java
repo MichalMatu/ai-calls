@@ -10,10 +10,9 @@ import java.util.Objects;
  * Builds the two attribution contexts required by the proven Samsung cellular media path.
  *
  * <p>The direct-shell proof still constructs VOICE_DOWNLINK before creating these contexts. A
- * Shizuku UserService is different: Shizuku has already created an app-attributed process before
- * our service object exists, so its RX path must explicitly supply trusted shell attribution to
- * AudioRecord during prepare. The same pair is then reused for route guarding and CALL_ASSISTANT
- * TX.</p>
+ * A Shizuku UserService or app_process-based shell host already owns an ActivityThread,
+ * so its RX path explicitly supplies trusted shell attribution to AudioRecord during
+ * prepare. The same pair is reused for route guarding and CALL_ASSISTANT TX.</p>
  */
 public final class PrivilegedCallContexts {
     private PrivilegedCallContexts() {}
@@ -24,7 +23,7 @@ public final class PrivilegedCallContexts {
         currentActivityThread.setAccessible(true);
         Object thread = currentActivityThread.invoke(null);
         if (thread == null) {
-            throw new IllegalStateException("Shizuku ActivityThread is unavailable");
+            throw new IllegalStateException("Privileged ActivityThread is unavailable");
         }
 
         Method getSystemContext = activityThreadClass.getDeclaredMethod("getSystemContext");
