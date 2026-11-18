@@ -10,7 +10,7 @@ import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 import pl.michalmatu.aicallbridge.conversation.*
 import pl.michalmatu.aicallbridge.conversationcore.ConversationStopReason
 import pl.michalmatu.aicallbridge.tools.ConversationToolSettingsStore
-import rikka.shizuku.Shizuku
+import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 import java.util.UUID
 
 /** Queue adapter owned by AppOwnedCampaignService. Uses its existing executor and audio runtime. */
@@ -106,8 +106,9 @@ internal class PhoneTaskExecution(
         if (profile == null || AudioEngineRegistry.incompatibility(profile) != null) {
             complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.MODEL); return
         }
-        if (!runCatching { Shizuku.pingBinder() && !Shizuku.isPreV11() &&
-                Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED }.getOrDefault(false)) {
+        // Explicit S8 calls use only the approved shell host; never silently
+        // fall back to Shizuku if it is missing.
+        if (!GsmMediaTransportReadiness.isAvailable(service)) {
             complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.SHIZUKU); return
         }
         val outgoing = task.scenarioTask(task.recipients.first { it.id == next.recipientId }, next.attemptId)
