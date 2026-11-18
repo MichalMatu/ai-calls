@@ -1,32 +1,75 @@
 package pl.michalmatu.aicallbridge.developerrelay;
 
-import android.content.Context;
-import pl.michalmatu.aicallbridge.shizuku.PrivilegedCallContexts;
-import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
-import android.os.Looper;
+import android.os.IBinder;
 import android.os.Process;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
- * One-shot ADB shell verification that Android Binder can reach a DUMP-gated,
- * app-owned provider despite OEM SELinux Unix socket restrictions.
+ * Read-only Android shell Binder external-provider test, matching the platform
+ * 'content call' acquisition path. Does not use Shizuku or obtain PCM.
  */
 public final class S8ShellBinderProbeClient {
+    private static final String AUTHORITY =
+        "pl.michalmatu.aicallbridge.s8lab.s8shellprobe";
+
     private S8ShellBinderProbeClient() {}
 
     public static void main(String[] args) throws Exception {
         if (args.length != 0 || Process.myUid() != 2000)
             throw new SecurityException("shell_uid_required");
-        if (Looper.myLooper() == null) Looper.prepare();
-        Class<?> threadClass = Class.forName("android.app.ActivityThread");
-        Method systemMain = threadClass.getDeclaredMethod("systemMain");
-        systemMain.setAccessible(true);
-        systemMain.invoke(null);
-        Context shell = PrivilegedCallContexts.create().shell();
-        Uri uri = Uri.parse("content://pl.michalmatu.aicallbridge.s8lab.s8shellprobe");
-        Bundle response = shell.getContentResolver().call(uri, "ping", null, null);
-        System.out.println("S8_SHELL_BINDER_PROVIDER_REACHABLE="
-            + (response != null && response.getBoolean("shell_uid_verified", false)));
+        Object manager = null;
+        IBinder token = new Binder();
+        boolean acquired = false;
+        try {
+            Class<?> activityManager = Class.forName("android.app.ActivityManager");
+            Method getService = activityManager.getDeclaredMethod("getService");
+            getService.setAccessible(true);
+            manager = getService.invoke(null);
+            Method acquire = method(manager.getClass(), "getContentProviderExternal", 4);
+            Object holder = acquire.invoke(manager, AUTHORITY, 0, token, "*aicalls-s8*");
+            if (holder == null) throw new IllegalStateException("provider_unavailable");
+            acquired = true;
+            Field field = holder.getClass().getDeclaredField("provider");
+            field.setAccessible(true);
+            Object provider = field.get(holder);
+            Class<?> attributionClass = Class.forName("android.content.AttributionSource");
+            Constructor<?> attributionCtor = attributionClass.getDeclaredConstructor(
+                int.class, String.class, String.class);
+            attributionCtor.setAccessible(true);
+            Object attribution = attributionCtor.newInstance(2000, "com.android.shell", null);
+            Method call = method(provider.getClass(), "call", 5);
+            Bundle response = (Bundle) call.invoke(provider,
+                attribution, AUTHORITY, "ping", null, null);
+            System.out.println("S8_SHELL_BINDER_PROVIDER_REACHABLE="
+                + (response != null && response.getBoolean("shell_uid_verified", false)));
+        } catch (Throwable error) {
+            Throwable cause = error;
+            while (cause.getCause() != null && cause != cause.getCause()) cause = cause.getCause();
+            System.out.println("S8_SHELL_BINDER_ERROR=" + cause.getClass().getSimpleName());
+            System.exit(2);
+        } finally {
+            if (manager != null && acquired) {
+                try {
+                    method(manager.getClass(), "removeContentProviderExternalAsUser", 3)
+                        .invoke(manager, AUTHORITY, token, 0);
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private static Method method(Class<?> cls, String name, int params)
+        throws NoSuchMethodException {
+        for (Method method : cls.getMethods()) {
+            if (method.getName().equals(name) && method.getParameterCount() == params) {
+                method.setAccessible(true);
+                return method;
+            }
+        }
+        throw new NoSuchMethodException(name + "_" + params);
     }
 }
