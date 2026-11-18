@@ -30,4 +30,17 @@ adb -s "$ANDROID_SERIAL" shell '
     --nice-name=aicalls_gsm_binder pl.michalmatu.aicallbridge.session.GsmShellBinderMediaHost \
     </dev/null >/dev/null 2>&1 &
 '
-echo 'S8 binder shell host launch requested; app verifies UID and Binder registration.'
+# A background app_process exit is not proof of readiness. Only the
+# authenticated S8 Binder registry may mark the host ready.
+for attempt in {1..24}; do
+  response="$(adb -s "$ANDROID_SERIAL" shell content call \\
+    --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder \\
+    --method status 2>/dev/null || true)"
+  if [[ "$response" == *"host_registered=true"* ]]; then
+    echo 'S8_GSM_BINDER_HOST_READY=true'
+    exit 0
+  fi
+  sleep 0.4
+done
+echo 'S8_GSM_BINDER_HOST_BOOTSTRAP_FAILED: no verified service registered' >&2
+exit 8
