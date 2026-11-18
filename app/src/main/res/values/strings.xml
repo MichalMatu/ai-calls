@@ -750,6 +750,9 @@
     <string name="perm_call_phone_title">Wykonywanie połączeń</string>
     <string name="perm_notifications_title">Powiadomienia (opcjonalne)</string>
     <string name="perm_shizuku_title">Shizuku</string>
+    <string name="perm_gsm_shell_title">GSM — własny proces ADB</string>
+    <string name="perm_gsm_shell_ready">Host GSM shell wykryty. Uprawnienia Shizuku nie są potrzebne.</string>
+    <string name="perm_gsm_shell_offline">Host GSM shell niedostępny. Uruchom go po autoryzacji ADB; nie wymaga Shizuku.</string>
     <string name="perm_shizuku_offline">Shizuku nie jest uruchomione</string>
     <string name="perm_action_open_shizuku">Otwórz Shizuku</string>
 
