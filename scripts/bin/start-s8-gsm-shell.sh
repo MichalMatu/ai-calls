@@ -27,19 +27,7 @@ adb -s "$ANDROID_SERIAL" shell '
   APK="$(pm path "$APP" | sed -n "s/^package://p" | head -n 1)"
   test -n "$APK" && test -r "$APK" || exit 7
   CLASSPATH="$APK" nohup app_process /system/bin \
-    --nice-name=aicalls_gsm_shell pl.michalmatu.aicallbridge.session.GsmShellMediaHost \
+    --nice-name=aicalls_gsm_binder pl.michalmatu.aicallbridge.session.GsmShellBinderMediaHost \
     </dev/null >/dev/null 2>&1 &
 '
-# Android app_process requires the process directory before --nice-name.
-# A successful adb shell exit only means the background launch was requested;
-# require an observable Unix socket, otherwise report bootstrap failure.
-for attempt in {1..15}; do
-  if adb -s "$ANDROID_SERIAL" shell cat /proc/net/unix 2>/dev/null |
-      grep -Fq "aicalls_s8_gsm_shell_v1"; then
-    echo 'S8_GSM_SHELL_SOCKET_READY=true; verify UID handshake in app'
-    exit 0
-  fi
-  sleep 0.3
-done
-echo 'S8_GSM_SHELL_BOOTSTRAP_FAILED: no host socket after launch' >&2
-exit 8
+echo 'S8 binder shell host launch requested; app verifies UID and Binder registration.'
