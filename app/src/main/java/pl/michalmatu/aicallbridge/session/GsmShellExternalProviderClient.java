@@ -47,7 +47,7 @@ public final class GsmShellExternalProviderClient implements AutoCloseable {
             Object provider = field.get(holder);
             return new GsmShellExternalProviderClient(
                 manager, provider, token, find(provider.getClass(), "call", 5));
-        } catch (Throwable error) {
+        } catch (Exception | Error error) {
             find(manager.getClass(), "removeContentProviderExternalAsUser", 3).invoke(
                 manager, GsmShellBinderRegistryProvider.AUTHORITY, token, 0);
             throw error;
