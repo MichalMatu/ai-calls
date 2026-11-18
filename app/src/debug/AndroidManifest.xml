@@ -19,6 +19,14 @@
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             tools:node="remove" />
+        <!-- Shell-only, no-call reverse socket accessibility experiment.
+             Does not accept audio or control requests. -->
+        <activity
+            android:name=".developerrelay.S8ReverseSocketProbeActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
+            android:excludeFromRecents="true"
+            android:noHistory="true" />
         <!-- Disabled unless -Ps8NativePrototype=true on an owner-local build.
              May be launched by adb shell only. No SIP account or network. -->
         <activity
