@@ -489,6 +489,7 @@
     <string name="pilot_ui_already_running">AI session is already running.</string>
     <string name="pilot_ui_permission_required">Microphone and phone-state permissions required.</string>
     <string name="pilot_ui_shizuku_missing">Shizuku unavailable. Start Shizuku and check AI Calls permissions.</string>
+    <string name="pilot_ui_gsm_shell_missing">ADB GSM shell host is unavailable. Start the approved shell helper, then retry without Shizuku.</string>
     <string name="pilot_ui_call_missing">Start a call in your regular dialer first.</string>
     <string name="pilot_ui_model_dialog_title">Gemma 4 model missing</string>
     <string name="pilot_ui_model_dialog_help">To talk with the model, download 2.59 GB on Home. You can also test audio in script mode.</string>
