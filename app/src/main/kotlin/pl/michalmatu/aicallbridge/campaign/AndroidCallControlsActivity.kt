@@ -174,7 +174,8 @@ class AndroidCallControlsActivity : Activity() {
 
         val assistant = call?.let { AndroidOwnedInCallService.incomingState(it) }
         val manual = assistant?.substringBefore(':') == "MANUAL"
-        takeOverButton.visibility = if (inCall && !manual) View.VISIBLE else View.GONE
+        takeOverButton.visibility = if (inCall && IncomingTakeoverUiPolicy.canTakeOver(assistant))
+            View.VISIBLE else View.GONE
         resumeAiButton.visibility = if (inCall && manual && call?.state == Call.STATE_ACTIVE)
             View.VISIBLE else View.GONE
 
