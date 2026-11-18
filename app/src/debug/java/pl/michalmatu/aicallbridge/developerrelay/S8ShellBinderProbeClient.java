@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.developerrelay;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.Process;
 import java.lang.reflect.Method;
 
@@ -16,6 +17,7 @@ public final class S8ShellBinderProbeClient {
     public static void main(String[] args) throws Exception {
         if (args.length != 0 || Process.myUid() != 2000)
             throw new SecurityException("shell_uid_required");
+        if (Looper.myLooper() == null) Looper.prepare();
         Class<?> threadClass = Class.forName("android.app.ActivityThread");
         Method systemMain = threadClass.getDeclaredMethod("systemMain");
         systemMain.setAccessible(true);
