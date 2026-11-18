@@ -419,8 +419,14 @@
     <string name="dialer_ui_holding">Rozmowa wstrzymana</string>
     <string name="dialer_ui_disconnected">Rozmowa zakończona</string>
     <string name="dialer_ui_connecting">Łączenie…</string>
-    <string name="dialer_ui_gsm_shell_recovery">AI niedostępne: proces GSM offline. Po instalacji lub restarcie uruchom host przez ADB (bez Shizuku).</string>
-    <string name="dialer_ui_assistant_status">Asystent: %1$s</string>
+    <string name="dialer_ui_gsm_shell_recovery">AI niedostępne. Sprawdź połączenie z autoryzowanym MacBookiem.</string>
+    <string name="dialer_ui_ai_waiting">AI: oczekiwanie</string>
+    <string name="dialer_ui_ai_answering">AI odbiera połączenie</string>
+    <string name="dialer_ui_ai_starting">AI przygotowuje rozmowę</string>
+    <string name="dialer_ui_ai_active">AI prowadzi rozmowę</string>
+    <string name="dialer_ui_ai_ending">AI kończy rozmowę</string>
+    <string name="dialer_ui_ai_manual">Obsługa ręczna</string>
+    <string name="dialer_ui_ai_ended">Rozmowa zakończona</string>
 
     <!-- UX-05: localized Home, engines and live chat -->
     <string name="home_one_tap_permission">Android wymaga zgody na mikrofon i stan telefonu.</string>
