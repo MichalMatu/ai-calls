@@ -27,6 +27,13 @@
             android:permission="android.permission.DUMP"
             android:excludeFromRecents="true"
             android:noHistory="true" />
+        <!-- No-call, shell-triggered Binder roundtrip verification. -->
+        <activity
+            android:name=".developerrelay.S8GsmBinderRoundtripProbeActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
+            android:excludeFromRecents="true"
+            android:noHistory="true" />
         <!-- Isolated S8 app-owned registration, shell UID only; no Shizuku. -->
         <provider
             android:name=".session.GsmShellBinderRegistryProvider"
