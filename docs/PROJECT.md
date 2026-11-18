@@ -11,12 +11,12 @@ S8 Lab (`.s8lab`) używa `GsmShellBinderCallMediaSessionBackend` bez fallbacku S
 - Android 16; APK S8 obok stabilnego dialera: **PASS**.
 - Binder app↔shell, weryfikacja UID, transfer FD, rejestracja hosta: **PASS**.
 - Kompilacja, testy `Gsm*Test`, odrzucenie starej generacji/STOP: **PASS**.
-- `live_call_readiness=true`, `gsm_shell_ready=true`; telefon IDLE.
+- GSM Binder gotowy; realny S22+ test rozmowy przychodzącej 18.11.2026: 6 tur.
 - Unix socket odrzucony przez SELinux (`Permission denied`) — wyłączony.
 ## Otwarte
 
-- Rzeczywiste PCM RX/TX podczas rozmowy GSM: **NIEPOTWIERDZONE**.
+- PCM: RX 2 088 320, TX 2 325 986 B — **PASS funkcjonalny**; jakość sieci niezmierzona.
 
 ## Następny sprint
 
-Operator rozpoczyna testową rozmowę GSM, wraca do S8 Pilot i uruchamia START. Najpierw krótki RX/TX, potem 4–6 tur, barge-in, STOP i weryfikacja rozłączenia. Bez automatycznego dzwonienia. **WSTRZYMANE:** SIP/PJSUA2, UX, inne sprinty, merge do `main`. Bez schedulerów, Codex/Work/Actions ani danych rozmów w Git.
+QA zwykłego dialera S8: ręczne odbieranie, AI takeover/resume, STOP, rozłączenie, latencja. `media_rx_tx_observed` jest niezależne od `conversation_terminal_category` i `chat_relay_live_call_success`. Przed merge sprawdzić 3 zaległe commity `main`. **WSTRZYMANE:** SIP/PJSUA2, merge do `main` przed QA. Bez schedulerów, Codex/Work/Actions ani danych rozmów w Git.
