@@ -33,6 +33,26 @@ class AntiFrictionGateTest(TestCase):
     def test_current_sources_are_free_of_known_regressions(self):
         self.assertEqual([], audit(ROOT))
 
+    def test_removing_current_no_extra_confirmation_rule_is_caught(self):
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            for name in REQUIRED:
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text((ROOT / name).read_text(encoding="utf-8"), encoding="utf-8")
+            agents = root / "AGENTS.md"
+            agents.write_text(
+                agents.read_text(encoding="utf-8").replace(
+                    "Bez zbędnych ograniczeń i potwierdzeń",
+                    "Brak reguły potwierdzeń",
+                ),
+                encoding="utf-8",
+            )
+            errors = audit(root)
+            self.assertTrue(any("AGENTS.md" in error and
+                                "Bez zbędnych ograniczeń i potwierdzeń" in error
+                                for error in errors), errors)
+
     def test_mutation_of_per_call_confirmation_is_caught(self):
         with TemporaryDirectory() as d:
             root = Path(d)
