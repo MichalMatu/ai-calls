@@ -8,7 +8,8 @@ LAB = ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge/ui/S8SipAccountLabA
 
 class S8SipLabIndependenceTest(TestCase):
     def test_explicit_sip_register_needs_no_cellular_permission_or_shizuku(self):
-        source = LAB.read_text(encoding="utf-8")
+        # Ignore imports and descriptive comments; inspect the Activity body.
+        source = LAB.read_text(encoding="utf-8").split("class S8SipAccountLabActivity", 1)[1]
         for forbidden in (
             "READ_PHONE_STATE",
             "requestPermissions(",
