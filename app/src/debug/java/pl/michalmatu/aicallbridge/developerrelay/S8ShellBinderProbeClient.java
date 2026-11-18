@@ -3,6 +3,8 @@ package pl.michalmatu.aicallbridge.developerrelay;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Parcel;
+import android.os.RemoteException;
 import android.os.Process;
 import android.os.ParcelFileDescriptor;
 
@@ -50,6 +52,24 @@ public final class S8ShellBinderProbeClient {
                 attribution, AUTHORITY, "ping", null, null);
             System.out.println("S8_SHELL_BINDER_PROVIDER_REACHABLE="
                 + (response != null && response.getBoolean("shell_uid_verified", false)));
+            Binder callback = new Binder() {
+                @Override protected boolean onTransact(int code, Parcel data, Parcel reply,
+                                                        int flags) throws RemoteException {
+                    if (code != IBinder.FIRST_CALL_TRANSACTION)
+                        return super.onTransact(code, data, reply, flags);
+                    data.enforceInterface("aicalls.s8.probe");
+                    reply.writeNoException();
+                    reply.writeInt(2026);
+                    return true;
+                }
+            };
+            Bundle callbackRequest = new Bundle();
+            callbackRequest.putBinder("callback", callback);
+            Bundle callbackResult = (Bundle) call.invoke(provider,
+                attribution, AUTHORITY, "binder_probe", null, callbackRequest);
+            System.out.println("S8_SHELL_BINDER_CALLBACK="
+                + (callbackResult != null && callbackResult.getBoolean(
+                    "binder_callback_verified", false)));
             Bundle fdResult = (Bundle) call.invoke(provider,
                 attribution, AUTHORITY, "fd_probe", null, null);
             if (fdResult == null) throw new IllegalStateException("fd_probe_response_missing");
