@@ -38,14 +38,15 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
             expectedGeneration = generation;
         }
         try {
-            connector.execute(() -> connect(generation, callback));
+            long wireGeneration = GsmBinderSessionTokenSequence.next();
+            connector.execute(() -> connect(generation, wireGeneration, callback));
         } catch (RuntimeException failure) {
             abort(generation);
             callback.onBindFailed(generation, failure);
         }
     }
 
-    private void connect(long generation, BindCallback callback) {
+    private void connect(long generation, long wireGeneration, BindCallback callback) {
         Remote candidate = null;
         boolean retained = false;
         try {
@@ -57,7 +58,7 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
                 throw new IllegalStateException("gsm_binder_host_died");
             IBinder.DeathRecipient death = () -> disconnected(generation, callback);
             binder.linkToDeath(death, 0);
-            candidate = new Remote(generation, service, binder, death);
+            candidate = new Remote(generation, wireGeneration, service, binder, death);
             synchronized (lock) {
                 if (!closed && expectedGeneration == generation && connected == null) {
                     connected = candidate;
@@ -91,20 +92,22 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
         if (sampleRateHz != GsmShellMediaProtocol.SAMPLE_RATE_HZ)
             throw new IllegalArgumentException("gsm_binder_sample_rate_unsupported");
         try {
-            current(generation).service.prepare(generation, sampleRateHz);
+            Remote owner = current(generation);
+            owner.service.prepare(owner.wireGeneration, sampleRateHz);
         } catch (RemoteException error) {
             throw new IllegalStateException("gsm_binder_prepare_failed", error);
         }
     }
 
     @Override public CallMediaEndpointLease start(long generation) {
-        IGsmShellMediaService service = current(generation).service;
+        Remote owner = current(generation);
+        IGsmShellMediaService service = owner.service;
         ParcelFileDescriptor downlink = null;
         ParcelFileDescriptor uplink = null;
         try {
-            service.startMedia(generation);
-            downlink = service.takeDownlinkReadEnd(generation);
-            uplink = service.takeUplinkWriteEnd(generation);
+            service.startMedia(owner.wireGeneration);
+            downlink = service.takeDownlinkReadEnd(owner.wireGeneration);
+            uplink = service.takeUplinkWriteEnd(owner.wireGeneration);
             if (downlink == null || uplink == null)
                 throw new IllegalStateException("gsm_binder_endpoints_missing");
             CallMediaEndpointLease lease = new ShizukuCallMediaEndpointLease(downlink, uplink);
@@ -121,7 +124,8 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
 
     @Override public boolean heartbeat(long generation) {
         try {
-            return current(generation).service.heartbeat(generation);
+            Remote owner = current(generation);
+            return owner.service.heartbeat(owner.wireGeneration);
         } catch (RemoteException | IllegalStateException failure) {
             return false;
         }
@@ -133,7 +137,7 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
         toAbort.detachDeath();
         // One-way Binder IPC: STOP cannot wait for a blocking media operation.
         try {
-            toAbort.service.abortNow(generation);
+            toAbort.service.abortNow(toAbort.wireGeneration);
         } catch (RemoteException | RuntimeException ignored) {
             // The local PCM lease is closed by the coordinator; the independent
             // Samsung watchdog tears down remote PCM after missed heartbeat.
@@ -153,7 +157,7 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
         }
         if (active != null) {
             active.detachDeath();
-            try { active.service.abortNow(active.generation); }
+            try { active.service.abortNow(active.wireGeneration); }
             catch (RemoteException | RuntimeException ignored) {}
         }
         connector.shutdownNow();
@@ -183,13 +187,15 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
 
     private static final class Remote {
         final long generation;
+        final long wireGeneration;
         final IGsmShellMediaService service;
         final IBinder binder;
         final IBinder.DeathRecipient death;
 
-        Remote(long generation, IGsmShellMediaService service, IBinder binder,
-               IBinder.DeathRecipient death) {
+        Remote(long generation, long wireGeneration, IGsmShellMediaService service,
+               IBinder binder, IBinder.DeathRecipient death) {
             this.generation = generation;
+            this.wireGeneration = wireGeneration;
             this.service = service;
             this.binder = binder;
             this.death = death;
