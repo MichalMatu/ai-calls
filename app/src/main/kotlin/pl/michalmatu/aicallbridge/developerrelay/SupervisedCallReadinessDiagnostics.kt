@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.telecom.TelecomManager
 import pl.michalmatu.aicallbridge.AndroidLiveCallReadiness
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 /**
  * Single, ephemeral observation of the supervised call gate. It owns no audio,
@@ -19,6 +20,7 @@ internal data class SupervisedCallReadinessSnapshot(
     val managedCall: Boolean,
     val audioMode: Int?,
     val s8Capabilities: S8AndroidAudioCapabilitySnapshot? = null,
+    val mediaMode: CallMediaBackendMode = CallMediaBackendMode.SHIZUKU_LEGACY,
 ) {
     val failure: SupervisedCallPilotFailure?
         get() = SupervisedCallPilotPolicy.check(
@@ -27,6 +29,7 @@ internal data class SupervisedCallReadinessSnapshot(
             shizukuReady,
             activeCellularCall,
             audioMode == AudioManager.MODE_IN_CALL,
+            mediaMode,
         )
 
     val audioModeLabel: String
@@ -44,7 +47,8 @@ internal data class SupervisedCallReadinessSnapshot(
         appendLine("probe=supervised_call_readiness")
         appendLine("microphone_permission=$microphonePermission")
         appendLine("phone_state_permission=$phoneStatePermission")
-        appendLine("shizuku_ready=$shizukuReady")
+        appendLine(if (mediaMode == CallMediaBackendMode.GSM_SHELL_ADB)
+            "gsm_shell_ready=$shizukuReady" else "shizuku_ready=$shizukuReady")
         appendLine("telecom_in_call=$activeCellularCall")
         appendLine("telecom_managed_call=$managedCall")
         appendLine("audio_mode=$audioModeLabel")
@@ -77,6 +81,7 @@ internal object SupervisedCallReadinessDiagnostics {
         return SupervisedCallReadinessSnapshot(
             mic, phone, shizuku, active, managed, mode,
             S8AndroidAudioCapabilityProbe.capture(context),
+            CallMediaBackendMode.forPackage(context.packageName),
         )
     }
 
