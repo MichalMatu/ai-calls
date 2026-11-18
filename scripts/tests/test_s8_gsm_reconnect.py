@@ -28,6 +28,18 @@ class S8GsmReconnectTest(TestCase):
         self.assertEqual({"TEST_S22_SERIAL": "device", "OTHER": "offline"},
                          mod.parse_snapshot(frame))
 
+    def test_tracker_triggers_without_blank_line_on_mac(self):
+        serial = "TEST_S22_SERIAL"
+        previous, event = mod.advance_tracking({}, serial + "\tdevice\n", serial)
+        self.assertTrue(event)
+        previous, event = mod.advance_tracking(previous, serial + "\tdevice\n", serial)
+        self.assertFalse(event)
+        previous, event = mod.advance_tracking(previous, "\n", serial)
+        self.assertFalse(event)
+        self.assertEqual({}, previous)
+        previous, event = mod.advance_tracking(previous, serial + "\tdevice\n", serial)
+        self.assertTrue(event)
+
     def test_ready_host_does_not_restart_an_existing_privileged_process(self):
         def fake_shell(_adb, _serial, *args, **_kwargs):
             key = " ".join(args)
