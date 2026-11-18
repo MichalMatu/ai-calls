@@ -1,22 +1,17 @@
-# AI Calls — GSM bez Shizuku
+# AI Calls — GSM MVP bez Shizuku
 
-**Cel:** S22+ GSM RX→STT→Gemma→TTS→TX bez Shizuku; kod tylko na `feature/s8-no-shizuku`.
+S22+ GSM: RX→STT→Gemma→TTS→TX; `GsmShellBinderCallMediaSessionBackend` + autoryzowany ADB host UID 2000. Binder z UID, generacją, STOP, watchdogiem; bez fallbacku Shizuku.
 
-## Kod
+## Odbiór — 18.11.2026
 
-S8 Lab korzysta z `GsmShellBinderCallMediaSessionBackend`; host ADB UID 2000 rejestruje Binder i przesyła PCM przez dwa FD. Kontrole: UID, generacja, STOP, watchdog, zanik hosta. Bez fallbacku Shizuku.
+- AUTO, lokalna Gemma, szyfrowana notatka, zakończenie przez AI: fizyczne E2E PASS.
+- Poprawka „do widzenia”: potwierdzona przez użytkownika. Ostatnia sesja 3 tury, RX/TX, `conversation_terminal_category=completed`.
+- S22+: 1200 testów jednostkowych PASS, 22 Python PASS, UI 2/2 PASS, build/debug Binder/default dialer PASS. Zachowany APK do rollback.
+- Mac automatycznie wznowił host po rzeczywistym restarcie telefonu: PASS.
 
-## QA S22+ — 18.11.2026
+## Granice i następne QA
 
-- GSM 6 tur: RX 2 088 320 / TX 2 325 986 B; PASS.
-- E2E 4 tury: RX 753 920 / TX 1 128 844 B, `conversation_terminal_category=completed`, `chat_relay_live_call_success=true`. Użytkownik potwierdził notatkę i rozłączenie AI; szyfrowany indeks notatek istnieje.
-- Binder/UID/build/UI: PASS. Po aktualizacji APK host odtworzono; po restarcie adbd USB nasłuch Mac sam wznowił host: PASS.
-
-## Otwarte
-
-- Android po reboocie nie uruchomi sam hosta UID 2000. Nasłuch ADB na Macu wznowi host po podłączeniu autoryzowanego S22+, lecz nie zapewni niezależnej pracy telefonu.
-- Do odbioru: prawdziwy reboot z podłączonym Maciem, ręczne przejęcie i STOP.
-
-## Następny sprint
-
-Na Macu `s8_gsm_reconnect.py --install` włącza zdarzenia `adb wait-for-device/disconnect` bez schedulera; `--uninstall` wyłącza. Tylko zatwierdzony S22+, IDLE, sprawdzony Binder. Aktualizacja APK: `install-s8-gsm-lab.sh --install`. **WSTRZYMANE:** SIP/PJSUA2 i merge do `main` przed odbiorem. Bez Codex/Work/Actions, schedulerów i PII/WAV w Git.
+- **Brak autonomicznego startu bez MacBooka.** Po reboocie host potrzebuje autoryzowanego ADB; `s8_gsm_reconnect.py` czeka na zdarzenie USB. Bez schedulera.
+- Ręczne przejęcie/wznowienie AI oraz STOP wymagają osobnego potwierdzenia fizycznego; testy stanów UI i autoryzacji PASS.
+- Jakość głosu/odpowiedzi: osobny sprint. SIP/PJSUA2 poza zakresem GSM MVP.
+- Deploy: `install-s8-gsm-lab.sh --install` tylko IDLE, z rollback. Bez Codex/Work/Actions, PII/WAV w Git.
