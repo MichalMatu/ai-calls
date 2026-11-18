@@ -8,12 +8,12 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Owns the two transferred PFD endpoints for one production media generation. */
-public final class ShizukuCallMediaEndpointLease implements CallMediaEndpointLease {
+public final class ParcelFdCallMediaEndpointLease implements CallMediaEndpointLease {
     private final ParcelFileDescriptor.AutoCloseInputStream downlink;
     private final ParcelFileDescriptor.AutoCloseOutputStream uplink;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public ShizukuCallMediaEndpointLease(
+    public ParcelFdCallMediaEndpointLease(
         ParcelFileDescriptor downlinkReadEnd,
         ParcelFileDescriptor uplinkWriteEnd
     ) {

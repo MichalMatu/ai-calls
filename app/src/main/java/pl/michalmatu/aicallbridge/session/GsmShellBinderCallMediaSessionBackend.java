@@ -110,7 +110,7 @@ public final class GsmShellBinderCallMediaSessionBackend implements CallMediaSes
             uplink = service.takeUplinkWriteEnd(owner.wireGeneration);
             if (downlink == null || uplink == null)
                 throw new IllegalStateException("gsm_binder_endpoints_missing");
-            CallMediaEndpointLease lease = new ShizukuCallMediaEndpointLease(downlink, uplink);
+            CallMediaEndpointLease lease = new ParcelFdCallMediaEndpointLease(downlink, uplink);
             downlink = null;
             uplink = null;
             return lease;

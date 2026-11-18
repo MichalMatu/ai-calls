@@ -88,7 +88,7 @@ public final class ShizukuCallMediaSessionBackend
             service.startMedia();
             downlink = service.takeDownlinkReadEnd();
             uplink = service.takeUplinkWriteEnd();
-            ShizukuCallMediaEndpointLease lease = new ShizukuCallMediaEndpointLease(
+            ParcelFdCallMediaEndpointLease lease = new ParcelFdCallMediaEndpointLease(
                 downlink,
                 uplink
             );
