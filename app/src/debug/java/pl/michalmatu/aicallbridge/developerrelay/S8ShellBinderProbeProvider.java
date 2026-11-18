@@ -6,6 +6,12 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.ParcelFileDescriptor;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Isolated S8 debug-only, read-only Binder reachability probe.
@@ -18,6 +24,24 @@ public final class S8ShellBinderProbeProvider extends ContentProvider {
     @Override public Bundle call(String method, String arg, Bundle extras) {
         if (Binder.getCallingUid() != 2000) {
             throw new SecurityException("s8_probe_shell_uid_required");
+        }
+        if ("fd_probe".equals(method)) {
+            try {
+                ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
+                try (ParcelFileDescriptor.AutoCloseOutputStream out =
+                         new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])) {
+                    out.write("S8_FD_TRANSPORT_OK".getBytes(StandardCharsets.US_ASCII));
+                }
+                Bundle result = new Bundle();
+                result.putParcelable("read_end", pipe[0]);
+                // Allow Binder to marshal the descriptor before closing local ownership.
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    try { pipe[0].close(); } catch (IOException ignored) {}
+                }, 5_000);
+                return result;
+            } catch (IOException error) {
+                throw new IllegalStateException("s8_fd_probe_setup_failed", error);
+            }
         }
         if (!"ping".equals(method)) {
             throw new IllegalArgumentException("s8_probe_unknown_method");
