@@ -185,6 +185,12 @@ class AndroidCallControlsActivity : Activity() {
             Call.STATE_HOLDING -> getString(R.string.dialer_ui_holding)
             Call.STATE_DISCONNECTED -> getString(R.string.dialer_ui_disconnected)
             else -> getString(R.string.dialer_ui_connecting)
-        }) + (assistant?.let { "\n" + getString(R.string.dialer_ui_assistant_status, it) } ?: "")
+        }) + (assistant?.let { raw ->
+            "\n" + if (raw == "MANUAL:gsm_shell_host_unavailable") {
+                getString(R.string.dialer_ui_gsm_shell_recovery)
+            } else {
+                getString(R.string.dialer_ui_assistant_status, raw)
+            }
+        } ?: "")
     }
 }
