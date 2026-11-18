@@ -26,6 +26,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
     private volatile long generation = IDLE;
     private volatile boolean shuttingDown;
     private int operationsInFlight;
+    private long revokedThrough;
     private boolean cleanupInProgress;
     private PrivilegedCallContexts.Pair contexts;
     private SamsungCallMediaSessionController.Endpoints endpoints;
@@ -55,7 +56,8 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
             throw new IllegalArgumentException("gsm_shell_invalid_prepare");
 
         synchronized (this) {
-            if (generation != IDLE || operationsInFlight != 0 || cleanupInProgress
+            if (requested <= revokedThrough || generation != IDLE
+                || operationsInFlight != 0 || cleanupInProgress
                 || contexts != null || endpoints != null || shuttingDown)
                 throw new IllegalStateException("gsm_shell_already_owned");
             generation = requested;
@@ -85,7 +87,8 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
         requireOwner();
         PrivilegedCallContexts.Pair selected;
         synchronized (this) {
-            if (generation != requested || contexts == null || endpoints != null
+            if (requested <= revokedThrough || generation != requested
+                || contexts == null || endpoints != null
                 || operationsInFlight != 0 || shuttingDown)
                 throw new IllegalStateException("gsm_shell_start_without_prepare");
             selected = contexts;
@@ -113,7 +116,8 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
 
     @Override public synchronized ParcelFileDescriptor takeDownlinkReadEnd(long requested) {
         requireOwner();
-        if (generation != requested || endpoints == null || cleanupInProgress)
+        if (requested <= revokedThrough || generation != requested
+            || endpoints == null || cleanupInProgress)
             throw new IllegalStateException("gsm_shell_downlink_unavailable");
         return endpoints.takeDownlinkReadEnd();
     }
@@ -127,7 +131,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
 
     @Override public boolean heartbeat(long requested) {
         requireOwner();
-        if (generation != requested || shuttingDown) return false;
+        if (requested <= revokedThrough || generation != requested || shuttingDown) return false;
         boolean healthy = controller.heartbeat();
         if (!healthy) stopGeneration(requested);
         return healthy && generation == requested;
@@ -141,6 +145,10 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
     private void stopGeneration(long requested) {
         SamsungCallMediaSessionController.Endpoints toClose;
         synchronized (this) {
+            // STOP can race ahead of PREPARE across Binder threads. Remember
+            // this wire token so a late PREPARE cannot re-open PCM afterward.
+            if (GsmShellMediaProtocol.validGeneration(requested)
+                && requested > revokedThrough) revokedThrough = requested;
             if (generation != requested) return;
             generation = STOPPING;
             cleanupInProgress = true;
