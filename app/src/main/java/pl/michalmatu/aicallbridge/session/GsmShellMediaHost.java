@@ -71,7 +71,7 @@ public final class GsmShellMediaHost {
     private static void serveOwnedSession(LocalSocket peer) throws IOException {
         SamsungCallMediaSessionController controller = new SamsungCallMediaSessionController();
         PrivilegedCallContexts.Pair contexts = null;
-        boolean started = false;
+        GsmShellSessionGuard guard = null;
         long ownedGeneration = -1L;
         try {
             DataInputStream input = new DataInputStream(peer.getInputStream());
@@ -79,6 +79,7 @@ public final class GsmShellMediaHost {
             if (input.readInt() != GsmShellMediaProtocol.MAGIC) return;
             ownedGeneration = input.readLong();
             if (!GsmShellMediaProtocol.validGeneration(ownedGeneration)) return;
+            guard = new GsmShellSessionGuard(ownedGeneration);
             output.writeByte(GsmShellMediaProtocol.OK);
             output.flush();
 
@@ -94,18 +95,16 @@ public final class GsmShellMediaHost {
                 switch (action) {
                     case GsmShellMediaProtocol.PREPARE -> {
                         int rate = input.readInt();
-                        if (contexts != null || started ||
-                            rate != GsmShellMediaProtocol.SAMPLE_RATE_HZ) return;
+                        if (!guard.prepare(generation, rate)) return;
                         contexts = PrivilegedCallContexts.create();
                         controller.prepare(rate, contexts.shell());
                         output.writeByte(GsmShellMediaProtocol.OK);
                         output.flush();
                     }
                     case GsmShellMediaProtocol.START -> {
-                        if (contexts == null || started) return;
+                        if (contexts == null || !guard.start(generation)) return;
                         SamsungCallMediaSessionController.Endpoints endpoints =
                             controller.start(contexts.system(), contexts.shell());
-                        started = true;
                         contexts = null;
                         ParcelFileDescriptor downlink = null;
                         ParcelFileDescriptor uplink = null;
@@ -125,7 +124,7 @@ public final class GsmShellMediaHost {
                         }
                     }
                     case GsmShellMediaProtocol.HEARTBEAT -> {
-                        if (!started || !controller.heartbeat()) return;
+                        if (!guard.heartbeat(generation) || !controller.heartbeat()) return;
                         output.writeByte(GsmShellMediaProtocol.OK);
                         output.flush();
                     }
@@ -138,6 +137,7 @@ public final class GsmShellMediaHost {
             // Close socket and both PCM paths; never disclose caller or audio.
             throw new IOException("gsm_shell_session_failed", error);
         } finally {
+            if (guard != null) guard.stop();
             controller.abortNow();
         }
     }
