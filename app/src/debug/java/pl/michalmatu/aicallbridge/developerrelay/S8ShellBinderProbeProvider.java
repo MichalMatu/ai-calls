@@ -5,6 +5,9 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.IBinder;
+import android.os.Parcel;
+import android.os.RemoteException;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,6 +27,28 @@ public final class S8ShellBinderProbeProvider extends ContentProvider {
     @Override public Bundle call(String method, String arg, Bundle extras) {
         if (Binder.getCallingUid() != 2000) {
             throw new SecurityException("s8_probe_shell_uid_required");
+        }
+        if ("binder_probe".equals(method)) {
+            IBinder callback = extras == null ? null : extras.getBinder("callback");
+            if (callback == null) throw new SecurityException("s8_probe_missing_binder");
+            Parcel data = Parcel.obtain();
+            Parcel reply = Parcel.obtain();
+            boolean trusted;
+            try {
+                data.writeInterfaceToken("aicalls.s8.probe");
+                if (!callback.transact(IBinder.FIRST_CALL_TRANSACTION, data, reply, 0))
+                    throw new SecurityException("s8_probe_transact_unhandled");
+                reply.readException();
+                trusted = reply.readInt() == 2026;
+            } catch (RemoteException error) {
+                throw new IllegalStateException("s8_probe_binder_dead", error);
+            } finally {
+                data.recycle();
+                reply.recycle();
+            }
+            Bundle result = new Bundle();
+            result.putBoolean("binder_callback_verified", trusted);
+            return result;
         }
         if ("fd_probe".equals(method)) {
             try {
