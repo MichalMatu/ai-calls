@@ -30,4 +30,11 @@ internal object IncomingCallerFarewellPolicy {
     fun finalSpeech(languageTag: String): String =
         if (languageTag == "en-US") "Thank you for calling. Goodbye."
         else "Dziękuję za rozmowę. Do widzenia."
+
+    fun normalizeProposal(callerTranscript: String, proposal: ConversationReply,
+        languageTag: String): ConversationReply =
+        if (isUnambiguousGoodbye(callerTranscript))
+            ConversationReply(finalSpeech(languageTag),
+                pl.michalmatu.aicallbridge.conversationtools.ConversationToolId.END_CALL)
+        else proposal
 }
