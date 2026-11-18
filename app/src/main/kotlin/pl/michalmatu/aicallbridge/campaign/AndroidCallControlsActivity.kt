@@ -187,11 +187,20 @@ class AndroidCallControlsActivity : Activity() {
             Call.STATE_DISCONNECTED -> getString(R.string.dialer_ui_disconnected)
             else -> getString(R.string.dialer_ui_connecting)
         }) + (assistant?.let { raw ->
-            "\n" + if (raw == "MANUAL:gsm_shell_host_unavailable") {
-                getString(R.string.dialer_ui_gsm_shell_recovery)
-            } else {
-                getString(R.string.dialer_ui_assistant_status, raw)
+            val summary = when {
+                raw == "MANUAL:gsm_shell_host_unavailable" ->
+                    getString(R.string.dialer_ui_gsm_shell_recovery)
+                raw.startsWith("RINGING") -> getString(R.string.dialer_ui_ai_waiting)
+                raw.startsWith("ANSWERING") -> getString(R.string.dialer_ui_ai_answering)
+                raw.startsWith("STARTING") -> getString(R.string.dialer_ui_ai_starting)
+                raw == "AI" || raw.startsWith("AI:") ->
+                    getString(R.string.dialer_ui_ai_active)
+                raw.startsWith("ENDING") -> getString(R.string.dialer_ui_ai_ending)
+                raw.startsWith("MANUAL") -> getString(R.string.dialer_ui_ai_manual)
+                raw.startsWith("ENDED") -> getString(R.string.dialer_ui_ai_ended)
+                else -> getString(R.string.dialer_ui_ai_manual)
             }
+            "\n" + summary
         } ?: "")
     }
 }
