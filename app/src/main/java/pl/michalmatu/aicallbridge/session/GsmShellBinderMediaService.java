@@ -8,15 +8,20 @@ import pl.michalmatu.aicallbridge.helper.samsung.SamsungCallMediaSessionControll
 import pl.michalmatu.aicallbridge.shizuku.PrivilegedCallContexts;
 
 /**
- * Privileged GSM media controller bound via the platform's Binder primitives.
- * Only the installed S8 app UID can call this ADB-launched shell instance.
- * No Shizuku runtime, SIP, dialer changes, or arbitrary command execution.
+ * Native Binder GSM controller launched explicitly through ADB shell.
+ * Only the installed S8 app UID may use it. PCM moves via owned pipes, not
+ * Binder byte arrays, TCP, Shizuku or SIP.
  */
 public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub {
+    private static final long IDLE = -1L;
+    private static final long STOPPING = -2L;
+
     private final int trustedAppUid;
     private final SamsungCallMediaSessionController controller =
         new SamsungCallMediaSessionController();
-    private volatile boolean revoked;
+
+    private volatile long generation = IDLE;
+    private volatile boolean shuttingDown;
     private PrivilegedCallContexts.Pair contexts;
     private SamsungCallMediaSessionController.Endpoints endpoints;
 
@@ -29,7 +34,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
     }
 
     private void requireOwner() {
-        if (revoked || Process.myUid() != GsmShellMediaProtocol.SHELL_UID
+        if (shuttingDown || Process.myUid() != GsmShellMediaProtocol.SHELL_UID
             || Binder.getCallingUid() != trustedAppUid) {
             throw new SecurityException("gsm_shell_owner_uid_required");
         }
@@ -40,74 +45,117 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
         return Process.myUid();
     }
 
-    @Override public synchronized void prepare(int sampleRate) {
+    @Override public void prepare(long requested, int sampleRate) {
         requireOwner();
-        if (contexts != null || endpoints != null || controller.hasPreparedSession()) {
-            throw new IllegalStateException("gsm_shell_session_already_prepared");
+        if (!GsmShellMediaProtocol.validGeneration(requested)
+            || sampleRate != GsmShellMediaProtocol.SAMPLE_RATE_HZ) {
+            throw new IllegalArgumentException("gsm_shell_invalid_prepare");
         }
-        if (sampleRate != GsmShellMediaProtocol.SAMPLE_RATE_HZ) {
-            throw new IllegalArgumentException("gsm_shell_sample_rate_unsupported");
+        synchronized (this) {
+            if (generation != IDLE || contexts != null || endpoints != null) {
+                throw new IllegalStateException("gsm_shell_media_already_owned");
+            }
+            generation = requested;
         }
         try {
             PrivilegedCallContexts.Pair candidate = PrivilegedCallContexts.create();
             controller.prepare(sampleRate, candidate.shell());
-            contexts = candidate;
+            synchronized (this) {
+                if (generation != requested || shuttingDown) {
+                    throw new IllegalStateException("gsm_shell_prepare_revoked");
+                }
+                contexts = candidate;
+            }
         } catch (Throwable error) {
-            controller.abortNow();
-            contexts = null;
-            throw new IllegalStateException("gsm_shell_media_prepare_failed", error);
+            stopGeneration(requested);
+            throw new IllegalStateException("gsm_shell_prepare_failed", error);
         }
     }
 
-    @Override public synchronized void startMedia() {
+    @Override public void startMedia(long requested) {
         requireOwner();
-        if (contexts == null || endpoints != null) {
-            throw new IllegalStateException("gsm_shell_start_without_prepare");
+        PrivilegedCallContexts.Pair selected;
+        synchronized (this) {
+            if (generation != requested || contexts == null || endpoints != null) {
+                throw new IllegalStateException("gsm_shell_start_without_prepare");
+            }
+            selected = contexts;
+            contexts = null;
         }
+        SamsungCallMediaSessionController.Endpoints result = null;
         try {
-            endpoints = controller.start(contexts.system(), contexts.shell());
-            contexts = null;
+            result = controller.start(selected.system(), selected.shell());
+            synchronized (this) {
+                if (generation != requested || shuttingDown) {
+                    throw new IllegalStateException("gsm_shell_start_revoked");
+                }
+                endpoints = result;
+                result = null;
+            }
         } catch (Throwable error) {
-            controller.abortNow();
-            contexts = null;
-            throw new IllegalStateException("gsm_shell_media_start_failed", error);
+            if (result != null) result.close();
+            stopGeneration(requested);
+            throw new IllegalStateException("gsm_shell_start_failed", error);
         }
     }
 
-    @Override public synchronized ParcelFileDescriptor takeDownlinkReadEnd() {
+    @Override public synchronized ParcelFileDescriptor takeDownlinkReadEnd(long requested) {
         requireOwner();
-        if (endpoints == null) throw new IllegalStateException("gsm_shell_no_downlink");
+        if (generation != requested || endpoints == null)
+            throw new IllegalStateException("gsm_shell_downlink_unavailable");
         return endpoints.takeDownlinkReadEnd();
     }
 
-    @Override public synchronized ParcelFileDescriptor takeUplinkWriteEnd() {
+    @Override public synchronized ParcelFileDescriptor takeUplinkWriteEnd(long requested) {
         requireOwner();
-        if (endpoints == null) throw new IllegalStateException("gsm_shell_no_uplink");
+        if (generation != requested || endpoints == null)
+            throw new IllegalStateException("gsm_shell_uplink_unavailable");
         return endpoints.takeUplinkWriteEnd();
     }
 
-    @Override public boolean heartbeat() {
+    @Override public boolean heartbeat(long requested) {
         requireOwner();
-        return controller.heartbeat();
+        if (generation != requested) return false;
+        boolean alive = controller.heartbeat();
+        if (!alive) stopGeneration(requested);
+        return alive && generation == requested;
     }
 
-    @Override public void abortNow() {
-        // Revocation is visible immediately, even while a media operation is
-        // transitioning. Closing endpoints and the controller kills both PCM
-        // directions, including after an app-side Binder transport failure.
-        revoked = true;
+    @Override public void abortNow(long requested) {
+        requireOwner();
+        stopGeneration(requested);
+    }
+
+    private void stopGeneration(long requested) {
         SamsungCallMediaSessionController.Endpoints toClose;
         synchronized (this) {
+            if (generation != requested) return;
+            generation = STOPPING;
+            toClose = endpoints;
+            endpoints = null;
+            contexts = null;
+        }
+        try {
+            if (toClose != null) toClose.close();
+            controller.abortNow();
+        } finally {
+            synchronized (this) {
+                if (generation == STOPPING) generation = IDLE;
+            }
+        }
+    }
+
+    /** Local shell-host teardown; no app RPC can call this method. */
+    public void shutdown() {
+        shuttingDown = true;
+        SamsungCallMediaSessionController.Endpoints toClose;
+        synchronized (this) {
+            generation = STOPPING;
             toClose = endpoints;
             endpoints = null;
             contexts = null;
         }
         if (toClose != null) toClose.close();
         controller.abortNow();
-    }
-
-    /** Shell process shutdown path; cannot be called via app Binder. */
-    public void shutdown() {
-        abortNow();
     }
 }
