@@ -1,5 +1,5 @@
-# S22 — testy fizyczne
+# S22 — GSM bez Shizuku
 
-Użytkownik potwierdza działający GSM. Najpierw zachowaj i sprawdź Samsung/Shizuku RX/TX: S22+, SIM, rolę dialera, grant i IDLE. Syntetyczny test nie dowodzi rozmowy GSM.
+GSM na Shizuku działa; nie naruszać produkcji. Izolowany APK S8 korzysta z własnego hosta `shell`; ręczny [start przez ADB](../../scripts/bin/start-s8-gsm-shell.sh) wymaga zgody, konkretnego urządzenia i IDLE.
 
-Rzeczywisty Call i instalacja po zgodzie, z SHA APK/rollbackiem. Bez AndroidTest i `adb uninstall` na prywatnym S22, bez PII/WAV w raportach. [Jedyny plan](../PROJECT.md).
+Sprawdź UID, RX/TX, STOP, 4–6 tur i rollback; bez realnego Call/instalacji bez zgody, bez AndroidTest i `adb uninstall` na S22 oraz PII/WAV w raportach. [Plan GSM](../PROJECT.md).
