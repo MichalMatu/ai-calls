@@ -30,9 +30,14 @@ public final class S8GsmBinderRoundtripProbeActivity extends Activity {
                 IGsmShellMediaService service = GsmShellBinderRegistryProvider.availableService();
                 boolean registered = service != null;
                 boolean verified = registered && service.getShellUid() == 2000;
+                boolean unownedHeartbeatRejected = registered && !service.heartbeat(Long.MAX_VALUE);
+                if (registered) service.abortNow(Long.MAX_VALUE); // one-way, no owned PCM
+                boolean registeredAfterStaleStop = registered && service.getShellUid() == 2000;
                 outcome = "probe=s8_gsm_binder_roundtrip\n"
                     + "host_registered=" + registered + "\n"
                     + "host_binder_uid_verified=" + verified + "\n"
+                    + "unowned_heartbeat_rejected=" + unownedHeartbeatRejected + "\n"
+                    + "registered_after_stale_stop=" + registeredAfterStaleStop + "\n"
                     + "probe_complete=true\n";
             } catch (Exception error) {
                 outcome = "probe=s8_gsm_binder_roundtrip\n"
