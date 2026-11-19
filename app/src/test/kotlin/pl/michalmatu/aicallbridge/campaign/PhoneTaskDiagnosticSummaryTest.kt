@@ -33,12 +33,19 @@ class PhoneTaskDiagnosticSummaryTest {
             "session_id=current-session\ntelephony_tx_pcm_bytes=120\n" +
                 "turns_completed=2\nturn_0_approved_chars=900\nturn_1_approved_chars=20\nturn_2_approved_chars=0\n" +
                 "conversation_end_reason=operator_stopped\nprobe_complete=true\n" +
-                "local_rx_during_tx_detected=true\nprivate_text=PRIVATE_REPORT\n")
+                "local_rx_during_tx_detected=true\n" +
+                "turn_2_tool_end_call_requested=pending\n" +
+                "turn_2_tool_end_call_dispatched=REQUESTED\n" +
+                "turn_2_tool_end_call_rejected=NOT_AUTHORIZED\n" +
+                "private_text=PRIVATE_REPORT\n")
         val evidence = summary["evidence"] as Map<*, *>
         assertEquals(true, evidence["report_matches_attempt"])
         assertEquals(120L, evidence["telephony_tx_pcm_bytes"])
         assertEquals(1, evidence["approved_reply_count"])
         assertEquals(1, evidence["barge_events"])
+        assertEquals(1, evidence["end_call_requested_count"])
+        assertEquals(1, evidence["end_call_dispatched_count"])
+        assertEquals(0, evidence["end_call_confirmed_count"])
         assertEquals("operator_stopped", evidence["conversation_end_reason"])
         assertFalse(summary.toString().contains("PRIVATE_"))
         assertFalse(summary.toString().contains("+12025550101"))
@@ -53,5 +60,7 @@ class PhoneTaskDiagnosticSummaryTest {
         assertFalse(evidence.containsKey("telephony_tx_pcm_bytes"))
         assertFalse(evidence.containsKey("turns_completed"))
         assertFalse(evidence.containsKey("conversation_end_reason"))
+        assertEquals(0, evidence["end_call_dispatched_count"])
+        assertEquals(0, evidence["end_call_confirmed_count"])
     }
 }

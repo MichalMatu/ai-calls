@@ -20,6 +20,35 @@ class ConversationInstructionBuilderIncomingTest {
         assertTrue(compiled.contains("Nie witaj się ponownie"))
     }
 
+    @Test fun outgoingEnquiryClosesAfterGoalOrOutOfScopeVerification() {
+        for (language in listOf("pl-PL", "en-US")) {
+            val compiled = ConversationInstructionBuilder.build(
+                ConversationPreparation.outgoing(),
+                "Zapytaj o dostępność pomocy automatycznej.",
+                ConversationResponseFormat.TOOL_REPLY, language,
+            )
+            assertTrue(compiled.contains("ZAKOŃCZENIE ZADANIA OUTGOING"))
+            assertTrue(compiled.contains("tool=end_call"))
+            assertTrue(compiled.contains("nie przedłużaj rozmowy"))
+            assertTrue(compiled.contains("przed rozłączeniem"))
+            assertTrue(compiled.contains("automat IVR"))
+            assertTrue(compiled.contains("nie możesz tego zrobić"))
+        }
+    }
+
+    @Test fun completionInstructionIsNotInjectedIntoIncomingOrPlainSpeech() {
+        val incoming = ConversationInstructionBuilder.build(
+            ConversationPreparation.incoming(), "Przyjmij wiadomość.",
+            ConversationResponseFormat.TOOL_REPLY,
+        )
+        val plainOutgoing = ConversationInstructionBuilder.build(
+            ConversationPreparation.outgoing(), "Zapytaj o ofertę.",
+            ConversationResponseFormat.SPOKEN_TEXT,
+        )
+        assertFalse(incoming.contains("ZAKOŃCZENIE ZADANIA OUTGOING"))
+        assertFalse(plainOutgoing.contains("ZAKOŃCZENIE ZADANIA OUTGOING"))
+    }
+
     @Test fun outgoingCallDoesNotInheritIncomingOnlyGuidance() {
         val compiled = ConversationInstructionBuilder.build(
             ConversationPreparation.outgoing(),
