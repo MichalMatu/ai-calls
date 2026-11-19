@@ -109,7 +109,7 @@ internal class PhoneTaskExecution(
         // Explicit S8 calls use only the approved shell host; never silently
         // fall back to Shizuku if it is missing.
         if (!GsmMediaTransportReadiness.isAvailable(service)) {
-            complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.SHIZUKU); return
+            complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.GSM_HOST_UNAVAILABLE); return
         }
         val outgoing = task.scenarioTask(task.recipients.first { it.id == next.recipientId }, next.attemptId)
         PhoneTaskWork.io.execute {
@@ -167,6 +167,12 @@ internal class PhoneTaskExecution(
                     }
                     if (CampaignAccountScope.forSubscription(service, current.subscriptionId) != current.accountScope) {
                         complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.SIM_CHANGED); return@post
+                    }
+                    // GSM host may have died during model warmup. Never dial without
+                    // a live Binder transport, even if initial readiness was green.
+                    if (!GsmMediaTransportReadiness.isAvailable(service)) {
+                        complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.GSM_HOST_UNAVAILABLE)
+                        return@post
                     }
                     val grants = CampaignAuthorizationStore(service)
                     try {
