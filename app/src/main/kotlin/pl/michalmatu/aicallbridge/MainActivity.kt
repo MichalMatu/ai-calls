@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
+import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskWizardActivity
 import pl.michalmatu.aicallbridge.campaign.PhoneTasksActivity
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskWork
@@ -59,7 +60,7 @@ class MainActivity : AppBaseActivity() {
         }
 
         taskSummary = UiDesign.caption(this, getString(R.string.task_loading))
-        val start = UiDesign.action(this, getString(R.string.task_new),
+        val start = UiDesign.action(this, getString(R.string.home_outgoing_action),
             UiActionTone.PRIMARY) {
             startActivity(Intent(this, PhoneTaskWizardActivity::class.java))
         }.apply { tag = "home-task-start" }
@@ -78,6 +79,10 @@ class MainActivity : AppBaseActivity() {
                 tag = "home-new-call-card"
                 addView(start)
             }, UiDesign.spaceAfter(this@MainActivity, 16))
+            addView(UiDesign.navigationRow(this@MainActivity, getString(R.string.incoming_ui_title),
+                UiDesign.caption(this@MainActivity, getString(R.string.home_incoming_summary))) {
+                startActivity(Intent(this@MainActivity, IncomingAssistantSettingsActivity::class.java))
+            }.apply { tag = "home-incoming-settings" }, UiDesign.spaceAfter(this@MainActivity, 16))
             addView(UiDesign.navigationRow(this@MainActivity, getString(R.string.task_list), taskSummary) {
                 startActivity(Intent(this@MainActivity, PhoneTasksActivity::class.java))
             }.apply { tag = "home-tasks" }, UiDesign.spaceAfter(this@MainActivity, 16))
