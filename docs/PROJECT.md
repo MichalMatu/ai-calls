@@ -13,10 +13,14 @@
 - Outgoing AI END_CALL: 7 SPEAK, zero END_CALL; koniec owned_call_ended, bez dowodu że rozłączyło AI. Poprawiono prompt i liczniki; konieczny odbiór fizyczny po wdrożeniu.
 - UX, konfiguracja STT/TTS/modelu i subiektywna jakość odpowiedzi — osobny etap po GSM.
 
+## Wdrożenie — 19.11.2026
+
+- main 2a617bb0: QA/build PASS, APK .s8lab na S22+ z rollbackiem i zgodnym SHA.
+- Po instalacji Mac Agent przywrócił host Binder w IDLE: host_registered=true; bez Call.
+
 ## Następny sprint
 
-1. QA (JVM/Python/Lint/security/build), PR→main, backup i instalacja na S22+ tylko IDLE.
-2. Za osobną zgodą Outgoing: audio/WAV, END_CALL DISPATCHED po TTS, koniec exact Call, brak retry i ujawniania danych. Dopiero wtedy PASS rozłączenia przez AI.
-3. Osobno UX i konfiguracja profili/modelu.
+1. Za osobną zgodą fizyczny Outgoing: po TTS END_CALL DISPATCHED → exact Call ended, zapis i brak retry/ujawnień. Dopiero wtedy PASS zakończenia przez AI.
+2. Następnie UX, STT/TTS i model.
 
 **WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku i WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
