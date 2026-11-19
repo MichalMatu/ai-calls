@@ -17,7 +17,7 @@ import java.io.File
  */
 internal class LocalAdbGsmController(private val context: Context) {
     enum class Outcome { PAIRED, READY, ALREADY_READY, INVALID_INPUT, WRONG_DEVICE,
-        CALL_BUSY, BOOTSTRAP_FAILED, ADB_UNAVAILABLE }
+        CALL_BUSY, BOOTSTRAP_FAILED, ADB_UNAVAILABLE, NOT_DISCOVERED }
 
     private fun allowed(): Boolean =
         context.packageName == GsmShellMediaProtocol.S8_PACKAGE
@@ -28,12 +28,16 @@ internal class LocalAdbGsmController(private val context: Context) {
         KadbCert.ensureReady()
     }
 
-    fun pair(pairingPort: String, code: String): Outcome {
+    // Only the local Android NSD port is used; no remote IP or arbitrary host.
+    private fun localPort(serviceType: String): Int? =
+        LocalAdbPortDiscovery(context).discover(serviceType)
+
+    fun pair(code: String): Outcome {
         if (!allowed()) return Outcome.WRONG_DEVICE
-        val port = LocalAdbGsmPolicy.port(pairingPort) ?: return Outcome.INVALID_INPUT
         if (!LocalAdbGsmPolicy.pairingCode(code)) return Outcome.INVALID_INPUT
         return try {
             identity()
+            val port = localPort(LocalAdbPortDiscovery.PAIRING) ?: return Outcome.NOT_DISCOVERED
             runBlocking { Kadb.pair(LocalAdbGsmPolicy.LOOPBACK, port, code) }
             Outcome.PAIRED
         } catch (_: Exception) {
@@ -42,11 +46,11 @@ internal class LocalAdbGsmController(private val context: Context) {
         }
     }
 
-    fun bootstrap(connectionPort: String): Outcome {
+    fun bootstrap(): Outcome {
         if (!allowed()) return Outcome.WRONG_DEVICE
-        val port = LocalAdbGsmPolicy.port(connectionPort) ?: return Outcome.INVALID_INPUT
         return try {
             identity()
+            val port = localPort(LocalAdbPortDiscovery.CONNECT) ?: return Outcome.NOT_DISCOVERED
             Kadb.create(LocalAdbGsmPolicy.LOOPBACK, port,
                 connectTimeout = 10_000, socketTimeout = 12_000).use { adb ->
                 fun checked(command: String): String {

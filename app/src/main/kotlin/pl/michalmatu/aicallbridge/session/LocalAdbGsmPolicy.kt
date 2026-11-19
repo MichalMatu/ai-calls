@@ -15,6 +15,9 @@ internal object LocalAdbGsmPolicy {
         input.takeIf { it.length in 1..5 && it.all { digit -> digit in '0'..'9' } }
             ?.toIntOrNull()?.takeIf { it in 1..65535 }
 
+    fun uniqueLocalPort(ports: List<Int>): Int? =
+        ports.filter { it in 1..65535 }.distinct().singleOrNull()
+
     fun pairingCode(input: String): Boolean =
         input.length == 6 && input.all { it in '0'..'9' }
 

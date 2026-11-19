@@ -9,6 +9,12 @@ class LocalAdbGsmPolicyTest {
         for (value in listOf("", "0", "65536", "999999", "12;id", " 37111", "1.2.3", "-1"))
             assertNull(LocalAdbGsmPolicy.port(value))
     }
+    @Test fun discoveryPortMustBeUniqueAndValid() {
+        assertEquals(37111, LocalAdbGsmPolicy.uniqueLocalPort(listOf(37111, 37111)))
+        assertNull(LocalAdbGsmPolicy.uniqueLocalPort(emptyList()))
+        assertNull(LocalAdbGsmPolicy.uniqueLocalPort(listOf(0, 65536)))
+        assertNull(LocalAdbGsmPolicy.uniqueLocalPort(listOf(37111, 37112)))
+    }
     @Test fun codeMustBeSixDigits() {
         assertTrue(LocalAdbGsmPolicy.pairingCode("019283"))
         for (value in listOf("12345", "1234567", "a23456", " 123456", "1234\n6"))

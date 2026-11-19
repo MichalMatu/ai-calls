@@ -6,7 +6,6 @@ import android.provider.Settings
 import android.text.InputType
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import java.util.concurrent.Executors
@@ -46,18 +45,26 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
                 content.addView(this, UiDesign.spaceAfter(this@LocalAdbGsmSetupActivity, 8))
             }
         }
-        val pairPort = field(R.string.local_adb_pair_port)
         val pairCode = field(R.string.local_adb_pair_code, password = true)
         content.addView(UiDesign.action(this, getString(R.string.local_adb_pair), UiActionTone.PRIMARY) {
-            val port = pairPort.text.toString()
             val code = pairCode.text.toString()
             pairCode.text?.clear()
-            execute { LocalAdbGsmController(applicationContext).pair(port, code) }
+            execute {
+                val controller = LocalAdbGsmController(applicationContext)
+                val paired = controller.pair(code)
+                if (paired != LocalAdbGsmController.Outcome.PAIRED) paired
+                else {
+                    // First-time pairing should not require a second tap.
+                    when (val ready = controller.bootstrap()) {
+                        LocalAdbGsmController.Outcome.READY,
+                        LocalAdbGsmController.Outcome.ALREADY_READY -> ready
+                        else -> paired // Pairing succeeded; retry is explicit.
+                    }
+                }
+            }
         }, UiDesign.spaceAfter(this, 12))
-        val connectPort = field(R.string.local_adb_connect_port)
         content.addView(UiDesign.action(this, getString(R.string.local_adb_start), UiActionTone.PRIMARY) {
-            val port = connectPort.text.toString()
-            execute { LocalAdbGsmController(applicationContext).bootstrap(port) }
+            execute { LocalAdbGsmController(applicationContext).bootstrap() }
         }, UiDesign.spaceAfter(this, 12))
         status = UiDesign.caption(this, getString(R.string.local_adb_idle)).apply {
             tag = "local-adb-status"
@@ -87,6 +94,7 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
                     LocalAdbGsmController.Outcome.CALL_BUSY -> R.string.local_adb_busy
                     LocalAdbGsmController.Outcome.BOOTSTRAP_FAILED -> R.string.local_adb_boot_failed
                     LocalAdbGsmController.Outcome.ADB_UNAVAILABLE -> R.string.local_adb_failed
+                    LocalAdbGsmController.Outcome.NOT_DISCOVERED -> R.string.local_adb_not_discovered
                 }
                 status.setText(message)
             }
