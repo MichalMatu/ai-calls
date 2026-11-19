@@ -1,21 +1,22 @@
-# AI Calls — jedyna roadmapa
+# AI Calls — roadmapa MVP
 
-**Golden:** tag `s22-gsm-mvp-golden-2026-11-19` → `f0940d51`; S22+ SM-S906B, Android 16, `.s8lab` (nie wydanie uniwersalne).
-**PASS:** parowanie ADB z powiadomienia, zachowany klucz, stany ADB/GSM, start hosta z APK bez Maca, rollback/SHA. Wcześniejszy fizyczny incoming: RX/STT/Gemma/TTS/TX/notatka/END_CALL, STOP/takeover. QA: 1370 JVM, 463 Python, Lint 0 błędów.
-**Po reboocie:** ręcznie włącz debugowanie bezprzewodowe; przy zachowanym kluczu bez nowego kodu. Nie dodawać `WRITE_SECURE_SETTINGS`.
+**Golden rollback:** s22-gsm-mvp-golden-2026-11-19 → f0940d51 (S22+, Android 16, .s8lab). Nie ruszać tagu.
+
+## PASS fizyczny — 19.11.2026
+
+- Incoming bez Wi-Fi/USB: 7 tur / 2:06, RX→STT→AI→TTS→TX, SAVE_NOTE i END_CALL CONFIRMED, 22 WAV.
+- Outgoing Orange 510 100 100: 1 próba bez retry, 7 tur / 2:37, 8 STT, RX/TX, 24 WAV, FINISHED/ANSWERED, zakończony Call.
+- Host Binder działa bez Wi-Fi/ADB wireless. 3 WRITE_REVOKED odpowiadają barge-in, nie dowodzą awarii audio.
 
 ## Otwarte
 
-- **P0 incoming E2E:** na golden 4–6 tur, realne RX/TX, cisza, STOP/takeover, pożegnanie i hangup; brak testu rozmowy po ostatnim APK.
-- **P0 outgoing GSM:** `PhoneTask` i UI istnieją, ale AI/PCM outgoing nie ma fizycznego PASS; SIM, zgoda, anulowanie, END_CALL.
-- **P1 nagrania:** opt-in, zapis i odtwarzanie obu kierunków; bez pozornych statusów.
-- **P1 audio/UX:** polskie STT/TTS, odsłuch; 633 ostrzeżenia Lint (bez zbiorczego wyciszania).
-- **P2 utrzymanie:** małe refaktory dużych klas runtime/model i zgodność Android/OEM.
+- Outgoing AI END_CALL: 7 SPEAK, zero END_CALL; koniec owned_call_ended, bez dowodu że rozłączyło AI. Poprawiono prompt i liczniki; konieczny odbiór fizyczny po wdrożeniu.
+- UX, konfiguracja STT/TTS/modelu i subiektywna jakość odpowiedzi — osobny etap po GSM.
 
 ## Następny sprint
 
-1. Celowane QA golden + fizyczny incoming 4–6 tur za zgodą.
-2. Outgoing E2E i nagrania; po poprawkach pełny gate i odbiór fizyczny.
-3. Jakość/modularność; nowy golden wyłącznie po PASS — [bramki](operations/DEVELOPMENT.md).
+1. QA (JVM/Python/Lint/security/build), PR→main, backup i instalacja na S22+ tylko IDLE.
+2. Za osobną zgodą Outgoing: audio/WAV, END_CALL DISPATCHED po TTS, koniec exact Call, brak retry i ujawniania danych. Dopiero wtedy PASS rozłączenia przez AI.
+3. Osobno UX i konfiguracja profili/modelu.
 
-**WSTRZYMANE:** SIP/PJSUA2, schedulery, root, nowe uprawnienia, autonomiczne dzwonienie.
+**WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku i WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
