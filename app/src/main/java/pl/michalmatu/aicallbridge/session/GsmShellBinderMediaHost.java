@@ -6,7 +6,6 @@ import android.os.Process;
 
 import java.lang.reflect.Method;
 
-import pl.michalmatu.aicallbridge.shizuku.PrivilegedCallContexts;
 
 /**
  * Explicit ADB shell entry point for the native S8 Binder transport.
@@ -27,7 +26,7 @@ public final class GsmShellBinderMediaHost {
         systemMain.setAccessible(true);
         systemMain.invoke(null);
 
-        Context system = PrivilegedCallContexts.create().system();
+        Context system = ShellCallContexts.create().system();
         int appUid = system.getPackageManager().getPackageUid(
             GsmShellMediaProtocol.S8_PACKAGE, 0
         );

@@ -1,5 +1,7 @@
 package pl.michalmatu.aicallbridge.shizuku;
 
+import pl.michalmatu.aicallbridge.session.ShellCallContexts;
+
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
 
@@ -22,7 +24,7 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         new SamsungCallMediaSessionController();
 
     private SamsungCallMediaSessionController.Endpoints endpoints;
-    private PrivilegedCallContexts.Pair contexts;
+    private ShellCallContexts.Pair contexts;
 
     public ShizukuCallMediaUserService() {
         // Required default constructor for Shizuku UserService.
@@ -48,7 +50,7 @@ public final class ShizukuCallMediaUserService extends IShizukuCallMediaService.
         }
 
         try {
-            PrivilegedCallContexts.Pair candidate = PrivilegedCallContexts.create();
+            ShellCallContexts.Pair candidate = ShellCallContexts.create();
             controller.prepare(sampleRate, candidate.shell());
             contexts = candidate;
         } catch (RuntimeException | Error error) {

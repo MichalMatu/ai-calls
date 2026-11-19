@@ -1,4 +1,4 @@
-package pl.michalmatu.aicallbridge.shizuku;
+package pl.michalmatu.aicallbridge.session;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -7,15 +7,11 @@ import java.lang.reflect.Method;
 import java.util.Objects;
 
 /**
- * Builds the two attribution contexts required by the proven Samsung cellular media path.
- *
- * <p>The direct-shell proof still constructs VOICE_DOWNLINK before creating these contexts. A
- * A Shizuku UserService or app_process-based shell host already owns an ActivityThread,
- * so its RX path explicitly supplies trusted shell attribution to AudioRecord during
- * prepare. The same pair is reused for route guarding and CALL_ASSISTANT TX.</p>
+ * Builds system and shell attribution contexts for already-authorized privileged media hosts.
+ * No ADB bootstrap, Shizuku API call or permission escalation occurs here.
  */
-public final class PrivilegedCallContexts {
-    private PrivilegedCallContexts() {}
+public final class ShellCallContexts {
+    private ShellCallContexts() {}
 
     public static Pair create() throws Exception {
         Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
