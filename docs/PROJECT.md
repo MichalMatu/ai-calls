@@ -10,8 +10,9 @@
 
 ## Otwarte
 
-- Outgoing AI END_CALL: 7 SPEAK, zero END_CALL; koniec owned_call_ended, bez dowodu że rozłączyło AI. Poprawiono prompt i liczniki; konieczny odbiór fizyczny po wdrożeniu.
-- UX, konfiguracja STT/TTS/modelu i subiektywna jakość odpowiedzi — osobny etap po GSM.
+- UX, konfiguracja STT/TTS/modelu i subiektywna jakość dialogu — nowy priorytet.
+- Rozłączanie exact Call działa (Incoming END_CALL CONFIRMED po TTS); Outgoing kończy i zapisuje połączenia. GSM przyjęte do MVP.
+- Ostatni Outgoing: FINISHED, 2 tury, 3 STT, 10 WAV, bez retry. Model wybrał 3× SPEAK, więc brak nowego dowodu wywołania END_CALL, ale też brak dowodu regresji rozłączania. Dalsze scenariusze w zwykłym QA, nie blokują UX.
 
 ## Wdrożenie — 19.11.2026
 
@@ -20,7 +21,7 @@
 
 ## Następny sprint
 
-1. Za osobną zgodą fizyczny Outgoing: po TTS END_CALL DISPATCHED → exact Call ended, zapis i brak retry/ujawnień. Dopiero wtedy PASS zakończenia przez AI.
-2. Następnie UX, STT/TTS i model.
+1. UX użytkowy: wejście w zadanie, ekran główny, nawigacja, przygotowanie Incoming/Outgoing, proste statusy i czytelny STOP.
+2. Konfiguracja STT/TTS/modelu oraz testy jakości odpowiedzi; regresje GSM tylko przy dotknięciu flow. Bez kolejnych połączeń bez osobnej zgody.
 
 **WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku i WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
