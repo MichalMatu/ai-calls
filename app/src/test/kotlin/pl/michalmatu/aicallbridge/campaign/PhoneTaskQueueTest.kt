@@ -134,8 +134,15 @@ class PhoneTaskQueueTest {
         assertTrue(CampaignAuthorizationPolicy.matchesExactTask(grant, authorized.request()))
         assertFalse(CampaignAuthorizationPolicy.matchesExactTask(grant,
             restored.scenarioTask(recipient.copy(number = "+12025550999"), id()).request()))
-        // No inherited opt-in when the owner starts a new draft.
-        assertFalse(PhoneTaskDraft().recordAudio)
+        // New outgoing wizard drafts record by default; users can opt out.
+        assertTrue(PhoneTaskDraft().recordAudio)
+        assertFalse(PhoneTaskDraft().copy(recordAudio = false).recordAudio)
+        // Legacy or explicit opt-out tasks remain off; no silent conversion.
+        repo.update { listOf(task.copy(recordAudio = false).validated()) }
+        val optedOut = repo.load().single()
+        assertFalse(optedOut.recordAudio)
+        assertFalse(optedOut.scenarioTask(recipient, id()).grant(1_000).recordCallEvidence)
+        // Direct legacy task API does not bypass per-task wizard authorization.
         assertFalse(ScenarioOutgoingTask.create("+12025550111", 1, "sim-test", "quote",
             "Test quote", "Please provide price", "Ask for terms").grant(1_000).recordCallEvidence)
     }

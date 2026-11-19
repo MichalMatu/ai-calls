@@ -969,7 +969,7 @@
     <string name="s8_sip_incoming_reject">Odrzuć</string>
     <string name="s8_sip_incoming_hangup">Rozłącz</string>
     <string name="task_record_audio">Zapisuj fragmenty audio WAV tej rozmowy (opcjonalne)</string>
-    <string name="task_record_audio_hint">Domyślnie wyłączone. Zapisuje tylko fragmenty RX/TX na urządzeniu, nie pełne nagranie. Włącz tylko za zgodą uczestników.</string>
+    <string name="task_record_audio_hint">Włączone domyślnie dla nowych zadań. Odznacz, aby nie nagrywać. Zapisuje tylko lokalne fragmenty RX/TX WAV, nie całe połączenie. Zadbaj o zgodę uczestników.</string>
     <string name="task_record_audio_on">Nagrywanie fragmentów WAV: włączone dla tego zadania</string>
     <string name="task_record_audio_off">Nagrywanie fragmentów WAV: wyłączone</string>
 </resources>

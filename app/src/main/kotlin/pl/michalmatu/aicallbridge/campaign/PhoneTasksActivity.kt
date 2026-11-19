@@ -185,7 +185,8 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                     PhoneTaskWork.store(this).savePhoneTaskDraft(PhoneTaskDraft(scenarioId = task.scenarioId,
                         title = task.title, goal = task.goal, suppliedBrief = task.brief,
                         recipients = task.recipients.joinToString("\n") { it.name + "; " + it.number },
-                        subscriptionId = task.subscriptionId, accountScope = task.accountScope))
+                        subscriptionId = task.subscriptionId, accountScope = task.accountScope,
+                        recordAudio = task.recordAudio))
                 }
                 runOnUiThread { result.onSuccess { startActivity(Intent(this, PhoneTaskWizardActivity::class.java)) }
                     .onFailure { Toast.makeText(this, R.string.task_storage_error, Toast.LENGTH_LONG).show() } }

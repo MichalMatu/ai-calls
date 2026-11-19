@@ -23,7 +23,8 @@ internal data class PhoneTaskDraft(
     val zoneId: String = ZoneId.systemDefault().id,
     val retry: Boolean = true,
     val retryMinutes: String = "5",
-    val recordAudio: Boolean = false,
+    // Default on for NEW outgoing wizard drafts; explicit opt-out stays saved.
+    val recordAudio: Boolean = true,
 ) {
     override fun toString() = "PhoneTaskDraft(id=$id,step=$step,content=REDACTED)"
 }

@@ -969,7 +969,7 @@
     <string name="s8_lab_model_four_turn_count">Completed turns: %1$d / 4. Replies are not saved.</string>
     <string name="s8_lab_model_four_turn_permission">After granting phone-state access, tap the four-turn test again.</string>
     <string name="task_record_audio">Save WAV audio segments for this call (optional)</string>
-    <string name="task_record_audio_hint">Off by default. Saves local RX/TX segments, not a complete call recording. Enable only with the consent of all participants.</string>
+    <string name="task_record_audio_hint">On by default for new tasks. Uncheck to disable. Saves only local RX/TX WAV segments, not the full call. Ensure participants consent.</string>
     <string name="task_record_audio_on">WAV segment recording: enabled for this task</string>
     <string name="task_record_audio_off">WAV segment recording: disabled</string>
 </resources>
