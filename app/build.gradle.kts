@@ -4,7 +4,8 @@ plugins {
 
 android {
     namespace = "pl.michalmatu.aicallbridge"
-    compileSdk = 36
+    // Kadb Android AAR metadata requires API 37; targetSdk stays on tested Android 16.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "pl.michalmatu.aicallbridge"
@@ -24,6 +25,14 @@ android {
             // Only the owner's 64-bit Samsung S22+ target. Do not ship
             // x86/x86_64/32-bit native LLM binaries in the test installer.
             ndk { abiFilters += "arm64-v8a" }
+        }
+    }
+
+    // BouncyCastle modules ship an identical META-INF/LICENSE.md path.
+    // Retain one copy in the APK rather than silently dropping license notices.
+    packaging {
+        resources {
+            pickFirsts += "META-INF/LICENSE.md"
         }
     }
 
@@ -49,6 +58,8 @@ dependencies {
     // Existing cached Activity artifact supplies lifecycle-aware predictive Back handling.
     implementation("androidx.activity:activity:1.10.1")
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
+    // Explicit, user-approved local ADB pairing for the isolated S8 lab only.
+    implementation("com.flyfishxu:kadb:2.1.5")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
     testImplementation("junit:junit:4.13.2")

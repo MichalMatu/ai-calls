@@ -20,6 +20,8 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
+import pl.michalmatu.aicallbridge.session.LocalAdbGsmSetupActivity
+import android.content.Intent
 
 /** Displays incoming-call preferences; all store/Telecom effects live in the controller. */
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -60,6 +62,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             }
             gsmHostStatus = hostStatus
             content.addView(hostStatus, UiDesign.spaceAfter(this, 10))
+            content.addView(UiDesign.action(this, getString(R.string.local_adb_open)) {
+                startActivity(Intent(this, LocalAdbGsmSetupActivity::class.java))
+            }, UiDesign.spaceAfter(this, 12))
             refreshGsmHostStatus()
         }
         val mode = Spinner(this).apply {

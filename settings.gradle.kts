@@ -11,6 +11,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Kadb 2.1.5 SPAKE2 Android runtime is published through JitPack.
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.Flyfish233") }
+        }
     }
 }
 

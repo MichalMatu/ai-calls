@@ -4,4 +4,4 @@ Repo `MichalMatu/ai-calls`; kod po PR #23 na `main`. S22+ `.s8lab`: lokalna Gemm
 
 Na starcie sprawdź HEAD `main`, czysty worktree i ostatni receipt [Mac Local Agenta](LOCAL_AGENT.md). Nie powtarzaj zaliczonego E2E.
 
-S1 TAKE OVER → RESUME → STOP: PASS użytkownika 19.11, bez nowego receipt. S2 po reboocie: HOLD, stock Android 16 wymaga ADB/UID 2000; lab pokazuje read-only stan hosta. Termux self-ADB: s22-termux-gsm-bootstrap.sh (ręczne parowanie, nie autonomia). Dalej S3 modularność, S4 jakość. Nie powtarzać E2E. Bez Codex/Work/Actions/schedulerów/SIP/PJSUA2. Fizyczny Call tylko za zgodą.
+S1 TAKE OVER → RESUME → STOP: PASS użytkownika 19.11, bez nowego receipt. S2 po reboocie: HOLD, stock Android 16 wymaga ADB/UID 2000; lab pokazuje read-only stan hosta. Wariant 1: Kadb w UI lab (parowanie/host ręczne, test fizyczny OPEN, nie autonomia). Dalej S3 modularność, S4 jakość. Nie powtarzać E2E. Bez Codex/Work/Actions/schedulerów/SIP/PJSUA2. Fizyczny Call tylko za zgodą.
