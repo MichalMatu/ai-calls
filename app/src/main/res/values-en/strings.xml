@@ -763,6 +763,11 @@
     <string name="perm_action_open_shizuku">Open Shizuku</string>
 
     <string name="home_outgoing_action">New outgoing call</string>
+    <string name="home_incoming_mode_manual">Manual answering</string>
+    <string name="home_incoming_sim_unavailable">AI mode: check SIM and permissions</string>
+    <string name="home_incoming_audio_unavailable">AI answering on · GSM audio unavailable</string>
+    <string name="home_incoming_mode_ready">AI answering on · GSM audio ready</string>
+    <string name="home_incoming_read_error">Could not read answering status</string>
     <string name="home_incoming_summary">Choose AI or manual answering and the SIM card.</string>
     <string name="task_new">New task</string>
     <string name="task_list">Tasks</string>
