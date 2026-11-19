@@ -5,7 +5,6 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 
 import pl.michalmatu.aicallbridge.helper.samsung.SamsungCallMediaSessionController;
-import pl.michalmatu.aicallbridge.shizuku.PrivilegedCallContexts;
 
 /**
  * UID-checked S8 GSM Binder controller. One generation at a time owns the
@@ -28,7 +27,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
     private int operationsInFlight;
     private long revokedThrough;
     private boolean cleanupInProgress;
-    private PrivilegedCallContexts.Pair contexts;
+    private ShellCallContexts.Pair contexts;
     private SamsungCallMediaSessionController.Endpoints endpoints;
 
     public GsmShellBinderMediaService(int trustedAppUid) {
@@ -65,7 +64,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
             operationsInFlight++;
         }
         try {
-            PrivilegedCallContexts.Pair candidate = PrivilegedCallContexts.create();
+            ShellCallContexts.Pair candidate = ShellCallContexts.create();
             controller.prepare(sampleRate, candidate.shell());
             synchronized (this) {
                 if (generation != requested || shuttingDown)
@@ -86,7 +85,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
 
     @Override public void startMedia(long requested) {
         requireOwner();
-        PrivilegedCallContexts.Pair selected;
+        ShellCallContexts.Pair selected;
         synchronized (this) {
             if (requested <= revokedThrough || generation != requested
                 || contexts == null || endpoints != null
