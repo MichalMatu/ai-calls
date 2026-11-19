@@ -23,6 +23,13 @@ internal object PhoneTaskDiagnosticSummary {
             }
             evidence["barge_events"] = report.orEmpty().lineSequence()
                 .count { it == "local_rx_during_tx_detected=true" }
+            // A dispatched exact-call disconnect is a request, not Telecom confirmation.
+            // Only matching reports can attach this evidence to a current attempt.
+            for (stage in listOf("requested", "dispatched", "confirmed")) {
+                val pattern = Regex("turn_[1-9][0-9]*_tool_end_call_${stage}=(pending|REQUESTED)")
+                evidence["end_call_${stage}_count"] = report.orEmpty().lineSequence()
+                    .count { pattern.matches(it) }
+            }
         }
         return linkedMapOf(
             "id" to task.id,
