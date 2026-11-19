@@ -10,6 +10,10 @@ import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
+import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsController
+import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
+import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
+import pl.michalmatu.aicallbridge.ui.IncomingHomeSummary
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskWizardActivity
 import pl.michalmatu.aicallbridge.campaign.PhoneTasksActivity
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskWork
@@ -31,6 +35,8 @@ class MainActivity : AppBaseActivity() {
     private lateinit var liveStatus: TextView
     private lateinit var actionFeedback: TextView
     private lateinit var taskSummary: TextView
+    private lateinit var incomingSummary: TextView
+    private lateinit var incomingDestination: View
     private var taskReading = false
     private var lastTaskRead = 0L
     private var diagnosticProbes: MainActivityDeveloperProbes? = null
@@ -72,6 +78,15 @@ class MainActivity : AppBaseActivity() {
             actionFeedback.visibility = View.VISIBLE
         }.apply { tag = "home-stop-ai" }
 
+        incomingSummary = UiDesign.caption(this, getString(R.string.home_incoming_summary)).apply {
+            tag = "home-incoming-status"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        incomingDestination = UiDesign.navigationRow(this, getString(R.string.incoming_ui_title),
+            incomingSummary) {
+            startActivity(Intent(this, IncomingAssistantSettingsActivity::class.java))
+        }.apply { tag = "home-incoming-settings" }
+
         val content = UiDesign.content(this).apply {
             tag = "main-screen-root"
             addView(dialerRole.view, UiDesign.spaceAfter(this@MainActivity, 16))
@@ -79,10 +94,7 @@ class MainActivity : AppBaseActivity() {
                 tag = "home-new-call-card"
                 addView(start)
             }, UiDesign.spaceAfter(this@MainActivity, 16))
-            addView(UiDesign.navigationRow(this@MainActivity, getString(R.string.incoming_ui_title),
-                UiDesign.caption(this@MainActivity, getString(R.string.home_incoming_summary))) {
-                startActivity(Intent(this@MainActivity, IncomingAssistantSettingsActivity::class.java))
-            }.apply { tag = "home-incoming-settings" }, UiDesign.spaceAfter(this@MainActivity, 16))
+            addView(incomingDestination, UiDesign.spaceAfter(this@MainActivity, 16))
             addView(UiDesign.navigationRow(this@MainActivity, getString(R.string.task_list), taskSummary) {
                 startActivity(Intent(this@MainActivity, PhoneTasksActivity::class.java))
             }.apply { tag = "home-tasks" }, UiDesign.spaceAfter(this@MainActivity, 16))
@@ -136,9 +148,22 @@ class MainActivity : AppBaseActivity() {
                 PhoneTaskWork.recover(this)
                 PhoneTaskWork.store(this).phoneTasks()
             }
+            val incoming = runCatching {
+                val controller = IncomingAssistantSettingsController(applicationContext)
+                val policy = controller.current().getOrThrow()
+                val selectedSimPresent = policy.accountKey?.let { accountKey ->
+                    controller.selectedAccountIndex(controller.availableAccounts(), accountKey) >= 0
+                } ?: false
+                val hostReady = policy.mode == AnsweringMode.AI && selectedSimPresent &&
+                    GsmMediaTransportReadiness.isAvailable(applicationContext)
+                IncomingHomeSummary.resource(policy.mode, selectedSimPresent, hostReady)
+            }
             runOnUiThread {
                 taskReading = false
                 if (isDestroyed) return@runOnUiThread
+                incomingSummary.text = getString(incoming.getOrDefault(R.string.home_incoming_read_error))
+                incomingDestination.contentDescription = getString(R.string.incoming_ui_title) +
+                    ". " + incomingSummary.text.toString()
                 taskSummary.text = result.fold(onSuccess = { tasks ->
                     val pending = tasks.filter { it.state == PhoneTaskState.READY || it.state == PhoneTaskState.PAUSED }
                     if (tasks.isEmpty()) getString(R.string.task_empty)
