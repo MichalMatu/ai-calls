@@ -789,7 +789,7 @@
     <string name="task_recipient_count">Recipients: %1$d. Merged duplicates: %2$d.</string>
     <string name="task_schedule_summary">From: %1$s\nUntil: %2$s\nTime zone: %3$s</string>
     <string name="task_now">Now</string>
-    <string name="task_scope">You authorize calls to the listed numbers, using the selected SIM and time window. AI will collect replies from all recipients. No purchases, bookings, acceptance of charges or vault data disclosure. Conversations are kept in private text history, without audio recording.</string>
+    <string name="task_scope">You authorize calls to the listed numbers, using the selected SIM and time window. AI will collect replies from all recipients. No purchases, bookings, acceptance of charges or vault data disclosure. Transcripts are private; WAV audio segments are saved only if separately enabled above.</string>
     <string name="task_approve_schedule">Approve and schedule</string>
     <string name="task_approve_start">Approve and start</string>
     <string name="task_invalid_goal">Complete required fields. Name: 2–140 characters, goal: 5–300, details: 5–3500.</string>
@@ -823,7 +823,8 @@
     <string name="task_issue_dialer">AI Calls must be the default Phone app.</string>
     <string name="task_issue_sim">The selected SIM is unavailable or changed. Create a similar task and select the SIM again.</string>
     <string name="task_issue_model">The model or speech engine is not ready. Check Model and voice.</string>
-    <string name="task_issue_shizuku">Shizuku is unavailable. Start the service and check app access.</string>
+    <string name="task_issue_shizuku">The GSM audio host is unavailable. Enable Wireless debugging and start the host in Settings → GSM audio.</string>
+    <string name="task_issue_gsm_host">The GSM audio host is unavailable. Enable Wireless debugging and start the host in Settings → GSM audio.</string>
     <string name="task_issue_background">Android blocked starting the call in the background. Check permissions and resume from the app.</string>
     <string name="task_issue_interrupted">The app stopped during an attempt. Check history before retrying; the remaining queue is paused.</string>
     <string name="task_issue_takeover">The queue was paused. Resuming will not repeat an attempt with an uncertain result.</string>
@@ -967,4 +968,8 @@
     <string name="s8_lab_model_four_turn_timeout">STOP — model execution timed out.</string>
     <string name="s8_lab_model_four_turn_count">Completed turns: %1$d / 4. Replies are not saved.</string>
     <string name="s8_lab_model_four_turn_permission">After granting phone-state access, tap the four-turn test again.</string>
+    <string name="task_record_audio">Save WAV audio segments for this call (optional)</string>
+    <string name="task_record_audio_hint">Off by default. Saves local RX/TX segments, not a complete call recording. Enable only with the consent of all participants.</string>
+    <string name="task_record_audio_on">WAV segment recording: enabled for this task</string>
+    <string name="task_record_audio_off">WAV segment recording: disabled</string>
 </resources>

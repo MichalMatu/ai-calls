@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.campaign
 
 import org.junit.Assert.*
+import pl.michalmatu.aicallbridge.R
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -105,6 +106,52 @@ class PhoneTaskQueueTest {
         val next = PhoneTaskQueue.complete(claim.task, claim.attemptId, PhoneAttemptOutcome.BLOCKED, 2_000, PhoneTaskIssue.MODEL)
         assertEquals(PhoneTaskState.PAUSED, next.state)
         assertEquals(PhoneRecipientState.QUEUED, next.recipients.single().state)
+    }
+    @Test fun hostLossAfterWarmupStillFailsClosedBeforeTelecom() {
+        val claim = requireNotNull(PhoneTaskQueue.claim(listOf(task(1)), 1_000, id()))
+        val prepared = PhoneTaskQueue.progress(claim.task, claim.attemptId, PhoneAttemptStage.DIALING)
+        val blocked = PhoneTaskQueue.complete(prepared, claim.attemptId,
+            PhoneAttemptOutcome.BLOCKED, 2_000, PhoneTaskIssue.GSM_HOST_UNAVAILABLE)
+        assertEquals(PhoneTaskState.PAUSED, blocked.state)
+        assertEquals(PhoneRecipientState.QUEUED, blocked.recipients.single().state)
+        assertEquals(PhoneAttemptOutcome.BLOCKED, blocked.recipients.single().attempts.single().outcome)
+        assertNull(PhoneTaskQueue.nextAt(blocked))
+        assertNull(PhoneTaskQueue.claim(listOf(blocked), 30_000, id()))
+    }
+    @Test fun outgoingWavConsentIsExplicitPersistedAndScopedPerTask() {
+        val task = task(1)
+        val recipient = task.recipients.single()
+        val notApproved = task.scenarioTask(recipient, id()).grant(1_000)
+        assertFalse(notApproved.recordCallEvidence)
+        var encryptedPayload: String? = null
+        val repo = PhoneTaskRepository({ encryptedPayload }, { encryptedPayload = it })
+        repo.update { listOf(task.copy(recordAudio = true).validated()) }
+        val restored = repo.load().single()
+        assertTrue(restored.recordAudio)
+        val authorized = restored.scenarioTask(recipient, id())
+        val grant = authorized.grant(1_000)
+        assertTrue(grant.recordCallEvidence)
+        assertTrue(CampaignAuthorizationPolicy.matchesExactTask(grant, authorized.request()))
+        assertFalse(CampaignAuthorizationPolicy.matchesExactTask(grant,
+            restored.scenarioTask(recipient.copy(number = "+12025550999"), id()).request()))
+        // No inherited opt-in when the owner starts a new draft.
+        assertFalse(PhoneTaskDraft().recordAudio)
+        assertFalse(ScenarioOutgoingTask.create("+12025550111", 1, "sim-test", "quote",
+            "Test quote", "Please provide price", "Ask for terms").grant(1_000).recordCallEvidence)
+    }
+    @Test fun missingGsmHostPausesBeforeDialWithoutRetry() {
+        val claim = requireNotNull(PhoneTaskQueue.claim(listOf(task(1)), 1_000, id()))
+        val paused = PhoneTaskQueue.complete(claim.task, claim.attemptId,
+            PhoneAttemptOutcome.BLOCKED, 2_000, PhoneTaskIssue.GSM_HOST_UNAVAILABLE)
+        assertEquals(PhoneTaskState.PAUSED, paused.state)
+        assertEquals(PhoneTaskIssue.GSM_HOST_UNAVAILABLE, paused.issue)
+        assertEquals(PhoneRecipientState.QUEUED, paused.recipients.single().state)
+        assertEquals(PhoneAttemptStage.PREPARING, paused.recipients.single().attempts.single().stage)
+        assertEquals(PhoneAttemptOutcome.BLOCKED, paused.recipients.single().attempts.single().outcome)
+        assertNull(PhoneTaskQueue.nextAt(paused))
+        assertNull(PhoneTaskQueue.claim(listOf(paused), 60_000, id()))
+        assertEquals(R.string.task_issue_gsm_host, PhoneTaskLabels.issue(paused.issue!!))
+        assertEquals(R.string.task_issue_gsm_host, PhoneTaskLabels.issue(PhoneTaskIssue.SHIZUKU))
     }
     @Test fun `phone becoming busy during model warmup waits without asking owner again`() {
         val claim = requireNotNull(PhoneTaskQueue.claim(listOf(task(1)), 1_000, id()))

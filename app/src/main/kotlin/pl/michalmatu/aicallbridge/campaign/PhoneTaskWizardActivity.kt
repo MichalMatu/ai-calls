@@ -274,7 +274,17 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         summary.addView(UiDesign.caption(this, if (draft.retry) getString(R.string.task_retry_summary, draft.retryMinutes)
             else getString(R.string.task_no_retry)))
         body.addView(summary, UiDesign.spaceAfter(this, 16))
+        val recordAudio = CheckBox(this).apply {
+            text = getString(R.string.task_record_audio)
+            tag = "task-record-audio"
+            isChecked = draft.recordAudio
+            minimumHeight = UiDesign.dp(this@PhoneTaskWizardActivity, 48)
+        }
+        body.addView(recordAudio, UiDesign.spaceAfter(this, 8))
+        body.addView(UiDesign.caption(this, getString(R.string.task_record_audio_hint)),
+            UiDesign.spaceAfter(this, 12))
         body.addView(UiDesign.caption(this, getString(R.string.task_scope)), UiDesign.spaceAfter(this, 16))
+        capture = { draft.copy(recordAudio = recordAudio.isChecked) }
     }
 
     private fun validateStep(): Boolean = try {
@@ -306,7 +316,8 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         return PhoneTask(draft.id, draft.title, draft.scenarioId, draft.goal, brief(),
             requireNotNull(draft.subscriptionId), requireNotNull(draft.accountScope), start, end,
             draft.zoneId, delay, now, PhoneTaskInput.recipients(draft.recipients).values,
-            language = if (language == "en") "en" else "pl").validated()
+            language = if (language == "en") "en" else "pl",
+            recordAudio = draft.recordAudio).validated()
     }
 
     private fun approve() {

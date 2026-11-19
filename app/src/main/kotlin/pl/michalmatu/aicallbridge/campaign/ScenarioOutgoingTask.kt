@@ -15,6 +15,8 @@ internal data class ScenarioOutgoingTask(
     val goal: String,
     val brief: String,
     val language: String = "pl",
+    /** Recording must be enabled by the same exact owner-approved task. */
+    val recordAudio: Boolean = false,
 ) {
     init {
         require(grantId.isNotBlank())
@@ -43,7 +45,7 @@ internal data class ScenarioOutgoingTask(
         revokedAtEpochMs = null, accountScope = accountScope,
         allowedTargets = setOf(target), allowedActions = setOf(request().action),
         allowedServices = setOf(CallService.INQUIRY), allowedEffectValues = setOf(true),
-        allowedDisclosureFields = emptySet(), attemptsUsed = 0, recordCallEvidence = false,
+        allowedDisclosureFields = emptySet(), attemptsUsed = 0, recordCallEvidence = recordAudio,
         issuerEvidenceRef = "scenario-ui:" + grantId,
     )
     override fun toString(): String =

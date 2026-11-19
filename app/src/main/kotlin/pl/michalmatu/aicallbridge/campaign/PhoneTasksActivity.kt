@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.*
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversation.LiveConversationOverlay
+import pl.michalmatu.aicallbridge.session.LocalAdbGsmSetupActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.ui.*
 import java.time.Instant
@@ -50,7 +51,7 @@ internal object PhoneTaskLabels {
         PhoneTaskIssue.DIALER -> R.string.task_issue_dialer
         PhoneTaskIssue.SIM_CHANGED -> R.string.task_issue_sim
         PhoneTaskIssue.MODEL -> R.string.task_issue_model
-        PhoneTaskIssue.SHIZUKU -> R.string.task_issue_shizuku
+        PhoneTaskIssue.SHIZUKU, PhoneTaskIssue.GSM_HOST_UNAVAILABLE -> R.string.task_issue_gsm_host
         PhoneTaskIssue.ALARM_PERMISSION -> R.string.task_alarm_permission
         PhoneTaskIssue.BACKGROUND_START -> R.string.task_issue_background
         PhoneTaskIssue.INTERRUPTED -> R.string.task_issue_interrupted
@@ -139,6 +140,9 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
             PhoneTaskLabels.time(task.startAt, task.zoneId), PhoneTaskLabels.time(task.endAt, task.zoneId), task.zoneId)),
             UiDesign.spaceAfter(this, 12))
         task.issue?.let { body.addView(UiDesign.caption(this, getString(PhoneTaskLabels.issue(it))), UiDesign.spaceAfter(this, 12)) }
+        body.addView(UiDesign.caption(this, getString(if (task.recordAudio)
+            R.string.task_record_audio_on else R.string.task_record_audio_off)),
+            UiDesign.spaceAfter(this, 12))
         if (task.state == PhoneTaskState.READY) body.addView(UiDesign.action(this, getString(R.string.task_pause)) {
             startService(Intent(this, AppOwnedCampaignService::class.java)
                 .setAction(AppOwnedCampaignService.ACTION_PAUSE_PHONE_TASK)
@@ -155,10 +159,15 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                     .setAction(AppOwnedCampaignService.ACTION_CANCEL_PHONE_TASK)
                     .putExtra(AppOwnedCampaignService.EXTRA_PHONE_TASK_ID, task.id))
             }, UiDesign.spaceAfter(this, 12))
-        if (task.issue != null) body.addView(UiDesign.action(this, getString(R.string.task_settings)) {
+        if (task.issue != null) body.addView(UiDesign.action(this, getString(
+            if (task.issue == PhoneTaskIssue.GSM_HOST_UNAVAILABLE || task.issue == PhoneTaskIssue.SHIZUKU)
+                R.string.local_adb_open else R.string.task_settings)) {
             if (task.issue == PhoneTaskIssue.ALARM_PERMISSION && android.os.Build.VERSION.SDK_INT >= 31)
                 startActivity(Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
                     android.net.Uri.parse("package:$packageName")))
+            else if (task.issue == PhoneTaskIssue.GSM_HOST_UNAVAILABLE ||
+                     task.issue == PhoneTaskIssue.SHIZUKU)
+                startActivity(Intent(this, LocalAdbGsmSetupActivity::class.java))
             else startActivity(Intent(this, SettingsHubActivity::class.java))
         }, UiDesign.spaceAfter(this, 12))
         body.addView(UiDesign.action(this, getString(R.string.task_scope_details)) {

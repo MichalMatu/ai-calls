@@ -23,6 +23,8 @@ internal data class PhoneTask(
     val issue: PhoneTaskIssue? = null,
     // Nullable so campaigns approved before language pinning still load from Gson.
     val language: String? = null,
+    /** Explicitly approved per-task WAV segments; legacy tasks remain opt-out. */
+    val recordAudio: Boolean = false,
 ) {
     fun validated(): PhoneTask = apply {
         require(UUID.fromString(id).toString() == id)
@@ -60,7 +62,7 @@ internal data class PhoneTask(
 
     fun scenarioTask(recipient: PhoneTaskRecipient, attemptId: String) = ScenarioOutgoingTask(
         attemptId, recipient.number, subscriptionId, accountScope, scenarioId, title, goal, brief,
-        language = effectiveLanguage(),
+        language = effectiveLanguage(), recordAudio = recordAudio,
     )
 
     override fun toString() = "PhoneTask(id=$id,state=$state,scope=REDACTED)"
@@ -73,6 +75,8 @@ internal enum class PhoneAttemptOutcome { ANSWERED, BUSY, NO_ANSWER, BLOCKED, UN
 internal enum class PhoneTaskIssue {
     PHONE_BUSY, PERMISSIONS, DIALER, SIM_CHANGED, MODEL, SHIZUKU, ALARM_PERMISSION,
     BACKGROUND_START, INTERRUPTED, STORAGE, TAKEOVER, EXECUTION,
+    // Retain SHIZUKU for safe loading of historical tasks; never emit it for GSM.
+    GSM_HOST_UNAVAILABLE,
 }
 internal data class PhoneTaskRecipient(
     val id: String,
