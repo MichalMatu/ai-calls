@@ -103,6 +103,8 @@
     <string name="history_playback_error">Nie można odtworzyć fragmentu audio.</string>
     <string name="incoming_ui_title">Odbieranie połączeń</string>
     <string name="incoming_ui_intro">Możesz przejąć rozmowę prowadzoną przez AI bez kończenia połączenia.</string>
+    <string name="incoming_ui_gsm_host_ready">Audio GSM: gotowe.</string>
+    <string name="incoming_ui_gsm_host_unavailable">Audio GSM niedostępne. Po restarcie telefonu wymagane jest ponowne uruchomienie hosta przez autoryzowane ADB; samo przyznanie uprawnień aplikacji nie wystarczy.</string>
     <string name="incoming_ui_read_error">Nie można odczytać polityki odbierania. Zapis jest zablokowany, aby nie zastąpić istniejących ustawień.</string>
     <string name="incoming_ui_mode_manual">Ręcznie</string>
     <string name="incoming_ui_mode_ai">AI — odbieraj i przyjmuj wiadomości</string>

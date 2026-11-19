@@ -18,12 +18,15 @@ import pl.michalmatu.aicallbridge.ui.DialerRoleCard
 import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiSelect
 import pl.michalmatu.aicallbridge.ui.UiActionTone
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
+import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 
 /** Displays incoming-call preferences; all store/Telecom effects live in the controller. */
 class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var controller: IncomingAssistantSettingsController
     private lateinit var dialerRole: DialerRoleCard
     private lateinit var feedback: TextView
+    private var gsmHostStatus: TextView? = null
     private lateinit var simPicker: Spinner
     private lateinit var simPermissionAction: View
     private var simAccounts: List<PhoneAccountHandle> = emptyList()
@@ -50,6 +53,15 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 0, UiDesign.dp(this@IncomingAssistantSettingsActivity, 10))
         }
         content.addView(description(R.string.incoming_ui_intro))
+        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
+            val hostStatus = UiDesign.caption(this, "").apply {
+                tag = "incoming-gsm-host-status"
+                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            }
+            gsmHostStatus = hostStatus
+            content.addView(hostStatus, UiDesign.spaceAfter(this, 10))
+            refreshGsmHostStatus()
+        }
         val mode = Spinner(this).apply {
             tag = "incoming-mode-spinner"
             contentDescription = getString(R.string.incoming_ui_mode_label)
@@ -108,6 +120,11 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         setContentView(ScrollView(this).apply { addView(content) })
     }
 
+    private fun refreshGsmHostStatus() {
+        gsmHostStatus?.setText(if (GsmMediaTransportReadiness.isAvailable(this))
+            R.string.incoming_ui_gsm_host_ready else R.string.incoming_ui_gsm_host_unavailable)
+    }
+
     private fun hasPhonePermission(): Boolean =
         checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
 
@@ -158,6 +175,7 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onResume() {
         super.onResume()
         if (::dialerRole.isInitialized) dialerRole.refresh()
+        refreshGsmHostStatus()
         if (::simPicker.isInitialized) {
             simPermissionAction.visibility = if (hasPhonePermission()) View.GONE else View.VISIBLE
             if (hasPhonePermission() && simAccounts.isEmpty()) reloadAccounts()
