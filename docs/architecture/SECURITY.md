@@ -1,6 +1,7 @@
 # Bezpieczeństwo
 
-- Exact `Call`/SIM/generacja; **STOP** i takeover odwołują STT, model i TX. `IncomingEndCallAuthority` potwierdza uprawnienie; `END_CALL` dopiero po TTS.
-- Binder host UID 2000: weryfikacja UID, sesji, watchdog i rozłączenia; bez fallbacku Shizuku w S8 Lab. Reboot bez Maca = brak hosta.
-- `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault`: model proponuje, nie autoryzuje. `UNKNOWN` i TX nie potwierdzają rezerwacji.
-- WAV/evidence prywatne, opt-in; bez PII/audio w Git, receipts i logcat. Bez `FLAG_SECURE`. Fizyczny Call/deploy wyłącznie za zgodą, przy IDLE i z rollbackiem.
+- Exact Call/SIM/generacja; STOP i takeover odwołują STT/model/TX. END_CALL tylko po TTS i `IncomingEndCallAuthority`.
+- Binder host UID 2000: weryfikacja UID/sesji, watchdog. Kadb tylko `127.0.0.1`, stałe polecenia, model S22+, Android 16 i IDLE; bez Shizuku w GSM lab.
+- ADB: klucz w prywatnym no-backup, bez PII/logów; zapisany klucz nie dowodzi aktualnego połączenia. Kod parowania: jednorazowe prywatne powiadomienie. Debugowanie po reboocie może wymagać ręcznej zgody.
+- `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault`: model proponuje, nie autoryzuje. `UNKNOWN` ≠ potwierdzenie.
+- WAV opt-in, żadnych kluczy/audio w Git/receipt. Fizyczny Call/deploy tylko IDLE, za zgodą i z rollbackiem. Bez schedulerów/`WRITE_SECURE_SETTINGS` w MVP.

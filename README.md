@@ -1,5 +1,3 @@
 # AI Calls
 
-S22+ GSM MVP (Android 16): AUTO → STT → lokalna Gemma → TTS, szyfrowana notatka i END_CALL. Debug `.s8lab` potrzebuje hosta Binder UID 2000 przez autoryzowane Mac ADB; bez Maca nie startuje sam po reboocie.
-
-[Plan](docs/PROJECT.md) · [Handoff](docs/operations/HANDOFF_NEXT_CHAT.md).
+GSM MVP S22+ (Android 16): AUTO → STT → lokalna Gemma → TTS → zaszyfrowana notatka → END_CALL. Host UID 2000: lokalne ADB z aplikacji lub awaryjnie Mac; po restarcie debugowanie bezprzewodowe może wymagać ręcznego włączenia. [Plan](docs/PROJECT.md) · [Handoff](docs/operations/HANDOFF_NEXT_CHAT.md).

@@ -1,5 +1,5 @@
 # UI
 
-S22+ `.s8lab`: czytelne AI/MANUAL, bez surowych kodów. Przycisk takeover tylko przy własności aktywnej rozmowy przez AI. STOP/resume nie mogą dotknąć innego Call.
+S22+ `.s8lab`: AI/MANUAL, STOP/takeover tylko dla własnego Call. Outgoing: cel → odbiorcy → SIM/okno → zgoda; nawigacja nie dzwoni. Historia prywatna, PL/EN.
 
-Kreator outgoing: cel → odbiorcy → SIM/okno → zgoda, nawigacja nie dzwoni. Prywatna historia z potwierdzeniem usuwania; PL/EN i dostępność. Widok nie jest dowodem GSM RX/TX: potrzebny [test fizyczny](../PROJECT.md).
+Ustawienia → Audio GSM: osobno host i autoryzowane ADB; stabilny layout, ręczne odświeżanie, parowanie z powiadomienia bez portów. UI nie dowodzi GSM RX/TX: wymagany [test fizyczny](../PROJECT.md).
