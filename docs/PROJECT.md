@@ -1,20 +1,21 @@
 # AI Calls — plan GSM MVP
 
-**Stan 19.11.2026:** PR #23 scalony do `main`. S22+ Android 16, debug `.s8lab`. AUTO → STT → lokalna Gemma → TTS → zaszyfrowana notatka → END_CALL: fizyczny PASS; „do widzenia” potwierdzone. Ostatni Call: 3 tury, RX/TX, `conversation_terminal_category=completed`. QA: 1200 jednostkowych, 22 Python, UI 2/2 PASS. APK do rollback zachowany.
+**Checkpoint 19.11.2026:** kod PR #29 `18f4c72b` zakwalifikowany po pełnym QA; tag golden obejmuje ten stan po scaleniu. S22+ SM-S906B, Android 16, `.s8lab`; GSM bez roota, Shizuku i Termuxa.
 
-**Zależność:** host Binder UID 2000 jako `shell`; Mac z autoryzowanym ADB wznowił go po reboocie (PASS). **Bez Maca brak samodzielnego startu hosta po reboocie.**
+**PASS fizyczny:** GSM AUTO/RX/STT/Gemma/TX/TTS/notatka/END_CALL i takeover/STOP (poprzedni odbiór). Parowanie ADB przez powiadomienie, statusy, klucz po reboocie oraz start hosta z przycisku AI Calls bez Maca — PASS 19.11. APK na S22+ z kopią rollback i zgodnym SHA.
+
+**Granica Androida:** host Binder `shell` UID 2000. Samsung wyłącza debugowanie po reboocie; włącz je ręcznie. Zachowany klucz nie wymaga kodu. Mac = fallback.
 
 ## Otwarte
 
-- **P0 GSM:** TAKE OVER → RESUME AI → STOP: fizyczny PASS użytkownika 19.11 (bez nowego receipt); poprzednie RX/TX, notatka i END_CALL PASS.
-- **P1 autonomia:** zwykła aplikacja nie uzyskuje UID 2000 ani chronionego toru audio GSM. Każda alternatywa wymaga testu na Android 16.
-- **Dług:** `app` 375 plików (~2,2 MiB kodu); `Gemma4LiteRtTextBackend` 1140 linii, `AndroidConversationRuntime` 1028. Za duże granice odpowiedzialności.
+- **PASS QA:** 1370 testów Gradle + 463 Python; Lint 0 errors, około 636 ostrzeżeń raportowanych przez Lint (2 sugestie UseKtx w nowym module). Preflight, APK i testy fizyczne PASS.
+- **P1:** po restarcie trzeba ręcznie włączyć debugowanie bezprzewodowe. Nie dodawać `WRITE_SECURE_SETTINGS` bez audytu.
+- **Dług:** pozostałe ostrzeżenia Lint i duże klasy runtime/model; bez ryzykownego refaktoru w zamrożonym GSM.
 
 ## Następny sprint
 
-1. **S1 GSM (PASS 19.11):** TAKE OVER → RESUME AI → STOP działa. Nie powtarzać E2E bez regresji.
-2. **S2 autonomia (HOLD):** APK na Android 16 nie ma UID 2000 ani CAPTURE_AUDIO_OUTPUT. Reboot wymaga ADB lub dostępu OEM/system. Lab pokazuje stan hosta; bez hosta nie odbiera automatycznie.
-3. **S3 modularność:** małe ekstrakcje stanu tury/audio z `AndroidConversationRuntime`, adaptera modelu z `Gemma4LiteRtTextBackend`. Test każdej granicy; zero regresji GSM.
-4. **S4 jakość:** oddzielny sprint naturalności odpowiedzi, polskiego głosu i opóźnień.
+1. Utrzymać golden build S22+ i prosty ręczny start po restarcie (bez ponownego kodu).
+2. Osobno zaplanować czyszczenie pozostałych ostrzeżeń i podział dużych klas.
+3. Weryfikować nowe wersje Androida/OEM oraz polski TTS bez regresji GSM.
 
-**WSTRZYMANE:** SIP/PJSUA2, nowe schedulery i refaktor podczas odbioru. Gate: fokus → preflight → build → fizyczne QA tylko przy zmianie działania.
+**WSTRZYMANE:** SIP/PJSUA2, schedulery, nowe uprawnienia systemowe i realne połączenia bez zgody.

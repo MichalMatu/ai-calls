@@ -101,13 +101,21 @@ public final class ShizukuBidirectionalProbeMediaTest {
 
         assertTrue(input.entered.await(1L, TimeUnit.SECONDS));
         assertTrue(output.firstWrite.await(1L, TimeUnit.SECONDS));
+        // A contended test JVM can oversleep far beyond 130ms. Compare the
+        // observed count with actual elapsed monotonic time, not a fixed cap.
+        long startedNs = System.nanoTime();
         Thread.sleep(130L);
+        long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNs);
 
         int writes = output.writeCalls.get();
         media.close();
 
+        // One initial frame and up to two boundary/scheduling frames are
+        // allowed; a busy-loop flood would still exceed this by orders of magnitude.
+        long maxPacedWrites = 3L + elapsedMs / 20L;
         assertTrue("expected several realtime chunks, got " + writes, writes >= 3);
-        assertTrue("probe TX must not flood the pipe, got " + writes + " writes", writes <= 8);
+        assertTrue("probe TX flood: " + writes + " writes in " + elapsedMs + " ms",
+            writes <= maxPacedWrites);
         assertTrue(media.threadsStopped());
     }
 

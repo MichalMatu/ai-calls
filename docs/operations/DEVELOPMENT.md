@@ -1,7 +1,7 @@
 # Rozwój i QA
 
-`main` = baza. Existing Code First i licencje/NOTICE; mała gałąź → testy → merge → usunięcie gałęzi. Bez duplikatów planu poza [PROJECT](../PROJECT.md).
+`main` = punkt golden po PR #29; historycznie sprawdzony commit `18f4c72b`. Existing Code First, licencje/NOTICE, mały diff → QA → commit/tag po fizycznym gate. Jeden bieżący [plan](../PROJECT.md), bez historycznych Markdown checkpointów.
 
-GitHub Connector + [Mac Local Agent](LOCAL_AGENT.md); bez Codex/Work/Actions i schedulerów. `bash scripts/bin/test-profile.sh focus app <TestClass>`, potem `preflight`; build/debug po zmianie Androida. Nie uruchamiać full gate bez potrzeby.
+GitHub Connector + [Mac Local Agent](LOCAL_AGENT.md), bez Codex/Work/Actions/schedulerów. `bash scripts/bin/test-profile.sh preflight`, `full` przed golden, `:app:assembleDebug` przed APK. Nie maskować Lint baseline.
 
-S22+ `SM-S906B`: tylko IDLE, za zgodą, z kopią podpisanego APK. `ANDROID_SERIAL=... bash scripts/bin/install-s8-gsm-lab.sh --install` + Binder gate. Po reboocie Mac `s8_gsm_reconnect.py` nasłuchuje ADB. Bez WAV/PII w raportach.
+S22+ SM-S906B: sprawdź IDLE i model, wykonaj prywatny backup APK. `scripts/bin/start-s8-gsm-shell.sh` to tylko Mac fallback; docelowy przycisk używa lokalnego Kadb. Po reboocie debugowanie bezprzewodowe włącza użytkownik. Bez WAV/PII/kluczy w raportach.

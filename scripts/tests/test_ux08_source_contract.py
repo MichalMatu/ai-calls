@@ -25,7 +25,10 @@ class Ux08SourceContract(unittest.TestCase):
     def test_recording_policy_must_not_claim_active_recording(self):
         usb = self.read("debug/UsbDebugPanelActivity.kt")
         bridge = self.read("debug/UsbDebugBridge.kt")
-        self.assertIn('item("recording", R.string.ux08_usb_recording_future)', usb)
+        self.assertIn('item("incoming_recording_enabled", R.string.ux07_usb_incoming_recording)', usb)
+        self.assertIn('item("outgoing_recording_enabled", R.string.ux07_usb_outgoing_recording)', usb)
+        self.assertIn('if (data.optBoolean("incoming_recording_enabled"))', usb)
+        self.assertIn('if (data.optBoolean("outgoing_recording_enabled"))', usb)
         self.assertNotIn('item("recording-current"', usb)
         self.assertIn("grant.revokedAtEpochMs == null", bridge)
 

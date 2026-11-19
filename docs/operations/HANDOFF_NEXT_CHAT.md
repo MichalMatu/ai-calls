@@ -1,7 +1,9 @@
-# AI Calls — start kolejnego czatu
+# AI Calls — handoff
 
-Repo `MichalMatu/ai-calls`; kod po PR #23 na `main`. S22+ `.s8lab`: lokalna Gemma, host Binder `shell` UID 2000 przez autoryzowane Mac ADB. Kanoniczne cele i PASS: [PROJECT](../PROJECT.md); granice [SYSTEM](../architecture/SYSTEM.md) i [SECURITY](../architecture/SECURITY.md).
+`MichalMatu/ai-calls`: PR #29 `18f4c72b` przeszedł pełny gate; golden checkpoint po scaleniu w `main`. [Plan](../PROJECT.md), [system](../architecture/SYSTEM.md), [security](../architecture/SECURITY.md).
 
-Na starcie sprawdź HEAD `main`, czysty worktree i ostatni receipt [Mac Local Agenta](LOCAL_AGENT.md). Nie powtarzaj zaliczonego E2E.
+S22+ Android 16: fizyczne GSM RX/TX/Gemma/TTS/END_CALL PASS z wcześniejszego odbioru. 19.11 parowanie przez powiadomienie PASS, status ADB/GSM działa, klucz przetrwał reboot. Po restarcie debugowanie bezprzewodowe wymaga ręcznego włączenia.
 
-S1 TAKE OVER → RESUME → STOP: PASS użytkownika 19.11, bez nowego receipt. S2 po reboocie: HOLD, stock Android 16 wymaga ADB/UID 2000; lab pokazuje read-only stan hosta. Termux self-ADB: s22-termux-gsm-bootstrap.sh (ręczne parowanie, nie autonomia). Dalej S3 modularność, S4 jakość. Nie powtarzać E2E. Bez Codex/Work/Actions/schedulerów/SIP/PJSUA2. Fizyczny Call tylko za zgodą.
+**PASS host i QA:** po reboot (ADB ON) przycisk w AI Calls sam uruchomił UID 2000 Binder; bez Macowego bootstrapu. 1370 testów Gradle i 463 Python PASS, Lint 0 errors, preflight PASS. APK z backupem i zgodnym SHA na S22+. Dług: ostrzeżenia lint. Bez `WRITE_SECURE_SETTINGS`.
+
+GitHub Connector + [Local Agent](LOCAL_AGENT.md), bez Codex/Work/Actions/schedulerów/SIP/PJSUA2. GSM tylko przy IDLE i zgodzie, z rollbackiem.

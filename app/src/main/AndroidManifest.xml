@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -82,6 +83,9 @@
             <meta-data android:name="android.telecom.IN_CALL_SERVICE_RINGING" android:value="true" />
         </service>
         <activity android:name=".incoming.IncomingAssistantSettingsActivity" android:exported="false" />
+        <activity android:name=".session.LocalAdbGsmSetupActivity" android:exported="false" />
+        <!-- Only system notification direct-reply PendingIntent can submit this code. -->
+        <receiver android:name=".session.LocalAdbPairingReplyReceiver" android:exported="false" />
         <activity android:name=".tools.ConversationToolsActivity" android:exported="false" />
         <activity android:name=".campaign.AndroidCallControlsActivity" android:exported="true">
             <intent-filter>

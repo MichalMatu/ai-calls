@@ -1,7 +1,7 @@
 # Mac Local Agent — AI Calls
 
-Host `macbook-michal`, instalacja `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`. Repo `main`: `/Users/michal/agent-workspace/repos/ai-calls/work`; stare worktree S8/PR #23 przeznaczone do usunięcia.
+Host `macbook-michal`, instalacja `cfea4cc3-b54c-4b6d-b9a6-758d12733e98`; repo `/Users/michal/agent-workspace/repos/ai-calls/work`. Sprawdź aktualne `main`, branch i czystość.
 
-Kolejka: repo `MichalMatu/local-agent`, `agent-control`, `.agent/hosts/macbook-michal/supervisor/<ID>/tasks/<task>.json`; odpowiedzi `task-results/`. Tylko terminalny exit=0 to PASS; 404/idle ≠ PASS.
+Kolejka: `MichalMatu/local-agent` / `agent-control` / `.agent/hosts/macbook-michal/supervisor/<ID>/tasks/<task>.json`; wyniki `task-results/`. Tylko terminalne `exit=0` oznacza PASS; brak wyniku ≠ sukces.
 
-Przed pracą: fetch `main`, sprawdź HEAD i czystość, czytaj [plan](../PROJECT.md). Realny Call/instalacja wymaga IDLE i zgody.
+`test-profile.sh full`: moduły, lint, Python i skan; przed QA S22 sprawdź IDLE, backup i zgodę. Mac ADB jest awaryjną drogą uruchomienia hosta. [Plan](../PROJECT.md).

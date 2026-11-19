@@ -1,0 +1,5 @@
+AI Calls Local ADB prototype (debug S8 lab only)
+Kadb 2.1.5, copyright Flyfish Studio contributors, Apache License 2.0.
+Upstream: https://github.com/flyfishxu/Kadb
+Kadb's transitive dependencies include spake2-java and Bouncy Castle.
+Retain notices and review transitive licenses before shipping a release build.

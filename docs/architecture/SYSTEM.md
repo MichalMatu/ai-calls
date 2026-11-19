@@ -1,7 +1,7 @@
 # Architektura
 
-S22+ GSM: Telecom → `AndroidIncomingAssistant` (exact Call) → `AndroidConversationRuntime` (tury/RX/TX) → `LocalSpeechTextPipeline` (STT/Gemma/TTS) → `ToolCallingConversationSession` → `conversation-tools` (SAVE_NOTE/END_CALL po TTS). Host `GsmShellBinderCallMediaSessionBackend` działa z ADB UID 2000, nie z uprawnień APK.
+S22+ GSM: Telecom → `AndroidIncomingAssistant` (exact Call) → `AndroidConversationRuntime` (RX/TX) → STT/Gemma/TTS → `ToolCallingConversationSession` → SAVE_NOTE/END_CALL po TTS.
 
-Moduły: `app` integruje Android/UI/telefon/model; `conversation-core` trzyma stany/generacje; `conversation-tools` kontrakty akcji; `audio-bridge`, `privileged-helper`, `realtime-client` to osobne/starsze adaptory, nie aktualny RX/TX S22.
+`GsmShellBinderCallMediaSessionBackend` wymaga hosta UID 2000. Start: lokalny Kadb + NSD (`127.0.0.1`, klucz ADB, przycisk AI Calls) albo awaryjnie Mac ADB. Sam APK nie ma UID 2000. Jednorazowy kod w prywatnym powiadomieniu pozwala parować bez opuszczania okna.
 
-Docelowe podziały i kryteria: [PROJECT](../PROJECT.md). Nie przełączać toru na Shizuku/SIP.
+Moduły: `app` = Android/UI/GSM; `conversation-core` = stany; `conversation-tools` = akcje; pozostałe adaptory nie są głównym GSM RX/TX. [Plan](../PROJECT.md).

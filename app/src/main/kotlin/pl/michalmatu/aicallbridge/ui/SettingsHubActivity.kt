@@ -13,6 +13,7 @@ import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
 import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
+import pl.michalmatu.aicallbridge.session.LocalAdbGsmSetupActivity
 
 /** Direct settings entries share the Agent menu's presentation. */
 class SettingsHubActivity : AppBaseActivity() {
@@ -28,6 +29,10 @@ class SettingsHubActivity : AppBaseActivity() {
             content.addView(line, UiDesign.spaceAfter(this, UiDesign.GAP_CARD))
         }
         destination(R.string.mv_title, LanguageModelActivity::class.java)
+        // One shared GSM audio transport serves both incoming and outgoing calls.
+        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
+            destination(R.string.local_adb_open, LocalAdbGsmSetupActivity::class.java)
+        }
         destination(R.string.incoming_ui_title, IncomingAssistantSettingsActivity::class.java)
         destination(R.string.mv_permissions, GeneralSettingsActivity::class.java)
         // Keep the proven S8 GSM MVP as one product flow, without a second pilot menu.
