@@ -1,6 +1,6 @@
 # Rozwój i QA
 
-`main` = baza, PR #29 = kandydat. Existing Code First, licencje/NOTICE, minimalny diff → testy → merge/tag po fizycznym gate. Jeden bieżący [plan](../PROJECT.md), bez historycznych Markdown checkpointów.
+`main` = punkt golden po PR #29; historycznie sprawdzony commit `18f4c72b`. Existing Code First, licencje/NOTICE, mały diff → QA → commit/tag po fizycznym gate. Jeden bieżący [plan](../PROJECT.md), bez historycznych Markdown checkpointów.
 
 GitHub Connector + [Mac Local Agent](LOCAL_AGENT.md), bez Codex/Work/Actions/schedulerów. `bash scripts/bin/test-profile.sh preflight`, `full` przed golden, `:app:assembleDebug` przed APK. Nie maskować Lint baseline.
 
