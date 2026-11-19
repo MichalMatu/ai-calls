@@ -106,6 +106,17 @@
     <string name="incoming_ui_gsm_host_ready">Audio GSM: gotowe.</string>
     <string name="local_adb_open">Audio GSM — odbieranie i dzwonienie (test)</string>
     <string name="local_adb_title">Lokalne ADB — konfiguracja</string>
+    <string name="local_adb_status_title">Stan połączenia</string>
+    <string name="local_adb_status_checking">ADB: sprawdzam połączenie…</string>
+    <string name="local_adb_refresh">Odśwież stan</string>
+    <string name="local_adb_repair">Sparuj ponownie</string>
+    <string name="local_adb_gsm_ready">Audio GSM: gotowe do rozmów.</string>
+    <string name="local_adb_gsm_offline">Audio GSM: host nie działa.</string>
+    <string name="local_adb_connected">ADB: połączone i autoryzowane na tym telefonie.</string>
+    <string name="local_adb_key_saved">ADB: klucz zapisany, bieżące połączenie niepotwierdzone.</string>
+    <string name="local_adb_debug_off">ADB: klucz zapisany, debugowanie bezprzewodowe wyłączone.</string>
+    <string name="local_adb_unpaired">ADB: brak lokalnego klucza — wymagane sparowanie.</string>
+    <string name="local_adb_status_unavailable">ADB: nie udało się sprawdzić stanu. Spróbuj odświeżyć.</string>
     <string name="local_adb_intro">Jedno audio GSM obsługuje odbieranie i dzwonienie. Wybierz przycisk poniżej, włącz Debugowanie bezprzewodowe w Androidzie i wybierz „Sparuj urządzenie kodem”. Bez wychodzenia z okna parowania rozwiń powiadomienia, kliknij „Wpisz kod” w AI Calls i wpisz sześć cyfr. Po sparowaniu wróć do AI Calls i uruchom audio GSM. Porty są wykrywane automatycznie. Wariant testowy; po restarcie debugowanie może wymagać ponownego włączenia.</string>
     <string name="local_adb_open_settings">Rozpocznij parowanie w Androidzie</string>
     <string name="local_adb_notification_title">AI Calls — parowanie GSM</string>

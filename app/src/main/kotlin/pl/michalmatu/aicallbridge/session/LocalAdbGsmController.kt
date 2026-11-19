@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.session
 
 import android.content.Context
+import android.provider.Settings
 import com.flyfishxu.kadb.Kadb
 import com.flyfishxu.kadb.cert.KadbCert
 import com.flyfishxu.kadb.cert.OkioFilePrivateKeyStore
@@ -21,6 +22,43 @@ internal class LocalAdbGsmController(private val context: Context) {
 
     private fun allowed(): Boolean =
         context.packageName == GsmShellMediaProtocol.S8_PACKAGE
+
+    /** Read-only diagnostics: saved host identity is NOT proof of pairing. */
+    fun inspect(): LocalAdbGsmStatus.Snapshot {
+        val gsmReady = GsmMediaTransportReadiness.isAvailable(context)
+        if (!allowed()) return LocalAdbGsmStatus.Snapshot(gsmReady,
+            LocalAdbGsmStatus.AdbState.NOT_CONFIGURED)
+
+        val key = File(context.noBackupFilesDir, "local_adb_host.pem")
+        val keyStored = key.isFile && key.length() > 0L
+        val wifi = runCatching {
+            Settings.Global.getInt(context.contentResolver, "adb_wifi_enabled", -1)
+        }.getOrDefault(-1)
+        if (!keyStored || wifi == 0) return LocalAdbGsmStatus.Snapshot(
+            gsmReady, LocalAdbGsmStatus.resolve(keyStored, wifi, authenticated = false)
+        )
+
+        val authenticated = runCatching {
+            identity()
+            val port = localPort(LocalAdbPortDiscovery.CONNECT)
+                ?: return@runCatching false
+            Kadb.create(LocalAdbGsmPolicy.LOOPBACK, port,
+                connectTimeout = 6_000, socketTimeout = 7_000).use { adb ->
+                fun read(command: String): String {
+                    val response = adb.shell(command)
+                    if (response.exitCode != 0) error("read_only_adb_probe_failed")
+                    return response.output
+                }
+                LocalAdbGsmPolicy.deviceApproved(
+                    read("getprop ro.product.model"),
+                    read("getprop ro.build.version.release"),
+                    read("getprop sys.boot_completed"),
+                    read("id -u"))
+            }
+        }.getOrDefault(false)
+        return LocalAdbGsmStatus.Snapshot(gsmReady,
+            LocalAdbGsmStatus.resolve(keyStored, wifi, authenticated))
+    }
 
     private fun identity() {
         val privateKey = File(context.noBackupFilesDir, "local_adb_host.pem")

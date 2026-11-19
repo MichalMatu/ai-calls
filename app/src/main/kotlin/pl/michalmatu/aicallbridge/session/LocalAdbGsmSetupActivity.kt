@@ -7,8 +7,11 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
+import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import java.util.concurrent.Executors
@@ -18,11 +21,21 @@ import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 
-/** Explicit local pairing page; not a terminal and no automatic ADB startup. */
+/**
+ * One GSM setup screen for both outgoing and incoming calls.
+ * Read-only status checks cannot start the shell host or grant ADB access.
+ */
 class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
     private val worker = Executors.newSingleThreadExecutor()
-    private lateinit var status: TextView
+    private lateinit var gsmStatus: TextView
+    private lateinit var adbStatus: TextView
+    private lateinit var actionStatus: TextView
+    private lateinit var pairingSection: LinearLayout
+    private lateinit var rePairButton: Button
+    private lateinit var startButton: Button
     private var inProgress = false
+    private var refreshing = false
+    private var pairingExpanded = false
 
     override fun toolbarTitle(): String = getString(R.string.local_adb_title)
 
@@ -33,50 +46,125 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
             return
         }
         val content = UiDesign.content(this)
-        content.addView(UiDesign.caption(this, getString(R.string.local_adb_intro)),
+
+        val overview = UiDesign.card(this).apply { tag = "local-adb-readiness-card" }
+        overview.addView(UiDesign.heading(this, getString(R.string.local_adb_status_title)),
+            UiDesign.spaceAfter(this, 8))
+        gsmStatus = UiDesign.caption(this, getString(R.string.local_adb_status_checking)).apply {
+            tag = "local-adb-gsm-readiness"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        overview.addView(gsmStatus, UiDesign.spaceAfter(this, 6))
+        adbStatus = UiDesign.caption(this, getString(R.string.local_adb_status_checking)).apply {
+            tag = "local-adb-connection-readiness"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        overview.addView(adbStatus, UiDesign.spaceAfter(this, 10))
+        overview.addView(UiDesign.action(this, getString(R.string.local_adb_refresh)) {
+            refreshStatus()
+        }, UiDesign.spaceAfter(this, 0))
+        content.addView(overview, UiDesign.spaceAfter(this, 12))
+
+        rePairButton = UiDesign.action(this, getString(R.string.local_adb_repair)) {
+            pairingExpanded = true
+            pairingSection.visibility = View.VISIBLE
+            rePairButton.visibility = View.GONE
+        }
+        rePairButton.tag = "local-adb-repair"
+        rePairButton.visibility = View.GONE
+        content.addView(rePairButton, UiDesign.spaceAfter(this, 12))
+
+        pairingSection = UiDesign.card(this).apply { tag = "local-adb-pairing-section" }
+        pairingSection.addView(UiDesign.caption(this, getString(R.string.local_adb_intro)),
             UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, getString(R.string.local_adb_open_settings)) {
+        pairingSection.addView(UiDesign.action(this, getString(R.string.local_adb_open_settings)) {
             launchPairingFlow()
         }, UiDesign.spaceAfter(this, 12))
-        fun field(label: Int, password: Boolean = false): EditText {
-            content.addView(UiDesign.caption(this, getString(label)), UiDesign.spaceAfter(this, 4))
-            return EditText(this).apply {
-                inputType = InputType.TYPE_CLASS_NUMBER or
-                    (if (password) InputType.TYPE_NUMBER_VARIATION_PASSWORD else 0)
-                setSingleLine(true)
-                minimumHeight = UiDesign.dp(this@LocalAdbGsmSetupActivity, 48)
-                content.addView(this, UiDesign.spaceAfter(this@LocalAdbGsmSetupActivity, 8))
-            }
+        pairingSection.addView(UiDesign.caption(this, getString(R.string.local_adb_pair_code)),
+            UiDesign.spaceAfter(this, 4))
+        val pairCode = EditText(this).apply {
+            tag = "local-adb-code-input"
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            setSingleLine(true)
+            minimumHeight = UiDesign.dp(this@LocalAdbGsmSetupActivity, 48)
         }
-        val pairCode = field(R.string.local_adb_pair_code, password = true)
-        content.addView(UiDesign.action(this, getString(R.string.local_adb_pair), UiActionTone.PRIMARY) {
+        pairingSection.addView(pairCode, UiDesign.spaceAfter(this, 8))
+        pairingSection.addView(UiDesign.action(this, getString(R.string.local_adb_pair),
+            UiActionTone.PRIMARY) {
             val code = pairCode.text.toString()
             pairCode.text?.clear()
             execute {
                 val controller = LocalAdbGsmController(applicationContext)
                 val paired = controller.pair(code)
                 if (paired != LocalAdbGsmController.Outcome.PAIRED) paired
-                else {
-                    // First-time pairing should not require a second tap.
-                    when (val ready = controller.bootstrap()) {
-                        LocalAdbGsmController.Outcome.READY,
-                        LocalAdbGsmController.Outcome.ALREADY_READY -> ready
-                        else -> paired // Pairing succeeded; retry is explicit.
-                    }
+                else when (val ready = controller.bootstrap()) {
+                    LocalAdbGsmController.Outcome.READY,
+                    LocalAdbGsmController.Outcome.ALREADY_READY -> ready
+                    else -> paired
                 }
             }
-        }, UiDesign.spaceAfter(this, 12))
-        content.addView(UiDesign.action(this, getString(R.string.local_adb_start), UiActionTone.PRIMARY) {
+        }, UiDesign.spaceAfter(this, 0))
+        content.addView(pairingSection, UiDesign.spaceAfter(this, 12))
+
+        startButton = UiDesign.action(this, getString(R.string.local_adb_start),
+            UiActionTone.PRIMARY) {
             execute { LocalAdbGsmController(applicationContext).bootstrap() }
-        }, UiDesign.spaceAfter(this, 12))
-        status = UiDesign.caption(this, getString(R.string.local_adb_idle)).apply {
-            tag = "local-adb-status"
-            accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
-        content.addView(status)
-        setContentView(ScrollView(this).apply { addView(content,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT)) })
+        startButton.tag = "local-adb-start-host"
+        content.addView(startButton, UiDesign.spaceAfter(this, 12))
+        actionStatus = UiDesign.caption(this, getString(R.string.local_adb_idle)).apply {
+            tag = "local-adb-status"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        content.addView(actionStatus)
+        setContentView(ScrollView(this).apply {
+            addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT))
+        })
+        // Show local host readiness immediately; network authentication is checked async.
+        gsmStatus.setText(if (GsmMediaTransportReadiness.isAvailable(this))
+            R.string.local_adb_gsm_ready else R.string.local_adb_gsm_offline)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::gsmStatus.isInitialized) refreshStatus()
+    }
+
+    private fun refreshStatus() {
+        if (refreshing || isFinishing || isDestroyed) return
+        refreshing = true
+        adbStatus.setText(R.string.local_adb_status_checking)
+        worker.execute {
+            val result = runCatching {
+                LocalAdbGsmController(applicationContext).inspect()
+            }.getOrElse {
+                LocalAdbGsmStatus.Snapshot(
+                    runCatching { GsmMediaTransportReadiness.isAvailable(applicationContext) }
+                        .getOrDefault(false),
+                    LocalAdbGsmStatus.AdbState.UNAVAILABLE
+                )
+            }
+            runOnUiThread {
+                refreshing = false
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                gsmStatus.setText(if (result.gsmReady) R.string.local_adb_gsm_ready
+                    else R.string.local_adb_gsm_offline)
+                adbStatus.setText(when (result.adbState) {
+                    LocalAdbGsmStatus.AdbState.CONNECTED -> R.string.local_adb_connected
+                    LocalAdbGsmStatus.AdbState.KEY_STORED_OFFLINE -> R.string.local_adb_key_saved
+                    LocalAdbGsmStatus.AdbState.DEBUGGING_DISABLED -> R.string.local_adb_debug_off
+                    LocalAdbGsmStatus.AdbState.NOT_CONFIGURED -> R.string.local_adb_unpaired
+                    LocalAdbGsmStatus.AdbState.UNAVAILABLE -> R.string.local_adb_status_unavailable
+                })
+                val connected = result.adbState == LocalAdbGsmStatus.AdbState.CONNECTED
+                pairingSection.visibility = if (connected && !pairingExpanded) View.GONE
+                    else View.VISIBLE
+                rePairButton.visibility = if (connected && !pairingExpanded) View.VISIBLE
+                    else View.GONE
+                startButton.visibility = if (result.gsmReady) View.GONE else View.VISIBLE
+            }
+        }
     }
 
     private fun launchPairingFlow() {
@@ -87,10 +175,9 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
             return
         }
         if (!LocalAdbPairingNotification.begin(this)) {
-            status.setText(R.string.local_adb_notification_permission_missing)
+            actionStatus.setText(R.string.local_adb_notification_permission_missing)
             return
         }
-        // Notification stays available from shade while Settings pairing dialog is visible.
         startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
     }
 
@@ -100,24 +187,20 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_NOTIFY) {
             if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) launchPairingFlow()
-            else status.setText(R.string.local_adb_notification_permission_missing)
+            else actionStatus.setText(R.string.local_adb_notification_permission_missing)
         }
-    }
-
-    private companion object {
-        const val REQUEST_NOTIFY = 7109
     }
 
     private fun execute(task: () -> LocalAdbGsmController.Outcome) {
         if (inProgress) return
         inProgress = true
-        status.setText(R.string.local_adb_working)
+        actionStatus.setText(R.string.local_adb_working)
         worker.execute {
             val result = task()
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 inProgress = false
-                val message = when (result) {
+                actionStatus.setText(when (result) {
                     LocalAdbGsmController.Outcome.PAIRED -> R.string.local_adb_paired
                     LocalAdbGsmController.Outcome.READY -> R.string.local_adb_ready
                     LocalAdbGsmController.Outcome.ALREADY_READY -> R.string.local_adb_ready_existing
@@ -127,8 +210,11 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
                     LocalAdbGsmController.Outcome.BOOTSTRAP_FAILED -> R.string.local_adb_boot_failed
                     LocalAdbGsmController.Outcome.ADB_UNAVAILABLE -> R.string.local_adb_failed
                     LocalAdbGsmController.Outcome.NOT_DISCOVERED -> R.string.local_adb_not_discovered
-                }
-                status.setText(message)
+                })
+                if (result == LocalAdbGsmController.Outcome.PAIRED ||
+                    result == LocalAdbGsmController.Outcome.READY ||
+                    result == LocalAdbGsmController.Outcome.ALREADY_READY) pairingExpanded = false
+                refreshStatus()
             }
         }
     }
@@ -136,5 +222,9 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun onDestroy() {
         worker.shutdownNow()
         super.onDestroy()
+    }
+
+    private companion object {
+        const val REQUEST_NOTIFY = 7109
     }
 }
