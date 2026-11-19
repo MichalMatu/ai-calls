@@ -1,6 +1,9 @@
 package pl.michalmatu.aicallbridge.session
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
@@ -33,7 +36,7 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(UiDesign.caption(this, getString(R.string.local_adb_intro)),
             UiDesign.spaceAfter(this, 12))
         content.addView(UiDesign.action(this, getString(R.string.local_adb_open_settings)) {
-            startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+            launchPairingFlow()
         }, UiDesign.spaceAfter(this, 12))
         fun field(label: Int, password: Boolean = false): EditText {
             content.addView(UiDesign.caption(this, getString(label)), UiDesign.spaceAfter(this, 4))
@@ -74,6 +77,35 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
         setContentView(ScrollView(this).apply { addView(content,
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT)) })
+    }
+
+    private fun launchPairingFlow() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFY)
+            return
+        }
+        if (!LocalAdbPairingNotification.begin(this)) {
+            status.setText(R.string.local_adb_notification_permission_missing)
+            return
+        }
+        // Notification stays available from shade while Settings pairing dialog is visible.
+        startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_NOTIFY) {
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) launchPairingFlow()
+            else status.setText(R.string.local_adb_notification_permission_missing)
+        }
+    }
+
+    private companion object {
+        const val REQUEST_NOTIFY = 7109
     }
 
     private fun execute(task: () -> LocalAdbGsmController.Outcome) {

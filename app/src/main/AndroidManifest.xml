@@ -84,6 +84,8 @@
         </service>
         <activity android:name=".incoming.IncomingAssistantSettingsActivity" android:exported="false" />
         <activity android:name=".session.LocalAdbGsmSetupActivity" android:exported="false" />
+        <!-- Only system notification direct-reply PendingIntent can submit this code. -->
+        <receiver android:name=".session.LocalAdbPairingReplyReceiver" android:exported="false" />
         <activity android:name=".tools.ConversationToolsActivity" android:exported="false" />
         <activity android:name=".campaign.AndroidCallControlsActivity" android:exported="true">
             <intent-filter>

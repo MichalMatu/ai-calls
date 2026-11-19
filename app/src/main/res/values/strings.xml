@@ -106,8 +106,13 @@
     <string name="incoming_ui_gsm_host_ready">Audio GSM: gotowe.</string>
     <string name="local_adb_open">Audio GSM — odbieranie i dzwonienie (test)</string>
     <string name="local_adb_title">Lokalne ADB — konfiguracja</string>
-    <string name="local_adb_intro">Jedno połączenie audio GSM obsługuje rozmowy przychodzące i wychodzące. Pierwszy raz: włącz Debugowanie bezprzewodowe w opcjach programistycznych, wybierz „Sparuj urządzenie kodem” i podaj tutaj tylko sześciocyfrowy kod. Porty wykryjemy automatycznie. Przy korzystaniu z tego samego telefonu może być potrzebny widok podzielonego ekranu. Następnie wybierz „Uruchom audio GSM”. Po restarcie Android może wymagać ponownego włączenia debugowania. To funkcja testowa.</string>
-    <string name="local_adb_open_settings">Otwórz opcje programistyczne</string>
+    <string name="local_adb_intro">Jedno audio GSM obsługuje odbieranie i dzwonienie. Wybierz przycisk poniżej, włącz Debugowanie bezprzewodowe w Androidzie i wybierz „Sparuj urządzenie kodem”. Bez wychodzenia z okna parowania rozwiń powiadomienia, kliknij „Wpisz kod” w AI Calls i wpisz sześć cyfr. Po sparowaniu wróć do AI Calls i uruchom audio GSM. Porty są wykrywane automatycznie. Wariant testowy; po restarcie debugowanie może wymagać ponownego włączenia.</string>
+    <string name="local_adb_open_settings">Rozpocznij parowanie w Androidzie</string>
+    <string name="local_adb_notification_title">AI Calls — parowanie GSM</string>
+    <string name="local_adb_notification_howto">Zostaw otwarte okno kodu w Androidzie. Rozwiń powiadomienie i wybierz „Wpisz kod”.</string>
+    <string name="local_adb_notification_enter_code">Wpisz kod</string>
+    <string name="local_adb_notification_paired">Sparowano. Wróć do AI Calls i wybierz „Uruchom host audio GSM”.</string>
+    <string name="local_adb_notification_permission_missing">Do wpisania kodu bez zamykania ustawień potrzebna jest zgoda na powiadomienia. Alternatywnie użyj podzielonego ekranu.</string>
     <string name="local_adb_pair_code">Kod parowania (6 cyfr)</string>
     <string name="local_adb_pair">Sparuj lokalne ADB</string>
     <string name="local_adb_start">Uruchom host audio GSM</string>
