@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 ACTIVITY = ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/AndroidCallControlsActivity.kt"
 RES = ROOT / "app/src/main/res"
-KEYS = set(["dialer_ui_dial","dialer_ui_number_required","dialer_ui_dial_error","dialer_ui_answer","dialer_ui_take_over","dialer_ui_resume_ai","dialer_ui_resume_failed","dialer_ui_answer_settings","dialer_ui_reject","dialer_ui_end_displayed","dialer_ui_no_call","dialer_ui_ringing","dialer_ui_active","dialer_ui_holding","dialer_ui_disconnected","dialer_ui_connecting","dialer_ui_assistant_status"])
+KEYS = set(["dialer_ui_dial","dialer_ui_number_required","dialer_ui_dial_error","dialer_ui_answer","dialer_ui_take_over","dialer_ui_resume_ai","dialer_ui_resume_failed","dialer_ui_answer_settings","dialer_ui_reject","dialer_ui_end_displayed","dialer_ui_no_call","dialer_ui_ringing","dialer_ui_active","dialer_ui_holding","dialer_ui_disconnected","dialer_ui_connecting","dialer_ui_gsm_shell_recovery","dialer_ui_ai_waiting","dialer_ui_ai_answering","dialer_ui_ai_starting","dialer_ui_ai_active","dialer_ui_ai_ending","dialer_ui_ai_manual","dialer_ui_ai_ended"])
 
 
 class ManualCallLocaleContract(unittest.TestCase):

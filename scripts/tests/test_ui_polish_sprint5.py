@@ -67,7 +67,7 @@ class Sprint5UxContract(unittest.TestCase):
         self.assertEqual(history.count('tag = "history-delete:"'), 1)
         pos = history.index('tag = "history-delete:"')
         self.assertGreater(pos, history.index("private fun showSession"))
-        self.assertIn("confirmDelete(session.id)", history)
+        self.assertIn("confirmDelete(session.id, abandoned)", history)
         tools = self.source("tools/ConversationToolsActivity.kt")
         self.assertIn("content.addView(option", tools)
         self.assertIn("tools_ui_end_call_detail", tools)

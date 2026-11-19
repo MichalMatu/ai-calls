@@ -8,7 +8,7 @@ class HistoryNavDeletionContract(unittest.TestCase):
         chrome=(ROOT/"ui/UiChromeActivity.kt").read_text()
         for key in ("override fun consumeChromeBack()", "OnBackPressedCallback", "onBackPressedDispatcher.addCallback(this, detailBack)",
                     "history-detail", "history-open:", "history-delete:", "AlertDialog.Builder(this)",
-                    "controller.deleteCompletedConfirmed(id)"):
+                    "controller.deleteCompletedConfirmed(id, callback)", "controller.deleteAbandonedConfirmed(id, callback)"):
             self.assertIn(key,history)
         self.assertNotIn('tag = "history-back-to-list"',history)
         self.assertIn("fun navigateBack()",chrome)

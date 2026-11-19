@@ -8,8 +8,8 @@
 
 ## Otwarte
 
-- **P0:** po reboocie przy ADB ON wykryto `host_registered=false`. Start hosta **tylko przyciskiem z APK** nadal wymaga fizycznego receipt PASS. Bez niego nie nazywać wersji golden.
-- **P0 QA:** pełny gate wszystkich modułów/lint/Python/bezpieczeństwo; pierwsze uruchomienie Lint ujawniło 89 błędów i 636 ostrzeżeń (do naprawy). Nie maskować baseline.
+- **PASS 19.11:** po reboocie przy ADB ON host był offline; uruchomiony wyłącznie przyciskiem APK bez Mac ADB, Binder READY.
+- **P0 QA:** 89 braków EN naprawiono, Lint 0 błędów; aktualizacja kontraktów Python do bieżącego UI i finalny full gate OPEN.
 - **P1:** automatyczne włączenie debugowania niepotwierdzone; nie dodawać `WRITE_SECURE_SETTINGS` bez odrębnego audytu. Duże klasy runtime/model: refaktor później.
 
 ## Następny sprint

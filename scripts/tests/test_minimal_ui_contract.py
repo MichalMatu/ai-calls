@@ -29,11 +29,13 @@ class MinimalUiContract(unittest.TestCase):
         for token in ("history-row:","history-open:","history-delete:",
                       "R.drawable.ic_aicalls_phone_incoming","R.drawable.ic_aicalls_phone_outgoing",
                       "contentDescription = direction",
-                      "if (state.canDelete)","confirmDelete(session.id)"):
+                      "if (state.canDelete || state.canDeleteAbandoned)","confirmDelete(session.id, abandoned)"):
             self.assertIn(token,history)
         self.assertIn("ConversationHistoryController(history",history)
-        self.assertIn("controller.deleteCompletedConfirmed(id)",history)
+        self.assertIn("controller.deleteCompletedConfirmed(id, callback)",history)
         self.assertIn("session.complete && archive.canDelete(id)",controller)
+        self.assertIn("archive.canDeleteAbandoned(session.id)", controller)
+        self.assertIn("phoneIsIdle() && archive.deleteAbandoned(id)", controller)
         self.assertIn("archive.deleteCompleted(id)",controller)
         self.assertIn('File(directory, "COMPLETE").isFile',archive)
         self.assertIn("load(id).complete",archive)
