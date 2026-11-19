@@ -1,21 +1,21 @@
-# AI Calls — plan GSM MVP
+# AI Calls — jedyna roadmapa
 
-**Checkpoint 19.11.2026:** kod PR #29 `18f4c72b` zakwalifikowany po pełnym QA; tag golden obejmuje ten stan po scaleniu. S22+ SM-S906B, Android 16, `.s8lab`; GSM bez roota, Shizuku i Termuxa.
-
-**PASS fizyczny:** GSM AUTO/RX/STT/Gemma/TX/TTS/notatka/END_CALL i takeover/STOP (poprzedni odbiór). Parowanie ADB przez powiadomienie, statusy, klucz po reboocie oraz start hosta z przycisku AI Calls bez Maca — PASS 19.11. APK na S22+ z kopią rollback i zgodnym SHA.
-
-**Granica Androida:** host Binder `shell` UID 2000. Samsung wyłącza debugowanie po reboocie; włącz je ręcznie. Zachowany klucz nie wymaga kodu. Mac = fallback.
+**Golden:** tag `s22-gsm-mvp-golden-2026-11-19` → `f0940d51`; S22+ SM-S906B, Android 16, `.s8lab` (nie wydanie uniwersalne).
+**PASS:** parowanie ADB z powiadomienia, zachowany klucz, stany ADB/GSM, start hosta z APK bez Maca, rollback/SHA. Wcześniejszy fizyczny incoming: RX/STT/Gemma/TTS/TX/notatka/END_CALL, STOP/takeover. QA: 1370 JVM, 463 Python, Lint 0 błędów.
+**Po reboocie:** ręcznie włącz debugowanie bezprzewodowe; przy zachowanym kluczu bez nowego kodu. Nie dodawać `WRITE_SECURE_SETTINGS`.
 
 ## Otwarte
 
-- **PASS QA:** 1370 testów Gradle + 463 Python; Lint 0 errors, około 636 ostrzeżeń raportowanych przez Lint (2 sugestie UseKtx w nowym module). Preflight, APK i testy fizyczne PASS.
-- **P1:** po restarcie trzeba ręcznie włączyć debugowanie bezprzewodowe. Nie dodawać `WRITE_SECURE_SETTINGS` bez audytu.
-- **Dług:** pozostałe ostrzeżenia Lint i duże klasy runtime/model; bez ryzykownego refaktoru w zamrożonym GSM.
+- **P0 incoming E2E:** na golden 4–6 tur, realne RX/TX, cisza, STOP/takeover, pożegnanie i hangup; brak testu rozmowy po ostatnim APK.
+- **P0 outgoing GSM:** `PhoneTask` i UI istnieją, ale AI/PCM outgoing nie ma fizycznego PASS; SIM, zgoda, anulowanie, END_CALL.
+- **P1 nagrania:** opt-in, zapis i odtwarzanie obu kierunków; bez pozornych statusów.
+- **P1 audio/UX:** polskie STT/TTS, odsłuch; 633 ostrzeżenia Lint (bez zbiorczego wyciszania).
+- **P2 utrzymanie:** małe refaktory dużych klas runtime/model i zgodność Android/OEM.
 
 ## Następny sprint
 
-1. Utrzymać golden build S22+ i prosty ręczny start po restarcie (bez ponownego kodu).
-2. Osobno zaplanować czyszczenie pozostałych ostrzeżeń i podział dużych klas.
-3. Weryfikować nowe wersje Androida/OEM oraz polski TTS bez regresji GSM.
+1. Celowane QA golden + fizyczny incoming 4–6 tur za zgodą.
+2. Outgoing E2E i nagrania; po poprawkach pełny gate i odbiór fizyczny.
+3. Jakość/modularność; nowy golden wyłącznie po PASS — [bramki](operations/DEVELOPMENT.md).
 
-**WSTRZYMANE:** SIP/PJSUA2, schedulery, nowe uprawnienia systemowe i realne połączenia bez zgody.
+**WSTRZYMANE:** SIP/PJSUA2, schedulery, root, nowe uprawnienia, autonomiczne dzwonienie.
