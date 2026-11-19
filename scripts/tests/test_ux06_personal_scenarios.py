@@ -21,7 +21,15 @@ class PersonalScenarioUiContract(unittest.TestCase):
     def test_home_task_entry_names_the_shared_task_wizard(self):
         home = (SRC / "MainActivity.kt").read_text()
         self.assertIn("PhoneTaskWizardActivity::class.java", home)
-        self.assertIn("R.string.task_new", home)
+        self.assertIn("R.string.home_outgoing_action", home)
+        self.assertIn("IncomingAssistantSettingsActivity::class.java", home)
+        self.assertIn('"home-incoming-settings"', home)
+        self.assertIn('"home-task-start"', home)
+        self.assertIn('"home-stop-ai"', home)
+        for locale in ("values", "values-en"):
+            strings = (ROOT / "app/src/main/res" / locale / "strings.xml").read_text()
+            self.assertIn('name="home_outgoing_action"', strings)
+            self.assertIn('name="home_incoming_summary"', strings)
         self.assertNotIn("EXTRA_START_AUTHORIZED_CAMPAIGN", home)
         self.assertNotIn("CLIR", home)
         self.assertNotIn("placeCall(", home)

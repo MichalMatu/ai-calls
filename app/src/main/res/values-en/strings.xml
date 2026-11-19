@@ -762,6 +762,8 @@
     <string name="perm_shizuku_offline">Shizuku is not running</string>
     <string name="perm_action_open_shizuku">Open Shizuku</string>
 
+    <string name="home_outgoing_action">New outgoing call</string>
+    <string name="home_incoming_summary">Choose AI or manual answering and the SIM card.</string>
     <string name="task_new">New task</string>
     <string name="task_list">Tasks</string>
     <string name="task_loading">Loading…</string>
