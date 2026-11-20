@@ -597,6 +597,7 @@
     <string name="skills_ux05_name_closure">Naturalne zakończenie</string>
     <string name="camp_ux06_diagnostic_recording">Zgoda na zapis kolejnych prób kampanii: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Ostatni komunikat serwisu (historyczny, nie na żywo):\n%1$s</string>
+    <string name="scenario_ui_new_title">Nowy scenariusz</string>
     <string name="scenario_ui_new">+ Nowy scenariusz</string>
     <string name="scenario_ui_none">Nie masz jeszcze własnych scenariuszy.</string>
     <string name="scenario_ui_show_templates">Gotowe szablony (%1$d) ▾</string>
