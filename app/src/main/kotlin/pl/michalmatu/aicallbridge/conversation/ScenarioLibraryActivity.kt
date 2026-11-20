@@ -354,11 +354,12 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
             }
         }.apply { tag = "scenario-prepare-outgoing" }
 
-        root.addView(prepareButton, UiDesign.spaceAfter(this, 12))
+        if (!creating) root.addView(prepareButton, UiDesign.spaceAfter(this, 12))
         val saveButton = UiDesign.action(this, getString(
             if (creating) R.string.scenario_ui_create
             else if (personal == null) R.string.scenario_ui_save
-            else R.string.scenario_ui_save_version)) {
+            else R.string.scenario_ui_save_version),
+            if (creating) UiActionTone.PRIMARY else UiActionTone.SECONDARY) {
             val next = draft()
             if (creating) {
                 val title = personalTitle?.text?.toString()?.trim().orEmpty()
