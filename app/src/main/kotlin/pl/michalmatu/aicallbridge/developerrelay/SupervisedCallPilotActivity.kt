@@ -194,10 +194,6 @@ class SupervisedCallPilotActivity : Activity() {
                 )
                 return
             }
-            SupervisedCallPilotFailure.SHIZUKU_NOT_READY -> {
-                status.text = getString(R.string.pilot_ui_shizuku_missing)
-                return
-            }
             SupervisedCallPilotFailure.GSM_SHELL_NOT_READY -> {
                 status.text = getString(R.string.pilot_ui_gsm_shell_missing)
                 return

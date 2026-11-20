@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 /**
  * One coordinator and heartbeat owner; the media transport is replaceable.
- * Stable production package retains SHIZUKU_LEGACY; the isolated S8 lab uses the independent shell Binder GSM backend.
+ * Only the accepted S8 package can construct the GSM shell media backend.
  */
 public final class CallMediaSessionRuntime implements AutoCloseable {
     private final CallMediaSessionBackend backend;
@@ -50,11 +50,11 @@ public final class CallMediaSessionRuntime implements AutoCloseable {
 
     private static CallMediaSessionBackend createBackend(Context context, CallMediaBackendMode mode) {
         Objects.requireNonNull(context, "context");
-        return switch (Objects.requireNonNull(mode, "mode")) {
-            case SHIZUKU_LEGACY -> new ShizukuCallMediaSessionBackend(context);
-            case GSM_SHELL_ADB -> new GsmShellBinderCallMediaSessionBackend();
-            case ANDROID_PUBLIC_API_PROBE -> new AndroidPublicCallMediaSessionBackend();
-        };
+        if (Objects.requireNonNull(mode, "mode") != CallMediaBackendMode.GSM_SHELL_ADB
+            || !GsmShellMediaProtocol.S8_PACKAGE.equals(context.getPackageName())) {
+            throw new SecurityException("gsm_media_package_not_allowed");
+        }
+        return new GsmShellBinderCallMediaSessionBackend();
     }
 
     public CallMediaSessionCoordinator coordinator() {

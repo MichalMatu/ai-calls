@@ -60,8 +60,6 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     // Explicit, user-approved local ADB pairing for the isolated S8 lab only.
     implementation("com.flyfishxu:kadb:2.1.5")
-    implementation("dev.rikka.shizuku:api:13.1.5")
-    implementation("dev.rikka.shizuku:provider:13.1.5")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:core:1.6.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
