@@ -17,6 +17,19 @@ class PhoneAccountLabelMaskTest {
         assertEquals(4, label.substringAfter(':').count { it.isDigit() })
     }
 
+    @Test fun attachedCarrierAndVerifiedSlotAddContextWithoutExposingFullNumber() {
+        val label = formatIncomingSimLabel("••••8804", "Orange", 1)
+        assertEquals("Orange · SIM 1 · ••••8804", label)
+        assertFalse(requireNotNull(label).contains("123456"))
+    }
+
+    @Test fun unavailableSubscriptionUsesExistingMaskedLabelWithoutGuessing() {
+        assertEquals("••••8804", formatIncomingSimLabel("••••8804", null, null))
+        assertEquals("Orange · SIM 1", formatIncomingSimLabel("Orange", "Orange", 1))
+        assertEquals("SIM 2 · ••••4321", formatIncomingSimLabel("••••4321", null, 2))
+        assertNull(formatIncomingSimLabel(null, null, null))
+    }
+
     @Test fun leavesLastFourAccountDigitsForRecognition() {
         val label = maskPhoneAccountLabel("SIM 2 (123456789012345)")
         assertTrue(label.contains("2345"))
