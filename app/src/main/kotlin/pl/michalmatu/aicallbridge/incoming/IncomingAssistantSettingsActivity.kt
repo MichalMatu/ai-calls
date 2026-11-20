@@ -41,7 +41,6 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var modePicker: Spinner
     private lateinit var recordingCheck: CheckBox
     private lateinit var savedState: TextView
-    private lateinit var unsavedState: TextView
     private lateinit var saveAction: Button
 
     override fun toolbarTitle(): String = getString(R.string.incoming_ui_title)
@@ -127,11 +126,6 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(recording, UiDesign.spaceAfter(this, 8))
         content.addView(description(R.string.incoming_ui_record_hint))
         recordingCheck = recording
-        unsavedState = UiDesign.caption(this, "").apply {
-            tag = "incoming-unsaved-status"
-            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-        }
-        content.addView(unsavedState, UiDesign.spaceAfter(this, 8))
         saveAction = UiDesign.action(this, getString(R.string.incoming_ui_save), UiActionTone.PRIMARY) {
             val selected = if (mode.selectedItemPosition == 1) AnsweringMode.AI else AnsweringMode.MANUAL
             val chosen = simAccounts.getOrNull(simPicker.selectedItemPosition - 1)
@@ -193,10 +187,9 @@ class IncomingAssistantSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun updateSaveAvailability() {
         if (!::saveAction.isInitialized || !::simPicker.isInitialized) return
-        val dirty = hasUnsavedChanges()
-        saveAction.isEnabled = savedSettings != null && dirty
-        unsavedState.text = if (dirty) getString(R.string.incoming_ui_unsaved) else ""
-        unsavedState.visibility = if (dirty) View.VISIBLE else View.GONE
+        // No conditional helper view: enabled state alone signals edits,
+        // keeping Save at the same position without layout jumps.
+        saveAction.isEnabled = savedSettings != null && hasUnsavedChanges()
     }
 
     private fun refreshSavedStatus() {
