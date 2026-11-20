@@ -607,6 +607,8 @@
     <string name="scenario_ui_save_changes">Zapisz zmiany</string>
     <string name="scenario_ui_save_personal">Zapisz w moich scenariuszach</string>
     <string name="scenario_ui_delete_simple_message">Usunąć ten scenariusz? Pozostałe scenariusze i szablony zostaną zachowane.</string>
+    <string name="notebook_ui_show_section">Pokaż notatnik</string>
+    <string name="notebook_ui_hide_section">Ukryj notatnik</string>
     <string name="scenario_ui_title">Scenariusze rozmów</string>
     <string name="scenario_ui_campaign_hint">Każdy scenariusz może przygotować rozmowę informacyjną przez AI po potwierdzeniu numeru i SIM. Zawarcie umowy, zakupu lub rezerwacji wymaga osobnej decyzji użytkownika.</string>
     <string name="scenario_ui_open">Otwórz bibliotekę scenariuszy</string>
