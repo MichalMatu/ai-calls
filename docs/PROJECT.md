@@ -19,7 +19,7 @@
 3. S22+ wyłącznie IDLE: backup APK, sprawdzenie hosta/ADB, instalacja `.s8lab`, hash i rollback. Bez połączeń.
 4. Smoke UI: Home, Incoming, Outgoing, Tasks, Calls/WAV, AI Tools, Notebook, Preparation, Skills, Vault, Settings; Save/Cancel, obrót, nawigacja.
 
-## OPEN — testy realne, osobna zgoda
+## Otwarte — testy realne, osobna zgoda
 Incoming i Outgoing po 4–6 tur: polski STT/TTS, jakość rozmowy, barge-in, STOP/takeover, END_CALL po TTS, SAVE_NOTE, WAV i transkrypcje. Błędy zgłaszać z dowodami.
 
-**Zakazy:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku, WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
+**WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku, WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
