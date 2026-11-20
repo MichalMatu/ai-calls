@@ -4,14 +4,14 @@
 
 ## Stan MVP
 - GSM S22+: Incoming i Outgoing po 7 tur, RX/TX i WAV; SAVE_NOTE i END_CALL fizycznie zweryfikowane.
-- `.s8lab` z kodem `3fb299e` na S22+: podpis/hash APK i Binder PASS, dane zachowane, rollback APK na Macu.
-- `main 62c35e9`: pełne QA/build PASS; Lab-scoring i przypadki w JVM core, granice sześciu modułów chronione.
+- `.s8lab` z kodem `b2d0b0` na S22+: podpis/hash i Binder PASS, dane zachowane, kopia rollback; UI/Lab 9/9 PASS.
+- Kod `b2d0b0`: pełne QA/build PASS; scoring, przypadki i reguły adaptacyjne Lab wydzielone do JVM core.
 - S22+ offline: UI 7/7, Lab storage 2/2, Gemma manual (2 tury, STOP/reset) i adaptive PASS; bez GSM.
-- Binder wymagał przywrócenia po instrumentacji; poprawna regeneracja PASS, trwałość hosta nadal OPEN.
+- Binder stabilny po zwykłym Home; po instrumentacji odtworzony automatycznie PASS. Restart procesu nadal OPEN.
 
 ## Następny sprint — golden
-1. Ocenić naturalność odpowiedzi Test Lab przez człowieka, bez połączeń.
-2. Wyjaśnić host po restarcie procesu; kontynuować separację Android/UI i orkiestracji w małych PR.
+1. Odbiór naturalności odpowiedzi Test Lab przez człowieka, bez połączeń.
+2. Utrwalić host po restarcie procesu; dalej rozdzielać adaptery Android/UI od domeny.
 3. Odbiór GSM i dopiero wtedy nowy golden tag; emulator nie potwierdza audio.
 
 ## Otwarte — realne GSM za osobną zgodą
