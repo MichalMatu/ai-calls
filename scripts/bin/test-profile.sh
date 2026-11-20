@@ -21,6 +21,7 @@ case "$mode" in
     git diff --check
     git diff --cached --check
     python3 scripts/aicall_tools/diagnostics/audit_product_friction.py
+    python3 scripts/aicall_tools/diagnostics/module_boundary_gate.py
     python3 scripts/aicall_tools/diagnostics/docs_check.py
     echo DEV_PREFLIGHT_PASS=true ;;
   auto)
@@ -54,12 +55,19 @@ case "$mode" in
     [[ "$#" -eq 0 ]] || exit 2
     "$gradle" :app:assembleDebug :app:assembleDebugAndroidTest
     echo DEV_APK_PACKAGED=true ;;
+  lab-ui-prepare)
+    [[ "$#" -eq 0 ]] || exit 2
+    "$gradle" :app:compileDebugAndroidTestKotlin
+    echo DEV_UI_INSTRUMENTATION_COMPILED=true ;;
+  lab-ui)
+    [[ "$#" -eq 0 ]] || exit 2
+    bash scripts/bin/run-ui-lab.sh ;;
   hooks-enable)
     [[ "$#" -eq 0 ]] || exit 2
     git config --local core.hooksPath scripts/bin/git-hooks
     echo DEV_LOCAL_LIGHT_HOOKS_ENABLED=true ;;
   *)
-    echo 'usage: test-profile.sh preflight | auto [base-SHA] | quick | changed <module> | focus <module> <test-filter> | full | device-build | hooks-enable' >&2
+    echo 'usage: test-profile.sh preflight | auto [base-SHA] | quick | changed <module> | focus <module> <test-filter> | full | device-build | lab-ui-prepare | lab-ui | hooks-enable' >&2
     echo 'Only device-build packages APK; no command installs or dials.' >&2
     exit 2 ;;
 esac
