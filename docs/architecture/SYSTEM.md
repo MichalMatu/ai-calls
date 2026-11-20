@@ -1,7 +1,9 @@
 # Architektura
 
-S22+ GSM: Telecom → `AndroidIncomingAssistant` (exact Call) → `AndroidConversationRuntime` (RX/TX) → STT/Gemma/TTS → `ToolCallingConversationSession` → SAVE_NOTE/END_CALL po TTS.
+S22+ GSM: Telecom → `AndroidIncomingAssistant` (exact Call) → `AndroidConversationRuntime` (RX/TX) → STT/model/TTS → `ToolCallingConversationSession` → SAVE_NOTE/END_CALL po TTS.
 
-`GsmShellBinderCallMediaSessionBackend` wymaga hosta UID 2000. Start: lokalny Kadb + NSD (`127.0.0.1`, klucz ADB, przycisk AI Calls) albo awaryjnie Mac ADB. Sam APK nie ma UID 2000. Jednorazowy kod w prywatnym powiadomieniu pozwala parować bez opuszczania okna.
+GSM Binder wymaga hosta UID 2000: autoryzowane ADB/Kadb bez Shizuku; APK sama nie ma UID 2000. Po restarcie host może wymagać ponownego uruchomienia.
 
-Moduły: `app` = Android/UI/GSM; `conversation-core` = stany; `conversation-tools` = akcje; pozostałe adaptory nie są głównym GSM RX/TX. [Plan](../PROJECT.md).
+Moduły: `app` — Android UI, kompozycja i orkiestracja; `conversation-core` — czysty JVM/stany/Lab; `conversation-tools` — kontrakty; `audio-bridge` — PCM; `privileged-helper` — system; `realtime-client` — transport i `audio-bridge`. Zależności pilnuje `module_boundary_gate.py`.
+
+Część orkiestracji GSM i adapterów modelu nadal w `app`; pełna separacja backend/frontend OPEN. [Plan](../PROJECT.md).
