@@ -16,6 +16,10 @@ class CompactTaskDetailsTest(unittest.TestCase):
         self.assertIn('PhoneTaskManagement.hasComparison(task)', UI)
         self.assertIn('tag = "task-recipient-details:" + recipient.id', UI)
         self.assertIn('tag = "task-details-toggle:" + recipient.id', UI)
+        self.assertIn('expandedRecipients = mutableSetOf<String>()', UI)
+        self.assertIn('recipient.id in expandedRecipients', UI)
+        self.assertIn('expandedRecipients.add(recipient.id)', UI)
+        self.assertIn('expandedRecipients.remove(recipient.id)', UI)
 
     def test_skip_and_restore_actions_share_the_compact_row(self):
         self.assertIn('tag = "task-skip:" + recipient.id', UI)

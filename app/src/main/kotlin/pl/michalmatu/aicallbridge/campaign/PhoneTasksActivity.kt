@@ -75,6 +75,8 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
     private var active = false
     private var reading = false
     private var deleting = false
+    // Keep user-expanded evidence open across the 2-second task-state refresh.
+    private val expandedRecipients = mutableSetOf<String>()
     private val detailsBack = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() { selectedId = null; previous?.let(::render) }
     }
@@ -356,7 +358,7 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
         val details = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             tag = "task-recipient-details:" + recipient.id
-            visibility = View.GONE
+            visibility = if (recipient.id in expandedRecipients) View.VISIBLE else View.GONE
         }
         val answers = recipient.attempts.flatMap { it.answers }
         if (answers.isNotEmpty()) {
@@ -404,10 +406,13 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                 }) }
         })
         if (recipient.attempts.isNotEmpty()) {
-            val toggle = UiDesign.action(this, getString(R.string.task_show_details)) {}
+            val toggle = UiDesign.action(this,
+                getString(if (details.visibility == View.VISIBLE)
+                    R.string.task_hide_details else R.string.task_show_details)) {}
                 .apply { tag = "task-details-toggle:" + recipient.id }
             toggle.setOnClickListener {
                 val expanding = details.visibility != View.VISIBLE
+                if (expanding) expandedRecipients.add(recipient.id) else expandedRecipients.remove(recipient.id)
                 details.visibility = if (expanding) View.VISIBLE else View.GONE
                 toggle.text = getString(if (expanding) R.string.task_hide_details else R.string.task_show_details)
             }
