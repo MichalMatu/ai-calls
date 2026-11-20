@@ -89,6 +89,7 @@ fi
   :audio-bridge:lintDebug
 
 # APK packaging is a distinct explicit device-build step, never a host QA side effect.
+python3 scripts/aicall_tools/diagnostics/module_boundary_gate.py
 PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -t scripts -p 'test_*.py'
 python3 scripts/aicall_tools/diagnostics/audit_audio_engine_quality.py
 
