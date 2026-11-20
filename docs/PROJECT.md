@@ -1,25 +1,25 @@
-# AI Calls — MVP / wydanie do testów
+# AI Calls — MVP / bramka testów
 
-**Rollback GSM:** `s22-gsm-mvp-golden-2026-11-19` → `f0940d51`. Nie przesuwać ani nie usuwać tagu.
+**Rollback:** `s22-gsm-mvp-golden-2026-11-19` → `f0940d51`; nie zmieniać tagu.
 
-## Potwierdzone na S22+ (19.11.2026)
+## GSM PASS — S22+ (19.11.2026)
 - Incoming bez Wi-Fi/USB: 7 tur / 2:06, RX→STT→AI→TTS→TX, SAVE_NOTE i END_CALL CONFIRMED, 22 WAV.
 - Outgoing: 7 tur / 2:37, 8 STT, 24 WAV, jedna próba bez retry, FINISHED/ANSWERED.
-- Host Binder UID 2000 działa bez Wi-Fi/ADB wireless. WRITE_REVOKED podczas barge-in nie oznacza samoistnie utraty audio.
-- Poprzednia instalacja: `2a617bb0`, QA/build PASS, host przywrócony w IDLE. To **nie** potwierdza instalacji nowszego UI.
+- Host Binder UID 2000 działa bez Wi-Fi/ADB wireless. WRITE_REVOKED przy barge-in nie dowodzi awarii.
+- APK `2a617bb0` wgrana i host odzyskany w IDLE; **nie** jest to dowód instalacji nowego UI.
 
-## Kod zamknięty (20.11.2026)
-- PR #37–49: Home, Incoming, Outgoing, zadania, historia i scenariusze; po merge.
-- PR #50: AI Tools (END_CALL/SAVE_NOTE), zwijany Notebook, prostszy Preparation; merge `7afb3886`.
-- Mac Local Agent, QA v2 dla `5e38431`: Python, preflight, AndroidTest **kompilacja**, pełny host QA i APK build PASS (exit 0). **Brak** dowodu uruchomienia instrumentacji UI lub testu GSM na tej wersji.
+## Kod / QA (20.11.2026)
+- PR #37–49: Home, Incoming, Outgoing, Tasks, Calls i Scenarios scalone.
+- PR #50: AI Tools, zwijany Notebook i Preparation — merge `7afb3886`.
+- Mac Local Agent: QA v2 `5e38431`: Python, preflight, kompilacja AndroidTest, pełne QA hosta i APK build PASS (exit 0). **Nie uruchomiono** testów UI na emulatorze ani GSM tej wersji.
 
-## P0 — bramka przed realnym użyciem
-1. Na aktualnym `main`: czyste drzewo, `preflight`, `full`, `device-build`; zapis SHA, wyników i APK; przegląd debug/log/sekretów oraz brak nowych błędów.
-2. Zostawić tylko aktywne gałęzie, `agent-control` i rollback; usuwać wyłącznie zweryfikowane, scalone gałęzie, nie dane użytkownika.
-3. S22+ tylko IDLE: backup istniejącej APK, sprawdzenie ADB/hosta, instalacja `.s8lab`, kontrola SHA i rollbacku. **Bez próbnych połączeń w tej bramce.**
-4. Smoke UI: Home, Incoming/Outgoing, Tasks, Calls/WAV, AI Tools, Notebook, Preparation, Skills, Vault, Settings; zapis, anulowanie, obrót i nawigacja. Instrumentacja na emulatorze nie zastępuje testu telefonu.
+## P0 — do wydania na telefon
+1. Aktualny `main`: czyste drzewo, preflight/full/device-build, raport z SHA i APK; audit debug/log/sekretów.
+2. Archiwizacja/porządkowanie gałęzi: tylko po weryfikacji scalonego PR. Zachować `main`, `agent-control`, backup i golden tag.
+3. S22+ wyłącznie IDLE: backup APK, sprawdzenie hosta/ADB, instalacja `.s8lab`, hash i rollback. Bez połączeń.
+4. Smoke UI: Home, Incoming, Outgoing, Tasks, Calls/WAV, AI Tools, Notebook, Preparation, Skills, Vault, Settings; Save/Cancel, obrót, nawigacja.
 
-## OPEN — testy rzeczywiste (osobna zgoda)
-Incoming/Outgoing 4–6 tur; polski STT/TTS i jakość dialogu, barge-in, stop/takeover, END_CALL po TTS, SAVE_NOTE, WAV, transkrypcje, historia i uprawnienia. Każdy problem z dowodem, bez nowej przebudowy UX bez potrzeby.
+## OPEN — testy realne, osobna zgoda
+Incoming i Outgoing po 4–6 tur: polski STT/TTS, jakość rozmowy, barge-in, STOP/takeover, END_CALL po TTS, SAVE_NOTE, WAV i transkrypcje. Błędy zgłaszać z dowodami.
 
-**Zakazy:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku, WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md) · [Handoff](operations/HANDOFF_NEXT_CHAT.md).
+**Zakazy:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku, WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
