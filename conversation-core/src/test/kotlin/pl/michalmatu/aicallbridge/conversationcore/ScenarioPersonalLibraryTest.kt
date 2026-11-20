@@ -7,6 +7,26 @@ class ScenarioPersonalLibraryTest {
     private val template = checkNotNull(ScenarioCatalog.byId("mechanic"))
     private val initial = template.draft()
 
+    @Test fun customScenarioIsAnEditablePersonalItemWithOnlyInstructionsField() {
+        val custom = ScenarioCatalog.custom
+        assertEquals("custom", custom.id)
+        assertEquals(listOf("additional_instructions"), custom.fields.map { it.id })
+        val draft = custom.draft().withValue("additional_instructions",
+            "Zapytaj o otwarcie jutro.", custom)
+        val created = ScenarioPersonalLibrary().create(custom, draft, "personal-custom",
+            "Własny telefon", "Sprawdź godziny pracy")
+        val mine = created.items.single()
+        assertEquals("custom", mine.templateId)
+        assertEquals("Własny telefon", mine.current.title)
+        assertEquals("Sprawdź godziny pracy", mine.current.goal)
+        assertEquals("Zapytaj o otwarcie jutro.", mine.current.values["additional_instructions"])
+        assertEquals(1, mine.current.number)
+        val revised = created.revise(mine.id, "Własny telefon", "Zapytaj o zmianę godzin",
+            draft)
+        assertEquals(2, revised.items.single().current.number)
+        assertEquals("Sprawdź godziny pracy", created.items.single().current.goal)
+    }
+
     @Test fun createVersionsAndRestoreAreImmutable() {
         val library = ScenarioPersonalLibrary().create(
             template, initial, "personal-a", "Moja wizyta", "Zapytaj o diagnostykę")
