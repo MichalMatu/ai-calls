@@ -72,6 +72,7 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
     private val handler = Handler(Looper.getMainLooper())
     private var active = false
     private var reading = false
+    private var deleting = false
     private val detailsBack = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() { selectedId = null; previous?.let(::render) }
     }
@@ -120,14 +121,28 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                 startActivity(Intent(this, PhoneTaskWizardActivity::class.java))
             }, UiDesign.spaceAfter(this, 16))
             if (tasks.isEmpty()) body.addView(UiDesign.caption(this, getString(R.string.task_empty)))
-            tasks.sortedWith(compareBy<PhoneTask> { it.state != PhoneTaskState.READY }
-                .thenByDescending { it.approvedAt }).forEach { value ->
-                body.addView(UiDesign.navigationRow(this, value.title, UiDesign.caption(this,
-                    getString(PhoneTaskLabels.state(value)) + " · " + getString(R.string.task_progress,
-                        value.recipients.count { it.state !in setOf(PhoneRecipientState.QUEUED, PhoneRecipientState.IN_FLIGHT) },
-                        value.recipients.size) + "\n" + PhoneTaskLabels.time(value.startAt, value.zoneId))) {
-                    selectedId = value.id; render(tasks)
-                }.apply { tag = "task-row:" + value.id }, UiDesign.spaceAfter(this, 12))
+            val now = System.currentTimeMillis()
+            for (group in PhoneTaskManagement.Group.entries) {
+                val members = tasks.filter { PhoneTaskManagement.group(it, now) == group }
+                    .sortedByDescending { it.approvedAt }
+                if (members.isEmpty()) continue
+                val title = when (group) {
+                    PhoneTaskManagement.Group.CURRENT -> R.string.task_group_current
+                    PhoneTaskManagement.Group.SCHEDULED -> R.string.task_group_scheduled
+                    PhoneTaskManagement.Group.HISTORY -> R.string.task_group_history
+                }
+                body.addView(UiDesign.heading(this, getString(title)).apply {
+                    tag = "task-group:" + group.name.lowercase()
+                    textSize = 17f
+                }, UiDesign.spaceAfter(this, 10))
+                members.forEach { value ->
+                    body.addView(UiDesign.navigationRow(this, value.title, UiDesign.caption(this,
+                        getString(PhoneTaskLabels.state(value)) + " · " + getString(R.string.task_progress,
+                            value.recipients.count { it.state !in setOf(PhoneRecipientState.QUEUED, PhoneRecipientState.IN_FLIGHT) },
+                            value.recipients.size) + "\n" + PhoneTaskLabels.time(value.startAt, value.zoneId))) {
+                        selectedId = value.id; render(tasks)
+                    }.apply { tag = "task-row:" + value.id }, UiDesign.spaceAfter(this, 12))
+                }
             }
             return
         }
@@ -170,28 +185,85 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                 startActivity(Intent(this, LocalAdbGsmSetupActivity::class.java))
             else startActivity(Intent(this, SettingsHubActivity::class.java))
         }, UiDesign.spaceAfter(this, 12))
-        body.addView(UiDesign.action(this, getString(R.string.task_scope_details)) {
-            AlertDialog.Builder(this).setTitle(task.title).setMessage(task.goal + "\n\n" + task.brief +
-                "\n\n" + getString(R.string.task_scope)).setPositiveButton(android.R.string.ok, null).show()
-        }, UiDesign.spaceAfter(this, 16))
+        body.addView(UiDesign.action(this, getString(R.string.task_options)) {
+            showTaskOptions(task)
+        }.apply { tag = "task-options" }, UiDesign.spaceAfter(this, 16))
         if (task.recipients.size > 1) body.addView(UiDesign.action(this,
             getString(R.string.task_compare), UiActionTone.PRIMARY) {
             showComparison(task)
         }.apply { tag = "task-compare" }, UiDesign.spaceAfter(this, 16))
         task.recipients.forEach { recipient -> recipientCard(task, recipient) }
-        body.addView(UiDesign.action(this, getString(R.string.task_copy)) {
-            PhoneTaskWork.io.execute {
-                val result = runCatching {
-                    PhoneTaskWork.store(this).savePhoneTaskDraft(PhoneTaskDraft(scenarioId = task.scenarioId,
-                        title = task.title, goal = task.goal, suppliedBrief = task.brief,
-                        recipients = task.recipients.joinToString("\n") { it.name + "; " + it.number },
-                        subscriptionId = task.subscriptionId, accountScope = task.accountScope,
-                        recordAudio = task.recordAudio))
-                }
-                runOnUiThread { result.onSuccess { startActivity(Intent(this, PhoneTaskWizardActivity::class.java)) }
-                    .onFailure { Toast.makeText(this, R.string.task_storage_error, Toast.LENGTH_LONG).show() } }
+        // Less frequent actions are available in the options menu above the recipient evidence.
+    }
+
+    private fun showTaskOptions(task: PhoneTask) {
+        val actions = mutableListOf<Pair<Int, () -> Unit>>(
+            R.string.task_scope_details to {
+                AlertDialog.Builder(this).setTitle(task.title)
+                    .setMessage(task.goal + "\n\n" + task.brief + "\n\n" +
+                        getString(R.string.task_scope))
+                    .setPositiveButton(android.R.string.ok, null).show()
+            },
+            R.string.task_copy to { copyTask(task) },
+        )
+        if (PhoneTaskManagement.canDelete(task, PhoneTaskWork.activeTaskId)) {
+            actions += R.string.task_delete to { confirmDeleteTask(task) }
+        }
+        AlertDialog.Builder(this).setTitle(R.string.task_options)
+            .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, index ->
+                actions[index].second()
+            }.show()
+    }
+
+    private fun copyTask(task: PhoneTask) {
+        PhoneTaskWork.io.execute {
+            val result = runCatching {
+                PhoneTaskWork.store(this).savePhoneTaskDraft(PhoneTaskDraft(scenarioId = task.scenarioId,
+                    title = task.title, goal = task.goal, suppliedBrief = task.brief,
+                    recipients = task.recipients.joinToString("\n") { it.name + "; " + it.number },
+                    subscriptionId = task.subscriptionId, accountScope = task.accountScope,
+                    recordAudio = task.recordAudio))
             }
-        })
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                result.onSuccess { startActivity(Intent(this, PhoneTaskWizardActivity::class.java)) }
+                    .onFailure { Toast.makeText(this, R.string.task_storage_error, Toast.LENGTH_LONG).show() }
+            }
+        }
+    }
+
+    private fun confirmDeleteTask(task: PhoneTask) {
+        if (deleting || !PhoneTaskManagement.canDelete(task, PhoneTaskWork.activeTaskId)) return
+        AlertDialog.Builder(this).setTitle(R.string.task_delete_title)
+            .setMessage(R.string.task_delete_warning)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.task_delete) { _, _ ->
+                if (deleting) return@setPositiveButton
+                deleting = true
+                PhoneTaskWork.io.execute {
+                    val result = runCatching {
+                        // Re-read and validate atomically under the existing encrypted store lock.
+                        // In-flight calls are never removed; no chat, WAV or notebook deletion.
+                        PhoneTaskWork.store(applicationContext).updatePhoneTasks { list ->
+                            PhoneTaskManagement.removeTerminal(list, task.id, PhoneTaskWork.activeTaskId)
+                        }
+                    }
+                    runOnUiThread {
+                        deleting = false
+                        if (isDestroyed || isFinishing) return@runOnUiThread
+                        result.onSuccess {
+                            selectedId = null
+                            previous = null
+                            body.removeAllViews()
+                            load()
+                        }.onFailure {
+                            Toast.makeText(this, R.string.task_delete_failed, Toast.LENGTH_LONG).show()
+                            previous = null
+                            load()
+                        }
+                    }
+                }
+            }.show()
     }
 
     private fun showComparison(task: PhoneTask) {

@@ -995,4 +995,4 @@
         <item quantity="one">%1$d call with notes</item>
         <item quantity="other">%1$d calls with notes</item>
     </plurals>
-</resources>
+    <string name="task_group_current">Current and paused</string>\n    <string name="task_group_scheduled">Scheduled</string>\n    <string name="task_group_history">Finished and cancelled</string>\n    <string name="task_options">More options</string>\n    <string name="task_delete">Delete task</string>\n    <string name="task_delete_title">Delete task?</string>\n    <string name="task_delete_warning">This task and its stored results will be permanently deleted. Call history, notes and recordings will remain available separately.</string>\n    <string name="task_delete_failed">Could not delete this task. Refresh the list and check its state.</string>\n</resources>
