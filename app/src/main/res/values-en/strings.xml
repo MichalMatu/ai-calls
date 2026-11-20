@@ -571,6 +571,8 @@
     <string name="scenario_ui_save_changes">Save changes</string>
     <string name="scenario_ui_save_personal">Save to My scenarios</string>
     <string name="scenario_ui_delete_simple_message">Delete this scenario? Other scenarios and templates will be kept.</string>
+    <string name="notebook_ui_show_section">Show notebook</string>
+    <string name="notebook_ui_hide_section">Hide notebook</string>
     <string name="scenario_ui_title">Conversation scenarios</string>
     <string name="scenario_ui_campaign_hint">Every scenario can prepare an AI information-gathering call after you approve the number and SIM. Contracts, purchases and bookings require your separate decision.</string>
     <string name="scenario_ui_open">Open scenario library</string>
