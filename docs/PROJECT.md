@@ -21,7 +21,7 @@
 
 ## Następny sprint
 
-1. UX: Outgoing: poprawki terminów i reakcji na harmonogram; zrzuty na koniec sprintu.
+1. UX: ekran zadania: menu akcji, Skip/Restore, szczegóły w kartach; zrzuty na koniec sprintu.
 2. Konfiguracja STT/TTS/modelu oraz testy jakości odpowiedzi; regresje GSM tylko przy dotknięciu flow. Bez kolejnych połączeń bez osobnej zgody.
 
 **WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku i WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).

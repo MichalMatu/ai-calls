@@ -896,7 +896,7 @@
     <string name="task_attempts">Próby: %1$d</string>
     <string name="task_attempt_history">Przebieg prób</string>
     <string name="task_conversation">Otwórz rozmowę</string>
-    <string name="task_skip">Pomiń odbiorcę</string>
+    <string name="task_skip_short">Pomiń</string>\n    <string name="task_restore">Przywróć</string>\n    <string name="task_restore_warning">Przywrócić odbiorcę do kolejki? Jeśli zadanie działa, może automatycznie zadzwonić w zatwierdzonym oknie.</string>\n    <string name="task_restore_finished_warning">Przywrócić odbiorcę? Zadanie zostanie wznowione do stanu wstrzymanego. Aby zadzwonić, osobno wybierz Wznów.</string>\n    <string name="task_show_details">Pokaż szczegóły</string>\n    <string name="task_hide_details">Ukryj szczegóły</string>\n    <string name="task_pause_short">Wstrzymaj</string>\n    <string name="task_resume_short">Wznów</string>\n    <string name="task_cancel_short">Anuluj</string>\n    <string name="task_skip">Pomiń odbiorcę</string>
     <string name="task_retry_explicit">Ponów ten numer</string>
     <string name="task_stop_all">Zatrzymaj wszystkie AI</string>
     <string name="history_unfinished_remaining">Niektóre archiwa są nieukończone. Przytrzymaj rozmowę, aby ją usunąć pojedynczo. „Usuń wszystkie” dotyczy wyłącznie zakończonych rozmów.</string>
