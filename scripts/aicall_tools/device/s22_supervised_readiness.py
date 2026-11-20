@@ -12,18 +12,18 @@ import argparse
 import re
 import subprocess
 import time
-from typing import Callable, Optional, Sequence
+from typing import Optional, Sequence
 
-PACKAGE = "pl.michalmatu.aicallbridge"
+PACKAGE = "pl.michalmatu.aicallbridge.s8lab"
 COMPONENT = PACKAGE + "/.developerrelay.SupervisedCallReadinessProbeActivity"
 REPORT_PATH = "files/supervised-call-readiness-report.txt"
 EXPECTED_SERIAL = "RFCT70L7E8J"
 EXPECTED_MODEL = "SM-S906B"
-LEGACY_FIELDS = (
+BASE_FIELDS = (
     "probe",
     "microphone_permission",
     "phone_state_permission",
-    "shizuku_ready",
+    "gsm_shell_ready",
     "telecom_in_call",
     "telecom_managed_call",
     "audio_mode",
@@ -40,11 +40,11 @@ S8_FIELDS = (
     "s8_cellular_pcm_verified",
 )
 # New app reports S8 between failure_reason and terminal report_complete.
-FIELDS = LEGACY_FIELDS[:-1] + S8_FIELDS + ("report_complete",)
+FIELDS = BASE_FIELDS[:-1] + S8_FIELDS + ("report_complete",)
 BOOL_FIELDS = (
     "microphone_permission",
     "phone_state_permission",
-    "shizuku_ready",
+    "gsm_shell_ready",
     "telecom_in_call",
     "telecom_managed_call",
     "report_complete",
@@ -66,7 +66,7 @@ AUDIO_MODES = {
 REASONS = {
     "none",
     "permission_required",
-    "shizuku_not_ready",
+    "gsm_shell_not_ready",
     "no_active_cellular_call",
     "audio_route_not_ready",
 }
@@ -82,7 +82,7 @@ def parse_report(raw: str) -> dict[str, str]:
         if key not in FIELDS or key in result:
             raise ValueError("unexpected_or_duplicate_diagnostic_field")
         result[key] = value
-    if tuple(result) not in (LEGACY_FIELDS, FIELDS):
+    if tuple(result) not in (BASE_FIELDS, FIELDS):
         raise ValueError("incomplete_or_reordered_diagnostic_report")
     if result["probe"] != "supervised_call_readiness":
         raise ValueError("invalid_diagnostic_probe")
@@ -146,7 +146,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except (OSError, ValueError, TimeoutError, subprocess.SubprocessError) as error:
         print("DIAGNOSTIC_FAILED=" + type(error).__name__)
         return 1
-    for key in (FIELDS if "s8_dialer_role_held" in result else LEGACY_FIELDS):
+    for key in (FIELDS if "s8_dialer_role_held" in result else BASE_FIELDS):
         print(key + "=" + result[key])
     print("NO_DIAL_NO_HANGUP_NO_PCM=true")
     return 0

@@ -9,23 +9,52 @@ import sys
 import time
 from typing import Optional
 
-from aicall_tools.realtime.realtime_network_smoke import PACKAGE_NAME
+PACKAGE_NAME = "pl.michalmatu.aicallbridge.s8lab"
 
 PROBE_ACTIVITY = f"{PACKAGE_NAME}/.LiveCallReadinessProbeActivity"
 REPORT_PATH = "files/live-call-readiness-report.txt"
 DEFAULT_TIMEOUT_SECONDS = 8.0
 
 
+EXPECTED_FIELDS = (
+    "probe",
+    "record_audio_granted",
+    "media_transport",
+    "gsm_shell_host_available",
+    "live_call_readiness",
+    "failure_reason",
+    "probe_complete",
+)
+
+
 def parse_readiness_report(text: str) -> Optional[dict[str, str]]:
+    """Allow only the established GSM host readiness protocol, never call details."""
     values: dict[str, str] = {}
-    for line in text.splitlines():
-        if "=" not in line:
-            continue
+    for line in text.replace("\\r", "").splitlines():
+        if line.count("=") != 1:
+            return None
         key, value = line.split("=", 1)
-        values[key.strip()] = value.strip()
-    if values.get("probe") != "live_call_readiness":
+        if key in values or key not in EXPECTED_FIELDS:
+            return None
+        values[key] = value
+    if tuple(values) != EXPECTED_FIELDS:
         return None
-    if values.get("probe_complete") != "true":
+    if values["probe"] != "live_call_readiness" or values["probe_complete"] != "true":
+        return None
+    if values["media_transport"] != "gsm_shell_adb":
+        return None
+    if any(values[k] not in ("true", "false") for k in (
+        "record_audio_granted", "gsm_shell_host_available", "live_call_readiness"
+    )):
+        return None
+    if values["failure_reason"] not in (
+        "none", "record_audio_permission_required", "gsm_shell_host_unavailable"
+    ):
+        return None
+    expected_ready = values["record_audio_granted"] == "true" and (
+        values["gsm_shell_host_available"] == "true"
+    )
+    if (values["live_call_readiness"] == "true") != expected_ready:
         return None
     return values
 
@@ -82,9 +111,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     for key in (
         "record_audio_granted",
-        "shizuku_binder_available",
-        "shizuku_supported",
-        "shizuku_permission_granted",
+        "media_transport",
+        "gsm_shell_host_available",
         "live_call_readiness",
     ):
         print(f"{key}={report.get(key, '')}")
