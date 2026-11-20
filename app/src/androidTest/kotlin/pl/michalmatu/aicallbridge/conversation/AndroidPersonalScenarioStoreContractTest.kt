@@ -34,13 +34,15 @@ class AndroidPersonalScenarioStoreContractTest {
             store.savePersonalScenarios(created)
             assertEquals("300 zł", store.loadPersonalScenarios()
                 .items.single().current.values["budget"])
-            val revised = store.loadPersonalScenarios().revise(
+            val edited = store.loadPersonalScenarios().update(
                 "personal-test", "Mój mechanik", "Ustal termin",
                 initial.withValue("budget", "400 zł", template))
-            store.savePersonalScenarios(revised)
-            assertEquals(2, store.loadPersonalScenarios().items.single().current.number)
-            assertEquals("400 zł", store.loadPersonalScenarios()
-                .items.single().current.values["budget"])
+            store.savePersonalScenarios(edited)
+            val after = store.loadPersonalScenarios().items.single()
+            assertEquals("personal-test", after.id)
+            assertEquals(1, after.versions.size)
+            assertEquals(1, after.current.number)
+            assertEquals("400 zł", after.current.values["budget"])
             assertNull("personal copies never overwrite the factory form",
                 store.loadScenarioDraft("mechanic"))
             val encrypted = testDir.listFiles().orEmpty().filter { it.isFile }
