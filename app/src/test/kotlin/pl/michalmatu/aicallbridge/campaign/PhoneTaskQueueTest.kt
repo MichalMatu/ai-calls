@@ -201,9 +201,27 @@ class PhoneTaskQueueTest {
         assertEquals(2, input.values.size)
         assertEquals(1, input.duplicates)
         assertEquals("Garage", input.values.first().name)
-        listOf("2025550101", "tel:+12025550101", "+12025550101, +12025550102", "+12025550101;extra;bad").forEach {
+        listOf("123", "tel:+12025550101", "+12025550101, +12025550102",
+            "+12025550101;extra;bad", "*21*123#", "*100#", "++48123456789").forEach {
             assertTrue(runCatching { PhoneTaskInput.recipients(it) }.isFailure)
         }
+    }
+    @Test fun nationalAndCarrierCodeInputsPassWithoutCountryGuessOrDuplicateGrant() {
+        val input = PhoneTaskInput.recipients(
+            "Warsztat; 123 456 789\n0044 20 7946 0958\n*100\n123456789")
+        assertEquals(listOf("123456789", "+442079460958", "*100"), input.values.map { it.number })
+        assertEquals(1, input.duplicates)
+        val local = ScenarioOutgoingTask.create("123456789", 1, "sim-1", "quote",
+            "Test głosowy", "Sprawdź cenę usługi", "Zapytaj o cenę i termin.")
+        assertEquals("123456789", local.request().target)
+        assertTrue(CampaignAuthorizationPolicy.matchesExactTask(local.grant(10L), local.request()))
+        assertFalse(CampaignAuthorizationPolicy.matchesExactTask(local.grant(10L),
+            local.copy(target = "+48123456789").request()))
+        val shortcode = local.copy(target = "*100")
+        assertTrue(PhoneTaskDialTarget.isCarrierCode(shortcode.target))
+        assertTrue(CampaignAuthorizationPolicy.matchesExactTask(shortcode.grant(10L), shortcode.request()))
+        assertFalse(CampaignAuthorizationPolicy.matchesExactTask(shortcode.grant(10L), local.request()))
+        assertTrue(runCatching { PhoneTaskInput.recipients("112") }.isFailure)
     }
     @Test fun `DST gap and overlap are not silently shifted and chosen zone is pinned`() {
         val zone = ZoneId.of("Europe/Warsaw")

@@ -21,7 +21,7 @@
 
 ## Następny sprint
 
-1. UX: Zadania PR #38 PASS. Outgoing: własny scenariusz i korekta terminów; zrzuty na koniec sprintu.
+1. UX: Outgoing: krajowe numery i *100, osobne błędy SIM; zrzuty na koniec sprintu.
 2. Konfiguracja STT/TTS/modelu oraz testy jakości odpowiedzi; regresje GSM tylko przy dotknięciu flow. Bez kolejnych połączeń bez osobnej zgody.
 
 **WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku i WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).

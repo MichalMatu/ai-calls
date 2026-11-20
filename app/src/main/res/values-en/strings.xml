@@ -785,7 +785,7 @@
     <string name="task_questions">Questions and details</string>
     <string name="task_numbers">Recipients</string>
     <string name="task_numbers_hint">Garage A; +44 1234 567890</string>
-    <string name="task_numbers_help">One recipient per line: name; number with country code. Names are optional. Duplicate numbers will be merged.</string>
+    <string name="task_numbers_help">One per line: name; international (+44…), national (no +), or *100. The selected SIM determines routing. *100 may be USSD, not a voice call. Name optional.</string>
     <string name="task_choose_sim">Choose a SIM</string>
     <string name="task_phone_permission">Allow SIM access</string>
     <string name="task_later">Schedule for later</string>
@@ -803,7 +803,7 @@
     <string name="task_approve_schedule">Approve and schedule</string>
     <string name="task_approve_start">Approve and start</string>
     <string name="task_invalid_goal">Complete required fields. Name: 2–140 characters, goal: 5–300, details: 5–3500.</string>
-    <string name="task_invalid_recipients">Check each line: name; number with country code, e.g. +44. Select an available SIM.</string>
+    <string name="task_invalid_recipients">Invalid number. Use +44…, a national number (7–15 digits), or a code like *100. Put each recipient on a separate line.</string>
     <string name="task_invalid_schedule">Choose a future time and a later window end. Retry interval must be positive. Times skipped or repeated at a daylight-saving transition require a different time.</string>
     <string name="task_saving">Saving task…</string>
     <string name="task_storage_error">Could not read or save the task. Check available storage and reopen the app.</string>
