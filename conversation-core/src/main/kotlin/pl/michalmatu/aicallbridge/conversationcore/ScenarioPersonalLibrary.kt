@@ -35,6 +35,26 @@ data class PersonalScenario(
             current.number + 1, normalizedTitle, normalizedGoal, draft.values.toMap()))
     }
 
+    /**
+     * Save an edit to the same personal scenario, without creating a new revision.
+     * Preserve historical revisions for compatibility with existing local records.
+     */
+    fun updated(title: String, goal: String, draft: ScenarioDraft): PersonalScenario {
+        val template = requireNotNull(ScenarioCatalog.byId(templateId)) { "unknown_scenario_template" }
+        require(draft.scenarioId == templateId) { "scenario_draft_mismatch" }
+        validateValues(template, draft.values)
+        val name = title.trim()
+        val description = goal.trim()
+        require(name.isNotBlank() && description.isNotBlank()) {
+            "missing_personal_scenario_name_or_goal"
+        }
+        if (current.title == name && current.goal == description && current.values == draft.values) {
+            return this
+        }
+        return copy(versions = versions.dropLast(1) + current.copy(
+            title = name, goal = description, values = draft.values.toMap()))
+    }
+
     fun restored(number: Int): PersonalScenario {
         val old = versions.singleOrNull { it.number == number }
             ?: throw IllegalArgumentException("scenario_version_missing")
@@ -85,6 +105,14 @@ data class ScenarioPersonalLibrary(val items: List<PersonalScenario> = emptyList
         require(items.any { it.id == id }) { "scenario_not_found" }
         return copy(items = items.map {
             if (it.id == id) it.revised(title, goal, draft) else it
+        }).validated()
+    }
+
+    /** Edits preserve identity and do not duplicate items or append a version. */
+    fun update(id: String, title: String, goal: String, draft: ScenarioDraft): ScenarioPersonalLibrary {
+        require(items.any { it.id == id }) { "scenario_not_found" }
+        return copy(items = items.map {
+            if (it.id == id) it.updated(title, goal, draft) else it
         }).validated()
     }
 
