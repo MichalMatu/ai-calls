@@ -231,6 +231,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
         personalGoal = null
         var readFailed = false
         val stored = if (personal != null) ScenarioDraft(definition.id, personal.current.values)
+        else if (creating) definition.draft()
         else runCatching { store.loadScenarioDraft(definition.id) }.getOrElse {
             readFailed = true
             null
@@ -239,7 +240,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
         savedTitle = if (creating) "" else personal?.current?.title
         savedGoal = if (creating) "" else personal?.current?.goal
         val root = body()
-        root.addView(UiDesign.heading(this, if (creating) getString(R.string.scenario_ui_new)
+        root.addView(UiDesign.heading(this, if (creating) getString(R.string.scenario_ui_new_title)
             else personal?.current?.title ?: definition.title(language)),
             UiDesign.spaceAfter(this, 10))
         if (definition.callAdapterId != null) {
