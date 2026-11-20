@@ -561,6 +561,12 @@
     <string name="skills_ux05_name_closure">Natural closure</string>
     <string name="camp_ux06_diagnostic_recording">Recording permission for future campaign attempts: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Latest service message (historical, not live):\n%1$s</string>
+    <string name="scenario_ui_new">+ New scenario</string>
+    <string name="scenario_ui_none">No personal scenarios yet.</string>
+    <string name="scenario_ui_show_templates">Ready-made templates (%1$d) ▾</string>
+    <string name="scenario_ui_hide_templates">Ready-made templates (%1$d) ▴</string>
+    <string name="scenario_ui_more">••• More options</string>
+    <string name="scenario_ui_new_invalid">Enter a name (2–140 characters) and a goal (5–300 characters).</string>
     <string name="scenario_ui_title">Conversation scenarios</string>
     <string name="scenario_ui_campaign_hint">Every scenario can prepare an AI information-gathering call after you approve the number and SIM. Contracts, purchases and bookings require your separate decision.</string>
     <string name="scenario_ui_open">Open scenario library</string>
