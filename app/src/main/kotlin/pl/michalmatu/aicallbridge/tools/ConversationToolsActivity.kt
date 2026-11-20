@@ -36,10 +36,13 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
 
 /** Notebook-first UI only; call tools and their authorization remain independent. */
 class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
-    override fun toolbarTitle(): String = getString(R.string.tools_ui_title)
+    private val notebookOnly get() = intent.getBooleanExtra(EXTRA_NOTEBOOK_ONLY, false)
+    override fun toolbarTitle(): String = getString(
+        if (notebookOnly) R.string.notebook_ui_title else R.string.tools_ui_title)
 
-    private companion object {
-        const val PENDING_TOOLS_STATE = "pending-tools-selection"
+    companion object {
+        const val EXTRA_NOTEBOOK_ONLY = "pl.michalmatu.aicallbridge.extra.NOTEBOOK_ONLY"
+        private const val PENDING_TOOLS_STATE = "pending-tools-selection"
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -97,7 +100,6 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        controller = ConversationToolsSettingsController(this)
         val content = UiDesign.content(this)
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -159,64 +161,68 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
         }
         content.addView(notebookList, UiDesign.spaceAfter(this, 18))
 
-        content.addView(UiDesign.heading(this, getString(R.string.notebook_ui_tools_heading)).apply {
-            textSize = 17f
-        }, UiDesign.spaceAfter(this, 9))
-        storedSelection = controller.enabled().toSet()
-        // Only tool IDs (never private notebook search or notes) survive rotation.
-        val pendingTools = savedInstanceState?.getStringArrayList(PENDING_TOOLS_STATE)?.toSet()
-        optionViews = ConversationToolId.entries.associateWith { tool ->
-            CheckBox(this).apply {
-                tag = "tools-setting:" + tool.wireName
-                text = getString(when (tool) {
-                    ConversationToolId.END_CALL -> R.string.tools_ui_end_call_title
-                    ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_title
-                })
-                textSize = 15f
-                isChecked = if (pendingTools == null) tool in storedSelection
-                    else tool.wireName in pendingTools
-                minimumHeight = UiDesign.dp(this@ConversationToolsActivity, 48)
-                contentDescription = text.toString() + ". " + getString(when (tool) {
-                    ConversationToolId.END_CALL -> R.string.tools_ui_end_call_detail
-                    ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_detail
-                })
-            }.also { option ->
-                content.addView(option, UiDesign.spaceAfter(this, 2))
-                content.addView(UiDesign.caption(this, getString(when (tool) {
-                    ConversationToolId.END_CALL -> R.string.tools_ui_end_call_detail
-                    ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_detail
-                })), UiDesign.spaceAfter(this, 8))
+        // The Home shortcut opens notes only. The Agent tab retains the full tools editor.
+        if (!notebookOnly) {
+            content.addView(UiDesign.heading(this, getString(R.string.notebook_ui_tools_heading)).apply {
+                textSize = 17f
+            }, UiDesign.spaceAfter(this, 9))
+            controller = ConversationToolsSettingsController(this)
+            storedSelection = controller.enabled().toSet()
+            // Only tool IDs (never private notebook search or notes) survive rotation.
+            val pendingTools = savedInstanceState?.getStringArrayList(PENDING_TOOLS_STATE)?.toSet()
+            optionViews = ConversationToolId.entries.associateWith { tool ->
+                CheckBox(this).apply {
+                    tag = "tools-setting:" + tool.wireName
+                    text = getString(when (tool) {
+                        ConversationToolId.END_CALL -> R.string.tools_ui_end_call_title
+                        ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_title
+                    })
+                    textSize = 15f
+                    isChecked = if (pendingTools == null) tool in storedSelection
+                        else tool.wireName in pendingTools
+                    minimumHeight = UiDesign.dp(this@ConversationToolsActivity, 48)
+                    contentDescription = text.toString() + ". " + getString(when (tool) {
+                        ConversationToolId.END_CALL -> R.string.tools_ui_end_call_detail
+                        ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_detail
+                    })
+                }.also { option ->
+                    content.addView(option, UiDesign.spaceAfter(this, 2))
+                    content.addView(UiDesign.caption(this, getString(when (tool) {
+                        ConversationToolId.END_CALL -> R.string.tools_ui_end_call_detail
+                        ConversationToolId.SAVE_NOTE -> R.string.tools_ui_save_note_detail
+                    })), UiDesign.spaceAfter(this, 8))
+                }
             }
-        }
-        val feedback = UiDesign.caption(this, "").apply {
-            visibility = View.GONE
-            tag = "tools-settings-feedback"
-        }
-        val save = UiDesign.action(this, getString(R.string.tools_ui_save), UiActionTone.PRIMARY) {
-            // Actual guarded action is attached below.
-        }.apply {
-            tag = "tools-save-settings"
-            visibility = View.GONE
-        }
-        save.setOnClickListener {
-            if (controller.save(selectedTools())) {
-                storedSelection = selectedTools()
-                save.visibility = View.GONE
-                feedback.text = getString(R.string.tools_ui_saved)
-            } else {
-                feedback.text = getString(R.string.tools_ui_failed)
+            val feedback = UiDesign.caption(this, "").apply {
+                visibility = View.GONE
+                tag = "tools-settings-feedback"
             }
-            feedback.visibility = View.VISIBLE
-        }
-        optionViews.values.forEach { option ->
-            option.setOnCheckedChangeListener { _, _ ->
-                save.visibility = if (hasUnsavedSettings()) View.VISIBLE else View.GONE
-                feedback.visibility = View.GONE
+            val save = UiDesign.action(this, getString(R.string.tools_ui_save), UiActionTone.PRIMARY) {
+                // Actual guarded action is attached below.
+            }.apply {
+                tag = "tools-save-settings"
+                visibility = View.GONE
             }
+            save.setOnClickListener {
+                if (controller.save(selectedTools())) {
+                    storedSelection = selectedTools()
+                    save.visibility = View.GONE
+                    feedback.text = getString(R.string.tools_ui_saved)
+                } else {
+                    feedback.text = getString(R.string.tools_ui_failed)
+                }
+                feedback.visibility = View.VISIBLE
+            }
+            optionViews.values.forEach { option ->
+                option.setOnCheckedChangeListener { _, _ ->
+                    save.visibility = if (hasUnsavedSettings()) View.VISIBLE else View.GONE
+                    feedback.visibility = View.GONE
+                }
+            }
+            save.visibility = if (hasUnsavedSettings()) View.VISIBLE else View.GONE
+            content.addView(save, UiDesign.spaceAfter(this, 6))
+            content.addView(feedback)
         }
-        save.visibility = if (hasUnsavedSettings()) View.VISIBLE else View.GONE
-        content.addView(save, UiDesign.spaceAfter(this, 6))
-        content.addView(feedback)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (hasUnsavedSettings()) confirmDiscardSettings { finish() }

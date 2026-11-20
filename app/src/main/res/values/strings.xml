@@ -979,4 +979,24 @@
     <string name="task_record_audio_hint">Włączone domyślnie dla nowych zadań. Odznacz, aby nie nagrywać. Zapisuje tylko lokalne fragmenty RX/TX WAV, nie całe połączenie. Zadbaj o zgodę uczestników.</string>
     <string name="task_record_audio_on">Nagrywanie fragmentów WAV: włączone dla tego zadania</string>
     <string name="task_record_audio_off">Nagrywanie fragmentów WAV: wyłączone</string>
+    <string name="home_title">AI Calls</string>
+    <string name="home_outgoing_hint">Przygotuj rozmowę wychodzącą</string>
+    <string name="home_notebook_shortcut">Notatki</string>
+    <string name="home_activity_heading">Bieżąca aktywność</string>
+    <string name="home_activity_idle">Brak aktywnej rozmowy</string>
+    <string name="home_activity_incoming">Asystent prowadzi rozmowę</string>
+    <string name="home_activity_outgoing">Realizacja zadania wychodzącego…</string>
+    <string name="home_count_unavailable">Nie można odczytać</string>
+    <plurals name="home_task_count">
+        <item quantity="one">%1$d zadanie</item>
+        <item quantity="few">%1$d zadania</item>
+        <item quantity="many">%1$d zadań</item>
+        <item quantity="other">%1$d zadań</item>
+    </plurals>
+    <plurals name="home_notebook_count">
+        <item quantity="one">%1$d rozmowa z notatką</item>
+        <item quantity="few">%1$d rozmowy z notatkami</item>
+        <item quantity="many">%1$d rozmów z notatkami</item>
+        <item quantity="other">%1$d rozmów z notatkami</item>
+    </plurals>
 </resources>

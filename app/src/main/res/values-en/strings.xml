@@ -979,4 +979,20 @@
     <string name="task_record_audio_hint">On by default for new tasks. Uncheck to disable. Saves only local RX/TX WAV segments, not the full call. Ensure participants consent.</string>
     <string name="task_record_audio_on">WAV segment recording: enabled for this task</string>
     <string name="task_record_audio_off">WAV segment recording: disabled</string>
+    <string name="home_title">AI Calls</string>
+    <string name="home_outgoing_hint">Prepare an outgoing call</string>
+    <string name="home_notebook_shortcut">Notes</string>
+    <string name="home_activity_heading">Current activity</string>
+    <string name="home_activity_idle">No active call</string>
+    <string name="home_activity_incoming">AI is handling a call</string>
+    <string name="home_activity_outgoing">Outgoing task in progress…</string>
+    <string name="home_count_unavailable">Unavailable</string>
+    <plurals name="home_task_count">
+        <item quantity="one">%1$d task</item>
+        <item quantity="other">%1$d tasks</item>
+    </plurals>
+    <plurals name="home_notebook_count">
+        <item quantity="one">%1$d call with notes</item>
+        <item quantity="other">%1$d calls with notes</item>
+    </plurals>
 </resources>

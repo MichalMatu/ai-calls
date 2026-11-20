@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
@@ -20,7 +21,11 @@ import pl.michalmatu.aicallbridge.campaign.PhoneTaskWork
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskState
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskScheduler
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskLabels
-import pl.michalmatu.aicallbridge.campaign.CampaignLiveUiLabels
+import pl.michalmatu.aicallbridge.campaign.CampaignLivePhase
+import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
+import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
+import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
+import pl.michalmatu.aicallbridge.ui.HomeActiveStatus
 import pl.michalmatu.aicallbridge.conversation.LiveConversationOverlay
 import pl.michalmatu.aicallbridge.ui.AppBaseActivity
 import pl.michalmatu.aicallbridge.ui.AppNavigation
@@ -35,6 +40,10 @@ class MainActivity : AppBaseActivity() {
     private lateinit var liveStatus: TextView
     private lateinit var actionFeedback: TextView
     private lateinit var taskSummary: TextView
+    private lateinit var notebookSummary: TextView
+    private lateinit var taskDestination: View
+    private lateinit var notebookDestination: View
+    private lateinit var stopButton: View
     private lateinit var incomingSummary: TextView
     private lateinit var incomingDestination: View
     private var taskReading = false
@@ -43,9 +52,7 @@ class MainActivity : AppBaseActivity() {
     private val statusHandler = Handler(Looper.getMainLooper())
     private val statusRefresh = object : Runnable {
         override fun run() {
-            if (::liveStatus.isInitialized) {
-                liveStatus.text = getString(CampaignLiveUiLabels.title(AppOwnedCampaignService.liveUiPhase()))
-            }
+            if (::liveStatus.isInitialized) refreshLiveStatus()
             refreshTasks()
             statusHandler.postDelayed(this, 1_000L)
         }
@@ -57,7 +64,7 @@ class MainActivity : AppBaseActivity() {
         liveStatus = UiDesign.caption(this, "").apply {
             tag = "home-live-runtime"
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-            text = getString(CampaignLiveUiLabels.title(AppOwnedCampaignService.liveUiPhase()))
+            text = getString(R.string.home_activity_idle)
         }
         actionFeedback = UiDesign.caption(this, "").apply {
             tag = "home-action-feedback"
@@ -66,6 +73,14 @@ class MainActivity : AppBaseActivity() {
         }
 
         taskSummary = UiDesign.caption(this, getString(R.string.task_loading))
+        notebookSummary = UiDesign.caption(this, getString(R.string.notebook_ui_loading))
+        taskDestination = shortcutCard(R.string.task_list, taskSummary) {
+            startActivity(Intent(this, PhoneTasksActivity::class.java))
+        }.apply { tag = "home-tasks" }
+        notebookDestination = shortcutCard(R.string.home_notebook_shortcut, notebookSummary) {
+            startActivity(Intent(this, ConversationToolsActivity::class.java)
+                .putExtra(ConversationToolsActivity.EXTRA_NOTEBOOK_ONLY, true))
+        }.apply { tag = "home-notebook" }
         val start = UiDesign.action(this, getString(R.string.home_outgoing_action),
             UiActionTone.PRIMARY) {
             startActivity(Intent(this, PhoneTaskWizardActivity::class.java))
@@ -76,7 +91,8 @@ class MainActivity : AppBaseActivity() {
                 .setAction(AppOwnedCampaignService.ACTION_STOP_ALL_AI))
             actionFeedback.text = getString(R.string.home_ui_stop_sent)
             actionFeedback.visibility = View.VISIBLE
-        }.apply { tag = "home-stop-ai" }
+        }.apply { tag = "home-stop-ai"; visibility = View.GONE }
+        stopButton = stop
 
         incomingSummary = UiDesign.caption(this, getString(R.string.home_incoming_summary)).apply {
             tag = "home-incoming-status"
@@ -87,20 +103,36 @@ class MainActivity : AppBaseActivity() {
             startActivity(Intent(this, IncomingAssistantSettingsActivity::class.java))
         }.apply { tag = "home-incoming-settings" }
 
+        val shortcuts = LinearLayout(this).apply {
+            tag = "home-shortcuts"
+            orientation = LinearLayout.HORIZONTAL
+            addView(taskDestination, LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = UiDesign.dp(this@MainActivity, 6)
+            })
+            addView(notebookDestination, LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = UiDesign.dp(this@MainActivity, 6)
+            })
+        }
         val content = UiDesign.content(this).apply {
             tag = "main-screen-root"
-            addView(dialerRole.view, UiDesign.spaceAfter(this@MainActivity, 16))
+            addView(UiDesign.heading(this@MainActivity, getString(R.string.home_title)).apply {
+                tag = "home-heading"
+            }, UiDesign.spaceAfter(this@MainActivity, 16))
+            addView(dialerRole.view, UiDesign.spaceAfter(this@MainActivity, 12))
+            addView(incomingDestination, UiDesign.spaceAfter(this@MainActivity, 12))
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-new-call-card"
-                addView(start)
-            }, UiDesign.spaceAfter(this@MainActivity, 16))
-            addView(incomingDestination, UiDesign.spaceAfter(this@MainActivity, 16))
-            addView(UiDesign.navigationRow(this@MainActivity, getString(R.string.task_list), taskSummary) {
-                startActivity(Intent(this@MainActivity, PhoneTasksActivity::class.java))
-            }.apply { tag = "home-tasks" }, UiDesign.spaceAfter(this@MainActivity, 16))
+                addView(start, UiDesign.spaceAfter(this@MainActivity, 6))
+                addView(UiDesign.caption(this@MainActivity, getString(R.string.home_outgoing_hint)))
+            }, UiDesign.spaceAfter(this@MainActivity, 12))
+            addView(shortcuts, UiDesign.spaceAfter(this@MainActivity, 12))
             addView(UiDesign.card(this@MainActivity).apply {
                 tag = "home-call-status-card"
-                addView(liveStatus, UiDesign.spaceAfter(this@MainActivity, 12))
+                addView(UiDesign.caption(this@MainActivity,
+                    getString(R.string.home_activity_heading)), UiDesign.spaceAfter(this@MainActivity, 6))
+                addView(liveStatus, UiDesign.spaceAfter(this@MainActivity, 10))
                 addView(stop)
                 addView(actionFeedback)
             })
@@ -139,6 +171,30 @@ class MainActivity : AppBaseActivity() {
         super.onDestroy()
     }
 
+    /** Compact two-column navigation; the counts never expose notebook text or phone numbers. */
+    private fun shortcutCard(titleId: Int, summary: TextView, onClick: () -> Unit) =
+        UiDesign.card(this, 14).apply {
+            minimumHeight = UiDesign.dp(this@MainActivity, 96)
+            background = UiDesign.touchSurface(this@MainActivity)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+            addView(UiDesign.heading(this@MainActivity, getString(titleId)).apply {
+                textSize = 16f
+            }, UiDesign.spaceAfter(this@MainActivity, 10))
+            addView(summary)
+            contentDescription = getString(titleId) + ". " + summary.text
+        }
+
+    private fun refreshLiveStatus() {
+        val state = HomeActiveStatus.resolve(
+            AppOwnedCampaignService.liveUiPhase(), ConversationChatFeed.snapshot().active,
+            PhoneTaskWork.activeTaskId != null)
+        liveStatus.text = getString(state.label)
+        stopButton.visibility = if (state.showStop) View.VISIBLE else View.GONE
+        if (!state.showStop) actionFeedback.visibility = View.GONE
+    }
+
     private fun refreshTasks() {
         if (taskReading || System.currentTimeMillis() - lastTaskRead < 5_000L) return
         taskReading = true
@@ -147,6 +203,9 @@ class MainActivity : AppBaseActivity() {
             val result = runCatching {
                 PhoneTaskWork.recover(this)
                 PhoneTaskWork.store(this).phoneTasks()
+            }
+            val notebookCount = runCatching {
+                AndroidConversationPreparationStore(applicationContext).notebooks().size
             }
             val incoming = runCatching {
                 val controller = IncomingAssistantSettingsController(applicationContext)
@@ -164,15 +223,18 @@ class MainActivity : AppBaseActivity() {
                 incomingSummary.text = getString(incoming.getOrDefault(R.string.home_incoming_read_error))
                 incomingDestination.contentDescription = getString(R.string.incoming_ui_title) +
                     ". " + incomingSummary.text.toString()
-                taskSummary.text = result.fold(onSuccess = { tasks ->
-                    val pending = tasks.filter { it.state == PhoneTaskState.READY || it.state == PhoneTaskState.PAUSED }
-                    if (tasks.isEmpty()) getString(R.string.task_empty)
-                    else if (pending.isEmpty()) getString(R.string.task_results_count, tasks.size)
-                    else pending.sortedBy { it.startAt }.take(3).joinToString("\n") {
-                        it.title + " · " + getString(PhoneTaskLabels.state(it)) + "\n" +
-                            PhoneTaskLabels.time(it.startAt, it.zoneId)
-                    }
-                }, onFailure = { getString(R.string.task_storage_error) })
+                taskSummary.text = result.fold(
+                    onSuccess = { tasks -> resources.getQuantityString(
+                        R.plurals.home_task_count, tasks.size, tasks.size) },
+                    onFailure = { getString(R.string.home_count_unavailable) })
+                notebookSummary.text = notebookCount.fold(
+                    onSuccess = { count -> resources.getQuantityString(
+                        R.plurals.home_notebook_count, count, count) },
+                    onFailure = { getString(R.string.home_count_unavailable) })
+                taskDestination.contentDescription = getString(R.string.task_list) +
+                    ". " + taskSummary.text
+                notebookDestination.contentDescription = getString(R.string.home_notebook_shortcut) +
+                    ". " + notebookSummary.text
             }
         }
     }
