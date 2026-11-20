@@ -66,6 +66,31 @@ class AndroidAgentAiHubReadOnlyTest {
         }
     }
 
+    @Test fun toolsStartWithSettingsAndNotebookFoldSurvivesRecreation() {
+        ActivityScenario.launch(ConversationToolsActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                assertNotNull(root.findViewWithTag<View>("tools-setting:end_call"))
+                assertNotNull(root.findViewWithTag<View>("tools-setting:save_note"))
+                val section = checkNotNull(root.findViewWithTag<View>("tools-notebook-section"))
+                assertEquals("notebook_should_start_collapsed", View.GONE, section.visibility)
+                val toggle = checkNotNull(root.findViewWithTag<View>(
+                    "tools-notebook-section-toggle"))
+                toggle.performClick()
+                assertEquals("notebook_should_expand", View.VISIBLE, section.visibility)
+            }
+            scenario.recreate()
+            scenario.onActivity { activity ->
+                val root = activity.window.decorView
+                val section = checkNotNull(root.findViewWithTag<View>("tools-notebook-section"))
+                assertEquals("notebook_expansion_lost", View.VISIBLE, section.visibility)
+                checkNotNull(root.findViewWithTag<View>("tools-notebook-section-toggle"))
+                    .performClick()
+                assertEquals("notebook_should_collapse", View.GONE, section.visibility)
+            }
+        }
+    }
+
     @Test fun unsavedToolToggleDoesNotSilentlyCloseOrPersist() {
         ActivityScenario.launch(ConversationToolsActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
