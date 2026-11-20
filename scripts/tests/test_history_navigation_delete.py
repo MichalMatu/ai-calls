@@ -26,6 +26,20 @@ class HistoryNavDeletionContract(unittest.TestCase):
         self.assertIn('audioTimeline.filterNot { it in attached }',archive)
         self.assertIn('compareByDescending<RecordedConversation> { it.startedAtEpochMs }',archive)
 
+    def test_audio_icon_is_inline_and_bubble_remains_accessible(self):
+        view=(ROOT/"conversation/ConversationMessageView.kt").read_text()
+        history=(ROOT/"conversation/ConversationHistoryActivity.kt").read_text()
+        self.assertIn("addView(header, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))",view)
+        self.assertIn("android.R.drawable.ic_media_play",view)
+        self.assertIn("audioTag?.let { it + \":hint\" }",view)
+        self.assertIn('tag = bodyTag ?: audioTag?.let { it + ":body" }',view)
+        self.assertIn("setOnClickListener { onAudioTap() }",view)
+        self.assertIn("contentDescription = line.text +",view)
+        self.assertIn('findViewWithTag<ImageView>(tag + ":hint")',history)
+        self.assertIn("android.R.drawable.ic_media_pause",history)
+        self.assertNotIn("text = audioHint.orEmpty()",view)
+        self.assertIn('findViewWithTag<View>(tag)?.contentDescription',history)
+
     def test_store_never_deletes_active_or_external_data(self):
         s=(ROOT/"conversation/RecordedConversationHistory.kt").read_text()
         for key in ("File(directory, \"COMPLETE\").isFile",

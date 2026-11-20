@@ -12,6 +12,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -52,15 +53,35 @@ import android.widget.LinearLayout.LayoutParams
                 setColor(if (isAgent) Color.rgb(29, 76, 140) else Color.rgb(40, 52, 69))
             }
             setPadding(dp(12), dp(9), dp(12), dp(10))
-            addView(TextView(context).apply {
+            val header = TextView(context).apply {
                 text = headerOverride ?: ((if (line.turn == 0 && isAgent) context.getString(R.string.chat_turn_welcome)
                     else context.getString(label, line.turn)) + " • " + time)
                 textSize = 10f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.rgb(185, 207, 234))
-            })
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+            if (onAudioTap != null) {
+                // Header icon shares the first line; the entire bubble stays the
+                // large, accessible tap target. No extra instruction row.
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(header, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+                    addView(ImageView(context).apply {
+                        tag = audioTag?.let { it + ":hint" }
+                        setImageResource(android.R.drawable.ic_media_play)
+                        setColorFilter(Color.rgb(206, 233, 255))
+                        contentDescription = audioHint
+                        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                    }, LayoutParams(dp(20), dp(20)).apply {
+                        marginStart = dp(8)
+                    })
+                }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+            } else addView(header)
             addView(TextView(context).apply {
-                tag = bodyTag
+                tag = bodyTag ?: audioTag?.let { it + ":body" }
                 text = line.text
                 textSize = 14f
                 setTextColor(Color.WHITE)
@@ -73,14 +94,7 @@ import android.widget.LinearLayout.LayoutParams
                 setTextColor(Color.rgb(191, 229, 252))
                 setPadding(0, dp(5), 0, 0)
             })
-            if (onAudioTap != null) addView(TextView(context).apply {
-                tag = audioTag?.let { it + ":hint" }
-                text = audioHint.orEmpty()
-                textSize = 12f
-                setTypeface(null, Typeface.BOLD)
-                setTextColor(Color.rgb(206, 233, 255))
-                setPadding(0, dp(8), 0, dp(1))
-            })
+            // Playback is indicated in the header; no footer or shifting text.
         }
         return LinearLayout(context).apply {
             gravity = if (isAgent) Gravity.END else Gravity.START

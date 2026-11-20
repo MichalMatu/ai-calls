@@ -394,9 +394,15 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
 
     private fun updateAudioHint(tag: String?, playing: Boolean) {
         if (tag == null) return
-        val text = content.findViewWithTag<TextView>(tag + ":hint") ?: return
-        text.text = getString(if (playing) R.string.history_audio_stop_hint
+        val icon = content.findViewWithTag<ImageView>(tag + ":hint") ?: return
+        icon.setImageResource(if (playing) android.R.drawable.ic_media_pause
+            else android.R.drawable.ic_media_play)
+        val action = getString(if (playing) R.string.history_audio_stop_hint
             else R.string.history_audio_play_hint)
+        // The bubble owns the tap target; keep its accessibility action in sync.
+        val transcript = content.findViewWithTag<TextView>(tag + ":body")?.text
+        content.findViewWithTag<View>(tag)?.contentDescription =
+            if (transcript == null) action else "$transcript. $action"
     }
 
     private fun playFragment(id: String, fileName: String, bubbleTag: String? = null) {
