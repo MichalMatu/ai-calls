@@ -9,16 +9,17 @@ class OutgoingWizardFastflowTest(unittest.TestCase):
         self.assertIn("listOf(ScenarioCatalog.custom) + ScenarioCatalog.templates", wizard)
         self.assertIn('val scenarioId: String = "custom"', draft)
         self.assertIn('if (draft.step == 3) "task-approve" else "task-next"', wizard)
-    def test_expired_window_requires_explicit_action(self):
+    def test_expired_default_times_auto_refresh(self):
         wizard = (ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/PhoneTaskWizardActivity.kt").read_text()
-        self.assertIn('tag = "task-refresh-window"', wizard)
+        self.assertNotIn('tag = "task-refresh-window"', wizard)
         self.assertIn('if (PhoneTaskScheduleUiPolicy.expired(current.scheduled, startTime, endTime, now))', wizard)
+        self.assertIn('PhoneTaskScheduleUiPolicy.refreshDefaults', wizard)
         self.assertIn('require(!draft.scheduled || start > now)', wizard)
         self.assertIn('requireNotNull(draft.subscriptionId)', wizard)
     def test_labels_bilingual(self):
         for locale in ("values","values-en"):
             strings = (ROOT / "app/src/main/res" / locale / "strings.xml").read_text()
-            for key in ("task_custom_help","task_window_expired","task_refresh_window"):
+            for key in ("task_custom_help","task_window_expired"):
                 self.assertEqual(1, strings.count('name="'+key+'"'))
 
 if __name__ == "__main__": unittest.main()
