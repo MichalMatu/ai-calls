@@ -13,7 +13,7 @@
 - PR #50: AI Tools, zwijany Notebook i Preparation — merge `7afb3886`.
 - Mac Local Agent: QA v2 `5e38431`: Python, preflight, kompilacja AndroidTest, pełne QA hosta i APK build PASS (exit 0). **Nie uruchomiono** testów UI na emulatorze ani GSM tej wersji.
 
-## P0 — do wydania na telefon
+## Następny sprint — P0 przed wydaniem
 1. Aktualny `main`: czyste drzewo, preflight/full/device-build, raport z SHA i APK; audit debug/log/sekretów.
 2. Archiwizacja/porządkowanie gałęzi: tylko po weryfikacji scalonego PR. Zachować `main`, `agent-control`, backup i golden tag.
 3. S22+ wyłącznie IDLE: backup APK, sprawdzenie hosta/ADB, instalacja `.s8lab`, hash i rollback. Bez połączeń.
