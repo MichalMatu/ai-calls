@@ -27,6 +27,35 @@ class ScenarioPersonalLibraryTest {
         assertEquals("Sprawdź godziny pracy", created.items.single().current.goal)
     }
 
+    @Test fun editKeepsSamePersonalIdAndDoesNotAppendARevision() {
+        val saved = ScenarioPersonalLibrary().create(template, initial,
+            "kept-id", "Original", "Original goal")
+        val changed = saved.update("kept-id", "Updated", "Updated goal",
+            initial.withValue("budget", "800 zł", template))
+        assertEquals(1, changed.items.size)
+        assertEquals("kept-id", changed.items.single().id)
+        assertEquals(1, changed.items.single().versions.size)
+        assertEquals(1, changed.items.single().current.number)
+        assertEquals("Updated", changed.items.single().current.title)
+        assertEquals("800 zł", changed.items.single().current.values["budget"])
+        assertEquals("Original", saved.items.single().current.title)
+        assertEquals(changed, changed.update("kept-id", " Updated ", "Updated goal",
+            initial.withValue("budget", "800 zł", template)))
+    }
+
+    @Test fun updateLegacyHistoryPreservesOldRecordsWithoutCreatingMore() {
+        val saved = ScenarioPersonalLibrary().create(template, initial,
+            "older-id", "Old", "Old goal")
+        val historical = saved.revise("older-id", "Old 2", "Second goal", initial)
+        assertEquals(2, historical.items.single().versions.size)
+        val edited = historical.update("older-id", "Latest", "Latest goal", initial)
+        assertEquals(2, edited.items.single().versions.size)
+        assertEquals(2, edited.items.single().current.number)
+        assertEquals("Old", edited.items.single().versions.first().title)
+        assertEquals("Latest", edited.items.single().current.title)
+        assertEquals("Old 2", historical.items.single().current.title)
+    }
+
     @Test fun createVersionsAndRestoreAreImmutable() {
         val library = ScenarioPersonalLibrary().create(
             template, initial, "personal-a", "Moja wizyta", "Zapytaj o diagnostykę")
