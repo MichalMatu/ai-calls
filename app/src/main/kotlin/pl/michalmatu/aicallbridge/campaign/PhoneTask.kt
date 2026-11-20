@@ -149,6 +149,21 @@ internal object PhoneTaskInstruction {
     }
 }
 
+/** Preserve the exact dial string and selected SIM: do not guess a country prefix.
+ * Plain short numeric emergency numbers are deliberately not campaign recipients.
+ * Operator star codes (such as *100) may invoke carrier USSD rather than a voice Call.
+ */
+internal object PhoneTaskDialTarget {
+    private val international = Regex("\\+[1-9][0-9]{6,14}")
+    private val national = Regex("[0-9]{7,15}")
+    private val carrierCode = Regex("\\*[0-9]{2,6}")
+
+    fun isSupported(value: String): Boolean =
+        international.matches(value) || national.matches(value) || carrierCode.matches(value)
+
+    fun isCarrierCode(value: String): Boolean = carrierCode.matches(value)
+}
+
 internal object PhoneTaskInput {
     data class Recipients(val values: List<PhoneTaskRecipient>, val duplicates: Int)
     fun recipients(text: String): Recipients {
@@ -160,7 +175,7 @@ internal object PhoneTaskInput {
             val name = if (parts.size == 2) parts[0].trim() else ""
             var number = parts.last().trim().replace(Regex("[ ()-]"), "")
             if (number.startsWith("00")) number = "+" + number.drop(2)
-            require(number.matches(Regex("\\+[1-9][0-9]{6,14}")) && name.length <= 140) {
+            require(PhoneTaskDialTarget.isSupported(number) && name.length <= 140) {
                 "recipient_line:${index + 1}"
             }
             if (number in values) duplicates++ else values[number] = PhoneTaskRecipient(

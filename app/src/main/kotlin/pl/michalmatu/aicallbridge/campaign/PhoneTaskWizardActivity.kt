@@ -313,15 +313,21 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
                 require(draft.suppliedBrief.isNotBlank() || ScenarioDraft(draft.scenarioId, draft.fields)
                     .missingRequiredFields(definition).isEmpty())
             }
-            1 -> { PhoneTaskInput.recipients(draft.recipients); require(draft.subscriptionId != null && draft.accountScope != null) }
+            1 -> {
+                PhoneTaskInput.recipients(draft.recipients)
+                require(draft.subscriptionId != null && draft.accountScope != null) { "sim_required" }
+            }
             2, 3 -> buildTask(System.currentTimeMillis())
         }
         true
-    } catch (_: Exception) {
-        feedback.text = getString(when (draft.step) {
+    } catch (error: Exception) {
+        feedback.text = getString(when {
+            draft.step == 1 && error.message == "sim_required" -> R.string.scenario_call_sim_missing
+            else -> when (draft.step) {
             0 -> R.string.task_invalid_goal
             1 -> R.string.task_invalid_recipients
             else -> R.string.task_invalid_schedule
+            }
         })
         false
     }

@@ -59,6 +59,20 @@ class ScenarioOutgoingTaskTest {
         }
     }
 
+    @Test fun nationalAndStarTargetsAreScopedToExactDialStringAndSim() {
+        val local = task("mechanic").copy(target = "123456789")
+        val star = task("mechanic").copy(target = "*100")
+        assertEquals("123456789", local.target)
+        assertEquals("*100", star.target)
+        assertTrue(CampaignAuthorizationPolicy.matchesExactTask(local.grant(100L), local.request()))
+        assertTrue(CampaignAuthorizationPolicy.matchesExactTask(star.grant(100L), star.request()))
+        assertFalse(CampaignAuthorizationPolicy.matchesExactTask(local.grant(100L), star.request()))
+        assertFalse(CampaignAuthorizationPolicy.matchesExactTask(star.grant(100L),
+            star.copy(accountScope = "other-sim").request()))
+        listOf("112", "*100#", "tel:123456789", "123").forEach { bad ->
+            assertTrue(runCatching { local.copy(target = bad) }.isFailure)
+        }
+    }
     @Test fun approvedLanguageControlsSpokenOpeningWithoutChangingCallAuthorization() {
         val polish = task("mechanic")
         val english = polish.copy(language = "en")

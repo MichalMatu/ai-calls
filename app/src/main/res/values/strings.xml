@@ -822,7 +822,7 @@
     <string name="task_questions">Pytania i szczegóły</string>
     <string name="task_numbers">Odbiorcy</string>
     <string name="task_numbers_hint">Warsztat A; +48 123 456 789</string>
-    <string name="task_numbers_help">Jeden odbiorca w wierszu: nazwa; numer z kodem kraju. Nazwa jest opcjonalna. Powtórzone numery zostaną połączone.</string>
+    <string name="task_numbers_help">Wpisz w wierszu: nazwa; numer międzynarodowy (+48…), krajowy (bez +) lub *100. Karta SIM określa sposób wybierania. *100 może być kodem USSD, nie rozmową głosową. Nazwa opcjonalna.</string>
     <string name="task_choose_sim">Wybierz kartę SIM</string>
     <string name="task_phone_permission">Zezwól na odczyt kart SIM</string>
     <string name="task_later">Zaplanuj na później</string>
@@ -840,7 +840,7 @@
     <string name="task_approve_schedule">Zatwierdź i zaplanuj</string>
     <string name="task_approve_start">Zatwierdź i rozpocznij</string>
     <string name="task_invalid_goal">Uzupełnij wymagane pola. Nazwa: 2–140 znaków, cel: 5–300, szczegóły: 5–3500.</string>
-    <string name="task_invalid_recipients">Sprawdź każdy wiersz: nazwa; numer z kodem kraju, np. +48. Wybierz dostępną kartę SIM.</string>
+    <string name="task_invalid_recipients">Nieprawidłowy numer. Użyj +48…, numeru krajowego (7–15 cyfr) lub kodu *100. Każdy odbiorca w osobnym wierszu.</string>
     <string name="task_invalid_schedule">Wybierz przyszły termin i późniejszy koniec okna. Odstęp ponowień musi być dodatni. Godziny pomijane lub powtarzane przy zmianie czasu wymagają innej godziny.</string>
     <string name="task_saving">Zapisywanie zadania…</string>
     <string name="task_storage_error">Nie udało się odczytać lub zapisać zadania. Sprawdź dostępną pamięć; ponów po otwarciu aplikacji.</string>

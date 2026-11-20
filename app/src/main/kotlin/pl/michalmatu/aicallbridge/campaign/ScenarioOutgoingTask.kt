@@ -20,7 +20,7 @@ internal data class ScenarioOutgoingTask(
 ) {
     init {
         require(grantId.isNotBlank())
-        require(target.matches(Regex("\\+[1-9][0-9]{6,14}"))) { "scenario_target_e164_required" }
+        require(PhoneTaskDialTarget.isSupported(target)) { "scenario_target_invalid" }
         require(subscriptionId >= 0 && accountScope.isNotBlank()) { "scenario_sim_required" }
         require(ScenarioCatalog.byId(scenarioId) != null) { "scenario_template_missing" }
         require(title.length in 2..140)
