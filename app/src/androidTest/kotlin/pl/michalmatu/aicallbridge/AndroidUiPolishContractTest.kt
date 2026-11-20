@@ -84,7 +84,8 @@ class AndroidUiPolishContractTest {
                 assertNotNull(root.findViewWithTag<View>("preparation-context-notes"))
                 assertNotNull(root.findViewWithTag<View>("preparation-vault-fields"))
                 assertNotNull(root.findViewWithTag<View>("preparation-save"))
-                assertNotNull(root.findViewWithTag<View>("preparation-preview"))
+                assertNull("Preview intentionally removed for MVP",
+                    root.findViewWithTag<View>("preparation-preview"))
                 val notes = tagged(root, "no-such-tag") // no mutation, keep caller state unchanged
                 assertTrue(notes.isEmpty())
             }

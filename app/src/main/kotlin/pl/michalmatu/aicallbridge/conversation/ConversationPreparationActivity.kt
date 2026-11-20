@@ -157,9 +157,6 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
 
         val content = UiDesign.content(this)
         status = UiDesign.caption(this, "").apply { tag = "preparation-status" }
-        content.addView(UiDesign.caption(this, getString(R.string.prep_ui_intro)),
-            UiDesign.spaceAfter(this, 20))
-
         content.addView(UiDesign.heading(this, getString(R.string.prep_ui_profile)).apply {
             textSize = 17f
         }, UiDesign.spaceAfter(this, 10))
@@ -259,36 +256,6 @@ class ConversationPreparationActivity : UiChromeActivity(AppTab.AGENT) {
                 status.text = getString(R.string.prep_ui_save_error, failure.javaClass.simpleName)
             }
         }.apply { tag = "preparation-save" }, UiDesign.spaceAfter(this, 10))
-        actions.addView(UiDesign.action(this, getString(R.string.prep_ui_preview)) {
-            val selectedFields = chosenFields().sortedBy { it.ordinal }
-                .joinToString(" · ", transform = ::fieldName)
-                .ifBlank { getString(R.string.ux09_agent_none) }
-            val box = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                val pad = UiDesign.dp(this@ConversationPreparationActivity, 20)
-                setPadding(pad, pad, pad, pad)
-                addView(UiDesign.caption(this@ConversationPreparationActivity,
-                    getString(R.string.prep_ui_preview_notice)),
-                    UiDesign.spaceAfter(this@ConversationPreparationActivity, 12))
-                addView(UiDesign.heading(this@ConversationPreparationActivity,
-                    getString(R.string.prep_ui_general)).apply { textSize = 16f },
-                    UiDesign.spaceAfter(this@ConversationPreparationActivity, 8))
-                addView(TextView(this@ConversationPreparationActivity).apply {
-                    text = notes.text.toString().ifBlank {
-                        getString(R.string.prep_ui_preview_empty)
-                    }
-                    setTextIsSelectable(true)
-                }, UiDesign.spaceAfter(this@ConversationPreparationActivity, 14))
-                addView(UiDesign.heading(this@ConversationPreparationActivity,
-                    getString(R.string.prep_ui_vault)).apply { textSize = 16f },
-                    UiDesign.spaceAfter(this@ConversationPreparationActivity, 8))
-                addView(UiDesign.caption(this@ConversationPreparationActivity, selectedFields))
-            }
-            AlertDialog.Builder(this@ConversationPreparationActivity)
-                .setTitle(R.string.prep_ui_preview_title)
-                .setView(ScrollView(this).apply { addView(box) })
-                .setPositiveButton(android.R.string.ok, null).show()
-        }.apply { tag = "preparation-preview" })
         content.addView(actions, UiDesign.spaceAfter(this, 12))
         content.addView(status)
         setContentView(ScrollView(this).apply {

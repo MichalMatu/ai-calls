@@ -1,7 +1,6 @@
 package pl.michalmatu.aicallbridge.tools
 
 import android.app.AlertDialog
-import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -22,7 +21,6 @@ import java.util.Date
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
-import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationNotebook
 import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
 import pl.michalmatu.aicallbridge.conversation.ConversationNotebookListPolicy
@@ -43,6 +41,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     companion object {
         const val EXTRA_NOTEBOOK_ONLY = "pl.michalmatu.aicallbridge.extra.NOTEBOOK_ONLY"
         private const val PENDING_TOOLS_STATE = "pending-tools-selection"
+        private const val NOTEBOOK_EXPANDED_STATE = "notebook-expanded"
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -64,6 +63,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     private val expanded = mutableSetOf<String>()
     private val shownEntries = mutableMapOf<String, Int>()
     private var deletionInProgress = false
+    private var notebookExpanded = false
     private lateinit var optionViews: Map<ConversationToolId, CheckBox>
     private var storedSelection: Set<ConversationToolId> = emptySet()
 
@@ -100,7 +100,13 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        notebookExpanded = notebookOnly ||
+            savedInstanceState?.getBoolean(NOTEBOOK_EXPANDED_STATE) == true
         val content = UiDesign.content(this)
+        val notebookSection = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "tools-notebook-section"
+        }
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -112,7 +118,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
             tag = "tools-notebook-count"
         }
         header.addView(notebookCounter)
-        content.addView(header, UiDesign.spaceAfter(this, 12))
+        notebookSection.addView(header, UiDesign.spaceAfter(this, 12))
 
         val input = EditText(this).apply {
             tag = "tools-notebook-search"
@@ -132,7 +138,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                 override fun afterTextChanged(s: Editable?) = Unit
             })
         }
-        content.addView(input, UiDesign.spaceAfter(this, 8))
+        notebookSection.addView(input, UiDesign.spaceAfter(this, 8))
         val filter = Spinner(this).apply {
             tag = "tools-notebook-filter"
             UiSelect.setOptions(this, listOf(
@@ -154,12 +160,12 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                 }
             }
         }
-        content.addView(filter, UiDesign.spaceAfter(this, 12))
+        notebookSection.addView(filter, UiDesign.spaceAfter(this, 12))
         notebookList = LinearLayout(this).apply {
             tag = "tools-notebook-list"
             orientation = LinearLayout.VERTICAL
         }
-        content.addView(notebookList, UiDesign.spaceAfter(this, 18))
+        notebookSection.addView(notebookList, UiDesign.spaceAfter(this, 18))
 
         // The Home shortcut opens notes only. The Agent tab retains the full tools editor.
         if (!notebookOnly) {
@@ -223,6 +229,20 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
             content.addView(save, UiDesign.spaceAfter(this, 6))
             content.addView(feedback)
         }
+        if (!notebookOnly) {
+            content.addView(UiDesign.action(this, getString(
+                if (notebookExpanded) R.string.notebook_ui_hide_section
+                else R.string.notebook_ui_show_section)) {
+                notebookExpanded = !notebookExpanded
+                notebookSection.visibility = if (notebookExpanded) View.VISIBLE else View.GONE
+                window.decorView.findViewWithTag<android.widget.Button>(
+                    "tools-notebook-section-toggle")?.setText(
+                    if (notebookExpanded) R.string.notebook_ui_hide_section
+                    else R.string.notebook_ui_show_section)
+            }.apply { tag = "tools-notebook-section-toggle" }, UiDesign.spaceAfter(this, 12))
+        }
+        notebookSection.visibility = if (notebookExpanded) View.VISIBLE else View.GONE
+        content.addView(notebookSection, UiDesign.spaceAfter(this, 8))
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (hasUnsavedSettings()) confirmDiscardSettings { finish() }
@@ -343,22 +363,19 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
                     renderNotebooks()
                 }.apply { tag = "tools-notebook-older:" + book.sessionId },
                     UiDesign.spaceAfter(this, 10))
+                // Notebook session IDs differ from recorder archive IDs. Never
+                // offer a History button that silently opens unrelated calls.
                 val actions = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
+                    gravity = Gravity.END
                 }
-                actions.addView(UiDesign.action(this,
-                    getString(R.string.notebook_ui_history), UiActionTone.SECONDARY) {
-                    startActivity(Intent(this, ConversationHistoryActivity::class.java))
-                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 actions.addView(UiDesign.action(this,
                     getString(R.string.notebook_ui_delete), UiActionTone.REVOCATION) {
                     confirmDelete(book)
                 }.apply {
                     tag = "tools-notebook-delete:" + book.sessionId
-                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginStart = UiDesign.dp(this@ConversationToolsActivity, 8)
-                })
+                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT))
                 card.addView(actions, UiDesign.spaceAfter(this, 2))
             }
             notebookList.addView(card, UiDesign.spaceAfter(this, 8))
@@ -413,6 +430,7 @@ class ConversationToolsActivity : UiChromeActivity(AppTab.AGENT) {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(NOTEBOOK_EXPANDED_STATE, notebookExpanded)
         if (::optionViews.isInitialized) {
             outState.putStringArrayList(PENDING_TOOLS_STATE,
                 ArrayList(selectedTools().map { it.wireName }))
