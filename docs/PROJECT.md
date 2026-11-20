@@ -1,27 +1,25 @@
-# AI Calls — roadmapa MVP
+# AI Calls — MVP przed testami
 
-**Golden rollback:** s22-gsm-mvp-golden-2026-11-19 → f0940d51 (S22+, Android 16, .s8lab). Nie ruszać tagu.
+**Rollback:** `s22-gsm-mvp-golden-2026-11-19` → `f0940d51`; tag nietykalny.
 
-## PASS fizyczny — 19.11.2026
+## GSM PASS — S22+ 19.11.2026
+- Incoming bez Wi-Fi/USB: 7 tur / 2:06, RX→STT→AI→TTS→TX; SAVE_NOTE, END_CALL CONFIRMED, 22 WAV.
+- Outgoing: 7 tur / 2:37, 8 STT, 24 WAV, FINISHED/ANSWERED, bez retry.
+- Binder UID 2000 bez Wi-Fi/ADB wireless; WRITE_REVOKED podczas barge-in to nie dowód awarii.
+- APK `2a617bb0` zainstalowana, host IDLE; **nie** potwierdza wdrożenia nowego UI.
 
-- Incoming bez Wi-Fi/USB: 7 tur / 2:06, RX→STT→AI→TTS→TX, SAVE_NOTE i END_CALL CONFIRMED, 22 WAV.
-- Outgoing Orange 510 100 100: 1 próba bez retry, 7 tur / 2:37, 8 STT, RX/TX, 24 WAV, FINISHED/ANSWERED, zakończony Call.
-- Host Binder działa bez Wi-Fi/ADB wireless. 3 WRITE_REVOKED odpowiadają barge-in, nie dowodzą awarii audio.
+## Kod / QA 20.11.2026
+- PR #37–49: Home, Incoming, Outgoing, Tasks, Calls, Scenarios — merged.
+- PR #50: AI Tools, Notebook, Preparation — merged `7afb3886`.
+- Mac Local Agent QA v2 `5e38431`: Python, preflight, AndroidTest **compile**, full QA i build PASS (exit 0). Brak uruchomionych testów UI/emulatora i GSM dla nowego UI.
 
-## Otwarte
+## Następny sprint — P0
+1. `main`: czyste drzewo, preflight/full/device-build, SHA/APK; przegląd debug/log/sekretów.
+2. Usunąć tylko gałęzie z potwierdzonym merge; zachować `main`, `agent-control`, backup i golden tag.
+3. S22+ w IDLE: backup APK, ADB/host, instalacja `.s8lab`, SHA, rollback. Bez połączeń.
+4. Smoke UI: Home, Incoming/Outgoing, Tasks, Calls/WAV, AI Tools/Notebook, Preparation, Skills, Vault, Settings; zapis, anulowanie, obrót.
 
-- UX, konfiguracja STT/TTS/modelu i subiektywna jakość dialogu — nowy priorytet.
-- Rozłączanie exact Call działa (Incoming END_CALL CONFIRMED po TTS); Outgoing kończy i zapisuje połączenia. GSM przyjęte do MVP.
-- Ostatni Outgoing: FINISHED, 2 tury, 3 STT, 10 WAV, bez retry. Model wybrał 3× SPEAK, więc brak nowego dowodu wywołania END_CALL, ale też brak dowodu regresji rozłączania. Dalsze scenariusze w zwykłym QA, nie blokują UX.
+## Otwarte — testy realne, osobna zgoda
+Incoming i Outgoing po 4–6 tur: polski STT/TTS, dialog, barge-in, STOP/takeover, END_CALL po TTS, SAVE_NOTE, WAV, transkrypcja.
 
-## Wdrożenie — 19.11.2026
-
-- main 2a617bb0: QA/build PASS, APK .s8lab na S22+ z rollbackiem i zgodnym SHA.
-- Po instalacji Mac Agent przywrócił host Binder w IDLE: host_registered=true; bez Call.
-
-## Następny sprint
-
-1. UX: ekran zadania: menu akcji, Skip/Restore, szczegóły w kartach; zrzuty na koniec sprintu.
-2. Konfiguracja STT/TTS/modelu oraz testy jakości odpowiedzi; regresje GSM tylko przy dotknięciu flow. Bez kolejnych połączeń bez osobnej zgody.
-
-**WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku i WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
+**WSTRZYMANE:** schedulery, Actions, Work, Codex, SIP/PJSUA2, Shizuku, WRITE_SECURE_SETTINGS. [QA](operations/DEVELOPMENT.md).
