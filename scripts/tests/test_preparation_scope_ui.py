@@ -12,12 +12,13 @@ class ConversationPreparationScopeUiContract(unittest.TestCase):
             'tag = "preparation-context-notes"',
             'tag = "preparation-vault-fields"',
             'tag = "preparation-save"',
-            'tag = "preparation-preview"',
             'confirmDiscard(',
             'store.save(selected)',
             'profile.skills',
         ):
             self.assertIn(value, ui)
+        self.assertNotIn('tag = "preparation-preview"', ui)
+        self.assertNotIn("R.string.prep_ui_intro", ui)
         for old in (
             'tag = "preparation-skills"',
             'prep_ui_edit_phone',
