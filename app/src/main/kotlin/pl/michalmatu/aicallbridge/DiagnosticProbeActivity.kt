@@ -3,7 +3,6 @@ package pl.michalmatu.aicallbridge
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
@@ -12,15 +11,8 @@ import pl.michalmatu.aicallbridge.campaign.CampaignAgentControl
 import pl.michalmatu.aicallbridge.campaign.AppointmentMvpActivity
 import pl.michalmatu.aicallbridge.debug.UsbDebugBridge
 import pl.michalmatu.aicallbridge.runtime.TextLlmProvider
+import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 import pl.michalmatu.aicallbridge.session.CallMediaOffCallSmokeProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuAbortLatencyProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuCallEndProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuCycleProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuEndpointCloseProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuEnduranceProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuUserServiceProbe
-import pl.michalmatu.aicallbridge.shizuku.ShizukuWatchdogProbe
-import rikka.shizuku.Shizuku
 
 /** ADB/shell-only entry point for privileged diagnostic probes. */
 class DiagnosticProbeActivity : Activity() {
@@ -196,16 +188,8 @@ class DiagnosticProbeActivity : Activity() {
             return
         }
 
-        if (!Shizuku.pingBinder()) {
-            finishWithError("binder_unavailable")
-            return
-        }
-        if (Shizuku.isPreV11()) {
-            finishWithError("unsupported_pre_v11")
-            return
-        }
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            finishWithError("permission_required")
+        if (!GsmMediaTransportReadiness.isAvailable(this)) {
+            finishWithError("gsm_shell_host_unavailable")
             return
         }
 
@@ -290,92 +274,7 @@ class DiagnosticProbeActivity : Activity() {
                     }
                 }
             }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE, false) -> {
-                statusView.text = "Running Shizuku endpoint-close fail-safe probe…"
-                Log.i(TAG, "shizuku_endpoint_close_probe_start=true")
-                ShizukuEndpointCloseProbe.run(
-                    this,
-                    resultCallback("shizuku_endpoint_close_probe_result"),
-                )
-            }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_CALL_END_PROBE, false) -> {
-                statusView.text = "Running Shizuku natural call-end fail-safe probe…"
-                Log.i(TAG, "shizuku_call_end_probe_start=true")
-                val callback = resultCallback("shizuku_call_end_probe_result")
-                if (intent.hasExtra(EXTRA_CALL_END_WAIT_MS)) {
-                    val waitMs = intent.getLongExtra(EXTRA_CALL_END_WAIT_MS, -1L)
-                    try {
-                        ShizukuCallEndProbe.run(this, waitMs, callback)
-                    } catch (_: IllegalArgumentException) {
-                        finishWithError("invalid_call_end_wait")
-                    }
-                } else {
-                    ShizukuCallEndProbe.run(this, callback)
-                }
-            }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_CYCLE_PROBE, false) -> {
-                statusView.text = "Running Shizuku repeated start/abort cycle probe…"
-                Log.i(TAG, "shizuku_cycle_probe_start=true")
-                val callback = resultCallback("shizuku_cycle_probe_result")
-                if (intent.hasExtra(EXTRA_CYCLE_COUNT)) {
-                    val cycleCount = intent.getIntExtra(EXTRA_CYCLE_COUNT, -1)
-                    try {
-                        ShizukuCycleProbe.run(this, cycleCount, callback)
-                    } catch (_: IllegalArgumentException) {
-                        finishWithError("invalid_cycle_count")
-                    }
-                } else {
-                    ShizukuCycleProbe.run(this, callback)
-                }
-            }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE, false) -> {
-                statusView.text = "Running Shizuku bidirectional endurance probe…"
-                Log.i(TAG, "shizuku_endurance_probe_start=true")
-                val callback = resultCallback("shizuku_endurance_probe_result")
-                if (intent.hasExtra(EXTRA_ENDURANCE_DURATION_MS)) {
-                    val durationMs = intent.getLongExtra(EXTRA_ENDURANCE_DURATION_MS, -1L)
-                    try {
-                        ShizukuEnduranceProbe.run(this, durationMs, callback)
-                    } catch (_: IllegalArgumentException) {
-                        finishWithError("invalid_endurance_duration")
-                    }
-                } else {
-                    ShizukuEnduranceProbe.run(this, callback)
-                }
-            }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_ABORT_PROBE, false) -> {
-                statusView.text = "Running Shizuku explicit abort latency probe…"
-                Log.i(TAG, "shizuku_abort_probe_start=true")
-                ShizukuAbortLatencyProbe.run(this, resultCallback("shizuku_abort_probe_result"))
-            }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE, false) -> {
-                statusView.text = "Running Shizuku heartbeat watchdog probe…"
-                Log.i(TAG, "shizuku_watchdog_probe_start=true")
-                ShizukuWatchdogProbe.run(this, resultCallback("shizuku_watchdog_probe_result"))
-            }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_LIVE_PROBE, false) -> {
-                statusView.text = "Running Shizuku UserService live parity probe…"
-                Log.i(TAG, "shizuku_live_probe_start=true")
-                ShizukuUserServiceProbe.runLive(
-                    this,
-                    LIVE_SHIZUKU_DURATION_MS,
-                    resultCallback("shizuku_probe_result"),
-                )
-            }
-            intent.getBooleanExtra(EXTRA_RUN_SHIZUKU_PROBE, false) -> {
-                statusView.text = "Running Shizuku UserService off-call probe…"
-                Log.i(TAG, "shizuku_probe_start=true")
-                ShizukuUserServiceProbe.run(this, resultCallback("shizuku_probe_result"))
-            }
             else -> finishWithError("no_probe_requested")
-        }
-    }
-
-    private fun resultCallback(logKey: String) = ShizukuUserServiceProbe.Callback { result ->
-        runOnUiThread {
-            statusView.text = result
-            Log.i(TAG, "$logKey:\n$result")
-            finish()
         }
     }
 
@@ -391,7 +290,6 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_RUN_CAMPAIGN_AGENT_PREFLIGHT = "run_campaign_agent_preflight"
         const val EXTRA_RUN_CAMPAIGN_AGENT_START = "run_campaign_agent_start"
         const val EXTRA_RUN_CAMPAIGN_AGENT_STOP = "run_campaign_agent_stop"
-        const val LIVE_SHIZUKU_DURATION_MS = 5_000
         const val EXTRA_RUN_OPENAI_TEXT_SPEECH_PIPELINE_PROBE = "run_openai_text_speech_pipeline_probe"
         const val EXTRA_RUN_LOCAL_PHONE_LLM_SPEECH_PIPELINE_PROBE = "run_local_phone_llm_speech_pipeline_probe"
         const val EXTRA_RUN_GENERIC_PHONE_TASK_ACCEPTANCE_PROBE = "run_generic_phone_task_acceptance_probe"
@@ -412,16 +310,5 @@ class DiagnosticProbeActivity : Activity() {
         const val EXTRA_REALTIME_LIVE_DURATION_MS = "realtime_live_duration_ms"
         const val EXTRA_RUN_REALTIME_NETWORK_OFF_CALL_SMOKE = "run_realtime_network_off_call_smoke"
         const val EXTRA_RUN_PRODUCTION_MEDIA_OFF_CALL_SMOKE = "run_production_media_off_call_smoke"
-        const val EXTRA_RUN_SHIZUKU_PROBE = "run_shizuku_probe"
-        const val EXTRA_RUN_SHIZUKU_LIVE_PROBE = "run_shizuku_live_probe"
-        const val EXTRA_RUN_SHIZUKU_WATCHDOG_PROBE = "run_shizuku_watchdog_probe"
-        const val EXTRA_RUN_SHIZUKU_ABORT_PROBE = "run_shizuku_abort_probe"
-        const val EXTRA_RUN_SHIZUKU_ENDURANCE_PROBE = "run_shizuku_endurance_probe"
-        const val EXTRA_RUN_SHIZUKU_ENDPOINT_CLOSE_PROBE = "run_shizuku_endpoint_close_probe"
-        const val EXTRA_RUN_SHIZUKU_CALL_END_PROBE = "run_shizuku_call_end_probe"
-        const val EXTRA_RUN_SHIZUKU_CYCLE_PROBE = "run_shizuku_cycle_probe"
-        const val EXTRA_ENDURANCE_DURATION_MS = "endurance_duration_ms"
-        const val EXTRA_CALL_END_WAIT_MS = "call_end_wait_ms"
-        const val EXTRA_CYCLE_COUNT = "cycle_count"
     }
 }

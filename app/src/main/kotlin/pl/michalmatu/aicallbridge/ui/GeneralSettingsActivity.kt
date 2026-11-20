@@ -16,12 +16,10 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
-import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
-import rikka.shizuku.Shizuku
 
 /** One place to inspect and explicitly request the app's runtime/role permissions. */
 class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
@@ -35,16 +33,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var role: DialerRoleCard
     private lateinit var incomingModeStatus: TextView
     private val grants = linkedMapOf<String, GrantRow>()
-    private lateinit var shizukuStatus: TextView
-    private lateinit var shizukuAction: Button
     private lateinit var shellStatus: TextView
-    private val isShellLab: Boolean by lazy {
-        CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB
-    }
-
-    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { code, _ ->
-        if (code == REQUEST_SHIZUKU) runOnUiThread { if (!isDestroyed) refresh() }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,43 +102,16 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 Manifest.permission.POST_NOTIFICATIONS, R.string.perm_action_allow, REQUEST_NOTIFICATIONS)
         }
 
-        if (isShellLab) {
-            val (labels, _) = group("gsm-shell", getString(R.string.perm_gsm_shell_title))
-            shellStatus = UiDesign.caption(this, "").apply {
-                tag = "permissions-gsm-shell-status"
-                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-            }
-            labels.addView(shellStatus)
-        } else {
-            val (shizukuLabels, shizuku) = group("shizuku", getString(R.string.perm_shizuku_title))
-            shizukuStatus = UiDesign.caption(this, "").apply {
-                tag = "permissions-shizuku-status"
-                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-            }
-            shizukuLabels.addView(shizukuStatus)
-            shizukuAction = UiDesign.action(this, getString(R.string.perm_action_allow)) {
-                if (shizukuGranted()) openShizukuApp() else requestShizuku()
-            }.apply { tag = "permissions-shizuku-request" }
-            shizuku.addView(compact(shizukuAction), actionLayout())
+        val (labels, _) = group("gsm-shell", getString(R.string.perm_gsm_shell_title))
+        shellStatus = UiDesign.caption(this, "").apply {
+            tag = "permissions-gsm-shell-status"
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
+        labels.addView(shellStatus)
 
         body.addView(card)
         setContentView(ScrollView(this).apply { addView(body) })
         refresh()
-    }
-
-    override fun onStart() {
-        super.onStart()
-        if (!isShellLab) {
-            runCatching { Shizuku.addRequestPermissionResultListener(shizukuPermissionListener) }
-        }
-    }
-
-    override fun onStop() {
-        if (!isShellLab) {
-            runCatching { Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener) }
-        }
-        super.onStop()
     }
 
     override fun onResume() {
@@ -196,28 +158,6 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         runCatching { startActivity(Intent(Settings.ACTION_SETTINGS)) }
     }
 
-    private fun shizukuAvailable(): Boolean =
-        runCatching { Shizuku.pingBinder() && !Shizuku.isPreV11() }.getOrDefault(false)
-
-    private fun shizukuGranted(): Boolean = shizukuAvailable() &&
-        runCatching { Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED }
-            .getOrDefault(false)
-
-    private fun openShizukuApp() {
-        val target = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
-        if (target != null) startActivity(target)
-    }
-
-    private fun requestShizuku() {
-        if (!shizukuAvailable() || runCatching {
-                Shizuku.shouldShowRequestPermissionRationale()
-            }.getOrDefault(false)) {
-            openShizukuApp()
-        } else if (!shizukuGranted()) {
-            runCatching { Shizuku.requestPermission(REQUEST_SHIZUKU) }
-        } else refresh()
-    }
-
     private fun refresh() {
         role.refresh()
         incomingModeStatus.setText(runCatching {
@@ -236,25 +176,8 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             row.action.setText(if (asked && !shouldShowRequestPermissionRationale(row.permission))
                 R.string.perm_action_settings else R.string.perm_action_allow)
         }
-        if (isShellLab) {
-            shellStatus.setText(if (GsmMediaTransportReadiness.isAvailable(this))
-                R.string.perm_gsm_shell_ready else R.string.perm_gsm_shell_offline)
-            return
-        }
-        val installed = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api") != null
-        val available = shizukuAvailable()
-        val granted = shizukuGranted()
-        shizukuStatus.setText(when {
-            granted -> R.string.perm_status_granted
-            available -> R.string.perm_status_missing
-            else -> R.string.perm_shizuku_offline
-        })
-        val needsApp = !available ||
-            runCatching { Shizuku.shouldShowRequestPermissionRationale() }.getOrDefault(false)
-        shizukuAction.setText(if (granted || needsApp) R.string.perm_action_open_shizuku
-            else R.string.perm_action_allow)
-        shizukuAction.visibility = if ((granted || needsApp) && !installed)
-            View.GONE else View.VISIBLE
+        shellStatus.setText(if (GsmMediaTransportReadiness.isAvailable(this))
+            R.string.perm_gsm_shell_ready else R.string.perm_gsm_shell_offline)
     }
 
     override fun onRequestPermissionsResult(
@@ -270,7 +193,6 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         const val REQUEST_PHONE_STATE = 1002
         const val REQUEST_CALL_PHONE = 1003
         const val REQUEST_NOTIFICATIONS = 1004
-        const val REQUEST_SHIZUKU = 1005
         const val REQUEST_ANSWER_PHONE = 1006
     }
 }
