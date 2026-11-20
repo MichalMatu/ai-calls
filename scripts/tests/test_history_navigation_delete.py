@@ -13,6 +13,19 @@ class HistoryNavDeletionContract(unittest.TestCase):
         self.assertNotIn('tag = "history-back-to-list"',history)
         self.assertIn("fun navigateBack()",chrome)
         self.assertIn("if (!consumeChromeBack()) finish()",chrome)
+    def test_compact_detail_and_complete_chronological_extra_clips(self):
+        history=(ROOT/"conversation/ConversationHistoryActivity.kt").read_text()
+        archive=(ROOT/"conversation/RecordedConversationHistory.kt").read_text()
+        self.assertNotIn('R.string.history_end_reason, code',history)
+        self.assertNotIn('R.string.history_audio_count, session.audioFiles.size',history)
+        self.assertIn('visibility = View.GONE',history)
+        self.assertIn('showPlaybackStatus(',history)
+        self.assertLess(history.index('content.addView(allClips,'),
+                        history.index('content.addView(playbackStatus,'))
+        self.assertIn('session.extraAudioClips()',history)
+        self.assertIn('audioTimeline.filterNot { it in attached }',archive)
+        self.assertIn('compareByDescending<RecordedConversation> { it.startedAtEpochMs }',archive)
+
     def test_store_never_deletes_active_or_external_data(self):
         s=(ROOT/"conversation/RecordedConversationHistory.kt").read_text()
         for key in ("File(directory, \"COMPLETE\").isFile",

@@ -71,6 +71,31 @@ class RecordedConversationAudioHistoryTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun extraClipsIncludeEarlierRxPartsAndFollowActualPlaybackTimeline() {
+        val root = Files.createTempDirectory("aicalls-history-extra-clips").toFile()
+        try {
+            val dir = File(root, "1000-extras").apply { mkdirs() }
+            val names = listOf("turn-01-rx.wav", "turn-01-rx-part-002.wav",
+                "turn-01-rx-part-003.wav", "turn-01-tx.wav", "turn-01-tx-ack.wav")
+            names.forEach { File(dir, it).writeBytes(byteArrayOf(1, 2)) }
+            File(dir, "timeline.jsonl").writeText(listOf(
+                """{"type":"COUNTERPART_STT","turn":1,"text":"Hello","elapsed_ms":5}""",
+                """{"type":"AGENT_APPROVED_TEXT","turn":1,"text":"Hi","elapsed_ms":30}""",
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx-part-002.wav","elapsed_ms":10}""",
+                """{"type":"TX_ACK_PCM","turn":1,"file":"turn-01-tx-ack.wav","elapsed_ms":40}""",
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx.wav","elapsed_ms":2}""",
+                """{"type":"RX_PCM","turn":1,"file":"turn-01-rx-part-003.wav","elapsed_ms":20}""",
+                """{"type":"TX_PCM","turn":1,"file":"turn-01-tx.wav","elapsed_ms":35}""",
+            ).joinToString("\n", postfix = "\n"))
+            val session = RecordedConversationHistory(root).load(dir.name)
+            assertEquals("turn-01-rx-part-003.wav", session.audioFor(session.lines[0]))
+            assertEquals("turn-01-tx.wav", session.audioFor(session.lines[1]))
+            assertEquals(listOf("turn-01-rx.wav", "turn-01-rx-part-002.wav",
+                "turn-01-tx-ack.wav"), session.extraAudioClips())
+            assertEquals(5, session.audioTimeline.size)
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun onlyExistingAudioSegmentsAreLinkedAndPathsCannotEscapePrivateArchive() {
         val root = Files.createTempDirectory("aicalls-history-wav").toFile()
         try {

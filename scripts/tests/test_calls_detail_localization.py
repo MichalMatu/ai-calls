@@ -15,5 +15,6 @@ class CallsLocalizationContract(unittest.TestCase):
                 self.assertTrue(pl.get(name))
                 self.assertTrue(en.get(name))
         self.assertIn("ArchivedConversationPlayer.StartResult.PLAYING -> R.string.history_playing",history)
-        self.assertIn("playbackStatus?.text = getString(textId)",history)
+        self.assertIn("showPlaybackStatus(textId)",history)
+        self.assertIn("private fun showPlaybackStatus(textId: Int)",history)
 if __name__=="__main__": unittest.main()
