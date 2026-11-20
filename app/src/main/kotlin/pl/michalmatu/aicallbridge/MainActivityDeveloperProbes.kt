@@ -136,7 +136,7 @@ internal class MainActivityDeveloperProbes(
                 probeButton?.isEnabled = true
                 val summary = resultDialog?.showResult(result)
                 statusView?.text = summary
-                Log.i(TAG, "shizuku_probe_result:\n$result")
+                Log.i(TAG, "shizuku_probe_completed=true")
             }
         }
         if (live) {
