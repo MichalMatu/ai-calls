@@ -322,10 +322,60 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 id -> definition.fields.first { it.id == id }.title(language)
             })
         }
-        root.addView(UiDesign.action(this, getString(if (personal == null)
-            R.string.scenario_ui_save else R.string.scenario_ui_save_version), UiActionTone.PRIMARY) {
+        // This only opens a private confirmation form; it never dials.
+        val prepareButton = UiDesign.action(this, getString(R.string.scenario_ui_prepare_call), UiActionTone.PRIMARY) {
             val next = draft()
-            if (personal == null) {
+            val missing = next.missingRequiredFields(definition)
+            if (missing.isNotEmpty()) {
+                feedback.text = getString(R.string.scenario_ui_missing,
+                    missing.joinToString { id ->
+                        definition.fields.first { it.id == id }.title(language)
+                    })
+            } else {
+                val title = (personalTitle?.text?.toString() ?: definition.title(language)).trim()
+                val goal = (personalGoal?.text?.toString() ?: definition.goal(language)).trim()
+                val summary = if (personalTitle == null) next.summary(definition, language)
+                    else (listOf(goal) + definition.fields.mapNotNull { field ->
+                        next.values[field.id]?.trim()?.takeIf(String::isNotBlank)
+                            ?.let { field.title(language) + ": " + it }
+                    }).joinToString("\n")
+                if (title.length !in 2..140 || goal.length !in 5..300 ||
+                    summary.length !in 5..3500
+                ) {
+                    feedback.text = getString(R.string.scenario_call_invalid)
+                } else {
+                    startActivity(Intent(this, ScenarioOutgoingCallActivity::class.java)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_ID, definition.id)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_TITLE, title)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_GOAL, goal)
+                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_BRIEF, summary))
+                }
+            }
+        }.apply { tag = "scenario-prepare-outgoing" }
+
+        root.addView(prepareButton, UiDesign.spaceAfter(this, 12))
+        val saveButton = UiDesign.action(this, getString(
+            if (creating) R.string.scenario_ui_create
+            else if (personal == null) R.string.scenario_ui_save
+            else R.string.scenario_ui_save_version)) {
+            val next = draft()
+            if (creating) {
+                val title = personalTitle?.text?.toString()?.trim().orEmpty()
+                val goal = personalGoal?.text?.toString()?.trim().orEmpty()
+                if (title.length !in 2..140 || goal.length !in 5..300) {
+                    feedback.text = getString(R.string.scenario_ui_new_invalid)
+                } else {
+                    val created = runCatching {
+                        val id = UUID.randomUUID().toString()
+                        val updated = store.loadPersonalScenarios().create(
+                            definition, next, id, title, goal)
+                        store.savePersonalScenarios(updated)
+                        updated.items.single { it.id == id }
+                    }
+                    created.onSuccess { showEditor(definition, it) }
+                        .onFailure { feedback.text = getString(R.string.scenario_ui_save_failed) }
+                }
+            } else if (personal == null) {
                 feedback.text = if (runCatching { store.saveScenarioDraft(next) }.isSuccess) {
                     savedValues = next.values.toMap()
                     missingMessage(next)
@@ -347,9 +397,14 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                     feedback.text = getString(R.string.scenario_ui_save_failed)
                 }
             }
-        }, UiDesign.spaceAfter(this, 12))
+        }.apply { tag = "scenario-save" }
 
-        root.addView(UiDesign.action(this, getString(R.string.scenario_ui_duplicate)) {
+        val advanced = LinearLayout(this).apply {
+            tag = "scenario-advanced-actions"
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        advanced.addView(UiDesign.action(this, getString(R.string.scenario_ui_duplicate)) {
             val next = draft()
             val titleInput = EditText(this).apply {
                 tag = "scenario-copy-name"
@@ -379,34 +434,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 }.show()
         }, UiDesign.spaceAfter(this, 12))
 
-        // This only opens a private confirmation form; it never dials.
-        root.addView(UiDesign.action(this, getString(R.string.scenario_ui_prepare_call)) {
-            val next = draft()
-            val missing = next.missingRequiredFields(definition)
-            if (missing.isNotEmpty()) {
-                feedback.text = getString(R.string.scenario_ui_missing,
-                    missing.joinToString { id ->
-                        definition.fields.first { it.id == id }.title(language)
-                    })
-            } else {
-                val title = (personalTitle?.text?.toString() ?: definition.title(language)).trim()
-                val goal = (personalGoal?.text?.toString() ?: definition.goal(language)).trim()
-                val summary = next.summary(definition, language)
-                if (title.length !in 2..140 || goal.length !in 5..300 ||
-                    summary.length !in 5..3500
-                ) {
-                    feedback.text = getString(R.string.scenario_call_invalid)
-                } else {
-                    startActivity(Intent(this, ScenarioOutgoingCallActivity::class.java)
-                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_ID, definition.id)
-                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_TITLE, title)
-                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_GOAL, goal)
-                        .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_BRIEF, summary))
-                }
-            }
-        }.apply { tag = "scenario-prepare-outgoing" }, UiDesign.spaceAfter(this, 12))
-
-        root.addView(UiDesign.action(this, getString(R.string.scenario_ui_preview)) {
+        advanced.addView(UiDesign.action(this, getString(R.string.scenario_ui_preview)) {
             val next = draft()
             val missing = next.missingRequiredFields(definition)
             val warning = if (missing.isEmpty()) "" else getString(R.string.scenario_ui_missing,
@@ -452,8 +480,8 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 })
                 setSelection(versions.lastIndex)
             }
-            root.addView(revisions, UiDesign.spaceAfter(this, 8))
-            root.addView(UiDesign.action(this, getString(R.string.scenario_ui_restore)) {
+            advanced.addView(revisions, UiDesign.spaceAfter(this, 8))
+            advanced.addView(UiDesign.action(this, getString(R.string.scenario_ui_restore)) {
                 val number = versions[revisions.selectedItemPosition].number
                 val restored = runCatching {
                     val updated = store.loadPersonalScenarios().restore(personal.id, number)
@@ -463,7 +491,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 restored.onSuccess { showEditor(definition, it) }
                     .onFailure { feedback.text = getString(R.string.scenario_ui_save_failed) }
             }, UiDesign.spaceAfter(this, 12))
-            root.addView(UiDesign.action(this, getString(R.string.scenario_ui_delete),
+            advanced.addView(UiDesign.action(this, getString(R.string.scenario_ui_delete),
                 UiActionTone.REVOCATION) {
                 AlertDialog.Builder(this)
                     .setTitle(R.string.scenario_ui_delete)
@@ -477,6 +505,13 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                         else feedback.text = getString(R.string.scenario_ui_save_failed)
                     }.show()
             }, UiDesign.spaceAfter(this, 12))
+        }
+        root.addView(saveButton, UiDesign.spaceAfter(this, 12))
+        if (!creating) {
+            root.addView(UiDesign.action(this, getString(R.string.scenario_ui_more)) {
+                advanced.visibility = if (advanced.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            }.apply { tag = "scenario-more" }, UiDesign.spaceAfter(this, 10))
+            root.addView(advanced, UiDesign.spaceAfter(this, 12))
         }
         root.addView(feedback)
         install(root)
