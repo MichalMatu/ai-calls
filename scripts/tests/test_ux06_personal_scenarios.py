@@ -1,47 +1,42 @@
-"""UX-06: source contract for user-owned draft history without call authority."""
+"""UX-06: personal scenario editing preserves identity and does not execute a call."""
 import unittest
 from pathlib import Path
-
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge"
 
-
 class PersonalScenarioUiContract(unittest.TestCase):
-    def test_ui_exposes_copies_versions_and_does_not_call_telephony(self):
-        ui = (SRC / "conversation/ScenarioLibraryActivity.kt").read_text()
+    def test_ui_edits_existing_in_place_with_single_delete_action(self):
+        ui=(SRC/"conversation/ScenarioLibraryActivity.kt").read_text()
         for token in ('"scenario-personal:', "loadPersonalScenarios()",
-                      "savePersonalScenarios(", "scenario_ui_save_version",
-                      "scenario_ui_restore", "scenario_ui_duplicate",
-                      "scenario_ui_delete", "scenario-personal-goal"):
-            self.assertIn(token, ui)
+                      "savePersonalScenarios(", "library.update(personal.id",
+                      'tag = "scenario-delete-options"', "scenario-personal-goal"):
+            self.assertIn(token,ui)
+        for removed in ("scenario_ui_duplicate", "scenario_ui_restore", "scenario_ui_save_version",
+                        "scenario-version-picker", "scenario-advanced-actions", "scenario_ui_preview"):
+            self.assertNotIn(removed,ui)
         for forbidden in ("ACTION_START_CLIR_ENABLE", "ACTION_CALL", "placeCall(",
                           "CallCommitmentGate", "CampaignAgentControl.run("):
-            self.assertNotIn(forbidden, ui)
-
+            self.assertNotIn(forbidden,ui)
     def test_home_task_entry_names_the_shared_task_wizard(self):
-        home = (SRC / "MainActivity.kt").read_text()
-        self.assertIn("PhoneTaskWizardActivity::class.java", home)
-        self.assertIn("R.string.home_outgoing_action", home)
-        self.assertIn("IncomingAssistantSettingsActivity::class.java", home)
-        self.assertIn('"home-incoming-settings"', home)
-        self.assertIn('"home-task-start"', home)
-        self.assertIn('"home-stop-ai"', home)
+        home=(SRC/"MainActivity.kt").read_text()
+        self.assertIn("PhoneTaskWizardActivity::class.java",home)
+        self.assertIn("R.string.home_outgoing_action",home)
+        self.assertIn("IncomingAssistantSettingsActivity::class.java",home)
+        self.assertIn('"home-incoming-settings"',home)
+        self.assertIn('"home-task-start"',home)
+        self.assertIn('"home-stop-ai"',home)
         for locale in ("values", "values-en"):
-            strings = (ROOT / "app/src/main/res" / locale / "strings.xml").read_text()
-            self.assertIn('name="home_outgoing_action"', strings)
-            self.assertIn('name="home_incoming_summary"', strings)
-        self.assertNotIn("EXTRA_START_AUTHORIZED_CAMPAIGN", home)
-        self.assertNotIn("CLIR", home)
-        self.assertNotIn("placeCall(", home)
-
+            strings=(ROOT/"app/src/main/res"/locale/"strings.xml").read_text()
+            self.assertIn('name="home_outgoing_action"',strings)
+            self.assertIn('name="home_incoming_summary"',strings)
+        self.assertNotIn("EXTRA_START_AUTHORIZED_CAMPAIGN",home)
+        self.assertNotIn("CLIR",home)
+        self.assertNotIn("placeCall(",home)
     def test_personal_records_reuse_keystore_aead_and_atomic_write(self):
-        store = (SRC / "conversation/AndroidConversationPreparationStore.kt").read_text()
-        self.assertIn('writeRecord("scenario-personal-library-v1"', store)
-        self.assertIn('readRecord("scenario-personal-library-v1")', store)
-        self.assertIn("AndroidKeystoreIdentityVaultAead", store)
-        self.assertIn("AtomicFile", store)
-        self.assertIn("ScenarioPersonalLibrary", store)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        store=(SRC/"conversation/AndroidConversationPreparationStore.kt").read_text()
+        self.assertIn('writeRecord("scenario-personal-library-v1"',store)
+        self.assertIn('readRecord("scenario-personal-library-v1")',store)
+        self.assertIn("AndroidKeystoreIdentityVaultAead",store)
+        self.assertIn("AtomicFile",store)
+        self.assertIn("ScenarioPersonalLibrary",store)
+if __name__=="__main__": unittest.main()
