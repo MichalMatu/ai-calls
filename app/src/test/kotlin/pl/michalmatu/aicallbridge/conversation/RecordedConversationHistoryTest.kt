@@ -75,6 +75,20 @@ class RecordedConversationHistoryTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun historyListFollowsRecordedStartTimeNotStorageDirectoryName() {
+        val root = Files.createTempDirectory("aicalls-chronological-list").toFile()
+        try {
+            val oldName = File(root, "9000-older").apply { mkdirs() }
+            val newName = File(root, "1000-newer").apply { mkdirs() }
+            File(oldName, "timeline.jsonl").writeText(
+                """{"type":"CONVERSATION","direction":"OUTGOING","started_at_ms":1000}""" + "\n")
+            File(newName, "timeline.jsonl").writeText(
+                """{"type":"CONVERSATION","direction":"INCOMING","started_at_ms":3000}""" + "\n")
+            assertEquals(listOf(newName.name, oldName.name),
+                RecordedConversationHistory(root).list().map { it.id })
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun historyRetainsEveryMessageAndReportsMalformedRecords() {
         val root = Files.createTempDirectory("conversation-history").toFile()
         try {

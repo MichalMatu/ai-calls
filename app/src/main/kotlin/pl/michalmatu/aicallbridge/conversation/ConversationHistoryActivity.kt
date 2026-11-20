@@ -283,29 +283,29 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         textSize = 16f
                     }, UiDesign.spaceAfter(this, 10))
                     if (session.invalidRecords > 0) content.addView(TextView(this).apply { text = getString(R.string.history_incomplete, session.invalidRecords) })
-                    session.endReasonCode?.let { code ->
-                        content.addView(UiDesign.caption(this, getString(R.string.history_end_reason, code)))
-                    }
                     if (session.interruptedRxTurns.isNotEmpty()) content.addView(
                         UiDesign.caption(this, getString(R.string.history_rx_interrupted, session.interruptedRxTurns.size)))
-                    playbackStatus = TextView(this).apply {
-                        text = getString(R.string.history_audio_count, session.audioFiles.size)
+                    // Playback feedback only appears after the user initiates audio.
+                    // The play button already describes that fragments are available.
+                    playbackStatus = UiDesign.caption(this, "").apply {
+                        tag = "history-playback-status"
+                        visibility = View.GONE
+                        accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
                     }
-                    content.addView(playbackStatus)
                     if (session.audioTimeline.isNotEmpty()) {
                         val allClips = UiDesign.button(this, getString(R.string.history_play_all_available,
                             session.audioTimeline.size)) {
                             if (audioPlayer.isPlayingSequence(session.id)) {
                                 stopPlayback()
-                                playbackStatus?.text = getString(R.string.history_playback_stopped)
+                                showPlaybackStatus(R.string.history_playback_stopped)
                             } else {
                                 stopPlayback()
                                 val outcome = audioPlayer.playAvailable(session.id, session.audioTimeline) {
                                     if (!isDestroyed && displayedSessionId == session.id) {
-                                        playbackStatus?.text = getString(R.string.history_playback_available_finished)
+                                        showPlaybackStatus(R.string.history_playback_available_finished)
                                     }
                                 }
-                                playbackStatus?.text = getString(when (outcome) {
+                                showPlaybackStatus(when (outcome) {
                                     ArchivedConversationPlayer.StartResult.NEEDS_PERMISSION -> R.string.history_permission_required
                                     ArchivedConversationPlayer.StartResult.PHONE_BUSY -> R.string.history_off_call_only
                                     ArchivedConversationPlayer.StartResult.MISSING_FILE -> R.string.history_clip_not_found
@@ -316,6 +316,8 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         }.apply { tag = "history-play-available" }
                         content.addView(allClips, UiDesign.spaceAfter(this, 10))
                     }
+                    // Below Play: updates never move the playback button itself.
+                    content.addView(playbackStatus, UiDesign.spaceAfter(this, 8))
                     session.lines.forEachIndexed { index, line ->
                         val audio = session.audioFor(line)
                         val bubbleTag = audio?.let { "history-audio-bubble:" + index }
@@ -329,8 +331,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                             audioHint = if (audio == null) null
                                 else getString(R.string.history_audio_play_hint)))
                     }
-                    val linked = session.lines.mapNotNull(session::audioFor).toSet()
-                    val unlinked = session.audioFiles.values.filterNot { it in linked }
+                    val unlinked = session.extraAudioClips()
                     if (unlinked.isNotEmpty()) {
                         val extraClips = LinearLayout(this).apply {
                             orientation = LinearLayout.VERTICAL
@@ -352,14 +353,11 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
                         }
                         content.addView(toggle)
                         unlinked.forEachIndexed { index, name ->
-                            extraClips.addView(Button(this).apply {
-                                tag = "history-extra-play:" + index
-                                text = getString(R.string.history_play_extra_numbered, index + 1)
-                                setOnClickListener { playFragment(session.id, name) }
-                            }, LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT
-                            ).apply { bottomMargin = UiDesign.dp(this@ConversationHistoryActivity, 10) })
+                            extraClips.addView(UiDesign.action(this,
+                                getString(R.string.history_play_extra_numbered, index + 1)) {
+                                playFragment(session.id, name)
+                            }.apply { tag = "history-extra-play:" + index },
+                                UiDesign.spaceAfter(this, 10))
                         }
                         content.addView(extraClips)
                     }
@@ -387,6 +385,13 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
             }
         }
     }
+    private fun showPlaybackStatus(textId: Int) {
+        playbackStatus?.apply {
+            text = getString(textId)
+            visibility = View.VISIBLE
+        }
+    }
+
     private fun updateAudioHint(tag: String?, playing: Boolean) {
         if (tag == null) return
         val text = content.findViewWithTag<TextView>(tag + ":hint") ?: return
@@ -397,7 +402,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
     private fun playFragment(id: String, fileName: String, bubbleTag: String? = null) {
         if (audioPlayer.isPlaying(id, fileName)) {
             stopPlayback()
-            playbackStatus?.text = getString(R.string.history_playback_stopped)
+            showPlaybackStatus(R.string.history_playback_stopped)
             return
         }
         stopPlayback()
@@ -405,7 +410,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
             if (!isDestroyed) {
                 updateAudioHint(activeAudioBubbleTag, false)
                 activeAudioBubbleTag = null
-                playbackStatus?.text = getString(R.string.history_playback_finished)
+                showPlaybackStatus(R.string.history_playback_finished)
             }
         }
         if (state == ArchivedConversationPlayer.StartResult.PLAYING) {
@@ -419,7 +424,7 @@ class ConversationHistoryActivity : UiChromeActivity(AppTab.HISTORY) {
             ArchivedConversationPlayer.StartResult.PLAYING -> R.string.history_playing
             ArchivedConversationPlayer.StartResult.FAILED -> R.string.history_playback_error
         }
-        playbackStatus?.text = getString(textId)
+        showPlaybackStatus(textId)
     }
     private fun stopPlayback() {
         if (::audioPlayer.isInitialized) audioPlayer.stop()

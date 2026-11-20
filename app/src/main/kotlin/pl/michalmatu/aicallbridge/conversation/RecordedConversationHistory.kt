@@ -26,6 +26,12 @@ internal data class RecordedConversation(
         ConversationChatFeed.Speaker.ASSISTANT -> audioFiles[line.turn to "tx"]
         ConversationChatFeed.Speaker.TOOL -> null
     }
+
+    /** All extra fragments, including earlier RX parts, in playback time order. */
+    fun extraAudioClips(): List<String> {
+        val attached = lines.mapNotNull(::audioFor).toSet()
+        return audioTimeline.filterNot { it in attached }
+    }
 }
 
 /** Read model over existing private timeline files. No duplicate transcript store or retention quota. */
@@ -44,8 +50,10 @@ internal class RecordedConversationHistory(private val root: File) {
             it.isDirectory && !java.nio.file.Files.isSymbolicLink(it.toPath()) &&
                 privateTimeline(it) != null
         }
-        .sortedByDescending { it.name }
         .mapNotNull { runCatching { load(it.name) }.getOrNull() }
+        // The recorder directory name is a storage identifier, not the display date.
+        .sortedWith(compareByDescending<RecordedConversation> { it.startedAtEpochMs }
+            .thenByDescending { it.id })
         .toList()
 
     /** Remove only a completed private archive, never a session still being recorded. */
