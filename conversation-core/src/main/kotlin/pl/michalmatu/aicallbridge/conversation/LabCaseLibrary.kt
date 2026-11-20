@@ -3,9 +3,9 @@ package pl.michalmatu.aicallbridge.conversation
 import java.util.UUID
 
 /** Private, user-authored laboratory input. Never a telephone task or authorization. */
-internal enum class LabRole { GENERAL, INCOMING, OUTGOING }
+enum class LabRole { GENERAL, INCOMING, OUTGOING }
 
-internal data class LabCaseRevision(
+data class LabCaseRevision(
     val revision: Int,
     val title: String,
     val goal: String,
@@ -26,7 +26,7 @@ internal data class LabCaseRevision(
     }
 }
 
-internal data class LabCase(
+data class LabCase(
     val id: String,
     val versions: List<LabCaseRevision>,
     val selectedRevision: Int,
@@ -55,7 +55,7 @@ internal data class LabCase(
     fun select(number: Int): LabCase = copy(selectedRevision = number).validated()
 }
 
-internal data class LabCaseLibrary(val cases: List<LabCase> = emptyList()) {
+data class LabCaseLibrary(val cases: List<LabCase> = emptyList()) {
     fun validated(): LabCaseLibrary {
         require(cases.map { it.id }.distinct().size == cases.size) {
             "lab_case_duplicate_id"

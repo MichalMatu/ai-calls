@@ -1,18 +1,18 @@
 package pl.michalmatu.aicallbridge.conversation
 
 /** Synthetic only: never telephone numbers, real transcripts, commitments or media. */
-internal data class SkillLabTurn(
+data class SkillLabTurn(
     val utterance: String,
     val shouldEnd: Boolean,
     /** null means no judgement; false/true enables a conservative review heuristic, not semantic scoring. */
     val expectQuestion: Boolean? = null,
 )
-internal data class SkillLabStory(val title: String, val turns: List<SkillLabTurn>)
+data class SkillLabStory(val title: String, val turns: List<SkillLabTurn>)
 /** No shipped dialogue scripts. Editable and adaptive test cases are the next Lab milestone. */
-internal object SkillLabCorpus {
+object SkillLabCorpus {
     val stories: List<SkillLabStory> = emptyList()
 }
-internal data class SkillLabObservation(
+data class SkillLabObservation(
     val story: String,
     val index: Int,
     val expectedEnd: Boolean,
@@ -21,7 +21,7 @@ internal data class SkillLabObservation(
     val elapsedMs: Long,
     val expectedQuestion: Boolean? = null,
 )
-internal data class SkillLabMetrics(
+data class SkillLabMetrics(
     val turns: Int,
     val accurateEndDecisions: Int,
     val prematureEnds: Int,
@@ -39,7 +39,7 @@ internal data class SkillLabMetrics(
             "; średni czas odpowiedzi: " + meanLatencyMs + " ms.\n" + naturalness
     }
 }
-internal object SkillLabScoring {
+object SkillLabScoring {
     // Portable across Android/host Java regex implementations: no inline flag modes.
     // Only marks a candidate for human review, never a semantic correctness judgement.
     private val questionWords = setOf("czy", "kiedy", "gdzie", "jaki", "jaka",
