@@ -12,7 +12,7 @@ class OutgoingWizardFastflowTest(unittest.TestCase):
     def test_expired_window_requires_explicit_action(self):
         wizard = (ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/PhoneTaskWizardActivity.kt").read_text()
         self.assertIn('tag = "task-refresh-window"', wizard)
-        self.assertIn('if (expired)', wizard)
+        self.assertIn('if (PhoneTaskScheduleUiPolicy.expired(current.scheduled, startTime, endTime, now))', wizard)
         self.assertIn('require(!draft.scheduled || start > now)', wizard)
         self.assertIn('requireNotNull(draft.subscriptionId)', wizard)
     def test_labels_bilingual(self):

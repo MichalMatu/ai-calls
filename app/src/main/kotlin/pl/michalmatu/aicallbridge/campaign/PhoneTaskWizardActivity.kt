@@ -216,10 +216,9 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         }
         body.addView(later, UiDesign.spaceAfter(this, 12))
         val start = dateButton(R.string.task_start_time, draft.startLocal) {
-            val current = capture()
-            val start = LocalDateTime.parse(it)
-            draft = current.copy(startLocal = it, endLocal = if (LocalDateTime.parse(current.endLocal) <= start)
-                start.plusHours(1).toString() else current.endLocal)
+            // Never change the end time without the owner's explicit selection.
+            draft = capture().copy(startLocal = it)
+            persist()
             render()
         }.apply { tag = "task-start-time"; visibility = if (draft.scheduled) View.VISIBLE else View.GONE }
         body.addView(start, UiDesign.spaceAfter(this, 12))
@@ -227,22 +226,12 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
             draft = capture().copy(endLocal = it); render()
         }.apply { tag = "task-end-time" }, UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.caption(this, getString(R.string.task_schedule_help, draft.zoneId)), UiDesign.spaceAfter(this, 16))
-        // Explicit fix for stale saved drafts: never silently change an owner's selected time.
-        val nowLocal = LocalDateTime.now(ZoneId.of(draft.zoneId))
-        val expired = !LocalDateTime.parse(draft.endLocal).isAfter(nowLocal) ||
-            (draft.scheduled && !LocalDateTime.parse(draft.startLocal).isAfter(nowLocal))
-        if (expired) {
-            body.addView(UiDesign.caption(this, getString(R.string.task_window_expired)),
-                UiDesign.spaceAfter(this, 8))
-            body.addView(UiDesign.action(this, getString(R.string.task_refresh_window)) {
-                val first = LocalDateTime.now(ZoneId.of(draft.zoneId)).plusHours(1)
-                    .withSecond(0).withNano(0)
-                draft = capture().copy(startLocal = first.toString(),
-                    endLocal = first.plusHours(1).toString())
-                persist()
-                render()
-            }.apply { tag = "task-refresh-window" }, UiDesign.spaceAfter(this, 16))
+        // Notices live in a stable container: toggling the schedule never jumps the screen.
+        val windowNotices = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "task-window-notices"
         }
+        body.addView(windowNotices)
         val retry = CheckBox(this).apply {
             text = getString(R.string.task_retry); tag = "task-retry"; isChecked = draft.retry
         }
@@ -251,9 +240,38 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
             inputType = InputType.TYPE_CLASS_NUMBER
             isEnabled = draft.retry
         }
-        later.setOnCheckedChangeListener { _, checked -> start.visibility = if (checked) View.VISIBLE else View.GONE }
-        retry.setOnCheckedChangeListener { _, checked -> minutes.isEnabled = checked }
         capture = { draft.copy(scheduled = later.isChecked, retry = retry.isChecked, retryMinutes = minutes.text.toString()) }
+        fun updateWindowNotices() {
+            windowNotices.removeAllViews()
+            val current = capture()
+            val startTime = LocalDateTime.parse(current.startLocal)
+            val endTime = LocalDateTime.parse(current.endLocal)
+            val now = LocalDateTime.now(ZoneId.of(current.zoneId))
+            if (PhoneTaskScheduleUiPolicy.invalidOrder(current.scheduled, startTime, endTime)) {
+                windowNotices.addView(UiDesign.caption(this, getString(R.string.task_window_order_invalid)),
+                    UiDesign.spaceAfter(this, 12))
+            }
+            if (PhoneTaskScheduleUiPolicy.expired(current.scheduled, startTime, endTime, now)) {
+                windowNotices.addView(UiDesign.caption(this, getString(R.string.task_window_expired)),
+                    UiDesign.spaceAfter(this, 8))
+                windowNotices.addView(UiDesign.action(this, getString(R.string.task_refresh_window)) {
+                    val first = LocalDateTime.now(ZoneId.of(draft.zoneId)).plusHours(1)
+                        .withSecond(0).withNano(0)
+                    draft = capture().copy(startLocal = first.toString(),
+                        endLocal = first.plusHours(1).toString())
+                    persist()
+                    render()
+                }.apply { tag = "task-refresh-window" }, UiDesign.spaceAfter(this, 16))
+            }
+        }
+        later.setOnCheckedChangeListener { _, checked ->
+            start.visibility = if (checked) View.VISIBLE else View.GONE
+            draft = capture()
+            persist()
+            updateWindowNotices()
+        }
+        retry.setOnCheckedChangeListener { _, checked -> minutes.isEnabled = checked }
+        updateWindowNotices()
     }
 
     private fun dateButton(label: Int, value: String, picked: (String) -> Unit): Button {
