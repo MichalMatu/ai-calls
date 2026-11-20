@@ -62,7 +62,7 @@ class Sprint6UXContract(unittest.TestCase):
                       "userReadingOlderTurns",
                       "lab_ui_quality_not_scored"):
             self.assertIn(token, lab)
-        core = self.read("conversation/ConversationSkillLab.kt")
+        core = (ROOT / "conversation-core/src/main/kotlin/pl/michalmatu/aicallbridge/conversation/ConversationSkillLab.kt").read_text(encoding="utf-8")
         self.assertIn("mayNeedQuestionReview", core)
         self.assertIn("it.expectedQuestion == false", core)
         self.assertNotIn('it.expectedQuestion == false && "?" in it.reply', core)
