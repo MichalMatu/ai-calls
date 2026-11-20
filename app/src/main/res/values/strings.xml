@@ -999,4 +999,4 @@
         <item quantity="many">%1$d rozmów z notatkami</item>
         <item quantity="other">%1$d rozmów z notatkami</item>
     </plurals>
-</resources>
+    <string name="task_group_current">Bieżące i wstrzymane</string>\n    <string name="task_group_scheduled">Zaplanowane</string>\n    <string name="task_group_history">Zakończone i anulowane</string>\n    <string name="task_options">Więcej opcji</string>\n    <string name="task_delete">Usuń zadanie</string>\n    <string name="task_delete_title">Usunąć zadanie?</string>\n    <string name="task_delete_warning">Zadanie i zapisane w nim wyniki zostaną trwale usunięte. Historia rozmów, notatki i nagrania pozostaną osobno zachowane.</string>\n    <string name="task_delete_failed">Nie można usunąć zadania. Odśwież listę i sprawdź jego stan.</string>\n</resources>
