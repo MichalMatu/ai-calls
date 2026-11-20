@@ -211,20 +211,28 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
     }
 
     private fun scheduleStep(body: LinearLayout) {
+        // Old drafts may carry expired default times. Refresh those automatically,
+        // but never override a time explicitly selected by the owner.
+        val refreshed = PhoneTaskScheduleUiPolicy.refreshDefaults(draft,
+            LocalDateTime.now(ZoneId.of(draft.zoneId)))
+        if (refreshed != draft) { draft = refreshed; persist() }
         val later = CheckBox(this).apply {
             text = getString(R.string.task_later); tag = "task-later"; isChecked = draft.scheduled
         }
         body.addView(later, UiDesign.spaceAfter(this, 12))
-        val start = dateButton(R.string.task_start_time, draft.startLocal) {
+        val start = dateButton(R.string.task_start_time, { draft.startLocal }) {
             // Never change the end time without the owner's explicit selection.
-            draft = capture().copy(startLocal = it)
+            draft = capture().copy(startLocal = it, startManuallySet = true)
             persist()
             render()
         }.apply { tag = "task-start-time"; visibility = if (draft.scheduled) View.VISIBLE else View.GONE }
         body.addView(start, UiDesign.spaceAfter(this, 12))
-        body.addView(dateButton(R.string.task_end_time, draft.endLocal) {
-            draft = capture().copy(endLocal = it); render()
-        }.apply { tag = "task-end-time" }, UiDesign.spaceAfter(this, 8))
+        val end = dateButton(R.string.task_end_time, { draft.endLocal }) {
+            draft = capture().copy(endLocal = it, endManuallySet = true)
+            persist()
+            render()
+        }.apply { tag = "task-end-time" }
+        body.addView(end, UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.caption(this, getString(R.string.task_schedule_help, draft.zoneId)), UiDesign.spaceAfter(this, 16))
         // Notices live in a stable container: toggling the schedule never jumps the screen.
         val windowNotices = LinearLayout(this).apply {
@@ -254,19 +262,15 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
             if (PhoneTaskScheduleUiPolicy.expired(current.scheduled, startTime, endTime, now)) {
                 windowNotices.addView(UiDesign.caption(this, getString(R.string.task_window_expired)),
                     UiDesign.spaceAfter(this, 8))
-                windowNotices.addView(UiDesign.action(this, getString(R.string.task_refresh_window)) {
-                    val first = LocalDateTime.now(ZoneId.of(draft.zoneId)).plusHours(1)
-                        .withSecond(0).withNano(0)
-                    draft = capture().copy(startLocal = first.toString(),
-                        endLocal = first.plusHours(1).toString())
-                    persist()
-                    render()
-                }.apply { tag = "task-refresh-window" }, UiDesign.spaceAfter(this, 16))
             }
         }
         later.setOnCheckedChangeListener { _, checked ->
+            draft = PhoneTaskScheduleUiPolicy.refreshDefaults(capture(),
+                LocalDateTime.now(ZoneId.of(draft.zoneId)))
             start.visibility = if (checked) View.VISIBLE else View.GONE
-            draft = capture()
+            // Update labels in place to preserve scroll and keep the live picker values.
+            start.text = dateButtonText(R.string.task_start_time, draft.startLocal)
+            end.text = dateButtonText(R.string.task_end_time, draft.endLocal)
             persist()
             updateWindowNotices()
         }
@@ -274,9 +278,12 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         updateWindowNotices()
     }
 
-    private fun dateButton(label: Int, value: String, picked: (String) -> Unit): Button {
-        val local = LocalDateTime.parse(value)
-        return UiDesign.action(this, getString(label) + "\n" + local.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))) {
+    private fun dateButtonText(label: Int, value: String): String = getString(label) + "\n" +
+        LocalDateTime.parse(value).format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
+
+    private fun dateButton(label: Int, value: () -> String, picked: (String) -> Unit): Button {
+        return UiDesign.action(this, dateButtonText(label, value())) {
+            val local = LocalDateTime.parse(value())
             DatePickerDialog(this, { _, year, month, day ->
                 TimePickerDialog(this, { _, hour, minute ->
                     picked(LocalDateTime.of(year, month + 1, day, hour, minute).toString())
