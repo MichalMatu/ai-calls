@@ -24,6 +24,8 @@ class AndroidScenarioOutboundNavigationTest {
             ActivityScenario.launch(ScenarioLibraryActivity::class.java).use { scenario ->
                 scenario.onActivity { activity ->
                     requireNotNull(activity.window.decorView.findViewWithTag<View>(
+                        "scenario-presets-toggle")).performClick()
+                    requireNotNull(activity.window.decorView.findViewWithTag<View>(
                         "scenario-preset:mechanic")).performClick()
                     val form = activity.window.decorView
                     assertNotNull(form.findViewWithTag<View>("scenario-prepare-outgoing"))

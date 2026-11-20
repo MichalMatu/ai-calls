@@ -597,6 +597,13 @@
     <string name="skills_ux05_name_closure">Naturalne zakończenie</string>
     <string name="camp_ux06_diagnostic_recording">Zgoda na zapis kolejnych prób kampanii: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Ostatni komunikat serwisu (historyczny, nie na żywo):\n%1$s</string>
+    <string name="scenario_ui_new_title">Nowy scenariusz</string>
+    <string name="scenario_ui_new">+ Nowy scenariusz</string>
+    <string name="scenario_ui_none">Nie masz jeszcze własnych scenariuszy.</string>
+    <string name="scenario_ui_show_templates">Gotowe szablony (%1$d) ▾</string>
+    <string name="scenario_ui_hide_templates">Gotowe szablony (%1$d) ▴</string>
+    <string name="scenario_ui_more">••• Więcej opcji</string>
+    <string name="scenario_ui_new_invalid">Podaj nazwę (2–140 znaków) i cel (5–300 znaków).</string>
     <string name="scenario_ui_title">Scenariusze rozmów</string>
     <string name="scenario_ui_campaign_hint">Każdy scenariusz może przygotować rozmowę informacyjną przez AI po potwierdzeniu numeru i SIM. Zawarcie umowy, zakupu lub rezerwacji wymaga osobnej decyzji użytkownika.</string>
     <string name="scenario_ui_open">Otwórz bibliotekę scenariuszy</string>
