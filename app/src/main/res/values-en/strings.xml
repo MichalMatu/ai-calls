@@ -859,7 +859,7 @@
     <string name="task_attempts">Attempts: %1$d</string>
     <string name="task_attempt_history">Attempt history</string>
     <string name="task_conversation">Open conversation</string>
-    <string name="task_skip">Skip recipient</string>
+    <string name="task_skip_short">Skip</string>\n    <string name="task_restore">Restore</string>\n    <string name="task_restore_warning">Restore this recipient to the queue? If the task is running, it may call within the approved window.</string>\n    <string name="task_restore_finished_warning">Restore this recipient? The task will reopen paused. Tap Resume separately to place calls.</string>\n    <string name="task_show_details">Show details</string>\n    <string name="task_hide_details">Hide details</string>\n    <string name="task_pause_short">Pause</string>\n    <string name="task_resume_short">Resume</string>\n    <string name="task_cancel_short">Cancel</string>\n    <string name="task_skip">Skip recipient</string>
     <string name="task_retry_explicit">Retry this number</string>
     <string name="task_stop_all">Stop all AI</string>
     <string name="history_unfinished_remaining">Some archives are unfinished. Long-press a conversation to delete it individually. “Delete all” removes completed conversations only.</string>

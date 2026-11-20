@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
+import android.view.ViewGroup
 import android.view.View
 import android.widget.*
 import pl.michalmatu.aicallbridge.R
@@ -73,6 +75,8 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
     private var active = false
     private var reading = false
     private var deleting = false
+    // Keep user-expanded evidence open across the 2-second task-state refresh.
+    private val expandedRecipients = mutableSetOf<String>()
     private val detailsBack = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() { selectedId = null; previous?.let(::render) }
     }
@@ -147,7 +151,19 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
             return
         }
         body.tag = "task-details"
-        body.addView(UiDesign.heading(this, task.title), UiDesign.spaceAfter(this, 8))
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        header.addView(UiDesign.heading(this, task.title), LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        header.addView(UiDesign.action(this, getString(R.string.task_options)) {
+            showTaskOptions(task)
+        }.apply { tag = "task-options" }, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            marginStart = UiDesign.dp(this@PhoneTasksActivity, 8)
+        })
+        body.addView(header, UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.caption(this, getString(PhoneTaskLabels.state(task))).apply {
             tag = "task-state"; accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }, UiDesign.spaceAfter(this, 12))
@@ -158,22 +174,35 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
         body.addView(UiDesign.caption(this, getString(if (task.recordAudio)
             R.string.task_record_audio_on else R.string.task_record_audio_off)),
             UiDesign.spaceAfter(this, 12))
-        if (task.state == PhoneTaskState.READY) body.addView(UiDesign.action(this, getString(R.string.task_pause)) {
+        val primaryActions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        fun primaryAction(text: Int, tone: UiActionTone = UiActionTone.SECONDARY,
+            onClick: () -> Unit) {
+            val button = UiDesign.action(this, getString(text), tone, onClick)
+            primaryActions.addView(button, LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                if (primaryActions.childCount > 0) marginStart = UiDesign.dp(this@PhoneTasksActivity, 8)
+            })
+        }
+        if (task.state == PhoneTaskState.READY) primaryAction(R.string.task_pause_short) {
             startService(Intent(this, AppOwnedCampaignService::class.java)
                 .setAction(AppOwnedCampaignService.ACTION_PAUSE_PHONE_TASK)
                 .putExtra(AppOwnedCampaignService.EXTRA_PHONE_TASK_ID, task.id))
-        }, UiDesign.spaceAfter(this, 12))
+        }
         if (task.state == PhoneTaskState.PAUSED && task.endAt > System.currentTimeMillis())
-            body.addView(UiDesign.action(this, getString(R.string.task_resume), UiActionTone.PRIMARY) {
+            primaryAction(R.string.task_resume_short, UiActionTone.PRIMARY) {
                 update(task.id) { if (it.state == PhoneTaskState.PAUSED)
                     it.copy(state = PhoneTaskState.READY, issue = null) else it }
-            }, UiDesign.spaceAfter(this, 12))
+            }
         if (task.state in setOf(PhoneTaskState.READY, PhoneTaskState.PAUSED))
-            body.addView(UiDesign.action(this, getString(R.string.task_cancel), UiActionTone.REVOCATION) {
+            primaryAction(R.string.task_cancel_short, UiActionTone.REVOCATION) {
                 startService(Intent(this, AppOwnedCampaignService::class.java)
                     .setAction(AppOwnedCampaignService.ACTION_CANCEL_PHONE_TASK)
                     .putExtra(AppOwnedCampaignService.EXTRA_PHONE_TASK_ID, task.id))
-            }, UiDesign.spaceAfter(this, 12))
+            }
+        if (primaryActions.childCount > 0) body.addView(primaryActions, UiDesign.spaceAfter(this, 12))
         if (task.issue != null) body.addView(UiDesign.action(this, getString(
             if (task.issue == PhoneTaskIssue.GSM_HOST_UNAVAILABLE || task.issue == PhoneTaskIssue.SHIZUKU)
                 R.string.local_adb_open else R.string.task_settings)) {
@@ -185,15 +214,8 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                 startActivity(Intent(this, LocalAdbGsmSetupActivity::class.java))
             else startActivity(Intent(this, SettingsHubActivity::class.java))
         }, UiDesign.spaceAfter(this, 12))
-        body.addView(UiDesign.action(this, getString(R.string.task_options)) {
-            showTaskOptions(task)
-        }.apply { tag = "task-options" }, UiDesign.spaceAfter(this, 16))
-        if (task.recipients.size > 1) body.addView(UiDesign.action(this,
-            getString(R.string.task_compare), UiActionTone.PRIMARY) {
-            showComparison(task)
-        }.apply { tag = "task-compare" }, UiDesign.spaceAfter(this, 16))
         task.recipients.forEach { recipient -> recipientCard(task, recipient) }
-        // Less frequent actions are available in the options menu above the recipient evidence.
+        // Less-frequent commands live in the header's More options menu.
     }
 
     private fun showTaskOptions(task: PhoneTask) {
@@ -206,6 +228,9 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
             },
             R.string.task_copy to { copyTask(task) },
         )
+        if (PhoneTaskManagement.hasComparison(task)) {
+            actions += R.string.task_compare to { showComparison(task) }
+        }
         if (PhoneTaskManagement.canDelete(task, PhoneTaskWork.activeTaskId)) {
             actions += R.string.task_delete to { confirmDeleteTask(task) }
         }
@@ -298,27 +323,57 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
 
     private fun recipientCard(task: PhoneTask, recipient: PhoneTaskRecipient) {
         val card = UiDesign.card(this).apply { tag = "task-recipient:" + recipient.id }
-        card.addView(UiDesign.heading(this, recipient.name.ifBlank { recipient.number }).apply { textSize = 17f },
-            UiDesign.spaceAfter(this, 6))
-        if (recipient.name.isNotBlank()) card.addView(UiDesign.caption(this, recipient.number), UiDesign.spaceAfter(this, 6))
-        card.addView(UiDesign.caption(this, getString(PhoneTaskLabels.recipient(recipient))), UiDesign.spaceAfter(this, 10))
+        val recipientRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val recipientInfo = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        recipientInfo.addView(UiDesign.heading(this, recipient.name.ifBlank { recipient.number })
+            .apply { textSize = 17f }, UiDesign.spaceAfter(this, 6))
+        if (recipient.name.isNotBlank())
+            recipientInfo.addView(UiDesign.caption(this, recipient.number), UiDesign.spaceAfter(this, 6))
+        recipientInfo.addView(UiDesign.caption(this, getString(PhoneTaskLabels.recipient(recipient))))
+        recipientRow.addView(recipientInfo, LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        if (task.state in setOf(PhoneTaskState.READY, PhoneTaskState.PAUSED) &&
+            recipient.state == PhoneRecipientState.QUEUED) {
+            recipientRow.addView(UiDesign.action(this, getString(R.string.task_skip_short)) {
+                update(task.id) { current -> PhoneTaskManagement.skipQueued(current, recipient.id) }
+            }.apply { tag = "task-skip:" + recipient.id }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                marginStart = UiDesign.dp(this@PhoneTasksActivity, 8)
+            })
+        } else if (PhoneTaskManagement.canRestore(task, recipient.id, System.currentTimeMillis())) {
+            recipientRow.addView(UiDesign.action(this, getString(R.string.task_restore)) {
+                confirmRestoreRecipient(task, recipient)
+            }.apply { tag = "task-restore:" + recipient.id }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                marginStart = UiDesign.dp(this@PhoneTasksActivity, 8)
+            })
+        }
+        card.addView(recipientRow, UiDesign.spaceAfter(this, 10))
         if (recipient.state == PhoneRecipientState.QUEUED && recipient.nextAt > 0)
             card.addView(UiDesign.caption(this, getString(R.string.task_next_attempt,
                 PhoneTaskLabels.time(recipient.nextAt, task.zoneId))), UiDesign.spaceAfter(this, 12))
+        val details = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "task-recipient-details:" + recipient.id
+            visibility = if (recipient.id in expandedRecipients) View.VISIBLE else View.GONE
+        }
         val answers = recipient.attempts.flatMap { it.answers }
         if (answers.isNotEmpty()) {
             val result = PhoneTaskResults.comparison(answers)
             listOf(R.string.task_price to result.price, R.string.task_availability to result.availability,
                 R.string.task_terms to result.terms).forEach { (label, values) ->
-                card.addView(UiDesign.caption(this, getString(label)), UiDesign.spaceAfter(this, 4))
-                card.addView(TextView(this).apply {
+                details.addView(UiDesign.caption(this, getString(label)), UiDesign.spaceAfter(this, 4))
+                details.addView(TextView(this).apply {
                     text = if (values.isEmpty()) getString(R.string.task_no_data) else values.joinToString("\n\n")
                     textSize = 15f; setTextColor(UiDesign.ink); setTextIsSelectable(true)
                 }, UiDesign.spaceAfter(this, 12))
             }
-            card.addView(UiDesign.caption(this, getString(R.string.task_quotes_notice)), UiDesign.spaceAfter(this, 12))
+            details.addView(UiDesign.caption(this, getString(R.string.task_quotes_notice)), UiDesign.spaceAfter(this, 12))
         }
-        if (recipient.attempts.isNotEmpty()) card.addView(UiDesign.action(this,
+        if (recipient.attempts.isNotEmpty()) details.addView(UiDesign.action(this,
             getString(R.string.task_attempts, recipient.attempts.size)) {
             val text = recipient.attempts.joinToString("\n\n") { attempt ->
                 PhoneTaskLabels.time(attempt.startedAt, task.zoneId) + " · " + getString(when (attempt.outcome) {
@@ -336,17 +391,11 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                 .setView(ScrollView(this).apply { addView(content) }).setPositiveButton(android.R.string.ok, null).show()
         }, UiDesign.spaceAfter(this, 12))
         recipient.attempts.lastOrNull { it.sessionId != null }?.sessionId?.let { sessionId ->
-            card.addView(UiDesign.action(this, getString(R.string.task_conversation)) {
+            details.addView(UiDesign.action(this, getString(R.string.task_conversation)) {
                 startActivity(Intent(this, ConversationHistoryActivity::class.java)
                     .putExtra("open_session_id", sessionId))
             }, UiDesign.spaceAfter(this, 12))
         }
-        if (task.state in setOf(PhoneTaskState.READY, PhoneTaskState.PAUSED) && recipient.state == PhoneRecipientState.QUEUED)
-            card.addView(UiDesign.action(this, getString(R.string.task_skip)) {
-                update(task.id) { current -> current.copy(recipients = current.recipients.map {
-                    if (it.id == recipient.id && it.state == PhoneRecipientState.QUEUED) it.copy(state = PhoneRecipientState.SKIPPED) else it
-                }) }
-            })
         if (task.state != PhoneTaskState.CANCELLED && task.endAt > System.currentTimeMillis() &&
             recipient.state == PhoneRecipientState.UNKNOWN) card.addView(UiDesign.action(this, getString(R.string.task_retry_explicit)) {
             // This is an explicit owner request; unknown attempts are never automatically replayed.
@@ -356,7 +405,36 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                         it.copy(state = PhoneRecipientState.QUEUED, nextAt = System.currentTimeMillis()) else it
                 }) }
         })
+        if (recipient.attempts.isNotEmpty()) {
+            val toggle = UiDesign.action(this,
+                getString(if (details.visibility == View.VISIBLE)
+                    R.string.task_hide_details else R.string.task_show_details)) {}
+                .apply { tag = "task-details-toggle:" + recipient.id }
+            toggle.setOnClickListener {
+                val expanding = details.visibility != View.VISIBLE
+                if (expanding) expandedRecipients.add(recipient.id) else expandedRecipients.remove(recipient.id)
+                details.visibility = if (expanding) View.VISIBLE else View.GONE
+                toggle.text = getString(if (expanding) R.string.task_hide_details else R.string.task_show_details)
+            }
+            card.addView(toggle, UiDesign.spaceAfter(this, 8))
+            card.addView(details)
+        }
         body.addView(card, UiDesign.spaceAfter(this, 16))
+    }
+
+    private fun confirmRestoreRecipient(task: PhoneTask, recipient: PhoneTaskRecipient) {
+        if (!PhoneTaskManagement.canRestore(task, recipient.id, System.currentTimeMillis())) return
+        AlertDialog.Builder(this).setTitle(R.string.task_restore)
+            .setMessage(if (task.state == PhoneTaskState.FINISHED)
+                R.string.task_restore_finished_warning else R.string.task_restore_warning)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.task_restore) { _, _ ->
+                update(task.id) { current ->
+                    if (PhoneTaskManagement.canRestore(current, recipient.id, System.currentTimeMillis()))
+                        PhoneTaskManagement.restoreSkipped(current, recipient.id, System.currentTimeMillis())
+                    else current
+                }
+            }.show()
     }
 
     private fun update(id: String, change: (PhoneTask) -> PhoneTask) {
