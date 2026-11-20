@@ -75,6 +75,15 @@ data class ScenarioDraft(val scenarioId: String, val values: Map<String, String>
  * purchases, contract changes, paid services or bookings.
  */
 object ScenarioCatalog {
+    // Generic information-only scenario; deliberately absent from ready-made templates.
+    val custom = ScenarioDefinition(
+        id = "custom",
+        titlePl = "Własne połączenie", titleEn = "Custom call",
+        goalPl = "Zbierz informacje zgodnie z moim celem i instrukcjami.",
+        goalEn = "Gather information according to my goal and instructions.",
+        fields = listOf(ScenarioFieldDefinition("additional_instructions",
+            "Instrukcje dla AI", "AI instructions", required = true)),
+    )
     val templates: List<ScenarioDefinition> = listOf(
         ScenarioDefinition(
             id = "clir",
@@ -191,5 +200,6 @@ object ScenarioCatalog {
         require(items.map { it.id }.distinct().size == items.size) { "duplicate_scenario_template" }
     }
 
-    fun byId(id: String): ScenarioDefinition? = templates.firstOrNull { it.id == id }
+    fun byId(id: String): ScenarioDefinition? =
+        if (id == custom.id) custom else templates.firstOrNull { it.id == id }
 }

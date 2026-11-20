@@ -140,7 +140,7 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
     }
 
     private fun goalStep(body: LinearLayout) {
-        val templates = ScenarioCatalog.templates
+        val templates = listOf(ScenarioCatalog.custom) + ScenarioCatalog.templates
         val variants = personal.items
         val spinner = Spinner(this).apply { tag = "task-scenario"; isSaveEnabled = false }
         UiSelect.setOptions(spinner, templates.map { it.title(language) } + variants.map { it.current.title })
@@ -148,6 +148,9 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         spinner.setSelection(if (variantIndex >= 0) templates.size + variantIndex
             else templates.indexOfFirst { it.id == draft.scenarioId }.coerceAtLeast(0))
         body.addView(spinner, UiDesign.spaceAfter(this, 16))
+        if (draft.scenarioId == ScenarioCatalog.custom.id)
+            body.addView(UiDesign.caption(this, getString(R.string.task_custom_help)),
+                UiDesign.spaceAfter(this, 12))
         val title = input(body, R.string.scenario_ui_name,
             draft.title.ifBlank { definition.title(language) }, "task-title")
         val goal = input(body, R.string.scenario_ui_goal,
@@ -224,6 +227,22 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
             draft = capture().copy(endLocal = it); render()
         }.apply { tag = "task-end-time" }, UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.caption(this, getString(R.string.task_schedule_help, draft.zoneId)), UiDesign.spaceAfter(this, 16))
+        // Explicit fix for stale saved drafts: never silently change an owner's selected time.
+        val nowLocal = LocalDateTime.now(ZoneId.of(draft.zoneId))
+        val expired = !LocalDateTime.parse(draft.endLocal).isAfter(nowLocal) ||
+            (draft.scheduled && !LocalDateTime.parse(draft.startLocal).isAfter(nowLocal))
+        if (expired) {
+            body.addView(UiDesign.caption(this, getString(R.string.task_window_expired)),
+                UiDesign.spaceAfter(this, 8))
+            body.addView(UiDesign.action(this, getString(R.string.task_refresh_window)) {
+                val first = LocalDateTime.now(ZoneId.of(draft.zoneId)).plusHours(1)
+                    .withSecond(0).withNano(0)
+                draft = capture().copy(startLocal = first.toString(),
+                    endLocal = first.plusHours(1).toString())
+                persist()
+                render()
+            }.apply { tag = "task-refresh-window" }, UiDesign.spaceAfter(this, 16))
+        }
         val retry = CheckBox(this).apply {
             text = getString(R.string.task_retry); tag = "task-retry"; isChecked = draft.retry
         }
