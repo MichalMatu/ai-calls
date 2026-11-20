@@ -25,7 +25,8 @@ class AndroidScenarioLibraryContractTest {
                 assertNotNull(editor.findViewWithTag<View>(
                     "scenario-input:additional_instructions"))
                 assertNotNull(editor.findViewWithTag<View>("scenario-save"))
-                assertNotNull(editor.findViewWithTag<View>("scenario-prepare-outgoing"))
+                assertNull("prepare_requires_saved_new_scenario",
+                    editor.findViewWithTag<View>("scenario-prepare-outgoing"))
                 assertNull(editor.findViewWithTag<View>("scenario-more"))
                 requireNotNull(editor.findViewWithTag<View>("app-child-back")).performClick()
                 assertNotNull(activity.window.decorView.findViewWithTag<View>("scenario-new"))
