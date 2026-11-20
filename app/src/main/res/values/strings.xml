@@ -806,6 +806,9 @@
     <string name="home_incoming_mode_ready">Tryb AI włączony · audio GSM gotowe</string>
     <string name="home_incoming_read_error">Nie można odczytać stanu odbierania</string>
     <string name="home_incoming_summary">Ustaw odbieranie przez AI lub ręcznie i wybierz kartę SIM.</string>
+    <string name="task_custom_help">Od zera: wpisz własny cel i instrukcje dla AI. Nie musisz wybierać szablonu. AI tylko zbiera informacje, nie zawiera umów ani rezerwacji.</string>
+    <string name="task_window_expired">Wybrane wcześniej godziny minęły. Ustaw nowe okno przed zatwierdzeniem.</string>
+    <string name="task_refresh_window">Ustaw nowe godziny (+1–2 godz.)</string>
     <string name="task_new">Nowe zadanie</string>
     <string name="task_list">Zadania</string>
     <string name="task_loading">Wczytywanie…</string>

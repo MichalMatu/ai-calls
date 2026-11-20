@@ -8,7 +8,7 @@ import java.util.UUID
 internal data class PhoneTaskDraft(
     val id: String = UUID.randomUUID().toString(),
     val step: Int = 0,
-    val scenarioId: String = "quote",
+    val scenarioId: String = "custom",
     val personalScenarioId: String? = null,
     val title: String = "",
     val goal: String = "",
