@@ -1,11 +1,11 @@
 # Rozwój i standard QA
 
-**Jeden flow:** golden tag = rollback; `main` = ostatni zatwierdzony kod. Aktualny HEAD → gałąź jednego celu → mały diff → testy → PR → merge → nowy tag po kwalifikacji. Backlog tylko w [PROJECT](../PROJECT.md).
+**Jeden flow:** `main` → mała gałąź → testy → PR → merge; stary golden = rollback. Jedyny backlog: [PROJECT](../PROJECT.md).
 
-- **G0 — start:** sprawdź HEAD/main/tag, AGENTS, zakres, IDLE i zgodę na sprzęt; nie przerywaj aktywnego Call.
-- **G1 — każda zmiana:** `test-profile.sh focus/changed`, `preflight`, `git diff --check`; zero nowych ostrzeżeń w dotkniętym kodzie.
-- **G2 — kod przed merge:** `bash scripts/bin/test-profile.sh full` (JVM, Lint, Python, audio, security) i `device-build`; wymagane 0 błędów Lint i PASS testów. Same dokumenty: `preflight` i linki.
-- **G3 — GSM/UI/transport na S22+:** tylko IDLE, backup APK → instalacja `.s8lab` → hash → klucz ADB → statusy → start hosta z APK (bez Mac bootstrapu). Połączenia i PCM RX/TX wyłącznie za osobną zgodą; emulator ≠ test GSM.
-- **G4 — golden:** lista PASS/OPEN w [PROJECT](../PROJECT.md), evidence QA w PR, rollback, commit `main` i niezmienny tag; OPEN nigdy nie oznacza PASS.
+- **G0:** sprawdź HEAD, tag, IDLE i zakres zgody; nie przerywaj Call.
+- **G1:** `focus/changed`, `preflight`, `git diff --check`; brak nowych ostrzeżeń.
+- **G2:** przed merge `full` (JVM, Lint, Python, audio, security, granice modułów) i `device-build`; 0 nowych błędów. Same docs: `preflight`.
+- **G3:** UI `lab-ui` wyłącznie emulator; kompilacja AndroidTest nie dowodzi wykonania. S22+ tylko IDLE: kopia APK → instalacja `.s8lab` → podpis/hash → host UID 2000/Binder → smoke; połączenia za osobną zgodą.
+- **G4:** PASS/OPEN i SHA w [PROJECT](../PROJECT.md); golden dopiero po odbiorze. OPEN ≠ PASS.
 
-Bez Actions, Codex, Work, schedulerów i `WRITE_SECURE_SETTINGS`. [Mac Agent](LOCAL_AGENT.md) służy do wykonania QA.
+Bez Actions, Work, Codex, schedulerów, Shizuku i `WRITE_SECURE_SETTINGS`. Testy wykonuje [Mac Local Agent](LOCAL_AGENT.md).
