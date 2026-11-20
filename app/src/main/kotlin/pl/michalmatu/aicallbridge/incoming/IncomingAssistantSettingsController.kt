@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
+import android.telephony.SubscriptionManager
 import pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService
 import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 import pl.michalmatu.aicallbridge.conversationcore.IncomingAssistantPolicy
@@ -30,8 +31,19 @@ internal class IncomingAssistantSettingsController(context: Context) {
     }
 
     fun displayAccount(account: PhoneAccountHandle): String? = runCatching {
-        app.getSystemService(TelecomManager::class.java)?.getPhoneAccount(account)?.label?.toString()
-            ?.let(::maskPhoneAccountLabel)
+        val original = app.getSystemService(TelecomManager::class.java)
+            ?.getPhoneAccount(account)?.label?.toString()?.let(::maskPhoneAccountLabel)
+        // Only attach slot/carrier when the Telecom account ID really matches
+        // the Android subscription ID. Never guess a SIM from list order.
+        val subscription = if (app.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED) runCatching {
+            val subscriptionId = account.id.toIntOrNull()
+            if (subscriptionId == null) null else
+                app.getSystemService(SubscriptionManager::class.java)
+                    ?.activeSubscriptionInfoList?.firstOrNull { it.subscriptionId == subscriptionId }
+        }.getOrNull() else null
+        formatIncomingSimLabel(original, subscription?.carrierName?.toString(),
+            subscription?.simSlotIndex?.takeIf { it >= 0 }?.plus(1))
     }.getOrNull()
 
     /** -1 means unavailable: never silently switch an AI policy to another SIM. */
@@ -56,3 +68,26 @@ internal fun maskPhoneAccountLabel(label: String): String =
         if (digits.length < 7) match.value else
             "•".repeat(digits.length - 4) + digits.takeLast(4)
     }
+
+/** Pure display helper: never expose more than the existing masked identifier. */
+internal fun formatIncomingSimLabel(maskedLabel: String?, carrier: String?, slot: Int?): String? {
+    val label = maskedLabel?.trim().orEmpty()
+    val operator = carrier?.trim()?.takeIf { it.isNotEmpty() }
+    val simSlot = slot?.takeIf { it > 0 }?.let { "SIM $it" }
+    if (operator == null && simSlot == null) return label.ifEmpty { null }
+    val maskedNumber = Regex("""•+\d{4}""").find(label)?.value
+    val fallback = label.takeIf { it.isNotEmpty() && maskedNumber == null &&
+        (operator == null || !it.equals(operator, ignoreCase = true)) &&
+        (simSlot == null || !it.equals(simSlot, ignoreCase = true)) &&
+        !(operator != null && simSlot != null && it.contains(operator, ignoreCase = true) &&
+            it.contains(simSlot, ignoreCase = true)) }
+    return listOfNotNull(operator, simSlot, maskedNumber ?: fallback).distinct()
+        .joinToString(" · ").ifEmpty { null }
+}
+
+/** UI only. This comparison does not grant a call or mutate a saved policy. */
+internal data class IncomingSettingsSelection(
+    val mode: AnsweringMode,
+    val accountKey: String?,
+    val recordEvidence: Boolean,
+)

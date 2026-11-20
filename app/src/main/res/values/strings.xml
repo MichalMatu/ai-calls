@@ -149,7 +149,15 @@
     <string name="incoming_ui_permission_denied">Nie przyznano dostępu do kart SIM.</string>
     <string name="incoming_ui_record">Nagrywaj fragmenty audio rozmów przychodzących (WAV)</string>
     <string name="incoming_ui_record_hint">Nagrywane są lokalne fragmenty WAV, nie całe połączenie. Prywatne transkrypty i diagnostyka są zapisywane niezależnie.</string>
-    <string name="incoming_ui_save">Zapisz tryb odbierania</string>
+    <string name="incoming_ui_save">Zapisz ustawienia</string>
+    <string name="incoming_ui_saved_state_ai">Zapisane: AI odbiera · %1$s</string>
+    <string name="incoming_ui_saved_state_manual">Zapisane: odbieranie ręczne</string>
+    <string name="incoming_ui_saved_sim_unavailable">karta SIM niedostępna</string>
+    <string name="incoming_ui_unsaved">Masz niezapisane zmiany</string>
+    <string name="incoming_ui_unsaved_title">Niezapisane zmiany</string>
+    <string name="incoming_ui_unsaved_warning">Opuścić ekran bez zapisywania zmian w trybie odbierania, karcie SIM lub nagrywaniu?</string>
+    <string name="incoming_ui_keep_editing">Kontynuuj edycję</string>
+    <string name="incoming_ui_discard">Odrzuć zmiany</string>
     <string name="incoming_ui_choose_sim">Wybierz kartę SIM.</string>
     <string name="incoming_ui_saved_ai">Zapisano tryb AI dla wybranej karty SIM.</string>
     <string name="incoming_ui_saved_manual">Zapisano tryb ręczny.</string>

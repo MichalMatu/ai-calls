@@ -114,7 +114,15 @@
     <string name="incoming_ui_permission_denied">SIM access was denied.</string>
     <string name="incoming_ui_record">Record incoming call audio segments (WAV)</string>
     <string name="incoming_ui_record_hint">Local WAV segments are recorded, not the entire call. Private transcripts and diagnostics are saved independently.</string>
-    <string name="incoming_ui_save">Save answering mode</string>
+    <string name="incoming_ui_save">Save settings</string>
+    <string name="incoming_ui_saved_state_ai">Saved: AI answering · %1$s</string>
+    <string name="incoming_ui_saved_state_manual">Saved: Manual answering</string>
+    <string name="incoming_ui_saved_sim_unavailable">SIM unavailable</string>
+    <string name="incoming_ui_unsaved">You have unsaved changes</string>
+    <string name="incoming_ui_unsaved_title">Unsaved changes</string>
+    <string name="incoming_ui_unsaved_warning">Leave without saving changes to answering mode, SIM card or recording?</string>
+    <string name="incoming_ui_keep_editing">Keep editing</string>
+    <string name="incoming_ui_discard">Discard changes</string>
     <string name="incoming_ui_choose_sim">Select a SIM card.</string>
     <string name="incoming_ui_saved_ai">AI mode saved for the selected SIM.</string>
     <string name="incoming_ui_saved_manual">Manual mode saved.</string>

@@ -19,6 +19,22 @@ class IncomingSettingsSeparation(unittest.TestCase):
         self.assertNotIn("incoming_ui_engines_hint",view)
         policy=(K/"IncomingAssistantPolicyStore.kt").read_text()
         self.assertIn('AnsweringMode.MANUAL, null, false)',policy)
+    def test_saved_status_and_unsaved_changes_protect_all_navigation_paths(self):
+        view=(K/"IncomingAssistantSettingsActivity.kt").read_text()
+        for marker in ("incoming-saved-status", "incoming-unsaved-status",
+                       "hasUnsavedChanges()", "updateSaveAvailability()",
+                       "override fun onTabNavigationRequested", "override fun consumeChromeBack",
+                       "OnBackPressedCallback(true)", "confirmLeave { finish() }",
+                       "DRAFT_SIM_TOUCHED", "R.string.incoming_ui_discard"):
+            self.assertIn(marker,view)
+        self.assertIn('savedSettings = IncomingSettingsSelection(selected,',view)
+        self.assertIn('saveAction.isEnabled = savedSettings != null && dirty',view)
+        self.assertIn('R.string.incoming_ui_saved_sim_unavailable',view)
+        controller=(K/"IncomingAssistantSettingsController.kt").read_text()
+        self.assertIn('subscriptionId == subscriptionId',controller)
+        self.assertIn('formatIncomingSimLabel(original,',controller)
+        self.assertIn('maskPhoneAccountLabel',controller)
+
     def test_all_new_resources_translated(self):
         pl=ET.parse(ROOT/"res/values/strings.xml").getroot()
         en=ET.parse(ROOT/"res/values-en/strings.xml").getroot()
