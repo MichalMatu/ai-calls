@@ -5,6 +5,7 @@ import android.content.Intent
 import pl.michalmatu.aicallbridge.campaign.ScenarioOutgoingCallActivity
 import androidx.activity.OnBackPressedCallback
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -29,6 +30,8 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
     private lateinit var store: AndroidConversationPreparationStore
     private var selectedId: String? = null
     private var selectedPersonalId: String? = null
+    private var creatingNewScenario = false
+    private var templatesExpanded = false
     private var restoredInputs: Bundle? = null
     private var personalTitle: EditText? = null
     private var personalGoal: EditText? = null
@@ -54,6 +57,8 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
         })
         selectedId = savedInstanceState?.getString("scenario_id")
         selectedPersonalId = savedInstanceState?.getString("personal_id")
+        creatingNewScenario = savedInstanceState?.getBoolean("creating_new_scenario") ?: false
+        templatesExpanded = savedInstanceState?.getBoolean("templates_expanded") ?: false
         restoredInputs = savedInstanceState
         val definition = selectedId?.let(ScenarioCatalog::byId)
         val personal = selectedPersonalId?.let { id ->
@@ -61,12 +66,14 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
         }
         if (definition == null) showCatalog() else if (selectedPersonalId != null && personal == null)
             showCatalog(getString(R.string.scenario_ui_read_failed))
-        else showEditor(definition, personal)
+        else showEditor(definition, personal, creating = creatingNewScenario)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         selectedId?.let { outState.putString("scenario_id", it) }
         selectedPersonalId?.let { outState.putString("personal_id", it) }
+        outState.putBoolean("creating_new_scenario", creatingNewScenario)
+        outState.putBoolean("templates_expanded", templatesExpanded)
         personalTitle?.let { outState.putString("personal_title", it.text.toString()) }
         personalGoal?.let { outState.putString("personal_goal", it.text.toString()) }
         inputs.forEach { (id, edit) ->
@@ -110,6 +117,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
     private fun showCatalog(message: String = "") {
         selectedId = null
         selectedPersonalId = null
+        creatingNewScenario = false
         restoredInputs = null
         personalTitle = null
         personalGoal = null
@@ -118,8 +126,6 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
         savedTitle = null
         savedGoal = null
         val root = body()
-        root.addView(UiDesign.caption(this, getString(R.string.scenario_ui_intro)),
-            UiDesign.spaceAfter(this, 16))
         if (message.isNotBlank()) root.addView(UiDesign.caption(this, message),
             UiDesign.spaceAfter(this, 12))
         val mine = runCatching { store.loadPersonalScenarios().items }.getOrElse {
@@ -127,9 +133,15 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 UiDesign.spaceAfter(this, 12))
             emptyList()
         }
-        if (mine.isNotEmpty()) {
-            root.addView(UiDesign.heading(this, getString(R.string.scenario_ui_mine)),
-                UiDesign.spaceAfter(this, 10))
+        root.addView(UiDesign.heading(this, getString(R.string.scenario_ui_mine)),
+            UiDesign.spaceAfter(this, 10))
+        root.addView(UiDesign.action(this, getString(R.string.scenario_ui_new), UiActionTone.PRIMARY) {
+            showEditor(ScenarioCatalog.custom, creating = true)
+        }.apply { tag = "scenario-new" }, UiDesign.spaceAfter(this, 12))
+        if (mine.isEmpty()) {
+            root.addView(UiDesign.caption(this, getString(R.string.scenario_ui_none)),
+                UiDesign.spaceAfter(this, 12))
+        } else {
             mine.forEach { personal ->
                 val template = ScenarioCatalog.byId(personal.templateId) ?: return@forEach
                 val card = UiDesign.card(this).apply {
@@ -160,8 +172,21 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 root.addView(card, UiDesign.spaceAfter(this, 12))
             }
         }
-        root.addView(UiDesign.heading(this, getString(R.string.scenario_ui_factory)),
-            UiDesign.spaceAfter(this, 10))
+        val presets = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "scenario-presets-container"
+            visibility = if (templatesExpanded) View.VISIBLE else View.GONE
+        }
+        val presetToggle = UiDesign.action(this, getString(
+            if (templatesExpanded) R.string.scenario_ui_hide_templates
+            else R.string.scenario_ui_show_templates, ScenarioCatalog.templates.size)) {
+            templatesExpanded = !templatesExpanded
+            presets.visibility = if (templatesExpanded) View.VISIBLE else View.GONE
+            (window.decorView.findViewWithTag<View>("scenario-presets-toggle") as? TextView)
+                ?.text = getString(if (templatesExpanded) R.string.scenario_ui_hide_templates
+                    else R.string.scenario_ui_show_templates, ScenarioCatalog.templates.size)
+        }.apply { tag = "scenario-presets-toggle" }
+        root.addView(presetToggle, UiDesign.spaceAfter(this, 12))
         ScenarioCatalog.templates.forEach { definition ->
             val card = UiDesign.card(this).apply {
                 tag = "scenario-preset:" + definition.id
@@ -186,14 +211,21 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
             })
             card.addView(header, UiDesign.spaceAfter(this, 5))
             card.addView(UiDesign.caption(this, definition.goal(language)))
-            root.addView(card, UiDesign.spaceAfter(this, 12))
+            presets.addView(card, UiDesign.spaceAfter(this, 12))
         }
+        root.addView(presets, UiDesign.spaceAfter(this, 8))
         install(root)
     }
 
-    private fun showEditor(definition: ScenarioDefinition, personal: PersonalScenario? = null) {
+    private fun showEditor(
+        definition: ScenarioDefinition,
+        personal: PersonalScenario? = null,
+        creating: Boolean = false,
+    ) {
+        require(!creating || (personal == null && definition.id == ScenarioCatalog.custom.id))
         selectedId = definition.id
         selectedPersonalId = personal?.id
+        creatingNewScenario = creating
         inputs.clear()
         personalTitle = null
         personalGoal = null
@@ -204,23 +236,27 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
             null
         } ?: definition.draft()
         savedValues = stored.values.toMap()
-        savedTitle = personal?.current?.title
-        savedGoal = personal?.current?.goal
+        savedTitle = if (creating) "" else personal?.current?.title
+        savedGoal = if (creating) "" else personal?.current?.goal
         val root = body()
-        root.addView(UiDesign.heading(this, personal?.current?.title ?: definition.title(language)),
+        root.addView(UiDesign.heading(this, if (creating) getString(R.string.scenario_ui_new)
+            else personal?.current?.title ?: definition.title(language)),
             UiDesign.spaceAfter(this, 10))
-        root.addView(UiDesign.caption(this, getString(if (definition.callAdapterId == null)
-            R.string.scenario_ui_draft_only else R.string.scenario_ui_clir_note)),
-            UiDesign.spaceAfter(this, 14))
+        if (definition.callAdapterId != null) {
+            root.addView(UiDesign.caption(this, getString(R.string.scenario_ui_clir_note)),
+                UiDesign.spaceAfter(this, 14))
+        }
 
-        if (personal != null) {
+        if (personal != null || creating) {
             val headline = UiDesign.card(this).apply { tag = "scenario-personal-details" }
             headline.addView(UiDesign.caption(this, getString(R.string.scenario_ui_name)),
                 UiDesign.spaceAfter(this, 5))
             personalTitle = EditText(this).apply {
                 tag = "scenario-personal-name"
                 setSingleLine(true)
-                setText(restoredInputs?.getString("personal_title") ?: personal.current.title)
+                setText(restoredInputs?.getString("personal_title") ?:
+                    if (creating) "" else personal?.current?.title.orEmpty())
+                hint = getString(R.string.scenario_ui_name)
                 background = UiDesign.surfaceDrawable(this@ScenarioLibraryActivity, UiDesign.softAccent)
                 setPadding(UiDesign.dp(this@ScenarioLibraryActivity, 12),
                     UiDesign.dp(this@ScenarioLibraryActivity, 12),
@@ -234,7 +270,9 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 tag = "scenario-personal-goal"
                 minLines = 2
                 maxLines = 6
-                setText(restoredInputs?.getString("personal_goal") ?: personal.current.goal)
+                setText(restoredInputs?.getString("personal_goal") ?:
+                    if (creating) "" else personal?.current?.goal.orEmpty())
+                hint = getString(R.string.scenario_ui_goal)
                 background = UiDesign.surfaceDrawable(this@ScenarioLibraryActivity, UiDesign.softAccent)
                 setPadding(UiDesign.dp(this@ScenarioLibraryActivity, 12),
                     UiDesign.dp(this@ScenarioLibraryActivity, 12),
