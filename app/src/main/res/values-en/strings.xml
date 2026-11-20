@@ -561,6 +561,7 @@
     <string name="skills_ux05_name_closure">Natural closure</string>
     <string name="camp_ux06_diagnostic_recording">Recording permission for future campaign attempts: %1$s</string>
     <string name="camp_ux06_diagnostic_event">Latest service message (historical, not live):\n%1$s</string>
+    <string name="scenario_ui_new_title">New scenario</string>
     <string name="scenario_ui_new">+ New scenario</string>
     <string name="scenario_ui_none">No personal scenarios yet.</string>
     <string name="scenario_ui_show_templates">Ready-made templates (%1$d) ▾</string>
