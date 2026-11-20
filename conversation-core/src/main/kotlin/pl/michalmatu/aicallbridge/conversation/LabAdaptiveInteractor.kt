@@ -1,13 +1,13 @@
 package pl.michalmatu.aicallbridge.conversation
 
 /** Explicit, single-use branches: caller input depends on the actual previous model reply. */
-internal data class LabAdaptiveDecision(
+data class LabAdaptiveDecision(
     val ruleNumber: Int,
     val condition: String,
     val utterance: String,
 )
 
-internal class LabAdaptiveInteractor(private val test: LabCaseRevision) {
+class LabAdaptiveInteractor(private val test: LabCaseRevision) {
     private data class Rule(val number: Int, val condition: String, val utterance: String)
     private val rules = test.rules.lines().mapIndexedNotNull { index, source ->
         val line = source.trim()
