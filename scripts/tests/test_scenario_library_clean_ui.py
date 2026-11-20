@@ -1,40 +1,36 @@
-"""Scenario-library visible UI contract; no calls or user data mutations."""
+"""Scenarios screen remains single-save, simple, and off-call."""
 from pathlib import Path
 import unittest
 ROOT=Path(__file__).resolve().parents[2]
 class ScenarioCleanUiContract(unittest.TestCase):
-    def test_personal_first_new_scenario_and_collapsed_templates(self):
+    def test_library_preserves_personal_first_and_collapsed_templates(self):
         ui=(ROOT/"app/src/main/kotlin/pl/michalmatu/aicallbridge/conversation/ScenarioLibraryActivity.kt").read_text()
-        self.assertIn('tag = "scenario-new"',ui)
-        self.assertIn('tag = "scenario-presets-toggle"',ui)
-        self.assertIn('tag = "scenario-presets-container"',ui)
-        self.assertIn('templatesExpanded = savedInstanceState?.getBoolean',ui)
-        self.assertIn('visibility = if (templatesExpanded) View.VISIBLE else View.GONE',ui)
-        self.assertIn("showEditor(ScenarioCatalog.custom, creating = true)",ui)
-        self.assertIn("else if (creating) definition.draft()",ui)
+        for token in ('tag = "scenario-new"','tag = "scenario-presets-toggle"',
+                      'tag = "scenario-presets-container"',
+                      'showEditor(ScenarioCatalog.custom, creating = true)',
+                      'templatesExpanded = savedInstanceState?.getBoolean',
+                      'creatingNewScenario = creating'):
+            self.assertIn(token,ui)
         self.assertLess(ui.index('tag = "scenario-new"'),ui.index('tag = "scenario-presets-toggle"'))
-        self.assertIn('creatingNewScenario = creating',ui)
-        self.assertIn('outState.putBoolean("creating_new_scenario"',ui)
-        self.assertIn('store.loadPersonalScenarios().create(',ui)
-        self.assertIn('store.savePersonalScenarios(updated)',ui)
-    def test_compact_primary_actions_and_retained_safety(self):
+        self.assertIn("else if (creating) definition.draft()",ui)
+    def test_editor_only_has_save_prepare_and_one_delete_menu(self):
         ui=(ROOT/"app/src/main/kotlin/pl/michalmatu/aicallbridge/conversation/ScenarioLibraryActivity.kt").read_text()
-        for key in ('scenario-prepare-outgoing','scenario-save','scenario-more',
-                    'scenario-advanced-actions','scenario-form-status'):
+        for key in ('scenario-prepare-outgoing','scenario-save','scenario-delete-options',
+                    'scenario-form-status','library.update(personal.id',
+                    'menu.add(getString(R.string.scenario_ui_delete))'):
             self.assertIn(key,ui)
-        self.assertIn('advanced.addView(revisions',ui)
-        self.assertIn('advanced.addView(UiDesign.action(this, getString(R.string.scenario_ui_delete)',ui)
-        self.assertIn('leaveEditor()',ui)
+        for removed in ('scenario-advanced-actions','scenario-version-picker',
+                        'scenario_ui_duplicate','scenario_ui_restore','scenario_ui_preview'):
+            self.assertNotIn(removed,ui)
+        self.assertIn('existing ?: run {',ui)
+        self.assertIn('if (!saving)',ui)
         self.assertIn('ScenarioOutgoingCallActivity::class.java',ui)
-        self.assertNotIn('root.addView(UiDesign.caption(this, getString(R.string.scenario_ui_intro))',ui)
-        self.assertIn("val summary = if (personalTitle == null)",ui)
         self.assertNotIn("AppOwnedCampaignService",ui)
-    def test_localized_visible_labels(self):
-        for lang in ("values","values-en"):
-            values=(ROOT/"app/src/main/res"/lang/"strings.xml").read_text()
+    def test_labels_localized(self):
+        for locale in ("values","values-en"):
+            values=(ROOT/"app/src/main/res"/locale/"strings.xml").read_text()
             for key in ("scenario_ui_new","scenario_ui_new_title","scenario_ui_none",
-                        "scenario_ui_show_templates","scenario_ui_hide_templates",
-                        "scenario_ui_more","scenario_ui_new_invalid"):
+                        "scenario_ui_save_changes","scenario_ui_save_personal",
+                        "scenario_ui_delete_simple_message"):
                 self.assertIn('name="'+key+'"',values)
-if __name__ == "__main__":
-    unittest.main()
+if __name__=="__main__": unittest.main()
