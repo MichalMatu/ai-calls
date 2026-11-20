@@ -18,13 +18,16 @@ fi
 ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
 adb -s "$serial" install -r app/build/outputs/apk/debug/app-debug.apk >/dev/null
 adb -s "$serial" install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk >/dev/null
-output="$(adb -s "$serial" shell am instrument -w \
+if ! output="$(adb -s "$serial" shell am instrument -w \
   -e class 'pl.michalmatu.aicallbridge.AndroidAppBottomNavigationFlowTest,pl.michalmatu.aicallbridge.AndroidUiPolishContractTest' \
-  pl.michalmatu.aicallbridge.s8lab.test/androidx.test.runner.AndroidJUnitRunner)"
-printf '%s\n' "$output"
-if [[ "$output" == *'FAILURES!!!'* || "$output" == *'INSTRUMENTATION_FAILED'* ||
-      "$output" != *'INSTRUMENTATION_CODE: -1'* ]]; then
-  echo UI_LAB_INSTRUMENTATION_FAIL=true >&2
+  pl.michalmatu.aicallbridge.s8lab.test/androidx.test.runner.AndroidJUnitRunner)"; then
+  printf '%s\n' "$output" | tail -35 >&2
+  echo UI_LAB_INSTRUMENTATION_COMMAND_FAIL=true >&2
   exit 6
 fi
+if ! count="$(printf '%s\n' "$output" | python3 scripts/aicall_tools/diagnostics/instrumentation_result.py)"; then
+  printf '%s\n' "$output" | tail -35 >&2
+  exit 6
+fi
+printf '%s\n' "$count"
 echo UI_LAB_EMULATOR_NAVIGATION_PASS=true

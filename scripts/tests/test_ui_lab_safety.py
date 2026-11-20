@@ -5,7 +5,7 @@ class LabSafetyTests(unittest.TestCase):
     def test_emulator_guard(self):
         s=(ROOT/"scripts/bin/run-ui-lab.sh").read_text()
         for guard in ("^emulator-[0-9]+$","ro.kernel.qemu","UI_LAB_REFUSED=PHYSICAL_DEVICE",
-                      "INSTRUMENTATION_CODE: -1","AndroidUiPolishContractTest"):
+                      "instrumentation_result.py","AndroidUiPolishContractTest"):
             self.assertIn(guard,s)
         for risky in ("ACTION_CALL","KEYCODE_CALL","start-s8-gsm-shell"):
             self.assertNotIn(risky,s)
