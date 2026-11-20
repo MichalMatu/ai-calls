@@ -365,8 +365,7 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
             })
         }
         // Only the existing wizard authorizes numbers, SIM and a call.
-        if (!creating) {
-            val prepare = UiDesign.action(this,
+        val prepare = if (!creating) UiDesign.action(this,
                 getString(R.string.scenario_ui_prepare_call),
                 if (personal == null) UiActionTone.PRIMARY else UiActionTone.SECONDARY) {
                 val next = draft()
@@ -398,10 +397,10 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                             .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_BRIEF, summary))
                     }
                 }
-            }.apply { tag = "scenario-prepare-outgoing" }
-            // For saved entries Save comes first; templates lead with Prepare.
-            if (personal == null) root.addView(prepare, UiDesign.spaceAfter(this, 12))
-            else root.addView(prepare, UiDesign.spaceAfter(this, 12))
+            }.apply { tag = "scenario-prepare-outgoing" } else null
+        // A factory template leads with Prepare, while personal edits lead with Save.
+        if (personal == null && prepare != null) {
+            root.addView(prepare, UiDesign.spaceAfter(this, 12))
         }
         var saving = false
         val save = UiDesign.action(this, getString(when {
@@ -471,17 +470,9 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
                 }
             }
         }.apply { tag = "scenario-save" }
-        if (personal == null || creating) {
-            root.addView(save, UiDesign.spaceAfter(this, 12))
-        } else {
-            // Primary Save first for an existing personal scenario.
-            val prepare = root.findViewWithTag<android.widget.Button>(
-                "scenario-prepare-outgoing")
-            if (prepare != null) {
-                root.removeView(prepare)
-                root.addView(save, UiDesign.spaceAfter(this, 12))
-                root.addView(prepare, UiDesign.spaceAfter(this, 12))
-            } else root.addView(save, UiDesign.spaceAfter(this, 12))
+        root.addView(save, UiDesign.spaceAfter(this, 12))
+        if (personal != null && prepare != null) {
+            root.addView(prepare, UiDesign.spaceAfter(this, 12))
         }
         root.addView(feedback)
         install(root)
