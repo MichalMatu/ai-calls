@@ -28,3 +28,12 @@ internal data class PhoneTaskDraft(
 ) {
     override fun toString() = "PhoneTaskDraft(id=$id,step=$step,content=REDACTED)"
 }
+
+/** Pure preview rules. Scheduling limits are still enforced by PhoneTask.validated(). */
+internal object PhoneTaskScheduleUiPolicy {
+    fun invalidOrder(scheduled: Boolean, start: LocalDateTime, end: LocalDateTime): Boolean =
+        scheduled && !end.isAfter(start)
+
+    fun expired(scheduled: Boolean, start: LocalDateTime, end: LocalDateTime,
+        now: LocalDateTime): Boolean = !end.isAfter(now) || (scheduled && !start.isAfter(now))
+}

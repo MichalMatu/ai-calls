@@ -770,6 +770,7 @@
     <string name="home_incoming_read_error">Could not read answering status</string>
     <string name="home_incoming_summary">Choose AI or manual answering and the SIM card.</string>
     <string name="task_custom_help">Start from scratch: enter your own goal and AI instructions. No template required. AI gathers information only, with no contracts or bookings.</string>
+    <string name="task_window_order_invalid">Start calling must be before Place calls until. The end time was not changed; adjust it manually.</string>
     <string name="task_window_expired">Your previously chosen times have passed. Update the window before approval.</string>
     <string name="task_refresh_window">Set new times (+1–2 hours)</string>
     <string name="task_new">New task</string>
