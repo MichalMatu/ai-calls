@@ -14,6 +14,8 @@ S22+ z `97d447db`: podpis i SHA zgodne, UI/Lab 10/10 bez połączeń. Lokalny mo
 
 W szybkiej próbie użytkownika AI odebrało połączenie przychodzące i mówiło.
 
+W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
+
 ## Następny sprint
 
 1. Pełne próby GSM i odbiór odpowiedzi w [Test Lab](modules/CONVERSATION.md).

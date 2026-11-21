@@ -12,10 +12,11 @@
     <string name="lab_case_save">Zapisz</string>
     <string name="lab_case_title">Nazwa</string>
     <string name="lab_case_goal">Cel rozmowy</string>
+    <string name="lab_case_assistant_instructions">Instrukcje dla AI w tym teście</string>
     <string name="lab_case_role">Rola modelu</string>
     <string name="lab_case_opening">Pierwsza wypowiedź</string>
     <string name="lab_case_state">Stan rozmówcy</string>
-    <string name="lab_case_facts">Znane fakty</string>
+    <string name="lab_case_facts">Fakty do oceny odpowiedzi</string>
     <string name="lab_case_expected">Oczekiwane zachowania</string>
     <string name="lab_case_rules">Reguły adaptacyjne: warunek => tekst</string>
     <string name="lab_case_finish">Warunek końca</string>

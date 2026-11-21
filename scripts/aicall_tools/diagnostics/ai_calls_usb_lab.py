@@ -34,7 +34,8 @@ except ImportError:  # direct execution remains supported
         PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,
     )
 
-RECEIVER = PACKAGE + "/.debug.UsbLabControlReceiver"
+LAB_PACKAGE = PACKAGE + ".s8lab"
+RECEIVER_CLASS = PACKAGE + ".debug.UsbLabControlReceiver"
 PRIVATE_ROOT = "files/usb-lab-control"
 PRIVATE_RESPONSE = PRIVATE_ROOT + "/response.json"
 PRIVATE_TRANSCRIPT = PRIVATE_ROOT + "/transcript.json"
@@ -65,6 +66,7 @@ def private_directory() -> Path:
 def device_request(device: Device, action: str, **params: object) -> dict:
     if action not in ACTIONS:
         raise DiagnosticError("invalid_diagnostic_action")
+    package = LAB_PACKAGE if action.startswith("lab_") else PACKAGE
     nonce = uuid.uuid4().hex
     payload = {"protocol": 1, "nonce": nonce, "action": action, **params}
     request = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
@@ -83,7 +85,7 @@ def device_request(device: Device, action: str, **params: object) -> dict:
                 + PRIVATE_ROOT + "/request.json"
             )
             command = [device.adb, "-s", device.endpoint,
-                       "shell", "run-as", PACKAGE, "sh", "-c", shlex.quote(shell)]
+                       "shell", "run-as", package, "sh", "-c", shlex.quote(shell)]
             try:
                 write = subprocess.run(command, input=request, capture_output=True,
                                        text=True, timeout=30, check=False)
@@ -93,7 +95,7 @@ def device_request(device: Device, action: str, **params: object) -> dict:
                 raise DiagnosticError("private_request_write_failed")
             broadcast = device.call(
                 "shell", "am", "broadcast", "--receiver-foreground",
-                "-n", RECEIVER, "--es", "usb_lab_nonce", nonce,
+                "-n", f"{package}/{RECEIVER_CLASS}", "--es", "usb_lab_nonce", nonce,
                 timeout=30,
             )
             if broadcast.returncode or "Error:" in (
@@ -103,7 +105,7 @@ def device_request(device: Device, action: str, **params: object) -> dict:
             deadline = time.monotonic() + 10
             while time.monotonic() < deadline:
                 response = device.call(
-                    "shell", "run-as", PACKAGE, "cat", PRIVATE_RESPONSE,
+                    "shell", "run-as", package, "cat", PRIVATE_RESPONSE,
                     timeout=15,
                 )
                 if response.returncode == 0:
@@ -122,9 +124,9 @@ def device_request(device: Device, action: str, **params: object) -> dict:
             fcntl.flock(handle, fcntl.LOCK_UN)
 
 
-def save_private_transcript(device: Device) -> dict:
+def save_private_transcript(device: Device, session_id: str | None = None) -> dict:
     response = device.call(
-        "shell", "run-as", PACKAGE, "cat", PRIVATE_TRANSCRIPT, timeout=35,
+        "shell", "run-as", LAB_PACKAGE, "cat", PRIVATE_TRANSCRIPT, timeout=35,
     )
     if response.returncode:
         raise DiagnosticError("private_transcript_not_available")
@@ -135,6 +137,8 @@ def save_private_transcript(device: Device) -> dict:
     session = data.get("session_id")
     if not isinstance(session, str) or not re.fullmatch(r"[0-9a-f-]{36}", session):
         raise DiagnosticError("private_session_id_invalid")
+    if session_id is not None and session != session_id:
+        raise DiagnosticError("private_transcript_session_mismatch")
     root = private_directory() / "lab-sessions"
     root.mkdir(mode=0o700, exist_ok=True)
     root.chmod(0o700)
@@ -400,7 +404,7 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
                     "call_started": False}
         raise DiagnosticError("appointment_editor_not_foreground")
     if name == "lab_save":
-        return save_private_transcript(device)
+        return save_private_transcript(device, args.session_id)
     if name == "ram":
         return {"ok": True, "code": "sample", "data": ram_sample(device)}
     if name.startswith("profile_"):
@@ -437,8 +441,17 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
             raise DiagnosticError("nonempty_text_expected_on_stdin")
         return device_request(device, name, session_id=args.session_id, text=text)
     if name == "lab_start":
-        return device_request(device, name, context_tokens=args.context_tokens,
-                              preset=args.preset, role=getattr(args, "role", "GENERAL"))
+        params = {"context_tokens": args.context_tokens, "preset": args.preset,
+                  "role": getattr(args, "role", "GENERAL")}
+        if getattr(args, "instructions_stdin", False):
+            instructions = sys.stdin.read().strip()
+            if not instructions:
+                raise DiagnosticError("nonempty_instructions_expected_on_stdin")
+            status = device_request(device, "lab_status")
+            if not status.get("ok") or status.get("data", {}).get("supports_test_instructions") is not True:
+                raise DiagnosticError("lab_test_instructions_unavailable_in_installed_apk")
+            params["assistant_instructions"] = instructions
+        return device_request(device, name, **params)
     if name == "lab_stop":
         if not args.session_id:
             raise DiagnosticError("session_id_required")
@@ -470,6 +483,8 @@ def main() -> int:
     ))
     parser.add_argument("--allow-one-real-call", action="store_true")
     parser.add_argument("--session-id")
+    parser.add_argument("--instructions-stdin", action="store_true",
+                        help="Read optional Lab-only AI instructions for lab-start from stdin")
     parser.add_argument("--task-id")
     parser.add_argument("--context-tokens", type=int, default=4096)
     parser.add_argument("--preset", default="natural")
@@ -485,6 +500,8 @@ def main() -> int:
     parser.add_argument("--adb", default=os.environ.get(
         "ADB", str(Path.home() / "Library/Android/sdk/platform-tools/adb")))
     args = parser.parse_args()
+    if args.instructions_stdin and args.command != "lab-start":
+        parser.error("--instructions-stdin requires lab-start")
     try:
         device = Device(args.adb)
         if args.command == "watch":

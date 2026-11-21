@@ -1,7 +1,12 @@
 package pl.michalmatu.aicallbridge
 
+import android.os.Build
+import android.view.View
+import android.view.ViewGroup
+import android.view.inspector.WindowInspector
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ListView
 import android.widget.Spinner
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -10,6 +15,7 @@ import java.io.File
 import java.security.KeyStore
 import java.util.UUID
 import org.junit.Assert.*
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
@@ -23,6 +29,8 @@ import pl.michalmatu.aicallbridge.conversation.LabReviewDimension
 import pl.michalmatu.aicallbridge.conversation.LabReviewEvidence
 import pl.michalmatu.aicallbridge.conversation.LabReviewVerdict
 import pl.michalmatu.aicallbridge.conversation.LabRole
+import pl.michalmatu.aicallbridge.conversation.SkillLabIsolatedTestStore
+import pl.michalmatu.aicallbridge.ui.SettingsHubActivity
 
 /** Isolated, no-call Android Keystore and Lab UI acceptance. Never touches owner's cases. */
 @RunWith(AndroidJUnit4::class)
@@ -93,6 +101,85 @@ class AndroidLabDialogStorageAcceptanceTest {
                 assertTrue("setup_must_own_the_viewport", decor.findViewWithTag<android.view.View>(
                     "lab-options-scroll").isShown)
             }
+        }
+    }
+
+    @Test fun settingsOpensLabAndCaseEditorPersistsInstructions() {
+        assumeTrue(Build.HARDWARE in setOf("ranchu", "goldfish"))
+        val instrument = InstrumentationRegistry.getInstrumentation()
+        val context = instrument.targetContext
+        val isolated = "lab-editor-" + UUID.randomUUID()
+        val store = AndroidConversationPreparationStore(context, directoryName = isolated,
+            keyAlias = isolated, legacyPreferencesName = isolated)
+        val monitor = instrument.addMonitor(ConversationSkillLabActivity::class.java.name, null, false)
+        val title = "Synthetic case fixture"
+        val instructions = "Use the fictional label Cypress."
+        fun caseList(view: View): ListView? {
+            if (view is ListView) return view
+            if (view is ViewGroup) {
+                for (index in 0 until view.childCount) {
+                    caseList(view.getChildAt(index))?.let { return it }
+                }
+            }
+            return null
+        }
+        fun choose(label: String) {
+            instrument.waitForIdleSync()
+            instrument.runOnMainSync {
+                val list = WindowInspector.getGlobalWindowViews().asReversed()
+                    .firstNotNullOf(::caseList)
+                val index = (0 until list.count).first { list.getItemAtPosition(it).toString() == label }
+                assertTrue(list.performItemClick(list.getChildAt(index), index, list.adapter.getItemId(index)))
+            }
+        }
+        fun caseEditor(): View = WindowInspector.getGlobalWindowViews().last {
+            it.findViewWithTag<EditText>("lab-case-field:instructions") != null
+        }
+        SkillLabIsolatedTestStore.setForDebugTest(context, store)
+        try {
+            ActivityScenario.launch(SettingsHubActivity::class.java).use { scenario ->
+                scenario.onActivity { settings ->
+                    val entry = requireNotNull(settings.window.decorView.findViewWithTag<View>(
+                        "settings-destination:ConversationSkillLabActivity"))
+                    assertTrue(entry.isShown && entry.performClick())
+                }
+                val lab = requireNotNull(instrument.waitForMonitorWithTimeout(monitor, 12_000))
+                try {
+                    instrument.runOnMainSync {
+                        val manage = lab.window.decorView.findViewWithTag<View>("lab-case-manage")
+                        assertTrue(manage.performClick())
+                    }
+                    choose(lab.getString(R.string.lab_case_new))
+                    instrument.waitForIdleSync()
+                    instrument.runOnMainSync {
+                        val editor = caseEditor()
+                        editor.findViewWithTag<EditText>("lab-case-field:title").setText(title)
+                        editor.findViewWithTag<EditText>("lab-case-field:goal").setText("Check the label")
+                        editor.findViewWithTag<EditText>("lab-case-field:opening").setText("Test opening")
+                        editor.findViewWithTag<EditText>("lab-case-field:instructions").setText(instructions)
+                        assertTrue(editor.findViewById<Button>(android.R.id.button1).performClick())
+                    }
+                    assertEquals(instructions, store.loadLabCases().cases.single().selected().assistantInstructions)
+                    instrument.waitForIdleSync()
+                    instrument.runOnMainSync {
+                        assertTrue(lab.window.decorView.findViewWithTag<View>("lab-case-manage").performClick())
+                    }
+                    choose("$title · v1")
+                    choose(lab.getString(R.string.lab_case_edit))
+                    instrument.waitForIdleSync()
+                    instrument.runOnMainSync {
+                        assertEquals(instructions, caseEditor()
+                            .findViewWithTag<EditText>("lab-case-field:instructions").text.toString())
+                    }
+                } finally {
+                    instrument.runOnMainSync { lab.finish() }
+                }
+            }
+        } finally {
+            instrument.removeMonitor(monitor)
+            SkillLabIsolatedTestStore.setForDebugTest(context, null)
+            File(context.noBackupFilesDir, isolated).deleteRecursively()
+            KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(isolated)
         }
     }
 }

@@ -16,6 +16,7 @@ data class LabCaseRevision(
     val expectations: String,
     val rules: String,
     val completion: String,
+    val assistantInstructions: String? = null,
 ) {
     fun validated(): LabCaseRevision {
         require(revision > 0 && title.isNotBlank() && goal.isNotBlank()) {
