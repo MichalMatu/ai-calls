@@ -30,7 +30,7 @@ EXPECTED_FIELDS = (
 def parse_readiness_report(text: str) -> Optional[dict[str, str]]:
     """Allow only the established GSM host readiness protocol, never call details."""
     values: dict[str, str] = {}
-    for line in text.replace("\\r", "").splitlines():
+    for line in text.splitlines():
         if line.count("=") != 1:
             return None
         key, value = line.split("=", 1)
@@ -55,6 +55,15 @@ def parse_readiness_report(text: str) -> Optional[dict[str, str]]:
         values["gsm_shell_host_available"] == "true"
     )
     if (values["live_call_readiness"] == "true") != expected_ready:
+        return None
+    expected_reason = (
+        "record_audio_permission_required"
+        if values["record_audio_granted"] != "true"
+        else "gsm_shell_host_unavailable"
+        if values["gsm_shell_host_available"] != "true"
+        else "none"
+    )
+    if values["failure_reason"] != expected_reason:
         return None
     return values
 
