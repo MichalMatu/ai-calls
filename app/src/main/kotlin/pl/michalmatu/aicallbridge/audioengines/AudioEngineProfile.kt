@@ -2,7 +2,15 @@ package pl.michalmatu.aicallbridge.audioengines
 
 /** Preferences, never call authority. No profile contains a target, grant or prompt. */
 internal enum class SpeechInputId { ANDROID_STT, PARAKEET_PL, GEMMA_AUDIO_DIRECT }
-internal enum class DialogueModelId { GEMMA_4_E2B, GEMMA_4_E4B, QWEN_3_1_7B, QWEN_3_0_6B, QWEN_3_5_2B, USER_LITERT }
+internal enum class DialogueModelId {
+    GEMMA_4_E2B, GEMMA_4_E4B, QWEN_3_1_7B, QWEN_3_0_6B, QWEN_3_5_2B, USER_LITERT;
+
+    val requiresTextCheck: Boolean get() = this == GEMMA_4_E4B || this == USER_LITERT
+
+    companion object {
+        val builtInChoices = listOf(GEMMA_4_E2B, GEMMA_4_E4B)
+    }
+}
 internal enum class SpeechOutputId { ANDROID_TTS_PL, PIPER_PL, KOKORO, POCKET_TTS }
 
 internal data class AudioEngineProfile(
@@ -36,6 +44,7 @@ internal object AudioEngineRegistry {
     )
     val dialogues = listOf(
         AudioEngineChoice(DialogueModelId.GEMMA_4_E2B.name, "Gemma 4 E2B"),
+        AudioEngineChoice(DialogueModelId.GEMMA_4_E4B.name, "Gemma 4 E4B"),
         AudioEngineChoice(DialogueModelId.USER_LITERT.name, "Model z pliku LiteRT-LM"),
     )
     val outputs = listOf(AudioEngineChoice("ANDROID_TTS_PL", "Android TTS"))

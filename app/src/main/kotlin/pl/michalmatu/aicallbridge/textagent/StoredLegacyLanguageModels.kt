@@ -14,7 +14,7 @@ internal data class StoredLegacyLanguageModel(
 /** The catalog identifies files; it never stands in for an inventory of installed models. */
 internal class StoredLegacyLanguageModels(private val directory: File) {
     fun list(): List<StoredLegacyLanguageModel> = LanguageModelCatalog.entries
-        .filter { it.id != DialogueModelId.GEMMA_4_E2B }
+        .filter { it.id !in DialogueModelId.builtInChoices }
         .mapNotNull { snapshot(it) }
 
     /** Caller confirms IDLE and reloads selection. Only the exact displayed snapshot is removed. */
@@ -26,7 +26,7 @@ internal class StoredLegacyLanguageModels(private val directory: File) {
         return File(directory, model.spec.fileName).delete()
     }
 
-    private fun snapshot(model: LanguageModelEntry): StoredLegacyLanguageModel? {
+    fun snapshot(model: LanguageModelEntry): StoredLegacyLanguageModel? {
         val file = File(directory, model.spec.fileName)
         if (!file.isFile || Files.isSymbolicLink(file.toPath())) return null
         return StoredLegacyLanguageModel(model, file.length(), file.lastModified())

@@ -31,7 +31,7 @@ import pl.michalmatu.aicallbridge.conversation.SkillLabRunner
 import pl.michalmatu.aicallbridge.conversation.SkillLabUiState
 import pl.michalmatu.aicallbridge.conversation.LabCaseRevision
 import pl.michalmatu.aicallbridge.conversation.LabRole
-import pl.michalmatu.aicallbridge.conversation.LAB_GENERAL_GOAL
+import pl.michalmatu.aicallbridge.conversation.labGeneralGoal
 import pl.michalmatu.aicallbridge.conversation.ConversationInstructionBuilder
 import pl.michalmatu.aicallbridge.incoming.IncomingSecretaryScenario
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
@@ -327,7 +327,9 @@ internal object UsbLabControl {
         }
         val override = if (request.has("context_tokens")) request.optInt("context_tokens", 0) else null
         if (override != null && override <= 0) return Result(false, "invalid_context_budget")
-        val tokens = override ?: AudioEngineProfileStore(context).load()?.generation?.contextTokens ?: 4_096
+        val profile = AudioEngineProfileStore(context).load()
+        val tokens = override ?: profile?.generation?.contextTokens ?: 4_096
+        val languageTag = profile?.languageTag ?: "pl-PL"
         val selectedPreset = request.optString("preset", "natural").ifBlank { "natural" }
         val selectedRole = runCatching {
             LabRole.valueOf(request.optString("role", "GENERAL"))
@@ -340,11 +342,13 @@ internal object UsbLabControl {
         if (selectedRole != LabRole.GENERAL || instructions != null) factory.selectedCase = LabCaseRevision(
             revision = 1, title = "USB — dialog bez połączenia", role = selectedRole,
             goal = when (selectedRole) {
-                LabRole.INCOMING -> IncomingSecretaryScenario.GOAL
-                LabRole.OUTGOING -> "Prowadź syntetyczny dialog testowy strony dzwoniącej. Brak skutków zewnętrznych."
-                LabRole.GENERAL -> LAB_GENERAL_GOAL
+                LabRole.INCOMING -> IncomingSecretaryScenario.goal(languageTag)
+                LabRole.OUTGOING -> if (languageTag == "en-US") "Run a synthetic outgoing test dialogue. No external effects."
+                    else "Prowadź syntetyczny dialog testowy strony dzwoniącej. Brak skutków zewnętrznych."
+                LabRole.GENERAL -> labGeneralGoal(languageTag)
             },
-            opening = if (selectedRole == LabRole.INCOMING) ConversationInstructionBuilder.INCOMING_OPENING
+            opening = if (selectedRole == LabRole.INCOMING) ConversationInstructionBuilder.incomingOpening(languageTag)
+                else if (languageTag == "en-US") "I'm calling about a fictional test case."
                 else "Dzwonię w fikcyjnej sprawie testowej.",
             callerState = "", facts = "", expectations = "", rules = "", completion = "",
             assistantInstructions = instructions,

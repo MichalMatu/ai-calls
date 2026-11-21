@@ -66,7 +66,7 @@ class AndroidOwnerModelLibraryTest {
                 val root = activity.window.decorView
                 assertNotNull(root.findViewWithTag<View>("model-card:GEMMA_4_E2B"))
                 assertNotNull(root.findViewWithTag<Button>("model-import-user"))
-                assertNull(root.findViewWithTag<View>("model-card:GEMMA_4_E4B"))
+                assertNotNull(root.findViewWithTag<View>("model-card:GEMMA_4_E4B"))
                 assertNull(root.findViewWithTag<View>("model-card:QWEN_3_1_7B"))
                 assertNull(root.findViewWithTag<View>("models-clean-legacy"))
             }

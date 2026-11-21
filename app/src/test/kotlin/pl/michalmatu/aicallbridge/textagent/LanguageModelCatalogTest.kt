@@ -37,8 +37,8 @@ class LanguageModelCatalogTest {
         assertFalse(DialogueModelId.GEMMA_4_E2B.nativeExecutionPolicy().cpuOnly)
     }
 
-    @Test fun onlyBaseAndFileModelsAreVisibleInEngineSelection() {
-        assertEquals(setOf(DialogueModelId.GEMMA_4_E2B.name, DialogueModelId.USER_LITERT.name),
+    @Test fun bothGemmasAndFileModelsAreVisibleInEngineSelection() {
+        assertEquals(setOf(DialogueModelId.GEMMA_4_E2B.name, DialogueModelId.GEMMA_4_E4B.name, DialogueModelId.USER_LITERT.name),
             pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry.dialogues.map { it.id }.toSet())
     }
 

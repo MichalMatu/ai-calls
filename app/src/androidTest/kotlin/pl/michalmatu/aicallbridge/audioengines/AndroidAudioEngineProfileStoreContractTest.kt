@@ -39,6 +39,15 @@ class AndroidAudioEngineProfileStoreContractTest {
         assertNull(AudioEngineRegistry.incompatibility(expected))
     }
 
+    @Test fun e4bAndEnglishSurviveProfileReload() {
+        val expected = AudioEngineProfile(dialogue = DialogueModelId.GEMMA_4_E4B, languageTag = "en-US")
+        assertTrue(store.save(expected))
+        assertEquals(expected, AudioEngineProfileStore(ctx, name).load())
+        assertTrue(expected.dialogue.requiresTextCheck)
+        assertEquals(4096, expected.generation.contextBudget(expected.dialogue, structured = true))
+        assertFalse(AudioEngineRegistry.supportsAudio(expected))
+    }
+
     @Test fun unknownAndPartiallyWrittenProfilesAreRejectedNotDowngraded() {
         val prefs = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
         prefs.edit().putString("input", "UNKNOWN_ENGINE").commit()

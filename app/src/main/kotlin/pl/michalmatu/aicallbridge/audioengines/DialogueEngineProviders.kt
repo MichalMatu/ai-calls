@@ -4,7 +4,9 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
 import android.content.Context
 import pl.michalmatu.aicallbridge.textagent.DialogueActionId
+import pl.michalmatu.aicallbridge.textagent.AndroidGemma4ModelReadiness
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
+import pl.michalmatu.aicallbridge.textagent.Gemma4ModelReadinessState
 import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
@@ -34,11 +36,21 @@ internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId,
     private val profile: AudioEngineProfile? = null) : DialogueEngineProvider {
     private val generation = profile?.generation ?: DialogueGenerationSettings.DEFAULTS
 
+    private fun callModelFile(context: Context) = profile?.let {
+        val file = Gemma4LiteRtTextBackendFactory.modelFile(context, it)
+        if (id == DialogueModelId.GEMMA_4_E4B) {
+            check(AndroidGemma4ModelReadiness.check(context, id).state == Gemma4ModelReadinessState.READY &&
+                ModelCompatibilityStore(context).verified(file, false)) { "model_compatibility_required" }
+        }
+        file
+    }
+
     override fun createConversationReply(context: Context, systemInstruction: String, tools: Set<ConversationToolId>): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id, tools,
             audioInput = audioInput,
-            selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) },
-            contextTokenBudget = generation.contextBudget(id, structured = true), generationSettings = generation)
+            selectedFile = callModelFile(context),
+            contextTokenBudget = generation.contextBudget(id, structured = true), generationSettings = generation,
+            responseLanguageTag = profile?.languageTag ?: "pl-PL")
 
     override fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
         tools: Set<ConversationToolId>, contextTokenBudget: Int,
@@ -46,12 +58,12 @@ internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId,
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id,
             tools, contextTokenBudget = contextTokenBudget, onTiming = onTiming,
             selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) },
-            generationSettings = generation)
+            generationSettings = generation, responseLanguageTag = profile?.languageTag ?: "pl-PL")
 
     override fun createDirect(context: Context, systemInstruction: String): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createDirectDialogue(context, systemInstruction, id,
             generationSettings = generation,
-            selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) })
+            selectedFile = callModelFile(context))
 
     override fun createActionClassifier(
         context: Context, systemInstruction: String, allowedActions: Set<DialogueActionId>,

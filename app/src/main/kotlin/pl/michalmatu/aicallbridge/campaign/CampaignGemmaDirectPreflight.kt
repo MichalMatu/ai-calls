@@ -80,7 +80,8 @@ internal object CampaignGemmaDirectPreflight {
         val startedAt = SystemClock.elapsedRealtime()
         try {
             candidate.generate(
-                "Dzień dobry, w jakiej sprawie Pan dzwoni?",
+                if (profile.languageTag == "en-US") "Hello. What are you calling about?"
+                else "Dzień dobry, w jakiej sprawie Pan dzwoni?",
                 object : TextCallAgentBackend.Listener {
                     override fun onComplete(text: String) {
                         val clean = text.isNotBlank() && runCatching {

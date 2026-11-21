@@ -92,6 +92,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         val progress: ProgressBar,
         val download: Button,
         val import: Button,
+        val remove: Button?,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -131,10 +132,11 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 Intent(this@LanguageModelActivity, LanguageModelTransferService::class.java)
                     .setAction(LanguageModelTransferService.CANCEL))
         }.apply { tag = "model-transfer-cancel"; visibility = View.GONE }
+        content.addView(cancelTransfer, UiDesign.spaceAfter(this, 8))
 
         mainModels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         content.addView(mainModels)
-        for (model in LanguageModelCatalog.entries.filter { it.id == DialogueModelId.GEMMA_4_E2B }) {
+        for (model in DialogueModelId.builtInChoices.map { LanguageModelCatalog[it] }) {
             val card = UiDesign.card(this).apply {
                 tag = "model-card:" + model.id.name
             }
@@ -150,7 +152,6 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 visibility = View.GONE
             }
             card.addView(progress, UiDesign.spaceAfter(this, 8))
-            card.addView(cancelTransfer, UiDesign.spaceAfter(this, 8))
             val download = UiDesign.action(this, getString(R.string.models_ui_download), UiActionTone.PRIMARY) {
                 begin(model, null)
             }.apply { tag = "model-download:" + model.id.name }
@@ -178,6 +179,9 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             }
             card.addView(actions, UiDesign.spaceAfter(this, 8))
+            val remove = if (model.id == DialogueModelId.GEMMA_4_E2B) null else
+                modelRemoveButton(model) { legacyLibrary().snapshot(model) }
+                    .also { card.addView(it, UiDesign.spaceAfter(this, 8)) }
             val detail = localizedModelDetail(model) + "\n\n" +
                 getString(R.string.models_ui_detail_runtime, "LiteRT-LM " + LanguageModelCatalog.RUNTIME_VERSION) +
                 "\n" + model.source.repositoryId + "\n" + getString(R.string.models_ui_detail_license) +
@@ -187,7 +191,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                     .setPositiveButton(android.R.string.ok, null).show()
             }.apply { tag = "model-details-toggle:" + model.id.name }, UiDesign.spaceAfter(this, 8))
             mainModels.addView(card, UiDesign.spaceAfter(this, UiDesign.GAP_SECTION))
-            rows += Row(model, card, stateLabel, progress, download, import)
+            rows += Row(model, card, stateLabel, progress, download, import, remove)
         }
         addParakeetCard(content)
         storageStatus = UiDesign.caption(this, "").apply { tag = "models-storage-summary" }
@@ -395,6 +399,8 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
             row.import.visibility = if (modelState.showImport && !transfer.busy) View.VISIBLE else View.GONE
             row.download.isEnabled = modelState.actionsEnabled
             row.import.isEnabled = modelState.actionsEnabled
+            row.remove?.visibility = if (file.isFile && !transfer.busy) View.VISIBLE else View.GONE
+            row.remove?.isEnabled = !isActive
             row.progress.visibility = if (modelState.showProgress) View.VISIBLE else View.GONE
             row.progress.progress = modelState.progressPercent
         }
@@ -426,9 +432,9 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun updateStorageStatus() {
         if (!::storageStatus.isInitialized) return
-        val files = mutableListOf(
-            Gemma4LiteRtTextBackendFactory.modelFile(this, DialogueModelId.GEMMA_4_E2B),
-            ParakeetModelFile.resolve(this))
+        val files = DialogueModelId.builtInChoices
+            .map { Gemma4LiteRtTextBackendFactory.modelFile(this, it) }.toMutableList()
+        files += ParakeetModelFile.resolve(this)
         val library = UserLiteRtModelStore(this)
         files += library.models().map { library.file(it) }
         val legacy = legacyLibrary().list()
@@ -456,9 +462,18 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                 UiDesign.spaceAfter(this, 6))
             card.addView(UiDesign.caption(this, getString(R.string.models_ui_legacy_file,
                 fileSize(snapshot.bytes))), UiDesign.spaceAfter(this, 8))
-            card.addView(UiDesign.action(this, getString(R.string.models_ui_remove), UiActionTone.DANGER) {
-                if (!safeToEditModels()) showFeedback(R.string.models_ui_not_idle)
-                else AlertDialog.Builder(this)
+            card.addView(modelRemoveButton(model) { snapshot }.apply { isEnabled = model.id != selected })
+            legacyModelsContainer.addView(card, UiDesign.spaceAfter(this, 12))
+        }
+    }
+
+    private fun modelRemoveButton(model: LanguageModelEntry, snapshotProvider: () -> StoredLegacyLanguageModel?) =
+        UiDesign.action(this, getString(R.string.models_ui_remove), UiActionTone.DANGER) {
+            val snapshot = snapshotProvider()
+            when {
+                !safeToEditModels() -> showFeedback(R.string.models_ui_not_idle)
+                snapshot == null -> showFeedback(R.string.models_ui_remove_failed)
+                else -> AlertDialog.Builder(this)
                     .setTitle(R.string.models_ui_remove)
                     .setMessage(getString(R.string.models_ui_remove_file_warning, model.title,
                         fileSize(snapshot.bytes)))
@@ -468,15 +483,13 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
                         when {
                             !safeToEditModels() -> showFeedback(R.string.models_ui_not_idle)
                             current == null -> showFeedback(R.string.models_ui_fix_engines)
-                            else -> showFeedback(if (library.delete(snapshot, current.dialogue))
+                            else -> showFeedback(if (legacyLibrary().delete(snapshot, current.dialogue))
                                 R.string.models_ui_removed else R.string.models_ui_remove_failed)
                         }
                         update()
                     }.show()
-            }.apply { tag = "stored-model-delete:" + model.id.name; isEnabled = model.id != selected })
-            legacyModelsContainer.addView(card, UiDesign.spaceAfter(this, 12))
-        }
-    }
+            }
+        }.apply { tag = "stored-model-delete:" + model.id.name }
 
     /** Verify a user-imported model without selecting it or modifying the active Call profile. */
     private fun checkImportedModel(model: UserLiteRtModel) {

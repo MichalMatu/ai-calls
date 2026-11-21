@@ -71,7 +71,7 @@ internal object AudioEngineReadinessProbe {
         val file = Gemma4LiteRtTextBackendFactory.modelFile(context, profile)
         if (profile.dialogue == DialogueModelId.USER_LITERT &&
             !pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer.hasHeader(file)) return "model_container_invalid"
-        if (profile.dialogue == DialogueModelId.USER_LITERT &&
+        if (profile.dialogue.requiresTextCheck &&
             !ModelCompatibilityStore(context).verified(file, false)) return "model_compatibility_required"
         if (profile.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
             !ModelCompatibilityStore(context).verified(file, true, profile)) return "model_audio_check_required"

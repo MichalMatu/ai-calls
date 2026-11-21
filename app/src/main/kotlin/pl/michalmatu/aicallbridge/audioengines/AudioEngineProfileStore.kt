@@ -33,7 +33,8 @@ internal class AudioEngineProfileStore(
             it.name == prefs.getString("dialogue", null)
         } ?: return null
         // Remove retired built-in choices without changing the STT/TTS/voice configuration.
-        val dialogue = if (previouslySavedDialogue != DialogueModelId.USER_LITERT)
+        val dialogue = if (previouslySavedDialogue !in DialogueModelId.builtInChoices &&
+            previouslySavedDialogue != DialogueModelId.USER_LITERT)
             DialogueModelId.GEMMA_4_E2B else previouslySavedDialogue
         val customId = if (dialogue == DialogueModelId.USER_LITERT)
             prefs.getString("custom_model_id", null) else null
