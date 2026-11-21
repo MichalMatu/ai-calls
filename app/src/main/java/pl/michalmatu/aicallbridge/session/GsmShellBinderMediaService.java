@@ -26,7 +26,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
     private volatile boolean shuttingDown;
     private int operationsInFlight;
     private long revokedThrough;
-    private boolean cleanupInProgress;
+    private int cleanupsInFlight;
     private ShellCallContexts.Pair contexts;
     private SamsungCallMediaSessionController.Endpoints endpoints;
 
@@ -57,7 +57,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
         synchronized (this) {
             if (!GsmBinderCancellationPolicy.mayPrepare(requested, revokedThrough)
                 || generation != IDLE
-                || operationsInFlight != 0 || cleanupInProgress
+                || operationsInFlight != 0 || cleanupsInFlight != 0
                 || contexts != null || endpoints != null || shuttingDown)
                 throw new IllegalStateException("gsm_shell_already_owned");
             generation = requested;
@@ -117,14 +117,14 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
     @Override public synchronized ParcelFileDescriptor takeDownlinkReadEnd(long requested) {
         requireOwner();
         if (requested <= revokedThrough || generation != requested
-            || endpoints == null || cleanupInProgress)
+            || endpoints == null || cleanupsInFlight != 0)
             throw new IllegalStateException("gsm_shell_downlink_unavailable");
         return endpoints.takeDownlinkReadEnd();
     }
 
     @Override public synchronized ParcelFileDescriptor takeUplinkWriteEnd(long requested) {
         requireOwner();
-        if (generation != requested || endpoints == null || cleanupInProgress)
+        if (generation != requested || endpoints == null || cleanupsInFlight != 0)
             throw new IllegalStateException("gsm_shell_uplink_unavailable");
         return endpoints.takeUplinkWriteEnd();
     }
@@ -150,7 +150,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
             revokedThrough = GsmBinderCancellationPolicy.afterStop(revokedThrough, requested);
             if (generation != requested) return;
             generation = STOPPING;
-            cleanupInProgress = true;
+            cleanupsInFlight++;
             toClose = endpoints;
             endpoints = null;
             contexts = null;
@@ -160,7 +160,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
             controller.abortNow();
         } finally {
             synchronized (this) {
-                cleanupInProgress = false;
+                cleanupsInFlight--;
                 maybeFinishStopLocked();
             }
         }
@@ -175,7 +175,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
 
     private void maybeFinishStopLocked() {
         if (generation == STOPPING && operationsInFlight == 0
-            && !cleanupInProgress && !shuttingDown)
+            && cleanupsInFlight == 0 && !shuttingDown)
             generation = IDLE;
     }
 
@@ -185,7 +185,7 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
         SamsungCallMediaSessionController.Endpoints toClose;
         synchronized (this) {
             generation = STOPPING;
-            cleanupInProgress = true;
+            cleanupsInFlight++;
             toClose = endpoints;
             endpoints = null;
             contexts = null;
@@ -195,8 +195,12 @@ public final class GsmShellBinderMediaService extends IGsmShellMediaService.Stub
             controller.abortNow();
         } finally {
             synchronized (this) {
-                cleanupInProgress = false;
+                cleanupsInFlight--;
             }
         }
+    }
+
+    synchronized boolean isQuiescent() {
+        return shuttingDown && operationsInFlight == 0 && cleanupsInFlight == 0;
     }
 }

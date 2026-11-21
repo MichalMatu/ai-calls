@@ -396,7 +396,7 @@ internal class ModelVoiceSettings(
         val library = UserLiteRtModelStore(activity)
         generationSummary.text = activity.getString(R.string.model_generation_summary,
             draft.generation.contextBudget(draft.dialogue, structured = true),
-            draft.generation.outputTokens ?: 512, draft.generation.temperature)
+            draft.generation.outputBudget(structured = true), draft.generation.temperature)
         modelName.text = if (draft.dialogue == DialogueModelId.USER_LITERT)
             library.find(draft.customModelId)?.title ?: activity.getString(R.string.models_ui_user_missing)
             else "Gemma 4 E2B"

@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import android.content.Context
+import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
@@ -68,47 +69,56 @@ internal class AndroidSkillLabSessionFactory(
         val instruction = ConversationInstructionBuilder.build(
             preparation, goal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
         val provider = DialogueEngineProviders.resolve(profile)
-        return SkillLabModelSession {
-            // S22 may spend >2 GiB PSS on one native Gemma context. The USB
-            // console and on-screen Lab share a process: never start two.
-            check(activeLabBackend.compareAndSet(false, true)) {
-                "another_lab_model_session_active"
-            }
-            try {
-                val delegate = provider.createLaboratoryConversationReply(
-                    context, instruction, if (initial.direction == ConversationDirection.INCOMING)
-                        setOf(ConversationToolId.END_CALL, ConversationToolId.SAVE_NOTE)
-                    else setOf(ConversationToolId.END_CALL),
-                    budgetSnapshot, timingSnapshot)
-                val perTurn = if (modeSnapshot == SkillLoadingMode.CONTEXTUAL) {
-                    val tracker = ConversationSkillTurnRouter(
-                        pinnedSnapshot, modeSnapshot, initial.direction,
-                        goal, selected?.opening.orEmpty())
-                    DynamicSkillLabBackend(delegate, tracker,
-                        instructionFor = { changed ->
-                            ConversationInstructionBuilder.build(
-                                preparation.withSkillSnapshot(changed),
-                                goal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
-                        }, onRoutingDecision = { decision ->
-                            // Only IDs and revision numbers travel to the UI observer.
-                            runCatching { turnRoutingObserver(decision) }
-                        })
-                } else delegate
-                object : TextCallAgentBackend {
-                    private val closed = AtomicBoolean(false)
-                    override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
-                        perTurn.generate(userText, listener)
-                    }
-                    override fun cancel() { perTurn.cancel() }
-                    override fun close() {
-                        if (closed.compareAndSet(false, true)) {
-                            try { perTurn.close() } finally { activeLabBackend.set(false) }
+        val settings = profile.generation
+        val snapshot = LabRunConfiguration(profile.customModelId ?: profile.dialogue.name,
+            budgetSnapshot, settings.outputBudget(structured = true), settings.temperature, settings.topK,
+            settings.topP, profile.languageTag, modeSnapshot,
+            MessageDigest.getInstance("SHA-256").digest(instruction.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) })
+        return object : SkillLabModelSession {
+            override val configuration = snapshot
+            override fun createBackend(): TextCallAgentBackend {
+                // S22 may spend >2 GiB PSS on one native Gemma context. The USB
+                // console and on-screen Lab share a process: never start two.
+                check(activeLabBackend.compareAndSet(false, true)) {
+                    "another_lab_model_session_active"
+                }
+                try {
+                    val delegate = provider.createLaboratoryConversationReply(
+                        context, instruction, if (initial.direction == ConversationDirection.INCOMING)
+                            setOf(ConversationToolId.END_CALL, ConversationToolId.SAVE_NOTE)
+                        else setOf(ConversationToolId.END_CALL),
+                        budgetSnapshot, timingSnapshot)
+                    val perTurn = if (modeSnapshot == SkillLoadingMode.CONTEXTUAL) {
+                        val tracker = ConversationSkillTurnRouter(
+                            pinnedSnapshot, modeSnapshot, initial.direction,
+                            goal, selected?.opening.orEmpty())
+                        DynamicSkillLabBackend(delegate, tracker,
+                            instructionFor = { changed ->
+                                ConversationInstructionBuilder.build(
+                                    preparation.withSkillSnapshot(changed),
+                                    goal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
+                            }, onRoutingDecision = { decision ->
+                                // Only IDs and revision numbers travel to the UI observer.
+                                runCatching { turnRoutingObserver(decision) }
+                            })
+                    } else delegate
+                    return object : TextCallAgentBackend {
+                        private val closed = AtomicBoolean(false)
+                        override fun generate(userText: String, listener: TextCallAgentBackend.Listener) {
+                            perTurn.generate(userText, listener)
+                        }
+                        override fun cancel() { perTurn.cancel() }
+                        override fun close() {
+                            if (closed.compareAndSet(false, true)) {
+                                try { perTurn.close() } finally { activeLabBackend.set(false) }
+                            }
                         }
                     }
+                } catch (error: Throwable) {
+                    activeLabBackend.set(false)
+                    throw error
                 }
-            } catch (error: Throwable) {
-                activeLabBackend.set(false)
-                throw error
             }
         }
     }

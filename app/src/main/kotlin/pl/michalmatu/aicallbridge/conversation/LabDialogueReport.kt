@@ -38,6 +38,7 @@ internal data class LabDialogueReport(
     val expectedBehaviors: String = "",
     val completionCriterion: String = "",
     val terminalPhase: SkillLabPhase? = null,
+    val configuration: LabRunConfiguration? = null,
 ) {
     fun meanLatency(): Long = if (turns.isEmpty()) 0 else turns.sumOf { it.latencyMs } / turns.size
 
@@ -65,7 +66,8 @@ internal data class LabDialogueReport(
                 (result?.turn?.let { " [turn " + it + "]" } ?: "") +
                 (result?.note?.let { " " + it } ?: "")
         }
-        return base + "\nGoal: " + goal + "\nReference facts: " +
+        return base + (configuration?.let { "\n" + it.evidenceText() } ?: "") +
+            "\nGoal: " + goal + "\nReference facts: " +
             referenceFacts + "\nExpected behaviors: " + expectedBehaviors +
             "\nCompletion criterion: " + completionCriterion +
             "\nAdaptive decisions:\n" + decisions +
@@ -82,13 +84,13 @@ internal data class LabDialogueReport(
                 LabReportTurn(it.pending.turnIndex, it.pending.utterance,
                     it.observation.reply, it.observation.actualEnd, it.observation.elapsedMs)
             }
-            return LabDialogueReport(id, testId, revision, modelId, presetId, turns,
+            return LabDialogueReport(id, testId, revision, state.configuration?.modelId ?: modelId, presetId, turns,
                 state.adaptiveTrace.toList(), LabReviewDimension.entries.map {
                     LabReviewEvidence(it, LabReviewVerdict.UNASSESSED, null, "")
                 }, state.phase == SkillLabPhase.STOPPED,
                 reference?.goal.orEmpty(), reference?.facts.orEmpty(),
                 reference?.expectations.orEmpty(), reference?.completion.orEmpty(),
-                terminalPhase = state.phase)
+                terminalPhase = state.phase, configuration = state.configuration)
         }
     }
 }

@@ -4,19 +4,21 @@
 
 ## Stan MVP
 
-Kandydat to APK `.s8lab` na S22+ z Androidem 16 i hostem Binder UID 2000. Zakres obejmuje Incoming i Outgoing, lokalne STT/model/TTS, notatki i END_CALL.
+MVP `.s8lab` na S22+/Android 16 używa hosta Binder UID 2000. Obejmuje oba kierunki GSM, lokalne STT/model/TTS, notatki i END_CALL.
 
 Na wcześniejszym kodzie potwierdzono fizycznie oba kierunki GSM, RX/TX, WAV, SAVE_NOTE i END_CALL.
 
-Kod `97d447db` przeszedł `preflight`, `full`, `device-build`, 1380 testów JVM, 486 Python i 12 testów UI/Lab na emulatorze. [PR i SHA APK](https://github.com/MichalMatu/ai-calls/pull/66).
+Kod `97d447db` przeszedł `preflight`, `full`, `device-build` i 12 testów UI/Lab na emulatorze. [QA i SHA APK](https://github.com/MichalMatu/ai-calls/pull/66).
 
-S22+ z `97d447db`: podpis i SHA zgodne, UI/Lab 10/10 bez połączeń. Lokalny model przeszedł dwie tury, STOP i reset. Po restarcie procesu przez instrumentację przywrócono rejestrację hosta i zweryfikowano Binder UID 2000.
+S22+ z `97d447db` miał zgodny podpis i SHA. Poza połączeniem przeszedł UI/Lab 10/10, dwie tury modelu, STOP i reset.
 
 W szybkiej próbie użytkownika AI odebrało połączenie przychodzące i mówiło.
 
 Próba transportu Outgoing na `97d447db` potwierdziła ACTIVE, rozłączenie tego samego Call i powrót do IDLE.
 
 W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
+
+Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. W Lab na `5fc04ed3` model przekręcił kod przy 4096 i 6144 tokenach.
 
 ## Następny sprint
 
@@ -25,14 +27,13 @@ W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacis
 
 ## Otwarte
 
-- Automatyczne odzyskiwanie hosta po restarcie procesu.
 - Incoming i Outgoing po 4–6 tur. Oceń polski STT/TTS, naturalność, pamięć i korekty, barge-in, STOP/takeover, END_CALL po TTS, zapis notatki, transkrypcję i fragmenty WAV.
-- Osobna kwalifikacja standardowego APK release pod kątem podpisu i IPC.
+- APK release zbudowane. Do wydania potrzebuje podpisu i obsługi IPC Binder.
 
 ## Po odbiorze GSM
 
 Prototyp SIP/PJSUA2 i skrypty są pod tagiem `archive/sip-voip-s22-2026-11-21`. Następna bramka to konto testowe, rozmowa TLS/SRTP z PCM w obie strony i STOP. Przed dystrybucją sprawdź licencję. [Kod i dowody](https://github.com/MichalMatu/ai-calls/tree/archive/sip-voip-s22-2026-11-21/prototypes/s8-pjsua2).
 
-Kolejne ścieżki mają punkty startowe w [Rozmowa i Test Lab](modules/CONVERSATION.md).
+[Dalsze ścieżki](modules/CONVERSATION.md).
 
 **WSTRZYMANE:** Shizuku, Actions, schedulery i `WRITE_SECURE_SETTINGS`.
