@@ -69,7 +69,6 @@ class AndroidLabAdaptiveNativeOfflineTest {
                 if ('?' in firstReply) "question" else "otherwise", chosen.condition)
             assertTrue(state.completed.all { it.observation.reply.isNotBlank() })
             assertTrue(state.completed.all { it.observation.elapsedMs >= 0 })
-            assertTrue("native_lab_must_not_claim_semantic_grade", state.metrics == null)
             println("S22_LAB_ADAPTIVE_NATIVE_COMPLETE_OFFCALL=PASS")
         } finally {
             runner.close()

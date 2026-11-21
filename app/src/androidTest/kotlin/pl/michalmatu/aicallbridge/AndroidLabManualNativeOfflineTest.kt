@@ -59,7 +59,6 @@ class AndroidLabManualNativeOfflineTest {
             assertTrue(runner.state.completed.all { it.observation.reply.isNotBlank() })
             assertTrue(runner.state.completed.all { it.observation.elapsedMs >= 0 })
             // Semantic memory grading requires a separately reviewed transcript.
-            assertNull(runner.state.metrics)
             assertTrue(runner.submitManual("Przygotuj krótkie podsumowanie."))
             assertTrue(runner.stop())
             assertTrue("lab_stop_cleanup_failed", await(50_000) {

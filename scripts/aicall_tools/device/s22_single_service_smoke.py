@@ -89,7 +89,7 @@ def run_one(
         if not offhook:
             raise RuntimeError("call_did_not_enter_offhook")
 
-        # Collect only whitelisted metadata: Telecom mode, Shizuku and permissions.
+        # Collect only allowlisted Telecom, GSM host and permission diagnostics.
         fields = diagnostic(EXACT_SERIAL)
     except BaseException as error:
         failure = error

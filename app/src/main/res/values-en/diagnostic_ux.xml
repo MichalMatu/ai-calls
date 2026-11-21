@@ -11,7 +11,6 @@
     <string name="lab_chat_input_ready">Ready for your message</string>
     <string name="lab_chat_waiting">Generating reply · turn %1$d</string>
     <string name="lab_chat_adaptive_ready">Test caller is preparing a message…</string>
-    <string name="lab_chat_turn_done">Reply ready · completed turns: %1$d</string>
     <string name="lab_chat_complete">Test completed · turns: %1$d</string>
     <string name="lab_chat_stopped">Stopped · completed turns: %1$d</string>
     <string name="lab_chat_failed">Test interrupted</string>

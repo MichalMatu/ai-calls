@@ -15,8 +15,7 @@ def outcome(output, rc=0):
 
 class FakeAdb:
     def __init__(self, *, sdk="36", roles="com.samsung.android.dialer\n",
-                 app="package:/data/app/ai-calls/base.apk\n", call="mCallState=0",
-                 ps="shell 412 1 S shizuku_server\n"):
+                 app="package:/data/app/ai-calls/base.apk\n", call="mCallState=0"):
         self.entries = {
             ("getprop", "ro.build.version.sdk"): outcome(sdk),
             ("cmd", "role", "get-role-holders", "android.app.role.DIALER"): outcome(roles),
@@ -25,7 +24,6 @@ class FakeAdb:
             ),
             ("pm", "path", APP_PACKAGE): outcome(app),
             ("dumpsys", "telephony.registry"): outcome(call),
-            ("ps", "-A"): outcome(ps),
         }
         self.calls = []
 
@@ -43,9 +41,9 @@ class CallCapabilityTests(unittest.TestCase):
         self.assertFalse(result["exact_call_controller_proven"])
         self.assertFalse(result["autonomous_dial_authorized"])
 
-    def test_shizuku_running_is_not_call_ownership(self):
-        result = inspect_phone(SERIAL, runner=FakeAdb())
-        self.assertTrue(result["shizuku_process_visible"])
+    def test_stable_app_dialer_role_does_not_qualify_gsm_candidate(self):
+        result = inspect_phone(SERIAL, runner=FakeAdb(roles="pl.michalmatu.aicallbridge\n"))
+        self.assertFalse(result["app_is_default_dialer"])
         self.assertFalse(result["exact_call_controller_proven"])
 
     def test_stock_dialer_stays_unchanged(self):
@@ -56,13 +54,12 @@ class CallCapabilityTests(unittest.TestCase):
     def test_no_mutating_adb_command_is_sent(self):
         fake = FakeAdb()
         inspect_phone(SERIAL, runner=fake)
-        self.assertEqual(6, len(fake.calls))
+        self.assertEqual(5, len(fake.calls))
         self.assertEqual({("getprop", "ro.build.version.sdk"),
                           ("cmd", "role", "get-role-holders", "android.app.role.DIALER"),
                           ("cmd", "telecom", "get-default-dialer"),
                           ("pm", "path", APP_PACKAGE),
-                          ("dumpsys", "telephony.registry"),
-                          ("ps", "-A")},
+                          ("dumpsys", "telephony.registry")},
                          {x[4:] for x in fake.calls})
 
     def test_unavailable_role_fails_closed(self):
@@ -97,9 +94,8 @@ class CallCapabilityTests(unittest.TestCase):
         self.assertIsNone(result["sdk"])
 
     def test_not_installed_fails_closed(self):
-        result = inspect_phone(SERIAL, runner=FakeAdb(app="", ps=""))
+        result = inspect_phone(SERIAL, runner=FakeAdb(app=""))
         self.assertFalse(result["ai_calls_installed"])
-        self.assertFalse(result["shizuku_process_visible"])
 
     def test_call_state_parser(self):
         self.assertEqual("IDLE", parse_call_state("mCallState=0"))

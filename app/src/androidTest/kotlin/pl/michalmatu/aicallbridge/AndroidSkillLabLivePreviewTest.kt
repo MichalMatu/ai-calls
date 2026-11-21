@@ -2,7 +2,6 @@ package pl.michalmatu.aicallbridge
 
 import android.graphics.Bitmap
 import android.graphics.Rect
-import pl.michalmatu.aicallbridge.conversation.SkillLabScoring
 import android.view.View
 import android.widget.CheckBox
 import android.widget.ProgressBar
@@ -34,16 +33,14 @@ class AndroidSkillLabLivePreviewTest {
 
     @Test fun finishedSyntheticTurnIsParsedIntoReadableLiveCard() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        assertTrue("android_safe_question_heuristic",
-            SkillLabScoring.mayNeedQuestionReview("Proszę podać numer telefonu."))
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
             var folder: File? = null
             scenario.onActivity { activity ->
-                render(activity, SkillLabUiState(phase = SkillLabPhase.STARTING, manual = true))
+                render(activity, SkillLabUiState(phase = SkillLabPhase.STARTING))
                 val item = SkillLabCompletedTurn(SkillLabPendingTurn(0, "Scenariusz testowy", 1,
                     "Proszę zapisać przykładową wiadomość."), SkillLabObservation("Scenariusz testowy",
-                    1, false, false, "Dziękuję. Zapisałem przykładową wiadomość.", 239L, false))
-                render(activity, SkillLabUiState(phase = SkillLabPhase.INPUT_READY, manual = true,
+                    1, false, "Dziękuję. Zapisałem przykładową wiadomość.", 239L))
+                render(activity, SkillLabUiState(phase = SkillLabPhase.INPUT_READY,
                     totalTurns = 1, completed = listOf(item)))
                 assertEquals(1, requireNotNull(activity.window.decorView.findViewWithTag<ProgressBar>(
                     "lab-live-progress")).progress)
@@ -116,14 +113,14 @@ class AndroidSkillLabLivePreviewTest {
         ActivityScenario.launch(ConversationSkillLabActivity::class.java).use { scenario ->
             var folder: File? = null
             scenario.onActivity { activity ->
-                render(activity, SkillLabUiState(phase = SkillLabPhase.STARTING, manual = true))
+                render(activity, SkillLabUiState(phase = SkillLabPhase.STARTING))
                 val completed = (1..2).map { turn ->
                     SkillLabCompletedTurn(SkillLabPendingTurn(0, "Offline", turn,
                         "Syntetyczna wiadomość o długości opisowej $turn."),
-                        SkillLabObservation("Offline", turn, false, false,
-                            "Przykładowa, wyłącznie lokalna odpowiedź nr $turn.", 150L, false))
+                        SkillLabObservation("Offline", turn, false,
+                            "Przykładowa, wyłącznie lokalna odpowiedź nr $turn.", 150L))
                 }
-                render(activity, SkillLabUiState(phase = SkillLabPhase.STOPPED, manual = true,
+                render(activity, SkillLabUiState(phase = SkillLabPhase.STOPPED,
                     totalTurns = 2, completed = completed))
                 folder = requireNotNull(activity.getExternalFilesDir("ui-audit-20261107-sprint6"))
                 assertTrue(requireNotNull(folder).isDirectory || requireNotNull(folder).mkdirs())

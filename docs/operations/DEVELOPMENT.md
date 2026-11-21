@@ -1,11 +1,8 @@
-# Rozwój i standard QA
+# Rozwój i QA
 
-**Jeden flow:** `main` → mała gałąź → testy → PR → merge; stary golden = rollback. Jedyny backlog: [PROJECT](../PROJECT.md).
+`main` → gałąź robocza → QA → PR → merge. Po merge usuń gałąź roboczą. Stałe gałęzie to `main` i `agent-control`. Testy uruchamiaj przez [test-profile.sh](../../scripts/bin/test-profile.sh).
 
-- **G0:** sprawdź HEAD, tag, IDLE i zakres zgody; nie przerywaj Call.
-- **G1:** `focus/changed`, `preflight`, `git diff --check`; brak nowych ostrzeżeń.
-- **G2:** przed merge `full` (JVM, Lint, Python, audio, security, granice modułów) i `device-build`; 0 nowych błędów. Same docs: `preflight`.
-- **G3:** UI `lab-ui` wyłącznie emulator; kompilacja AndroidTest nie dowodzi wykonania. S22+ tylko IDLE: kopia APK → instalacja `.s8lab` → podpis/hash → host UID 2000/Binder → smoke; połączenia za osobną zgodą.
-- **G4:** PASS/OPEN i SHA w [PROJECT](../PROJECT.md); golden dopiero po odbiorze. OPEN ≠ PASS.
-
-Bez Actions, Work, Codex, schedulerów, Shizuku i `WRITE_SECURE_SETTINGS`. Testy wykonuje [Mac Local Agent](LOCAL_AGENT.md).
+- `preflight` sprawdza diff, dokumentację i granice modułów. `full` obejmuje JVM, lint, Python i kontrole statyczne.
+- `device-build` pakuje APK aplikacji i testów. `lab-ui` wykonuje wybrane testy Android na emulatorze. Oba wyniki mają odrębny zakres.
+- S22+ wymaga IDLE, zgody, kopii APK, kontroli podpisu i SHA oraz potwierdzenia hosta UID 2000/Binder po instalacji. Próby GSM wymagają osobnej zgody.
+- Wyniki wersji i otwarte próby zapisuj w [PROJECT](../PROJECT.md) z SHA i zakresem.

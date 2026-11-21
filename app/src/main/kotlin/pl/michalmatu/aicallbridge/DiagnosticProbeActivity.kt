@@ -84,7 +84,7 @@ class DiagnosticProbeActivity : Activity() {
             OpenAiTextSpeechPipelineProbe.run(this, config) { result ->
                 runOnUiThread {
                     statusView.text = result
-                    Log.i(TAG, "openai_text_speech_pipeline_probe_result:\n$result")
+                    Log.i(TAG, "openai_text_speech_pipeline_probe_complete=true")
                     finish()
                 }
             }
@@ -97,7 +97,7 @@ class DiagnosticProbeActivity : Activity() {
             LocalPhoneLlmSpeechPipelineProbe.run(this) { result ->
                 runOnUiThread {
                     statusView.text = result
-                    Log.i(TAG, "local_phone_llm_speech_pipeline_probe_result:\n$result")
+                    Log.i(TAG, "local_phone_llm_speech_pipeline_probe_complete=true")
                     finish()
                 }
             }
@@ -110,7 +110,7 @@ class DiagnosticProbeActivity : Activity() {
             GenericPhoneTaskAcceptanceProbe.run(this) { result ->
                 runOnUiThread {
                     statusView.text = result
-                    Log.i(TAG, "generic_phone_task_acceptance_probe_result:\n$result")
+                    Log.i(TAG, "generic_phone_task_acceptance_probe_complete=true")
                     finish()
                 }
             }
@@ -129,7 +129,7 @@ class DiagnosticProbeActivity : Activity() {
             LocalMacTextBackendProbe.run(this, baseUrl, model) { result ->
                 runOnUiThread {
                     statusView.text = result
-                    Log.i(TAG, "local_mac_text_backend_probe_result:\n$result")
+                    Log.i(TAG, "local_mac_text_backend_probe_complete=true")
                     finish()
                 }
             }
@@ -142,7 +142,7 @@ class DiagnosticProbeActivity : Activity() {
             LocalSpeechTextPipelineProbe.run(this) { result ->
                 runOnUiThread {
                     statusView.text = result
-                    Log.i(TAG, "local_speech_text_pipeline_probe_result:\n$result")
+                    Log.i(TAG, "local_speech_text_pipeline_probe_complete=true")
                     finish()
                 }
             }
@@ -155,7 +155,7 @@ class DiagnosticProbeActivity : Activity() {
             LocalSpeechProductionProbe.run(this) { result ->
                 runOnUiThread {
                     statusView.text = result
-                    Log.i(TAG, "local_speech_production_probe_result:\n$result")
+                    Log.i(TAG, "local_speech_production_probe_complete=true")
                     finish()
                 }
             }
@@ -232,7 +232,7 @@ class DiagnosticProbeActivity : Activity() {
                 LocalPhoneLlmLiveCallProbe.run(this, request) { result ->
                     runOnUiThread {
                         statusView.text = result
-                        Log.i(TAG, "local_phone_llm_live_call_probe_result:\n$result")
+                        Log.i(TAG, "local_phone_llm_live_call_probe_complete=true")
                         finish()
                     }
                 }
@@ -281,7 +281,7 @@ class DiagnosticProbeActivity : Activity() {
     private fun finishWithError(reason: String) {
         val result = "diagnostic_probe_error=$reason"
         statusView.text = result
-        Log.i(TAG, result)
+        Log.i(TAG, "diagnostic_probe_failed=true")
         finish()
     }
 

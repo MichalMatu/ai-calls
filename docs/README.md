@@ -1,9 +1,5 @@
 # AI Calls — dokumentacja
 
-**Stan i jedyny plan:** [PROJECT](PROJECT.md). [Handoff](operations/HANDOFF_NEXT_CHAT.md).
+[Stan MVP i odbiór](PROJECT.md) · [QA](operations/DEVELOPMENT.md) · [Wznowienie pracy](operations/HANDOFF_NEXT_CHAT.md) · [Mac Local Agent](operations/LOCAL_AGENT.md)
 
-Architektura: [SYSTEM](architecture/SYSTEM.md), [SECURITY](architecture/SECURITY.md).
-Kontrakty: [CONVERSATION](modules/CONVERSATION.md), [INCOMING_OUTGOING](modules/INCOMING_OUTGOING.md), [UI](modules/UI.md).
-Operacje: [DEVELOPMENT](operations/DEVELOPMENT.md), [LOCAL_AGENT](operations/LOCAL_AGENT.md).
-
-Bez historycznych checkpointów i starego poradnika Shizuku.
+[Architektura](architecture/SYSTEM.md) · [Bezpieczeństwo](architecture/SECURITY.md) · [Rozmowa i Test Lab](modules/CONVERSATION.md) · [Telefonia](modules/INCOMING_OUTGOING.md) · [UI](modules/UI.md)

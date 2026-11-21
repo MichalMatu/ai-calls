@@ -33,12 +33,12 @@ class Ux10SourceGate(unittest.TestCase):
             self.assertNotIn(forbidden,manager)
             self.assertNotIn(forbidden,custom)
 
-    def test_lab_de_duplicates_without_losing_stop_metrics_or_timeline(self):
+    def test_lab_de_duplicates_without_losing_stop_report_or_timeline(self):
         lab=source("conversation/ConversationSkillLabActivity.kt")
         self.assertNotIn('tag = "lab-follow"',lab)
         self.assertNotIn("getString(R.string.lab_ui_intro)",lab)
         for required in ('"lab-conversation-card"','"lab-turn-timeline"',
-                         "stopLab()", "scoreView.visibility = View.VISIBLE",
+                         "stopLab()", "reportSummary.visibility = View.VISIBLE",
                          "userReadingOlderTurns"):
             self.assertIn(required,lab)
 

@@ -1,7 +1,5 @@
 # Telefonia
 
-**INCOMING GSM:** AUTO/MANUAL, exact Call/SIM; takeover zatrzymuje AI bez rozłączania, resume wymaga nowego uprawnienia. `END_CALL` tylko po TTS.
+**Incoming:** AUTO/MANUAL dla wybranej SIM. Takeover oddaje rozmowę człowiekowi. Wznowienie wymaga zgody. END_CALL wywołuje właściciel po TTS.
 
-**OUTGOING:** odrębny `PhoneTask`, grant/okno/SIM; retry tylko BUSY/NO_ANSWER, UNKNOWN bez redial po restarcie. Nowy kreator domyślnie zaznacza zapis fragmentów WAV; odznaczenie wyłącza go, a skopiowane zadania zachowują wybór. Stare zgody nie są zmieniane. Nie należy do odebranego incoming GSM MVP. IVR/DTMF: wysłany ton ≠ potwierdzenie.
-
-[Zakres i bramki](../PROJECT.md).
+**Outgoing:** `PhoneTask` wymaga zgody, okna czasowego i SIM. Retry obejmuje BUSY/NO_ANSWER. Nowy kreator domyślnie zaznacza WAV. Odznaczenie wyłącza zapis, a kopia zadania zachowuje wybór.

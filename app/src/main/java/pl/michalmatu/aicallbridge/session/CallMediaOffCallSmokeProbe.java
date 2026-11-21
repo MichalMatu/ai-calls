@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * ADB-only diagnostic smoke for the production coordinator + Shizuku backend while no call exists.
+ * ADB-only smoke check for the GSM Binder coordinator while the phone is idle.
  *
  * <p>The expected S22+ path is BINDING -> PREPARING -> STOPPING -> FAILED because the frozen
  * Samsung media primitive refuses to start unless AudioManager is already MODE_IN_CALL. Reaching

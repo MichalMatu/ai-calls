@@ -282,10 +282,6 @@
     <string name="lab_ui_stop">Zatrzymaj test</string>
     <string name="lab_ui_cancelled">Anulowano test. Nie uruchomiono telefonu.</string>
     <string name="lab_ui_ready">Gotowe. Model wybrano w ustawieniach silników.</string>
-    <string name="lab_ui_rating">Ocena naturalności</string>
-    <string name="lab_ui_rating_help">Ręczna ocena: 1 — nienaturalna, 5 — bardzo naturalna.</string>
-    <string name="lab_ui_unrated">Bez oceny</string>
-    <string name="lab_ui_apply_rating">Zastosuj ocenę</string>
     <string name="lab_ui_starting">Uruchamianie modelu offline…</string>
     <string name="lab_ui_complete">Test zakończony. Żadnego END_CALL nie wykonano.</string>
     <string name="lab_ui_empty">Wynik testu pojawi się tutaj po uruchomieniu.</string>
@@ -388,12 +384,6 @@
     <string name="lab_ui_match">zgodna decyzja</string>
     <string name="lab_ui_mismatch">rozbieżność</string>
     <string name="lab_ui_last_result">%1$s · tura %2$d · odpowiedź po %3$d ms</string>
-    <string name="lab_ui_score_title">Podsumowanie testu</string>
-    <string name="lab_ui_score_decisions">Zgodne decyzje END_CALL: %1$d/%2$d</string>
-    <string name="lab_ui_score_errors">Przedwczesne zakończenia: %1$d · brak zakończenia: %2$d · pytania do przeglądu (heurystyka): %3$d</string>
-    <string name="lab_ui_score_latency">Średni czas odpowiedzi: %1$d ms</string>
-    <string name="lab_ui_naturalness_score">Ręczna ocena naturalności: %1$d/5</string>
-    <string name="lab_ui_naturalness_unrated">Naturalność: bez oceny (wymaga oceny człowieka)</string>
     <string name="lab_ui_failed">Test przerwany: %1$s</string>
 
     <string name="incoming_ui_mode_label">Tryb odbierania</string>
@@ -417,8 +407,6 @@
     <string name="models_ui_detail_source">Repozytorium źródłowe</string>
     <string name="models_ui_detail_license">Licencja: Apache 2.0</string>
     <string name="lab_ui_mode_label">Zakres testu</string>
-    <string name="lab_ui_mode_quick">Szybki test — 2 tury (offline)</string>
-    <string name="lab_ui_mode_full">Pełny test — wszystkie scenariusze</string>
     <string name="lab_ui_stop_verification">Zatrzymano na żądanie użytkownika.</string>
 
     <string name="history_clear_all">Usuń wszystkie zakończone rozmowy (%1$d)</string>
@@ -429,7 +417,6 @@
     <string name="history_audio_play_hint">Odtwórz audio</string>
     <string name="history_audio_stop_hint">Zatrzymaj audio</string>
     <string name="history_playback_stopped">Odtwarzanie zatrzymane.</string>
-    <string name="lab_ui_quality_not_scored">Ocena decyzji END_CALL nie jest oceną jakości wypowiedzi. Zbędne pytania to tylko szacowanie; sprawdź treść i oceń ręcznie.</string>
     <string name="lab_ui_stop_banner">Zatrzymano test — ukończone tury: %1$d/%2$d. Żadna decyzja narzędzia nie została wykonana.</string>
     <string name="lab_ui_quality_warning">Jakość treści wymaga ręcznej oceny.</string>
     <string name="campaign_ui_last_history">Ostatnie zdarzenie, nie bieżący stan połączenia</string>

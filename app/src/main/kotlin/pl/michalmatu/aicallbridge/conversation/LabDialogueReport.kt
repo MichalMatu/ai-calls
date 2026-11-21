@@ -37,6 +37,7 @@ internal data class LabDialogueReport(
     val referenceFacts: String = "",
     val expectedBehaviors: String = "",
     val completionCriterion: String = "",
+    val terminalPhase: SkillLabPhase? = null,
 ) {
     fun meanLatency(): Long = if (turns.isEmpty()) 0 else turns.sumOf { it.latencyMs } / turns.size
 
@@ -54,7 +55,7 @@ internal data class LabDialogueReport(
         val base = "Model: " + modelId + " · Skills: " + presetId +
             "\nTurns: " + turns.size + " · Average model response: " + meanLatency() +
             " ms · END_CALL proposals: " + turns.count { it.endProposed } +
-            " · Stopped: " + stopped
+            " · Outcome: " + (terminalPhase?.name ?: if (stopped) "STOPPED" else "UNKNOWN")
         val decisions = branches.joinToString("\n") {
             "After #" + it.turn + " → rule " + it.ruleNumber + " (" + it.condition + ")"
         }
@@ -86,7 +87,8 @@ internal data class LabDialogueReport(
                     LabReviewEvidence(it, LabReviewVerdict.UNASSESSED, null, "")
                 }, state.phase == SkillLabPhase.STOPPED,
                 reference?.goal.orEmpty(), reference?.facts.orEmpty(),
-                reference?.expectations.orEmpty(), reference?.completion.orEmpty())
+                reference?.expectations.orEmpty(), reference?.completion.orEmpty(),
+                terminalPhase = state.phase)
         }
     }
 }
@@ -104,8 +106,11 @@ internal data class LabABComparison(
     companion object {
         fun between(a: LabDialogueReport, b: LabDialogueReport): LabABComparison =
             LabABComparison(
-                comparable = a.testId != null && a.testId == b.testId &&
-                    a.testRevision == b.testRevision,
+                comparable = a.terminalPhase == SkillLabPhase.COMPLETED &&
+                    b.terminalPhase == SkillLabPhase.COMPLETED &&
+                    a.testId != null && a.testId == b.testId &&
+                    a.testRevision != null && a.testRevision == b.testRevision &&
+                    a.turns.isNotEmpty() && a.turns.map { it.caller } == b.turns.map { it.caller },
                 aTurns = a.turns.size,
                 bTurns = b.turns.size,
                 aLatencyMs = a.meanLatency(),

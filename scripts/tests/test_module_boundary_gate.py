@@ -19,6 +19,14 @@ class ModuleGateTest(unittest.TestCase):
             r=Path(t);mock(r);f=r/"conversation-core/build.gradle.kts"
             f.write_text(f.read_text()+'implementation(project(":app"))')
             self.assertIn("conversation-core:forbidden_dependency:app",audit(r))
+    def test_named_gradle_project_dependency_is_checked(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            mock(root)
+            build = root / "conversation-core/build.gradle.kts"
+            with build.open("a") as stream:
+                stream.write('testImplementation(project(path = ":app"))\n')
+            self.assertIn("conversation-core:forbidden_dependency:app", audit(root))
     def test_android_import_rejected(self):
         with tempfile.TemporaryDirectory() as t:
             r=Path(t);mock(r);f=r/"conversation-tools/src/main/kotlin/X.kt"
@@ -29,6 +37,14 @@ class ModuleGateTest(unittest.TestCase):
             r=Path(t);mock(r);f=r/"conversation-core/src/main/kotlin/X.kt"
             f.write_text("import pl.michalmatu.aicallbridge.ui.UiDesign\n")
             self.assertTrue(any("android_or_ui_import" in x for x in audit(r)))
+    def test_java_static_import_rejected(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            mock(root)
+            source = root / "conversation-core/src/main/java/Bad.java"
+            source.parent.mkdir()
+            source.write_text("import static android.os.SystemClock.elapsedRealtime;\n")
+            self.assertTrue(any("android_or_ui_import" in issue for issue in audit(root)))
     def test_missing_module_rejected(self):
         with tempfile.TemporaryDirectory() as t:
             r=Path(t);mock(r);f=r/"settings.gradle.kts"

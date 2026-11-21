@@ -35,9 +35,13 @@ class SkillLabManualDialogueTest {
         override fun close() { closeCount.incrementAndGet() }
     }
 
+    private val runners = mutableListOf<SkillLabRunner>()
+
+    @org.junit.After fun closeRunners() = runners.forEach(SkillLabRunner::close)
+
     private fun runner(models: () -> FakeBackend): SkillLabRunner = SkillLabRunner(
         SkillLabModelSessionFactory { SkillLabModelSession { models() } },
-        { it() }, {})
+        { it() }, {}).also(runners::add)
 
     @Test fun continuousConversationReusesOneBackendAcrossUnboundedTurns() {
         val opened = AtomicInteger()
@@ -85,6 +89,30 @@ class SkillLabManualDialogueTest {
         subject.close()
     }
 
+    @Test fun adaptiveCallerRejectsManualInputEvenBetweenTurns() {
+        val model = FakeBackend(reply = { "Which one?" })
+        lateinit var subject: SkillLabRunner
+        val attempted = AtomicInteger()
+        val accepted = AtomicInteger()
+        subject = SkillLabRunner(
+            SkillLabModelSessionFactory { SkillLabModelSession { model } },
+            { it() },
+            { state ->
+                if (state.phase == SkillLabPhase.INPUT_READY) {
+                    attempted.incrementAndGet()
+                    if (subject.submitManual("unexpected input")) accepted.incrementAndGet()
+                }
+            },
+        ).also(runners::add)
+        val test = LabCaseRevision(1, "Fixture", "Goal", LabRole.GENERAL,
+            "Initial", "", "", "", "question => Updated input", "")
+        assertTrue(subject.startAdaptive("preset", test))
+        eventually { subject.state.phase == SkillLabPhase.COMPLETED && subject.state.manualStartAllowed }
+        assertEquals(2, attempted.get())
+        assertEquals(0, accepted.get())
+        assertEquals(listOf("Initial", "Updated input"), model.inputs.toList())
+    }
+
     @Test fun adaptiveCallerSelectsBranchFromActualResponseAndStopsAtExhaustion() {
         val model = FakeBackend(reply = { input ->
             if (input == "Initial") "Which one?" else "Noted."
@@ -98,7 +126,6 @@ class SkillLabManualDialogueTest {
         assertEquals(listOf("Initial", "Updated input"), model.inputs.toList())
         assertEquals(2, subject.state.completed.size)
         assertEquals("question", subject.state.adaptiveTrace.single().condition)
-        assertNull(subject.state.metrics) // No spurious END_CALL semantic grade.
         assertEquals(1, model.closeCount.get())
         subject.close()
     }

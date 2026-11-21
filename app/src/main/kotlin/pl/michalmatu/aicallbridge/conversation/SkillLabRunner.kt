@@ -1,24 +1,24 @@
 package pl.michalmatu.aicallbridge.conversation
 
 import java.util.Collections
-import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 
-/** A model session supplies a fresh backend for each independent corpus story. */
+/** Model configuration is prepared before allocating a backend for one dialogue. */
 internal fun interface SkillLabModelSession {
-    fun createStoryBackend(): TextCallAgentBackend
+    fun createBackend(): TextCallAgentBackend
 }
 
 internal fun interface SkillLabModelSessionFactory {
     fun open(presetId: String): SkillLabModelSession
 }
 
-internal enum class SkillLabPhase { READY, STARTING, INPUT_READY, WAITING, TURN_COMPLETED, COMPLETED, STOPPED, FAILED }
+internal enum class SkillLabPhase { READY, STARTING, INPUT_READY, WAITING, COMPLETED, STOPPED, FAILED }
 
 internal data class SkillLabPendingTurn(
     val storyIndex: Int,
@@ -32,18 +32,15 @@ internal data class SkillLabCompletedTurn(
     val observation: SkillLabObservation,
 )
 
-/** Immutable snapshots, never Android Views or a mutable worker-owned result list. */
 internal data class LabAdaptiveTrace(val turn: Int, val ruleNumber: Int, val condition: String, val utterance: String)
 
+/** Snapshot of a single synthetic dialogue. */
 internal data class SkillLabUiState(
     val phase: SkillLabPhase = SkillLabPhase.READY,
-    val totalTurns: Int = 2,
+    val totalTurns: Int = 0,
     val completed: List<SkillLabCompletedTurn> = emptyList(),
     val pending: SkillLabPendingTurn? = null,
-    val metrics: SkillLabMetrics? = null,
     val error: String? = null,
-    val canStart: Boolean = true,
-    val manual: Boolean = false,
     val manualStartAllowed: Boolean = true,
     val adaptive: Boolean = false,
     val adaptiveTrace: List<LabAdaptiveTrace> = emptyList(),
@@ -51,7 +48,7 @@ internal data class SkillLabUiState(
 
 /**
  * Sole owner of synthetic/off-call Skill Lab worker, model and terminal callbacks.
- * END_CALL is decoded and scored ONLY; no actual tools or Telecom authority exist here.
+ * Records END_CALL proposals for review. The runner has no tool executor or Telecom authority.
  *
  * Generation + revision fencing drops old or overtaken UI deliveries even when
  * STOP, timeout or close races with a synchronous/delayed backend callback.
@@ -61,16 +58,13 @@ internal class SkillLabRunner(
     private val dispatchToUi: (() -> Unit) -> Unit,
     private val onState: (SkillLabUiState) -> Unit,
     private val timeoutMillis: Long = TimeUnit.SECONDS.toMillis(120),
-    private val corpus: List<SkillLabStory> = SkillLabCorpus.stories,
 ) : AutoCloseable {
     init { require(timeoutMillis > 0) }
 
-    private class Job(val manual: Boolean = false,
-        val testCase: LabCaseRevision? = null) {
-        @Volatile var autoPaused = false
+    private class Job(val interactor: LabAdaptiveInteractor?) {
         val inputs = LinkedBlockingQueue<String>()
         val stopped = AtomicBoolean(false)
-        @Volatile var backend: TextCallAgentBackend? = null
+        var backend: TextCallAgentBackend? = null
         lateinit var thread: Thread
     }
 
@@ -80,56 +74,16 @@ internal class SkillLabRunner(
     private var current: Job? = null
     private var closed = false
 
-    @Volatile var state = SkillLabUiState(
-        totalTurns = 0,
-        canStart = corpus.isNotEmpty() && corpus.all { it.turns.isNotEmpty() },
-    )
+    @Volatile var state = SkillLabUiState()
         private set
 
-    fun start(presetId: String, quick: Boolean): Boolean {
-        val selected = if (quick) corpus.take(1) else corpus
-        val total = if (quick) selected.firstOrNull()?.turns?.take(2)?.size ?: 0
-            else selected.sumOf { it.turns.size }
-        // Never claim a completed 0/0 test, and never initialize the model with no cases.
-        if (total == 0 || selected.any { it.turns.isEmpty() }) return false
-        val job = Job()
-        val snapshot: SkillLabUiState
-        val token: Long
-        val version: Long
-        synchronized(mutex) {
-            if (closed || current != null) return false
-            generation++
-            current = job
-            job.thread = Thread({ execute(job, presetId, quick) }, "aicalls-skills-lab")
-            snapshot = SkillLabUiState(phase = SkillLabPhase.STARTING,
-                totalTurns = total, canStart = false)
-            state = snapshot
-            token = generation
-            version = ++revision
-        }
-        publish(token, version, snapshot)
-        try {
-            job.thread.start()
-        } catch (error: RuntimeException) {
-            change(job) { it.copy(phase = SkillLabPhase.FAILED,
-                error = error.javaClass.simpleName, pending = null) }
-            finish(job)
-        }
-        return true
-    }
-
-
-    /** Starts one native conversation; its backend and chat context survive all manual turns. */
     fun startManual(presetId: String): Boolean = startDialogue(presetId, null)
 
-    fun startAdaptive(presetId: String, test: LabCaseRevision): Boolean {
-        test.validated()
-        LabAdaptiveInteractor(test) // Fail validation before opening a native model.
-        return startDialogue(presetId, test)
-    }
+    fun startAdaptive(presetId: String, test: LabCaseRevision): Boolean =
+        startDialogue(presetId, LabAdaptiveInteractor(test.validated()))
 
-    private fun startDialogue(presetId: String, test: LabCaseRevision?): Boolean {
-        val job = Job(manual = true, testCase = test)
+    private fun startDialogue(presetId: String, interactor: LabAdaptiveInteractor?): Boolean {
+        val job = Job(interactor)
         val snapshot: SkillLabUiState
         val token: Long
         val version: Long
@@ -137,10 +91,9 @@ internal class SkillLabRunner(
             if (closed || current != null) return false
             generation++
             current = job
-            job.thread = Thread({ executeManual(job, presetId) }, "aicalls-lab-manual")
-            snapshot = SkillLabUiState(phase = SkillLabPhase.STARTING, totalTurns = 0,
-                canStart = false, manual = true, manualStartAllowed = false,
-                adaptive = test != null)
+            job.thread = Thread({ execute(job, presetId) }, "aicalls-lab-dialogue")
+            snapshot = SkillLabUiState(phase = SkillLabPhase.STARTING,
+                manualStartAllowed = false, adaptive = interactor != null)
             state = snapshot
             token = generation
             version = ++revision
@@ -158,18 +111,22 @@ internal class SkillLabRunner(
 
     /** Nonblocking submit; refuse overlapping generations and blank messages. */
     fun submitManual(text: String): Boolean {
+        val job = synchronized(mutex) { current } ?: return false
+        if (job.interactor != null) return false
+        return submit(job, text)
+    }
+
+    private fun submit(job: Job, text: String): Boolean {
         if (text.isBlank()) return false
         val snapshot: SkillLabUiState
         val token: Long
         val version: Long
-        val job: Job
         synchronized(mutex) {
-            job = current ?: return false
-            if (!job.manual || job.stopped.get() ||
+            if (closed || current !== job || job.stopped.get() ||
                 state.phase != SkillLabPhase.INPUT_READY) return false
             val pending = SkillLabPendingTurn(0, "Dialog", state.completed.size + 1, text.trim())
             snapshot = state.copy(phase = SkillLabPhase.WAITING, pending = pending,
-                totalTurns = pending.turnIndex, canStart = false)
+                totalTurns = pending.turnIndex)
             state = snapshot
             token = generation
             version = ++revision
@@ -179,13 +136,13 @@ internal class SkillLabRunner(
         return true
     }
 
-    private fun executeManual(job: Job, presetId: String) {
+    private fun execute(job: Job, presetId: String) {
         val completed = mutableListOf<SkillLabCompletedTurn>()
         try {
-            val interactor = job.testCase?.let(::LabAdaptiveInteractor)
+            val interactor = job.interactor
             val session = sessions.open(presetId)
             if (!active(job)) return
-            val backend = session.createStoryBackend()
+            val backend = session.createBackend()
             val accepted = synchronized(mutex) {
                 if (!closed && current === job && !job.stopped.get()) {
                     job.backend = backend
@@ -195,7 +152,7 @@ internal class SkillLabRunner(
             try {
                 if (!accepted) return
                 change(job) { it.copy(phase = SkillLabPhase.INPUT_READY) }
-                if (interactor != null) submitManual(interactor.firstMessage())
+                if (interactor != null) submit(job, interactor.firstMessage())
                 while (active(job)) {
                     val utterance = try { job.inputs.take() }
                         catch (_: InterruptedException) { break }
@@ -208,19 +165,17 @@ internal class SkillLabRunner(
                     val toolReview = LabToolProposalPolicy.validate(
                         reply, setOf(ConversationToolId.END_CALL))
                     val observation = SkillLabObservation("Dialog", pending.turnIndex,
-                        expectedEnd = false,
                         actualEnd = toolReview.acceptedProposal == ConversationToolId.END_CALL,
                         reply = reply.text,
                         elapsedMs = (System.nanoTime() - started) / 1_000_000L)
                     completed.add(SkillLabCompletedTurn(pending, observation))
                     val immutable = Collections.unmodifiableList(ArrayList(completed))
-                    val decision = if (interactor != null && !job.autoPaused)
-                        interactor.next(reply.text, observation.actualEnd) else null
+                    val decision = interactor?.next(reply.text, observation.actualEnd)
                     val trace = decision?.let { LabAdaptiveTrace(pending.turnIndex,
                         it.ruleNumber, it.condition, it.utterance) }
-                    val finished = interactor != null && !job.autoPaused && decision == null
+                    val finished = interactor != null && decision == null
                     change(job) { prior ->
-                        prior.copy(phase = if (finished) SkillLabPhase.COMPLETED
+                        prior.copy(phase = if (finished) SkillLabPhase.WAITING
                             else SkillLabPhase.INPUT_READY,
                             completed = immutable, pending = null,
                             totalTurns = immutable.size,
@@ -228,12 +183,13 @@ internal class SkillLabRunner(
                                 prior.adaptiveTrace + trace)
                     }
                     if (finished) break
-                    if (decision != null && active(job)) submitManual(decision.utterance)
+                    if (decision != null && active(job)) submit(job, decision.utterance)
                 }
             } finally {
                 synchronized(mutex) { if (job.backend === backend) job.backend = null }
                 backend.close()
             }
+            if (interactor != null) change(job) { it.copy(phase = SkillLabPhase.COMPLETED) }
         } catch (error: Exception) {
             if (active(job)) change(job) {
                 it.copy(phase = SkillLabPhase.FAILED, pending = null,
@@ -260,7 +216,7 @@ internal class SkillLabRunner(
             backend = job.backend
             thread = job.thread
             snapshot = state.copy(phase = SkillLabPhase.STOPPED, pending = null,
-                metrics = null, error = null, canStart = false)
+                error = null)
             state = snapshot
             token = generation
             version = ++revision
@@ -281,7 +237,7 @@ internal class SkillLabRunner(
         val version: Long
         synchronized(mutex) {
             if (closed || current !== job || job.stopped.get()) return
-            snapshot = transition(state).copy(canStart = false)
+            snapshot = transition(state)
             state = snapshot
             token = generation
             version = ++revision
@@ -295,70 +251,6 @@ internal class SkillLabRunner(
                 !closed && generation == token && revision == version
             }
             if (shouldDeliver) onState(snapshot)
-        }
-    }
-
-    private fun execute(job: Job, presetId: String, quick: Boolean) {
-        val completed = mutableListOf<SkillLabCompletedTurn>()
-        try {
-            val session = sessions.open(presetId)
-            val stories = if (quick) corpus.take(1) else corpus
-            for ((storyIndex, story) in stories.withIndex()) {
-                if (!active(job)) break
-                val backend = session.createStoryBackend()
-                val accepted = synchronized(mutex) {
-                    if (!closed && current === job && !job.stopped.get()) {
-                        job.backend = backend
-                        true
-                    } else false
-                }
-                try {
-                    if (!accepted) break
-                    val turns = if (quick) story.turns.take(2) else story.turns
-                    for ((index, turn) in turns.withIndex()) {
-                        if (!active(job)) break
-                        val pending = SkillLabPendingTurn(
-                            storyIndex, story.title, index + 1, turn.utterance)
-                        change(job) { it.copy(phase = SkillLabPhase.WAITING, pending = pending) }
-                        if (!active(job)) break
-                        val started = System.nanoTime()
-                        val raw = awaitResponse(job, backend, turn.utterance)
-                        if (!active(job)) break
-                        val reply = ConversationReplyProtocol.decode(raw)
-                        val toolReview = LabToolProposalPolicy.validate(
-                            reply, setOf(ConversationToolId.END_CALL))
-                        val observation = SkillLabObservation(
-                            story.title, index + 1, turn.shouldEnd,
-                            toolReview.acceptedProposal == ConversationToolId.END_CALL, reply.text,
-                            (System.nanoTime() - started) / 1_000_000L, turn.expectQuestion)
-                        completed.add(SkillLabCompletedTurn(pending, observation))
-                        val immutable = Collections.unmodifiableList(ArrayList(completed))
-                        change(job) { it.copy(phase = SkillLabPhase.TURN_COMPLETED,
-                            completed = immutable, pending = null) }
-                    }
-                } finally {
-                    synchronized(mutex) {
-                        if (job.backend === backend) job.backend = null
-                    }
-                    backend.close()
-                }
-            }
-            if (active(job)) {
-                val immutable = Collections.unmodifiableList(ArrayList(completed))
-                change(job) {
-                    it.copy(phase = SkillLabPhase.COMPLETED, completed = immutable,
-                        pending = null, metrics = SkillLabScoring.score(completed.map { item ->
-                            item.observation
-                        }))
-                }
-            }
-        } catch (error: Exception) {
-            if (active(job)) change(job) {
-                it.copy(phase = SkillLabPhase.FAILED, pending = null,
-                    error = error.message ?: error.javaClass.simpleName)
-            }
-        } finally {
-            finish(job)
         }
     }
 
@@ -402,8 +294,7 @@ internal class SkillLabRunner(
             if (current !== job) return
             job.backend = null
             current = null
-            snapshot = state.copy(canStart = corpus.isNotEmpty(), pending = null,
-                manualStartAllowed = true)
+            snapshot = state.copy(pending = null, manualStartAllowed = true)
             state = snapshot
             token = generation
             version = ++revision
@@ -412,11 +303,11 @@ internal class SkillLabRunner(
     }
 
     override fun close() {
-        stop()
         synchronized(mutex) {
             closed = true
             generation++
             revision++
         }
+        stop()
     }
 }

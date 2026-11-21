@@ -9,6 +9,6 @@
 <string name="lab_report_select_turn">Wskaż turę będącą dowodem</string>
 <string name="lab_report_evidence_hint">Notatka z uzasadnieniem</string>
 <string name="lab_reports_need_two">Potrzebne są dwa raporty</string>
-<string name="lab_report_comparable">Ten sam przypadek i wersja: porównanie A/B</string>
-<string name="lab_report_not_comparable">Różne przypadki lub wersje: wyniki nieporównywalne bez zastrzeżeń</string>
+<string name="lab_report_comparable">A/B · ukończone przebiegi z tymi samymi wypowiedziami rozmówcy</string>
+<string name="lab_report_not_comparable">Zestawienie poglądowe · przypadki, wypowiedzi lub przebieg różnią się</string>
 </resources>

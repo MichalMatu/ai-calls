@@ -94,7 +94,7 @@ class AndroidG51SpeechSkillsOffcallE2ETest {
                 PiperAndroidTtsOutputProvider(context, "pl-PL", profile.voiceId)
             else -> error("g51_unsupported_selected_output")
         }
-        val rawModel = sessionFactory.open("natural").createStoryBackend()
+        val rawModel = sessionFactory.open("natural").createBackend()
         val proposedTool = AtomicReference<ConversationToolId?>()
         val toolExecuted = AtomicBoolean(false)
         val model = ConversationReplyBackend(rawModel) { reply, _, invalid ->

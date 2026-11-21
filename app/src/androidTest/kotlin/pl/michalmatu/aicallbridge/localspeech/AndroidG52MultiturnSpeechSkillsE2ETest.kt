@@ -221,7 +221,7 @@ class AndroidG52MultiturnSpeechSkillsE2ETest {
                     "Prowadź rozmowę o terminie spotkania. Zapamiętaj ostatnią korektę i odpowiedz na pytanie.",
                     ConversationResponseFormat.TOOL_REPLY),
                 setOf(ConversationToolId.END_CALL))
-        else factory.open("natural").createStoryBackend()
+        else factory.open("natural").createBackend()
         val effects = AtomicBoolean(false)
         val decodedTools = Collections.synchronizedList(mutableListOf<ConversationToolId?>())
         val model = ConversationReplyBackend(raw) { reply, _, invalid ->

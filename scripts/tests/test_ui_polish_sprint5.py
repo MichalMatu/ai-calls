@@ -23,7 +23,7 @@ class Sprint5UxContract(unittest.TestCase):
             self.assertEqual(len(keys), len(set(keys)), directory)
             strings.append({node.attrib["name"]: node.text or "" for node in elems})
         self.assertEqual(set(strings[0]), set(strings[1]))
-        for key in ("lab_ui_mode_quick", "eng_ui_diagnostics_heading",
+        for key in ("lab_ui_waiting_response", "eng_ui_diagnostics_heading",
                     "camp_ui_runtime_heading", "home_ui_provider_label"):
             self.assertIn(key, strings[0])
         for key in strings[0]:
@@ -73,30 +73,15 @@ class Sprint5UxContract(unittest.TestCase):
         self.assertIn("content.addView(option", tools)
         self.assertIn("tools_ui_end_call_detail", tools)
 
-    def test_lab_quick_real_model_boundary_and_failure_handling(self):
+    def test_lab_uses_current_manual_and_adaptive_entry_points(self):
         lab = self.source("conversation/ConversationSkillLabActivity.kt")
         self.assertIn('tag = "lab-manual-composer"', lab)
         self.assertIn('tag = "lab-case-picker"', lab)
-        runner = self.source("conversation/SkillLabRunner.kt")
-        factory = self.source("conversation/AndroidSkillLabSessionFactory.kt")
-        self.assertIn("val selected = if (quick) corpus.take(1) else corpus", runner)
-        self.assertIn("if (total == 0 || selected.any { it.turns.isEmpty() }) return false", runner)
-        self.assertIn("corpus: List<SkillLabStory> = SkillLabCorpus.stories", runner)
-        self.assertIn("R.string.lab_manual_empty", lab)
         self.assertIn("runner.startManual(", lab)
-        self.assertIn("story.turns.take(2)", runner)
-        self.assertIn("ConversationReplyProtocol.decode(raw)", runner)
-        self.assertIn("ConversationResponseFormat.TOOL_REPLY", factory)
-        self.assertIn("setOf(ConversationToolId.END_CALL)", factory)
+        self.assertIn("runner.startAdaptive(", lab)
         self.assertIn("renderFailure(", lab)
-        for bad in ("startForegroundService(", "placeCall(", "dispatchTool("):
-            self.assertNotIn(bad, lab)
-        t = (ANDROID_TEST / "AndroidSkillLabRealOfflineTest.kt").read_text()
-        for token in ("AndroidGemma4ModelReadiness.check", "lab-real-two-turns",
-                      "lab-real-stopped", 'real_lab_two_turns_not_completed'):
-            self.assertIn(token, t)
-        self.assertNotIn("startForegroundService(", t)
-        self.assertIn("@Ignore(", t)  # old 2-turn scenario is intentionally retired
+        for forbidden in ("startForegroundService(", "placeCall(", "dispatchTool("):
+            self.assertNotIn(forbidden, lab)
         synthetic = (ANDROID_TEST / "AndroidSkillLabLivePreviewTest.kt").read_text()
         self.assertIn("lab-timeout-synthetic.jpg", synthetic)
 

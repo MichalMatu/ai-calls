@@ -135,7 +135,6 @@ class AndroidLabSemanticNativeOfflineTest {
             Log.i("LAB_SEMANTIC_PROBE", summary)
             instrumentation.sendStatus(0, Bundle().apply { putString("stream", summary + "\n") })
             assertEquals("semantic_session_turn_count", 7, turns.size)
-            assertNull("native_probe_must_not_self_award_semantic_pass", runner.state.metrics)
         } finally {
             runner.close()
         }

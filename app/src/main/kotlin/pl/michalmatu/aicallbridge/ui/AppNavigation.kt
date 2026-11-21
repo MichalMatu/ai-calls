@@ -125,7 +125,12 @@ internal object AppNavigation {
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     }
 
-    fun shell(activity: Activity, body: View, active: AppTab): View {
+    fun shell(activity: Activity, body: View, active: AppTab,
+              hideChromeWithIme: Boolean = false): View {
+        val navigation = bar(activity, active)
+        val toolbar = (activity as? UiChromeActivity)
+            ?.takeUnless { it.isPrimaryTabScreen() }
+            ?.let { childToolbar(activity, active) }
         val root = LinearLayout(activity).apply {
             tag = "app-screen-shell"
             orientation = LinearLayout.VERTICAL
@@ -134,15 +139,21 @@ internal object AppNavigation {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                     val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
                     view.setPadding(0, bars.top, 0, bars.bottom)
+                    if (hideChromeWithIme) {
+                        val visibility = if (insets.isVisible(WindowInsets.Type.ime()))
+                            View.GONE else View.VISIBLE
+                        navigation.visibility = visibility
+                        toolbar?.visibility = visibility
+                    }
                 } else {
                     view.setPadding(0, insets.systemWindowInsetTop, 0, insets.systemWindowInsetBottom)
                 }
                 insets
             }
-            if (activity is UiChromeActivity && !activity.isPrimaryTabScreen()) addView(childToolbar(activity, active))
+            toolbar?.let(::addView)
             addView(body, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-            addView(bar(activity, active))
+            addView(navigation)
         }
         activity.window.statusBarColor = UiDesign.background
         activity.window.navigationBarColor = UiDesign.surface

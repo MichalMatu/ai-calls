@@ -247,10 +247,6 @@
     <string name="lab_ui_stop">Stop test</string>
     <string name="lab_ui_cancelled">Test cancelled. No phone call was made.</string>
     <string name="lab_ui_ready">Ready. The model is selected in engine settings.</string>
-    <string name="lab_ui_rating">Naturalness rating</string>
-    <string name="lab_ui_rating_help">Manual rating: 1 — unnatural, 5 — very natural.</string>
-    <string name="lab_ui_unrated">Not rated</string>
-    <string name="lab_ui_apply_rating">Apply rating</string>
     <string name="lab_ui_starting">Starting offline model…</string>
     <string name="lab_ui_complete">Test finished. No END_CALL was executed.</string>
     <string name="lab_ui_empty">Test results will appear here after you run it.</string>
@@ -353,12 +349,6 @@
     <string name="lab_ui_match">matching decision</string>
     <string name="lab_ui_mismatch">mismatch</string>
     <string name="lab_ui_last_result">%1$s · turn %2$d · answered in %3$d ms</string>
-    <string name="lab_ui_score_title">Test summary</string>
-    <string name="lab_ui_score_decisions">Correct END_CALL decisions: %1$d/%2$d</string>
-    <string name="lab_ui_score_errors">Premature ends: %1$d · missing ends: %2$d · questions to review (heuristic): %3$d</string>
-    <string name="lab_ui_score_latency">Average answer time: %1$d ms</string>
-    <string name="lab_ui_naturalness_score">Manual naturalness rating: %1$d/5</string>
-    <string name="lab_ui_naturalness_unrated">Naturalness: unrated (human review required)</string>
     <string name="lab_ui_failed">Test stopped with error: %1$s</string>
 
     <string name="incoming_ui_mode_label">Answering mode</string>
@@ -382,8 +372,6 @@
     <string name="models_ui_detail_source">Source repository</string>
     <string name="models_ui_detail_license">License: Apache 2.0</string>
     <string name="lab_ui_mode_label">Test scope</string>
-    <string name="lab_ui_mode_quick">Quick test — 2 turns (offline)</string>
-    <string name="lab_ui_mode_full">Full test — all scenarios</string>
     <string name="lab_ui_stop_verification">Stopped at user request.</string>
 
     <string name="history_clear_all">Delete all completed conversations (%1$d)</string>
@@ -394,7 +382,6 @@
     <string name="history_audio_play_hint">Play audio</string>
     <string name="history_audio_stop_hint">Stop audio</string>
     <string name="history_playback_stopped">Playback stopped.</string>
-    <string name="lab_ui_quality_not_scored">END_CALL accuracy does not score answer quality. Extra questions are estimated only; review the text and rate manually.</string>
     <string name="lab_ui_stop_banner">Test stopped — completed turns: %1$d/%2$d. No tool decisions were executed.</string>
     <string name="lab_ui_quality_warning">Response quality requires a manual rating.</string>
     <string name="campaign_ui_last_history">Last recorded event, not the current call state</string>
