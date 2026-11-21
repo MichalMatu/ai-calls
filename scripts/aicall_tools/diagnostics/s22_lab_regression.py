@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import sys
 import tempfile
 import time
 
@@ -27,7 +28,7 @@ TERMINAL = {"NONE", "FAILED", "COMPLETED", "STOPPED"}
 
 def request(device, action, **fields):
     result = device_request(device, "lab_" + action, **fields)
-    if result.get("ok") is not True:
+    if result.get("ok") is not True or not isinstance(result.get("data"), dict):
         raise DiagnosticError("lab_regression_" + action + "_rejected")
     return result["data"]
 
@@ -56,11 +57,16 @@ def measures(turns):
     }
 
 
-def run_case(device, context_tokens):
+def run_case(device, context_tokens, instructions=None):
     device.safe_preflight(S8_PACKAGE)
-    if request(device, "status")["phase"] not in TERMINAL:
+    status = request(device, "status")
+    if status["phase"] not in TERMINAL:
         raise DiagnosticError("lab_regression_existing_session")
     overrides = {"context_tokens": context_tokens} if context_tokens is not None else {}
+    if instructions is not None:
+        if status.get("supports_test_instructions") is not True:
+            raise DiagnosticError("lab_regression_instructions_unavailable")
+        overrides["assistant_instructions"] = instructions
     session = request(device, "start", role="INCOMING", preset="natural", **overrides)["session_id"]
     try:
         state = await_turn(device, session, 0)
@@ -100,10 +106,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--context-tokens", type=int, action="append",
                         metavar="2048–8192", help="Repeat this option to compare with the same dialogue")
+    parser.add_argument("--instructions-stdin", action="store_true", help="Use synthetic instructions for these runs")
     parser.add_argument("--adb", default=shutil.which("adb") or "adb")
     args = parser.parse_args()
     if any(not 2048 <= value <= 8192 for value in args.context_tokens or []):
         parser.error("--context-tokens must be between 2048 and 8192")
+    raw_instructions = sys.stdin.read(2001) if args.instructions_stdin else None
+    if raw_instructions is not None and (len(raw_instructions) > 2000 or not raw_instructions.strip()):
+        parser.error("--instructions-stdin requires 1–2000 characters")
+    instructions = raw_instructions.strip() if raw_instructions is not None else None
     directory = Path(tempfile.mkdtemp(prefix="lab-regression-", dir=private_directory()))
     try:
         device = Device(args.adb)
@@ -116,7 +127,7 @@ def main():
             raise DiagnosticError("lab_regression_apk_identity_unavailable")
         fixture = hashlib.sha256("\n".join(TURN_TEXT).encode()).hexdigest()
         for index, context in enumerate(args.context_tokens or [None], 1):
-            report, private = run_case(device, context)
+            report, private = run_case(device, context, instructions)
             report.update(apk_sha256=digest, fixture_sha256=fixture)
             summary = directory / f"run-{index}.json"
             write_private(summary, report)
