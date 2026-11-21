@@ -29,7 +29,7 @@ internal object ConversationReplyProtocol {
         "Dodaj pole transcript z dokładną polską transkrypcją usłyszanej wypowiedzi. " +
         "Pola reply i tool opisują odpowiedź na tę wypowiedź według istniejących zasad rozmowy."
     const val INSTRUCTION = """
-        Zwróć wyłącznie obiekt JSON z polami reply (naturalna wypowiedź do TTS) oraz tool.
+        Zwróć wyłącznie obiekt JSON zgodny ze schematem. Pole reply jest naturalną wypowiedzią do TTS.
         tool="none" oznacza dalszy dialog. tool="end_call" proponuje zakończenie bieżącej rozmowy PO odtworzeniu reply.
         Oceń ostatnią wypowiedź w kontekście całej rozmowy i potwierdzonych ustaleń,
         nie na podstawie pojedynczych słów ani tekstu własnej odpowiedzi.

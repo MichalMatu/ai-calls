@@ -363,6 +363,24 @@ class AppointmentOwnerConsoleTests(unittest.TestCase):
         self.assertTrue(reply["data"]["call_idle"])
         self.assertEqual(reply["data"]["last_completed_call"]["turns_completed"], 1)
 
+    def test_call_status_reads_live_and_historical_evidence_from_the_lab_package(self):
+        nonce = uuid.UUID("ccccdddd-1111-2222-3333-444444444444")
+        device = FakeDevice({
+            "protocol": 1, "nonce": nonce.hex, "action": "call_status",
+            "ok": True, "data": {"call_idle": True},
+        })
+        with tempfile.TemporaryDirectory() as folder, \
+             patch.object(channel, "private_directory", return_value=Path(folder)), \
+             patch.object(channel.uuid, "uuid4", return_value=nonce), \
+             patch.object(channel.subprocess, "run",
+                          return_value=subprocess.CompletedProcess([], 0, "", "")) as write:
+            self.assertTrue(channel.device_request(device, "call_status")["ok"])
+        self.assertEqual(write.call_args.args[0][5], channel.LAB_PACKAGE)
+        self.assertIn(f"{channel.LAB_PACKAGE}/{channel.RECEIVER_CLASS}", device.broadcast_args)
+        with patch.object(channel, "read_call_technical_summary", return_value=(None, {})) as read:
+            channel.last_call_technical_summary(device)
+        read.assert_called_once_with(device, channel.LAB_PACKAGE)
+
     def test_failed_live_status_does_not_claim_old_call_as_live(self):
         from types import SimpleNamespace
         with (

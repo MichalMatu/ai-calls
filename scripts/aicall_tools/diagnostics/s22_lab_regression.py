@@ -15,6 +15,7 @@ from .ai_calls_usb_lab import PRIVATE_TRANSCRIPT, device_request, private_direct
 
 CASE_ID = "pl-recall-and-format-v1"
 CODE = "KOD-WRZOS-47"
+EXACT_CODE = re.compile(r"(?<![\w-])" + re.escape(CODE) + r"(?![\w-])")
 TURN_TEXT = (
     f"Fikcyjna próbka ma kod {CODE}. Jej kolor to zielony. Przyjmij tę wiadomość.",
     "Zmieńmy na chwilę temat. Jaka jest różnica między kopią a archiwum?",
@@ -46,11 +47,15 @@ def await_turn(device, session_id, turn):
 
 
 def measures(turns):
-    recall = turns[3]["assistant"].upper() if len(turns) >= 4 else ""
+    replies = {turn["turn"]: turn["assistant"] for turn in turns}
+    code_echoes = [turn for turn, reply in replies.items() if EXACT_CODE.search(reply)]
+    recall = replies.get(4, "").upper()
     return {
-        "exact_code_found": bool(re.search(r"(?<![A-Z0-9-])" + CODE + r"(?![A-Z0-9-])", recall)) if recall else None,
-        "latest_color_found": "FIOLETOW" in recall and "ZIELON" not in recall if recall else None,
-        "reply_after_override": len(turns) >= 5,
+        "exact_code_found": 4 in code_echoes if 4 in replies else None,
+        "exact_code_echo_on": code_echoes,
+        "latest_color_found": "FIOLETOW" in recall and "ZIELON" not in recall if 4 in replies else None,
+        # A completed turn still requires semantic review for policy adherence.
+        "reply_after_override": 5 in replies,
         "end_proposed_on": [turn["turn"] for turn in turns if turn.get("end_proposed") is True],
         "latency_ms": [turn["elapsed_ms"] for turn in turns],
         "semantic_verdict": "UNASSESSED",
