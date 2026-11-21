@@ -12,9 +12,11 @@ Kod `97d447db` przeszedł `preflight`, `full`, `device-build` i 12 testów UI/La
 
 S22+ z `97d447db` miał zgodny podpis i SHA. Poza połączeniem przeszedł UI/Lab 10/10, dwie tury modelu, STOP i reset.
 
-W szybkiej próbie użytkownika AI odebrało połączenie przychodzące i mówiło.
+W krótkiej próbie Incoming AI odebrało i mówiło.
 
 Próba transportu Outgoing na `97d447db` potwierdziła ACTIVE, rozłączenie tego samego Call i powrót do IDLE.
+
+Outgoing na `ce5a4fdd` przeszedł 5 tur z RX/TX. END_CALL wysłano, a telefon wrócił do IDLE.
 
 W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
 
@@ -27,7 +29,7 @@ Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. W Lab na `5fc04ed3` 
 
 ## Otwarte
 
-- Incoming i Outgoing po 4–6 tur. Oceń polski STT/TTS, naturalność, pamięć i korekty, barge-in, STOP/takeover, END_CALL po TTS, zapis notatki, transkrypcję i fragmenty WAV.
+- Incoming 4–6 tur i odsłuch Outgoing. Sprawdź naturalność, pamięć, korekty, barge-in, STOP/takeover, notatki i WAV.
 - APK release zbudowane. Do wydania potrzebuje podpisu i obsługi IPC Binder.
 
 ## Po odbiorze GSM
