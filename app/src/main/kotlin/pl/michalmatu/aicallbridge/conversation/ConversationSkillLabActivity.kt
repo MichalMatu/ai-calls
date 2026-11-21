@@ -105,10 +105,9 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(UiDesign.action(this, getString(R.string.lab_model_settings)) {
             startActivity(Intent(this, AudioEngineSettingsActivity::class.java))
         }, UiDesign.spaceAfter(this, 10))
-        // This is a Lab-only allocation setting. Phone-call budget remains unchanged.
         val storedBudget = getSharedPreferences("lab-diagnostics", MODE_PRIVATE)
-            .getInt("context_tokens", 4_096).takeIf { it > 0 } ?: 4_096
-        runningContextBudget = storedBudget
+            .getInt("context_tokens", 0).takeIf { it > 0 }
+        runningContextBudget = storedBudget ?: profileContextBudget()
         val advanced = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             tag = "lab-advanced-options"
@@ -123,7 +122,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             tag = "lab-context-tokens"
             inputType = InputType.TYPE_CLASS_NUMBER
             setSingleLine(true)
-            setText(storedBudget.toString())
+            setText(storedBudget?.toString().orEmpty())
             contentDescription = getString(R.string.lab_context_label)
         }
         advanced.addView(contextBudgetInput, UiDesign.spaceAfter(this, 4))
@@ -530,13 +529,17 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
 
+    private fun profileContextBudget(): Int =
+        AudioEngineProfileStore(this).load()?.generation?.contextTokens ?: 4_096
+
     private fun startDialogue(presetId: String, adaptive: Boolean) {
         val chosen = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)
         if (adaptive && chosen == null) {
             showError(getString(R.string.lab_adaptive_select_case)); return
         }
-        val budget = contextBudgetInput.text.toString().trim().toIntOrNull()
-        if (budget == null || budget <= 0) {
+        val budgetText = contextBudgetInput.text.toString().trim()
+        val budget = budgetText.toIntOrNull()
+        if (budgetText.isNotEmpty() && (budget == null || budget <= 0)) {
             (contextBudgetInput.parent as View).visibility = View.VISIBLE
             contextBudgetInput.error = getString(R.string.lab_context_invalid)
             contextBudgetInput.requestFocus()
@@ -588,7 +591,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
             }
         }
-        runningContextBudget = budget
+        runningContextBudget = budget ?: profileContextBudget()
         timingMeasurements.clear()
         updateModelDiagnostics()
         manualInput.setText(if (adaptive) "" else test?.opening.orEmpty())
@@ -603,7 +606,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         if (!started) { showSetup(); return }
         getSharedPreferences("lab-diagnostics", MODE_PRIVATE).edit()
-            .putInt("context_tokens", budget)
+            .putInt("context_tokens", budget ?: 0)
             .putString("skill_loading_mode", loadingMode.name).apply()
         activeReportId = UUID.randomUUID().toString()
         reportSaved = false

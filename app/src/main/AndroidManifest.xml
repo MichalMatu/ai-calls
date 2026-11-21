@@ -216,6 +216,7 @@
         <activity android:name=".conversation.ConversationSkillsActivity" android:exported="false" />
         <activity android:name=".conversation.ConversationSkillLabActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".conversation.ConversationPreparationActivity" android:exported="false" />
+        <activity android:name=".conversation.ConversationPromptSettingsActivity" android:exported="false" />
         <activity android:name=".conversation.ConversationHistoryActivity" android:exported="false" />
     </application>
 

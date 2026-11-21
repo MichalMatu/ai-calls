@@ -106,6 +106,7 @@ open class LanguageModelActivity : UiChromeActivity(AppTab.SETTINGS) {
         if (!filesMode) {
             val content = UiDesign.content(this).apply {
                 addView(configuration.modelView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))
+                addView(configuration.generationView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))
                 addView(configuration.inputView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))
                 addView(configuration.languageView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))
                 addView(configuration.voiceView, UiDesign.spaceAfter(this@LanguageModelActivity, 16))

@@ -9,9 +9,11 @@ import android.media.AudioManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.telecom.TelecomManager
+import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.EditText
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.ScrollView
@@ -59,6 +61,7 @@ internal class ModelVoiceSettings(
     private var voiceOptions: LinearLayout? = null
     private val knownImports = UserLiteRtModelStore(activity).models().map { it.id }.toMutableSet()
     private val modelName = value("model-voice-model-choice")
+    private val generationSummary = value("model-generation-summary")
     private val inputName = value("model-voice-input-choice")
     private val languageName = value("model-voice-language-choice")
     private val voiceName = value("model-voice-voice-choice")
@@ -66,6 +69,8 @@ internal class ModelVoiceSettings(
     private val inputIssue = UiDesign.caption(activity, "")
     private val voiceIssue = UiDesign.caption(activity, "")
     val modelView = card(R.string.models_ui_dialogue_heading, modelName, ::showModelPicker).apply { tag = "model-voice-model" }
+    val generationView = card(R.string.model_generation_title, generationSummary, ::showGenerationSettings)
+        .apply { tag = "model-generation-settings" }
     val inputView = card(R.string.mv_input, inputName, ::showInputPicker).apply { tag = "model-voice-inputs" }
     val languageView = card(R.string.mv_speech_language, languageName, ::showLanguagePicker)
         .apply {
@@ -135,6 +140,57 @@ internal class ModelVoiceSettings(
     fun selectModel(id: DialogueModelId, custom: String? = null): Boolean =
         save(draft.copy(dialogue = id, customModelId = custom))
     fun selectInput(id: SpeechInputId): Boolean = save(draft.copy(input = id))
+
+    private fun showGenerationSettings() {
+        val fields = UiDesign.content(activity)
+        val current = draft.generation
+        fields.addView(UiDesign.caption(activity, activity.getString(R.string.model_generation_hint)),
+            UiDesign.spaceAfter(activity, 12))
+        fun field(label: Int, initial: Number?, range: String, decimal: Boolean = false): EditText {
+            fields.addView(UiDesign.caption(activity, activity.getString(label)))
+            return EditText(activity).apply {
+                tag = activity.resources.getResourceEntryName(label)
+                contentDescription = activity.getString(label)
+                inputType = InputType.TYPE_CLASS_NUMBER or if (decimal) InputType.TYPE_NUMBER_FLAG_DECIMAL else 0
+                setSingleLine(true)
+                setText(initial?.toString().orEmpty())
+                hint = range
+                fields.addView(this, UiDesign.spaceAfter(activity, 8))
+            }
+        }
+        fun range(lower: Number, upper: Number) = activity.getString(R.string.model_generation_range, lower.toString(), upper.toString())
+        fun automatic(lower: Number, upper: Number) = activity.getString(R.string.model_generation_auto_range, lower.toString(), upper.toString())
+        val context = field(R.string.model_generation_context, current.contextTokens, automatic(2048, 8192))
+        val output = field(R.string.model_generation_output, current.outputTokens, automatic(256, 1024))
+        val temperature = field(R.string.model_generation_temperature, current.temperature, range(0, 1.5), decimal = true)
+        val topK = field(R.string.model_generation_top_k, current.topK, range(1, 64))
+        val topP = field(R.string.model_generation_top_p, current.topP, range(0.05, 1), decimal = true)
+        val dialog = AlertDialog.Builder(activity).setTitle(R.string.model_generation_title)
+            .setView(ScrollView(activity).apply { addView(fields) })
+            .setPositiveButton(R.string.prep_ui_save, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.model_settings_defaults, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                if (save(draft.copy(generation = DialogueGenerationSettings.DEFAULTS))) dialog.dismiss()
+            }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val contextText = context.text.toString().trim()
+                val outputText = output.text.toString().trim()
+                val next = DialogueGenerationSettings(
+                    contextTokens = contextText.toIntOrNull(), outputTokens = outputText.toIntOrNull(),
+                    temperature = temperature.text.toString().replace(',', '.').toDoubleOrNull() ?: Double.NaN,
+                    topK = topK.text.toString().toIntOrNull() ?: 0,
+                    topP = topP.text.toString().replace(',', '.').toDoubleOrNull() ?: Double.NaN,
+                )
+                if (!next.valid() || (next.contextTokens == null && contextText.isNotEmpty()) ||
+                    (next.outputTokens == null && outputText.isNotEmpty())) {
+                    Toast.makeText(activity, R.string.model_generation_invalid, Toast.LENGTH_SHORT).show()
+                } else if (save(draft.copy(generation = next))) dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
 
     private fun showLanguagePicker() {
         val values = arrayOf("pl-PL", "en-US")
@@ -338,6 +394,9 @@ internal class ModelVoiceSettings(
 
     fun refresh() {
         val library = UserLiteRtModelStore(activity)
+        generationSummary.text = activity.getString(R.string.model_generation_summary,
+            draft.generation.contextBudget(draft.dialogue, structured = true),
+            draft.generation.outputTokens ?: 512, draft.generation.temperature)
         modelName.text = if (draft.dialogue == DialogueModelId.USER_LITERT)
             library.find(draft.customModelId)?.title ?: activity.getString(R.string.models_ui_user_missing)
             else "Gemma 4 E2B"

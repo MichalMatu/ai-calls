@@ -32,19 +32,26 @@ internal interface DialogueEngineProvider {
 internal class LiteRtDialogueEngineProvider(override val id: DialogueModelId,
     private val audioInput: Boolean = false,
     private val profile: AudioEngineProfile? = null) : DialogueEngineProvider {
+    private val generation = profile?.generation ?: DialogueGenerationSettings.DEFAULTS
+
     override fun createConversationReply(context: Context, systemInstruction: String, tools: Set<ConversationToolId>): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id, tools,
             audioInput = audioInput,
-            selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) })
+            selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) },
+            contextTokenBudget = generation.contextBudget(id, structured = true), generationSettings = generation)
 
     override fun createLaboratoryConversationReply(context: Context, systemInstruction: String,
         tools: Set<ConversationToolId>, contextTokenBudget: Int,
         onTiming: (NativeModelTiming) -> Unit): TextCallAgentBackend =
         Gemma4LiteRtTextBackendFactory.createConversationReply(context, systemInstruction, id,
-            tools, contextTokenBudget = contextTokenBudget, onTiming = onTiming)
+            tools, contextTokenBudget = contextTokenBudget, onTiming = onTiming,
+            selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) },
+            generationSettings = generation)
 
     override fun createDirect(context: Context, systemInstruction: String): TextCallAgentBackend =
-        Gemma4LiteRtTextBackendFactory.createDirectDialogue(context, systemInstruction, id)
+        Gemma4LiteRtTextBackendFactory.createDirectDialogue(context, systemInstruction, id,
+            generationSettings = generation,
+            selectedFile = profile?.let { Gemma4LiteRtTextBackendFactory.modelFile(context, it) })
 
     override fun createActionClassifier(
         context: Context, systemInstruction: String, allowedActions: Set<DialogueActionId>,

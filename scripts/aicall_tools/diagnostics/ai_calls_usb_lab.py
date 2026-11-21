@@ -441,8 +441,9 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
             raise DiagnosticError("nonempty_text_expected_on_stdin")
         return device_request(device, name, session_id=args.session_id, text=text)
     if name == "lab_start":
-        params = {"context_tokens": args.context_tokens, "preset": args.preset,
-                  "role": getattr(args, "role", "GENERAL")}
+        params = {"preset": args.preset, "role": getattr(args, "role", "GENERAL")}
+        if args.context_tokens is not None:
+            params["context_tokens"] = args.context_tokens
         if getattr(args, "instructions_stdin", False):
             instructions = sys.stdin.read().strip()
             if not instructions:
@@ -486,7 +487,8 @@ def main() -> int:
     parser.add_argument("--instructions-stdin", action="store_true",
                         help="Read optional Lab-only AI instructions for lab-start from stdin")
     parser.add_argument("--task-id")
-    parser.add_argument("--context-tokens", type=int, default=4096)
+    parser.add_argument("--context-tokens", type=int,
+                        help="Override the model's context budget for one Lab session")
     parser.add_argument("--preset", default="natural")
     parser.add_argument("--role", choices=("GENERAL", "INCOMING", "OUTGOING"), default="GENERAL")
     parser.add_argument("--input", default="ANDROID_STT")

@@ -11,6 +11,7 @@ import android.widget.AdapterView
 import android.view.View
 import android.widget.ScrollView
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.conversation.ConversationPromptSettingsActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
@@ -36,6 +37,7 @@ class SettingsHubActivity : AppBaseActivity() {
             destination(R.string.local_adb_open, LocalAdbGsmSetupActivity::class.java)
         }
         destination(R.string.incoming_ui_title, IncomingAssistantSettingsActivity::class.java)
+        destination(R.string.prompt_settings_title, ConversationPromptSettingsActivity::class.java)
         destination(R.string.mv_permissions, GeneralSettingsActivity::class.java)
         if (CallMediaBackendMode.forPackage(packageName) != CallMediaBackendMode.GSM_SHELL_ADB) {
             destination(R.string.ui_settings_hub_developer, DeveloperToolsActivity::class.java)

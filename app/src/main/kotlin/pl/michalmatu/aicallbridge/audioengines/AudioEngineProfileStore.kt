@@ -19,7 +19,8 @@ internal class AudioEngineProfileStore(
         if (!prefs.contains("version")) {
             // No previous preference means migration to the unchanged shipped baseline.
             // A partially/corruptly populated preference must not silently downgrade.
-            return if (listOf("input", "dialogue", "output", "language", "voice", "custom_model_id", "tts_engine")
+            return if (listOf("input", "dialogue", "output", "language", "voice", "custom_model_id", "tts_engine",
+                    "model_context", "model_output", "model_temperature", "model_top_k", "model_top_p")
                 .none { prefs.contains(it) }
             ) AudioEngineProfile.STABLE else null
         }
@@ -44,7 +45,16 @@ internal class AudioEngineProfileStore(
             ?: if (previousOutput == SpeechOutputId.PIPER_PL) PiperServiceContract.PACKAGE else null
         val language = prefs.getString("language", null) ?: return null
         val voice = prefs.getString("voice", null)
-        val profile = AudioEngineProfile(input, dialogue, output, language, voice, customId, engine)
+        val generation = runCatching {
+            DialogueGenerationSettings(
+                contextTokens = prefs.getString("model_context", null)?.toInt(),
+                outputTokens = prefs.getString("model_output", null)?.toInt(),
+                temperature = prefs.getString("model_temperature", null)?.toDouble() ?: 0.0,
+                topK = prefs.getString("model_top_k", null)?.toInt() ?: 1,
+                topP = prefs.getString("model_top_p", null)?.toDouble() ?: 1.0,
+            )
+        }.getOrNull() ?: return null
+        val profile = AudioEngineProfile(input, dialogue, output, language, voice, customId, engine, generation)
             .takeIf { AudioEngineRegistry.incompatibility(it) == null } ?: return null
         if ((version == 1 || previouslySavedDialogue != dialogue || previousOutput != output) && !save(profile)) return null
         return profile
@@ -64,6 +74,11 @@ internal class AudioEngineProfileStore(
             .putString("custom_model_id", if (profile.dialogue == DialogueModelId.USER_LITERT)
                 profile.customModelId else null)
             .putString("tts_engine", profile.effectiveTtsEnginePackage)
+            .putString("model_context", profile.generation.contextTokens?.toString())
+            .putString("model_output", profile.generation.outputTokens?.toString())
+            .putString("model_temperature", profile.generation.temperature.toString())
+            .putString("model_top_k", profile.generation.topK.toString())
+            .putString("model_top_p", profile.generation.topP.toString())
             .commit()
     }
 }

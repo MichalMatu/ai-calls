@@ -14,6 +14,21 @@ class AudioEngineProfileContractTest {
         assertNull(AudioEngineRegistry.incompatibility(value))
     }
 
+    @Test fun generationDefaultsPreserveEngineBudgetsAndRejectInvalidOverrides() {
+        val defaults = AudioEngineProfile.STABLE.generation
+        assertEquals(4_096, defaults.contextBudget(DialogueModelId.GEMMA_4_E2B, structured = true))
+        assertEquals(2_048, defaults.contextBudget(DialogueModelId.USER_LITERT, structured = true))
+        assertEquals(2_048, defaults.contextBudget(DialogueModelId.GEMMA_4_E2B, structured = false))
+        val custom = DialogueGenerationSettings(6_144, 768, 0.4, 16, 0.9)
+        assertTrue(custom.valid())
+        assertEquals(6_144, custom.contextBudget(DialogueModelId.GEMMA_4_E2B, structured = true))
+        for (invalid in listOf(custom.copy(contextTokens = 0), custom.copy(outputTokens = 2048),
+            custom.copy(temperature = Double.NaN), custom.copy(topK = 0), custom.copy(topP = 0.0))) {
+            assertEquals("invalid_dialogue_generation_settings", AudioEngineRegistry.incompatibility(
+                AudioEngineProfile(generation = invalid)))
+        }
+    }
+
     @Test fun unimplementedEnginesCannotMasqueradeAsReady() {
         assertNull(AudioEngineRegistry.incompatibility(AudioEngineProfile(input = SpeechInputId.GEMMA_AUDIO_DIRECT)))
         assertEquals("model_audio_input_unavailable", AudioEngineRegistry.incompatibility(

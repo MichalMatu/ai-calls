@@ -23,13 +23,13 @@ internal fun labPreparation(
 /** Android-only model configuration. The Activity never creates or owns a backend. */
 internal class AndroidSkillLabSessionFactory(
     private val context: Context,
-    contextTokenBudget: Int = 4_096,
+    contextTokenBudget: Int? = null,
 ) : SkillLabModelSessionFactory {
-    init { require(contextTokenBudget > 0) { "lab_invalid_context_budget" } }
+    init { require(contextTokenBudget == null || contextTokenBudget > 0) { "lab_invalid_context_budget" } }
     /** Applied to future sessions only; existing workers retain their own snapshot. */
-    @Volatile var contextTokenBudget: Int = contextTokenBudget
+    @Volatile var contextTokenBudget: Int? = contextTokenBudget
         set(value) {
-            require(value > 0) { "lab_invalid_context_budget" }
+            require(value == null || value > 0) { "lab_invalid_context_budget" }
             field = value
         }
     @Volatile var onTiming: (NativeModelTiming) -> Unit = {}
@@ -41,10 +41,10 @@ internal class AndroidSkillLabSessionFactory(
         private val activeLabBackend = AtomicBoolean(false)
     }
     override fun open(presetId: String): SkillLabModelSession {
-        val budgetSnapshot = contextTokenBudget
         val timingSnapshot = onTiming
         val profile = AudioEngineProfileStore(context).load()
             ?: error(context.getString(R.string.lab_ui_missing_profile))
+        val budgetSnapshot = contextTokenBudget ?: profile.generation.contextTokens ?: 4_096
         val store = SkillLabIsolatedTestStore.forContext(context)
         val library = store.loadSkillLibrary()
         val selected = selectedCase
@@ -52,8 +52,8 @@ internal class AndroidSkillLabSessionFactory(
         val routingObserver = onSkillSelection
         val turnRoutingObserver = onTurnRouting
         val initial = when (selected?.role ?: LabRole.GENERAL) {
-            LabRole.INCOMING -> store.load(ConversationPreparation.INCOMING_ID)
-            LabRole.OUTGOING -> store.load(ConversationPreparation.OUTGOING_ID)
+            LabRole.INCOMING -> store.load(ConversationPreparation.INCOMING_ID, includePromptSettings = false)
+            LabRole.OUTGOING -> store.load(ConversationPreparation.OUTGOING_ID, includePromptSettings = false)
             LabRole.GENERAL -> ConversationPreparation.supervised()
         }
         // Never include owner's vault references in an offline test prompt.

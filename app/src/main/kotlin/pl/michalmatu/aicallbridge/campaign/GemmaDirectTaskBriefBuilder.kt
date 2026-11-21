@@ -21,7 +21,8 @@ internal object GemmaDirectTaskBriefBuilder {
             else -> throw IllegalArgumentException("gemma_task_brief_unsupported_execution")
         }
         val scoped = ConversationPreparation(preparation.id, preparation.title, ConversationDirection.OUTGOING,
-            preparation.notes, preparation.skills, preparation.scopedDataFields(grant.allowedDisclosureFields))
+            preparation.notes, preparation.skills, preparation.scopedDataFields(grant.allowedDisclosureFields),
+            promptSettings = preparation.promptSettings)
         return ConversationInstructionBuilder.build(scoped, goal, ConversationResponseFormat.SPOKEN_TEXT)
     }
 }
