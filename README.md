@@ -2,7 +2,7 @@
 
 An on-device assistant for authorized GSM calls on the Samsung Galaxy S22+ with Android 16. It handles incoming and outgoing calls in Polish and English, with local transcripts and notes.
 
-[Download the S8 Lab test APK](https://github.com/MichalMatu/ai-calls/releases/download/s8lab-preview-ba2a4640/ai-calls-s8lab.apk).
+[Download the S8 Lab test APK](https://github.com/MichalMatu/ai-calls/releases/download/s8lab-preview-ba2a4640/ai-calls-s8lab.apk). This is a preview build, not a qualified production release.
 
 ## Install and set up
 

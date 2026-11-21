@@ -1,8 +1,7 @@
 # Rozwój i QA
 
-`main` → gałąź robocza → QA → PR → merge. Po merge usuń gałąź roboczą. Stałe gałęzie to `main` i `agent-control`. Testy uruchamiaj przez [test-profile.sh](../../scripts/bin/test-profile.sh).
+Stałe gałęzie: `main` (kod) i `agent-control` (zadania Local Agenta). Krótką gałąź roboczą usuwaj po PR/merge. Nie nadpisuj lokalnych zmian. [Tryb Mac](LOCAL_AGENT.md).
 
-- `preflight` sprawdza diff, dokumentację i granice modułów. `full` obejmuje JVM, lint, Python i kontrole statyczne.
-- `device-build` pakuje APK aplikacji i testów. `lab-ui` wykonuje wybrane testy Android na emulatorze. Oba wyniki mają odrębny zakres.
-- S22+ wymaga IDLE, zgody, kopii APK, kontroli podpisu i SHA oraz potwierdzenia hosta UID 2000/Binder po instalacji. Próby GSM wymagają osobnej zgody.
-- Wyniki wersji i otwarte próby zapisuj w [PROJECT](../PROJECT.md) z SHA i zakresem.
+`scripts/bin/test-profile.sh`: `preflight` — diff/dokumentacja/moduły; `quick` — JVM; `full` — host/lint/Python; `device-build` — APK; `lab-ui` — emulator, nie telefon. Każdy wynik dotyczy konkretnego SHA i zakresu.
+
+S22+ testuj dopiero po sprawdzeniu stanu IDLE, podpisu/SHA APK, hosta UID 2000/Binder i rollbacku. Rozmowy tylko po zgodzie, z exact Call/SIM, STOP/takeover i END_CALL po TTS. Wyniki oraz otwarte bramki zapisuj w [PROJECT](../PROJECT.md).

@@ -1,38 +1,24 @@
 # AI Calls — wydanie MVP
 
-**Rollback** `s22-gsm-mvp-golden-2026-11-19` (`f0940d51`).
+**Rollback:** `s22-gsm-mvp-golden-2026-11-19` (`f0940d51`).
 
 ## Stan MVP
 
-MVP `.s8lab` na S22+/Android 16 używa hosta Binder UID 2000. Obejmuje oba kierunki GSM, lokalne STT/model/TTS, notatki i END_CALL.
+Testowy pakiet `.s8lab` na S22+/Android 16: Binder UID 2000, GSM Incoming/Outgoing, lokalne STT/Gemma/TTS, notatki i END_CALL. APK release wymaga podpisu i obsługi Binder IPC.
 
-Na wcześniejszym kodzie potwierdzono fizycznie oba kierunki GSM, RX/TX, WAV, SAVE_NOTE i END_CALL.
+**Dowody dla wcześniejszych wersji:** na `97d447db` przeszły preflight/full/device-build, 12 testów UI/Lab emulatora i 10/10 kontroli S22+ poza rozmową; Incoming odebrał i mówił. Na `ce5a4fdd` Outgoing wykonał 5 tur RX/TX, END_CALL i IDLE, ale powitanie było po EN. Na `b850b504` USB Lab potwierdził korektę koloru i odmowę SMS. Dokładne powtarzanie kodów pozostało otwarte.
 
-Kod `97d447db` przeszedł `preflight`, `full`, `device-build` i 12 testów UI/Lab na emulatorze. [QA i SHA APK](https://github.com/MichalMatu/ai-calls/pull/66).
-
-S22+ z `97d447db` miał zgodny podpis i SHA. Poza połączeniem przeszedł UI/Lab 10/10, dwie tury modelu, STOP i reset.
-
-W krótkiej próbie Incoming AI odebrało i mówiło.
-
-Próba transportu Outgoing na `97d447db` potwierdziła ACTIVE, rozłączenie tego samego Call i powrót do IDLE.
-
-Outgoing na `ce5a4fdd` potwierdził 5 tur z RX/TX, dane po korekcie, wysłanie END_CALL i IDLE. Powitanie było po angielsku.
-
-Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. Na `b850b504` USB Lab potwierdził korektę koloru i odmowę wysłania SMS-a. Dokładne powtarzanie kodów pozostaje otwarte.
+`1c5a979`: dodano profile PL/EN, E2B/E4B i poprawki etykiet/README; fizyczny odbiór GSM **tej wersji** nie został udokumentowany.
 
 ## Następny sprint
 
-Profil PL/EN i E2B/E4B z kontrolą zgodności dostępne w kodzie. Odbiór S22+ i tag po akceptacji. Strojenie promptów i Skills później.
+1. Potwierdzić dostępność Local Agenta, czysty `main`, SHA i stan hosta.
+2. Lab syntetyczny PL/EN, E2B/E4B: pamięć, kody/numer, pożegnanie, odmowy.
+3. Na S22+ po 4–6 tur Incoming/Outgoing w PL/EN; sprawdzić barge-in, STOP/takeover, WAV, notatki, END_CALL, IDLE.
+4. Po poprawkach powtórzyć QA, sprawdzić README/APK/rollback i podpisać protokół PASS/HOLD z SHA.
 
 ## Otwarte
 
-- Incoming 4–6 tur i powtórka powitania Outgoing. Sprawdź barge-in, STOP/takeover, notatki i WAV.
-- APK release zbudowane. Do wydania potrzebuje podpisu i obsługi IPC Binder.
+Pełna kwalifikacja GSM na najnowszym SHA, podpis i IPC APK release. SIP/PJSUA2 po odbiorze GSM: prototyp w tagu `archive/sip-voip-s22-2026-11-21`. [Dalsze ścieżki](modules/CONVERSATION.md).
 
-## Po odbiorze GSM
-
-Prototyp SIP/PJSUA2 i skrypty są pod tagiem `archive/sip-voip-s22-2026-11-21`. Następna bramka to konto testowe, rozmowa TLS/SRTP z PCM w obie strony i STOP. Przed dystrybucją sprawdź licencję. [Kod i dowody](https://github.com/MichalMatu/ai-calls/tree/archive/sip-voip-s22-2026-11-21/prototypes/s8-pjsua2).
-
-[Dalsze ścieżki](modules/CONVERSATION.md).
-
-**WSTRZYMANE:** Shizuku, Actions, schedulery i `WRITE_SECURE_SETTINGS`.
+**Wstrzymane:** Shizuku, Actions, schedulery, `WRITE_SECURE_SETTINGS`.
