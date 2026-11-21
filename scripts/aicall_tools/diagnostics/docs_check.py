@@ -108,7 +108,8 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
     if (root / "scripts/local_agent/README.md").exists():
         errors.append("scripts/local_agent/README.md: duplicate documentation location")
 
-    total = sum(f.stat().st_size for f in files)
+    # The public setup guide has its own per-file cap.
+    total = sum(f.stat().st_size for f in files if f != root / "README.md")
     if total > TOTAL_MAX_BYTES:
         errors.append(f"documentation budget exceeded: {total} > {TOTAL_MAX_BYTES} bytes")
     elif total > TOTAL_WARN_BYTES:
