@@ -4,15 +4,17 @@
 
 ## Stan MVP
 
-Kandydat do prób użytkownika to APK `.s8lab` na S22+ z Androidem 16. Binder host używa UID 2000. Zakres obejmuje Incoming i Outgoing, lokalne STT/model/TTS, notatki i END_CALL.
+Kandydat to APK `.s8lab` na S22+ z Androidem 16 i hostem Binder UID 2000. Zakres obejmuje Incoming i Outgoing, lokalne STT/model/TTS, notatki i END_CALL.
 
-Wcześniejszy odbiór fizyczny potwierdził oba kierunki GSM, RX/TX, WAV, SAVE_NOTE i END_CALL. Wynik dotyczy wcześniejszego kodu.
+Na wcześniejszym kodzie potwierdzono fizycznie oba kierunki GSM, RX/TX, WAV, SAVE_NOTE i END_CALL.
 
-Kod kandydata `97d447db` przeszedł `preflight`, `full` i `device-build`. Wyniki obejmują 1380 testów JVM, 486 Python oraz 12 testów UI i Lab na emulatorze. [PR i SHA APK](https://github.com/MichalMatu/ai-calls/pull/66).
+Kod `97d447db` przeszedł `preflight`, `full`, `device-build`, 1380 testów JVM, 486 Python i 12 testów UI/Lab na emulatorze. [PR i SHA APK](https://github.com/MichalMatu/ai-calls/pull/66).
 
 S22+ z `97d447db`: podpis i SHA zgodne, UI/Lab 10/10 bez połączeń. Lokalny model przeszedł dwie tury, STOP i reset. Po restarcie procesu przez instrumentację przywrócono rejestrację hosta i zweryfikowano Binder UID 2000.
 
 W szybkiej próbie użytkownika AI odebrało połączenie przychodzące i mówiło.
+
+Próba transportu Outgoing na `97d447db` potwierdziła ACTIVE, rozłączenie tego samego Call i powrót do IDLE.
 
 W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
 
