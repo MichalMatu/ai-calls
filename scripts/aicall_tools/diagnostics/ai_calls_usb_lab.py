@@ -66,7 +66,8 @@ def private_directory() -> Path:
 def device_request(device: Device, action: str, **params: object) -> dict:
     if action not in ACTIONS:
         raise DiagnosticError("invalid_diagnostic_action")
-    package = LAB_PACKAGE if action.startswith(("lab_", "orange_smoke_")) else PACKAGE
+    use_lab_package = action == "call_status" or action.startswith(("lab_", "orange_smoke_"))
+    package = LAB_PACKAGE if use_lab_package else PACKAGE
     nonce = uuid.uuid4().hex
     payload = {"protocol": 1, "nonce": nonce, "action": action, **params}
     request = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
@@ -252,7 +253,7 @@ def _appointment_open_ui_fallback(device: Device) -> bool:
 
 def last_call_technical_summary(device: Device) -> dict:
     """Historical, strictly allowlisted technical values. Never return raw report."""
-    _, report = read_call_technical_summary(device, PACKAGE)
+    _, report = read_call_technical_summary(device, LAB_PACKAGE)
     return report
 
 
