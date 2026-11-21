@@ -1,6 +1,6 @@
 # Rozwój i QA
 
-`main` → gałąź → `preflight` → `full` → `device-build` → PR. Uruchamiaj przez [test-profile.sh](../../scripts/bin/test-profile.sh). `focus <moduł> <klasa>` przydaje się podczas zmian.
+`main` → gałąź robocza → QA → PR → merge. Po merge usuń gałąź roboczą. Stałe gałęzie to `main` i `agent-control`. Testy uruchamiaj przez [test-profile.sh](../../scripts/bin/test-profile.sh).
 
 - `preflight` sprawdza diff, dokumentację i granice modułów. `full` obejmuje JVM, lint, Python i kontrole statyczne.
 - `device-build` pakuje APK aplikacji i testów. `lab-ui` wykonuje wybrane testy Android na emulatorze. Oba wyniki mają odrębny zakres.

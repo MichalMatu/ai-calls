@@ -12,10 +12,12 @@ Kod kandydata `97d447db` przeszedł `preflight`, `full` i `device-build`. Wyniki
 
 S22+ z `97d447db`: podpis i SHA zgodne, UI/Lab 10/10 bez połączeń. Lokalny model przeszedł dwie tury, STOP i reset. Po restarcie procesu przez instrumentację przywrócono rejestrację hosta i zweryfikowano Binder UID 2000.
 
+W szybkiej próbie użytkownika AI odebrało połączenie przychodzące i mówiło.
+
 ## Następny sprint
 
-1. Odbiór odpowiedzi w [Test Lab](modules/CONVERSATION.md) i próby GSM przez użytkownika.
-2. Po odbiorze merge, tag golden i uporządkowanie gałęzi do `main` oraz `agent-control`.
+1. Pełne próby GSM i odbiór odpowiedzi w [Test Lab](modules/CONVERSATION.md).
+2. Tag golden po pełnym odbiorze.
 
 ## Otwarte
 
