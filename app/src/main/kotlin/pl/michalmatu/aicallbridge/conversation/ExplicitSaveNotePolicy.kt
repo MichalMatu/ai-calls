@@ -10,7 +10,7 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationNoteProposal
  */
 internal object ExplicitSaveNotePolicy {
     private val request = Regex(
-        """(?iu)\b(?:zapisz|zanotuj|zapamiętaj|prosz[eę]\s+(?:zapisa[cć]|zanotowa[cć])|czy\s+możesz\s+(?:mi\s+)?(?:zapisa[cć]|zanotowa[cć]))\b"""
+        """(?iu)(?<!\p{L})(?:zapisz|zanotuj|zapamiętaj|prosz[eę]\s+(?:zapisa[cć]|zanotowa[cć])|czy\s+możesz\s+(?:mi\s+)?(?:zapisa[cć]|zanotowa[cć]))(?!\p{L})"""
     )
     private val negation = Regex(
         """(?iu)\b(?:nie|żeby\s+nie)\s+(?:zapisuj|zapisz|zanotuj|zapisa[cć]|zanotowa[cć])\b"""
@@ -40,10 +40,8 @@ internal object ExplicitSaveNotePolicy {
         // Prefer the actual information over a sign-off or a bare "save this" instruction.
         // Keep just the adjacent relevant caller turn; never auto-save the whole conversation.
         val content = when {
-            context != null && tail.length >= 16 && !isBareRequest(tail) ->
-                "$context. $tail"
-            context != null -> context
             tail.length >= 16 && !isBareRequest(tail) -> tail
+            context != null -> context
             else -> return null
         }.take(900)
         if (content.isBlank() || content.any { it.isISOControl() }) return null
