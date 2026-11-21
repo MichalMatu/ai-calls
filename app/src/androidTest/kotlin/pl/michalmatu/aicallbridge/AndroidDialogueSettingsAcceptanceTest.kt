@@ -2,9 +2,12 @@ package pl.michalmatu.aicallbridge
 
 import android.os.Build
 import android.view.View
+import android.view.ViewGroup
 import android.view.inspector.WindowInspector
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ListView
+import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -15,6 +18,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import pl.michalmatu.aicallbridge.audioengines.DialogueGenerationSettings
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
@@ -90,6 +94,45 @@ class AndroidDialogueSettingsAcceptanceTest {
                 }
                 assertEquals(original.copy(generation = DialogueGenerationSettings(6144, 768, 0.4, 16, 0.9)),
                     store.load())
+            }
+        } finally {
+            assertTrue(store.save(original))
+        }
+    }
+
+    @Test fun speechLanguageSwitchKeepsTheModelAndUsesTheOfflineVoiceLabel() {
+        val store = AudioEngineProfileStore(instrument.targetContext)
+        val original = requireNotNull(store.load())
+        fun listIn(view: View): ListView? = when (view) {
+            is ListView -> view
+            is ViewGroup -> (0 until view.childCount).firstNotNullOfOrNull { listIn(view.getChildAt(it)) }
+            else -> null
+        }
+        try {
+            val baseline = AudioEngineProfile.STABLE
+            assertTrue(store.save(baseline))
+            ActivityScenario.launch(LanguageModelActivity::class.java).use { screen ->
+                for ((index, language) in listOf(1 to "en-US", 0 to "pl-PL")) {
+                    screen.onActivity { activity ->
+                        assertTrue(activity.window.decorView.findViewWithTag<View>("model-voice-language").performClick())
+                    }
+                    instrument.waitForIdleSync()
+                    screen.onActivity {
+                        val list = WindowInspector.getGlobalWindowViews().asReversed().firstNotNullOf(::listIn)
+                        assertTrue(list.performItemClick(list.getChildAt(index), index, list.adapter.getItemId(index)))
+                    }
+                    screen.recreate()
+                    assertEquals(baseline.copy(languageTag = language), store.load())
+                    screen.onActivity { activity ->
+                        val root = activity.window.decorView
+                        val languageLabel = if (language == "en-US") R.string.mv_speech_language_en
+                            else R.string.mv_speech_language_pl
+                        assertEquals(activity.getString(languageLabel),
+                            root.findViewWithTag<TextView>("model-voice-language-choice").text.toString())
+                        assertEquals(activity.getString(R.string.mv_voice_auto),
+                            root.findViewWithTag<TextView>("model-voice-voice-choice").text.toString())
+                    }
+                }
             }
         } finally {
             assertTrue(store.save(original))

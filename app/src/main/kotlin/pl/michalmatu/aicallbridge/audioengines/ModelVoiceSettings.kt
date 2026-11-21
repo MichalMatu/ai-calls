@@ -132,7 +132,11 @@ internal class ModelVoiceSettings(
             draft.languageTag != profile.languageTag
         draft = profile; tts?.stop()
         probe.close(); checking = false; lastAttempt = null; checkResult = null
-        if (engineChanged && active) loadVoices()
+        if (engineChanged) {
+            previewWhenReady = false
+            pendingPreviewVoice = null
+            if (active) loadVoices()
+        }
         refresh(); changed()
         return true
     }
@@ -343,6 +347,7 @@ internal class ModelVoiceSettings(
 
     private fun loadVoices() {
         val generation = ++voiceGeneration
+        val language = Locale.forLanguageTag(draft.languageTag).language
         voicesReady = false
         localVoices = emptyList()
         tts?.shutdown(); tts = null
@@ -364,7 +369,7 @@ internal class ModelVoiceSettings(
                     val installed = engine.engines
                     require(requested == null || installed.any { it.name == requested })
                     Triple(installed, engine.voices.orEmpty().filter {
-                        it.locale.language == Locale.forLanguageTag(draft.languageTag).language &&
+                        it.locale.language == language &&
                             !it.isNetworkConnectionRequired &&
                             (requested != PiperServiceContract.PACKAGE || "piperVoice" in it.features)
                     }.sortedBy { it.name }, engine.defaultEngine)

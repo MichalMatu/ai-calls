@@ -7,8 +7,8 @@
     <string name="mv_engine">Czytanie odpowiedzi na głos</string>
     <string name="mv_system_engine">Z ustawień telefonu</string>
     <string name="mv_engine_missing">Wybrany silnik jest niedostępny</string>
-    <string name="mv_local_voice">Polski głos %1$d · offline</string>
-    <string name="mv_voice_missing">Brakuje wybranego polskiego głosu offline.</string>
+    <string name="mv_local_voice">Głos offline %1$d</string>
+    <string name="mv_voice_missing">Brakuje głosu offline dla wybranego języka lub ustawienia głosu.</string>
     <string name="mv_piper_voice_missing">Piper nie udostępnia polskiego głosu offline. Otwórz aplikację Piper, pobierz polski model głosu, a następnie wróć i wybierz go tutaj.</string>
     <string name="mv_audio_reply_format_failed">Gemma Audio: odpowiedź nie jest poprawnym JSON-em z transkrypcją i odpowiedzią.</string>
     <string name="mv_audio_transcript_mismatch">Gemma Audio: nie rozpoznano poprawnie polskiej próbki głosowej.</string>
@@ -29,7 +29,7 @@
     <string name="mv_audio_unverified">Zgodność audio wymaga sprawdzenia.</string>
     <string name="mv_checking_model">Sprawdzanie modelu…</string>
     <string name="mv_ready">Konfiguracja gotowa do użycia.</string>
-    <string name="mv_model_missing">Brakuje pliku modelu rozmowy. Pobierz Gemma E2B lub dodaj zgodny plik modelu.</string>
+    <string name="mv_model_missing">Brakuje pliku modelu rozmowy. Pobierz wybrany model lub dodaj zgodny plik.</string>
     <string name="mv_compatibility_required">Zgodność modelu wymaga sprawdzenia.</string>
     <string name="mv_audio_check_required">Sprawdzanie audio wymaga polskiego głosu offline.</string>
     <string name="mv_audio_unavailable">Ten model wymaga rozpoznawania Android lub Parakeet.</string>
@@ -59,7 +59,7 @@
     <string name="mv_gemma_short">Gemma · bezpośrednie audio</string>
     <string name="mv_parakeet_short">Parakeet</string>
     <string name="mv_additional">Dodatkowe</string>
-    <string name="mv_voice_auto">Automatyczny polski</string>
+    <string name="mv_voice_auto">Automatyczny głos offline</string>
     <string name="mv_engine_value">Głos: %1$s</string>
     <string name="mv_download_progress">Pobieranie %1$d%%</string>
     <string name="mv_downloaded_size">Pobrany · %1$s</string>

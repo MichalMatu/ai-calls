@@ -7,8 +7,8 @@
     <string name="mv_engine">Reading replies aloud</string>
     <string name="mv_system_engine">Use phone settings</string>
     <string name="mv_engine_missing">The selected engine is unavailable</string>
-    <string name="mv_local_voice">Polish voice %1$d · offline</string>
-    <string name="mv_voice_missing">The selected offline Polish voice is unavailable.</string>
+    <string name="mv_local_voice">Offline voice %1$d</string>
+    <string name="mv_voice_missing">No offline voice is available for the selected language or voice setting.</string>
     <string name="mv_piper_voice_missing">Piper has no offline Polish voice available. Open Piper, download a Polish voice model, then return here and select it.</string>
     <string name="mv_audio_reply_format_failed">Gemma Audio: the response is not valid JSON containing a transcript and reply.</string>
     <string name="mv_audio_transcript_mismatch">Gemma Audio: the Polish speech sample was not recognized correctly.</string>
@@ -29,7 +29,7 @@
     <string name="mv_audio_unverified">Audio compatibility needs checking.</string>
     <string name="mv_checking_model">Checking model…</string>
     <string name="mv_ready">Configuration is ready to use.</string>
-    <string name="mv_model_missing">The conversation model file is missing. Download Gemma E2B or add a compatible model file.</string>
+    <string name="mv_model_missing">The conversation model file is missing. Download the selected model or add a compatible model file.</string>
     <string name="mv_compatibility_required">Model compatibility needs checking.</string>
     <string name="mv_audio_check_required">The audio check needs an offline Polish voice.</string>
     <string name="mv_audio_unavailable">This model requires Android or Parakeet speech recognition.</string>
@@ -59,7 +59,7 @@
     <string name="mv_gemma_short">Gemma · direct audio</string>
     <string name="mv_parakeet_short">Parakeet</string>
     <string name="mv_additional">Additional</string>
-    <string name="mv_voice_auto">Automatic Polish voice</string>
+    <string name="mv_voice_auto">Automatic offline voice</string>
     <string name="mv_engine_value">Voice: %1$s</string>
     <string name="mv_download_progress">Downloading %1$d%%</string>
     <string name="mv_downloaded_size">Downloaded · %1$s</string>

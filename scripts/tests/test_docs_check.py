@@ -51,6 +51,16 @@ class DocumentationContractTest(unittest.TestCase):
             path.write_text(path.read_text() + "\n" + "More content " * 1000)
             self.assertTrue(any("file budget exceeded" in e for e in check(root)))
 
+    def test_public_guide_keeps_its_own_cap(self):
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            self.fixture(root)
+            total_before = audit(root)[2]
+            (root / "README.md").write_text("# Public guide\n\n" + "Guide text. " * 200)
+            errors, _, total = audit(root)
+            self.assertEqual(total_before, total)
+            self.assertTrue(any("README.md: file budget exceeded" in e for e in errors))
+
     def test_agents_and_project_caps(self):
         with TemporaryDirectory() as d:
             root = Path(d)
