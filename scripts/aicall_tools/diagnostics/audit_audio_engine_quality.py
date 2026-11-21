@@ -80,15 +80,19 @@ def audit(root: Path) -> list[str]:
     require("AudioEngineReadiness", files["AudioEngineReadiness"],
             r"!ModelCompatibilityStore\(context\)\.verified\(file, true, profile\)",
             "audio-requires-native-device-check")
-    # The consumer selector exposes the protected baseline and explicit owner imports.
-    # Retired catalog identities remain available only for inventory and Lab code.
+    # The consumer selector exposes both supported Gemmas and explicit owner imports.
     choices_match = re.search(r"val dialogues\s*=\s*listOf\((.*?)\n    \)", profile, re.S)
     choices = choices_match.group(1) if choices_match else ""
     require("AudioEngineProfile", choices, r"DialogueModelId\.GEMMA_4_E2B\.name",
             "baseline-dialogue-choice")
+    require("AudioEngineProfile", choices, r"DialogueModelId\.GEMMA_4_E4B\.name",
+            "e4b-dialogue-choice")
+    require("AudioEngineReadiness", files["AudioEngineReadiness"],
+            r"profile\.dialogue\.requiresTextCheck\s*&&\s*!ModelCompatibilityStore\(context\)\.verified\(file, false\)",
+            "alternate-model-requires-native-text-check")
     require("AudioEngineProfile", choices, r"DialogueModelId\.USER_LITERT\.name",
             "owner-file-dialogue-choice")
-    forbid("AudioEngineProfile", choices, r"GEMMA_4_E4B|QWEN_", "retired-consumer-dialogue-choice")
+    forbid("AudioEngineProfile", choices, r"QWEN_", "retired-consumer-dialogue-choice")
     require("AudioEngineProfileStore", files["AudioEngineProfileStore"],
             r"AudioEngineRegistry\.incompatibility\(it\)\s*==\s*null",
             "unknown-profile-no-silent-fallback")

@@ -22,8 +22,7 @@ Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. Na `b850b504` USB La
 
 ## Następny sprint
 
-1. Pełne próby GSM i odbiór odpowiedzi w [Test Lab](modules/CONVERSATION.md).
-2. Tag golden po pełnym odbiorze.
+Profil PL/EN i E2B/E4B z kontrolą zgodności dostępne w kodzie. Odbiór S22+ i tag po akceptacji. Strojenie promptów i Skills później.
 
 ## Otwarte
 

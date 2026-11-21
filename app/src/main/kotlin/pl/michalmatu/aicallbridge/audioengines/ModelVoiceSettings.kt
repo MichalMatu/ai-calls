@@ -225,13 +225,15 @@ internal class ModelVoiceSettings(
             library.isInstalled(model) && LiteRtModelContainer.hasHeader(file) &&
                 ModelCompatibilityStore(activity).verified(file, false)
         }
-        val labels = listOf("Gemma 4 E2B") + imported.map { it.title }
+        val builtIn = DialogueModelId.builtInChoices
+        val labels = builtIn.map { LanguageModelCatalog[it].title } + imported.map { it.title }
         val selected = if (draft.dialogue == DialogueModelId.USER_LITERT)
-            imported.indexOfFirst { it.id == draft.customModelId } + 1 else 0
+            imported.indexOfFirst { it.id == draft.customModelId }.takeIf { it >= 0 }
+                ?.plus(builtIn.size) ?: -1 else builtIn.indexOf(draft.dialogue)
         AlertDialog.Builder(activity).setTitle(R.string.models_ui_dialogue_heading)
             .setSingleChoiceItems(labels.toTypedArray(), selected) { dialog, position ->
-                val saved = if (position == 0) selectModel(DialogueModelId.GEMMA_4_E2B)
-                    else selectModel(DialogueModelId.USER_LITERT, imported[position - 1].id)
+                val saved = if (position < builtIn.size) selectModel(builtIn[position])
+                    else selectModel(DialogueModelId.USER_LITERT, imported[position - builtIn.size].id)
                 if (saved) dialog.dismiss()
                 else (dialog as AlertDialog).listView.setItemChecked(selected, true)
             }
@@ -399,7 +401,7 @@ internal class ModelVoiceSettings(
             draft.generation.outputBudget(structured = true), draft.generation.temperature)
         modelName.text = if (draft.dialogue == DialogueModelId.USER_LITERT)
             library.find(draft.customModelId)?.title ?: activity.getString(R.string.models_ui_user_missing)
-            else "Gemma 4 E2B"
+            else LanguageModelCatalog[draft.dialogue].title
         inputName.text = inputTitle(draft.input)
         languageName.text = activity.getString(if (draft.languageTag == "en-US")
             R.string.mv_speech_language_en else R.string.mv_speech_language_pl)
@@ -411,7 +413,8 @@ internal class ModelVoiceSettings(
         val result = AudioEngineReadinessProbe.check(activity, draft, names)
         val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, draft) }.getOrNull()
         val transfer = LanguageModelTransferService.status
-        val downloading = transfer.busy && transfer.id == draft.dialogue && draft.dialogue == DialogueModelId.GEMMA_4_E2B
+        val builtIn = draft.dialogue in DialogueModelId.builtInChoices
+        val downloading = transfer.busy && transfer.id == draft.dialogue && builtIn
         val audioMode = draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
             AudioEngineRegistry.supportsAudio(draft)
         val verified = file?.isFile == true && ModelCompatibilityStore(activity).verified(file, audioMode, draft)
@@ -421,12 +424,12 @@ internal class ModelVoiceSettings(
         val attemptMatches = lastAttempt == selectedAttempt
         modelState.text = when {
             downloading -> activity.getString(R.string.mv_download_progress,
-                (transfer.bytes * 100 / checkNotNull(LanguageModelCatalog[DialogueModelId.GEMMA_4_E2B].spec.expectedBytes)).toInt().coerceIn(0, 100))
+                (transfer.bytes * 100 / checkNotNull(LanguageModelCatalog[draft.dialogue].spec.expectedBytes)).toInt().coerceIn(0, 100))
             checking && attemptMatches -> activity.getString(if (audioMode)
                 R.string.mv_checking_audio else R.string.mv_checking_model)
             attemptMatches && checkResult != null && file?.isFile == true -> checkNotNull(checkResult)
             file?.isFile == true -> activity.getString(when (ModelVerificationUi.status(
-                verified, draft.dialogue == DialogueModelId.USER_LITERT, audioMode)) {
+                verified, draft.dialogue.requiresTextCheck, audioMode)) {
                 ModelVerificationStatus.VERIFIED_TEXT -> R.string.mv_verified_text
                 ModelVerificationStatus.VERIFIED_AUDIO -> R.string.mv_verified_audio
                 ModelVerificationStatus.REQUIRED_TEXT -> R.string.mv_compatibility_required
@@ -460,7 +463,7 @@ internal class ModelVoiceSettings(
                     dialogue = DialogueModelId.USER_LITERT, customModelId = imported.id), false)
             } else if (file?.isFile == true) {
                 val cache = ModelCompatibilityStore(activity)
-                val needsText = draft.dialogue == DialogueModelId.USER_LITERT && !cache.verified(file, false)
+                val needsText = draft.dialogue.requiresTextCheck && !cache.verified(file, false)
                 val needsAudio = draft.input == SpeechInputId.GEMMA_AUDIO_DIRECT &&
                     AudioEngineRegistry.supportsAudio(draft) && !cache.verified(file, true, draft)
                 if (needsAudio || needsText) verify(draft, needsAudio)
@@ -480,13 +483,13 @@ internal class ModelVoiceSettings(
     }
 
     private fun modelAction() {
-        if (draft.dialogue != DialogueModelId.GEMMA_4_E2B) { manageFiles(); return }
+        if (draft.dialogue !in DialogueModelId.builtInChoices) { manageFiles(); return }
         val intent = Intent(activity, LanguageModelTransferService::class.java)
         if (LanguageModelTransferService.status.busy) {
-            if (LanguageModelTransferService.status.id == DialogueModelId.GEMMA_4_E2B)
+            if (LanguageModelTransferService.status.id == draft.dialogue)
                 activity.startService(intent.setAction(LanguageModelTransferService.CANCEL))
         }
-        else activity.startForegroundService(intent.putExtra(LanguageModelTransferService.MODEL, DialogueModelId.GEMMA_4_E2B.name))
+        else activity.startForegroundService(intent.putExtra(LanguageModelTransferService.MODEL, draft.dialogue.name))
     }
 
     private fun verify(profile: AudioEngineProfile, audio: Boolean, force: Boolean = false) {

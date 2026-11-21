@@ -53,9 +53,7 @@ internal object ConversationInstructionBuilder {
     fun build(preparation: ConversationPreparation, goal: String,
         responseFormat: ConversationResponseFormat, languageTag: String = "pl-PL"): String {
         require(languageTag == "pl-PL" || languageTag == "en-US")
-        val languageLine = if (languageTag == "en-US")
-            "English (US). Speak entirely in natural English, including greetings, questions, replies and farewell. Never read Polish instructions aloud."
-        else "polski."
+        if (languageTag == "en-US") return EnglishConversationInstructions.build(preparation, goal, responseFormat)
         val opening = incomingOpening(languageTag)
         val settings = preparation.promptSettings
         val role = settings.role(preparation.direction)?.let { roleOverride ->
@@ -75,7 +73,7 @@ internal object ConversationInstructionBuilder {
         val fields = preparation.dataFields.sortedBy { it.name }.joinToString { it.name }.ifBlank { "brak" }
         return """
             ROLA: $role
-            Język: $languageLine Jedna krótka naturalna wypowiedź, zwykle jedno lub dwa zdania.
+            Język: polski. Jedna krótka naturalna wypowiedź, zwykle jedno lub dwa zdania.
             Odpowiedz wprost na każdą część ostatniego pytania, korzystając z ustaleń rozmówcy.
             Poprawka zmienia tylko wskazaną informację. Dopytaj wyłącznie o brak potrzebnej informacji.
             Gdy rozmówca prosi o jawny kod lub identyfikator, przepisz go znak po znaku z jego wypowiedzi,

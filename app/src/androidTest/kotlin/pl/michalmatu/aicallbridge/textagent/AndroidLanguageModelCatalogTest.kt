@@ -5,7 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
+import android.view.inspector.WindowInspector
 import android.widget.Button
+import android.widget.ListView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -56,23 +58,38 @@ class AndroidLanguageModelCatalogTest {
         }
     }
 
-    @Test fun selectingInstalledModelsPreservesInputOutputVoiceAndRestoresOriginalProfile() {
+    @Test fun selectingBuiltInModelsPreservesSpeechSettings() {
         val store = AudioEngineProfileStore(context)
         val before = checkNotNull(store.load())
+        val baseline = before.copy(input = SpeechInputId.ANDROID_STT,
+            dialogue = DialogueModelId.GEMMA_4_E2B, customModelId = null)
+        fun findList(view: View): ListView? {
+            if (view is ListView) return view
+            return (view as? ViewGroup)?.let { group ->
+                (0 until group.childCount).firstNotNullOfOrNull { findList(group.getChildAt(it)) }
+            }
+        }
         try {
+            assertTrue(store.save(baseline))
             ActivityScenario.launch(LanguageModelActivity::class.java).use { scenario ->
-                for (entry in LanguageModelCatalog.entries.filter { it.id == DialogueModelId.GEMMA_4_E2B }) {
-                    // Owner-facing picker exposes only the protected baseline.
-                    if (store.load()?.dialogue == entry.id) continue
+                for (id in listOf(DialogueModelId.GEMMA_4_E4B, DialogueModelId.GEMMA_4_E2B)) {
+                    val entry = LanguageModelCatalog[id]
                     scenario.onActivity { activity ->
-                        val use = button(activity.findViewById(android.R.id.content), "Użyj ${entry.title}")
-                        assertTrue(use.isEnabled); use.performClick()
+                        val picker = activity.window.decorView.findViewWithTag<View>("model-voice-model")
+                        assertTrue(picker.performClick())
                     }
-                    assertEquals(before.copy(dialogue = entry.id), store.load())
+                    instrumentation.waitForIdleSync()
+                    scenario.onActivity {
+                        val list = WindowInspector.getGlobalWindowViews().asReversed().firstNotNullOf(::findList)
+                        val index = DialogueModelId.builtInChoices.indexOf(id)
+                        assertEquals(entry.title, list.adapter.getItem(index).toString())
+                        assertTrue(list.performItemClick(list.getChildAt(index - list.firstVisiblePosition),
+                            index, list.adapter.getItemId(index)))
+                    }
+                    assertEquals(baseline.copy(dialogue = id), store.load())
                     assertEquals(entry.spec.fileName, Gemma4LiteRtTextBackendFactory.modelFile(context).name)
-                    assertEquals(Gemma4ModelReadinessState.READY, AndroidGemma4ModelReadiness.check(context).state)
                     scenario.recreate()
-                    assertEquals(entry.id, checkNotNull(store.load()).dialogue)
+                    assertEquals(id, checkNotNull(store.load()).dialogue)
                 }
             }
         } finally { assertTrue(store.save(before)) }

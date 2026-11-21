@@ -26,15 +26,15 @@ class StoredLegacyLanguageModelsTest {
         file(DialogueModelId.GEMMA_4_E4B).writeBytes(ByteArray(37))
         file(DialogueModelId.QWEN_3_1_7B).writeBytes(ByteArray(81))
         val inventory = library().list()
-        assertEquals(setOf(DialogueModelId.GEMMA_4_E4B, DialogueModelId.QWEN_3_1_7B),
+        assertEquals(setOf(DialogueModelId.QWEN_3_1_7B),
             inventory.map { it.model.id }.toSet())
-        assertEquals(listOf(37L, 81L), inventory.map { it.bytes })
+        assertEquals(listOf(81L), inventory.map { it.bytes })
     }
 
     @Test fun removesOnlyConfirmedFileWithoutRequiringAnInstalledBaseline() {
         val chosen = file(DialogueModelId.GEMMA_4_E4B).apply { writeText("retired") }
         val other = file(DialogueModelId.QWEN_3_0_6B).apply { writeText("keep this") }
-        val snapshot = library().list().single { it.model.id == DialogueModelId.GEMMA_4_E4B }
+        val snapshot = requireNotNull(library().snapshot(LanguageModelCatalog[DialogueModelId.GEMMA_4_E4B]))
         assertTrue(library().delete(snapshot, DialogueModelId.GEMMA_4_E2B))
         assertFalse(chosen.exists())
         assertEquals("keep this", other.readText())
@@ -44,7 +44,7 @@ class StoredLegacyLanguageModelsTest {
     @Test fun selectedAndProtectedBaselineFilesCannotBeDeletedEvenWithForgedSnapshot() {
         val base = file(DialogueModelId.GEMMA_4_E2B).apply { writeText("baseline") }
         file(DialogueModelId.GEMMA_4_E4B).writeText("selected")
-        val selected = library().list().single()
+        val selected = requireNotNull(library().snapshot(LanguageModelCatalog[DialogueModelId.GEMMA_4_E4B]))
         assertFalse(library().delete(selected, selected.model.id))
         assertFalse(library().delete(StoredLegacyLanguageModel(
             LanguageModelCatalog[DialogueModelId.GEMMA_4_E2B], base.length(), base.lastModified()),

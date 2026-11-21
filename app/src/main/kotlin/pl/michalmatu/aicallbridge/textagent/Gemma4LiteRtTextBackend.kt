@@ -287,6 +287,7 @@ internal class LiteRtGemma4Runtime(
     private val onPrewarm: (NativePrewarmTiming) -> Unit = {},
     private val validateConversationReply: Boolean = false,
     private val generationSettings: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
+    private val responseLanguageTag: String = "pl-PL",
 ) : Gemma4Runtime {
     init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
 
@@ -786,7 +787,8 @@ internal class LiteRtGemma4Runtime(
                     "Nie odpowiadaj rozmówcy, nie dodawaj komentarzy ani innych pól." +
                     (if (repair) " Odpowiedź ma być kompletnym JSON." else "")
             } else if (repair) systemInstruction.orEmpty() + "\n" +
-                ConversationReplyRecovery.REPAIR_INSTRUCTION
+                if (responseLanguageTag == "en-US") ConversationReplyRecovery.ENGLISH_REPAIR_INSTRUCTION
+                else ConversationReplyRecovery.REPAIR_INSTRUCTION
             else systemInstruction)?.let(Contents::of),
             initialMessages = (if (transcription) emptyList() else conversationWindow.snapshot()).flatMap {
                 listOf(Message.user(it.userText), Message.model(it.modelText))
@@ -980,6 +982,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         audioInput: Boolean = false,
         selectedFile: File? = null,
         generationSettings: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
+        responseLanguageTag: String = "pl-PL",
     ): TextCallAgentBackend {
         // Gemma 4 E2B native audio reliably transcribes with the compact schema.
         // A second text pass supplies normal dialogue/tool output on that SAME Engine.
@@ -996,6 +999,7 @@ internal object Gemma4LiteRtTextBackendFactory {
             audioResponseFormat = if (audioInput) ResponseFormat.json(
                 ConversationReplyProtocol.transcriptionSchema()) else null,
             audioTranscriptionOnly = audioInput,
+            responseLanguageTag = responseLanguageTag,
         )
         return if (audioInput) StagedGemmaAudioBackend(backend) else backend
     }
@@ -1123,6 +1127,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         validateConversationReply: Boolean = false,
         audioTranscriptionOnly: Boolean = false,
         generationSettings: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
+        responseLanguageTag: String = "pl-PL",
     ): Gemma4LiteRtTextBackend {
         val modelPath = (selectedFile ?: modelFile(context, modelId)).absolutePath
         return Gemma4LiteRtTextBackend(
@@ -1136,6 +1141,7 @@ internal object Gemma4LiteRtTextBackendFactory {
                         "Zapisz dosłownie polskie słowa z nagrania. Zwróć tylko pole transcript."
                         else ConversationReplyProtocol.AUDIO_INSTRUCTION,
                     audioTranscriptionOnly = audioTranscriptionOnly,
+                    responseLanguageTag = responseLanguageTag,
                     disableQwenThinking = modelId == DialogueModelId.QWEN_3_1_7B || modelId == DialogueModelId.QWEN_3_0_6B || modelId == DialogueModelId.QWEN_3_5_2B,
                     executionPolicy = modelId.nativeExecutionPolicy(),
                     contextTokenBudget = contextTokenBudget,

@@ -12,6 +12,10 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
 internal const val LAB_GENERAL_GOAL = "Prowadź naturalny dialog testowy. Brak skutków zewnętrznych."
 
+internal fun labGeneralGoal(languageTag: String): String = if (languageTag == "en-US")
+    "Run a natural test dialogue. No external effects."
+else LAB_GENERAL_GOAL
+
 internal fun labPreparation(
     initial: ConversationPreparation,
     testCase: LabCaseRevision?,
@@ -59,7 +63,7 @@ internal class AndroidSkillLabSessionFactory(
         }
         // Never include owner's vault references in an offline test prompt.
         // Routing is pinned per Lab session; CONTEXTUAL can refresh between turns only.
-        val goal = selected?.goal ?: LAB_GENERAL_GOAL
+        val goal = selected?.goal ?: labGeneralGoal(profile.languageTag)
         val pinnedSnapshot = library.snapshot(presetId)
         val routing = ConversationSkillRouter.route(
             pinnedSnapshot, modeSnapshot, initial.direction,

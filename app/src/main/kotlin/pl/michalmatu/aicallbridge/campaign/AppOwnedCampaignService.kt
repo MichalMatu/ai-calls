@@ -302,7 +302,11 @@ class AppOwnedCampaignService : Service() {
             userContext.scopedDataFields(task.disclosureFields),
             promptSettings = userContext.promptSettings,
         )
-        val goal = "Cel użytkownika: " + task.goal +
+        val goal = if (profile.languageTag == "en-US")
+            "User goal: ${task.goal}. Allowed appointment window: ${task.notBefore} through ${task.notAfter}. " +
+                "User conditions: ${task.conditions.ifBlank { "No additional conditions." }}. " +
+                "Collect a proposal only. Do not confirm or book an appointment. Mark every proposal REVIEW_REQUIRED."
+        else "Cel użytkownika: " + task.goal +
             ". Dozwolony przedział wizyty: " + task.notBefore.toString() + " do " +
             task.notAfter.toString() + ". Warunki użytkownika: " +
             task.conditions.ifBlank { "Brak dodatkowych warunków." } +
@@ -409,7 +413,16 @@ class AppOwnedCampaignService : Service() {
             userContext.scopedDataFields(grant.allowedDisclosureFields),
             promptSettings = userContext.promptSettings,
         )
-        val scopedGoal = "Cel rozmowy: " + task.goal + ". Szczegóły podane przez użytkownika: " +
+        if (task.language != profile.speechLanguage) {
+            finish("The approved scenario language does not match the speech profile")
+            return
+        }
+        val scopedGoal = if (profile.languageTag == "en-US")
+            "Call goal: ${task.goal}. Details from the user: ${task.brief}. This call is an enquiry only. " +
+                "Collect available times, prices and terms. Say the user will consider them. " +
+                "Do not confirm a booking, order a service, accept charges or approve repairs, purchases or contract changes. " +
+                "Do not claim success without independent verification. Leave the answer in private history for review."
+        else "Cel rozmowy: " + task.goal + ". Szczegóły podane przez użytkownika: " +
             task.brief + ". Rozmowa jest tylko zapytaniem informacyjnym. " +
             "Zbierz możliwe terminy, ceny i warunki oraz zapowiedz, że użytkownik je rozważy. " +
             "Nie potwierdzaj rezerwacji, nie zamawiaj usługi, nie zgadzaj się na opłaty, " +

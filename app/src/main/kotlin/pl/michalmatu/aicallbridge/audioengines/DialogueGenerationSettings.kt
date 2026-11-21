@@ -13,7 +13,7 @@ internal data class DialogueGenerationSettings(
         temperature in TEMPERATURE_RANGE && topK in TOP_K_RANGE && topP in TOP_P_RANGE
 
     fun contextBudget(model: DialogueModelId, structured: Boolean): Int = contextTokens
-        ?: if (structured && model == DialogueModelId.GEMMA_4_E2B) 4_096 else 2_048
+        ?: if (structured && model in DialogueModelId.builtInChoices) 4_096 else 2_048
 
     fun outputBudget(structured: Boolean): Int = outputTokens ?: if (structured) 512 else 128
 

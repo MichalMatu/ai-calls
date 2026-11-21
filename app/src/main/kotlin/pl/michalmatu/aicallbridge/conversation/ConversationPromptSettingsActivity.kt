@@ -9,6 +9,7 @@ import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.Toast
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsSettingsController
 import pl.michalmatu.aicallbridge.ui.AppTab
@@ -33,6 +34,10 @@ class ConversationPromptSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             return
         }
         settings = initial
+        val english = AudioEngineProfileStore(this).load()?.languageTag == "en-US"
+        fun defaultRole(direction: ConversationDirection) =
+            if (english) EnglishConversationInstructions.role(direction)
+            else ConversationInstructionBuilder.defaultRole(direction)
         body.addView(UiDesign.caption(this, getString(R.string.prompt_settings_scope)), UiDesign.spaceAfter(this, 12))
         fun entry(title: Int, open: () -> Unit) {
             body.addView(UiDesign.navigationRow(this, getString(title), onClick = open)
@@ -40,19 +45,20 @@ class ConversationPromptSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         entry(R.string.prompt_settings_incoming) {
             edit(R.string.prompt_settings_incoming, settings.incomingRole,
-                ConversationInstructionBuilder.defaultRole(ConversationDirection.INCOMING)) { current, next ->
+                defaultRole(ConversationDirection.INCOMING)) { current, next ->
                 current.copy(incomingRole = next)
             }
         }
         entry(R.string.prompt_settings_outgoing) {
             edit(R.string.prompt_settings_outgoing, settings.outgoingRole,
-                ConversationInstructionBuilder.defaultRole(ConversationDirection.OUTGOING)) { current, next ->
+                defaultRole(ConversationDirection.OUTGOING)) { current, next ->
                 current.copy(outgoingRole = next)
             }
         }
         entry(R.string.prompt_settings_permissions) {
             edit(R.string.prompt_settings_permissions, settings.additionalPermissionRules,
-                reference = ConversationInstructionBuilder.permissionInstruction(ConversationResponseFormat.TOOL_REPLY),
+                reference = if (english) EnglishConversationInstructions.permissions(ConversationResponseFormat.TOOL_REPLY)
+                    else ConversationInstructionBuilder.permissionInstruction(ConversationResponseFormat.TOOL_REPLY),
                 description = R.string.prompt_settings_permissions_hint) { current, next ->
                 current.copy(additionalPermissionRules = next)
             }
@@ -61,9 +67,10 @@ class ConversationPromptSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             val schema = runCatching {
                 ConversationReplyProtocol.schema(ConversationToolsSettingsController(this).enabled())
             }.getOrElse { getString(R.string.prompt_settings_load_error) }
+            val instructions = if (english) EnglishConversationInstructions.response(ConversationResponseFormat.TOOL_REPLY)
+                else ConversationInstructionBuilder.responseInstruction(ConversationResponseFormat.TOOL_REPLY)
             edit(R.string.prompt_settings_reply, settings.spokenReplyStyle,
-                reference = ConversationInstructionBuilder.responseInstruction(ConversationResponseFormat.TOOL_REPLY) +
-                    "\n\n" + schema, description = R.string.prompt_settings_reply_hint) { current, next ->
+                reference = instructions + "\n\n" + schema, description = R.string.prompt_settings_reply_hint) { current, next ->
                 current.copy(spokenReplyStyle = next)
             }
         }
