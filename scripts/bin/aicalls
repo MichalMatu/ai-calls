@@ -13,6 +13,7 @@ case "$command_name" in
   realtime-live-smoke) module="aicall_tools.realtime.realtime_live_call_smoke" ;;
   realtime-network-smoke) module="aicall_tools.realtime.realtime_network_smoke" ;;
   realtime-offcall-lab) module="aicall_tools.realtime.realtime_offcall_lab" ;;
+  lab-regression) module="aicall_tools.diagnostics.s22_lab_regression" ;;
   openai-text-offcall-lab) module="aicall_tools.text.openai_text_offcall_lab" ;;
   audio-suite)
     exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;

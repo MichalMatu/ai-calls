@@ -759,7 +759,7 @@ internal class LiteRtGemma4Runtime(
                     !registeredConversation -> conversation
                     // resetConversationContext or close has already detached it.
                     activeConversation !== conversation -> null
-                    closed || !successfulSend || !callbackDelivered || discardAfterSend -> {
+                    closed || !successfulSend || !callbackDelivered || discardAfterSend || repairingReply -> {
                         activeConversation = null
                         conversationTurnCount = 0
                         discardAfterSend = false
@@ -774,8 +774,7 @@ internal class LiteRtGemma4Runtime(
         }
     }
 
-    private val textOutputTokenBudget get() = generationSettings.outputTokens
-        ?: if (validateConversationReply) STRUCTURED_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS
+    private val textOutputTokenBudget get() = generationSettings.outputBudget(validateConversationReply)
 
     /** Role-labelled history remains untrusted conversation data, never system authority. */
     private fun createConversation(readyEngine: Engine, repair: Boolean = false,
@@ -792,7 +791,7 @@ internal class LiteRtGemma4Runtime(
             initialMessages = (if (transcription) emptyList() else conversationWindow.snapshot()).flatMap {
                 listOf(Message.user(it.userText), Message.model(it.modelText))
             },
-            samplerConfig = if (transcription)
+            samplerConfig = if (transcription || repair)
                 SamplerConfig(topK = 1, topP = 1.0, temperature = 0.0, seed = 0)
             else SamplerConfig(topK = generationSettings.topK, topP = generationSettings.topP,
                 temperature = generationSettings.temperature, seed = 0),
@@ -909,8 +908,6 @@ internal class LiteRtGemma4Runtime(
         Runtime.getRuntime().availableProcessors().coerceIn(MIN_CPU_THREADS, MAX_CPU_THREADS)
 
     private companion object {
-        const val MAX_OUTPUT_TOKENS = 128
-        const val STRUCTURED_OUTPUT_TOKENS = 512
         const val AUDIO_OUTPUT_TOKENS = 512
         const val TRANSCRIPTION_OUTPUT_TOKENS = 256
         const val MIN_CPU_THREADS = 2

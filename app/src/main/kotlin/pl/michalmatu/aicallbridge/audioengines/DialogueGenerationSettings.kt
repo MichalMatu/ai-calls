@@ -15,6 +15,8 @@ internal data class DialogueGenerationSettings(
     fun contextBudget(model: DialogueModelId, structured: Boolean): Int = contextTokens
         ?: if (structured && model == DialogueModelId.GEMMA_4_E2B) 4_096 else 2_048
 
+    fun outputBudget(structured: Boolean): Int = outputTokens ?: if (structured) 512 else 128
+
     companion object {
         val DEFAULTS = DialogueGenerationSettings()
         val CONTEXT_RANGE = 2_048..8_192

@@ -28,6 +28,19 @@ class LabDialogueReportTest {
         catch (_: IllegalArgumentException) {}
     }
 
+    @Test fun reportKeepsActualSessionConfigurationAndSupportsOlderReports() {
+        val config = LabRunConfiguration("model-snapshot", 6144, 768, 0.2, 12, 0.9,
+            "pl-PL", SkillLoadingMode.ALL_ACTIVE, "a".repeat(64))
+        val result = LabDialogueReport.fromSnapshot("case-a", 2, "stale-ui-model", "natural",
+            SkillLabUiState(phase = SkillLabPhase.STOPPED, configuration = config))
+        assertEquals("model-snapshot", result.modelId)
+        val gson = Gson()
+        assertEquals(config, gson.fromJson(gson.toJson(result), LabDialogueReport::class.java).configuration)
+        assertTrue(result.evidenceText().contains("Context: 6144"))
+        val legacy = gson.toJsonTree(result).asJsonObject.apply { remove("configuration") }
+        assertNull(gson.fromJson(legacy, LabDialogueReport::class.java).configuration)
+    }
+
     @Test fun saveRestoreComparisonAndReview() {
         val library = LabReportLibrary().add(report("a", "model-a")).add(report("b", "model-b"))
         val saved = Gson().fromJson(Gson().toJson(library), LabReportLibrary::class.java)

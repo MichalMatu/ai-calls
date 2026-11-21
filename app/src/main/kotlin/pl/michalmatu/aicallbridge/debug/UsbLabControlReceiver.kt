@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.telecom.Call
 import android.telecom.TelecomManager
+import com.google.gson.Gson
 import java.io.File
 import java.util.UUID
 import org.json.JSONArray
@@ -285,6 +286,7 @@ internal object UsbLabControl {
             .put("error_category", state?.error?.substringBefore(':')
                 ?.replace(Regex("[^a-zA-Z0-9_]"), "")?.take(90) ?: JSONObject.NULL)
             .put("context_tokens", budget)
+            .put("configuration", state?.configuration?.let { JSONObject(Gson().toJson(it)) } ?: JSONObject.NULL)
             .put("preset", preset)
             .put("role", role.name)
             .put("supports_test_instructions", true)
@@ -305,6 +307,7 @@ internal object UsbLabControl {
         val data = JSONObject()
             .put("protocol", 1).put("session_id", id)
             .put("context_tokens", budget).put("phase", state.phase.name)
+            .put("configuration", state.configuration?.let { JSONObject(Gson().toJson(it)) } ?: JSONObject.NULL)
             .put("error_category", state.error?.substringBefore(':') ?: JSONObject.NULL)
             .put("turns", turns)
         val dir = File(context.filesDir, "usb-lab-control").apply { mkdirs() }

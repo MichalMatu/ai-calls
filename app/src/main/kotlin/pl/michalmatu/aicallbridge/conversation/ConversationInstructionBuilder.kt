@@ -77,6 +77,8 @@ internal object ConversationInstructionBuilder {
             Odpowiedz wprost na ostatnie pytanie w kontekście rozmowy. Przy pytaniu o przekazane
             ustalenia przywołaj podaną wartość, uwzględniając najnowszą poprawkę. Nie zastępuj jej
             potwierdzeniem zapisu ani odpowiedzią na inne pytanie. Gdy brakuje informacji, dopytaj.
+            Odpowiedz na każdą część pytania. Gdy rozmówca prosi o jawny kod lub identyfikator podany
+            w tej rozmowie, przytocz go dosłownie, z cyframi i znakami, w granicach uprawnień.
 
             AUTORYZOWANE ZADANIE:
             $goal

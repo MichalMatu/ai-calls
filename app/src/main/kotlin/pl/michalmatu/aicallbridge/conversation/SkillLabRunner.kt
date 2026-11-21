@@ -12,6 +12,7 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 /** Model configuration is prepared before allocating a backend for one dialogue. */
 internal fun interface SkillLabModelSession {
     fun createBackend(): TextCallAgentBackend
+    val configuration: LabRunConfiguration? get() = null
 }
 
 internal fun interface SkillLabModelSessionFactory {
@@ -44,6 +45,7 @@ internal data class SkillLabUiState(
     val manualStartAllowed: Boolean = true,
     val adaptive: Boolean = false,
     val adaptiveTrace: List<LabAdaptiveTrace> = emptyList(),
+    val configuration: LabRunConfiguration? = null,
 )
 
 /**
@@ -151,7 +153,7 @@ internal class SkillLabRunner(
             }
             try {
                 if (!accepted) return
-                change(job) { it.copy(phase = SkillLabPhase.INPUT_READY) }
+                change(job) { it.copy(phase = SkillLabPhase.INPUT_READY, configuration = session.configuration) }
                 if (interactor != null) submit(job, interactor.firstMessage())
                 while (active(job)) {
                     val utterance = try { job.inputs.take() }

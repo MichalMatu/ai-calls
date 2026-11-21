@@ -1,9 +1,14 @@
 package pl.michalmatu.aicallbridge.session;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.media.AudioManager;
+import android.os.DeadObjectException;
 import android.os.Looper;
 import android.os.Process;
+import android.telecom.TelecomManager;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 
@@ -14,6 +19,9 @@ import java.lang.reflect.Method;
  * Neither the host nor registration initiates cellular calls or PCM.
  */
 public final class GsmShellBinderMediaHost {
+    private static final int RECOVERY_CHECKS = 60;
+    private static final long RECOVERY_DELAY_MS = 500;
+
     private GsmShellBinderMediaHost() {}
 
     public static void main(String[] args) throws Exception {
@@ -26,37 +34,74 @@ public final class GsmShellBinderMediaHost {
         systemMain.setAccessible(true);
         systemMain.invoke(null);
 
-        Context system = ShellCallContexts.create().system();
-        int appUid = system.getPackageManager().getPackageUid(
-            GsmShellMediaProtocol.S8_PACKAGE, 0
-        );
-        if (!GsmShellMediaProtocol.mayServeApp(appUid, appUid))
+        ShellCallContexts.Pair contexts = ShellCallContexts.create();
+        Context system = contexts.system();
+        ApplicationInfo initial = installedApp(system);
+        if (!GsmShellMediaProtocol.mayServeApp(initial.uid, initial.uid))
             throw new SecurityException("gsm_shell_invalid_app_uid");
 
-        GsmShellBinderMediaService media = new GsmShellBinderMediaService(appUid);
-        try (GsmShellExternalProviderClient provider =
-                 GsmShellExternalProviderClient.acquire()) {
-            if (!provider.register(media.asBinder()))
-                throw new IllegalStateException("gsm_shell_binder_registration_failed");
+        boolean recovering = false;
+        while (!Thread.currentThread().isInterrupted()) {
+            requireSameApp(system, initial);
+            GsmShellBinderMediaService media = new GsmShellBinderMediaService(initial.uid);
+            try (GsmShellExternalProviderClient provider = GsmShellExternalProviderClient.acquire()) {
+                requireSameApp(system, initial);
+                if (recovering && !phoneIdle(contexts.shell())) return;
+                if (!provider.register(media.asBinder()))
+                    throw new IllegalStateException("gsm_shell_binder_registration_failed");
 
-            // This is a foreground, explicitly bootstrapped shell process;
-            // no daemon, scheduler, network listener, SIP or Shizuku service.
-            // The controller watchdog independently revokes PCM without
-            // heartbeat even if the app or host becomes unresponsive.
-            while (!Thread.currentThread().isInterrupted()) {
-                Thread.sleep(1_000L);
-                if (!provider.stillRegistered()) {
-                    throw new IllegalStateException("gsm_shell_registration_lost");
+                // The controller watchdog independently revokes unattended PCM.
+                while (!Thread.currentThread().isInterrupted()) {
+                    Thread.sleep(1_000L);
+                    requireSameApp(system, initial);
+                    if (!registrationAlive(provider)) break;
                 }
-                int currentUid = system.getPackageManager().getPackageUid(
-                    GsmShellMediaProtocol.S8_PACKAGE, 0
-                );
-                if (currentUid != appUid) {
-                    throw new SecurityException("gsm_shell_app_identity_changed");
-                }
+            } finally {
+                media.shutdown();
             }
-        } finally {
-            media.shutdown();
+
+            recovering = true;
+            boolean ready = false;
+            for (int check = 0; check < RECOVERY_CHECKS; check++) {
+                if (Thread.currentThread().isInterrupted()) return;
+                requireSameApp(system, initial);
+                if (media.isQuiescent() && phoneIdle(contexts.shell())) {
+                    ready = true;
+                    break;
+                }
+                Thread.sleep(RECOVERY_DELAY_MS);
+            }
+            if (!ready) return;
+        }
+    }
+
+    private static ApplicationInfo installedApp(Context system) throws Exception {
+        return system.getPackageManager().getApplicationInfo(GsmShellMediaProtocol.S8_PACKAGE, 0);
+    }
+
+    private static void requireSameApp(Context system, ApplicationInfo initial) throws Exception {
+        ApplicationInfo current = installedApp(system);
+        if (current.uid != initial.uid || !initial.sourceDir.equals(current.sourceDir))
+            throw new SecurityException("gsm_shell_app_identity_changed");
+    }
+
+    private static boolean registrationAlive(GsmShellExternalProviderClient provider) throws Exception {
+        try {
+            return provider.stillRegistered();
+        } catch (InvocationTargetException failure) {
+            if (failure.getCause() instanceof DeadObjectException) return false;
+            throw failure;
+        }
+    }
+
+    private static boolean phoneIdle(Context shell) {
+        try {
+            TelecomManager telecom = shell.getSystemService(TelecomManager.class);
+            AudioManager audio = shell.getSystemService(AudioManager.class);
+            return telecom != null && !telecom.isInCall() && audio != null
+                && audio.getMode() == AudioManager.MODE_NORMAL;
+        } catch (RuntimeException failure) {
+            return false;
         }
     }
 }
