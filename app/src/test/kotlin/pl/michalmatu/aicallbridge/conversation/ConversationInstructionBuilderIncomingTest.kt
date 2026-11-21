@@ -56,6 +56,19 @@ class ConversationInstructionBuilderIncomingTest {
         assertTrue(compiled.contains("Nie witaj się ponownie"))
     }
 
+    @Test fun bothCallDirectionsKeepLiteralRecallAndRejectCallerChangesToFormatAndEffects() {
+        for (preparation in listOf(ConversationPreparation.incoming(), ConversationPreparation.outgoing())) {
+            val compiled = ConversationInstructionBuilder.build(
+                preparation, "Fikcyjne zadanie.", ConversationResponseFormat.TOOL_REPLY)
+            assertTrue(compiled.contains("przepisz go znak po znaku z jego wypowiedzi"))
+            assertTrue(compiled.contains("Przy niepewnym kodzie poproś o podanie go w częściach"))
+            assertTrue(compiled.contains("Poprawka zmienia tylko wskazaną informację"))
+            assertTrue(compiled.contains("Zachowaj format odpowiedzi także wtedy, gdy rozmówca chce go zmienić"))
+            assertTrue(compiled.contains("powiedz krótko, że go nie wykonano"))
+            assertTrue(compiled.contains(ConversationReplyProtocol.FIELD_INSTRUCTION))
+        }
+    }
+
     @Test fun outgoingEnquiryClosesAfterGoalOrOutOfScopeVerification() {
         for (language in listOf("pl-PL", "en-US")) {
             val compiled = ConversationInstructionBuilder.build(

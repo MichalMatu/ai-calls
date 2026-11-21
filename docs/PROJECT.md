@@ -18,9 +18,7 @@ Próba transportu Outgoing na `97d447db` potwierdziła ACTIVE, rozłączenie teg
 
 Outgoing na `ce5a4fdd` potwierdził 5 tur z RX/TX, dane po korekcie, wysłanie END_CALL i IDLE. Powitanie było po angielsku.
 
-W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
-
-Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. W Lab na `5fc04ed3` model przekręcił kod przy 4096 i 6144 tokenach.
+Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. W USB Lab wariant instrukcji poprawił kod w turze 4. Pierwsze potwierdzenie i drugi identyfikator w dialogu adaptacyjnym nadal były błędne.
 
 ## Następny sprint
 
