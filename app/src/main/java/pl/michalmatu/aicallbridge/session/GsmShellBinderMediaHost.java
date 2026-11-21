@@ -100,7 +100,7 @@ public final class GsmShellBinderMediaHost {
             AudioManager audio = shell.getSystemService(AudioManager.class);
             return telecom != null && !telecom.isInCall() && audio != null
                 && audio.getMode() == AudioManager.MODE_NORMAL;
-        } catch (RuntimeException failure) {
+        } catch (SecurityException failure) {
             return false;
         }
     }
