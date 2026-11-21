@@ -27,14 +27,14 @@ import xml.etree.ElementTree as ET
 
 try:
     from .ai_calls_usb_debug import (
-        PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,
+        PACKAGE, S8_PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,
     )
 except ImportError:  # direct execution remains supported
     from ai_calls_usb_debug import (
-        PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,
+        PACKAGE, S8_PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,
     )
 
-LAB_PACKAGE = PACKAGE + ".s8lab"
+LAB_PACKAGE = S8_PACKAGE
 RECEIVER_CLASS = PACKAGE + ".debug.UsbLabControlReceiver"
 PRIVATE_ROOT = "files/usb-lab-control"
 PRIVATE_RESPONSE = PRIVATE_ROOT + "/response.json"
@@ -66,7 +66,7 @@ def private_directory() -> Path:
 def device_request(device: Device, action: str, **params: object) -> dict:
     if action not in ACTIONS:
         raise DiagnosticError("invalid_diagnostic_action")
-    package = LAB_PACKAGE if action.startswith("lab_") else PACKAGE
+    package = LAB_PACKAGE if action.startswith(("lab_", "orange_smoke_")) else PACKAGE
     nonce = uuid.uuid4().hex
     payload = {"protocol": 1, "nonce": nonce, "action": action, **params}
     request = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
@@ -252,10 +252,16 @@ def _appointment_open_ui_fallback(device: Device) -> bool:
 
 def last_call_technical_summary(device: Device) -> dict:
     """Historical, strictly allowlisted technical values. Never return raw report."""
-    r = device.call("shell", "run-as", PACKAGE, "cat",
+    _, report = read_call_technical_summary(device, PACKAGE)
+    return report
+
+
+def read_call_technical_summary(device: Device, package: str) -> tuple[str | None, dict]:
+    """Return a private pilot identifier for freshness checks, plus safe counters."""
+    r = device.call("shell", "run-as", package, "cat",
                     "files/chat-relay-live-call-report.txt", timeout=30)
     if r.returncode:
-        return {"available": False}
+        return None, {"available": False}
     numbers = {
         "turns_completed", "telephony_rx_pcm_bytes", "telephony_rx_partial_pcm_bytes",
         "turn_1_rx_interrupted_pcm_bytes", "telephony_tx_pcm_bytes",
@@ -270,18 +276,21 @@ def last_call_technical_summary(device: Device) -> dict:
     codes = {"conversation_end_reason", "turn_1_endpoint_reason",
              "turn_2_endpoint_reason"}
     safe = {"available": False, "historical": True}
+    pilot_id = None
     for line in r.stdout.splitlines():
         if "=" not in line:
             continue
         key, value = line.split("=", 1)
-        if key in numbers and re.fullmatch(r"[0-9]{1,13}", value):
+        if key == "session_id" and re.fullmatch(r"pilot-[0-9a-f-]{36}", value):
+            pilot_id = value
+        elif key in numbers and re.fullmatch(r"[0-9]{1,13}", value):
             safe[key] = int(value)
         elif key in flags and value in {"true", "false"}:
             safe[key] = (value == "true")
         elif key in codes and re.fullmatch(r"[A-Za-z0-9_-]{1,64}", value):
             safe[key] = value
     safe["available"] = safe.get("probe_complete") is True
-    return safe
+    return pilot_id, safe
 
 
 def run_fixed_audio_suite(device: Device) -> dict:
@@ -467,7 +476,7 @@ def run_once(device: Device, args: argparse.Namespace) -> dict:
     if name == "orange_smoke_start":
         if not args.allow_one_real_call:
             raise DiagnosticError("explicit_real_call_opt_in_required")
-        device.safe_preflight()
+        device.safe_preflight(LAB_PACKAGE)
         return device_request(device, name, target="510100100", approved=True)
     if name in {"orange_smoke_status", "orange_smoke_stop"}:
         return device_request(device, name)
