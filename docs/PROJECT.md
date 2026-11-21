@@ -14,7 +14,7 @@ S22+ z `97d447db`: podpis i SHA zgodne, UI/Lab 10/10 bez połączeń. Lokalny mo
 
 W szybkiej próbie użytkownika AI odebrało połączenie przychodzące i mówiło.
 
-USB Lab na `97d447db`: pominięty kod w teście pamięci, błąd formatu po nacisku rozmówcy.
+W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
 
 ## Następny sprint
 
