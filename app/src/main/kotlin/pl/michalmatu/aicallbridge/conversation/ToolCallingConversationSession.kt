@@ -25,6 +25,8 @@ internal class ToolCallingConversationSession(
     private val approvedTool = AtomicReference<ConversationReply?>(null)
     private val appIdleClosureArmed = AtomicBoolean(false)
     private val approvedAppIdleClose = AtomicBoolean(false)
+    private val lastCallerTranscript = AtomicReference<String?>(null)
+    private val explicitNote = AtomicReference<pl.michalmatu.aicallbridge.conversationtools.ConversationNoteProposal?>(null)
     override val awaitToolCompletion get() = awaitingTool
     override val acknowledgementPolicy = TextOutputApprovalPolicy { speech -> releasePolicy.evaluate(speech) }
     override val backend = ConversationReplyBackend(model, normalizeReply = { callerTranscript, reply ->
@@ -51,17 +53,29 @@ internal class ToolCallingConversationSession(
         approvedTool.set(null)
         appIdleClosureArmed.set(false)
         approvedAppIdleClose.set(false)
+        explicitNote.set(null)
     }
     override fun armIdleClosure(): Boolean {
         if (!hooks.authorized() || awaitingTool) return false
         appIdleClosureArmed.set(true)
         return true
     }
-    override fun onTranscript(turn: Int, text: String) = Unit
+    override fun onTranscript(turn: Int, text: String) {
+        val previous = lastCallerTranscript.getAndSet(text)
+        explicitNote.set(ExplicitSaveNotePolicy.proposal(text, previous))
+    }
     override fun takeOutcome(boundary: ConversationOutcomeBoundary): ConversationOutcome? {
         if (boundary != ConversationOutcomeBoundary.PLAYBACK_COMPLETE) return null
-        val proposed = approvedTool.getAndSet(null) ?: return null
-        val tool = proposed.tool ?: return null
+        val proposed = approvedTool.getAndSet(null)
+        // The local model can miss an explicit "zapisz" even when STT captured it.
+        // A bounded transcript-only recovery is allowed at the same playback boundary.
+        // It never replaces END_CALL, and the existing port still checks enabled/authority.
+        val note = explicitNote.getAndSet(null)
+        if (note != null && proposed?.tool != ConversationToolId.SAVE_NOTE && hooks.authorized()) {
+            val saved = tools.execute(hooks.turn(), ConversationToolId.SAVE_NOTE, note, hooks.toolEventSink)
+            hooks.emit("turn_${hooks.turn()}_explicit_note_recovery=${saved.name}")
+        }
+        val tool = proposed?.tool ?: return null
         if (!hooks.authorized()) return ConversationOutcome.Failed("conversation_tool_not_authorized")
         val result = if (approvedAppIdleClose.getAndSet(false))
             tools.executeIdleClose(hooks.turn(), hooks.toolEventSink)
@@ -86,5 +100,7 @@ internal class ToolCallingConversationSession(
         approvedTool.set(null)
         appIdleClosureArmed.set(false)
         approvedAppIdleClose.set(false)
+        explicitNote.set(null)
+        lastCallerTranscript.set(null)
     }
 }
