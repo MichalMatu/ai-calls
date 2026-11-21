@@ -13,13 +13,17 @@ class LabCaseLibraryTest {
         val initial = LabCaseLibrary().create(draft)
         val id = initial.cases.single().id
         assertEquals(1, initial.cases.single().selectedRevision)
-        val revised = initial.update(id, draft.copy(title = "Updated"))
+        val revised = initial.update(id, draft.copy(title = "Updated",
+            assistantInstructions = "Użyj w dialogu fikcyjnej etykiety B."))
         assertEquals(2, revised.cases.single().versions.size)
         assertEquals(2, revised.cases.single().selectedRevision)
         val saved = Gson().fromJson(Gson().toJson(revised), LabCaseLibrary::class.java).validated()
         assertEquals("Updated", saved.cases.single().selected().title)
+        assertEquals("Użyj w dialogu fikcyjnej etykiety B.",
+            saved.cases.single().selected().assistantInstructions)
         val previous = saved.select(id, 1)
         assertEquals("Private fixture", previous.cases.single().selected().title)
+        assertNull(previous.cases.single().selected().assistantInstructions)
         val copied = previous.duplicate(id)
         assertEquals(2, copied.cases.size)
         assertNotEquals(id, copied.cases.last().id)

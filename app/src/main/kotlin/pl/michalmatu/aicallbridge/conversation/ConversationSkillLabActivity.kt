@@ -488,6 +488,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         entry("title", R.string.lab_case_title, existing?.title.orEmpty(), true)
         entry("goal", R.string.lab_case_goal, existing?.goal.orEmpty())
+        entry("instructions", R.string.lab_case_assistant_instructions,
+            existing?.assistantInstructions.orEmpty())
         body.addView(UiDesign.caption(this, getString(R.string.lab_case_role)))
         val role = Spinner(this).apply {
             tag = "lab-case-role"
@@ -514,7 +516,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                     texts.getValue("goal"), LabRole.entries[role.selectedItemPosition],
                     texts.getValue("opening"), texts.getValue("state"),
                     texts.getValue("facts"), texts.getValue("expected"),
-                    texts.getValue("rules"), texts.getValue("finish"))
+                    texts.getValue("rules"), texts.getValue("finish"),
+                    assistantInstructions = texts.getValue("instructions").takeIf { it.isNotBlank() })
                 runCatching {
                     val current = caseStore().loadLabCases()
                     caseStore().saveLabCases(if (item == null) current.create(candidate)

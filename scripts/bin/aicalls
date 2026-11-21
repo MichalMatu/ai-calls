@@ -18,6 +18,8 @@ case "$command_name" in
     exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;
   audio-route-check)
     exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;
+  lab-start|lab-send|lab-status|lab-save|lab-stop)
+    exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;
   appointment-stage|appointment-open|call-status)
     exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;
   call-capabilities) module="aicall_tools.device.s22_call_capabilities" ;;

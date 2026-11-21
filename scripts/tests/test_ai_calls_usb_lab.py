@@ -26,7 +26,7 @@ class FakeDevice:
         if args[:3] == ("shell", "am", "broadcast"):
             self.broadcast_args = list(args)
             return subprocess.CompletedProcess(args, 0, "Broadcast completed: result=0\n", "")
-        if args[:4] == ("shell", "run-as", channel.PACKAGE, "cat"):
+        if args[:4] == ("shell", "run-as", channel.LAB_PACKAGE, "cat"):
             if self.private_json is not None:
                 return subprocess.CompletedProcess(
                     args, 0, json.dumps(self.private_json), "",
@@ -79,6 +79,11 @@ class UsbLabControlTests(unittest.TestCase):
             self.assertIn("cat > files/usb-lab-control/request.json.new", remote_tokens[2])
             self.assertIn("mv files/usb-lab-control/request.json.new", remote_tokens[2])
             self.assertNotIn(secret, " ".join(fake.broadcast_args))
+            self.assertEqual(received["argv"][5], channel.LAB_PACKAGE)
+            self.assertIn(
+                "pl.michalmatu.aicallbridge.s8lab/pl.michalmatu.aicallbridge.debug.UsbLabControlReceiver",
+                fake.broadcast_args,
+            )
             self.assertIn(nonce.hex, " ".join(fake.broadcast_args))
             self.assertEqual(os.stat(Path(folder) / ".usb-lab-channel.lock").st_mode & 0o777, 0o600)
 
@@ -113,6 +118,43 @@ class UsbLabControlTests(unittest.TestCase):
             self.assertEqual(len(written), 1)
             self.assertEqual(written[0].stat().st_mode & 0o777, 0o600)
             self.assertIn("secret output", written[0].read_text())
+
+    def test_private_export_rejects_a_different_session(self):
+        fake = FakeDevice({"session_id": "12345678-1234-1234-1234-123456789abc", "turns": []})
+        with self.assertRaisesRegex(channel.DiagnosticError, "private_transcript_session_mismatch"):
+            channel.save_private_transcript(fake, session_id="abcdef12-1234-1234-1234-123456789abc")
+
+    def test_lab_start_reads_test_instructions_privately_after_checking_capability(self):
+        from io import StringIO
+        from types import SimpleNamespace
+        args = SimpleNamespace(command="lab-start", context_tokens=4096,
+                               preset="natural", role="INCOMING", instructions_stdin=True)
+        device = FakeDevice()
+        instructions = "Używaj wyłącznie syntetycznego przykładu."
+        with patch("sys.stdin", StringIO(instructions)), patch.object(
+            channel, "device_request", side_effect=[
+                {"ok": True, "data": {"supports_test_instructions": True}},
+                {"ok": True, "code": "lab_started"},
+            ],
+        ) as request:
+            self.assertTrue(channel.run_once(device, args)["ok"])
+        request.assert_any_call(device, "lab_status")
+        request.assert_called_with(device, "lab_start", context_tokens=4096,
+                                   preset="natural", role="INCOMING",
+                                   assistant_instructions=instructions)
+
+    def test_lab_start_does_not_submit_instructions_to_an_older_apk(self):
+        from io import StringIO
+        from types import SimpleNamespace
+        args = SimpleNamespace(command="lab-start", context_tokens=4096,
+                               preset="natural", role="GENERAL", instructions_stdin=True)
+        device = FakeDevice()
+        with patch("sys.stdin", StringIO("Testowo poproś o kolor.")), patch.object(
+            channel, "device_request", return_value={"ok": True, "data": {}},
+        ) as request:
+            with self.assertRaisesRegex(channel.DiagnosticError, "lab_test_instructions_unavailable"):
+                channel.run_once(device, args)
+        request.assert_called_once_with(device, "lab_status")
 
     def test_fixed_audio_suite_runs_same_cases_twice_without_text_leaks(self):
         from types import SimpleNamespace

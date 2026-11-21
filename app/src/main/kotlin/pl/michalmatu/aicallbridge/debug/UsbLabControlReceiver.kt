@@ -30,6 +30,7 @@ import pl.michalmatu.aicallbridge.conversation.SkillLabRunner
 import pl.michalmatu.aicallbridge.conversation.SkillLabUiState
 import pl.michalmatu.aicallbridge.conversation.LabCaseRevision
 import pl.michalmatu.aicallbridge.conversation.LabRole
+import pl.michalmatu.aicallbridge.conversation.LAB_GENERAL_GOAL
 import pl.michalmatu.aicallbridge.conversation.ConversationInstructionBuilder
 import pl.michalmatu.aicallbridge.incoming.IncomingSecretaryScenario
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
@@ -286,6 +287,7 @@ internal object UsbLabControl {
             .put("context_tokens", budget)
             .put("preset", preset)
             .put("role", role.name)
+            .put("supports_test_instructions", true)
             .put("private_transcript_ready", evidenceFile?.exists() == true)
     }
 
@@ -326,17 +328,22 @@ internal object UsbLabControl {
         val selectedRole = runCatching {
             LabRole.valueOf(request.optString("role", "GENERAL"))
         }.getOrNull() ?: return Result(false, "invalid_lab_role")
+        val instructions = request.optString("assistant_instructions").trim().takeIf { it.isNotBlank() }
         // No owner vault values; AndroidSkillLabSessionFactory builds the existing Lab-only role.
         current?.close()
         val nextId = UUID.randomUUID().toString()
         val factory = AndroidSkillLabSessionFactory(context, tokens)
-        if (selectedRole != LabRole.GENERAL) factory.selectedCase = LabCaseRevision(
+        if (selectedRole != LabRole.GENERAL || instructions != null) factory.selectedCase = LabCaseRevision(
             revision = 1, title = "USB — dialog bez połączenia", role = selectedRole,
-            goal = if (selectedRole == LabRole.INCOMING) IncomingSecretaryScenario.GOAL
-                else "Prowadź syntetyczny dialog testowy strony dzwoniącej. Brak skutków zewnętrznych.",
+            goal = when (selectedRole) {
+                LabRole.INCOMING -> IncomingSecretaryScenario.GOAL
+                LabRole.OUTGOING -> "Prowadź syntetyczny dialog testowy strony dzwoniącej. Brak skutków zewnętrznych."
+                LabRole.GENERAL -> LAB_GENERAL_GOAL
+            },
             opening = if (selectedRole == LabRole.INCOMING) ConversationInstructionBuilder.INCOMING_OPENING
                 else "Dzwonię w fikcyjnej sprawie testowej.",
             callerState = "", facts = "", expectations = "", rules = "", completion = "",
+            assistantInstructions = instructions,
         )
         budget = tokens
         preset = selectedPreset

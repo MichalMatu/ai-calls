@@ -9,6 +9,17 @@ import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
+internal const val LAB_GENERAL_GOAL = "Prowadź naturalny dialog testowy. Brak skutków zewnętrznych."
+
+internal fun labPreparation(
+    initial: ConversationPreparation,
+    testCase: LabCaseRevision?,
+    skills: ConversationSkillSnapshot,
+): ConversationPreparation = ConversationPreparation(
+    "lab-offline", "Laboratorium", initial.direction,
+    testCase?.assistantInstructions.orEmpty(), initial.skills, emptySet(), skills,
+)
+
 /** Android-only model configuration. The Activity never creates or owns a backend. */
 internal class AndroidSkillLabSessionFactory(
     private val context: Context,
@@ -47,15 +58,13 @@ internal class AndroidSkillLabSessionFactory(
         }
         // Never include owner's vault references in an offline test prompt.
         // Routing is pinned per Lab session; CONTEXTUAL can refresh between turns only.
-        val goal = selected?.goal ?: "Prowadź naturalny dialog testowy. Brak skutków zewnętrznych."
+        val goal = selected?.goal ?: LAB_GENERAL_GOAL
         val pinnedSnapshot = library.snapshot(presetId)
         val routing = ConversationSkillRouter.route(
             pinnedSnapshot, modeSnapshot, initial.direction,
             goal, selected?.opening.orEmpty())
         runCatching { routingObserver(routing) } // Diagnostics must never block inferencing.
-        val preparation = ConversationPreparation(
-            "lab-offline", "Laboratorium", initial.direction,
-            "", initial.skills, emptySet(), routing.snapshot)
+        val preparation = labPreparation(initial, selected, routing.snapshot)
         val instruction = ConversationInstructionBuilder.build(
             preparation, goal, ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
         val provider = DialogueEngineProviders.resolve(profile)

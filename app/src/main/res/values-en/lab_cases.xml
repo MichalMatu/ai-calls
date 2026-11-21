@@ -12,10 +12,11 @@
     <string name="lab_case_save">Save</string>
     <string name="lab_case_title">Title</string>
     <string name="lab_case_goal">Conversation goal</string>
+    <string name="lab_case_assistant_instructions">Instructions for the AI in this test</string>
     <string name="lab_case_role">Model role</string>
     <string name="lab_case_opening">Opening message</string>
     <string name="lab_case_state">Caller state</string>
-    <string name="lab_case_facts">Known facts</string>
+    <string name="lab_case_facts">Reference facts for review</string>
     <string name="lab_case_expected">Expected behaviors</string>
     <string name="lab_case_rules">Adaptive rules: condition => message</string>
     <string name="lab_case_finish">Completion condition</string>
