@@ -14,7 +14,7 @@ class ChromeSourceContract(unittest.TestCase):
                       (ROOT / "audioengines/AudioEngineSettingsActivity.kt").read_text())
         chrome = (ROOT / "ui/UiChromeActivity.kt").read_text()
         nav = (ROOT / "ui/AppNavigation.kt").read_text()
-        self.assertIn("super.setContentView(AppNavigation.shell(this, view, activeTab))", chrome)
+        self.assertIn("super.setContentView(AppNavigation.shell(this, view, activeTab,", chrome)
         self.assertIn("app-bottom-navigation", nav)
         self.assertIn("WindowInsets.Type.systemBars()", nav)
 

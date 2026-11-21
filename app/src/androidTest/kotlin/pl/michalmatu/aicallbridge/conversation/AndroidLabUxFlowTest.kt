@@ -124,6 +124,7 @@ class AndroidLabUxFlowTest {
                 val rect = Rect()
                 assertTrue(stop.getGlobalVisibleRect(rect))
                 assertTrue("STOP clipped by keyboard", rect.height() >= 44 * activity.resources.displayMetrics.density)
+                assertFalse(view(activity, "app-bottom-navigation").isShown)
                 assertTrue("chat has no useful viewport", view(activity, "lab-transcript-scroll").height >= 80 * activity.resources.displayMetrics.density)
             }
             capture("lab-keyboard")
@@ -139,6 +140,11 @@ class AndroidLabUxFlowTest {
                 assertTrue(requireNotNull(root.findViewWithTag<TextView>("lab-reply:0:1")).text.contains("przykładową"))
                 assertFalse(view(activity, "lab-wait-clock").isShown)
                 activity.getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(view(activity, "lab-manual-input").windowToken, 0)
+            }
+            eventually {
+                var navigationVisible = false
+                scene.onActivity { navigationVisible = view(it, "app-bottom-navigation").isShown }
+                navigationVisible
             }
             capture("lab-chat")
             scene.onActivity { activity ->

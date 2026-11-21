@@ -12,6 +12,7 @@ import android.view.ViewTreeObserver
 abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity() {
     open fun toolbarTitle(): String? = null
     open fun isPrimaryTabScreen(): Boolean = false
+    protected open val hideBottomNavigationWithIme: Boolean = false
     private var spacingTarget: View? = null
     private var spacingListener: ViewTreeObserver.OnGlobalLayoutListener? = null
 
@@ -32,7 +33,7 @@ abstract class UiChromeActivity(private val activeTab: AppTab) : AppBaseActivity
         spacingTarget?.viewTreeObserver?.takeIf { it.isAlive }?.let { observer ->
             spacingListener?.let(observer::removeOnGlobalLayoutListener)
         }
-        super.setContentView(AppNavigation.shell(this, view, activeTab))
+        super.setContentView(AppNavigation.shell(this, view, activeTab, hideBottomNavigationWithIme))
         // Some screens populate their action rows asynchronously after setContentView.
         // Apply gaps to newly attached controls, but only mutate params when needed.
         val listener = ViewTreeObserver.OnGlobalLayoutListener {

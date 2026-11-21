@@ -25,11 +25,11 @@ import pl.michalmatu.aicallbridge.ui.UiDesign
 import pl.michalmatu.aicallbridge.ui.UiSelect
 
 /**
- * Synthetic offline test only. Model tool decisions are observed and scored,
- * never executed; no Telecom calls, audio, permission changes or tool dispatch.
+ * Synthetic offline dialogue with model tool proposals recorded for review.
  */
 class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun toolbarTitle(): String = getString(R.string.lab_ui_title)
+    override val hideBottomNavigationWithIme = true
     private lateinit var runner: SkillLabRunner
     private var lastState = SkillLabUiState()
     private var renderedTurnCount = 0
