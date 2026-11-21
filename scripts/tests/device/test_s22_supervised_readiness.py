@@ -12,7 +12,7 @@ def report(audio="MODE_IN_COMMUNICATION", failure="audio_route_not_ready", inclu
         "probe": "supervised_call_readiness",
         "microphone_permission": "true",
         "phone_state_permission": "true",
-        "shizuku_ready": "true",
+        "gsm_shell_ready": "true",
         "telecom_in_call": "true",
         "telecom_managed_call": "true",
         "audio_mode": audio,
@@ -26,7 +26,7 @@ def report(audio="MODE_IN_COMMUNICATION", failure="audio_route_not_ready", inclu
         "s8_cellular_pcm_verified": "false",
         "report_complete": "true",
     }
-    fields = diagnostics.FIELDS if include_s8 else diagnostics.LEGACY_FIELDS
+    fields = diagnostics.FIELDS if include_s8 else diagnostics.BASE_FIELDS
     return "\n".join(k + "=" + values[k] for k in fields) + "\n"
 
 
@@ -52,16 +52,17 @@ class ReadinessReportTests(unittest.TestCase):
             report().replace("report_complete=true", "report_complete=false"),
             report().replace("failure_reason=audio_route_not_ready", "failure_reason=Call from John"),
             report().replace("telecom_in_call=true", "telecom_in_call=maybe"),
+            report().replace("gsm_shell_ready=true", "shizuku_ready=true"),
             report().replace("audio_mode=MODE_IN_COMMUNICATION", "audio_mode=MODE_NORMAL\ncaller=secret"),
             "",
         ):
             with self.subTest(raw=raw[:32]), self.assertRaises(ValueError):
                 diagnostics.parse_report(raw)
 
-    def test_legacy_checkpoint_report_remains_supported(self):
-        legacy = diagnostics.parse_report(report(include_s8=False))
-        self.assertEqual("true", legacy["report_complete"])
-        self.assertNotIn("s8_cellular_pcm_verified", legacy)
+    def test_compact_gsm_checkpoint_report_is_supported(self):
+        compact = diagnostics.parse_report(report(include_s8=False))
+        self.assertEqual("true", compact["report_complete"])
+        self.assertNotIn("s8_cellular_pcm_verified", compact)
 
     def test_s8_reports_exact_allowed_fields_without_claiming_gsm_pcm(self):
         modern = diagnostics.parse_report(report())

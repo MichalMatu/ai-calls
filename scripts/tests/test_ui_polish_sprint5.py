@@ -32,7 +32,8 @@ class Sprint5UxContract(unittest.TestCase):
                 args = lambda x: sorted(re.findall(r"%\d+\$[ds]", x))
                 self.assertEqual(args(strings[0][key]), args(strings[1][key]), key)
         self.assertNotIn("Run device", strings[0]["dev_ui_capability"])
-        self.assertNotIn("Run Shizuku", strings[0]["dev_ui_shizuku"])
+        self.assertNotIn("dev_ui_shizuku", strings[0])
+        self.assertIn("GSM", strings[1]["ui_settings_hub_developer_detail"])
 
     def test_receptionist_has_two_tones_and_no_preset_naming(self):
         basic = self.source("conversation/ConversationSkillsActivity.kt")

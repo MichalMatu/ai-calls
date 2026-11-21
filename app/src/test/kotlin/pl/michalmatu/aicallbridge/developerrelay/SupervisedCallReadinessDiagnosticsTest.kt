@@ -6,35 +6,32 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 class SupervisedCallReadinessDiagnosticsTest {
     private fun snapshot(
         phone: Boolean = true,
-        shizuku: Boolean = true,
+        host: Boolean = true,
         active: Boolean = true,
         managed: Boolean = true,
         mode: Int? = AudioManager.MODE_IN_CALL,
     ) = SupervisedCallReadinessSnapshot(
         microphonePermission = true,
         phoneStatePermission = phone,
-        shizukuReady = shizuku,
+        gsmShellReady = host,
         activeCellularCall = active,
         managedCall = managed,
         audioMode = mode,
     )
 
-    @Test fun isolatedGsmReportUsesShellReadinessAndNoShizukuLabel() {
-        val reading = snapshot(shizuku = false).copy(
-            mediaMode = CallMediaBackendMode.GSM_SHELL_ADB
-        )
+    @Test fun reportsMissingGsmHostWithoutClaimingOtherTransport() {
+        val reading = snapshot(host = false)
         assertEquals(SupervisedCallPilotFailure.GSM_SHELL_NOT_READY, reading.failure)
         val report = reading.renderReport()
         assertTrue(report.contains("gsm_shell_ready=false"))
         assertFalse(report.contains("shizuku_ready"))
     }
 
-    @Test fun activeCallWithoutModeInCallIsReportedAndBlocked() {
+    @Test fun actualInCallModeIsRequired() {
         val reading = snapshot(mode = AudioManager.MODE_IN_COMMUNICATION)
         assertEquals(SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, reading.failure)
         val report = reading.renderReport()
@@ -52,12 +49,12 @@ class SupervisedCallReadinessDiagnosticsTest {
 
     @Test fun permissionAndMissingModeFailClosed() {
         assertEquals(SupervisedCallPilotFailure.PERMISSION_REQUIRED, snapshot(phone = false).failure)
-        assertEquals(SupervisedCallPilotFailure.SHIZUKU_NOT_READY, snapshot(shizuku = false).failure)
+        assertEquals(SupervisedCallPilotFailure.GSM_SHELL_NOT_READY, snapshot(host = false).failure)
         assertEquals(SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, snapshot(mode = null).failure)
         assertTrue(snapshot(mode = null).renderReport().contains("audio_mode=UNAVAILABLE"))
     }
 
-    @Test fun reportFieldsAreWhitelistedAndSuccessRequiresEveryGate() {
+    @Test fun reportWhitelistsFieldsAndIncludesEveryGate() {
         val reading = snapshot()
         assertNull(reading.failure)
         val report = reading.renderReport()

@@ -8,38 +8,32 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 public final class GsmMediaTransportReadinessTest {
-    @Test public void s8LabUsesOnlyOwnShellTransport() {
-        AtomicInteger shell = new AtomicInteger();
-        AtomicInteger legacy = new AtomicInteger();
-        boolean ready = GsmMediaTransportReadiness.selectedAvailable(
+    @Test public void acceptedLabUsesOnlyItsShellTransport() {
+        AtomicInteger shellCalls = new AtomicInteger();
+        boolean available = GsmMediaTransportReadiness.selectedAvailable(
             GsmShellMediaProtocol.S8_PACKAGE,
-            () -> { shell.incrementAndGet(); return false; },
-            () -> { legacy.incrementAndGet(); return true; }
+            () -> { shellCalls.incrementAndGet(); return true; }
         );
-        assertFalse(ready);
-        assertEquals(1, shell.get());
-        assertEquals(0, legacy.get());
+        assertTrue(available);
+        assertEquals(1, shellCalls.get());
         assertEquals(CallMediaBackendMode.GSM_SHELL_ADB,
             CallMediaBackendMode.forPackage(GsmShellMediaProtocol.S8_PACKAGE));
     }
 
-    @Test public void stablePackageRemainsOnProvenLegacyPath() {
-        AtomicInteger shell = new AtomicInteger();
-        AtomicInteger legacy = new AtomicInteger();
-        boolean ready = GsmMediaTransportReadiness.selectedAvailable(
-            "pl.michalmatu.aicallbridge",
-            () -> { shell.incrementAndGet(); return false; },
-            () -> { legacy.incrementAndGet(); return true; }
-        );
-        assertTrue(ready);
-        assertEquals(0, shell.get());
-        assertEquals(1, legacy.get());
-        assertEquals(CallMediaBackendMode.SHIZUKU_LEGACY,
-            CallMediaBackendMode.forPackage("pl.michalmatu.aicallbridge"));
+    @Test public void missingShellBlocksEvenIfTheAppIsApproved() {
+        assertFalse(GsmMediaTransportReadiness.selectedAvailable(
+            GsmShellMediaProtocol.S8_PACKAGE, () -> false));
     }
 
-    @Test public void anUnexpectedPackageNeverGetsTheS8PrivilegedTransport() {
-        assertEquals(CallMediaBackendMode.SHIZUKU_LEGACY,
-            CallMediaBackendMode.forPackage("com.example.unknown"));
+    @Test public void otherPackageIdentitiesNeverRunTheShellProbe() {
+        for (String packageName : new String[] {
+                "pl.michalmatu.aicallbridge", "com.example.unknown", "" }) {
+            AtomicInteger shellCalls = new AtomicInteger();
+            assertFalse(GsmMediaTransportReadiness.selectedAvailable(
+                packageName, () -> { shellCalls.incrementAndGet(); return true; }));
+            assertEquals(0, shellCalls.get());
+            assertEquals(CallMediaBackendMode.UNAVAILABLE,
+                CallMediaBackendMode.forPackage(packageName));
+        }
     }
 }

@@ -4,29 +4,19 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 
 class SupervisedCallPilotPolicyTest {
     private fun check(
-        mic: Boolean = true, phone: Boolean = true, shizuku: Boolean = true,
+        mic: Boolean = true, phone: Boolean = true, host: Boolean = true,
         active: Boolean = true, mode: Boolean = true,
-    ) = SupervisedCallPilotPolicy.check(mic, phone, shizuku, active, mode)
+    ) = SupervisedCallPilotPolicy.check(mic, phone, host, active, mode)
 
-    @Test fun missingOwnGsmHostIsNotMisreportedAsShizuku() {
-        assertEquals(
-            SupervisedCallPilotFailure.GSM_SHELL_NOT_READY,
-            SupervisedCallPilotPolicy.check(
-                true, true, false, true, true,
-                CallMediaBackendMode.GSM_SHELL_ADB
-            )
-        )
-        assertNull(SupervisedCallPilotPolicy.check(
-            true, true, true, true, true,
-            CallMediaBackendMode.GSM_SHELL_ADB
-        ))
+    @Test fun missingOwnGsmHostFailsClosed() {
+        assertEquals(SupervisedCallPilotFailure.GSM_SHELL_NOT_READY, check(host = false))
+        assertNull(check())
     }
 
-    @Test fun stopFencesTheMediaBeforeAuthorizationIsRevoked() {
+    @Test fun stopAlwaysFencesBeforeRevocation() {
         val events = mutableListOf<String>()
         SupervisedCallPilotPolicy.stopBeforeRevocation(
             stopAudio = { events += "stop" },
@@ -35,52 +25,35 @@ class SupervisedCallPilotPolicyTest {
         assertEquals(listOf("stop", "revoke"), events)
     }
 
-    @Test fun stopFailureStillRevokesAuthorization() {
+    @Test fun stopFailureStillRevokes() {
         var revoked = false
-        val error = runCatching {
+        val result = runCatching {
             SupervisedCallPilotPolicy.stopBeforeRevocation(
-                stopAudio = { error("probe_stop_failure") },
+                stopAudio = { error("test_stop_failure") },
                 revoke = { revoked = true },
             )
         }
-        assertTrue(error.isFailure)
+        assertTrue(result.isFailure)
         assertTrue(revoked)
     }
 
-    @Test fun validExistingCallCanStartSupervisedScript() {
-        assertNull(check())
-    }
-
-    @Test fun noCallIsNeverInterpretedAsDialAuthorization() {
+    @Test fun noCallIsNotDialAuthorization() {
         assertEquals(SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL, check(active = false))
     }
 
-    @Test fun transientRouteRetryIsBoundedAndNeverAcceptsMissingCall() {
-        assertEquals(true, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
-            SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, 0L))
-        assertEquals(true, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
+    @Test fun audioRouteRetryIsBounded() {
+        assertTrue(SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
             SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, 2_999L))
         assertEquals(false, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
             SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, 3_000L))
         assertEquals(false, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(
             SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL, 500L))
-        assertEquals(false, SupervisedCallPilotPolicy.shouldAwaitAudioRoute(null, 500L))
     }
 
-    @Test fun audioRouteMustBeAnActualCellularCallRoute() {
-        assertEquals(SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, check(mode = false))
-    }
-
-    @Test fun noShizukuCannotBeBypassed() {
-        assertEquals(SupervisedCallPilotFailure.SHIZUKU_NOT_READY, check(shizuku = false))
-    }
-
-    @Test fun microphoneAndPhoneStateMustBeGranted() {
+    @Test fun microphonePhoneAndAudioRouteRemainMandatory() {
         assertEquals(SupervisedCallPilotFailure.PERMISSION_REQUIRED, check(mic = false))
         assertEquals(SupervisedCallPilotFailure.PERMISSION_REQUIRED, check(phone = false))
-    }
-
-    @Test fun absentCallTakesPriorityOverAudioRoute() {
+        assertEquals(SupervisedCallPilotFailure.AUDIO_ROUTE_NOT_READY, check(mode = false))
         assertEquals(SupervisedCallPilotFailure.NO_ACTIVE_CELLULAR_CALL,
             check(active = false, mode = false))
     }

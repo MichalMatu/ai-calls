@@ -16,14 +16,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <uses-feature
         android:name="android.hardware.telephony"
         android:required="false" />
 
     <queries>
-        <package android:name="moe.shizuku.privileged.api" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
@@ -47,14 +45,6 @@
         <!-- LiteRT-LM GPU backend probes vendor OpenCL through these optional native libraries. -->
         <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
-
-        <provider
-            android:name="rikka.shizuku.ShizukuProvider"
-            android:authorities="${applicationId}.shizuku"
-            android:enabled="true"
-            android:exported="true"
-            android:multiprocess="false"
-            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <activity
             android:name=".MainActivity"

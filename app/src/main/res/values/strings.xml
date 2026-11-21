@@ -63,7 +63,7 @@
     <string name="ui_settings_hub_general">Podstawowe ustawienia AI</string>
     <string name="ui_settings_hub_general_detail">Tryb rozmowy, dostawca LLM i mikrofon</string>
     <string name="ui_settings_hub_developer">Narzędzia programistyczne</string>
-    <string name="ui_settings_hub_developer_detail">USB/ADB, sprzęt, Shizuku i laboratorium offline</string>
+    <string name="ui_settings_hub_developer_detail">USB/ADB, sprzęt, host GSM i laboratorium offline</string>
     <string name="ui_supervised_section">Test nadzorowany aktywnej rozmowy</string>
     <string name="ui_general_description">Wybory zapisują się dla kolejnej rozmowy. Nie rozpoczynają połączeń.</string>
     <string name="ui_developer_description">Zaawansowana diagnostyka. Uruchamiaj sondy świadomie.</string>
@@ -360,15 +360,9 @@
     <string name="dev_ui_title">Diagnostyka urządzenia</string>
     <string name="dev_ui_usb">Stan aplikacji</string>
     <string name="dev_ui_capability">Możliwości urządzenia</string>
-    <string name="dev_ui_shizuku">Sprawdź Shizuku UserService</string>
     <string name="dev_ui_audio">Audio RX / TX — status</string>
     <string name="dev_ui_status_note">Sondy downlink/uplink wymagają testów fazy 2. Ten panel nie włącza przejęcia ani STOP audio.</string>
     <string name="dev_ui_stop_note">Do zatrzymania AI użyj STOP AI na ekranie Start.</string>
-    <string name="dev_ui_shizuku_denied">Odmówiono uprawnienia Shizuku</string>
-    <string name="dev_ui_shizuku_missing">Shizuku niedostępne — najpierw je uruchom</string>
-    <string name="dev_ui_shizuku_unsupported">Shizuku przed wersją 11 nie jest obsługiwane</string>
-    <string name="dev_ui_shizuku_permission">Brak uprawnienia Shizuku — nadaj je w aplikacji Shizuku</string>
-    <string name="dev_ui_shizuku_request">Prośba o uprawnienie Shizuku…</string>
     <string name="acc_ui_expand">Rozwiń: </string>
     <string name="acc_ui_collapse">Zwiń: </string>
 
@@ -475,11 +469,11 @@
     <string name="home_one_tap_permission">Android wymaga zgody na mikrofon i stan telefonu.</string>
     <string name="home_one_tap_report_saved">Raport zapisany.</string>
     <string name="home_one_tap_report_failed">Nie udało się zapisać raportu.</string>
-    <string name="home_one_tap_starting">Zgoda na test udzielona przyciskiem. Uruchamiam lokalny STT → Gemma/skrypt → TTS → Shizuku (maksymalnie 2 odpowiedzi).</string>
+    <string name="home_one_tap_starting">Zgoda na test udzielona przyciskiem. Uruchamiam lokalny STT → Gemma/skrypt → TTS → GSM Binder (maksymalnie 2 odpowiedzi).</string>
     <string name="home_one_tap_service_failed">Nie można uruchomić serwisu testowego: %1$s</string>
     <string name="home_one_tap_no_call">Brak aktywnej rozmowy komórkowej. Rozpocznij ją w Google Phone i naciśnij ten sam przycisk. %1$s</string>
     <string name="home_one_tap_route">Rozmowa wykryta, ale Android zgłosił %1$s. AI nie zostało podłączone. %2$s</string>
-    <string name="home_one_tap_shizuku">Shizuku niedostępne — uruchom je i naciśnij ten sam przycisk. %1$s</string>
+    <string name="home_one_tap_shizuku">Host GSM niedostępny — uruchom go w ustawieniach audio GSM i ponów próbę. %1$s</string>
     <string name="home_one_tap_permissions">Brakuje zgód Androida. %1$s</string>
     <string name="home_one_tap_denied">Android odmówił uprawnień. Nie uruchomiono audio AI.</string>
     <string name="home_mic_already">Dostęp do mikrofonu już przyznany.</string>
@@ -539,8 +533,7 @@
     <string name="pilot_ui_diagnostic_failed">Nie udało się zapisać diagnostyki.</string>
     <string name="pilot_ui_already_running">Sesja AI już działa.</string>
     <string name="pilot_ui_permission_required">Potrzebne uprawnienia mikrofonu i stanu telefonu.</string>
-    <string name="pilot_ui_shizuku_missing">Shizuku niedostępne. Uruchom Shizuku i sprawdź uprawnienia AI Calls.</string>
-    <string name="pilot_ui_gsm_shell_missing">Host GSM uruchamiany przez ADB jest niedostępny. Uruchom zatwierdzony proces shell i spróbuj ponownie, bez Shizuku.</string>
+    <string name="pilot_ui_gsm_shell_missing">Host GSM uruchamiany przez ADB jest niedostępny. Uruchom zatwierdzony proces shell i spróbuj ponownie.</string>
     <string name="pilot_ui_call_missing">Najpierw rozpocznij rozmowę w zwykłym dialerze.</string>
     <string name="pilot_ui_model_dialog_title">Brakuje modelu Gemma 4</string>
     <string name="pilot_ui_model_dialog_help">Aby rozmawiać z modelem, pobierz 2,59 GB na ekranie głównym. Możesz też przetestować samo audio w trybie skryptowym.</string>
@@ -812,12 +805,9 @@
     <string name="perm_action_settings">Otwórz ustawienia Androida</string>
     <string name="perm_call_phone_title">Wykonywanie połączeń</string>
     <string name="perm_notifications_title">Powiadomienia (opcjonalne)</string>
-    <string name="perm_shizuku_title">Shizuku</string>
     <string name="perm_gsm_shell_title">GSM — własny proces ADB</string>
-    <string name="perm_gsm_shell_ready">Host GSM shell wykryty. Uprawnienia Shizuku nie są potrzebne.</string>
-    <string name="perm_gsm_shell_offline">Host GSM shell niedostępny. Uruchom go po autoryzacji ADB; nie wymaga Shizuku.</string>
-    <string name="perm_shizuku_offline">Shizuku nie jest uruchomione</string>
-    <string name="perm_action_open_shizuku">Otwórz Shizuku</string>
+    <string name="perm_gsm_shell_ready">Host GSM shell wykryty.</string>
+    <string name="perm_gsm_shell_offline">Host GSM shell niedostępny. Uruchom go po autoryzacji ADB.</string>
 
     <string name="home_outgoing_action">Nowe połączenie wychodzące</string>
     <string name="home_incoming_mode_manual">Tryb ręczny</string>
@@ -926,7 +916,7 @@
     <string name="history_delete_abandoned_warning">To archiwum nie ma prawidłowego zakończenia. Usunięte zostaną jego lokalny transkrypt i fragmenty audio. Aplikacja ponownie sprawdzi, czy telefon jest bezczynny i pliki nie były niedawno zapisywane.</string>
     <string name="history_abandoned_delete_failed">Nie usunięto. Archiwum może być nadal aktywne lub telefon nie jest w stanie bezczynności. Spróbuj później.</string>
     <string name="s8_voip_lab_title">VoIP S8 — test lokalny</string>
-    <string name="s8_voip_lab_explanation">Test sześciu faz dwukierunkowego audio: RTP 8 kHz → PCM 16 kHz → Realtime 24 kHz. Wyłącznie sztuczne próbki na tym telefonie (127.0.0.1). Bez Shizuku, ADB, mikrofonu, operatora i rozmów telefonicznych. To nie jest test STT, AI ani TTS.</string>
+    <string name="s8_voip_lab_explanation">Test sześciu faz dwukierunkowego audio: RTP 8 kHz → PCM 16 kHz → Realtime 24 kHz. Wyłącznie sztuczne próbki na tym telefonie (127.0.0.1). Bez ADB, mikrofonu, operatora i rozmów telefonicznych. To nie jest test STT, AI ani TTS.</string>
     <string name="s8_voip_lab_idle">Gotowe do testu lokalnego.</string>
     <string name="s8_voip_lab_no_calls">Nie nawiązuje żadnych połączeń i nie nagrywa dźwięku.</string>
     <string name="s8_voip_lab_start">Rozpocznij test RTP</string>

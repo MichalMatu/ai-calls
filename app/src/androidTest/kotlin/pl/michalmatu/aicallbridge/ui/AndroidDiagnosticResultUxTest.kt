@@ -1,6 +1,5 @@
 package pl.michalmatu.aicallbridge.ui
 
-import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Build
 import android.view.View
@@ -30,50 +29,25 @@ class AndroidDiagnosticResultUxTest {
         try { File(directory, "$name.jpg").outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) } }
         finally { bitmap.recycle() }
     }
-    private val offCall = """probe=shizuku-user-service-v1
-mode=offcall-prepare-abort
-binder_ping=true
-service_uid=2000
-prepared_before=false
-active_before=false
-prepared_after_prepare=true
-active_after_prepare=false
-heartbeat_after_prepare=false
-prepared_after_abort=false
-active_after_abort=false
-heartbeat_after_abort=false
-privileged_uid=true
-offcall_parity_ok=true"""
-
-    @Test fun shizukuResultIsModalWithExpectedInactiveFlagsAndExplicitDetails() {
+    @Test fun gsmDiagnosticDetailsAreModalAndSelectable() {
         emulatorOnly()
         instrument.uiAutomation
         ActivityScenario.launch(DeveloperToolsActivity::class.java).use { scene ->
-            lateinit var result: DiagnosticResultDialog
-            lateinit var dialog: AlertDialog
             scene.onActivity { activity ->
                 assertNull(activity.window.decorView.findViewWithTag<View>("developer-probe-result"))
-                result = DiagnosticResultDialog(activity)
-                result.showStatus(activity.getString(R.string.shizuku_running))
-                assertEquals(activity.getString(R.string.shizuku_pass), result.showResult(offCall))
-                dialog = result.javaClass.getDeclaredField("dialog").apply { isAccessible = true }.get(result) as AlertDialog
-                val root = dialog.window!!.decorView
-                assertEquals(activity.getString(R.string.shizuku_pass), root.findViewWithTag<TextView>("diagnostic-result-summary").text.toString())
-                assertEquals(View.GONE, root.findViewWithTag<View>("diagnostic-result-raw").visibility)
+                DiagnosticResultDialog.showDetails(
+                    activity,
+                    activity.getString(R.string.diag_details),
+                    """probe=gsm_shell_readiness
+gsm_shell_ready=false
+reason=host_missing""",
+                )
             }
-            capture("shizuku-result")
-            scene.onActivity {
-                val root = dialog.window!!.decorView
-                root.findViewWithTag<View>("diagnostic-result-details").performClick()
-                assertTrue(root.findViewWithTag<TextView>("diagnostic-result-raw").text.contains("heartbeat_after_prepare=false"))
-            }
-            capture("shizuku-details")
-            scene.onActivity { activity ->
-                result.showResult("offcall_parity_ok=true")
-                assertEquals(activity.getString(R.string.shizuku_incomplete), dialog.window!!.decorView
-                    .findViewWithTag<TextView>("diagnostic-result-summary").text.toString())
-                result.dismiss()
-            }
+            capture("gsm-details")
+            assertTrue(instrument.uiAutomation.rootInActiveWindow.findAccessibilityNodeInfosByText(
+                "gsm_shell_ready=false").isNotEmpty())
+            instrument.uiAutomation.performGlobalAction(
+                android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
         }
     }
 
