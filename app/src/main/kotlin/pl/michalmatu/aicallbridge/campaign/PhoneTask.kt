@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.campaign
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.UUID
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 
 /** Immutable, owner-approved enquiry scope. One recipient is the same product as a campaign. */
 internal data class PhoneTask(
@@ -60,6 +61,8 @@ internal data class PhoneTask(
 
     fun effectiveLanguage(): String = if (language == "en") "en" else "pl"
 
+    fun matchesSpeechProfile(profile: AudioEngineProfile): Boolean = effectiveLanguage() == profile.speechLanguage
+
     fun scenarioTask(recipient: PhoneTaskRecipient, attemptId: String) = ScenarioOutgoingTask(
         attemptId, recipient.number, subscriptionId, accountScope, scenarioId, title, goal, brief,
         language = effectiveLanguage(), recordAudio = recordAudio,
@@ -77,6 +80,7 @@ internal enum class PhoneTaskIssue {
     BACKGROUND_START, INTERRUPTED, STORAGE, TAKEOVER, EXECUTION,
     // Retain SHIZUKU for safe loading of historical tasks; never emit it for GSM.
     GSM_HOST_UNAVAILABLE,
+    SPEECH_LANGUAGE_CHANGED,
 }
 internal data class PhoneTaskRecipient(
     val id: String,

@@ -53,6 +53,7 @@ internal object PhoneTaskLabels {
         PhoneTaskIssue.DIALER -> R.string.task_issue_dialer
         PhoneTaskIssue.SIM_CHANGED -> R.string.task_issue_sim
         PhoneTaskIssue.MODEL -> R.string.task_issue_model
+        PhoneTaskIssue.SPEECH_LANGUAGE_CHANGED -> R.string.task_issue_speech_language
         PhoneTaskIssue.SHIZUKU, PhoneTaskIssue.GSM_HOST_UNAVAILABLE -> R.string.task_issue_gsm_host
         PhoneTaskIssue.ALARM_PERMISSION -> R.string.task_alarm_permission
         PhoneTaskIssue.BACKGROUND_START -> R.string.task_issue_background

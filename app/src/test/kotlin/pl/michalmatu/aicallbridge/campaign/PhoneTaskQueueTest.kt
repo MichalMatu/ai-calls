@@ -2,6 +2,7 @@ package pl.michalmatu.aicallbridge.campaign
 
 import org.junit.Assert.*
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -260,15 +261,24 @@ class PhoneTaskQueueTest {
         store.update { listOf(approved) }
         val restored = store.load().single()
         assertEquals("en", restored.effectiveLanguage())
-        assertEquals("en", restored.scenarioTask(restored.recipients.single(), id()).language)
+        val outgoing = restored.scenarioTask(restored.recipients.single(), id())
+        assertTrue(outgoing.openingText().startsWith("Hello"))
+        val polishProfile = AudioEngineProfile.STABLE
+        val englishProfile = polishProfile.copy(languageTag = "en-US")
+        assertTrue(restored.matchesSpeechProfile(englishProfile))
+        assertFalse(restored.matchesSpeechProfile(polishProfile))
         val english = PhoneTaskInstruction.forTask(restored)
         assertTrue(english.contains("Speak English"))
         assertTrue(english.contains("do not book, buy, order or accept charges"))
         assertFalse(english.contains("Mów po polsku"))
         val legacy = task(count = 1)
         store.update { listOf(legacy) }
-        assertEquals("pl", store.load().single().effectiveLanguage())
-        assertTrue(PhoneTaskInstruction.forTask(store.load().single()).contains("Mów po polsku"))
+        val restoredLegacy = store.load().single()
+        assertTrue(restoredLegacy.matchesSpeechProfile(polishProfile))
+        assertFalse(restoredLegacy.matchesSpeechProfile(englishProfile))
+        assertTrue(restoredLegacy.scenarioTask(restoredLegacy.recipients.single(), id())
+            .openingText().startsWith("Dzień dobry"))
+        assertTrue(PhoneTaskInstruction.forTask(restoredLegacy).contains("Mów po polsku"))
         assertTrue(runCatching { legacy.copy(language = "de").validated() }.isFailure)
     }
 

@@ -834,6 +834,8 @@
     <string name="task_recipient_count">Odbiorcy: %1$d. Połączone powtórzenia: %2$d.</string>
     <string name="task_schedule_summary">Od: %1$s\nDo: %2$s\nStrefa: %3$s</string>
     <string name="task_now">Teraz</string>
+    <string name="task_review_speech_language">Język rozmowy: %1$s</string>
+    <string name="task_review_speech_language_changed">Język rozmowy się zmienił. Sprawdź podsumowanie i zatwierdź ponownie.</string>
     <string name="task_scope">Zatwierdzasz rozmowy z wymienionymi numerami, na wybranej karcie SIM i w podanym oknie. AI zbierze odpowiedzi od wszystkich odbiorców. Bez zakupów, rezerwacji, zgody na opłaty i udostępniania danych z sejfu. Transkrypty są prywatne; fragmenty audio WAV tylko przy osobnej zgodzie powyżej.</string>
     <string name="task_approve_schedule">Zatwierdź i zaplanuj</string>
     <string name="task_approve_start">Zatwierdź i rozpocznij</string>
@@ -868,6 +870,7 @@
     <string name="task_issue_dialer">AI Calls musi być domyślną aplikacją Telefon.</string>
     <string name="task_issue_sim">Wybrana karta SIM jest niedostępna lub zmieniła się. Utwórz podobne zadanie i wybierz SIM ponownie.</string>
     <string name="task_issue_model">Model lub silnik mowy nie jest gotowy. Sprawdź Model i głos.</string>
+    <string name="task_issue_speech_language">Zadanie wstrzymane po zmianie języka mowy. Przywróć zatwierdzony język w ustawieniach Model i głos albo utwórz nowe zadanie.</string>
     <string name="task_issue_shizuku">Host audio GSM jest niedostępny. Włącz debugowanie bezprzewodowe i uruchom host w Ustawienia → Audio GSM.</string>
     <string name="task_issue_gsm_host">Host audio GSM jest niedostępny. Włącz debugowanie bezprzewodowe i uruchom host w Ustawienia → Audio GSM.</string>
     <string name="task_issue_background">Android nie pozwolił uruchomić rozmowy w tle. Sprawdź uprawnienia i wznów zadanie z aplikacji.</string>

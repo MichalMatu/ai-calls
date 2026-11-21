@@ -797,6 +797,8 @@
     <string name="task_recipient_count">Recipients: %1$d. Merged duplicates: %2$d.</string>
     <string name="task_schedule_summary">From: %1$s\nUntil: %2$s\nTime zone: %3$s</string>
     <string name="task_now">Now</string>
+    <string name="task_review_speech_language">Call language: %1$s</string>
+    <string name="task_review_speech_language_changed">The call language changed. Check the summary and approve again.</string>
     <string name="task_scope">You authorize calls to the listed numbers, using the selected SIM and time window. AI will collect replies from all recipients. No purchases, bookings, acceptance of charges or vault data disclosure. Transcripts are private; WAV audio segments are saved only if separately enabled above.</string>
     <string name="task_approve_schedule">Approve and schedule</string>
     <string name="task_approve_start">Approve and start</string>
@@ -831,6 +833,7 @@
     <string name="task_issue_dialer">AI Calls must be the default Phone app.</string>
     <string name="task_issue_sim">The selected SIM is unavailable or changed. Create a similar task and select the SIM again.</string>
     <string name="task_issue_model">The model or speech engine is not ready. Check Model and voice.</string>
+    <string name="task_issue_speech_language">The task paused after the speech language changed. Restore the approved language in Model and voice or create a new task.</string>
     <string name="task_issue_shizuku">The GSM audio host is unavailable. Enable Wireless debugging and start the host in Settings → GSM audio.</string>
     <string name="task_issue_gsm_host">The GSM audio host is unavailable. Enable Wireless debugging and start the host in Settings → GSM audio.</string>
     <string name="task_issue_background">Android blocked starting the call in the background. Check permissions and resume from the app.</string>

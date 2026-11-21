@@ -15,6 +15,7 @@ import android.text.InputType
 import android.view.View
 import android.widget.*
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.conversationcore.*
 import pl.michalmatu.aicallbridge.ui.*
 import java.time.LocalDateTime
@@ -48,6 +49,7 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
     private var capture: () -> PhoneTaskDraft = { draft }
     private lateinit var feedback: TextView
     private var personal = ScenarioPersonalLibrary()
+    private var reviewedSpeechLanguage: String? = null
     private val language get() = resources.configuration.locales[0].language
     private val definition get() = requireNotNull(ScenarioCatalog.byId(draft.scenarioId))
 
@@ -297,10 +299,20 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
     }
 
     private fun reviewStep(body: LinearLayout) {
+        reviewedSpeechLanguage = AudioEngineProfileStore(this).load()?.speechLanguage
         val numbers = PhoneTaskInput.recipients(draft.recipients)
         val summary = UiDesign.card(this).apply { tag = "task-review" }
         summary.addView(UiDesign.heading(this, draft.title), UiDesign.spaceAfter(this, 12))
         summary.addView(UiDesign.caption(this, draft.goal + "\n\n" + brief()), UiDesign.spaceAfter(this, 16))
+        val speechLanguage = when (reviewedSpeechLanguage) {
+            "pl" -> getString(R.string.mv_speech_language_pl)
+            "en" -> getString(R.string.mv_speech_language_en)
+            else -> null
+        }
+        summary.addView(UiDesign.caption(this, speechLanguage?.let {
+            getString(R.string.task_review_speech_language, it)
+        } ?: getString(R.string.task_issue_model)).apply { tag = "task-review-speech-language" },
+            UiDesign.spaceAfter(this, 12))
         summary.addView(UiDesign.caption(this, getString(R.string.task_recipient_count, numbers.values.size, numbers.duplicates)), UiDesign.spaceAfter(this, 8))
         summary.addView(UiDesign.caption(this, numbers.values.joinToString("\n") {
             listOf(it.name, it.number).filter(String::isNotBlank).joinToString(" · ")
@@ -357,7 +369,7 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         false
     }
 
-    private fun buildTask(now: Long): PhoneTask {
+    private fun buildTask(now: Long, speechLanguage: String? = null): PhoneTask {
         val zone = ZoneId.of(draft.zoneId)
         val start = if (draft.scheduled) PhoneTaskInput.instant(LocalDateTime.parse(draft.startLocal), zone) else now
         require(!draft.scheduled || start > now)
@@ -366,12 +378,23 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         return PhoneTask(draft.id, draft.title, draft.scenarioId, draft.goal, brief(),
             requireNotNull(draft.subscriptionId), requireNotNull(draft.accountScope), start, end,
             draft.zoneId, delay, now, PhoneTaskInput.recipients(draft.recipients).values,
-            language = if (language == "en") "en" else "pl",
+            language = speechLanguage,
             recordAudio = draft.recordAudio).validated()
     }
 
     private fun approve() {
         if (saving || approved) return
+        val speechLanguage = AudioEngineProfileStore(this).load()?.speechLanguage
+        if (speechLanguage == null) {
+            feedback.text = getString(R.string.task_issue_model)
+            return
+        }
+        if (speechLanguage != reviewedSpeechLanguage) {
+            pendingApproval = null
+            render()
+            feedback.text = getString(R.string.task_review_speech_language_changed)
+            return
+        }
         val needed = listOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.CALL_PHONE,
             Manifest.permission.RECORD_AUDIO).filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
         if (needed.isNotEmpty()) { pendingApproval = draft; permissions.launch(needed.toTypedArray()); return }
@@ -395,7 +418,7 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
             feedback.text = getString(R.string.task_alarm_permission)
             return
         }
-        val task = runCatching { buildTask(System.currentTimeMillis()) }.getOrElse {
+        val task = runCatching { buildTask(System.currentTimeMillis(), speechLanguage) }.getOrElse {
             feedback.text = getString(R.string.task_invalid_schedule); return
         }
         if (CampaignAccountScope.forSubscription(this, task.subscriptionId) != task.accountScope) {

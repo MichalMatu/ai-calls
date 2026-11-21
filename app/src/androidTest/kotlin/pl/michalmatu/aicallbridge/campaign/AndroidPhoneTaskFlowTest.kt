@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.campaign
 import android.content.Intent
 import android.os.Build
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
@@ -15,6 +16,9 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import pl.michalmatu.aicallbridge.MainActivity
+import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
 
 /** Emulator only. Impossible SIM prevents Telecom dispatch even if a test accidentally approves. */
@@ -120,10 +124,29 @@ class AndroidPhoneTaskFlowTest {
             subscriptionId = Int.MAX_VALUE, accountScope = "synthetic-impossible-sim",
             scheduled = true, startLocal = now.toString(), endLocal = now.plusHours(1).toString()))
         val before = CampaignAuthorizationStore(context).load()
-        ActivityScenario.launch(PhoneTaskWizardActivity::class.java).use { scenario ->
-            await { var ready = false; scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-review") != null }; ready }
-            screenshot("wizard-review")
-            scenario.onActivity { assertNotNull(it.window.decorView.findViewWithTag<View>("task-approve")) }
+        val profiles = AudioEngineProfileStore(context)
+        val originalProfile = requireNotNull(profiles.load())
+        try {
+            for ((tag, label) in listOf("pl-PL" to R.string.mv_speech_language_pl,
+                "en-US" to R.string.mv_speech_language_en)) {
+                assertTrue(profiles.save(AudioEngineProfile.STABLE.copy(languageTag = tag)))
+                ActivityScenario.launch(PhoneTaskWizardActivity::class.java).use { scenario ->
+                    await {
+                        var ready = false
+                        scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-review") != null }
+                        ready
+                    }
+                    scenario.onActivity { activity ->
+                        val reviewLanguage = activity.window.decorView
+                            .findViewWithTag<TextView>("task-review-speech-language")
+                        assertEquals(activity.getString(R.string.task_review_speech_language, activity.getString(label)),
+                            reviewLanguage.text.toString())
+                        assertNotNull(activity.window.decorView.findViewWithTag<View>("task-approve"))
+                    }
+                }
+            }
+        } finally {
+            assertTrue(profiles.save(originalProfile))
         }
         assertEquals(before, CampaignAuthorizationStore(context).load())
         assertTrue(store.phoneTasks().isEmpty())
@@ -191,13 +214,29 @@ class AndroidPhoneTaskFlowTest {
         store.updatePhoneTasks { listOf(uncertain) }
         ActivityScenario.launch<PhoneTasksActivity>(Intent(context, PhoneTasksActivity::class.java)
             .putExtra(AppOwnedCampaignService.EXTRA_PHONE_TASK_ID, original.id)).use { scenario ->
-            await { var ready = false; scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-recipient:" + original.recipients[0].id) != null }; ready }
-            screenshot("task-results")
-            scenario.onActivity { activity ->
-                val card = activity.window.decorView.findViewWithTag<android.view.ViewGroup>("task-recipient:" + original.recipients[0].id)
-                assertTrue((0 until card.childCount).map { card.getChildAt(it) }.filterIsInstance<TextView>()
-                    .any { it.text.contains("od 350 zł, bez części") })
+            val answeredId = original.recipients[0].id
+            await {
+                var ready = false
+                scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-recipient:$answeredId") != null }
+                ready
             }
+            scenario.onActivity { activity ->
+                val screen = activity.window.decorView
+                val details = screen.findViewWithTag<ViewGroup>("task-recipient-details:$answeredId")
+                assertEquals(View.GONE, details.visibility)
+                screen.findViewWithTag<View>("task-details-toggle:$answeredId").performClick()
+                assertEquals(View.VISIBLE, details.visibility)
+                assertTrue((0 until details.childCount).map { details.getChildAt(it) }.filterIsInstance<TextView>()
+                    .any { it.text.contains("od 350 zł, bez części") })
+                val retryLabel = activity.getString(R.string.task_retry_explicit)
+                val retryableRecipients = original.recipients.filter { recipient ->
+                    val card = screen.findViewWithTag<ViewGroup>("task-recipient:${recipient.id}")
+                    (0 until card.childCount).map { card.getChildAt(it) }.filterIsInstance<TextView>()
+                        .any { it.text.toString() == retryLabel && it.isShown }
+                }
+                assertEquals(listOf(original.recipients[1]), retryableRecipients)
+            }
+            screenshot("task-results")
         }
         assertEquals(PhoneRecipientState.UNKNOWN, store.phoneTasks().single().recipients[1].state)
     }
