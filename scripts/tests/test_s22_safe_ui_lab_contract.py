@@ -24,6 +24,6 @@ class SafeS22LabTests(unittest.TestCase):
             self.assertNotIn(forbidden,self.sh)
     def test_sha_and_nonempty_results(self):
         for token in ('shasum -a 256','instrumentation_result.py',
-                      'INCOMPLETE_UI_TEST_COUNT','S22_SAFE_UI_LAB_ACCEPTANCE_PASS=true'):
+                      '--expected-count 9','S22_SAFE_UI_LAB_ACCEPTANCE_PASS=true'):
             self.assertIn(token,self.sh)
 if __name__=="__main__":unittest.main()

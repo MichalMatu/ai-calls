@@ -484,14 +484,13 @@ def run_orange_support_once(
             if can_retry_root_acquisition:
                 print(
                     "gate_c_root_acquisition_retry=true," +
-                    f"turn:{probe_turn},reason:{report.get('failure_reason', '')}," +
-                    f"transcript:{report.get('stt_text', '')}"
+                    f"turn:{probe_turn},reason:{report.get('failure_reason', '')}"
                 )
                 continue
 
             if selected_action == ORANGE_ACTION_OBSERVE_ONLY:
                 _require_gate_c_observation_report(report)
-                print(f"orange_observation_text={report.get('stt_text', '').strip()}")
+                print("orange_observation_received=true")
                 return report
 
             raise RuntimeError(
@@ -530,7 +529,7 @@ def run_orange_support_once(
                 orange_action=ORANGE_ACTION_OBSERVE_ONLY,
             )
             _require_gate_c_observation_report(observation)
-            print(f"orange_observation_text={observation.get('stt_text', '').strip()}")
+            print("orange_observation_received=true")
             report = dict(report)
             report["orange_observation_text"] = observation.get("stt_text", "").strip()
             report["orange_observation_capture_ms"] = observation.get("endpoint_capture_ms", "")
@@ -595,7 +594,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         return 0
     except (ValueError, RuntimeError, TimeoutError, subprocess.CalledProcessError) as error:
-        print(f"local phone live call failed: {error}", file=sys.stderr)
+        print(f"local_phone_live_call_failed={type(error).__name__}", file=sys.stderr)
         return 1
 
 

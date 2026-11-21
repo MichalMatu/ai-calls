@@ -22,7 +22,7 @@ class GemmaActionRouterProbeActivity : Activity() {
         ) { result ->
             runOnUiThread {
                 statusView.text = result
-                Log.i(TAG, "gemma_action_router_probe_result:\n$result")
+                Log.i(TAG, "gemma_action_router_probe_complete=true")
                 finish()
             }
         }

@@ -68,6 +68,6 @@ case "$mode" in
     echo DEV_LOCAL_LIGHT_HOOKS_ENABLED=true ;;
   *)
     echo 'usage: test-profile.sh preflight | auto [base-SHA] | quick | changed <module> | focus <module> <test-filter> | full | device-build | lab-ui-prepare | lab-ui | hooks-enable' >&2
-    echo 'Only device-build packages APK; no command installs or dials.' >&2
+    echo 'device-build packages APKs. lab-ui builds and installs on an emulator.' >&2
     exit 2 ;;
 esac

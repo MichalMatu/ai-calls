@@ -65,7 +65,7 @@ adb -s "$ANDROID_SERIAL" install -r "$test_apk" >/dev/null
 phone_idle || { echo CALL_CHANGED_REFUSED=true >&2; exit 6; }
 
 set +e
-output="$(adb -s "$ANDROID_SERIAL" shell am instrument -w \
+output="$(adb -s "$ANDROID_SERIAL" shell am instrument -r -w \
   -e class 'pl.michalmatu.aicallbridge.AndroidAppBottomNavigationFlowTest,pl.michalmatu.aicallbridge.AndroidUiPolishContractTest,pl.michalmatu.aicallbridge.AndroidLabDialogStorageAcceptanceTest' \
   "$pkg.test/androidx.test.runner.AndroidJUnitRunner")"
 runner_code="$?"
@@ -73,12 +73,9 @@ set -e
 [[ "$runner_code" == 0 ]] ||
   { printf '%s\n' "$output" | tail -35 >&2; echo INSTRUMENTATION_ERROR=true >&2; exit 7; }
 if ! summary="$(printf '%s\n' "$output" |
-  python3 scripts/aicall_tools/diagnostics/instrumentation_result.py)"; then
+  python3 scripts/aicall_tools/diagnostics/instrumentation_result.py --expected-count 9)"; then
   printf '%s\n' "$output" | tail -35 >&2
   exit 8
 fi
-count="$(printf '%s\n' "$summary" | awk -F= '{print $NF}')"
-[[ "$count" =~ ^[0-9]+$ && "$count" -ge 9 ]] ||
-  { echo INCOMPLETE_UI_TEST_COUNT=true >&2; exit 8; }
 echo "$summary"
 echo S22_SAFE_UI_LAB_ACCEPTANCE_PASS=true

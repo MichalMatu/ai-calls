@@ -55,12 +55,14 @@ class AndroidLabUxFlowTest {
         return runner
     }
     private fun capture(label: String) {
-        instrument.waitForIdleSync()
-        Thread.sleep(200)
-        assertEquals(instrument.targetContext.packageName, instrument.uiAutomation.rootInActiveWindow?.packageName?.toString())
-        val bitmap = requireNotNull(instrument.uiAutomation.takeScreenshot())
-        val run = InstrumentationRegistry.getArguments().getString("uiAuditRunId") ?: "lab-ux"
+        val run = InstrumentationRegistry.getArguments().getString("uiAuditRunId") ?: return
         require(run.matches(Regex("[A-Za-z0-9_-]{6,48}")))
+        instrument.waitForIdleSync()
+        eventually {
+            instrument.uiAutomation.rootInActiveWindow?.packageName?.toString() ==
+                instrument.targetContext.packageName
+        }
+        val bitmap = requireNotNull(instrument.uiAutomation.takeScreenshot())
         val folder = File(instrument.targetContext.getExternalFilesDir(null), "ui-audit-$run")
         check(folder.isDirectory || folder.mkdirs())
         try { File(folder, "$label.jpg").outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) } }

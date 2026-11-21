@@ -1,7 +1,6 @@
 """Read-only S22 telecom capability evidence; never authorize a phone call.
 
-The default dialer role and a running Shizuku process are diagnostics, NOT proof
-that AI Calls owns a specific Telecom Call or can selectively disconnect it.
+This reports the installed GSM candidate, dialer role and current call state.
 """
 from __future__ import annotations
 
@@ -15,7 +14,7 @@ from typing import Any
 
 from aicall_tools.device.s22_adb_discovery import resolve_s22_serial
 
-APP_PACKAGE = "pl.michalmatu.aicallbridge"
+APP_PACKAGE = "pl.michalmatu.aicallbridge.s8lab"
 DIALER_ROLE = "android.app.role.DIALER"
 PACKAGE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)+$")
 CALL_STATE = re.compile(r"\bmCallState\s*=\s*([0-9]+)\b")
@@ -60,7 +59,6 @@ def inspect_phone(serial: str, *, runner: Runner = run_adb) -> dict[str, Any]:
     telecom_rc, telecom_raw = read("cmd", "telecom", "get-default-dialer")
     app_rc, app_raw = read("pm", "path", APP_PACKAGE)
     call_rc, call_raw = read("dumpsys", "telephony.registry")
-    ps_rc, ps_raw = read("ps", "-A")
 
     sdk_text = sdk_raw.strip()
     sdk = int(sdk_text) if sdk_rc == 0 and sdk_text.isascii() and sdk_text.isdigit() else None
@@ -79,9 +77,6 @@ def inspect_phone(serial: str, *, runner: Runner = run_adb) -> dict[str, Any]:
     app_installed = app_rc == 0 and any(
         row.startswith("package:") for row in app_raw.splitlines()
     )
-    shizuku_running = ps_rc == 0 and any(
-        "shizuku_server" in row.split()[-1] for row in ps_raw.splitlines() if row.split()
-    )
 
     return {
         "probe": "s22_call_capabilities",
@@ -92,9 +87,7 @@ def inspect_phone(serial: str, *, runner: Runner = run_adb) -> dict[str, Any]:
         "app_is_default_dialer": default_dialer == APP_PACKAGE,
         "ai_calls_installed": app_installed,
         "call_state": state,
-        "shizuku_process_visible": shizuku_running,
-        # Neither role eligibility nor Shizuku media grant supplies a specific
-        # Call handle. Proving this is a separate native implementation/acceptance.
+        # The exact Call handle is owned by the in-app Telecom service.
         "exact_call_controller_proven": False,
         "autonomous_dial_authorized": False,
     }

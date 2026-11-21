@@ -55,19 +55,12 @@ class Sprint6UXContract(unittest.TestCase):
         self.assertIn("history-audio-bubble:0", wav)
         self.assertIn("bubble_second_tap_did_not_stop", wav)
 
-    def test_lab_status_and_score_are_honest(self):
+    def test_lab_stop_preserves_the_transcript_and_follows_recent_turns(self):
         lab = self.read("conversation/ConversationSkillLabActivity.kt")
         for token in ("showStopNotice()", 'tag = "lab-stopped-banner"',
                       "followLatestCardIfEnabled()", "scroll.smoothScrollTo(0, target.coerceAtMost(bottom))",
-                      "userReadingOlderTurns",
-                      "lab_ui_quality_not_scored"):
+                      "userReadingOlderTurns"):
             self.assertIn(token, lab)
-        core = (ROOT / "conversation-core/src/main/kotlin/pl/michalmatu/aicallbridge/conversation/ConversationSkillLab.kt").read_text(encoding="utf-8")
-        self.assertIn("mayNeedQuestionReview", core)
-        self.assertIn("it.expectedQuestion == false", core)
-        self.assertNotIn('it.expectedQuestion == false && "?" in it.reply', core)
-        self.assertNotIn("(?iuU)", core)
-        self.assertIn("char.isLetterOrDigit()", core)
 
     def test_campaign_hides_targeted_disconnect_code_but_preserves_diagnostics(self):
         presenter = self.read("campaign/CampaignExecutionStatusPresenter.kt")
@@ -103,8 +96,8 @@ class Sprint6UXContract(unittest.TestCase):
         self.assertEqual(set(pl), set(en))
         names = ["history_clear_all", "history_clear_all_title", "history_clear_all_warning",
                  "history_audio_play_hint", "history_audio_stop_hint",
-                 "lab_ui_stop_banner", "lab_ui_quality_not_scored",
-                 "campaign_ui_disconnect_requested", "lab_ui_score_errors"]
+                 "lab_ui_stop_banner", "lab_ui_waiting_response",
+                 "campaign_ui_disconnect_requested"]
         for name in names:
             self.assertIn(name, pl)
             fmt = lambda s: sorted(re.findall(r"%\d+\$[ds]", s))

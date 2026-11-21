@@ -11,7 +11,8 @@ class LabDialogueReportTest {
             LabReportTurn(2, "Correction", "Updated", true, 40)),
         listOf(LabAdaptiveTrace(1, 2, "question", "Correction")),
         LabReviewDimension.entries.map { LabReviewEvidence(it,
-            LabReviewVerdict.UNASSESSED, null, "") }, false)
+            LabReviewVerdict.UNASSESSED, null, "") }, false,
+        terminalPhase = SkillLabPhase.COMPLETED)
 
     @Test fun semanticQualityNeverAutomaticallyPasses() {
         val r = report("a", "gemma")
@@ -43,5 +44,20 @@ class LabDialogueReportTest {
         catch (_: IllegalArgumentException) {}
         assertFalse(LabABComparison.between(
             report("a", "model-a"), report("b", "model-b").copy(testRevision = 2)).comparable)
+    }
+
+    @Test fun incompleteDivergentAndLegacyRunsCannotClaimComparableInputs() {
+        val reference = report("a", "model-a")
+        val candidate = report("b", "model-b")
+        val failed = candidate.copy(terminalPhase = SkillLabPhase.FAILED)
+        assertTrue(failed.evidenceText().contains("Outcome: FAILED"))
+        assertFalse(LabABComparison.between(reference, failed).comparable)
+        assertFalse(LabABComparison.between(reference,
+            candidate.copy(turns = candidate.turns.map { it.copy(caller = "Alternative") })
+        ).comparable)
+        val oldJson = Gson().toJsonTree(candidate).asJsonObject.apply { remove("terminalPhase") }
+        val legacy = Gson().fromJson(oldJson, LabDialogueReport::class.java)
+        assertTrue(legacy.evidenceText().contains("Outcome: UNKNOWN"))
+        assertFalse(LabABComparison.between(reference, legacy).comparable)
     }
 }

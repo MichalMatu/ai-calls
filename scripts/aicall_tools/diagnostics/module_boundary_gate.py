@@ -8,9 +8,11 @@ EDGES={
     "privileged-helper":set(),"realtime-client":{"audio-bridge"}
 }
 PURE={"conversation-core","conversation-tools"}
-DEP=re.compile(r'project\(\s*["\']:([^"\']+)["\']\s*\)')
+DEP=re.compile(r'\b(?:findProject|project)\(\s*(?:path\s*=\s*)?["\']:([^"\']+)["\']\s*\)')
 INC=re.compile(r'include\(\s*["\']:([^"\']+)["\']\s*\)')
-BAD=re.compile(r'^\s*import\s+(?:android\.|androidx\.|pl\.michalmatu\.aicallbridge\.(?:ui|debug|developerrelay|session|campaign|incoming|textagent)\.)')
+BAD=re.compile(r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
+               r'pl\.michalmatu\.aicallbridge\.(?:ui|debug|developerrelay|session|campaign|'
+               r'incoming|textagent|audioengines|identity|localcall|localspeech|tools)\.)')
 
 def audit(root:Path)->list[str]:
     issues=[]
@@ -37,9 +39,9 @@ def audit(root:Path)->list[str]:
     return issues
 
 def main()->int:
-    for issue in audit(Path(__file__).resolve().parents[3]):
-        print("MODULE_BOUNDARY_ERROR="+issue)
     issues=audit(Path(__file__).resolve().parents[3])
+    for issue in issues:
+        print("MODULE_BOUNDARY_ERROR="+issue)
     if issues:return 1
     print("MODULE_BOUNDARY_GATE_PASS=true")
     return 0

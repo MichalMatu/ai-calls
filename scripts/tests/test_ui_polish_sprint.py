@@ -20,14 +20,14 @@ class UiPolishSprintContract(unittest.TestCase):
     def test_lab_state_and_safe_campaign(self):
         lab=(ROOT/"conversation/ConversationSkillLabActivity.kt").read_text()
         camp=(ROOT/"campaign/AppointmentMvpActivity.kt").read_text()
-        for token in ('tag = "lab-stop"', 'tag = "lab-rating-group"',
+        for token in ('tag = "lab-stop"', 'tag = "lab-report-summary"',
                       "runButton.isEnabled = next.manualStartAllowed",
                       "sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY",
                       "stopButton.visibility = if (!next.manualStartAllowed",
                       "runner.stop()"):
             self.assertIn(token,lab)
         runner=(ROOT/"conversation/SkillLabRunner.kt").read_text()
-        self.assertIn("canStart = false", runner)
+        self.assertIn("manualStartAllowed = false", runner)
         self.assertIn("SkillLabPhase.STOPPED", runner)
         for token in ("UiActionTone.PRIMARY", "UiActionTone.DANGER",
                       'tag = "appointment-authorize-call"', "grants.save(task.grant(",

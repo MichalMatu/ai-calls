@@ -38,17 +38,14 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var waitClock: Chronometer
     private lateinit var status: TextView
     private lateinit var currentTurn: TextView
-    private lateinit var scoreView: TextView
+    private lateinit var reportSummary: TextView
     private lateinit var progress: ProgressBar
     private lateinit var timeline: LinearLayout
     private lateinit var emptyTranscript: TextView
     private lateinit var scroll: ScrollView
     private var userReadingOlderTurns = false
-    private var currentTurnTotal = 2
     private lateinit var runButton: Button
     private lateinit var stopButton: Button
-    private lateinit var ratingGroup: LinearLayout
-    private lateinit var naturalness: Spinner
     private lateinit var manualInput: EditText
     private lateinit var sendButton: Button
     private lateinit var adaptiveButton: Button
@@ -233,8 +230,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         turnDecisions = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         detailContent.addView(turnDecisions, UiDesign.spaceAfter(this))
 
-        scoreView = UiDesign.caption(this, "").apply {
-            tag = "lab-score"
+        reportSummary = UiDesign.caption(this, "").apply {
+            tag = "lab-report-summary"
             textSize = 14f
             setTextColor(UiDesign.ink)
             visibility = View.GONE
@@ -247,23 +244,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
 
 
-        ratingGroup = UiDesign.card(this).apply {
-            tag = "lab-rating-group"
-            visibility = View.GONE
-            addView(UiDesign.heading(this@ConversationSkillLabActivity,
-                getString(R.string.lab_ui_rating)).apply { textSize = 17f },
-                UiDesign.spaceAfter(this@ConversationSkillLabActivity, 6))
-            addView(UiDesign.caption(this@ConversationSkillLabActivity,
-                getString(R.string.lab_ui_rating_help)),
-                UiDesign.spaceAfter(this@ConversationSkillLabActivity, 8))
-        }
-        naturalness = Spinner(this).apply {
-            UiSelect.setOptions(this, listOf(getString(R.string.lab_ui_unrated), "1", "2", "3", "4", "5"))
-        }
-        ratingGroup.addView(naturalness, UiDesign.spaceAfter(this, 10))
-        ratingGroup.addView(UiDesign.action(this, getString(R.string.lab_ui_apply_rating)) {
-            lastState.metrics?.let(::showMetrics)
-        })
         emptyTranscript = UiDesign.caption(this, getString(R.string.lab_chat_empty)).apply {
             tag = "lab-empty-transcript"
             textSize = 14f
@@ -278,8 +258,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         }
         transcriptCard.addView(timeline)
         transcriptArea.addView(transcriptCard, UiDesign.spaceAfter(this, 12))
-        detailContent.addView(scoreView, UiDesign.spaceAfter(this, 12))
-        detailContent.addView(ratingGroup, UiDesign.spaceAfter(this, 16))
+        detailContent.addView(reportSummary, UiDesign.spaceAfter(this, 12))
         scroll = ScrollView(this).apply {
             tag = "lab-transcript-scroll"
             addView(transcriptArea)
@@ -635,7 +614,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
 
     private fun saveTerminalReport(state: SkillLabUiState) {
-        if (!state.manual || reportSaved || state.completed.isEmpty() ||
+        if (reportSaved || state.completed.isEmpty() ||
             state.phase !in setOf(SkillLabPhase.STOPPED,
                 SkillLabPhase.COMPLETED, SkillLabPhase.FAILED)) return
         val id = activeReportId ?: return
@@ -647,8 +626,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             report
         }.onSuccess { report ->
             reportSaved = true
-            scoreView.text = report.evidenceText()
-            scoreView.visibility = View.VISIBLE
+            reportSummary.text = report.evidenceText()
+            reportSummary.visibility = View.VISIBLE
         }.onFailure { statusIfReady(it.message.orEmpty()) }
     }
 
@@ -750,10 +729,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             }.show()
     }
 
-    private fun runLab(presetId: String, quick: Boolean) {
-        if (::runner.isInitialized) runner.startManual(presetId)
-    }
-
     /** Live metrics are app-owned and contain no prompts, replies or user identity. */
     private fun updateModelDiagnostics() {
         if (!::diagnosticsView.isInitialized) return
@@ -801,7 +776,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             waitClock.stop()
             waitClock.visibility = View.GONE
         }
-        currentTurnTotal = next.totalTurns
         saveTerminalReport(next)
         if (next.phase == SkillLabPhase.STARTING) {
             renderedTurnCount = 0
@@ -810,9 +784,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             stopBannerShown = false
             timeline.removeAllViews()
             turnDecisions.removeAllViews()
-            naturalness.setSelection(0)
-            scoreView.visibility = View.GONE
-            ratingGroup.visibility = View.GONE
+            reportSummary.visibility = View.GONE
         }
 
         // Snapshots contain both the input and output: skipped UI posts can be
@@ -820,17 +792,13 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         next.completed.drop(renderedTurnCount).forEach { item ->
             val pending = item.pending
             val key = pending.storyIndex to pending.turnIndex
-            if (visiblePending.add(key)) showTurnPending(
-                pending.storyIndex, pending.storyTitle, pending.turnIndex,
-                pending.utterance, renderedTurnCount)
+            if (visiblePending.add(key)) showTurnPending(pending)
             showTurnCompleted(pending.storyIndex, item.observation, renderedTurnCount + 1)
             renderedTurnCount++
         }
         next.pending?.let { pending ->
             val key = pending.storyIndex to pending.turnIndex
-            if (visiblePending.add(key)) showTurnPending(
-                pending.storyIndex, pending.storyTitle, pending.turnIndex,
-                pending.utterance, next.completed.size)
+            if (visiblePending.add(key)) showTurnPending(pending)
         }
         if (next.phase in setOf(SkillLabPhase.STOPPED, SkillLabPhase.FAILED)) {
             visiblePending.forEach { (story, turn) ->
@@ -855,7 +823,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         sendButton.visibility = manualInput.visibility
         stopButton.visibility = if (!next.manualStartAllowed && next.phase in
             setOf(SkillLabPhase.STARTING, SkillLabPhase.INPUT_READY,
-                SkillLabPhase.WAITING, SkillLabPhase.TURN_COMPLETED)) View.VISIBLE else View.GONE
+                SkillLabPhase.WAITING)) View.VISIBLE else View.GONE
         returnToSetup.visibility = if (next.manualStartAllowed) View.VISIBLE else View.GONE
         status.setTextColor(if (next.phase == SkillLabPhase.FAILED) UiDesign.danger else UiDesign.ink)
         currentTurn.visibility = View.VISIBLE
@@ -865,10 +833,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             SkillLabPhase.INPUT_READY -> status.setText(if (next.adaptive)
                 R.string.lab_chat_adaptive_ready else R.string.lab_chat_input_ready)
             SkillLabPhase.WAITING -> status.text = getString(R.string.lab_chat_waiting, next.completed.size + 1)
-            SkillLabPhase.TURN_COMPLETED -> status.text = getString(R.string.lab_chat_turn_done, next.completed.size)
             SkillLabPhase.COMPLETED -> {
-                next.metrics?.let(::showMetrics)
-                ratingGroup.visibility = View.VISIBLE
                 status.text = getString(R.string.lab_chat_complete, next.completed.size)
                 followLatestCardIfEnabled()
             }
@@ -911,8 +876,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         followCardIfEnabled(last)
     }
 
-    private fun showTurnPending(storyIndex: Int, story: String, index: Int,
-                                utterance: String, completedBefore: Int) {
+    private fun showTurnPending(pending: SkillLabPendingTurn) {
+        val (storyIndex, _, index, utterance) = pending
         showConversation()
         emptyTranscript.visibility = View.GONE
         val card = LinearLayout(this).apply {
@@ -967,20 +932,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 scroll.smoothScrollTo(0, target.coerceAtMost(bottom))
             }
         }
-    }
-
-    private fun showMetrics(metrics: SkillLabMetrics) {
-        val naturalnessScore = naturalness.selectedItemPosition.takeIf { it > 0 }
-            ?.let { getString(R.string.lab_ui_naturalness_score, it) }
-            ?: getString(R.string.lab_ui_naturalness_unrated)
-        scoreView.text = getString(R.string.lab_ui_score_title) + "\n" +
-            getString(R.string.lab_ui_score_decisions,
-                metrics.accurateEndDecisions, metrics.turns) + "\n" +
-            getString(R.string.lab_ui_score_errors,
-                metrics.prematureEnds, metrics.missingEnds, metrics.unexpectedQuestions) + "\n" +
-            getString(R.string.lab_ui_score_latency, metrics.meanLatencyMs) + "\n" +
-            naturalnessScore + "\n\n" + getString(R.string.lab_ui_quality_not_scored)
-        scoreView.visibility = View.VISIBLE
     }
 
     private fun stopLab() {

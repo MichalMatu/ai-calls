@@ -18,7 +18,7 @@ class Sprint4UxContract(unittest.TestCase):
             'tag = "lab-turn-timeline"', 'tag = "lab-live-progress"',
             'tag = "lab-current-turn"', 'tag = "lab-conversation-card"',
             "userReadingOlderTurns",
-            'tag = "lab-rating-group"', "followCardIfEnabled",
+            "followCardIfEnabled",
             "progress.progress = completed", "record.reply.trim()",
             "runButton.isEnabled = next.manualStartAllowed",
             "sendButton.isEnabled = next.phase == SkillLabPhase.INPUT_READY",
@@ -27,7 +27,6 @@ class Sprint4UxContract(unittest.TestCase):
             self.assertIn(token, lab)
         runner = self.read("conversation/SkillLabRunner.kt")
         self.assertIn("ConversationReplyProtocol.decode(raw)", runner)
-        self.assertIn("SkillLabPhase.TURN_COMPLETED", runner)
         self.assertIn("SkillLabUiState(", runner)
         self.assertNotIn('results.joinToString("\\n\\n")', lab)
         self.assertNotIn('output.text =', lab)
@@ -62,8 +61,8 @@ class Sprint4UxContract(unittest.TestCase):
         sets = [{e.attrib["name"]: (e.text or "") for e in ET.parse(path).getroot()
                  if e.tag == "string"} for path in files]
         self.assertEqual(set(sets[0]), set(sets[1]))
-        for key in ("lab_ui_progress", "lab_ui_decision", "lab_ui_score_decisions",
-                    "lab_ui_score_errors", "home_ui_task_heading", "incoming_ui_mode_label"):
+        for key in ("lab_ui_turn_short", "lab_ui_waiting_response",
+                    "home_ui_task_heading", "incoming_ui_mode_label"):
             self.assertIn(key, sets[0])
         for name in sets[0]:
             if name.startswith(("lab_ui_", "home_ui_task_", "incoming_ui_mode_label",

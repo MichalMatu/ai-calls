@@ -16,7 +16,7 @@ import pl.michalmatu.aicallbridge.session.CallRealtimeSessionOrchestratorSnapsho
 /**
  * Production ownership boundary for one Telephone Agent runtime.
  *
- * The session controller owns the Realtime generation. [mediaOwner] owns the privileged Shizuku
+ * The session controller owns the Realtime generation. [mediaOwner] owns the GSM Binder
  * backend/coordinator generation. Cleanup always closes the controller first so TAKE OVER and remote
  * cancellation happen before the lower media runtime is destroyed.
  */
@@ -84,7 +84,7 @@ class CallRealtimeAgentRuntime(
         private const val DEFAULT_SAMPLE_RATE_HZ = 16_000
 
         /**
-         * Compose the production Shizuku media runtime with a fresh Realtime transport per session.
+         * Compose the GSM media runtime with a fresh Realtime transport per session.
          * The credential provider remains injected so no server authentication secret is owned here.
          * When [eventTrace] is supplied, the transport records bounded/redacted protocol metadata only.
          */

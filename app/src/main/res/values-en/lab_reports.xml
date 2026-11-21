@@ -9,6 +9,6 @@
 <string name="lab_report_select_turn">Select evidence turn</string>
 <string name="lab_report_evidence_hint">Evidence and rationale</string>
 <string name="lab_reports_need_two">Two reports are required</string>
-<string name="lab_report_comparable">Same case and revision: A/B comparison</string>
-<string name="lab_report_not_comparable">Different case or revision: not directly comparable</string>
+<string name="lab_report_comparable">A/B · completed runs with identical caller input</string>
+<string name="lab_report_not_comparable">Side by side · cases, caller input or outcomes differ</string>
 </resources>

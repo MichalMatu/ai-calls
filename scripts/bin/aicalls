@@ -21,8 +21,6 @@ case "$command_name" in
   appointment-stage|appointment-open|call-status)
     exec python3 "$SCRIPTS_DIR/aicall_tools/diagnostics/ai_calls_usb_lab.py" "$command_name" "$@" ;;
   call-capabilities) module="aicall_tools.device.s22_call_capabilities" ;;
-  s22-app-death-gate) module="aicall_tools.device.s22_app_death_gate" ;;
-  s22-call-end-gate) module="aicall_tools.device.s22_call_end_gate" ;;
   s22-resource-telemetry) module="aicall_tools.device.s22_resource_telemetry" ;;
   text-benchmark) module="aicall_tools.benchmarks.text_model_benchmark" ;;
   *) echo "unknown command: $command_name" >&2; exit 2 ;;
