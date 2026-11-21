@@ -63,7 +63,7 @@
     <string name="ui_settings_hub_general">Basic AI settings</string>
     <string name="ui_settings_hub_general_detail">Call mode, LLM provider and microphone</string>
     <string name="ui_settings_hub_developer">Developer tools</string>
-    <string name="ui_settings_hub_developer_detail">USB/ADB, hardware, Shizuku and offline lab</string>
+    <string name="ui_settings_hub_developer_detail">USB/ADB, hardware, GSM host and offline lab</string>
     <string name="ui_supervised_section">Supervised active-call test</string>
     <string name="ui_general_description">Settings apply to the next call. Changing them never starts a call.</string>
     <string name="ui_developer_description">Advanced diagnostics. Run probes deliberately.</string>
@@ -325,15 +325,9 @@
     <string name="dev_ui_title">Device diagnostics</string>
     <string name="dev_ui_usb">App status</string>
     <string name="dev_ui_capability">Device capabilities</string>
-    <string name="dev_ui_shizuku">Check Shizuku UserService</string>
     <string name="dev_ui_audio">Audio RX / TX — status</string>
     <string name="dev_ui_status_note">Downlink/uplink probes need phase 2 validation. This panel does not take over or stop audio.</string>
     <string name="dev_ui_stop_note">To stop AI use STOP AI on Home.</string>
-    <string name="dev_ui_shizuku_denied">Shizuku permission denied</string>
-    <string name="dev_ui_shizuku_missing">Shizuku unavailable; start it first</string>
-    <string name="dev_ui_shizuku_unsupported">Shizuku before v11 is not supported</string>
-    <string name="dev_ui_shizuku_permission">Shizuku permission denied; enable it in Shizuku</string>
-    <string name="dev_ui_shizuku_request">Requesting Shizuku permission…</string>
     <string name="acc_ui_expand">Expand: </string>
     <string name="acc_ui_collapse">Collapse: </string>
 
@@ -439,11 +433,11 @@
     <string name="home_one_tap_permission">Android needs microphone and phone-state permission.</string>
     <string name="home_one_tap_report_saved">Report saved.</string>
     <string name="home_one_tap_report_failed">Could not save report.</string>
-    <string name="home_one_tap_starting">Test approved by this button. Starting local STT → Gemma/script → TTS → Shizuku (up to 2 replies).</string>
+    <string name="home_one_tap_starting">Test approved by this button. Starting local STT → Gemma/script → TTS → GSM Binder (up to 2 replies).</string>
     <string name="home_one_tap_service_failed">Could not start the test service: %1$s</string>
     <string name="home_one_tap_no_call">No active cellular call. Start one in Google Phone and tap the same button. %1$s</string>
     <string name="home_one_tap_route">Call detected, but Android reported %1$s. AI was not attached. %2$s</string>
-    <string name="home_one_tap_shizuku">Shizuku unavailable — start it and tap the same button. %1$s</string>
+    <string name="home_one_tap_shizuku">GSM host unavailable — start it in GSM audio settings and retry. %1$s</string>
     <string name="home_one_tap_permissions">Android permissions missing. %1$s</string>
     <string name="home_one_tap_denied">Android permissions denied. AI audio was not started.</string>
     <string name="home_mic_already">Microphone permission already granted.</string>
@@ -487,7 +481,7 @@
     <string name="pilot_ui_stop">STOP AI — return to manual call</string>
     <string name="pilot_ui_gemma_mode">Call with Gemma 4 (offline)</string>
     <string name="pilot_ui_title">First call — supervised</string>
-    <string name="pilot_ui_instructions">1. In your regular dialer, call the agreed number manually.\n2. While connected, return here via recent apps.\n3. Tap START: STT → Gemma/script → TTS → Shizuku.\n4. STOP disables AI only; it does not hang up the phone.\n\nNo personal data, CLIR or service changes.</string>
+    <string name="pilot_ui_instructions">1. In your regular dialer, call the agreed number manually.\n2. While connected, return here via recent apps.\n3. Tap START: STT → Gemma/script → TTS → GSM Binder.\n4. STOP disables AI only; it does not hang up the phone.\n\nNo personal data, CLIR or service changes.</string>
     <string name="pilot_ui_open_dialer">Open regular dialer (without dialing)</string>
     <string name="pilot_ui_dialer_failed">Could not open the dialer.</string>
     <string name="pilot_ui_gemma_download">Download or import Gemma on Home</string>
@@ -503,8 +497,7 @@
     <string name="pilot_ui_diagnostic_failed">Could not save diagnostics.</string>
     <string name="pilot_ui_already_running">AI session is already running.</string>
     <string name="pilot_ui_permission_required">Microphone and phone-state permissions required.</string>
-    <string name="pilot_ui_shizuku_missing">Shizuku unavailable. Start Shizuku and check AI Calls permissions.</string>
-    <string name="pilot_ui_gsm_shell_missing">ADB GSM shell host is unavailable. Start the approved shell helper, then retry without Shizuku.</string>
+    <string name="pilot_ui_gsm_shell_missing">ADB GSM shell host is unavailable. Start the approved shell helper, then retry.</string>
     <string name="pilot_ui_call_missing">Start a call in your regular dialer first.</string>
     <string name="pilot_ui_model_dialog_title">Gemma 4 model missing</string>
     <string name="pilot_ui_model_dialog_help">To talk with the model, download 2.59 GB on Home. You can also test audio in script mode.</string>
@@ -775,12 +768,9 @@
     <string name="perm_action_settings">Open Android settings</string>
     <string name="perm_call_phone_title">Placing calls</string>
     <string name="perm_notifications_title">Notifications (optional)</string>
-    <string name="perm_shizuku_title">Shizuku</string>
     <string name="perm_gsm_shell_title">GSM — own ADB shell host</string>
-    <string name="perm_gsm_shell_ready">GSM shell host found. Shizuku permission is not required.</string>
-    <string name="perm_gsm_shell_offline">GSM shell host unavailable. Start it after authorizing ADB; Shizuku is not required.</string>
-    <string name="perm_shizuku_offline">Shizuku is not running</string>
-    <string name="perm_action_open_shizuku">Open Shizuku</string>
+    <string name="perm_gsm_shell_ready">GSM shell host found.</string>
+    <string name="perm_gsm_shell_offline">GSM shell host unavailable. Start it after authorizing ADB.</string>
 
     <string name="home_outgoing_action">New outgoing call</string>
     <string name="home_incoming_mode_manual">Manual answering</string>
@@ -947,7 +937,7 @@
     <string name="incoming_ui_gsm_host_unavailable">GSM audio is unavailable. After a restart, the authorized ADB connection must start the host again. Granting app permissions alone is not enough.</string>
     <string name="dialer_ui_title">Call</string>
     <string name="s8_voip_lab_title">S8 VoIP — local test</string>
-    <string name="s8_voip_lab_explanation">Six-stage bidirectional audio test: RTP 8 kHz → PCM 16 kHz → Realtime 24 kHz. Synthetic samples only, on this phone (127.0.0.1). No Shizuku, ADB, microphone, carrier, or phone calls. This does not test STT, AI, or TTS.</string>
+    <string name="s8_voip_lab_explanation">Six-stage bidirectional audio test: RTP 8 kHz → PCM 16 kHz → Realtime 24 kHz. Synthetic samples only, on this phone (127.0.0.1). No ADB, microphone, carrier, or phone calls. This does not test STT, AI, or TTS.</string>
     <string name="s8_voip_lab_idle">Ready for local testing.</string>
     <string name="s8_voip_lab_no_calls">Does not place calls or record audio.</string>
     <string name="s8_voip_lab_start">Start RTP test</string>
