@@ -106,6 +106,9 @@ internal class PhoneTaskExecution(
         if (profile == null || AudioEngineRegistry.incompatibility(profile) != null) {
             complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.MODEL); return
         }
+        if (!task.matchesSpeechProfile(profile)) {
+            complete(PhoneAttemptOutcome.BLOCKED, PhoneTaskIssue.SPEECH_LANGUAGE_CHANGED); return
+        }
         // Explicit S8 calls use only the approved shell host; never silently
         // fall back to Shizuku if it is missing.
         if (!GsmMediaTransportReadiness.isAvailable(service)) {

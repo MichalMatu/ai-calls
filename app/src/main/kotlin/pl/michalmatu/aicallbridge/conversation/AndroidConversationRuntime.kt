@@ -1009,11 +1009,14 @@ internal object AndroidConversationRuntime {
             lines += "probe_complete=true"
             val report = lines.render()
             evidenceRecorder?.recordDiagnosticReport(report)
-            if (!dialogue.awaitToolCompletion) evidenceRecorder?.finish(reason)
+            // Incoming owns the deferred Telecom confirmation. Owned outgoing tasks
+            // archive the dispatch and finish recording when the runtime ends.
+            val awaitToolEvidence = dialogue.awaitToolCompletion && scenario.direction == ConversationDirection.INCOMING
+            if (!awaitToolEvidence) evidenceRecorder?.finish(reason)
             ConversationChatFeed.finish(liveChatToken, reason)
             sessions.release(this)
             PrivateDiagnosticReportStore.write(context.filesDir, REPORT_FILE, report)
-            context.mainExecutor.execute { callback(ConversationRunResult(result, report, dialogue.awaitToolCompletion, liveChatToken)) }
+            context.mainExecutor.execute { callback(ConversationRunResult(result, report, awaitToolEvidence, liveChatToken)) }
         }
     }
 

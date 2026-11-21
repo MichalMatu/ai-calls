@@ -15,6 +15,9 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import pl.michalmatu.aicallbridge.MainActivity
+import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
 
 /** Emulator only. Impossible SIM prevents Telecom dispatch even if a test accidentally approves. */
@@ -120,10 +123,29 @@ class AndroidPhoneTaskFlowTest {
             subscriptionId = Int.MAX_VALUE, accountScope = "synthetic-impossible-sim",
             scheduled = true, startLocal = now.toString(), endLocal = now.plusHours(1).toString()))
         val before = CampaignAuthorizationStore(context).load()
-        ActivityScenario.launch(PhoneTaskWizardActivity::class.java).use { scenario ->
-            await { var ready = false; scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-review") != null }; ready }
-            screenshot("wizard-review")
-            scenario.onActivity { assertNotNull(it.window.decorView.findViewWithTag<View>("task-approve")) }
+        val profiles = AudioEngineProfileStore(context)
+        val originalProfile = requireNotNull(profiles.load())
+        try {
+            for ((tag, label) in listOf("pl-PL" to R.string.mv_speech_language_pl,
+                "en-US" to R.string.mv_speech_language_en)) {
+                assertTrue(profiles.save(AudioEngineProfile.STABLE.copy(languageTag = tag)))
+                ActivityScenario.launch(PhoneTaskWizardActivity::class.java).use { scenario ->
+                    await {
+                        var ready = false
+                        scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-review") != null }
+                        ready
+                    }
+                    scenario.onActivity { activity ->
+                        val reviewLanguage = activity.window.decorView
+                            .findViewWithTag<TextView>("task-review-speech-language")
+                        assertEquals(activity.getString(R.string.task_review_speech_language, activity.getString(label)),
+                            reviewLanguage.text.toString())
+                        assertNotNull(activity.window.decorView.findViewWithTag<View>("task-approve"))
+                    }
+                }
+            }
+        } finally {
+            assertTrue(profiles.save(originalProfile))
         }
         assertEquals(before, CampaignAuthorizationStore(context).load())
         assertTrue(store.phoneTasks().isEmpty())

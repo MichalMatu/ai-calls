@@ -16,6 +16,8 @@ internal data class AudioEngineProfile(
     val ttsEnginePackage: String? = null,
     val generation: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
 ) {
+    val speechLanguage: String get() = languageTag.substringBefore('-')
+
     val effectiveTtsEnginePackage: String? get() = ttsEnginePackage
         ?: if (output == SpeechOutputId.PIPER_PL) PiperServiceContract.PACKAGE else null
     companion object {

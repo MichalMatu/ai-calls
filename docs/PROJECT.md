@@ -16,7 +16,7 @@ W krótkiej próbie Incoming AI odebrało i mówiło.
 
 Próba transportu Outgoing na `97d447db` potwierdziła ACTIVE, rozłączenie tego samego Call i powrót do IDLE.
 
-Outgoing na `ce5a4fdd` przeszedł 5 tur z RX/TX. END_CALL wysłano, a telefon wrócił do IDLE.
+Outgoing na `ce5a4fdd` potwierdził 5 tur z RX/TX, dane po korekcie, wysłanie END_CALL i IDLE. Powitanie było po angielsku.
 
 W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
 
@@ -29,7 +29,7 @@ Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. W Lab na `5fc04ed3` 
 
 ## Otwarte
 
-- Incoming 4–6 tur i odsłuch Outgoing. Sprawdź naturalność, pamięć, korekty, barge-in, STOP/takeover, notatki i WAV.
+- Incoming 4–6 tur i powtórka powitania Outgoing. Sprawdź barge-in, STOP/takeover, notatki i WAV.
 - APK release zbudowane. Do wydania potrzebuje podpisu i obsługi IPC Binder.
 
 ## Po odbiorze GSM
