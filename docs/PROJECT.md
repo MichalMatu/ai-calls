@@ -8,11 +8,12 @@ Kandydat do prób użytkownika to APK `.s8lab` na S22+ z Androidem 16. Binder ho
 
 Na wcześniejszym kodzie odbiór fizyczny potwierdził oba kierunki GSM, RX/TX, WAV, SAVE_NOTE i END_CALL. Osobno na `b2d0b0b8` potwierdzono 9 testów UI i zapisu Lab oraz lokalne dialogi bez połączenia. Te wyniki są przypisane do sprawdzonych wtedy wersji.
 
+Kod kandydata `97d447db` przeszedł `preflight`, `full` i `device-build`. Wyniki obejmują 1380 testów JVM, 486 Python oraz 12 testów UI i Lab na emulatorze. [PR i SHA APK](https://github.com/MichalMatu/ai-calls/pull/66).
+
 ## Następny sprint
 
-1. [QA](operations/DEVELOPMENT.md) na kodzie kandydata i budowa APK `.s8lab`.
-2. Odbiór odpowiedzi w [Test Lab](modules/CONVERSATION.md) i próby GSM przez użytkownika.
-3. Aktualizacja golden po odbiorze wersji z jej SHA.
+1. Odbiór odpowiedzi w [Test Lab](modules/CONVERSATION.md) i próby GSM przez użytkownika.
+2. Aktualizacja golden po odbiorze wersji z jej SHA.
 
 ## Otwarte
 
@@ -23,5 +24,7 @@ Na wcześniejszym kodzie odbiór fizyczny potwierdził oba kierunki GSM, RX/TX, 
 ## Po odbiorze GSM
 
 Zachowany prototyp SIP/PJSUA2 ma historyczne testy JNI i syntetycznego audio. Następna bramka to konto testowe, jedna rozmowa TLS/SRTP z PCM w obie strony oraz STOP. Przed dystrybucją sprawdź licencję. [Kod i dowody prototypu](https://github.com/MichalMatu/ai-calls/tree/dffb072036ccc839566306ce9df1dde173bcc6b5/prototypes/s8-pjsua2).
+
+Osobne ścieżki to OpenAI Realtime Audio (wstrzymany), alternatywne modele audio i dialogu oraz kontekstowe Skills testowane w Lab. Kandydat GSM opiera się na lokalnym profilu rozmowy.
 
 **WSTRZYMANE:** Shizuku, Actions, schedulery i `WRITE_SECURE_SETTINGS`.
