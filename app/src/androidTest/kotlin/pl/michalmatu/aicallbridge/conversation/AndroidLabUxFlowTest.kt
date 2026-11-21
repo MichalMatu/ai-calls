@@ -125,7 +125,10 @@ class AndroidLabUxFlowTest {
                 assertTrue(stop.getGlobalVisibleRect(rect))
                 assertTrue("STOP clipped by keyboard", rect.height() >= 44 * activity.resources.displayMetrics.density)
                 assertFalse(view(activity, "app-bottom-navigation").isShown)
-                assertTrue("chat has no useful viewport", view(activity, "lab-transcript-scroll").height >= 80 * activity.resources.displayMetrics.density)
+                assertFalse(view(activity, "app-child-toolbar").isShown)
+                val viewportDp = view(activity, "lab-transcript-scroll").height /
+                    activity.resources.displayMetrics.density
+                assertTrue("chat viewport is ${viewportDp}dp with keyboard", viewportDp >= 80)
             }
             capture("lab-keyboard")
             scene.onActivity { view(it, "lab-manual-send").performClick() }
@@ -143,7 +146,10 @@ class AndroidLabUxFlowTest {
             }
             eventually {
                 var navigationVisible = false
-                scene.onActivity { navigationVisible = view(it, "app-bottom-navigation").isShown }
+                scene.onActivity {
+                    navigationVisible = view(it, "app-bottom-navigation").isShown &&
+                        view(it, "app-child-toolbar").isShown
+                }
                 navigationVisible
             }
             capture("lab-chat")

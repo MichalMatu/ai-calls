@@ -29,7 +29,7 @@ import pl.michalmatu.aicallbridge.ui.UiSelect
  */
 class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
     override fun toolbarTitle(): String = getString(R.string.lab_ui_title)
-    override val hideBottomNavigationWithIme = true
+    override val hideChromeWithIme = true
     private lateinit var runner: SkillLabRunner
     private var lastState = SkillLabUiState()
     private var renderedTurnCount = 0
@@ -172,7 +172,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         stopButton = UiDesign.action(this, getString(R.string.lab_ui_stop), UiActionTone.DANGER) {
             stopLab()
         }.apply { visibility = View.GONE; tag = "lab-stop" }
-        // STOP remains pinned, even when the options pane scrolls.
         val composer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "lab-manual-composer"
@@ -285,7 +284,6 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
             orientation = LinearLayout.VERTICAL
             val horizontal = UiDesign.dp(this@ConversationSkillLabActivity, 20)
             setPadding(horizontal, 0, horizontal, UiDesign.dp(this@ConversationSkillLabActivity, 12))
-            addView(stopButton, UiDesign.spaceAfter(this@ConversationSkillLabActivity, 8))
             addView(composer)
         }
         val sessionHeading = UiDesign.content(this).apply {
@@ -297,6 +295,8 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
                 addView(UiDesign.heading(this@ConversationSkillLabActivity, getString(R.string.lab_chat_title)).apply {
                     textSize = 18f
                 }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                addView(stopButton, LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
                 addView(UiDesign.iconButton(this@ConversationSkillLabActivity, R.drawable.ic_aicalls_lab,
                     getString(R.string.lab_observe)).apply {
                     tag = "lab-observe"
