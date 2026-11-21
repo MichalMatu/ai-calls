@@ -151,7 +151,7 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
         content.addView(casePicker, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.action(this, getString(R.string.lab_case_manage)) {
             showCaseList()
-        }, UiDesign.spaceAfter(this, 8))
+        }.apply { tag = "lab-case-manage" }, UiDesign.spaceAfter(this, 8))
         content.addView(UiDesign.action(this, getString(R.string.lab_reports)) {
             showReports()
         }, UiDesign.spaceAfter(this, 12))
