@@ -54,7 +54,7 @@ def measures(turns):
         "exact_code_found": 4 in code_echoes if 4 in replies else None,
         "exact_code_echo_on": code_echoes,
         "latest_color_found": "FIOLETOW" in recall and "ZIELON" not in recall if 4 in replies else None,
-        # Completion is observable here; whether the reply honored the policy is a semantic review.
+        # A completed turn still requires semantic review for policy adherence.
         "reply_after_override": 5 in replies,
         "end_proposed_on": [turn["turn"] for turn in turns if turn.get("end_proposed") is True],
         "latency_ms": [turn["elapsed_ms"] for turn in turns],
