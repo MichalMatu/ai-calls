@@ -19,6 +19,7 @@ import uuid
 import xml.etree.ElementTree as ET
 
 PACKAGE = "pl.michalmatu.aicallbridge"
+S8_PACKAGE = PACKAGE + ".s8lab"
 MODEL = "SM-S906B"
 SERIAL = "RFCT70L7E8J"
 ACTIVITY = PACKAGE + "/.DiagnosticProbeActivity"
@@ -206,20 +207,26 @@ class Device:
         state = self.checked("shell", "dumpsys", "telephony.registry")
         return set(re.findall(r"mCallState=(\d+)", state)) == {"0"}
 
-    def safe_preflight(self) -> None:
+    def safe_preflight(self, package: str = PACKAGE) -> None:
+        if package not in {PACKAGE, S8_PACKAGE}:
+            raise DiagnosticError("unsupported_diagnostic_package")
         for index in range(2):
             if not self.idle():
                 raise DiagnosticError("phone_not_idle")
+            if package == S8_PACKAGE:
+                audio = self.checked("shell", "dumpsys", "audio")
+                if set(re.findall(r"Actual mode = (MODE_[A-Z_]+)", audio)) != {"MODE_NORMAL"}:
+                    raise DiagnosticError("phone_audio_mode_not_idle")
             if index == 0:
                 time.sleep(2)
         holders = self.checked("shell", "cmd", "role", "get-role-holders",
                                "android.app.role.DIALER")
-        if PACKAGE not in holders:
+        if package not in holders.split():
             raise DiagnosticError("dialer_role_mismatch")
-        running = self.checked("shell", "dumpsys", "activity", "services", PACKAGE)
+        running = self.checked("shell", "dumpsys", "activity", "services", package)
         if "AppOwnedCampaignService" in running:
             raise DiagnosticError("campaign_active")
-        continuation = self.call("shell", "run-as", PACKAGE, "cat",
+        continuation = self.call("shell", "run-as", package, "cat",
                                  "shared_prefs/campaign_continuation_v1.xml")
         if continuation.returncode == 0:
             try:
@@ -233,7 +240,7 @@ class Device:
         # A missing continuation preference is allowed; other read failures fail closed.
         elif "No such file" not in continuation.stderr:
             raise DiagnosticError("continuation_unreadable")
-        if self.call("shell", "run-as", PACKAGE, "pwd").returncode:
+        if self.call("shell", "run-as", package, "pwd").returncode:
             raise DiagnosticError("debug_run_as_unavailable")
 
     def preference_hashes(self) -> dict[str, str | None]:
