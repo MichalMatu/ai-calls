@@ -3,6 +3,7 @@ package pl.michalmatu.aicallbridge.campaign
 import android.content.Intent
 import android.os.Build
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
@@ -213,13 +214,29 @@ class AndroidPhoneTaskFlowTest {
         store.updatePhoneTasks { listOf(uncertain) }
         ActivityScenario.launch<PhoneTasksActivity>(Intent(context, PhoneTasksActivity::class.java)
             .putExtra(AppOwnedCampaignService.EXTRA_PHONE_TASK_ID, original.id)).use { scenario ->
-            await { var ready = false; scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-recipient:" + original.recipients[0].id) != null }; ready }
-            screenshot("task-results")
-            scenario.onActivity { activity ->
-                val card = activity.window.decorView.findViewWithTag<android.view.ViewGroup>("task-recipient:" + original.recipients[0].id)
-                assertTrue((0 until card.childCount).map { card.getChildAt(it) }.filterIsInstance<TextView>()
-                    .any { it.text.contains("od 350 zł, bez części") })
+            val answeredId = original.recipients[0].id
+            await {
+                var ready = false
+                scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("task-recipient:$answeredId") != null }
+                ready
             }
+            scenario.onActivity { activity ->
+                val screen = activity.window.decorView
+                val details = screen.findViewWithTag<ViewGroup>("task-recipient-details:$answeredId")
+                assertEquals(View.GONE, details.visibility)
+                screen.findViewWithTag<View>("task-details-toggle:$answeredId").performClick()
+                assertEquals(View.VISIBLE, details.visibility)
+                assertTrue((0 until details.childCount).map { details.getChildAt(it) }.filterIsInstance<TextView>()
+                    .any { it.text.contains("od 350 zł, bez części") })
+                val retryLabel = activity.getString(R.string.task_retry_explicit)
+                val retryableRecipients = original.recipients.filter { recipient ->
+                    val card = screen.findViewWithTag<ViewGroup>("task-recipient:${recipient.id}")
+                    (0 until card.childCount).map { card.getChildAt(it) }.filterIsInstance<TextView>()
+                        .any { it.text.toString() == retryLabel && it.isShown }
+                }
+                assertEquals(listOf(original.recipients[1]), retryableRecipients)
+            }
+            screenshot("task-results")
         }
         assertEquals(PhoneRecipientState.UNKNOWN, store.phoneTasks().single().recipients[1].state)
     }
