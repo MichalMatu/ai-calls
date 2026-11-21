@@ -18,7 +18,7 @@ Próba transportu Outgoing na `97d447db` potwierdziła ACTIVE, rozłączenie teg
 
 W USB Lab na `97d447db` model pominął kod i zwrócił błędny format po nacisku rozmówcy.
 
-Na APK z `5fc04ed3` ten sam host odzyskał rejestrację po restarcie aplikacji. W Lab przy 4096 i 6144 tokenach model przekręcił kod.
+Na `ce5a4fdd` host wrócił po restarcie aplikacji w 1,5 s. W Lab na `5fc04ed3` model przekręcił kod przy 4096 i 6144 tokenach.
 
 ## Następny sprint
 
@@ -28,7 +28,7 @@ Na APK z `5fc04ed3` ten sam host odzyskał rejestrację po restarcie aplikacji. 
 ## Otwarte
 
 - Incoming i Outgoing po 4–6 tur. Oceń polski STT/TTS, naturalność, pamięć i korekty, barge-in, STOP/takeover, END_CALL po TTS, zapis notatki, transkrypcję i fragmenty WAV.
-- Osobna kwalifikacja standardowego APK release pod kątem podpisu i IPC.
+- APK release zbudowane. Do wydania potrzebuje podpisu i obsługi IPC Binder.
 
 ## Po odbiorze GSM
 
