@@ -2,12 +2,12 @@ package pl.michalmatu.aicallbridge
 
 import android.os.Build
 import android.view.View
+import android.view.ViewGroup
 import android.view.inspector.WindowInspector
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
 import android.widget.Spinner
-import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -114,14 +114,26 @@ class AndroidLabDialogStorageAcceptanceTest {
         val monitor = instrument.addMonitor(ConversationSkillLabActivity::class.java.name, null, false)
         val title = "Synthetic case fixture"
         val instructions = "Use the fictional label Cypress."
+        fun caseList(view: View): ListView? {
+            if (view is ListView) return view
+            if (view is ViewGroup) {
+                for (index in 0 until view.childCount) {
+                    caseList(view.getChildAt(index))?.let { return it }
+                }
+            }
+            return null
+        }
         fun choose(label: String) {
-            val matches = ArrayList<View>()
-            WindowInspector.getGlobalWindowViews().last().findViewsWithText(
-                matches, label, View.FIND_VIEWS_WITH_TEXT)
-            val option = matches.filterIsInstance<TextView>().first { it.text.toString() == label }
-            val list = generateSequence(option.parent) { it.parent }.filterIsInstance<ListView>().first()
-            val index = list.getPositionForView(option)
-            assertTrue(list.performItemClick(option, index, list.adapter.getItemId(index)))
+            instrument.waitForIdleSync()
+            instrument.runOnMainSync {
+                val list = WindowInspector.getGlobalWindowViews().asReversed()
+                    .firstNotNullOf(::caseList)
+                val index = (0 until list.count).first { list.getItemAtPosition(it).toString() == label }
+                assertTrue(list.performItemClick(list.getChildAt(index), index, list.adapter.getItemId(index)))
+            }
+        }
+        fun caseEditor(): View = WindowInspector.getGlobalWindowViews().last {
+            it.findViewWithTag<EditText>("lab-case-field:instructions") != null
         }
         SkillLabIsolatedTestStore.setForDebugTest(context, store)
         try {
@@ -136,8 +148,11 @@ class AndroidLabDialogStorageAcceptanceTest {
                     instrument.runOnMainSync {
                         val manage = lab.window.decorView.findViewWithTag<View>("lab-case-manage")
                         assertTrue(manage.performClick())
-                        choose(lab.getString(R.string.lab_case_new))
-                        val editor = WindowInspector.getGlobalWindowViews().last()
+                    }
+                    choose(lab.getString(R.string.lab_case_new))
+                    instrument.waitForIdleSync()
+                    instrument.runOnMainSync {
+                        val editor = caseEditor()
                         editor.findViewWithTag<EditText>("lab-case-field:title").setText(title)
                         editor.findViewWithTag<EditText>("lab-case-field:goal").setText("Check the label")
                         editor.findViewWithTag<EditText>("lab-case-field:opening").setText("Test opening")
@@ -147,10 +162,13 @@ class AndroidLabDialogStorageAcceptanceTest {
                     assertEquals(instructions, store.loadLabCases().cases.single().selected().assistantInstructions)
                     instrument.waitForIdleSync()
                     instrument.runOnMainSync {
-                        lab.window.decorView.findViewWithTag<View>("lab-case-manage").performClick()
-                        choose("$title · v1")
-                        choose(lab.getString(R.string.lab_case_edit))
-                        assertEquals(instructions, WindowInspector.getGlobalWindowViews().last()
+                        assertTrue(lab.window.decorView.findViewWithTag<View>("lab-case-manage").performClick())
+                    }
+                    choose("$title · v1")
+                    choose(lab.getString(R.string.lab_case_edit))
+                    instrument.waitForIdleSync()
+                    instrument.runOnMainSync {
+                        assertEquals(instructions, caseEditor()
                             .findViewWithTag<EditText>("lab-case-field:instructions").text.toString())
                     }
                 } finally {
