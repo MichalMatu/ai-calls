@@ -38,7 +38,9 @@ class AndroidDiagnosticResultUxTest {
                 DiagnosticResultDialog.showDetails(
                     activity,
                     activity.getString(R.string.diag_details),
-                    "probe=gsm_shell_readiness\\ngsm_shell_ready=false\\nreason=host_missing",
+                    """probe=gsm_shell_readiness
+gsm_shell_ready=false
+reason=host_missing""",
                 )
             }
             capture("gsm-details")
