@@ -14,7 +14,7 @@
     <string name="prompt_settings_save_error">Nie udało się zapisać instrukcji.</string>
     <string name="model_settings_defaults">Przywróć domyślne</string>
     <string name="model_generation_title">Parametry modelu językowego</string>
-    <string name="model_generation_summary">Kontekst %1$d · odpowiedź do %2$d tokenów · temperatura %3$.2f</string>
+    <string name="model_generation_summary">Kontekst %1$d · limit odpowiedzi %2$d · temperatura %3$.2f</string>
     <string name="model_generation_hint">Zmiany działają od następnej sesji. Większy kontekst zużywa więcej pamięci. Przy temperaturze 0 lub Top K równym 1 wybór odpowiedzi jest deterministyczny.</string>
     <string name="model_generation_context">Okno kontekstu (tokeny)</string>
     <string name="model_generation_output">Limit odpowiedzi (tokeny)</string>

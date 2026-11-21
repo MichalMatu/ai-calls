@@ -14,7 +14,7 @@
     <string name="prompt_settings_save_error">Could not save instructions.</string>
     <string name="model_settings_defaults">Restore defaults</string>
     <string name="model_generation_title">Language model settings</string>
-    <string name="model_generation_summary">Context %1$d · reply up to %2$d tokens · temperature %3$.2f</string>
+    <string name="model_generation_summary">Context %1$d · reply limit %2$d · temperature %3$.2f</string>
     <string name="model_generation_hint">Changes apply to the next session. Larger contexts use more memory. Temperature 0 or Top K of 1 makes sampling deterministic.</string>
     <string name="model_generation_context">Context window (tokens)</string>
     <string name="model_generation_output">Response limit (tokens)</string>
