@@ -300,6 +300,7 @@ class AppOwnedCampaignService : Service() {
             "outgoing-appointment", "Umawianie wizyty", ConversationDirection.OUTGOING,
             userContext.notes, userContext.skills,
             userContext.scopedDataFields(task.disclosureFields),
+            promptSettings = userContext.promptSettings,
         )
         val goal = "Cel użytkownika: " + task.goal +
             ". Dozwolony przedział wizyty: " + task.notBefore.toString() + " do " +
@@ -406,6 +407,7 @@ class AppOwnedCampaignService : Service() {
             task.title, ConversationDirection.OUTGOING,
             userContext.notes, userContext.skills,
             userContext.scopedDataFields(grant.allowedDisclosureFields),
+            promptSettings = userContext.promptSettings,
         )
         val scopedGoal = "Cel rozmowy: " + task.goal + ". Szczegóły podane przez użytkownika: " +
             task.brief + ". Rozmowa jest tylko zapytaniem informacyjnym. " +

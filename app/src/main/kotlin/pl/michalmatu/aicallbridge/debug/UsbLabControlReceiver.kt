@@ -322,8 +322,9 @@ internal object UsbLabControl {
                 SkillLabPhase.COMPLETED, SkillLabPhase.STOPPED, SkillLabPhase.FAILED)) {
             return Result(false, "lab_session_already_active", labSnapshot())
         }
-        val tokens = request.optInt("context_tokens", 4_096)
-        if (tokens <= 0) return Result(false, "invalid_context_budget")
+        val override = if (request.has("context_tokens")) request.optInt("context_tokens", 0) else null
+        if (override != null && override <= 0) return Result(false, "invalid_context_budget")
+        val tokens = override ?: AudioEngineProfileStore(context).load()?.generation?.contextTokens ?: 4_096
         val selectedPreset = request.optString("preset", "natural").ifBlank { "natural" }
         val selectedRole = runCatching {
             LabRole.valueOf(request.optString("role", "GENERAL"))

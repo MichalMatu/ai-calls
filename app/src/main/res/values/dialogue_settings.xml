@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prompt_settings_title">Instrukcje rozmów</string>
+    <string name="prompt_settings_scope">Zmiany dotyczą kolejnych rozmów GSM.</string>
+    <string name="prompt_settings_incoming">Rola w rozmowach przychodzących</string>
+    <string name="prompt_settings_outgoing">Rola w rozmowach wychodzących</string>
+    <string name="prompt_settings_permissions">Reguły uprawnień</string>
+    <string name="prompt_settings_permissions_hint">Dodaj wskazówki ograniczające działanie modelu. Zgody aplikacji ustawisz w Narzędziach AI.</string>
+    <string name="prompt_settings_reply">Format odpowiedzi</string>
+    <string name="prompt_settings_reply_hint">Ustaw długość, styl lub kolejność informacji w wypowiedzi. Aplikacja sprawdza odpowiedź według schematu JSON.</string>
+    <string name="prompt_settings_reference">Pokaż reguły aplikacji</string>
+    <string name="prompt_settings_tools">Uprawnienia narzędzi AI</string>
+    <string name="prompt_settings_load_error">Nie udało się odczytać instrukcji lub reguł.</string>
+    <string name="prompt_settings_save_error">Nie udało się zapisać instrukcji.</string>
+    <string name="model_settings_defaults">Przywróć domyślne</string>
+    <string name="model_generation_title">Parametry modelu językowego</string>
+    <string name="model_generation_summary">Kontekst %1$d · odpowiedź do %2$d tokenów · temperatura %3$.2f</string>
+    <string name="model_generation_hint">Zmiany działają od następnej sesji. Większy kontekst zużywa więcej pamięci. Przy temperaturze 0 lub Top K równym 1 wybór odpowiedzi jest deterministyczny.</string>
+    <string name="model_generation_context">Okno kontekstu (tokeny)</string>
+    <string name="model_generation_output">Limit odpowiedzi (tokeny)</string>
+    <string name="model_generation_temperature">Temperatura</string>
+    <string name="model_generation_top_k">Top K</string>
+    <string name="model_generation_top_p">Top P</string>
+    <string name="model_generation_range">%1$s–%2$s</string>
+    <string name="model_generation_auto_range">Domyślnie automatycznie · %1$s–%2$s</string>
+    <string name="model_generation_invalid">Sprawdź wartości i zakresy pokazane przy polach.</string>
+</resources>

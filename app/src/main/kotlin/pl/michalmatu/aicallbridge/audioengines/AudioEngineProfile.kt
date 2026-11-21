@@ -14,6 +14,7 @@ internal data class AudioEngineProfile(
     /** Required only for a model explicitly imported from a LiteRT-LM file. */
     val customModelId: String? = null,
     val ttsEnginePackage: String? = null,
+    val generation: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
 ) {
     val effectiveTtsEnginePackage: String? get() = ttsEnginePackage
         ?: if (output == SpeechOutputId.PIPER_PL) PiperServiceContract.PACKAGE else null
@@ -39,6 +40,7 @@ internal object AudioEngineRegistry {
 
     /** An unsupported composition never silently falls back to another engine. */
     fun incompatibility(profile: AudioEngineProfile): String? = when {
+        !profile.generation.valid() -> "invalid_dialogue_generation_settings"
         profile.dialogue == DialogueModelId.USER_LITERT &&
             (profile.customModelId == null || !Regex("user-[0-9a-f]{64}").matches(profile.customModelId)) ->
             "user_model_identity_invalid"

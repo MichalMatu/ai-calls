@@ -9,6 +9,7 @@ import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
 import android.content.Context
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
+import pl.michalmatu.aicallbridge.audioengines.DialogueGenerationSettings
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
@@ -285,6 +286,7 @@ internal class LiteRtGemma4Runtime(
     private val onTiming: (NativeModelTiming) -> Unit = {},
     private val onPrewarm: (NativePrewarmTiming) -> Unit = {},
     private val validateConversationReply: Boolean = false,
+    private val generationSettings: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
 ) : Gemma4Runtime {
     init { require(contextTokenBudget > 0) { "invalid_native_context_budget" } }
 
@@ -772,8 +774,8 @@ internal class LiteRtGemma4Runtime(
         }
     }
 
-    private val textOutputTokenBudget get() =
-        if (validateConversationReply) STRUCTURED_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS
+    private val textOutputTokenBudget get() = generationSettings.outputTokens
+        ?: if (validateConversationReply) STRUCTURED_OUTPUT_TOKENS else MAX_OUTPUT_TOKENS
 
     /** Role-labelled history remains untrusted conversation data, never system authority. */
     private fun createConversation(readyEngine: Engine, repair: Boolean = false,
@@ -790,12 +792,16 @@ internal class LiteRtGemma4Runtime(
             initialMessages = (if (transcription) emptyList() else conversationWindow.snapshot()).flatMap {
                 listOf(Message.user(it.userText), Message.model(it.modelText))
             },
-            samplerConfig = SamplerConfig(topK = 1, topP = 1.0, temperature = 0.0, seed = 0),
+            samplerConfig = if (transcription)
+                SamplerConfig(topK = 1, topP = 1.0, temperature = 0.0, seed = 0)
+            else SamplerConfig(topK = generationSettings.topK, topP = generationSettings.topP,
+                temperature = generationSettings.temperature, seed = 0),
             automaticToolCalling = false,
             extraContext = if (disableQwenThinking) mapOf("enable_thinking" to false) else emptyMap(),
             channels = emptyList(),
             maxOutputToken = if (transcription) TRANSCRIPTION_OUTPUT_TOKENS
-                else if (audioResponseFormat != null) AUDIO_OUTPUT_TOKENS else textOutputTokenBudget,
+                else if (audioResponseFormat != null && !audioTranscriptionOnly) AUDIO_OUTPUT_TOKENS
+                else textOutputTokenBudget,
             thinkingConfig = ThinkingConfig(enableThinking = false),
             enableResponseFormat = responseFormat != null,
         ))
@@ -976,6 +982,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         onPrewarm: (NativePrewarmTiming) -> Unit = {},
         audioInput: Boolean = false,
         selectedFile: File? = null,
+        generationSettings: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
     ): TextCallAgentBackend {
         // Gemma 4 E2B native audio reliably transcribes with the compact schema.
         // A second text pass supplies normal dialogue/tool output on that SAME Engine.
@@ -984,6 +991,7 @@ internal object Gemma4LiteRtTextBackendFactory {
             context = context, modelId = modelId, systemInstruction = systemInstruction,
             responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(tools)),
             contextTokenBudget = contextTokenBudget,
+            generationSettings = generationSettings,
             onTiming = onTiming,
             onPrewarm = onPrewarm,
             validateConversationReply = true,
@@ -1064,11 +1072,16 @@ internal object Gemma4LiteRtTextBackendFactory {
         context: Context,
         systemInstruction: String,
         modelId: DialogueModelId = selectedModel(context),
+        generationSettings: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
+        selectedFile: File? = null,
     ): TextCallAgentBackend = createInternal(
         context = context,
         modelId = modelId,
         systemInstruction = systemInstruction,
         responseFormat = null,
+        contextTokenBudget = generationSettings.contextBudget(modelId, structured = false),
+        generationSettings = generationSettings,
+        selectedFile = selectedFile,
     )
 
     fun createActionClassifier(
@@ -1112,6 +1125,7 @@ internal object Gemma4LiteRtTextBackendFactory {
         onPrewarm: (NativePrewarmTiming) -> Unit = {},
         validateConversationReply: Boolean = false,
         audioTranscriptionOnly: Boolean = false,
+        generationSettings: DialogueGenerationSettings = DialogueGenerationSettings.DEFAULTS,
     ): Gemma4LiteRtTextBackend {
         val modelPath = (selectedFile ?: modelFile(context, modelId)).absolutePath
         return Gemma4LiteRtTextBackend(
@@ -1131,6 +1145,7 @@ internal object Gemma4LiteRtTextBackendFactory {
                     onTiming = onTiming,
                     onPrewarm = onPrewarm,
                     validateConversationReply = validateConversationReply,
+                    generationSettings = generationSettings,
                 )
             },
             modelPath = modelPath,

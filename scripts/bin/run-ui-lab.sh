@@ -22,6 +22,7 @@ test_classes=(
   pl.michalmatu.aicallbridge.AndroidAppBottomNavigationFlowTest
   pl.michalmatu.aicallbridge.AndroidUiPolishContractTest
   pl.michalmatu.aicallbridge.AndroidLabDialogStorageAcceptanceTest
+  pl.michalmatu.aicallbridge.AndroidDialogueSettingsAcceptanceTest
   pl.michalmatu.aicallbridge.conversation.AndroidLabUxFlowTest
 )
 classes="$(IFS=,; echo "${test_classes[*]}")"
@@ -32,7 +33,7 @@ if ! output="$(adb -s "$serial" shell am instrument -r -w \
   echo UI_LAB_INSTRUMENTATION_COMMAND_FAIL=true >&2
   exit 6
 fi
-if ! count="$(printf '%s\n' "$output" | python3 scripts/aicall_tools/diagnostics/instrumentation_result.py --expected-count 13)"; then
+if ! count="$(printf '%s\n' "$output" | python3 scripts/aicall_tools/diagnostics/instrumentation_result.py --expected-count 15)"; then
   printf '%s\n' "$output" | tail -35 >&2
   exit 6
 fi

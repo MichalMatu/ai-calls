@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="lab_context_label">Laboratory model context (tokens)</string>
-    <string name="lab_context_hint">Lab only. Larger contexts use more memory.</string>
+    <string name="lab_context_hint">Leave blank to use the model setting. An entered value applies only to Lab.</string>
     <string name="lab_context_invalid">Enter a positive context-token number.</string>
     <string name="lab_diagnostics_header">Model diagnostics: %1$s · context %2$d tokens · 128-token response limit</string>
     <string name="lab_diagnostics_waiting">Engine initialization and generation timings appear after the first response.</string>

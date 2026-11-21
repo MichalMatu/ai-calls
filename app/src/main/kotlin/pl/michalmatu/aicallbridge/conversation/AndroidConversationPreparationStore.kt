@@ -47,13 +47,27 @@ internal class AndroidConversationPreparationStore(
         }
     } }
 
-    fun load(id: String) = synchronized(LOCK) {
-        val stored = repository.load(id)
+    fun load(id: String, includePromptSettings: Boolean = true) = synchronized(LOCK) {
+        val stored = repository.load(id).let {
+            if (includePromptSettings) it.withPromptSettings(loadPromptSettings()) else it
+        }
         if (stored.direction == ConversationDirection.INCOMING)
             stored.withSkillSnapshot(loadSkillLibrary().snapshot())
         else stored
     }
     fun save(value: ConversationPreparation) = synchronized(LOCK) { repository.save(value) }
+
+    fun loadPromptSettings(): ConversationPromptSettings = synchronized(LOCK) {
+        val raw = readRecord("conversation-prompt-settings-v1")
+            ?: return@synchronized ConversationPromptSettings.DEFAULTS
+        requireNotNull(Gson().fromJson(raw, ConversationPromptSettings::class.java)).validated()
+    }
+
+    fun updatePromptSettings(change: (ConversationPromptSettings) -> ConversationPromptSettings) = synchronized(LOCK) {
+        val settings = change(loadPromptSettings())
+        writeRecord("conversation-prompt-settings-v1", Gson().toJson(settings.validated()))
+        settings
+    }
     fun loadSkillLibrary(): ConversationSkillLibrary = synchronized(LOCK) {
         val previous = skillsRepository.load()
         if (!cleanUserPresets || previous.isCleanForReceptionist()) previous

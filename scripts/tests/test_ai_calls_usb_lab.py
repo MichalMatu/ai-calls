@@ -156,6 +156,14 @@ class UsbLabControlTests(unittest.TestCase):
                 channel.run_once(device, args)
         request.assert_called_once_with(device, "lab_status")
 
+    def test_lab_start_uses_saved_context_when_no_override_is_passed(self):
+        from types import SimpleNamespace
+        device = FakeDevice()
+        args = SimpleNamespace(command="lab-start", context_tokens=None, preset="natural", role="GENERAL")
+        with patch.object(channel, "device_request", return_value={"ok": True}) as request:
+            self.assertTrue(channel.run_once(device, args)["ok"])
+        request.assert_called_once_with(device, "lab_start", preset="natural", role="GENERAL")
+
     def test_fixed_audio_suite_runs_same_cases_twice_without_text_leaks(self):
         from types import SimpleNamespace
         device = FakeDevice()

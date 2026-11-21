@@ -119,7 +119,7 @@ internal class PhoneTaskExecution(
                 // Fresh context per recipient; no other recipient's answer is ever included.
                 val preparation = ConversationPreparation("outgoing-scenario-" + task.scenarioId,
                     task.title, ConversationDirection.OUTGOING, context.notes, context.skills,
-                    context.scopedDataFields(emptySet()))
+                    context.scopedDataFields(emptySet()), promptSettings = context.promptSettings)
                 val goal = PhoneTaskInstruction.forTask(task)
                 val instruction = ConversationInstructionBuilder.build(preparation, goal,
                     ConversationResponseFormat.TOOL_REPLY, profile.languageTag)
