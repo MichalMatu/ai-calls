@@ -9,11 +9,9 @@ import android.media.AudioManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.telecom.TelecomManager
-import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
-import android.widget.EditText
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.ScrollView
@@ -35,6 +33,7 @@ import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
 import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
 import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
+import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceGenerationDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
 
 /** Current saved choices. Pickers save immediately; readiness remains a separate native check. */
@@ -156,48 +155,9 @@ internal class ModelVoiceSettings(
     fun selectInput(id: SpeechInputId): Boolean = save(draft.copy(input = id))
 
     private fun showGenerationSettings() {
-        val fields = UiDesign.content(activity)
-        val current = draft.generation
-        fields.addView(UiDesign.caption(activity, activity.getString(R.string.model_generation_hint)),
-            UiDesign.spaceAfter(activity, 12))
-        fun field(label: Int, initial: Number?, range: String, decimal: Boolean = false): EditText {
-            fields.addView(UiDesign.caption(activity, activity.getString(label)))
-            return EditText(activity).apply {
-                tag = activity.resources.getResourceEntryName(label)
-                contentDescription = activity.getString(label)
-                inputType = InputType.TYPE_CLASS_NUMBER or if (decimal) InputType.TYPE_NUMBER_FLAG_DECIMAL else 0
-                setSingleLine(true)
-                setText(initial?.toString().orEmpty())
-                hint = range
-                fields.addView(this, UiDesign.spaceAfter(activity, 8))
-            }
-        }
-        fun range(lower: Number, upper: Number) = activity.getString(R.string.model_generation_range, lower.toString(), upper.toString())
-        fun automatic(lower: Number, upper: Number) = activity.getString(R.string.model_generation_auto_range, lower.toString(), upper.toString())
-        val context = field(R.string.model_generation_context, current.contextTokens, automatic(2048, 8192))
-        val output = field(R.string.model_generation_output, current.outputTokens, automatic(256, 1024))
-        val temperature = field(R.string.model_generation_temperature, current.temperature, range(0, 1.5), decimal = true)
-        val topK = field(R.string.model_generation_top_k, current.topK, range(1, 64))
-        val topP = field(R.string.model_generation_top_p, current.topP, range(0.05, 1), decimal = true)
-        val dialog = AlertDialog.Builder(activity).setTitle(R.string.model_generation_title)
-            .setView(ScrollView(activity).apply { addView(fields) })
-            .setPositiveButton(R.string.prep_ui_save, null)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setNeutralButton(R.string.model_settings_defaults, null).create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                if (save(draft.copy(generation = DialogueGenerationSettings.DEFAULTS))) dialog.dismiss()
-            }
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val next = DialogueGenerationInputParser.parse(
-                    context.text.toString(), output.text.toString(), temperature.text.toString(),
-                    topK.text.toString(), topP.text.toString())
-                if (next == null) {
-                    Toast.makeText(activity, R.string.model_generation_invalid, Toast.LENGTH_SHORT).show()
-                } else if (save(draft.copy(generation = next))) dialog.dismiss()
-            }
-        }
-        dialog.show()
+        ModelVoiceGenerationDialog(activity, draft.generation) { generation ->
+            save(draft.copy(generation = generation))
+        }.show()
     }
 
     private fun showLanguagePicker() {
