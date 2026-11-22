@@ -18,6 +18,7 @@ import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.campaign.AndroidOwnedInCallService
 import pl.michalmatu.aicallbridge.campaign.AppointmentEditorDraft
 import pl.michalmatu.aicallbridge.campaign.AppointmentEditorDraftStore
@@ -290,6 +291,7 @@ internal object UsbLabControl {
             .put("preset", preset)
             .put("role", role.name)
             .put("supports_test_instructions", true)
+            .put("supports_language_override", true)
             .put("private_transcript_ready", evidenceFile?.exists() == true)
     }
 
@@ -328,8 +330,14 @@ internal object UsbLabControl {
         val override = if (request.has("context_tokens")) request.optInt("context_tokens", 0) else null
         if (override != null && override <= 0) return Result(false, "invalid_context_budget")
         val profile = AudioEngineProfileStore(context).load()
-        val tokens = override ?: profile?.generation?.contextTokens ?: 4_096
-        val languageTag = profile?.languageTag ?: "pl-PL"
+            ?: return Result(false, "invalid_audio_profile")
+        val languageOverride = if (request.has("language_tag")) request.optString("language_tag") else null
+        if (languageOverride != null && languageOverride !in setOf("pl-PL", "en-US"))
+            return Result(false, "invalid_lab_language")
+        val tokens = override ?: profile.generation.contextTokens ?: 4_096
+        val languageTag = languageOverride ?: profile.languageTag
+        if (AudioEngineRegistry.incompatibility(profile.copy(languageTag = languageTag)) != null)
+            return Result(false, "lab_language_profile_incompatible")
         val selectedPreset = request.optString("preset", "natural").ifBlank { "natural" }
         val selectedRole = runCatching {
             LabRole.valueOf(request.optString("role", "GENERAL"))
@@ -338,7 +346,7 @@ internal object UsbLabControl {
         // No owner vault values; AndroidSkillLabSessionFactory builds the existing Lab-only role.
         current?.close()
         val nextId = UUID.randomUUID().toString()
-        val factory = AndroidSkillLabSessionFactory(context, tokens)
+        val factory = AndroidSkillLabSessionFactory(context, tokens, languageOverride)
         if (selectedRole != LabRole.GENERAL || instructions != null) factory.selectedCase = LabCaseRevision(
             revision = 1, title = "USB — dialog bez połączenia", role = selectedRole,
             goal = when (selectedRole) {

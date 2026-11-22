@@ -8,6 +8,7 @@ import android.telecom.TelecomManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -56,6 +57,16 @@ class AndroidUsbLabControlContractTest {
         val unknown = UsbLabControl.execute(app, "place_call", JSONObject())
         assertFalse(unknown.ok)
         assertEquals("unknown_action", unknown.code)
+    }
+
+    @Test fun unsupportedLabLanguageIsRejectedWithoutSavedProfileMutation() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val before = AudioEngineProfileStore(app).load()
+        val invalid = UsbLabControl.execute(app, "lab_start",
+            JSONObject().put("language_tag", "xx-XX").put("role", "INCOMING"))
+        assertFalse(invalid.ok)
+        assertEquals("invalid_lab_language", invalid.code)
+        assertEquals(before, AudioEngineProfileStore(app).load())
     }
 
     @Test fun configRequiresExplicitVoiceAccountAndRecordingPreference() {

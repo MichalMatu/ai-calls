@@ -7,6 +7,7 @@ import pl.michalmatu.aicallbridge.textagent.TextCallAgentBackend
 import pl.michalmatu.aicallbridge.textagent.NativeModelTiming
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.conversationtools.ConversationToolId
 
@@ -29,8 +30,14 @@ internal fun labPreparation(
 internal class AndroidSkillLabSessionFactory(
     private val context: Context,
     contextTokenBudget: Int? = null,
+    private val testLanguageTag: String? = null,
 ) : SkillLabModelSessionFactory {
-    init { require(contextTokenBudget == null || contextTokenBudget > 0) { "lab_invalid_context_budget" } }
+    init {
+        require(contextTokenBudget == null || contextTokenBudget > 0) { "lab_invalid_context_budget" }
+        require(testLanguageTag == null || testLanguageTag in setOf("pl-PL", "en-US")) {
+            "lab_invalid_language_override"
+        }
+    }
     /** Applied to future sessions only; existing workers retain their own snapshot. */
     @Volatile var contextTokenBudget: Int? = contextTokenBudget
         set(value) {
@@ -47,8 +54,13 @@ internal class AndroidSkillLabSessionFactory(
     }
     override fun open(presetId: String): SkillLabModelSession {
         val timingSnapshot = onTiming
-        val profile = AudioEngineProfileStore(context).load()
+        val savedProfile = AudioEngineProfileStore(context).load()
             ?: error(context.getString(R.string.lab_ui_missing_profile))
+        // An explicit USB Lab language applies to this isolated session only.
+        // Never change the persisted GSM/audio profile or owner preferences.
+        val profile = if (testLanguageTag != null) savedProfile.copy(languageTag = testLanguageTag)
+            else savedProfile
+        check(AudioEngineRegistry.incompatibility(profile) == null) { "lab_language_profile_incompatible" }
         val budgetSnapshot = contextTokenBudget ?: profile.generation.contextTokens ?: 4_096
         val store = SkillLabIsolatedTestStore.forContext(context)
         val library = store.loadSkillLibrary()

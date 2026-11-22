@@ -1,9 +1,27 @@
 from unittest import TestCase
 
-from aicall_tools.diagnostics.s22_lab_regression import CODE, measures
+from aicall_tools.diagnostics.s22_lab_regression import (
+    CODE, EN_TURN_TEXT, TURN_TEXT, measures,
+)
 
 
 class S22LabRegressionTest(TestCase):
+    def test_equivalent_six_turn_english_fixture_preserves_literal_code(self):
+        self.assertEqual(6, len(TURN_TEXT))
+        self.assertEqual(6, len(EN_TURN_TEXT))
+        self.assertIn(CODE, EN_TURN_TEXT[0])
+        self.assertIn("purple", EN_TURN_TEXT[2])
+        self.assertIn("Goodbye", EN_TURN_TEXT[5])
+
+    def test_english_recall_measures_code_and_latest_color(self):
+        result = measures(self.turns(f"{CODE}. The corrected color is purple."), "en-US")
+        self.assertTrue(result["exact_code_found"])
+        self.assertTrue(result["latest_color_found"])
+        bad = measures(self.turns(f"{CODE}0. Purple or green."), "en-US")
+        self.assertFalse(bad["exact_code_found"])
+        self.assertFalse(bad["latest_color_found"])
+
+
     def turns(self, recall):
         return [{"turn": number, "elapsed_ms": 15, "assistant": recall if number == 4 else "OK"}
                 for number in range(1, 5)]
