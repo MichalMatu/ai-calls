@@ -62,7 +62,7 @@ class AndroidEnglishModelDownloadRequestTest {
 
     @Test fun requestMissingEnglishUsOfflineRecognitionOnce() {
         assumeTrue("explicit_download_request_required",
-            instrumentation.arguments.getString("aicalls_download_en_us") == "approved")
+            InstrumentationRegistry.getArguments().getString("aicalls_download_en_us") == "approved")
         val phone = context.getSystemService(TelecomManager::class.java)
         assertFalse("model_download_requires_idle_phone", phone.isInCall)
         assertTrue("on_device_speech_service_unavailable",
