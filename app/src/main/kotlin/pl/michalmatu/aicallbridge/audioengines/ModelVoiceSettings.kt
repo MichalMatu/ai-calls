@@ -12,7 +12,6 @@ import android.telecom.TelecomManager
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
-import android.widget.RadioButton
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.ImageView
@@ -35,6 +34,7 @@ import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceGenerationDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceModelDialog
+import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceVoiceOptionsView
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceLanguageDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceInputDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
@@ -226,36 +226,17 @@ internal class ModelVoiceSettings(
 
     private fun renderVoicePicker() {
         val options = voiceOptions ?: return
-        options.removeAllViews()
         val picker = ModelVoiceSpeechPickerPresenter.voiceOptions(
             draft, engineIds, engineLabels, localVoices.map { it.name },
             voicesReady, activity.getString(R.string.mv_engine_missing))
-        options.addView(UiDesign.action(activity, activity.getString(R.string.mv_engine_value, picker.engineLabel)) {
-            voiceDialog?.dismiss(); showEnginePicker()
-        }, UiDesign.spaceAfter(activity, 12))
-        if (picker.loading) {
-            options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_loading_voices))); return
-        }
-        if (picker.missingVoice == ModelVoiceSpeechPickerPresenter.MissingVoice.PIPER)
-            options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_piper_voice_missing)))
-        else if (picker.missingVoice == ModelVoiceSpeechPickerPresenter.MissingVoice.GENERIC)
-            options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_voice_missing)))
-        picker.rows.forEach { choice ->
-            val id = choice.id
-            val row = LinearLayout(activity).apply { gravity = Gravity.CENTER_VERTICAL }
-            row.addView(RadioButton(activity).apply {
-                text = if (choice.position == 0) activity.getString(R.string.mv_voice_auto)
-                    else activity.getString(R.string.mv_local_voice, choice.position)
-                isChecked = choice.selected
-                minimumHeight = UiDesign.dp(activity, 52)
-                setOnClickListener { if (save(draft.copy(voiceId = id))) voiceDialog?.dismiss() }
-            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            row.addView(UiDesign.action(activity, "▶") { preview(id) }.apply {
-                contentDescription = activity.getString(R.string.eng_ui_preview)
-                setPadding(0, 0, 0, 0)
-            }, LinearLayout.LayoutParams(UiDesign.dp(activity, 48), UiDesign.dp(activity, 48)))
-            options.addView(row, UiDesign.spaceAfter(activity, 8))
-        }
+        ModelVoiceVoiceOptionsView(activity, options).render(
+            picker = picker,
+            onChooseEngine = { voiceDialog?.dismiss(); showEnginePicker() },
+            onSelectVoice = { id ->
+                if (save(draft.copy(voiceId = id))) voiceDialog?.dismiss()
+            },
+            onPreview = ::preview,
+        )
     }
 
     private fun showEnginePicker() {
