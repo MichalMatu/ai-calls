@@ -24,6 +24,7 @@ import java.util.concurrent.Executors
 import java.util.Locale
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePickerPresenter
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
@@ -322,19 +323,12 @@ internal class ModelVoiceSettings(
     }
 
     private fun showEnginePicker() {
-        val allowed = engineIds.zip(engineLabels).filter { pair ->
-            draft.languageTag != "en-US" || pair.first != PiperServiceContract.PACKAGE
-        }
-        val ids = allowed.map { it.first }.toMutableList()
-        val labels = allowed.map { it.second }.toMutableList()
-        if (draft.effectiveTtsEnginePackage !in ids) {
-            ids.add(draft.effectiveTtsEnginePackage); labels.add(activity.getString(R.string.mv_engine_missing))
-        }
-        val selected = ids.indexOf(draft.effectiveTtsEnginePackage)
+        val options = ModelVoiceEnginePickerPresenter.present(
+            engineIds, engineLabels, draft) { activity.getString(R.string.mv_engine_missing) }
         AlertDialog.Builder(activity).setTitle(R.string.mv_engine)
-            .setSingleChoiceItems(labels.toTypedArray(), selected) { dialog, position ->
+            .setSingleChoiceItems(options.labels.toTypedArray(), options.selected) { dialog, position ->
                 if (save(draft.copy(output = SpeechOutputId.ANDROID_TTS_PL,
-                        ttsEnginePackage = ids[position], voiceId = null))) {
+                        ttsEnginePackage = options.ids[position], voiceId = null))) {
                     dialog.dismiss(); showVoicePicker()
                 }
             }.setNegativeButton(android.R.string.cancel) { _, _ -> showVoicePicker() }.show()
