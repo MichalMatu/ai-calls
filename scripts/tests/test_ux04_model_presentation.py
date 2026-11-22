@@ -16,7 +16,9 @@ class ModelPresentationBoundaryTest(unittest.TestCase):
         self.assertIn("startForegroundService(Intent(this, LanguageModelTransferService::class.java)", activity)
         self.assertIn("R.string.mv_manage_files", activity)
         editor = (BASE / "audioengines/ModelVoiceSettings.kt").read_text()
-        self.assertIn("store.save(profile)", editor)
+        self.assertIn("ModelVoiceProfileController(store::load, store::save)", editor)
+        controller = (BASE / "presentation/modelvoice/ModelVoiceProfileController.kt").read_text()
+        self.assertIn("if (!save(next))", controller)
 
     def test_presenter_is_readonly_and_separates_installed_from_selected(self):
         presenter = (BASE / "textagent/LanguageModelStatusPresenter.kt").read_text()

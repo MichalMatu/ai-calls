@@ -24,7 +24,8 @@ COPY = [
      MAIN + "conversation/ConversationInputRoutingBackend.kt",
      MAIN + "campaign/AppointmentMvpConversationScenario.kt",
      MAIN + "campaign/ScenarioOutgoingConversationScenario.kt",
-     MAIN + "textagent/LanguageModelActivity.kt", MAIN + "textagent/Gemma4LiteRtTextBackend.kt"] + [
+     MAIN + "textagent/LanguageModelActivity.kt", MAIN + "textagent/Gemma4LiteRtTextBackend.kt",
+    MAIN + "presentation/modelvoice/ModelVoiceSpeechPickerPresenter.kt"] + [
     TEST + name + ".kt" for name in (
         "AndroidAudioEngineProfileStoreContractTest",
         "AndroidModelVoiceSettingsTest",
@@ -63,6 +64,14 @@ class AudioEngineQualityGateTest(unittest.TestCase):
                 any(expected in err for err in errors),
                 f"mutated source passed unexpectedly; errors={errors}",
             )
+
+    def test_advanced_parakeet_choices_cannot_be_promoted_to_basic(self):
+        self.check_mutation(
+            MAIN + "presentation/modelvoice/ModelVoiceSpeechPickerPresenter.kt",
+            "available.filter { !it.advanced }",
+            "available.filter { it.advanced }",
+            "Parakeet-advanced-choice",
+        )
 
     def test_parakeet_download_ui_must_use_foreground_service(self):
         self.check_mutation(

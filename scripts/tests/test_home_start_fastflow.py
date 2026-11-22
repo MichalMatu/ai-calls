@@ -13,7 +13,9 @@ class HomeFastFlowContract(unittest.TestCase):
         self.assertIn("EXTRA_NOTEBOOK_ONLY, true", home)
         self.assertIn("if (!notebookOnly)", tools)
         self.assertIn('tag = "tools-notebook-list"', tools)
-        self.assertIn("notebooks().size", home)
+        self.assertIn("AndroidHomeOverviewReader.read(this@MainActivity)", home)
+        overview = (CODE / "data/adapters/AndroidHomeOverviewReader.kt").read_text()
+        self.assertIn("notebooks().size", overview)
         self.assertNotIn("placeCall(", home)
         self.assertNotIn("ACTION_CALL", home)
 

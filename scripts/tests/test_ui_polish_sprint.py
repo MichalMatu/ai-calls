@@ -40,9 +40,12 @@ class UiPolishSprintContract(unittest.TestCase):
                       "confirmDiscard(", 'tag = "preparation-actions"'):
             self.assertIn(token,prep)
         for token in ("UiDesign.card", 'tag = "model-voice-compatibility-check"',
-                      "AudioEngineRegistry.incompatibility(profile)", "store.save(profile)",
-                      "private fun preview(voiceId:"):
+                      "ModelVoiceProfileController(store::load, store::save)",
+                      "profiles.select(profile)", "private fun preview(voiceId:"):
             self.assertIn(token,engine)
+        controller=(ROOT/"presentation/modelvoice/ModelVoiceProfileController.kt").read_text()
+        self.assertIn("AudioEngineRegistry::incompatibility",controller)
+        self.assertIn("if (!save(next))",controller)
         service=(ROOT/"audioengines/ParakeetModelTransferService.kt").read_text()
         models=(ROOT/"textagent/LanguageModelActivity.kt").read_text()
         self.assertIn("ParakeetModelDownloader(this)", service)

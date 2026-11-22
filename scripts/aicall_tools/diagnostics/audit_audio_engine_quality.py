@@ -39,6 +39,7 @@ def audit(root: Path) -> list[str]:
     model_ui = read(BASE + "textagent/LanguageModelActivity.kt")
     native = read(BASE + "textagent/Gemma4LiteRtTextBackend.kt")
     editor = read(AUDIO + "ModelVoiceSettings.kt")
+    input_presenter = read(BASE + "presentation/modelvoice/ModelVoiceSpeechPickerPresenter.kt")
     routing = read(BASE + "conversation/ConversationInputRoutingBackend.kt")
     for scenario in ("AppointmentMvpConversationScenario", "ScenarioOutgoingConversationScenario"):
         source = read(BASE + "campaign/" + scenario + ".kt")
@@ -103,7 +104,11 @@ def audit(root: Path) -> list[str]:
             r"context, systemInstruction, allowedActions, id", "selected-model-reaches-native-classifier")
     forbid("GemmaAudioDirectInputProvider", files["GemmaAudioDirectInputProvider"],
            r"\bEngine\s*\(", "second-native-model-for-audio")
-    require("ModelVoiceSettings", editor, r"inputs\.filter\s*\{\s*!it\.advanced\s*\}",
+    require("ModelVoiceSettings", editor,
+            r"ModelVoiceSpeechPickerPresenter\.inputOptions\(draft,\s*AudioEngineRegistry\.inputs\)",
+            "Parakeet-advanced-choice")
+    require("ModelVoiceSpeechPickerPresenter", input_presenter,
+            r"available\.filter\s*\{\s*!it\.advanced\s*\}\s*\+\s*available\.filter\s*\{\s*it\.advanced",
             "Parakeet-advanced-choice")
     forbid("AudioEngineProfile", profile[profile.index("val outputs"):profile.index("fun incompatibility")],
            r"AudioEngineChoice\(\"(?:KOKORO|POCKET_TTS|PIPER_PL)\"", "placeholder-output-choice")

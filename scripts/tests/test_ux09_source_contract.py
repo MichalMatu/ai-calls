@@ -48,11 +48,16 @@ class Ux09Contract(unittest.TestCase):
 
     def test_agent_summaries_are_read_off_ui_thread_without_private_values(self):
         text = read("ui/AgentAiHubActivity.kt")
-        for token in ("AndroidIdentityVault.create(applicationContext).availableFields().getOrThrow().size",
-                      "worker.execute", "token != generation", "skills_hub_summary"):
+        for token in ("worker.execute", "token != generation",
+                      "AndroidAgentHubOverviewReader(applicationContext).read()",
+                      "AgentHubSummaryFormatter"):
             self.assertIn(token, text)
-        self.assertNotIn("withPlaintext", text)
-        self.assertNotIn(".get(IdentityFieldId.", text)
+        reader = read("data/adapters/AndroidAgentHubOverviewReader.kt")
+        formatter = read("presentation/agent/AgentHubSummaryFormatter.kt")
+        self.assertIn("AndroidIdentityVault.create(applicationContext).availableFields().getOrThrow().size", reader)
+        self.assertIn("skills_hub_summary", formatter)
+        self.assertNotIn("withPlaintext", text + reader + formatter)
+        self.assertNotIn(".get(IdentityFieldId.", text + reader + formatter)
 
 if __name__ == "__main__":
     unittest.main()
