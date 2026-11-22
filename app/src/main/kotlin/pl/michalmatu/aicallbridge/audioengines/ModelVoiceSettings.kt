@@ -25,6 +25,7 @@ import java.util.Locale
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePickerPresenter
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
@@ -422,39 +423,39 @@ internal class ModelVoiceSettings(
             ?.let { ModelCompatibilityStamp.of(it, draft, audioMode) }
             ?.let { "$it:$audioMode:${draft.customModelId}" }
         val attemptMatches = lastAttempt == selectedAttempt
-        modelState.text = when {
-            downloading -> activity.getString(R.string.mv_download_progress,
+        val ui = ModelVoiceReadinessPresenter.present(ModelVoiceReadinessPresenter.Input(
+            modelInstalled = file?.isFile == true, downloading = downloading, checking = checking,
+            attemptMatches = attemptMatches, hasAttemptResult = checkResult != null,
+            verified = verified, requiresTextCheck = draft.dialogue.requiresTextCheck,
+            audioMode = audioMode, reasonCode = result.reason, transferBusy = transfer.busy,
+            importedModel = draft.dialogue == DialogueModelId.USER_LITERT, voicesReady = voicesReady,
+        ))
+        modelState.text = when (ui.modelLine) {
+            ModelVoiceReadinessPresenter.ModelLine.DOWNLOAD_PROGRESS -> activity.getString(
+                R.string.mv_download_progress,
                 (transfer.bytes * 100 / checkNotNull(LanguageModelCatalog[draft.dialogue].spec.expectedBytes)).toInt().coerceIn(0, 100))
-            checking && attemptMatches -> activity.getString(if (audioMode)
-                R.string.mv_checking_audio else R.string.mv_checking_model)
-            attemptMatches && checkResult != null && file?.isFile == true -> checkNotNull(checkResult)
-            file?.isFile == true -> activity.getString(when (ModelVerificationUi.status(
-                verified, draft.dialogue.requiresTextCheck, audioMode)) {
-                ModelVerificationStatus.VERIFIED_TEXT -> R.string.mv_verified_text
-                ModelVerificationStatus.VERIFIED_AUDIO -> R.string.mv_verified_audio
-                ModelVerificationStatus.REQUIRED_TEXT -> R.string.mv_compatibility_required
-                ModelVerificationStatus.REQUIRED_AUDIO -> R.string.mv_audio_unverified
-                ModelVerificationStatus.DOWNLOADED_UNVERIFIED -> R.string.mv_downloaded_unverified
-            })
-            else -> activity.getString(R.string.mv_model_missing_short)
+            ModelVoiceReadinessPresenter.ModelLine.CHECKING_AUDIO -> activity.getString(R.string.mv_checking_audio)
+            ModelVoiceReadinessPresenter.ModelLine.CHECKING_MODEL -> activity.getString(R.string.mv_checking_model)
+            ModelVoiceReadinessPresenter.ModelLine.ATTEMPT_RESULT -> checkNotNull(checkResult)
+            ModelVoiceReadinessPresenter.ModelLine.VERIFIED_TEXT -> activity.getString(R.string.mv_verified_text)
+            ModelVoiceReadinessPresenter.ModelLine.VERIFIED_AUDIO -> activity.getString(R.string.mv_verified_audio)
+            ModelVoiceReadinessPresenter.ModelLine.REQUIRED_TEXT -> activity.getString(R.string.mv_compatibility_required)
+            ModelVoiceReadinessPresenter.ModelLine.REQUIRED_AUDIO -> activity.getString(R.string.mv_audio_unverified)
+            ModelVoiceReadinessPresenter.ModelLine.DOWNLOADED_UNVERIFIED -> activity.getString(R.string.mv_downloaded_unverified)
+            ModelVoiceReadinessPresenter.ModelLine.MISSING -> activity.getString(R.string.mv_model_missing_short)
+            ModelVoiceReadinessPresenter.ModelLine.READINESS_REASON -> reason(activity, result.reason)
         }
-        val code = result.reason
-        val voiceProblem = code in setOf("tts_offline_voice_probe_required", "polish_offline_voice_missing", "selected_voice_missing")
-        val inputProblem = code?.startsWith("parakeet_") == true || code == "android_offline_stt_unavailable"
-        voiceIssue.text = if (voiceProblem) reason(activity, code) else ""
-        inputIssue.text = if (inputProblem) reason(activity, code) else ""
-        voiceIssue.visibility = if (voiceProblem) View.VISIBLE else View.GONE
-        inputIssue.visibility = if (inputProblem) View.VISIBLE else View.GONE
-        if (code != null && !verified && checkResult == null && !voiceProblem && !inputProblem &&
-            !checking && !downloading && file?.isFile == true)
-            modelState.text = reason(activity, code)
-        modelAction.visibility = if (downloading || file?.isFile != true) View.VISIBLE else View.GONE
-        modelAction.text = activity.getString(when {
-            downloading -> R.string.models_ui_cancel
-            draft.dialogue == DialogueModelId.USER_LITERT -> R.string.mv_manage_files
-            else -> R.string.models_ui_download
+        voiceIssue.text = if (ui.voiceProblem) reason(activity, result.reason) else ""
+        inputIssue.text = if (ui.inputProblem) reason(activity, result.reason) else ""
+        voiceIssue.visibility = if (ui.voiceProblem) View.VISIBLE else View.GONE
+        inputIssue.visibility = if (ui.inputProblem) View.VISIBLE else View.GONE
+        modelAction.visibility = if (ui.primaryVisible) View.VISIBLE else View.GONE
+        modelAction.text = activity.getString(when (ui.primaryAction) {
+            ModelVoiceReadinessPresenter.PrimaryAction.CANCEL -> R.string.models_ui_cancel
+            ModelVoiceReadinessPresenter.PrimaryAction.MANAGE_FILES -> R.string.mv_manage_files
+            ModelVoiceReadinessPresenter.PrimaryAction.DOWNLOAD -> R.string.models_ui_download
         })
-        modelAction.isEnabled = !transfer.busy || downloading
+        modelAction.isEnabled = ui.primaryEnabled
         if (active && !checking) {
             val imported = library.models().firstOrNull { it.id !in knownImports }
             if (imported != null) {
@@ -469,16 +470,15 @@ internal class ModelVoiceSettings(
                 if (needsAudio || needsText) verify(draft, needsAudio)
             }
         }
-        retry.visibility = if (ModelVerificationUi.checkVisible(file?.isFile == true, downloading))
-            View.VISIBLE else View.GONE
-        retry.isEnabled = !checking && (!audioMode || voicesReady)
-        retry.text = activity.getString(when {
-            checking -> R.string.mv_checking_short
-            audioMode && !voicesReady -> R.string.mv_loading_voices
-            audioMode && (verified || attemptMatches) -> R.string.mv_retry_audio
-            audioMode -> R.string.mv_check_audio
-            verified || attemptMatches -> R.string.mv_retry
-            else -> R.string.mv_check_compatibility
+        retry.visibility = if (ui.retryVisible) View.VISIBLE else View.GONE
+        retry.isEnabled = ui.retryEnabled
+        retry.text = activity.getString(when (ui.retryAction) {
+            ModelVoiceReadinessPresenter.RetryAction.CHECKING -> R.string.mv_checking_short
+            ModelVoiceReadinessPresenter.RetryAction.LOADING_VOICES -> R.string.mv_loading_voices
+            ModelVoiceReadinessPresenter.RetryAction.RETRY_AUDIO -> R.string.mv_retry_audio
+            ModelVoiceReadinessPresenter.RetryAction.CHECK_AUDIO -> R.string.mv_check_audio
+            ModelVoiceReadinessPresenter.RetryAction.RETRY -> R.string.mv_retry
+            ModelVoiceReadinessPresenter.RetryAction.CHECK_COMPATIBILITY -> R.string.mv_check_compatibility
         })
     }
 
