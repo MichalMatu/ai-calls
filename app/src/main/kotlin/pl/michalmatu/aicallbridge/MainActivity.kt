@@ -10,10 +10,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.campaign.AppOwnedCampaignService
+import pl.michalmatu.aicallbridge.data.adapters.AndroidHomeOverviewReader
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
-import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsController
-import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
-import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
 import pl.michalmatu.aicallbridge.ui.IncomingHomeSummary
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskWizardActivity
 import pl.michalmatu.aicallbridge.campaign.PhoneTasksActivity
@@ -23,7 +21,6 @@ import pl.michalmatu.aicallbridge.campaign.PhoneTaskScheduler
 import pl.michalmatu.aicallbridge.campaign.PhoneTaskLabels
 import pl.michalmatu.aicallbridge.campaign.CampaignLivePhase
 import pl.michalmatu.aicallbridge.conversation.ConversationChatFeed
-import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
 import pl.michalmatu.aicallbridge.ui.HomeActiveStatus
 import pl.michalmatu.aicallbridge.conversation.LiveConversationOverlay
@@ -200,34 +197,21 @@ class MainActivity : AppBaseActivity() {
         taskReading = true
         lastTaskRead = System.currentTimeMillis()
         PhoneTaskWork.io.execute {
-            val result = runCatching {
-                PhoneTaskWork.recover(this)
-                PhoneTaskWork.store(this).phoneTasks()
-            }
-            val notebookCount = runCatching {
-                AndroidConversationPreparationStore(applicationContext).notebooks().size
-            }
-            val incoming = runCatching {
-                val controller = IncomingAssistantSettingsController(applicationContext)
-                val policy = controller.current().getOrThrow()
-                val selectedSimPresent = policy.accountKey?.let { accountKey ->
-                    controller.selectedAccountIndex(controller.availableAccounts(), accountKey) >= 0
-                } ?: false
-                val hostReady = policy.mode == AnsweringMode.AI && selectedSimPresent &&
-                    GsmMediaTransportReadiness.isAvailable(applicationContext)
-                IncomingHomeSummary.resource(policy.mode, selectedSimPresent, hostReady)
-            }
+            val snapshot = AndroidHomeOverviewReader.read(this@MainActivity)
             runOnUiThread {
                 taskReading = false
                 if (isDestroyed) return@runOnUiThread
-                incomingSummary.text = getString(incoming.getOrDefault(R.string.home_incoming_read_error))
+                incomingSummary.text = getString(snapshot.incoming.fold(
+                    onSuccess = { readiness -> IncomingHomeSummary.resource(
+                        readiness.mode, readiness.selectedSimPresent, readiness.hostReady) },
+                    onFailure = { R.string.home_incoming_read_error }))
                 incomingDestination.contentDescription = getString(R.string.incoming_ui_title) +
                     ". " + incomingSummary.text.toString()
-                taskSummary.text = result.fold(
-                    onSuccess = { tasks -> resources.getQuantityString(
-                        R.plurals.home_task_count, tasks.size, tasks.size) },
+                taskSummary.text = snapshot.taskCount.fold(
+                    onSuccess = { count -> resources.getQuantityString(
+                        R.plurals.home_task_count, count, count) },
                     onFailure = { getString(R.string.home_count_unavailable) })
-                notebookSummary.text = notebookCount.fold(
+                notebookSummary.text = snapshot.notebookCount.fold(
                     onSuccess = { count -> resources.getQuantityString(
                         R.plurals.home_notebook_count, count, count) },
                     onFailure = { getString(R.string.home_count_unavailable) })
