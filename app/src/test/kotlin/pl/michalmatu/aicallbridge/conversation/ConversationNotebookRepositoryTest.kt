@@ -92,6 +92,51 @@ class ConversationNotebookRepositoryTest {
         assertEquals(1, repository().list().single().entries.size)
     }
 
+
+    @Test fun automaticNoteUpdatesOneEncryptedSessionEntryAndPreservesManualEntries() {
+        val records = mutableMapOf<String, String>()
+        val repo = ConversationNotebookRepository(
+            read = records::get, write = { k, v -> records[k] = v },
+            remove = { records.remove(it); Unit }, now = { 44L })
+        assertTrue(repo.upsertAutomatic("incoming-auto", "INCOMING", 1,
+            ConversationNoteProposal(ConversationNoteKind.NOTE, "Spotkanie w poniedziałek")))
+        assertTrue(repo.append("incoming-auto", "INCOMING", 2, plan))
+        assertTrue(repo.upsertAutomatic("incoming-auto", "INCOMING", 3,
+            ConversationNoteProposal(ConversationNoteKind.NOTE, "Korekta: spotkanie we wtorek")))
+        val reloaded = ConversationNotebookRepository(
+            read = records::get, write = { k, v -> records[k] = v },
+            remove = { records.remove(it); Unit }, now = { 44L }).list().single()
+        assertEquals(2, reloaded.entries.size)
+        val auto = reloaded.entries.single { it.id == "incoming-auto:auto" }
+        assertEquals(3, auto.turn)
+        assertEquals("Korekta: spotkanie we wtorek", auto.text)
+        assertTrue(reloaded.entries.any { it.id == "incoming-auto:2" })
+        assertTrue(repo.upsertAutomatic("incoming-auto", "INCOMING", 3,
+            ConversationNoteProposal(ConversationNoteKind.NOTE, auto.text)))
+        assertEquals(2, repo.list().single().entries.size)
+    }
+
+    @Test fun interruptedAutomaticRewriteKeepsPreviousEncryptedNoteAndCanRetry() {
+        val records = mutableMapOf<String, String>()
+        var reject = false
+        val repo = ConversationNotebookRepository(
+            read = records::get,
+            write = { key, value ->
+                if (reject && key == "notebook-call-v2-session-auto") error("write_failed")
+                records[key] = value
+            },
+            remove = { records.remove(it); Unit }, now = { 1L })
+        assertTrue(repo.upsertAutomatic("session-auto", "INCOMING", 1, note))
+        reject = true
+        assertTrue(runCatching {
+            repo.upsertAutomatic("session-auto", "INCOMING", 2, plan)
+        }.isFailure)
+        assertEquals("synthetic A", repo.list().single().entries.single().text)
+        reject = false
+        assertTrue(repo.upsertAutomatic("session-auto", "INCOMING", 2, plan))
+        assertEquals("proposed time", repo.list().single().entries.single().text)
+    }
+
     @Test fun filtersAndOrdersWithoutDecryptionOrAnyAndroidDependency() {
         val incoming = ConversationNotebook("incoming-x", "INCOMING",
             listOf(ConversationNotebookEntry("incoming-x:1", 1, 1000L,
