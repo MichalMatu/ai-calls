@@ -13,7 +13,6 @@ import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.ImageView
@@ -34,6 +33,8 @@ import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
 import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceGenerationDialog
+import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceLanguageDialog
+import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceInputDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
 
 /** Current saved choices. Pickers save immediately; readiness remains a separate native check. */
@@ -161,22 +162,10 @@ internal class ModelVoiceSettings(
     }
 
     private fun showLanguagePicker() {
-        val values = arrayOf("pl-PL", "en-US")
-        val labels = arrayOf(activity.getString(R.string.mv_speech_language_pl),
-            activity.getString(R.string.mv_speech_language_en))
-        val selected = values.indexOf(draft.languageTag)
-        AlertDialog.Builder(activity).setTitle(R.string.mv_speech_language)
-            .setSingleChoiceItems(labels, selected) { dialog, index ->
-                val target = values[index]
-                if (target == draft.languageTag) {
-                    dialog.dismiss()
-                } else {
-                    // English Parakeet, Gemma Audio and Polish Piper are unqualified.
-                    // Language selection resets only incompatible engine choices.
-                    val next = ModelVoiceSelectionPolicy.forLanguage(draft, target)
-                    if (save(next)) dialog.dismiss()
-                }
-            }.setNegativeButton(android.R.string.cancel, null).show()
+        ModelVoiceLanguageDialog(activity, draft.languageTag) { selected ->
+            if (selected == draft.languageTag) true
+            else save(ModelVoiceSelectionPolicy.forLanguage(draft, selected))
+        }.show()
     }
 
     private fun showModelPicker() {
@@ -210,26 +199,12 @@ internal class ModelVoiceSettings(
     })
 
     private fun showInputPicker() {
-        val group = RadioGroup(activity).apply {
-            val horizontal = UiDesign.dp(activity, 16)
-            val vertical = UiDesign.dp(activity, 8)
-            setPadding(horizontal, vertical, horizontal, vertical)
-        }
-        val dialog = AlertDialog.Builder(activity).setTitle(R.string.mv_input)
-            .setView(group).setNegativeButton(android.R.string.cancel, null).create()
-        val choices = ModelVoiceSpeechPickerPresenter.inputOptions(draft, AudioEngineRegistry.inputs)
-        for (choice in choices) {
-            if (choice.showAdvancedHeading)
-                group.addView(UiDesign.caption(activity, activity.getString(R.string.mv_additional)))
-            group.addView(RadioButton(activity).apply {
-                text = inputTitle(choice.input); tag = choice.input.name
-                minimumHeight = UiDesign.dp(activity, 52)
-                isChecked = choice.selected
-                isEnabled = choice.enabled
-                setOnClickListener { if (selectInput(choice.input)) dialog.dismiss() }
-            })
-        }
-        dialog.show()
+        ModelVoiceInputDialog(
+            activity,
+            ModelVoiceSpeechPickerPresenter.inputOptions(draft, AudioEngineRegistry.inputs),
+            ::inputTitle,
+            ::selectInput,
+        ).show()
     }
 
     private fun showVoicePicker() {
