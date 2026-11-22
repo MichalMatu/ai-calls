@@ -26,6 +26,7 @@ import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceSpeechPickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceTtsAsyncState
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
@@ -254,18 +255,16 @@ internal class ModelVoiceSettings(
         }
         val dialog = AlertDialog.Builder(activity).setTitle(R.string.mv_input)
             .setView(group).setNegativeButton(android.R.string.cancel, null).create()
-        val choices = AudioEngineRegistry.inputs.filter { !it.advanced } +
-            AudioEngineRegistry.inputs.filter { it.advanced }
+        val choices = ModelVoiceSpeechPickerPresenter.inputOptions(draft, AudioEngineRegistry.inputs)
         for (choice in choices) {
-            if (choice.advanced) group.addView(UiDesign.caption(activity, activity.getString(R.string.mv_additional)))
-            val input = SpeechInputId.valueOf(choice.id)
+            if (choice.showAdvancedHeading)
+                group.addView(UiDesign.caption(activity, activity.getString(R.string.mv_additional)))
             group.addView(RadioButton(activity).apply {
-                text = inputTitle(input); tag = choice.id
+                text = inputTitle(choice.input); tag = choice.input.name
                 minimumHeight = UiDesign.dp(activity, 52)
-                isChecked = draft.input == input
-                isEnabled = (draft.languageTag != "en-US" || input == SpeechInputId.ANDROID_STT) &&
-                    (input != SpeechInputId.GEMMA_AUDIO_DIRECT || AudioEngineRegistry.supportsAudio(draft))
-                setOnClickListener { if (selectInput(input)) dialog.dismiss() }
+                isChecked = choice.selected
+                isEnabled = choice.enabled
+                setOnClickListener { if (selectInput(choice.input)) dialog.dismiss() }
             })
         }
         dialog.show()
@@ -292,24 +291,26 @@ internal class ModelVoiceSettings(
     private fun renderVoicePicker() {
         val options = voiceOptions ?: return
         options.removeAllViews()
-        val current = draft.effectiveTtsEnginePackage
-        val engineLabel = engineLabels.getOrNull(engineIds.indexOf(current)) ?: activity.getString(R.string.mv_engine_missing)
-        options.addView(UiDesign.action(activity, activity.getString(R.string.mv_engine_value, engineLabel)) {
+        val picker = ModelVoiceSpeechPickerPresenter.voiceOptions(
+            draft, engineIds, engineLabels, localVoices.map { it.name },
+            voicesReady, activity.getString(R.string.mv_engine_missing))
+        options.addView(UiDesign.action(activity, activity.getString(R.string.mv_engine_value, picker.engineLabel)) {
             voiceDialog?.dismiss(); showEnginePicker()
         }, UiDesign.spaceAfter(activity, 12))
-        if (!voicesReady) {
+        if (picker.loading) {
             options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_loading_voices))); return
         }
-        val ids = listOf<String?>(null) + localVoices.map { it.name }
-        val labels = listOf(activity.getString(R.string.mv_voice_auto)) +
-            localVoices.indices.map { activity.getString(R.string.mv_local_voice, it + 1) }
-        if (localVoices.isEmpty()) options.addView(UiDesign.caption(activity, activity.getString(
-            if (draft.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE)
-                R.string.mv_piper_voice_missing else R.string.mv_voice_missing)))
-        ids.forEachIndexed { index, id ->
+        if (picker.missingVoice == ModelVoiceSpeechPickerPresenter.MissingVoice.PIPER)
+            options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_piper_voice_missing)))
+        else if (picker.missingVoice == ModelVoiceSpeechPickerPresenter.MissingVoice.GENERIC)
+            options.addView(UiDesign.caption(activity, activity.getString(R.string.mv_voice_missing)))
+        picker.rows.forEach { choice ->
+            val id = choice.id
             val row = LinearLayout(activity).apply { gravity = Gravity.CENTER_VERTICAL }
             row.addView(RadioButton(activity).apply {
-                text = labels[index]; isChecked = draft.voiceId == id
+                text = if (choice.position == 0) activity.getString(R.string.mv_voice_auto)
+                    else activity.getString(R.string.mv_local_voice, choice.position)
+                isChecked = choice.selected
                 minimumHeight = UiDesign.dp(activity, 52)
                 setOnClickListener { if (save(draft.copy(voiceId = id))) voiceDialog?.dismiss() }
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
