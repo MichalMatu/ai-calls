@@ -26,6 +26,7 @@ import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceTtsAsyncState
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
@@ -49,17 +50,15 @@ internal class ModelVoiceSettings(
     private var checking = false
     private var lastAttempt: String? = null
     private var checkResult: String? = null
-    private var voiceGeneration = 0
+    private val voiceState = ModelVoiceTtsAsyncState()
     private var tts: TextToSpeech? = null
-    private var voicesReady = false
+    private val voicesReady: Boolean get() = voiceState.voicesReady
     private var localVoices = emptyList<Voice>()
     private val voiceWorker = Executors.newSingleThreadExecutor { task ->
         Thread(task, "model-voice-inventory").apply { isDaemon = true }
     }
     private var engineIds = listOf<String?>(null)
     private var engineLabels = listOf(activity.getString(R.string.mv_system_engine))
-    private var previewWhenReady = false
-    private var pendingPreviewVoice: String? = null
     private var voiceDialog: AlertDialog? = null
     private var voiceOptions: LinearLayout? = null
     private val knownImports = UserLiteRtModelStore(activity).models().map { it.id }.toMutableSet()
@@ -140,8 +139,7 @@ internal class ModelVoiceSettings(
                 tts?.stop()
                 probe.close(); checking = false; lastAttempt = null; checkResult = null
                 if (result.engineChanged) {
-                    previewWhenReady = false
-                    pendingPreviewVoice = null
+                    voiceState.onEngineChanged()
                     if (active) loadVoices()
                 }
                 refresh(); changed()
@@ -336,9 +334,8 @@ internal class ModelVoiceSettings(
     }
 
     private fun loadVoices() {
-        val generation = ++voiceGeneration
+        val generation = voiceState.beginLoad()
         val language = Locale.forLanguageTag(draft.languageTag).language
-        voicesReady = false
         localVoices = emptyList()
         tts?.shutdown(); tts = null
         renderVoicePicker()
@@ -346,11 +343,11 @@ internal class ModelVoiceSettings(
         val holder = arrayOfNulls<TextToSpeech>(1)
         val initialized = TextToSpeech.OnInitListener { result -> activity.mainExecutor.execute {
             val engine = holder[0] ?: return@execute
-            if (generation != voiceGeneration || activity.isDestroyed || activity.isFinishing) {
+            if (!voiceState.accepts(generation) || activity.isDestroyed || activity.isFinishing) {
                 engine.shutdown(); return@execute
             }
             if (result != TextToSpeech.SUCCESS) {
-                engine.shutdown(); tts = null; voicesReady = true; previewWhenReady = false
+                engine.shutdown(); tts = null; voiceState.markReady(); voiceState.cancelPreview()
                 voiceIssue.text = activity.getString(R.string.mv_voice_missing)
                 renderVoicePicker(); refresh(); return@execute
             }
@@ -371,8 +368,8 @@ internal class ModelVoiceSettings(
                     Triple(installed, voices, engine.defaultEngine)
                 }.getOrNull()
                 activity.mainExecutor.execute ready@{
-                    if (generation != voiceGeneration || activity.isDestroyed || activity.isFinishing) return@ready
-                    voicesReady = true
+                    if (!voiceState.accepts(generation) || activity.isDestroyed || activity.isFinishing) return@ready
+                    voiceState.markReady()
                     localVoices = inventory?.second.orEmpty()
                     if (inventory == null) voiceIssue.text = activity.getString(R.string.mv_voice_missing)
                     else {
@@ -386,7 +383,7 @@ internal class ModelVoiceSettings(
                     }
                     renderVoicePicker()
                     refresh()
-                    if (previewWhenReady) { previewWhenReady = false; preview(pendingPreviewVoice) }
+                    voiceState.takeQueuedPreview()?.let { preview(it.voiceId) }
                 }
             }
         } }
@@ -556,7 +553,7 @@ internal class ModelVoiceSettings(
         }
         val engine = tts
         if (engine == null || !voicesReady) {
-            previewWhenReady = true; pendingPreviewVoice = voiceId
+            voiceState.queuePreview(voiceId)
             if (engine == null) loadVoices()
             return
         }
@@ -584,7 +581,7 @@ internal class ModelVoiceSettings(
     }
     fun resume() { active = true; syncSavedProfile(); loadVoices(); refresh() }
     fun pause() {
-        active = false; previewWhenReady = false
+        active = false; voiceState.cancelPreview()
         if (checking) {
             // Keep the stamp of the interrupted attempt so its explanatory
             // state stays visible after the activity resumes. No PASS stored.
@@ -592,7 +589,7 @@ internal class ModelVoiceSettings(
         }
         probe.close(); checking = false; tts?.stop(); voiceDialog?.dismiss()
     }
-    override fun close() { pause(); ++voiceGeneration; tts?.shutdown(); tts = null; voiceWorker.shutdownNow() }
+    override fun close() { pause(); voiceState.invalidate(); tts?.shutdown(); tts = null; voiceWorker.shutdownNow() }
 
     companion object {
         const val COMPAT_PHONE_STATE_REQUEST = 8112
