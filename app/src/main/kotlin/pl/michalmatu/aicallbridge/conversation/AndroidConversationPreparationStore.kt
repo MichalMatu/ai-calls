@@ -205,6 +205,12 @@ internal class AndroidConversationPreparationStore(
         notebookRepository.append(sessionId, direction, turn, proposal)
     }
 
+    fun upsertAutomaticNote(sessionId: String, direction: String, turn: Int,
+        proposal: pl.michalmatu.aicallbridge.conversationtools.ConversationNoteProposal,
+    ): Boolean = synchronized(LOCK) {
+        notebookRepository.upsertAutomatic(sessionId, direction, turn, proposal)
+    }
+
     /** Only invoke after explicit user confirmation. */
     fun deleteNotebook(sessionId: String): Boolean = synchronized(LOCK) {
         notebookRepository.delete(sessionId)

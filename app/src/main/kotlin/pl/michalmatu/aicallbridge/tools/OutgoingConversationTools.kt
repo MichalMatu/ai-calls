@@ -23,5 +23,8 @@ internal fun createOutgoingConversationTools(
         override fun saveNote(turn: Int, proposal: ConversationNoteProposal): Boolean =
             hooks.authorized() && AndroidConversationPreparationStore(context).appendNote(
                 hooks.sessionId, "OUTGOING", turn, proposal)
+        override fun saveAutomaticNote(turn: Int, proposal: ConversationNoteProposal): Boolean =
+            hooks.authorized() && AndroidConversationPreparationStore(context).upsertAutomaticNote(
+                hooks.sessionId, "OUTGOING", turn, proposal)
     })
 }

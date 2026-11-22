@@ -62,6 +62,27 @@ internal object ConversationNotebookPolicy {
             library.conversations.filterNot { it.sessionId == sessionId } + updated)
     }
 
+    /** One evolving, session-scoped note; retries and corrections replace the same ID. */
+    fun upsertAutomatic(
+        library: ConversationNotebookLibrary, sessionId: String, direction: String,
+        turn: Int, proposal: ConversationNoteProposal, timestampMs: Long,
+    ): ConversationNotebookLibrary {
+        require(library.schema == 1 && validSession(sessionId, direction, turn)) {
+            "notebook_scope_invalid"
+        }
+        val found = library.conversations.singleOrNull { it.sessionId == sessionId }
+        require(found == null || found.direction == direction) { "notebook_direction_mismatch" }
+        val id = sessionId + ":auto"
+        val existing = found?.entries?.singleOrNull { it.id == id }
+        if (existing != null && existing.kind == proposal.kind && existing.text == proposal.content)
+            return library
+        val entry = ConversationNotebookEntry(id, turn, timestampMs, proposal.kind, proposal.content)
+        val updated = (found ?: ConversationNotebook(sessionId, direction, emptyList()))
+            .copy(entries = found?.entries.orEmpty().filterNot { it.id == id } + entry)
+        return library.copy(conversations =
+            library.conversations.filterNot { it.sessionId == sessionId } + updated)
+    }
+
     fun validate(library: ConversationNotebookLibrary): ConversationNotebookLibrary {
         require(library.schema == 1 &&
             library.conversations.map { it.sessionId }.distinct().size ==
@@ -74,8 +95,8 @@ internal object ConversationNotebookPolicy {
                 "notebook_entries_duplicate"
             }
             book.entries.forEach { e ->
-                require(e.id == book.sessionId + ":" + e.turn && e.turn > 0 &&
-                    e.timestampMs > 0L) { "notebook_entry_invalid" }
+                require((e.id == book.sessionId + ":" + e.turn || e.id == book.sessionId + ":auto") &&
+                    e.turn > 0 && e.timestampMs > 0L) { "notebook_entry_invalid" }
                 ConversationNoteProposal(e.kind, e.text)
             }
         }

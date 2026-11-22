@@ -30,11 +30,14 @@ interface ConversationToolPort {
     fun requestEndCall(turn: Int): Boolean
     /** Synchronous, durable, session-scoped write. No network or external side effect. */
     fun saveNote(turn: Int, proposal: ConversationNoteProposal): Boolean = false
+    /** Write one evolving note for the current authorized call; never changes another call. */
+    fun saveAutomaticNote(turn: Int, proposal: ConversationNoteProposal): Boolean = false
 }
 
 /** Model-independent execution and observable outcomes; the port retains actual platform ownership. */
 class ConversationToolExecutor(private val port: ConversationToolPort) {
     private val results = mutableMapOf<Pair<Int, ConversationToolId>, ConversationToolResult>()
+    private val automaticResults = mutableMapOf<Int, Pair<ConversationNoteProposal, ConversationToolResult>>()
     @Volatile var diagnosticDeliveryFailed: Boolean = false
         private set
 
@@ -45,6 +48,49 @@ class ConversationToolExecutor(private val port: ConversationToolPort) {
     @Synchronized fun execute(turn: Int, tool: ConversationToolId,
         proposal: ConversationNoteProposal?, emit: (ConversationToolEvent) -> Unit): ConversationToolResult =
         executeScoped(turn, tool, proposal, emit, appIdleClosure = false)
+
+    /** Model-independent, privacy-gated, per-call upsert. May accompany END_CALL.
+     * Emitted events use the established SAVE_NOTE identity without call-control authority.
+     */
+    @Synchronized fun saveAutomaticNote(turn: Int, proposal: ConversationNoteProposal,
+        emit: (ConversationToolEvent) -> Unit): ConversationToolResult {
+        require(turn > 0)
+        fun publish(stage: ConversationToolStage, result: ConversationToolResult? = null) {
+            try {
+                emit(ConversationToolEvent(turn, ConversationToolId.SAVE_NOTE, stage, result))
+            } catch (_: Exception) { diagnosticDeliveryFailed = true }
+        }
+        automaticResults[turn]?.let { (previous, result) ->
+            if (previous != proposal) return ConversationToolResult.FAILED
+            publish(ConversationToolStage.REUSED, result)
+            return result
+        }
+        publish(ConversationToolStage.REQUESTED)
+        val result = try {
+            when {
+                !port.enabled(ConversationToolId.SAVE_NOTE) -> ConversationToolResult.DISABLED
+                !port.authorized(ConversationToolId.SAVE_NOTE) -> ConversationToolResult.NOT_AUTHORIZED
+                else -> {
+                    publish(ConversationToolStage.VALIDATED)
+                    when {
+                        !port.enabled(ConversationToolId.SAVE_NOTE) -> ConversationToolResult.DISABLED
+                        !port.authorized(ConversationToolId.SAVE_NOTE) -> ConversationToolResult.NOT_AUTHORIZED
+                        port.saveAutomaticNote(turn, proposal) -> ConversationToolResult.REQUESTED
+                        else -> ConversationToolResult.FAILED
+                    }
+                }
+            }
+        } catch (_: Exception) { ConversationToolResult.FAILED }
+        automaticResults[turn] = proposal to result
+        publish(when (result) {
+            ConversationToolResult.REQUESTED -> ConversationToolStage.DISPATCHED
+            ConversationToolResult.FAILED -> ConversationToolStage.FAILED
+            else -> ConversationToolStage.REJECTED
+        }, result)
+        if (result == ConversationToolResult.REQUESTED)
+            publish(ConversationToolStage.CONFIRMED, result)
+        return result
+    }
 
     /** Only the app runtime can arm idle closure; the exact authorized Call must still own it. */
     @Synchronized fun executeIdleClose(turn: Int,

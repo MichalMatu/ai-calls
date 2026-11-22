@@ -49,6 +49,29 @@ internal class ConversationNotebookRepository(
         return true
     }
 
+    /** Update a single automatic note instead of appending contradictory corrections.
+     * Index-first preserves recoverability across an interrupted AtomicFile write.
+     */
+    fun upsertAutomatic(sessionId: String, direction: String, turn: Int,
+        proposal: pl.michalmatu.aicallbridge.conversationtools.ConversationNoteProposal,
+    ): Boolean {
+        require(ConversationNotebookPolicy.validSession(sessionId, direction, turn)) {
+            "notebook_scope_invalid"
+        }
+        migrateLegacy()
+        val index = readIndex()
+        val current = readBook(sessionId)
+            ?: ConversationNotebook(sessionId, direction, emptyList())
+        val previous = ConversationNotebookLibrary(conversations = listOf(current))
+        val next = ConversationNotebookPolicy.upsertAutomatic(
+            previous, sessionId, direction, turn, proposal, now())
+        if (sessionId !in index.sessionIds) {
+            writeIndex(index.copy(sessionIds = index.sessionIds + sessionId))
+        }
+        if (next != previous) writeBook(next.conversations.single())
+        return true
+    }
+
     /** User-confirmed deletion. First overwrite with an empty encrypted record, then deindex. */
     fun delete(sessionId: String): Boolean {
         require(ConversationNotebookPolicy.validSession(sessionId, "INCOMING", 1)) {

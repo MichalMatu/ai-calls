@@ -209,6 +209,11 @@ internal class AndroidIncomingAssistant(
                 return AndroidConversationPreparationStore(context).appendNote(
                     slot.notebookSessionId, "INCOMING", turn, proposal)
             }
+            override fun saveAutomaticNote(turn: Int, proposal: ConversationNoteProposal): Boolean {
+                if (!authorized(slot)) return false
+                return AndroidConversationPreparationStore(context).upsertAutomaticNote(
+                    slot.notebookSessionId, "INCOMING", turn, proposal)
+            }
         })
         try {
             slot.archiveGate.onRuntimeStart()
