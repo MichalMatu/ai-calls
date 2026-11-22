@@ -10,27 +10,16 @@ import android.widget.ScrollView
 import android.widget.TextView
 import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.R
-import pl.michalmatu.aicallbridge.conversation.AndroidConversationPreparationStore
-import pl.michalmatu.aicallbridge.conversation.ConversationPreparation
+import pl.michalmatu.aicallbridge.data.adapters.AndroidAgentHubOverviewReader
+import pl.michalmatu.aicallbridge.presentation.agent.AgentHubSummaryFormatter
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.conversation.ScenarioLibraryActivity
-import pl.michalmatu.aicallbridge.conversationcore.ScenarioCatalog
-import pl.michalmatu.aicallbridge.identity.AndroidIdentityVault
 import pl.michalmatu.aicallbridge.identity.IdentityVaultManagerActivity
 import pl.michalmatu.aicallbridge.tools.ConversationToolsActivity
-import pl.michalmatu.aicallbridge.tools.ConversationToolsSettingsController
 
 /** One Agent hub. Read-only summaries never grant access or mutate the call runtime. */
 class AgentAiHubActivity : AppBaseActivity() {
-    private data class SkillSummary(val toneVersion: Int, val customInstructions: Boolean)
-    private data class Snapshot(
-        val skills: Result<SkillSummary>,
-        val scenarios: Result<Pair<Int, Int>>,
-        val profiles: Result<Pair<Int, Int>>,
-        val vault: Result<Int>,
-        val tools: Result<Int>,
-    )
 
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
@@ -73,64 +62,14 @@ class AgentAiHubActivity : AppBaseActivity() {
         refreshReadOnly()
     }
 
-    private fun readSnapshot(): Snapshot {
-        // Keystore, legacy migration and the vault can perform disk/crypto work:
-        // they must never run on the Activity's main/UI thread.
-        val store = runCatching { AndroidConversationPreparationStore(applicationContext) }
-        val skills = store.mapCatching { source ->
-            source.loadSkillLibrary().let {
-                SkillSummary(it.receptionistToneVersion(), it.personalInstructions().isNotBlank())
-            }
-        }
-        val scenarios = store.mapCatching { source ->
-            ScenarioCatalog.templates.size to source.loadPersonalScenarios().items.size
-        }
-        val profiles = store.mapCatching { source ->
-            source.load(ConversationPreparation.OUTGOING_ID).dataFields.size to
-                source.load(ConversationPreparation.INCOMING_ID).dataFields.size
-        }
-        val vault = runCatching {
-            AndroidIdentityVault.create(applicationContext).availableFields().getOrThrow().size
-        }
-        val tools = runCatching {
-            ConversationToolsSettingsController(applicationContext).enabled().size
-        }
-        return Snapshot(skills, scenarios, profiles, vault, tools)
-    }
-
     private fun refreshReadOnly() {
         val token = ++generation
         worker.execute {
-            val snapshot = readSnapshot()
+            val snapshot = AndroidAgentHubOverviewReader(applicationContext).read()
             main.post {
                 if (token != generation || isFinishing || isDestroyed) return@post
-                val error = getString(R.string.ux07_agent_load_error)
-                val skillSummary = snapshot.skills.getOrNull()?.let { value ->
-                    val tone = getString(when (value.toneVersion) {
-                        1 -> R.string.skills_tone_natural
-                        2 -> R.string.skills_tone_formal
-                        else -> R.string.skills_hub_legacy_style
-                    })
-                    getString(R.string.skills_hub_summary, tone, getString(
-                        if (value.customInstructions) R.string.skills_hub_custom_on
-                        else R.string.skills_hub_custom_off))
-                } ?: error
-                val rendered = mapOf(
-                    "skills" to skillSummary,
-                    "scenarios" to (snapshot.scenarios.getOrNull()?.let {
-                        getString(R.string.ux07_agent_scenario_count, it.first, it.second)
-                    } ?: error),
-                    "profiles" to (snapshot.profiles.getOrNull()?.let {
-                        getString(R.string.ux07_agent_profile_count, it.first, it.second)
-                    } ?: error),
-                    "vault" to (snapshot.vault.getOrNull()?.let {
-                        if (it == 0) getString(R.string.ux09_agent_vault_empty)
-                        else getString(R.string.ux07_agent_vault_count, it)
-                    } ?: error),
-                    "tools" to (snapshot.tools.getOrNull()?.let {
-                        getString(R.string.ux07_agent_tools_count, it)
-                    } ?: error),
-                )
+                val rendered = AgentHubSummaryFormatter { id, args -> getString(id, *args) }
+                    .render(snapshot)
                 rendered.forEach { (key, value) ->
                     summaries[key]?.text = value
                     destinations[key]?.contentDescription = titles[key] + ". " + value
