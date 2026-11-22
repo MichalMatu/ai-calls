@@ -26,6 +26,7 @@ import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceVerificationController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceSpeechPickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceTtsAsyncState
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
@@ -48,9 +49,10 @@ internal class ModelVoiceSettings(
     val draft: AudioEngineProfile get() = profiles.draft
     private val probe = ModelCompatibilityProbe(activity)
     private var active = false
-    private var checking = false
-    private var lastAttempt: String? = null
-    private var checkResult: String? = null
+    private val verification = ModelVoiceVerificationController()
+    private val checking get() = verification.checking
+    private val lastAttempt get() = verification.lastAttempt
+    private val checkResult get() = verification.checkResult
     private val voiceState = ModelVoiceTtsAsyncState()
     private var tts: TextToSpeech? = null
     private val voicesReady: Boolean get() = voiceState.voicesReady
@@ -138,7 +140,7 @@ internal class ModelVoiceSettings(
             }
             is ModelVoiceProfileController.SaveResult.Saved -> {
                 tts?.stop()
-                probe.close(); checking = false; lastAttempt = null; checkResult = null
+                probe.close(); verification.reset()
                 if (result.engineChanged) {
                     voiceState.onEngineChanged()
                     if (active) loadVoices()
@@ -495,52 +497,46 @@ internal class ModelVoiceSettings(
         val file = runCatching { Gemma4LiteRtTextBackendFactory.modelFile(activity, profile) }.getOrNull() ?: return
         val stamp = ModelCompatibilityStamp.of(file, profile, audio) ?: return
         val attempt = "$stamp:$audio:${profile.customModelId}"
-        if (!force && lastAttempt == attempt) return
-        if (audio && !voicesReady) {
-            if (force) {
-                lastAttempt = attempt
-                checkResult = reason(activity, "tts_offline_voice_probe_required")
+        val decision = verification.begin(
+            attempt = attempt, force = force, audio = audio, voicesReady = voicesReady,
+            hasPhonePermission = {
+                activity.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) ==
+                    PackageManager.PERMISSION_GRANTED
+            },
+            canProbe = canProbe,
+            blockedMessage = { block ->
+                when (block) {
+                    ModelVoiceVerificationController.BlockedReason.VOICES_UNAVAILABLE ->
+                        reason(activity, "tts_offline_voice_probe_required")
+                    ModelVoiceVerificationController.BlockedReason.PHONE_PERMISSION ->
+                        activity.getString(R.string.mv_compatibility_phone_permission)
+                    ModelVoiceVerificationController.BlockedReason.CALL_UNSAFE ->
+                        activity.getString(R.string.mv_compatibility_blocked)
+                }
+            },
+        )
+        when (decision) {
+            ModelVoiceVerificationController.Decision.Skip -> return
+            is ModelVoiceVerificationController.Decision.Blocked -> {
+                if (decision.requestPermission) {
+                    // Grant alone never starts the native check: explicit second tap required.
+                    activity.requestPermissions(
+                        arrayOf(Manifest.permission.READ_PHONE_STATE), COMPAT_PHONE_STATE_REQUEST)
+                }
+                return
             }
-            return
+            ModelVoiceVerificationController.Decision.Start -> Unit
         }
-        // A manual check must NEVER silently fall back to the neutral
-        // "Downloaded / compatibility unverified" state when it was blocked.
-        // S8 Lab intentionally does not inherit the stable dialer's permissions.
-        if (activity.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
-            PackageManager.PERMISSION_GRANTED) {
-            if (force) {
-                lastAttempt = attempt
-                checkResult = activity.getString(R.string.mv_compatibility_phone_permission)
-                // Grant alone never authorizes native inference: second tap required.
-                activity.requestPermissions(
-                    arrayOf(Manifest.permission.READ_PHONE_STATE), COMPAT_PHONE_STATE_REQUEST)
-            }
-            return
-        }
-        if (!canProbe()) {
-            if (force) {
-                lastAttempt = attempt
-                checkResult = activity.getString(R.string.mv_compatibility_blocked)
-            }
-            return
-        }
-        lastAttempt = attempt
-        checking = true
-        checkResult = null
         modelState.text = activity.getString(if (audio) R.string.mv_checking_audio else R.string.mv_checking_model)
         try {
             probe.check(file, profile, audio) { error ->
-                checking = false
-                checkResult = if (error != null) reason(activity, error)
-                    else activity.getString(if (audio) R.string.mv_audio_check_passed else R.string.mv_model_check_passed)
+                verification.complete(if (error != null) reason(activity, error)
+                    else activity.getString(if (audio) R.string.mv_audio_check_passed else R.string.mv_model_check_passed))
                 refresh(); changed()
             }
         } catch (_: Throwable) {
-            // An unavailable native library / provider must not leave the
-            // check permanently running with an unverified generic label.
             probe.close()
-            checking = false
-            checkResult = reason(activity, "model_native_check_failed")
+            verification.complete(reason(activity, "model_native_check_failed"))
             refresh()
         }
     }
@@ -576,19 +572,15 @@ internal class ModelVoiceSettings(
     private fun notifyError(code: String) = Toast.makeText(activity, reason(activity, code), Toast.LENGTH_LONG).show()
     fun syncSavedProfile() {
         val change = profiles.pendingExternalChange() ?: return
-        probe.close(); checking = false; lastAttempt = null; checkResult = null
+        probe.close(); verification.reset()
         profiles.acceptExternalChange(change)
         if (change.engineChanged && active) loadVoices()
     }
     fun resume() { active = true; syncSavedProfile(); loadVoices(); refresh() }
     fun pause() {
         active = false; voiceState.cancelPreview()
-        if (checking) {
-            // Keep the stamp of the interrupted attempt so its explanatory
-            // state stays visible after the activity resumes. No PASS stored.
-            checkResult = activity.getString(R.string.mv_check_interrupted)
-        }
-        probe.close(); checking = false; tts?.stop(); voiceDialog?.dismiss()
+        verification.pause { activity.getString(R.string.mv_check_interrupted) }
+        probe.close(); tts?.stop(); voiceDialog?.dismiss()
     }
     override fun close() { pause(); voiceState.invalidate(); tts?.shutdown(); tts = null; voiceWorker.shutdownNow() }
 
